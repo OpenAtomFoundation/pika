@@ -6,14 +6,11 @@
 #include <unistd.h>
 #include "csapp.h"
 
-TickItem::TickItem(const char* str, int len) :
-    len_(len)
+TickItem::TickItem(int fd) :
+    fd_(fd)
 {
-    msg_ = (char *)malloc(sizeof(char) * len_);
-    memcpy(msg_, str, len_);
 }
 
 TickItem::~TickItem()
 {
-    free(msg_);
 }

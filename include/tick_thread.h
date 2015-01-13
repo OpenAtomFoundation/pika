@@ -52,7 +52,7 @@ private:
     /*
      * The TickItem queue is the fd queue, receive from master thread
      */
-    std::queue<TickItem *> conn_queue_;
+    std::queue<TickItem> conn_queue_;
 
     /*
      * The epoll handler

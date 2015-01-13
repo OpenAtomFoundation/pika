@@ -67,24 +67,25 @@ void TickThread::RunProcess()
     int nfds;
     TickFiredEvent *tfe = NULL;
     char bb[1];
-    TickItem *ti;
+    TickItem ti;
     for (;;) {
         nfds = tickEpoll_->TickPoll();
         tfe = tickEpoll_->firedevent();
         for (int i = 0; i < nfds; i++) {
-            if ((tfe + i)->mask_ & EPOLLIN) {
+            if ((tfe + i)->fd_ == notify_receive_fd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 read(notify_receive_fd_, bb, 1);
                 {
                 MutexLock l(&mutex_);
                 ti = conn_queue_.front();
                 conn_queue_.pop();
                 }
-                SendMessage(ti->msg(), ti->len());
-                /*
-                 * After consume the item, you need delete it
-                 */
-                delete(ti);
+                TickConn *tc = new TickConn(ti->fd());
+                tc->SetNonblock();
+                tickEpoll_->TickAddEvent(ti->fd(), EPOLLIN);
+                tc->set_thread(this);
                 LOG(WARNING) << "Sent one message to QBus";
+            } else if ((tfe + i)->mask_ & EPOLLIN) {
+
             }
         }
     }

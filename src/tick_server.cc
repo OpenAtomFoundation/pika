@@ -35,8 +35,7 @@ Status TickServer::SetBlockType(BlockType type)
 TickServer::TickServer()
 {
     // init sock
-    sockfd_ = socket(AF_INET, SOCK_DGRAM, 0);
-
+    sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
     memset(&servaddr_, 0, sizeof(servaddr_));
 
     port_ = g_tickConf->port();
@@ -45,6 +44,7 @@ TickServer::TickServer()
     servaddr_.sin_port = htons(port_);
 
     bind(sockfd_, (struct sockaddr *) &servaddr_, sizeof(servaddr_));
+    listen(sockfd_, 10);
 
     SetBlockType(kNonBlock);
 
@@ -83,88 +83,6 @@ void* TickServer::StartThread(void* arg)
     return NULL;
 }
 
-Status TickServer::TickReadHeader(rio_t *rio)
-{
-    Status s;
-    char buf[1024];
-    int32_t integer = 0;
-    ssize_t nread;
-    header_len_ = 0;
-    while (1) {
-        nread = rio_readnb(rio, buf, COMMAND_HEADER_LENGTH);
-        // log_info("nread %d", nread);
-        if (nread == -1) {
-            if ((errno == EAGAIN && !(flags_ & O_NONBLOCK)) || (errno == EINTR)) {
-                continue;
-            } else {
-                s = Status::IOError("Read command header error");
-                return s;
-            }
-        } else if (nread == 0){
-            return Status::Corruption("Connect has interrupt");
-        } else {
-            break;
-        }
-    }
-    memcpy((char *)(&integer), buf, sizeof(int32_t));
-    header_len_ = ntohl(integer);
-    return Status::OK();
-}
-
-
-Status TickServer::TickReadCode(rio_t *rio)
-{
-    Status s;
-    char buf[1024];
-    int32_t integer = 0;
-    ssize_t nread = 0;
-    r_opcode_ = 0;
-    while (1) {
-        nread = rio_readnb(rio, buf, COMMAND_CODE_LENGTH);
-        if (nread == -1) {
-            if ((errno == EAGAIN && !(flags_ & O_NONBLOCK)) || (errno == EINTR)) {
-                continue;
-            } else {
-                s = Status::IOError("Read command code error");
-                return s;
-            }
-        } else if (nread == 0){
-            return Status::Corruption("Connect has interrupt");
-        } else {
-            break;
-        }
-    }
-    memcpy((char *)(&integer), buf, sizeof(int32_t));
-    r_opcode_ = ntohl(integer);
-    return Status::OK();
-}
-
-Status TickServer::TickReadPacket(rio_t *rio)
-{
-    Status s;
-    int nread = 0;
-    if (header_len_ < 4) {
-        return Status::Corruption("The packet no integrity");
-    }
-    while (1) {
-        nread = rio_readnb(rio, (void *)(rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH), header_len_ - 4);
-        if (nread == -1) {
-            if ((errno == EAGAIN && !(flags_ & O_NONBLOCK)) || (errno == EINTR)) {
-                continue;
-            } else {
-                s = Status::IOError("Read data error");
-                return s;
-            }
-        } else if (nread == 0) {
-            return Status::Corruption("Connect has interrupt");
-        } else {
-            break;
-        }
-    }
-    rbuf_len_ = nread;
-    return Status::OK();
-}
-
 Status TickServer::BuildObuf()
 {
     uint32_t code_len = COMMAND_CODE_LENGTH + rbuf_len_;
@@ -183,38 +101,30 @@ void TickServer::RunProcess()
     int nfds;
     TickFiredEvent *tfe;
     Status s;
+    struct sockaddr_in cliaddr;
+    socklen_t clilen;
+    int fd, connfd;
     for (;;) {
         nfds = tickEpoll_->TickPoll();
         tfe = tickEpoll_->firedevent();
         for (int i = 0; i < nfds; i++) {
-            if (tfe->mask_ & EPOLLIN) {
-                rio_t rio;
-                rio_readinitb(&rio, sockfd_);
-                s = TickReadHeader(&rio);
-                if (!s.ok()) {
-                    LOG(ERROR) << s.ToString();
-                    continue;
-                }
-                s = TickReadCode(&rio);
-                if (!s.ok()) {
-                    LOG(ERROR) << s.ToString();
-                    continue;
-                }
-                s = TickReadPacket(&rio);
-                if (s.ok()) {
-                    std::queue<TickItem *> *q = &(tickThread_[last_thread_]->conn_queue_);
-                    BuildObuf();
-                    TickItem *ti = new TickItem(rbuf_, COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH + rbuf_len_);
-                    {
+            fd = (tfe + i)->fd_;
+            if (fd == sockfd_) {
+                connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
+                Setnonblocking(connfd);
+                tickEpoll_->TickAddEvent(connfd, EPOLLIN);
+            } else if ((tfe + i)->mask_ & EPOLLIN) {
+                std::queue<TickItem> *q = &(tickThread_[last_thread_]->conn_queue_);
+                TickItem ti((tfe + i)->fd_);
+                {
                     MutexLock l(&tickThread_[last_thread_]->mutex_);
                     q->push(ti);
-                    }
-                    write(tickThread_[last_thread_]->notify_send_fd(), "", 1);
-                    last_thread_++;
-                    last_thread_ %= TICK_THREAD_NUM;
-                } else {
-                    LOG(ERROR) << s.ToString();
                 }
+                write(tickThread_[last_thread_]->notify_send_fd(), "", 1);
+                last_thread_++;
+                last_thread_ %= TICK_THREAD_NUM;
+            } else if ((tfe + i)->mask_ & (EPOLLRDHUP | EPOLLERR | EPOLLHUP)) {
+                LOG(WARNING) << "Epoll timeout event";
             }
         }
     }
