@@ -16,6 +16,8 @@
 #include "xdebug.h"
 #include "tick_define.h"
 #include "status.h"
+#include "leveldb/db.h"
+#include "leveldb/write_batch.h"
 
 class TickThread;
 class TickEpoll;
@@ -31,10 +33,11 @@ public:
     static void* StartThread(void* arg);
 
 private:
+    
 
+    friend class TickConn;
     Status SetBlockType(BlockType type);
 
-    Status BuildObuf();
     /*
      * The udp server port and address
      */
@@ -48,6 +51,12 @@ private:
      */
     TickEpoll *tickEpoll_;
 
+    /*
+     * The leveldb handler
+     */
+    leveldb::DB *db_;
+
+    leveldb::Options options_;
 
     /*
      * Here we used auto poll to find the next work thread,
@@ -58,6 +67,8 @@ private:
      * This is the work threads
      */
     TickThread *tickThread_[TICK_THREAD_NUM];
+
+
 
     // No copying allowed
     TickServer(const TickServer&);

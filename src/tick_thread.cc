@@ -4,10 +4,10 @@
 #include "tick_epoll.h"
 #include "tick_define.h"
 #include "csapp.h"
-#include "tick_item.h"
 #include "tick_conf.h"
 #include <glog/logging.h>
 #include "status.h"
+#include "tick_conn.h"
 
 extern TickConf* g_tickConf;
 
@@ -68,24 +68,43 @@ void TickThread::RunProcess()
     TickFiredEvent *tfe = NULL;
     char bb[1];
     TickItem ti;
+    TickConn *inConn;
     for (;;) {
         nfds = tickEpoll_->TickPoll();
-        tfe = tickEpoll_->firedevent();
         for (int i = 0; i < nfds; i++) {
-            if ((tfe + i)->fd_ == notify_receive_fd_ && ((tfe + i)->mask_ & EPOLLIN)) {
+            tfe = (tickEpoll_->firedevent()) + i;
+            if (tfe->fd_ == notify_receive_fd_ && (tfe->mask_ & EPOLLIN)) {
                 read(notify_receive_fd_, bb, 1);
                 {
                 MutexLock l(&mutex_);
                 ti = conn_queue_.front();
                 conn_queue_.pop();
                 }
-                TickConn *tc = new TickConn(ti->fd());
+                TickConn *tc = new TickConn(ti.fd());
                 tc->SetNonblock();
-                tickEpoll_->TickAddEvent(ti->fd(), EPOLLIN);
-                tc->set_thread(this);
-                LOG(WARNING) << "Sent one message to QBus";
-            } else if ((tfe + i)->mask_ & EPOLLIN) {
+                conns_[ti.fd()] = tc;
 
+                tickEpoll_->TickAddEvent(ti.fd(), EPOLLIN);
+                log_info("receive one fd %d", ti.fd());
+                /*
+                 * tc->set_thread(this);
+                 */
+            }
+            if (tfe->mask_ & EPOLLIN) {
+                inConn = conns_[tfe->fd_];
+                if (inConn == NULL) {
+                    continue;
+                }
+                if (inConn->TickAReadHeader().ok()) {
+                    tickEpoll_->TickDelEvent(tfe->fd_);
+                }
+            }
+            if (tfe->mask_ & EPOLLOUT) {
+                inConn = conns_[tfe->fd_];
+                if (inConn == NULL) {
+                    continue;
+                }
+                inConn->DriveMachine();
             }
         }
     }

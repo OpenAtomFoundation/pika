@@ -19,12 +19,53 @@ enum BlockType {
     kNonBlock = 1,
 };
 
-enum EventStatus{
+enum EventStatus {
     kNone = 0,
     kReadable = 1,
     kWriteable = 2,
 };
 
+enum ConnStatus {
+    kHeader = 0,
+    kCode = 1,
+    kPacket = 2,
+    kComplete = 3,
+};
+
+enum CommandCode {
+    kSdkInvalidOperation = 512,
+    kSdkSet = 513,
+    kSdkSetRet = 514,
+    kSdkDelete = 515,
+    kSdkDeleteRet = 516,
+    kSdkGet = 518,
+    kSdkGetRet = 519,
+    kSdkMGet = 526,
+    kSdkMGetRet = 527,
+
+
+    // for hash 
+    kSdkHput = 530,
+    kSdkHputret = 531,
+    kSdkHget = 532,
+    kSdkHgetret = 533,
+    kSdkHdelete = 534,
+    kSdkHdeleteret = 535,
+    
+    //for list
+    kSdkLSize = 556,
+    kSdkLSizeRet = 557,
+    kSdkLGet  = 558,
+    kSdkLGetRet = 559,
+    kSdkLPut = 560,
+    kSdkLPutRet  = 561,
+    kSdkLPop  = 562,
+    kSdkLPopRet =  563,
+    kSdkLIndex  = 564,
+    kSdkLIndexRet = 565,
+    kSdkLRange  = 566,
+    kSdkLRangeRet  = 567,
+};
 /*
  * define the macro in tick_conf
  */

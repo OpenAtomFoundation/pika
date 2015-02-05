@@ -15,6 +15,7 @@
 
 class TickItem;
 class TickEpoll;
+class TickConn;
 
 class TickThread
 {
@@ -58,6 +59,8 @@ private:
      * The epoll handler
      */
     TickEpoll *tickEpoll_;
+
+    std::map<int, TickConn *> conns_;
 
 
     /*

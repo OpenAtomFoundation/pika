@@ -52,12 +52,16 @@ TickServer::TickServer()
     tickEpoll_ = new TickEpoll();
     tickEpoll_->TickAddEvent(sockfd_, EPOLLIN | EPOLLERR | EPOLLHUP);
 
-    // init the rbuf
-    rbuf_ = (char *)malloc(sizeof(char) * TICK_MAX_MESSAGE);
 
     last_thread_ = 0;
     for (int i = 0; i < TICK_THREAD_NUM; i++) {
         tickThread_[i] = new TickThread();
+    }
+
+    options_.create_if_missing = true;
+    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
+    if (!s.ok()) {
+        log_err("Open db failed");
     }
 
     // start the tickThread_ thread
@@ -72,7 +76,6 @@ TickServer::~TickServer()
     for (int i = 0; i < TICK_THREAD_NUM; i++) {
         delete(tickThread_[i]);
     }
-    free(rbuf_);
     delete(tickEpoll_);
     close(sockfd_);
 }
@@ -83,18 +86,6 @@ void* TickServer::StartThread(void* arg)
     return NULL;
 }
 
-Status TickServer::BuildObuf()
-{
-    uint32_t code_len = COMMAND_CODE_LENGTH + rbuf_len_;
-    uint32_t u;
-
-    u = htonl(code_len);
-    memcpy(rbuf_, &u, sizeof(uint32_t));
-    u = htonl(r_opcode_);
-    memcpy(rbuf_ + COMMAND_CODE_LENGTH, &u, sizeof(uint32_t));
-
-    return Status::OK();
-}
 
 void TickServer::RunProcess()
 {
@@ -109,13 +100,12 @@ void TickServer::RunProcess()
         tfe = tickEpoll_->firedevent();
         for (int i = 0; i < nfds; i++) {
             fd = (tfe + i)->fd_;
-            if (fd == sockfd_) {
+            if (fd == sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
-                Setnonblocking(connfd);
-                tickEpoll_->TickAddEvent(connfd, EPOLLIN);
-            } else if ((tfe + i)->mask_ & EPOLLIN) {
+                log_info("Accept new fd %d", connfd);
                 std::queue<TickItem> *q = &(tickThread_[last_thread_]->conn_queue_);
-                TickItem ti((tfe + i)->fd_);
+                log_info("Tfe mast happen");
+                TickItem ti(connfd);
                 {
                     MutexLock l(&tickThread_[last_thread_]->mutex_);
                     q->push(ti);

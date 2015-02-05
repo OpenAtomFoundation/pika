@@ -15,6 +15,7 @@ public:
     TickEpoll();
     ~TickEpoll();
     Status TickAddEvent(int fd, int mask);
+    Status TickDelEvent(int fd);
 
     int TickPoll();
 

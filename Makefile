@@ -9,17 +9,20 @@ OUTPUT = ./output
 INCLUDE_PATH = -I./include/ \
 			   -I./src/ \
 			   -I$(THIRD_PATH)/qbus/include/ \
-			   -I$(THIRD_PATH)/glog-0.3.3/src/
+			   -I$(THIRD_PATH)/glog-0.3.3/src/ \
+			   -I$(THIRD_PATH)/leveldb/include/ 
 
 LIB_PATH = -L./ \
 		   -L$(THIRD_PATH)/qbus/lib/ \
 		   -L$(THIRD_PATH)/glog-0.3.3/ \
-		   -L/usr/local/lib/
+		   -L/usr/local/lib/ \
+		   -L$(THIRD_PATH)/leveldb/
 
 
 LIBS = -lpthread \
 	   -lqbusclient \
-	   -lprotobuf
+	   -lprotobuf \
+	   -lleveldb
 
 DYNAMIC_LIBS = -lglog
 

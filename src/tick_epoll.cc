@@ -30,6 +30,17 @@ Status TickEpoll::TickAddEvent(int fd, int mask)
     return Status::OK();
 }
 
+Status TickEpoll::TickDelEvent(int fd)
+{
+    /*
+     * Kernel < 2.6.9 need a non null event point to EPOLL_CTL_DEL
+     */
+    struct epoll_event ee;
+    ee.data.fd = fd;
+
+    epoll_ctl(epfd_, EPOLL_CTL_DEL, fd, &ee);
+}
+
 int TickEpoll::TickPoll()
 {
     int retval, numevents = 0;
