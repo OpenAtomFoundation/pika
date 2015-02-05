@@ -1,0 +1,11 @@
+build_config.mk
+*.a
+*.o
+*.dylib*
+*.so
+*.so.*
+*_test
+db_bench
+lab/a.out
+libleveldb.dylib.1.9
+tags
