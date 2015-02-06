@@ -1,4 +1,4 @@
-pika
+Pika
 ====
 
 Pika is a simple nosql database.

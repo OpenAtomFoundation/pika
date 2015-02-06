@@ -40,6 +40,7 @@ all: $(OBJECT)
 	mkdir $(OUTPUT)/third
 	cp -r ./conf $(OUTPUT)/
 	cp $(OBJECT) $(OUTPUT)/bin/
+	cp -r ./third/ $(OUTPUT)/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
 
