@@ -59,7 +59,7 @@ void TickEpoll::TickDelEvent(int fd)
 int TickEpoll::TickPoll()
 {
     int retval, numevents = 0;
-    retval = epoll_wait(epfd_, events_, TICK_MAX_CLIENTS, timeout_);
+    retval = epoll_wait(epfd_, events_, TICK_MAX_CLIENTS, -1);
     if (retval > 0) {
         numevents = retval;
         for (int i = 0; i < numevents; i++) {
