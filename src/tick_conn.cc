@@ -55,11 +55,6 @@ Status TickConn::TickReadBuf()
     return s;
 }
 
-Status TickConn::TickWriteBuf()
-{
-    return Status::OK();
-}
-
 void TickConn::DriveMachine()
 {
 /*
@@ -72,21 +67,18 @@ void TickConn::DriveMachine()
  */
 }
 
-Status TickConn::TickGetRequest()
+void TickConn::TickGetRequest()
 {
     ssize_t nread = 0;
     nread = read(fd_, rbuf_ + rbuf_len_, TICK_MAX_MESSAGE);
-    /*
-     * log_info("read nread %d", nread);
-     */
     if (nread == -1) {
         if (errno == EAGAIN) {
             nread = 0;
         } else {
-            return Status::IOError("IO Error");
+            return ;
         }
     } else if (nread == 0) {
-        return Status::IOError("IO Error");
+        return ;
     }
 
     int32_t integer = 0;
@@ -146,7 +138,7 @@ Status TickConn::TickGetRequest()
                     cur_pos_ = 0;
                     rbuf_len_ = 0;
                 }
-                return Status::OK();
+                return 0;
                 break;
 
             /*
@@ -159,10 +151,7 @@ Status TickConn::TickGetRequest()
                 break;
             }
         }
-    } else {
-        return Status::IOError("IO Error");
     }
-    return Status::OK();
 }
 
 int TickConn::TickSendReply()
