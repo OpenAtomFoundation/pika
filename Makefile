@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function
+CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG1__ -fPIC -Wno-unused-function
 OBJECT = tick
 SRC_DIR = ./src
 THIRD_PATH = ./third/
@@ -8,19 +8,16 @@ OUTPUT = ./output
 
 INCLUDE_PATH = -I./include/ \
 			   -I./src/ \
-			   -I$(THIRD_PATH)/qbus/include/ \
 			   -I$(THIRD_PATH)/glog-0.3.3/src/ \
 			   -I$(THIRD_PATH)/leveldb/include/ 
 
 LIB_PATH = -L./ \
-		   -L$(THIRD_PATH)/qbus/lib/ \
 		   -L$(THIRD_PATH)/glog-0.3.3/ \
 		   -L/usr/local/lib/ \
 		   -L$(THIRD_PATH)/leveldb/
 
 
 LIBS = -lpthread \
-	   -lqbusclient \
 	   -lprotobuf \
 	   -lleveldb
 
@@ -43,7 +40,6 @@ all: $(OBJECT)
 	mkdir $(OUTPUT)/third
 	cp -r ./conf $(OUTPUT)/
 	cp $(OBJECT) $(OUTPUT)/bin/
-	cp -r $(THIRD_PATH)/qbus/ $(OUTPUT)/third/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
 

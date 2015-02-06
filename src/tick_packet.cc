@@ -29,3 +29,9 @@ Status SetBufferParse(const int32_t opcode, const char *rbuf, const int32_t rbuf
     }
     return s;
 }
+
+void SetBufferBuild(bool status, SdkSetRet *sdkSetRet)
+{
+    sdkSetRet->set_opcode(kSdkSetRet);
+    sdkSetRet->set_status(status);
+}

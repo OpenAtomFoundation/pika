@@ -30,6 +30,8 @@ enum ConnStatus {
     kCode = 1,
     kPacket = 2,
     kComplete = 3,
+    kBuildObuf = 4,
+    kWriteObuf = 5,
 };
 
 enum CommandCode {

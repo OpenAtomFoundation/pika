@@ -27,39 +27,15 @@ TickThread::TickThread()
     notify_send_fd_ = fds[1];
     tickEpoll_->TickAddEvent(notify_receive_fd_, EPOLLIN | EPOLLERR | EPOLLHUP);
 
-    /*
-     * initial the qbus client
-     */
-    qbus_cluster_ = g_tickConf->qbus_cluster();
-    qbus_conf_path_ = g_tickConf->qbus_conf_path();
-    qbus_topic_ = g_tickConf->qbus_topic();
-    producer_ = KafkaProducer::getInstance(qbus_cluster_, qbus_conf_path_, false);
-    if (producer_ == NULL) {
-        LOG(FATAL) << "KafkaProducer getInstance error";
-    }
-
-    producer_->setSendTimeout(5);
-    producer_->setRecvTimeout(2);
-    producer_->setConnMax(4);
 }
 
 TickThread::~TickThread()
 {
-    producer_ = NULL;
     delete(tickEpoll_);
     mutex_.Unlock();
     close(notify_send_fd_);
     close(notify_receive_fd_);
 }
-
-bool TickThread::SendMessage(const char *msg, int32_t len)
-{
-    std::vector<std::string> msgs(1, std::string(msg, len));
-    std::string errstr("");
-    bool ret = producer_->send(msgs, qbus_topic_, errstr, KafkaConstDef::MESSAGE_RANDOM_SEND);
-    return ret;
-}
-
 
 void TickThread::RunProcess()
 {
@@ -71,8 +47,10 @@ void TickThread::RunProcess()
     TickConn *inConn;
     for (;;) {
         nfds = tickEpoll_->TickPoll();
+        // log_info("nfds %d", nfds);
         for (int i = 0; i < nfds; i++) {
             tfe = (tickEpoll_->firedevent()) + i;
+            // log_info("tfe->fd_ %d tfe->mask_ %d", tfe->fd_, tfe->mask_);
             if (tfe->fd_ == notify_receive_fd_ && (tfe->mask_ & EPOLLIN)) {
                 read(notify_receive_fd_, bb, 1);
                 {
@@ -90,21 +68,34 @@ void TickThread::RunProcess()
                  * tc->set_thread(this);
                  */
             }
-            if (tfe->mask_ & EPOLLIN) {
+            if (tfe->mask_ & kReadable) {
                 inConn = conns_[tfe->fd_];
+                // log_info("come if readable %d", (inConn == NULL));
                 if (inConn == NULL) {
                     continue;
                 }
-                if (inConn->TickAReadHeader().ok()) {
-                    tickEpoll_->TickDelEvent(tfe->fd_);
+                if (inConn->TickGetRequest().ok()) {
+                    // log_info("GetRequest ok fd %d", tfe->fd_);
+                    /*
+                     * tickEpoll_->TickDelEvent(tfe->fd_);
+                     */
+                    tickEpoll_->TickModEvent(tfe->fd_, 0, EPOLLOUT);
                 }
             }
-            if (tfe->mask_ & EPOLLOUT) {
+            // log_info("tfe mask %d %d %d", tfe->mask_, EPOLLIN, EPOLLOUT);
+            if (tfe->mask_ & kWriteable) {
+                log_info("Come in the EPOLLOUT branch");
                 inConn = conns_[tfe->fd_];
                 if (inConn == NULL) {
                     continue;
                 }
-                inConn->DriveMachine();
+                if (inConn->TickSendReply() == 0) {
+                    log_info("SendReply ok");
+                    /*
+                     * tickEpoll_->TickDelEvent(tfe->fd_);
+                     */
+                    tickEpoll_->TickModEvent(tfe->fd_, 0, EPOLLIN);
+                }
             }
         }
     }

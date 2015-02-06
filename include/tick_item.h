@@ -9,9 +9,7 @@ class TickItem
 public:
     TickItem() {};
     TickItem(int fd);
-    /*
-     * ~TickItem();
-     */
+    ~TickItem();
 
     int fd() { return fd_; }
 

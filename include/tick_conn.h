@@ -18,7 +18,8 @@ public:
     Status TickReadBuf();
     Status TickWriteBuf();
     void DriveMachine();
-    Status TickAReadHeader();
+    Status TickGetRequest();
+    int TickSendReply();
 
 private:
 
@@ -32,7 +33,7 @@ private:
     Status TickReadPacket(rio_t *rio);
 
 
-    Status BuildObuf();
+    Status BuildObuf(int32_t opcode, const int packet_len);
     /*
      * The Variable need by read the buf,
      * We allocate the memory when we start the server
@@ -43,10 +44,11 @@ private:
     int32_t cur_pos_;
     int32_t rbuf_len_;
 
-    ConnStatus connStatus;
+    ConnStatus connStatus_;
 
     char* wbuf_;
     int32_t wbuf_len_;
+    int32_t wbuf_pos_;
     TickThread *thread_;
 };
 

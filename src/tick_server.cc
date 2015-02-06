@@ -104,7 +104,7 @@ void TickServer::RunProcess()
                 connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
                 log_info("Accept new fd %d", connfd);
                 std::queue<TickItem> *q = &(tickThread_[last_thread_]->conn_queue_);
-                log_info("Tfe mast happen");
+                log_info("Tfe must happen");
                 TickItem ti(connfd);
                 {
                     MutexLock l(&tickThread_[last_thread_]->mutex_);

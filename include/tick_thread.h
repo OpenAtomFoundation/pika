@@ -6,9 +6,10 @@
 #include <pthread.h>
 #include <sys/epoll.h>
 #include <queue>
+#include <map>
+
 #include "port.h"
 #include "tick_item.h"
-#include "Qbus.h"
 #include "status.h"
 #include "csapp.h"
 
@@ -38,13 +39,6 @@ private:
     friend class TickServer;
 
     /*
-     * Send msg to qbus
-     */
-    bool SendMessage(const char *msg, int32_t len);
-
-
-
-    /*
      * These two fd receive the notify from master thread
      */
     int notify_receive_fd_;
@@ -61,15 +55,6 @@ private:
     TickEpoll *tickEpoll_;
 
     std::map<int, TickConn *> conns_;
-
-
-    /*
-     * The QBus Client handler
-     */
-    const char *qbus_cluster_;
-    const char *qbus_conf_path_;
-    std::string qbus_topic_;
-    KafkaProducer *producer_;
 
 
     port::Mutex mutex_;

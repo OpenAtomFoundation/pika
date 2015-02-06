@@ -1,5 +1,5 @@
-#ifndef __TICK_H__
-#define __TICK_H__
+#ifndef __TICK_SERVER_H__
+#define __TICK_SERVER_H__
 
 #include <stdio.h>
 #include <sys/epoll.h>
@@ -21,6 +21,7 @@
 
 class TickThread;
 class TickEpoll;
+class TickConn;
 
 class TickServer
 {
@@ -33,8 +34,6 @@ public:
     static void* StartThread(void* arg);
 
 private:
-    
-
     friend class TickConn;
     Status SetBlockType(BlockType type);
 

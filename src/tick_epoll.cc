@@ -25,19 +25,34 @@ Status TickEpoll::TickAddEvent(int fd, int mask)
 {
     struct epoll_event ee;
     ee.data.fd = fd;
+    log_info("TickAddEvent mask %d", mask);
     ee.events = mask;
     epoll_ctl(epfd_, EPOLL_CTL_ADD, fd, &ee);
     return Status::OK();
 }
 
-Status TickEpoll::TickDelEvent(int fd)
+
+Status TickEpoll::TickModEvent(int fd, int oMask, int mask)
+{
+    log_info("TickModEvent mask %d %d", fd, (oMask | mask));
+    struct epoll_event ee;
+    ee.data.u64 = 0;
+    ee.data.fd = fd;
+    ee.events = (oMask | mask);
+    if (epoll_ctl(epfd_, EPOLL_CTL_MOD, fd, &ee) == -1) {
+        log_info("Epoll ctl error");
+        return Status::Corruption("epollCtl error");
+    }
+    return Status::OK();
+}
+
+void TickEpoll::TickDelEvent(int fd)
 {
     /*
      * Kernel < 2.6.9 need a non null event point to EPOLL_CTL_DEL
      */
     struct epoll_event ee;
     ee.data.fd = fd;
-
     epoll_ctl(epfd_, EPOLL_CTL_DEL, fd, &ee);
 }
 

@@ -15,7 +15,8 @@ public:
     TickEpoll();
     ~TickEpoll();
     Status TickAddEvent(int fd, int mask);
-    Status TickDelEvent(int fd);
+    void TickDelEvent(int fd);
+    Status TickModEvent(int fd, int oMask, int mask);
 
     int TickPoll();
 
