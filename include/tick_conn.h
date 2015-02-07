@@ -17,7 +17,7 @@ public:
     bool SetNonblock();
     Status TickReadBuf();
     void DriveMachine();
-    void TickGetRequest();
+    int TickGetRequest();
     int TickSendReply();
 
 private:

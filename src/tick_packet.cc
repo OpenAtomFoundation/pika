@@ -1,7 +1,7 @@
 #include "tick_packet.h"
 #include "tick_define.h"
 
-Status SetBufferParse(const int32_t opcode, const char *rbuf, const int32_t rbuf_len, std::string *key, std::string *value)
+Status SetParse(const int32_t opcode, const char *rbuf, const int32_t rbuf_len, std::string *key, std::string *value)
 {
     Status s;
     if (opcode == kSdkInvalidOperation) {
@@ -30,8 +30,42 @@ Status SetBufferParse(const int32_t opcode, const char *rbuf, const int32_t rbuf
     return s;
 }
 
-void SetBufferBuild(bool status, SdkSetRet *sdkSetRet)
+void SetRetBuild(bool status, SdkSetRet *sdkSetRet)
 {
     sdkSetRet->set_opcode(kSdkSetRet);
     sdkSetRet->set_status(status);
+}
+
+Status GetParse(const int32_t opcode, const char *rbuf, const int32_t rbuf_len, std::string *key)
+{
+    Status s;
+    if (opcode == kSdkInvalidOperation) {
+        SdkInvalidOperation sdkInvalidOperation;
+        if (sdkInvalidOperation.ParseFromArray(rbuf, rbuf_len)) {
+            s = Status::Corruption("Parse invalid operation error");
+            return s;
+        }
+        if (sdkInvalidOperation.what() == 1003) {
+            return Status::NotFound("Can't not found the key");
+        }
+        return Status::InvalidArgument("Invalid operation");
+    } else {
+        SdkGet sdkGet;
+        if (!sdkGet.ParseFromArray(rbuf, rbuf_len)) {
+            s = Status::Corruption("Parse error");
+            return s;
+        }
+        if (sdkGet.opcode() == kSdkGet) {
+            key->assign(sdkGet.key().data(), sdkGet.key().size());
+        } else {
+            s = Status::IOError("Get error");
+        }
+    }
+    return s;
+}
+
+void GetRetBuild(std::string &value, SdkGetRet *sdkGetRet)
+{
+    sdkGetRet->set_opcode(kSdkGetRet);
+    sdkGetRet->set_value(value);
 }

@@ -74,7 +74,7 @@ void TickThread::RunProcess()
                 if (inConn == NULL) {
                     continue;
                 }
-                if (inConn->TickGetRequest().ok()) {
+                if (inConn->TickGetRequest() == 0) {
                     // log_info("GetRequest ok fd %d", tfe->fd_);
                     /*
                      * tickEpoll_->TickDelEvent(tfe->fd_);

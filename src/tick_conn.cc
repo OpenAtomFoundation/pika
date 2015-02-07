@@ -67,7 +67,7 @@ void TickConn::DriveMachine()
  */
 }
 
-void TickConn::TickGetRequest()
+int TickConn::TickGetRequest()
 {
     ssize_t nread = 0;
     nread = read(fd_, rbuf_ + rbuf_len_, TICK_MAX_MESSAGE);
@@ -75,10 +75,10 @@ void TickConn::TickGetRequest()
         if (errno == EAGAIN) {
             nread = 0;
         } else {
-            return ;
+            return -1;
         }
     } else if (nread == 0) {
-        return ;
+        return -1;
     }
 
     int32_t integer = 0;
@@ -86,7 +86,8 @@ void TickConn::TickGetRequest()
     std::string *key;
     std::string *value;
     SdkSetRet sdkSetRet;
-    int packet_len;
+    SdkGetRet sdkGetRet;
+    int packet_len = TICK_MAX_MESSAGE;
     if (nread) {
         rbuf_len_ += nread;
         while (flag) {
@@ -121,23 +122,38 @@ void TickConn::TickGetRequest()
                 }
                 break;
             case kComplete:
-                key = new std::string();
-                value = new std::string();
-                SetBufferParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, key, value);
-
-                // printf("%s %s\n", key->c_str(), value->c_str());
-                g_tickServer->db_->Put(leveldb::WriteOptions(), (*key), (*value));
-                SetBufferBuild(true, &sdkSetRet);
-                packet_len = TICK_MAX_MESSAGE;
-                sdkSetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
-                delete(key);
-                delete(value);
-                BuildObuf(kSdkSetRet, sdkSetRet.ByteSize());
-                connStatus_ = kHeader;
-                if (cur_pos_ == rbuf_len_) {
-                    cur_pos_ = 0;
-                    rbuf_len_ = 0;
+                if (r_opcode_ == kSdkSet) {
+                    key = new std::string();
+                    value = new std::string();
+                    SetParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, key, value);
+                    // printf("%s %s\n", key->c_str(), value->c_str());
+                    g_tickServer->db_->Put(leveldb::WriteOptions(), (*key), (*value));
+                    SetRetBuild(true, &sdkSetRet);
+                    sdkSetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
+                    delete(key);
+                    delete(value);
+                    BuildObuf(kSdkSetRet, sdkSetRet.ByteSize());
+                    connStatus_ = kHeader;
+                    if (cur_pos_ == rbuf_len_) {
+                        cur_pos_ = 0;
+                        rbuf_len_ = 0;
+                    }
+                } else if (r_opcode_ == kSdkGet) {
+                    key = new std::string();
+                    GetParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, key);
+                    std::string getRes;
+                    g_tickServer->db_->Get(leveldb::ReadOptions(), (*key), &getRes);
+                    GetRetBuild(getRes, &sdkGetRet);
+                    sdkGetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
+                    delete(key);
+                    BuildObuf(kSdkGetRet, sdkGetRet.ByteSize());
+                    connStatus_ = kHeader;
+                    if (cur_pos_ == rbuf_len_) {
+                        cur_pos_ = 0;
+                        rbuf_len_ = 0;
+                    }
                 }
+
                 return 0;
                 break;
 
@@ -152,6 +168,7 @@ void TickConn::TickGetRequest()
             }
         }
     }
+    return -1;
 }
 
 int TickConn::TickSendReply()
