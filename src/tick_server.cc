@@ -54,7 +54,7 @@ TickServer::TickServer()
 
 
     last_thread_ = 0;
-    for (int i = 0; i < TICK_THREAD_NUM; i++) {
+    for (int i = 0; i < g_tickConf->thread_num(); i++) {
         tickThread_[i] = new TickThread();
     }
 
@@ -65,7 +65,7 @@ TickServer::TickServer()
     }
 
     // start the tickThread_ thread
-    for (int i = 0; i < TICK_THREAD_NUM; i++) {
+    for (int i = 0; i < g_tickConf->thread_num(); i++) {
         pthread_create(&(tickThread_[i]->thread_id_), NULL, &(TickServer::StartThread), tickThread_[i]);
     }
 

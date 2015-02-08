@@ -27,7 +27,10 @@ Status TickEpoll::TickAddEvent(int fd, int mask)
     ee.data.fd = fd;
     log_info("TickAddEvent mask %d", mask);
     ee.events = mask;
-    epoll_ctl(epfd_, EPOLL_CTL_ADD, fd, &ee);
+    if (epoll_ctl(epfd_, EPOLL_CTL_ADD, fd, &ee) == -1) {
+        log_info("Epoll add error");
+        return Status::Corruption("epollAdd error");
+    }
     return Status::OK();
 }
 
@@ -59,23 +62,24 @@ void TickEpoll::TickDelEvent(int fd)
 int TickEpoll::TickPoll()
 {
     int retval, numevents = 0;
-    retval = epoll_wait(epfd_, events_, TICK_MAX_CLIENTS, -1);
+    retval = epoll_wait(epfd_, events_, TICK_MAX_CLIENTS, 500);
     if (retval > 0) {
         numevents = retval;
         for (int i = 0; i < numevents; i++) {
             int mask = 0;
             firedevent_[i].fd_ = (events_ + i)->data.fd;
+            log_info("events + i events %d", (events_ + i)->events);
             if ((events_ + i)->events & EPOLLIN) {
-                mask |= kReadable;
+                mask |= EPOLLIN;
             }
             if ((events_ + i)->events & EPOLLOUT) {
-                mask |= kWriteable;
+                mask |= EPOLLOUT;
             }
             if ((events_ + i)->events & EPOLLERR) {
-                mask |= kWriteable;
+                mask |= EPOLLERR;
             }
             if ((events_ + i)->events & EPOLLHUP) {
-                mask |= kWriteable;
+                mask |= EPOLLHUP;
             }
             firedevent_[i].mask_ = mask;
         }

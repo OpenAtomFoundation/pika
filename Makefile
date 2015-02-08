@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG1__ -fPIC -Wno-unused-function
+CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function
 OBJECT = tick
 SRC_DIR = ./src
 THIRD_PATH = ./third/
