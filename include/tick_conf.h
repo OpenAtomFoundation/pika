@@ -18,6 +18,7 @@ public:
 
 private:
     int port_;
+    int hb_port_;
     int thread_num_;
     char log_path_[TICK_WORD_SIZE];
     int log_level_;
