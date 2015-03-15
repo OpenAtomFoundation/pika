@@ -1165,7 +1165,8 @@ void protobuf_AssignDesc_bada_5fsdk_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(SdkLRangeRet));
   HbSend_descriptor_ = file->message_type(50);
-  static const int HbSend_offsets_[2] = {
+  static const int HbSend_offsets_[3] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSend, opcode_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSend, host_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSend, port_),
   };
@@ -1181,7 +1182,8 @@ void protobuf_AssignDesc_bada_5fsdk_2eproto() {
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(HbSend));
   HbSendRet_descriptor_ = file->message_type(51);
-  static const int HbSendRet_offsets_[1] = {
+  static const int HbSendRet_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSendRet, opcode_),
     GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSendRet, status_),
   };
   HbSendRet_reflection_ =
@@ -1547,8 +1549,9 @@ void protobuf_AddDesc_bada_5fsdk_2eproto() {
     "\n\005table\030\002 \002(\014\022\014\n\004name\030\003 \002(\014\022\014\n\004from\030\004 \002("
     "\004\022\n\n\002to\030\005 \002(\004\022\023\n\013frontorback\030\006 \002(\005\"-\n\014Sd"
     "kLRangeRet\022\016\n\006opcode\030\001 \002(\005\022\r\n\005value\030\002 \003("
-    "\014\"$\n\006HbSend\022\014\n\004host\030\001 \002(\014\022\014\n\004port\030\002 \002(\005\""
-    "\033\n\tHbSendRet\022\016\n\006status\030\001 \002(\010", 3828);
+    "\014\"4\n\006HbSend\022\016\n\006opcode\030\001 \002(\005\022\014\n\004host\030\002 \002("
+    "\014\022\014\n\004port\030\003 \002(\005\"+\n\tHbSendRet\022\016\n\006opcode\030\001"
+    " \002(\005\022\016\n\006status\030\002 \002(\010", 3860);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "bada_sdk.proto", &protobuf_RegisterTypes);
   SdkInvalidOperation::default_instance_ = new SdkInvalidOperation();
@@ -18991,6 +18994,7 @@ void SdkLRangeRet::Swap(SdkLRangeRet* other) {
 // ===================================================================
 
 #ifndef _MSC_VER
+const int HbSend::kOpcodeFieldNumber;
 const int HbSend::kHostFieldNumber;
 const int HbSend::kPortFieldNumber;
 #endif  // !_MSC_VER
@@ -19011,6 +19015,7 @@ HbSend::HbSend(const HbSend& from)
 
 void HbSend::SharedCtor() {
   _cached_size_ = 0;
+  opcode_ = 0;
   host_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
   port_ = 0;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -19051,6 +19056,7 @@ HbSend* HbSend::New() const {
 
 void HbSend::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    opcode_ = 0;
     if (has_host()) {
       if (host_ != &::google::protobuf::internal::kEmptyString) {
         host_->clear();
@@ -19068,21 +19074,37 @@ bool HbSend::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required bytes host = 1;
+      // required int32 opcode = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &opcode_)));
+          set_has_opcode();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(18)) goto parse_host;
+        break;
+      }
+
+      // required bytes host = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+         parse_host:
           DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
                 input, this->mutable_host()));
         } else {
           goto handle_uninterpreted;
         }
-        if (input->ExpectTag(16)) goto parse_port;
+        if (input->ExpectTag(24)) goto parse_port;
         break;
       }
 
-      // required int32 port = 2;
-      case 2: {
+      // required int32 port = 3;
+      case 3: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
          parse_port:
@@ -19115,15 +19137,20 @@ bool HbSend::MergePartialFromCodedStream(
 
 void HbSend::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required bytes host = 1;
-  if (has_host()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBytes(
-      1, this->host(), output);
+  // required int32 opcode = 1;
+  if (has_opcode()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->opcode(), output);
   }
 
-  // required int32 port = 2;
+  // required bytes host = 2;
+  if (has_host()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      2, this->host(), output);
+  }
+
+  // required int32 port = 3;
   if (has_port()) {
-    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->port(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(3, this->port(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -19134,16 +19161,21 @@ void HbSend::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* HbSend::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required bytes host = 1;
+  // required int32 opcode = 1;
+  if (has_opcode()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->opcode(), target);
+  }
+
+  // required bytes host = 2;
   if (has_host()) {
     target =
       ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
-        1, this->host(), target);
+        2, this->host(), target);
   }
 
-  // required int32 port = 2;
+  // required int32 port = 3;
   if (has_port()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->port(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(3, this->port(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -19157,14 +19189,21 @@ int HbSend::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required bytes host = 1;
+    // required int32 opcode = 1;
+    if (has_opcode()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->opcode());
+    }
+
+    // required bytes host = 2;
     if (has_host()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::BytesSize(
           this->host());
     }
 
-    // required int32 port = 2;
+    // required int32 port = 3;
     if (has_port()) {
       total_size += 1 +
         ::google::protobuf::internal::WireFormatLite::Int32Size(
@@ -19198,6 +19237,9 @@ void HbSend::MergeFrom(const ::google::protobuf::Message& from) {
 void HbSend::MergeFrom(const HbSend& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_opcode()) {
+      set_opcode(from.opcode());
+    }
     if (from.has_host()) {
       set_host(from.host());
     }
@@ -19221,13 +19263,14 @@ void HbSend::CopyFrom(const HbSend& from) {
 }
 
 bool HbSend::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
+  if ((_has_bits_[0] & 0x00000007) != 0x00000007) return false;
 
   return true;
 }
 
 void HbSend::Swap(HbSend* other) {
   if (other != this) {
+    std::swap(opcode_, other->opcode_);
     std::swap(host_, other->host_);
     std::swap(port_, other->port_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
@@ -19248,6 +19291,7 @@ void HbSend::Swap(HbSend* other) {
 // ===================================================================
 
 #ifndef _MSC_VER
+const int HbSendRet::kOpcodeFieldNumber;
 const int HbSendRet::kStatusFieldNumber;
 #endif  // !_MSC_VER
 
@@ -19267,6 +19311,7 @@ HbSendRet::HbSendRet(const HbSendRet& from)
 
 void HbSendRet::SharedCtor() {
   _cached_size_ = 0;
+  opcode_ = 0;
   status_ = false;
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
 }
@@ -19303,6 +19348,7 @@ HbSendRet* HbSendRet::New() const {
 
 void HbSendRet::Clear() {
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    opcode_ = 0;
     status_ = false;
   }
   ::memset(_has_bits_, 0, sizeof(_has_bits_));
@@ -19315,10 +19361,26 @@ bool HbSendRet::MergePartialFromCodedStream(
   ::google::protobuf::uint32 tag;
   while ((tag = input->ReadTag()) != 0) {
     switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
-      // required bool status = 1;
+      // required int32 opcode = 1;
       case 1: {
         if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
             ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &opcode_)));
+          set_has_opcode();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(16)) goto parse_status;
+        break;
+      }
+
+      // required bool status = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_status:
           DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
                    bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
                  input, &status_)));
@@ -19348,9 +19410,14 @@ bool HbSendRet::MergePartialFromCodedStream(
 
 void HbSendRet::SerializeWithCachedSizes(
     ::google::protobuf::io::CodedOutputStream* output) const {
-  // required bool status = 1;
+  // required int32 opcode = 1;
+  if (has_opcode()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(1, this->opcode(), output);
+  }
+
+  // required bool status = 2;
   if (has_status()) {
-    ::google::protobuf::internal::WireFormatLite::WriteBool(1, this->status(), output);
+    ::google::protobuf::internal::WireFormatLite::WriteBool(2, this->status(), output);
   }
 
   if (!unknown_fields().empty()) {
@@ -19361,9 +19428,14 @@ void HbSendRet::SerializeWithCachedSizes(
 
 ::google::protobuf::uint8* HbSendRet::SerializeWithCachedSizesToArray(
     ::google::protobuf::uint8* target) const {
-  // required bool status = 1;
+  // required int32 opcode = 1;
+  if (has_opcode()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(1, this->opcode(), target);
+  }
+
+  // required bool status = 2;
   if (has_status()) {
-    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(1, this->status(), target);
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(2, this->status(), target);
   }
 
   if (!unknown_fields().empty()) {
@@ -19377,7 +19449,14 @@ int HbSendRet::ByteSize() const {
   int total_size = 0;
 
   if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
-    // required bool status = 1;
+    // required int32 opcode = 1;
+    if (has_opcode()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->opcode());
+    }
+
+    // required bool status = 2;
     if (has_status()) {
       total_size += 1 + 1;
     }
@@ -19409,6 +19488,9 @@ void HbSendRet::MergeFrom(const ::google::protobuf::Message& from) {
 void HbSendRet::MergeFrom(const HbSendRet& from) {
   GOOGLE_CHECK_NE(&from, this);
   if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_opcode()) {
+      set_opcode(from.opcode());
+    }
     if (from.has_status()) {
       set_status(from.status());
     }
@@ -19429,13 +19511,14 @@ void HbSendRet::CopyFrom(const HbSendRet& from) {
 }
 
 bool HbSendRet::IsInitialized() const {
-  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
 
   return true;
 }
 
 void HbSendRet::Swap(HbSendRet* other) {
   if (other != this) {
+    std::swap(opcode_, other->opcode_);
     std::swap(status_, other->status_);
     std::swap(_has_bits_[0], other->_has_bits_[0]);
     _unknown_fields_.Swap(&other->_unknown_fields_);

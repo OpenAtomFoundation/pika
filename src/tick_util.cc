@@ -3,7 +3,6 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include "tick_define.h"
 
 
 int Setnonblocking(int sockfd)
