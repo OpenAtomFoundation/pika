@@ -10,9 +10,7 @@ class TickConn
 {
 public:
     TickConn(int fd);
-    /*
-     * TickConn();
-     */
+    TickConn();
     ~TickConn();
     /*
      * Set the fd to nonblock && set the flag_ the the fd flag

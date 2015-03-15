@@ -37,6 +37,7 @@ public:
 private:
 
     friend class TickServer;
+    friend class TickHb;
 
     /*
      * These two fd receive the notify from master thread

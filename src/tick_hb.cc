@@ -1,6 +1,17 @@
 #include "tick_hb.h"
 #include "tick_conf.h"
 #include "status.h"
+#include "tick_util.h"
+#include "tick_thread.h"
+#include "tick_item.h"
+#include "tick_server.h"
+#include "mutexlock.h"
+#include <glog/logging.h>
+#include "tick_conn.h"
+
+#include <poll.h>
+#include <vector>
+
 
 extern TickConf *g_tickConf;
 
@@ -21,16 +32,22 @@ TickHb::TickHb()
 	if (tmp != NULL) {
 		srv_.push_back(Node(std::string(tmp), sp));
 	}
-
-
     bind(sockfd_, (struct sockaddr *) &servaddr_, sizeof(servaddr_));
     listen(sockfd_, 10);
 
-    SetBlockType(kNonBlock);
+	timeout_.tv_sec = 1;
+	timeout_.tv_usec = 500000;
+
+    SetBlockType(sockfd_, flags_, kNonBlock);
     /*
      * inital the tickepoll object, add the notify_receive_fd to epoll
      */
     tickEpoll_ = new TickEpoll();
+
+    // start the hbThread thread
+    for (int i = 0; i < TICK_HEARTBEAT_THREAD; i++) {
+        pthread_create(&(hbThread_[i]->thread_id_), NULL, &(TickServer::StartThread), hbThread_[i]);
+    }
 
 }
 
@@ -50,14 +67,14 @@ void TickHb::RunHb()
             if (fd == sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
                 log_info("Accept new fd %d", connfd);
-                std::queue<TickItem> *q = &(tickThread_[last_thread_]->conn_queue_);
+                std::queue<TickItem> *q = &(hbThread_[last_thread_]->conn_queue_);
                 log_info("Tfe must happen");
                 TickItem ti(connfd);
                 {
-                    MutexLock l(&tickThread_[last_thread_]->mutex_);
+                    MutexLock l(&hbThread_[last_thread_]->mutex_);
                     q->push(ti);
                 }
-                write(tickThread_[last_thread_]->notify_send_fd(), "", 1);
+                write(hbThread_[last_thread_]->notify_send_fd(), "", 1);
                 last_thread_++;
                 last_thread_ %= TICK_THREAD_NUM;
             } else if ((tfe + i)->mask_ & (EPOLLRDHUP | EPOLLERR | EPOLLHUP)) {
@@ -68,8 +85,9 @@ void TickHb::RunHb()
 }
 
 
-Status TickHb::DoConnect(int adj_port, char* adj_hostname, TickConn* tickConn)
+Status TickHb::DoConnect(const char* adj_hostname, int adj_port, TickConn* tickConn)
 {
+	Status s;
     int sockfd, rv;
    
     char port[6];
@@ -81,8 +99,8 @@ Status TickHb::DoConnect(int adj_port, char* adj_hostname, TickConn* tickConn)
 
     if ((rv = getaddrinfo(adj_hostname, port, &hints, &servinfo)) != 0) {
         hints.ai_family = AF_INET6;
-        if ((rv = getaddrinfo(hostname_, port, &hints, &servinfo)) != 0) {
-            s = Status::IOError("tcp_connect error for ", hostname_);
+        if ((rv = getaddrinfo(adj_hostname, port, &hints, &servinfo)) != 0) {
+            s = Status::IOError("tcp_connect error for ", adj_hostname);
             return s;
         }
     }
@@ -104,11 +122,8 @@ Status TickHb::DoConnect(int adj_port, char* adj_hostname, TickConn* tickConn)
                  */
             } else {
                 if (errno == EINPROGRESS) {
-                    struct pollfd   wfd[1];
+                    struct pollfd wfd[1];
                     long msec = (timeout_.tv_sec * 1000) + ((timeout_.tv_usec + 999) / 1000);
-                    if (msec < 0 || msec > INT_MAX) {
-                        msec = INT_MAX;
-                    }
 					wfd[0].fd = sockfd;
                     wfd[0].events = POLLOUT;
                     
@@ -145,8 +160,10 @@ Status TickHb::DoConnect(int adj_port, char* adj_hostname, TickConn* tickConn)
 
         s = Status::OK();
         tickConn->set_fd(sockfd);
-        tickConn->SetBlockType(kBlock);
-        tickConn->SetTcpNoDelay();
+		/*
+         * tickConn->SetBlockType(kBlock);
+         * tickConn->SetTcpNoDelay();
+		 */
         freeaddrinfo(servinfo);
         return s;
     }
@@ -160,10 +177,10 @@ Status TickHb::DoConnect(int adj_port, char* adj_hostname, TickConn* tickConn)
 
 void TickHb::CreatePulse()
 {
-	vector<Node>::iterator iter;
+	std::vector<Node>::iterator iter;
 	for (iter = srv_.begin(); iter != srv_.end(); iter++) {
 		TickConn *tmp = new TickConn();
-		DoConnect((*iter).host_, (*iter).port_, tmp); 
+		DoConnect((*iter).host_.c_str(), (*iter).port_, tmp); 
 		hbConns_.push_back(tmp);
 	}
 

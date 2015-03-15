@@ -7,6 +7,8 @@
 #include "tick_define.h"
 #include "tick_epoll.h"
 
+#include <vector>
+
 
 class TickHb
 {
@@ -22,28 +24,40 @@ public:
     void CreatePulse();
 
     void RunPulse();
-    Status DoConnect();
+    Status DoConnect(const char* adj_hostname, int adj_port, TickConn* tickConn);
 
 private:
 
     struct Node
     {
-        Node(std::string host, std::string port) :
+        Node(std::string host, int port) :
             host_(host),
             port_(port)
         {};
         std::string host_;
-        std::string port_;
+        int port_;
     };
 
-    vector<Node> srv_;
-    vector<Node> getHosts_;
+    std::vector<Node> srv_;
+    std::vector<Node> getHosts_;
 
     TickEpoll *tickEpoll_;
-    pthread_t thread_id_; 
 
 
-    vector<TickConn *> hbConns_;
+    /*
+     * Here we used auto poll to find the next hb thread,
+     * last_thread_ is the last hb thread
+     * even at the first time we only have one hb thread
+     */
+    int last_thread_;
+    /*
+     * This is the thread that deal with heartbeat
+     */
+    TickThread *hbThread_[TICK_HEARTBEAT_THREAD];
+
+    pthread_t thread_id_;
+
+    std::vector<TickConn *> hbConns_;
     /*
      * The heartbeat servaddr and port information
      * get the servaddr_ from the tick_server
@@ -54,6 +68,9 @@ private:
     int hb_port_;
     struct sockaddr_in servaddr_;
     bool isSeed_;
+
+
+    struct timeval timeout_;
 
 };
 

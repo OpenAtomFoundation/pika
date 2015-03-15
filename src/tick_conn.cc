@@ -28,12 +28,10 @@ TickConn::TickConn(int fd) :
 	InitPara();
 }
 
-/*
- * TickConn::TickConn()
- * {
- *     InitPara();
- * }
- */
+TickConn::TickConn()
+{
+    InitPara();
+}
 
 TickConn::~TickConn()
 {
@@ -97,8 +95,10 @@ int TickConn::TickGetRequest()
     bool flag = true;
     std::string *key;
     std::string *value;
+    std::string *host;
     SdkSetRet sdkSetRet;
     SdkGetRet sdkGetRet;
+    HbSendRet hbSendRet;
     int packet_len = TICK_MAX_MESSAGE;
     if (nread) {
         rbuf_len_ += nread;
@@ -159,6 +159,19 @@ int TickConn::TickGetRequest()
                     sdkGetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
                     delete(key);
                     BuildObuf(kSdkGetRet, sdkGetRet.ByteSize());
+                    connStatus_ = kHeader;
+                    if (cur_pos_ == rbuf_len_) {
+                        cur_pos_ = 0;
+                        rbuf_len_ = 0;
+                    }
+                } else if (r_opcode_ == kHbSend) {
+                    host = new std::string();
+                    int port;
+                    HbSendParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, host, port);
+                    HbSendRetBuild(true, &hbSendRet);
+                    hbSendRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
+                    delete(host);
+                    BuildObuf(kHbSendRet, hbSendRet.ByteSize());
                     connStatus_ = kHeader;
                     if (cur_pos_ == rbuf_len_) {
                         cur_pos_ = 0;

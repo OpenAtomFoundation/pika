@@ -351,6 +351,17 @@ message SdkLRangeRet {
     repeated bytes value = 2;
 }
 
+/*
+ * The proto used in communicated in nodes
+ */
 
+message HbSend {
+    required int32 opcode = 1;
+    required bytes host = 2;
+    required int32 port = 3;
+}
 
-
+message HbSendRet {
+    required int32 opcode = 1;
+    required bool status = 2;
+}

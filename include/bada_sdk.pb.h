@@ -87,6 +87,8 @@ class SdkLIndex;
 class SdkLIndexRet;
 class SdkLRange;
 class SdkLRangeRet;
+class HbSend;
+class HbSendRet;
 
 // ===================================================================
 
@@ -6350,6 +6352,185 @@ class SdkLRangeRet : public ::google::protobuf::Message {
 
   void InitAsDefaultInstance();
   static SdkLRangeRet* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class HbSend : public ::google::protobuf::Message {
+ public:
+  HbSend();
+  virtual ~HbSend();
+
+  HbSend(const HbSend& from);
+
+  inline HbSend& operator=(const HbSend& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const HbSend& default_instance();
+
+  void Swap(HbSend* other);
+
+  // implements Message ----------------------------------------------
+
+  HbSend* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const HbSend& from);
+  void MergeFrom(const HbSend& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required bytes host = 1;
+  inline bool has_host() const;
+  inline void clear_host();
+  static const int kHostFieldNumber = 1;
+  inline const ::std::string& host() const;
+  inline void set_host(const ::std::string& value);
+  inline void set_host(const char* value);
+  inline void set_host(const void* value, size_t size);
+  inline ::std::string* mutable_host();
+  inline ::std::string* release_host();
+  inline void set_allocated_host(::std::string* host);
+
+  // required int32 port = 2;
+  inline bool has_port() const;
+  inline void clear_port();
+  static const int kPortFieldNumber = 2;
+  inline ::google::protobuf::int32 port() const;
+  inline void set_port(::google::protobuf::int32 value);
+
+  // @@protoc_insertion_point(class_scope:HbSend)
+ private:
+  inline void set_has_host();
+  inline void clear_has_host();
+  inline void set_has_port();
+  inline void clear_has_port();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  ::std::string* host_;
+  ::google::protobuf::int32 port_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(2 + 31) / 32];
+
+  friend void  protobuf_AddDesc_bada_5fsdk_2eproto();
+  friend void protobuf_AssignDesc_bada_5fsdk_2eproto();
+  friend void protobuf_ShutdownFile_bada_5fsdk_2eproto();
+
+  void InitAsDefaultInstance();
+  static HbSend* default_instance_;
+};
+// -------------------------------------------------------------------
+
+class HbSendRet : public ::google::protobuf::Message {
+ public:
+  HbSendRet();
+  virtual ~HbSendRet();
+
+  HbSendRet(const HbSendRet& from);
+
+  inline HbSendRet& operator=(const HbSendRet& from) {
+    CopyFrom(from);
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const {
+    return _unknown_fields_;
+  }
+
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields() {
+    return &_unknown_fields_;
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor();
+  static const HbSendRet& default_instance();
+
+  void Swap(HbSendRet* other);
+
+  // implements Message ----------------------------------------------
+
+  HbSendRet* New() const;
+  void CopyFrom(const ::google::protobuf::Message& from);
+  void MergeFrom(const ::google::protobuf::Message& from);
+  void CopyFrom(const HbSendRet& from);
+  void MergeFrom(const HbSendRet& from);
+  void Clear();
+  bool IsInitialized() const;
+
+  int ByteSize() const;
+  bool MergePartialFromCodedStream(
+      ::google::protobuf::io::CodedInputStream* input);
+  void SerializeWithCachedSizes(
+      ::google::protobuf::io::CodedOutputStream* output) const;
+  ::google::protobuf::uint8* SerializeWithCachedSizesToArray(::google::protobuf::uint8* output) const;
+  int GetCachedSize() const { return _cached_size_; }
+  private:
+  void SharedCtor();
+  void SharedDtor();
+  void SetCachedSize(int size) const;
+  public:
+
+  ::google::protobuf::Metadata GetMetadata() const;
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  // required bool status = 1;
+  inline bool has_status() const;
+  inline void clear_status();
+  static const int kStatusFieldNumber = 1;
+  inline bool status() const;
+  inline void set_status(bool value);
+
+  // @@protoc_insertion_point(class_scope:HbSendRet)
+ private:
+  inline void set_has_status();
+  inline void clear_has_status();
+
+  ::google::protobuf::UnknownFieldSet _unknown_fields_;
+
+  bool status_;
+
+  mutable int _cached_size_;
+  ::google::protobuf::uint32 _has_bits_[(1 + 31) / 32];
+
+  friend void  protobuf_AddDesc_bada_5fsdk_2eproto();
+  friend void protobuf_AssignDesc_bada_5fsdk_2eproto();
+  friend void protobuf_ShutdownFile_bada_5fsdk_2eproto();
+
+  void InitAsDefaultInstance();
+  static HbSendRet* default_instance_;
 };
 // ===================================================================
 
@@ -14345,6 +14526,128 @@ SdkLRangeRet::value() const {
 inline ::google::protobuf::RepeatedPtrField< ::std::string>*
 SdkLRangeRet::mutable_value() {
   return &value_;
+}
+
+// -------------------------------------------------------------------
+
+// HbSend
+
+// required bytes host = 1;
+inline bool HbSend::has_host() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void HbSend::set_has_host() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void HbSend::clear_has_host() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void HbSend::clear_host() {
+  if (host_ != &::google::protobuf::internal::kEmptyString) {
+    host_->clear();
+  }
+  clear_has_host();
+}
+inline const ::std::string& HbSend::host() const {
+  return *host_;
+}
+inline void HbSend::set_host(const ::std::string& value) {
+  set_has_host();
+  if (host_ == &::google::protobuf::internal::kEmptyString) {
+    host_ = new ::std::string;
+  }
+  host_->assign(value);
+}
+inline void HbSend::set_host(const char* value) {
+  set_has_host();
+  if (host_ == &::google::protobuf::internal::kEmptyString) {
+    host_ = new ::std::string;
+  }
+  host_->assign(value);
+}
+inline void HbSend::set_host(const void* value, size_t size) {
+  set_has_host();
+  if (host_ == &::google::protobuf::internal::kEmptyString) {
+    host_ = new ::std::string;
+  }
+  host_->assign(reinterpret_cast<const char*>(value), size);
+}
+inline ::std::string* HbSend::mutable_host() {
+  set_has_host();
+  if (host_ == &::google::protobuf::internal::kEmptyString) {
+    host_ = new ::std::string;
+  }
+  return host_;
+}
+inline ::std::string* HbSend::release_host() {
+  clear_has_host();
+  if (host_ == &::google::protobuf::internal::kEmptyString) {
+    return NULL;
+  } else {
+    ::std::string* temp = host_;
+    host_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+    return temp;
+  }
+}
+inline void HbSend::set_allocated_host(::std::string* host) {
+  if (host_ != &::google::protobuf::internal::kEmptyString) {
+    delete host_;
+  }
+  if (host) {
+    set_has_host();
+    host_ = host;
+  } else {
+    clear_has_host();
+    host_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  }
+}
+
+// required int32 port = 2;
+inline bool HbSend::has_port() const {
+  return (_has_bits_[0] & 0x00000002u) != 0;
+}
+inline void HbSend::set_has_port() {
+  _has_bits_[0] |= 0x00000002u;
+}
+inline void HbSend::clear_has_port() {
+  _has_bits_[0] &= ~0x00000002u;
+}
+inline void HbSend::clear_port() {
+  port_ = 0;
+  clear_has_port();
+}
+inline ::google::protobuf::int32 HbSend::port() const {
+  return port_;
+}
+inline void HbSend::set_port(::google::protobuf::int32 value) {
+  set_has_port();
+  port_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// HbSendRet
+
+// required bool status = 1;
+inline bool HbSendRet::has_status() const {
+  return (_has_bits_[0] & 0x00000001u) != 0;
+}
+inline void HbSendRet::set_has_status() {
+  _has_bits_[0] |= 0x00000001u;
+}
+inline void HbSendRet::clear_has_status() {
+  _has_bits_[0] &= ~0x00000001u;
+}
+inline void HbSendRet::clear_status() {
+  status_ = false;
+  clear_has_status();
+}
+inline bool HbSendRet::status() const {
+  return status_;
+}
+inline void HbSendRet::set_status(bool value) {
+  set_has_status();
+  status_ = value;
 }
 
 

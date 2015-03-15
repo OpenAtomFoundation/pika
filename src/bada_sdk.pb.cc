@@ -186,6 +186,12 @@ const ::google::protobuf::internal::GeneratedMessageReflection*
 const ::google::protobuf::Descriptor* SdkLRangeRet_descriptor_ = NULL;
 const ::google::protobuf::internal::GeneratedMessageReflection*
   SdkLRangeRet_reflection_ = NULL;
+const ::google::protobuf::Descriptor* HbSend_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  HbSend_reflection_ = NULL;
+const ::google::protobuf::Descriptor* HbSendRet_descriptor_ = NULL;
+const ::google::protobuf::internal::GeneratedMessageReflection*
+  HbSendRet_reflection_ = NULL;
 
 }  // namespace
 
@@ -1158,6 +1164,37 @@ void protobuf_AssignDesc_bada_5fsdk_2eproto() {
       ::google::protobuf::DescriptorPool::generated_pool(),
       ::google::protobuf::MessageFactory::generated_factory(),
       sizeof(SdkLRangeRet));
+  HbSend_descriptor_ = file->message_type(50);
+  static const int HbSend_offsets_[2] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSend, host_),
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSend, port_),
+  };
+  HbSend_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      HbSend_descriptor_,
+      HbSend::default_instance_,
+      HbSend_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSend, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSend, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(HbSend));
+  HbSendRet_descriptor_ = file->message_type(51);
+  static const int HbSendRet_offsets_[1] = {
+    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSendRet, status_),
+  };
+  HbSendRet_reflection_ =
+    new ::google::protobuf::internal::GeneratedMessageReflection(
+      HbSendRet_descriptor_,
+      HbSendRet::default_instance_,
+      HbSendRet_offsets_,
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSendRet, _has_bits_[0]),
+      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(HbSendRet, _unknown_fields_),
+      -1,
+      ::google::protobuf::DescriptorPool::generated_pool(),
+      ::google::protobuf::MessageFactory::generated_factory(),
+      sizeof(HbSendRet));
 }
 
 namespace {
@@ -1282,6 +1319,10 @@ void protobuf_RegisterTypes(const ::std::string&) {
     SdkLRange_descriptor_, &SdkLRange::default_instance());
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
     SdkLRangeRet_descriptor_, &SdkLRangeRet::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    HbSend_descriptor_, &HbSend::default_instance());
+  ::google::protobuf::MessageFactory::InternalRegisterGeneratedMessage(
+    HbSendRet_descriptor_, &HbSendRet::default_instance());
 }
 
 }  // namespace
@@ -1399,6 +1440,10 @@ void protobuf_ShutdownFile_bada_5fsdk_2eproto() {
   delete SdkLRange_reflection_;
   delete SdkLRangeRet::default_instance_;
   delete SdkLRangeRet_reflection_;
+  delete HbSend::default_instance_;
+  delete HbSend_reflection_;
+  delete HbSendRet::default_instance_;
+  delete HbSendRet_reflection_;
 }
 
 void protobuf_AddDesc_bada_5fsdk_2eproto() {
@@ -1502,7 +1547,8 @@ void protobuf_AddDesc_bada_5fsdk_2eproto() {
     "\n\005table\030\002 \002(\014\022\014\n\004name\030\003 \002(\014\022\014\n\004from\030\004 \002("
     "\004\022\n\n\002to\030\005 \002(\004\022\023\n\013frontorback\030\006 \002(\005\"-\n\014Sd"
     "kLRangeRet\022\016\n\006opcode\030\001 \002(\005\022\r\n\005value\030\002 \003("
-    "\014", 3761);
+    "\014\"$\n\006HbSend\022\014\n\004host\030\001 \002(\014\022\014\n\004port\030\002 \002(\005\""
+    "\033\n\tHbSendRet\022\016\n\006status\030\001 \002(\010", 3828);
   ::google::protobuf::MessageFactory::InternalRegisterGeneratedFile(
     "bada_sdk.proto", &protobuf_RegisterTypes);
   SdkInvalidOperation::default_instance_ = new SdkInvalidOperation();
@@ -1561,6 +1607,8 @@ void protobuf_AddDesc_bada_5fsdk_2eproto() {
   SdkLIndexRet::default_instance_ = new SdkLIndexRet();
   SdkLRange::default_instance_ = new SdkLRange();
   SdkLRangeRet::default_instance_ = new SdkLRangeRet();
+  HbSend::default_instance_ = new HbSend();
+  HbSendRet::default_instance_ = new HbSendRet();
   SdkInvalidOperation::default_instance_->InitAsDefaultInstance();
   SdkSet::default_instance_->InitAsDefaultInstance();
   SdkSetRet::default_instance_->InitAsDefaultInstance();
@@ -1617,6 +1665,8 @@ void protobuf_AddDesc_bada_5fsdk_2eproto() {
   SdkLIndexRet::default_instance_->InitAsDefaultInstance();
   SdkLRange::default_instance_->InitAsDefaultInstance();
   SdkLRangeRet::default_instance_->InitAsDefaultInstance();
+  HbSend::default_instance_->InitAsDefaultInstance();
+  HbSendRet::default_instance_->InitAsDefaultInstance();
   ::google::protobuf::internal::OnShutdown(&protobuf_ShutdownFile_bada_5fsdk_2eproto);
 }
 
@@ -18934,6 +18984,470 @@ void SdkLRangeRet::Swap(SdkLRangeRet* other) {
   ::google::protobuf::Metadata metadata;
   metadata.descriptor = SdkLRangeRet_descriptor_;
   metadata.reflection = SdkLRangeRet_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int HbSend::kHostFieldNumber;
+const int HbSend::kPortFieldNumber;
+#endif  // !_MSC_VER
+
+HbSend::HbSend()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void HbSend::InitAsDefaultInstance() {
+}
+
+HbSend::HbSend(const HbSend& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void HbSend::SharedCtor() {
+  _cached_size_ = 0;
+  host_ = const_cast< ::std::string*>(&::google::protobuf::internal::kEmptyString);
+  port_ = 0;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+HbSend::~HbSend() {
+  SharedDtor();
+}
+
+void HbSend::SharedDtor() {
+  if (host_ != &::google::protobuf::internal::kEmptyString) {
+    delete host_;
+  }
+  if (this != default_instance_) {
+  }
+}
+
+void HbSend::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* HbSend::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return HbSend_descriptor_;
+}
+
+const HbSend& HbSend::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_bada_5fsdk_2eproto();
+  return *default_instance_;
+}
+
+HbSend* HbSend::default_instance_ = NULL;
+
+HbSend* HbSend::New() const {
+  return new HbSend;
+}
+
+void HbSend::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (has_host()) {
+      if (host_ != &::google::protobuf::internal::kEmptyString) {
+        host_->clear();
+      }
+    }
+    port_ = 0;
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool HbSend::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // required bytes host = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_LENGTH_DELIMITED) {
+          DO_(::google::protobuf::internal::WireFormatLite::ReadBytes(
+                input, this->mutable_host()));
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectTag(16)) goto parse_port;
+        break;
+      }
+
+      // required int32 port = 2;
+      case 2: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+         parse_port:
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   ::google::protobuf::int32, ::google::protobuf::internal::WireFormatLite::TYPE_INT32>(
+                 input, &port_)));
+          set_has_port();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void HbSend::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // required bytes host = 1;
+  if (has_host()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBytes(
+      1, this->host(), output);
+  }
+
+  // required int32 port = 2;
+  if (has_port()) {
+    ::google::protobuf::internal::WireFormatLite::WriteInt32(2, this->port(), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* HbSend::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // required bytes host = 1;
+  if (has_host()) {
+    target =
+      ::google::protobuf::internal::WireFormatLite::WriteBytesToArray(
+        1, this->host(), target);
+  }
+
+  // required int32 port = 2;
+  if (has_port()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteInt32ToArray(2, this->port(), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int HbSend::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // required bytes host = 1;
+    if (has_host()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::BytesSize(
+          this->host());
+    }
+
+    // required int32 port = 2;
+    if (has_port()) {
+      total_size += 1 +
+        ::google::protobuf::internal::WireFormatLite::Int32Size(
+          this->port());
+    }
+
+  }
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void HbSend::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const HbSend* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const HbSend*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void HbSend::MergeFrom(const HbSend& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_host()) {
+      set_host(from.host());
+    }
+    if (from.has_port()) {
+      set_port(from.port());
+    }
+  }
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void HbSend::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void HbSend::CopyFrom(const HbSend& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool HbSend::IsInitialized() const {
+  if ((_has_bits_[0] & 0x00000003) != 0x00000003) return false;
+
+  return true;
+}
+
+void HbSend::Swap(HbSend* other) {
+  if (other != this) {
+    std::swap(host_, other->host_);
+    std::swap(port_, other->port_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata HbSend::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = HbSend_descriptor_;
+  metadata.reflection = HbSend_reflection_;
+  return metadata;
+}
+
+
+// ===================================================================
+
+#ifndef _MSC_VER
+const int HbSendRet::kStatusFieldNumber;
+#endif  // !_MSC_VER
+
+HbSendRet::HbSendRet()
+  : ::google::protobuf::Message() {
+  SharedCtor();
+}
+
+void HbSendRet::InitAsDefaultInstance() {
+}
+
+HbSendRet::HbSendRet(const HbSendRet& from)
+  : ::google::protobuf::Message() {
+  SharedCtor();
+  MergeFrom(from);
+}
+
+void HbSendRet::SharedCtor() {
+  _cached_size_ = 0;
+  status_ = false;
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+}
+
+HbSendRet::~HbSendRet() {
+  SharedDtor();
+}
+
+void HbSendRet::SharedDtor() {
+  if (this != default_instance_) {
+  }
+}
+
+void HbSendRet::SetCachedSize(int size) const {
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+}
+const ::google::protobuf::Descriptor* HbSendRet::descriptor() {
+  protobuf_AssignDescriptorsOnce();
+  return HbSendRet_descriptor_;
+}
+
+const HbSendRet& HbSendRet::default_instance() {
+  if (default_instance_ == NULL) protobuf_AddDesc_bada_5fsdk_2eproto();
+  return *default_instance_;
+}
+
+HbSendRet* HbSendRet::default_instance_ = NULL;
+
+HbSendRet* HbSendRet::New() const {
+  return new HbSendRet;
+}
+
+void HbSendRet::Clear() {
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    status_ = false;
+  }
+  ::memset(_has_bits_, 0, sizeof(_has_bits_));
+  mutable_unknown_fields()->Clear();
+}
+
+bool HbSendRet::MergePartialFromCodedStream(
+    ::google::protobuf::io::CodedInputStream* input) {
+#define DO_(EXPRESSION) if (!(EXPRESSION)) return false
+  ::google::protobuf::uint32 tag;
+  while ((tag = input->ReadTag()) != 0) {
+    switch (::google::protobuf::internal::WireFormatLite::GetTagFieldNumber(tag)) {
+      // required bool status = 1;
+      case 1: {
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_VARINT) {
+          DO_((::google::protobuf::internal::WireFormatLite::ReadPrimitive<
+                   bool, ::google::protobuf::internal::WireFormatLite::TYPE_BOOL>(
+                 input, &status_)));
+          set_has_status();
+        } else {
+          goto handle_uninterpreted;
+        }
+        if (input->ExpectAtEnd()) return true;
+        break;
+      }
+
+      default: {
+      handle_uninterpreted:
+        if (::google::protobuf::internal::WireFormatLite::GetTagWireType(tag) ==
+            ::google::protobuf::internal::WireFormatLite::WIRETYPE_END_GROUP) {
+          return true;
+        }
+        DO_(::google::protobuf::internal::WireFormat::SkipField(
+              input, tag, mutable_unknown_fields()));
+        break;
+      }
+    }
+  }
+  return true;
+#undef DO_
+}
+
+void HbSendRet::SerializeWithCachedSizes(
+    ::google::protobuf::io::CodedOutputStream* output) const {
+  // required bool status = 1;
+  if (has_status()) {
+    ::google::protobuf::internal::WireFormatLite::WriteBool(1, this->status(), output);
+  }
+
+  if (!unknown_fields().empty()) {
+    ::google::protobuf::internal::WireFormat::SerializeUnknownFields(
+        unknown_fields(), output);
+  }
+}
+
+::google::protobuf::uint8* HbSendRet::SerializeWithCachedSizesToArray(
+    ::google::protobuf::uint8* target) const {
+  // required bool status = 1;
+  if (has_status()) {
+    target = ::google::protobuf::internal::WireFormatLite::WriteBoolToArray(1, this->status(), target);
+  }
+
+  if (!unknown_fields().empty()) {
+    target = ::google::protobuf::internal::WireFormat::SerializeUnknownFieldsToArray(
+        unknown_fields(), target);
+  }
+  return target;
+}
+
+int HbSendRet::ByteSize() const {
+  int total_size = 0;
+
+  if (_has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    // required bool status = 1;
+    if (has_status()) {
+      total_size += 1 + 1;
+    }
+
+  }
+  if (!unknown_fields().empty()) {
+    total_size +=
+      ::google::protobuf::internal::WireFormat::ComputeUnknownFieldsSize(
+        unknown_fields());
+  }
+  GOOGLE_SAFE_CONCURRENT_WRITES_BEGIN();
+  _cached_size_ = total_size;
+  GOOGLE_SAFE_CONCURRENT_WRITES_END();
+  return total_size;
+}
+
+void HbSendRet::MergeFrom(const ::google::protobuf::Message& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  const HbSendRet* source =
+    ::google::protobuf::internal::dynamic_cast_if_available<const HbSendRet*>(
+      &from);
+  if (source == NULL) {
+    ::google::protobuf::internal::ReflectionOps::Merge(from, this);
+  } else {
+    MergeFrom(*source);
+  }
+}
+
+void HbSendRet::MergeFrom(const HbSendRet& from) {
+  GOOGLE_CHECK_NE(&from, this);
+  if (from._has_bits_[0 / 32] & (0xffu << (0 % 32))) {
+    if (from.has_status()) {
+      set_status(from.status());
+    }
+  }
+  mutable_unknown_fields()->MergeFrom(from.unknown_fields());
+}
+
+void HbSendRet::CopyFrom(const ::google::protobuf::Message& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void HbSendRet::CopyFrom(const HbSendRet& from) {
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool HbSendRet::IsInitialized() const {
+  if ((_has_bits_[0] & 0x00000001) != 0x00000001) return false;
+
+  return true;
+}
+
+void HbSendRet::Swap(HbSendRet* other) {
+  if (other != this) {
+    std::swap(status_, other->status_);
+    std::swap(_has_bits_[0], other->_has_bits_[0]);
+    _unknown_fields_.Swap(&other->_unknown_fields_);
+    std::swap(_cached_size_, other->_cached_size_);
+  }
+}
+
+::google::protobuf::Metadata HbSendRet::GetMetadata() const {
+  protobuf_AssignDescriptorsOnce();
+  ::google::protobuf::Metadata metadata;
+  metadata.descriptor = HbSendRet_descriptor_;
+  metadata.reflection = HbSendRet_reflection_;
   return metadata;
 }
 

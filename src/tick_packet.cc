@@ -69,3 +69,38 @@ void GetRetBuild(std::string &value, SdkGetRet *sdkGetRet)
     sdkGetRet->set_opcode(kSdkGetRet);
     sdkGetRet->set_value(value);
 }
+
+Status HbSendParse(const int32_t opcode, const char *rbuf, const int32_t rbuf_len, std::string *host, int &port)
+{
+    Status s;
+    if (opcode == kSdkInvalidOperation) {
+        SdkInvalidOperation sdkInvalidOperation;
+        if (sdkInvalidOperation.ParseFromArray(rbuf, rbuf_len)) {
+            s = Status::Corruption("Parse invalid operation error");
+            return s;
+        }
+        if (sdkInvalidOperation.what() == 1003) {
+            return Status::NotFound("Can't not found the key");
+        }
+        return Status::InvalidArgument("Invalid operation");
+    } else {
+        HbSend hbSend;
+        if (!hbSend.ParseFromArray(rbuf, rbuf_len)) {
+            s = Status::Corruption("Parse error");
+            return s;
+        }
+        if (hbSend.opcode() == kHbSend) {
+            host->assign(hbSend.host().data(), hbSend.host().size());
+            port = hbSend.port();
+        } else {
+            s = Status::IOError("Get error");
+        }
+    }
+    return s;
+}
+
+void HbSendRetBuild(bool status, HbSendRet *hbSendRet)
+{
+    hbSendRet->set_opcode(kHbSendRet);
+    hbSendRet->set_status(status);
+}

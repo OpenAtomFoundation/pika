@@ -4,6 +4,7 @@
 #define TICK_MAX_CLIENTS 10240
 #define TICK_MAX_MESSAGE 10240
 #define TICK_THREAD_NUM 16
+#define TICK_HEARTBEAT_THREAD 1
 
 /*
  * The pb head and code length
@@ -67,6 +68,10 @@ enum CommandCode {
     kSdkLIndexRet = 565,
     kSdkLRange  = 566,
     kSdkLRangeRet  = 567,
+
+    //for hb communicate
+    kHbSend = 601,
+    kHbSendRet = 602,
 };
 /*
  * define the macro in tick_conf
