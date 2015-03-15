@@ -21,3 +21,20 @@ int Setnonblocking(int sockfd)
     return flags;
 }
 
+int SetBlockType(int fd, int& flags, BlockType type)
+{
+    if ((flags = fcntl(fd, F_GETFL, 0)) < 0) {
+        close(fd);
+        return -1;
+    }
+    if (type == kBlock) {
+        flags &= (~O_NONBLOCK);
+    } else if (type == kNonBlock) {
+        flags |= O_NONBLOCK;
+    }
+    if (fcntl(fd, F_SETFL, flags) < 0) {
+        close(fd);
+        return -1;
+    }
+    return 0;
+}

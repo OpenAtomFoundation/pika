@@ -38,7 +38,7 @@
 /* #undef HAVE_LIB_GMOCK */
 
 /* define if you have google gtest library */
-#define HAVE_LIB_GTEST 1
+/* #undef HAVE_LIB_GTEST */
 
 /* define if you have libunwind */
 /* #undef HAVE_LIB_UNWIND */

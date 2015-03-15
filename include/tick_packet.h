@@ -14,4 +14,5 @@ void SetRetBuild(bool status, SdkSetRet *sdkSetRet);
 Status GetParse(const int32_t opcode, const char *rbuf, const int32_t rbuf_len, std::string *key);
 
 void GetRetBuild(std::string &val, SdkGetRet *sdkGetRet);
+
 #endif

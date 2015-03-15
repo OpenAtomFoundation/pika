@@ -3,4 +3,5 @@
 
 int Setnonblocking(int sockfd);
 
+int SetBlockType(int fd, int& flags, BlockType type)
 #endif

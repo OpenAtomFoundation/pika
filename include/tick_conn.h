@@ -10,20 +10,29 @@ class TickConn
 {
 public:
     TickConn(int fd);
+    /*
+     * TickConn();
+     */
     ~TickConn();
     /*
      * Set the fd to nonblock && set the flag_ the the fd flag
      */
     bool SetNonblock();
+    void InitPara();
     Status TickReadBuf();
     void DriveMachine();
     int TickGetRequest();
     int TickSendReply();
+    void set_fd(int fd) { fd_ = fd; };
+    int flags() { return flags_; };
 
 private:
 
+
     int fd_;
     int flags_;
+
+
     /*
      * These functions parse the message from client
      */

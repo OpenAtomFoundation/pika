@@ -2,7 +2,7 @@
 
 # libtool - Provide generalized library-building support services.
 # Generated automatically by config.status (glog) 0.3.3
-# Libtool was configured on host dev1003x.ops.corp.qihoo.net:
+# Libtool was configured on host bada06.add.zwt.qihoo.net:
 # NOTE: Changes made to this file will be lost: look at ltmain.sh.
 #
 #   Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005,
@@ -96,7 +96,7 @@ NM="/usr/bin/nm -B"
 LN_S="ln -s"
 
 # What is the maximum length of a command?
-max_cmd_len=1966080
+max_cmd_len=1572864
 
 # Object file suffix (normally "o").
 objext=o
@@ -272,10 +272,10 @@ finish_eval=""
 hardcode_into_libs=yes
 
 # Compile-time system search path for libraries.
-sys_lib_search_path_spec="/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2 /opt/centos/devtoolset-1.1/root/usr/lib64 /lib64 /usr/lib64 "
+sys_lib_search_path_spec="/usr/lib/gcc/x86_64-redhat-linux/4.4.6 /usr/lib64 /lib64 "
 
 # Run-time system search path for libraries.
-sys_lib_dlsearch_path_spec="/lib /usr/lib /home/chenlei-iri/programs/thrift-0.9.0/lib /home/chenlei-iri/programs/cwinux/lib /home/chenlei-iri/programs/zkclient/lib /lib64 /home/syncops/software/qbus-client/lib /usr/local/luajit/lib /usr/local/glib-2.38.1/lib /usr/lib64 /usr/lib64/mysql /home/syncops/software/qbus-client/lib /usr/local/lib /usr/local/lib /usr/lib64 /usr/local/lib /home/infra/qbus/client/cpp/lib /home/liminghao/testproject/testcase/gtest-1.6.0/lib/.libs /home/liminghao/work/elevel_dev/eleveldb/c_src/leveldb "
+sys_lib_dlsearch_path_spec="/lib /usr/lib /usr/local/curl/lib /usr/lib64/mysql /usr/local/openssl/lib /usr/local/zookeeper-client/lib "
 
 # Whether dlopen is supported.
 dlopen_support=unknown
@@ -292,7 +292,7 @@ striplib="strip --strip-unneeded"
 
 
 # The linker used to build libraries.
-LD="/opt/centos/devtoolset-1.1/root/usr/libexec/gcc/x86_64-redhat-linux/4.7.2/ld -m elf_x86_64"
+LD="/usr/bin/ld -m elf_x86_64"
 
 # How to create reloadable object files.
 reload_flag=" -r"
@@ -317,7 +317,7 @@ pic_flag=" -fPIC -DPIC"
 wl="-Wl,"
 
 # Compiler flag to prevent dynamic linking.
-link_static_flag="-static"
+link_static_flag=""
 
 # Does compiler simultaneously support -c and -o options?
 compiler_c_o="yes"
@@ -10099,7 +10099,7 @@ build_old_libs=`case $build_libtool_libs in yes) echo no;; *) echo yes;; esac`
 # ### BEGIN LIBTOOL TAG CONFIG: CXX
 
 # The linker used to build libraries.
-LD="/opt/centos/devtoolset-1.1/root/usr/libexec/gcc/x86_64-redhat-linux/4.7.2/ld -m elf_x86_64"
+LD="/usr/bin/ld -m elf_x86_64"
 
 # How to create reloadable object files.
 reload_flag=" -r"
@@ -10124,7 +10124,7 @@ pic_flag=" -fPIC -DPIC"
 wl="-Wl,"
 
 # Compiler flag to prevent dynamic linking.
-link_static_flag="-static"
+link_static_flag=""
 
 # Does compiler simultaneously support -c and -o options?
 compiler_c_o="yes"
@@ -10230,17 +10230,17 @@ file_list_spec=""
 hardcode_action=immediate
 
 # The directories searched by this compiler when creating a shared library.
-compiler_lib_search_dirs="/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2 /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../lib64 /lib/../lib64 /usr/lib/../lib64 /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../.."
+compiler_lib_search_dirs="/usr/lib/gcc/x86_64-redhat-linux/4.4.6 /usr/lib/gcc/x86_64-redhat-linux/4.4.6 /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../lib64 /lib/../lib64 /usr/lib/../lib64 /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../.."
 
 # Dependencies to place before and after the objects being linked to
 # create a shared library.
-predep_objects="/usr/lib/../lib64/crti.o /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/crtbeginS.o"
-postdep_objects="/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/crtendS.o /usr/lib/../lib64/crtn.o"
+predep_objects="/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../lib64/crti.o /usr/lib/gcc/x86_64-redhat-linux/4.4.6/crtbeginS.o"
+postdep_objects="/usr/lib/gcc/x86_64-redhat-linux/4.4.6/crtendS.o /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../lib64/crtn.o"
 predeps=""
 postdeps="-lstdc++ -lm -lgcc_s -lc -lgcc_s"
 
 # The library search path used internally by the compiler when linking
 # a shared library.
-compiler_lib_search_path="-L/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2 -L/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../.."
+compiler_lib_search_path="-L/usr/lib/gcc/x86_64-redhat-linux/4.4.6 -L/usr/lib/gcc/x86_64-redhat-linux/4.4.6 -L/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../.."
 
 # ### END LIBTOOL TAG CONFIG: CXX

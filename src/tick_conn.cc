@@ -8,8 +8,7 @@
 
 extern TickServer *g_tickServer;
 
-TickConn::TickConn(int fd) :
-    fd_(fd)
+void TickConn::InitPara()
 {
     thread_ = NULL;
 
@@ -22,6 +21,19 @@ TickConn::TickConn(int fd) :
 
     wbuf_ = (char *)malloc(sizeof(char) * TICK_MAX_MESSAGE);
 }
+
+TickConn::TickConn(int fd) :
+    fd_(fd)
+{
+	InitPara();
+}
+
+/*
+ * TickConn::TickConn()
+ * {
+ *     InitPara();
+ * }
+ */
 
 TickConn::~TickConn()
 {

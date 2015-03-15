@@ -10,4 +10,7 @@ TickConf::TickConf(const char* path) :
     getConfInt("thread_num", &thread_num_);
     getConfStr("log_path", log_path_);
     getConfInt("log_level", &log_level_);
+    getConfInt("hb_port", &hb_port_);
+    getConfStr("seed", seed_);
+    getConfInt("seed_port", &seed_port_);
 }

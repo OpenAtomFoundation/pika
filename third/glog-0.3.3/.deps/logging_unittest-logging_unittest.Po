@@ -6,7 +6,7 @@ logging_unittest-logging_unittest.o: src/logging_unittest.cc \
  /usr/include/endian.h /usr/include/bits/endian.h \
  /usr/include/bits/byteswap.h /usr/include/sched.h \
  /usr/include/bits/types.h /usr/include/bits/typesizes.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/include/stddef.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/include/stddef.h \
  /usr/include/time.h /usr/include/bits/sched.h /usr/include/bits/time.h \
  /usr/include/xlocale.h /usr/include/bits/pthreadtypes.h \
  /usr/include/bits/setjmp.h /usr/include/assert.h /usr/include/stdlib.h \
@@ -14,147 +14,112 @@ logging_unittest-logging_unittest.o: src/logging_unittest.cc \
  /usr/include/sys/types.h /usr/include/sys/select.h \
  /usr/include/bits/select.h /usr/include/bits/sigset.h \
  /usr/include/sys/sysmacros.h /usr/include/alloca.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/string \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/c++config.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/os_defines.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/cpu_defines.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stringfwd.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/char_traits.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_algobase.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/functexcept.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/exception_defines.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/cpp_type_traits.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/type_traits.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/numeric_traits.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_pair.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/move.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/concept_check.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_iterator_base_types.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_iterator_base_funcs.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_iterator.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/debug/debug.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/postypes.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/cwchar \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/string \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/c++config.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/os_defines.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/cpu_defines.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stringfwd.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/char_traits.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_algobase.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cstddef \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/functexcept.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/exception_defines.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/cpp_type_traits.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ext/type_traits.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ext/numeric_traits.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_pair.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/move.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/concept_check.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_iterator_base_types.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_iterator_base_funcs.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_iterator.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/debug/debug.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/postypes.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cwchar \
  /usr/include/wchar.h /usr/include/stdio.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/include/stdarg.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/include/stdarg.h \
  /usr/include/bits/wchar.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/allocator.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/c++allocator.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/new_allocator.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/new \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/exception \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/atomic_lockfree_defines.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/localefwd.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/c++locale.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/clocale \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/allocator.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/c++allocator.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ext/new_allocator.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/new \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/exception \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/localefwd.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/c++locale.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/clocale \
  /usr/include/locale.h /usr/include/bits/locale.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/iosfwd \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/cctype \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/iosfwd \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cctype \
  /usr/include/ctype.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/ostream_insert.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/cxxabi_forced.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_function.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/backward/binders.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/range_access.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/basic_string.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/atomicity.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/gthr.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/gthr-default.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/atomic_word.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/basic_string.tcc \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/ostream_insert.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cxxabi-forced.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_function.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/backward/binders.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/basic_string.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ext/atomicity.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/gthr.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/gthr-default.h \
+ /usr/include/unistd.h /usr/include/bits/posix_opt.h \
+ /usr/include/bits/environments.h /usr/include/bits/confname.h \
+ /usr/include/getopt.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/atomic_word.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/initializer_list \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/basic_string.tcc \
  src/glog/logging.h /usr/include/errno.h /usr/include/bits/errno.h \
  /usr/include/linux/errno.h /usr/include/asm/errno.h \
  /usr/include/asm-generic/errno.h /usr/include/asm-generic/errno-base.h \
  /usr/include/string.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ostream \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ios \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/ios_base.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/locale_classes.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/locale_classes.tcc \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/streambuf \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/streambuf.tcc \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/basic_ios.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/locale_facets.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/cwctype \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ostream \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ios \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/ios_base.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/locale_classes.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/locale_classes.tcc \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/streambuf \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/streambuf.tcc \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/basic_ios.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/locale_facets.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cwctype \
  /usr/include/wctype.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/ctype_base.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/streambuf_iterator.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/ctype_inline.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/locale_facets.tcc \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/basic_ios.tcc \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/ostream.tcc \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/sstream \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/istream \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/istream.tcc \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/sstream.tcc \
- /usr/include/unistd.h /usr/include/bits/posix_opt.h \
- /usr/include/bits/environments.h /usr/include/bits/confname.h \
- /usr/include/getopt.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/vector \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_construct.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/alloc_traits.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_uninitialized.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_vector.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_bvector.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/vector.tcc \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/include/stdint.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/ctype_base.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/streambuf_iterator.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/ctype_inline.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/locale_facets.tcc \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/basic_ios.tcc \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/ostream.tcc \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/sstream \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/istream \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/istream.tcc \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/sstream.tcc \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/vector \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_construct.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_uninitialized.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_vector.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_bvector.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/vector.tcc \
  /usr/include/stdint.h /usr/include/inttypes.h src/glog/log_severity.h \
  src/glog/vlog_is_on.h /usr/include/fcntl.h /usr/include/bits/fcntl.h \
  /usr/include/bits/uio.h /usr/include/bits/stat.h /usr/include/glob.h \
  /usr/include/sys/stat.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/iomanip \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/iostream \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/memory \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_tempbuf.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_raw_storage_iter.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/backward/auto_ptr.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/queue \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/deque \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_deque.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/deque.tcc \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_heap.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_queue.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/iomanip \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/iostream \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/memory \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_tempbuf.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_raw_storage_iter.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/backward/auto_ptr.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/queue \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/deque \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_deque.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/deque.tcc \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_heap.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_queue.h \
  /usr/include/libio.h /usr/include/_G_config.h \
  /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
  /usr/include/bits/stdio.h src/base/commandlineflags.h src/glog/logging.h \
  src/glog/raw_logging.h src/googletest.h /usr/include/setjmp.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/map \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_tree.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_map.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_multimap.h \
- /usr/include/gtest/gtest.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/limits \
- /usr/include/gtest/internal/gtest-internal.h \
- /usr/include/gtest/internal/gtest-port.h /usr/include/regex.h \
- /usr/include/strings.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/typeinfo \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/tr1/tuple \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/utility \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_relops.h \
- /usr/include/sys/wait.h /usr/include/signal.h /usr/include/bits/signum.h \
- /usr/include/bits/siginfo.h /usr/include/bits/sigaction.h \
- /usr/include/bits/sigcontext.h /usr/include/bits/sigstack.h \
- /usr/include/sys/ucontext.h /usr/include/bits/sigthread.h \
- /usr/include/sys/resource.h /usr/include/bits/resource.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/set \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_set.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_multiset.h \
- /usr/include/gtest/internal/gtest-string.h \
- /usr/include/gtest/internal/gtest-filepath.h \
- /usr/include/gtest/internal/gtest-type-util.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/cxxabi.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/cxxabi_tweaks.h \
- /usr/include/gtest/gtest-death-test.h \
- /usr/include/gtest/internal/gtest-death-test-internal.h \
- /usr/include/gtest/gtest-message.h /usr/include/gtest/gtest-param-test.h \
- /usr/include/gtest/internal/gtest-param-util.h \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/iterator \
- /opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stream_iterator.h \
- /usr/include/gtest/internal/gtest-linked_ptr.h \
- /usr/include/gtest/internal/gtest-param-util-generated.h \
- /usr/include/gtest/gtest_prod.h /usr/include/gtest/gtest-test-part.h \
- /usr/include/gtest/gtest-typed-test.h \
- /usr/include/gtest/gtest_pred_impl.h
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/map \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_tree.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_map.h \
+ /usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_multimap.h
 
 src/config_for_unittests.h:
 
@@ -190,7 +155,7 @@ src/config.h:
 
 /usr/include/bits/typesizes.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/include/stddef.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/include/stddef.h:
 
 /usr/include/time.h:
 
@@ -224,105 +189,115 @@ src/config.h:
 
 /usr/include/alloca.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/string:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/string:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/c++config.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/c++config.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/os_defines.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/os_defines.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/cpu_defines.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/cpu_defines.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stringfwd.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stringfwd.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/char_traits.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/char_traits.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_algobase.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_algobase.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/functexcept.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cstddef:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/exception_defines.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/functexcept.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/cpp_type_traits.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/exception_defines.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/type_traits.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/cpp_type_traits.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/numeric_traits.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ext/type_traits.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_pair.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ext/numeric_traits.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/move.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_pair.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/concept_check.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/move.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_iterator_base_types.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/concept_check.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_iterator_base_funcs.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_iterator_base_types.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_iterator.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_iterator_base_funcs.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/debug/debug.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_iterator.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/postypes.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/debug/debug.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/cwchar:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/postypes.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cwchar:
 
 /usr/include/wchar.h:
 
 /usr/include/stdio.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/include/stdarg.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/include/stdarg.h:
 
 /usr/include/bits/wchar.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/allocator.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/allocator.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/c++allocator.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/c++allocator.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/new_allocator.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ext/new_allocator.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/new:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/new:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/exception:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/exception:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/atomic_lockfree_defines.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/localefwd.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/localefwd.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/c++locale.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/c++locale.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/clocale:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/clocale:
 
 /usr/include/locale.h:
 
 /usr/include/bits/locale.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/iosfwd:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/iosfwd:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/cctype:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cctype:
 
 /usr/include/ctype.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/ostream_insert.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/ostream_insert.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/cxxabi_forced.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cxxabi-forced.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_function.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_function.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/backward/binders.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/backward/binders.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/range_access.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/basic_string.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/basic_string.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ext/atomicity.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/atomicity.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/gthr.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/gthr.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/gthr-default.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/gthr-default.h:
+/usr/include/unistd.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/atomic_word.h:
+/usr/include/bits/posix_opt.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/basic_string.tcc:
+/usr/include/bits/environments.h:
+
+/usr/include/bits/confname.h:
+
+/usr/include/getopt.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/atomic_word.h:
+
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/initializer_list:
+
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/basic_string.tcc:
 
 src/glog/logging.h:
 
@@ -340,73 +315,59 @@ src/glog/logging.h:
 
 /usr/include/string.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ostream:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ostream:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ios:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/ios:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/ios_base.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/ios_base.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/locale_classes.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/locale_classes.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/locale_classes.tcc:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/locale_classes.tcc:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/streambuf:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/streambuf:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/streambuf.tcc:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/streambuf.tcc:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/basic_ios.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/basic_ios.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/locale_facets.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/locale_facets.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/cwctype:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/cwctype:
 
 /usr/include/wctype.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/ctype_base.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/ctype_base.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/streambuf_iterator.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/streambuf_iterator.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/ctype_inline.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/x86_64-redhat-linux/bits/ctype_inline.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/locale_facets.tcc:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/locale_facets.tcc:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/basic_ios.tcc:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/basic_ios.tcc:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/ostream.tcc:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/ostream.tcc:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/sstream:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/sstream:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/istream:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/istream:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/istream.tcc:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/istream.tcc:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/sstream.tcc:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/sstream.tcc:
 
-/usr/include/unistd.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/vector:
 
-/usr/include/bits/posix_opt.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_construct.h:
 
-/usr/include/bits/environments.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_uninitialized.h:
 
-/usr/include/bits/confname.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_vector.h:
 
-/usr/include/getopt.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_bvector.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/vector:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_construct.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/ext/alloc_traits.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_uninitialized.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_vector.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_bvector.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/vector.tcc:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/include/stdint.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/vector.tcc:
 
 /usr/include/stdint.h:
 
@@ -428,29 +389,29 @@ src/glog/vlog_is_on.h:
 
 /usr/include/sys/stat.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/iomanip:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/iomanip:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/iostream:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/iostream:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/memory:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/memory:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_tempbuf.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_tempbuf.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_raw_storage_iter.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_raw_storage_iter.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/backward/auto_ptr.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/backward/auto_ptr.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/queue:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/queue:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/deque:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/deque:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_deque.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_deque.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/deque.tcc:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/deque.tcc:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_heap.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_heap.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_queue.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_queue.h:
 
 /usr/include/libio.h:
 
@@ -472,94 +433,10 @@ src/googletest.h:
 
 /usr/include/setjmp.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/map:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/map:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_tree.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_tree.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_map.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_map.h:
 
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_multimap.h:
-
-/usr/include/gtest/gtest.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/limits:
-
-/usr/include/gtest/internal/gtest-internal.h:
-
-/usr/include/gtest/internal/gtest-port.h:
-
-/usr/include/regex.h:
-
-/usr/include/strings.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/typeinfo:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/tr1/tuple:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/utility:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_relops.h:
-
-/usr/include/sys/wait.h:
-
-/usr/include/signal.h:
-
-/usr/include/bits/signum.h:
-
-/usr/include/bits/siginfo.h:
-
-/usr/include/bits/sigaction.h:
-
-/usr/include/bits/sigcontext.h:
-
-/usr/include/bits/sigstack.h:
-
-/usr/include/sys/ucontext.h:
-
-/usr/include/bits/sigthread.h:
-
-/usr/include/sys/resource.h:
-
-/usr/include/bits/resource.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/set:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_set.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stl_multiset.h:
-
-/usr/include/gtest/internal/gtest-string.h:
-
-/usr/include/gtest/internal/gtest-filepath.h:
-
-/usr/include/gtest/internal/gtest-type-util.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/cxxabi.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/x86_64-redhat-linux/bits/cxxabi_tweaks.h:
-
-/usr/include/gtest/gtest-death-test.h:
-
-/usr/include/gtest/internal/gtest-death-test-internal.h:
-
-/usr/include/gtest/gtest-message.h:
-
-/usr/include/gtest/gtest-param-test.h:
-
-/usr/include/gtest/internal/gtest-param-util.h:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/iterator:
-
-/opt/centos/devtoolset-1.1/root/usr/lib/gcc/x86_64-redhat-linux/4.7.2/../../../../include/c++/4.7.2/bits/stream_iterator.h:
-
-/usr/include/gtest/internal/gtest-linked_ptr.h:
-
-/usr/include/gtest/internal/gtest-param-util-generated.h:
-
-/usr/include/gtest/gtest_prod.h:
-
-/usr/include/gtest/gtest-test-part.h:
-
-/usr/include/gtest/gtest-typed-test.h:
-
-/usr/include/gtest/gtest_pred_impl.h:
+/usr/lib/gcc/x86_64-redhat-linux/4.4.6/../../../../include/c++/4.4.6/bits/stl_multimap.h:
