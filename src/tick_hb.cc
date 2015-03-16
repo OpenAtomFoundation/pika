@@ -29,7 +29,8 @@ TickHb::TickHb()
 
 	char* tmp = g_tickConf->seed();
 	int sp = g_tickConf->seed_port();
-	if (tmp != NULL) {
+	if (tmp[0] = '\0') {
+		log_info("seed%sseed %d", tmp, sp);
 		srv_.push_back(Node(std::string(tmp), sp));
 	}
     bind(sockfd_, (struct sockaddr *) &servaddr_, sizeof(servaddr_));
@@ -44,11 +45,17 @@ TickHb::TickHb()
      */
     tickEpoll_ = new TickEpoll();
 
+    last_thread_ = 0;
+    for (int i = 0; i < TICK_HEARTBEAT_THREAD; i++) {
+        hbThread_[i] = new TickThread();
+    }
     // start the hbThread thread
     for (int i = 0; i < TICK_HEARTBEAT_THREAD; i++) {
         pthread_create(&(hbThread_[i]->thread_id_), NULL, &(TickServer::StartThread), hbThread_[i]);
     }
 
+	CreatePulse();
+	RunPulse();
 }
 
 void TickHb::RunHb()
@@ -180,13 +187,19 @@ void TickHb::CreatePulse()
 	std::vector<Node>::iterator iter;
 	for (iter = srv_.begin(); iter != srv_.end(); iter++) {
 		TickConn *tmp = new TickConn();
+		log_info("%s %d", (*iter).host_.c_str(), (*iter).port_);
 		DoConnect((*iter).host_.c_str(), (*iter).port_, tmp); 
 		hbConns_.push_back(tmp);
 	}
 
 }
 
+
 void TickHb::RunPulse()
 {
+	std::vector<TickConn *>::iterator iter;
+	for (iter = srv_.begin(); iter != srv_.end(); iter++) {
+
+	}
 
 }

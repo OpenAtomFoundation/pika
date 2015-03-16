@@ -59,7 +59,7 @@ TickServer::TickServer()
     }
 
     options_.create_if_missing = true;
-    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
+    leveldb::Status s = leveldb::DB::Open(options_, g_tickConf->data_path(), &db_);
     if (!s.ok()) {
         log_err("Open db failed");
     }

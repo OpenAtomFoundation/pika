@@ -13,4 +13,5 @@ TickConf::TickConf(const char* path) :
     getConfInt("hb_port", &hb_port_);
     getConfStr("seed", seed_);
     getConfInt("seed_port", &seed_port_);
+    getConfStr("data_path", data_path_);
 }

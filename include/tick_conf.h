@@ -23,6 +23,7 @@ public:
     int hb_port() { return hb_port_; }
     char* seed() { return seed_; }
     int seed_port() { return seed_port_; }
+    char* data_path() { return data_path_; }
 
 private:
     int port_;
@@ -32,6 +33,7 @@ private:
     int log_level_;
     char seed_[TICK_WORD_SIZE];
     int seed_port_;
+    char data_path_[TICK_WORD_SIZE];
 };
 
 #endif

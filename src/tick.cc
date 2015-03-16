@@ -2,6 +2,7 @@
 #include "xdebug.h"
 #include <glog/logging.h>
 #include "tick_conf.h"
+#include "tick_hb.h"
 
 
 #include <iostream>
@@ -10,6 +11,8 @@
 TickConf *g_tickConf;
 
 TickServer *g_tickServer;
+
+TickHb *g_tickHb;
 
 
 static void tick_glog_init()
@@ -112,6 +115,9 @@ int main(int argc, char **argv)
      */
     tick_signal_setup();
 
+    g_tickHb = new TickHb();
+
+
     /*
      * Init the server
      */
@@ -124,6 +130,17 @@ int main(int argc, char **argv)
     }
 
 
+    /*
+     * Before now, all we do is initial all server
+     * Then we will start our server in order
+     */
+    g_tickHb->RunHb();
+
+
+    /*
+     * Start main server, the main server must be the last one to start
+     * because we must prepare and check everything before we can serve
+     */
     LOG(WARNING) << "Tick Server going to start";
     g_tickServer->RunProcess();
 

@@ -23,6 +23,9 @@ public:
 
     void CreatePulse();
 
+    /*
+     * Send the pulse to other every 3 second
+     */
     void RunPulse();
     Status DoConnect(const char* adj_hostname, int adj_port, TickConn* tickConn);
 
@@ -34,6 +37,7 @@ private:
             host_(host),
             port_(port)
         {};
+
         std::string host_;
         int port_;
     };
@@ -57,7 +61,11 @@ private:
 
     pthread_t thread_id_;
 
+    /*
+     * The connect to other tick node
+     */
     std::vector<TickConn *> hbConns_;
+
     /*
      * The heartbeat servaddr and port information
      * get the servaddr_ from the tick_server

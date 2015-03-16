@@ -47,7 +47,9 @@ void TickThread::RunProcess()
     TickConn *inConn;
     for (;;) {
         nfds = tickEpoll_->TickPoll();
-        log_info("nfds %d", nfds);
+        /*
+         * log_info("nfds %d", nfds);
+         */
         for (int i = 0; i < nfds; i++) {
             tfe = (tickEpoll_->firedevent()) + i;
             log_info("tfe->fd_ %d tfe->mask_ %d", tfe->fd_, tfe->mask_);
