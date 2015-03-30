@@ -1,27 +1,27 @@
-#ifndef __TICK_HB_H__
-#define __TICK_HB_H__
+#ifndef __PIKA_HB_H__
+#define __PIKA_HB_H__
 
 #include "status.h"
 #include "csapp.h"
-#include "tick_thread.h"
-#include "tick_define.h"
-#include "tick_epoll.h"
+#include "pika_thread.h"
+#include "pika_define.h"
+#include "pika_epoll.h"
 
 #include <vector>
 
 class HbContext;
-class TickConn;
+class PikaConn;
 
-class TickHb
+class PikaHb
 {
 public:
-    TickHb();
-    ~TickHb();
+    PikaHb();
+    ~PikaHb();
 
     /*
      * run the main heartbeat process
      */
-    void RunHb();
+    void Start();
 
 
     void CreatePulse();
@@ -62,7 +62,7 @@ private:
      */
     void DebugSrv();
 
-    TickEpoll *tickEpoll_;
+    PikaEpoll *pikaEpoll_;
 
 
     /*
@@ -74,23 +74,23 @@ private:
     /*
      * This is the thread that deal with heartbeat
      */
-    TickThread *hbThread_[TICK_HEARTBEAT_THREAD];
+    PikaThread *hbThread_[PIKA_HEARTBEAT_THREAD];
 
     pthread_t thread_id_;
 
     /*
-     * The server side of connect to other tick node
+     * The server side of connect to other pika node
      */
-    std::vector<TickConn *> hbConns_;
+    std::vector<PikaConn *> hbConns_;
 
     /*
-     * The client side of context to other tick node
+     * The client side of context to other pika node
      */
     std::vector<HbContext *> hbContexts_;
 
     /*
      * The heartbeat servaddr and port information
-     * get the servaddr_ from the tick_server
+     * get the servaddr_ from the pika_worker
      * get the port from config file
      */
     int sockfd_;
@@ -105,8 +105,8 @@ private:
     /*
      * Don't allow copy construct and copy assign construct
      */
-    TickHb(const TickHb&);
-    void operator=(const TickHb&);
+    PikaHb(const PikaHb&);
+    void operator=(const PikaHb&);
 };
 
 #endif

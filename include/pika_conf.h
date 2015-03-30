@@ -1,16 +1,16 @@
-#ifndef __TICK_CONF_H__
-#define __TICK_CONF_H__
-#include "tick_define.h"
+#ifndef __PIKA_CONF_H__
+#define __PIKA_CONF_H__
+#include "pika_define.h"
 #include "stdlib.h"
 #include "stdio.h"
 #include "xdebug.h"
 #include "status.h"
 #include "base_conf.h"
 
-class TickConf : public BaseConf
+class PikaConf : public BaseConf
 {
 public:
-    TickConf(const char* path);
+    PikaConf(const char* path);
 
     /*
      * The repetion return variable warpper
@@ -29,11 +29,11 @@ private:
     int port_;
     int hb_port_;
     int thread_num_;
-    char log_path_[TICK_WORD_SIZE];
+    char log_path_[PIKA_WORD_SIZE];
     int log_level_;
-    char seed_[TICK_WORD_SIZE];
+    char seed_[PIKA_WORD_SIZE];
     int seed_port_;
-    char data_path_[TICK_WORD_SIZE];
+    char data_path_[PIKA_WORD_SIZE];
 };
 
 #endif

@@ -1,9 +1,9 @@
 #include "sys/stat.h"
 #include "base_conf.h"
-#include "tick_conf.h"
+#include "pika_conf.h"
 
 
-TickConf::TickConf(const char* path) :
+PikaConf::PikaConf(const char* path) :
     BaseConf(path)
 {
     getConfInt("port", &port_);

@@ -1,8 +1,8 @@
 #include "hb_context.h"
 #include "csapp.h"
 #include "xdebug.h"
-#include "tick_util.h"
-#include "tick_define.h"
+#include "pika_util.h"
+#include "pika_define.h"
 
 HbContext::HbContext()
 {

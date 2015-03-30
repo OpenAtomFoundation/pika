@@ -1,31 +1,31 @@
-#include "tick_epoll.h"
-#include "tick_define.h"
+#include "pika_epoll.h"
+#include "pika_define.h"
 #include "xdebug.h"
 #include "status.h"
 
-TickEpoll::TickEpoll()
+PikaEpoll::PikaEpoll()
 {
     epfd_ = epoll_create(1024); 
-    events_ = (struct epoll_event *)malloc(sizeof(struct epoll_event) * TICK_MAX_CLIENTS);
+    events_ = (struct epoll_event *)malloc(sizeof(struct epoll_event) * PIKA_MAX_CLIENTS);
     if (!events_) {
         log_err("init epoll_event error");
     }
     timeout_ = 1000;
 
-    firedevent_ = (TickFiredEvent *)malloc(sizeof(TickFiredEvent) * TICK_MAX_CLIENTS);
+    firedevent_ = (PikaFiredEvent *)malloc(sizeof(PikaFiredEvent) * PIKA_MAX_CLIENTS);
 }
 
-TickEpoll::~TickEpoll()
+PikaEpoll::~PikaEpoll()
 {
     free(events_);
     close(epfd_);
 }
 
-Status TickEpoll::TickAddEvent(int fd, int mask)
+Status PikaEpoll::PikaAddEvent(int fd, int mask)
 {
     struct epoll_event ee;
     ee.data.fd = fd;
-    log_info("TickAddEvent mask %d", mask);
+    log_info("PikaAddEvent mask %d", mask);
     ee.events = mask;
     if (epoll_ctl(epfd_, EPOLL_CTL_ADD, fd, &ee) == -1) {
         log_info("Epoll add error");
@@ -35,9 +35,9 @@ Status TickEpoll::TickAddEvent(int fd, int mask)
 }
 
 
-Status TickEpoll::TickModEvent(int fd, int oMask, int mask)
+Status PikaEpoll::PikaModEvent(int fd, int oMask, int mask)
 {
-    log_info("TickModEvent mask %d %d", fd, (oMask | mask));
+    log_info("PikaModEvent mask %d %d", fd, (oMask | mask));
     struct epoll_event ee;
     ee.data.u64 = 0;
     ee.data.fd = fd;
@@ -49,7 +49,7 @@ Status TickEpoll::TickModEvent(int fd, int oMask, int mask)
     return Status::OK();
 }
 
-void TickEpoll::TickDelEvent(int fd)
+void PikaEpoll::PikaDelEvent(int fd)
 {
     /*
      * Kernel < 2.6.9 need a non null event point to EPOLL_CTL_DEL
@@ -59,10 +59,10 @@ void TickEpoll::TickDelEvent(int fd)
     epoll_ctl(epfd_, EPOLL_CTL_DEL, fd, &ee);
 }
 
-int TickEpoll::TickPoll()
+int PikaEpoll::PikaPoll()
 {
     int retval, numevents = 0;
-    retval = epoll_wait(epfd_, events_, TICK_MAX_CLIENTS, 500);
+    retval = epoll_wait(epfd_, events_, PIKA_MAX_CLIENTS, 500);
     if (retval > 0) {
         numevents = retval;
         for (int i = 0; i < numevents; i++) {

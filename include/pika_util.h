@@ -1,7 +1,7 @@
-#ifndef __TICK_UTIL_H__
-#define __TICK_UTIL_H__
+#ifndef __PIKA_UTIL_H__
+#define __PIKA_UTIL_H__
 
-#include "tick_define.h"
+#include "pika_define.h"
 
 int Setnonblocking(int sockfd);
 

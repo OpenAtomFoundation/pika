@@ -1,9 +1,9 @@
-#ifndef __TICK_HB_CONTEXT_H__
-#define __TICK_HB_CONTEXT_H_
+#ifndef __PIKA_HB_CONTEXT_H__
+#define __PIKA_HB_CONTEXT_H_
 
-#include "tick_define.h"
+#include "pika_define.h"
 #include "fcntl.h"
-#include "tick_define.h"
+#include "pika_define.h"
 #include "status.h"
 #include "csapp.h"
 

@@ -1,66 +1,66 @@
-#include "tick_thread.h"
+#include "pika_thread.h"
 #include "mutexlock.h"
 #include "port.h"
-#include "tick_epoll.h"
-#include "tick_define.h"
+#include "pika_epoll.h"
+#include "pika_define.h"
 #include "csapp.h"
-#include "tick_conf.h"
+#include "pika_conf.h"
 #include <glog/logging.h>
 #include "status.h"
-#include "tick_conn.h"
+#include "pika_conn.h"
 
-extern TickConf* g_tickConf;
+extern PikaConf* gPikaConf;
 
-TickThread::TickThread()
+PikaThread::PikaThread()
 {
     thread_id_ = pthread_self();
 
     /*
-     * inital the tickepoll object, add the notify_receive_fd to epoll
+     * inital the pikaepoll object, add the notify_receive_fd to epoll
      */
-    tickEpoll_ = new TickEpoll();
+    pikaEpoll_ = new PikaEpoll();
     int fds[2];
     if (pipe(fds)) {
         LOG(FATAL) << "Can't create notify pipe";
     }
     notify_receive_fd_ = fds[0];
     notify_send_fd_ = fds[1];
-    tickEpoll_->TickAddEvent(notify_receive_fd_, EPOLLIN | EPOLLERR | EPOLLHUP);
+    pikaEpoll_->PikaAddEvent(notify_receive_fd_, EPOLLIN | EPOLLERR | EPOLLHUP);
 
 }
 
-TickThread::~TickThread()
+PikaThread::~PikaThread()
 {
-    delete(tickEpoll_);
+    delete(pikaEpoll_);
     mutex_.Unlock();
     close(notify_send_fd_);
     close(notify_receive_fd_);
 }
 
-void TickThread::RunProcess()
+void PikaThread::RunProcess()
 {
     /*
      * These parameters used to get peer host and port
      */
     struct sockaddr_in peer;
     socklen_t pLen = sizeof(peer);
-    char buff[TICK_NAME_LEN];
+    char buff[PIKA_NAME_LEN];
 
 
     struct sockaddr_in servaddr_;
     thread_id_ = pthread_self();
     int nfds;
-    TickFiredEvent *tfe = NULL;
+    PikaFiredEvent *tfe = NULL;
     char bb[1];
-    TickItem ti;
-    TickConn *inConn;
+    PikaItem ti;
+    PikaConn *inConn;
     for (;;) {
-        nfds = tickEpoll_->TickPoll();
+        nfds = pikaEpoll_->PikaPoll();
         /*
          * log_info("nfds %d", nfds);
          */
         for (int i = 0; i < nfds; i++) {
-            tfe = (tickEpoll_->firedevent()) + i;
+            tfe = (pikaEpoll_->firedevent()) + i;
             log_info("tfe->fd_ %d tfe->mask_ %d", tfe->fd_, tfe->mask_);
             if (tfe->fd_ == notify_receive_fd_ && (tfe->mask_ & EPOLLIN)) {
                 read(notify_receive_fd_, bb, 1);
@@ -69,11 +69,11 @@ void TickThread::RunProcess()
                 ti = conn_queue_.front();
                 conn_queue_.pop();
                 }
-                TickConn *tc = new TickConn(ti.fd());
+                PikaConn *tc = new PikaConn(ti.fd());
                 tc->SetNonblock();
                 conns_[ti.fd()] = tc;
 
-                tickEpoll_->TickAddEvent(ti.fd(), EPOLLIN);
+                pikaEpoll_->PikaAddEvent(ti.fd(), EPOLLIN);
                 log_info("receive one fd %d", ti.fd());
                 /*
                  * tc->set_thread(this);
@@ -90,8 +90,8 @@ void TickThread::RunProcess()
                 if (inConn == NULL) {
                     continue;
                 }
-                if (inConn->TickGetRequest() == 0) {
-                    tickEpoll_->TickModEvent(tfe->fd_, 0, EPOLLOUT);
+                if (inConn->PikaGetRequest() == 0) {
+                    pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
                 } else {
                     delete(inConn);
                     shouldClose = 1;
@@ -104,9 +104,9 @@ void TickThread::RunProcess()
                 if (inConn == NULL) {
                     continue;
                 }
-                if (inConn->TickSendReply() == 0) {
+                if (inConn->PikaSendReply() == 0) {
                     log_info("SendReply ok");
-                    tickEpoll_->TickModEvent(tfe->fd_, 0, EPOLLIN);
+                    pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
                 }
             }
             if ((tfe->mask_  & EPOLLERR) || (tfe->mask_ & EPOLLHUP)) {

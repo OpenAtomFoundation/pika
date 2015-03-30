@@ -1,5 +1,5 @@
-#ifndef __TICK_SERVER_H__
-#define __TICK_SERVER_H__
+#ifndef __PIKA_SERVER_H__
+#define __PIKA_SERVER_H__
 
 #include <stdio.h>
 #include <sys/epoll.h>
@@ -14,27 +14,27 @@
 
 #include "csapp.h"
 #include "xdebug.h"
-#include "tick_define.h"
+#include "pika_define.h"
 #include "status.h"
 #include "leveldb/db.h"
 #include "leveldb/write_batch.h"
 
-class TickThread;
-class TickEpoll;
-class TickConn;
+class PikaThread;
+class PikaEpoll;
+class PikaConn;
 
-class TickServer
+class PikaWorker
 {
 public:
-    TickServer();
-    ~TickServer();
+    PikaWorker();
+    ~PikaWorker();
 
-    void RunProcess();
+    void Start();
 
     static void* StartThread(void* arg);
 
 private:
-    friend class TickConn;
+    friend class PikaConn;
     Status SetBlockType(BlockType type);
 
     /*
@@ -43,7 +43,7 @@ private:
     int sockfd_;
     int flags_;
     int port_;
-    char host_[TICK_NAME_LEN];
+    char host_[PIKA_NAME_LEN];
 
     /*
      * The listen socket address
@@ -53,7 +53,7 @@ private:
     /*
      * The Epoll event handler
      */
-    TickEpoll *tickEpoll_;
+    PikaEpoll *pikaEpoll_;
 
     /*
      * The leveldb handler
@@ -70,13 +70,13 @@ private:
     /*
      * This is the work threads
      */
-    TickThread *tickThread_[TICK_THREAD_NUM];
+    PikaThread *pikaThread_[PIKA_THREAD_NUM];
 
-    TickThread *hbThread_;
+    PikaThread *hbThread_;
 
     // No copying allowed
-    TickServer(const TickServer&);
-    void operator=(const TickServer&);
+    PikaWorker(const PikaWorker&);
+    void operator=(const PikaWorker&);
 
 };
 

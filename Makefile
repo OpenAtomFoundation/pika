@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function
-OBJECT = tick
+OBJECT = pika
 SRC_DIR = ./src
 THIRD_PATH = ./third/
 OUTPUT = ./output

@@ -1,23 +1,23 @@
 #include "pika.h"
 #include "xdebug.h"
 #include <glog/logging.h>
-#include "tick_conf.h"
-#include "tick_hb.h"
+#include "pika_conf.h"
+#include "pika_hb.h"
 
 
 #include <iostream>
 #include <signal.h>
 
-Pika *g_pika;
+Pika *gPika;
 
-TickConf *g_tickConf;
+PikaConf *gPikaConf;
 
-static void tick_glog_init()
+static void pika_glog_init()
 {
-    FLAGS_log_dir = g_tickConf->log_path();
-    ::google::InitGoogleLogging("tick");
-    FLAGS_minloglevel = g_tickConf->log_level();
-    LOG(WARNING) << "Tick glog init";
+    FLAGS_log_dir = gPikaConf->log_path();
+    ::google::InitGoogleLogging("pika");
+    FLAGS_minloglevel = gPikaConf->log_level();
+    LOG(WARNING) << "Pika glog init";
     /*
      * dump some usefull message when crash on certain signals
      */
@@ -29,48 +29,48 @@ static void sig_handler(const int sig)
     printf("Caught signal %d", sig);
 }
 
-void tick_signal_setup()
+void pika_signal_setup()
 {
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
-    LOG(WARNING) << "tick signal setup ok";
+    LOG(WARNING) << "pika signal setup ok";
 }
 
 
 static void version()
 {
-    printf("-----------Tick server 1.0.0----------\n");
+    printf("-----------Pika server 1.0.0----------\n");
 }
-void tick_init_conf(const char* path)
+void pika_init_conf(const char* path)
 {
-    g_tickConf = new TickConf(path);
-    if (g_tickConf == NULL) {
-        LOG(FATAL) << "tick load conf error";
+    gPikaConf = new PikaConf(path);
+    if (gPikaConf == NULL) {
+        LOG(FATAL) << "pika load conf error";
     }
 
     version();
-    printf("-----------Tick config list----------\n");
-    g_tickConf->DumpConf();
-    printf("-----------Tick config end----------\n");
+    printf("-----------Pika config list----------\n");
+    gPikaConf->DumpConf();
+    printf("-----------Pika config end----------\n");
 }
 
 
 static void usage()
 {
     fprintf(stderr,
-            "Tick module 1.0.0\n"
+            "Pika module 1.0.0\n"
             "need One parameters\n"
             "-D the conf path \n"
             "-h show this usage message \n"
-            "example: ./bin/tick -D./conf/tick.conf\n"
+            "example: ./bin/pika -D./conf/pika.conf\n"
            );
 }
 
 int main(int argc, char **argv)
 {
-    bool path_opt = false;
+    bool pathOpt = false;
     char c;
-    char path[TICK_LINE_SIZE];
+    char path[PIKA_LINE_SIZE];
     if (argc != 2) {
         usage();
         return -1;
@@ -78,8 +78,8 @@ int main(int argc, char **argv)
     while (-1 != (c = getopt(argc, argv, "D:h"))) {
         switch (c) {
         case 'D':
-            snprintf(path, TICK_LINE_SIZE, "%s", optarg);
-            path_opt = 1;
+            snprintf(path, PIKA_LINE_SIZE, "%s", optarg);
+            pathOpt = 1;
             break;
         case 'h':
             usage();
@@ -93,37 +93,37 @@ int main(int argc, char **argv)
     /*
      * check wether set the conf path
      */
-    if (path_opt == false) {
+    if (pathOpt == false) {
         LOG(FATAL) << "Don't get the conf path";
     }
 
     /*
      * init the conf
      */
-    tick_init_conf(path);
+    pika_init_conf(path);
 
     /*
      * init the glog config
      */
-    tick_glog_init();
+    pika_glog_init();
 
     /*
      * set up the signal
      */
-    tick_signal_setup();
+    pika_signal_setup();
 
-    g_tickHb = new TickHb();
 
 
     /*
-     * Init the server
+     * Init the pika
+	 * Inside the pika, we have pikaWorker, pikaHb
      */
-    g_tickServer = new TickServer();
+    gPika = new Pika();
     
-    if (g_tickServer != NULL) {
-        LOG(WARNING) << "Tick Server init ok";
+    if (gPika != NULL) {
+        LOG(WARNING) << "Pika Server init ok";
     } else {
-        LOG(FATAL) << "Tick Server init error";
+        LOG(FATAL) << "Pika Server init error";
     }
 
 
@@ -133,20 +133,23 @@ int main(int argc, char **argv)
      */
     log_info("Start running heartbeat");
 
-    g_tickHb->RunHb();
+	/*
+	 * Start the heartbeat module
+	 */
+	gPika->RunHb();
 
     /*
-     * g_tickHb->RunPulse();
+     * gPika->RunPulse();
      */
 
 
     /*
-     * Start main server, the main server must be the last one to start
+     * Start main worker, the main server must be the last one to start
      * because we must prepare and check everything before we can serve
      */
-    LOG(WARNING) << "Tick Server going to start";
-    log_info("Start running tick main server");
-    g_tickServer->RunProcess();
+    LOG(WARNING) << "Pika Server going to start";
+    log_info("Start running pika main server");
+    gPika->RunWorker();
 
     return 0;
 }

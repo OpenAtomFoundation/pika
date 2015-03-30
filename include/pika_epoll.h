@@ -1,33 +1,33 @@
-#ifndef __TICK_EPOLL_H__
-#define __TICK_EPOLL_H__
+#ifndef __PIKA_EPOLL_H__
+#define __PIKA_EPOLL_H__
 #include "sys/epoll.h"
 #include "status.h"
 
-typedef struct TickFiredEvent {
+typedef struct PikaFiredEvent {
     int fd_;
     int mask_;
-}TickFiredEvent;
+}PikaFiredEvent;
 
-class TickEpoll
+class PikaEpoll
 {
 
 public:
-    TickEpoll();
-    ~TickEpoll();
-    Status TickAddEvent(int fd, int mask);
-    void TickDelEvent(int fd);
-    Status TickModEvent(int fd, int oMask, int mask);
+    PikaEpoll();
+    ~PikaEpoll();
+    Status PikaAddEvent(int fd, int mask);
+    void PikaDelEvent(int fd);
+    Status PikaModEvent(int fd, int oMask, int mask);
 
-    int TickPoll();
+    int PikaPoll();
 
-    TickFiredEvent *firedevent() { return firedevent_; }
+    PikaFiredEvent *firedevent() { return firedevent_; }
 
 private:
 
     int epfd_;
     struct epoll_event *events_;
     int timeout_;
-    TickFiredEvent *firedevent_;
+    PikaFiredEvent *firedevent_;
 };
 
 #endif

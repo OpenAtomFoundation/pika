@@ -1,5 +1,5 @@
-#include "tick_packet.h"
-#include "tick_define.h"
+#include "pika_packet.h"
+#include "pika_define.h"
 
 Status SetParse(const int32_t opcode, const char *rbuf, const int32_t rbuf_len, std::string *key, std::string *value)
 {

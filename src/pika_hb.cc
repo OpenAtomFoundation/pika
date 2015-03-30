@@ -1,37 +1,37 @@
-#include "tick_hb.h"
-#include "tick_conf.h"
+#include "pika_hb.h"
+#include "pika_conf.h"
 #include "status.h"
-#include "tick_util.h"
-#include "tick_thread.h"
-#include "tick_item.h"
-#include "tick_server.h"
+#include "pika_util.h"
+#include "pika_thread.h"
+#include "pika_item.h"
+#include "pika_worker.h"
 #include "mutexlock.h"
 #include <glog/logging.h>
-#include "tick_conn.h"
+#include "pika_conn.h"
 #include "hb_context.h"
 #include "bada_sdk.pb.h"
-#include "tick_packet.h"
+#include "pika_packet.h"
 
 #include <poll.h>
 #include <vector>
 
 
-extern TickConf *g_tickConf;
+extern PikaConf *gPikaConf;
 
-TickHb::TickHb()
+PikaHb::PikaHb()
 {
 	thread_id_ = pthread_self();
 	// init sock
 	sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
 	memset(&servaddr_, 0, sizeof(servaddr_));
 
-	hb_port_ = g_tickConf->hb_port();
+	hb_port_ = gPikaConf->hb_port();
 	servaddr_.sin_family = AF_INET;
 	servaddr_.sin_addr.s_addr = htonl(INADDR_ANY);
 	servaddr_.sin_port = htons(hb_port_);
 
-	char* tmp = g_tickConf->seed();
-	int sp = g_tickConf->seed_port();
+	char* tmp = gPikaConf->seed();
+	int sp = gPikaConf->seed_port();
 	log_info("seed%sseed %d", tmp, sp);
 	if (tmp[0] != '\0') {
 		log_info("seed%sseed %d", tmp, sp);
@@ -46,18 +46,18 @@ TickHb::TickHb()
 	SetBlockType(sockfd_, flags_, kNonBlock);
 
 	/*
-	 * inital the tickepoll object, add the notify_receive_fd to epoll
+	 * inital the pikaepoll object, add the notify_receive_fd to epoll
 	 */
-	tickEpoll_ = new TickEpoll();
-	tickEpoll_->TickAddEvent(sockfd_, EPOLLIN | EPOLLERR | EPOLLHUP);
+	pikaEpoll_ = new PikaEpoll();
+	pikaEpoll_->PikaAddEvent(sockfd_, EPOLLIN | EPOLLERR | EPOLLHUP);
 
 	last_thread_ = 0;
-	for (int i = 0; i < TICK_HEARTBEAT_THREAD; i++) {
-		hbThread_[i] = new TickThread();
+	for (int i = 0; i < PIKA_HEARTBEAT_THREAD; i++) {
+		hbThread_[i] = new PikaThread();
 	}
 	// start the hbThread thread
-	for (int i = 0; i < TICK_HEARTBEAT_THREAD; i++) {
-		pthread_create(&(hbThread_[i]->thread_id_), NULL, &(TickServer::StartThread), hbThread_[i]);
+	for (int i = 0; i < PIKA_HEARTBEAT_THREAD; i++) {
+		pthread_create(&(hbThread_[i]->thread_id_), NULL, &(PikaWorker::StartThread), hbThread_[i]);
 	}
 
 	CreatePulse();
@@ -69,37 +69,37 @@ TickHb::TickHb()
 	 */
 }
 
-TickHb::~TickHb()
+PikaHb::~PikaHb()
 {
 
 }
 
-void TickHb::RunHb()
+void PikaHb::Start()
 {
 	int nfds;
-	TickFiredEvent *tfe;
+	PikaFiredEvent *tfe;
 	Status s;
 	struct sockaddr_in cliaddr;
 	socklen_t clilen;
 	int fd, connfd;
 	for (;;) {
-		nfds = tickEpoll_->TickPoll();
-		tfe = tickEpoll_->firedevent();
+		nfds = pikaEpoll_->PikaPoll();
+		tfe = pikaEpoll_->firedevent();
 		for (int i = 0; i < nfds; i++) {
 			fd = (tfe + i)->fd_;
 			if (fd == sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
 				connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
 				log_info("Accept new fd %d", connfd);
-				std::queue<TickItem> *q = &(hbThread_[last_thread_]->conn_queue_);
+				std::queue<PikaItem> *q = &(hbThread_[last_thread_]->conn_queue_);
 				log_info("Tfe must happen");
-				TickItem ti(connfd);
+				PikaItem ti(connfd);
 				{
 					MutexLock l(&hbThread_[last_thread_]->mutex_);
 					q->push(ti);
 				}
 				write(hbThread_[last_thread_]->notify_send_fd(), "", 1);
 				last_thread_++;
-				last_thread_ %= TICK_THREAD_NUM;
+				last_thread_ %= PIKA_THREAD_NUM;
 			} else if ((tfe + i)->mask_ & (EPOLLRDHUP | EPOLLERR | EPOLLHUP)) {
 				LOG(WARNING) << "Epoll timeout event";
 			}
@@ -108,7 +108,7 @@ void TickHb::RunHb()
 }
 
 
-Status TickHb::DoConnect(const char* adj_hostname, int adj_port, HbContext* hbContext)
+Status PikaHb::DoConnect(const char* adj_hostname, int adj_port, HbContext* hbContext)
 {
 	Status s;
 	int sockfd, rv;
@@ -196,7 +196,7 @@ Status TickHb::DoConnect(const char* adj_hostname, int adj_port, HbContext* hbCo
 	freeaddrinfo(p);
 }
 
-void TickHb::CreatePulse()
+void PikaHb::CreatePulse()
 {
 	Status s;
 	std::vector<Node>::iterator iter;
@@ -210,7 +210,7 @@ void TickHb::CreatePulse()
 
 }
 
-Status TickHb::Pulse(HbContext* hbContext, const std::string &host, const int port)
+Status PikaHb::Pulse(HbContext* hbContext, const std::string &host, const int port)
 {
 	log_info("send here");
 	Status s;
@@ -247,7 +247,7 @@ Status TickHb::Pulse(HbContext* hbContext, const std::string &host, const int po
 
 }
 
-void TickHb::RunPulse()
+void PikaHb::RunPulse()
 {
 	Status s;
 	std::vector<HbContext *>::iterator iter;
@@ -260,7 +260,7 @@ void TickHb::RunPulse()
 	}
 }
 
-void TickHb::DebugSrv()
+void PikaHb::DebugSrv()
 {
 	/*
 	 * printf("%s", 

@@ -1,16 +1,16 @@
-#include "tick_item.h"
-#include "tick_define.h"
+#include "pika_item.h"
+#include "pika_define.h"
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include "csapp.h"
 
-TickItem::TickItem(int fd) :
+PikaItem::PikaItem(int fd) :
     fd_(fd)
 {
 }
 
-TickItem::~TickItem()
+PikaItem::~PikaItem()
 {
 }

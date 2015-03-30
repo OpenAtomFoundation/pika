@@ -1,45 +1,46 @@
-#include "tick_conn.h"
-#include "tick_util.h"
-#include "tick_packet.h"
-#include "tick_server.h"
+#include "pika.h"
+#include "pika_conn.h"
+#include "pika_util.h"
+#include "pika_packet.h"
+#include "pika_worker.h"
 #include "leveldb/db.h"
 #include "bada_sdk.pb.h"
-#include "tick_define.h"
+#include "pika_define.h"
 
-extern TickServer *g_tickServer;
+extern Pika *gPika;
 
-void TickConn::InitPara()
+void PikaConn::InitPara()
 {
     thread_ = NULL;
 
     // init the rbuf
-    rbuf_ = (char *)malloc(sizeof(char) * TICK_MAX_MESSAGE);
+    rbuf_ = (char *)malloc(sizeof(char) * PIKA_MAX_MESSAGE);
     header_len_ = -1;
     r_opcode_ = 0;
     cur_pos_ = 0;
     rbuf_len_ = 0;
 
-    wbuf_ = (char *)malloc(sizeof(char) * TICK_MAX_MESSAGE);
+    wbuf_ = (char *)malloc(sizeof(char) * PIKA_MAX_MESSAGE);
 }
 
-TickConn::TickConn(int fd) :
+PikaConn::PikaConn(int fd) :
     fd_(fd)
 {
 	InitPara();
 }
 
-TickConn::TickConn()
+PikaConn::PikaConn()
 {
     InitPara();
 }
 
-TickConn::~TickConn()
+PikaConn::~PikaConn()
 {
     free(rbuf_);
     free(wbuf_);
 }
 
-bool TickConn::SetNonblock()
+bool PikaConn::SetNonblock()
 {
     flags_ = Setnonblocking(fd_);
     if (flags_ == -1) {
@@ -49,24 +50,24 @@ bool TickConn::SetNonblock()
 }
 
 
-Status TickConn::TickReadBuf()
+Status PikaConn::PikaReadBuf()
 {
     Status s;
     rio_t rio;
     rio_readinitb(&rio, fd_);
-    s = TickReadHeader(&rio);
+    s = PikaReadHeader(&rio);
     if (!s.ok()) {
         return s;
     }
-    s = TickReadCode(&rio);
+    s = PikaReadCode(&rio);
     if (!s.ok()) {
         return s;
     }
-    s = TickReadPacket(&rio);
+    s = PikaReadPacket(&rio);
     return s;
 }
 
-void TickConn::DriveMachine()
+void PikaConn::DriveMachine()
 {
 /*
  *     while (1) {
@@ -78,10 +79,10 @@ void TickConn::DriveMachine()
  */
 }
 
-int TickConn::TickGetRequest()
+int PikaConn::PikaGetRequest()
 {
     ssize_t nread = 0;
-    nread = read(fd_, rbuf_ + rbuf_len_, TICK_MAX_MESSAGE);
+    nread = read(fd_, rbuf_ + rbuf_len_, PIKA_MAX_MESSAGE);
     if (nread == -1) {
         if (errno == EAGAIN) {
             nread = 0;
@@ -100,7 +101,7 @@ int TickConn::TickGetRequest()
     SdkSetRet sdkSetRet;
     SdkGetRet sdkGetRet;
     HbSendRet hbSendRet;
-    int packet_len = TICK_MAX_MESSAGE;
+    int packet_len = PIKA_MAX_MESSAGE;
     if (nread) {
         rbuf_len_ += nread;
         while (flag) {
@@ -140,7 +141,7 @@ int TickConn::TickGetRequest()
                     value = new std::string();
                     SetParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, key, value);
                     // printf("%s %s\n", key->c_str(), value->c_str());
-                    g_tickServer->db_->Put(leveldb::WriteOptions(), (*key), (*value));
+                    gPika->PikaWorker_()->db_->Put(leveldb::WriteOptions(), (*key), (*value));
                     SetRetBuild(true, &sdkSetRet);
                     sdkSetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
                     delete(key);
@@ -155,7 +156,7 @@ int TickConn::TickGetRequest()
                     key = new std::string();
                     GetParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, key);
                     std::string getRes;
-                    g_tickServer->db_->Get(leveldb::ReadOptions(), (*key), &getRes);
+                    gPika->PikaWorker_()->db_->Get(leveldb::ReadOptions(), (*key), &getRes);
                     GetRetBuild(getRes, &sdkGetRet);
                     sdkGetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
                     delete(key);
@@ -198,7 +199,7 @@ int TickConn::TickGetRequest()
     return -1;
 }
 
-int TickConn::TickSendReply()
+int PikaConn::PikaSendReply()
 {
     ssize_t nwritten = 0;
     log_info("wbuf_len %d", wbuf_len_);
@@ -238,7 +239,7 @@ int TickConn::TickSendReply()
 }
 
 
-Status TickConn::TickReadHeader(rio_t *rio)
+Status PikaConn::PikaReadHeader(rio_t *rio)
 {
     Status s;
     char buf[1024];
@@ -266,7 +267,7 @@ Status TickConn::TickReadHeader(rio_t *rio)
     return Status::OK();
 }
 
-Status TickConn::TickReadCode(rio_t *rio)
+Status PikaConn::PikaReadCode(rio_t *rio)
 {
     Status s;
     char buf[1024];
@@ -293,7 +294,7 @@ Status TickConn::TickReadCode(rio_t *rio)
     return Status::OK();
 }
 
-Status TickConn::TickReadPacket(rio_t *rio)
+Status PikaConn::PikaReadPacket(rio_t *rio)
 {
     Status s;
     int nread = 0;
@@ -320,7 +321,7 @@ Status TickConn::TickReadPacket(rio_t *rio)
     return Status::OK();
 }
 
-Status TickConn::BuildObuf(int32_t opcode, const int packet_len)
+Status PikaConn::BuildObuf(int32_t opcode, const int packet_len)
 {
     uint32_t code_len = COMMAND_CODE_LENGTH + packet_len;
     uint32_t u;

@@ -1,26 +1,26 @@
-#ifndef __TICK_CONN_H__
-#define __TICK_CONN_H__
+#ifndef __PIKA_CONN_H__
+#define __PIKA_CONN_H__
 
 #include "status.h"
 #include "csapp.h"
-#include "tick_thread.h"
-#include "tick_define.h"
+#include "pika_thread.h"
+#include "pika_define.h"
 
-class TickConn
+class PikaConn
 {
 public:
-    TickConn(int fd);
-    TickConn();
-    ~TickConn();
+    PikaConn(int fd);
+    PikaConn();
+    ~PikaConn();
     /*
      * Set the fd to nonblock && set the flag_ the the fd flag
      */
     bool SetNonblock();
     void InitPara();
-    Status TickReadBuf();
+    Status PikaReadBuf();
     void DriveMachine();
-    int TickGetRequest();
-    int TickSendReply();
+    int PikaGetRequest();
+    int PikaSendReply();
     void set_fd(int fd) { fd_ = fd; };
     int flags() { return flags_; };
 
@@ -34,9 +34,9 @@ private:
     /*
      * These functions parse the message from client
      */
-    Status TickReadHeader(rio_t *rio);
-    Status TickReadCode(rio_t *rio);
-    Status TickReadPacket(rio_t *rio);
+    Status PikaReadHeader(rio_t *rio);
+    Status PikaReadCode(rio_t *rio);
+    Status PikaReadPacket(rio_t *rio);
 
 
     Status BuildObuf(int32_t opcode, const int packet_len);
@@ -55,7 +55,7 @@ private:
     char* wbuf_;
     int32_t wbuf_len_;
     int32_t wbuf_pos_;
-    TickThread *thread_;
+    PikaThread *thread_;
 };
 
 #endif

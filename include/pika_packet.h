@@ -1,5 +1,5 @@
-#ifndef __TICK_PACKET_H__
-#define __TICK_PACKET_H__
+#ifndef __PIKA_PACKET_H__
+#define __PIKA_PACKET_H__
 
 #include "status.h"
 #include <string>

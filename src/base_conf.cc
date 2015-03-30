@@ -4,9 +4,9 @@
 
 BaseConf::BaseConf(const char* path)
 {
-    item_ = (ConfItem *)malloc(sizeof(ConfItem) * TICK_CONF_MAX_NUM);
+    item_ = (ConfItem *)malloc(sizeof(ConfItem) * PIKA_CONF_MAX_NUM);
     num_ = 0;
-    size_ = TICK_CONF_MAX_NUM;
+    size_ = PIKA_CONF_MAX_NUM;
     ReadConf(path);
 }
 
@@ -36,16 +36,16 @@ bool BaseConf::ReadConf(const char* path)
 
     // read conf items
     int item_num = 0;
-    char line[TICK_WORD_SIZE];
+    char line[PIKA_WORD_SIZE];
     char ch = 0;
     int line_len = 0;
-    char c_name[TICK_WORD_SIZE];
-    char c_value[TICK_WORD_SIZE];
+    char c_name[PIKA_WORD_SIZE];
+    char c_value[PIKA_WORD_SIZE];
     int sep_sign = 0;
     int name_len = 0;
     int value_len = 0;
 
-    while (fgets(line, TICK_WORD_SIZE, pf) != NULL) {
+    while (fgets(line, PIKA_WORD_SIZE, pf) != NULL) {
         name_len = 0;
         value_len = 0;
         sep_sign = 0;

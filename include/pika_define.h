@@ -1,12 +1,12 @@
-#ifndef __TICK_DEFINE_H__
-#define __TICK_DEFINE_H__
+#ifndef __PIKA_DEFINE_H__
+#define __PIKA_DEFINE_H__
 
-#define TICK_MAX_CLIENTS 10240
-#define TICK_MAX_MESSAGE 1024
-#define TICK_THREAD_NUM 16
-#define TICK_HEARTBEAT_THREAD 1
+#define PIKA_MAX_CLIENTS 10240
+#define PIKA_MAX_MESSAGE 1024
+#define PIKA_THREAD_NUM 16
+#define PIKA_HEARTBEAT_THREAD 1
 #define HB_MAX_BUFFER 1024
-#define TICK_NAME_LEN 1024
+#define PIKA_NAME_LEN 1024
 
 /*
  * The pb head and code length
@@ -76,12 +76,12 @@ enum CommandCode {
     kHbSendRet = 602,
 };
 /*
- * define the macro in tick_conf
+ * define the macro in pika_conf
  */
 
-#define TICK_WORD_SIZE 1024
-#define TICK_LINE_SIZE 1024
-#define TICK_CONF_MAX_NUM 1024
+#define PIKA_WORD_SIZE 1024
+#define PIKA_LINE_SIZE 1024
+#define PIKA_CONF_MAX_NUM 1024
 
 
 /*

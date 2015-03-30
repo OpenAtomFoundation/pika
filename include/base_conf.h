@@ -1,7 +1,7 @@
 #ifndef __BASE_CONF_H__
 #define __BASE_CONF_H__
 
-#include "tick_define.h"
+#include "pika_define.h"
 #include "stdlib.h"
 #include "stdio.h"
 #include "xdebug.h"
@@ -21,8 +21,8 @@ public:
 
 private:
     struct ConfItem {
-        char name[TICK_WORD_SIZE];
-        char value[TICK_WORD_SIZE];
+        char name[PIKA_WORD_SIZE];
+        char value[PIKA_WORD_SIZE];
     };
 
     ConfItem *item_;

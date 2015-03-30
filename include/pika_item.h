@@ -1,15 +1,15 @@
-#ifndef __TICK_ITEM_H__
-#define __TICK_ITEM_H__
+#ifndef __PIKA_ITEM_H__
+#define __PIKA_ITEM_H__
 
 #include "status.h"
-#include "tick_define.h"
+#include "pika_define.h"
 
-class TickItem
+class PikaItem
 {
 public:
-    TickItem() {};
-    TickItem(int fd);
-    ~TickItem();
+    PikaItem() {};
+    PikaItem(int fd);
+    ~PikaItem();
 
     int fd() { return fd_; }
 
@@ -21,8 +21,8 @@ private:
      * No copy && assigned allowed
      */
     /*
-     * TickItem(const TickItem&);
-     * void operator=(const TickItem&);
+     * PikaItem(const PikaItem&);
+     * void operator=(const PikaItem&);
      */
 
 };

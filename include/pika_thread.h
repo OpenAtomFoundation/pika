@@ -1,5 +1,5 @@
-#ifndef __TICK_THREAD_H__
-#define __TICK_THREAD_H__
+#ifndef __PIKA_THREAD_H__
+#define __PIKA_THREAD_H__
 
 #include "xdebug.h"
 
@@ -9,20 +9,20 @@
 #include <map>
 
 #include "port.h"
-#include "tick_item.h"
+#include "pika_item.h"
 #include "status.h"
 #include "csapp.h"
 
 
-class TickItem;
-class TickEpoll;
-class TickConn;
+class PikaItem;
+class PikaEpoll;
+class PikaConn;
 
-class TickThread
+class PikaThread
 {
 public:
-    TickThread();
-    ~TickThread();
+    PikaThread();
+    ~PikaThread();
 
     void RunProcess();
 
@@ -36,8 +36,8 @@ public:
 
 private:
 
-    friend class TickServer;
-    friend class TickHb;
+    friend class PikaWorker;
+    friend class PikaHb;
 
     /*
      * These two fd receive the notify from master thread
@@ -46,23 +46,23 @@ private:
     int notify_send_fd_;
 
     /*
-     * The TickItem queue is the fd queue, receive from master thread
+     * The PikaItem queue is the fd queue, receive from master thread
      */
-    std::queue<TickItem> conn_queue_;
+    std::queue<PikaItem> conn_queue_;
 
     /*
      * The epoll handler
      */
-    TickEpoll *tickEpoll_;
+    PikaEpoll *pikaEpoll_;
 
-    std::map<int, TickConn *> conns_;
+    std::map<int, PikaConn *> conns_;
 
 
     port::Mutex mutex_;
 
     // No copy || assigned operator allowed
-    TickThread(const TickThread&);
-    void operator=(const TickThread &);
+    PikaThread(const PikaThread&);
+    void operator=(const PikaThread &);
 };
 
 #endif
