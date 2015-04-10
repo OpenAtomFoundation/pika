@@ -141,7 +141,7 @@ int PikaConn::PikaGetRequest()
                     value = new std::string();
                     SetParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, key, value);
                     // printf("%s %s\n", key->c_str(), value->c_str());
-                    gPika->PikaWorker_()->db_->Put(leveldb::WriteOptions(), (*key), (*value));
+                    gPika->pikaWorker()->db_->Put(leveldb::WriteOptions(), (*key), (*value));
                     SetRetBuild(true, &sdkSetRet);
                     sdkSetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
                     delete(key);
@@ -156,7 +156,7 @@ int PikaConn::PikaGetRequest()
                     key = new std::string();
                     GetParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, key);
                     std::string getRes;
-                    gPika->PikaWorker_()->db_->Get(leveldb::ReadOptions(), (*key), &getRes);
+                    gPika->pikaWorker()->db_->Get(leveldb::ReadOptions(), (*key), &getRes);
                     GetRetBuild(getRes, &sdkGetRet);
                     sdkGetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
                     delete(key);

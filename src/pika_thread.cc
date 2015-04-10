@@ -37,6 +37,18 @@ PikaThread::~PikaThread()
     close(notify_receive_fd_);
 }
 
+void PikaThread::CreateThread(pthread_t &pid, PikaThread* pikaThread)
+{
+    pthread_create(&pid, NULL, &(PikaThread::StartThread), pikaThread);
+    return ;
+}
+
+void* PikaThread::StartThread(void* arg)
+{
+    reinterpret_cast<PikaThread*>(arg)->RunProcess();
+    return NULL;
+}
+
 void PikaThread::RunProcess()
 {
     /*
@@ -120,3 +132,4 @@ void PikaThread::RunProcess()
         }
     }
 }
+

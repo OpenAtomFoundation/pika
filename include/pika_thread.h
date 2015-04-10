@@ -30,6 +30,9 @@ public:
     int notify_receive_fd() { return notify_receive_fd_; }
     int notify_send_fd() { return notify_send_fd_; }
 
+    static void CreateThread(pthread_t &pid, PikaThread* pikaThread);
+    static void* StartThread(void* arg);
+
     pthread_t thread_id_;
 
     // port::Mutex mutex() { return mutex_; }
@@ -55,7 +58,7 @@ private:
      */
     PikaEpoll *pikaEpoll_;
 
-    std::map<int, PikaConn *> conns_;
+    std::map<int, PikaConn*> conns_;
 
 
     port::Mutex mutex_;

@@ -139,9 +139,11 @@ int main(int argc, char **argv)
 	gPika->RunHb();
 
     /*
-     * gPika->RunPulse();
+     * Start the pulse thread
      */
+    gPika->RunPulse();
 
+    gPika->RunHbMonitor();
 
     /*
      * Start main worker, the main server must be the last one to start

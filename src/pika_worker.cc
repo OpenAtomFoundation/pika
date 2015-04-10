@@ -69,7 +69,10 @@ PikaWorker::PikaWorker()
 
     // start the pikaThread_ thread
     for (int i = 0; i < gPikaConf->thread_num(); i++) {
-        pthread_create(&(pikaThread_[i]->thread_id_), NULL, &(PikaWorker::StartThread), pikaThread_[i]);
+        PikaThread::CreateThread(pikaThread_[i]->thread_id_, pikaThread_[i]);
+        /*
+         * pthread_create(&(pikaThread_[i]->thread_id_), NULL, &(PikaThread::StartThread), pikaThread_[i]);
+         */
     }
 
 }
@@ -81,12 +84,6 @@ PikaWorker::~PikaWorker()
     }
     delete(pikaEpoll_);
     close(sockfd_);
-}
-
-void* PikaWorker::StartThread(void* arg)
-{
-    reinterpret_cast<PikaThread*>(arg)->RunProcess();
-    return NULL;
 }
 
 

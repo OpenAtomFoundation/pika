@@ -18,7 +18,8 @@
 
 extern PikaConf *gPikaConf;
 
-PikaHb::PikaHb()
+PikaHb::PikaHb(std::vector<PikaNode>* cur) :
+    cur_(cur)
 {
 	thread_id_ = pthread_self();
 	// init sock
@@ -35,7 +36,8 @@ PikaHb::PikaHb()
 	log_info("seed%sseed %d", tmp, sp);
 	if (tmp[0] != '\0') {
 		log_info("seed%sseed %d", tmp, sp);
-		srv_.push_back(Node(std::string(tmp), sp));
+		cur_->push_back(PikaNode(std::string(tmp), sp));
+        DebugSrv();
 	}
 	bind(sockfd_, (struct sockaddr *) &servaddr_, sizeof(servaddr_));
 	listen(sockfd_, 10);
@@ -57,16 +59,10 @@ PikaHb::PikaHb()
 	}
 	// start the hbThread thread
 	for (int i = 0; i < PIKA_HEARTBEAT_THREAD; i++) {
-		pthread_create(&(hbThread_[i]->thread_id_), NULL, &(PikaWorker::StartThread), hbThread_[i]);
+		pthread_create(&(hbThread_[i]->thread_id_), NULL, &(PikaThread::StartThread), hbThread_[i]);
 	}
 
 	CreatePulse();
-	/*
-	 * RunPulse();
-	 */
-	/*
-	 * Pulse("127.0.0.1", 9876);
-	 */
 }
 
 PikaHb::~PikaHb()
@@ -74,7 +70,18 @@ PikaHb::~PikaHb()
 
 }
 
-void PikaHb::Start()
+void PikaHb::CreateHb(pthread_t* pid, PikaHb* pikaHb)
+{
+    pthread_create(pid, NULL, &(PikaHb::StartHb), pikaHb);
+}
+
+void* PikaHb::StartHb(void* arg)
+{
+    reinterpret_cast<PikaHb*>(arg)->RunProcess();
+    return NULL;
+}
+
+void PikaHb::RunProcess()
 {
 	int nfds;
 	PikaFiredEvent *tfe;
@@ -199,27 +206,33 @@ Status PikaHb::DoConnect(const char* adj_hostname, int adj_port, HbContext* hbCo
 void PikaHb::CreatePulse()
 {
 	Status s;
-	std::vector<Node>::iterator iter;
-	for (iter = srv_.begin(); iter != srv_.end(); iter++) {
+	std::vector<PikaNode>::iterator iter;
+	for (iter = cur_->begin(); iter != cur_->end(); iter++) {
 		HbContext *tmp = new HbContext();
-		log_info("%s %d", (*iter).host_.c_str(), (*iter).port_);
-		s = DoConnect((*iter).host_.c_str(), (*iter).port_, tmp); 
+		log_info("%s %d", (*iter).host()->c_str(), (*iter).port());
+		s = DoConnect((*iter).host()->c_str(), (*iter).port(), tmp); 
 		log_info("Status %s", s.ToString().c_str());
-		hbContexts_.push_back(tmp);
+        if (s.ok()) {
+            hbContexts_.push_back(tmp);
+        }
 	}
-
 }
+
+/*
+ * void PikaHb::DestroyPulse()
+ * {
+ * }
+ */
 
 Status PikaHb::Pulse(HbContext* hbContext, const std::string &host, const int port)
 {
-	log_info("send here");
 	Status s;
 	HbSend hbSend;
 	HbSendBuild(host, port, &hbSend);
 	int buf_len = 0;
 	char* buf = hbContext->GetContextBuffer(&buf_len);
 	log_info("hbContext fd %d", hbContext->fd());
-	if (!buf) { // error
+	if (!buf) {
 		s = Status::InvalidArgument("context no buffer");
 		return s;
 	}
@@ -230,39 +243,32 @@ Status PikaHb::Pulse(HbContext* hbContext, const std::string &host, const int po
 	hbContext->BuildObuf(kHbSend, hbSend.ByteSize());
 	s = hbContext->HbBufferWrite();
 	return s;
-
-	/*
-	 * if (!s.ok()) {
-	 *     return s;
-	 * }
-	 * s = hbContext->HbBufferRead();
-	 * if (!s.ok()) {
-	 *     return s;
-	 * }
-	 */
-
-	/*
-	 * s = SetBufferParse(hbContext->r_opcode(), hbContext->rbuf(), hbContext->rbuf_len());
-	 */
-
 }
 
-void PikaHb::RunPulse()
+void PikaHb::StartPulse()
 {
 	Status s;
 	std::vector<HbContext *>::iterator iter;
 	while (1) {
 		log_info("%d", hbContexts_.size());
 		for (iter = hbContexts_.begin(); iter != hbContexts_.end(); iter++) {
-			Pulse(reinterpret_cast<HbContext*>(*iter), "127.0.0.1", 9876);
+			s = Pulse(reinterpret_cast<HbContext*>(*iter), "127.0.0.1", 9876);
+            /*
+             * if (s.ok() != 0) {
+             *     hbContexts_.erase(iter);
+             * }
+             */
 		}
+        DebugSrv();
 		sleep(3);
 	}
 }
 
 void PikaHb::DebugSrv()
 {
-	/*
-	 * printf("%s", 
-	 */
+    log_info("-----------DebugSrv----------\n");
+    std::vector<PikaNode>::iterator iter;
+    for (iter = cur_->begin(); iter != cur_->end(); iter++) {
+        log_info("host %s port %d", iter->host()->c_str(), iter->port());
+    }
 }

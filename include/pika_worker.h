@@ -31,8 +31,6 @@ public:
 
     void Start();
 
-    static void* StartThread(void* arg);
-
 private:
     friend class PikaConn;
     Status SetBlockType(BlockType type);
@@ -71,8 +69,6 @@ private:
      * This is the work threads
      */
     PikaThread *pikaThread_[PIKA_THREAD_NUM];
-
-    PikaThread *hbThread_;
 
     // No copying allowed
     PikaWorker(const PikaWorker&);

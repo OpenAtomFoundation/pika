@@ -3,9 +3,13 @@
 
 #include <stdio.h>
 #include <pthread.h>
+#include <vector>
 
+class PikaMeta;
 class PikaWorker;
 class PikaHb;
+class PikaHbMonitor;
+class PikaNode;
 
 class Pika
 {
@@ -13,19 +17,53 @@ public:
     Pika();
     ~Pika();
 
+    /*
+     * Start the heartbeat thread
+     * Start heartbeat will listen to the hb_port and start receive
+     * connection
+     */
     int RunHb();
-    static void* StartHb(void* args);
+
+    int RunHbMonitor();
+
+
+    /*
+     * Start the main worker thread
+     * The worker must be the last thread to start
+     */
     int RunWorker();
     static void* StartWorker(void* args);
 
-    PikaWorker *PikaWorker_() { return pikaWorker_; }
-    PikaHb *PikaHb_() { return pikaHb_; }
+    /*
+     * Start the pulse thread, pulse thread will connect all the node that
+     * has connected.
+     */
+    int RunPulse();
+    static void* StartPulse(void* args);
+
+    PikaWorker* pikaWorker() { return pikaWorker_; }
+    PikaHb* pikaHb() { return pikaHb_; }
 
 private:
 
+    std::vector<PikaNode> preNode_;
+    /*
+     * The thread contain the meta infomation
+     */
+    PikaMeta* pikaMeta_;
+
     pthread_t workerId_, hbId_;
-    PikaWorker *pikaWorker_;
-    PikaHb *pikaHb_;
+    /*
+     * The accept thread, accept user request, and redirect conn to worker
+     * thread 
+     */
+    PikaWorker* pikaWorker_;
+    /*
+     * The heartbeat thread, accept other node heartbeat, and redirect to hbworker thred
+     */
+    PikaHb* pikaHb_;
+
+    PikaHbMonitor* pikaHbMonitor_;
 
 
     // No copying allowed
