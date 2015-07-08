@@ -1,43 +1,34 @@
-#include "pika.h"
 #include "pika_conn.h"
 #include "pika_util.h"
-#include "pika_packet.h"
-#include "pika_worker.h"
+#include "pika_server.h"
 #include "leveldb/db.h"
-#include "bada_sdk.pb.h"
 #include "pika_define.h"
-
-extern Pika *gPika;
-
-void PikaConn::InitPara()
-{
-    thread_ = NULL;
-
-    // init the rbuf
-    rbuf_ = (char *)malloc(sizeof(char) * PIKA_MAX_MESSAGE);
-    header_len_ = -1;
-    r_opcode_ = 0;
-    cur_pos_ = 0;
-    rbuf_len_ = 0;
-
-    wbuf_ = (char *)malloc(sizeof(char) * PIKA_MAX_MESSAGE);
-}
+#include "zmalloc.h"
+#include "util.h"
+#include <algorithm>
+extern PikaServer *g_pikaServer;
 
 PikaConn::PikaConn(int fd) :
     fd_(fd)
 {
-	InitPara();
-}
+    thread_ = NULL;
 
-PikaConn::PikaConn()
-{
-    InitPara();
+    // init the rbuf
+//    rbuf_ = (char *)malloc(sizeof(char) * PIKA_MAX_MESSAGE);
+    rbuf_ = sdsempty();
+    cur_pos_ = 0;
+    rbuf_len_ = 0;
+    req_type_ = 0;
+    multibulklen_ = 0;
+    bulklen_ = -1;
+
+    wbuf_ = (char *)malloc(sizeof(char) * PIKA_MAX_MESSAGE);
+    wbuf_ = sdsempty();
 }
 
 PikaConn::~PikaConn()
 {
-    free(rbuf_);
-    free(wbuf_);
+    sdsfree(rbuf_);
 }
 
 bool PikaConn::SetNonblock()
@@ -49,40 +40,256 @@ bool PikaConn::SetNonblock()
     return true;
 }
 
-
-Status PikaConn::PikaReadBuf()
-{
-    Status s;
-    rio_t rio;
-    rio_readinitb(&rio, fd_);
-    s = PikaReadHeader(&rio);
-    if (!s.ok()) {
-        return s;
-    }
-    s = PikaReadCode(&rio);
-    if (!s.ok()) {
-        return s;
-    }
-    s = PikaReadPacket(&rio);
-    return s;
+void PikaConn::Reset() {
+    argv_.clear();
+    req_type_ = 0;
+    multibulklen_ = 0;
+    bulklen_ = -1;
 }
 
-void PikaConn::DriveMachine()
-{
-/*
- *     while (1) {
- *         switch (connStatus_) {
- *         kHeader:
- * 
- *     }
- * 
- */
+int PikaConn::ProcessInlineBuffer() {
+    char *newline;
+    int argc, j;
+    sds *argv, aux;
+    size_t querylen;
+
+    /* Search for end of line */
+    newline = strchr(rbuf_, '\n');
+
+    /* Nothing to do with a \r\n */
+    if (newline == NULL) {
+        if (sdslen(rbuf_) > PIKA_MAX_MESSAGE) {
+            log_info("Protocol error: too big inline request");
+        }
+        return -1;
+    }
+
+    /* Handle the \r\n case. */
+    if (newline && newline != rbuf_ && *(newline-1) == '\r')
+        newline--;
+
+    /* Split the input buffer up to the \r\n */
+    querylen = newline-rbuf_;
+    aux = sdsnewlen(rbuf_, querylen);
+    argv = sdssplitargs(aux, &argc);
+    sdsfree(aux);
+    if (argv == NULL) {
+        log_info("Protocol error: unbalance quotes in request");
+        return -1;
+    }
+
+    /* Leave data after the first line of query in the buffer */
+    sdsrange(rbuf_, querylen+2, -1);
+
+    /* push back the argvs */
+    for (j = 0; j < argc; j++) {
+        if (sdslen(argv[j])) {
+            argv_.push_back(std::string(argv[j], sdslen(argv[j])));
+        } else {
+            sdsfree(argv[j]);
+        }
+    }
+    zfree(argv);
+    return 0;
+}
+
+int PikaConn::ProcessMultibulkBuffer() {
+    char *newline = NULL;
+    int pos = 0, ok;
+    long long ll;
+
+    if (multibulklen_== 0) {
+        /* The client should have been reset */
+//        redisAssertWithInfo(c,NULL,c->argc == 0);
+
+        /* Multi bulk length cannot be read without a \r\n */
+        newline = strchr(rbuf_,'\r');
+        if (newline == NULL) {
+            if (sdslen(rbuf_) > PIKA_MAX_MESSAGE) {
+//                addReplyError(c,"Protocol error: too big mbulk count string");
+//                setProtocolError(c,0);
+                  log_info("Protocol error: too big mbulk count string");
+            }
+            return -1;
+        }
+
+        /* Buffer should also contain \n */
+        if (newline-(rbuf_) > ((signed)sdslen(rbuf_)-2))
+            return -1;
+
+        /* We know for sure there is a whole line since newline != NULL,
+         * so go ahead and find out the multi bulk length. */
+//        redisAssertWithInfo(c,NULL,c->querybuf[0] == '*');
+        ok = string2ll(rbuf_+1,newline-(rbuf_+1),&ll);
+        if (!ok || ll > 1024*1024) {
+//            addReplyError(c,"Protocol error: invalid multibulk length");
+//            setProtocolError(c,pos);
+            log_info("Protocol error: invalid multibulk length");
+            return -1;
+        }
+
+        pos = (newline-rbuf_)+2;
+        if (ll <= 0) {
+            sdsrange(rbuf_,pos,-1);
+            return 0;
+        }
+
+        multibulklen_ = ll;
+
+        /* Setup argv array on client structure */
+//        if (c->argv) zfree(c->argv);
+//        c->argv = zmalloc(sizeof(robj*)*c->multibulklen);
+        argv_.clear();
+    }
+
+//    redisAssertWithInfo(c,NULL,c->multibulklen > 0);
+    while(multibulklen_) {
+        /* Read bulk length if unknown */
+        if (bulklen_ == -1) {
+            newline = strchr(rbuf_+pos,'\r');
+            if (newline == NULL) {
+                if (sdslen(rbuf_) > PIKA_MAX_MESSAGE) {
+//                    addReplyError(c,
+//                        "Protocol error: too big bulk count string");
+//                    setProtocolError(c,0);
+//                    return REDIS_ERR;
+                    log_info("Protocol error: too big bulk count string");
+                    return -1;
+                }
+                break;
+            }
+
+            /* Buffer should also contain \n */
+            if (newline-(rbuf_) > ((signed)sdslen(rbuf_)-2))
+                break;
+
+            if (rbuf_[pos] != '$') {
+//                addReplyErrorFormat(c,
+//                    "Protocol error: expected '$', got '%c'",
+//                    c->querybuf[pos]);
+//                setProtocolError(c,pos);
+//                return REDIS_ERR;
+                log_info("Protocol error: expected '$', got %c", rbuf_[pos]);
+                return -1;
+            }
+
+            ok = string2ll(rbuf_+pos+1,newline-(rbuf_+pos+1),&ll);
+            if (!ok || ll < 0 || ll > 512*1024*1024) {
+//                addReplyError(c,"Protocol error: invalid bulk length");
+//                setProtocolError(c,pos);
+//                return REDIS_ERR;
+                log_info("Protocol error: invalid bulk length");
+                return -1;
+            }
+
+            pos += newline-(rbuf_+pos)+2;
+            if (ll >= PIKA_MAX_MESSAGE) {
+                size_t qblen;
+
+                /* If we are going to read a large object from network
+                 * try to make it likely that it will start at c->querybuf
+                 * boundary so that we can optimize object creation
+                 * avoiding a large copy of data. */
+                sdsrange(rbuf_,pos,-1);
+                pos = 0;
+                qblen = sdslen(rbuf_);
+                /* Hint the sds library about the amount of bytes this string is
+                 * going to contain. */
+                if (qblen < (size_t)ll+2)
+                    rbuf_ = sdsMakeRoomFor(rbuf_,ll+2-qblen);
+            }
+            bulklen_ = ll;
+        }
+
+        /* Read bulk argument */
+        if (sdslen(rbuf_)-pos < (unsigned)(bulklen_+2)) {
+            /* Not enough data (+2 == trailing \r\n) */
+            break;
+        } else {
+            /* Optimization: if the buffer contains JUST our bulk element
+             * instead of creating a new object by *copying* the sds we
+             * just use the current sds string. */
+            if (pos == 0 &&
+                bulklen_ >= PIKA_MAX_MESSAGE &&
+                (signed) sdslen(rbuf_) == bulklen_+2)
+            {
+//                c->argv[c->argc++] = createObject(REDIS_STRING,c->querybuf);
+                argv_.push_back(std::string(rbuf_, bulklen_));
+                sdsIncrLen(rbuf_,-2); /* remove CRLF */
+                rbuf_ = sdsempty();
+                /* Assume that if we saw a fat argument we'll see another one
+                 * likely... */
+                rbuf_ = sdsMakeRoomFor(rbuf_,bulklen_+2);
+                pos = 0;
+            } else {
+//                c->argv[c->argc++] =
+//                    createStringObject(c->querybuf+pos,c->bulklen);
+                argv_.push_back(std::string(rbuf_+pos, bulklen_));
+                pos += bulklen_+2;
+            }
+            bulklen_ = -1;
+            multibulklen_--;
+        }
+    }
+
+    /* Trim to pos */
+    if (pos) sdsrange(rbuf_,pos,-1);
+
+    /* We're done when c->multibulk == 0 */
+    if (multibulklen_ == 0) return 0;
+
+    /* Still not read to process the command */
+    return -1;
+}
+
+int PikaConn::ProcessInputBuffer() {
+    while (sdslen(rbuf_)) {
+        if (!req_type_) {
+            if (rbuf_[0] == '*') {
+                req_type_ = REDIS_REQ_MULTIBULK;
+            } else {
+                req_type_ = REDIS_REQ_INLINE;
+            }
+        }
+        if (req_type_ == REDIS_REQ_INLINE) {
+            if (ProcessInlineBuffer() != 0) break;
+        } else if (req_type_ == REDIS_REQ_MULTIBULK) {
+            if (ProcessMultibulkBuffer() != 0) break;
+        } else {
+            log_info("Unknown requeset type");
+            return -1;
+        }
+        if (GetArgc() == 0) {
+            Reset();
+        } else {
+//            std::list<std::string>::iterator iter;
+//            for (iter = argv_.begin(); iter != argv_.end(); iter++) {
+//                log_info("%s", (*iter).c_str());
+//            }
+            if (DoCmd() == 0) {
+                if(PikaSendReply() != 0) return -1;
+            }
+            Reset();
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int PikaConn::PikaGetRequest()
 {
-    ssize_t nread = 0;
-    nread = read(fd_, rbuf_ + rbuf_len_, PIKA_MAX_MESSAGE);
+    int nread = 0;
+    int readlen = (1024*1024*64);
+    size_t qblen;
+    if (req_type_ == REDIS_REQ_MULTIBULK && multibulklen_ && bulklen_ != -1 
+        && bulklen_ >= PIKA_MAX_MESSAGE) {
+        
+        int remaining = (unsigned)(bulklen_+2) - sdslen(rbuf_);
+        if (remaining < readlen) readlen = remaining;
+    }
+    qblen = sdslen(rbuf_);
+    rbuf_ = sdsMakeRoomFor(rbuf_, readlen);
+    nread = read(fd_, rbuf_ + qblen, PIKA_MAX_MESSAGE);
     if (nread == -1) {
         if (errno == EAGAIN) {
             nread = 0;
@@ -90,136 +297,27 @@ int PikaConn::PikaGetRequest()
             return -1;
         }
     } else if (nread == 0) {
+        log_info("client closed connection");
         return -1;
     }
 
-    int32_t integer = 0;
-    bool flag = true;
-    std::string *key;
-    std::string *value;
-    std::string *host;
-    SdkSetRet sdkSetRet;
-    SdkGetRet sdkGetRet;
-    HbSendRet hbSendRet;
-    int packet_len = PIKA_MAX_MESSAGE;
+
     if (nread) {
-        rbuf_len_ += nread;
-        while (flag) {
-            switch (connStatus_) {
-            case kHeader:
-                if (rbuf_len_ - cur_pos_ >= COMMAND_HEADER_LENGTH) {
-                    memcpy((char *)(&integer), rbuf_ + cur_pos_, sizeof(int32_t));
-                    header_len_ = ntohl(integer);
-                    log_info("Header_len %d", header_len_);
-                    connStatus_ = kCode;
-                    cur_pos_ += COMMAND_HEADER_LENGTH;
-                } else {
-                    flag = false;
-                }
-                break;
-            case kCode:
-                if (rbuf_len_ - cur_pos_ >= COMMAND_CODE_LENGTH) {
-                    memcpy((char *)(&integer), rbuf_ + cur_pos_, sizeof(int32_t));
-                    r_opcode_ = ntohl(integer);
-                    connStatus_ = kPacket;
-                    cur_pos_ += COMMAND_CODE_LENGTH;
-                } else {
-                    flag = false;
-                }
-                break;
-            case kPacket:
-                if (rbuf_len_ >= header_len_ - COMMAND_CODE_LENGTH) {
-                    cur_pos_ += (header_len_ - COMMAND_CODE_LENGTH);
-                    connStatus_ = kComplete;
-                } else {
-                    flag = false;
-                }
-                break;
-            case kComplete:
-                if (r_opcode_ == kSdkSet) {
-                    key = new std::string();
-                    value = new std::string();
-                    SetParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, key, value);
-                    // printf("%s %s\n", key->c_str(), value->c_str());
-                    gPika->pikaWorker()->db_->Put(leveldb::WriteOptions(), (*key), (*value));
-                    SetRetBuild(true, &sdkSetRet);
-                    sdkSetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
-                    delete(key);
-                    delete(value);
-                    BuildObuf(kSdkSetRet, sdkSetRet.ByteSize());
-                    connStatus_ = kHeader;
-                    if (cur_pos_ == rbuf_len_) {
-                        cur_pos_ = 0;
-                        rbuf_len_ = 0;
-                    }
-                } else if (r_opcode_ == kSdkGet) {
-                    key = new std::string();
-                    GetParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, key);
-                    std::string getRes;
-                    gPika->pikaWorker()->db_->Get(leveldb::ReadOptions(), (*key), &getRes);
-                    GetRetBuild(getRes, &sdkGetRet);
-                    sdkGetRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
-                    delete(key);
-                    BuildObuf(kSdkGetRet, sdkGetRet.ByteSize());
-                    connStatus_ = kHeader;
-                    if (cur_pos_ == rbuf_len_) {
-                        cur_pos_ = 0;
-                        rbuf_len_ = 0;
-                    }
-                } else if (r_opcode_ == kHbSend) {
-                    host = new std::string();
-                    int port;
-                    HbSendParse(r_opcode_, rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, rbuf_len_ - COMMAND_HEADER_LENGTH - COMMAND_CODE_LENGTH, host, port);
-                    log_info("in the hbsend host %s port %d\n", host->c_str(), port);
-                    HbSendRetBuild(true, &hbSendRet);
-                    hbSendRet.SerializeToArray(wbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH, packet_len);
-                    delete(host);
-                    BuildObuf(kHbSendRet, hbSendRet.ByteSize());
-                    connStatus_ = kHeader;
-                    if (cur_pos_ == rbuf_len_) {
-                        cur_pos_ = 0;
-                        rbuf_len_ = 0;
-                    }
-                }
-
-                return 0;
-                break;
-
-            /*
-             * Add this switch case just for delete compile warning
-             */
-            case kBuildObuf:
-                break;
-
-            case kWriteObuf:
-                break;
-            }
-        }
+        sdsIncrLen(rbuf_,nread);
     }
-    return -1;
+
+    return ProcessInputBuffer();
 }
 
 int PikaConn::PikaSendReply()
 {
     ssize_t nwritten = 0;
-    log_info("wbuf_len %d", wbuf_len_);
-    while (wbuf_len_ > 0) {
-        /*
-         * log_info("write buf %s\n", wbuf_ + wbuf_pos_);
-         */
-        // for (int i = 0; i < wbuf_len_; i++) {
-        //     log_info("%c", wbuf_[i]);
-        // }
-        nwritten = write(fd_, wbuf_ + wbuf_pos_, wbuf_len_ - wbuf_pos_);
+    while (sdslen(wbuf_) > 0) {
+        nwritten = write(fd_, wbuf_, sdslen(wbuf_));
         if (nwritten <= 0) {
             break;
         }
-        wbuf_pos_ += nwritten;
-        if (wbuf_pos_ == wbuf_len_) {
-            wbuf_len_ = 0;
-            wbuf_pos_ = 0;
-        }
-
+        sdsrange(wbuf_, nwritten, -1);
         if (nwritten == -1) {
             if (errno == EAGAIN) {
                 nwritten = 0;
@@ -231,107 +329,62 @@ int PikaConn::PikaSendReply()
             }
         }
     }
-    if (wbuf_len_ == 0) {
+    if (sdslen(wbuf_) == 0) {
         return 0;
     } else {
         return -1;
     }
 }
 
-
-Status PikaConn::PikaReadHeader(rio_t *rio)
-{
-    Status s;
-    char buf[1024];
-    int32_t integer = 0;
-    ssize_t nread;
-    header_len_ = 0;
-    while (1) {
-        nread = rio_readnb(rio, buf, COMMAND_HEADER_LENGTH);
-        // log_info("nread %d", nread);
-        if (nread == -1) {
-            if ((errno == EAGAIN && (flags_ & O_NONBLOCK)) || (errno == EINTR)) {
-                continue;
-            } else {
-                s = Status::IOError("Read command header error");
-                return s;
-            }
-        } else if (nread == 0){
-            return Status::Corruption("Connect has interrupt");
+int PikaConn::DoCmd() {
+    std::string opt = argv_.front();
+    transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
+    if (opt == "set" && argv_.size() >= 3) {
+        argv_.pop_front();
+        std::string key = argv_.front();
+        argv_.pop_front();
+        std::string value = argv_.front();
+        argv_.pop_front();
+        leveldb::Status s = g_pikaServer->db_->Put(leveldb::WriteOptions(), key, value);
+        if (s.ok()) {
+            wbuf_ = sdscat(wbuf_, "+OK\r\n");        
         } else {
-            break;
+            std::string ret;
+            ret.append("-ERR ");
+            ret.append(s.ToString().c_str());
+            ret.append("\r\n");
+            wbuf_ = sdscat(wbuf_, ret.c_str());
         }
-    }
-    memcpy((char *)(&integer), buf, sizeof(int32_t));
-    header_len_ = ntohl(integer);
-    return Status::OK();
-}
-
-Status PikaConn::PikaReadCode(rio_t *rio)
-{
-    Status s;
-    char buf[1024];
-    int32_t integer = 0;
-    ssize_t nread = 0;
-    r_opcode_ = 0;
-    while (1) {
-        nread = rio_readnb(rio, buf, COMMAND_CODE_LENGTH);
-        if (nread == -1) {
-            if ((errno == EAGAIN && (flags_ & O_NONBLOCK)) || (errno == EINTR)) {
-                continue;
-            } else {
-                s = Status::IOError("Read command code error");
-                return s;
-            }
-        } else if (nread == 0){
-            return Status::Corruption("Connect has interrupt");
+    } else if (opt == "get" && argv_.size() >= 2) {
+        argv_.pop_front();
+        std::string key = argv_.front();
+        argv_.pop_front();
+        std::string value;
+        leveldb::Status s = g_pikaServer->db_->Get(leveldb::ReadOptions(), key, &value);
+        if (s.ok()) {
+            char buf[32];
+            std::string ret;
+            snprintf(buf, sizeof(buf), "$%d\r\n", (int)value.size());
+            ret.append(buf);
+            ret.append(value.data(), value.size());
+            ret.append("\r\n");
+            wbuf_ = sdscat(wbuf_, ret.c_str());
+        } else if (s.IsNotFound()) {
+            wbuf_ = sdscat(wbuf_, "$-1\r\n");
         } else {
-            break;
+            std::string ret;
+            ret.append("-ERR ");
+            ret.append(s.ToString().c_str());
+            ret.append("\r\n");
+            wbuf_ = sdscat(wbuf_, ret.c_str());
         }
+    } else {
+            std::string ret;
+            ret.append("-ERR unknown or unsupported command \'");
+            ret.append(opt);
+            ret.append("\'\r\n");
+            wbuf_ = sdscat(wbuf_, ret.c_str());        
     }
-    memcpy((char *)(&integer), buf, sizeof(int32_t));
-    r_opcode_ = ntohl(integer);
-    return Status::OK();
+    return 0;
 }
 
-Status PikaConn::PikaReadPacket(rio_t *rio)
-{
-    Status s;
-    int nread = 0;
-    if (header_len_ < 4) {
-        return Status::Corruption("The packet no integrity");
-    }
-    while (1) {
-        nread = rio_readnb(rio, (void *)(rbuf_ + COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH), header_len_ - 4);
-        if (nread == -1) {
-            if ((errno == EAGAIN && (flags_ & O_NONBLOCK)) || (errno == EINTR)) {
-                continue;
-            } else {
-                s = Status::IOError("Read data error");
-                return s;
-            }
-        } else if (nread == 0) {
-            return Status::Corruption("Connect has interrupt");
-        } else {
-            break;
-        }
-    }
-    rbuf_len_ = nread;
-    log_info("rbuf len %d", rbuf_len_);
-    return Status::OK();
-}
-
-Status PikaConn::BuildObuf(int32_t opcode, const int packet_len)
-{
-    uint32_t code_len = COMMAND_CODE_LENGTH + packet_len;
-    uint32_t u;
-
-    u = htonl(code_len);
-    memcpy(wbuf_, &u, sizeof(uint32_t));
-    u = htonl(opcode);
-    memcpy(wbuf_ + COMMAND_CODE_LENGTH, &u, sizeof(uint32_t));
-
-    wbuf_len_ = COMMAND_HEADER_LENGTH + COMMAND_CODE_LENGTH + packet_len;
-
-    return Status::OK();
-}

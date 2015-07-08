@@ -1,59 +1,131 @@
-#include "pika.h"
-#include "pika_worker.h"
-#include "pika_hb.h"
-#include "pika_meta.h"
-#include "pika_hb_monitor.h"
+#include "pika_server.h"
+#include "xdebug.h"
+#include <glog/logging.h>
+#include "pika_conf.h"
 
-Pika::Pika()
+
+#include <iostream>
+#include <signal.h>
+
+PikaConf *g_pikaConf;
+
+PikaServer *g_pikaServer;
+
+
+static void pika_glog_init()
 {
-	pikaMeta_ = new PikaMeta();
-	pikaWorker_ = new PikaWorker();
-	pikaHb_ = new PikaHb(&preNode_);
-	pikaHbMonitor_ = new PikaHbMonitor(&preNode_);
+    FLAGS_log_dir = g_pikaConf->log_path();
+    ::google::InitGoogleLogging("pika");
+    FLAGS_minloglevel = g_pikaConf->log_level();
+    LOG(WARNING) << "Pika glog init";
+    /*
+     * dump some usefull message when crash on certain signals
+     */
+    // google::InstallFailureSignalHandler();
 }
 
-Pika::~Pika()
+static void sig_handler(const int sig)
 {
-	delete pikaHbMonitor_;
-	delete pikaHb_;
-	delete pikaWorker_;
-	delete pikaMeta_;
+    printf("Caught signal %d", sig);
 }
 
-int Pika::RunHb()
+void pika_signal_setup()
 {
-	PikaHb::CreateHb(pikaHb_->thread_id(), pikaHb_);
-	return 0;
+    signal(SIGHUP, SIG_IGN);
+    signal(SIGPIPE, SIG_IGN);
+    LOG(WARNING) << "pika signal setup ok";
 }
 
-int Pika::RunHbMonitor()
+
+static void version()
 {
-	PikaHbMonitor::CreateHbMonitor(pikaHbMonitor_->thread_id(), pikaHbMonitor_);
-	return 0;
+    printf("-----------Pika server 1.0.0----------\n");
+}
+void pika_init_conf(const char* path)
+{
+    g_pikaConf = new PikaConf(path);
+    if (g_pikaConf == NULL) {
+        LOG(FATAL) << "pika load conf error";
+    }
+
+    version();
+    printf("-----------Pika config list----------\n");
+    g_pikaConf->DumpConf();
+    printf("-----------Pika config end----------\n");
 }
 
-int Pika::RunWorker()
+
+static void usage()
 {
-	pikaWorker_->Start();
-	/*
-	 * pthread_create(&workerId_, NULL, &(Pika::StartHb), pikaWorker_);
-	 */
-	return 0;
+    fprintf(stderr,
+            "Pika module 1.0.0\n"
+            "need One parameters\n"
+            "-D the conf path \n"
+            "-h show this usage message \n"
+            "example: ./bin/pika -D./conf/pika.conf\n"
+           );
 }
 
-void* Pika::StartWorker(void* arg)
+int main(int argc, char **argv)
 {
-	reinterpret_cast<PikaWorker*>(arg)->Start();
-	return NULL;
-}
+    bool path_opt = false;
+    char c;
+    char path[PIKA_LINE_SIZE];
+    if (argc != 2) {
+        usage();
+        return -1;
+    }
+    while (-1 != (c = getopt(argc, argv, "D:h"))) {
+        switch (c) {
+        case 'D':
+            snprintf(path, PIKA_LINE_SIZE, "%s", optarg);
+            path_opt = 1;
+            break;
+        case 'h':
+            usage();
+            return 0;
+        default:
+            usage();
+            return 0;
+        }
+    }
 
-int Pika::RunPulse()
-{
-	pthread_create(&hbId_, NULL, &(Pika::StartPulse), pikaHb_);
-}
+    /*
+     * check wether set the conf path
+     */
+    if (path_opt == false) {
+        LOG(FATAL) << "Don't get the conf path";
+    }
 
-void* Pika::StartPulse(void* arg)
-{
-	reinterpret_cast<PikaHb*>(arg)->StartPulse();
-	return NULL;
+    /*
+     * init the conf
+     */
+    pika_init_conf(path);
+
+    /*
+     * init the glog config
+     */
+    pika_glog_init();
+
+    /*
+     * set up the signal
+     */
+    pika_signal_setup();
+
+    /*
+     * Init the server
+     */
+    g_pikaServer = new PikaServer();
+    
+    if (g_pikaServer != NULL) {
+        LOG(WARNING) << "Pika Server init ok";
+    } else {
+        LOG(FATAL) << "Pika Server init error";
+    }
+
+
+    LOG(WARNING) << "Pika Server going to start";
+    g_pikaServer->RunProcess();
+
+    return 0;
 }

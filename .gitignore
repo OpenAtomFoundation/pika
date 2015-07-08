@@ -32,6 +32,5 @@ log/
 
 
 # third party
-third/*
 gdb.txt
 tags
