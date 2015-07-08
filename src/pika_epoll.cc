@@ -25,12 +25,10 @@ Status PikaEpoll::PikaAddEvent(int fd, int mask)
 {
     struct epoll_event ee;
     ee.data.fd = fd;
-    /*
-     * log_info("PikaAddEvent mask %d", mask);
-     */
+//    log_info("PikaAddEvent mask %d", mask);
     ee.events = mask;
     if (epoll_ctl(epfd_, EPOLL_CTL_ADD, fd, &ee) == -1) {
-        log_info("Epoll add error");
+//        log_info("Epoll add error");
         return Status::Corruption("epollAdd error");
     }
     return Status::OK();
@@ -39,15 +37,13 @@ Status PikaEpoll::PikaAddEvent(int fd, int mask)
 
 Status PikaEpoll::PikaModEvent(int fd, int oMask, int mask)
 {
-    /*
-     * log_info("PikaModEvent mask %d %d", fd, (oMask | mask));
-     */
+//    log_info("PikaModEvent mask %d %d", fd, (oMask | mask));
     struct epoll_event ee;
     ee.data.u64 = 0;
     ee.data.fd = fd;
     ee.events = (oMask | mask);
     if (epoll_ctl(epfd_, EPOLL_CTL_MOD, fd, &ee) == -1) {
-        log_info("Epoll ctl error");
+//        log_info("Epoll ctl error");
         return Status::Corruption("epollCtl error");
     }
     return Status::OK();
@@ -72,9 +68,7 @@ int PikaEpoll::PikaPoll()
         for (int i = 0; i < numevents; i++) {
             int mask = 0;
             firedevent_[i].fd_ = (events_ + i)->data.fd;
-            /*
-             * log_info("events + i events %d", (events_ + i)->events);
-             */
+//            log_info("events + i events %d", (events_ + i)->events);
             if ((events_ + i)->events & EPOLLIN) {
                 mask |= EPOLLIN;
             }

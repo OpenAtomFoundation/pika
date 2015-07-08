@@ -1,7 +1,6 @@
 #ifndef __PIKA_ITEM_H__
 #define __PIKA_ITEM_H__
 
-#include "status.h"
 #include "pika_define.h"
 
 class PikaItem

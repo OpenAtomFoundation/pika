@@ -5,7 +5,6 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "xdebug.h"
-#include "status.h"
 
 
 class BaseConf

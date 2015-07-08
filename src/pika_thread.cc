@@ -9,7 +9,7 @@
 #include "status.h"
 #include "pika_conn.h"
 
-extern PikaConf* gPikaConf;
+extern PikaConf* g_pikaConf;
 
 PikaThread::PikaThread()
 {
@@ -37,29 +37,8 @@ PikaThread::~PikaThread()
     close(notify_receive_fd_);
 }
 
-void PikaThread::CreateThread(pthread_t &pid, PikaThread* pikaThread)
-{
-    pthread_create(&pid, NULL, &(PikaThread::StartThread), pikaThread);
-    return ;
-}
-
-void* PikaThread::StartThread(void* arg)
-{
-    reinterpret_cast<PikaThread*>(arg)->RunProcess();
-    return NULL;
-}
-
 void PikaThread::RunProcess()
 {
-    /*
-     * These parameters used to get peer host and port
-     */
-    struct sockaddr_in peer;
-    socklen_t pLen = sizeof(peer);
-    char buff[PIKA_NAME_LEN];
-
-
-    struct sockaddr_in servaddr_;
     thread_id_ = pthread_self();
     int nfds;
     PikaFiredEvent *tfe = NULL;
@@ -68,12 +47,10 @@ void PikaThread::RunProcess()
     PikaConn *inConn;
     for (;;) {
         nfds = pikaEpoll_->PikaPoll();
-        /*
-         * log_info("nfds %d", nfds);
-         */
+//        log_info("nfds %d", nfds);
         for (int i = 0; i < nfds; i++) {
             tfe = (pikaEpoll_->firedevent()) + i;
-            log_info("tfe->fd_ %d tfe->mask_ %d", tfe->fd_, tfe->mask_);
+//            log_info("tfe->fd_ %d tfe->mask_ %d", tfe->fd_, tfe->mask_);
             if (tfe->fd_ == notify_receive_fd_ && (tfe->mask_ & EPOLLIN)) {
                 read(notify_receive_fd_, bb, 1);
                 {
@@ -86,7 +63,7 @@ void PikaThread::RunProcess()
                 conns_[ti.fd()] = tc;
 
                 pikaEpoll_->PikaAddEvent(ti.fd(), EPOLLIN);
-                log_info("receive one fd %d", ti.fd());
+//                log_info("receive one fd %d", ti.fd());
                 /*
                  * tc->set_thread(this);
                  */
@@ -94,42 +71,40 @@ void PikaThread::RunProcess()
             int shouldClose = 0;
             if (tfe->mask_ & EPOLLIN) {
                 inConn = conns_[tfe->fd_];
-                getpeername(tfe->fd_, (sockaddr*) &peer, &pLen);
-                inet_ntop(AF_INET, &peer.sin_addr, buff, sizeof(buff));
-
-                log_info("buff %s port %d", buff, peer.sin_port);
-                log_info("come if readable %d", (inConn == NULL));
+                // log_info("come if readable %d", (inConn == NULL));
                 if (inConn == NULL) {
                     continue;
                 }
-                if (inConn->PikaGetRequest() == 0) {
+                int ret = inConn->PikaGetRequest();
+                if (ret == 1) {
                     pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
+                } else if (ret == 0) {
+                    pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
                 } else {
                     delete(inConn);
                     shouldClose = 1;
                 }
             }
-            log_info("tfe mask %d %d %d", tfe->mask_, EPOLLIN, EPOLLOUT);
+//            log_info("tfe mask %d %d %d", tfe->mask_, EPOLLIN, EPOLLOUT);
             if (tfe->mask_ & EPOLLOUT) {
-                log_info("Come in the EPOLLOUT branch");
+//                log_info("Come in the EPOLLOUT branch");
                 inConn = conns_[tfe->fd_];
                 if (inConn == NULL) {
                     continue;
                 }
                 if (inConn->PikaSendReply() == 0) {
-                    log_info("SendReply ok");
+//                    log_info("SendReply ok");
                     pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
                 }
             }
             if ((tfe->mask_  & EPOLLERR) || (tfe->mask_ & EPOLLHUP)) {
-                log_info("close tfe fd here");
+//                log_info("close tfe fd here");
                 close(tfe->fd_);
             }
             if (shouldClose) {
-                log_info("close tfe fd here");
+//                log_info("close tfe fd here");
                 close(tfe->fd_);
             }
         }
     }
 }
-

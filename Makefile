@@ -2,26 +2,24 @@ CXX = g++
 CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function
 OBJECT = pika
 SRC_DIR = ./src
-THIRD_PATH = ./third/
+THIRD_PATH = ./third
 OUTPUT = ./output
 
 
 INCLUDE_PATH = -I./include/ \
 			   -I./src/ \
-			   -I$(THIRD_PATH)/glog-0.3.3/src/ \
+			   -I$(THIRD_PATH)/glog/src/ \
 			   -I$(THIRD_PATH)/leveldb/include/ 
 
 LIB_PATH = -L./ \
-		   -L$(THIRD_PATH)/glog-0.3.3/ \
-		   -L/usr/local/lib/ \
 		   -L$(THIRD_PATH)/leveldb/
 
 
 LIBS = -lpthread \
-	   -lprotobuf \
+	   -lglog \
 	   -lleveldb
 
-DYNAMIC_LIBS = -lglog
+GLOG = /usr/local/lib/libglog.a
 
 .PHONY: all clean
 
@@ -45,8 +43,12 @@ all: $(OBJECT)
 	@echo "Success, go, go, go..."
 
 
-$(OBJECT): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) -Wl,-Bdynamic $(LIBS) $(DYNAMIC_LIBS)
+$(OBJECT): $(GLOG) $(OBJS)
+	make -C $(THIRD_PATH)/leveldb/
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH) -Wl,-Bdynamic $(LIBS)
+
+$(GLOG):
+	cd $(THIRD_PATH)/glog; ./configure; make; echo '*' > $(CURDIR)/third/glog/.gitignore; sudo make install;
 
 $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
