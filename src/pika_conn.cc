@@ -1,12 +1,12 @@
 #include "pika_conn.h"
 #include "pika_util.h"
-#include "pika_server.h"
+#include "pika_command.h"
 #include "leveldb/db.h"
 #include "pika_define.h"
 #include "zmalloc.h"
 #include "util.h"
 #include <algorithm>
-extern PikaServer *g_pikaServer;
+extern std::map<std::string, Cmd *> g_pikaCmd;
 
 PikaConn::PikaConn(int fd) :
     fd_(fd)
@@ -339,52 +339,17 @@ int PikaConn::PikaSendReply()
 int PikaConn::DoCmd() {
     std::string opt = argv_.front();
     transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
-    if (opt == "set" && argv_.size() >= 3) {
-        argv_.pop_front();
-        std::string key = argv_.front();
-        argv_.pop_front();
-        std::string value = argv_.front();
-        argv_.pop_front();
-        leveldb::Status s = g_pikaServer->db_->Put(leveldb::WriteOptions(), key, value);
-        if (s.ok()) {
-            wbuf_ = sdscat(wbuf_, "+OK\r\n");        
-        } else {
-            std::string ret;
-            ret.append("-ERR ");
-            ret.append(s.ToString().c_str());
-            ret.append("\r\n");
-            wbuf_ = sdscat(wbuf_, ret.c_str());
-        }
-    } else if (opt == "get" && argv_.size() >= 2) {
-        argv_.pop_front();
-        std::string key = argv_.front();
-        argv_.pop_front();
-        std::string value;
-        leveldb::Status s = g_pikaServer->db_->Get(leveldb::ReadOptions(), key, &value);
-        if (s.ok()) {
-            char buf[32];
-            std::string ret;
-            snprintf(buf, sizeof(buf), "$%d\r\n", (int)value.size());
-            ret.append(buf);
-            ret.append(value.data(), value.size());
-            ret.append("\r\n");
-            wbuf_ = sdscat(wbuf_, ret.c_str());
-        } else if (s.IsNotFound()) {
-            wbuf_ = sdscat(wbuf_, "$-1\r\n");
-        } else {
-            std::string ret;
-            ret.append("-ERR ");
-            ret.append(s.ToString().c_str());
-            ret.append("\r\n");
-            wbuf_ = sdscat(wbuf_, ret.c_str());
-        }
-    } else {
-            std::string ret;
-            ret.append("-ERR unknown or unsupported command \'");
-            ret.append(opt);
-            ret.append("\'\r\n");
-            wbuf_ = sdscat(wbuf_, ret.c_str());        
+    std::map<std::string, Cmd *>::iterator iter = g_pikaCmd.find(opt);
+    std::string ret;
+    if (iter == g_pikaCmd.end()) {
+        ret.append("-ERR unknown or unsupported command \'");
+        ret.append(opt);
+        ret.append("\'\r\n");
+        wbuf_ = sdscat(wbuf_, ret.c_str());  
+        return 0;
     }
+    iter->second->Do(argv_, ret);
+    wbuf_ = sdscat(wbuf_, ret.c_str());
     return 0;
 }
 

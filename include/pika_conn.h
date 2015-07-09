@@ -7,6 +7,7 @@
 #include "pika_define.h"
 #include "sds.h"
 #include <list>
+#include <map>
 
 class PikaConn
 {
