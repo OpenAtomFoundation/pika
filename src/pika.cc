@@ -2,14 +2,18 @@
 #include "xdebug.h"
 #include <glog/logging.h>
 #include "pika_conf.h"
+#include "pika_command.h"
 
 
 #include <iostream>
 #include <signal.h>
+#include <map>
 
 PikaConf *g_pikaConf;
 
 PikaServer *g_pikaServer;
+
+std::map<std::string, Cmd *> g_pikaCmd;
 
 
 static void pika_glog_init()
@@ -111,6 +115,14 @@ int main(int argc, char **argv)
      * set up the signal
      */
     pika_signal_setup();
+
+    /*
+     * set command map
+     */
+    SetCmd *setptr = new SetCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("set", setptr));
+    GetCmd *getptr = new GetCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("get", getptr));
 
     /*
      * Init the server

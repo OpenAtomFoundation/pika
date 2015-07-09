@@ -35,10 +35,8 @@ all: $(OBJECT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin
 	mkdir $(OUTPUT)/log
-	mkdir $(OUTPUT)/third
 	cp -r ./conf $(OUTPUT)/
 	cp $(OBJECT) $(OUTPUT)/bin/
-	cp -r ./third/ $(OUTPUT)/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
 

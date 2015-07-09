@@ -32,6 +32,7 @@ public:
     void RunProcess();
 
     static void* StartThread(void* arg);
+    leveldb::DB* GetHandle() {return db_;};
 
 private:
     friend class PikaConn;
