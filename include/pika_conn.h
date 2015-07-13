@@ -26,8 +26,8 @@ public:
     void AddArgv(std::string a) { argv_.push_back(a); };
     void Reset();
     int ProcessInputBuffer();
-    int ProcessInlineBuffer();
-    int ProcessMultibulkBuffer();
+    int ProcessInlineBuffer(std::string &err_msg);
+    int ProcessMultibulkBuffer(std::string &err_msg);
     int DoCmd();
 
 private:
