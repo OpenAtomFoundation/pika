@@ -1,7 +1,6 @@
 #include "pika_conn.h"
 #include "pika_util.h"
 #include "pika_command.h"
-#include "leveldb/db.h"
 #include "pika_define.h"
 #include "zmalloc.h"
 #include "util.h"

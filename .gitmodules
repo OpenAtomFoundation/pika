@@ -1,6 +1,6 @@
-[submodule "third/leveldb"]
-	path = third/leveldb
-	url = https://github.com/google/leveldb.git
 [submodule "third/glog"]
 	path = third/glog
 	url = https://github.com/google/glog.git
+[submodule "third/nemo"]
+	path = third/nemo
+	url = git@github.com:baotiao/nemo.git

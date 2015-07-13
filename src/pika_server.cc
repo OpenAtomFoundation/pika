@@ -57,13 +57,14 @@ PikaServer::PikaServer()
         pikaThread_[i] = new PikaThread();
     }
 
-    options_.create_if_missing = true;
-    options_.write_buffer_size = 1500000000;
+//    options_.create_if_missing = true;
+//    options_.write_buffer_size = 1500000000;
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
-    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
-    if (!s.ok()) {
-        log_err("Open db failed");
-    }
+//    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
+    db_ = new nemo::Nemo("/tmp/testdb");
+//    if (!s.ok()) {
+//        log_err("Open db failed");
+//    }
 
     // start the pikaThread_ thread
     for (int i = 0; i < g_pikaConf->thread_num(); i++) {

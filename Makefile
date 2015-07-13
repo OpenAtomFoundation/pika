@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function
+CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function -std=c++11
 OBJECT = pika
 SRC_DIR = ./src
 THIRD_PATH = ./third
@@ -9,15 +9,21 @@ OUTPUT = ./output
 INCLUDE_PATH = -I./include/ \
 			   -I./src/ \
 			   -I$(THIRD_PATH)/glog/src/ \
-			   -I$(THIRD_PATH)/leveldb/include/ 
+			   -I$(THIRD_PATH)/nemo/output/include/ 
 
 LIB_PATH = -L./ \
-		   -L$(THIRD_PATH)/leveldb/
+		   -L$(THIRD_PATH)/nemo/output/lib/ \
+		   -L$(THIRD_PATH)/nemo/3rdparty/rocksdb/
 
 
 LIBS = -lpthread \
 	   -lglog \
-	   -lleveldb
+	   -lnemo \
+	   -lrocksdb \
+	   -lz \
+	   -lbz2 \
+	   -lsnappy \
+	   -lrt
 
 GLOG = /usr/local/lib/libglog.a
 
@@ -42,7 +48,7 @@ all: $(OBJECT)
 
 
 $(OBJECT): $(GLOG) $(OBJS)
-	make -C $(THIRD_PATH)/leveldb/
+	make -C $(THIRD_PATH)/nemo/
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH) -Wl,-Bdynamic $(LIBS)
 
 $(GLOG):

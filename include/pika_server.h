@@ -16,8 +16,9 @@
 #include "csapp.h"
 #include "xdebug.h"
 #include "pika_define.h"
-#include "leveldb/db.h"
-#include "leveldb/write_batch.h"
+#include "nemo.h"
+//#include "leveldb/db.h"
+//#include "leveldb/write_batch.h"
 
 class PikaThread;
 class PikaEpoll;
@@ -32,7 +33,7 @@ public:
     void RunProcess();
 
     static void* StartThread(void* arg);
-    leveldb::DB* GetHandle() {return db_;};
+    nemo::Nemo* GetHandle() {return db_;};
 
 private:
     friend class PikaConn;
@@ -54,9 +55,10 @@ private:
     /*
      * The leveldb handler
      */
-    leveldb::DB *db_;
+    nemo::Nemo *db_;
+ //   leveldb::DB *db_;
 
-    leveldb::Options options_;
+ //   leveldb::Options options_;
 
     /*
      * Here we used auto poll to find the next work thread,
