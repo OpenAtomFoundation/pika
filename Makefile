@@ -25,6 +25,7 @@ LIBS = -lpthread \
 	   -lsnappy \
 	   -lrt
 
+ROCKSDB = $(THIRD_PATH)/nemo/output/lib/librocksdb.a
 GLOG = /usr/local/lib/libglog.a
 
 .PHONY: all clean
@@ -47,9 +48,11 @@ all: $(OBJECT)
 	@echo "Success, go, go, go..."
 
 
-$(OBJECT): $(GLOG) $(OBJS)
-	make -C $(THIRD_PATH)/nemo/
+$(OBJECT): $(ROCKSDB) $(GLOG) $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH) -Wl,-Bdynamic $(LIBS)
+
+$(ROCKSDB):
+	make -C $(THIRD_PATH)/nemo/
 
 $(GLOG):
 	cd $(THIRD_PATH)/glog; ./configure; make; echo '*' > $(CURDIR)/third/glog/.gitignore; sudo make install;
