@@ -1,6 +1,5 @@
 #include "pika_command.h"
 #include "pika_server.h"
-#include "leveldb/db.h"
 #include <algorithm>
 #include <map>
 
@@ -45,7 +44,7 @@ void SetCmd::Do(std::list<std::string> &argv, std::string &ret) {
             return;
         }
     }
-    leveldb::Status s = g_pikaServer->GetHandle()->Put(leveldb::WriteOptions(), key, value);
+    nemo::Status s = g_pikaServer->GetHandle()->Set(key, value);
     if (s.ok()) {
         ret = "+OK\r\n";
     } else {

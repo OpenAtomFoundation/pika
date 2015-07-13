@@ -1,6 +1,5 @@
 #include "pika_command.h"
 #include "pika_server.h"
-#include "leveldb/db.h"
 #include <algorithm>
 #include <map>
 
@@ -18,7 +17,7 @@ void GetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     std::string key = argv.front();
     argv.pop_front();
     std::string value;
-    leveldb::Status s = g_pikaServer->GetHandle()->Get(leveldb::ReadOptions(), key, &value);
+    nemo::Status s = g_pikaServer->GetHandle()->Get(key, &value);
     if (s.ok()) {
         char buf[32];
         snprintf(buf, sizeof(buf), "$%d\r\n", (int)value.size());
