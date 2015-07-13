@@ -5,11 +5,14 @@
 #define PIKA_MAX_MESSAGE 10240
 #define PIKA_THREAD_NUM 16
 
+#define PIKA_IOBUF_LEN (1024 * 64)
+#define PIKA_MBULK_BIG_ARG (1024 * 32)
+#define PIKA_INLINE_MAX_SIZE (1024 * 64)
 /*
  * Client Request type
  */
-#define REDIS_REQ_INLINE 1
-#define REDIS_REQ_MULTIBULK 2
+#define PIKA_REQ_INLINE 1
+#define PIKA_REQ_MULTIBULK 2
 
 /*
  * The socket block type

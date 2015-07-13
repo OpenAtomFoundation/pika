@@ -14,21 +14,19 @@ PikaConn::PikaConn(int fd) :
     thread_ = NULL;
 
     // init the rbuf
-//    rbuf_ = (char *)malloc(sizeof(char) * PIKA_MAX_MESSAGE);
     rbuf_ = sdsempty();
     cur_pos_ = 0;
     rbuf_len_ = 0;
     req_type_ = 0;
     multibulklen_ = 0;
     bulklen_ = -1;
-
-    wbuf_ = (char *)malloc(sizeof(char) * PIKA_MAX_MESSAGE);
     wbuf_ = sdsempty();
 }
 
 PikaConn::~PikaConn()
 {
     sdsfree(rbuf_);
+    sdsfree(wbuf_);
 }
 
 bool PikaConn::SetNonblock()
@@ -47,11 +45,12 @@ void PikaConn::Reset() {
     bulklen_ = -1;
 }
 
-int PikaConn::ProcessInlineBuffer() {
+int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
     char *newline;
     int argc, j;
     sds *argv, aux;
     size_t querylen;
+    err_msg.clear();
 
     /* Search for end of line */
     newline = strchr(rbuf_, '\n');
@@ -59,7 +58,8 @@ int PikaConn::ProcessInlineBuffer() {
     /* Nothing to do with a \r\n */
     if (newline == NULL) {
         if (sdslen(rbuf_) > PIKA_MAX_MESSAGE) {
-            log_info("Protocol error: too big inline request");
+            err_msg = "Protocol error: too big inline request";
+            sdsrange(rbuf_, 0, -1);
         }
         return -1;
     }
@@ -74,7 +74,8 @@ int PikaConn::ProcessInlineBuffer() {
     argv = sdssplitargs(aux, &argc);
     sdsfree(aux);
     if (argv == NULL) {
-        log_info("Protocol error: unbalance quotes in request");
+        err_msg = "Protocol error: unbalance quotes in request";
+        sdsrange(rbuf_, 0, -1);
         return -1;
     }
 
@@ -93,22 +94,21 @@ int PikaConn::ProcessInlineBuffer() {
     return 0;
 }
 
-int PikaConn::ProcessMultibulkBuffer() {
+int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
     char *newline = NULL;
     int pos = 0, ok;
     long long ll;
+    err_msg.clear();
 
     if (multibulklen_== 0) {
         /* The client should have been reset */
-//        redisAssertWithInfo(c,NULL,c->argc == 0);
-
+        Reset();
         /* Multi bulk length cannot be read without a \r\n */
         newline = strchr(rbuf_,'\r');
         if (newline == NULL) {
-            if (sdslen(rbuf_) > PIKA_MAX_MESSAGE) {
-//                addReplyError(c,"Protocol error: too big mbulk count string");
-//                setProtocolError(c,0);
-                  log_info("Protocol error: too big mbulk count string");
+            if (sdslen(rbuf_) > PIKA_INLINE_MAX_SIZE) {
+                  err_msg = "Protocol error: too big mbulk count string";
+                  sdsrange(rbuf_, 0, -1);
             }
             return -1;
         }
@@ -120,40 +120,38 @@ int PikaConn::ProcessMultibulkBuffer() {
         /* We know for sure there is a whole line since newline != NULL,
          * so go ahead and find out the multi bulk length. */
 //        redisAssertWithInfo(c,NULL,c->querybuf[0] == '*');
+        if (rbuf_[0] != '*') {
+            log_info("protocol exepect *,but it is %c", rbuf_[0]);
+            return -1;
+        }
         ok = string2ll(rbuf_+1,newline-(rbuf_+1),&ll);
         if (!ok || ll > 1024*1024) {
-//            addReplyError(c,"Protocol error: invalid multibulk length");
-//            setProtocolError(c,pos);
-            log_info("Protocol error: invalid multibulk length");
+            err_msg = "Protocol error: invalid multibulk length";
+            sdsrange(rbuf_, pos, -1);
             return -1;
         }
 
         pos = (newline-rbuf_)+2;
         if (ll <= 0) {
-            sdsrange(rbuf_,pos,-1);
+            sdsrange(rbuf_, pos, -1);
             return 0;
         }
 
         multibulklen_ = ll;
-
-        /* Setup argv array on client structure */
-//        if (c->argv) zfree(c->argv);
-//        c->argv = zmalloc(sizeof(robj*)*c->multibulklen);
-        argv_.clear();
     }
 
-//    redisAssertWithInfo(c,NULL,c->multibulklen > 0);
+    if (multibulklen_ < 0) {
+        log_info("multi bulk len < 0 in this packet");
+        return -1;
+    }
     while(multibulklen_) {
         /* Read bulk length if unknown */
         if (bulklen_ == -1) {
             newline = strchr(rbuf_+pos,'\r');
             if (newline == NULL) {
-                if (sdslen(rbuf_) > PIKA_MAX_MESSAGE) {
-//                    addReplyError(c,
-//                        "Protocol error: too big bulk count string");
-//                    setProtocolError(c,0);
-//                    return REDIS_ERR;
-                    log_info("Protocol error: too big bulk count string");
+                if (sdslen(rbuf_) > PIKA_INLINE_MAX_SIZE) {
+                    err_msg = "Protocol error: too big bulk count string";
+                    sdsrange(rbuf_, 0, -1);
                     return -1;
                 }
                 break;
@@ -164,26 +162,20 @@ int PikaConn::ProcessMultibulkBuffer() {
                 break;
 
             if (rbuf_[pos] != '$') {
-//                addReplyErrorFormat(c,
-//                    "Protocol error: expected '$', got '%c'",
-//                    c->querybuf[pos]);
-//                setProtocolError(c,pos);
-//                return REDIS_ERR;
-                log_info("Protocol error: expected '$', got %c", rbuf_[pos]);
+                err_msg = "Protocol error: expected '$'";
+                sdsrange(rbuf_, pos, -1);
                 return -1;
             }
 
             ok = string2ll(rbuf_+pos+1,newline-(rbuf_+pos+1),&ll);
             if (!ok || ll < 0 || ll > 512*1024*1024) {
-//                addReplyError(c,"Protocol error: invalid bulk length");
-//                setProtocolError(c,pos);
-//                return REDIS_ERR;
-                log_info("Protocol error: invalid bulk length");
+                err_msg = "Protocol error: invalid bulk length";
+                sdsrange(rbuf_, pos, -1);
                 return -1;
             }
 
             pos += newline-(rbuf_+pos)+2;
-            if (ll >= PIKA_MAX_MESSAGE) {
+            if (ll >= PIKA_MBULK_BIG_ARG) {
                 size_t qblen;
 
                 /* If we are going to read a large object from network
@@ -210,10 +202,9 @@ int PikaConn::ProcessMultibulkBuffer() {
              * instead of creating a new object by *copying* the sds we
              * just use the current sds string. */
             if (pos == 0 &&
-                bulklen_ >= PIKA_MAX_MESSAGE &&
+                bulklen_ >= PIKA_MBULK_BIG_ARG &&
                 (signed) sdslen(rbuf_) == bulklen_+2)
             {
-//                c->argv[c->argc++] = createObject(REDIS_STRING,c->querybuf);
                 argv_.push_back(std::string(rbuf_, bulklen_));
                 sdsIncrLen(rbuf_,-2); /* remove CRLF */
                 rbuf_ = sdsempty();
@@ -222,8 +213,6 @@ int PikaConn::ProcessMultibulkBuffer() {
                 rbuf_ = sdsMakeRoomFor(rbuf_,bulklen_+2);
                 pos = 0;
             } else {
-//                c->argv[c->argc++] =
-//                    createStringObject(c->querybuf+pos,c->bulklen);
                 argv_.push_back(std::string(rbuf_+pos, bulklen_));
                 pos += bulklen_+2;
             }
@@ -233,7 +222,7 @@ int PikaConn::ProcessMultibulkBuffer() {
     }
 
     /* Trim to pos */
-    if (pos) sdsrange(rbuf_,pos,-1);
+    if (pos) sdsrange(rbuf_, pos, -1);
 
     /* We're done when c->multibulk == 0 */
     if (multibulklen_ == 0) return 0;
@@ -243,18 +232,31 @@ int PikaConn::ProcessMultibulkBuffer() {
 }
 
 int PikaConn::ProcessInputBuffer() {
+    std::string err_msg;
     while (sdslen(rbuf_)) {
         if (!req_type_) {
             if (rbuf_[0] == '*') {
-                req_type_ = REDIS_REQ_MULTIBULK;
+                req_type_ = PIKA_REQ_MULTIBULK;
             } else {
-                req_type_ = REDIS_REQ_INLINE;
+                req_type_ = PIKA_REQ_INLINE;
             }
         }
-        if (req_type_ == REDIS_REQ_INLINE) {
-            if (ProcessInlineBuffer() != 0) break;
-        } else if (req_type_ == REDIS_REQ_MULTIBULK) {
-            if (ProcessMultibulkBuffer() != 0) break;
+        if (req_type_ == PIKA_REQ_INLINE) {
+            if (ProcessInlineBuffer(err_msg) != 0) {
+                if (!err_msg.empty()) {
+                    wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    PikaSendReply();
+                }
+                break;
+            }
+        } else if (req_type_ == PIKA_REQ_MULTIBULK) {
+            if (ProcessMultibulkBuffer(err_msg) != 0) {
+                if (!err_msg.empty()) {
+                    wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    PikaSendReply();
+                }
+                break;
+            }
         } else {
             log_info("Unknown requeset type");
             return -1;
@@ -279,28 +281,30 @@ int PikaConn::ProcessInputBuffer() {
 int PikaConn::PikaGetRequest()
 {
     int nread = 0;
-    int readlen = (1024*1024*64);
+    int readlen = PIKA_IOBUF_LEN;
     size_t qblen;
-    if (req_type_ == REDIS_REQ_MULTIBULK && multibulklen_ && bulklen_ != -1 
-        && bulklen_ >= PIKA_MAX_MESSAGE) {
+    if (req_type_ == PIKA_REQ_MULTIBULK && multibulklen_ && bulklen_ != -1 
+        && bulklen_ >= PIKA_MBULK_BIG_ARG) {
         
         int remaining = (unsigned)(bulklen_+2) - sdslen(rbuf_);
         if (remaining < readlen) readlen = remaining;
     }
     qblen = sdslen(rbuf_);
     rbuf_ = sdsMakeRoomFor(rbuf_, readlen);
-    nread = read(fd_, rbuf_ + qblen, PIKA_MAX_MESSAGE);
+    nread = read(fd_, rbuf_ + qblen, readlen);
     if (nread == -1) {
         if (errno == EAGAIN) {
             nread = 0;
         } else {
+            log_info("Reading from client: %s", strerror(errno));
+            Reset();
             return -1;
         }
     } else if (nread == 0) {
         log_info("client closed connection");
+        Reset();
         return -1;
     }
-
 
     if (nread) {
         sdsIncrLen(rbuf_,nread);
