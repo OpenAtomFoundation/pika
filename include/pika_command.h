@@ -12,6 +12,9 @@ public:
     int arity;
 };
 
+/*
+ * kv
+ */
 class SetCmd : public Cmd {
 public:
     SetCmd(int a) : Cmd(a) {};
@@ -24,4 +27,78 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+/*
+ * hash
+ */
+class HSetCmd : public Cmd {
+public:
+    HSetCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HGetCmd : public Cmd {
+public:
+    HGetCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HDelCmd : public Cmd {
+public:
+    HDelCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HExistsCmd : public Cmd {
+public:
+    HExistsCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HGetallCmd : public Cmd {
+public:
+    HGetallCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HKeysCmd : public Cmd {
+public:
+    HKeysCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HLenCmd : public Cmd {
+public:
+    HLenCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HMSetCmd : public Cmd {
+public:
+    HMSetCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HMGetCmd : public Cmd {
+public:
+    HMGetCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HSetnxCmd : public Cmd {
+public:
+    HSetnxCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HValsCmd : public Cmd {
+public:
+    HValsCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class HStrlenCmd : public Cmd {
+public:
+    HStrlenCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
 #endif

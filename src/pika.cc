@@ -117,12 +117,40 @@ int main(int argc, char **argv)
     pika_signal_setup();
 
     /*
-     * set command map
+     * kv
      */
     SetCmd *setptr = new SetCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("set", setptr));
     GetCmd *getptr = new GetCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("get", getptr));
+
+    /*
+     * hash
+     */
+    HSetCmd *hsetptr = new HSetCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hset", hsetptr));
+    HGetCmd *hgetptr = new HGetCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hget", hgetptr));
+    HDelCmd *hdelptr = new HDelCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hdel", hdelptr));
+    HExistsCmd *hexistsptr = new HExistsCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hexists", hexistsptr));
+    HGetallCmd *hgetallptr = new HGetallCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hgetall", hgetallptr));
+    HKeysCmd *hkeysptr = new HKeysCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hkeys", hkeysptr));
+    HLenCmd *hlenptr = new HLenCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hlen", hlenptr));
+    HMSetCmd *hmsetptr = new HMSetCmd(-4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hmset", hmsetptr));
+    HMGetCmd *hmgetptr = new HMGetCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hmget", hmgetptr));
+    HSetnxCmd *hsetnxptr = new HSetnxCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hsetnx", hsetnxptr));
+    HValsCmd *hvalsptr = new HValsCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hvals", hvalsptr));
+    HStrlenCmd *hstrlenptr = new HStrlenCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hstrlen", hstrlenptr));
 
     /*
      * Init the server
