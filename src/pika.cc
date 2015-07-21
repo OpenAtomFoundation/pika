@@ -123,6 +123,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("set", setptr));
     GetCmd *getptr = new GetCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("get", getptr));
+    ScanCmd *scanptr = new ScanCmd(-2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("scan", scanptr));
 
     /*
      * hash
