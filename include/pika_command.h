@@ -107,4 +107,10 @@ public:
     HStrlenCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
+
+class HScanCmd : public Cmd {
+public:
+    HScanCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
 #endif

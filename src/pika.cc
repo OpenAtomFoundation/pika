@@ -153,6 +153,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hvals", hvalsptr));
     HStrlenCmd *hstrlenptr = new HStrlenCmd(3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hstrlen", hstrlenptr));
+    HScanCmd *hscanptr = new HScanCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hscan", hscanptr));
 
     /*
      * Init the server

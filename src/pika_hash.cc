@@ -1,5 +1,6 @@
 #include "pika_command.h"
 #include "pika_server.h"
+#include "util.h"
 #include <algorithm>
 #include <map>
 
@@ -357,6 +358,98 @@ void HValsCmd::Do(std::list<std::string> &argv, std::string &ret) {
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void HScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    int size = argv.size();    
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity) || (size != 3 && size != 5 && size != 7)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string cursor = argv.front();
+    argv.pop_front();
+
+    long count = 10;
+    std::string str_count;
+    std::string ar;
+    std::string pattern;
+    bool use_pat = false;
+    while (argv.size()) {
+        ar = argv.front();
+        argv.pop_front();
+        transform(ar.begin(), ar.end(), ar.begin(), ::tolower);
+        if (ar == "match") {
+            use_pat = true;
+            pattern = argv.front();
+            argv.pop_front();
+        } else if (ar == "count") {
+            str_count = argv.front();
+            argv.pop_front();
+            if (!string2l(str_count.data(), str_count.size(), &count)) {
+                ret = "-ERR value is not an integer or out of range\r\n";
+                return;
+            }
+            if (count <= 0) {
+                ret = "-ERR syntax error\r\n";
+                return;
+            }
+        } else {
+            ret = "-ERR syntax error\r\n";
+            return;
+        }
+    }
+    long index = 0;
+    if (!string2l(cursor.data(), cursor.size(), &index)) {
+        ret = "-ERR invalid cursor\r\n";
+        return;
+    };
+
+
+    std::vector<nemo::FV> fvs;
+    nemo::HIterator *iter = g_pikaServer->GetHandle()->HScan(key, "", "", -1);
+    iter->Skip(index);
+    bool iter_ret = false;
+    while ((iter_ret=iter->Next()) && count) {
+        count--;
+        index++;
+        if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Field().data(), iter->Field().size(), 0)) {
+            continue;
+        }
+        fvs.push_back(nemo::FV{iter->Field(), iter->Val()});
+    }
+    if (!iter_ret) {
+        index = 0;
+    }
+    delete iter;
+
+    ret = "*2\r\n";
+    char buf[32];
+    char buf_len[32];
+    std::string str_index;
+    int len = ll2string(buf, sizeof(buf), index);
+    snprintf(buf_len, sizeof(buf_len), "$%d\r\n", len);
+    ret.append(buf_len);
+    ret.append(buf);
+    ret.append("\r\n");
+
+    snprintf(buf, sizeof(buf), "*%lu\r\n", fvs.size() * 2);
+    ret.append(buf);
+    std::vector<nemo::FV>::iterator it;
+    for (it = fvs.begin(); it != fvs.end(); it++) {
+        snprintf(buf, sizeof(buf), "$%lu\r\n", it->field.size());
+        ret.append(buf);
+        ret.append(it->field.data(), it->field.size());
+        ret.append("\r\n");
+        snprintf(buf, sizeof(buf), "$%lu\r\n", it->val.size());
+        ret.append(buf);
+        ret.append(it->val.data(), it->val.size());
         ret.append("\r\n");
     }
 }
