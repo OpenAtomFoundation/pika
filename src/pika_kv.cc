@@ -133,7 +133,8 @@ void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
     std::vector<std::string> keys;
     nemo::KIterator *iter = g_pikaServer->GetHandle()->Scan("", "", -1);
     iter->Skip(index);
-    while (count && iter->Next()) {
+    bool iter_ret = false;
+    while ((iter_ret=iter->Next()) && count) {
         count--;
         index++;
         if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0)) {
@@ -141,7 +142,7 @@ void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
         }
         keys.push_back(iter->Key());
     }
-    if (!iter->Valid()) {
+    if (!iter_ret) {
         index = 0;
     }
     delete iter;
