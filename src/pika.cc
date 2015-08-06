@@ -157,6 +157,12 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hscan", hscanptr));
 
     /*
+     * hash
+     */
+    LPushCmd *lpushptr = new LPushCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("lpush", lpushptr));
+
+    /*
      * Init the server
      */
     g_pikaServer = new PikaServer();

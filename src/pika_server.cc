@@ -61,7 +61,8 @@ PikaServer::PikaServer()
 //    options_.write_buffer_size = 1500000000;
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
-    db_ = new nemo::Nemo("/tmp/testdb");
+//    db_ = new nemo::Nemo("/tmp/testdb");
+    db_ = new nemo::Nemo("/data1/testdb");
 //    if (!s.ok()) {
 //        log_err("Open db failed");
 //    }
