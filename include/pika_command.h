@@ -117,10 +117,57 @@ public:
 /*
  * Lists
  */
+class LLenCmd : public Cmd {
+public:
+    LLenCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class LPopCmd : public Cmd {
+public:
+    LPopCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
 
 class LPushCmd : public Cmd {
 public:
     LPushCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class LPushxCmd : public Cmd {
+public:
+    LPushxCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class LRangeCmd : public Cmd {
+public:
+    LRangeCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class LSetCmd : public Cmd {
+public:
+    LSetCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class RPopCmd : public Cmd {
+public:
+    RPopCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class RPushCmd : public Cmd {
+public:
+    RPushCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class RPushxCmd : public Cmd {
+public:
+    RPushxCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 #endif
