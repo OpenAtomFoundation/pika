@@ -157,10 +157,26 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hscan", hscanptr));
 
     /*
-     * hash
+     * lists
      */
+    LLenCmd *llenptr = new LLenCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("llen", llenptr));
+    LPopCmd *lpopptr = new LPopCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("lpop", lpopptr));
     LPushCmd *lpushptr = new LPushCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("lpush", lpushptr));
+    LPushxCmd *lpushxptr = new LPushxCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("lpushx", lpushxptr));
+    LRangeCmd *lrangeptr = new LRangeCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("lrange", lrangeptr));
+    LSetCmd *lsetptr = new LSetCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("lset", lsetptr));
+    RPopCmd *rpopptr = new RPopCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("rpop", rpopptr));
+    RPushCmd *rpushptr = new RPushCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("rpush", rpushptr));
+    RPushxCmd *rpushxptr = new RPushxCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("rpushx", rpushxptr));
 
     /*
      * Init the server
