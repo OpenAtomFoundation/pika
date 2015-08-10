@@ -117,6 +117,12 @@ public:
 /*
  * Lists
  */
+class LIndexCmd : public Cmd {
+public:
+    LIndexCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class LLenCmd : public Cmd {
 public:
     LLenCmd(int a) : Cmd(a) {};
@@ -153,9 +159,21 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class LTrimCmd : public Cmd {
+public:
+    LTrimCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class RPopCmd : public Cmd {
 public:
     RPopCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class RPopLPushCmd : public Cmd {
+public:
+    RPopLPushCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 

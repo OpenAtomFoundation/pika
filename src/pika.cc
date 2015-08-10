@@ -159,6 +159,8 @@ int main(int argc, char **argv)
     /*
      * lists
      */
+    LIndexCmd *lindexptr = new LIndexCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("lindex", lindexptr));
     LLenCmd *llenptr = new LLenCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("llen", llenptr));
     LPopCmd *lpopptr = new LPopCmd(2);
@@ -171,8 +173,12 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("lrange", lrangeptr));
     LSetCmd *lsetptr = new LSetCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("lset", lsetptr));
+    LTrimCmd *ltrimptr = new LTrimCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("ltrim", ltrimptr));
     RPopCmd *rpopptr = new RPopCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("rpop", rpopptr));
+    RPopLPushCmd *rpoplpushptr = new RPopLPushCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("rpoplpush", rpoplpushptr));
     RPushCmd *rpushptr = new RPushCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("rpush", rpushptr));
     RPushxCmd *rpushxptr = new RPushxCmd(3);

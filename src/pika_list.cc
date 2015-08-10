@@ -7,6 +7,40 @@
 extern PikaServer *g_pikaServer;
 extern std::map<std::string, Cmd *> g_pikaCmd;
 
+void LIndexCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string index = argv.front();
+    argv.pop_front();
+    std::string value;
+    long l_index = 0;
+    if (!string2l(index.data(), index.size(), &l_index)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    nemo::Status s = g_pikaServer->GetHandle()->LIndex(key, l_index, &value);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "$%lu\r\n", value.size());
+        ret.append(buf);
+        ret.append(value.data(), value.size());
+        ret.append("\r\n");
+    } else if (s.IsNotFound() || (s.IsCorruption() && s.ToString() == "Corruption: index out of range")) {
+        ret = "$-1\r\n";
+    } else {
+        ret = "+ERR ";
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void LLenCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -151,7 +185,7 @@ void LRangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret.append("\r\n");
         }    
     } else if (s.IsNotFound()) {
-        ret = ":0\r\n";
+        ret = "*0\r\n";
     } else {
         ret = "+ERR ";
         ret.append(s.ToString().c_str());
@@ -193,6 +227,40 @@ void LSetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void LTrimCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string left = argv.front();
+    argv.pop_front();
+    std::string right = argv.front();
+    argv.pop_front();
+    long l_left, l_right;
+    if (!string2l(left.data(), left.size(), &l_left)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    if (!string2l(right.data(), right.size(), &l_right)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    
+    nemo::Status s = g_pikaServer->GetHandle()->LTrim(key, l_left, l_right);
+    if (s.ok() || s.IsNotFound()) {
+        ret = "+OK\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void RPopCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -212,6 +280,35 @@ void RPopCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append(value.data(), value.size());
         ret.append("\r\n");
     } else if (s.IsNotFound()) {
+        ret.append("$-1\r\n");
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void RPopLPushCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string src = argv.front();
+    argv.pop_front();
+    std::string dest = argv.front();
+    argv.pop_front();
+    std::string value;
+    nemo::Status s = g_pikaServer->GetHandle()->RPopLPush(src, dest, value);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "$%lu\r\n", value.size());
+        ret.append(buf);
+        ret.append(value.data(), value.size());
+        ret.append("\r\n");
+    } else if (s.IsNotFound() && s.ToString() == "NotFound: not found the source key") {
         ret.append("$-1\r\n");
     } else {
         ret.append("-ERR ");
