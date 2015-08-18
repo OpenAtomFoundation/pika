@@ -7,7 +7,7 @@ Pika is to solve redis's memory limitation
 Pika used Nemo as storage engine, Nemo is developed base on rocksdb.
 
 Nemo support multi data structure by using rocksdb's kv port. Such as list,
-hash, zst
+hash, zset
 
 Because rocksdb is using disk, so Nemo don't have capacity limitation.
 
