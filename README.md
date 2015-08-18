@@ -1,7 +1,8 @@
 Pika
 ====
 
-Pika is redis like database.
+Pika is a database that has the same feature as redis. The reason why we develop
+Pika is to solve redis's memory limitation
 
 Pika used Nemo as storage engine, Nemo is developed base on rocksdb.
 
