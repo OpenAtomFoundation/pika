@@ -114,6 +114,41 @@ void HGetallCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void HIncrbyCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string field = argv.front();
+    argv.pop_front();
+    std::string str_by = argv.front();
+    argv.pop_front();
+    int64_t by;
+    std::string new_val;
+    if (!string2l(str_by.data(), str_by.size(), &by)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    nemo::Status s = g_pikaServer->GetHandle()->HIncrby(key, field, by, new_val);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        ret = ":";
+        ret.append(new_val);
+        ret.append("\r\n");
+    } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not integer"){
+        ret = "-ERR hash value is not an integer\r\n"; 
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void HKeysCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";

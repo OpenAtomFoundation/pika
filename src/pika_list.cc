@@ -20,7 +20,7 @@ void LIndexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     std::string index = argv.front();
     argv.pop_front();
     std::string value;
-    long l_index = 0;
+    int64_t l_index = 0;
     if (!string2l(index.data(), index.size(), &l_index)) {
         ret = "-ERR value is not an integer or out of range\r\n";
         return;
@@ -51,7 +51,7 @@ void LLenCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string key = argv.front();
     argv.pop_front();
-    uint64_t llen;
+    int64_t llen;
     nemo::Status s = g_pikaServer->GetHandle()->LLen(key, &llen);
     if (s.IsCorruption()) {
         ret = "+ERR ";
@@ -103,7 +103,7 @@ void LPushCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string value;
     nemo::Status s;
-    uint64_t llen = 0;
+    int64_t llen = 0;
     while (argv.size() > 0) {
         value = argv.front();
         s = g_pikaServer->GetHandle()->LPush(key, value, &llen);
@@ -135,7 +135,7 @@ void LPushxCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string value = argv.front();
     argv.pop_front();
-    uint64_t llen = 0;
+    int64_t llen = 0;
     nemo::Status s = g_pikaServer->GetHandle()->LPushx(key, value, &llen);
     if (s.IsCorruption()) {
         ret = "+ERR ";
@@ -162,7 +162,7 @@ void LRangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string right = argv.front();
     argv.pop_front();
-    long l_left, l_right;
+    int64_t l_left, l_right;
     if (!string2l(left.data(), left.size(), &l_left)) {
         ret = "-ERR value is not an integer or out of range\r\n";
         return;
@@ -205,7 +205,7 @@ void LSetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string index = argv.front();
     argv.pop_front();
-    long l_index = 0;
+    int64_t l_index = 0;
     if (!string2l(index.data(), index.size(), &l_index)) {
         ret = "-ERR value is not an integer or out of range\r\n";
         return;
@@ -241,7 +241,7 @@ void LTrimCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string right = argv.front();
     argv.pop_front();
-    long l_left, l_right;
+    int64_t l_left, l_right;
     if (!string2l(left.data(), left.size(), &l_left)) {
         ret = "-ERR value is not an integer or out of range\r\n";
         return;
@@ -329,7 +329,7 @@ void RPushCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string value;
     nemo::Status s;
-    uint64_t llen = 0;
+    int64_t llen = 0;
     while (argv.size() > 0) {
         value = argv.front();
         s = g_pikaServer->GetHandle()->RPush(key, value, &llen);
@@ -361,7 +361,7 @@ void RPushxCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string value = argv.front();
     argv.pop_front();
-    uint64_t llen = 0;
+    int64_t llen = 0;
     nemo::Status s = g_pikaServer->GetHandle()->RPushx(key, value, &llen);
     if (s.IsCorruption()) {
         ret = "+ERR ";
