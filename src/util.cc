@@ -424,6 +424,16 @@ int d2string(char *buf, size_t len, double value) {
     return len;
 }
 
+int string2d(const char *s, size_t slen, double *dval) {
+    char *pEnd;
+    double d = strtod(s, &pEnd);
+    if (pEnd != s + slen)
+        return 0;
+
+    if (dval != NULL) *dval = d;
+    return 1;
+}
+
 /* Generate the Redis "Run ID", a SHA1-sized random number that identifies a
  * given execution of Redis, so that if you are talking with an instance
  * having run_id == A, and you reconnect and it has run_id == B, you can be

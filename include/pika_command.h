@@ -72,6 +72,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class HIncrbyfloatCmd : public Cmd {
+public:
+    HIncrbyfloatCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class HKeysCmd : public Cmd {
 public:
     HKeysCmd(int a) : Cmd(a) {};

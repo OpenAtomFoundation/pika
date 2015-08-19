@@ -141,6 +141,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hgetall", hgetallptr));
     HIncrbyCmd *hincrbyptr = new HIncrbyCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hincrby", hincrbyptr));
+    HIncrbyfloatCmd *hincrbyfloatptr = new HIncrbyfloatCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("hincrbyfloat", hincrbyfloatptr));
     HKeysCmd *hkeysptr = new HKeysCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hkeys", hkeysptr));
     HLenCmd *hlenptr = new HLenCmd(2);
