@@ -135,6 +135,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class LInsertCmd : public Cmd {
+public:
+    LInsertCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class LLenCmd : public Cmd {
 public:
     LLenCmd(int a) : Cmd(a) {};

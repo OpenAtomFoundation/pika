@@ -41,6 +41,47 @@ void LIndexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void LInsertCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string dir = argv.front();
+    argv.pop_front();
+    std::string pivot = argv.front();
+    argv.pop_front();
+    std::string value = argv.front();
+    argv.pop_front();
+    transform(dir.begin(), dir.end(), dir.begin(), ::tolower);
+    if (dir != "before" && dir != "after") {
+        ret = "-ERR syntax error\r\n";
+    }
+    nemo::Status s;
+    int64_t llen;
+    if (dir == "before") {
+        s = g_pikaServer->GetHandle()->LInsert(key, nemo::BEFORE, pivot, value, &llen);
+    } else if (dir == "after") {
+        s = g_pikaServer->GetHandle()->LInsert(key, nemo::AFTER, pivot, value, &llen);
+    } else {
+        ret = "-ERR syntax error\r\n";
+        return;
+    }
+    if (!s.IsCorruption()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", llen);
+        ret.append(buf);
+    } else {
+        ret = "+ERR ";
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void LLenCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -59,7 +100,7 @@ void LLenCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else {
         char buf[32];
-        snprintf(buf, sizeof(buf), ":%lu\r\n", llen);
+        snprintf(buf, sizeof(buf), ":%ld\r\n", llen);
         ret.append(buf);
     }
 }
@@ -118,7 +159,7 @@ void LPushCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else {
         char buf[32];
-        snprintf(buf, sizeof(buf), ":%lu\r\n", llen);
+        snprintf(buf, sizeof(buf), ":%ld\r\n", llen);
         ret.append(buf);
     }
 }
@@ -143,7 +184,7 @@ void LPushxCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else {
         char buf[32];
-        snprintf(buf, sizeof(buf), ":%lu\r\n", llen);
+        snprintf(buf, sizeof(buf), ":%ld\r\n", llen);
         ret.append(buf);
     }
 }
@@ -344,7 +385,7 @@ void RPushCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else {
         char buf[32];
-        snprintf(buf, sizeof(buf), ":%lu\r\n", llen);
+        snprintf(buf, sizeof(buf), ":%ld\r\n", llen);
         ret.append(buf);
     }
 }
@@ -369,7 +410,7 @@ void RPushxCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else {
         char buf[32];
-        snprintf(buf, sizeof(buf), ":%lu\r\n", llen);
+        snprintf(buf, sizeof(buf), ":%ld\r\n", llen);
         ret.append(buf);
     }
 }

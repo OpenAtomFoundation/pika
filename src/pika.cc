@@ -165,6 +165,8 @@ int main(int argc, char **argv)
      */
     LIndexCmd *lindexptr = new LIndexCmd(3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("lindex", lindexptr));
+    LInsertCmd *linsertptr = new LInsertCmd(5);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("linsert", linsertptr));
     LLenCmd *llenptr = new LLenCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("llen", llenptr));
     LPopCmd *lpopptr = new LPopCmd(2);
