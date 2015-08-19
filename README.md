@@ -1,3 +1,4 @@
+# Pika
 Pika is a database that has the same feature as redis. The reason why we develop
 Pika is to solve redis's memory limitation
 
