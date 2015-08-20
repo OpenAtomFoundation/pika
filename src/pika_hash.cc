@@ -278,7 +278,7 @@ void HMGetCmd::Do(std::list<std::string> &argv, std::string &ret) {
 }
 
 void HMSetCmd::Do(std::list<std::string> &argv, std::string &ret) {
-    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+    if (((int)argv.size() % 2 != 0 ) || (arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
         ret.append(" command\r\n");

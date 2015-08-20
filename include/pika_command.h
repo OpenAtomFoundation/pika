@@ -212,4 +212,18 @@ public:
     RPushxCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
+/*
+ * zset
+ */
+class ZAddCmd : public Cmd {
+public:
+    ZAddCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ZCardCmd : public Cmd {
+public:
+    ZCardCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
 #endif

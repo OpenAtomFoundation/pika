@@ -193,6 +193,14 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("rpushx", rpushxptr));
 
     /*
+     * lists
+     */
+    ZAddCmd *zaddptr = new ZAddCmd(-4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zadd", zaddptr));
+    ZCardCmd *zcardptr = new ZCardCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zcard", zcardptr));
+
+    /*
      * Init the server
      */
     g_pikaServer = new PikaServer();
