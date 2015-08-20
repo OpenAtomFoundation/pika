@@ -234,6 +234,38 @@ void LRangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void LRemCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_count = argv.front();
+    argv.pop_front();
+    std::string value = argv.front();
+    argv.pop_front();
+    int64_t count;
+    if (!string2l(str_count.data(), str_count.size(), &count)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    int64_t res;
+    nemo::Status s = g_pikaServer->GetHandle()->LRem(key, count, value, &res);
+    if (!s.IsCorruption()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret = "+ERR ";
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void LSetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";

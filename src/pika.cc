@@ -177,6 +177,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("lpushx", lpushxptr));
     LRangeCmd *lrangeptr = new LRangeCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("lrange", lrangeptr));
+    LRemCmd *lremptr = new LRemCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("lrem", lremptr));
     LSetCmd *lsetptr = new LSetCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("lset", lsetptr));
     LTrimCmd *ltrimptr = new LTrimCmd(4);

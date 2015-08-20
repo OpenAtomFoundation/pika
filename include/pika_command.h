@@ -171,6 +171,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class LRemCmd : public Cmd {
+public:
+    LRemCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class LSetCmd : public Cmd {
 public:
     LSetCmd(int a) : Cmd(a) {};
