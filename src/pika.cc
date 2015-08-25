@@ -199,6 +199,16 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zadd", zaddptr));
     ZCardCmd *zcardptr = new ZCardCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zcard", zcardptr));
+    ZScanCmd *zscanptr = new ZScanCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zscan", zscanptr));
+    ZIncrbyCmd *zincrbyptr = new ZIncrbyCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zincrby", zincrbyptr));
+    ZRangeCmd *zrangeptr = new ZRangeCmd(-4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrange", zrangeptr));
+    ZRangebyscoreCmd *zrangebyscoreptr = new ZRangebyscoreCmd(-4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrangebyscore", zrangebyscoreptr));
+    ZCountCmd *zcountptr = new ZCountCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zcount", zcountptr));
 
     /*
      * Init the server

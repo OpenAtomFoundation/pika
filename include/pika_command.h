@@ -226,4 +226,35 @@ public:
     ZCardCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
+
+class ZScanCmd : public Cmd {
+public:
+    ZScanCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ZIncrbyCmd : public Cmd {
+public:
+    ZIncrbyCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ZRangeCmd : public Cmd {
+public:
+    ZRangeCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ZRangebyscoreCmd : public Cmd {
+public:
+    ZRangebyscoreCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ZCountCmd : public Cmd {
+public:
+    ZCountCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 #endif
