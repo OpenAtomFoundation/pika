@@ -209,6 +209,10 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrangebyscore", zrangebyscoreptr));
     ZCountCmd *zcountptr = new ZCountCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zcount", zcountptr));
+    ZRemCmd *zremptr = new ZRemCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrem", zremptr));
+    ZUnionstoreCmd *zunionstoreptr = new ZUnionstoreCmd(-4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zunionstore", zunionstoreptr));
 
     /*
      * Init the server
