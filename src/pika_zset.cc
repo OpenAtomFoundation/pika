@@ -578,3 +578,94 @@ void ZUnionstoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     }
 }
+
+void ZInterstoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string dest = argv.front();
+    argv.pop_front();
+    std::string str_num = argv.front();
+    argv.pop_front();
+    int64_t num;
+    if (!string2l(str_num.data(), str_num.size(), &num)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    if (num < 1) {
+        ret = "-ERR at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE\r\n";
+        return;
+    }
+    if (argv.size() < num) {
+        ret = "-ERR syntax error\r\n";
+        return;
+    }
+    int32_t i = 0;
+    std::vector<std::string> keys;
+    while (i < num) {
+       keys.push_back(argv.front());
+       argv.pop_front();
+       i++;
+    }
+    std::vector<double> weights;
+    nemo::Aggregate ag = nemo::SUM;
+    std::string ar;
+    double wt;
+    while (argv.size() > 0) {
+        ar = argv.front();
+        argv.pop_front();
+        transform(ar.begin(), ar.end(), ar.begin(), ::tolower);
+        if (ar == "weights" && argv.size() >= num) {
+            i = 0;
+            while (i < num) {
+                ar = argv.front();
+                if (!string2d(ar.data(), ar.size(), &wt)) {
+                    ret = "-ERR weight value is not a float\r\n";
+                    return;
+                }
+                weights.push_back(wt);
+                argv.pop_front();
+                i++;
+            }
+        } else if (ar == "aggregate" && argv.size() >= 1) {
+            ar = argv.front();
+            transform(ar.begin(), ar.end(), ar.begin(), ::tolower);
+            argv.pop_front();
+            if (ar == "sum") {
+                ag = nemo::SUM;
+            } else if (ar == "min") {
+                ag = nemo::MIN;
+            } else if (ar == "max") {
+                ag = nemo::MAX;
+            } else {
+                ret = "-ERR syntax error\r\n";
+                return;
+            }
+        } else {
+            ret = "-ERR syntax error\r\n";
+            return;
+        } 
+    }
+    if (weights.size() == 0) {
+        i = 0;
+        while (i < num) {
+            weights.push_back(1);
+            i++;
+        }
+    }
+    int64_t res = 0;
+    nemo::Status s = g_pikaServer->GetHandle()->ZInterStore(dest, num, keys, weights, ag, &res);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}

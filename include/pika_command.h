@@ -269,4 +269,10 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class ZInterstoreCmd : public Cmd {
+public:
+    ZInterstoreCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 #endif

@@ -213,6 +213,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrem", zremptr));
     ZUnionstoreCmd *zunionstoreptr = new ZUnionstoreCmd(-4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zunionstore", zunionstoreptr));
+    ZInterstoreCmd *zinterstoreptr = new ZInterstoreCmd(-4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zinterstore", zinterstoreptr));
 
     /*
      * Init the server
