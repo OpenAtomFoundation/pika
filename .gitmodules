@@ -3,4 +3,4 @@
 	url = https://github.com/google/glog.git
 [submodule "third/nemo"]
 	path = third/nemo
-	url = git@github.com:baotiao/nemo.git
+	url = https://github.com/baotiao/nemo.git
