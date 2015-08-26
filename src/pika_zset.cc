@@ -963,3 +963,129 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void ZRangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_start = argv.front();
+    argv.pop_front();
+    bool is_lo = false;
+    bool is_ro = false;
+    std::string start;
+    if (str_start == "-") {
+        start = "";
+    } else if (str_start == "+") {
+        ret = "*0\r\n";
+        return;
+    } else { 
+        if (str_start[0] == '(') {
+            is_lo = true;
+        } else if (str_start[0] == '[') {
+            is_lo = false;
+        } else {
+            ret = "-ERR min or max not valid string range item\r\n";
+            return;
+        }
+        start = str_start.substr(1, str_start.size());
+        if (start == "-") {
+            start = "";
+            is_lo = false;
+        } else if (start == "+") {
+            ret = "*0\r\n";
+            return;
+        }
+    }
+
+    std::string str_stop = argv.front();
+    argv.pop_front();
+    std::string stop;
+    if (str_stop == "-") {
+        ret = "*0\r\n";
+        return;
+    } else if (str_stop == "+") {
+        stop = "";
+    } else {
+        if (str_stop[0] == '(') {
+            is_ro = true;
+        } else if (str_stop[0] == '[') {
+            is_lo = false;
+        } else {
+            ret = "-ERR min or max not valid string range item\r\n";
+            return;
+        }
+        stop = str_stop.substr(1, str_stop.size());
+        if (stop == "-") {
+            ret = "*0\r\n";
+            return;
+        } else if (stop == "+") {
+            is_ro = false;
+            stop = "";
+        }
+    }
+    size_t size = argv.size();
+    int64_t offset = 0;
+    int64_t count = -1;
+    std::string ar;
+    if (size != 0 && size != 3) {
+        ret = "-ERR syntax error\r\n";
+        return;
+    } else {
+        if (size == 3) {
+            ar = argv.front();
+            argv.pop_front();
+            transform(ar.begin(), ar.end(), ar.begin(), ::tolower);
+            if (ar != "limit") {
+                ret = "-ERR syntax error \r\n";
+            }
+            ar = argv.front();
+            argv.pop_front();
+            if (!string2l(ar.data(), ar.size(), &offset)) {
+                ret = "-ERR syntax error\r\n";
+                return;
+            }
+            if (offset < 0) {
+                offset = 0;
+            }
+            ar = argv.front();
+            argv.pop_front();
+            if (!string2l(ar.data(), ar.size(), &count)) {
+                ret = "-ERR syntax error\r\n";
+                return;
+            }
+        }
+    }
+
+    std::vector<std::string> members;
+    nemo::Status s = g_pikaServer->GetHandle()->ZRangebylex(key, start, stop, members, offset);
+    if (s.ok()) {
+        std::vector<std::string>::iterator iter = members.begin();
+        count = count >= 0 ? count : INT_MAX;  
+        char buf[32];
+        if (is_lo && members.size() != 0 && (*iter).compare(start) == 0) {
+            members.erase(members.begin());
+        }
+        if (is_ro && members.size() != 0 && (members[members.size()-1]).compare(stop) == 0) {
+            members.pop_back();
+        }
+        uint64_t len = members.size() > (uint64_t)count ? count : members.size();
+        snprintf(buf, sizeof(buf), "*%lu\r\n", len);
+        ret.append(buf);
+        for (iter = members.begin(); count != 0 && iter != members.end(); iter++, count--) {
+            snprintf(buf, sizeof(buf), "$%lu\r\n", iter->size());
+            ret.append(buf);
+            ret.append(iter->data(), iter->size());
+            ret.append("\r\n");
+        }
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
