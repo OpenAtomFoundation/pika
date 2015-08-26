@@ -293,4 +293,16 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class ZRevrangeCmd : public Cmd {
+public:
+    ZRevrangeCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ZRevrangebyscoreCmd : public Cmd {
+public:
+    ZRevrangebyscoreCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 #endif
