@@ -698,3 +698,64 @@ void ZRankCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void ZRevrankCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string member = argv.front();
+    argv.pop_front();
+    int64_t rank;
+
+    nemo::Status s = g_pikaServer->GetHandle()->ZRevrank(key, member, &rank);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", rank);
+        ret.append(buf);
+    } else if (s.IsNotFound()) {
+        ret = "$-1\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void ZScoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string member = argv.front();
+    argv.pop_front();
+    double score;
+
+    nemo::Status s = g_pikaServer->GetHandle()->ZScore(key, member, &score);
+    if (s.ok()) {
+        int32_t len = 0;
+        char buf_len[32];
+        char buf[32];
+        len = d2string(buf, sizeof(buf), score);
+        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", len);
+        ret.append(buf_len);
+        ret.append(buf);
+        ret.append("\r\n");
+    } else if (s.IsNotFound()) {
+        ret = "$-1\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+

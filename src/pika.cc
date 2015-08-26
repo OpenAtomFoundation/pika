@@ -217,6 +217,10 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zinterstore", zinterstoreptr));
     ZRankCmd *zrankptr = new ZRankCmd(3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrank", zrankptr));
+    ZRevrankCmd *zrevrankptr = new ZRevrankCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrevrank", zrevrankptr));
+    ZScoreCmd *zscoreptr = new ZScoreCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zscore", zscoreptr));
 
     /*
      * Init the server
