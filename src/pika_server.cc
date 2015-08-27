@@ -62,7 +62,8 @@ PikaServer::PikaServer()
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
 //    db_ = new nemo::Nemo("/tmp/testdb");
-    db_ = new nemo::Nemo("/data1/testdb");
+    nemo::Options option;
+    db_ = new nemo::Nemo("/data1/testdb", option);
 //    if (!s.ok()) {
 //        log_err("Open db failed");
 //    }

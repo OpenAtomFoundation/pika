@@ -1014,7 +1014,7 @@ void ZRangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
         if (str_stop[0] == '(') {
             is_ro = true;
         } else if (str_stop[0] == '[') {
-            is_lo = false;
+            is_ro = false;
         } else {
             ret = "-ERR min or max not valid string range item\r\n";
             return;
@@ -1082,6 +1082,170 @@ void ZRangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret.append(iter->data(), iter->size());
             ret.append("\r\n");
         }
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void ZLexcountCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_start = argv.front();
+    argv.pop_front();
+    std::string start;
+    bool is_lo = false;
+    bool is_ro = false;
+    if (str_start == "-") {
+        start = "";
+    } else if (str_start == "+") {
+        ret = ":0\r\n";
+        return;
+    } else { 
+        if (str_start[0] == '(') {
+            is_lo = true;
+        } else if (str_start[0] == '[') {
+            is_lo = false;
+        } else {
+            ret = "-ERR min or max not valid string range item\r\n";
+            return;
+        }
+        start = str_start.substr(1, str_start.size());
+        if (start == "-") {
+            start = "";
+            is_lo = false;
+        } else if (start == "+") {
+            ret = ":0\r\n";
+            return;
+        }
+    }
+
+    std::string str_stop = argv.front();
+    argv.pop_front();
+    std::string stop;
+    if (str_stop == "-") {
+        ret = ":0\r\n";
+        return;
+    } else if (str_stop == "+") {
+        stop = "";
+    } else {
+        if (str_stop[0] == '(') {
+            is_ro = true;
+        } else if (str_stop[0] == '[') {
+            is_ro = false;
+        } else {
+            ret = "-ERR min or max not valid string range item\r\n";
+            return;
+        }
+        stop = str_stop.substr(1, str_stop.size());
+        if (stop == "-") {
+            ret = ":0\r\n";
+            return;
+        } else if (stop == "+") {
+            is_ro = false;
+            stop = "";
+        }
+    }
+    std::vector<std::string> members;
+    nemo::Status s = g_pikaServer->GetHandle()->ZRangebylex(key, start, stop, members);
+    if (s.ok()) {
+        std::vector<std::string>::iterator iter = members.begin();
+        char buf[32];
+        if (is_lo && members.size() != 0 && (*iter).compare(start) == 0) {
+            members.erase(members.begin());
+        }
+        if (is_ro && members.size() != 0 && (members[members.size()-1]).compare(stop) == 0) {
+            members.pop_back();
+        }
+        uint64_t count = members.size();
+        snprintf(buf, sizeof(buf), ":%lu\r\n", count);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void ZRemrangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_start = argv.front();
+    argv.pop_front();
+    std::string start;
+    bool is_lo = false;
+    bool is_ro = false;
+    if (str_start == "-") {
+        start = "";
+    } else if (str_start == "+") {
+        ret = ":0\r\n";
+        return;
+    } else { 
+        if (str_start[0] == '(') {
+            is_lo = true;
+        } else if (str_start[0] == '[') {
+            is_lo = false;
+        } else {
+            ret = "-ERR min or max not valid string range item\r\n";
+            return;
+        }
+        start = str_start.substr(1, str_start.size());
+        if (start == "-") {
+            start = "";
+            is_lo = false;
+        } else if (start == "+") {
+            ret = ":0\r\n";
+            return;
+        }
+    }
+
+    std::string str_stop = argv.front();
+    argv.pop_front();
+    std::string stop;
+    if (str_stop == "-") {
+        ret = ":0\r\n";
+        return;
+    } else if (str_stop == "+") {
+        stop = "";
+    } else {
+        if (str_stop[0] == '(') {
+            is_ro = true;
+        } else if (str_stop[0] == '[') {
+            is_ro = false;
+        } else {
+            ret = "-ERR min or max not valid string range item\r\n";
+            return;
+        }
+        stop = str_stop.substr(1, str_stop.size());
+        if (stop == "-") {
+            ret = ":0\r\n";
+            return;
+        } else if (stop == "+") {
+            is_ro = false;
+            stop = "";
+        }
+    }
+    int64_t count = 0;
+    nemo::Status s = g_pikaServer->GetHandle()->ZRemrangebylex(key, start, stop, is_lo, is_ro, &count);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", count);
+        ret.append(buf);
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());

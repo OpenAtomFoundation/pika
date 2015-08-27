@@ -311,4 +311,16 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class ZLexcountCmd : public Cmd {
+public:
+    ZLexcountCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ZRemrangebylexCmd : public Cmd {
+public:
+    ZRemrangebylexCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 #endif
