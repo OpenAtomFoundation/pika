@@ -231,6 +231,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zlexcount", zlexcountptr));
     ZRemrangebylexCmd *zremrangebylexptr = new ZRemrangebylexCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zremrangebylex", zremrangebylexptr));
+    ZRemrangebyrankCmd *zremrangebyrankptr = new ZRemrangebyrankCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zremrangebyrank", zremrangebyrankptr));
 
     /*
      * Init the server

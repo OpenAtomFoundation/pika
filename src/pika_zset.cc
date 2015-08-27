@@ -1175,6 +1175,44 @@ void ZLexcountCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void ZRemrangebyrankCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_start = argv.front();
+    argv.pop_front();
+    int64_t start;
+    if (!string2l(str_start.data(), str_start.size(), &start)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    std::string str_stop = argv.front();
+    argv.pop_front();
+    int64_t stop;
+    if (!string2l(str_stop.data(), str_stop.size(), &stop)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+
+    int64_t count;
+    nemo::Status s = g_pikaServer->GetHandle()->ZRemrangebyrank(key, start, stop, &count);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", count);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void ZRemrangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";

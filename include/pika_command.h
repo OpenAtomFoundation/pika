@@ -323,4 +323,10 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class ZRemrangebyrankCmd : public Cmd {
+public:
+    ZRemrangebyrankCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 #endif
