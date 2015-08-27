@@ -303,7 +303,8 @@ void ZRangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (str_start == "-inf") {
         start = nemo::ZSET_SCORE_MIN;
     } else if (str_start == "+inf" || str_start == "inf") {
-        start = nemo::ZSET_SCORE_MAX;
+        ret = "*0\r\n";
+        return;
     } else {
         if (!string2d(str_start.data(), str_start.size(), &start)) {
             ret = "-ERR value is not an integer or out of range\r\n";
@@ -320,7 +321,8 @@ void ZRangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (str_stop == "+inf" || str_stop == "inf") {
         stop = nemo::ZSET_SCORE_MAX;
     } else if (str_stop == "-inf") {
-        stop = nemo::ZSET_SCORE_MIN;
+        ret = "*0\r\n";
+        return;
     } else {
         if (!string2d(str_stop.data(), str_stop.size(), &stop)) {
             ret = "-ERR value is not an integer or out of range\r\n";
@@ -430,7 +432,8 @@ void ZCountCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (str_start == "-inf") {
         start = nemo::ZSET_SCORE_MIN;
     } else if (str_start == "+inf" || str_start == "inf") {
-        start = nemo::ZSET_SCORE_MAX;
+        ret = ":0\r\n";
+        return;
     } else {
         if (!string2d(str_start.data(), str_start.size(), &start)) {
             ret = "-ERR value is not an integer or out of range\r\n";
@@ -448,7 +451,8 @@ void ZCountCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (str_stop == "+inf" || str_stop == "inf") {
         stop = nemo::ZSET_SCORE_MAX;
     } else if (str_stop == "-inf") {
-        stop = nemo::ZSET_SCORE_MIN;
+        ret = ":0\r\n";
+        return;
     } else {
         if (!string2d(str_stop.data(), str_stop.size(), &stop)) {
             ret = "-ERR value is not an integer or out of range\r\n";
@@ -858,7 +862,8 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (str_start == "-inf") {
         start = nemo::ZSET_SCORE_MIN;
     } else if (str_start == "+inf" || str_start == "inf") {
-        start = nemo::ZSET_SCORE_MAX;
+        ret = "*0\r\n";
+        return;
     } else {
         if (!string2d(str_start.data(), str_start.size(), &start)) {
             ret = "-ERR value is not an integer or out of range\r\n";
@@ -875,7 +880,8 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (str_stop == "+inf" || str_stop == "inf") {
         stop = nemo::ZSET_SCORE_MAX;
     } else if (str_stop == "-inf") {
-        stop = nemo::ZSET_SCORE_MIN;
+        ret = "*0\r\n";
+        return;
     } else {
         if (!string2d(str_stop.data(), str_stop.size(), &stop)) {
             ret = "-ERR value is not an integer or out of range\r\n";
@@ -1280,6 +1286,69 @@ void ZRemrangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
     int64_t count = 0;
     nemo::Status s = g_pikaServer->GetHandle()->ZRemrangebylex(key, start, stop, is_lo, is_ro, &count);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", count);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void ZRemrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_start = argv.front();
+    argv.pop_front();
+    bool is_lo = false;
+    bool is_ro = false;
+    double start;
+    if (str_start[0] == '(') {
+        is_lo = true;
+        str_start = str_start.substr(1, str_start.size());
+    }
+    if (str_start == "-inf") {
+        start = nemo::ZSET_SCORE_MIN;
+    } else if (str_start == "+inf" || str_start == "inf") {
+        ret = ":0\r\n";
+        return;
+    } else {
+        if (!string2d(str_start.data(), str_start.size(), &start)) {
+            ret = "-ERR value is not an integer or out of range\r\n";
+            return;
+        }
+    }
+    std::string str_stop = argv.front();
+    argv.pop_front();
+    double stop;
+    if (str_stop[0] == '(') {
+        is_ro = true;
+        str_stop = str_stop.substr(1, str_stop.size());
+    }
+    if (str_stop == "+inf" || str_stop == "inf") {
+        stop = nemo::ZSET_SCORE_MAX;
+    } else if (str_stop == "-inf") {
+        ret = ":0\r\n";
+        return;
+    } else {
+        if (!string2d(str_stop.data(), str_stop.size(), &stop)) {
+            ret = "-ERR value is not an integer or out of range\r\n";
+            return;
+        }
+    }
+
+    int64_t count = 0;
+    std::vector<nemo::SM> sms;
+    nemo::Status s = g_pikaServer->GetHandle()->ZRemrangebyscore(key, start, stop, &count, is_lo, is_ro);
     if (s.ok()) {
         char buf[32];
         snprintf(buf, sizeof(buf), ":%ld\r\n", count);

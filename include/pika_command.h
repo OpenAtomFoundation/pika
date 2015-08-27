@@ -329,4 +329,10 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class ZRemrangebyscoreCmd : public Cmd {
+public:
+    ZRemrangebyscoreCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 #endif
