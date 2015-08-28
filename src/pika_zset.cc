@@ -476,20 +476,19 @@ void ZRemCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string key = argv.front();
     argv.pop_front();
-    std::string member = argv.front();
-    argv.pop_front();
+    int64_t count = 0;
     int64_t res = 0;
-
-    nemo::Status s = g_pikaServer->GetHandle()->ZRem(key, member, &res);
-    if (s.ok() || s.IsNotFound()) {
-        char buf[32];
-        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
-        ret.append(buf);
-    } else {
-        ret.append("-ERR ");
-        ret.append(s.ToString().c_str());
-        ret.append("\r\n");
+    nemo::Status s;
+    while (argv.size()) {
+        s = g_pikaServer->GetHandle()->ZRem(key, argv.front(), &res);
+        if (s.ok()) {
+            count++;
+        }
+        argv.pop_front();
     }
+    char buf[32];
+    snprintf(buf, sizeof(buf), ":%ld\r\n", count);
+    ret.append(buf);
 }
 
 void ZUnionstoreCmd::Do(std::list<std::string> &argv, std::string &ret) {

@@ -123,6 +123,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("set", setptr));
     GetCmd *getptr = new GetCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("get", getptr));
+    DelCmd *delptr = new DelCmd(-2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("del", delptr));
     ScanCmd *scanptr = new ScanCmd(-2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("scan", scanptr));
 
@@ -209,7 +211,7 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrangebyscore", zrangebyscoreptr));
     ZCountCmd *zcountptr = new ZCountCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zcount", zcountptr));
-    ZRemCmd *zremptr = new ZRemCmd(3);
+    ZRemCmd *zremptr = new ZRemCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrem", zremptr));
     ZUnionstoreCmd *zunionstoreptr = new ZUnionstoreCmd(-4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zunionstore", zunionstoreptr));
