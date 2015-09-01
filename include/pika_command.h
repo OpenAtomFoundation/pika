@@ -33,6 +33,24 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class IncrCmd : public Cmd {
+public:
+    IncrCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class IncrbyCmd : public Cmd {
+public:
+    IncrbyCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class IncrbyfloatCmd : public Cmd {
+public:
+    IncrbyfloatCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class ScanCmd : public Cmd {
 public:
     ScanCmd(int a) : Cmd(a) {};
