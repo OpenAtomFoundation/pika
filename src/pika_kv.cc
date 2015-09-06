@@ -199,6 +199,63 @@ void IncrbyfloatCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void DecrCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string new_val;
+    nemo::Status s = g_pikaServer->GetHandle()->Decrby(key, 1, new_val);
+    if (s.ok() || s.IsNotFound()) {
+        ret = ":";
+        ret.append(new_val);
+        ret.append("\r\n");
+    } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
+        ret = "-ERR value is not an integer or out of range\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void DecrbyCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_by = argv.front();
+    argv.pop_front();
+    int64_t by; 
+    if (!string2l(str_by.data(), str_by.size(), &by)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    std::string new_val;
+    nemo::Status s = g_pikaServer->GetHandle()->Decrby(key, by, new_val);
+    if (s.ok() || s.IsNotFound()) {
+        ret = ":";
+        ret.append(new_val);
+        ret.append("\r\n");
+    } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
+        ret = "-ERR value is not an integer or out of range\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int size = argv.size();    
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity) || (size != 2 && size != 4 && size != 6)) {

@@ -51,6 +51,18 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class DecrCmd : public Cmd {
+public:
+    DecrCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class DecrbyCmd : public Cmd {
+public:
+    DecrbyCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class ScanCmd : public Cmd {
 public:
     ScanCmd(int a) : Cmd(a) {};
@@ -356,6 +368,40 @@ public:
 class ZRemrangebyscoreCmd : public Cmd {
 public:
     ZRemrangebyscoreCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+/*
+ * sset
+ */
+
+class SAddCmd : public Cmd {
+public:
+    SAddCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SRemCmd : public Cmd {
+public:
+    SRemCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SCardCmd : public Cmd {
+public:
+    SCardCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SMembersCmd : public Cmd {
+public:
+    SMembersCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SScanCmd : public Cmd {
+public:
+    SScanCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 

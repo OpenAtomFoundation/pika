@@ -131,6 +131,10 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("incrby", incrbyptr));
     IncrbyfloatCmd *incrbyfloatptr = new IncrbyfloatCmd(3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("incrbyfloat", incrbyfloatptr));
+    DecrCmd *decrptr = new DecrCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("decr", decrptr));
+    DecrbyCmd *decrbyptr = new DecrbyCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("decrby", decrbyptr));
     ScanCmd *scanptr = new ScanCmd(-2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("scan", scanptr));
 
@@ -243,6 +247,20 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zremrangebyrank", zremrangebyrankptr));
     ZRemrangebyscoreCmd *zremrangebyscoreptr = new ZRemrangebyscoreCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zremrangebyscore", zremrangebyscoreptr));
+
+    /*
+     * lists
+     */
+    SAddCmd *saddptr = new SAddCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("sadd", saddptr));
+    SRemCmd *sremptr = new SRemCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("srem", sremptr));
+    SCardCmd *scardptr = new SCardCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("scard", scardptr));
+    SMembersCmd *smembersptr = new SMembersCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("smembers", smembersptr));
+    SScanCmd *sscanptr = new SScanCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("sscan", sscanptr));
 
     /*
      * Init the server
