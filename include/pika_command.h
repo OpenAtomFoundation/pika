@@ -81,6 +81,42 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class SetnxCmd : public Cmd {
+public:
+    SetnxCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class MsetCmd : public Cmd {
+public:
+    MsetCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class MsetnxCmd : public Cmd {
+public:
+    MsetnxCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class GetrangeCmd : public Cmd {
+public:
+    GetrangeCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class StrlenCmd : public Cmd {
+public:
+    StrlenCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ExistsCmd : public Cmd {
+public:
+    ExistsCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class ScanCmd : public Cmd {
 public:
     ScanCmd(int a) : Cmd(a) {};

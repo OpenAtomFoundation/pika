@@ -343,6 +343,175 @@ void MgetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void SetnxCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string value = argv.front();
+    argv.pop_front();
+    int64_t res = 0;
+    nemo::Status s = g_pikaServer->GetHandle()->Setnx(key, value, &res);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void MsetCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((((int)argv.size()) % 2 != 1) || (arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::vector<nemo::KV> kvs;
+    std::string key;
+    std::string val;
+    while (argv.size()) {
+        key = argv.front();
+        argv.pop_front();
+        val = argv.front();
+        argv.pop_front();
+        kvs.push_back({key, val});
+    }
+    nemo::Status s = g_pikaServer->GetHandle()->MSet(kvs);
+    if (s.ok()) {
+        ret = "+OK\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void MsetnxCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((((int)argv.size()) % 2 != 1) || (arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::vector<nemo::KV> kvs;
+    std::string key;
+    std::string val;
+    while (argv.size()) {
+        key = argv.front();
+        argv.pop_front();
+        val = argv.front();
+        argv.pop_front();
+        kvs.push_back({key, val});
+    }
+    int64_t res;
+    nemo::Status s = g_pikaServer->GetHandle()->MSetnx(kvs, &res);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void GetrangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_start = argv.front();
+    argv.pop_front();
+    int64_t start;
+    if (!string2l(str_start.data(), str_start.size(), &start)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    std::string str_end = argv.front();
+    argv.pop_front();
+    int64_t end;
+    if (!string2l(str_end.data(), str_end.size(), &end)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    std::string substr;
+    nemo::Status s = g_pikaServer->GetHandle()->Getrange(key, start, end, substr);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "$%lu\r\n", substr.size());
+        ret.append(buf);
+        ret.append(substr.data(), substr.size());
+        ret.append("\r\n");
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void StrlenCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    int64_t len;
+    nemo::Status s = g_pikaServer->GetHandle()->Strlen(key, &len);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%lu\r\n", len);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void ExistsCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string val;
+    nemo::Status s = g_pikaServer->GetHandle()->Get(key, &val);
+    if (s.ok()) {
+        ret = ":1\r\n";
+    } else if (s.IsNotFound()) {
+        ret = ":0\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int size = argv.size();    
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity) || (size != 2 && size != 4 && size != 6)) {
