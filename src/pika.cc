@@ -135,6 +135,12 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("decr", decrptr));
     DecrbyCmd *decrbyptr = new DecrbyCmd(3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("decrby", decrbyptr));
+    GetsetCmd *getsetptr = new GetsetCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("getset", getsetptr));
+    AppendCmd *appendptr = new AppendCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("append", appendptr));
+    MgetCmd *mgetptr = new MgetCmd(-2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("mget", mgetptr));
     ScanCmd *scanptr = new ScanCmd(-2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("scan", scanptr));
 

@@ -63,6 +63,24 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class GetsetCmd : public Cmd {
+public:
+    GetsetCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class AppendCmd : public Cmd {
+public:
+    AppendCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class MgetCmd : public Cmd {
+public:
+    MgetCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class ScanCmd : public Cmd {
 public:
     ScanCmd(int a) : Cmd(a) {};
