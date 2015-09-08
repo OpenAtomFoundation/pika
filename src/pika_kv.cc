@@ -19,35 +19,52 @@ void SetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string value = argv.front();
     argv.pop_front();
-    if (argv.size() > 0) {
+    bool is_xx = false;
+    bool is_nx = false;
+    int64_t sec = 0; 
+    while (argv.size() > 0) {
         std::string opt = argv.front();
         argv.pop_front();
         transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
         if (opt == "xx") {
-            ret = "+OK\r\n";
-            return;
-        } else if (opt == "nx" && argv.empty()) {
-            ret = "+OK\r\n";
+            is_xx = true;
+        } else if (opt == "nx") {
+            is_nx = true;
         } else if (opt == "ex") {
-            if (argv.size() != 1) {
+            if (argv.size() < 1) {
                 ret = "-ERR syntax error\r\n";
                 return;
             }
-            ret = "+OK\r\n";
-        } else if (opt == "px") {
-            if (argv.size() != 1) {
-                ret = "-ERR syntax error\r\n";
+            std::string str_sec = argv.front();
+            argv.pop_front();
+            if (!string2l(str_sec.data(), str_sec.size(), &sec)) {
+                ret = "-ERR value is not an integer or out of range\r\n";
                 return;
             }
-            ret = "+OK\r\n";
         } else {
             ret = "-ERR syntax error\r\n";
             return;
         }
     }
-    nemo::Status s = g_pikaServer->GetHandle()->Set(key, value);
-    if (s.ok()) {
-        ret = "+OK\r\n";
+    nemo::Status s;
+    int64_t res = 1;
+    switch (is_nx) {
+        case true : s = g_pikaServer->GetHandle()->Setnx(key, value, &res, (int32_t)sec);
+                    break;
+        case false : switch (is_xx) {
+                        case true : s = g_pikaServer->GetHandle()->Setxx(key, value, &res, sec);
+                                    break;
+                        case false : s = g_pikaServer->GetHandle()->Set(key, value, sec);
+                                    break;
+                    }
+    }
+    
+    if (s.ok() || s.IsNotFound()) {
+        if (res == 1) {
+            ret = "+OK\r\n";
+        } else {
+            ret = "*-1\r\n";
+        }
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());
