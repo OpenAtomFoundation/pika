@@ -483,6 +483,42 @@ void GetrangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void SetrangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_offset = argv.front();
+    argv.pop_front();
+    int64_t offset;
+    if (!string2l(str_offset.data(), str_offset.size(), &offset)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    if (offset < 0) {
+        ret = "-ERR offset is out of range\r\n";
+        return;
+    }
+    std::string value = argv.front();
+    argv.pop_front();
+    int64_t new_len;
+    nemo::Status s = g_pikaServer->GetHandle()->Setrange(key, offset, value, &new_len);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", new_len);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void StrlenCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -522,6 +558,89 @@ void ExistsCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret = ":1\r\n";
     } else if (s.IsNotFound()) {
         ret = ":0\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void ExpireCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_sec = argv.front();
+    argv.pop_front();
+    int64_t sec;
+    if (!string2l(str_sec.data(), str_sec.size(), &sec)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    int64_t res;
+    nemo::Status s = g_pikaServer->GetHandle()->Expire(key, sec, &res);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void ExpireatCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_timestamp = argv.front();
+    argv.pop_front();
+    int64_t timestamp;
+    if (!string2l(str_timestamp.data(), str_timestamp.size(), &timestamp)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    int64_t res;
+    nemo::Status s = g_pikaServer->GetHandle()->Expireat(key, timestamp, &res);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void TtlCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    int64_t ttl;
+    nemo::Status s = g_pikaServer->GetHandle()->TTL(key, &ttl);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", ttl);
+        ret.append(buf);
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());

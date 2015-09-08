@@ -105,6 +105,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class SetrangeCmd : public Cmd {
+public:
+    SetrangeCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class StrlenCmd : public Cmd {
 public:
     StrlenCmd(int a) : Cmd(a) {};
@@ -114,6 +120,24 @@ public:
 class ExistsCmd : public Cmd {
 public:
     ExistsCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ExpireCmd : public Cmd {
+public:
+    ExpireCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ExpireatCmd : public Cmd {
+public:
+    ExpireatCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class TtlCmd : public Cmd {
+public:
+    TtlCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 

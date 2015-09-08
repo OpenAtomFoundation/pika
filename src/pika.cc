@@ -149,10 +149,18 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("msetnx", msetnxptr));
     GetrangeCmd *getrangeptr = new GetrangeCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("getrange", getrangeptr));
+    SetrangeCmd *setrangeptr = new SetrangeCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("setrange", setrangeptr));
     StrlenCmd *strlenptr = new StrlenCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("strlen", strlenptr));
     ExistsCmd *existsptr = new ExistsCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("exists", existsptr));
+    ExpireCmd *expireptr = new ExpireCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("expire", expireptr));
+    ExpireatCmd *expireatptr = new ExpireatCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("expireat", expireatptr));
+    TtlCmd *ttlptr = new TtlCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("ttl", ttlptr));
     ScanCmd *scanptr = new ScanCmd(-2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("scan", scanptr));
 

@@ -352,7 +352,7 @@ int PikaConn::DoCmd() {
         return 0;
     }
     iter->second->Do(argv_, ret);
-    wbuf_ = sdscat(wbuf_, ret.c_str());
+    wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
     return 0;
 }
 
