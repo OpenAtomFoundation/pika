@@ -59,7 +59,7 @@ int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
     /* Nothing to do with a \r\n */
     if (newline == NULL) {
         if (sdslen(rbuf_) > PIKA_INLINE_MAX_SIZE) {
-            err_msg = "-ERR: Protocol error: too big inline request";
+            err_msg = "-ERR: Protocol error: too big inline request\r\n";
             sdsrange(rbuf_, 0, -1);
         }
         return -2;
@@ -75,7 +75,7 @@ int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
     argv = sdssplitargs(aux, &argc);
     sdsfree(aux);
     if (argv == NULL) {
-        err_msg = "Protocol error: unbalance quotes in request";
+        err_msg = "-ERR: Protocol error: unbalance quotes in request\r\n";
         sdsrange(rbuf_, 0, -1);
         return -2;
     }
@@ -109,7 +109,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
         newline = strchr(rbuf_,'\r');
         if (newline == NULL) {
             if (sdslen(rbuf_) > PIKA_INLINE_MAX_SIZE) {
-                  err_msg = "Protocol error: too big mbulk count string";
+                  err_msg = "-ERR: Protocol error: too big mbulk count string\r\n";
                   sdsrange(rbuf_, 0, -1);
             }
             return -2;
@@ -128,7 +128,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
         }
         ok = string2ll(rbuf_+1,newline-(rbuf_+1),&ll);
         if (!ok || ll > 1024*1024) {
-            err_msg = "Protocol error: invalid multibulk length";
+            err_msg = "-ERR: Protocol error: invalid multibulk length\r\n";
             sdsrange(rbuf_, pos, -1);
             return -2;
         }
@@ -152,7 +152,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
             newline = strchr(rbuf_+pos,'\r');
             if (newline == NULL) {
                 if (sdslen(rbuf_) > PIKA_INLINE_MAX_SIZE) {
-                    err_msg = "Protocol error: too big bulk count string";
+                    err_msg = "-ERR: Protocol error: too big bulk count string\r\n";
                     sdsrange(rbuf_, 0, -1);
                     return -2;
                 }
@@ -164,14 +164,14 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
                 break;
 
             if (rbuf_[pos] != '$') {
-                err_msg = "Protocol error: expected '$'";
+                err_msg = "-ERR: Protocol error: expected '$'\r\n";
                 sdsrange(rbuf_, pos, -1);
                 return -2;
             }
 
             ok = string2ll(rbuf_+pos+1,newline-(rbuf_+pos+1),&ll);
             if (!ok || ll < 0 || ll > 512*1024*1024) {
-                err_msg = "Protocol error: invalid bulk length";
+                err_msg = "-ERR: Protocol error: invalid bulk length\r\n";
                 sdsrange(rbuf_, pos, -1);
                 return -2;
             }
@@ -235,7 +235,6 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
 
 int PikaConn::ProcessInputBuffer() {
     std::string err_msg;
-    int ret = 0;
     while (sdslen(rbuf_)) {
         if (!req_type_) {
             if (rbuf_[0] == '*') {
@@ -327,10 +326,6 @@ int PikaConn::PikaSendReply()
     ssize_t nwritten = 0;
     while (sdslen(wbuf_) > 0) {
         nwritten = write(fd_, wbuf_, sdslen(wbuf_));
-        if (nwritten <= 0) {
-            break;
-        }
-        sdsrange(wbuf_, nwritten, -1);
         if (nwritten == -1) {
             if (errno == EAGAIN) {
                 nwritten = 0;
@@ -342,6 +337,10 @@ int PikaConn::PikaSendReply()
                 return 0;
             }
         }
+        if (nwritten <= 0) {
+            break;
+        }
+        sdsrange(wbuf_, nwritten, -1);
     }
     if (sdslen(wbuf_) == 0) {
         return 0;
