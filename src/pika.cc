@@ -161,6 +161,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("expireat", expireatptr));
     TtlCmd *ttlptr = new TtlCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ttl", ttlptr));
+    PersistCmd *persistptr = new PersistCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("persist", persistptr));
     ScanCmd *scanptr = new ScanCmd(-2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("scan", scanptr));
 

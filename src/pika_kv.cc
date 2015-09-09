@@ -648,6 +648,29 @@ void TtlCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void PersistCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    int64_t res;
+    nemo::Status s = g_pikaServer->GetHandle()->Persist(key, &res);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int size = argv.size();    
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity) || (size != 2 && size != 4 && size != 6)) {
