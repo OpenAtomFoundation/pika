@@ -48,17 +48,16 @@ void SetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
     nemo::Status s;
     int64_t res = 1;
-    switch (is_nx) {
-        case true : s = g_pikaServer->GetHandle()->Setnx(key, value, &res, (int32_t)sec);
-                    break;
-        case false : switch (is_xx) {
-                        case true : s = g_pikaServer->GetHandle()->Setxx(key, value, &res, sec);
-                                    break;
-                        case false : s = g_pikaServer->GetHandle()->Set(key, value, sec);
-                                    break;
-                    }
+    if (is_nx) {
+        s = g_pikaServer->GetHandle()->Setnx(key, value, &res, (int32_t)sec);
+    } else {
+        if (is_xx) {
+            s = g_pikaServer->GetHandle()->Setxx(key, value, &res, sec);
+        } else {
+            s = g_pikaServer->GetHandle()->Set(key, value, sec);
+        }
     }
-    
+
     if (s.ok() || s.IsNotFound()) {
         if (res == 1) {
             ret = "+OK\r\n";

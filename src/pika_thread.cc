@@ -68,7 +68,6 @@ void PikaThread::RunProcess()
                  * tc->set_thread(this);
                  */
             }
-            int shouldClose = 0;
             if (tfe->mask_ & EPOLLIN) {
                 inConn = conns_[tfe->fd_];
                 // log_info("come if readable %d", (inConn == NULL));
@@ -81,8 +80,8 @@ void PikaThread::RunProcess()
                 } else if (ret == 0) {
                     pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
                 } else {
-                    delete(inConn);
-                    shouldClose = 1;
+                    inConn->CloseAfterReply();
+                    pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
                 }
             }
 //            log_info("tfe mask %d %d %d", tfe->mask_, EPOLLIN, EPOLLOUT);
@@ -94,16 +93,18 @@ void PikaThread::RunProcess()
                 }
                 if (inConn->PikaSendReply() == 0) {
 //                    log_info("SendReply ok");
-                    pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
+                    if (inConn->ShouldCloseAfterReply()) {
+                        close(inConn->Fd());
+                        delete(inConn);
+                    } else {
+                        pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
+                    }
                 }
             }
             if ((tfe->mask_  & EPOLLERR) || (tfe->mask_ & EPOLLHUP)) {
 //                log_info("close tfe fd here");
                 close(tfe->fd_);
-            }
-            if (shouldClose) {
-//                log_info("close tfe fd here");
-                close(tfe->fd_);
+                delete(inConn);
             }
         }
     }

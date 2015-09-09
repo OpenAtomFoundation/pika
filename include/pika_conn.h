@@ -25,10 +25,13 @@ public:
     int GetArgc() {return argv_.size(); };
     void AddArgv(std::string a) { argv_.push_back(a); };
     void Reset();
+    void CloseAfterReply() {should_close_after_reply = true; };
+    bool ShouldCloseAfterReply() { return should_close_after_reply; };
     int ProcessInputBuffer();
     int ProcessInlineBuffer(std::string &err_msg);
     int ProcessMultibulkBuffer(std::string &err_msg);
     int DoCmd();
+    int Fd() {return fd_; };
 
 private:
 
@@ -41,6 +44,7 @@ private:
     int req_type_;
     int multibulklen_;
     long bulklen_;
+    bool should_close_after_reply;
 
     sds wbuf_;
     int32_t wbuf_len_;

@@ -18,6 +18,7 @@ PikaEpoll::PikaEpoll()
 PikaEpoll::~PikaEpoll()
 {
     free(events_);
+    free(firedevent_);
     close(epfd_);
 }
 

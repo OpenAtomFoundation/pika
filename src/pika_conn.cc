@@ -19,11 +19,13 @@ PikaConn::PikaConn(int fd) :
     req_type_ = 0;
     multibulklen_ = 0;
     bulklen_ = -1;
+    should_close_after_reply = false;
     wbuf_ = sdsempty();
 }
 
 PikaConn::~PikaConn()
 {
+//TODO?
     sdsfree(rbuf_);
     sdsfree(wbuf_);
 }
@@ -56,11 +58,11 @@ int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
 
     /* Nothing to do with a \r\n */
     if (newline == NULL) {
-        if (sdslen(rbuf_) > PIKA_MAX_MESSAGE) {
+        if (sdslen(rbuf_) > PIKA_INLINE_MAX_SIZE) {
             err_msg = "Protocol error: too big inline request";
             sdsrange(rbuf_, 0, -1);
         }
-        return -1;
+        return -2;
     }
 
     /* Handle the \r\n case. */
@@ -75,7 +77,7 @@ int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
     if (argv == NULL) {
         err_msg = "Protocol error: unbalance quotes in request";
         sdsrange(rbuf_, 0, -1);
-        return -1;
+        return -2;
     }
 
     /* Leave data after the first line of query in the buffer */
@@ -101,6 +103,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
 
     if (multibulklen_== 0) {
         /* The client should have been reset */
+        //TODO: redisAssertWithInfo(c,NULL,c->argc == 0);
         Reset();
         /* Multi bulk length cannot be read without a \r\n */
         newline = strchr(rbuf_,'\r');
@@ -109,7 +112,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
                   err_msg = "Protocol error: too big mbulk count string";
                   sdsrange(rbuf_, 0, -1);
             }
-            return -1;
+            return -2;
         }
 
         /* Buffer should also contain \n */
@@ -118,16 +121,16 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
 
         /* We know for sure there is a whole line since newline != NULL,
          * so go ahead and find out the multi bulk length. */
-//        redisAssertWithInfo(c,NULL,c->querybuf[0] == '*');
+//      TODO: redisAssertWithInfo(c,NULL,c->querybuf[0] == '*');
         if (rbuf_[0] != '*') {
             log_info("protocol exepect *,but it is %c", rbuf_[0]);
-            return -1;
+            return -2;
         }
         ok = string2ll(rbuf_+1,newline-(rbuf_+1),&ll);
         if (!ok || ll > 1024*1024) {
             err_msg = "Protocol error: invalid multibulk length";
             sdsrange(rbuf_, pos, -1);
-            return -1;
+            return -2;
         }
 
         pos = (newline-rbuf_)+2;
@@ -138,10 +141,10 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
 
         multibulklen_ = ll;
     }
-
-    if (multibulklen_ < 0) {
+    //TODO: redisAssertWithInfo(c,NULL,c->multibulklen > 0);
+    if (multibulklen_ <= 0) {
         log_info("multi bulk len < 0 in this packet");
-        return -1;
+        return -2;
     }
     while(multibulklen_) {
         /* Read bulk length if unknown */
@@ -151,7 +154,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
                 if (sdslen(rbuf_) > PIKA_INLINE_MAX_SIZE) {
                     err_msg = "Protocol error: too big bulk count string";
                     sdsrange(rbuf_, 0, -1);
-                    return -1;
+                    return -2;
                 }
                 break;
             }
@@ -163,14 +166,14 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
             if (rbuf_[pos] != '$') {
                 err_msg = "Protocol error: expected '$'";
                 sdsrange(rbuf_, pos, -1);
-                return -1;
+                return -2;
             }
 
             ok = string2ll(rbuf_+pos+1,newline-(rbuf_+pos+1),&ll);
             if (!ok || ll < 0 || ll > 512*1024*1024) {
                 err_msg = "Protocol error: invalid bulk length";
                 sdsrange(rbuf_, pos, -1);
-                return -1;
+                return -2;
             }
 
             pos += newline-(rbuf_+pos)+2;
@@ -232,6 +235,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
 
 int PikaConn::ProcessInputBuffer() {
     std::string err_msg;
+    int ret = 0;
     while (sdslen(rbuf_)) {
         if (!req_type_) {
             if (rbuf_[0] == '*') {
@@ -244,7 +248,7 @@ int PikaConn::ProcessInputBuffer() {
             if (ProcessInlineBuffer(err_msg) != 0) {
                 if (!err_msg.empty()) {
                     wbuf_ = sdscat(wbuf_, err_msg.c_str());
-                    PikaSendReply();
+                    return -2;
                 }
                 break;
             }
@@ -252,13 +256,13 @@ int PikaConn::ProcessInputBuffer() {
             if (ProcessMultibulkBuffer(err_msg) != 0) {
                 if (!err_msg.empty()) {
                     wbuf_ = sdscat(wbuf_, err_msg.c_str());
-                    PikaSendReply();
+                    return -2;
                 }
                 break;
             }
         } else {
             log_info("Unknown requeset type");
-            return -1;
+            return -2;
         }
         if (GetArgc() == 0) {
             Reset();
@@ -267,9 +271,10 @@ int PikaConn::ProcessInputBuffer() {
 //            for (iter = argv_.begin(); iter != argv_.end(); iter++) {
 //                log_info("%s", (*iter).c_str());
 //            }
-            if (DoCmd() == 0) {
-                if(PikaSendReply() != 0) return -1;
-            }
+            DoCmd();
+//            if (DoCmd() == 0) {
+//                if(PikaSendReply() != 0) return -1;
+//            }
             Reset();
             return 1;
         }
@@ -279,6 +284,9 @@ int PikaConn::ProcessInputBuffer() {
 
 int PikaConn::PikaGetRequest()
 {
+    if (should_close_after_reply) {
+        return 1;
+    }
     int nread = 0;
     int readlen = PIKA_IOBUF_LEN;
     size_t qblen;
@@ -296,13 +304,15 @@ int PikaConn::PikaGetRequest()
             nread = 0;
         } else {
             log_info("Reading from client: %s", strerror(errno));
+            //TODO: close connection
             Reset();
-            return -1;
+            return -2;
         }
     } else if (nread == 0) {
         log_info("client closed connection");
+        //TODO: close connection
         Reset();
-        return -1;
+        return -2;
     }
 
     if (nread) {
@@ -328,6 +338,7 @@ int PikaConn::PikaSendReply()
                 /*
                  * Here we clear this connection
                  */
+                should_close_after_reply = true;
                 return 0;
             }
         }
