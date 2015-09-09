@@ -59,7 +59,7 @@ int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
     /* Nothing to do with a \r\n */
     if (newline == NULL) {
         if (sdslen(rbuf_) > PIKA_INLINE_MAX_SIZE) {
-            err_msg = "Protocol error: too big inline request";
+            err_msg = "-ERR: Protocol error: too big inline request";
             sdsrange(rbuf_, 0, -1);
         }
         return -2;
@@ -301,7 +301,7 @@ int PikaConn::PikaGetRequest()
     nread = read(fd_, rbuf_ + qblen, readlen);
     if (nread == -1) {
         if (errno == EAGAIN) {
-            nread = 0;
+            return 0;
         } else {
             log_info("Reading from client: %s", strerror(errno));
             //TODO: close connection
