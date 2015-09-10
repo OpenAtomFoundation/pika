@@ -289,6 +289,16 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("smembers", smembersptr));
     SScanCmd *sscanptr = new SScanCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("sscan", sscanptr));
+    SUnionCmd *sunionptr = new SUnionCmd(-2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("sunion", sunionptr));
+    SUnionstoreCmd *sunionstoreptr = new SUnionstoreCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("sunionstore", sunionstoreptr));
+    SInterCmd *sinterptr = new SInterCmd(-2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("sinter", sinterptr));
+    SInterstoreCmd *sinterstoreptr = new SInterstoreCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("sinterstore", sinterstoreptr));
+    SIsmemberCmd *sismemberptr = new SIsmemberCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("sismember", sismemberptr));
 
     /*
      * Init the server

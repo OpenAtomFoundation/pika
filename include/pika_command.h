@@ -489,4 +489,34 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class SUnionCmd : public Cmd {
+public:
+    SUnionCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SUnionstoreCmd : public Cmd {
+public:
+    SUnionstoreCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SInterCmd : public Cmd {
+public:
+    SInterCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SInterstoreCmd : public Cmd {
+public:
+    SInterstoreCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SIsmemberCmd : public Cmd {
+public:
+    SIsmemberCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 #endif
