@@ -384,6 +384,35 @@ void SetnxCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void SetexCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string value = argv.front();
+    argv.pop_front();
+    std::string str_sec = argv.front();
+    argv.pop_front();
+    int64_t sec = 0;
+    if (!string2l(str_sec.data(), str_sec.size(), &sec)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    nemo::Status s = g_pikaServer->GetHandle()->Set(key, value, sec);
+    if (s.ok()) {
+        ret = "+OK\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void MsetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((((int)argv.size()) % 2 != 1) || (arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";

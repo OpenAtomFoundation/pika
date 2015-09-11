@@ -143,6 +143,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("mget", mgetptr));
     SetnxCmd *setnxptr = new SetnxCmd(3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("setnx", setnxptr));
+    SetexCmd *setexptr = new SetexCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("setex", setexptr));
     MsetCmd *msetptr = new MsetCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("mset", msetptr));
     MsetnxCmd *msetnxptr = new MsetnxCmd(-3);
@@ -277,7 +279,7 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zremrangebyscore", zremrangebyscoreptr));
 
     /*
-     * lists
+     * set
      */
     SAddCmd *saddptr = new SAddCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("sadd", saddptr));
@@ -299,6 +301,16 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("sinterstore", sinterstoreptr));
     SIsmemberCmd *sismemberptr = new SIsmemberCmd(3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("sismember", sismemberptr));
+    SDiffCmd *sdiffptr = new SDiffCmd(-2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("sdiff", sdiffptr));
+    SDiffstoreCmd *sdiffstoreptr = new SDiffstoreCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("sdiffstore", sdiffstoreptr));
+    SMoveCmd *smoveptr = new SMoveCmd(-4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("smove", smoveptr));
+    SPopCmd *spopptr = new SPopCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("spop", spopptr));
+    SRandmemberCmd *srandmemberptr = new SRandmemberCmd(-2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("srandmember", srandmemberptr));
 
     /*
      * Init the server

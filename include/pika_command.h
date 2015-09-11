@@ -87,6 +87,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class SetexCmd : public Cmd {
+public:
+    SetexCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class MsetCmd : public Cmd {
 public:
     MsetCmd(int a) : Cmd(a) {};
@@ -516,6 +522,36 @@ public:
 class SIsmemberCmd : public Cmd {
 public:
     SIsmemberCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SDiffCmd : public Cmd {
+public:
+    SDiffCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SDiffstoreCmd : public Cmd {
+public:
+    SDiffstoreCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SMoveCmd : public Cmd {
+public:
+    SMoveCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SPopCmd : public Cmd {
+public:
+    SPopCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SRandmemberCmd : public Cmd {
+public:
+    SRandmemberCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
