@@ -36,13 +36,19 @@ PikaServer::PikaServer()
     // init sock
     sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
     memset(&servaddr_, 0, sizeof(servaddr_));
-
+    int yes = 1;
+    if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+        LOG(FATAL) << "setsockopt SO_REUSEADDR: " << strerror(errno);
+    }
     port_ = g_pikaConf->port();
     servaddr_.sin_family = AF_INET;
     servaddr_.sin_addr.s_addr = htonl(INADDR_ANY);
     servaddr_.sin_port = htons(port_);
 
-    bind(sockfd_, (struct sockaddr *) &servaddr_, sizeof(servaddr_));
+    int ret = bind(sockfd_, (struct sockaddr *) &servaddr_, sizeof(servaddr_));
+    if (ret < 0) {
+        LOG(FATAL) << "bind error: "<< strerror(errno);
+    }
     listen(sockfd_, 10);
 
     SetBlockType(kNonBlock);
@@ -63,7 +69,8 @@ PikaServer::PikaServer()
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
 //    db_ = new nemo::Nemo("/tmp/testdb");
     nemo::Options option;
-    db_ = new nemo::Nemo("/data1/testdb", option);
+    option.write_buffer_size = g_pikaConf->write_buffer_size();
+    db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
 //    if (!s.ok()) {
 //        log_err("Open db failed");
 //    }
@@ -97,8 +104,9 @@ void PikaServer::RunProcess()
     PikaFiredEvent *tfe;
     Status s;
     struct sockaddr_in cliaddr;
-    socklen_t clilen;
+    socklen_t clilen = sizeof(cliaddr);
     int fd, connfd;
+    char ipAddr[INET_ADDRSTRLEN] = "";
     for (;;) {
         nfds = pikaEpoll_->PikaPoll();
         tfe = pikaEpoll_->firedevent();
@@ -106,9 +114,8 @@ void PikaServer::RunProcess()
             fd = (tfe + i)->fd_;
             if (fd == sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
-                log_info("Accept new fd %d", connfd);
+                LOG(INFO) << "Accept new connection, fd: " << connfd << " ip: " << inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr)) << " port: " << ntohs(cliaddr.sin_port);
                 std::queue<PikaItem> *q = &(pikaThread_[last_thread_]->conn_queue_);
-                log_info("Tfe must happen");
                 PikaItem ti(connfd);
                 {
                     MutexLock l(&pikaThread_[last_thread_]->mutex_);

@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "pika_conn.h"
 #include "pika_util.h"
 #include "pika_command.h"
@@ -123,7 +124,8 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
          * so go ahead and find out the multi bulk length. */
 //      TODO: redisAssertWithInfo(c,NULL,c->querybuf[0] == '*');
         if (rbuf_[0] != '*') {
-            log_info("protocol exepect *,but it is %c", rbuf_[0]);
+//            log_info("protocol exepect *,but it is %c", rbuf_[0]);
+            LOG(WARNING) << "protocol expect *, but it is "<<rbuf_[0];
             return -2;
         }
         ok = string2ll(rbuf_+1,newline-(rbuf_+1),&ll);
@@ -143,7 +145,8 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
     }
     //TODO: redisAssertWithInfo(c,NULL,c->multibulklen > 0);
     if (multibulklen_ <= 0) {
-        log_info("multi bulk len < 0 in this packet");
+//        log_info("multi bulk len < 0 in this packet");
+        LOG(WARNING) << "multi bulk len < 0 in this packet";
         return -2;
     }
     while(multibulklen_) {
@@ -260,7 +263,8 @@ int PikaConn::ProcessInputBuffer() {
                 break;
             }
         } else {
-            log_info("Unknown requeset type");
+//            log_info("Unknown requeset type");
+            LOG(WARNING) << "Unknown requeset type";
             return -2;
         }
         if (GetArgc() == 0) {
@@ -302,13 +306,15 @@ int PikaConn::PikaGetRequest()
         if (errno == EAGAIN) {
             return 0;
         } else {
-            log_info("Reading from client: %s", strerror(errno));
+//            log_info("Reading from client: %s", strerror(errno));
+            LOG(WARNING) << "Reading from client: " << strerror(errno);
             //TODO: close connection
             Reset();
             return -2;
         }
     } else if (nread == 0) {
-        log_info("client closed connection");
+//        log_info("client closed connection");
+        LOG(INFO) << "client closed connection";
         //TODO: close connection
         Reset();
         return -2;

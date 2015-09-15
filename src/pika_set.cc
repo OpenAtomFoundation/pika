@@ -341,3 +341,159 @@ void SIsmemberCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void SDiffCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+
+    argv.pop_front();
+    std::vector<std::string> keys;
+
+    while (argv.size()) {
+        keys.push_back(argv.front());
+        argv.pop_front();
+    }
+
+    std::vector<std::string> members;
+    nemo::Status s = g_pikaServer->GetHandle()->SDiff(keys, members);
+    char buf[32];
+
+    snprintf(buf, sizeof(buf), "*%lu\r\n", members.size());
+    ret.append(buf);
+    std::vector<std::string>::iterator iter;
+    for (iter = members.begin(); iter != members.end(); iter++) {
+        snprintf(buf, sizeof(buf), "$%lu\r\n", iter->size());
+        ret.append(buf);
+        ret.append(iter->data(), iter->size());
+        ret.append("\r\n");
+    }
+}
+
+void SDiffstoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string dest = argv.front();
+    argv.pop_front();
+    std::vector<std::string> keys;
+    while (argv.size()) {
+       keys.push_back(argv.front());
+       argv.pop_front();
+    }
+
+    int64_t res = 0;
+    nemo::Status s = g_pikaServer->GetHandle()->SDiffStore(dest, keys, &res);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void SMoveCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string src = argv.front();
+    argv.pop_front();
+    std::string dest = argv.front();
+    argv.pop_front();
+    std::string member = argv.front();
+    argv.pop_front();
+
+    int64_t res = 0;
+    nemo::Status s = g_pikaServer->GetHandle()->SMove(src, dest, member, &res);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void SPopCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+
+    std::string member;
+    nemo::Status s = g_pikaServer->GetHandle()->SPop(key, member);
+    if (s.ok()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "$%lu\r\n", member.size());
+        ret.append(buf);
+        ret.append(member);
+        ret.append("\r\n");
+    } else if (s.IsNotFound()) {
+        ret = "$-1\r\n";
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void SRandmemberCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((argv.size() != 2 && argv.size() != 3) || (arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    int64_t count = 1;
+    if (argv.size()) {
+        std::string str_count = argv.front();
+        argv.pop_front();
+        if (!string2l(str_count.data(), str_count.size(), &count)) {
+            ret = "-ERR value is not an integer or out of range\r\n";
+            return;
+        }
+    }
+
+    std::vector<std::string> members;
+    nemo::Status s = g_pikaServer->GetHandle()->SRandMember(key, members, count);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "*%lu\r\n", members.size());
+        ret.append(buf);
+        std::vector<std::string>::iterator iter;
+        for (iter = members.begin(); iter != members.end(); iter++) {
+            snprintf(buf, sizeof(buf), "$%lu\r\n", iter->size());
+            ret.append(buf);
+            ret.append(iter->data(), iter->size());
+            ret.append("\r\n");
+        }
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}

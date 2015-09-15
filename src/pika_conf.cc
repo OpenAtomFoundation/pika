@@ -10,4 +10,6 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("thread_num", &thread_num_);
     getConfStr("log_path", log_path_);
     getConfInt("log_level", &log_level_);
+    getConfStr("db_path", db_path_);
+    getConfInt("write_buffer_size", &write_buffer_size_);
 }

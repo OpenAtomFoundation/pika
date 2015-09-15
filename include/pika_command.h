@@ -15,6 +15,12 @@ public:
 /*
  * kv
  */
+class PingCmd : public Cmd {
+public:
+    PingCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class SetCmd : public Cmd {
 public:
     SetCmd(int a) : Cmd(a) {};

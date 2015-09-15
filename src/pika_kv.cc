@@ -7,6 +7,17 @@
 extern PikaServer *g_pikaServer;
 extern std::map<std::string, Cmd *> g_pikaCmd;
 
+void PingCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    ret = "+PONG\r\n";
+}
+
 void SetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";

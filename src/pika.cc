@@ -21,6 +21,7 @@ static void pika_glog_init()
     FLAGS_log_dir = g_pikaConf->log_path();
     ::google::InitGoogleLogging("pika");
     FLAGS_minloglevel = g_pikaConf->log_level();
+    FLAGS_alsologtostderr = true;
     LOG(WARNING) << "Pika glog init";
     /*
      * dump some usefull message when crash on certain signals
@@ -119,6 +120,8 @@ int main(int argc, char **argv)
     /*
      * kv
      */
+    PingCmd *pingptr = new PingCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("ping", pingptr));
     SetCmd *setptr = new SetCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("set", setptr));
     GetCmd *getptr = new GetCmd(2);
