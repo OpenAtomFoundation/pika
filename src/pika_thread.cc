@@ -111,7 +111,7 @@ void PikaThread::RunProcess()
         gettimeofday(&now, NULL);
         LOG(INFO) << "now sec: "<< now.tv_sec << " now use " << now.tv_usec;
         LOG(INFO) << "target sec: "<< target.tv_sec << " target use " << target.tv_usec;
-        if (target.tv_sec > now.tv_sec || target.tv_usec - now.tv_usec > 1000) {
+        if (target.tv_sec > now.tv_sec || (target.tv_sec == now.tv_sec && target.tv_usec - now.tv_usec > 1000)) {
             timeout = (target.tv_sec-now.tv_sec)*1000 + (target.tv_usec-now.tv_usec)/1000;
         } else {
             LOG(INFO) << "fire TimeEvent";
