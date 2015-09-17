@@ -60,10 +60,10 @@ void PikaEpoll::PikaDelEvent(int fd)
     epoll_ctl(epfd_, EPOLL_CTL_DEL, fd, &ee);
 }
 
-int PikaEpoll::PikaPoll()
+int PikaEpoll::PikaPoll(int timeout)
 {
     int retval, numevents = 0;
-    retval = epoll_wait(epfd_, events_, PIKA_MAX_CLIENTS, 500);
+    retval = epoll_wait(epfd_, events_, PIKA_MAX_CLIENTS, timeout);
     if (retval > 0) {
         numevents = retval;
         for (int i = 0; i < numevents; i++) {

@@ -1,5 +1,6 @@
 #include "pika_define.h"
 #include "pika_util.h"
+#include "util.h"
 #include "pika_epoll.h"
 #include "pika_item.h"
 #include "pika_thread.h"
@@ -9,6 +10,8 @@
 #include <glog/logging.h>
 
 extern PikaConf *g_pikaConf;
+extern pthread_rwlock_t *g_pikaRWlock;
+extern std::map<std::string, client_info> *g_pikaClient;
 
 Status PikaServer::SetBlockType(BlockType type)
 {
@@ -60,7 +63,8 @@ PikaServer::PikaServer()
 
     last_thread_ = 0;
     for (int i = 0; i < g_pikaConf->thread_num(); i++) {
-        pikaThread_[i] = new PikaThread();
+        pikaThread_[i] = new PikaThread(i);
+        pthread_rwlock_init(&g_pikaRWlock[i], NULL);
     }
 
 //    options_.create_if_missing = true;
@@ -107,6 +111,8 @@ void PikaServer::RunProcess()
     socklen_t clilen = sizeof(cliaddr);
     int fd, connfd;
     char ipAddr[INET_ADDRSTRLEN] = "";
+    std::string ip_port;
+    char buf[32];
     for (;;) {
         nfds = pikaEpoll_->PikaPoll();
         tfe = pikaEpoll_->firedevent();
@@ -115,8 +121,12 @@ void PikaServer::RunProcess()
             if (fd == sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
                 LOG(INFO) << "Accept new connection, fd: " << connfd << " ip: " << inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr)) << " port: " << ntohs(cliaddr.sin_port);
+                ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr));
+                ip_port.append(":");
+                ll2string(buf, sizeof(buf), ntohs(cliaddr.sin_port));
+                ip_port.append(buf);
                 std::queue<PikaItem> *q = &(pikaThread_[last_thread_]->conn_queue_);
-                PikaItem ti(connfd);
+                PikaItem ti(connfd, ip_port);
                 {
                     MutexLock l(&pikaThread_[last_thread_]->mutex_);
                     q->push(ti);

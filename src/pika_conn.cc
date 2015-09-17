@@ -8,8 +8,8 @@
 #include <algorithm>
 extern std::map<std::string, Cmd *> g_pikaCmd;
 
-PikaConn::PikaConn(int fd) :
-    fd_(fd)
+PikaConn::PikaConn(int fd, std::string ip_port) :
+    fd_(fd), ip_port_(ip_port)
 {
     thread_ = NULL;
 
@@ -22,6 +22,7 @@ PikaConn::PikaConn(int fd) :
     bulklen_ = -1;
     should_close_after_reply = false;
     wbuf_ = sdsempty();
+    gettimeofday(&tv_, NULL);
 }
 
 PikaConn::~PikaConn()

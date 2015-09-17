@@ -10,9 +10,12 @@
 #include "pika_conn.h"
 
 extern PikaConf* g_pikaConf;
+extern pthread_rwlock_t *g_pikaRWlock;
+extern std::map<std::string, client_info> *g_pikaClient;
 
-PikaThread::PikaThread()
+PikaThread::PikaThread(int thread_index)
 {
+    thread_index_ = thread_index;
     thread_id_ = pthread_self();
 
     /*
@@ -37,6 +40,58 @@ PikaThread::~PikaThread()
     close(notify_receive_fd_);
 }
 
+int PikaThread::ProcessTimeEvent(struct timeval* target) {
+    gettimeofday(target, NULL);
+    struct timeval t = *target;
+    target->tv_sec++;
+    if (conns_.size() == 0) {
+        return 0;
+    }
+    std::map<int, PikaConn*>::iterator iter;
+    std::map<std::string, client_info>::iterator iter_clientlist;
+    int i = 0;
+    LOG(INFO) << "Time size " << conns_.size();
+    iter = conns_.begin();
+    while (iter != conns_.end()) {
+        LOG(INFO) << iter->first;
+//        LOG(INFO) << iter->second->tv();
+        if ((t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->max_idle() * 1000000) {
+            pthread_rwlock_wrlock(&g_pikaRWlock[thread_index_]);
+            iter_clientlist = g_pikaClient[thread_index_].find(iter->second->ip_port());
+            if (iter_clientlist != g_pikaClient[thread_index_].end()) {
+                LOG(INFO) << "Remove from Client";
+                g_pikaClient[thread_index_].erase(iter_clientlist);
+            }
+            pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
+
+            close(iter->second->fd());
+            delete iter->second;
+            iter = conns_.erase(iter);
+            i++;
+        } else {
+            iter++;
+        }
+    }
+
+    pthread_rwlock_rdlock(&g_pikaRWlock[thread_index_]);
+    std::map<std::string, client_info>::iterator iter_client = g_pikaClient[thread_index_].begin();
+    while (iter_client != g_pikaClient[thread_index_].end()) {
+        if (iter_client->second.is_killed == true) {
+            iter = conns_.find(iter_client->second.fd);
+            if (iter != conns_.end()) {
+                close(iter_client->second.fd);
+                conns_.erase(iter);
+                iter_client = g_pikaClient[thread_index_].erase(iter_client);
+            }
+        } else {
+            iter_client++;
+        }
+    }
+    pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
+    
+    return i;
+}
+
 void PikaThread::RunProcess()
 {
     thread_id_ = pthread_self();
@@ -45,8 +100,26 @@ void PikaThread::RunProcess()
     char bb[1];
     PikaItem ti;
     PikaConn *inConn;
+    struct timeval target;
+    struct timeval now;
+    gettimeofday(&target, NULL);
+    target.tv_sec++;
+    int timeout = 1000;
+    std::map<int, PikaConn*>::iterator it;
+    std::map<std::string, client_info>::iterator it_clientlist;
     for (;;) {
-        nfds = pikaEpoll_->PikaPoll();
+        gettimeofday(&now, NULL);
+        LOG(INFO) << "now sec: "<< now.tv_sec << " now use " << now.tv_usec;
+        LOG(INFO) << "target sec: "<< target.tv_sec << " target use " << target.tv_usec;
+        if (target.tv_sec > now.tv_sec || target.tv_usec - now.tv_usec > 1000) {
+            timeout = (target.tv_sec-now.tv_sec)*1000 + (target.tv_usec-now.tv_usec)/1000;
+        } else {
+            LOG(INFO) << "fire TimeEvent";
+            ProcessTimeEvent(&target);
+            timeout = 1000;
+        }
+        LOG(INFO) << "PikaPoll Timeout: " << timeout;
+        nfds = pikaEpoll_->PikaPoll(timeout);
 //        log_info("nfds %d", nfds);
         for (int i = 0; i < nfds; i++) {
             tfe = (pikaEpoll_->firedevent()) + i;
@@ -58,9 +131,13 @@ void PikaThread::RunProcess()
                 ti = conn_queue_.front();
                 conn_queue_.pop();
                 }
-                PikaConn *tc = new PikaConn(ti.fd());
+                PikaConn *tc = new PikaConn(ti.fd(), ti.ip_port());
                 tc->SetNonblock();
                 conns_[ti.fd()] = tc;
+                LOG(INFO) << "Put in Client: " << tc->ip_port();
+                pthread_rwlock_wrlock(&g_pikaRWlock[thread_index_]);
+                g_pikaClient[thread_index_][tc->ip_port()] = { ti.fd(), false };
+                pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
 
                 pikaEpoll_->PikaAddEvent(ti.fd(), EPOLLIN);
 //                log_info("receive one fd %d", ti.fd());
@@ -68,12 +145,16 @@ void PikaThread::RunProcess()
                  * tc->set_thread(this);
                  */
             }
+
+            it = conns_.find(tfe->fd_) ;
+            if (it == conns_.end()) {
+                continue;
+            } else {
+                inConn = it->second;
+            }
+
             if (tfe->mask_ & EPOLLIN) {
-                inConn = conns_[tfe->fd_];
                 // log_info("come if readable %d", (inConn == NULL));
-                if (inConn == NULL) {
-                    continue;
-                }
                 int ret = inConn->PikaGetRequest();
                 if (ret == 1) {
                     pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
@@ -87,22 +168,37 @@ void PikaThread::RunProcess()
 //            log_info("tfe mask %d %d %d", tfe->mask_, EPOLLIN, EPOLLOUT);
             if (tfe->mask_ & EPOLLOUT) {
 //                log_info("Come in the EPOLLOUT branch");
-                inConn = conns_[tfe->fd_];
-                if (inConn == NULL) {
-                    continue;
-                }
                 if (inConn->PikaSendReply() == 0) {
 //                    log_info("SendReply ok");
                     if (inConn->ShouldCloseAfterReply()) {
-                        close(inConn->Fd());
+                        it = conns_.find(inConn->fd());
+                        if (it != conns_.end()) {
+                            conns_.erase(it);
+                        }
+                        close(inConn->fd());
+
+                        it_clientlist = g_pikaClient[thread_index_].find(inConn->ip_port());
+                        if (it_clientlist != g_pikaClient[thread_index_].end()) {
+                            LOG(INFO) << "Remove from Client";
+                            pthread_rwlock_wrlock(&g_pikaRWlock[thread_index_]);
+                            g_pikaClient[thread_index_].erase(it_clientlist);
+                            pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
+                        }
                         delete(inConn);
                     } else {
                         pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
                     }
                 }
             }
+
+            inConn->UpdateTv(now);
+
             if ((tfe->mask_  & EPOLLERR) || (tfe->mask_ & EPOLLHUP)) {
 //                log_info("close tfe fd here");
+                it = conns_.find(tfe->fd_);
+                if (it != conns_.end()) {
+                    conns_.erase(it);
+                }
                 close(tfe->fd_);
                 delete(inConn);
             }

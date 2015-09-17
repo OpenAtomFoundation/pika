@@ -18,7 +18,7 @@ public:
     void PikaDelEvent(int fd);
     Status PikaModEvent(int fd, int oMask, int mask);
 
-    int PikaPoll();
+    int PikaPoll(int timeout = 1000);
 
     PikaFiredEvent *firedevent() { return firedevent_; }
 

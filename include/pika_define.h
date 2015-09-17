@@ -28,6 +28,11 @@ enum EventStatus {
     kWriteable = 2,
 };
 
+struct client_info {
+    int fd;
+    bool is_killed;
+};
+
 /*
  * define the macro in pika_conf
  */

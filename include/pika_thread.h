@@ -7,6 +7,7 @@
 #include <sys/epoll.h>
 #include <queue>
 #include <map>
+#include <time.h>
 
 #include "port.h"
 #include "pika_item.h"
@@ -20,14 +21,16 @@ class PikaConn;
 class PikaThread
 {
 public:
-    PikaThread();
+    PikaThread(int thread_index);
     ~PikaThread();
 
     void RunProcess();
+    int ProcessTimeEvent(struct timeval* target);
 
 
     int notify_receive_fd() { return notify_receive_fd_; }
     int notify_send_fd() { return notify_send_fd_; }
+    int thread_index() { return thread_index_; }
 
     pthread_t thread_id_;
 
@@ -42,6 +45,7 @@ private:
      */
     int notify_receive_fd_;
     int notify_send_fd_;
+    int thread_index_;
 
     /*
      * The PikaItem queue is the fd queue, receive from master thread

@@ -12,7 +12,7 @@
 class PikaConn
 {
 public:
-    PikaConn(int fd);
+    PikaConn(int fd, std::string ip_port);
     ~PikaConn();
     /*
      * Set the fd to nonblock && set the flag_ the the fd flag
@@ -31,7 +31,10 @@ public:
     int ProcessInlineBuffer(std::string &err_msg);
     int ProcessMultibulkBuffer(std::string &err_msg);
     int DoCmd();
-    int Fd() {return fd_; };
+    struct timeval tv() { return tv_; };
+    void UpdateTv(struct timeval now) { tv_ = now; };
+    int fd() { return fd_; };
+    std::string ip_port() { return ip_port_; };
 
 private:
 
@@ -45,6 +48,8 @@ private:
     int multibulklen_;
     long bulklen_;
     bool should_close_after_reply;
+    struct timeval tv_;
+    std::string ip_port_;
 
     sds wbuf_;
     int32_t wbuf_len_;

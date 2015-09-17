@@ -13,6 +13,9 @@ PikaConf *g_pikaConf;
 
 PikaServer *g_pikaServer;
 
+pthread_rwlock_t *g_pikaRWlock;
+std::map<std::string, client_info> *g_pikaClient;
+
 std::map<std::string, Cmd *> g_pikaCmd;
 
 
@@ -31,13 +34,20 @@ static void pika_glog_init()
 
 static void sig_handler(const int sig)
 {
-    printf("Caught signal %d", sig);
+    LOG(INFO) << "Caught signal " << sig;
+    ::google::ShutdownGoogleLogging();
+    exit(1);
 }
 
 void pika_signal_setup()
 {
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
+    struct sigaction sigIntHandler;
+    sigIntHandler.sa_handler = sig_handler;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+    sigaction(SIGINT, &sigIntHandler, NULL);
     LOG(WARNING) << "pika signal setup ok";
 }
 
@@ -117,11 +127,20 @@ int main(int argc, char **argv)
      */
     pika_signal_setup();
 
+    g_pikaRWlock = new pthread_rwlock_t[g_pikaConf->thread_num()];
+    g_pikaClient = new std::map<std::string, client_info>[g_pikaConf->thread_num()];
+
     /*
-     * kv
+     * admin
      */
     PingCmd *pingptr = new PingCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ping", pingptr));
+    ClientCmd *clientptr = new ClientCmd(-1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("client", clientptr));
+
+    /*
+     * kv
+     */
     SetCmd *setptr = new SetCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("set", setptr));
     GetCmd *getptr = new GetCmd(2);

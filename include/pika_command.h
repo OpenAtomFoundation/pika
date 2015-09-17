@@ -13,7 +13,7 @@ public:
 };
 
 /*
- * kv
+ * admin
  */
 class PingCmd : public Cmd {
 public:
@@ -21,6 +21,15 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class ClientCmd : public Cmd {
+public:
+    ClientCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+/*
+ * kv
+ */
 class SetCmd : public Cmd {
 public:
     SetCmd(int a) : Cmd(a) {};
