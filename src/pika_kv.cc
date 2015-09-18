@@ -540,6 +540,9 @@ void SetrangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[32];
         snprintf(buf, sizeof(buf), ":%ld\r\n", new_len);
         ret.append(buf);
+    } else if (s.IsCorruption() && s.ToString() == "Corruption: too big") {
+        ret = "-ERR string exceeds maximum allowed size (512MB)\r\n";
+    
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());

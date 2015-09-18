@@ -50,6 +50,7 @@ private:
     bool should_close_after_reply;
     struct timeval tv_;
     std::string ip_port_;
+    bool is_authed_;
 
     sds wbuf_;
     int32_t wbuf_len_;

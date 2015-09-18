@@ -3,10 +3,12 @@
 #include "pika_util.h"
 #include "pika_command.h"
 #include "pika_define.h"
+#include "pika_conf.h"
 #include "zmalloc.h"
 #include "util.h"
 #include <algorithm>
 extern std::map<std::string, Cmd *> g_pikaCmd;
+extern PikaConf *g_pikaConf;
 
 PikaConn::PikaConn(int fd, std::string ip_port) :
     fd_(fd), ip_port_(ip_port)
@@ -23,6 +25,7 @@ PikaConn::PikaConn(int fd, std::string ip_port) :
     should_close_after_reply = false;
     wbuf_ = sdsempty();
     gettimeofday(&tv_, NULL);
+    is_authed_ = std::string(g_pikaConf->requirepass()) == "" ? true : false;
 }
 
 PikaConn::~PikaConn()
@@ -359,16 +362,30 @@ int PikaConn::PikaSendReply()
 int PikaConn::DoCmd() {
     std::string opt = argv_.front();
     transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
-    std::map<std::string, Cmd *>::iterator iter = g_pikaCmd.find(opt);
     std::string ret;
-    if (iter == g_pikaCmd.end()) {
-        ret.append("-ERR unknown or unsupported command \'");
-        ret.append(opt);
-        ret.append("\'\r\n");
-        wbuf_ = sdscat(wbuf_, ret.c_str());  
-        return 0;
+    if (is_authed_ || opt == "auth") {
+        std::map<std::string, Cmd *>::iterator iter = g_pikaCmd.find(opt);
+        if (iter == g_pikaCmd.end()) {
+            ret.append("-ERR unknown or unsupported command \'");
+            ret.append(opt);
+            ret.append("\'\r\n");
+        } else {
+            iter->second->Do(argv_, ret);
+            if (opt == "auth") {
+                if (ret == "+OK\r\n") {
+                    is_authed_ = true;
+                } else {
+                    is_authed_ = false;
+                }
+
+                if (std::string(g_pikaConf->requirepass()) == "") {
+                    ret = "-ERR Client sent AUTH, but no password is set\r\n";
+                }
+            }
+        }
+    } else {
+        ret = "-ERR NOAUTH Authentication required.\r\n";
     }
-    iter->second->Do(argv_, ret);
     wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
     return 0;
 }

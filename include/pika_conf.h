@@ -17,6 +17,7 @@ public:
     char* db_path() { return db_path_; }
     int write_buffer_size() { return write_buffer_size_; }
     int max_idle() { return max_idle_; }
+    char* requirepass() { return requirepass_; }
 
 private:
     int port_;
@@ -26,6 +27,7 @@ private:
     int write_buffer_size_;
     int log_level_;
     int max_idle_;
+    char requirepass_[PIKA_WORD_SIZE];
 };
 
 #endif

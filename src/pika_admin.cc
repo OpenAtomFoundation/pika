@@ -11,6 +11,23 @@ extern PikaConf* g_pikaConf;
 extern pthread_rwlock_t *g_pikaRWlock;
 extern std::map<std::string, client_info> *g_pikaClient;
 
+void AuthCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string password = argv.front();
+    argv.pop_front();
+    if (password == std::string(g_pikaConf->requirepass()) || std::string(g_pikaConf->requirepass()) == "") {
+        ret = "+OK\r\n";
+    } else {
+        ret = "-ERR invalid password\r\n";
+    }
+}
+
 void PingCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";

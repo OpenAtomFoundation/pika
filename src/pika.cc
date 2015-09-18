@@ -133,6 +133,8 @@ int main(int argc, char **argv)
     /*
      * admin
      */
+    AuthCmd *authptr = new AuthCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("auth", authptr));
     PingCmd *pingptr = new PingCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ping", pingptr));
     ClientCmd *clientptr = new ClientCmd(-1);

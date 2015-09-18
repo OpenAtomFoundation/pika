@@ -15,6 +15,12 @@ public:
 /*
  * admin
  */
+class AuthCmd : public Cmd {
+public:
+    AuthCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class PingCmd : public Cmd {
 public:
     PingCmd(int a) : Cmd(a) {};

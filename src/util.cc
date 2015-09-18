@@ -329,6 +329,15 @@ int string2ll(const char *s, size_t slen, long long *value) {
         if (plen == slen)
             return 0;
     }
+    
+    while(plen < slen && p[0] == '0') {
+        p++; plen++;
+    }
+
+    if (plen == slen) {
+        if (value != NULL) *value = 0;
+        return 1;
+    }
 
     /* First digit should be 1-9, otherwise the string should just be 0. */
     if (p[0] >= '1' && p[0] <= '9') {
