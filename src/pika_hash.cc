@@ -141,6 +141,8 @@ void HIncrbyCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not integer"){
         ret = "-ERR hash value is not an integer\r\n"; 
+    } else if (s.IsInvalidArgument()) {
+        ret = "-ERR increment or decrement would overflow\r\n";
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());
@@ -484,18 +486,26 @@ void HScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
     std::vector<nemo::FV> fvs;
     nemo::HIterator *iter = g_pikaServer->GetHandle()->HScan(key, "", "", -1);
-    iter->Skip(index);
-    bool iter_ret = false;
-    while ((iter_ret=iter->Next()) && count) {
+    bool skip_ret = iter->Skip(index);
+    if (skip_ret && !iter->Valid()) {
         count--;
-        index++;
-        if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Field().data(), iter->Field().size(), 0)) {
-            continue;
+        if (!(use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Field().data(), iter->Field().size(), 0))) {
+            fvs.push_back(nemo::FV{iter->Field(), iter->Val()});
         }
-        fvs.push_back(nemo::FV{iter->Field(), iter->Val()});
-    }
-    if (!iter_ret) {
         index = 0;
+    } else {
+        bool iter_ret = false;
+        while ((iter_ret=iter->Next()) && count) {
+            count--;
+            index++;
+            if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Field().data(), iter->Field().size(), 0)) {
+                continue;
+            }
+            fvs.push_back(nemo::FV{iter->Field(), iter->Val()});
+        }
+        if (!iter_ret) {
+            index = 0;
+        }
     }
     delete iter;
 

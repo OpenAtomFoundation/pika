@@ -142,6 +142,8 @@ void IncrCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
         ret = "-ERR value is not an integer or out of range\r\n";
+    } else if (s.IsInvalidArgument()) {
+        ret = "-ERR increment or decrement would overflow\r\n";
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());
@@ -174,6 +176,8 @@ void IncrbyCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
         ret = "-ERR value is not an integer or out of range\r\n";
+    } else if (s.IsInvalidArgument()) {
+        ret = "-ERR increment or decrement would overflow\r\n";
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());
@@ -233,6 +237,8 @@ void DecrCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
         ret = "-ERR value is not an integer or out of range\r\n";
+    } else if (s.IsInvalidArgument()) {
+        ret = "-ERR increment or decrement would overflow\r\n";
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());
@@ -265,6 +271,8 @@ void DecrbyCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
         ret = "-ERR value is not an integer or out of range\r\n";
+    } else if (s.IsInvalidArgument()) {
+        ret = "-ERR increment or decrement would overflow\r\n";
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());
@@ -752,18 +760,26 @@ void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
     std::vector<std::string> keys;
     nemo::KIterator *iter = g_pikaServer->GetHandle()->Scan("", "", -1);
-    iter->Skip(index);
-    bool iter_ret = false;
-    while ((iter_ret=iter->Next()) && count) {
+    bool skip_ret = iter->Skip(index);
+    if (skip_ret && !iter->Valid()) {
         count--;
-        index++;
-        if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0)) {
-            continue;
+        if (!(use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0))) {
+            keys.push_back(iter->Key());
         }
-        keys.push_back(iter->Key());
-    }
-    if (!iter_ret) {
         index = 0;
+    } else {
+        bool iter_ret = false;
+        while ((iter_ret=iter->Next()) && count) {
+            count--;
+            index++;
+            if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0)) {
+                continue;
+            }
+            keys.push_back(iter->Key());
+        }
+        if (!iter_ret) {
+            index = 0;
+        }
     }
     delete iter;
 

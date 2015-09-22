@@ -13,8 +13,6 @@ PikaConf *g_pikaConf;
 
 PikaServer *g_pikaServer;
 
-pthread_rwlock_t *g_pikaRWlock;
-std::map<std::string, client_info> *g_pikaClient;
 
 std::map<std::string, Cmd *> g_pikaCmd;
 
@@ -128,8 +126,6 @@ int main(int argc, char **argv)
      */
     pika_signal_setup();
 
-    g_pikaRWlock = new pthread_rwlock_t[g_pikaConf->thread_num()];
-    g_pikaClient = new std::map<std::string, client_info>[g_pikaConf->thread_num()];
 
     /*
      * admin

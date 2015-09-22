@@ -10,8 +10,6 @@
 #include <glog/logging.h>
 
 extern PikaConf *g_pikaConf;
-extern pthread_rwlock_t *g_pikaRWlock;
-//extern std::map<std::string, client_info> *g_pikaClient;
 
 Status PikaServer::SetBlockType(BlockType type)
 {
@@ -64,7 +62,6 @@ PikaServer::PikaServer()
     last_thread_ = 0;
     for (int i = 0; i < g_pikaConf->thread_num(); i++) {
         pikaThread_[i] = new PikaThread(i);
-        pthread_rwlock_init(&g_pikaRWlock[i], NULL);
     }
 
 //    options_.create_if_missing = true;
@@ -93,6 +90,50 @@ PikaServer::~PikaServer()
     }
     delete(pikaEpoll_);
     close(sockfd_);
+}
+
+void PikaServer::ClientList(std::string &res) {
+    std::map<std::string, client_info>::iterator iter;
+    res = "+";
+    char buf[32];
+    for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+
+        {
+            RWLock l(pikaThread_[i]->rwlock(), false);
+            iter = pikaThread_[i]->clients()->begin();
+            while (iter != pikaThread_[i]->clients()->end()) {
+                res.append("addr=");
+                res.append(iter->first);
+                res.append(" fd=");
+                ll2string(buf,sizeof(buf), (iter->second).fd);
+                res.append(buf);
+                res.append("\n");
+                iter++;
+            }
+        }
+    }
+    res.append("\r\n");
+}
+
+int PikaServer::ClientKill(std::string &ip_port) {
+    int i = 0;
+    std::map<std::string, client_info>::iterator iter;
+    for (i = 0; i < g_pikaConf->thread_num(); i++) {
+        {
+            RWLock l(pikaThread_[i]->rwlock(), true);
+            iter = pikaThread_[i]->clients()->find(ip_port);
+            if (iter != pikaThread_[i]->clients()->end()) {
+                (iter->second).is_killed = true;
+                break;
+            }
+        }
+    }
+    if (i < g_pikaConf->thread_num()) {
+        return 1;
+    } else {
+        return 0;
+    }
+
 }
 
 void* PikaServer::StartThread(void* arg)

@@ -140,18 +140,26 @@ void SScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
     std::vector<std::string> members;
     nemo::SIterator *iter = g_pikaServer->GetHandle()->SScan(key, -1);
-    iter->Skip(index);
-    bool iter_ret = false;
-    while ((iter_ret=iter->Next()) && count) {
+    bool skip_ret = iter->Skip(index);
+    if (skip_ret && !iter->Valid()) {
         count--;
-        index++;
-        if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Member().data(), iter->Member().size(), 0)) {
-            continue;
+        if (!(use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Member().data(), iter->Member().size(), 0))) {
+            members.push_back(iter->Member());
         }
-        members.push_back(iter->Member());
-    }
-    if (!iter_ret) {
         index = 0;
+    } else {
+        bool iter_ret = false;
+        while ((iter_ret=iter->Next()) && count) {
+            count--;
+            index++;
+            if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Member().data(), iter->Member().size(), 0)) {
+                continue;
+            }
+            members.push_back(iter->Member());
+        }
+        if (!iter_ret) {
+            index = 0;
+        }
     }
     delete iter;
 

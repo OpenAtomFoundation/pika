@@ -31,6 +31,8 @@ public:
     int notify_receive_fd() { return notify_receive_fd_; }
     int notify_send_fd() { return notify_send_fd_; }
     int thread_index() { return thread_index_; }
+    pthread_rwlock_t* rwlock() { return &rwlock_; }
+    std::map<std::string, client_info>* clients() { return &clients_; }
 
     pthread_t thread_id_;
 
@@ -58,6 +60,8 @@ private:
     PikaEpoll *pikaEpoll_;
 
     std::map<int, PikaConn *> conns_;
+    std::map<std::string, client_info> clients_;
+    pthread_rwlock_t rwlock_;
 
 
     port::Mutex mutex_;

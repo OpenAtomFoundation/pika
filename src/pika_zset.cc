@@ -126,18 +126,26 @@ void ZScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
     std::vector<nemo::SM> sms;
     nemo::ZIterator *iter = g_pikaServer->GetHandle()->ZScan(key, nemo::ZSET_SCORE_MIN, nemo::ZSET_SCORE_MAX, -1);
-    iter->Skip(index);
-    bool iter_ret = false;
-    while ((iter_ret=iter->Next()) && count) {
+    bool skip_ret = iter->Skip(index);
+    if (skip_ret && !iter->Valid()) {
         count--;
-        index++;
-        if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Member().data(), iter->Member().size(), 0)) {
-            continue;
+        if (!(use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Member().data(), iter->Member().size(), 0))) {
+            sms.push_back(nemo::SM{iter->Score(), iter->Member()});
         }
-        sms.push_back(nemo::SM{iter->Score(), iter->Member()});
-    }
-    if (!iter_ret) {
         index = 0;
+    } else {
+        bool iter_ret = false;
+        while ((iter_ret=iter->Next()) && count) {
+            count--;
+            index++;
+            if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Member().data(), iter->Member().size(), 0)) {
+                continue;
+            }
+            sms.push_back(nemo::SM{iter->Score(), iter->Member()});
+        }
+        if (!iter_ret) {
+            index = 0;
+        }
     }
     delete iter;
 

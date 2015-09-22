@@ -34,6 +34,9 @@ public:
 
     static void* StartThread(void* arg);
     nemo::Nemo* GetHandle() {return db_;};
+    void ClientList(std::string &res);
+    int ClientKill(std::string &ip_port);
+    
 
 private:
     friend class PikaConn;

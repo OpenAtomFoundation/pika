@@ -10,8 +10,6 @@
 #include "pika_conn.h"
 
 extern PikaConf* g_pikaConf;
-extern pthread_rwlock_t *g_pikaRWlock;
-extern std::map<std::string, client_info> *g_pikaClient;
 
 PikaThread::PikaThread(int thread_index)
 {
@@ -21,6 +19,7 @@ PikaThread::PikaThread(int thread_index)
     /*
      * inital the pikaepoll object, add the notify_receive_fd to epoll
      */
+    pthread_rwlock_init(&rwlock_, NULL);
     pikaEpoll_ = new PikaEpoll();
     int fds[2];
     if (pipe(fds)) {
@@ -36,6 +35,7 @@ PikaThread::~PikaThread()
 {
     delete(pikaEpoll_);
     mutex_.Unlock();
+    pthread_rwlock_destroy(&rwlock_);
     close(notify_send_fd_);
     close(notify_receive_fd_);
 }
@@ -52,18 +52,21 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     int i = 0;
     iter = conns_.begin();
     while (iter != conns_.end()) {
-        iter_clientlist = g_pikaClient[thread_index_].find(iter->second->ip_port());
-        if ((iter_clientlist != g_pikaClient[thread_index_].end() && iter_clientlist->second.is_killed == true ) || 
+        iter_clientlist = clients_.find(iter->second->ip_port());
+        if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) || 
         (t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->max_idle() * 1000000) {
-            pthread_rwlock_wrlock(&g_pikaRWlock[thread_index_]);
-            if (iter_clientlist == g_pikaClient[thread_index_].end()) {
-                iter_clientlist = g_pikaClient[thread_index_].find(iter->second->ip_port());
+
+            {
+                RWLock l(&rwlock_, true);
+                if (iter_clientlist == clients_.end()) {
+                    iter_clientlist = clients_.find(iter->second->ip_port());
+                }
+                if (iter_clientlist != clients_.end()) {
+                    LOG(INFO) << "Remove (Idle or Killed) Client: " << iter_clientlist->first;
+                    clients_.erase(iter_clientlist);
+                }
+
             }
-            if (iter_clientlist != g_pikaClient[thread_index_].end()) {
-                LOG(INFO) << "Remove (Idle or Killed) Client: " << iter_clientlist->first;
-                g_pikaClient[thread_index_].erase(iter_clientlist);
-            }
-            pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
 
             pikaEpoll_->PikaDelEvent(iter->second->fd());
             close(iter->second->fd());
@@ -74,22 +77,6 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
             iter++;
         }
     }
-
-//    pthread_rwlock_rdlock(&g_pikaRWlock[thread_index_]);
-//    std::map<std::string, client_info>::iterator iter_client = g_pikaClient[thread_index_].begin();
-//    while (iter_client != g_pikaClient[thread_index_].end()) {
-//        if (iter_client->second.is_killed == true) {
-//            iter = conns_.find(iter_client->second.fd);
-//            if (iter != conns_.end()) {
-//                close(iter_client->second.fd);
-//                conns_.erase(iter);
-//                iter_client = g_pikaClient[thread_index_].erase(iter_client);
-//            }
-//        } else {
-//            iter_client++;
-//        }
-//    }
-//    pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
     
     return i;
 }
@@ -137,10 +124,10 @@ void PikaThread::RunProcess()
                 tc->SetNonblock();
                 conns_[ti.fd()] = tc;
                 LOG(INFO) << "Add New Client: " << tc->ip_port();
-                pthread_rwlock_wrlock(&g_pikaRWlock[thread_index_]);
-                g_pikaClient[thread_index_][tc->ip_port()] = { ti.fd(), false };
-                pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
-
+                {
+                    RWLock l(&rwlock_, true);
+                    clients_[tc->ip_port()] = { ti.fd(), false };
+                }
                 pikaEpoll_->PikaAddEvent(ti.fd(), EPOLLIN);
 //                log_info("receive one fd %d", ti.fd());
                 /*
@@ -179,12 +166,13 @@ void PikaThread::RunProcess()
                         }
                         close(inConn->fd());
 
-                        it_clientlist = g_pikaClient[thread_index_].find(inConn->ip_port());
-                        if (it_clientlist != g_pikaClient[thread_index_].end()) {
+                        it_clientlist = clients_.find(inConn->ip_port());
+                        if (it_clientlist != clients_.end()) {
                             LOG(INFO) << "Remove Client: " << it_clientlist->first;
-                            pthread_rwlock_wrlock(&g_pikaRWlock[thread_index_]);
-                            g_pikaClient[thread_index_].erase(it_clientlist);
-                            pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
+                            {
+                                RWLock l(&rwlock_, true); 
+                                clients_.erase(it_clientlist);
+                            }
                         }
                         delete(inConn);
                     } else {
