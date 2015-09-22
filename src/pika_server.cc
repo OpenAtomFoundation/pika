@@ -11,7 +11,7 @@
 
 extern PikaConf *g_pikaConf;
 extern pthread_rwlock_t *g_pikaRWlock;
-extern std::map<std::string, client_info> *g_pikaClient;
+//extern std::map<std::string, client_info> *g_pikaClient;
 
 Status PikaServer::SetBlockType(BlockType type)
 {
@@ -120,7 +120,7 @@ void PikaServer::RunProcess()
             fd = (tfe + i)->fd_;
             if (fd == sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
-                LOG(INFO) << "Accept new connection, fd: " << connfd << " ip: " << inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr)) << " port: " << ntohs(cliaddr.sin_port);
+//                LOG(INFO) << "Accept new connection, fd: " << connfd << " ip: " << inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr)) << " port: " << ntohs(cliaddr.sin_port);
                 ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr));
                 ip_port.append(":");
                 ll2string(buf, sizeof(buf), ntohs(cliaddr.sin_port));

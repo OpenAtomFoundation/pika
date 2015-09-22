@@ -50,20 +50,22 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     std::map<int, PikaConn*>::iterator iter;
     std::map<std::string, client_info>::iterator iter_clientlist;
     int i = 0;
-    LOG(INFO) << "Time size " << conns_.size();
     iter = conns_.begin();
     while (iter != conns_.end()) {
-        LOG(INFO) << iter->first;
-//        LOG(INFO) << iter->second->tv();
-        if ((t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->max_idle() * 1000000) {
+        iter_clientlist = g_pikaClient[thread_index_].find(iter->second->ip_port());
+        if ((iter_clientlist != g_pikaClient[thread_index_].end() && iter_clientlist->second.is_killed == true ) || 
+        (t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->max_idle() * 1000000) {
             pthread_rwlock_wrlock(&g_pikaRWlock[thread_index_]);
-            iter_clientlist = g_pikaClient[thread_index_].find(iter->second->ip_port());
+            if (iter_clientlist == g_pikaClient[thread_index_].end()) {
+                iter_clientlist = g_pikaClient[thread_index_].find(iter->second->ip_port());
+            }
             if (iter_clientlist != g_pikaClient[thread_index_].end()) {
-                LOG(INFO) << "Remove from Client";
+                LOG(INFO) << "Remove (Idle or Killed) Client: " << iter_clientlist->first;
                 g_pikaClient[thread_index_].erase(iter_clientlist);
             }
             pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
 
+            pikaEpoll_->PikaDelEvent(iter->second->fd());
             close(iter->second->fd());
             delete iter->second;
             iter = conns_.erase(iter);
@@ -73,21 +75,21 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
         }
     }
 
-    pthread_rwlock_rdlock(&g_pikaRWlock[thread_index_]);
-    std::map<std::string, client_info>::iterator iter_client = g_pikaClient[thread_index_].begin();
-    while (iter_client != g_pikaClient[thread_index_].end()) {
-        if (iter_client->second.is_killed == true) {
-            iter = conns_.find(iter_client->second.fd);
-            if (iter != conns_.end()) {
-                close(iter_client->second.fd);
-                conns_.erase(iter);
-                iter_client = g_pikaClient[thread_index_].erase(iter_client);
-            }
-        } else {
-            iter_client++;
-        }
-    }
-    pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
+//    pthread_rwlock_rdlock(&g_pikaRWlock[thread_index_]);
+//    std::map<std::string, client_info>::iterator iter_client = g_pikaClient[thread_index_].begin();
+//    while (iter_client != g_pikaClient[thread_index_].end()) {
+//        if (iter_client->second.is_killed == true) {
+//            iter = conns_.find(iter_client->second.fd);
+//            if (iter != conns_.end()) {
+//                close(iter_client->second.fd);
+//                conns_.erase(iter);
+//                iter_client = g_pikaClient[thread_index_].erase(iter_client);
+//            }
+//        } else {
+//            iter_client++;
+//        }
+//    }
+//    pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
     
     return i;
 }
@@ -109,16 +111,16 @@ void PikaThread::RunProcess()
     std::map<std::string, client_info>::iterator it_clientlist;
     for (;;) {
         gettimeofday(&now, NULL);
-        LOG(INFO) << "now sec: "<< now.tv_sec << " now use " << now.tv_usec;
-        LOG(INFO) << "target sec: "<< target.tv_sec << " target use " << target.tv_usec;
+//        LOG(INFO) << "now sec: "<< now.tv_sec << " now use " << now.tv_usec;
+//        LOG(INFO) << "target sec: "<< target.tv_sec << " target use " << target.tv_usec;
         if (target.tv_sec > now.tv_sec || (target.tv_sec == now.tv_sec && target.tv_usec - now.tv_usec > 1000)) {
             timeout = (target.tv_sec-now.tv_sec)*1000 + (target.tv_usec-now.tv_usec)/1000;
         } else {
-            LOG(INFO) << "fire TimeEvent";
+//            LOG(INFO) << "fire TimeEvent";
             ProcessTimeEvent(&target);
             timeout = 1000;
         }
-        LOG(INFO) << "PikaPoll Timeout: " << timeout;
+//        LOG(INFO) << "PikaPoll Timeout: " << timeout;
         nfds = pikaEpoll_->PikaPoll(timeout);
 //        log_info("nfds %d", nfds);
         for (int i = 0; i < nfds; i++) {
@@ -134,7 +136,7 @@ void PikaThread::RunProcess()
                 PikaConn *tc = new PikaConn(ti.fd(), ti.ip_port());
                 tc->SetNonblock();
                 conns_[ti.fd()] = tc;
-                LOG(INFO) << "Put in Client: " << tc->ip_port();
+                LOG(INFO) << "Add New Client: " << tc->ip_port();
                 pthread_rwlock_wrlock(&g_pikaRWlock[thread_index_]);
                 g_pikaClient[thread_index_][tc->ip_port()] = { ti.fd(), false };
                 pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);
@@ -179,7 +181,7 @@ void PikaThread::RunProcess()
 
                         it_clientlist = g_pikaClient[thread_index_].find(inConn->ip_port());
                         if (it_clientlist != g_pikaClient[thread_index_].end()) {
-                            LOG(INFO) << "Remove from Client";
+                            LOG(INFO) << "Remove Client: " << it_clientlist->first;
                             pthread_rwlock_wrlock(&g_pikaRWlock[thread_index_]);
                             g_pikaClient[thread_index_].erase(it_clientlist);
                             pthread_rwlock_unlock(&g_pikaRWlock[thread_index_]);

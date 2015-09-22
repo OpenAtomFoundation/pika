@@ -43,11 +43,12 @@ void pika_signal_setup()
 {
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
-    struct sigaction sigIntHandler;
-    sigIntHandler.sa_handler = sig_handler;
-    sigemptyset(&sigIntHandler.sa_mask);
-    sigIntHandler.sa_flags = 0;
-    sigaction(SIGINT, &sigIntHandler, NULL);
+    signal(SIGINT, &sig_handler);
+//    struct sigaction sigIntHandler;
+//    sigIntHandler.sa_handler = sig_handler;
+//    sigemptyset(&sigIntHandler.sa_mask);
+//    sigIntHandler.sa_flags = 0;
+//    sigaction(SIGINT, &sigIntHandler, NULL);
     LOG(WARNING) << "pika signal setup ok";
 }
 
