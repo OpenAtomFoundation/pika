@@ -54,7 +54,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     while (iter != conns_.end()) {
         iter_clientlist = clients_.find(iter->second->ip_port());
         if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) || 
-        (t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->max_idle() * 1000000) {
+        (t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->timeout() * 1000000) {
 
             {
                 RWLock l(&rwlock_, true);

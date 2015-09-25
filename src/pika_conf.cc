@@ -12,6 +12,6 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("log_level", &log_level_);
     getConfStr("db_path", db_path_);
     getConfInt("write_buffer_size", &write_buffer_size_);
-    getConfInt("max_idle", &max_idle_);
+    getConfInt("timeout", &timeout_);
     getConfStr("requirepass", requirepass_);
 }

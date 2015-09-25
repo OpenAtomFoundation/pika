@@ -198,7 +198,7 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hget", hgetptr));
     HDelCmd *hdelptr = new HDelCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hdel", hdelptr));
-    HExistsCmd *hexistsptr = new HExistsCmd(-3);
+    HExistsCmd *hexistsptr = new HExistsCmd(3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hexists", hexistsptr));
     HGetallCmd *hgetallptr = new HGetallCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("hgetall", hgetallptr));
