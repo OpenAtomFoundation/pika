@@ -109,7 +109,8 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
     if (multibulklen_== 0) {
         /* The client should have been reset */
         //TODO: redisAssertWithInfo(c,NULL,c->argc == 0);
-        Reset();
+        //Reset();
+
         /* Multi bulk length cannot be read without a \r\n */
         newline = strchr(rbuf_,'\r');
         if (newline == NULL) {

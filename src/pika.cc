@@ -85,10 +85,7 @@ int main(int argc, char **argv)
     bool path_opt = false;
     char c;
     char path[PIKA_LINE_SIZE];
-    if (argc != 2) {
-        usage();
-        return -1;
-    }
+
     while (-1 != (c = getopt(argc, argv, "D:h"))) {
         switch (c) {
         case 'D':
