@@ -133,6 +133,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ping", pingptr));
     ClientCmd *clientptr = new ClientCmd(-1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("client", clientptr));
+    ConfigCmd *configptr = new ConfigCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("config", configptr));
 
     /*
      * kv
