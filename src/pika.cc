@@ -135,6 +135,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("client", clientptr));
     ConfigCmd *configptr = new ConfigCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("config", configptr));
+    InfoCmd *infoptr = new InfoCmd(-1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("info", infoptr));
 
     /*
      * kv

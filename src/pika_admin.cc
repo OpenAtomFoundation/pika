@@ -1,9 +1,13 @@
+#include <algorithm>
+#include <map>
+#include <sys/utsname.h>
+#include <sys/types.h>
+#include <unistd.h>
+
 #include "pika_command.h"
 #include "pika_server.h"
 #include "pika_conf.h"
 #include "util.h"
-#include <algorithm>
-#include <map>
 
 extern PikaServer *g_pikaServer;
 extern std::map<std::string, Cmd *> g_pikaCmd;
@@ -163,3 +167,76 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if (argv.size() != 1 && argv.size() != 2) {
+        ret = "-ERR wrong number of arguments for 'info' command\r\n";
+        return;
+    }
+    argv.pop_front();
+    bool allsections = true;
+    std::string section = "";
+    int sections = 0;
+
+    if (!argv.empty()) {
+        allsections = false;
+        section = argv.front();
+        transform(section.begin(), section.end(), section.begin(), ::tolower);
+    }
+
+    std::string info;
+    // Server
+    if (allsections || section == "server") {
+        //TODO mode : standalone cluster sentinel
+
+        if (sections++) info.append("\r\n");
+
+        static bool call_uname = true;
+        static struct utsname name;
+        if (call_uname) {
+            uname(&name);
+            call_uname = false;
+        }
+
+        char buf[512];
+        snprintf (buf, sizeof(buf),
+                  "# Server\r\n"
+                  "pika_version:%s\r\n"
+                  "os:%s %s %s\r\n"
+                  "process_id:%ld\r\n"
+                  "tcp_port:%d\r\n"
+                  "thread_num:%d\r\n"
+                  "config_file:%s\r\n",
+                  PIKA_VERSION,
+                  name.sysname, name.release, name.machine,
+                  (long) getpid(),
+                  g_pikaConf->port(),
+                  g_pikaConf->thread_num(),
+                  g_pikaConf->conf_path());
+        info.append(buf);
+    }
+
+    // Clients
+    if (allsections || section == "clients") {
+        if (sections++) info.append("\r\n");
+
+        std::string clients;
+        char buf[128];
+        snprintf (buf, sizeof(buf),
+                  "# Clients\r\n"
+                  "connected_clients:%d\r\n",
+                  g_pikaServer->ClientList(clients));
+        info.append(buf);
+    }
+
+    // Stats
+  //  if (allsections || section == "stats") {
+  //      if (sections++) info.append("\r\n");
+  //  }
+
+    ret.clear();
+    char buf[32];
+    snprintf (buf, sizeof(buf), "$%u\r\n", info.length());
+    ret.append(buf);
+    ret.append(info);
+    ret.append("\r\n");
+}

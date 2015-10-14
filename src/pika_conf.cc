@@ -6,6 +6,8 @@
 PikaConf::PikaConf(const char* path) :
     BaseConf(path)
 {
+    strcpy(conf_path_, path);
+
     getConfInt("port", &port_);
     getConfInt("thread_num", &thread_num_);
     getConfStr("log_path", log_path_);

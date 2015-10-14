@@ -34,7 +34,7 @@ public:
 
     static void* StartThread(void* arg);
     nemo::Nemo* GetHandle() {return db_;};
-    void ClientList(std::string &res);
+    int ClientList(std::string &res);
     int ClientKill(std::string &ip_port);
     
 
@@ -74,6 +74,11 @@ private:
     PikaThread *pikaThread_[PIKA_THREAD_NUM];
 
 
+//    int64_t stat_numcommands;
+//    int64_t stat_numconnections;
+//
+//    int64_t stat_keyspace_hits;
+//    int64_t stat_keyspace_misses;
 
     // No copying allowed
     PikaServer(const PikaServer&);
