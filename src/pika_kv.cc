@@ -212,6 +212,8 @@ void IncrbyfloatCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a float") {
         ret = "-ERR value is not an float\r\n";
+    } else if (s.IsInvalidArgument()) {
+        ret = "-ERR increment or decrement would overflow\r\n";
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());

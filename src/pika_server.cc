@@ -41,6 +41,13 @@ Status PikaServer::SetBlockType(BlockType type)
 
 PikaServer::PikaServer()
 {
+    // init statistics variables
+  //  stat_numcommands = 0;
+  //  stat_numconnections = 0;
+  //  
+  //  stat_keyspace_hits = 0;
+  //  stat_keyspace_misses = 0;
+
     // init sock
     sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
     memset(&servaddr_, 0, sizeof(servaddr_));
@@ -153,7 +160,8 @@ void PikaServer::Offline(std::string ip_port) {
     }
 }
 
-void PikaServer::ClientList(std::string &res) {
+int PikaServer::ClientList(std::string &res) {
+    int client_num = 0;
     std::map<std::string, client_info>::iterator iter;
     res = "+";
     char buf[32];
@@ -169,11 +177,14 @@ void PikaServer::ClientList(std::string &res) {
                 ll2string(buf,sizeof(buf), (iter->second).fd);
                 res.append(buf);
                 res.append("\n");
+                client_num++;
                 iter++;
             }
         }
     }
     res.append("\r\n");
+
+    return client_num;
 }
 
 int PikaServer::ClientKill(std::string &ip_port) {

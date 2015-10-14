@@ -52,6 +52,18 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class ConfigCmd : public Cmd {
+public:
+    ConfigCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class InfoCmd : public Cmd {
+public:
+    InfoCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 /*
  * kv
  */
