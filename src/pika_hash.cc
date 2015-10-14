@@ -179,6 +179,8 @@ void HIncrbyfloatCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not float"){
         ret = "-ERR hash value is not an float\r\n"; 
+    } else if (s.IsInvalidArgument()) {
+        ret = "-ERR increment or decrement would overflow\r\n";
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());
