@@ -9,16 +9,19 @@ OUTPUT = ./output
 INCLUDE_PATH = -I./include/ \
 			   -I./src/ \
 			   -I$(THIRD_PATH)/glog/src/ \
-			   -I$(THIRD_PATH)/nemo/output/include/ 
+			   -I$(THIRD_PATH)/nemo/output/include/ \
+			   -I$(THIRD_PATH)/mario/output/include/
 
 LIB_PATH = -L./ \
 		   -L$(THIRD_PATH)/nemo/output/lib/ \
-		   -L$(THIRD_PATH)/nemo/3rdparty/rocksdb/
+		   -L$(THIRD_PATH)/nemo/3rdparty/rocksdb/ \
+		   -L$(THIRD_PATH)/mario/output/lib/
 
 
 LIBS = -lpthread \
 	   -lglog \
 	   -lnemo \
+	   -lmario \
 	   -lrocksdb \
 	   -lz \
 	   -lbz2 \
@@ -27,6 +30,7 @@ LIBS = -lpthread \
 
 ROCKSDB = $(THIRD_PATH)/nemo/output/lib/librocksdb.a
 GLOG = /usr/local/lib/libglog.a
+MARIO = $(THIRD_PATH)/mario/output/lib/libmario.a
 
 .PHONY: all clean
 
@@ -48,7 +52,7 @@ all: $(OBJECT)
 	@echo "Success, go, go, go..."
 
 
-$(OBJECT): $(ROCKSDB) $(GLOG) $(OBJS)
+$(OBJECT): $(ROCKSDB) $(GLOG) $(MARIO) $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH) -Wl,-Bdynamic $(LIBS)
 
 $(ROCKSDB):
@@ -56,6 +60,9 @@ $(ROCKSDB):
 
 $(GLOG):
 	cd $(THIRD_PATH)/glog; ./configure; make; echo '*' > $(CURDIR)/third/glog/.gitignore; sudo make install;
+
+$(MARIO):
+	make -C $(THIRD_PATH)/mario/ 
 
 $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 

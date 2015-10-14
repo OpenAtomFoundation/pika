@@ -33,6 +33,7 @@ public:
     int thread_index() { return thread_index_; }
     pthread_rwlock_t* rwlock() { return &rwlock_; }
     std::map<std::string, client_info>* clients() { return &clients_; }
+    std::map<int, PikaConn *>* conns() { return &conns_; }
 
     pthread_t thread_id_;
 

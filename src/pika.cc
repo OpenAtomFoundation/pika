@@ -3,6 +3,7 @@
 #include <glog/logging.h>
 #include "pika_conf.h"
 #include "pika_command.h"
+#include "mario.h"
 
 
 #include <iostream>
@@ -12,6 +13,8 @@
 PikaConf *g_pikaConf;
 
 PikaServer *g_pikaServer;
+
+mario::Mario *g_pikaMario;
 
 
 std::map<std::string, Cmd *> g_pikaCmd;
@@ -133,6 +136,12 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ping", pingptr));
     ClientCmd *clientptr = new ClientCmd(-1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("client", clientptr));
+    SlaveofCmd *slaveofptr = new SlaveofCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("slaveof", slaveofptr));
+    PikasyncCmd *pikasyncptr = new PikasyncCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pikasync", pikasyncptr));
+    BemasterCmd *bemasterptr = new BemasterCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bemaster", bemasterptr));
 
     /*
      * kv
@@ -334,6 +343,7 @@ int main(int argc, char **argv)
      * Init the server
      */
     g_pikaServer = new PikaServer();
+    g_pikaMario = new mario::Mario(100);
     
     if (g_pikaServer != NULL) {
         LOG(WARNING) << "Pika Server init ok";

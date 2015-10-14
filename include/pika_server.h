@@ -17,12 +17,19 @@
 #include "xdebug.h"
 #include "pika_define.h"
 #include "nemo.h"
+#include "mutexlock.h"
 //#include "leveldb/db.h"
 //#include "leveldb/write_batch.h"
 
 class PikaThread;
 class PikaEpoll;
 class PikaConn;
+
+struct SlaveItem {
+    std::string ip;
+    int64_t port;
+    int64_t state;
+};
 
 class PikaServer
 {
@@ -36,6 +43,20 @@ public:
     nemo::Nemo* GetHandle() {return db_;};
     void ClientList(std::string &res);
     int ClientKill(std::string &ip_port);
+    int ClientRole(int fd, int role);
+    
+    void set_masterhost(std::string &masterhost) { masterhost_ = masterhost; }
+    std::string masterhost() { return masterhost_; }
+    void set_masterport(int masterport) { masterport_ = masterport; }
+    int masterport() { return masterport_; }
+    void set_repl_state(int repl_state) { repl_state_ = repl_state; }
+    int repl_state() { return repl_state_; }
+    port::Mutex* Mutex() { return &mutex_; }
+    std::string GetServerIp();
+    void Offline(std::string ip_port);
+    int GetServerPort();
+    int TrySync(std::string &ip, std::string &port);
+    int Slavenum() { return slaves_.size(); }
     
 
 private:
@@ -50,6 +71,12 @@ private:
     int port_;
     struct sockaddr_in servaddr_;
 
+    std::string masterhost_;
+    int masterport_;
+    int repl_state_;
+
+    port::Mutex mutex_;
+    std::map<std::string, SlaveItem> slaves_;
     /*
      * The Epoll event handler
      */

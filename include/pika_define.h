@@ -14,6 +14,16 @@
 #define PIKA_REQ_INLINE 1
 #define PIKA_REQ_MULTIBULK 2
 
+#define PIKA_REP_STRATEGY_ERROR -1
+#define PIKA_REP_STRATEGY_ALREADY 0
+#define PIKA_REP_STRATEGY_PSYNC 1
+
+#define PIKA_REP_OFFLINE 0
+#define PIKA_REP_CONNECTED 1
+
+#define PIKA_SINGLE 0
+#define PIKA_MASTER 1
+#define PIKA_SLAVE 2
 /*
  * The socket block type
  */
@@ -28,9 +38,14 @@ enum EventStatus {
     kWriteable = 2,
 };
 
+#define CLIENT_NORMAL 1
+#define CLIENT_MASTER 2
+#define CLIENT_SLAVE 4
+
 struct client_info {
     int fd;
     bool is_killed;
+    int role;
 };
 
 /*

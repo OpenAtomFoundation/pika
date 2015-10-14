@@ -51,8 +51,10 @@ private:
     struct timeval tv_;
     std::string ip_port_;
     bool is_authed_;
+    bool is_master_;
 
     sds wbuf_;
+    sds msbuf_;
     int32_t wbuf_len_;
     int32_t wbuf_pos_;
     PikaThread *thread_;

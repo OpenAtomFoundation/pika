@@ -54,7 +54,8 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     while (iter != conns_.end()) {
         iter_clientlist = clients_.find(iter->second->ip_port());
         if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) || 
-        (t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->timeout() * 1000000LL) {
+        (iter_clientlist->second.role == CLIENT_NORMAL && 
+        ((t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->timeout() * 1000000LL))) {
 
             {
                 RWLock l(&rwlock_, true);
@@ -126,7 +127,7 @@ void PikaThread::RunProcess()
                 LOG(INFO) << "Add New Client: " << tc->ip_port();
                 {
                     RWLock l(&rwlock_, true);
-                    clients_[tc->ip_port()] = { ti.fd(), false };
+                    clients_[tc->ip_port()] = { ti.fd(), false, CLIENT_NORMAL };
                 }
                 pikaEpoll_->PikaAddEvent(ti.fd(), EPOLLIN);
 //                log_info("receive one fd %d", ti.fd());
@@ -145,10 +146,8 @@ void PikaThread::RunProcess()
             if (tfe->mask_ & EPOLLIN) {
                 // log_info("come if readable %d", (inConn == NULL));
                 int ret = inConn->PikaGetRequest();
-                if (ret == 1) {
+                if (ret == 0) {
                     pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
-                } else if (ret == 0) {
-                    pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
                 } else {
                     inConn->CloseAfterReply();
                     pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
@@ -178,6 +177,8 @@ void PikaThread::RunProcess()
                     } else {
                         pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
                     }
+                } else {
+                    pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
                 }
             }
 
@@ -190,6 +191,14 @@ void PikaThread::RunProcess()
                     conns_.erase(it);
                 }
                 close(tfe->fd_);
+                it_clientlist = clients_.find(inConn->ip_port());
+                if (it_clientlist != clients_.end()) {
+                    LOG(INFO) << "Remove Client: " << it_clientlist->first;
+                    {
+                        RWLock l(&rwlock_, true);
+                        clients_.erase(it_clientlist);
+                    }
+                }
                 delete(inConn);
             }
         }

@@ -6,9 +6,11 @@
 #include "pika_conf.h"
 #include "zmalloc.h"
 #include "util.h"
+#include "mario.h"
 #include <algorithm>
 extern std::map<std::string, Cmd *> g_pikaCmd;
 extern PikaConf *g_pikaConf;
+extern mario::Mario *g_pikaMario;
 
 PikaConn::PikaConn(int fd, std::string ip_port) :
     fd_(fd), ip_port_(ip_port)
@@ -24,15 +26,18 @@ PikaConn::PikaConn(int fd, std::string ip_port) :
     bulklen_ = -1;
     should_close_after_reply = false;
     wbuf_ = sdsempty();
+    msbuf_ = sdsempty();
     gettimeofday(&tv_, NULL);
     is_authed_ = std::string(g_pikaConf->requirepass()) == "" ? true : false;
+    is_master_ = false;
 }
 
 PikaConn::~PikaConn()
 {
 //TODO?
-    sdsfree(rbuf_);
+    sdsfree(msbuf_);
     sdsfree(wbuf_);
+    sdsfree(rbuf_);
 }
 
 bool PikaConn::SetNonblock()
@@ -85,6 +90,7 @@ int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
         return -2;
     }
 
+    sdscpylen(msbuf_, rbuf_, querylen+2);
     /* Leave data after the first line of query in the buffer */
     sdsrange(rbuf_, querylen+2, -1);
 
@@ -232,7 +238,10 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
     }
 
     /* Trim to pos */
-    if (pos) sdsrange(rbuf_, pos, -1);
+    if (pos) {
+        msbuf_ = sdscatlen(msbuf_, rbuf_, pos);
+        sdsrange(rbuf_, pos, -1);
+    }
 
     /* We're done when c->multibulk == 0 */
     if (multibulklen_ == 0) return 0;
@@ -255,6 +264,7 @@ int PikaConn::ProcessInputBuffer() {
             if (ProcessInlineBuffer(err_msg) != 0) {
                 if (!err_msg.empty()) {
                     wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    sdsclear(msbuf_);
                     return -2;
                 }
                 break;
@@ -263,6 +273,7 @@ int PikaConn::ProcessInputBuffer() {
             if (ProcessMultibulkBuffer(err_msg) != 0) {
                 if (!err_msg.empty()) {
                     wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    sdsclear(msbuf_);
                     return -2;
                 }
                 break;
@@ -279,12 +290,11 @@ int PikaConn::ProcessInputBuffer() {
 //            for (iter = argv_.begin(); iter != argv_.end(); iter++) {
 //                log_info("%s", (*iter).c_str());
 //            }
-            DoCmd();
-//            if (DoCmd() == 0) {
-//                if(PikaSendReply() != 0) return -1;
-//            }
+            if (DoCmd() == 1) {
+                g_pikaMario->Put(std::string(msbuf_, sdslen(msbuf_)));
+            }
+            sdsclear(msbuf_);
             Reset();
-            return 1;
         }
     }
     return 0;
@@ -328,7 +338,6 @@ int PikaConn::PikaGetRequest()
     if (nread) {
         sdsIncrLen(rbuf_,nread);
     }
-
     return ProcessInputBuffer();
 }
 
@@ -363,6 +372,7 @@ int PikaConn::PikaSendReply()
 int PikaConn::DoCmd() {
     std::string opt = argv_.front();
     transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
+    int cmd_ret = 0;
     std::string ret;
     if (is_authed_ || opt == "auth") {
         std::map<std::string, Cmd *>::iterator iter = g_pikaCmd.find(opt);
@@ -371,6 +381,12 @@ int PikaConn::DoCmd() {
             ret.append(opt);
             ret.append("\'\r\n");
         } else {
+            if (opt == "bemaster") {
+                char buf[32];
+                ll2string(buf, sizeof(buf), fd_);
+                argv_.push_back(std::string(buf));
+                is_master_ = true;
+            }
             iter->second->Do(argv_, ret);
             if (opt == "auth") {
                 if (ret == "+OK\r\n") {
@@ -383,11 +399,16 @@ int PikaConn::DoCmd() {
                     ret = "-ERR Client sent AUTH, but no password is set\r\n";
                 }
             }
+            if (iter->second->is_sync == true && ret.find("-ERR ") != 0) {
+                cmd_ret = 1;
+            }
         }
     } else {
         ret = "-ERR NOAUTH Authentication required.\r\n";
     }
-    wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
-    return 0;
+    if (!is_master_) {
+        wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
+    }
+    return cmd_ret;
 }
 
