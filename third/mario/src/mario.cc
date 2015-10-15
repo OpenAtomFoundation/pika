@@ -191,11 +191,15 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
 //            bg_cv_.Wait();
             sleep(1);
         }
+//        log_info("filenum: %ld, con_offset: %ld", consumer_item->consumer_->filenum(), consumer_item->consumer_->con_offset());
+//        std::cout<<"filenum: "<<consumer_item->consumer_->filenum()<< ", con_offset: "<<consumer_item->consumer_->con_offset()<<std::endl;
         scratch = "";
         s = consumer_item->consumer_->Consume(scratch);
         while (!s.ok()) {
             std::string confile = NewFileName(filename_, consumer_item->consumer_->filenum() + 1);
             if (s.IsEndFile() && env_->FileExists(confile)) {
+//                log_info("end of file");
+                std::cout<<"new file "<<confile<<std::endl;
                 delete consumer_item->readfile_;
                 env_->AppendSequentialFile(confile, &(consumer_item->readfile_));
                 uint32_t last_filenum = consumer_item->consumer_->filenum();
@@ -241,7 +245,7 @@ Status Mario::Put(const std::string &item)
     }
 
     }
-    bg_cv_.Signal();
+//    bg_cv_.Signal();
     return s;
 }
 
@@ -259,7 +263,7 @@ Status Mario::Put(const char* item, int len)
     }
 
     }
-    bg_cv_.Signal();
+//    bg_cv_.Signal();
     return s;
 }
 

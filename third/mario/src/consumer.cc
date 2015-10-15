@@ -23,7 +23,7 @@ Consumer::Consumer(SequentialFile* const queue, Handler *h, uint64_t con_offset,
     con_offset_(con_offset),
     filenum_(filenum)
 {
-//    last_record_offset_ = con_offset % kBlockSize;
+    last_record_offset_ = con_offset % kBlockSize;
 //    queue_->Skip(con_offset);
 }
 
@@ -51,6 +51,7 @@ int Consumer::trim() {
         }
         res += ret;
     }
+    last_record_offset_ = con_offset_ % kBlockSize;
     return 0;
 }
 
