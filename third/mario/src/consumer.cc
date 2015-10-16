@@ -120,6 +120,7 @@ unsigned int Consumer::ReadPhysicalRecord(Slice *result)
         return kOldRecord;
     }
     buffer_.clear();
+    //std::cout<<"2 --> con_offset_: "<<con_offset_<<" last_record_offset_: "<<last_record_offset_<<std::endl;
     s = queue_->Read(length, &buffer_, backing_store_);
     *result = Slice(buffer_.data(), buffer_.size());
     last_record_offset_ += kHeaderSize + length;

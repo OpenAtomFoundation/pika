@@ -113,9 +113,14 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret = "-ERR value is not an integer or out of range\r\n";
         return;
     }
+    
+    std::string hostip = g_pikaServer->GetServerIp();
+    if ((ip == hostip || ip == "127.0.0.1") && port == g_pikaServer->GetServerPort()) {
+        ret = "-ERR you fucked up\r\n";
+        return;
+    }
 
     {
-
     MutexLock l(g_pikaServer->Mutex());
     if (g_pikaServer->masterhost() == ip && g_pikaServer->masterport() == port) {
         ret = "+OK Already connected to specified master\r\n";
@@ -151,7 +156,6 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
     message.append(buf_len);
     message.append(buf);
     message.append("\r\n");
-//    LOG(INFO) << message;
     sds wbuf = sdsempty();
     wbuf = sdscatlen(wbuf, message.data(), message.size());
     ssize_t nwritten = 0;

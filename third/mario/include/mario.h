@@ -59,7 +59,7 @@ private:
     RWFile *versionfile_;
     Version* version_;
     port::Mutex mutex_;
-    port::CondVar bg_cv_;
+//    port::CondVar bg_cv_;
     uint32_t pronum_;
     int32_t retry_;
     ThreadArg arg_;

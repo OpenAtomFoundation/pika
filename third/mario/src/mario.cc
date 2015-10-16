@@ -30,7 +30,7 @@ Mario::Mario(int32_t retry)
     writefile_(NULL),
     versionfile_(NULL),
     version_(NULL),
-    bg_cv_(&mutex_),
+//    bg_cv_(&mutex_),
     pronum_(0),
     retry_(retry),
     arg_({NULL, NULL}),
@@ -177,29 +177,27 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
     Status s;
     while (1) {
         {
-//        mutex_.Lock();
+        mutex_.Lock();
         while (consumer_item->consumer_->filenum() == version_->pronum() &&
                 consumer_item->consumer_->con_offset() == version_->pro_offset()) {
             if (exit_all_consume_) {
-                mutex_.Lock();
                 consumer_num_--;
                 mutex_.Unlock();
-//                mutex_.Unlock();
-//                bg_cv_.Signal();
                 pthread_exit(NULL);
             }
-//            bg_cv_.Wait();
+            mutex_.Unlock();
             sleep(1);
+            mutex_.Lock();
         }
 //        log_info("filenum: %ld, con_offset: %ld", consumer_item->consumer_->filenum(), consumer_item->consumer_->con_offset());
 //        std::cout<<"filenum: "<<consumer_item->consumer_->filenum()<< ", con_offset: "<<consumer_item->consumer_->con_offset()<<std::endl;
+        //std::cout<<"1 --> con_offset: "<<consumer_item->consumer_->con_offset()<<" pro_offset: "<<version_->pro_offset()<<std::endl;
         scratch = "";
         s = consumer_item->consumer_->Consume(scratch);
         while (!s.ok()) {
             std::string confile = NewFileName(filename_, consumer_item->consumer_->filenum() + 1);
             if (s.IsEndFile() && env_->FileExists(confile)) {
 //                log_info("end of file");
-                std::cout<<"new file "<<confile<<std::endl;
                 delete consumer_item->readfile_;
                 env_->AppendSequentialFile(confile, &(consumer_item->readfile_));
                 uint32_t last_filenum = consumer_item->consumer_->filenum();
@@ -208,13 +206,13 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
                 s = consumer_item->consumer_->Consume(scratch);
                 break;
             } else {
-//                mutex_.Unlock();
+                mutex_.Unlock();
                 sleep(1);
-//                mutex_.Lock();
+                mutex_.Lock();
             }
             s = consumer_item->consumer_->Consume(scratch);
         }
-//        mutex_.Unlock();
+        mutex_.Unlock();
         if (retry_ == -1) {
             while (consumer_item->h_->processMsg(scratch)) {
             }

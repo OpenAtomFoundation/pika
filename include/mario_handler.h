@@ -52,7 +52,7 @@ public:
             retry--;
         }
         if (ret == -1) {
-            log_info("connect fail");
+            LOG(INFO) << "failed to connect to slave";
             return -1;
         }
         std::string bm = "*1\r\n$8\r\nbemaster\r\n";
@@ -68,7 +68,7 @@ public:
                      * Here we clear this connection
                      */
 
-                    log_info("fail1");
+                    LOG(INFO) << "failed to write bemaster command to slave";
                     close(sockfd_);
                     return -1;
                 }
@@ -76,10 +76,9 @@ public:
             sdsrange(wbuf_, nwritten, -1);
         }
         if (sdslen(wbuf_) == 0) {
-//            log_info("success");
             return 0;
         } else {
-            log_info("fail2");
+            LOG(INFO) << "failed to write bemaster command to slave";
             close(sockfd_);
             return -1;
         }
@@ -103,7 +102,7 @@ public:
                      * Here we clear this connection
                      */
 
-                    log_info("fail1");
+                    LOG(INFO) << "failed to write command to slave";
                     reconnect();
                     return false;
                 }
@@ -111,10 +110,9 @@ public:
             sdsrange(wbuf_, nwritten, -1);
         }
         if (sdslen(wbuf_) == 0) {
-//            log_info("success");
             return true;
         } else {
-            log_info("fail2");
+            LOG(INFO) << "failed to write command to slave";
             reconnect();
             return false;
         }
