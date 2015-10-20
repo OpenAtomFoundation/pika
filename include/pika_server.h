@@ -55,9 +55,13 @@ public:
     std::string GetServerIp();
     void Offline(std::string ip_port);
     int GetServerPort();
-    int TrySync(std::string &ip, std::string &port);
+    int TrySync(std::string &ip, std::string &port, int fd, uint64_t filenum, uint64_t offset);
     int Slavenum() { return slaves_.size(); }
+    void ProcessTimeEvent(struct timeval*);
+    void DisconnectFromMaster();
     
+    int repl_state_; //PIKA_SINGLE; PIKA_MASTER; PIKA_SLAVE
+    int ms_state_; //PIKA_CONNECT; PIKA_CONNECTED
 
 private:
     friend class PikaConn;
@@ -73,7 +77,6 @@ private:
 
     std::string masterhost_;
     int masterport_;
-    int repl_state_;
 
     port::Mutex mutex_;
     std::map<std::string, SlaveItem> slaves_;

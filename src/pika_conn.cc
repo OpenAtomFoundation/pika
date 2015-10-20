@@ -12,8 +12,8 @@ extern std::map<std::string, Cmd *> g_pikaCmd;
 extern PikaConf *g_pikaConf;
 extern mario::Mario *g_pikaMario;
 
-PikaConn::PikaConn(int fd, std::string ip_port) :
-    fd_(fd), ip_port_(ip_port)
+PikaConn::PikaConn(int fd, std::string ip_port, int role) :
+    fd_(fd), ip_port_(ip_port), role_(role)
 {
     thread_ = NULL;
 
@@ -29,7 +29,6 @@ PikaConn::PikaConn(int fd, std::string ip_port) :
     msbuf_ = sdsempty();
     gettimeofday(&tv_, NULL);
     is_authed_ = std::string(g_pikaConf->requirepass()) == "" ? true : false;
-    is_master_ = false;
 }
 
 PikaConn::~PikaConn()
@@ -54,6 +53,11 @@ void PikaConn::Reset() {
     req_type_ = 0;
     multibulklen_ = 0;
     bulklen_ = -1;
+}
+
+void PikaConn::append_wbuf(const std::string &item) {
+    MutexLock l(&mutex_);
+    wbuf_ = sdscatlen(wbuf_, item.data(), item.size());
 }
 
 int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
@@ -98,6 +102,7 @@ int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
     for (j = 0; j < argc; j++) {
         if (sdslen(argv[j])) {
             argv_.push_back(std::string(argv[j], sdslen(argv[j])));
+            sdsfree(argv[j]);
         } else {
             sdsfree(argv[j]);
         }
@@ -263,7 +268,12 @@ int PikaConn::ProcessInputBuffer() {
         if (req_type_ == PIKA_REQ_INLINE) {
             if (ProcessInlineBuffer(err_msg) != 0) {
                 if (!err_msg.empty()) {
-                    wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    if (role_ == PIKA_SLAVE) {
+                        MutexLock l(&mutex_);
+                        wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    } else {
+                        wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    }
                     sdsclear(msbuf_);
                     return -2;
                 }
@@ -272,7 +282,12 @@ int PikaConn::ProcessInputBuffer() {
         } else if (req_type_ == PIKA_REQ_MULTIBULK) {
             if (ProcessMultibulkBuffer(err_msg) != 0) {
                 if (!err_msg.empty()) {
-                    wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    if (role_ == PIKA_SLAVE) {
+                        MutexLock l(&mutex_);
+                        wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    } else {
+                        wbuf_ = sdscat(wbuf_, err_msg.c_str());
+                    }
                     sdsclear(msbuf_);
                     return -2;
                 }
@@ -344,28 +359,55 @@ int PikaConn::PikaGetRequest()
 int PikaConn::PikaSendReply()
 {
     ssize_t nwritten = 0;
-    while (sdslen(wbuf_) > 0) {
-        nwritten = write(fd_, wbuf_, sdslen(wbuf_));
-        if (nwritten == -1) {
-            if (errno == EAGAIN) {
-                nwritten = 0;
-            } else {
-                /*
-                 * Here we clear this connection
-                 */
-                should_close_after_reply = true;
-                return 0;
+    if (role_ == PIKA_SLAVE)  {
+        MutexLock l(&mutex_);
+        while (sdslen(wbuf_) > 0) {
+            nwritten = write(fd_, wbuf_, sdslen(wbuf_));
+            if (nwritten == -1) {
+                if (errno == EAGAIN) {
+                    nwritten = 0;
+                } else {
+                    /*
+                     * Here we clear this connection
+                     */
+                    should_close_after_reply = true;
+                    return 0;
+                }
             }
+            if (nwritten <= 0) {
+                break;
+            }
+            sdsrange(wbuf_, nwritten, -1);
         }
-        if (nwritten <= 0) {
-            break;
+        if (sdslen(wbuf_) == 0) {
+            return 0;
+        } else {
+            return -1;
         }
-        sdsrange(wbuf_, nwritten, -1);
-    }
-    if (sdslen(wbuf_) == 0) {
-        return 0;
     } else {
-        return -1;
+        while (sdslen(wbuf_) > 0) {
+            nwritten = write(fd_, wbuf_, sdslen(wbuf_));
+            if (nwritten == -1) {
+                if (errno == EAGAIN) {
+                    nwritten = 0;
+                } else {
+                    /*
+                     * Here we clear this connection
+                     */
+                    should_close_after_reply = true;
+                    return 0;
+                }
+            }
+            if (nwritten <= 0) {
+                break;
+            }
+            sdsrange(wbuf_, nwritten, -1);
+        }
+        if (sdslen(wbuf_) == 0) {
+            return 0;
+        } else {
+            return -1;
+        }
     }
 }
 
@@ -385,7 +427,14 @@ int PikaConn::DoCmd() {
                 char buf[32];
                 ll2string(buf, sizeof(buf), fd_);
                 argv_.push_back(std::string(buf));
-                is_master_ = true;
+                role_ = PIKA_MASTER;
+            }
+            if (opt == "pikasync") {
+                char buf[32];
+//                ll2string(buf, sizeof(buf), fd_);
+                ll2string(buf, sizeof(buf), fd_);
+                argv_.push_back(std::string(buf));
+                role_ = PIKA_SLAVE;
             }
             iter->second->Do(argv_, ret);
             if (opt == "auth") {
@@ -406,7 +455,7 @@ int PikaConn::DoCmd() {
     } else {
         ret = "-ERR NOAUTH Authentication required.\r\n";
     }
-    if (!is_master_) {
+    if (role_ != PIKA_MASTER) {
         wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
     }
     return cmd_ret;

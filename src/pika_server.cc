@@ -78,6 +78,8 @@ PikaServer::PikaServer()
         pikaThread_[i] = new PikaThread(i);
     }
 
+    ms_state_ = PIKA_REP_SINGLE;
+    repl_state_ = PIKA_SINGLE;
 //    options_.create_if_missing = true;
 //    options_.write_buffer_size = 1500000000;
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
@@ -119,8 +121,59 @@ int PikaServer::GetServerPort() {
     return port_;
 }
 
-int PikaServer::TrySync(std::string &ip, std::string &str_port) {
+void PikaServer::ProcessTimeEvent(struct timeval* target) {
+    std::string ip_port;
+    char buf[32];
+    target->tv_sec++;
+    {
     MutexLock l(&mutex_);
+    if (ms_state_ == PIKA_REP_CONNECT) {
+        //connect
+        LOG(INFO) << "try to connect with master";
+        struct sockaddr_in s_addr;
+        int connfd = socket(AF_INET, SOCK_STREAM, 0);
+        memset(&s_addr, 0, sizeof(s_addr));
+        if (connfd == -1) {
+            return;
+        }
+        s_addr.sin_family = AF_INET;
+        s_addr.sin_addr.s_addr = inet_addr(masterhost_.c_str());
+        s_addr.sin_port = htons(masterport_);
+        if (-1 == connect(connfd, (struct sockaddr*)(&s_addr), sizeof(s_addr))) {
+            return;
+        }
+         
+        char ipAddr[INET_ADDRSTRLEN] = "";
+        ip_port = inet_ntop(AF_INET, &s_addr.sin_addr, ipAddr, sizeof(ipAddr));
+        ip_port.append(":");
+        ll2string(buf, sizeof(buf), ntohs(s_addr.sin_port));
+        ip_port.append(buf);
+        std::queue<PikaItem> *q = &(pikaThread_[last_thread_]->conn_queue_);
+        PikaItem ti(connfd, ip_port, PIKA_MASTER);
+        {
+            MutexLock l(&pikaThread_[last_thread_]->mutex_);
+            q->push(ti);
+        }
+        write(pikaThread_[last_thread_]->notify_send_fd(), "", 1);
+        repl_state_ = PIKA_SLAVE;
+        ms_state_ = PIKA_REP_CONNECTING;
+    }
+    }
+}
+
+void PikaServer::DisconnectFromMaster() {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", masterport_);
+    std::string str_port(buf);
+    std::string master_ip_port = masterhost_ + ":" + str_port;
+    ClientKill(master_ip_port);
+    masterhost_ = "";
+    masterport_ = 0;
+    repl_state_ = PIKA_SINGLE;
+    ms_state_ = PIKA_REP_SINGLE;
+}
+
+int PikaServer::TrySync(std::string &ip, std::string &str_port, int fd, uint64_t filenum, uint64_t offset) {
     std::string ip_port = ip + ":" + str_port;
     std::map<std::string, SlaveItem>::iterator iter = slaves_.find(ip_port);
     int64_t port;
@@ -128,25 +181,35 @@ int PikaServer::TrySync(std::string &ip, std::string &str_port) {
     if (iter != slaves_.end()) {
         if (iter->second.state != PIKA_REP_OFFLINE) {
             return PIKA_REP_STRATEGY_ALREADY;
-        } else {
-            iter->second.state = PIKA_REP_CONNECTED;
         }
-    } else { 
+    }
+    std::map<int, PikaConn*>::iterator iter_fd;
+    std::map<std::string, client_info>::iterator iter_cl;
+    PikaConn* conn = NULL;
+    for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+        iter_fd = pikaThread_[i]->conns()->find(fd);
+        if (iter_fd != pikaThread_[i]->conns()->end()) {
+            conn = iter_fd->second;
+            conn->set_role(PIKA_SLAVE);
+            break;
+        }
+    }
+    if (conn == NULL) {
+        return PIKA_REP_STRATEGY_ERROR;
+    }
+
+    MarioHandler* h = new MarioHandler(ip, port, conn);
+    mario::Status s = g_pikaMario->AddConsumer(filenum, offset, h);
+    if (s.ok()) {
+        set_repl_state(PIKA_MASTER);
+        {
+        MutexLock l(&mutex_);
         SlaveItem ss;
         ss.ip = ip;
         ss.port = port;
+        ss.state = PIKA_REP_CONNECTED;
         slaves_[ip_port] = ss;
-    }
-    MarioHandler* h = new MarioHandler(ip, port);
-    if (h->pika_connect() != 0) {
-//        delete h;
-        slaves_[ip_port].state = PIKA_REP_OFFLINE;
-        return PIKA_REP_STRATEGY_ERROR;
-    };
-    mario::Status s = g_pikaMario->AddConsumer(0, 0, h);
-    if (s.ok()) {
-        slaves_[ip_port].state = PIKA_REP_CONNECTED;
-        set_repl_state(PIKA_MASTER);
+        }
         return PIKA_REP_STRATEGY_PSYNC;
     } else {
         return PIKA_REP_STRATEGY_ERROR;
@@ -265,8 +328,21 @@ void PikaServer::RunProcess()
     char ipAddr[INET_ADDRSTRLEN] = "";
     std::string ip_port;
     char buf[32];
+
+    struct timeval target;
+    struct timeval now;
+    gettimeofday(&target, NULL);
+    target.tv_sec++;
+    int timeout = 1000;
     for (;;) {
-        nfds = pikaEpoll_->PikaPoll();
+        gettimeofday(&now, NULL);
+        if (target.tv_sec > now.tv_sec || (target.tv_sec == now.tv_sec && target.tv_usec - now.tv_usec > 1000)) {
+            timeout = (target.tv_sec-now.tv_sec)*1000 + (target.tv_usec-now.tv_usec)/1000;
+        } else {
+            ProcessTimeEvent(&target);
+            timeout = 1000;
+        }
+        nfds = pikaEpoll_->PikaPoll(timeout);
         tfe = pikaEpoll_->firedevent();
         for (int i = 0; i < nfds; i++) {
             fd = (tfe + i)->fd_;

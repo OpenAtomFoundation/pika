@@ -3,6 +3,8 @@
 #include "port.h"
 #include "pika_epoll.h"
 #include "pika_define.h"
+#include "pika_server.h"
+#include "util.h"
 #include "csapp.h"
 #include "pika_conf.h"
 #include <glog/logging.h>
@@ -10,11 +12,15 @@
 #include "pika_conn.h"
 
 extern PikaConf* g_pikaConf;
+extern PikaServer *g_pikaServer;
 
 PikaThread::PikaThread(int thread_index)
 {
     thread_index_ = thread_index;
     thread_id_ = pthread_self();
+    is_master_thread_ = false;
+    is_first_ = false;
+    crontimes_ = 0;
 
     /*
      * inital the pikaepoll object, add the notify_receive_fd to epoll
@@ -51,7 +57,12 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     std::map<std::string, client_info>::iterator iter_clientlist;
     int i = 0;
     iter = conns_.begin();
+    crontimes_ = (crontimes_+1)%10;
     while (iter != conns_.end()) {
+        if (crontimes_ == 0 && iter->second->role() != PIKA_SINGLE) {
+            LOG(INFO)<<"Send Ping";
+            iter->second->append_wbuf("*1\r\n$4\r\nPING\r\n");
+        }
         iter_clientlist = clients_.find(iter->second->ip_port());
         if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) || 
         (iter_clientlist->second.role == CLIENT_NORMAL && 
@@ -78,6 +89,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
             iter++;
         }
     }
+
     
     return i;
 }
@@ -121,15 +133,23 @@ void PikaThread::RunProcess()
                 ti = conn_queue_.front();
                 conn_queue_.pop();
                 }
-                PikaConn *tc = new PikaConn(ti.fd(), ti.ip_port());
+                PikaConn *tc = new PikaConn(ti.fd(), ti.ip_port(), ti.role());
                 tc->SetNonblock();
+                if (ti.role() == PIKA_MASTER) {
+                    is_master_thread_ = true;
+                    is_first_ = true;
+                }
                 conns_[ti.fd()] = tc;
                 LOG(INFO) << "Add New Client: " << tc->ip_port();
                 {
                     RWLock l(&rwlock_, true);
                     clients_[tc->ip_port()] = { ti.fd(), false, CLIENT_NORMAL };
                 }
-                pikaEpoll_->PikaAddEvent(ti.fd(), EPOLLIN);
+                if (ti.role() != PIKA_MASTER) {
+                    pikaEpoll_->PikaAddEvent(ti.fd(), EPOLLIN);
+                } else {
+                    pikaEpoll_->PikaAddEvent(ti.fd(), EPOLLOUT);
+                }
 //                log_info("receive one fd %d", ti.fd());
                 /*
                  * tc->set_thread(this);
@@ -145,6 +165,9 @@ void PikaThread::RunProcess()
 
             if (tfe->mask_ & EPOLLIN) {
                 // log_info("come if readable %d", (inConn == NULL));
+                if (inConn->role() != PIKA_SINGLE) {
+                    inConn->UpdateLastInteraction();
+                }
                 int ret = inConn->PikaGetRequest();
                 if (ret == 0) {
                     pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
@@ -156,11 +179,34 @@ void PikaThread::RunProcess()
 //            log_info("tfe mask %d %d %d", tfe->mask_, EPOLLIN, EPOLLOUT);
             if (tfe->mask_ & EPOLLOUT) {
 //                log_info("Come in the EPOLLOUT branch");
+                if (inConn->role() == PIKA_MASTER && is_master_thread_ && is_first_) {
+                    is_first_ = false;
+                    char buf[32];
+                    char buf_len[32];
+                    std::string serverip = g_pikaServer->GetServerIp();
+                    int serverport = g_pikaServer->GetServerPort();
+                    int len = ll2string(buf, sizeof(buf), serverport); 
+                    std::string str = "*5\r\n$8\r\npikasync\r\n";
+                    snprintf(buf, sizeof(buf), "$%lu\r\n", serverip.size());
+                    str.append(buf);
+                    str.append(serverip.data(), serverip.size());
+
+                    snprintf(buf_len, sizeof(buf_len), "\r\n$%d\r\n", len);
+                    str.append(buf_len);
+
+                    snprintf(buf, sizeof(buf), "%d\r\n", serverport);
+                    str.append(buf);
+                    str.append("$1\r\n0\r\n$1\r\n0\r\n");
+                    LOG(INFO)<<str;
+                    inConn->append_wbuf(str);
+                }
                 if (inConn->PikaSendReply() == 0) {
 //                    log_info("SendReply ok");
                     if (inConn->ShouldCloseAfterReply()) {
                         it = conns_.find(inConn->fd());
+                        int role = PIKA_SINGLE;
                         if (it != conns_.end()) {
+                            role = it->second->role();
                             conns_.erase(it);
                         }
                         close(inConn->fd());
@@ -174,8 +220,15 @@ void PikaThread::RunProcess()
                             }
                         }
                         delete(inConn);
+                        if (role == PIKA_MASTER) {
+                            g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
+                        }
                     } else {
-                        pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
+                        if (inConn->role() != PIKA_SLAVE) {
+                            pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
+                        } else {
+                            pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN | EPOLLOUT);
+                        }
                     }
                 } else {
                     pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
@@ -187,7 +240,9 @@ void PikaThread::RunProcess()
             if ((tfe->mask_  & EPOLLERR) || (tfe->mask_ & EPOLLHUP)) {
 //                log_info("close tfe fd here");
                 it = conns_.find(tfe->fd_);
+                int role = PIKA_SINGLE;
                 if (it != conns_.end()) {
+                    role = it->second->role();
                     conns_.erase(it);
                 }
                 close(tfe->fd_);
@@ -200,6 +255,9 @@ void PikaThread::RunProcess()
                     }
                 }
                 delete(inConn);
+                if (role == PIKA_MASTER) {
+                    g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
+                }
             }
         }
     }

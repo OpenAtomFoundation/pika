@@ -64,6 +64,18 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class UcanpsyncCmd : public Cmd {
+public:
+    UcanpsyncCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SyncerrorCmd : public Cmd {
+public:
+    SyncerrorCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 /*
  * kv
  */
