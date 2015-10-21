@@ -4,7 +4,7 @@
 class MarioHandler : public mario::Consumer::Handler
 {
 public:
-    MarioHandler(std::string &ip, int port, PikaConn* conn) : ip_(ip), port_(port), conn_(conn) {};
+    MarioHandler(PikaConn* conn) : conn_(conn) {};
 
     ~MarioHandler() {}
 
@@ -12,7 +12,5 @@ public:
         conn_->append_wbuf(item);
         return true;
     }
-    std::string ip_;
-    int port_;
     PikaConn* conn_;
 };

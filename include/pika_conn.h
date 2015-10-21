@@ -39,8 +39,8 @@ public:
     int role() {return role_; };
     void set_role(int role) { role_ = role; }
     std::string ip_port() { return ip_port_; };
-    struct timeval  lastinteraction() { return lastinteraction_; };
-    void UpdateLastInteraction() { gettimeofday(&lastinteraction_, NULL); };
+//    struct timeval  lastinteraction() { return lastinteraction_; };
+//    void UpdateLastInteraction() { gettimeofday(&lastinteraction_, NULL); };
     
 
 private:
@@ -59,7 +59,7 @@ private:
     std::string ip_port_;
     bool is_authed_;
     int role_;
-    struct timeval lastinteraction_;
+//    struct timeval lastinteraction_;
     sds wbuf_;
     sds msbuf_;
     int32_t wbuf_len_;

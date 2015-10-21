@@ -46,11 +46,11 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
-class BemasterCmd : public Cmd {
-public:
-    BemasterCmd(int a, bool i = false) : Cmd(a, i) {};
-    virtual void Do(std::list<std::string> &argvs, std::string &ret);
-};
+//class BemasterCmd : public Cmd {
+//public:
+//    BemasterCmd(int a, bool i = false) : Cmd(a, i) {};
+//    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+//};
 
 class ConfigCmd : public Cmd {
 public:

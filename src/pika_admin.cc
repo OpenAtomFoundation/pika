@@ -73,29 +73,29 @@ void ClientCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 }
 
-void BemasterCmd::Do(std::list<std::string> &argv, std::string &ret) {
-    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
-        ret.append(argv.front());
-        ret.append(" command\r\n");
-        return;
-    }
-    argv.pop_front();
-    std::string str_fd = argv.front();
-    argv.pop_front();
-    int64_t fd;
-    if (!string2l(str_fd.data(), str_fd.size(), &fd)) {
-        ret = "-ERR value is not an integer or out of range\r\n";
-        return;
-    }
-
-    int res = g_pikaServer->ClientRole(fd, CLIENT_MASTER);
-    if (res == 1) {
-        ret = "+OK\r\n";
-    } else {
-        ret = "-ERR No such client\r\n";
-    }
-}
+//void BemasterCmd::Do(std::list<std::string> &argv, std::string &ret) {
+//    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+//        ret = "-ERR wrong number of arguments for ";
+//        ret.append(argv.front());
+//        ret.append(" command\r\n");
+//        return;
+//    }
+//    argv.pop_front();
+//    std::string str_fd = argv.front();
+//    argv.pop_front();
+//    int64_t fd;
+//    if (!string2l(str_fd.data(), str_fd.size(), &fd)) {
+//        ret = "-ERR value is not an integer or out of range\r\n";
+//        return;
+//    }
+//
+//    int res = g_pikaServer->ClientRole(fd, CLIENT_MASTER);
+//    if (res == 1) {
+//        ret = "+OK\r\n";
+//    } else {
+//        ret = "-ERR No such client\r\n";
+//    }
+//}
 
 void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
@@ -151,15 +151,15 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     }
     argv.pop_front();
-    std::string ip = argv.front();
-    argv.pop_front();
-    std::string str_port = argv.front();
-    argv.pop_front();
-    int64_t port = 0;
-    if (!string2l(str_port.data(), str_port.size(), &port)) {
-        ret = "-ERR value is not an integer or out of range\r\n";
-        return;
-    }
+//    std::string ip = argv.front();
+//    argv.pop_front();
+//    std::string str_port = argv.front();
+//    argv.pop_front();
+//    int64_t port = 0;
+//    if (!string2l(str_port.data(), str_port.size(), &port)) {
+//        ret = "-ERR value is not an integer or out of range\r\n";
+//        return;
+//    }
     std::string str_filenum = argv.front();
     argv.pop_front();
     int64_t filenum = 0;
@@ -184,10 +184,8 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 
 //    LOG(INFO) << ip << " : " << str_port;
-    int res = g_pikaServer->TrySync(ip, str_port, fd, filenum, offset);
-    if (res == PIKA_REP_STRATEGY_ALREADY) {
-        ret = "";
-    } else if (res == PIKA_REP_STRATEGY_PSYNC) {
+    int res = g_pikaServer->TrySync(/*ip, str_port, */fd, filenum, offset);
+    if (res == PIKA_REP_STRATEGY_PSYNC) {
         ret = "*1\r\n$9\r\nucanpsync\r\n";
     } else {
         ret = "*1\r\n$9\r\nsyncerror";
@@ -203,8 +201,11 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
     argv.pop_front();
 
+    {
+    MutexLock l(g_pikaServer->Mutex());
     if (g_pikaServer->ms_state_ == PIKA_REP_CONNECTING) {
         g_pikaServer->ms_state_ = PIKA_REP_CONNECTED;
+    }
     }
     ret = "";
 }

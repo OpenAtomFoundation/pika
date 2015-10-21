@@ -64,9 +64,8 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
             iter->second->append_wbuf("*1\r\n$4\r\nPING\r\n");
         }
         iter_clientlist = clients_.find(iter->second->ip_port());
-        if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) || 
-        (iter_clientlist->second.role == CLIENT_NORMAL && 
-        ((t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->timeout() * 1000000LL))) {
+        if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) ||  
+        ((t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->timeout() * 1000000LL)) {
 
             {
                 RWLock l(&rwlock_, true);
@@ -78,6 +77,23 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
                     clients_.erase(iter_clientlist);
                 }
 
+            }
+            if (iter->second->role() == PIKA_MASTER) {
+                LOG(INFO) << "Remove Timeout Master";
+                MutexLock l(g_pikaServer->Mutex());
+                g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
+//            } else if (iter->second->role() == PIKA_SLAVE) {
+//                MutexLock l(g_pikaServer->Mutex());
+//                std::map<std::string, SlaveItem>::iterator ii = g_pikaServer->slaves()->begin();
+//                while (ii != g_pikaServer->slaves()->end()) {
+//                    LOG(INFO) << ii->first << " " << (ii->second).ip << " " <<  (ii->second).port <<" "<< (ii->second).state;
+//                    ii++;
+//                }
+//                std::map<std::string, SlaveItem>::iterator iter_slave = g_pikaServer->slaves()->find(iter->second->ip_port());
+//                if (iter_slave != g_pikaServer->slaves()->end()) {
+//                    g_pikaServer->slaves()->erase(iter_slave);
+//                    LOG(INFO) << "Remove Timeout SLave";
+//                }
             }
 
             pikaEpoll_->PikaDelEvent(iter->second->fd());
@@ -140,10 +156,15 @@ void PikaThread::RunProcess()
                     is_first_ = true;
                 }
                 conns_[ti.fd()] = tc;
-                LOG(INFO) << "Add New Client: " << tc->ip_port();
                 {
                     RWLock l(&rwlock_, true);
-                    clients_[tc->ip_port()] = { ti.fd(), false, CLIENT_NORMAL };
+                    if (ti.role() == PIKA_MASTER) {
+                        LOG(INFO) << "Add Master " << tc->ip_port();
+                        clients_[tc->ip_port()] = { ti.fd(), false, CLIENT_MASTER };
+                    } else {
+                        LOG(INFO) << "Add New Client: " << tc->ip_port();
+                        clients_[tc->ip_port()] = { ti.fd(), false, CLIENT_NORMAL };
+                    }
                 }
                 if (ti.role() != PIKA_MASTER) {
                     pikaEpoll_->PikaAddEvent(ti.fd(), EPOLLIN);
@@ -164,10 +185,11 @@ void PikaThread::RunProcess()
             }
 
             if (tfe->mask_ & EPOLLIN) {
+                inConn->UpdateTv(now);
                 // log_info("come if readable %d", (inConn == NULL));
-                if (inConn->role() != PIKA_SINGLE) {
-                    inConn->UpdateLastInteraction();
-                }
+//                if (inConn->role() != PIKA_SINGLE) {
+//                    inConn->UpdateLastInteraction();
+//                }
                 int ret = inConn->PikaGetRequest();
                 if (ret == 0) {
                     pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
@@ -181,22 +203,23 @@ void PikaThread::RunProcess()
 //                log_info("Come in the EPOLLOUT branch");
                 if (inConn->role() == PIKA_MASTER && is_master_thread_ && is_first_) {
                     is_first_ = false;
-                    char buf[32];
-                    char buf_len[32];
-                    std::string serverip = g_pikaServer->GetServerIp();
-                    int serverport = g_pikaServer->GetServerPort();
-                    int len = ll2string(buf, sizeof(buf), serverport); 
-                    std::string str = "*5\r\n$8\r\npikasync\r\n";
-                    snprintf(buf, sizeof(buf), "$%lu\r\n", serverip.size());
-                    str.append(buf);
-                    str.append(serverip.data(), serverip.size());
-
-                    snprintf(buf_len, sizeof(buf_len), "\r\n$%d\r\n", len);
-                    str.append(buf_len);
-
-                    snprintf(buf, sizeof(buf), "%d\r\n", serverport);
-                    str.append(buf);
-                    str.append("$1\r\n0\r\n$1\r\n0\r\n");
+//                    char buf[32];
+//                    char buf_len[32];
+//                    std::string serverip = g_pikaServer->GetServerIp();
+//                    int serverport = g_pikaServer->GetServerPort();
+//                    int len = ll2string(buf, sizeof(buf), serverport); 
+//                    std::string str = "*5\r\n$8\r\npikasync\r\n";
+//                    snprintf(buf, sizeof(buf), "$%lu\r\n", serverip.size());
+//                    str.append(buf);
+//                    str.append(serverip.data(), serverip.size());
+//
+//                    snprintf(buf_len, sizeof(buf_len), "\r\n$%d\r\n", len);
+//                    str.append(buf_len);
+//
+//                    snprintf(buf, sizeof(buf), "%d\r\n", serverport);
+//                    str.append(buf);
+//                    str.append("$1\r\n0\r\n$1\r\n0\r\n");
+                    std::string str = "*3\r\n$8\r\npikasync\r\n$1\r\n0\r\n$1\r\n0\r\n";
                     LOG(INFO)<<str;
                     inConn->append_wbuf(str);
                 }
@@ -219,10 +242,25 @@ void PikaThread::RunProcess()
                                 clients_.erase(it_clientlist);
                             }
                         }
-                        delete(inConn);
                         if (role == PIKA_MASTER) {
+                            LOG(INFO) << "Remove Master";
+                            MutexLock l(g_pikaServer->Mutex());
                             g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
+//                        } else if (role == PIKA_SLAVE) {
+//                            MutexLock l(g_pikaServer->Mutex());
+//                            std::map<std::string, SlaveItem>::iterator ii = g_pikaServer->slaves()->begin();
+//                            while (ii != g_pikaServer->slaves()->end()) {
+//                                LOG(INFO) << ii->first << " " << (ii->second).ip << " " <<  (ii->second).port <<" "<< (ii->second).state;
+//                                ii++;
+//                            }
+//                            LOG(INFO) << "inConn->ip_port(): " << inConn->ip_port();
+//                            std::map<std::string, SlaveItem>::iterator iter_slave = g_pikaServer->slaves()->find(inConn->ip_port());
+//                            if (iter_slave != g_pikaServer->slaves()->end()) {
+//                                g_pikaServer->slaves()->erase(iter_slave);
+//                                LOG(INFO) << "Remove Slave";
+//                            }
                         }
+                        delete(inConn);
                     } else {
                         if (inConn->role() != PIKA_SLAVE) {
                             pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN);
@@ -235,7 +273,6 @@ void PikaThread::RunProcess()
                 }
             }
 
-            inConn->UpdateTv(now);
 
             if ((tfe->mask_  & EPOLLERR) || (tfe->mask_ & EPOLLHUP)) {
 //                log_info("close tfe fd here");
@@ -254,10 +291,24 @@ void PikaThread::RunProcess()
                         clients_.erase(it_clientlist);
                     }
                 }
-                delete(inConn);
                 if (role == PIKA_MASTER) {
+                    LOG(INFO) << "Remove Master";
+                    MutexLock l(g_pikaServer->Mutex());
                     g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
+//                } else if (role == PIKA_SLAVE) {
+//                    MutexLock l(g_pikaServer->Mutex());
+//                    std::map<std::string, SlaveItem>::iterator ii = g_pikaServer->slaves()->begin();
+//                    while (ii != g_pikaServer->slaves()->end()) {
+//                        LOG(INFO) << ii->first << " " << (ii->second).ip << " " <<  (ii->second).port <<" "<< (ii->second).state;
+//                        ii++;
+//                    }
+//                    std::map<std::string, SlaveItem>::iterator iter_slave = g_pikaServer->slaves()->find(inConn->ip_port());
+//                    if (iter_slave != g_pikaServer->slaves()->end()) {
+//                        g_pikaServer->slaves()->erase(iter_slave);
+//                        LOG(INFO) << "Remove Slave";
+//                    }
                 }
+                delete(inConn);
             }
         }
     }

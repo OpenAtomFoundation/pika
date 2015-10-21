@@ -43,7 +43,7 @@ public:
     nemo::Nemo* GetHandle() {return db_;};
     int ClientList(std::string &res);
     int ClientKill(std::string &ip_port);
-    int ClientRole(int fd, int role);
+//    int ClientRole(int fd, int role);
     
     void set_masterhost(std::string &masterhost) { masterhost_ = masterhost; }
     std::string masterhost() { return masterhost_; }
@@ -53,10 +53,11 @@ public:
     int repl_state() { return repl_state_; }
     port::Mutex* Mutex() { return &mutex_; }
     std::string GetServerIp();
-    void Offline(std::string ip_port);
+//    void Offline(std::string ip_port);
     int GetServerPort();
-    int TrySync(std::string &ip, std::string &port, int fd, uint64_t filenum, uint64_t offset);
-    int Slavenum() { return slaves_.size(); }
+    int TrySync(/*std::string &ip, std::string &port,*/ int fd, uint64_t filenum, uint64_t offset);
+//    int Slavenum() { return slaves_.size(); }
+//    std::map<std::string, SlaveItem>* slaves() { return &slaves_; }
     void ProcessTimeEvent(struct timeval*);
     void DisconnectFromMaster();
     
@@ -79,7 +80,7 @@ private:
     int masterport_;
 
     port::Mutex mutex_;
-    std::map<std::string, SlaveItem> slaves_;
+//    std::map<std::string, SlaveItem> slaves_;
     /*
      * The Epoll event handler
      */
