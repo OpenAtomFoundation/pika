@@ -41,7 +41,6 @@ public:
     std::string ip_port() { return ip_port_; };
 //    struct timeval  lastinteraction() { return lastinteraction_; };
 //    void UpdateLastInteraction() { gettimeofday(&lastinteraction_, NULL); };
-    
 
 private:
 

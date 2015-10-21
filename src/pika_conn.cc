@@ -423,15 +423,8 @@ int PikaConn::DoCmd() {
             ret.append(opt);
             ret.append("\'\r\n");
         } else {
-            if (opt == "bemaster") {
-                char buf[32];
-                ll2string(buf, sizeof(buf), fd_);
-                argv_.push_back(std::string(buf));
-                role_ = PIKA_MASTER;
-            }
             if (opt == "pikasync") {
                 char buf[32];
-//                ll2string(buf, sizeof(buf), fd_);
                 ll2string(buf, sizeof(buf), fd_);
                 argv_.push_back(std::string(buf));
                 role_ = PIKA_SLAVE;

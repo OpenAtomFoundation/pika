@@ -269,7 +269,11 @@ void PikaThread::RunProcess()
                         }
                     }
                 } else {
-                    pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
+                    if (inConn->role() != PIKA_SLAVE) {
+                        pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLOUT);
+                    } else {
+                        pikaEpoll_->PikaModEvent(tfe->fd_, 0, EPOLLIN | EPOLLOUT);
+                    }
                 }
             }
 
