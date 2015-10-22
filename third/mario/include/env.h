@@ -136,7 +136,7 @@ class Env {
 
         // Start a new thread, invoking "function(arg)" within the new thread.
         // When "function(arg)" returns, the thread will be destroyed.
-        virtual void StartThread(void (*function)(void* arg), void* arg) = 0;
+        virtual pthread_t StartThread(void (*function)(void* arg), void* arg) = 0;
 
         // *path is set to a temporary directory that can be used for testing. It may
         // or many not have just been created. The directory may or may not differ
@@ -345,7 +345,7 @@ class EnvWrapper : public Env {
         void Schedule(void (*f)(void*), void* a) {
             return target_->Schedule(f, a);
         }
-        void StartThread(void (*f)(void*), void* a) {
+        pthread_t StartThread(void (*f)(void*), void* a) {
             return target_->StartThread(f, a);
         }
         virtual Status GetTestDirectory(std::string* path) {
