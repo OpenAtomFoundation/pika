@@ -78,9 +78,16 @@ int main()
         }
     }
 
-    m->RemoveConsumer(9221);
-    log_info("Remove a consumer 9221");
+    log_info("Remove a consumer 9221"); 
+    s = m->RemoveConsumer(9221);
+    if (s.ok()) {
+        log_info(" remove ok, ", s.ToString().c_str());
+    } else {
+        log_info(" remove ok, ", s.ToString().c_str());
+    }
 
+
+    sleep(2);
     cnt = 30;
     for (int i = 20; i < cnt; i++) {
         std::string msg = item + std::to_string(i);
@@ -91,8 +98,14 @@ int main()
         }
     }
 
+    sleep(3);
     m->RemoveConsumer(9222);
     log_info("Remove a consumer 9222");
+    if (s.ok()) {
+        log_info(" remove ok, ", s.ToString().c_str());
+    } else {
+        log_info(" remove ok, ", s.ToString().c_str());
+    }
 
     m->SetProducerStatus(100, 50);
 
