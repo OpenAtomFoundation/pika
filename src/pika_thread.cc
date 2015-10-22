@@ -62,6 +62,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
         if (crontimes_ == 0 && iter->second->role() != PIKA_SINGLE) {
             LOG(INFO)<<"Send Ping";
             iter->second->append_wbuf("*1\r\n$4\r\nPING\r\n");
+            LOG(INFO) << "length of wbuf_: " << iter->second->wbuflen();
         }
         iter_clientlist = clients_.find(iter->second->ip_port());
         if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) ||  
@@ -236,11 +237,12 @@ void PikaThread::RunProcess()
 
                         it_clientlist = clients_.find(inConn->ip_port());
                         if (it_clientlist != clients_.end()) {
-                            LOG(INFO) << "Remove Client: " << it_clientlist->first;
+                            LOG(INFO) << "Remove Client: " << it_clientlist->first << " " << inConn->ip_port();
                             {
                                 RWLock l(&rwlock_, true); 
                                 clients_.erase(it_clientlist);
                             }
+                            LOG(INFO) << "Remove Client OK";
                         }
                         if (role == PIKA_MASTER) {
                             LOG(INFO) << "Remove Master";
@@ -280,6 +282,7 @@ void PikaThread::RunProcess()
 
             if ((tfe->mask_  & EPOLLERR) || (tfe->mask_ & EPOLLHUP)) {
 //                log_info("close tfe fd here");
+                LOG(INFO) << "error event happen: " << tfe->mask_;
                 it = conns_.find(tfe->fd_);
                 int role = PIKA_SINGLE;
                 if (it != conns_.end()) {

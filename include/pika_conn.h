@@ -37,11 +37,11 @@ public:
     void UpdateTv(struct timeval now) { tv_ = now; };
     int fd() { return fd_; };
     int role() {return role_; };
-    void set_role(int role) { role_ = role; }
+    void set_role(int role) { MutexLock l(&mutex_); role_ = role; }
     std::string ip_port() { return ip_port_; };
 //    struct timeval  lastinteraction() { return lastinteraction_; };
 //    void UpdateLastInteraction() { gettimeofday(&lastinteraction_, NULL); };
-
+    int wbuflen() { return sdslen(wbuf_); }
 private:
 
     int fd_;

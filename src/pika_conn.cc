@@ -275,6 +275,7 @@ int PikaConn::ProcessInputBuffer() {
                         wbuf_ = sdscat(wbuf_, err_msg.c_str());
                     }
                     sdsclear(msbuf_);
+                    LOG(INFO) << "error in parsing inlinebuffer, error: " << err_msg;
                     return -2;
                 }
                 break;
@@ -289,6 +290,7 @@ int PikaConn::ProcessInputBuffer() {
                         wbuf_ = sdscat(wbuf_, err_msg.c_str());
                     }
                     sdsclear(msbuf_);
+                    LOG(INFO) << "error in parsing multibulkbuffer, error: " << err_msg;
                     return -2;
                 }
                 break;
@@ -370,6 +372,7 @@ int PikaConn::PikaSendReply()
                     /*
                      * Here we clear this connection
                      */
+                    LOG(INFO) << "send error, close client";
                     should_close_after_reply = true;
                     return 0;
                 }
@@ -394,6 +397,7 @@ int PikaConn::PikaSendReply()
                     /*
                      * Here we clear this connection
                      */
+                    LOG(INFO) << "send error, close client";
                     should_close_after_reply = true;
                     return 0;
                 }
@@ -448,7 +452,7 @@ int PikaConn::DoCmd() {
     } else {
         ret = "-ERR NOAUTH Authentication required.\r\n";
     }
-    if (role_ != PIKA_MASTER) {
+    if (role_ != PIKA_MASTER && !(role_ == PIKA_SLAVE && opt == "ping")) {
         wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
     }
     return cmd_ret;
