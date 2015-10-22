@@ -130,7 +130,7 @@ void PikaServer::ProcessTimeEvent(struct timeval* target) {
     MutexLock l(&mutex_);
     if (ms_state_ == PIKA_REP_CONNECT) {
         //connect
-        LOG(INFO) << "try to connect with master";
+        LOG(INFO) << "try to connect with master: " << masterhost_ << ":" << masterport_;
         struct sockaddr_in s_addr;
         int connfd = socket(AF_INET, SOCK_STREAM, 0);
         if (connfd == -1) {
@@ -236,7 +236,6 @@ int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint
         iter_fd = pikaThread_[i]->conns()->find(fd);
         if (iter_fd != pikaThread_[i]->conns()->end()) {
             conn = iter_fd->second;
-            conn->set_role(PIKA_SLAVE);
             break;
         }
     }
@@ -273,6 +272,7 @@ int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint
             iter_cl->second.role = PIKA_SLAVE;
         }
         }
+        conn->set_role(PIKA_SLAVE);
         return PIKA_REP_STRATEGY_PSYNC;
     } else {
         return PIKA_REP_STRATEGY_ERROR;

@@ -207,6 +207,7 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
         g_pikaServer->ms_state_ = PIKA_REP_CONNECTED;
     }
     }
+    LOG(INFO) << "Master told me that I can psync";
     ret = "";
 }
 
@@ -224,6 +225,7 @@ void SyncerrorCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
     argv.pop_front();
     g_pikaServer->DisconnectFromMaster();
+    LOG(INFO) << "Master told me that I can not psync, rollback now";
     ret = ""; 
 }
 

@@ -54,25 +54,25 @@ public:
 
 class ConfigCmd : public Cmd {
 public:
-    ConfigCmd(int a) : Cmd(a) {};
+    ConfigCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class InfoCmd : public Cmd {
 public:
-    InfoCmd(int a) : Cmd(a) {};
+    InfoCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class UcanpsyncCmd : public Cmd {
 public:
-    UcanpsyncCmd(int a) : Cmd(a) {};
+    UcanpsyncCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class SyncerrorCmd : public Cmd {
 public:
-    SyncerrorCmd(int a) : Cmd(a) {};
+    SyncerrorCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
