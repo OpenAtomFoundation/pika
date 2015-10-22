@@ -135,10 +135,19 @@ Status Mario::RemoveConsumer(int fd) {
     for (it = consumers_.begin(); it != consumers_.end(); it++) {
       if ((*it)->fd_ == fd) {
           (*it)->SetExit();
+
+          void* pret;
+
+          int err = pthread_join((*it)->tid_, &pret);
+          if (err != 0) {
+              std::string msg = "can't join thread " + std::string(strerror(err));
+              return Status::Corruption(msg);
+          }
           mutex_.Lock();
           consumer_num_--;
           consumers_.erase(it);
           mutex_.Unlock();
+
           return Status::OK();
       }
     }
