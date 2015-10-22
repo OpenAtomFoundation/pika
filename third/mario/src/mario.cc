@@ -103,7 +103,7 @@ Mario::~Mario()
     // delete env_;
 }
 
-Status Mario::AddConsumer(uint32_t filenum, uint64_t con_offset, Consumer::Handler* h, std::string &ip, int port) {
+Status Mario::AddConsumer(uint32_t filenum, uint64_t con_offset, Consumer::Handler* h, int fd) {
     std::string confile = NewFileName(filename_, filenum);
     SequentialFile *readfile;
     Status s = env_->AppendSequentialFile(confile, &readfile);
@@ -113,7 +113,7 @@ Status Mario::AddConsumer(uint32_t filenum, uint64_t con_offset, Consumer::Handl
     Consumer* consumer = new Consumer(readfile, h, con_offset, filenum);
     if (consumer->trim() == 0) {
         
-        ConsumerItem* consumer_item = new ConsumerItem(readfile, consumer, h, ip, port);
+        ConsumerItem* consumer_item = new ConsumerItem(readfile, consumer, h, fd);
         //env_->set_thread_num(consumer_num_);
         arg_ = { this, consumer_item };
         pthread_t tid = env_->StartThread(&Mario::BGWork, (void*)&arg_);
@@ -129,12 +129,11 @@ Status Mario::AddConsumer(uint32_t filenum, uint64_t con_offset, Consumer::Handl
     }
 }
 
-Status Mario::RemoveConsumer(std::string ip, int port) {
+Status Mario::RemoveConsumer(int fd) {
     std::list<ConsumerItem *>::iterator it;
 
     for (it = consumers_.begin(); it != consumers_.end(); it++) {
-      if ((*it)->ip_ == ip 
-          && (*it)->port_ == port) {
+      if ((*it)->fd_ == fd) {
           (*it)->SetExit();
           mutex_.Lock();
           consumer_num_--;
@@ -147,11 +146,10 @@ Status Mario::RemoveConsumer(std::string ip, int port) {
 }
 
 // TODO Skip con_offset
-Status Mario::SetConsumer(std::string ip, int port, uint32_t filenum, uint64_t con_offset) {
+Status Mario::SetConsumer(int fd, uint32_t filenum, uint64_t con_offset) {
     std::list<ConsumerItem *>::iterator it;
     for (it = consumers_.begin(); it != consumers_.end(); it++) {
-      if ((*it)->ip_ == ip 
-          && (*it)->port_ == port) {
+      if ((*it)->fd_ == fd) {
         ConsumerItem *c = *it;
         std::string confile = NewFileName(filename_, filenum);
 
@@ -183,11 +181,10 @@ Status Mario::SetConsumer(std::string ip, int port, uint32_t filenum, uint64_t c
     return Status::NotFound("");
 }
 
-Status Mario::GetConsumerStatus(std::string ip, int port, uint32_t *filenum, uint64_t *con_offset) {
+Status Mario::GetConsumerStatus(int fd, uint32_t *filenum, uint64_t *con_offset) {
     std::list<ConsumerItem *>::iterator it;
     for (it = consumers_.begin(); it != consumers_.end(); it++) {
-      if ((*it)->ip_ == ip 
-          && (*it)->port_ == port) {
+      if ((*it)->fd_ == fd) {
           *filenum = (*it)->consumer_->filenum();
           *con_offset = (*it)->consumer_->con_offset();
 

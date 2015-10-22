@@ -60,12 +60,11 @@ int main()
         }
     }
     
-    std::string ip = "127.0.0.1";
 
-    s = m->AddConsumer(0, 0, fh1, ip, 9221);
+    s = m->AddConsumer(0, 0, fh1, 9221);
     log_info("\nAdd a consumer 9221");
 
-    m->AddConsumer(0, 0, fh2, ip, 9222);
+    m->AddConsumer(0, 0, fh2, 9222);
     log_info("\nAdd a consumer 9222");
     sleep(3);
     
@@ -79,7 +78,7 @@ int main()
         }
     }
 
-    m->RemoveConsumer(ip, 9221);
+    m->RemoveConsumer(9221);
     log_info("Remove a consumer 9221");
 
     cnt = 30;
@@ -92,7 +91,7 @@ int main()
         }
     }
 
-    m->RemoveConsumer(ip, 9222);
+    m->RemoveConsumer(9222);
     log_info("Remove a consumer 9222");
 
     m->SetProducerStatus(100, 50);
@@ -102,7 +101,7 @@ int main()
     m->GetProducerStatus(&filenum, &offset);
     printf ("\nafter set filenum=%u, offset=%lu\n", filenum, offset);
 
-    s = m->AddConsumer(100, 50, fh1, ip, 9221);
+    s = m->AddConsumer(100, 50, fh1, 9221);
     log_info("\nAdd a consumer 9221 at(100,50) again");
     cnt = 60;
     for (int i = 50; i < cnt; i++) {
@@ -114,7 +113,7 @@ int main()
         }
     }
 
-    sleep(10);
+//    sleep(10);
     delete m;
     log_info("count %d", count);
     delete fh1;

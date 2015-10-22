@@ -23,11 +23,11 @@ class Version;
 
 class ConsumerItem {
 public:
-    ConsumerItem(SequentialFile* readfile, Consumer* consumer, Consumer::Handler* h, std::string &ip, int port = 0, pthread_t tid = 0) :
+    ConsumerItem(SequentialFile* readfile, Consumer* consumer, Consumer::Handler* h, int fd = 0, pthread_t tid = 0) :
         readfile_(readfile),
         consumer_(consumer),
         h_(h),
-        ip_(ip), port_(port), tid_(tid),
+        fd_(fd), tid_(tid),
         should_exit_(false) {
         };
     ~ConsumerItem() {
@@ -42,8 +42,9 @@ public:
     Consumer* consumer_;
     Consumer::Handler* h_;
 
-    std::string ip_;
-    int port_;
+    //std::string ip_;
+    //int port_;
+    int fd_;
     pthread_t tid_;
 
 private:
@@ -63,8 +64,8 @@ public:
     ~Mario();
     Status Put(const std::string &item);
     Status Put(const char* item, int len);
-    Status AddConsumer(uint32_t filenum, uint64_t con_offset, Consumer::Handler* h, std::string &ip, int port); 
-    Status RemoveConsumer(std::string ip, int port);
+    Status AddConsumer(uint32_t filenum, uint64_t con_offset, Consumer::Handler* h, int fd); 
+    Status RemoveConsumer(int fd);
 
     Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset);
     Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
@@ -73,9 +74,9 @@ public:
     // set the filenum and con_offset of the consumer which has the given ip and port;
     // return NotFound when can not find the consumer with the given ip and port;
     // return InvalidArgument when the filenum and con_offset are invalid;
-    Status SetConsumer(std::string ip, int port, uint32_t filenum, uint64_t con_offset);
+    Status SetConsumer(int fd, uint32_t filenum, uint64_t con_offset);
     // no lock 
-    Status GetConsumerStatus(std::string ip, int port, uint32_t* filenum, uint64_t* con_offset);
+    Status GetConsumerStatus(int fd, uint32_t* filenum, uint64_t* con_offset);
     Status AppendBlank(WritableFile *file, uint64_t len);
 
     Env *env() { return env_; }
