@@ -246,7 +246,7 @@ int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint
 
     std::map<std::string, client_info>::iterator iter_cl;
     MarioHandler* h = new MarioHandler(conn);
-    mario::Status s = g_pikaMario->AddConsumer(filenum, offset, h);
+    mario::Status s = g_pikaMario->AddConsumer(filenum, offset, h, fd);
     if (s.ok()) {
         {
         MutexLock l(&mutex_);
