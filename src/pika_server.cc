@@ -14,6 +14,7 @@
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
+#include <poll.h>
 
 extern PikaConf *g_pikaConf;
 extern mario::Mario *g_pikaMario;
@@ -78,6 +79,8 @@ PikaServer::PikaServer()
         pikaThread_[i] = new PikaThread(i);
     }
 
+    ms_state_ = PIKA_REP_SINGLE;
+    repl_state_ = PIKA_SINGLE;
 //    options_.create_if_missing = true;
 //    options_.write_buffer_size = 1500000000;
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
@@ -119,46 +122,169 @@ int PikaServer::GetServerPort() {
     return port_;
 }
 
-int PikaServer::TrySync(std::string &ip, std::string &str_port) {
+void PikaServer::ProcessTimeEvent(struct timeval* target) {
+    std::string ip_port;
+    char buf[32];
+    target->tv_sec++;
+    {
     MutexLock l(&mutex_);
-    std::string ip_port = ip + ":" + str_port;
-    std::map<std::string, SlaveItem>::iterator iter = slaves_.find(ip_port);
-    int64_t port;
-    string2l(str_port.data(), str_port.size(), &port);
-    if (iter != slaves_.end()) {
-        if (iter->second.state != PIKA_REP_OFFLINE) {
-            return PIKA_REP_STRATEGY_ALREADY;
-        } else {
-            iter->second.state = PIKA_REP_CONNECTED;
+    if (ms_state_ == PIKA_REP_CONNECT) {
+        //connect
+        LOG(INFO) << "try to connect with master";
+        struct sockaddr_in s_addr;
+        int connfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (connfd == -1) {
+            LOG(WARNING) << "socket error " << strerror(errno);
+            return ;
         }
-    } else { 
-        SlaveItem ss;
-        ss.ip = ip;
-        ss.port = port;
-        slaves_[ip_port] = ss;
+        memset(&s_addr, 0, sizeof(s_addr));
+        if (connfd == -1) {
+            return ;
+        }
+        int flags = fcntl(connfd, F_GETFL, 0);
+        fcntl(connfd, F_SETFL, flags | O_NONBLOCK);
+        int yes = 1;
+        if (setsockopt(connfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+            LOG(WARNING) << "setsockopt SO_REUSEADDR: " << strerror(errno);
+            return ;
+        }
+        if (setsockopt(connfd, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(yes)) == -1) {
+            LOG(WARNING) << "setsockopt SO_KEEPALIVE: " << strerror(errno);
+            return ;
+        }
+        s_addr.sin_family = AF_INET;
+        s_addr.sin_addr.s_addr = inet_addr(masterhost_.c_str());
+        s_addr.sin_port = htons(masterport_);
+        if (-1 == connect(connfd, (struct sockaddr*)(&s_addr), sizeof(s_addr))) {
+            if (errno == EINPROGRESS) {
+                struct pollfd   wfd[1];
+                wfd[0].fd     = connfd;
+                wfd[0].events = POLLOUT;
+
+                int res;
+                if ((res = poll(wfd, 1, 600)) == -1) {
+                    close(connfd);
+                    LOG(WARNING) << "The target host cannot be reached";
+                    return ;
+                } else if (res == 0) {
+                    errno = ETIMEDOUT;
+                    close(connfd);
+                    LOG(WARNING) << "The target host connect timeout";
+                    return ;
+                }
+                int err = 0;
+                socklen_t errlen = sizeof(err);
+
+                if (getsockopt(connfd, SOL_SOCKET, SO_ERROR, &err, &errlen) == -1) {
+                    LOG(WARNING) << "The target host cannot be reached";
+                    return ; 
+                }
+
+                if (err) {
+                    errno = err;
+                    LOG(WARNING) << "The target host cannot be reached";
+                    return ;
+                }
+            }
+        }
+         
+        char ipAddr[INET_ADDRSTRLEN] = "";
+        ip_port = inet_ntop(AF_INET, &s_addr.sin_addr, ipAddr, sizeof(ipAddr));
+        ip_port.append(":");
+        ll2string(buf, sizeof(buf), ntohs(s_addr.sin_port));
+        ip_port.append(buf);
+        std::queue<PikaItem> *q = &(pikaThread_[last_thread_]->conn_queue_);
+        PikaItem ti(connfd, ip_port, PIKA_MASTER);
+        {
+            MutexLock l(&pikaThread_[last_thread_]->mutex_);
+            q->push(ti);
+        }
+        write(pikaThread_[last_thread_]->notify_send_fd(), "", 1);
+        repl_state_ = PIKA_SLAVE;
+        ms_state_ = PIKA_REP_CONNECTING;
     }
-    MarioHandler* h = new MarioHandler(ip, port);
-    if (h->pika_connect() != 0) {
-//        delete h;
-        slaves_[ip_port].state = PIKA_REP_OFFLINE;
+    }
+}
+
+void PikaServer::DisconnectFromMaster() {
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", masterport_);
+    std::string str_port(buf);
+    std::string master_ip_port = masterhost_ + ":" + str_port;
+    ClientKill(master_ip_port);
+    {
+    MutexLock l(&mutex_);
+    masterhost_ = "";
+    masterport_ = 0;
+    repl_state_ = PIKA_SINGLE;
+    ms_state_ = PIKA_REP_SINGLE;
+    }
+}
+
+int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint64_t filenum, uint64_t offset) {
+//    std::string ip_port = ip + ":" + str_port;
+//    std::map<std::string, SlaveItem>::iterator iter = slaves_.find(ip_port);
+//    int64_t port;
+//    string2l(str_port.data(), str_port.size(), &port);
+//    if (iter != slaves_.end()) {
+//        return PIKA_REP_STRATEGY_ALREADY;
+//    }
+    std::map<int, PikaConn*>::iterator iter_fd;
+    PikaConn* conn = NULL;
+    int i = 0;
+    for (i = 0; i < g_pikaConf->thread_num(); i++) {
+        iter_fd = pikaThread_[i]->conns()->find(fd);
+        if (iter_fd != pikaThread_[i]->conns()->end()) {
+            conn = iter_fd->second;
+            conn->set_role(PIKA_SLAVE);
+            break;
+        }
+    }
+    if (conn == NULL) {
         return PIKA_REP_STRATEGY_ERROR;
-    };
-    mario::Status s = g_pikaMario->AddConsumer(0, 0, h);
+    }
+
+    std::map<std::string, client_info>::iterator iter_cl;
+    MarioHandler* h = new MarioHandler(conn);
+    mario::Status s = g_pikaMario->AddConsumer(filenum, offset, h);
     if (s.ok()) {
-        slaves_[ip_port].state = PIKA_REP_CONNECTED;
+        {
+        MutexLock l(&mutex_);
         set_repl_state(PIKA_MASTER);
+        }
+//        {
+//        MutexLock l(&mutex_);
+//        SlaveItem ss;
+//        ss.ip = ip;
+//        ss.port = port;
+//        ss.state = PIKA_REP_CONNECTED;
+//        slaves_[ip_port] = ss;
+//        std::map<std::string, SlaveItem>::iterator ii = slaves_.begin();
+//        while (ii != slaves_.end()) {
+//            LOG(INFO) << ii->first << " " << (ii->second).ip << " " <<  (ii->second).port <<" "<< (ii->second).state;
+//            ii++;
+//        }
+//        }
+        {
+        RWLock l(pikaThread_[i]->rwlock(), true);
+        iter_cl = pikaThread_[i]->clients()->find(iter_fd->second->ip_port());
+        if (iter_cl != pikaThread_[i]->clients()->end()) {
+            LOG(INFO) << "Set client role to slave";
+            iter_cl->second.role = PIKA_SLAVE;
+        }
+        }
         return PIKA_REP_STRATEGY_PSYNC;
     } else {
         return PIKA_REP_STRATEGY_ERROR;
     }
 }
 
-void PikaServer::Offline(std::string ip_port) {
-    std::map<std::string, SlaveItem>::iterator iter = slaves_.find(ip_port);
-    if (iter != slaves_.end()) {
-        iter->second.state = PIKA_REP_OFFLINE;
-    }
-}
+//void PikaServer::Offline(std::string ip_port) {
+//    std::map<std::string, SlaveItem>::iterator iter = slaves_.find(ip_port);
+//    if (iter != slaves_.end()) {
+//        iter->second.state = PIKA_REP_OFFLINE;
+//    }
+//}
 
 int PikaServer::ClientList(std::string &res) {
     int client_num = 0;
@@ -208,44 +334,44 @@ int PikaServer::ClientKill(std::string &ip_port) {
 
 }
 
-int PikaServer::ClientRole(int fd, int role) {
-    int i = 0;
-    std::map<int, PikaConn*>::iterator iter_fd;
-    std::map<std::string, client_info>::iterator iter;
-    for (i = 0; i < g_pikaConf->thread_num(); i++) {
-
-        if (role == CLIENT_MASTER) {
-            RWLock l(pikaThread_[i]->rwlock(), false);
-            iter = pikaThread_[i]->clients()->begin();
-            while (iter != pikaThread_[i]->clients()->end()) {
-                if (iter->second.role == CLIENT_MASTER && iter->second.fd != fd) {
-                    iter->second.role = CLIENT_NORMAL;
-                    iter->second.is_killed = true;
-                    break;
-                }
-                iter++;
-            }
-        }
-
-        {
-            iter_fd = pikaThread_[i]->conns()->find(fd);
-            if (iter_fd != pikaThread_[i]->conns()->end()) {
-                RWLock l(pikaThread_[i]->rwlock(), true);
-                iter = pikaThread_[i]->clients()->find(iter_fd->second->ip_port());
-                if (iter != pikaThread_[i]->clients()->end()) {
-                    (iter->second).role = role;
-                    break;
-                }
-            }
-        }
-    }
-    if (i < g_pikaConf->thread_num()) {
-        return 1;
-    } else {
-        return 0;
-    }
-
-}
+//int PikaServer::ClientRole(int fd, int role) {
+//    int i = 0;
+//    std::map<int, PikaConn*>::iterator iter_fd;
+//    std::map<std::string, client_info>::iterator iter;
+//    for (i = 0; i < g_pikaConf->thread_num(); i++) {
+//
+//        if (role == CLIENT_MASTER) {
+//            RWLock l(pikaThread_[i]->rwlock(), false);
+//            iter = pikaThread_[i]->clients()->begin();
+//            while (iter != pikaThread_[i]->clients()->end()) {
+//                if (iter->second.role == CLIENT_MASTER && iter->second.fd != fd) {
+//                    iter->second.role = CLIENT_NORMAL;
+//                    iter->second.is_killed = true;
+//                    break;
+//                }
+//                iter++;
+//            }
+//        }
+//
+//        {
+//            iter_fd = pikaThread_[i]->conns()->find(fd);
+//            if (iter_fd != pikaThread_[i]->conns()->end()) {
+//                RWLock l(pikaThread_[i]->rwlock(), true);
+//                iter = pikaThread_[i]->clients()->find(iter_fd->second->ip_port());
+//                if (iter != pikaThread_[i]->clients()->end()) {
+//                    (iter->second).role = role;
+//                    break;
+//                }
+//            }
+//        }
+//    }
+//    if (i < g_pikaConf->thread_num()) {
+//        return 1;
+//    } else {
+//        return 0;
+//    }
+//
+//}
 
 void* PikaServer::StartThread(void* arg)
 {
@@ -265,8 +391,21 @@ void PikaServer::RunProcess()
     char ipAddr[INET_ADDRSTRLEN] = "";
     std::string ip_port;
     char buf[32];
+
+    struct timeval target;
+    struct timeval now;
+    gettimeofday(&target, NULL);
+    target.tv_sec++;
+    int timeout = 1000;
     for (;;) {
-        nfds = pikaEpoll_->PikaPoll();
+        gettimeofday(&now, NULL);
+        if (target.tv_sec > now.tv_sec || (target.tv_sec == now.tv_sec && target.tv_usec - now.tv_usec > 1000)) {
+            timeout = (target.tv_sec-now.tv_sec)*1000 + (target.tv_usec-now.tv_usec)/1000;
+        } else {
+            ProcessTimeEvent(&target);
+            timeout = 1000;
+        }
+        nfds = pikaEpoll_->PikaPoll(timeout);
         tfe = pikaEpoll_->firedevent();
         for (int i = 0; i < nfds; i++) {
             fd = (tfe + i)->fd_;

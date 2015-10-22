@@ -46,11 +46,11 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
-class BemasterCmd : public Cmd {
-public:
-    BemasterCmd(int a, bool i = false) : Cmd(a, i) {};
-    virtual void Do(std::list<std::string> &argvs, std::string &ret);
-};
+//class BemasterCmd : public Cmd {
+//public:
+//    BemasterCmd(int a, bool i = false) : Cmd(a, i) {};
+//    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+//};
 
 class ConfigCmd : public Cmd {
 public:
@@ -61,6 +61,18 @@ public:
 class InfoCmd : public Cmd {
 public:
     InfoCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class UcanpsyncCmd : public Cmd {
+public:
+    UcanpsyncCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SyncerrorCmd : public Cmd {
+public:
+    SyncerrorCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 

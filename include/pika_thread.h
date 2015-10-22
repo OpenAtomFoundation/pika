@@ -36,6 +36,9 @@ public:
     std::map<int, PikaConn *>* conns() { return &conns_; }
 
     pthread_t thread_id_;
+    bool is_master_thread_;
+    bool is_first_;
+    int crontimes_;
 
     // port::Mutex mutex() { return mutex_; }
 

@@ -138,14 +138,18 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("client", clientptr));
     SlaveofCmd *slaveofptr = new SlaveofCmd(3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("slaveof", slaveofptr));
-    PikasyncCmd *pikasyncptr = new PikasyncCmd(3);
+    PikasyncCmd *pikasyncptr = new PikasyncCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("pikasync", pikasyncptr));
-    BemasterCmd *bemasterptr = new BemasterCmd(2);
-    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bemaster", bemasterptr));
+//    BemasterCmd *bemasterptr = new BemasterCmd(2);
+//    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bemaster", bemasterptr));
     ConfigCmd *configptr = new ConfigCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("config", configptr));
     InfoCmd *infoptr = new InfoCmd(-1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("info", infoptr));
+    UcanpsyncCmd *ucanpsyncptr = new UcanpsyncCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("ucanpsync", ucanpsyncptr));
+    SyncerrorCmd *syncerrorptr = new SyncerrorCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("syncerror", syncerrorptr));
 
     /*
      * kv
