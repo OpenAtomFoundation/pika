@@ -94,7 +94,7 @@ int PikaConn::ProcessInlineBuffer(std::string &err_msg) {
         return -2;
     }
 
-    sdscpylen(msbuf_, rbuf_, querylen+2);
+    msbuf_ = sdscpylen(msbuf_, rbuf_, querylen+2);
     /* Leave data after the first line of query in the buffer */
     sdsrange(rbuf_, querylen+2, -1);
 
@@ -431,7 +431,6 @@ int PikaConn::DoCmd() {
                 char buf[32];
                 ll2string(buf, sizeof(buf), fd_);
                 argv_.push_back(std::string(buf));
-                role_ = PIKA_SLAVE;
             }
             iter->second->Do(argv_, ret);
             if (opt == "auth") {

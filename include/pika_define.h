@@ -43,10 +43,6 @@ enum EventStatus {
     kWriteable = 2,
 };
 
-#define CLIENT_NORMAL 1
-#define CLIENT_MASTER 2
-#define CLIENT_SLAVE 4
-
 struct client_info {
     int fd;
     bool is_killed;

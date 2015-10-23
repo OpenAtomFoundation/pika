@@ -62,7 +62,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     crontimes_ = (crontimes_+1)%10;
     while (iter != conns_.end()) {
         if (crontimes_ == 0 && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
-            LOG(INFO)<<"Send Ping";
+            LOG(INFO)<<"Send Ping to " << iter->second->ip_port();
             iter->second->append_wbuf("*1\r\n$4\r\nPING\r\n");
             LOG(INFO) << "length of wbuf_: " << iter->second->wbuflen();
         }
@@ -159,10 +159,10 @@ void PikaThread::RunProcess()
                     RWLock l(&rwlock_, true);
                     if (ti.role() == PIKA_MASTER) {
                         LOG(INFO) << "Add Master " << tc->ip_port();
-                        clients_[tc->ip_port()] = { ti.fd(), false, CLIENT_MASTER };
+                        clients_[tc->ip_port()] = { ti.fd(), false, PIKA_MASTER };
                     } else {
                         LOG(INFO) << "Add New Client: " << tc->ip_port();
-                        clients_[tc->ip_port()] = { ti.fd(), false, CLIENT_NORMAL };
+                        clients_[tc->ip_port()] = { ti.fd(), false, PIKA_SINGLE };
                     }
                 }
                 if (ti.role() != PIKA_MASTER) {
