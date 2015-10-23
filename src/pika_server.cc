@@ -132,7 +132,9 @@ bool PikaServer::LoadDb(std::string& path) {
     LOG(WARNING) << "Prepare open new db...";
     nemo::Nemo *t_db = new nemo::Nemo(path, option);
     LOG(WARNING) << "open new db success";
+    nemo::Nemo *t = db_;
     db_ = t_db;
+    delete t;
     return true;
 }
 
