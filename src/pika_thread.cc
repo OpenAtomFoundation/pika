@@ -42,7 +42,7 @@ PikaThread::PikaThread(int thread_index)
 PikaThread::~PikaThread()
 {
     delete(pikaEpoll_);
-    mutex_.Unlock();
+//    mutex_.Unlock();
     pthread_rwlock_destroy(&rwlock_);
     close(notify_send_fd_);
     close(notify_receive_fd_);

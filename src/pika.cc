@@ -150,6 +150,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ucanpsync", ucanpsyncptr));
     SyncerrorCmd *syncerrorptr = new SyncerrorCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("syncerror", syncerrorptr));
+    LoaddbCmd *loaddbptr = new LoaddbCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("loaddb", loaddbptr));
 
     /*
      * kv
@@ -351,14 +353,14 @@ int main(int argc, char **argv)
      * Init the server
      */
     g_pikaServer = new PikaServer();
-    g_pikaMario = new mario::Mario(100);
     
     if (g_pikaServer != NULL) {
         LOG(WARNING) << "Pika Server init ok";
     } else {
         LOG(FATAL) << "Pika Server init error";
     }
-
+    g_pikaMario = new mario::Mario(100);
+    LOG(WARNING) << "Pika init mario ok";
 
     LOG(WARNING) << "Pika Server going to start";
     g_pikaServer->RunProcess();

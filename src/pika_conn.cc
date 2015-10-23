@@ -4,12 +4,14 @@
 #include "pika_command.h"
 #include "pika_define.h"
 #include "pika_conf.h"
+#include "pika_server.h"
 #include "zmalloc.h"
 #include "util.h"
 #include "mario.h"
 #include <algorithm>
 extern std::map<std::string, Cmd *> g_pikaCmd;
 extern PikaConf *g_pikaConf;
+extern PikaServer *g_pikaServer;
 extern mario::Mario *g_pikaMario;
 
 PikaConn::PikaConn(int fd, std::string ip_port, int role) :
@@ -432,7 +434,14 @@ int PikaConn::DoCmd() {
                 ll2string(buf, sizeof(buf), fd_);
                 argv_.push_back(std::string(buf));
             }
+            {
+//            RWLock l(g_pikaServer->rwlock(), false);
+            pthread_rwlock_rdlock(g_pikaServer->rwlock());
             iter->second->Do(argv_, ret);
+            if (opt != "loaddb") {
+                pthread_rwlock_unlock(g_pikaServer->rwlock());
+            }
+            }
             if (opt == "auth") {
                 if (ret == "+OK\r\n") {
                     is_authed_ = true;

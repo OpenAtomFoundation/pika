@@ -88,7 +88,9 @@ PikaServer::PikaServer()
 //    db_ = new nemo::Nemo("/tmp/testdb");
     nemo::Options option;
     option.write_buffer_size = g_pikaConf->write_buffer_size();
+    LOG(WARNING) << "Prepare DB...";
     db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
+    LOG(WARNING) << "DB Success";
 //    if (!s.ok()) {
 //        log_err("Open db failed");
 //    }
@@ -107,6 +109,7 @@ PikaServer::~PikaServer()
     }
     delete(pikaEpoll_);
     close(sockfd_);
+    pthread_rwlock_destroy(&rwlock_);
 }
 
 std::string PikaServer::GetServerIp() {
@@ -120,6 +123,17 @@ std::string PikaServer::GetServerIp() {
 
 int PikaServer::GetServerPort() {
     return port_;
+}
+
+bool PikaServer::LoadDb(std::string& path) {
+    RWLock l(&rwlock_, true);
+    nemo::Options option;
+    option.write_buffer_size = g_pikaConf->write_buffer_size();
+    LOG(WARNING) << "Prepare open new db...";
+    nemo::Nemo *t_db = new nemo::Nemo(path, option);
+    LOG(WARNING) << "open new db success";
+    db_ = t_db;
+    return true;
 }
 
 void PikaServer::ProcessTimeEvent(struct timeval* target) {

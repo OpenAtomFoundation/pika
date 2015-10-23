@@ -229,6 +229,25 @@ void SyncerrorCmd::Do(std::list<std::string> &argv, std::string &ret) {
     ret = ""; 
 }
 
+void LoaddbCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string path = argv.front();
+    argv.pop_front();
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
+    bool res = g_pikaServer->LoadDb(path);
+    if (res == true) {
+        ret = "+OK\r\n";
+    } else {
+        ret = "-ERR Load DB Error\r\n";
+    }
+}
+
 void EncodeString(std::string *dst, const std::string &value) {
     dst->append("$");
     PutInt32(dst, value.size());

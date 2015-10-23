@@ -63,6 +63,8 @@ public:
     
     int repl_state_; //PIKA_SINGLE; PIKA_MASTER; PIKA_SLAVE
     int ms_state_; //PIKA_CONNECT; PIKA_CONNECTED
+    pthread_rwlock_t* rwlock() { return &rwlock_; }
+    bool LoadDb(std::string& path);
 
 private:
     friend class PikaConn;
@@ -90,6 +92,7 @@ private:
      * The leveldb handler
      */
     nemo::Nemo *db_;
+    pthread_rwlock_t rwlock_;
  //   leveldb::DB *db_;
 
  //   leveldb::Options options_;
