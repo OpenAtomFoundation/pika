@@ -438,7 +438,7 @@ int PikaConn::DoCmd() {
 //            RWLock l(g_pikaServer->rwlock(), false);
             pthread_rwlock_rdlock(g_pikaServer->rwlock());
             iter->second->Do(argv_, ret);
-            if (opt != "loaddb") {
+            if (opt != "loaddb" && opt != "dump") {
                 pthread_rwlock_unlock(g_pikaServer->rwlock());
             }
             }

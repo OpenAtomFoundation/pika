@@ -81,6 +81,9 @@ PikaServer::PikaServer()
 
     ms_state_ = PIKA_REP_SINGLE;
     repl_state_ = PIKA_SINGLE;
+    dump_filenum_ = 0;
+    dump_pro_offset_ = 0;
+    bgsaving_ = false;
 //    options_.create_if_missing = true;
 //    options_.write_buffer_size = 1500000000;
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
@@ -136,6 +139,71 @@ bool PikaServer::LoadDb(std::string& path) {
     db_ = t_db;
     delete t;
     return true;
+}
+
+void PikaServer::Dump() {
+    MutexLock l(&mutex_);
+    if (bgsaving_) {
+        return;
+    }
+    nemo::Snapshots snapshots;
+    {
+        RWLock l(&rwlock_, true);
+        g_pikaMario->GetProducerStatus(&dump_filenum_, &dump_pro_offset_);
+        db_->BGSaveGetSnapshot(snapshots);
+        bgsaving_ = true;
+    }
+    time_t t = time(NULL);
+    strftime(dump_time_, sizeof(dump_time_), "%Y%m%H%M%S",localtime(&t)); 
+//    LOG(INFO) << tmp;
+    dump_args *arg = new dump_args;
+    arg->p = (void*)this;
+    arg->snapshots = snapshots;
+    pthread_create(&dump_thread_id_, NULL, &(PikaServer::StartDump), arg);
+}
+
+void* PikaServer::StartDump(void* arg) {
+    PikaServer* p = (PikaServer*)(((dump_args*)arg)->p);
+    nemo::Snapshots s = ((dump_args*)arg)->snapshots;
+    std::string dump_path("./dump/");
+    dump_path.append(p->dump_time_);
+    LOG(INFO) << dump_path;
+    p->GetHandle()->BGSave(s, dump_path);
+    
+    {
+    MutexLock l(p->Mutex());
+    p->bgsaving_ = false;
+    }
+    delete (dump_args*)arg;
+    return NULL;
+}
+
+void PikaServer::Slaveofnoone() {
+    MutexLock l(&mutex_);
+    if (repl_state_ == PIKA_SLAVE) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%d", masterport_);
+        std::string masterport(buf);
+        std::string masteripport = masterhost_ + ":" + masterport;
+        ClientKill(masteripport);
+        repl_state_ = PIKA_SINGLE;
+    }
+    ms_state_ = PIKA_SINGLE;
+    masterhost_ = "";
+    masterport_ = 0;
+}
+
+std::string PikaServer::is_bgsaving() {
+    MutexLock l(&mutex_);
+    std::string s;
+    if (bgsaving_) {
+        s = "Yes, ";
+        s.append(dump_time_);
+    } else {
+        s = "No, ";
+        s.append(dump_time_);
+    }
+    return s;
 }
 
 void PikaServer::ProcessTimeEvent(struct timeval* target) {

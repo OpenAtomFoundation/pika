@@ -136,7 +136,7 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ping", pingptr));
     ClientCmd *clientptr = new ClientCmd(-1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("client", clientptr));
-    SlaveofCmd *slaveofptr = new SlaveofCmd(3);
+    SlaveofCmd *slaveofptr = new SlaveofCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("slaveof", slaveofptr));
     PikasyncCmd *pikasyncptr = new PikasyncCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("pikasync", pikasyncptr));
@@ -152,6 +152,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("syncerror", syncerrorptr));
     LoaddbCmd *loaddbptr = new LoaddbCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("loaddb", loaddbptr));
+    DumpCmd *dumpptr = new DumpCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("dump", dumpptr));
 
     /*
      * kv

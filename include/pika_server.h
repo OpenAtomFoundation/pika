@@ -65,6 +65,16 @@ public:
     int ms_state_; //PIKA_CONNECT; PIKA_CONNECTED
     pthread_rwlock_t* rwlock() { return &rwlock_; }
     bool LoadDb(std::string& path);
+    void Dump();
+    void Slaveofnoone();
+    uint32_t dump_filenum_;
+    uint64_t dump_pro_offset_;
+    pthread_t dump_thread_id_;
+    char dump_time_[32];
+    static void* StartDump(void* arg);
+    nemo::Snapshots snapshot_;
+    bool bgsaving_;
+    std::string is_bgsaving();
 
 private:
     friend class PikaConn;

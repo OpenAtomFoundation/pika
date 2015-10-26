@@ -1,6 +1,6 @@
 #ifndef __PIKA_DEFINE_H__
 #define __PIKA_DEFINE_H__
-
+#include "nemo.h"
 #define PIKA_VERSION    "0.1"
 
 #define PIKA_MAX_CLIENTS 10240
@@ -47,6 +47,11 @@ struct client_info {
     int fd;
     bool is_killed;
     int role;
+};
+
+struct dump_args {
+    void* p;
+    nemo::Snapshots snapshots;
 };
 
 /*
