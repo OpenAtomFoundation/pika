@@ -13,7 +13,7 @@ class PikaConf : public BaseConf
 {
 public:
     PikaConf(const char* path);
-    ~PikaConf()             { pthread_rwlock_destory(&rwlock_); }
+    ~PikaConf()             { pthread_rwlock_destroy(&rwlock_); }
     int port()              { RWLock l(&rwlock_, false); return port_; }
     int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
     char* log_path()        { RWLock l(&rwlock_, false); return log_path_; }
