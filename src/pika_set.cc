@@ -137,6 +137,10 @@ void SScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     };
 
+    int64_t card = g_pikaServer->GetHandle()->SCard(key);
+    if (card >= 0 && index >= card) {
+        index = 0;
+    }
 
     std::vector<std::string> members;
     nemo::SIterator *iter = g_pikaServer->GetHandle()->SScan(key, -1);

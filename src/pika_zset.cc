@@ -123,6 +123,11 @@ void ZScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     };
 
+    int64_t card = g_pikaServer->GetHandle()->ZCard(key);
+    if (card >= 0 && index >= card) {
+        index = 0;
+    }
+
 
     std::vector<nemo::SM> sms;
     nemo::ZIterator *iter = g_pikaServer->GetHandle()->ZScan(key, nemo::ZSET_SCORE_MIN, nemo::ZSET_SCORE_MAX, -1);
@@ -857,8 +862,12 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string key = argv.front();
     argv.pop_front();
+    std::string str_stop = argv.front();
+    argv.pop_front();
     std::string str_start = argv.front();
     argv.pop_front();
+
+
     bool is_lo = false;
     bool is_ro = false;
     double start;
@@ -877,8 +886,7 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
             return;
         }
     }
-    std::string str_stop = argv.front();
-    argv.pop_front();
+
     double stop;
     if (str_stop[0] == '(') {
         is_ro = true;
@@ -935,7 +943,7 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
             }
         }
         std::vector<nemo::SM> sms;
-        nemo::Status s = g_pikaServer->GetHandle()->ZRangebyscore(key, stop, start, sms, offset, is_lo, is_ro);
+        nemo::Status s = g_pikaServer->GetHandle()->ZRangebyscore(key, start, stop, sms, offset, is_lo, is_ro);
         if (s.ok()) {
             std::vector<nemo::SM>::reverse_iterator iter;
             count = count >= 0 ? count : INT_MAX;  
