@@ -74,6 +74,7 @@ public:
     static void* StartDump(void* arg);
     nemo::Snapshots snapshot_;
     bool bgsaving_;
+    time_t bgsaving_start_time_;
     std::string is_bgsaving();
 
 private:

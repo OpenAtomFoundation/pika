@@ -13,6 +13,7 @@ class PikaConf : public BaseConf
 {
 public:
     PikaConf(const char* path);
+    ~PikaConf() { pthread_rwlock_destroy(&rwlock_); }
     int port()              { RWLock l(&rwlock_, false); return port_; }
     int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
     char* log_path()        { RWLock l(&rwlock_, false); return log_path_; }
@@ -22,6 +23,7 @@ public:
     int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
     char* requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
     char* conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
+    char* dump_prefix()     { RWLock l(&rwlock_, false); return dump_prefix_; }
 
     void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
     void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
@@ -31,6 +33,10 @@ public:
     void SetRequirePass(const std::string &value) {
         RWLock l(&rwlock_, true);
         snprintf (requirepass_, sizeof(requirepass_), "%s", value.data());
+    }
+    void SetDumpPrefix(const std::string &value) {
+        RWLock l(&rwlock_, true);
+        snprintf (dump_prefix_, sizeof(dump_prefix_), "%s", value.data());
     }
 
 private:
@@ -42,6 +48,7 @@ private:
     int log_level_;
     int timeout_;
     char requirepass_[PIKA_WORD_SIZE];
+    char dump_prefix_[PIKA_WORD_SIZE];
 
     char conf_path_[PIKA_WORD_SIZE];
     pthread_rwlock_t rwlock_;

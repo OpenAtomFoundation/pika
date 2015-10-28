@@ -15,6 +15,8 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <poll.h>
+#include <iostream>
+#include <fstream>
 
 extern PikaConf *g_pikaConf;
 extern mario::Mario *g_pikaMario;
@@ -153,8 +155,8 @@ void PikaServer::Dump() {
         db_->BGSaveGetSnapshot(snapshots);
         bgsaving_ = true;
     }
-    time_t t = time(NULL);
-    strftime(dump_time_, sizeof(dump_time_), "%Y%m%H%M%S",localtime(&t)); 
+    bgsaving_start_time_ = time(NULL);
+    strftime(dump_time_, sizeof(dump_time_), "%Y%m%H%M%S",localtime(&bgsaving_start_time_)); 
 //    LOG(INFO) << tmp;
     dump_args *arg = new dump_args;
     arg->p = (void*)this;
@@ -166,10 +168,19 @@ void* PikaServer::StartDump(void* arg) {
     PikaServer* p = (PikaServer*)(((dump_args*)arg)->p);
     nemo::Snapshots s = ((dump_args*)arg)->snapshots;
     std::string dump_path("./dump/");
+    dump_path.append(g_pikaConf->dump_prefix());
     dump_path.append(p->dump_time_);
     LOG(INFO) << dump_path;
     p->GetHandle()->BGSave(s, dump_path);
-    
+    std::ofstream out;
+    out.open(dump_path + "/info", std::ios::in | std::ios::trunc);
+    if (out.is_open()) {
+        out << p->GetServerIp() << "\r\n";
+        out << p->GetServerPort() << "\r\n";
+        out << p->dump_filenum_ << "\r\n";
+        out << p->dump_pro_offset_ << "\r\n";
+        out.close();
+    }
     {
     MutexLock l(p->Mutex());
     p->bgsaving_ = false;
@@ -199,9 +210,16 @@ std::string PikaServer::is_bgsaving() {
     if (bgsaving_) {
         s = "Yes, ";
         s.append(dump_time_);
+        time_t delta = time(NULL) - bgsaving_start_time_;
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%lu", delta);
+        s.append(", ");
+        s.append(buf);
     } else {
         s = "No, ";
         s.append(dump_time_);
+        s.append(", 0");
+
     }
     return s;
 }
