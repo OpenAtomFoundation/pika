@@ -88,6 +88,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class ReadonlyCmd : public Cmd {
+public:
+    ReadonlyCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 /*
  * kv
  */

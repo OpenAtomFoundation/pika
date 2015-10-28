@@ -434,27 +434,30 @@ int PikaConn::DoCmd() {
                 ll2string(buf, sizeof(buf), fd_);
                 argv_.push_back(std::string(buf));
             }
-            {
-//            RWLock l(g_pikaServer->rwlock(), false);
             pthread_rwlock_rdlock(g_pikaServer->rwlock());
-            iter->second->Do(argv_, ret);
-            if (opt != "loaddb" && opt != "dump") {
-                pthread_rwlock_unlock(g_pikaServer->rwlock());
-            }
-            }
-            if (opt == "auth") {
-                if (ret == "+OK\r\n") {
-                    is_authed_ = true;
-                } else {
-                    is_authed_ = false;
-                }
 
-                if (std::string(g_pikaConf->requirepass()) == "") {
-                    ret = "-ERR Client sent AUTH, but no password is set\r\n";
+            if (g_pikaServer->is_readonly_ == true && iter->second->is_sync == true && role_ != PIKA_MASTER) {
+                pthread_rwlock_unlock(g_pikaServer->rwlock());
+                ret = "-ERR Server in Readonly\r\n";
+            } else {
+                iter->second->Do(argv_, ret);
+                if (opt != "loaddb" && opt != "dump" && opt != "readonly" && opt != "ucanpsync") {
+                    pthread_rwlock_unlock(g_pikaServer->rwlock());
                 }
-            }
-            if (iter->second->is_sync == true && ret.find("-ERR ") != 0) {
-                cmd_ret = 1;
+                if (opt == "auth") {
+                    if (ret == "+OK\r\n") {
+                        is_authed_ = true;
+                    } else {
+                        is_authed_ = false;
+                    }
+
+                    if (std::string(g_pikaConf->requirepass()) == "") {
+                        ret = "-ERR Client sent AUTH, but no password is set\r\n";
+                    }
+                }
+                if (iter->second->is_sync == true && ret.find("-ERR ") != 0) {
+                    cmd_ret = 1;
+                }
             }
         }
     } else {

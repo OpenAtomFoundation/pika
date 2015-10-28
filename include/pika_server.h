@@ -76,6 +76,7 @@ public:
     bool bgsaving_;
     time_t bgsaving_start_time_;
     std::string is_bgsaving();
+    bool is_readonly_;
 
 private:
     friend class PikaConn;
@@ -103,7 +104,7 @@ private:
      * The leveldb handler
      */
     nemo::Nemo *db_;
-    pthread_rwlock_t rwlock_;
+    pthread_rwlock_t rwlock_; // use to block other command for loaddb, dump and readonly
  //   leveldb::DB *db_;
 
  //   leveldb::Options options_;

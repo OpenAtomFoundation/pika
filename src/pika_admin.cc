@@ -219,7 +219,7 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (res == PIKA_REP_STRATEGY_PSYNC) {
         ret = "*1\r\n$9\r\nucanpsync\r\n";
     } else {
-        ret = "*1\r\n$9\r\nsyncerror";
+        ret = "*1\r\n$9\r\nsyncerror\r\n";
     }
 }
 
@@ -238,7 +238,13 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
         g_pikaServer->ms_state_ = PIKA_REP_CONNECTED;
     }
     }
-    LOG(INFO) << "Master told me that I can psync";
+
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
+    {
+    RWLock rwl(g_pikaServer->rwlock(), true);
+    g_pikaServer->is_readonly_ = true;
+    }
+    LOG(INFO) << "Master told me that I can psync, open readonly mode now";
     ret = "";
 }
 
@@ -307,6 +313,35 @@ void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
     snprintf(buf, sizeof(buf), "%lu", g_pikaServer->dump_pro_offset_);
     ret.append(buf);
     ret.append("\r\n");
+}
+
+void ReadonlyCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string opt = argv.front();
+    argv.pop_front();
+    transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
+    ret = "+OK\r\n";
+    if (opt == "on") {
+        pthread_rwlock_unlock(g_pikaServer->rwlock());
+        {
+        RWLock l(g_pikaServer->rwlock(), true);
+        g_pikaServer->is_readonly_ = true;
+        }
+    } else if (opt == "off") {
+        pthread_rwlock_unlock(g_pikaServer->rwlock());
+        {
+        RWLock l(g_pikaServer->rwlock(), true);
+        g_pikaServer->is_readonly_ = false;
+        }
+    } else {
+        ret = "-ERR invalid option for readonly(on/off?)\r\n";
+    }
 }
 
 void EncodeString(std::string *dst, const std::string &value) {
