@@ -485,6 +485,10 @@ void HScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     };
 
+    int hlen = g_pikaServer->GetHandle()->HLen(key);
+    if (hlen >= 0 && index >= hlen) {
+        index = 0;
+    }
 
     std::vector<nemo::FV> fvs;
     nemo::HIterator *iter = g_pikaServer->GetHandle()->HScan(key, "", "", -1);
