@@ -464,10 +464,17 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         info.append(buf);
     }
 
-    // Stats
-  //  if (allsections || section == "stats") {
-  //      if (sections++) info.append("\r\n");
-  //  }
+    // Key Space
+    if (allsections || section == "keyspace") {
+        if (sections++) info.append("\r\n");
+
+        char buf[128];
+//        snprintf (buf, sizeof(buf),
+//                  "# Stats\r\n"
+//                  "keyhash::%d\r\n",
+//                  g_pikaServer->ClientList(clients));
+//        info.append(buf);
+    }
 
     ret.clear();
     char buf[32];

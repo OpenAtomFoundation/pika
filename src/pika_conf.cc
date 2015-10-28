@@ -16,4 +16,6 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("write_buffer_size", &write_buffer_size_);
     getConfInt("timeout", &timeout_);
     getConfStr("requirepass", requirepass_);
+
+    pthread_rwlock_init(&rwlock_, NULL);
 }
