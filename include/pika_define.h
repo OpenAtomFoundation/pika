@@ -10,6 +10,9 @@
 #define PIKA_IOBUF_LEN (1024 * 64)
 #define PIKA_MBULK_BIG_ARG (1024 * 32)
 #define PIKA_INLINE_MAX_SIZE (1024 * 64)
+
+#define PIKA_DEFAULT_PID_FILE   "pika.pid"
+
 /*
  * Client Request type
  */

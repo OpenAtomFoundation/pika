@@ -76,28 +76,63 @@ static void usage()
 {
     fprintf(stderr,
             "Pika module 1.0.0\n"
-            "need One parameters\n"
-            "-D the conf path \n"
-            "-h show this usage message \n"
-            "example: ./bin/pika -D./conf/pika.conf\n"
+            "usage: pika [-hd] [-c conf/file]\n"
+            "\t-h               -- show this help\n"
+            "\t-c conf/file     -- config file \n"
+            "\t-d               -- daemonize\n"
+            "  example: ./output/bin/pika -c ./conf/pika.conf -d\n"
            );
+}
+
+
+
+void daemonize(void) {
+    int fd;
+
+    if (fork() != 0) exit(0); /* parent exits */
+    setsid(); /* create a new session */
+
+    if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+      dup2(fd, STDIN_FILENO);
+      dup2(fd, STDOUT_FILENO);
+      //dup2(fd, STDERR_FILENO);
+      close(fd);
+    }
+}
+
+void create_pid_file(void) {
+    /* Try to write the pid file in a best-effort way. */
+    FILE *fp = fopen(PIKA_DEFAULT_PID_FILE, "w");
+    if (fp) {
+        fprintf(fp,"%d\n",(int)getpid());
+        fclose(fp);
+    }
 }
 
 int main(int argc, char **argv)
 {
     bool path_opt = false;
+    bool daemon_flag = false;
     char c;
     char path[PIKA_LINE_SIZE];
 
-    while (-1 != (c = getopt(argc, argv, "D:h"))) {
+    if (argc < 2) {
+        usage();
+        exit(-1);
+    }
+
+    while (-1 != (c = getopt(argc, argv, "c:hd"))) {
         switch (c) {
-        case 'D':
+        case 'c':
             snprintf(path, PIKA_LINE_SIZE, "%s", optarg);
             path_opt = 1;
             break;
         case 'h':
             usage();
             return 0;
+        case 'd':
+            daemon_flag = true;
+            break;
         default:
             usage();
             return 0;
@@ -108,13 +143,20 @@ int main(int argc, char **argv)
      * check wether set the conf path
      */
     if (path_opt == false) {
-        LOG(FATAL) << "Don't get the conf path";
+        //LOG(FATAL) << "Don't get the conf path";
+        fprintf (stderr, "Don't get the conf path\n");
+        exit(-1);
     }
 
     /*
      * init the conf
      */
     pika_init_conf(path);
+
+    /*
+     * daemonize if needed
+     */
+    if (daemon_flag) daemonize();
 
     /*
      * init the glog config
@@ -125,6 +167,8 @@ int main(int argc, char **argv)
      * set up the signal
      */
     pika_signal_setup();
+
+    if (daemon_flag) create_pid_file();
 
 
     /*
@@ -366,6 +410,13 @@ int main(int argc, char **argv)
 
     LOG(WARNING) << "Pika Server going to start";
     g_pikaServer->RunProcess();
+
+    /*
+     * shutdown server
+     */
+    if (daemon_flag) {
+        unlink(PIKA_DEFAULT_PID_FILE);
+    }
 
     return 0;
 }
