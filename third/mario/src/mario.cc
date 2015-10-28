@@ -304,7 +304,7 @@ void Mario::SplitLogCall()
 
             }
         }
-        sleep(1);
+        usleep(10);
     }
 }
 

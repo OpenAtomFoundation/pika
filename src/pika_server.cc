@@ -86,6 +86,7 @@ PikaServer::PikaServer()
     dump_filenum_ = 0;
     dump_pro_offset_ = 0;
     bgsaving_ = false;
+    is_readonly_ = false;
 //    options_.create_if_missing = true;
 //    options_.write_buffer_size = 1500000000;
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);

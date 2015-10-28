@@ -198,6 +198,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("loaddb", loaddbptr));
     DumpCmd *dumpptr = new DumpCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("dump", dumpptr));
+    ReadonlyCmd *readonlyptr = new ReadonlyCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("readonly", readonlyptr));
 
     /*
      * kv
