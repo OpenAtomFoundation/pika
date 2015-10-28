@@ -468,12 +468,19 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (allsections || section == "keyspace") {
         if (sections++) info.append("\r\n");
 
+        std::vector<uint64_t> nums;
+        g_pikaServer->GetHandle()->GetKeyNum(nums);
         char buf[128];
-//        snprintf (buf, sizeof(buf),
-//                  "# Stats\r\n"
-//                  "keyhash::%d\r\n",
-//                  g_pikaServer->ClientList(clients));
-//        info.append(buf);
+        snprintf (buf, sizeof(buf),
+                  "# Stats\r\n"
+                  "kv keys:%lu\r\n"
+                  "hash keys:%lu\r\n"
+                  "list keys:%lu\r\n"
+                  "zset keys:%lu\r\n"
+                  "set keys:%lu\r\n",
+                  nums[0], nums[1], nums[2], nums[3], nums[4]);
+
+        info.append(buf);
     }
 
     ret.clear();
