@@ -344,6 +344,24 @@ void ReadonlyCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void SelectCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string str_db_num = argv.front();
+    argv.pop_front();
+    int64_t db_num = 0;
+    if (!string2l(str_db_num.data(), str_db_num.size(), &db_num)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    ret = "+OK\r\n";
+}
+
 void EncodeString(std::string *dst, const std::string &value) {
     dst->append("$");
     PutInt32(dst, value.size());
