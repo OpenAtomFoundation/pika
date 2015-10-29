@@ -419,6 +419,22 @@ int PikaServer::ClientList(std::string &res) {
     return client_num;
 }
 
+int PikaServer::ClientNum() {
+    int client_num = 0;
+    std::map<std::string, client_info>::iterator iter;
+    for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+        {
+            RWLock l(pikaThread_[i]->rwlock(), false);
+            iter = pikaThread_[i]->clients()->begin();
+            while (iter != pikaThread_[i]->clients()->end()) {
+                client_num++;
+                iter++;
+            }
+        }
+    }
+    return client_num;
+}
+
 int PikaServer::ClientKill(std::string &ip_port) {
     int i = 0;
     std::map<std::string, client_info>::iterator iter;
@@ -522,6 +538,12 @@ void PikaServer::RunProcess()
                 ip_port.append(":");
                 ll2string(buf, sizeof(buf), ntohs(cliaddr.sin_port));
                 ip_port.append(buf);
+                int clientnum = ClientNum();
+                if (clientnum >= g_pikaConf->maxconnection()) {
+                    LOG(WARNING) << "Reach Max Connection: "<< g_pikaConf->maxconnection() << " refuse new client: " << ip_port;
+                    close(connfd);
+                    continue;
+                }
                 std::queue<PikaItem> *q = &(pikaThread_[last_thread_]->conn_queue_);
                 PikaItem ti(connfd, ip_port);
                 {

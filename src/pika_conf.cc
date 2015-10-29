@@ -18,6 +18,7 @@ PikaConf::PikaConf(const char* path) :
     getConfStr("requirepass", requirepass_);
     getConfStr("dump_prefix", dump_prefix_);
     getConfStr("dump_path", dump_path_);
+    getConfInt("maxconnection", &maxconnection_);
 
     pthread_rwlock_init(&rwlock_, NULL);
 }

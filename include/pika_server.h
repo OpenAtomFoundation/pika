@@ -41,6 +41,7 @@ public:
 
     static void* StartThread(void* arg);
     nemo::Nemo* GetHandle() {return db_;};
+    int ClientNum();
     int ClientList(std::string &res);
     int ClientKill(std::string &ip_port);
 //    int ClientRole(int fd, int role);
