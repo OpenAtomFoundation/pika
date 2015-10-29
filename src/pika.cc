@@ -195,6 +195,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("dump", dumpptr));
     ReadonlyCmd *readonlyptr = new ReadonlyCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("readonly", readonlyptr));
+    SelectCmd *selectptr = new SelectCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("select", selectptr));
 
     /*
      * kv

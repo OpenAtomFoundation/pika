@@ -94,6 +94,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class SelectCmd : public Cmd {
+public:
+    SelectCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 /*
  * kv
  */

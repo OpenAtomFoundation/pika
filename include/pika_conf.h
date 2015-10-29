@@ -25,6 +25,8 @@ public:
     char* requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
     char* conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
     char* dump_prefix()     { RWLock l(&rwlock_, false); return dump_prefix_; }
+    char* dump_path()         { RWLock l(&rwlock_, false); return dump_path_; }
+    int maxconnection()              { RWLock l(&rwlock_, false); return maxconnection_; }
 
     void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
     void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
@@ -39,6 +41,7 @@ public:
         RWLock l(&rwlock_, true);
         snprintf (dump_prefix_, sizeof(dump_prefix_), "%s", value.data());
     }
+    void SetMaxConnection(const int value)                 { RWLock l(&rwlock_, true); maxconnection_ = value; }
 
 private:
     int port_;
@@ -51,6 +54,8 @@ private:
     int timeout_;
     char requirepass_[PIKA_WORD_SIZE];
     char dump_prefix_[PIKA_WORD_SIZE];
+    char dump_path_[PIKA_WORD_SIZE];
+    int maxconnection_;
 
     char conf_path_[PIKA_WORD_SIZE];
     pthread_rwlock_t rwlock_;
