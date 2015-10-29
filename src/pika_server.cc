@@ -168,7 +168,10 @@ void PikaServer::Dump() {
 void* PikaServer::StartDump(void* arg) {
     PikaServer* p = (PikaServer*)(((dump_args*)arg)->p);
     nemo::Snapshots s = ((dump_args*)arg)->snapshots;
-    std::string dump_path("./dump/");
+    std::string dump_path(g_pikaConf->dump_path());
+    if (dump_path[dump_path.length() - 1] != '/') {
+        dump_path.append("/");
+    }
     dump_path.append(g_pikaConf->dump_prefix());
     dump_path.append(p->dump_time_);
     LOG(INFO) << dump_path;

@@ -24,6 +24,7 @@ public:
     char* requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
     char* conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
     char* dump_prefix()     { RWLock l(&rwlock_, false); return dump_prefix_; }
+    char* dump_path()         { RWLock l(&rwlock_, false); return dump_path_; }
 
     void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
     void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
@@ -49,6 +50,7 @@ private:
     int timeout_;
     char requirepass_[PIKA_WORD_SIZE];
     char dump_prefix_[PIKA_WORD_SIZE];
+    char dump_path_[PIKA_WORD_SIZE];
 
     char conf_path_[PIKA_WORD_SIZE];
     pthread_rwlock_t rwlock_;

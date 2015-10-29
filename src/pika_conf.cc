@@ -17,6 +17,7 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("timeout", &timeout_);
     getConfStr("requirepass", requirepass_);
     getConfStr("dump_prefix", dump_prefix_);
+    getConfStr("dump_path", dump_path_);
 
     pthread_rwlock_init(&rwlock_, NULL);
 }
