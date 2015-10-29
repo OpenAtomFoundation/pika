@@ -73,7 +73,7 @@ Mario::Mario(int32_t retry)
     }
 
     producer_ = new Producer(writefile_, version_);
-    env_->StartThread(&Mario::SplitLogWork, this);
+    //env_->StartThread(&Mario::SplitLogWork, this);
 
 }
 
@@ -219,7 +219,7 @@ Status Mario::AppendBlank(WritableFile *file, uint64_t len) {
     }
 
     // Append a msg which occupy the remain part of the last block
-    uint32_t n = (len % kBlockSize) - kHeaderSize;
+    uint32_t n = (uint32_t) ((len % kBlockSize) - kHeaderSize);
 
     char buf[kBlockSize];
     buf[0] = static_cast<char>(n & 0xff);
@@ -386,6 +386,24 @@ Status Mario::Put(const std::string &item)
 
     {
     MutexLock l(&mutex_);
+
+    /* Check to roll log file */
+    uint64_t filesize = writefile_->Filesize();
+    //log_info("filesize %llu kMmapSize %llu\n", filesize, kMmapSize);
+    if (filesize > kMmapSize) {
+        //log_info("roll file filesize %llu kMmapSize %llu\n", filesize, kMmapSize);
+        delete producer_;
+        delete writefile_;
+        pronum_++;
+        std::string profile = NewFileName(filename_, pronum_);
+        env_->NewWritableFile(profile, &writefile_);
+        version_->set_pro_offset(0);
+        version_->set_pronum(pronum_);
+        version_->StableSave();
+        version_->debug();
+        producer_ = new Producer(writefile_, version_);
+    }
+
     s = producer_->Produce(Slice(item.data(), item.size()));
     if (s.ok()) {
         version_->plus_item_num();
@@ -403,6 +421,24 @@ Status Mario::Put(const char* item, int len)
 
     {
     MutexLock l(&mutex_);
+
+    /* Check to roll log file */
+    uint64_t filesize = writefile_->Filesize();
+    if (filesize > kMmapSize) {
+        //log_info("roll file filesize %llu kMmapSize %llu\n", filesize, kMmapSize);
+        delete producer_;
+        delete writefile_;
+        pronum_++;
+        std::string profile = NewFileName(filename_, pronum_);
+        env_->NewWritableFile(profile, &writefile_);
+        version_->set_pro_offset(0);
+        version_->set_pronum(pronum_);
+        version_->StableSave();
+        version_->debug();
+        producer_ = new Producer(writefile_, version_);
+    }
+
+
     s = producer_->Produce(Slice(item, len));
     if (s.ok()) {
         version_->plus_item_num();

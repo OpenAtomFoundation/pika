@@ -18,5 +18,15 @@ PikaConf::PikaConf(const char* path) :
     getConfStr("requirepass", requirepass_);
     getConfStr("dump_prefix", dump_prefix_);
 
+    char str[PIKA_WORD_SIZE];
+    getConfStr("daemonize", str);
+
+    if (strcmp(str, "yes") == 0) {
+        daemonize_ = true;
+    } else {
+        daemonize_ = false;
+    }
+
+
     pthread_rwlock_init(&rwlock_, NULL);
 }

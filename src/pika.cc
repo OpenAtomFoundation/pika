@@ -79,8 +79,7 @@ static void usage()
             "usage: pika [-hd] [-c conf/file]\n"
             "\t-h               -- show this help\n"
             "\t-c conf/file     -- config file \n"
-            "\t-d               -- daemonize\n"
-            "  example: ./output/bin/pika -c ./conf/pika.conf -d\n"
+            "  example: ./output/bin/pika -c ./conf/pika.conf\n"
            );
 }
 
@@ -112,7 +111,6 @@ void create_pid_file(void) {
 int main(int argc, char **argv)
 {
     bool path_opt = false;
-    bool daemon_flag = false;
     char c;
     char path[PIKA_LINE_SIZE];
 
@@ -121,7 +119,7 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    while (-1 != (c = getopt(argc, argv, "c:hd"))) {
+    while (-1 != (c = getopt(argc, argv, "c:h"))) {
         switch (c) {
         case 'c':
             snprintf(path, PIKA_LINE_SIZE, "%s", optarg);
@@ -130,9 +128,6 @@ int main(int argc, char **argv)
         case 'h':
             usage();
             return 0;
-        case 'd':
-            daemon_flag = true;
-            break;
         default:
             usage();
             return 0;
@@ -156,7 +151,7 @@ int main(int argc, char **argv)
     /*
      * daemonize if needed
      */
-    if (daemon_flag) daemonize();
+    if (g_pikaConf->daemonize()) daemonize();
 
     /*
      * init the glog config
@@ -168,7 +163,7 @@ int main(int argc, char **argv)
      */
     pika_signal_setup();
 
-    if (daemon_flag) create_pid_file();
+    if (g_pikaConf->daemonize()) create_pid_file();
 
 
     /*
@@ -416,7 +411,7 @@ int main(int argc, char **argv)
     /*
      * shutdown server
      */
-    if (daemon_flag) {
+    if (g_pikaConf->daemonize()) {
         unlink(PIKA_DEFAULT_PID_FILE);
     }
 

@@ -408,6 +408,10 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "requirepass");
             EncodeString(&ret, g_pikaConf->requirepass());
+        } else if (conf_item == "daemonize") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "daemonize");
+            EncodeString(&ret, g_pikaConf->daemonize() ? "yes" : "no");
         } else {
             ret = "-ERR No such configure item\r\n";
         }
