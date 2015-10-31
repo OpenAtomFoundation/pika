@@ -29,8 +29,10 @@ public:
         h_(h),
         fd_(fd), tid_(tid),
         should_exit_(false) {
+            pthread_rwlock_init(&rwlock_, NULL);
         };
     ~ConsumerItem() {
+        pthread_rwlock_destroy(&rwlock_);
         delete consumer_;
         delete readfile_;
     }
