@@ -42,6 +42,8 @@ public:
 //    struct timeval  lastinteraction() { return lastinteraction_; };
 //    void UpdateLastInteraction() { gettimeofday(&lastinteraction_, NULL); };
     int wbuflen() { return sdslen(wbuf_); }
+    int querynums() { return querynums_; }
+    void clear_querynums() { querynums_ = 0; }
 private:
 
     int fd_;
@@ -65,6 +67,7 @@ private:
     int32_t wbuf_pos_;
     PikaThread *thread_;
     port::Mutex mutex_;
+    int querynums_;
 };
 
 #endif

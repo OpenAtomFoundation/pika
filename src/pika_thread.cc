@@ -36,6 +36,8 @@ PikaThread::PikaThread(int thread_index)
     notify_receive_fd_ = fds[0];
     notify_send_fd_ = fds[1];
     pikaEpoll_->PikaAddEvent(notify_receive_fd_, EPOLLIN | EPOLLERR | EPOLLHUP);
+    querynums_ = 0;
+    last_sec_querynums_ = 0;
 
 }
 
@@ -55,12 +57,23 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     if (conns_.size() == 0) {
         return 0;
     }
+
+    {
+    RWLock l(&rwlock_, true);
+    last_sec_querynums_ = querynums_;
+    querynums_ = 0;
+    }
+
     std::map<int, PikaConn*>::iterator iter;
     std::map<std::string, client_info>::iterator iter_clientlist;
     int i = 0;
     iter = conns_.begin();
     crontimes_ = (crontimes_+1)%10;
     while (iter != conns_.end()) {
+
+        querynums_ += iter->second->querynums();
+        iter->second->clear_querynums();
+
         if (crontimes_ == 0 && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
             LOG(INFO)<<"Send Ping to " << iter->second->ip_port();
             iter->second->append_wbuf("*1\r\n$4\r\nPING\r\n");

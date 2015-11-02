@@ -31,6 +31,7 @@ PikaConn::PikaConn(int fd, std::string ip_port, int role) :
     msbuf_ = sdsempty();
     gettimeofday(&tv_, NULL);
     is_authed_ = std::string(g_pikaConf->requirepass()) == "" ? true : false;
+    querynums_ = 0;
 }
 
 PikaConn::~PikaConn()
@@ -312,6 +313,7 @@ int PikaConn::ProcessInputBuffer() {
             if (DoCmd() == 1) {
                 g_pikaMario->Put(std::string(msbuf_, sdslen(msbuf_)));
             }
+            querynums_++;
             sdsclear(msbuf_);
             Reset();
         }

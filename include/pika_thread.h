@@ -39,6 +39,8 @@ public:
     bool is_master_thread_;
     bool is_first_;
     int crontimes_;
+    int querynums_;
+    int last_sec_querynums_;
 
     // port::Mutex mutex() { return mutex_; }
 
