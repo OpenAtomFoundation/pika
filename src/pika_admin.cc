@@ -62,11 +62,17 @@ void ClientCmd::Do(std::list<std::string> &argv, std::string &ret) {
     } else if (opt == "kill") {
         std::string ip_port = argv.front();
         argv.pop_front();
-        int res = g_pikaServer->ClientKill(ip_port);
-        if (res == 1) {
+        transform(ip_port.begin(), ip_port.end(), ip_port.begin(), ::tolower);
+        if (ip_port == "all") {
+            g_pikaServer->ClientKillAll();
             ret = "+OK\r\n";
         } else {
-            ret = "-ERR No such client\r\n";
+            int res = g_pikaServer->ClientKill(ip_port);
+            if (res == 1) {
+                ret = "+OK\r\n";
+            } else {
+                ret = "-ERR No such client\r\n";
+            }
         }
         
     } else {
@@ -496,14 +502,16 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "tcp_port:%d\r\n"
                   "thread_num:%d\r\n"
                   "config_file:%s\r\n"
-                  "is_bgsaving:%s\r\n",
+                  "is_bgsaving:%s\r\n"
+                  "current qps:%d\r\n",
                   PIKA_VERSION,
                   name.sysname, name.release, name.machine,
                   (long) getpid(),
                   g_pikaConf->port(),
                   g_pikaConf->thread_num(),
                   g_pikaConf->conf_path(),
-                  g_pikaServer->is_bgsaving().c_str()
+                  g_pikaServer->is_bgsaving().c_str(),
+                  g_pikaServer->CurrentQps()
                   );
         info.append(buf);
     }

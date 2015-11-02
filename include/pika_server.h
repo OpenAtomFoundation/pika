@@ -44,6 +44,7 @@ public:
     int ClientNum();
     int ClientList(std::string &res);
     int ClientKill(std::string &ip_port);
+    void ClientKillAll();
 //    int ClientRole(int fd, int role);
     
     void set_masterhost(std::string &masterhost) { masterhost_ = masterhost; }
@@ -61,6 +62,7 @@ public:
 //    std::map<std::string, SlaveItem>* slaves() { return &slaves_; }
     void ProcessTimeEvent(struct timeval*);
     void DisconnectFromMaster();
+    int CurrentQps();
     
     int repl_state_; //PIKA_SINGLE; PIKA_MASTER; PIKA_SLAVE
     int ms_state_; //PIKA_CONNECT; PIKA_CONNECTED

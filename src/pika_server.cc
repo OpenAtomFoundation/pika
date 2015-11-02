@@ -456,6 +456,36 @@ int PikaServer::ClientKill(std::string &ip_port) {
 
 }
 
+void PikaServer::ClientKillAll() {
+    int i = 0;
+    std::map<std::string, client_info>::iterator iter;
+    for (i = 0; i < g_pikaConf->thread_num(); i++) {
+        {
+            RWLock l(pikaThread_[i]->rwlock(), true);
+            iter = pikaThread_[i]->clients()->begin();
+            while (iter != pikaThread_[i]->clients()->end()) {
+                if ((iter->second).role == PIKA_SINGLE) {
+                    (iter->second).is_killed = true;
+                }
+                iter++;
+            }
+        }
+    }
+}
+
+int PikaServer::CurrentQps() {
+    int i = 0;
+    int qps = 0;
+    std::map<std::string, client_info>::iterator iter;
+    for (i = 0; i < g_pikaConf->thread_num(); i++) {
+        {
+            RWLock l(pikaThread_[i]->rwlock(), false);
+            qps+=pikaThread_[i]->last_sec_querynums_;
+        }
+    }
+    return qps;
+}
+
 //int PikaServer::ClientRole(int fd, int role) {
 //    int i = 0;
 //    std::map<int, PikaConn*>::iterator iter_fd;
