@@ -94,7 +94,7 @@ void daemonize(void) {
     if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
       dup2(fd, STDIN_FILENO);
       dup2(fd, STDOUT_FILENO);
-      //dup2(fd, STDERR_FILENO);
+      dup2(fd, STDERR_FILENO);
       close(fd);
     }
 }

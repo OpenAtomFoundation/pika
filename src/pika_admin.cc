@@ -458,7 +458,7 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
 }
 
 void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
-    if (argv.size() != 1 && argv.size() != 2) {
+    if (argv.size() < 1 || argv.size() > 3) {
         ret = "-ERR wrong number of arguments for 'info' command\r\n";
         return;
     }
@@ -471,6 +471,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         allsections = false;
         section = argv.front();
         transform(section.begin(), section.end(), section.begin(), ::tolower);
+        argv.pop_front();
     }
 
     std::string info;
@@ -522,21 +523,39 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 
     // Key Space
-    if (allsections || section == "keyspace") {
+    if (section == "keyspace") {
         if (sections++) info.append("\r\n");
 
-        std::vector<uint64_t> nums;
-        g_pikaServer->GetHandle()->GetKeyNum(nums);
         char buf[128];
-        snprintf (buf, sizeof(buf),
-                  "# Stats\r\n"
-                  "kv keys:%lu\r\n"
-                  "hash keys:%lu\r\n"
-                  "list keys:%lu\r\n"
-                  "zset keys:%lu\r\n"
-                  "set keys:%lu\r\n",
-                  nums[0], nums[1], nums[2], nums[3], nums[4]);
+        std::string key_type = "";
+        if (!argv.empty()) {
+          key_type = argv.front();
+          transform(section.begin(), section.end(), section.begin(), ::tolower);
+          argv.pop_front();
 
+          uint64_t num = 0;
+          nemo::Status s = g_pikaServer->GetHandle()->GetSpecifyKeyNum(key_type, num);
+          if (s.ok()) {
+            snprintf (buf, sizeof(buf),
+                      "# Keyspace\r\n"
+                      "%s keys:%lu\r\n",
+                      key_type.c_str(), num);
+          } else {
+            ret = "-ERR \'" + key_type + "\' is not valid key type\r\n";
+            return;
+          }
+        } else {
+          std::vector<uint64_t> nums;
+          g_pikaServer->GetHandle()->GetKeyNum(nums);
+          snprintf (buf, sizeof(buf),
+                    "# Keyspace\r\n"
+                    "kv keys:%lu\r\n"
+                    "hash keys:%lu\r\n"
+                    "list keys:%lu\r\n"
+                    "zset keys:%lu\r\n"
+                    "set keys:%lu\r\n",
+                    nums[0], nums[1], nums[2], nums[3], nums[4]);
+        }
         info.append(buf);
     }
 
