@@ -4,8 +4,10 @@
 #include "pika_conf.h"
 #include "pika_command.h"
 #include "mario.h"
+#include "util.h"
 
 
+#include <dirent.h>
 #include <iostream>
 #include <signal.h>
 #include <map>
@@ -22,6 +24,10 @@ std::map<std::string, Cmd *> g_pikaCmd;
 
 static void pika_glog_init()
 {
+
+    if (opendir(g_pikaConf->log_path()) == NULL) {
+        mkpath(g_pikaConf->log_path(), 0755);
+    }
     FLAGS_log_dir = g_pikaConf->log_path();
     ::google::InitGoogleLogging("pika");
     FLAGS_minloglevel = g_pikaConf->log_level();
@@ -404,7 +410,7 @@ int main(int argc, char **argv)
     } else {
         LOG(FATAL) << "Pika Server init error";
     }
-    g_pikaMario = new mario::Mario(100);
+    g_pikaMario = new mario::Mario(g_pikaConf->log_path(), 100);
     LOG(WARNING) << "Pika init mario ok";
 
     LOG(WARNING) << "Pika Server going to start";

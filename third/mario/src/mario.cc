@@ -23,7 +23,7 @@ struct Mario::Writer {
     explicit Writer(port::Mutex* mu) : cv(mu) { }
 };
 
-Mario::Mario(int32_t retry)
+Mario::Mario(const char* mario_path, int32_t retry)
     : consumer_num_(0),
     item_num_(0),
     env_(Env::Default()),
@@ -36,7 +36,7 @@ Mario::Mario(int32_t retry)
     arg_({NULL, NULL}),
     pool_(NULL),
     exit_all_consume_(false),
-    mario_path_("./log")
+    mario_path_(mario_path)
 {
 //    env_->set_thread_num(consumer_num_);
     filename_ = mario_path_ + kWrite2file;

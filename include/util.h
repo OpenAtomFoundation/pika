@@ -42,5 +42,6 @@ int d2string(char *buf, size_t len, double value);
 int string2d(const char *buf, size_t len, double *value);
 sds getAbsolutePath(char *filename);
 int pathIsBaseName(char *path);
+int mkpath(const char *path, mode_t mode);
 
 #endif

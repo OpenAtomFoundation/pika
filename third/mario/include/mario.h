@@ -62,7 +62,7 @@ struct ThreadArg {
 class Mario
 {
 public:
-    Mario(int32_t retry = 10);
+    Mario(const char* mario_path, int32_t retry = 10);
     ~Mario();
     Status Put(const std::string &item);
     Status Put(const char* item, int len);
