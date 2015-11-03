@@ -163,7 +163,7 @@ int main(int argc, char **argv)
      */
     pika_signal_setup();
 
-    if (g_pikaConf->daemonize()) create_pid_file();
+    //if (g_pikaConf->daemonize()) create_pid_file();
 
 
     /*
@@ -413,9 +413,9 @@ int main(int argc, char **argv)
     /*
      * shutdown server
      */
-    if (g_pikaConf->daemonize()) {
-        unlink(PIKA_DEFAULT_PID_FILE);
-    }
+    //if (g_pikaConf->daemonize()) {
+    //    unlink(PIKA_DEFAULT_PID_FILE);
+    //}
 
     return 0;
 }
