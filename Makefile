@@ -45,7 +45,6 @@ all: $(OBJECT)
 	rm -rf $(OUTPUT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin
-	mkdir $(OUTPUT)/log
 	cp -r ./conf $(OUTPUT)/
 	cp $(OBJECT) $(OUTPUT)/bin/
 	rm -rf $(OBJECT)

@@ -47,7 +47,7 @@ int main()
      *
      * @return 
      */
-    mario::Mario *m = new mario::Mario(2);
+    mario::Mario *m = new mario::Mario("./log", 2);
 
     std::string item = "item";
     int cnt = 10;
