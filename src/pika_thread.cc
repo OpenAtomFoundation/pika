@@ -54,14 +54,15 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     gettimeofday(target, NULL);
     struct timeval t = *target;
     target->tv_sec++;
-    if (conns_.size() == 0) {
-        return 0;
-    }
 
     {
     RWLock l(&rwlock_, true);
     last_sec_querynums_ = querynums_;
     querynums_ = 0;
+    }
+
+    if (conns_.size() == 0) {
+        return 0;
     }
 
     std::map<int, PikaConn*>::iterator iter;
