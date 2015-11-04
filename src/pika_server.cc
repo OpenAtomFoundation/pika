@@ -94,6 +94,8 @@ PikaServer::PikaServer()
 //    db_ = new nemo::Nemo("/tmp/testdb");
     nemo::Options option;
     option.write_buffer_size = g_pikaConf->write_buffer_size();
+    option.target_file_size_base = g_pikaConf->target_file_size_base();
+
     LOG(WARNING) << "Prepare DB...";
     db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
     LOG(WARNING) << "DB Success";

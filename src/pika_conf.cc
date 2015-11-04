@@ -19,6 +19,7 @@ PikaConf::PikaConf(const char* path) :
     getConfStr("dump_prefix", dump_prefix_);
     getConfStr("dump_path", dump_path_);
     getConfInt("maxconnection", &maxconnection_);
+    getConfInt("target_file_size_base", &target_file_size_base_);
 
     char str[PIKA_WORD_SIZE];
     getConfStr("daemonize", str);
