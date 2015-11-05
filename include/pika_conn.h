@@ -42,6 +42,7 @@ public:
 //    struct timeval  lastinteraction() { return lastinteraction_; };
 //    void UpdateLastInteraction() { gettimeofday(&lastinteraction_, NULL); };
     int wbuflen() { return sdslen(wbuf_); }
+    int rbuflen() { return sdslen(rbuf_); }
     int querynums() { return querynums_; }
     void clear_querynums() { querynums_ = 0; }
 private:

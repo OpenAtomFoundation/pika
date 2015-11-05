@@ -50,7 +50,13 @@ PikaServer::PikaServer()
   //  
   //  stat_keyspace_hits = 0;
   //  stat_keyspace_misses = 0;
+    nemo::Options option;
+    option.write_buffer_size = g_pikaConf->write_buffer_size();
+    option.target_file_size_base = g_pikaConf->target_file_size_base();
 
+    LOG(WARNING) << "Prepare DB...";
+    db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
+    LOG(WARNING) << "DB Success";
     // init sock
     sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
     memset(&servaddr_, 0, sizeof(servaddr_));
@@ -87,18 +93,12 @@ PikaServer::PikaServer()
     dump_pro_offset_ = 0;
     bgsaving_ = false;
     is_readonly_ = false;
+    info_keyspacing_ = false;
 //    options_.create_if_missing = true;
 //    options_.write_buffer_size = 1500000000;
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
 //    db_ = new nemo::Nemo("/tmp/testdb");
-    nemo::Options option;
-    option.write_buffer_size = g_pikaConf->write_buffer_size();
-    option.target_file_size_base = g_pikaConf->target_file_size_base();
-
-    LOG(WARNING) << "Prepare DB...";
-    db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
-    LOG(WARNING) << "DB Success";
 //    if (!s.ok()) {
 //        log_err("Open db failed");
 //    }
@@ -159,7 +159,7 @@ void PikaServer::Dump() {
         bgsaving_ = true;
     }
     bgsaving_start_time_ = time(NULL);
-    strftime(dump_time_, sizeof(dump_time_), "%Y%m%H%M%S",localtime(&bgsaving_start_time_)); 
+    strftime(dump_time_, sizeof(dump_time_), "%Y%m%d%H%M%S",localtime(&bgsaving_start_time_)); 
 //    LOG(INFO) << tmp;
     dump_args *arg = new dump_args;
     arg->p = (void*)this;
@@ -195,6 +195,35 @@ void* PikaServer::StartDump(void* arg) {
     return NULL;
 }
 
+void PikaServer::InfoKeySpace() {
+    MutexLock l(&mutex_);
+    if (info_keyspacing_) {
+        return;
+    }
+    
+    info_keyspacing_ = true;
+    pthread_create(&info_keyspace_thread_id_, NULL, &(PikaServer::StartInfoKeySpace), this);
+}
+
+void* PikaServer::StartInfoKeySpace(void* arg) {
+    PikaServer* p = (PikaServer*)arg;
+    p->info_keyspace_start_time_ = time(NULL);
+    p->keynums_.clear();
+    p->GetHandle()->GetKeyNum(p->keynums_);
+
+    {
+    MutexLock l(p->Mutex());
+    p->last_info_keyspace_start_time_ = p->info_keyspace_start_time_;
+    p->last_kv_num_ = p->keynums_[0];
+    p->last_hash_num_ = p->keynums_[1];
+    p->last_list_num_ = p->keynums_[2];
+    p->last_zset_num_ = p->keynums_[3];
+    p->last_set_num_ = p->keynums_[4];
+    p->info_keyspacing_ = false;
+    }
+    return NULL;
+}
+
 void PikaServer::Slaveofnoone() {
     MutexLock l(&mutex_);
     if (repl_state_ == PIKA_SLAVE) {
@@ -226,6 +255,25 @@ std::string PikaServer::is_bgsaving() {
         s.append(dump_time_);
         s.append(", 0");
 
+    }
+    return s;
+}
+
+std::string PikaServer::is_scaning() {
+    MutexLock l(&mutex_);
+    std::string s;
+    if (info_keyspacing_) {
+        s = "Yes, ";
+        char infotime[32];
+        strftime(infotime, sizeof(infotime), "%Y-%m-%d %H:%M:%S", localtime(&(info_keyspace_start_time_))); 
+        s.append(infotime);
+        time_t delta = time(NULL) - info_keyspace_start_time_;
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%lu", delta);
+        s.append(", ");
+        s.append(buf);
+    } else {
+        s = "No";
     }
     return s;
 }

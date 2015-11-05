@@ -78,6 +78,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
         if (crontimes_ == 0 && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
             LOG(INFO)<<"Send Ping to " << iter->second->ip_port();
             iter->second->append_wbuf("*1\r\n$4\r\nPING\r\n");
+            LOG(INFO) << "length of rbuf_: " << iter->second->rbuflen();
             LOG(INFO) << "length of wbuf_: " << iter->second->wbuflen();
         }
         iter_clientlist = clients_.find(iter->second->ip_port());
@@ -248,6 +249,7 @@ void PikaThread::RunProcess()
                             role = it->second->role();
                             conns_.erase(it);
                         }
+                        pikaEpoll_->PikaDelEvent(inConn->fd());
                         close(inConn->fd());
 
                         it_clientlist = clients_.find(inConn->ip_port());
@@ -294,6 +296,7 @@ void PikaThread::RunProcess()
                     role = it->second->role();
                     conns_.erase(it);
                 }
+                pikaEpoll_->PikaDelEvent(tfe->fd_);
                 close(tfe->fd_);
                 it_clientlist = clients_.find(inConn->ip_port());
                 if (it_clientlist != clients_.end()) {
