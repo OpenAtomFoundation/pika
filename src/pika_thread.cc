@@ -220,7 +220,17 @@ void PikaThread::RunProcess()
                     is_first_ = false;
                     char buf[32];
                     char buf_len[32];
-                    std::string str = "*3\r\n$8\r\npikasync\r\n";
+                    std::string str;
+                    std::string auth = g_pikaConf->requirepass();
+                    if (auth.size() == 0) {
+                        str = "*3\r\n$8\r\npikasync\r\n";
+                    } else {
+                        str = "*2\r\n$4\r\nauth\r\n";
+                        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", auth.size());
+                        str.append(buf_len);
+                        str.append(auth);
+                        str.append("\r\n*3\r\n$8\r\npikasync\r\n");
+                    }
                     uint32_t filenum = 0;
                     uint64_t pro_offset = 0;
                     g_pikaMario->GetProducerStatus(&filenum, &pro_offset);

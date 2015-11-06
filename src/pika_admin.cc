@@ -222,10 +222,23 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 //    LOG(INFO) << ip << " : " << str_port;
     int res = g_pikaServer->TrySync(/*ip, str_port, */fd, filenum, offset);
+    std::string t_ret;
     if (res == PIKA_REP_STRATEGY_PSYNC) {
-        ret = "*1\r\n$9\r\nucanpsync\r\n";
+        t_ret = "*1\r\n$9\r\nucanpsync\r\n";
     } else {
-        ret = "*1\r\n$9\r\nsyncerror\r\n";
+        t_ret = "*1\r\n$9\r\nsyncerror\r\n";
+    }
+    std::string auth = g_pikaConf->requirepass();
+    if (auth.size() == 0) {
+        ret = t_ret;
+    } else {
+        ret = "*2\r\n$4\r\nauth\r\n";
+        char buf_len[32];
+        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", auth.size());
+        ret.append(buf_len);
+        ret.append(auth);
+        ret.append("\r\n");
+        ret.append(t_ret);
     }
 }
 
