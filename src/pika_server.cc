@@ -469,6 +469,31 @@ int PikaServer::ClientList(std::string &res) {
     return client_num;
 }
 
+int PikaServer::GetSlaveList(std::string &res) {
+  std::map<std::string, client_info>::iterator iter;
+  res = "";
+  int slave_num = 0;
+  char buf[512];
+
+  for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+    {
+      RWLock l(pikaThread_[i]->rwlock(), false);
+      for (iter = pikaThread_[i]->clients()->begin();
+           iter != pikaThread_[i]->clients()->end(); iter++) {
+        if (iter->second.role == PIKA_SLAVE) {
+          snprintf (buf, sizeof(buf),
+                    "slave%d: host_port=%s\r\n",
+                    slave_num, iter->first.c_str());
+          res.append(buf);
+          slave_num++;
+        }
+      }
+    }
+  }
+
+  return slave_num;
+}
+
 int PikaServer::ClientNum() {
     int client_num = 0;
     std::map<std::string, client_info>::iterator iter;

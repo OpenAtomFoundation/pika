@@ -531,6 +531,47 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         info.append(buf);
     }
 
+    // Replication
+    if (allsections || section == "replication") {
+        if (sections++) info.append("\r\n");
+
+        int repl_state = g_pikaServer->repl_state();
+        int ms_state = g_pikaServer->ms_state_;
+
+        char buf[512];
+        char ms_state_name[][20] = {
+          "offline", "connect", "connecting", "connected", "single"};
+
+        snprintf (buf, sizeof(buf),
+                  "# Replication\r\n"
+                  "role: %s\r\n"
+                  "ms_state: %s\r\n",
+                  (repl_state == PIKA_MASTER ? "master" :
+                   (repl_state == PIKA_SLAVE ? "slave" : "single")),
+                  ms_state_name[ms_state]);
+        info.append(buf);
+
+        if (repl_state == PIKA_SLAVE) {
+          snprintf (buf, sizeof(buf),
+                  "master_host: %s\r\n"
+                  "master_ip: %d\r\n",
+                  g_pikaServer->masterhost().c_str(),
+                  g_pikaServer->masterport());
+          info.append(buf);
+        } else if (repl_state == PIKA_MASTER) {
+          std::string slave_list;
+          int slave_num = g_pikaServer->GetSlaveList(slave_list);
+          snprintf (buf, sizeof(buf),
+                  "connected_slaves: %d\r\n",
+                  slave_num);
+          info.append(buf);
+
+          if (slave_num > 0) {
+            info.append(slave_list);
+          }
+        }
+    }
+
     // Key Space
     if (section == "keyspace") {
 

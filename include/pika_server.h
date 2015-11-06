@@ -45,6 +45,7 @@ public:
     int ClientList(std::string &res);
     int ClientKill(std::string &ip_port);
     void ClientKillAll();
+    int GetSlaveList(std::string &res);
 //    int ClientRole(int fd, int role);
     
     void set_masterhost(std::string &masterhost) { masterhost_ = masterhost; }
