@@ -233,8 +233,15 @@ void PikaServer::Slaveofnoone() {
         std::string masteripport = masterhost_ + ":" + masterport;
         ClientKill(masteripport);
         repl_state_ = PIKA_SINGLE;
+        pthread_rwlock_unlock(&rwlock_);
+        {
+        RWLock rwl(&rwlock_, true);
+        is_readonly_ = false;
+        LOG(INFO) << "Slave of no one , close readonly mode";
+        }
+        pthread_rwlock_rdlock(&rwlock_);
     }
-    ms_state_ = PIKA_SINGLE;
+    ms_state_ = PIKA_REP_SINGLE;
     masterhost_ = "";
     masterport_ = 0;
 }
