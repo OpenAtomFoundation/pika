@@ -81,6 +81,20 @@ public:
     std::string is_bgsaving();
     bool is_readonly_;
 
+    pthread_t info_keyspace_thread_id_;
+    bool info_keyspacing_;
+    time_t info_keyspace_start_time_;
+    time_t last_info_keyspace_start_time_;
+    std::vector<uint64_t> keynums_;
+    uint64_t last_kv_num_;
+    uint64_t last_hash_num_;
+    uint64_t last_list_num_;
+    uint64_t last_zset_num_;
+    uint64_t last_set_num_;
+    std::string is_scaning();
+    void InfoKeySpace();
+    static void* StartInfoKeySpace(void* arg);
+
 private:
     friend class PikaConn;
     Status SetBlockType(BlockType type);

@@ -21,6 +21,22 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("maxconnection", &maxconnection_);
     getConfInt("target_file_size_base", &target_file_size_base_);
 
+    if (thread_num_ <= 0) {
+        thread_num_ = 24;
+    }
+    if (write_buffer_size_ <= 0 ) {
+        write_buffer_size_ = 4194304; // 40M
+    }
+    if (timeout_ <= 0) {
+        timeout_ = 60; // 60s
+    }
+    if (maxconnection_ <= 0) {
+        maxconnection_ = 20000;
+    }
+    if (target_file_size_base_ <= 0) {
+        target_file_size_base_ = 1048576; // 10M
+    }
+
     char str[PIKA_WORD_SIZE];
     getConfStr("daemonize", str);
 

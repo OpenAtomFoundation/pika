@@ -493,18 +493,18 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
             uname(&name);
             call_uname = false;
         }
-        std::string s = g_pikaServer->is_bgsaving();
         char buf[512];
         snprintf (buf, sizeof(buf),
                   "# Server\r\n"
-                  "pika_version:%s\r\n"
-                  "os:%s %s %s\r\n"
-                  "process_id:%ld\r\n"
-                  "tcp_port:%d\r\n"
-                  "thread_num:%d\r\n"
-                  "config_file:%s\r\n"
-                  "is_bgsaving:%s\r\n"
-                  "current qps:%d\r\n",
+                  "pika_version: %s\r\n"
+                  "os: %s %s %s\r\n"
+                  "process_id: %ld\r\n"
+                  "tcp_port: %d\r\n"
+                  "thread_num: %d\r\n"
+                  "config_file: %s\r\n"
+                  "is_bgsaving: %s\r\n"
+                  "current qps: %d\r\n"
+                  "is_scaning_keyspace: %s\r\n",
                   PIKA_VERSION,
                   name.sysname, name.release, name.machine,
                   (long) getpid(),
@@ -512,7 +512,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   g_pikaConf->thread_num(),
                   g_pikaConf->conf_path(),
                   g_pikaServer->is_bgsaving().c_str(),
-                  g_pikaServer->CurrentQps()
+                  g_pikaServer->CurrentQps(),
+                  g_pikaServer->is_scaning().c_str()
                   );
         info.append(buf);
     }
@@ -525,45 +526,38 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[128];
         snprintf (buf, sizeof(buf),
                   "# Clients\r\n"
-                  "connected_clients:%d\r\n",
+                  "connected_clients: %d\r\n",
                   g_pikaServer->ClientList(clients));
         info.append(buf);
     }
 
     // Key Space
     if (section == "keyspace") {
-        if (sections++) info.append("\r\n");
 
-        char buf[128];
-        std::string key_type = "";
+        char buf[512];
+        std::string op = "";
         if (!argv.empty()) {
-          key_type = argv.front();
-          transform(section.begin(), section.end(), section.begin(), ::tolower);
+          op = argv.front();
+          transform(op.begin(), op.end(), op.begin(), ::tolower);
           argv.pop_front();
-
-          uint64_t num = 0;
-          nemo::Status s = g_pikaServer->GetHandle()->GetSpecifyKeyNum(key_type, num);
-          if (s.ok()) {
-            snprintf (buf, sizeof(buf),
-                      "# Keyspace\r\n"
-                      "%s keys:%lu\r\n",
-                      key_type.c_str(), num);
-          } else {
-            ret = "-ERR \'" + key_type + "\' is not valid key type\r\n";
+          if (!argv.empty() || op != "readonly") {
+            ret = "-ERR Invalid Argument\r\n";
             return;
           }
         } else {
-          std::vector<uint64_t> nums;
-          g_pikaServer->GetHandle()->GetKeyNum(nums);
-          snprintf (buf, sizeof(buf),
-                    "# Keyspace\r\n"
-                    "kv keys:%lu\r\n"
-                    "hash keys:%lu\r\n"
-                    "list keys:%lu\r\n"
-                    "zset keys:%lu\r\n"
-                    "set keys:%lu\r\n",
-                    nums[0], nums[1], nums[2], nums[3], nums[4]);
+          g_pikaServer->InfoKeySpace();
         }
+        char infotime[32];
+        strftime(infotime, sizeof(infotime), "%Y-%m-%d %H:%M:%S", localtime(&(g_pikaServer->last_info_keyspace_start_time_))); 
+        snprintf (buf, sizeof(buf),
+                  "# Keyspace\r\n"
+                  "# Time: %s\r\n"
+                  "kv keys: %lu\r\n"
+                  "hash keys: %lu\r\n"
+                  "list keys: %lu\r\n"
+                  "zset keys: %lu\r\n"
+                  "set keys: %lu\r\n",
+                  infotime, g_pikaServer->last_kv_num_, g_pikaServer->last_hash_num_, g_pikaServer->last_list_num_, g_pikaServer->last_zset_num_, g_pikaServer->last_set_num_);
         info.append(buf);
     }
 
