@@ -25,9 +25,8 @@ std::map<std::string, Cmd *> g_pikaCmd;
 static void pika_glog_init()
 {
 
-    if (opendir(g_pikaConf->log_path()) == NULL) {
-        mkpath(g_pikaConf->log_path(), 0755);
-    }
+    mkpath(g_pikaConf->log_path(), 0755);
+
     FLAGS_log_dir = g_pikaConf->log_path();
     ::google::InitGoogleLogging("pika");
     FLAGS_minloglevel = g_pikaConf->log_level();
@@ -422,6 +421,9 @@ int main(int argc, char **argv)
     //if (g_pikaConf->daemonize()) {
     //    unlink(PIKA_DEFAULT_PID_FILE);
     //}
+    delete g_pikaConf;
+    delete g_pikaServer;
+    delete g_pikaMario;
 
     return 0;
 }
