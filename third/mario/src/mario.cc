@@ -376,8 +376,8 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
       }
     }
 
-    pthread_exit(NULL);
     delete consumer_item;
+    pthread_exit(NULL);
 }
 
 Status Mario::Put(const std::string &item)
