@@ -478,7 +478,12 @@ int PikaConn::DoCmd() {
         cmd_ret = -2;
     }
     if (role_ != PIKA_MASTER && !(role_ == PIKA_SLAVE && opt == "ping")) {
-        wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
+        if (role_ == PIKA_SLAVE) {
+            MutexLock l(&mutex_);
+            wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
+        } else {
+            wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
+        }
     }
     return cmd_ret;
 }

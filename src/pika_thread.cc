@@ -262,7 +262,6 @@ void PikaThread::RunProcess()
                             conns_.erase(it);
                         }
                         pikaEpoll_->PikaDelEvent(inConn->fd());
-                        close(inConn->fd());
 
                         it_clientlist = clients_.find(inConn->ip_port());
                         if (it_clientlist != clients_.end()) {
@@ -279,8 +278,10 @@ void PikaThread::RunProcess()
                             g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
                         } else if (role == PIKA_SLAVE) {
                             LOG(INFO) << "Remove Slave Consumer Thread";
-                            g_pikaMario->RemoveConsumer(inConn->fd());
+                            mario::Status s = g_pikaMario->RemoveConsumer(inConn->fd());
+                            LOG(INFO) << s.ToString();
                         }
+                        close(inConn->fd());
                         delete(inConn);
                     } else {
                         if (inConn->role() != PIKA_SLAVE) {
@@ -307,9 +308,10 @@ void PikaThread::RunProcess()
                 if (it != conns_.end()) {
                     role = it->second->role();
                     conns_.erase(it);
+                } else {
+                    continue;
                 }
                 pikaEpoll_->PikaDelEvent(tfe->fd_);
-                close(tfe->fd_);
                 it_clientlist = clients_.find(inConn->ip_port());
                 if (it_clientlist != clients_.end()) {
                     LOG(INFO) << "Remove Client: " << it_clientlist->first;
@@ -324,8 +326,10 @@ void PikaThread::RunProcess()
                     g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
                 } else if (role == PIKA_SLAVE) {
                     LOG(INFO) << "Remove Slave Consumer Thread";
-                    g_pikaMario->RemoveConsumer(inConn->fd());
+                    mario::Status s = g_pikaMario->RemoveConsumer(inConn->fd());
+                    LOG(INFO) << s.ToString();
                 }
+                close(tfe->fd_);
                 delete(inConn);
             }
         }

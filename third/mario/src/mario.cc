@@ -147,7 +147,7 @@ Status Mario::RemoveConsumer(int fd) {
           consumer_num_--;
           consumers_.erase(it);
           mutex_.Unlock();
-
+          delete (*it);
           return Status::OK();
       }
     }
@@ -333,7 +333,7 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
                 break;
             }
             mutex_.Unlock();
-            sleep(1);
+            usleep(10000);
             mutex_.Lock();
         }
         if (flag) break;
@@ -356,7 +356,7 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
                 break;
             } else {
                 mutex_.Unlock();
-                sleep(1);
+                usleep(10000);
                 mutex_.Lock();
             }
             s = consumer_item->consumer_->Consume(scratch);
@@ -376,7 +376,6 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
       }
     }
 
-    delete consumer_item;
     pthread_exit(NULL);
 }
 
