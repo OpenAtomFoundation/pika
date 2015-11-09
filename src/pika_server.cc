@@ -116,6 +116,8 @@ PikaServer::~PikaServer()
     delete(pikaEpoll_);
     close(sockfd_);
     pthread_rwlock_destroy(&rwlock_);
+
+    delete db_;
 }
 
 std::string PikaServer::GetServerIp() {
