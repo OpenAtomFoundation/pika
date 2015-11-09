@@ -45,11 +45,9 @@ Status PikaServer::SetBlockType(BlockType type)
 PikaServer::PikaServer()
 {
     // init statistics variables
-  //  stat_numcommands = 0;
-  //  stat_numconnections = 0;
-  //  
-  //  stat_keyspace_hits = 0;
-  //  stat_keyspace_misses = 0;
+
+    pthread_rwlock_init(&rwlock_, NULL);
+
     nemo::Options option;
     option.write_buffer_size = g_pikaConf->write_buffer_size();
     option.target_file_size_base = g_pikaConf->target_file_size_base();
