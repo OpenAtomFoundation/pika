@@ -260,6 +260,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
 
 int PikaConn::ProcessInputBuffer() {
     std::string err_msg;
+    int cmd_ret = 0;
     while (sdslen(rbuf_)) {
         if (!req_type_) {
             if (rbuf_[0] == '*') {
@@ -310,7 +311,13 @@ int PikaConn::ProcessInputBuffer() {
 //            for (iter = argv_.begin(); iter != argv_.end(); iter++) {
 //                log_info("%s", (*iter).c_str());
 //            }
-            if (DoCmd() == 1) {
+            cmd_ret = DoCmd();
+            if (cmd_ret == -2) {
+                should_close_after_reply = true;
+                sdsclear(msbuf_);
+                return -2;
+            }
+            if (cmd_ret == 1) {
                 g_pikaMario->Put(std::string(msbuf_, sdslen(msbuf_)));
             }
             querynums_++;
@@ -393,6 +400,7 @@ int PikaConn::PikaSendReply()
         }
     } else {
         while (sdslen(wbuf_) > 0) {
+ //           LOG(INFO) << "start write";
             nwritten = write(fd_, wbuf_, sdslen(wbuf_));
             if (nwritten == -1) {
                 if (errno == EAGAIN) {
@@ -412,8 +420,10 @@ int PikaConn::PikaSendReply()
             sdsrange(wbuf_, nwritten, -1);
         }
         if (sdslen(wbuf_) == 0) {
+//            LOG(INFO) << "write success";
             return 0;
         } else {
+//            LOG(INFO) << "write fail";
             return -1;
         }
     }
@@ -464,6 +474,8 @@ int PikaConn::DoCmd() {
         }
     } else {
         ret = "-ERR NOAUTH Authentication required.\r\n";
+        LOG(INFO) << "Wrong Password, close connection";
+        cmd_ret = -2;
     }
     if (role_ != PIKA_MASTER && !(role_ == PIKA_SLAVE && opt == "ping")) {
         wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());

@@ -201,6 +201,7 @@ void PikaThread::RunProcess()
 
             if (tfe->mask_ & EPOLLIN) {
                 inConn->UpdateTv(now);
+//                LOG(INFO) << "read event";
                 // log_info("come if readable %d", (inConn == NULL));
 //                if (inConn->role() != PIKA_SINGLE) {
 //                    inConn->UpdateLastInteraction();
@@ -216,6 +217,7 @@ void PikaThread::RunProcess()
 //            log_info("tfe mask %d %d %d", tfe->mask_, EPOLLIN, EPOLLOUT);
             if (tfe->mask_ & EPOLLOUT) {
 //                log_info("Come in the EPOLLOUT branch");
+//                LOG(INFO) << "write event";
                 if (inConn->role() == PIKA_MASTER && is_master_thread_ && is_first_) {
                     is_first_ = false;
                     char buf[32];
