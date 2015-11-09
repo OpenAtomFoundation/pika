@@ -38,10 +38,17 @@ static void pika_glog_init()
     // google::InstallFailureSignalHandler();
 }
 
+void cleanup() {
+    delete g_pikaConf;
+    delete g_pikaServer;
+    delete g_pikaMario;
+}
+
 static void sig_handler(const int sig)
 {
     LOG(INFO) << "Caught signal " << sig;
     ::google::ShutdownGoogleLogging();
+    cleanup();
     exit(1);
 }
 
@@ -63,6 +70,7 @@ static void version()
 {
     printf("-----------Pika server 1.0.0----------\n");
 }
+
 void pika_init_conf(const char* path)
 {
     g_pikaConf = new PikaConf(path);
@@ -75,7 +83,6 @@ void pika_init_conf(const char* path)
     g_pikaConf->DumpConf();
     printf("-----------Pika config end----------\n");
 }
-
 
 static void usage()
 {
@@ -421,9 +428,7 @@ int main(int argc, char **argv)
     //if (g_pikaConf->daemonize()) {
     //    unlink(PIKA_DEFAULT_PID_FILE);
     //}
-    delete g_pikaConf;
-    delete g_pikaServer;
-    delete g_pikaMario;
 
+    cleanup();
     return 0;
 }
