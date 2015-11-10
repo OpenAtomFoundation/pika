@@ -445,6 +445,7 @@ int PikaConn::DoCmd() {
                 char buf[32];
                 ll2string(buf, sizeof(buf), fd_);
                 argv_.push_back(std::string(buf));
+                mutex_.Lock();
             }
             pthread_rwlock_rdlock(g_pikaServer->rwlock());
 
@@ -493,7 +494,10 @@ int PikaConn::DoCmd() {
         LOG(INFO) << "Authentication required, close connection";
         cmd_ret = -2;
     }
-    if (role_ != PIKA_MASTER && !(role_ == PIKA_SLAVE && opt == "ping")) {
+    if (opt == "pikasync") {
+        wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
+        mutex_.Unlock();
+    } else if (role_ != PIKA_MASTER && !(role_ == PIKA_SLAVE && opt == "ping")) {
         if (role_ == PIKA_SLAVE) {
             MutexLock l(&mutex_);
             wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());

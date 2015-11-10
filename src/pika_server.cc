@@ -435,7 +435,7 @@ int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint
             iter_cl->second.role = PIKA_SLAVE;
         }
         }
-        conn->set_role(PIKA_SLAVE);
+        conn->set_role_nolock(PIKA_SLAVE);
         return PIKA_REP_STRATEGY_PSYNC;
     } else {
         return PIKA_REP_STRATEGY_ERROR;
