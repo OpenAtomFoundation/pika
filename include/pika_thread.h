@@ -38,7 +38,7 @@ public:
     pthread_t thread_id_;
     bool is_master_thread_;
     bool is_first_;
-    int crontimes_;
+    struct timeval last_ping_time_;
     int querynums_;
     int last_sec_querynums_;
 

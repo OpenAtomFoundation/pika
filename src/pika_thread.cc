@@ -22,7 +22,6 @@ PikaThread::PikaThread(int thread_index)
     thread_id_ = pthread_self();
     is_master_thread_ = false;
     is_first_ = false;
-    crontimes_ = 0;
 
     /*
      * inital the pikaepoll object, add the notify_receive_fd to epoll
@@ -36,6 +35,7 @@ PikaThread::PikaThread(int thread_index)
     notify_receive_fd_ = fds[0];
     notify_send_fd_ = fds[1];
     pikaEpoll_->PikaAddEvent(notify_receive_fd_, EPOLLIN | EPOLLERR | EPOLLHUP);
+    gettimeofday(&last_ping_time_, NULL);
     querynums_ = 0;
     last_sec_querynums_ = 0;
 
@@ -69,13 +69,13 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     std::map<std::string, client_info>::iterator iter_clientlist;
     int i = 0;
     iter = conns_.begin();
-    crontimes_ = (crontimes_+1)%10;
     while (iter != conns_.end()) {
 
         querynums_ += iter->second->querynums();
         iter->second->clear_querynums();
 
-        if (crontimes_ == 0 && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
+        if (t.tv_sec - last_ping_time_.tv_sec >= 10 && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
+            last_ping_time_.tv_sec = t.tv_sec;
             LOG(INFO)<<"Send Ping to " << iter->second->ip_port();
             iter->second->append_wbuf("*1\r\n$4\r\nPING\r\n");
             LOG(INFO) << "length of rbuf_: " << iter->second->rbuflen();
