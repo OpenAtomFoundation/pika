@@ -434,7 +434,7 @@ int PikaConn::DoCmd() {
     transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
     int cmd_ret = 0;
     std::string ret;
-    if (is_authed_ || opt == "auth") {
+    if (is_authed_ || opt == "auth" || opt == "slaveauth") {
         std::map<std::string, Cmd *>::iterator iter = g_pikaCmd.find(opt);
         if (iter == g_pikaCmd.end()) {
             ret.append("-ERR unknown or unsupported command \'");
@@ -462,6 +462,18 @@ int PikaConn::DoCmd() {
                     } else {
                         is_authed_ = false;
                     }
+
+                    if (std::string(g_pikaConf->requirepass()) == "") {
+                        ret = "-ERR Client sent AUTH, but no password is set\r\n";
+                    }
+                }
+                if (opt == "slaveauth") {
+                    if (ret == "+OK\r\n") {
+                        is_authed_ = true;
+                    } else {
+                        is_authed_ = false;
+                    }
+                    ret = "";
 
                     if (std::string(g_pikaConf->requirepass()) == "") {
                         ret = "-ERR Client sent AUTH, but no password is set\r\n";

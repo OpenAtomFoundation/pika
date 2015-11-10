@@ -183,6 +183,8 @@ int main(int argc, char **argv)
      */
     AuthCmd *authptr = new AuthCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("auth", authptr));
+    SlaveauthCmd *slaveauthptr = new SlaveauthCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("slaveauth", slaveauthptr));
     PingCmd *pingptr = new PingCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ping", pingptr));
     ClientCmd *clientptr = new ClientCmd(-1);

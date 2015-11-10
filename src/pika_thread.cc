@@ -227,7 +227,7 @@ void PikaThread::RunProcess()
                     if (auth.size() == 0) {
                         str = "*3\r\n$8\r\npikasync\r\n";
                     } else {
-                        str = "*2\r\n$4\r\nauth\r\n";
+                        str = "*2\r\n$9\r\nslaveauth\r\n";
                         snprintf(buf_len, sizeof(buf_len), "$%d\r\n", auth.size());
                         str.append(buf_len);
                         str.append(auth);
