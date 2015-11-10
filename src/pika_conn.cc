@@ -461,6 +461,8 @@ int PikaConn::DoCmd() {
                         is_authed_ = true;
                     } else {
                         is_authed_ = false;
+                        LOG(INFO) << "Wrong Password, close connection";
+                        cmd_ret = -2;
                     }
 
                     if (std::string(g_pikaConf->requirepass()) == "") {
@@ -471,7 +473,9 @@ int PikaConn::DoCmd() {
                     if (ret == "+OK\r\n") {
                         is_authed_ = true;
                     } else {
+                        LOG(INFO) << "Slave Wrong Password, close connection";
                         is_authed_ = false;
+                        cmd_ret = -2;
                     }
                     ret = "";
 
@@ -486,7 +490,7 @@ int PikaConn::DoCmd() {
         }
     } else {
         ret = "-ERR NOAUTH Authentication required.\r\n";
-        LOG(INFO) << "Wrong Password, close connection";
+        LOG(INFO) << "Authentication required, close connection";
         cmd_ret = -2;
     }
     if (role_ != PIKA_MASTER && !(role_ == PIKA_SLAVE && opt == "ping")) {
