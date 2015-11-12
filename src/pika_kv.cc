@@ -369,6 +369,30 @@ void MgetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void KeysCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if (arity != 2 || (int)argv.size() != arity) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string pattern = argv.front();
+    std::vector<std::string> keys;
+
+    nemo::Status s = g_pikaServer->GetHandle()->Keys(pattern, keys);
+    char buf[32];
+    snprintf(buf, sizeof(buf), "*%lu\r\n", keys.size());
+    ret.append(buf);
+    std::vector<std::string>::iterator iter;
+    for (iter = keys.begin(); iter != keys.end(); iter++ ) {
+      snprintf(buf, sizeof(buf), "$%lu\r\n", iter->size());
+      ret.append(buf);
+      ret.append(iter->data(), iter->size());
+      ret.append("\r\n");
+    }
+}
+
 void SetnxCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";

@@ -264,6 +264,10 @@ int main(int argc, char **argv)
     ScanCmd *scanptr = new ScanCmd(-2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("scan", scanptr));
 
+    KeysCmd *keysptr = new KeysCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("keys", keysptr));
+
+
     /*
      * hash
      */
