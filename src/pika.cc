@@ -27,10 +27,14 @@ static void pika_glog_init()
 
     mkpath(g_pikaConf->log_path(), 0755);
 
+    if (!g_pikaConf->daemonize()) {
+      FLAGS_alsologtostderr = true;
+    }
+
     FLAGS_log_dir = g_pikaConf->log_path();
-    ::google::InitGoogleLogging("pika");
     FLAGS_minloglevel = g_pikaConf->log_level();
-    FLAGS_alsologtostderr = true;
+    ::google::InitGoogleLogging("pika");
+
     LOG(WARNING) << "Pika glog init";
     /*
      * dump some usefull message when crash on certain signals
@@ -39,9 +43,9 @@ static void pika_glog_init()
 }
 
 void cleanup() {
-    delete g_pikaConf;
     delete g_pikaServer;
     delete g_pikaMario;
+    delete g_pikaConf;
 }
 
 static void sig_handler(const int sig)
@@ -106,7 +110,7 @@ void daemonize(void) {
     if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
       dup2(fd, STDIN_FILENO);
       dup2(fd, STDOUT_FILENO);
-      dup2(fd, STDERR_FILENO);
+      //dup2(fd, STDERR_FILENO);
       close(fd);
     }
 }
