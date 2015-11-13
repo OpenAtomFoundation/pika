@@ -77,7 +77,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
         if (t.tv_sec - last_ping_time_.tv_sec >= 10 && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
             last_ping_time_.tv_sec = t.tv_sec;
             LOG(INFO)<<"Send Ping to " << iter->second->ip_port();
-            iter->second->append_wbuf("*1\r\n$4\r\nPING\r\n");
+            iter->second->append_wbuf_nowait("*1\r\n$4\r\nPING\r\n");
             LOG(INFO) << "length of rbuf_: " << iter->second->rbuflen();
             LOG(INFO) << "length of wbuf_: " << iter->second->wbuflen();
         }
@@ -250,7 +250,7 @@ void PikaThread::RunProcess()
                     str.append(buf);
 
                     LOG(INFO)<<str;
-                    inConn->append_wbuf(str);
+                    inConn->append_wbuf_nowait(str);
                 }
                 if (inConn->PikaSendReply() == 0) {
 //                    log_info("SendReply ok");

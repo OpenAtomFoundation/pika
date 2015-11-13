@@ -58,9 +58,21 @@ void PikaConn::Reset() {
     bulklen_ = -1;
 }
 
-void PikaConn::append_wbuf(const std::string &item) {
+void PikaConn::append_wbuf_nowait(const std::string &item) {
     MutexLock l(&mutex_);
     wbuf_ = sdscatlen(wbuf_, item.data(), item.size());
+}
+
+void PikaConn::append_wbuf(const std::string &item) {
+    mutex_.Lock();
+    while (sdslen(wbuf_) > PIKA_SLAVE_WBUF_MAX_SIZE) {
+        mutex_.Unlock();
+//        LOG(INFO) << "wbuf_ is too big, wait...";
+        sleep(5);
+        mutex_.Lock();
+    }
+    wbuf_ = sdscatlen(wbuf_, item.data(), item.size());
+    mutex_.Unlock();
 }
 
 int PikaConn::ProcessInlineBuffer(std::string &err_msg) {

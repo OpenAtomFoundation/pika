@@ -4,6 +4,8 @@
 #include <sys/utsname.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/dir.h>
 
 #include "pika_command.h"
 #include "pika_server.h"
@@ -494,6 +496,51 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+unsigned long long du(const std::string& filename)
+{
+	struct stat statbuf;
+	unsigned long long sum;
+
+	if (lstat(filename.c_str(), &statbuf) != 0) {
+		return 0;
+	}
+
+	// sum = statbuf.st_blocks * statbuf.st_blksize;
+	sum = statbuf.st_size;
+	// cout << filename << ": " << sum << " bytes" << endl;
+
+	if (S_ISLNK(statbuf.st_mode)) {
+		if (stat(filename.c_str(), &statbuf) != 0) {
+			return 0;
+		}
+		// sum = statbuf.st_blocks * statbuf.st_blksize;
+		sum = statbuf.st_size;
+	}
+
+	if (S_ISDIR(statbuf.st_mode)) {
+		DIR *dir;
+		struct dirent *entry;
+		std::string newfile;
+
+		dir = opendir(filename.c_str());
+		if (!dir) {
+			return sum;
+		}
+
+		while ((entry = readdir(dir))) {
+			if (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0)
+				continue;
+			newfile = filename + "/" + entry->d_name;
+			sum += du(newfile);
+		}
+		closedir(dir);
+	} else {
+		return sum;
+	}
+
+	return sum;
+}
+
 void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (argv.size() < 1 || argv.size() > 3) {
         ret = "-ERR wrong number of arguments for 'info' command\r\n";
@@ -524,6 +571,9 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
             uname(&name);
             call_uname = false;
         }
+        uint64_t dbsize_B = du(g_pikaConf->db_path());
+        uint64_t dbsize_M = dbsize_B / (1024 * 1024); 
+        
         char buf[512];
         snprintf (buf, sizeof(buf),
                   "# Server\r\n"
@@ -535,7 +585,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "config_file: %s\r\n"
                   "is_bgsaving: %s\r\n"
                   "current qps: %d\r\n"
-                  "is_scaning_keyspace: %s\r\n",
+                  "is_scaning_keyspace: %s\r\n"
+                  "db_size: %lluM\r\n",
                   PIKA_VERSION,
                   name.sysname, name.release, name.machine,
                   (long) getpid(),
@@ -544,7 +595,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   g_pikaConf->conf_path(),
                   g_pikaServer->is_bgsaving().c_str(),
                   g_pikaServer->CurrentQps(),
-                  g_pikaServer->is_scaning().c_str()
+                  g_pikaServer->is_scaning().c_str(),
+                  dbsize_M
                   );
         info.append(buf);
     }
