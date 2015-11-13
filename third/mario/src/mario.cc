@@ -255,6 +255,8 @@ Status Mario::SetProducerStatus(uint32_t pronum, uint64_t pro_offset) {
         env_->AppendWritableFile(profile, &writefile_, pro_offset);
     }
 
+    pronum_ = pronum;
+
     version_->set_pronum(pronum);
     version_->set_pro_offset(pro_offset);
 
