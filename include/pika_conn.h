@@ -33,6 +33,7 @@ public:
     int ProcessMultibulkBuffer(std::string &err_msg);
     int DoCmd();
     void append_wbuf(const std::string &item);
+    void append_wbuf_nowait(const std::string &item);
     struct timeval tv() { return tv_; };
     void UpdateTv(struct timeval now) { tv_ = now; };
     int fd() { return fd_; };
