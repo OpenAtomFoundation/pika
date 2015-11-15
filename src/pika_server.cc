@@ -665,7 +665,11 @@ void PikaServer::RunProcess()
                 write(pikaThread_[last_thread_]->notify_send_fd(), "", 1);
                 last_thread_++;
                 last_thread_ %= g_pikaConf->thread_num();
+#ifndef EPOLLRDHUP
+            } else if ((tfe + i)->mask_ & (EPOLLERR | EPOLLHUP)) {
+#else
             } else if ((tfe + i)->mask_ & (EPOLLRDHUP | EPOLLERR | EPOLLHUP)) {
+#endif
                 LOG(WARNING) << "Epoll timeout event";
             }
         }

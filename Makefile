@@ -1,3 +1,10 @@
+
+RPATH = /usr/local/pika/lib/
+OSVERSION := $(shell cat /etc/redhat-release | cut -d "." -f 1 | awk '{print $$NF}')
+ifeq ($(OSVERSION), 5)
+	LFLAGS = -Wl,-rpath=$(RPATH)
+endif
+
 CXX = g++
 CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function -std=c++11
 OBJECT = pika
@@ -14,7 +21,6 @@ INCLUDE_PATH = -I./include/ \
 
 LIB_PATH = -L./ \
 		   -L$(THIRD_PATH)/nemo/output/lib/ \
-		   -L$(THIRD_PATH)/nemo/3rdparty/rocksdb/ \
 		   -L$(THIRD_PATH)/mario/output/lib/
 
 
@@ -46,13 +52,14 @@ all: $(OBJECT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin
 	cp -r ./conf $(OUTPUT)/
+	cp -r ./lib  $(OUTPUT)/
 	cp $(OBJECT) $(OUTPUT)/bin/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
 
 
 $(OBJECT): $(ROCKSDB) $(GLOG) $(MARIO) $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH) -Wl,-Bdynamic $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH)  $(LFLAGS) $(LIBS) 
 
 $(ROCKSDB):
 	make -C $(THIRD_PATH)/nemo/
