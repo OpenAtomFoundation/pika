@@ -453,6 +453,10 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "db_path");
             EncodeString(&ret, g_pikaConf->db_path());
+        } else if (conf_item == "maxmemory") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "maxmemory");
+            EncodeInt32(&ret, g_pikaConf->write_buffer_size());
         } else if (conf_item == "write_buffer_size") {
             ret = "*2\r\n";
             EncodeString(&ret, "write_buffer_size");
