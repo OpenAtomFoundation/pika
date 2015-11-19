@@ -10,6 +10,7 @@ PikaConf::PikaConf(const char* path) :
 
     getConfInt("port", &port_);
     getConfInt("thread_num", &thread_num_);
+    getConfInt("slave_thread_num", &slave_thread_num_);
     getConfStr("log_path", log_path_);
     getConfInt("log_level", &log_level_);
     getConfStr("db_path", db_path_);
@@ -22,7 +23,10 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("target_file_size_base", &target_file_size_base_);
 
     if (thread_num_ <= 0) {
-        thread_num_ = 24;
+        thread_num_ = 16;
+    }
+    if (slave_thread_num_ <= 0) {
+        slave_thread_num_ = 7;
     }
     if (write_buffer_size_ <= 0 ) {
         write_buffer_size_ = 4194304; // 40M

@@ -104,6 +104,7 @@ private:
      * The udp server port and address
      */
     int sockfd_;
+    int slave_sockfd_;
     int flags_;
     int port_;
     struct sockaddr_in servaddr_;
@@ -132,6 +133,8 @@ private:
      * last_thread_ is the last work thread
      */
     int last_thread_;
+    int last_slave_thread_;
+    int thread_num_;
     /*
      * This is the work threads
      */

@@ -39,6 +39,22 @@ Status PikaServer::SetBlockType(BlockType type)
         close(sockfd_);
         return s;
     }
+
+    if ((flags_ = fcntl(slave_sockfd_, F_GETFL, 0)) < 0) {
+        s = Status::Corruption("F_GETFEL error");
+        close(slave_sockfd_);
+        return s;
+    }
+    if (type == kBlock) {
+        flags_ &= (~O_NONBLOCK);
+    } else if (type == kNonBlock) {
+        flags_ |= O_NONBLOCK;
+    }
+    if (fcntl(slave_sockfd_, F_SETFL, flags_) < 0) {
+        s = Status::Corruption("F_SETFL error");
+        close(slave_sockfd_);
+        return s;
+    }
     return Status::OK();
 }
 
@@ -73,15 +89,35 @@ PikaServer::PikaServer()
     }
     listen(sockfd_, 10);
 
+    // init slave_sock
+    slave_sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
+    memset(&servaddr_, 0, sizeof(servaddr_));
+    yes = 1;
+    if (setsockopt(slave_sockfd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+        LOG(FATAL) << "setsockopt SO_REUSEADDR: " << strerror(errno);
+    }
+    int slave_port = g_pikaConf->port() + 100;
+    servaddr_.sin_family = AF_INET;
+    servaddr_.sin_addr.s_addr = htonl(INADDR_ANY);
+    servaddr_.sin_port = htons(slave_port);
+
+    ret = bind(slave_sockfd_, (struct sockaddr *) &servaddr_, sizeof(servaddr_));
+    if (ret < 0) {
+        LOG(FATAL) << "bind error: "<< strerror(errno);
+    }
+    listen(slave_sockfd_, 10);
+
     SetBlockType(kNonBlock);
 
     // init pika epoll
     pikaEpoll_ = new PikaEpoll();
     pikaEpoll_->PikaAddEvent(sockfd_, EPOLLIN | EPOLLERR | EPOLLHUP);
+    pikaEpoll_->PikaAddEvent(slave_sockfd_, EPOLLIN | EPOLLERR | EPOLLHUP);
 
-
+    thread_num_ = g_pikaConf->thread_num() + g_pikaConf->slave_thread_num() + 1;
     last_thread_ = 0;
-    for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+    last_slave_thread_ = 0;
+    for (int i = 0; i < thread_num_; i++) {
         pikaThread_[i] = new PikaThread(i);
     }
 
@@ -102,7 +138,7 @@ PikaServer::PikaServer()
 //    }
 
     // start the pikaThread_ thread
-    for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+    for (int i = 0; i < thread_num_; i++) {
         pthread_create(&(pikaThread_[i]->thread_id_), NULL, &(PikaServer::StartThread), pikaThread_[i]);
     }
 
@@ -110,7 +146,7 @@ PikaServer::PikaServer()
 
 PikaServer::~PikaServer()
 {
-    for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+    for (int i = 0; i < thread_num_; i++) {
         delete(pikaThread_[i]);
     }
     delete(pikaEpoll_);
@@ -356,13 +392,14 @@ void PikaServer::ProcessTimeEvent(struct timeval* target) {
         ip_port.append(":");
         ll2string(buf, sizeof(buf), ntohs(s_addr.sin_port));
         ip_port.append(buf);
-        std::queue<PikaItem> *q = &(pikaThread_[last_thread_]->conn_queue_);
+        std::queue<PikaItem> *q = &(pikaThread_[thread_num_-1]->conn_queue_);
+        LOG(INFO) << "Push Master to Thread " << thread_num_-1;
         PikaItem ti(connfd, ip_port, PIKA_MASTER);
         {
-            MutexLock l(&pikaThread_[last_thread_]->mutex_);
+            MutexLock l(&pikaThread_[thread_num_-1]->mutex_);
             q->push(ti);
         }
-        write(pikaThread_[last_thread_]->notify_send_fd(), "", 1);
+        write(pikaThread_[thread_num_-1]->notify_send_fd(), "", 1);
         repl_state_ |= PIKA_SLAVE;
         ms_state_ = PIKA_REP_CONNECTING;
     }
@@ -396,7 +433,7 @@ int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint
     std::map<int, PikaConn*>::iterator iter_fd;
     PikaConn* conn = NULL;
     int i = 0;
-    for (i = 0; i < g_pikaConf->thread_num(); i++) {
+    for (i = g_pikaConf->thread_num(); i < thread_num_; i++) {
         iter_fd = pikaThread_[i]->conns()->find(fd);
         if (iter_fd != pikaThread_[i]->conns()->end()) {
             conn = iter_fd->second;
@@ -455,7 +492,7 @@ int PikaServer::ClientList(std::string &res) {
     std::map<std::string, client_info>::iterator iter;
     res = "+";
     char buf[32];
-    for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+    for (int i = 0; i < thread_num_; i++) {
 
         {
             RWLock l(pikaThread_[i]->rwlock(), false);
@@ -483,7 +520,7 @@ int PikaServer::GetSlaveList(std::string &res) {
   int slave_num = 0;
   char buf[512];
 
-  for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+  for (int i = g_pikaConf->thread_num(); i < thread_num_; i++) {
     {
       RWLock l(pikaThread_[i]->rwlock(), false);
       for (iter = pikaThread_[i]->clients()->begin();
@@ -505,7 +542,7 @@ int PikaServer::GetSlaveList(std::string &res) {
 int PikaServer::ClientNum() {
     int client_num = 0;
     std::map<std::string, client_info>::iterator iter;
-    for (int i = 0; i < g_pikaConf->thread_num(); i++) {
+    for (int i = 0; i < thread_num_; i++) {
         {
             RWLock l(pikaThread_[i]->rwlock(), false);
             iter = pikaThread_[i]->clients()->begin();
@@ -521,7 +558,7 @@ int PikaServer::ClientNum() {
 int PikaServer::ClientKill(std::string &ip_port) {
     int i = 0;
     std::map<std::string, client_info>::iterator iter;
-    for (i = 0; i < g_pikaConf->thread_num(); i++) {
+    for (i = 0; i < thread_num_; i++) {
         {
             RWLock l(pikaThread_[i]->rwlock(), true);
             iter = pikaThread_[i]->clients()->find(ip_port);
@@ -531,7 +568,7 @@ int PikaServer::ClientKill(std::string &ip_port) {
             }
         }
     }
-    if (i < g_pikaConf->thread_num()) {
+    if (i < thread_num_) {
         return 1;
     } else {
         return 0;
@@ -560,7 +597,7 @@ int PikaServer::CurrentQps() {
     int i = 0;
     int qps = 0;
     std::map<std::string, client_info>::iterator iter;
-    for (i = 0; i < g_pikaConf->thread_num(); i++) {
+    for (i = 0; i < thread_num_; i++) {
         {
             RWLock l(pikaThread_[i]->rwlock(), false);
             qps+=pikaThread_[i]->last_sec_querynums_;
@@ -659,6 +696,7 @@ void PikaServer::RunProcess()
                 }
                 std::queue<PikaItem> *q = &(pikaThread_[last_thread_]->conn_queue_);
                 PikaItem ti(connfd, ip_port);
+                LOG(INFO) << "Push Client to Thread " << (last_thread_);
                 {
                     MutexLock l(&pikaThread_[last_thread_]->mutex_);
                     q->push(ti);
@@ -666,6 +704,30 @@ void PikaServer::RunProcess()
                 write(pikaThread_[last_thread_]->notify_send_fd(), "", 1);
                 last_thread_++;
                 last_thread_ %= g_pikaConf->thread_num();
+            } else if (fd == slave_sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
+                connfd = accept(slave_sockfd_, (struct sockaddr *) &cliaddr, &clilen);
+//                LOG(INFO) << "Accept new connection, fd: " << connfd << " ip: " << inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr)) << " port: " << ntohs(cliaddr.sin_port);
+                ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr));
+                ip_port.append(":");
+                ll2string(buf, sizeof(buf), ntohs(cliaddr.sin_port));
+                ip_port.append(buf);
+                int clientnum = ClientNum();
+                if (clientnum >= g_pikaConf->maxconnection()) {
+                    LOG(WARNING) << "Reach Max Connection: "<< g_pikaConf->maxconnection() << " refuse new client: " << ip_port;
+                    close(connfd);
+                    continue;
+                }
+                int user_thread_num = g_pikaConf->thread_num();
+                std::queue<PikaItem> *q = &(pikaThread_[last_slave_thread_ + user_thread_num]->conn_queue_);
+                PikaItem ti(connfd, ip_port);
+                LOG(INFO) << "Push Slave to Thread " << (last_slave_thread_ + user_thread_num);
+                {
+                    MutexLock l(&pikaThread_[last_slave_thread_ + user_thread_num]->mutex_);
+                    q->push(ti);
+                }
+                write(pikaThread_[last_slave_thread_ + user_thread_num]->notify_send_fd(), "", 1);
+                last_slave_thread_++;
+                last_slave_thread_ %= g_pikaConf->slave_thread_num();
             } else if ((tfe + i)->mask_ & (EPOLLRDHUP | EPOLLERR | EPOLLHUP)) {
                 LOG(WARNING) << "Epoll timeout event";
             }

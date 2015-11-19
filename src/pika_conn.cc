@@ -385,30 +385,38 @@ int PikaConn::PikaSendReply()
 {
     ssize_t nwritten = 0;
     if (role_ == PIKA_SLAVE)  {
-        MutexLock l(&mutex_);
-        while (sdslen(wbuf_) > 0) {
-            nwritten = write(fd_, wbuf_, sdslen(wbuf_));
-            if (nwritten == -1) {
-                if (errno == EAGAIN) {
-                    nwritten = 0;
-                } else {
-                    /*
-                     * Here we clear this connection
-                     */
-                    LOG(INFO) << "send error, close client";
-                    should_close_after_reply = true;
-                    return 0;
-                }
-            }
-            if (nwritten <= 0) {
-                break;
-            }
-            sdsrange(wbuf_, nwritten, -1);
-        }
+        mutex_.Lock();
         if (sdslen(wbuf_) == 0) {
+            mutex_.Unlock();
+            usleep(10000);
             return 0;
         } else {
-            return -1;
+            mutex_.Unlock();
+            MutexLock l(&mutex_);
+            while (sdslen(wbuf_) > 0) {
+                nwritten = write(fd_, wbuf_, sdslen(wbuf_));
+                if (nwritten == -1) {
+                    if (errno == EAGAIN) {
+                        nwritten = 0;
+                    } else {
+                        /*
+                         * Here we clear this connection
+                         */
+                        LOG(INFO) << "send error, close client";
+                        should_close_after_reply = true;
+                        return 0;
+                    }
+                }
+                if (nwritten <= 0) {
+                    break;
+                }
+                sdsrange(wbuf_, nwritten, -1);
+            }
+            if (sdslen(wbuf_) == 0) {
+                return 0;
+            } else {
+                return -1;
+            }
         }
     } else {
         while (sdslen(wbuf_) > 0) {

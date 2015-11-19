@@ -190,7 +190,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
         }
         g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
         g_pikaServer->set_masterhost(p2);
-        g_pikaServer->set_masterport(port);
+        g_pikaServer->set_masterport(port+100);
         ret = "+OK\r\n";
     } else {
         ret = "-ERR State is not in PIKA_REP_SINGLE\r\n";
