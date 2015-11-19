@@ -69,13 +69,17 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     std::map<std::string, client_info>::iterator iter_clientlist;
     int i = 0;
     iter = conns_.begin();
+    bool should_ping = false;
+    if (t.tv_sec - last_ping_time_.tv_sec >= 10) {
+        last_ping_time_.tv_sec = t.tv_sec;
+        should_ping = true;
+    }
     while (iter != conns_.end()) {
 
         querynums_ += iter->second->querynums();
         iter->second->clear_querynums();
 
-        if (t.tv_sec - last_ping_time_.tv_sec >= 10 && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
-            last_ping_time_.tv_sec = t.tv_sec;
+        if (should_ping && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
             LOG(INFO)<<"Send Ping to " << iter->second->ip_port();
             iter->second->append_wbuf_nowait("*1\r\n$4\r\nPING\r\n");
             LOG(INFO) << "length of rbuf_: " << iter->second->rbuflen();

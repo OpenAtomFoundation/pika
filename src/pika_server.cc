@@ -226,21 +226,21 @@ void* PikaServer::StartInfoKeySpace(void* arg) {
 
 void PikaServer::Slaveofnoone() {
     MutexLock l(&mutex_);
-    if (repl_state_ == PIKA_SLAVE) {
-        char buf[32];
-        snprintf(buf, sizeof(buf), "%d", masterport_);
-        std::string masterport(buf);
-        std::string masteripport = masterhost_ + ":" + masterport;
-        ClientKill(masteripport);
-        repl_state_ = PIKA_SINGLE;
-        pthread_rwlock_unlock(&rwlock_);
-        {
-        RWLock rwl(&rwlock_, true);
-        is_readonly_ = false;
-        LOG(INFO) << "Slave of no one , close readonly mode";
-        }
-        pthread_rwlock_rdlock(&rwlock_);
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", masterport_);
+    std::string masterport(buf);
+    std::string masteripport = masterhost_ + ":" + masterport;
+    ClientKill(masteripport);
+    repl_state_ &= (~ PIKA_SLAVE);
+    pthread_rwlock_unlock(&rwlock_);
+    {
+    RWLock rwl(&rwlock_, true);
+    is_readonly_ = false;
+    LOG(INFO) << "Slave of no one , close readonly mode, repl_state_: " << repl_state_;
     }
+    pthread_rwlock_rdlock(&rwlock_);
+
     ms_state_ = PIKA_REP_SINGLE;
     masterhost_ = "";
     masterport_ = 0;
@@ -363,7 +363,7 @@ void PikaServer::ProcessTimeEvent(struct timeval* target) {
             q->push(ti);
         }
         write(pikaThread_[last_thread_]->notify_send_fd(), "", 1);
-        repl_state_ = PIKA_SLAVE;
+        repl_state_ |= PIKA_SLAVE;
         ms_state_ = PIKA_REP_CONNECTING;
     }
     }
@@ -379,7 +379,8 @@ void PikaServer::DisconnectFromMaster() {
     MutexLock l(&mutex_);
     masterhost_ = "";
     masterport_ = 0;
-    repl_state_ = PIKA_SINGLE;
+    repl_state_ &= (~ PIKA_SLAVE);
+    LOG(INFO) << "Disconnect with master, " << repl_state_;
     ms_state_ = PIKA_REP_SINGLE;
     }
 }
@@ -412,7 +413,7 @@ int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint
     if (s.ok()) {
         {
         MutexLock l(&mutex_);
-        set_repl_state(PIKA_MASTER);
+        repl_state_ |= PIKA_MASTER;
         }
 //        {
 //        MutexLock l(&mutex_);

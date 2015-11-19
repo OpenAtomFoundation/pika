@@ -179,8 +179,8 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (g_pikaServer->masterhost() == p2 && g_pikaServer->masterport() == port) {
         ret = "+OK Already connected to specified master\r\n";
         return;
-    } else if (g_pikaServer->repl_state() != PIKA_SINGLE) { 
-        ret = "-ERR State is not in PIKA_SINGLE\r\n";
+    } else if ((g_pikaServer->repl_state() & PIKA_SLAVE) != 0) { 
+        ret = "-ERR State is already PIKA_SLAVE\r\n";
         return;
     }
 
@@ -624,24 +624,36 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[512];
         char ms_state_name[][20] = {
           "offline", "connect", "connecting", "connected", "single"};
-
+        std::string ro;
+        if (repl_state == PIKA_SINGLE) {
+            ro = "single";
+        } else {
+            LOG(INFO) << "master: " << (repl_state & PIKA_MASTER);
+            if ((repl_state & PIKA_MASTER) != 0) {
+                ro = "master ";
+            }
+            LOG(INFO) << "slave: " << (repl_state & PIKA_SLAVE);
+            if ((repl_state & PIKA_SLAVE) != 0) {
+                ro.append("slave");
+            }
+        }
         snprintf (buf, sizeof(buf),
                   "# Replication\r\n"
                   "role: %s\r\n"
                   "ms_state: %s\r\n",
-                  (repl_state == PIKA_MASTER ? "master" :
-                   (repl_state == PIKA_SLAVE ? "slave" : "single")),
+                  ro.c_str(),
                   ms_state_name[ms_state]);
         info.append(buf);
 
-        if (repl_state == PIKA_SLAVE) {
+        if ((repl_state & PIKA_SLAVE) != 0) {
           snprintf (buf, sizeof(buf),
                   "master_host: %s\r\n"
                   "master_ip: %d\r\n",
                   g_pikaServer->masterhost().c_str(),
                   g_pikaServer->masterport());
           info.append(buf);
-        } else if (repl_state == PIKA_MASTER) {
+        }
+        if ((repl_state & PIKA_MASTER) != 0) {
           std::string slave_list;
           int slave_num = g_pikaServer->GetSlaveList(slave_list);
           snprintf (buf, sizeof(buf),
