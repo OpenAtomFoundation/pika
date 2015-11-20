@@ -72,7 +72,7 @@ void pika_signal_setup()
 
 static void version()
 {
-    printf("-----------Pika server 1.0.0----------\n");
+    printf("-----------Pika server " PIKA_VERSION "----------\n");
 }
 
 void pika_init_conf(const char* path)
@@ -91,7 +91,7 @@ void pika_init_conf(const char* path)
 static void usage()
 {
     fprintf(stderr,
-            "Pika module 1.0.0\n"
+            "Pika module " PIKA_VERSION "\n"
             "usage: pika [-hd] [-c conf/file]\n"
             "\t-h               -- show this help\n"
             "\t-c conf/file     -- config file \n"
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    while (-1 != (c = getopt(argc, argv, "c:h"))) {
+    while (-1 != (c = getopt(argc, argv, "c:hv"))) {
         switch (c) {
         case 'c':
             snprintf(path, PIKA_LINE_SIZE, "%s", optarg);
@@ -143,6 +143,9 @@ int main(int argc, char **argv)
             break;
         case 'h':
             usage();
+            return 0;
+        case 'v':
+            version();
             return 0;
         default:
             usage();
