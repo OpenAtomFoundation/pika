@@ -551,15 +551,19 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     }
     argv.pop_front();
-    bool allsections = true;
+    bool allsections = false;
     std::string section = "";
     int sections = 0;
 
     if (!argv.empty()) {
-        allsections = false;
         section = argv.front();
         transform(section.begin(), section.end(), section.begin(), ::tolower);
         argv.pop_front();
+        if (section == "all") {
+          allsections = true;
+        }
+    } else {
+        allsections = true;
     }
 
     std::string info;
@@ -588,7 +592,6 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "thread_num: %d\r\n"
                   "config_file: %s\r\n"
                   "is_bgsaving: %s\r\n"
-                  "current qps: %d\r\n"
                   "is_scaning_keyspace: %s\r\n"
                   "db_size: %lluM\r\n",
                   PIKA_VERSION,
@@ -598,7 +601,6 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   g_pikaConf->thread_num(),
                   g_pikaConf->conf_path(),
                   g_pikaServer->is_bgsaving().c_str(),
-                  g_pikaServer->CurrentQps(),
                   g_pikaServer->is_scaning().c_str(),
                   dbsize_M
                   );
@@ -615,6 +617,19 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "# Clients\r\n"
                   "connected_clients: %d\r\n",
                   g_pikaServer->ClientList(clients));
+        info.append(buf);
+    }
+
+    // Stats
+    if (allsections || section == "stats") {
+        if (sections++) info.append("\r\n");
+
+        std::string clients;
+        char buf[128];
+        snprintf (buf, sizeof(buf),
+                  "# Stats\r\n"
+                  "instantaneous_ops_per_sec: %d\r\n",
+                  g_pikaServer->CurrentQps());
         info.append(buf);
     }
 
