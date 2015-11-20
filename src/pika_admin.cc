@@ -179,8 +179,8 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (g_pikaServer->masterhost() == p2 && g_pikaServer->masterport() == port) {
         ret = "+OK Already connected to specified master\r\n";
         return;
-    } else if (g_pikaServer->repl_state() != PIKA_SINGLE) { 
-        ret = "-ERR State is not in PIKA_SINGLE\r\n";
+    } else if ((g_pikaServer->repl_state() & PIKA_SLAVE) != 0) { 
+        ret = "-ERR State is already PIKA_SLAVE\r\n";
         return;
     }
 
@@ -190,7 +190,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
         }
         g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
         g_pikaServer->set_masterhost(p2);
-        g_pikaServer->set_masterport(port);
+        g_pikaServer->set_masterport(port+100);
         ret = "+OK\r\n";
     } else {
         ret = "-ERR State is not in PIKA_REP_SINGLE\r\n";
@@ -453,6 +453,10 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "db_path");
             EncodeString(&ret, g_pikaConf->db_path());
+        } else if (conf_item == "maxmemory") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "maxmemory");
+            EncodeInt32(&ret, g_pikaConf->write_buffer_size());
         } else if (conf_item == "write_buffer_size") {
             ret = "*2\r\n";
             EncodeString(&ret, "write_buffer_size");
@@ -547,15 +551,19 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     }
     argv.pop_front();
-    bool allsections = true;
+    bool allsections = false;
     std::string section = "";
     int sections = 0;
 
     if (!argv.empty()) {
-        allsections = false;
         section = argv.front();
         transform(section.begin(), section.end(), section.begin(), ::tolower);
         argv.pop_front();
+        if (section == "all") {
+          allsections = true;
+        }
+    } else {
+        allsections = true;
     }
 
     std::string info;
@@ -584,7 +592,6 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "thread_num: %d\r\n"
                   "config_file: %s\r\n"
                   "is_bgsaving: %s\r\n"
-                  "current qps: %d\r\n"
                   "is_scaning_keyspace: %s\r\n"
                   "db_size: %lluM\r\n",
                   PIKA_VERSION,
@@ -594,7 +601,6 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   g_pikaConf->thread_num(),
                   g_pikaConf->conf_path(),
                   g_pikaServer->is_bgsaving().c_str(),
-                  g_pikaServer->CurrentQps(),
                   g_pikaServer->is_scaning().c_str(),
                   dbsize_M
                   );
@@ -614,6 +620,19 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         info.append(buf);
     }
 
+    // Stats
+    if (allsections || section == "stats") {
+        if (sections++) info.append("\r\n");
+
+        std::string clients;
+        char buf[128];
+        snprintf (buf, sizeof(buf),
+                  "# Stats\r\n"
+                  "instantaneous_ops_per_sec: %d\r\n",
+                  g_pikaServer->CurrentQps());
+        info.append(buf);
+    }
+
     // Replication
     if (allsections || section == "replication") {
         if (sections++) info.append("\r\n");
@@ -624,24 +643,36 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[512];
         char ms_state_name[][20] = {
           "offline", "connect", "connecting", "connected", "single"};
-
+        std::string ro;
+        if (repl_state == PIKA_SINGLE) {
+            ro = "single";
+        } else {
+            LOG(INFO) << "master: " << (repl_state & PIKA_MASTER);
+            if ((repl_state & PIKA_MASTER) != 0) {
+                ro = "master ";
+            }
+            LOG(INFO) << "slave: " << (repl_state & PIKA_SLAVE);
+            if ((repl_state & PIKA_SLAVE) != 0) {
+                ro.append("slave");
+            }
+        }
         snprintf (buf, sizeof(buf),
                   "# Replication\r\n"
                   "role: %s\r\n"
                   "ms_state: %s\r\n",
-                  (repl_state == PIKA_MASTER ? "master" :
-                   (repl_state == PIKA_SLAVE ? "slave" : "single")),
+                  ro.c_str(),
                   ms_state_name[ms_state]);
         info.append(buf);
 
-        if (repl_state == PIKA_SLAVE) {
+        if ((repl_state & PIKA_SLAVE) != 0) {
           snprintf (buf, sizeof(buf),
                   "master_host: %s\r\n"
                   "master_ip: %d\r\n",
                   g_pikaServer->masterhost().c_str(),
                   g_pikaServer->masterport());
           info.append(buf);
-        } else if (repl_state == PIKA_MASTER) {
+        }
+        if ((repl_state & PIKA_MASTER) != 0) {
           std::string slave_list;
           int slave_num = g_pikaServer->GetSlaveList(slave_list);
           snprintf (buf, sizeof(buf),

@@ -16,6 +16,7 @@ public:
     ~PikaConf()             { pthread_rwlock_destroy(&rwlock_); }
     int port()              { RWLock l(&rwlock_, false); return port_; }
     int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
+    int slave_thread_num()  { RWLock l(&rwlock_, false); return slave_thread_num_; }
     char* log_path()        { RWLock l(&rwlock_, false); return log_path_; }
     int log_level()         { RWLock l(&rwlock_, false); return log_level_; }
     char* db_path()         { RWLock l(&rwlock_, false); return db_path_; }
@@ -47,6 +48,7 @@ public:
 private:
     int port_;
     int thread_num_;
+    int slave_thread_num_;
     char log_path_[PIKA_WORD_SIZE];
     char db_path_[PIKA_WORD_SIZE];
     int write_buffer_size_;

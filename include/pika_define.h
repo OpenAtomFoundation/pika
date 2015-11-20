@@ -1,13 +1,13 @@
 #ifndef __PIKA_DEFINE_H__
 #define __PIKA_DEFINE_H__
 #include "nemo.h"
-#define PIKA_VERSION    "0.1"
+#define PIKA_VERSION    "1.0.4"
 
 #define PIKA_MAX_CLIENTS 10240
 #define PIKA_MAX_MESSAGE 10240
 #define PIKA_THREAD_NUM 24
 
-#define PIKA_IOBUF_LEN (1024 * 1024 * 64)
+#define PIKA_IOBUF_LEN (1024 * 4)
 #define PIKA_MBULK_BIG_ARG (1024 * 1024 * 32)
 #define PIKA_INLINE_MAX_SIZE (1024 * 1024 * 64)
 #define PIKA_SLAVE_WBUF_MAX_SIZE (1024 * 1024 * 500)
