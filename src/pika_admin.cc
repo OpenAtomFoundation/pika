@@ -723,3 +723,40 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
     ret.append(info);
     ret.append("\r\n");
 }
+
+void PurgelogstoCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string filename = argv.front();
+    argv.pop_front();
+    transform(filename.begin(), filename.end(), filename.begin(), ::tolower);
+    if (filename.size() <= 10) {
+        ret = "-ERR Invalid Argument\r\n";
+        return;
+    }
+    std::string prefix = filename.substr(0, 10);
+    if (prefix != "write2file") {
+        ret = "-ERR Invalid Argument\r\n";
+        return;
+    }
+    std::string str_num = filename.substr(10);
+    int64_t num;
+    if (!string2l(str_num.data(), str_num.size(), &num) || num < 0) {
+        ret = "-ERR Invalid Argument\r\n";
+        return;
+    }
+    uint32_t max = 0;
+    mario::Status mas = g_pikaMario->GetStatus(&max);
+    LOG(INFO) << "max seqnum could be deleted: " << max;
+    bool purge_res = g_pikaServer->PurgeLogs(max, num);
+    if (purge_res) {
+        ret = "+OK\r\n";
+    } else {
+        ret = "-ERR write2file may in use or non_exist or already in purging...\r\n";
+    }
+}
