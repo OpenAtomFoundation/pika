@@ -428,9 +428,9 @@ void SetexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string key = argv.front();
     argv.pop_front();
-    std::string value = argv.front();
-    argv.pop_front();
     std::string str_sec = argv.front();
+    argv.pop_front();
+    std::string value = argv.front();
     argv.pop_front();
     int64_t sec = 0;
     if (!string2l(str_sec.data(), str_sec.size(), &sec)) {
