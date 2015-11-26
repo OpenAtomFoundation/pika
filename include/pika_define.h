@@ -58,6 +58,10 @@ struct dump_args {
     nemo::Snapshots snapshots;
 };
 
+struct purge_args {
+    void* p;
+    uint32_t to;
+};
 /*
  * define the macro in pika_conf
  */

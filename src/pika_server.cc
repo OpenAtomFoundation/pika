@@ -142,6 +142,7 @@ PikaServer::PikaServer()
     dump_filenum_ = 0;
     dump_pro_offset_ = 0;
     bgsaving_ = false;
+    purging_ = false;
     is_readonly_ = false;
     info_keyspacing_ = false;
     start_time_s_ = time(NULL);
@@ -247,6 +248,57 @@ void* PikaServer::StartDump(void* arg) {
     p->bgsaving_ = false;
     }
     delete (dump_args*)arg;
+    return NULL;
+}
+
+bool PikaServer::PurgeLogs(uint32_t max, int64_t to) {
+    MutexLock l(&mutex_);
+    if (purging_) {
+        return false;
+    }
+    if (max > 5) {
+        max -= 6;
+    } else {
+        return false;
+    }
+    if (to > max) {
+        return false;
+    }
+
+    purge_args *arg = new purge_args;
+    arg->p = (void*)this;
+    arg->to = to;
+    purging_ = true;
+    pthread_create(&purge_thread_id_, NULL, &(PikaServer::StartPurgeLogs), arg);
+    return true;
+}
+
+void* PikaServer::StartPurgeLogs(void* arg) {
+    PikaServer* p = (PikaServer*)(((purge_args*)arg)->p);
+    uint32_t to = ((purge_args*)arg)->to;
+
+    std::string log_path(g_pikaConf->log_path());
+    if (log_path[log_path.length() - 1] != '/') {
+        log_path.append("/");
+    }
+    char buf[128];
+    std::string prefix = log_path + "write2file";
+    std::string filename;
+    int ret = 0;
+    while (1) {
+        snprintf(buf, sizeof(buf), "%u", to);
+        filename = prefix + std::string(buf);
+        ret = access(filename.c_str(), F_OK);
+        if (ret) break;
+        LOG(INFO) << "Delete " << filename << "...";
+        remove(filename.c_str());
+        to--;
+    }
+    {
+    MutexLock l(p->Mutex());
+    p->purging_ = false;
+    }
+    delete (purge_args*)arg;
     return NULL;
 }
 
@@ -757,12 +809,7 @@ void PikaServer::RunProcess()
                 ip_port.append(":");
                 ll2string(buf, sizeof(buf), ntohs(cliaddr.sin_port));
                 ip_port.append(buf);
-                int clientnum = ClientNum();
-                if (clientnum >= g_pikaConf->maxconnection()) {
-                    LOG(WARNING) << "Reach Max Connection: "<< g_pikaConf->maxconnection() << " refuse new client: " << ip_port;
-                    close(connfd);
-                    continue;
-                }
+
                 int user_thread_num = g_pikaConf->thread_num();
                 std::queue<PikaItem> *q = &(pikaThread_[last_slave_thread_ + user_thread_num]->conn_queue_);
                 PikaItem ti(connfd, ip_port);

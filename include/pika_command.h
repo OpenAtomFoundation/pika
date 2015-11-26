@@ -52,6 +52,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class PurgelogstoCmd : public Cmd {
+public:
+    PurgelogstoCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 //class BemasterCmd : public Cmd {
 //public:
 //    BemasterCmd(int a, bool i = false) : Cmd(a, i) {};
@@ -238,6 +244,24 @@ public:
 class TtlCmd : public Cmd {
 public:
     TtlCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PexpireCmd : public Cmd {
+public:
+    PexpireCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PexpireatCmd : public Cmd {
+public:
+    PexpireatCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PttlCmd : public Cmd {
+public:
+    PttlCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 

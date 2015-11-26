@@ -218,6 +218,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("readonly", readonlyptr));
     SelectCmd *selectptr = new SelectCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("select", selectptr));
+    PurgelogstoCmd *purgelogstoptr = new PurgelogstoCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("purgelogsto", purgelogstoptr));
 
     /*
      * kv
@@ -266,6 +268,12 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("expireat", expireatptr));
     TtlCmd *ttlptr = new TtlCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ttl", ttlptr));
+    PexpireCmd *pexpireptr = new PexpireCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pexpire", pexpireptr));
+    PexpireatCmd *pexpireatptr = new PexpireatCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pexpireat", pexpireatptr));
+    PttlCmd *pttlptr = new PttlCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pttl", pttlptr));
     PersistCmd *persistptr = new PersistCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("persist", persistptr));
     ScanCmd *scanptr = new ScanCmd(-2);

@@ -190,6 +190,18 @@ Status Mario::SetConsumer(int fd, uint32_t filenum, uint64_t con_offset) {
     return Status::NotFound("");
 }
 
+Status Mario::GetStatus(uint32_t* max) {
+    MutexLock l(&mutex_);
+    *max = version_->pronum();
+    std::list<ConsumerItem *>::iterator it;
+    for (it = consumers_.begin(); it != consumers_.end(); it++) {
+        if ((*it)->consumer_->filenum() < *max) {
+            *max = (*it)->consumer_->filenum();
+        }
+    }
+    return Status::OK();
+}
+
 Status Mario::GetConsumerStatus(int fd, uint32_t *filenum, uint64_t *con_offset) {
     std::list<ConsumerItem *>::iterator it;
     for (it = consumers_.begin(); it != consumers_.end(); it++) {
