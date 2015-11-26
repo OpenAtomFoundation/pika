@@ -590,6 +590,17 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         int32_t diff_year = current_time_tm_ptr->tm_year - g_pikaServer->start_time_tm()->tm_year;
         int32_t diff_day = current_time_tm_ptr->tm_yday - g_pikaServer->start_time_tm()->tm_yday;
         int32_t running_time_d = diff_year*365 + diff_day;
+        uint32_t max = 0;
+        g_pikaMario->GetStatus(&max);
+        std::string safety_purge;
+        if (max < 6) {
+          safety_purge = "none"; 
+        } else {
+          safety_purge = "write2file";
+          char str_num[32];
+          snprintf(str_num, sizeof(str_num), "%u", max-6);
+          safety_purge.append(str_num);
+        }
         snprintf (buf, sizeof(buf),
                   "# Server\r\n"
                   "pika_version: %s\r\n"
@@ -603,7 +614,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "config_file: %s\r\n"
                   "is_bgsaving: %s\r\n"
                   "is_scaning_keyspace: %s\r\n"
-                  "db_size: %lluM\r\n",
+                  "db_size: %lluM\r\n"
+                  "safety_purge: %s\r\n",
                   PIKA_VERSION,
                   name.sysname, name.release, name.machine,
                   (std::string(name.machine).substr(std::string(name.machine).length()-2)).c_str(),
@@ -615,7 +627,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   g_pikaConf->conf_path(),
                   g_pikaServer->is_bgsaving().c_str(),
                   g_pikaServer->is_scaning().c_str(),
-                  dbsize_M
+                  dbsize_M,
+                  safety_purge.c_str()
                   );
         info.append(buf);
     }
@@ -674,7 +687,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
             }
         }
 
-        if((repl_state==PIKA_SINGLE) || !(repl_state&~PIKA_MASTER))
+        if ((repl_state==PIKA_SINGLE) || !(repl_state&~PIKA_MASTER))
         {
             std::string slave_list_str;
             snprintf(buf, sizeof(buf),
@@ -685,58 +698,54 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                 g_pikaServer->GetSlaveList(slave_list_str));
             info.append(buf);
             info.append(slave_list_str);
-        }
-        else if(!(repl_state&~PIKA_SLAVE))
-        {
-          std::string ms_state_str;
-          switch(g_pikaServer->ms_state_)
-          {
-            case PIKA_REP_OFFLINE: ms_state_str = "offline"; break;
-            case PIKA_REP_CONNECT: ms_state_str = "connect"; break;
-            case PIKA_REP_CONNECTING: ms_state_str = "connecting"; break;
-            case PIKA_REP_CONNECTED: ms_state_str = "connected"; break;
-            case PIKA_REP_SINGLE: ms_state_str = "single"; break;
-          }
-          snprintf(buf, sizeof(buf),
-              "# Replication(SLAVE)\r\n"
-              "role:slave\r\n"
-              "master_host:%s\r\n"
-              "master_port:%d\r\n"
-              "master_link_status:%s\r\n"
-              "slave_read_only:%d\r\n",
-              (g_pikaServer->masterhost()).c_str(),
-              g_pikaServer->masterport(),
-              ms_state_str.c_str(),
-              g_pikaServer->is_readonly_);
+        } else if (!(repl_state&~PIKA_SLAVE)) {
+            std::string ms_state_str;
+            switch(g_pikaServer->ms_state_)
+            {
+                case PIKA_REP_OFFLINE: ms_state_str = "offline"; break;
+                case PIKA_REP_CONNECT: ms_state_str = "connect"; break;
+                case PIKA_REP_CONNECTING: ms_state_str = "connecting"; break;
+                case PIKA_REP_CONNECTED: ms_state_str = "connected"; break;
+                case PIKA_REP_SINGLE: ms_state_str = "single"; break;
+            }
+            snprintf(buf, sizeof(buf),
+                "# Replication(SLAVE)\r\n"
+                "role:slave\r\n"
+                "master_host:%s\r\n"
+                "master_port:%d\r\n"
+                "master_link_status:%s\r\n"
+                "slave_read_only:%d\r\n",
+                (g_pikaServer->masterhost()).c_str(),
+                g_pikaServer->masterport(),
+                ms_state_str.c_str(),
+                g_pikaServer->is_readonly_);
           info.append(buf);
-        }
-        else if(!(repl_state & ~(PIKA_MASTER | PIKA_SLAVE)))
-        {
-          std::string slave_list_str;
-          std::string ms_state_str;
-          switch(g_pikaServer->ms_state_)
-          {
-            case PIKA_REP_OFFLINE: ms_state_str = "offline"; break;
-            case PIKA_REP_CONNECT: ms_state_str = "connect"; break;
-            case PIKA_REP_CONNECTING: ms_state_str = "connecting"; break;
-            case PIKA_REP_CONNECTED: ms_state_str = "connected"; break;
-            case PIKA_REP_SINGLE: ms_state_str = "single"; break;
-          }
-          snprintf(buf, sizeof(buf),
-              "# Replication(MASTER/SLAVE)\r\n"
-              "role:slave\r\n"
-              "master_host:%s\r\n"
-              "master_port:%d\r\n"
-              "master_link_status:%s\r\n"
-              "slave_read_only:%d\r\n"
-              "connected_slaves:%d\r\n",
-              (g_pikaServer->masterhost()).c_str(),
-              g_pikaServer->masterport(),
-              ms_state_str.c_str(),
-              g_pikaServer->is_readonly_,
-              g_pikaServer->GetSlaveList(slave_list_str));
-          info.append(buf);
-          info.append(slave_list_str);
+        } else if (!(repl_state & ~(PIKA_MASTER | PIKA_SLAVE))) {
+            std::string slave_list_str;
+            std::string ms_state_str;
+            switch(g_pikaServer->ms_state_)
+            {
+                case PIKA_REP_OFFLINE: ms_state_str = "offline"; break;
+                case PIKA_REP_CONNECT: ms_state_str = "connect"; break;
+                case PIKA_REP_CONNECTING: ms_state_str = "connecting"; break;
+                case PIKA_REP_CONNECTED: ms_state_str = "connected"; break;
+                case PIKA_REP_SINGLE: ms_state_str = "single"; break;
+            }
+            snprintf(buf, sizeof(buf),
+                "# Replication(MASTER/SLAVE)\r\n"
+                "role:slave\r\n"
+                "master_host:%s\r\n"
+                "master_port:%d\r\n"
+                "master_link_status:%s\r\n"
+                "slave_read_only:%d\r\n"
+                "connected_slaves:%d\r\n",
+                (g_pikaServer->masterhost()).c_str(),
+                g_pikaServer->masterport(),
+                ms_state_str.c_str(),
+                g_pikaServer->is_readonly_,
+                g_pikaServer->GetSlaveList(slave_list_str));
+            info.append(buf);
+            info.append(slave_list_str);
         }
         /*
         snprintf (buf, sizeof(buf),

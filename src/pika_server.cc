@@ -23,19 +23,18 @@ extern mario::Mario *g_pikaMario;
 
 static void save_time_tm(struct tm *dst_ptr, struct tm *src_ptr)
 {
-  assert(dst_ptr != NULL);
-  assert(src_ptr != NULL);
-  dst_ptr->tm_sec  = src_ptr->tm_sec;
-  dst_ptr->tm_min  = src_ptr->tm_min;
-  dst_ptr->tm_hour = src_ptr->tm_hour;
-  dst_ptr->tm_mday = src_ptr->tm_mday;
-  dst_ptr->tm_mon  = src_ptr->tm_mon;
-  dst_ptr->tm_year = src_ptr->tm_year;
-  dst_ptr->tm_wday = src_ptr->tm_wday;
-  dst_ptr->tm_yday = src_ptr->tm_yday;
-  dst_ptr->tm_isdst = src_ptr->tm_isdst;
+    assert(dst_ptr != NULL);
+    assert(src_ptr != NULL);
+    dst_ptr->tm_sec  = src_ptr->tm_sec;
+    dst_ptr->tm_min  = src_ptr->tm_min;
+    dst_ptr->tm_hour = src_ptr->tm_hour;
+    dst_ptr->tm_mday = src_ptr->tm_mday;
+    dst_ptr->tm_mon  = src_ptr->tm_mon;
+    dst_ptr->tm_year = src_ptr->tm_year;
+    dst_ptr->tm_wday = src_ptr->tm_wday;
+    dst_ptr->tm_yday = src_ptr->tm_yday;
+    dst_ptr->tm_isdst = src_ptr->tm_isdst;
 }
-
 
 Status PikaServer::SetBlockType(BlockType type)
 {
@@ -783,7 +782,7 @@ void PikaServer::RunProcess()
                 ip_port.append(buf);
                 int clientnum = ClientNum();
                 if ((clientnum >= g_pikaConf->maxconnection())
-						|| ((clientnum >= g_pikaConf->maxconnection()-ROOT_CONNECT_NUM) && (ip_str != std::string("127.0.0.1") && (ip_str != GetServerIp())))) {
+				              || ((clientnum >= g_pikaConf->maxconnection()-ROOT_CONNECT_NUM) && (ip_str != std::string("127.0.0.1") && (ip_str != GetServerIp())))) {
                     LOG(WARNING) << "Reach Max Connection: "<< g_pikaConf->maxconnection() << " refuse new client: " << ip_port;
                     close(connfd);
                     continue;
