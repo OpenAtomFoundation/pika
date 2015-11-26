@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
+#include <ctime>
 
 #include "status.h"
 #include "csapp.h"
@@ -48,6 +49,8 @@ public:
     int GetSlaveList(std::string &res);
 //    int ClientRole(int fd, int role);
     
+    time_t start_time_s() {return start_time_s_;}
+    struct tm *start_time_tm() {return &start_time_tm_;}
     void set_masterhost(std::string &masterhost) { masterhost_ = masterhost; }
     std::string masterhost() { return masterhost_; }
     void set_masterport(int masterport) { masterport_ = masterport; }
@@ -64,6 +67,8 @@ public:
     void ProcessTimeEvent(struct timeval*);
     void DisconnectFromMaster();
     int CurrentQps();
+    uint64_t CurrentAccumulativeQueryNums();
+    uint64_t HistoryClientsNum();
     
     int repl_state_; //PIKA_SINGLE; PIKA_MASTER; PIKA_SLAVE
     int ms_state_; //PIKA_CONNECT; PIKA_CONNECTED
@@ -140,7 +145,9 @@ private:
      */
     PikaThread *pikaThread_[PIKA_THREAD_NUM];
 
-
+    int64_t history_clients_num_;
+    time_t start_time_s_;
+    struct tm start_time_tm_;
 //    int64_t stat_numcommands;
 //    int64_t stat_numconnections;
 //

@@ -21,6 +21,22 @@
 extern PikaConf *g_pikaConf;
 extern mario::Mario *g_pikaMario;
 
+static void save_time_tm(struct tm *dst_ptr, struct tm *src_ptr)
+{
+  assert(dst_ptr != NULL);
+  assert(src_ptr != NULL);
+  dst_ptr->tm_sec  = src_ptr->tm_sec;
+  dst_ptr->tm_min  = src_ptr->tm_min;
+  dst_ptr->tm_hour = src_ptr->tm_hour;
+  dst_ptr->tm_mday = src_ptr->tm_mday;
+  dst_ptr->tm_mon  = src_ptr->tm_mon;
+  dst_ptr->tm_year = src_ptr->tm_year;
+  dst_ptr->tm_wday = src_ptr->tm_wday;
+  dst_ptr->tm_yday = src_ptr->tm_yday;
+  dst_ptr->tm_isdst = src_ptr->tm_isdst;
+}
+
+
 Status PikaServer::SetBlockType(BlockType type)
 {
     Status s;
@@ -128,6 +144,9 @@ PikaServer::PikaServer()
     bgsaving_ = false;
     is_readonly_ = false;
     info_keyspacing_ = false;
+    start_time_s_ = time(NULL);
+    struct tm *time_tm_ptr = localtime(&start_time_s_);
+    save_time_tm(&start_time_tm_, time_tm_ptr);
 //    options_.create_if_missing = true;
 //    options_.write_buffer_size = 1500000000;
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
@@ -527,7 +546,7 @@ int PikaServer::GetSlaveList(std::string &res) {
            iter != pikaThread_[i]->clients()->end(); iter++) {
         if (iter->second.role == PIKA_SLAVE) {
           snprintf (buf, sizeof(buf),
-                    "slave%d: host_port=%s\r\n",
+                    "slave%d: host_port=%s state=online\r\n",
                     slave_num, iter->first.c_str());
           res.append(buf);
           slave_num++;
@@ -606,6 +625,25 @@ int PikaServer::CurrentQps() {
     return qps;
 }
 
+uint64_t PikaServer::CurrentAccumulativeQueryNums()
+{
+	int i = 0;
+	uint64_t accumulativeQueryNums = 0;
+	std::map<std::string, client_info>::iterator iter;
+	for(i = 0; i < thread_num_; i++)
+	{
+		RWLock l(pikaThread_[i]->rwlock(), false);
+		accumulativeQueryNums += pikaThread_[i]->accumulative_querynums_;
+	}
+	return accumulativeQueryNums;
+}
+
+uint64_t PikaServer::HistoryClientsNum()
+{
+  MutexLock l(&mutex_);
+  return history_clients_num_;
+}
+
 //int PikaServer::ClientRole(int fd, int role) {
 //    int i = 0;
 //    std::map<int, PikaConn*>::iterator iter_fd;
@@ -662,6 +700,7 @@ void PikaServer::RunProcess()
     int fd, connfd;
     char ipAddr[INET_ADDRSTRLEN] = "";
     std::string ip_port;
+	  std::string ip_str;
     char buf[32];
 
     struct timeval target;
@@ -684,12 +723,15 @@ void PikaServer::RunProcess()
             if (fd == sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
 //                LOG(INFO) << "Accept new connection, fd: " << connfd << " ip: " << inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr)) << " port: " << ntohs(cliaddr.sin_port);
-                ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr));
+                //ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr));
+                ip_str = inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr));
+                ip_port = ip_str;
                 ip_port.append(":");
                 ll2string(buf, sizeof(buf), ntohs(cliaddr.sin_port));
                 ip_port.append(buf);
                 int clientnum = ClientNum();
-                if (clientnum >= g_pikaConf->maxconnection()) {
+                if ((clientnum >= g_pikaConf->maxconnection())
+						|| ((clientnum >= g_pikaConf->maxconnection()-ROOT_CONNECT_NUM) && (ip_str != std::string("127.0.0.1") && (ip_str != GetServerIp())))) {
                     LOG(WARNING) << "Reach Max Connection: "<< g_pikaConf->maxconnection() << " refuse new client: " << ip_port;
                     close(connfd);
                     continue;
@@ -704,6 +746,10 @@ void PikaServer::RunProcess()
                 write(pikaThread_[last_thread_]->notify_send_fd(), "", 1);
                 last_thread_++;
                 last_thread_ %= g_pikaConf->thread_num();
+                {
+                  MutexLock l(&mutex_);
+                  history_clients_num_++;
+                }
             } else if (fd == slave_sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 connfd = accept(slave_sockfd_, (struct sockaddr *) &cliaddr, &clilen);
 //                LOG(INFO) << "Accept new connection, fd: " << connfd << " ip: " << inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr)) << " port: " << ntohs(cliaddr.sin_port);

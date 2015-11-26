@@ -38,6 +38,7 @@ PikaThread::PikaThread(int thread_index)
     gettimeofday(&last_ping_time_, NULL);
     querynums_ = 0;
     last_sec_querynums_ = 0;
+	accumulative_querynums_ = 0;
 
 }
 
@@ -58,6 +59,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     {
     RWLock l(&rwlock_, true);
     last_sec_querynums_ = querynums_;
+	accumulative_querynums_ += querynums_;
     querynums_ = 0;
     }
 

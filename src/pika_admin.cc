@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/dir.h>
+#include <ctime>
 
 #include "pika_command.h"
 #include "pika_server.h"
@@ -583,22 +584,34 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         uint64_t dbsize_M = dbsize_B / (1024 * 1024); 
         
         char buf[512];
+        time_t current_time_s = std::time(NULL);
+        time_t running_time_s = current_time_s-g_pikaServer->start_time_s();
+        struct tm *current_time_tm_ptr = localtime(&current_time_s);
+        int32_t diff_year = current_time_tm_ptr->tm_year - g_pikaServer->start_time_tm()->tm_year;
+        int32_t diff_day = current_time_tm_ptr->tm_yday - g_pikaServer->start_time_tm()->tm_yday;
+        int32_t running_time_d = diff_year*365 + diff_day;
         snprintf (buf, sizeof(buf),
                   "# Server\r\n"
                   "pika_version: %s\r\n"
                   "os: %s %s %s\r\n"
+                  "arch_bits:%s\r\n"
                   "process_id: %ld\r\n"
                   "tcp_port: %d\r\n"
                   "thread_num: %d\r\n"
+                  "uptime_in_seconds: %d\r\n"
+                  "uptime_in_days: %d\r\n"
                   "config_file: %s\r\n"
                   "is_bgsaving: %s\r\n"
                   "is_scaning_keyspace: %s\r\n"
                   "db_size: %lluM\r\n",
                   PIKA_VERSION,
                   name.sysname, name.release, name.machine,
+                  (std::string(name.machine).substr(std::string(name.machine).length()-2)).c_str(),
                   (long) getpid(),
                   g_pikaConf->port(),
                   g_pikaConf->thread_num(),
+                  running_time_s,
+                  running_time_d,
                   g_pikaConf->conf_path(),
                   g_pikaServer->is_bgsaving().c_str(),
                   g_pikaServer->is_scaning().c_str(),
@@ -628,8 +641,12 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[128];
         snprintf (buf, sizeof(buf),
                   "# Stats\r\n"
-                  "instantaneous_ops_per_sec: %d\r\n",
-                  g_pikaServer->CurrentQps());
+                  "total_connections_received:%llu\r\n"
+                  "instantaneous_ops_per_sec: %d\r\n"
+                  "accumulative_query_nums: %llu\r\n",
+                  g_pikaServer->HistoryClientsNum(),
+                  g_pikaServer->CurrentQps(),
+                  g_pikaServer->CurrentAccumulativeQueryNums());
         info.append(buf);
     }
 
@@ -656,6 +673,72 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                 ro.append("slave");
             }
         }
+
+        if((repl_state==PIKA_SINGLE) || !(repl_state&~PIKA_MASTER))
+        {
+            std::string slave_list_str;
+            snprintf(buf, sizeof(buf),
+                "# Replication(MASTER)\r\n"
+                "role:%s\r\n"
+                "connected_slaves:%d\r\n",
+                ro.c_str(),
+                g_pikaServer->GetSlaveList(slave_list_str));
+            info.append(buf);
+            info.append(slave_list_str);
+        }
+        else if(!(repl_state&~PIKA_SLAVE))
+        {
+          std::string ms_state_str;
+          switch(g_pikaServer->ms_state_)
+          {
+            case PIKA_REP_OFFLINE: ms_state_str = "offline"; break;
+            case PIKA_REP_CONNECT: ms_state_str = "connect"; break;
+            case PIKA_REP_CONNECTING: ms_state_str = "connecting"; break;
+            case PIKA_REP_CONNECTED: ms_state_str = "connected"; break;
+            case PIKA_REP_SINGLE: ms_state_str = "single"; break;
+          }
+          snprintf(buf, sizeof(buf),
+              "# Replication(SLAVE)\r\n"
+              "role:slave\r\n"
+              "master_host:%s\r\n"
+              "master_port:%d\r\n"
+              "master_link_status:%s\r\n"
+              "slave_read_only:%d\r\n",
+              (g_pikaServer->masterhost()).c_str(),
+              g_pikaServer->masterport(),
+              ms_state_str.c_str(),
+              g_pikaServer->is_readonly_);
+          info.append(buf);
+        }
+        else if(!(repl_state & ~(PIKA_MASTER | PIKA_SLAVE)))
+        {
+          std::string slave_list_str;
+          std::string ms_state_str;
+          switch(g_pikaServer->ms_state_)
+          {
+            case PIKA_REP_OFFLINE: ms_state_str = "offline"; break;
+            case PIKA_REP_CONNECT: ms_state_str = "connect"; break;
+            case PIKA_REP_CONNECTING: ms_state_str = "connecting"; break;
+            case PIKA_REP_CONNECTED: ms_state_str = "connected"; break;
+            case PIKA_REP_SINGLE: ms_state_str = "single"; break;
+          }
+          snprintf(buf, sizeof(buf),
+              "# Replication(MASTER/SLAVE)\r\n"
+              "role:slave\r\n"
+              "master_host:%s\r\n"
+              "master_port:%d\r\n"
+              "master_link_status:%s\r\n"
+              "slave_read_only:%d\r\n"
+              "connected_slaves:%d\r\n",
+              (g_pikaServer->masterhost()).c_str(),
+              g_pikaServer->masterport(),
+              ms_state_str.c_str(),
+              g_pikaServer->is_readonly_,
+              g_pikaServer->GetSlaveList(slave_list_str));
+          info.append(buf);
+          info.append(slave_list_str);
+        }
+        /*
         snprintf (buf, sizeof(buf),
                   "# Replication\r\n"
                   "role: %s\r\n"
@@ -684,6 +767,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
             info.append(slave_list);
           }
         }
+        */
+
     }
 
     // Key Space

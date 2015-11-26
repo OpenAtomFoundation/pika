@@ -66,12 +66,13 @@ struct dump_args {
 #define PIKA_LINE_SIZE 1024
 #define PIKA_CONF_MAX_NUM 1024
 
-
+#define ROOT_CONNECT_NUM 2
 /*
  * define common character
  */
 #define SPACE ' '
 #define COLON ':'
 #define SHARP '#'
+
 
 #endif

@@ -41,6 +41,7 @@ public:
     struct timeval last_ping_time_;
     int querynums_;
     int last_sec_querynums_;
+    uint64_t accumulative_querynums_;
 
     // port::Mutex mutex() { return mutex_; }
 
