@@ -614,7 +614,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "config_file: %s\r\n"
                   "is_bgsaving: %s\r\n"
                   "is_scaning_keyspace: %s\r\n"
-                  "db_size: %lluM\r\n"
+                  "db_size: %luM\r\n"
                   "safety_purge: %s\r\n",
                   PIKA_VERSION,
                   name.sysname, name.release, name.machine,
@@ -654,9 +654,9 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[128];
         snprintf (buf, sizeof(buf),
                   "# Stats\r\n"
-                  "total_connections_received:%llu\r\n"
+                  "total_connections_received:%lu\r\n"
                   "instantaneous_ops_per_sec: %d\r\n"
-                  "accumulative_query_nums: %llu\r\n",
+                  "accumulative_query_nums: %lu\r\n",
                   g_pikaServer->HistoryClientsNum(),
                   g_pikaServer->CurrentQps(),
                   g_pikaServer->CurrentAccumulativeQueryNums());
@@ -716,7 +716,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                 "master_link_status:%s\r\n"
                 "slave_read_only:%d\r\n",
                 (g_pikaServer->masterhost()).c_str(),
-                g_pikaServer->masterport(),
+                g_pikaServer->masterport() - 100,
                 ms_state_str.c_str(),
                 g_pikaServer->is_readonly_);
           info.append(buf);
