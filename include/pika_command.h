@@ -100,6 +100,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class DumpoffCmd : public Cmd {
+public:
+    DumpoffCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class ReadonlyCmd : public Cmd {
 public:
     ReadonlyCmd(int a, bool i = false) : Cmd(a, i) {};
@@ -109,6 +115,12 @@ public:
 class SelectCmd : public Cmd {
 public:
     SelectCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class FlushallCmd : public Cmd {
+public:
+    FlushallCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 

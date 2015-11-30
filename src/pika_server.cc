@@ -17,6 +17,8 @@
 #include <poll.h>
 #include <iostream>
 #include <fstream>
+#include <sys/stat.h>
+#include <dirent.h>
 
 extern PikaConf *g_pikaConf;
 extern mario::Mario *g_pikaMario;
@@ -138,6 +140,7 @@ PikaServer::PikaServer()
 
     ms_state_ = PIKA_REP_SINGLE;
     repl_state_ = PIKA_SINGLE;
+    flushing_ = false;
     dump_filenum_ = 0;
     dump_pro_offset_ = 0;
     bgsaving_ = false;
@@ -201,6 +204,111 @@ bool PikaServer::LoadDb(std::string& path) {
     return true;
 }
 
+int is_dir(char* filename) {
+    struct stat buf;
+    int ret = stat(filename,&buf);
+    if (0 == ret) {
+        if (buf.st_mode & S_IFDIR) {
+            //folder
+            return 0;
+        } else {
+            //file
+            return 1;
+        }
+    }
+    return -1;
+}
+
+int delete_dir(const char* dirname)
+{
+    char chBuf[256];
+    DIR * dir = NULL;
+    struct dirent *ptr;
+    int ret = 0;
+    dir = opendir(dirname);
+    if (NULL == dir) {
+        return -1;
+    }
+    while((ptr = readdir(dir)) != NULL) {
+        ret = strcmp(ptr->d_name, ".");
+        if (0 == ret) {
+            continue;
+        }
+        ret = strcmp(ptr->d_name, "..");
+        if (0 == ret) {
+            continue;
+        }
+        snprintf(chBuf, 256, "%s/%s", dirname, ptr->d_name);
+        ret = is_dir(chBuf);
+        if (0 == ret) {
+            //is dir
+            ret = delete_dir(chBuf);
+            if (0 != ret) {
+                return -1;
+            }
+        }
+        else if (1 == ret) {
+            //is file
+            ret = remove(chBuf);
+            if(0 != ret) {
+                return -1;
+            }
+        }
+    }
+    (void)closedir(dir);
+    ret = remove(dirname);
+    if (0 != ret) {
+        return -1;
+    }
+    return 0;
+}
+
+bool PikaServer::Flushall() {
+    MutexLock l(&mutex_);
+    if (flushing_) {
+        return false;
+    }
+    flushing_ = true;
+    std::string dbpath = g_pikaConf->db_path();
+    if (dbpath[dbpath.length() - 1] == '/') {
+        dbpath.erase(dbpath.length() - 1);
+    }
+    int pos = dbpath.find_last_of('/');
+    dbpath = dbpath.substr(0, pos);
+    dbpath.append("/deleting");
+    rename(g_pikaConf->db_path(), dbpath.c_str());
+
+    RWLock wl(&rwlock_, true);
+    LOG(WARNING) << "Delete old db...";
+    delete db_;
+
+    nemo::Options option;
+    option.write_buffer_size = g_pikaConf->write_buffer_size();
+    option.target_file_size_base = g_pikaConf->target_file_size_base();
+    LOG(WARNING) << "Prepare open new db...";
+    db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
+    LOG(WARNING) << "open new db success";
+    flush_args *arg = new flush_args;
+    arg->p = (void*)this;
+    arg->path = dbpath;
+    pthread_create(&flush_thread_id_, NULL, &(PikaServer::StartFlush), arg);
+    return true;
+}
+
+void* PikaServer::StartFlush(void* arg) {
+    PikaServer* p = (PikaServer*)(((flush_args*)arg)->p);
+    std::string path = ((flush_args*)arg)->path;
+    LOG(INFO) << "Deleting " << path;
+
+    delete_dir(path.c_str());
+    {
+    MutexLock l(p->Mutex());
+    p->flushing_ = false;
+    }
+    delete (flush_args*)arg;
+    return NULL;
+}
+
 void PikaServer::Dump() {
     MutexLock l(&mutex_);
     if (bgsaving_) {
@@ -214,7 +322,7 @@ void PikaServer::Dump() {
         bgsaving_ = true;
     }
     bgsaving_start_time_ = time(NULL);
-    strftime(dump_time_, sizeof(dump_time_), "%Y%m%d%H%M%S",localtime(&bgsaving_start_time_)); 
+    strftime(dump_time_, sizeof(dump_time_), "%Y%m%d%H%M%S",localtime(&bgsaving_start_time_));
 //    LOG(INFO) << tmp;
     dump_args *arg = new dump_args;
     arg->p = (void*)this;
@@ -248,6 +356,14 @@ void* PikaServer::StartDump(void* arg) {
     }
     delete (dump_args*)arg;
     return NULL;
+}
+
+bool PikaServer::Dumpoff() {
+    MutexLock l(&mutex_);
+    if (!bgsaving_) {
+        return false;
+    }
+    return true;
 }
 
 bool PikaServer::PurgeLogs(uint32_t max, int64_t to) {

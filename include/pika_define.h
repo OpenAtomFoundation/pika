@@ -53,6 +53,11 @@ struct client_info {
     int role;
 };
 
+struct flush_args {
+    void* p;
+    std::string path;
+};
+
 struct dump_args {
     void* p;
     nemo::Snapshots snapshots;

@@ -74,12 +74,17 @@ public:
     int ms_state_; //PIKA_CONNECT; PIKA_CONNECTED
     pthread_rwlock_t* rwlock() { return &rwlock_; }
     bool LoadDb(std::string& path);
+    bool Flushall();
+    pthread_t flush_thread_id_;
+    bool flushing_;
+    static void* StartFlush(void* arg);
     bool purging_;
     bool PurgeLogs(uint32_t max, int64_t to);
     pthread_t purge_thread_id_;
     static void* StartPurgeLogs(void* arg);
     void Slaveofnoone();
     void Dump();
+    bool Dumpoff();
     uint32_t dump_filenum_;
     uint64_t dump_pro_offset_;
     pthread_t dump_thread_id_;

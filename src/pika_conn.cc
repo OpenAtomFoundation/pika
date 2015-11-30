@@ -474,7 +474,7 @@ int PikaConn::DoCmd() {
                 ret = "-ERR Server in Readonly\r\n";
             } else {
                 iter->second->Do(argv_, ret);
-                if (opt != "loaddb" && opt != "dump" && opt != "readonly" && opt != "ucanpsync") {
+                if (opt != "loaddb" && opt != "dump" && opt != "readonly" && opt != "ucanpsync" && opt != "flushall") {
                     pthread_rwlock_unlock(g_pikaServer->rwlock());
                 }
                 if (opt == "auth") {

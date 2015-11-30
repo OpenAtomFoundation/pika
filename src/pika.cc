@@ -214,12 +214,16 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("loaddb", loaddbptr));
     DumpCmd *dumpptr = new DumpCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("dump", dumpptr));
+    DumpoffCmd *dumpoffptr = new DumpoffCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("dumpoff", dumpoffptr));
     ReadonlyCmd *readonlyptr = new ReadonlyCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("readonly", readonlyptr));
     SelectCmd *selectptr = new SelectCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("select", selectptr));
     PurgelogstoCmd *purgelogstoptr = new PurgelogstoCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("purgelogsto", purgelogstoptr));
+    FlushallCmd *flushallptr = new FlushallCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("flushall", flushallptr));
 
     /*
      * kv

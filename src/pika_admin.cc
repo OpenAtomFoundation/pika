@@ -264,6 +264,7 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
 }
 
 void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
@@ -279,7 +280,6 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
     }
 
-    pthread_rwlock_unlock(g_pikaServer->rwlock());
     {
     RWLock rwl(g_pikaServer->rwlock(), true);
     g_pikaServer->is_readonly_ = true;
@@ -307,6 +307,7 @@ void SyncerrorCmd::Do(std::list<std::string> &argv, std::string &ret) {
 }
 
 void LoaddbCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
@@ -316,7 +317,6 @@ void LoaddbCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string path = argv.front();
     argv.pop_front();
-    pthread_rwlock_unlock(g_pikaServer->rwlock());
     bool res = g_pikaServer->LoadDb(path);
     if (res == true) {
         ret = "+OK\r\n";
@@ -325,7 +325,8 @@ void LoaddbCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
-void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
+void FlushallCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
@@ -333,15 +334,23 @@ void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     }
     argv.pop_front();
-//    uint32_t filenum = 0;
-//    uint64_t pro_offset = 0;
-//    nemo::Snapshots snapshots;
+    bool res = g_pikaServer->Flushall();
+    if (res == true) {
+        ret = "+OK\r\n";
+    } else {
+        ret = "-ERR Alread in Flushing\r\n";
+    }
+}
+
+void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
     pthread_rwlock_unlock(g_pikaServer->rwlock());
-//    {
-//        RWLock l(g_pikaServer->rwlock(), true);
-//        g_pikaMario->GetProducerStatus(&filenum, &pro_offset);
-//        g_pikaServer->GetHandle()->BGSaveGetSnapshot(snapshots);
-//    }
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
     g_pikaServer->Dump();
     ret = "+";
     ret.append(g_pikaServer->dump_time_);
@@ -355,7 +364,24 @@ void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
     ret.append("\r\n");
 }
 
+void DumpoffCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    bool res = g_pikaServer->Dumpoff();
+    if (res == true) {
+        ret = "+OK\r\n";
+    } else {
+        ret = "-ERR No DumpWorks now\r\n";
+    }
+}
+
 void ReadonlyCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
@@ -368,13 +394,11 @@ void ReadonlyCmd::Do(std::list<std::string> &argv, std::string &ret) {
     transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
     ret = "+OK\r\n";
     if (opt == "on") {
-        pthread_rwlock_unlock(g_pikaServer->rwlock());
         {
         RWLock l(g_pikaServer->rwlock(), true);
         g_pikaServer->is_readonly_ = true;
         }
     } else if (opt == "off") {
-        pthread_rwlock_unlock(g_pikaServer->rwlock());
         {
         RWLock l(g_pikaServer->rwlock(), true);
         g_pikaServer->is_readonly_ = false;
@@ -702,11 +726,11 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
             std::string ms_state_str;
             switch(g_pikaServer->ms_state_)
             {
-                case PIKA_REP_OFFLINE: ms_state_str = "offline"; break;
-                case PIKA_REP_CONNECT: ms_state_str = "connect"; break;
-                case PIKA_REP_CONNECTING: ms_state_str = "connecting"; break;
-                case PIKA_REP_CONNECTED: ms_state_str = "connected"; break;
-                case PIKA_REP_SINGLE: ms_state_str = "single"; break;
+                case PIKA_REP_OFFLINE: ms_state_str = "down"; break;
+                case PIKA_REP_CONNECT: ms_state_str = "down"; break;
+                case PIKA_REP_CONNECTING: ms_state_str = "down"; break;
+                case PIKA_REP_CONNECTED: ms_state_str = "up"; break;
+                case PIKA_REP_SINGLE: ms_state_str = "down"; break;
             }
             snprintf(buf, sizeof(buf),
                 "# Replication(SLAVE)\r\n"
