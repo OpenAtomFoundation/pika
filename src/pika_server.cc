@@ -17,6 +17,7 @@
 #include <poll.h>
 #include <iostream>
 #include <fstream>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
 
@@ -149,6 +150,7 @@ PikaServer::PikaServer()
     info_keyspacing_ = false;
     start_time_s_ = time(NULL);
     struct tm *time_tm_ptr = localtime(&start_time_s_);
+    save_time_tm(&last_autopurge_time_tm_, time_tm_ptr);
     save_time_tm(&start_time_tm_, time_tm_ptr);
 //    options_.create_if_missing = true;
 //    options_.write_buffer_size = 1500000000;
@@ -507,10 +509,56 @@ std::string PikaServer::is_scaning() {
     return s;
 }
 
+int log_num(std::string path)
+{
+    DIR *dir;
+    struct dirent *entry;
+    std::string writefile = "write2file";
+
+    dir = opendir(path.c_str());
+    if (!dir) {
+        return 0;
+    }
+    int num = 0;
+    while ((entry = readdir(dir))) {
+        if (!strncmp(entry->d_name, writefile.c_str(), writefile.length())) {
+            num++;
+        }
+    }
+    closedir(dir);
+
+    return num;
+}
+
+void PikaServer::AutoPurge() {
+    time_t current_time_s = std::time(NULL);
+    struct tm *current_time_tm_ptr = localtime(&current_time_s);
+    int32_t diff_year = current_time_tm_ptr->tm_year - last_autopurge_time_tm_.tm_year;
+    int32_t diff_day = current_time_tm_ptr->tm_yday - last_autopurge_time_tm_.tm_yday;
+    int32_t running_time_d = diff_year*365 + diff_day;
+    int32_t num = log_num(g_pikaConf->log_path());
+    if (running_time_d > g_pikaConf->expire_logs_days() - 1) {
+        uint32_t max = 0;
+        g_pikaMario->GetStatus(&max);
+        if(max >= 6 && PurgeLogs(max, max-6)) {
+            LOG(INFO) << "Auto Purge(Days): write2file" << max-6;
+            save_time_tm(&last_autopurge_time_tm_, current_time_tm_ptr);
+        }
+    } else if (num > g_pikaConf->expire_logs_nums()) {
+        uint32_t max = 0;
+        g_pikaMario->GetStatus(&max);
+        if (max >= 6 && PurgeLogs(max, max-6)) {
+            LOG(INFO) << "Auto Purge(Nums): write2file" << max-6;
+        }
+    }
+}
+
 void PikaServer::ProcessTimeEvent(struct timeval* target) {
     std::string ip_port;
     char buf[32];
     target->tv_sec++;
+    AutoPurge();
+
     {
     MutexLock l(&mutex_);
     if (ms_state_ == PIKA_REP_CONNECT) {

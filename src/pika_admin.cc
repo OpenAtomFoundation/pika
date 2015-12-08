@@ -639,7 +639,9 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "is_bgsaving: %s\r\n"
                   "is_scaning_keyspace: %s\r\n"
                   "db_size: %luM\r\n"
-                  "safety_purge: %s\r\n",
+                  "safety_purge: %s\r\n"
+                  "expire_logs_days: %d\r\n"
+                  "expire_logs_nums: %d\r\n",
                   PIKA_VERSION,
                   name.sysname, name.release, name.machine,
                   (std::string(name.machine).substr(std::string(name.machine).length()-2)).c_str(),
@@ -652,7 +654,9 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   g_pikaServer->is_bgsaving().c_str(),
                   g_pikaServer->is_scaning().c_str(),
                   dbsize_M,
-                  safety_purge.c_str()
+                  safety_purge.c_str(),
+                  g_pikaConf->expire_logs_days(),
+                  g_pikaConf->expire_logs_nums()
                   );
         info.append(buf);
     }

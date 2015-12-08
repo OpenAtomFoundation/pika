@@ -82,6 +82,8 @@ public:
     bool PurgeLogs(uint32_t max, int64_t to);
     pthread_t purge_thread_id_;
     static void* StartPurgeLogs(void* arg);
+    void AutoPurge();
+    struct tm last_autopurge_time_tm_;
     void Slaveofnoone();
     void Dump();
     bool Dumpoff();
