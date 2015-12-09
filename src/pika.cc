@@ -33,6 +33,7 @@ static void pika_glog_init()
 
     FLAGS_log_dir = g_pikaConf->log_path();
     FLAGS_minloglevel = g_pikaConf->log_level();
+    FLAGS_max_log_size = 1800;
     ::google::InitGoogleLogging("pika");
 
     LOG(WARNING) << "Pika glog init";
