@@ -50,7 +50,7 @@ void cleanup() {
 
 static void sig_handler(const int sig)
 {
-    LOG(INFO) << "Caught signal " << sig;
+//    LOG(INFO) << "Caught signal " << sig;
     ::google::ShutdownGoogleLogging();
     cleanup();
     exit(1);

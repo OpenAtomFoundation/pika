@@ -341,7 +341,7 @@ void* PikaServer::StartDump(void* arg) {
     }
     dump_path.append(g_pikaConf->dump_prefix());
     dump_path.append(p->dump_time_);
-    LOG(INFO) << dump_path;
+    LOG(WARNING) << dump_path;
     p->GetHandle()->BGSave(s, dump_path);
     std::ofstream out;
     out.open(dump_path + "/info", std::ios::in | std::ios::trunc);
@@ -461,7 +461,7 @@ void PikaServer::Slaveofnoone() {
     {
     RWLock rwl(&rwlock_, true);
     is_readonly_ = false;
-    LOG(INFO) << "Slave of no one , close readonly mode, repl_state_: " << repl_state_;
+    LOG(WARNING) << "Slave of no one , close readonly mode, repl_state_: " << repl_state_;
     }
     pthread_rwlock_rdlock(&rwlock_);
 
@@ -541,14 +541,14 @@ void PikaServer::AutoPurge() {
         uint32_t max = 0;
         g_pikaMario->GetStatus(&max);
         if(max >= 6 && PurgeLogs(max, max-6)) {
-            LOG(INFO) << "Auto Purge(Days): write2file" << max-6;
+            LOG(WARNING) << "Auto Purge(Days): write2file" << max-6;
             save_time_tm(&last_autopurge_time_tm_, current_time_tm_ptr);
         }
     } else if (num > g_pikaConf->expire_logs_nums()) {
         uint32_t max = 0;
         g_pikaMario->GetStatus(&max);
         if (max >= 6 && PurgeLogs(max, max-6)) {
-            LOG(INFO) << "Auto Purge(Nums): write2file" << max-6;
+            LOG(WARNING) << "Auto Purge(Nums): write2file" << max-6;
         }
     }
 }
@@ -563,7 +563,7 @@ void PikaServer::ProcessTimeEvent(struct timeval* target) {
     MutexLock l(&mutex_);
     if (ms_state_ == PIKA_REP_CONNECT) {
         //connect
-        LOG(INFO) << "try to connect with master: " << masterhost_ << ":" << masterport_;
+        LOG(WARNING) << "try to connect with master: " << masterhost_ << ":" << masterport_;
         struct sockaddr_in s_addr;
         int connfd = socket(AF_INET, SOCK_STREAM, 0);
         if (connfd == -1) {
@@ -627,7 +627,7 @@ void PikaServer::ProcessTimeEvent(struct timeval* target) {
         ll2string(buf, sizeof(buf), ntohs(s_addr.sin_port));
         ip_port.append(buf);
         std::queue<PikaItem> *q = &(pikaThread_[thread_num_-1]->conn_queue_);
-        LOG(INFO) << "Push Master to Thread " << thread_num_-1;
+        LOG(WARNING) << "Push Master to Thread " << thread_num_-1;
         PikaItem ti(connfd, ip_port, PIKA_MASTER);
         {
             MutexLock l(&pikaThread_[thread_num_-1]->mutex_);
@@ -651,7 +651,7 @@ void PikaServer::DisconnectFromMaster() {
     masterhost_ = "";
     masterport_ = 0;
     repl_state_ &= (~ PIKA_SLAVE);
-    LOG(INFO) << "Disconnect with master, " << repl_state_;
+    LOG(WARNING) << "Disconnect with master, " << repl_state_;
     ms_state_ = PIKA_REP_SINGLE;
     }
 }
@@ -703,7 +703,7 @@ int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint
         RWLock l(pikaThread_[i]->rwlock(), true);
         iter_cl = pikaThread_[i]->clients()->find(iter_fd->second->ip_port());
         if (iter_cl != pikaThread_[i]->clients()->end()) {
-            LOG(INFO) << "Set client role to slave";
+            LOG(WARNING) << "Set client role to slave";
             iter_cl->second.role = PIKA_SLAVE;
         }
         }
@@ -976,7 +976,7 @@ void PikaServer::RunProcess()
                 int user_thread_num = g_pikaConf->thread_num();
                 std::queue<PikaItem> *q = &(pikaThread_[last_slave_thread_ + user_thread_num]->conn_queue_);
                 PikaItem ti(connfd, ip_port);
-                LOG(INFO) << "Push Slave to Thread " << (last_slave_thread_ + user_thread_num);
+                LOG(WARNING) << "Push Slave " << ip_port << " to Thread " << (last_slave_thread_ + user_thread_num);
                 {
                     MutexLock l(&pikaThread_[last_slave_thread_ + user_thread_num]->mutex_);
                     q->push(ti);

@@ -156,7 +156,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
 //      TODO: redisAssertWithInfo(c,NULL,c->querybuf[0] == '*');
         if (rbuf_[0] != '*') {
 //            log_info("protocol exepect *,but it is %c", rbuf_[0]);
-            LOG(WARNING) << "protocol expect *, but it is "<<rbuf_[0];
+            LOG(WARNING) << "(" << ip_port_ << ")protocol expect *, but it is "<<rbuf_[0];
             return -2;
         }
         ok = string2ll(rbuf_+1,newline-(rbuf_+1),&ll);
@@ -177,7 +177,7 @@ int PikaConn::ProcessMultibulkBuffer(std::string &err_msg) {
     //TODO: redisAssertWithInfo(c,NULL,c->multibulklen > 0);
     if (multibulklen_ <= 0) {
 //        log_info("multi bulk len < 0 in this packet");
-        LOG(WARNING) << "multi bulk len < 0 in this packet";
+        LOG(WARNING) << "(" << ip_port_ << ")multi bulk len < 0 in this packet";
         return -2;
     }
     while(multibulklen_) {
@@ -291,7 +291,7 @@ int PikaConn::ProcessInputBuffer() {
                         wbuf_ = sdscat(wbuf_, err_msg.c_str());
                     }
                     sdsclear(msbuf_);
-                    LOG(INFO) << "error in parsing inlinebuffer, error: " << err_msg;
+                    LOG(WARNING) << "(" << ip_port_ << ")error in parsing inlinebuffer, error: " << err_msg;
                     return -2;
                 }
                 break;
@@ -306,14 +306,14 @@ int PikaConn::ProcessInputBuffer() {
                         wbuf_ = sdscat(wbuf_, err_msg.c_str());
                     }
                     sdsclear(msbuf_);
-                    LOG(INFO) << "error in parsing multibulkbuffer, error: " << err_msg;
+                    LOG(WARNING) << "(" << ip_port_ << ")error in parsing multibulkbuffer, error: " << err_msg;
                     return -2;
                 }
                 break;
             }
         } else {
 //            log_info("Unknown requeset type");
-            LOG(WARNING) << "Unknown requeset type";
+            LOG(WARNING) << "(" << ip_port_ << ")Unknown requeset type";
             return -2;
         }
         if (GetArgc() == 0) {
@@ -362,14 +362,14 @@ int PikaConn::PikaGetRequest()
             return 0;
         } else {
 //            log_info("Reading from client: %s", strerror(errno));
-            LOG(WARNING) << "Reading from client: " << strerror(errno);
+            LOG(WARNING) << "(" << ip_port_ << ")Reading from client: " << strerror(errno);
             //TODO: close connection
             Reset();
             return -2;
         }
     } else if (nread == 0) {
 //        log_info("client closed connection");
-        LOG(INFO) << "client closed connection";
+        LOG(INFO) << "(" << ip_port_ << ")client closed connection";
         //TODO: close connection
         Reset();
         return -2;
@@ -402,7 +402,7 @@ int PikaConn::PikaSendReply()
                         /*
                          * Here we clear this connection
                          */
-                        LOG(INFO) << "send error, close client";
+                        LOG(WARNING) << "(" << ip_port_ << ")send error, close client";
                         should_close_after_reply = true;
                         return 0;
                     }
@@ -429,7 +429,7 @@ int PikaConn::PikaSendReply()
                     /*
                      * Here we clear this connection
                      */
-                    LOG(INFO) << "send error, close client";
+                    LOG(WARNING) << "(" << ip_port_ << ")send error, close client";
                     should_close_after_reply = true;
                     return 0;
                 }
@@ -482,7 +482,7 @@ int PikaConn::DoCmd() {
                         is_authed_ = true;
                     } else {
                         is_authed_ = false;
-                        LOG(INFO) << "Wrong Password, close connection";
+                        LOG(WARNING) << "(" << ip_port_ << ")Wrong Password, close connection";
                         cmd_ret = -2;
                     }
 
@@ -494,7 +494,7 @@ int PikaConn::DoCmd() {
                     if (ret == "+OK\r\n") {
                         is_authed_ = true;
                     } else {
-                        LOG(INFO) << "Slave Wrong Password, close connection";
+                        LOG(WARNING) << "(" << ip_port_ << ")Slave Wrong Password, close connection";
                         is_authed_ = false;
                         cmd_ret = -2;
                     }
@@ -511,7 +511,7 @@ int PikaConn::DoCmd() {
         }
     } else {
         ret = "-ERR NOAUTH Authentication required.\r\n";
-        LOG(INFO) << "Authentication required, close connection";
+        LOG(WARNING) << "(" << ip_port_ << ")Authentication required, close connection";
         cmd_ret = -2;
     }
     if (opt == "pikasync") {

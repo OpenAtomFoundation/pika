@@ -259,7 +259,7 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append(auth);
         ret.append("\r\n");
         ret.append(t_ret);
-        LOG(INFO) << ret;
+        LOG(WARNING) << ret;
     }
 }
 
@@ -284,7 +284,7 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     RWLock rwl(g_pikaServer->rwlock(), true);
     g_pikaServer->is_readonly_ = true;
     }
-    LOG(INFO) << "Master told me that I can psync, open readonly mode now";
+    LOG(WARNING) << "Master told me that I can psync, open readonly mode now";
     ret = "";
 }
 
@@ -302,7 +302,7 @@ void SyncerrorCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
     argv.pop_front();
     g_pikaServer->DisconnectFromMaster();
-    LOG(INFO) << "Master told me that I can not psync, rollback now";
+    LOG(WARNING) << "Master told me that I can not psync, rollback now";
     ret = ""; 
 }
 
@@ -874,7 +874,7 @@ void PurgelogstoCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
     uint32_t max = 0;
     mario::Status mas = g_pikaMario->GetStatus(&max);
-    LOG(INFO) << "max seqnum could be deleted: " << max;
+    LOG(WARNING) << "max seqnum could be deleted: " << max;
     bool purge_res = g_pikaServer->PurgeLogs(max, num);
     if (purge_res) {
         ret = "+OK\r\n";
