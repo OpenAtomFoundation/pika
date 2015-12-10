@@ -650,21 +650,21 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         }
         snprintf (buf, sizeof(buf),
                   "# Server\r\n"
-                  "pika_version: %s\r\n"
-                  "os: %s %s %s\r\n"
+                  "pika_version:%s\r\n"
+                  "os:%s %s %s\r\n"
                   "arch_bits:%s\r\n"
-                  "process_id: %ld\r\n"
-                  "tcp_port: %d\r\n"
-                  "thread_num: %d\r\n"
-                  "uptime_in_seconds: %d\r\n"
-                  "uptime_in_days: %d\r\n"
-                  "config_file: %s\r\n"
-                  "is_bgsaving: %s\r\n"
-                  "is_scaning_keyspace: %s\r\n"
-                  "db_size: %luM\r\n"
-                  "safety_purge: %s\r\n"
-                  "expire_logs_days: %d\r\n"
-                  "expire_logs_nums: %d\r\n",
+                  "process_id:%ld\r\n"
+                  "tcp_port:%d\r\n"
+                  "thread_num:%d\r\n"
+                  "uptime_in_seconds:%d\r\n"
+                  "uptime_in_days:%d\r\n"
+                  "config_file:%s\r\n"
+                  "is_bgsaving:%s\r\n"
+                  "is_scaning_keyspace:%s\r\n"
+                  "db_size:%luM\r\n"
+                  "safety_purge:%s\r\n"
+                  "expire_logs_days:%d\r\n"
+                  "expire_logs_nums:%d\r\n",
                   PIKA_VERSION,
                   name.sysname, name.release, name.machine,
                   (std::string(name.machine).substr(std::string(name.machine).length()-2)).c_str(),
@@ -692,7 +692,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[128];
         snprintf (buf, sizeof(buf),
                   "# Clients\r\n"
-                  "connected_clients: %d\r\n",
+                  "connected_clients:%d\r\n",
                   g_pikaServer->ClientList(clients));
         info.append(buf);
     }
@@ -706,8 +706,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         snprintf (buf, sizeof(buf),
                   "# Stats\r\n"
                   "total_connections_received:%lu\r\n"
-                  "instantaneous_ops_per_sec: %d\r\n"
-                  "accumulative_query_nums: %lu\r\n",
+                  "instantaneous_ops_per_sec:%d\r\n"
+                  "accumulative_query_nums:%lu\r\n",
                   g_pikaServer->HistoryClientsNum(),
                   g_pikaServer->CurrentQps(),
                   g_pikaServer->CurrentAccumulativeQueryNums());
@@ -851,12 +851,12 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         strftime(infotime, sizeof(infotime), "%Y-%m-%d %H:%M:%S", localtime(&(g_pikaServer->last_info_keyspace_start_time_))); 
         snprintf (buf, sizeof(buf),
                   "# Keyspace\r\n"
-                  "# Time: %s\r\n"
-                  "kv keys: %lu\r\n"
-                  "hash keys: %lu\r\n"
-                  "list keys: %lu\r\n"
-                  "zset keys: %lu\r\n"
-                  "set keys: %lu\r\n",
+                  "# Time:%s\r\n"
+                  "kv keys:%lu\r\n"
+                  "hash keys:%lu\r\n"
+                  "list keys:%lu\r\n"
+                  "zset keys:%lu\r\n"
+                  "set keys:%lu\r\n",
                   infotime, g_pikaServer->last_kv_num_, g_pikaServer->last_hash_num_, g_pikaServer->last_list_num_, g_pikaServer->last_zset_num_, g_pikaServer->last_set_num_);
         info.append(buf);
     }
