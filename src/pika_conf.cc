@@ -23,6 +23,8 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("target_file_size_base", &target_file_size_base_);
     getConfInt("expire_logs_days", &expire_logs_days_);
     getConfInt("expire_logs_nums", &expire_logs_nums_);
+    getConfInt("root_connection_num", &root_connection_num_);
+    getConfInt("slowlog_log_slower_than", &slowlog_slower_than_);
 
     if (thread_num_ <= 0) {
         thread_num_ = 16;
@@ -48,6 +50,9 @@ PikaConf::PikaConf(const char* path) :
     if (expire_logs_nums_ <= 6 ) {
         expire_logs_nums_ = 6;
     }
+    if (root_connection_num_ < 0) {
+        root_connection_num_ = 0;
+    }
 
     char str[PIKA_WORD_SIZE];
     getConfStr("daemonize", str);
@@ -57,7 +62,6 @@ PikaConf::PikaConf(const char* path) :
     } else {
         daemonize_ = false;
     }
-
 
     pthread_rwlock_init(&rwlock_, NULL);
 }

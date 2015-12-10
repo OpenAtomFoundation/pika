@@ -498,6 +498,14 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "daemonize");
             EncodeString(&ret, g_pikaConf->daemonize() ? "yes" : "no");
+        } else if (conf_item == "root_connection_num" ) {
+            ret = "*2\r\n";
+            EncodeString(&ret, "root_connection_num");
+            EncodeInt32(&ret, g_pikaConf->root_connection_num());
+        } else if (conf_item == "slowlog_log_slower_than") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "slowlog_log_slower_than");
+            EncodeInt32(&ret, g_pikaConf->slowlog_slower_than());
         } else {
             ret = "-ERR No such configure item\r\n";
         }
@@ -513,6 +521,21 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "+OK\r\n";
         } else if (conf_item == "requirepass") {
             g_pikaConf->SetRequirePass(value);
+            ret = "+OK\r\n";
+        } else if (conf_item == "root_connection_num") {
+            if (!string2l(value.data(), value.size(), &ival)) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'root_connection_num'\r\n";
+                return;
+            }
+            g_pikaConf->SetRootConnectionNum(ival);
+            ret = "+OK\r\n";
+        }
+        else if (conf_item == "slowlog_log_slower_than") {
+            if (!string2l(value.data(), value.size(), &ival)) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slowlog_slower_than'\r\n";
+                return;
+            }
+            g_pikaConf->SetSlowlogSlowerThan(ival);
             ret = "+OK\r\n";
         } else {
             ret = "-ERR No such configure item\r\n";

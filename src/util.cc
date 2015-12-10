@@ -42,6 +42,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #include "util.h"
 
@@ -591,6 +592,14 @@ int mkpath(const char *path, mode_t mode) {
     status = do_mkdir(path, mode);
   free(copypath);
   return (status);
+}
+
+int64_t ustime() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    int64_t ust;
+    ust = (tv.tv_sec)*1000000 + tv.tv_usec;
+    return ust;
 }
 
 #ifdef UTIL_TEST_MAIN

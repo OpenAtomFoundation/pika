@@ -945,8 +945,8 @@ void PikaServer::RunProcess()
                 ll2string(buf, sizeof(buf), ntohs(cliaddr.sin_port));
                 ip_port.append(buf);
                 int clientnum = ClientNum();
-                if ((clientnum >= g_pikaConf->maxconnection())
-				              || ((clientnum >= g_pikaConf->maxconnection()-ROOT_CONNECT_NUM) && (ip_str != std::string("127.0.0.1") && (ip_str != GetServerIp())))) {
+                if ((clientnum >= g_pikaConf->maxconnection() + g_pikaConf->root_connection_num())
+				              || ((clientnum >= g_pikaConf->maxconnection()) && (ip_str != std::string("127.0.0.1") && (ip_str != GetServerIp())))) {
                     LOG(WARNING) << "Reach Max Connection: "<< g_pikaConf->maxconnection() << " refuse new client: " << ip_port;
                     close(connfd);
                     continue;
