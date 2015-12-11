@@ -130,7 +130,7 @@ void HIncrbyCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     int64_t by;
     std::string new_val;
-    if (!string2l(str_by.data(), str_by.size(), &by)) {
+    if ((str_by.find(" ") != std::string::npos) || !string2l(str_by.data(), str_by.size(), &by)) {
         ret = "-ERR value is not an integer or out of range\r\n";
         return;
     }
@@ -166,8 +166,8 @@ void HIncrbyfloatCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     double by;
     std::string new_val;
-    if (!string2d(str_by.data(), str_by.size(), &by)) {
-        ret = "-ERR value is not an float\r\n";
+    if ((str_by.find(" ") != std::string::npos) || !string2d(str_by.data(), str_by.size(), &by)) {
+        ret = "-ERR value is not a valid float\r\n";
         return;
     }
     nemo::Status s = g_pikaServer->GetHandle()->HIncrbyfloat(key, field, by, new_val);
@@ -485,6 +485,10 @@ void HScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     };
 
+    int hlen = g_pikaServer->GetHandle()->HLen(key);
+    if (hlen >= 0 && index >= hlen) {
+        index = 0;
+    }
 
     std::vector<nemo::FV> fvs;
     nemo::HIterator *iter = g_pikaServer->GetHandle()->HScan(key, "", "", -1);

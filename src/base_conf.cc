@@ -52,12 +52,9 @@ bool BaseConf::ReadConf(const char* path)
         line_len = strlen(line);
         for (int i = 0; i < line_len; i++) {
             ch = line[i];
+            if (ch == '#') break;
+
             switch (ch) {
-                case '#': {
-                    if (i == 0) {
-                        continue;
-                    }
-                }
                 case ':': {
                     sep_sign = 1;
                 }
@@ -79,6 +76,9 @@ bool BaseConf::ReadConf(const char* path)
                 }
             }
         }
+
+        if (name_len <= 0) continue;
+
         c_name[name_len] = '\0';
         c_value[value_len] = '\0';
         

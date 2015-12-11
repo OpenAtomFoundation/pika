@@ -34,5 +34,24 @@ class MutexLock {
         void operator=(const MutexLock&);
 };
 
+class RWLock {
+    public:
+        explicit RWLock(pthread_rwlock_t *mu, bool is_rwlock)
+            : mu_(mu)  {
+                if (is_rwlock) {
+                    pthread_rwlock_wrlock(this->mu_);
+                } else {
+                    pthread_rwlock_rdlock(this->mu_);
+                }
+            }
+        ~RWLock() { pthread_rwlock_unlock(this->mu_); }
+
+    private:
+        pthread_rwlock_t *const mu_;
+        // No copying allowed
+        RWLock(const RWLock&);
+        void operator=(const RWLock&);
+};
+
 } // namespace mario
 #endif  // STORAGE_LEVELDB_UTIL_MUTEXLOCK_H_

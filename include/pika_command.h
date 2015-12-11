@@ -7,9 +7,10 @@
 class Cmd
 {
 public:
-    Cmd(int a) : arity(a) {};
+    Cmd(int a, bool i = true) : arity(a) , is_sync(i){};
     virtual void Do(std::list<std::string> &argvs, std::string &ret) {};
     int arity;
+    bool is_sync;
 };
 
 /*
@@ -17,31 +18,109 @@ public:
  */
 class AuthCmd : public Cmd {
 public:
-    AuthCmd(int a) : Cmd(a) {};
+    AuthCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SlaveauthCmd : public Cmd {
+public:
+    SlaveauthCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class PingCmd : public Cmd {
 public:
-    PingCmd(int a) : Cmd(a) {};
+    PingCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ClientCmd : public Cmd {
 public:
-    ClientCmd(int a) : Cmd(a) {};
+    ClientCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class SlaveofCmd : public Cmd {
+public:
+    SlaveofCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PikasyncCmd : public Cmd {
+public:
+    PikasyncCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PurgelogstoCmd : public Cmd {
+public:
+    PurgelogstoCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+//class BemasterCmd : public Cmd {
+//public:
+//    BemasterCmd(int a, bool i = false) : Cmd(a, i) {};
+//    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+//};
+
 class ConfigCmd : public Cmd {
 public:
-    ConfigCmd(int a) : Cmd(a) {};
+    ConfigCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class InfoCmd : public Cmd {
 public:
-    InfoCmd(int a) : Cmd(a) {};
+    InfoCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class UcanpsyncCmd : public Cmd {
+public:
+    UcanpsyncCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SyncerrorCmd : public Cmd {
+public:
+    SyncerrorCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class LoaddbCmd : public Cmd {
+public:
+    LoaddbCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class DumpCmd : public Cmd {
+public:
+    DumpCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class DumpoffCmd : public Cmd {
+public:
+    DumpoffCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ReadonlyCmd : public Cmd {
+public:
+    ReadonlyCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class SelectCmd : public Cmd {
+public:
+    SelectCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class FlushallCmd : public Cmd {
+public:
+    FlushallCmd(int a) : Cmd(a) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -56,7 +135,7 @@ public:
 
 class GetCmd : public Cmd {
 public:
-    GetCmd(int a) : Cmd(a) {};
+    GetCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -110,7 +189,7 @@ public:
 
 class MgetCmd : public Cmd {
 public:
-    MgetCmd(int a) : Cmd(a) {};
+    MgetCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -140,7 +219,7 @@ public:
 
 class GetrangeCmd : public Cmd {
 public:
-    GetrangeCmd(int a) : Cmd(a) {};
+    GetrangeCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -152,13 +231,13 @@ public:
 
 class StrlenCmd : public Cmd {
 public:
-    StrlenCmd(int a) : Cmd(a) {};
+    StrlenCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ExistsCmd : public Cmd {
 public:
-    ExistsCmd(int a) : Cmd(a) {};
+    ExistsCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -176,7 +255,25 @@ public:
 
 class TtlCmd : public Cmd {
 public:
-    TtlCmd(int a) : Cmd(a) {};
+    TtlCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PexpireCmd : public Cmd {
+public:
+    PexpireCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PexpireatCmd : public Cmd {
+public:
+    PexpireatCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PttlCmd : public Cmd {
+public:
+    PttlCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -188,7 +285,13 @@ public:
 
 class ScanCmd : public Cmd {
 public:
-    ScanCmd(int a) : Cmd(a) {};
+    ScanCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class KeysCmd : public Cmd {
+public:
+    KeysCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -203,7 +306,7 @@ public:
 
 class HGetCmd : public Cmd {
 public:
-    HGetCmd(int a) : Cmd(a) {};
+    HGetCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -215,13 +318,13 @@ public:
 
 class HExistsCmd : public Cmd {
 public:
-    HExistsCmd(int a) : Cmd(a) {};
+    HExistsCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class HGetallCmd : public Cmd {
 public:
-    HGetallCmd(int a) : Cmd(a) {};
+    HGetallCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -239,13 +342,13 @@ public:
 
 class HKeysCmd : public Cmd {
 public:
-    HKeysCmd(int a) : Cmd(a) {};
+    HKeysCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class HLenCmd : public Cmd {
 public:
-    HLenCmd(int a) : Cmd(a) {};
+    HLenCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -257,7 +360,7 @@ public:
 
 class HMGetCmd : public Cmd {
 public:
-    HMGetCmd(int a) : Cmd(a) {};
+    HMGetCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -269,19 +372,19 @@ public:
 
 class HValsCmd : public Cmd {
 public:
-    HValsCmd(int a) : Cmd(a) {};
+    HValsCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class HStrlenCmd : public Cmd {
 public:
-    HStrlenCmd(int a) : Cmd(a) {};
+    HStrlenCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class HScanCmd : public Cmd {
 public:
-    HScanCmd(int a) : Cmd(a) {};
+    HScanCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -290,7 +393,7 @@ public:
  */
 class LIndexCmd : public Cmd {
 public:
-    LIndexCmd(int a) : Cmd(a) {};
+    LIndexCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -302,7 +405,7 @@ public:
 
 class LLenCmd : public Cmd {
 public:
-    LLenCmd(int a) : Cmd(a) {};
+    LLenCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -326,7 +429,7 @@ public:
 
 class LRangeCmd : public Cmd {
 public:
-    LRangeCmd(int a) : Cmd(a) {};
+    LRangeCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -382,13 +485,13 @@ public:
 
 class ZCardCmd : public Cmd {
 public:
-    ZCardCmd(int a) : Cmd(a) {};
+    ZCardCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ZScanCmd : public Cmd {
 public:
-    ZScanCmd(int a) : Cmd(a) {};
+    ZScanCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -400,19 +503,19 @@ public:
 
 class ZRangeCmd : public Cmd {
 public:
-    ZRangeCmd(int a) : Cmd(a) {};
+    ZRangeCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ZRangebyscoreCmd : public Cmd {
 public:
-    ZRangebyscoreCmd(int a) : Cmd(a) {};
+    ZRangebyscoreCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ZCountCmd : public Cmd {
 public:
-    ZCountCmd(int a) : Cmd(a) {};
+    ZCountCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -436,43 +539,43 @@ public:
 
 class ZRankCmd : public Cmd {
 public:
-    ZRankCmd(int a) : Cmd(a) {};
+    ZRankCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ZRevrankCmd : public Cmd {
 public:
-    ZRevrankCmd(int a) : Cmd(a) {};
+    ZRevrankCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ZScoreCmd : public Cmd {
 public:
-    ZScoreCmd(int a) : Cmd(a) {};
+    ZScoreCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ZRevrangeCmd : public Cmd {
 public:
-    ZRevrangeCmd(int a) : Cmd(a) {};
+    ZRevrangeCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ZRevrangebyscoreCmd : public Cmd {
 public:
-    ZRevrangebyscoreCmd(int a) : Cmd(a) {};
+    ZRevrangebyscoreCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ZRangebylexCmd : public Cmd {
 public:
-    ZRangebylexCmd(int a) : Cmd(a) {};
+    ZRangebylexCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class ZLexcountCmd : public Cmd {
 public:
-    ZLexcountCmd(int a) : Cmd(a) {};
+    ZLexcountCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -495,7 +598,7 @@ public:
 };
 
 /*
- * sset
+ * set
  */
 
 class SAddCmd : public Cmd {
@@ -512,25 +615,25 @@ public:
 
 class SCardCmd : public Cmd {
 public:
-    SCardCmd(int a) : Cmd(a) {};
+    SCardCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class SMembersCmd : public Cmd {
 public:
-    SMembersCmd(int a) : Cmd(a) {};
+    SMembersCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class SScanCmd : public Cmd {
 public:
-    SScanCmd(int a) : Cmd(a) {};
+    SScanCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class SUnionCmd : public Cmd {
 public:
-    SUnionCmd(int a) : Cmd(a) {};
+    SUnionCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -542,7 +645,7 @@ public:
 
 class SInterCmd : public Cmd {
 public:
-    SInterCmd(int a) : Cmd(a) {};
+    SInterCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -554,13 +657,13 @@ public:
 
 class SIsmemberCmd : public Cmd {
 public:
-    SIsmemberCmd(int a) : Cmd(a) {};
+    SIsmemberCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
 class SDiffCmd : public Cmd {
 public:
-    SDiffCmd(int a) : Cmd(a) {};
+    SDiffCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -584,7 +687,7 @@ public:
 
 class SRandmemberCmd : public Cmd {
 public:
-    SRandmemberCmd(int a) : Cmd(a) {};
+    SRandmemberCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 

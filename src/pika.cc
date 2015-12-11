@@ -3,8 +3,11 @@
 #include <glog/logging.h>
 #include "pika_conf.h"
 #include "pika_command.h"
+#include "mario.h"
+#include "util.h"
 
 
+#include <dirent.h>
 #include <iostream>
 #include <signal.h>
 #include <map>
@@ -13,16 +16,26 @@ PikaConf *g_pikaConf;
 
 PikaServer *g_pikaServer;
 
+mario::Mario *g_pikaMario;
+
 
 std::map<std::string, Cmd *> g_pikaCmd;
 
 
 static void pika_glog_init()
 {
+
+    mkpath(g_pikaConf->log_path(), 0755);
+
+    if (!g_pikaConf->daemonize()) {
+      FLAGS_alsologtostderr = true;
+    }
+
     FLAGS_log_dir = g_pikaConf->log_path();
-    ::google::InitGoogleLogging("pika");
     FLAGS_minloglevel = g_pikaConf->log_level();
-    FLAGS_alsologtostderr = true;
+    FLAGS_max_log_size = 1800;
+    ::google::InitGoogleLogging("pika");
+
     LOG(WARNING) << "Pika glog init";
     /*
      * dump some usefull message when crash on certain signals
@@ -30,10 +43,17 @@ static void pika_glog_init()
     // google::InstallFailureSignalHandler();
 }
 
+void cleanup() {
+    delete g_pikaServer;
+    delete g_pikaMario;
+    delete g_pikaConf;
+}
+
 static void sig_handler(const int sig)
 {
-    LOG(INFO) << "Caught signal " << sig;
+//    LOG(INFO) << "Caught signal " << sig;
     ::google::ShutdownGoogleLogging();
+    cleanup();
     exit(1);
 }
 
@@ -53,8 +73,9 @@ void pika_signal_setup()
 
 static void version()
 {
-    printf("-----------Pika server 1.0.0----------\n");
+    printf("-----------Pika server " PIKA_VERSION "----------\n");
 }
+
 void pika_init_conf(const char* path)
 {
     g_pikaConf = new PikaConf(path);
@@ -68,16 +89,40 @@ void pika_init_conf(const char* path)
     printf("-----------Pika config end----------\n");
 }
 
-
 static void usage()
 {
     fprintf(stderr,
-            "Pika module 1.0.0\n"
-            "need One parameters\n"
-            "-D the conf path \n"
-            "-h show this usage message \n"
-            "example: ./bin/pika -D./conf/pika.conf\n"
+            "Pika module " PIKA_VERSION "\n"
+            "usage: pika [-hd] [-c conf/file]\n"
+            "\t-h               -- show this help\n"
+            "\t-c conf/file     -- config file \n"
+            "  example: ./output/bin/pika -c ./conf/pika.conf\n"
            );
+}
+
+
+
+void daemonize(void) {
+    int fd;
+
+    if (fork() != 0) exit(0); /* parent exits */
+    setsid(); /* create a new session */
+
+    if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+      dup2(fd, STDIN_FILENO);
+      dup2(fd, STDOUT_FILENO);
+      //dup2(fd, STDERR_FILENO);
+      close(fd);
+    }
+}
+
+void create_pid_file(void) {
+    /* Try to write the pid file in a best-effort way. */
+    FILE *fp = fopen(PIKA_DEFAULT_PID_FILE, "w");
+    if (fp) {
+        fprintf(fp,"%d\n",(int)getpid());
+        fclose(fp);
+    }
 }
 
 int main(int argc, char **argv)
@@ -86,14 +131,22 @@ int main(int argc, char **argv)
     char c;
     char path[PIKA_LINE_SIZE];
 
-    while (-1 != (c = getopt(argc, argv, "D:h"))) {
+    if (argc < 2) {
+        usage();
+        exit(-1);
+    }
+
+    while (-1 != (c = getopt(argc, argv, "c:hv"))) {
         switch (c) {
-        case 'D':
+        case 'c':
             snprintf(path, PIKA_LINE_SIZE, "%s", optarg);
             path_opt = 1;
             break;
         case 'h':
             usage();
+            return 0;
+        case 'v':
+            version();
             return 0;
         default:
             usage();
@@ -105,13 +158,20 @@ int main(int argc, char **argv)
      * check wether set the conf path
      */
     if (path_opt == false) {
-        LOG(FATAL) << "Don't get the conf path";
+        //LOG(FATAL) << "Don't get the conf path";
+        fprintf (stderr, "Don't get the conf path\n");
+        exit(-1);
     }
 
     /*
      * init the conf
      */
     pika_init_conf(path);
+
+    /*
+     * daemonize if needed
+     */
+    if (g_pikaConf->daemonize()) daemonize();
 
     /*
      * init the glog config
@@ -123,20 +183,48 @@ int main(int argc, char **argv)
      */
     pika_signal_setup();
 
+    //if (g_pikaConf->daemonize()) create_pid_file();
+
 
     /*
      * admin
      */
     AuthCmd *authptr = new AuthCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("auth", authptr));
+    SlaveauthCmd *slaveauthptr = new SlaveauthCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("slaveauth", slaveauthptr));
     PingCmd *pingptr = new PingCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ping", pingptr));
     ClientCmd *clientptr = new ClientCmd(-1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("client", clientptr));
+    SlaveofCmd *slaveofptr = new SlaveofCmd(-3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("slaveof", slaveofptr));
+    PikasyncCmd *pikasyncptr = new PikasyncCmd(4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pikasync", pikasyncptr));
+//    BemasterCmd *bemasterptr = new BemasterCmd(2);
+//    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bemaster", bemasterptr));
     ConfigCmd *configptr = new ConfigCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("config", configptr));
     InfoCmd *infoptr = new InfoCmd(-1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("info", infoptr));
+    UcanpsyncCmd *ucanpsyncptr = new UcanpsyncCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("ucanpsync", ucanpsyncptr));
+    SyncerrorCmd *syncerrorptr = new SyncerrorCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("syncerror", syncerrorptr));
+    LoaddbCmd *loaddbptr = new LoaddbCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("loaddb", loaddbptr));
+    DumpCmd *dumpptr = new DumpCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("dump", dumpptr));
+    DumpoffCmd *dumpoffptr = new DumpoffCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("dumpoff", dumpoffptr));
+    ReadonlyCmd *readonlyptr = new ReadonlyCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("readonly", readonlyptr));
+    SelectCmd *selectptr = new SelectCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("select", selectptr));
+    PurgelogstoCmd *purgelogstoptr = new PurgelogstoCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("purgelogsto", purgelogstoptr));
+    FlushallCmd *flushallptr = new FlushallCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("flushall", flushallptr));
 
     /*
      * kv
@@ -185,10 +273,20 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("expireat", expireatptr));
     TtlCmd *ttlptr = new TtlCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ttl", ttlptr));
+    PexpireCmd *pexpireptr = new PexpireCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pexpire", pexpireptr));
+    PexpireatCmd *pexpireatptr = new PexpireatCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pexpireat", pexpireatptr));
+    PttlCmd *pttlptr = new PttlCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pttl", pttlptr));
     PersistCmd *persistptr = new PersistCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("persist", persistptr));
     ScanCmd *scanptr = new ScanCmd(-2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("scan", scanptr));
+
+    KeysCmd *keysptr = new KeysCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("keys", keysptr));
+
 
     /*
      * hash
@@ -344,10 +442,19 @@ int main(int argc, char **argv)
     } else {
         LOG(FATAL) << "Pika Server init error";
     }
-
+    g_pikaMario = new mario::Mario(g_pikaConf->log_path(), 100);
+    LOG(WARNING) << "Pika init mario ok";
 
     LOG(WARNING) << "Pika Server going to start";
     g_pikaServer->RunProcess();
 
+    /*
+     * shutdown server
+     */
+    //if (g_pikaConf->daemonize()) {
+    //    unlink(PIKA_DEFAULT_PID_FILE);
+    //}
+
+    cleanup();
     return 0;
 }

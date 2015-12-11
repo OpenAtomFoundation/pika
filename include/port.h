@@ -4,8 +4,8 @@
 //
 // See port_example.h for documentation for the following types/functions.
 
-#ifndef STORAGE_LEVELDB_PORT_PORT_POSIX_H_
-#define STORAGE_LEVELDB_PORT_PORT_POSIX_H_
+#ifndef PIKA_PORT_PORT_POSIX_H_
+#define PIKA_PORT_PORT_POSIX_H_
 
 #undef PLATFORM_IS_LITTLE_ENDIAN
 #if defined(OS_MACOSX)
@@ -121,4 +121,4 @@ extern void InitOnce(OnceType* once, void (*initializer)());
 
 } // namespace port
 
-#endif  // STORAGE_LEVELDB_PORT_PORT_POSIX_H_
+#endif  // PIKA_PORT_PORT_POSIX_H_

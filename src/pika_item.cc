@@ -6,9 +6,10 @@
 #include <unistd.h>
 #include "csapp.h"
 
-PikaItem::PikaItem(int fd, std::string ip_port) :
-    fd_(fd), ip_port_(ip_port)
+PikaItem::PikaItem(int fd, std::string ip_port, int role) :
+    fd_(fd), ip_port_(ip_port), role_(role)
 {
+    
 }
 
 PikaItem::~PikaItem()

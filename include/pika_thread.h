@@ -33,8 +33,15 @@ public:
     int thread_index() { return thread_index_; }
     pthread_rwlock_t* rwlock() { return &rwlock_; }
     std::map<std::string, client_info>* clients() { return &clients_; }
+    std::map<int, PikaConn *>* conns() { return &conns_; }
 
     pthread_t thread_id_;
+    bool is_master_thread_;
+    bool is_first_;
+    struct timeval last_ping_time_;
+    int querynums_;
+    int last_sec_querynums_;
+    uint64_t accumulative_querynums_;
 
     // port::Mutex mutex() { return mutex_; }
 

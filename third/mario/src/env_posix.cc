@@ -673,7 +673,7 @@ public:
 
     virtual void Schedule(void (*function)(void*), void* arg);
 
-    virtual void StartThread(void (*function)(void* arg), void* arg);
+    virtual pthread_t StartThread(void (*function)(void* arg), void* arg);
 
     virtual Status GetTestDirectory(std::string* result) {
         const char* env = getenv("TEST_TMPDIR");
@@ -822,7 +822,7 @@ static void* StartThreadWrapper(void* arg) {
     return NULL;
 }
 
-void PosixEnv::StartThread(void (*function)(void* arg), void* arg) {
+pthread_t PosixEnv::StartThread(void (*function)(void* arg), void* arg) {
     pthread_t t;
     StartThreadState* state = new StartThreadState;
     state->user_function = function;
@@ -832,6 +832,7 @@ void PosixEnv::StartThread(void (*function)(void* arg), void* arg) {
     PthreadCall("lock", pthread_mutex_lock(&mu_));
     threads_to_join_.push_back(t);
     PthreadCall("unlock", pthread_mutex_unlock(&mu_));
+    return t;
 }
 
 }  // namespace

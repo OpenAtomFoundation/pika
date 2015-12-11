@@ -369,6 +369,30 @@ void MgetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void KeysCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if (arity != 2 || (int)argv.size() != arity) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string pattern = argv.front();
+    std::vector<std::string> keys;
+
+    nemo::Status s = g_pikaServer->GetHandle()->Keys(pattern, keys);
+    char buf[32];
+    snprintf(buf, sizeof(buf), "*%lu\r\n", keys.size());
+    ret.append(buf);
+    std::vector<std::string>::iterator iter;
+    for (iter = keys.begin(); iter != keys.end(); iter++ ) {
+      snprintf(buf, sizeof(buf), "$%lu\r\n", iter->size());
+      ret.append(buf);
+      ret.append(iter->data(), iter->size());
+      ret.append("\r\n");
+    }
+}
+
 void SetnxCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -404,9 +428,9 @@ void SetexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string key = argv.front();
     argv.pop_front();
-    std::string value = argv.front();
-    argv.pop_front();
     std::string str_sec = argv.front();
+    argv.pop_front();
+    std::string value = argv.front();
     argv.pop_front();
     int64_t sec = 0;
     if (!string2l(str_sec.data(), str_sec.size(), &sec)) {
@@ -636,6 +660,37 @@ void ExpireCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void PexpireCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_sec = argv.front();
+    argv.pop_front();
+    int64_t sec;
+    if (!string2l(str_sec.data(), str_sec.size(), &sec)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    sec /= 1000;
+    int64_t res;
+    nemo::Status s = g_pikaServer->GetHandle()->Expire(key, sec, &res);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void ExpireatCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -666,6 +721,37 @@ void ExpireatCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void PexpireatCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_timestamp = argv.front();
+    argv.pop_front();
+    int64_t timestamp;
+    if (!string2l(str_timestamp.data(), str_timestamp.size(), &timestamp)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    timestamp /= 1000;
+    int64_t res;
+    nemo::Status s = g_pikaServer->GetHandle()->Expireat(key, timestamp, &res);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void TtlCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -678,6 +764,30 @@ void TtlCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     int64_t ttl;
     nemo::Status s = g_pikaServer->GetHandle()->TTL(key, &ttl);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", ttl);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void PttlCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    int64_t ttl;
+    nemo::Status s = g_pikaServer->GetHandle()->TTL(key, &ttl);
+    if (ttl > 0) ttl *= 1000;
     if (s.ok() || s.IsNotFound()) {
         char buf[32];
         snprintf(buf, sizeof(buf), ":%ld\r\n", ttl);

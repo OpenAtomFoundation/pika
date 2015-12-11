@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_UTIL_MUTEXLOCK_H_
-#define STORAGE_LEVELDB_UTIL_MUTEXLOCK_H_
+#ifndef PIKA_UTIL_MUTEXLOCK_H_
+#define PIKA_UTIL_MUTEXLOCK_H_
 
 #include "port.h"
 //#include <pthread.h>

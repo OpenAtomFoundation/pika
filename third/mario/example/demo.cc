@@ -47,53 +47,85 @@ int main()
      *
      * @return 
      */
-    mario::Mario *m = new mario::Mario(2);
+    mario::Mario *m = new mario::Mario("./log", 2);
 
-    std::string item2 = "heiheiadfasdf";
-    std::string item = "a";
-    std::string item1 = "abcde";
-    std::string item3 = "abcdeasdfwupeiq";
-    int i = 20000;
-    while (i--) {
-        s = m->Put(item);
-        s = m->Put(item1);
-        s = m->Put(item2);
-        s = m->Put(item3);
+    std::string item = "item";
+    int cnt = 10;
+    for (int i = 0; i < cnt; i++) {
+        std::string msg = item + std::to_string(i);
+        s = m->Put(msg);
         if (!s.ok()) {
             log_err("Put error");
             exit(-1);
         }
     }
     
-    s = m->AddConsumer(0, 0, fh1);
-    sleep(1);
 
-    i = 20000;
-    while (i--) {
-        s = m->Put(item);
-        s = m->Put(item1);
-        s = m->Put(item2);
-        s = m->Put(item3);
+    s = m->AddConsumer(0, 0, fh1, 9221);
+    log_info("\nAdd a consumer 9221");
+
+    m->AddConsumer(0, 0, fh2, 9222);
+    log_info("\nAdd a consumer 9222");
+    sleep(3);
+    
+    cnt = 20;
+    for (int i = 10; i < cnt; i++) {
+        std::string msg = item + std::to_string(i);
+        s = m->Put(msg);
         if (!s.ok()) {
             log_err("Put error");
             exit(-1);
         }
     }
 
-    m->AddConsumer(0, 0, fh2);
+    log_info("Remove a consumer 9221"); 
+    s = m->RemoveConsumer(9221);
+    if (s.ok()) {
+        log_info(" remove ok, ", s.ToString().c_str());
+    } else {
+        log_info(" remove ok, ", s.ToString().c_str());
+    }
 
-    i = 20000;
-    while (i--) {
-        s = m->Put(item);
-        s = m->Put(item1);
-        s = m->Put(item2);
-        s = m->Put(item3);
+
+    sleep(2);
+    cnt = 30;
+    for (int i = 20; i < cnt; i++) {
+        std::string msg = item + std::to_string(i);
+        s = m->Put(msg);
         if (!s.ok()) {
             log_err("Put error");
             exit(-1);
         }
     }
-    m->AddConsumer(0, 0, fh3);
+
+    sleep(3);
+    m->RemoveConsumer(9222);
+    log_info("Remove a consumer 9222");
+    if (s.ok()) {
+        log_info(" remove ok, ", s.ToString().c_str());
+    } else {
+        log_info(" remove ok, ", s.ToString().c_str());
+    }
+
+    m->SetProducerStatus(100, 50);
+
+    uint32_t filenum;
+    uint64_t offset;
+    m->GetProducerStatus(&filenum, &offset);
+    printf ("\nafter set filenum=%u, offset=%lu\n", filenum, offset);
+
+    s = m->AddConsumer(100, 50, fh1, 9221);
+    log_info("\nAdd a consumer 9221 at(100,50) again");
+    cnt = 60;
+    for (int i = 50; i < cnt; i++) {
+        std::string msg = item + std::to_string(i);
+        s = m->Put(msg);
+        if (!s.ok()) {
+            log_err("Put error");
+            exit(-1);
+        }
+    }
+
 //    sleep(10);
     delete m;
     log_info("count %d", count);

@@ -5,6 +5,7 @@
 #include "csapp.h"
 #include "pika_thread.h"
 #include "pika_define.h"
+#include "mutexlock.h"
 #include "sds.h"
 #include <list>
 #include <map>
@@ -12,7 +13,7 @@
 class PikaConn
 {
 public:
-    PikaConn(int fd, std::string ip_port);
+    PikaConn(int fd, std::string ip_port, int role);
     ~PikaConn();
     /*
      * Set the fd to nonblock && set the flag_ the the fd flag
@@ -31,11 +32,21 @@ public:
     int ProcessInlineBuffer(std::string &err_msg);
     int ProcessMultibulkBuffer(std::string &err_msg);
     int DoCmd();
+    void append_wbuf(const std::string &item);
+    void append_wbuf_nowait(const std::string &item);
     struct timeval tv() { return tv_; };
     void UpdateTv(struct timeval now) { tv_ = now; };
     int fd() { return fd_; };
+    int role() {return role_; };
+    void set_role(int role) { MutexLock l(&mutex_); role_ = role; }
+    void set_role_nolock(int role) { role_ = role; }
     std::string ip_port() { return ip_port_; };
-
+//    struct timeval  lastinteraction() { return lastinteraction_; };
+//    void UpdateLastInteraction() { gettimeofday(&lastinteraction_, NULL); };
+    int wbuflen() { return sdslen(wbuf_); }
+    int rbuflen() { return sdslen(rbuf_); }
+    int querynums() { return querynums_; }
+    void clear_querynums() { querynums_ = 0; }
 private:
 
     int fd_;
@@ -51,11 +62,15 @@ private:
     struct timeval tv_;
     std::string ip_port_;
     bool is_authed_;
-
+    int role_;
+//    struct timeval lastinteraction_;
     sds wbuf_;
+    sds msbuf_;
     int32_t wbuf_len_;
     int32_t wbuf_pos_;
     PikaThread *thread_;
+    port::Mutex mutex_;
+    int querynums_;
 };
 
 #endif
