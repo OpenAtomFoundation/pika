@@ -473,18 +473,18 @@ int PikaConn::DoCmd() {
                 pthread_rwlock_unlock(g_pikaServer->rwlock());
                 ret = "-ERR Server in Readonly\r\n";
             } else {
-		int slowlog_slower_than_us = g_pikaConf->slowlog_slower_than();
-		int64_t start_us;
-		if (slowlog_slower_than_us >= 0) {
+                int slowlog_slower_than_us = g_pikaConf->slowlog_slower_than();
+                int64_t start_us;
+                if (slowlog_slower_than_us >= 0) {
                     start_us = ustime();
-		}
+                }
                 iter->second->Do(argv_, ret);
-		if (slowlog_slower_than_us >= 0) {
+                if (slowlog_slower_than_us >= 0) {
                     int64_t duration_us = (int64_t)(ustime() - start_us);
                     if (duration_us >= (int64_t)slowlog_slower_than_us) {
                         LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us/1000000 << ", duration(us): " << duration_us;
                     }
-		}
+                }
                 if (opt != "loaddb" && opt != "dump" && opt != "readonly" && opt != "ucanpsync" && opt != "flushall") {
                     pthread_rwlock_unlock(g_pikaServer->rwlock());
                 }
