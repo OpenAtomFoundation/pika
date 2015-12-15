@@ -47,8 +47,8 @@ PikaConf::PikaConf(const char* path) :
     if (expire_logs_days_ <= 0 ) {
         expire_logs_days_ = 1;
     }
-    if (expire_logs_nums_ <= 6 ) {
-        expire_logs_nums_ = 6;
+    if (expire_logs_nums_ <= 10 ) {
+        expire_logs_nums_ = 10;
     }
     if (root_connection_num_ < 0) {
         root_connection_num_ = 0;
