@@ -1,5 +1,6 @@
 #include "pika_command.h"
 #include "pika_server.h"
+#include "pika_util.h"
 #include "util.h"
 #include <algorithm>
 #include <map>
@@ -9,9 +10,7 @@ extern std::map<std::string, Cmd *> g_pikaCmd;
 
 void ZAddCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (((int)argv.size() % 2 != 0) || (arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
-        ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret = "-ERR syntax error\r\n";
         return;
     }
     argv.pop_front();
@@ -55,9 +54,9 @@ void ZAddCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZCardCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -77,9 +76,9 @@ void ZCardCmd::Do(std::list<std::string> &argv, std::string &ret) {
 void ZScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int size = argv.size();    
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity) || (size != 3 && size != 5 && size != 7)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -184,9 +183,9 @@ void ZScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZIncrbyCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -196,7 +195,7 @@ void ZIncrbyCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     double by;
     if (!string2d(str_by.data(), str_by.size(), &by)) {
-        ret = "-ERR value is not an float\r\n";
+        ret = "-ERR value is not a valid float\r\n";
         return;
     }
     std::string member = argv.front();
@@ -218,9 +217,9 @@ void ZIncrbyCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -296,9 +295,9 @@ void ZRangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -320,7 +319,7 @@ void ZRangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     } else {
         if (!string2d(str_start.data(), str_start.size(), &start)) {
-            ret = "-ERR value is not an integer or out of range\r\n";
+            ret = "-ERR min or max is not a float\r\n";
             return;
         }
     }
@@ -338,7 +337,7 @@ void ZRangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     } else {
         if (!string2d(str_stop.data(), str_stop.size(), &stop)) {
-            ret = "-ERR value is not an integer or out of range\r\n";
+            ret = "-ERR min or max is not a float\r\n";
             return;
         }
     }
@@ -367,9 +366,6 @@ void ZRangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
                     ret = "-ERR syntax error\r\n";
                     return;
                 }
-                if (offset < 0) {
-                    offset = 0;
-                }
                 str_count = argv.front();
                 argv.pop_front();
                 if (!string2l(str_count.data(), str_count.size(), &count)) {
@@ -381,18 +377,22 @@ void ZRangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
                 return;
             }
         }
+
         std::vector<nemo::SM> sms;
-        nemo::Status s = g_pikaServer->GetHandle()->ZRangebyscore(key, start, stop, sms, offset, is_lo, is_ro);
+        nemo::Status s = g_pikaServer->GetHandle()->ZRangebyscore(key, start, stop, sms, is_lo, is_ro);
         if (s.ok()) {
-            std::vector<nemo::SM>::iterator iter;
-            count = count >= 0 ? count : INT_MAX;  
             char buf[32];
             char buf_len[32];
-            uint64_t len = sms.size() > (uint64_t)count ? count : sms.size();
+            std::vector<nemo::SM>::iterator iter;
+
+            // Fit limitation border
+            Fitlimit(count, offset, sms.size());
+            iter = sms.begin() + offset;
+            
             if (is_ws) {
-                snprintf(buf, sizeof(buf), "*%lu\r\n", len * 2);
+                snprintf(buf, sizeof(buf), "*%lu\r\n", (uint64_t)count * 2);
                 ret.append(buf);
-                for (iter = sms.begin(); count != 0 && iter != sms.end(); iter++, count--) {
+                for (; count != 0 && iter != sms.end(); iter++, count--) {
                     snprintf(buf, sizeof(buf), "$%lu\r\n", iter->member.size());
                     ret.append(buf);
                     ret.append(iter->member.data(), iter->member.size());
@@ -405,9 +405,9 @@ void ZRangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
                     ret.append("\r\n");
                 }
             } else {
-                snprintf(buf, sizeof(buf), "*%lu\r\n", len);
+                snprintf(buf, sizeof(buf), "*%lu\r\n", (uint64_t)count);
                 ret.append(buf);
-                for (iter = sms.begin(); count != 0 && iter != sms.end(); iter++, count--) {
+                for (; count != 0 &&iter != sms.end(); iter++, count--) {
                     snprintf(buf, sizeof(buf), "$%lu\r\n", iter->member.size());
                     ret.append(buf);
                     ret.append(iter->member.data(), iter->member.size());
@@ -425,9 +425,9 @@ void ZRangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZCountCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -481,9 +481,9 @@ void ZCountCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRemCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -506,9 +506,9 @@ void ZRemCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZUnionstoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -597,9 +597,9 @@ void ZUnionstoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZInterstoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -688,9 +688,9 @@ void ZInterstoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRankCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -716,9 +716,9 @@ void ZRankCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRevrankCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -744,9 +744,9 @@ void ZRevrankCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZScoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -777,9 +777,9 @@ void ZScoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRevrangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -814,6 +814,14 @@ void ZRevrangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     }
 
+    // Range mirror
+    int64_t t_size = g_pikaServer->GetHandle()->ZCard(key);
+    if (t_size < 0) {
+        ret = "-ERR zcard error\r\n";
+        return;
+    }
+    Calcmirror(start, stop, t_size);
+    
     std::vector<nemo::SM> sms;
     nemo::Status s = g_pikaServer->GetHandle()->ZRange(key, start, stop, sms);
     if (s.ok()) {
@@ -854,9 +862,9 @@ void ZRevrangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -882,7 +890,7 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     } else {
         if (!string2d(str_start.data(), str_start.size(), &start)) {
-            ret = "-ERR value is not an integer or out of range\r\n";
+            ret = "-ERR min or max is not a float\r\n";
             return;
         }
     }
@@ -899,7 +907,7 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     } else {
         if (!string2d(str_stop.data(), str_stop.size(), &stop)) {
-            ret = "-ERR value is not an integer or out of range\r\n";
+            ret = "-ERR min or max is not a float\r\n";
             return;
         }
     }
@@ -943,17 +951,20 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
             }
         }
         std::vector<nemo::SM> sms;
-        nemo::Status s = g_pikaServer->GetHandle()->ZRangebyscore(key, start, stop, sms, offset, is_lo, is_ro);
+        nemo::Status s = g_pikaServer->GetHandle()->ZRangebyscore(key, start, stop, sms, is_lo, is_ro);
         if (s.ok()) {
             std::vector<nemo::SM>::reverse_iterator iter;
-            count = count >= 0 ? count : INT_MAX;  
             char buf[32];
             char buf_len[32];
-            uint64_t len = sms.size() > (uint64_t)count ? count : sms.size();
+            
+            // Fit limitation border
+            Fitlimit(count, offset, sms.size());
+            iter = sms.rbegin() + offset;
+
             if (is_ws) {
-                snprintf(buf, sizeof(buf), "*%lu\r\n", len * 2);
+                snprintf(buf, sizeof(buf), "*%lu\r\n", (uint64_t)count * 2);
                 ret.append(buf);
-                for (iter = sms.rbegin(); count != 0 && iter != sms.rend(); iter++, count--) {
+                for (; count != 0 && iter != sms.rend(); iter++) {
                     snprintf(buf, sizeof(buf), "$%lu\r\n", iter->member.size());
                     ret.append(buf);
                     ret.append(iter->member.data(), iter->member.size());
@@ -966,9 +977,9 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
                     ret.append("\r\n");
                 }
             } else {
-                snprintf(buf, sizeof(buf), "*%lu\r\n", len);
+                snprintf(buf, sizeof(buf), "*%lu\r\n", (uint64_t)count);
                 ret.append(buf);
-                for (iter = sms.rbegin(); count != 0 && iter != sms.rend(); iter++, count--) {
+                for (; count != 0 && iter != sms.rend(); iter++, count--) {
                     snprintf(buf, sizeof(buf), "$%lu\r\n", iter->member.size());
                     ret.append(buf);
                     ret.append(iter->member.data(), iter->member.size());
@@ -986,9 +997,9 @@ void ZRevrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -1083,10 +1094,9 @@ void ZRangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 
     std::vector<std::string> members;
-    nemo::Status s = g_pikaServer->GetHandle()->ZRangebylex(key, start, stop, members, offset);
+    nemo::Status s = g_pikaServer->GetHandle()->ZRangebylex(key, start, stop, members);
     if (s.ok()) {
         std::vector<std::string>::iterator iter = members.begin();
-        count = count >= 0 ? count : INT_MAX;  
         char buf[32];
         if (is_lo && members.size() != 0 && (*iter).compare(start) == 0) {
             members.erase(members.begin());
@@ -1094,10 +1104,142 @@ void ZRangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
         if (is_ro && members.size() != 0 && (members[members.size()-1]).compare(stop) == 0) {
             members.pop_back();
         }
-        uint64_t len = members.size() > (uint64_t)count ? count : members.size();
-        snprintf(buf, sizeof(buf), "*%lu\r\n", len);
+        // Fit limitation border
+        Fitlimit(count, offset, members.size());
+        iter = members.begin() + offset;
+        
+        snprintf(buf, sizeof(buf), "*%lu\r\n", (uint64_t)count);
         ret.append(buf);
-        for (iter = members.begin(); count != 0 && iter != members.end(); iter++, count--) {
+        for (; count != 0 && iter != members.end(); iter++, count--) {
+            snprintf(buf, sizeof(buf), "$%lu\r\n", iter->size());
+            ret.append(buf);
+            ret.append(iter->data(), iter->size());
+            ret.append("\r\n");
+        }
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void ZRevrangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for '";
+        ret.append(argv.front());
+        ret.append("' command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_start = argv.front();
+    argv.pop_front();
+    bool is_lo = false;
+    bool is_ro = false;
+    std::string start;
+    if (str_start == "-") {
+        ret = "*0\r\n";
+        return;
+    } else if (str_start == "+") {
+        start = "";
+    } else { 
+        if (str_start[0] == '(') {
+            is_lo = true;
+        } else if (str_start[0] == '[') {
+            is_lo = false;
+        } else {
+            ret = "-ERR min or max not valid string range item\r\n";
+            return;
+        }
+        start = str_start.substr(1, str_start.size());
+        if (start == "-") {
+            ret = "*0\r\n";
+            return;
+        } else if (start == "+") {
+            start = "";
+            is_lo = false;
+        }
+    }
+
+    std::string str_stop = argv.front();
+    argv.pop_front();
+    std::string stop;
+    if (str_stop == "-") {
+        stop = "";
+    } else if (str_stop == "+") {
+        ret = "*0\r\n";
+        return;
+    } else {
+        if (str_stop[0] == '(') {
+            is_ro = true;
+        } else if (str_stop[0] == '[') {
+            is_ro = false;
+        } else {
+            ret = "-ERR min or max not valid string range item\r\n";
+            return;
+        }
+        stop = str_stop.substr(1, str_stop.size());
+        if (stop == "-") {
+            is_ro = false;
+            stop = "";
+        } else if (stop == "+") {
+            ret = "*0\r\n";
+            return;
+        }
+    }
+    size_t size = argv.size();
+    int64_t offset = 0;
+    int64_t count = -1;
+    std::string ar;
+    if (size != 0 && size != 3) {
+        ret = "-ERR syntax error\r\n";
+        return;
+    } else {
+        if (size == 3) {
+            ar = argv.front();
+            argv.pop_front();
+            transform(ar.begin(), ar.end(), ar.begin(), ::tolower);
+            if (ar != "limit") {
+                ret = "-ERR syntax error \r\n";
+            }
+            ar = argv.front();
+            argv.pop_front();
+            if (!string2l(ar.data(), ar.size(), &offset)) {
+                ret = "-ERR syntax error\r\n";
+                return;
+            }
+            if (offset < 0) {
+                offset = 0;
+            }
+            ar = argv.front();
+            argv.pop_front();
+            if (!string2l(ar.data(), ar.size(), &count)) {
+                ret = "-ERR syntax error\r\n";
+                return;
+            }
+        }
+    }
+
+    std::vector<std::string> members;
+    nemo::Status s = g_pikaServer->GetHandle()->ZRangebylex(key, stop, start, members);
+    if (s.ok()) {
+        std::vector<std::string>::reverse_iterator iter = members.rbegin();
+        char buf[32];
+        if (is_lo && members.size() != 0 && (*iter).compare(start) == 0) {
+            members.pop_back();
+        }
+        if (is_ro && members.size() != 0 && (members[0]).compare(stop) == 0) {
+            members.erase(members.begin());
+        }
+
+        // Fit limitation border
+        Fitlimit(count, offset, members.size());
+        iter = members.rbegin() + offset;
+
+        snprintf(buf, sizeof(buf), "*%lu\r\n", (uint64_t)count);
+        ret.append(buf);
+        for (; count != 0 && iter != members.rend(); iter++, count--) {
             snprintf(buf, sizeof(buf), "$%lu\r\n", iter->size());
             ret.append(buf);
             ret.append(iter->data(), iter->size());
@@ -1112,9 +1254,9 @@ void ZRangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZLexcountCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -1198,9 +1340,9 @@ void ZLexcountCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRemrangebyrankCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -1236,9 +1378,9 @@ void ZRemrangebyrankCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRemrangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -1314,9 +1456,9 @@ void ZRemrangebylexCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
 void ZRemrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
-        ret = "-ERR wrong number of arguments for ";
+        ret = "-ERR wrong number of arguments for '";
         ret.append(argv.front());
-        ret.append(" command\r\n");
+        ret.append("' command\r\n");
         return;
     }
     argv.pop_front();
@@ -1338,7 +1480,7 @@ void ZRemrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     } else {
         if (!string2d(str_start.data(), str_start.size(), &start)) {
-            ret = "-ERR value is not an integer or out of range\r\n";
+            ret = "-ERR min or max is not a float\r\n";
             return;
         }
     }
@@ -1356,7 +1498,7 @@ void ZRemrangebyscoreCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     } else {
         if (!string2d(str_stop.data(), str_stop.size(), &stop)) {
-            ret = "-ERR value is not an integer or out of range\r\n";
+            ret = "-ERR min or max is not a float\r\n";
             return;
         }
     }
