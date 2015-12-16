@@ -573,6 +573,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class ZRevrangebylexCmd : public Cmd {
+public:
+    ZRevrangebylexCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class ZLexcountCmd : public Cmd {
 public:
     ZLexcountCmd(int a, bool i = false) : Cmd(a, i) {};

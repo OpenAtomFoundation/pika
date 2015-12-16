@@ -111,7 +111,7 @@ void daemonize(void) {
     if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
       dup2(fd, STDIN_FILENO);
       dup2(fd, STDOUT_FILENO);
-      //dup2(fd, STDERR_FILENO);
+      dup2(fd, STDERR_FILENO);
       close(fd);
     }
 }
@@ -389,6 +389,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrevrangebyscore", zrevrangebyscoreptr));
     ZRangebylexCmd *zrangebylexptr = new ZRangebylexCmd(-4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrangebylex", zrangebylexptr));
+    ZRevrangebylexCmd *zrevrangebylexptr = new ZRevrangebylexCmd(-4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrevrangebylex", zrevrangebylexptr));
     ZLexcountCmd *zlexcountptr = new ZLexcountCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zlexcount", zlexcountptr));
     ZRemrangebylexCmd *zremrangebylexptr = new ZRemrangebylexCmd(4);
