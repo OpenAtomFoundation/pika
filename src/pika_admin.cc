@@ -640,12 +640,12 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         uint32_t max = 0;
         g_pikaMario->GetStatus(&max);
         std::string safety_purge;
-        if (max < 6) {
+        if (max < 10) {
           safety_purge = "none"; 
         } else {
           safety_purge = "write2file";
           char str_num[32];
-          snprintf(str_num, sizeof(str_num), "%u", max-6);
+          snprintf(str_num, sizeof(str_num), "%u", max-10);
           safety_purge.append(str_num);
         }
         snprintf (buf, sizeof(buf),
@@ -898,7 +898,10 @@ void PurgelogstoCmd::Do(std::list<std::string> &argv, std::string &ret) {
     uint32_t max = 0;
     mario::Status mas = g_pikaMario->GetStatus(&max);
     LOG(WARNING) << "max seqnum could be deleted: " << max;
-    bool purge_res = g_pikaServer->PurgeLogs(max, num);
+    bool purge_res = false;
+    if (max >= 10) {
+        purge_res = g_pikaServer->PurgeLogs(max-10, num);
+    }
     if (purge_res) {
         ret = "+OK\r\n";
     } else {
