@@ -3,6 +3,7 @@
 #include "util.h"
 #include <algorithm>
 #include <map>
+#include <iostream>
 
 extern PikaServer *g_pikaServer;
 extern std::map<std::string, Cmd *> g_pikaCmd;
@@ -821,6 +822,39 @@ void PersistCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append("\r\n");
     }
 }
+/*
+static long getDurDb(long index) {
+    if (index == 0) {
+        return 0L;
+    };
+    return index & 7L;
+}
+
+static long storeAndGetIndex(std::string& key, long db_type) {
+    nemo::Nemo *n = g_pikaServer->GetHandle();
+    nemo::Status s;
+    nemo::HIterator* hiter = n->HScan("Scan_Key_Store", "", "");
+    long idx = 1, idx_iter, index_iter, index_ret = 0;
+    std::string field = "";
+    while (true) {
+        index_iter  = (reinterpret_cast<long*>(hiter->Field().data()));
+        idx_iter = index_iter >> 3;
+        if (idx < idx_iter) {
+           index_ret =  ((idx << 3) | (db_type & 7L));
+           break;
+        } else if (idx == idx_iter) {
+            idx++;
+            hiter->Next();
+        } else {
+            hiter->Next();
+        }
+    }
+    delete hiter;
+    field.append(reinterpret_cast<char*>(&index_ret), sizeof(long));
+    n->HSet("Scan_Key_Store", field, key);
+    return index_ret;
+}
+*/
 
 void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int size = argv.size();    
@@ -869,31 +903,15 @@ void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     };
 
-
     std::vector<std::string> keys;
-    nemo::KIterator *iter = g_pikaServer->GetHandle()->Scan("", "", -1);
-    bool skip_ret = iter->Skip(index);
-    if (skip_ret && !iter->Valid()) {
-        count--;
-        if (!(use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0))) {
-            keys.push_back(iter->Key());
-        }
-        index = 0;
-    } else {
-        bool iter_ret = false;
-        while ((iter_ret=iter->Next()) && count) {
-            count--;
-            index++;
-            if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0)) {
-                continue;
-            }
-            keys.push_back(iter->Key());
-        }
-        if (!iter_ret) {
-            index = 0;
-        }
+    int64_t cursor_ret;
+    nemo::Status s;
+    if (!use_pat) {
+        pattern = "*";
     }
-    delete iter;
+    s = g_pikaServer->GetHandle()->Scan(static_cast<int64_t>(index), pattern, static_cast<int64_t>(count), keys, &cursor_ret);
+    index = cursor_ret;
+
 
     ret = "*2\r\n";
     char buf[32];
