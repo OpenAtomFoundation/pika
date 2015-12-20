@@ -1,4 +1,6 @@
 # Pika
+
+[![Join the chat at https://gitter.im/baotiao/pika](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/baotiao/pika?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 Pika is a database that has the same feature as redis. And Pika is compability
 with redis client. 
 
