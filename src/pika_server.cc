@@ -392,12 +392,12 @@ bool PikaServer::PurgeLogs(uint32_t max, int64_t to) {
     if (purging_) {
         return false;
     }
-    if (max > 5) {
-        max -= 6;
-    } else {
-        return false;
-    }
-    if (to > max) {
+//    if (max > 9) {
+//        max -= 10;
+//    } else {
+//        return false;
+//    }
+    if (to < 0 || to > max) {
         return false;
     }
 
@@ -550,24 +550,26 @@ int log_num(std::string path)
 }
 
 void PikaServer::AutoPurge() {
-    time_t current_time_s = std::time(NULL);
-    struct tm *current_time_tm_ptr = localtime(&current_time_s);
-    int32_t diff_year = current_time_tm_ptr->tm_year - last_autopurge_time_tm_.tm_year;
-    int32_t diff_day = current_time_tm_ptr->tm_yday - last_autopurge_time_tm_.tm_yday;
-    int32_t running_time_d = diff_year*365 + diff_day;
+//    time_t current_time_s = std::time(NULL);
+//    struct tm *current_time_tm_ptr = localtime(&current_time_s);
+//    int32_t diff_year = current_time_tm_ptr->tm_year - last_autopurge_time_tm_.tm_year;
+//    int32_t diff_day = current_time_tm_ptr->tm_yday - last_autopurge_time_tm_.tm_yday;
+//    int32_t running_time_d = diff_year*365 + diff_day;
     int32_t num = log_num(g_pikaConf->log_path());
-    if (running_time_d > g_pikaConf->expire_logs_days() - 1) {
+    int32_t expire_logs_nums = g_pikaConf->expire_logs_nums();
+//    if (running_time_d > g_pikaConf->expire_logs_days() - 1) {
+//        uint32_t max = 0;
+//        g_pikaMario->GetStatus(&max);
+//        if(max >= 10 && PurgeLogs(max, max-10)) {
+//            LOG(WARNING) << "Auto Purge(Days): write2file" << max-10 << " interval days: " << running_time_d;
+//            save_time_tm(&last_autopurge_time_tm_, current_time_tm_ptr);
+//        }
+//    } else if (num > expire_logs_nums) {
+    if (num > expire_logs_nums) {
         uint32_t max = 0;
         g_pikaMario->GetStatus(&max);
-        if(max >= 6 && PurgeLogs(max, max-6)) {
-            LOG(WARNING) << "Auto Purge(Days): write2file" << max-6;
-            save_time_tm(&last_autopurge_time_tm_, current_time_tm_ptr);
-        }
-    } else if (num > g_pikaConf->expire_logs_nums()) {
-        uint32_t max = 0;
-        g_pikaMario->GetStatus(&max);
-        if (max >= 6 && PurgeLogs(max, max-6)) {
-            LOG(WARNING) << "Auto Purge(Nums): write2file" << max-6;
+        if (max >= 10 && PurgeLogs(max, max-expire_logs_nums)) {
+            LOG(WARNING) << "Auto Purge(Nums): write2file" << max-expire_logs_nums << " log nums: " << num;
         }
     }
 }
