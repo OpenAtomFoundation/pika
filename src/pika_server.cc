@@ -165,7 +165,7 @@ PikaServer::PikaServer()
     for (int i = 0; i < thread_num_; i++) {
         pthread_create(&(pikaThread_[i]->thread_id_), NULL, &(PikaServer::StartThread), pikaThread_[i]);
     }
-
+    dump_thread_id_ = 0;
 }
 
 PikaServer::~PikaServer()
@@ -342,7 +342,9 @@ void* PikaServer::StartDump(void* arg) {
     dump_path.append(g_pikaConf->dump_prefix());
     dump_path.append(p->dump_time_);
     LOG(WARNING) << dump_path;
+    pthread_cleanup_push(&(PikaServer::DumpCleanup), arg);
     p->GetHandle()->BGSave(s, dump_path);
+    pthread_cleanup_pop(0);
     std::ofstream out;
     out.open(dump_path + "/info", std::ios::in | std::ios::trunc);
     if (out.is_open()) {
@@ -353,18 +355,35 @@ void* PikaServer::StartDump(void* arg) {
         out.close();
     }
     {
-    MutexLock l(p->Mutex());
-    p->bgsaving_ = false;
+        MutexLock l(p->Mutex());
+        p->bgsaving_ = false;
+        p->dump_thread_id_ = 0;
     }
     delete (dump_args*)arg;
     return NULL;
 }
 
-bool PikaServer::Dumpoff() {
-    MutexLock l(&mutex_);
-    if (!bgsaving_) {
-        return false;
+void PikaServer::DumpCleanup(void *arg) {
+    PikaServer* p = (PikaServer*)(((dump_args*)arg)->p);
+    {
+        MutexLock l(p->Mutex());
+        p->bgsaving_ = false;
+        p->dump_thread_id_ = 0;
     }
+    delete (dump_args*)arg;
+}
+
+bool PikaServer::Dumpoff() {
+    {
+        MutexLock l(&mutex_);
+        if (!bgsaving_) {
+            return false;
+        }
+        if (dump_thread_id_ != 0) {
+            pthread_cancel(dump_thread_id_);
+        }
+    }
+    db_->BGSaveOff();
     return true;
 }
 
