@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -W -DDEBUG -g -gstabs+ -O0 -D__XDEBUG__ -fPIC -Wno-unused-function -std=c++11
+CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function -std=c++11
 OBJECT = pika
 SRC_DIR = ./src
 THIRD_PATH = ./third
