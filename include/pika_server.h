@@ -1,6 +1,8 @@
 #ifndef __PIKA_SERVER_H__
 #define __PIKA_SERVER_H__
 
+#include <iostream>
+#include <atomic>
 #include <stdio.h>
 #include <sys/epoll.h>
 #include <stdlib.h>
@@ -111,6 +113,12 @@ public:
     std::string is_scaning();
     void InfoKeySpace();
     static void* StartInfoKeySpace(void* arg);
+
+    /* shutdown flag, shutdown command will set it */
+    std::atomic<bool> shutdown;
+
+    /* worker_num includes client workers and master-slaveworkers */
+    std::atomic<int> worker_num;
 
 private:
     friend class PikaConn;

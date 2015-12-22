@@ -461,6 +461,12 @@ int PikaConn::DoCmd() {
             ret.append(opt);
             ret.append("\'\r\n");
         } else {
+            /* shutdown after auth */
+            if (opt == "shutdown", ip_port_.find("127.0.0.1") == std::string::npos) {
+                ret = "-ERR \'shutdown\' should be localhost\r\n";
+                return -2;
+            }
+
             if (opt == "pikasync") {
                 char buf[32];
                 ll2string(buf, sizeof(buf), fd_);
@@ -468,6 +474,7 @@ int PikaConn::DoCmd() {
                 mutex_.Lock();
             }
             pthread_rwlock_rdlock(g_pikaServer->rwlock());
+
 
             if (g_pikaServer->is_readonly_ == true && iter->second->is_sync == true && role_ != PIKA_MASTER) {
                 pthread_rwlock_unlock(g_pikaServer->rwlock());

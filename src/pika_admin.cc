@@ -342,6 +342,27 @@ void FlushallCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void ShutdownCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+
+    std::string hostip = g_pikaServer->GetServerIp();
+
+    //printf ("Shutdown set shutdown to true\n");
+    g_pikaServer->shutdown = true;
+// if (res == true) {
+//        ret = "\r\n";
+//    } else {
+//        ret = "-ERR Alread in Flushing\r\n";
+//    }
+}
+
 void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
     pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {

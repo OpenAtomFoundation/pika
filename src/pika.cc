@@ -53,6 +53,10 @@ static void sig_handler(const int sig)
 {
 //    LOG(INFO) << "Caught signal " << sig;
     ::google::ShutdownGoogleLogging();
+    g_pikaServer->shutdown = true;
+
+    sleep(2);
+
     cleanup();
     exit(1);
 }
@@ -225,6 +229,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("purgelogsto", purgelogstoptr));
     FlushallCmd *flushallptr = new FlushallCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("flushall", flushallptr));
+    ShutdownCmd *shutdownptr = new ShutdownCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("shutdown", shutdownptr));
 
     /*
      * kv

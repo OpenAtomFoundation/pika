@@ -63,9 +63,9 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     querynums_ = 0;
     }
 
-    if (conns_.size() == 0) {
-        return 0;
-    }
+  //  if (conns_.size() == 0) {
+  //      return 0;
+  //  }
 
     std::map<int, PikaConn*>::iterator iter;
     std::map<std::string, client_info>::iterator iter_clientlist;
@@ -88,6 +88,12 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
             LOG(INFO) << "length of wbuf_: " << iter->second->wbuflen();
         }
         iter_clientlist = clients_.find(iter->second->ip_port());
+
+        // graceful shutdown
+        if (g_pikaServer->shutdown && iter_clientlist != clients_.end()) {
+          iter_clientlist->second.is_killed == true;
+        }
+
         if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) ||  
         ((iter->second->role() == PIKA_SINGLE) && ((t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->timeout() * 1000000LL)) || 
         ((iter->second->role() != PIKA_SINGLE) && ((t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= 30 * 1000000LL))) {
@@ -126,8 +132,12 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
             iter++;
         }
     }
-
     
+    if (g_pikaServer->shutdown) {
+      LOG(INFO) << "Shutdown a worker thread with tid: " << pthread_self();
+      g_pikaServer->worker_num--;
+      pthread_exit(NULL);
+    }
     return i;
 }
 

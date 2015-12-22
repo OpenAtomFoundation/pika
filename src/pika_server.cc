@@ -9,6 +9,7 @@
 #include "mutexlock.h"
 #include "pika_server.h"
 #include "mario_handler.h"
+
 #include <glog/logging.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -20,6 +21,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <signal.h>
 
 extern PikaConf *g_pikaConf;
 extern mario::Mario *g_pikaMario;
@@ -79,6 +81,8 @@ Status PikaServer::SetBlockType(BlockType type)
 PikaServer::PikaServer()
 {
     // init statistics variables
+    shutdown = false;
+    worker_num = 0;
 
     pthread_rwlock_init(&rwlock_, NULL);
 
@@ -163,6 +167,7 @@ PikaServer::PikaServer()
 
     // start the pikaThread_ thread
     for (int i = 0; i < thread_num_; i++) {
+        worker_num++;
         pthread_create(&(pikaThread_[i]->thread_id_), NULL, &(PikaServer::StartThread), pikaThread_[i]);
     }
 
@@ -926,6 +931,10 @@ void PikaServer::RunProcess()
     target.tv_sec++;
     int timeout = 1000;
     for (;;) {
+        if (shutdown && worker_num == 0) {
+            return;
+        }
+
         gettimeofday(&now, NULL);
         if (target.tv_sec > now.tv_sec || (target.tv_sec == now.tv_sec && target.tv_usec - now.tv_usec > 1000)) {
             timeout = (target.tv_sec-now.tv_sec)*1000 + (target.tv_usec-now.tv_usec)/1000;
