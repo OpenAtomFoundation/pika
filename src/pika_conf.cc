@@ -21,6 +21,10 @@ PikaConf::PikaConf(const char* path) :
     getConfStr("dump_path", dump_path_);
     getConfInt("maxconnection", &maxconnection_);
     getConfInt("target_file_size_base", &target_file_size_base_);
+    getConfInt("expire_logs_days", &expire_logs_days_);
+    getConfInt("expire_logs_nums", &expire_logs_nums_);
+    getConfInt("root_connection_num", &root_connection_num_);
+    getConfInt("slowlog_log_slower_than", &slowlog_slower_than_);
 
     if (thread_num_ <= 0) {
         thread_num_ = 16;
@@ -40,6 +44,15 @@ PikaConf::PikaConf(const char* path) :
     if (target_file_size_base_ <= 0) {
         target_file_size_base_ = 1048576; // 10M
     }
+    if (expire_logs_days_ <= 0 ) {
+        expire_logs_days_ = 1;
+    }
+    if (expire_logs_nums_ <= 10 ) {
+        expire_logs_nums_ = 10;
+    }
+    if (root_connection_num_ < 0) {
+        root_connection_num_ = 0;
+    }
 
     char str[PIKA_WORD_SIZE];
     getConfStr("daemonize", str);
@@ -49,7 +62,6 @@ PikaConf::PikaConf(const char* path) :
     } else {
         daemonize_ = false;
     }
-
 
     pthread_rwlock_init(&rwlock_, NULL);
 }

@@ -168,8 +168,7 @@ Status Consumer::Consume(std::string &scratch)
         case kOldRecord:
             return Status::EndFile("Eof");
         default:
-            s = Status::Corruption("Unknow reason");
-            break;
+            return Status::Corruption("Unknow reason");
         }
         // TODO:do handler here
         if (s.ok()) {

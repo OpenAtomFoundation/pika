@@ -33,6 +33,7 @@ static void pika_glog_init()
 
     FLAGS_log_dir = g_pikaConf->log_path();
     FLAGS_minloglevel = g_pikaConf->log_level();
+    FLAGS_max_log_size = 1800;
     ::google::InitGoogleLogging("pika");
 
     LOG(WARNING) << "Pika glog init";
@@ -50,8 +51,12 @@ void cleanup() {
 
 static void sig_handler(const int sig)
 {
-    LOG(INFO) << "Caught signal " << sig;
+    //LOG(INFO) << "Caught signal " << sig;
     ::google::ShutdownGoogleLogging();
+    g_pikaServer->shutdown = true;
+
+    sleep(1);
+
     cleanup();
     exit(1);
 }
@@ -110,7 +115,7 @@ void daemonize(void) {
     if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
       dup2(fd, STDIN_FILENO);
       dup2(fd, STDOUT_FILENO);
-      //dup2(fd, STDERR_FILENO);
+      dup2(fd, STDERR_FILENO);
       close(fd);
     }
 }
@@ -214,10 +219,18 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("loaddb", loaddbptr));
     DumpCmd *dumpptr = new DumpCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("dump", dumpptr));
+    DumpoffCmd *dumpoffptr = new DumpoffCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("dumpoff", dumpoffptr));
     ReadonlyCmd *readonlyptr = new ReadonlyCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("readonly", readonlyptr));
     SelectCmd *selectptr = new SelectCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("select", selectptr));
+    PurgelogstoCmd *purgelogstoptr = new PurgelogstoCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("purgelogsto", purgelogstoptr));
+    FlushallCmd *flushallptr = new FlushallCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("flushall", flushallptr));
+    ShutdownCmd *shutdownptr = new ShutdownCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("shutdown", shutdownptr));
 
     /*
      * kv
@@ -266,6 +279,12 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("expireat", expireatptr));
     TtlCmd *ttlptr = new TtlCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ttl", ttlptr));
+    PexpireCmd *pexpireptr = new PexpireCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pexpire", pexpireptr));
+    PexpireatCmd *pexpireatptr = new PexpireatCmd(3);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pexpireat", pexpireatptr));
+    PttlCmd *pttlptr = new PttlCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("pttl", pttlptr));
     PersistCmd *persistptr = new PersistCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("persist", persistptr));
     ScanCmd *scanptr = new ScanCmd(-2);
@@ -273,6 +292,8 @@ int main(int argc, char **argv)
 
     KeysCmd *keysptr = new KeysCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("keys", keysptr));
+    TypeCmd *typeptr = new TypeCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("type", typeptr));
 
 
     /*
@@ -376,6 +397,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrevrangebyscore", zrevrangebyscoreptr));
     ZRangebylexCmd *zrangebylexptr = new ZRangebylexCmd(-4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrangebylex", zrangebylexptr));
+    ZRevrangebylexCmd *zrevrangebylexptr = new ZRevrangebylexCmd(-4);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("zrevrangebylex", zrevrangebylexptr));
     ZLexcountCmd *zlexcountptr = new ZLexcountCmd(4);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("zlexcount", zlexcountptr));
     ZRemrangebylexCmd *zremrangebylexptr = new ZRemrangebylexCmd(4);

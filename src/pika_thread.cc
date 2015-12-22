@@ -38,6 +38,7 @@ PikaThread::PikaThread(int thread_index)
     gettimeofday(&last_ping_time_, NULL);
     querynums_ = 0;
     last_sec_querynums_ = 0;
+	accumulative_querynums_ = 0;
 
 }
 
@@ -58,12 +59,13 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     {
     RWLock l(&rwlock_, true);
     last_sec_querynums_ = querynums_;
+	accumulative_querynums_ += querynums_;
     querynums_ = 0;
     }
 
-    if (conns_.size() == 0) {
-        return 0;
-    }
+  //  if (conns_.size() == 0) {
+  //      return 0;
+  //  }
 
     std::map<int, PikaConn*>::iterator iter;
     std::map<std::string, client_info>::iterator iter_clientlist;
@@ -86,6 +88,12 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
             LOG(INFO) << "length of wbuf_: " << iter->second->wbuflen();
         }
         iter_clientlist = clients_.find(iter->second->ip_port());
+
+        // graceful shutdown
+        if (g_pikaServer->shutdown && iter_clientlist != clients_.end()) {
+          iter_clientlist->second.is_killed == true;
+        }
+
         if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) ||  
         ((iter->second->role() == PIKA_SINGLE) && ((t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= g_pikaConf->timeout() * 1000000LL)) || 
         ((iter->second->role() != PIKA_SINGLE) && ((t.tv_sec*1000000+t.tv_usec) - ((iter->second)->tv().tv_sec*1000000+(iter->second)->tv().tv_usec) >= 30 * 1000000LL))) {
@@ -97,13 +105,13 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
                     iter_clientlist = clients_.find(iter->second->ip_port());
                 }
                 if (iter_clientlist != clients_.end()) {
-                    LOG(INFO) << "Remove (Idle or Killed) Client: " << iter_clientlist->first;
+                    LOG(WARNING) << "Remove (Idle or Killed) Client: " << iter_clientlist->first;
                     clients_.erase(iter_clientlist);
                 }
 
             }
             if (iter->second->role() == PIKA_MASTER) {
-                LOG(INFO) << "Remove Timeout/killed Master";
+                LOG(WARNING) << "Remove Timeout/killed Master";
                 MutexLock l(g_pikaServer->Mutex());
                 if (is_killed) {
                     g_pikaServer->ms_state_ = PIKA_REP_SINGLE;
@@ -111,7 +119,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
                     g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
                 }
             } else if (iter->second->role() == PIKA_SLAVE) {
-                LOG(INFO) << "Remove Slave Consumer Thread";
+                LOG(WARNING) << "Remove Slave Consumer Thread";
                 g_pikaMario->RemoveConsumer(iter->second->fd());
             }
 
@@ -124,8 +132,12 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
             iter++;
         }
     }
-
     
+    if (g_pikaServer->shutdown) {
+      LOG(INFO) << "Shutdown a worker thread with tid: " << pthread_self();
+      g_pikaServer->worker_num--;
+      pthread_exit(NULL);
+    }
     return i;
 }
 
@@ -178,7 +190,7 @@ void PikaThread::RunProcess()
                 {
                     RWLock l(&rwlock_, true);
                     if (ti.role() == PIKA_MASTER) {
-                        LOG(INFO) << "Add Master " << tc->ip_port();
+                        LOG(WARNING) << "Add Master " << tc->ip_port();
                         clients_[tc->ip_port()] = { ti.fd(), false, PIKA_MASTER };
                     } else {
                         LOG(INFO) << "Add New Client: " << tc->ip_port();
@@ -253,7 +265,7 @@ void PikaThread::RunProcess()
                     snprintf(buf, sizeof(buf), "%lu\r\n", pro_offset);
                     str.append(buf);
 
-                    LOG(INFO)<<str;
+                    LOG(WARNING)<<str;
                     inConn->append_wbuf_nowait(str);
                 }
                 if (inConn->PikaSendReply() == 0) {
@@ -277,13 +289,13 @@ void PikaThread::RunProcess()
                             LOG(INFO) << "Remove Client OK";
                         }
                         if (role == PIKA_MASTER) {
-                            LOG(INFO) << "Remove Master";
+                            LOG(WARNING) << "Remove Master";
                             MutexLock l(g_pikaServer->Mutex());
                             g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
                         } else if (role == PIKA_SLAVE) {
-                            LOG(INFO) << "Remove Slave Consumer Thread";
+                            LOG(WARNING) << "Remove Slave Consumer Thread";
                             mario::Status s = g_pikaMario->RemoveConsumer(inConn->fd());
-                            LOG(INFO) << s.ToString();
+                            LOG(WARNING) << s.ToString();
                         }
                         close(inConn->fd());
                         delete(inConn);
@@ -306,7 +318,7 @@ void PikaThread::RunProcess()
 
             if ((tfe->mask_  & EPOLLERR) || (tfe->mask_ & EPOLLHUP)) {
 //                log_info("close tfe fd here");
-                LOG(INFO) << "error event happen: " << tfe->mask_;
+                LOG(WARNING) << "error event happen: " << tfe->mask_;
                 it = conns_.find(tfe->fd_);
                 int role = PIKA_SINGLE;
                 if (it != conns_.end()) {
@@ -325,13 +337,13 @@ void PikaThread::RunProcess()
                     }
                 }
                 if (role == PIKA_MASTER) {
-                    LOG(INFO) << "Remove Master";
+                    LOG(WARNING) << "Remove Master";
                     MutexLock l(g_pikaServer->Mutex());
                     g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
                 } else if (role == PIKA_SLAVE) {
-                    LOG(INFO) << "Remove Slave Consumer Thread";
+                    LOG(WARNING) << "Remove Slave Consumer Thread";
                     mario::Status s = g_pikaMario->RemoveConsumer(inConn->fd());
-                    LOG(INFO) << s.ToString();
+                    LOG(WARNING) << s.ToString();
                 }
                 close(tfe->fd_);
                 delete(inConn);

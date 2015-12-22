@@ -1,6 +1,8 @@
 #ifndef __PIKA_SERVER_H__
 #define __PIKA_SERVER_H__
 
+#include <iostream>
+#include <atomic>
 #include <stdio.h>
 #include <sys/epoll.h>
 #include <stdlib.h>
@@ -11,6 +13,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
+#include <ctime>
 
 #include "status.h"
 #include "csapp.h"
@@ -48,6 +51,8 @@ public:
     int GetSlaveList(std::string &res);
 //    int ClientRole(int fd, int role);
     
+    time_t start_time_s() {return start_time_s_;}
+    struct tm *start_time_tm() {return &start_time_tm_;}
     void set_masterhost(std::string &masterhost) { masterhost_ = masterhost; }
     std::string masterhost() { return masterhost_; }
     void set_masterport(int masterport) { masterport_ = masterport; }
@@ -64,18 +69,33 @@ public:
     void ProcessTimeEvent(struct timeval*);
     void DisconnectFromMaster();
     int CurrentQps();
+    uint64_t CurrentAccumulativeQueryNums();
+    uint64_t HistoryClientsNum();
     
     int repl_state_; //PIKA_SINGLE; PIKA_MASTER; PIKA_SLAVE
     int ms_state_; //PIKA_CONNECT; PIKA_CONNECTED
     pthread_rwlock_t* rwlock() { return &rwlock_; }
     bool LoadDb(std::string& path);
-    void Dump();
+    bool Flushall();
+    pthread_t flush_thread_id_;
+    bool flushing_;
+    static void* StartFlush(void* arg);
+    bool purging_;
+    bool PurgeLogs(uint32_t max, int64_t to);
+    bool PurgeLogsNolock(uint32_t max, int64_t to);
+    pthread_t purge_thread_id_;
+    static void* StartPurgeLogs(void* arg);
+    void AutoPurge();
+    struct tm last_autopurge_time_tm_;
     void Slaveofnoone();
+    void Dump();
+    bool Dumpoff();
     uint32_t dump_filenum_;
     uint64_t dump_pro_offset_;
     pthread_t dump_thread_id_;
     char dump_time_[32];
     static void* StartDump(void* arg);
+    static void DumpCleanup(void * arg);
     nemo::Snapshots snapshot_;
     bool bgsaving_;
     time_t bgsaving_start_time_;
@@ -95,6 +115,12 @@ public:
     std::string is_scaning();
     void InfoKeySpace();
     static void* StartInfoKeySpace(void* arg);
+
+    /* shutdown flag, shutdown command will set it */
+    std::atomic<bool> shutdown;
+
+    /* worker_num includes client workers and master-slaveworkers */
+    std::atomic<int> worker_num;
 
 private:
     friend class PikaConn;
@@ -140,7 +166,9 @@ private:
      */
     PikaThread *pikaThread_[PIKA_THREAD_NUM];
 
-
+    int64_t history_clients_num_;
+    time_t start_time_s_;
+    struct tm start_time_tm_;
 //    int64_t stat_numcommands;
 //    int64_t stat_numconnections;
 //

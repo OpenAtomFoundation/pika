@@ -1,13 +1,13 @@
 #ifndef __PIKA_DEFINE_H__
 #define __PIKA_DEFINE_H__
 #include "nemo.h"
-#define PIKA_VERSION    "1.0.4"
+#define PIKA_VERSION    "1.0.5"
 
 #define PIKA_MAX_CLIENTS 10240
 #define PIKA_MAX_MESSAGE 10240
 #define PIKA_THREAD_NUM 24
 
-#define PIKA_IOBUF_LEN (1024 * 4)
+#define PIKA_IOBUF_LEN (1024 * 16)
 #define PIKA_MBULK_BIG_ARG (1024 * 1024 * 32)
 #define PIKA_INLINE_MAX_SIZE (1024 * 1024 * 64)
 #define PIKA_SLAVE_WBUF_MAX_SIZE (1024 * 1024 * 500)
@@ -53,11 +53,20 @@ struct client_info {
     int role;
 };
 
+struct flush_args {
+    void* p;
+    std::string path;
+};
+
 struct dump_args {
     void* p;
     nemo::Snapshots snapshots;
 };
 
+struct purge_args {
+    void* p;
+    uint32_t to;
+};
 /*
  * define the macro in pika_conf
  */
@@ -66,12 +75,12 @@ struct dump_args {
 #define PIKA_LINE_SIZE 1024
 #define PIKA_CONF_MAX_NUM 1024
 
-
 /*
  * define common character
  */
 #define SPACE ' '
 #define COLON ':'
 #define SHARP '#'
+
 
 #endif

@@ -79,6 +79,8 @@ public:
     Status SetConsumer(int fd, uint32_t filenum, uint64_t con_offset);
     // no lock 
     Status GetConsumerStatus(int fd, uint32_t* filenum, uint64_t* con_offset);
+
+    Status GetStatus(uint32_t* max);
     Status AppendBlank(WritableFile *file, uint64_t len);
 
     Env *env() { return env_; }

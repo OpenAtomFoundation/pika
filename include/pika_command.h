@@ -52,6 +52,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class PurgelogstoCmd : public Cmd {
+public:
+    PurgelogstoCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 //class BemasterCmd : public Cmd {
 //public:
 //    BemasterCmd(int a, bool i = false) : Cmd(a, i) {};
@@ -94,6 +100,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class DumpoffCmd : public Cmd {
+public:
+    DumpoffCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class ReadonlyCmd : public Cmd {
 public:
     ReadonlyCmd(int a, bool i = false) : Cmd(a, i) {};
@@ -103,6 +115,18 @@ public:
 class SelectCmd : public Cmd {
 public:
     SelectCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class FlushallCmd : public Cmd {
+public:
+    FlushallCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ShutdownCmd : public Cmd {
+public:
+    ShutdownCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -241,6 +265,24 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class PexpireCmd : public Cmd {
+public:
+    PexpireCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PexpireatCmd : public Cmd {
+public:
+    PexpireatCmd(int a) : Cmd(a) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class PttlCmd : public Cmd {
+public:
+    PttlCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 class PersistCmd : public Cmd {
 public:
     PersistCmd(int a) : Cmd(a) {};
@@ -256,6 +298,12 @@ public:
 class KeysCmd : public Cmd {
 public:
     KeysCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class TypeCmd : public Cmd {
+public:
+    TypeCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
@@ -534,6 +582,12 @@ public:
 class ZRangebylexCmd : public Cmd {
 public:
     ZRangebylexCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
+class ZRevrangebylexCmd : public Cmd {
+public:
+    ZRevrangebylexCmd(int a, bool i = false) : Cmd(a, i) {};
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 

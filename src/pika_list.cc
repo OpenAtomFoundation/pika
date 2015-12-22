@@ -35,7 +35,7 @@ void LIndexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     } else if (s.IsNotFound() || (s.IsCorruption() && s.ToString() == "Corruption: index out of range")) {
         ret = "$-1\r\n";
     } else {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     }
@@ -76,7 +76,7 @@ void LInsertCmd::Do(std::list<std::string> &argv, std::string &ret) {
         snprintf(buf, sizeof(buf), ":%ld\r\n", llen);
         ret.append(buf);
     } else {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     }
@@ -95,7 +95,7 @@ void LLenCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int64_t llen;
     nemo::Status s = g_pikaServer->GetHandle()->LLen(key, &llen);
     if (s.IsCorruption()) {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     } else {
@@ -154,7 +154,7 @@ void LPushCmd::Do(std::list<std::string> &argv, std::string &ret) {
         argv.pop_front();
     }
     if (argv.size() > 0) {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     } else {
@@ -179,7 +179,7 @@ void LPushxCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int64_t llen = 0;
     nemo::Status s = g_pikaServer->GetHandle()->LPushx(key, value, &llen);
     if (s.IsCorruption()) {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     } else {
@@ -228,7 +228,7 @@ void LRangeCmd::Do(std::list<std::string> &argv, std::string &ret) {
     } else if (s.IsNotFound()) {
         ret = "*0\r\n";
     } else {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     }
@@ -260,7 +260,7 @@ void LRemCmd::Do(std::list<std::string> &argv, std::string &ret) {
         snprintf(buf, sizeof(buf), ":%ld\r\n", res);
         ret.append(buf);
     } else {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     }
@@ -290,11 +290,11 @@ void LSetCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (s.ok()) {
         ret = "+OK\r\n";
     } else if (s.IsNotFound()) {
-        ret = "+ERR no such key\r\n";
+        ret = "-ERR no such key\r\n";
     } else if (s.IsCorruption() && s.ToString() == "Corruption: index out of range") {
-        ret = "+ERR index out of range\r\n";
+        ret = "-ERR index out of range\r\n";
     } else {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     }
@@ -412,7 +412,7 @@ void RPushCmd::Do(std::list<std::string> &argv, std::string &ret) {
         argv.pop_front();
     }
     if (argv.size() > 0) {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     } else {
@@ -437,7 +437,7 @@ void RPushxCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int64_t llen = 0;
     nemo::Status s = g_pikaServer->GetHandle()->RPushx(key, value, &llen);
     if (s.IsCorruption()) {
-        ret = "+ERR ";
+        ret = "-ERR ";
         ret.append(s.ToString().c_str());
         ret.append("\r\n");
     } else {

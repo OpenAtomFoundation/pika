@@ -428,9 +428,9 @@ void SetexCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string key = argv.front();
     argv.pop_front();
-    std::string value = argv.front();
-    argv.pop_front();
     std::string str_sec = argv.front();
+    argv.pop_front();
+    std::string value = argv.front();
     argv.pop_front();
     int64_t sec = 0;
     if (!string2l(str_sec.data(), str_sec.size(), &sec)) {
@@ -660,6 +660,37 @@ void ExpireCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void PexpireCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_sec = argv.front();
+    argv.pop_front();
+    int64_t sec;
+    if (!string2l(str_sec.data(), str_sec.size(), &sec)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    sec /= 1000;
+    int64_t res;
+    nemo::Status s = g_pikaServer->GetHandle()->Expire(key, sec, &res);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void ExpireatCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -677,6 +708,37 @@ void ExpireatCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret = "-ERR value is not an integer or out of range\r\n";
         return;
     }
+    int64_t res;
+    nemo::Status s = g_pikaServer->GetHandle()->Expireat(key, timestamp, &res);
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", res);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void PexpireatCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string str_timestamp = argv.front();
+    argv.pop_front();
+    int64_t timestamp;
+    if (!string2l(str_timestamp.data(), str_timestamp.size(), &timestamp)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+    timestamp /= 1000;
     int64_t res;
     nemo::Status s = g_pikaServer->GetHandle()->Expireat(key, timestamp, &res);
     if (s.ok() || s.IsNotFound()) {
@@ -713,6 +775,30 @@ void TtlCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void PttlCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    int64_t ttl;
+    nemo::Status s = g_pikaServer->GetHandle()->TTL(key, &ttl);
+    if (ttl > 0) ttl *= 1000;
+    if (s.ok() || s.IsNotFound()) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), ":%ld\r\n", ttl);
+        ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void PersistCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -729,6 +815,29 @@ void PersistCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[32];
         snprintf(buf, sizeof(buf), ":%ld\r\n", res);
         ret.append(buf);
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
+void TypeCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string res;
+    nemo::Status s = g_pikaServer->GetHandle()->Type(key, &res);
+    if (s.ok()) {
+        ret = "+";
+        ret.append(res);
+        ret.append("\r\n");
     } else {
         ret.append("-ERR ");
         ret.append(s.ToString().c_str());
@@ -783,31 +892,15 @@ void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     };
 
-
     std::vector<std::string> keys;
-    nemo::KIterator *iter = g_pikaServer->GetHandle()->Scan("", "", -1);
-    bool skip_ret = iter->Skip(index);
-    if (skip_ret && !iter->Valid()) {
-        count--;
-        if (!(use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0))) {
-            keys.push_back(iter->Key());
-        }
-        index = 0;
-    } else {
-        bool iter_ret = false;
-        while ((iter_ret=iter->Next()) && count) {
-            count--;
-            index++;
-            if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0)) {
-                continue;
-            }
-            keys.push_back(iter->Key());
-        }
-        if (!iter_ret) {
-            index = 0;
-        }
+    int64_t cursor_ret;
+    nemo::Status s;
+    if (!use_pat) {
+        pattern = "*";
     }
-    delete iter;
+    s = g_pikaServer->GetHandle()->Scan(static_cast<int64_t>(index), pattern, static_cast<int64_t>(count), keys, &cursor_ret);
+    index = cursor_ret;
+
 
     ret = "*2\r\n";
     char buf[32];

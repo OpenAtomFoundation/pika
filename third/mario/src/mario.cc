@@ -12,6 +12,8 @@
 #include <stdint.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <signal.h>
+#include <unistd.h>
 
 namespace mario {
 
@@ -190,6 +192,18 @@ Status Mario::SetConsumer(int fd, uint32_t filenum, uint64_t con_offset) {
     return Status::NotFound("");
 }
 
+Status Mario::GetStatus(uint32_t* max) {
+    MutexLock l(&mutex_);
+    *max = version_->pronum();
+    std::list<ConsumerItem *>::iterator it;
+    for (it = consumers_.begin(); it != consumers_.end(); it++) {
+        if ((*it)->consumer_->filenum() < *max) {
+            *max = (*it)->consumer_->filenum();
+        }
+    }
+    return Status::OK();
+}
+
 Status Mario::GetConsumerStatus(int fd, uint32_t *filenum, uint64_t *con_offset) {
     std::list<ConsumerItem *>::iterator it;
     for (it = consumers_.begin(); it != consumers_.end(); it++) {
@@ -212,7 +226,12 @@ Status Mario::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) {
 }
 
 Status Mario::AppendBlank(WritableFile *file, uint64_t len) {
+    if (len < kHeaderSize) {
+        return Status::OK();
+    }
+
     uint64_t pos = 0;
+
     std::string blank(kBlockSize, ' ');
     for (; pos + kBlockSize < len; pos += kBlockSize) {
         file->Append(Slice(blank.data(), blank.size()));
@@ -240,26 +259,32 @@ Status Mario::AppendBlank(WritableFile *file, uint64_t len) {
 Status Mario::SetProducerStatus(uint32_t pronum, uint64_t pro_offset) {
     MutexLock l(&mutex_);
 
-    std::string profile = NewFileName(filename_, pronum);
+    std::string init_profile = NewFileName(filename_, 0);
+    if (env_->FileExists(init_profile)) {
+        env_->DeleteFile(init_profile);
+    }
 
+    std::string profile = NewFileName(filename_, pronum);
     if (writefile_ != NULL) {
         delete writefile_;
     }
 
-    if (!env_->FileExists(profile)) {
-        env_->NewWritableFile(profile, &writefile_);
-        Mario::AppendBlank(writefile_, pro_offset);
-        //std::string blank(pro_offset, ' ');
-        //writefile_->Append(Slice(blank.data(), blank.size()));
-    } else {
-        env_->AppendWritableFile(profile, &writefile_, pro_offset);
+    // offset smaller than the first header
+    if (pro_offset < 4) {
+        pro_offset = 0;
     }
+
+    if (env_->FileExists(profile)) {
+        env_->DeleteFile(profile);
+    }
+
+    env_->NewWritableFile(profile, &writefile_);
+    Mario::AppendBlank(writefile_, pro_offset);
 
     pronum_ = pronum;
 
     version_->set_pronum(pronum);
     version_->set_pro_offset(pro_offset);
-
     version_->StableSave();
 
     if (producer_ != NULL) {
@@ -345,6 +370,10 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
         //std::cout<<"1 --> con_offset: "<<consumer_item->consumer_->con_offset()<<" pro_offset: "<<version_->pro_offset()<<std::endl;
         scratch = "";
         s = consumer_item->consumer_->Consume(scratch);
+        if (s.IsCorruption()) {
+            mutex_.Unlock();
+            break;
+        }
         while (!consumer_item->IsExit() && !s.ok()) {
             std::string confile = NewFileName(filename_, consumer_item->consumer_->filenum() + 1);
             if (s.IsEndFile() && env_->FileExists(confile)) {
@@ -362,8 +391,16 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
                 mutex_.Lock();
             }
             s = consumer_item->consumer_->Consume(scratch);
+            if (s.IsCorruption()) {
+                mutex_.Unlock();
+                break;
+            }
         }
         mutex_.Unlock();
+        if (s.IsCorruption()) {
+            break;
+        }
+
         if (retry_ == -1) {
             while (!consumer_item->IsExit() && consumer_item->h_->processMsg(scratch)) {
             }
@@ -378,6 +415,10 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
       }
     }
 
+    if (s.IsCorruption()) {
+        printf ("Consumer corruption with %s, exit\n", s.ToString().c_str());
+        //raise(SIGUSR1);
+    }
     pthread_exit(NULL);
 }
 

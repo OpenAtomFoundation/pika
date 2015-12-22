@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/dir.h>
+#include <ctime>
 
 #include "pika_command.h"
 #include "pika_server.h"
@@ -186,6 +187,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
     if (g_pikaServer->ms_state_ == PIKA_REP_SINGLE) {
         if (is_psync) {
+            g_pikaServer->PurgeLogsNolock(filenum, filenum);
             g_pikaMario->SetProducerStatus(filenum, pro_offset);
         }
         g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
@@ -258,11 +260,12 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append(auth);
         ret.append("\r\n");
         ret.append(t_ret);
-        LOG(INFO) << ret;
+        LOG(WARNING) << ret;
     }
 }
 
 void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
@@ -278,12 +281,11 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
     }
 
-    pthread_rwlock_unlock(g_pikaServer->rwlock());
     {
     RWLock rwl(g_pikaServer->rwlock(), true);
     g_pikaServer->is_readonly_ = true;
     }
-    LOG(INFO) << "Master told me that I can psync, open readonly mode now";
+    LOG(WARNING) << "Master told me that I can psync, open readonly mode now";
     ret = "";
 }
 
@@ -301,11 +303,12 @@ void SyncerrorCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
     argv.pop_front();
     g_pikaServer->DisconnectFromMaster();
-    LOG(INFO) << "Master told me that I can not psync, rollback now";
+    LOG(WARNING) << "Master told me that I can not psync, rollback now";
     ret = ""; 
 }
 
 void LoaddbCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
@@ -315,7 +318,6 @@ void LoaddbCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string path = argv.front();
     argv.pop_front();
-    pthread_rwlock_unlock(g_pikaServer->rwlock());
     bool res = g_pikaServer->LoadDb(path);
     if (res == true) {
         ret = "+OK\r\n";
@@ -324,7 +326,8 @@ void LoaddbCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
-void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
+void FlushallCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
@@ -332,15 +335,44 @@ void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     }
     argv.pop_front();
-//    uint32_t filenum = 0;
-//    uint64_t pro_offset = 0;
-//    nemo::Snapshots snapshots;
+    bool res = g_pikaServer->Flushall();
+    if (res == true) {
+        ret = "+OK\r\n";
+    } else {
+        ret = "-ERR Alread in Flushing\r\n";
+    }
+}
+
+void ShutdownCmd::Do(std::list<std::string> &argv, std::string &ret) {
     pthread_rwlock_unlock(g_pikaServer->rwlock());
-//    {
-//        RWLock l(g_pikaServer->rwlock(), true);
-//        g_pikaMario->GetProducerStatus(&filenum, &pro_offset);
-//        g_pikaServer->GetHandle()->BGSaveGetSnapshot(snapshots);
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+
+    std::string hostip = g_pikaServer->GetServerIp();
+
+    //printf ("Shutdown set shutdown to true\n");
+    g_pikaServer->shutdown = true;
+// if (res == true) {
+//        ret = "\r\n";
+//    } else {
+//        ret = "-ERR Alread in Flushing\r\n";
 //    }
+}
+
+void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
     g_pikaServer->Dump();
     ret = "+";
     ret.append(g_pikaServer->dump_time_);
@@ -354,7 +386,24 @@ void DumpCmd::Do(std::list<std::string> &argv, std::string &ret) {
     ret.append("\r\n");
 }
 
+void DumpoffCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    bool res = g_pikaServer->Dumpoff();
+    if (res == true) {
+        ret = "+OK\r\n";
+    } else {
+        ret = "-ERR No DumpWorks now\r\n";
+    }
+}
+
 void ReadonlyCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
@@ -367,13 +416,11 @@ void ReadonlyCmd::Do(std::list<std::string> &argv, std::string &ret) {
     transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
     ret = "+OK\r\n";
     if (opt == "on") {
-        pthread_rwlock_unlock(g_pikaServer->rwlock());
         {
         RWLock l(g_pikaServer->rwlock(), true);
         g_pikaServer->is_readonly_ = true;
         }
     } else if (opt == "off") {
-        pthread_rwlock_unlock(g_pikaServer->rwlock());
         {
         RWLock l(g_pikaServer->rwlock(), true);
         g_pikaServer->is_readonly_ = false;
@@ -473,6 +520,14 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "daemonize");
             EncodeString(&ret, g_pikaConf->daemonize() ? "yes" : "no");
+        } else if (conf_item == "root_connection_num" ) {
+            ret = "*2\r\n";
+            EncodeString(&ret, "root_connection_num");
+            EncodeInt32(&ret, g_pikaConf->root_connection_num());
+        } else if (conf_item == "slowlog_log_slower_than") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "slowlog_log_slower_than");
+            EncodeInt32(&ret, g_pikaConf->slowlog_slower_than());
         } else {
             ret = "-ERR No such configure item\r\n";
         }
@@ -488,6 +543,28 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "+OK\r\n";
         } else if (conf_item == "requirepass") {
             g_pikaConf->SetRequirePass(value);
+            ret = "+OK\r\n";
+        } else if (conf_item == "root_connection_num") {
+            if (!string2l(value.data(), value.size(), &ival)) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'root_connection_num'\r\n";
+                return;
+            }
+            g_pikaConf->SetRootConnectionNum(ival);
+            ret = "+OK\r\n";
+        } else if (conf_item == "log_level") {
+            if (!string2l(value.data(), value.size(), &ival) || ival < 0 || ival > 4) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'log_level'\r\n";
+                return;
+            }
+            g_pikaConf->SetLogLevel(ival);
+            FLAGS_minloglevel = g_pikaConf->log_level();
+            ret = "+OK\r\n";
+        } else if (conf_item == "slowlog_log_slower_than") {
+            if (!string2l(value.data(), value.size(), &ival)) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slowlog_slower_than'\r\n";
+                return;
+            }
+            g_pikaConf->SetSlowlogSlowerThan(ival);
             ret = "+OK\r\n";
         } else {
             ret = "-ERR No such configure item\r\n";
@@ -583,26 +660,55 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         uint64_t dbsize_M = dbsize_B / (1024 * 1024); 
         
         char buf[512];
+        time_t current_time_s = std::time(NULL);
+        time_t running_time_s = current_time_s-g_pikaServer->start_time_s();
+        struct tm *current_time_tm_ptr = localtime(&current_time_s);
+        int32_t diff_year = current_time_tm_ptr->tm_year - g_pikaServer->start_time_tm()->tm_year;
+        int32_t diff_day = current_time_tm_ptr->tm_yday - g_pikaServer->start_time_tm()->tm_yday;
+        int32_t running_time_d = diff_year*365 + diff_day;
+        uint32_t max = 0;
+        g_pikaMario->GetStatus(&max);
+        std::string safety_purge;
+        if (max < 10) {
+          safety_purge = "none"; 
+        } else {
+          safety_purge = "write2file";
+          char str_num[32];
+          snprintf(str_num, sizeof(str_num), "%u", max-10);
+          safety_purge.append(str_num);
+        }
         snprintf (buf, sizeof(buf),
                   "# Server\r\n"
-                  "pika_version: %s\r\n"
-                  "os: %s %s %s\r\n"
-                  "process_id: %ld\r\n"
-                  "tcp_port: %d\r\n"
-                  "thread_num: %d\r\n"
-                  "config_file: %s\r\n"
-                  "is_bgsaving: %s\r\n"
-                  "is_scaning_keyspace: %s\r\n"
-                  "db_size: %lluM\r\n",
+                  "pika_version:%s\r\n"
+                  "os:%s %s %s\r\n"
+                  "arch_bits:%s\r\n"
+                  "process_id:%ld\r\n"
+                  "tcp_port:%d\r\n"
+                  "thread_num:%d\r\n"
+                  "uptime_in_seconds:%d\r\n"
+                  "uptime_in_days:%d\r\n"
+                  "config_file:%s\r\n"
+                  "is_bgsaving:%s\r\n"
+                  "is_scaning_keyspace:%s\r\n"
+                  "db_size:%luM\r\n"
+                  "safety_purge:%s\r\n"
+                  "expire_logs_days:%d\r\n"
+                  "expire_logs_nums:%d\r\n",
                   PIKA_VERSION,
                   name.sysname, name.release, name.machine,
+                  (std::string(name.machine).substr(std::string(name.machine).length()-2)).c_str(),
                   (long) getpid(),
                   g_pikaConf->port(),
                   g_pikaConf->thread_num(),
+                  running_time_s,
+                  running_time_d,
                   g_pikaConf->conf_path(),
                   g_pikaServer->is_bgsaving().c_str(),
                   g_pikaServer->is_scaning().c_str(),
-                  dbsize_M
+                  dbsize_M,
+                  safety_purge.c_str(),
+                  g_pikaConf->expire_logs_days(),
+                  g_pikaConf->expire_logs_nums()
                   );
         info.append(buf);
     }
@@ -615,7 +721,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[128];
         snprintf (buf, sizeof(buf),
                   "# Clients\r\n"
-                  "connected_clients: %d\r\n",
+                  "connected_clients:%d\r\n",
                   g_pikaServer->ClientList(clients));
         info.append(buf);
     }
@@ -628,8 +734,12 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         char buf[128];
         snprintf (buf, sizeof(buf),
                   "# Stats\r\n"
-                  "instantaneous_ops_per_sec: %d\r\n",
-                  g_pikaServer->CurrentQps());
+                  "total_connections_received:%lu\r\n"
+                  "instantaneous_ops_per_sec:%d\r\n"
+                  "accumulative_query_nums:%lu\r\n",
+                  g_pikaServer->HistoryClientsNum(),
+                  g_pikaServer->CurrentQps(),
+                  g_pikaServer->CurrentAccumulativeQueryNums());
         info.append(buf);
     }
 
@@ -656,6 +766,68 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                 ro.append("slave");
             }
         }
+
+        if ((repl_state==PIKA_SINGLE) || !(repl_state&~PIKA_MASTER))
+        {
+            std::string slave_list_str;
+            snprintf(buf, sizeof(buf),
+                "# Replication(MASTER)\r\n"
+                "role:%s\r\n"
+                "connected_slaves:%d\r\n",
+                ro.c_str(),
+                g_pikaServer->GetSlaveList(slave_list_str));
+            info.append(buf);
+            info.append(slave_list_str);
+        } else if (!(repl_state&~PIKA_SLAVE)) {
+            std::string ms_state_str;
+            switch(g_pikaServer->ms_state_)
+            {
+                case PIKA_REP_OFFLINE: ms_state_str = "down"; break;
+                case PIKA_REP_CONNECT: ms_state_str = "down"; break;
+                case PIKA_REP_CONNECTING: ms_state_str = "down"; break;
+                case PIKA_REP_CONNECTED: ms_state_str = "up"; break;
+                case PIKA_REP_SINGLE: ms_state_str = "down"; break;
+            }
+            snprintf(buf, sizeof(buf),
+                "# Replication(SLAVE)\r\n"
+                "role:slave\r\n"
+                "master_host:%s\r\n"
+                "master_port:%d\r\n"
+                "master_link_status:%s\r\n"
+                "slave_read_only:%d\r\n",
+                (g_pikaServer->masterhost()).c_str(),
+                g_pikaServer->masterport() - 100,
+                ms_state_str.c_str(),
+                g_pikaServer->is_readonly_);
+          info.append(buf);
+        } else if (!(repl_state & ~(PIKA_MASTER | PIKA_SLAVE))) {
+            std::string slave_list_str;
+            std::string ms_state_str;
+            switch(g_pikaServer->ms_state_)
+            {
+                case PIKA_REP_OFFLINE: ms_state_str = "offline"; break;
+                case PIKA_REP_CONNECT: ms_state_str = "connect"; break;
+                case PIKA_REP_CONNECTING: ms_state_str = "connecting"; break;
+                case PIKA_REP_CONNECTED: ms_state_str = "connected"; break;
+                case PIKA_REP_SINGLE: ms_state_str = "single"; break;
+            }
+            snprintf(buf, sizeof(buf),
+                "# Replication(MASTER/SLAVE)\r\n"
+                "role:slave\r\n"
+                "master_host:%s\r\n"
+                "master_port:%d\r\n"
+                "master_link_status:%s\r\n"
+                "slave_read_only:%d\r\n"
+                "connected_slaves:%d\r\n",
+                (g_pikaServer->masterhost()).c_str(),
+                g_pikaServer->masterport(),
+                ms_state_str.c_str(),
+                g_pikaServer->is_readonly_,
+                g_pikaServer->GetSlaveList(slave_list_str));
+            info.append(buf);
+            info.append(slave_list_str);
+        }
+        /*
         snprintf (buf, sizeof(buf),
                   "# Replication\r\n"
                   "role: %s\r\n"
@@ -684,6 +856,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
             info.append(slave_list);
           }
         }
+        */
+
     }
 
     // Key Space
@@ -706,12 +880,12 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         strftime(infotime, sizeof(infotime), "%Y-%m-%d %H:%M:%S", localtime(&(g_pikaServer->last_info_keyspace_start_time_))); 
         snprintf (buf, sizeof(buf),
                   "# Keyspace\r\n"
-                  "# Time: %s\r\n"
-                  "kv keys: %lu\r\n"
-                  "hash keys: %lu\r\n"
-                  "list keys: %lu\r\n"
-                  "zset keys: %lu\r\n"
-                  "set keys: %lu\r\n",
+                  "# Time:%s\r\n"
+                  "kv keys:%lu\r\n"
+                  "hash keys:%lu\r\n"
+                  "list keys:%lu\r\n"
+                  "zset keys:%lu\r\n"
+                  "set keys:%lu\r\n",
                   infotime, g_pikaServer->last_kv_num_, g_pikaServer->last_hash_num_, g_pikaServer->last_list_num_, g_pikaServer->last_zset_num_, g_pikaServer->last_set_num_);
         info.append(buf);
     }
@@ -722,4 +896,44 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
     ret.append(buf);
     ret.append(info);
     ret.append("\r\n");
+}
+
+void PurgelogstoCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string filename = argv.front();
+    argv.pop_front();
+    transform(filename.begin(), filename.end(), filename.begin(), ::tolower);
+    if (filename.size() <= 10) {
+        ret = "-ERR Invalid Argument\r\n";
+        return;
+    }
+    std::string prefix = filename.substr(0, 10);
+    if (prefix != "write2file") {
+        ret = "-ERR Invalid Argument\r\n";
+        return;
+    }
+    std::string str_num = filename.substr(10);
+    int64_t num;
+    if (!string2l(str_num.data(), str_num.size(), &num) || num < 0) {
+        ret = "-ERR Invalid Argument\r\n";
+        return;
+    }
+    uint32_t max = 0;
+    mario::Status mas = g_pikaMario->GetStatus(&max);
+    LOG(WARNING) << "max seqnum could be deleted: " << max;
+    bool purge_res = false;
+    if (max >= 10) {
+        purge_res = g_pikaServer->PurgeLogs(max-10, num);
+    }
+    if (purge_res) {
+        ret = "+OK\r\n";
+    } else {
+        ret = "-ERR write2file may in use or non_exist or already in purging...\r\n";
+    }
 }
