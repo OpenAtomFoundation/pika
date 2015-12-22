@@ -286,6 +286,8 @@ int main(int argc, char **argv)
 
     KeysCmd *keysptr = new KeysCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("keys", keysptr));
+    TypeCmd *typeptr = new TypeCmd(2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("type", typeptr));
 
 
     /*

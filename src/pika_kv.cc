@@ -822,6 +822,29 @@ void PersistCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void TypeCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string res;
+    nemo::Status s = g_pikaServer->GetHandle()->Type(key, &res);
+    if (s.ok()) {
+        ret = "+";
+        ret.append(res);
+        ret.append("\r\n");
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int size = argv.size();    
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity) || (size != 2 && size != 4 && size != 6)) {
