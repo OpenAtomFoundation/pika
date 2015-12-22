@@ -93,6 +93,7 @@ public:
     pthread_t dump_thread_id_;
     char dump_time_[32];
     static void* StartDump(void* arg);
+    static void DumpCleanup(void * arg);
     nemo::Snapshots snapshot_;
     bool bgsaving_;
     time_t bgsaving_start_time_;

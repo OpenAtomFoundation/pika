@@ -822,6 +822,29 @@ void PersistCmd::Do(std::list<std::string> &argv, std::string &ret) {
     }
 }
 
+void TypeCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    std::string key = argv.front();
+    argv.pop_front();
+    std::string res;
+    nemo::Status s = g_pikaServer->GetHandle()->Type(key, &res);
+    if (s.ok()) {
+        ret = "+";
+        ret.append(res);
+        ret.append("\r\n");
+    } else {
+        ret.append("-ERR ");
+        ret.append(s.ToString().c_str());
+        ret.append("\r\n");
+    }
+}
+
 void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int size = argv.size();    
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity) || (size != 2 && size != 4 && size != 6)) {
@@ -869,31 +892,15 @@ void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     };
 
-
     std::vector<std::string> keys;
-    nemo::KIterator *iter = g_pikaServer->GetHandle()->Scan("", "", -1);
-    bool skip_ret = iter->Skip(index);
-    if (skip_ret && !iter->Valid()) {
-        count--;
-        if (!(use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0))) {
-            keys.push_back(iter->Key());
-        }
-        index = 0;
-    } else {
-        bool iter_ret = false;
-        while ((iter_ret=iter->Next()) && count) {
-            count--;
-            index++;
-            if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Key().data(), iter->Key().size(), 0)) {
-                continue;
-            }
-            keys.push_back(iter->Key());
-        }
-        if (!iter_ret) {
-            index = 0;
-        }
+    int64_t cursor_ret;
+    nemo::Status s;
+    if (!use_pat) {
+        pattern = "*";
     }
-    delete iter;
+    s = g_pikaServer->GetHandle()->Scan(static_cast<int64_t>(index), pattern, static_cast<int64_t>(count), keys, &cursor_ret);
+    index = cursor_ret;
+
 
     ret = "*2\r\n";
     char buf[32];
