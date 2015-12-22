@@ -187,6 +187,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
     if (g_pikaServer->ms_state_ == PIKA_REP_SINGLE) {
         if (is_psync) {
+            g_pikaServer->PurgeLogsNolock(filenum, filenum);
             g_pikaMario->SetProducerStatus(filenum, pro_offset);
         }
         g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
@@ -550,8 +551,15 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             }
             g_pikaConf->SetRootConnectionNum(ival);
             ret = "+OK\r\n";
-        }
-        else if (conf_item == "slowlog_log_slower_than") {
+        } else if (conf_item == "log_level") {
+            if (!string2l(value.data(), value.size(), &ival) || ival < 0 || ival > 4) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'log_level'\r\n";
+                return;
+            }
+            g_pikaConf->SetLogLevel(ival);
+            FLAGS_minloglevel = g_pikaConf->log_level();
+            ret = "+OK\r\n";
+        } else if (conf_item == "slowlog_log_slower_than") {
             if (!string2l(value.data(), value.size(), &ival)) {
                 ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slowlog_slower_than'\r\n";
                 return;

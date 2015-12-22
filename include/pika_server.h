@@ -82,6 +82,7 @@ public:
     static void* StartFlush(void* arg);
     bool purging_;
     bool PurgeLogs(uint32_t max, int64_t to);
+    bool PurgeLogsNolock(uint32_t max, int64_t to);
     pthread_t purge_thread_id_;
     static void* StartPurgeLogs(void* arg);
     void AutoPurge();
@@ -94,6 +95,7 @@ public:
     pthread_t dump_thread_id_;
     char dump_time_[32];
     static void* StartDump(void* arg);
+    static void DumpCleanup(void * arg);
     nemo::Snapshots snapshot_;
     bool bgsaving_;
     time_t bgsaving_start_time_;
