@@ -12,6 +12,8 @@
 #include <stdint.h>
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
+#include <signal.h>
+#include <unistd.h>
 
 namespace mario {
 
@@ -357,6 +359,10 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
         //std::cout<<"1 --> con_offset: "<<consumer_item->consumer_->con_offset()<<" pro_offset: "<<version_->pro_offset()<<std::endl;
         scratch = "";
         s = consumer_item->consumer_->Consume(scratch);
+        if (s.IsCorruption()) {
+            mutex_.Unlock();
+            break;
+        }
         while (!consumer_item->IsExit() && !s.ok()) {
             std::string confile = NewFileName(filename_, consumer_item->consumer_->filenum() + 1);
             if (s.IsEndFile() && env_->FileExists(confile)) {
@@ -374,8 +380,16 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
                 mutex_.Lock();
             }
             s = consumer_item->consumer_->Consume(scratch);
+            if (s.IsCorruption()) {
+                mutex_.Unlock();
+                break;
+            }
         }
         mutex_.Unlock();
+        if (s.IsCorruption()) {
+            break;
+        }
+
         if (retry_ == -1) {
             while (!consumer_item->IsExit() && consumer_item->h_->processMsg(scratch)) {
             }
@@ -390,6 +404,10 @@ void Mario::BackgroundCall(ConsumerItem* consumer_item)
       }
     }
 
+    if (s.IsCorruption()) {
+        printf ("Consumer corruption with %s, exit\n", s.ToString().c_str());
+        //raise(SIGUSR1);
+    }
     pthread_exit(NULL);
 }
 

@@ -51,11 +51,11 @@ void cleanup() {
 
 static void sig_handler(const int sig)
 {
-//    LOG(INFO) << "Caught signal " << sig;
+    //LOG(INFO) << "Caught signal " << sig;
     ::google::ShutdownGoogleLogging();
     g_pikaServer->shutdown = true;
 
-    sleep(2);
+    sleep(1);
 
     cleanup();
     exit(1);
