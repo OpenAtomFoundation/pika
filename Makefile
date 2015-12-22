@@ -3,6 +3,9 @@ RPATH = /usr/local/pika/lib/
 OSVERSION := $(shell cat /etc/redhat-release | cut -d "." -f 1 | awk '{print $$NF}')
 ifeq ($(OSVERSION), 5)
 	LFLAGS = -Wl,-rpath=$(RPATH)
+	SO_DIR = ./lib/centos5.4/lib
+else
+	SO_DIR = ./lib/centos6.2/lib
 endif
 
 CXX = g++
@@ -52,7 +55,7 @@ all: $(OBJECT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin
 	cp -r ./conf $(OUTPUT)/
-	cp -r ./lib  $(OUTPUT)/
+	cp -r $(SO_DIR)/  $(OUTPUT)/
 	cp $(OBJECT) $(OUTPUT)/bin/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
