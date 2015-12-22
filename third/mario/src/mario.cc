@@ -224,7 +224,12 @@ Status Mario::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) {
 }
 
 Status Mario::AppendBlank(WritableFile *file, uint64_t len) {
+    if (len < kHeaderSize) {
+        return Status::OK();
+    }
+
     uint64_t pos = 0;
+
     std::string blank(kBlockSize, ' ');
     for (; pos + kBlockSize < len; pos += kBlockSize) {
         file->Append(Slice(blank.data(), blank.size()));
@@ -252,26 +257,32 @@ Status Mario::AppendBlank(WritableFile *file, uint64_t len) {
 Status Mario::SetProducerStatus(uint32_t pronum, uint64_t pro_offset) {
     MutexLock l(&mutex_);
 
-    std::string profile = NewFileName(filename_, pronum);
+    std::string init_profile = NewFileName(filename_, 0);
+    if (env_->FileExists(init_profile)) {
+        env_->DeleteFile(init_profile);
+    }
 
+    std::string profile = NewFileName(filename_, pronum);
     if (writefile_ != NULL) {
         delete writefile_;
     }
 
-    if (!env_->FileExists(profile)) {
-        env_->NewWritableFile(profile, &writefile_);
-        Mario::AppendBlank(writefile_, pro_offset);
-        //std::string blank(pro_offset, ' ');
-        //writefile_->Append(Slice(blank.data(), blank.size()));
-    } else {
-        env_->AppendWritableFile(profile, &writefile_, pro_offset);
+    // offset smaller than the first header
+    if (pro_offset < 4) {
+        pro_offset = 0;
     }
+
+    if (env_->FileExists(profile)) {
+        env_->DeleteFile(profile);
+    }
+
+    env_->NewWritableFile(profile, &writefile_);
+    Mario::AppendBlank(writefile_, pro_offset);
 
     pronum_ = pronum;
 
     version_->set_pronum(pronum);
     version_->set_pro_offset(pro_offset);
-
     version_->StableSave();
 
     if (producer_ != NULL) {

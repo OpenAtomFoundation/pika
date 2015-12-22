@@ -187,6 +187,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
     if (g_pikaServer->ms_state_ == PIKA_REP_SINGLE) {
         if (is_psync) {
+            g_pikaServer->PurgeLogsNolock(filenum, filenum);
             g_pikaMario->SetProducerStatus(filenum, pro_offset);
         }
         g_pikaServer->ms_state_ = PIKA_REP_CONNECT;

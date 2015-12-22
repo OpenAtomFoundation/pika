@@ -368,6 +368,22 @@ bool PikaServer::Dumpoff() {
     return true;
 }
 
+bool PikaServer::PurgeLogsNolock(uint32_t max, int64_t to) {
+    if (purging_) {
+        return false;
+    }
+    if (to < 0 || to > max) {
+        return false;
+    }
+
+    purge_args *arg = new purge_args;
+    arg->p = (void*)this;
+    arg->to = to;
+    purging_ = true;
+    pthread_create(&purge_thread_id_, NULL, &(PikaServer::StartPurgeLogs), arg);
+    return true;
+}
+
 bool PikaServer::PurgeLogs(uint32_t max, int64_t to) {
     MutexLock l(&mutex_);
     if (purging_) {

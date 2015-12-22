@@ -80,6 +80,7 @@ public:
     static void* StartFlush(void* arg);
     bool purging_;
     bool PurgeLogs(uint32_t max, int64_t to);
+    bool PurgeLogsNolock(uint32_t max, int64_t to);
     pthread_t purge_thread_id_;
     static void* StartPurgeLogs(void* arg);
     void AutoPurge();
