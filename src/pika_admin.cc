@@ -14,6 +14,7 @@
 #include "pika_define.h"
 #include "util.h"
 #include "mario.h"
+#include "mario_item.h"
 
 extern PikaServer *g_pikaServer;
 extern mario::Mario *g_pikaMario;
@@ -170,6 +171,10 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
         argv.pop_front();
         if (!string2l(p5.data(), p5.size(), &pro_offset)) {
             ret = "-ERR value is not an integer or out of range\r\n";
+            return;
+        }
+        if (filenum < 0 || pro_offset < 0 || pro_offset > mario::kMmapSize) {
+            ret = "-ERR Invalid Offset\r\n";
             return;
         }
         is_psync = true;

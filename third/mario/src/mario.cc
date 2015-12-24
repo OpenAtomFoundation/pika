@@ -106,6 +106,9 @@ Mario::~Mario()
 }
 
 Status Mario::AddConsumer(uint32_t filenum, uint64_t con_offset, Consumer::Handler* h, int fd) {
+    if (con_offset < 0 || con_offset > kMmapSize) {
+        return Status::InvalidArgument("invalid offset");
+    }
     std::string confile = NewFileName(filename_, filenum);
     SequentialFile *readfile;
     Status s = env_->AppendSequentialFile(confile, &readfile);
