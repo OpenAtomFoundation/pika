@@ -460,13 +460,11 @@ int PikaConn::DoCmd() {
             ret.append("-ERR unknown or unsupported command \'");
             ret.append(opt);
             ret.append("\'\r\n");
-        } else {
+        } else if (opt == "shutdown" && ip_port_.find("127.0.0.1") == std::string::npos && ip_port_.find(g_pikaServer->GetServerIp()) == std::string::npos) {
             /* shutdown after auth */
-            if (opt == "shutdown", ip_port_.find("127.0.0.1") == std::string::npos) {
-                ret = "-ERR \'shutdown\' should be localhost\r\n";
-                return -2;
-            }
-
+            ret = "-ERR \'shutdown\' should be localhost\r\n";
+            cmd_ret = -2;
+        } else {
             if (opt == "pikasync") {
                 char buf[32];
                 ll2string(buf, sizeof(buf), fd_);
