@@ -1,3 +1,6 @@
 [submodule "third/nemo"]
 	path = third/nemo
 	url = https://github.com/baotiao/nemo.git
+[submodule "third/glog"]
+	path = third/glog
+	url = git@github.com:CatKang/glog.git
