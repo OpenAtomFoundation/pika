@@ -452,7 +452,8 @@ int main(int argc, char **argv)
     } else {
         LOG(FATAL) << "Pika Server init error";
     }
-    g_pikaMario = new mario::Mario(g_pikaConf->log_path(), 100);
+    g_pikaMario = new mario::Mario(g_pikaConf->log_path(),
+                                   static_cast<uint64_t>(g_pikaConf->binlog_file_size()), 100);
     LOG(WARNING) << "Pika init mario ok";
 
     LOG(WARNING) << "Pika Server going to start";

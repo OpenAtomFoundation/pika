@@ -34,7 +34,7 @@ static const int64_t kPoolSize = 1073741824;
 /*
  * The size of write2file when we need to rotate
  */
-static const uint64_t kMmapSize = 1024 * 1024 * 100;
+static uint64_t kMmapSize = 1024 * 1024 * 100;
 
 static std::string kWrite2file = "/write2file";
 

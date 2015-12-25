@@ -33,6 +33,7 @@ public:
     int expire_logs_nums()  { RWLock l(&rwlock_, false); return expire_logs_nums_; }
     int root_connection_num() { RWLock l(&rwlock_, false); return root_connection_num_; }
     int64_t slowlog_slower_than() { RWLock l(&rwlock_, false); return slowlog_slower_than_; }
+    int binlog_file_size()  { return binlog_file_size_; }
 
     void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
     void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
@@ -71,6 +72,7 @@ private:
     int expire_logs_nums_;
     int root_connection_num_;
     int slowlog_slower_than_;
+    int binlog_file_size_;
 
     char conf_path_[PIKA_WORD_SIZE];
     pthread_rwlock_t rwlock_;

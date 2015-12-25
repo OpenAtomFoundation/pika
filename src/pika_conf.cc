@@ -25,6 +25,7 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("expire_logs_nums", &expire_logs_nums_);
     getConfInt("root_connection_num", &root_connection_num_);
     getConfInt("slowlog_log_slower_than", &slowlog_slower_than_);
+    getConfInt("binlog_file_size", &binlog_file_size_);
 
     if (thread_num_ <= 0) {
         thread_num_ = 16;
@@ -61,6 +62,10 @@ PikaConf::PikaConf(const char* path) :
         daemonize_ = true;
     } else {
         daemonize_ = false;
+    }
+
+    if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024 * 2)) {
+      binlog_file_size_ = 100 * 1024 * 1024;    // 100M
     }
 
     pthread_rwlock_init(&rwlock_, NULL);
