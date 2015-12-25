@@ -1,8 +1,9 @@
 
-RPATH = /usr/local/pika/lib/
+RPATH = /usr/local/pika11/lib/
+LFLAGS = -Wl,-rpath=$(RPATH)
+
 OSVERSION := $(shell cat /etc/redhat-release | cut -d "." -f 1 | awk '{print $$NF}')
 ifeq ($(OSVERSION), 5)
-	LFLAGS = -Wl,-rpath=$(RPATH)
 	SO_DIR = ./lib/centos5.4/lib
 else
 	SO_DIR = ./lib/centos6.2/lib
