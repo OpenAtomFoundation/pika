@@ -19,6 +19,9 @@ PikaConf::PikaConf(const char* path) :
     getConfStr("requirepass", requirepass_);
     getConfStr("dump_prefix", dump_prefix_);
     getConfStr("dump_path", dump_path_);
+
+    getConfStr("pidfile", pidfile_);
+
     getConfInt("maxconnection", &maxconnection_);
     getConfInt("target_file_size_base", &target_file_size_base_);
     getConfInt("expire_logs_days", &expire_logs_days_);

@@ -22,11 +22,13 @@ public:
     char* db_path()         { RWLock l(&rwlock_, false); return db_path_; }
     int write_buffer_size() { RWLock l(&rwlock_, false); return write_buffer_size_; }
     int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
-    bool daemonize()        { RWLock l(&rwlock_, false); return daemonize_; }
+    bool daemonize()        { return daemonize_; }
+
     char* requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
     char* conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
     char* dump_prefix()     { RWLock l(&rwlock_, false); return dump_prefix_; }
     char* dump_path()       { RWLock l(&rwlock_, false); return dump_path_; }
+    char* pidfile()         { return pidfile_; }
     int maxconnection()     { RWLock l(&rwlock_, false); return maxconnection_; }
     int target_file_size_base()     { RWLock l(&rwlock_, false); return target_file_size_base_; }
     int expire_logs_days()  { RWLock l(&rwlock_, false); return expire_logs_days_; }
@@ -66,6 +68,7 @@ private:
     char requirepass_[PIKA_WORD_SIZE];
     char dump_prefix_[PIKA_WORD_SIZE];
     char dump_path_[PIKA_WORD_SIZE];
+    char pidfile_[PIKA_WORD_SIZE];
     int maxconnection_;
     int target_file_size_base_;
     int expire_logs_days_;

@@ -44,6 +44,13 @@ static void pika_glog_init()
 }
 
 void cleanup() {
+    /*
+     * shutdown server
+     */
+    if (g_pikaConf->daemonize()) {
+        unlink(g_pikaConf->pidfile());
+    }
+
     delete g_pikaServer;
     delete g_pikaMario;
     delete g_pikaConf;
@@ -122,7 +129,16 @@ void daemonize(void) {
 
 void create_pid_file(void) {
     /* Try to write the pid file in a best-effort way. */
-    FILE *fp = fopen(PIKA_DEFAULT_PID_FILE, "w");
+    std::string path(g_pikaConf->pidfile());
+
+    size_t pos = path.find_last_of('/');
+    if (pos != std::string::npos) {
+        mkpath(path.substr(0, pos).c_str(), 0755); 
+    } else {
+        path = PIKA_DEFAULT_PID_FILE;
+    }
+
+    FILE *fp = fopen(path.c_str(), "w");
     if (fp) {
         fprintf(fp,"%d\n",(int)getpid());
         fclose(fp);
@@ -187,8 +203,7 @@ int main(int argc, char **argv)
      */
     pika_signal_setup();
 
-    //if (g_pikaConf->daemonize()) create_pid_file();
-
+    if (g_pikaConf->daemonize()) create_pid_file();
 
     /*
      * admin
@@ -458,13 +473,6 @@ int main(int argc, char **argv)
 
     LOG(WARNING) << "Pika Server going to start";
     g_pikaServer->RunProcess();
-
-    /*
-     * shutdown server
-     */
-    //if (g_pikaConf->daemonize()) {
-    //    unlink(PIKA_DEFAULT_PID_FILE);
-    //}
 
     cleanup();
     return 0;
