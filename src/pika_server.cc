@@ -292,6 +292,9 @@ bool PikaServer::Flushall() {
     nemo::Options option;
     option.write_buffer_size = g_pikaConf->write_buffer_size();
     option.target_file_size_base = g_pikaConf->target_file_size_base();
+    if (g_pikaConf->compression() == "none") {
+        option.compression = false;
+    }
     LOG(WARNING) << "Prepare open new db...";
     db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
     LOG(WARNING) << "open new db success";

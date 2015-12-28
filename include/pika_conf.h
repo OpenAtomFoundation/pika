@@ -36,6 +36,7 @@ public:
     int root_connection_num() { RWLock l(&rwlock_, false); return root_connection_num_; }
     int64_t slowlog_slower_than() { RWLock l(&rwlock_, false); return slowlog_slower_than_; }
     int binlog_file_size()  { return binlog_file_size_; }
+    char* compression()       { RWLock l(&rwlock_, false); return compression_; }
 
     void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
     void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
@@ -69,6 +70,7 @@ private:
     char dump_prefix_[PIKA_WORD_SIZE];
     char dump_path_[PIKA_WORD_SIZE];
     char pidfile_[PIKA_WORD_SIZE];
+    char compression_[PIKA_WORD_SIZE];
     int maxconnection_;
     int target_file_size_base_;
     int expire_logs_days_;

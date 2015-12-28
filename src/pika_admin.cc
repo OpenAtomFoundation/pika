@@ -696,6 +696,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "is_bgsaving:%s\r\n"
                   "is_scaning_keyspace:%s\r\n"
                   "db_size:%luM\r\n"
+                  "compression:%s\r\n"
                   "safety_purge:%s\r\n"
                   "expire_logs_days:%d\r\n"
                   "expire_logs_nums:%d\r\n",
@@ -711,6 +712,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   g_pikaServer->is_bgsaving().c_str(),
                   g_pikaServer->is_scaning().c_str(),
                   dbsize_M,
+                  g_pikaConf->compression(),
                   safety_purge.c_str(),
                   g_pikaConf->expire_logs_days(),
                   g_pikaConf->expire_logs_nums()
