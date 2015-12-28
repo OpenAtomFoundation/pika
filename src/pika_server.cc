@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <signal.h>
+#include <set>
 
 extern PikaConf *g_pikaConf;
 extern mario::Mario *g_pikaMario;
@@ -153,6 +154,7 @@ PikaServer::PikaServer()
     is_readonly_ = false;
     info_keyspacing_ = false;
     start_time_s_ = time(NULL);
+    last_purge_time_s_ = start_time_s_;
     struct tm *time_tm_ptr = localtime(&start_time_s_);
     save_time_tm(&last_autopurge_time_tm_, time_tm_ptr);
     save_time_tm(&start_time_tm_, time_tm_ptr);
@@ -433,6 +435,28 @@ bool PikaServer::PurgeLogs(uint32_t max, int64_t to) {
     return true;
 }
 
+int log_filter(std::string path, uint32_t to, std::set<std::string> &files)
+{
+    DIR *dir;
+    struct dirent *entry;
+    std::string writefile = "write2file";
+
+    dir = opendir(path.c_str());
+    if (!dir) {
+        return 0;
+    }
+    int num = 0;
+    while ((entry = readdir(dir))) {
+        if (!strncmp(entry->d_name, writefile.c_str(), writefile.length()) && stoul(std::string(entry->d_name).substr(writefile.length())) <= to) {
+            num++;
+            files.insert(std::string(entry->d_name));
+        }
+    }
+    closedir(dir);
+
+    return num;
+}
+
 void* PikaServer::StartPurgeLogs(void* arg) {
     PikaServer* p = (PikaServer*)(((purge_args*)arg)->p);
     uint32_t to = ((purge_args*)arg)->to;
@@ -441,18 +465,20 @@ void* PikaServer::StartPurgeLogs(void* arg) {
     if (log_path[log_path.length() - 1] != '/') {
         log_path.append("/");
     }
+    /*
     char buf[128];
     std::string prefix = log_path + "write2file";
+    */
     std::string filename;
     int ret = 0;
-    while (1) {
-        snprintf(buf, sizeof(buf), "%u", to);
-        filename = prefix + std::string(buf);
+    std::set<std::string> files_to_del;
+    log_filter(log_path, to, files_to_del);
+    for (std::set<std::string>::iterator iter = files_to_del.begin(); iter != files_to_del.end(); iter++) {
+        filename = log_path + *iter;
         ret = access(filename.c_str(), F_OK);
-        if (ret) break;
+        if (ret) continue;
         LOG(INFO) << "Delete " << filename << "...";
         remove(filename.c_str());
-        to--;
     }
     {
     MutexLock l(p->Mutex());
@@ -573,6 +599,36 @@ int log_num(std::string path)
     return num;
 }
 
+int log_max_deadline_index(std::string path, time_t dead_time_s) {
+    DIR *dir;
+    struct dirent *entry;
+    std::string writefile = "writefile";
+
+    dir = opendir(path.c_str());
+    if (!dir) {
+        return -1;
+    }
+
+    if (path[path.size()-1] != '/') {
+        path.push_back('/');
+    }
+
+    int max_index = -1, index, ret;
+    struct stat file_stat;
+    while ((entry = readdir(dir))) {
+        if (strncmp(entry->d_name, writefile.c_str(), writefile.length())) {
+            continue;
+        }
+        ret = stat((path+entry->d_name).c_str(), &file_stat);
+        if (ret != 0) continue;
+        index = stol(std::string(entry->d_name).substr(writefile.length()));
+        if (max_index < index && file_stat.st_mtime <= dead_time_s) {
+            max_index = index;
+        }
+    }
+    return max_index;
+}
+
 void PikaServer::AutoPurge() {
 //    time_t current_time_s = std::time(NULL);
 //    struct tm *current_time_tm_ptr = localtime(&current_time_s);
@@ -581,6 +637,7 @@ void PikaServer::AutoPurge() {
 //    int32_t running_time_d = diff_year*365 + diff_day;
     int32_t num = log_num(g_pikaConf->log_path());
     int32_t expire_logs_nums = g_pikaConf->expire_logs_nums();
+    int32_t expire_logs_days = g_pikaConf->expire_logs_days();
 //    if (running_time_d > g_pikaConf->expire_logs_days() - 1) {
 //        uint32_t max = 0;
 //        g_pikaMario->GetStatus(&max);
@@ -589,11 +646,25 @@ void PikaServer::AutoPurge() {
 //            save_time_tm(&last_autopurge_time_tm_, current_time_tm_ptr);
 //        }
 //    } else if (num > expire_logs_nums) {
+    uint32_t max = 0;
+    g_pikaMario->GetStatus(&max);
     if (num > expire_logs_nums) {
-        uint32_t max = 0;
-        g_pikaMario->GetStatus(&max);
         if (max >= 10 && PurgeLogs(max, max-expire_logs_nums)) {
             LOG(WARNING) << "Auto Purge(Nums): write2file" << max-expire_logs_nums << " log nums: " << num;
+        }
+    }
+    time_t current_time_s = time(NULL), last_purge_time_s;
+    {
+        MutexLock l(&mutex_);
+        last_purge_time_s = last_purge_time_s_;
+    }
+    if (current_time_s - last_purge_time_s >= expire_logs_days*24*3600) {
+        std::string path = g_pikaConf->log_path();
+        int max_deadline_index = log_max_deadline_index(path, last_purge_time_s+24*3600);
+        if (max>=10 && PurgeLogs(max-10, max_deadline_index)) {
+            LOG(WARNING) << "Auto Purge(Days): write2file, No." << (last_purge_time_s-start_time_s_)/(24*3600) + 1 << " day " << num;
+            MutexLock l(&mutex_);
+            last_purge_time_s_ = last_purge_time_s_ + 24*3600;
         }
     }
 }

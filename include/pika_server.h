@@ -169,6 +169,7 @@ private:
     int64_t history_clients_num_;
     time_t start_time_s_;
     struct tm start_time_tm_;
+    time_t last_purge_time_s_;
 //    int64_t stat_numcommands;
 //    int64_t stat_numconnections;
 //
