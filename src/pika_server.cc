@@ -16,7 +16,6 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <poll.h>
-#include <iostream>
 #include <fstream>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -352,9 +351,7 @@ void* PikaServer::StartDump(void* arg) {
     dump_path.append(g_pikaConf->dump_prefix());
     dump_path.append(p->dump_time_);
     LOG(WARNING) << dump_path;
-    pthread_cleanup_push(&(PikaServer::DumpCleanup), arg);
     p->GetHandle()->BGSave(s, dump_path);
-    pthread_cleanup_pop(0);
     std::ofstream out;
     out.open(dump_path + "/info", std::ios::in | std::ios::trunc);
     if (out.is_open()) {
@@ -373,27 +370,31 @@ void* PikaServer::StartDump(void* arg) {
     return NULL;
 }
 
-void PikaServer::DumpCleanup(void *arg) {
-    PikaServer* p = (PikaServer*)(((dump_args*)arg)->p);
-    {
-        MutexLock l(p->Mutex());
-        p->bgsaving_ = false;
-        p->dump_thread_id_ = 0;
-    }
-    delete (dump_args*)arg;
-}
-
 bool PikaServer::Dumpoff() {
+    std::string dump_time;
     {
         MutexLock l(&mutex_);
         if (!bgsaving_) {
             return false;
         }
-        if (dump_thread_id_ != 0) {
-            pthread_cancel(dump_thread_id_);
-        }
+        dump_time = dump_time_;
     }
     db_->BGSaveOff();
+    pthread_t dump_thread_id;
+    {
+        MutexLock l(&mutex_);
+        dump_thread_id = dump_thread_id_;
+    }
+    if (dump_thread_id != 0) {
+        pthread_join(dump_thread_id, NULL);
+    }
+    std::string dump_path(g_pikaConf->dump_path());
+    if (dump_path[dump_path.length() - 1] != '/') {
+        dump_path.append("/");
+    }
+    dump_path.append(g_pikaConf->dump_prefix());
+    dump_path.append(dump_time);
+    rename(dump_path.c_str(), (dump_path+"_FAILED").c_str());
     return true;
 }
 
