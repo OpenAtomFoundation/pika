@@ -15,6 +15,7 @@ OBJECT = pika
 SRC_DIR = ./src
 THIRD_PATH = ./third
 OUTPUT = ./output
+TOOLS_DIR = ./tools
 
 
 INCLUDE_PATH = -I./include/ \
@@ -58,6 +59,7 @@ all: $(OBJECT)
 	cp -r ./conf $(OUTPUT)/
 	cp -r $(SO_DIR)/  $(OUTPUT)/
 	cp $(OBJECT) $(OUTPUT)/bin/
+	cp -r $(TOOLS_DIR)/* $(OUTPUT)/bin/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
 
