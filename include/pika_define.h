@@ -1,7 +1,7 @@
 #ifndef __PIKA_DEFINE_H__
 #define __PIKA_DEFINE_H__
 #include "nemo.h"
-#define PIKA_VERSION    "1.0.5"
+#define PIKA_VERSION    "1.1"
 
 #define PIKA_MAX_CLIENTS 10240
 #define PIKA_MAX_MESSAGE 10240
