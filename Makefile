@@ -4,9 +4,11 @@ LFLAGS = -Wl,-rpath=$(RPATH)
 
 OSVERSION := $(shell cat /etc/redhat-release | cut -d "." -f 1 | awk '{print $$NF}')
 ifeq ($(OSVERSION), 5)
-	SO_DIR = ./lib/centos5.4/lib
+	SO_DIR = ./lib/5.4
+	TOOLS_DIR = ./tools/5.4
 else
-	SO_DIR = ./lib/centos6.2/lib
+	SO_DIR = ./lib/6.2
+	TOOLS_DIR = ./tools/6.2
 endif
 
 CXX = g++
@@ -15,7 +17,6 @@ OBJECT = pika
 SRC_DIR = ./src
 THIRD_PATH = ./third
 OUTPUT = ./output
-TOOLS_DIR = ./tools
 
 
 INCLUDE_PATH = -I./include/ \
@@ -57,9 +58,11 @@ all: $(OBJECT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin
 	cp -r ./conf $(OUTPUT)/
-	cp -r $(SO_DIR)/  $(OUTPUT)/
+	mkdir $(OUTPUT)/lib
+	cp -r $(SO_DIR)/*  $(OUTPUT)/lib
 	cp $(OBJECT) $(OUTPUT)/bin/
-	cp -r $(TOOLS_DIR)/* $(OUTPUT)/bin/
+	mkdir $(OUTPUT)/tools
+	cp -r $(TOOLS_DIR)/* $(OUTPUT)/tools/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
 
