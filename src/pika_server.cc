@@ -726,12 +726,14 @@ void PikaServer::ProcessTimeEvent(struct timeval* target) {
                 socklen_t errlen = sizeof(err);
 
                 if (getsockopt(connfd, SOL_SOCKET, SO_ERROR, &err, &errlen) == -1) {
+                    close(connfd);
                     LOG(WARNING) << "The target host cannot be reached";
                     return ; 
                 }
 
                 if (err) {
                     errno = err;
+                    close(connfd);
                     LOG(WARNING) << "The target host cannot be reached";
                     return ;
                 }
@@ -1058,6 +1060,12 @@ void PikaServer::RunProcess()
             fd = (tfe + i)->fd_;
             if (fd == sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 connfd = accept(sockfd_, (struct sockaddr *) &cliaddr, &clilen);
+                if (connfd == -1) {
+                    if (errno != EWOULDBLOCK) {
+                        LOG(WARNING) << "too open files, can not accpet client";
+                        continue;
+                    }
+                }
 //                LOG(INFO) << "Accept new connection, fd: " << connfd << " ip: " << inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr)) << " port: " << ntohs(cliaddr.sin_port);
                 //ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr));
                 ip_str = inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr));
@@ -1088,6 +1096,12 @@ void PikaServer::RunProcess()
                 }
             } else if (fd == slave_sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
                 connfd = accept(slave_sockfd_, (struct sockaddr *) &cliaddr, &clilen);
+                if (connfd == -1) {
+                    if (errno != EWOULDBLOCK) {
+                        LOG(WARNING) << "too open files, can not accpet slave";
+                        continue;
+                    }
+                }
 //                LOG(INFO) << "Accept new connection, fd: " << connfd << " ip: " << inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr)) << " port: " << ntohs(cliaddr.sin_port);
                 ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ipAddr, sizeof(ipAddr));
                 ip_port.append(":");
