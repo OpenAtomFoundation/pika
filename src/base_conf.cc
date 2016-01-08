@@ -1,6 +1,7 @@
 #include "base_conf.h"
 #include "sys/stat.h"
 #include <glog/logging.h>
+#include <algorithm>
 
 BaseConf::BaseConf(const char* path)
 {
@@ -87,7 +88,26 @@ bool BaseConf::ReadConf(const char* path)
         item_num++;
     }
     num_ = item_num;
+    fclose(pf);
     return 0;
+}
+
+bool BaseConf::getConfBool(const char* name, bool* value) {
+    int ret;
+    for (int i = 0; i <num_; i++) {
+        if (strcmp(item_[i].name, name) == 0) {
+            char *p = item_[i].value;
+            std::transform(p, p+strlen(p), p, ::tolower);
+            if (!strcmp(p, "1") ||
+                !strcmp(p, "yes")) {
+                *value = true;
+            } else {
+                *value = false;
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 bool BaseConf::getConfInt(const char* name, int* value)
@@ -97,7 +117,7 @@ bool BaseConf::getConfInt(const char* name, int* value)
         if (strcmp(item_[i].name, name) == 0) {
             sscanf(item_[i].value, "%d", &ret);
             *value = ret;
-            return 0;
+            return true;
         }
     }
     return 1;
@@ -108,10 +128,10 @@ bool BaseConf::getConfStr(const char* name, char* value)
     for (int i = 0; i < num_; i++) {
         if (strcmp(item_[i].name, name) == 0) {
             strcpy(value, item_[i].value);
-            return 0;
+            return true;
         }
     }
-    return 1;
+    return false;
 }
 
 void BaseConf::DumpConf()

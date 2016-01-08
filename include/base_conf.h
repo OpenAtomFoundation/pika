@@ -16,6 +16,7 @@ public:
     
     bool getConfInt(const char* name, int* value);
     bool getConfStr(const char* name, char* value);
+    bool getConfBool(const char* name, bool* value);
     void DumpConf();
 
 private:
