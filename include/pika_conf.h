@@ -37,6 +37,7 @@ public:
     int64_t slowlog_slower_than() { RWLock l(&rwlock_, false); return slowlog_slower_than_; }
     int binlog_file_size()  { return binlog_file_size_; }
     char* compression()       { RWLock l(&rwlock_, false); return compression_; }
+    bool readonly()         { RWLock l(&rwlock_, false); return readonly_; }
 
     void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
     void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
@@ -56,6 +57,8 @@ public:
     void SetExpireLogsNums(const int value)                 { RWLock l(&rwlock_, true); expire_logs_nums_ = value; }
     void SetRootConnectionNum(const int value)              { RWLock l(&rwlock_, true); root_connection_num_ = value; }
     void SetSlowlogSlowerThan(const int64_t value)          { RWLock l(&rwlock_, true); slowlog_slower_than_ = value; }
+    void SetReadonly(const bool value)                      { RWLock l(&rwlock_, true); readonly_ = value; }
+    int ConfigRewrite();
 private:
     int port_;
     int thread_num_;
@@ -78,6 +81,7 @@ private:
     int root_connection_num_;
     int slowlog_slower_than_;
     int binlog_file_size_;
+    bool readonly_;
 
     char conf_path_[PIKA_WORD_SIZE];
     pthread_rwlock_t rwlock_;

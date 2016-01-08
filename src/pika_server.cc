@@ -150,7 +150,7 @@ PikaServer::PikaServer()
     dump_pro_offset_ = 0;
     bgsaving_ = false;
     purging_ = false;
-    is_readonly_ = false;
+    is_readonly_ = g_pikaConf->readonly();
     info_keyspacing_ = false;
     start_time_s_ = time(NULL);
     last_purge_time_s_ = start_time_s_;
@@ -212,7 +212,7 @@ bool PikaServer::LoadDb(std::string& path) {
     return true;
 }
 
-int is_dir(char* filename) {
+int is_dir(const char* filename) {
     struct stat buf;
     int ret = stat(filename,&buf);
     if (0 == ret) {
@@ -325,6 +325,18 @@ void PikaServer::Dump() {
     if (bgsaving_) {
         return;
     }
+    bgsaving_start_time_ = time(NULL);
+    strftime(dump_time_, sizeof(dump_time_), "%Y%m%d%H%M%S",localtime(&bgsaving_start_time_));
+    std::string dump_path(g_pikaConf->dump_path());
+    if (dump_path[dump_path.length() - 1] != '/') {
+        dump_path.append("/");
+    }
+    dump_path.append(g_pikaConf->dump_prefix());
+    dump_path.append(dump_time_, 8);
+    if (is_dir(dump_path.c_str()) == 0 && delete_dir(dump_path.c_str()) != 0) {
+        LOG(WARNING) << "remove exist dump dir failed";
+        return;
+    }
     nemo::Snapshots snapshots;
     {
         RWLock l(&rwlock_, true);
@@ -332,24 +344,18 @@ void PikaServer::Dump() {
         db_->BGSaveGetSnapshot(snapshots);
         bgsaving_ = true;
     }
-    bgsaving_start_time_ = time(NULL);
-    strftime(dump_time_, sizeof(dump_time_), "%Y%m%d%H%M%S",localtime(&bgsaving_start_time_));
 //    LOG(INFO) << tmp;
     dump_args *arg = new dump_args;
     arg->p = (void*)this;
     arg->snapshots = snapshots;
+    arg->dump_path = dump_path;
     pthread_create(&dump_thread_id_, NULL, &(PikaServer::StartDump), arg);
 }
 
 void* PikaServer::StartDump(void* arg) {
     PikaServer* p = (PikaServer*)(((dump_args*)arg)->p);
     nemo::Snapshots s = ((dump_args*)arg)->snapshots;
-    std::string dump_path(g_pikaConf->dump_path());
-    if (dump_path[dump_path.length() - 1] != '/') {
-        dump_path.append("/");
-    }
-    dump_path.append(g_pikaConf->dump_prefix());
-    dump_path.append(p->dump_time_);
+    std::string dump_path = ((dump_args*)arg)->dump_path;
     LOG(WARNING) << dump_path;
     p->GetHandle()->BGSave(s, dump_path);
     std::ofstream out;
@@ -393,7 +399,7 @@ bool PikaServer::Dumpoff() {
         dump_path.append("/");
     }
     dump_path.append(g_pikaConf->dump_prefix());
-    dump_path.append(dump_time);
+    dump_path.append(dump_time.data(), 8);
     rename(dump_path.c_str(), (dump_path+"_FAILED").c_str());
     return true;
 }
@@ -533,6 +539,7 @@ void PikaServer::Slaveofnoone() {
     is_readonly_ = false;
     LOG(WARNING) << "Slave of no one , close readonly mode, repl_state_: " << repl_state_;
     }
+    g_pikaConf->SetReadonly(false);
     pthread_rwlock_rdlock(&rwlock_);
 
     ms_state_ = PIKA_REP_SINGLE;
@@ -603,7 +610,7 @@ int log_num(std::string path)
 int log_max_deadline_index(std::string path, time_t dead_time_s) {
     DIR *dir;
     struct dirent *entry;
-    std::string writefile = "writefile";
+    std::string writefile = "write2file";
 
     dir = opendir(path.c_str());
     if (!dir) {
@@ -627,6 +634,7 @@ int log_max_deadline_index(std::string path, time_t dead_time_s) {
             max_index = index;
         }
     }
+    closedir(dir);
     return max_index;
 }
 
@@ -662,7 +670,7 @@ void PikaServer::AutoPurge() {
     if (current_time_s - last_purge_time_s >= expire_logs_days*24*3600) {
         std::string path = g_pikaConf->log_path();
         int max_deadline_index = log_max_deadline_index(path, last_purge_time_s+24*3600);
-        if (max>=10 && PurgeLogs(max-10, max_deadline_index)) {
+        if (max_deadline_index == -1 || (max>=10 && PurgeLogs(max-10, max_deadline_index))) {
             LOG(WARNING) << "Auto Purge(Days): write2file, No." << (last_purge_time_s-start_time_s_)/(24*3600) + 1 << " day " << num;
             MutexLock l(&mutex_);
             last_purge_time_s_ = last_purge_time_s_ + 24*3600;
