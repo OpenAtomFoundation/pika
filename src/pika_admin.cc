@@ -290,6 +290,7 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     RWLock rwl(g_pikaServer->rwlock(), true);
     g_pikaServer->is_readonly_ = true;
     }
+    g_pikaConf->SetReadonly(true);
     LOG(WARNING) << "Master told me that I can psync, open readonly mode now";
     ret = "";
 }
@@ -424,11 +425,13 @@ void ReadonlyCmd::Do(std::list<std::string> &argv, std::string &ret) {
         {
         RWLock l(g_pikaServer->rwlock(), true);
         g_pikaServer->is_readonly_ = true;
+        g_pikaConf->SetReadonly(true);
         }
     } else if (opt == "off") {
         {
         RWLock l(g_pikaServer->rwlock(), true);
         g_pikaServer->is_readonly_ = false;
+        g_pikaConf->SetReadonly(false);
         }
     } else {
         ret = "-ERR invalid option for readonly(on/off?)\r\n";
@@ -471,6 +474,25 @@ void EncodeInt32(std::string *dst, const int32_t v) {
 }
 
 void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if (argv.size() == 2) {
+        std::string opt = argv.back();
+        transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
+        if (opt != "rewrite") {
+            ret = "-ERR wrong number of arguments for 'config' command\r\n";
+            return;
+        }
+        int ret_i = g_pikaConf->ConfigRewrite();
+        if (ret_i == 0) {
+            ret = "+OK\r\n";
+        } else if (ret_i == -1) {
+            ret = "-ERR open new conf file error\r\n";
+        } else if (ret_i == -2) {
+            ret = "-ERR rename new conf file name to origin conf file error\r\n";
+        } else {
+            ret = "-ERR config rewrite failed";
+        }
+        return;
+    }
     if (argv.size() != 3 && argv.size() != 4) {
         ret = "-ERR wrong number of arguments for 'config' command\r\n";
         return;
@@ -493,6 +515,10 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "thread_num");
             EncodeInt32(&ret, g_pikaConf->thread_num());
+        } else if (conf_item == "slave_thread_num") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "slave_thread_num");
+            EncodeInt32(&ret, g_pikaConf->slave_thread_num());
         } else if (conf_item == "log_path") {
             ret = "*2\r\n";
             EncodeString(&ret, "log_path");
@@ -521,10 +547,38 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "requirepass");
             EncodeString(&ret, g_pikaConf->requirepass());
+        } else if (conf_item == "dump_prefix") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "dump_prefix");
+            EncodeString(&ret, g_pikaConf->dump_prefix());
         } else if (conf_item == "daemonize") {
             ret = "*2\r\n";
             EncodeString(&ret, "daemonize");
             EncodeString(&ret, g_pikaConf->daemonize() ? "yes" : "no");
+        } else if (conf_item == "dump_path") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "dump_path");
+            EncodeString(&ret, g_pikaConf->dump_path());
+        } else if (conf_item == "pidfile") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "pidfile");
+            EncodeString(&ret, g_pikaConf->pidfile());
+        } else if (conf_item == "maxconnection") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "maxconnection");
+            EncodeInt32(&ret, g_pikaConf->maxconnection());
+        } else if (conf_item == "target_file_size_base") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "target_file_size_base");
+            EncodeInt32(&ret, g_pikaConf->target_file_size_base());
+        } else if (conf_item == "expire_logs_days") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "expire_logs_days");
+            EncodeInt32(&ret, g_pikaConf->expire_logs_days());
+        } else if (conf_item == "expire_logs_nums") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "expire_logs_nums");
+            EncodeInt32(&ret, g_pikaConf->expire_logs_nums());
         } else if (conf_item == "root_connection_num" ) {
             ret = "*2\r\n";
             EncodeString(&ret, "root_connection_num");
@@ -533,13 +587,61 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "slowlog_log_slower_than");
             EncodeInt32(&ret, g_pikaConf->slowlog_slower_than());
+        } else if (conf_item == "binlog_file_size") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "binlog_file_size");
+            EncodeInt32(&ret, g_pikaConf->binlog_file_size());
+        } else if (conf_item == "compression") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "compression");
+            EncodeString(&ret, g_pikaConf->compression());
+        } else if (conf_item == "slave_read_only") {
+          ret = "*1\r\n";
+          if (!g_pikaServer->is_readonly_) {
+            EncodeString(&ret, "0");
+          } else {
+            EncodeString(&ret, "1");
+          }
+        } else if (conf_item == "*") {
+          ret = "*23\r\n";
+          EncodeString(&ret, "port");
+          EncodeString(&ret, "thread_num");
+          EncodeString(&ret, "slave_thread_num");
+          EncodeString(&ret, "log_path");
+          EncodeString(&ret, "log_level");
+          EncodeString(&ret, "db_path");
+          EncodeString(&ret, "maxmemory");
+          EncodeString(&ret, "write_buffer_size");
+          EncodeString(&ret, "timeout");
+          EncodeString(&ret, "requirepass");
+          EncodeString(&ret, "dump_prefix");
+          EncodeString(&ret, "daemonize");
+          EncodeString(&ret, "dump_path");
+          EncodeString(&ret, "pidfile");
+          EncodeString(&ret, "maxconnection");
+          EncodeString(&ret, "target_file_size_base");
+          EncodeString(&ret, "expire_logs_days");
+          EncodeString(&ret, "expire_logs_nums");
+          EncodeString(&ret, "root_connection_num");
+          EncodeString(&ret, "slowlog_log_slower_than");
+          EncodeString(&ret, "slave_read_only");
+          EncodeString(&ret, "binlog_file_size");
+          EncodeString(&ret, "compression");
         } else {
             ret = "-ERR No such configure item\r\n";
         }
     } else if (argv.size() == 1 && opt == "set") {
         std::string value = argv.front();
         long int ival;
-        if (conf_item == "timeout") {
+        if (conf_item == "log_level") {
+            if (!string2l(value.data(), value.size(), &ival) || ival < 0 || ival > 4) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'log_level'\r\n";
+                return;
+            }
+            g_pikaConf->SetLogLevel(ival);
+            FLAGS_minloglevel = g_pikaConf->log_level();
+            ret = "+OK\r\n";
+        } else if (conf_item == "timeout") {
             if (!string2l(value.data(), value.size(), &ival)) {
                 ret = "-ERR Invalid argument " + value + " for CONFIG SET 'timeout'\r\n";
                 return;
@@ -549,20 +651,36 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
         } else if (conf_item == "requirepass") {
             g_pikaConf->SetRequirePass(value);
             ret = "+OK\r\n";
+        } else if (conf_item == "dump_prefix") {
+            g_pikaConf->SetDumpPrefix(value);
+            ret = "+OK\r\n";
+        } else if (conf_item == "maxconnection") {
+            if (!string2l(value.data(), value.size(), &ival)) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'maxconnection'\r\n";
+                return;
+            }
+            g_pikaConf->SetMaxConnection(ival);
+            ret = "+OK\r\n";
+        } else if (conf_item == "expire_logs_days") {
+            if (!string2l(value.data(), value.size(), &ival)) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire_logs_days'\r\n";
+                return;
+            }
+            g_pikaConf->SetExpireLogsDays(ival);
+            ret = "+OK\r\n";
+        } else if (conf_item == "expire_logs_nums") {
+            if (!string2l(value.data(), value.size(), &ival)) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire_logs_nums'\r\n";
+                return;
+            }
+            g_pikaConf->SetExpireLogsNums(ival);
+            ret = "+OK\r\n";
         } else if (conf_item == "root_connection_num") {
             if (!string2l(value.data(), value.size(), &ival)) {
                 ret = "-ERR Invalid argument " + value + " for CONFIG SET 'root_connection_num'\r\n";
                 return;
             }
             g_pikaConf->SetRootConnectionNum(ival);
-            ret = "+OK\r\n";
-        } else if (conf_item == "log_level") {
-            if (!string2l(value.data(), value.size(), &ival) || ival < 0 || ival > 4) {
-                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'log_level'\r\n";
-                return;
-            }
-            g_pikaConf->SetLogLevel(ival);
-            FLAGS_minloglevel = g_pikaConf->log_level();
             ret = "+OK\r\n";
         } else if (conf_item == "slowlog_log_slower_than") {
             if (!string2l(value.data(), value.size(), &ival)) {
@@ -571,9 +689,40 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             }
             g_pikaConf->SetSlowlogSlowerThan(ival);
             ret = "+OK\r\n";
+        } else if (conf_item == "slave_read_only") {
+            transform(value.begin(), value.end(), value.begin(), ::tolower);
+            bool is_readonly;
+            if (value == "1" || value == "yes") {
+                is_readonly = true;
+            } else if (value == "0" || value == "no") {
+                is_readonly = false;
+            } else {
+                ret = "-ERR Invalid argument " + argv.front() + " for CONFIG SET 'readonly'\r\n";
+                return;
+            }
+            pthread_rwlock_unlock(g_pikaServer->rwlock());
+            {
+            RWLock l(g_pikaServer->rwlock(), true);
+            g_pikaServer->is_readonly_ = is_readonly;
+            }
+            g_pikaConf->SetReadonly(is_readonly);
+            pthread_rwlock_rdlock(g_pikaServer->rwlock());
+            ret = "+OK\r\n";
         } else {
             ret = "-ERR No such configure item\r\n";
         }
+    } else if (argv.size() == 0 && conf_item == "*") {
+        ret = "*10\r\n";
+        EncodeString(&ret, "log_level");
+        EncodeString(&ret, "timeout");
+        EncodeString(&ret, "requirepass");
+        EncodeString(&ret, "dump_prefix");
+        EncodeString(&ret, "maxconnection");
+        EncodeString(&ret, "expire_logs_days");
+        EncodeString(&ret, "expire_logs_nums");
+        EncodeString(&ret, "root_connection_num");
+        EncodeString(&ret, "slowlog_log_slower_than");
+        EncodeString(&ret, "slave_read_only");
     } else {
         ret = "-ERR wrong number of arguments for CONFIG ";
         ret.append(opt);
@@ -876,12 +1025,13 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
           op = argv.front();
           transform(op.begin(), op.end(), op.begin(), ::tolower);
           argv.pop_front();
-          if (!argv.empty() || op != "readonly") {
+          if (!argv.empty() || (op != "1" && op != "0")) {
             ret = "-ERR Invalid Argument\r\n";
             return;
           }
-        } else {
-          g_pikaServer->InfoKeySpace();
+          if (op == "1") {
+            g_pikaServer->InfoKeySpace();
+          }
         }
         char infotime[32];
         strftime(infotime, sizeof(infotime), "%Y-%m-%d %H:%M:%S", localtime(&(g_pikaServer->last_info_keyspace_start_time_))); 

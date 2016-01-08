@@ -61,6 +61,7 @@ struct flush_args {
 struct dump_args {
     void* p;
     nemo::Snapshots snapshots;
+    std::string dump_path;
 };
 
 struct purge_args {
