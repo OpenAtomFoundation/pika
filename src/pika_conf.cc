@@ -33,7 +33,7 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("root_connection_num", &root_connection_num_);
     getConfInt("slowlog_log_slower_than", &slowlog_slower_than_);
     getConfInt("binlog_file_size", &binlog_file_size_);
-    getConfBool("slave_read_only", &readonly_);
+    getConfBool("slave-read-only", &readonly_);
 
     if (thread_num_ <= 0) {
         thread_num_ = 16;
@@ -105,7 +105,7 @@ int PikaConf::ConfigRewrite() {
     cfn << "# Expire_logs_nums\nexpire_logs_nums : " << expire_logs_nums() << std::endl;
     cfn << "# Root_connection_num\nroot_connection_num : " << root_connection_num() << std::endl;
     cfn << "# Slowlog_log_slower_than\nslowlog_log_slower_than : " << slowlog_slower_than() << std::endl;
-    cfn << "# readonly(on/off)\nslave_read_only : " << readonly() << std::endl;
+    cfn << "# readonly(on/off)\nslave-read-only : " << readonly() << std::endl;
     cfn << "\n###################\n## Critical Settings\n###################" << std::endl;
     cfn << "# binlog file size: default is 100M,  limited in [1K, 2G]\nbinlog_file_size : " << binlog_file_size() << std::endl;
     cfn << "# Compression\ncompression : " << compression() << std::endl;

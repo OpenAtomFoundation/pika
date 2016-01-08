@@ -595,7 +595,7 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "compression");
             EncodeString(&ret, g_pikaConf->compression());
-        } else if (conf_item == "slave_read_only") {
+        } else if (conf_item == "slave-read-only") {
           ret = "*1\r\n";
           if (!g_pikaServer->is_readonly_) {
             EncodeString(&ret, "0");
@@ -624,7 +624,7 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
           EncodeString(&ret, "expire_logs_nums");
           EncodeString(&ret, "root_connection_num");
           EncodeString(&ret, "slowlog_log_slower_than");
-          EncodeString(&ret, "slave_read_only");
+          EncodeString(&ret, "slave-read-only");
           EncodeString(&ret, "binlog_file_size");
           EncodeString(&ret, "compression");
         } else {
@@ -689,7 +689,7 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             }
             g_pikaConf->SetSlowlogSlowerThan(ival);
             ret = "+OK\r\n";
-        } else if (conf_item == "slave_read_only") {
+        } else if (conf_item == "slave-read-only") {
             transform(value.begin(), value.end(), value.begin(), ::tolower);
             bool is_readonly;
             if (value == "1" || value == "yes") {
@@ -722,7 +722,7 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
         EncodeString(&ret, "expire_logs_nums");
         EncodeString(&ret, "root_connection_num");
         EncodeString(&ret, "slowlog_log_slower_than");
-        EncodeString(&ret, "slave_read_only");
+        EncodeString(&ret, "slave-read-only");
     } else {
         ret = "-ERR wrong number of arguments for CONFIG ";
         ret.append(opt);
@@ -950,7 +950,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                 "master_host:%s\r\n"
                 "master_port:%d\r\n"
                 "master_link_status:%s\r\n"
-                "slave_read_only:%d\r\n",
+                "slave-read-only:%d\r\n",
                 (g_pikaServer->masterhost()).c_str(),
                 g_pikaServer->masterport() - 100,
                 ms_state_str.c_str(),
@@ -973,7 +973,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                 "master_host:%s\r\n"
                 "master_port:%d\r\n"
                 "master_link_status:%s\r\n"
-                "slave_read_only:%d\r\n"
+                "slave-read-only:%d\r\n"
                 "connected_slaves:%d\r\n",
                 (g_pikaServer->masterhost()).c_str(),
                 g_pikaServer->masterport(),
