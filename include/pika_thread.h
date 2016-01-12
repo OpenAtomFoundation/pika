@@ -1,81 +1,35 @@
-#ifndef __PIKA_THREAD_H__
-#define __PIKA_THREAD_H__
+#ifndef PIKA_THREAD_H_
+#define PIKA_THREAD_H_
 
-#include "xdebug.h"
+#include <glog/logging.h>
 
-#include <pthread.h>
-#include <sys/epoll.h>
-#include <queue>
-#include <map>
-#include <time.h>
+#include "worker_thread.h"
+#include "redis_conn.h"
 
-#include "port.h"
-#include "pika_item.h"
-#include "csapp.h"
+class PikaThread;
+
+class PikaConn: public RedisConn {
+public:
+  explicit PikaConn(int fd, Thread *thread);
+  virtual int DealMessage();
+private:
+  PikaThread *pika_thread_;
+};
 
 
-class PikaItem;
-class PikaEpoll;
-class PikaConn;
-
-class PikaThread
+class PikaThread : public WorkerThread<PikaConn>
 {
 public:
-    PikaThread(int thread_index);
-    ~PikaThread();
+  PikaThread(int cron_interval = 0);
+  virtual ~PikaThread();
+  virtual void CronHandle();
 
-    void RunProcess();
-    int ProcessTimeEvent(struct timeval* target);
-
-
-    int notify_receive_fd() { return notify_receive_fd_; }
-    int notify_send_fd() { return notify_send_fd_; }
-    int thread_index() { return thread_index_; }
-    pthread_rwlock_t* rwlock() { return &rwlock_; }
-    std::map<std::string, client_info>* clients() { return &clients_; }
-    std::map<int, PikaConn *>* conns() { return &conns_; }
-
-    pthread_t thread_id_;
-    bool is_master_thread_;
-    bool is_first_;
-    struct timeval last_ping_time_;
-    int querynums_;
-    int last_sec_querynums_;
-    uint64_t accumulative_querynums_;
-
-    // port::Mutex mutex() { return mutex_; }
+  int PrintNum();
 
 private:
 
-    friend class PikaServer;
+  int pika_num_;
 
-    /*
-     * These two fd receive the notify from master thread
-     */
-    int notify_receive_fd_;
-    int notify_send_fd_;
-    int thread_index_;
-
-    /*
-     * The PikaItem queue is the fd queue, receive from master thread
-     */
-    std::queue<PikaItem> conn_queue_;
-
-    /*
-     * The epoll handler
-     */
-    PikaEpoll *pikaEpoll_;
-
-    std::map<int, PikaConn *> conns_;
-    std::map<std::string, client_info> clients_;
-    pthread_rwlock_t rwlock_;
-
-
-    port::Mutex mutex_;
-
-    // No copy || assigned operator allowed
-    PikaThread(const PikaThread&);
-    void operator=(const PikaThread &);
 };
 
 #endif
