@@ -6,6 +6,7 @@
 #include "redis_conn.h"
 
 class Thread;
+
 namespace pika {
 
 class PikaWorkerThread;
@@ -15,7 +16,7 @@ public:
   explicit PikaConn(int fd, Thread *thread);
   virtual int DealMessage();
 private:
-  PikaWorkerThread *pika_thread_;
+  PikaWorkerThread* pika_thread_;
 };
 
 };

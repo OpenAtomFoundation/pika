@@ -1,8 +1,8 @@
 #include "pika_conn.h"
 namespace pika {
-PikaConn::PikaConn(int fd, Thread *thread) :
+PikaConn::PikaConn(int fd, Thread* thread) :
   RedisConn(fd) {
-  pika_thread_ = reinterpret_cast<PikaWorkerThread *>(thread);
+  pika_thread_ = reinterpret_cast<PikaWorkerThread*>(thread);
 }
 
 int PikaConn::DealMessage() {

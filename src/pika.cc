@@ -1,21 +1,20 @@
-#include "dispatch_thread.h"
-#include "pika_worker_thread.h"
+#include "pika_server.h"
 
 int main()
 {
-  pika::PikaWorkerThread *pikaWorkerThread[1];
-  for (int i = 0; i < 1; i++) {
-    pikaWorkerThread[i] = new pika::PikaWorkerThread(1000);
-  }
-   Thread *t = new DispatchThread<pika::PikaConn>(9211, 1, reinterpret_cast<WorkerThread<pika::PikaConn> **>(pikaWorkerThread), 3000);
+  // pika::PikaWorkerThread *pikaWorkerThread[1];
+  // for (int i = 0; i < 1; i++) {
+    // pikaWorkerThread[i] = new pika::PikaWorkerThread(1000);
+  // }
+  // pika::PikaDispatchThread *pikaDispatchThread = new pika::PikaDispatchThread(9211, 1, pikaWorkerThread, 3000);
 
-  FLAGS_minloglevel = 0;
-  FLAGS_alsologtostderr = true;
-  FLAGS_log_dir = "./logs";
-  ::google::InitGoogleLogging("pika");
-  t->StartThread();
+  // FLAGS_minloglevel = 0;
+  // FLAGS_alsologtostderr = true;
+  // FLAGS_log_dir = "./logs";
+  // ::google::InitGoogleLogging("pika");
+  // pikaDispatchThread->StartThread();
+  pika::PikaServer* pikaServer = new pika::PikaServer(9211);
+  pikaServer->Start();
 
-
-  sleep(1000);
   return 0;
 }
