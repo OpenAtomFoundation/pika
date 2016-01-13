@@ -13,4 +13,11 @@ PikaDispatchThread::~PikaDispatchThread() {
 void PikaDispatchThread::CronHandle() {
   DLOG(INFO) << "======PikaDispatchThread Cron======";
 }
+
+bool PikaDispatchThread::AccessHandle(std::string& ip_port) {
+  DLOG(INFO) << "======Come in AccessHandle======";
+  DLOG(INFO) << "ip_port: " << ip_port;
+  return true;
+}
+
 };
