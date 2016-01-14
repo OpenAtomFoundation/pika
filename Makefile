@@ -30,16 +30,19 @@ INCLUDE_PATH = -I./include/ \
 			   -I./src/ \
 			   -I$(THIRD_PATH)/glog/src/ \
 			   -I$(THIRD_PATH)/nemo/output/include/ \
+			   -I$(THIRD_PATH)/slash/output/include/ \
 			   -I$(THIRD_PATH)/pink/output/include/
 
 LIB_PATH = -L./ \
 		   -L$(THIRD_PATH)/nemo/output/lib/ \
+		   -L$(THIRD_PATH)/slash/output/lib/ \
 		   -L$(THIRD_PATH)/pink/output/lib/
 
 
 LIBS = -lpthread \
 	   -lglog \
 	   -lnemo \
+	   -lslash \
 	   -lrocksdb \
 		 -lpink \
 	   -lz \
@@ -50,6 +53,7 @@ LIBS = -lpthread \
 NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
 GLOG = $(SO_DIR)/libglog.so.0
 PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
+SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
 
 .PHONY: all clean
 
@@ -74,11 +78,14 @@ all: $(OBJECT)
 	@echo "Success, go, go, go..."
 
 
-$(OBJECT): $(NEMO) $(GLOG) $(PINK) $(OBJS)
+$(OBJECT): $(NEMO) $(GLOG) $(PINK) $(SLASH) $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH)  $(LFLAGS) $(LIBS) 
 
 $(NEMO):
 	make -C $(THIRD_PATH)/nemo/
+
+$(SLASH):
+	make -C $(THIRD_PATH)/slash/
 
 $(PINK):
 	make -C $(THIRD_PATH)/pink/

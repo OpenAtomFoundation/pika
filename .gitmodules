@@ -7,3 +7,6 @@
 [submodule "third/pink"]
 	path = third/pink
 	url = git@github.com:baotiao/pink.git
+[submodule "third/slash"]
+	path = third/slash
+	url = git@github.com:baotiao/slash.git
