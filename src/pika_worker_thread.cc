@@ -32,9 +32,33 @@ void PikaWorkerThread::CronHandle() {
   }
 }
 
+bool PikaWorkerThread::UserClientKill(std::string ip_port) {
+
+  if (ip_port == "") {
+    AddCronTask(WorkerCronTask{TASK_KILLALL, ""});
+  } else {
+    if (!FindClient(ip_port)) {
+      return false;
+    }
+    AddCronTask(WorkerCronTask{TASK_KILL, ip_port});
+  }
+  return true;
+}
+
 void PikaWorkerThread::AddCronTask(WorkerCronTask task) {
   slash::MutexLock l(&mutex_);
   cron_tasks_.push(task);
+}
+
+bool PikaWorkerThread::FindClient(std::string ip_port) {
+  slash::RWLock l(rwlock(), false);
+  std::map<int, void*>::iterator iter;
+  for (iter = conns()->begin(); iter != conns()->end(); iter++) {
+    if (static_cast<PikaConn*>(iter->second)->ip_port() != ip_port) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void PikaWorkerThread::ClientKill(std::string ip_port) {
