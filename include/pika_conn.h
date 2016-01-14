@@ -13,7 +13,8 @@ class PikaWorkerThread;
 
 class PikaConn: public RedisConn {
 public:
-  explicit PikaConn(int fd, std::string ip_port, Thread *thread);
+  PikaConn(int fd, std::string ip_port, Thread *thread);
+  virtual ~PikaConn();
   virtual int DealMessage();
 private:
   PikaWorkerThread* pika_thread_;

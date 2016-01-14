@@ -12,7 +12,7 @@ class PikaDispatchThread : public DispatchThread<PikaConn>
 {
 public:
   PikaDispatchThread(int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval);
-  ~PikaDispatchThread();
+  virtual ~PikaDispatchThread();
   virtual void CronHandle();
   virtual bool AccessHandle(std::string& ip_port);
 };
