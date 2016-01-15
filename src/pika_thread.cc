@@ -318,7 +318,7 @@ void PikaThread::RunProcess()
 
             if ((tfe->mask_  & EPOLLERR) || (tfe->mask_ & EPOLLHUP)) {
 //                log_info("close tfe fd here");
-                LOG(WARNING) << "error event happen: " << tfe->mask_;
+                LOG(INFO) << "error event happen: " << tfe->mask_;
                 it = conns_.find(tfe->fd_);
                 int role = PIKA_SINGLE;
                 if (it != conns_.end()) {
