@@ -9,6 +9,7 @@ PikaConn::~PikaConn() {
 }
 
 int PikaConn::DealMessage() {
+  PlusConnQuerynum();
   memcpy(wbuf_ + wbuf_len_, "+OK\r\n", 5);
   wbuf_len_ += 5;
   return 0;

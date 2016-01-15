@@ -3,11 +3,12 @@
 
 #include <glog/logging.h>
 
+#include "pika_worker_thread.h"
 #include "dispatch_thread.h"
 #include "pika_conn.h"
 
 namespace pika {
-class PikaWorkerThread;
+//class PikaWorkerThread;
 class PikaDispatchThread : public DispatchThread<PikaConn> 
 {
 public:
@@ -15,6 +16,8 @@ public:
   virtual ~PikaDispatchThread();
   virtual void CronHandle();
   virtual bool AccessHandle(std::string& ip_port);
+
+  int ClientNum();
 };
 };
 #endif

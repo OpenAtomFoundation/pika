@@ -17,11 +17,23 @@ public:
   virtual ~PikaWorkerThread();
   virtual void CronHandle();
 
-  bool UserClientKill(std::string ip_port = ""); 
+  bool ThreadClientKill(std::string ip_port = "");
+  int ThreadClientNum();
+
+  uint64_t thread_querynum() {
+    return thread_querynum_;
+  }
+
+  uint64_t last_sec_thread_querynum() {
+    return last_sec_thread_querynum_;
+  }
 
 private:
   slash::Mutex mutex_; // protect cron_task_
   std::queue<WorkerCronTask> cron_tasks_;
+
+  uint64_t thread_querynum_;
+  uint64_t last_sec_thread_querynum_;
 
   void AddCronTask(WorkerCronTask task);
   bool FindClient(std::string ip_port);
