@@ -91,7 +91,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
 
         // graceful shutdown
         if (g_pikaServer->shutdown && iter_clientlist != clients_.end()) {
-          iter_clientlist->second.is_killed == true;
+          iter_clientlist->second.is_killed = true;
         }
 
         if ((iter_clientlist != clients_.end() && iter_clientlist->second.is_killed == true ) ||  
