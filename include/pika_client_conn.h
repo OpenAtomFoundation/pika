@@ -4,16 +4,17 @@
 #include <glog/logging.h>
 
 #include "redis_conn.h"
+#include "pink_thread.h"
 
-class Thread;
+
 
 namespace pika {
 
 class PikaWorkerThread;
 
-class PikaClientConn: public RedisConn {
+class PikaClientConn: public pink::RedisConn {
 public:
-  PikaClientConn(int fd, std::string ip_port, Thread *thread);
+  PikaClientConn(int fd, std::string ip_port, pink::Thread *thread);
   virtual ~PikaClientConn();
   virtual int DealMessage();
 private:

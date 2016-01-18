@@ -8,6 +8,7 @@ PikaServer::PikaServer(int port) :
   }
 
   pikaDispatchThread_ = new PikaDispatchThread(port_, PIKA_MAX_WORKER_THREAD_NUM, pikaWorkerThread_, 3000);
+  pikaBinlogReceiverThread_ = new PikaBinlogReceiverThread(port_ + 100);
 
   FLAGS_minloglevel = 0;
   FLAGS_alsologtostderr = true;
@@ -17,6 +18,7 @@ PikaServer::PikaServer(int port) :
 
 void PikaServer::Start() {
   pikaDispatchThread_->StartThread();
+  pikaBinlogReceiverThread_->StartThread();
   while(1) {
   };
 }

@@ -10,7 +10,7 @@
 #include "pika_client_conn.h"
 
 namespace pika {
-class PikaWorkerThread : public WorkerThread<PikaClientConn>
+class PikaWorkerThread : public pink::WorkerThread<PikaClientConn>
 {
 public:
   PikaWorkerThread(int cron_interval = 0);

@@ -8,14 +8,13 @@
 #include "pika_client_conn.h"
 
 namespace pika {
-//class PikaWorkerThread;
-class PikaDispatchThread : public DispatchThread<PikaClientConn>
+class PikaDispatchThread : public pink::DispatchThread<PikaClientConn>
 {
 public:
   PikaDispatchThread(int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval);
   virtual ~PikaDispatchThread();
   virtual void CronHandle();
-  virtual bool AccessHandle(std::string& ip_port);
+  virtual bool AccessHandle(const std::string& ip_port);
 
   int ClientNum();
 };
