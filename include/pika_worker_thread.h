@@ -7,10 +7,10 @@
 #include "worker_thread.h"
 #include "pika_define.h"
 #include "slash_mutex.h"
-#include "pika_conn.h"
+#include "pika_client_conn.h"
 
 namespace pika {
-class PikaWorkerThread : public WorkerThread<PikaConn>
+class PikaWorkerThread : public WorkerThread<PikaClientConn>
 {
 public:
   PikaWorkerThread(int cron_interval = 0);

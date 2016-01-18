@@ -5,11 +5,11 @@
 
 #include "pika_worker_thread.h"
 #include "dispatch_thread.h"
-#include "pika_conn.h"
+#include "pika_client_conn.h"
 
 namespace pika {
 //class PikaWorkerThread;
-class PikaDispatchThread : public DispatchThread<PikaConn> 
+class PikaDispatchThread : public DispatchThread<PikaClientConn>
 {
 public:
   PikaDispatchThread(int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval);

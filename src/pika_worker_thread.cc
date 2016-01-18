@@ -26,15 +26,15 @@ void PikaWorkerThread::CronHandle() {
 /*
  *  Statistics
  */
-    last_sec_thread_querynum_t += static_cast<PikaConn*>(iter->second)->conn_querynum(); //accumulate thread querynums from 0
-    static_cast<PikaConn*>(iter->second)->set_conn_querynum(0); // clear conn querynums
+    last_sec_thread_querynum_t += static_cast<PikaClientConn*>(iter->second)->conn_querynum(); //accumulate thread querynums from 0
+    static_cast<PikaClientConn*>(iter->second)->set_conn_querynum(0); // clear conn querynums
 
 /*
  *  Find timeout client
  */
-    if (now.tv_sec - static_cast<PikaConn*>(iter->second)->last_interaction()->tv_sec > 30) {
-      DLOG(INFO) << "Find Timeout Client: " << static_cast<PikaConn*>(iter->second)->ip_port();
-      AddCronTask(WorkerCronTask{TASK_KILL, static_cast<PikaConn*>(iter->second)->ip_port()});
+    if (now.tv_sec - static_cast<PikaClientConn*>(iter->second)->last_interaction()->tv_sec > 30) {
+      DLOG(INFO) << "Find Timeout Client: " << static_cast<PikaClientConn*>(iter->second)->ip_port();
+      AddCronTask(WorkerCronTask{TASK_KILL, static_cast<PikaClientConn*>(iter->second)->ip_port()});
     }
     iter++;
   }
@@ -101,7 +101,7 @@ bool PikaWorkerThread::FindClient(std::string ip_port) {
   slash::RWLock l(rwlock(), false);
   std::map<int, void*>::iterator iter;
   for (iter = conns()->begin(); iter != conns()->end(); iter++) {
-    if (static_cast<PikaConn*>(iter->second)->ip_port() != ip_port) {
+    if (static_cast<PikaClientConn*>(iter->second)->ip_port() != ip_port) {
       return true;
     }
   }
@@ -112,12 +112,12 @@ void PikaWorkerThread::ClientKill(std::string ip_port) {
   slash::RWLock l(rwlock(), true);
   std::map<int, void*>::iterator iter;
   for (iter = conns()->begin(); iter != conns()->end(); iter++) {
-    if (static_cast<PikaConn*>(iter->second)->ip_port() != ip_port) {
+    if (static_cast<PikaClientConn*>(iter->second)->ip_port() != ip_port) {
       continue;
     }
     DLOG(INFO) << "==========Kill Client==============";
     close(iter->first);
-    delete(static_cast<PikaConn*>(iter->second));
+    delete(static_cast<PikaClientConn*>(iter->second));
     conns()->erase(iter);
     break;
   }
@@ -129,7 +129,7 @@ void PikaWorkerThread::ClientKillAll() {
   while (iter != conns()->end()) {
     DLOG(INFO) << "==========Kill Client==============";
     close(iter->first);
-    delete(static_cast<PikaConn*>(iter->second));
+    delete(static_cast<PikaClientConn*>(iter->second));
     iter = conns()->erase(iter);
   }
 }

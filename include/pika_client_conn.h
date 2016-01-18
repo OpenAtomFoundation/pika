@@ -1,5 +1,5 @@
-#ifndef PIKA_CONN_H_
-#define PIKA_CONN_H_
+#ifndef PIKA_CLIENT_CONN_H_
+#define PIKA_CLIENT_CONN_H_
 
 #include <glog/logging.h>
 
@@ -11,10 +11,10 @@ namespace pika {
 
 class PikaWorkerThread;
 
-class PikaConn: public RedisConn {
+class PikaClientConn: public RedisConn {
 public:
-  PikaConn(int fd, std::string ip_port, Thread *thread);
-  virtual ~PikaConn();
+  PikaClientConn(int fd, std::string ip_port, Thread *thread);
+  virtual ~PikaClientConn();
   virtual int DealMessage();
 private:
   PikaWorkerThread* pika_thread_;
