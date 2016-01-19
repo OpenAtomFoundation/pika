@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "pika_worker_thread.h"
 
 PikaWorkerThread::PikaWorkerThread(int cron_interval):

@@ -1,8 +1,6 @@
 #ifndef PIKA_BINLOG_RECEIVER_THREAD_H_
 #define PIKA_BINLOG_RECEIVER_THREAD_H_
 
-#include <glog/logging.h>
-
 #include "holy_thread.h"
 #include "pika_master_conn.h"
 

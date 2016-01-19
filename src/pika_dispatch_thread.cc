@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "pika_dispatch_thread.h"
 #include "pika_client_conn.h"
 

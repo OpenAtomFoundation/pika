@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "pika_client_conn.h"
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port, pink::Thread* thread) :

@@ -18,25 +18,27 @@ public:
   int port() {
     return port_;
   };
-  PikaWorkerThread** pikaWorkerThread() {
-    return pikaWorkerThread_;
+  PikaWorkerThread** pika_worker_thread() {
+    return pika_worker_thread_;
   };
-  PikaDispatchThread* pikaDispatchThread() {
-    return pikaDispatchThread_;
+  const PikaDispatchThread* pika_dispatch_thread() {
+    return pika_dispatch_thread_;
   };
-  PikaBinlogReceiverThread* pikaBinlogReceiverThread() {
-    return pikaBinlogReceiverThread_;
+  const PikaBinlogReceiverThread* pika_binlog_receiver_thread() {
+    return pika_binlog_receiver_thread_;
   }
 
 
   void Start();
+  slash::Mutex mutex_;
 
 private:
   int port_;
-  PikaWorkerThread* pikaWorkerThread_[PIKA_MAX_WORKER_THREAD_NUM];
-  PikaDispatchThread* pikaDispatchThread_;
+  PikaWorkerThread* pika_worker_thread_[PIKA_MAX_WORKER_THREAD_NUM];
+  PikaDispatchThread* pika_dispatch_thread_;
 
-  PikaBinlogReceiverThread* pikaBinlogReceiverThread_;
+  PikaBinlogReceiverThread* pika_binlog_receiver_thread_;
+
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);

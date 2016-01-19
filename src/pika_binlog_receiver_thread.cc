@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "pika_binlog_receiver_thread.h"
 #include "pika_master_conn.h"
 

@@ -1,7 +1,6 @@
 #ifndef PIKA_WORKER_THREAD_H_
 #define PIKA_WORKER_THREAD_H_
 
-#include <glog/logging.h>
 #include <queue>
 
 #include "worker_thread.h"

@@ -1,8 +1,6 @@
 #ifndef PIKA_MASTER_CONN_H_
 #define PIKA_MASTER_CONN_H_
 
-#include <glog/logging.h>
-
 #include "redis_conn.h"
 #include "pink_thread.h"
 

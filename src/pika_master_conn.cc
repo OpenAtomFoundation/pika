@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "pika_master_conn.h"
 
 PikaMasterConn::PikaMasterConn(int fd, std::string ip_port, pink::Thread* thread) :

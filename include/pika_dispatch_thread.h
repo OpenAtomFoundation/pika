@@ -1,8 +1,6 @@
 #ifndef PIKA_DISPATCH_THREAD_H_
 #define PIKA_DISPATCH_THREAD_H_
 
-#include <glog/logging.h>
-
 #include "pika_worker_thread.h"
 #include "dispatch_thread.h"
 #include "pika_client_conn.h"
