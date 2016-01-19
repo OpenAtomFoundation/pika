@@ -9,7 +9,6 @@
 #include "slash_mutex.h"
 #include "pika_client_conn.h"
 
-namespace pika {
 class PikaWorkerThread : public pink::WorkerThread<PikaClientConn>
 {
 public:
@@ -39,6 +38,5 @@ private:
   bool FindClient(std::string ip_port);
   void ClientKill(std::string ip_port);
   void ClientKillAll();
-};
 };
 #endif

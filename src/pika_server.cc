@@ -1,10 +1,10 @@
 #include "pika_server.h"
-namespace pika {
+
 PikaServer::PikaServer(int port) :
   port_(port) {
 
   for (int i = 0; i < PIKA_MAX_WORKER_THREAD_NUM; i++) {
-    pikaWorkerThread_[i] = new pika::PikaWorkerThread(1000);
+    pikaWorkerThread_[i] = new PikaWorkerThread(1000);
   }
 
   pikaDispatchThread_ = new PikaDispatchThread(port_, PIKA_MAX_WORKER_THREAD_NUM, pikaWorkerThread_, 3000);
@@ -22,4 +22,3 @@ void PikaServer::Start() {
   while(1) {
   };
 }
-};

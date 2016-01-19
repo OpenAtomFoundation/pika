@@ -13,7 +13,7 @@ int main()
   // FLAGS_log_dir = "./logs";
   // ::google::InitGoogleLogging("pika");
   // pikaDispatchThread->StartThread();
-  pika::PikaServer* pikaServer = new pika::PikaServer(9211);
+  PikaServer* pikaServer = new PikaServer(9211);
   pikaServer->Start();
 
   return 0;

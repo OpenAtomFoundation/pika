@@ -6,7 +6,6 @@
 #include "pika_worker_thread.h"
 #include "pika_define.h"
 
-namespace pika {
 class PikaServer
 {
 public:
@@ -41,6 +40,5 @@ private:
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);
-};
 };
 #endif

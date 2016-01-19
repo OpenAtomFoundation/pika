@@ -7,7 +7,6 @@
 #include "dispatch_thread.h"
 #include "pika_client_conn.h"
 
-namespace pika {
 class PikaDispatchThread : public pink::DispatchThread<PikaClientConn>
 {
 public:
@@ -17,6 +16,5 @@ public:
   virtual bool AccessHandle(const std::string& ip_port);
 
   int ClientNum();
-};
 };
 #endif

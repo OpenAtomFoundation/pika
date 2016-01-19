@@ -1,5 +1,5 @@
 #include "pika_client_conn.h"
-namespace pika {
+
 PikaClientConn::PikaClientConn(int fd, std::string ip_port, pink::Thread* thread) :
   RedisConn(fd, ip_port) {
   pika_thread_ = reinterpret_cast<PikaWorkerThread*>(thread);
@@ -14,4 +14,3 @@ int PikaClientConn::DealMessage() {
   wbuf_len_ += 5;
   return 0;
 }
-};

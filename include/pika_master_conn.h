@@ -6,9 +6,6 @@
 #include "redis_conn.h"
 #include "pink_thread.h"
 
-
-namespace pika {
-
 //class pink::Thread;
 class PikaBinlogReceiverThread;
 
@@ -21,5 +18,4 @@ private:
   PikaBinlogReceiverThread* pika_thread_;
 };
 
-};
 #endif

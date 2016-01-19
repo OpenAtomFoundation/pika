@@ -7,9 +7,6 @@
 #include "pink_thread.h"
 
 
-
-namespace pika {
-
 class PikaWorkerThread;
 
 class PikaClientConn: public pink::RedisConn {
@@ -21,5 +18,4 @@ private:
   PikaWorkerThread* pika_thread_;
 };
 
-};
 #endif

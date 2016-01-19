@@ -1,6 +1,5 @@
 #include "pika_worker_thread.h"
 
-namespace pika {
 PikaWorkerThread::PikaWorkerThread(int cron_interval):
   WorkerThread::WorkerThread(cron_interval),
   thread_querynum_(0),
@@ -134,5 +133,3 @@ void PikaWorkerThread::ClientKillAll() {
   }
 }
 
-
-};
