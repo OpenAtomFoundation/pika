@@ -59,8 +59,9 @@ struct flush_args {
 };
 
 struct dump_args {
-    void* p;
-    nemo::Snapshots snapshots;
+    void* p_pika;
+    //nemo::Snapshots snapshots;
+    //void* p_engine;
     std::string dump_path;
 };
 

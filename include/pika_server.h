@@ -20,6 +20,7 @@
 #include "xdebug.h"
 #include "pika_define.h"
 #include "nemo.h"
+#include "nemo_backupable.h"
 #include "mutexlock.h"
 //#include "leveldb/db.h"
 //#include "leveldb/write_batch.h"
@@ -44,6 +45,8 @@ public:
 
     static void* StartThread(void* arg);
     nemo::Nemo* GetHandle() {return db_;};
+    nemo::BackupEngine* GetBackupEngine() {return backup_engine_;}
+    void ClearBackupEngine();
     int ClientNum();
     int ClientList(std::string &res);
     int ClientKill(std::string &ip_port);
@@ -121,7 +124,8 @@ public:
 
     /* worker_num includes client workers and master-slaveworkers */
     std::atomic<int> worker_num;
-
+    
+    std::string GetTmpDumpDir();
 private:
     friend class PikaConn;
     Status SetBlockType(BlockType type);
@@ -149,6 +153,7 @@ private:
      * The leveldb handler
      */
     nemo::Nemo *db_;
+    nemo::BackupEngine *backup_engine_;
     pthread_rwlock_t rwlock_; // use to block other command for loaddb, dump and readonly
  //   leveldb::DB *db_;
 
@@ -175,6 +180,7 @@ private:
 //
 //    int64_t stat_keyspace_hits;
 //    int64_t stat_keyspace_misses;
+    
 
     // No copying allowed
     PikaServer(const PikaServer&);
