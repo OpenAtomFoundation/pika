@@ -18,11 +18,11 @@ void PikaDispatchThread::CronHandle() {
     server_querynum += ((PikaWorkerThread**)worker_thread())[i]->thread_querynum();
     server_current_qps += ((PikaWorkerThread**)worker_thread())[i]->last_sec_thread_querynum();
   }
-  DLOG(INFO) << "ServerQuerynum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
+  DLOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
 }
 
 bool PikaDispatchThread::AccessHandle(const std::string& ip_port) {
-  if (ClientNum() == 1) {
+  if (ClientNum() >= 1) {
     DLOG(INFO) << "Max connections reach, Deny new comming: " << ip_port;
     return false;
   }
