@@ -105,7 +105,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
                     iter_clientlist = clients_.find(iter->second->ip_port());
                 }
                 if (iter_clientlist != clients_.end()) {
-                    LOG(WARNING) << "Remove (Idle or Killed) Client: " << iter_clientlist->first;
+                    LOG(INFO) << "Remove (Idle or Killed) Client: " << iter_clientlist->first;
                     clients_.erase(iter_clientlist);
                 }
 

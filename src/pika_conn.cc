@@ -527,7 +527,7 @@ int PikaConn::DoCmd() {
         }
     } else {
         ret = "-ERR NOAUTH Authentication required.\r\n";
-        LOG(WARNING) << "(" << ip_port_ << ")Authentication required, close connection";
+        LOG(INFO) << "(" << ip_port_ << ")Authentication required, close connection";
         cmd_ret = -2;
     }
     if (opt == "pikasync") {
