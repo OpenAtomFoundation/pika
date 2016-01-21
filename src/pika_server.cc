@@ -341,6 +341,7 @@ void PikaServer::Dump() {
     if (bgsaving_) {
         return;
     }
+    //Prepare for usefull dir
     bgsaving_start_time_ = time(NULL);
     strftime(dump_time_, sizeof(dump_time_), "%Y%m%d%H%M%S",localtime(&bgsaving_start_time_));
     std::string dump_path(g_pikaConf->dump_path());
@@ -353,9 +354,16 @@ void PikaServer::Dump() {
         LOG(ERROR) << "remove exist dump dir failed";
         return;
     }
-    ClearBackupEngine();
+    mkpath(dump_path.c_str(), 0755);
+    std::string tmp_dump = GetTmpDumpDir();
+    if (is_dir(tmp_dump.c_str()) == 0 && delete_dir(tmp_dump.c_str()) != 0) {
+        LOG(ERROR) << "remove exist tmp dump dir failed";
+        return;
+    }
+
+    // Initial BackupEngine
     nemo::Status nemo_s = nemo::BackupEngine::Open(
-            nemo::BackupableOptions(GetTmpDumpDir(), true, false), 
+            nemo::BackupableOptions(tmp_dump, true, false), 
             &backup_engine_);
     if (!nemo_s.ok()) {
         LOG(ERROR) << "open backup engine failed " << nemo_s.ToString();
@@ -368,55 +376,49 @@ void PikaServer::Dump() {
         nemo_s = backup_engine_->SetBackupContent(db_);
         if (!nemo_s.ok()){
             LOG(ERROR) << "set backup content failed " << nemo_s.ToString();
-            delete backup_engine_;
-            backup_engine_ = NULL;
+            ClearBackupEngine();
             return;
         }
         bgsaving_ = true;
     }
-    //    LOG(INFO) << tmp;
+    
+    // Create new thread to do dump
     dump_args *arg = new dump_args;
     arg->p_pika = (void*)this;
-    //arg->snapshots = snapshots;
     arg->dump_path = dump_path;
     pthread_create(&dump_thread_id_, NULL, &(PikaServer::StartDump), (void*)arg);
 }
 
 void* PikaServer::StartDump(void* arg) {
-    PikaServer* p = (PikaServer*)(((dump_args*)arg)->p_pika);
-    std::string dump_path = ((dump_args*)arg)->dump_path;
+    dump_args *arg_ptr = static_cast<dump_args*>(arg);
+    PikaServer* p = static_cast<PikaServer*>(arg_ptr->p_pika);
+    std::string dump_path =arg_ptr->dump_path;
 
+    // Backup to tmp dir
     nemo::BackupEngine* backup_engine = p->GetBackupEngine();
     nemo::Status nemo_s = backup_engine->CreateNewBackup(p->GetHandle());
     LOG(INFO) << "create new backup finished :";
+    // Restore to dump dir
     if (nemo_s.ok()) {
-        //Restore to dump
-        nemo::BackupEngine* restore_engine;
-        std::string tmp_dump = p->GetTmpDumpDir();
-        nemo_s = nemo::BackupEngine::Open(
-                nemo::BackupableOptions(tmp_dump, true, false), 
-                &restore_engine);
+        nemo_s = backup_engine->RestoreDBFromBackup(
+                backup_engine->GetLatestBackupID() + 1, dump_path);
         if (!nemo_s.ok()) {
-            LOG(ERROR) << "open restore engine failed :" << nemo_s.ToString();
-        } else {
-            nemo_s = restore_engine->RestoreDBFromLatestBackup(dump_path);
-            if (!nemo_s.ok()) {
-                LOG(ERROR) << "restore from backup failed :" << nemo_s.ToString();
-            }
-        }
-        delete restore_engine;
-        if (is_dir(tmp_dump.c_str()) == 0 && delete_dir(tmp_dump.c_str()) != 0) {
-            LOG(ERROR) << "remove tmp dump dir failed";
+            LOG(ERROR) << "restore from backup failed :" << nemo_s.ToString();
         }
     } else {
         LOG(ERROR) << "create new backup failed :" << nemo_s.ToString();
     }
+
+    std::string tmp_dump = p->GetTmpDumpDir();
+    if (is_dir(tmp_dump.c_str()) == 0 && delete_dir(tmp_dump.c_str()) != 0) {
+        LOG(ERROR) << "remove tmp dump dir failed";
+    }
     LOG(INFO) << "dump finished.";
     
+    // Some output
     time_t delta = time(NULL) - p->bgsaving_start_time_;
     char buf[32];
     snprintf(buf, sizeof(buf), "%lu", delta);
-
     std::ofstream out;
     out.open(dump_path + "/info", std::ios::in | std::ios::trunc);
     if (out.is_open()) {
@@ -427,6 +429,14 @@ void* PikaServer::StartDump(void* arg) {
         out << p->dump_pro_offset_ << "\r\n";
         out.close();
     }
+    if (!nemo_s.ok()) {
+        std::string fail_path = dump_path + "_FAILED";
+        if (is_dir(fail_path.c_str()) == 0 && delete_dir(fail_path.c_str()) != 0) {
+            LOG(ERROR) << "remove exist fail dump dir failed :" << fail_path;
+        }
+        rename(dump_path.c_str(), fail_path.c_str());
+    }
+
     {
         MutexLock l(p->Mutex());
         p->bgsaving_ = false;
@@ -438,19 +448,16 @@ void* PikaServer::StartDump(void* arg) {
 }
 
 bool PikaServer::Dumpoff() {
-    std::string dump_time;
     {
         MutexLock l(&mutex_);
         if (!bgsaving_) {
             return false;
         }
-        dump_time = dump_time_;
     }
     if (backup_engine_ == NULL) {
         return false;
     }
     backup_engine_->StopBackup();
-    //db_->BGSaveOff();
     pthread_t dump_thread_id;
     {
         MutexLock l(&mutex_);
@@ -459,13 +466,6 @@ bool PikaServer::Dumpoff() {
     if (dump_thread_id != 0) {
         pthread_join(dump_thread_id, NULL);
     }
-    std::string dump_path(g_pikaConf->dump_path());
-    if (dump_path[dump_path.length() - 1] != '/') {
-        dump_path.append("/");
-    }
-    dump_path.append(g_pikaConf->dump_prefix());
-    dump_path.append(dump_time.data(), 8);
-    rename(dump_path.c_str(), (dump_path+"_FAILED").c_str());
     return true;
 }
 

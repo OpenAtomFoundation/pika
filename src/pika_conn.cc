@@ -490,7 +490,7 @@ int PikaConn::DoCmd() {
                         LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us/1000000 << ", duration(us): " << duration_us;
                     }
                 }
-                if (opt != "loaddb" && opt != "dump" && opt != "readonly" && opt != "ucanpsync" && opt != "flushall") {
+                if (opt != "loaddb" && opt != "bgdump" && opt != "readonly" && opt != "ucanpsync" && opt != "flushall") {
                     pthread_rwlock_unlock(g_pikaServer->rwlock());
                 }
                 if (opt == "auth") {
