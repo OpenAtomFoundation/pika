@@ -23,7 +23,18 @@ struct SlaveItem {
   struct timeval create_time;
 };
 
-#define STAGE_ONE 1
-#define STAGE_TWO 2
+#define SLAVE_ITEM_STAGE_ONE 1
+#define SLAVE_ITEM_STAGE_TWO 2
+
+//repl_state_
+#define PIKA_REPL_NO_CONNECT 0
+#define PIKA_REPL_CONNECT 1
+#define PIKA_REPL_CONNECTING 2
+#define PIKA_REPL_CONNECTED 3
+
+//role
+#define PIKA_ROLE_SINGLE 0
+#define PIKA_ROLE_SLAVE 1
+#define PIKA_ROLE_MASTER 2
 
 #endif

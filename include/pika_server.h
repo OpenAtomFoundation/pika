@@ -4,6 +4,7 @@
 #include "pika_binlog_receiver_thread.h"
 #include "pika_heartbeat_thread.h"
 #include "pika_dispatch_thread.h"
+#include "pika_trysync_thread.h"
 #include "pika_worker_thread.h"
 #include "pika_define.h"
 
@@ -31,14 +32,33 @@ public:
   const PikaHeartbeatThread* pika_heartbeat_thread() {
     return pika_heartbeat_thread_;
   }
-
+  const PikaTrysyncThread* pika_trysync_thread() {
+    return pika_trysync_thread_;
+  }
+  const std::string& master_ip() {
+    return master_ip_;
+  }
+  int master_port() {
+    return master_port_;
+  }
+/*
+ * Master use
+ */
   void DeleteSlave(int fd); // hb_fd
+  slash::Mutex slave_mutex_; // protect slaves_;
+  std::vector<SlaveItem> slaves_;
+
+/*
+ * Slave use
+ */
+  bool SetMaster(const std::string& master_ip, int master_port);
+  bool ShouldConnectMaster();
+  void ConnectMasterDone();
+
 
   void Start();
   slash::Mutex mutex_; // double lock to block main thread
 
-  slash::Mutex slave_mutex_; // protect slaves_;
-  std::vector<SlaveItem> slaves_;
 
 private:
   int port_;
@@ -47,6 +67,16 @@ private:
 
   PikaBinlogReceiverThread* pika_binlog_receiver_thread_;
   PikaHeartbeatThread* pika_heartbeat_thread_;
+  PikaTrysyncThread* pika_trysync_thread_;
+
+/*
+ * Slave use
+ */
+  pthread_rwlock_t state_protector_; //protect below, use for master-slave mode
+  std::string master_ip_;
+  int master_port_;
+  int repl_state_;
+  int role_;
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);

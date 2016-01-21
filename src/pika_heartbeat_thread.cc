@@ -49,8 +49,8 @@ void PikaHeartbeatThread::CronHandle() {
 		slash::MutexLock l(&g_pika_server->slave_mutex_);
 		std::vector<SlaveItem>::iterator iter = g_pika_server->slaves_.begin();
 		while (iter != g_pika_server->slaves_.end()) {
-			if ((iter->stage = STAGE_ONE && now.tv_sec - iter->create_time.tv_sec > 30)
-				|| (iter->stage == STAGE_TWO && !FindSlave(iter->hb_fd))) {
+			if ((iter->stage = SLAVE_ITEM_STAGE_ONE && now.tv_sec - iter->create_time.tv_sec > 30)
+				|| (iter->stage == SLAVE_ITEM_STAGE_TWO && !FindSlave(iter->hb_fd))) {
 				//pthread_kill(iter->tid);
 				iter = g_pika_server->slaves_.erase(iter);
 				continue;

@@ -27,7 +27,7 @@ int main()
 {
   PikaGlogInit();
   PikaSignalSetup();
-  g_pika_server = new PikaServer(9211);
+  g_pika_server = new PikaServer(9221);
   g_pika_server->Start();
 
   return 0;
