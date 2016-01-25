@@ -462,6 +462,36 @@ Status Mario::Put(const std::string &item)
     return s;
 }
 
+Status Mario::PutNoLock(const std::string &item)
+{
+    Status s;
+
+    /* Check to roll log file */
+    uint64_t filesize = writefile_->Filesize();
+    //log_info("filesize %llu kMmapSize %llu\n", filesize, kMmapSize);
+    if (filesize > kMmapSize) {
+        //log_info("roll file filesize %llu kMmapSize %llu\n", filesize, kMmapSize);
+        delete producer_;
+        delete writefile_;
+        pronum_++;
+        std::string profile = NewFileName(filename_, pronum_);
+        env_->NewWritableFile(profile, &writefile_);
+        version_->set_pro_offset(0);
+        version_->set_pronum(pronum_);
+        version_->StableSave();
+        version_->debug();
+        producer_ = new Producer(writefile_, version_);
+    }
+
+    s = producer_->Produce(Slice(item.data(), item.size()));
+    if (s.ok()) {
+        version_->plus_item_num();
+        version_->StableSave();
+    }
+
+    return s;
+}
+
 Status Mario::Put(const char* item, int len)
 {
     Status s;
@@ -495,6 +525,37 @@ Status Mario::Put(const char* item, int len)
 
     }
 //    bg_cv_.Signal();
+    return s;
+}
+
+Status Mario::PutNoLock(const char* item, int len)
+{
+    Status s;
+
+    /* Check to roll log file */
+    uint64_t filesize = writefile_->Filesize();
+    if (filesize > kMmapSize) {
+        //log_info("roll file filesize %llu kMmapSize %llu\n", filesize, kMmapSize);
+        delete producer_;
+        delete writefile_;
+        pronum_++;
+        std::string profile = NewFileName(filename_, pronum_);
+        env_->NewWritableFile(profile, &writefile_);
+        version_->set_pro_offset(0);
+        version_->set_pronum(pronum_);
+        version_->StableSave();
+        version_->debug();
+        producer_ = new Producer(writefile_, version_);
+    }
+
+
+    s = producer_->Produce(Slice(item, len));
+    if (s.ok()) {
+        version_->plus_item_num();
+        version_->StableSave();
+
+    }
+
     return s;
 }
 

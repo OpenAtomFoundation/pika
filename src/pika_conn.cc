@@ -329,9 +329,9 @@ int PikaConn::ProcessInputBuffer() {
                 sdsclear(msbuf_);
                 return -2;
             }
-            if (cmd_ret == 1) {
-                g_pikaMario->Put(std::string(msbuf_, sdslen(msbuf_)));
-            }
+          //  if (cmd_ret == 1) {
+          //      g_pikaMario->Put(std::string(msbuf_, sdslen(msbuf_)));
+          //  }
             querynums_++;
             sdsclear(msbuf_);
             Reset();
@@ -483,16 +483,33 @@ int PikaConn::DoCmd() {
                 if (slowlog_slower_than_us >= 0) {
                     start_us = ustime();
                 }
+
+                // Solution 1: acquire lock of Mario for all APIs
+                // Solution 2: acquire lock of Mario for specify APIs
+                if (iter->second->is_sync == true) {
+                    g_pikaMario->Lock();
+                }
+
                 iter->second->Do(argv_, ret);
+                if (opt != "loaddb" && opt != "bgdump" && opt != "readonly" && opt != "ucanpsync" && opt != "flushall") {
+                    pthread_rwlock_unlock(g_pikaServer->rwlock());
+                }
+
+                if (iter->second->is_sync == true) {
+                    if (ret.find("-ERR ") != 0) {
+                        cmd_ret = 1;
+                        g_pikaMario->PutNoLock(std::string(msbuf_, sdslen(msbuf_)));
+                    }
+                    g_pikaMario->Unlock();
+                }
+
                 if (slowlog_slower_than_us >= 0) {
                     int64_t duration_us = (int64_t)(ustime() - start_us);
                     if (duration_us >= (int64_t)slowlog_slower_than_us) {
                         LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us/1000000 << ", duration(us): " << duration_us;
                     }
                 }
-                if (opt != "loaddb" && opt != "bgdump" && opt != "readonly" && opt != "ucanpsync" && opt != "flushall") {
-                    pthread_rwlock_unlock(g_pikaServer->rwlock());
-                }
+
                 if (opt == "auth") {
                     if (ret == "+OK\r\n") {
                         is_authed_ = true;
@@ -520,9 +537,9 @@ int PikaConn::DoCmd() {
                         ret = "-ERR Client sent AUTH, but no password is set\r\n";
                     }
                 }
-                if (iter->second->is_sync == true && ret.find("-ERR ") != 0) {
-                    cmd_ret = 1;
-                }
+             //   if (iter->second->is_sync == true && ret.find("-ERR ") != 0) {
+             //       cmd_ret = 1;
+             //   }
             }
         }
     } else {
