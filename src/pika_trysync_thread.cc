@@ -1,5 +1,6 @@
 #include <glog/logging.h>
 #include <poll.h>
+#include "pika_slaveping_thread.h"
 #include "pika_trysync_thread.h"
 #include "pika_server.h"
 
@@ -147,6 +148,9 @@ void* PikaTrysyncThread::ThreadMain() {
       if (Init()) {
         if (Connect(g_pika_server->master_ip(), g_pika_server->master_port()) && Send() && RecvProc()) {
           g_pika_server->ConnectMasterDone();
+          PikaSlavepingThread t;
+          t.StartThread();
+          close(sockfd_);
           DLOG(INFO) << "Trysync success";
         } else {
           close(sockfd_);

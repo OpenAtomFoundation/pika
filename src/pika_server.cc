@@ -4,6 +4,7 @@
 PikaServer::PikaServer(int port) :
   port_(port),
   master_ip_(""),
+  master_connection_(0),
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE) {
@@ -23,6 +24,10 @@ void PikaServer::Start() {
   pika_binlog_receiver_thread_->StartThread();
   pika_heartbeat_thread_->StartThread();
   pika_trysync_thread_->StartThread();
+
+
+  SetMaster("127.0.0.1", 9211);
+
   mutex_.Lock();
   mutex_.Lock();
   DLOG(INFO) << "Goodbye...";
@@ -56,7 +61,7 @@ bool PikaServer::SetMaster(const std::string& master_ip, int master_port) {
 
 bool PikaServer::ShouldConnectMaster() {
   slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_;
+  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
   if (repl_state_ == PIKA_REPL_CONNECT) {
     return true;
   }
@@ -67,5 +72,34 @@ void PikaServer::ConnectMasterDone() {
   slash::RWLock l(&state_protector_, true);
   if (repl_state_ == PIKA_REPL_CONNECT) {
     repl_state_ = PIKA_REPL_CONNECTING;
+  }
+}
+
+bool PikaServer::ShouldStartPingMaster() {
+  slash::RWLock l(&state_protector_, true);
+  DLOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_;
+  if (repl_state_ == PIKA_REPL_CONNECTING && master_connection_ < 2) {
+    return true;
+  }
+  return false;
+}
+
+void PikaServer::MinusMasterConnection() {
+  slash::RWLock l(&state_protector_, true);
+  if (master_connection_ > 0) {
+    if ((--master_connection_) <= 0) {
+      // two connection with master has been deleted
+      repl_state_ = PIKA_REPL_CONNECT;
+    }
+  }
+}
+
+void PikaServer::PlusMasterConnection() {
+  slash::RWLock l(&state_protector_, true);
+  if (master_connection_ < 2) {
+    if ((++master_connection_) >= 2) {
+      // two connection with master has been established
+      repl_state_ = PIKA_REPL_CONNECTED;
+    }
   }
 }

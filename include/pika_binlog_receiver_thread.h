@@ -10,5 +10,6 @@ public:
   PikaBinlogReceiverThread(int port);
   virtual ~PikaBinlogReceiverThread();
   virtual bool AccessHandle(const std::string& ip_port);
+  void KillAll();
 };
 #endif

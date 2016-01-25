@@ -23,19 +23,19 @@ public:
   PikaWorkerThread** pika_worker_thread() {
     return pika_worker_thread_;
   };
-  const PikaDispatchThread* pika_dispatch_thread() {
+  PikaDispatchThread* pika_dispatch_thread() {
     return pika_dispatch_thread_;
   };
-  const PikaBinlogReceiverThread* pika_binlog_receiver_thread() {
+  PikaBinlogReceiverThread* pika_binlog_receiver_thread() {
     return pika_binlog_receiver_thread_;
   }
-  const PikaHeartbeatThread* pika_heartbeat_thread() {
+  PikaHeartbeatThread* pika_heartbeat_thread() {
     return pika_heartbeat_thread_;
   }
-  const PikaTrysyncThread* pika_trysync_thread() {
+  PikaTrysyncThread* pika_trysync_thread() {
     return pika_trysync_thread_;
   }
-  const std::string& master_ip() {
+  std::string& master_ip() {
     return master_ip_;
   }
   int master_port() {
@@ -54,6 +54,9 @@ public:
   bool SetMaster(const std::string& master_ip, int master_port);
   bool ShouldConnectMaster();
   void ConnectMasterDone();
+  bool ShouldStartPingMaster();
+  void MinusMasterConnection();
+  void PlusMasterConnection();
 
 
   void Start();
@@ -74,6 +77,7 @@ private:
  */
   pthread_rwlock_t state_protector_; //protect below, use for master-slave mode
   std::string master_ip_;
+  int master_connection_;
   int master_port_;
   int repl_state_;
   int role_;
