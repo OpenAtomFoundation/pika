@@ -901,7 +901,6 @@ void ScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
     s = g_pikaServer->GetHandle()->Scan(static_cast<int64_t>(index), pattern, static_cast<int64_t>(count), keys, &cursor_ret);
     index = cursor_ret;
 
-
     ret = "*2\r\n";
     char buf[32];
     char buf_len[32];

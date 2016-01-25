@@ -492,27 +492,35 @@ void HScanCmd::Do(std::list<std::string> &argv, std::string &ret) {
 
     std::vector<nemo::FV> fvs;
     nemo::HIterator *iter = g_pikaServer->GetHandle()->HScan(key, "", "", -1);
-    bool skip_ret = iter->Skip(index);
-    if (skip_ret && !iter->Valid()) {
-        count--;
-        if (!(use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Field().data(), iter->Field().size(), 0))) {
-            fvs.push_back(nemo::FV{iter->Field(), iter->Val()});
-        }
-        index = 0;
-    } else {
-        bool iter_ret = false;
-        while ((iter_ret=iter->Next()) && count) {
+    iter->Skip(index);
+    if (!iter->Valid()) {
+      delete iter;
+      iter = g_pikaServer->GetHandle()->HScan(key, "", "", -1);
+    }
+
+    //bool skip_ret = iter->Skip(index);
+   // if (skip_ret && !iter->Valid()) {
+   //     count--;
+   //     if (!(use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->field().data(), iter->field().size(), 0))) {
+   //         fvs.push_back(nemo::FV{iter->field(), iter->value()});
+   //     }
+   //     index = 0;
+   // } else {
+        for (; iter->Valid() && count; iter->Next()) {
+   //     while ((iter_ret=iter->Next()) && count) {
             count--;
             index++;
-            if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->Field().data(), iter->Field().size(), 0)) {
+            if (use_pat == true && !stringmatchlen(pattern.data(), pattern.size(), iter->field().data(), iter->field().size(), 0)) {
                 continue;
             }
-            fvs.push_back(nemo::FV{iter->Field(), iter->Val()});
+            fvs.push_back(nemo::FV{iter->field(), iter->value()});
         }
-        if (!iter_ret) {
+
+        // no valid element or iterator the last one
+        if (fvs.size() <= 0 || count > 0) {
             index = 0;
         }
-    }
+    //}
     delete iter;
 
     ret = "*2\r\n";
