@@ -66,6 +66,12 @@ public:
     ~Mario();
     Status Put(const std::string &item);
     Status Put(const char* item, int len);
+    Status PutNoLock(const std::string &item);
+    Status PutNoLock(const char* item, int len);
+
+    void Lock()         { mutex_.Lock(); }
+    void Unlock()       { mutex_.Unlock(); }
+
     Status AddConsumer(uint32_t filenum, uint64_t con_offset, Consumer::Handler* h, int fd); 
     Status RemoveConsumer(int fd);
 
