@@ -812,6 +812,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         }
         uint64_t dbsize_B = du(g_pikaConf->db_path());
         uint64_t dbsize_M = dbsize_B / (1024 * 1024); 
+        uint64_t logsize_B = du(g_pikaConf->log_path());
+        uint64_t logsize_M = logsize_B / (1024 * 1024);
         
         char buf[512];
         time_t current_time_s = std::time(NULL);
@@ -845,6 +847,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "is_bgsaving:%s\r\n"
                   "is_scaning_keyspace:%s\r\n"
                   "db_size:%luM\r\n"
+                  "log_size:%luM\r\n"
                   "compression:%s\r\n"
                   "safety_purge:%s\r\n"
                   "expire_logs_days:%d\r\n"
@@ -861,6 +864,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   g_pikaServer->is_bgsaving().c_str(),
                   g_pikaServer->is_scaning().c_str(),
                   dbsize_M,
+                  logsize_M,
                   g_pikaConf->compression(),
                   safety_purge.c_str(),
                   g_pikaConf->expire_logs_days(),
