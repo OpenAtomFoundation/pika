@@ -59,11 +59,11 @@ void cleanup() {
 static void sig_handler(const int sig)
 {
     //LOG(INFO) << "Caught signal " << sig;
-    ::google::ShutdownGoogleLogging();
     g_pikaServer->shutdown = true;
 
     sleep(1);
 
+    ::google::ShutdownGoogleLogging();
     cleanup();
     exit(1);
 }
@@ -233,9 +233,9 @@ int main(int argc, char **argv)
     LoaddbCmd *loaddbptr = new LoaddbCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("loaddb", loaddbptr));
     DumpCmd *dumpptr = new DumpCmd(1);
-    g_pikaCmd.insert(std::pair<std::string, Cmd *>("dump", dumpptr));
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bgdump", dumpptr));
     DumpoffCmd *dumpoffptr = new DumpoffCmd(1);
-    g_pikaCmd.insert(std::pair<std::string, Cmd *>("dumpoff", dumpoffptr));
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bgdumpoff", dumpoffptr));
     ReadonlyCmd *readonlyptr = new ReadonlyCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("readonly", readonlyptr));
     SelectCmd *selectptr = new SelectCmd(2);
