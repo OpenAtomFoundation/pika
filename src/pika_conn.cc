@@ -533,7 +533,7 @@ int PikaConn::DoCmd() {
     if (opt == "pikasync") {
         wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());
         mutex_.Unlock();
-    } else if (role_ != PIKA_MASTER && !(role_ == PIKA_SLAVE && opt == "ping")) {
+    } else if ((role_ != PIKA_MASTER  && !(role_ == PIKA_SLAVE && opt == "ping")) || (role_ == PIKA_MASTER && opt == "syncdb")) {
         if (role_ == PIKA_SLAVE) {
             MutexLock l(&mutex_);
             wbuf_ = sdscatlen(wbuf_, ret.data(), ret.size());

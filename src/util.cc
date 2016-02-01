@@ -43,8 +43,16 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <dirent.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <dirent.h>
 
 #include "util.h"
+#include "pika_conf.h"
+#include "libssh2.h"
+
+extern PikaConf* g_pikaConf;
 
 /* Glob-style pattern matching. */
 int stringmatchlen(const char *pattern, int patternLen,
@@ -554,6 +562,81 @@ int pathIsBaseName(char *path) {
     return strchr(path,'/') == NULL && strchr(path,'\\') == NULL;
 }
 
+int delete_dir(const char* dirname)
+{
+    char chBuf[256];
+    DIR * dir = NULL;
+    struct dirent *ptr;
+    int ret = 0;
+    dir = opendir(dirname);
+    if (NULL == dir) {
+        return -1;
+    }
+    while((ptr = readdir(dir)) != NULL) {
+        ret = strcmp(ptr->d_name, ".");
+        if (0 == ret) {
+            continue;
+        }
+        ret = strcmp(ptr->d_name, "..");
+        if (0 == ret) {
+            continue;
+        }
+        snprintf(chBuf, 256, "%s/%s", dirname, ptr->d_name);
+        ret = is_dir(chBuf);
+        if (0 == ret) {
+            //is dir
+            ret = delete_dir(chBuf);
+            if (0 != ret) {
+                return -1;
+            }
+        }
+        else if (1 == ret) {
+            //is file
+            ret = remove(chBuf);
+            if(0 != ret) {
+                return -1;
+            }
+        }
+    }
+    (void)closedir(dir);
+    ret = remove(dirname);
+    if (0 != ret) {
+        return -1;
+    }
+    return 0;
+}
+
+void* remove_dir(void *arg) {
+    assert(arg != NULL);
+    delete_dir((char*)arg);
+    free(arg);
+    return NULL;
+}
+
+int remove_files(const char* path, const char* pattern) {
+    DIR *dir = NULL;
+    dir = opendir(path);
+    if (dir == NULL) {
+        return errno;
+    }
+    char dir_path[100], whole_file_path[100];
+    strcpy(dir_path, path);
+    if (*(dir_path + strlen(dir_path) -1) == '/') {
+        *(dir_path + strlen(dir_path) -1) = '\0';
+    }
+    struct dirent *dirent_ptr = NULL;
+    while ((dirent_ptr = readdir(dir)) != NULL) {
+        if (!strcmp(dirent_ptr->d_name, ".") || !strcmp(dirent_ptr->d_name, "..")) {
+            continue;
+        }
+        if (stringmatch(pattern, dirent_ptr->d_name, false)) {
+            snprintf(whole_file_path, sizeof(whole_file_path), "%s/%s", dir_path, dirent_ptr->d_name);
+            remove(whole_file_path);
+        }
+    }
+    return 0;
+}
+
 int do_mkdir(const char *path, mode_t mode) {
   struct stat st;
   int status = 0;
@@ -592,6 +675,266 @@ int mkpath(const char *path, mode_t mode) {
     status = do_mkdir(path, mode);
   free(copypath);
   return (status);
+}
+
+int copy_file(const char *src_file, const char *dst_file) {
+    FILE* infile = NULL, *outfile = NULL;
+    infile = fopen(src_file, "rb");
+    if (infile == NULL) {
+        return -1;
+    }
+    outfile = fopen(dst_file, "wb");
+    if (outfile == NULL) {
+        return -2;
+    }
+#define BUFFER_SIZE 4096
+    char buf[BUFFER_SIZE];
+    int32_t nread = 0;
+    int32_t nwrite = 0;
+    while (nread = fread(buf, 1, BUFFER_SIZE, infile)) {
+        nwrite = fwrite(buf, 1, nread, outfile);
+        if (nwrite < nread) {
+            return -3;
+        }
+        if (nread < BUFFER_SIZE) {
+            break;
+        }
+    }
+    if (!feof(infile)) {
+        return -4;
+    }
+    fclose(infile);
+    fclose(outfile);
+    return 0;
+}
+
+int is_dir(const char* filename) {
+    struct stat buf;
+    int ret = stat(filename,&buf);
+    if (0 == ret) {
+        if (buf.st_mode & S_IFDIR) {
+            //folder
+            return 0;
+        } else {
+            //file
+            return 1;
+        }
+    }
+    return -1;
+}
+
+int copy_dir(const char *src_dir_path, const char *dst_dir_path) {
+    int ret;
+    DIR *src_dir = NULL, *dst_dir = NULL;
+    src_dir = opendir(src_dir_path);
+    if (src_dir == NULL) {
+        return -1;
+    }
+    dst_dir = opendir(dst_dir_path);
+    if (dst_dir == NULL) {
+        mkdir(dst_dir_path, 0755);
+        dst_dir = opendir(dst_dir_path);
+    }
+    struct dirent *dirent_ptr = NULL;
+    while ((dirent_ptr = readdir(src_dir)) != NULL) {
+        char src_whole_path[100];
+        char dst_whole_path[100];
+        if (!strcmp(dirent_ptr->d_name, ".") || !strcmp(dirent_ptr->d_name, "..")) {
+            continue;
+        }
+        snprintf(src_whole_path, sizeof(src_whole_path), "%s/%s", src_dir_path, dirent_ptr->d_name);
+        snprintf(dst_whole_path, sizeof(dst_whole_path), "%s/%s", dst_dir_path, dirent_ptr->d_name);
+        if (is_dir(src_whole_path) == 0) {
+            if (ret = copy_dir(src_whole_path, dst_whole_path)) {
+                return ret;
+            }
+        } else if (ret = copy_file(src_whole_path, dst_whole_path)) {
+            return ret;
+        }
+    }
+    closedir(src_dir);
+    closedir(dst_dir);
+    return 0;
+}
+
+void scp_write_file_clean(int sockfd, LIBSSH2_SESSION *session, LIBSSH2_CHANNEL* channel, FILE* local_file) {
+    if (session) {
+        libssh2_session_disconnect(session, "");
+        libssh2_session_free(session);
+        libssh2_exit();
+    }
+    if (sockfd != -1) {
+        close(sockfd);
+    }
+    if (local_file) {
+        fclose(local_file);
+    }
+}
+
+int scp_write_file(const char* local_file_path, const char* dst_file_path, const char* dst_host_addr, const char* username, const char* password) {
+#define SCP_BUFFER_LEN 4096
+    unsigned long host_addr = inet_addr(dst_host_addr);
+    int sockfd = -1;
+    LIBSSH2_SESSION *session = NULL;
+    LIBSSH2_CHANNEL *channel = NULL;
+    int rc;
+    FILE* local_file = NULL;
+    struct stat file_info;
+    struct sockaddr_in sin;
+    size_t nread;
+    char mem[SCP_BUFFER_LEN];
+    char *ptr;
+
+    rc = libssh2_init(0);
+    if (rc) {
+        fprintf(stderr, "libssh2 init error (%d)\n", rc);
+        return -1;
+    }
+    local_file = fopen(local_file_path, "rb");
+    if (!local_file) {
+        fprintf(stderr, "local file %s open error", local_file_path);
+        return -2;
+    }
+    stat(local_file_path, &file_info);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        fprintf(stderr, "failed to create socket\n");
+        scp_write_file_clean(sockfd, session, channel, local_file);
+        return -3;
+    }
+    bzero(&sin, sizeof(sin));
+    sin.sin_family = AF_INET;
+    sin.sin_port = htons(22);
+    sin.sin_addr.s_addr = host_addr;
+    if (connect(sockfd, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in))) {
+        fprintf(stderr, "failed to connect\n");
+        scp_write_file_clean(sockfd, session, channel, local_file);
+        return -4;
+    }
+    session = libssh2_session_init();
+    if (session == NULL) {
+        fprintf(stderr, "libssh2 session create failed\n");
+        scp_write_file_clean(sockfd, session, channel, local_file);
+        return -5;
+    }
+    rc = libssh2_session_handshake(session, sockfd);
+    if (rc) {
+        fprintf(stderr, "failed to establish the ssh session (%d)\n", rc);
+        scp_write_file_clean(sockfd, session, channel, local_file);
+        return -6;
+    }
+    if (libssh2_userauth_password(session, username, password)) {
+        fprintf(stderr, "authentication by password failed\n");
+        scp_write_file_clean(sockfd, session, channel, local_file);
+        return -7;
+    }
+    channel = libssh2_scp_send(session, dst_file_path, file_info.st_mode & 0777, (unsigned long)file_info.st_size);
+    if (channel == NULL) {
+        char *errmsg;
+        int errlen;
+        int err = libssh2_session_last_error(session, &errmsg, &errlen, 0);
+        fprintf(stderr, "unable to open a session (%d) %s\n", err, errmsg);
+        scp_write_file_clean(sockfd, session, channel, local_file);
+        return -8;
+    }
+    fprintf(stderr, "local file %s transfer started\n", local_file_path);
+    int32_t cur_speed_bytes = (g_pikaConf->db_sync_speed())*1024*1024;
+    int32_t now_bytes = 0;
+    struct timeval last_time, cur_time;
+    gettimeofday(&last_time, NULL);
+    do {
+        nread = fread(mem, 1, sizeof(mem), local_file);
+        if (nread <= 0) {
+            break;
+        }
+        now_bytes += nread;
+        ptr = mem;
+        do {
+            rc = libssh2_channel_write(channel, ptr, nread);
+            if (rc < 0) {
+                fprintf(stderr, "ERROR (%d)\n", rc);
+                break;
+            } else {
+                ptr += rc;
+                nread -= rc;
+            }
+        } while (nread);
+        if (now_bytes <= cur_speed_bytes) {
+            continue;
+        }
+        gettimeofday(&cur_time, NULL);
+        if (cur_time.tv_sec == last_time.tv_sec) {
+            usleep(1000000L-cur_time.tv_usec+last_time.tv_usec);
+            last_time.tv_sec += 1;
+        } else {
+            last_time.tv_sec = cur_time.tv_sec;
+            last_time.tv_usec = cur_time.tv_usec;
+        }
+        cur_speed_bytes = (g_pikaConf->db_sync_speed())*1024*1024;
+        now_bytes = 0;
+    } while (1);
+
+    //fprintf(stderr, "Sending EOF\n");
+    libssh2_channel_send_eof(channel);
+    //fprintf(stderr, "Waiting for EOF\n");
+    libssh2_channel_wait_eof(channel);
+    //fprintf(stderr, "Wait for channel to close\n");
+    libssh2_channel_wait_closed(channel);
+    libssh2_channel_free(channel);
+    channel = NULL;
+    if (!feof(local_file)) {
+        scp_write_file_clean(sockfd, session, channel, local_file);
+        fprintf(stderr, "local file %s read error\n", local_file_path);
+        return -9;
+    }
+    scp_write_file_clean(sockfd, session, channel, local_file);
+    fprintf(stderr, "local file %s transfer finished\n", local_file_path);
+    return 0;
+}
+
+int scp_copy_dir(const char* local_dir_path, const char* remote_dir_path, const char* remote_host, const char* username, const char* password) {
+    int ret;
+    struct dirent* dirent_ptr = NULL;
+    struct stat file_info;
+    DIR* local_dir = opendir(local_dir_path);
+    if (local_dir == NULL) {
+        return -1;
+    }
+    while ((dirent_ptr = readdir(local_dir)) != NULL) {
+        char local_file_whole_path[100];
+        char remote_file_whole_path[100];
+        if (!strcmp(dirent_ptr->d_name, ".") || !strcmp(dirent_ptr->d_name, "..")) {
+            continue;
+        }
+
+        char dir_path[100];
+
+        strcpy(dir_path, local_dir_path);
+        if (dir_path[strlen(dir_path)-1] == '/') {
+            dir_path[strlen(dir_path)-1] = '\0';
+        }
+        snprintf(local_file_whole_path, sizeof(local_file_whole_path), "%s/%s", dir_path, dirent_ptr->d_name);
+        strcpy(dir_path, remote_dir_path);
+        if (dir_path[strlen(dir_path)-1] == '/') {
+            dir_path[strlen(dir_path)-1] = '\0';
+        }
+        snprintf(remote_file_whole_path, sizeof(remote_file_whole_path), "%s/%s", dir_path, dirent_ptr->d_name);
+        if (stat(local_file_whole_path, &file_info) != 0) {
+            closedir(local_dir);
+            return -2;
+        }
+        if (file_info.st_mode & S_IFDIR) {
+            ret = scp_copy_dir(local_file_whole_path, remote_file_whole_path, remote_host, username, password);
+        } else {
+            ret = scp_write_file(local_file_whole_path, remote_file_whole_path, remote_host, username, password);
+        }
+        if (ret != 0) {
+            closedir(local_dir);
+            return -3;
+        }
+    }
+    closedir(local_dir);
+    return 0;
 }
 
 int64_t ustime() {

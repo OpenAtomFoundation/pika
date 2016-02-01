@@ -81,12 +81,17 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
         querynums_ += iter->second->querynums();
         iter->second->clear_querynums();
 
-        if (should_ping && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
+        //if (should_ping && thread_index_ >= g_pikaConf->thread_num()) {
+            //std::cout << "iter->second->role() == PIKA_MASTER: " << (iter->second->role() == PIKA_MASTER) << std::endl;
+            //std::cout << "g_pikaServer->ms_state_ == PIKA_REP_CONNECTED: " << (g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) << std::endl;
+            //std::cout << "iter->second->role() == PIKA_SLAVE: " << (iter->second->role() == PIKA_SLAVE) << std::endl;
+        if (should_ping && ((iter->second->role() == PIKA_MASTER && (g_pikaServer->ms_state_ == PIKA_REP_CONNECTED || g_pikaServer->ms_state_ == PIKA_REP_CONNECTING)) || (iter->second->role() == PIKA_SLAVE))) {
             LOG(INFO)<<"Send Ping to " << iter->second->ip_port();
             iter->second->append_wbuf_nowait("*1\r\n$4\r\nPING\r\n");
             LOG(INFO) << "length of rbuf_: " << iter->second->rbuflen();
             LOG(INFO) << "length of wbuf_: " << iter->second->wbuflen();
         }
+        //}
         iter_clientlist = clients_.find(iter->second->ip_port());
 
         // graceful shutdown
@@ -241,13 +246,13 @@ void PikaThread::RunProcess()
                     std::string str;
                     std::string auth = g_pikaConf->requirepass();
                     if (auth.size() == 0) {
-                        str = "*3\r\n$8\r\npikasync\r\n";
+                        str = "*4\r\n$8\r\npikasync\r\n";
                     } else {
                         str = "*2\r\n$9\r\nslaveauth\r\n";
                         snprintf(buf_len, sizeof(buf_len), "$%d\r\n", auth.size());
                         str.append(buf_len);
                         str.append(auth);
-                        str.append("\r\n*3\r\n$8\r\npikasync\r\n");
+                        str.append("\r\n*4\r\n$8\r\npikasync\r\n");
                     }
                     uint32_t filenum = 0;
                     uint64_t pro_offset = 0;
@@ -264,6 +269,25 @@ void PikaThread::RunProcess()
                     str.append(buf_len);
                     snprintf(buf, sizeof(buf), "%lu\r\n", pro_offset);
                     str.append(buf);
+
+                    std::string slave_db_sync_path = g_pikaConf->slave_db_sync_path();
+                    if (slave_db_sync_path.at(0) == '.') {
+                        char cwd_buf[100];
+                        getcwd(cwd_buf, sizeof(cwd_buf));
+                        if (cwd_buf[strlen(cwd_buf)-1] == '/') {
+                            cwd_buf[strlen(cwd_buf)-1] = '\0';
+                        }
+                        slave_db_sync_path.erase(slave_db_sync_path.begin());
+                        slave_db_sync_path = std::string(cwd_buf, strlen(cwd_buf)) + slave_db_sync_path;
+                    }
+                    if(slave_db_sync_path.back() == '/' && slave_db_sync_path.size() > 1) {
+                        slave_db_sync_path.erase(slave_db_sync_path.size()-1);
+                    }
+                    len = slave_db_sync_path.size();
+                    snprintf(buf_len, sizeof(buf_len), "$%d\r\n", len);
+                    str.append(buf_len);
+                    slave_db_sync_path.append("\r\n");
+                    str.append(slave_db_sync_path);
 
                     LOG(WARNING)<<str;
                     inConn->append_wbuf_nowait(str);

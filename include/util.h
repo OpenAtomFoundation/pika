@@ -43,6 +43,11 @@ int string2d(const char *buf, size_t len, double *value);
 sds getAbsolutePath(char *filename);
 int pathIsBaseName(char *path);
 int mkpath(const char *path, mode_t mode);
+int delete_dir(const char* dirname);
+void* remove_dir(void* arg);
+int remove_files(const char* path, const char* pattern);
 int64_t ustime();
-
+int is_dir(const char* path);
+int copy_dir(const char* src, const char* dst);
+int scp_copy_dir(const char* local_dir_path, const char* remote_dir_path, const char* remote_host, const char* username, const char* password);
 #endif
