@@ -3,11 +3,13 @@
 #include <pthread.h>
 #include "stdlib.h"
 #include "stdio.h"
+#include <vector>
 
 #include "mutexlock.h"
 #include "pika_define.h"
 #include "xdebug.h"
 #include "base_conf.h"
+#include "util.h"
 
 class PikaConf : public BaseConf
 {
@@ -25,6 +27,14 @@ public:
     bool daemonize()        { return daemonize_; }
 
     char* requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
+    char* userpass()     { RWLock l(&rwlock_, false); return userpass_; }
+    const std::string suser_blacklist() {
+           RWLock l(&rwlock_, false); return PStringConcat(user_blacklist_, COMMA);
+    }
+    const std::vector<std::string>& vuser_blacklist() {
+       RWLock l(&rwlock_, false); return user_blacklist_;
+    }
+
     char* conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
     char* dump_prefix()     { RWLock l(&rwlock_, false); return dump_prefix_; }
     char* dump_path()       { RWLock l(&rwlock_, false); return dump_path_; }
@@ -48,6 +58,15 @@ public:
         RWLock l(&rwlock_, true);
         snprintf (requirepass_, sizeof(requirepass_), "%s", value.data());
     }
+    void SetUserPass(const std::string &value) {
+        RWLock l(&rwlock_, true);
+        snprintf (userpass_, sizeof(userpass_), "%s", value.data());
+    }
+
+    void SetUserBlackList(const std::string &value) {
+        RWLock l(&rwlock_, true);
+        PStringSplit(value, COMMA, user_blacklist_);
+    }
     void SetDumpPrefix(const std::string &value) {
         RWLock l(&rwlock_, true);
         snprintf (dump_prefix_, sizeof(dump_prefix_), "%s", value.data());
@@ -70,6 +89,8 @@ private:
     bool daemonize_;
     int timeout_;
     char requirepass_[PIKA_WORD_SIZE];
+    char userpass_[PIKA_WORD_SIZE];
+    std::vector<std::string> user_blacklist_;
     char dump_prefix_[PIKA_WORD_SIZE];
     char dump_path_[PIKA_WORD_SIZE];
     char pidfile_[PIKA_WORD_SIZE];

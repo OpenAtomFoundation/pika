@@ -43,6 +43,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sstream>
 
 #include "util.h"
 
@@ -602,6 +603,33 @@ int64_t ustime() {
     return ust;
 }
 
+std::vector<std::string>& PStringSplit(const std::string &s, 
+        char delim, std::vector<std::string> &elems) { 
+    elems.clear();
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        if (!item.empty())
+            elems.push_back(item);
+    }
+    return elems;
+}
+
+std::string PStringConcat(const std::vector<std::string> &elems, char delim) {
+    std::string result;
+    std::vector<std::string>::const_iterator it = elems.begin();
+    while (it != elems.end()) {
+       result.append(*it);
+       result.append(1, delim);
+       ++it;
+    }
+    if (!result.empty()) {
+        result.resize(result.size() - 1);
+    }
+    return result;
+}
+
+
 #ifdef UTIL_TEST_MAIN
 #include <assert.h>
 
@@ -708,10 +736,11 @@ void test_string2l(void) {
     assert(string2l(buf,strlen(buf),&v) == 0);
 #endif
 }
-
 int main(int argc, char **argv) {
     test_string2ll();
     test_string2l();
     return 0;
 }
+
 #endif
+

@@ -31,9 +31,23 @@ void AuthCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string password = argv.front();
     argv.pop_front();
-    if (password == std::string(g_pikaConf->requirepass()) || std::string(g_pikaConf->requirepass()) == "") {
-        ret = "+OK\r\n";
-    } else {
+
+    std::string root_password(g_pikaConf->requirepass());
+    std::string user_password(g_pikaConf->userpass());
+    if (user_password.empty() && root_password.empty()) {
+        ret = "-ERR Client sent AUTH, but no password is set\r\n";
+        return;
+    }
+
+    ret.clear();
+    if (password == user_password) {
+        ret = "USER";
+    }
+    if (password == root_password) {
+        ret = "ROOT";
+    }
+
+    if (ret.empty()) {
         ret = "-ERR invalid password\r\n";
     }
 }
@@ -48,9 +62,23 @@ void SlaveauthCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     std::string password = argv.front();
     argv.pop_front();
-    if (password == std::string(g_pikaConf->requirepass()) || std::string(g_pikaConf->requirepass()) == "") {
-        ret = "+OK\r\n";
-    } else {
+
+    std::string root_password(g_pikaConf->requirepass());
+    std::string user_password(g_pikaConf->userpass());
+    if (user_password.empty() && root_password.empty()) {
+        ret = "-ERR Client sent AUTH, but no password is set\r\n";
+        return;
+    }
+
+    ret.clear();
+    if (password == user_password) {
+        ret = "USER";
+    }
+    if (password == root_password) {
+        ret = "ROOT";
+    }
+
+    if (ret.empty()) {
         ret = "-ERR invalid password\r\n";
     }
 }
@@ -547,6 +575,14 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "*2\r\n";
             EncodeString(&ret, "requirepass");
             EncodeString(&ret, g_pikaConf->requirepass());
+        } else if (conf_item == "userpass") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "userpass");
+            EncodeString(&ret, g_pikaConf->userpass());
+        } else if (conf_item == "userblacklist") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "userblacklist");
+            EncodeString(&ret, (g_pikaConf->suser_blacklist()).c_str());
         } else if (conf_item == "dump_prefix") {
             ret = "*2\r\n";
             EncodeString(&ret, "dump_prefix");
@@ -603,7 +639,7 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             EncodeString(&ret, "1");
           }
         } else if (conf_item == "*") {
-          ret = "*23\r\n";
+          ret = "*25\r\n";
           EncodeString(&ret, "port");
           EncodeString(&ret, "thread_num");
           EncodeString(&ret, "slave_thread_num");
@@ -614,6 +650,8 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
           EncodeString(&ret, "write_buffer_size");
           EncodeString(&ret, "timeout");
           EncodeString(&ret, "requirepass");
+          EncodeString(&ret, "userpass");
+          EncodeString(&ret, "userblacklist");
           EncodeString(&ret, "dump_prefix");
           EncodeString(&ret, "daemonize");
           EncodeString(&ret, "dump_path");
@@ -650,6 +688,12 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             ret = "+OK\r\n";
         } else if (conf_item == "requirepass") {
             g_pikaConf->SetRequirePass(value);
+            ret = "+OK\r\n";
+        } else if (conf_item == "userpass") {
+            g_pikaConf->SetUserPass(value);
+            ret = "+OK\r\n";
+        } else if (conf_item == "userblacklist") {
+            g_pikaConf->SetUserBlackList(value);
             ret = "+OK\r\n";
         } else if (conf_item == "dump_prefix") {
             g_pikaConf->SetDumpPrefix(value);
@@ -711,11 +755,13 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
         } else {
             ret = "-ERR No such configure item\r\n";
         }
-    } else if (argv.size() == 0 && conf_item == "*") {
-        ret = "*10\r\n";
+    } else if (argv.size() == 0 && opt == "set" && conf_item == "*") {
+        ret = "*12\r\n";
         EncodeString(&ret, "log_level");
         EncodeString(&ret, "timeout");
         EncodeString(&ret, "requirepass");
+        EncodeString(&ret, "userpass");
+        EncodeString(&ret, "userblacklist");
         EncodeString(&ret, "dump_prefix");
         EncodeString(&ret, "maxconnection");
         EncodeString(&ret, "expire_logs_days");
@@ -735,8 +781,7 @@ unsigned long long du(const std::string& filename)
 {
 	struct stat statbuf;
 	unsigned long long sum;
-
-	if (lstat(filename.c_str(), &statbuf) != 0) {
+    if (lstat(filename.c_str(), &statbuf) != 0) {
 		return 0;
 	}
 

@@ -10,6 +10,12 @@
 #include <list>
 #include <map>
 
+enum PikaConnAuthStat {
+    NoAuthed,
+    LimitAuthed,
+    AdminAuthed
+};
+
 class PikaConn
 {
 public:
@@ -32,6 +38,7 @@ public:
     int ProcessInlineBuffer(std::string &err_msg);
     int ProcessMultibulkBuffer(std::string &err_msg);
     int DoCmd();
+    bool IsAuthed(const std::string& opt);
     void append_wbuf(const std::string &item);
     void append_wbuf_nowait(const std::string &item);
     struct timeval tv() { return tv_; };
@@ -61,7 +68,8 @@ private:
     bool should_close_after_reply;
     struct timeval tv_;
     std::string ip_port_;
-    bool is_authed_;
+    PikaConnAuthStat auth_stat_;
+    //bool is_authed_;
     int role_;
 //    struct timeval lastinteraction_;
     sds wbuf_;

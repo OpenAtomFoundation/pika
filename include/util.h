@@ -27,10 +27,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __REDIS_UTIL_H
-#define __REDIS_UTIL_H
+#ifndef __PIKA_UTIL_H
+#define __PIKA_UTIL_H
 
 #include "sds.h"
+#include <string>
+#include <vector>
 
 int stringmatchlen(const char *p, int plen, const char *s, int slen, int nocase);
 int stringmatch(const char *p, const char *s, int nocase);
@@ -44,5 +46,8 @@ sds getAbsolutePath(char *filename);
 int pathIsBaseName(char *path);
 int mkpath(const char *path, mode_t mode);
 int64_t ustime();
+std::vector<std::string> &PStringSplit(const std::string &s,
+        char delim, std::vector<std::string> &elems);
+std::string PStringConcat(const std::vector<std::string> &elems, char delim);
 
 #endif

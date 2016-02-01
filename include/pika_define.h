@@ -83,6 +83,7 @@ struct purge_args {
 #define SPACE ' '
 #define COLON ':'
 #define SHARP '#'
+#define COMMA ','
 
 
 #endif

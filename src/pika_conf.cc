@@ -4,6 +4,7 @@
 #include "glog/logging.h"
 
 #include <fstream>
+#include <string>
 
 
 PikaConf::PikaConf(const char* path) :
@@ -20,6 +21,12 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("write_buffer_size", &write_buffer_size_);
     getConfInt("timeout", &timeout_);
     getConfStr("requirepass", requirepass_);
+    getConfStr("userpass", userpass_);
+    // Set User Blacklist
+    char user_blacklist[PIKA_CONF_MAX_NUM];
+    getConfStr("userblacklist", user_blacklist);
+    SetUserBlackList(std::string(user_blacklist));
+
     getConfStr("dump_prefix", dump_prefix_);
     getConfStr("dump_path", dump_path_);
     getConfStr("compression", compression_);
@@ -95,6 +102,8 @@ int PikaConf::ConfigRewrite() {
     cfn << "# write_buffer_size\nwrite_buffer_size : " << write_buffer_size() << std::endl;
     cfn << "# Pika timeout\ntimeout : " << timeout() << std::endl;
     cfn << "# Requirepass\nrequirepass : " << requirepass() << std::endl;
+    cfn << "# Requirepass\nuserpass : " << userpass() << std::endl;
+    cfn << "# Requirepass\nuserblacklist : " << suser_blacklist().c_str() << std::endl;
     cfn << "# Dump Prefix\ndump_prefix : " << dump_prefix() << std::endl;
     cfn << "# daemonize  [yes | no]\n#daemonize : yes" << std::endl;
     cfn << "# Dump Path\ndump_path : " << dump_path() << std::endl;

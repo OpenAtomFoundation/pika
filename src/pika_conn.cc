@@ -9,6 +9,8 @@
 #include "util.h"
 #include "mario.h"
 #include <algorithm>
+#include <vector>
+
 extern std::map<std::string, Cmd *> g_pikaCmd;
 extern PikaConf *g_pikaConf;
 extern PikaServer *g_pikaServer;
@@ -30,7 +32,14 @@ PikaConn::PikaConn(int fd, std::string ip_port, int role) :
     wbuf_ = sdsempty();
     msbuf_ = sdsempty();
     gettimeofday(&tv_, NULL);
-    is_authed_ = std::string(g_pikaConf->requirepass()) == "" ? true : false;
+
+    // Check auth required
+    auth_stat_ = std::string(g_pikaConf->userpass()) == "" ?
+        LimitAuthed : NoAuthed;
+    if (auth_stat_ == LimitAuthed 
+            && std::string(g_pikaConf->requirepass()) == "") {
+        auth_stat_ = AdminAuthed;
+    }
     querynums_ = 0;
 }
 
@@ -454,7 +463,7 @@ int PikaConn::DoCmd() {
     transform(opt.begin(), opt.end(), opt.begin(), ::tolower);
     int cmd_ret = 0;
     std::string ret;
-    if (is_authed_ || opt == "auth" || opt == "slaveauth") {
+    if (IsAuthed(opt)) {
         std::map<std::string, Cmd *>::iterator iter = g_pikaCmd.find(opt);
         if (iter == g_pikaCmd.end()) {
             ret.append("-ERR unknown or unsupported command \'");
@@ -510,36 +519,22 @@ int PikaConn::DoCmd() {
                     }
                 }
 
-                if (opt == "auth") {
-                    if (ret == "+OK\r\n") {
-                        is_authed_ = true;
+                if (opt == "auth" || opt == "slaveauth") {
+                    // Situations to change auth status
+                    if (ret == "USER") {
+                        auth_stat_ = LimitAuthed;
+                        ret = "+OK\r\n";
+                    } else if (ret == "ROOT"){
+                        auth_stat_ = AdminAuthed;
+                        ret = "+OK\r\n";
                     } else {
-                        is_authed_ = false;
                         LOG(WARNING) << "(" << ip_port_ << ")Wrong Password, close connection";
                         cmd_ret = -2;
                     }
-
-                    if (std::string(g_pikaConf->requirepass()) == "") {
-                        ret = "-ERR Client sent AUTH, but no password is set\r\n";
-                    }
                 }
-                if (opt == "slaveauth") {
-                    if (ret == "+OK\r\n") {
-                        is_authed_ = true;
-                    } else {
-                        LOG(WARNING) << "(" << ip_port_ << ")Slave Wrong Password, close connection";
-                        is_authed_ = false;
-                        cmd_ret = -2;
-                    }
-                    ret = "";
-
-                    if (std::string(g_pikaConf->requirepass()) == "") {
-                        ret = "-ERR Client sent AUTH, but no password is set\r\n";
-                    }
+                if (opt == "slaveauth") { 
+                    ret = ""; // No reply for command salveauth
                 }
-             //   if (iter->second->is_sync == true && ret.find("-ERR ") != 0) {
-             //       cmd_ret = 1;
-             //   }
             }
         }
     } else {
@@ -560,4 +555,28 @@ int PikaConn::DoCmd() {
     }
     return cmd_ret;
 }
+
+bool PikaConn::IsAuthed(const std::string& opt) {
+    if (opt == "slaveauth" || opt == "auth") {
+        return true;
+    }
+    const std::vector<std::string>& blacklist = g_pikaConf->vuser_blacklist();
+    std::vector<std::string>::const_iterator it;
+    switch (auth_stat_) {
+        case NoAuthed:
+            return false;
+        case AdminAuthed:
+            break;
+        case LimitAuthed:
+             it = find(blacklist.begin(), blacklist.end(), opt);
+            if (it != blacklist.end()) return false;
+            break;
+        default:
+            LOG(WARNING) << "Invalid auth stat : " << auth_stat_;
+            return false;
+    }
+    return true;
+}
+
+
 
