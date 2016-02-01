@@ -4,3 +4,6 @@
 [submodule "third/glog"]
 	path = third/glog
 	url = git@github.com:CatKang/glog.git
+[submodule "third/libssh2"]
+	path = third/libssh2
+	url = https://github.com/libssh2/libssh2.git

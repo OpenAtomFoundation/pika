@@ -154,6 +154,7 @@ void ClientCmd::Do(std::list<std::string> &argv, std::string &ret) {
 //    }
 //}
 
+
 void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
     int as = argv.size();
     if ((as != 3 && as != 5) || (arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
@@ -227,6 +228,42 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
         g_pikaServer->set_masterhost(p2);
         g_pikaServer->set_masterport(port+100);
         ret = "+OK\r\n";
+
+        std::string slave_db_sync_path = g_pikaConf->slave_db_sync_path();
+        if ((slave_db_sync_path.size() == 1 && slave_db_sync_path == ".") || (slave_db_sync_path.size() > 1 && slave_db_sync_path.substr(0, 2) == "./")) {
+            char cur_word_path[100];
+            getcwd(cur_word_path, sizeof(cur_word_path));
+            if (*(cur_word_path+strlen(cur_word_path)-1) == '/') {
+                *(cur_word_path+strlen(cur_word_path)-1) = '\0';
+            }
+            slave_db_sync_path = std::string(cur_word_path, strlen(cur_word_path)) + slave_db_sync_path.substr(1);
+        }
+        if (slave_db_sync_path.back() == '/') {
+            slave_db_sync_path.erase(slave_db_sync_path.size()-1);
+        }
+        //delete_dir(slave_db_sync_path.c_str());
+        //struct stat file_info;
+        //if (stat(slave_db_sync_path.c_str(), &file_info) == 0) {
+        if (access(slave_db_sync_path.c_str(), F_OK) == 0) {
+            char tmp_dir_path[100];
+            strncpy(tmp_dir_path, slave_db_sync_path.c_str(), slave_db_sync_path.size()+1);
+            strcat(tmp_dir_path, "_tmp");
+            if (access(tmp_dir_path, F_OK) == 0) {
+                delete_dir(tmp_dir_path);
+            }
+            rename(slave_db_sync_path.c_str(), tmp_dir_path);
+            pthread_t thread_id;
+            char *arg = strdup(tmp_dir_path);
+            if (pthread_create(&thread_id, NULL, remove_dir, arg)) {
+                free(arg);
+            }
+        }
+
+        mkpath((slave_db_sync_path+"/kv").c_str(), 0755);
+        mkpath((slave_db_sync_path+"/hash").c_str(), 0755);
+        mkpath((slave_db_sync_path+"/list").c_str(), 0755);
+        mkpath((slave_db_sync_path+"/set").c_str(), 0755);
+        mkpath((slave_db_sync_path+"/zset").c_str(), 0755);
     } else {
         ret = "-ERR State is not in PIKA_REP_SINGLE\r\n";
     }
@@ -235,6 +272,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
 }
 
 void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    //pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
         ret.append(argv.front());
@@ -266,6 +304,9 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
         return;
     }
 
+    std::string str_dbsyncpath = argv.front();
+    argv.pop_front();
+
     std::string str_fd = argv.front();
     argv.pop_front();
     int64_t fd = 0;
@@ -279,6 +320,12 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     std::string t_ret;
     if (res == PIKA_REP_STRATEGY_PSYNC) {
         t_ret = "*1\r\n$9\r\nucanpsync\r\n";
+    } else if (res == PIKA_REP_STRATEGY_MISS) {
+        if (g_pikaServer->TrySyncDB(str_dbsyncpath, fd) == 0) {
+            t_ret = "*2\r\n$6\r\nsyncdb\r\n$5\r\nstart\r\n";
+        } else {
+            t_ret = "*1\r\n$9\r\nsyncerror\r\n";
+        }
     } else {
         t_ret = "*1\r\n$9\r\nsyncerror\r\n";
     }
@@ -321,6 +368,88 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     g_pikaConf->SetReadonly(true);
     LOG(WARNING) << "Master told me that I can psync, open readonly mode now";
     ret = "";
+}
+
+void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((int)argv.size() < 2) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    /*
+    {
+        MutexLock l(g_pikaServer->Mutex());
+        if (g_pikaServer->ms_state_ == PIKA_REP_CONNECTING) {
+            g_pikaServer->ms_state_ = PIKA_REP_CONNECTED;
+        }
+    }
+    */
+
+    std::string slave_db_sync_path = g_pikaConf->slave_db_sync_path();
+    if ((slave_db_sync_path.size() == 1 && slave_db_sync_path == ".") || (slave_db_sync_path.size() > 1 && slave_db_sync_path.substr(0, 2) == "./")) {
+        char cur_word_path[100];
+        getcwd(cur_word_path, sizeof(cur_word_path));
+        if (*(cur_word_path+strlen(cur_word_path)-1) == '/') {
+            *(cur_word_path+strlen(cur_word_path)-1) = '\0';
+        }
+        slave_db_sync_path = std::string(cur_word_path, strlen(cur_word_path)) + slave_db_sync_path.substr(1);
+    }
+    if (argv.front() == "start" && argv.size() == 1) {
+        ret = "";
+    } else if (argv.front() == "finished" && argv.size() == 3) {
+        int64_t pro_filenum;
+        argv.pop_front();
+        std::string pro_filenum_str = argv.front();
+        if (!string2l(pro_filenum_str.data(), pro_filenum_str.size(), &pro_filenum)) {
+            ret = "-ERR value is not an integer or out of range\r\n";
+            return;
+        }
+        argv.pop_front();
+        std::string pro_offset_str = argv.front();
+        int64_t pro_offset;
+        if (!string2l(pro_offset_str.data(), pro_offset_str.size(), &pro_offset)) {
+            ret = "-ERR Invalid offset";
+            return;
+        }
+        pthread_rwlock_unlock(g_pikaServer->rwlock());
+        g_pikaServer->ReloadDb(slave_db_sync_path);
+        pthread_rwlock_rdlock(g_pikaServer->rwlock());
+        {
+            MutexLock l(g_pikaServer->Mutex());
+            g_pikaServer->purging_ = true;
+            remove_files(g_pikaConf->log_path(), "write2file2");
+            g_pikaServer->purging_ = true;
+        }
+        g_pikaMario->SetProducerStatus(pro_filenum, pro_offset);
+
+        std::string auth = g_pikaConf->requirepass();
+        char buf_len[32];
+        if (auth.size() == 0) {
+            ret.assign("*4\r\n$8\r\npikasync\r\n");
+        } else {
+            ret.assign("*2\r\n$9\r\nslaveauth\r\n");
+            snprintf(buf_len, sizeof(buf_len), "$%d\r\n", auth.size());
+            ret.append(buf_len);
+            ret.append(auth);
+            ret.append("*4\r\n$8\r\npikasync\r\n");
+        }
+        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", pro_filenum_str.size());
+        ret.append(buf_len);
+        ret.append(pro_filenum_str + "\r\n");
+        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", pro_offset_str.size());
+        ret.append(buf_len);
+        ret.append(pro_offset_str + "\r\n");
+        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", slave_db_sync_path.size());
+        ret.append(buf_len);
+        ret.append(slave_db_sync_path + "\r\n");
+        LOG(WARNING) << ret;
+    } else {
+        ret = "-ERR wrong argument for";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+    }
 }
 
 void PutInt32(std::string *dst, int32_t v) {
@@ -638,8 +767,20 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
           } else {
             EncodeString(&ret, "1");
           }
+        } else if (conf_item == "master_db_sync_path") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "master_db_sync_path");
+            EncodeString(&ret, g_pikaConf->master_db_sync_path());
+        } else if (conf_item == "slave_db_sync_path") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "slave_db_sync_path");
+            EncodeString(&ret, g_pikaConf->slave_db_sync_path());
+        } else if (conf_item == "db_sync_speed") {
+            ret = "*2\r\n";
+            EncodeString(&ret, "db_sync_speed");
+            EncodeInt32(&ret, g_pikaConf->db_sync_speed());
         } else if (conf_item == "*") {
-          ret = "*25\r\n";
+          ret = "*28\r\n";
           EncodeString(&ret, "port");
           EncodeString(&ret, "thread_num");
           EncodeString(&ret, "slave_thread_num");
@@ -665,6 +806,9 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
           EncodeString(&ret, "slave-read-only");
           EncodeString(&ret, "binlog_file_size");
           EncodeString(&ret, "compression");
+          EncodeString(&ret, "master_db_sync_path");
+          EncodeString(&ret, "slave_db_sync_path");
+          EncodeString(&ret, "db_sync_speed");
         } else {
             ret = "-ERR No such configure item\r\n";
         }
@@ -752,11 +896,27 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
             g_pikaConf->SetReadonly(is_readonly);
             pthread_rwlock_rdlock(g_pikaServer->rwlock());
             ret = "+OK\r\n";
+        } else if (conf_item == "master_db_sync_path") {
+            g_pikaConf->SetMasterDbSyncPath(value);
+            ret = "+OK\r\n";
+        } else if (conf_item == "slave_db_sync_path") {
+            g_pikaConf->SetSlaveDbSyncPath(value);
+            ret = "+OK\r\n";
+        } else if (conf_item == "db_sync_speed") {
+            if (!string2l(value.data(), value.size(), &ival)) {
+                ret = "-ERR Invalid argument " + value + " for CONFIG SET 'db_sync_speed(MB)'\r\n";
+                return;
+            }
+            if (ival < 0 || ival > 125) {
+                ival = 125;
+            }
+            g_pikaConf->SetDbSyncSpeed(ival);
+            ret = "+OK\r\n";
         } else {
             ret = "-ERR No such configure item\r\n";
         }
     } else if (argv.size() == 0 && opt == "set" && conf_item == "*") {
-        ret = "*12\r\n";
+        ret = "*15\r\n";
         EncodeString(&ret, "log_level");
         EncodeString(&ret, "timeout");
         EncodeString(&ret, "requirepass");
@@ -769,6 +929,9 @@ void ConfigCmd::Do(std::list<std::string> &argv, std::string &ret) {
         EncodeString(&ret, "root_connection_num");
         EncodeString(&ret, "slowlog_log_slower_than");
         EncodeString(&ret, "slave-read-only");
+        EncodeString(&ret, "master_db_sync_path");
+        EncodeString(&ret, "slave_db_sync_path");
+        EncodeString(&ret, "db_sync_speed");
     } else {
         ret = "-ERR wrong number of arguments for CONFIG ";
         ret.append(opt);

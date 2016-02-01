@@ -53,7 +53,7 @@ bool BaseConf::ReadConf(const char* path)
         line_len = strlen(line);
         for (int i = 0; i < line_len; i++) {
             ch = line[i];
-            if (ch == '#') break;
+            if (ch == '#' && sep_sign == 0) break;
 
             switch (ch) {
                 case ':': {

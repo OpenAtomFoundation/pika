@@ -218,7 +218,7 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("client", clientptr));
     SlaveofCmd *slaveofptr = new SlaveofCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("slaveof", slaveofptr));
-    PikasyncCmd *pikasyncptr = new PikasyncCmd(4);
+    PikasyncCmd *pikasyncptr = new PikasyncCmd(5);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("pikasync", pikasyncptr));
 //    BemasterCmd *bemasterptr = new BemasterCmd(2);
 //    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bemaster", bemasterptr));
@@ -228,6 +228,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("info", infoptr));
     UcanpsyncCmd *ucanpsyncptr = new UcanpsyncCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("ucanpsync", ucanpsyncptr));
+    SyncdbCmd *syncdbptr = new SyncdbCmd(-2);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("syncdb", syncdbptr));
     SyncerrorCmd *syncerrorptr = new SyncerrorCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("syncerror", syncerrorptr));
     LoaddbCmd *loaddbptr = new LoaddbCmd(2);

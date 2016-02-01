@@ -22,6 +22,8 @@ public:
     char* log_path()        { RWLock l(&rwlock_, false); return log_path_; }
     int log_level()         { RWLock l(&rwlock_, false); return log_level_; }
     char* db_path()         { RWLock l(&rwlock_, false); return db_path_; }
+    char* master_db_sync_path() { RWLock l(&rwlock_, false); return master_db_sync_path_; }
+    char* slave_db_sync_path() { RWLock l(&rwlock_, false); return slave_db_sync_path_; }
     int write_buffer_size() { RWLock l(&rwlock_, false); return write_buffer_size_; }
     int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
     bool daemonize()        { return daemonize_; }
@@ -38,6 +40,7 @@ public:
     char* conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
     char* dump_prefix()     { RWLock l(&rwlock_, false); return dump_prefix_; }
     char* dump_path()       { RWLock l(&rwlock_, false); return dump_path_; }
+    int db_sync_speed()     { RWLock l(&rwlock_, false); return db_sync_speed_; }
     char* pidfile()         { return pidfile_; }
     int maxconnection()     { RWLock l(&rwlock_, false); return maxconnection_; }
     int target_file_size_base()     { RWLock l(&rwlock_, false); return target_file_size_base_; }
@@ -48,7 +51,8 @@ public:
     int binlog_file_size()  { return binlog_file_size_; }
     char* compression()       { RWLock l(&rwlock_, false); return compression_; }
     bool readonly()         { RWLock l(&rwlock_, false); return readonly_; }
-
+    char *username()        { RWLock l(&rwlock_, false); return username_; }
+    char *password()        { RWLock l(&rwlock_, false); return password_; }
     void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
     void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
     void SetLogLevel(const int value)             { RWLock l(&rwlock_, true); log_level_ = value; }
@@ -77,6 +81,11 @@ public:
     void SetRootConnectionNum(const int value)              { RWLock l(&rwlock_, true); root_connection_num_ = value; }
     void SetSlowlogSlowerThan(const int64_t value)          { RWLock l(&rwlock_, true); slowlog_slower_than_ = value; }
     void SetReadonly(const bool value)                      { RWLock l(&rwlock_, true); readonly_ = value; }
+    void SetUsername(const std::string& value)              { RWLock l(&rwlock_, true); snprintf(username_, sizeof(username_), "%s", value.data()); }
+    void SetPassword(const std::string& value)              { RWLock l(&rwlock_, true); snprintf(password_, sizeof(password_), "%s", value.data()); }
+    void SetMasterDbSyncPath(const std::string& value)      { RWLock l(&rwlock_, true); snprintf(master_db_sync_path_, sizeof(master_db_sync_path_), "%s", value.data()); }
+    void SetSlaveDbSyncPath(const std::string& value)       { RWLock l(&rwlock_, true); snprintf(slave_db_sync_path_, sizeof(slave_db_sync_path_), "%s", value.data()); }
+    void SetDbSyncSpeed(const int value)                    { RWLock l(&rwlock_, true); db_sync_speed_ = value; }
     int ConfigRewrite();
 private:
     int port_;
@@ -84,6 +93,8 @@ private:
     int slave_thread_num_;
     char log_path_[PIKA_WORD_SIZE];
     char db_path_[PIKA_WORD_SIZE];
+    char master_db_sync_path_[PIKA_WORD_SIZE];
+    char slave_db_sync_path_[PIKA_WORD_SIZE];
     int write_buffer_size_;
     int log_level_;
     bool daemonize_;
@@ -105,6 +116,9 @@ private:
     bool readonly_;
 
     char conf_path_[PIKA_WORD_SIZE];
+    char username_[30];
+    char password_[30];
+    int db_sync_speed_;
     pthread_rwlock_t rwlock_;
 };
 

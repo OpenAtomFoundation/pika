@@ -23,11 +23,13 @@ INCLUDE_PATH = -I./include/ \
 			   -I./src/ \
 			   -I$(THIRD_PATH)/glog/src/ \
 			   -I$(THIRD_PATH)/nemo/output/include/ \
-			   -I$(THIRD_PATH)/mario/output/include/
+			   -I$(THIRD_PATH)/mario/output/include/\
+			   -I$(THIRD_PATH)/libssh2/include/
 
 LIB_PATH = -L./ \
 		   -L$(THIRD_PATH)/nemo/output/lib/ \
-		   -L$(THIRD_PATH)/mario/output/lib/
+		   -L$(THIRD_PATH)/mario/output/lib/\
+		   -L$(THIRD_PATH)/libssh2/src/
 
 
 LIBS = -lpthread \
@@ -38,11 +40,15 @@ LIBS = -lpthread \
 	   -lz \
 	   -lbz2 \
 	   -lsnappy \
-	   -lrt
+	   -lrt \
+	   -lssh2 \
+	   -lssl \
+	   -lcrypto
 
 ROCKSDB = $(THIRD_PATH)/nemo/output/lib/librocksdb.a
 GLOG = /usr/local/lib/libglog.a
 MARIO = $(THIRD_PATH)/mario/output/lib/libmario.a
+LIBSSH2 = $(THIRD_PATH)/libssh2/src/libssh2.a
 
 .PHONY: all clean
 
@@ -67,7 +73,7 @@ all: $(OBJECT)
 	@echo "Success, go, go, go..."
 
 
-$(OBJECT): $(ROCKSDB) $(GLOG) $(MARIO) $(OBJS)
+$(OBJECT): $(ROCKSDB) $(GLOG) $(MARIO) $(LIBSSH2) $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH)  $(LFLAGS) $(LIBS) 
 
 $(ROCKSDB):
@@ -78,6 +84,9 @@ $(GLOG):
 
 $(MARIO):
 	make -C $(THIRD_PATH)/mario/ 
+
+$(LIBSSH2):
+	cd $(THIRD_PATH)/libssh2/; cmake .; make;
 
 $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 

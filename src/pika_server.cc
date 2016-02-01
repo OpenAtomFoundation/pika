@@ -23,9 +23,11 @@
 #include <dirent.h>
 #include <signal.h>
 #include <set>
+#include <utility>
 
 extern PikaConf *g_pikaConf;
 extern mario::Mario *g_pikaMario;
+extern PikaServer *g_pikaServer;
 
 static void save_time_tm(struct tm *dst_ptr, struct tm *src_ptr)
 {
@@ -158,6 +160,11 @@ PikaServer::PikaServer()
     struct tm *time_tm_ptr = localtime(&start_time_s_);
     save_time_tm(&last_autopurge_time_tm_, time_tm_ptr);
     save_time_tm(&start_time_tm_, time_tm_ptr);
+    is_syncing_db_ = false;
+    syncing_db_thread_ = 0;
+    db_sync_file_num_ = -1;
+    db_sync_file_offset_ = -1;
+    db_sync_purge_max_ = -1;
 //    options_.create_if_missing = true;
 //    options_.write_buffer_size = 1500000000;
 //    leveldb::Status s = leveldb::DB::Open(options_, "/tmp/testdb", &db_);
@@ -213,63 +220,41 @@ bool PikaServer::LoadDb(std::string& path) {
     return true;
 }
 
-int is_dir(const char* filename) {
-    struct stat buf;
-    int ret = stat(filename,&buf);
-    if (0 == ret) {
-        if (buf.st_mode & S_IFDIR) {
-            //folder
-            return 0;
-        } else {
-            //file
-            return 1;
-        }
+bool PikaServer::ReloadDb(std::string& path) {
+    std::string db_path = g_pikaConf->db_path();
+    char db_path_bak[100];
+    strcpy(db_path_bak, db_path.c_str());
+    if (db_path.back() == '/') {
+        db_path_bak[db_path.size()-1] = '\0';
     }
-    return -1;
-}
-
-int delete_dir(const char* dirname)
-{
-    char chBuf[256];
-    DIR * dir = NULL;
-    struct dirent *ptr;
-    int ret = 0;
-    dir = opendir(dirname);
-    if (NULL == dir) {
-        return -1;
+    strcat(db_path_bak, "_bak");
+    {
+        RWLock l(&rwlock_, true);
+        delete db_;
+        db_ = NULL;
+        if (access(db_path_bak, F_OK) == 0) {
+            delete_dir(db_path_bak);
+        }
+        if (rename(db_path.c_str(), db_path_bak)) {
+            return false;
+        }
+        if (rename(path.c_str(), db_path.c_str())) {
+            return false;
+        }
+        //copy_dir(path.c_str(), db_path.c_str());
+        nemo::Options option;
+        LOG(WARNING) << "Prepare to reload " << path << " db to original path " << db_path;
+        option.write_buffer_size = g_pikaConf->write_buffer_size();
+        option.target_file_size_base = g_pikaConf->target_file_size_base();
+        db_ = new nemo::Nemo(db_path, option);
+        LOG(WARNING) << "reload " << path << " db to original path success";
     }
-    while((ptr = readdir(dir)) != NULL) {
-        ret = strcmp(ptr->d_name, ".");
-        if (0 == ret) {
-            continue;
-        }
-        ret = strcmp(ptr->d_name, "..");
-        if (0 == ret) {
-            continue;
-        }
-        snprintf(chBuf, 256, "%s/%s", dirname, ptr->d_name);
-        ret = is_dir(chBuf);
-        if (0 == ret) {
-            //is dir
-            ret = delete_dir(chBuf);
-            if (0 != ret) {
-                return -1;
-            }
-        }
-        else if (1 == ret) {
-            //is file
-            ret = remove(chBuf);
-            if(0 != ret) {
-                return -1;
-            }
-        }
+    pthread_t id;
+    char *arg = strdup(db_path_bak);
+    if (pthread_create(&id, NULL, remove_dir, arg)) {
+        free(arg);
     }
-    (void)closedir(dir);
-    ret = remove(dirname);
-    if (0 != ret) {
-        return -1;
-    }
-    return 0;
+    return true;
 }
 
 bool PikaServer::Flushall() {
@@ -722,6 +707,9 @@ void PikaServer::AutoPurge() {
 //    } else if (num > expire_logs_nums) {
     uint32_t max = 0;
     g_pikaMario->GetStatus(&max);
+    if (db_sync_purge_max_ != -1) {
+        max = max < db_sync_purge_max_ ? max : db_sync_purge_max_;
+    }
     if (num > expire_logs_nums) {
         if (max >= 10 && PurgeLogs(max, max-expire_logs_nums)) {
             LOG(WARNING) << "Auto Purge(Nums): write2file" << max-expire_logs_nums << " log nums: " << num;
@@ -848,6 +836,142 @@ void PikaServer::DisconnectFromMaster() {
     }
 }
 
+void* PikaServer::StartSyncDB(void *args) {
+    std::string master_ip_str = g_pikaServer->GetServerIp();
+    std::string master_db_sync_path = g_pikaConf->master_db_sync_path();
+    uint32_t filenum;
+    uint64_t offset;
+    bool pre_db_sync_valid = false;
+    if ((filenum = g_pikaServer->db_sync_file_num()) != -1 && (offset = g_pikaServer->db_sync_file_offset()) != -1) {
+        char file_path[100];
+        snprintf(file_path, sizeof(file_path), "write2file%d", filenum);
+        if (access(file_path, F_OK)) {
+            pre_db_sync_valid = true;
+            g_pikaServer->set_db_sync_purge_max(filenum);
+        }
+    }
+    if (!pre_db_sync_valid) {
+        nemo::Snapshots snapshots;
+        delete_dir(master_db_sync_path.c_str());
+        nemo::Status s;
+        {
+            RWLock l(g_pikaServer->rwlock(), true);
+            g_pikaMario->GetProducerStatus(&filenum, &offset);
+            g_pikaServer->GetHandle()->BGSaveGetSnapshot(snapshots);
+            g_pikaServer->bgsaving_ = true;
+            s = g_pikaServer->GetHandle()->BGSave(snapshots, master_db_sync_path);
+            g_pikaServer->bgsaving_ = false;
+        }
+        if (!s.ok()) {
+            LOG(WARNING) << "sync db's dump failed";
+            return NULL;
+        }
+        g_pikaServer->set_db_sync_file_num(filenum);
+        g_pikaServer->set_db_sync_file_offset(offset);
+        g_pikaServer->set_db_sync_purge_max(filenum);
+    }
+
+    std::string str;
+    str.assign("*4\r\n$6\r\nsyncdb\r\n$8\r\nfinished\r\n");
+    char buf[20];
+    char buf_len[20];
+    snprintf(buf, sizeof(buf), "%u\r\n", filenum);
+    snprintf(buf_len, sizeof(buf_len), "$%d\r\n", strlen(buf)-2);
+    str.append(buf_len, strlen(buf_len));
+    str.append(buf, strlen(buf));
+    snprintf(buf, sizeof(buf), "%llu\r\n", offset);
+    snprintf(buf_len, sizeof(buf_len), "$%d\r\n", strlen(buf)-2);
+    str.append(buf_len, strlen(buf_len));
+    str.append(buf, strlen(buf));
+    std::map<std::string, std::pair<PikaConn*, std::string> >* syncing_db_slaves;
+    syncing_db_slaves = g_pikaServer->syncing_db_slaves();
+    std::map<std::string, std::pair<PikaConn*, std::string> >::iterator iter;
+    int32_t user_thread_num = g_pikaConf->thread_num();
+    int32_t slave_thread_num = g_pikaConf->slave_thread_num();
+    PikaThread **pikaThreads = g_pikaServer->pikaThread();
+    int32_t index = 0;
+
+    std::string slave_ip_port;
+    std::string slave_db_sync_path;
+    while (1) {
+        {
+            MutexLock l(g_pikaServer->Mutex());
+            if (syncing_db_slaves->empty()) {
+                break;
+            }
+            iter = syncing_db_slaves->begin();
+            for (index = 0; index != slave_thread_num; index++) {
+                std::map<std::string, client_info>* clients = pikaThreads[user_thread_num+index]->clients();
+                std::map<int, PikaConn *>* conns = pikaThreads[user_thread_num+index]->conns();
+                std::map<std::string, client_info>::iterator iter_clients = clients->find(iter->first);
+                if (iter_clients != clients->end() && (*conns)[(iter_clients->second).fd] == (iter->second).first) {
+                    break;
+                }
+            }
+            if (index == slave_thread_num) {
+                RWLock l(g_pikaServer->rwlock(), true);
+                syncing_db_slaves->erase(iter);
+                continue;
+            }
+            slave_ip_port = iter->first;
+            //PikaConn *pika_conn = (iter->second).first;
+            slave_db_sync_path = (iter->second).second;
+        }
+        std::string slave_ip_str = slave_ip_port.substr(0, slave_ip_port.find(':'));
+        std::string username = g_pikaConf->username();
+        std::string password = g_pikaConf->password();
+        std::cout << "scp start " << slave_ip_port << std::endl;
+        scp_copy_dir(master_db_sync_path.c_str(), slave_db_sync_path.c_str(), slave_ip_str.c_str(), username.c_str(), password.c_str());
+        (iter->second).first->append_wbuf(str);
+        {
+            MutexLock l(g_pikaServer->Mutex());
+            syncing_db_slaves->erase(iter);
+        }
+    }
+
+    g_pikaServer->set_is_syncing_db(false);
+    g_pikaServer->set_syncing_db_thread(0);
+    g_pikaServer->set_db_sync_purge_max(-1);//may cause miss at the slave send pikasync command, becaurse there is a time interval between now and the slave's next pikasync command
+    return NULL;
+}
+
+int PikaServer::TrySyncDB(std::string slave_db_sync_path, int fd) {
+    int32_t thread_index = g_pikaConf->thread_num();
+    std::map<int, PikaConn*>* conns_map;
+    std::map<int, PikaConn*>::iterator iter_conns;
+    for (; thread_index < thread_num_-1; thread_index++) {
+        RWLock l(&rwlock_, false);
+        conns_map = pikaThread_[thread_index]->conns();
+        iter_conns = conns_map->find(fd);
+        if (iter_conns != conns_map->end()) {
+            break;
+        }
+    }
+    if (thread_index == thread_num_-1) {
+        return -1; // fd is not found(i.e. the connection is closed)
+    }
+    std::string slave_ip_port = iter_conns->second->ip_port();
+    {
+        MutexLock l(&mutex_);
+        syncing_db_slaves_[slave_ip_port] = make_pair(iter_conns->second, slave_db_sync_path);
+    }
+    if (is_syncing_db()) {
+        return 0;//the slaves' db syncing has already been being done
+    } else if (bgsaving()) {
+        return -2;//there is a dumping, but not for syncing db
+    }
+    pthread_t db_sync_id;
+    if (pthread_create(&db_sync_id, NULL, StartSyncDB, NULL)) {
+        return -3;
+    }
+    {
+        MutexLock l(&mutex_);
+        syncing_db_thread_ = db_sync_id;
+        is_syncing_db_ = true;
+    }
+    return 0;
+}
+
 int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint64_t filenum, uint64_t offset) {
 //    std::string ip_port = ip + ":" + str_port;
 //    std::map<std::string, SlaveItem>::iterator iter = slaves_.find(ip_port);
@@ -901,6 +1025,24 @@ int PikaServer::TrySync(/*std::string &ip, std::string &str_port,*/ int fd, uint
         }
         conn->set_role_nolock(PIKA_SLAVE);
         return PIKA_REP_STRATEGY_PSYNC;
+    } else if (s.IsIOError()) {
+        uint32_t pro_filenum;
+        uint64_t pro_offset;
+        g_pikaMario->GetProducerStatus(&pro_filenum, &pro_offset);
+        if (filenum < pro_filenum) {
+            {
+                RWLock l(pikaThread_[i]->rwlock(), true);
+                iter_cl = pikaThread_[i]->clients()->find(iter_fd->second->ip_port());
+                if (iter_cl != pikaThread_[i]->clients()->end()) {
+                    LOG(WARNING) << "Set client role to slave";
+                    iter_cl->second.role = PIKA_SLAVE;
+                }
+            }
+            conn->set_role_nolock(PIKA_SLAVE);
+            return PIKA_REP_STRATEGY_MISS;
+        } else {
+            return PIKA_REP_STRATEGY_ERROR;
+        }
     } else {
         return PIKA_REP_STRATEGY_ERROR;
     }

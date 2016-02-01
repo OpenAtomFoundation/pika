@@ -29,7 +29,11 @@ PikaConf::PikaConf(const char* path) :
 
     getConfStr("dump_prefix", dump_prefix_);
     getConfStr("dump_path", dump_path_);
+    getConfStr("master_db_sync_path", master_db_sync_path_);
+    getConfStr("slave_db_sync_path", slave_db_sync_path_);
     getConfStr("compression", compression_);
+    getConfStr("username", username_);
+    getConfStr("password", password_);
 
     getConfStr("pidfile", pidfile_);
 
@@ -40,6 +44,7 @@ PikaConf::PikaConf(const char* path) :
     getConfInt("root_connection_num", &root_connection_num_);
     getConfInt("slowlog_log_slower_than", &slowlog_slower_than_);
     getConfInt("binlog_file_size", &binlog_file_size_);
+    getConfInt("db_sync_speed", &db_sync_speed_);
     getConfBool("slave-read-only", &readonly_);
 
     if (thread_num_ <= 0) {
@@ -69,7 +74,9 @@ PikaConf::PikaConf(const char* path) :
     if (root_connection_num_ < 0) {
         root_connection_num_ = 0;
     }
-
+    if (db_sync_speed_ < 0 || db_sync_speed_ > 125) {
+        db_sync_speed_ = 125;
+    }
     char str[PIKA_WORD_SIZE];
     getConfStr("daemonize", str);
 
@@ -99,6 +106,8 @@ int PikaConf::ConfigRewrite() {
     cfn << "# Pika log path\nlog_path : " << log_path() << std::endl;
     cfn << "# Pika glog level\nlog_level : " << log_level() << std::endl;
     cfn << "# Pika db path\ndb_path : " << db_path() << std::endl;
+    cfn << "# master db_sync_path\nmaster_db_sync_path : " << master_db_sync_path() << std::endl;
+    cfn << "# slave db_sync_path\nslave_db_sync_path : " << slave_db_sync_path() << std::endl;
     cfn << "# write_buffer_size\nwrite_buffer_size : " << write_buffer_size() << std::endl;
     cfn << "# Pika timeout\ntimeout : " << timeout() << std::endl;
     cfn << "# Requirepass\nrequirepass : " << requirepass() << std::endl;
@@ -115,6 +124,9 @@ int PikaConf::ConfigRewrite() {
     cfn << "# Root_connection_num\nroot_connection_num : " << root_connection_num() << std::endl;
     cfn << "# Slowlog_log_slower_than\nslowlog_log_slower_than : " << slowlog_slower_than() << std::endl;
     cfn << "# readonly(on/off)\nslave-read-only : " << readonly() << std::endl;
+    cfn << "# username for db_sync\nusername : " << username() << std::endl;
+    cfn << "# password for db_sync\npassword : " << password() << std::endl;
+    cfn << "# db sync speed(MB)\n db_sync_speed : " << db_sync_speed() << std::endl;
     cfn << "\n###################\n## Critical Settings\n###################" << std::endl;
     cfn << "# binlog file size: default is 100M,  limited in [1K, 2G]\nbinlog_file_size : " << binlog_file_size() << std::endl;
     cfn << "# Compression\ncompression : " << compression() << std::endl;

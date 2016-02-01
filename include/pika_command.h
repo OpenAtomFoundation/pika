@@ -82,6 +82,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class SyncdbCmd : public Cmd {
+public:
+    SyncdbCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string>& args, std::string &ret);
+};
+
 class SyncerrorCmd : public Cmd {
 public:
     SyncerrorCmd(int a, bool i = false) : Cmd(a, i) {};
