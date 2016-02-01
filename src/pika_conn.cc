@@ -500,7 +500,7 @@ int PikaConn::DoCmd() {
                 }
 
                 iter->second->Do(argv_, ret);
-                if (opt != "loaddb" && opt != "bgdump" && opt != "readonly" && opt != "ucanpsync" && opt != "flushall") {
+                if (opt != "loaddb" && opt != "bgsave" && opt != "readonly" && opt != "ucanpsync" && opt != "flushall") {
                     pthread_rwlock_unlock(g_pikaServer->rwlock());
                 }
 

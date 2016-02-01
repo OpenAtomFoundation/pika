@@ -235,9 +235,9 @@ int main(int argc, char **argv)
     LoaddbCmd *loaddbptr = new LoaddbCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("loaddb", loaddbptr));
     DumpCmd *dumpptr = new DumpCmd(1);
-    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bgdump", dumpptr));
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bgsave", dumpptr));
     DumpoffCmd *dumpoffptr = new DumpoffCmd(1);
-    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bgdumpoff", dumpoffptr));
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bgsaveoff", dumpoffptr));
     ReadonlyCmd *readonlyptr = new ReadonlyCmd(2);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("readonly", readonlyptr));
     SelectCmd *selectptr = new SelectCmd(2);

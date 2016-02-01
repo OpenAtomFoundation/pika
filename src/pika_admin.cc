@@ -243,7 +243,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
         }
         //delete_dir(slave_db_sync_path.c_str());
         //struct stat file_info;
-        //if (stat(slave_db_sync_path.c_str(), &file_info) == 0) {
+        //if (stat(slave_db_sync_path.c_str(), &file_info) == 0) 
         if (access(slave_db_sync_path.c_str(), F_OK) == 0) {
             char tmp_dir_path[100];
             strncpy(tmp_dir_path, slave_db_sync_path.c_str(), slave_db_sync_path.size()+1);
@@ -259,11 +259,11 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
             }
         }
 
-        mkpath((slave_db_sync_path+"/kv").c_str(), 0755);
-        mkpath((slave_db_sync_path+"/hash").c_str(), 0755);
-        mkpath((slave_db_sync_path+"/list").c_str(), 0755);
-        mkpath((slave_db_sync_path+"/set").c_str(), 0755);
-        mkpath((slave_db_sync_path+"/zset").c_str(), 0755);
+        mkpath((slave_db_sync_path+"/"+nemo::KV_DB).c_str(), 0755);
+        mkpath((slave_db_sync_path+"/"+nemo::HASH_DB).c_str(), 0755);
+        mkpath((slave_db_sync_path+"/"+nemo::LIST_DB).c_str(), 0755);
+        mkpath((slave_db_sync_path+"/"+nemo::SET_DB).c_str(), 0755);
+        mkpath((slave_db_sync_path+"/"+nemo::ZSET_DB).c_str(), 0755);
     } else {
         ret = "-ERR State is not in PIKA_REP_SINGLE\r\n";
     }
@@ -420,7 +420,7 @@ void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
             MutexLock l(g_pikaServer->Mutex());
             g_pikaServer->purging_ = true;
             remove_files(g_pikaConf->log_path(), "write2file2");
-            g_pikaServer->purging_ = true;
+            g_pikaServer->purging_ = false;
         }
         g_pikaMario->SetProducerStatus(pro_filenum, pro_offset);
 
