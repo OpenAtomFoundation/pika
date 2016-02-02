@@ -1,12 +1,22 @@
 #ifndef PIKA_SERVER_H_
 #define PIKA_SERVER_H_
 
+#include <vector>
+#include <list>
+
+#include "pika_binlog.h"
 #include "pika_binlog_receiver_thread.h"
+#include "pika_binlog_sender_thread.h"
 #include "pika_heartbeat_thread.h"
 #include "pika_dispatch_thread.h"
 #include "pika_trysync_thread.h"
 #include "pika_worker_thread.h"
 #include "pika_define.h"
+
+#include "slash_status.h"
+
+using slash::Status;
+using slash::Slice;
 
 class PikaServer
 {
@@ -45,8 +55,12 @@ public:
  * Master use
  */
   void DeleteSlave(int fd); // hb_fd
+  Status GetSmallestValidLog(uint32_t* max);
+
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
+//  pthread_mutex_t binlog_sender_mutex_;
+  std::vector<PikaBinlogSenderThread *> binlog_sender_threads_;
 
 /*
  * Slave use
@@ -58,10 +72,14 @@ public:
   void MinusMasterConnection();
   void PlusMasterConnection();
 
-
   void Start();
   slash::Mutex mutex_; // double lock to block main thread
 
+  /*
+   * Binlog
+   */
+  Binlog *logger;
+  Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
 
 private:
   int port_;
@@ -72,9 +90,10 @@ private:
   PikaHeartbeatThread* pika_heartbeat_thread_;
   PikaTrysyncThread* pika_trysync_thread_;
 
-/*
- * Slave use
- */
+
+  /*
+   * Slave use
+   */
   pthread_rwlock_t state_protector_; //protect below, use for master-slave mode
   std::string master_ip_;
   int master_connection_;
