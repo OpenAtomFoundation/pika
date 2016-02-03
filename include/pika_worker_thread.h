@@ -38,4 +38,5 @@ private:
   void ClientKill(std::string ip_port);
   void ClientKillAll();
 };
+
 #endif

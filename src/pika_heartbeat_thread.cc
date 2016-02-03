@@ -52,6 +52,8 @@ void PikaHeartbeatThread::CronHandle() {
 			if ((iter->stage = SLAVE_ITEM_STAGE_ONE && now.tv_sec - iter->create_time.tv_sec > 30)
 				|| (iter->stage == SLAVE_ITEM_STAGE_TWO && !FindSlave(iter->hb_fd))) {
 				//pthread_kill(iter->tid);
+        
+        // Kill BinlogSender
 				iter = g_pika_server->slaves_.erase(iter);
 				continue;
 			} 
