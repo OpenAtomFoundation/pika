@@ -1,20 +1,12 @@
 #include "nemo.h"
-#include "pika_command.h"
-//#include "pika_server.h"
+#include "pika_kv.h"
 #include <algorithm>
 
-//class PikaServer {
-//public:
-//    nemo::Nemo* GetHandle() {return db_;}
-//private:
-//    nemo::Nemo *db_;
-//};
-//extern int string2l(const char *s, size_t slen, long *value);
 extern PikaServer *g_pikaServer;
 
 bool SetCmd::Initial(PikaCmdArgsType &argv, std::string &ret) {
-    if (!CheckArg(argv)) {
-        ret = "-ERR wrong number of arguments for " + name() + " command\r\n";
+    if (!info_.CheckArg(argv.size())) {
+        ret = "-ERR wrong number of arguments for " + info_.name() + " command\r\n";
         return false;
     }
     key_ = PopArg(argv);
@@ -58,6 +50,7 @@ int16_t SetCmd::Do(PikaCmdArgsType &argv, std::string &ret) {
             break;
         default:
             s = g_pikaServer->GetHandle()->Set(key_, value_, sec_);
+            break;
     }
 
     if (s.ok() || s.IsNotFound()) {

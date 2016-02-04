@@ -37,68 +37,74 @@ enum CmdRes {
 
 static const std::string CmdNameSet = "set";
 
-
-
-class Cmd {
+class CmdInfo {
 public:
-    Cmd(const std::string _name, int _num, int16_t _flag) : name_(_name), arity_(_num), flag_(_flag) {};
-    Cmd() {};
-    virtual ~Cmd() = 0;
-    virtual int16_t Do(PikaCmdArgsType &argvs, std::string &ret) = 0;
-    int16_t flag()    { return flag_; }
-    std::string name()      { return name_; }
-
-protected:
-    virtual bool Initial(PikaCmdArgsType &argvs, std::string &ret) = 0;
-    std::string PopArg(PikaCmdArgsType& arg, bool keyword = false);
-    bool CheckArg(const PikaCmdArgsType& argv);
-
+    CmdInfo(const std::string _name, int _num, int16_t _flag) : name_(_name), arity_(_num), flag_(_flag) {}
+    bool CheckArg(int num) const {
+        if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
+            return false;
+        }
+        return true;
+    }
+    int16_t flag_rw() const { 
+        return flag_ & CmdFlagsMaskRW; 
+    }
+    int16_t flag_type() const {
+        return flag_ & CmdFlagsMaskType;
+    }
+    int16_t flag_local() const {
+        return flag_ & CmdFlagsMaskLocal;
+    }
+    int16_t flag_prior() const {
+        return flag_ & CmdFlagsMaskPrior;
+    }
+    std::string name() const {
+        return name_;
+    }
 private:
     std::string name_;
     int arity_;
-    int16_t flag_;
+    int flag_;
 };
 
-class CmdGenerator {
+class Cmd {
 public:
-    static Cmd* getCmd(const std::string& opt);
+    virtual ~Cmd() {}
+    virtual int16_t Do(PikaCmdArgsType &argvs, std::string &ret) = 0;
+    virtual const CmdInfo& cmd_info() = 0;
+
+protected:
+    virtual bool Initial(PikaCmdArgsType &argvs, std::string &ret) = 0;
 };
+
+Cmd* getCmd(const std::string& opt);
+std::string PopArg(PikaCmdArgsType& arg, bool keyword = false);
 
 class CmdHolder : public Cmd{
 public:
     explicit CmdHolder(const std::string& opt) : valid_(true){
-        cmd_ = CmdGenerator::getCmd(opt);
-        if (cmd_ == NULL) { valid_ = false; }
+        cmd_ = getCmd(opt);
+        if (cmd_ == NULL) {
+            valid_ = false;
+        }
     }
     ~CmdHolder() {
         if (valid_) delete cmd_;
     }
     int16_t Do(PikaCmdArgsType &argvs, std::string &ret) {
-            return cmd_->Do(argvs, ret);
+        return cmd_->Do(argvs, ret);
     }
-    int16_t flag() { return cmd_->flag(); }
-    std::string name() { return cmd_->name(); }
-    bool valid() { return valid_; }
+    const CmdInfo& cmd_info() {
+        return cmd_->cmd_info();
+    }
+    bool valid() {
+        return valid_;
+    }
     
 private:
     Cmd* cmd_;
     bool valid_;
 };
 
-/*
- * kv
- */
-class SetCmd : public Cmd {
-public:
-    enum SetCondition{ANY, NX, XX};
-    SetCmd() : Cmd(CmdNameSet, -2, CmdFlagsWrite | CmdFlagsKv), sec_(0), condition_(ANY) {};
-    int16_t Do(PikaCmdArgsType &argvs, std::string &ret);
-private:
-    std::string key_;
-    std::string value_;
-    int64_t sec_;
-    SetCmd::SetCondition condition_;
-    bool Initial(PikaCmdArgsType &argvs, std::string &ret);
-};
 
 #endif
