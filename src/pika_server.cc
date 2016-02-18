@@ -851,20 +851,57 @@ void* PikaServer::StartSyncDB(void *args) {
         }
     }
     if (!pre_db_sync_valid) {
-        nemo::Snapshots snapshots;
-        delete_dir(master_db_sync_path.c_str());
-        nemo::Status s;
-        {
-            RWLock l(g_pikaServer->rwlock(), true);
-            g_pikaMario->GetProducerStatus(&filenum, &offset);
-            g_pikaServer->GetHandle()->BGSaveGetSnapshot(snapshots);
-            g_pikaServer->bgsaving_ = true;
-            s = g_pikaServer->GetHandle()->BGSave(snapshots, master_db_sync_path);
-            g_pikaServer->bgsaving_ = false;
-        }
-        if (!s.ok()) {
-            LOG(WARNING) << "sync db's dump failed";
+        // Do dump Operation
+        if (is_dir(master_db_sync_path.c_str()) == 0 && delete_dir(master_db_sync_path.c_str()) != 0) {
+            LOG(ERROR) << "remove exist tmp dump dir failed";
             return NULL;
+        }
+        mkpath(master_db_sync_path.c_str(), 0755);
+        std::string tmp_path = master_db_sync_path.back() == '/' ?
+            master_db_sync_path + "tmp/" : master_db_sync_path + "/tmp/";
+
+        // Initial Backup Engine
+        nemo::BackupEngine *backup_engine;
+        nemo::Status nemo_s = nemo::BackupEngine::Open(
+                nemo::BackupableOptions(tmp_path, true, false),
+                &backup_engine);
+        if (!nemo_s.ok()) {
+            LOG(ERROR) << "open backup engine failed " << nemo_s.ToString();
+            return NULL;
+        }
+        {
+            // Record binlog point and get BackupContent
+            MutexLock lm(g_pikaServer->Mutex());
+            RWLock lrw(g_pikaServer->rwlock(), true);
+            g_pikaMario->GetProducerStatus(&filenum, &offset);
+            nemo_s = backup_engine->SetBackupContent(g_pikaServer->GetHandle());
+            if (!nemo_s.ok()){
+                LOG(ERROR) << "set backup content failed " << nemo_s.ToString();
+                delete backup_engine;
+                return NULL;
+            }
+            g_pikaServer->bgsaving_ = true;
+        }
+        // Backup to tmp dir
+        nemo_s = backup_engine->CreateNewBackup(g_pikaServer->GetHandle());
+        // Restore to dump dir
+        if (nemo_s.ok()) {
+            nemo_s = backup_engine->RestoreDBFromBackup(
+                    backup_engine->GetLatestBackupID() + 1, master_db_sync_path);
+            if (!nemo_s.ok()) {
+                LOG(ERROR) << "restore from backup failed :" << nemo_s.ToString();
+            }
+        } else {
+            LOG(ERROR) << "create new backup failed :" << nemo_s.ToString();
+        }
+
+        if (is_dir(tmp_path.c_str()) == 0 && delete_dir(tmp_path.c_str()) != 0) {
+            LOG(ERROR) << "remove tmp dump dir failed";
+        }
+
+        {
+            MutexLock l(g_pikaServer->Mutex());
+            g_pikaServer->bgsaving_ = false;
         }
         g_pikaServer->set_db_sync_file_num(filenum);
         g_pikaServer->set_db_sync_file_offset(offset);
