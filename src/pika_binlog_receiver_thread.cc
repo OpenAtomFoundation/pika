@@ -2,11 +2,13 @@
 #include "pika_binlog_receiver_thread.h"
 #include "pika_master_conn.h"
 #include "pika_server.h"
+#include "pika_command.h"
 
 extern PikaServer* g_pika_server;
 
 PikaBinlogReceiverThread::PikaBinlogReceiverThread(int port) :
   HolyThread::HolyThread(port) {
+    InitCmdTable(&cmds_);
 }
 
 PikaBinlogReceiverThread::~PikaBinlogReceiverThread() {

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <list>
+#include <nemo.h>
 
 #include "pika_binlog.h"
 #include "pika_binlog_receiver_thread.h"
@@ -51,6 +52,15 @@ public:
   int master_port() {
     return master_port_;
   }
+  pthread_rwlock_t* rwlock() {
+      return &rwlock_;
+  }
+  const std::shared_ptr<nemo::Nemo> db() {
+    return db_;
+  }
+  
+  
+
 /*
  * Master use
  */
@@ -83,6 +93,9 @@ public:
 
 private:
   int port_;
+  pthread_rwlock_t rwlock_;
+  std::shared_ptr<nemo::Nemo> db_;
+
   PikaWorkerThread* pika_worker_thread_[PIKA_MAX_WORKER_THREAD_NUM];
   PikaDispatchThread* pika_dispatch_thread_;
 

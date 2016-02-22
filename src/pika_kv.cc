@@ -1,12 +1,14 @@
+#include <algorithm>
+#include "slash_string.h"
 #include "nemo.h"
 #include "pika_kv.h"
-#include <algorithm>
+#include "pika_server.h"
 
-extern PikaServer *g_pikaServer;
+extern PikaServer *g_pika_server;
 
 bool SetCmd::Initial(PikaCmdArgsType &argv, std::string &ret) {
-    if (!info_.CheckArg(argv.size())) {
-        ret = "-ERR wrong number of arguments for " + info_.name() + " command\r\n";
+    if (!GetCmdInfo(kCmdNameSet)->CheckArg(argv.size())) {
+        ret = "-ERR wrong number of arguments for " + GetCmdInfo(kCmdNameSet)->name() + " command\r\n";
         return false;
     }
     key_ = PopArg(argv);
@@ -35,22 +37,22 @@ bool SetCmd::Initial(PikaCmdArgsType &argv, std::string &ret) {
     return true;
 }
 
-int16_t SetCmd::Do(PikaCmdArgsType &argv, std::string &ret) {
+int SetCmd::Do(PikaCmdArgsType &argv, std::string &ret) {
     bool ex_ret = Initial(argv, ret);
-    if (!ex_ret) return CmdResFail;
+    if (!ex_ret) return kCmdResFail;
 
     nemo::Status s;
     int64_t res = 1;
     switch (condition_){
-        case SetCmd::XX:
-            s = g_pikaServer->GetHandle()->Setxx(key_, value_, &res, sec_);
-            break;
-        case SetCmd::NX:
-            s = g_pikaServer->GetHandle()->Setnx(key_, value_, &res, sec_);
-            break;
-        default:
-            s = g_pikaServer->GetHandle()->Set(key_, value_, sec_);
-            break;
+    case SetCmd::XX:
+        s = g_pika_server->db()->Setxx(key_, value_, &res, sec_);
+        break;
+    case SetCmd::NX:
+        s = g_pika_server->db()->Setnx(key_, value_, &res, sec_);
+        break;
+    default:
+        s = g_pika_server->db()->Set(key_, value_, sec_);
+        break;
     }
 
     if (s.ok() || s.IsNotFound()) {
@@ -62,6 +64,6 @@ int16_t SetCmd::Do(PikaCmdArgsType &argv, std::string &ret) {
     } else {
         ret.append("-ERR " + s.ToString() + "\r\n");
     }
-    return CmdResOk;
+    return kCmdResOk;
 }
 

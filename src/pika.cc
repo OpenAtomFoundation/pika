@@ -1,5 +1,6 @@
 #include <glog/logging.h>
 #include "pika_server.h"
+#include "pika_command.h"
 
 PikaServer* g_pika_server;
 
@@ -33,6 +34,7 @@ int main(int argc, char *argv[])
 
   PikaGlogInit();
   PikaSignalSetup();
+  InitCmdInfoTable();
 
   DLOG(INFO) << "Server at: " << argv[1];
   g_pika_server = new PikaServer(atoi(argv[1]));

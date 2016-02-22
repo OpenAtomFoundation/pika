@@ -3,6 +3,7 @@
 
 #include "holy_thread.h"
 #include "pika_master_conn.h"
+#include "pika_command.h"
 
 class PikaBinlogReceiverThread : public pink::HolyThread<PikaMasterConn>
 {
@@ -11,5 +12,11 @@ public:
   virtual ~PikaBinlogReceiverThread();
   virtual bool AccessHandle(const std::string& ip_port);
   void KillAll();
+
+  CmdPtr GetCmd(const std::string& opt) {
+    return GetCmdFromTable(opt, cmds_);
+  }
+private:
+  std::map<std::string, CmdPtr> cmds_;
 };
 #endif

@@ -1,5 +1,5 @@
 #include <glog/logging.h>
-
+#include <assert.h>
 #include "env.h"
 #include "pika_server.h"
 
@@ -11,6 +11,24 @@ PikaServer::PikaServer(int port) :
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE) {
 
+  pthread_rwlock_init(&rwlock_, NULL);
+  
+  // Create nemo handle
+  nemo::Options option;
+
+  //TODO ADD pika_conf
+  //option.write_buffer_size = g_pikaConf->write_buffer_size();
+  //option.target_file_size_base = g_pikaConf->target_file_size_base();
+  //std::string db_path = g_pikaConf->db_path();
+  option.write_buffer_size = 268435456;
+  option.target_file_size_base = 20971520;
+  std::string db_path("./db/");
+  LOG(WARNING) << "Prepare DB...";
+  db_ = std::unique_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
+  assert(db_);
+  LOG(WARNING) << "DB Success";
+
+  // Create thread
   for (int i = 0; i < PIKA_MAX_WORKER_THREAD_NUM; i++) {
     pika_worker_thread_[i] = new PikaWorkerThread(1000);
   }
@@ -26,7 +44,7 @@ PikaServer::PikaServer(int port) :
 
 PikaServer::~PikaServer() {
   pthread_rwlock_destroy(&state_protector_);
-
+  pthread_rwlock_destroy(&rwlock_);
   //delete logger;
 }
 
