@@ -2,6 +2,9 @@
 #include <assert.h>
 #include "env.h"
 #include "pika_server.h"
+#include "pika_conf.h"
+
+extern PikaConf *g_pika_conf;
 
 PikaServer::PikaServer(int port) :
   port_(port),
@@ -16,13 +19,9 @@ PikaServer::PikaServer(int port) :
   // Create nemo handle
   nemo::Options option;
 
-  //TODO ADD pika_conf
-  //option.write_buffer_size = g_pikaConf->write_buffer_size();
-  //option.target_file_size_base = g_pikaConf->target_file_size_base();
-  //std::string db_path = g_pikaConf->db_path();
-  option.write_buffer_size = 268435456;
-  option.target_file_size_base = 20971520;
-  std::string db_path("./db/");
+  option.write_buffer_size = g_pika_conf->write_buffer_size();
+  option.target_file_size_base = g_pika_conf->target_file_size_base();
+  std::string db_path = g_pika_conf->db_path();
   LOG(WARNING) << "Prepare DB...";
   db_ = std::unique_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
   assert(db_);

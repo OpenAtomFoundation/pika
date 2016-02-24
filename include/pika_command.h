@@ -5,108 +5,161 @@
 #include <string>
 #include <memory>
 #include <redis_conn.h>
+#include <unordered_map>
+#include "slash_string.h"
 
-//#include "pika_client_conn.h"
 
 //Constant for command name
 const std::string kCmdNameSet = "set";
+const std::string kCmdNameGet = "get";
+
+const std::string kNewLine = "\r\n";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 
 enum CmdFlagsMask {
-    kCmdFlagsMaskRW         = 1,
-    kCmdFlagsMaskType       = 14,
-    kCmdFlagsMaskLocal      = 16,
-    kCmdFlagsMaskSuspend    = 32,
-    kCmdFlagsMaskPrior      = 64
+  kCmdFlagsMaskRW         = 1,
+  kCmdFlagsMaskType       = 14,
+  kCmdFlagsMaskLocal      = 16,
+  kCmdFlagsMaskSuspend    = 32,
+  kCmdFlagsMaskPrior      = 64
 };
 
 enum CmdFlags {
-    kCmdFlagsRead           = 0,
-    kCmdFlagsWrite          = 1,
-    kCmdFlagsAuth           = 0,
-    kCmdFlagsKv             = 2,
-    kCmdFlagsHash           = 4,
-    kCmdFlagsList           = 6,
-    kCmdFlagsSet            = 8,
-    kCmdFlagsZset           = 10,
-    kCmdFlagsNoLocal        = 0,
-    kCmdFlagsLocal          = 16,
-    kCmdFlagsNoSuspend      = 0,
-    kCmdFlagsSuspend        = 32,
-    kCmdFlagsNoPrior        = 0,
-    kCmdFlagsPrior          = 64
+  kCmdFlagsRead           = 0,
+  kCmdFlagsWrite          = 1,
+  kCmdFlagsAuth           = 0,
+  kCmdFlagsKv             = 2,
+  kCmdFlagsHash           = 4,
+  kCmdFlagsList           = 6,
+  kCmdFlagsSet            = 8,
+  kCmdFlagsZset           = 10,
+  kCmdFlagsNoLocal        = 0,
+  kCmdFlagsLocal          = 16,
+  kCmdFlagsNoSuspend      = 0,
+  kCmdFlagsSuspend        = 32,
+  kCmdFlagsNoPrior        = 0,
+  kCmdFlagsPrior          = 64
 };
 
-enum CmdRes {
-    kCmdResOk = 0,
-    kCmdResFail,
-};
 
 class CmdInfo {
 public:
-    CmdInfo(const std::string _name, int _num, uint16_t _flag)
-        : name_(_name), arity_(_num), flag_(_flag) {}
-    bool CheckArg(int num) const {
-        if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
-            return false;
-        }
-        return true;
+  CmdInfo(const std::string _name, int _num, uint16_t _flag)
+    : name_(_name), arity_(_num), flag_(_flag) {}
+  bool CheckArg(int num) const {
+    if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
+      return false;
     }
-    bool is_write() const {
-        return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
-    }
-    uint16_t flag_type() const {
-        return flag_ & kCmdFlagsMaskType;
-    }
-    bool is_local() const {
-        return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
-    }
-    // Others need to be suspended when a suspend command run
-    bool is_suspend() const {
-        return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
-    }
-    bool is_prior() const {
-        return ((flag_ & kCmdFlagsMaskPrior) == kCmdFlagsPrior);
-    }
-    std::string name() const {
-        return name_;
-    }
+    return true;
+  }
+  bool is_write() const {
+    return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
+  }
+  uint16_t flag_type() const {
+    return flag_ & kCmdFlagsMaskType;
+  }
+  bool is_local() const {
+    return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
+  }
+  // Others need to be suspended when a suspend command run
+  bool is_suspend() const {
+    return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
+  }
+  bool is_prior() const {
+    return ((flag_ & kCmdFlagsMaskPrior) == kCmdFlagsPrior);
+  }
+  std::string name() const {
+    return name_;
+  }
 private:
-    std::string name_;
-    int arity_;
-    uint16_t flag_;
+  std::string name_;
+  int arity_;
+  uint16_t flag_;
 
-    CmdInfo(const CmdInfo&);
-    CmdInfo& operator=(const CmdInfo&);
+  CmdInfo(const CmdInfo&);
+  CmdInfo& operator=(const CmdInfo&);
 };
 
-typedef std::shared_ptr<const CmdInfo> CmdInfoPtr;
+
+class CmdRes {
+public:
+  enum CmdRet {
+    kCmdRetOk, 
+    kCmdRetFail,
+  };
+
+  CmdRes():ret_(kCmdRetOk) {}
+
+  bool ok() const {
+    return ret_ == kCmdRetOk;
+  }
+  void clear() {
+    message_.clear();
+    ret_ = kCmdRetOk;
+  }
+  std::string message() const {
+    return message_;
+  }
+
+  // Inline functions for Create Redis protocol
+  void AppendStringLen(int ori) {
+    AppendLen(ori, "$");
+  }
+  void AppendArrayLen(int ori) {
+    AppendLen(ori, "*");
+  }
+  void AppendContent(const std::string &value) {
+    message_.append(value.data(), value.size());
+    message_.append(kNewLine);
+  }
+  void SetContent(const std::string &value) {
+    clear();
+    AppendContent(value);
+    ret_ = kCmdRetOk;
+  }
+  void SetErr(const std::string &value) {
+    message_.append("-ERR ");
+    message_.append(value);
+    message_.append(kNewLine);
+    ret_ = kCmdRetFail;
+  }
+
+private:
+  void AppendLen(int ori, const std::string &prefix) {
+    char buf[32];
+    slash::ll2string(buf, 32, static_cast<long long>(ori));
+    message_.append(prefix);
+    message_.append(buf);
+    message_.append(kNewLine);
+  }
+  std::string message_;
+  int ret_;
+};
 
 class Cmd {
 public:
-    Cmd() {}
-    virtual ~Cmd() {}
-    virtual int Do(PikaCmdArgsType &argvs, std::string &ret) = 0;
+  Cmd() {}
+  virtual ~Cmd() {}
+  virtual void Do(PikaCmdArgsType &argvs, CmdRes &ret) = 0;
 
 protected:
-    virtual bool Initial(PikaCmdArgsType &argvs, std::string &ret) = 0;
+  virtual void Initial(PikaCmdArgsType &argvs, CmdRes &ret) = 0;
 
 private:
-    Cmd(const Cmd&);
-    Cmd& operator=(const Cmd&);
+  Cmd(const Cmd&);
+  Cmd& operator=(const Cmd&);
 };
-
-typedef std::shared_ptr<Cmd> CmdPtr;
 
 // Method for CmdInfo Table
 void InitCmdInfoTable();
-CmdInfoPtr GetCmdInfo(const std::string& opt);
+const CmdInfo* GetCmdInfo(const std::string& opt);
+void DestoryCmdInfoTable();
 // Method for Cmd Table
-void InitCmdTable(std::map<std::string, CmdPtr> *cmd_table);
-CmdPtr GetCmdFromTable(const std::string& opt, 
-        const std::map<std::string, CmdPtr> &cmd_table);
+void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table);
+Cmd* GetCmdFromTable(const std::string& opt, 
+        const std::unordered_map<std::string, Cmd*> &cmd_table);
+void DestoryCmdTable(std::unordered_map<std::string, Cmd*> &cmd_table);
 
-std::string PopArg(PikaCmdArgsType& arg, bool keyword = false);
 
 #endif

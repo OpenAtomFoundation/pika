@@ -27,7 +27,7 @@ public:
     return last_sec_thread_querynum_;
   }
 
-  CmdPtr GetCmd(const std::string& opt) {
+  Cmd* GetCmd(const std::string& opt) {
     return GetCmdFromTable(opt, cmds_);
   }
 private:
@@ -37,7 +37,7 @@ private:
   uint64_t thread_querynum_;
   uint64_t last_sec_thread_querynum_;
 
-  std::map<std::string, CmdPtr> cmds_;
+  std::unordered_map<std::string, Cmd*> cmds_;
 
   void AddCronTask(WorkerCronTask task);
   bool FindClient(std::string ip_port);

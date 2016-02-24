@@ -1,6 +1,5 @@
 #include <sstream>
 #include <glog/logging.h>
-
 #include "pika_server.h"
 #include "pika_client_conn.h"
 
@@ -15,25 +14,23 @@ PikaClientConn::~PikaClientConn() {
 }
 
 std::string PikaClientConn::RestoreArgs() {
-  //TODO check performance
-  const static std::string new_line = "\r\n";
-  std::stringstream ss;
-  ss << "*" << argv_.size() << new_line;
-  PikaCmdArgsType::iterator it = argv_.begin();
+  CmdRes res;
+  res.AppendArrayLen(argv_.size());
+  PikaCmdArgsType::const_iterator it = argv_.begin();
   for ( ; it != argv_.end(); ++it) {
-    ss << "$" << (*it).size() << new_line;
-    ss << *it << new_line;
+    res.AppendStringLen((*it).size());
+    res.AppendContent(*it);
   }
-  return ss.str();
+  return res.message();
 }
 
-int PikaClientConn::DoCmd(const std::string& opt, const std::string& raw_args, std::string& ret) {
+void PikaClientConn::DoCmd(const std::string& opt, CmdRes& ret) {
   // Get command info
-  CmdInfoPtr cinfo_ptr = GetCmdInfo(opt);
-  CmdPtr c_ptr = pika_thread_->GetCmd(opt);
+  const CmdInfo* cinfo_ptr = GetCmdInfo(opt);
+  Cmd* c_ptr = pika_thread_->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
-      ret.append("-ERR unknown or unsupported command \'" + opt + "\'\r\n");
-      return 0;
+      ret.SetErr("unknown or unsupported command \'" + opt);
+      return;
   }
 
   // TODO Check authed
@@ -46,11 +43,11 @@ int PikaClientConn::DoCmd(const std::string& opt, const std::string& raw_args, s
       g_pika_server->logger->Lock();
   }
 
-  int exe_ret = c_ptr->Do(argv_, ret);
+  c_ptr->Do(argv_, ret);
 
   if (cinfo_ptr->is_write()) {
-      if (exe_ret == 0 && ret.find("-ERR ") != 0) {
-          g_pika_server->logger->Put(raw_args);
+      if (ret.ok()) {
+          g_pika_server->logger->Put(RestoreArgs());
       }
       g_pika_server->logger->Unlock();
   }
@@ -58,7 +55,6 @@ int PikaClientConn::DoCmd(const std::string& opt, const std::string& raw_args, s
   if (!cinfo_ptr->is_suspend()) {
       pthread_rwlock_unlock(g_pika_server->rwlock());
   }
-  return exe_ret;
 }
 
 int PikaClientConn::DealMessage() {
@@ -74,10 +70,11 @@ int PikaClientConn::DealMessage() {
     //logger->Lock();
     //TODO return value
     if (argv_.empty()) return -2;
-    std::string raw_args = RestoreArgs();
-    std::string ret, opt = PopArg(argv_, true);
+    CmdRes res;
+    std::string opt = argv_[0];
+    slash::StringToLower(opt);
     //TODO add logger lock
-    int cmd_ret = DoCmd(opt, raw_args, ret);
+    DoCmd(opt, res);
     // if (opt == "pikasync") {
     //     AppendReply(ret);
     //     mutex_.Unlock();
@@ -116,7 +113,7 @@ int PikaClientConn::DealMessage() {
     //    }
     //  }
     //
-    memcpy(wbuf_ + wbuf_len_, ret.data(), ret.size());
-    wbuf_len_ += ret.size();
-    return cmd_ret;
+    memcpy(wbuf_ + wbuf_len_, res.message().data(), res.message().size());
+    wbuf_len_ += res.message().size();
+    return 0;
 }

@@ -1,43 +1,54 @@
-#include <algorithm>
-#include <map>
 #include "pika_kv.h"
 
-static std::map<std::string, CmdInfoPtr> cmd_infos;    /* Table for CmdInfo */
+static std::unordered_map<std::string, CmdInfo*> cmd_infos;    /* Table for CmdInfo */
 
+//Remember the first arg is the command name
 void InitCmdInfoTable() {
-    CmdInfoPtr setptr(new CmdInfo(kCmdNameSet, 
-                -2, kCmdFlagsWrite | kCmdFlagsKv));
-    cmd_infos.insert(std::pair<std::string, CmdInfoPtr>(kCmdNameSet, setptr));
+  //SetCmd
+  CmdInfo* setptr = new CmdInfo(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSet, setptr));
+  //GetCmd
+  CmdInfo* getptr = new CmdInfo(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGet, getptr));
 }
 
-CmdInfoPtr GetCmdInfo(const std::string& opt) {
-    std::map<std::string, CmdInfoPtr>::const_iterator it = cmd_infos.find(opt);
+void DestoryCmdInfoTable() {
+    std::unordered_map<std::string, CmdInfo*>::const_iterator it = cmd_infos.begin();
+    for (; it != cmd_infos.end(); ++it) {
+      delete it->second;
+    }
+}
+
+const CmdInfo* GetCmdInfo(const std::string& opt) {
+    std::unordered_map<std::string, CmdInfo*>::const_iterator it = cmd_infos.find(opt);
     if (it != cmd_infos.end()) {
         return it->second;
     }
-    return CmdInfoPtr();
+    return NULL;
 }
 
-void InitCmdTable(std::map<std::string, CmdPtr> *cmd_table) {
-   CmdPtr setptr(new SetCmd());
-   cmd_table->insert(std::pair<std::string, CmdPtr>(kCmdNameSet, setptr));
+void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
+   //SetCmd
+   Cmd* setptr = new SetCmd();
+   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSet, setptr));
+   //GetCmd
+   Cmd* getptr = new GetCmd();
+   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGet, getptr));
 }
 
-CmdPtr GetCmdFromTable(const std::string& opt, 
-        const std::map<std::string, CmdPtr> &cmd_table) {
-    std::map<std::string, CmdPtr>::const_iterator it = cmd_table.find(opt);
+Cmd* GetCmdFromTable(const std::string& opt, 
+        const std::unordered_map<std::string, Cmd*> &cmd_table) {
+    std::unordered_map<std::string, Cmd*>::const_iterator it = cmd_table.find(opt);
     if (it != cmd_table.end()) {
         return it->second;
     }
-    return CmdPtr();
+    return NULL;
 }
 
-std::string PopArg(PikaCmdArgsType& argv, bool keyword) {
-    std::string next = argv.front();
-    argv.pop_front();
-    if (keyword) {
-        transform(next.begin(), next.end(), next.begin(), ::tolower);
+void DestoryCmdTable(std::unordered_map<std::string, Cmd*> &cmd_table) {
+    std::unordered_map<std::string, Cmd*>::const_iterator it = cmd_table.begin();
+    for (; it != cmd_table.end(); ++it) {
+      delete it->second;
     }
-    return next;
 }
 

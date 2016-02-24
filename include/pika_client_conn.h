@@ -5,6 +5,7 @@
 
 #include "redis_conn.h"
 #include "pink_thread.h"
+#include "pika_command.h"
 
 
 class PikaWorkerThread;
@@ -16,7 +17,7 @@ public:
   virtual int DealMessage();
 private:
   PikaWorkerThread* pika_thread_;
-  int DoCmd(const std::string& opt, const std::string& raw_args, std::string& ret);
+  void DoCmd(const std::string& opt, CmdRes& ret);
   std::string RestoreArgs();
 };
 

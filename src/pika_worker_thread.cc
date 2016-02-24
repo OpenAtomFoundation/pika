@@ -9,8 +9,7 @@ PikaWorkerThread::PikaWorkerThread(int cron_interval):
 }
 
 PikaWorkerThread::~PikaWorkerThread() {
-    
-
+    DestoryCmdTable(cmds_);
 }
 
 void PikaWorkerThread::CronHandle() {

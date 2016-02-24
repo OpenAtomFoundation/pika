@@ -5,6 +5,8 @@
 #define PIKA_MAX_WORKER_THREAD_NUM 1
 
 
+static const std::string kPikaVersion = "2.0.0";
+
 struct WorkerCronTask {
   int task;
   std::string ip_port;
@@ -76,5 +78,11 @@ static const int64_t kPoolSize = 1073741824;
 static std::string kBinlog = "/binlog";
 
 static std::string kManifest = "/manifest";
+
+/*
+ * define common character
+ *
+ */
+#define COMMA ','
 
 #endif

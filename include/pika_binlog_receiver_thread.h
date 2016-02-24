@@ -13,10 +13,10 @@ public:
   virtual bool AccessHandle(const std::string& ip_port);
   void KillAll();
 
-  CmdPtr GetCmd(const std::string& opt) {
+  Cmd* GetCmd(const std::string& opt) {
     return GetCmdFromTable(opt, cmds_);
   }
 private:
-  std::map<std::string, CmdPtr> cmds_;
+  std::unordered_map<std::string, Cmd*> cmds_;
 };
 #endif

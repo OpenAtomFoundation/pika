@@ -1,4 +1,3 @@
-#include <algorithm>
 #include "slash_string.h"
 #include "nemo.h"
 #include "pika_kv.h"
@@ -6,48 +5,51 @@
 
 extern PikaServer *g_pika_server;
 
-bool SetCmd::Initial(PikaCmdArgsType &argv, std::string &ret) {
+void SetCmd::Initial(PikaCmdArgsType &argv, CmdRes &ret) {
     if (!GetCmdInfo(kCmdNameSet)->CheckArg(argv.size())) {
-        ret = "-ERR wrong number of arguments for " + GetCmdInfo(kCmdNameSet)->name() + " command\r\n";
-        return false;
+        ret.SetErr("wrong number of arguments for " + 
+            GetCmdInfo(kCmdNameSet)->name() + " command");
+        return;
     }
-    key_ = PopArg(argv);
-    value_ = PopArg(argv);
-    while (argv.size() > 0) {
-        std::string opt = PopArg(argv, true);
+    PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
+    key_ = *it++;
+    value_ = *it++;
+    while (it != argv.end()) {
+        std::string opt = slash::StringToLower(*it++);
         if (opt == "xx") {
-            condition_ = SetCmd::XX;
+            condition_ = SetCmd::kXX;
         } else if (opt == "nx") {
-            condition_ = SetCmd::NX;
+            condition_ = SetCmd::kNX;
         } else if (opt == "ex") {
-            if (argv.size() < 1) {
-                ret = "-ERR syntax error\r\n";
-                return false;
+            if (it == argv.end()) {
+                ret.SetErr("syntax error");
+                return;
             }
-            std::string str_sec = PopArg(argv);
-            if (!string2l(str_sec.data(), str_sec.size(), &sec_)) {
-                ret = "-ERR value is not an integer or out of range\r\n";
-                return false;
+            if (!slash::string2l((*it).data(), (*it).size(), &sec_)) {
+                ret.SetErr("value is not an integer or out of range");
+                return;
             }
+            ++it;
         } else {
-            ret = "-ERR syntax error\r\n";
-            return false;
+            ret.SetErr("syntax error");
+            return;
         }
     }
-    return true;
 }
 
-int SetCmd::Do(PikaCmdArgsType &argv, std::string &ret) {
-    bool ex_ret = Initial(argv, ret);
-    if (!ex_ret) return kCmdResFail;
+void SetCmd::Do(PikaCmdArgsType &argv, CmdRes &ret) {
+    Initial(argv, ret);
+    if (!ret.ok()) {
+        return;
+    }
 
     nemo::Status s;
     int64_t res = 1;
-    switch (condition_){
-    case SetCmd::XX:
+    switch (condition_) {
+    case SetCmd::kXX:
         s = g_pika_server->db()->Setxx(key_, value_, &res, sec_);
         break;
-    case SetCmd::NX:
+    case SetCmd::kNX:
         s = g_pika_server->db()->Setnx(key_, value_, &res, sec_);
         break;
     default:
@@ -57,13 +59,38 @@ int SetCmd::Do(PikaCmdArgsType &argv, std::string &ret) {
 
     if (s.ok() || s.IsNotFound()) {
         if (res == 1) {
-            ret = "+OK\r\n";
+            ret.SetContent("+OK");
         } else {
-            ret = "*-1\r\n";
+            ret.AppendArrayLen(-1);;
         }
     } else {
-        ret.append("-ERR " + s.ToString() + "\r\n");
+        ret.SetErr(s.ToString());
     }
-    return kCmdResOk;
 }
 
+void GetCmd::Initial(PikaCmdArgsType &argv, CmdRes &ret) {
+    if (!GetCmdInfo(kCmdNameGet)->CheckArg(argv.size())) {
+        ret.SetErr("wrong number of arguments for " + 
+            GetCmdInfo(kCmdNameGet)->name() + " command");
+        return;
+    }
+    key_ = argv[1];
+    return;
+}
+
+void GetCmd::Do(PikaCmdArgsType &argv, CmdRes &ret) {
+    Initial(argv, ret);
+    if (!ret.ok()) {
+        return;
+    }
+    std::string value;
+    nemo::Status s = g_pika_server->db()->Get(key_, &value);
+    if (s.ok()) {
+        ret.AppendStringLen(value.size());
+        ret.AppendContent(value);
+    } else if (s.IsNotFound()) {
+        ret.AppendStringLen(-1);
+    } else {
+        ret.SetErr(s.ToString());
+    }
+}

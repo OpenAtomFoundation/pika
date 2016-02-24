@@ -12,7 +12,7 @@ PikaBinlogReceiverThread::PikaBinlogReceiverThread(int port) :
 }
 
 PikaBinlogReceiverThread::~PikaBinlogReceiverThread() {
-
+    DestoryCmdTable(cmds_);
 }
 
 bool PikaBinlogReceiverThread::AccessHandle(const std::string& ip_port) {
