@@ -5,9 +5,9 @@
 
 extern PikaServer *g_pika_server;
 
-void SetCmd::Initial(PikaCmdArgsType &argv, CmdRes &ret) {
+void SetCmd::Initial(PikaCmdArgsType &argv) {
     if (!GetCmdInfo(kCmdNameSet)->CheckArg(argv.size())) {
-        ret.SetErr("wrong number of arguments for " + 
+        res_.SetErr("wrong number of arguments for " + 
             GetCmdInfo(kCmdNameSet)->name() + " command");
         return;
     }
@@ -22,24 +22,24 @@ void SetCmd::Initial(PikaCmdArgsType &argv, CmdRes &ret) {
             condition_ = SetCmd::kNX;
         } else if (opt == "ex") {
             if (it == argv.end()) {
-                ret.SetErr("syntax error");
+                res_.SetErr("syntax error");
                 return;
             }
             if (!slash::string2l((*it).data(), (*it).size(), &sec_)) {
-                ret.SetErr("value is not an integer or out of range");
+                res_.SetErr("value is not an integer or out of range");
                 return;
             }
             ++it;
         } else {
-            ret.SetErr("syntax error");
+            res_.SetErr("syntax error");
             return;
         }
     }
 }
 
-void SetCmd::Do(PikaCmdArgsType &argv, CmdRes &ret) {
-    Initial(argv, ret);
-    if (!ret.ok()) {
+void SetCmd::Do(PikaCmdArgsType &argv) {
+    Initial(argv);
+    if (!res_.ok()) {
         return;
     }
 
@@ -59,18 +59,18 @@ void SetCmd::Do(PikaCmdArgsType &argv, CmdRes &ret) {
 
     if (s.ok() || s.IsNotFound()) {
         if (res == 1) {
-            ret.SetContent("+OK");
+            res_.SetContent("+OK");
         } else {
-            ret.AppendArrayLen(-1);;
+            res_.AppendArrayLen(-1);;
         }
     } else {
-        ret.SetErr(s.ToString());
+        res_.SetErr(s.ToString());
     }
 }
 
-void GetCmd::Initial(PikaCmdArgsType &argv, CmdRes &ret) {
+void GetCmd::Initial(PikaCmdArgsType &argv) {
     if (!GetCmdInfo(kCmdNameGet)->CheckArg(argv.size())) {
-        ret.SetErr("wrong number of arguments for " + 
+        res_.SetErr("wrong number of arguments for " + 
             GetCmdInfo(kCmdNameGet)->name() + " command");
         return;
     }
@@ -78,19 +78,19 @@ void GetCmd::Initial(PikaCmdArgsType &argv, CmdRes &ret) {
     return;
 }
 
-void GetCmd::Do(PikaCmdArgsType &argv, CmdRes &ret) {
-    Initial(argv, ret);
-    if (!ret.ok()) {
+void GetCmd::Do(PikaCmdArgsType &argv) {
+    Initial(argv);
+    if (!res_.ok()) {
         return;
     }
     std::string value;
     nemo::Status s = g_pika_server->db()->Get(key_, &value);
     if (s.ok()) {
-        ret.AppendStringLen(value.size());
-        ret.AppendContent(value);
+        res_.AppendStringLen(value.size());
+        res_.AppendContent(value);
     } else if (s.IsNotFound()) {
-        ret.AppendStringLen(-1);
+        res_.AppendStringLen(-1);
     } else {
-        ret.SetErr(s.ToString());
+        res_.SetErr(s.ToString());
     }
 }

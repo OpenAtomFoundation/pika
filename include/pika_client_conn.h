@@ -17,7 +17,7 @@ public:
   virtual int DealMessage();
 private:
   PikaWorkerThread* pika_thread_;
-  void DoCmd(const std::string& opt, CmdRes& ret);
+  void DoCmd(const std::string& opt, std::string& ret);
   std::string RestoreArgs();
 };
 

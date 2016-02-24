@@ -26,19 +26,19 @@ enum CmdFlagsMask {
 };
 
 enum CmdFlags {
-  kCmdFlagsRead           = 0,
+  kCmdFlagsRead           = 0, //default rw
   kCmdFlagsWrite          = 1,
-  kCmdFlagsAuth           = 0,
+  kCmdFlagsAdmin          = 0, //default type
   kCmdFlagsKv             = 2,
   kCmdFlagsHash           = 4,
   kCmdFlagsList           = 6,
   kCmdFlagsSet            = 8,
   kCmdFlagsZset           = 10,
-  kCmdFlagsNoLocal        = 0,
+  kCmdFlagsNoLocal        = 0, //default nolocal
   kCmdFlagsLocal          = 16,
-  kCmdFlagsNoSuspend      = 0,
+  kCmdFlagsNoSuspend      = 0, //default nosuspend
   kCmdFlagsSuspend        = 32,
-  kCmdFlagsNoPrior        = 0,
+  kCmdFlagsNoPrior        = 0, //default noprior
   kCmdFlagsPrior          = 64
 };
 
@@ -81,6 +81,8 @@ private:
   CmdInfo& operator=(const CmdInfo&);
 };
 
+void inline RedisAppendContent(std::string& str, const std::string& value);
+void inline RedisAppendLen(std::string& str, int ori, const std::string &prefix);
 
 class CmdRes {
 public:
@@ -104,14 +106,13 @@ public:
 
   // Inline functions for Create Redis protocol
   void AppendStringLen(int ori) {
-    AppendLen(ori, "$");
+    RedisAppendLen(message_, ori, "$");
   }
   void AppendArrayLen(int ori) {
-    AppendLen(ori, "*");
+    RedisAppendLen(message_, ori, "*");
   }
   void AppendContent(const std::string &value) {
-    message_.append(value.data(), value.size());
-    message_.append(kNewLine);
+    RedisAppendContent(message_, value);
   }
   void SetContent(const std::string &value) {
     clear();
@@ -126,13 +127,6 @@ public:
   }
 
 private:
-  void AppendLen(int ori, const std::string &prefix) {
-    char buf[32];
-    slash::ll2string(buf, 32, static_cast<long long>(ori));
-    message_.append(prefix);
-    message_.append(buf);
-    message_.append(kNewLine);
-  }
   std::string message_;
   int ret_;
 };
@@ -141,10 +135,14 @@ class Cmd {
 public:
   Cmd() {}
   virtual ~Cmd() {}
-  virtual void Do(PikaCmdArgsType &argvs, CmdRes &ret) = 0;
+  virtual void Do(PikaCmdArgsType &argvs) = 0;
+  CmdRes& res() {
+    return res_;
+  }
 
 protected:
-  virtual void Initial(PikaCmdArgsType &argvs, CmdRes &ret) = 0;
+  virtual void Initial(PikaCmdArgsType &argvs) = 0;
+  CmdRes res_;
 
 private:
   Cmd(const Cmd&);
@@ -161,5 +159,16 @@ Cmd* GetCmdFromTable(const std::string& opt,
         const std::unordered_map<std::string, Cmd*> &cmd_table);
 void DestoryCmdTable(std::unordered_map<std::string, Cmd*> &cmd_table);
 
+void inline RedisAppendContent(std::string& str, const std::string& value) {
+    str.append(value.data(), value.size());
+    str.append(kNewLine);
+}
+void inline RedisAppendLen(std::string& str, int ori, const std::string &prefix) {
+    char buf[32];
+    slash::ll2string(buf, 32, static_cast<long long>(ori));
+    str.append(prefix);
+    str.append(buf);
+    str.append(kNewLine);
+}
 
 #endif

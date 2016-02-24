@@ -4,6 +4,7 @@
 #include "pika_client_conn.h"
 
 extern PikaServer* g_pika_server;
+static const int RAW_ARGS_LEN = 1024 * 1024; 
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port, pink::Thread* thread) :
   RedisConn(fd, ip_port) {
@@ -14,25 +15,26 @@ PikaClientConn::~PikaClientConn() {
 }
 
 std::string PikaClientConn::RestoreArgs() {
-  CmdRes res;
-  res.AppendArrayLen(argv_.size());
+  std::string res;
+  res.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(res, argv_.size(), "*");
   PikaCmdArgsType::const_iterator it = argv_.begin();
   for ( ; it != argv_.end(); ++it) {
-    res.AppendStringLen((*it).size());
-    res.AppendContent(*it);
+    RedisAppendLen(res, (*it).size(), "$");
+    RedisAppendContent(res, *it);
   }
-  return res.message();
+  return res;
 }
 
-void PikaClientConn::DoCmd(const std::string& opt, CmdRes& ret) {
+void PikaClientConn::DoCmd(const std::string& opt, std::string &ret) {
   // Get command info
   const CmdInfo* cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = pika_thread_->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
-      ret.SetErr("unknown or unsupported command \'" + opt);
+      ret.append("-Err unknown or unsupported command \'" + opt + "\r\n");
       return;
   }
-
+  c_ptr->res().clear();
   // TODO Check authed
   // Add read lock for no suspend command
   if (!cinfo_ptr->is_suspend()) {
@@ -43,10 +45,10 @@ void PikaClientConn::DoCmd(const std::string& opt, CmdRes& ret) {
       g_pika_server->logger->Lock();
   }
 
-  c_ptr->Do(argv_, ret);
+  c_ptr->Do(argv_);
 
   if (cinfo_ptr->is_write()) {
-      if (ret.ok()) {
+      if (c_ptr->res().ok()) {
           g_pika_server->logger->Put(RestoreArgs());
       }
       g_pika_server->logger->Unlock();
@@ -55,6 +57,7 @@ void PikaClientConn::DoCmd(const std::string& opt, CmdRes& ret) {
   if (!cinfo_ptr->is_suspend()) {
       pthread_rwlock_unlock(g_pika_server->rwlock());
   }
+  ret = c_ptr->res().message();
 }
 
 int PikaClientConn::DealMessage() {
@@ -70,8 +73,7 @@ int PikaClientConn::DealMessage() {
     //logger->Lock();
     //TODO return value
     if (argv_.empty()) return -2;
-    CmdRes res;
-    std::string opt = argv_[0];
+    std::string res, opt = argv_[0];
     slash::StringToLower(opt);
     //TODO add logger lock
     DoCmd(opt, res);
@@ -113,7 +115,7 @@ int PikaClientConn::DealMessage() {
     //    }
     //  }
     //
-    memcpy(wbuf_ + wbuf_len_, res.message().data(), res.message().size());
-    wbuf_len_ += res.message().size();
+    memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
+    wbuf_len_ += res.size();
     return 0;
 }
