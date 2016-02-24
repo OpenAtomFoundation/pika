@@ -23,6 +23,7 @@
 #include <dirent.h>
 #include <signal.h>
 #include <set>
+#include <errno.h>
 
 extern PikaConf *g_pikaConf;
 extern mario::Mario *g_pikaMario;
@@ -488,7 +489,8 @@ bool PikaServer::PurgeLogsNolock(uint32_t max, int64_t to) {
 bool PikaServer::PurgeLogs(uint32_t max, int64_t to) {
     MutexLock l(&mutex_);
     if (purging_) {
-        return false;
+       LOG(INFO) << "Already purging!";
+       return false;
     }
 //    if (max > 9) {
 //        max -= 10;
@@ -503,7 +505,13 @@ bool PikaServer::PurgeLogs(uint32_t max, int64_t to) {
     arg->p = (void*)this;
     arg->to = to;
     purging_ = true;
-    pthread_create(&purge_thread_id_, NULL, &(PikaServer::StartPurgeLogs), arg);
+    int ret = pthread_create(&purge_thread_id_, NULL, &(PikaServer::StartPurgeLogs), arg);
+    if (ret != 0) {
+       LOG(WARNING) << "PurgeLog create thread failed, " << strerror(errno);
+       purging_ = false;
+       return false;
+    }
+
     return true;
 }
 
@@ -550,11 +558,15 @@ void* PikaServer::StartPurgeLogs(void* arg) {
         ret = access(filename.c_str(), F_OK);
         if (ret) continue;
         LOG(INFO) << "Delete " << filename << "...";
-        remove(filename.c_str());
+        ret = remove(filename.c_str());
+        if (ret != 0) {
+          LOG(INFO) << "Delete " << filename << "failed, " << strerror(errno);
+        }
     }
     {
     MutexLock l(p->Mutex());
     p->purging_ = false;
+    LOG(INFO) << "Purge thread reset purging_ to false";
     }
     delete (purge_args*)arg;
     return NULL;
