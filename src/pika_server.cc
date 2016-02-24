@@ -707,8 +707,11 @@ void PikaServer::AutoPurge() {
 //    } else if (num > expire_logs_nums) {
     uint32_t max = 0;
     g_pikaMario->GetStatus(&max);
-    if (db_sync_purge_max_ != -1) {
-        max = max < db_sync_purge_max_ ? max : db_sync_purge_max_;
+    {
+        MutexLock lm(&mutex_);
+        if (db_sync_purge_max_ != -1) {
+            max = max < db_sync_purge_max_ ? max : db_sync_purge_max_;
+        }
     }
     if (num > expire_logs_nums) {
         if (max >= 10 && PurgeLogs(max, max-expire_logs_nums)) {
@@ -847,6 +850,7 @@ void* PikaServer::StartSyncDB(void *args) {
         snprintf(file_path, sizeof(file_path), "write2file%d", filenum);
         if (access(file_path, F_OK)) {
             pre_db_sync_valid = true;
+            MutexLock lm(g_pikaServer->Mutex());
             g_pikaServer->set_db_sync_purge_max(filenum);
         }
     }
@@ -874,10 +878,12 @@ void* PikaServer::StartSyncDB(void *args) {
             MutexLock lm(g_pikaServer->Mutex());
             RWLock lrw(g_pikaServer->rwlock(), true);
             g_pikaMario->GetProducerStatus(&filenum, &offset);
+            g_pikaServer->set_db_sync_purge_max(filenum); //place this sentence here(ahead) is to shorten the time gap between the filenum-getting and the db_sync_purge_max-setting, avoiding write2filefilenum log-file is deleted
             nemo_s = backup_engine->SetBackupContent(g_pikaServer->GetHandle());
             if (!nemo_s.ok()){
                 LOG(ERROR) << "set backup content failed " << nemo_s.ToString();
                 delete backup_engine;
+                g_pikaServer->set_db_sync_purge_max(-1);
                 return NULL;
             }
             g_pikaServer->bgsaving_ = true;
@@ -902,10 +908,10 @@ void* PikaServer::StartSyncDB(void *args) {
         {
             MutexLock l(g_pikaServer->Mutex());
             g_pikaServer->bgsaving_ = false;
+            g_pikaServer->set_db_sync_file_num(filenum);
+            g_pikaServer->set_db_sync_file_offset(offset);
+//            g_pikaServer->set_db_sync_purge_max(filenum);
         }
-        g_pikaServer->set_db_sync_file_num(filenum);
-        g_pikaServer->set_db_sync_file_offset(offset);
-        g_pikaServer->set_db_sync_purge_max(filenum);
     }
 
     std::string str;
@@ -946,7 +952,6 @@ void* PikaServer::StartSyncDB(void *args) {
                 }
             }
             if (index == slave_thread_num) {
-                RWLock l(g_pikaServer->rwlock(), true);
                 syncing_db_slaves->erase(iter);
                 continue;
             }
@@ -968,7 +973,6 @@ void* PikaServer::StartSyncDB(void *args) {
 
     g_pikaServer->set_is_syncing_db(false);
     g_pikaServer->set_syncing_db_thread(0);
-    g_pikaServer->set_db_sync_purge_max(-1);//may cause miss at the slave send pikasync command, becaurse there is a time interval between now and the slave's next pikasync command
     return NULL;
 }
 

@@ -71,9 +71,9 @@ public:
     long db_sync_purge_max() { MutexLock l(&mutex_); return db_sync_purge_max_; }
 
     void set_is_syncing_db(bool v) { MutexLock l(&mutex_); is_syncing_db_ = v; }
-    void set_db_sync_file_num(int value) { MutexLock l(&mutex_); db_sync_file_num_ = value; }
-    void set_db_sync_file_offset(long value) { MutexLock l(&mutex_); db_sync_file_offset_ = value; }
-    void set_db_sync_purge_max(long value) { MutexLock l(&mutex_); db_sync_purge_max_ = value; }
+    void set_db_sync_file_num(int value) { /*MutexLock l(&mutex_);*/ db_sync_file_num_ = value; }
+    void set_db_sync_file_offset(long value) { /*MutexLock l(&mutex_);*/ db_sync_file_offset_ = value; }
+    void set_db_sync_purge_max(long value) { /*MutexLock l(&mutex_);*/ db_sync_purge_max_ = value; }
     port::Mutex* Mutex() { return &mutex_; }
     std::string GetServerIp();
     PikaThread** pikaThread() {  return pikaThread_; }

@@ -318,16 +318,25 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
 //    LOG(INFO) << ip << " : " << str_port;
     int res = g_pikaServer->TrySync(/*ip, str_port, */fd, filenum, offset);
     std::string t_ret;
+    int try_sync_db_ret = -1;
     if (res == PIKA_REP_STRATEGY_PSYNC) {
         t_ret = "*1\r\n$9\r\nucanpsync\r\n";
     } else if (res == PIKA_REP_STRATEGY_MISS) {
-        if (g_pikaServer->TrySyncDB(str_dbsyncpath, fd) == 0) {
+        try_sync_db_ret = g_pikaServer->TrySyncDB(str_dbsyncpath, fd);
+        if (try_sync_db_ret == 0) {
             t_ret = "*2\r\n$6\r\nsyncdb\r\n$5\r\nstart\r\n";
         } else {
             t_ret = "*1\r\n$9\r\nsyncerror\r\n";
         }
     } else {
         t_ret = "*1\r\n$9\r\nsyncerror\r\n";
+    }
+    std::map<std::string, std::pair<PikaConn*, std::string> >* syncing_db_slaves = g_pikaServer->syncing_db_slaves();
+    if (!(res == PIKA_REP_STRATEGY_MISS && try_sync_db_ret == 0)) {//if the last pikasync's execution is db sync, than this pikasync reset the db_sync_purge_max
+        MutexLock lm(g_pikaServer->Mutex());
+        if (syncing_db_slaves->empty()) { //there is no db_syncing slaves
+            g_pikaServer->set_db_sync_purge_max(-1);
+        }
     }
     std::string auth = g_pikaConf->requirepass();
     if (auth.size() == 0) {
@@ -368,6 +377,10 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     g_pikaConf->SetReadonly(true);
     LOG(WARNING) << "Master told me that I can psync, open readonly mode now";
     ret = "";
+    std::string slave_db_sync_path = g_pikaConf->slave_db_sync_path();
+    if (access(slave_db_sync_path.c_str(), F_OK) == 0) {
+        delete_dir(slave_db_sync_path.c_str());
+    }
 }
 
 void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
@@ -445,6 +458,12 @@ void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append(buf_len);
         ret.append(slave_db_sync_path + "\r\n");
         LOG(WARNING) << ret;
+
+        mkpath((slave_db_sync_path+"/"+nemo::KV_DB).c_str(), 0755);
+        mkpath((slave_db_sync_path+"/"+nemo::HASH_DB).c_str(), 0755);
+        mkpath((slave_db_sync_path+"/"+nemo::LIST_DB).c_str(), 0755);
+        mkpath((slave_db_sync_path+"/"+nemo::SET_DB).c_str(), 0755);
+        mkpath((slave_db_sync_path+"/"+nemo::ZSET_DB).c_str(), 0755);
     } else {
         ret = "-ERR wrong argument for";
         ret.append(argv.front());
