@@ -858,9 +858,11 @@ void* PikaServer::StartSyncDB(void *args) {
     uint64_t offset;
     bool pre_db_sync_valid = false;
     if ((filenum = g_pikaServer->db_sync_file_num()) != -1 && (offset = g_pikaServer->db_sync_file_offset()) != -1) {
+        std::string log_path = std::string(g_pikaConf->log_path());
+        log_path = log_path.back() == '/' ? log_path : log_path + "/";
         char file_path[100];
-        snprintf(file_path, sizeof(file_path), "write2file%d", filenum);
-        if (access(file_path, F_OK)) {
+        snprintf(file_path, sizeof(file_path), "%swrite2file%d", log_path.c_str(), filenum);
+        if (access(file_path, F_OK) == 0) {
             pre_db_sync_valid = true;
             MutexLock lm(g_pikaServer->Mutex());
             g_pikaServer->set_db_sync_purge_max(filenum);
