@@ -10,8 +10,20 @@
 
 
 //Constant for command name
+//Admin
+const std::string kCmdNameSlaveof = "slaveof";
+
+//Kv
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";
+//Hash
+
+//List
+
+//Zset
+
+//Set
+
 
 const std::string kNewLine = "\r\n";
 
@@ -156,19 +168,19 @@ void DestoryCmdInfoTable();
 // Method for Cmd Table
 void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table);
 Cmd* GetCmdFromTable(const std::string& opt, 
-        const std::unordered_map<std::string, Cmd*> &cmd_table);
+    const std::unordered_map<std::string, Cmd*> &cmd_table);
 void DestoryCmdTable(std::unordered_map<std::string, Cmd*> &cmd_table);
 
 void inline RedisAppendContent(std::string& str, const std::string& value) {
-    str.append(value.data(), value.size());
-    str.append(kNewLine);
+  str.append(value.data(), value.size());
+  str.append(kNewLine);
 }
 void inline RedisAppendLen(std::string& str, int ori, const std::string &prefix) {
-    char buf[32];
-    slash::ll2string(buf, 32, static_cast<long long>(ori));
-    str.append(prefix);
-    str.append(buf);
-    str.append(kNewLine);
+  char buf[32];
+  slash::ll2string(buf, 32, static_cast<long long>(ori));
+  str.append(prefix);
+  str.append(buf);
+  str.append(kNewLine);
 }
 
 #endif

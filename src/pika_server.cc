@@ -38,13 +38,13 @@ PikaServer::PikaServer(int port) :
   pika_trysync_thread_ = new PikaTrysyncThread();
 
   pthread_rwlock_init(&state_protector_, NULL);
-  logger = new Binlog("./log");
+  logger_ = new Binlog("./log");
 }
 
 PikaServer::~PikaServer() {
   pthread_rwlock_destroy(&state_protector_);
   pthread_rwlock_destroy(&rwlock_);
-  //delete logger;
+  //delete logger_;
 }
 
 void PikaServer::Start() {
@@ -157,7 +157,7 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
   }
 
   slash::SequentialFile *readfile;
-  std::string confile = NewFileName(logger->filename, filenum);
+  std::string confile = NewFileName(logger_->filename, filenum);
   if (!slash::NewSequentialFile(confile, &readfile).ok()) {
     return Status::IOError("AddBinlogSender new sequtialfile");
   }
@@ -185,7 +185,7 @@ Status PikaServer::GetSmallestValidLog(uint32_t* max) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<PikaBinlogSenderThread *>::iterator iter;
 
-  *max = logger->version_->pronum();
+  *max = logger_->version_->pronum();
   for (iter = binlog_sender_threads_.begin(); iter != binlog_sender_threads_.end(); iter++) {
     int tmp = (*iter)->filenum();
     if (tmp < *max) {

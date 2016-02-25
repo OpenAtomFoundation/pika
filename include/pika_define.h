@@ -48,14 +48,14 @@ static uint64_t kBinlogSize = 128;
 //static uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 enum RecordType {
-    kZeroType = 0,
-    kFullType = 1,
-    kFirstType = 2,
-    kMiddleType = 3,
-    kLastType = 4,
-    kEof = 5,
-    kBadRecord = 6,
-    kOldRecord = 7
+  kZeroType = 0,
+  kFullType = 1,
+  kFirstType = 2,
+  kMiddleType = 3,
+  kLastType = 4,
+  kEof = 5,
+  kBadRecord = 6,
+  kOldRecord = 7
 };
 
 /*

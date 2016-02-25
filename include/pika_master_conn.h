@@ -13,7 +13,7 @@ public:
   virtual ~PikaMasterConn();
   virtual int DealMessage();
 private:
-  PikaBinlogReceiverThread* pika_thread_;
+  PikaBinlogReceiverThread* self_thread_;
 };
 
 #endif

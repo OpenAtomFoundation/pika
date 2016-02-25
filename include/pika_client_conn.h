@@ -15,8 +15,9 @@ public:
   PikaClientConn(int fd, std::string ip_port, pink::Thread *thread);
   virtual ~PikaClientConn();
   virtual int DealMessage();
+
 private:
-  PikaWorkerThread* pika_thread_;
+  PikaWorkerThread* self_thread_;
   void DoCmd(const std::string& opt, std::string& ret);
   std::string RestoreArgs();
 };

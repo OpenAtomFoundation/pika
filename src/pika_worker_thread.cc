@@ -14,21 +14,17 @@ PikaWorkerThread::~PikaWorkerThread() {
 
 void PikaWorkerThread::CronHandle() {
 /*
- *  Do statistic work and find timeout client and add them to cron_tasks_ to kill them
+ *  Reset Lastsecquerynum and find timeout client and add them to cron_tasks_ to kill them
  */
-  uint64_t last_sec_thread_querynum_t = 0;
+  ResetLastSecQuerynum();
+
   {
   struct timeval now;
   gettimeofday(&now, NULL);
   slash::RWLock l(&rwlock_, false); // Use ReadLock to iterate the conns_
   std::map<int, void*>::iterator iter = conns_.begin();
-
+  
   while (iter != conns_.end()) {
-/*
- *  Statistics
- */
-    last_sec_thread_querynum_t += static_cast<PikaClientConn*>(iter->second)->conn_querynum(); //accumulate thread querynums from 0
-    static_cast<PikaClientConn*>(iter->second)->set_conn_querynum(0); // clear conn querynums
 
 /*
  *  Find timeout client
@@ -39,15 +35,6 @@ void PikaWorkerThread::CronHandle() {
     }
     iter++;
   }
-  }
-
-/*
- * Update statistics
- */
-  {
-    slash::RWLock l(&rwlock_, true); // Use WriteLock to update thread_querynum_ and last_sec_thread_querynum_
-    thread_querynum_ += last_sec_thread_querynum_t;
-    last_sec_thread_querynum_ = last_sec_thread_querynum_t;
   }
 
 /*

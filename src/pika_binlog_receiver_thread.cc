@@ -7,7 +7,9 @@
 extern PikaServer* g_pika_server;
 
 PikaBinlogReceiverThread::PikaBinlogReceiverThread(int port) :
-  HolyThread::HolyThread(port) {
+  HolyThread::HolyThread(port),
+  thread_querynum_(0),
+  last_sec_thread_querynum_(0) {
     InitCmdTable(&cmds_);
 }
 
@@ -21,6 +23,10 @@ bool PikaBinlogReceiverThread::AccessHandle(const std::string& ip_port) {
   }
   g_pika_server->PlusMasterConnection();
   return true;
+}
+
+void PikaBinlogReceiverThread::CronHandle() {
+  ResetLastSecQuerynum();
 }
 
 void PikaBinlogReceiverThread::KillAll() {

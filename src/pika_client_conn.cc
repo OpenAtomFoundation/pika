@@ -8,7 +8,7 @@ static const int RAW_ARGS_LEN = 1024 * 1024;
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port, pink::Thread* thread) :
   RedisConn(fd, ip_port) {
-  pika_thread_ = dynamic_cast<PikaWorkerThread*>(thread);
+  self_thread_ = dynamic_cast<PikaWorkerThread*>(thread);
 }
 
 PikaClientConn::~PikaClientConn() {
@@ -29,7 +29,7 @@ std::string PikaClientConn::RestoreArgs() {
 void PikaClientConn::DoCmd(const std::string& opt, std::string &ret) {
   // Get command info
   const CmdInfo* cinfo_ptr = GetCmdInfo(opt);
-  Cmd* c_ptr = pika_thread_->GetCmd(opt);
+  Cmd* c_ptr = self_thread_->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
       ret.append("-Err unknown or unsupported command \'" + opt + "\r\n");
       return;
@@ -42,16 +42,16 @@ void PikaClientConn::DoCmd(const std::string& opt, std::string &ret) {
   }
 
   if (cinfo_ptr->is_write()) {
-      g_pika_server->logger->Lock();
+      g_pika_server->logger_->Lock();
   }
 
   c_ptr->Do(argv_);
 
   if (cinfo_ptr->is_write()) {
       if (c_ptr->res().ok()) {
-          g_pika_server->logger->Put(RestoreArgs());
+          g_pika_server->logger_->Put(RestoreArgs());
       }
-      g_pika_server->logger->Unlock();
+      g_pika_server->logger_->Unlock();
   }
 
   if (!cinfo_ptr->is_suspend()) {
@@ -61,16 +61,16 @@ void PikaClientConn::DoCmd(const std::string& opt, std::string &ret) {
 }
 
 int PikaClientConn::DealMessage() {
-    PlusConnQuerynum();
-
+  
+  self_thread_->PlusThreadQuerynum();
     /* Sync cmd
-     * 1 logger->Lock()
+     * 1 logger_->Lock()
      * 2 cmd->Do
      * 3 AppendLog
-     * 4 logger->Unlock
+     * 4 logger_->Unlock
      */
 
-    //logger->Lock();
+    //logger_->Lock();
     //TODO return value
     if (argv_.empty()) return -2;
     std::string res, opt = argv_[0];
@@ -111,11 +111,12 @@ int PikaClientConn::DealMessage() {
     //    // TEST Put
     //    for (int i = 0; i < 10; i++) {
     //      DLOG(INFO) << "Logger Put a msg:" << i << ";";
-    //      g_pika_server->logger->Put(std::string("*3\r\n$3\r\nset\r\n$3\r\nkey\r\n$1\r\n1\r\n"));
+    //      g_pika_server->logger_->Put(std::string("*3\r\n$3\r\nset\r\n$3\r\nkey\r\n$1\r\n1\r\n"));
     //    }
     //  }
     //
     memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
     wbuf_len_ += res.size();
+    set_is_reply(true);
     return 0;
 }

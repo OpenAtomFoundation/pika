@@ -317,7 +317,7 @@ Status PikaBinlogSenderThread::Parse() {
   std::string scratch("");
   Status s;
 
-  Version* version = g_pika_server->logger->version_;
+  Version* version = g_pika_server->logger_->version_;
   while (!IsExit()) {
     if (filenum_ == version->pronum() && con_offset_ == version->pro_offset()) {
       DLOG(INFO) << "BinlogSender Parse no new msg";
@@ -331,7 +331,7 @@ Status PikaBinlogSenderThread::Parse() {
 
     //DLOG(INFO) << "BinlogSender Parse a msg return: " << s.ToString();
     if (s.IsEndFile()) {
-      std::string confile = NewFileName(g_pika_server->logger->filename, filenum_ + 1);
+      std::string confile = NewFileName(g_pika_server->logger_->filename, filenum_ + 1);
 
       // Roll to next File
       if (slash::FileExists(confile)) {

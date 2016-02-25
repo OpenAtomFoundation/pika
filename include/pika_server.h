@@ -88,7 +88,7 @@ public:
   /*
    * Binlog
    */
-  Binlog *logger;
+  Binlog *logger_;
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
 
 private:

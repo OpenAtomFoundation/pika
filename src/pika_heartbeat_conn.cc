@@ -10,7 +10,7 @@ PikaHeartbeatConn::~PikaHeartbeatConn() {
 }
 
 int PikaHeartbeatConn::DealMessage() {
-  PlusConnQuerynum();
+  set_is_reply(true);
   memcpy(wbuf_ + wbuf_len_, "+OK\r\n", 5);
   wbuf_len_ += 5;
   return 0;
