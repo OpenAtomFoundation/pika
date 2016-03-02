@@ -86,10 +86,23 @@ bool PikaSlavepingThread::Connect(const std::string& ip, int port) {
 
 bool PikaSlavepingThread::Send() {
 	char wbuf[256];
-	int wbuf_len = 17;
 	int wbuf_pos = 0;
 	int nwritten = 0;
-	strncpy(wbuf, "*1\r\n$4\r\nping\r\n", wbuf_len);
+  if (!is_first_send_) {
+    strcpy(wbuf, "*1\r\n$4\r\nping\r\n");
+  } else {
+    strcpy(wbuf, "*2\r\n$4\r\nspci\r\n");
+    char tmp[128];
+    char len[20];
+    sprintf(tmp, "%ld", sid_);
+    sprintf(len, "$%d\r\n", strlen(tmp));
+    strcat(wbuf, len);
+    strcat(wbuf, tmp);
+    strcat(wbuf, "\r\n");
+    is_first_send_ = false;
+  }
+  DLOG(INFO) << wbuf;
+  int wbuf_len = strlen(wbuf);
 
 	while (1) {
 		while (wbuf_len > 0) {
@@ -171,12 +184,14 @@ void* PikaSlavepingThread::ThreadMain() {
             if (now.tv_sec - last_interaction.tv_sec > 30) {
               //timeout;
               DLOG(INFO) << "Ping master timeout";
+              g_pika_server->pika_binlog_receiver_thread()->KillAll();
               close(sockfd_);
               break;
             }
           } else {
             // error happend
             DLOG(INFO) << "Ping master error";
+            g_pika_server->pika_binlog_receiver_thread()->KillAll();
             close(sockfd_);
             break;
           }

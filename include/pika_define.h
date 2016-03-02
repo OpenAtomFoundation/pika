@@ -17,12 +17,13 @@ struct WorkerCronTask {
 
 //slave item
 struct SlaveItem {
-  uint64_t sid;
+  int64_t sid;
   std::string ip_port;
   int port;
   pthread_t sender_tid;
   int hb_fd;
   int stage;
+  void* sender;
   struct timeval create_time;
 };
 

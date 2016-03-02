@@ -1,3 +1,4 @@
+#include "pika_admin.h"
 #include "pika_kv.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos;    /* Table for CmdInfo */
@@ -8,6 +9,9 @@ void InitCmdInfoTable() {
   ////Slaveof
   CmdInfo* slaveofptr = new CmdInfo(kCmdNameSlaveof, -3, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlaveof, slaveofptr));
+  ////Trysync
+  CmdInfo* trysyncptr = new CmdInfo(kCmdNameTrysync, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTrysync, trysyncptr));
 
   //Kv
   ////SetCmd
@@ -42,12 +46,30 @@ const CmdInfo* GetCmdInfo(const std::string& opt) {
 }
 
 void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
-  //SetCmd
+  //Admin
+  ////Slaveof
+  Cmd* slaveofptr = new SlaveofCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlaveof, slaveofptr));
+  ////Trysync
+  Cmd* trysyncptr = new TrysyncCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTrysync, trysyncptr));
+
+  //Kv
+  ////SetCmd
   Cmd* setptr = new SetCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSet, setptr));
-  //GetCmd
+  ////GetCmd
   Cmd* getptr = new GetCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGet, getptr));
+  
+  //Hash
+  
+  //List
+
+  //Zset
+
+  //Set
+
 }
 
 Cmd* GetCmdFromTable(const std::string& opt, 

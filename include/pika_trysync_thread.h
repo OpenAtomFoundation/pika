@@ -13,6 +13,7 @@ public:
 
 private:
   int sockfd_;
+  int64_t sid_;
 	bool Init();
   bool Connect(const std::string& master_ip, int master_port);
   bool Send();

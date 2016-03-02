@@ -20,4 +20,17 @@ private:
   virtual void Initial(PikaCmdArgsType &argvs);
 };
 
+class TrysyncCmd : public Cmd {
+public:
+  TrysyncCmd() {
+  }
+  virtual void Do(PikaCmdArgsType &argvs);
+private:
+  std::string slave_ip_;
+  int64_t slave_port_;
+  int64_t filenum_;
+  int64_t pro_offset_;
+  virtual void Initial(PikaCmdArgsType &argvs);
+};
+
 #endif

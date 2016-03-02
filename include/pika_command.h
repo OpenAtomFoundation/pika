@@ -12,6 +12,7 @@
 //Constant for command name
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";
+const std::string kCmdNameTrysync = "trysync";
 
 //Kv
 const std::string kCmdNameSet = "set";

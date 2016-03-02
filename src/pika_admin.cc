@@ -53,3 +53,70 @@ void SlaveofCmd::Do(PikaCmdArgsType &argv) {
   }
 }
 
+void TrysyncCmd::Initial(PikaCmdArgsType &argv) {
+  if (!GetCmdInfo(kCmdNameTrysync)->CheckArg(argv.size())) {
+    res_.SetErr("wrong number of arguments for " + GetCmdInfo(kCmdNameTrysync)->name() + " command");
+    return;
+  }
+  PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
+  slave_ip_ = *it++;
+
+  std::string str_slave_port = *it++;
+  if (!slash::string2l(str_slave_port.data(), str_slave_port.size(), &slave_port_) && slave_port_ <= 0) {
+    res_.SetErr("value is not an integer or out of range");
+    return;
+  }
+
+  std::string str_filenum = *it++;
+  if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) && filenum_ <= 0) {
+    res_.SetErr("value is not an integer or out of range");
+    return;
+  }
+
+  std::string str_pro_offset = *it++;
+  if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) && pro_offset_ <= 0) {
+    res_.SetErr("value is not an integer or out of range");
+    return;
+  }
+
+}
+
+void TrysyncCmd::Do(PikaCmdArgsType &argv) {
+  Initial(argv);
+  if (!res_.ok()) {
+    return;
+  }
+  std::string ip_port = slave_ip_;
+  char buf[10];
+  slash::ll2string(buf, sizeof(buf), slave_port_);
+  ip_port.append(":");
+  ip_port.append(buf);
+  DLOG(INFO) << "Trysync, Slave ip_port: " << ip_port;
+  if (!g_pika_server->FindSlave(ip_port)) {
+    SlaveItem s;
+    s.sid = g_pika_server->GenSid();
+    s.ip_port = ip_port;
+    s.port = slave_port_;
+    s.hb_fd = -1;
+    s.stage = SLAVE_ITEM_STAGE_ONE;
+    gettimeofday(&s.create_time, NULL);
+    s.sender = NULL;
+    
+    DLOG(INFO) << "Trysync, dont FindSlave, so AddBinlogSender";
+    Status status = g_pika_server->AddBinlogSender(s, filenum_, pro_offset_);
+    if (status.ok()) {
+      char tmp[128];
+      strcpy(tmp, "+");
+      slash::ll2string(buf, sizeof(buf), s.sid);
+      strcat(tmp, buf);
+      DLOG(INFO) << "Send Sid to Slave: " << tmp;
+      g_pika_server->BecomeMaster();
+      res_.SetContent(tmp);
+    } else {
+      res_.SetErr("Error in AddBinlogSender");
+    }
+  } else {
+    res_.SetErr("Already Exist");
+  }
+}
+

@@ -12,7 +12,7 @@ public:
   PikaBinlogReceiverThread(int port);
   virtual ~PikaBinlogReceiverThread();
   virtual void CronHandle();
-  virtual bool AccessHandle(const std::string& ip_port);
+  virtual bool AccessHandle(std::string& ip);
   void KillAll();
 
   uint64_t thread_querynum() {
@@ -34,6 +34,12 @@ public:
   void ResetLastSecQuerynum() {
     slash::RWLock(&rwlock_, true);
     last_sec_thread_querynum_ = 0;
+  }
+
+  int32_t ThreadClientNum() {
+    slash::RWLock(&rwlock_, false);
+    int32_t num = conns_.size();
+    return num;
   }
 
   Cmd* GetCmd(const std::string& opt) {

@@ -9,6 +9,7 @@
 #include "pika_binlog_receiver_thread.h"
 #include "pika_binlog_sender_thread.h"
 #include "pika_heartbeat_thread.h"
+#include "pika_slaveping_thread.h"
 #include "pika_dispatch_thread.h"
 #include "pika_trysync_thread.h"
 #include "pika_worker_thread.h"
@@ -22,15 +23,19 @@ using slash::Slice;
 class PikaServer
 {
 public:
-  PikaServer(int port);
+  PikaServer();
   ~PikaServer();
 
   /*
    * Get & Set 
    */
+  std::string host() {
+    return host_;
+  }
   int port() {
     return port_;
   };
+
   PikaWorkerThread** pika_worker_thread() {
     return pika_worker_thread_;
   };
@@ -64,8 +69,18 @@ public:
 /*
  * Master use
  */
+  int64_t GenSid() {
+    slash::MutexLock l(&slave_mutex_);
+    int64_t sid = sid_;
+    sid_++;
+    return sid;
+  }
+
   void DeleteSlave(int fd); // hb_fd
+  bool FindSlave(std::string& ip_port);
   Status GetSmallestValidLog(uint32_t* max);
+  void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
+  void BecomeMaster(); 
 
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
@@ -75,23 +90,32 @@ public:
 /*
  * Slave use
  */
-  bool SetMaster(const std::string& master_ip, int master_port);
+  bool SetMaster(std::string& master_ip, int master_port);
   bool ShouldConnectMaster();
   void ConnectMasterDone();
   bool ShouldStartPingMaster();
   void MinusMasterConnection();
   void PlusMasterConnection();
+  bool ShouldAccessConnAsMaster(const std::string& ip);
 
   void Start();
+
+  PikaSlavepingThread* ping_thread_;
   slash::Mutex mutex_; // double lock to block main thread
 
-  /*
-   * Binlog
-   */
+/*
+ * Server init info
+ */
+  bool ServerInit();
+
+/*
+ * Binlog
+ */
   Binlog *logger_;
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
 
 private:
+  std::string host_;
   int port_;
   pthread_rwlock_t rwlock_;
   std::shared_ptr<nemo::Nemo> db_;
@@ -103,6 +127,10 @@ private:
   PikaHeartbeatThread* pika_heartbeat_thread_;
   PikaTrysyncThread* pika_trysync_thread_;
 
+  /*
+   * Master use 
+   */
+  int64_t sid_;
 
   /*
    * Slave use
