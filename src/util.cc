@@ -44,10 +44,12 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sstream>
+#include <fstream>
 #include <dirent.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <dirent.h>
+#include <glog/logging.h>
 
 #include "util.h"
 #include "pika_conf.h"
@@ -651,7 +653,9 @@ int do_mkdir(const char *path, mode_t mode) {
     errno = ENOTDIR;
     status = -1;
   }
-
+  if (chmod(path, mode) != 0) { //modify the priority
+    status = -1;
+  }
   return (status);
 }
 
@@ -788,18 +792,21 @@ int scp_write_file(const char* local_file_path, const char* dst_file_path, const
 
     rc = libssh2_init(0);
     if (rc) {
-        fprintf(stderr, "libssh2 init error (%d)\n", rc);
+        //fprintf(stderr, "libssh2 init error (%d)\n", rc);
+        LOG(ERROR) << "libssh2 init error (" << rc << ")";
         return -1;
     }
     local_file = fopen(local_file_path, "rb");
     if (!local_file) {
-        fprintf(stderr, "local file %s open error", local_file_path);
+        //fprintf(stderr, "local file %s open error", local_file_path);
+        LOG(ERROR) << "local file " << local_file_path << " open error";
         return -2;
     }
     stat(local_file_path, &file_info);
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
-        fprintf(stderr, "failed to create socket\n");
+        //fprintf(stderr, "failed to create socket\n");
+        LOG(ERROR) << "failed to create socket";
         scp_write_file_clean(sockfd, session, channel, local_file);
         return -3;
     }
@@ -808,24 +815,28 @@ int scp_write_file(const char* local_file_path, const char* dst_file_path, const
     sin.sin_port = htons(22);
     sin.sin_addr.s_addr = host_addr;
     if (connect(sockfd, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in))) {
-        fprintf(stderr, "failed to connect\n");
+        //fprintf(stderr, "failed to connect\n");
+        LOG(ERROR) << "failed to connect";
         scp_write_file_clean(sockfd, session, channel, local_file);
         return -4;
     }
     session = libssh2_session_init();
     if (session == NULL) {
-        fprintf(stderr, "libssh2 session create failed\n");
+        //fprintf(stderr, "libssh2 session create failed\n");
+        LOG(ERROR) << "libssh2 session create failed";
         scp_write_file_clean(sockfd, session, channel, local_file);
         return -5;
     }
     rc = libssh2_session_handshake(session, sockfd);
     if (rc) {
-        fprintf(stderr, "failed to establish the ssh session (%d)\n", rc);
+        //fprintf(stderr, "failed to establish the ssh session (%d)\n", rc);
+        LOG(ERROR) << "failed to establish the ssh session (" << rc << ")";
         scp_write_file_clean(sockfd, session, channel, local_file);
         return -6;
     }
     if (libssh2_userauth_password(session, username, password)) {
-        fprintf(stderr, "authentication by password failed\n");
+        //fprintf(stderr, "authentication by password failed\n");
+        LOG(ERROR) << "authentication by password failed";
         scp_write_file_clean(sockfd, session, channel, local_file);
         return -7;
     }
@@ -834,11 +845,13 @@ int scp_write_file(const char* local_file_path, const char* dst_file_path, const
         char *errmsg;
         int errlen;
         int err = libssh2_session_last_error(session, &errmsg, &errlen, 0);
-        fprintf(stderr, "unable to open a session (%d) %s\n", err, errmsg);
+        //fprintf(stderr, "unable to open a session (%d) %s\n", err, errmsg);
+        LOG(ERROR) << "unable to open a session (" << err << ") " << errmsg;
         scp_write_file_clean(sockfd, session, channel, local_file);
         return -8;
     }
-    fprintf(stderr, "local file %s transfer started\n", local_file_path);
+    //fprintf(stderr, "local file %s transfer started\n", local_file_path);
+    LOG(WARNING) << "local file " << local_file_path << "transfer started";
     int32_t cur_speed_bytes = (g_pikaConf->db_sync_speed())*1024*1024;
     int32_t now_bytes = 0;
     struct timeval last_time, cur_time;
@@ -854,6 +867,7 @@ int scp_write_file(const char* local_file_path, const char* dst_file_path, const
             rc = libssh2_channel_write(channel, ptr, nread);
             if (rc < 0) {
                 fprintf(stderr, "ERROR (%d)\n", rc);
+                //LOG(ERROR) << "ERROR (" << rc << ")";
                 break;
             } else {
                 ptr += rc;
@@ -885,11 +899,13 @@ int scp_write_file(const char* local_file_path, const char* dst_file_path, const
     channel = NULL;
     if (!feof(local_file)) {
         scp_write_file_clean(sockfd, session, channel, local_file);
-        fprintf(stderr, "local file %s read error\n", local_file_path);
+        //fprintf(stderr, "local file %s read error\n", local_file_path);
+        LOG(ERROR) << "local file " << local_file_path << "read error";
         return -9;
     }
     scp_write_file_clean(sockfd, session, channel, local_file);
-    fprintf(stderr, "local file %s transfer finished\n", local_file_path);
+    //fprintf(stderr, "local file %s transfer finished\n", local_file_path);
+    LOG(WARNING) << "local file " << local_file_path << "transfer finished";
     return 0;
 }
 
@@ -938,6 +954,195 @@ int scp_copy_dir(const char* local_dir_path, const char* remote_dir_path, const 
     return 0;
 }
 
+int rsync_copy_file(const char* local_file_path, const char* remote_file_path, const char* remote_host, const int dest_rsync_port) {
+    std::string rsync_cmd = "rsync -avP --bwlimit=";
+    int32_t bwlimit_kb = g_pikaConf->db_sync_speed() * 1024;
+    char buf[20];
+    snprintf(buf, sizeof(buf), "%d", bwlimit_kb);
+    rsync_cmd.append(buf);
+    if (dest_rsync_port != 873) {
+        snprintf(buf, sizeof(buf), "%d", dest_rsync_port);
+        rsync_cmd.append(" --port=");
+        rsync_cmd.append(buf);
+    }
+    rsync_cmd.append(" ");
+    rsync_cmd.append(local_file_path, strlen(local_file_path));
+    rsync_cmd.append(" ");
+    rsync_cmd.append(remote_host);
+    rsync_cmd.append("::");
+    rsync_cmd.append(remote_file_path);
+
+    LOG(WARNING) << rsync_cmd << " start...";
+    int ret = system(rsync_cmd.c_str());
+//    if (ret == -1 || ret == 127) {
+    if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
+        LOG(WARNING) << rsync_cmd << " finished...";
+        return 0;
+    } else {
+        LOG(WARNING) << "rsync " << local_file_path << " failed" << std::endl;
+        return -1;
+    }
+}
+
+int rsync_copy_dir(const char* local_dir_path, const char* remote_dir_path, const char* remote_host, const int dest_rsync_port) {
+    int ret;
+    struct dirent* dirent_ptr = NULL;
+    struct stat file_info;
+    DIR* local_dir = opendir(local_dir_path);
+    if (local_dir == NULL) {
+        LOG(WARNING) << "open local dir path failed";
+        return -1;
+    }
+    while ((dirent_ptr = readdir(local_dir)) != NULL) {
+        char local_file_whole_path[100];
+        char remote_file_whole_path[100];
+        if (!strcmp(dirent_ptr->d_name, ".") || !strcmp(dirent_ptr->d_name, "..")) {
+            continue;
+        }
+
+        char dir_path[100];
+
+        strcpy(dir_path, local_dir_path);
+        if (dir_path[strlen(dir_path)-1] == '/') {
+            dir_path[strlen(dir_path)-1] = '\0';
+        }
+        snprintf(local_file_whole_path, sizeof(local_file_whole_path), "%s/%s", dir_path, dirent_ptr->d_name);
+        strcpy(dir_path, remote_dir_path);
+        if (dir_path[strlen(dir_path)-1] == '/') {
+            dir_path[strlen(dir_path)-1] = '\0';
+        }
+        snprintf(remote_file_whole_path, sizeof(remote_file_whole_path), "%s/%s", dir_path, dirent_ptr->d_name);
+        if (stat(local_file_whole_path, &file_info) != 0) {
+            closedir(local_dir);
+            return -2;
+        }
+        if (file_info.st_mode & S_IFDIR) {
+            ret = rsync_copy_dir(local_file_whole_path, remote_file_whole_path, remote_host, dest_rsync_port);
+        } else {
+            ret = rsync_copy_file(local_file_whole_path, remote_file_whole_path, remote_host, dest_rsync_port);
+        }
+        if (ret != 0) {
+            closedir(local_dir);
+            return -3;
+        }
+    }
+    closedir(local_dir);
+    return 0;
+}
+
+int start_rsync(const std::string& path, const int rsync_port) {
+    std::string path_up = path.back() == '/'? path.substr(0, path.size()-1) : path;
+    if (path_up == ".") {
+        char buf[100];
+        getcwd(buf, sizeof(buf));
+        path_up = buf;
+    }
+    if (!path_up.empty()) {
+        size_t last_slash_pos = path_up.find_last_of("/");
+        path_up = path_up.substr(0, last_slash_pos);
+    }
+
+    std::string rsync_path;
+    char pid_str[10];
+    std::string rsync_conf_path;
+    std::string rsync_pid_file_path;
+
+    snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+    rsync_path = path_up + "/rsync";
+    mkpath(rsync_path.c_str(), 0755);
+    rsync_conf_path = rsync_path + "/pika_rsync.conf";
+    rsync_pid_file_path = rsync_path + "/pika_rsync_" + pid_str + ".pid";
+    if (access(rsync_pid_file_path.c_str(), F_OK) == 0) {
+        LOG(WARNING) << "rsync service already started";
+        return 0;
+    }
+    std::ofstream rsync_conf_file(rsync_conf_path.c_str());
+    if (!rsync_conf_file) {
+        LOG(ERROR) << "open new rsync_conf_file failed";
+        return -1;
+    }
+//    if (rsync_port != 873) {
+//        rsync_conf_file << "port = " << rsync_port << std::endl;
+//    }
+    rsync_conf_file << "uid = root" << std::endl;
+    rsync_conf_file << "gid = root" << std::endl;
+    rsync_conf_file << "use chroot = no" << std::endl;
+    rsync_conf_file << "max connections = 10" << std::endl;
+    rsync_conf_file << "pid file = " << rsync_pid_file_path << std::endl;
+    //rsync_conf_file << "lock file = " << rsync_path << "/pika_rsync_" << pid_str << ".lock" << std::endl;
+    //rsync_conf_file << "log file = " << rsync_path << "/pika_rsync_" << pid_str << ".log" << std::endl;
+    rsync_conf_file << "list = no" << std::endl;
+    rsync_conf_file << "strict modes = no" << std::endl;
+    rsync_conf_file << "[pika_slave_db_sync_path_" << pid_str << "]" << std::endl;
+    rsync_conf_file << "path = " << path << std::endl;
+    rsync_conf_file << "read only = no" << std::endl;
+    rsync_conf_file.close();
+
+    std::string rsync_start_cmd = "rsync --daemon --config=";
+    rsync_start_cmd += rsync_conf_path;
+    if (rsync_port != 873) {
+        char buf[10];
+        rsync_start_cmd.append(" --port=");
+        snprintf(buf, sizeof(buf), "%d", rsync_port);
+        rsync_start_cmd.append(buf);
+    }
+    system(rsync_start_cmd.c_str());
+    LOG(WARNING) << rsync_start_cmd;
+    if (access(rsync_pid_file_path.c_str(), F_OK) == 0) {
+        LOG(ERROR) << "start rsync service sucess";
+        return -1;
+    }
+    usleep(1000);
+    if (access(rsync_pid_file_path.c_str(), F_OK) == 0) {
+        LOG(ERROR) << "start rsync service sucess";
+        return -1;
+    }
+    LOG(WARNING) << "start rsync service failed";
+    return 0;
+}
+
+int stop_rsync(const std::string& path) {
+    std::string path_up = path.back() == '/'? path.substr(0, path.size()-1) : path;
+    if (path_up == ".") {
+        char buf[100];
+        getcwd(buf, sizeof(buf));
+        path_up = buf;
+    }
+    if (!path_up.empty()) {
+        size_t last_slash_pos = path_up.find_last_of("/");
+        path_up = path_up.substr(0, last_slash_pos);
+    }
+
+    std::string rsync_path;
+    char pid_str[10];
+    std::string rsync_pid_file_path;
+
+    snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+    rsync_path = path_up + "/rsync";
+    rsync_pid_file_path = rsync_path + "/pika_rsync_" + pid_str + ".pid";
+
+    if (access(rsync_pid_file_path.c_str(), F_OK) == -1) {
+        LOG(WARNING) << "rsync service has been stoped";
+        return 0;
+    }
+    std::string rsync_stop_cmd = "kill `cat ";
+    rsync_stop_cmd.append(rsync_pid_file_path.c_str());
+    rsync_stop_cmd.append("`");
+    system(rsync_stop_cmd.c_str());
+    sleep(1);
+    if (access(rsync_pid_file_path.c_str(), F_OK) == -1) {
+        LOG(WARNING) << "rsync service stoped success";
+        return 0;
+    }
+    sleep(2);
+    if (access(rsync_pid_file_path.c_str(), F_OK) == -1) {
+        LOG(WARNING) << "rsync service stoped success";
+        return 0;
+    }
+    LOG(ERROR) << "rsync service stoped failed";
+    return -1;
+}
+
 int64_t ustime() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -972,8 +1177,8 @@ std::string PStringConcat(const std::vector<std::string> &elems, char delim) {
     return result;
 }
 
-
 #ifdef UTIL_TEST_MAIN
+
 #include <assert.h>
 
 void test_string2ll(void) {

@@ -55,4 +55,8 @@ std::string PStringConcat(const std::vector<std::string> &elems, char delim);
 int is_dir(const char* path);
 int copy_dir(const char* src, const char* dst);
 int scp_copy_dir(const char* local_dir_path, const char* remote_dir_path, const char* remote_host, const char* username, const char* password);
+int rsync_copy_file(const char * local_file_path, const char* remote_file_path, const char* remote_host, const int dest_rsync_port = 873);
+int rsync_copy_dir(const char* local_dir_path, const char* remote_dir_path, const char* remote_host, const int dest_rsync_port = 873);
+int start_rsync(const std::string& path, const int rsync_port);
+int stop_rsync(const std::string& path);
 #endif

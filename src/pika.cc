@@ -218,7 +218,7 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("client", clientptr));
     SlaveofCmd *slaveofptr = new SlaveofCmd(-3);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("slaveof", slaveofptr));
-    PikasyncCmd *pikasyncptr = new PikasyncCmd(5);
+    PikasyncCmd *pikasyncptr = new PikasyncCmd(6);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("pikasync", pikasyncptr));
 //    BemasterCmd *bemasterptr = new BemasterCmd(2);
 //    g_pikaCmd.insert(std::pair<std::string, Cmd *>("bemaster", bemasterptr));

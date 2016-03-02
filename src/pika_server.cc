@@ -163,8 +163,8 @@ PikaServer::PikaServer()
     save_time_tm(&start_time_tm_, time_tm_ptr);
     is_syncing_db_ = false;
     syncing_db_thread_ = 0;
-    db_sync_file_num_ = -1;
-    db_sync_file_offset_ = -1;
+//    db_sync_file_num_ = -1;
+//    db_sync_file_offset_ = -1;
     db_sync_purge_max_ = -1;
 //    options_.create_if_missing = true;
 //    options_.write_buffer_size = 1500000000;
@@ -259,11 +259,13 @@ bool PikaServer::ReloadDb(std::string& path) {
 }
 
 bool PikaServer::Flushall() {
-    MutexLock l(&mutex_);
-    if (flushing_) {
-        return false;
+    {
+        MutexLock l(&mutex_);
+        if (flushing_) {
+            return false;
+        }
+        flushing_ = true;
     }
-    flushing_ = true;
     std::string dbpath = g_pikaConf->db_path();
     if (dbpath[dbpath.length() - 1] == '/') {
         dbpath.erase(dbpath.length() - 1);
@@ -284,7 +286,10 @@ bool PikaServer::Flushall() {
         option.compression = false;
     }
     LOG(WARNING) << "Prepare open new db...";
-    db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
+    {
+        MutexLock l(&mutex_);
+        db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
+    }
     LOG(WARNING) << "open new db success";
     flush_args *arg = new flush_args;
     arg->p = (void*)this;
@@ -323,19 +328,24 @@ std::string PikaServer::GetTmpDumpDir() {
 }
 
 void PikaServer::Dump() {
-    MutexLock l(&mutex_);
-    if (bgsaving_) {
-        return;
+    {
+        MutexLock l(&mutex_);
+        if (bgsaving_) {
+            return;
+        }
+        //Prepare for usefull dir
+        bgsaving_start_time_ = time(NULL);
+        strftime(dump_time_, sizeof(dump_time_), "%Y%m%d%H%M%S",localtime(&bgsaving_start_time_));
     }
-    //Prepare for usefull dir
-    bgsaving_start_time_ = time(NULL);
-    strftime(dump_time_, sizeof(dump_time_), "%Y%m%d%H%M%S",localtime(&bgsaving_start_time_));
     std::string dump_path(g_pikaConf->dump_path());
     if (dump_path[dump_path.length() - 1] != '/') {
         dump_path.append("/");
     }
     dump_path.append(g_pikaConf->dump_prefix());
-    dump_path.append(dump_time_, 8);
+    {
+        MutexLock l(&mutex_);
+        dump_path.append(dump_time_, 8);
+    }
     if (is_dir(dump_path.c_str()) == 0 && delete_dir(dump_path.c_str()) != 0) {
         LOG(ERROR) << "remove exist dump dir failed";
         return;
@@ -348,9 +358,13 @@ void PikaServer::Dump() {
     }
 
     // Initial BackupEngine
-    nemo::Status nemo_s = nemo::BackupEngine::Open(
+    nemo::Status nemo_s;
+    {
+        MutexLock l(&mutex_);
+        nemo_s = nemo::BackupEngine::Open(
             nemo::BackupableOptions(tmp_dump, true, false), 
             &backup_engine_);
+    }
     if (!nemo_s.ok()) {
         LOG(ERROR) << "open backup engine failed " << nemo_s.ToString();
         return;
@@ -358,6 +372,7 @@ void PikaServer::Dump() {
 
     {
         RWLock l(&rwlock_, true);
+        MutexLock lm(&mutex_);
         g_pikaMario->GetProducerStatus(&dump_filenum_, &dump_pro_offset_);
         nemo_s = backup_engine_->SetBackupContent(db_);
         if (!nemo_s.ok()){
@@ -852,25 +867,59 @@ void PikaServer::DisconnectFromMaster() {
 }
 
 void* PikaServer::StartSyncDB(void *args) {
+    (void)(args);
     std::string master_ip_str = g_pikaServer->GetServerIp();
     std::string master_db_sync_path = g_pikaConf->master_db_sync_path();
+    std::string master_db_sync_point_path = master_db_sync_path.back() == '/' ?
+        master_db_sync_path.substr(0, master_db_sync_path.size()-1) : master_db_sync_path;
+    if (master_db_sync_point_path == ".") {
+        char buf[100];
+        getcwd(buf, sizeof(buf));
+        master_db_sync_point_path.assign(buf);
+    }
+    size_t last_slash_pos = master_db_sync_point_path.find_last_of("/");
+    master_db_sync_point_path = master_db_sync_point_path.substr(0, last_slash_pos);
+    master_db_sync_point_path.append("/master_db_sync_point"); //the file keeping the master-sync-db's point is named as "master_db_sync_point"
     uint32_t filenum;
     uint64_t offset;
     bool pre_db_sync_valid = false;
-    if ((filenum = g_pikaServer->db_sync_file_num()) != -1 && (offset = g_pikaServer->db_sync_file_offset()) != -1) {
-        std::string log_path = std::string(g_pikaConf->log_path());
-        log_path = log_path.back() == '/' ? log_path : log_path + "/";
-        char file_path[100];
-        snprintf(file_path, sizeof(file_path), "%swrite2file%d", log_path.c_str(), filenum);
-        if (access(file_path, F_OK) == 0) {
-            pre_db_sync_valid = true;
-            MutexLock lm(g_pikaServer->Mutex());
-            g_pikaServer->set_db_sync_purge_max(filenum);
+//    if ((filenum = g_pikaServer->db_sync_file_num()) != -1 && (offset = g_pikaServer->db_sync_file_offset()) != -1) {
+//        std::string log_path = std::string(g_pikaConf->log_path());
+//        log_path = log_path.back() == '/' ? log_path : log_path + "/";
+//        char file_path[100];
+//        snprintf(file_path, sizeof(file_path), "%swrite2file%d", log_path.c_str(), filenum);
+//        if (access(file_path, F_OK) == 0) {
+//            pre_db_sync_valid = true;
+//            MutexLock lm(g_pikaServer->Mutex());
+//            g_pikaServer->set_db_sync_purge_max(filenum);
+//        }
+//    }
+    if (access(master_db_sync_point_path.c_str(), F_OK) == 0) {
+        std::ifstream ifile(master_db_sync_point_path.c_str());
+        if (ifile) {
+            std::string line, filenum_str, offset_str;
+            getline(ifile, line);
+            ifile.close();
+            filenum_str = line.substr(0, line.find(":"));
+            offset_str = line.substr(filenum_str.size()+1);
+            filenum = stoi(filenum_str);
+            offset = stoull(offset_str);
+
+            std::string log_path = std::string(g_pikaConf->log_path());
+            log_path = log_path.back() == '/' ? log_path : log_path + "/";
+            char file_path[100];
+            snprintf(file_path, sizeof(file_path), "%swrite2file%d", log_path.c_str(), filenum);
+            if (access(file_path, F_OK) == 0) {
+                pre_db_sync_valid = true;
+                MutexLock lm(g_pikaServer->Mutex());
+                g_pikaServer->set_db_sync_purge_max(filenum);
+            }
         }
     }
+
     if (!pre_db_sync_valid) {
         // Do dump Operation
-        if (is_dir(master_db_sync_path.c_str()) == 0 && delete_dir(master_db_sync_path.c_str()) != 0) {
+        if (is_dir(master_db_sync_path.c_str()) == 0 && delete_dir(master_db_sync_path.c_str()) != 0 && remove(master_db_sync_point_path.c_str()) == 0) {
             LOG(ERROR) << "remove exist tmp dump dir failed";
             return NULL;
         }
@@ -889,8 +938,8 @@ void* PikaServer::StartSyncDB(void *args) {
         }
         {
             // Record binlog point and get BackupContent
-            MutexLock lm(g_pikaServer->Mutex());
             RWLock lrw(g_pikaServer->rwlock(), true);
+            MutexLock lm(g_pikaServer->Mutex());
             g_pikaMario->GetProducerStatus(&filenum, &offset);
             g_pikaServer->set_db_sync_purge_max(filenum); //place this sentence here(ahead) is to shorten the time gap between the filenum-getting and the db_sync_purge_max-setting, avoiding write2filefilenum log-file is deleted
             nemo_s = backup_engine->SetBackupContent(g_pikaServer->GetHandle());
@@ -922,16 +971,32 @@ void* PikaServer::StartSyncDB(void *args) {
         {
             MutexLock l(g_pikaServer->Mutex());
             g_pikaServer->bgsaving_ = false;
-            g_pikaServer->set_db_sync_file_num(filenum);
-            g_pikaServer->set_db_sync_file_offset(offset);
+//            g_pikaServer->set_db_sync_file_num(filenum);
+//            g_pikaServer->set_db_sync_file_offset(offset);
+
+            std::ofstream ofile(master_db_sync_point_path.c_str());
+            if (ofile) {
+                ofile << filenum << ":" << offset << std::endl;
+                ofile.close();
+            } else {
+                LOG(ERROR) << "open master-db-sync-point-path failed";
+            }
 //            g_pikaServer->set_db_sync_purge_max(filenum);
         }
     }
 
-    std::string str;
-    str.assign("*4\r\n$6\r\nsyncdb\r\n$8\r\nfinished\r\n");
     char buf[20];
     char buf_len[20];
+    std::string str;
+    std::string auth = g_pikaConf->requirepass();
+    if (!auth.empty()) {
+        str.assign("*2\r\n$9\r\nslaveauth\r\n");
+        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", auth.size());
+        str.append(buf_len);
+        str.append(auth);
+        str.append("\r\n");
+    }
+    str.append("*4\r\n$6\r\nsyncdb\r\n$8\r\nfinished\r\n");
     snprintf(buf, sizeof(buf), "%u\r\n", filenum);
     snprintf(buf_len, sizeof(buf_len), "$%d\r\n", strlen(buf)-2);
     str.append(buf_len, strlen(buf_len));
@@ -940,8 +1005,8 @@ void* PikaServer::StartSyncDB(void *args) {
     snprintf(buf_len, sizeof(buf_len), "$%d\r\n", strlen(buf)-2);
     str.append(buf_len, strlen(buf_len));
     str.append(buf, strlen(buf));
-    std::map<std::string, std::pair<PikaConn*, std::string> >* syncing_db_slaves;
-    syncing_db_slaves = g_pikaServer->syncing_db_slaves();
+    std::map<std::string, std::pair<PikaConn*, std::string> >* syncing_db_slaves = g_pikaServer->syncing_db_slaves();
+    std::map<std::string, int32_t>* syncing_slaves_rsync_port = g_pikaServer->syncing_slaves_rsync_port();
     std::map<std::string, std::pair<PikaConn*, std::string> >::iterator iter;
     int32_t user_thread_num = g_pikaConf->thread_num();
     int32_t slave_thread_num = g_pikaConf->slave_thread_num();
@@ -967,6 +1032,7 @@ void* PikaServer::StartSyncDB(void *args) {
             }
             if (index == slave_thread_num) {
                 syncing_db_slaves->erase(iter);
+                syncing_slaves_rsync_port->erase(iter->first);
                 continue;
             }
             slave_ip_port = iter->first;
@@ -977,11 +1043,16 @@ void* PikaServer::StartSyncDB(void *args) {
         std::string username = g_pikaConf->username();
         std::string password = g_pikaConf->password();
         std::cout << "scp start " << slave_ip_port << std::endl;
-        scp_copy_dir(master_db_sync_path.c_str(), slave_db_sync_path.c_str(), slave_ip_str.c_str(), username.c_str(), password.c_str());
-        (iter->second).first->append_wbuf(str);
+//        scp_copy_dir(master_db_sync_path.c_str(), slave_db_sync_path.c_str(), slave_ip_str.c_str(), username.c_str(), password.c_str());
+        if (rsync_copy_dir(master_db_sync_path.c_str(), slave_db_sync_path.c_str(), slave_ip_str.c_str(), syncing_slaves_rsync_port->at(slave_ip_port)) == 0) {
+            (iter->second).first->append_wbuf(str);
+            LOG(WARNING) << str;
+        }
+
         {
             MutexLock l(g_pikaServer->Mutex());
             syncing_db_slaves->erase(iter);
+            syncing_slaves_rsync_port->erase(slave_ip_port);
         }
     }
 
@@ -990,7 +1061,7 @@ void* PikaServer::StartSyncDB(void *args) {
     return NULL;
 }
 
-int PikaServer::TrySyncDB(std::string slave_db_sync_path, int fd) {
+int PikaServer::TrySyncDB(std::string slave_db_sync_path, int rsync_port, int fd) {
     int32_t thread_index = g_pikaConf->thread_num();
     std::map<int, PikaConn*>* conns_map;
     std::map<int, PikaConn*>::iterator iter_conns;
@@ -1009,6 +1080,7 @@ int PikaServer::TrySyncDB(std::string slave_db_sync_path, int fd) {
     {
         MutexLock l(&mutex_);
         syncing_db_slaves_[slave_ip_port] = make_pair(iter_conns->second, slave_db_sync_path);
+        syncing_slaves_rsync_port_[slave_ip_port] = rsync_port;
     }
     if (is_syncing_db()) {
         return 0;//the slaves' db syncing has already been being done
@@ -1017,6 +1089,7 @@ int PikaServer::TrySyncDB(std::string slave_db_sync_path, int fd) {
     }
     pthread_t db_sync_id;
     if (pthread_create(&db_sync_id, NULL, StartSyncDB, NULL)) {
+        LOG(WARNING) << "create thread for StartSyncDB failed";
         return -3;
     }
     {

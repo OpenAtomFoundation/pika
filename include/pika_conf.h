@@ -15,7 +15,7 @@ class PikaConf : public BaseConf
 {
 public:
     PikaConf(const char* path);
-    ~PikaConf()             { pthread_rwlock_destroy(&rwlock_); }
+    ~PikaConf();
     int port()              { RWLock l(&rwlock_, false); return port_; }
     int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
     int slave_thread_num()  { RWLock l(&rwlock_, false); return slave_thread_num_; }

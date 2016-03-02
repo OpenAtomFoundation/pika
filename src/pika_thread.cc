@@ -246,13 +246,13 @@ void PikaThread::RunProcess()
                     std::string str;
                     std::string auth = g_pikaConf->requirepass();
                     if (auth.size() == 0) {
-                        str = "*4\r\n$8\r\npikasync\r\n";
+                        str = "*5\r\n$8\r\npikasync\r\n";
                     } else {
                         str = "*2\r\n$9\r\nslaveauth\r\n";
                         snprintf(buf_len, sizeof(buf_len), "$%d\r\n", auth.size());
                         str.append(buf_len);
                         str.append(auth);
-                        str.append("\r\n*4\r\n$8\r\npikasync\r\n");
+                        str.append("\r\n*5\r\n$8\r\npikasync\r\n");
                     }
                     uint32_t filenum = 0;
                     uint64_t pro_offset = 0;
@@ -270,6 +270,7 @@ void PikaThread::RunProcess()
                     snprintf(buf, sizeof(buf), "%lu\r\n", pro_offset);
                     str.append(buf);
 
+                    /*
                     std::string slave_db_sync_path = g_pikaConf->slave_db_sync_path();
                     if (slave_db_sync_path.at(0) == '.') {
                         char cwd_buf[100];
@@ -283,11 +284,24 @@ void PikaThread::RunProcess()
                     if(slave_db_sync_path.back() == '/' && slave_db_sync_path.size() > 1) {
                         slave_db_sync_path.erase(slave_db_sync_path.size()-1);
                     }
+                    */
+                    char pid_str[10];
+                    snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+                    std::string slave_db_sync_path = "pika_slave_db_sync_path_";
+                    slave_db_sync_path.append(pid_str);
+
                     len = slave_db_sync_path.size();
                     snprintf(buf_len, sizeof(buf_len), "$%d\r\n", len);
                     str.append(buf_len);
                     slave_db_sync_path.append("\r\n");
                     str.append(slave_db_sync_path);
+
+                    uint32_t rsync_port = g_pikaConf->port() + 300;
+                    len = ll2string(buf, sizeof(buf), rsync_port);
+                    snprintf(buf_len, sizeof(buf_len), "$%d\r\n", len);
+                    str.append(buf_len);
+                    snprintf(buf, sizeof(buf), "%u\r\n", rsync_port);
+                    str.append(buf);
 
                     LOG(WARNING)<<str;
                     inConn->append_wbuf_nowait(str);

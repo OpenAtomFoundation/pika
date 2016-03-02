@@ -264,6 +264,10 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
         mkpath((slave_db_sync_path+"/"+nemo::LIST_DB).c_str(), 0755);
         mkpath((slave_db_sync_path+"/"+nemo::SET_DB).c_str(), 0755);
         mkpath((slave_db_sync_path+"/"+nemo::ZSET_DB).c_str(), 0755);
+        //size_t last_slash_pos = slave_db_sync_path.find_last_of("/");
+        //std::string slave_db_sync_path_up = slave_db_sync_path.substr(0, last_slash_pos);
+        // start_rsync(slave_db_sync_path_up);
+        start_rsync(slave_db_sync_path, g_pikaConf->port() + 300);
     } else {
         ret = "-ERR State is not in PIKA_REP_SINGLE\r\n";
     }
@@ -307,6 +311,14 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     std::string str_dbsyncpath = argv.front();
     argv.pop_front();
 
+    std::string str_rsyncport = argv.front();
+    argv.pop_front();
+    int64_t rsync_port = 0;
+    if (!string2l(str_rsyncport.data(), str_rsyncport.size(), &rsync_port)) {
+        ret = "-ERR value is not an integer or out of range\r\n";
+        return;
+    }
+
     std::string str_fd = argv.front();
     argv.pop_front();
     int64_t fd = 0;
@@ -322,7 +334,7 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (res == PIKA_REP_STRATEGY_PSYNC) {
         t_ret = "*1\r\n$9\r\nucanpsync\r\n";
     } else if (res == PIKA_REP_STRATEGY_MISS) {
-        try_sync_db_ret = g_pikaServer->TrySyncDB(str_dbsyncpath, fd);
+        try_sync_db_ret = g_pikaServer->TrySyncDB(str_dbsyncpath, rsync_port, fd);
         if (try_sync_db_ret == 0) {
             t_ret = "*2\r\n$6\r\nsyncdb\r\n$5\r\nstart\r\n";
         } else {
@@ -349,8 +361,8 @@ void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret.append(auth);
         ret.append("\r\n");
         ret.append(t_ret);
-        LOG(WARNING) << ret;
     }
+    LOG(WARNING) << ret;
 }
 
 void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
@@ -381,6 +393,7 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (access(slave_db_sync_path.c_str(), F_OK) == 0) {
         delete_dir(slave_db_sync_path.c_str());
     }
+    stop_rsync(slave_db_sync_path);
 }
 
 void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
@@ -432,7 +445,7 @@ void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
         {
             MutexLock l(g_pikaServer->Mutex());
             g_pikaServer->purging_ = true;
-            remove_files(g_pikaConf->log_path(), "write2file2");
+            remove_files(g_pikaConf->log_path(), "write2file");
             g_pikaServer->purging_ = false;
         }
         g_pikaMario->SetProducerStatus(pro_filenum, pro_offset);
@@ -440,13 +453,14 @@ void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
         std::string auth = g_pikaConf->requirepass();
         char buf_len[32];
         if (auth.size() == 0) {
-            ret.assign("*4\r\n$8\r\npikasync\r\n");
+            ret.assign("*5\r\n$8\r\npikasync\r\n");
         } else {
             ret.assign("*2\r\n$9\r\nslaveauth\r\n");
             snprintf(buf_len, sizeof(buf_len), "$%d\r\n", auth.size());
             ret.append(buf_len);
             ret.append(auth);
-            ret.append("*4\r\n$8\r\npikasync\r\n");
+            ret.append("\r\n");
+            ret.append("*5\r\n$8\r\npikasync\r\n");
         }
         snprintf(buf_len, sizeof(buf_len), "$%d\r\n", pro_filenum_str.size());
         ret.append(buf_len);
@@ -454,9 +468,25 @@ void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
         snprintf(buf_len, sizeof(buf_len), "$%d\r\n", pro_offset_str.size());
         ret.append(buf_len);
         ret.append(pro_offset_str + "\r\n");
-        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", slave_db_sync_path.size());
+        //snprintf(buf_len, sizeof(buf_len), "$%d\r\n", slave_db_sync_path.size());
+        //ret.append(slave_db_sync_path + "\r\n");
+
+        char pid_str[10];
+        snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+        std::string pika_slave_db_sync_path = "pika_slave_db_sync_path_";
+        pika_slave_db_sync_path.append(pid_str);
+        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", pika_slave_db_sync_path.size());
         ret.append(buf_len);
-        ret.append(slave_db_sync_path + "\r\n");
+        ret.append(pika_slave_db_sync_path + "\r\n");
+
+        uint32_t rsync_port = g_pikaConf->port() + 300;
+        char rsync_port_str[10];
+        snprintf(rsync_port_str, sizeof(rsync_port_str), "%d", rsync_port);
+        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", strlen(buf_len));
+        ret.append(buf_len);
+        ret.append(rsync_port_str);
+        ret.append("\r\n");
+
         LOG(WARNING) << ret;
 
         mkpath((slave_db_sync_path+"/"+nemo::KV_DB).c_str(), 0755);
@@ -486,7 +516,12 @@ void SyncerrorCmd::Do(std::list<std::string> &argv, std::string &ret) {
     argv.pop_front();
     g_pikaServer->DisconnectFromMaster();
     LOG(WARNING) << "Master told me that I can not psync, rollback now";
-    ret = ""; 
+    ret = "";
+    std::string slave_db_sync_path = g_pikaConf->slave_db_sync_path();
+    if (access(slave_db_sync_path.c_str(), F_OK) == 0) {
+        delete_dir(slave_db_sync_path.c_str());
+    }
+    stop_rsync(slave_db_sync_path);
 }
 
 void LoaddbCmd::Do(std::list<std::string> &argv, std::string &ret) {
@@ -600,12 +635,14 @@ void ReadonlyCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (opt == "on") {
         {
         RWLock l(g_pikaServer->rwlock(), true);
+        MutexLock lm(g_pikaServer->Mutex());
         g_pikaServer->is_readonly_ = true;
         g_pikaConf->SetReadonly(true);
         }
     } else if (opt == "off") {
         {
         RWLock l(g_pikaServer->rwlock(), true);
+        MutexLock lm(g_pikaServer->Mutex());
         g_pikaServer->is_readonly_ = false;
         g_pikaConf->SetReadonly(false);
         }

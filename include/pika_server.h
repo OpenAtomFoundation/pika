@@ -63,16 +63,17 @@ public:
     void set_repl_state(int repl_state) { repl_state_ = repl_state; }
     int repl_state() { return repl_state_; }
     std::map<std::string, std::pair<PikaConn*, std::string> >* syncing_db_slaves() { MutexLock l(&mutex_); return &syncing_db_slaves_; }
+    std::map<std::string, int32_t>* syncing_slaves_rsync_port() { MutexLock l(&mutex_); return &syncing_slaves_rsync_port_; }
     pthread_t syncing_db_thread() { MutexLock l(&mutex_); return syncing_db_thread_; }
     void set_syncing_db_thread(pthread_t thread_id) { MutexLock l(&mutex_); syncing_db_thread_ = thread_id; }
     bool is_syncing_db() { MutexLock l(&mutex_); return is_syncing_db_; }
-    int db_sync_file_num() { MutexLock l(&mutex_); return db_sync_file_num_; }
-    long db_sync_file_offset() { MutexLock l(&mutex_); return db_sync_file_offset_; }
+//    int db_sync_file_num() { MutexLock l(&mutex_); return db_sync_file_num_; }
+//    long db_sync_file_offset() { MutexLock l(&mutex_); return db_sync_file_offset_; }
     long db_sync_purge_max() { MutexLock l(&mutex_); return db_sync_purge_max_; }
 
     void set_is_syncing_db(bool v) { MutexLock l(&mutex_); is_syncing_db_ = v; }
-    void set_db_sync_file_num(int value) { /*MutexLock l(&mutex_);*/ db_sync_file_num_ = value; }
-    void set_db_sync_file_offset(long value) { /*MutexLock l(&mutex_);*/ db_sync_file_offset_ = value; }
+//    void set_db_sync_file_num(int value) { /*MutexLock l(&mutex_);*/ db_sync_file_num_ = value; }
+//    void set_db_sync_file_offset(long value) { /*MutexLock l(&mutex_);*/ db_sync_file_offset_ = value; }
     void set_db_sync_purge_max(long value) { /*MutexLock l(&mutex_);*/ db_sync_purge_max_ = value; }
     port::Mutex* Mutex() { return &mutex_; }
     std::string GetServerIp();
@@ -80,7 +81,7 @@ public:
 //    void Offline(std::string ip_port);
     int GetServerPort();
     static void* StartSyncDB(void* args);
-    int TrySyncDB(std::string slave_db_sync_path, int fd);
+    int TrySyncDB(std::string slave_db_sync_path, int rsync_port, int fd);
     int TrySync(/*std::string &ip, std::string &port,*/ int fd, uint64_t filenum, uint64_t offset);
 //    int Slavenum() { return slaves_.size(); }
 //    std::map<std::string, SlaveItem>* slaves() { return &slaves_; }
@@ -193,10 +194,11 @@ private:
     time_t last_purge_time_s_;
 
     std::map<std::string, std::pair<PikaConn*, std::string> > syncing_db_slaves_; //stores the slaves that is syncing db <ip_port, <sockfd, slave_db_slave_path>>
+    std::map<std::string, int32_t> syncing_slaves_rsync_port_;
     pthread_t syncing_db_thread_;
     bool is_syncing_db_;
-    int db_sync_file_num_;
-    long db_sync_file_offset_;
+//    int db_sync_file_num_;
+//    long db_sync_file_offset_;
     long db_sync_purge_max_;
 //    int64_t stat_numcommands;
 //    int64_t stat_numconnections;

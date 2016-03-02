@@ -93,6 +93,36 @@ PikaConf::PikaConf(const char* path) :
     pthread_rwlock_init(&rwlock_, NULL);
 }
 
+PikaConf::~PikaConf() {
+    pthread_rwlock_destroy(&rwlock_);
+    stop_rsync(slave_db_sync_path_);
+    /*
+    char self_pid_str[10];
+    snprintf(self_pid_str, sizeof(self_pid_str), "%d", getpid());
+    std::string rsync_pid_file_path;
+    if (slave_db_sync_path_[strlen(slave_db_sync_path_)] == '/') {
+        rsync_pid_file_path.assign(slave_db_sync_path_, strlen(slave_db_sync_path_)-1);
+    } else {
+        rsync_pid_file_path.assign(slave_db_sync_path_);
+    }
+    if (rsync_pid_file_path == ".") {
+        char buf[100];
+        getcwd(buf, sizeof(buf));
+        rsync_pid_file_path.assign(buf);
+    }
+    if (!rsync_pid_file_path.empty()) {
+        size_t last_slash_pos = rsync_pid_file_path.find_last_of("/");
+        rsync_pid_file_path = rsync_pid_file_path.substr(0, last_slash_pos);
+    }
+    rsync_pid_file_path.append("/pika_rsync_");
+    rsync_pid_file_path.append(self_pid_str);
+    rsync_pid_file_path.append(".pid");
+    if (access(rsync_pid_file_path.c_str(), F_OK) == 0) {
+        stop_rsync(slave_db_sync_path_);
+    }
+    */
+}
+
 int PikaConf::ConfigRewrite() {
     std::string conf_file_new = std::string(conf_path_, strlen(conf_path_)) + "_new";
     std::ofstream cfn(conf_file_new.c_str());
