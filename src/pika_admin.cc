@@ -6,17 +6,35 @@ extern PikaServer *g_pika_server;
 
 void SlaveofCmd::Initial(PikaCmdArgsType &argv) {
   if (!GetCmdInfo(kCmdNameSlaveof)->CheckArg(argv.size())) {
-    res_.SetErr("wrong number of arguments for " + GetCmdInfo(kCmdNameSet)->name() + " command");
+    res_.SetErr("wrong number of arguments for " + GetCmdInfo(kCmdNameSlaveof)->name() + " command");
     return;
   }
   PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
-  master_ip_ = *it++;
+
+  master_ip_ = slash::StringToLower(*it++);
+
+  is_noone_ = false;
+  if (master_ip_ == "no" && slash::StringToLower(*it++) == "one") {
+    if (argv.end() - it == 0) {
+      is_noone_ = true;
+    } else {
+      res_.SetErr("wrong number of arguments for " + GetCmdInfo(kCmdNameSlaveof)->name() + " command");
+    }
+    return;
+  }
+
   std::string str_master_port = *it++;
   if (!slash::string2l(str_master_port.data(), str_master_port.size(), &master_port_) && master_port_ <= 0) {
     res_.SetErr("value is not an integer or out of range");
     return;
   }
 
+  if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
+    res_.SetErr("you fucked up");
+    return;
+  }
+
+  have_offset_ = false;
   int cur_size = argv.end() - it;
   if (cur_size == 0) {
 
@@ -40,6 +58,11 @@ void SlaveofCmd::Initial(PikaCmdArgsType &argv) {
 void SlaveofCmd::Do(PikaCmdArgsType &argv) {
   Initial(argv);
   if (!res_.ok()) {
+    return;
+  }
+  if (is_noone_) {
+    g_pika_server->RemoveMaster();
+    res_.SetContent("+OK");
     return;
   }
   if (have_offset_) {

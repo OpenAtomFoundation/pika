@@ -7,13 +7,14 @@
  */
 class SlaveofCmd : public Cmd {
 public:
-  SlaveofCmd() : have_offset_(false),
+  SlaveofCmd() : is_noone_(false), have_offset_(false),
   filenum_(0), pro_offset_(0) {
   }
   virtual void Do(PikaCmdArgsType &argvs);
 private:
   std::string master_ip_;
   int64_t master_port_;
+  bool is_noone_;
   bool have_offset_;
   int64_t filenum_;
   int64_t pro_offset_;

@@ -1,14 +1,14 @@
 #ifndef PIKA_BINLOG_SENDER_THREAD_H_
 #define PIKA_BINLOG_SENDER_THREAD_H_
 
-#include "simple_thread.h"
+#include "pink_thread.h"
 #include "slice.h"
 #include "status.h"
 
 #include "env.h"
 #include "slash_mutex.h"
 
-class PikaBinlogSenderThread : public pink::SimpleThread {
+class PikaBinlogSenderThread : public pink::Thread {
  public:
 
   PikaBinlogSenderThread(std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset);

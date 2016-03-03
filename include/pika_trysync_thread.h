@@ -1,9 +1,9 @@
 #ifndef PIKA_TRYSYNC_THREAD_H_
 #define PIKA_TRYSYNC_THREAD_H_
 
-#include "simple_thread.h"
+#include "pink_thread.h"
 
-class PikaTrysyncThread : public pink::SimpleThread {
+class PikaTrysyncThread : public pink::Thread {
 public:
   PikaTrysyncThread() {
 	};

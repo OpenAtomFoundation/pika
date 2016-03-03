@@ -95,7 +95,9 @@ void PikaServer::DeleteSlave(int fd) {
       // Remove BinlogSender first
       static_cast<PikaBinlogSenderThread*>(iter->sender)->SetExit();
       
+      DLOG(INFO) << "DeleteSlave: start join";
       int err = pthread_join(iter->sender_tid, NULL);
+      DLOG(INFO) << "DeleteSlave: after join";
       if (err != 0) {
         std::string msg = "can't join thread " + std::string(strerror(err));
         LOG(WARNING) << msg;
@@ -105,6 +107,7 @@ void PikaServer::DeleteSlave(int fd) {
       delete static_cast<PikaBinlogSenderThread*>(iter->sender);
       
       slaves_.erase(iter);
+      DLOG(INFO) << "Delete slave success";
       break;
     }
     iter++;
@@ -148,7 +151,7 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
     master_ip = host_;
   }
   slash::RWLock l(&state_protector_, true);
-  if (role_ == PIKA_ROLE_SINGLE && repl_state_ == PIKA_REPL_NO_CONNECT) {
+  if ((role_ ^ PIKA_ROLE_SLAVE) && repl_state_ == PIKA_REPL_NO_CONNECT) {
     master_ip_ = master_ip;
     master_port_ = master_port;
     role_ |= PIKA_ROLE_SLAVE;
@@ -188,7 +191,11 @@ void PikaServer::MinusMasterConnection() {
   if (master_connection_ > 0) {
     if ((--master_connection_) <= 0) {
       // two connection with master has been deleted
-      repl_state_ = PIKA_REPL_CONNECT;
+      if (role_ & PIKA_ROLE_SLAVE) {
+        repl_state_ = PIKA_REPL_CONNECT; // not change by slaveof no one, so set repl_state = PIKA_REPL_CONNECT, continue to connect master
+      } else {
+        repl_state_ = PIKA_REPL_NO_CONNECT; // change by slaveof no one, so set repl_state = PIKA_REPL_NO_CONNECT, reset to SINGLE state
+      }
       master_connection_ = 0;
     }
   }
@@ -212,6 +219,26 @@ bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
     return true;
   }
   return false;
+}
+
+void PikaServer::RemoveMaster() {
+  {
+  slash::RWLock l(&state_protector_, true);
+  repl_state_ = PIKA_REPL_NO_CONNECT;
+  role_ &= ~PIKA_ROLE_SLAVE;
+  master_ip_ = "";
+  master_port_ = -1;
+  }
+  if (ping_thread_ != NULL) {
+    ping_thread_->SetExit();
+    int err = pthread_join(ping_thread_->thread_id(), NULL);
+    if (err != 0) {
+      std::string msg = "can't join thread " + std::string(strerror(err));
+      LOG(WARNING) << msg;
+    }
+    delete ping_thread_;
+    ping_thread_ = NULL;
+  }
 }
 
 /*

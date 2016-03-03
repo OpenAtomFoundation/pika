@@ -172,6 +172,7 @@ bool PikaTrysyncThread::RecvProc() {
     DLOG(INFO) << "Recv sid from master: " << sid_;
 		return true;
 	} else {
+    g_pika_server->RemoveMaster();
 		return false;
 	}
 }

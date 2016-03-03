@@ -362,6 +362,9 @@ Status PikaBinlogSenderThread::Parse() {
     }
   }
 
+  if (IsExit()) {
+    return Status::Corruption("should exit");
+  }
   return s;
 }
 
@@ -384,7 +387,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
         close(sockfd_);
       }
     }
-    sleep(5);
+    sleep(1);
   }
   return NULL;
 

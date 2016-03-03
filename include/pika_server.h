@@ -97,6 +97,7 @@ public:
   void MinusMasterConnection();
   void PlusMasterConnection();
   bool ShouldAccessConnAsMaster(const std::string& ip);
+  void RemoveMaster();
 
   void Start();
 
