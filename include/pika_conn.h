@@ -13,7 +13,7 @@
 class PikaConn
 {
 public:
-    PikaConn(int fd, std::string ip_port, int role);
+    PikaConn(PikaThread *thread, int fd, std::string ip_port, int role);
     ~PikaConn();
     /*
      * Set the fd to nonblock && set the flag_ the the fd flag
@@ -45,8 +45,8 @@ public:
 //    void UpdateLastInteraction() { gettimeofday(&lastinteraction_, NULL); };
     int wbuflen() { return sdslen(wbuf_); }
     int rbuflen() { return sdslen(rbuf_); }
-    int querynums() { return querynums_; }
-    void clear_querynums() { querynums_ = 0; }
+    //int querynums() { return querynums_; }
+    //void clear_querynums() { querynums_ = 0; }
 private:
 
     int fd_;
@@ -70,7 +70,7 @@ private:
     int32_t wbuf_pos_;
     PikaThread *thread_;
     port::Mutex mutex_;
-    int querynums_;
+    //int querynums_;
 };
 
 #endif

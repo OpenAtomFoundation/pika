@@ -38,8 +38,7 @@ PikaThread::PikaThread(int thread_index)
     gettimeofday(&last_ping_time_, NULL);
     querynums_ = 0;
     last_sec_querynums_ = 0;
-	accumulative_querynums_ = 0;
-
+    accumulative_querynums_ = 0;
 }
 
 PikaThread::~PikaThread()
@@ -57,10 +56,10 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     target->tv_sec++;
 
     {
-    RWLock l(&rwlock_, true);
-    last_sec_querynums_ = querynums_;
-	accumulative_querynums_ += querynums_;
-    querynums_ = 0;
+      //RWLock l(&rwlock_, true);
+      last_sec_querynums_ = {querynums_.load()};
+      accumulative_querynums_ += querynums_;
+      querynums_ = 0;
     }
 
   //  if (conns_.size() == 0) {
@@ -78,8 +77,8 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
     }
     while (iter != conns_.end()) {
 
-        querynums_ += iter->second->querynums();
-        iter->second->clear_querynums();
+        //querynums_ += iter->second->querynums();
+        //iter->second->clear_querynums();
 
         if (should_ping && ((iter->second->role() == PIKA_MASTER && g_pikaServer->ms_state_ == PIKA_REP_CONNECTED) || (iter->second->role() == PIKA_SLAVE))) {
             LOG(INFO)<<"Send Ping to " << iter->second->ip_port();
@@ -180,7 +179,7 @@ void PikaThread::RunProcess()
                 ti = conn_queue_.front();
                 conn_queue_.pop();
                 }
-                PikaConn *tc = new PikaConn(ti.fd(), ti.ip_port(), ti.role());
+                PikaConn *tc = new PikaConn(this, ti.fd(), ti.ip_port(), ti.role());
                 tc->SetNonblock();
                 if (ti.role() == PIKA_MASTER) {
                     is_master_thread_ = true;

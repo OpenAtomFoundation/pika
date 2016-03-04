@@ -14,10 +14,8 @@ extern PikaConf *g_pikaConf;
 extern PikaServer *g_pikaServer;
 extern mario::Mario *g_pikaMario;
 
-PikaConn::PikaConn(int fd, std::string ip_port, int role) :
-    fd_(fd), ip_port_(ip_port), role_(role)
-{
-    thread_ = NULL;
+PikaConn::PikaConn(PikaThread *thread, int fd, std::string ip_port, int role)
+  : fd_(fd), thread_(thread), ip_port_(ip_port), role_(role) {
 
     // init the rbuf
     rbuf_ = sdsempty();
@@ -31,7 +29,7 @@ PikaConn::PikaConn(int fd, std::string ip_port, int role) :
     msbuf_ = sdsempty();
     gettimeofday(&tv_, NULL);
     is_authed_ = std::string(g_pikaConf->requirepass()) == "" ? true : false;
-    querynums_ = 0;
+    //querynums_ = 0;
 }
 
 PikaConn::~PikaConn()
@@ -332,7 +330,9 @@ int PikaConn::ProcessInputBuffer() {
           //  if (cmd_ret == 1) {
           //      g_pikaMario->Put(std::string(msbuf_, sdslen(msbuf_)));
           //  }
-            querynums_++;
+            //querynums_++;
+            (thread_->querynums_)++;
+            //thread_->querynums_.fetch_add(1);
             sdsclear(msbuf_);
             Reset();
         }

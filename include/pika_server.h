@@ -171,7 +171,8 @@ private:
      */
     PikaThread *pikaThread_[PIKA_THREAD_NUM];
 
-    int64_t history_clients_num_;
+    std::atomic<int64_t> history_clients_num_;
+    //int64_t history_clients_num_;
     time_t start_time_s_;
     struct tm start_time_tm_;
     time_t last_purge_time_s_;
