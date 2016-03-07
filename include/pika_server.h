@@ -66,7 +66,7 @@ public:
     std::map<std::string, int32_t>* syncing_slaves_rsync_port() { MutexLock l(&mutex_); return &syncing_slaves_rsync_port_; }
     pthread_t syncing_db_thread() { MutexLock l(&mutex_); return syncing_db_thread_; }
     void set_syncing_db_thread(pthread_t thread_id) { MutexLock l(&mutex_); syncing_db_thread_ = thread_id; }
-    bool is_syncing_db() { MutexLock l(&mutex_); return is_syncing_db_; }
+    bool is_syncing_db() { return is_syncing_db_; }
 //    int db_sync_file_num() { MutexLock l(&mutex_); return db_sync_file_num_; }
 //    long db_sync_file_offset() { MutexLock l(&mutex_); return db_sync_file_offset_; }
     long db_sync_purge_max() { MutexLock l(&mutex_); return db_sync_purge_max_; }
@@ -120,7 +120,7 @@ public:
     bool bgsaving_;
     time_t bgsaving_start_time_;
     std::string is_bgsaving();
-    bool bgsaving() { MutexLock l(&mutex_); return bgsaving_; }
+    bool bgsaving() { return bgsaving_; }
     bool is_readonly_;
 
     pthread_t info_keyspace_thread_id_;

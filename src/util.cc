@@ -1122,7 +1122,7 @@ int stop_rsync(const std::string& path) {
     rsync_pid_file_path = rsync_path + "/pika_rsync_" + pid_str + ".pid";
 
     if (access(rsync_pid_file_path.c_str(), F_OK) == -1) {
-        LOG(WARNING) << "rsync service has been stoped";
+        //LOG(WARNING) << "rsync service has been stoped";
         return 0;
     }
     std::string rsync_stop_cmd = "kill `cat ";

@@ -125,6 +125,9 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
                 }
             } else if (iter->second->role() == PIKA_SLAVE) {
                 LOG(WARNING) << "Remove Slave Consumer Thread";
+                if (!iter->second->ShouldCloseAfterReply()) {
+                    iter->second->CloseAfterReply(); //avoid dead lock
+                }
                 g_pikaMario->RemoveConsumer(iter->second->fd());
             }
 
@@ -380,6 +383,9 @@ void PikaThread::RunProcess()
                     g_pikaServer->ms_state_ = PIKA_REP_CONNECT;
                 } else if (role == PIKA_SLAVE) {
                     LOG(WARNING) << "Remove Slave Consumer Thread";
+                    if (!inConn->ShouldCloseAfterReply()) {
+                        inConn->CloseAfterReply(); //avoid dead lock
+                    }
                     mario::Status s = g_pikaMario->RemoveConsumer(inConn->fd());
                     LOG(WARNING) << s.ToString();
                 }

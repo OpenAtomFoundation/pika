@@ -84,6 +84,9 @@ void PikaConn::append_wbuf(const std::string &item) {
         mutex_.Unlock();
 //        LOG(INFO) << "wbuf_ is too big, wait...";
         sleep(5);
+        if (should_close_after_reply) {
+            return;
+        }
         mutex_.Lock();
     }
     wbuf_ = sdscatlen(wbuf_, item.data(), item.size());

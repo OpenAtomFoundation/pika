@@ -244,6 +244,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
         //delete_dir(slave_db_sync_path.c_str());
         //struct stat file_info;
         //if (stat(slave_db_sync_path.c_str(), &file_info) == 0) 
+        /*
         if (access(slave_db_sync_path.c_str(), F_OK) == 0) {
             char tmp_dir_path[100];
             strncpy(tmp_dir_path, slave_db_sync_path.c_str(), slave_db_sync_path.size()+1);
@@ -258,6 +259,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
                 free(arg);
             }
         }
+        */
 
         mkpath((slave_db_sync_path+"/"+nemo::KV_DB).c_str(), 0755);
         mkpath((slave_db_sync_path+"/"+nemo::HASH_DB).c_str(), 0755);
@@ -276,6 +278,7 @@ void SlaveofCmd::Do(std::list<std::string> &argv, std::string &ret) {
 }
 
 void PikasyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    LOG(WARNING) << "receive pikasync command";
     //pthread_rwlock_unlock(g_pikaServer->rwlock());
     if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
         ret = "-ERR wrong number of arguments for ";
@@ -393,7 +396,7 @@ void UcanpsyncCmd::Do(std::list<std::string> &argv, std::string &ret) {
     if (access(slave_db_sync_path.c_str(), F_OK) == 0) {
         delete_dir(slave_db_sync_path.c_str());
     }
-    stop_rsync(slave_db_sync_path);
+    stop_rsync(g_pikaConf->slave_db_sync_path());
 }
 
 void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
@@ -482,7 +485,7 @@ void SyncdbCmd::Do(std::list<std::string> &argv, std::string &ret) {
         uint32_t rsync_port = g_pikaConf->port() + 300;
         char rsync_port_str[10];
         snprintf(rsync_port_str, sizeof(rsync_port_str), "%d", rsync_port);
-        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", strlen(buf_len));
+        snprintf(buf_len, sizeof(buf_len), "$%d\r\n", strlen(rsync_port_str));
         ret.append(buf_len);
         ret.append(rsync_port_str);
         ret.append("\r\n");

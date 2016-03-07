@@ -600,7 +600,7 @@ void* PikaServer::StartInfoKeySpace(void* arg) {
     }
     return NULL;
 }
-
+/*
 void PikaServer::Slaveofnoone() {
     MutexLock l(&mutex_);
 
@@ -622,6 +622,31 @@ void PikaServer::Slaveofnoone() {
     ms_state_ = PIKA_REP_SINGLE;
     masterhost_ = "";
     masterport_ = 0;
+}
+*/
+
+void PikaServer::Slaveofnoone() {
+    pthread_rwlock_unlock(&rwlock_);
+    pthread_rwlock_wrlock(&rwlock_);
+    MutexLock l(&mutex_);
+
+    is_readonly_ = false;
+    g_pikaConf->SetReadonly(false);
+    LOG(WARNING) << "Slave of no one , close readonly mode, repl_state_: " << repl_state_;
+    pthread_rwlock_unlock(&rwlock_);
+    pthread_rwlock_rdlock(&rwlock_);
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%d", masterport_);
+    std::string masterport(buf);
+    std::string masteripport = masterhost_ + ":" + masterport;
+    ClientKill(masteripport);
+    repl_state_ &= (~ PIKA_SLAVE);
+
+    ms_state_ = PIKA_REP_SINGLE;
+    masterhost_ = "";
+    masterport_ = 0;
+    stop_rsync(g_pikaConf->slave_db_sync_path());
 }
 
 std::string PikaServer::is_bgsaving() {
@@ -950,6 +975,8 @@ void* PikaServer::StartSyncDB(void *args) {
                 return NULL;
             }
             g_pikaServer->bgsaving_ = true;
+            g_pikaServer->bgsaving_start_time_ = time(NULL);
+            strftime(g_pikaServer->dump_time_, sizeof(g_pikaServer->dump_time_), "%Y%m%d%H%M%S",localtime(&(g_pikaServer->bgsaving_start_time_)));
         }
         // Backup to tmp dir
         nemo_s = backup_engine->CreateNewBackup(g_pikaServer->GetHandle());
@@ -971,17 +998,25 @@ void* PikaServer::StartSyncDB(void *args) {
         {
             MutexLock l(g_pikaServer->Mutex());
             g_pikaServer->bgsaving_ = false;
-//            g_pikaServer->set_db_sync_file_num(filenum);
-//            g_pikaServer->set_db_sync_file_offset(offset);
-
-            std::ofstream ofile(master_db_sync_point_path.c_str());
-            if (ofile) {
-                ofile << filenum << ":" << offset << std::endl;
-                ofile.close();
-            } else {
-                LOG(ERROR) << "open master-db-sync-point-path failed";
+        }
+        if (!nemo_s.ok()) {
+            if (is_dir(master_db_sync_path.c_str()) == 0 && delete_dir(master_db_sync_path.c_str()) != 0) {
+                LOG(ERROR) << "removing master_db_sync_path(due to bgsave error) failed";
             }
-//            g_pikaServer->set_db_sync_purge_max(filenum);
+            if (access(master_db_sync_point_path.c_str(), F_OK) == 0 && remove(master_db_sync_point_path.c_str()) != 0) {
+                LOG(ERROR) << "removing master_db_sync_point_path(due to bgsave error) failed";
+            }
+            g_pikaServer->set_is_syncing_db(false);
+            g_pikaServer->set_syncing_db_thread(0);
+            return NULL;
+        }
+
+        std::ofstream ofile(master_db_sync_point_path.c_str());
+        if (ofile) {
+            ofile << filenum << ":" << offset << std::endl;
+            ofile.close();
+        } else {
+            LOG(ERROR) << "open master-db-sync-point-path failed";
         }
     }
 
@@ -1045,6 +1080,21 @@ void* PikaServer::StartSyncDB(void *args) {
         std::cout << "scp start " << slave_ip_port << std::endl;
 //        scp_copy_dir(master_db_sync_path.c_str(), slave_db_sync_path.c_str(), slave_ip_str.c_str(), username.c_str(), password.c_str());
         if (rsync_copy_dir(master_db_sync_path.c_str(), slave_db_sync_path.c_str(), slave_ip_str.c_str(), syncing_slaves_rsync_port->at(slave_ip_port)) == 0) {
+            std::string rsync_remove_cmd = "rsync -avP --delete --port=";
+            snprintf(buf, sizeof(buf), "%d", syncing_slaves_rsync_port->at(slave_ip_port));
+            rsync_remove_cmd.append(buf);
+            rsync_remove_cmd.append(" ");
+            rsync_remove_cmd += master_db_sync_path;
+            if (master_db_sync_path.back() != '/') {
+                rsync_remove_cmd.append("/");
+            }
+            rsync_remove_cmd.append(" ");
+            rsync_remove_cmd += slave_ip_str;
+            rsync_remove_cmd.append("::");
+            rsync_remove_cmd += slave_db_sync_path;
+            LOG(WARNING) << rsync_remove_cmd;
+            system(rsync_remove_cmd.c_str());
+
             (iter->second).first->append_wbuf(str);
             LOG(WARNING) << str;
         }
@@ -1082,20 +1132,26 @@ int PikaServer::TrySyncDB(std::string slave_db_sync_path, int rsync_port, int fd
         syncing_db_slaves_[slave_ip_port] = make_pair(iter_conns->second, slave_db_sync_path);
         syncing_slaves_rsync_port_[slave_ip_port] = rsync_port;
     }
-    if (is_syncing_db()) {
-        return 0;//the slaves' db syncing has already been being done
-    } else if (bgsaving()) {
-        return -2;//there is a dumping, but not for syncing db
+    {
+        MutexLock l(&mutex_);
+        if (is_syncing_db()) {
+            return 0;//the slaves' db syncing has already been being done
+        } else if (bgsaving()) {
+            return -2;//there is a dumping, but not for syncing db
+        }
+        is_syncing_db_ = true;
     }
+
     pthread_t db_sync_id;
     if (pthread_create(&db_sync_id, NULL, StartSyncDB, NULL)) {
         LOG(WARNING) << "create thread for StartSyncDB failed";
+        MutexLock l(&mutex_);
+        is_syncing_db_ = false;
         return -3;
     }
     {
         MutexLock l(&mutex_);
         syncing_db_thread_ = db_sync_id;
-        is_syncing_db_ = true;
     }
     return 0;
 }
