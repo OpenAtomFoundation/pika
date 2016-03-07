@@ -94,7 +94,6 @@ PikaServer::PikaServer()
 
     LOG(WARNING) << "Prepare DB...";
     db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
-    db_->StartBGThread();
     LOG(WARNING) << "DB Success";
 
     // init sock
