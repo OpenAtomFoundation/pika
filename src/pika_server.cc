@@ -112,7 +112,7 @@ PikaServer::PikaServer()
     if (ret < 0) {
         LOG(FATAL) << "bind error: "<< strerror(errno);
     }
-    listen(sockfd_, 10);
+    listen(sockfd_, 10240);
 
     // init slave_sock
     slave_sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
@@ -130,7 +130,7 @@ PikaServer::PikaServer()
     if (ret < 0) {
         LOG(FATAL) << "bind error: "<< strerror(errno);
     }
-    listen(slave_sockfd_, 10);
+    listen(slave_sockfd_, 10240);
 
     SetBlockType(kNonBlock);
 
