@@ -246,6 +246,8 @@ int main(int argc, char **argv)
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("flushall", flushallptr));
     ShutdownCmd *shutdownptr = new ShutdownCmd(1);
     g_pikaCmd.insert(std::pair<std::string, Cmd *>("shutdown", shutdownptr));
+    CompactCmd *compactptr = new CompactCmd(1);
+    g_pikaCmd.insert(std::pair<std::string, Cmd *>("compact", compactptr));
 
     /*
      * kv
