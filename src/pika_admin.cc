@@ -114,7 +114,7 @@ void TrysyncCmd::Do(PikaCmdArgsType &argv) {
   slash::ll2string(buf, sizeof(buf), slave_port_);
   ip_port.append(":");
   ip_port.append(buf);
-  DLOG(INFO) << "Trysync, Slave ip_port: " << ip_port;
+  DLOG(INFO) << "Trysync, Slave ip_port: " << ip_port << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
   if (!g_pika_server->FindSlave(ip_port)) {
     SlaveItem s;
     s.sid = g_pika_server->GenSid();

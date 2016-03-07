@@ -106,9 +106,7 @@ bool PikaSlavepingThread::Send() {
 
 	while (1) {
 		while (wbuf_len > 0) {
-      DLOG(INFO) << "PikaSlavepingThread: write before";
 			nwritten = write(sockfd_, wbuf + wbuf_pos, wbuf_len - wbuf_pos);
-      DLOG(INFO) << "PikaSlavepingThread: write after, return: " << nwritten;
 			if (nwritten < 0) {
 				break;
 			}
@@ -135,9 +133,7 @@ bool PikaSlavepingThread::RecvProc() {
 	int rbuf_pos = 0;
 	int nread = 0;
 	while (1) {
-    DLOG(INFO) << "PikaSlavepingThread: read before";
 		nread = read(sockfd_, rbuf + rbuf_pos, 1);
-    DLOG(INFO) << "PikaSlavepingThread: read after, return: " << nread;
 	  if (nread == -1) {
     	if (errno == EAGAIN || errno == EWOULDBLOCK) {
     	} else {

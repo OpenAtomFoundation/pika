@@ -256,7 +256,7 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
   }
 
   std::string slave_ip = slave.ip_port.substr(0, slave.ip_port.find(':'));
-  PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(slave_ip, slave.port+100, readfile, con_offset, filenum);
+  PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(slave_ip, slave.port+100, readfile, filenum, con_offset);
 
   slave.sender = sender;
 

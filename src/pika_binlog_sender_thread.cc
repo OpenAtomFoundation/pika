@@ -244,8 +244,8 @@ bool PikaBinlogSenderThread::Connect() {
 
 bool PikaBinlogSenderThread::Send(const std::string &msg) {
   // length to small
-  char wbuf[1024];
-  int wbuf_len = 17;
+  char wbuf[2097152]; // 2M
+  int wbuf_len = msg.size();
   int wbuf_pos = 0;
   int nwritten = 0;
   memcpy(wbuf, msg.data(), msg.size()); 
@@ -272,44 +272,6 @@ bool PikaBinlogSenderThread::Send(const std::string &msg) {
     if (wbuf_len == 0) {
       return true;
     }	
-  }
-}
-
-bool PikaBinlogSenderThread::Recv() {
-  char rbuf[256];
-  int rbuf_pos = 0;
-  int nread = 0;
-
-  while (1) {
-    nread = read(sockfd_, rbuf + rbuf_pos, 1);
-    if (nread == -1) {
-      if (errno == EAGAIN) {
-        continue;
-      } else {
-        LOG(WARNING) << "BinlogSender Recv error: " << strerror(errno);
-        return false;
-      }
-    } else if (nread == 0) {
-      LOG(WARNING) << "BinlogSender slave close the connection";
-      return false;
-    }
-
-    if (rbuf[rbuf_pos] == '\n') {
-      rbuf[rbuf_pos] = '\0';
-      rbuf_pos--;
-      if (rbuf_pos >= 0 && rbuf[rbuf_pos] == '\r') {
-        rbuf[rbuf_pos] = '\0';
-        rbuf_pos--;
-      }
-      break;
-    }
-    rbuf_pos++;
-  }
-  DLOG(INFO) << "BinlogSender Reply from slave after : " << std::string(rbuf, rbuf_pos+1);
-  if (rbuf[0] == '+') {
-    return true;
-  } else {
-    return false;
   }
 }
 
@@ -352,7 +314,7 @@ Status PikaBinlogSenderThread::Parse() {
     } else if (s.ok()) {
       DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
       DLOG(INFO) << "BinlogSender Parse a msg" << scratch;
-      if (Send(scratch) && Recv()) {
+      if (Send(scratch)) {
         return s;
       } else {
         return Status::Corruption("Send or Recv error");
@@ -369,6 +331,7 @@ Status PikaBinlogSenderThread::Parse() {
 }
 
 void* PikaBinlogSenderThread::ThreadMain() {
+  DLOG(INFO) << "BinlogSender ThreadMain";
 
   Status s;
 

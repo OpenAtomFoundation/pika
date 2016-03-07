@@ -28,7 +28,7 @@ bool PikaDispatchThread::AccessHandle(std::string& ip) {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();
   }
-  if (ClientNum() >= 1) {
+  if (ClientNum() >= 1000) {
     DLOG(INFO) << "Max connections reach, Deny new comming: " << ip;
     return false;
   }
