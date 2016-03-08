@@ -70,7 +70,7 @@ bool PikaSlavepingThread::Connect(const std::string& ip, int port) {
 	}
 
 	int flags = fcntl(sockfd_, F_GETFL, 0);
-	fcntl(sockfd_, F_SETFL, flags & O_NONBLOCK);
+	fcntl(sockfd_, F_SETFL, flags & (~O_NONBLOCK));
 
   struct timeval timeout = {1, 500000};
   if (setsockopt(sockfd_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
@@ -86,10 +86,23 @@ bool PikaSlavepingThread::Connect(const std::string& ip, int port) {
 
 bool PikaSlavepingThread::Send() {
 	char wbuf[256];
-	int wbuf_len = 17;
 	int wbuf_pos = 0;
 	int nwritten = 0;
-	strncpy(wbuf, "*1\r\n$4\r\nping\r\n", wbuf_len);
+  if (!is_first_send_) {
+    strcpy(wbuf, "*1\r\n$4\r\nping\r\n");
+  } else {
+    strcpy(wbuf, "*2\r\n$4\r\nspci\r\n");
+    char tmp[128];
+    char len[20];
+    sprintf(tmp, "%ld", sid_);
+    sprintf(len, "$%d\r\n", strlen(tmp));
+    strcat(wbuf, len);
+    strcat(wbuf, tmp);
+    strcat(wbuf, "\r\n");
+    is_first_send_ = false;
+  }
+  DLOG(INFO) << wbuf;
+  int wbuf_len = strlen(wbuf);
 
 	while (1) {
 		while (wbuf_len > 0) {
@@ -103,12 +116,11 @@ bool PikaSlavepingThread::Send() {
 			}
 		}
 		if (nwritten == -1) {
-			if (errno == EAGAIN) {
-				continue;
+			if (errno == EAGAIN || errno == EWOULDBLOCK) {
 			} else {
         LOG(WARNING) << "Ping master, Send, error: " <<strerror(errno);
-				return false;
 			}
+      return false;
 		}
 		if (wbuf_len == 0) {
 			return true;
@@ -123,12 +135,11 @@ bool PikaSlavepingThread::RecvProc() {
 	while (1) {
 		nread = read(sockfd_, rbuf + rbuf_pos, 1);
 	  if (nread == -1) {
-    	if (errno == EAGAIN) {
-				continue;
+    	if (errno == EAGAIN || errno == EWOULDBLOCK) {
     	} else {
         LOG(WARNING) << "Ping master, Recv, error: " <<strerror(errno);
-				return false;
     	}
+      return false;
 		} else if (nread == 0) {
       LOG(WARNING) << "Ping master, master close the connection";
 			return false;
@@ -158,37 +169,43 @@ void* PikaSlavepingThread::ThreadMain() {
   struct timeval now;
   gettimeofday(&now, NULL);
   last_interaction = now;
-  while (g_pika_server->ShouldStartPingMaster()) {
-    if (Init()) {
-      if (Connect(g_pika_server->master_ip(), g_pika_server->master_port() + 200)) {
+  while (!IsExit() && g_pika_server->ShouldStartPingMaster()) {
+    if (!IsExit() && Init()) {
+      if (!IsExit() && Connect(g_pika_server->master_ip(), g_pika_server->master_port() + 200)) {
         g_pika_server->PlusMasterConnection();
         while (true) {
+          if (IsExit()) {
+            DLOG(INFO) << "Close Slaveping Thread now";
+            close(sockfd_);
+            g_pika_server->pika_binlog_receiver_thread()->KillAll();
+            break;
+          }
           if (Send() && RecvProc()) {
             DLOG(INFO) << "Ping master success";
             gettimeofday(&last_interaction, NULL);
-          } else if (errno == EWOULDBLOCK) {
+          } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
             gettimeofday(&now, NULL);
             if (now.tv_sec - last_interaction.tv_sec > 30) {
               //timeout;
               DLOG(INFO) << "Ping master timeout";
               close(sockfd_);
+              g_pika_server->pika_binlog_receiver_thread()->KillAll();
               break;
             }
           } else {
             // error happend
             DLOG(INFO) << "Ping master error";
             close(sockfd_);
+            g_pika_server->pika_binlog_receiver_thread()->KillAll();
             break;
           }
-          sleep(2);
+          sleep(1);
         }
         g_pika_server->MinusMasterConnection();
       } else {
         close(sockfd_);
       }
-      sleep(2);
     }
-    g_pika_server->pika_binlog_receiver_thread()->KillAll();
   }
 
   return NULL;

@@ -2,7 +2,7 @@
 #define PIKA_DEFINE_H_
 
 
-#define PIKA_MAX_WORKER_THREAD_NUM 1
+#define PIKA_MAX_WORKER_THREAD_NUM 4
 
 
 static const std::string kPikaVersion = "2.0.0";
@@ -17,12 +17,13 @@ struct WorkerCronTask {
 
 //slave item
 struct SlaveItem {
-  uint64_t sid;
+  int64_t sid;
   std::string ip_port;
   int port;
   pthread_t sender_tid;
   int hb_fd;
   int stage;
+  void* sender;
   struct timeval create_time;
 };
 
@@ -44,8 +45,8 @@ struct SlaveItem {
 /*
  * The size of Binlogfile
  */
-static uint64_t kBinlogSize = 128; 
-//static uint64_t kBinlogSize = 1024 * 1024 * 100;
+//static uint64_t kBinlogSize = 128; 
+static uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 enum RecordType {
   kZeroType = 0,

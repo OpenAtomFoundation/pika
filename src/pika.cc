@@ -49,18 +49,13 @@ static void PikaSignalSetup() {
 int main(int argc, char *argv[])
 {
 
-  if (argc < 3) {
-    printf ("Usage: ./pika port\n");
-    exit(-1);
-  }
-
-  PikaConfInit(argv[2]);
+  PikaConfInit(argv[1]);
   PikaGlogInit();
   PikaSignalSetup();
   InitCmdInfoTable();
 
   DLOG(INFO) << "Server at: " << argv[1];
-  g_pika_server = new PikaServer(atoi(argv[1]));
+  g_pika_server = new PikaServer();
   g_pika_server->Start();
 
   return 0;

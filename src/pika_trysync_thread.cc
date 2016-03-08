@@ -72,12 +72,43 @@ bool PikaTrysyncThread::Connect(const std::string& ip, int port) {
 	return true;
 }
 
+static void ConstructSyncCmd(char* wbuf) {
+  char tmp[100];
+  char len[10];
+  strcpy(wbuf, "*5\r\n$7\r\ntrysync\r\n");
+
+  sprintf(tmp, "$%d\r\n", g_pika_server->host().length());
+  strcat(wbuf, tmp);
+  strcat(wbuf, g_pika_server->host().c_str());
+
+  sprintf(len, "%d", g_pika_server->port());
+  sprintf(tmp, "\r\n$%d\r\n", strlen(len));
+  strcat(wbuf, tmp);
+  strcat(wbuf, len);
+
+  uint32_t filenum;
+  uint64_t pro_offset;
+  g_pika_server->logger_->GetProducerStatus(&filenum, &pro_offset);
+
+  sprintf(len, "%lu", filenum);
+  sprintf(tmp, "\r\n$%d\r\n", strlen(len));
+  strcat(wbuf, tmp);
+  strcat(wbuf, len);
+
+  sprintf(len, "%llu", pro_offset);
+  sprintf(tmp, "\r\n$%d\r\n", strlen(len));
+  strcat(wbuf, tmp);
+  strcat(wbuf, len);
+  strcat(wbuf, "\r\n");
+}
+
 bool PikaTrysyncThread::Send() {
 	char wbuf[256];
-	int wbuf_len = 17;
+  ConstructSyncCmd(wbuf);
+  DLOG(INFO) << wbuf;
+	int wbuf_len = strlen(wbuf);
 	int wbuf_pos = 0;
 	int nwritten = 0;
-	strncpy(wbuf, "*1\r\n$7\r\ntrysync\r\n", wbuf_len); 
 
 	while (1) {
 		while (wbuf_len > 0) {
@@ -135,8 +166,13 @@ bool PikaTrysyncThread::RecvProc() {
 	}
   DLOG(INFO) << "Reply from master after trysync: " << std::string(rbuf, rbuf_pos+1);
 	if (rbuf[0] == '+') {
+    std::string t(rbuf+1, rbuf_pos);
+//    slash::string2l(t.data(), t.size(), &sid_);
+    slash::string2l(rbuf+1, rbuf_pos, &sid_);
+    DLOG(INFO) << "Recv sid from master: " << sid_;
 		return true;
 	} else {
+    g_pika_server->RemoveMaster();
 		return false;
 	}
 }
@@ -148,8 +184,9 @@ void* PikaTrysyncThread::ThreadMain() {
       if (Init()) {
         if (Connect(g_pika_server->master_ip(), g_pika_server->master_port()) && Send() && RecvProc()) {
           g_pika_server->ConnectMasterDone();
-          PikaSlavepingThread t;
-          t.StartThread();
+          delete g_pika_server->ping_thread_;
+          g_pika_server->ping_thread_ = new PikaSlavepingThread(sid_);
+          g_pika_server->ping_thread_->StartThread();
           close(sockfd_);
           DLOG(INFO) << "Trysync success";
         } else {

@@ -244,8 +244,8 @@ bool PikaBinlogSenderThread::Connect() {
 
 bool PikaBinlogSenderThread::Send(const std::string &msg) {
   // length to small
-  char wbuf[1024];
-  int wbuf_len = 17;
+  char wbuf[2097152]; // 2M
+  int wbuf_len = msg.size();
   int wbuf_pos = 0;
   int nwritten = 0;
   memcpy(wbuf, msg.data(), msg.size()); 
@@ -275,44 +275,6 @@ bool PikaBinlogSenderThread::Send(const std::string &msg) {
   }
 }
 
-bool PikaBinlogSenderThread::Recv() {
-  char rbuf[256];
-  int rbuf_pos = 0;
-  int nread = 0;
-
-  while (1) {
-    nread = read(sockfd_, rbuf + rbuf_pos, 1);
-    if (nread == -1) {
-      if (errno == EAGAIN) {
-        continue;
-      } else {
-        LOG(WARNING) << "BinlogSender Recv error: " << strerror(errno);
-        return false;
-      }
-    } else if (nread == 0) {
-      LOG(WARNING) << "BinlogSender slave close the connection";
-      return false;
-    }
-
-    if (rbuf[rbuf_pos] == '\n') {
-      rbuf[rbuf_pos] = '\0';
-      rbuf_pos--;
-      if (rbuf_pos >= 0 && rbuf[rbuf_pos] == '\r') {
-        rbuf[rbuf_pos] = '\0';
-        rbuf_pos--;
-      }
-      break;
-    }
-    rbuf_pos++;
-  }
-  DLOG(INFO) << "BinlogSender Reply from slave after : " << std::string(rbuf, rbuf_pos+1);
-  if (rbuf[0] == '+') {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 Status PikaBinlogSenderThread::Parse() {
   std::string scratch("");
   Status s;
@@ -320,7 +282,7 @@ Status PikaBinlogSenderThread::Parse() {
   Version* version = g_pika_server->logger_->version_;
   while (!IsExit()) {
     if (filenum_ == version->pronum() && con_offset_ == version->pro_offset()) {
-      DLOG(INFO) << "BinlogSender Parse no new msg";
+//      DLOG(INFO) << "BinlogSender Parse no new msg";
       usleep(10000);
       continue;
     }
@@ -351,17 +313,20 @@ Status PikaBinlogSenderThread::Parse() {
       }
     } else if (s.ok()) {
       DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
-      DLOG(INFO) << "BinlogSender Parse a msg" << scratch;
-      if (Send(scratch) && Recv()) {
+//      DLOG(INFO) << "BinlogSender Parse a msg" << scratch;
+      if (Send(scratch)) {
         return s;
       } else {
-        return Status::Corruption("Send or Recv error");
+        return Status::Corruption("Send error");
       }
     } else if (s.IsCorruption()) {
       return s;
     }
   }
 
+  if (IsExit()) {
+    return Status::Corruption("should exit");
+  }
   return s;
 }
 
@@ -379,12 +344,14 @@ void* PikaBinlogSenderThread::ThreadMain() {
         do {
           s = Parse();
         } while (s.ok());
+        DLOG(INFO) << s.ToString();
+        close(sockfd_);
 
       } else {
         close(sockfd_);
       }
     }
-    sleep(5);
+    sleep(1);
   }
   return NULL;
 

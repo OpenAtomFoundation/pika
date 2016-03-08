@@ -41,7 +41,7 @@ void PikaHeartbeatThread::CronHandle() {
   }
 
 /*
- * find out: 1. stay STAGE_ONE to lone
+ * find out: 1. stay STAGE_ONE too long
  *					 2. the hb_fd have already be deleted
  * erase it in slaves_;
  */
@@ -49,12 +49,19 @@ void PikaHeartbeatThread::CronHandle() {
 		slash::MutexLock l(&g_pika_server->slave_mutex_);
 		std::vector<SlaveItem>::iterator iter = g_pika_server->slaves_.begin();
 		while (iter != g_pika_server->slaves_.end()) {
-			if ((iter->stage = SLAVE_ITEM_STAGE_ONE && now.tv_sec - iter->create_time.tv_sec > 30)
+      DLOG(INFO) << "sid: " << iter->sid << " ip_port: " << iter->ip_port << " port " << iter->port << " sender_tid: " << iter->sender_tid << " hb_fd: " << iter->hb_fd << " stage :" << iter->stage << " sender: " << iter->sender << " create_time: " << iter->create_time.tv_sec;
+			if ((iter->stage == SLAVE_ITEM_STAGE_ONE && now.tv_sec - iter->create_time.tv_sec > 30)
 				|| (iter->stage == SLAVE_ITEM_STAGE_TWO && !FindSlave(iter->hb_fd))) {
 				//pthread_kill(iter->tid);
         
         // Kill BinlogSender
-				iter = g_pika_server->slaves_.erase(iter);
+        DLOG(INFO) << "Erase slave " << iter->ip_port << " from slaves map of heartbeat thread";
+        {
+        //TODO maybe bug here
+        g_pika_server->slave_mutex_.Unlock();
+        g_pika_server->DeleteSlave(iter->hb_fd);
+        g_pika_server->slave_mutex_.Lock();
+        }
 				continue;
 			} 
 			iter++;
@@ -62,18 +69,28 @@ void PikaHeartbeatThread::CronHandle() {
 	}
 }
 
-bool PikaHeartbeatThread::AccessHandle(const std::string& ip_port) {
-//  if (/* ip_port is not in slaves_ */) {
-//    return false;
-//  }
-  return true;
+bool PikaHeartbeatThread::AccessHandle(std::string& ip) {
+  if (ip == "127.0.0.1") {
+    ip = g_pika_server->host();
+  }
+  slash::MutexLock l(&g_pika_server->slave_mutex_);
+  std::vector<SlaveItem>::iterator iter = g_pika_server->slaves_.begin();
+  while (iter != g_pika_server->slaves_.end()) {
+    if (iter->ip_port.find(ip) != std::string::npos) {
+      DLOG(INFO) << "HeartbeatThread access connection " << ip;
+      return true;
+    }
+    iter++;
+  }
+  DLOG(INFO) << "HeartbeatThread deny connection: " << ip;
+  return false;
 }
 
 bool PikaHeartbeatThread::FindSlave(int fd) {
   slash::RWLock(&rwlock_, false);
   std::map<int, void*>::iterator iter;
   for (iter = conns_.begin(); iter != conns_.end(); iter++) {
-    if (iter->first != fd) {
+    if (iter->first == fd) {
       return true;
     }
   }
