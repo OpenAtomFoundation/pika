@@ -65,7 +65,6 @@ int PikaMasterConn::DealMessage() {
   //no reply
   //eq set_is_reply(false);
   self_thread_ -> PlusThreadQuerynum();
-  LOG(INFO) << "Here";
   if (argv_.empty()) return -2;
   std::string res, opt = argv_[0];
   slash::StringToLower(opt);

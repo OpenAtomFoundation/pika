@@ -41,7 +41,7 @@ PikaServer::PikaServer() :
   }
 
   pika_dispatch_thread_ = new PikaDispatchThread(port_, PIKA_MAX_WORKER_THREAD_NUM, pika_worker_thread_, 3000);
-  pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(port_ + 100);
+  pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(port_ + 100, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(port_ + 200, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
 
@@ -215,7 +215,7 @@ void PikaServer::PlusMasterConnection() {
 bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
-  if (repl_state_ == PIKA_REPL_CONNECTING && ip == master_ip_) {
+  if ((repl_state_ == PIKA_REPL_CONNECTING || repl_state_ == PIKA_REPL_CONNECTED ) && ip == master_ip_) {
     return true;
   }
   return false;

@@ -41,7 +41,7 @@ void PikaHeartbeatThread::CronHandle() {
   }
 
 /*
- * find out: 1. stay STAGE_ONE to lone
+ * find out: 1. stay STAGE_ONE too long
  *					 2. the hb_fd have already be deleted
  * erase it in slaves_;
  */
@@ -77,6 +77,7 @@ bool PikaHeartbeatThread::AccessHandle(std::string& ip) {
   std::vector<SlaveItem>::iterator iter = g_pika_server->slaves_.begin();
   while (iter != g_pika_server->slaves_.end()) {
     if (iter->ip_port.find(ip) != std::string::npos) {
+      DLOG(INFO) << "HeartbeatThread access connection " << ip;
       return true;
     }
     iter++;

@@ -313,11 +313,11 @@ Status PikaBinlogSenderThread::Parse() {
       }
     } else if (s.ok()) {
       DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
-      DLOG(INFO) << "BinlogSender Parse a msg" << scratch;
+//      DLOG(INFO) << "BinlogSender Parse a msg" << scratch;
       if (Send(scratch)) {
         return s;
       } else {
-        return Status::Corruption("Send or Recv error");
+        return Status::Corruption("Send error");
       }
     } else if (s.IsCorruption()) {
       return s;
@@ -331,7 +331,6 @@ Status PikaBinlogSenderThread::Parse() {
 }
 
 void* PikaBinlogSenderThread::ThreadMain() {
-  DLOG(INFO) << "BinlogSender ThreadMain";
 
   Status s;
 
@@ -345,6 +344,8 @@ void* PikaBinlogSenderThread::ThreadMain() {
         do {
           s = Parse();
         } while (s.ok());
+        DLOG(INFO) << s.ToString();
+        close(sockfd_);
 
       } else {
         close(sockfd_);
