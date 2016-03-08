@@ -26,20 +26,19 @@ std::string PikaClientConn::RestoreArgs() {
   return res;
 }
 
-void PikaClientConn::DoCmd(const std::string& opt, std::string &ret) {
+std::string PikaClientConn::DoCmd(const std::string& opt) {
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = self_thread_->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
-      ret.append("-Err unknown or unsupported command \'" + opt + "\r\n");
-      return;
+      return "-Err unknown or unsupported command \'" + opt + "\r\n";
   }
   c_ptr->res().clear();
   
   // Initial
   c_ptr->Initial(argv_, cinfo_ptr);
   if (!c_ptr->res().ok()) {
-    return;
+    return c_ptr->res().message();
   }
 
   // TODO Check authed
@@ -64,7 +63,7 @@ void PikaClientConn::DoCmd(const std::string& opt, std::string &ret) {
   if (!cinfo_ptr->is_suspend()) {
       pthread_rwlock_unlock(g_pika_server->rwlock());
   }
-  ret = c_ptr->res().message();
+  return c_ptr->res().message();
 }
 
 int PikaClientConn::DealMessage() {
@@ -80,10 +79,10 @@ int PikaClientConn::DealMessage() {
   //logger_->Lock();
   //TODO return value
   if (argv_.empty()) return -2;
-  std::string res, opt = argv_[0];
+  std::string opt = argv_[0];
   slash::StringToLower(opt);
   //TODO add logger lock
-  DoCmd(opt, res);
+  std::string res = DoCmd(opt);
   // if (opt == "pikasync") {
   //     AppendReply(ret);
   //     mutex_.Unlock();

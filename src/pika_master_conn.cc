@@ -27,15 +27,21 @@ std::string PikaMasterConn::RestoreArgs() {
   return res;
 }
 
-void PikaMasterConn::DoCmd(const std::string& opt, std::string &ret) {
+std::string PikaMasterConn::DoCmd(const std::string& opt) {
   // Get command info
-  const CmdInfo* cinfo_ptr = GetCmdInfo(opt);
+  const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = self_thread_->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
-      ret.append("-Err unknown or unsupported command \'" + opt + "\r\n");
-      return;
+      return "-Err unknown or unsupported command \'" + opt + "\r\n";
   }
   c_ptr->res().clear();
+  
+  // Initial
+  c_ptr->Initial(argv_, cinfo_ptr);
+  if (!c_ptr->res().ok()) {
+    return c_ptr->res().message();
+  }
+
   // TODO Check authed
   // Add read lock for no suspend command
   if (!cinfo_ptr->is_suspend()) {
@@ -46,7 +52,7 @@ void PikaMasterConn::DoCmd(const std::string& opt, std::string &ret) {
       g_pika_server->logger_->Lock();
   }
 
-  c_ptr->Do(argv_);
+  c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
       if (c_ptr->res().ok()) {
@@ -58,7 +64,7 @@ void PikaMasterConn::DoCmd(const std::string& opt, std::string &ret) {
   if (!cinfo_ptr->is_suspend()) {
       pthread_rwlock_unlock(g_pika_server->rwlock());
   }
-  ret = c_ptr->res().message();
+  return c_ptr->res().message();
 }
 
 int PikaMasterConn::DealMessage() {
@@ -66,9 +72,9 @@ int PikaMasterConn::DealMessage() {
   //eq set_is_reply(false);
   self_thread_ -> PlusThreadQuerynum();
   if (argv_.empty()) return -2;
-  std::string res, opt = argv_[0];
+  std::string opt = argv_[0];
   slash::StringToLower(opt);
-  DoCmd(opt, res);
+  DoCmd(opt);
 //  memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
 //  wbuf_len_ += res.size();
   return 0;

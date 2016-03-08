@@ -15,7 +15,7 @@ public:
   virtual int DealMessage();
 private:
   PikaBinlogReceiverThread* self_thread_;
-  void DoCmd(const std::string& opt, std::string& ret);
+  std::string DoCmd(const std::string& opt);
   std::string RestoreArgs();
 };
 

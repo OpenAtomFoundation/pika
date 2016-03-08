@@ -4,9 +4,9 @@
 
 extern PikaServer *g_pika_server;
 
-void SlaveofCmd::Initial(PikaCmdArgsType &argv) {
-  if (!GetCmdInfo(kCmdNameSlaveof)->CheckArg(argv.size())) {
-    res_.SetErr("wrong number of arguments for " + GetCmdInfo(kCmdNameSlaveof)->name() + " command");
+void SlaveofCmd::Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetErr("wrong number of arguments for " + kCmdNameSlaveof + " command");
     return;
   }
   PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
@@ -55,11 +55,7 @@ void SlaveofCmd::Initial(PikaCmdArgsType &argv) {
   }
 }
 
-void SlaveofCmd::Do(PikaCmdArgsType &argv) {
-  Initial(argv);
-  if (!res_.ok()) {
-    return;
-  }
+void SlaveofCmd::Do() {
   if (is_noone_) {
     g_pika_server->RemoveMaster();
     res_.SetContent("+OK");
@@ -76,9 +72,9 @@ void SlaveofCmd::Do(PikaCmdArgsType &argv) {
   }
 }
 
-void TrysyncCmd::Initial(PikaCmdArgsType &argv) {
-  if (!GetCmdInfo(kCmdNameTrysync)->CheckArg(argv.size())) {
-    res_.SetErr("wrong number of arguments for " + GetCmdInfo(kCmdNameTrysync)->name() + " command");
+void TrysyncCmd::Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetErr("wrong number of arguments for " + kCmdNameTrysync + " command");
     return;
   }
   PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
@@ -104,11 +100,7 @@ void TrysyncCmd::Initial(PikaCmdArgsType &argv) {
 
 }
 
-void TrysyncCmd::Do(PikaCmdArgsType &argv) {
-  Initial(argv);
-  if (!res_.ok()) {
-    return;
-  }
+void TrysyncCmd::Do() {
   std::string ip_port = slave_ip_;
   char buf[10];
   slash::ll2string(buf, sizeof(buf), slave_port_);
