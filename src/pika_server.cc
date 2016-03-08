@@ -95,6 +95,7 @@ PikaServer::PikaServer()
     LOG(WARNING) << "Prepare DB...";
     db_ = new nemo::Nemo(g_pikaConf->db_path(), option);
     LOG(WARNING) << "DB Success";
+
     // init sock
     sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
     memset(&servaddr_, 0, sizeof(servaddr_));
@@ -111,7 +112,7 @@ PikaServer::PikaServer()
     if (ret < 0) {
         LOG(FATAL) << "bind error: "<< strerror(errno);
     }
-    listen(sockfd_, 10);
+    listen(sockfd_, 10240);
 
     // init slave_sock
     slave_sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
@@ -129,7 +130,7 @@ PikaServer::PikaServer()
     if (ret < 0) {
         LOG(FATAL) << "bind error: "<< strerror(errno);
     }
-    listen(slave_sockfd_, 10);
+    listen(slave_sockfd_, 10240);
 
     SetBlockType(kNonBlock);
 
@@ -152,6 +153,7 @@ PikaServer::PikaServer()
     dump_pro_offset_ = 0;
     bgsaving_ = false;
     purging_ = false;
+    history_clients_num_ = 0;
     is_readonly_ = g_pikaConf->readonly();
     info_keyspacing_ = false;
     start_time_s_ = time(NULL);
@@ -1034,11 +1036,11 @@ void PikaServer::ClientKillAll() {
 int PikaServer::CurrentQps() {
     int i = 0;
     int qps = 0;
-    std::map<std::string, client_info>::iterator iter;
+    //std::map<std::string, client_info>::iterator iter;
     for (i = 0; i < thread_num_; i++) {
         {
-            RWLock l(pikaThread_[i]->rwlock(), false);
-            qps+=pikaThread_[i]->last_sec_querynums_;
+            //RWLock l(pikaThread_[i]->rwlock(), false);
+            qps += pikaThread_[i]->last_sec_querynums_;
         }
     }
     return qps;
@@ -1048,10 +1050,9 @@ uint64_t PikaServer::CurrentAccumulativeQueryNums()
 {
 	int i = 0;
 	uint64_t accumulativeQueryNums = 0;
-	std::map<std::string, client_info>::iterator iter;
-	for(i = 0; i < thread_num_; i++)
-	{
-		RWLock l(pikaThread_[i]->rwlock(), false);
+	//std::map<std::string, client_info>::iterator iter;
+	for(i = 0; i < thread_num_; i++) {
+		//RWLock l(pikaThread_[i]->rwlock(), false);
 		accumulativeQueryNums += pikaThread_[i]->accumulative_querynums_;
 	}
 	return accumulativeQueryNums;
@@ -1059,7 +1060,7 @@ uint64_t PikaServer::CurrentAccumulativeQueryNums()
 
 uint64_t PikaServer::HistoryClientsNum()
 {
-  MutexLock l(&mutex_);
+  //MutexLock l(&mutex_);
   return history_clients_num_;
 }
 
@@ -1176,7 +1177,7 @@ void PikaServer::RunProcess()
                 last_thread_++;
                 last_thread_ %= g_pikaConf->thread_num();
                 {
-                  MutexLock l(&mutex_);
+                  //MutexLock l(&mutex_);
                   history_clients_num_++;
                 }
             } else if (fd == slave_sockfd_ && ((tfe + i)->mask_ & EPOLLIN)) {
