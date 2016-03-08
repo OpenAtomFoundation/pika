@@ -5,7 +5,8 @@ PikaWorkerThread::PikaWorkerThread(int cron_interval):
   WorkerThread::WorkerThread(cron_interval),
   thread_querynum_(0),
   last_sec_thread_querynum_(0) {
-    InitCmdTable(&cmds_);
+  cmds_.reserve(300);
+  InitCmdTable(&cmds_);
 }
 
 PikaWorkerThread::~PikaWorkerThread() {

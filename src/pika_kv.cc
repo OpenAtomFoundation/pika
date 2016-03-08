@@ -5,13 +5,14 @@
 
 extern PikaServer *g_pika_server;
 
-void SetCmd::Initial(PikaCmdArgsType &argv) {
-  if (!GetCmdInfo(kCmdNameSet)->CheckArg(argv.size())) {
+void SetCmd::Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
     res_.SetErr("wrong number of arguments for " + 
-        GetCmdInfo(kCmdNameSet)->name() + " command");
+        kCmdNameSet + " command");
     return;
   }
-  PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
+  PikaCmdArgsType::iterator it = argv.begin();
+  ++it;//Remember the first args is the opt name
   key_ = *it++;
   value_ = *it++;
   while (it != argv.end()) {
@@ -37,12 +38,7 @@ void SetCmd::Initial(PikaCmdArgsType &argv) {
   }
 }
 
-void SetCmd::Do(PikaCmdArgsType &argv) {
-  Initial(argv);
-  if (!res_.ok()) {
-    return;
-  }
-
+void SetCmd::Do() {
   nemo::Status s;
   int64_t res = 1;
   switch (condition_) {
@@ -68,21 +64,17 @@ void SetCmd::Do(PikaCmdArgsType &argv) {
   }
 }
 
-void GetCmd::Initial(PikaCmdArgsType &argv) {
-  if (!GetCmdInfo(kCmdNameGet)->CheckArg(argv.size())) {
+void GetCmd::Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
     res_.SetErr("wrong number of arguments for " + 
-        GetCmdInfo(kCmdNameGet)->name() + " command");
+        kCmdNameGet + " command");
     return;
   }
   key_ = argv[1];
   return;
 }
 
-void GetCmd::Do(PikaCmdArgsType &argv) {
-  Initial(argv);
-  if (!res_.ok()) {
-    return;
-  }
+void GetCmd::Do() {
   std::string value;
   nemo::Status s = g_pika_server->db()->Get(key_, &value);
   if (s.ok()) {

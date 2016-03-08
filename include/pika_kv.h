@@ -9,21 +9,21 @@ class SetCmd : public Cmd {
 public:
   enum SetCondition{kANY, kNX, kXX};
   SetCmd() : sec_(0), condition_(kANY) {};
-  virtual void Do(PikaCmdArgsType &argvs);
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 private:
   std::string key_;
   std::string value_;
   int64_t sec_;
   SetCmd::SetCondition condition_;
-  virtual void Initial(PikaCmdArgsType &argvs);
 };
 
 class GetCmd : public Cmd {
 public:
   GetCmd() {};
-  virtual void Do(PikaCmdArgsType &argvs);
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 private:
   std::string key_;
-  virtual void Initial(PikaCmdArgsType &argvs);
 };
 #endif

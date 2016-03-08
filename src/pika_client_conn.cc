@@ -28,13 +28,20 @@ std::string PikaClientConn::RestoreArgs() {
 
 void PikaClientConn::DoCmd(const std::string& opt, std::string &ret) {
   // Get command info
-  const CmdInfo* cinfo_ptr = GetCmdInfo(opt);
+  const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = self_thread_->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
       ret.append("-Err unknown or unsupported command \'" + opt + "\r\n");
       return;
   }
   c_ptr->res().clear();
+  
+  // Initial
+  c_ptr->Initial(argv_, cinfo_ptr);
+  if (!c_ptr->res().ok()) {
+    return;
+  }
+
   // TODO Check authed
   // Add read lock for no suspend command
   if (!cinfo_ptr->is_suspend()) {
@@ -45,7 +52,7 @@ void PikaClientConn::DoCmd(const std::string& opt, std::string &ret) {
       g_pika_server->logger_->Lock();
   }
 
-  c_ptr->Do(argv_);
+  c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
       if (c_ptr->res().ok()) {

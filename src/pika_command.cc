@@ -1,6 +1,6 @@
 #include "pika_kv.h"
 
-static std::unordered_map<std::string, CmdInfo*> cmd_infos;    /* Table for CmdInfo */
+static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
 
 //Remember the first arg is the command name
 void InitCmdInfoTable() {

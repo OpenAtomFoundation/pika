@@ -10,7 +10,8 @@ PikaBinlogReceiverThread::PikaBinlogReceiverThread(int port) :
   HolyThread::HolyThread(port),
   thread_querynum_(0),
   last_sec_thread_querynum_(0) {
-    InitCmdTable(&cmds_);
+  cmds_.reserve(300);
+  InitCmdTable(&cmds_);
 }
 
 PikaBinlogReceiverThread::~PikaBinlogReceiverThread() {

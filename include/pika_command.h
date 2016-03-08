@@ -147,13 +147,13 @@ class Cmd {
 public:
   Cmd() {}
   virtual ~Cmd() {}
-  virtual void Do(PikaCmdArgsType &argvs) = 0;
+  virtual void Do() = 0;
+  virtual void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
   CmdRes& res() {
     return res_;
   }
 
 protected:
-  virtual void Initial(PikaCmdArgsType &argvs) = 0;
   CmdRes res_;
 
 private:
