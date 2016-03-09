@@ -1082,7 +1082,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         uint64_t logsize_B = du(g_pikaConf->log_path());
         uint64_t logsize_M = logsize_B / (1024 * 1024);
         
-        char buf[512];
+        char buf[1024];
         time_t current_time_s = std::time(NULL);
         time_t running_time_s = current_time_s-g_pikaServer->start_time_s();
         struct tm *current_time_tm_ptr = localtime(&current_time_s);
@@ -1113,6 +1113,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   "config_file:%s\r\n"
                   "is_bgsaving:%s\r\n"
                   "is_scaning_keyspace:%s\r\n"
+                  "is_compact:%s\r\n"
                   "db_size:%luM\r\n"
                   "log_size:%luM\r\n"
                   "compression:%s\r\n"
@@ -1130,6 +1131,7 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
                   g_pikaConf->conf_path(),
                   g_pikaServer->is_bgsaving().c_str(),
                   g_pikaServer->is_scaning().c_str(),
+                  g_pikaServer->GetHandle()->GetCurrentTaskType().c_str(),
                   dbsize_M,
                   logsize_M,
                   g_pikaConf->compression(),

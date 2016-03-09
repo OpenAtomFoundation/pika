@@ -60,6 +60,8 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
       last_sec_querynums_ = {querynums_.load()};
       accumulative_querynums_ += querynums_;
       querynums_ = 0;
+      //LOG(WARNING) << "current=" << current << ", last_sec_querynums=" << last_sec_querynums_
+      //    << ", accumulative=" << accumulative_querynums_ << ", querynums_ should be 0, = " << querynums_;
     }
 
   //  if (conns_.size() == 0) {
