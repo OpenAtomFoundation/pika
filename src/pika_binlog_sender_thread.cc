@@ -25,6 +25,7 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(std::string &ip, int port, slash:
     port_(port),
     should_exit_(false) {
       last_record_offset_ = con_offset % kBlockSize;
+      pthread_rwlock_init(&rwlock_, NULL);
     }
 
 PikaBinlogSenderThread::~PikaBinlogSenderThread() {

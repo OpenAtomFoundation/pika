@@ -26,7 +26,7 @@ static void PikaConfInit(const std::string& path) {
 }
 
 static void PikaGlogInit() {
-  FLAGS_log_dir = "/tmp";
+  FLAGS_log_dir = "./log";
   FLAGS_minloglevel = 0;
   FLAGS_alsologtostderr = true;
   FLAGS_max_log_size = 1800;

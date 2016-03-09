@@ -23,7 +23,7 @@ void PikaDispatchThread::CronHandle() {
   }
 
   // Should not here, Just for test, remove to info cmd later
-  server_current_qps += g_pika_server->pika_binlog_receiver_thread()->thread_querynum();
+  server_querynum += g_pika_server->pika_binlog_receiver_thread()->thread_querynum();
   server_current_qps += g_pika_server->pika_binlog_receiver_thread()->last_sec_thread_querynum();
 
 

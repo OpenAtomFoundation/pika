@@ -54,12 +54,12 @@ std::string PikaMasterConn::DoCmd(const std::string& opt) {
 
   c_ptr->Do();
 
-//  if (cinfo_ptr->is_write()) {
-//      if (c_ptr->res().ok()) {
-//          g_pika_server->logger_->Put(RestoreArgs());
-//      }
+  if (cinfo_ptr->is_write()) {
+      if (c_ptr->res().ok()) {
+          g_pika_server->logger_->Put(RestoreArgs());
+      }
 //      g_pika_server->logger_->Unlock();
-//  }
+  }
 
   if (!cinfo_ptr->is_suspend()) {
       pthread_rwlock_unlock(g_pika_server->rwlock());
