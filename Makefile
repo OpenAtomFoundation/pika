@@ -49,6 +49,7 @@ ROCKSDB = $(THIRD_PATH)/nemo/output/lib/librocksdb.a
 GLOG = /usr/local/lib/libglog.a
 MARIO = $(THIRD_PATH)/mario/output/lib/libmario.a
 LIBSSH2 = $(THIRD_PATH)/libssh2/src/libssh2.a
+NEMO_TOOLS = $(THIRD_PATH)/nemo/output/tools
 
 .PHONY: all clean
 
@@ -69,6 +70,7 @@ all: $(OBJECT)
 	cp $(OBJECT) $(OUTPUT)/bin/
 	mkdir $(OUTPUT)/tools
 	cp -r $(TOOLS_DIR)/* $(OUTPUT)/tools/
+	cp $(NEMO_TOOLS)/* $(OUTPUT)/tools/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
 
