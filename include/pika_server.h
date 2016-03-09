@@ -47,7 +47,9 @@ public:
     nemo::Nemo* GetHandle() {return db_;};
     nemo::BackupEngine* GetBackupEngine() {return backup_engine_;}
     void ClearBackupEngine();
-    int ClientNum();
+    //int ClientNum();
+    std::atomic<int> client_num_;
+
     int ClientList(std::string &res);
     int ClientKill(std::string &ip_port);
     void ClientKillAll();

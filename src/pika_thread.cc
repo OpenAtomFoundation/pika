@@ -106,6 +106,7 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
                 if (iter_clientlist != clients_.end()) {
                     LOG(INFO) << "Remove (Idle or Killed) Client: " << iter_clientlist->first;
                     clients_.erase(iter_clientlist);
+                    g_pikaServer->client_num_--;
                 }
 
             }
@@ -285,6 +286,7 @@ void PikaThread::RunProcess()
                                 RWLock l(&rwlock_, true); 
                                 clients_.erase(it_clientlist);
                             }
+                            g_pikaServer->client_num_--;
                             LOG(INFO) << "Remove Client OK";
                         }
                         if (role == PIKA_MASTER) {

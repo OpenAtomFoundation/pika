@@ -85,6 +85,7 @@ PikaServer::PikaServer()
     // init statistics variables
     shutdown = false;
     worker_num = 0;
+    client_num_ = 0;
 
     pthread_rwlock_init(&rwlock_, NULL);
 
@@ -979,21 +980,21 @@ int PikaServer::GetSlaveList(std::string &res) {
   return slave_num;
 }
 
-int PikaServer::ClientNum() {
-    int client_num = 0;
-    std::map<std::string, client_info>::iterator iter;
-    for (int i = 0; i < thread_num_; i++) {
-        {
-            RWLock l(pikaThread_[i]->rwlock(), false);
-            iter = pikaThread_[i]->clients()->begin();
-            while (iter != pikaThread_[i]->clients()->end()) {
-                client_num++;
-                iter++;
-            }
-        }
-    }
-    return client_num;
-}
+//int PikaServer::ClientNum() {
+//    int client_num = 0;
+//    std::map<std::string, client_info>::iterator iter;
+//    for (int i = 0; i < thread_num_; i++) {
+//        {
+//            RWLock l(pikaThread_[i]->rwlock(), false);
+//            iter = pikaThread_[i]->clients()->begin();
+//            while (iter != pikaThread_[i]->clients()->end()) {
+//                client_num++;
+//                iter++;
+//            }
+//        }
+//    }
+//    return client_num;
+//}
 
 int PikaServer::ClientKill(std::string &ip_port) {
     int i = 0;
@@ -1159,13 +1160,16 @@ void PikaServer::RunProcess()
                 ip_port.append(":");
                 ll2string(buf, sizeof(buf), ntohs(cliaddr.sin_port));
                 ip_port.append(buf);
-                int clientnum = ClientNum();
+
+                int clientnum = client_num_;
                 if ((clientnum >= g_pikaConf->maxconnection() + g_pikaConf->root_connection_num())
 				              || ((clientnum >= g_pikaConf->maxconnection()) && (ip_str != std::string("127.0.0.1") && (ip_str != GetServerIp())))) {
                     LOG(WARNING) << "Reach Max Connection: "<< g_pikaConf->maxconnection() << " refuse new client: " << ip_port;
                     close(connfd);
                     continue;
                 }
+
+                client_num_++;
                 std::queue<PikaItem> *q = &(pikaThread_[last_thread_]->conn_queue_);
                 PikaItem ti(connfd, ip_port);
                 LOG(INFO) << "Push Client to Thread " << (last_thread_);
