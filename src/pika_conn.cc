@@ -16,10 +16,8 @@ extern PikaConf *g_pikaConf;
 extern PikaServer *g_pikaServer;
 extern mario::Mario *g_pikaMario;
 
-PikaConn::PikaConn(int fd, std::string ip_port, int role) :
-    fd_(fd), ip_port_(ip_port), role_(role)
-{
-    thread_ = NULL;
+PikaConn::PikaConn(PikaThread *thread, int fd, std::string ip_port, int role)
+  : fd_(fd), thread_(thread), ip_port_(ip_port), role_(role) {
 
     // init the rbuf
     rbuf_ = sdsempty();
@@ -40,7 +38,7 @@ PikaConn::PikaConn(int fd, std::string ip_port, int role) :
             && std::string(g_pikaConf->requirepass()) == "") {
         auth_stat_ = AdminAuthed;
     }
-    querynums_ = 0;
+    //querynums_ = 0;
 }
 
 PikaConn::~PikaConn()
@@ -342,6 +340,8 @@ int PikaConn::ProcessInputBuffer() {
 //                log_info("%s", (*iter).c_str());
 //            }
             cmd_ret = DoCmd();
+            (thread_->querynums_)++;
+
             if (cmd_ret == -2) {
                 should_close_after_reply = true;
                 sdsclear(msbuf_);
@@ -350,7 +350,8 @@ int PikaConn::ProcessInputBuffer() {
           //  if (cmd_ret == 1) {
           //      g_pikaMario->Put(std::string(msbuf_, sdslen(msbuf_)));
           //  }
-            querynums_++;
+            //querynums_++;
+            //thread_->querynums_.fetch_add(1);
             sdsclear(msbuf_);
             Reset();
         }

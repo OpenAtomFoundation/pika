@@ -1365,3 +1365,21 @@ void PurgelogstoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         ret = "-ERR write2file may in use or non_exist or already in purging...\r\n";
     }
 }
+
+void CompactCmd::Do(std::list<std::string> &argv, std::string &ret) {
+    if ((arity > 0 && (int)argv.size() != arity) || (arity < 0 && (int)argv.size() < -arity)) {
+        ret = "-ERR wrong number of arguments for ";
+        ret.append(argv.front());
+        ret.append(" command\r\n");
+        return;
+    }
+    argv.pop_front();
+    nemo::Status s = g_pikaServer->GetHandle()->Compact(nemo::kALL);
+    if (s.ok()) {
+      ret = "+OK\r\n";
+    } else {
+      ret.append("-ERR ");
+      ret.append(s.ToString().c_str());
+      ret.append("\r\n");
+    }
+}

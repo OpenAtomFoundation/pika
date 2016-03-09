@@ -647,15 +647,16 @@ int do_mkdir(const char *path, mode_t mode) {
   if (stat(path, &st) != 0) {
     /* Directory does not exist. EEXIST for race
      * condition */
-    if (mkdir(path, mode) != 0 && errno != EEXIST)
+    if (mkdir(path, mode) != 0 && errno != EEXIST) {
       status = -1;
+    } else if (chmod(path, mode) != 0) { //modify the priority
+      status = -1;
+    }
   } else if (!S_ISDIR(st.st_mode)) {
     errno = ENOTDIR;
     status = -1;
   }
-  if (chmod(path, mode) != 0) { //modify the priority
-    status = -1;
-  }
+
   return (status);
 }
 
@@ -1069,7 +1070,7 @@ int start_rsync(const std::string& path, const int rsync_port) {
     rsync_conf_file << "use chroot = no" << std::endl;
     rsync_conf_file << "max connections = 10" << std::endl;
     rsync_conf_file << "pid file = " << rsync_pid_file_path << std::endl;
-    //rsync_conf_file << "lock file = " << rsync_path << "/pika_rsync_" << pid_str << ".lock" << std::endl;
+    rsync_conf_file << "lock file = " << rsync_path << "/pika_rsync_" << pid_str << ".lock" << std::endl;
     //rsync_conf_file << "log file = " << rsync_path << "/pika_rsync_" << pid_str << ".log" << std::endl;
     rsync_conf_file << "list = no" << std::endl;
     rsync_conf_file << "strict modes = no" << std::endl;

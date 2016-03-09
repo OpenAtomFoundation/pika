@@ -35,6 +35,7 @@ public:
         pthread_rwlock_destroy(&rwlock_);
         delete consumer_;
         delete readfile_;
+        delete h_;
     }
 
     bool IsExit()     { RWLock l(&rwlock_, false); return should_exit_; }

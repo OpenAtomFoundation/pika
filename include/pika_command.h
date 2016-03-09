@@ -136,6 +136,12 @@ public:
     virtual void Do(std::list<std::string> &argvs, std::string &ret);
 };
 
+class CompactCmd : public Cmd {
+public:
+    CompactCmd(int a, bool i = false) : Cmd(a, i) {};
+    virtual void Do(std::list<std::string> &argvs, std::string &ret);
+};
+
 /*
  * kv
  */

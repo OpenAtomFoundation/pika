@@ -7,6 +7,7 @@
 #include <sys/epoll.h>
 #include <queue>
 #include <map>
+#include <atomic>
 #include <time.h>
 
 #include "port.h"
@@ -39,9 +40,13 @@ public:
     bool is_master_thread_;
     bool is_first_;
     struct timeval last_ping_time_;
-    int querynums_;
-    int last_sec_querynums_;
-    uint64_t accumulative_querynums_;
+
+    std::atomic<int> querynums_;
+    std::atomic<int> last_sec_querynums_;
+    std::atomic<uint64_t> accumulative_querynums_;
+    //int querynums_;
+    //int last_sec_querynums_;
+    //uint64_t accumulative_querynums_;
 
     // port::Mutex mutex() { return mutex_; }
 
