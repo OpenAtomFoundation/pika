@@ -281,7 +281,7 @@ Status PikaServer::GetSmallestValidLog(uint32_t* max) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter;
 
-  *max = logger_->version_->pronum();
+  *max = logger_->version_->pro_num();
   for (iter = slaves_.begin(); iter != slaves_.end(); iter++) {
     int tmp = static_cast<PikaBinlogSenderThread*>(iter->sender)->filenum();
     if (tmp < *max) {

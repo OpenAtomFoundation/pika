@@ -282,7 +282,7 @@ Status PikaBinlogSenderThread::Parse() {
 
   Version* version = g_pika_server->logger_->version_;
   while (!IsExit()) {
-    if (filenum_ == version->pronum() && con_offset_ == version->pro_offset()) {
+    if (filenum_ == version->pro_num() && con_offset_ == version->pro_offset()) {
 //      DLOG(INFO) << "BinlogSender Parse no new msg";
       usleep(10000);
       continue;

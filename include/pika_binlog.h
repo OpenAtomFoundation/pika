@@ -41,12 +41,12 @@ class Binlog
 
   Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset);
   /*
-   * Set Producer pronum and pro_offset with lock
+   * Set Producer pro_num and pro_offset with lock
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
 
 
-  // set the filenum and con_offset of the consumer which has the given ip and port;
+  // Set the filenum and con_offset of the consumer which has the given ip and port;
   // return NotFound when can not find the consumer with the given ip and port;
   // return InvalidArgument when the filenum and con_offset are invalid;
   Status SetConsumer(int fd, uint32_t filenum, uint64_t con_offset);
@@ -61,16 +61,15 @@ class Binlog
   std::string filename;
   Version* version_;
 
-  /*
-   * Produce
-   */
-  Status Produce(const Slice &item);
-
-
  private:
 
   void InitLogFile();
-  Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n);
+  Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset);
+
+  /*
+   * Produce
+   */
+  Status Produce(const Slice &item, int *pro_offset);
 
   uint32_t consumer_num_;
   uint64_t item_num_;
@@ -80,7 +79,7 @@ class Binlog
 
   slash::Mutex mutex_;
 
-  uint32_t pronum_;
+  uint32_t pro_num_;
   int32_t retry_;
 
   int block_offset_;
@@ -147,28 +146,28 @@ class Version {
     item_num_--;
   }
 
-  uint32_t pronum() {
+  uint32_t pro_num() {
     slash::RWLock(&rwlock_, false);
-    return pronum_;
+    return pro_num_;
   }
-  void set_pronum(uint32_t pronum) {
+  void set_pro_num(uint32_t pro_num) {
     slash::RWLock(&rwlock_, true);
-    pronum_ = pronum;
+    pro_num_ = pro_num;
   }
 
-  uint32_t connum() {
+  uint32_t con_num() {
     slash::RWLock(&rwlock_, false);
-    return connum_;
+    return con_num_;
   }
-  void set_connum(uint32_t connum) {
+  void set_con_num(uint32_t con_num) {
     slash::RWLock(&rwlock_, true);
-    connum_ = connum;
+    con_num_ = con_num;
   }
 
   void debug() {
     slash::RWLock(&rwlock_, false);
-    printf ("Current pro_offset %lu con_offset %lu itemnum %u pronum %u connum %u", 
-            pro_offset_, con_offset_, item_num_, pronum_, connum_);
+    printf ("Current pro_offset %lu con_offset %lu itemnum %u pro_num %u con_num %u",
+            pro_offset_, con_offset_, item_num_, pro_num_, con_num_);
   }
 
  private:
@@ -176,8 +175,8 @@ class Version {
   uint64_t pro_offset_;
   uint64_t con_offset_;
   uint32_t item_num_;
-  uint32_t pronum_;
-  uint32_t connum_;
+  uint32_t pro_num_;
+  uint32_t con_num_;
 
   slash::RWFile *save_;
   pthread_rwlock_t rwlock_;
