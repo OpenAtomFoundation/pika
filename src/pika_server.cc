@@ -544,6 +544,38 @@ int log_filter(std::string path, uint32_t to, std::set<std::string> &files)
     return num;
 }
 
+int log_filter_r(std::string path, uint32_t to, std::set<std::string> &files)
+{
+    int ret;
+    DIR *dir;
+    struct dirent entry;
+    struct dirent *result;
+    std::string writefile = "write2file";
+
+    dir = opendir(path.c_str());
+    if (!dir) {
+        LOG(ERROR) << "log_filter_r opendir failed, " << strerror(errno);
+        return 0;
+    }
+
+    int num = 0;
+    while ((ret = readdir_r(dir, &entry, &result)) == 0 && result != NULL) {
+        if (!strncmp(entry.d_name, writefile.c_str(), writefile.length()) && stoul(std::string(entry.d_name).substr(writefile.length())) <= to) {
+            num++;
+            files.insert(std::string(entry.d_name));
+        }
+    }
+    if (ret != 0) {
+      LOG(ERROR) << "log_filter_r readdir_r failed, " << strerror(ret);
+    }
+
+    if (closedir(dir) != 0) {
+      LOG(ERROR) << "log_filter_r closedir failed, return " << ret << ", " << strerror(errno);
+    }
+
+    return num;
+}
+
 void* PikaServer::StartPurgeLogs(void* arg) {
     PikaServer* p = (PikaServer*)(((purge_args*)arg)->p);
     uint32_t to = ((purge_args*)arg)->to;
@@ -559,7 +591,7 @@ void* PikaServer::StartPurgeLogs(void* arg) {
     std::string filename;
     int ret = 0;
     std::set<std::string> files_to_del;
-    log_filter(log_path, to, files_to_del);
+    log_filter_r(log_path, to, files_to_del);
     for (std::set<std::string>::iterator iter = files_to_del.begin(); iter != files_to_del.end(); iter++) {
         filename = log_path + *iter;
         ret = access(filename.c_str(), F_OK);
@@ -716,6 +748,37 @@ int log_num(std::string path)
     return num;
 }
 
+int log_num_r(std::string path)
+{
+    DIR *dir;
+    struct dirent entry;
+    struct dirent *result;
+    std::string writefile = "write2file";
+
+    dir = opendir(path.c_str());
+    if (!dir) {
+        LOG(ERROR) << "log_num_r opendir failed, " << strerror(errno);
+        return 0;
+    }
+    
+    int ret;
+    int num = 0;
+    while ((ret = readdir_r(dir, &entry, &result)) == 0 && result != NULL) {
+        if (!strncmp(entry.d_name, writefile.c_str(), writefile.length())) {
+            num++;
+        }
+    }
+    if (ret != 0) {
+      LOG(ERROR) << "log_num_r readdir_r failed, " << strerror(ret);
+    }
+
+    if (closedir(dir) != 0) {
+      LOG(ERROR) << "log_num_r closedir failed, return " << ret << ", " << strerror(errno);
+    }
+
+    return num;
+}
+
 int log_max_deadline_index(std::string path, time_t dead_time_s) {
     DIR *dir;
     struct dirent *entry;
@@ -753,7 +816,7 @@ void PikaServer::AutoPurge() {
 //    int32_t diff_year = current_time_tm_ptr->tm_year - last_autopurge_time_tm_.tm_year;
 //    int32_t diff_day = current_time_tm_ptr->tm_yday - last_autopurge_time_tm_.tm_yday;
 //    int32_t running_time_d = diff_year*365 + diff_day;
-    int32_t num = log_num(g_pikaConf->log_path());
+    int32_t num = log_num_r(g_pikaConf->log_path());
     int32_t expire_logs_nums = g_pikaConf->expire_logs_nums();
     int32_t expire_logs_days = g_pikaConf->expire_logs_days();
 //    if (running_time_d > g_pikaConf->expire_logs_days() - 1) {
