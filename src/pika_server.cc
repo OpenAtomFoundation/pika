@@ -485,7 +485,10 @@ bool PikaServer::PurgeLogsNolock(uint32_t max, int64_t to) {
     arg->p = (void*)this;
     arg->to = to;
     purging_ = true;
-    pthread_create(&purge_thread_id_, NULL, &(PikaServer::StartPurgeLogs), arg);
+    int ret = pthread_create(&purge_thread_id_, NULL, &(PikaServer::StartPurgeLogs), arg);
+    if (ret != 0) {
+       LOG(WARNING) << "PurgeLogNolock create thread failed, ret is " << ret << ", " << strerror(ret);
+    }
     return true;
 }
 
@@ -510,8 +513,9 @@ bool PikaServer::PurgeLogs(uint32_t max, int64_t to) {
     purging_ = true;
     int ret = pthread_create(&purge_thread_id_, NULL, &(PikaServer::StartPurgeLogs), arg);
     if (ret != 0) {
-       LOG(WARNING) << "PurgeLog create thread failed, " << strerror(errno);
+       LOG(WARNING) << "PurgeLog create thread failed, ret is " << ret << ", " << strerror(ret);
        purging_ = false;
+       delete arg;
        return false;
     }
 

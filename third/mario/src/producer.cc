@@ -36,6 +36,11 @@ Status Producer::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n)
             s = queue_->Flush();
         }
     }
+
+    if (!s.ok()) {
+      return s;
+    }
+
     block_offset_ += static_cast<int>(kHeaderSize + n);
     // log_info("block_offset %d", (kHeaderSize + n));
     version_->rise_pro_offset((uint64_t)(kHeaderSize + n));

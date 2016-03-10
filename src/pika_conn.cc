@@ -517,7 +517,10 @@ int PikaConn::DoCmd() {
                 if (iter->second->is_sync == true) {
                     if (ret.find("-ERR ") != 0) {
                         cmd_ret = 1;
-                        g_pikaMario->PutNoLock(std::string(msbuf_, sdslen(msbuf_)));
+                        mario::Status result = g_pikaMario->PutNoLock(std::string(msbuf_, sdslen(msbuf_)));
+                        if (!result.ok()) {
+                          LOG(ERROR) << "Mario-PutNoLock failed, " << result.ToString() << ", command:" << opt;
+                        }
                     }
                     g_pikaMario->Unlock();
                 }
