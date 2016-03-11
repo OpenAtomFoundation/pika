@@ -166,7 +166,7 @@ class Version {
 
   void debug() {
     slash::RWLock(&rwlock_, false);
-    printf ("Current pro_offset %lu con_offset %lu itemnum %u pro_num %u con_num %u",
+    printf ("Current pro_offset %lu con_offset %lu itemnum %u pro_num %u con_num %u\n",
             pro_offset_, con_offset_, item_num_, pro_num_, con_num_);
   }
 

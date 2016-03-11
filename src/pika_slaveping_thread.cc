@@ -116,7 +116,10 @@ bool PikaSlavepingThread::Send() {
 			}
 		}
 		if (nwritten == -1) {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      if (errno == EINTR) {
+        continue;
+      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+
 			} else {
         LOG(WARNING) << "Ping master, Send, error: " <<strerror(errno);
 			}
@@ -135,7 +138,10 @@ bool PikaSlavepingThread::RecvProc() {
 	while (1) {
 		nread = read(sockfd_, rbuf + rbuf_pos, 1);
 	  if (nread == -1) {
-    	if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      if (errno == EINTR) {
+        continue;
+      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+
     	} else {
         LOG(WARNING) << "Ping master, Recv, error: " <<strerror(errno);
     	}
@@ -177,7 +183,7 @@ void* PikaSlavepingThread::ThreadMain() {
           if (IsExit()) {
             DLOG(INFO) << "Close Slaveping Thread now";
             close(sockfd_);
-            g_pika_server->pika_binlog_receiver_thread()->KillAll();
+            g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
             break;
           }
           if (Send() && RecvProc()) {
@@ -189,14 +195,14 @@ void* PikaSlavepingThread::ThreadMain() {
               //timeout;
               DLOG(INFO) << "Ping master timeout";
               close(sockfd_);
-              g_pika_server->pika_binlog_receiver_thread()->KillAll();
+              g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
               break;
             }
           } else {
             // error happend
             DLOG(INFO) << "Ping master error";
             close(sockfd_);
-            g_pika_server->pika_binlog_receiver_thread()->KillAll();
+            g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
             break;
           }
           sleep(1);
