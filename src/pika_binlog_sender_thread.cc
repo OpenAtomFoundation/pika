@@ -286,7 +286,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
   Version* version = g_pika_server->logger_->version_;
   while (!IsExit()) {
     if (filenum_ == version->pro_num() && con_offset_ == version->pro_offset()) {
-//      DLOG(INFO) << "BinlogSender Parse no new msg";
+      //DLOG(INFO) << "BinlogSender Parse no new msg";
       usleep(10000);
       continue;
     }
@@ -313,6 +313,8 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
       } else {
         usleep(10000);
       }
+    } else if (s.ok()) {
+      return s;
     }
   }
     
@@ -320,23 +322,6 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
     return Status::Corruption("should exit");
   }
   return s;
-//    else if (s.ok()) {
-//      DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
-////      DLOG(INFO) << "BinlogSender Parse a msg" << scratch;
-//      if (Send(scratch)) {
-//        return s;
-//      } else {
-//        return Status::Corruption("Send error");
-//      }
-//    } else if (s.IsCorruption()) {
-//      return s;
-//    }
-//  }
-
-//  if (IsExit()) {
-//    return Status::Corruption("should exit");
-//  }
-//  return s;
 }
 
 void* PikaBinlogSenderThread::ThreadMain() {
@@ -356,18 +341,23 @@ void* PikaBinlogSenderThread::ThreadMain() {
           // 2. Should Parse new msg;
           if (last_send_flag) {
             s = Parse(scratch);
+            //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
+
             if (!s.ok()) {
               DLOG(WARNING) << "BinlogSender Parse maybe failed, " << s.ToString();
               close(sockfd_);
+              last_send_flag = false;
               break;
             }
           }
 
           // 3. After successful parse, we send msg;
-          DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
+          //DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
+          //DLOG(INFO) << "BinlogSender last_send_flag " << last_send_flag;
           if (Send(scratch)) {
             last_send_flag = true;
           } else {
+            last_send_flag = false;
             close(sockfd_);
             break;
           }
