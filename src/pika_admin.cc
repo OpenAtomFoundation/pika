@@ -1151,7 +1151,8 @@ void InfoCmd::Do(std::list<std::string> &argv, std::string &ret) {
         snprintf (buf, sizeof(buf),
                   "# Clients\r\n"
                   "connected_clients:%d\r\n",
-                  g_pikaServer->ClientList(clients));
+                  (g_pikaServer->client_num_.load()));
+                  //g_pikaServer->ClientList(clients));
         info.append(buf);
     }
 

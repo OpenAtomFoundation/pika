@@ -115,7 +115,6 @@ int PikaThread::ProcessTimeEvent(struct timeval* target) {
                     clients_.erase(iter_clientlist);
                     g_pikaServer->client_num_--;
                 }
-
             }
             if (iter->second->role() == PIKA_MASTER) {
                 LOG(WARNING) << "Remove Timeout/killed Master";
@@ -379,6 +378,7 @@ void PikaThread::RunProcess()
                         RWLock l(&rwlock_, true);
                         clients_.erase(it_clientlist);
                     }
+                    g_pikaServer->client_num_--;
                 }
                 if (role == PIKA_MASTER) {
                     LOG(WARNING) << "Remove Master";
