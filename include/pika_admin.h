@@ -11,7 +11,6 @@ public:
   filenum_(0), pro_offset_(0) {
   }
   virtual void Do();
-  virtual void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 private:
   std::string master_ip_;
   int64_t master_port_;
@@ -19,6 +18,11 @@ private:
   bool have_offset_;
   int64_t filenum_;
   int64_t pro_offset_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    is_noone_ = false;
+    have_offset_ == false;
+  }
 };
 
 class TrysyncCmd : public Cmd {
@@ -26,12 +30,12 @@ public:
   TrysyncCmd() {
   }
   virtual void Do();
-  virtual void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 private:
   std::string slave_ip_;
   int64_t slave_port_;
   int64_t filenum_;
   int64_t pro_offset_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 #endif
