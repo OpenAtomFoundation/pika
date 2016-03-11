@@ -32,6 +32,34 @@ bool PikaBinlogReceiverThread::AccessHandle(std::string& ip) {
 
 void PikaBinlogReceiverThread::CronHandle() {
   ResetLastSecQuerynum();
+  {
+  WorkerCronTask t;
+  slash::MutexLock l(&mutex_);
+
+  while(!cron_tasks_.empty()) {
+    t = cron_tasks_.front();
+    cron_tasks_.pop();
+    mutex_.Unlock();
+    DLOG(INFO) << "PikaBinlogReceiverThread, Got a WorkerCronTask";
+    switch (t.task) {
+      case TASK_KILL:
+        break;
+      case TASK_KILLALL:
+        KillAll();
+        break;
+    }
+    mutex_.Lock();
+  }
+  }
+}
+
+void PikaBinlogReceiverThread::KillBinlogSender() {
+  AddCronTask(WorkerCronTask{TASK_KILLALL, ""});
+}
+
+void PikaBinlogReceiverThread::AddCronTask(WorkerCronTask task) {
+  slash::MutexLock l(&mutex_);
+  cron_tasks_.push(task);
 }
 
 void PikaBinlogReceiverThread::KillAll() {
@@ -46,5 +74,4 @@ void PikaBinlogReceiverThread::KillAll() {
   }
   }
   g_pika_server->MinusMasterConnection();
-  sleep(1); // wait for master connection truly be killed by cron;
 }

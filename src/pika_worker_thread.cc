@@ -49,7 +49,7 @@ void PikaWorkerThread::CronHandle() {
     t = cron_tasks_.front();
     cron_tasks_.pop();
     mutex_.Unlock();
-    DLOG(INFO) << "Got a WorkerCronTask";
+    DLOG(INFO) << "PikaWorkerThread, Got a WorkerCronTask";
     switch (t.task) {
       case TASK_KILL:
         ClientKill(t.ip_port);

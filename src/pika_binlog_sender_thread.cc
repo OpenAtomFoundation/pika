@@ -313,8 +313,7 @@ Status PikaBinlogSenderThread::Parse() {
         usleep(10000);
       }
     } else if (s.ok()) {
-      DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
-//      DLOG(INFO) << "BinlogSender Parse a msg" << scratch;
+//      DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
       if (Send(scratch)) {
         return s;
       } else {
