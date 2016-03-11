@@ -46,7 +46,7 @@ class PikaBinlogSenderThread : public pink::Thread {
 
  private:
 
-  slash::Status Parse();
+  slash::Status Parse(std::string &scratch);
   slash::Status Consume(std::string &scratch);
   unsigned int ReadPhysicalRecord(slash::Slice *fragment);
 
