@@ -34,9 +34,6 @@ const std::string kCmdNameMget = "mget";
 
 //Set
 
-
-const std::string kNewLine = "\r\n";
-
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 
 enum CmdFlagsMask {
@@ -106,24 +103,58 @@ private:
 void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int ori, const std::string &prefix);
 
+const std::string kNewLine = "\r\n";
+static const std::string kRES_OK = "+OK\r\n";
+static const std::string kRES_SYNTAX_ERR = "-ERR syntax error\r\n";
+static const std::string kRES_OUTOF_RANGE = "-ERR value is not an integer or out of range\r\n";
+static const std::string kRES_WRONG_NUM_PRE = "-ERR wrong number of arguments for '";
+static const std::string kRES_WRONG_NUM_SUR = "' command\r\n";
+
 class CmdRes {
 public:
   enum CmdRet {
-    kCmdRetOk, 
-    kCmdRetFail,
+    kNone = 0,
+    kOk,
+    kSyntaxErr,
+    kOutofRange,
+    kWrongNum,
+    kErrOther,
   };
 
-  CmdRes():ret_(kCmdRetOk) {}
+  CmdRes():ret_(kNone) {}
 
   bool ok() const {
-    return ret_ == kCmdRetOk;
+    return ret_ == kOk || ret_ == kNone;
   }
   void clear() {
     message_.clear();
-    ret_ = kCmdRetOk;
+    ret_ = kNone;
   }
   std::string message() const {
-    return message_;
+    std::string result;
+    switch (ret_) {
+    case kNone:
+      return message_;
+    case kOk:
+      return "+OK\r\n";
+    case kSyntaxErr:
+      return "-ERR syntax error\r\n";
+    case kOutofRange:
+      return "-ERR value is not an integer or out of range\r\n";
+    case kWrongNum:
+      result = "-ERR wrong number of arguments for '";
+      result.append(message_);
+      result.append("' command\r\n");
+      break;
+    case kErrOther:
+      result = "-ERR ";
+      result.append(message_);
+      result.append(kNewLine);
+      break;
+    default:
+      break;
+    }
+    return result;
   }
 
   // Inline functions for Create Redis protocol
@@ -133,24 +164,20 @@ public:
   void AppendArrayLen(int ori) {
     RedisAppendLen(message_, ori, "*");
   }
+  void AppendInteger(int ori) {
+    RedisAppendLen(message_, ori, "+");
+  }
   void AppendContent(const std::string &value) {
     RedisAppendContent(message_, value);
   }
-  void SetContent(const std::string &value) {
-    clear();
-    AppendContent(value);
-    ret_ = kCmdRetOk;
-  }
-  void SetErr(const std::string &value) {
-    message_.append("-ERR ");
-    message_.append(value);
-    message_.append(kNewLine);
-    ret_ = kCmdRetFail;
+  void SetStatus(CmdRet _ret, const std::string content = "") {
+    ret_ = _ret;
+    message_ = content;
   }
 
 private:
   std::string message_;
-  int ret_;
+  CmdRet ret_;
 };
 
 class Cmd {
@@ -158,7 +185,11 @@ public:
   Cmd() {}
   virtual ~Cmd() {}
   virtual void Do() = 0;
-  virtual void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
+  virtual void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) {
+    res_.clear(); // Clear res content
+    Clear();      // Clear cmd, Derived class can has own implement
+    DoInitial(argvs, ptr_info);
+  };
   CmdRes& res() {
     return res_;
   }
@@ -167,6 +198,8 @@ protected:
   CmdRes res_;
 
 private:
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
+  virtual void Clear() {};
   Cmd(const Cmd&);
   Cmd& operator=(const Cmd&);
 };

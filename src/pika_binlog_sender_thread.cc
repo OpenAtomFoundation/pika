@@ -245,11 +245,13 @@ bool PikaBinlogSenderThread::Connect() {
 
 bool PikaBinlogSenderThread::Send(const std::string &msg) {
   // length to small
-  char wbuf[2097152]; // 2M
+  //char wbuf[2097152]; // 2M
+  const char* wbuf = msg.data(); // 2M
   int wbuf_len = msg.size();
   int wbuf_pos = 0;
   int nwritten = 0;
-  memcpy(wbuf, msg.data(), msg.size()); 
+  //memcpy(wbuf, msg.data(), msg.size()); 
+
 
   while (1) {
     while (wbuf_len > 0) {
@@ -276,19 +278,18 @@ bool PikaBinlogSenderThread::Send(const std::string &msg) {
   }
 }
 
-Status PikaBinlogSenderThread::Parse() {
-  std::string scratch("");
+Status PikaBinlogSenderThread::Parse(std::string &scratch) {
+  //std::string scratch("");
+  scratch.clear();
   Status s;
 
   Version* version = g_pika_server->logger_->version_;
   while (!IsExit()) {
-    if (filenum_ == version->pronum() && con_offset_ == version->pro_offset()) {
-//      DLOG(INFO) << "BinlogSender Parse no new msg";
+    if (filenum_ == version->pro_num() && con_offset_ == version->pro_offset()) {
+      //DLOG(INFO) << "BinlogSender Parse no new msg";
       usleep(10000);
       continue;
     }
-
-    scratch = "";
 
     s = Consume(scratch);
 
@@ -313,18 +314,10 @@ Status PikaBinlogSenderThread::Parse() {
         usleep(10000);
       }
     } else if (s.ok()) {
-      DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
-//      DLOG(INFO) << "BinlogSender Parse a msg" << scratch;
-      if (Send(scratch)) {
-        return s;
-      } else {
-        return Status::Corruption("Send error");
-      }
-    } else if (s.IsCorruption()) {
       return s;
     }
   }
-
+    
   if (IsExit()) {
     return Status::Corruption("should exit");
   }
@@ -332,8 +325,10 @@ Status PikaBinlogSenderThread::Parse() {
 }
 
 void* PikaBinlogSenderThread::ThreadMain() {
-
   Status s;
+  bool last_send_flag = true;
+  std::string scratch;
+  scratch.reserve(1024 * 1024);
 
   // 1. Connect to slave 
   while (!IsExit()) {
@@ -342,11 +337,31 @@ void* PikaBinlogSenderThread::ThreadMain() {
       if (Connect()) {
         DLOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") ok";
 
-        do {
-          s = Parse();
-        } while (s.ok());
-        DLOG(INFO) << s.ToString();
-        close(sockfd_);
+        while (true) {
+          // 2. Should Parse new msg;
+          if (last_send_flag) {
+            s = Parse(scratch);
+            //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
+
+            if (!s.ok()) {
+              DLOG(WARNING) << "BinlogSender Parse maybe failed, " << s.ToString();
+              close(sockfd_);
+              last_send_flag = false;
+              break;
+            }
+          }
+
+          // 3. After successful parse, we send msg;
+          //DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
+          //DLOG(INFO) << "BinlogSender last_send_flag " << last_send_flag;
+          if (Send(scratch)) {
+            last_send_flag = true;
+          } else {
+            last_send_flag = false;
+            close(sockfd_);
+            break;
+          }
+        }
 
       } else {
         close(sockfd_);

@@ -1,8 +1,11 @@
 #ifndef PIKA_BINLOG_RECEIVER_THREAD_H_
 #define PIKA_BINLOG_RECEIVER_THREAD_H_
 
+#include <queue>
+
 #include "holy_thread.h"
 #include "slash_mutex.h"
+#include "pika_define.h"
 #include "pika_master_conn.h"
 #include "pika_command.h"
 
@@ -13,7 +16,7 @@ public:
   virtual ~PikaBinlogReceiverThread();
   virtual void CronHandle();
   virtual bool AccessHandle(std::string& ip);
-  void KillAll();
+  void KillBinlogSender();
 
   uint64_t thread_querynum() {
     slash::RWLock(&rwlock_, false);
@@ -45,7 +48,13 @@ public:
   Cmd* GetCmd(const std::string& opt) {
     return GetCmdFromTable(opt, cmds_);
   }
+
 private:
+  slash::Mutex mutex_; // protect cron_task_
+  void AddCronTask(WorkerCronTask task);
+  void KillAll();
+  std::queue<WorkerCronTask> cron_tasks_;
+
   std::unordered_map<std::string, Cmd*> cmds_;
   uint64_t thread_querynum_;
   uint64_t last_sec_thread_querynum_;

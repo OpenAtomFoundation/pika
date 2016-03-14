@@ -56,7 +56,8 @@ std::string PikaMasterConn::DoCmd(const std::string& opt) {
 
   if (cinfo_ptr->is_write()) {
       if (c_ptr->res().ok()) {
-          g_pika_server->logger_->Put(RestoreArgs());
+        g_pika_server->logger_->Put(RestoreArgs());
+      } else {
       }
 //      g_pika_server->logger_->Unlock();
   }

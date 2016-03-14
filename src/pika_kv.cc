@@ -5,10 +5,9 @@
 
 extern PikaServer *g_pika_server;
 
-void SetCmd::Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetErr("wrong number of arguments for " + 
-        kCmdNameSet + " command");
+    res_.SetStatus(CmdRes::kWrongNum, kCmdNameSet);
     return;
   }
   key_ = argv[1];
@@ -25,15 +24,15 @@ void SetCmd::Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     } else if (opt == "ex") {
       index++;
       if (index == argv.size()) {
-        res_.SetErr("syntax error");
+        res_.SetStatus(CmdRes::kSyntaxErr);
         return;
       }
       if (!slash::string2l(argv[index].data(), argv[index].size(), &sec_)) {
-        res_.SetErr("value is not an integer or out of range");
+        res_.SetStatus(CmdRes::kOutofRange);
         return;
       }
     } else {
-      res_.SetErr("syntax error");
+      res_.SetStatus(CmdRes::kSyntaxErr);
       return;
     }
     index++;
@@ -58,19 +57,18 @@ void SetCmd::Do() {
 
   if (s.ok() || s.IsNotFound()) {
     if (res == 1) {
-      res_.SetContent("+OK");
+      res_.SetStatus(CmdRes::kOk);
     } else {
       res_.AppendArrayLen(-1);;
     }
   } else {
-    res_.SetErr(s.ToString());
+    res_.SetStatus(CmdRes::kErrOther, s.ToString());
   }
 }
 
-void GetCmd::Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetErr("wrong number of arguments for " + 
-        kCmdNameGet + " command");
+    res_.SetStatus(CmdRes::kWrongNum, kCmdNameSet);
     return;
   }
   key_ = argv[1];
@@ -86,7 +84,7 @@ void GetCmd::Do() {
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
-    res_.SetErr(s.ToString());
+    res_.SetStatus(CmdRes::kErrOther, s.ToString());
   }
 }
 
