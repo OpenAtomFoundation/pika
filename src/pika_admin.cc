@@ -6,7 +6,7 @@ extern PikaServer *g_pika_server;
 
 void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetStatus(CmdRes::kWrongNum, kCmdNameSlaveof);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
     return;
   }
   PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
@@ -18,19 +18,19 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     if (argv.end() - it == 0) {
       is_noone_ = true;
     } else {
-      res_.SetStatus(CmdRes::kWrongNum, kCmdNameSlaveof);
+      res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
     }
     return;
   }
 
   std::string str_master_port = *it++;
   if (!slash::string2l(str_master_port.data(), str_master_port.size(), &master_port_) && master_port_ <= 0) {
-    res_.SetStatus(CmdRes::kOutofRange);
+    res_.SetRes(CmdRes::kOutofRange);
     return;
   }
 
   if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
-    res_.SetStatus(CmdRes::kErrOther, "you fucked up");
+    res_.SetRes(CmdRes::kErrOther, "you fucked up");
     return;
   }
 
@@ -42,23 +42,23 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     have_offset_ = true;
     std::string str_filenum = *it++;
     if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) && filenum_ < 0) {
-      res_.SetStatus(CmdRes::kOutofRange);
+      res_.SetRes(CmdRes::kOutofRange);
       return;
     }
     std::string str_pro_offset = *it++;
     if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) && pro_offset_ < 0) {
-      res_.SetStatus(CmdRes::kOutofRange);
+      res_.SetRes(CmdRes::kOutofRange);
       return;
     }
   } else {
-    res_.SetStatus(CmdRes::kWrongNum, kCmdNameSlaveof);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
   }
 }
 
 void SlaveofCmd::Do() {
   if (is_noone_) {
     g_pika_server->RemoveMaster();
-    res_.SetStatus(CmdRes::kOk);
+    res_.SetRes(CmdRes::kOk);
     return;
   }
   if (have_offset_) {
@@ -66,15 +66,15 @@ void SlaveofCmd::Do() {
   }
   bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
   if (sm_ret) {
-    res_.SetStatus(CmdRes::kOk);
+    res_.SetRes(CmdRes::kOk);
   } else {
-    res_.SetStatus(CmdRes::kErrOther, "Server is not in correct state for slaveof");
+    res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
   }
 }
 
 void TrysyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetStatus(CmdRes::kWrongNum, kCmdNameTrysync);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameTrysync);
     return;
   }
   PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
@@ -82,19 +82,19 @@ void TrysyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
   std::string str_slave_port = *it++;
   if (!slash::string2l(str_slave_port.data(), str_slave_port.size(), &slave_port_) && slave_port_ <= 0) {
-    res_.SetStatus(CmdRes::kOutofRange);
+    res_.SetRes(CmdRes::kOutofRange);
     return;
   }
 
   std::string str_filenum = *it++;
   if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) && filenum_ <= 0) {
-    res_.SetStatus(CmdRes::kOutofRange);
+    res_.SetRes(CmdRes::kOutofRange);
     return;
   }
 
   std::string str_pro_offset = *it++;
   if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) && pro_offset_ <= 0) {
-    res_.SetStatus(CmdRes::kOutofRange);
+    res_.SetRes(CmdRes::kOutofRange);
     return;
   }
 
@@ -124,10 +124,10 @@ void TrysyncCmd::Do() {
       DLOG(INFO) << "Send Sid to Slave: " << s.sid;
       g_pika_server->BecomeMaster();
     } else {
-      res_.SetStatus(CmdRes::kErrOther, "Error in AddBinlogSender");
+      res_.SetRes(CmdRes::kErrOther, "Error in AddBinlogSender");
     }
   } else {
-    res_.SetStatus(CmdRes::kErrOther, "Already Exist");
+    res_.SetRes(CmdRes::kErrOther, "Already Exist");
   }
 }
 
