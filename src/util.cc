@@ -53,7 +53,6 @@
 
 #include "util.h"
 #include "pika_conf.h"
-#include "libssh2.h"
 
 extern PikaConf* g_pikaConf;
 
@@ -763,6 +762,7 @@ int copy_dir(const char *src_dir_path, const char *dst_dir_path) {
     return 0;
 }
 
+#if 0
 void scp_write_file_clean(int sockfd, LIBSSH2_SESSION *session, LIBSSH2_CHANNEL* channel, FILE* local_file) {
     if (session) {
         libssh2_session_disconnect(session, "");
@@ -954,6 +954,7 @@ int scp_copy_dir(const char* local_dir_path, const char* remote_dir_path, const 
     closedir(local_dir);
     return 0;
 }
+#endif 
 
 int rsync_copy_file(const char* local_file_path, const char* remote_file_path, const char* remote_host, const int dest_rsync_port) {
     std::string rsync_cmd = "rsync -avP --bwlimit=";
