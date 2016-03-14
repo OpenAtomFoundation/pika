@@ -95,11 +95,6 @@ void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int ori, const std::string &prefix);
 
 const std::string kNewLine = "\r\n";
-static const std::string kRES_OK = "+OK\r\n";
-static const std::string kRES_SYNTAX_ERR = "-ERR syntax error\r\n";
-static const std::string kRES_OUTOF_RANGE = "-ERR value is not an integer or out of range\r\n";
-static const std::string kRES_WRONG_NUM_PRE = "-ERR wrong number of arguments for '";
-static const std::string kRES_WRONG_NUM_SUR = "' command\r\n";
 
 class CmdRes {
 public:
@@ -156,14 +151,16 @@ public:
     RedisAppendLen(message_, ori, "*");
   }
   void AppendInteger(int ori) {
-    RedisAppendLen(message_, ori, "+");
+    RedisAppendLen(message_, ori, ":");
   }
   void AppendContent(const std::string &value) {
     RedisAppendContent(message_, value);
   }
-  void SetStatus(CmdRet _ret, const std::string content = "") {
+  void SetRes(CmdRet _ret, const std::string content = "") {
     ret_ = _ret;
-    message_ = content;
+    if (!content.empty()) {
+      message_ = content;
+    }
   }
 
 private:
@@ -176,7 +173,7 @@ public:
   Cmd() {}
   virtual ~Cmd() {}
   virtual void Do() = 0;
-  virtual void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) {
+  void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) {
     res_.clear(); // Clear res content
     Clear();      // Clear cmd, Derived class can has own implement
     DoInitial(argvs, ptr_info);

@@ -165,7 +165,7 @@ bool PikaTrysyncThread::RecvProc() {
 		rbuf_pos++;
 	}
   DLOG(INFO) << "Reply from master after trysync: " << std::string(rbuf, rbuf_pos+1);
-	if (rbuf[0] == '+') {
+	if (rbuf[0] == ':') {
     std::string t(rbuf+1, rbuf_pos);
 //    slash::string2l(t.data(), t.size(), &sid_);
     slash::string2l(rbuf+1, rbuf_pos, &sid_);
