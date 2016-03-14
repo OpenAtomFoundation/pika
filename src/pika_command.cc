@@ -20,7 +20,33 @@ void InitCmdInfoTable() {
   ////GetCmd
   CmdInfo* getptr = new CmdInfo(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGet, getptr));
-
+  ////DelCmd
+  CmdInfo* delptr = new CmdInfo(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsKv); //whethre it should be kCmdFlagsKv
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameDel, delptr));
+  ////IncrCmd
+  CmdInfo* incrptr = new CmdInfo(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameIncr, incrptr));
+  ////IncrbyCmd
+  CmdInfo* incrbyptr = new CmdInfo(kCmdNameIncrby, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameIncrby, incrbyptr));
+  ////IncrbyfloatCmd
+  CmdInfo* incrbyfloatptr = new CmdInfo(kCmdNameIncrbyfloat, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameIncrbyfloat, incrbyfloatptr));
+  ////Decr
+  CmdInfo* decrptr = new CmdInfo(kCmdNameDecr, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameDecr, decrptr));
+  ////Decrby
+  CmdInfo* decrbyptr = new CmdInfo(kCmdNameDecrby, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameDecrby, decrbyptr));
+  ////Getset
+  CmdInfo* getsetptr = new CmdInfo(kCmdNameGetset, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGetset, getsetptr));
+  ////Append
+  CmdInfo* appendptr = new CmdInfo(kCmdNameAppend, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameAppend, appendptr));
+  ////Mget
+  CmdInfo* mgetptr = new CmdInfo(kCmdNameMget, -2, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMget, mgetptr));
   //Hash
 
   //List
@@ -61,7 +87,33 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////GetCmd
   Cmd* getptr = new GetCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGet, getptr));
-  
+  ////DelCmd
+  Cmd* delptr = new DelCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDel, delptr));
+  ////IncrCmd
+  Cmd* incrptr = new IncrCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameIncr, incrptr));
+  ////IncrbyCmd
+  Cmd* incrbyptr = new IncrbyCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameIncrby, incrbyptr));
+  ////IncrbyfloatCmd
+  Cmd* incrbyfloatptr = new IncrbyfloatCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameIncrbyfloat, incrbyfloatptr));
+  ////DecrCmd
+  Cmd* decrptr = new DecrCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDecr, decrptr));
+  ////DecrbyCmd
+  Cmd* decrbyptr = new DecrbyCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDecrby, decrbyptr));
+  ////GetsetCmd
+  Cmd* getsetptr = new GetsetCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGetset, getsetptr));
+  ////AppendCmd
+  Cmd* appendptr = new AppendCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAppend, appendptr));
+  ////MgetCmd
+  Cmd* mgetptr = new MgetCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMget, mgetptr));
   //Hash
   
   //List

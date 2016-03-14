@@ -17,6 +17,15 @@ const std::string kCmdNameTrysync = "trysync";
 //Kv
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";
+const std::string kCmdNameDel = "del";
+const std::string kCmdNameIncr = "incr";
+const std::string kCmdNameIncrby = "incrby";
+const std::string kCmdNameIncrbyfloat = "incrbyfloat";
+const std::string kCmdNameDecr = "decr";
+const std::string kCmdNameDecrby = "decrby";
+const std::string kCmdNameGetset = "getset";
+const std::string kCmdNameAppend = "append";
+const std::string kCmdNameMget = "mget";
 //Hash
 
 //List
@@ -183,5 +192,5 @@ void inline RedisAppendLen(std::string& str, int ori, const std::string &prefix)
   str.append(buf);
   str.append(kNewLine);
 }
-
+#define RedisappendInter RedisAppendLen
 #endif

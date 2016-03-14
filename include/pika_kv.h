@@ -26,4 +26,90 @@ public:
 private:
   std::string key_;
 };
+
+class DelCmd : public Cmd {
+public:
+  DelCmd() {}
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+private:
+  std::vector<std::string> keys_;
+};
+
+class IncrCmd : public Cmd {
+public:
+  IncrCmd() {}
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+private:
+  std::string key_;
+};
+
+class IncrbyCmd : public Cmd {
+public:
+  IncrbyCmd() {}
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+private:
+  std::string key_;
+  int64_t by_;
+};
+
+class IncrbyfloatCmd : public Cmd {
+public:
+  IncrbyfloatCmd() {}
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+private:
+  std::string key_;
+  double by_;
+};
+
+class DecrCmd : public Cmd {
+public:
+  DecrCmd() {}
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+private:
+  std::string key_;
+};
+
+class DecrbyCmd : public Cmd {
+public:
+  DecrbyCmd() {}
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+private:
+  std::string key_;
+  int64_t by_;
+};
+
+class GetsetCmd : public Cmd {
+public:
+  GetsetCmd() {}
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+private:
+  std::string key_;
+  std::string new_value_;
+};
+
+class AppendCmd : public Cmd {
+public:
+  AppendCmd() {}
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+private:
+  std::string key_;
+  std::string value_;
+};
+
+class MgetCmd : public Cmd {
+public:
+  MgetCmd() {}
+  virtual void Do();
+  virtual void Initial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+private:
+  std::vector<std::string> keys_;
+};
 #endif
