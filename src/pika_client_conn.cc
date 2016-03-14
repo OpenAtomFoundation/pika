@@ -33,7 +33,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   if (!cinfo_ptr || !c_ptr) {
       return "-Err unknown or unsupported command \'" + opt + "\r\n";
   }
-  c_ptr->res().clear();
   
   // Initial
   c_ptr->Initial(argv_, cinfo_ptr);

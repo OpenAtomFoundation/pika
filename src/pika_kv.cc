@@ -7,7 +7,7 @@ extern PikaServer *g_pika_server;
 
 void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetStatus(CmdRes::kWrongNum, kCmdNameSet);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSet);
     return;
   }
   PikaCmdArgsType::iterator it = argv.begin();
@@ -22,16 +22,16 @@ void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
       condition_ = SetCmd::kNX;
     } else if (opt == "ex") {
       if (it == argv.end()) {
-        res_.SetStatus(CmdRes::kSyntaxErr);
+        res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
       if (!slash::string2l((*it).data(), (*it).size(), &sec_)) {
-        res_.SetStatus(CmdRes::kOutofRange);
+        res_.SetRes(CmdRes::kOutofRange);
         return;
       }
       ++it;
     } else {
-      res_.SetStatus(CmdRes::kSyntaxErr);
+      res_.SetRes(CmdRes::kSyntaxErr);
       return;
     }
   }
@@ -54,18 +54,18 @@ void SetCmd::Do() {
 
   if (s.ok() || s.IsNotFound()) {
     if (res == 1) {
-      res_.SetStatus(CmdRes::kOk);
+      res_.SetRes(CmdRes::kOk);
     } else {
       res_.AppendArrayLen(-1);;
     }
   } else {
-    res_.SetStatus(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
 void GetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetStatus(CmdRes::kWrongNum, kCmdNameSet);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSet);
     return;
   }
   key_ = argv[1];
@@ -81,6 +81,6 @@ void GetCmd::Do() {
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
-    res_.SetStatus(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
