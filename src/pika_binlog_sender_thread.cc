@@ -165,11 +165,11 @@ Status PikaBinlogSenderThread::Consume(std::string &scratch) {
       case kEof:
         return Status::EndFile("Eof");
       case kBadRecord:
-        return Status::Corruption("Data Corruption");
+        return Status::IOError("Data Corruption");
       case kOldRecord:
         return Status::EndFile("Eof");
       default:
-        return Status::Corruption("Unknow reason");
+        return Status::IOError("Unknow reason");
     }
     // TODO:do handler here
     if (s.ok()) {
@@ -252,6 +252,7 @@ bool PikaBinlogSenderThread::Send(const std::string &msg) {
   int nwritten = 0;
   //memcpy(wbuf, msg.data(), msg.size()); 
 
+  //DLOG(INFO) << "Send(" << msg <<")"; 
 
   while (1) {
     while (wbuf_len > 0) {
@@ -274,26 +275,28 @@ bool PikaBinlogSenderThread::Send(const std::string &msg) {
     }
     if (wbuf_len == 0) {
       return true;
-    }	
+    }
   }
 }
 
+// Get a whole message; 
+// the status will be OK, IOError or Corruption;
 Status PikaBinlogSenderThread::Parse(std::string &scratch) {
-  //std::string scratch("");
   scratch.clear();
   Status s;
 
   Version* version = g_pika_server->logger_->version_;
   while (!IsExit()) {
     if (filenum_ == version->pro_num() && con_offset_ == version->pro_offset()) {
-      //DLOG(INFO) << "BinlogSender Parse no new msg";
+      //DLOG(INFO) << "BinlogSender Parse no new msg, filenum_" << filenum_ << ", con_offset " << con_offset_;
       usleep(10000);
       continue;
     }
 
+    //DLOG(INFO) << "BinlogSender start Parse a msg               filenum_" << filenum_ << ", con_offset " << con_offset_;
     s = Consume(scratch);
 
-    //DLOG(INFO) << "BinlogSender Parse a msg return: " << s.ToString();
+    //DLOG(INFO) << "BinlogSender after Parse a msg return " << s.ToString() << " filenum_" << filenum_ << ", con_offset " << con_offset_;
     if (s.IsEndFile()) {
       std::string confile = NewFileName(g_pika_server->logger_->filename, filenum_ + 1);
 
@@ -313,8 +316,8 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
       } else {
         usleep(10000);
       }
-    } else if (s.ok()) {
-      return s;
+    } else {
+      break;
     }
   }
     
@@ -324,6 +327,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
   return s;
 }
 
+// When we encount
 void* PikaBinlogSenderThread::ThreadMain() {
   Status s;
   bool last_send_flag = true;
@@ -343,11 +347,13 @@ void* PikaBinlogSenderThread::ThreadMain() {
             s = Parse(scratch);
             //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
 
-            if (!s.ok()) {
-              DLOG(WARNING) << "BinlogSender Parse maybe failed, " << s.ToString();
+            if (s.IsCorruption()) {     // should exit
+              DLOG(INFO) << "BinlogSender will exit";
               close(sockfd_);
-              last_send_flag = false;
               break;
+            } else if (s.IsIOError()) {
+              LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
+              continue;
             }
           }
 
