@@ -215,7 +215,7 @@ void PikaServer::PlusMasterConnection() {
 bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
-  if ((repl_state_ == PIKA_REPL_CONNECTING || repl_state_ == PIKA_REPL_CONNECTED ) && ip == master_ip_) {
+  if (repl_state_ != PIKA_REPL_NO_CONNECT && ip == master_ip_) {
     return true;
   }
   return false;
