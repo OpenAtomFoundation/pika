@@ -31,7 +31,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = self_thread_->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
-      return "-Err unknown or unsupported command \'" + opt + "\r\n";
+      return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
   }
   
   // Initial
