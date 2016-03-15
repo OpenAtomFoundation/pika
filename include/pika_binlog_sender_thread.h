@@ -2,11 +2,17 @@
 #define PIKA_BINLOG_SENDER_THREAD_H_
 
 #include "pink_thread.h"
+//#include "redis_cli.h"
 #include "slice.h"
 #include "status.h"
 
 #include "env.h"
 #include "slash_mutex.h"
+
+
+namespace pink {
+class RedisCli;
+}
 
 class PikaBinlogSenderThread : public pink::Thread {
  public:
@@ -69,14 +75,15 @@ class PikaBinlogSenderThread : public pink::Thread {
   pthread_rwlock_t rwlock_;
 
 
-  bool Init();
-  bool Connect();
-  bool Send(const std::string &msg);
-  bool Recv();
   int sockfd_;
+  pink::RedisCli *cli_;
+
+ // bool Init();
+ // bool Connect();
+ // bool Send(const std::string &msg);
+ // bool Recv();
 
   virtual void* ThreadMain();
-
 };
 
 #endif
