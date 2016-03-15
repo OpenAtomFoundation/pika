@@ -50,6 +50,20 @@ const std::string kCmdNameHSet = "hset";
 const std::string kCmdNameHGet = "hget";
 
 //List
+const std::string kCmdNameLIndex = "lindex";
+const std::string kCmdNameLInsert = "linsert";
+const std::string kCmdNameLLen = "llen";
+const std::string kCmdNameLPop = "lpop";
+const std::string kCmdNameLPush = "lpush";
+const std::string kCmdNameLPushx = "lpushx";
+const std::string kCmdNameLRange = "lrange";
+const std::string kCmdNameLRem = "lrem";
+const std::string kCmdNameLSet = "lset";
+const std::string kCmdNameLTrim = "ltrim";
+const std::string kCmdNameRPop = "rpop";
+const std::string kCmdNameRPopLPush = "rpoplpush";
+const std::string kCmdNameRPush = "rpush";
+const std::string kCmdNameRPushx = "rpushx";
 
 //Zset
 
@@ -135,6 +149,8 @@ public:
     kInvalidInt,
     kInvalidFloat,
     kOverFlow,
+    kNotFound,
+    kOutOfRange,
     kWrongNum,
     kErrOther,
   };
@@ -163,6 +179,10 @@ public:
       return "-ERR value is not an float\r\n";
     case kOverFlow:
       return "-ERR increment or decrement would overflow\r\n";
+    case kNotFound:
+      return "-ERR no such key\r\n";
+    case kOutOfRange:
+      return "-ERR index out of range\r\n";
     case kWrongNum:
       result = "-ERR wrong number of arguments for '";
       result.append(message_);
@@ -191,6 +211,10 @@ public:
   }
   void AppendContent(const std::string &value) {
     RedisAppendContent(message_, value);
+  }
+  void AppendString(const std::string &value) {
+    AppendStringLen(value.size());
+    AppendContent(value);
   }
   void SetRes(CmdRet _ret, const std::string content = "") {
     ret_ = _ret;
@@ -249,5 +273,4 @@ void inline RedisAppendLen(std::string& str, int ori, const std::string &prefix)
   str.append(buf);
   str.append(kNewLine);
 }
-#define RedisappendInter RedisAppendLen
 #endif
