@@ -719,7 +719,7 @@ void ScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     std::string opt = slash::StringToLower(argv[index]); 
     if (opt == "match" || opt == "count") {
       index++;
-      if (index > argc) {
+      if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }

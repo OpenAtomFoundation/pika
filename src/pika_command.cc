@@ -112,6 +112,42 @@ void InitCmdInfoTable() {
   ////HGet
   CmdInfo* hgetptr = new CmdInfo(kCmdNameHGet, 3, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHGet, hgetptr));
+  ////HGetall
+  CmdInfo* hgetallptr = new CmdInfo(kCmdNameHGetall, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHGetall, hgetallptr));
+  ////HExists
+  CmdInfo* hexistsptr = new CmdInfo(kCmdNameHExists, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHExists, hexistsptr));
+  ////HIncrby
+  CmdInfo* hincrbyptr = new CmdInfo(kCmdNameHIncrby, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHIncrby, hincrbyptr));
+  ////HIncrbyfloat
+  CmdInfo* hincrbyfloatptr = new CmdInfo(kCmdNameHIncrbyfloat, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHIncrbyfloat, hincrbyfloatptr));
+  ////HKeys
+  CmdInfo* hkeysptr = new CmdInfo(kCmdNameHKeys, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHKeys, hkeysptr));
+  ///HLen
+  CmdInfo* hlenptr = new CmdInfo(kCmdNameHLen, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHLen, hlenptr));
+  ///HMget
+  CmdInfo* hmgetptr = new CmdInfo(kCmdNameHMget, -3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHMget, hmgetptr));
+  ///HMset
+  CmdInfo* hmsetptr = new CmdInfo(kCmdNameHMset, -4, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHMset, hmsetptr));
+  ///HMset
+  CmdInfo* hsetnxptr = new CmdInfo(kCmdNameHSetnx, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHSetnx, hsetnxptr));
+  ///HStrlen
+  CmdInfo* hstrlenptr = new CmdInfo(kCmdNameHStrlen, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHStrlen, hstrlenptr));
+  ///HVals
+  CmdInfo* hvalsptr = new CmdInfo(kCmdNameHVals, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHVals, hvalsptr));
+  ///HScan
+  CmdInfo* hscanptr = new CmdInfo(kCmdNameHScan, -3, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHScan, hscanptr));
 
   //List
 
@@ -242,6 +278,42 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////HGetCmd
   Cmd* hgetptr = new HGetCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHGet, hgetptr));  
+  ////HGetallCmd
+  Cmd* hgetallptr = new HGetallCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHGetall, hgetallptr));  
+  ////HExistsCmd
+  Cmd* hexistsptr = new HExistsCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHExists, hexistsptr));  
+  ////HIncrbyCmd
+  Cmd* hincrbyptr = new HIncrbyCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHIncrby, hincrbyptr));  
+  ////HIncrbyfloatCmd
+  Cmd* hincrbyfloatptr = new HIncrbyfloatCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHIncrbyfloat, hincrbyfloatptr));  
+  ////HKeysCmd
+  Cmd* hkeysptr = new HKeysCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHKeys, hkeysptr));  
+  ////HLenCmd
+  Cmd* hlenptr = new HLenCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHLen, hlenptr));  
+  ////HMgetCmd
+  Cmd* hmgetptr = new HMgetCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHMget, hmgetptr));  
+  ////HMsetCmd
+  Cmd* hmsetptr = new HMsetCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHMset, hmsetptr));  
+  ////HSetnxCmd
+  Cmd* hsetnxptr = new HSetnxCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHSetnx, hsetnxptr));  
+  ////HStrlenCmd
+  Cmd* hstrlenptr = new HStrlenCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHStrlen, hstrlenptr));  
+  ////HValsCmd
+  Cmd* hvalsptr = new HValsCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHVals, hvalsptr));  
+  ////HScanCmd
+  Cmd* hscanptr = new HScanCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHScan, hscanptr));  
   //List
 
   //Zset

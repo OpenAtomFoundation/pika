@@ -48,6 +48,18 @@ const std::string kCmdNameScan = "scan";
 const std::string kCmdNameHDel = "hdel";
 const std::string kCmdNameHSet = "hset";
 const std::string kCmdNameHGet = "hget";
+const std::string kCmdNameHGetall = "hgetall";
+const std::string kCmdNameHExists = "hexists";
+const std::string kCmdNameHIncrby = "hincrby";
+const std::string kCmdNameHIncrbyfloat = "hincrbyfloat";
+const std::string kCmdNameHKeys = "hkeys";
+const std::string kCmdNameHLen = "hlen";
+const std::string kCmdNameHMget = "hmget";
+const std::string kCmdNameHMset = "hmset";
+const std::string kCmdNameHSetnx = "hsetnx";
+const std::string kCmdNameHStrlen = "hstrlen";
+const std::string kCmdNameHVals = "hvals";
+const std::string kCmdNameHScan = "hscan";
 
 //List
 
