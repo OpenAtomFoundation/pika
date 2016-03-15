@@ -25,7 +25,7 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
   std::string str_master_port = *it++;
   if (!slash::string2l(str_master_port.data(), str_master_port.size(), &master_port_) && master_port_ <= 0) {
-    res_.SetRes(CmdRes::kOutofRange);
+    res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 
@@ -42,12 +42,12 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     have_offset_ = true;
     std::string str_filenum = *it++;
     if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) && filenum_ < 0) {
-      res_.SetRes(CmdRes::kOutofRange);
+      res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
     std::string str_pro_offset = *it++;
     if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) && pro_offset_ < 0) {
-      res_.SetRes(CmdRes::kOutofRange);
+      res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
   } else {
@@ -82,19 +82,19 @@ void TrysyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
   std::string str_slave_port = *it++;
   if (!slash::string2l(str_slave_port.data(), str_slave_port.size(), &slave_port_) && slave_port_ <= 0) {
-    res_.SetRes(CmdRes::kOutofRange);
+    res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 
   std::string str_filenum = *it++;
   if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) && filenum_ <= 0) {
-    res_.SetRes(CmdRes::kOutofRange);
+    res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 
   std::string str_pro_offset = *it++;
   if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) && pro_offset_ <= 0) {
-    res_.SetRes(CmdRes::kOutofRange);
+    res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 

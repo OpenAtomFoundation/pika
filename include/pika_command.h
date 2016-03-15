@@ -26,7 +26,28 @@ const std::string kCmdNameDecrby = "decrby";
 const std::string kCmdNameGetset = "getset";
 const std::string kCmdNameAppend = "append";
 const std::string kCmdNameMget = "mget";
+const std::string kCmdNameKeys = "keys";
+const std::string kCmdNameSetnx = "setnx";
+const std::string kCmdNameSetex = "setex";
+const std::string kCmdNameMset = "mset";
+const std::string kCmdNameMsetnx = "msetnx";
+const std::string kCmdNameGetrange = "getrange";
+const std::string kCmdNameSetrange = "setrange";
+const std::string kCmdNameStrlen = "strlen";
+const std::string kCmdNameExists = "exists";
+const std::string kCmdNameExpire = "expire";
+const std::string kCmdNamePexpire = "pexpire";
+const std::string kCmdNameExpireat = "expireat";
+const std::string kCmdNamePexpireat = "pexpireat";
+const std::string kCmdNameTtl = "ttl";
+const std::string kCmdNamePttl = "pttl";
+const std::string kCmdNamePersist = "persist";
+const std::string kCmdNameType = "type";
+const std::string kCmdNameScan = "scan";
 //Hash
+const std::string kCmdNameHDel = "hdel";
+const std::string kCmdNameHSet = "hset";
+const std::string kCmdNameHGet = "hget";
 
 //List
 
@@ -111,7 +132,9 @@ public:
     kNone = 0,
     kOk,
     kSyntaxErr,
-    kOutofRange,
+    kInvalidInt,
+    kInvalidFloat,
+    kOverFlow,
     kWrongNum,
     kErrOther,
   };
@@ -134,8 +157,12 @@ public:
       return "+OK\r\n";
     case kSyntaxErr:
       return "-ERR syntax error\r\n";
-    case kOutofRange:
+    case kInvalidInt:
       return "-ERR value is not an integer or out of range\r\n";
+    case kInvalidFloat:
+      return "-ERR value is not an float\r\n";
+    case kOverFlow:
+      return "-ERR increment or decrement would overflow\r\n";
     case kWrongNum:
       result = "-ERR wrong number of arguments for '";
       result.append(message_);
