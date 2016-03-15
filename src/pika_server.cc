@@ -78,6 +78,7 @@ void PikaServer::Start() {
 
   //SetMaster("127.0.0.1", 9221);
 
+  DLOG(WARNING) << "Pika Server going to start";
   mutex_.Lock();
   mutex_.Lock();
   DLOG(INFO) << "Goodbye...";
