@@ -46,7 +46,9 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     pthread_rwlock_rdlock(g_pika_server->rwlock());
   }
 
+  std::string raw_args;
   if (cinfo_ptr->is_write()) {
+      raw_args = RestoreArgs();
       g_pika_server->logger_->Lock();
   }
 
@@ -54,7 +56,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   if (cinfo_ptr->is_write()) {
       if (c_ptr->res().ok()) {
-          g_pika_server->logger_->Put(RestoreArgs());
+          g_pika_server->logger_->Put(raw_args);
       }
       g_pika_server->logger_->Unlock();
   }
