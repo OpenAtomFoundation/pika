@@ -1,6 +1,7 @@
 #include "pika_admin.h"
 #include "pika_kv.h"
 #include "pika_hash.h"
+#include "pika_list.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
 
@@ -150,6 +151,35 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHScan, hscanptr));
 
   //List
+  ////LIndex
+  CmdInfo* lindexptr = new CmdInfo(kCmdNameLIndex, 3, kCmdFlagsRead | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLIndex, lindexptr));
+  CmdInfo* linsertptr = new CmdInfo(kCmdNameLInsert, 5, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLInsert, linsertptr));
+  CmdInfo* llenptr = new CmdInfo(kCmdNameLLen, 2, kCmdFlagsRead | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLLen, llenptr));
+  CmdInfo* lpopptr = new CmdInfo(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLPop, lpopptr));
+  CmdInfo* lpushptr = new CmdInfo(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLPush, lpushptr));
+  CmdInfo* lpushxptr = new CmdInfo(kCmdNameLPushx, 3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLPushx, lpushxptr));
+  CmdInfo* lrangeptr = new CmdInfo(kCmdNameLRange, 4, kCmdFlagsRead | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLRange, lrangeptr));
+  CmdInfo* lremptr = new CmdInfo(kCmdNameLRem, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLRem, lremptr));
+  CmdInfo* lsetptr = new CmdInfo(kCmdNameLSet, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLSet, lsetptr));
+  CmdInfo* ltrimptr = new CmdInfo(kCmdNameLTrim, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameLTrim, ltrimptr));
+  CmdInfo* rpopptr = new CmdInfo(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameRPop, rpopptr));
+  CmdInfo* rpoplpushptr = new CmdInfo(kCmdNameRPopLPush, 3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameRPopLPush, rpoplpushptr));
+  CmdInfo* rpushptr = new CmdInfo(kCmdNameRPush, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameRPush, rpushptr));
+  CmdInfo* rpushxptr = new CmdInfo(kCmdNameRPushx, 3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameRPushx, rpushxptr));
 
   //Zset
 
@@ -315,6 +345,34 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   Cmd* hscanptr = new HScanCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHScan, hscanptr));  
   //List
+  Cmd* lindexptr = new LIndexCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLIndex, lindexptr));
+  Cmd* linsertptr = new LInsertCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLInsert, linsertptr));
+  Cmd* llenptr = new LLenCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLLen, llenptr));
+  Cmd* lpopptr = new LPopCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLPop, lpopptr));  
+  Cmd* lpushptr = new LPushCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLPush, lpushptr));
+  Cmd* lpushxptr = new LPushxCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLPushx, lpushxptr));
+  Cmd* lrangeptr = new LRangeCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLRange, lrangeptr));
+  Cmd* lremptr = new LRemCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLRem, lremptr));
+  Cmd* lsetptr = new LSetCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLSet, lsetptr));
+  Cmd* ltrimptr = new LTrimCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLTrim, ltrimptr));
+  Cmd* rpopptr = new RPopCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPop, rpopptr));
+  Cmd* rpoplpushptr = new RPopLPushCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPopLPush, rpoplpushptr));
+  Cmd* rpushptr = new RPushCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPush, rpushptr));
+  Cmd* rpushxptr = new RPushxCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPushx, rpushxptr));
 
   //Zset
 
