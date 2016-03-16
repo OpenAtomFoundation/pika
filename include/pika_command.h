@@ -80,6 +80,21 @@ const std::string kCmdNameRPushx = "rpushx";
 //Zset
 
 //Set
+const std::string kCmdNameSAdd = "sadd";
+const std::string kCmdNameSPop = "spop";
+const std::string kCmdNameSCard = "scard";
+const std::string kCmdNameSMembers = "smembers";
+const std::string kCmdNameSScan = "sscan";
+const std::string kCmdNameSRem = "srem";
+const std::string kCmdNameSUnion = "sunion";
+const std::string kCmdNameSUnionstore = "sunionstore";
+const std::string kCmdNameSInter = "sinter";
+const std::string kCmdNameSInterstore = "sinterstore";
+const std::string kCmdNameSIsmember = "sismember";
+const std::string kCmdNameSDiff = "sdiff";
+const std::string kCmdNameSDiffstore= "sdiffstore";
+const std::string kCmdNameSMove= "smove";
+const std::string kCmdNameSRandmember= "srandmember";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 

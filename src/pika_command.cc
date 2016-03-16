@@ -2,6 +2,7 @@
 #include "pika_kv.h"
 #include "pika_hash.h"
 #include "pika_list.h"
+#include "pika_set.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
 
@@ -184,6 +185,51 @@ void InitCmdInfoTable() {
   //Zset
 
   //Set
+  ////SAdd
+  CmdInfo* saddptr = new CmdInfo(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSAdd, saddptr));
+  ////SPop
+  CmdInfo* spopptr = new CmdInfo(kCmdNameSPop, 2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSPop, spopptr));
+  ////SCard
+  CmdInfo* scardptr = new CmdInfo(kCmdNameSCard, 2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSCard, scardptr));
+  ////SMembers
+  CmdInfo* smembersptr = new CmdInfo(kCmdNameSMembers, 2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSMembers, smembersptr));
+  ////SMembers
+  CmdInfo* sscanptr = new CmdInfo(kCmdNameSScan, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSScan, sscanptr));
+  ////SRem
+  CmdInfo* sremptr = new CmdInfo(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSRem, sremptr));
+  ////SUnion
+  CmdInfo* sunionptr = new CmdInfo(kCmdNameSUnion, -2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSUnion, sunionptr));
+  ////SUnion
+  CmdInfo* sunionstoreptr = new CmdInfo(kCmdNameSUnionstore, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSUnionstore, sunionstoreptr));
+  ////SInter
+  CmdInfo* sinterptr = new CmdInfo(kCmdNameSInter, -2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSInter, sinterptr));
+  ////SInterstore
+  CmdInfo* sinterstoreptr = new CmdInfo(kCmdNameSInterstore, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSInterstore, sinterstoreptr));
+  ////SIsmember
+  CmdInfo* sismemberptr = new CmdInfo(kCmdNameSIsmember, 3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSIsmember, sismemberptr));
+  ////SDiff
+  CmdInfo* sdiffptr = new CmdInfo(kCmdNameSDiff, -2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSDiff, sdiffptr));
+  ////SDiffstore
+  CmdInfo* sdiffstoreptr = new CmdInfo(kCmdNameSDiffstore, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSDiffstore, sdiffstoreptr));
+  ////SMove
+  CmdInfo* smoveptr = new CmdInfo(kCmdNameSMove, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSMove, smoveptr));
+  ////SRandmember
+  CmdInfo* srandmemberptr = new CmdInfo(kCmdNameSRandmember, -2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSRandmember, srandmemberptr));
 }
 
 void DestoryCmdInfoTable() {
@@ -377,6 +423,51 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   //Zset
 
   //Set
+  ////SAddCmd
+  Cmd* saddptr = new SAddCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSAdd, saddptr));
+  ////SPopCmd
+  Cmd* spopptr = new SPopCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSPop, spopptr));
+  ////SCardCmd
+  Cmd* scardptr = new SCardCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSCard, scardptr));
+  ////SMembersCmd
+  Cmd* smembersptr = new SMembersCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSMembers, smembersptr));
+  ////SScanCmd
+  Cmd* sscanptr = new SScanCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSScan, sscanptr));
+  ////SScanCmd
+  Cmd* sremptr = new SRemCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSRem, sremptr));
+  ////SUnionCmd
+  Cmd* sunionptr = new SUnionCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSUnion, sunionptr));
+  ////SUnionstoreCmd
+  Cmd* sunionstoreptr = new SUnionstoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSUnionstore, sunionstoreptr));
+  ////SInterCmd
+  Cmd* sinterptr = new SInterCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSInter, sinterptr));
+  ////SInterstoreCmd
+  Cmd* sinterstoreptr = new SInterstoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSInterstore, sinterstoreptr));
+  ////SIsmemberCmd
+  Cmd* sismemberptr = new SIsmemberCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSIsmember, sismemberptr));
+  ////SDiffCmd
+  Cmd* sdiffptr = new SDiffCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSDiff, sdiffptr));
+  ////SDiffstoreCmd
+  Cmd* sdiffstoreptr = new SDiffstoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSDiffstore, sdiffstoreptr));
+  ////SMoveCmd
+  Cmd* smoveptr = new SMoveCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSMove, smoveptr));
+  ////SRandmemberCmd
+  Cmd* srandmemberptr = new SRandmemberCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSRandmember, srandmemberptr));
 
 }
 
