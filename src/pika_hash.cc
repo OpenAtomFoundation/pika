@@ -11,7 +11,6 @@ void HDelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     return;
   }
   key_ = argv[1];
-  size_t index = 2, argc = argv.size();
   PikaCmdArgsType::iterator iter = argv.begin();
   iter++; 
   iter++;
