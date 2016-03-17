@@ -115,7 +115,7 @@ static void ConstructSyncCmd(char* wbuf) {
 
 bool PikaTrysyncThread::Send() {
 	char wbuf[256];
-  memset(wbuf, 256, '0');
+  memset(wbuf, 0, 256);
   ConstructSyncCmd(wbuf);
   DLOG(INFO) << wbuf;
 	int wbuf_len = strlen(wbuf);
@@ -179,8 +179,9 @@ bool PikaTrysyncThread::RecvProc() {
           is_authed = false; // auth success;
           break;
         }
-        memset(rbuf, 256, '0');
+        memset(rbuf, 0, 256);
         rbuf_pos = -1;
+        should_auth = false;
       } else {
         break;
       }

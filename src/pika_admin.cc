@@ -122,13 +122,6 @@ void TrysyncCmd::Do() {
     DLOG(INFO) << "Trysync, dont FindSlave, so AddBinlogSender";
     Status status = g_pika_server->AddBinlogSender(s, filenum_, pro_offset_);
     if (status.ok()) {
-      std::string requirepass = g_pika_conf->requirepass();
-      if (requirepass != "") {
-        res_.AppendArrayLen(2);
-        res_.AppendString("auth");
-        res_.AppendString(requirepass);
-      }
-      DLOG(INFO) << res_.message();
       res_.AppendInteger(s.sid);
       DLOG(INFO) << "Send Sid to Slave: " << s.sid;
       g_pika_server->BecomeMaster();
