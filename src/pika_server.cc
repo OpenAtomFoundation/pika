@@ -577,6 +577,12 @@ int log_filter_r(std::string path, uint32_t to, std::set<std::string> &files)
 }
 
 void* PikaServer::StartPurgeLogs(void* arg) {
+    int ret = 0;
+
+    if ((ret = pthread_detach(pthread_self())) != 0) {
+      LOG(WARNING) << "Detach thread failed, " << strerror(ret);
+    }
+
     PikaServer* p = (PikaServer*)(((purge_args*)arg)->p);
     uint32_t to = ((purge_args*)arg)->to;
 
@@ -589,7 +595,6 @@ void* PikaServer::StartPurgeLogs(void* arg) {
     std::string prefix = log_path + "write2file";
     */
     std::string filename;
-    int ret = 0;
     std::set<std::string> files_to_del;
     log_filter_r(log_path, to, files_to_del);
     for (std::set<std::string>::iterator iter = files_to_del.begin(); iter != files_to_del.end(); iter++) {
@@ -608,7 +613,9 @@ void* PikaServer::StartPurgeLogs(void* arg) {
     LOG(INFO) << "Purge thread reset purging_ to false";
     }
     delete (purge_args*)arg;
-    return NULL;
+
+    pthread_exit(NULL);
+    //return NULL;
 }
 
 void PikaServer::InfoKeySpace() {
