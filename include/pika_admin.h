@@ -38,4 +38,14 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
+class AuthCmd : public Cmd {
+public:
+  AuthCmd() {
+  }
+  virtual void Do();
+private:
+  std::string pwd_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
 #endif

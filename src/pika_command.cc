@@ -14,6 +14,8 @@ void InitCmdInfoTable() {
   ////Trysync
   CmdInfo* trysyncptr = new CmdInfo(kCmdNameTrysync, 5, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTrysync, trysyncptr));
+  CmdInfo* authptr = new CmdInfo(kCmdNameAuth, 2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameAuth, authptr));
 
   //Kv
   ////SetCmd
@@ -209,6 +211,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////Trysync
   Cmd* trysyncptr = new TrysyncCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTrysync, trysyncptr));
+  Cmd* authptr = new AuthCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAuth, authptr));
 
   //Kv
   ////SetCmd

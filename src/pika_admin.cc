@@ -1,8 +1,10 @@
 #include "slash_string.h"
+#include "pika_conf.h"
 #include "pika_admin.h"
 #include "pika_server.h"
 
 extern PikaServer *g_pika_server;
+extern PikaConf *g_pika_conf;
 
 void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
@@ -131,3 +133,29 @@ void TrysyncCmd::Do() {
   }
 }
 
+void AuthCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameAuth);
+    return;
+  }
+  pwd_ = argv[1];
+}
+
+void AuthCmd::Do() {
+  std::string root_password(g_pika_conf->requirepass());
+  std::string user_password(g_pika_conf->userpass());
+  if (user_password.empty() && root_password.empty()) {
+    res_.SetRes(CmdRes::kErrOther, "Client sent AUTH, but no password is set");
+    return;
+  }
+
+  if (pwd_ == user_password) {
+    res_.SetRes(CmdRes::kOk, "USER");
+  }
+  if (pwd_ == root_password) {
+    res_.SetRes(CmdRes::kOk, "ROOT");
+  }
+  if (res_.none()) {
+    res_.SetRes(CmdRes::kInvalidPwd);
+  }
+}

@@ -13,6 +13,7 @@
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";
 const std::string kCmdNameTrysync = "trysync";
+const std::string kCmdNameAuth = "auth";
 
 //Kv
 const std::string kCmdNameSet = "set";
@@ -163,18 +164,25 @@ public:
     kOverFlow,
     kNotFound,
     kOutOfRange,
+    kInvalidPwd,
     kWrongNum,
     kErrOther,
   };
 
   CmdRes():ret_(kNone) {}
 
+  bool none() const {
+    return ret_ == kNone && message_.empty();
+  }
   bool ok() const {
     return ret_ == kOk || ret_ == kNone;
   }
   void clear() {
     message_.clear();
     ret_ = kNone;
+  }
+  std::string raw_message() const {
+    return message_;
   }
   std::string message() const {
     std::string result;
@@ -195,6 +203,8 @@ public:
       return "-ERR no such key\r\n";
     case kOutOfRange:
       return "-ERR index out of range\r\n";
+    case kInvalidPwd:
+      return "-ERR invalid password\r\n";
     case kWrongNum:
       result = "-ERR wrong number of arguments for '";
       result.append(message_);
