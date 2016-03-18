@@ -159,3 +159,34 @@ void AuthCmd::Do() {
     res_.SetRes(CmdRes::kInvalidPwd);
   }
 }
+
+void BgsaveCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsave);
+    return;
+  }
+}
+void BgsaveCmd::Do() {
+  g_pika_server->Bgsave();
+  const PikaServer::BGSaveInfo& info = g_pika_server->bgsave_info();
+  char buf[256];
+  snprintf(buf, sizeof(buf), "+%s : %u: %lu", 
+      info.s_start_time.c_str(), info.filenum, info.offset);
+  res_.AppendContent(buf);
+}
+
+void BgsaveoffCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsaveoff);
+    return;
+  }
+}
+void BgsaveoffCmd::Do() {
+  CmdRes::CmdRet ret;
+  if (g_pika_server->Bgsaveoff()) {
+   ret = CmdRes::kOk;
+  } else {
+   ret = CmdRes::kNoneBgsave;
+  }
+  res_.SetRes(ret);
+}

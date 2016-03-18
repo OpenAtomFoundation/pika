@@ -14,6 +14,8 @@
 const std::string kCmdNameSlaveof = "slaveof";
 const std::string kCmdNameTrysync = "trysync";
 const std::string kCmdNameAuth = "auth";
+const std::string kCmdNameBgsave = "bgsave";
+const std::string kCmdNameBgsaveoff = "bgsaveoff";
 
 //Kv
 const std::string kCmdNameSet = "set";
@@ -180,6 +182,7 @@ public:
     kNotFound,
     kOutOfRange,
     kInvalidPwd,
+    kNoneBgsave,
     kWrongNum,
     kErrOther,
   };
@@ -220,6 +223,8 @@ public:
       return "-ERR index out of range\r\n";
     case kInvalidPwd:
       return "-ERR invalid password\r\n";
+    case kNoneBgsave:
+      return "-ERR No BGSave Works now\r\n";
     case kWrongNum:
       result = "-ERR wrong number of arguments for '";
       result.append(message_);

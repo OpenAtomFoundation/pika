@@ -19,6 +19,7 @@ static void PikaConfInit(const std::string& path) {
   if (g_pika_conf->Load() != 0) {
     LOG(FATAL) << "pika load conf error";
   }
+  g_pika_conf->AddToUserBlackList(kCmdNameTrysync);
   version();
   printf("-----------Pika config list----------\n");
   g_pika_conf->DumpConf();

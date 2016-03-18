@@ -1,3 +1,4 @@
+#include <fstream>
 #include <glog/logging.h>
 #include <assert.h>
 #include <sys/ioctl.h>
@@ -5,6 +6,7 @@
 #include "env.h"
 #include "pika_server.h"
 #include "slash_string.h"
+#include "bg_thread.h"
 #include "pika_conf.h"
 
 extern PikaConf *g_pika_conf;
@@ -16,7 +18,8 @@ PikaServer::PikaServer() :
   master_connection_(0),
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
-  role_(PIKA_ROLE_SINGLE) {
+  role_(PIKA_ROLE_SINGLE),
+  bgsaving_(false) {
 
   pthread_rwlock_init(&rwlock_, NULL);
   
@@ -52,6 +55,9 @@ PikaServer::PikaServer() :
 PikaServer::~PikaServer() {
   pthread_rwlock_destroy(&state_protector_);
   pthread_rwlock_destroy(&rwlock_);
+  if (bgsave_engine_ != NULL) {
+    delete bgsave_engine_;
+  }
   //delete logger_;
 }
 
@@ -291,4 +297,141 @@ Status PikaServer::GetSmallestValidLog(uint32_t* max) {
   }
 
   return Status::OK();
+}
+
+
+void PikaServer::ClearBgsave() {
+  bgsave_info_.Clear();
+  bgsaving_ = false;
+}
+
+bool PikaServer::InitBgsaveEnv(const std::string& bgsave_path) {
+  // Prepare for bgsave dir
+  bgsave_info_.start_time = time(NULL);
+  char s_time[32];
+  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
+  bgsave_info_.s_start_time.assign(s_time, len);
+  bgsave_info_.path = bgsave_path + std::string(s_time, 8);
+  if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
+    LOG(ERROR) << "remove exist bgsave dir failed";
+    return false;
+  }
+  slash::CreateDir(bgsave_info_.path);
+  // Prepare for tmp dir
+  bgsave_info_.tmp_path = bgsave_path + "tmp";
+  if (!slash::DeleteDirIfExist(bgsave_info_.tmp_path)) {
+    LOG(ERROR) << "remove exist tmp bgsave dir failed";
+    return false;
+  }
+  // Prepare for failed dir
+  if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
+    LOG(ERROR) << "remove exist fail bgsave dir failed :";
+    return false;
+  }
+  return true;
+}
+
+bool PikaServer::InitBgsaveEngine() {
+  if (bgsave_engine_ != NULL) {
+    delete bgsave_engine_;
+  }
+  nemo::Status nemo_s = nemo::BackupEngine::Open(
+      nemo::BackupableOptions(bgsave_info_.tmp_path, true, false), 
+      &bgsave_engine_);
+  if (!nemo_s.ok()) {
+    LOG(ERROR) << "open backup engine failed " << nemo_s.ToString();
+    return false;
+  }
+
+  {
+    RWLock l(&rwlock_, true);
+    logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
+    nemo_s = bgsave_engine_->SetBackupContent(db_.get());
+    if (!nemo_s.ok()){
+      LOG(ERROR) << "set backup content failed " << nemo_s.ToString();
+      return false;
+    }
+  }
+  return true;
+}
+
+bool PikaServer::RunBgsaveEngine() {
+  // Backup to tmp dir
+  nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(db().get());
+  LOG(INFO) << "create new backup finished.";
+  // Restore to bgsave dir
+  if (nemo_s.ok()) {
+    nemo_s = bgsave_engine_->RestoreDBFromBackup(
+        bgsave_engine_->GetLatestBackupID() + 1, bgsave_info_.path);
+  }
+  LOG(INFO) << "backup finished.";
+  
+  if (!nemo_s.ok()) {
+    LOG(ERROR) << "backup failed :" << nemo_s.ToString();
+    return false;
+  }
+  return true;
+}
+
+void PikaServer::Bgsave() {
+  // Only one thread can go through
+  bgsave_protector_.Lock();
+  if (bgsaving_) {
+    return;
+  }
+  bgsaving_ = true;
+  bgsave_protector_.Unlock();
+
+  // Prepare for Bgsaving
+  if (!InitBgsaveEnv(g_pika_conf->bgsave_path())
+      || !InitBgsaveEngine()) {
+    ClearBgsave();
+    return;
+  }
+
+  // Start new thread if needed
+  if (!bgsave_thread_.is_running()) {
+    bgsave_thread_.StartThread();
+  }
+  bgsave_thread_.Schedule(&DoBgsave, static_cast<void*>(this));
+}
+
+void PikaServer::DoBgsave(void* arg) {
+  PikaServer* p = static_cast<PikaServer*>(arg);
+  const BGSaveInfo& info = p->bgsave_info();
+  
+  // Do bgsave
+  bool ok = p->RunBgsaveEngine();
+
+  // Delete tmp
+  if (!slash::DeleteDirIfExist(info.tmp_path)) {
+    LOG(ERROR) << "remove tmp bgsave dir failed";
+  }
+  // Some output
+  std::ofstream out;
+  out.open(info.path + "/info", std::ios::in | std::ios::trunc);
+  if (out.is_open()) {
+    out << (time(NULL) - info.start_time) << "s\r\n"
+      << p->host() << "\r\n" 
+      << p->port() << "\r\n"
+      << info.filenum << "\r\n"
+      << info.offset << "\r\n";
+    out.close();
+  }
+  if (!ok) {
+    std::string fail_path = info.path + "_FAILED";
+    slash::RenameFile(info.path.c_str(), fail_path.c_str());
+  }
+
+  p->ClearBgsave();
+}
+
+bool PikaServer::Bgsaveoff() {
+  if (!bgsaving_) {
+    return false;
+  }
+  if (bgsave_engine_ != NULL) {
+    bgsave_engine_->StopBackup();
+  }
+  return true;
 }

@@ -101,10 +101,10 @@ int PikaClientConn::DealMessage() {
 // Initial permission status
 void PikaClientConn::AuthStat::Init() {
   // Check auth required
-  stat_ = std::string(g_pika_conf->userpass()) == "" ?
+  stat_ = g_pika_conf->userpass() == "" ?
     kLimitAuthed : kNoAuthed;
   if (stat_ == kLimitAuthed 
-      && std::string(g_pika_conf->requirepass()) == "") {
+      && g_pika_conf->requirepass() == "") {
     stat_ = kAdminAuthed;
   }
 }
