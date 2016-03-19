@@ -16,6 +16,7 @@ const std::string kCmdNameTrysync = "trysync";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameBgsaveoff = "bgsaveoff";
+const std::string kCmdNameCompact = "compact";
 
 //Kv
 const std::string kCmdNameSet = "set";

@@ -66,4 +66,13 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
+class CompactCmd : public Cmd {
+public:
+  CompactCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
 #endif

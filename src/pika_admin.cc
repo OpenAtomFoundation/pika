@@ -190,3 +190,19 @@ void BgsaveoffCmd::Do() {
   }
   res_.SetRes(ret);
 }
+
+void CompactCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameCompact);
+    return;
+  }
+}
+void CompactCmd::Do() {
+  CmdRes::CmdRet ret;
+  nemo::Status s = g_pika_server->db()->Compact(nemo::kALL);
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}

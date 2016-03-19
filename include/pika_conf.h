@@ -45,7 +45,7 @@ public:
   void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
   void SetLogLevel(const int value)             { RWLock l(&rwlock_, true); log_level_ = value; }
   void SetTimeout(const int value)              { RWLock l(&rwlock_, true); timeout_ = value; }
-  void SetDumpPath(const std::string &value) {
+  void SetBgsavePath(const std::string &value) {
     RWLock l(&rwlock_, true);
     bgsave_path_ = value;
     if (value[value.length() - 1] != '/') {
