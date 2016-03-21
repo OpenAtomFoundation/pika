@@ -885,7 +885,7 @@ start_server {tags {"zset"}} {
                 if {$toremlen} {
                     set first [lsearch -exact $lexsetcopy [lindex $torem 0]]
                     set last [expr {$first+$toremlen-1}]
-                    set lexsetcopy [lreplace $lexsetcopy $first+1 $last]
+                    set lexsetcopy [lreplace $lexsetcopy $first $last]
                 }
                 assert {$lexsetcopy eq $output}
             }

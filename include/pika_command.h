@@ -78,6 +78,27 @@ const std::string kCmdNameRPush = "rpush";
 const std::string kCmdNameRPushx = "rpushx";
 
 //Zset
+const std::string kCmdNameZAdd = "zadd";
+const std::string kCmdNameZCard = "zcard";
+const std::string kCmdNameZScan = "zscan";
+const std::string kCmdNameZIncrby = "zincrby";
+const std::string kCmdNameZRange = "zrange";
+const std::string kCmdNameZRangebyscore = "zrangebyscore";
+const std::string kCmdNameZCount = "zcount";
+const std::string kCmdNameZRem = "zrem";
+const std::string kCmdNameZUnionstore = "zunionstore";
+const std::string kCmdNameZInterstore = "zinterstore";
+const std::string kCmdNameZRank = "zrank";
+const std::string kCmdNameZRevrank = "zrevrank";
+const std::string kCmdNameZScore = "zscore";
+const std::string kCmdNameZRevrange = "zrevrange";
+const std::string kCmdNameZRevrangebyscore = "zrevrangebyscore";
+const std::string kCmdNameZRangebylex = "zrangebylex";
+const std::string kCmdNameZRevrangebylex = "zrevrangebylex";
+const std::string kCmdNameZLexcount = "zlexcount";
+const std::string kCmdNameZRemrangebyrank = "zremrangebyrank";
+const std::string kCmdNameZRemrangebylex = "zremrangebylex";
+const std::string kCmdNameZRemrangebyscore = "zremrangebyscore";
 
 //Set
 const std::string kCmdNameSAdd = "sadd";
