@@ -24,6 +24,16 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBgsaveoff, bgsaveoffptr));
   CmdInfo* compactptr = new CmdInfo(kCmdNameCompact, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameCompact, compactptr));
+  CmdInfo* pingptr = new CmdInfo(kCmdNamePing, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePing, pingptr));
+  CmdInfo* selectptr = new CmdInfo(kCmdNameSelect, 2, kCmdFlagsWrite | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSelect, selectptr));
+  CmdInfo* flushallptr = new CmdInfo(kCmdNameFlushall, 1, kCmdFlagsRead | kCmdFlagsMaskSuspend | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameFlushall, flushallptr));
+  CmdInfo* readonlyptr = new CmdInfo(kCmdNameReadonly, 2, kCmdFlagsRead | kCmdFlagsMaskSuspend | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameReadonly, readonlyptr));
+  CmdInfo* clientptr = new CmdInfo(kCmdNameClient, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameClient, clientptr));
 
   //Kv
   ////SetCmd
@@ -335,6 +345,16 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBgsaveoff, bgsaveoffptr));
   Cmd* compactptr = new CompactCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameCompact, compactptr));
+  Cmd* pingptr = new PingCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePing, pingptr));
+  Cmd* selectptr = new SelectCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSelect, selectptr));
+  Cmd* flushallptr = new FlushallCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameFlushall, flushallptr));
+  Cmd* readonlyptr = new ReadonlyCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameReadonly, readonlyptr));
+  Cmd* clientptr = new ClientCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameClient, clientptr));
 
   //Kv
   ////SetCmd

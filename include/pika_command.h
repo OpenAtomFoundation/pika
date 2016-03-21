@@ -17,6 +17,11 @@ const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameBgsaveoff = "bgsaveoff";
 const std::string kCmdNameCompact = "compact";
+const std::string kCmdNamePing = "ping";
+const std::string kCmdNameSelect = "select";
+const std::string kCmdNameFlushall = "flushall";
+const std::string kCmdNameReadonly = "readonly";
+const std::string kCmdNameClient = "client";
 
 //Kv
 const std::string kCmdNameSet = "set";
@@ -197,6 +202,7 @@ public:
   enum CmdRet {
     kNone = 0,
     kOk,
+    kPong,
     kSyntaxErr,
     kInvalidInt,
     kInvalidFloat,
@@ -231,6 +237,8 @@ public:
       return message_;
     case kOk:
       return "+OK\r\n";
+    case kPong:
+      return "+PONG\r\n";
     case kSyntaxErr:
       return "-ERR syntax error\r\n";
     case kInvalidInt:

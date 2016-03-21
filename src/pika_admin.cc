@@ -206,3 +206,69 @@ void CompactCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
+
+void PingCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePing);
+    return;
+  }
+}
+void PingCmd::Do() {
+  res_.SetRes(CmdRes::kPong);
+}
+
+void SelectCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
+    return;
+  }
+}
+void SelectCmd::Do() {
+  res_.SetRes(CmdRes::kOk);
+}
+
+void FlushallCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushall);
+    return;
+  }
+}
+void FlushallCmd::Do() {
+  slash::RWLock(g_pika_server->rwlock(), true);
+  res_.SetRes(CmdRes::kOk);
+}
+
+void ReadonlyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameReadonly);
+    return;
+  }
+  std::string opt = slash::StringToLower(argv[1]);
+  if (opt == "on" || opt == "1") {
+    is_open_ = true;
+  } else if (opt == "off" || opt == "0") {
+    is_open_ = false;
+  } else {
+    res_.SetRes(CmdRes::kSyntaxErr, kCmdNameReadonly);
+    return;
+  }
+}
+void ReadonlyCmd::Do() {
+  slash::RWLock(g_pika_server->rwlock(), true);
+  if (is_open_) {
+    g_pika_conf->SetReadonly(true);
+  } else {
+    g_pika_conf->SetReadonly(false);
+  }
+  res_.SetRes(CmdRes::kOk);
+}
+
+void ClientCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameClient);
+    return;
+  }
+}
+void ClientCmd::Do() {
+  res_.SetRes(CmdRes::kOk);
+}
