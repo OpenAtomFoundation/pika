@@ -163,6 +163,8 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
     master_port_ = master_port;
     role_ |= PIKA_ROLE_SLAVE;
     repl_state_ = PIKA_REPL_CONNECT;
+    DLOG(INFO) << "open read-only mode";
+    g_pika_conf->SetReadonly(true);
     return true;
   }
   return false;
@@ -246,6 +248,8 @@ void PikaServer::RemoveMaster() {
     delete ping_thread_;
     ping_thread_ = NULL;
   }
+  DLOG(INFO) << "close read-only mode";
+  g_pika_conf->SetReadonly(false);
 }
 
 /*

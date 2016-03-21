@@ -39,6 +39,9 @@ public:
   }
   int target_file_size_base()         { RWLock l(&rwlock_, false); return target_file_size_base_; }
   std::string conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
+  bool readonly() {
+    RWLock l(&rwlock_, false); return readonly_;
+  }
 
   // Setter
   void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
@@ -68,6 +71,9 @@ public:
     RWLock l(&rwlock_, true);
     user_blacklist_.push_back(value);
   }
+  void SetReadonly(const bool value) {
+    RWLock l(&rwlock_, true); readonly_ = value;
+  }
   int Load();
   int ConfigRewrite();
 private:
@@ -95,7 +101,7 @@ private:
   //int root_connection_num_;
   //int slowlog_slower_than_;
   //int binlog_file_size_;
-  //bool readonly_;
+  bool readonly_;
   std::string conf_path_;
   //char username_[30];
   //char password_[30];

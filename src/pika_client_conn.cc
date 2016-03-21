@@ -58,6 +58,9 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   std::string raw_args;
   if (cinfo_ptr->is_write()) {
+      if (g_pika_conf->readonly()) {
+        return "-ERR Server in read-only\r\n";
+      }
       raw_args = RestoreArgs();
       g_pika_server->logger_->Lock();
   }
