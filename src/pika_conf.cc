@@ -32,7 +32,13 @@ int PikaConf::Load()
   std::string user_blacklist;
   GetConfStr("userblacklist", &user_blacklist);
   SetUserBlackList(std::string(user_blacklist));
+  GetConfStr("dump_path", &bgsave_path_);
   GetConfInt("target_file_size_base", &target_file_size_base_);
+
+  if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
+    bgsave_path_ += "/";
+  }
+  
 
   return ret;
   //if (thread_num_ <= 0) {
@@ -86,6 +92,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("requirepass", requirepass_);
   SetConfStr("userpass", userpass_);
   SetConfStr("userblacklist", suser_blacklist());
+  SetConfStr("dump_path", bgsave_path_);
   SetConfInt("target_file_size_base", target_file_size_base_);
 
   return WriteBack();

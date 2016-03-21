@@ -3,8 +3,10 @@
 #include "pika_slaveping_thread.h"
 #include "pika_trysync_thread.h"
 #include "pika_server.h"
+#include "pika_conf.h"
 
 extern PikaServer* g_pika_server;
+extern PikaConf* g_pika_conf;
 
 bool PikaTrysyncThread::Init() {
 
@@ -75,14 +77,23 @@ bool PikaTrysyncThread::Connect(const std::string& ip, int port) {
 static void ConstructSyncCmd(char* wbuf) {
   char tmp[100];
   char len[10];
-  strcpy(wbuf, "*5\r\n$7\r\ntrysync\r\n");
 
-  sprintf(tmp, "$%d\r\n", g_pika_server->host().length());
+  std::string requirepass = g_pika_conf->requirepass();
+  if (requirepass != "") {
+    strcpy(wbuf, "*2\r\n$4\r\nauth\r\n");
+    sprintf(tmp, "$%ld\r\n", requirepass.length());
+    strcat(wbuf, tmp);
+    strcat(wbuf, requirepass.c_str());
+    strcat(wbuf, "\r\n");
+  }
+
+  strcat(wbuf, "*5\r\n$7\r\ntrysync\r\n");
+  sprintf(tmp, "$%ld\r\n", g_pika_server->host().length());
   strcat(wbuf, tmp);
   strcat(wbuf, g_pika_server->host().c_str());
 
   sprintf(len, "%d", g_pika_server->port());
-  sprintf(tmp, "\r\n$%d\r\n", strlen(len));
+  sprintf(tmp, "\r\n$%ld\r\n", strlen(len));
   strcat(wbuf, tmp);
   strcat(wbuf, len);
 
@@ -90,13 +101,13 @@ static void ConstructSyncCmd(char* wbuf) {
   uint64_t pro_offset;
   g_pika_server->logger_->GetProducerStatus(&filenum, &pro_offset);
 
-  sprintf(len, "%lu", filenum);
-  sprintf(tmp, "\r\n$%d\r\n", strlen(len));
+  sprintf(len, "%u", filenum);
+  sprintf(tmp, "\r\n$%ld\r\n", strlen(len));
   strcat(wbuf, tmp);
   strcat(wbuf, len);
 
-  sprintf(len, "%llu", pro_offset);
-  sprintf(tmp, "\r\n$%d\r\n", strlen(len));
+  sprintf(len, "%lu", pro_offset);
+  sprintf(tmp, "\r\n$%ld\r\n", strlen(len));
   strcat(wbuf, tmp);
   strcat(wbuf, len);
   strcat(wbuf, "\r\n");
@@ -104,6 +115,7 @@ static void ConstructSyncCmd(char* wbuf) {
 
 bool PikaTrysyncThread::Send() {
 	char wbuf[256];
+  memset(wbuf, 0, 256);
   ConstructSyncCmd(wbuf);
   DLOG(INFO) << wbuf;
 	int wbuf_len = strlen(wbuf);
@@ -139,6 +151,8 @@ bool PikaTrysyncThread::RecvProc() {
 	char rbuf[256];
 	int rbuf_pos = 0;
 	int nread = 0;
+  bool should_auth = g_pika_conf->requirepass() == "" ? false : true;
+  bool is_authed = true;
 	while (1) {
 		nread = read(sockfd_, rbuf + rbuf_pos, 1);
 	  if (nread == -1) {
@@ -160,14 +174,24 @@ bool PikaTrysyncThread::RecvProc() {
 				rbuf[rbuf_pos] = '\0';
 				rbuf_pos--;
 			}
-			break;
+      if(should_auth) {
+        if (rbuf[0] == '-') {
+          is_authed = false; // auth success;
+          break;
+        }
+        memset(rbuf, 0, 256);
+        rbuf_pos = -1;
+        should_auth = false;
+      } else {
+        break;
+      }
 		}
 		rbuf_pos++;
 	}
   DLOG(INFO) << "Reply from master after trysync: " << std::string(rbuf, rbuf_pos+1);
-	if (rbuf[0] == ':') {
+	
+  if (is_authed && rbuf[0] == ':') {
     std::string t(rbuf+1, rbuf_pos);
-//    slash::string2l(t.data(), t.size(), &sid_);
     slash::string2l(rbuf+1, rbuf_pos, &sid_);
     DLOG(INFO) << "Recv sid from master: " << sid_;
 		return true;

@@ -38,4 +38,41 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
+class AuthCmd : public Cmd {
+public:
+  AuthCmd() {
+  }
+  virtual void Do();
+private:
+  std::string pwd_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class BgsaveCmd : public Cmd {
+public:
+  BgsaveCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class BgsaveoffCmd : public Cmd {
+public:
+  BgsaveoffCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class CompactCmd : public Cmd {
+public:
+  CompactCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
 #endif

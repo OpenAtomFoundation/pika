@@ -1,14 +1,19 @@
 #include <sstream>
+#include <vector>
+#include <algorithm>
 #include <glog/logging.h>
 #include "pika_server.h"
+#include "pika_conf.h"
 #include "pika_client_conn.h"
 
 extern PikaServer* g_pika_server;
+extern PikaConf* g_pika_conf;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port, pink::Thread* thread) :
   RedisConn(fd, ip_port) {
   self_thread_ = dynamic_cast<PikaWorkerThread*>(thread);
+  auth_stat_.Init();
 }
 
 PikaClientConn::~PikaClientConn() {
@@ -33,6 +38,12 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   if (!cinfo_ptr || !c_ptr) {
       return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
   }
+
+  // Check authed
+  if (!auth_stat_.IsAuthed(opt)) {
+    LOG(INFO) << "(" << ip_port() << ")Authentication required, close connection";
+    return "-ERR NOAUTH Authentication required.\r\n";
+  }
   
   // Initial
   c_ptr->Initial(argv_, cinfo_ptr);
@@ -40,7 +51,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return c_ptr->res().message();
   }
 
-  // TODO Check authed
   // Add read lock for no suspend command
   if (!cinfo_ptr->is_suspend()) {
     pthread_rwlock_rdlock(g_pika_server->rwlock());
@@ -64,66 +74,75 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   if (!cinfo_ptr->is_suspend()) {
       pthread_rwlock_unlock(g_pika_server->rwlock());
   }
+
+  if (opt == kCmdNameAuth) {
+    if(!auth_stat_.ChecknUpdate(c_ptr->res().raw_message())) {
+      LOG(WARNING) << "(" << ip_port() << ")Wrong Password, close connection";
+    }
+  }
   return c_ptr->res().message();
 }
 
 int PikaClientConn::DealMessage() {
   
   self_thread_->PlusThreadQuerynum();
-  /* Sync cmd
-   * 1 logger_->Lock()
-   * 2 cmd->Do
-   * 3 AppendLog
-   * 4 logger_->Unlock
-   */
-
-  //logger_->Lock();
-  //TODO return value
+  
   if (argv_.empty()) return -2;
   std::string opt = argv_[0];
   slash::StringToLower(opt);
-  //TODO add logger lock
   std::string res = DoCmd(opt);
-  // if (opt == "pikasync") {
-  //     AppendReply(ret);
-  //     mutex_.Unlock();
-  // } else if ((role_ != PIKA_MASTER  && !(role_ == PIKA_SLAVE && opt == "ping")) || (role_ == PIKA_MASTER && opt == "syncdb")) {
-  //     if (role_ == PIKA_SLAVE) {
-  //         MutexLock l(&mutex_);
-  //         AppendReply(ret);
-  //     } else {
-  //         AppendReply(ret);
-  //     }
-  // }
-  //  // TEST trysync
-  //  if (argv_[0] == "trysync") {
-  //    DLOG(INFO) << "recieve \"trysync\"";
-  //
-  //    // Test BinlogSender
-  //    SlaveItem slave;
-  //    slave.ip_port = "127.0.0.1:9922";
-  //    slave.port = 9922;
-  //
-  //    Status s = g_pika_server->AddBinlogSender(slave, 0, 0);
-  //    if (s.ok()) {
-  //      DLOG(INFO) << "AddBinlogSender ok";
-  //    } else {
-  //      DLOG(INFO) << "AddBinlogSender failed, " << s.ToString();
-  //    }
-  //
-  //  } else if (argv_[0] == "slaveof") {
-  //    DLOG(INFO) << "recieve \"slaveof\"";
-  //    DLOG(INFO) << "SetMaster " << g_pika_server->SetMaster("127.0.0.1", 9821);
-  //  } else {
-  //    // TEST Put
-  //    for (int i = 0; i < 10; i++) {
-  //      DLOG(INFO) << "Logger Put a msg:" << i << ";";
-  //      g_pika_server->logger_->Put(std::string("*3\r\n$3\r\nset\r\n$3\r\nkey\r\n$1\r\n1\r\n"));
-  //    }
-  //  }
-  //
+  
   memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
   wbuf_len_ += res.size();
   set_is_reply(true);
   return 0;
+}
+
+// Initial permission status
+void PikaClientConn::AuthStat::Init() {
+  // Check auth required
+  stat_ = g_pika_conf->userpass() == "" ?
+    kLimitAuthed : kNoAuthed;
+  if (stat_ == kLimitAuthed 
+      && g_pika_conf->requirepass() == "") {
+    stat_ = kAdminAuthed;
+  }
+}
+
+// Check permission for current command
+bool PikaClientConn::AuthStat::IsAuthed(const std::string& opt) {
+  //TODO consider slaveauth
+  if (opt == kCmdNameAuth) {
+    return true;
+  }
+  const std::vector<std::string>& blacklist = g_pika_conf->vuser_blacklist();
+  switch (stat_) {
+    case kNoAuthed:
+      return false;
+    case kAdminAuthed:
+      break;
+    case kLimitAuthed:
+      if (find(blacklist.begin(), blacklist.end(), opt) 
+          != blacklist.end()) {
+      return false;
+      }
+      break;
+    default:
+      LOG(WARNING) << "Invalid auth stat : " << static_cast<unsigned>(stat_);
+      return false;
+  }
+  return true;
+}
+
+// Update permission status
+bool PikaClientConn::AuthStat::ChecknUpdate(const std::string& message) {
+  // Situations to change auth status
+  if (message == "USER") {
+    stat_ = kLimitAuthed;
+  } else if (message == "ROOT"){
+    stat_ = kAdminAuthed;
+  } else {
+    return false;
+  }
+  return true;
 }

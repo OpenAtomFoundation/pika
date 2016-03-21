@@ -16,6 +16,14 @@ void InitCmdInfoTable() {
   ////Trysync
   CmdInfo* trysyncptr = new CmdInfo(kCmdNameTrysync, 5, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTrysync, trysyncptr));
+  CmdInfo* authptr = new CmdInfo(kCmdNameAuth, 2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameAuth, authptr));
+  CmdInfo* bgsaveptr = new CmdInfo(kCmdNameBgsave, 1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBgsave, bgsaveptr));
+  CmdInfo* bgsaveoffptr = new CmdInfo(kCmdNameBgsaveoff, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBgsaveoff, bgsaveoffptr));
+  CmdInfo* compactptr = new CmdInfo(kCmdNameCompact, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameCompact, compactptr));
 
   //Kv
   ////SetCmd
@@ -319,6 +327,14 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////Trysync
   Cmd* trysyncptr = new TrysyncCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTrysync, trysyncptr));
+  Cmd* authptr = new AuthCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAuth, authptr));
+  Cmd* bgsaveptr = new BgsaveCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBgsave, bgsaveptr));
+  Cmd* bgsaveoffptr = new BgsaveoffCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBgsaveoff, bgsaveoffptr));
+  Cmd* compactptr = new CompactCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameCompact, compactptr));
 
   //Kv
   ////SetCmd

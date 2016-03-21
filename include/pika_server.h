@@ -16,6 +16,8 @@
 #include "pika_define.h"
 
 #include "slash_status.h"
+#include "bg_thread.h"
+#include "nemo_backupable.h"
 
 using slash::Status;
 using slash::Slice;
@@ -115,6 +117,34 @@ public:
   Binlog *logger_;
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
 
+/*
+ * BGSave used
+ */
+  struct BGSaveInfo {
+    time_t start_time;
+    std::string s_start_time;
+    std::string path;
+    std::string tmp_path;
+    uint32_t filenum;
+    uint64_t offset;
+    BGSaveInfo() : filenum(0), offset(0){}
+    void Clear() {
+      path.clear();
+      tmp_path.clear();
+      filenum = 0;
+      offset = 0;
+    }
+  };
+  const BGSaveInfo& bgsave_info() const {
+    return bgsave_info_;
+  }
+  void Bgsave();
+  bool Bgsaveoff();
+  void ClearBgsave();
+  bool RunBgsaveEngine();
+
+
+
 private:
   std::string host_;
   int port_;
@@ -142,6 +172,19 @@ private:
   int master_port_;
   int repl_state_;
   int role_;
+
+  /*
+   * Bgsave use
+   */
+  slash::Mutex bgsave_protector_;
+  std::atomic<bool> bgsaving_;
+  pink::BGThread bgsave_thread_;
+  nemo::BackupEngine *bgsave_engine_;
+  BGSaveInfo bgsave_info_;
+  
+  static void DoBgsave(void* arg);
+  bool InitBgsaveEnv(const std::string& bgsave_path);
+  bool InitBgsaveEngine();
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);

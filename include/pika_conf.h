@@ -29,6 +29,7 @@ public:
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
 
   std::string requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
+  std::string bgsave_path()     { RWLock l(&rwlock_, false); return bgsave_path_; }
   std::string userpass()     { RWLock l(&rwlock_, false); return userpass_; }
   const std::string suser_blacklist() {
     RWLock l(&rwlock_, false); return slash::StringConcat(user_blacklist_, COMMA);
@@ -44,6 +45,13 @@ public:
   void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
   void SetLogLevel(const int value)             { RWLock l(&rwlock_, true); log_level_ = value; }
   void SetTimeout(const int value)              { RWLock l(&rwlock_, true); timeout_ = value; }
+  void SetBgsavePath(const std::string &value) {
+    RWLock l(&rwlock_, true);
+    bgsave_path_ = value;
+    if (value[value.length() - 1] != '/') {
+      bgsave_path_ += "/";
+    }
+  }
   void SetRequirePass(const std::string &value) {
     RWLock l(&rwlock_, true);
     requirepass_ = value;
@@ -56,10 +64,10 @@ public:
     RWLock l(&rwlock_, true);
     slash::StringSplit(value, COMMA, user_blacklist_);
   }
-  // void SetDumpPrefix(const std::string &value) {
-  //     RWLock l(&rwlock_, true);
-  //     snprintf (dump_prefix_, sizeof(dump_prefix_), "%s", value.data());
-  // }
+  void AddToUserBlackList(const std::string &value) {
+    RWLock l(&rwlock_, true);
+    user_blacklist_.push_back(value);
+  }
   int Load();
   int ConfigRewrite();
 private:
@@ -77,8 +85,7 @@ private:
   std::string requirepass_;
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
-  //char dump_prefix_[PIKA_WORD_SIZE];
-  //char dump_path_[PIKA_WORD_SIZE];
+  std::string bgsave_path_;
   //char pidfile_[PIKA_WORD_SIZE];
   //char compression_[PIKA_WORD_SIZE];
   //int maxconnection_;
