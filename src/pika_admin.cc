@@ -6,6 +6,9 @@
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
 
+std::string ClientCmd::CLIENT_LIST_S = "list";
+std::string ClientCmd::CLIENT_KILL_S = "kill";
+
 void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
@@ -268,7 +271,39 @@ void ClientCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
     res_.SetRes(CmdRes::kWrongNum, kCmdNameClient);
     return;
   }
+  slash::StringToLower(argv[1]);
+  if (argv[1] == CLIENT_LIST_S && argv.size() == 2) {
+    //nothing
+  } else if (argv[1] == CLIENT_KILL_S && argv.size() == 3) {
+    ip_port_ = slash::StringToLower(argv[2]);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Syntax error, try CLIENT (LIST | KILL ip:port)");
+    return;
+  }
+  operation_ = argv[1];
+  return;
 }
+
 void ClientCmd::Do() {
-  res_.SetRes(CmdRes::kOk);
+  if (operation_ == CLIENT_LIST_S) {
+    std::vector< std::pair<int, std::string> > clients;
+    g_pika_server->ClientList(clients);
+    std::vector<std::pair<int, std::string> >::iterator iter= clients.begin();
+    std::string reply = "+";
+    char buf[128];
+    while (iter != clients.end()) {
+      snprintf(buf, sizeof(buf), "addr=%s, fd=%d\n", iter->second.c_str(), iter->first);
+      reply.append(buf);
+      iter++;
+    }
+    res_.AppendContent(reply);
+  } else if (operation_ == CLIENT_KILL_S && ip_port_ == "all") {
+    g_pika_server->ClientKillAll();
+    res_.SetRes(CmdRes::kOk);
+  } else if (g_pika_server->ClientKill(ip_port_) == 1) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "No such client");
+  }
+  return;
 }

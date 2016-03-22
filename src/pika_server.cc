@@ -439,3 +439,24 @@ bool PikaServer::Bgsaveoff() {
   }
   return true;
 }
+
+void PikaServer::ClientKillAll() {
+  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; idx++) {
+    pika_worker_thread_[idx]->ThreadClientKill();
+  }  
+}
+
+int PikaServer::ClientKill(const std::string &ip_port) {
+  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; idx++) {
+    if (pika_worker_thread_[idx]->ThreadClientKill(ip_port)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+void PikaServer::ClientList(std::vector< std::pair<int, std::string> > &clients) {
+  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; idx++) {
+    pika_worker_thread_[idx]->ThreadClientList(clients); 
+  }
+}

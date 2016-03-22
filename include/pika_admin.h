@@ -117,7 +117,11 @@ public:
   ClientCmd() {
   }
   virtual void Do();
+  static std::string CLIENT_LIST_S;
+  static std::string CLIENT_KILL_S;
 private:
+  std::string operation_, ip_port_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+
 };
 #endif

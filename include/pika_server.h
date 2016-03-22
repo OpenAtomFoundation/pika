@@ -143,6 +143,12 @@ public:
   void ClearBgsave();
   bool RunBgsaveEngine();
 
+/*
+ * client related
+ */
+  void ClientKillAll();
+  int ClientKill(const std::string &ip_port);
+  void ClientList(std::vector< std::pair<int, std::string> > &clients);
 
 
 private:
