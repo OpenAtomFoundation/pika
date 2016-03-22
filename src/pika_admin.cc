@@ -198,11 +198,38 @@ void CompactCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   }
 }
 void CompactCmd::Do() {
-  CmdRes::CmdRet ret;
   nemo::Status s = g_pika_server->db()->Compact(nemo::kALL);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void PurgelogstoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePurgelogsto);
+    return;
+  }
+  std::string filename = slash::StringToLower(argv[1]);
+  if (filename.size() <= kBinlogPrefixLen || 
+      kBinlogPrefix != filename.substr(0, kBinlogPrefixLen)) {
+    res_.SetRes(CmdRes::kInvalidParameter);
+    return;
+  }
+  std::string str_num = filename.substr(kBinlogPrefixLen);
+  int64_t num = 0;
+  if (!slash::string2l(str_num.data(), str_num.size(), &num) || num < 0) {
+    res_.SetRes(CmdRes::kInvalidParameter);
+    return;
+  }
+  num_ = num;
+}
+
+void PurgelogstoCmd::Do() {
+  if (g_pika_server->PurgeLogs(num_)) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kPurgeExist);
   }
 }

@@ -75,7 +75,7 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(const char* Binlog_path) :
+Binlog::Binlog(const std::string& Binlog_path) :
     version_(NULL),
     consumer_num_(0),
     item_num_(0),
@@ -94,7 +94,7 @@ Binlog::Binlog(const char* Binlog_path) :
 
   slash::CreateDir(binlog_path_);
 
-  filename = binlog_path_ + kBinlog;
+  filename = binlog_path_ + kBinlogPrefix;
   const std::string manifest = binlog_path_ + kManifest;
   std::string profile;
 
@@ -417,3 +417,4 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
   InitLogFile();
   return Status::OK();
 }
+

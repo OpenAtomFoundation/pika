@@ -76,9 +76,10 @@ static const size_t kHeaderSize = 1 + 3;
  */
 static const int64_t kPoolSize = 1073741824;
 
-static std::string kBinlog = "/binlog";
+static const std::string kBinlogPrefix = "binlog";
+static const size_t kBinlogPrefixLen = 6;
 
-static std::string kManifest = "/manifest";
+static const std::string kManifest = "manifest";
 
 /*
  * define common character

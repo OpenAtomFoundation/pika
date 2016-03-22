@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <list>
+#include <string>
 #include <deque>
 #include <pthread.h>
 
@@ -30,7 +31,7 @@ class Version;
 class Binlog
 {
  public:
-  Binlog(const char* Binlog_path);
+  Binlog(const std::string& Binlog_path);
   ~Binlog();
 
   void Lock()         { mutex_.Lock(); }

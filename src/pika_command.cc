@@ -23,6 +23,8 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBgsaveoff, bgsaveoffptr));
   CmdInfo* compactptr = new CmdInfo(kCmdNameCompact, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameCompact, compactptr));
+  CmdInfo* purgelogptr = new CmdInfo(kCmdNamePurgelogsto, 2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePurgelogsto, purgelogptr));
 
   //Kv
   ////SetCmd
@@ -271,6 +273,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBgsaveoff, bgsaveoffptr));
   Cmd* compactptr = new CompactCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameCompact, compactptr));
+  Cmd* purgelogptr = new PurgelogstoCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePurgelogsto, purgelogptr));
 
   //Kv
   ////SetCmd

@@ -19,7 +19,8 @@ PikaServer::PikaServer() :
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
-  bgsaving_(false) {
+  bgsaving_(false),
+  purging_(false) {
 
   pthread_rwlock_init(&rwlock_, NULL);
   
@@ -49,7 +50,7 @@ PikaServer::PikaServer() :
   pika_trysync_thread_ = new PikaTrysyncThread();
 
   pthread_rwlock_init(&state_protector_, NULL);
-  logger_ = new Binlog("./log");
+  logger_ = new Binlog(g_pika_conf->log_path());
 }
 
 PikaServer::~PikaServer() {
@@ -284,27 +285,6 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
   }
 }
 
-Status PikaServer::GetSmallestValidLog(uint32_t* max) {
-  slash::MutexLock l(&slave_mutex_);
-  std::vector<SlaveItem>::iterator iter;
-
-  *max = logger_->version_->pro_num();
-  for (iter = slaves_.begin(); iter != slaves_.end(); iter++) {
-    int tmp = static_cast<PikaBinlogSenderThread*>(iter->sender)->filenum();
-    if (tmp < *max) {
-      *max = tmp;
-    }
-  }
-
-  return Status::OK();
-}
-
-
-void PikaServer::ClearBgsave() {
-  bgsave_info_.Clear();
-  bgsaving_ = false;
-}
-
 bool PikaServer::InitBgsaveEnv(const std::string& bgsave_path) {
   // Prepare for bgsave dir
   bgsave_info_.start_time = time(NULL);
@@ -375,12 +355,10 @@ bool PikaServer::RunBgsaveEngine() {
 
 void PikaServer::Bgsave() {
   // Only one thread can go through
-  bgsave_protector_.Lock();
-  if (bgsaving_) {
+  bool expect = false;
+  if (!bgsaving_.compare_exchange_strong(expect, true)) {
     return;
   }
-  bgsaving_ = true;
-  bgsave_protector_.Unlock();
 
   // Prepare for Bgsaving
   if (!InitBgsaveEnv(g_pika_conf->bgsave_path())
@@ -435,3 +413,84 @@ bool PikaServer::Bgsaveoff() {
   }
   return true;
 }
+
+bool PikaServer::PurgeLogs(uint32_t to) {
+  // Only one thread can go through
+  bool expect = false;
+  if (!purging_.compare_exchange_strong(expect, true)) {
+    return false;
+  }
+  uint32_t max = 0;
+  if (!GetPurgeWindow(max)){
+    return false;
+  }
+  LOG(WARNING) << "max seqnum could be deleted: " << max;
+  if (to > max) {
+    ClearPurge();
+    return false;
+  }
+  PurgeArg *arg = new PurgeArg();
+  arg->p = this;
+  arg->to = to;
+  // Start new thread if needed
+  if (!purge_thread_.is_running()) {
+    purge_thread_.StartThread();
+  }
+  purge_thread_.Schedule(&DoPurgeLogs, static_cast<void*>(arg));
+  return true;
+}
+
+void PikaServer::DoPurgeLogs(void* arg) {
+  PurgeArg *ppurge = static_cast<PurgeArg*>(arg);
+  PikaServer* ps = ppurge->p;
+  
+  ps->PurgeFiles(ppurge->to);
+
+  ps->ClearPurge();
+  delete (PurgeArg*)arg;
+}
+
+bool PikaServer::PurgeFiles(uint32_t to)
+{
+  std::string log_path = g_pika_conf->log_path();
+  std::vector<std::string> children;
+  int ret = slash::GetChildren(log_path, children);
+  if (ret != 0){
+    LOG(ERROR) << "Get all files in log path failed! error:" << ret; 
+    return false;
+  }
+
+  std::string filename;
+  std::vector<std::string>::iterator it;
+  for (it = children.begin(); it != children.end(); ++it) {
+    filename = *it;
+    if (filename.compare(0, kBinlogPrefixLen, kBinlogPrefix) == 0
+        && stoul(filename.substr(kBinlogPrefixLen)) <= to) {
+      slash::Status s = slash::DeleteFile(log_path + filename);
+      LOG(WARNING) << "Purge log file : " << filename;
+      if (!s.ok()) {
+        LOG(ERROR) << "Purge log file : " << filename <<  " failed! error:" << s.ToString();
+      }
+    }
+  }
+  return true;
+}
+
+bool PikaServer::GetPurgeWindow(uint32_t &max) {
+  max = logger_->version_->pro_num();
+  slash::MutexLock l(&slave_mutex_);
+  std::vector<SlaveItem>::iterator it;
+  for (it = slaves_.begin(); it != slaves_.end(); ++it) {
+    PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
+    uint32_t filenum = pb->filenum();
+    max = filenum < max ? filenum : max;
+  }
+  // remain some more
+  if (max > 10) {
+    max -= 10;
+    return true;
+  }
+  max = 0;
+  return false;
+}
+

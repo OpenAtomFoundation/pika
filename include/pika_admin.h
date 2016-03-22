@@ -75,4 +75,13 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
+class PurgelogstoCmd : public Cmd {
+public:
+  PurgelogstoCmd() : num_(0){
+  }
+  virtual void Do();
+private:
+  uint32_t num_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
 #endif

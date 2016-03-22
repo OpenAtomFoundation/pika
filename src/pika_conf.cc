@@ -35,6 +35,10 @@ int PikaConf::Load()
   GetConfStr("dump_path", &bgsave_path_);
   GetConfInt("target_file_size_base", &target_file_size_base_);
 
+  if (log_path_[log_path_.length() - 1] != '/') {
+    log_path_ += "/";
+  }
+
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
     bgsave_path_ += "/";
   }
