@@ -164,6 +164,8 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
     master_port_ = master_port;
     role_ |= PIKA_ROLE_SLAVE;
     repl_state_ = PIKA_REPL_CONNECT;
+    DLOG(INFO) << "open read-only mode";
+    g_pika_conf->SetReadonly(true);
     return true;
   }
   return false;
@@ -247,6 +249,8 @@ void PikaServer::RemoveMaster() {
     delete ping_thread_;
     ping_thread_ = NULL;
   }
+  DLOG(INFO) << "close read-only mode";
+  g_pika_conf->SetReadonly(false);
 }
 
 /*
@@ -494,3 +498,23 @@ bool PikaServer::GetPurgeWindow(uint32_t &max) {
   return false;
 }
 
+void PikaServer::ClientKillAll() {
+  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; idx++) {
+    pika_worker_thread_[idx]->ThreadClientKill();
+  }  
+}
+
+int PikaServer::ClientKill(const std::string &ip_port) {
+  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; idx++) {
+    if (pika_worker_thread_[idx]->ThreadClientKill(ip_port)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+void PikaServer::ClientList(std::vector< std::pair<int, std::string> > &clients) {
+  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; idx++) {
+    pika_worker_thread_[idx]->ThreadClientList(clients); 
+  }
+}

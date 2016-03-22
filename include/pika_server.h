@@ -154,10 +154,16 @@ public:
   };
   bool PurgeLogs(uint32_t to);
   bool PurgeFiles(uint32_t to);
-
   void ClearPurge() {
     purging_ = false;
   }
+
+/*
+ * client related
+ */
+  void ClientKillAll();
+  int ClientKill(const std::string &ip_port);
+  void ClientList(std::vector< std::pair<int, std::string> > &clients);
 
 
 private:

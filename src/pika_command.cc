@@ -3,6 +3,7 @@
 #include "pika_hash.h"
 #include "pika_list.h"
 #include "pika_set.h"
+#include "pika_zset.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
 
@@ -25,6 +26,16 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameCompact, compactptr));
   CmdInfo* purgelogptr = new CmdInfo(kCmdNamePurgelogsto, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePurgelogsto, purgelogptr));
+  CmdInfo* pingptr = new CmdInfo(kCmdNamePing, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePing, pingptr));
+  CmdInfo* selectptr = new CmdInfo(kCmdNameSelect, 2, kCmdFlagsWrite | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSelect, selectptr));
+  CmdInfo* flushallptr = new CmdInfo(kCmdNameFlushall, 1, kCmdFlagsRead | kCmdFlagsMaskSuspend | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameFlushall, flushallptr));
+  CmdInfo* readonlyptr = new CmdInfo(kCmdNameReadonly, 2, kCmdFlagsRead | kCmdFlagsMaskSuspend | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameReadonly, readonlyptr));
+  CmdInfo* clientptr = new CmdInfo(kCmdNameClient, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameClient, clientptr));
 
   //Kv
   ////SetCmd
@@ -193,6 +204,69 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameRPushx, rpushxptr));
 
   //Zset
+  ////ZAdd
+  CmdInfo* zaddptr = new CmdInfo(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZAdd, zaddptr));
+  ////ZCard
+  CmdInfo* zcardptr = new CmdInfo(kCmdNameZCard, 2, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZCard, zcardptr));
+  ////ZScan
+  CmdInfo* zscanptr = new CmdInfo(kCmdNameZScan, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZScan, zscanptr));
+  ////ZIncrby
+  CmdInfo* zincrbyptr = new CmdInfo(kCmdNameZIncrby, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZIncrby, zincrbyptr));
+  ////ZRange
+  CmdInfo* zrangeptr = new CmdInfo(kCmdNameZRange, -4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRange, zrangeptr));
+  ////ZRevrange
+  CmdInfo* zrevrangeptr = new CmdInfo(kCmdNameZRevrange, -4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRevrange, zrevrangeptr));
+  ////ZRangebyscore
+  CmdInfo* zrangebyscoreptr = new CmdInfo(kCmdNameZRangebyscore, -4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRangebyscore, zrangebyscoreptr));
+  ////ZRevrangebyscore
+  CmdInfo* zrevrangebyscoreptr = new CmdInfo(kCmdNameZRevrangebyscore, -4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRevrangebyscore, zrevrangebyscoreptr));
+  ////ZCount
+  CmdInfo* zcountptr = new CmdInfo(kCmdNameZCount, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZCount, zcountptr));
+  ////ZRem
+  CmdInfo* zremptr = new CmdInfo(kCmdNameZRem, -3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRem, zremptr));
+  ////ZUnionstore
+  CmdInfo* zunionstoreptr = new CmdInfo(kCmdNameZUnionstore, -4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZUnionstore, zunionstoreptr));
+  ////ZInterstore
+  CmdInfo* zinterstoreptr = new CmdInfo(kCmdNameZInterstore, -4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZInterstore, zinterstoreptr));
+  ////ZRank
+  CmdInfo* zrankptr = new CmdInfo(kCmdNameZRank, 3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRank, zrankptr));
+  ////ZRevrank
+  CmdInfo* zrevrankptr = new CmdInfo(kCmdNameZRevrank, 3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRevrank, zrevrankptr));
+  ////ZScore
+  CmdInfo* zscoreptr = new CmdInfo(kCmdNameZScore, 3, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZScore, zscoreptr));
+  ////ZRangebylex
+  CmdInfo* zrangebylexptr = new CmdInfo(kCmdNameZRangebylex, -4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRangebylex, zrangebylexptr));
+  ////ZRevrangebylex
+  CmdInfo* zrevrangebylexptr = new CmdInfo(kCmdNameZRevrangebylex, -4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRevrangebylex, zrevrangebylexptr));
+  ////ZLexcount
+  CmdInfo* zlexcountptr = new CmdInfo(kCmdNameZLexcount, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZLexcount, zlexcountptr));
+  ////ZRemrangebyrank
+  CmdInfo* zremrangebyrankptr = new CmdInfo(kCmdNameZRemrangebyrank, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRemrangebyrank, zremrangebyrankptr));
+  ////ZRemrangebyscore
+  CmdInfo* zremrangebyscoreptr = new CmdInfo(kCmdNameZRemrangebyscore, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRemrangebyscore, zremrangebyscoreptr));
+  ////ZRemrangebylex
+  CmdInfo* zremrangebylexptr = new CmdInfo(kCmdNameZRemrangebylex, 4, kCmdFlagsWrite | kCmdFlagsList);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRemrangebylex, zremrangebylexptr));
 
   //Set
   ////SAdd
@@ -275,6 +349,16 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameCompact, compactptr));
   Cmd* purgelogptr = new PurgelogstoCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePurgelogsto, purgelogptr));
+  Cmd* pingptr = new PingCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePing, pingptr));
+  Cmd* selectptr = new SelectCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSelect, selectptr));
+  Cmd* flushallptr = new FlushallCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameFlushall, flushallptr));
+  Cmd* readonlyptr = new ReadonlyCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameReadonly, readonlyptr));
+  Cmd* clientptr = new ClientCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameClient, clientptr));
 
   //Kv
   ////SetCmd
@@ -441,6 +525,69 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPushx, rpushxptr));
 
   //Zset
+  ////ZAddCmd
+  Cmd* zaddptr = new ZAddCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZAdd, zaddptr));
+  ////ZCardCmd
+  Cmd* zcardptr = new ZCardCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZCard, zcardptr));
+  ////ZScanCmd
+  Cmd* zscanptr = new ZScanCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZScan, zscanptr));
+  ////ZIncrbyCmd
+  Cmd* zincrbyptr = new ZIncrbyCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZIncrby, zincrbyptr));
+  ////ZRangeCmd
+  Cmd* zrangeptr = new ZRangeCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRange, zrangeptr));
+  ////ZRevrangeCmd
+  Cmd* zrevrangeptr = new ZRevrangeCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRevrange, zrevrangeptr));
+  ////ZRangebyscoreCmd
+  Cmd* zrangebyscoreptr = new ZRangebyscoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRangebyscore, zrangebyscoreptr));
+  ////ZRevrangebyscoreCmd
+  Cmd* zrevrangebyscoreptr = new ZRevrangebyscoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRevrangebyscore, zrevrangebyscoreptr));
+  ////ZCountCmd
+  Cmd* zcountptr = new ZCountCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZCount, zcountptr));
+  ////ZRemCmd
+  Cmd* zremptr = new ZRemCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRem, zremptr));
+  ////ZUnionstoreCmd
+  Cmd* zunionstoreptr = new ZUnionstoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZUnionstore, zunionstoreptr));
+  ////ZInterstoreCmd
+  Cmd* zinterstoreptr = new ZInterstoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZInterstore, zinterstoreptr));
+  ////ZRankCmd
+  Cmd* zrankptr = new ZRankCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRank, zrankptr));
+  ////ZRevrankCmd
+  Cmd* zrevrankptr = new ZRevrankCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRevrank, zrevrankptr));
+  ////ZScoreCmd
+  Cmd* zscoreptr = new ZScoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZScore, zscoreptr));
+  ////ZRangebylexCmd
+  Cmd* zrangebylexptr = new ZRangebylexCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRangebylex, zrangebylexptr));
+  ////ZRevrangebylexCmd
+  Cmd* zrevrangebylexptr = new ZRevrangebylexCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRevrangebylex, zrevrangebylexptr));
+  ////ZLexcountCmd
+  Cmd* zlexcountptr = new ZLexcountCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZLexcount, zlexcountptr));
+  ////ZRemrangebyrankCmd
+  Cmd* zremrangebyrankptr = new ZRemrangebyrankCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRemrangebyrank, zremrangebyrankptr));
+  ////ZRemrangebyscoreCmd
+  Cmd* zremrangebyscoreptr = new ZRemrangebyscoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRemrangebyscore, zremrangebyscoreptr));
+  ////ZRemrangebylexCmd
+  Cmd* zremrangebylexptr = new ZRemrangebylexCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRemrangebylex, zremrangebylexptr));
 
   //Set
   ////SAddCmd

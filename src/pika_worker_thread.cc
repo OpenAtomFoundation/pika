@@ -90,7 +90,7 @@ bool PikaWorkerThread::FindClient(std::string ip_port) {
   slash::RWLock l(&rwlock_, false);
   std::map<int, void*>::iterator iter;
   for (iter = conns_.begin(); iter != conns_.end(); iter++) {
-    if (static_cast<PikaClientConn*>(iter->second)->ip_port() != ip_port) {
+    if (static_cast<PikaClientConn*>(iter->second)->ip_port() == ip_port) {
       return true;
     }
   }
@@ -123,3 +123,11 @@ void PikaWorkerThread::ClientKillAll() {
   }
 }
 
+void PikaWorkerThread::ThreadClientList(std::vector< std::pair<int, std::string> > &clients) {
+  slash::RWLock l(&rwlock_, false);
+  std::map<int, void*>::const_iterator iter = conns_.begin();
+  while (iter != conns_.end()) {
+    clients.push_back(make_pair(iter->first, reinterpret_cast<PikaClientConn*>(iter->second)->ip_port()));
+    iter++;
+  } 
+}

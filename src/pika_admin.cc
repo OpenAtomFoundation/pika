@@ -6,6 +6,9 @@
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
 
+std::string ClientCmd::CLIENT_LIST_S = "list";
+std::string ClientCmd::CLIENT_KILL_S = "kill";
+
 void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
@@ -225,11 +228,108 @@ void PurgelogstoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
   }
   num_ = num;
 }
-
 void PurgelogstoCmd::Do() {
   if (g_pika_server->PurgeLogs(num_)) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kPurgeExist);
   }
+}
+
+void PingCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePing);
+    return;
+  }
+}
+void PingCmd::Do() {
+  res_.SetRes(CmdRes::kPong);
+}
+
+void SelectCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
+    return;
+  }
+}
+void SelectCmd::Do() {
+  res_.SetRes(CmdRes::kOk);
+}
+
+void FlushallCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushall);
+    return;
+  }
+}
+void FlushallCmd::Do() {
+  slash::RWLock(g_pika_server->rwlock(), true);
+  res_.SetRes(CmdRes::kOk);
+}
+
+void ReadonlyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameReadonly);
+    return;
+  }
+  std::string opt = slash::StringToLower(argv[1]);
+  if (opt == "on" || opt == "1") {
+    is_open_ = true;
+  } else if (opt == "off" || opt == "0") {
+    is_open_ = false;
+  } else {
+    res_.SetRes(CmdRes::kSyntaxErr, kCmdNameReadonly);
+    return;
+  }
+}
+void ReadonlyCmd::Do() {
+  slash::RWLock(g_pika_server->rwlock(), true);
+  if (is_open_) {
+    g_pika_conf->SetReadonly(true);
+  } else {
+    g_pika_conf->SetReadonly(false);
+  }
+  res_.SetRes(CmdRes::kOk);
+}
+
+void ClientCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameClient);
+    return;
+  }
+  slash::StringToLower(argv[1]);
+  if (argv[1] == CLIENT_LIST_S && argv.size() == 2) {
+    //nothing
+  } else if (argv[1] == CLIENT_KILL_S && argv.size() == 3) {
+    ip_port_ = slash::StringToLower(argv[2]);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Syntax error, try CLIENT (LIST | KILL ip:port)");
+    return;
+  }
+  operation_ = argv[1];
+  return;
+}
+
+void ClientCmd::Do() {
+  if (operation_ == CLIENT_LIST_S) {
+    std::vector< std::pair<int, std::string> > clients;
+    g_pika_server->ClientList(clients);
+    std::vector<std::pair<int, std::string> >::iterator iter= clients.begin();
+    std::string reply = "+";
+    char buf[128];
+    while (iter != clients.end()) {
+      snprintf(buf, sizeof(buf), "addr=%s, fd=%d\n", iter->second.c_str(), iter->first);
+      reply.append(buf);
+      iter++;
+    }
+    res_.AppendContent(reply);
+  } else if (operation_ == CLIENT_KILL_S && ip_port_ == "all") {
+    g_pika_server->ClientKillAll();
+    res_.SetRes(CmdRes::kOk);
+  } else if (g_pika_server->ClientKill(ip_port_) == 1) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "No such client");
+  }
+  return;
 }

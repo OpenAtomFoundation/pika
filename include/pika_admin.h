@@ -84,4 +84,54 @@ private:
   uint32_t num_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
+
+class PingCmd : public Cmd {
+public:
+  PingCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class SelectCmd : public Cmd {
+public:
+  SelectCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class FlushallCmd : public Cmd {
+public:
+  FlushallCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class ReadonlyCmd : public Cmd {
+public:
+  ReadonlyCmd() : is_open_(false) {
+  }
+  virtual void Do();
+private:
+  bool is_open_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class ClientCmd : public Cmd {
+public:
+  ClientCmd() {
+  }
+  virtual void Do();
+  static std::string CLIENT_LIST_S;
+  static std::string CLIENT_KILL_S;
+private:
+  std::string operation_, ip_port_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+
+};
 #endif
