@@ -126,7 +126,7 @@ void PikaServer::Start() {
     DoTimingTask();
     // wake up every half hour
     int try_num = 0;
-    while (!exit_ && try_num++ < 30 * 60) {
+    while (!exit_ && try_num++ < 10) {
       sleep(1);
     }
   }

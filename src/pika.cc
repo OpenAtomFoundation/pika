@@ -71,11 +71,8 @@ static void create_pid_file(void) {
 }
 
 static void IntSigHandle(const int sig) {
-  ::google::ShutdownGoogleLogging();
-  DestoryCmdInfoTable();
   DLOG(INFO) << "Catch Signal " << sig << ", cleanup...";
   g_pika_server->Exit();
-  //cleanup();
 }
 
 static void PikaSignalSetup() {
