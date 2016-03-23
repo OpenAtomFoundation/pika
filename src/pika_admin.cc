@@ -264,7 +264,11 @@ void FlushallCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 }
 void FlushallCmd::Do() {
   slash::RWLock(g_pika_server->rwlock(), true);
-  res_.SetRes(CmdRes::kOk);
+  if (g_pika_server->FlushAll()) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushall");
+  }
 }
 
 void ReadonlyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
