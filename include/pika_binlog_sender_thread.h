@@ -37,15 +37,6 @@ class PikaBinlogSenderThread : public pink::Thread {
     return con_offset_;
   }
 
-  bool IsExit() {
-    slash::RWLock l(&rwlock_, false);
-    return should_exit_;
-  }
-  void SetExit() {
-    slash::RWLock l(&rwlock_, true);
-    should_exit_ = true;
-  }
-
   int trim();
   uint64_t get_next(bool &is_error);
 
@@ -71,7 +62,6 @@ class PikaBinlogSenderThread : public pink::Thread {
   std::string ip_;
   int port_;
 
-  bool should_exit_;
   pthread_rwlock_t rwlock_;
 
 

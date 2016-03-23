@@ -8,6 +8,9 @@ public:
   PikaTrysyncThread() {
 	};
   virtual ~PikaTrysyncThread() {
+    should_exit_ = true;
+    pthread_join(thread_id(), NULL);
+    DLOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
 	};
 	
 

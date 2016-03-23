@@ -24,8 +24,7 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(std::string &ip, int port, slash:
     backing_store_(new char[kBlockSize]),
     buffer_(),
     ip_(ip),
-    port_(port),
-    should_exit_(false) {
+    port_(port) {
       cli_ = new RedisCli();
 
       last_record_offset_ = con_offset % kBlockSize;
@@ -33,7 +32,16 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(std::string &ip, int port, slash:
 }
 
 PikaBinlogSenderThread::~PikaBinlogSenderThread() {
+  should_exit_ = true;
+
+  pthread_join(thread_id(), NULL);
+
+  if (queue_ != NULL) {
+    delete queue_;
+  }
+  pthread_rwlock_destroy(&rwlock_);
   delete [] backing_store_;
+  DLOG(INFO) << "a BinlogSender thread " << pthread_self() << " exit!";
 }
 
 int PikaBinlogSenderThread::trim() {
@@ -191,7 +199,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
   Status s;
 
   Version* version = g_pika_server->logger_->version_;
-  while (!IsExit()) {
+  while (!should_exit_) {
     if (filenum_ == version->pro_num() && con_offset_ == version->pro_offset()) {
       //DLOG(INFO) << "BinlogSender Parse no new msg, filenum_" << filenum_ << ", con_offset " << con_offset_;
       usleep(10000);
@@ -226,7 +234,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
     }
   }
     
-  if (IsExit()) {
+  if (should_exit_) {
     return Status::Corruption("should exit");
   }
   return s;
@@ -240,7 +248,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
   std::string scratch;
   scratch.reserve(1024 * 1024);
 
-  while (!IsExit()) {
+  while (!should_exit_) {
 
     // 1. Connect to slave
     result = cli_->Connect(ip_, port_);

@@ -25,10 +25,7 @@ Version::Version(slash::RWFile *save) : save_(save) {
   assert(save_ != NULL);
 
   pro_offset_ = 0;
-  con_offset_ = 0;
-  item_num_ = 0;
   pro_num_ = 0;
-  con_num_ = 0;
 
   pthread_rwlock_init(&rwlock_, NULL);
 }
@@ -43,15 +40,15 @@ Status Version::StableSave() {
 
   char *p = save_->GetData();
   memcpy(p, &pro_offset_, sizeof(uint64_t));
-  p += 8;
-  memcpy(p, &con_offset_, sizeof(uint64_t));
-  p += 8;
+  p += 16;
+  //memcpy(p, &con_offset_, sizeof(uint64_t));
+  //p += 8;
   memcpy(p, &item_num_, sizeof(uint32_t));
   p += 4;
   memcpy(p, &pro_num_, sizeof(uint32_t));
-  p += 4;
-  memcpy(p, &con_num_, sizeof(uint32_t));
-  p += 4;
+  //p += 4;
+  //memcpy(p, &con_num_, sizeof(uint32_t));
+  //p += 4;
   return Status::OK();
 }
 
@@ -61,10 +58,10 @@ Status Version::Init() {
   Status s;
   if (save_->GetData() != NULL) {
     memcpy((char*)(&pro_offset_), save_->GetData(), sizeof(uint64_t));
-    memcpy((char*)(&con_offset_), save_->GetData() + 8, sizeof(uint64_t));
+    //memcpy((char*)(&con_offset_), save_->GetData() + 8, sizeof(uint64_t));
     memcpy((char*)(&item_num_), save_->GetData() + 16, sizeof(uint32_t));
     memcpy((char*)(&pro_num_), save_->GetData() + 20, sizeof(uint32_t));
-    memcpy((char*)(&con_num_), save_->GetData() + 24, sizeof(uint32_t));
+    //memcpy((char*)(&con_num_), save_->GetData() + 24, sizeof(uint32_t));
     // DLOG(INFO) << "Version Init pro_offset "<< pro_offset_ << " itemnum " << item_num << " pro_num " << pro_num_ << " con_num " << con_num_;
     return Status::OK();
   } else {
@@ -75,7 +72,7 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(const std::string& Binlog_path) :
+Binlog::Binlog(const std::string& Binlog_path, const int file_size) :
     version_(NULL),
     consumer_num_(0),
     item_num_(0),
@@ -87,7 +84,7 @@ Binlog::Binlog(const std::string& Binlog_path) :
     exit_all_consume_(false),
     binlog_path_(Binlog_path) {
 
-  //slash::SetMmapBoundSize(1024 * 1024 * 100);
+  slash::SetMmapBoundSize(file_size);
   //slash::kMmapBoundSize = 1024 * 1024 * 100;
 
   Status s;
@@ -124,7 +121,7 @@ Binlog::Binlog(const std::string& Binlog_path) :
       pro_num_ = version_->pro_num();
 
       // Debug
-      version_->debug();
+      //version_->debug();
     } else {
       LOG(WARNING) << "Binlog: open versionfile error";
     }
@@ -212,7 +209,7 @@ Status Binlog::Put(const char* item, int len) {
     version_->set_pro_offset(0);
     version_->set_pro_num(pro_num_);
     version_->StableSave();
-    version_->debug();
+    //version_->debug();
 
     InitLogFile();
   }

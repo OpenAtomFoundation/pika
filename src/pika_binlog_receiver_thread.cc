@@ -16,6 +16,7 @@ PikaBinlogReceiverThread::PikaBinlogReceiverThread(int port, int cron_interval) 
 
 PikaBinlogReceiverThread::~PikaBinlogReceiverThread() {
     DestoryCmdTable(cmds_);
+    DLOG(INFO) << "BinlogReceiver thread " << pthread_self() << " exit!!!";
 }
 
 bool PikaBinlogReceiverThread::AccessHandle(std::string& ip) {

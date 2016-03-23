@@ -27,11 +27,10 @@ std::string NewFileName(const std::string name, const uint32_t current);
 
 class Version;
 
-
 class Binlog
 {
  public:
-  Binlog(const std::string& Binlog_path);
+  Binlog(const std::string& Binlog_path, const int file_size = 100 * 1024 * 1024);
   ~Binlog();
 
   void Lock()         { mutex_.Lock(); }
@@ -117,17 +116,13 @@ class Version {
     pro_offset_ += r;
   }
 
-  uint64_t con_offset() {
+  uint32_t pro_num() {
     slash::RWLock(&rwlock_, false);
-    return con_offset_;
+    return pro_num_;
   }
-  void set_con_offset(uint64_t con_offset) {
+  void set_pro_num(uint32_t pro_num) {
     slash::RWLock(&rwlock_, true);
-    con_offset_ = con_offset;
-  }
-  void rise_con_offset(uint64_t r) {
-    slash::RWLock(&rwlock_, true);
-    con_offset_ += r;
+    pro_num_ = pro_num;
   }
 
   uint32_t item_num() {
@@ -147,42 +142,25 @@ class Version {
     item_num_--;
   }
 
-  uint32_t pro_num() {
-    slash::RWLock(&rwlock_, false);
-    return pro_num_;
-  }
-  void set_pro_num(uint32_t pro_num) {
-    slash::RWLock(&rwlock_, true);
-    pro_num_ = pro_num;
-  }
-
-  uint32_t con_num() {
-    slash::RWLock(&rwlock_, false);
-    return con_num_;
-  }
-  void set_con_num(uint32_t con_num) {
-    slash::RWLock(&rwlock_, true);
-    con_num_ = con_num;
-  }
-
   void debug() {
     slash::RWLock(&rwlock_, false);
-    printf ("Current pro_offset %lu con_offset %lu itemnum %u pro_num %u con_num %u\n",
-            pro_offset_, con_offset_, item_num_, pro_num_, con_num_);
+    printf ("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
   }
 
  private:
 
   uint64_t pro_offset_;
-  uint64_t con_offset_;
-  uint32_t item_num_;
   uint32_t pro_num_;
-  uint32_t con_num_;
+
 
   slash::RWFile *save_;
   pthread_rwlock_t rwlock_;
   // port::Mutex mutex_;
 
+  // Not used
+  uint64_t con_offset_;
+  uint32_t con_num_;
+  uint32_t item_num_;
 
   // No copying allowed;
   Version(const Version&);

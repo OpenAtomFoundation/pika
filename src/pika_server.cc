@@ -34,9 +34,12 @@ PikaServer::PikaServer() :
 
   option.write_buffer_size = g_pika_conf->write_buffer_size();
   option.target_file_size_base = g_pika_conf->target_file_size_base();
+	if (g_pika_conf->compression() == "none") {
+		 option.compression = false;
+  }
   std::string db_path = g_pika_conf->db_path();
   LOG(WARNING) << "Prepare DB...";
-  db_ = std::unique_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
+  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
   assert(db_);
   LOG(WARNING) << "DB Success";
 
@@ -51,8 +54,7 @@ PikaServer::PikaServer() :
   pika_trysync_thread_ = new PikaTrysyncThread();
 
   pthread_rwlock_init(&state_protector_, NULL);
-  logger_ = new Binlog(g_pika_conf->log_path());
-  
+  logger_ = new Binlog(g_pika_conf->log_path(), g_pika_conf->binlog_file_size());
 }
 
 PikaServer::~PikaServer() {
@@ -61,7 +63,23 @@ PikaServer::~PikaServer() {
   if (bgsave_engine_ != NULL) {
     delete bgsave_engine_;
   }
-  //delete logger_;
+
+  delete logger_;
+  db_.reset();
+
+  for (int i = 0; i < PIKA_MAX_WORKER_THREAD_NUM; i++) {
+    delete pika_worker_thread_[i];
+  }
+
+  delete pika_dispatch_thread_;
+  delete pika_binlog_receiver_thread_;
+  delete pika_trysync_thread_;
+  delete pika_heartbeat_thread_;
+
+  //TODO
+  //delete pika_slaveping_thread_;
+
+  DLOG(INFO) << "PikaServer " << pthread_self() << " exit!!!";
 }
 
 bool PikaServer::ServerInit() {
@@ -76,6 +94,22 @@ bool PikaServer::ServerInit() {
 	port_ = g_pika_conf->port();	
   DLOG(INFO) << "host: " << host_ << " port: " << port_;
 	return true;
+}
+
+void PikaServer::Cleanup() {
+  // shutdown server
+  if (g_pika_conf->daemonize()) {
+    unlink(g_pika_conf->pidfile().c_str());
+  }
+
+  DestoryCmdInfoTable();
+
+  //g_pika_server->shutdown = true;
+  //sleep(1);
+
+  delete this;
+  delete g_pika_conf;
+  ::google::ShutdownGoogleLogging();
 }
 
 void PikaServer::Start() {
@@ -97,6 +131,7 @@ void PikaServer::Start() {
     }
   }
   DLOG(INFO) << "Goodbye...";
+  Cleanup();
 }
 
 
@@ -109,16 +144,16 @@ void PikaServer::DeleteSlave(int fd) {
       //pthread_kill(iter->tid);
 
       // Remove BinlogSender first
-      static_cast<PikaBinlogSenderThread*>(iter->sender)->SetExit();
-      
-      DLOG(INFO) << "DeleteSlave: start join";
-      int err = pthread_join(iter->sender_tid, NULL);
-      DLOG(INFO) << "DeleteSlave: after join";
-      if (err != 0) {
-        std::string msg = "can't join thread " + std::string(strerror(err));
-        LOG(WARNING) << msg;
-        //return Status::Corruption(msg);
-      }
+   //   static_cast<PikaBinlogSenderThread*>(iter->sender)->SetExit();
+   //   
+   //   DLOG(INFO) << "DeleteSlave: start join";
+   //   int err = pthread_join(iter->sender_tid, NULL);
+   //   DLOG(INFO) << "DeleteSlave: after join";
+   //   if (err != 0) {
+   //     std::string msg = "can't join thread " + std::string(strerror(err));
+   //     LOG(WARNING) << msg;
+   //     //return Status::Corruption(msg);
+   //   }
 
       delete static_cast<PikaBinlogSenderThread*>(iter->sender);
       
@@ -566,6 +601,52 @@ void PikaServer::AutoPurge() {
       LOG(ERROR) << "Auto purge failed"; 
     }
   }
+}
+
+bool PikaServer::FlushAll() {
+  if (bgsaving_ /*|| bgscaning_*/) {
+    return false;
+  }
+  std::string dbpath = g_pika_conf->db_path();
+  if (dbpath[dbpath.length() - 1] == '/') {
+    dbpath.erase(dbpath.length() - 1);
+  }
+  int pos = dbpath.find_last_of('/');
+  dbpath = dbpath.substr(0, pos);
+  dbpath.append("/deleting");
+  slash::RenameFile(g_pika_conf->db_path(), dbpath.c_str());
+
+  LOG(WARNING) << "Delete old db...";
+  db_.reset();
+
+  nemo::Options option;
+  option.write_buffer_size = g_pika_conf->write_buffer_size();
+  option.target_file_size_base = g_pika_conf->target_file_size_base();
+  if (g_pika_conf->compression() == "none") {
+    option.compression = false;
+  }
+  LOG(WARNING) << "Prepare open new db...";
+  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(g_pika_conf->db_path(), option));
+  LOG(WARNING) << "open new db success";
+  PurgeDir(dbpath);
+  return true; 
+}
+
+void PikaServer::PurgeDir(std::string& path) {
+  std::string *dir_path = new std::string(path);
+  // Start new thread if needed
+  if (!purge_thread_.is_running()) {
+    purge_thread_.StartThread();
+  }
+  purge_thread_.Schedule(&DoPurgeDir, static_cast<void*>(dir_path));
+}
+
+void PikaServer::DoPurgeDir(void* arg) {
+  std::string path = *(static_cast<std::string*>(arg));
+  DLOG(INFO) << "Delete dir: " << path << " start";
+  slash::DeleteDir(path);
+  DLOG(INFO) << "Delete dir: " << path << " done";
+  delete static_cast<std::string*>(arg);
 }
 
 void PikaServer::ClientKillAll() {

@@ -45,6 +45,15 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return "-ERR NOAUTH Authentication required.\r\n";
   }
   
+  // For now, only shutdown need check local
+  if (cinfo_ptr->is_local()) {
+    if (ip_port().find("127.0.0.1") != std::string::npos
+        && ip_port().find(g_pika_server->host()) != std::string::npos) {
+      LOG(WARNING) << "\'shutdown\' should be localhost";
+      return "-ERR \'shutdown\' should be localhost\r\n";
+    }
+  }
+
   // Initial
   c_ptr->Initial(argv_, cinfo_ptr);
   if (!c_ptr->res().ok()) {

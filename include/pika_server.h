@@ -66,7 +66,6 @@ public:
     return db_;
   }
   
-  
 
 /*
  * Master use
@@ -107,6 +106,7 @@ public:
   void DoTimingTask() {
     AutoPurge();
   }
+  void Cleanup();
 
   PikaSlavepingThread* ping_thread_;
   //slash::Mutex mutex_; // double lock to block main thread
@@ -163,6 +163,9 @@ public:
   void ClearPurge() {
     purging_ = false;
   }
+  //flushall
+  bool FlushAll();
+  void PurgeDir(std::string& path);
 
 /*
  * client related
@@ -224,6 +227,11 @@ private:
   bool GetBinlogFiles(std::vector<std::string>& binlogs);
   void AutoPurge();
   int GetAutoPurgeUpIndex();
+
+  /*
+   * Flushall use 
+   */
+  static void DoPurgeDir(void* arg);
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);

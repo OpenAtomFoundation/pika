@@ -264,7 +264,11 @@ void FlushallCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 }
 void FlushallCmd::Do() {
   slash::RWLock(g_pika_server->rwlock(), true);
-  res_.SetRes(CmdRes::kOk);
+  if (g_pika_server->FlushAll()) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushall");
+  }
 }
 
 void ReadonlyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
@@ -332,4 +336,17 @@ void ClientCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, "No such client");
   }
   return;
+}
+
+void ShutdownCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameShutdown);
+    return;
+  }
+}
+// no return
+void ShutdownCmd::Do() {
+  DLOG(WARNING) << "handle \'shutdown\'";
+  g_pika_server->mutex_.Unlock();
+  res_.SetRes(CmdRes::kNone);
 }

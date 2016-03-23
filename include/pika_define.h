@@ -2,10 +2,11 @@
 #define PIKA_DEFINE_H_
 
 
-#define PIKA_MAX_WORKER_THREAD_NUM 4
+#define PIKA_MAX_WORKER_THREAD_NUM 1
 
 
 static const std::string kPikaVersion = "2.0.0";
+const std::string kPikaPidFile = "pika.pid";
 
 struct WorkerCronTask {
   int task;

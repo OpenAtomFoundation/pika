@@ -37,6 +37,7 @@ public:
   const std::vector<std::string>& vuser_blacklist() {
     RWLock l(&rwlock_, false); return user_blacklist_;
   }
+  std::string compression()       { RWLock l(&rwlock_, false); return compression_; }
   int target_file_size_base()         { RWLock l(&rwlock_, false); return target_file_size_base_; }
   int expire_logs_nums()         { RWLock l(&rwlock_, false); return expire_logs_nums_; }
   int expire_logs_days()         { RWLock l(&rwlock_, false); return expire_logs_days_; }
@@ -44,6 +45,11 @@ public:
   bool readonly() {
     RWLock l(&rwlock_, false); return readonly_;
   }
+
+  // Immutable config items, we don't use lock.
+  bool daemonize()        { return daemonize_; }
+  std::string pidfile()   { return pidfile_; }
+  int binlog_file_size()  { return binlog_file_size_; }
 
   // Setter
   void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
@@ -97,26 +103,33 @@ private:
   //char slave_db_sync_path_[PIKA_WORD_SIZE];
   int write_buffer_size_;
   int log_level_;
-  //bool daemonize_;
+  bool daemonize_;
   int timeout_;
   std::string requirepass_;
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
   std::string bgsave_path_;
+  std::string pidfile_;
+
   //char pidfile_[PIKA_WORD_SIZE];
-  //char compression_[PIKA_WORD_SIZE];
+  std::string compression_;
   //int maxconnection_;
-  int target_file_size_base_;
   int expire_logs_days_;
   int expire_logs_nums_;
   //int root_connection_num_;
   //int slowlog_slower_than_;
-  //int binlog_file_size_;
   bool readonly_;
   std::string conf_path_;
   //char username_[30];
   //char password_[30];
   //int db_sync_speed_;
+
+  //
+  // Critical configure items
+  //
+  int target_file_size_base_;
+  int binlog_file_size_;
+
   pthread_rwlock_t rwlock_;
 };
 
