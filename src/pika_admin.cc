@@ -272,3 +272,16 @@ void ClientCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 void ClientCmd::Do() {
   res_.SetRes(CmdRes::kOk);
 }
+
+void ShutdownCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameShutdown);
+    return;
+  }
+}
+// no return
+void ShutdownCmd::Do() {
+  DLOG(WARNING) << "handle \'shutdown\'";
+  g_pika_server->mutex_.Unlock();
+  res_.SetRes(CmdRes::kNone);
+}

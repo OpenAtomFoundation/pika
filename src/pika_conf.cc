@@ -40,6 +40,11 @@ int PikaConf::Load()
     bgsave_path_ += "/";
   }
   
+  std::string dmz;
+  GetConfStr("daemonize", &dmz);
+  daemonize_ =  (dmz == "yes") ? true : false;
+
+  GetConfStr("pidfile", &pidfile_);
 
   return ret;
   //if (thread_num_ <= 0) {
@@ -72,9 +77,7 @@ int PikaConf::Load()
   //if (db_sync_speed_ < 0 || db_sync_speed_ > 125) {
   //    db_sync_speed_ = 125;
   //}
-  //std::string s_dmz;
-  //getConfStr("daemonize", &s_dmz);
-  //daemonize_ =  (str == "yes") ? true : false;
+
 
   //if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024 * 2)) {
   //  binlog_file_size_ = 100 * 1024 * 1024;    // 100M

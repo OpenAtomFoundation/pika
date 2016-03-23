@@ -120,4 +120,13 @@ public:
 private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
+
+class ShutdownCmd : public Cmd {
+public:
+  ShutdownCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
 #endif

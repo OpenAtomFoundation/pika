@@ -66,7 +66,6 @@ public:
     return db_;
   }
   
-  
 
 /*
  * Master use
@@ -102,6 +101,7 @@ public:
   void RemoveMaster();
 
   void Start();
+  void Cleanup();
 
   PikaSlavepingThread* ping_thread_;
   slash::Mutex mutex_; // double lock to block main thread

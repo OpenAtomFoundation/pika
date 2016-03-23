@@ -10,7 +10,7 @@ PikaDispatchThread::PikaDispatchThread(int port, int work_num, PikaWorkerThread*
 }
 
 PikaDispatchThread::~PikaDispatchThread() {
-
+  DLOG(INFO) << "dispatch thread " << pthread_self() << " exit!!!";
 }
 
 void PikaDispatchThread::CronHandle() {

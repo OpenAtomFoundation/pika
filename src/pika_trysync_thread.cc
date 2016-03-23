@@ -201,8 +201,9 @@ bool PikaTrysyncThread::RecvProc() {
 	}
 }
 
+// TODO maybe use RedisCli
 void* PikaTrysyncThread::ThreadMain() {
-  while (true) {
+  while (!should_exit_) {
     if (g_pika_server->ShouldConnectMaster()) { //g_pika_server->repl_state_ == PIKA_REPL_CONNECT
       sleep(2);
       DLOG(INFO) << "Should connect master";

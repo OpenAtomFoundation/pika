@@ -27,6 +27,8 @@ public:
   std::string db_path()         { RWLock l(&rwlock_, false); return db_path_; }
   int write_buffer_size()         { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
+  bool daemonize()        { return daemonize_; }
+  std::string pidfile()   { return pidfile_; }
 
   std::string requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
   std::string bgsave_path()     { RWLock l(&rwlock_, false); return bgsave_path_; }
@@ -86,12 +88,14 @@ private:
   //char slave_db_sync_path_[PIKA_WORD_SIZE];
   int write_buffer_size_;
   int log_level_;
-  //bool daemonize_;
+  bool daemonize_;
   int timeout_;
   std::string requirepass_;
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
   std::string bgsave_path_;
+  std::string pidfile_;
+
   //char pidfile_[PIKA_WORD_SIZE];
   //char compression_[PIKA_WORD_SIZE];
   //int maxconnection_;

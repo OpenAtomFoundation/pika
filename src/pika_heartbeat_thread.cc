@@ -11,7 +11,7 @@ PikaHeartbeatThread::PikaHeartbeatThread(int port, int cron_interval) :
 }
 
 PikaHeartbeatThread::~PikaHeartbeatThread() {
-
+  DLOG(INFO) << "PikaHeartbeat thread " << pthread_self() << " exit!!!";
 }
 
 void PikaHeartbeatThread::CronHandle() {

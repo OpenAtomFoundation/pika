@@ -58,7 +58,23 @@ PikaServer::~PikaServer() {
   if (bgsave_engine_ != NULL) {
     delete bgsave_engine_;
   }
-  //delete logger_;
+
+  delete logger_;
+  db_.reset();
+
+  for (int i = 0; i < PIKA_MAX_WORKER_THREAD_NUM; i++) {
+    delete pika_worker_thread_[i];
+  }
+
+  delete pika_dispatch_thread_;
+  delete pika_binlog_receiver_thread_;
+  delete pika_trysync_thread_;
+  delete pika_heartbeat_thread_;
+
+  //TODO
+  //delete pika_slaveping_thread_;
+
+  DLOG(INFO) << "PikaServer " << pthread_self() << " exit!!!";
 }
 
 bool PikaServer::ServerInit() {
@@ -75,6 +91,22 @@ bool PikaServer::ServerInit() {
 	return true;
 }
 
+void PikaServer::Cleanup() {
+  // shutdown server
+  if (g_pika_conf->daemonize()) {
+    unlink(g_pika_conf->pidfile().c_str());
+  }
+
+  DestoryCmdInfoTable();
+
+  //g_pika_server->shutdown = true;
+  //sleep(1);
+
+  delete this;
+  delete g_pika_conf;
+  ::google::ShutdownGoogleLogging();
+}
+
 void PikaServer::Start() {
   pika_dispatch_thread_->StartThread();
   pika_binlog_receiver_thread_->StartThread();
@@ -85,10 +117,12 @@ void PikaServer::Start() {
   //SetMaster("127.0.0.1", 9221);
 
   DLOG(WARNING) << "Pika Server going to start";
+
   mutex_.Lock();
   mutex_.Lock();
   DLOG(INFO) << "Goodbye...";
   mutex_.Unlock();
+  Cleanup();
 }
 
 void PikaServer::DeleteSlave(int fd) {
@@ -100,16 +134,16 @@ void PikaServer::DeleteSlave(int fd) {
       //pthread_kill(iter->tid);
 
       // Remove BinlogSender first
-      static_cast<PikaBinlogSenderThread*>(iter->sender)->SetExit();
-      
-      DLOG(INFO) << "DeleteSlave: start join";
-      int err = pthread_join(iter->sender_tid, NULL);
-      DLOG(INFO) << "DeleteSlave: after join";
-      if (err != 0) {
-        std::string msg = "can't join thread " + std::string(strerror(err));
-        LOG(WARNING) << msg;
-        //return Status::Corruption(msg);
-      }
+   //   static_cast<PikaBinlogSenderThread*>(iter->sender)->SetExit();
+   //   
+   //   DLOG(INFO) << "DeleteSlave: start join";
+   //   int err = pthread_join(iter->sender_tid, NULL);
+   //   DLOG(INFO) << "DeleteSlave: after join";
+   //   if (err != 0) {
+   //     std::string msg = "can't join thread " + std::string(strerror(err));
+   //     LOG(WARNING) << msg;
+   //     //return Status::Corruption(msg);
+   //   }
 
       delete static_cast<PikaBinlogSenderThread*>(iter->sender);
       
