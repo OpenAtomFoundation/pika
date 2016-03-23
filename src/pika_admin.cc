@@ -347,6 +347,6 @@ void ShutdownCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 // no return
 void ShutdownCmd::Do() {
   DLOG(WARNING) << "handle \'shutdown\'";
-  g_pika_server->mutex_.Unlock();
+  g_pika_server->Exit();
   res_.SetRes(CmdRes::kNone);
 }
