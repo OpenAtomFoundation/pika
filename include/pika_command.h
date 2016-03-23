@@ -17,6 +17,7 @@ const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameBgsaveoff = "bgsaveoff";
 const std::string kCmdNameCompact = "compact";
+const std::string kCmdNamePurgelogsto = "purgelogsto";
 const std::string kCmdNamePing = "ping";
 const std::string kCmdNameSelect = "select";
 const std::string kCmdNameFlushall = "flushall";
@@ -212,6 +213,8 @@ public:
     kOutOfRange,
     kInvalidPwd,
     kNoneBgsave,
+    kPurgeExist,
+    kInvalidParameter,
     kWrongNum,
     kErrOther,
   };
@@ -256,6 +259,10 @@ public:
       return "-ERR invalid password\r\n";
     case kNoneBgsave:
       return "-ERR No BGSave Works now\r\n";
+    case kPurgeExist:
+      return "-ERR binlog may in use or non_exist or already in purging...\r\n";
+    case kInvalidParameter:
+      return "-ERR Invalid Argument\r\n";
     case kWrongNum:
       result = "-ERR wrong number of arguments for '";
       result.append(message_);

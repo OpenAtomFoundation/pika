@@ -27,8 +27,6 @@ public:
   std::string db_path()         { RWLock l(&rwlock_, false); return db_path_; }
   int write_buffer_size()         { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
-  bool daemonize()        { return daemonize_; }
-  std::string pidfile()   { return pidfile_; }
 
   std::string requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
   std::string bgsave_path()     { RWLock l(&rwlock_, false); return bgsave_path_; }
@@ -44,6 +42,11 @@ public:
   bool readonly() {
     RWLock l(&rwlock_, false); return readonly_;
   }
+
+  // Immutable config items, we don't use lock.
+  bool daemonize()        { return daemonize_; }
+  std::string pidfile()   { return pidfile_; }
+  int binlog_file_size()  { return binlog_file_size_; }
 
   // Setter
   void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
@@ -99,17 +102,23 @@ private:
   //char pidfile_[PIKA_WORD_SIZE];
   //char compression_[PIKA_WORD_SIZE];
   //int maxconnection_;
-  int target_file_size_base_;
+
   //int expire_logs_days_;
   //int expire_logs_nums_;
   //int root_connection_num_;
   //int slowlog_slower_than_;
-  //int binlog_file_size_;
   bool readonly_;
   std::string conf_path_;
   //char username_[30];
   //char password_[30];
   //int db_sync_speed_;
+
+  //
+  // Critical configure items
+  //
+  int target_file_size_base_;
+  int binlog_file_size_;
+
   pthread_rwlock_t rwlock_;
 };
 

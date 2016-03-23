@@ -75,6 +75,16 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
+class PurgelogstoCmd : public Cmd {
+public:
+  PurgelogstoCmd() : num_(0){
+  }
+  virtual void Do();
+private:
+  uint32_t num_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
 class PingCmd : public Cmd {
 public:
   PingCmd() {
@@ -117,8 +127,12 @@ public:
   ClientCmd() {
   }
   virtual void Do();
+  static std::string CLIENT_LIST_S;
+  static std::string CLIENT_KILL_S;
 private:
+  std::string operation_, ip_port_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+
 };
 
 class ShutdownCmd : public Cmd {

@@ -18,13 +18,10 @@ int PikaConf::Load()
   if (ret != 0) {
     return ret;
   }
-  GetConfInt("port", &port_);
-  GetConfInt("thread_num", &thread_num_);
-  GetConfInt("slave_thread_num", &slave_thread_num_);
-  GetConfStr("log_path", &log_path_);
+
+  // Mutable Section
   GetConfInt("log_level", &log_level_);
-  GetConfStr("db_path", &db_path_);
-  GetConfInt("write_buffer_size", &write_buffer_size_);
+
   GetConfInt("timeout", &timeout_);
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("userpass", &userpass_);
@@ -33,37 +30,64 @@ int PikaConf::Load()
   GetConfStr("userblacklist", &user_blacklist);
   SetUserBlackList(std::string(user_blacklist));
   GetConfStr("dump_path", &bgsave_path_);
-  GetConfInt("target_file_size_base", &target_file_size_base_);
+
   GetConfBool("slave-read-only", &readonly_);
+
+  if (log_path_[log_path_.length() - 1] != '/') {
+    log_path_ += "/";
+  }
 
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
     bgsave_path_ += "/";
   }
   
+  //
+  // Immutable Sections
+  //
+
+  GetConfInt("port", &port_);
+  GetConfInt("slave_thread_num", &slave_thread_num_);
+  GetConfStr("log_path", &log_path_);
+  GetConfStr("db_path", &db_path_);
+  
+  GetConfInt("thread_num", &thread_num_);
+  if (thread_num_ <= 0) {
+    thread_num_ = 12;
+  }
+
+  // write_buffer_size
+  GetConfInt("write_buffer_size", &write_buffer_size_);
+  if (write_buffer_size_ <= 0 ) {
+      write_buffer_size_ = 4194304; // 40M
+  }
+
+  // target_file_size_base
+  GetConfInt("target_file_size_base", &target_file_size_base_);
+  if (target_file_size_base_ <= 0) {
+      target_file_size_base_ = 1048576; // 10M
+  }
+
+  // daemonize
   std::string dmz;
   GetConfStr("daemonize", &dmz);
   daemonize_ =  (dmz == "yes") ? true : false;
 
+  GetConfInt("binlog_file_size", &binlog_file_size_);
+  if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024 * 2)) {
+    binlog_file_size_ = 100 * 1024 * 1024;    // 100M
+  }
+
   GetConfStr("pidfile", &pidfile_);
 
   return ret;
-  //if (thread_num_ <= 0) {
-  //    thread_num_ = 16;
-  //}
   //if (slave_thread_num_ <= 0) {
   //    slave_thread_num_ = 7;
-  //}
-  //if (write_buffer_size_ <= 0 ) {
-  //    write_buffer_size_ = 4194304; // 40M
   //}
   //if (timeout_ <= 0) {
   //    timeout_ = 60; // 60s
   //}
   //if (maxconnection_ <= 0) {
   //    maxconnection_ = 20000;
-  //}
-  //if (target_file_size_base_ <= 0) {
-  //    target_file_size_base_ = 1048576; // 10M
   //}
   //if (expire_logs_days_ <= 0 ) {
   //    expire_logs_days_ = 1;
@@ -79,9 +103,6 @@ int PikaConf::Load()
   //}
 
 
-  //if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024 * 2)) {
-  //  binlog_file_size_ = 100 * 1024 * 1024;    // 100M
-  //}
 }
 
 int PikaConf::ConfigRewrite() {

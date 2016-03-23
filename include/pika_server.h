@@ -79,7 +79,6 @@ public:
 
   void DeleteSlave(int fd); // hb_fd
   bool FindSlave(std::string& ip_port);
-  Status GetSmallestValidLog(uint32_t* max);
   void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
   void BecomeMaster(); 
 
@@ -140,9 +139,31 @@ public:
   }
   void Bgsave();
   bool Bgsaveoff();
-  void ClearBgsave();
   bool RunBgsaveEngine();
+  void ClearBgsave() {
+    bgsave_info_.Clear();
+    bgsaving_ = false;
+  }
 
+/*
+ * PurgeLog used
+ */
+  struct PurgeArg {
+    PikaServer *p;
+    uint32_t to;  
+  };
+  bool PurgeLogs(uint32_t to);
+  bool PurgeFiles(uint32_t to);
+  void ClearPurge() {
+    purging_ = false;
+  }
+
+/*
+ * client related
+ */
+  void ClientKillAll();
+  int ClientKill(const std::string &ip_port);
+  void ClientList(std::vector< std::pair<int, std::string> > &clients);
 
 
 private:
@@ -176,7 +197,6 @@ private:
   /*
    * Bgsave use
    */
-  slash::Mutex bgsave_protector_;
   std::atomic<bool> bgsaving_;
   pink::BGThread bgsave_thread_;
   nemo::BackupEngine *bgsave_engine_;
@@ -185,6 +205,15 @@ private:
   static void DoBgsave(void* arg);
   bool InitBgsaveEnv(const std::string& bgsave_path);
   bool InitBgsaveEngine();
+
+  /*
+   * Purgelogs use
+   */
+  std::atomic<bool> purging_;
+  pink::BGThread purge_thread_;
+  
+  static void DoPurgeLogs(void* arg);
+  bool GetPurgeWindow(uint32_t &max);
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);

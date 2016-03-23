@@ -16,6 +16,7 @@ public:
   virtual ~PikaWorkerThread();
   virtual void CronHandle();
 
+  void ThreadClientList(std::vector< std::pair<int, std::string> > &clients);
   bool ThreadClientKill(std::string ip_port = "");
   int ThreadClientNum();
 
@@ -43,6 +44,7 @@ public:
   Cmd* GetCmd(const std::string& opt) {
     return GetCmdFromTable(opt, cmds_);
   }
+
 private:
   slash::Mutex mutex_; // protect cron_task_
   std::queue<WorkerCronTask> cron_tasks_;
