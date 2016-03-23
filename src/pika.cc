@@ -36,7 +36,7 @@ static void PikaGlogInit() {
 
 static void IntSigHandle(const int sig) {
   ::google::ShutdownGoogleLogging();
-  g_pika_server->mutex_.Unlock();
+  g_pika_server->Exit();
   DestoryCmdInfoTable();
 }
 
