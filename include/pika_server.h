@@ -157,6 +157,9 @@ public:
   void ClearPurge() {
     purging_ = false;
   }
+  //flushall
+  bool FlushAll();
+  void PurgeDir(std::string& path);
 
 /*
  * client related
@@ -214,6 +217,11 @@ private:
   
   static void DoPurgeLogs(void* arg);
   bool GetPurgeWindow(uint32_t &max);
+
+  /*
+   * Flushall use 
+   */
+  static void DoPurgeDir(void* arg);
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);

@@ -37,6 +37,7 @@ public:
   const std::vector<std::string>& vuser_blacklist() {
     RWLock l(&rwlock_, false); return user_blacklist_;
   }
+  std::string compression()       { RWLock l(&rwlock_, false); return compression_; }
   int target_file_size_base()         { RWLock l(&rwlock_, false); return target_file_size_base_; }
   std::string conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
   bool readonly() {
@@ -93,7 +94,7 @@ private:
   std::vector<std::string> user_blacklist_;
   std::string bgsave_path_;
   //char pidfile_[PIKA_WORD_SIZE];
-  //char compression_[PIKA_WORD_SIZE];
+  std::string compression_;
   //int maxconnection_;
   int target_file_size_base_;
   //int expire_logs_days_;

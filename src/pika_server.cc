@@ -33,9 +33,12 @@ PikaServer::PikaServer() :
 
   option.write_buffer_size = g_pika_conf->write_buffer_size();
   option.target_file_size_base = g_pika_conf->target_file_size_base();
+	if (g_pika_conf->compression() == "none") {
+		 option.compression = false;
+  }
   std::string db_path = g_pika_conf->db_path();
   LOG(WARNING) << "Prepare DB...";
-  db_ = std::unique_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
+  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
   assert(db_);
   LOG(WARNING) << "DB Success";
 
@@ -496,6 +499,52 @@ bool PikaServer::GetPurgeWindow(uint32_t &max) {
   }
   max = 0;
   return false;
+}
+
+bool PikaServer::FlushAll() {
+  if (bgsaving_ /*|| bgscaning_*/) {
+    return false;
+  }
+  std::string dbpath = g_pika_conf->db_path();
+  if (dbpath[dbpath.length() - 1] == '/') {
+    dbpath.erase(dbpath.length() - 1);
+  }
+  int pos = dbpath.find_last_of('/');
+  dbpath = dbpath.substr(0, pos);
+  dbpath.append("/deleting");
+  slash::RenameFile(g_pika_conf->db_path(), dbpath.c_str());
+
+  LOG(WARNING) << "Delete old db...";
+  db_.reset();
+
+  nemo::Options option;
+  option.write_buffer_size = g_pika_conf->write_buffer_size();
+  option.target_file_size_base = g_pika_conf->target_file_size_base();
+  if (g_pika_conf->compression() == "none") {
+    option.compression = false;
+  }
+  LOG(WARNING) << "Prepare open new db...";
+  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(g_pika_conf->db_path(), option));
+  LOG(WARNING) << "open new db success";
+  PurgeDir(dbpath);
+  return true; 
+}
+
+void PikaServer::PurgeDir(std::string& path) {
+  std::string *dir_path = new std::string(path);
+  // Start new thread if needed
+  if (!purge_thread_.is_running()) {
+    purge_thread_.StartThread();
+  }
+  purge_thread_.Schedule(&DoPurgeDir, static_cast<void*>(dir_path));
+}
+
+void PikaServer::DoPurgeDir(void* arg) {
+  std::string path = *(static_cast<std::string*>(arg));
+  DLOG(INFO) << "Delete dir: " << path << " start";
+  slash::DeleteDir(path);
+  DLOG(INFO) << "Delete dir: " << path << " done";
+  delete static_cast<std::string*>(arg);
 }
 
 void PikaServer::ClientKillAll() {

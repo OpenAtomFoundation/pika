@@ -34,6 +34,7 @@ int PikaConf::Load()
   SetUserBlackList(std::string(user_blacklist));
   GetConfStr("dump_path", &bgsave_path_);
   GetConfInt("target_file_size_base", &target_file_size_base_);
+  GetConfStr("compression", &compression_);
   GetConfBool("slave-read-only", &readonly_);
 
   if (log_path_[log_path_.length() - 1] != '/') {
@@ -99,6 +100,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("userblacklist", suser_blacklist());
   SetConfStr("dump_path", bgsave_path_);
   SetConfInt("target_file_size_base", target_file_size_base_);
+  SetConfStr("compression", compression_);
   SetConfBool("slave_read_only", readonly_);
 
   return WriteBack();
