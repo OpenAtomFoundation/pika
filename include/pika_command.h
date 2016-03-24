@@ -25,6 +25,7 @@ const std::string kCmdNameReadonly = "readonly";
 const std::string kCmdNameClient = "client";
 const std::string kCmdNameShutdown = "shutdown";
 const std::string kCmdNameInfo = "info";
+const std::string kCmdNameConfig = "config";
 
 //Kv
 const std::string kCmdNameSet = "set";
@@ -296,6 +297,9 @@ public:
   void AppendString(const std::string &value) {
     AppendStringLen(value.size());
     AppendContent(value);
+  }
+  void AppendStringRaw(std::string &value) {
+    message_.append(value);
   }
   void SetRes(CmdRet _ret, const std::string content = "") {
     ret_ = _ret;

@@ -179,4 +179,17 @@ public:
 private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
+
+class ConfigCmd : public Cmd {
+public:
+  ConfigCmd() {
+  }
+  virtual void Do();
+private:
+  std::vector<std::string> config_args_v_;
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  void ConfigGet(std::string &ret);
+  void ConfigSet(std::string &ret);
+  void ConfigRewrite(std::string &ret);
+};
 #endif

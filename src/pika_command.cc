@@ -40,6 +40,8 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameShutdown, shutdownptr));
   CmdInfo* infoptr = new CmdInfo(kCmdNameInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameInfo, infoptr));
+  CmdInfo* configptr = new CmdInfo(kCmdNameInfo, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameConfig, configptr));
 
   //Kv
   ////SetCmd
@@ -367,6 +369,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameShutdown, shutdownptr));
   Cmd* infoptr = new InfoCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameInfo, infoptr));
+  Cmd* configptr = new ConfigCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameConfig, configptr));
 
   //Kv
   ////SetCmd
