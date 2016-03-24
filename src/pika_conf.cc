@@ -26,6 +26,18 @@ int PikaConf::Load()
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("userpass", &userpass_);
 
+  GetConfInt("maxconnection", &maxconnection_);
+  if (maxconnection_ <= 0) {
+    maxconnection_ = 20000;
+  }
+
+  GetConfInt("root_connection_num", &root_connection_num_);
+  if (root_connection_num_ < 0) {
+      root_connection_num_ = 2;
+  }
+
+  GetConfInt("slowlog_slower_than", &slowlog_slower_than_);
+  
   std::string user_blacklist;
   GetConfStr("userblacklist", &user_blacklist);
   SetUserBlackList(std::string(user_blacklist));
@@ -87,24 +99,14 @@ int PikaConf::Load()
   if (timeout_ <= 0) {
       timeout_ = 60; // 60s
   }
-  //if (maxconnection_ <= 0) {
-  //    maxconnection_ = 20000;
-  //}
   if (expire_logs_days_ <= 0 ) {
       expire_logs_days_ = 1;
   }
   if (expire_logs_nums_ <= 10 ) {
       expire_logs_nums_ = 10;
   }
-  //if (root_connection_num_ < 0) {
-  //    root_connection_num_ = 0;
-  //}
-  //if (db_sync_speed_ < 0 || db_sync_speed_ > 125) {
-  //    db_sync_speed_ = 125;
-  //}
 
   return ret;
-
 }
 
 int PikaConf::ConfigRewrite() {
@@ -120,11 +122,16 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("userpass", userpass_);
   SetConfStr("userblacklist", suser_blacklist());
   SetConfStr("dump_path", bgsave_path_);
+  SetConfInt("maxconnection", maxconnection_);
+  SetConfInt("root_connection_num", root_connection_num_);
+  SetConfInt("slowlog_slower_than", slowlog_slower_than_);
   SetConfInt("target_file_size_base", target_file_size_base_);
   SetConfInt("expire_logs_nums", expire_logs_nums_);
   SetConfInt("expire_logs_days", expire_logs_days_);
-  SetConfStr("compression", compression_);
   SetConfBool("slave_read_only", readonly_);
+
+  SetConfInt("binlog_file_size_", binlog_file_size_);
+  SetConfStr("compression", compression_);
 
   return WriteBack();
 }

@@ -22,34 +22,36 @@ public:
   int port()              { RWLock l(&rwlock_, false); return port_; }
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
   int slave_thread_num()  { RWLock l(&rwlock_, false); return slave_thread_num_; }
-  std::string log_path()        { RWLock l(&rwlock_, false); return log_path_; }
+  std::string log_path()  { RWLock l(&rwlock_, false); return log_path_; }
   int log_level()         { RWLock l(&rwlock_, false); return log_level_; }
-  std::string db_path()         { RWLock l(&rwlock_, false); return db_path_; }
-  int write_buffer_size()         { RWLock l(&rwlock_, false); return write_buffer_size_; }
+  std::string db_path()   { RWLock l(&rwlock_, false); return db_path_; }
+  int write_buffer_size() { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
 
   std::string requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
   std::string bgsave_path()     { RWLock l(&rwlock_, false); return bgsave_path_; }
-  std::string userpass()     { RWLock l(&rwlock_, false); return userpass_; }
+  std::string userpass()        { RWLock l(&rwlock_, false); return userpass_; }
   const std::string suser_blacklist() {
-    RWLock l(&rwlock_, false); return slash::StringConcat(user_blacklist_, COMMA);
+    RWLock l(&rwlock_, false);
+    return slash::StringConcat(user_blacklist_, COMMA);
   }
   const std::vector<std::string>& vuser_blacklist() {
     RWLock l(&rwlock_, false); return user_blacklist_;
   }
-  std::string compression()       { RWLock l(&rwlock_, false); return compression_; }
-  int target_file_size_base()         { RWLock l(&rwlock_, false); return target_file_size_base_; }
-  int expire_logs_nums()         { RWLock l(&rwlock_, false); return expire_logs_nums_; }
-  int expire_logs_days()         { RWLock l(&rwlock_, false); return expire_logs_days_; }
+  std::string compression()     { RWLock l(&rwlock_, false); return compression_; }
+  int target_file_size_base()   { RWLock l(&rwlock_, false); return target_file_size_base_; }
+  int expire_logs_nums()        { RWLock l(&rwlock_, false); return expire_logs_nums_; }
+  int expire_logs_days()        { RWLock l(&rwlock_, false); return expire_logs_days_; }
   std::string conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
-  bool readonly() {
-    RWLock l(&rwlock_, false); return readonly_;
-  }
+  bool readonly()               { RWLock l(&rwlock_, false); return readonly_; }
+  int maxconnection()           { RWLock l(&rwlock_, false); return maxconnection_; }
+  int root_connection_num()     { RWLock l(&rwlock_, false); return root_connection_num_; }
+  int slowlog_slower_than()     { RWLock l(&rwlock_, false); return slowlog_slower_than_; }
 
   // Immutable config items, we don't use lock.
-  bool daemonize()        { return daemonize_; }
-  std::string pidfile()   { return pidfile_; }
-  int binlog_file_size()  { return binlog_file_size_; }
+  bool daemonize()              { return daemonize_; }
+  std::string pidfile()         { return pidfile_; }
+  int binlog_file_size()        { return binlog_file_size_; }
 
   // Setter
   void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
@@ -90,9 +92,22 @@ public:
     RWLock l(&rwlock_, true);
     expire_logs_days_ = value;
   }
+  void SetMaxConnection(const int value) {
+    RWLock l(&rwlock_, true);
+    maxconnection_ = value;
+  }
+  void SetRootConnectionNum(const int value) {
+    RWLock l(&rwlock_, true);
+    root_connection_num_ = value;
+  }
+  void SetSlowlogSlowerThan(const int value) {
+    RWLock l(&rwlock_, true);
+    slowlog_slower_than_ = value;
+  }
 
   int Load();
   int ConfigRewrite();
+
 private:
   int port_;
   int thread_num_;
@@ -113,11 +128,11 @@ private:
 
   //char pidfile_[PIKA_WORD_SIZE];
   std::string compression_;
-  //int maxconnection_;
+  int maxconnection_;
+  int root_connection_num_;
+  int slowlog_slower_than_;
   int expire_logs_days_;
   int expire_logs_nums_;
-  //int root_connection_num_;
-  //int slowlog_slower_than_;
   bool readonly_;
   std::string conf_path_;
   //char username_[30];

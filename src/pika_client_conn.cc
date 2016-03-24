@@ -45,6 +45,11 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return "-ERR NOAUTH Authentication required.\r\n";
   }
   
+  uint64_t start_us, end_us;
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    start_us = slash::NowMicros();
+  }
+
   // For now, only shutdown need check local
   if (cinfo_ptr->is_local()) {
     if (ip_port().find("127.0.0.1") != std::string::npos
@@ -88,6 +93,13 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   if (!cinfo_ptr->is_suspend()) {
       pthread_rwlock_unlock(g_pika_server->rwlock());
+  }
+
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    uint64_t duration = slash::NowMicros() - start_us;
+    if (duration > g_pika_conf->slowlog_slower_than()) {
+      LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
+    }
   }
 
   if (opt == kCmdNameAuth) {
