@@ -4,7 +4,7 @@
 #include <vector>
 #include <list>
 #include <nemo.h>
-
+#include <time.h>
 #include "pika_binlog.h"
 #include "pika_binlog_receiver_thread.h"
 #include "pika_binlog_sender_thread.h"
@@ -112,10 +112,16 @@ public:
   void RemoveMaster();
 
   void Start();
+  void Exit() {
+    exit_ = true;
+  }
+  void DoTimingTask() {
+    AutoPurge();
+  }
   void Cleanup();
 
   PikaSlavepingThread* ping_thread_;
-  slash::Mutex mutex_; // double lock to block main thread
+  //slash::Mutex mutex_; // double lock to block main thread
 
 /*
  * Server init info
@@ -220,6 +226,7 @@ public:
   }
 
 private:
+  std::atomic<bool> exit_;
   std::string host_;
   int port_;
   pthread_rwlock_t rwlock_;
@@ -268,6 +275,9 @@ private:
   pink::BGThread purge_thread_;
   
   static void DoPurgeLogs(void* arg);
+  bool GetBinlogFiles(std::vector<std::string>& binlogs);
+  void AutoPurge();
+  int GetAutoPurgeUpIndex();
 
   /*
    * Flushall use 

@@ -39,6 +39,8 @@ public:
   }
   std::string compression()       { RWLock l(&rwlock_, false); return compression_; }
   int target_file_size_base()         { RWLock l(&rwlock_, false); return target_file_size_base_; }
+  int expire_logs_nums()         { RWLock l(&rwlock_, false); return expire_logs_nums_; }
+  int expire_logs_days()         { RWLock l(&rwlock_, false); return expire_logs_days_; }
   std::string conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
   bool readonly() {
     RWLock l(&rwlock_, false); return readonly_;
@@ -80,6 +82,15 @@ public:
   void SetReadonly(const bool value) {
     RWLock l(&rwlock_, true); readonly_ = value;
   }
+  void SetExpireLogsNums(const int value){
+    RWLock l(&rwlock_, true);
+    expire_logs_nums_ = value;
+  }
+  void SetExpireLogsDays(const int value) {
+    RWLock l(&rwlock_, true);
+    expire_logs_days_ = value;
+  }
+
   int Load();
   int ConfigRewrite();
 private:
@@ -103,9 +114,8 @@ private:
   //char pidfile_[PIKA_WORD_SIZE];
   std::string compression_;
   //int maxconnection_;
-
-  //int expire_logs_days_;
-  //int expire_logs_nums_;
+  int expire_logs_days_;
+  int expire_logs_nums_;
   //int root_connection_num_;
   //int slowlog_slower_than_;
   bool readonly_;

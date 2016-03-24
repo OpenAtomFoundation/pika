@@ -12,6 +12,7 @@
 extern PikaConf *g_pika_conf;
 
 PikaServer::PikaServer() :
+  exit_(false),
   ping_thread_(NULL),
   sid_(0),
   master_ip_(""),
@@ -58,8 +59,6 @@ PikaServer::PikaServer() :
 }
 
 PikaServer::~PikaServer() {
-  pthread_rwlock_destroy(&state_protector_);
-  pthread_rwlock_destroy(&rwlock_);
   if (bgsave_engine_ != NULL) {
     delete bgsave_engine_;
   }
@@ -78,6 +77,9 @@ PikaServer::~PikaServer() {
 
   //TODO
   //delete pika_slaveping_thread_;
+
+  pthread_rwlock_destroy(&state_protector_);
+  pthread_rwlock_destroy(&rwlock_);
 
   DLOG(INFO) << "PikaServer " << pthread_self() << " exit!!!";
 }
@@ -123,13 +125,18 @@ void PikaServer::Start() {
   //SetMaster("127.0.0.1", 9221);
 
   DLOG(WARNING) << "Pika Server going to start";
-
-  mutex_.Lock();
-  mutex_.Lock();
+  while (!exit_) {
+    DoTimingTask();
+    // wake up every half hour
+    int try_num = 0;
+    while (!exit_ && try_num++ < 10) {
+      sleep(1);
+    }
+  }
   DLOG(INFO) << "Goodbye...";
-  mutex_.Unlock();
   Cleanup();
 }
+
 
 void PikaServer::DeleteSlave(int fd) {
   slash::MutexLock l(&slave_mutex_);
@@ -475,14 +482,17 @@ bool PikaServer::PurgeLogs(uint32_t to) {
   // Only one thread can go through
   bool expect = false;
   if (!purging_.compare_exchange_strong(expect, true)) {
+    LOG(WARNING) << "purge process already exist";
     return false;
   }
   uint32_t max = 0;
   if (!GetPurgeWindow(max)){
+    LOG(WARNING) << "no need to purge";
     return false;
   }
   LOG(WARNING) << "max seqnum could be deleted: " << max;
   if (to > max) {
+    LOG(WARNING) << "seqnum:" << to << " larger than max could be deleted: " << max;
     ClearPurge();
     return false;
   }
@@ -507,32 +517,6 @@ void PikaServer::DoPurgeLogs(void* arg) {
   delete (PurgeArg*)arg;
 }
 
-bool PikaServer::PurgeFiles(uint32_t to)
-{
-  std::string log_path = g_pika_conf->log_path();
-  std::vector<std::string> children;
-  int ret = slash::GetChildren(log_path, children);
-  if (ret != 0){
-    LOG(ERROR) << "Get all files in log path failed! error:" << ret; 
-    return false;
-  }
-
-  std::string filename;
-  std::vector<std::string>::iterator it;
-  for (it = children.begin(); it != children.end(); ++it) {
-    filename = *it;
-    if (filename.compare(0, kBinlogPrefixLen, kBinlogPrefix) == 0
-        && stoul(filename.substr(kBinlogPrefixLen)) <= to) {
-      slash::Status s = slash::DeleteFile(log_path + filename);
-      LOG(WARNING) << "Purge log file : " << filename;
-      if (!s.ok()) {
-        LOG(ERROR) << "Purge log file : " << filename <<  " failed! error:" << s.ToString();
-      }
-    }
-  }
-  return true;
-}
-
 bool PikaServer::GetPurgeWindow(uint32_t &max) {
   max = logger_->version_->pro_num();
   slash::MutexLock l(&slave_mutex_);
@@ -547,8 +531,93 @@ bool PikaServer::GetPurgeWindow(uint32_t &max) {
     max -= 10;
     return true;
   }
-  max = 0;
   return false;
+}
+
+bool PikaServer::PurgeFiles(uint32_t to)
+{
+  std::vector<std::string> binlogs;
+  if (!GetBinlogFiles(binlogs)) {
+    return false;
+  }
+
+  int delete_num = 0;
+  std::vector<std::string>::iterator it;
+  for (it = binlogs.begin(); it != binlogs.end(); ++it) {
+    if (stoul((*it).substr(kBinlogPrefixLen)) > to) {
+      continue;
+    }
+    slash::Status s = slash::DeleteFile(g_pika_conf->log_path() + *it);
+    if (!s.ok()) {
+      LOG(ERROR) << "Purge log file : " << *it <<  " failed! error:" << s.ToString();
+    } else {
+      ++delete_num;
+    }
+  }
+  LOG(INFO) << "Success purge "<< delete_num << " files to index : " << to;
+
+  return true;
+}
+
+bool PikaServer::GetBinlogFiles(std::vector<std::string>& binlogs) {
+  std::vector<std::string> children;
+  int ret = slash::GetChildren(g_pika_conf->log_path(), children);
+  if (ret != 0){
+    LOG(ERROR) << "Get all files in log path failed! error:" << ret; 
+    return false;
+  }
+  std::vector<std::string>::iterator it;
+  for (it = children.begin(); it != children.end(); ++it) {
+    if ((*it).compare(0, kBinlogPrefixLen, kBinlogPrefix) == 0) {
+      binlogs.push_back(*it);
+    }
+  }
+  return true;
+}
+
+// Return auto purge up index, return -1 if no need to purge
+int PikaServer::GetAutoPurgeUpIndex()
+{
+  int expire_logs_nums = g_pika_conf->expire_logs_nums();
+  int expire_logs_days = g_pika_conf->expire_logs_days();
+  time_t deadline = time(NULL) - expire_logs_days * 24 * 1024;
+  
+  // Retrive all binlog files
+  std::vector<std::string> binlogs;
+  if (!GetBinlogFiles(binlogs)) {
+    return -1;
+  }
+
+  // Get max index and max expire index
+  int up = -1, t_up = -1;
+  struct stat file_stat;
+  std::vector<std::string>::iterator it;
+  for (it = binlogs.begin(); it != binlogs.end(); ++it) {
+      int cur = stol((*it).substr(kBinlogPrefixLen));
+      up = up > cur ? up : cur;
+      if (0 != stat((*it).c_str(), &file_stat)) continue;
+      if (cur > t_up && file_stat.st_mtime <= deadline) {
+        t_up = cur;
+      }
+  }
+  
+  // Calc auto purge index
+  int index = -1;
+  if (binlogs.size() >= expire_logs_nums) {
+    index = up - expire_logs_nums;
+  }
+  index = index < t_up ? t_up : index; //choose the large one
+  return index;
+}
+
+void PikaServer::AutoPurge() {
+  int index = GetAutoPurgeUpIndex();
+  if (index > 0) {
+    LOG(INFO) << "Do Auto Purge"; 
+    if (!PurgeLogs(index)) {
+      LOG(ERROR) << "Auto purge failed"; 
+    }
+  }
 }
 
 bool PikaServer::FlushAll() {

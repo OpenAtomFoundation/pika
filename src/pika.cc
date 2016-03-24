@@ -72,8 +72,7 @@ static void create_pid_file(void) {
 
 static void IntSigHandle(const int sig) {
   DLOG(INFO) << "Catch Signal " << sig << ", cleanup...";
-  g_pika_server->mutex_.Unlock();
-  //cleanup();
+  g_pika_server->Exit();
 }
 
 static void PikaSignalSetup() {
