@@ -24,6 +24,7 @@ const std::string kCmdNameFlushall = "flushall";
 const std::string kCmdNameReadonly = "readonly";
 const std::string kCmdNameClient = "client";
 const std::string kCmdNameShutdown = "shutdown";
+const std::string kCmdNameInfo = "info";
 
 //Kv
 const std::string kCmdNameSet = "set";

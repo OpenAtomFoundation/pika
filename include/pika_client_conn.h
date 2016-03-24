@@ -2,6 +2,7 @@
 #define PIKA_CLIENT_CONN_H_
 
 #include <glog/logging.h>
+#include <atomic>
 
 #include "redis_conn.h"
 #include "pink_thread.h"
@@ -15,6 +16,7 @@ public:
   PikaClientConn(int fd, std::string ip_port, pink::Thread *thread);
   virtual ~PikaClientConn();
   virtual int DealMessage();
+
 private:
   PikaWorkerThread* self_thread_;
   std::string DoCmd(const std::string& opt);

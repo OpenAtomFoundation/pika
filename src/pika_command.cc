@@ -38,6 +38,8 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameClient, clientptr));
   CmdInfo* shutdownptr = new CmdInfo(kCmdNameShutdown, 1, kCmdFlagsRead | kCmdFlagsLocal | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameShutdown, shutdownptr));
+  CmdInfo* infoptr = new CmdInfo(kCmdNameInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameInfo, infoptr));
 
   //Kv
   ////SetCmd
@@ -71,10 +73,10 @@ void InitCmdInfoTable() {
   CmdInfo* appendptr = new CmdInfo(kCmdNameAppend, 3, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameAppend, appendptr));
   ////Mget
-  CmdInfo* mgetptr = new CmdInfo(kCmdNameMget, -2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* mgetptr = new CmdInfo(kCmdNameMget, -2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMget, mgetptr));
   ////Keys
-  CmdInfo* keysptr = new CmdInfo(kCmdNameKeys, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* keysptr = new CmdInfo(kCmdNameKeys, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameKeys, keysptr));
   ////Setnx
   CmdInfo* setnxptr = new CmdInfo(kCmdNameSetnx, 3, kCmdFlagsWrite | kCmdFlagsKv);
@@ -89,16 +91,16 @@ void InitCmdInfoTable() {
   CmdInfo* msetnxptr = new CmdInfo(kCmdNameMsetnx, -3, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMsetnx, msetnxptr));
   ////Getrange
-  CmdInfo* getrangeptr = new CmdInfo(kCmdNameGetrange, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* getrangeptr = new CmdInfo(kCmdNameGetrange, 4, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGetrange, getrangeptr));
   ////Setrange
   CmdInfo* setrangeptr = new CmdInfo(kCmdNameSetrange, 4, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSetrange, setrangeptr));
   ////Strlen
-  CmdInfo* strlenptr = new CmdInfo(kCmdNameStrlen, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* strlenptr = new CmdInfo(kCmdNameStrlen, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameStrlen, strlenptr));
   ////Exists
-  CmdInfo* existsptr = new CmdInfo(kCmdNameExists, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* existsptr = new CmdInfo(kCmdNameExists, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameExists, existsptr));
   ////Expire
   CmdInfo* expireptr = new CmdInfo(kCmdNameExpire, 3, kCmdFlagsWrite | kCmdFlagsKv);
@@ -113,19 +115,19 @@ void InitCmdInfoTable() {
   CmdInfo* pexpireatptr = new CmdInfo(kCmdNamePexpireat, 3, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePexpireat, pexpireatptr));
   ////Ttl
-  CmdInfo* ttlptr = new CmdInfo(kCmdNameTtl, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* ttlptr = new CmdInfo(kCmdNameTtl, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTtl, ttlptr));
   ////Pttl
-  CmdInfo* pttlptr = new CmdInfo(kCmdNameTtl, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* pttlptr = new CmdInfo(kCmdNameTtl, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePttl, pttlptr));
   ////Persist
   CmdInfo* persistptr = new CmdInfo(kCmdNamePersist, 2, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePersist, persistptr));
   ////Persist
-  CmdInfo* typeptr = new CmdInfo(kCmdNameType, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* typeptr = new CmdInfo(kCmdNameType, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameType, typeptr));
   ////Scan
-  CmdInfo* scanptr = new CmdInfo(kCmdNameScan, -2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* scanptr = new CmdInfo(kCmdNameScan, -2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameScan, scanptr));
   //Hash
   ////HDel
@@ -135,13 +137,13 @@ void InitCmdInfoTable() {
   CmdInfo* hsetptr = new CmdInfo(kCmdNameHSet, 4, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHSet, hsetptr));
   ////HGet
-  CmdInfo* hgetptr = new CmdInfo(kCmdNameHGet, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* hgetptr = new CmdInfo(kCmdNameHGet, 3, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHGet, hgetptr));
   ////HGetall
-  CmdInfo* hgetallptr = new CmdInfo(kCmdNameHGetall, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* hgetallptr = new CmdInfo(kCmdNameHGetall, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHGetall, hgetallptr));
   ////HExists
-  CmdInfo* hexistsptr = new CmdInfo(kCmdNameHExists, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* hexistsptr = new CmdInfo(kCmdNameHExists, 3, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHExists, hexistsptr));
   ////HIncrby
   CmdInfo* hincrbyptr = new CmdInfo(kCmdNameHIncrby, 4, kCmdFlagsWrite | kCmdFlagsKv);
@@ -150,13 +152,13 @@ void InitCmdInfoTable() {
   CmdInfo* hincrbyfloatptr = new CmdInfo(kCmdNameHIncrbyfloat, 4, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHIncrbyfloat, hincrbyfloatptr));
   ////HKeys
-  CmdInfo* hkeysptr = new CmdInfo(kCmdNameHKeys, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* hkeysptr = new CmdInfo(kCmdNameHKeys, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHKeys, hkeysptr));
   ///HLen
-  CmdInfo* hlenptr = new CmdInfo(kCmdNameHLen, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* hlenptr = new CmdInfo(kCmdNameHLen, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHLen, hlenptr));
   ///HMget
-  CmdInfo* hmgetptr = new CmdInfo(kCmdNameHMget, -3, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* hmgetptr = new CmdInfo(kCmdNameHMget, -3, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHMget, hmgetptr));
   ///HMset
   CmdInfo* hmsetptr = new CmdInfo(kCmdNameHMset, -4, kCmdFlagsWrite | kCmdFlagsKv);
@@ -165,13 +167,13 @@ void InitCmdInfoTable() {
   CmdInfo* hsetnxptr = new CmdInfo(kCmdNameHSetnx, 4, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHSetnx, hsetnxptr));
   ///HStrlen
-  CmdInfo* hstrlenptr = new CmdInfo(kCmdNameHStrlen, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* hstrlenptr = new CmdInfo(kCmdNameHStrlen, 3, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHStrlen, hstrlenptr));
   ///HVals
-  CmdInfo* hvalsptr = new CmdInfo(kCmdNameHVals, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* hvalsptr = new CmdInfo(kCmdNameHVals, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHVals, hvalsptr));
   ///HScan
-  CmdInfo* hscanptr = new CmdInfo(kCmdNameHScan, -3, kCmdFlagsWrite | kCmdFlagsKv);
+  CmdInfo* hscanptr = new CmdInfo(kCmdNameHScan, -3, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHScan, hscanptr));
 
   //List
@@ -213,25 +215,25 @@ void InitCmdInfoTable() {
   CmdInfo* zcardptr = new CmdInfo(kCmdNameZCard, 2, kCmdFlagsWrite | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZCard, zcardptr));
   ////ZScan
-  CmdInfo* zscanptr = new CmdInfo(kCmdNameZScan, -3, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zscanptr = new CmdInfo(kCmdNameZScan, -3, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZScan, zscanptr));
   ////ZIncrby
   CmdInfo* zincrbyptr = new CmdInfo(kCmdNameZIncrby, 4, kCmdFlagsWrite | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZIncrby, zincrbyptr));
   ////ZRange
-  CmdInfo* zrangeptr = new CmdInfo(kCmdNameZRange, -4, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zrangeptr = new CmdInfo(kCmdNameZRange, -4, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRange, zrangeptr));
   ////ZRevrange
-  CmdInfo* zrevrangeptr = new CmdInfo(kCmdNameZRevrange, -4, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zrevrangeptr = new CmdInfo(kCmdNameZRevrange, -4, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRevrange, zrevrangeptr));
   ////ZRangebyscore
-  CmdInfo* zrangebyscoreptr = new CmdInfo(kCmdNameZRangebyscore, -4, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zrangebyscoreptr = new CmdInfo(kCmdNameZRangebyscore, -4, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRangebyscore, zrangebyscoreptr));
   ////ZRevrangebyscore
-  CmdInfo* zrevrangebyscoreptr = new CmdInfo(kCmdNameZRevrangebyscore, -4, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zrevrangebyscoreptr = new CmdInfo(kCmdNameZRevrangebyscore, -4, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRevrangebyscore, zrevrangebyscoreptr));
   ////ZCount
-  CmdInfo* zcountptr = new CmdInfo(kCmdNameZCount, 4, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zcountptr = new CmdInfo(kCmdNameZCount, 4, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZCount, zcountptr));
   ////ZRem
   CmdInfo* zremptr = new CmdInfo(kCmdNameZRem, -3, kCmdFlagsWrite | kCmdFlagsList);
@@ -243,22 +245,22 @@ void InitCmdInfoTable() {
   CmdInfo* zinterstoreptr = new CmdInfo(kCmdNameZInterstore, -4, kCmdFlagsWrite | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZInterstore, zinterstoreptr));
   ////ZRank
-  CmdInfo* zrankptr = new CmdInfo(kCmdNameZRank, 3, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zrankptr = new CmdInfo(kCmdNameZRank, 3, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRank, zrankptr));
   ////ZRevrank
-  CmdInfo* zrevrankptr = new CmdInfo(kCmdNameZRevrank, 3, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zrevrankptr = new CmdInfo(kCmdNameZRevrank, 3, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRevrank, zrevrankptr));
   ////ZScore
-  CmdInfo* zscoreptr = new CmdInfo(kCmdNameZScore, 3, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zscoreptr = new CmdInfo(kCmdNameZScore, 3, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZScore, zscoreptr));
   ////ZRangebylex
-  CmdInfo* zrangebylexptr = new CmdInfo(kCmdNameZRangebylex, -4, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zrangebylexptr = new CmdInfo(kCmdNameZRangebylex, -4, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRangebylex, zrangebylexptr));
   ////ZRevrangebylex
-  CmdInfo* zrevrangebylexptr = new CmdInfo(kCmdNameZRevrangebylex, -4, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zrevrangebylexptr = new CmdInfo(kCmdNameZRevrangebylex, -4, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZRevrangebylex, zrevrangebylexptr));
   ////ZLexcount
-  CmdInfo* zlexcountptr = new CmdInfo(kCmdNameZLexcount, 4, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* zlexcountptr = new CmdInfo(kCmdNameZLexcount, 4, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameZLexcount, zlexcountptr));
   ////ZRemrangebyrank
   CmdInfo* zremrangebyrankptr = new CmdInfo(kCmdNameZRemrangebyrank, 4, kCmdFlagsWrite | kCmdFlagsList);
@@ -278,34 +280,34 @@ void InitCmdInfoTable() {
   CmdInfo* spopptr = new CmdInfo(kCmdNameSPop, 2, kCmdFlagsWrite | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSPop, spopptr));
   ////SCard
-  CmdInfo* scardptr = new CmdInfo(kCmdNameSCard, 2, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* scardptr = new CmdInfo(kCmdNameSCard, 2, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSCard, scardptr));
   ////SMembers
-  CmdInfo* smembersptr = new CmdInfo(kCmdNameSMembers, 2, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* smembersptr = new CmdInfo(kCmdNameSMembers, 2, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSMembers, smembersptr));
   ////SMembers
-  CmdInfo* sscanptr = new CmdInfo(kCmdNameSScan, -3, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* sscanptr = new CmdInfo(kCmdNameSScan, -3, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSScan, sscanptr));
   ////SRem
   CmdInfo* sremptr = new CmdInfo(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSRem, sremptr));
   ////SUnion
-  CmdInfo* sunionptr = new CmdInfo(kCmdNameSUnion, -2, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* sunionptr = new CmdInfo(kCmdNameSUnion, -2, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSUnion, sunionptr));
   ////SUnion
   CmdInfo* sunionstoreptr = new CmdInfo(kCmdNameSUnionstore, -3, kCmdFlagsWrite | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSUnionstore, sunionstoreptr));
   ////SInter
-  CmdInfo* sinterptr = new CmdInfo(kCmdNameSInter, -2, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* sinterptr = new CmdInfo(kCmdNameSInter, -2, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSInter, sinterptr));
   ////SInterstore
   CmdInfo* sinterstoreptr = new CmdInfo(kCmdNameSInterstore, -3, kCmdFlagsWrite | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSInterstore, sinterstoreptr));
   ////SIsmember
-  CmdInfo* sismemberptr = new CmdInfo(kCmdNameSIsmember, 3, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* sismemberptr = new CmdInfo(kCmdNameSIsmember, 3, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSIsmember, sismemberptr));
   ////SDiff
-  CmdInfo* sdiffptr = new CmdInfo(kCmdNameSDiff, -2, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* sdiffptr = new CmdInfo(kCmdNameSDiff, -2, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSDiff, sdiffptr));
   ////SDiffstore
   CmdInfo* sdiffstoreptr = new CmdInfo(kCmdNameSDiffstore, -3, kCmdFlagsWrite | kCmdFlagsList);
@@ -314,7 +316,7 @@ void InitCmdInfoTable() {
   CmdInfo* smoveptr = new CmdInfo(kCmdNameSMove, 4, kCmdFlagsWrite | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSMove, smoveptr));
   ////SRandmember
-  CmdInfo* srandmemberptr = new CmdInfo(kCmdNameSRandmember, -2, kCmdFlagsWrite | kCmdFlagsList);
+  CmdInfo* srandmemberptr = new CmdInfo(kCmdNameSRandmember, -2, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSRandmember, srandmemberptr));
 }
 
@@ -363,6 +365,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameClient, clientptr));
   Cmd* shutdownptr = new ShutdownCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameShutdown, shutdownptr));
+  Cmd* infoptr = new InfoCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameInfo, infoptr));
 
   //Kv
   ////SetCmd

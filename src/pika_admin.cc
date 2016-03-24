@@ -3,11 +3,10 @@
 #include "pika_admin.h"
 #include "pika_server.h"
 
+#include <sys/utsname.h>
+
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
-
-std::string ClientCmd::CLIENT_LIST_S = "list";
-std::string ClientCmd::CLIENT_KILL_S = "kill";
 
 void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
@@ -200,6 +199,7 @@ void CompactCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     return;
   }
 }
+
 void CompactCmd::Do() {
   nemo::Status s = g_pika_server->db()->Compact(nemo::kALL);
   if (s.ok()) {
@@ -296,6 +296,8 @@ void ReadonlyCmd::Do() {
   res_.SetRes(CmdRes::kOk);
 }
 
+const std::string ClientCmd::CLIENT_LIST_S = "list";
+const std::string ClientCmd::CLIENT_KILL_S = "kill";
 void ClientCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameClient);
@@ -317,7 +319,7 @@ void ClientCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 void ClientCmd::Do() {
   if (operation_ == CLIENT_LIST_S) {
     std::vector< std::pair<int, std::string> > clients;
-    g_pika_server->ClientList(clients);
+    g_pika_server->ClientList(&clients);
     std::vector<std::pair<int, std::string> >::iterator iter= clients.begin();
     std::string reply = "+";
     char buf[128];
@@ -349,4 +351,196 @@ void ShutdownCmd::Do() {
   DLOG(WARNING) << "handle \'shutdown\'";
   g_pika_server->mutex_.Unlock();
   res_.SetRes(CmdRes::kNone);
+}
+
+const std::string InfoCmd::kServerSection = "server";
+const std::string InfoCmd::kClientsSection = "clients";
+const std::string InfoCmd::kStatsSection = "stats";
+const std::string InfoCmd::kReplicationSection = "replication";
+const std::string InfoCmd::kKeyspaceSection = "keyspace";
+
+void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  (void)ptr_info;
+  size_t argc = argv.size();
+  if (argc > 3) {
+    res_.SetRes(CmdRes::kSyntaxErr);
+    return;
+  }
+  if (argc == 1) {
+    info_section_ = kInfoAll;
+    return;
+  } //then the agc is 2 or 3
+  slash::StringToLower(argv[1]);
+  if (argv[1] == kServerSection) {
+    info_section_ = kInfoServer;
+  } else if (argv[1] == kClientsSection) {
+    info_section_ = kInfoClients;
+  } else if (argv[1] == kStatsSection) {
+    info_section_ = kInfoStats;
+  } else if (argv[1] == kReplicationSection) {
+    info_section_ = kInfoReplication;
+  } else if (argv[1] == kKeyspaceSection) {
+    info_section_ = kInfoKeyspace;
+    if (argc == 2) {
+      return;
+    }
+    if (argv[2] == "1") { //only info keyspace 0 or info keyspace 1 two format
+      rescan_ = true;
+    } else if (argv[2] != "0") {
+      res_.SetRes(CmdRes::kSyntaxErr);
+    }
+    return;
+  } else {
+    info_section_ = kInfoErr;
+  }
+  if (argc != 2) {
+    res_.SetRes(CmdRes::kSyntaxErr);
+  }
+}
+
+void InfoCmd::Do() {
+  std::string info;
+  if (info_section_ == kInfoAll) {
+    InfoServer(info);
+    info.append("\r\n");
+    InfoClients(info);
+    info.append("\r\n");
+    InfoStats(info);
+    info.append("\r\n");
+    InfoReplication(info);
+    info.append("\r\n");
+    InfoKeyspace(info);
+  } else if (info_section_ == kInfoServer) {
+    InfoServer(info);
+  } else if (info_section_ == kInfoClients) {
+    InfoClients(info);
+  } else if (info_section_ == kInfoStats) {
+    InfoStats(info);
+  } else if (info_section_ == kInfoReplication) {
+    InfoReplication(info);
+  } else if (info_section_ == kInfoKeyspace) {
+    InfoKeyspace(info);
+  } else {
+    //kInfoErr is nothing
+  }
+
+  res_.AppendStringLen(info.size());
+  res_.AppendContent(info);
+  return;
+}
+
+void InfoCmd::InfoServer(std::string &info) {
+  static struct utsname host_info;
+  static bool host_info_valid = false;
+  if (!host_info_valid) {
+    uname(&host_info);
+    host_info_valid = true;
+  }
+
+  time_t current_time_s = time(NULL);
+  std::stringstream tmp_stream;
+  uint32_t purge_max;
+  tmp_stream << "# Server\r\n";
+  tmp_stream << "pika_version: " << kPikaVersion << "\r\n";
+  tmp_stream << "os: " << host_info.sysname << " " << host_info.release << " " << host_info.machine << "\r\n";
+  tmp_stream << "arch_bits: " << (reinterpret_cast<char*>(&host_info.machine) + strlen(host_info.machine) - 2) << "\r\n";
+  tmp_stream << "process_id: " << getpid() << "\r\n";
+  tmp_stream << "tcp_port: " << g_pika_conf->port() << "\r\n";
+  tmp_stream << "thread_num: " << g_pika_conf->thread_num() << "\r\n";
+  tmp_stream << "uptime_in_seconds: " << (current_time_s - g_pika_server->start_time_s()) << "\r\n";
+  tmp_stream << "uptime_in_days: " << (current_time_s / (24*3600) - g_pika_server->start_time_s() / (24*3600) + 1) << "\r\n";
+  tmp_stream << "config_file: " << g_pika_conf->conf_path() << "\r\n";
+  PikaServer::BGSaveInfo bgsave_info = g_pika_server->bgsave_info();
+  bool is_bgsaving = g_pika_server->bgsaving();
+  tmp_stream << "is_bgsaving: " << (is_bgsaving ? "Yes, " : "No, ") << bgsave_info.s_start_time << ", "
+                                << (is_bgsaving ? (current_time_s - bgsave_info.start_time) : 0) << "\r\n";
+  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
+  bool is_scaning = g_pika_server->key_scaning();
+  tmp_stream << "is_scaning_keyspace: " << (is_scaning ? ("Yes, " + key_scan_info.s_start_time) + "," : "No");
+  if (is_scaning) {
+    tmp_stream << current_time_s - key_scan_info.start_time;
+  }
+  tmp_stream << "\r\n";
+  tmp_stream << "is_compact: " << g_pika_server->db()->GetCurrentTaskType() << "\r\n";
+  tmp_stream << "db_size: " << (slash::Du(g_pika_conf->db_path()) >> 20)  << "M\r\n";
+  tmp_stream << "log_size: " << (slash::Du(g_pika_conf->log_path()) >> 20) << "M\r\n";
+  tmp_stream << "compression: " << g_pika_conf->compression() << "\r\n";
+  tmp_stream << "safety purge: " << (g_pika_server->GetPurgeWindow(purge_max) ? static_cast<int32_t>(purge_max) : -1) << "\r\n"; 
+  tmp_stream << "expire_logs_days: " << "\r\n";
+  tmp_stream << "expire_logs_num: " << "\r\n"; //TODO
+
+  info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoClients(std::string &info) {
+  std::stringstream tmp_stream;
+  tmp_stream << "# Clients\r\n";
+  tmp_stream << "connected_clients: " << g_pika_server->ClientList() << "\r\n";
+
+  info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoStats(std::string &info) {
+  std::stringstream tmp_stream;
+  tmp_stream << "# Stats\r\n";
+  tmp_stream << "total_connections_received: " << g_pika_server->accumulative_connections() << "\r\n";
+  tmp_stream << "instances_ops_per_sec: " << g_pika_server->ServerCurrentQps() << "\r\n";
+  tmp_stream << "accumulative_query_nums: " << g_pika_server->ServerQueryNum() << "\r\n";
+
+  info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoReplication(std::string &info) {
+  int host_role = g_pika_server->role();
+  std::stringstream tmp_stream;
+  tmp_stream << "# replication(";
+  switch (host_role) {
+    case PIKA_ROLE_MASTER :
+    case PIKA_ROLE_SINGLE : tmp_stream << "MASTER)\r\nrole: master\r\n"; break;
+    case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole: slave\r\n"; break;
+    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE : tmp_stream << "MASTER/SLAVE)\r\nrole: slave\r\n"; break;
+    default: info.append("ERR: server role is error\r\n"); return;
+  }
+  
+  std::string slaves_list_str;
+  //int32_t slaves_num = g_pika_server->GetSlaveListString(slaves_list_str);
+  switch (host_role) {
+    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE :
+    case PIKA_ROLE_SLAVE :
+      tmp_stream << "master_host: " << g_pika_server->master_ip() << "\r\n";
+      tmp_stream << "master_port: " << g_pika_server->master_port() << "\r\n";
+      tmp_stream << "master_link_status: " << (g_pika_server->repl_state() == PIKA_REPL_CONNECTED ? "up" : "down") << "\r\n";
+      tmp_stream << "slave_read_only: " << g_pika_conf->readonly() << "\r\n";
+      if (host_role == PIKA_ROLE_SLAVE) {
+        break;
+      }
+    case PIKA_ROLE_SINGLE :
+    case PIKA_ROLE_MASTER :
+      tmp_stream << "connected_slaves: " << g_pika_server->GetSlaveListString(slaves_list_str) << "\r\n" << slaves_list_str;
+  }
+  
+  info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoKeyspace(std::string &info) {
+  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
+  std::vector<uint64_t> &key_nums_v = key_scan_info.key_nums_v;
+  if (key_scan_info.key_nums_v.size() != 5) {
+    info.append("info keyspace error\r\n");
+    return;
+  }
+  std::stringstream tmp_stream;
+  tmp_stream << "# Keyspace\r\n";
+  tmp_stream << "# Time: " << key_scan_info.s_start_time << "\r\n";
+  tmp_stream << "kv keys: " << key_nums_v[0] << "\r\n";
+  tmp_stream << "hash keys: " << key_nums_v[1] << "\r\n";
+  tmp_stream << "list keys: " << key_nums_v[2] << "\r\n";
+  tmp_stream << "zset keys: " << key_nums_v[3] << "\r\n";
+  tmp_stream << "set keys: " << key_nums_v[4] << "\r\n";
+  info.append(tmp_stream.str());
+
+  if (rescan_) {
+    g_pika_server->KeyScan();
+  }
+  return;
 }
