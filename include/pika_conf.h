@@ -46,7 +46,7 @@ public:
   bool readonly()               { RWLock l(&rwlock_, false); return readonly_; }
   int maxconnection()           { RWLock l(&rwlock_, false); return maxconnection_; }
   int root_connection_num()     { RWLock l(&rwlock_, false); return root_connection_num_; }
-  int slowlog_slower_than()     { RWLock l(&rwlock_, false); return slowlog_slower_than_; }
+  int slowlog_slower_than()     { RWLock l(&rwlock_, false); return slowlog_log_slower_than_; }
 
   // Immutable config items, we don't use lock.
   bool daemonize()              { return daemonize_; }
@@ -102,7 +102,7 @@ public:
   }
   void SetSlowlogSlowerThan(const int value) {
     RWLock l(&rwlock_, true);
-    slowlog_slower_than_ = value;
+    slowlog_log_slower_than_ = value;
   }
 
   int Load();
@@ -130,7 +130,7 @@ private:
   std::string compression_;
   int maxconnection_;
   int root_connection_num_;
-  int slowlog_slower_than_;
+  int slowlog_log_slower_than_;
   int expire_logs_days_;
   int expire_logs_nums_;
   bool readonly_;

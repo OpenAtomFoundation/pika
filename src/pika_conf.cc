@@ -36,7 +36,7 @@ int PikaConf::Load()
       root_connection_num_ = 2;
   }
 
-  GetConfInt("slowlog_slower_than", &slowlog_slower_than_);
+  GetConfInt("slowlog_log_slower_than", &slowlog_log_slower_than_);
   
   std::string user_blacklist;
   GetConfStr("userblacklist", &user_blacklist);
@@ -124,7 +124,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("dump_path", bgsave_path_);
   SetConfInt("maxconnection", maxconnection_);
   SetConfInt("root_connection_num", root_connection_num_);
-  SetConfInt("slowlog_slower_than", slowlog_slower_than_);
+  SetConfInt("slowlog_log_slower_than", slowlog_log_slower_than_);
   SetConfInt("target_file_size_base", target_file_size_base_);
   SetConfInt("expire_logs_nums", expire_logs_nums_);
   SetConfInt("expire_logs_days", expire_logs_days_);
