@@ -233,7 +233,7 @@ void PikaServer::ConnectMasterDone() {
 
 bool PikaServer::ShouldStartPingMaster() {
   slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_;
+  DLOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_ << " repl_state " << repl_state_;
   if (repl_state_ == PIKA_REPL_CONNECTING && master_connection_ < 2) {
     return true;
   }
@@ -284,7 +284,7 @@ void PikaServer::RemoveMaster() {
   master_port_ = -1;
   }
   if (ping_thread_ != NULL) {
-    ping_thread_->SetExit();
+    ping_thread_->should_exit_ = true;
     int err = pthread_join(ping_thread_->thread_id(), NULL);
     if (err != 0) {
       std::string msg = "can't join thread " + std::string(strerror(err));

@@ -3,37 +3,31 @@
 
 #include "pink_thread.h"
 #include "slash_mutex.h"
+#include "redis_cli.h"
+
 
 class PikaSlavepingThread : public pink::Thread {
 public:
   PikaSlavepingThread(int64_t sid) : sid_(sid),
-  is_first_send_(true),
-  is_exit_(false) {
+  is_first_send_(true) {
+    cli_ = new pink::RedisCli();
+    cli_->set_connect_timeout(1500);
 	};
   virtual ~PikaSlavepingThread() {
+    should_exit_ = true;
+    pthread_join(thread_id(), NULL);
+    delete cli_;
 	};
 
-  void SetExit() {
-    slash::MutexLock l(&mutex_);
-    is_exit_ = true;
-  }
-
-  bool IsExit() {
-    slash::MutexLock l(&mutex_);
-    bool ret = is_exit_;
-    return ret;
-  }
+  pink::Status Send();
+  pink::Status RecvProc();
 
 private:
-  int sockfd_;
   int64_t sid_;
   bool is_first_send_;
-  bool is_exit_;
-  slash::Mutex mutex_; //protect is_exit_
-	bool Init();
-  bool Connect(const std::string& master_ip, int master_ping_port);
-  bool Send();
-  bool RecvProc();
+
+  int sockfd_;
+  pink::RedisCli *cli_;
 
   virtual void* ThreadMain();
 
