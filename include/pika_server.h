@@ -37,7 +37,9 @@ public:
   int port() {
     return port_;
   };
-
+  time_t start_time_s() {
+    return start_time_s_;
+  }
   PikaWorkerThread** pika_worker_thread() {
     return pika_worker_thread_;
   };
@@ -67,6 +69,14 @@ public:
   }
   
 
+  int role() {
+    slash::RWLock(&state_protector_, false);
+    return role_;
+  }
+  int repl_state() {
+    slash::RWLock(&state_protector_, false);
+    return repl_state_;
+  }
 /*
  * Master use
  */
@@ -79,6 +89,8 @@ public:
 
   void DeleteSlave(int fd); // hb_fd
   bool FindSlave(std::string& ip_port);
+  int32_t GetSlaveListString(std::string& slave_list_str);
+  Status GetSmallestValidLog(uint32_t* max);
   void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
   void BecomeMaster(); 
 
@@ -126,29 +138,39 @@ public:
  * BGSave used
  */
   struct BGSaveInfo {
+    bool bgsaving;
     time_t start_time;
     std::string s_start_time;
     std::string path;
     std::string tmp_path;
     uint32_t filenum;
     uint64_t offset;
-    BGSaveInfo() : filenum(0), offset(0){}
+    BGSaveInfo() : bgsaving(false), filenum(0), offset(0){}
     void Clear() {
+      bgsaving = false;
       path.clear();
       tmp_path.clear();
       filenum = 0;
       offset = 0;
     }
   };
-  const BGSaveInfo& bgsave_info() const {
+  BGSaveInfo bgsave_info() {
+    slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_;
+  }
+  bool bgsaving() {
+    slash::MutexLock l(&bgsave_protector_);
+    return bgsave_info_.bgsaving;
+  }
+  slash::Mutex* bgsave_protector() {
+    return &bgsave_protector_;
   }
   void Bgsave();
   bool Bgsaveoff();
-  bool RunBgsaveEngine();
+  bool RunBgsaveEngine(const std::string path);
+  // need bgsave_protector protect
   void ClearBgsave() {
     bgsave_info_.Clear();
-    bgsaving_ = false;
   }
 
 /*
@@ -166,14 +188,49 @@ public:
   //flushall
   bool FlushAll();
   void PurgeDir(std::string& path);
+  bool GetPurgeWindow(uint32_t &max);
+
+/*
+ *Keyscan used
+ */
+  struct KeyScanInfo {
+    time_t start_time;
+    std::string s_start_time;
+    std::vector<uint64_t> key_nums_v; //the order is kv, hash, list, zset, set
+    bool key_scaning_;
+    KeyScanInfo() : start_time(0), key_nums_v({0, 0, 0, 0, 0}), key_scaning_(false) { 
+    }
+  };
+  bool key_scaning() {
+    slash::MutexLock lm(&key_scan_protector_);
+    return key_scan_info_.key_scaning_;
+  }
+  KeyScanInfo key_scan_info() {
+    slash::MutexLock lm(&key_scan_protector_);
+    return key_scan_info_;
+  }
+  void KeyScan();
+  void RunKeyScan();
+  
 
 /*
  * client related
  */
   void ClientKillAll();
   int ClientKill(const std::string &ip_port);
-  void ClientList(std::vector< std::pair<int, std::string> > &clients);
+  int64_t ClientList(std::vector< std::pair<int, std::string> > *clients = NULL);
 
+/*
+ *for statistic
+ */
+  uint64_t ServerQueryNum();
+  uint64_t ServerCurrentQps();
+  uint64_t accumulative_connections() {
+    return accumulative_connections_;
+  }
+  void incr_accumulative_connections() {
+    ++accumulative_connections_;  
+  }
 
 private:
   std::atomic<bool> exit_;
@@ -181,6 +238,8 @@ private:
   int port_;
   pthread_rwlock_t rwlock_;
   std::shared_ptr<nemo::Nemo> db_;
+
+  time_t start_time_s_;
 
   PikaWorkerThread* pika_worker_thread_[PIKA_MAX_WORKER_THREAD_NUM];
   PikaDispatchThread* pika_dispatch_thread_;
@@ -207,7 +266,7 @@ private:
   /*
    * Bgsave use
    */
-  std::atomic<bool> bgsaving_;
+  slash::Mutex bgsave_protector_;
   pink::BGThread bgsave_thread_;
   nemo::BackupEngine *bgsave_engine_;
   BGSaveInfo bgsave_info_;
@@ -223,7 +282,6 @@ private:
   pink::BGThread purge_thread_;
   
   static void DoPurgeLogs(void* arg);
-  bool GetPurgeWindow(uint32_t &max);
   bool GetBinlogFiles(std::vector<std::string>& binlogs);
   void AutoPurge();
   int GetAutoPurgeUpIndex();
@@ -232,6 +290,20 @@ private:
    * Flushall use 
    */
   static void DoPurgeDir(void* arg);
+  /*
+   * Keyscan use
+   */
+  slash::Mutex key_scan_protector_;
+  pink::BGThread key_scan_thread_;
+  KeyScanInfo key_scan_info_;
+
+  /*
+   * for statistic
+   */
+  std::atomic<uint64_t> accumulative_connections_;
+
+  static void DoKeyScan(void *arg);
+  void InitKeyScan();
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);

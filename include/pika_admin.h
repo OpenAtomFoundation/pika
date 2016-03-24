@@ -127,12 +127,48 @@ public:
   ClientCmd() {
   }
   virtual void Do();
-  static std::string CLIENT_LIST_S;
-  static std::string CLIENT_KILL_S;
+  const static std::string CLIENT_LIST_S;
+  const static std::string CLIENT_KILL_S;
 private:
   std::string operation_, ip_port_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
 
+class InfoCmd : public Cmd {
+public:
+  enum InfoSection {
+    kInfoErr = 0x0,
+    kInfoServer,
+    kInfoClients,
+    kInfoStats,
+    kInfoReplication,
+    kInfoKeyspace,
+    kInfoAll
+  };
+
+  InfoCmd() : rescan_(false) {
+  }
+  virtual void Do();
+private:
+  InfoSection info_section_;
+  bool rescan_; //whether to rescan the keyspace
+
+  const static std::string kServerSection;
+  const static std::string kClientsSection;
+  const static std::string kStatsSection;
+  const static std::string kReplicationSection;
+  const static std::string kKeyspaceSection;
+
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    rescan_ = false;
+  }
+   
+  void InfoServer(std::string &info);
+  void InfoClients(std::string &info);
+  void InfoStats(std::string &info);
+  void InfoReplication(std::string &info);
+  void InfoKeyspace(std::string &info);
 };
 
 class ShutdownCmd : public Cmd {
