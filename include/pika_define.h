@@ -2,7 +2,7 @@
 #define PIKA_DEFINE_H_
 
 
-#define PIKA_MAX_WORKER_THREAD_NUM 1
+#define PIKA_MAX_WORKER_THREAD_NUM 24
 
 
 static const std::string kPikaVersion = "2.0.0";

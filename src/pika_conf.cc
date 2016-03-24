@@ -56,6 +56,9 @@ int PikaConf::Load()
   if (thread_num_ <= 0) {
     thread_num_ = 12;
   }
+  if (thread_num_ > 24) {
+    thread_num_ = 24;
+  }
 
   // write_buffer_size
   GetConfInt("write_buffer_size", &write_buffer_size_);
@@ -81,22 +84,18 @@ int PikaConf::Load()
 
   GetConfStr("pidfile", &pidfile_);
 
-  return ret;
-  //if (slave_thread_num_ <= 0) {
-  //    slave_thread_num_ = 7;
-  //}
-  //if (timeout_ <= 0) {
-  //    timeout_ = 60; // 60s
-  //}
+  if (timeout_ <= 0) {
+      timeout_ = 60; // 60s
+  }
   //if (maxconnection_ <= 0) {
   //    maxconnection_ = 20000;
   //}
-  //if (expire_logs_days_ <= 0 ) {
-  //    expire_logs_days_ = 1;
-  //}
-  //if (expire_logs_nums_ <= 10 ) {
-  //    expire_logs_nums_ = 10;
-  //}
+  if (expire_logs_days_ <= 0 ) {
+      expire_logs_days_ = 1;
+  }
+  if (expire_logs_nums_ <= 10 ) {
+      expire_logs_nums_ = 10;
+  }
   //if (root_connection_num_ < 0) {
   //    root_connection_num_ = 0;
   //}
@@ -104,6 +103,7 @@ int PikaConf::Load()
   //    db_sync_speed_ = 125;
   //}
 
+  return ret;
 
 }
 

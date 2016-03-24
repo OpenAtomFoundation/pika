@@ -44,11 +44,12 @@ PikaServer::PikaServer() :
   LOG(WARNING) << "DB Success";
 
   // Create thread
-  for (int i = 0; i < PIKA_MAX_WORKER_THREAD_NUM; i++) {
+  worker_num_ = g_pika_conf->thread_num();
+  for (int i = 0; i < worker_num_; i++) {
     pika_worker_thread_[i] = new PikaWorkerThread(1000);
   }
 
-  pika_dispatch_thread_ = new PikaDispatchThread(port_, PIKA_MAX_WORKER_THREAD_NUM, pika_worker_thread_, 3000);
+  pika_dispatch_thread_ = new PikaDispatchThread(port_, worker_num_, pika_worker_thread_, 3000);
   pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(port_ + 100, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(port_ + 200, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
@@ -65,7 +66,7 @@ PikaServer::~PikaServer() {
   delete logger_;
   db_.reset();
 
-  for (int i = 0; i < PIKA_MAX_WORKER_THREAD_NUM; i++) {
+  for (int i = 0; i < worker_num_; i++) {
     delete pika_worker_thread_[i];
   }
 
@@ -720,13 +721,13 @@ void PikaServer::InitKeyScan() {
 }
 
 void PikaServer::ClientKillAll() {
-  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; idx++) {
+  for (size_t idx = 0; idx != worker_num_; idx++) {
     pika_worker_thread_[idx]->ThreadClientKill();
   }  
 }
 
 int PikaServer::ClientKill(const std::string &ip_port) {
-  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; ++idx) {
+  for (size_t idx = 0; idx != worker_num_; ++idx) {
     if (pika_worker_thread_[idx]->ThreadClientKill(ip_port)) {
       return 1;
     }
@@ -736,7 +737,7 @@ int PikaServer::ClientKill(const std::string &ip_port) {
 
 int64_t PikaServer::ClientList(std::vector< std::pair<int, std::string> > *clients) {
   int64_t clients_num = 0;
-  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; ++idx) {
+  for (size_t idx = 0; idx != worker_num_; ++idx) {
     clients_num += pika_worker_thread_[idx]->ThreadClientList(clients);
   }
   return clients_num;
@@ -744,7 +745,7 @@ int64_t PikaServer::ClientList(std::vector< std::pair<int, std::string> > *clien
 
 uint64_t PikaServer::ServerQueryNum() {
   uint64_t server_query_num = 0;
-  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; ++idx) {
+  for (size_t idx = 0; idx != worker_num_; ++idx) {
     server_query_num += pika_worker_thread_[idx]->thread_querynum();
   }
   server_query_num += pika_binlog_receiver_thread_->thread_querynum();
@@ -753,7 +754,7 @@ uint64_t PikaServer::ServerQueryNum() {
 
 uint64_t PikaServer::ServerCurrentQps() {
   uint64_t server_current_qps = 0;
-  for (size_t idx = 0; idx != PIKA_MAX_WORKER_THREAD_NUM; ++idx) {
+  for (size_t idx = 0; idx != worker_num_; ++idx) {
     server_current_qps += pika_worker_thread_[idx]->last_sec_thread_querynum();
   }
   server_current_qps += pika_binlog_receiver_thread_->last_sec_thread_querynum();

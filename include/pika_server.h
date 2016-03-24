@@ -241,6 +241,7 @@ private:
 
   time_t start_time_s_;
 
+  int worker_num_;
   PikaWorkerThread* pika_worker_thread_[PIKA_MAX_WORKER_THREAD_NUM];
   PikaDispatchThread* pika_dispatch_thread_;
 
