@@ -138,32 +138,39 @@ public:
  * BGSave used
  */
   struct BGSaveInfo {
+    bool bgsaving;
     time_t start_time;
     std::string s_start_time;
     std::string path;
     std::string tmp_path;
     uint32_t filenum;
     uint64_t offset;
-    BGSaveInfo() : filenum(0), offset(0){}
+    BGSaveInfo() : bgsaving(false), filenum(0), offset(0){}
     void Clear() {
+      bgsaving = false;
       path.clear();
       tmp_path.clear();
       filenum = 0;
       offset = 0;
     }
   };
-  const BGSaveInfo& bgsave_info() const {
+  BGSaveInfo bgsave_info() {
+    slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_;
   }
   bool bgsaving() {
-    return bgsaving_;
+    slash::MutexLock l(&bgsave_protector_);
+    return bgsave_info_.bgsaving;
+  }
+  slash::Mutex* bgsave_protector() {
+    return &bgsave_protector_;
   }
   void Bgsave();
   bool Bgsaveoff();
-  bool RunBgsaveEngine();
+  bool RunBgsaveEngine(const std::string path);
+  // need bgsave_protector protect
   void ClearBgsave() {
     bgsave_info_.Clear();
-    bgsaving_ = false;
   }
 
 /*
@@ -259,7 +266,7 @@ private:
   /*
    * Bgsave use
    */
-  std::atomic<bool> bgsaving_;
+  slash::Mutex bgsave_protector_;
   pink::BGThread bgsave_thread_;
   nemo::BackupEngine *bgsave_engine_;
   BGSaveInfo bgsave_info_;

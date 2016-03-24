@@ -20,7 +20,6 @@ PikaServer::PikaServer() :
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
-  bgsaving_(false),
   purging_(false),
   accumulative_connections_(0) {
 
@@ -349,6 +348,7 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
   }
 }
 
+// Prepare engine, need bgsave_protector protect
 bool PikaServer::InitBgsaveEnv(const std::string& bgsave_path) {
   // Prepare for bgsave dir
   bgsave_info_.start_time = time(NULL);
@@ -356,13 +356,13 @@ bool PikaServer::InitBgsaveEnv(const std::string& bgsave_path) {
   int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
   bgsave_info_.s_start_time.assign(s_time, len);
   bgsave_info_.path = bgsave_path + std::string(s_time, 8);
+  bgsave_info_.tmp_path = bgsave_path + "tmp";
   if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
     LOG(ERROR) << "remove exist bgsave dir failed";
     return false;
   }
   slash::CreateDir(bgsave_info_.path);
   // Prepare for tmp dir
-  bgsave_info_.tmp_path = bgsave_path + "tmp";
   if (!slash::DeleteDirIfExist(bgsave_info_.tmp_path)) {
     LOG(ERROR) << "remove exist tmp bgsave dir failed";
     return false;
@@ -375,6 +375,7 @@ bool PikaServer::InitBgsaveEnv(const std::string& bgsave_path) {
   return true;
 }
 
+// Prepare bgsave env, need bgsave_protector protect
 bool PikaServer::InitBgsaveEngine() {
   if (bgsave_engine_ != NULL) {
     delete bgsave_engine_;
@@ -399,14 +400,14 @@ bool PikaServer::InitBgsaveEngine() {
   return true;
 }
 
-bool PikaServer::RunBgsaveEngine() {
+bool PikaServer::RunBgsaveEngine(const std::string path) {
   // Backup to tmp dir
   nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(db().get());
   LOG(INFO) << "create new backup finished.";
   // Restore to bgsave dir
   if (nemo_s.ok()) {
     nemo_s = bgsave_engine_->RestoreDBFromBackup(
-        bgsave_engine_->GetLatestBackupID() + 1, bgsave_info_.path);
+        bgsave_engine_->GetLatestBackupID() + 1, path);
   }
   LOG(INFO) << "backup finished.";
   
@@ -419,16 +420,19 @@ bool PikaServer::RunBgsaveEngine() {
 
 void PikaServer::Bgsave() {
   // Only one thread can go through
-  bool expect = false;
-  if (!bgsaving_.compare_exchange_strong(expect, true)) {
-    return;
-  }
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    if (bgsave_info_.bgsaving) {
+      return;
+    }
+    bgsave_info_.bgsaving = true;
 
-  // Prepare for Bgsaving
-  if (!InitBgsaveEnv(g_pika_conf->bgsave_path())
-      || !InitBgsaveEngine()) {
-    ClearBgsave();
-    return;
+    // Prepare for Bgsaving
+    if (!InitBgsaveEnv(g_pika_conf->bgsave_path())
+        || !InitBgsaveEngine()) {
+      ClearBgsave();
+      return;
+    }
   }
 
   // Start new thread if needed
@@ -440,10 +444,10 @@ void PikaServer::Bgsave() {
 
 void PikaServer::DoBgsave(void* arg) {
   PikaServer* p = static_cast<PikaServer*>(arg);
-  const BGSaveInfo& info = p->bgsave_info();
-  
+  BGSaveInfo info = p->bgsave_info();
+
   // Do bgsave
-  bool ok = p->RunBgsaveEngine();
+  bool ok = p->RunBgsaveEngine(info.path);
 
   // Delete tmp
   if (!slash::DeleteDirIfExist(info.tmp_path)) {
@@ -464,13 +468,18 @@ void PikaServer::DoBgsave(void* arg) {
     std::string fail_path = info.path + "_FAILED";
     slash::RenameFile(info.path.c_str(), fail_path.c_str());
   }
-
-  p->ClearBgsave();
+  {
+    slash::MutexLock l(p->bgsave_protector());
+    p->ClearBgsave();
+  }
 }
 
 bool PikaServer::Bgsaveoff() {
-  if (!bgsaving_) {
-    return false;
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    if (!bgsave_info_.bgsaving) {
+      return false;
+    }
   }
   if (bgsave_engine_ != NULL) {
     bgsave_engine_->StopBackup();
@@ -510,7 +519,7 @@ bool PikaServer::PurgeLogs(uint32_t to) {
 void PikaServer::DoPurgeLogs(void* arg) {
   PurgeArg *ppurge = static_cast<PurgeArg*>(arg);
   PikaServer* ps = ppurge->p;
-  
+
   ps->PurgeFiles(ppurge->to);
 
   ps->ClearPurge();
@@ -621,8 +630,17 @@ void PikaServer::AutoPurge() {
 }
 
 bool PikaServer::FlushAll() {
-  if (bgsaving_ || key_scan_info_.key_scaning_) {
-    return false;
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    if (bgsave_info_.bgsaving) {
+      return false;
+    }
+  }
+  {
+    slash::MutexLock l(&key_scan_protector_);
+    if (key_scan_info_.key_scaning_) {
+      return false;
+    }
   }
   std::string dbpath = g_pika_conf->db_path();
   if (dbpath[dbpath.length() - 1] == '/') {
