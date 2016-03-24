@@ -58,8 +58,6 @@ PikaServer::PikaServer() :
 }
 
 PikaServer::~PikaServer() {
-  pthread_rwlock_destroy(&state_protector_);
-  pthread_rwlock_destroy(&rwlock_);
   if (bgsave_engine_ != NULL) {
     delete bgsave_engine_;
   }
@@ -78,6 +76,9 @@ PikaServer::~PikaServer() {
 
   //TODO
   //delete pika_slaveping_thread_;
+
+  pthread_rwlock_destroy(&state_protector_);
+  pthread_rwlock_destroy(&rwlock_);
 
   DLOG(INFO) << "PikaServer " << pthread_self() << " exit!!!";
 }
