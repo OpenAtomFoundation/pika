@@ -618,10 +618,6 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "thread_num");
       EncodeInt32(&ret, g_pika_conf->thread_num());
-  } else if (get_item == "slave_thread_num") {
-      ret = "*2\r\n";
-      EncodeString(&ret, "slave_thread_num");
-      EncodeInt32(&ret, g_pika_conf->slave_thread_num());
   } else if (get_item == "log_path") {
       ret = "*2\r\n";
       EncodeString(&ret, "log_path");
@@ -727,10 +723,9 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 //      EncodeString(&ret, "db_sync_speed");
 //      EncodeInt32(&ret, g_pika_conf->db_sync_speed());
   } else if (get_item == "*") {
-    ret = "*28\r\n";
+    ret = "*27\r\n";
     EncodeString(&ret, "port");
     EncodeString(&ret, "thread_num");
-    EncodeString(&ret, "slave_thread_num");
     EncodeString(&ret, "log_path");
     EncodeString(&ret, "log_level");
     EncodeString(&ret, "db_path");
