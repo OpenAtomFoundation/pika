@@ -71,12 +71,10 @@ PikaServer::~PikaServer() {
   }
 
   delete pika_dispatch_thread_;
+  delete ping_thread_;
   delete pika_binlog_receiver_thread_;
   delete pika_trysync_thread_;
   delete pika_heartbeat_thread_;
-
-  //TODO
-  //delete pika_slaveping_thread_;
 
   pthread_rwlock_destroy(&state_protector_);
   pthread_rwlock_destroy(&rwlock_);

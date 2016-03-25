@@ -17,6 +17,7 @@ public:
     should_exit_ = true;
     pthread_join(thread_id(), NULL);
     delete cli_;
+    DLOG(INFO) << " Slaveping thread " << pthread_self() << " exit!!!";
 	};
 
   pink::Status Send();
