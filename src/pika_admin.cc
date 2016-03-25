@@ -674,10 +674,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "pidfile");
       EncodeString(&ret, g_pika_conf->pidfile());
-//  } else if (get_item == "maxconnection") {
-//      ret = "*2\r\n";
-//      EncodeString(&ret, "maxconnection");
-//      EncodeInt32(&ret, g_pika_conf->maxconnection());
+  } else if (get_item == "maxconnection") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "maxconnection");
+      EncodeInt32(&ret, g_pika_conf->maxconnection());
   } else if (get_item == "target_file_size_base") {
       ret = "*2\r\n";
       EncodeString(&ret, "target_file_size_base");
@@ -690,14 +690,14 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "expire_logs_nums");
       EncodeInt32(&ret, g_pika_conf->expire_logs_nums());
-//  } else if (get_item == "root_connection_num" ) {
-//      ret = "*2\r\n";
-//      EncodeString(&ret, "root_connection_num");
-//      EncodeInt32(&ret, g_pika_conf->root_connection_num());
-//  } else if (get_item == "slowlog_log_slower_than") {
-//      ret = "*2\r\n";
-//      EncodeString(&ret, "slowlog_log_slower_than");
-//      EncodeInt32(&ret, g_pika_conf->slowlog_slower_than());
+  } else if (get_item == "root_connection_num" ) {
+      ret = "*2\r\n";
+      EncodeString(&ret, "root_connection_num");
+      EncodeInt32(&ret, g_pika_conf->root_connection_num());
+  } else if (get_item == "slowlog_log_slower_than") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "slowlog_log_slower_than");
+      EncodeInt32(&ret, g_pika_conf->slowlog_slower_than());
   } else if (get_item == "binlog_file_size") {
       ret = "*2\r\n";
       EncodeString(&ret, "binlog_file_size");
@@ -811,13 +811,13 @@ void ConfigCmd::ConfigSet(std::string& ret) {
 //  } else if (set_item == "dump_prefix") {
 //    g_pika_conf->SetDumpPrefix(value);
 //    ret = "+OK\r\n";
-//  } else if (set_item == "maxconnection") {
-//    if (!slash::string2l(value.data(), value.size(), &ival)) {
-//      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'maxconnection'\r\n";
-//      return;
-//    }
-//    g_pika_conf->SetMaxConnection(ival);
-//    ret = "+OK\r\n";
+  } else if (set_item == "maxconnection") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'maxconnection'\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxConnection(ival);
+    ret = "+OK\r\n";
   } else if (set_item == "expire_logs_days") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire_logs_days'\r\n";
@@ -832,20 +832,20 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetExpireLogsNums(ival);
     ret = "+OK\r\n";
-//  } else if (set_item == "root_connection_num") {
-//    if (!slash::string2l(value.data(), value.size(), &ival)) {
-//      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'root_connection_num'\r\n";
-//      return;
-//    }
-//    g_pika_conf->SetRootConnectionNum(ival);
-//    ret = "+OK\r\n";
-//  } else if (set_item == "slowlog_log_slower_than") {
-//    if (!slash::string2l(value.data(), value.size(), &ival)) {
-//      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slowlog_slower_than'\r\n";
-//      return;
-//    }
-//    g_pika_conf->SetSlowlogSlowerThan(ival);
-//    ret = "+OK\r\n";
+  } else if (set_item == "root_connection_num") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'root_connection_num'\r\n";
+      return;
+    }
+    g_pika_conf->SetRootConnectionNum(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "slowlog_log_slower_than") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slowlog_slower_than'\r\n";
+      return;
+    }
+    g_pika_conf->SetSlowlogSlowerThan(ival);
+    ret = "+OK\r\n";
   } else if (set_item == "slave-read-only") {
     slash::StringToLower(value);
     bool is_readonly;

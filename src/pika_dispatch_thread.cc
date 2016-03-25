@@ -2,15 +2,17 @@
 #include "pika_dispatch_thread.h"
 #include "pika_client_conn.h"
 #include "pika_server.h"
+#include "pika_conf.h"
 
 extern PikaServer* g_pika_server;
+extern PikaConf* g_pika_conf;
 
 PikaDispatchThread::PikaDispatchThread(int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval) :
   DispatchThread::DispatchThread(port, work_num, reinterpret_cast<pink::WorkerThread<PikaClientConn>**>(pika_worker_thread), cron_interval) {
 }
 
 PikaDispatchThread::~PikaDispatchThread() {
-  DLOG(INFO) << "dispatch thread " << pthread_self() << " exit!!!";
+  DLOG(INFO) << "dispatch thread " << thread_id() << " exit!!!";
 }
 
 void PikaDispatchThread::CronHandle() {
@@ -34,10 +36,14 @@ bool PikaDispatchThread::AccessHandle(std::string& ip) {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();
   }
-  if (ClientNum() >= 1000) {
+
+  int client_num = ClientNum();
+  if ((client_num >= g_pika_conf->maxconnection() + g_pika_conf->root_connection_num())
+      || (client_num >= g_pika_conf->maxconnection() && ip != g_pika_server->host())) {
     DLOG(INFO) << "Max connections reach, Deny new comming: " << ip;
     return false;
   }
+
   DLOG(INFO) << "ip: " << ip;
   g_pika_server->incr_accumulative_connections();
   return true;

@@ -41,7 +41,7 @@ PikaBinlogSenderThread::~PikaBinlogSenderThread() {
   }
   pthread_rwlock_destroy(&rwlock_);
   delete [] backing_store_;
-  DLOG(INFO) << "a BinlogSender thread " << pthread_self() << " exit!";
+  DLOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
 }
 
 int PikaBinlogSenderThread::trim() {

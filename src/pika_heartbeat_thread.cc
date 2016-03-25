@@ -11,7 +11,7 @@ PikaHeartbeatThread::PikaHeartbeatThread(int port, int cron_interval) :
 }
 
 PikaHeartbeatThread::~PikaHeartbeatThread() {
-  DLOG(INFO) << "PikaHeartbeat thread " << pthread_self() << " exit!!!";
+  DLOG(INFO) << "PikaHeartbeat thread " << thread_id() << " exit!!!";
 }
 
 void PikaHeartbeatThread::CronHandle() {
@@ -24,7 +24,7 @@ void PikaHeartbeatThread::CronHandle() {
 	slash::RWLock l(&rwlock_, true); // Use WriteLock to iterate the conns_
 	std::map<int, void*>::iterator iter = conns_.begin();
   while (iter != conns_.end()) {
-    if (now.tv_sec - static_cast<PikaHeartbeatConn*>(iter->second)->last_interaction().tv_sec > 30) {
+    if (now.tv_sec - static_cast<PikaHeartbeatConn*>(iter->second)->last_interaction().tv_sec > 20) {
       DLOG(INFO) << "Find Timeout Slave: " << static_cast<PikaHeartbeatConn*>(iter->second)->ip_port();
 			close(iter->first);
 			//	erase item in slaves_

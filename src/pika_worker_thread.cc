@@ -12,7 +12,7 @@ PikaWorkerThread::PikaWorkerThread(int cron_interval):
 PikaWorkerThread::~PikaWorkerThread() {
   should_exit_ = true;
   DestoryCmdTable(cmds_);
-  DLOG(INFO) << "A worker thread " << pthread_self() << " exit!!!";
+  DLOG(INFO) << "A worker thread " << thread_id() << " exit!!!";
 }
 
 void PikaWorkerThread::CronHandle() {
