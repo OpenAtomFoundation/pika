@@ -76,10 +76,6 @@ public:
     RWLock l(&rwlock_, true);
     slash::StringSplit(value, COMMA, user_blacklist_);
   }
-  void AddToUserBlackList(const std::string &value) {
-    RWLock l(&rwlock_, true);
-    user_blacklist_.push_back(value);
-  }
   void SetReadonly(const bool value) {
     RWLock l(&rwlock_, true); readonly_ = value;
   }
