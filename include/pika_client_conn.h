@@ -26,7 +26,7 @@ private:
   class AuthStat {
   public:
     void Init();
-    bool IsAuthed(const std::string& opt);
+    bool IsAuthed(const CmdInfo* const cinfo_ptr);
     bool ChecknUpdate(const std::string& arg);
   private:
     enum StatType {

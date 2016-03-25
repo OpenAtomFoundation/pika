@@ -19,7 +19,6 @@ static void PikaConfInit(const std::string& path) {
   if (g_pika_conf->Load() != 0) {
     LOG(FATAL) << "pika load conf error";
   }
-  g_pika_conf->AddToUserBlackList(kCmdNameTrysync);
   version();
   printf("-----------Pika config list----------\n");
   g_pika_conf->DumpConf();
@@ -32,7 +31,7 @@ static void PikaGlogInit() {
   }
 
   FLAGS_log_dir = g_pika_conf->log_path();
-  FLAGS_minloglevel = 0;
+  FLAGS_minloglevel = g_pika_conf->log_level();
   FLAGS_max_log_size = 1800;
   ::google::InitGoogleLogging("pika");
 }
