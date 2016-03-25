@@ -701,6 +701,7 @@ void PikaServer::DoKeyScan(void *arg) {
 void PikaServer::KeyScan() {
   key_scan_protector_.Lock();
   if (key_scan_info_.key_scaning_) {
+    key_scan_protector_.Unlock();
     return;
   }
   key_scan_info_.key_scaning_ = true; 
