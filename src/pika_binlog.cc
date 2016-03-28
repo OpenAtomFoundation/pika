@@ -82,7 +82,8 @@ Binlog::Binlog(const std::string& Binlog_path, const int file_size) :
     //retry_(retry),
     pool_(NULL),
     exit_all_consume_(false),
-    binlog_path_(Binlog_path) {
+    binlog_path_(Binlog_path),
+    file_size_(file_size_) {
 
   //slash::SetMmapBoundSize(file_size);
   //slash::kMmapBoundSize = 1024 * 1024 * 100;
@@ -164,7 +165,7 @@ Status Binlog::Put(const std::string &item) {
 
   /* Check to roll log file */
   uint64_t filesize = queue_->Filesize();
-  if (filesize > kBinlogSize) {
+  if (filesize > file_size_) {
     delete queue_;
     queue_ = NULL;
 
@@ -198,7 +199,7 @@ Status Binlog::Put(const char* item, int len) {
 
   /* Check to roll log file */
   uint64_t filesize = queue_->Filesize();
-  if (filesize > kBinlogSize) {
+  if (filesize > file_size_) {
     delete queue_;
     queue_ = NULL;
 

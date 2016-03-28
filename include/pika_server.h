@@ -2,7 +2,7 @@
 #define PIKA_SERVER_H_
 
 #include <vector>
-#include <list>
+#include <map>
 #include <nemo.h>
 #include <time.h>
 #include "pika_binlog.h"
@@ -178,17 +178,19 @@ public:
  */
   struct PurgeArg {
     PikaServer *p;
-    uint32_t to;  
+    uint32_t to;
+    bool manual;
   };
-  bool PurgeLogs(uint32_t to);
-  bool PurgeFiles(uint32_t to);
+  bool PurgeLogs(uint32_t to, bool manual = true);
+  bool PurgeFiles(uint32_t to, bool manual);
+  bool GetPurgeWindow(uint32_t &max);
   void ClearPurge() {
     purging_ = false;
   }
+
   //flushall
   bool FlushAll();
   void PurgeDir(std::string& path);
-  bool GetPurgeWindow(uint32_t &max);
 
 /*
  *Keyscan used
@@ -283,9 +285,9 @@ private:
   pink::BGThread purge_thread_;
   
   static void DoPurgeLogs(void* arg);
-  bool GetBinlogFiles(std::vector<std::string>& binlogs);
+  bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   void AutoPurge();
-  int GetAutoPurgeUpIndex();
+  bool CouldPurge(uint32_t index);
 
   /*
    * Flushall use 

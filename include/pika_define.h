@@ -47,7 +47,7 @@ struct SlaveItem {
  * The size of Binlogfile
  */
 //static uint64_t kBinlogSize = 128; 
-static const uint64_t kBinlogSize = 1024 * 1024 * 100;
+//static const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 enum RecordType {
   kZeroType = 0,

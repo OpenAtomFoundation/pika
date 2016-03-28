@@ -269,7 +269,7 @@ public:
     case kNoneBgsave:
       return "-ERR No BGSave Works now\r\n";
     case kPurgeExist:
-      return "-ERR binlog may in use or non_exist or already in purging...\r\n";
+      return "-ERR binlog already in purging...\r\n";
     case kInvalidParameter:
       return "-ERR Invalid Argument\r\n";
     case kWrongNum:

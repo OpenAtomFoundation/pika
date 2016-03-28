@@ -57,6 +57,9 @@ class Binlog
 
   slash::WritableFile *queue() { return queue_; }
   //slash::WritableFile *writefile() { return writefile_; }
+  uint64_t file_size() {
+    return file_size_;
+  }
 
   std::string filename;
   Version* version_;
@@ -88,6 +91,7 @@ class Binlog
   bool exit_all_consume_;
   const std::string binlog_path_;
 
+  uint64_t file_size_;
   // No copying allowed
   Binlog(const Binlog&);
   void operator=(const Binlog&);
