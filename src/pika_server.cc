@@ -498,7 +498,7 @@ bool PikaServer::PurgeLogs(uint32_t to) {
     LOG(WARNING) << "no need to purge";
     return false;
   }
-  LOG(WARNING) << "max seqnum could be deleted: " << max;
+  DLOG(INFO) << "max seqnum could be deleted: " << max;
   if (to > max) {
     LOG(WARNING) << "seqnum:" << to << " larger than max could be deleted: " << max;
     ClearPurge();
