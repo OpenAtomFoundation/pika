@@ -63,9 +63,6 @@ PikaServer::~PikaServer() {
     delete bgsave_engine_;
   }
 
-  delete logger_;
-  db_.reset();
-
   for (int i = 0; i < worker_num_; i++) {
     delete pika_worker_thread_[i];
   }
@@ -76,6 +73,9 @@ PikaServer::~PikaServer() {
   delete pika_trysync_thread_;
   delete pika_heartbeat_thread_;
 
+  DestoryCmdInfoTable();
+  delete logger_;
+  db_.reset();
   pthread_rwlock_destroy(&state_protector_);
   pthread_rwlock_destroy(&rwlock_);
 
@@ -102,7 +102,7 @@ void PikaServer::Cleanup() {
     unlink(g_pika_conf->pidfile().c_str());
   }
 
-  DestoryCmdInfoTable();
+//  DestoryCmdInfoTable();
 
   //g_pika_server->shutdown = true;
   //sleep(1);
