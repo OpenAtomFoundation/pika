@@ -197,10 +197,13 @@ Status PikaBinlogSenderThread::Consume(std::string &scratch) {
 Status PikaBinlogSenderThread::Parse(std::string &scratch) {
   scratch.clear();
   Status s;
+  uint32_t pro_num;
+  uint64_t pro_offset;
 
-  Version* version = g_pika_server->logger_->version_;
+  Binlog* logger = g_pika_server->logger_;
   while (!should_exit_) {
-    if (filenum_ == version->pro_num() && con_offset_ == version->pro_offset()) {
+    logger->GetProducerStatus(&pro_num, &pro_offset);
+    if (filenum_ == pro_num && con_offset_ == pro_offset) {
       //DLOG(INFO) << "BinlogSender Parse no new msg, filenum_" << filenum_ << ", con_offset " << con_offset_;
       usleep(10000);
       continue;

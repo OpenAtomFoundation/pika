@@ -63,11 +63,14 @@ PikaServer::~PikaServer() {
     delete bgsave_engine_;
   }
 
+  // DispatchThread will use queue of worker thread,
+  // so we need to delete dispatch before worker.
+  delete pika_dispatch_thread_;
+
   for (int i = 0; i < worker_num_; i++) {
     delete pika_worker_thread_[i];
   }
 
-  delete pika_dispatch_thread_;
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
   delete pika_trysync_thread_;
@@ -516,7 +519,8 @@ void PikaServer::DoPurgeLogs(void* arg) {
 }
 
 bool PikaServer::GetPurgeWindow(uint32_t &max) {
-  max = logger_->version_->pro_num();
+  uint64_t tmp;
+  logger_->GetProducerStatus(&max, &tmp);
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator it;
   for (it = slaves_.begin(); it != slaves_.end(); ++it) {
@@ -533,8 +537,12 @@ bool PikaServer::GetPurgeWindow(uint32_t &max) {
 }
 
 bool PikaServer::CouldPurge(uint32_t index) {
+  uint32_t pro_num;
+  uint64_t tmp;
+  logger_->GetProducerStatus(&pro_num, &tmp);
+
   index += 10; //remain some more
-  if (index > logger_->version_->pro_num()) {
+  if (index > pro_num) {
     return false;
   }
   slash::MutexLock l(&slave_mutex_);
