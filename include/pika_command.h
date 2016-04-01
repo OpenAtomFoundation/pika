@@ -133,11 +133,12 @@ const std::string kCmdNameSRandmember= "srandmember";
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 
 enum CmdFlagsMask {
-  kCmdFlagsMaskRW         = 1,
-  kCmdFlagsMaskType       = 14,
-  kCmdFlagsMaskLocal      = 16,
-  kCmdFlagsMaskSuspend    = 32,
-  kCmdFlagsMaskPrior      = 64
+  kCmdFlagsMaskRW               = 1,
+  kCmdFlagsMaskType             = 14,
+  kCmdFlagsMaskLocal            = 16,
+  kCmdFlagsMaskSuspend          = 32,
+  kCmdFlagsMaskPrior            = 64,
+  kCmdFlagsMaskAdminRequire     = 128
 };
 
 enum CmdFlags {
@@ -154,7 +155,9 @@ enum CmdFlags {
   kCmdFlagsNoSuspend      = 0, //default nosuspend
   kCmdFlagsSuspend        = 32,
   kCmdFlagsNoPrior        = 0, //default noprior
-  kCmdFlagsPrior          = 64
+  kCmdFlagsPrior          = 64,
+  kCmdFlagsNoAdminRequire = 0, //default no need admin
+  kCmdFlagsAdminRequire   = 128
 };
 
 
@@ -183,6 +186,10 @@ public:
   }
   bool is_prior() const {
     return ((flag_ & kCmdFlagsMaskPrior) == kCmdFlagsPrior);
+  }
+  // Must with admin auth
+  bool is_admin_require() const {
+    return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
   }
   std::string name() const {
     return name_;
@@ -262,7 +269,7 @@ public:
     case kNoneBgsave:
       return "-ERR No BGSave Works now\r\n";
     case kPurgeExist:
-      return "-ERR binlog may in use or non_exist or already in purging...\r\n";
+      return "-ERR binlog already in purging...\r\n";
     case kInvalidParameter:
       return "-ERR Invalid Argument\r\n";
     case kWrongNum:

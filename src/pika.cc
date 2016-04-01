@@ -19,7 +19,6 @@ static void PikaConfInit(const std::string& path) {
   if (g_pika_conf->Load() != 0) {
     LOG(FATAL) << "pika load conf error";
   }
-  g_pika_conf->AddToUserBlackList(kCmdNameTrysync);
   version();
   printf("-----------Pika config list----------\n");
   g_pika_conf->DumpConf();
@@ -27,22 +26,26 @@ static void PikaConfInit(const std::string& path) {
 }
 
 static void PikaGlogInit() {
+  if (!slash::FileExists(g_pika_conf->log_path())) {
+    slash::CreatePath(g_pika_conf->log_path()); 
+  }
+
   if (!g_pika_conf->daemonize()) {
     FLAGS_alsologtostderr = true;
   }
-
   FLAGS_log_dir = g_pika_conf->log_path();
-  FLAGS_minloglevel = 0;
+  FLAGS_minloglevel = g_pika_conf->log_level();
   FLAGS_max_log_size = 1800;
   ::google::InitGoogleLogging("pika");
 }
 
 static void daemonize() {
-  int fd;
-
   if (fork() != 0) exit(0); /* parent exits */
   setsid(); /* create a new session */
+}
 
+static void close_std() {
+  int fd;
   if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
     dup2(fd, STDIN_FILENO);
     dup2(fd, STDOUT_FILENO);
@@ -100,6 +103,11 @@ int main(int argc, char *argv[]) {
 
   DLOG(INFO) << "Server at: " << argv[1];
   g_pika_server = new PikaServer();
+
+  if (g_pika_conf->daemonize()) {
+    close_std();
+  }
+
   g_pika_server->Start();
 
   return 0;

@@ -1,5 +1,8 @@
 #include <glog/logging.h>
 #include "pika_worker_thread.h"
+#include "pika_conf.h"
+
+extern PikaConf *g_pika_conf;
 
 PikaWorkerThread::PikaWorkerThread(int cron_interval):
   WorkerThread::WorkerThread(cron_interval),
@@ -11,6 +14,7 @@ PikaWorkerThread::PikaWorkerThread(int cron_interval):
 
 PikaWorkerThread::~PikaWorkerThread() {
   should_exit_ = true;
+  pthread_join(thread_id(), NULL);
   DestoryCmdTable(cmds_);
   DLOG(INFO) << "A worker thread " << thread_id() << " exit!!!";
 }
@@ -32,7 +36,7 @@ void PikaWorkerThread::CronHandle() {
 /*
  *  Find timeout client
  */
-    if (now.tv_sec - static_cast<PikaClientConn*>(iter->second)->last_interaction().tv_sec > 30) {
+    if (now.tv_sec - static_cast<PikaClientConn*>(iter->second)->last_interaction().tv_sec > g_pika_conf->timeout()) {
       DLOG(INFO) << "Find Timeout Client: " << static_cast<PikaClientConn*>(iter->second)->ip_port();
       AddCronTask(WorkerCronTask{TASK_KILL, static_cast<PikaClientConn*>(iter->second)->ip_port()});
     }

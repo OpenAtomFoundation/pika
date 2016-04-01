@@ -60,7 +60,6 @@ int PikaConf::Load()
   //
 
   GetConfInt("port", &port_);
-  GetConfInt("slave_thread_num", &slave_thread_num_);
   GetConfStr("log_path", &log_path_);
   GetConfStr("db_path", &db_path_);
   
@@ -112,7 +111,6 @@ int PikaConf::Load()
 int PikaConf::ConfigRewrite() {
   SetConfInt("port", port_);
   SetConfInt("thread_num", thread_num_);
-  SetConfInt("slave_thread_num", slave_thread_num_);
   SetConfStr("log_path", log_path_);
   SetConfInt("log_level", log_level_);
   SetConfStr("db_path", db_path_);

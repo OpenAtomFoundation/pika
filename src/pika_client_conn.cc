@@ -40,7 +40,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   // Check authed
-  if (!auth_stat_.IsAuthed(opt)) {
+  if (!auth_stat_.IsAuthed(cinfo_ptr)) {
     LOG(INFO) << "(" << ip_port() << ")Authentication required, close connection";
     return "-ERR NOAUTH Authentication required.\r\n";
   }
@@ -52,8 +52,8 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   // For now, only shutdown need check local
   if (cinfo_ptr->is_local()) {
-    if (ip_port().find("127.0.0.1") != std::string::npos
-        && ip_port().find(g_pika_server->host()) != std::string::npos) {
+    if (ip_port().find("127.0.0.1") == std::string::npos
+        && ip_port().find(g_pika_server->host()) == std::string::npos) {
       LOG(WARNING) << "\'shutdown\' should be localhost";
       return "-ERR \'shutdown\' should be localhost\r\n";
     }
@@ -137,8 +137,8 @@ void PikaClientConn::AuthStat::Init() {
 }
 
 // Check permission for current command
-bool PikaClientConn::AuthStat::IsAuthed(const std::string& opt) {
-  //TODO consider slaveauth
+bool PikaClientConn::AuthStat::IsAuthed(const CmdInfo* const cinfo_ptr) {
+  std::string opt = cinfo_ptr->name();
   if (opt == kCmdNameAuth) {
     return true;
   }
@@ -149,8 +149,8 @@ bool PikaClientConn::AuthStat::IsAuthed(const std::string& opt) {
     case kAdminAuthed:
       break;
     case kLimitAuthed:
-      if (find(blacklist.begin(), blacklist.end(), opt) 
-          != blacklist.end()) {
+      if (cinfo_ptr->is_admin_require() 
+          || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
       return false;
       }
       break;

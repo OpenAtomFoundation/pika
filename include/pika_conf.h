@@ -21,7 +21,6 @@ public:
   // Getter
   int port()              { RWLock l(&rwlock_, false); return port_; }
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
-  int slave_thread_num()  { RWLock l(&rwlock_, false); return slave_thread_num_; }
   std::string log_path()  { RWLock l(&rwlock_, false); return log_path_; }
   int log_level()         { RWLock l(&rwlock_, false); return log_level_; }
   std::string db_path()   { RWLock l(&rwlock_, false); return db_path_; }
@@ -77,10 +76,6 @@ public:
     RWLock l(&rwlock_, true);
     slash::StringSplit(value, COMMA, user_blacklist_);
   }
-  void AddToUserBlackList(const std::string &value) {
-    RWLock l(&rwlock_, true);
-    user_blacklist_.push_back(value);
-  }
   void SetReadonly(const bool value) {
     RWLock l(&rwlock_, true); readonly_ = value;
   }
@@ -111,7 +106,6 @@ public:
 private:
   int port_;
   int thread_num_;
-  int slave_thread_num_;
   std::string log_path_;
   std::string db_path_;
   //char master_db_sync_path_[PIKA_WORD_SIZE];

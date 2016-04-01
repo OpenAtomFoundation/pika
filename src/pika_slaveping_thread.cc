@@ -23,8 +23,9 @@ pink::Status PikaSlavepingThread::Send() {
 pink::Status PikaSlavepingThread::RecvProc() {
   pink::Status s = cli_->Recv(NULL);
   if (s.ok()) {
+    slash::StringToLower(cli_->argv_[0]);
     DLOG(INFO) << "Reply from master after ping: " << cli_->argv_[0];
-    if (cli_->argv_[0] == "PONG" || cli_->argv_[0] == "OK") {
+    if (cli_->argv_[0] == "pong" || cli_->argv_[0] == "ok") {
     } else {
       s = pink::Status::Corruption("");
     }

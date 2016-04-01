@@ -5,7 +5,7 @@
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 
 
-static const std::string kPikaVersion = "2.0.0";
+const std::string kPikaVersion = "2.0.0";
 const std::string kPikaPidFile = "pika.pid";
 
 struct WorkerCronTask {
@@ -47,7 +47,7 @@ struct SlaveItem {
  * The size of Binlogfile
  */
 //static uint64_t kBinlogSize = 128; 
-static const uint64_t kBinlogSize = 1024 * 1024 * 100;
+//static const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 enum RecordType {
   kZeroType = 0,
@@ -75,12 +75,12 @@ static const size_t kHeaderSize = 1 + 3;
  * the size of memory when we use memory mode
  * the default memory size is 2GB
  */
-static const int64_t kPoolSize = 1073741824;
+const int64_t kPoolSize = 1073741824;
 
-static const std::string kBinlogPrefix = "binlog";
-static const size_t kBinlogPrefixLen = 6;
+const std::string kBinlogPrefix = "write2file";
+const size_t kBinlogPrefixLen = 10;
 
-static const std::string kManifest = "manifest";
+const std::string kManifest = "manifest";
 
 /*
  * define common character
