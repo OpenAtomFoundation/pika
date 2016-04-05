@@ -79,16 +79,18 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
         return "-ERR Server in read-only\r\n";
       }
       raw_args = RestoreArgs();
-      g_pika_server->logger_->Lock();
+      g_pika_server->mutex_record_.Lock(argv_[1]);
   }
 
   c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
       if (c_ptr->res().ok()) {
+          g_pika_server->logger_->Lock();
           g_pika_server->logger_->Put(raw_args);
+          g_pika_server->logger_->Unlock();
       }
-      g_pika_server->logger_->Unlock();
+      g_pika_server->mutex_record_.Unlock(argv_[1]);
   }
 
   if (!cinfo_ptr->is_suspend()) {

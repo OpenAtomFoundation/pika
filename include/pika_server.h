@@ -233,6 +233,7 @@ public:
   void incr_accumulative_connections() {
     ++accumulative_connections_;  
   }
+  slash::RecordMutex mutex_record_;
 
 private:
   std::atomic<bool> exit_;
