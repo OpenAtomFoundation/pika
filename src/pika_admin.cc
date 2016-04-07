@@ -465,7 +465,7 @@ void InfoCmd::InfoServer(std::string &info) {
   tmp_stream << "db_size: " << (slash::Du(g_pika_conf->db_path()) >> 20)  << "M\r\n";
   tmp_stream << "log_size: " << (slash::Du(g_pika_conf->log_path()) >> 20) << "M\r\n";
   tmp_stream << "compression: " << g_pika_conf->compression() << "\r\n";
-  tmp_stream << "safety purge: " << (g_pika_server->GetPurgeWindow(purge_max) ? static_cast<int32_t>(purge_max) : -1) << "\r\n"; 
+  tmp_stream << "safety_purge: " << (g_pika_server->GetPurgeWindow(purge_max) ? static_cast<int32_t>(purge_max) : -1) << "\r\n"; 
   tmp_stream << "expire_logs_days: " << g_pika_conf->expire_logs_days() << "\r\n";
   tmp_stream << "expire_logs_nums: " << g_pika_conf->expire_logs_nums() << "\r\n";
 
@@ -484,7 +484,7 @@ void InfoCmd::InfoStats(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Stats\r\n";
   tmp_stream << "total_connections_received: " << g_pika_server->accumulative_connections() << "\r\n";
-  tmp_stream << "instances_ops_per_sec: " << g_pika_server->ServerCurrentQps() << "\r\n";
+  tmp_stream << "instantaneous_ops_per_sec: " << g_pika_server->ServerCurrentQps() << "\r\n";
   tmp_stream << "accumulative_query_nums: " << g_pika_server->ServerQueryNum() << "\r\n";
 
   info.append(tmp_stream.str());
