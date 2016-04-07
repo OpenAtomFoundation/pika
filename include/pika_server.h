@@ -81,7 +81,7 @@ public:
  * Master use
  */
   int64_t GenSid() {
-    slash::MutexLock l(&slave_mutex_);
+//    slash::MutexLock l(&slave_mutex_);
     int64_t sid = sid_;
     sid_++;
     return sid;

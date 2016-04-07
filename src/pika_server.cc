@@ -194,7 +194,7 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
 }
 
 bool PikaServer::FindSlave(std::string& ip_port) {
-  slash::MutexLock l(&slave_mutex_);
+//  slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
 
   while (iter != slaves_.end()) {
@@ -350,7 +350,7 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
 
     DLOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.hb_fd << " stage: " << slave.stage;
     // Add sender
-    slash::MutexLock l(&slave_mutex_);
+//    slash::MutexLock l(&slave_mutex_);
     slaves_.push_back(slave);
 
     return Status::OK();
