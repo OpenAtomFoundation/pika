@@ -718,7 +718,7 @@ void PikaServer::KeyScan() {
 void PikaServer::InitKeyScan() {
   key_scan_info_.start_time = time(NULL);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&key_scan_info_.start_time));
+  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
 }
 
