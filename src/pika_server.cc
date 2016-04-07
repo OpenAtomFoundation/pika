@@ -86,17 +86,27 @@ PikaServer::~PikaServer() {
 }
 
 bool PikaServer::ServerInit() {
-	char hname[128];
-	struct hostent *hent;
 
-	gethostname(hname, sizeof(hname));
-	hent = gethostbyname(hname);
+  int fd;
+  struct ifreq ifr;
 
-	host_ = inet_ntoa(*(struct in_addr*)(hent->h_addr_list[0]));
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+  /* I want to get an IPv4 IP address */
+  ifr.ifr_addr.sa_family = AF_INET;
+
+  /* I want IP address attached to "eth0" */
+  strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
+
+  ioctl(fd, SIOCGIFADDR, &ifr);
+
+  close(fd);
+  host_ = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 
 	port_ = g_pika_conf->port();	
   DLOG(INFO) << "host: " << host_ << " port: " << port_;
 	return true;
+
 }
 
 void PikaServer::Cleanup() {
@@ -184,7 +194,7 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
 }
 
 bool PikaServer::FindSlave(std::string& ip_port) {
-  slash::MutexLock l(&slave_mutex_);
+//  slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
 
   while (iter != slaves_.end()) {
@@ -340,7 +350,7 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
 
     DLOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.hb_fd << " stage: " << slave.stage;
     // Add sender
-    slash::MutexLock l(&slave_mutex_);
+//    slash::MutexLock l(&slave_mutex_);
     slaves_.push_back(slave);
 
     return Status::OK();

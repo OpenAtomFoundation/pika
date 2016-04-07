@@ -111,6 +111,7 @@ void TrysyncCmd::Do() {
   ip_port.append(":");
   ip_port.append(buf);
   DLOG(INFO) << "Trysync, Slave ip_port: " << ip_port << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
+  slash::MutexLock l(&(g_pika_server->slave_mutex_));
   if (!g_pika_server->FindSlave(ip_port)) {
     SlaveItem s;
     s.sid = g_pika_server->GenSid();
@@ -483,6 +484,7 @@ void InfoCmd::InfoClients(std::string &info) {
 void InfoCmd::InfoStats(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Stats\r\n";
+
   tmp_stream << "total_connections_received:" << g_pika_server->accumulative_connections() << "\r\n";
   tmp_stream << "instantaneous_ops_per_sec:" << g_pika_server->ServerCurrentQps() << "\r\n";
   tmp_stream << "accumulative_query_nums:" << g_pika_server->ServerQueryNum() << "\r\n";
