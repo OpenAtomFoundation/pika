@@ -29,6 +29,8 @@ pink::Status PikaSlavepingThread::RecvProc() {
     } else {
       s = pink::Status::Corruption("");
     }
+  } else {
+    DLOG(INFO) << "RecvProc, recv error: " << s.ToString();
   }
   return s;
 }

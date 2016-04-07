@@ -86,17 +86,27 @@ PikaServer::~PikaServer() {
 }
 
 bool PikaServer::ServerInit() {
-	char hname[128];
-	struct hostent *hent;
 
-	gethostname(hname, sizeof(hname));
-	hent = gethostbyname(hname);
+  int fd;
+  struct ifreq ifr;
 
-	host_ = inet_ntoa(*(struct in_addr*)(hent->h_addr_list[0]));
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+  /* I want to get an IPv4 IP address */
+  ifr.ifr_addr.sa_family = AF_INET;
+
+  /* I want IP address attached to "eth0" */
+  strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
+
+  ioctl(fd, SIOCGIFADDR, &ifr);
+
+  close(fd);
+  host_ = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 
 	port_ = g_pika_conf->port();	
   DLOG(INFO) << "host: " << host_ << " port: " << port_;
 	return true;
+
 }
 
 void PikaServer::Cleanup() {
