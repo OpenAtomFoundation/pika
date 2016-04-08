@@ -121,6 +121,15 @@ int PikaClientConn::DealMessage() {
   slash::StringToLower(opt);
   std::string res = DoCmd(opt);
   
+  while ((wbuf_size_ - wbuf_len_ <= res.size())) {
+    if (!ExpandWbuf()) {
+      LOG(WARNING) << "wbuf is too large";
+      memcpy(wbuf_, "-ERR buf is too large\r\n", 23);
+      wbuf_len_ = 23;
+      set_is_reply(true);
+      return 0;
+    }
+  }
   memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
   wbuf_len_ += res.size();
   set_is_reply(true);

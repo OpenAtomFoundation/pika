@@ -71,6 +71,16 @@ PikaServer::~PikaServer() {
     delete pika_worker_thread_[i];
   }
 
+  {
+  slash::MutexLock l(&slave_mutex_);
+  std::vector<SlaveItem>::iterator iter = slaves_.begin();
+
+  while (iter != slaves_.end()) {
+    delete static_cast<PikaBinlogSenderThread*>(iter->sender);
+    iter =  slaves_.erase(iter);
+    DLOG(INFO) << "Delete slave success";
+  }
+  }
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
   delete pika_trysync_thread_;
