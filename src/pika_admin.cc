@@ -45,12 +45,12 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   } else if (cur_size == 2) {
     have_offset_ = true;
     std::string str_filenum = *it++;
-    if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) && filenum_ < 0) {
+    if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) || filenum_ < 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
     std::string str_pro_offset = *it++;
-    if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) && pro_offset_ < 0) {
+    if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) || pro_offset_ < 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }

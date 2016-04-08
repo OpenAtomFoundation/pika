@@ -323,7 +323,13 @@ Status Binlog::AppendBlank(slash::WritableFile *file, uint64_t len) {
   }
 
   // Append a msg which occupy the remain part of the last block
-  uint32_t n = (uint32_t) ((len % kBlockSize) - kHeaderSize);
+  // We simply increase the remain length to kHeaderSize when remain part < kHeaderSize
+  uint32_t n;
+  if (len % kBlockSize < kHeaderSize) {
+    n = 0;
+  } else {
+    n = (uint32_t) ((len % kBlockSize) - kHeaderSize);
+  }
 
   char buf[kBlockSize];
   buf[0] = static_cast<char>(n & 0xff);
