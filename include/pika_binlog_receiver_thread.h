@@ -5,6 +5,7 @@
 
 #include "holy_thread.h"
 #include "slash_mutex.h"
+#include "env.h"
 #include "pika_define.h"
 #include "pika_master_conn.h"
 #include "pika_command.h"
@@ -31,12 +32,14 @@ public:
   void PlusThreadQuerynum() {
     slash::RWLock(&rwlock_, true);
     thread_querynum_++;
-    last_sec_thread_querynum_++;
   }
 
   void ResetLastSecQuerynum() {
+    uint64_t cur_time_ms = slash::NowMicros();
     slash::RWLock(&rwlock_, true);
-    last_sec_thread_querynum_ = 0;
+    last_sec_thread_querynum_ = (thread_querynum_ - last_thread_querynum_) * 1000000 / (cur_time_ms - last_time_us_+1);
+    last_time_us_ = cur_time_ms;
+    last_thread_querynum_ = thread_querynum_;
   }
 
   int32_t ThreadClientNum() {
@@ -57,6 +60,8 @@ private:
 
   std::unordered_map<std::string, Cmd*> cmds_;
   uint64_t thread_querynum_;
+  uint64_t last_thread_querynum_;
+  uint64_t last_time_us_;
   uint64_t last_sec_thread_querynum_;
 };
 #endif
