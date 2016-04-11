@@ -354,6 +354,7 @@ void ShutdownCmd::Do() {
   res_.SetRes(CmdRes::kNone);
 }
 
+const std::string InfoCmd::kAllSection = "all";
 const std::string InfoCmd::kServerSection = "server";
 const std::string InfoCmd::kClientsSection = "clients";
 const std::string InfoCmd::kStatsSection = "stats";
@@ -372,7 +373,9 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     return;
   } //then the agc is 2 or 3
   slash::StringToLower(argv[1]);
-  if (argv[1] == kServerSection) {
+  if (argv[1] == kAllSection) {
+    info_section_ = kInfoAll;
+  } else if (argv[1] == kServerSection) {
     info_section_ = kInfoServer;
   } else if (argv[1] == kClientsSection) {
     info_section_ = kInfoClients;

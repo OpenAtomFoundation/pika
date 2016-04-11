@@ -153,6 +153,7 @@ private:
   InfoSection info_section_;
   bool rescan_; //whether to rescan the keyspace
 
+  const static std::string kAllSection;
   const static std::string kServerSection;
   const static std::string kClientsSection;
   const static std::string kStatsSection;
