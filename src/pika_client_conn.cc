@@ -45,7 +45,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return "-ERR NOAUTH Authentication required.\r\n";
   }
   
-  uint64_t start_us, end_us;
+  uint64_t start_us;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = slash::NowMicros();
   }
@@ -98,7 +98,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    uint64_t duration = slash::NowMicros() - start_us;
+    int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
       LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
     }

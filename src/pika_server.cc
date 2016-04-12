@@ -12,8 +12,8 @@
 extern PikaConf *g_pika_conf;
 
 PikaServer::PikaServer() :
-  exit_(false),
   ping_thread_(NULL),
+  exit_(false),
   sid_(0),
   master_ip_(""),
   master_connection_(0),
@@ -743,13 +743,13 @@ void PikaServer::InitKeyScan() {
 }
 
 void PikaServer::ClientKillAll() {
-  for (size_t idx = 0; idx != worker_num_; idx++) {
+  for (int idx = 0; idx != worker_num_; idx++) {
     pika_worker_thread_[idx]->ThreadClientKill();
   }  
 }
 
 int PikaServer::ClientKill(const std::string &ip_port) {
-  for (size_t idx = 0; idx != worker_num_; ++idx) {
+  for (int idx = 0; idx != worker_num_; ++idx) {
     if (pika_worker_thread_[idx]->ThreadClientKill(ip_port)) {
       return 1;
     }
@@ -759,7 +759,7 @@ int PikaServer::ClientKill(const std::string &ip_port) {
 
 int64_t PikaServer::ClientList(std::vector< std::pair<int, std::string> > *clients) {
   int64_t clients_num = 0;
-  for (size_t idx = 0; idx != worker_num_; ++idx) {
+  for (int idx = 0; idx != worker_num_; ++idx) {
     clients_num += pika_worker_thread_[idx]->ThreadClientList(clients);
   }
   return clients_num;
@@ -767,7 +767,7 @@ int64_t PikaServer::ClientList(std::vector< std::pair<int, std::string> > *clien
 
 uint64_t PikaServer::ServerQueryNum() {
   uint64_t server_query_num = 0;
-  for (size_t idx = 0; idx != worker_num_; ++idx) {
+  for (int idx = 0; idx != worker_num_; ++idx) {
     server_query_num += pika_worker_thread_[idx]->thread_querynum();
   }
   server_query_num += pika_binlog_receiver_thread_->thread_querynum();
@@ -776,7 +776,7 @@ uint64_t PikaServer::ServerQueryNum() {
 
 uint64_t PikaServer::ServerCurrentQps() {
   uint64_t server_current_qps = 0;
-  for (size_t idx = 0; idx != worker_num_; ++idx) {
+  for (int idx = 0; idx != worker_num_; ++idx) {
     server_current_qps += pika_worker_thread_[idx]->last_sec_thread_querynum();
   }
   server_current_qps += pika_binlog_receiver_thread_->last_sec_thread_querynum();

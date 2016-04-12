@@ -9,9 +9,9 @@ extern PikaServer* g_pika_server;
 PikaBinlogReceiverThread::PikaBinlogReceiverThread(int port, int cron_interval) :
   HolyThread::HolyThread(port, cron_interval),
   thread_querynum_(0),
-  last_sec_thread_querynum_(0),
+  last_thread_querynum_(0),
   last_time_us_(slash::NowMicros()),
-  last_thread_querynum_(0) {
+  last_sec_thread_querynum_(0) {
   cmds_.reserve(300);
   InitCmdTable(&cmds_);
 }

@@ -22,7 +22,7 @@ void HDelCmd::Do() {
   int64_t num = 0;
   nemo::Status s;
   size_t index = 0, fields_num = fields_.size();
-  for (size_t index = 0; index != fields_num; index++) {
+  for (; index != fields_num; index++) {
     s = g_pika_server->db()->HDel(key_, fields_[index]);
     if (s.ok()) {
       num++;
