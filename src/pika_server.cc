@@ -23,6 +23,9 @@ PikaServer::PikaServer() :
   purging_(false),
   accumulative_connections_(0) {
 
+  pthread_rwlockattr_t attr;
+  pthread_rwlockattr_init(&attr);
+  pthread_rwlockattr_setkind_np (&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
   pthread_rwlock_init(&rwlock_, NULL);
   
   //Init server ip host
