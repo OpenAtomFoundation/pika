@@ -20,6 +20,7 @@ PikaServer::PikaServer() :
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
+  bgsave_engine_(NULL),
   purging_(false),
   accumulative_connections_(0) {
 
