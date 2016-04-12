@@ -21,7 +21,7 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
     is_noone_ = false;
-    have_offset_ == false;
+    have_offset_ = false;
   }
 };
 
