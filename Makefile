@@ -2,13 +2,20 @@
 RPATH = /usr/local/pika11/lib/
 LFLAGS = -Wl,-rpath=$(RPATH)
 
+
+UNAME := $(shell if [ -f "/etc/redhat-release" ]; then echo "CentOS"; else echo "Ubuntu"; fi)
+
 OSVERSION := $(shell cat /etc/redhat-release | cut -d "." -f 1 | awk '{print $$NF}')
-ifeq ($(OSVERSION), 5)
-	SO_DIR = $(CURDIR)/lib/5.4
-	TOOLS_DIR = $(CURDIR)/tools/5.4
+
+ifeq ($(UNAME), Ubuntu)
+  SO_DIR = $(CURDIR)/lib/ubuntu
+  TOOLS_DIR = $(CURDIR)/tools/ubuntu
+else ifeq ($(OSVERSION), 5)
+  SO_DIR = $(CURDIR)/lib/5.4
+  TOOLS_DIR = $(CURDIR)/tools/5.4
 else
-	SO_DIR = $(CURDIR)/lib/6.2
-	TOOLS_DIR = $(CURDIR)/tools/6.2
+  SO_DIR = $(CURDIR)/lib/6.2
+  TOOLS_DIR = $(CURDIR)/tools/6.2
 endif
 
 CXX = g++
@@ -65,6 +72,9 @@ OBJS = $(patsubst %.cc,%.o,$(BASE_OBJS))
 
 
 all: $(OBJECT)
+	@echo "UNAME    : $(UNAME)"
+	@echo "SO_DIR   : $(SO_DIR)"
+	@echo "TOOLS_DIR: $(TOOLS_DIR)"
 	rm -rf $(OUTPUT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin
