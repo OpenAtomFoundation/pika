@@ -10,7 +10,7 @@ public:
   PikaHeartbeatThread(int port, int cron_interval = 0);
   virtual ~PikaHeartbeatThread();
   virtual void CronHandle();
-  virtual bool AccessHandle(const std::string& ip_port);
+  virtual bool AccessHandle(std::string& ip_port);
 
   bool FindSlave(int fd); //hb_fd
 };

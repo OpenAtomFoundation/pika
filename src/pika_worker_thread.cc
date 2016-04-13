@@ -1,52 +1,48 @@
 #include <glog/logging.h>
 #include "pika_worker_thread.h"
+#include "pika_conf.h"
+
+extern PikaConf *g_pika_conf;
 
 PikaWorkerThread::PikaWorkerThread(int cron_interval):
   WorkerThread::WorkerThread(cron_interval),
   thread_querynum_(0),
-  last_sec_thread_querynum_(0) {
+  last_thread_querynum_(0),
+  last_time_us_(slash::NowMicros()) {
+  cmds_.reserve(300);
+  InitCmdTable(&cmds_);
 }
 
 PikaWorkerThread::~PikaWorkerThread() {
-
+  should_exit_ = true;
+  pthread_join(thread_id(), NULL);
+  DestoryCmdTable(cmds_);
+  DLOG(INFO) << "A worker thread " << thread_id() << " exit!!!";
 }
 
 void PikaWorkerThread::CronHandle() {
 /*
- *  Do statistic work and find timeout client and add them to cron_tasks_ to kill them
+ *  Reset Lastsecquerynum and find timeout client and add them to cron_tasks_ to kill them
  */
-  uint64_t last_sec_thread_querynum_t = 0;
+  ResetLastSecQuerynum();
+
   {
   struct timeval now;
   gettimeofday(&now, NULL);
   slash::RWLock l(&rwlock_, false); // Use ReadLock to iterate the conns_
   std::map<int, void*>::iterator iter = conns_.begin();
-
+  
   while (iter != conns_.end()) {
-/*
- *  Statistics
- */
-    last_sec_thread_querynum_t += static_cast<PikaClientConn*>(iter->second)->conn_querynum(); //accumulate thread querynums from 0
-    static_cast<PikaClientConn*>(iter->second)->set_conn_querynum(0); // clear conn querynums
 
 /*
  *  Find timeout client
  */
-    if (now.tv_sec - static_cast<PikaClientConn*>(iter->second)->last_interaction().tv_sec > 30) {
+    if (now.tv_sec - static_cast<PikaClientConn*>(iter->second)->last_interaction().tv_sec > g_pika_conf->timeout()) {
       DLOG(INFO) << "Find Timeout Client: " << static_cast<PikaClientConn*>(iter->second)->ip_port();
       AddCronTask(WorkerCronTask{TASK_KILL, static_cast<PikaClientConn*>(iter->second)->ip_port()});
     }
     iter++;
   }
-  }
-
-/*
- * Update statistics
- */
-  {
-    slash::RWLock l(&rwlock_, true); // Use WriteLock to update thread_querynum_ and last_sec_thread_querynum_
-    thread_querynum_ += last_sec_thread_querynum_t;
-    last_sec_thread_querynum_ = last_sec_thread_querynum_t;
   }
 
 /*
@@ -60,7 +56,7 @@ void PikaWorkerThread::CronHandle() {
     t = cron_tasks_.front();
     cron_tasks_.pop();
     mutex_.Unlock();
-    DLOG(INFO) << "Got a WorkerCronTask";
+    DLOG(INFO) << "PikaWorkerThread, Got a WorkerCronTask";
     switch (t.task) {
       case TASK_KILL:
         ClientKill(t.ip_port);
@@ -101,7 +97,7 @@ bool PikaWorkerThread::FindClient(std::string ip_port) {
   slash::RWLock l(&rwlock_, false);
   std::map<int, void*>::iterator iter;
   for (iter = conns_.begin(); iter != conns_.end(); iter++) {
-    if (static_cast<PikaClientConn*>(iter->second)->ip_port() != ip_port) {
+    if (static_cast<PikaClientConn*>(iter->second)->ip_port() == ip_port) {
       return true;
     }
   }
@@ -134,3 +130,14 @@ void PikaWorkerThread::ClientKillAll() {
   }
 }
 
+int64_t PikaWorkerThread::ThreadClientList(std::vector< std::pair<int, std::string> > *clients) {
+  slash::RWLock l(&rwlock_, false);
+  if (clients != NULL) {
+    std::map<int, void*>::const_iterator iter = conns_.begin();
+    while (iter != conns_.end()) {
+      clients->push_back(make_pair(iter->first, reinterpret_cast<PikaClientConn*>(iter->second)->ip_port()));
+      iter++;
+    }
+  }
+  return conns_.size();
+}

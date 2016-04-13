@@ -1,22 +1,34 @@
 #ifndef PIKA_SLAVEPING_THREAD_H_
 #define PIKA_SLAVEPING_THREAD_H_
 
-#include "simple_thread.h"
+#include "pink_thread.h"
+#include "slash_mutex.h"
+#include "redis_cli.h"
 
-class PikaSlavepingThread : public pink::SimpleThread {
+
+class PikaSlavepingThread : public pink::Thread {
 public:
-  PikaSlavepingThread() {
+  PikaSlavepingThread(int64_t sid) : sid_(sid),
+  is_first_send_(true) {
+    cli_ = new pink::RedisCli();
+    cli_->set_connect_timeout(1500);
 	};
   virtual ~PikaSlavepingThread() {
+    should_exit_ = true;
+    pthread_join(thread_id(), NULL);
+    delete cli_;
+    DLOG(INFO) << " Slaveping thread " << pthread_self() << " exit!!!";
 	};
-	
+
+  pink::Status Send();
+  pink::Status RecvProc();
 
 private:
+  int64_t sid_;
+  bool is_first_send_;
+
   int sockfd_;
-	bool Init();
-  bool Connect(const std::string& master_ip, int master_ping_port);
-  bool Send();
-  bool RecvProc();
+  pink::RedisCli *cli_;
 
   virtual void* ThreadMain();
 

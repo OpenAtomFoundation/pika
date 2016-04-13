@@ -7,14 +7,16 @@
 #include "pika_define.h"
 #include "pika_binlog_sender_thread.h"
 #include "pika_master_conn.h"
+#include "redis_cli.h"
 
 using slash::Status;
 using slash::Slice;
+using pink::RedisCli;
 
 extern PikaServer* g_pika_server;
 
-PikaBinlogSenderThread::PikaBinlogSenderThread(std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset) :
-    con_offset_(con_offset),
+PikaBinlogSenderThread::PikaBinlogSenderThread(std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
+  : con_offset_(con_offset),
     filenum_(filenum),
     initial_offset_(0),
     end_of_buffer_offset_(kBlockSize),
@@ -22,13 +24,26 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(std::string &ip, int port, slash:
     backing_store_(new char[kBlockSize]),
     buffer_(),
     ip_(ip),
-    port_(port),
-    should_exit_(false) {
+    port_(port) {
+      cli_ = new RedisCli();
+
       last_record_offset_ = con_offset % kBlockSize;
-    }
+      pthread_rwlock_init(&rwlock_, NULL);
+}
 
 PikaBinlogSenderThread::~PikaBinlogSenderThread() {
+  should_exit_ = true;
+
+  pthread_join(thread_id(), NULL);
+
+  if (queue_ != NULL) {
+    delete queue_;
+  }
+  pthread_rwlock_destroy(&rwlock_);
   delete [] backing_store_;
+  delete cli_;
+
+  DLOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
 }
 
 int PikaBinlogSenderThread::trim() {
@@ -164,11 +179,11 @@ Status PikaBinlogSenderThread::Consume(std::string &scratch) {
       case kEof:
         return Status::EndFile("Eof");
       case kBadRecord:
-        return Status::Corruption("Data Corruption");
+        return Status::IOError("Data Corruption");
       case kOldRecord:
         return Status::EndFile("Eof");
       default:
-        return Status::Corruption("Unknow reason");
+        return Status::IOError("Unknow reason");
     }
     // TODO:do handler here
     if (s.ok()) {
@@ -179,159 +194,29 @@ Status PikaBinlogSenderThread::Consume(std::string &scratch) {
   return Status::OK();
 }
 
-bool PikaBinlogSenderThread::Init() {
-
-  sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
-  if (sockfd_ == -1) {
-    LOG(WARNING) << "BinlogSender socket error: " << strerror(errno);
-    return false;
-  }
-
-  int flags = fcntl(sockfd_, F_GETFL, 0);
-  fcntl(sockfd_, F_SETFL, flags | O_NONBLOCK);
-
-  int yes = 1;
-  if (setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
-    LOG(WARNING) << "BinlogSender setsockopt SO_REUSEADDR error: " << strerror(errno);
-    return false;
-  }
-  if (setsockopt(sockfd_, SOL_SOCKET, SO_KEEPALIVE, &yes, sizeof(yes)) == -1) {
-    LOG(WARNING) << "BinlogSender setsockopt SO_KEEPALIVE: error: " << strerror(errno);
-    return false;
-  }
-
-  return true;
-}
-
-bool PikaBinlogSenderThread::Connect() {
-
-  struct sockaddr_in s_addr;
-  memset(&s_addr, 0, sizeof(s_addr));
-  s_addr.sin_family = AF_INET;
-  s_addr.sin_addr.s_addr = inet_addr(ip_.c_str());
-  s_addr.sin_port = htons(port_);
-
-  if (-1 == connect(sockfd_, (struct sockaddr*)(&s_addr), sizeof(s_addr))) {
-    if (errno == EINPROGRESS) {
-      struct pollfd   wfd[1];
-      wfd[0].fd     = sockfd_;
-      wfd[0].events = POLLOUT;
-
-      int res;
-      if ((res = poll(wfd, 1, 500)) == -1) {
-        LOG(WARNING) << "BinlogSender Connect, poll error: " << strerror(errno);
-        return false;
-      } else if (res == 0) {
-        LOG(WARNING) << "BinlogSender Connect, timeout";
-        return false;
-      }
-
-      int err = 0;
-      socklen_t errlen = sizeof(err);
-      if (getsockopt(sockfd_, SOL_SOCKET, SO_ERROR, &err, &errlen) == -1) {
-        LOG(WARNING) << "BinlogSender Connect, getsockopt error";
-        return false;
-      }
-      if (err) {
-        errno = err;
-        LOG(WARNING) << "BinlogSender Connect, error: " << strerror(errno);
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-bool PikaBinlogSenderThread::Send(const std::string &msg) {
-  // length to small
-  char wbuf[1024];
-  int wbuf_len = 17;
-  int wbuf_pos = 0;
-  int nwritten = 0;
-  memcpy(wbuf, msg.data(), msg.size()); 
-
-  while (1) {
-    while (wbuf_len > 0) {
-      nwritten = write(sockfd_, wbuf + wbuf_pos, wbuf_len - wbuf_pos);
-      if (nwritten < 0) {
-        break;
-      }
-      wbuf_pos += nwritten;
-      if (wbuf_pos == wbuf_len) {
-        wbuf_len = 0;
-      }
-    }
-    if (nwritten == -1) {
-      if (errno == EAGAIN) {
-        continue;
-      } else {
-        LOG(WARNING) << "BinlogSender Send, error: " << strerror(errno);
-        return false;
-      }
-    }
-    if (wbuf_len == 0) {
-      return true;
-    }	
-  }
-}
-
-bool PikaBinlogSenderThread::Recv() {
-  char rbuf[256];
-  int rbuf_pos = 0;
-  int nread = 0;
-
-  while (1) {
-    nread = read(sockfd_, rbuf + rbuf_pos, 1);
-    if (nread == -1) {
-      if (errno == EAGAIN) {
-        continue;
-      } else {
-        LOG(WARNING) << "BinlogSender Recv error: " << strerror(errno);
-        return false;
-      }
-    } else if (nread == 0) {
-      LOG(WARNING) << "BinlogSender slave close the connection";
-      return false;
-    }
-
-    if (rbuf[rbuf_pos] == '\n') {
-      rbuf[rbuf_pos] = '\0';
-      rbuf_pos--;
-      if (rbuf_pos >= 0 && rbuf[rbuf_pos] == '\r') {
-        rbuf[rbuf_pos] = '\0';
-        rbuf_pos--;
-      }
-      break;
-    }
-    rbuf_pos++;
-  }
-  DLOG(INFO) << "BinlogSender Reply from slave after : " << std::string(rbuf, rbuf_pos+1);
-  if (rbuf[0] == '+') {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-Status PikaBinlogSenderThread::Parse() {
-  std::string scratch("");
+// Get a whole message; 
+// the status will be OK, IOError or Corruption;
+Status PikaBinlogSenderThread::Parse(std::string &scratch) {
+  scratch.clear();
   Status s;
+  uint32_t pro_num;
+  uint64_t pro_offset;
 
-  Version* version = g_pika_server->logger->version_;
-  while (!IsExit()) {
-    if (filenum_ == version->pronum() && con_offset_ == version->pro_offset()) {
-      DLOG(INFO) << "BinlogSender Parse no new msg";
+  Binlog* logger = g_pika_server->logger_;
+  while (!should_exit_) {
+    logger->GetProducerStatus(&pro_num, &pro_offset);
+    if (filenum_ == pro_num && con_offset_ == pro_offset) {
+      //DLOG(INFO) << "BinlogSender Parse no new msg, filenum_" << filenum_ << ", con_offset " << con_offset_;
       usleep(10000);
       continue;
     }
 
-    scratch = "";
-
+    //DLOG(INFO) << "BinlogSender start Parse a msg               filenum_" << filenum_ << ", con_offset " << con_offset_;
     s = Consume(scratch);
 
-    //DLOG(INFO) << "BinlogSender Parse a msg return: " << s.ToString();
+    //DLOG(INFO) << "BinlogSender after Parse a msg return " << s.ToString() << " filenum_" << filenum_ << ", con_offset " << con_offset_;
     if (s.IsEndFile()) {
-      std::string confile = NewFileName(g_pika_server->logger->filename, filenum_ + 1);
+      std::string confile = NewFileName(g_pika_server->logger_->filename, filenum_ + 1);
 
       // Roll to next File
       if (slash::FileExists(confile)) {
@@ -349,45 +234,65 @@ Status PikaBinlogSenderThread::Parse() {
       } else {
         usleep(10000);
       }
-    } else if (s.ok()) {
-      DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
-      DLOG(INFO) << "BinlogSender Parse a msg" << scratch;
-      if (Send(scratch) && Recv()) {
-        return s;
-      } else {
-        return Status::Corruption("Send or Recv error");
-      }
-    } else if (s.IsCorruption()) {
-      return s;
+    } else {
+      break;
     }
   }
-
+    
+  if (should_exit_) {
+    return Status::Corruption("should exit");
+  }
   return s;
 }
 
+// When we encount
 void* PikaBinlogSenderThread::ThreadMain() {
-
   Status s;
+  pink::Status result;
+  bool last_send_flag = true;
+  std::string scratch;
+  scratch.reserve(1024 * 1024);
 
-  // 1. Connect to slave 
-  while (!IsExit()) {
-    DLOG(INFO) << "BinlogSender start Connect";
-    if (Init()) {
-      if (Connect()) {
-        DLOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") ok";
+  while (!should_exit_) {
 
-        do {
-          s = Parse();
-        } while (s.ok());
+    // 1. Connect to slave
+    result = cli_->Connect(ip_, port_);
+    DLOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") " << result.ToString();
 
-      } else {
-        close(sockfd_);
+    if (result.ok()) {
+      while (true) {
+        // 2. Should Parse new msg;
+        if (last_send_flag) {
+          s = Parse(scratch);
+          //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
+
+          if (s.IsCorruption()) {     // should exit
+            DLOG(INFO) << "BinlogSender will exit";
+            //close(sockfd_);
+            break;
+          } else if (s.IsIOError()) {
+            LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
+            continue;
+          }
+        }
+
+        // 3. After successful parse, we send msg;
+        //DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
+        result = cli_->Send(&scratch);
+        if (result.ok()) {
+          last_send_flag = true;
+        } else {
+          last_send_flag = false;
+          //close(sockfd_);
+          break;
+        }
       }
     }
-    sleep(5);
+
+    // error
+    close(cli_->fd());
+    sleep(1);
   }
   return NULL;
-
-  //  pthread_exit(NULL);
 }
 

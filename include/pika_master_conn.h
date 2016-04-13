@@ -3,6 +3,7 @@
 
 #include "redis_conn.h"
 #include "pink_thread.h"
+#include "pika_command.h"
 
 //class pink::Thread;
 class PikaBinlogReceiverThread;
@@ -13,7 +14,9 @@ public:
   virtual ~PikaMasterConn();
   virtual int DealMessage();
 private:
-  PikaBinlogReceiverThread* pika_thread_;
+  PikaBinlogReceiverThread* self_thread_;
+  std::string DoCmd(const std::string& opt);
+  std::string RestoreArgs();
 };
 
 #endif

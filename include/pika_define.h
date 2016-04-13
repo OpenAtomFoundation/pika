@@ -2,8 +2,11 @@
 #define PIKA_DEFINE_H_
 
 
-#define PIKA_MAX_WORKER_THREAD_NUM 1
+#define PIKA_MAX_WORKER_THREAD_NUM 24
 
+
+const std::string kPikaVersion = "2.0.0";
+const std::string kPikaPidFile = "pika.pid";
 
 struct WorkerCronTask {
   int task;
@@ -15,12 +18,13 @@ struct WorkerCronTask {
 
 //slave item
 struct SlaveItem {
-  uint64_t sid;
+  int64_t sid;
   std::string ip_port;
   int port;
   pthread_t sender_tid;
   int hb_fd;
   int stage;
+  void* sender;
   struct timeval create_time;
 };
 
@@ -42,18 +46,18 @@ struct SlaveItem {
 /*
  * The size of Binlogfile
  */
-static uint64_t kBinlogSize = 128; 
-//static uint64_t kBinlogSize = 1024 * 1024 * 100;
+//static uint64_t kBinlogSize = 128; 
+//static const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 enum RecordType {
-    kZeroType = 0,
-    kFullType = 1,
-    kFirstType = 2,
-    kMiddleType = 3,
-    kLastType = 4,
-    kEof = 5,
-    kBadRecord = 6,
-    kOldRecord = 7
+  kZeroType = 0,
+  kFullType = 1,
+  kFirstType = 2,
+  kMiddleType = 3,
+  kLastType = 4,
+  kEof = 5,
+  kBadRecord = 6,
+  kOldRecord = 7
 };
 
 /*
@@ -71,10 +75,17 @@ static const size_t kHeaderSize = 1 + 3;
  * the size of memory when we use memory mode
  * the default memory size is 2GB
  */
-static const int64_t kPoolSize = 1073741824;
+const int64_t kPoolSize = 1073741824;
 
-static std::string kBinlog = "/binlog";
+const std::string kBinlogPrefix = "write2file";
+const size_t kBinlogPrefixLen = 10;
 
-static std::string kManifest = "/manifest";
+const std::string kManifest = "manifest";
+
+/*
+ * define common character
+ *
+ */
+#define COMMA ','
 
 #endif
