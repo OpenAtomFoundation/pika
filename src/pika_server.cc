@@ -423,9 +423,9 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   }
 
   // Iterate to send files
+  int ret = 0;
   std::string target_path;
   std::vector<std::string>::iterator it = descendant.begin();
-  int failed_count = 0;
   for (; it != descendant.end(); ++it) {
     target_path = (*it).substr(bgsave_info_.path.size() + 1);
     if (target_path == kBgsaveInfoFile) {
@@ -433,20 +433,21 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
     }
     // We need specify the speed limit for every single file
     slash::RsyncRemote remote(ip, port, kDBSyncModule, g_pika_conf->db_sync_speed() * 1024);
-    int ret = slash::RsyncSendFile(*it, target_path, remote);
+    ret = slash::RsyncSendFile(*it, target_path, remote);
     if (0 != ret) {
       LOG(ERROR) << "rsync send file failed! From: " << *it
         << ", To: " << target_path
         << ", At: " << ip << ":" << port
         << ", Error: " << ret;
-      failed_count++;
+      break;
     }
   }
   // Send info file at last
-  slash::RsyncRemote remote(ip, port, kDBSyncModule, g_pika_conf->db_sync_speed() * 1024);
-  if (0 != slash::RsyncSendFile(bgsave_info_.path + "/" + kBgsaveInfoFile, kBgsaveInfoFile, remote)) {
+  if (0 == ret) {
+    slash::RsyncRemote remote(ip, port, kDBSyncModule, g_pika_conf->db_sync_speed() * 1024);
+    if (0 != (ret = slash::RsyncSendFile(bgsave_info_.path + "/" + kBgsaveInfoFile, kBgsaveInfoFile, remote))) {
       LOG(ERROR) << "send info file failed";
-      failed_count++;
+    }
   }
 
   // remove slave
@@ -454,7 +455,9 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   slash::ll2string(buf, sizeof(buf), port);
   std::string ip_port(ip + ":" + buf);
   db_sync_slaves.erase(ip_port);
-  LOG(INFO) << "rsync send files finished, failed:" << failed_count++;
+  if (0 == ret) {
+    LOG(INFO) << "rsync send files success";
+  }
 }
 
 /*

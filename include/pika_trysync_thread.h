@@ -19,7 +19,7 @@ private:
 
   bool Send();
   bool RecvProc();
-  bool PrepareRsync();
+  void PrepareRsync();
   bool TryUpdateMasterOffset();
 
   virtual void* ThreadMain();

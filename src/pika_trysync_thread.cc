@@ -74,7 +74,7 @@ bool PikaTrysyncThread::RecvProc() {
       }
       is_authed = true;
     } else {
-      if (reply.size() == 1 &&
+      if (cli_->argv_.size() == 1 &&
           slash::string2l(reply.data(), reply.size(), &sid_)) {
         // Luckly, I got your point, the sync is comming
         DLOG(INFO) << "Recv sid from master: " << sid_;
@@ -162,18 +162,14 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
   return true;
 }
 
-bool PikaTrysyncThread::PrepareRsync() {
+void PikaTrysyncThread::PrepareRsync() {
   std::string db_sync_path = g_pika_conf->db_sync_path();
   slash::StopRsync(db_sync_path);
-  if (!slash::DeleteDirIfExist(db_sync_path)) {
-    LOG(WARNING) << "Failed to delete rsync dir:" << db_sync_path;
-  }
-  int ret = slash::CreatePath(db_sync_path + "kv");
-  ret += slash::CreatePath(db_sync_path + "hash");
-  ret += slash::CreatePath(db_sync_path + "list");
-  ret += slash::CreatePath(db_sync_path + "set");
-  ret += slash::CreatePath(db_sync_path + "zset");
-  return ret == 0 ? true : false;
+  slash::CreatePath(db_sync_path + "kv");
+  slash::CreatePath(db_sync_path + "hash");
+  slash::CreatePath(db_sync_path + "list");
+  slash::CreatePath(db_sync_path + "set");
+  slash::CreatePath(db_sync_path + "zset");
 }
 
 // TODO maybe use RedisCli
@@ -193,9 +189,7 @@ void* PikaTrysyncThread::ThreadMain() {
     
     //Start rsync
     std::string dbsync_path = g_pika_conf->db_sync_path();
-    if (!PrepareRsync()) {
-      LOG(ERROR) << "Failed to prepare env for rsync, path:" << dbsync_path;;
-    }
+    PrepareRsync();
     int ret = slash::StartRsync(dbsync_path, kDBSyncModule, g_pika_conf->port() + 300);
     if (0 != ret) {
       LOG(ERROR) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
