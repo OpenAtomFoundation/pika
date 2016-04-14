@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include <unordered_set>
 #include <nemo.h>
 #include <time.h>
 #include "pika_binlog.h"
@@ -172,6 +173,9 @@ public:
   void ClearBgsave() {
     bgsave_info_.Clear();
   }
+  void FinishBgsave() {
+    bgsave_info_.bgsaving = false;
+  }
 
 /*
  * PurgeLog used
@@ -187,6 +191,20 @@ public:
   void ClearPurge() {
     purging_ = false;
   }
+
+/*
+ * DBSync used
+ */
+  struct DBSyncArg {
+    PikaServer *p;
+    std::string ip;
+    int port;
+    DBSyncArg(PikaServer *_p, const std::string& _ip, int &_port)
+      : p(_p), ip(_ip), port(_port) {}
+  };
+  void DBSyncSendFile(const std::string& ip, int port);
+  bool ChangeDb(const std::string& new_path);
+
 
   //flushall
   bool FlushAll();
@@ -278,6 +296,7 @@ private:
   bool InitBgsaveEnv(const std::string& bgsave_path);
   bool InitBgsaveEngine();
 
+
   /*
    * Purgelogs use
    */
@@ -288,6 +307,14 @@ private:
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   void AutoPurge();
   bool CouldPurge(uint32_t index);
+
+  /*
+   * DBSync use
+   */
+  std::unordered_set<std::string> db_sync_slaves;
+  void TryDBSync(const std::string& ip, int port);
+  void DBSync(const std::string& ip, int port);
+  static void DoDBSync(void* arg);
 
   /*
    * Flushall use 

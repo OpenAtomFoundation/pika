@@ -88,4 +88,21 @@ const std::string kManifest = "manifest";
  */
 #define COMMA ','
 
+/*
+ * define reply between master and slave
+ *
+ */
+const std::string kInnerReplOk = "ok";
+const std::string kInnerReplWait = "wait";
+
+/*
+ * db sync
+ */
+const uint32_t kDBSyncMaxGap = 50;
+const std::string kDBSyncModule = "document";
+
+// Use when try to change db
+const std::string kTmpDbPath = "./tmpdb/";
+
+const std::string kBgsaveInfoFile = "info";
 #endif

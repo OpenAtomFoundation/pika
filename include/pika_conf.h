@@ -24,6 +24,8 @@ public:
   std::string log_path()  { RWLock l(&rwlock_, false); return log_path_; }
   int log_level()         { RWLock l(&rwlock_, false); return log_level_; }
   std::string db_path()   { RWLock l(&rwlock_, false); return db_path_; }
+  std::string db_sync_path()   { RWLock l(&rwlock_, false); return db_sync_path_; }
+  int db_sync_speed()   { RWLock l(&rwlock_, false); return db_sync_speed_; }
   int write_buffer_size() { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
 
@@ -99,6 +101,10 @@ public:
     RWLock l(&rwlock_, true);
     slowlog_log_slower_than_ = value;
   }
+  void SetDbSyncSpeed(const int value) {
+    RWLock l(&rwlock_, true);
+    db_sync_speed_ = value;
+  }
 
   int Load();
   int ConfigRewrite();
@@ -108,8 +114,8 @@ private:
   int thread_num_;
   std::string log_path_;
   std::string db_path_;
-  //char master_db_sync_path_[PIKA_WORD_SIZE];
-  //char slave_db_sync_path_[PIKA_WORD_SIZE];
+  std::string db_sync_path_;
+  int db_sync_speed_;
   int write_buffer_size_;
   int log_level_;
   bool daemonize_;
@@ -131,7 +137,6 @@ private:
   std::string conf_path_;
   //char username_[30];
   //char password_[30];
-  //int db_sync_speed_;
 
   //
   // Critical configure items

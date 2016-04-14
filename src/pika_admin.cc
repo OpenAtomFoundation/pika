@@ -45,12 +45,12 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   } else if (cur_size == 2) {
     have_offset_ = true;
     std::string str_filenum = *it++;
-    if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) && filenum_ < 0) {
+    if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) || filenum_ < 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
     std::string str_pro_offset = *it++;
-    if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) && pro_offset_ < 0) {
+    if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) || pro_offset_ < 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -61,6 +61,10 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
 void SlaveofCmd::Do() {
   if (is_noone_) {
+    // Stop rsync
+    LOG(ERROR) << "stop rsync";
+    slash::StopRsync(g_pika_conf->db_sync_path());
+    
     g_pika_server->RemoveMaster();
     res_.SetRes(CmdRes::kOk);
     return;
@@ -127,8 +131,10 @@ void TrysyncCmd::Do() {
       res_.AppendInteger(s.sid);
       DLOG(INFO) << "Send Sid to Slave: " << s.sid;
       g_pika_server->BecomeMaster();
+    } else if (status.IsIncomplete()) {
+      res_.AppendString(kInnerReplWait);
     } else {
-      res_.SetRes(CmdRes::kErrOther, "Error in AddBinlogSender");
+      res_.SetRes(CmdRes::kErrOther, status.ToString());
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, "Already Exist");
@@ -630,6 +636,14 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "db_path");
       EncodeString(&ret, g_pika_conf->db_path());
+  } else if (get_item == "db_sync_path") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "db_sync_path");
+      EncodeString(&ret, g_pika_conf->db_sync_path());
+  } else if (get_item == "db_sync_speed") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "db_sync_speed");
+      EncodeInt32(&ret, g_pika_conf->db_sync_speed());
   } else if (get_item == "maxmemory") {
       ret = "*2\r\n";
       EncodeString(&ret, "maxmemory");
@@ -710,20 +724,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     } else {
       EncodeString(&ret, "no");
     }
-//  } else if (get_item == "master_db_sync_path") {
-//      ret = "*2\r\n";
-//      EncodeString(&ret, "master_db_sync_path");
-//      EncodeString(&ret, g_pika_conf->master_db_sync_path());
-//  } else if (get_item == "slave_db_sync_path") {
-//      ret = "*2\r\n";
-//      EncodeString(&ret, "slave_db_sync_path");
-//      EncodeString(&ret, g_pika_conf->slave_db_sync_path());
-//  } else if (get_item == "db_sync_speed") {
-//      ret = "*2\r\n";
-//      EncodeString(&ret, "db_sync_speed");
-//      EncodeInt32(&ret, g_pika_conf->db_sync_speed());
   } else if (get_item == "*") {
-    ret = "*27\r\n";
+    ret = "*25\r\n";
     EncodeString(&ret, "port");
     EncodeString(&ret, "thread_num");
     EncodeString(&ret, "log_path");
@@ -735,7 +737,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
-    EncodeString(&ret, "dump_prefix");
+    //EncodeString(&ret, "dump_prefix");
     EncodeString(&ret, "daemonize");
     EncodeString(&ret, "dump_path");
     EncodeString(&ret, "pidfile");
@@ -748,8 +750,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slave-read-only");
     EncodeString(&ret, "binlog_file_size");
     EncodeString(&ret, "compression");
-    EncodeString(&ret, "master_db_sync_path");
-    EncodeString(&ret, "slave_db_sync_path");
+    EncodeString(&ret, "db_sync_path");
     EncodeString(&ret, "db_sync_speed");
   } else {
     ret = "*0\r\n";
@@ -759,21 +760,19 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*15\r\n";
+    ret = "*12\r\n";
     EncodeString(&ret, "log_level");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
-    EncodeString(&ret, "dump_prefix");
+    //EncodeString(&ret, "dump_prefix");
     EncodeString(&ret, "maxconnection");
     EncodeString(&ret, "expire_logs_days");
     EncodeString(&ret, "expire_logs_nums");
     EncodeString(&ret, "root_connection_num");
     EncodeString(&ret, "slowlog_log_slower_than");
     EncodeString(&ret, "slave-read-only");
-    EncodeString(&ret, "master_db_sync_path");
-    EncodeString(&ret, "slave_db_sync_path");
     EncodeString(&ret, "db_sync_speed");
     return;
   }
@@ -855,22 +854,16 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetReadonly(is_readonly);
     pthread_rwlock_rdlock(g_pika_server->rwlock());
     ret = "+OK\r\n";
-//  } else if (set_item == "master_db_sync_path") {
-//    g_pika_conf->SetMasterDbSyncPath(value);
-//    ret = "+OK\r\n";
-//  } else if (set_item == "slave_db_sync_path") {
-//    g_pika_conf->SetSlaveDbSyncPath(value);
-//    ret = "+OK\r\n";
-//  } else if (set_item == "db_sync_speed") {
-//    if (!slash::string2l(value.data(), value.size(), &ival)) {
-//      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'db_sync_speed(MB)'\r\n";
-//      return;
-//    }
-//    if (ival < 0 || ival > 125) {
-//      ival = 125;
-//    }
-//    g_pika_conf->SetDbSyncSpeed(ival);
-//    ret = "+OK\r\n";
+  } else if (set_item == "db_sync_speed") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'db_sync_speed(MB)'\r\n";
+      return;
+    }
+    if (ival < 0 || ival > 125) {
+      ival = 125;
+    }
+    g_pika_conf->SetDbSyncSpeed(ival);
+    ret = "+OK\r\n";
   } else {
     ret = "-ERR No such configure item\r\n";
   }

@@ -1,12 +1,22 @@
+#include <fstream>
 #include <glog/logging.h>
 #include <poll.h>
 #include "pika_slaveping_thread.h"
 #include "pika_trysync_thread.h"
 #include "pika_server.h"
 #include "pika_conf.h"
+#include "env.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
+
+PikaTrysyncThread::~PikaTrysyncThread() {
+  should_exit_ = true;
+  pthread_join(thread_id(), NULL);
+  slash::StopRsync(g_pika_conf->db_sync_path());
+  delete cli_;
+  DLOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
+}
 
 bool PikaTrysyncThread::Send() {
   pink::RedisCmdArgsType argv;
@@ -46,6 +56,7 @@ bool PikaTrysyncThread::RecvProc() {
   bool should_auth = g_pika_conf->requirepass() == "" ? false : true;
   bool is_authed = false;
   pink::Status s;
+  std::string reply;
 
   while (1) {
     s = cli_->Recv(NULL);
@@ -54,49 +65,162 @@ bool PikaTrysyncThread::RecvProc() {
       return false;
     }
 
-    DLOG(INFO) << "Reply from master after trysync: " << cli_->argv_[0];
+    reply = cli_->argv_[0];
+    DLOG(INFO) << "Reply from master after trysync: " << reply;
     if (!is_authed && should_auth) {
-      slash::StringToLower(cli_->argv_[0]);
-      if (cli_->argv_[0] != "ok") {
+      if (kInnerReplOk != slash::StringToLower(reply)) {
         g_pika_server->RemoveMaster();
         return false;
       }
       is_authed = true;
     } else {
-      if (cli_->argv_.size() == 1 && slash::string2l(cli_->argv_[0].data(), cli_->argv_[0].size(), &sid_)) {
+      if (reply.size() == 1 &&
+          slash::string2l(reply.data(), reply.size(), &sid_)) {
+        // Luckly, I got your point, the sync is comming
         DLOG(INFO) << "Recv sid from master: " << sid_;
         break;
-      } else {
-        g_pika_server->RemoveMaster();
-        return false;
       }
+      // Failed
+      if (kInnerReplWait == reply) {
+        // You can't sync this time, but may be different next time,
+        // This may happened when 
+        // 1, Master do bgsave first.
+        // 2, Master waiting for an existing bgsaving process
+        // 3, Master do dbsyncing
+        DLOG(INFO) << "Need wait to sync";
+      }
+      g_pika_server->RemoveMaster();
+      return false;
     }
   }
   return true;
 }
 
+// Try to update master offset
+// This may happend when dbsync from master finished
+// Here we do:
+// 1, Check dbsync finished, got the new binlog offset
+// 2, Replace the old db
+// 3, Update master offset, and the PikaTrysyncThread cron will connect and do slaveof task with master
+bool PikaTrysyncThread::TryUpdateMasterOffset() {
+  // Check dbsync finished
+  std::string info_path = g_pika_conf->db_sync_path() + kBgsaveInfoFile;
+  if (!slash::FileExists(info_path)) {
+    LOG(ERROR) << "Info file not found : " << info_path;
+    return false;
+  }
+
+  // Got new binlog offset
+  std::ifstream is(info_path);
+  if (!is) {
+    LOG(ERROR) << "Failed to open info file after db sync";
+    return false;
+  }
+  std::string line, master_ip;
+  int lineno = 0;
+  int64_t filenum = 0, offset = 0, tmp = 0, master_port = 0;
+  while (std::getline(is, line)) {
+    lineno++;
+    if (lineno == 2) {
+      master_ip = line;
+    } else if (lineno > 2 && lineno < 6) {
+      if (!slash::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
+        LOG(ERROR) << "Format of info file after db sync error, line : " << line;
+        is.close();
+        return false;
+      }
+      if (lineno == 3) { master_port = tmp; }
+      else if (lineno == 4) { filenum = tmp; }
+      else { offset = tmp; }
+
+    } else if (lineno > 5) {
+      LOG(ERROR) << "Format of info file after db sync error, line : " << line;
+      is.close();
+      return false;
+    }
+  }
+  is.close();
+  LOG(INFO) << "Information from dbsync info. master_ip: " << master_ip
+    << ", master_port: " << master_port
+    << ", filenum: " << filenum
+    << ", offset: " << offset;
+
+  // Replace the old db
+  slash::StopRsync(g_pika_conf->db_sync_path());
+  slash::DeleteFile(info_path);
+  if (!g_pika_server->ChangeDb(g_pika_conf->db_sync_path())) {
+    LOG(ERROR) << "Failed to change db";
+    return false;
+  }
+
+  // Update master offset
+  g_pika_server->logger_->SetProducerStatus(filenum, offset);
+  if (!g_pika_server->SetMaster(master_ip, static_cast<int>(master_port))) {
+    LOG(ERROR) << "Server is not in correct state for slaveof";
+    return false;
+  }
+  return true;
+}
+
+bool PikaTrysyncThread::PrepareRsync() {
+  std::string db_sync_path = g_pika_conf->db_sync_path();
+  slash::StopRsync(db_sync_path);
+  if (!slash::DeleteDirIfExist(db_sync_path)) {
+    LOG(WARNING) << "Failed to delete rsync dir:" << db_sync_path;
+  }
+  int ret = slash::CreatePath(db_sync_path + "kv");
+  ret += slash::CreatePath(db_sync_path + "hash");
+  ret += slash::CreatePath(db_sync_path + "list");
+  ret += slash::CreatePath(db_sync_path + "set");
+  ret += slash::CreatePath(db_sync_path + "zset");
+  return ret == 0 ? true : false;
+}
+
 // TODO maybe use RedisCli
 void* PikaTrysyncThread::ThreadMain() {
   while (!should_exit_) {
-    if (g_pika_server->ShouldConnectMaster()) { //g_pika_server->repl_state_ == PIKA_REPL_CONNECT
-      sleep(2);
-      DLOG(INFO) << "Should connect master";
-      if ((cli_->Connect(g_pika_server->master_ip(), g_pika_server->master_port())).ok()) {
-        cli_->set_send_timeout(1000);
-        cli_->set_recv_timeout(1000);
-        if (Send() && RecvProc()) {
-          g_pika_server->ConnectMasterDone();
-          delete g_pika_server->ping_thread_;
-          g_pika_server->ping_thread_ = new PikaSlavepingThread(sid_);
-          g_pika_server->ping_thread_->StartThread();
-          close(cli_->fd());
-          DLOG(INFO) << "Trysync success";
-        } else {
-          close(cli_->fd());
-        }
-      }
-    }
     sleep(1);
+    if (!g_pika_server->ShouldConnectMaster()) {
+      //Try to update offset by db sync
+      if (!TryUpdateMasterOffset()) {
+        LOG(ERROR) << "No Update Master Offset";
+        continue;
+      }
+      LOG(ERROR) << "Success Update Master Offset";
+    }
+    sleep(2);
+    DLOG(INFO) << "Should connect master";
+    
+    //Start rsync
+    std::string dbsync_path = g_pika_conf->db_sync_path();
+    if (!PrepareRsync()) {
+      LOG(ERROR) << "Failed to prepare env for rsync, path:" << dbsync_path;;
+    }
+    int ret = slash::StartRsync(dbsync_path, kDBSyncModule, g_pika_conf->port() + 300);
+    if (0 != ret) {
+      LOG(ERROR) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
+    }
+    LOG(ERROR) << "Finish to start rsync, path:" << dbsync_path << " error : " << ret;
+
+    std::string master_ip = g_pika_server->master_ip();
+    int master_port = g_pika_server->master_port();
+
+    if ((cli_->Connect(master_ip, master_port)).ok()) {
+      cli_->set_send_timeout(5000);
+      cli_->set_recv_timeout(5000);
+      if (Send() && RecvProc()) {
+        g_pika_server->ConnectMasterDone();
+        // Stop rsync, binlog sync with master is begin
+        slash::StopRsync(dbsync_path);
+        delete g_pika_server->ping_thread_;
+        g_pika_server->ping_thread_ = new PikaSlavepingThread(sid_);
+        g_pika_server->ping_thread_->StartThread();
+        DLOG(INFO) << "Trysync success";
+      }
+      cli_->Close();
+    } else {
+      LOG(WARNING) << "Failed to connect to master, " << master_ip << ":" << master_port;
+    }
   }
   return NULL;
 }
