@@ -88,7 +88,7 @@ int PikaConf::Load()
   GetConfStr("daemonize", &dmz);
   daemonize_ =  (dmz == "yes") ? true : false;
   GetConfInt("binlog_file_size", &binlog_file_size_);
-  if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024 * 2)) {
+  if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024)) {
     binlog_file_size_ = 100 * 1024 * 1024;    // 100M
   }
   GetConfStr("pidfile", &pidfile_);

@@ -2,22 +2,29 @@
 RPATH = /usr/local/pika11/lib/
 LFLAGS = -Wl,-rpath=$(RPATH)
 
+
+UNAME := $(shell if [ -f "/etc/redhat-release" ]; then echo "CentOS"; else echo "Ubuntu"; fi)
+
 OSVERSION := $(shell cat /etc/redhat-release | cut -d "." -f 1 | awk '{print $$NF}')
-ifeq ($(OSVERSION), 5)
-	SO_DIR = $(CURDIR)/lib/5.4
-	TOOLS_DIR = $(CURDIR)/tools/5.4
+
+ifeq ($(UNAME), Ubuntu)
+  SO_DIR = $(CURDIR)/lib/ubuntu
+  TOOLS_DIR = $(CURDIR)/tools/ubuntu
+else ifeq ($(OSVERSION), 5)
+  SO_DIR = $(CURDIR)/lib/5.4
+  TOOLS_DIR = $(CURDIR)/tools/5.4
 else
-	SO_DIR = $(CURDIR)/lib/6.2
-	TOOLS_DIR = $(CURDIR)/tools/6.2
+  SO_DIR = $(CURDIR)/lib/6.2
+  TOOLS_DIR = $(CURDIR)/tools/6.2
 endif
 
 CXX = g++
 
 ifeq ($(__REL), 1)
 #CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function -std=c++11
-	CXXFLAGS = -O2 -g -pipe -fPIC -W -DNDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls
+	CXXFLAGS = -O2 -g -pipe -fPIC -W -DNDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -std=c++11 -gdwarf-2 -Wno-redundant-decls
 else
-	CXXFLAGS = -O0 -g -pg -pipe -fPIC -W -DDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -D_GNU_SOURCE -std=c++11 -D__STDC_FORMAT_MACROS -std=c++11 -Wno-redundant-decls
+	CXXFLAGS = -O0 -g -pg -pipe -fPIC -W -DDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -std=c++11 -D__STDC_FORMAT_MACROS -std=c++11 -Wno-redundant-decls
 endif
 
 OBJECT = pika
@@ -65,6 +72,9 @@ OBJS = $(patsubst %.cc,%.o,$(BASE_OBJS))
 
 
 all: $(OBJECT)
+	@echo "UNAME    : $(UNAME)"
+	@echo "SO_DIR   : $(SO_DIR)"
+	@echo "TOOLS_DIR: $(TOOLS_DIR)"
 	rm -rf $(OUTPUT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin

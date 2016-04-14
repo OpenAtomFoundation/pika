@@ -12,17 +12,21 @@
 extern PikaConf *g_pika_conf;
 
 PikaServer::PikaServer() :
-  exit_(false),
   ping_thread_(NULL),
+  exit_(false),
   sid_(0),
   master_ip_(""),
   master_connection_(0),
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
+  bgsave_engine_(NULL),
   purging_(false),
   accumulative_connections_(0) {
 
+  pthread_rwlockattr_t attr;
+  pthread_rwlockattr_init(&attr);
+  pthread_rwlockattr_setkind_np (&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
   pthread_rwlock_init(&rwlock_, NULL);
   
   //Init server ip host
@@ -63,11 +67,24 @@ PikaServer::~PikaServer() {
     delete bgsave_engine_;
   }
 
+  // DispatchThread will use queue of worker thread,
+  // so we need to delete dispatch before worker.
+  delete pika_dispatch_thread_;
+
   for (int i = 0; i < worker_num_; i++) {
     delete pika_worker_thread_[i];
   }
 
-  delete pika_dispatch_thread_;
+  {
+  slash::MutexLock l(&slave_mutex_);
+  std::vector<SlaveItem>::iterator iter = slaves_.begin();
+
+  while (iter != slaves_.end()) {
+    delete static_cast<PikaBinlogSenderThread*>(iter->sender);
+    iter =  slaves_.erase(iter);
+    DLOG(INFO) << "Delete slave success";
+  }
+  }
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
   delete pika_trysync_thread_;
@@ -83,17 +100,27 @@ PikaServer::~PikaServer() {
 }
 
 bool PikaServer::ServerInit() {
-	char hname[128];
-	struct hostent *hent;
 
-	gethostname(hname, sizeof(hname));
-	hent = gethostbyname(hname);
+  int fd;
+  struct ifreq ifr;
 
-	host_ = inet_ntoa(*(struct in_addr*)(hent->h_addr_list[0]));
+  fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+  /* I want to get an IPv4 IP address */
+  ifr.ifr_addr.sa_family = AF_INET;
+
+  /* I want IP address attached to "eth0" */
+  strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
+
+  ioctl(fd, SIOCGIFADDR, &ifr);
+
+  close(fd);
+  host_ = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 
 	port_ = g_pika_conf->port();	
   DLOG(INFO) << "host: " << host_ << " port: " << port_;
 	return true;
+
 }
 
 void PikaServer::Cleanup() {
@@ -213,7 +240,7 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
 }
 
 bool PikaServer::FindSlave(std::string& ip_port) {
-  slash::MutexLock l(&slave_mutex_);
+//  slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
 
   while (iter != slaves_.end()) {
@@ -457,7 +484,7 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
 
     DLOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.hb_fd << " stage: " << slave.stage;
     // Add sender
-    slash::MutexLock l(&slave_mutex_);
+//    slash::MutexLock l(&slave_mutex_);
     slaves_.push_back(slave);
 
     return Status::OK();
@@ -637,7 +664,8 @@ void PikaServer::DoPurgeLogs(void* arg) {
 }
 
 bool PikaServer::GetPurgeWindow(uint32_t &max) {
-  max = logger_->version_->pro_num();
+  uint64_t tmp;
+  logger_->GetProducerStatus(&max, &tmp);
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator it;
   for (it = slaves_.begin(); it != slaves_.end(); ++it) {
@@ -654,8 +682,12 @@ bool PikaServer::GetPurgeWindow(uint32_t &max) {
 }
 
 bool PikaServer::CouldPurge(uint32_t index) {
+  uint32_t pro_num;
+  uint64_t tmp;
+  logger_->GetProducerStatus(&pro_num, &tmp);
+
   index += 10; //remain some more
-  if (index > logger_->version_->pro_num()) {
+  if (index > pro_num) {
     return false;
   }
   slash::MutexLock l(&slave_mutex_);
@@ -831,18 +863,18 @@ void PikaServer::KeyScan() {
 void PikaServer::InitKeyScan() {
   key_scan_info_.start_time = time(NULL);
   char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&key_scan_info_.start_time));
+  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
 }
 
 void PikaServer::ClientKillAll() {
-  for (size_t idx = 0; idx != worker_num_; idx++) {
+  for (int idx = 0; idx != worker_num_; idx++) {
     pika_worker_thread_[idx]->ThreadClientKill();
   }  
 }
 
 int PikaServer::ClientKill(const std::string &ip_port) {
-  for (size_t idx = 0; idx != worker_num_; ++idx) {
+  for (int idx = 0; idx != worker_num_; ++idx) {
     if (pika_worker_thread_[idx]->ThreadClientKill(ip_port)) {
       return 1;
     }
@@ -852,7 +884,7 @@ int PikaServer::ClientKill(const std::string &ip_port) {
 
 int64_t PikaServer::ClientList(std::vector< std::pair<int, std::string> > *clients) {
   int64_t clients_num = 0;
-  for (size_t idx = 0; idx != worker_num_; ++idx) {
+  for (int idx = 0; idx != worker_num_; ++idx) {
     clients_num += pika_worker_thread_[idx]->ThreadClientList(clients);
   }
   return clients_num;
@@ -860,7 +892,7 @@ int64_t PikaServer::ClientList(std::vector< std::pair<int, std::string> > *clien
 
 uint64_t PikaServer::ServerQueryNum() {
   uint64_t server_query_num = 0;
-  for (size_t idx = 0; idx != worker_num_; ++idx) {
+  for (int idx = 0; idx != worker_num_; ++idx) {
     server_query_num += pika_worker_thread_[idx]->thread_querynum();
   }
   server_query_num += pika_binlog_receiver_thread_->thread_querynum();
@@ -869,7 +901,7 @@ uint64_t PikaServer::ServerQueryNum() {
 
 uint64_t PikaServer::ServerCurrentQps() {
   uint64_t server_current_qps = 0;
-  for (size_t idx = 0; idx != worker_num_; ++idx) {
+  for (int idx = 0; idx != worker_num_; ++idx) {
     server_current_qps += pika_worker_thread_[idx]->last_sec_thread_querynum();
   }
   server_current_qps += pika_binlog_receiver_thread_->last_sec_thread_querynum();

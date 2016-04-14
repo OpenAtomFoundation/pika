@@ -82,7 +82,7 @@ public:
  * Master use
  */
   int64_t GenSid() {
-    slash::MutexLock l(&slave_mutex_);
+//    slash::MutexLock l(&slave_mutex_);
     int64_t sid = sid_;
     sid_++;
     return sid;
@@ -218,7 +218,7 @@ public:
     std::string s_start_time;
     std::vector<uint64_t> key_nums_v; //the order is kv, hash, list, zset, set
     bool key_scaning_;
-    KeyScanInfo() : start_time(0), key_nums_v({0, 0, 0, 0, 0}), key_scaning_(false) { 
+    KeyScanInfo() : start_time(0), s_start_time("1970-01-01 08:00:00"), key_nums_v({0, 0, 0, 0, 0}), key_scaning_(false) {
     }
   };
   bool key_scaning() {
@@ -251,6 +251,7 @@ public:
   void incr_accumulative_connections() {
     ++accumulative_connections_;  
   }
+  slash::RecordMutex mutex_record_;
 
 private:
   std::atomic<bool> exit_;

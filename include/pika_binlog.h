@@ -45,29 +45,22 @@ class Binlog
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
 
-
-  // Set the filenum and con_offset of the consumer which has the given ip and port;
-  // return NotFound when can not find the consumer with the given ip and port;
-  // return InvalidArgument when the filenum and con_offset are invalid;
-  Status SetConsumer(int fd, uint32_t filenum, uint64_t con_offset);
-  // no lock
-  Status GetConsumerStatus(int fd, uint32_t* filenum, uint64_t* con_offset);
-
   static Status AppendBlank(slash::WritableFile *file, uint64_t len);
 
   slash::WritableFile *queue() { return queue_; }
-  //slash::WritableFile *writefile() { return writefile_; }
+
+
   uint64_t file_size() {
     return file_size_;
   }
 
   std::string filename;
-  Version* version_;
 
  private:
 
   void InitLogFile();
   Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset);
+
 
   /*
    * Produce
@@ -77,13 +70,13 @@ class Binlog
   uint32_t consumer_num_;
   uint64_t item_num_;
 
+  Version* version_;
   slash::WritableFile *queue_;
   slash::RWFile *versionfile_;
 
   slash::Mutex mutex_;
 
   uint32_t pro_num_;
-  int32_t retry_;
 
   int block_offset_;
 
@@ -92,59 +85,35 @@ class Binlog
   const std::string binlog_path_;
 
   uint64_t file_size_;
+
+  // Not use
+  //int32_t retry_;
+
   // No copying allowed
   Binlog(const Binlog&);
   void operator=(const Binlog&);
 };
 
+// We have to reserve the useless con_offset_, con_num_ and item_num,
+// to be compatable with version 1.x .
 class Version {
  public:
   Version(slash::RWFile *save);
   ~Version();
 
-  // Status Recovery(WritableFile *save);
-
-  Status StableSave();
   Status Init();
 
-  uint64_t pro_offset() { 
-    slash::RWLock(&rwlock_, false);
-    return pro_offset_;
-  }
-  void set_pro_offset(uint64_t pro_offset) {
-    slash::RWLock(&rwlock_, true);
-    pro_offset_ = pro_offset;
-  }
-  void rise_pro_offset(uint64_t r) {
-    slash::RWLock(&rwlock_, true);
-    pro_offset_ += r;
-  }
+  // RWLock should be held when access members.
+  Status StableSave();
 
-  uint32_t pro_num() {
-    slash::RWLock(&rwlock_, false);
-    return pro_num_;
-  }
-  void set_pro_num(uint32_t pro_num) {
-    slash::RWLock(&rwlock_, true);
-    pro_num_ = pro_num;
-  }
+  uint32_t item_num()                  { return item_num_; }
+  void set_item_num(uint32_t item_num) { item_num_ = item_num; }
+  void plus_item_num()                 { item_num_++; }
+  void minus_item_num()                { item_num_--; }
 
-  uint32_t item_num() {
-    slash::RWLock(&rwlock_, false);
-    return item_num_;
-  }
-  void set_item_num(uint32_t item_num) {
-    slash::RWLock(&rwlock_, true);
-    item_num_ = item_num;
-  }
-  void plus_item_num() {
-    slash::RWLock(&rwlock_, true);
-    item_num_++;
-  }
-  void minus_item_num() {
-    slash::RWLock(&rwlock_, true);
-    item_num_--;
-  }
+  uint64_t pro_offset_;
+  uint32_t pro_num_;
+  pthread_rwlock_t rwlock_;
 
   void debug() {
     slash::RWLock(&rwlock_, false);
@@ -153,13 +122,7 @@ class Version {
 
  private:
 
-  uint64_t pro_offset_;
-  uint32_t pro_num_;
-
-
   slash::RWFile *save_;
-  pthread_rwlock_t rwlock_;
-  // port::Mutex mutex_;
 
   // Not used
   uint64_t con_offset_;

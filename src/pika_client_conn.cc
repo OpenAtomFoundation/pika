@@ -45,7 +45,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return "-ERR NOAUTH Authentication required.\r\n";
   }
   
-  uint64_t start_us, end_us;
+  uint64_t start_us;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = slash::NowMicros();
   }
@@ -79,16 +79,18 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
         return "-ERR Server in read-only\r\n";
       }
       raw_args = RestoreArgs();
-      g_pika_server->logger_->Lock();
+      g_pika_server->mutex_record_.Lock(argv_[1]);
   }
 
   c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
       if (c_ptr->res().ok()) {
+          g_pika_server->logger_->Lock();
           g_pika_server->logger_->Put(raw_args);
+          g_pika_server->logger_->Unlock();
       }
-      g_pika_server->logger_->Unlock();
+      g_pika_server->mutex_record_.Unlock(argv_[1]);
   }
 
   if (!cinfo_ptr->is_suspend()) {
@@ -96,7 +98,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    uint64_t duration = slash::NowMicros() - start_us;
+    int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
       LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
     }
@@ -119,6 +121,15 @@ int PikaClientConn::DealMessage() {
   slash::StringToLower(opt);
   std::string res = DoCmd(opt);
   
+  while ((wbuf_size_ - wbuf_len_ <= res.size())) {
+    if (!ExpandWbuf()) {
+      LOG(WARNING) << "wbuf is too large";
+      memcpy(wbuf_, "-ERR buf is too large\r\n", 23);
+      wbuf_len_ = 23;
+      set_is_reply(true);
+      return 0;
+    }
+  }
   memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
   wbuf_len_ += res.size();
   set_is_reply(true);
