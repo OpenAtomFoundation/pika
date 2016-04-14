@@ -372,9 +372,13 @@ void PikaServer::RemoveMaster() {
 }
 
 void PikaServer::TryDBSync(const std::string& ip, int port) {
+  uint32_t cur_filenum = 0;
+  uint64_t cur_offset = 0;
+  logger_->GetProducerStatus(&cur_filenum, &cur_offset);
+
   if (0 != slash::IsDir(bgsave_info_.path) ||                               //Bgsaving dir exist
       !slash::FileExists(NewFileName(logger_->filename, bgsave_info_.filenum)) ||  //filenum can be found in binglog
-      logger_->version_->pro_num() - bgsave_info_.filenum > kDBSyncMaxGap) {      //The file is not too old
+      cur_filenum - bgsave_info_.filenum > kDBSyncMaxGap) {      //The file is not too old
     // Need Bgsave first
     Bgsave();
     usleep(1);
