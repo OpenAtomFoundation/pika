@@ -43,6 +43,8 @@ int PikaConf::Load()
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
     bgsave_path_ += "/";
   }
+  GetConfStr("dump_prefix", &bgsave_prefix_);
+  
   GetConfInt("expire_logs_nums", &expire_logs_nums_);
   if (expire_logs_nums_ <= 10 ) {
       expire_logs_nums_ = 10;
@@ -120,6 +122,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("userpass", userpass_);
   SetConfStr("userblacklist", suser_blacklist());
   SetConfStr("dump_path", bgsave_path_);
+  SetConfStr("dump_prefix", bgsave_prefix_);
   SetConfInt("maxconnection", maxconnection_);
   SetConfInt("root_connection_num", root_connection_num_);
   SetConfInt("slowlog_log_slower_than", slowlog_log_slower_than_);

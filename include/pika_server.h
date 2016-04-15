@@ -297,7 +297,7 @@ private:
   BGSaveInfo bgsave_info_;
   
   static void DoBgsave(void* arg);
-  bool InitBgsaveEnv(const std::string& bgsave_path);
+  bool InitBgsaveEnv();
   bool InitBgsaveEngine();
 
 

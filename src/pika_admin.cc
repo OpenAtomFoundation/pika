@@ -671,10 +671,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "userblacklist");
       EncodeString(&ret, (g_pika_conf->suser_blacklist()).c_str());
-//  } else if (get_item == "dump_prefix") {
-//      ret = "*2\r\n";
-//      EncodeString(&ret, "dump_prefix");
-//      EncodeString(&ret, g_pika_conf->dump_prefix());
+  } else if (get_item == "dump_prefix") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "dump_prefix");
+      EncodeString(&ret, g_pika_conf->bgsave_prefix());
   } else if (get_item == "daemonize") {
       ret = "*2\r\n";
       EncodeString(&ret, "daemonize");
@@ -728,7 +728,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       EncodeString(&ret, "no");
     }
   } else if (get_item == "*") {
-    ret = "*25\r\n";
+    ret = "*26\r\n";
     EncodeString(&ret, "port");
     EncodeString(&ret, "thread_num");
     EncodeString(&ret, "log_path");
@@ -740,9 +740,9 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
-    //EncodeString(&ret, "dump_prefix");
     EncodeString(&ret, "daemonize");
     EncodeString(&ret, "dump_path");
+    EncodeString(&ret, "dump_prefix");
     EncodeString(&ret, "pidfile");
     EncodeString(&ret, "maxconnection");
     EncodeString(&ret, "target_file_size_base");
@@ -763,13 +763,13 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*12\r\n";
+    ret = "*13\r\n";
     EncodeString(&ret, "log_level");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
-    //EncodeString(&ret, "dump_prefix");
+    EncodeString(&ret, "dump_prefix");
     EncodeString(&ret, "maxconnection");
     EncodeString(&ret, "expire_logs_days");
     EncodeString(&ret, "expire_logs_nums");
@@ -805,9 +805,9 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   } else if (set_item == "userblacklist") {
     g_pika_conf->SetUserBlackList(value);
     ret = "+OK\r\n";
-//  } else if (set_item == "dump_prefix") {
-//    g_pika_conf->SetDumpPrefix(value);
-//    ret = "+OK\r\n";
+  } else if (set_item == "dump_prefix") {
+    g_pika_conf->SetBgsavePrefix(value);
+    ret = "+OK\r\n";
   } else if (set_item == "maxconnection") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'maxconnection'\r\n";

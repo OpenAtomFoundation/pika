@@ -31,6 +31,7 @@ public:
 
   std::string requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
   std::string bgsave_path()     { RWLock l(&rwlock_, false); return bgsave_path_; }
+  std::string bgsave_prefix()     { RWLock l(&rwlock_, false); return bgsave_prefix_; }
   std::string userpass()        { RWLock l(&rwlock_, false); return userpass_; }
   const std::string suser_blacklist() {
     RWLock l(&rwlock_, false);
@@ -65,6 +66,10 @@ public:
     if (value[value.length() - 1] != '/') {
       bgsave_path_ += "/";
     }
+  }
+  void SetBgsavePrefix(const std::string &value) {
+    RWLock l(&rwlock_, true);
+    bgsave_prefix_ = value;
   }
   void SetRequirePass(const std::string &value) {
     RWLock l(&rwlock_, true);
@@ -124,6 +129,7 @@ private:
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
   std::string bgsave_path_;
+  std::string bgsave_prefix_;
   std::string pidfile_;
 
   //char pidfile_[PIKA_WORD_SIZE];

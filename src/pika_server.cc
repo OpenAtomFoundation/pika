@@ -527,13 +527,14 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
 }
 
 // Prepare engine, need bgsave_protector protect
-bool PikaServer::InitBgsaveEnv(const std::string& bgsave_path) {
+bool PikaServer::InitBgsaveEnv() {
   // Prepare for bgsave dir
   bgsave_info_.start_time = time(NULL);
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
   bgsave_info_.s_start_time.assign(s_time, len);
-  bgsave_info_.path = bgsave_path + std::string(s_time, 8);
+  std::string bgsave_path(g_pika_conf->bgsave_path());
+  bgsave_info_.path = bgsave_path + g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
   bgsave_info_.tmp_path = bgsave_path + "tmp";
   if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
     LOG(ERROR) << "remove exist bgsave dir failed";
@@ -604,9 +605,9 @@ void PikaServer::Bgsave() {
       return;
     }
     bgsave_info_.bgsaving = true;
-
+  
     // Prepare for Bgsaving
-    if (!InitBgsaveEnv(g_pika_conf->bgsave_path())
+    if (!InitBgsaveEnv()
         || !InitBgsaveEngine()) {
       ClearBgsave();
       return;

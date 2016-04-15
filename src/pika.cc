@@ -85,10 +85,52 @@ static void PikaSignalSetup() {
   signal(SIGQUIT, &IntSigHandle);
 }
 
+static void usage()
+{
+    fprintf(stderr,
+            "Pika module %s\n"
+            "usage: pika [-hv] [-c conf/file]\n"
+            "\t-h               -- show this help\n"
+            "\t-c conf/file     -- config file \n"
+            "  example: ./output/bin/pika -c ./conf/pika.conf\n",
+            kPikaVersion.c_str()
+           );
+}
 
 int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    usage();
+    exit(-1);
+  }
 
-  PikaConfInit(argv[1]);
+  bool path_opt = false;
+  char c;
+  char path[1024];
+  while (-1 != (c = getopt(argc, argv, "c:hv"))) {
+    switch (c) {
+      case 'c':
+        snprintf(path, 1024, "%s", optarg);
+        path_opt = true;
+        break;
+      case 'h':
+        usage();
+        return 0;
+      case 'v':
+        version();
+        return 0;
+      default:
+        usage();
+        return 0;
+    }
+  }
+
+  if (path_opt == false) {
+    fprintf (stderr, "Please specify the conf file path\n" );
+    usage();
+    exit(-1);
+  }
+
+  PikaConfInit(path);
 
   // daemonize if needed
   if (g_pika_conf->daemonize()) {
