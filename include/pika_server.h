@@ -111,6 +111,9 @@ public:
   void PlusMasterConnection();
   bool ShouldAccessConnAsMaster(const std::string& ip);
   void RemoveMaster();
+  bool WaitingDBSync();
+  void NeedWaitDBSync();
+  void WaitDBSyncFinish();
 
   void Start();
   void Exit() {

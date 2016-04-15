@@ -81,6 +81,8 @@ bool PikaTrysyncThread::RecvProc() {
         break;
       }
       // Failed
+      g_pika_server->RemoveMaster();
+
       if (kInnerReplWait == reply) {
         // You can't sync this time, but may be different next time,
         // This may happened when 
@@ -88,8 +90,8 @@ bool PikaTrysyncThread::RecvProc() {
         // 2, Master waiting for an existing bgsaving process
         // 3, Master do dbsyncing
         DLOG(INFO) << "Need wait to sync";
+        g_pika_server->NeedWaitDBSync();
       }
-      g_pika_server->RemoveMaster();
       return false;
     }
   }
@@ -155,6 +157,7 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
 
   // Update master offset
   g_pika_server->logger_->SetProducerStatus(filenum, offset);
+  g_pika_server->WaitDBSyncFinish();
   if (!g_pika_server->SetMaster(master_ip, static_cast<int>(master_port))) {
     LOG(ERROR) << "Server is not in correct state for slaveof";
     return false;
@@ -176,28 +179,34 @@ void PikaTrysyncThread::PrepareRsync() {
 void* PikaTrysyncThread::ThreadMain() {
   while (!should_exit_) {
     sleep(1);
-    if (!g_pika_server->ShouldConnectMaster()) {
+    if (g_pika_server->WaitingDBSync()) {
       //Try to update offset by db sync
-      if (!TryUpdateMasterOffset()) {
-        LOG(ERROR) << "No Update Master Offset";
-        continue;
+      if (TryUpdateMasterOffset()) {
+        LOG(INFO) << "Success Update Master Offset";
       }
-      LOG(ERROR) << "Success Update Master Offset";
+    }
+
+    if (!g_pika_server->ShouldConnectMaster()) {
+      continue;
     }
     sleep(2);
     DLOG(INFO) << "Should connect master";
     
-    //Start rsync
+    std::string master_ip = g_pika_server->master_ip();
+    int master_port = g_pika_server->master_port();
+    
+    // Start rsync
     std::string dbsync_path = g_pika_conf->db_sync_path();
     PrepareRsync();
-    int ret = slash::StartRsync(dbsync_path, kDBSyncModule, g_pika_conf->port() + 300);
+    std::string ip_port = slash::IpPortString(master_ip, master_port);
+    // We append the master ip port after module name
+    // To make sure only data from current master is received
+    int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, g_pika_conf->port() + 300);
     if (0 != ret) {
       LOG(ERROR) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
     }
-    LOG(ERROR) << "Finish to start rsync, path:" << dbsync_path << " error : " << ret;
+    DLOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
 
-    std::string master_ip = g_pika_server->master_ip();
-    int master_port = g_pika_server->master_port();
 
     if ((cli_->Connect(master_ip, master_port)).ok()) {
       cli_->set_send_timeout(5000);

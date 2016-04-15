@@ -36,6 +36,7 @@ struct SlaveItem {
 #define PIKA_REPL_CONNECT 1
 #define PIKA_REPL_CONNECTING 2
 #define PIKA_REPL_CONNECTED 3
+#define PIKA_REPL_WAIT_DBSYNC 4
 
 //role
 #define PIKA_ROLE_SINGLE 0

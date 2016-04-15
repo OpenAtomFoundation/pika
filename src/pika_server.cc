@@ -288,6 +288,27 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
   return false;
 }
 
+bool PikaServer::WaitingDBSync() {
+  slash::RWLock l(&state_protector_, false);
+  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
+  if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
+    return true;
+  }
+  return false;
+}
+
+void PikaServer::NeedWaitDBSync() {
+  slash::RWLock l(&state_protector_, true);
+  repl_state_ = PIKA_REPL_WAIT_DBSYNC;
+}
+
+void PikaServer::WaitDBSyncFinish() {
+  slash::RWLock l(&state_protector_, true);
+  if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
+    repl_state_ = PIKA_REPL_NO_CONNECT;
+  }
+}
+
 bool PikaServer::ShouldConnectMaster() {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
@@ -342,7 +363,7 @@ void PikaServer::PlusMasterConnection() {
 bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
-  if (repl_state_ != PIKA_REPL_NO_CONNECT && ip == master_ip_) {
+  if (repl_state_ != PIKA_REPL_NO_CONNECT && repl_state_ != PIKA_REPL_WAIT_DBSYNC && ip == master_ip_) {
     return true;
   }
   return false;
@@ -388,9 +409,7 @@ void PikaServer::TryDBSync(const std::string& ip, int port) {
 
 void PikaServer::DBSync(const std::string& ip, int port) {
   // Only one DBSync task for every ip_port
-  char buf[10];
-  slash::ll2string(buf, sizeof(buf), port);
-  std::string ip_port(ip + ":" + buf);
+  std::string ip_port = slash::IpPortString(ip, port);
   if (db_sync_slaves.find(ip_port) != db_sync_slaves.end()) {
     return;   
   }
@@ -408,7 +427,7 @@ void PikaServer::DBSync(const std::string& ip, int port) {
 void PikaServer::DoDBSync(void* arg) {
   DBSyncArg *ppurge = static_cast<DBSyncArg*>(arg);
   PikaServer* ps = ppurge->p;
-  LOG(ERROR) << "begin bg do dbsycn";
+  LOG(INFO) << "begin bg do dbsycn";
 
   ps->DBSyncSendFile(ppurge->ip, ppurge->port);
   
@@ -425,14 +444,15 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   // Iterate to send files
   int ret = 0;
   std::string target_path;
+  std::string module = kDBSyncModule + "_" + slash::IpPortString(host_, port_);
   std::vector<std::string>::iterator it = descendant.begin();
+  slash::RsyncRemote remote(ip, port, module, g_pika_conf->db_sync_speed() * 1024);
   for (; it != descendant.end(); ++it) {
     target_path = (*it).substr(bgsave_info_.path.size() + 1);
     if (target_path == kBgsaveInfoFile) {
       continue;
     }
     // We need specify the speed limit for every single file
-    slash::RsyncRemote remote(ip, port, kDBSyncModule, g_pika_conf->db_sync_speed() * 1024);
     ret = slash::RsyncSendFile(*it, target_path, remote);
     if (0 != ret) {
       LOG(ERROR) << "rsync send file failed! From: " << *it
@@ -442,18 +462,23 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
       break;
     }
   }
+ 
+  // Clear target path
+  slash::RsyncSendClearTarget(bgsave_info_.path + "/kv", "kv", remote);
+  slash::RsyncSendClearTarget(bgsave_info_.path + "/hash", "hash", remote);
+  slash::RsyncSendClearTarget(bgsave_info_.path + "/list", "list", remote);
+  slash::RsyncSendClearTarget(bgsave_info_.path + "/set", "set", remote);
+  slash::RsyncSendClearTarget(bgsave_info_.path + "/zset", "zset", remote);
+
   // Send info file at last
   if (0 == ret) {
-    slash::RsyncRemote remote(ip, port, kDBSyncModule, g_pika_conf->db_sync_speed() * 1024);
     if (0 != (ret = slash::RsyncSendFile(bgsave_info_.path + "/" + kBgsaveInfoFile, kBgsaveInfoFile, remote))) {
       LOG(ERROR) << "send info file failed";
     }
   }
 
   // remove slave
-  char buf[10];
-  slash::ll2string(buf, sizeof(buf), port);
-  std::string ip_port(ip + ":" + buf);
+  std::string ip_port = slash::IpPortString(ip, port);
   db_sync_slaves.erase(ip_port);
   if (0 == ret) {
     LOG(INFO) << "rsync send files success";
