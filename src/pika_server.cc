@@ -392,14 +392,11 @@ void PikaServer::RemoveMaster() {
   g_pika_conf->SetReadonly(false);
 }
 
-void PikaServer::TryDBSync(const std::string& ip, int port) {
-  uint32_t cur_filenum = 0;
-  uint64_t cur_offset = 0;
-  logger_->GetProducerStatus(&cur_filenum, &cur_offset);
+void PikaServer::TryDBSync(const std::string& ip, int port, int32_t top) {
 
   if (0 != slash::IsDir(bgsave_info_.path) ||                               //Bgsaving dir exist
       !slash::FileExists(NewFileName(logger_->filename, bgsave_info_.filenum)) ||  //filenum can be found in binglog
-      cur_filenum - bgsave_info_.filenum > kDBSyncMaxGap) {      //The file is not too old
+      top - bgsave_info_.filenum > kDBSyncMaxGap) {      //The file is not too old
     // Need Bgsave first
     Bgsave();
     usleep(1);
@@ -489,16 +486,24 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
  * BinlogSender
  */
 Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset) {
+  // Sanity check
   if (con_offset > logger_->file_size()) {
     return Status::InvalidArgument("AddBinlogSender invalid offset");
   }
+  uint32_t cur_filenum = 0;
+  uint64_t cur_offset = 0;
+  logger_->GetProducerStatus(&cur_filenum, &cur_offset);
+  if (cur_filenum < filenum) {
+    return Status::InvalidArgument("AddBinlogSender invalid filenum");
+  }
+
   std::string slave_ip = slave.ip_port.substr(0, slave.ip_port.find(':'));
 
   slash::SequentialFile *readfile;
   std::string confile = NewFileName(logger_->filename, filenum);
   if (!slash::FileExists(confile)) {
     // Not found binlog specified by filenum
-    TryDBSync(slave_ip, slave.port + 300);
+    TryDBSync(slave_ip, slave.port + 300, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
   }
   if (!slash::NewSequentialFile(confile, &readfile).ok()) {
@@ -667,7 +672,7 @@ bool PikaServer::Bgsaveoff() {
   return true;
 }
 
-bool PikaServer::PurgeLogs(uint32_t to, bool manual) {
+bool PikaServer::PurgeLogs(uint32_t to, bool manual, bool force) {
   // Only one thread can go through
   bool expect = false;
   if (!purging_.compare_exchange_strong(expect, true)) {
@@ -678,6 +683,7 @@ bool PikaServer::PurgeLogs(uint32_t to, bool manual) {
   arg->p = this;
   arg->to = to;
   arg->manual = manual;
+  arg->force = force;
   // Start new thread if needed
   if (!purge_thread_.is_running()) {
     purge_thread_.StartThread();
@@ -690,7 +696,7 @@ void PikaServer::DoPurgeLogs(void* arg) {
   PurgeArg *ppurge = static_cast<PurgeArg*>(arg);
   PikaServer* ps = ppurge->p;
 
-  ps->PurgeFiles(ppurge->to, ppurge->manual);
+  ps->PurgeFiles(ppurge->to, ppurge->manual, ppurge->force);
 
   ps->ClearPurge();
   delete (PurgeArg*)arg;
@@ -735,7 +741,7 @@ bool PikaServer::CouldPurge(uint32_t index) {
   return true;
 }
 
-bool PikaServer::PurgeFiles(uint32_t to, bool manual)
+bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
 {
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(binlogs)) {
@@ -754,7 +760,7 @@ bool PikaServer::PurgeFiles(uint32_t to, bool manual)
          file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days()*24*3600)) // Expire time trigger
     {
       // We check this every time to avoid lock when we do file deletion
-      if (!CouldPurge(it->first)) {
+      if (!CouldPurge(it->first) && !force) {
         LOG(INFO) << "Could not purge "<< (it->first) << ", since it is already be used";
         return false;
       }
@@ -802,7 +808,7 @@ bool PikaServer::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
 }
 
 void PikaServer::AutoPurge() {
-  if (!PurgeLogs(0, false)) {
+  if (!PurgeLogs(0, false, false)) {
     LOG(WARNING) << "Auto purge failed";
     return;
   }

@@ -232,7 +232,7 @@ void PurgelogstoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
   num_ = num;
 }
 void PurgelogstoCmd::Do() {
-  if (g_pika_server->PurgeLogs(num_)) {
+  if (g_pika_server->PurgeLogs(num_, true, false)) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kPurgeExist);

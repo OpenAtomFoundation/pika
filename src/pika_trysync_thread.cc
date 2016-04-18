@@ -36,6 +36,12 @@ bool PikaTrysyncThread::Send() {
   uint32_t filenum;
   uint64_t pro_offset;
   g_pika_server->logger_->GetProducerStatus(&filenum, &pro_offset);
+  
+  // Before we send the trysync command, we need purge current logs older than the sync point
+  if (filenum > 0) {
+    g_pika_server->PurgeLogs(filenum - 1, true, true);
+  }
+
   argv.push_back(std::to_string(filenum));
   argv.push_back(std::to_string(pro_offset));
   pink::RedisCli::SerializeCommand(argv, &tbuf_str);
@@ -108,7 +114,7 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
   // Check dbsync finished
   std::string info_path = g_pika_conf->db_sync_path() + kBgsaveInfoFile;
   if (!slash::FileExists(info_path)) {
-    LOG(ERROR) << "Info file not found : " << info_path;
+    LOG(INFO) << "Info file not found : " << info_path;
     return false;
   }
 

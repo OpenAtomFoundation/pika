@@ -187,9 +187,10 @@ public:
     PikaServer *p;
     uint32_t to;
     bool manual;
+    bool force; // Ignore the delete window
   };
-  bool PurgeLogs(uint32_t to, bool manual = true);
-  bool PurgeFiles(uint32_t to, bool manual);
+  bool PurgeLogs(uint32_t to, bool manual, bool force);
+  bool PurgeFiles(uint32_t to, bool manual, bool force);
   bool GetPurgeWindow(uint32_t &max);
   void ClearPurge() {
     purging_ = false;
@@ -316,7 +317,7 @@ private:
    * DBSync use
    */
   std::unordered_set<std::string> db_sync_slaves;
-  void TryDBSync(const std::string& ip, int port);
+  void TryDBSync(const std::string& ip, int port, int32_t top);
   void DBSync(const std::string& ip, int port);
   static void DoDBSync(void* arg);
 
