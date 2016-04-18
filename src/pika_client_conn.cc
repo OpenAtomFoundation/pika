@@ -126,7 +126,6 @@ int PikaClientConn::DealMessage() {
       LOG(WARNING) << "wbuf is too large";
       memcpy(wbuf_, "-ERR buf is too large\r\n", 23);
       wbuf_len_ = 23;
-      wbuf_pos_ = 0;
       set_is_reply(true);
       return 0;
     }
