@@ -102,8 +102,5 @@ const std::string kInnerReplWait = "wait";
 const uint32_t kDBSyncMaxGap = 50;
 const std::string kDBSyncModule = "document";
 
-// Use when try to change db
-const std::string kTmpDbPath = "./tmpdb/";
-
 const std::string kBgsaveInfoFile = "info";
 #endif

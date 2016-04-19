@@ -206,22 +206,29 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
     option.compression = false;
   }
   std::string db_path = g_pika_conf->db_path();
+  std::string tmp_path(db_path);
+  if (tmp_path.back() == '/') {
+    tmp_path.resize(tmp_path.size() - 1);
+  }
+  tmp_path += "_bak";
+  slash::DeleteDirIfExist(tmp_path);
 
   RWLock l(&rwlock_, true);
-  LOG(INFO) << "Prepare open new db...";
+  LOG(INFO) << "Prepare change db from: " << tmp_path;
   db_.reset();
-  if (0 != slash::RenameFile(db_path.c_str(), kTmpDbPath)) {
-    LOG(ERROR) << "Failed to rename db path when change db";
+  if (0 != slash::RenameFile(db_path.c_str(), tmp_path)) {
+    LOG(ERROR) << "Failed to rename db path when change db, error: " << strerror(errno);
+    return false;
   }
  
   if (0 != slash::RenameFile(new_path.c_str(), db_path.c_str())) {
-    LOG(ERROR) << "Failed to rename new db path when change db";
+    LOG(ERROR) << "Failed to rename new db path when change db, error: " << strerror(errno);
+    return false;
   }
-
   db_.reset(new nemo::Nemo(db_path, option));
   assert(db_);
-  slash::DeleteDirIfExist(kTmpDbPath);
-  LOG(INFO) << "Open new db success";
+  slash::DeleteDirIfExist(tmp_path);
+  LOG(INFO) << "Change db success";
   return true;
 }
 
