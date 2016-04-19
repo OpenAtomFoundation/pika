@@ -399,7 +399,6 @@ void PikaServer::TryDBSync(const std::string& ip, int port, int32_t top) {
       top - bgsave_info_.filenum > kDBSyncMaxGap) {      //The file is not too old
     // Need Bgsave first
     Bgsave();
-    usleep(1);
   }
   DBSync(ip, port);
 }
@@ -414,9 +413,7 @@ void PikaServer::DBSync(const std::string& ip, int port) {
 
   // Reuse the bgsave_thread_
   // Since we expect Bgsave and DBSync execute serially
-  if (!bgsave_thread_.is_running()) {
-    bgsave_thread_.StartThread();
-  }
+  bgsave_thread_.StartIfNeed();
   DBSyncArg *arg = new DBSyncArg(this, ip, port);
   bgsave_thread_.Schedule(&DoDBSync, static_cast<void*>(arg));
 }
@@ -424,7 +421,6 @@ void PikaServer::DBSync(const std::string& ip, int port) {
 void PikaServer::DoDBSync(void* arg) {
   DBSyncArg *ppurge = static_cast<DBSyncArg*>(arg);
   PikaServer* ps = ppurge->p;
-  LOG(INFO) << "begin bg do dbsycn";
 
   ps->DBSyncSendFile(ppurge->ip, ppurge->port);
   
@@ -587,13 +583,13 @@ bool PikaServer::InitBgsaveEngine() {
 bool PikaServer::RunBgsaveEngine(const std::string path) {
   // Backup to tmp dir
   nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(db().get());
-  LOG(INFO) << "create new backup finished.";
+  LOG(INFO) << "Create new backup finished.";
   // Restore to bgsave dir
   if (nemo_s.ok()) {
     nemo_s = bgsave_engine_->RestoreDBFromBackup(
         bgsave_engine_->GetLatestBackupID() + 1, path);
   }
-  LOG(INFO) << "backup finished.";
+  LOG(INFO) << "Restore backup finished.";
   
   if (!nemo_s.ok()) {
     LOG(ERROR) << "backup failed :" << nemo_s.ToString();
@@ -618,12 +614,10 @@ void PikaServer::Bgsave() {
       return;
     }
   }
-    LOG(ERROR) << "after prepare bgsave";
+  LOG(INFO) << "after prepare bgsave";
 
   // Start new thread if needed
-  if (!bgsave_thread_.is_running()) {
-    bgsave_thread_.StartThread();
-  }
+  bgsave_thread_.StartIfNeed();
   bgsave_thread_.Schedule(&DoBgsave, static_cast<void*>(this));
 }
 
@@ -685,9 +679,7 @@ bool PikaServer::PurgeLogs(uint32_t to, bool manual, bool force) {
   arg->manual = manual;
   arg->force = force;
   // Start new thread if needed
-  if (!purge_thread_.is_running()) {
-    purge_thread_.StartThread();
-  }
+  purge_thread_.StartIfNeed();
   purge_thread_.Schedule(&DoPurgeLogs, static_cast<void*>(arg));
   return true;
 }
@@ -856,9 +848,7 @@ bool PikaServer::FlushAll() {
 void PikaServer::PurgeDir(std::string& path) {
   std::string *dir_path = new std::string(path);
   // Start new thread if needed
-  if (!purge_thread_.is_running()) {
-    purge_thread_.StartThread();
-  }
+  purge_thread_.StartIfNeed();
   purge_thread_.Schedule(&DoPurgeDir, static_cast<void*>(dir_path));
 }
 
@@ -892,9 +882,7 @@ void PikaServer::KeyScan() {
   key_scan_info_.key_scaning_ = true; 
   key_scan_protector_.Unlock();
 
-  if (!key_scan_thread_.is_running()) {
-    key_scan_thread_.StartThread(); 
-  }
+  key_scan_thread_.StartIfNeed();
   InitKeyScan();
   key_scan_thread_.Schedule(&DoKeyScan, reinterpret_cast<void*>(this));
 }

@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
   PikaSignalSetup();
   InitCmdInfoTable();
 
-  DLOG(INFO) << "Server at: " << argv[1];
+  DLOG(INFO) << "Server at: " << path;
   g_pika_server = new PikaServer();
 
   if (g_pika_conf->daemonize()) {
