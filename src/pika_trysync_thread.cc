@@ -87,7 +87,6 @@ bool PikaTrysyncThread::RecvProc() {
         break;
       }
       // Failed
-      g_pika_server->RemoveMaster();
 
       if (kInnerReplWait == reply) {
         // You can't sync this time, but may be different next time,
@@ -97,6 +96,8 @@ bool PikaTrysyncThread::RecvProc() {
         // 3, Master do dbsyncing
         DLOG(INFO) << "Need wait to sync";
         g_pika_server->NeedWaitDBSync();
+      } else {
+        g_pika_server->RemoveMaster();
       }
       return false;
     }
@@ -153,6 +154,13 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
     << ", filenum: " << filenum
     << ", offset: " << offset;
 
+  // Sanity check
+  if (master_ip != g_pika_server->master_ip() ||
+      master_port != g_pika_server->master_port()) {
+    LOG(ERROR) << "Error master ip port: " << master_ip << ":" << master_port;
+    return false;
+  }
+
   // Replace the old db
   slash::StopRsync(g_pika_conf->db_sync_path());
   slash::DeleteFile(info_path);
@@ -164,10 +172,6 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
   // Update master offset
   g_pika_server->logger_->SetProducerStatus(filenum, offset);
   g_pika_server->WaitDBSyncFinish();
-  if (!g_pika_server->SetMaster(master_ip, static_cast<int>(master_port))) {
-    LOG(ERROR) << "Server is not in correct state for slaveof";
-    return false;
-  }
   return true;
 }
 

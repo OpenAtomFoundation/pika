@@ -305,7 +305,7 @@ void PikaServer::NeedWaitDBSync() {
 void PikaServer::WaitDBSyncFinish() {
   slash::RWLock l(&state_protector_, true);
   if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
-    repl_state_ = PIKA_REPL_NO_CONNECT;
+    repl_state_ = PIKA_REPL_CONNECT;
   }
 }
 

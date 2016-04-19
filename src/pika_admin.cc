@@ -471,7 +471,8 @@ void InfoCmd::InfoServer(std::string &info) {
   tmp_stream << "db_size:" << (slash::Du(g_pika_conf->db_path()) >> 20)  << "M\r\n";
   tmp_stream << "log_size:" << (slash::Du(g_pika_conf->log_path()) >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
-  tmp_stream << "safety_purge:" << (g_pika_server->GetPurgeWindow(purge_max) ? std::to_string(static_cast<int32_t>(purge_max)) : "none") << "\r\n"; 
+  tmp_stream << "safety_purge:" << (g_pika_server->GetPurgeWindow(purge_max) ?
+      kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none") << "\r\n"; 
   tmp_stream << "expire_logs_days:" << g_pika_conf->expire_logs_days() << "\r\n";
   tmp_stream << "expire_logs_nums:" << g_pika_conf->expire_logs_nums() << "\r\n";
 
