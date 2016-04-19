@@ -1,5 +1,5 @@
 
-RPATH = /usr/local/pika11/lib/
+RPATH = /usr/local/pika20/lib/
 LFLAGS = -Wl,-rpath=$(RPATH)
 
 
