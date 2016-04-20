@@ -22,9 +22,9 @@ std::string NewFileName(const std::string name, const uint32_t current) {
  * Version
  */
 Version::Version(slash::RWFile *save)
-  : save_(save),
+  : pro_offset_(0),
     pro_num_(0),
-    pro_offset_(0) {
+    save_(save) {
   assert(save_ != NULL);
 
   pthread_rwlock_init(&rwlock_, NULL);
@@ -69,9 +69,9 @@ Status Version::Init() {
  * Binlog
  */
 Binlog::Binlog(const std::string& binlog_path, const int file_size) :
-    version_(NULL),
     consumer_num_(0),
     item_num_(0),
+    version_(NULL),
     queue_(NULL),
     versionfile_(NULL),
     pro_num_(0),
@@ -184,7 +184,6 @@ Status Binlog::Put(const std::string &item) {
     InitLogFile();
   }
 
-  int pro_num;
   int pro_offset;
   s = Produce(Slice(item.data(), item.size()), &pro_offset);
   if (s.ok()) {
@@ -225,7 +224,6 @@ Status Binlog::Put(const char* item, int len) {
     InitLogFile();
   }
 
-  int pro_num;
   int pro_offset;
   s = Produce(Slice(item, len), &pro_offset);
   if (s.ok()) {

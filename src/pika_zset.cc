@@ -511,14 +511,14 @@ void ZsetUIstoreParentCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const
     res_.SetRes(CmdRes::kErrOther, "at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE");
     return;
   }
-  size_t argc = argv.size();
+  int argc = argv.size();
   if (argc < num_keys_ + 3) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
   keys_.assign(argv.begin() + 3, argv.begin() + 3 + num_keys_);
   weights_.assign(num_keys_, 1);
-  size_t index = num_keys_ + 3;
+  int index = num_keys_ + 3;
   while (index < argc) {
     slash::StringToLower(argv[index]);
     if (argv[index] == "weights") {
@@ -528,7 +528,7 @@ void ZsetUIstoreParentCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const
         return;
       }
       double weight;
-      size_t base = index;
+      int base = index;
       for (; index < base + num_keys_; index++) {
         if (!slash::string2d(argv[index].data(), argv[index].size(), &weight)) {
           res_.SetRes(CmdRes::kErrOther, "weight value is not a float");

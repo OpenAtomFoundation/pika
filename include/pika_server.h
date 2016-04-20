@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include <unordered_set>
 #include <nemo.h>
 #include <time.h>
 #include "pika_binlog.h"
@@ -111,6 +112,9 @@ public:
   void PlusMasterConnection();
   bool ShouldAccessConnAsMaster(const std::string& ip);
   void RemoveMaster();
+  bool WaitingDBSync();
+  void NeedWaitDBSync();
+  void WaitDBSyncFinish();
 
   void Start();
   void Exit() {
@@ -173,6 +177,9 @@ public:
   void ClearBgsave() {
     bgsave_info_.Clear();
   }
+  void FinishBgsave() {
+    bgsave_info_.bgsaving = false;
+  }
 
 /*
  * PurgeLog used
@@ -181,13 +188,28 @@ public:
     PikaServer *p;
     uint32_t to;
     bool manual;
+    bool force; // Ignore the delete window
   };
-  bool PurgeLogs(uint32_t to, bool manual = true);
-  bool PurgeFiles(uint32_t to, bool manual);
+  bool PurgeLogs(uint32_t to, bool manual, bool force);
+  bool PurgeFiles(uint32_t to, bool manual, bool force);
   bool GetPurgeWindow(uint32_t &max);
   void ClearPurge() {
     purging_ = false;
   }
+
+/*
+ * DBSync used
+ */
+  struct DBSyncArg {
+    PikaServer *p;
+    std::string ip;
+    int port;
+    DBSyncArg(PikaServer *_p, const std::string& _ip, int &_port)
+      : p(_p), ip(_ip), port(_port) {}
+  };
+  void DBSyncSendFile(const std::string& ip, int port);
+  bool ChangeDb(const std::string& new_path);
+
 
   //flushall
   bool FlushAll();
@@ -284,8 +306,9 @@ private:
   BGSaveInfo bgsave_info_;
   
   static void DoBgsave(void* arg);
-  bool InitBgsaveEnv(const std::string& bgsave_path);
+  bool InitBgsaveEnv();
   bool InitBgsaveEngine();
+
 
   /*
    * Purgelogs use
@@ -297,6 +320,14 @@ private:
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   void AutoPurge();
   bool CouldPurge(uint32_t index);
+
+  /*
+   * DBSync use
+   */
+  std::unordered_set<std::string> db_sync_slaves;
+  void TryDBSync(const std::string& ip, int port, int32_t top);
+  void DBSync(const std::string& ip, int port);
+  static void DoDBSync(void* arg);
 
   /*
    * Flushall use 

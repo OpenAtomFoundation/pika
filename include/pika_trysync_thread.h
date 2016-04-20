@@ -10,12 +10,7 @@ public:
     cli_ = new pink::RedisCli();
     cli_->set_connect_timeout(1500);
 	};
-  virtual ~PikaTrysyncThread() {
-    should_exit_ = true;
-    pthread_join(thread_id(), NULL);
-    delete cli_;
-    DLOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
-	};
+  virtual ~PikaTrysyncThread();
 
 private:
   int sockfd_;
@@ -24,6 +19,8 @@ private:
 
   bool Send();
   bool RecvProc();
+  void PrepareRsync();
+  bool TryUpdateMasterOffset();
 
   virtual void* ThreadMain();
 

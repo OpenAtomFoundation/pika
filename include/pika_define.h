@@ -37,6 +37,7 @@ struct SlaveItem {
 #define PIKA_REPL_CONNECT 1
 #define PIKA_REPL_CONNECTING 2
 #define PIKA_REPL_CONNECTED 3
+#define PIKA_REPL_WAIT_DBSYNC 4
 
 //role
 #define PIKA_ROLE_SINGLE 0
@@ -89,4 +90,18 @@ const std::string kManifest = "manifest";
  */
 #define COMMA ','
 
+/*
+ * define reply between master and slave
+ *
+ */
+const std::string kInnerReplOk = "ok";
+const std::string kInnerReplWait = "wait";
+
+/*
+ * db sync
+ */
+const uint32_t kDBSyncMaxGap = 50;
+const std::string kDBSyncModule = "document";
+
+const std::string kBgsaveInfoFile = "info";
 #endif

@@ -24,11 +24,14 @@ public:
   std::string log_path()  { RWLock l(&rwlock_, false); return log_path_; }
   int log_level()         { RWLock l(&rwlock_, false); return log_level_; }
   std::string db_path()   { RWLock l(&rwlock_, false); return db_path_; }
+  std::string db_sync_path()   { RWLock l(&rwlock_, false); return db_sync_path_; }
+  int db_sync_speed()   { RWLock l(&rwlock_, false); return db_sync_speed_; }
   int write_buffer_size() { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
 
   std::string requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
   std::string bgsave_path()     { RWLock l(&rwlock_, false); return bgsave_path_; }
+  std::string bgsave_prefix()     { RWLock l(&rwlock_, false); return bgsave_prefix_; }
   std::string userpass()        { RWLock l(&rwlock_, false); return userpass_; }
   const std::string suser_blacklist() {
     RWLock l(&rwlock_, false);
@@ -63,6 +66,10 @@ public:
     if (value[value.length() - 1] != '/') {
       bgsave_path_ += "/";
     }
+  }
+  void SetBgsavePrefix(const std::string &value) {
+    RWLock l(&rwlock_, true);
+    bgsave_prefix_ = value;
   }
   void SetRequirePass(const std::string &value) {
     RWLock l(&rwlock_, true);
@@ -99,6 +106,10 @@ public:
     RWLock l(&rwlock_, true);
     slowlog_log_slower_than_ = value;
   }
+  void SetDbSyncSpeed(const int value) {
+    RWLock l(&rwlock_, true);
+    db_sync_speed_ = value;
+  }
 
   int Load();
   int ConfigRewrite();
@@ -108,8 +119,8 @@ private:
   int thread_num_;
   std::string log_path_;
   std::string db_path_;
-  //char master_db_sync_path_[PIKA_WORD_SIZE];
-  //char slave_db_sync_path_[PIKA_WORD_SIZE];
+  std::string db_sync_path_;
+  int db_sync_speed_;
   int write_buffer_size_;
   int log_level_;
   bool daemonize_;
@@ -118,6 +129,7 @@ private:
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
   std::string bgsave_path_;
+  std::string bgsave_prefix_;
   std::string pidfile_;
 
   //char pidfile_[PIKA_WORD_SIZE];
@@ -131,7 +143,6 @@ private:
   std::string conf_path_;
   //char username_[30];
   //char password_[30];
-  //int db_sync_speed_;
 
   //
   // Critical configure items

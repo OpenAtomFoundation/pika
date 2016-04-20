@@ -22,7 +22,7 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
     is_noone_ = false;
-    have_offset_ == false;
+    have_offset_ = false;
   }
 };
 
@@ -154,6 +154,7 @@ private:
   InfoSection info_section_;
   bool rescan_; //whether to rescan the keyspace
 
+  const static std::string kAllSection;
   const static std::string kServerSection;
   const static std::string kClientsSection;
   const static std::string kStatsSection;
