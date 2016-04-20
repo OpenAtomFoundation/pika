@@ -1,9 +1,11 @@
 #include <glog/logging.h>
 #include "pika_master_conn.h"
 #include "pika_server.h"
+#include "pika_conf.h"
 #include "pika_binlog_receiver_thread.h"
 
 extern PikaServer* g_pika_server;
+extern PikaConf* g_pika_conf;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 
 PikaMasterConn::PikaMasterConn(int fd, std::string ip_port, pink::Thread* thread) :
@@ -35,7 +37,22 @@ std::string PikaMasterConn::DoCmd(const std::string& opt) {
       return "-Err unknown or unsupported command \'" + opt + "\r\n";
   }
   c_ptr->res().clear();
+
+  uint64_t start_us;
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    start_us = slash::NowMicros();
+  }
   
+  std::string monitor_message;
+  bool is_monitoring = g_pika_server->monitor_thread()->HasMonitorClients();
+  if (is_monitoring) {
+    monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) + " [" + this->ip_port() + "]";
+    for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
+      monitor_message += " \"" + *iter + "\"";
+    }
+    g_pika_server->monitor_thread()->AddMonitorMessage(monitor_message);
+  }
+
   // Initial
   c_ptr->Initial(argv_, cinfo_ptr);
   if (!c_ptr->res().ok()) {
@@ -44,27 +61,25 @@ std::string PikaMasterConn::DoCmd(const std::string& opt) {
 
   // TODO Check authed
   // Add read lock for no suspend command
-  if (!cinfo_ptr->is_suspend()) {
-    pthread_rwlock_rdlock(g_pika_server->rwlock());
-  }
 
-//  if (cinfo_ptr->is_write()) {
-//      g_pika_server->logger_->Lock();
-//  }
-
+  g_pika_server->mutex_record_.Lock(argv_[1]);
   c_ptr->Do();
 
-  if (cinfo_ptr->is_write()) {
-      if (c_ptr->res().ok()) {
-        g_pika_server->logger_->Put(RestoreArgs());
-      } else {
-      }
-//      g_pika_server->logger_->Unlock();
+  if (c_ptr->res().ok()) {
+    g_pika_server->logger_->Lock();
+    g_pika_server->logger_->Put(RestoreArgs());
+    g_pika_server->logger_->Unlock();
+  }
+  g_pika_server->mutex_record_.Unlock(argv_[1]);
+
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    int64_t duration = slash::NowMicros() - start_us;
+    if (duration > g_pika_conf->slowlog_slower_than()) {
+      LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
+    }
   }
 
-  if (!cinfo_ptr->is_suspend()) {
-      pthread_rwlock_unlock(g_pika_server->rwlock());
-  }
+
   return c_ptr->res().message();
 }
 
