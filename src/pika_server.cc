@@ -53,6 +53,7 @@ PikaServer::PikaServer() :
   pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(port_ + 100, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(port_ + 200, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
+  monitor_thread_ = new PikaMonitorThread();
 
   pthread_rwlock_init(&state_protector_, NULL);
   logger_ = new Binlog(g_pika_conf->log_path(), g_pika_conf->binlog_file_size());
@@ -85,6 +86,7 @@ PikaServer::~PikaServer() {
   delete pika_binlog_receiver_thread_;
   delete pika_trysync_thread_;
   delete pika_heartbeat_thread_;
+  delete monitor_thread_;
 
   DestoryCmdInfoTable();
   delete logger_;
@@ -745,7 +747,8 @@ void PikaServer::InitKeyScan() {
 void PikaServer::ClientKillAll() {
   for (size_t idx = 0; idx != worker_num_; idx++) {
     pika_worker_thread_[idx]->ThreadClientKill();
-  }  
+  }
+  monitor_thread_->ThreadClientKill();
 }
 
 int PikaServer::ClientKill(const std::string &ip_port) {
@@ -753,6 +756,9 @@ int PikaServer::ClientKill(const std::string &ip_port) {
     if (pika_worker_thread_[idx]->ThreadClientKill(ip_port)) {
       return 1;
     }
+  }
+  if (monitor_thread_->ThreadClientKill(ip_port)) {
+    return 1;
   }
   return 0;
 }
@@ -762,6 +768,7 @@ int64_t PikaServer::ClientList(std::vector< std::pair<int, std::string> > *clien
   for (size_t idx = 0; idx != worker_num_; ++idx) {
     clients_num += pika_worker_thread_[idx]->ThreadClientList(clients);
   }
+  clients_num += monitor_thread_->ThreadClientList(clients);
   return clients_num;
 }
 

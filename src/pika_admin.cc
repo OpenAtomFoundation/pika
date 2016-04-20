@@ -883,3 +883,20 @@ void ConfigCmd::ConfigRewrite(std::string &ret) {
   g_pika_conf->ConfigRewrite();
   ret = "+OK\r\n";
 }
+
+void MonitorCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  (void)ptr_info;
+  if (argv.size() != 2) { //append a arg in DoCmd for monitor cmd
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameMonitor);
+    return;
+  }
+  memcpy(&self_client_, argv[1].data(), sizeof(PikaClientConn*));
+}
+
+void MonitorCmd::Do() {
+  PikaWorkerThread* self_thread = self_client_->self_thread();
+  self_thread->conns_.erase(self_client_->fd());
+  self_thread->pink_epoll()->PinkDelEvent(self_client_->fd());
+  g_pika_server->monitor_thread()->AddMonitorClient(self_client_);
+  g_pika_server->monitor_thread()->AddMonitorMessage("OK");
+}

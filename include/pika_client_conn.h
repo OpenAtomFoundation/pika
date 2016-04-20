@@ -16,6 +16,9 @@ public:
   PikaClientConn(int fd, std::string ip_port, pink::Thread *thread);
   virtual ~PikaClientConn();
   virtual int DealMessage();
+  PikaWorkerThread* self_thread() {
+    return self_thread_;
+  }
 
 private:
   PikaWorkerThread* self_thread_;

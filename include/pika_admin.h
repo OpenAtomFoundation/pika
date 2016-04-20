@@ -1,6 +1,7 @@
 #ifndef __PIKA_ADMIN_H__
 #define __PIKA_ADMIN_H__
 #include "pika_command.h"
+#include "pika_client_conn.h"
 
 /*
  * Admin
@@ -191,5 +192,15 @@ private:
   void ConfigGet(std::string &ret);
   void ConfigSet(std::string &ret);
   void ConfigRewrite(std::string &ret);
+};
+
+class MonitorCmd : public Cmd {
+public:
+  MonitorCmd() {
+  }
+  virtual void Do();
+private:
+  PikaClientConn* self_client_;
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 #endif

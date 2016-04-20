@@ -12,6 +12,7 @@ struct WorkerCronTask {
   int task;
   std::string ip_port;
 };
+typedef WorkerCronTask MonitorCronTask;
 //task define
 #define TASK_KILL 0
 #define TASK_KILLALL 1

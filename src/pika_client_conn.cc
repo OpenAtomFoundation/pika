@@ -59,6 +59,20 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     }
   }
 
+  std::string monitor_message;
+  bool is_monitoring = g_pika_server->monitor_thread()->HasMonitorClients();
+  if (is_monitoring) {
+    monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) + " [" + this->ip_port() + "]";
+    for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
+      monitor_message += " \"" + *iter + "\"";
+    }
+    g_pika_server->monitor_thread()->AddMonitorMessage(monitor_message);
+  }
+
+  if (opt == kCmdNameMonitor) {
+    PikaClientConn* self = this;
+    argv_.push_back(std::string(reinterpret_cast<char*>(&self), sizeof(PikaClientConn*)));
+  }
   // Initial
   c_ptr->Initial(argv_, cinfo_ptr);
   if (!c_ptr->res().ok()) {
@@ -96,7 +110,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   if (!cinfo_ptr->is_suspend()) {
       pthread_rwlock_unlock(g_pika_server->rwlock());
   }
-
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     uint64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
@@ -113,7 +126,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 }
 
 int PikaClientConn::DealMessage() {
-  
   self_thread_->PlusThreadQuerynum();
   
   if (argv_.empty()) return -2;

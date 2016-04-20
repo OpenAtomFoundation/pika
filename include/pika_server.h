@@ -13,6 +13,7 @@
 #include "pika_dispatch_thread.h"
 #include "pika_trysync_thread.h"
 #include "pika_worker_thread.h"
+#include "pika_monitor_thread.h"
 #include "pika_define.h"
 
 #include "slash_status.h"
@@ -223,6 +224,13 @@ public:
   int64_t ClientList(std::vector< std::pair<int, std::string> > *clients = NULL);
 
 /*
+ * Monitor used
+ */
+  PikaMonitorThread* monitor_thread() {
+    return monitor_thread_;
+  }
+
+/*
  *for statistic
  */
   uint64_t ServerQueryNum();
@@ -300,6 +308,11 @@ private:
   slash::Mutex key_scan_protector_;
   pink::BGThread key_scan_thread_;
   KeyScanInfo key_scan_info_;
+
+  /*
+   * Monitor use
+   */
+  PikaMonitorThread* monitor_thread_;
 
   /*
    * for statistic

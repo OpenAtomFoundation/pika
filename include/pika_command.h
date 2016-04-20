@@ -26,6 +26,7 @@ const std::string kCmdNameClient = "client";
 const std::string kCmdNameShutdown = "shutdown";
 const std::string kCmdNameInfo = "info";
 const std::string kCmdNameConfig = "config";
+const std::string kCmdNameMonitor = "monitor";
 
 //Kv
 const std::string kCmdNameSet = "set";
