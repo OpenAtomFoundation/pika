@@ -29,7 +29,7 @@
 
 # Log path
 log/
-
+pikatests/
 
 # third party
 gdb.txt
