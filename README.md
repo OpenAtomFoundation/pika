@@ -1,6 +1,6 @@
 #Pika
 
-##Introduction [中文] ()
+##Introduction [中文] (https://github.com/baotiao/pika/blob/master/README_CN.md)
 
 Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/baotiao/pika/wiki/pika支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization
 
