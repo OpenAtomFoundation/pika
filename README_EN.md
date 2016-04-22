@@ -1,0 +1,3 @@
+# Pika
+## Introduction [中文] (https://github.com/baotiao/pika/blob/pika2.0/README_EN.md)
+Coming Soon...
