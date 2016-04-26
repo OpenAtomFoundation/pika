@@ -58,7 +58,7 @@ If it comes to some missing libs, install them according to the prompts and retr
 If failed, move pika source/lib/_VERSION/lib/ to the rpath defined in Makefile and relanch. 
 
 ~~~
-	cp PIKA_SOURCE/lib_VERSION/LIB/ RPATH
+	cp PIKA_SOURCE/lib/_VERSION/* RPATH
 ~~~
 The PIKA_SOURCE stands for pika source code's root directory;  
 The __VERSION represents the OS's version, such as 6.2, 5.4...  

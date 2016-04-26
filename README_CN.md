@@ -9,16 +9,57 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 * 完善的[运维](https://github.com/baotiao/pika/wiki/pika的一些管理命令方式说明)命令
 
 ## 编译安装
+
+1.在编译机上安装snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel l ibbz2-dev zlib-devel等。CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
+
 ```
-1. git submodule init && git submodule update
-2. make __REL=1 (编译依赖的某些库如snappy，bz2请自行提前安装）
-3. 将./lib/_VERSION_/lib目录移动到Makefile中自定义的rpath路径，pika启动时会从rpath加载相关so
+    ycm install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-    devel libbz2-dev zlib-devel
 ```
+
+2.安装g++(若没有安装), 在CentOS上执行如下命令：
+
+```
+    yum install gcc-c++
+```
+
+3.把gcc版本临时切换到4.7(若已是，则忽略), 在CentOs上执行如下命令：
+
+```
+	a. sudo wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
+	b. yum install --nogpgcheck devtoolset-1.1
+	c. scl enable devetoolset-1.1 bash
+```
+4.获取源代码
+
+```
+	git clone https://github.com/baotiao/pika.git && cd pika
+```
+5.获取依赖的第三方源代码
+
+```
+	a. git submodule init
+	b. git submodule update
+```
+
+6.编译
+
+```
+	make __REL=1
+```
+若编译过程中，提示有依赖的库没有安装，则有提示安装后再重新编译
 
 ## 使用
 ```
 ./output/bin/pika -c ./conf/pika.conf
 ```
+若启动失败，把./lib/_VERSION/的内容拷贝到Makefile定义的rpath目录下，然后重新启动
+
+```
+	cp PIKA_SOURCE/lib/_VERSION/* RPATH
+```
+PIKA_SOURCE表示的pika的源代码根目录；
+_VERSION表示的是编译机的CenOS版本，如6.2， 5.4...
+RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 
 ## 性能
 ```
