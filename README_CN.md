@@ -50,7 +50,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 
 ## 使用
 ```
-./output/bin/pika -c ./conf/pika.conf
+	./output/bin/pika -c ./conf/pika.conf
 ```
 若启动失败，把./lib/_VERSION/的内容拷贝到Makefile定义的rpath目录下，然后重新启动
 
