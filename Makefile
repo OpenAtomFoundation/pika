@@ -43,7 +43,8 @@ INCLUDE_PATH = -I./include/ \
 LIB_PATH = -L./ \
 		   -L$(THIRD_PATH)/nemo/output/lib/ \
 		   -L$(THIRD_PATH)/slash/output/lib/ \
-		   -L$(THIRD_PATH)/pink/output/lib/
+		   -L$(THIRD_PATH)/pink/output/lib/ \
+		   -L$(THIRD_PATH)/glog/.libs/
 
 
 LIBS = -lpthread \
@@ -58,7 +59,8 @@ LIBS = -lpthread \
 	   -lrt
 
 NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
-GLOG = $(SO_DIR)/libglog.so.0
+#GLOG = $(SO_DIR)/libglog.so.0
+GLOG = $(THIRD_PATH)/.libs/libglog.so.0
 PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
 SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
 
@@ -106,10 +108,10 @@ $(OBJS): %.o : %.cc
 $(TOBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
 
-glog:
-	rm -rf $(GLOG);
-	cd $(THIRD_PATH)/glog; make distclean; ./configure; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
-
+$(GLOG):
+	#cd $(THIRD_PATH)/glog; ./configure; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
+	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
+	
 clean: 
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(OUTPUT)/*

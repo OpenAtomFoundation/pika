@@ -13,17 +13,56 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 
 ##Install
 
-```
-1. git submodule init && git submodule update
-2. make __REL=1 (install snappy,bz2 by youself first)
-3. move ./lib/_VERSION/lib/ to the rpath defined in Makefile
-```
+1.Install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel libbz2-dev zlib-devel etc on you compiling host(if alreadly installed, ignore it); using "yum install" on centos system("apt-get install" on ubuntu system) is ok. If on CentOS system, run the following commands:
+   
+~~~
+	 ycm install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel libbz2-dev zlib-devel
+~~~
+2.Install g++(if installed, skip). Similarly, just using "yum install" on the CentOS(apt-get on Ubuntu) is ok:
+ 
+~~~
+	yum install gcc-c++
+~~~
+3.If your gcc's version is below 4.7, then change it to the 4.7 temporary. For CentOS system, run the flowing commands:
+
+~~~  
+	a. sudo wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
+	b. yum install --nogpgcheck devtoolset-1.1
+	c. scl enable devetoolset-1.1 bash
+~~~
+4.Fetch the source code: 
+
+~~~
+	a. git clone git@github.com:baotiao/pika
+	b. cd pika
+~~~
+
+5.Get the third party dependencies:
+
+~~~ 
+	a. git submodule init
+	b. git submodule update
+~~~
+6.Compile: 
+
+~~~
+	make __REL=1
+~~~
+If it comes to some missing libs, install them according to the prompts and retry it.
 
 ##Usage
 
-```
-./output/bin/pika -c ./conf/pika.conf
-```
+~~~
+	./output/bin/pika -c ./conf/pika.conf
+~~~
+If failed, move pika source/lib/_VERSION/lib/ to the rpath defined in Makefile and relanch. 
+
+~~~
+	cp PIKA_SOURCE/lib_VERSION/LIB/ RPATH
+~~~
+The PIKA_SOURCE stands for pika source code's root directory;  
+The __VERSION represents the OS's version, such as 6.2, 5.4...  
+The RPATH is defined in pika's Makefile
 
 ##Performance
 
