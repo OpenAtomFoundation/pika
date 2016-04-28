@@ -60,7 +60,7 @@ LIBS = -lpthread \
 
 NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
 #GLOG = $(SO_DIR)/libglog.so.0
-GLOG = $(THIRD_PATH)/.libs/libglog.so.0
+GLOG = $(THIRD_PATH)/glog/.libs/libglog.so.0
 PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
 SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
 
