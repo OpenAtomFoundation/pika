@@ -2,6 +2,7 @@
 #define PIKA_SERVER_H_
 
 #include <vector>
+#include <functional>
 #include <map>
 #include <unordered_set>
 #include <nemo.h>
@@ -16,8 +17,10 @@
 #include "pika_worker_thread.h"
 #include "pika_monitor_thread.h"
 #include "pika_define.h"
+#include "pika_binlog_bgworker.h"
 
 #include "slash_status.h"
+#include "slash_mutex.h"
 #include "bg_thread.h"
 #include "nemo_backupable.h"
 
@@ -253,6 +256,14 @@ public:
   }
 
 /*
+ * Binlog Receiver use
+ */
+void DispatchBinlogBG(const std::string &key,
+    PikaCmdArgsType* argv, const std::string& raw_args, uint64_t cur_serial);
+bool WaitTillBinlogBGSerial(uint64_t my_serial);
+void SignalNextBinlogBGSerial();
+
+/*
  *for statistic
  */
   uint64_t ServerQueryNum();
@@ -346,6 +357,17 @@ private:
   PikaMonitorThread* monitor_thread_;
 
   /*
+   * Binlog Receiver use
+   */
+  bool binlogbg_exit_;
+  slash::Mutex binlogbg_mutex_;
+  slash::CondVar binlogbg_cond_;
+  uint64_t binlogbg_serial_;
+  std::vector<BinlogBGWorker*> binlogbg_workers_;
+  std::hash<std::string> str_hash;
+ 
+
+  /*
    * for statistic
    */
   std::atomic<uint64_t> accumulative_connections_;
@@ -356,4 +378,8 @@ private:
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);
 };
+
+
+
+
 #endif

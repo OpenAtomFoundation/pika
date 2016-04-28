@@ -79,11 +79,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return c_ptr->res().message();
   }
 
-  // Add read lock for no suspend command
-  if (!cinfo_ptr->is_suspend()) {
-    pthread_rwlock_rdlock(g_pika_server->rwlock());
-  }
-
   std::string raw_args;
   if (cinfo_ptr->is_write()) {
       if (g_pika_conf->readonly()) {
@@ -96,6 +91,11 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       g_pika_server->mutex_record_.Lock(argv_[1]);
   }
 
+  // Add read lock for no suspend command
+  if (!cinfo_ptr->is_suspend()) {
+    pthread_rwlock_rdlock(g_pika_server->rwlock());
+  }
+
   c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
@@ -104,12 +104,16 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
           g_pika_server->logger_->Put(raw_args);
           g_pika_server->logger_->Unlock();
       }
-      g_pika_server->mutex_record_.Unlock(argv_[1]);
   }
 
   if (!cinfo_ptr->is_suspend()) {
       pthread_rwlock_unlock(g_pika_server->rwlock());
   }
+
+  if (cinfo_ptr->is_write()) {
+      g_pika_server->mutex_record_.Unlock(argv_[1]);
+  }
+
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {

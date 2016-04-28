@@ -29,6 +29,10 @@ public:
     return last_sec_thread_querynum_;
   }
 
+  uint64_t GetnPlusSerial() {
+    return serial_++;
+  }
+
   void PlusThreadQuerynum() {
     slash::RWLock(&rwlock_, true);
     thread_querynum_++;
@@ -63,5 +67,6 @@ private:
   uint64_t last_thread_querynum_;
   uint64_t last_time_us_;
   uint64_t last_sec_thread_querynum_;
+  uint64_t serial_;
 };
 #endif

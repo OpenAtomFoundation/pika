@@ -22,6 +22,9 @@ PikaServer::PikaServer() :
   role_(PIKA_ROLE_SINGLE),
   bgsave_engine_(NULL),
   purging_(false),
+  binlogbg_exit_(false),
+  binlogbg_cond_(&binlogbg_mutex_),
+  binlogbg_serial_(0),
   accumulative_connections_(0) {
 
   pthread_rwlockattr_t attr;
@@ -58,6 +61,11 @@ PikaServer::PikaServer() :
   pika_heartbeat_thread_ = new PikaHeartbeatThread(port_ + 200, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
+  
+  //for (int j = 0; j < g_pika_conf->binlogbg_thread_num; j++) {
+  for (int j = 0; j < 6; j++) {
+    binlogbg_workers_.push_back(new BinlogBGWorker());
+  }
 
   pthread_rwlock_init(&state_protector_, NULL);
   logger_ = new Binlog(g_pika_conf->log_path(), g_pika_conf->binlog_file_size());
@@ -91,6 +99,14 @@ PikaServer::~PikaServer() {
   delete pika_trysync_thread_;
   delete pika_heartbeat_thread_;
   delete monitor_thread_;
+
+  std::vector<BinlogBGWorker*>::iterator binlogbg_iter = binlogbg_workers_.begin();
+  while (binlogbg_iter != binlogbg_workers_.end()) {
+    binlogbg_exit_ = true;
+    binlogbg_cond_.SignalAll();
+    delete (*binlogbg_iter);
+    binlogbg_iter++;
+  }
 
   DestoryCmdInfoTable();
   delete logger_;
@@ -869,6 +885,31 @@ void PikaServer::DoPurgeDir(void* arg) {
   delete static_cast<std::string*>(arg);
 }
 
+void PikaServer::DispatchBinlogBG(const std::string &key,
+    PikaCmdArgsType* argv, const std::string& raw_args, uint64_t cur_serial) {
+  size_t index = str_hash(key) % binlogbg_workers_.size();
+  binlogbg_workers_[index]->Schedule(argv, raw_args, cur_serial);
+}
+
+bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {
+  binlogbg_mutex_.Lock();
+  DLOG(INFO) << "Binlog serial wait: " << my_serial << ", current: " << binlogbg_serial_;
+  while (binlogbg_serial_ != my_serial && !binlogbg_exit_) {
+    binlogbg_cond_.Wait();
+  }
+  binlogbg_mutex_.Unlock();
+  return (binlogbg_serial_ == my_serial);
+}
+
+void PikaServer::SignalNextBinlogBGSerial() {
+  binlogbg_mutex_.Lock();
+  DLOG(INFO) << "Binlog serial signal: " << binlogbg_serial_;
+  ++binlogbg_serial_;
+  binlogbg_cond_.SignalAll();
+  binlogbg_mutex_.Unlock();
+}
+
+
 void PikaServer::RunKeyScan() {
   std::vector<uint64_t> new_key_nums_v;
   db_->GetKeyNum(new_key_nums_v);
@@ -948,3 +989,4 @@ uint64_t PikaServer::ServerCurrentQps() {
   server_current_qps += pika_binlog_receiver_thread_->last_sec_thread_querynum();
   return server_current_qps;
 }
+
