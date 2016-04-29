@@ -63,8 +63,8 @@ PikaServer::PikaServer() :
   monitor_thread_ = new PikaMonitorThread();
   
   //for (int j = 0; j < g_pika_conf->binlogbg_thread_num; j++) {
-  for (int j = 0; j < 6; j++) {
-    binlogbg_workers_.push_back(new BinlogBGWorker());
+  for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
+    binlogbg_workers_.push_back(new BinlogBGWorker(g_pika_conf->sync_buffer_size()));
   }
 
   pthread_rwlock_init(&state_protector_, NULL);
@@ -908,7 +908,6 @@ void PikaServer::SignalNextBinlogBGSerial() {
   binlogbg_cond_.SignalAll();
   binlogbg_mutex_.Unlock();
 }
-
 
 void PikaServer::RunKeyScan() {
   std::vector<uint64_t> new_key_nums_v;

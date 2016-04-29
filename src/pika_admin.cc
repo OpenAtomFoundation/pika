@@ -453,6 +453,7 @@ void InfoCmd::InfoServer(std::string &info) {
   tmp_stream << "process_id:" << getpid() << "\r\n";
   tmp_stream << "tcp_port:" << g_pika_conf->port() << "\r\n";
   tmp_stream << "thread_num:" << g_pika_conf->thread_num() << "\r\n";
+  tmp_stream << "sync_thread_num:" << g_pika_conf->sync_thread_num() << "\r\n";
   tmp_stream << "uptime_in_seconds:" << (current_time_s - g_pika_server->start_time_s()) << "\r\n";
   tmp_stream << "uptime_in_days:" << (current_time_s / (24*3600) - g_pika_server->start_time_s() / (24*3600) + 1) << "\r\n";
   tmp_stream << "config_file:" << g_pika_conf->conf_path() << "\r\n";
@@ -628,6 +629,14 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "thread_num");
       EncodeInt32(&ret, g_pika_conf->thread_num());
+  } else if (get_item == "sync_thread_num") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "sync_thread_num");
+      EncodeInt32(&ret, g_pika_conf->sync_thread_num());
+  } else if (get_item == "sync_buffer_size") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "sync_buffer_size");
+      EncodeInt32(&ret, g_pika_conf->sync_buffer_size());
   } else if (get_item == "log_path") {
       ret = "*2\r\n";
       EncodeString(&ret, "log_path");
@@ -729,9 +738,11 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       EncodeString(&ret, "no");
     }
   } else if (get_item == "*") {
-    ret = "*26\r\n";
+    ret = "*28\r\n";
     EncodeString(&ret, "port");
     EncodeString(&ret, "thread_num");
+    EncodeString(&ret, "sync_thread_num");
+    EncodeString(&ret, "sync_buffer_size");
     EncodeString(&ret, "log_path");
     EncodeString(&ret, "log_level");
     EncodeString(&ret, "db_path");

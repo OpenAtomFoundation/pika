@@ -21,6 +21,8 @@ public:
   // Getter
   int port()              { RWLock l(&rwlock_, false); return port_; }
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
+  int sync_thread_num()        { RWLock l(&rwlock_, false); return sync_thread_num_; }
+  int sync_buffer_size()        { RWLock l(&rwlock_, false); return sync_buffer_size_; }
   std::string log_path()  { RWLock l(&rwlock_, false); return log_path_; }
   int log_level()         { RWLock l(&rwlock_, false); return log_level_; }
   std::string db_path()   { RWLock l(&rwlock_, false); return db_path_; }
@@ -117,6 +119,8 @@ public:
 private:
   int port_;
   int thread_num_;
+  int sync_thread_num_;
+  int sync_buffer_size_;
   std::string log_path_;
   std::string db_path_;
   std::string db_sync_path_;

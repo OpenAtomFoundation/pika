@@ -15,7 +15,8 @@ public:
   virtual int DealMessage();
 private:
   PikaBinlogReceiverThread* self_thread_;
-  std::string RestoreArgs();
+  void RestoreArgs();
+  std::string raw_args_;
 };
 
 #endif

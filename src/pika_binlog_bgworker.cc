@@ -63,5 +63,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     }
   }
 
+  DLOG(INFO) << "delete argv ptr";
+  delete bgarg->argv;
   delete bgarg;
 }

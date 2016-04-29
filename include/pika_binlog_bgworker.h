@@ -5,7 +5,7 @@
 
 class BinlogBGWorker{
 public:
-  BinlogBGWorker() {
+  BinlogBGWorker(int full) : binlogbg_thread_(full){
     cmds_.reserve(300);
     InitCmdTable(&cmds_);
   }
@@ -34,9 +34,6 @@ private:
     BinlogBGWorker *myself;
     BinlogBGArg(PikaCmdArgsType* _argv, const std::string& _raw, uint64_t _s, BinlogBGWorker* _my) :
       argv(_argv), raw_args(_raw), serial(_s), myself(_my) {}
-    ~BinlogBGArg() {
-      delete argv;
-    }
   };
 
 };

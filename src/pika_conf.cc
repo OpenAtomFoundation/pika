@@ -72,6 +72,19 @@ int PikaConf::Load()
   if (thread_num_ > 24) {
     thread_num_ = 24;
   }
+  GetConfInt("sync_thread_num", &sync_thread_num_);
+  if (sync_thread_num_ <= 0) {
+    sync_thread_num_ = 3;
+  }
+  if (sync_thread_num_ > 24) {
+    sync_thread_num_ = 24;
+  }
+  GetConfInt("sync_buffer_size", &sync_buffer_size_);
+  if (sync_buffer_size_ <= 0) {
+    sync_buffer_size_ = 1000;
+  } else if (sync_buffer_size_ > 10000) {
+    sync_buffer_size_ = 10000;
+  }
 
   // write_buffer_size
   GetConfInt("write_buffer_size", &write_buffer_size_);
@@ -111,6 +124,8 @@ int PikaConf::Load()
 int PikaConf::ConfigRewrite() {
   SetConfInt("port", port_);
   SetConfInt("thread_num", thread_num_);
+  SetConfInt("sync_thread_num", sync_thread_num_);
+  SetConfInt("sync_buffer_size", sync_buffer_size_);
   SetConfStr("log_path", log_path_);
   SetConfInt("log_level", log_level_);
   SetConfStr("db_path", db_path_);
