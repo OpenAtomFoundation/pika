@@ -893,7 +893,7 @@ void PikaServer::DispatchBinlogBG(const std::string &key,
 
 bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {
   binlogbg_mutex_.Lock();
-  DLOG(INFO) << "Binlog serial wait: " << my_serial << ", current: " << binlogbg_serial_;
+  //DLOG(INFO) << "Binlog serial wait: " << my_serial << ", current: " << binlogbg_serial_;
   while (binlogbg_serial_ != my_serial && !binlogbg_exit_) {
     binlogbg_cond_.Wait();
   }
@@ -903,7 +903,7 @@ bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {
 
 void PikaServer::SignalNextBinlogBGSerial() {
   binlogbg_mutex_.Lock();
-  DLOG(INFO) << "Binlog serial signal: " << binlogbg_serial_;
+  //DLOG(INFO) << "Binlog serial signal: " << binlogbg_serial_;
   ++binlogbg_serial_;
   binlogbg_cond_.SignalAll();
   binlogbg_mutex_.Unlock();

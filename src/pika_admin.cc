@@ -70,6 +70,10 @@ void SlaveofCmd::Do() {
     return;
   }
   if (have_offset_) {
+    // Before we send the trysync command, we need purge current logs older than the sync point
+    if (filenum_ > 0) {
+      g_pika_server->PurgeLogs(filenum_ - 1, true, true);
+    }
     g_pika_server->logger_->SetProducerStatus(filenum_, pro_offset_);
   }
   bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
