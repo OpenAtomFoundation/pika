@@ -81,9 +81,9 @@ int PikaConf::Load()
   }
   GetConfInt("sync_buffer_size", &sync_buffer_size_);
   if (sync_buffer_size_ <= 0) {
-    sync_buffer_size_ = 1000;
-  } else if (sync_buffer_size_ > 10000) {
-    sync_buffer_size_ = 10000;
+    sync_buffer_size_ = 5;
+  } else if (sync_buffer_size_ > 100) {
+    sync_buffer_size_ = 100;
   }
 
   // write_buffer_size

@@ -48,9 +48,26 @@ int PikaMasterConn::DealMessage() {
   }
   RestoreArgs();
 
+  bool is_readonly = g_pika_conf->readonly();
+
+  // Here, the binlog dispatch thread, instead of the binlog bgthread takes on the task to write binlog
+  // Only when the server is readonly
+  uint64_t serial = self_thread_->GetnPlusSerial();
+  if (is_readonly) {
+    DLOG(INFO) << "Write binlog in binlog dispatch thread";
+    if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
+      return -2;
+    }
+    g_pika_server->logger_->Lock();
+    g_pika_server->logger_->Put(raw_args_);
+    g_pika_server->logger_->Unlock();
+    g_pika_server->SignalNextBinlogBGSerial();
+  }
+
   PikaCmdArgsType *argv = new PikaCmdArgsType(argv_);
-  g_pika_server->DispatchBinlogBG(argv_[1], argv, raw_args_, self_thread_->GetnPlusSerial());
-//  memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
-//  wbuf_len_ += res.size();
+  g_pika_server->DispatchBinlogBG(argv_[1], argv, raw_args_,
+      serial, is_readonly);
+  //  memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
+  //  wbuf_len_ += res.size();
   return 0;
 }

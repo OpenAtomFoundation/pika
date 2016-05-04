@@ -96,17 +96,17 @@ PikaServer::~PikaServer() {
   }
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
-  delete pika_trysync_thread_;
-  delete pika_heartbeat_thread_;
-  delete monitor_thread_;
 
+  binlogbg_exit_ = true;
   std::vector<BinlogBGWorker*>::iterator binlogbg_iter = binlogbg_workers_.begin();
   while (binlogbg_iter != binlogbg_workers_.end()) {
-    binlogbg_exit_ = true;
     binlogbg_cond_.SignalAll();
     delete (*binlogbg_iter);
     binlogbg_iter++;
   }
+  delete pika_trysync_thread_;
+  delete pika_heartbeat_thread_;
+  delete monitor_thread_;
 
   DestoryCmdInfoTable();
   delete logger_;
@@ -886,14 +886,15 @@ void PikaServer::DoPurgeDir(void* arg) {
 }
 
 void PikaServer::DispatchBinlogBG(const std::string &key,
-    PikaCmdArgsType* argv, const std::string& raw_args, uint64_t cur_serial) {
+    PikaCmdArgsType* argv, const std::string& raw_args,
+    uint64_t cur_serial, bool readonly) {
   size_t index = str_hash(key) % binlogbg_workers_.size();
-  binlogbg_workers_[index]->Schedule(argv, raw_args, cur_serial);
+  binlogbg_workers_[index]->Schedule(argv, raw_args, cur_serial, readonly);
 }
 
 bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {
   binlogbg_mutex_.Lock();
-  //DLOG(INFO) << "Binlog serial wait: " << my_serial << ", current: " << binlogbg_serial_;
+  DLOG(INFO) << "Binlog serial wait: " << my_serial << ", current: " << binlogbg_serial_;
   while (binlogbg_serial_ != my_serial && !binlogbg_exit_) {
     binlogbg_cond_.Wait();
   }
@@ -903,7 +904,7 @@ bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {
 
 void PikaServer::SignalNextBinlogBGSerial() {
   binlogbg_mutex_.Lock();
-  //DLOG(INFO) << "Binlog serial signal: " << binlogbg_serial_;
+  DLOG(INFO) << "Binlog serial signal: " << binlogbg_serial_;
   ++binlogbg_serial_;
   binlogbg_cond_.SignalAll();
   binlogbg_mutex_.Unlock();

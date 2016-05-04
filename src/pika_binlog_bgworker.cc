@@ -10,6 +10,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   BinlogBGArg *bgarg = static_cast<BinlogBGArg*>(arg);
   PikaCmdArgsType argv = *(bgarg->argv);
   uint64_t my_serial = bgarg->serial;
+  bool is_readonly = bgarg->readonly;
   BinlogBGWorker *self = bgarg->myself;
   std::string opt = argv[0];
   slash::StringToLower(opt);
@@ -33,7 +34,12 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     start_us = slash::NowMicros();
   }
 
-  g_pika_server->mutex_record_.Lock(argv[1]);
+  // No need lock on readonly mode
+  // Since the binlog task is dispatched by hash code of key
+  // That is to say binlog with same key will be dispatched to same thread and execute sequencly
+  if (!is_readonly) {
+    g_pika_server->mutex_record_.Lock(argv[1]);
+  }
 
   // Add read lock for no suspend command
   if (!cinfo_ptr->is_suspend()) {
@@ -41,12 +47,20 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   }
 
   // Force the binlog write option to serialize
-  if (g_pika_server->WaitTillBinlogBGSerial(my_serial)) {
-    g_pika_server->logger_->Lock();
-    g_pika_server->logger_->Put(bgarg->raw_args);
-    g_pika_server->logger_->Unlock();
-    g_pika_server->SignalNextBinlogBGSerial();
+  // Unlock, clean env, and exit when error happend
+  bool error_happend = false;
+  if (!is_readonly) {
+    error_happend = !g_pika_server->WaitTillBinlogBGSerial(my_serial);
+    if (!error_happend) {
+      DLOG(INFO) << "Write binlog in binlog bgthread thread";
+      g_pika_server->logger_->Lock();
+      g_pika_server->logger_->Put(bgarg->raw_args);
+      g_pika_server->logger_->Unlock();
+      g_pika_server->SignalNextBinlogBGSerial();
+    }
+  }
 
+  if (!error_happend) {
     c_ptr->Do();
   }
 
@@ -54,8 +68,9 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     pthread_rwlock_unlock(g_pika_server->rwlock());
   }
 
-  g_pika_server->mutex_record_.Unlock(argv[1]);
-
+  if (!is_readonly) {
+    g_pika_server->mutex_record_.Unlock(argv[1]);
+  }
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {

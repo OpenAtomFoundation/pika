@@ -18,8 +18,8 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   master_ip_ = slash::StringToLower(*it++);
 
   is_noone_ = false;
-  if (master_ip_ == "no" && slash::StringToLower(*it++) == "one") {
-    if (argv.end() - it == 0) {
+  if (master_ip_ == "no" && slash::StringToLower(*it) == "one") {
+    if (argv.end() - it == 1) {
       is_noone_ = true;
     } else {
       res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
@@ -871,7 +871,6 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetReadonly(is_readonly);
-    pthread_rwlock_rdlock(g_pika_server->rwlock());
     ret = "+OK\r\n";
   } else if (set_item == "db_sync_speed") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {

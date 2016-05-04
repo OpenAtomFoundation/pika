@@ -259,7 +259,8 @@ public:
  * Binlog Receiver use
  */
 void DispatchBinlogBG(const std::string &key,
-    PikaCmdArgsType* argv, const std::string& raw_args, uint64_t cur_serial);
+    PikaCmdArgsType* argv, const std::string& raw_args,
+    uint64_t cur_serial, bool readonly);
 bool WaitTillBinlogBGSerial(uint64_t my_serial);
 void SignalNextBinlogBGSerial();
 
