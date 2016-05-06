@@ -85,7 +85,9 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
         return "-ERR Server in read-only\r\n";
       }
       raw_args = RestoreArgs();
-      g_pika_server->mutex_record_.Lock(argv_[1]);
+      if (argv_.size() >= 2) {
+        g_pika_server->mutex_record_.Lock(argv_[1]);
+      }
   }
 
   // Add read lock for no suspend command
@@ -108,7 +110,9 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   if (cinfo_ptr->is_write()) {
-      g_pika_server->mutex_record_.Unlock(argv_[1]);
+      if (argv_.size() >= 2) {
+        g_pika_server->mutex_record_.Unlock(argv_[1]);
+      }
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
