@@ -367,7 +367,7 @@ void ZRangebyscoreCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr
 }
 
 void ZRangebyscoreCmd::Do() {
-  if (min_score_ == nemo::ZSET_SCORE_MAX || max_score_ == nemo::ZSET_SCORE_MAX) {
+  if (min_score_ == nemo::ZSET_SCORE_MAX || max_score_ == nemo::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
@@ -418,7 +418,7 @@ void ZRevrangebyscoreCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const 
 }
 
 void ZRevrangebyscoreCmd::Do() {
-  if (min_score_ == nemo::ZSET_SCORE_MAX || max_score_ == nemo::ZSET_SCORE_MAX) {
+  if (min_score_ == nemo::ZSET_SCORE_MAX || max_score_ == nemo::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
