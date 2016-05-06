@@ -37,7 +37,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   // No need lock on readonly mode
   // Since the binlog task is dispatched by hash code of key
   // That is to say binlog with same key will be dispatched to same thread and execute sequencly
-  if (!is_readonly) {
+  if (!is_readonly && argv.size() >= 2) {
     g_pika_server->mutex_record_.Lock(argv[1]);
   }
 
@@ -68,7 +68,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     pthread_rwlock_unlock(g_pika_server->rwlock());
   }
 
-  if (!is_readonly) {
+  if (!is_readonly && argv.size() >= 2) {
     g_pika_server->mutex_record_.Unlock(argv[1]);
   }
   if (g_pika_conf->slowlog_slower_than() >= 0) {

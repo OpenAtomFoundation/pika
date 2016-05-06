@@ -65,7 +65,8 @@ int PikaMasterConn::DealMessage() {
   }
 
   PikaCmdArgsType *argv = new PikaCmdArgsType(argv_);
-  g_pika_server->DispatchBinlogBG(argv_[1], argv, raw_args_,
+  std::string dispatch_key = argv_.size() >= 2 ? argv_[1] : argv_[0];
+  g_pika_server->DispatchBinlogBG(dispatch_key, argv, raw_args_,
       serial, is_readonly);
   //  memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
   //  wbuf_len_ += res.size();
