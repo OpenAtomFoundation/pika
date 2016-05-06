@@ -270,7 +270,7 @@ void FlushallCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
   }
 }
 void FlushallCmd::Do() {
-  slash::RWLock(g_pika_server->rwlock(), true);
+  slash::RWLock l(g_pika_server->rwlock(), true);
   if (g_pika_server->FlushAll()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -294,7 +294,7 @@ void ReadonlyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
   }
 }
 void ReadonlyCmd::Do() {
-  slash::RWLock(g_pika_server->rwlock(), true);
+  slash::RWLock l(g_pika_server->rwlock(), true);
   if (is_open_) {
     g_pika_conf->SetReadonly(true);
   } else {
