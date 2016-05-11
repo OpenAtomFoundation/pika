@@ -147,6 +147,7 @@ void ZScanCmd::Do() {
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
   }
+  delete iter;
   return;
 }
 

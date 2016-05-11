@@ -282,9 +282,12 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   size_t index = 0, slaves_num = slaves_.size();
 
   std::stringstream tmp_stream;
+  std::string slave_ip_port;
   while (index < slaves_num) {
-    tmp_stream << "slave" << index << ": host_port=" << slaves_[index].ip_port
-                           << " state=" << (slaves_[index].stage == SLAVE_ITEM_STAGE_TWO ? "online" : "offline") << "\r\n";
+    slave_ip_port = slaves_[index].ip_port;
+    tmp_stream << "slave" << index << ":ip=" << slave_ip_port.substr(0, slave_ip_port.find(":"))
+                                   << ",port=" << slave_ip_port.substr(slave_ip_port.find(":")+1)
+                           << ",state=" << (slaves_[index].stage == SLAVE_ITEM_STAGE_TWO ? "online" : "offline") << "\r\n";
     index++;
   }
   slave_list_str.assign(tmp_stream.str());

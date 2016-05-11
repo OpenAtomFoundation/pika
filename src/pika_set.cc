@@ -178,6 +178,7 @@ void SScanCmd::Do() {
     res_.AppendStringLen(iter_member->size());
     res_.AppendContent(*iter_member);
   }
+  delete iter;
   return;
 }
 
