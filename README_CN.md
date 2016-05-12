@@ -13,7 +13,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 1.在编译机上安装snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel l ibbz2-dev zlib-devel等。CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
 
 ```
-    ycm install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-    devel libbz2-dev zlib-devel
+    yum install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-    devel libbz2-dev zlib-devel
 ```
 
 2.安装g++(若没有安装), 在CentOS上执行如下命令：
