@@ -1,12 +1,12 @@
 # Pika
-## 简介 [English](https://github.com/baotiao/pika/blob/master/README.md)
-Pika是一个可持久化的大容量redis存储服务，兼容string、hash、list、zset、set的绝大接口([兼容详情](https://github.com/baotiao/pika/wiki/pika支持的redis接口及兼容情况))，解决redis由于存储数据量巨大而导致内存不够用的容量瓶颈，并且可以像redis一样，通过slaveof命令进行主从备份，支持全同步和部分同步
+## 简介 [English](https://github.com/Qihoo360/pika/blob/master/README.md)
+Pika是一个可持久化的大容量redis存储服务，兼容string、hash、list、zset、set的绝大接口([兼容详情](https://github.com/Qihoo360/pika/wiki/pika支持的redis接口及兼容情况))，解决redis由于存储数据量巨大而导致内存不够用的容量瓶颈，并且可以像redis一样，通过slaveof命令进行主从备份，支持全同步和部分同步
 
 ## 特点
 * 容量大，支持百G数据量的存储
 * 兼容redis，不用修改代码即可平滑从redis迁移到pika
 * 支持主从(slaveof)
-* 完善的[运维](https://github.com/baotiao/pika/wiki/pika的一些管理命令方式说明)命令
+* 完善的[运维](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明)命令
 
 ## 编译安装
 
@@ -32,7 +32,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 4.获取源代码
 
 ```
-	git clone https://github.com/baotiao/pika.git && cd pika
+	git clone https://github.com/Qihoo360/pika.git && cd pika
 ```
 5.获取依赖的第三方源代码
 
@@ -81,7 +81,7 @@ RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 		结果：qps 170000
 ```
 ## 文档
-1. [Wiki] (https://github.com/baotiao/pika/wiki)
+1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
 
 ## 联系方式
 songzhao@360.cn
