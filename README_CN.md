@@ -84,4 +84,6 @@ RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
 
 ## 联系方式
-songzhao@360.cn
+邮箱：songzhao@360.cn
+
+QQ群：294254078
