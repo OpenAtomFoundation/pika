@@ -85,6 +85,9 @@ all: $(OBJECT)
 	cp -r $(SO_DIR)/*  $(OUTPUT)/lib
 	cp $(OBJECT) $(OUTPUT)/bin/
 	mkdir $(OUTPUT)/tools
+	if [ -d $(TOOLS_DIR) ]; then \
+		cp -r $(TOOLS_DIR)/* $(OUTPUT)/tools/; \
+	fi
 	cp -r $(TOOLS_DIR)/* $(OUTPUT)/tools/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
