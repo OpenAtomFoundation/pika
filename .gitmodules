@@ -3,10 +3,10 @@
 	url = https://github.com/baotiao/nemo.git
 [submodule "third/glog"]
 	path = third/glog
-	url = git@github.com:CatKang/glog.git
+	url = https://github.com/CatKang/glog.git
 [submodule "third/pink"]
 	path = third/pink
-	url = git@github.com:baotiao/pink.git
+	url = https://github.com/baotiao/pink.git
 [submodule "third/slash"]
 	path = third/slash
-	url = git@github.com:baotiao/slash.git
+	url = https://github.com/baotiao/slash.git
