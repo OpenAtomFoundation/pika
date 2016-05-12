@@ -87,7 +87,7 @@ Test:
 ```		
 ##Documents
 
-1. [Wiki](https://github.com/baotiao/pika/wiki)
+1. [Wiki](https://github.com/Qihoo360/pika/wiki)
 
 ##Contact Us
 
