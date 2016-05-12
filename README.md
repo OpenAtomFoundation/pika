@@ -16,7 +16,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 1.Install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel libbz2-dev zlib-devel etc on you compiling host(if alreadly installed, ignore it); using "yum install" on centos system("apt-get install" on ubuntu system) is ok. If on CentOS system, run the following commands:
    
 ~~~
-	 ycm install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel libbz2-dev zlib-devel
+	 yum install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel libbz2-dev zlib-devel
 ~~~
 2.Install g++(if installed, skip). Similarly, just using "yum install" on the CentOS(apt-get on Ubuntu) is ok:
  
