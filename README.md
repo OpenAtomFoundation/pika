@@ -1,15 +1,15 @@
 #Pika
 
-##Introduction [中文] (https://github.com/baotiao/pika/blob/master/README_CN.md)
+##Introduction [中文] (https://github.com/Qihoo360/pika/blob/master/README_CN.md)
 
-Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/baotiao/pika/wiki/pika支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization
+Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization
 
 ##Feature
 
 * huge storage capacity
 * compatible with redis interface, you can migrate to pika easily
 * support master-slave mode (slaveof)
-* various [management](https://github.com/baotiao/pika/wiki/pika的一些管理命令方式说明) interfaces
+* various [management](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明) interfaces
 
 ##Install
 
@@ -33,7 +33,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 4.Fetch the source code: 
 
 ~~~
-	a. git clone git@github.com:baotiao/pika
+	a. git clone git@github.com:Qihoo360/pika
 	b. cd pika
 ~~~
 
