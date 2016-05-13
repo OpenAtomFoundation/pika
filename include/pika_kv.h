@@ -1,5 +1,5 @@
-#ifndef __PIKA_KV_H__
-#define __PIKA_KV_H__
+#ifndef PIKA_KV_H_
+#define PIKA_KV_H_
 #include "pika_command.h"
 #include "nemo.h"
 

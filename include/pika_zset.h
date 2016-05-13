@@ -1,5 +1,5 @@
-#ifndef __PIKA_ZSET_H__
-#define __PIKA_ZSET_H__
+#ifndef PIKA_ZSET_H_
+#define PIKA_ZSET_H_
 #include "pika_command.h"
 #include "nemo.h"
 

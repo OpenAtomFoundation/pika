@@ -1,5 +1,5 @@
-#ifndef __PIKA_COMMAND_H__
-#define __PIKA_COMMAND_H__
+#ifndef PIKA_COMMAND_H_
+#define PIKA_COMMAND_H_
 
 #include <deque>
 #include <string>

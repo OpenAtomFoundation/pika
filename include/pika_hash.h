@@ -1,5 +1,5 @@
-#ifndef __PIKA_HASH_H__
-#define __PIKA_HASH_H__
+#ifndef PIKA_HASH_H_
+#define PIKA_HASH_H_
 #include "pika_command.h"
 #include "nemo.h"
 
