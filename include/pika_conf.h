@@ -1,5 +1,5 @@
-#ifndef __PIKA_CONF_H__
-#define __PIKA_CONF_H__
+#ifndef PIKA_CONF_H_
+#define PIKA_CONF_H_
 #include <pthread.h>
 #include "stdlib.h"
 #include <string>
