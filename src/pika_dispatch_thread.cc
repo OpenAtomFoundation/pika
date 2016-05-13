@@ -28,8 +28,7 @@ void PikaDispatchThread::CronHandle() {
   server_querynum += g_pika_server->pika_binlog_receiver_thread()->thread_querynum();
   server_current_qps += g_pika_server->pika_binlog_receiver_thread()->last_sec_thread_querynum();
 
-//  DLOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
-  LOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
+  DLOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
 }
 
 bool PikaDispatchThread::AccessHandle(std::string& ip) {

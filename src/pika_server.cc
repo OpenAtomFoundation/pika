@@ -799,7 +799,7 @@ bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
       break;
     }
   }
-  LOG(INFO) << "Success purge "<< delete_num << " files to index : " << to;
+  DLOG(INFO) << "Success purge "<< delete_num << " files to index : " << to;
 
   return true;
 }
@@ -832,7 +832,7 @@ void PikaServer::AutoPurge() {
     LOG(WARNING) << "Auto purge failed";
     return;
   }
-  LOG(INFO) << "Auto Purge sucess";
+  DLOG(INFO) << "Auto Purge sucess";
 }
 
 bool PikaServer::FlushAll() {
