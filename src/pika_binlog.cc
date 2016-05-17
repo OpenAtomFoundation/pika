@@ -353,9 +353,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
     pro_offset = 0;
   }
 
-  if (queue_ != NULL) {
-    delete queue_;
-  }
+  delete queue_;
 
   std::string init_profile = NewFileName(filename, 0);
   if (slash::FileExists(init_profile)) {

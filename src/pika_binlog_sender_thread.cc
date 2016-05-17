@@ -36,9 +36,7 @@ PikaBinlogSenderThread::~PikaBinlogSenderThread() {
 
   pthread_join(thread_id(), NULL);
 
-  if (queue_ != NULL) {
-    delete queue_;
-  }
+  delete queue_;
   pthread_rwlock_destroy(&rwlock_);
   delete [] backing_store_;
   delete cli_;

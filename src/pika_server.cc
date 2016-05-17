@@ -72,9 +72,7 @@ PikaServer::PikaServer() :
 }
 
 PikaServer::~PikaServer() {
-  if (bgsave_engine_ != NULL) {
-    delete bgsave_engine_;
-  }
+  delete bgsave_engine_;
 
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
@@ -585,9 +583,7 @@ bool PikaServer::InitBgsaveEnv() {
 
 // Prepare bgsave env, need bgsave_protector protect
 bool PikaServer::InitBgsaveEngine() {
-  if (bgsave_engine_ != NULL) {
-    delete bgsave_engine_;
-  }
+  delete bgsave_engine_;
   nemo::Status nemo_s = nemo::BackupEngine::Open(
       nemo::BackupableOptions(bgsave_info_.tmp_path, true, false), 
       &bgsave_engine_);
