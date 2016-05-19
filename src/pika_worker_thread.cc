@@ -130,12 +130,12 @@ void PikaWorkerThread::ClientKillAll() {
   }
 }
 
-int64_t PikaWorkerThread::ThreadClientList(std::vector< std::pair<int, std::string> > *clients) {
+int64_t PikaWorkerThread::ThreadClientList(std::vector<ClientInfo> *clients) {
   slash::RWLock l(&rwlock_, false);
   if (clients != NULL) {
     std::map<int, void*>::const_iterator iter = conns_.begin();
     while (iter != conns_.end()) {
-      clients->push_back(make_pair(iter->first, reinterpret_cast<PikaClientConn*>(iter->second)->ip_port()));
+      clients->push_back(ClientInfo{iter->first, reinterpret_cast<PikaClientConn*>(iter->second)->ip_port(), (reinterpret_cast<PikaClientConn*>(iter->second)->last_interaction()).tv_sec});
       iter++;
     }
   }

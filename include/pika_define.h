@@ -8,6 +8,12 @@
 const std::string kPikaVersion = "2.0.3";
 const std::string kPikaPidFile = "pika.pid";
 
+struct ClientInfo {
+  int fd;
+  std::string ip_port;
+  int last_interaction;
+};
+
 struct WorkerCronTask {
   int task;
   std::string ip_port;

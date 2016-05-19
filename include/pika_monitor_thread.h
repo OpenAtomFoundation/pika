@@ -20,7 +20,7 @@ public:
 
   void AddMonitorClient(pink::RedisConn* client_ptr);
   void AddMonitorMessage(std::string monitor_message);
-  int32_t ThreadClientList(std::vector<std::pair<int32_t, std::string> >* client = NULL);
+  int32_t ThreadClientList(std::vector<ClientInfo>* client = NULL);
   bool ThreadClientKill(const std::string& ip_port = "all");
   bool HasMonitorClients();
 
@@ -33,7 +33,7 @@ private:
   slash::Mutex monitor_mutex_protector_;
   slash::CondVar monitor_cond_;
 
-  std::list<std::pair<int32_t, std::string> > monitor_clients_;
+  std::list<ClientInfo> monitor_clients_;
   std::deque<std::string> monitor_messages_;
   std::atomic<bool> is_running_;
   std::atomic<bool> should_exit_;

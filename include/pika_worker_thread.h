@@ -17,7 +17,7 @@ public:
   virtual ~PikaWorkerThread();
   virtual void CronHandle();
 
-  int64_t ThreadClientList(std::vector< std::pair<int, std::string> > *clients = NULL);
+  int64_t ThreadClientList(std::vector<ClientInfo> *clients = NULL);
   bool ThreadClientKill(std::string ip_port = "");
   int ThreadClientNum();
 

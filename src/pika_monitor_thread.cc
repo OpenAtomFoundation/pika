@@ -23,10 +23,10 @@ PikaMonitorThread::~PikaMonitorThread() {
     monitor_cond_.SignalAll();
     pthread_join(thread_id(), NULL);
   }
-  for (std::list<std::pair<int32_t, std::string> >::iterator iter = monitor_clients_.begin();
+  for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
       iter != monitor_clients_.end();
       ++iter) {
-    close(iter->first);
+    close(iter->fd);
   }
   DLOG(INFO) << " PikaMonitorThread " << pthread_self() << " exit!!!";
 }
@@ -34,18 +34,18 @@ PikaMonitorThread::~PikaMonitorThread() {
 void PikaMonitorThread::AddMonitorClient(pink::RedisConn* client_ptr) {
   StartThread();
   slash::MutexLock lm(&monitor_mutex_protector_);
-  monitor_clients_.push_back(std::make_pair(client_ptr->fd(), client_ptr->ip_port()));
+  monitor_clients_.push_back(ClientInfo{client_ptr->fd(), client_ptr->ip_port(), 0});
 }
 
 void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
-  std::list<std::pair<int32_t, std::string> >::iterator iter = monitor_clients_.begin();
+  std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
   for (; iter != monitor_clients_.end(); ++iter) {
     if (ip_port == "all") {
-      close(iter->first);
+      close(iter->fd);
       continue;
     }
-    if (iter->second  == ip_port) {
-      close(iter->first);
+    if (iter->ip_port  == ip_port) {
+      close(iter->fd);
       break;
     }
   }
@@ -66,9 +66,9 @@ void PikaMonitorThread::AddMonitorMessage(std::string monitor_message) {
     }
 }
 
-int32_t PikaMonitorThread::ThreadClientList(std::vector<std::pair<int32_t, std::string> >* clients_ptr) {
+int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr) {
   if (clients_ptr != NULL) {
-    for (std::list<std::pair<int32_t, std::string> >::iterator iter = monitor_clients_.begin();
+    for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
         iter != monitor_clients_.end();
         iter++) {
       clients_ptr->push_back(*iter);
@@ -89,10 +89,10 @@ void PikaMonitorThread::AddCronTask(MonitorCronTask task) {
 
 bool PikaMonitorThread::FindClient(const std::string &ip_port) {
   slash::MutexLock lm(&monitor_mutex_protector_);
-  for (std::list<std::pair<int32_t, std::string> >::iterator iter = monitor_clients_.begin();
+  for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
       iter != monitor_clients_.end();
       ++iter) {
-    if (iter->second == ip_port) {
+    if (iter->ip_port == ip_port) {
       return true;
     }
   }
@@ -189,12 +189,12 @@ void* PikaMonitorThread::ThreadMain() {
     }
     messages_transfer.replace(messages_transfer.size()-1, 1, "\r\n", 0, 2);
     monitor_mutex_protector_.Lock();
-    for (std::list<std::pair<int32_t, std::string> >::iterator iter = monitor_clients_.begin();
+    for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
         iter != monitor_clients_.end();
         ++iter) {
-      write_status = SendMessage(iter->first, messages_transfer);
+      write_status = SendMessage(iter->fd, messages_transfer);
       if (write_status == pink::kWriteError) {
-        cron_tasks_.push({TASK_KILL, iter->second});
+        cron_tasks_.push({TASK_KILL, iter->ip_port});
       }
     }
     monitor_mutex_protector_.Unlock();

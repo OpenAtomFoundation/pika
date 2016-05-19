@@ -325,13 +325,15 @@ void ClientCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void ClientCmd::Do() {
   if (operation_ == CLIENT_LIST_S) {
-    std::vector< std::pair<int, std::string> > clients;
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    std::vector<ClientInfo> clients;
     g_pika_server->ClientList(&clients);
-    std::vector<std::pair<int, std::string> >::iterator iter= clients.begin();
+    std::vector<ClientInfo>::iterator iter= clients.begin();
     std::string reply = "+";
     char buf[128];
     while (iter != clients.end()) {
-      snprintf(buf, sizeof(buf), "addr=%s, fd=%d\n", iter->second.c_str(), iter->first);
+      snprintf(buf, sizeof(buf), "addr=%s, fd=%d, idle=%ld\n", iter->ip_port.c_str(), iter->fd, iter->last_interaction == 0 ? 0 : now.tv_sec - iter->last_interaction);
       reply.append(buf);
       iter++;
     }

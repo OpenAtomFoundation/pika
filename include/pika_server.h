@@ -246,7 +246,7 @@ public:
  */
   void ClientKillAll();
   int ClientKill(const std::string &ip_port);
-  int64_t ClientList(std::vector< std::pair<int, std::string> > *clients = NULL);
+  int64_t ClientList(std::vector<ClientInfo> *clients = NULL);
 
 /*
  * Monitor used

@@ -964,7 +964,7 @@ int PikaServer::ClientKill(const std::string &ip_port) {
   return 0;
 }
 
-int64_t PikaServer::ClientList(std::vector< std::pair<int, std::string> > *clients) {
+int64_t PikaServer::ClientList(std::vector<ClientInfo> *clients) {
   int64_t clients_num = 0;
   for (int idx = 0; idx != worker_num_; ++idx) {
     clients_num += pika_worker_thread_[idx]->ThreadClientList(clients);
