@@ -98,6 +98,24 @@ int PikaConf::Load()
       target_file_size_base_ = 1048576; // 10M
   }
 
+  max_background_flushes_ = 1;
+  GetConfInt("max_background_flushes", &max_background_flushes_);
+  if (max_background_flushes_ <= 0) {
+    max_background_flushes_ = 1;
+  }
+  if (max_background_flushes_ >= 4) {
+    max_background_flushes_ = 4;
+  }
+
+  max_background_compactions_ = 1;
+  GetConfInt("max_background_compactions", &max_background_compactions_);
+  if (max_background_compactions_ <= 0) {
+    max_background_compactions_ = 1;
+  }
+  if (max_background_compactions_ >= 4) {
+    max_background_compactions_ = 4;
+  }
+
   // daemonize
   std::string dmz;
   GetConfStr("daemonize", &dmz);
@@ -142,6 +160,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("root_connection_num", root_connection_num_);
   SetConfInt("slowlog_log_slower_than", slowlog_log_slower_than_);
   SetConfInt("target_file_size_base", target_file_size_base_);
+  SetConfInt("max_background_flushes", max_background_flushes_);
+  SetConfInt("max_background_compactions", max_background_compactions_);
   SetConfInt("expire_logs_nums", expire_logs_nums_);
   SetConfInt("expire_logs_days", expire_logs_days_);
   SetConfBool("slave_read_only", readonly_);

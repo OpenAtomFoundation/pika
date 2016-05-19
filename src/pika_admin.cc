@@ -709,6 +709,14 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "target_file_size_base");
       EncodeInt32(&ret, g_pika_conf->target_file_size_base());
+  } else if (get_item == "max_background_flushes") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "max_background_flushes");
+      EncodeInt32(&ret, g_pika_conf->max_background_flushes());
+  } else if (get_item == "max_background_compactions") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "max_background_compactions");
+      EncodeInt32(&ret, g_pika_conf->max_background_compactions());
   } else if (get_item == "expire_logs_days") {
       ret = "*2\r\n";
       EncodeString(&ret, "expire_logs_days");
@@ -742,7 +750,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       EncodeString(&ret, "no");
     }
   } else if (get_item == "*") {
-    ret = "*28\r\n";
+    ret = "*30\r\n";
     EncodeString(&ret, "port");
     EncodeString(&ret, "thread_num");
     EncodeString(&ret, "sync_thread_num");
@@ -762,6 +770,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "pidfile");
     EncodeString(&ret, "maxconnection");
     EncodeString(&ret, "target_file_size_base");
+    EncodeString(&ret, "max_background_flushes");
+    EncodeString(&ret, "max_background_compactions");
     EncodeString(&ret, "expire_logs_days");
     EncodeString(&ret, "expire_logs_nums");
     EncodeString(&ret, "root_connection_num");

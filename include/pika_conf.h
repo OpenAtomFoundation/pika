@@ -44,6 +44,8 @@ public:
   }
   std::string compression()     { RWLock l(&rwlock_, false); return compression_; }
   int target_file_size_base()   { RWLock l(&rwlock_, false); return target_file_size_base_; }
+  int max_background_flushes()  { RWLock l(&rwlock_, false); return max_background_flushes_; }
+  int max_background_compactions()   { RWLock l(&rwlock_, false); return max_background_compactions_; }
   int expire_logs_nums()        { RWLock l(&rwlock_, false); return expire_logs_nums_; }
   int expire_logs_days()        { RWLock l(&rwlock_, false); return expire_logs_days_; }
   std::string conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
@@ -145,6 +147,9 @@ private:
   int expire_logs_nums_;
   bool readonly_;
   std::string conf_path_;
+  int max_background_flushes_;
+  int max_background_compactions_;
+
   //char username_[30];
   //char password_[30];
 

@@ -41,6 +41,8 @@ PikaServer::PikaServer() :
 
   option.write_buffer_size = g_pika_conf->write_buffer_size();
   option.target_file_size_base = g_pika_conf->target_file_size_base();
+  option.max_background_flushes = g_pika_conf->max_background_flushes();
+  option.max_background_compactions = g_pika_conf->max_background_compactions();
 	if (g_pika_conf->compression() == "none") {
 		 option.compression = false;
   }
