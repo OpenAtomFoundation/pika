@@ -333,7 +333,7 @@ void ClientCmd::Do() {
     std::string reply = "+";
     char buf[128];
     while (iter != clients.end()) {
-      snprintf(buf, sizeof(buf), "addr=%s, fd=%d, idle=%ld\n", iter->ip_port.c_str(), iter->fd, iter->last_interaction == 0 ? 0 : now.tv_sec - iter->last_interaction);
+      snprintf(buf, sizeof(buf), "addr=%s fd=%d idle=%ld\n", iter->ip_port.c_str(), iter->fd, iter->last_interaction == 0 ? 0 : now.tv_sec - iter->last_interaction);
       reply.append(buf);
       iter++;
     }
@@ -454,7 +454,6 @@ void InfoCmd::InfoServer(std::string &info) {
   uint32_t purge_max;
   tmp_stream << "# Server\r\n";
   tmp_stream << "pika_version:" << kPikaVersion << "\r\n";
-  tmp_stream << "redis_version:2.8.21" << "\r\n";
   tmp_stream << "os:" << host_info.sysname << " " << host_info.release << " " << host_info.machine << "\r\n";
   tmp_stream << "arch_bits:" << (reinterpret_cast<char*>(&host_info.machine) + strlen(host_info.machine) - 2) << "\r\n";
   tmp_stream << "process_id:" << getpid() << "\r\n";
