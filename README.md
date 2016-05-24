@@ -91,6 +91,6 @@ Test:
 
 ##Contact Us
 
-Mail: songzhao@360.cn
+Mail: g-infra-bada@360.cn
 
-QQ: 294254078
+QQ group: 294254078
