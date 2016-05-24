@@ -170,17 +170,11 @@ public:
     slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_.bgsaving;
   }
-  slash::Mutex* bgsave_protector() {
-    return &bgsave_protector_;
-  }
   void Bgsave();
   bool Bgsaveoff();
   bool RunBgsaveEngine(const std::string path);
-  // need bgsave_protector protect
-  void ClearBgsave() {
-    bgsave_info_.Clear();
-  }
   void FinishBgsave() {
+    slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.bgsaving = false;
   }
 
@@ -320,6 +314,10 @@ private:
   static void DoBgsave(void* arg);
   bool InitBgsaveEnv();
   bool InitBgsaveEngine();
+  void ClearBgsave() {
+    slash::MutexLock l(&bgsave_protector_);
+    bgsave_info_.Clear();
+  }
 
 
   /*
