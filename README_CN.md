@@ -27,7 +27,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 ```
 	a. sudo wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
 	b. yum install --nogpgcheck devtoolset-1.1
-	c. scl enable devetoolset-1.1 bash
+	c. scl enable devtoolset-1.1 bash
 ```
 4.获取源代码
 
