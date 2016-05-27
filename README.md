@@ -28,7 +28,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 ~~~  
 	a. sudo wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
 	b. yum install --nogpgcheck devtoolset-1.1
-	c. scl enable devetoolset-1.1 bash
+	c. scl enable devtoolset-1.1 bash
 ~~~
 4.Fetch the source code: 
 
