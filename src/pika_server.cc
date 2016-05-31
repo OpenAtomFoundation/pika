@@ -529,8 +529,8 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (cur_filenum < filenum) {
-    return Status::InvalidArgument("AddBinlogSender invalid filenum");
+  if (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < con_offset)) {
+    return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
   }
 
   std::string slave_ip = slave.ip_port.substr(0, slave.ip_port.find(':'));
