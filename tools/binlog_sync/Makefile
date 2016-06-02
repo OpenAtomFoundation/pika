@@ -45,11 +45,7 @@ LIB_PATH = -L./ \
 LIBS = -lpthread \
 	   -lglog \
 	   -lslash \
-		 -lpink \
-	   -lz \
-	   -lbz2 \
-	   -lsnappy \
-	   -lrt
+		 -lpink
 
 GLOG = $(THIRD_PATH)/glog/.libs/libglog.so.0
 PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
