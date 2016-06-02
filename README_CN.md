@@ -61,6 +61,19 @@ PIKA_SOURCE表示的pika的源代码根目录；
 _VERSION表示的是编译机的CenOS版本，如6.2， 5.4...
 RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 
+## 快速试用
+  如果想快速试用pika，目前提供了Centos5，Centos6的binary版本，可以在[release页面](https://github.com/Qihoo360/pika/releases)看到，具体文件是pikaX.Y.Z_centosK_bin.tar.gz。
+
+```
+# 1. unzip file
+tar zxf pikaX.Y.Z_centosK_bin.tar.gz
+# 2. change working directory to output
+#     note: we should in this directory, caz the RPATH is ./lib;
+cd output
+# 3. run pika:
+./bin/pika -c conf/pika.conf
+```
+
 ## 性能
 ```
 服务端配置：
