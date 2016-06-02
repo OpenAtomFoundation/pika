@@ -1,6 +1,9 @@
 #include <fstream>
 #include <glog/logging.h>
 #include <poll.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <signal.h>
 #include "slaveping_thread.h"
 #include "trysync_thread.h"
 #include "binlog_sync.h"
@@ -79,7 +82,10 @@ bool TrysyncThread::RecvProc() {
       }
       // Failed
 
+      LOG(INFO) << "Sync Error, Quit";
+      kill(getpid(), SIGQUIT);
       g_binlog_sync->RemoveMaster();
+      
       return false;
     }
   }

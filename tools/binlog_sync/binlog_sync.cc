@@ -40,10 +40,11 @@ BinlogSync::BinlogSync(int64_t filenum, int64_t offset, int port, std::string& m
 
 BinlogSync::~BinlogSync() {
 
+  LOG(INFO) << "Ending...";
+  delete trysync_thread_;
   delete ping_thread_;
   sleep(1);
   delete binlog_receiver_thread_;
-  delete trysync_thread_;
 
   delete logger_;
 
@@ -164,6 +165,7 @@ void BinlogSync::PlusMasterConnection() {
     if ((++master_connection_) >= 2) {
       // two connection with master has been established
       repl_state_ = PIKA_REPL_CONNECTED;
+      LOG(INFO) << "Start Sync...";
       master_connection_ = 2;
     }
   }

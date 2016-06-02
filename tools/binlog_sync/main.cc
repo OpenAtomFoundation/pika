@@ -67,12 +67,16 @@ static void SignalSetup() {
 static void Usage()
 {
     fprintf(stderr,
-            "Pika module %s\n"
-            "usage: pika [-hv] [-c conf/file]\n"
+            "Usage: binlog_sync [-h] [-p local_port -i master_ip -o master_port -f filenum -s offset -w password -l log_path]\n"
             "\t-h               -- show this help\n"
-            "\t-c conf/file     -- config file \n"
-            "  example: ./output/bin/pika -c ./conf/pika.conf\n",
-            kPikaVersion.c_str()
+            "\t-p     -- local port(REQUIRED) \n"
+            "\t-i     -- master ip(OPTIONAL default: 127.0.0.1) \n"
+            "\t-o     -- master port(REQUIRED) \n"
+            "\t-f     -- binlog filenum(OPTIONAL default: local offset) \n"
+            "\t-s     -- binlog offset(OPTIONAL default: local offset) \n"
+            "\t-w     -- password for master(OPTIONAL) \n"
+            "\t-l     -- local log path(OPTIONAL default: ./log) \n"
+            "  example: ./binlog_sync -p 9222 -i 127.0.0.1 -o 9221 -f 0 -s 0 -w abc -l ./log\n"
            );
 }
 
@@ -135,7 +139,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  std::cout << src_port << " " << dest_host << " " << dest_port << " " << filenum << " " << offset << " " << passwd << " " << log_path << std::endl;
+  //std::cout << src_port << " " << dest_host << " " << dest_port << " " << filenum << " " << offset << " " << passwd << " " << log_path << std::endl;
   if (src_port == -1 || dest_port == -1) {
     fprintf (stderr, "Invalid Arguments\n" );
     Usage();
