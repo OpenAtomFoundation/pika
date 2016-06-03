@@ -510,17 +510,17 @@ void ExistsCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
     res_.SetRes(CmdRes::kWrongNum, kCmdNameExists);
     return;
   }
-  key_ = argv[1];
+  keys_ = argv;
+  keys_.erase(keys_.begin());
   return;
 }
 
 void ExistsCmd::Do() {
-  std::string value;
-  nemo::Status s = g_pika_server->db()->Get(key_, &value);
-  if (s.ok()) {
-    res_.AppendInteger(1);
-  } else if (s.IsNotFound()) {
-    res_.AppendInteger(0);
+  int64_t res;
+
+  nemo::Status s = g_pika_server->db()->Exists(keys_, &res);
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendInteger(res);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

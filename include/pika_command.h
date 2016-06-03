@@ -91,6 +91,13 @@ const std::string kCmdNameRPopLPush = "rpoplpush";
 const std::string kCmdNameRPush = "rpush";
 const std::string kCmdNameRPushx = "rpushx";
 
+//BitMap
+const std::string kCmdNameBitSet = "setbit";
+const std::string kCmdNameBitGet = "getbit";
+const std::string kCmdNameBitPos = "bitpos";
+const std::string kCmdNameBitOp = "bitop";
+const std::string kCmdNameBitCount = "bitcount";
+
 //Zset
 const std::string kCmdNameZAdd = "zadd";
 const std::string kCmdNameZCard = "zcard";
@@ -151,6 +158,7 @@ enum CmdFlags {
   kCmdFlagsList           = 6,
   kCmdFlagsSet            = 8,
   kCmdFlagsZset           = 10,
+  kCmdFlagsBit            = 12,
   kCmdFlagsNoLocal        = 0, //default nolocal
   kCmdFlagsLocal          = 16,
   kCmdFlagsNoSuspend      = 0, //default nosuspend
@@ -217,6 +225,10 @@ public:
     kPong,
     kSyntaxErr,
     kInvalidInt,
+    kInvalidBitInt,
+    kInvalidBitOffsetInt,
+    kInvalidBitPosArgument,
+    kWrongBitOpNotNum,
     kInvalidFloat,
     kOverFlow,
     kNotFound,
@@ -257,6 +269,15 @@ public:
       return "-ERR syntax error\r\n";
     case kInvalidInt:
       return "-ERR value is not an integer or out of range\r\n";
+    case kInvalidBitInt:
+      return "-ERR bit is not an integer or out of range\r\n";
+    case kInvalidBitOffsetInt:
+      return "-ERR bit offset is not an integer or out of range\r\n";
+    case kWrongBitOpNotNum:
+      return "-ERR BITOP NOT must be called with a single source key.\r\n";
+
+    case kInvalidBitPosArgument:
+      return "-ERR The bit argument must be 1 or 0.\r\n";
     case kInvalidFloat:
       return "-ERR value is not an float\r\n";
     case kOverFlow:

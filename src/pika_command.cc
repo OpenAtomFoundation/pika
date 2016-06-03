@@ -4,6 +4,7 @@
 #include "pika_list.h"
 #include "pika_set.h"
 #include "pika_zset.h"
+#include "pika_bit.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
 
@@ -104,7 +105,7 @@ void InitCmdInfoTable() {
   CmdInfo* strlenptr = new CmdInfo(kCmdNameStrlen, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameStrlen, strlenptr));
   ////Exists
-  CmdInfo* existsptr = new CmdInfo(kCmdNameExists, 2, kCmdFlagsRead | kCmdFlagsKv);
+  CmdInfo* existsptr = new CmdInfo(kCmdNameExists, -2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameExists, existsptr));
   ////Expire
   CmdInfo* expireptr = new CmdInfo(kCmdNameExpire, 3, kCmdFlagsWrite | kCmdFlagsKv);
@@ -322,6 +323,23 @@ void InitCmdInfoTable() {
   ////SRandmember
   CmdInfo* srandmemberptr = new CmdInfo(kCmdNameSRandmember, -2, kCmdFlagsRead | kCmdFlagsList);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSRandmember, srandmemberptr));
+
+  //BitMap
+  ////BitSet
+  CmdInfo* bitsetptr = new CmdInfo(kCmdNameBitSet, 4, kCmdFlagsWrite | kCmdFlagsBit);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBitSet, bitsetptr)).second;
+  ////BitGet
+  CmdInfo* bitgetptr = new CmdInfo(kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsBit);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBitGet, bitgetptr)).second;
+  ////BitPos
+  CmdInfo* bitposptr = new CmdInfo(kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsBit);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBitPos, bitposptr)).second;
+  ////BitOp
+  CmdInfo* bitopptr = new CmdInfo(kCmdNameBitOp, -3, kCmdFlagsWrite | kCmdFlagsBit);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBitOp, bitopptr)).second;
+  ////BitCount
+  CmdInfo* bitcountptr = new CmdInfo(kCmdNameBitCount, -2, kCmdFlagsRead | kCmdFlagsBit);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBitCount, bitcountptr)).second;
 }
 
 void DestoryCmdInfoTable() {
@@ -651,6 +669,23 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////SRandmemberCmd
   Cmd* srandmemberptr = new SRandmemberCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSRandmember, srandmemberptr));
+
+  //BitMap
+  ////bitsetCmd
+  Cmd* bitsetptr = new BitSetCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitSet, bitsetptr));
+  ////bitgetCmd
+  Cmd* bitgetptr = new BitGetCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitGet, bitgetptr));
+  ////bitcountCmd
+  Cmd* bitcountptr = new BitCountCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitCount, bitcountptr));
+  ////bitposCmd
+  Cmd* bitposptr = new BitPosCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitPos, bitposptr));
+  ////bitopCmd
+  Cmd* bitopptr = new BitOpCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitOp, bitopptr));
 
 }
 

@@ -136,7 +136,7 @@ int64_t PikaWorkerThread::ThreadClientList(std::vector<ClientInfo> *clients) {
   if (clients != NULL) {
     std::map<int, void*>::const_iterator iter = conns_.begin();
     while (iter != conns_.end()) {
-      clients->push_back(ClientInfo{iter->first, reinterpret_cast<PikaClientConn*>(iter->second)->ip_port(), (reinterpret_cast<PikaClientConn*>(iter->second)->last_interaction()).tv_sec});
+      clients->push_back(ClientInfo{iter->first, reinterpret_cast<PikaClientConn*>(iter->second)->ip_port(), static_cast<int>((reinterpret_cast<PikaClientConn*>(iter->second)->last_interaction()).tv_sec)});
       iter++;
     }
   }
