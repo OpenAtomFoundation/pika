@@ -105,7 +105,7 @@ void InitCmdInfoTable() {
   CmdInfo* strlenptr = new CmdInfo(kCmdNameStrlen, 2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameStrlen, strlenptr));
   ////Exists
-  CmdInfo* existsptr = new CmdInfo(kCmdNameExists, 2, kCmdFlagsRead | kCmdFlagsKv);
+  CmdInfo* existsptr = new CmdInfo(kCmdNameExists, -2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameExists, existsptr));
   ////Expire
   CmdInfo* expireptr = new CmdInfo(kCmdNameExpire, 3, kCmdFlagsWrite | kCmdFlagsKv);

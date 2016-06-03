@@ -1,0 +1,41 @@
+#include <glog/logging.h>
+#include "master_conn.h"
+#include "binlog_receiver_thread.h"
+#include "binlog_sync.h"
+
+extern BinlogSync *g_binlog_sync;
+
+MasterConn::MasterConn(int fd, std::string ip_port, pink::Thread* thread) :
+  RedisConn(fd, ip_port) {
+  self_thread_ = dynamic_cast<BinlogReceiverThread*>(thread);
+}
+
+MasterConn::~MasterConn() {
+}
+
+void MasterConn::RestoreArgs() {
+  raw_args_.clear();
+  RedisAppendLen(raw_args_, argv_.size(), "*");
+  PikaCmdArgsType::const_iterator it = argv_.begin();
+  for ( ; it != argv_.end(); ++it) {
+    RedisAppendLen(raw_args_, (*it).size(), "$");
+    RedisAppendContent(raw_args_, *it);
+  }
+}
+
+int MasterConn::DealMessage() {
+  //no reply
+  //eq set_is_reply(false);
+
+  if (argv_.empty()) {
+    return -2;
+  }
+
+  RestoreArgs();
+
+  //g_binlog_sync->logger_->Lock();
+  g_binlog_sync->logger()->Put(raw_args_);
+  //g_binlog_sync->logger_->Unlock();
+
+  return 0;
+}

@@ -8,7 +8,8 @@ PikaWorkerThread::PikaWorkerThread(int cron_interval):
   WorkerThread::WorkerThread(cron_interval),
   thread_querynum_(0),
   last_thread_querynum_(0),
-  last_time_us_(slash::NowMicros()) {
+  last_time_us_(slash::NowMicros()),
+  last_sec_thread_querynum_(0) {
   cmds_.reserve(300);
   InitCmdTable(&cmds_);
 }
@@ -135,7 +136,7 @@ int64_t PikaWorkerThread::ThreadClientList(std::vector<ClientInfo> *clients) {
   if (clients != NULL) {
     std::map<int, void*>::const_iterator iter = conns_.begin();
     while (iter != conns_.end()) {
-      clients->push_back(ClientInfo{iter->first, reinterpret_cast<PikaClientConn*>(iter->second)->ip_port(), (reinterpret_cast<PikaClientConn*>(iter->second)->last_interaction()).tv_sec});
+      clients->push_back(ClientInfo{iter->first, reinterpret_cast<PikaClientConn*>(iter->second)->ip_port(), static_cast<int>((reinterpret_cast<PikaClientConn*>(iter->second)->last_interaction()).tv_sec)});
       iter++;
     }
   }

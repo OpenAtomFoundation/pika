@@ -203,7 +203,7 @@ public:
   ExistsCmd() {}
   virtual void Do();
 private:
-  std::string key_;
+  std::vector<std::string> keys_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 

@@ -28,7 +28,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 ~~~  
 	a. sudo wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
 	b. yum install --nogpgcheck devtoolset-1.1
-	c. scl enable devetoolset-1.1 bash
+	c. scl enable devtoolset-1.1 bash
 ~~~
 4.Fetch the source code: 
 
@@ -63,6 +63,19 @@ If failed, move pika source/lib/_VERSION/lib/ to the rpath defined in Makefile a
 The PIKA_SOURCE stands for pika source code's root directory;  
 The __VERSION represents the OS's version, such as 6.2, 5.4...  
 The RPATH is defined in pika's Makefile
+
+## Quickstart and Try
+  You can try to use our pre-build binary versions. For now, only Centos5 and Centos6 are supported. The binary ones can be found at [the release page](https://github.com/Qihoo360/pika/releases) which are called pikaX.Y.Z_centosK_bin.tar.gz.
+
+```
+# 1. unzip file
+tar zxf pikaX.Y.Z_centosK_bin.tar.gz
+# 2. change working directory to output
+#     note: we should in this directory, caz the RPATH is ./lib;
+cd output
+# 3. run pika:
+./bin/pika -c conf/pika.conf
+```
 
 ##Performance
 

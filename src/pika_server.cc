@@ -421,10 +421,17 @@ void PikaServer::RemoveMaster() {
 }
 
 void PikaServer::TryDBSync(const std::string& ip, int port, int32_t top) {
+  std::string bg_path;
+  uint32_t bg_filenum = 0;
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    bg_path = bgsave_info_.path;
+    bg_filenum = bgsave_info_.filenum;
+  }
 
-  if (0 != slash::IsDir(bgsave_info_.path) ||                               //Bgsaving dir exist
-      !slash::FileExists(NewFileName(logger_->filename, bgsave_info_.filenum)) ||  //filenum can be found in binglog
-      top - bgsave_info_.filenum > kDBSyncMaxGap) {      //The file is not too old
+  if (0 != slash::IsDir(bg_path) ||                               //Bgsaving dir exist
+      !slash::FileExists(NewFileName(logger_->filename, bg_filenum)) ||  //filenum can be found in binglog
+      top - bg_filenum > kDBSyncMaxGap) {      //The file is not too old
     // Need Bgsave first
     Bgsave();
   }
@@ -456,9 +463,14 @@ void PikaServer::DoDBSync(void* arg) {
 }
 
 void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
+  std::string bg_path;
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    bg_path = bgsave_info_.path;
+  }
   // Get all files need to send
   std::vector<std::string> descendant;
-  if (!slash::GetDescendant(bgsave_info_.path, descendant)) {
+  if (!slash::GetDescendant(bg_path, descendant)) {
     LOG(ERROR) << "Get Descendant when try to do db sync failed";
   }
 
@@ -469,7 +481,7 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   std::vector<std::string>::iterator it = descendant.begin();
   slash::RsyncRemote remote(ip, port, module, g_pika_conf->db_sync_speed() * 1024);
   for (; it != descendant.end(); ++it) {
-    target_path = (*it).substr(bgsave_info_.path.size() + 1);
+    target_path = (*it).substr(bg_path.size() + 1);
     if (target_path == kBgsaveInfoFile) {
       continue;
     }
@@ -485,15 +497,15 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   }
  
   // Clear target path
-  slash::RsyncSendClearTarget(bgsave_info_.path + "/kv", "kv", remote);
-  slash::RsyncSendClearTarget(bgsave_info_.path + "/hash", "hash", remote);
-  slash::RsyncSendClearTarget(bgsave_info_.path + "/list", "list", remote);
-  slash::RsyncSendClearTarget(bgsave_info_.path + "/set", "set", remote);
-  slash::RsyncSendClearTarget(bgsave_info_.path + "/zset", "zset", remote);
+  slash::RsyncSendClearTarget(bg_path + "/kv", "kv", remote);
+  slash::RsyncSendClearTarget(bg_path + "/hash", "hash", remote);
+  slash::RsyncSendClearTarget(bg_path + "/list", "list", remote);
+  slash::RsyncSendClearTarget(bg_path + "/set", "set", remote);
+  slash::RsyncSendClearTarget(bg_path + "/zset", "zset", remote);
 
   // Send info file at last
   if (0 == ret) {
-    if (0 != (ret = slash::RsyncSendFile(bgsave_info_.path + "/" + kBgsaveInfoFile, kBgsaveInfoFile, remote))) {
+    if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, kBgsaveInfoFile, remote))) {
       LOG(ERROR) << "send info file failed";
     }
   }
@@ -517,8 +529,8 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (cur_filenum < filenum) {
-    return Status::InvalidArgument("AddBinlogSender invalid filenum");
+  if (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < con_offset)) {
+    return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
   }
 
   std::string slave_ip = slave.ip_port.substr(0, slave.ip_port.find(':'));
@@ -557,37 +569,46 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
 
 // Prepare engine, need bgsave_protector protect
 bool PikaServer::InitBgsaveEnv() {
-  // Prepare for bgsave dir
-  bgsave_info_.start_time = time(NULL);
-  char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
-  bgsave_info_.s_start_time.assign(s_time, len);
-  std::string bgsave_path(g_pika_conf->bgsave_path());
-  bgsave_info_.path = bgsave_path + g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
-  bgsave_info_.tmp_path = bgsave_path + "tmp";
-  if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
-    LOG(ERROR) << "remove exist bgsave dir failed";
-    return false;
-  }
-  slash::CreateDir(bgsave_info_.path);
-  // Prepare for tmp dir
-  if (!slash::DeleteDirIfExist(bgsave_info_.tmp_path)) {
-    LOG(ERROR) << "remove exist tmp bgsave dir failed";
-    return false;
-  }
-  // Prepare for failed dir
-  if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
-    LOG(ERROR) << "remove exist fail bgsave dir failed :";
-    return false;
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    // Prepare for bgsave dir
+    bgsave_info_.start_time = time(NULL);
+    char s_time[32];
+    int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
+    bgsave_info_.s_start_time.assign(s_time, len);
+    std::string bgsave_path(g_pika_conf->bgsave_path());
+    bgsave_info_.path = bgsave_path + g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
+    bgsave_info_.tmp_path = bgsave_path + "tmp";
+    if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
+      LOG(ERROR) << "remove exist bgsave dir failed";
+      return false;
+    }
+    slash::CreateDir(bgsave_info_.path);
+    // Prepare for tmp dir
+    if (!slash::DeleteDirIfExist(bgsave_info_.tmp_path)) {
+      LOG(ERROR) << "remove exist tmp bgsave dir failed";
+      return false;
+    }
+    // Prepare for failed dir
+    if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
+      LOG(ERROR) << "remove exist fail bgsave dir failed :";
+      return false;
+    }
   }
   return true;
 }
 
 // Prepare bgsave env, need bgsave_protector protect
 bool PikaServer::InitBgsaveEngine() {
+  std::string bg_tmp_path;
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    bg_tmp_path = bgsave_info_.tmp_path;
+  }
+
   delete bgsave_engine_;
   nemo::Status nemo_s = nemo::BackupEngine::Open(
-      nemo::BackupableOptions(bgsave_info_.tmp_path, true, false), 
+      nemo::BackupableOptions(bg_tmp_path, true, false), 
       &bgsave_engine_);
   if (!nemo_s.ok()) {
     LOG(ERROR) << "open backup engine failed " << nemo_s.ToString();
@@ -596,7 +617,10 @@ bool PikaServer::InitBgsaveEngine() {
 
   {
     RWLock l(&rwlock_, true);
-    logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
+    {
+      slash::MutexLock l(&bgsave_protector_);
+      logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
+    }
     nemo_s = bgsave_engine_->SetBackupContent(db_.get());
     if (!nemo_s.ok()){
       LOG(ERROR) << "set backup content failed " << nemo_s.ToString();
@@ -632,13 +656,12 @@ void PikaServer::Bgsave() {
       return;
     }
     bgsave_info_.bgsaving = true;
+  }
   
-    // Prepare for Bgsaving
-    if (!InitBgsaveEnv()
-        || !InitBgsaveEngine()) {
-      ClearBgsave();
-      return;
-    }
+  // Prepare for Bgsaving
+  if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
+    ClearBgsave();
+    return;
   }
   LOG(INFO) << "after prepare bgsave";
 
@@ -673,10 +696,7 @@ void PikaServer::DoBgsave(void* arg) {
     std::string fail_path = info.path + "_FAILED";
     slash::RenameFile(info.path.c_str(), fail_path.c_str());
   }
-  {
-    slash::MutexLock l(p->bgsave_protector());
-    p->FinishBgsave();
-  }
+  p->FinishBgsave();
 }
 
 bool PikaServer::Bgsaveoff() {
