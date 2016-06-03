@@ -4,35 +4,35 @@
 
 BinlogSync* g_binlog_sync;
 
-static void GlogInit(std::string& log_path) {
+static void GlogInit(std::string& log_path, bool is_daemon) {
   if (!slash::FileExists(log_path)) {
     slash::CreatePath(log_path); 
   }
 
-//  if (!g_pika_conf->daemonize()) {
+  if (!is_daemon) {
     FLAGS_alsologtostderr = true;
-//  }
+  }
   FLAGS_log_dir = log_path;
   FLAGS_minloglevel = 0;
   FLAGS_max_log_size = 1800;
   ::google::InitGoogleLogging("BinlogSync");
 }
 
-//static void daemonize() {
-//  if (fork() != 0) exit(0); /* parent exits */
-//  setsid(); /* create a new session */
-//}
-//
-//static void close_std() {
-//  int fd;
-//  if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
-//    dup2(fd, STDIN_FILENO);
-//    dup2(fd, STDOUT_FILENO);
-//    dup2(fd, STDERR_FILENO);
-//    close(fd);
-//  }
-//}
-//
+static void daemonize() {
+  if (fork() != 0) exit(0); /* parent exits */
+  setsid(); /* create a new session */
+}
+
+static void close_std() {
+  int fd;
+  if ((fd = open("/dev/null", O_RDWR, 0)) != -1) {
+    dup2(fd, STDIN_FILENO);
+    dup2(fd, STDOUT_FILENO);
+    dup2(fd, STDERR_FILENO);
+    close(fd);
+  }
+}
+
 //static void create_pid_file(void) {
 //  /* Try to write the pid file in a best-effort way. */
 //  std::string path(g_pika_conf->pidfile());
@@ -76,7 +76,8 @@ static void Usage()
             "\t-s     -- binlog offset(OPTIONAL default: local offset) \n"
             "\t-w     -- password for master(OPTIONAL) \n"
             "\t-l     -- local log path(OPTIONAL default: ./log) \n"
-            "  example: ./binlog_sync -p 9222 -i 127.0.0.1 -o 9221 -f 0 -s 0 -w abc -l ./log\n"
+            "\t-d     -- daemonize(OPTIONAL) \n"
+            "  example: ./binlog_sync -p 9222 -i 127.0.0.1 -o 9221 -f 0 -s 0 -w abc -l ./log -d\n"
            );
 }
 
@@ -96,8 +97,9 @@ int main(int argc, char *argv[]) {
   int64_t offset = -1;
   std::string passwd;
   std::string log_path = "./log/";
+  bool is_daemon = false;
 //  std::cout << src_port << " " << dest_host << " " << dest_port << " " << filenum << " " << offset << " " << passwd << std::endl;
-  while (-1 != (c = getopt(argc, argv, "p:i:o:f:s:w:l:h"))) {
+  while (-1 != (c = getopt(argc, argv, "p:i:o:f:s:w:l:dh"))) {
     switch (c) {
       case 'p':
         snprintf(buf, 1024, "%s", optarg);
@@ -130,6 +132,9 @@ int main(int argc, char *argv[]) {
           log_path.append("/");
         }
         break;
+      case 'd':
+        is_daemon = true;
+        break;
       case 'h':
         Usage();
         return 0;
@@ -147,20 +152,20 @@ int main(int argc, char *argv[]) {
   }
 
   // daemonize if needed
-//  if (g_pika_conf->daemonize()) {
-//    daemonize();
+  if (is_daemon) {
+    daemonize();
 //    create_pid_file();
-//  }
+  }
 
 
-  GlogInit(log_path);
+  GlogInit(log_path, is_daemon);
   SignalSetup();
 
   g_binlog_sync = new BinlogSync(filenum, offset, src_port, dest_host, dest_port, passwd, log_path);
 
-//  if (g_pika_conf->daemonize()) {
-//    close_std();
-//  }
+  if (is_daemon) {
+    close_std();
+  }
 
   g_binlog_sync->Start();
 
