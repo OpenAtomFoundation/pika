@@ -163,7 +163,6 @@ private:
   const static std::string kStatsSection;
   const static std::string kReplicationSection;
   const static std::string kKeyspaceSection;
-  const static std::string kBgstatsSection;
   const static std::string kLogSection;
   const static std::string kDataSection;
 
@@ -177,13 +176,8 @@ private:
   void InfoStats(std::string &info);
   void InfoReplication(std::string &info);
   void InfoKeyspace(std::string &info);
-  void InfoBgstats(std::string &info);
   void InfoLog(std::string &info);
   void InfoData(std::string &info);
-
-  void GetBgstats(std::stringstream &s);
-  void GetLog(std::stringstream &s);
-  void GetData(std::stringstream &s);
 };
 
 class ShutdownCmd : public Cmd {

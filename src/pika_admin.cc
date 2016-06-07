@@ -368,7 +368,6 @@ const std::string InfoCmd::kClientsSection = "clients";
 const std::string InfoCmd::kStatsSection = "stats";
 const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
-const std::string InfoCmd::kBgstatsSection = "bgstats";
 const std::string InfoCmd::kLogSection = "log";
 const std::string InfoCmd::kDataSection = "data";
 
@@ -405,8 +404,6 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
     return;
-  } else if (argv[1] == kBgstatsSection) {
-    info_section_ = kInfoBgstats;
   } else if (argv[1] == kLogSection) {
     info_section_ = kInfoLog;
   } else if (argv[1] == kDataSection) {
@@ -425,6 +422,10 @@ void InfoCmd::Do() {
     case kInfoAll:
       InfoServer(info);
       info.append("\r\n");
+      InfoData(info);
+      info.append("\r\n");
+      InfoLog(info);
+      info.append("\r\n");
       InfoClients(info);
       info.append("\r\n");
       InfoStats(info);
@@ -440,16 +441,13 @@ void InfoCmd::Do() {
       InfoClients(info);
       break;
     case kInfoStats:
-      InfoServer(info);
+      InfoStats(info);
       break;
     case kInfoReplication:
       InfoReplication(info);
       break;
     case kInfoKeyspace:
       InfoKeyspace(info);
-      break;
-    case kInfoBgstats:
-      InfoBgstats(info);
       break;
     case kInfoLog:
       InfoLog(info);
@@ -465,43 +463,6 @@ void InfoCmd::Do() {
 
   res_.AppendStringLen(info.size());
   res_.AppendContent(info);
-  return;
-}
-
-void InfoCmd::GetBgstats(std::stringstream &s) {
-  PikaServer::BGSaveInfo bgsave_info = g_pika_server->bgsave_info();
-  bool is_bgsaving = g_pika_server->bgsaving();
-  time_t current_time_s = time(NULL);
-  s << "is_bgsaving:" << (is_bgsaving ? "Yes, " : "No, ") << bgsave_info.s_start_time << ", "
-                                << (is_bgsaving ? (current_time_s - bgsave_info.start_time) : 0) << "\r\n";
-  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
-  bool is_scaning = g_pika_server->key_scaning();
-  s << "is_scaning_keyspace:" << (is_scaning ? ("Yes, " + key_scan_info.s_start_time) + "," : "No");
-  if (is_scaning) {
-    s << current_time_s - key_scan_info.start_time;
-  }
-  s << "\r\n"; 
-  s << "is_compact:" << g_pika_server->db()->GetCurrentTaskType() << "\r\n";
-  return;
-}
-
-void InfoCmd::GetLog(std::stringstream &s) {
-  uint32_t purge_max;
-  s << "log_size:" << (slash::Du(g_pika_conf->log_path()) >> 20) << "M\r\n";
-  s << "safety_purge:" << (g_pika_server->GetPurgeWindow(purge_max) ?
-      kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none") << "\r\n"; 
-  s << "expire_logs_days:" << g_pika_conf->expire_logs_days() << "\r\n";
-  s << "expire_logs_nums:" << g_pika_conf->expire_logs_nums() << "\r\n";
-  uint32_t filenum;
-  uint64_t offset;
-  g_pika_server->logger_->GetProducerStatus(&filenum, &offset);
-  s << "write2file:" << filenum << "\r\n"; 
-  return;
-}
-
-void InfoCmd::GetData(std::stringstream &s) {
-  s << "db_size:" << (slash::Du(g_pika_conf->db_path()) >> 20)  << "M\r\n";
-  s << "compression:" << g_pika_conf->compression() << "\r\n";
   return;
 }
 
@@ -526,9 +487,6 @@ void InfoCmd::InfoServer(std::string &info) {
   tmp_stream << "uptime_in_seconds:" << (current_time_s - g_pika_server->start_time_s()) << "\r\n";
   tmp_stream << "uptime_in_days:" << (current_time_s / (24*3600) - g_pika_server->start_time_s() / (24*3600) + 1) << "\r\n";
   tmp_stream << "config_file:" << g_pika_conf->conf_path() << "\r\n";
-  GetBgstats(tmp_stream);
-  GetData(tmp_stream);
-  GetLog(tmp_stream);
   
   info.append(tmp_stream.str());
 }
@@ -548,6 +506,19 @@ void InfoCmd::InfoStats(std::string &info) {
   tmp_stream << "total_connections_received:" << g_pika_server->accumulative_connections() << "\r\n";
   tmp_stream << "instantaneous_ops_per_sec:" << g_pika_server->ServerCurrentQps() << "\r\n";
   tmp_stream << "total_commands_processed:" << g_pika_server->ServerQueryNum() << "\r\n";
+  PikaServer::BGSaveInfo bgsave_info = g_pika_server->bgsave_info();
+  bool is_bgsaving = g_pika_server->bgsaving();
+  time_t current_time_s = time(NULL);
+  tmp_stream << "is_bgsaving:" << (is_bgsaving ? "Yes, " : "No, ") << bgsave_info.s_start_time << ", "
+                                << (is_bgsaving ? (current_time_s - bgsave_info.start_time) : 0) << "\r\n";
+  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
+  bool is_scaning = g_pika_server->key_scaning();
+  tmp_stream << "is_scaning_keyspace:" << (is_scaning ? ("Yes, " + key_scan_info.s_start_time) + "," : "No");
+  if (is_scaning) {
+    tmp_stream << current_time_s - key_scan_info.start_time;
+  }
+  tmp_stream << "\r\n"; 
+  tmp_stream << "is_compact:" << g_pika_server->db()->GetCurrentTaskType() << "\r\n";
 
   info.append(tmp_stream.str());
 }
@@ -609,18 +580,20 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   return;
 }
 
-void InfoCmd::InfoBgstats(std::string &info) {
-  std::stringstream tmp_stream;
-  tmp_stream << "# Bgstats" << "\r\n";
-  GetBgstats(tmp_stream);
-  info.append(tmp_stream.str());
-  return;
-}
-
 void InfoCmd::InfoLog(std::string &info) {
   std::stringstream  tmp_stream;
   tmp_stream << "# Log" << "\r\n";
-  GetLog(tmp_stream);
+  uint32_t purge_max;
+  tmp_stream << "log_size:" << (slash::Du(g_pika_conf->log_path()) >> 20) << "M\r\n";
+  tmp_stream << "safety_purge:" << (g_pika_server->GetPurgeWindow(purge_max) ?
+      kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none") << "\r\n"; 
+  tmp_stream << "expire_logs_days:" << g_pika_conf->expire_logs_days() << "\r\n";
+  tmp_stream << "expire_logs_nums:" << g_pika_conf->expire_logs_nums() << "\r\n";
+  uint32_t filenum;
+  uint64_t offset;
+  g_pika_server->logger_->GetProducerStatus(&filenum, &offset);
+  tmp_stream << "write2file:" << filenum << "\r\n"; 
+
   info.append(tmp_stream.str());
   return;
 }
@@ -628,7 +601,9 @@ void InfoCmd::InfoLog(std::string &info) {
 void InfoCmd::InfoData(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Data" << "\r\n"; 
-  GetData(tmp_stream);
+  tmp_stream << "db_size:" << (slash::Du(g_pika_conf->db_path()) >> 20)  << "M\r\n";
+  tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
+
   info.append(tmp_stream.str());
   return;
 }
