@@ -150,14 +150,12 @@ public:
     time_t start_time;
     std::string s_start_time;
     std::string path;
-    std::string tmp_path;
     uint32_t filenum;
     uint64_t offset;
     BGSaveInfo() : bgsaving(false), filenum(0), offset(0){}
     void Clear() {
       bgsaving = false;
       path.clear();
-      tmp_path.clear();
       filenum = 0;
       offset = 0;
     }

@@ -578,17 +578,11 @@ bool PikaServer::InitBgsaveEnv() {
     bgsave_info_.s_start_time.assign(s_time, len);
     std::string bgsave_path(g_pika_conf->bgsave_path());
     bgsave_info_.path = bgsave_path + g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
-    bgsave_info_.tmp_path = bgsave_path + "tmp";
     if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
       LOG(ERROR) << "remove exist bgsave dir failed";
       return false;
     }
-    slash::CreateDir(bgsave_info_.path);
-    // Prepare for tmp dir
-    if (!slash::DeleteDirIfExist(bgsave_info_.tmp_path)) {
-      LOG(ERROR) << "remove exist tmp bgsave dir failed";
-      return false;
-    }
+    slash::CreatePath(bgsave_info_.path, 0755);
     // Prepare for failed dir
     if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
       LOG(ERROR) << "remove exist fail bgsave dir failed :";
@@ -600,16 +594,8 @@ bool PikaServer::InitBgsaveEnv() {
 
 // Prepare bgsave env, need bgsave_protector protect
 bool PikaServer::InitBgsaveEngine() {
-  std::string bg_tmp_path;
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    bg_tmp_path = bgsave_info_.tmp_path;
-  }
-
   delete bgsave_engine_;
-  nemo::Status nemo_s = nemo::BackupEngine::Open(
-      nemo::BackupableOptions(bg_tmp_path, true, false), 
-      &bgsave_engine_);
+  nemo::Status nemo_s = nemo::BackupEngine::Open(db().get(), &bgsave_engine_);
   if (!nemo_s.ok()) {
     LOG(ERROR) << "open backup engine failed " << nemo_s.ToString();
     return false;
@@ -621,7 +607,7 @@ bool PikaServer::InitBgsaveEngine() {
       slash::MutexLock l(&bgsave_protector_);
       logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
     }
-    nemo_s = bgsave_engine_->SetBackupContent(db_.get());
+    nemo_s = bgsave_engine_->SetBackupContent();
     if (!nemo_s.ok()){
       LOG(ERROR) << "set backup content failed " << nemo_s.ToString();
       return false;
@@ -632,14 +618,8 @@ bool PikaServer::InitBgsaveEngine() {
 
 bool PikaServer::RunBgsaveEngine(const std::string path) {
   // Backup to tmp dir
-  nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(db().get());
+  nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(path);
   LOG(INFO) << "Create new backup finished.";
-  // Restore to bgsave dir
-  if (nemo_s.ok()) {
-    nemo_s = bgsave_engine_->RestoreDBFromBackup(
-        bgsave_engine_->GetLatestBackupID() + 1, path);
-  }
-  LOG(INFO) << "Restore backup finished.";
   
   if (!nemo_s.ok()) {
     LOG(ERROR) << "backup failed :" << nemo_s.ToString();
@@ -677,10 +657,6 @@ void PikaServer::DoBgsave(void* arg) {
   // Do bgsave
   bool ok = p->RunBgsaveEngine(info.path);
 
-  // Delete tmp
-  if (!slash::DeleteDirIfExist(info.tmp_path)) {
-    LOG(ERROR) << "remove tmp bgsave dir failed";
-  }
   // Some output
   std::ofstream out;
   out.open(info.path + "/info", std::ios::in | std::ios::trunc);
@@ -915,7 +891,7 @@ void PikaServer::DispatchBinlogBG(const std::string &key,
 
 bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {
   binlogbg_mutex_.Lock();
-  DLOG(INFO) << "Binlog serial wait: " << my_serial << ", current: " << binlogbg_serial_;
+  //DLOG(INFO) << "Binlog serial wait: " << my_serial << ", current: " << binlogbg_serial_;
   while (binlogbg_serial_ != my_serial && !binlogbg_exit_) {
     binlogbg_cond_.Wait();
   }
@@ -925,7 +901,7 @@ bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {
 
 void PikaServer::SignalNextBinlogBGSerial() {
   binlogbg_mutex_.Lock();
-  DLOG(INFO) << "Binlog serial signal: " << binlogbg_serial_;
+  //DLOG(INFO) << "Binlog serial signal: " << binlogbg_serial_;
   ++binlogbg_serial_;
   binlogbg_cond_.SignalAll();
   binlogbg_mutex_.Unlock();
