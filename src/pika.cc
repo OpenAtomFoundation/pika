@@ -74,7 +74,7 @@ static void create_pid_file(void) {
 }
 
 static void IntSigHandle(const int sig) {
-  DLOG(INFO) << "Catch Signal " << sig << ", cleanup...";
+  LOG(INFO) << "Catch Signal " << sig << ", cleanup...";
   g_pika_server->Exit();
 }
 
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
   PikaSignalSetup();
   InitCmdInfoTable();
 
-  DLOG(INFO) << "Server at: " << path;
+  LOG(INFO) << "Server at: " << path;
   g_pika_server = new PikaServer();
 
   if (g_pika_conf->daemonize()) {

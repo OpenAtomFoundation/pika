@@ -114,7 +114,7 @@ void TrysyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
 void TrysyncCmd::Do() {
   std::string ip_port = slash::IpPortString(slave_ip_, slave_port_);
-  DLOG(INFO) << "Trysync, Slave ip_port: " << ip_port << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
+  LOG(INFO) << "Trysync, Slave ip_port: " << ip_port << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
   slash::MutexLock l(&(g_pika_server->slave_mutex_));
   if (!g_pika_server->FindSlave(ip_port)) {
     SlaveItem s;
@@ -126,11 +126,11 @@ void TrysyncCmd::Do() {
     gettimeofday(&s.create_time, NULL);
     s.sender = NULL;
     
-    DLOG(INFO) << "Trysync, dont FindSlave, so AddBinlogSender";
+    LOG(INFO) << "Trysync, dont FindSlave, so AddBinlogSender";
     Status status = g_pika_server->AddBinlogSender(s, filenum_, pro_offset_);
     if (status.ok()) {
       res_.AppendInteger(s.sid);
-      DLOG(INFO) << "Send Sid to Slave: " << s.sid;
+      LOG(INFO) << "Send Sid to Slave: " << s.sid;
       g_pika_server->BecomeMaster();
     } else if (status.IsIncomplete()) {
       res_.AppendString(kInnerReplWait);

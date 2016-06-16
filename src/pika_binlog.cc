@@ -93,7 +93,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
   std::string profile;
 
   if (!slash::FileExists(manifest)) {
-    DLOG(INFO) << "Binlog: Manifest file not exist";
+    LOG(INFO) << "Binlog: Manifest file not exist, we create a new one.";
 
     profile = NewFileName(filename, pro_num_);
     s = slash::NewWritableFile(profile, &queue_);
@@ -109,7 +109,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
     version_ = new Version(versionfile_);
     version_->StableSave();
   } else {
-    DLOG(INFO) << "Binlog: Find the exist file ";
+    LOG(INFO) << "Binlog: Find the exist file.";
 
     s = slash::NewRWFile(manifest, &versionfile_);
     if (s.ok()) {

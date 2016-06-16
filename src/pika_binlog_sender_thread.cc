@@ -41,7 +41,7 @@ PikaBinlogSenderThread::~PikaBinlogSenderThread() {
   delete [] backing_store_;
   delete cli_;
 
-  DLOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
+  LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
 }
 
 int PikaBinlogSenderThread::trim() {
@@ -255,7 +255,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
 
     // 1. Connect to slave
     result = cli_->Connect(ip_, port_);
-    DLOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") " << result.ToString();
+    LOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") " << result.ToString();
 
     if (result.ok()) {
       while (true) {
@@ -265,7 +265,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
           //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
 
           if (s.IsCorruption()) {     // should exit
-            DLOG(INFO) << "BinlogSender will exit";
+            LOG(INFO) << "BinlogSender Parse failed, will exit";
             //close(sockfd_);
             break;
           } else if (s.IsIOError()) {

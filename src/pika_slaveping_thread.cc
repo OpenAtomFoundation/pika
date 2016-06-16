@@ -27,10 +27,10 @@ pink::Status PikaSlavepingThread::RecvProc() {
     DLOG(INFO) << "Reply from master after ping: " << cli_->argv_[0];
     if (cli_->argv_[0] == "pong" || cli_->argv_[0] == "ok") {
     } else {
-      s = pink::Status::Corruption("");
+      s = pink::Status::Corruption("Reply is not pong or ok");
     }
   } else {
-    DLOG(INFO) << "RecvProc, recv error: " << s.ToString();
+    LOG(INFO) << "RecvProc, recv error: " << s.ToString();
   }
   return s;
 }
@@ -50,7 +50,7 @@ void* PikaSlavepingThread::ThreadMain() {
       g_pika_server->PlusMasterConnection();
       while (true) {
         if (should_exit_) {
-          DLOG(INFO) << "Close Slaveping Thread now";
+          LOG(INFO) << "Close Slaveping Thread now";
           close(cli_->fd());
           g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
           break;
@@ -61,20 +61,20 @@ void* PikaSlavepingThread::ThreadMain() {
           s = RecvProc();
         }
         if (s.ok()) {
-          DLOG(INFO) << "Ping master success";
+          LOG(INFO) << "Ping master success";
           gettimeofday(&last_interaction, NULL);
         } else if (s.IsTimeout()) {
-          DLOG(INFO) << "Slaveping timeout once";
+          LOG(INFO) << "Slaveping timeout once";
           gettimeofday(&now, NULL);
           if (now.tv_sec - last_interaction.tv_sec > 30) {
             //timeout;
-            DLOG(INFO) << "Ping master timeout";
+            LOG(INFO) << "Ping master timeout";
             close(cli_->fd());
             g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
             break;
           }
         } else {
-          DLOG(INFO) << "Ping master error";
+          LOG(INFO) << "Ping master error";
           close(cli_->fd());
           g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
           break;
@@ -83,9 +83,9 @@ void* PikaSlavepingThread::ThreadMain() {
       }
       g_pika_server->MinusMasterConnection();
     } else if (!should_exit_) {
-      DLOG(INFO) << "Slaveping, Connect timeout";
+      LOG(INFO) << "Slaveping, Connect timeout";
       if ((++connect_retry_times) >= 30) {
-        DLOG(INFO) << "Slaveping, Connect timeout 10 times, disconnect with master";
+        LOG(INFO) << "Slaveping, Connect timeout 10 times, disconnect with master";
         close(cli_->fd());
         g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
         connect_retry_times = 0;

@@ -91,7 +91,7 @@ PikaServer::~PikaServer() {
   while (iter != slaves_.end()) {
     delete static_cast<PikaBinlogSenderThread*>(iter->sender);
     iter =  slaves_.erase(iter);
-    DLOG(INFO) << "Delete slave success";
+    LOG(INFO) << "Delete slave success";
   }
   }
   delete ping_thread_;
@@ -114,7 +114,7 @@ PikaServer::~PikaServer() {
   pthread_rwlock_destroy(&state_protector_);
   pthread_rwlock_destroy(&rwlock_);
 
-  DLOG(INFO) << "PikaServer " << pthread_self() << " exit!!!";
+  LOG(INFO) << "PikaServer " << pthread_self() << " exit!!!";
 }
 
 bool PikaServer::ServerInit() {
@@ -136,7 +136,7 @@ bool PikaServer::ServerInit() {
   host_ = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
 
 	port_ = g_pika_conf->port();	
-  DLOG(INFO) << "host: " << host_ << " port: " << port_;
+  LOG(INFO) << "host: " << host_ << " port: " << port_;
 	return true;
 
 }
@@ -167,7 +167,7 @@ void PikaServer::Start() {
 
   //SetMaster("127.0.0.1", 9221);
 
-  DLOG(WARNING) << "Pika Server going to start";
+  LOG(WARNING) << "Pika Server going to start";
   while (!exit_) {
     DoTimingTask();
     // wake up every half hour
@@ -176,7 +176,7 @@ void PikaServer::Start() {
       sleep(1);
     }
   }
-  DLOG(INFO) << "Goodbye...";
+  LOG(INFO) << "Goodbye...";
   Cleanup();
 }
 
@@ -204,7 +204,7 @@ void PikaServer::DeleteSlave(int fd) {
       delete static_cast<PikaBinlogSenderThread*>(iter->sender);
       
       slaves_.erase(iter);
-      DLOG(INFO) << "Delete slave success";
+      LOG(INFO) << "Delete slave success";
       break;
     }
     iter++;
@@ -253,7 +253,7 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
 void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
-  DLOG(INFO) << "MayUpdateSlavesMap, sid: " << sid << " hb_fd: " << hb_fd;
+  LOG(INFO) << "MayUpdateSlavesMap, sid: " << sid << " hb_fd: " << hb_fd;
   while (iter != slaves_.end()) {
     if (iter->sid == sid) {
       iter->hb_fd = hb_fd;
@@ -309,7 +309,7 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
     master_port_ = master_port;
     role_ |= PIKA_ROLE_SLAVE;
     repl_state_ = PIKA_REPL_CONNECT;
-    DLOG(INFO) << "open read-only mode";
+    LOG(INFO) << "open read-only mode";
     g_pika_conf->SetReadonly(true);
     return true;
   }
@@ -318,7 +318,7 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
 
 bool PikaServer::WaitingDBSync() {
   slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
+  LOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
   if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
     return true;
   }
@@ -339,7 +339,7 @@ void PikaServer::WaitDBSyncFinish() {
 
 bool PikaServer::ShouldConnectMaster() {
   slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
+  LOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
   if (repl_state_ == PIKA_REPL_CONNECT) {
     return true;
   }
@@ -355,7 +355,7 @@ void PikaServer::ConnectMasterDone() {
 
 bool PikaServer::ShouldStartPingMaster() {
   slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_ << " repl_state " << repl_state_;
+  LOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_ << " repl_state " << repl_state_;
   if (repl_state_ == PIKA_REPL_CONNECTING && master_connection_ < 2) {
     return true;
   }
@@ -390,7 +390,7 @@ void PikaServer::PlusMasterConnection() {
 
 bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
   slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
+  LOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
   if (repl_state_ != PIKA_REPL_NO_CONNECT && repl_state_ != PIKA_REPL_WAIT_DBSYNC && ip == master_ip_) {
     return true;
   }
@@ -416,7 +416,7 @@ void PikaServer::RemoveMaster() {
     delete ping_thread_;
     ping_thread_ = NULL;
   }
-  DLOG(INFO) << "close read-only mode";
+  LOG(INFO) << "close read-only mode";
   g_pika_conf->SetReadonly(false);
 }
 
@@ -555,14 +555,14 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
     pthread_t tid = sender->thread_id();
     slave.sender_tid = tid;
 
-    DLOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.hb_fd << " stage: " << slave.stage;
+    LOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.hb_fd << " stage: " << slave.stage;
     // Add sender
 //    slash::MutexLock l(&slave_mutex_);
     slaves_.push_back(slave);
 
     return Status::OK();
   } else {
-    DLOG(INFO) << "AddBinlogSender failed";
+    LOG(INFO) << "AddBinlogSender failed";
     return Status::NotFound("AddBinlogSender bad sender");
   }
 }
@@ -793,7 +793,7 @@ bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
       break;
     }
   }
-  DLOG(INFO) << "Success purge "<< delete_num << " files to index : " << to;
+  LOG(INFO) << "Success purge "<< delete_num << " files to index : " << to;
 
   return true;
 }
@@ -826,7 +826,7 @@ void PikaServer::AutoPurge() {
     LOG(WARNING) << "Auto purge failed";
     return;
   }
-  DLOG(INFO) << "Auto Purge sucess";
+  LOG(INFO) << "Auto Purge sucess";
 }
 
 bool PikaServer::FlushAll() {
@@ -876,9 +876,9 @@ void PikaServer::PurgeDir(std::string& path) {
 
 void PikaServer::DoPurgeDir(void* arg) {
   std::string path = *(static_cast<std::string*>(arg));
-  DLOG(INFO) << "Delete dir: " << path << " start";
+  LOG(INFO) << "Delete dir: " << path << " start";
   slash::DeleteDir(path);
-  DLOG(INFO) << "Delete dir: " << path << " done";
+  LOG(INFO) << "Delete dir: " << path << " done";
   delete static_cast<std::string*>(arg);
 }
 

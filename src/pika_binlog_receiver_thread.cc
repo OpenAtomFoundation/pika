@@ -19,7 +19,7 @@ PikaBinlogReceiverThread::PikaBinlogReceiverThread(int port, int cron_interval) 
 
 PikaBinlogReceiverThread::~PikaBinlogReceiverThread() {
     DestoryCmdTable(cmds_);
-    DLOG(INFO) << "BinlogReceiver thread " << thread_id() << " exit!!!";
+    LOG(INFO) << "BinlogReceiver thread " << thread_id() << " exit!!!";
 }
 
 bool PikaBinlogReceiverThread::AccessHandle(std::string& ip) {
@@ -27,7 +27,7 @@ bool PikaBinlogReceiverThread::AccessHandle(std::string& ip) {
     ip = g_pika_server->host();
   }
   if (ThreadClientNum() != 0 || !g_pika_server->ShouldAccessConnAsMaster(ip)) {
-    DLOG(INFO) << "BinlogReceiverThread AccessHandle failed";
+    LOG(INFO) << "BinlogReceiverThread AccessHandle failed";
     return false;
   }
   g_pika_server->PlusMasterConnection();
@@ -44,7 +44,7 @@ void PikaBinlogReceiverThread::CronHandle() {
     t = cron_tasks_.front();
     cron_tasks_.pop();
     mutex_.Unlock();
-    DLOG(INFO) << "PikaBinlogReceiverThread, Got a WorkerCronTask";
+    LOG(INFO) << "PikaBinlogReceiverThread, Got a WorkerCronTask";
     switch (t.task) {
       case TASK_KILL:
         break;
@@ -71,7 +71,7 @@ void PikaBinlogReceiverThread::KillAll() {
   slash::RWLock l(&rwlock_, true);
   std::map<int, void*>::iterator iter = conns_.begin();
   while (iter != conns_.end()) {
-    DLOG(INFO) << "==========Kill Master Sender Conn==============";
+    LOG(INFO) << "==========Kill Master Sender Conn==============";
     close(iter->first);
     delete(static_cast<PikaMasterConn*>(iter->second));
     iter = conns_.erase(iter);

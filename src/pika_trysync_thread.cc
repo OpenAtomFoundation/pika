@@ -15,7 +15,7 @@ PikaTrysyncThread::~PikaTrysyncThread() {
   pthread_join(thread_id(), NULL);
   slash::StopRsync(g_pika_conf->db_sync_path());
   delete cli_;
-  DLOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
+  LOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
 }
 
 bool PikaTrysyncThread::Send() {
@@ -71,6 +71,7 @@ bool PikaTrysyncThread::RecvProc() {
     if (!is_authed && should_auth) {
       if (kInnerReplOk != slash::StringToLower(reply)) {
         g_pika_server->RemoveMaster();
+        LOG(INFO) << "Reply from master after trysync: " << reply << ", remove master";
         return false;
       }
       is_authed = true;
@@ -78,7 +79,7 @@ bool PikaTrysyncThread::RecvProc() {
       if (cli_->argv_.size() == 1 &&
           slash::string2l(reply.data(), reply.size(), &sid_)) {
         // Luckly, I got your point, the sync is comming
-        DLOG(INFO) << "Recv sid from master: " << sid_;
+        LOG(INFO) << "Recv sid from master: " << sid_;
         break;
       }
       // Failed
@@ -89,7 +90,7 @@ bool PikaTrysyncThread::RecvProc() {
         // 1, Master do bgsave first.
         // 2, Master waiting for an existing bgsaving process
         // 3, Master do dbsyncing
-        DLOG(INFO) << "Need wait to sync";
+        LOG(INFO) << "Need wait to sync";
         g_pika_server->NeedWaitDBSync();
       } else {
         g_pika_server->RemoveMaster();
@@ -186,7 +187,7 @@ void* PikaTrysyncThread::ThreadMain() {
     if (g_pika_server->WaitingDBSync()) {
       //Try to update offset by db sync
       if (TryUpdateMasterOffset()) {
-        DLOG(INFO) << "Success Update Master Offset";
+        LOG(INFO) << "Success Update Master Offset";
       }
     }
 
@@ -194,7 +195,7 @@ void* PikaTrysyncThread::ThreadMain() {
       continue;
     }
     sleep(2);
-    DLOG(INFO) << "Should connect master";
+    LOG(INFO) << "Should connect master";
     
     std::string master_ip = g_pika_server->master_ip();
     int master_port = g_pika_server->master_port();
@@ -209,7 +210,7 @@ void* PikaTrysyncThread::ThreadMain() {
     if (0 != ret) {
       LOG(ERROR) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
     }
-    DLOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
+    LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
 
 
     if ((cli_->Connect(master_ip, master_port)).ok()) {
@@ -222,7 +223,7 @@ void* PikaTrysyncThread::ThreadMain() {
         delete g_pika_server->ping_thread_;
         g_pika_server->ping_thread_ = new PikaSlavepingThread(sid_);
         g_pika_server->ping_thread_->StartThread();
-        DLOG(INFO) << "Trysync success";
+        LOG(INFO) << "Trysync success";
       }
       cli_->Close();
     } else {
