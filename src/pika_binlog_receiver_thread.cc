@@ -27,7 +27,7 @@ bool PikaBinlogReceiverThread::AccessHandle(std::string& ip) {
     ip = g_pika_server->host();
   }
   if (ThreadClientNum() != 0 || !g_pika_server->ShouldAccessConnAsMaster(ip)) {
-    LOG(INFO) << "BinlogReceiverThread AccessHandle failed";
+    LOG(WARNING) << "BinlogReceiverThread AccessHandle failed: " << ip;
     return false;
   }
   g_pika_server->PlusMasterConnection();
@@ -44,7 +44,7 @@ void PikaBinlogReceiverThread::CronHandle() {
     t = cron_tasks_.front();
     cron_tasks_.pop();
     mutex_.Unlock();
-    LOG(INFO) << "PikaBinlogReceiverThread, Got a WorkerCronTask";
+    DLOG(INFO) << "PikaBinlogReceiverThread, Got a WorkerCronTask";
     switch (t.task) {
       case TASK_KILL:
         break;

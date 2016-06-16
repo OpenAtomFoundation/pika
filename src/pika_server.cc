@@ -47,10 +47,10 @@ PikaServer::PikaServer() :
 		 option.compression = false;
   }
   std::string db_path = g_pika_conf->db_path();
-  LOG(WARNING) << "Prepare DB...";
+  LOG(INFO) << "Prepare DB...";
   db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
   assert(db_);
-  LOG(WARNING) << "DB Success";
+  LOG(INFO) << "DB Success";
 
   // Create thread
   worker_num_ = g_pika_conf->thread_num();
@@ -167,7 +167,7 @@ void PikaServer::Start() {
 
   //SetMaster("127.0.0.1", 9221);
 
-  LOG(WARNING) << "Pika Server going to start";
+  LOG(INFO) << "Pika Server going to start";
   while (!exit_) {
     DoTimingTask();
     // wake up every half hour
@@ -235,12 +235,12 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
   LOG(INFO) << "Prepare change db from: " << tmp_path;
   db_.reset();
   if (0 != slash::RenameFile(db_path.c_str(), tmp_path)) {
-    LOG(ERROR) << "Failed to rename db path when change db, error: " << strerror(errno);
+    LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
     return false;
   }
  
   if (0 != slash::RenameFile(new_path.c_str(), db_path.c_str())) {
-    LOG(ERROR) << "Failed to rename new db path when change db, error: " << strerror(errno);
+    LOG(WARNING) << "Failed to rename new db path when change db, error: " << strerror(errno);
     return false;
   }
   db_.reset(new nemo::Nemo(db_path, option));
@@ -318,7 +318,7 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
 
 bool PikaServer::WaitingDBSync() {
   slash::RWLock l(&state_protector_, false);
-  LOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
+  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
   if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
     return true;
   }
@@ -339,7 +339,7 @@ void PikaServer::WaitDBSyncFinish() {
 
 bool PikaServer::ShouldConnectMaster() {
   slash::RWLock l(&state_protector_, false);
-  LOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
+  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
   if (repl_state_ == PIKA_REPL_CONNECT) {
     return true;
   }
@@ -355,7 +355,7 @@ void PikaServer::ConnectMasterDone() {
 
 bool PikaServer::ShouldStartPingMaster() {
   slash::RWLock l(&state_protector_, false);
-  LOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_ << " repl_state " << repl_state_;
+  DLOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_ << " repl_state " << repl_state_;
   if (repl_state_ == PIKA_REPL_CONNECTING && master_connection_ < 2) {
     return true;
   }
@@ -390,7 +390,7 @@ void PikaServer::PlusMasterConnection() {
 
 bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
   slash::RWLock l(&state_protector_, false);
-  LOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
+  DLOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
   if (repl_state_ != PIKA_REPL_NO_CONNECT && repl_state_ != PIKA_REPL_WAIT_DBSYNC && ip == master_ip_) {
     return true;
   }
@@ -471,7 +471,7 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   // Get all files need to send
   std::vector<std::string> descendant;
   if (!slash::GetDescendant(bg_path, descendant)) {
-    LOG(ERROR) << "Get Descendant when try to do db sync failed";
+    LOG(WARNING) << "Get Descendant when try to do db sync failed";
   }
 
   // Iterate to send files
@@ -488,7 +488,7 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
     // We need specify the speed limit for every single file
     ret = slash::RsyncSendFile(*it, target_path, remote);
     if (0 != ret) {
-      LOG(ERROR) << "rsync send file failed! From: " << *it
+      LOG(WARNING) << "rsync send file failed! From: " << *it
         << ", To: " << target_path
         << ", At: " << ip << ":" << port
         << ", Error: " << ret;
@@ -506,7 +506,7 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   // Send info file at last
   if (0 == ret) {
     if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, kBgsaveInfoFile, remote))) {
-      LOG(ERROR) << "send info file failed";
+      LOG(WARNING) << "send info file failed";
     }
   }
 
@@ -562,7 +562,7 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
 
     return Status::OK();
   } else {
-    LOG(INFO) << "AddBinlogSender failed";
+    LOG(WARNING) << "AddBinlogSender failed";
     return Status::NotFound("AddBinlogSender bad sender");
   }
 }
@@ -579,13 +579,13 @@ bool PikaServer::InitBgsaveEnv() {
     std::string bgsave_path(g_pika_conf->bgsave_path());
     bgsave_info_.path = bgsave_path + g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
     if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
-      LOG(ERROR) << "remove exist bgsave dir failed";
+      LOG(WARNING) << "remove exist bgsave dir failed";
       return false;
     }
     slash::CreatePath(bgsave_info_.path, 0755);
     // Prepare for failed dir
     if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
-      LOG(ERROR) << "remove exist fail bgsave dir failed :";
+      LOG(WARNING) << "remove exist fail bgsave dir failed :";
       return false;
     }
   }
@@ -597,7 +597,7 @@ bool PikaServer::InitBgsaveEngine() {
   delete bgsave_engine_;
   nemo::Status nemo_s = nemo::BackupEngine::Open(db().get(), &bgsave_engine_);
   if (!nemo_s.ok()) {
-    LOG(ERROR) << "open backup engine failed " << nemo_s.ToString();
+    LOG(WARNING) << "open backup engine failed " << nemo_s.ToString();
     return false;
   }
 
@@ -609,7 +609,7 @@ bool PikaServer::InitBgsaveEngine() {
     }
     nemo_s = bgsave_engine_->SetBackupContent();
     if (!nemo_s.ok()){
-      LOG(ERROR) << "set backup content failed " << nemo_s.ToString();
+      LOG(WARNING) << "set backup content failed " << nemo_s.ToString();
       return false;
     }
   }
@@ -622,7 +622,7 @@ bool PikaServer::RunBgsaveEngine(const std::string path) {
   LOG(INFO) << "Create new backup finished.";
   
   if (!nemo_s.ok()) {
-    LOG(ERROR) << "backup failed :" << nemo_s.ToString();
+    LOG(WARNING) << "backup failed :" << nemo_s.ToString();
     return false;
   }
   return true;
@@ -759,7 +759,7 @@ bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
 {
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(binlogs)) {
-    LOG(ERROR) << "Could not get binlog files!";
+    LOG(WARNING) << "Could not get binlog files!";
     return false;
   }
 
@@ -775,7 +775,7 @@ bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
     {
       // We check this every time to avoid lock when we do file deletion
       if (!CouldPurge(it->first) && !force) {
-        LOG(INFO) << "Could not purge "<< (it->first) << ", since it is already be used";
+        LOG(WARNING) << "Could not purge "<< (it->first) << ", since it is already be used";
         return false;
       }
 
@@ -785,7 +785,7 @@ bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
         ++delete_num;
         --remain_expire_num;
       } else {
-        LOG(ERROR) << "Purge log file : " << (it->second) <<  " failed! error:" << s.ToString();
+        LOG(WARNING) << "Purge log file : " << (it->second) <<  " failed! error:" << s.ToString();
       }
     } else {
       // Break when face the first one not satisfied
@@ -793,7 +793,9 @@ bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
       break;
     }
   }
-  LOG(INFO) << "Success purge "<< delete_num << " files to index : " << to;
+  if (delete_num) {
+    LOG(INFO) << "Success purge "<< delete_num;
+  }
 
   return true;
 }
@@ -802,7 +804,7 @@ bool PikaServer::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
   std::vector<std::string> children;
   int ret = slash::GetChildren(g_pika_conf->log_path(), children);
   if (ret != 0){
-    LOG(ERROR) << "Get all files in log path failed! error:" << ret; 
+    LOG(WARNING) << "Get all files in log path failed! error:" << ret; 
     return false;
   }
 
@@ -823,10 +825,9 @@ bool PikaServer::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
 
 void PikaServer::AutoPurge() {
   if (!PurgeLogs(0, false, false)) {
-    LOG(WARNING) << "Auto purge failed";
+    DLOG(WARNING) << "Auto purge failed";
     return;
   }
-  LOG(INFO) << "Auto Purge sucess";
 }
 
 bool PikaServer::FlushAll() {
@@ -851,7 +852,7 @@ bool PikaServer::FlushAll() {
   dbpath.append("/deleting");
   slash::RenameFile(g_pika_conf->db_path(), dbpath.c_str());
 
-  LOG(WARNING) << "Delete old db...";
+  LOG(INFO) << "Delete old db...";
   db_.reset();
 
   nemo::Options option;
@@ -860,9 +861,9 @@ bool PikaServer::FlushAll() {
   if (g_pika_conf->compression() == "none") {
     option.compression = false;
   }
-  LOG(WARNING) << "Prepare open new db...";
+  LOG(INFO) << "Prepare open new db...";
   db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(g_pika_conf->db_path(), option));
-  LOG(WARNING) << "open new db success";
+  LOG(INFO) << "open new db success";
   PurgeDir(dbpath);
   return true; 
 }

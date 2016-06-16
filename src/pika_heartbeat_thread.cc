@@ -49,13 +49,13 @@ void PikaHeartbeatThread::CronHandle() {
 		slash::MutexLock l(&g_pika_server->slave_mutex_);
 		std::vector<SlaveItem>::iterator iter = g_pika_server->slaves_.begin();
 		while (iter != g_pika_server->slaves_.end()) {
-      LOG(INFO) << "sid: " << iter->sid << " ip_port: " << iter->ip_port << " port " << iter->port << " sender_tid: " << iter->sender_tid << " hb_fd: " << iter->hb_fd << " stage :" << iter->stage << " sender: " << iter->sender << " create_time: " << iter->create_time.tv_sec;
+      DLOG(INFO) << "sid: " << iter->sid << " ip_port: " << iter->ip_port << " port " << iter->port << " sender_tid: " << iter->sender_tid << " hb_fd: " << iter->hb_fd << " stage :" << iter->stage << " sender: " << iter->sender << " create_time: " << iter->create_time.tv_sec;
 			if ((iter->stage == SLAVE_ITEM_STAGE_ONE && now.tv_sec - iter->create_time.tv_sec > 30)
 				|| (iter->stage == SLAVE_ITEM_STAGE_TWO && !FindSlave(iter->hb_fd))) {
 				//pthread_kill(iter->tid);
         
         // Kill BinlogSender
-        LOG(INFO) << "Erase slave " << iter->ip_port << " from slaves map of heartbeat thread";
+        LOG(WARNING) << "Erase slave " << iter->ip_port << " from slaves map of heartbeat thread";
         {
         //TODO maybe bug here
         g_pika_server->slave_mutex_.Unlock();
@@ -82,7 +82,7 @@ bool PikaHeartbeatThread::AccessHandle(std::string& ip) {
     }
     iter++;
   }
-  LOG(INFO) << "HeartbeatThread deny connection: " << ip;
+  LOG(WARNING) << "HeartbeatThread deny connection: " << ip;
   return false;
 }
 

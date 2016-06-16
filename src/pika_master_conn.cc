@@ -54,7 +54,6 @@ int PikaMasterConn::DealMessage() {
   // Only when the server is readonly
   uint64_t serial = self_thread_->GetnPlusSerial();
   if (is_readonly) {
-    DLOG(INFO) << "Write binlog in binlog dispatch thread";
     if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
       return -2;
     }

@@ -57,7 +57,7 @@ void PikaWorkerThread::CronHandle() {
     t = cron_tasks_.front();
     cron_tasks_.pop();
     mutex_.Unlock();
-    LOG(INFO) << "PikaWorkerThread, Got a WorkerCronTask";
+    DLOG(INFO) << "PikaWorkerThread, Got a WorkerCronTask";
     switch (t.task) {
       case TASK_KILL:
         ClientKill(t.ip_port);
@@ -112,7 +112,6 @@ void PikaWorkerThread::ClientKill(std::string ip_port) {
     if (static_cast<PikaClientConn*>(iter->second)->ip_port() != ip_port) {
       continue;
     }
-    LOG(INFO) << "==========Kill Client==============";
     close(iter->first);
     delete(static_cast<PikaClientConn*>(iter->second));
     conns_.erase(iter);
@@ -124,7 +123,6 @@ void PikaWorkerThread::ClientKillAll() {
   slash::RWLock l(&rwlock_, true);
   std::map<int, void*>::iterator iter = conns_.begin();
   while (iter != conns_.end()) {
-    LOG(INFO) << "==========Kill Client==============";
     close(iter->first);
     delete(static_cast<PikaClientConn*>(iter->second));
     iter = conns_.erase(iter);

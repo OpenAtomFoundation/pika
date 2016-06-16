@@ -265,7 +265,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
           //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
 
           if (s.IsCorruption()) {     // should exit
-            LOG(INFO) << "BinlogSender Parse failed, will exit";
+            LOG(WARNING) << "BinlogSender Parse failed, will exit";
             //close(sockfd_);
             break;
           } else if (s.IsIOError()) {

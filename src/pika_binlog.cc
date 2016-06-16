@@ -98,7 +98,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
     profile = NewFileName(filename, pro_num_);
     s = slash::NewWritableFile(profile, &queue_);
     if (!s.ok()) {
-      LOG(WARNING) << "Binlog: new " << filename << " " << s.ToString();
+      LOG(INFO) << "Binlog: new " << filename << " " << s.ToString();
     }
 
     s = slash::NewRWFile(manifest, &versionfile_);

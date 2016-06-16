@@ -41,7 +41,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   // Check authed
   if (!auth_stat_.IsAuthed(cinfo_ptr)) {
-    LOG(INFO) << "(" << ip_port() << ")Authentication required, close connection";
+    LOG(WARNING) << "(" << ip_port() << ")Authentication required, close connection";
     return "-ERR NOAUTH Authentication required.\r\n";
   }
   

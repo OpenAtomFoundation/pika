@@ -42,7 +42,7 @@ bool PikaTrysyncThread::Send() {
   pink::RedisCli::SerializeCommand(argv, &tbuf_str);
 
   wbuf_str.append(tbuf_str);
-  DLOG(INFO) << wbuf_str;
+  LOG(INFO) << wbuf_str;
 
   pink::Status s;
   s = cli_->Send(&wbuf_str);
@@ -67,11 +67,11 @@ bool PikaTrysyncThread::RecvProc() {
     }
 
     reply = cli_->argv_[0];
-    DLOG(INFO) << "Reply from master after trysync: " << reply;
+    LOG(INFO) << "Reply from master after trysync: " << reply;
     if (!is_authed && should_auth) {
       if (kInnerReplOk != slash::StringToLower(reply)) {
+        LOG(WARNING) << "remove master";
         g_pika_server->RemoveMaster();
-        LOG(INFO) << "Reply from master after trysync: " << reply << ", remove master";
         return false;
       }
       is_authed = true;
@@ -93,6 +93,7 @@ bool PikaTrysyncThread::RecvProc() {
         LOG(INFO) << "Need wait to sync";
         g_pika_server->NeedWaitDBSync();
       } else {
+        LOG(WARNING) << "remove master";
         g_pika_server->RemoveMaster();
       }
       return false;
@@ -117,7 +118,7 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
   // Got new binlog offset
   std::ifstream is(info_path);
   if (!is) {
-    LOG(ERROR) << "Failed to open info file after db sync";
+    LOG(WARNING) << "Failed to open info file after db sync";
     return false;
   }
   std::string line, master_ip;
@@ -129,7 +130,7 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
       master_ip = line;
     } else if (lineno > 2 && lineno < 6) {
       if (!slash::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
-        LOG(ERROR) << "Format of info file after db sync error, line : " << line;
+        LOG(WARNING) << "Format of info file after db sync error, line : " << line;
         is.close();
         return false;
       }
@@ -138,7 +139,7 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
       else { offset = tmp; }
 
     } else if (lineno > 5) {
-      LOG(ERROR) << "Format of info file after db sync error, line : " << line;
+      LOG(WARNING) << "Format of info file after db sync error, line : " << line;
       is.close();
       return false;
     }
@@ -152,7 +153,7 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
   // Sanity check
   if (master_ip != g_pika_server->master_ip() ||
       master_port != g_pika_server->master_port()) {
-    LOG(ERROR) << "Error master ip port: " << master_ip << ":" << master_port;
+    LOG(WARNING) << "Error master ip port: " << master_ip << ":" << master_port;
     return false;
   }
 
@@ -160,7 +161,7 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
   slash::StopRsync(g_pika_conf->db_sync_path());
   slash::DeleteFile(info_path);
   if (!g_pika_server->ChangeDb(g_pika_conf->db_sync_path())) {
-    LOG(ERROR) << "Failed to change db";
+    LOG(WARNING) << "Failed to change db";
     return false;
   }
 
@@ -208,7 +209,7 @@ void* PikaTrysyncThread::ThreadMain() {
     // To make sure only data from current master is received
     int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, g_pika_conf->port() + 300);
     if (0 != ret) {
-      LOG(ERROR) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
+      LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
     }
     LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
 

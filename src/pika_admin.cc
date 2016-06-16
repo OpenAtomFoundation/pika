@@ -62,7 +62,7 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 void SlaveofCmd::Do() {
   if (is_noone_) {
     // Stop rsync
-    LOG(ERROR) << "stop rsync";
+    LOG(INFO) << "start slaveof, stop rsync first";
     slash::StopRsync(g_pika_conf->db_sync_path());
     
     g_pika_server->RemoveMaster();

@@ -15,8 +15,8 @@ pink::Status PikaSlavepingThread::Send() {
     argv.push_back(std::to_string(sid_));
     pink::RedisCli::SerializeCommand(argv, &wbuf_str);
     is_first_send_ = false;
+    LOG(INFO) << wbuf_str;
   }
-  DLOG(INFO) << wbuf_str;
   return cli_->Send(&wbuf_str);
 }
 
@@ -30,7 +30,7 @@ pink::Status PikaSlavepingThread::RecvProc() {
       s = pink::Status::Corruption("Reply is not pong or ok");
     }
   } else {
-    LOG(INFO) << "RecvProc, recv error: " << s.ToString();
+    LOG(WARNING) << "RecvProc, recv error: " << s.ToString();
   }
   return s;
 }
@@ -61,20 +61,20 @@ void* PikaSlavepingThread::ThreadMain() {
           s = RecvProc();
         }
         if (s.ok()) {
-          LOG(INFO) << "Ping master success";
+          DLOG(INFO) << "Ping master success";
           gettimeofday(&last_interaction, NULL);
         } else if (s.IsTimeout()) {
-          LOG(INFO) << "Slaveping timeout once";
+          LOG(WARNING) << "Slaveping timeout once";
           gettimeofday(&now, NULL);
           if (now.tv_sec - last_interaction.tv_sec > 30) {
             //timeout;
-            LOG(INFO) << "Ping master timeout";
+            LOG(WARNING) << "Ping master timeout";
             close(cli_->fd());
             g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
             break;
           }
         } else {
-          LOG(INFO) << "Ping master error";
+          LOG(WARNING) << "Ping master error";
           close(cli_->fd());
           g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
           break;
@@ -83,9 +83,9 @@ void* PikaSlavepingThread::ThreadMain() {
       }
       g_pika_server->MinusMasterConnection();
     } else if (!should_exit_) {
-      LOG(INFO) << "Slaveping, Connect timeout";
+      LOG(WARNING) << "Slaveping, Connect timeout";
       if ((++connect_retry_times) >= 30) {
-        LOG(INFO) << "Slaveping, Connect timeout 10 times, disconnect with master";
+        LOG(WARNING) << "Slaveping, Connect timeout 10 times, disconnect with master";
         close(cli_->fd());
         g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
         connect_retry_times = 0;
