@@ -244,10 +244,15 @@ Status Binlog::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *
 
     char buf[kHeaderSize];
 
+    uint64_t now = slash::NowMicros();
     buf[0] = static_cast<char>(n & 0xff);
     buf[1] = static_cast<char>((n & 0xff00) >> 8);
     buf[2] = static_cast<char>(n >> 16);
-    buf[3] = static_cast<char>(t);
+    buf[3] = static_cast<char>(now & 0xff);
+    buf[4] = static_cast<char>((now & 0xff00) >> 8);
+    buf[5] = static_cast<char>((now & 0xff0000) >> 16);
+    buf[6] = static_cast<char>((now & 0xff000000) >> 24);
+    buf[7] = static_cast<char>(t);
 
     s = queue_->Append(Slice(buf, kHeaderSize));
     if (s.ok()) {
@@ -330,10 +335,15 @@ Status Binlog::AppendBlank(slash::WritableFile *file, uint64_t len) {
   }
 
   char buf[kBlockSize];
+  uint64_t now = slash::NowMicros();
   buf[0] = static_cast<char>(n & 0xff);
   buf[1] = static_cast<char>((n & 0xff00) >> 8);
   buf[2] = static_cast<char>(n >> 16);
-  buf[3] = static_cast<char>(kFullType);
+  buf[3] = static_cast<char>(now & 0xff);
+  buf[4] = static_cast<char>((now & 0xff00) >> 8);
+  buf[5] = static_cast<char>((now & 0xff0000) >> 16);
+  buf[6] = static_cast<char>((now & 0xff000000) >> 24);
+  buf[7] = static_cast<char>(kFullType);
 
   Status s = file->Append(Slice(buf, kHeaderSize));
   if (s.ok()) {

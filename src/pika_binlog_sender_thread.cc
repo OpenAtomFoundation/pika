@@ -129,7 +129,7 @@ unsigned int PikaBinlogSenderThread::ReadPhysicalRecord(slash::Slice *result) {
   const uint32_t a = static_cast<uint32_t>(header[0]) & 0xff;
   const uint32_t b = static_cast<uint32_t>(header[1]) & 0xff;
   const uint32_t c = static_cast<uint32_t>(header[2]) & 0xff;
-  const unsigned int type = header[3];
+  const unsigned int type = header[7];
   const uint32_t length = a | (b << 8) | (c << 16);
   if (type == kZeroType || length == 0) {
     buffer_.clear();
