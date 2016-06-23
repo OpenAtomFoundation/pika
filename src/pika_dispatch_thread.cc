@@ -37,8 +37,8 @@ bool PikaDispatchThread::AccessHandle(std::string& ip) {
   }
 
   int client_num = ClientNum();
-  if ((client_num >= g_pika_conf->maxconnection() + g_pika_conf->root_connection_num())
-      || (client_num >= g_pika_conf->maxconnection() && ip != g_pika_server->host())) {
+  if ((client_num >= g_pika_conf->maxclients() + g_pika_conf->root_connection_num())
+      || (client_num >= g_pika_conf->maxclients() && ip != g_pika_server->host())) {
     LOG(WARNING) << "Max connections reach, Deny new comming: " << ip;
     return false;
   }
