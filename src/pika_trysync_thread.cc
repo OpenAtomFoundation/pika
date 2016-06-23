@@ -6,6 +6,7 @@
 #include "pika_server.h"
 #include "pika_conf.h"
 #include "env.h"
+#include "rsync.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;

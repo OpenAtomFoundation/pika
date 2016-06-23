@@ -50,7 +50,7 @@ public:
   int expire_logs_days()        { RWLock l(&rwlock_, false); return expire_logs_days_; }
   std::string conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
   bool readonly()               { RWLock l(&rwlock_, false); return readonly_; }
-  int maxconnection()           { RWLock l(&rwlock_, false); return maxconnection_; }
+  int maxclients()           { RWLock l(&rwlock_, false); return maxclients_; }
   int root_connection_num()     { RWLock l(&rwlock_, false); return root_connection_num_; }
   int slowlog_slower_than()     { RWLock l(&rwlock_, false); return slowlog_log_slower_than_; }
 
@@ -100,7 +100,7 @@ public:
   }
   void SetMaxConnection(const int value) {
     RWLock l(&rwlock_, true);
-    maxconnection_ = value;
+    maxclients_ = value;
   }
   void SetRootConnectionNum(const int value) {
     RWLock l(&rwlock_, true);
@@ -140,7 +140,7 @@ private:
 
   //char pidfile_[PIKA_WORD_SIZE];
   std::string compression_;
-  int maxconnection_;
+  int maxclients_;
   int root_connection_num_;
   int slowlog_log_slower_than_;
   int expire_logs_days_;
