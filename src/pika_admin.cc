@@ -1,5 +1,4 @@
 #include "slash_string.h"
-#include "rsync.h"
 #include "pika_conf.h"
 #include "pika_admin.h"
 #include "pika_server.h"
