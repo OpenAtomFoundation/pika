@@ -4,6 +4,7 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include "env.h"
+#include "rsync.h"
 #include "pika_server.h"
 #include "slash_string.h"
 #include "bg_thread.h"
