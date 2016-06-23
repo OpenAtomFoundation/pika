@@ -528,8 +528,8 @@ void InfoCmd::InfoReplication(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Replication(";
   switch (host_role) {
+    case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
-    case PIKA_ROLE_SINGLE : tmp_stream << "MASTER)\r\nrole:single\r\n"; break;
     case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\n"; break;
     case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE : tmp_stream << "MASTER/SLAVE)\r\nrole:slave\r\n"; break;
     default: info.append("ERR: server role is error\r\n"); return;
@@ -677,45 +677,45 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "port");
       EncodeInt32(&ret, g_pika_conf->port());
-  } else if (get_item == "thread_num") {
+  } else if (get_item == "thread-num") {
       ret = "*2\r\n";
-      EncodeString(&ret, "thread_num");
+      EncodeString(&ret, "thread-num");
       EncodeInt32(&ret, g_pika_conf->thread_num());
-  } else if (get_item == "sync_thread_num") {
+  } else if (get_item == "sync-thread-num") {
       ret = "*2\r\n";
-      EncodeString(&ret, "sync_thread_num");
+      EncodeString(&ret, "sync-thread-num");
       EncodeInt32(&ret, g_pika_conf->sync_thread_num());
-  } else if (get_item == "sync_buffer_size") {
+  } else if (get_item == "sync-buffer-size") {
       ret = "*2\r\n";
-      EncodeString(&ret, "sync_buffer_size");
+      EncodeString(&ret, "sync-buffer-size");
       EncodeInt32(&ret, g_pika_conf->sync_buffer_size());
-  } else if (get_item == "log_path") {
+  } else if (get_item == "log-path") {
       ret = "*2\r\n";
-      EncodeString(&ret, "log_path");
+      EncodeString(&ret, "log-path");
       EncodeString(&ret, g_pika_conf->log_path());
-  } else if (get_item == "log_level") {
+  } else if (get_item == "loglevel") {
       ret = "*2\r\n";
-      EncodeString(&ret, "log_level");
-      EncodeInt32(&ret, g_pika_conf->log_level());
-  } else if (get_item == "db_path") {
+      EncodeString(&ret, "loglevel");
+      EncodeString(&ret, g_pika_conf->log_level() ? "ERROR" : "INFO");
+  } else if (get_item == "db-path") {
       ret = "*2\r\n";
-      EncodeString(&ret, "db_path");
+      EncodeString(&ret, "db-path");
       EncodeString(&ret, g_pika_conf->db_path());
-  } else if (get_item == "db_sync_path") {
+  } else if (get_item == "db-sync-path") {
       ret = "*2\r\n";
-      EncodeString(&ret, "db_sync_path");
+      EncodeString(&ret, "db-sync-path");
       EncodeString(&ret, g_pika_conf->db_sync_path());
-  } else if (get_item == "db_sync_speed") {
+  } else if (get_item == "db-sync-speed") {
       ret = "*2\r\n";
-      EncodeString(&ret, "db_sync_speed");
+      EncodeString(&ret, "db-sync-speed");
       EncodeInt32(&ret, g_pika_conf->db_sync_speed());
   } else if (get_item == "maxmemory") {
       ret = "*2\r\n";
       EncodeString(&ret, "maxmemory");
       EncodeInt32(&ret, g_pika_conf->write_buffer_size());
-  } else if (get_item == "write_buffer_size") {
+  } else if (get_item == "write-buffer-size") {
       ret = "*2\r\n";
-      EncodeString(&ret, "write_buffer_size");
+      EncodeString(&ret, "write-buffer-size");
       EncodeInt32(&ret, g_pika_conf->write_buffer_size());
   } else if (get_item == "timeout") {
       ret = "*2\r\n";
@@ -733,57 +733,57 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "userblacklist");
       EncodeString(&ret, (g_pika_conf->suser_blacklist()).c_str());
-  } else if (get_item == "dump_prefix") {
+  } else if (get_item == "dump-prefix") {
       ret = "*2\r\n";
-      EncodeString(&ret, "dump_prefix");
+      EncodeString(&ret, "dump-prefix");
       EncodeString(&ret, g_pika_conf->bgsave_prefix());
   } else if (get_item == "daemonize") {
       ret = "*2\r\n";
       EncodeString(&ret, "daemonize");
       EncodeString(&ret, g_pika_conf->daemonize() ? "yes" : "no");
-  } else if (get_item == "dump_path") {
+  } else if (get_item == "dump-path") {
       ret = "*2\r\n";
-      EncodeString(&ret, "dump_path");
+      EncodeString(&ret, "dump-path");
       EncodeString(&ret, g_pika_conf->bgsave_path());
   } else if (get_item == "pidfile") {
       ret = "*2\r\n";
       EncodeString(&ret, "pidfile");
       EncodeString(&ret, g_pika_conf->pidfile());
-  } else if (get_item == "maxconnection") {
+  } else if (get_item == "maxclients") {
       ret = "*2\r\n";
-      EncodeString(&ret, "maxconnection");
-      EncodeInt32(&ret, g_pika_conf->maxconnection());
-  } else if (get_item == "target_file_size_base") {
+      EncodeString(&ret, "maxclients");
+      EncodeInt32(&ret, g_pika_conf->maxclients());
+  } else if (get_item == "target-file-size-base") {
       ret = "*2\r\n";
-      EncodeString(&ret, "target_file_size_base");
+      EncodeString(&ret, "target-file-size-base");
       EncodeInt32(&ret, g_pika_conf->target_file_size_base());
-  } else if (get_item == "max_background_flushes") {
+  } else if (get_item == "max-background-flushes") {
       ret = "*2\r\n";
-      EncodeString(&ret, "max_background_flushes");
+      EncodeString(&ret, "max-background-flushes");
       EncodeInt32(&ret, g_pika_conf->max_background_flushes());
-  } else if (get_item == "max_background_compactions") {
+  } else if (get_item == "max-background-compactions") {
       ret = "*2\r\n";
-      EncodeString(&ret, "max_background_compactions");
+      EncodeString(&ret, "max-background-compactions");
       EncodeInt32(&ret, g_pika_conf->max_background_compactions());
-  } else if (get_item == "expire_logs_days") {
+  } else if (get_item == "expire-logs-days") {
       ret = "*2\r\n";
-      EncodeString(&ret, "expire_logs_days");
+      EncodeString(&ret, "expire-logs-days");
       EncodeInt32(&ret, g_pika_conf->expire_logs_days());
-  } else if (get_item == "expire_logs_nums") {
+  } else if (get_item == "expire-logs-nums") {
       ret = "*2\r\n";
-      EncodeString(&ret, "expire_logs_nums");
+      EncodeString(&ret, "expire-logs-nums");
       EncodeInt32(&ret, g_pika_conf->expire_logs_nums());
-  } else if (get_item == "root_connection_num" ) {
+  } else if (get_item == "root-connection-num" ) {
       ret = "*2\r\n";
-      EncodeString(&ret, "root_connection_num");
+      EncodeString(&ret, "root-connection-num");
       EncodeInt32(&ret, g_pika_conf->root_connection_num());
-  } else if (get_item == "slowlog_log_slower_than") {
+  } else if (get_item == "slowlog-log-slower-than") {
       ret = "*2\r\n";
-      EncodeString(&ret, "slowlog_log_slower_than");
+      EncodeString(&ret, "slowlog-log-slower-than");
       EncodeInt32(&ret, g_pika_conf->slowlog_slower_than());
-  } else if (get_item == "binlog_file_size") {
+  } else if (get_item == "binlog-file-size") {
       ret = "*2\r\n";
-      EncodeString(&ret, "binlog_file_size");
+      EncodeString(&ret, "binlog-file-size");
       EncodeInt32(&ret, g_pika_conf->binlog_file_size());
   } else if (get_item == "compression") {
       ret = "*2\r\n";
@@ -798,37 +798,67 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       EncodeString(&ret, "no");
     }
   } else if (get_item == "*") {
-    ret = "*30\r\n";
+    ret = "*58\r\n";
     EncodeString(&ret, "port");
-    EncodeString(&ret, "thread_num");
-    EncodeString(&ret, "sync_thread_num");
-    EncodeString(&ret, "sync_buffer_size");
-    EncodeString(&ret, "log_path");
-    EncodeString(&ret, "log_level");
-    EncodeString(&ret, "db_path");
+    EncodeInt32(&ret, g_pika_conf->port());
+    EncodeString(&ret, "thread-num");
+    EncodeInt32(&ret, g_pika_conf->thread_num());
+    EncodeString(&ret, "sync-thread-num");
+    EncodeInt32(&ret, g_pika_conf->sync_thread_num());
+    EncodeString(&ret, "sync-buffer-size");
+    EncodeInt32(&ret, g_pika_conf->sync_buffer_size());
+    EncodeString(&ret, "log-path");
+    EncodeString(&ret, g_pika_conf->log_path());
+    EncodeString(&ret, "loglevel");
+    EncodeString(&ret, g_pika_conf->log_level() ? "ERROR" : "INFO");
+    EncodeString(&ret, "db-path");
+    EncodeString(&ret, g_pika_conf->db_path());
     EncodeString(&ret, "maxmemory");
-    EncodeString(&ret, "write_buffer_size");
+    EncodeInt32(&ret, g_pika_conf->maxmemory());
+    EncodeString(&ret, "write-buffer-size");
+    EncodeInt32(&ret, g_pika_conf->write_buffer_size());
     EncodeString(&ret, "timeout");
+    EncodeInt32(&ret, g_pika_conf->timeout());
     EncodeString(&ret, "requirepass");
+    EncodeString(&ret, g_pika_conf->requirepass());
     EncodeString(&ret, "userpass");
+    EncodeString(&ret, g_pika_conf->userpass());
     EncodeString(&ret, "userblacklist");
+    EncodeString(&ret, g_pika_conf->suser_blacklist());
     EncodeString(&ret, "daemonize");
-    EncodeString(&ret, "dump_path");
-    EncodeString(&ret, "dump_prefix");
+    EncodeInt32(&ret, g_pika_conf->daemonize());
+    EncodeString(&ret, "dump-path");
+    EncodeString(&ret, g_pika_conf->bgsave_path());
+    EncodeString(&ret, "dump-prefix");
+    EncodeString(&ret, g_pika_conf->bgsave_prefix());
     EncodeString(&ret, "pidfile");
-    EncodeString(&ret, "maxconnection");
-    EncodeString(&ret, "target_file_size_base");
-    EncodeString(&ret, "max_background_flushes");
-    EncodeString(&ret, "max_background_compactions");
-    EncodeString(&ret, "expire_logs_days");
-    EncodeString(&ret, "expire_logs_nums");
-    EncodeString(&ret, "root_connection_num");
-    EncodeString(&ret, "slowlog_log_slower_than");
+    EncodeString(&ret, g_pika_conf->pidfile());
+    EncodeString(&ret, "maxclients");
+    EncodeInt32(&ret, g_pika_conf->maxclients());
+    EncodeString(&ret, "target-file-size-base");
+    EncodeInt32(&ret, g_pika_conf->target_file_size_base());
+    EncodeString(&ret, "max-background-flushes");
+    EncodeInt32(&ret, g_pika_conf->max_background_flushes());
+    EncodeString(&ret, "max-background-compactions");
+    EncodeInt32(&ret, g_pika_conf->max_background_compactions());
+    EncodeString(&ret, "expire-logs-days");
+    EncodeInt32(&ret, g_pika_conf->expire_logs_days());
+    EncodeString(&ret, "expire-logs-nums");
+    EncodeInt32(&ret, g_pika_conf->expire_logs_nums());
+    EncodeString(&ret, "root-connection-num");
+    EncodeInt32(&ret, g_pika_conf->root_connection_num());
+    EncodeString(&ret, "slowlog-log-slower-than");
+    EncodeInt32(&ret, g_pika_conf->slowlog_slower_than());
     EncodeString(&ret, "slave-read-only");
-    EncodeString(&ret, "binlog_file_size");
+    EncodeInt32(&ret, g_pika_conf->readonly());
+    EncodeString(&ret, "binlog-file-size");
+    EncodeInt32(&ret, g_pika_conf->binlog_file_size());
     EncodeString(&ret, "compression");
-    EncodeString(&ret, "db_sync_path");
-    EncodeString(&ret, "db_sync_speed");
+    EncodeString(&ret, g_pika_conf->compression());
+    EncodeString(&ret, "db-sync-path");
+    EncodeString(&ret, g_pika_conf->db_sync_path());
+    EncodeString(&ret, "db-sync-speed");
+    EncodeInt32(&ret, g_pika_conf->db_sync_speed());
   } else {
     ret = "*0\r\n";
   }
@@ -838,26 +868,31 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
     ret = "*13\r\n";
-    EncodeString(&ret, "log_level");
+    EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
-    EncodeString(&ret, "dump_prefix");
-    EncodeString(&ret, "maxconnection");
-    EncodeString(&ret, "expire_logs_days");
-    EncodeString(&ret, "expire_logs_nums");
-    EncodeString(&ret, "root_connection_num");
-    EncodeString(&ret, "slowlog_log_slower_than");
+    EncodeString(&ret, "dump-prefix");
+    EncodeString(&ret, "maxclients");
+    EncodeString(&ret, "expire-logs-days");
+    EncodeString(&ret, "expire-logs-nums");
+    EncodeString(&ret, "root-connection-num");
+    EncodeString(&ret, "slowlog-log-slower-than");
     EncodeString(&ret, "slave-read-only");
-    EncodeString(&ret, "db_sync_speed");
+    EncodeString(&ret, "db-sync-speed");
     return;
   }
   std::string value = config_args_v_[2];
   long int ival;
-  if (set_item == "log_level") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0 || ival > 4) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'log_level'\r\n";
+  if (set_item == "loglevel") {
+    slash::StringToLower(value);
+    if (value == "info") {
+      ival = 0;
+    } else if (value == "error") {
+      ival = 1;
+    } else {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'loglevel'\r\n";
       return;
     }
     g_pika_conf->SetLogLevel(ival);
@@ -879,40 +914,40 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   } else if (set_item == "userblacklist") {
     g_pika_conf->SetUserBlackList(value);
     ret = "+OK\r\n";
-  } else if (set_item == "dump_prefix") {
+  } else if (set_item == "dump-prefix") {
     g_pika_conf->SetBgsavePrefix(value);
     ret = "+OK\r\n";
-  } else if (set_item == "maxconnection") {
+  } else if (set_item == "maxclients") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'maxconnection'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'maxclients'\r\n";
       return;
     }
     g_pika_conf->SetMaxConnection(ival);
     ret = "+OK\r\n";
-  } else if (set_item == "expire_logs_days") {
+  } else if (set_item == "expire-logs-days") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire_logs_days'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire-logs-days'\r\n";
       return;
     }
     g_pika_conf->SetExpireLogsDays(ival);
     ret = "+OK\r\n";
-  } else if (set_item == "expire_logs_nums") {
+  } else if (set_item == "expire-logs-nums") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire_logs_nums'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire-logs-nums'\r\n";
       return;
     }
     g_pika_conf->SetExpireLogsNums(ival);
     ret = "+OK\r\n";
-  } else if (set_item == "root_connection_num") {
+  } else if (set_item == "root-connection-num") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'root_connection_num'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'root-connection-num'\r\n";
       return;
     }
     g_pika_conf->SetRootConnectionNum(ival);
     ret = "+OK\r\n";
-  } else if (set_item == "slowlog_log_slower_than") {
+  } else if (set_item == "slowlog-log-slower-than") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slowlog_slower_than'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slowlog-log-slower-than'\r\n";
       return;
     }
     g_pika_conf->SetSlowlogSlowerThan(ival);
@@ -925,14 +960,14 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     } else if (value == "0" || value == "no") {
       is_readonly = false;
     } else {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'readonly'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slave-read-only'\r\n";
       return;
     }
     g_pika_conf->SetReadonly(is_readonly);
     ret = "+OK\r\n";
-  } else if (set_item == "db_sync_speed") {
+  } else if (set_item == "db-sync-speed") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'db_sync_speed(MB)'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'db-sync-speed(MB)'\r\n";
       return;
     }
     if (ival < 0 || ival > 125) {
