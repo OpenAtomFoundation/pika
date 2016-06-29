@@ -75,9 +75,9 @@ enum RecordType {
 static const size_t kBlockSize = 64 * 1024;
 
 /*
- * Header is Type(1 byte), length (2 bytes)
+ * Header is Type(1 byte), length (3 bytes), time (4 bytes)
  */
-static const size_t kHeaderSize = 1 + 3;
+static const size_t kHeaderSize = 1 + 3 + 4;
 
 /*
  * the size of memory when we use memory mode
