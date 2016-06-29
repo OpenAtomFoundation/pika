@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <signal.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include <glog/logging.h>
 
