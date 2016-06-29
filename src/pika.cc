@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <sys/resource.h>
 #include "pika_server.h"
 #include "pika_command.h"
 #include "pika_conf.h"
@@ -131,6 +132,21 @@ int main(int argc, char *argv[]) {
   }
 
   PikaConfInit(path);
+
+  rlimit limit;
+  if (getrlimit(RLIMIT_NOFILE,&limit) == -1) {
+    LOG(WARNING) << "getrlimit error: " << strerror(errno);
+  } else if (limit.rlim_cur < g_pika_conf->maxclients() + PIKA_MIN_RESERVED_FDS) {
+    rlim_t old_limit = limit.rlim_cur;
+    rlim_t best_limit = g_pika_conf->maxclients() + PIKA_MIN_RESERVED_FDS;
+    limit.rlim_cur = best_limit > limit.rlim_max ? limit.rlim_max-1 : best_limit;
+    limit.rlim_max = best_limit > limit.rlim_max ? limit.rlim_max-1 : best_limit;
+    if (setrlimit(RLIMIT_NOFILE,&limit) != -1) {
+      LOG(WARNING) << "your 'limit -n ' of " << old_limit << " is not enough for Redis to start. pika have successfully reconfig it to " << limit.rlim_cur;
+    } else {
+      LOG(FATAL) << "your 'limit -n ' of " << old_limit << " is not enough for Redis to start. pika can not reconfig it(" << strerror(errno) << "), do it by yourself";
+    }
+  }
 
   // daemonize if needed
   if (g_pika_conf->daemonize()) {

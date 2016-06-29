@@ -93,9 +93,9 @@ bool PikaTrysyncThread::RecvProc() {
         // 3, Master do dbsyncing
         LOG(INFO) << "Need wait to sync";
         g_pika_server->NeedWaitDBSync();
-      } else {
-        LOG(WARNING) << "remove master";
-        g_pika_server->RemoveMaster();
+//      } else {
+//        LOG(WARNING) << "remove master";
+//        g_pika_server->RemoveMaster();
       }
       return false;
     }

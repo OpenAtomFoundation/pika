@@ -35,6 +35,8 @@ struct SlaveItem {
   struct timeval create_time;
 };
 
+#define PIKA_MIN_RESERVED_FDS 5000
+
 #define SLAVE_ITEM_STAGE_ONE 1
 #define SLAVE_ITEM_STAGE_TWO 2
 
