@@ -19,14 +19,14 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = self->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
-    LOG(ERROR) << "Error operation from binlog: " << opt;
+    LOG(WARNING) << "Error operation from binlog: " << opt;
   }
   c_ptr->res().clear();
 
   // Initial
   c_ptr->Initial(argv, cinfo_ptr);
   if (!c_ptr->res().ok()) {
-    LOG(ERROR) << "Fail to initial command from binlog: " << opt;
+    LOG(WARNING) << "Fail to initial command from binlog: " << opt;
   }
 
   uint64_t start_us;
@@ -52,7 +52,6 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   if (!is_readonly) {
     error_happend = !g_pika_server->WaitTillBinlogBGSerial(my_serial);
     if (!error_happend) {
-      DLOG(INFO) << "Write binlog in binlog bgthread thread";
       g_pika_server->logger_->Lock();
       g_pika_server->logger_->Put(bgarg->raw_args);
       g_pika_server->logger_->Unlock();
@@ -74,11 +73,10 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
-      LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
+      LOG(WARNING) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
     }
   }
 
-  DLOG(INFO) << "delete argv ptr";
   delete bgarg->argv;
   delete bgarg;
 }

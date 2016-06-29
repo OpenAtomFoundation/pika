@@ -12,7 +12,7 @@ PikaDispatchThread::PikaDispatchThread(int port, int work_num, PikaWorkerThread*
 }
 
 PikaDispatchThread::~PikaDispatchThread() {
-  DLOG(INFO) << "dispatch thread " << thread_id() << " exit!!!";
+  LOG(INFO) << "dispatch thread " << thread_id() << " exit!!!";
 }
 
 void PikaDispatchThread::CronHandle() {
@@ -37,13 +37,13 @@ bool PikaDispatchThread::AccessHandle(std::string& ip) {
   }
 
   int client_num = ClientNum();
-  if ((client_num >= g_pika_conf->maxconnection() + g_pika_conf->root_connection_num())
-      || (client_num >= g_pika_conf->maxconnection() && ip != g_pika_server->host())) {
-    DLOG(INFO) << "Max connections reach, Deny new comming: " << ip;
+  if ((client_num >= g_pika_conf->maxclients() + g_pika_conf->root_connection_num())
+      || (client_num >= g_pika_conf->maxclients() && ip != g_pika_server->host())) {
+    LOG(WARNING) << "Max connections reach, Deny new comming: " << ip;
     return false;
   }
 
-  DLOG(INFO) << "ip: " << ip;
+  DLOG(INFO) << "new clinet comming, ip: " << ip;
   g_pika_server->incr_accumulative_connections();
   return true;
 }

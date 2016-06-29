@@ -20,36 +20,46 @@ int PikaConf::Load()
   }
 
   // Mutable Section
-  GetConfInt("log_level", &log_level_);
+  std::string loglevel;
+  GetConfStr("loglevel", &loglevel);
+  slash::StringToLower(loglevel);
+  if (loglevel == "info") {
+    SetLogLevel(0);
+  } else if (loglevel == "error") {
+    SetLogLevel(1);
+  } else {
+    SetLogLevel(0);
+    fprintf(stderr, "invalid loglevel value in conf file, defaultly set loglevel to INFO\n");
+  }
   GetConfInt("timeout", &timeout_);
   if (timeout_ <= 0) {
       timeout_ = 60; // 60s
   }
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("userpass", &userpass_);
-  GetConfInt("maxconnection", &maxconnection_);
-  if (maxconnection_ <= 0) {
-    maxconnection_ = 20000;
+  GetConfInt("maxclients", &maxclients_);
+  if (maxclients_ <= 0) {
+    maxclients_ = 20000;
   }
-  GetConfInt("root_connection_num", &root_connection_num_);
+  GetConfInt("root-connection-num", &root_connection_num_);
   if (root_connection_num_ < 0) {
       root_connection_num_ = 2;
   }
-  GetConfInt("slowlog_log_slower_than", &slowlog_log_slower_than_);
+  GetConfInt("slowlog-log-slower-than", &slowlog_log_slower_than_);
   std::string user_blacklist;
   GetConfStr("userblacklist", &user_blacklist);
   SetUserBlackList(std::string(user_blacklist));
-  GetConfStr("dump_path", &bgsave_path_);
+  GetConfStr("dump-path", &bgsave_path_);
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
     bgsave_path_ += "/";
   }
-  GetConfStr("dump_prefix", &bgsave_prefix_);
+  GetConfStr("dump-prefix", &bgsave_prefix_);
   
-  GetConfInt("expire_logs_nums", &expire_logs_nums_);
+  GetConfInt("expire-logs-nums", &expire_logs_nums_);
   if (expire_logs_nums_ <= 10 ) {
       expire_logs_nums_ = 10;
   }
-  GetConfInt("expire_logs_days", &expire_logs_days_);
+  GetConfInt("expire-logs-days", &expire_logs_days_);
   if (expire_logs_days_ <= 0 ) {
       expire_logs_days_ = 1;
   }
@@ -60,26 +70,26 @@ int PikaConf::Load()
   // Immutable Sections
   //
   GetConfInt("port", &port_);
-  GetConfStr("log_path", &log_path_);
-  GetConfStr("db_path", &db_path_);
+  GetConfStr("log-path", &log_path_);
+  GetConfStr("db-path", &db_path_);
   if (log_path_[log_path_.length() - 1] != '/') {
     log_path_ += "/";
   }
-  GetConfInt("thread_num", &thread_num_);
+  GetConfInt("thread-num", &thread_num_);
   if (thread_num_ <= 0) {
     thread_num_ = 12;
   }
   if (thread_num_ > 24) {
     thread_num_ = 24;
   }
-  GetConfInt("sync_thread_num", &sync_thread_num_);
+  GetConfInt("sync-thread-num", &sync_thread_num_);
   if (sync_thread_num_ <= 0) {
     sync_thread_num_ = 3;
   }
   if (sync_thread_num_ > 24) {
     sync_thread_num_ = 24;
   }
-  GetConfInt("sync_buffer_size", &sync_buffer_size_);
+  GetConfInt("sync-buffer-size", &sync_buffer_size_);
   if (sync_buffer_size_ <= 0) {
     sync_buffer_size_ = 5;
   } else if (sync_buffer_size_ > 100) {
@@ -87,19 +97,19 @@ int PikaConf::Load()
   }
 
   // write_buffer_size
-  GetConfInt("write_buffer_size", &write_buffer_size_);
+  GetConfInt("write-buffer-size", &write_buffer_size_);
   if (write_buffer_size_ <= 0 ) {
       write_buffer_size_ = 4194304; // 40M
   }
 
   // target_file_size_base
-  GetConfInt("target_file_size_base", &target_file_size_base_);
+  GetConfInt("target-file-size-base", &target_file_size_base_);
   if (target_file_size_base_ <= 0) {
       target_file_size_base_ = 1048576; // 10M
   }
 
   max_background_flushes_ = 1;
-  GetConfInt("max_background_flushes", &max_background_flushes_);
+  GetConfInt("max-background-flushes", &max_background_flushes_);
   if (max_background_flushes_ <= 0) {
     max_background_flushes_ = 1;
   }
@@ -108,7 +118,7 @@ int PikaConf::Load()
   }
 
   max_background_compactions_ = 1;
-  GetConfInt("max_background_compactions", &max_background_compactions_);
+  GetConfInt("max-background-compactions", &max_background_compactions_);
   if (max_background_compactions_ <= 0) {
     max_background_compactions_ = 1;
   }
@@ -120,18 +130,18 @@ int PikaConf::Load()
   std::string dmz;
   GetConfStr("daemonize", &dmz);
   daemonize_ =  (dmz == "yes") ? true : false;
-  GetConfInt("binlog_file_size", &binlog_file_size_);
+  GetConfInt("binlog-file-size", &binlog_file_size_);
   if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024)) {
     binlog_file_size_ = 100 * 1024 * 1024;    // 100M
   }
   GetConfStr("pidfile", &pidfile_);
 
   // db sync
-  GetConfStr("db_sync_path", &db_sync_path_);
+  GetConfStr("db-sync-path", &db_sync_path_);
   if (db_sync_path_[db_sync_path_.length() - 1] != '/') {
     db_sync_path_ += "/";
   }
-  GetConfInt("db_sync_speed", &db_sync_speed_);
+  GetConfInt("db-sync-speed", &db_sync_speed_);
   if (db_sync_speed_ < 0 || db_sync_speed_ > 125) {
     db_sync_speed_ = 125;
   }
@@ -141,32 +151,32 @@ int PikaConf::Load()
 
 int PikaConf::ConfigRewrite() {
   SetConfInt("port", port_);
-  SetConfInt("thread_num", thread_num_);
-  SetConfInt("sync_thread_num", sync_thread_num_);
-  SetConfInt("sync_buffer_size", sync_buffer_size_);
-  SetConfStr("log_path", log_path_);
-  SetConfInt("log_level", log_level_);
-  SetConfStr("db_path", db_path_);
-  SetConfStr("db_sync_path", db_sync_path_);
-  SetConfInt("db_sync_speed", db_sync_speed_);
-  SetConfInt("write_buffer_size", write_buffer_size_);
+  SetConfInt("thread-num", thread_num_);
+  SetConfInt("sync-thread-num", sync_thread_num_);
+  SetConfInt("sync-buffer-size", sync_buffer_size_);
+  SetConfStr("log-path", log_path_);
+  SetConfStr("loglevel", log_level_ ? "ERROR" : "INFO");
+  SetConfStr("db-path", db_path_);
+  SetConfStr("db-sync-path", db_sync_path_);
+  SetConfInt("db-sync-speed", db_sync_speed_);
+  SetConfInt("write-buffer-size", write_buffer_size_);
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("userpass", userpass_);
   SetConfStr("userblacklist", suser_blacklist());
-  SetConfStr("dump_path", bgsave_path_);
-  SetConfStr("dump_prefix", bgsave_prefix_);
-  SetConfInt("maxconnection", maxconnection_);
-  SetConfInt("root_connection_num", root_connection_num_);
-  SetConfInt("slowlog_log_slower_than", slowlog_log_slower_than_);
-  SetConfInt("target_file_size_base", target_file_size_base_);
-  SetConfInt("max_background_flushes", max_background_flushes_);
-  SetConfInt("max_background_compactions", max_background_compactions_);
-  SetConfInt("expire_logs_nums", expire_logs_nums_);
-  SetConfInt("expire_logs_days", expire_logs_days_);
-  SetConfBool("slave_read_only", readonly_);
+  SetConfStr("dump-path", bgsave_path_);
+  SetConfStr("dump-prefix", bgsave_prefix_);
+  SetConfInt("maxclients", maxclients_);
+  SetConfInt("root-connection-num", root_connection_num_);
+  SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
+  SetConfInt("target-file-size-base", target_file_size_base_);
+  SetConfInt("max-background-flushes", max_background_flushes_);
+  SetConfInt("max-background-compactions", max_background_compactions_);
+  SetConfInt("expire-logs-nums", expire_logs_nums_);
+  SetConfInt("expire-logs-days", expire_logs_days_);
+  SetConfBool("slave-read-only", readonly_);
 
-  SetConfInt("binlog_file_size_", binlog_file_size_);
+  SetConfInt("binlog-file-size", binlog_file_size_);
   SetConfStr("compression", compression_);
 
   return WriteBack();

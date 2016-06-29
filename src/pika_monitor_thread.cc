@@ -28,7 +28,7 @@ PikaMonitorThread::~PikaMonitorThread() {
       ++iter) {
     close(iter->fd);
   }
-  DLOG(INFO) << " PikaMonitorThread " << pthread_self() << " exit!!!";
+  LOG(INFO) << " PikaMonitorThread " << pthread_self() << " exit!!!";
 }
 
 void PikaMonitorThread::AddMonitorClient(pink::RedisConn* client_ptr) {

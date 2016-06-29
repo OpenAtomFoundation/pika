@@ -42,7 +42,7 @@ int PikaMasterConn::DealMessage() {
   if (is_monitoring) {
     monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) + " [" + this->ip_port() + "]";
     for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
-      monitor_message += " \"" + *iter + "\"";
+      monitor_message += " " + slash::ToRead(*iter);
     }
     g_pika_server->monitor_thread()->AddMonitorMessage(monitor_message);
   }
@@ -54,7 +54,6 @@ int PikaMasterConn::DealMessage() {
   // Only when the server is readonly
   uint64_t serial = self_thread_->GetnPlusSerial();
   if (is_readonly) {
-    DLOG(INFO) << "Write binlog in binlog dispatch thread";
     if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
       return -2;
     }

@@ -25,8 +25,8 @@ int PikaHeartbeatConn::DealMessage() {
     memcpy(wbuf_ + wbuf_len_, "+OK\r\n", 5);
     wbuf_len_ += 5;
   } else {
-    memcpy(wbuf_ + wbuf_len_, "-ERR What the fuck are u sending\r\n", 35);
-    wbuf_len_ += 35;
+    memcpy(wbuf_ + wbuf_len_, "-ERR What the fuck are u sending\r\n", 34);
+    wbuf_len_ += 34;
   }
   return 0;
 }
