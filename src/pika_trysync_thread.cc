@@ -215,7 +215,7 @@ void* PikaTrysyncThread::ThreadMain() {
     LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
 
 
-    if ((cli_->Connect(master_ip, master_port)).ok()) {
+    if ((cli_->Connect(master_ip, master_port, g_pika_server->host())).ok()) {
       cli_->set_send_timeout(5000);
       cli_->set_recv_timeout(5000);
       if (Send() && RecvProc()) {

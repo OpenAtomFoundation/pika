@@ -254,7 +254,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
   while (!should_exit_) {
 
     // 1. Connect to slave
-    result = cli_->Connect(ip_, port_);
+    result = cli_->Connect(ip_, port_, g_pika_server->host());
     LOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") " << result.ToString();
 
     if (result.ok()) {
@@ -265,7 +265,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
           //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
 
           if (s.IsCorruption()) {     // should exit
-            LOG(WARNING) << "BinlogSender Parse failed, will exit";
+            LOG(WARNING) << "BinlogSender Parse failed, will exit, error: " << s.ToString();
             //close(sockfd_);
             break;
           } else if (s.IsIOError()) {
