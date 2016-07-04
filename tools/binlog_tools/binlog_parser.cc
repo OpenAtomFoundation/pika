@@ -21,7 +21,7 @@ static void Usage()
             "\t-i     -- path of input binlog files , default: ./old_log/\n"
             "\t-o     -- path to store output binlog files , default: ./new_log/ \n"
             "\t-f     -- files to convert , seperated by , default: 0\n"
-            "  example: ./binlog_writer -c old2new -i old_binlog_path -o new_binlog_path -f 0,1,2,3 \n"
+            "  example: ./binlog_parser -c old2new -i old_binlog_path -o new_binlog_path -f 0,1,2,3 \n"
            );
 }
   
