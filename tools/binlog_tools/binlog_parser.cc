@@ -79,6 +79,9 @@ int main(int argc, char *argv[]) {
         exit(-1);
       case 'i':
         input_path = optarg;
+        if (input_path[input_path.length() - 1] != '/' ) {
+          input_path.append("/");
+        }
         default_input_path = false;
         break;
       case 'c':
@@ -87,6 +90,9 @@ int main(int argc, char *argv[]) {
         break;
       case 'o':
         output_path = optarg;
+        if (output_path[output_path.length() - 1] != '/' ) {
+          output_path.append("/");
+        }
         default_output_path = false;
         break;
       case 'f':

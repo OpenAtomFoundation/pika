@@ -450,6 +450,25 @@ bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
   return false;
 }
 
+void PikaServer::SyncError() {
+
+  {
+  slash::RWLock l(&state_protector_, true);
+  repl_state_ = PIKA_REPL_ERROR;
+  }
+  if (ping_thread_ != NULL) {
+    ping_thread_->should_exit_ = true;
+    int err = pthread_join(ping_thread_->thread_id(), NULL);
+    if (err != 0) {
+      std::string msg = "can't join thread " + std::string(strerror(err));
+      LOG(WARNING) << msg;
+    }
+    delete ping_thread_;
+    ping_thread_ = NULL;
+  }
+  LOG(WARNING) << "Sync error, set repl_state to PIKA_REPL_ERROR";
+}
+
 void PikaServer::RemoveMaster() {
 
   {

@@ -68,11 +68,11 @@ bool PikaTrysyncThread::RecvProc() {
     }
 
     reply = cli_->argv_[0];
-    LOG(INFO) << "Reply from master after trysync: " << reply;
+    LOG(WARNING) << "Reply from master after trysync: " << reply;
     if (!is_authed && should_auth) {
       if (kInnerReplOk != slash::StringToLower(reply)) {
-        LOG(WARNING) << "remove master";
-        g_pika_server->RemoveMaster();
+        LOG(WARNING) << "auth with master, error, come in SyncError stage";
+        g_pika_server->SyncError();
         return false;
       }
       is_authed = true;
@@ -93,9 +93,9 @@ bool PikaTrysyncThread::RecvProc() {
         // 3, Master do dbsyncing
         LOG(INFO) << "Need wait to sync";
         g_pika_server->NeedWaitDBSync();
-//      } else {
-//        LOG(WARNING) << "remove master";
-//        g_pika_server->RemoveMaster();
+      } else {
+        LOG(WARNING) << "something wrong with sync, come in SyncError stage";
+        g_pika_server->SyncError();
       }
       return false;
     }
