@@ -64,7 +64,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   if (is_monitoring) {
     monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) + " [" + this->ip_port() + "]";
     for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
-      monitor_message += " \"" + *iter + "\"";
+      monitor_message += " " + slash::ToRead(*iter);
     }
     g_pika_server->monitor_thread()->AddMonitorMessage(monitor_message);
   }
