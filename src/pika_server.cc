@@ -1,8 +1,14 @@
 #include <fstream>
 #include <glog/logging.h>
 #include <assert.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <sstream>
+#include <iostream>
+#include <iterator>
 #include "env.h"
 #include "rsync.h"
 #include "pika_server.h"
@@ -60,8 +66,8 @@ PikaServer::PikaServer() :
   }
 
   pika_dispatch_thread_ = new PikaDispatchThread(port_, worker_num_, pika_worker_thread_, 3000);
-  pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(port_ + 100, 1000);
-  pika_heartbeat_thread_ = new PikaHeartbeatThread(port_ + 200, 1000);
+  pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(port_ + 1000, 1000);
+  pika_heartbeat_thread_ = new PikaHeartbeatThread(port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
   
@@ -119,22 +125,68 @@ PikaServer::~PikaServer() {
 }
 
 bool PikaServer::ServerInit() {
+	std::string defaultInterface;
+	
+	std::ifstream routeFile("/proc/net/route", std::ios_base::in);
+	if (!routeFile.good())
+	{
+	    return false;
+	}
 
-  int fd;
-  struct ifreq ifr;
+	std::string line;
+	std::vector<std::string> tokens;
+	while(std::getline(routeFile, line))
+	{
+	    std::istringstream stream(line);
+	    std::copy(std::istream_iterator<std::string>(stream),
+	              std::istream_iterator<std::string>(),
+	              std::back_inserter<std::vector<std::string> >(tokens));
+	
+	    // the default interface is the one having the second 
+	    // field, Destination, set to "00000000"
+	    if ((tokens.size() >= 2) && (tokens[1] == std::string("00000000")))
+	    {
+	        defaultInterface = tokens[0];
+	        break;
+	    }
+	
+	    tokens.clear();
+	}
+	routeFile.close();
+	LOG(INFO) << "Default Networker Interface: " << defaultInterface;
 
-  fd = socket(AF_INET, SOCK_DGRAM, 0);
+	struct ifaddrs * ifAddrStruct = NULL;
+  struct ifaddrs * ifa = NULL;
+  void * tmpAddrPtr = NULL;
 
-  /* I want to get an IPv4 IP address */
-  ifr.ifr_addr.sa_family = AF_INET;
+  getifaddrs(&ifAddrStruct);
 
-  /* I want IP address attached to "eth0" */
-  strncpy(ifr.ifr_name, "eth0", IFNAMSIZ-1);
+  for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
+      if (ifa ->ifa_addr->sa_family==AF_INET) { // Check it is
+          // a valid IPv4 address
+          tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+          char addressBuffer[INET_ADDRSTRLEN];
+          inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+					if (std::string(ifa->ifa_name) == defaultInterface) {
+						host_ = addressBuffer;
+						break;
+					}
+      }
+      else if (ifa->ifa_addr->sa_family==AF_INET6) { // Check it is
+          // a valid IPv6 address
+          tmpAddrPtr = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
+          char addressBuffer[INET6_ADDRSTRLEN];
+          inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+					if (std::string(ifa->ifa_name) == defaultInterface) {
+						host_ = addressBuffer;
+						break;
+					}
+      }
+  }
 
-  ioctl(fd, SIOCGIFADDR, &ifr);
-
-  close(fd);
-  host_ = inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
+  if (ifAddrStruct != NULL) {
+      freeifaddrs(ifAddrStruct);
+	}
 
 	port_ = g_pika_conf->port();	
   LOG(INFO) << "host: " << host_ << " port: " << port_;
@@ -540,14 +592,14 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
   std::string confile = NewFileName(logger_->filename, filenum);
   if (!slash::FileExists(confile)) {
     // Not found binlog specified by filenum
-    TryDBSync(slave_ip, slave.port + 300, cur_filenum);
+    TryDBSync(slave_ip, slave.port + 3000, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
   }
   if (!slash::NewSequentialFile(confile, &readfile).ok()) {
     return Status::IOError("AddBinlogSender new sequtialfile");
   }
 
-  PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(slave_ip, slave.port+100, readfile, filenum, con_offset);
+  PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(slave_ip, slave.port+1000, readfile, filenum, con_offset);
 
   slave.sender = sender;
 
