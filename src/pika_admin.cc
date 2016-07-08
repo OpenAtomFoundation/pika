@@ -261,6 +261,11 @@ void SelectCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
     return;
   }
+
+  int64_t db_id;
+  if (!slash::string2l(argv[1].data(), argv[1].size(), &db_id)) {
+    res_.SetRes(CmdRes::kInvalidInt);
+  }
 }
 void SelectCmd::Do() {
   res_.SetRes(CmdRes::kOk);
@@ -401,8 +406,10 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (argc == 2) {
       return;
     }
-    if (argv[2] == "1") { //only info keyspace 0 or info keyspace 1 two format
+    if (argv[2] == "1") { //info keyspace [ 0 | 1 | off ]
       rescan_ = true;
+    } else if (argv[2] == "off") {
+      off_ = true;
     } else if (argv[2] != "0") {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
@@ -451,6 +458,10 @@ void InfoCmd::Do() {
       break;
     case kInfoKeyspace:
       InfoKeyspace(info);
+      // off_ should return +OK
+      if (off_) {
+        res_.SetRes(CmdRes::kOk);
+      }
       break;
     case kInfoLog:
       InfoLog(info);
@@ -563,6 +574,12 @@ void InfoCmd::InfoReplication(std::string &info) {
 }
 
 void InfoCmd::InfoKeyspace(std::string &info) {
+  if (off_) {
+    g_pika_server->StopKeyScan();
+    off_ = false;
+    return;
+  }
+
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
   std::vector<uint64_t> &key_nums_v = key_scan_info.key_nums_v;
   if (key_scan_info.key_nums_v.size() != 5) {

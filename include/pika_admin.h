@@ -150,12 +150,13 @@ public:
     kInfoAll
   };
 
-  InfoCmd() : rescan_(false) {
+  InfoCmd() : rescan_(false), off_(false) {
   }
   virtual void Do();
 private:
   InfoSection info_section_;
   bool rescan_; //whether to rescan the keyspace
+  bool off_;
 
   const static std::string kAllSection;
   const static std::string kServerSection;
@@ -169,6 +170,7 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
     rescan_ = false;
+    off_ = false;
   }
    
   void InfoServer(std::string &info);

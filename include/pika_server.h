@@ -232,6 +232,7 @@ public:
   }
   void KeyScan();
   void RunKeyScan();
+  void StopKeyScan();
   
 
 /*
