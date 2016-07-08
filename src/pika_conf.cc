@@ -29,7 +29,8 @@ int PikaConf::Load()
     SetLogLevel(1);
   } else {
     SetLogLevel(0);
-    fprintf(stderr, "invalid loglevel value in conf file, defaultly set loglevel to INFO\n");
+    fprintf(stderr, "Invalid loglevel value in conf file, only INFO or ERROR\n");
+    exit(-1);
   }
   GetConfInt("timeout", &timeout_);
   if (timeout_ <= 0) {
