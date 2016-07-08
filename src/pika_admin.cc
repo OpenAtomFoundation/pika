@@ -803,7 +803,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       EncodeString(&ret, "no");
     }
   } else if (get_item == "*") {
-    ret = "*58\r\n";
+    ret = "*60\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "thread-num");
