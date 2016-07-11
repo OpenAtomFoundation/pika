@@ -314,6 +314,7 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
     if (iter->sid == sid) {
       iter->hb_fd = hb_fd;
       iter->stage = SLAVE_ITEM_STAGE_TWO;
+      LOG(INFO) << "New Master-Slave connection established successfully, Slave host: " << iter->ip_port;
       break;
     }
     iter++;
@@ -440,6 +441,7 @@ void PikaServer::PlusMasterConnection() {
       // two connection with master has been established
       repl_state_ = PIKA_REPL_CONNECTED;
       master_connection_ = 2;
+      LOG(INFO) << "Master-Slave connection established successfully";
     }
   }
 }
