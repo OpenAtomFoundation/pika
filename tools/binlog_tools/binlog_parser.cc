@@ -8,7 +8,8 @@
 #define INPUT_FILESIZE 104857600
 enum ConvertType {
   old2new = 1,
-  new2old = 2
+  new2old = 2,
+  new2read = 3
 };
 
 static void Usage()
@@ -17,7 +18,7 @@ static void Usage()
             "Usage: binlogparser [-h] [-c old2new -i input_path -o output_path -f filenumber -t offset ]\n"
             "\tBinlog_parser converts between pika's old binlog(before 2.1.0) and pika's new version binlog in timestamped format\n"
             "\t-h     -- show this help\n"
-            "\t-c     -- convert case: old2new new2old ,default: old2new\n"
+            "\t-c     -- convert case: old2new new2old new2read,default: old2new\n"
             "\t-i     -- path of input binlog files , default: ./old_log/\n"
             "\t-o     -- path to store output binlog files , default: ./new_log/ \n"
             "\t-f     -- files to convert , seperated by , default: 0\n"
@@ -128,8 +129,10 @@ int main(int argc, char *argv[]) {
     convert_type = old2new;
   } else if (convert_type_str == "new2old") {
     convert_type = new2old;
+  } else if (convert_type_str == "new2read") {
+    convert_type = new2read;
   } else {
-    fprintf (stderr, "undefined convert case: old2new or new2old only\n" );
+    fprintf (stderr, "undefined convert case: old2new or new2old new2read only\n" );
     exit(-1);
   }
 
@@ -152,6 +155,9 @@ int main(int argc, char *argv[]) {
   } else if(convert_type == new2old) {
     binlog_consumer = new NewBinlogConsumer(old_logger);
     binlog_producer = new OldBinlogProducer(output_path);
+  } else if(convert_type == new2read) {
+    binlog_consumer = new NewBinlogConsumer(old_logger);
+    binlog_producer = new ReadableBinlogProducer(output_path);
   }
  
 
@@ -169,6 +175,7 @@ int main(int argc, char *argv[]) {
   scratch.reserve(1024 * 1024);
   int finished_num = 0;
   uint64_t produce_time;
+  ReadableBinlogProducer* readable_producer_proxy = dynamic_cast<ReadableBinlogProducer *>(binlog_producer);
   while (true){
     s = binlog_consumer->Parse(scratch, &produce_time);
     if (s.IsEndFile()) {
@@ -184,7 +191,11 @@ int main(int argc, char *argv[]) {
       std::cout << "all binlog parsed" << std::endl;
       break;
     } else if (s.ok()) {
-      binlog_producer->Put(scratch);
+      if (convert_type == new2read) {
+        readable_producer_proxy->Put(scratch, produce_time);
+      } else {
+        binlog_producer->Put(scratch);
+      }
     } else if (!s.ok()) {
       std::cout << "something wrong when parsing old binlog " << std::endl;
       break;

@@ -36,7 +36,7 @@ class BinlogProducer {
   Status LoadFile(uint32_t file);
   Status LoadNextFile();
   virtual Status Produce(const Slice &item, int *temp_pro_offset);
-  virtual Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset) = 0;
+  virtual Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset);
   Binlog* logger_;
   
 
@@ -74,4 +74,16 @@ class OldBinlogProducer : public BinlogProducer {
   virtual Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset);
 };
 
+class ReadableBinlogProducer : public BinlogProducer {
+ public:
+
+  ReadableBinlogProducer(const std::string& binlog_path);
+
+  virtual ~ReadableBinlogProducer();
+
+
+  Status Put(const std::string& scratch, uint64_t produce_time);
+  Status Produce(const Slice &item, int *temp_pro_offset, uint64_t produce_time);
+  Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset, uint64_t produce_time);
+};
 #endif
