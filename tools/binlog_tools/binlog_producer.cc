@@ -235,7 +235,7 @@ Status NewBinlogProducer::EmitPhysicalRecord(RecordType t, const char *ptr, size
 }
 ReadableBinlogProducer::ReadableBinlogProducer(const std::string& binlog_path)
   : BinlogProducer(binlog_path) {
-    header_size_ = 1 + 3 + 40;
+    header_size_ = 1 + 3 + 28;
 }
 
 ReadableBinlogProducer::~ReadableBinlogProducer() {
@@ -250,14 +250,22 @@ Status ReadableBinlogProducer::EmitPhysicalRecord(RecordType t, const char *ptr,
     buf[0] = static_cast<char>(n & 0xff);
     buf[1] = static_cast<char>((n & 0xff00) >> 8);
     buf[2] = static_cast<char>(n >> 16);
+    buf[3] = static_cast<char>(t);
 
-    memset(buf + 3,0,sizeof(char)*50);
+    memset(buf + 4,0,sizeof(char)*30);
+    buf[4] = '\n';
+    buf[5] = 'd';
+    buf[6] = 'a';
+    buf[7] = 't';
+    buf[8] = 'e';
+    buf[9] = ':';
+    buf[10] = ' ';
     struct tm * ptm;
     time_t timet = produce_time;
     ptm = localtime(&timet);
-    strftime(buf + 3, sizeof(buf)*50, "%Y-%m-%d %H:%M:%S", ptm);
+    strftime(buf + 11, sizeof(buf)*21, "%Y-%m-%d %H:%M:%S", ptm);
 
-    buf[7] = static_cast<char>(t);
+    buf[31] = '\n';
 
     s = queue_->Append(Slice(buf, header_size_));
     if (s.ok()) {
