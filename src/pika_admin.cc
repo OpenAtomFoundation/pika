@@ -629,6 +629,13 @@ void InfoCmd::InfoData(std::string &info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
   tmp_stream << "used_memory:" << db_size << "\r\n";
 
+  uint64_t usage;
+  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_MEMTABLE, &usage);
+  tmp_stream << "db_memtable_usage:" << usage << "Bytes\r\n";
+
+  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_TABLE_READER, &usage);
+  tmp_stream << "db_tablereader_usage:" << usage << "Bytes\r\n";
+
   info.append(tmp_stream.str());
   return;
 }
