@@ -622,9 +622,12 @@ void InfoCmd::InfoLog(std::string &info) {
 
 void InfoCmd::InfoData(std::string &info) {
   std::stringstream tmp_stream;
+  
+  int64_t db_size = slash::Du(g_pika_conf->db_path());
   tmp_stream << "# Data" << "\r\n"; 
-  tmp_stream << "db_size:" << (slash::Du(g_pika_conf->db_path()) >> 20)  << "M\r\n";
+  tmp_stream << "db_size:" << (db_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
+  tmp_stream << "used_memory:" << db_size << "\r\n";
 
   info.append(tmp_stream.str());
   return;
@@ -787,6 +790,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "max-background-compactions");
       EncodeInt32(&ret, g_pika_conf->max_background_compactions());
+  } else if (get_item == "max-cache-files") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "max-cache-files");
+      EncodeInt32(&ret, g_pika_conf->max_cache_files());
   } else if (get_item == "expire-logs-days") {
       ret = "*2\r\n";
       EncodeString(&ret, "expire-logs-days");
@@ -820,7 +827,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       EncodeString(&ret, "no");
     }
   } else if (get_item == "*") {
-    ret = "*60\r\n";
+    ret = "*62\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "thread-num");
@@ -863,6 +870,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->max_background_flushes());
     EncodeString(&ret, "max-background-compactions");
     EncodeInt32(&ret, g_pika_conf->max_background_compactions());
+    EncodeString(&ret, "max-cache-files");
+    EncodeInt32(&ret, g_pika_conf->max_cache_files());
     EncodeString(&ret, "expire-logs-days");
     EncodeInt32(&ret, g_pika_conf->expire_logs_days());
     EncodeString(&ret, "expire-logs-nums");

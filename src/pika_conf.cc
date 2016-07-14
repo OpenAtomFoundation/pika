@@ -127,6 +127,12 @@ int PikaConf::Load()
     max_background_compactions_ = 4;
   }
 
+  max_cache_files_ = 5000;
+  GetConfInt("max-cache-files", &max_cache_files_);
+  if (max_cache_files_ < -1) {
+    max_cache_files_ = 5000;
+  }
+
   // daemonize
   std::string dmz;
   GetConfStr("daemonize", &dmz);
@@ -173,6 +179,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("target-file-size-base", target_file_size_base_);
   SetConfInt("max-background-flushes", max_background_flushes_);
   SetConfInt("max-background-compactions", max_background_compactions_);
+  SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("expire-logs-nums", expire_logs_nums_);
   SetConfInt("expire-logs-days", expire_logs_days_);
   SetConfBool("slave-read-only", readonly_);
