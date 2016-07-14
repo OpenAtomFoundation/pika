@@ -19,28 +19,52 @@ static void Usage()
             "\tBinlog_parser converts between pika's old binlog(before 2.1.0) and pika's new version binlog in timestamped format\n"
             "\t-h     -- show this help\n"
             "\t-c     -- convert case: old2new new2old new2read,default: old2new\n"
-            "\t-i     -- path of input binlog files , default: ./old_log/\n"
+            "\t-i     -- path of input binlog files , default: ./old_log/write2file0\n"
             "\t-o     -- path to store output binlog files , default: ./new_log/ \n"
-            "\t-f     -- files to convert , seperated by , default: 0\n"
-            "  example: ./binlog_parser -c old2new -i old_binlog_path -o new_binlog_path -f 0,1,2,3 \n"
+            "  example: ./binlog_parser -c old2new -i ./old_log/write2file0,write2file1 -o ./new_log/ \n"
            );
 }
-  
-  
-int GetFiles(std::string& files_str, std::string& pattern, std::vector<int>& files) {
-  std::string::size_type pos;  
-  std::string file;  
+
+int GetFilesId(std::string& files_str, std::vector<int>& filesId) {
+  std::string::size_type pos;
+  std::string pattern = std::string(",");
   files_str += pattern;
-  int str_size = files_str.size();  
+  int str_size = files_str.size();
+  std::string file;
+  std::string prefix = "write2file";
+  std::string::size_type id_pos;
   for(int i = 0; i < str_size; i++) {
-    pos = files_str.find(pattern,i);  
+    pos = files_str.find(pattern,i);
     if (pos != (unsigned int)str_size) {
-      file = files_str.substr(i, pos - i);  
-      files.push_back(atoi(file.c_str()));  
-      i = pos + pattern.size() - 1;  
-    }  
-  }  
-  return files.size();  
+      file = files_str.substr(i, pos - i);
+      id_pos= file.find(prefix);
+      if (id_pos == std::string::npos) {
+        std::cout << "inputfile using wrong prefix,write2file only" << std::endl;
+        exit(-1);
+      }
+      std::string fileId = file.substr(id_pos + prefix.size());
+      filesId.push_back(atoi(fileId.c_str()));
+      i = pos + pattern.size() - 1;
+    }
+  }
+  return filesId.size();
+}
+
+int SplitePathAndFiles(std::string input_str, std::string& path_str, std::vector<int>& filesId) {
+  std::string pattern = std::string("/");
+  int str_size = input_str.size();
+  if (str_size <= 1) {
+    std::cout << "input files not valid : make it followed by /write2files" << std::endl;
+  }
+  std::string::size_type found;
+  found = input_str.find_last_of(pattern);
+  if (found == std::string::npos || found >= (unsigned int)(str_size-10)) {
+    std::cout << "input path not valid : make it followed by /write2files" << std::endl;
+    exit(-1);
+  }
+  path_str = input_str.substr(0, found+1);
+  std::string files_str = input_str.substr(found + 1);
+  return GetFilesId(files_str, filesId);
 }
 
 bool CheckSequential(std::vector<int>& seq) {
@@ -62,28 +86,25 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  std::string input_path = "./old_log/";
   std::string output_path = "./new_log/";
+  std::string input_path = "./new_log/";
+  std::string input_str = "./old_log/write2file0";
   std::string convert_type_str = "old2new";
   std::string files_str = "0";
 
   // for correct inputs , we use these flags to generate warning to user
-  bool default_input_path = true;
+  bool default_input_str = true;
   bool default_output_path = true;
   bool default_convert_type = true;
-  bool default_files = true;
   char c;
-  while (-1 != (c = getopt(argc, argv, "hi:c:o:f:t:"))) {
+  while (-1 != (c = getopt(argc, argv, "hi:c:o:t:"))) {
     switch (c) {
       case 'h':
         Usage();
         exit(-1);
       case 'i':
-        input_path = optarg;
-        if (input_path[input_path.length() - 1] != '/' ) {
-          input_path.append("/");
-        }
-        default_input_path = false;
+        input_str = optarg;
+        default_input_str = false;
         break;
       case 'c':
         convert_type_str = optarg;
@@ -96,10 +117,6 @@ int main(int argc, char *argv[]) {
         }
         default_output_path = false;
         break;
-      case 'f':
-        files_str = optarg;
-        default_files = false;
-        break;
       default:
         Usage();
         exit(-1);
@@ -111,14 +128,11 @@ int main(int argc, char *argv[]) {
     fprintf (stderr, "Error: conflict path for input and output path \n" );
     exit(-1);
   }
-  if (default_input_path) {
-    fprintf (stderr, "Warning: use default input file path\n" );
+  if (default_input_str) {
+    fprintf (stderr, "Warning: use default input path and file \n" );
   }
   if (default_output_path) {
     fprintf (stderr, "Warning: use default input file path\n" );
-  }
-  if (default_files) {
-    fprintf (stderr, "Warning: use default input file number\n" );
   }
   if (default_convert_type) {
     fprintf (stderr, "Warning: use default convert type:%s \n", convert_type_str.c_str());
@@ -137,8 +151,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::vector<int> files;
-  std::string comma = std::string(",");
-  int file_num = GetFiles(files_str, comma, files);
+  int file_num = SplitePathAndFiles(input_str, input_path, files);
   int start_file = files[0];
   bool isSequential = CheckSequential(files);
   if (!isSequential) {
