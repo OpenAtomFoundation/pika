@@ -99,12 +99,13 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
     profile = NewFileName(filename, pro_num_);
     s = slash::NewWritableFile(profile, &queue_);
     if (!s.ok()) {
-      LOG(INFO) << "Binlog: new " << filename << " " << s.ToString();
+      LOG(FATAL) << "Binlog: new " << filename << " " << s.ToString();
     }
+
 
     s = slash::NewRWFile(manifest, &versionfile_);
     if (!s.ok()) {
-      LOG(WARNING) << "Binlog: new versionfile error " << s.ToString();
+      LOG(FATAL) << "Binlog: new versionfile error " << s.ToString();
     }
 
     version_ = new Version(versionfile_);
@@ -121,12 +122,16 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
       // Debug
       //version_->debug();
     } else {
-      LOG(WARNING) << "Binlog: open versionfile error";
+      LOG(FATAL) << "Binlog: open versionfile error";
     }
 
     profile = NewFileName(filename, pro_num_);
     DLOG(INFO) << "Binlog: open profile " << profile;
-    slash::AppendWritableFile(profile, &queue_, version_->pro_offset_);
+    s = slash::AppendWritableFile(profile, &queue_, version_->pro_offset_);
+    if (!s.ok()) {
+      LOG(FATAL) << "Binlog: Open file " << profile << " error " << s.ToString();
+    }
+
     uint64_t filesize = queue_->Filesize();
     DLOG(INFO) << "Binlog: filesize is " << filesize;
   }
