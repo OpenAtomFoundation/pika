@@ -294,7 +294,7 @@ static nemo::Status DoScoreStrRange(std::string begin_score, std::string end_sco
   if (begin_score == "-inf") {
     *min_score = nemo::ZSET_SCORE_MIN;
   } else if (begin_score == "inf" || begin_score == "+inf") {
-    *max_score = nemo::ZSET_SCORE_MAX;
+    *min_score = nemo::ZSET_SCORE_MAX;
   } else if (!slash::string2d(begin_score.data(), begin_score.size(), min_score)) {
     return nemo::Status::Corruption("min or max is not a float");
   } 
@@ -956,18 +956,4 @@ void ZRemrangebylexCmd::Do() {
   res_.AppendInteger(count);
   return;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
