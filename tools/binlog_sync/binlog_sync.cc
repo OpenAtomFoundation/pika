@@ -31,7 +31,7 @@ BinlogSync::BinlogSync(int64_t filenum, int64_t offset, int port, std::string& m
 
   // Create thread
 
-  binlog_receiver_thread_ = new BinlogReceiverThread(port_ + 100, 1000);
+  binlog_receiver_thread_ = new BinlogReceiverThread(port_ + 1000, 1000);
   trysync_thread_ = new TrysyncThread();
   
   pthread_rwlock_init(&state_protector_, NULL);

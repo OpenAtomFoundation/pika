@@ -43,7 +43,7 @@ void* SlavepingThread::ThreadMain() {
   pink::Status s;
   int connect_retry_times = 0;
   while (!should_exit_ && g_binlog_sync->ShouldStartPingMaster()) {
-    if (!should_exit_ && (cli_->Connect(g_binlog_sync->master_ip(), g_binlog_sync->master_port() + 200)).ok()) {
+    if (!should_exit_ && (cli_->Connect(g_binlog_sync->master_ip(), g_binlog_sync->master_port() + 2000)).ok()) {
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
       connect_retry_times = 0;
