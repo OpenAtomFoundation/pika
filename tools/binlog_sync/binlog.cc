@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include <glog/logging.h>
+#include <sys/time.h>
 
 #include "slash_mutex.h"
 
@@ -244,7 +245,10 @@ Status Binlog::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *
 
     char buf[kHeaderSize];
 
-    uint64_t now = slash::NowMicros();
+    uint64_t now ;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    now = tv.tv_sec;
     buf[0] = static_cast<char>(n & 0xff);
     buf[1] = static_cast<char>((n & 0xff00) >> 8);
     buf[2] = static_cast<char>(n >> 16);
