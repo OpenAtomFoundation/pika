@@ -46,7 +46,6 @@ class Binlog
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
 
 
-  slash::WritableFile *queue() { return queue_; }
 
 
   uint64_t file_size() {
@@ -56,15 +55,11 @@ class Binlog
   std::string filename;
 
 
-  void InitLogFile();
 
 
 
-  uint32_t consumer_num_;
-  uint64_t item_num_;
 
   Version* version_;
-  slash::WritableFile *queue_;
   slash::RWFile *versionfile_;
 
   slash::Mutex mutex_;
@@ -73,8 +68,6 @@ class Binlog
 
   int block_offset_;
 
-  char* pool_;
-  bool exit_all_consume_;
   const std::string binlog_path_;
 
   uint64_t file_size_;

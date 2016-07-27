@@ -217,12 +217,8 @@ int main(int argc, char *argv[]) {
 
 
   
-  std::cout << "testing new binlog.............................................. " << std::endl;
-  Binlog* new_logger = new Binlog(output_path, INPUT_FILESIZE);
-  std::cout << "test result:new binlog can be loaded " << std::endl;
   delete binlog_consumer;
   delete binlog_producer;
   delete old_logger;
-  delete new_logger;
   return 0;
 }

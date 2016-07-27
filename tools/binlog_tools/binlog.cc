@@ -15,14 +15,9 @@
  * Binlog
  */
 Binlog::Binlog(const std::string& binlog_path, const int file_size) :
-    consumer_num_(0),
-    item_num_(0),
     version_(NULL),
-    queue_(NULL),
     versionfile_(NULL),
     pro_num_(0),
-    pool_(NULL),
-    exit_all_consume_(false),
     binlog_path_(binlog_path),
     file_size_(file_size) {
 
@@ -40,12 +35,6 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
 
   if (!slash::FileExists(manifest)) {
     DLOG(INFO) << "Binlog: Manifest file not exist";
-
-    profile = NewFileName(filename, pro_num_);
-    s = slash::NewWritableFile(profile, &queue_);
-    if (!s.ok()) {
-      LOG(WARNING) << "Binlog: new " << filename << " " << s.ToString();
-    }
 
     s = slash::NewRWFile(manifest, &versionfile_);
     if (!s.ok()) {
@@ -68,26 +57,15 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
       LOG(WARNING) << "Binlog: open versionfile error";
     }
 
-    profile = NewFileName(filename, pro_num_);
-    slash::AppendWritableFile(profile, &queue_, version_->pro_offset_);
   }
 
-  InitLogFile();
 }
 
 Binlog::~Binlog() {
   delete version_;
   delete versionfile_;
-
-  delete queue_;
 }
 
-void Binlog::InitLogFile() {
-  assert(queue_ != NULL);
-
-  uint64_t filesize = queue_->Filesize();
-  block_offset_ = filesize % kBlockSize;
-}
 
 Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) {
   slash::RWLock(&(version_->rwlock_), false);

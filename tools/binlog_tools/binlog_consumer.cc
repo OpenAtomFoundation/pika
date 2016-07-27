@@ -153,6 +153,7 @@ Status BinlogConsumer::LoadNextFile(){
     last_record_offset_ = con_offset_ % kBlockSize;
     return Status::OK();
   } else {
+    DLOG(INFO) << "Can't find binlog file " << confile;
     return Status::Corruption("no binlog file exist to jump to");
   }
 }
