@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <string>
 #include <signal.h>
+#include <tuple>
 
 #include "binlog.h"
 #include "binlog_consumer.h"
