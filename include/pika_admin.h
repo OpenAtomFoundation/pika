@@ -202,6 +202,7 @@ private:
   void ConfigGet(std::string &ret);
   void ConfigSet(std::string &ret);
   void ConfigRewrite(std::string &ret);
+  void ConfigResetstat(std::string &ret);
 };
 
 class MonitorCmd : public Cmd {

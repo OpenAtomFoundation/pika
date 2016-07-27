@@ -1069,6 +1069,14 @@ uint64_t PikaServer::ServerQueryNum() {
   return server_query_num;
 }
 
+void PikaServer::ResetStat() {
+  for (int idx = 0; idx != worker_num_; ++idx) {
+    pika_worker_thread_[idx]->ResetThreadQuerynum();
+  }
+  pika_binlog_receiver_thread_->ResetThreadQuerynum();
+  accumulative_connections_ = 0;
+}
+
 uint64_t PikaServer::ServerCurrentQps() {
   uint64_t server_current_qps = 0;
   for (int idx = 0; idx != worker_num_; ++idx) {

@@ -269,6 +269,7 @@ void SignalNextBinlogBGSerial();
   void incr_accumulative_connections() {
     ++accumulative_connections_;  
   }
+  void ResetStat();
   slash::RecordMutex mutex_record_;
 
 private:

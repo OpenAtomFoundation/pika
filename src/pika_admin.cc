@@ -614,7 +614,7 @@ void InfoCmd::InfoLog(std::string &info) {
   uint32_t filenum;
   uint64_t offset;
   g_pika_server->logger_->GetProducerStatus(&filenum, &offset);
-  tmp_stream << "write2file:" << filenum << "\r\n"; 
+  tmp_stream << "binlog_offset:" << filenum << " " << offset << "\r\n"; 
 
   info.append(tmp_stream.str());
   return;
@@ -665,6 +665,11 @@ void ConfigCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
       res_.SetRes(CmdRes::kErrOther, "Wrong number of arguments for CONFIG rewrite");
       return;
     }
+  } else if (argv[1] == "resetstat") {
+    if (argc != 2) {
+      res_.SetRes(CmdRes::kErrOther, "Wrong number of arguments for CONFIG resetstat");
+      return;
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, "CONFIG subcommand must be one of GET, SET, RESETSTAT, REWRITE");
     return;
@@ -681,6 +686,8 @@ void ConfigCmd::Do() {
     ConfigSet(config_ret);
   } else if (config_args_v_[0] == "rewrite") {
     ConfigRewrite(config_ret);
+  } else if (config_args_v_[0] == "resetstat") {
+    ConfigResetstat(config_ret);
   }
   res_.AppendStringRaw(config_ret);
   return;
@@ -1020,6 +1027,11 @@ void ConfigCmd::ConfigSet(std::string& ret) {
 
 void ConfigCmd::ConfigRewrite(std::string &ret) {
   g_pika_conf->ConfigRewrite();
+  ret = "+OK\r\n";
+}
+
+void ConfigCmd::ConfigResetstat(std::string &ret) {
+  g_pika_server->ResetStat();
   ret = "+OK\r\n";
 }
 

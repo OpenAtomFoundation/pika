@@ -24,6 +24,12 @@ public:
     return thread_querynum_;
   }
 
+  void ResetThreadQuerynum() {
+    slash::RWLock(&rwlock_, true);
+    thread_querynum_ = 0;
+    last_thread_querynum_ = 0;
+  }
+
   uint64_t last_sec_thread_querynum() {
     slash::RWLock(&rwlock_, false);
     return last_sec_thread_querynum_;

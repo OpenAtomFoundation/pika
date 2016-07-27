@@ -3,7 +3,7 @@
 # Used for Release only.
 
 TAG="2.1.0"
-make clean && make RPATH=./lib
+make clean && make RPATH=./lib __REL=1
 
 #TAG="2.0.4"
 #make clean && make RPATH=./lib __REL=1
