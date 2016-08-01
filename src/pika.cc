@@ -37,6 +37,7 @@ static void PikaGlogInit() {
   FLAGS_log_dir = g_pika_conf->log_path();
   FLAGS_minloglevel = g_pika_conf->log_level();
   FLAGS_max_log_size = 1800;
+  FLAGS_logbufsecs = 0;
   ::google::InitGoogleLogging("pika");
 }
 
@@ -84,6 +85,7 @@ static void PikaSignalSetup() {
   signal(SIGPIPE, SIG_IGN);
   signal(SIGINT, &IntSigHandle);
   signal(SIGQUIT, &IntSigHandle);
+  signal(SIGTERM, &IntSigHandle);
 }
 
 static void usage()

@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <random>
 #include "binlog_sync.h"
 
 
@@ -15,6 +16,7 @@ static void GlogInit(std::string& log_path, bool is_daemon) {
   FLAGS_log_dir = log_path;
   FLAGS_minloglevel = 0;
   FLAGS_max_log_size = 1800;
+  FLAGS_logbufsecs = 0;
   ::google::InitGoogleLogging("BinlogSync");
 }
 
@@ -62,6 +64,7 @@ static void SignalSetup() {
   signal(SIGPIPE, SIG_IGN);
   signal(SIGINT, &IntSigHandle);
   signal(SIGQUIT, &IntSigHandle);
+  signal(SIGTERM, &IntSigHandle);
 }
 
 static void Usage()
@@ -69,15 +72,14 @@ static void Usage()
     fprintf(stderr,
             "Usage: binlog_sync [-h] [-p local_port -i master_ip -o master_port -f filenum -s offset -w password -l log_path]\n"
             "\t-h               -- show this help\n"
-            "\t-p     -- local port(REQUIRED) \n"
             "\t-i     -- master ip(OPTIONAL default: 127.0.0.1) \n"
-            "\t-o     -- master port(REQUIRED) \n"
+            "\t-p     -- master port(REQUIRED) \n"
             "\t-f     -- binlog filenum(OPTIONAL default: local offset) \n"
             "\t-s     -- binlog offset(OPTIONAL default: local offset) \n"
             "\t-w     -- password for master(OPTIONAL) \n"
             "\t-l     -- local log path(OPTIONAL default: ./log) \n"
             "\t-d     -- daemonize(OPTIONAL) \n"
-            "  example: ./binlog_sync -p 9222 -i 127.0.0.1 -o 9221 -f 0 -s 0 -w abc -l ./log -d\n"
+            "  example: ./binlog_sync -i 127.0.0.1 -p 9221 -f 0 -s 0 -w abc -l ./log -d\n"
            );
 }
 
@@ -99,17 +101,13 @@ int main(int argc, char *argv[]) {
   std::string log_path = "./log/";
   bool is_daemon = false;
 //  std::cout << src_port << " " << dest_host << " " << dest_port << " " << filenum << " " << offset << " " << passwd << std::endl;
-  while (-1 != (c = getopt(argc, argv, "p:i:o:f:s:w:l:dh"))) {
+  while (-1 != (c = getopt(argc, argv, "i:p:f:s:w:l:dh"))) {
     switch (c) {
-      case 'p':
-        snprintf(buf, 1024, "%s", optarg);
-        slash::string2l(buf, strlen(buf), &src_port);
-        break;
       case 'i':
         snprintf(buf, 1024, "%s", optarg);
         dest_host = std::string(buf);
         break;
-      case 'o':
+      case 'p':
         snprintf(buf, 1024, "%s", optarg);
         slash::string2l(buf, strlen(buf), &dest_port);
         break;
@@ -143,6 +141,12 @@ int main(int argc, char *argv[]) {
         return 0;
     }
   }
+
+  std::random_device rd;
+  std::mt19937 mt(rd());
+  std::uniform_int_distribution<int> di(10000, 60000);
+  src_port = di(mt);
+  LOG(INFO) << "Use random port: " << src_port;
 
   //std::cout << src_port << " " << dest_host << " " << dest_port << " " << filenum << " " << offset << " " << passwd << " " << log_path << std::endl;
   if (src_port == -1 || dest_port == -1) {
