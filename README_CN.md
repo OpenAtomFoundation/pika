@@ -93,6 +93,16 @@ cd output
 		方法：客户端一次执行get、hget、lindex、zscore、smembers，每个数据结构5000000个key；
 		结果：qps 170000
 ```
+
+##Pika用户
+
+<img src="http://i.imgur.com/dcHpCm4.png" height = "100" width = "120" alt="Qihoo">
+<img src="http://i.imgur.com/jjZczkN.png" height = "100" width = "120" alt="Weibo">
+<img src="http://i.imgur.com/kHqACbn.png" height = "100" width = "120" alt="Apus">
+<img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan">
+
+[更多](https://github.com/Qihoo360/pika/blob/master/USERS.md)
+
 ## 文档
 1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
 
