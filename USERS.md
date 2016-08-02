@@ -1,10 +1,13 @@
-## Qihoo
-在360, pika 广泛的用来替换线上内存容量特别大的redis. 使用的场景包括
+## 1. 奇虎360
+<img src="http://i.imgur.com/dcHpCm4.png" height = "50" width = "60" alt="Qihoo360">
 
-1. 手机助手
-2. 云盘
-3. 花椒
-...
+在360, pika已替换全部redis大容量实例和全部ssdb实例，目前已有300+实例，每天访问量150亿，存储容量13.5T，主要业务包括手机助手、云盘、花椒等
 
-目前pika 在360 有将近300实例, 每天访问量 150亿,
-存储的数据相当于13.5T的redis容量大小
+## 2. 新浪微博
+<img src="http://i.imgur.com/jjZczkN.png" height = "50" width = "60" alt="Weibo">
+
+## 3. Apus
+<img src="http://i.imgur.com/kHqACbn.png" height = "50" width = "60" alt="Apus">
+
+## 4. 非凡电商
+<img src="http://i.imgur.com/2c57z8U.png" height = "50" width = "60" alt="Ffan">
