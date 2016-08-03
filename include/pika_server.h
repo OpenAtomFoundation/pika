@@ -335,7 +335,8 @@ private:
   /*
    * DBSync use
    */
-  std::unordered_set<std::string> db_sync_slaves;
+  slash::Mutex db_sync_protector_;
+  std::unordered_set<std::string> db_sync_slaves_;
   void TryDBSync(const std::string& ip, int port, int32_t top);
   void DBSync(const std::string& ip, int port);
   static void DoDBSync(void* arg);

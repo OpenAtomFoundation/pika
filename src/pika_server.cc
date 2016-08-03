@@ -519,11 +519,13 @@ void PikaServer::TryDBSync(const std::string& ip, int port, int32_t top) {
 void PikaServer::DBSync(const std::string& ip, int port) {
   // Only one DBSync task for every ip_port
   std::string ip_port = slash::IpPortString(ip, port);
-  if (db_sync_slaves.find(ip_port) != db_sync_slaves.end()) {
-    return;   
+  {
+    slash::MutexLock ldb(&db_sync_protector_);
+    if (db_sync_slaves_.find(ip_port) != db_sync_slaves_.end()) {
+      return;
+    }
+    db_sync_slaves_.insert(ip_port);
   }
-  db_sync_slaves.insert(ip_port);
-
   // Reuse the bgsave_thread_
   // Since we expect Bgsave and DBSync execute serially
   bgsave_thread_.StartIfNeed();
@@ -590,7 +592,10 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
 
   // remove slave
   std::string ip_port = slash::IpPortString(ip, port);
-  db_sync_slaves.erase(ip_port);
+  {
+    slash::MutexLock ldb(&db_sync_protector_);
+    db_sync_slaves_.erase(ip_port);
+  }
   if (0 == ret) {
     LOG(INFO) << "rsync send files success";
   }
