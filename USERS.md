@@ -6,6 +6,11 @@
 ## 2. 新浪微博
 <img src="http://i.imgur.com/jjZczkN.png" height = "50" width = "60" alt="Weibo">
 
+使用场景:
+1. 上文件存储集群，有文件标识id.
+2. 搜索会有一些用户属性特征pika作为存储物料库之一
+3. 后台发垃圾过滤, 作为反spam
+
 已上线
 
 ## 3. Apus
