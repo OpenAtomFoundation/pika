@@ -6,7 +6,7 @@
 ## 2. 新浪微博
 <img src="http://i.imgur.com/jjZczkN.png" height = "50" width = "60" alt="Weibo">
 
-测试中，准备上线
+已上线
 
 ## 3. Apus
 <img src="http://i.imgur.com/kHqACbn.png" height = "50" width = "60" alt="Apus">
