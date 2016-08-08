@@ -7,7 +7,7 @@ os:
 
 addons:
   apt:
-    packages: ['zlib1g-dev', 'libbz2-dev', 'libsnappy-dev', 'curl', 'protobuf-dev']
+    packages: ['zlib1g-dev', 'libbz2-dev', 'libsnappy-dev', 'curl', 'libprotobuf-dev']
 
 compiler:
   - gcc
