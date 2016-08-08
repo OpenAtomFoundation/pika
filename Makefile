@@ -88,7 +88,6 @@ all: $(OBJECT)
 	if [ -d $(TOOLS_DIR) ]; then \
 		cp -r $(TOOLS_DIR)/* $(OUTPUT)/tools/; \
 	fi
-	cp -r $(TOOLS_DIR)/* $(OUTPUT)/tools/
 	rm -rf $(OBJECT)
 	@echo "Success, go, go, go..."
 
