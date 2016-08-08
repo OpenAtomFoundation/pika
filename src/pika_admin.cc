@@ -841,7 +841,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       EncodeString(&ret, "no");
     }
   } else if (get_item == "*") {
-    ret = "*62\r\n";
+    ret = "*64\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "thread-num");
@@ -904,6 +904,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, g_pika_conf->db_sync_path());
     EncodeString(&ret, "db-sync-speed");
     EncodeInt32(&ret, g_pika_conf->db_sync_speed());
+    EncodeString(&ret, "network-interface");
+    EncodeString(&ret, g_pika_conf->network_interface());
   } else {
     ret = "*0\r\n";
   }

@@ -152,6 +152,9 @@ int PikaConf::Load()
   if (db_sync_speed_ < 0 || db_sync_speed_ > 125) {
     db_sync_speed_ = 125;
   }
+  // network interface
+  network_interface_ = "";
+  GetConfStr("network-interface", &network_interface_);
 
   return ret;
 }
@@ -171,21 +174,26 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("requirepass", requirepass_);
   SetConfStr("userpass", userpass_);
   SetConfStr("userblacklist", suser_blacklist());
-  SetConfStr("dump-path", bgsave_path_);
   SetConfStr("dump-prefix", bgsave_prefix_);
+  SetConfStr("daemonize", daemonize_ ? "yes" : "no");
+  SetConfStr("dump-path", bgsave_path_);
+  SetConfStr("pidfile", pidfile_);
   SetConfInt("maxclients", maxclients_);
+  SetConfInt("target-file-size-base", target_file_size_base_);
+  SetConfInt("expire-logs-days", expire_logs_days_);
+  SetConfInt("expire-logs-nums", expire_logs_nums_);
   SetConfInt("root-connection-num", root_connection_num_);
   SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
-  SetConfInt("target-file-size-base", target_file_size_base_);
-  SetConfInt("max-background-flushes", max_background_flushes_);
-  SetConfInt("max-background-compactions", max_background_compactions_);
-  SetConfInt("max-cache-files", max_cache_files_);
-  SetConfInt("expire-logs-nums", expire_logs_nums_);
-  SetConfInt("expire-logs-days", expire_logs_days_);
   SetConfBool("slave-read-only", readonly_);
+  SetConfStr("db-sync-path", db_sync_path_);
+  SetConfInt("db-sync-speed", db_sync_speed_);
+  SetConfStr("network-interface", network_interface_);
 
   SetConfInt("binlog-file-size", binlog_file_size_);
   SetConfStr("compression", compression_);
+  SetConfInt("max-background-flushes", max_background_flushes_);
+  SetConfInt("max-background-compactions", max_background_compactions_);
+  SetConfInt("max-cache-files", max_cache_files_);
 
   return WriteBack();
 }

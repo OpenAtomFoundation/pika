@@ -54,6 +54,7 @@ public:
   int maxclients()           { RWLock l(&rwlock_, false); return maxclients_; }
   int root_connection_num()     { RWLock l(&rwlock_, false); return root_connection_num_; }
   int slowlog_slower_than()     { RWLock l(&rwlock_, false); return slowlog_log_slower_than_; }
+  std::string network_interface() { RWLock l(&rwlock_, false); return network_interface_; }
 
   // Immutable config items, we don't use lock.
   bool daemonize()              { return daemonize_; }
@@ -151,6 +152,7 @@ private:
   int max_background_flushes_;
   int max_background_compactions_;
   int max_cache_files_;
+  std::string network_interface_;
 
   //char username_[30];
   //char password_[30];
