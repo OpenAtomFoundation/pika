@@ -1,0 +1,17 @@
+sudo: required
+dist: trusty
+language: cpp
+
+os:
+  - linux
+
+addons:
+  apt:
+    packages: ['zlib1g-dev', 'libbz2-dev', 'libsnappy-dev', 'curl']
+
+compiler:
+  - gcc
+
+language: cpp
+
+script: make
