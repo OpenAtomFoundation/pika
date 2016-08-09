@@ -66,9 +66,9 @@ PikaServer::PikaServer() :
     pika_worker_thread_[i] = new PikaWorkerThread(1000);
   }
 
-  pika_dispatch_thread_ = new PikaDispatchThread(port_, worker_num_, pika_worker_thread_, 3000);
-  pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(port_ + 1000, 1000);
-  pika_heartbeat_thread_ = new PikaHeartbeatThread(port_ + 2000, 1000);
+  pika_dispatch_thread_ = new PikaDispatchThread(host_, port_, worker_num_, pika_worker_thread_, 3000);
+  pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(host_, port_ + 1000, 1000);
+  pika_heartbeat_thread_ = new PikaHeartbeatThread(host_, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
   

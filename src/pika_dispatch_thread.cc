@@ -11,6 +11,10 @@ PikaDispatchThread::PikaDispatchThread(int port, int work_num, PikaWorkerThread*
   DispatchThread::DispatchThread(port, work_num, reinterpret_cast<pink::WorkerThread<PikaClientConn>**>(pika_worker_thread), cron_interval) {
 }
 
+PikaDispatchThread::PikaDispatchThread(std::string &ip, int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval) :
+  DispatchThread::DispatchThread(ip, port, work_num, reinterpret_cast<pink::WorkerThread<PikaClientConn>**>(pika_worker_thread), cron_interval) {
+}
+
 PikaDispatchThread::~PikaDispatchThread() {
   LOG(INFO) << "dispatch thread " << thread_id() << " exit!!!";
 }

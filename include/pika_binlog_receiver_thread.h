@@ -13,7 +13,7 @@
 class PikaBinlogReceiverThread : public pink::HolyThread<PikaMasterConn>
 {
 public:
-  PikaBinlogReceiverThread(int port, int cron_interval = 0);
+  PikaBinlogReceiverThread(std::string &ip, int port, int cron_interval = 0);
   virtual ~PikaBinlogReceiverThread();
   virtual void CronHandle();
   virtual bool AccessHandle(std::string& ip);

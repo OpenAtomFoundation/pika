@@ -6,8 +6,8 @@
 
 extern PikaServer* g_pika_server;
 
-PikaHeartbeatThread::PikaHeartbeatThread(int port, int cron_interval) :
-  HolyThread::HolyThread(port, cron_interval) {
+PikaHeartbeatThread::PikaHeartbeatThread(std::string& ip, int port, int cron_interval) :
+  HolyThread::HolyThread(ip, port, cron_interval) {
 }
 
 PikaHeartbeatThread::~PikaHeartbeatThread() {

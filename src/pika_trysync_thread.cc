@@ -208,7 +208,7 @@ void* PikaTrysyncThread::ThreadMain() {
     std::string ip_port = slash::IpPortString(master_ip, master_port);
     // We append the master ip port after module name
     // To make sure only data from current master is received
-    int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, g_pika_conf->port() + 3000);
+    int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, g_pika_server->host(), g_pika_conf->port() + 3000);
     if (0 != ret) {
       LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
     }

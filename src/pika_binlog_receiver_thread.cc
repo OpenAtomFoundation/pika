@@ -6,8 +6,8 @@
 
 extern PikaServer* g_pika_server;
 
-PikaBinlogReceiverThread::PikaBinlogReceiverThread(int port, int cron_interval) :
-  HolyThread::HolyThread(port, cron_interval),
+PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::string &ip, int port, int cron_interval) :
+  HolyThread::HolyThread(ip, port, cron_interval),
   thread_querynum_(0),
   last_thread_querynum_(0),
   last_time_us_(slash::NowMicros()),
