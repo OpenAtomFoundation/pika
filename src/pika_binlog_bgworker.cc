@@ -29,7 +29,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     LOG(WARNING) << "Fail to initial command from binlog: " << opt;
   }
 
-  uint64_t start_us;
+  uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = slash::NowMicros();
   }

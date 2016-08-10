@@ -138,7 +138,7 @@ int main(int argc, char *argv[]) {
   rlimit limit;
   if (getrlimit(RLIMIT_NOFILE,&limit) == -1) {
     LOG(WARNING) << "getrlimit error: " << strerror(errno);
-  } else if (limit.rlim_cur < g_pika_conf->maxclients() + PIKA_MIN_RESERVED_FDS) {
+  } else if (limit.rlim_cur < static_cast<unsigned int>(g_pika_conf->maxclients() + PIKA_MIN_RESERVED_FDS)) {
     rlim_t old_limit = limit.rlim_cur;
     rlim_t best_limit = g_pika_conf->maxclients() + PIKA_MIN_RESERVED_FDS;
     limit.rlim_cur = best_limit > limit.rlim_max ? limit.rlim_max-1 : best_limit;
