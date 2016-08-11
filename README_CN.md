@@ -8,6 +8,20 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 * 支持主从(slaveof)
 * 完善的[运维](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明)命令
 
+
+## 快速试用
+  如果想快速试用pika，目前提供了Centos5，Centos6的binary版本，可以在[release页面](https://github.com/Qihoo360/pika/releases)看到，具体文件是pikaX.Y.Z_centosK_bin.tar.gz。
+
+```
+# 1. unzip file
+tar zxf pikaX.Y.Z_centosK_bin.tar.gz
+# 2. change working directory to output
+#     note: we should in this directory, caz the RPATH is ./lib;
+cd output
+# 3. run pika:
+./bin/pika -c conf/pika.conf
+```
+
 ## 编译安装
 
 1.在编译机上安装snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel l ibbz2-dev zlib-devel等。CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
@@ -61,18 +75,6 @@ PIKA_SOURCE表示的pika的源代码根目录；
 _VERSION表示的是编译机的CenOS版本，如6.2， 5.4...
 RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 
-## 快速试用
-  如果想快速试用pika，目前提供了Centos5，Centos6的binary版本，可以在[release页面](https://github.com/Qihoo360/pika/releases)看到，具体文件是pikaX.Y.Z_centosK_bin.tar.gz。
-
-```
-# 1. unzip file
-tar zxf pikaX.Y.Z_centosK_bin.tar.gz
-# 2. change working directory to output
-#     note: we should in this directory, caz the RPATH is ./lib;
-cd output
-# 3. run pika:
-./bin/pika -c conf/pika.conf
-```
 
 ## 性能
 ```
