@@ -27,50 +27,41 @@ cd output
 ./bin/pika -c conf/pika.conf
 ```
 
-##Install
+## Install
 
-1.Install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel libbz2-dev zlib-devel etc on you compiling host(if alreadly installed, ignore it); using "yum install" on centos system("apt-get install" on ubuntu system) is ok. If on CentOS system, run the following commands:
-   
-~~~
-	 yum install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel libbz2-dev zlib-devel
-~~~
-2.Install g++(if installed, skip). Similarly, just using "yum install" on the CentOS(apt-get on Ubuntu) is ok:
- 
-~~~
-	yum install gcc-c++
-~~~
-3.If your gcc's version is below 4.7, then change it to the 4.7 temporary. For CentOS system, run the flowing commands:
 
-~~~  
-	a. sudo wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
-	b. yum install --nogpgcheck devtoolset-1.1
-	c. scl enable devtoolset-1.1 bash
-~~~
-4.Fetch the source code: 
+### Dependencies
 
-~~~
-	a. git clone https://github.com/Qihoo360/pika
-	b. cd pika
-~~~
+* snappy - a library for fast data compression
+* zlib - a library for fast data compression
+* bzips - a library for fast data compression
+* protobuf - google protobuf library
+* glog - google log library
 
-5.Get the third party dependencies:
+### Supported platforms
 
-~~~ 
-	a. git submodule init
-	b. git submodule update
-~~~
-6.Compile: 
+* linux - Centos 5&6
 
-~~~
-	make __REL=1
-~~~
+* linux - Ubuntu
+
 If it comes to some missing libs, install them according to the prompts and retry it.
 
-##Usage
+### Compile
 
-~~~
+Upgrade your gcc to version at least 4.7 to get C++11 support.
+
+Then just type 
+
+```
+make __REL=1
+```
+
+## Usage
+
+```
 	./output/bin/pika -c ./conf/pika.conf
-~~~
+```
+
 If failed, move pika source/lib/_VERSION/lib/ to the rpath defined in Makefile and relanch. 
 
 ~~~
