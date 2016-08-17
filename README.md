@@ -49,7 +49,7 @@ cd output
 4.Fetch the source code: 
 
 ~~~
-	a. git clone git@github.com:Qihoo360/pika
+	a. git clone https://github.com/Qihoo360/pika
 	b. cd pika
 ~~~
 
