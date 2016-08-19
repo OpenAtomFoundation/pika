@@ -14,7 +14,7 @@
 已上线
 
 ## 3. Garena
-<img src="http://imgur.com/a/DPAJ3" height = "50" width = "60" alt="Apus">
+<img src="http://i.imgur.com/zoel46r.gif" height = "50" width = "60" alt="Garena">
 
 使用场景：
 1. 用在Timeline功能，读写比4:1，数据量100G多, QPS 几万
@@ -32,7 +32,7 @@
 
 ## 6. 美团网
 
-<img src="http://imgur.com/a/oeyNQ" height = "50" width = "60" alt="Meituan">
+<img src="http://i.imgur.com/rUiO5VU.png" height = "50" width = "60" alt="Meituan">
 
 使用Pika 的引擎nemo 为内部的nosql 提供多数据结构接口
 测试中, 准备上线
