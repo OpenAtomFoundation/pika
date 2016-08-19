@@ -13,12 +13,18 @@
 
 已上线
 
-## 3. Apus
+## 3. Garena
+<img src="http://i.imgur.com/kHqACbn.png" height = "50" width = "60" alt="Apus">
+
+使用场景：
+1. 用在Timeline功能，读写比4:1，QPS 15k，数据量100G
+
+## 4. Apus
 <img src="http://i.imgur.com/kHqACbn.png" height = "50" width = "60" alt="Apus">
 
 测试中，准备上线
 
-## 4. 非凡电商
+## 5. 非凡电商
 <img src="http://i.imgur.com/2c57z8U.png" height = "50" width = "60" alt="Ffan">
 
 测试中，准备上线
