@@ -101,6 +101,7 @@ Test:
 <img src="http://i.imgur.com/zoel46r.gif" height = "100" width = "120" alt="Garena">
 <img src="http://i.imgur.com/kHqACbn.png" height = "100" width = "120" alt="Apus">
 <img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan">
+
 <img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan">
 
 [More](https://github.com/Qihoo360/pika/blob/master/USERS.md)
