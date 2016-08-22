@@ -81,6 +81,7 @@ void* PikaSlavepingThread::ThreadMain() {
         }
         sleep(1);
       }
+      sleep(2);
       g_pika_server->MinusMasterConnection();
     } else if (!should_exit_) {
       LOG(WARNING) << "Slaveping, Connect timeout";
