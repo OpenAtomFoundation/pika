@@ -25,7 +25,7 @@
 
 测试中，准备上线
 
-## 5. 非凡电商
+## 5. 飞凡电商
 <img src="http://i.imgur.com/2c57z8U.png" height = "50" width = "60" alt="Ffan">
 
 测试中，准备上线
