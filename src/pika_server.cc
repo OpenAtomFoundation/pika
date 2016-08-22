@@ -102,6 +102,7 @@ PikaServer::~PikaServer() {
     LOG(INFO) << "Delete slave success";
   }
   }
+  delete pika_trysync_thread_;
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
 
@@ -112,7 +113,6 @@ PikaServer::~PikaServer() {
     delete (*binlogbg_iter);
     binlogbg_iter++;
   }
-  delete pika_trysync_thread_;
   delete pika_heartbeat_thread_;
   delete monitor_thread_;
 
@@ -450,7 +450,8 @@ void PikaServer::PlusMasterConnection() {
 bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
-  if (repl_state_ != PIKA_REPL_NO_CONNECT && repl_state_ != PIKA_REPL_WAIT_DBSYNC && ip == master_ip_) {
+//  if (repl_state_ != PIKA_REPL_NO_CONNECT && repl_state_ != PIKA_REPL_WAIT_DBSYNC && ip == master_ip_) {
+  if (repl_state_ == PIKA_REPL_CONNECTING && ip == master_ip_) {
     return true;
   }
   return false;
@@ -493,6 +494,10 @@ void PikaServer::RemoveMaster() {
     }
     delete ping_thread_;
     ping_thread_ = NULL;
+  }
+  {
+  slash::RWLock l(&state_protector_, true);
+  master_connection_ = 0;
   }
   LOG(INFO) << "close read-only mode";
   g_pika_conf->SetReadonly(false);
