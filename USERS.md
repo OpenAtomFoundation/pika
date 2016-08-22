@@ -34,5 +34,5 @@
 
 <img src="http://i.imgur.com/rUiO5VU.png" height = "50" width = "60" alt="Meituan">
 
-使用Pika 的引擎nemo 为内部的nosql 提供多数据结构接口
-测试中, 准备上线
+1. 大数据，推送业务（已上线）
+2. 使用Pika 的引擎nemo 为内部的nosql 提供多数据结构接口（测试中, 准备上线）
