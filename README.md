@@ -6,13 +6,25 @@
 
 Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization
 
+
+##UserList
+
+<img src="http://i.imgur.com/dcHpCm4.png" height = "100" width = "120" alt="Qihoo">
+<img src="http://i.imgur.com/jjZczkN.png" height = "100" width = "120" alt="Weibo">
+<img src="http://i.imgur.com/zoel46r.gif" height = "100" width = "120" alt="Garena">
+<img src="http://i.imgur.com/kHqACbn.png" height = "100" width = "120" alt="Apus">
+<img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan">
+
+<img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan">
+
+[More](https://github.com/Qihoo360/pika/blob/master/USERS.md)
+
 ##Feature
 
 * huge storage capacity
 * compatible with redis interface, you can migrate to pika easily
 * support master-slave mode (slaveof)
 * various [management](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明) interfaces
-
 
 ## Quickstart and Try
   You can try to use our pre-build binary versions. For now, only Centos5 and Centos6 are supported. The binary ones can be found at [the release page](https://github.com/Qihoo360/pika/releases) which are called pikaX.Y.Z_centosK_bin.tar.gz.
@@ -94,17 +106,6 @@ Test:
 
 ```
 
-##UserList
-
-<img src="http://i.imgur.com/dcHpCm4.png" height = "100" width = "120" alt="Qihoo">
-<img src="http://i.imgur.com/jjZczkN.png" height = "100" width = "120" alt="Weibo">
-<img src="http://i.imgur.com/zoel46r.gif" height = "100" width = "120" alt="Garena">
-<img src="http://i.imgur.com/kHqACbn.png" height = "100" width = "120" alt="Apus">
-<img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan">
-
-<img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan">
-
-[More](https://github.com/Qihoo360/pika/blob/master/USERS.md)
 
  
 ##Documents
