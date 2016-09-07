@@ -2,6 +2,18 @@
 ## 简介 [English](https://github.com/Qihoo360/pika/blob/master/README.md)
 Pika是一个可持久化的大容量redis存储服务，兼容string、hash、list、zset、set的绝大接口([兼容详情](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况))，解决redis由于存储数据量巨大而导致内存不够用的容量瓶颈，并且可以像redis一样，通过slaveof命令进行主从备份，支持全同步和部分同步
 
+##Pika用户
+
+<img src="http://i.imgur.com/dcHpCm4.png" height = "100" width = "120" alt="Qihoo">
+<img src="http://i.imgur.com/jjZczkN.png" height = "100" width = "120" alt="Weibo">
+<img src="http://i.imgur.com/zoel46r.gif" height = "100" width = "120" alt="Garena">
+<img src="http://i.imgur.com/kHqACbn.png" height = "100" width = "120" alt="Apus">
+<img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan">
+
+<img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan">
+
+[更多](https://github.com/Qihoo360/pika/blob/master/USERS.md)
+
 ## 特点
 * 容量大，支持百G数据量的存储
 * 兼容redis，不用修改代码即可平滑从redis迁移到pika
@@ -95,18 +107,6 @@ RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 		方法：客户端一次执行get、hget、lindex、zscore、smembers，每个数据结构5000000个key；
 		结果：qps 170000
 ```
-
-##Pika用户
-
-<img src="http://i.imgur.com/dcHpCm4.png" height = "100" width = "120" alt="Qihoo">
-<img src="http://i.imgur.com/jjZczkN.png" height = "100" width = "120" alt="Weibo">
-<img src="http://i.imgur.com/zoel46r.gif" height = "100" width = "120" alt="Garena">
-<img src="http://i.imgur.com/kHqACbn.png" height = "100" width = "120" alt="Apus">
-<img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan">
-
-<img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan">
-
-[更多](https://github.com/Qihoo360/pika/blob/master/USERS.md)
 
 ## 文档
 1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
