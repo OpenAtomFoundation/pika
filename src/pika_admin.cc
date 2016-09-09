@@ -627,14 +627,15 @@ void InfoCmd::InfoData(std::string &info) {
   tmp_stream << "# Data" << "\r\n"; 
   tmp_stream << "db_size:" << (db_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
-  tmp_stream << "used_memory:" << db_size << "\r\n";
 
-  uint64_t usage;
-  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_MEMTABLE, &usage);
-  tmp_stream << "db_memtable_usage:" << usage << "Bytes\r\n";
+  // rocksdb related memory usage
+  uint64_t memtable_usage, table_reader_usage;
+  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
+  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
 
-  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_TABLE_READER, &usage);
-  tmp_stream << "db_tablereader_usage:" << usage << "Bytes\r\n";
+  tmp_stream << "used_memory:" << (memtable_usage + table_reader_usage) << "\r\n";
+  tmp_stream << "db_memtable_usage:" << memtable_usage << "Bytes\r\n";
+  tmp_stream << "db_tablereader_usage:" << table_reader_usage << "Bytes\r\n";
 
   info.append(tmp_stream.str());
   return;
