@@ -17,6 +17,17 @@ PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::string &ip, int port, in
   InitCmdTable(&cmds_);
 }
 
+PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::set<std::string> &ips, int port, int cron_interval) :
+  HolyThread::HolyThread(ips, port, cron_interval),
+  thread_querynum_(0),
+  last_thread_querynum_(0),
+  last_time_us_(slash::NowMicros()),
+  last_sec_thread_querynum_(0),
+  serial_(0) {
+  cmds_.reserve(300);
+  InitCmdTable(&cmds_);
+}
+
 PikaBinlogReceiverThread::~PikaBinlogReceiverThread() {
     DestoryCmdTable(cmds_);
     LOG(INFO) << "BinlogReceiver thread " << thread_id() << " exit!!!";

@@ -156,6 +156,9 @@ int PikaConf::Load()
   network_interface_ = "";
   GetConfStr("network-interface", &network_interface_);
 
+  // slaveof
+  slaveof_ = "";
+  GetConfStr("slaveof", &slaveof_);
   return ret;
 }
 
@@ -188,6 +191,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("db-sync-path", db_sync_path_);
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfStr("network-interface", network_interface_);
+  SetConfStr("slaveof", slaveof_);
 
   SetConfInt("binlog-file-size", binlog_file_size_);
   SetConfStr("compression", compression_);

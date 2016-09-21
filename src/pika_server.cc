@@ -66,9 +66,16 @@ PikaServer::PikaServer() :
     pika_worker_thread_[i] = new PikaWorkerThread(1000);
   }
 
-  pika_dispatch_thread_ = new PikaDispatchThread(host_, port_, worker_num_, pika_worker_thread_, 3000);
-  pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(host_, port_ + 1000, 1000);
-  pika_heartbeat_thread_ = new PikaHeartbeatThread(host_, port_ + 2000, 1000);
+  std::set<std::string> ips;
+  if (g_pika_conf->network_interface().empty()) {
+    ips.insert("0.0.0.0");
+  } else {
+    ips.insert("127.0.0.1");
+    ips.insert(host_);
+  }
+  pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, pika_worker_thread_, 3000);
+  pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(ips, port_ + 1000, 1000);
+  pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
   
@@ -229,6 +236,17 @@ void PikaServer::Start() {
   time(&start_time_s_);
 
   //SetMaster("127.0.0.1", 9221);
+  std::string slaveof = g_pika_conf->slaveof();
+  if (!slaveof.empty()) {
+    int32_t sep = slaveof.find(":");
+    std::string master_ip = slaveof.substr(0, sep);
+    int32_t master_port = std::stoi(slaveof.substr(sep+1));
+    if ((master_ip == "127.0.0.1" || master_ip == host_) && master_port == port_) {
+      LOG(FATAL) << "you will slaveof yourself as the config file, please check";
+    } else {
+      SetMaster(master_ip, master_port);
+    }
+  }
 
   LOG(INFO) << "Pika Server going to start";
   while (!exit_) {

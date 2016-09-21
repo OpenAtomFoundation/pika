@@ -8,6 +8,7 @@ class PikaHeartbeatThread : public pink::HolyThread<PikaHeartbeatConn>
 {
 public:
   PikaHeartbeatThread(std::string &ip, int port, int cron_interval = 0);
+  PikaHeartbeatThread(std::set<std::string> &ip, int port, int cron_interval = 0);
   virtual ~PikaHeartbeatThread();
   virtual void CronHandle();
   virtual bool AccessHandle(std::string& ip_port);

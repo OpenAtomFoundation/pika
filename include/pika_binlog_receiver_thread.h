@@ -2,6 +2,7 @@
 #define PIKA_BINLOG_RECEIVER_THREAD_H_
 
 #include <queue>
+#include <set>
 
 #include "holy_thread.h"
 #include "slash_mutex.h"
@@ -14,6 +15,7 @@ class PikaBinlogReceiverThread : public pink::HolyThread<PikaMasterConn>
 {
 public:
   PikaBinlogReceiverThread(std::string &ip, int port, int cron_interval = 0);
+  PikaBinlogReceiverThread(std::set<std::string> &ips, int port, int cron_interval = 0);
   virtual ~PikaBinlogReceiverThread();
   virtual void CronHandle();
   virtual bool AccessHandle(std::string& ip);

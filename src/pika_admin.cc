@@ -840,8 +840,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     } else {
       EncodeString(&ret, "no");
     }
+  } else if (get_item == "slaveof") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "slaveof");
+    EncodeString(&ret, g_pika_conf->slaveof());
   } else if (get_item == "*") {
-    ret = "*64\r\n";
+    ret = "*66\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "thread-num");
@@ -906,6 +910,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->db_sync_speed());
     EncodeString(&ret, "network-interface");
     EncodeString(&ret, g_pika_conf->network_interface());
+    EncodeString(&ret, "slaveof");
+    EncodeString(&ret, g_pika_conf->slaveof());
   } else {
     ret = "*0\r\n";
   }

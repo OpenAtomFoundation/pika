@@ -10,6 +10,10 @@ PikaHeartbeatThread::PikaHeartbeatThread(std::string& ip, int port, int cron_int
   HolyThread::HolyThread(ip, port, cron_interval) {
 }
 
+PikaHeartbeatThread::PikaHeartbeatThread(std::set<std::string>& ips, int port, int cron_interval) :
+  HolyThread::HolyThread(ips, port, cron_interval) {
+}
+
 PikaHeartbeatThread::~PikaHeartbeatThread() {
   LOG(INFO) << "PikaHeartbeat thread " << thread_id() << " exit!!!";
 }

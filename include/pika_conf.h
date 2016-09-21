@@ -20,6 +20,7 @@ public:
 
   // Getter
   int port()              { RWLock l(&rwlock_, false); return port_; }
+  std::string slaveof() {RWLock l(&rwlock_, false); return slaveof_;}
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
   int sync_thread_num()        { RWLock l(&rwlock_, false); return sync_thread_num_; }
   int sync_buffer_size()        { RWLock l(&rwlock_, false); return sync_buffer_size_; }
@@ -66,6 +67,10 @@ public:
   void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
   void SetLogLevel(const int value)             { RWLock l(&rwlock_, true); log_level_ = value; }
   void SetTimeout(const int value)              { RWLock l(&rwlock_, true); timeout_ = value; }
+  void SetSlaveof(const std::string value) {
+    RWLock l(&rwlock_, true);
+    slaveof_ = value;
+  }
   void SetBgsavePath(const std::string &value) {
     RWLock l(&rwlock_, true);
     bgsave_path_ = value;
@@ -122,6 +127,7 @@ public:
 
 private:
   int port_;
+  std::string slaveof_;
   int thread_num_;
   int sync_thread_num_;
   int sync_buffer_size_;
