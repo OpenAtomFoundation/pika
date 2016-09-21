@@ -1,6 +1,7 @@
 
-RPATH = /usr/local/pika20/lib/
-LFLAGS = -Wl,-rpath=$(RPATH)
+include Makefile.global
+#RPATH = /usr/local/pika21/lib/
+#LFLAGS = -Wl,-rpath=$(RPATH)
 
 
 UNAME := $(shell if [ -f "/etc/redhat-release" ]; then echo "CentOS"; else echo "Ubuntu"; fi)
