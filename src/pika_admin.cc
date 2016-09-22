@@ -606,7 +606,9 @@ void InfoCmd::InfoLog(std::string &info) {
   std::stringstream  tmp_stream;
   tmp_stream << "# Log" << "\r\n";
   uint32_t purge_max;
-  tmp_stream << "log_size:" << (slash::Du(g_pika_conf->log_path()) >> 20) << "M\r\n";
+  int64_t log_size = slash::Du(g_pika_conf->log_path());
+  tmp_stream << "log_size:" << log_size << "\r\n";
+  tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
   tmp_stream << "safety_purge:" << (g_pika_server->GetPurgeWindow(purge_max) ?
       kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none") << "\r\n"; 
   tmp_stream << "expire_logs_days:" << g_pika_conf->expire_logs_days() << "\r\n";
@@ -625,7 +627,8 @@ void InfoCmd::InfoData(std::string &info) {
   
   int64_t db_size = slash::Du(g_pika_conf->db_path());
   tmp_stream << "# Data" << "\r\n"; 
-  tmp_stream << "db_size:" << (db_size >> 20) << "M\r\n";
+  tmp_stream << "db_size:" << db_size << "\r\n";
+  tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
@@ -634,8 +637,9 @@ void InfoCmd::InfoData(std::string &info) {
   g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
 
   tmp_stream << "used_memory:" << (memtable_usage + table_reader_usage) << "\r\n";
-  tmp_stream << "db_memtable_usage:" << memtable_usage << "Bytes\r\n";
-  tmp_stream << "db_tablereader_usage:" << table_reader_usage << "Bytes\r\n";
+  tmp_stream << "used_memory_human:" << ((memtable_usage + table_reader_usage) >> 20) << "M\r\n";
+  tmp_stream << "db_memtable_usage:" << memtable_usage << "\r\n";
+  tmp_stream << "db_tablereader_usage:" << table_reader_usage << "\r\n";
 
   info.append(tmp_stream.str());
   return;
