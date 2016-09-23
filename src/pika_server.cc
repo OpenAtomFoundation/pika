@@ -363,7 +363,6 @@ bool PikaServer::LoadSlotDb(const std::string& new_path) {
   LOG(INFO) << "Prepare load slot db from: " << tmp_path;
   nemo::Nemo* new_db = new nemo::Nemo(db_path, option);
   assert(new_db);
-  //��������
   //slash::DeleteDirIfExist(tmp_path);
   LOG(INFO) << "Change db success";
   return true;
@@ -766,16 +765,20 @@ std::string PikaServer::MasterMigrateInfo(){
 }
 
 bool PikaServer::FinishMigrateSlot(uint32_t slot){
+	//1.bgsave
 	slash::MutexLock ldb(&slot_bgsave_protector_);
 	if (slot_bgsave_info_.bgsaving == false){
 		return true;
 	}
+    //2.dump
 	if (slot_bgsave_info_.sync_db_file == true){
 		return false;
 	}
+	//3.
 	if (slot_bgsave_info_.slot != slot){
 		return false;
 	}
+	//4.slot_logger_
 	uint32_t slot_filenum;
 	uint64_t slot_con_offset;
 	if (slot_logger_ == NULL){
