@@ -26,6 +26,31 @@ private:
   }
 };
 
+class MigrateSlotCmd : public Cmd {
+public:
+  MigrateSlotCmd() {
+  }
+  virtual void Do();
+private:
+  std::string master_ip_;
+  int64_t master_port_;
+  uint32_t slot_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+  }
+};
+
+class FinishMigrateSlotCmd : public Cmd {
+public:
+  FinishMigrateSlotCmd() {
+  }
+  virtual void Do();
+private:
+  uint32_t slot_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+  }
+};
 class TrysyncCmd : public Cmd {
 public:
   TrysyncCmd() {
@@ -37,6 +62,39 @@ private:
   int64_t filenum_;
   int64_t pro_offset_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+class TrysyncSlotCmd : public Cmd {
+public:
+  TrysyncSlotCmd() {
+  }
+  virtual void Do();
+private:
+  std::string slave_ip_;
+  int64_t slave_port_;
+  int64_t slot_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+class MasterMigrateInfoCmd : public Cmd {
+public:
+  MasterMigrateInfoCmd() {
+  }
+  virtual void Do();
+private:
+  uint32_t slot_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+  }
+};
+class SlaveMigrateInfoCmd : public Cmd {
+public:
+  SlaveMigrateInfoCmd() {
+  }
+  virtual void Do();
+private:
+  uint32_t slot_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+  }
 };
 
 class AuthCmd : public Cmd {

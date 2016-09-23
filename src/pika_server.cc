@@ -15,11 +15,14 @@
 #include "slash_string.h"
 #include "bg_thread.h"
 #include "pika_conf.h"
+#include "crc32.h"
+#include <json/json.h>
 
 extern PikaConf *g_pika_conf;
 
 PikaServer::PikaServer() :
   ping_thread_(NULL),
+  slot_logger_(NULL),
   exit_(false),
   sid_(0),
   master_ip_(""),
@@ -27,6 +30,7 @@ PikaServer::PikaServer() :
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
+  slot_sync_(-1),
   bgsave_engine_(NULL),
   purging_(false),
   binlogbg_exit_(false),
@@ -77,6 +81,7 @@ PikaServer::PikaServer() :
   pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(ips, port_ + 1000, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
+  pika_trysyncslot_thread_ = new PikaTrysyncSlotThread();
   monitor_thread_ = new PikaMonitorThread();
   
   //for (int j = 0; j < g_pika_conf->binlogbg_thread_num; j++) {
@@ -109,7 +114,17 @@ PikaServer::~PikaServer() {
     LOG(INFO) << "Delete slave success";
   }
   }
+  {
+	  slash::MutexLock l(&slot_slave_mutex_);
+	  std::vector<SlaveItem>::iterator iter = slot_slaves_.begin();
+	  while (iter != slot_slaves_.end()) {
+		  delete static_cast<PikaSlotBinlogSenderThread*>(iter->sender);
+		  iter =  slot_slaves_.erase(iter);
+		  LOG(INFO) << "Delete slot slave success";
+	  }
+  }
   delete pika_trysync_thread_;
+  delete pika_trysyncslot_thread_;
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
 
@@ -232,6 +247,7 @@ void PikaServer::Start() {
   pika_binlog_receiver_thread_->StartThread();
   pika_heartbeat_thread_->StartThread();
   pika_trysync_thread_->StartThread();
+  pika_trysyncslot_thread_->StartThread();
 
   time(&start_time_s_);
 
@@ -331,6 +347,27 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
   return true;
 }
 
+bool PikaServer::LoadSlotDb(const std::string& new_path) {
+  nemo::Options option;
+  option.write_buffer_size = g_pika_conf->write_buffer_size();
+  option.target_file_size_base = g_pika_conf->target_file_size_base();
+  if (g_pika_conf->compression() == "none") {
+    option.compression = false;
+  }
+  std::string db_path = g_pika_conf->db_path();
+  std::string tmp_path(db_path);
+  if (tmp_path.back() == '/') {
+    tmp_path.resize(tmp_path.size() - 1);
+  }
+  RWLock l(&rwlock_, true);
+  LOG(INFO) << "Prepare load slot db from: " << tmp_path;
+  nemo::Nemo* new_db = new nemo::Nemo(db_path, option);
+  assert(new_db);
+  //��������
+  //slash::DeleteDirIfExist(tmp_path);
+  LOG(INFO) << "Change db success";
+  return true;
+}
 void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
@@ -435,6 +472,68 @@ void PikaServer::ConnectMasterDone() {
   }
 }
 
+//////////////////////////////migrate//////////////////////////////////////
+bool PikaServer::SetMigrateSlotMaster(std::string& master_ip, int master_port, int slot) {
+  if (master_ip == "127.0.0.1") {
+    master_ip = host_;
+  }
+  slash::RWLock l(&state_protector_, true);
+  if (repl_state_ == PIKA_REPL_NO_CONNECT) {
+    master_ip_ = master_ip;
+    master_port_ = master_port;
+    repl_state_ = PIKA_REPL_SLOT_CONNECT;
+	slot_sync_ = slot;
+    //g_pika_conf->SetReadonly(true);
+    LOG(INFO) << "open read-only mode";
+    return true;
+  }
+  return false;
+}
+
+bool PikaServer::SlotWaitingDBSync() {
+  slash::RWLock l(&state_protector_, false);
+  //DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
+  if (repl_state_ == PIKA_REPL_SLOT_WAIT_DBSYNC) {
+    return true;
+  }
+  return false;
+}
+
+void PikaServer::SlotNeedWaitDBSync() {
+  slash::RWLock l(&state_protector_, true);
+  repl_state_ = PIKA_REPL_SLOT_WAIT_DBSYNC;
+}
+
+void PikaServer::SlotWaitDBSyncFinish() {
+  slash::RWLock l(&state_protector_, true);
+  if (repl_state_ == PIKA_REPL_SLOT_WAIT_DBSYNC) {
+    repl_state_ = PIKA_REPL_SLOT_CONNECT;
+  }
+}
+
+void PikaServer::SlotMigrateFinished() {
+  slash::RWLock l(&state_protector_, true);
+  repl_state_ = PIKA_REPL_NO_CONNECT;
+}
+
+bool PikaServer::SlotShouldConnectMaster() {
+  slash::RWLock l(&state_protector_, false);
+  //DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
+  if (repl_state_ == PIKA_REPL_SLOT_CONNECT) {
+    return true;
+  }
+  return false;
+}
+
+void PikaServer::SlotConnectMasterDone() {
+  slash::RWLock l(&state_protector_, true);
+  if (repl_state_ == PIKA_REPL_SLOT_CONNECT) {
+	slot_sync_ = -1;
+    repl_state_ = PIKA_REPL_SLOT_CONNECTING;
+  }
+}
+///////////////////////////////////////migrate///////////////////////////////////
+
 bool PikaServer::ShouldStartPingMaster() {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_ << " repl_state " << repl_state_;
@@ -475,7 +574,7 @@ bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
 //  if (repl_state_ != PIKA_REPL_NO_CONNECT && repl_state_ != PIKA_REPL_WAIT_DBSYNC && ip == master_ip_) {
-  if (repl_state_ == PIKA_REPL_CONNECTING && ip == master_ip_) {
+  if (repl_state_ != PIKA_REPL_NO_CONNECT && repl_state_ != PIKA_REPL_WAIT_DBSYNC && ip == master_ip_) {
     return true;
   }
   return false;
@@ -629,6 +728,469 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
     LOG(INFO) << "rsync send files success";
   }
 }
+//////////////////////////////////////////////////////////////////////////Slot BgSave///////////////////////////////////////////////////////////////////////////////////////////////////////
+std::string PikaServer::MasterMigrateInfo(){
+	struct json_object *info_object = json_object_new_object();  
+	slash::MutexLock ldb(&slot_bgsave_protector_);
+	json_object_object_add(info_object, "bgsaving", json_object_new_int(slot_bgsave_info_.bgsaving));
+	json_object_object_add(info_object, "sync_db_file", json_object_new_int(slot_bgsave_info_.sync_db_file));
+	json_object_object_add(info_object, "slot", json_object_new_int(slot_bgsave_info_.slot));
+	json_object_object_add(info_object, "slave_ip_port", json_object_new_string(slot_bgsave_info_.slave_ip_port.c_str()));
+
+	if (slot_logger_ != NULL){
+		uint32_t filenum;
+		uint64_t con_offset;
+		slot_logger_->GetProducerStatus(&filenum, &con_offset);
+		json_object_object_add(info_object, "master_slot_binlog_filenum", json_object_new_int(filenum));
+		json_object_object_add(info_object, "master_slot_binlog_con_offset", json_object_new_int(con_offset));
+	}else{
+		json_object_object_add(info_object, "master_slot_binlog_filenum", json_object_new_int(-1));
+		json_object_object_add(info_object, "master_slot_binlog_con_offset", json_object_new_int(-1));
+	}
+
+	std::vector<SlaveItem>::iterator iter = slot_slaves_.begin();
+	if (iter != slot_slaves_.end()) {
+		PikaSlotBinlogSenderThread* sender = static_cast<PikaSlotBinlogSenderThread*>(iter->sender);
+		uint32_t filenum = sender->filenum();
+		uint64_t con_offset = sender->con_offset();
+		json_object_object_add(info_object, "slave_slot_binlog_filenum", json_object_new_int(filenum));
+		json_object_object_add(info_object, "slave_slot_binlog_con_offset", json_object_new_int(con_offset));
+	}else{
+		json_object_object_add(info_object, "slave_slot_binlog_filenum", json_object_new_int(-1));
+		json_object_object_add(info_object, "slave_slot_binlog_con_offset", json_object_new_int(-1));
+	}
+
+	std::string res = json_object_to_json_string(info_object);
+	json_object_put(info_object);
+	return res;
+}
+
+bool PikaServer::FinishMigrateSlot(uint32_t slot){
+	slash::MutexLock ldb(&slot_bgsave_protector_);
+	if (slot_bgsave_info_.bgsaving == false){
+		return true;
+	}
+	if (slot_bgsave_info_.sync_db_file == true){
+		return false;
+	}
+	if (slot_bgsave_info_.slot != slot){
+		return false;
+	}
+	uint32_t slot_filenum;
+	uint64_t slot_con_offset;
+	if (slot_logger_ == NULL){
+		return false;
+	}
+	slot_logger_->GetProducerStatus(&slot_filenum, &slot_con_offset);
+	std::vector<SlaveItem>::iterator iter = slot_slaves_.begin();
+	if (iter != slot_slaves_.end()) {
+		PikaSlotBinlogSenderThread* sender = static_cast<PikaSlotBinlogSenderThread*>(iter->sender);
+		uint32_t filenum = sender->filenum();
+		uint64_t con_offset = sender->con_offset();
+		if (filenum == slot_filenum && con_offset == slot_con_offset){
+			slot_slaves_.erase(iter);
+			delete sender;
+			slot_bgsave_info_.bgsaving = false;
+			slot_bgsave_info_.slot  = -1;
+			delete slot_logger_;
+			slot_logger_ = NULL;
+			if (!slash::DeleteDirIfExist(slot_bgsave_info_.path)) {
+				LOG(WARNING) << "remove exist slotbgsave dir failed";
+				return false;
+			}
+			return true;
+		}
+	}
+	return true;
+}
+
+Status PikaServer::AddSlotBinlogSender(SlaveItem &slave, uint32_t slot){
+	if (slot >= nemo::MAX_SLOT_NUM){
+    	return Status::InvalidArgument("AddSlotBinlogSender invalid slot num");
+	}
+    std::string slave_ip = slave.ip_port.substr(0, slave.ip_port.find(':'));
+	std::string bgsave_path(g_pika_conf->bgsave_path());
+	std::string slot_str;
+	std::stringstream ss;
+	ss << slot;
+	ss >> slot_str;
+	{
+		std::string slot_db_path  = bgsave_path + g_pika_conf->bgsave_prefix() + slave.ip_port + "/" + slot_str + "/";
+		slash::MutexLock ldb(&slot_bgsave_protector_);
+		if (!slash::FileExists(slot_db_path + "info.done")) {
+			if (slot_bgsave_info_.bgsaving == false){
+				slot_bgsave_info_.start_time = time(NULL);
+				char s_time[32];
+				int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&slot_bgsave_info_.start_time));
+				slot_bgsave_info_.s_start_time.assign(s_time, len);
+				slot_bgsave_info_.bgsaving = true;
+				slot_bgsave_info_.sync_db_file = true;
+				slot_bgsave_info_.path = slot_db_path;
+				slot_bgsave_info_.slot = slot;
+				slot_bgsave_info_.slave_ip_port = slave.ip_port;
+				slot_sync_ = slot;	
+				TryDBSlotSync(slave_ip, slave.port + 3000, slot);
+
+				if (!slash::DeleteDirIfExist(slot_bgsave_info_.path)) {
+					LOG(WARNING) << "remove exist slotbgsave dir failed";
+					return Status::Incomplete("Internal Error");
+				}
+
+				//binlog
+				slash::CreatePath(slot_bgsave_info_.path, 0755);
+				slash::CreatePath(slot_bgsave_info_.path + "log", 0755);
+				slot_logger_ = new Binlog(slot_bgsave_info_.path + "log/", 1024 * 1024 * 1024);
+				if (!slash::DeleteDirIfExist(slot_bgsave_info_.path + "_FAILED")) {
+					LOG(WARNING) << "remove exist fail slotbgsave dir failed :";
+					return Status::IOError("AddSlotBinlogSender delete DIR");
+				}
+			}
+			return Status::Incomplete("SlotBgsaving and DBSync first");
+		}
+
+		//add new slot binglog meta file
+		slash::SequentialFile *readfile;
+		std::string confile = NewFileName(slot_logger_->filename, 0);
+		if (!slash::NewSequentialFile(confile, &readfile).ok()) {
+			return Status::IOError("AddSlotBinlogSender new sequtialfile");
+		}
+
+		//slot binlog start with filenum=0 and offset=0
+		PikaSlotBinlogSenderThread* sender = new PikaSlotBinlogSenderThread(slave_ip, slave.port+1000, readfile, 0, 0);
+		sender->StartThread();
+		slave.sender = sender;
+		slot_slaves_.push_back(slave);
+	}
+	return Status::OK();
+}
+
+
+void PikaServer::TryDBSlotSync(const std::string& ip, int port, uint32_t slot) {
+  SlotBgsave();
+  DBSlotSync(ip, port);
+}
+
+void PikaServer::DBSlotSync(const std::string& ip, int port) {
+  // Only one DBSync task for every ip_port
+  // Reuse the slot_bgsave_thread_
+  // Since we expect Bgsave and DBSync execute serially
+  slot_bgsave_thread_.StartIfNeed();
+  DBSyncArg *arg = new DBSyncArg(this, ip, port);
+  slot_bgsave_thread_.Schedule(&DoDBSlotSync, static_cast<void*>(arg));
+}
+
+void PikaServer::DoDBSlotSync(void* arg) {
+  DBSyncArg *ppurge = static_cast<DBSyncArg*>(arg);
+  PikaServer* ps = ppurge->p;
+
+  ps->DBSyncSlotSendFile(ppurge->ip, ppurge->port);
+  delete (PurgeArg*)arg;
+}
+
+void PikaServer::DBSyncSlotSendFile(const std::string& ip, int port) {
+  std::string bg_path = slot_bgsave_info_.path;
+  // Get all files need to send
+  std::vector<std::string> descendant;
+  //if (!slash::GetDescendant(bg_path, descendant)) {
+  //  LOG(WARNING) << "Get Descendant when try to do db sync failed";
+  //}
+
+  // Iterate to send files
+  int ret = 0;
+  std::string target_path;
+  std::string module = kDBSyncModule + "_" + slash::IpPortString(host_, port_);
+  printf("module:%s\n",module.c_str());
+  std::vector<std::string>::iterator it = descendant.begin();
+  slash::RsyncRemote remote(ip, port, module, g_pika_conf->db_sync_speed() * 1024);
+  for (; it != descendant.end(); ++it) {
+    target_path = (*it).substr(bg_path.size() + 1);
+    if (target_path == kBgsaveInfoFile) {
+      continue;
+    }
+    // We need specify the speed limit for every single file
+    ret = slash::RsyncSendFile(*it, target_path, remote);
+    if (0 != ret) {
+      LOG(WARNING) << "rsync send file failed! From: " << *it
+        << ", To: " << target_path
+        << ", At: " << ip << ":" << port
+        << ", Error: " << ret;
+      break;
+    }else{
+      LOG(INFO) << "rsync send file success! From: " << *it
+        << ", To: " << target_path
+        << ", At: " << ip << ":" << port
+        << ", Error: " << ret;
+	}
+  }
+ 
+  // Clear target path
+  slash::RsyncSendClearTarget(bg_path + "/kv", "kv", remote);
+  slash::RsyncSendClearTarget(bg_path + "/hash", "hash", remote);
+  slash::RsyncSendClearTarget(bg_path + "/list", "list", remote);
+  slash::RsyncSendClearTarget(bg_path + "/set", "set", remote);
+  slash::RsyncSendClearTarget(bg_path + "/zset", "zset", remote);
+
+  // Send info file at last
+  if (0 == ret) {
+    if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, kBgsaveInfoFile, remote))) {
+      LOG(WARNING) << "send info file failed";
+    }
+  }
+  if (0 == ret) {
+  	this->FinishSlotBgsave();
+    LOG(INFO) << "rsync send files success";
+  }
+}
+
+// Prepare engine, need bgsave_protector protect
+bool PikaServer::InitSlotBgsaveEnv() {
+  return true;
+}
+
+// Prepare bgsave env, need bgsave_protector protect
+bool PikaServer::InitSlotBgsaveEngine() {
+	slot_bgsave_info_.kv_keys.clear();
+	slot_bgsave_info_.list_keys.clear();
+	slot_bgsave_info_.hash_keys.clear();
+	slot_bgsave_info_.set_keys.clear();
+	slot_bgsave_info_.zset_keys.clear();
+
+	nemo::Status nemo_s = db_->SlotKeys(slot_bgsave_info_.slot, 
+			slot_bgsave_info_.kv_keys, 
+			slot_bgsave_info_.list_keys,
+			slot_bgsave_info_.hash_keys,
+			slot_bgsave_info_.set_keys,
+			slot_bgsave_info_.zset_keys);
+    if (!nemo_s.ok()){
+      LOG(WARNING) << "set backup content failed " << nemo_s.ToString();
+      return false;
+    }
+  return true;
+}
+
+bool PikaServer::RunSlotBgsaveEngine(const std::string path) {
+  // Backup to tmp dir
+  nemo::Options option;
+  option.write_buffer_size = g_pika_conf->write_buffer_size();
+  option.target_file_size_base = g_pika_conf->target_file_size_base();
+  option.max_background_flushes = g_pika_conf->max_background_flushes();
+  option.max_background_compactions = g_pika_conf->max_background_compactions();
+  option.max_open_files = g_pika_conf->max_cache_files();
+	if (g_pika_conf->compression() == "none") {
+		 option.compression = false;
+  }
+  std::string db_path = slot_bgsave_info_.path;
+  LOG(INFO) << "Prepare DB... DB Path:" << db_path;
+  std::shared_ptr<nemo::Nemo> slot_db = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
+  assert(slot_db);
+  LOG(INFO) << "DB Success";
+
+  //TODO:ttl
+  //backup kv
+  for (size_t i = 0; i < slot_bgsave_info_.kv_keys.size(); ++i){
+	  std::string key =  slot_bgsave_info_.kv_keys[i];
+	  std::string value;
+
+	  int64_t ttl = 0;
+	  nemo::Status ttl_s = db_->TTL(key, &ttl);
+	  if (!(ttl_s.ok() || ttl_s.IsNotFound())) {
+		  return false;
+	  }
+
+	  nemo::Status s = db_->Get(key, &value);
+	  if (s.ok()){
+		  if (ttl > 0){
+		 	slot_db->Set(key, value, ttl);
+		  }else{
+		 	slot_db->Set(key, value, 0);
+		  }
+         LOG(INFO) << "==============kv key:[" << key << "] value:[" << value << "] ttl:[" << ttl << "]";
+	  }else if (s.IsNotFound()) {
+
+	  }else{
+		  return false;
+	  }
+  }
+  LOG(INFO) << "back kv key finished!";
+  //backup list
+  for (size_t i = 0; i < slot_bgsave_info_.list_keys.size(); ++i){
+	  std::string key =  slot_bgsave_info_.list_keys[i];
+
+	  int64_t ttl = 0;
+	  nemo::Status ttl_s = db_->TTL(key, &ttl);
+	  if (!(ttl_s.ok() || ttl_s.IsNotFound())) {
+		  return false;
+	  }
+
+	  std::vector<nemo::IV> ivs;
+	  nemo::Status s = db_->LRange(key, 0, -1, ivs);
+	  std::string val_list;
+	  int64_t len;
+	  if (s.ok()){
+		  std::vector<nemo::IV>::iterator iter;
+		  for (iter = ivs.begin(); iter != ivs.end(); iter++) {
+			  val_list.append(iter->val);
+			  val_list.append(",");
+			  slot_db->RPush(key, iter->val, &len);
+		  }    
+		  if (ttl > 0){
+		  	int64_t res;
+		  	slot_db->Expire(key, ttl, &res);
+		  }
+	      LOG(INFO) << "==============list key:[" << key << "] val_list:[" << val_list << "] ttl:[" << ttl << "]";
+	  }else if (s.IsNotFound()) {
+
+	  }else{
+		return false;
+	  }
+  }
+  LOG(INFO) << "back list key finished!";
+  //backup hash
+  for (size_t i = 0; i < slot_bgsave_info_.hash_keys.size(); ++i){
+	  std::string key =  slot_bgsave_info_.hash_keys[i];
+
+	  int64_t ttl = 0;
+	  nemo::Status ttl_s = db_->TTL(key, &ttl);
+	  if (!(ttl_s.ok() || ttl_s.IsNotFound())) {
+		  return false;
+	  }
+
+	  std::vector<nemo::FV> fvs;
+	  nemo::Status s = db_->HGetall(key, fvs);
+	  std::string fv;
+	  if (s.ok()){
+		  std::vector<nemo::FV>::const_iterator iter;
+		  for (iter = fvs.begin(); iter != fvs.end(); iter++) {
+			  fv.append(iter->field);
+			  fv.append("=");
+			  fv.append(iter->val);
+			  fv.append(",");
+			  slot_db->HSet(key, iter->field, iter->val);
+		  }
+		  if (ttl > 0){
+		  	int64_t res;
+		  	slot_db->Expire(key, ttl, &res);
+		  }
+          LOG(INFO) << "===========hash key:[" << key << "] fvs:[" << fv << "] ttl:[" << ttl << "]";
+	  }else if (s.IsNotFound()) {
+
+	  }else{
+		return false;
+	  }
+  }
+  LOG(INFO) << "back hash key finished!";
+
+  //backup set
+  for (size_t i = 0; i < slot_bgsave_info_.set_keys.size(); ++i){
+	  std::string key =  slot_bgsave_info_.set_keys[i];
+	  int64_t ttl = 0;
+	  nemo::Status ttl_s = db_->TTL(key, &ttl);
+	  if (!(ttl_s.ok() || ttl_s.IsNotFound())) {
+		  return false;
+	  }
+
+	  std::vector<std::string> members;
+	  nemo::Status s = db_->SMembers(key, members);
+	  std::string vals;
+	  int64_t len;
+	  if (s.ok()){
+		  for (size_t i = 0; i < members.size(); ++i){
+			  vals.append(members[i]);
+			  vals.append(",");
+			  slot_db->SAdd(key, members[i], &len);
+		  }
+		  if (ttl > 0){
+		  	int64_t res;
+		  	slot_db->Expire(key, ttl, &res);
+		  }
+          LOG(INFO) << "===============set key:[" << key << "] members:[" << vals << "] ttl:[" << ttl << "]";
+	  }else if (s.IsNotFound()) {
+
+	  }else{
+		return false;
+	  }
+  }
+  LOG(INFO) << "back set key finished!";
+  //backup zset
+  for (size_t i = 0; i < slot_bgsave_info_.zset_keys.size(); ++i){
+	  std::string key =  slot_bgsave_info_.zset_keys[i];
+	  int64_t ttl = 0;
+	  nemo::Status ttl_s = db_->TTL(key, &ttl);
+	  if (!(ttl_s.ok() || ttl_s.IsNotFound())) {
+		  return false;
+	  }
+
+	  std::vector<nemo::SM> sms_v;
+	  nemo::Status s = db_->ZRange(key, 0, -1, sms_v);
+	  std::string vals;
+      char buf[32];
+	  if (s.ok()) {
+		  std::vector<nemo::SM>::const_iterator iter = sms_v.begin();
+		  int64_t res;
+		  for (; iter != sms_v.end(); iter++) {
+			  vals.append(iter->member);
+			  vals.append("=");
+			  slash::d2string(buf, sizeof(buf), iter->score);
+			  vals.append(buf);
+			  slot_db->ZAdd(key, iter->score, iter->member, &res);
+		  }
+		  if (ttl > 0){
+		  	int64_t res_ttl;
+		  	slot_db->Expire(key, ttl, &res_ttl);
+		  }
+          LOG(INFO) << "==============zset key:[" << key << "] vals:[" << vals << "] ttl:[" << ttl << "]";
+	  }else if (s.IsNotFound()) {
+
+	  }else{
+		return false;
+	  }
+  }
+  LOG(INFO) << "back zset key finished!";
+
+  std::vector<std::string> keys;
+  slot_db->Keys("*", keys);
+  std::cout << "=============key size:" << keys.size() << std::endl;
+
+  return true;
+}
+
+void PikaServer::SlotBgsave() {
+		// Prepare for Bgsaving
+	if (!InitSlotBgsaveEnv() || !InitSlotBgsaveEngine()) {
+    return;
+  }
+  LOG(INFO) << "after prepare slotbgsave";
+  // Start new thread if needed
+  slot_bgsave_thread_.StartIfNeed();
+  slot_bgsave_thread_.Schedule(&DoSlotBgsave, static_cast<void*>(this));
+}
+
+void PikaServer::DoSlotBgsave(void* arg) {
+  PikaServer* p = static_cast<PikaServer*>(arg);
+  SlotBGSaveInfo info = p->slot_bgsave_info();
+  // Do bgsave
+  bool ok = p->RunSlotBgsaveEngine(info.path);
+  // Some output
+  std::ofstream out;
+  out.open(info.path + "/info", std::ios::in | std::ios::trunc);
+  if (out.is_open()) {
+    out << (time(NULL) - info.start_time) << "s\n"
+      << p->host() << "\n" 
+      << p->port() << "\n"
+      << info.slot << "\n";
+    out.close();
+  }
+
+  if (!ok) {
+	  std::string fail_path = info.path + "_FAILED";
+	  slash::RenameFile(info.path.c_str(), fail_path.c_str());
+  }else{
+	  //verify
+	  out.open(info.path + "/info.done", std::ios::in | std::ios::trunc);
+	  out.close();
+  }
+}
+//////////////////////////////////////////////////////////////Slot bgsave end///////////////////////////////////////////////////////////////////////////
 
 /*
  * BinlogSender
@@ -785,6 +1347,10 @@ void PikaServer::DoBgsave(void* arg) {
     slash::RenameFile(info.path.c_str(), fail_path.c_str());
   }
   p->FinishBgsave();
+}
+
+void PikaServer::FinishSlotBgsave(){
+    slot_bgsave_info_.sync_db_file = false;
 }
 
 bool PikaServer::Bgsaveoff() {

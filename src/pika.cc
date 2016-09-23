@@ -5,6 +5,7 @@
 #include "pika_conf.h"
 #include "pika_define.h"
 #include "env.h"
+#include "crc32.h"
 
 PikaConf *g_pika_conf;
 
@@ -155,7 +156,7 @@ int main(int argc, char *argv[]) {
     daemonize();
     create_pid_file();
   }
-
+  nemo::crc32_init();
 
   PikaGlogInit();
   PikaSignalSetup();

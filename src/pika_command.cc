@@ -14,9 +14,25 @@ void InitCmdInfoTable() {
   ////Slaveof
   CmdInfo* slaveofptr = new CmdInfo(kCmdNameSlaveof, -3, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlaveof, slaveofptr));
+  ////migrateslot
+  CmdInfo* migrateslotptr = new CmdInfo(kCmdNameMigrateslot, 4, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMigrateslot, migrateslotptr));
   ////Trysync
   CmdInfo* trysyncptr = new CmdInfo(kCmdNameTrysync, 5, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend | kCmdFlagsAdminRequire);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTrysync, trysyncptr));
+  /////TrysyncSlot
+  CmdInfo* trysyncslotptr = new CmdInfo(kCmdNameTrysyncSlot, 4, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend | kCmdFlagsAdminRequire);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTrysyncSlot, trysyncslotptr));
+  //slavemigrateinfo
+  CmdInfo* slavemigrateinfocptr = new CmdInfo(kCmdNameSlaveInfo, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlaveInfo, slavemigrateinfocptr));
+  //mastermigrateinfo
+  CmdInfo* mastermigrateinfocptr = new CmdInfo(kCmdNameMasterInfo, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMasterInfo, mastermigrateinfocptr));
+  //finishmigrateslot
+  CmdInfo* finishmigrateslotcptr = new CmdInfo(kCmdNameFinishMigrateInfo, 2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameFinishMigrateInfo, finishmigrateslotcptr));
+
   CmdInfo* authptr = new CmdInfo(kCmdNameAuth, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameAuth, authptr));
   CmdInfo* bgsaveptr = new CmdInfo(kCmdNameBgsave, 1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
@@ -363,9 +379,26 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////Slaveof
   Cmd* slaveofptr = new SlaveofCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlaveof, slaveofptr));
+
+  Cmd* migrateslotptr = new MigrateSlotCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMigrateslot, migrateslotptr));
   ////Trysync
   Cmd* trysyncptr = new TrysyncCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTrysync, trysyncptr));
+  //slot
+  Cmd* trysyncslotptr = new TrysyncSlotCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTrysyncSlot, trysyncslotptr));
+
+  Cmd* mastermigrateinfoptr = new MasterMigrateInfoCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMasterInfo, mastermigrateinfoptr));
+
+  Cmd* slavemigrateinfoptr = new SlaveMigrateInfoCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlaveInfo, slavemigrateinfoptr));
+
+  Cmd* finishmigrateinfoptr = new FinishMigrateSlotCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameFinishMigrateInfo, finishmigrateinfoptr));
+
+
   Cmd* authptr = new AuthCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAuth, authptr));
   Cmd* bgsaveptr = new BgsaveCmd();
