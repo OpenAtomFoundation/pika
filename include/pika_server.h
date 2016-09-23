@@ -10,10 +10,12 @@
 #include "pika_binlog.h"
 #include "pika_binlog_receiver_thread.h"
 #include "pika_binlog_sender_thread.h"
+#include "pika_slotbinlog_sender_thread.h"
 #include "pika_heartbeat_thread.h"
 #include "pika_slaveping_thread.h"
 #include "pika_dispatch_thread.h"
 #include "pika_trysync_thread.h"
+#include "pika_trysyncslot_thread.h"
 #include "pika_worker_thread.h"
 #include "pika_monitor_thread.h"
 #include "pika_define.h"
@@ -60,11 +62,18 @@ public:
   PikaTrysyncThread* pika_trysync_thread() {
     return pika_trysync_thread_;
   }
+
+  PikaTrysyncSlotThread* pika_trysyncslot_thread() {
+    return pika_trysyncslot_thread_;
+  }
   std::string& master_ip() {
     return master_ip_;
   }
   int master_port() {
     return master_port_;
+  }
+  int slot_sync(){
+	  return slot_sync_;
   }
   pthread_rwlock_t* rwlock() {
       return &rwlock_;
@@ -101,6 +110,10 @@ public:
 
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
+
+  slash::Mutex slot_slave_mutex_;
+  std::vector<SlaveItem> slot_slaves_;
+
 //  pthread_mutex_t binlog_sender_mutex_;
   std::vector<PikaBinlogSenderThread *> binlog_sender_threads_;
 
@@ -108,6 +121,7 @@ public:
  * Slave use
  */
   bool SetMaster(std::string& master_ip, int master_port);
+  bool SetMigrateSlotMaster(std::string& master_ip, int master_port, int slot);
   bool ShouldConnectMaster();
   void ConnectMasterDone();
   bool ShouldStartPingMaster();
@@ -119,6 +133,13 @@ public:
   bool WaitingDBSync();
   void NeedWaitDBSync();
   void WaitDBSyncFinish();
+
+  bool SlotWaitingDBSync();
+  void SlotNeedWaitDBSync();
+  void SlotWaitDBSyncFinish();
+  bool SlotShouldConnectMaster();
+  void SlotConnectMasterDone();
+  void SlotMigrateFinished();
 
   void Start();
   void Exit() {
@@ -141,7 +162,32 @@ public:
  * Binlog
  */
   Binlog *logger_;
+  Binlog *slot_logger_;
   Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
+  Status AddSlotBinlogSender(SlaveItem &slave, uint32_t slot);
+
+/*
+ * BGSave used
+ */
+  struct SlotBGSaveInfo {
+    time_t start_time;
+    std::string s_start_time;
+    std::string path;
+	uint32_t slot;
+	std::string slave_ip_port;
+	std::vector<std::string> kv_keys;
+	std::vector<std::string> list_keys;
+	std::vector<std::string> hash_keys;
+	std::vector<std::string> set_keys;
+	std::vector<std::string> zset_keys;
+	bool bgsaving;
+	bool sync_db_file;
+    SlotBGSaveInfo():bgsaving(false),sync_db_file(true){
+	}
+    void Clear() {
+      path.clear();
+    }
+  };
 
 /*
  * BGSave used
@@ -165,6 +211,11 @@ public:
     slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_;
   }
+
+  SlotBGSaveInfo slot_bgsave_info() {
+    return slot_bgsave_info_;
+  }
+
   bool bgsaving() {
     slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_.bgsaving;
@@ -176,7 +227,10 @@ public:
     slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.bgsaving = false;
   }
-
+  //slot bgsave
+  void SlotBgsave();
+  bool RunSlotBgsaveEngine(const std::string path);
+  void FinishSlotBgsave();
 /*
  * PurgeLog used
  */
@@ -204,7 +258,9 @@ public:
       : p(_p), ip(_ip), port(_port) {}
   };
   void DBSyncSendFile(const std::string& ip, int port);
+  void DBSyncSlotSendFile(const std::string& ip, int port);
   bool ChangeDb(const std::string& new_path);
+  bool LoadSlotDb(const std::string& new_path);
 
 
   //flushall
@@ -272,6 +328,8 @@ void SignalNextBinlogBGSerial();
   void ResetStat();
   slash::RecordMutex mutex_record_;
 
+  std::string MasterMigrateInfo();
+  bool FinishMigrateSlot(uint32_t slot);
 private:
   std::atomic<bool> exit_;
   std::string host_;
@@ -288,6 +346,7 @@ private:
   PikaBinlogReceiverThread* pika_binlog_receiver_thread_;
   PikaHeartbeatThread* pika_heartbeat_thread_;
   PikaTrysyncThread* pika_trysync_thread_;
+  PikaTrysyncSlotThread* pika_trysyncslot_thread_;
 
   /*
    * Master use 
@@ -304,13 +363,19 @@ private:
   int repl_state_;
   int role_;
 
+  //slot
+  pthread_rwlock_t slot_state_protector_; //protect below, use for master-slave mode
+  int slot_sync_;
   /*
    * Bgsave use
    */
   slash::Mutex bgsave_protector_;
+  slash::Mutex slot_bgsave_protector_;
   pink::BGThread bgsave_thread_;
+  pink::BGThread slot_bgsave_thread_;
   nemo::BackupEngine *bgsave_engine_;
   BGSaveInfo bgsave_info_;
+  SlotBGSaveInfo slot_bgsave_info_;
   
   static void DoBgsave(void* arg);
   bool InitBgsaveEnv();
@@ -320,6 +385,10 @@ private:
     bgsave_info_.Clear();
   }
 
+  //slot bgsave
+  static void DoSlotBgsave(void* arg);
+  bool InitSlotBgsaveEnv();
+  bool InitSlotBgsaveEngine();
 
   /*
    * Purgelogs use
@@ -336,10 +405,17 @@ private:
    * DBSync use
    */
   slash::Mutex db_sync_protector_;
+  slash::Mutex slot_db_sync_protector_;
   std::unordered_set<std::string> db_sync_slaves_;
+  std::unordered_set<std::string> slot_db_sync_slaves_;
   void TryDBSync(const std::string& ip, int port, int32_t top);
   void DBSync(const std::string& ip, int port);
   static void DoDBSync(void* arg);
+  //Slot
+  void TryDBSlotSync(const std::string& ip, int port, uint32_t slot);
+  void DBSlotSync(const std::string& ip, int port);
+  static void DoDBSlotSync(void* arg);
+
 
   /*
    * Flushall use 

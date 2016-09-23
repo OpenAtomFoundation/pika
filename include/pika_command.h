@@ -12,7 +12,9 @@
 //Constant for command name
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";
+const std::string kCmdNameMigrateslot = "migrateslot";
 const std::string kCmdNameTrysync = "trysync";
+const std::string kCmdNameTrysyncSlot = "trysyncslot";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameBgsaveoff = "bgsaveoff";
@@ -27,6 +29,9 @@ const std::string kCmdNameShutdown = "shutdown";
 const std::string kCmdNameInfo = "info";
 const std::string kCmdNameConfig = "config";
 const std::string kCmdNameMonitor = "monitor";
+const std::string kCmdNameSlaveInfo = "slavemigrateinfo";
+const std::string kCmdNameMasterInfo = "mastermigrateinfo";
+const std::string kCmdNameFinishMigrateInfo = "finishmigrateslot";
 
 //Kv
 const std::string kCmdNameSet = "set";

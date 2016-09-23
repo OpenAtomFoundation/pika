@@ -3,6 +3,7 @@
 #include "pika_conf.h"
 #include "pika_admin.h"
 #include "pika_server.h"
+#include "crc32.h"
 
 #include <sys/utsname.h>
 
@@ -85,6 +86,122 @@ void SlaveofCmd::Do() {
   }
 }
 
+//////////////////////////////////////////////////////////Slot///////////////////////////////////////////////////
+void MigrateSlotCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+	if (!ptr_info->CheckArg(argv.size())) {
+		res_.SetRes(CmdRes::kWrongNum, kCmdNameMigrateslot);
+		return;
+	}
+	PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
+	master_ip_ = slash::StringToLower(*it++);
+	std::string str_master_port = *it++;
+	if (!slash::string2l(str_master_port.data(), str_master_port.size(), &master_port_) || master_port_ <= 0) {
+		res_.SetRes(CmdRes::kInvalidInt);
+		return;
+	}
+
+	if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
+		res_.SetRes(CmdRes::kErrOther, "you fucked up");
+		return;
+	}
+
+	std::string str_slot = *it++;
+	int64_t slot;
+	if (!slash::string2l(str_slot.data(), str_slot.size(), &slot) || slot < 0 || slot > nemo::MAX_SLOT_NUM) {
+		res_.SetRes(CmdRes::kInvalidInt);
+		return;
+	}
+	slot_ = slot;
+}
+
+void MigrateSlotCmd::Do() {
+  bool sm_ret = g_pika_server->SetMigrateSlotMaster(master_ip_, master_port_, slot_);
+  if (sm_ret) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
+  }
+}
+
+void FinishMigrateSlotCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+	if (!ptr_info->CheckArg(argv.size())) {
+		res_.SetRes(CmdRes::kWrongNum, kCmdNameMigrateslot);
+		return;
+	}
+	PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
+	std::string str_slot = *it++;
+	int64_t slot;
+	if (!slash::string2l(str_slot.data(), str_slot.size(), &slot) || slot < 0 || slot > nemo::MAX_SLOT_NUM) {
+		res_.SetRes(CmdRes::kInvalidInt);
+		return;
+	}
+	slot_ = slot;
+}
+
+void FinishMigrateSlotCmd::Do() {
+  bool sm_ret = g_pika_server->FinishMigrateSlot(slot_);
+  if (sm_ret) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
+  }
+}
+
+
+void MasterMigrateInfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+	if (!ptr_info->CheckArg(argv.size())) {
+		res_.SetRes(CmdRes::kWrongNum, kCmdNameMigrateslot);
+		return;
+	}
+
+	//PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
+	//std::string str_slot = *it;
+	//int64_t slot;
+	//if (!slash::string2l(str_slot.data(), str_slot.size(), &slot) || slot < 0 || slot > nemo::MAX_SLOT_NUM) {
+	//	res_.SetRes(CmdRes::kInvalidInt);
+	//	return;
+	//}
+	//slot_ = slot;
+}
+
+void MasterMigrateInfoCmd::Do() {
+	std::string res = g_pika_server->MasterMigrateInfo();
+  //slaveip
+  //slaveport
+  //state:bgsave/binlog
+  //filenum
+  //offset
+  //currfilename
+  //curroffset
+  res_.AppendString(res);
+}
+
+void SlaveMigrateInfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+	if (!ptr_info->CheckArg(argv.size())) {
+		res_.SetRes(CmdRes::kWrongNum, kCmdNameMigrateslot);
+		return;
+	}
+
+	PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
+	std::string str_slot = *it++;
+	int64_t slot;
+	if (!slash::string2l(str_slot.data(), str_slot.size(), &slot) || slot < 0 || slot > nemo::MAX_SLOT_NUM) {
+		res_.SetRes(CmdRes::kInvalidInt);
+		return;
+	}
+	slot_ = slot;
+}
+
+void SlaveMigrateInfoCmd::Do() {
+  bool sm_ret = true;
+  if (sm_ret) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
+  }
+}
+//////////////////////////////////////////////////////////Slot///////////////////////////////////////////////////
+
 void TrysyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameTrysync);
@@ -144,6 +261,61 @@ void TrysyncCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, "AlreadyExist");
   }
 }
+
+/////////////////////////////////////////////////////Slot/////////////////////////////////////////////
+void TrysyncSlotCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameTrysync);
+    return;
+  }
+  PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
+  slave_ip_ = *it++;
+
+  std::string str_slave_port = *it++;
+  if (!slash::string2l(str_slave_port.data(), str_slave_port.size(), &slave_port_) || slave_port_ <= 0) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+
+  std::string str_slot = *it++;
+  if (!slash::string2l(str_slot.data(), str_slot.size(), &slot_) || slot_ < 0) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+}
+
+void TrysyncSlotCmd::Do() {
+  std::string ip_port = slash::IpPortString(slave_ip_, slave_port_);
+  LOG(INFO) << "TrysyncSlot, Slave ip_port: " << ip_port << " slot:" << slot_;
+  slash::MutexLock l(&(g_pika_server->slave_mutex_));
+  if (!g_pika_server->FindSlave(ip_port)) {
+    SlaveItem s;
+    s.sid = g_pika_server->GenSid();
+    s.ip_port = ip_port;
+    s.port = slave_port_;
+    s.hb_fd = -1;
+    s.stage = SLAVE_ITEM_STAGE_ONE;
+    gettimeofday(&s.create_time, NULL);
+    s.sender = NULL;
+    
+    LOG(INFO) << "TrysyncSlot, dont FindSlave, so AddSlotBinlogSender";
+    Status status = g_pika_server->AddSlotBinlogSender(s, slot_);
+    if (status.ok()) {
+      res_.AppendInteger(s.sid);
+      LOG(INFO) << "Send Sid to Slave: " << s.sid;
+      //g_pika_server->BecomeMaster();
+    } else if (status.IsIncomplete()) {
+      res_.AppendString(kInnerReplWait);
+    } else {
+      LOG(WARNING) << "slot is not valid, slave ip: " << ip_port << " slot: " << slot_;
+      res_.SetRes(CmdRes::kErrOther, "InvalidOffset");
+    }
+  } else {
+    LOG(WARNING) << "slave already exist, slave ip: " << ip_port;
+    res_.SetRes(CmdRes::kErrOther, "AlreadyExist");
+  }
+}
+/////////////////////////////////////////////////////Slot/////////////////////////////////////////////
 
 void AuthCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {

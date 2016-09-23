@@ -5,6 +5,7 @@
 #include "pika_server.h"
 #include "pika_conf.h"
 #include "pika_client_conn.h"
+#include "crc32.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
@@ -102,6 +103,18 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
           g_pika_server->logger_->Lock();
           g_pika_server->logger_->Put(raw_args);
           g_pika_server->logger_->Unlock();
+
+		  //is slot migrating
+		 if (g_pika_server->slot_logger_ != NULL){
+	  	 	uint32_t crc_value = nemo::crc32_checksum(argv_[1].c_str(), argv_[1].size());
+	     	uint32_t cur_slot = crc_value % nemo::MAX_SLOT_NUM;
+
+			if ((cur_slot - g_pika_server->slot_sync()) == 0){
+				g_pika_server->slot_logger_->Lock();
+          		g_pika_server->slot_logger_->Put(raw_args);
+				g_pika_server->slot_logger_->Unlock();
+			}
+		 }
       }
   }
 
