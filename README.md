@@ -86,27 +86,66 @@ The RPATH is defined in pika's Makefile
 
 ##Performance
 
-```
-Server Info:
+###test environment
+
+2 same hardware server, one for running pika, the other for running redis-benchmark
+
 	CPU: 24 Cores, Intel(R) Xeon(R) CPU E5-2630 v2 @ 2.60GHz
 	MEM: 165157944 kB
 	OS: CentOS release 6.2 (Final)
 	NETWORK CARD: Intel Corporation I350 Gigabit Network Connection
-Client Info:
-	Same as Server
 
-Test:
-	Pika run with 18 worker threads, and we test it using 40 client;
-	1. Write Performance:
-		Client push data by set, hset, lpush, zadd, sadd, each interface has 10000 key range;
-		result: 110000 qps
-	2. Read Performance:
-		Client pull data by get, hget, lindex, zscore, smembers, 25000000 keys stored in pika and each interface has 5000000 key range
-		result: 170000 qps
+###test interfaces
+	
+	Set, Get
+	
+###test method
 
+	run pika with 16 work threads, run redis-benchmark on another server as follow: 
+	./redis-benchmark -h ... -p ... -n 1000000000 -t set,get -r 10000000000 -c 120 -d 200
+	execute 1 billion Set and 1 billion Get commands altogether
+	
+###test result
+``` 
+	Set
+	1000000000 requests completed in 11890.80 seconds
+	18.09% <= 1 milliseconds
+	93.32% <= 2 milliseconds
+	99.71% <= 3 milliseconds
+	99.86% <= 4 milliseconds
+	99.92% <= 5 milliseconds
+	99.94% <= 6 milliseconds
+	99.96% <= 7 milliseconds
+	99.97% <= 8 milliseconds
+	99.97% <= 9 milliseconds
+	99.98% <= 10 milliseconds
+	99.98% <= 11 milliseconds
+	99.99% <= 12 milliseconds
+	...
+	100.00% <= 19 milliseconds
+	...
+	100.00% <= 137 milliseconds
+	
+	84098.66 requests per second
+```
+ 
+```
+	Get
+	1000000000 requests completed in 9063.05 seconds
+	84.97% <= 1 milliseconds
+	99.76% <= 2 milliseconds
+	99.99% <= 3 milliseconds
+	100.00% <= 4 milliseconds
+	...
+	100.00% <= 33 milliseconds
+	
+	110338.10 requests per second
 ```
 
+###pika vs ssdb ([Detail](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb))
 
+<img src="http://imgur.com/rGMZmpD.png" height = "400" width = "480" alt="1">
+<img src="http://imgur.com/gnwMDof.png" height = "400" width = "480" alt="10">
  
 ##Documents
 
