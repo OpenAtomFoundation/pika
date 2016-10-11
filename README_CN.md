@@ -89,24 +89,66 @@ RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 
 
 ## 性能
+
+###测试环境：
 ```
-服务端配置：
+	相同配置服务端、客户机各一台：
 	处理器：24核 Intel(R) Xeon(R) CPU E5-2630 v2 @ 2.60GHz
 	内存：165157944 kB
 	操作系统：CentOS release 6.2 (Final)
 	网卡：Intel Corporation I350 Gigabit Network Connection
-客户端配置：
-	同服务端
-	
-测试结果：
-	pika配置18个worker，用40个客户端；
-	1. 写性能测试：
-		方法：客户端依次执行set、hset、lpush、zadd、sadd接口写入数据，每个数据结构10000个key；
-		结果：qps 110000
-	2. 读性能测试：
-		方法：客户端一次执行get、hget、lindex、zscore、smembers，每个数据结构5000000个key；
-		结果：qps 170000
 ```
+###测试接口：
+```
+	Set、Get
+```
+
+###测试方法：
+```
+	pika配16个worker，客户机执行 ./redis-benchmark -h ... -p ... -n 1000000000 -t set,get -r 10000000000 -c 120 -d 200
+	通过set和get接口对pika进行10亿次写入+10亿次读取
+```
+
+###测试结果：
+```
+    Set
+    1000000000 requests completed in 11890.80 seconds
+    18.09% <= 1 milliseconds
+    93.32% <= 2 milliseconds
+    99.71% <= 3 milliseconds
+    99.86% <= 4 milliseconds
+    99.92% <= 5 milliseconds
+    99.94% <= 6 milliseconds
+    99.96% <= 7 milliseconds
+    99.97% <= 8 milliseconds
+    99.97% <= 9 milliseconds
+    99.98% <= 10 milliseconds
+    99.98% <= 11 milliseconds
+    99.99% <= 12 milliseconds
+    ...
+    100.00% <= 19 milliseconds
+    ...
+    100.00% <= 137 milliseconds
+
+    84098.66 requests per second
+```
+
+```
+    Get
+    1000000000 requests completed in 9063.05 seconds
+    84.97% <= 1 milliseconds
+    99.76% <= 2 milliseconds
+    99.99% <= 3 milliseconds
+    100.00% <= 4 milliseconds
+    ...
+    100.00% <= 33 milliseconds
+
+    110338.10 requests per second
+```
+
+###与SSDB性能对比（[详情](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb)）
+<img src="http://imgur.com/rGMZmpD.png" height = "400" width = "480" alt="1">
+<img src="http://imgur.com/gnwMDof.png" height = "400" width = "480" alt="10">
 
 ## 文档
 1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
