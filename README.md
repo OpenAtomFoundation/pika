@@ -71,14 +71,14 @@ make __REL=1
 ## Usage
 
 ```
-	./output/bin/pika -c ./conf/pika.conf
+./output/bin/pika -c ./conf/pika.conf
 ```
 
 If failed, move pika source/lib/_VERSION/lib/ to the rpath defined in Makefile and relanch. 
 
-~~~
-	cp PIKA_SOURCE/lib/_VERSION/* RPATH
-~~~
+```
+cp PIKA_SOURCE/lib/_VERSION/* RPATH
+```
 The PIKA_SOURCE stands for pika source code's root directory;  
 The __VERSION represents the OS's version, such as 6.2, 5.4...  
 The RPATH is defined in pika's Makefile
@@ -107,39 +107,39 @@ The RPATH is defined in pika's Makefile
 	
 ###test result
 ``` 
-	Set
-	1000000000 requests completed in 11890.80 seconds
-	18.09% <= 1 milliseconds
-	93.32% <= 2 milliseconds
-	99.71% <= 3 milliseconds
-	99.86% <= 4 milliseconds
-	99.92% <= 5 milliseconds
-	99.94% <= 6 milliseconds
-	99.96% <= 7 milliseconds
-	99.97% <= 8 milliseconds
-	99.97% <= 9 milliseconds
-	99.98% <= 10 milliseconds
-	99.98% <= 11 milliseconds
-	99.99% <= 12 milliseconds
-	...
-	100.00% <= 19 milliseconds
-	...
-	100.00% <= 137 milliseconds
-	
-	84098.66 requests per second
+Set
+1000000000 requests completed in 11890.80 seconds
+18.09% <= 1 milliseconds
+93.32% <= 2 milliseconds
+99.71% <= 3 milliseconds
+99.86% <= 4 milliseconds
+99.92% <= 5 milliseconds
+99.94% <= 6 milliseconds
+99.96% <= 7 milliseconds
+99.97% <= 8 milliseconds
+99.97% <= 9 milliseconds
+99.98% <= 10 milliseconds
+99.98% <= 11 milliseconds
+99.99% <= 12 milliseconds
+...
+100.00% <= 19 milliseconds
+...
+100.00% <= 137 milliseconds
+
+84098.66 requests per second
 ```
  
 ```
-	Get
-	1000000000 requests completed in 9063.05 seconds
-	84.97% <= 1 milliseconds
-	99.76% <= 2 milliseconds
-	99.99% <= 3 milliseconds
-	100.00% <= 4 milliseconds
-	...
-	100.00% <= 33 milliseconds
-	
-	110338.10 requests per second
+Get
+1000000000 requests completed in 9063.05 seconds
+84.97% <= 1 milliseconds
+99.76% <= 2 milliseconds
+99.99% <= 3 milliseconds
+100.00% <= 4 milliseconds
+...
+100.00% <= 33 milliseconds
+
+110338.10 requests per second
 ```
 
 ###pika vs ssdb ([Detail](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb))
