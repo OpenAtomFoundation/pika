@@ -146,6 +146,9 @@ Get
 
 <img src="http://imgur.com/rGMZmpD.png" height = "400" width = "480" alt="1">
 <img src="http://imgur.com/gnwMDof.png" height = "400" width = "480" alt="10">
+
+##pika vs redis
+<img src="http://imgur.com/k99VyFN.png" height = "400" width = "600" alt="2">
  
 ##Documents
 
