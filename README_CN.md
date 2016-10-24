@@ -150,6 +150,9 @@ RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 <img src="http://imgur.com/rGMZmpD.png" height = "400" width = "480" alt="1">
 <img src="http://imgur.com/gnwMDof.png" height = "400" width = "480" alt="10">
 
+###与Redis性能对比
+<img src="http://imgur.com/k99VyFN.png" height = "400" width = "600" alt="2">
+
 ## 文档
 1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
 
