@@ -41,7 +41,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   // Check authed
   if (!auth_stat_.IsAuthed(cinfo_ptr)) {
-    LOG(WARNING) << "(" << ip_port() << ")Authentication required, close connection";
+    LOG(WARNING) << "(" << ip_port() << ")Authentication required";
     return "-ERR NOAUTH Authentication required.\r\n";
   }
   
@@ -124,7 +124,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   if (opt == kCmdNameAuth) {
     if(!auth_stat_.ChecknUpdate(c_ptr->res().raw_message())) {
-      LOG(WARNING) << "(" << ip_port() << ")Wrong Password, close connection";
+      LOG(WARNING) << "(" << ip_port() << ")Wrong Password";
     }
   }
   return c_ptr->res().message();
