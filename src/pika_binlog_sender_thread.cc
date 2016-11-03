@@ -289,7 +289,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
     }
 
     // error
-    close(cli_->fd());
+    cli_->Close();
     sleep(1);
   }
   return NULL;
