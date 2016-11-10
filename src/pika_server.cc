@@ -228,10 +228,31 @@ void PikaServer::Cleanup() {
 }
 
 void PikaServer::Start() {
-  pika_dispatch_thread_->StartThread();
-  pika_binlog_receiver_thread_->StartThread();
-  pika_heartbeat_thread_->StartThread();
-  pika_trysync_thread_->StartThread();
+  int ret = 0;
+  ret = pika_dispatch_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+  }
+  ret = pika_binlog_receiver_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start BinlogReceiver Error: " << ret;
+  }
+  ret = pika_heartbeat_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Heartbeat Error: " << ret;
+  }
+  ret = pika_trysync_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Trysync Error: " << ret;
+  }
 
   time(&start_time_s_);
 
