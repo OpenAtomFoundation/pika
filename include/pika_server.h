@@ -124,9 +124,7 @@ public:
   void Exit() {
     exit_ = true;
   }
-  void DoTimingTask() {
-    AutoPurge();
-  }
+  void DoTimingTask();
   void Cleanup();
 
   PikaSlavepingThread* ping_thread_;

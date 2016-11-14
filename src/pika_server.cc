@@ -1142,3 +1142,16 @@ uint64_t PikaServer::ServerCurrentQps() {
   return server_current_qps;
 }
 
+void PikaServer::DoTimingTask() {
+  // Purge log
+  AutoPurge();
+
+  // Check rsync deamon
+ if (((role_ & PIKA_ROLE_SLAVE) ^ PIKA_ROLE_SLAVE) || // Not a slave
+   repl_state_ == PIKA_REPL_NO_CONNECT ||
+   repl_state_ == PIKA_REPL_CONNECTED ||
+   repl_state_ == PIKA_REPL_ERROR) {
+   slash::StopRsync(g_pika_conf->db_sync_path());
+ }
+}
+
