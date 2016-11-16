@@ -12,6 +12,8 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 
 <img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan">
 <img src="http://i.imgur.com/px5mEuW.png" height = "100" width = "120" alt="XES">
+<img src="http://imgur.com/yJe4FP8.png" height = "100" width = "120" alt="HX">
+
 
 [更多](https://github.com/Qihoo360/pika/blob/master/USERS.md)
 
