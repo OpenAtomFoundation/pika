@@ -216,8 +216,8 @@ void* PikaTrysyncThread::ThreadMain() {
 
 
     if ((cli_->Connect(master_ip, master_port, g_pika_server->host())).ok()) {
-      cli_->set_send_timeout(5000);
-      cli_->set_recv_timeout(5000);
+      cli_->set_send_timeout(30000);
+      cli_->set_recv_timeout(30000);
       if (Send() && RecvProc()) {
         g_pika_server->ConnectMasterDone();
         // Stop rsync, binlog sync with master is begin
