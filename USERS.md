@@ -41,3 +41,8 @@
 <img src="http://i.imgur.com/px5mEuW.png" height = "50" width = "60" alt="XES">
 
 数据持久化存储（已上线）
+
+## 8. 环信
+<img src="http://imgur.com/yJe4FP8.png" height = "50" width = "60" alt="HX">
+
+已上线
