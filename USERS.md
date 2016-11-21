@@ -46,3 +46,9 @@
 <img src="http://imgur.com/yJe4FP8.png" height = "50" width = "60" alt="HX">
 
 已上线
+
+## 9. 迅雷
+<img src="http://i.imgur.com/o8ZDXCH.png" height = "50" width = "60", alt="XL">
+
+用户存储个性化推荐数据, 目前使用15台机器
+已上线
