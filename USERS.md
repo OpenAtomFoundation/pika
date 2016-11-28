@@ -28,7 +28,7 @@
 ## 5. 飞凡电商
 <img src="http://i.imgur.com/2c57z8U.png" height = "50" width = "60" alt="Ffan">
 
-测试中，准备上线
+作为线上Redis海量数据的离线备份
 
 ## 6. 美团网
 
