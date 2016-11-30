@@ -505,7 +505,7 @@ void StrlenCmd::Do() {
   if (s.ok()) {
     res_.AppendInteger(len);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.AppendInteger(0);
   }
   return;
 }
