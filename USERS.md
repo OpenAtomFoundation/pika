@@ -51,4 +51,12 @@
 <img src="http://i.imgur.com/o8ZDXCH.png" height = "50" width = "60", alt="XL">
 
 用户存储个性化推荐数据, 目前使用15台机器
+
+已上线
+
+## 10. 高伟达
+<img src="http://imgur.com/w3qNQ9T.png" height = "50" width = "60" alt="GWD"> 
+
+记录移动终端设备访问记录，标记活跃状态
+
 已上线
