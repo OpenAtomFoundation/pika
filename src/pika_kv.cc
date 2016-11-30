@@ -1,3 +1,8 @@
+// Copyright (c) 2015-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
+
 #include "slash_string.h"
 #include "nemo.h"
 #include "pika_kv.h"
@@ -497,7 +502,7 @@ void StrlenCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 void StrlenCmd::Do() {
   int64_t len = 0;
   nemo::Status s = g_pika_server->db()->Strlen(key_, &len);
-  if (s.ok()) {
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
