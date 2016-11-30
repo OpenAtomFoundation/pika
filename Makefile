@@ -62,7 +62,7 @@ LIBS = -lpthread \
 
 NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
 #GLOG = $(SO_DIR)/libglog.so.0
-GLOG = $(THIRD_PATH)/glog/.libs/libglog.so.0
+GLOG = $(SO_DIR)/libglog.so.0
 PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
 SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
 
@@ -79,6 +79,8 @@ all: $(OBJECT)
 	@echo "UNAME    : $(UNAME)"
 	@echo "SO_DIR   : $(SO_DIR)"
 	@echo "TOOLS_DIR: $(TOOLS_DIR)"
+	make -C $(CURDIR)/tools/aof_to_pika/
+	cp $(CURDIR)/tools/aof_to_pika/output/bin/* $(TOOLS_DIR)
 	rm -rf $(OUTPUT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin
@@ -115,7 +117,7 @@ $(TOBJS): %.o : %.cc
 $(GLOG):
 	#cd $(THIRD_PATH)/glog; ./configure; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
 	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
-	
+
 clean: 
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(OUTPUT)/*
