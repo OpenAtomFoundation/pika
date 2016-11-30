@@ -502,7 +502,7 @@ void StrlenCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 void StrlenCmd::Do() {
   int64_t len = 0;
   nemo::Status s = g_pika_server->db()->Strlen(key_, &len);
-  if (s.ok()) {
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
