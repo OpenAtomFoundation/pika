@@ -32,6 +32,7 @@ const std::string kCmdNameShutdown = "shutdown";
 const std::string kCmdNameInfo = "info";
 const std::string kCmdNameConfig = "config";
 const std::string kCmdNameMonitor = "monitor";
+const std::string kCmdNameDbsize = "dbsize";
 
 //Kv
 const std::string kCmdNameSet = "set";

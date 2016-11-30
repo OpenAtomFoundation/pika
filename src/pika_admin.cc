@@ -1069,3 +1069,22 @@ void MonitorCmd::Do() {
   g_pika_server->monitor_thread()->AddMonitorClient(self_client_);
   g_pika_server->monitor_thread()->AddMonitorMessage("OK");
 }
+
+void DbsizeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  (void)ptr_info;
+  if (argv.size() != 1) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDbsize);
+    return;
+  }
+}
+
+void DbsizeCmd::Do() {
+  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
+  std::vector<uint64_t> &key_nums_v = key_scan_info.key_nums_v;
+  if (key_scan_info.key_nums_v.size() != 5) {
+    res_.SetRes(CmdRes::kErrOther, "keyspace error");
+    return;
+  }
+  int32_t dbsize = key_nums_v[0] + key_nums_v[1] + key_nums_v[2] + key_nums_v[3] + key_nums_v[4];
+  res_.AppendInteger(dbsize);
+}

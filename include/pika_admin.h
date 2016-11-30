@@ -219,4 +219,13 @@ private:
   PikaClientConn* self_client_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
+
+class DbsizeCmd : public Cmd {
+public:
+  DbsizeCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
 #endif
