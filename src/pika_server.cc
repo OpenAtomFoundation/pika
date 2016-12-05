@@ -1,3 +1,8 @@
+// Copyright (c) 2015-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
+
 #include <fstream>
 #include <glog/logging.h>
 #include <assert.h>
@@ -228,10 +233,31 @@ void PikaServer::Cleanup() {
 }
 
 void PikaServer::Start() {
-  pika_dispatch_thread_->StartThread();
-  pika_binlog_receiver_thread_->StartThread();
-  pika_heartbeat_thread_->StartThread();
-  pika_trysync_thread_->StartThread();
+  int ret = 0;
+  ret = pika_dispatch_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+  }
+  ret = pika_binlog_receiver_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start BinlogReceiver Error: " << ret;
+  }
+  ret = pika_heartbeat_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Heartbeat Error: " << ret;
+  }
+  ret = pika_trysync_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Trysync Error: " << ret;
+  }
 
   time(&start_time_s_);
 
@@ -1119,5 +1145,18 @@ uint64_t PikaServer::ServerCurrentQps() {
   }
   server_current_qps += pika_binlog_receiver_thread_->last_sec_thread_querynum();
   return server_current_qps;
+}
+
+void PikaServer::DoTimingTask() {
+  // Purge log
+  AutoPurge();
+
+  // Check rsync deamon
+ if (((role_ & PIKA_ROLE_SLAVE) ^ PIKA_ROLE_SLAVE) || // Not a slave
+   repl_state_ == PIKA_REPL_NO_CONNECT ||
+   repl_state_ == PIKA_REPL_CONNECTED ||
+   repl_state_ == PIKA_REPL_ERROR) {
+   slash::StopRsync(g_pika_conf->db_sync_path());
+ }
 }
 

@@ -11,6 +11,11 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 <img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan">
 
 <img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan">
+<img src="http://i.imgur.com/px5mEuW.png" height = "100" width = "120" alt="XES">
+<img src="http://imgur.com/yJe4FP8.png" height = "100" width = "120" alt="HX">
+<img src="http://i.imgur.com/o8ZDXCH.png" height = "100" width = "120" alt="XL">
+<img src="http://imgur.com/w3qNQ9T.png" height = "100" width = "120" alt="GWD">
+
 
 [更多](https://github.com/Qihoo360/pika/blob/master/USERS.md)
 
@@ -25,12 +30,11 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
   如果想快速试用pika，目前提供了Centos5，Centos6的binary版本，可以在[release页面](https://github.com/Qihoo360/pika/releases)看到，具体文件是pikaX.Y.Z_centosK_bin.tar.gz。
 
 ```
-# 1. unzip file
+# 1. 解压文件
 tar zxf pikaX.Y.Z_centosK_bin.tar.gz
-# 2. change working directory to output
-#     note: we should in this directory, caz the RPATH is ./lib;
+# 2. 切到output目录（rpath是./lib）
 cd output
-# 3. run pika:
+# 3. 运行pika:
 ./bin/pika -c conf/pika.conf
 ```
 
@@ -48,26 +52,21 @@ cd output
     yum install gcc-c++
 ```
 
-3.把gcc版本临时切换到4.7(若已是，则忽略), 在CentOs上执行如下命令：
+3.把gcc版本临时切换到4.8(若已是，则忽略), 在CentOs上执行如下命令：
 
 ```
-	a. sudo wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
-	b. yum install --nogpgcheck devtoolset-1.1
-	c. scl enable devtoolset-1.1 bash
+	a. sudo rpm --import http://ftp.scientificlinux.org/linux/scientific/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
+	b. sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo -O /etc/yum.repos.d/devtools-2.repo
+	c. sudo yum install -y devtoolset-2-gcc devtoolset-2-binutils devtoolset-2-gcc-c++
+	d. scl enable devtoolset-2 bash
 ```
 4.获取源代码
 
 ```
-	git clone https://github.com/Qihoo360/pika.git && cd pika
-```
-5.获取依赖的第三方源代码
-
-```
-	a. git submodule init
-	b. git submodule update
+	git clone --recursive https://github.com/Qihoo360/pika.git && cd pika
 ```
 
-6.编译
+5.编译
 
 ```
 	make __REL=1

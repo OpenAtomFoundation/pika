@@ -30,6 +30,9 @@
 # Log path
 log/
 pikatests/
+lib/
+tools/
+output/
 
 # third party
 gdb.txt

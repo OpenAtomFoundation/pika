@@ -28,7 +28,7 @@
 ## 5. 飞凡电商
 <img src="http://i.imgur.com/2c57z8U.png" height = "50" width = "60" alt="Ffan">
 
-测试中，准备上线
+作为线上Redis海量数据的离线备份
 
 ## 6. 美团网
 
@@ -36,3 +36,27 @@
 
 1. 大数据，推送业务（已上线）
 2. 使用Pika 的引擎nemo 为内部的nosql 提供多数据结构接口（测试中, 准备上线）
+
+## 7. 学而思网校
+<img src="http://i.imgur.com/px5mEuW.png" height = "50" width = "60" alt="XES">
+
+数据持久化存储（已上线）
+
+## 8. 环信
+<img src="http://imgur.com/yJe4FP8.png" height = "50" width = "60" alt="HX">
+
+已上线
+
+## 9. 迅雷
+<img src="http://i.imgur.com/o8ZDXCH.png" height = "50" width = "60", alt="XL">
+
+用户存储个性化推荐数据, 目前使用15台机器
+
+已上线
+
+## 10. 高伟达
+<img src="http://imgur.com/w3qNQ9T.png" height = "50" width = "60" alt="GWD"> 
+
+记录移动终端设备访问记录，标记活跃状态
+
+已上线

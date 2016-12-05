@@ -1,3 +1,8 @@
+// Copyright (c) 2015-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
+
 #include <fstream>
 #include <glog/logging.h>
 #include <poll.h>
@@ -216,8 +221,8 @@ void* PikaTrysyncThread::ThreadMain() {
 
 
     if ((cli_->Connect(master_ip, master_port, g_pika_server->host())).ok()) {
-      cli_->set_send_timeout(5000);
-      cli_->set_recv_timeout(5000);
+      cli_->set_send_timeout(30000);
+      cli_->set_recv_timeout(30000);
       if (Send() && RecvProc()) {
         g_pika_server->ConnectMasterDone();
         // Stop rsync, binlog sync with master is begin

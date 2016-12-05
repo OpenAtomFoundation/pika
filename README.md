@@ -16,6 +16,10 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 <img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan">
 
 <img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan">
+<img src="http://i.imgur.com/px5mEuW.png" height = "100" width = "120" alt="XES">
+<img src="http://imgur.com/yJe4FP8.png" height = "100" width = "120" alt="HX">
+<img src="http://i.imgur.com/o8ZDXCH.png" height = "100" width = "120" alt="XL">
+<img src="http://imgur.com/w3qNQ9T.png" height = "100" width = "120" alt="GWD">
 
 [More](https://github.com/Qihoo360/pika/blob/master/USERS.md)
 
@@ -33,7 +37,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 # 1. unzip file
 tar zxf pikaX.Y.Z_centosK_bin.tar.gz
 # 2. change working directory to output
-#     note: we should in this directory, caz the RPATH is ./lib;
+#   note: we should in this directory, caz the RPATH is ./lib;
 cd output
 # 3. run pika:
 ./bin/pika -c conf/pika.conf
@@ -60,7 +64,7 @@ If it comes to some missing libs, install them according to the prompts and retr
 
 ### Compile
 
-Upgrade your gcc to version at least 4.7 to get C++11 support.
+Upgrade your gcc to version at least 4.8 to get C++11 support.
 
 Then just type 
 

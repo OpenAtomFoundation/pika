@@ -1,3 +1,8 @@
+// Copyright (c) 2015-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
+
 #include <sstream>
 #include <vector>
 #include <algorithm>
@@ -41,7 +46,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   // Check authed
   if (!auth_stat_.IsAuthed(cinfo_ptr)) {
-    LOG(WARNING) << "(" << ip_port() << ")Authentication required, close connection";
+    LOG(WARNING) << "(" << ip_port() << ")Authentication required";
     return "-ERR NOAUTH Authentication required.\r\n";
   }
   
@@ -124,7 +129,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   if (opt == kCmdNameAuth) {
     if(!auth_stat_.ChecknUpdate(c_ptr->res().raw_message())) {
-      LOG(WARNING) << "(" << ip_port() << ")Wrong Password, close connection";
+      LOG(WARNING) << "(" << ip_port() << ")Wrong Password";
     }
   }
   return c_ptr->res().message();

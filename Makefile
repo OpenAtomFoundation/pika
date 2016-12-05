@@ -39,7 +39,8 @@ INCLUDE_PATH = -I./include/ \
 			   -I$(THIRD_PATH)/glog/src/ \
 			   -I$(THIRD_PATH)/nemo/output/include/ \
 			   -I$(THIRD_PATH)/slash/output/include/ \
-			   -I$(THIRD_PATH)/pink/output/include/
+			   -I$(THIRD_PATH)/pink/output/include/ \
+			   -I$(THIRD_PATH)/pink/output/
 
 LIB_PATH = -L./ \
 		   -L$(THIRD_PATH)/nemo/output/lib/ \
@@ -60,8 +61,7 @@ LIBS = -lpthread \
 	   -lrt
 
 NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
-#GLOG = $(SO_DIR)/libglog.so.0
-GLOG = $(THIRD_PATH)/glog/.libs/libglog.so.0
+GLOG = $(SO_DIR)/libglog.so.0
 PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
 SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
 
@@ -78,6 +78,13 @@ all: $(OBJECT)
 	@echo "UNAME    : $(UNAME)"
 	@echo "SO_DIR   : $(SO_DIR)"
 	@echo "TOOLS_DIR: $(TOOLS_DIR)"
+	make -C $(CURDIR)/tools/aof_to_pika/
+	cp $(CURDIR)/tools/aof_to_pika/output/bin/* $(TOOLS_DIR)
+	make __REL=1 -C $(CURDIR)/tools/binlog_sync/
+	cp $(CURDIR)/tools/binlog_sync/binlog_sync $(TOOLS_DIR)
+	make __REL=1 -C $(CURDIR)/tools/binlog_tools/
+	cp $(CURDIR)/tools/binlog_tools/binlog_sender $(TOOLS_DIR)
+	cp $(CURDIR)/tools/binlog_tools/binlog_parser $(TOOLS_DIR)
 	rm -rf $(OUTPUT)
 	mkdir $(OUTPUT)
 	mkdir $(OUTPUT)/bin
@@ -114,9 +121,28 @@ $(TOBJS): %.o : %.cc
 $(GLOG):
 	#cd $(THIRD_PATH)/glog; ./configure; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
 	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
-	
+
 clean: 
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(OUTPUT)/*
 	rm -rf $(OUTPUT)
+	
+distclean: 
+	rm -rf $(SRC_DIR)/*.o
+	rm -rf $(OUTPUT)/*
+	rm -rf $(OUTPUT)
+	make clean -C $(THIRD_PATH)/nemo/
+	make clean -C $(THIRD_PATH)/nemo/3rdparty/rocksdb/
+	make clean -C $(THIRD_PATH)/pink/
+	make clean -C $(THIRD_PATH)/slash/
+	make clean -C $(THIRD_PATH)/glog/
+	make clean -C $(CURDIR)/tools/aof_to_pika
+	make clean -C $(CURDIR)/tools/pika_monitor
+	make clean -C $(CURDIR)/tools/binlog_sync
+	make clean -C $(CURDIR)/tools/binlog_tools
+	rm -rf $(TOOLS_DIR)/aof_to_pika
+	rm -rf $(TOOLS_DIR)/binlog_sync
+	rm -rf $(TOOLS_DIR)/binlog_parser
+	rm -rf $(TOOLS_DIR)/binlog_sender
+	rm -rf $(SO_DIR)/libglog.so*
 
