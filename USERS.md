@@ -22,9 +22,7 @@
 
 ## 4. Apus
 <img src="http://i.imgur.com/kHqACbn.png" height = "50" width = "60" alt="Apus">
-
-测试中，准备上线
-
+已上线
 ## 5. 飞凡电商
 <img src="http://i.imgur.com/2c57z8U.png" height = "50" width = "60" alt="Ffan">
 
@@ -44,8 +42,7 @@
 
 ## 8. 环信
 <img src="http://imgur.com/yJe4FP8.png" height = "50" width = "60" alt="HX">
-
-已上线
+用于存储推送中的离线数据消息
 
 ## 9. 迅雷
 <img src="http://i.imgur.com/o8ZDXCH.png" height = "50" width = "60", alt="XL">
