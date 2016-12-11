@@ -1,12 +1,12 @@
 [submodule "third/nemo"]
 	path = third/nemo
-	url = git@github.com:Qihoo360/nemo.git
+	url = https://github.com/Qihoo360/nemo.git
 [submodule "third/glog"]
 	path = third/glog
-	url = git@github.com:Qihoo360/glog.git
+	url = https://github.com/Qihoo360/glog.git
 [submodule "third/pink"]
 	path = third/pink
-	url = git@github.com:Qihoo360/pink.git
+	url = https://github.com/Qihoo360/pink.git
 [submodule "third/slash"]
 	path = third/slash
-	url = git@github.com:baotiao/slash.git
+	url = https://github.com/baotiao/slash.git
