@@ -445,6 +445,10 @@ void PikaServer::WaitDBSyncFinish() {
   }
 }
 
+void PikaServer::KillBinlogSenderConn() {
+  pika_binlog_receiver_thread_->KillBinlogSender();
+}
+
 bool PikaServer::ShouldConnectMaster() {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
@@ -1022,6 +1026,18 @@ void PikaServer::DoPurgeDir(void* arg) {
   delete static_cast<std::string*>(arg);
 }
 
+void PikaServer::AddMonitorClient(pink::RedisConn* client_ptr) {
+  monitor_thread_->AddMonitorClient(client_ptr);
+}
+
+void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
+  monitor_thread_->AddMonitorMessage(monitor_message);
+}
+
+bool PikaServer::HasMonitorClients() {
+  return monitor_thread_->HasMonitorClients();
+}
+
 void PikaServer::DispatchBinlogBG(const std::string &key,
     PikaCmdArgsType* argv, const std::string& raw_args,
     uint64_t cur_serial, bool readonly) {
@@ -1119,6 +1135,18 @@ int64_t PikaServer::ClientList(std::vector<ClientInfo> *clients) {
   }
   clients_num += monitor_thread_->ThreadClientList(clients);
   return clients_num;
+}
+
+void PikaServer::RWLockWriter() {
+  pthread_rwlock_wrlock(&rwlock_);
+}
+
+void PikaServer::RWLockReader() {
+  pthread_rwlock_rdlock(&rwlock_);
+}
+
+void PikaServer::RWUnlock() {
+  pthread_rwlock_unlock(&rwlock_);
 }
 
 uint64_t PikaServer::ServerQueryNum() {

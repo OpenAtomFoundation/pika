@@ -61,7 +61,7 @@ void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
   }
 }
 
-void PikaMonitorThread::AddMonitorMessage(std::string monitor_message) {
+void PikaMonitorThread::AddMonitorMessage(const std::string &monitor_message) {
     slash::MutexLock lm(&monitor_mutex_protector_);
     if (monitor_messages_.empty() && cron_tasks_.empty()) {
       monitor_messages_.push_back(monitor_message);

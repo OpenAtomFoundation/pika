@@ -65,13 +65,13 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   std::string monitor_message;
-  bool is_monitoring = g_pika_server->monitor_thread()->HasMonitorClients();
+  bool is_monitoring = g_pika_server->HasMonitorClients();
   if (is_monitoring) {
     monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) + " [" + this->ip_port() + "]";
     for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
       monitor_message += " " + slash::ToRead(*iter);
     }
-    g_pika_server->monitor_thread()->AddMonitorMessage(monitor_message);
+    g_pika_server->AddMonitorMessage(monitor_message);
   }
 
   if (opt == kCmdNameMonitor) {
@@ -97,7 +97,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   // Add read lock for no suspend command
   if (!cinfo_ptr->is_suspend()) {
-    pthread_rwlock_rdlock(g_pika_server->rwlock());
+    g_pika_server->RWLockReader();
   }
 
   c_ptr->Do();
@@ -111,7 +111,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   if (!cinfo_ptr->is_suspend()) {
-      pthread_rwlock_unlock(g_pika_server->rwlock());
+      g_pika_server->RWUnlock();
   }
 
   if (cinfo_ptr->is_write()) {

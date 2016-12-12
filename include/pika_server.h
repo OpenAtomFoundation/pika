@@ -46,33 +46,15 @@ public:
   }
   int port() {
     return port_;
-  };
+  }
   time_t start_time_s() {
     return start_time_s_;
   }
-  PikaWorkerThread** pika_worker_thread() {
-    return pika_worker_thread_;
-  };
-  PikaDispatchThread* pika_dispatch_thread() {
-    return pika_dispatch_thread_;
-  };
-  PikaBinlogReceiverThread* pika_binlog_receiver_thread() {
-    return pika_binlog_receiver_thread_;
-  }
-  PikaHeartbeatThread* pika_heartbeat_thread() {
-    return pika_heartbeat_thread_;
-  }
-  PikaTrysyncThread* pika_trysync_thread() {
-    return pika_trysync_thread_;
-  }
-  std::string& master_ip() {
+  std::string master_ip() {
     return master_ip_;
   }
   int master_port() {
     return master_port_;
-  }
-  pthread_rwlock_t* rwlock() {
-      return &rwlock_;
   }
   const std::shared_ptr<nemo::Nemo> db() {
     return db_;
@@ -91,7 +73,7 @@ public:
  * Master use
  */
   int64_t GenSid() {
-//    slash::MutexLock l(&slave_mutex_);
+    // slave_mutex has been locked from exterior
     int64_t sid = sid_;
     sid_++;
     return sid;
@@ -106,7 +88,6 @@ public:
 
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
-//  pthread_mutex_t binlog_sender_mutex_;
   std::vector<PikaBinlogSenderThread *> binlog_sender_threads_;
 
 /*
@@ -124,6 +105,7 @@ public:
   bool WaitingDBSync();
   void NeedWaitDBSync();
   void WaitDBSyncFinish();
+  void KillBinlogSenderConn();
 
   void Start();
   void Exit() {
@@ -133,7 +115,6 @@ public:
   void Cleanup();
 
   PikaSlavepingThread* ping_thread_;
-  //slash::Mutex mutex_; // double lock to block main thread
 
 /*
  * Server init info
@@ -245,12 +226,17 @@ public:
   int ClientKill(const std::string &ip_port);
   int64_t ClientList(std::vector<ClientInfo> *clients = NULL);
 
+  // rwlock_
+  void RWLockWriter();
+  void RWLockReader();
+  void RWUnlock();
+
 /*
  * Monitor used
  */
-  PikaMonitorThread* monitor_thread() {
-    return monitor_thread_;
-  }
+  void AddMonitorClient(pink::RedisConn* client_ptr);
+  void AddMonitorMessage(const std::string &monitor_message);
+  bool HasMonitorClients();
 
 /*
  * Binlog Receiver use

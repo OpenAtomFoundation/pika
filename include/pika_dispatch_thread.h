@@ -17,7 +17,6 @@ public:
   PikaDispatchThread(std::string &ip, int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval);
   PikaDispatchThread(std::set<std::string> &ips, int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval);
   virtual ~PikaDispatchThread();
-  virtual void CronHandle();
   virtual bool AccessHandle(std::string& ip);
 
   int ClientNum();

@@ -283,12 +283,13 @@ void FlushallCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
   }
 }
 void FlushallCmd::Do() {
-  slash::RWLock l(g_pika_server->rwlock(), true);
+  g_pika_server->RWLockWriter();
   if (g_pika_server->FlushAll()) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushall");
   }
+  g_pika_server->RWUnlock();
 }
 
 void ReadonlyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
@@ -307,13 +308,14 @@ void ReadonlyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
   }
 }
 void ReadonlyCmd::Do() {
-  slash::RWLock l(g_pika_server->rwlock(), true);
+  g_pika_server->RWLockWriter();
   if (is_open_) {
     g_pika_conf->SetReadonly(true);
   } else {
     g_pika_conf->SetReadonly(false);
   }
   res_.SetRes(CmdRes::kOk);
+  g_pika_server->RWUnlock();
 }
 
 const std::string ClientCmd::CLIENT_LIST_S = "list";
@@ -1066,8 +1068,8 @@ void MonitorCmd::Do() {
   PikaWorkerThread* self_thread = self_client_->self_thread();
   self_thread->conns_.erase(self_client_->fd());
   self_thread->pink_epoll()->PinkDelEvent(self_client_->fd());
-  g_pika_server->monitor_thread()->AddMonitorClient(self_client_);
-  g_pika_server->monitor_thread()->AddMonitorMessage("OK");
+  g_pika_server->AddMonitorClient(self_client_);
+  g_pika_server->AddMonitorMessage("OK");
 }
 
 void DbsizeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {

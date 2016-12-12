@@ -57,7 +57,7 @@ void* PikaSlavepingThread::ThreadMain() {
         if (should_exit_) {
           LOG(INFO) << "Close Slaveping Thread now";
           cli_->Close();
-          g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
+          g_pika_server->KillBinlogSenderConn();
           break;
         }
 
@@ -75,13 +75,13 @@ void* PikaSlavepingThread::ThreadMain() {
             //timeout;
             LOG(WARNING) << "Ping master timeout";
             cli_->Close();
-            g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
+            g_pika_server->KillBinlogSenderConn();
             break;
           }
         } else {
           LOG(WARNING) << "Ping master error";
           cli_->Close();
-          g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
+          g_pika_server->KillBinlogSenderConn();
           break;
         }
         sleep(1);
@@ -93,7 +93,7 @@ void* PikaSlavepingThread::ThreadMain() {
       if ((++connect_retry_times) >= 30) {
         LOG(WARNING) << "Slaveping, Connect timeout 10 times, disconnect with master";
         cli_->Close();
-        g_pika_server->pika_binlog_receiver_thread()->KillBinlogSender();
+        g_pika_server->KillBinlogSenderConn();
         connect_retry_times = 0;
       }
     }
