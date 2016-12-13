@@ -48,7 +48,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
 
   // Add read lock for no suspend command
   if (!cinfo_ptr->is_suspend()) {
-    pthread_rwlock_rdlock(g_pika_server->rwlock());
+    g_pika_server->RWLockReader();
   }
 
   // Force the binlog write option to serialize
@@ -69,7 +69,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   }
 
   if (!cinfo_ptr->is_suspend()) {
-    pthread_rwlock_unlock(g_pika_server->rwlock());
+    g_pika_server->RWUnlock();
   }
 
   if (!is_readonly && argv.size() >= 2) {

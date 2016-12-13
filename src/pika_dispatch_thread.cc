@@ -28,22 +28,6 @@ PikaDispatchThread::~PikaDispatchThread() {
   LOG(INFO) << "dispatch thread " << thread_id() << " exit!!!";
 }
 
-void PikaDispatchThread::CronHandle() {
-  uint64_t server_querynum = 0;
-  uint64_t server_current_qps = 0;
-  for (int i = 0; i < work_num(); i++) {
-    slash::RWLock(&(((PikaWorkerThread**)worker_thread())[i]->rwlock_), false);
-    server_querynum += ((PikaWorkerThread**)worker_thread())[i]->thread_querynum();
-    server_current_qps += ((PikaWorkerThread**)worker_thread())[i]->last_sec_thread_querynum();
-  }
-
-  // Should not here, Just for test, remove to info cmd later
-  server_querynum += g_pika_server->pika_binlog_receiver_thread()->thread_querynum();
-  server_current_qps += g_pika_server->pika_binlog_receiver_thread()->last_sec_thread_querynum();
-
-  DLOG(INFO) << "ClientNum: " << ClientNum() << " ServerQueryNum: " << server_querynum << " ServerCurrentQps: " << server_current_qps;
-}
-
 bool PikaDispatchThread::AccessHandle(std::string& ip) {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();

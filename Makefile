@@ -135,7 +135,7 @@ distclean:
 	make clean -C $(THIRD_PATH)/nemo/3rdparty/rocksdb/
 	make clean -C $(THIRD_PATH)/pink/
 	make clean -C $(THIRD_PATH)/slash/
-	make clean -C $(THIRD_PATH)/glog/
+	make distclean -C $(THIRD_PATH)/glog/
 	make clean -C $(CURDIR)/tools/aof_to_pika
 	make clean -C $(CURDIR)/tools/pika_monitor
 	make clean -C $(CURDIR)/tools/binlog_sync

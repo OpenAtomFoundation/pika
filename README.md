@@ -43,8 +43,7 @@ cd output
 ./bin/pika -c conf/pika.conf
 ```
 
-## Install
-
+## For developer
 
 ### Dependencies
 
@@ -53,6 +52,8 @@ cd output
 * bzips - a library for fast data compression
 * protobuf - google protobuf library
 * glog - google log library
+
+Upgrade your gcc to version at least 4.8 to get C++11 support.
 
 ### Supported platforms
 
@@ -66,7 +67,14 @@ If it comes to some missing libs, install them according to the prompts and retr
 
 Upgrade your gcc to version at least 4.8 to get C++11 support.
 
-Then just type 
+Get source code recursive, then pika will pull all submodules
+
+```
+git clone --recursive https://github.com/baotiao/pika.git
+```
+
+
+Then compile pika
 
 ```
 make __REL=1
