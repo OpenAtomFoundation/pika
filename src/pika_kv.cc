@@ -7,6 +7,7 @@
 #include "nemo.h"
 #include "pika_kv.h"
 #include "pika_server.h"
+#include "pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -66,6 +67,7 @@ void SetCmd::Do() {
     } else {
       res_.AppendArrayLen(-1);;
     }
+    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -108,6 +110,10 @@ void DelCmd::Do() {
   nemo::Status s = g_pika_server->db()->MDel(keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
+    std::vector<std::string>::const_iterator it;
+    for (it = keys_.begin(); it != keys_.end(); it++) {
+      SlotKeyRem("k", *it);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -128,6 +134,7 @@ void IncrCmd::Do() {
   nemo::Status s = g_pika_server->db()->Incrby(key_, 1, new_value);
   if (s.ok()) {
    res_.AppendContent(":" + new_value);
+   SlotKeyAdd("k", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -156,6 +163,7 @@ void IncrbyCmd::Do() {
   nemo::Status s = g_pika_server->db()->Incrby(key_, by_, new_value);
   if (s.ok()) {
     res_.AppendContent(":" + new_value);
+    SlotKeyAdd("k", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -185,6 +193,7 @@ void IncrbyfloatCmd::Do() {
   if (s.ok()) {
     res_.AppendStringLen(new_value.size());
     res_.AppendContent(new_value);
+    SlotKeyAdd("k", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a float"){
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
@@ -267,6 +276,7 @@ void GetsetCmd::Do() {
       res_.AppendStringLen(old_value.size());
       res_.AppendContent(old_value);
     }
+    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -288,6 +298,7 @@ void AppendCmd::Do() {
   nemo::Status s = g_pika_server->db()->Append(key_, value_, &new_len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(new_len);
+    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -355,6 +366,7 @@ void SetnxCmd::Do() {
   nemo::Status s = g_pika_server->db()->Setnx(key_, value_, &res);
   if (s.ok()) {
     res_.AppendInteger(res);
+    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -379,6 +391,7 @@ void SetexCmd::Do() {
   nemo::Status s = g_pika_server->db()->Set(key_, value_, sec_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -405,6 +418,10 @@ void MsetCmd::Do() {
   nemo::Status s = g_pika_server->db()->MSet(kvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+    std::vector<nemo::KV>::const_iterator it;
+    for (it = kvs_.begin(); it != kvs_.end(); it++) {
+      SlotKeyAdd("k", it->key);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -432,6 +449,10 @@ void MsetnxCmd::Do() {
   nemo::Status s = g_pika_server->db()->MSetnx(kvs_, &res);
   if (s.ok()) {
     res_.AppendInteger(res);
+    std::vector<nemo::KV>::const_iterator it;
+    for (it = kvs_.begin(); it != kvs_.end(); it++) {
+      SlotKeyAdd("k", it->key);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -484,6 +505,7 @@ void SetrangeCmd::Do() {
   nemo::Status s = g_pika_server->db()->Setrange(key_, offset_, value_, &new_len);
   if (s.ok()) {
     res_.AppendInteger(new_len);
+    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
