@@ -9,7 +9,7 @@
 #include "pika_slot.h"
 #include "pika_server.h"
 
-//#include <sys/utsname.h>
+#define min(a, b)  (((a) > (b)) ? (b) : (a))
 
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
@@ -215,7 +215,7 @@ static int migrateKv(const std::string dest_ip, const int64_t dest_port, const s
     if (doMigrate(dest_ip, dest_port, send_str) < 0){
       return -1;
     }
-    
+
     keyDel(key); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
@@ -241,23 +241,31 @@ static int migrateHash(const std::string dest_ip, const int64_t dest_port, const
     if (hashGetall(key, fvs) < 0){
         return -1;
     }
-    if (fvs.size()==0){
+    size_t keySize = fvs.size();
+    if (keySize==0){
         return 0;
     }
 
     pink::RedisCmdArgsType argv;
     std::string send_str;
-    argv.push_back("hmset");
-    argv.push_back(key);
-    std::vector<nemo::FV>::const_iterator it;
-    for (it = fvs.begin(); it != fvs.end(); it++) {
-        argv.push_back(it->field);
-        argv.push_back(it->val);
+    for (size_t i = 0; i <= keySize/MaxKeySendSize; ++i){
+        if (0 < i){
+            LOG(WARNING) << "Migrate big key: "<< key <<" size: " << keySize << " migrated value: " << min((i+1)*MaxKeySendSize, keySize);
+        }
+        argv.clear();
+        send_str = "";
+        argv.push_back("hmset");
+        argv.push_back(key);
+        for (size_t j = i*MaxKeySendSize; j < (i+1)*MaxKeySendSize && j < keySize; ++j){
+            argv.push_back(fvs[j].field);
+            argv.push_back(fvs[j].val);
+        }
+        pink::RedisCli::SerializeCommand(argv, &send_str);
+        if (doMigrate(dest_ip, dest_port, send_str) < 0){
+            return -1;
+        }
     }
-    pink::RedisCli::SerializeCommand(argv, &send_str);    
-    if (doMigrate(dest_ip, dest_port, send_str) < 0){
-        return -1;
-    }
+
     keyDel(key); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
@@ -283,21 +291,28 @@ static int migrateList(const std::string dest_ip, const int64_t dest_port, const
     if (listGetall(key, ivs) < 0){
         return -1;
     }
-    if (ivs.size()==0){
+    size_t keySize = ivs.size();
+    if (keySize==0){
         return 0;
     }
 
     pink::RedisCmdArgsType argv;
     std::string send_str;
-    argv.push_back("lpush");
-    argv.push_back(key);
-    std::vector<nemo::IV>::const_iterator iter;
-    for (iter = ivs.begin(); iter != ivs.end(); iter++) {
-        argv.push_back(iter->val);
-    }
-    pink::RedisCli::SerializeCommand(argv, &send_str);    
-    if (doMigrate(dest_ip, dest_port, send_str) < 0){
-        return -1;
+    for (size_t i = 0; i <= keySize/MaxKeySendSize; ++i){
+        if (0 < i){
+            LOG(WARNING) << "Migrate big key: "<< key <<" size: " << keySize << " migrated value: " << min((i+1)*MaxKeySendSize, keySize);
+        }
+        argv.clear();
+        send_str = "";
+        argv.push_back("lpush");
+        argv.push_back(key);
+        for (size_t j = i*MaxKeySendSize; j < (i+1)*MaxKeySendSize && j < keySize; ++j){
+            argv.push_back(ivs[j].val);
+        }
+        pink::RedisCli::SerializeCommand(argv, &send_str);
+        if (doMigrate(dest_ip, dest_port, send_str) < 0){
+            return -1;
+        }
     }
 
     keyDel(key); //key already been migrated successfully, del error doesn't matter
@@ -325,21 +340,28 @@ static int migrateSet(const std::string dest_ip, const int64_t dest_port, const 
     if (setGetall(key, members) < 0){
         return -1;
     }
-    if (members.size()==0){
+    size_t keySize = members.size();
+    if (keySize==0){
         return 0;
     }
 
     pink::RedisCmdArgsType argv;
     std::string send_str;
-    argv.push_back("sadd");
-    argv.push_back(key);
-    std::vector<std::string>::const_iterator iter;
-    for (iter = members.begin(); iter != members.end(); iter++) {
-        argv.push_back(*iter);
-    }
-    pink::RedisCli::SerializeCommand(argv, &send_str);    
-    if (doMigrate(dest_ip, dest_port, send_str) < 0){
-        return -1;
+    for (size_t i = 0; i <= keySize/MaxKeySendSize; ++i){
+        if (0 < i){
+            LOG(WARNING) << "Migrate big key: "<< key <<" size: " << keySize << " migrated value: " << min((i+1)*MaxKeySendSize, keySize);
+        }
+        argv.clear();
+        send_str = "";
+        argv.push_back("sadd");
+        argv.push_back(key);
+        for (size_t j = i*MaxKeySendSize; j < (i+1)*MaxKeySendSize && j < keySize; ++j){
+            argv.push_back(members[j]);
+        }
+        pink::RedisCli::SerializeCommand(argv, &send_str);
+        if (doMigrate(dest_ip, dest_port, send_str) < 0){
+            return -1;
+        }
     }
 
     keyDel(key); //key already been migrated successfully, del error doesn't matter
@@ -367,22 +389,29 @@ static int migrateZset(const std::string dest_ip, const int64_t dest_port, const
     if (zsetGetall(key, sms) < 0){
         return -1;
     }
-    if (sms.size()==0){
+    size_t keySize = sms.size();
+    if (keySize==0){
         return 0;
     }
 
     pink::RedisCmdArgsType argv;
     std::string send_str;
-    argv.push_back("zadd");
-    argv.push_back(key);
-    std::vector<nemo::SM>::const_iterator iter;
-    for (iter = sms.begin(); iter != sms.end(); iter++) {
-        argv.push_back(std::to_string(iter->score));
-        argv.push_back(iter->member);
-    }
-    pink::RedisCli::SerializeCommand(argv, &send_str);    
-    if (doMigrate(dest_ip, dest_port, send_str) < 0){
-        return -1;
+    for (size_t i = 0; i <= keySize/MaxKeySendSize; ++i){
+        if (0 < i){
+            LOG(WARNING) << "Migrate big key: "<< key <<" size: " << keySize << " migrated value: " << min((i+1)*MaxKeySendSize, keySize);
+        }
+        argv.clear();
+        send_str = "";
+        argv.push_back("zadd");
+        argv.push_back(key);
+        for (size_t j = i*MaxKeySendSize; j < (i+1)*MaxKeySendSize && j < keySize; ++j){
+            argv.push_back(std::to_string(sms[j].score));
+            argv.push_back(sms[j].member);
+        }
+        pink::RedisCli::SerializeCommand(argv, &send_str);
+        if (doMigrate(dest_ip, dest_port, send_str) < 0){
+            return -1;
+        }
     }
 
     keyDel(key);
