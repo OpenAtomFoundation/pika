@@ -593,8 +593,6 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck() {
     if (!s.ok()) {
         if (s.IsNotFound()) {
             LOG(INFO) << "Migrate slot key "<< key_ <<" not found";
-            res_.AppendArrayLen(2);
-            res_.AppendInteger(0);
             res_.AppendInteger(0);
         } else {
             LOG(WARNING) << "Migrate slot key: "<< key_ <<" error: " <<strerror(errno);
@@ -613,9 +611,7 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck() {
     }else if (type_str=="zset"){
         key_type_ = 'z';
     }else{
-        LOG(WARNING) << "Migrate slot key: "<<key_ <<" error";
-        res_.AppendArrayLen(2);
-        res_.AppendInteger(0);
+        LOG(WARNING) << "Migrate slot key: "<<key_ <<" not found";
         res_.AppendInteger(0);
         return -1;
     }
@@ -631,8 +627,6 @@ int SlotsMgrtTagOneCmd::SlotKeyRemCheck(){
     if (!s.ok()) {
         if (s.IsNotFound()) {
             LOG(INFO) << "Migrate slot: "<< slot_num_ <<" not found ";
-            res_.AppendArrayLen(2);
-            res_.AppendInteger(0);
             res_.AppendInteger(0);
         } else {
             LOG(WARNING) << "Migrate slot key: "<< key_ <<" error: " <<strerror(errno);
@@ -653,13 +647,12 @@ void SlotsMgrtTagOneCmd::Do() {
         return;
     }
     if (SlotKeyRemCheck() < 0){
-      return;
+        return;
     }
     if (MigrateOneKey(dest_ip_, dest_port_, key_, key_type_, res_) < 0){
-      return;
+        return;
     }
-    std::string slotKey = SlotKeyPrefix+std::to_string(slot_num_);
-    SlotKeyLenCheck(slotKey, res_);
+    res_.AppendInteger(1);
     return;
 }
 
