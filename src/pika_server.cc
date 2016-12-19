@@ -20,6 +20,7 @@
 #include "slash_string.h"
 #include "bg_thread.h"
 #include "pika_conf.h"
+#include "pika_slot.h"
 
 extern PikaConf *g_pika_conf;
 
@@ -829,6 +830,63 @@ bool PikaServer::Bgsaveoff() {
     bgsave_engine_->StopBackup();
   }
   return true;
+}
+
+void PikaServer::Bgslotsreload() {
+  // Only one thread can go through
+  {
+    slash::MutexLock l(&bgsave_protector_);
+    if (bgslots_reload_.reloading) {
+      return;
+    }
+    bgslots_reload_.reloading = true;
+  }
+
+  bgslots_reload_.start_time = time(NULL);
+  char s_time[32];
+  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_reload_.start_time));
+  bgslots_reload_.s_start_time.assign(s_time, len);
+  bgslots_reload_.cursor = 0;
+  bgslots_reload_.pattern = "*";
+  bgslots_reload_.count = 100;
+  
+  LOG(INFO) << "Start slot reloading";
+
+  // Start new thread if needed
+  bgsave_thread_.StartIfNeed();
+  bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
+}
+
+void PikaServer::DoBgslotsreload(void* arg) {
+  PikaServer* p = static_cast<PikaServer*>(arg);
+  BGSlotsReload reload = p->bgslots_reload();
+
+  // Do slotsreload
+  std::vector<std::string> keys;
+  int64_t cursor_ret = -1;
+  while(cursor_ret != 0 && p->GetSlotsreloading()){
+    nemo::Status s = p->db()->Scan(reload.cursor, reload.pattern, reload.count, keys, &cursor_ret);
+    if (!s.ok()){
+      LOG(WARNING) << "BG slotsreload error: " <<strerror(errno);
+      return;
+    }
+    std::vector<std::string>::const_iterator iter;
+    for (iter = keys.begin(); iter != keys.end(); iter++){
+      std::string key_type;
+      if ((*iter).find(SlotKeyPrefix) != std::string::npos){
+        continue;
+      }
+      if(KeyType(*iter, key_type) > 0){
+        SlotKeyAdd(key_type, *iter);
+      }
+    }
+
+    reload.cursor = cursor_ret;
+    p->SetSlotsreloadingCursor(cursor_ret);
+    keys.clear();
+  }
+  p->SetSlotsreloading(false);
+  LOG(INFO) << "Finish slot reloading";
 }
 
 bool PikaServer::PurgeLogs(uint32_t to, bool manual, bool force) {

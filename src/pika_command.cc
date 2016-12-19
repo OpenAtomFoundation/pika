@@ -67,6 +67,14 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsInfo, slotsinfoptr));
   CmdInfo* slotshashkeyptr = new CmdInfo(kCmdNameSlotsHashKey, -1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsHashKey, slotshashkeyptr));
+  CmdInfo* slotsreloadptr = new CmdInfo(kCmdNameSlotsReload, -1, kCmdFlagsWrite | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsReload, slotsreloadptr));
+  CmdInfo* slotsreloadoffptr = new CmdInfo(kCmdNameSlotsReloadOff, -1, kCmdFlagsWrite | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsReloadOff, slotsreloadoffptr));
+  CmdInfo* slotsdelptr = new CmdInfo(kCmdNameSlotsDel, -2, kCmdFlagsWrite | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsDel, slotsdelptr));
+  CmdInfo* slotsscanptr = new CmdInfo(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsScan, slotsscanptr));
 
   //Kv
   ////SetCmd
@@ -419,7 +427,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   Cmd* dbsizeptr = new DbsizeCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDbsize, dbsizeptr));
 
-  //migrate slot kCmdNameSlotsInfo
+  //migrate slot
   Cmd* slotmgrtslotptr = new SlotsMgrtTagSlotCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtSlot, slotmgrtslotptr));
   Cmd* slotmgrttagslotptr = new SlotsMgrtTagSlotCmd();
@@ -432,6 +440,14 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsInfo, slotsinfoptr));
   Cmd* slotshashkeyptr = new SlotsHashKeyCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsHashKey, slotshashkeyptr));
+  Cmd* slotsreloadptr = new SlotsReloadCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsReload, slotsreloadptr));
+  Cmd* slotsreloadoffptr = new SlotsReloadOffCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsReloadOff, slotsreloadoffptr));
+  Cmd* slotsdelptr = new SlotsDelCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsDel, slotsdelptr));
+  Cmd* slotsscanptr = new SlotsScanCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsScan, slotsscanptr));
 
   //Kv
   ////SetCmd

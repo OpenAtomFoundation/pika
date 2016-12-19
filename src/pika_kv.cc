@@ -107,13 +107,13 @@ void DelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void DelCmd::Do() {
   int64_t count = 0;
+  std::vector<std::string>::const_iterator it;
+  for (it = keys_.begin(); it != keys_.end(); it++) {
+    SlotKeyRem(*it);
+  }
   nemo::Status s = g_pika_server->db()->MDel(keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
-    std::vector<std::string>::const_iterator it;
-    for (it = keys_.begin(); it != keys_.end(); it++) {
-      SlotKeyRem("k", *it);
-    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

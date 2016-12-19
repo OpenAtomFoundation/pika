@@ -41,6 +41,10 @@ const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
 const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
 const std::string kCmdNameSlotsInfo = "slotsinfo";
 const std::string kCmdNameSlotsHashKey = "slotshashkey";
+const std::string kCmdNameSlotsReload = "slotsreload";
+const std::string kCmdNameSlotsReloadOff = "slotsreloadoff";
+const std::string kCmdNameSlotsDel = "slotsdel";
+const std::string kCmdNameSlotsScan = "slotsscan";
 
 //Kv
 const std::string kCmdNameSet = "set";
