@@ -70,13 +70,7 @@ class PikaBinlogSenderThread : public pink::Thread {
   pthread_rwlock_t rwlock_;
 
 
-//  int sockfd_;
   pink::RedisCli *cli_;
-
- // bool Init();
- // bool Connect();
- // bool Send(const std::string &msg);
- // bool Recv();
 
   virtual void* ThreadMain();
 };
