@@ -8,6 +8,7 @@
 #include "pika_conf.h"
 #include "pika_admin.h"
 #include "pika_server.h"
+#include "pika_slot.h"
 
 #include <sys/utsname.h>
 
@@ -1095,6 +1096,22 @@ void DbsizeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void DbsizeCmd::Do() {
+  if (g_pika_conf->slotmigrate()){
+    int64_t dbsize = 0;
+    for (int i = 0; i < HASH_SLOTS_SIZE; ++i){
+      int64_t card = 0;
+      card = g_pika_server->db()->SCard(SlotKeyPrefix+std::to_string(i));
+      if (card >= 0) {
+        dbsize += card;
+      }else {
+        res_.SetRes(CmdRes::kErrOther, "Get dbsize error");
+        return;
+      }
+    }
+    res_.AppendInteger(dbsize);
+    return;
+  }
+
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
   std::vector<uint64_t> &key_nums_v = key_scan_info.key_nums_v;
   if (key_scan_info.key_nums_v.size() != 5) {
