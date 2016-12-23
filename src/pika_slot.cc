@@ -15,7 +15,7 @@ extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
 
 uint32_t crc32tab[256];
-void CRC32_TableInit(uint32_t poly) {
+void CRC32TableInit(uint32_t poly) {
     int i, j;
     for (i = 0; i < 256; i ++) {
         uint32_t crc = i;
@@ -31,7 +31,7 @@ void CRC32_TableInit(uint32_t poly) {
 }
 
 void InitCRC32Table() {
-    CRC32_TableInit(IEEE_POLY);
+    CRC32TableInit(IEEE_POLY);
 }
 
 uint32_t CRC32Update(uint32_t crc, const char *buf, int len) {

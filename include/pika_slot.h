@@ -14,7 +14,7 @@ const size_t MaxKeySendSize = 10 * 1024;
 const uint32_t IEEE_POLY = 0xedb88320;
 extern uint32_t crc32tab[256];
 
-void CRC32_TableInit(uint32_t poly);
+void CRC32TableInit(uint32_t poly);
 
 extern void InitCRC32Table();
 

@@ -384,7 +384,7 @@ void SMoveCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 void SMoveCmd::Do() {
   int64_t res = 0;
   nemo::Status s = g_pika_server->db()->SMove(src_key_, dest_key_, member_, &res);
-  if (s.ok()) {
+  if (s.ok() || s.IsNotFound()) {
     if (s.IsNotFound()){
       res_.AppendInteger(res);
     } else {

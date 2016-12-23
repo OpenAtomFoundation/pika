@@ -836,7 +836,7 @@ void PikaServer::Bgslotsreload() {
   // Only one thread can go through
   {
     slash::MutexLock l(&bgsave_protector_);
-    if (bgslots_reload_.reloading) {
+    if (bgslots_reload_.reloading || bgsave_info_.bgsaving) {
       return;
     }
     bgslots_reload_.reloading = true;
