@@ -127,9 +127,8 @@ void KeyNotExistsRem(const std::string type, const std::string key) {
     return;
 }
 
-//migrate kv key to dest pika server
-static int doMigrate(const std::string dest_ip, const int64_t dest_port, const std::string send_str){
-    pink::RedisCli *cli = new pink::RedisCli();
+//do migrate key to dest pika server
+static int doMigrate(pink::RedisCli *cli, const std::string dest_ip, const int64_t dest_port, const std::string send_str){
     cli->set_connect_timeout(3000);
     if ((cli->Connect(dest_ip, dest_port, g_pika_server->host())).ok()) {
         cli->set_send_timeout(30000);
@@ -158,7 +157,6 @@ static int doMigrate(const std::string dest_ip, const int64_t dest_port, const s
         LOG(WARNING) << "slotKvMigrate Connect destination error: " <<strerror(errno);
         return -1;
     }
-    delete cli;
     return 0;
 }
 
@@ -195,6 +193,24 @@ static int keyDel(const std::string key){
     return 1;
 }
 
+static int migrateKeyTTl(pink::RedisCli *cli, std::string dest_ip, const int64_t dest_port, const std::string key){
+    int64_t ttl = 0;
+    pink::RedisCmdArgsType argv;
+    std::string send_str;
+    nemo::Status s = g_pika_server->db()->TTL(key, &ttl);
+    if (s.ok() && (ttl > 0)){
+        argv.push_back("expire");
+        argv.push_back(key);
+        argv.push_back(std::to_string(ttl));
+        pink::RedisCli::SerializeCommand(argv, &send_str);
+        if (doMigrate(cli, dest_ip, dest_port, send_str) < 0){
+            return -1;
+        }
+
+    }
+    return 0;
+}
+
 // migrate one kv key
 static int migrateKv(const std::string dest_ip, const int64_t dest_port, const std::string key){
     std::string value;
@@ -205,6 +221,7 @@ static int migrateKv(const std::string dest_ip, const int64_t dest_port, const s
       return 0;
     }
 
+    pink::RedisCli *cli = new pink::RedisCli();
     pink::RedisCmdArgsType argv;
     std::string send_str;
     argv.push_back("set");
@@ -212,10 +229,15 @@ static int migrateKv(const std::string dest_ip, const int64_t dest_port, const s
     argv.push_back(value);
     pink::RedisCli::SerializeCommand(argv, &send_str);
 
-    if (doMigrate(dest_ip, dest_port, send_str) < 0){
+    if (doMigrate(cli, dest_ip, dest_port, send_str) < 0){
       return -1;
     }
 
+    if (migrateKeyTTl(cli, dest_ip, dest_port, key) < 0){
+        return -1;
+    }
+
+    delete cli;
     keyDel(key); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
@@ -246,6 +268,7 @@ static int migrateHash(const std::string dest_ip, const int64_t dest_port, const
         return 0;
     }
 
+    pink::RedisCli *cli = new pink::RedisCli();
     pink::RedisCmdArgsType argv;
     std::string send_str;
     for (size_t i = 0; i <= keySize/MaxKeySendSize; ++i){
@@ -261,11 +284,16 @@ static int migrateHash(const std::string dest_ip, const int64_t dest_port, const
             argv.push_back(fvs[j].val);
         }
         pink::RedisCli::SerializeCommand(argv, &send_str);
-        if (doMigrate(dest_ip, dest_port, send_str) < 0){
+        if (doMigrate(cli, dest_ip, dest_port, send_str) < 0){
             return -1;
         }
     }
 
+    if (migrateKeyTTl(cli, dest_ip, dest_port, key) < 0){
+        return -1;
+    }
+
+    delete cli;
     keyDel(key); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
@@ -296,6 +324,7 @@ static int migrateList(const std::string dest_ip, const int64_t dest_port, const
         return 0;
     }
 
+    pink::RedisCli *cli = new pink::RedisCli();
     pink::RedisCmdArgsType argv;
     std::string send_str;
     for (size_t i = 0; i <= keySize/MaxKeySendSize; ++i){
@@ -310,11 +339,16 @@ static int migrateList(const std::string dest_ip, const int64_t dest_port, const
             argv.push_back(ivs[j].val);
         }
         pink::RedisCli::SerializeCommand(argv, &send_str);
-        if (doMigrate(dest_ip, dest_port, send_str) < 0){
+        if (doMigrate(cli, dest_ip, dest_port, send_str) < 0){
             return -1;
         }
     }
 
+    if (migrateKeyTTl(cli, dest_ip, dest_port, key) < 0){
+        return -1;
+    }
+
+    delete cli;
     keyDel(key); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
@@ -345,6 +379,7 @@ static int migrateSet(const std::string dest_ip, const int64_t dest_port, const 
         return 0;
     }
 
+    pink::RedisCli *cli = new pink::RedisCli();
     pink::RedisCmdArgsType argv;
     std::string send_str;
     for (size_t i = 0; i <= keySize/MaxKeySendSize; ++i){
@@ -359,11 +394,16 @@ static int migrateSet(const std::string dest_ip, const int64_t dest_port, const 
             argv.push_back(members[j]);
         }
         pink::RedisCli::SerializeCommand(argv, &send_str);
-        if (doMigrate(dest_ip, dest_port, send_str) < 0){
+        if (doMigrate(cli, dest_ip, dest_port, send_str) < 0){
             return -1;
         }
     }
 
+    if (migrateKeyTTl(cli, dest_ip, dest_port, key) < 0){
+        return -1;
+    }
+
+    delete cli;
     keyDel(key); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
@@ -394,6 +434,7 @@ static int migrateZset(const std::string dest_ip, const int64_t dest_port, const
         return 0;
     }
 
+    pink::RedisCli *cli = new pink::RedisCli();
     pink::RedisCmdArgsType argv;
     std::string send_str;
     for (size_t i = 0; i <= keySize/MaxKeySendSize; ++i){
@@ -409,11 +450,16 @@ static int migrateZset(const std::string dest_ip, const int64_t dest_port, const
             argv.push_back(sms[j].member);
         }
         pink::RedisCli::SerializeCommand(argv, &send_str);
-        if (doMigrate(dest_ip, dest_port, send_str) < 0){
+        if (doMigrate(cli, dest_ip, dest_port, send_str) < 0){
             return -1;
         }
     }
 
+    if (migrateKeyTTl(cli, dest_ip, dest_port, key) < 0){
+        return -1;
+    }
+
+    delete cli;
     keyDel(key);
     return 1;
 }
