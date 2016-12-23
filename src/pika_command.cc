@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "pika_admin.h"
+#include "pika_slot.h"
 #include "pika_kv.h"
 #include "pika_hash.h"
 #include "pika_list.h"
@@ -52,6 +53,28 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMonitor, monitorptr));
   CmdInfo* dbsizeptr = new CmdInfo(kCmdNameDbsize, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameDbsize, dbsizeptr));
+
+  //migrate slot
+  CmdInfo* slotmgrtslotptr = new CmdInfo(kCmdNameSlotsMgrtSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtSlot, slotmgrtslotptr));
+  CmdInfo* slotmgrttagslotptr = new CmdInfo(kCmdNameSlotsMgrtTagSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtTagSlot, slotmgrttagslotptr));
+  CmdInfo* slotmgrtoneptr = new CmdInfo(kCmdNameSlotsMgrtOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtOne, slotmgrtoneptr));
+  CmdInfo* slotmgrttagoneptr = new CmdInfo(kCmdNameSlotsMgrtTagOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtTagOne, slotmgrttagoneptr));
+  CmdInfo* slotsinfoptr = new CmdInfo(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsInfo, slotsinfoptr));
+  CmdInfo* slotshashkeyptr = new CmdInfo(kCmdNameSlotsHashKey, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsHashKey, slotshashkeyptr));
+  CmdInfo* slotsreloadptr = new CmdInfo(kCmdNameSlotsReload, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsReload, slotsreloadptr));
+  CmdInfo* slotsreloadoffptr = new CmdInfo(kCmdNameSlotsReloadOff, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsReloadOff, slotsreloadoffptr));
+  CmdInfo* slotsdelptr = new CmdInfo(kCmdNameSlotsDel, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsDel, slotsdelptr));
+  CmdInfo* slotsscanptr = new CmdInfo(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsScan, slotsscanptr));
 
   //Kv
   ////SetCmd
@@ -403,6 +426,28 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMonitor, monitorptr));
   Cmd* dbsizeptr = new DbsizeCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDbsize, dbsizeptr));
+
+  //migrate slot
+  Cmd* slotmgrtslotptr = new SlotsMgrtTagSlotCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtSlot, slotmgrtslotptr));
+  Cmd* slotmgrttagslotptr = new SlotsMgrtTagSlotCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagSlot, slotmgrttagslotptr));
+  Cmd* slotmgrtoneptr = new SlotsMgrtTagOneCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtOne, slotmgrtoneptr));
+  Cmd* slotmgrttagoneptr = new SlotsMgrtTagOneCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagOne, slotmgrttagoneptr));
+  Cmd* slotsinfoptr = new SlotsInfoCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsInfo, slotsinfoptr));
+  Cmd* slotshashkeyptr = new SlotsHashKeyCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsHashKey, slotshashkeyptr));
+  Cmd* slotsreloadptr = new SlotsReloadCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsReload, slotsreloadptr));
+  Cmd* slotsreloadoffptr = new SlotsReloadOffCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsReloadOff, slotsreloadoffptr));
+  Cmd* slotsdelptr = new SlotsDelCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsDel, slotsdelptr));
+  Cmd* slotsscanptr = new SlotsScanCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsScan, slotsscanptr));
 
   //Kv
   ////SetCmd
