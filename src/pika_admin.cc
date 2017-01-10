@@ -781,6 +781,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "requirepass");
       EncodeString(&ret, g_pika_conf->requirepass());
+  }  else if (get_item == "masterauth") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "masterauth");
+      EncodeString(&ret, g_pika_conf->masterauth());
   } else if (get_item == "userpass") {
       ret = "*2\r\n";
       EncodeString(&ret, "userpass");
@@ -866,7 +870,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
   } else if (get_item == "*") {
-    ret = "*68\r\n";
+    ret = "*70\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "thread-num");
@@ -889,6 +893,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->timeout());
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, g_pika_conf->requirepass());
+    EncodeString(&ret, "masterauth");
+    EncodeString(&ret, g_pika_conf->masterauth());
     EncodeString(&ret, "userpass");
     EncodeString(&ret, g_pika_conf->userpass());
     EncodeString(&ret, "userblacklist");
@@ -943,10 +949,11 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*13\r\n";
+    ret = "*15\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
+    EncodeString(&ret, "masterauth");
     EncodeString(&ret, "slotmigrate");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
@@ -984,6 +991,9 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     ret = "+OK\r\n";
   } else if (set_item == "requirepass") {
     g_pika_conf->SetRequirePass(value);
+    ret = "+OK\r\n";
+  } else if (set_item == "masterauth") {
+    g_pika_conf->SetMasterAuth(value);
     ret = "+OK\r\n";
   } else if (set_item == "slotmigrate") {
     g_pika_conf->SetSlotMigrate(value);
