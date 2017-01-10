@@ -42,6 +42,7 @@ int PikaConf::Load()
       timeout_ = 60; // 60s
   }
   GetConfStr("requirepass", &requirepass_);
+  GetConfStr("masterauth", &masterauth_);
   GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
@@ -185,6 +186,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("write-buffer-size", write_buffer_size_);
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
+  SetConfStr("masterauth", masterauth_);
   SetConfStr("userpass", userpass_);
   SetConfStr("userblacklist", suser_blacklist());
   SetConfStr("dump-prefix", bgsave_prefix_);
