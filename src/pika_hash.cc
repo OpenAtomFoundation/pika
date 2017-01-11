@@ -7,6 +7,7 @@
 #include "nemo.h"
 #include "pika_hash.h"
 #include "pika_server.h"
+#include "pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -34,6 +35,7 @@ void HDelCmd::Do() {
     }
   }
   res_.AppendInteger(num);
+  KeyNotExistsRem("h", key_);
   return;
 }
 
@@ -113,11 +115,13 @@ void HSetCmd::Do() {
   if (s.ok()) {
     if (tmp != value_) {
       DoHSet(key_, field_, value_, res_, ":0");
+      SlotKeyAdd("h", key_);
     } else {
       res_.AppendContent(":0");
     }
   } else if (s.IsNotFound()) {
     DoHSet(key_, field_, value_, res_, ":1");
+    SlotKeyAdd("h", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -163,6 +167,7 @@ void HIncrbyCmd::Do() {
   nemo::Status s = g_pika_server->db()->HIncrby(key_, field_, by_, new_value);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent(":" + new_value);
+    SlotKeyAdd("h", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -193,6 +198,7 @@ void HIncrbyfloatCmd::Do() {
   if (s.ok()) {
     res_.AppendStringLen(new_value.size());
     res_.AppendContent(new_value);
+    SlotKeyAdd("h", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
@@ -304,6 +310,7 @@ void HMsetCmd::Do() {
   nemo::Status s = g_pika_server->db()->HMSet(key_, fv_v_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+    SlotKeyAdd("h", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -325,6 +332,7 @@ void HSetnxCmd::Do() {
   nemo::Status s = g_pika_server->db()->HSetnx(key_, field_, value_);
   if (s.ok()) {
     res_.AppendContent(":1");
+    SlotKeyAdd("h", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Already Exist") {
     res_.AppendContent(":0");
   } else {

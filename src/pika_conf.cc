@@ -148,6 +148,11 @@ int PikaConf::Load()
   }
   GetConfStr("pidfile", &pidfile_);
 
+  // slot migrate
+  std::string smgrt;
+  GetConfStr("slotmigrate", &smgrt);
+  slotmigrate_ =  (smgrt == "yes") ? true : false;
+
   // db sync
   GetConfStr("db-sync-path", &db_sync_path_);
   if (db_sync_path_[db_sync_path_.length() - 1] != '/') {
@@ -184,6 +189,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("userblacklist", suser_blacklist());
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfStr("daemonize", daemonize_ ? "yes" : "no");
+  SetConfStr("slotmigrate", slotmigrate_ ? "yes" : "no");
   SetConfStr("dump-path", bgsave_path_);
   SetConfStr("pidfile", pidfile_);
   SetConfInt("maxclients", maxclients_);

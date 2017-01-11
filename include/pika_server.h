@@ -161,6 +161,51 @@ public:
     bgsave_info_.bgsaving = false;
   }
 
+
+/*
+ * BGSlotsReload used
+ */
+  struct BGSlotsReload {
+    bool reloading;
+    time_t start_time;
+    std::string s_start_time;
+    int64_t cursor;
+    std::string pattern;
+    int64_t count;
+    BGSlotsReload() : reloading(false), cursor(0), pattern("*"), count(100){}
+    void Clear() {
+      reloading = false;
+      pattern = "*";
+      count = 100;
+      cursor = 0;
+    }
+  };
+  BGSlotsReload bgslots_reload() {
+    slash::MutexLock l(&bgsave_protector_);
+    return bgslots_reload_;
+  }
+  bool GetSlotsreloading() {
+    slash::MutexLock l(&bgsave_protector_);
+    return bgslots_reload_.reloading;
+  }
+  void SetSlotsreloading(bool reloading) {
+    slash::MutexLock l(&bgsave_protector_);
+    bgslots_reload_.reloading = reloading;
+  }
+  void SetSlotsreloadingCursor(int64_t cursor) {
+    slash::MutexLock l(&bgsave_protector_);
+    bgslots_reload_.cursor = cursor;
+  }
+  int64_t GetSlotsreloadingCursor() {
+    slash::MutexLock l(&bgsave_protector_);
+    return bgslots_reload_.cursor;
+  }
+  void Bgslotsreload();
+  void StopBgslotsreload() {
+    slash::MutexLock l(&bgsave_protector_);
+    bgslots_reload_.reloading = false;
+  }
+
 /*
  * PurgeLog used
  */
@@ -309,6 +354,11 @@ private:
     bgsave_info_.Clear();
   }
 
+  /*
+   * BGSlotsReload use
+   */
+  BGSlotsReload bgslots_reload_;
+  static void DoBgslotsreload(void* arg);
 
   /*
    * Purgelogs use

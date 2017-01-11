@@ -7,6 +7,7 @@
 #include "nemo.h"
 #include "pika_zset.h"
 #include "pika_server.h"
+#include "pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -48,6 +49,7 @@ void ZAddCmd::Do() {
       return;
     }
   }
+  SlotKeyAdd("z", key_);
   res_.AppendInteger(count);
   return;
 }
@@ -176,6 +178,7 @@ void ZIncrbyCmd::Do() {
   if (s.ok()) {
     res_.AppendStringLen(new_value.size());
     res_.AppendContent(new_value);
+    SlotKeyAdd("z", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -503,6 +506,8 @@ void ZRemCmd::Do() {
     }
   }
   res_.AppendInteger(count);
+
+  KeyNotExistsRem("z", key_);
   return;
 }
 
@@ -892,6 +897,7 @@ void ZRemrangebyrankCmd::Do() {
   nemo::Status s = g_pika_server->db()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
+    KeyNotExistsRem("z", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -923,6 +929,7 @@ void ZRemrangebyscoreCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
+  KeyNotExistsRem("z", key_);
   res_.AppendInteger(count);
   return;
 }
@@ -958,6 +965,7 @@ void ZRemrangebylexCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
+  KeyNotExistsRem("z", key_);
   res_.AppendInteger(count);
   return;
 }
