@@ -9,6 +9,7 @@
 #include "pika_command.h"
 #include "pika_conf.h"
 #include "pika_define.h"
+#include "pika_slot.h"
 #include "env.h"
 
 PikaConf *g_pika_conf;
@@ -165,6 +166,7 @@ int main(int argc, char *argv[]) {
   PikaGlogInit();
   PikaSignalSetup();
   InitCmdInfoTable();
+  InitCRC32Table();
 
   LOG(INFO) << "Server at: " << path;
   g_pika_server = new PikaServer();

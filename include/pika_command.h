@@ -34,6 +34,18 @@ const std::string kCmdNameConfig = "config";
 const std::string kCmdNameMonitor = "monitor";
 const std::string kCmdNameDbsize = "dbsize";
 
+//Migrate slot
+const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
+const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
+const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
+const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
+const std::string kCmdNameSlotsInfo = "slotsinfo";
+const std::string kCmdNameSlotsHashKey = "slotshashkey";
+const std::string kCmdNameSlotsReload = "slotsreload";
+const std::string kCmdNameSlotsReloadOff = "slotsreloadoff";
+const std::string kCmdNameSlotsDel = "slotsdel";
+const std::string kCmdNameSlotsScan = "slotsscan";
+
 //Kv
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";

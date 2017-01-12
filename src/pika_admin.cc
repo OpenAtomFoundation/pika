@@ -8,6 +8,7 @@
 #include "pika_conf.h"
 #include "pika_admin.h"
 #include "pika_server.h"
+#include "pika_slot.h"
 
 #include <sys/utsname.h>
 
@@ -532,6 +533,10 @@ void InfoCmd::InfoStats(std::string &info) {
   time_t current_time_s = time(NULL);
   tmp_stream << "is_bgsaving:" << (is_bgsaving ? "Yes, " : "No, ") << bgsave_info.s_start_time << ", "
                                 << (is_bgsaving ? (current_time_s - bgsave_info.start_time) : 0) << "\r\n";
+  PikaServer::BGSlotsReload bgslotsreload_info = g_pika_server->bgslots_reload();
+  bool is_reloading = g_pika_server->GetSlotsreloading();
+  tmp_stream << "is_slots_reloading:" << (is_reloading ? "Yes, " : "No, ") << bgslotsreload_info.s_start_time << ", "
+                                << (is_reloading ? (current_time_s - bgslotsreload_info.start_time) : 0) << "\r\n";
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
   bool is_scaning = g_pika_server->key_scaning();
   tmp_stream << "is_scaning_keyspace:" << (is_scaning ? ("Yes, " + key_scan_info.s_start_time) + "," : "No");
@@ -776,6 +781,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "requirepass");
       EncodeString(&ret, g_pika_conf->requirepass());
+  }  else if (get_item == "masterauth") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "masterauth");
+      EncodeString(&ret, g_pika_conf->masterauth());
   } else if (get_item == "userpass") {
       ret = "*2\r\n";
       EncodeString(&ret, "userpass");
@@ -792,6 +801,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "daemonize");
       EncodeString(&ret, g_pika_conf->daemonize() ? "yes" : "no");
+  } else if (get_item == "slotmigrate") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "slotmigrate");
+      EncodeString(&ret, g_pika_conf->slotmigrate() ? "yes" : "no");
   } else if (get_item == "dump-path") {
       ret = "*2\r\n";
       EncodeString(&ret, "dump-path");
@@ -857,7 +870,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
   } else if (get_item == "*") {
-    ret = "*66\r\n";
+    ret = "*70\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "thread-num");
@@ -880,12 +893,16 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->timeout());
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, g_pika_conf->requirepass());
+    EncodeString(&ret, "masterauth");
+    EncodeString(&ret, g_pika_conf->masterauth());
     EncodeString(&ret, "userpass");
     EncodeString(&ret, g_pika_conf->userpass());
     EncodeString(&ret, "userblacklist");
     EncodeString(&ret, g_pika_conf->suser_blacklist());
     EncodeString(&ret, "daemonize");
     EncodeInt32(&ret, g_pika_conf->daemonize());
+    EncodeString(&ret, "slotmigrate");
+    EncodeInt32(&ret, g_pika_conf->slotmigrate());
     EncodeString(&ret, "dump-path");
     EncodeString(&ret, g_pika_conf->bgsave_path());
     EncodeString(&ret, "dump-prefix");
@@ -932,10 +949,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*13\r\n";
+    ret = "*15\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
+    EncodeString(&ret, "masterauth");
+    EncodeString(&ret, "slotmigrate");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
     EncodeString(&ret, "dump-prefix");
@@ -972,6 +991,12 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     ret = "+OK\r\n";
   } else if (set_item == "requirepass") {
     g_pika_conf->SetRequirePass(value);
+    ret = "+OK\r\n";
+  } else if (set_item == "masterauth") {
+    g_pika_conf->SetMasterAuth(value);
+    ret = "+OK\r\n";
+  } else if (set_item == "slotmigrate") {
+    g_pika_conf->SetSlotMigrate(value);
     ret = "+OK\r\n";
   } else if (set_item == "userpass") {
     g_pika_conf->SetUserPass(value);
@@ -1081,6 +1106,22 @@ void DbsizeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void DbsizeCmd::Do() {
+  if (g_pika_conf->slotmigrate()){
+    int64_t dbsize = 0;
+    for (int i = 0; i < HASH_SLOTS_SIZE; ++i){
+      int64_t card = 0;
+      card = g_pika_server->db()->SCard(SlotKeyPrefix+std::to_string(i));
+      if (card >= 0) {
+        dbsize += card;
+      }else {
+        res_.SetRes(CmdRes::kErrOther, "Get dbsize error");
+        return;
+      }
+    }
+    res_.AppendInteger(dbsize);
+    return;
+  }
+
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
   std::vector<uint64_t> &key_nums_v = key_scan_info.key_nums_v;
   if (key_scan_info.key_nums_v.size() != 5) {

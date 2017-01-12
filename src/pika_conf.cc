@@ -42,6 +42,7 @@ int PikaConf::Load()
       timeout_ = 60; // 60s
   }
   GetConfStr("requirepass", &requirepass_);
+  GetConfStr("masterauth", &masterauth_);
   GetConfStr("userpass", &userpass_);
   GetConfInt("maxclients", &maxclients_);
   if (maxclients_ <= 0) {
@@ -148,6 +149,11 @@ int PikaConf::Load()
   }
   GetConfStr("pidfile", &pidfile_);
 
+  // slot migrate
+  std::string smgrt;
+  GetConfStr("slotmigrate", &smgrt);
+  slotmigrate_ =  (smgrt == "yes") ? true : false;
+
   // db sync
   GetConfStr("db-sync-path", &db_sync_path_);
   if (db_sync_path_[db_sync_path_.length() - 1] != '/') {
@@ -180,10 +186,12 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("write-buffer-size", write_buffer_size_);
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
+  SetConfStr("masterauth", masterauth_);
   SetConfStr("userpass", userpass_);
   SetConfStr("userblacklist", suser_blacklist());
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfStr("daemonize", daemonize_ ? "yes" : "no");
+  SetConfStr("slotmigrate", slotmigrate_ ? "yes" : "no");
   SetConfStr("dump-path", bgsave_path_);
   SetConfStr("pidfile", pidfile_);
   SetConfInt("maxclients", maxclients_);

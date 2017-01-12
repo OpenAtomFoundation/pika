@@ -38,6 +38,8 @@ public:
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
 
   std::string requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
+  std::string masterauth()     { RWLock l(&rwlock_, false); return masterauth_; }
+  bool slotmigrate()     { RWLock l(&rwlock_, false); return slotmigrate_; }
   std::string bgsave_path()     { RWLock l(&rwlock_, false); return bgsave_path_; }
   std::string bgsave_prefix()     { RWLock l(&rwlock_, false); return bgsave_prefix_; }
   std::string userpass()        { RWLock l(&rwlock_, false); return userpass_; }
@@ -91,6 +93,14 @@ public:
     RWLock l(&rwlock_, true);
     requirepass_ = value;
   }
+  void SetMasterAuth(const std::string &value) {
+    RWLock l(&rwlock_, true);
+    masterauth_ = value;
+  }
+  void SetSlotMigrate(const std::string &value) {
+    RWLock l(&rwlock_, true);
+    slotmigrate_ =  (value == "yes") ? true : false;
+  }
   void SetUserPass(const std::string &value) {
     RWLock l(&rwlock_, true);
     userpass_ = value;
@@ -143,8 +153,10 @@ private:
   int write_buffer_size_;
   int log_level_;
   bool daemonize_;
+  bool slotmigrate_;
   int timeout_;
   std::string requirepass_;
+  std::string masterauth_;
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
   std::string bgsave_path_;

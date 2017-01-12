@@ -7,6 +7,7 @@
 #include "nemo.h"
 #include "pika_set.h"
 #include "pika_server.h"
+#include "pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -36,6 +37,7 @@ void SAddCmd::Do() {
       return;
     }
   }
+  SlotKeyAdd("s", key_);
   res_.AppendInteger(count);
   return;
 }
@@ -55,6 +57,7 @@ void SPopCmd::Do() {
   if (s.ok()) {
     res_.AppendStringLen(member.size());
     res_.AppendContent(member);
+    KeyNotExistsRem("s", key_);
   } else if (s.IsNotFound()) {
     res_.AppendContent("$-1");
   } else {
@@ -210,6 +213,7 @@ void SRemCmd::Do() {
     }
   }
   res_.AppendInteger(count);
+  KeyNotExistsRem("s", key_);
   return;
 }
 
@@ -381,10 +385,17 @@ void SMoveCmd::Do() {
   int64_t res = 0;
   nemo::Status s = g_pika_server->db()->SMove(src_key_, dest_key_, member_, &res);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendInteger(res);
+    if (s.IsNotFound()){
+      res_.AppendInteger(res);
+    } else {
+      res_.AppendInteger(res);
+      SlotKeyAdd("s", dest_key_);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+
+  KeyNotExistsRem("s", src_key_);
   return;
 }
 

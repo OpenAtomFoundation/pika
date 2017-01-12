@@ -27,8 +27,13 @@ PikaTrysyncThread::~PikaTrysyncThread() {
 bool PikaTrysyncThread::Send() {
   pink::RedisCmdArgsType argv;
   std::string wbuf_str;
+  std::string masterauth = g_pika_conf->masterauth();
   std::string requirepass = g_pika_conf->requirepass();
-  if (requirepass != "") {
+  if (masterauth != "") {
+    argv.push_back("auth");
+    argv.push_back(masterauth);
+    pink::RedisCli::SerializeCommand(argv, &wbuf_str);
+  } else if (requirepass != ""){
     argv.push_back("auth");
     argv.push_back(requirepass);
     pink::RedisCli::SerializeCommand(argv, &wbuf_str);

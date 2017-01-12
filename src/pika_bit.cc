@@ -8,6 +8,7 @@
 #include "nemo.h"
 #include "pika_bit.h"
 #include "pika_server.h"
+#include "pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -47,6 +48,7 @@ void BitSetCmd::Do() {
   nemo::Status s = g_pika_server->db()->BitSet(key_, bit_offset_, on_, &bit_val);
   if (s.ok()){
     res_.AppendInteger((int)bit_val);
+    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
