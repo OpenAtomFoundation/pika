@@ -45,6 +45,10 @@ cd output
 
 ## For developer
 
+### RoadMap
+
+* optimize engine nemo to improve list performance
+
 ### Dependencies
 
 * snappy - a library for fast data compression
