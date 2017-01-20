@@ -4,7 +4,7 @@
 
 ##Introduction [中文] (https://github.com/Qihoo360/pika/blob/master/README_CN.md)
 
-Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization. You can alse use pika in twemproxy or codis for **static**(*not support data migration in codis*) distributed Redis solution
+Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization. You can alse use pika in twemproxy or codis(*pika has supported data migration in codis，thanks [left2right](https://github.com/left2right)*) for distributed Redis solution
 
 
 ##UserList
@@ -20,6 +20,9 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 <img src="http://imgur.com/yJe4FP8.png" height = "100" width = "120" alt="HX">
 <img src="http://i.imgur.com/o8ZDXCH.png" height = "100" width = "120" alt="XL">
 <img src="http://imgur.com/w3qNQ9T.png" height = "100" width = "120" alt="GWD">
+
+<img src="http://i.imgur.com/Ll6SifR.png" height = "100" width = "120" alt="DYD">
+<img src="http://i.imgur.com/vJbAfri.png" height = "100" width = "120" alt="YM">
 
 [More](https://github.com/Qihoo360/pika/blob/master/USERS.md)
 
