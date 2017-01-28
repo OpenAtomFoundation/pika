@@ -13,8 +13,8 @@ extern PikaServer *g_pika_server;
 
 void PfAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
-  res_.SetRes(CmdRes::kWrongNum, kCmdNamePfAdd);
-	return;
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePfAdd);
+    return;
   }
   key_ = argv[1];
   size_t pos = 2;
@@ -26,17 +26,17 @@ void PfAddCmd::Do() {
   nemo::Status s;
   s = g_pika_server->db()->PfAdd(key_, values_);
   if (s.ok()) {
-      res_.SetRes(CmdRes::kOk);
+    res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
 void PfCountCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-//  if (!ptr_info->CheckArg(argv.size())) {
-  //  res_.SetRes(CmdRes::kWrongNum, kCmdNamePfCount);
-//	return;
- // }
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePfCount);
+    return;
+  }
   size_t pos = 1;
   while (pos < argv.size()) {
     keys_.push_back(argv[pos++]);
@@ -58,7 +58,7 @@ void PfCountCmd::Do() {
 void PfMergeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePfMerge);
-	return;
+    return;
   }
   size_t pos = 1;
   while (pos < argv.size()) {
@@ -69,7 +69,7 @@ void PfMergeCmd::Do() {
   nemo::Status s;
   s = g_pika_server->db()->PfMerge(keys_);
   if (s.ok()) {
-      res_.SetRes(CmdRes::kOk);
+    res_.SetRes(CmdRes::kOk);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
