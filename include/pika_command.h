@@ -152,9 +152,14 @@ const std::string kCmdNameSInter = "sinter";
 const std::string kCmdNameSInterstore = "sinterstore";
 const std::string kCmdNameSIsmember = "sismember";
 const std::string kCmdNameSDiff = "sdiff";
-const std::string kCmdNameSDiffstore= "sdiffstore";
-const std::string kCmdNameSMove= "smove";
-const std::string kCmdNameSRandmember= "srandmember";
+const std::string kCmdNameSDiffstore = "sdiffstore";
+const std::string kCmdNameSMove = "smove";
+const std::string kCmdNameSRandmember = "srandmember";
+
+//HyperLogLog
+const std::string kCmdNamePfAdd = "pfadd";
+const std::string kCmdNamePfCount = "pfcount";
+const std::string kCmdNamePfMerge = "pfmerge";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 
@@ -177,6 +182,7 @@ enum CmdFlags {
   kCmdFlagsSet            = 8,
   kCmdFlagsZset           = 10,
   kCmdFlagsBit            = 12,
+  kCmdFlagsHyperLogLog    = 14,
   kCmdFlagsNoLocal        = 0, //default nolocal
   kCmdFlagsLocal          = 16,
   kCmdFlagsNoSuspend      = 0, //default nosuspend

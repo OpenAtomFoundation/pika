@@ -4,13 +4,13 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "pika_admin.h"
-#include "pika_slot.h"
 #include "pika_kv.h"
 #include "pika_hash.h"
 #include "pika_list.h"
 #include "pika_set.h"
 #include "pika_zset.h"
 #include "pika_bit.h"
+#include "pika_hyperloglog.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
 
@@ -54,6 +54,7 @@ void InitCmdInfoTable() {
   CmdInfo* dbsizeptr = new CmdInfo(kCmdNameDbsize, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameDbsize, dbsizeptr));
 
+    
   //migrate slot
   CmdInfo* slotmgrtslotptr = new CmdInfo(kCmdNameSlotsMgrtSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtSlot, slotmgrtslotptr));
@@ -75,7 +76,8 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsDel, slotsdelptr));
   CmdInfo* slotsscanptr = new CmdInfo(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsScan, slotsscanptr));
-
+    
+    
   //Kv
   ////SetCmd
   CmdInfo* setptr = new CmdInfo(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsKv);
@@ -371,6 +373,17 @@ void InitCmdInfoTable() {
   ////BitCount
   CmdInfo* bitcountptr = new CmdInfo(kCmdNameBitCount, -2, kCmdFlagsRead | kCmdFlagsBit);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameBitCount, bitcountptr)).second;
+
+  //HyperLogLog
+  ////PfAdd
+  CmdInfo* pfaddptr = new CmdInfo(kCmdNamePfAdd, -3, kCmdFlagsWrite | kCmdFlagsHyperLogLog);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePfAdd, pfaddptr));
+  ////PfCount
+  CmdInfo* pfcountptr = new CmdInfo(kCmdNamePfCount, -3, kCmdFlagsRead | kCmdFlagsHyperLogLog);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePfCount, pfcountptr));
+  ////PfMerge
+  CmdInfo* pfmergeptr = new CmdInfo(kCmdNamePfMerge, -3, kCmdFlagsWrite | kCmdFlagsHyperLogLog);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePfMerge, pfmergeptr));
 }
 
 void DestoryCmdInfoTable() {
@@ -448,7 +461,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsDel, slotsdelptr));
   Cmd* slotsscanptr = new SlotsScanCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsScan, slotsscanptr));
-
+    
   //Kv
   ////SetCmd
   Cmd* setptr = new SetCmd();
@@ -741,6 +754,17 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////bitopCmd
   Cmd* bitopptr = new BitOpCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitOp, bitopptr));
+
+  //HyperLogLog
+  ////pfaddCmd
+  Cmd * pfaddptr = new PfAddCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePfAdd, pfaddptr));
+  ////pfcountCmd
+  Cmd * pfcountptr = new PfCountCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePfCount, pfcountptr));
+  ////pfmergeCmd
+  Cmd * pfmergeptr = new PfMergeCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePfMerge, pfmergeptr));
 
 }
 
