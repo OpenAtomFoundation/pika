@@ -380,7 +380,7 @@ void InitCmdInfoTable() {
   CmdInfo* pfaddptr = new CmdInfo(kCmdNamePfAdd, -3, kCmdFlagsWrite | kCmdFlagsHyperLogLog);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePfAdd, pfaddptr));
   ////PfCount
-  CmdInfo* pfcountptr = new CmdInfo(kCmdNamePfCount, -3, kCmdFlagsRead | kCmdFlagsHyperLogLog);
+  CmdInfo* pfcountptr = new CmdInfo(kCmdNamePfCount, -2, kCmdFlagsRead | kCmdFlagsHyperLogLog);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePfCount, pfcountptr));
   ////PfMerge
   CmdInfo* pfmergeptr = new CmdInfo(kCmdNamePfMerge, -3, kCmdFlagsWrite | kCmdFlagsHyperLogLog);
