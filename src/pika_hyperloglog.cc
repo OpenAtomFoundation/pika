@@ -26,7 +26,7 @@ void PfAddCmd::Do() {
   nemo::Status s;
   s = g_pika_server->db()->PfAdd(key_, values_);
   if (s.ok()) {
-    res_.SetRes(CmdRes::kOk);
+    res_.AppendInteger(1);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -48,8 +48,6 @@ void PfCountCmd::Do() {
   s = g_pika_server->db()->PfCount(keys_, value_);
   if (s.ok()) {
     res_.AppendInteger(value_);
-  } else if (s.IsNotFound()) {
-    res_.AppendStringLen(-1);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -70,8 +68,6 @@ void PfMergeCmd::Do() {
   s = g_pika_server->db()->PfMerge(keys_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
-  } else if (s.IsNotFound()) {
-    res_.AppendStringLen(-1);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
