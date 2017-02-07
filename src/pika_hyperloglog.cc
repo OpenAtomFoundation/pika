@@ -22,11 +22,15 @@ void PfAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     values_.push_back(argv[pos++]);
   }
 }
+
 void PfAddCmd::Do() {
   nemo::Status s;
-  s = g_pika_server->db()->PfAdd(key_, values_);
-  if (s.ok()) {
+  bool update = false;
+  s = g_pika_server->db()->PfAdd(key_, values_, update);
+  if (s.ok() && update) {
     res_.AppendInteger(1);
+  } else if (s.ok() && !update) {
+    res_.AppendInteger(0);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -42,6 +46,7 @@ void PfCountCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     keys_.push_back(argv[pos++]);
   }
 }
+
 void PfCountCmd::Do() {
   nemo::Status s;
   int value_;
@@ -63,6 +68,7 @@ void PfMergeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     keys_.push_back(argv[pos++]);
   }
 }
+
 void PfMergeCmd::Do() {
   nemo::Status s;
   s = g_pika_server->db()->PfMerge(keys_);

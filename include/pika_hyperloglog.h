@@ -14,38 +14,39 @@
  */
 class PfAddCmd : public Cmd {
 public:
-	PfAddCmd() {};
-	virtual void Do();
+  PfAddCmd() {};
+  virtual void Do();
 private:
-	std::string key_;
-	std::vector<std::string> values_;
-	virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
-	virtual void Clear() {
-      values_.clear();
-    }
+  std::string key_;
+  std::vector<std::string> values_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    values_.clear();
+  }
 };
 
 class PfCountCmd : public Cmd {
 public:
-	PfCountCmd() {};
-	virtual void Do();
+  PfCountCmd() {};
+  virtual void Do();
 private:
-	std::vector<std::string> keys_;
-	virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
-	virtual void Clear() {
-      keys_.clear();
-    }
+  std::vector<std::string> keys_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    keys_.clear();
+  }
 };
 
 class PfMergeCmd : public Cmd {
 public:
-	PfMergeCmd() {};
-	virtual void Do();
+  PfMergeCmd() {};
+  virtual void Do();
 private:
-	std::vector<std::string> keys_;
-	virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
-	virtual void Clear() {
-      keys_.clear();
-    }
+  std::vector<std::string> keys_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    keys_.clear();
+  }
 };
+
 #endif
