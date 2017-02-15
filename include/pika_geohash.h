@@ -29,8 +29,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GEOHASH_H_
-#define GEOHASH_H_
+#ifndef PIKA_GEOHASH_H_
+#define PIKA_GEOHASH_H_
 
 #include <stddef.h>
 #include <stdint.h>
