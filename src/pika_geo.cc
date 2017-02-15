@@ -47,7 +47,7 @@ void GeoAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void GeoAddCmd::Do() {
   nemo::Status s;
-  int64_t response = 0, ret;
+  int64_t count = 0, ret;
   bool exist = false;
   const std::shared_ptr<nemo::Nemo> db = g_pika_server->db();
   std::vector<GeoPoint>::const_iterator iter = pos_.begin();
@@ -68,16 +68,16 @@ void GeoAddCmd::Do() {
   	}
     s = db->ZAdd(key_, score, iter->name, &ret); 
     if (s.ok() && !exist) {
-      response = 1;
+      count += 1;
     } else if (s.ok() && exist) {
-      response = 0;
+      
     } else {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
   }
   SlotKeyAdd("z", key_);
-  res_.AppendInteger(response);
+  res_.AppendInteger(count);
   return;
 }
 
