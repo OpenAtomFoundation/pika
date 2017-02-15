@@ -161,6 +161,12 @@ const std::string kCmdNamePfAdd = "pfadd";
 const std::string kCmdNamePfCount = "pfcount";
 const std::string kCmdNamePfMerge = "pfmerge";
 
+//GEO
+const std::string kCmdNameGeoAdd = "geoadd";
+const std::string kCmdNameGeoPos = "geopos";
+const std::string kCmdNameGeoDist = "geodist";
+const std::string kCmdNameGeoHash = "geohash";
+
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 
 enum CmdFlagsMask {
@@ -185,6 +191,7 @@ enum CmdFlags {
   kCmdFlagsHyperLogLog    = 14,
   kCmdFlagsNoLocal        = 0, //default nolocal
   kCmdFlagsLocal          = 16,
+  kCmdFlagsGeo            = 18,
   kCmdFlagsNoSuspend      = 0, //default nosuspend
   kCmdFlagsSuspend        = 32,
   kCmdFlagsNoPrior        = 0, //default noprior
