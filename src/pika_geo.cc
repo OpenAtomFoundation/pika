@@ -302,7 +302,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
       return;
     }
     // Insert into result only if the point is within the search area.
-    for (int i = 0; i < sm_v.size(); ++i) {
+    for (size_t i = 0; i < sm_v.size(); ++i) {
       double xy[2], real_distance;
       GeoHashBits hash = { .bits = (uint64_t)sm_v[i].score, .step = GEO_STEP_MAX };
       geohashDecodeToLongLatWGS84(hash, xy);
