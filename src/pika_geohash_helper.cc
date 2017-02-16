@@ -60,7 +60,7 @@ static inline double rad_deg(double ang) { return ang / D_R; }
 /* This function is used in order to estimate the step (bits precision)
  * of the 9 search area boxes during radius queries. */
 uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
-    if (range_meters == 0) return 26;
+    if (range_meters == 0) return 18;
     int step = 1;
     while (range_meters < MERCATOR_MAX) {
         range_meters *= 2;

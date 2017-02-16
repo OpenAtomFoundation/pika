@@ -166,16 +166,18 @@ const std::string kCmdNameGeoAdd = "geoadd";
 const std::string kCmdNameGeoPos = "geopos";
 const std::string kCmdNameGeoDist = "geodist";
 const std::string kCmdNameGeoHash = "geohash";
+const std::string kCmdNameGeoRadius = "georadius";
+const std::string kCmdNameGeoRadiusByMember = "georadiusbymember";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 
 enum CmdFlagsMask {
   kCmdFlagsMaskRW               = 1,
-  kCmdFlagsMaskType             = 14,
-  kCmdFlagsMaskLocal            = 16,
-  kCmdFlagsMaskSuspend          = 32,
-  kCmdFlagsMaskPrior            = 64,
-  kCmdFlagsMaskAdminRequire     = 128
+  kCmdFlagsMaskType             = 28,
+  kCmdFlagsMaskLocal            = 32,
+  kCmdFlagsMaskSuspend          = 64,
+  kCmdFlagsMaskPrior            = 128,
+  kCmdFlagsMaskAdminRequire     = 255
 };
 
 enum CmdFlags {
@@ -189,15 +191,15 @@ enum CmdFlags {
   kCmdFlagsZset           = 10,
   kCmdFlagsBit            = 12,
   kCmdFlagsHyperLogLog    = 14,
+  kCmdFlagsGeo            = 16,
   kCmdFlagsNoLocal        = 0, //default nolocal
-  kCmdFlagsLocal          = 16,
-  kCmdFlagsGeo            = 18,
+  kCmdFlagsLocal          = 32,
   kCmdFlagsNoSuspend      = 0, //default nosuspend
-  kCmdFlagsSuspend        = 32,
+  kCmdFlagsSuspend        = 64,
   kCmdFlagsNoPrior        = 0, //default noprior
-  kCmdFlagsPrior          = 64,
+  kCmdFlagsPrior          = 128,
   kCmdFlagsNoAdminRequire = 0, //default no need admin
-  kCmdFlagsAdminRequire   = 128
+  kCmdFlagsAdminRequire   = 255
 };
 
 

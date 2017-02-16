@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <sstream>
+#include <algorithm>
 #include "slash_string.h"
 #include "nemo.h"
 #include "pika_geo.h"
@@ -37,7 +38,7 @@ void GeoAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
-    point.name = argv[index+2];
+    point.member = argv[index+2];
     point.longitude = longitude;
     point.latitude = latitude;
     pos_.push_back(point);
@@ -60,13 +61,13 @@ void GeoAddCmd::Do() {
   	std::string str_bits = std::to_string(bits);
   	double previous_score, score;
   	slash::string2d(str_bits.data(), str_bits.size(), &score);
-  	s = db->ZScore(key_, iter->name, &previous_score);
+  	s = db->ZScore(key_, iter->member, &previous_score);
   	if (s.ok()) {
   	  exist = true;
   	} else if (s.IsNotFound()){
   	  exist = false;
   	}
-    s = db->ZAdd(key_, score, iter->name, &ret); 
+    s = db->ZAdd(key_, score, iter->member, &ret); 
     if (s.ok() && !exist) {
       count += 1;
     } else if (s.ok() && exist) {
@@ -87,17 +88,17 @@ void GeoPosCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
     return;
   }
   key_ = argv[1];
-  name_.clear();
+  member_.clear();
   size_t pos = 2;
   while (pos < argv.size()) {
-    name_.push_back(argv[pos++]);
+    member_.push_back(argv[pos++]);
   }
 }
 
 void GeoPosCmd::Do() {
   double score;
-  res_.AppendArrayLen(name_.size());
-  for (auto v : name_) {
+  res_.AppendArrayLen(member_.size());
+  for (auto v : member_) {
     nemo::Status s = g_pika_server->db()->ZScore(key_, v, &score);
     if (s.ok()) {
       double xy[2];
@@ -122,6 +123,20 @@ void GeoPosCmd::Do() {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       continue;	
     }
+  }
+}
+
+static double length_converter(double meters, std::string unit) {
+  if (unit == "m") {
+    return meters;
+  } else if (unit == "km") {
+    return meters / 1000;
+  } else if (unit == "ft") {
+    return meters / 0.3048;
+  } else if (unit == "mi") {
+    return meters / 1609.34;
+  } else {
+    return -1;
   }
 }
 
@@ -169,17 +184,10 @@ void GeoDistCmd::Do() {
   }
 
   double distance = geohashGetDistance(first_xy[0], first_xy[1], second_xy[0], second_xy[1]);
-  if (unit_ == "m") {
-  	distance = distance;
-  } else if (unit_ == "km") {
-  	distance = distance / 1000;
-  } else if (unit_ == "ft") {
-  	distance = distance / 0.3048;
-  } else if (unit_ == "mi") {
-  	distance = distance / 1609.34;
-  } else {
-  	res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
-  	return;
+  distance = length_converter(distance, unit_);
+  if (distance == -1) {
+    res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
+    return;
   }
   char buf[32];
   int64_t len = slash::d2string(buf, sizeof(buf), distance);
@@ -193,17 +201,17 @@ void GeoHashCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     return;
   }
   key_ = argv[1];
-  name_.clear();
+  member_.clear();
   size_t pos = 2;
   while (pos < argv.size()) {
-    name_.push_back(argv[pos++]);
+    member_.push_back(argv[pos++]);
   }
 }
 
 void GeoHashCmd::Do() {
-  char * geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
-  res_.AppendArrayLen(name_.size());
-  for (auto v : name_) {
+  const char * geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
+  res_.AppendArrayLen(member_.size());
+  for (auto v : member_) {
   	double score;
   	nemo::Status s = g_pika_server->db()->ZScore(key_, v, &score);
     if (s.ok()) {
@@ -236,4 +244,237 @@ void GeoHashCmd::Do() {
       continue;	
     }
   }
+}
+
+static bool sort_distance_asc(const NeighborPoint & pos1, const NeighborPoint & pos2) {
+  return pos1.distance < pos2.distance;
+}
+
+static bool sort_distance_desc(const NeighborPoint & pos1, const NeighborPoint & pos2) {
+  return pos1.distance > pos2.distance;
+}
+
+static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
+  nemo::Status s;
+  double longitude = range.longitude, latitude = range.latitude, distance = range.distance;
+  int count_limit = 0;
+
+  if (range.unit == "m") {
+    distance = distance;
+  } else if (range.unit == "km") {
+    distance = distance * 1000;
+  } else if (range.unit == "ft") {
+    distance = distance * 0.3048;
+  } else if (range.unit == "mi") {
+    distance = distance * 1609.34;
+  } else {
+    res.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
+    return;
+  }
+  // Search the zset for all matching points
+  GeoHashRadius georadius = geohashGetAreasByRadiusWGS84(longitude, latitude, distance);
+  GeoHashBits neighbors[9];
+  neighbors[0] = georadius.hash;
+  neighbors[1] = georadius.neighbors.north;
+  neighbors[2] = georadius.neighbors.south;
+  neighbors[3] = georadius.neighbors.east;
+  neighbors[4] = georadius.neighbors.west;
+  neighbors[5] = georadius.neighbors.north_east;
+  neighbors[6] = georadius.neighbors.north_west;
+  neighbors[7] = georadius.neighbors.south_east;
+  neighbors[8] = georadius.neighbors.south_west;
+
+  // For each neighbor (*and* our own hashbox), get all the matching
+  // members and add them to the potential result list.
+  std::vector<NeighborPoint> result;
+  for (size_t i = 0; i < sizeof(neighbors) / sizeof(*neighbors); i++) {
+    GeoHashFix52Bits min, max;
+    if (HASHISZERO(neighbors[i]))
+      continue;
+    min = geohashAlign52Bits(neighbors[i]);
+    neighbors[i].bits++;
+    max = geohashAlign52Bits(neighbors[i]);
+
+    std::vector<nemo::SM> sm_v;
+    s = g_pika_server->db()->ZRangebyscore(key, (double)min, (double)max, sm_v, false, false);
+    if (!s.ok()) {
+      res.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+    // Insert into result only if the point is within the search area.
+    for (int i = 0; i < sm_v.size(); ++i) {
+      double xy[2], real_distance;
+      GeoHashBits hash = { .bits = (uint64_t)sm_v[i].score, .step = GEO_STEP_MAX };
+      geohashDecodeToLongLatWGS84(hash, xy);
+      if(geohashGetDistanceIfInRadiusWGS84(longitude, latitude, xy[0], xy[1], distance, &real_distance)) {
+        NeighborPoint item;
+        item.member = sm_v[i].member;
+        item.score = sm_v[i].score;
+        item.distance = real_distance;
+        result.push_back(item);
+      }
+    }
+  }
+  // If using the count opiton
+  if (range.count) {
+    count_limit = range.count_limit;
+  } else {
+    count_limit = result.size();
+  }
+  // If using sort option
+  if (range.sort == Asc) {
+    std::sort(result.begin(), result.end(), sort_distance_asc);
+  } else if(range.sort == Desc) {
+    std::sort(result.begin(), result.end(), sort_distance_desc);
+  }
+  // For each the result
+  res.AppendArrayLen(count_limit);
+  for (int i = 0; i < count_limit; ++i) {
+    if (range.option_num != 0) {
+      res.AppendArrayLen(range.option_num+1);
+    }
+    // Member
+    res.AppendStringLen(result[i].member.size());
+    res.AppendContent(result[i].member);
+    
+    // If using withdist option
+    if (range.withdist) {  
+      double xy[2];
+      GeoHashBits hash = { .bits = (uint64_t)result[i].score, .step = GEO_STEP_MAX };
+      geohashDecodeToLongLatWGS84(hash, xy);
+      double distance = geohashGetDistance(longitude, latitude, xy[0], xy[1]);
+      distance = length_converter(distance, range.unit);
+      if (distance == -1) {
+        res.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
+        return;
+      }
+      char buf[32];
+      int64_t len = slash::d2string(buf, sizeof(buf), distance);
+      res.AppendStringLen(len);
+      res.AppendContent(buf);
+    }
+    // If using withcoord option
+    if (range.withcoord) {
+      res.AppendArrayLen(2);  
+      double xy[2];
+      GeoHashBits hash = { .bits = (uint64_t)result[i].score, .step = GEO_STEP_MAX };
+      geohashDecodeToLongLatWGS84(hash, xy);
+
+      char longitude[32];
+      int64_t len = slash::d2string(longitude, sizeof(longitude), xy[0]);
+      res.AppendStringLen(len);
+      res.AppendContent(longitude);
+
+      char latitude[32];
+      len = slash::d2string(latitude, sizeof(latitude), xy[1]);
+      res.AppendStringLen(len);
+      res.AppendContent(latitude);
+    }
+    // If using withhash option
+    if (range.withhash) {
+      char buf[32];
+      int64_t len = slash::d2string(buf, sizeof(buf), result[i].score);
+      res.AppendStringLen(len);
+      res.AppendContent(buf);
+    }
+  }
+}
+
+void GeoRadiusCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
+    return;
+  }
+  size_t argc = argv.size();
+  if (argc < 6) {
+  	res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
+    return;
+  }
+  key_ = argv[1];
+  slash::string2d(argv[2].data(), argv[2].size(), &range_.longitude);
+  slash::string2d(argv[3].data(), argv[3].size(), &range_.latitude);
+  slash::string2d(argv[4].data(), argv[4].size(), &range_.distance);
+  range_.unit = argv[5];
+  size_t pos = 6;
+  while (pos < argv.size()) {
+    if (!strcasecmp(argv[pos].c_str(), "withdist")) {
+      range_.withdist = true;
+      range_.option_num++;
+    } else if (!strcasecmp(argv[pos].c_str(), "withhash")) {
+      range_.withhash = true;	
+      range_.option_num++;
+    } else if (!strcasecmp(argv[pos].c_str(), "withcoord")) {
+      range_.withcoord = true;	
+      range_.option_num++;
+    } else if (!strcasecmp(argv[pos].c_str(), "count")) {
+      range_.count = true; 
+      range_.count_limit = std::stoi(argv[++pos]);
+    } else if (!strcasecmp(argv[pos].c_str(), "asc")) {
+      range_.sort = Asc;	
+    } else if (!strcasecmp(argv[pos].c_str(), "desc")) {
+      range_.sort = Desc;	
+    } else {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+    pos++;
+  }
+}
+
+void GeoRadiusCmd::Do() {
+  GetAllNeighbors(key_, range_, this->res_);
+}
+
+void GeoRadiusByMemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
+    return;
+  }
+  size_t argc = argv.size();
+  if (argc < 5) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
+    return;
+  }
+  key_ = argv[1];
+  range_.member = argv[2];
+  slash::string2d(argv[3].data(), argv[3].size(), &range_.distance);
+  range_.unit = argv[4];
+  size_t pos = 5;
+  while (pos < argv.size()) {
+    if (!strcasecmp(argv[pos].c_str(), "withdist")) {
+      range_.withdist = true;
+      range_.option_num++;
+    } else if (!strcasecmp(argv[pos].c_str(), "withhash")) {
+      range_.withhash = true; 
+      range_.option_num++;
+    } else if (!strcasecmp(argv[pos].c_str(), "withcoord")) {
+      range_.withcoord = true;  
+      range_.option_num++;
+    } else if (!strcasecmp(argv[pos].c_str(), "count")) {
+      range_.count = true; 
+      range_.count_limit = std::stoi(argv[++pos]);
+    } else if (!strcasecmp(argv[pos].c_str(), "asc")) {
+      range_.sort = Asc;  
+    } else if (!strcasecmp(argv[pos].c_str(), "desc")) {
+      range_.sort = Desc; 
+    } else {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+    pos++;
+  }
+}
+
+void GeoRadiusByMemberCmd::Do() {
+  nemo::Status s;
+  double score;
+  s = g_pika_server->db()->ZScore(key_, range_.member, &score);
+  if (s.ok()) {
+    double xy[2];
+    GeoHashBits hash = { .bits = (uint64_t)score, .step = GEO_STEP_MAX };
+    geohashDecodeToLongLatWGS84(hash, xy);
+    range_.longitude = xy[0];
+    range_.latitude = xy[1];
+  }
+  GetAllNeighbors(key_, range_, this->res_);
 }

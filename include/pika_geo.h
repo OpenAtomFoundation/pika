@@ -12,12 +12,38 @@
 /*
  * zset
  */
+ enum Sort
+{
+  Asc,
+  Desc
+};
 
  struct GeoPoint {
-  std::string name;
+  std::string member;
   double longitude;
   double latitude;
 };
+
+ struct NeighborPoint{
+ 	std::string member;
+ 	double score;
+ 	double distance;
+ };
+
+ struct GeoRange {
+  std::string member;
+  double longitude;
+  double latitude;
+  double distance;
+  std::string unit;
+  bool withdist;
+  bool withhash;
+  bool withcoord;
+  int option_num;
+  bool count;
+  int count_limit;
+  Sort sort;
+ };
 
 class GeoAddCmd : public Cmd {
 public:
@@ -35,7 +61,7 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  std::vector<std::string> name_;
+  std::vector<std::string> member_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
@@ -54,8 +80,44 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  std::vector<std::string> name_;
+  std::vector<std::string> member_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class GeoRadiusCmd : public Cmd {
+public:
+  GeoRadiusCmd() {}
+  virtual void Do();
+private:
+  std::string key_;
+  GeoRange range_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    range_.withdist = false;
+    range_.withcoord = false;
+    range_.withhash = false;
+    range_.count = false;
+   	range_.option_num = 0;
+   	range_.count_limit = 0;
+  }
+};
+
+class GeoRadiusByMemberCmd : public Cmd {
+public:
+  GeoRadiusByMemberCmd() {}
+  virtual void Do();
+private:
+  std::string key_;
+  GeoRange range_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    range_.withdist = false;
+    range_.withcoord = false;
+    range_.withhash = false;
+    range_.count = false;
+    range_.option_num = 0;
+    range_.count_limit = 0;
+  }
 };
 
 #endif
