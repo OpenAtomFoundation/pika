@@ -395,7 +395,7 @@ void InitCmdInfoTable() {
   CmdInfo* geoposptr = new CmdInfo(kCmdNameGeoPos, -3, kCmdFlagsRead | kCmdFlagsGeo);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoPos, geoposptr));
   ////GeoDist
-  CmdInfo* geodistptr = new CmdInfo(kCmdNameGeoDist, -3, kCmdFlagsWrite | kCmdFlagsGeo);
+  CmdInfo* geodistptr = new CmdInfo(kCmdNameGeoDist, -3, kCmdFlagsRead | kCmdFlagsGeo);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoDist, geodistptr));
   ////GeoHash
   CmdInfo* geohashptr = new CmdInfo(kCmdNameGeoHash, -3, kCmdFlagsRead | kCmdFlagsGeo);

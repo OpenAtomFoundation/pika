@@ -199,7 +199,7 @@ enum CmdFlags {
   kCmdFlagsNoPrior        = 0, //default noprior
   kCmdFlagsPrior          = 128,
   kCmdFlagsNoAdminRequire = 0, //default no need admin
-  kCmdFlagsAdminRequire   = 255
+  kCmdFlagsAdminRequire   = 256
 };
 
 
