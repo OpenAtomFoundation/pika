@@ -392,13 +392,13 @@ void InitCmdInfoTable() {
   CmdInfo* geoaddptr = new CmdInfo(kCmdNameGeoAdd, -4, kCmdFlagsWrite | kCmdFlagsGeo);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoAdd, geoaddptr));
   ////GeoPos
-  CmdInfo* geoposptr = new CmdInfo(kCmdNameGeoPos, -3, kCmdFlagsRead | kCmdFlagsGeo);
+  CmdInfo* geoposptr = new CmdInfo(kCmdNameGeoPos, -2, kCmdFlagsRead | kCmdFlagsGeo);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoPos, geoposptr));
   ////GeoDist
   CmdInfo* geodistptr = new CmdInfo(kCmdNameGeoDist, -3, kCmdFlagsRead | kCmdFlagsGeo);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoDist, geodistptr));
   ////GeoHash
-  CmdInfo* geohashptr = new CmdInfo(kCmdNameGeoHash, -3, kCmdFlagsRead | kCmdFlagsGeo);
+  CmdInfo* geohashptr = new CmdInfo(kCmdNameGeoHash, -2, kCmdFlagsRead | kCmdFlagsGeo);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoHash, geohashptr));
   ////GeoRadius
   CmdInfo* georadiusptr = new CmdInfo(kCmdNameGeoRadius, -3, kCmdFlagsRead | kCmdFlagsGeo);

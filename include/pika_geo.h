@@ -14,6 +14,7 @@
  */
  enum Sort
 {
+  Unsort,	//default
   Asc,
   Desc
 };
@@ -117,6 +118,7 @@ private:
     range_.count = false;
     range_.option_num = 0;
     range_.count_limit = 0;
+    range_.sort = Unsort;
   }
 };
 

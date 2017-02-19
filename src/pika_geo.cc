@@ -21,7 +21,7 @@ void GeoAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   }
   size_t argc = argv.size();
   if ((argc - 2) % 3 != 0) {
-    res_.SetRes(CmdRes::kSyntaxErr);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoAdd);
     return;
   }
   key_ = argv[1];
@@ -126,7 +126,7 @@ void GeoPosCmd::Do() {
   }
 }
 
-static double length_converter(double meters, std::string unit) {
+static double length_converter(double meters, const std::string & unit) {
   if (unit == "m") {
     return meters;
   } else if (unit == "km") {
@@ -140,9 +140,24 @@ static double length_converter(double meters, std::string unit) {
   }
 }
 
+static bool check_unit(const std::string & unit) {
+  if (unit == "m" || unit == "km" || unit == "ft" || unit == "mi") {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void GeoDistCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoDist);
+    return;
+  }
+  if (argv.size() < 4) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoDist);
+    return;
+  } else if (argv.size() > 5) {
+    res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
   key_ = argv[1];
@@ -150,10 +165,12 @@ void GeoDistCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   second_pos_ = argv[3];
   if (argv.size() == 5) {
   	unit_ = argv[4];
-  } else if (argv.size() > 5) {
-  	res_.SetRes(CmdRes::kSyntaxErr);
   } else {
   	unit_ = "m";
+  }
+  if (!check_unit(unit_)) {
+    res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
+    return;
   }
 }
 
@@ -185,10 +202,6 @@ void GeoDistCmd::Do() {
 
   double distance = geohashGetDistance(first_xy[0], first_xy[1], second_xy[0], second_xy[1]);
   distance = length_converter(distance, unit_);
-  if (distance == -1) {
-    res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
-    return;
-  }
   char buf[32];
   int64_t len = slash::d2string(buf, sizeof(buf), distance);
   res_.AppendStringLen(len);
@@ -258,7 +271,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
   nemo::Status s;
   double longitude = range.longitude, latitude = range.latitude, distance = range.distance;
   int count_limit = 0;
-
+  // Convert other units to meters
   if (range.unit == "m") {
     distance = distance;
   } else if (range.unit == "km") {
@@ -268,8 +281,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
   } else if (range.unit == "mi") {
     distance = distance * 1609.34;
   } else {
-    res.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
-    return;
+    distance = -1;
   }
   // Search the zset for all matching points
   GeoHashRadius georadius = geohashGetAreasByRadiusWGS84(longitude, latitude, distance);
@@ -344,10 +356,6 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
       geohashDecodeToLongLatWGS84(hash, xy);
       double distance = geohashGetDistance(longitude, latitude, xy[0], xy[1]);
       distance = length_converter(distance, range.unit);
-      if (distance == -1) {
-        res.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
-        return;
-      }
       char buf[32];
       int64_t len = slash::d2string(buf, sizeof(buf), distance);
       res.AppendStringLen(len);
@@ -395,6 +403,10 @@ void GeoRadiusCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
   slash::string2d(argv[3].data(), argv[3].size(), &range_.latitude);
   slash::string2d(argv[4].data(), argv[4].size(), &range_.distance);
   range_.unit = argv[5];
+  if (!check_unit(range_.unit)) {
+    res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
+    return;
+  }
   size_t pos = 6;
   while (pos < argv.size()) {
     if (!strcasecmp(argv[pos].c_str(), "withdist")) {
@@ -439,6 +451,10 @@ void GeoRadiusByMemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const
   range_.member = argv[2];
   slash::string2d(argv[3].data(), argv[3].size(), &range_.distance);
   range_.unit = argv[4];
+  if (!check_unit(range_.unit)) {
+    res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
+    return;
+  }
   size_t pos = 5;
   while (pos < argv.size()) {
     if (!strcasecmp(argv[pos].c_str(), "withdist")) {
