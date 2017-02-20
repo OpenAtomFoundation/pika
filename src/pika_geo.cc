@@ -49,7 +49,6 @@ void GeoAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 void GeoAddCmd::Do() {
   nemo::Status s;
   int64_t count = 0, ret;
-  bool exist = false;
   const std::shared_ptr<nemo::Nemo> db = g_pika_server->db();
   std::vector<GeoPoint>::const_iterator iter = pos_.begin();
   for (; iter != pos_.end(); iter++) {
@@ -58,20 +57,12 @@ void GeoAddCmd::Do() {
     geohashEncodeWGS84(iter->longitude, iter->latitude, GEO_STEP_MAX, &hash);
     GeoHashFix52Bits bits = geohashAlign52Bits(hash);
   	// Convert uint64 to double
+    double score;
   	std::string str_bits = std::to_string(bits);
-  	double previous_score, score;
   	slash::string2d(str_bits.data(), str_bits.size(), &score);
-  	s = db->ZScore(key_, iter->member, &previous_score);
-  	if (s.ok()) {
-  	  exist = true;
-  	} else if (s.IsNotFound()){
-  	  exist = false;
-  	}
     s = db->ZAdd(key_, score, iter->member, &ret); 
-    if (s.ok() && !exist) {
-      count += 1;
-    } else if (s.ok() && exist) {
-      
+    if (s.ok()) {
+      count += ret;
     } else {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
@@ -296,7 +287,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
   neighbors[7] = georadius.neighbors.south_east;
   neighbors[8] = georadius.neighbors.south_west;
 
-  // For each neighbor (*and* our own hashbox), get all the matching
+  // For each neighbor, get all the matching
   // members and add them to the potential result list.
   std::vector<NeighborPoint> result;
   for (size_t i = 0; i < sizeof(neighbors) / sizeof(*neighbors); i++) {
@@ -393,11 +384,6 @@ void GeoRadiusCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
     return;
   }
-  size_t argc = argv.size();
-  if (argc < 6) {
-  	res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
-    return;
-  }
   key_ = argv[1];
   slash::string2d(argv[2].data(), argv[2].size(), &range_.longitude);
   slash::string2d(argv[3].data(), argv[3].size(), &range_.latitude);
@@ -439,11 +425,6 @@ void GeoRadiusCmd::Do() {
 
 void GeoRadiusByMemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
-    return;
-  }
-  size_t argc = argv.size();
-  if (argc < 5) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
     return;
   }

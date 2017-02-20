@@ -177,7 +177,7 @@ enum CmdFlagsMask {
   kCmdFlagsMaskLocal            = 32,
   kCmdFlagsMaskSuspend          = 64,
   kCmdFlagsMaskPrior            = 128,
-  kCmdFlagsMaskAdminRequire     = 255
+  kCmdFlagsMaskAdminRequire     = 256
 };
 
 enum CmdFlags {
