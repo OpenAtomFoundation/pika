@@ -178,3 +178,5 @@ Get
 Mail: g-infra-bada@360.cn
 
 QQ group: 294254078
+
+<img src="http://i.imgur.com/pL4ni57.png" height = "400" width = "600" alt="2">
