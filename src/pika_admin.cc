@@ -115,6 +115,7 @@ void TrysyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 void TrysyncCmd::Do() {
   std::string ip_port = slash::IpPortString(slave_ip_, slave_port_);
   DLOG(INFO) << "Trysync, Slave ip_port: " << ip_port << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
+  slash::RWLock rwl(g_pika_server->rwlock(), true);
   slash::MutexLock l(&(g_pika_server->slave_mutex_));
   if (!g_pika_server->FindSlave(ip_port)) {
     SlaveItem s;
@@ -176,6 +177,7 @@ void BgsaveCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   }
 }
 void BgsaveCmd::Do() {
+  slash::RWLock rwl(g_pika_server->rwlock(), true);
   g_pika_server->Bgsave();
   const PikaServer::BGSaveInfo& info = g_pika_server->bgsave_info();
   char buf[256];
