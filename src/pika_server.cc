@@ -616,7 +616,7 @@ bool PikaServer::InitBgsaveEngine() {
   }
 
   {
-    RWLock l(&rwlock_, true);
+    //RWLock l(&rwlock_, true);
     {
       slash::MutexLock l(&bgsave_protector_);
       logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
