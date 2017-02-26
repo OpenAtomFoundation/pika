@@ -28,8 +28,8 @@ void GeoAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   pos_.clear();
   size_t index = 2;
   for (; index < argc; index += 3) {
-  	struct GeoPoint point;
-  	double longitude, latitude;
+    struct GeoPoint point;
+    double longitude, latitude;
     if (!slash::string2d(argv[index].data(), argv[index].size(), &longitude)) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
@@ -52,14 +52,14 @@ void GeoAddCmd::Do() {
   const std::shared_ptr<nemo::Nemo> db = g_pika_server->db();
   std::vector<GeoPoint>::const_iterator iter = pos_.begin();
   for (; iter != pos_.end(); iter++) {
-  	// Convert coordinates to geohash
-  	GeoHashBits hash;
+    // Convert coordinates to geohash
+    GeoHashBits hash;
     geohashEncodeWGS84(iter->longitude, iter->latitude, GEO_STEP_MAX, &hash);
     GeoHashFix52Bits bits = geohashAlign52Bits(hash);
-  	// Convert uint64 to double
+    // Convert uint64 to double
     double score;
-  	std::string str_bits = std::to_string(bits);
-  	slash::string2d(str_bits.data(), str_bits.size(), &score);
+    std::string str_bits = std::to_string(bits);
+    slash::string2d(str_bits.data(), str_bits.size(), &score);
     s = db->ZAdd(key_, score, iter->member, &ret); 
     if (s.ok()) {
       count += ret;
@@ -155,9 +155,9 @@ void GeoDistCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   first_pos_ = argv[2];
   second_pos_ = argv[3];
   if (argv.size() == 5) {
-  	unit_ = argv[4];
+    unit_ = argv[4];
   } else {
-  	unit_ = "m";
+    unit_ = "m";
   }
   if (!check_unit(unit_)) {
     res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
@@ -216,8 +216,8 @@ void GeoHashCmd::Do() {
   const char * geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
   res_.AppendArrayLen(member_.size());
   for (auto v : member_) {
-  	double score;
-  	nemo::Status s = g_pika_server->db()->ZScore(key_, v, &score);
+    double score;
+    nemo::Status s = g_pika_server->db()->ZScore(key_, v, &score);
     if (s.ok()) {
       double xy[2];
       GeoHashBits hash = { .bits = (uint64_t)score, .step = GEO_STEP_MAX };
