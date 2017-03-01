@@ -123,7 +123,7 @@ void TrysyncCmd::Do() {
   LOG(INFO) << "Trysync, Slave ip: " << slave_ip_ << "Slave port:" << slave_port_
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
   int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_);
-  if (sid > 0) {
+  if (sid >= 0) {
     Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
         filenum_, pro_offset_);
     if (status.ok()) {
