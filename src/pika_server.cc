@@ -108,13 +108,15 @@ PikaServer::~PikaServer() {
   {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
-
   while (iter != slaves_.end()) {
-    delete static_cast<PikaBinlogSenderThread*>(iter->sender);
+    if (iter->sender != NULL) {
+      delete static_cast<PikaBinlogSenderThread*>(iter->sender);
+    }
     iter =  slaves_.erase(iter);
     LOG(INFO) << "Delete slave success";
   }
   }
+
   delete pika_trysync_thread_;
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
@@ -288,6 +290,26 @@ void PikaServer::Start() {
   Cleanup();
 }
 
+void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
+  std::string ip_port = slash::IpPortString(ip, port);
+  
+  slash::MutexLock l(&slave_mutex_);
+  std::vector<SlaveItem>::iterator iter = slaves_.begin();
+  while (iter != slaves_.end()) {
+    if (iter->ip_port == ip_port) {
+      break;
+    }
+    iter++;
+  }
+  if (iter == slaves_.end()) {
+    return;
+  }
+  if (iter->sender != NULL) {
+    delete static_cast<PikaBinlogSenderThread*>(iter->sender);
+  }
+  slaves_.erase(iter);
+  return;
+}
 
 void PikaServer::DeleteSlave(int fd) {
   slash::MutexLock l(&slave_mutex_);
@@ -295,22 +317,9 @@ void PikaServer::DeleteSlave(int fd) {
 
   while (iter != slaves_.end()) {
     if (iter->hb_fd == fd) {
-      //pthread_kill(iter->tid);
-
-      // Remove BinlogSender first
-   //   static_cast<PikaBinlogSenderThread*>(iter->sender)->SetExit();
-   //   
-   //   DLOG(INFO) << "DeleteSlave: start join";
-   //   int err = pthread_join(iter->sender_tid, NULL);
-   //   DLOG(INFO) << "DeleteSlave: after join";
-   //   if (err != 0) {
-   //     std::string msg = "can't join thread " + std::string(strerror(err));
-   //     LOG(WARNING) << msg;
-   //     //return Status::Corruption(msg);
-   //   }
-
-      delete static_cast<PikaBinlogSenderThread*>(iter->sender);
-      
+      if (iter->sender != NULL) {
+        delete static_cast<PikaBinlogSenderThread*>(iter->sender);
+      }
       slaves_.erase(iter);
       LOG(INFO) << "Delete slave success";
       break;
@@ -373,34 +382,80 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
   }
 }
 
-bool PikaServer::FindSlave(std::string& ip_port) {
-//  slash::MutexLock l(&slave_mutex_);
+// Try add Slave, return slave sid if success,
+// return -1 when slave already exist
+int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
+  std::string ip_port = slash::IpPortString(ip, port);
+  
+  slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
-
   while (iter != slaves_.end()) {
     if (iter->ip_port == ip_port) {
-      return true;
+      return -1;
     }
     iter++;
   }
-  return false;
+
+  // Not exist, so add new
+  LOG(INFO) << "Add new slave, " << ip << ":" << port;
+  SlaveItem s;
+  s.sid = GenSid();
+  s.ip_port = ip_port;
+  s.port = port;
+  s.hb_fd = -1;
+  s.stage = SLAVE_ITEM_STAGE_ONE;
+  gettimeofday(&s.create_time, NULL);
+  s.sender = NULL;
+  slaves_.push_back(s);
+  return s.sid;
+}
+
+// Set binlog sender of SlaveItem
+bool PikaServer::SetSlaveSender(const std::string& ip, int64_t port,
+    PikaBinlogSenderThread* s){
+  std::string ip_port = slash::IpPortString(ip, port);
+  
+  slash::MutexLock l(&slave_mutex_);
+  std::vector<SlaveItem>::iterator iter = slaves_.begin();
+  while (iter != slaves_.end()) {
+    if (iter->ip_port == ip_port) {
+      break;
+    }
+    iter++;
+  }
+  if (iter == slaves_.end()) {
+    // Not exist
+    return false;
+  }
+
+  iter->sender = s;
+  iter->sender_tid = s->thread_id();
+  LOG(INFO) << "SetSlaveSender ok, tid is " << iter->sender_tid
+    << " hd_fd: " << iter->hb_fd << " stage: " << iter->stage;
+  return true;
 }
 
 int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
-  slash::MutexLock l(&slave_mutex_);
-  size_t index = 0, slaves_num = slaves_.size();
-
-  std::stringstream tmp_stream;
+  size_t index = 0;
   std::string slave_ip_port;
-  while (index < slaves_num) {
-    slave_ip_port = slaves_[index].ip_port;
-    tmp_stream << "slave" << index << ":ip=" << slave_ip_port.substr(0, slave_ip_port.find(":"))
-                                   << ",port=" << slave_ip_port.substr(slave_ip_port.find(":")+1)
-                           << ",state=" << (slaves_[index].stage == SLAVE_ITEM_STAGE_TWO ? "online" : "offline") << "\r\n";
-    index++;
+  std::stringstream tmp_stream;
+  
+  slash::MutexLock l(&slave_mutex_);
+  std::vector<SlaveItem>::iterator iter = slaves_.begin();
+  for (; iter != slaves_.end(); ++iter) {
+    if ((*iter).sender == NULL) {
+      // Binlog Sender has not yet created
+      continue;
+    }
+    slave_ip_port =(*iter).ip_port;
+    tmp_stream << "slave" << index++
+      << ":ip=" << slave_ip_port.substr(0, slave_ip_port.find(":"))
+      << ",port=" << slave_ip_port.substr(slave_ip_port.find(":")+1)
+      << ",state=" << ((*iter).stage == SLAVE_ITEM_STAGE_TWO ? "online" : "offline")
+      << "\r\n";
   }
   slave_list_str.assign(tmp_stream.str());
-  return slaves_num;
+  return index;
 }
 
 void PikaServer::BecomeMaster() {
@@ -664,7 +719,8 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
 /*
  * BinlogSender
  */
-Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset) {
+Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
+    uint32_t filenum, uint64_t con_offset) {
   // Sanity check
   if (con_offset > logger_->file_size()) {
     return Status::InvalidArgument("AddBinlogSender invalid offset");
@@ -676,33 +732,24 @@ Status PikaServer::AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t 
     return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
   }
 
-  std::string slave_ip = slave.ip_port.substr(0, slave.ip_port.find(':'));
-
+  // Create and set sender
   slash::SequentialFile *readfile;
   std::string confile = NewFileName(logger_->filename, filenum);
   if (!slash::FileExists(confile)) {
     // Not found binlog specified by filenum
-    TryDBSync(slave_ip, slave.port + 3000, cur_filenum);
+    TryDBSync(ip, port + 3000, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
   }
   if (!slash::NewSequentialFile(confile, &readfile).ok()) {
     return Status::IOError("AddBinlogSender new sequtialfile");
   }
 
-  PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(slave_ip, slave.port+1000, readfile, filenum, con_offset);
+  PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(ip,
+      port + 1000, readfile, filenum, con_offset);
 
-  slave.sender = sender;
-
-  if (sender->trim() == 0) {
+  if (sender->trim() == 0 // Error binlog
+      && SetSlaveSender(ip, port, sender)) { // SlaveItem not exist
     sender->StartThread();
-    pthread_t tid = sender->thread_id();
-    slave.sender_tid = tid;
-
-    LOG(INFO) << "AddBinlogSender ok, tid is " << slave.sender_tid << " hd_fd: " << slave.hb_fd << " stage: " << slave.stage;
-    // Add sender
-//    slash::MutexLock l(&slave_mutex_);
-    slaves_.push_back(slave);
-
     return Status::OK();
   } else {
     delete sender;
@@ -923,6 +970,10 @@ bool PikaServer::GetPurgeWindow(uint32_t &max) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator it;
   for (it = slaves_.begin(); it != slaves_.end(); ++it) {
+    if ((*it).sender == NULL) {
+      // One Binlog Sender has not yet created, no purge
+      return false;
+    }
     PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
     uint32_t filenum = pb->filenum();
     max = filenum < max ? filenum : max;
@@ -947,6 +998,10 @@ bool PikaServer::CouldPurge(uint32_t index) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator it;
   for (it = slaves_.begin(); it != slaves_.end(); ++it) {
+    if ((*it).sender == NULL) {
+      // One Binlog Sender has not yet created, no purge
+      return false;
+    }
     PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
     uint32_t filenum = pb->filenum();
     if (index > filenum) { 

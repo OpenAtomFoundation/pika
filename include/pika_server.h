@@ -80,7 +80,10 @@ public:
   }
 
   void DeleteSlave(int fd); // hb_fd
-  bool FindSlave(std::string& ip_port);
+  void DeleteSlave(const std::string& ip, int64_t port);
+  int64_t TryAddSlave(const std::string& ip, int64_t port);
+  bool SetSlaveSender(const std::string& ip, int64_t port,
+      PikaBinlogSenderThread* s);
   int32_t GetSlaveListString(std::string& slave_list_str);
   Status GetSmallestValidLog(uint32_t* max);
   void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
@@ -88,7 +91,6 @@ public:
 
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
-  std::vector<PikaBinlogSenderThread *> binlog_sender_threads_;
 
 /*
  * Slave use
@@ -125,7 +127,8 @@ public:
  * Binlog
  */
   Binlog *logger_;
-  Status AddBinlogSender(SlaveItem &slave, uint32_t filenum, uint64_t con_offset);
+  Status AddBinlogSender(const std::string& ip, int64_t port,
+      uint32_t filenum, uint64_t con_offset);
 
 /*
  * BGSave used

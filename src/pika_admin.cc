@@ -120,33 +120,32 @@ void TrysyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void TrysyncCmd::Do() {
-  std::string ip_port = slash::IpPortString(slave_ip_, slave_port_);
-  LOG(INFO) << "Trysync, Slave ip_port: " << ip_port << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
-  slash::MutexLock l(&(g_pika_server->slave_mutex_));
-  if (!g_pika_server->FindSlave(ip_port)) {
-    SlaveItem s;
-    s.sid = g_pika_server->GenSid();
-    s.ip_port = ip_port;
-    s.port = slave_port_;
-    s.hb_fd = -1;
-    s.stage = SLAVE_ITEM_STAGE_ONE;
-    gettimeofday(&s.create_time, NULL);
-    s.sender = NULL;
-    
-    LOG(INFO) << "Trysync, dont FindSlave, so AddBinlogSender";
-    Status status = g_pika_server->AddBinlogSender(s, filenum_, pro_offset_);
+  LOG(INFO) << "Trysync, Slave ip: " << slave_ip_ << "Slave port:" << slave_port_
+    << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
+  int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_);
+  if (sid > 0) {
+    Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
+        filenum_, pro_offset_);
     if (status.ok()) {
-      res_.AppendInteger(s.sid);
-      LOG(INFO) << "Send Sid to Slave: " << s.sid;
+      res_.AppendInteger(sid);
+      LOG(INFO) << "Send Sid to Slave: " << sid;
       g_pika_server->BecomeMaster();
-    } else if (status.IsIncomplete()) {
+      return;
+    }
+    // Create Sender failed, delete the slave
+    g_pika_server->DeleteSlave(slave_ip_, slave_port_);
+
+    if (status.IsIncomplete()) {
       res_.AppendString(kInnerReplWait);
     } else {
-      LOG(WARNING) << "slave offset is larger than mine, slave ip: " << ip_port << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_;
+      LOG(WARNING) << "slave offset is larger than mine, slave ip: " << slave_ip_
+        << "slave port:" << slave_port_
+        << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_;
       res_.SetRes(CmdRes::kErrOther, "InvalidOffset");
     }
   } else {
-    LOG(WARNING) << "slave already exist, slave ip: " << ip_port;
+    LOG(WARNING) << "slave already exist, slave ip: " << slave_ip_
+      << "slave port: " << slave_port_;
     res_.SetRes(CmdRes::kErrOther, "AlreadyExist");
   }
 }

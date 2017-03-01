@@ -22,7 +22,7 @@ class RedisCli;
 class PikaBinlogSenderThread : public pink::Thread {
  public:
 
-  PikaBinlogSenderThread(std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset);
+  PikaBinlogSenderThread(const std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset);
 
   virtual ~PikaBinlogSenderThread();
 

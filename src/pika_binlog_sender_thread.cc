@@ -20,7 +20,7 @@ using pink::RedisCli;
 
 extern PikaServer* g_pika_server;
 
-PikaBinlogSenderThread::PikaBinlogSenderThread(std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
+PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
   : con_offset_(con_offset),
     filenum_(filenum),
     initial_offset_(0),
