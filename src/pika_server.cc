@@ -79,7 +79,10 @@ PikaServer::PikaServer() :
     ips.insert("127.0.0.1");
     ips.insert(host_);
   }
-  pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, pika_worker_thread_, 3000);
+  // We estimate the queue size
+  int worker_queue_limit = g_pika_conf->maxclients() / worker_num_ + 100;
+  LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
+  pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, pika_worker_thread_, 3000, worker_queue_limit);
   pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(ips, port_ + 1000, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();

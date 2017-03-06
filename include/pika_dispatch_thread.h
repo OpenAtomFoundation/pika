@@ -13,9 +13,14 @@
 class PikaDispatchThread : public pink::DispatchThread<PikaClientConn>
 {
 public:
-  PikaDispatchThread(int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval);
-  PikaDispatchThread(std::string &ip, int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval);
-  PikaDispatchThread(std::set<std::string> &ips, int port, int work_num, PikaWorkerThread** pika_worker_thread, int cron_interval);
+  PikaDispatchThread(int port, int work_num, PikaWorkerThread** pika_worker_thread,
+                     int cron_interval, int queue_limit);
+  PikaDispatchThread(std::string &ip, int port, int work_num,
+                     PikaWorkerThread** pika_worker_thread,
+                     int cron_interval, int queue_limit);
+  PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
+                     PikaWorkerThread** pika_worker_thread,
+                     int cron_interval, int queue_limit);
   virtual ~PikaDispatchThread();
   virtual bool AccessHandle(std::string& ip);
 
