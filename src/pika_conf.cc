@@ -138,6 +138,11 @@ int PikaConf::Load()
   if (max_cache_files_ < -1) {
     max_cache_files_ = 5000;
   }
+  max_bytes_for_level_multiplier_ = 10;
+  GetConfInt("max-bytes-for-level-multiplier", &max_bytes_for_level_multiplier_);
+  if (max_bytes_for_level_multiplier_ < 10) {
+    max_bytes_for_level_multiplier_ = 5;
+  }
 
   // daemonize
   std::string dmz;
@@ -211,6 +216,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-background-flushes", max_background_flushes_);
   SetConfInt("max-background-compactions", max_background_compactions_);
   SetConfInt("max-cache-files", max_cache_files_);
+  SetConfInt("max-bytes-for-level-multiplier", max_bytes_for_level_multiplier_);
 
   return WriteBack();
 }

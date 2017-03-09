@@ -832,6 +832,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "max-cache-files");
       EncodeInt32(&ret, g_pika_conf->max_cache_files());
+  } else if (get_item == "max-bytes-for-level-multiplier") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "max-bytes-for-level-multiplier");
+      EncodeInt32(&ret, g_pika_conf->max_bytes_for_level_multiplier());
   } else if (get_item == "expire-logs-days") {
       ret = "*2\r\n";
       EncodeString(&ret, "expire-logs-days");
@@ -869,7 +873,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
   } else if (get_item == "*") {
-    ret = "*70\r\n";
+    ret = "*72\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "thread-num");
@@ -918,6 +922,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->max_background_compactions());
     EncodeString(&ret, "max-cache-files");
     EncodeInt32(&ret, g_pika_conf->max_cache_files());
+    EncodeString(&ret, "max-bytes-for-level-multiplier");
+    EncodeInt32(&ret, g_pika_conf->max_bytes_for_level_multiplier());
     EncodeString(&ret, "expire-logs-days");
     EncodeInt32(&ret, g_pika_conf->expire_logs_days());
     EncodeString(&ret, "expire-logs-nums");

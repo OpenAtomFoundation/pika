@@ -55,6 +55,7 @@ public:
   int max_background_flushes()  { RWLock l(&rwlock_, false); return max_background_flushes_; }
   int max_background_compactions()   { RWLock l(&rwlock_, false); return max_background_compactions_; }
   int max_cache_files()          { RWLock l(&rwlock_, false); return max_cache_files_; }
+  int max_bytes_for_level_multiplier() {RWLock l(&rwlock_, false); return max_bytes_for_level_multiplier_; }
   int expire_logs_nums()        { RWLock l(&rwlock_, false); return expire_logs_nums_; }
   int expire_logs_days()        { RWLock l(&rwlock_, false); return expire_logs_days_; }
   std::string conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
@@ -175,6 +176,7 @@ private:
   int max_background_flushes_;
   int max_background_compactions_;
   int max_cache_files_;
+  int max_bytes_for_level_multiplier_;
   std::string network_interface_;
 
   //char username_[30];
