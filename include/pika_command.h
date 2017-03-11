@@ -271,6 +271,7 @@ public:
     kPurgeExist,
     kInvalidParameter,
     kWrongNum,
+    kInvalidIndex,
     kErrOther,
   };
 
@@ -331,6 +332,9 @@ public:
       result = "-ERR wrong number of arguments for '";
       result.append(message_);
       result.append("' command\r\n");
+      break;
+    case kInvalidIndex:
+      result = "-ERR invalid DB index\r\n";
       break;
     case kErrOther:
       result = "-ERR ";

@@ -268,8 +268,9 @@ void SelectCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   }
 
   int64_t db_id;
-  if (!slash::string2l(argv[1].data(), argv[1].size(), &db_id)) {
-    res_.SetRes(CmdRes::kInvalidInt);
+  if (!slash::string2l(argv[1].data(), argv[1].size(), &db_id) || 
+      db_id < 0 || db_id > 15) {
+    res_.SetRes(CmdRes::kInvalidIndex);
   }
 }
 void SelectCmd::Do() {
