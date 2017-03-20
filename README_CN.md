@@ -1,22 +1,14 @@
 # Pika
 ## 简介 [English](https://github.com/Qihoo360/pika/blob/master/README.md)
 Pika是一个可持久化的大容量redis存储服务，兼容string、hash、list、zset、set的绝大接口([兼容详情](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况))，解决redis由于存储数据量巨大而导致内存不够用的容量瓶颈，并且可以像redis一样，通过slaveof命令进行主从备份，支持全同步和部分同步，pika还可以用在twemproxy或者codis中来实现静态数据分片（pika已经可以支持codis的动态迁移slot功能，目前在合并到master分支，欢迎使用，感谢作者[left2right](https://github.com/left2right)同学提交pr）
-##Pika用户
 
-<img src="http://i.imgur.com/dcHpCm4.png" height = "100" width = "120" alt="Qihoo">
-<img src="http://i.imgur.com/jjZczkN.png" height = "100" width = "120" alt="Weibo">
-<img src="http://i.imgur.com/zoel46r.gif" height = "100" width = "120" alt="Garena">
-<img src="http://i.imgur.com/kHqACbn.png" height = "100" width = "120" alt="Apus">
-<img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan">
+## Pika用户
 
-<img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan">
-<img src="http://i.imgur.com/px5mEuW.png" height = "100" width = "120" alt="XES">
-<img src="http://imgur.com/yJe4FP8.png" height = "100" width = "120" alt="HX">
-<img src="http://i.imgur.com/o8ZDXCH.png" height = "100" width = "120" alt="XL">
-<img src="http://imgur.com/w3qNQ9T.png" height = "100" width = "120" alt="GWD">
+<img src="http://i.imgur.com/dcHpCm4.png" height = "100" width = "120" alt="Qihoo"> <img src="http://i.imgur.com/jjZczkN.png" height = "100" width = "120" alt="Weibo"> <img src="http://i.imgur.com/zoel46r.gif" height = "100" width = "120" alt="Garena"> <img src="http://i.imgur.com/kHqACbn.png" height = "100" width = "120" alt="Apus"> 
 
-<img src="http://i.imgur.com/Ll6SifR.png" height = "100" width = "120" alt="DYD">
-<img src="http://i.imgur.com/vJbAfri.png" height = "100" width = "120" alt="YM">
+<img src="http://i.imgur.com/2c57z8U.png" height = "100" width = "120" alt="Ffan"> <img src="http://i.imgur.com/rUiO5VU.png" height = "100" width = "120" alt="Meituan"> <img src="http://i.imgur.com/px5mEuW.png" height = "100" width = "120" alt="XES"><img src="http://imgur.com/yJe4FP8.png" height = "100" width = "120" alt="HX">
+
+<img src="http://i.imgur.com/o8ZDXCH.png" height = "100" width = "120" alt="XL"><img src="http://imgur.com/w3qNQ9T.png" height = "100" width = "120" alt="GWD"><img src="http://i.imgur.com/Ll6SifR.png" height = "100" width = "120" alt="DYD"><img src="http://i.imgur.com/vJbAfri.png" height = "100" width = "120" alt="YM">
 
 
 [更多](https://github.com/Qihoo360/pika/blob/master/USERS.md)
@@ -91,7 +83,7 @@ RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 
 ## 性能
 
-###测试环境：
+### 测试环境：
 ```
 	相同配置服务端、客户机各一台：
 	处理器：24核 Intel(R) Xeon(R) CPU E5-2630 v2 @ 2.60GHz
@@ -99,18 +91,18 @@ RPATH在Makefile定义，表示的是程序运行的库预先加载路径
 	操作系统：CentOS release 6.2 (Final)
 	网卡：Intel Corporation I350 Gigabit Network Connection
 ```
-###测试接口：
+### 测试接口：
 ```
 	Set、Get
 ```
 
-###测试方法：
+### 测试方法：
 ```
 	pika配16个worker，客户机执行 ./redis-benchmark -h ... -p ... -n 1000000000 -t set,get -r 10000000000 -c 120 -d 200
 	通过set和get接口对pika进行10亿次写入+10亿次读取
 ```
 
-###测试结果：
+### 测试结果：
 ```
     Set
     1000000000 requests completed in 11890.80 seconds
@@ -147,11 +139,11 @@ RPATH在Makefile定义，表示的是程序运行的库预先加载路径
     110338.10 requests per second
 ```
 
-###与SSDB性能对比（[详情](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb)）
+### 与SSDB性能对比（[详情](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb)）
 <img src="http://imgur.com/rGMZmpD.png" height = "400" width = "480" alt="1">
 <img src="http://imgur.com/gnwMDof.png" height = "400" width = "480" alt="10">
 
-###与Redis性能对比
+### 与Redis性能对比
 <img src="http://imgur.com/k99VyFN.png" height = "400" width = "600" alt="2">
 
 ## 文档
