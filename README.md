@@ -1,13 +1,13 @@
-#Pika
+# Pika
 
 [![Build Status](https://travis-ci.org/Qihoo360/pika.svg?branch=master)](https://travis-ci.org/Qihoo360/pika)
 
-##Introduction [中文] (https://github.com/Qihoo360/pika/blob/master/README_CN.md)
+## Introduction[中文](https://github.com/Qihoo360/pika/blob/master/README_CN.md)
 
 Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization. You can alse use pika in twemproxy or codis(*pika has supported data migration in codis，thanks [left2right](https://github.com/left2right)*) for distributed Redis solution
 
 
-##UserList
+## UserList
 
 <img src="http://i.imgur.com/dcHpCm4.png" height = "100" width = "120" alt="Qihoo">
 <img src="http://i.imgur.com/jjZczkN.png" height = "100" width = "120" alt="Weibo">
@@ -26,7 +26,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 
 [More](https://github.com/Qihoo360/pika/blob/master/USERS.md)
 
-##Feature
+## Feature
 
 * huge storage capacity
 * compatible with redis interface, you can migrate to pika easily
@@ -103,9 +103,9 @@ The __VERSION represents the OS's version, such as 6.2, 5.4...
 The RPATH is defined in pika's Makefile
 
 
-##Performance
+## Performance
 
-###test environment
+### test environment
 
 2 same hardware server, one for running pika, the other for running redis-benchmark
 
@@ -114,17 +114,17 @@ The RPATH is defined in pika's Makefile
 	OS: CentOS release 6.2 (Final)
 	NETWORK CARD: Intel Corporation I350 Gigabit Network Connection
 
-###test interfaces
+### test interfaces
 	
 	Set, Get
 	
-###test method
+### test method
 
 	run pika with 16 work threads, run redis-benchmark on another server as follow: 
 	./redis-benchmark -h ... -p ... -n 1000000000 -t set,get -r 10000000000 -c 120 -d 200
 	execute 1 billion Set and 1 billion Get commands altogether
 	
-###test result
+### test result
 ``` 
 Set
 1000000000 requests completed in 11890.80 seconds
@@ -161,19 +161,19 @@ Get
 110338.10 requests per second
 ```
 
-###pika vs ssdb ([Detail](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb))
+### pika vs ssdb ([Detail](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb))
 
 <img src="http://imgur.com/rGMZmpD.png" height = "400" width = "480" alt="1">
 <img src="http://imgur.com/gnwMDof.png" height = "400" width = "480" alt="10">
 
-##pika vs redis
+## pika vs redis
 <img src="http://imgur.com/k99VyFN.png" height = "400" width = "600" alt="2">
  
-##Documents
+## Documents
 
 1. [Wiki](https://github.com/Qihoo360/pika/wiki)
 
-##Contact Us
+## Contact Us
 
 Mail: g-infra-bada@360.cn
 
