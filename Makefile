@@ -134,8 +134,8 @@ distclean:
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(OUTPUT)/*
 	rm -rf $(OUTPUT)
+	make distclean -C $(THIRD_PATH)/nemo/3rdparty/nemo-rocksdb/
 	make clean -C $(THIRD_PATH)/nemo/
-	make clean -C $(THIRD_PATH)/nemo/3rdparty/rocksdb/
 	make clean -C $(THIRD_PATH)/pink/
 	make clean -C $(THIRD_PATH)/slash/
 	make distclean -C $(THIRD_PATH)/glog/
