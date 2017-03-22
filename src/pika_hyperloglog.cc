@@ -16,10 +16,12 @@ void PfAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePfAdd);
     return;
   }
-  key_ = argv[1];
-  size_t pos = 2;
-  while (pos < argv.size()) {
-    values_.push_back(argv[pos++]);
+  if (argv.size() > 1) {
+    key_ = argv[1];
+    size_t pos = 2;
+    while (pos < argv.size()) {
+      values_.push_back(argv[pos++]);
+    }
   }
 }
 

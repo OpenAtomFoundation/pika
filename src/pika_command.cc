@@ -378,7 +378,7 @@ void InitCmdInfoTable() {
 
   //HyperLogLog
   ////PfAdd
-  CmdInfo* pfaddptr = new CmdInfo(kCmdNamePfAdd, -3, kCmdFlagsWrite | kCmdFlagsHyperLogLog);
+  CmdInfo* pfaddptr = new CmdInfo(kCmdNamePfAdd, -2, kCmdFlagsWrite | kCmdFlagsHyperLogLog);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePfAdd, pfaddptr));
   ////PfCount
   CmdInfo* pfcountptr = new CmdInfo(kCmdNamePfCount, -2, kCmdFlagsRead | kCmdFlagsHyperLogLog);
