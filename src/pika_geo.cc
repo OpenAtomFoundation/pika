@@ -330,51 +330,71 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
   } else if(range.sort == Desc) {
     std::sort(result.begin(), result.end(), sort_distance_desc);
   }
-  // For each the result
-  res.AppendArrayLen(count_limit);
-  for (int i = 0; i < count_limit; ++i) {
-    if (range.option_num != 0) {
-      res.AppendArrayLen(range.option_num+1);
+  
+  if (range.store || range.storedist) {
+    // Target key, create a sorted set with the results.
+    const std::shared_ptr<nemo::Nemo> db = g_pika_server->db();
+    int64_t ret;
+    for (int i = 0; i < count_limit; ++i) {
+      double distance = length_converter(result[i].distance, range.unit);
+      double score = range.store ? result[i].score : distance; 
+      s = db->ZAdd(range.storekey, score, result[i].member, &ret); 
+      if (!s.ok()) {
+        res.SetRes(CmdRes::kErrOther, s.ToString());
+        return;
+      }
     }
-    // Member
-    res.AppendStringLen(result[i].member.size());
-    res.AppendContent(result[i].member);
+    res.AppendInteger(count_limit);
+    return;
+  } else {
+    // No target key, return results to user.
     
-    // If using withdist option
-    if (range.withdist) {  
-      double xy[2];
-      GeoHashBits hash = { .bits = (uint64_t)result[i].score, .step = GEO_STEP_MAX };
-      geohashDecodeToLongLatWGS84(hash, xy);
-      double distance = geohashGetDistance(longitude, latitude, xy[0], xy[1]);
-      distance = length_converter(distance, range.unit);
-      char buf[32];
-      int64_t len = slash::d2string(buf, sizeof(buf), distance);
-      res.AppendStringLen(len);
-      res.AppendContent(buf);
-    }
-    // If using withcoord option
-    if (range.withcoord) {
-      res.AppendArrayLen(2);  
-      double xy[2];
-      GeoHashBits hash = { .bits = (uint64_t)result[i].score, .step = GEO_STEP_MAX };
-      geohashDecodeToLongLatWGS84(hash, xy);
+    // For each the result
+    res.AppendArrayLen(count_limit);
+    for (int i = 0; i < count_limit; ++i) {
+      if (range.option_num != 0) {
+        res.AppendArrayLen(range.option_num+1);
+      }
+      // Member
+      res.AppendStringLen(result[i].member.size());
+      res.AppendContent(result[i].member);
+    
+      // If using withdist option
+      if (range.withdist) {  
+        double xy[2];
+        GeoHashBits hash = { .bits = (uint64_t)result[i].score, .step = GEO_STEP_MAX };
+        geohashDecodeToLongLatWGS84(hash, xy);
+        double distance = geohashGetDistance(longitude, latitude, xy[0], xy[1]);
+        distance = length_converter(distance, range.unit);
+        char buf[32];
+        int64_t len = slash::d2string(buf, sizeof(buf), distance);
+        res.AppendStringLen(len);
+        res.AppendContent(buf);
+      }
+      // If using withcoord option
+      if (range.withcoord) {
+        res.AppendArrayLen(2);  
+        double xy[2];
+        GeoHashBits hash = { .bits = (uint64_t)result[i].score, .step = GEO_STEP_MAX };
+        geohashDecodeToLongLatWGS84(hash, xy);
 
-      char longitude[32];
-      int64_t len = slash::d2string(longitude, sizeof(longitude), xy[0]);
-      res.AppendStringLen(len);
-      res.AppendContent(longitude);
+        char longitude[32];
+        int64_t len = slash::d2string(longitude, sizeof(longitude), xy[0]);
+        res.AppendStringLen(len);
+        res.AppendContent(longitude);
 
-      char latitude[32];
-      len = slash::d2string(latitude, sizeof(latitude), xy[1]);
-      res.AppendStringLen(len);
-      res.AppendContent(latitude);
-    }
-    // If using withhash option
-    if (range.withhash) {
-      char buf[32];
-      int64_t len = slash::d2string(buf, sizeof(buf), result[i].score);
-      res.AppendStringLen(len);
-      res.AppendContent(buf);
+        char latitude[32];
+        len = slash::d2string(latitude, sizeof(latitude), xy[1]);
+        res.AppendStringLen(len);
+        res.AppendContent(latitude);
+      }
+      // If using withhash option
+      if (range.withhash) {
+        char buf[32];
+        int64_t len = slash::d2string(buf, sizeof(buf), result[i].score);
+        res.AppendStringLen(len);
+        res.AppendContent(buf);
+      }
     }
   }
 }
@@ -406,7 +426,32 @@ void GeoRadiusCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
       range_.option_num++;
     } else if (!strcasecmp(argv[pos].c_str(), "count")) {
       range_.count = true; 
-      range_.count_limit = std::stoi(argv[++pos]);
+      if (argv.size() < (pos+2)) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;        
+      }
+      std::string str_count = argv[++pos];
+      for (auto s : str_count) {
+        if (!isdigit(s)) {
+          res_.SetRes(CmdRes::kErrOther, "value is not an integer or out of range");
+          return;
+        }
+      } 
+      range_.count_limit = std::stoi(str_count);
+    } else if (!strcasecmp(argv[pos].c_str(), "store")) {
+      range_.store = true;
+      if (argv.size() < (pos+2)) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;        
+      }
+      range_.storekey = argv[++pos];
+    } else if (!strcasecmp(argv[pos].c_str(), "storedist")) {
+      range_.storedist = true;
+      if (argv.size() < (pos+2)) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;        
+      }
+      range_.storekey = argv[++pos];
     } else if (!strcasecmp(argv[pos].c_str(), "asc")) {
       range_.sort = Asc;	
     } else if (!strcasecmp(argv[pos].c_str(), "desc")) {
@@ -416,6 +461,10 @@ void GeoRadiusCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
       return;
     }
     pos++;
+  }
+  if (range_.store && (range_.withdist || range_.withcoord || range_.withhash)) {
+    res_.SetRes(CmdRes::kErrOther, "STORE option in GEORADIUS is not compatible with WITHDIST, WITHHASH and WITHCOORDS options");
+    return;
   }
 }
 
@@ -449,7 +498,32 @@ void GeoRadiusByMemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const
       range_.option_num++;
     } else if (!strcasecmp(argv[pos].c_str(), "count")) {
       range_.count = true; 
-      range_.count_limit = std::stoi(argv[++pos]);
+      if (argv.size() < (pos+2)) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;        
+      }
+      std::string str_count = argv[++pos];
+      for (auto s : str_count) {
+        if (!isdigit(s)) {
+          res_.SetRes(CmdRes::kErrOther, "value is not an integer or out of range");
+          return;
+        }
+      } 
+      range_.count_limit = std::stoi(str_count);
+    } else if (!strcasecmp(argv[pos].c_str(), "store")) {
+      range_.store = true;
+      if (argv.size() < (pos+2)) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;        
+      }
+      range_.storekey = argv[++pos];
+    } else if (!strcasecmp(argv[pos].c_str(), "storedist")) {
+      range_.storedist = true;
+      if (argv.size() < (pos+2)) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;        
+      }
+      range_.storekey = argv[++pos];
     } else if (!strcasecmp(argv[pos].c_str(), "asc")) {
       range_.sort = Asc;  
     } else if (!strcasecmp(argv[pos].c_str(), "desc")) {
@@ -459,6 +533,10 @@ void GeoRadiusByMemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const
       return;
     }
     pos++;
+  }
+  if (range_.store && (range_.withdist || range_.withcoord || range_.withhash)) {
+    res_.SetRes(CmdRes::kErrOther, "STORE option in GEORADIUS is not compatible with WITHDIST, WITHHASH and WITHCOORDS options");
+    return;
   }
 }
 

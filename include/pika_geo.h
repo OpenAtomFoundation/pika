@@ -26,9 +26,9 @@
 };
 
  struct NeighborPoint{
- 	std::string member;
- 	double score;
- 	double distance;
+   std::string member;
+   double score;
+   double distance;
  };
 
  struct GeoRange {
@@ -43,6 +43,9 @@
   int option_num;
   bool count;
   int count_limit;
+  bool store;
+  bool storedist;
+  std::string storekey;
   Sort sort;
  };
 
@@ -98,8 +101,11 @@ private:
     range_.withcoord = false;
     range_.withhash = false;
     range_.count = false;
-   	range_.option_num = 0;
-   	range_.count_limit = 0;
+    range_.store = false;
+    range_.storedist = false;
+    range_.option_num = 0;
+    range_.count_limit = 0;
+    range_.sort = Unsort;
   }
 };
 
@@ -116,6 +122,8 @@ private:
     range_.withcoord = false;
     range_.withhash = false;
     range_.count = false;
+    range_.store = false;
+    range_.storedist = false;
     range_.option_num = 0;
     range_.count_limit = 0;
     range_.sort = Unsort;
