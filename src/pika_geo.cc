@@ -194,8 +194,8 @@ void GeoDistCmd::Do() {
   double distance = geohashGetDistance(first_xy[0], first_xy[1], second_xy[0], second_xy[1]);
   distance = length_converter(distance, unit_);
   char buf[32];
-  int64_t len = slash::d2string(buf, sizeof(buf), distance);
-  res_.AppendStringLen(len);
+  sprintf(buf, "%.4f", distance);
+  res_.AppendStringLen(strlen(buf));
   res_.AppendContent(buf);
 }
 
@@ -290,6 +290,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
   // For each neighbor, get all the matching
   // members and add them to the potential result list.
   std::vector<NeighborPoint> result;
+  int last_processed = 0;
   for (size_t i = 0; i < sizeof(neighbors) / sizeof(*neighbors); i++) {
     GeoHashFix52Bits min, max;
     if (HASHISZERO(neighbors[i]))
@@ -297,7 +298,11 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
     min = geohashAlign52Bits(neighbors[i]);
     neighbors[i].bits++;
     max = geohashAlign52Bits(neighbors[i]);
-
+    // When a huge Radius (in the 5000 km range or more) is used,
+    // adjacent neighbors can be the same, so need to remove duplicated elements
+    if(last_processed && neighbors[i].bits == neighbors[last_processed].bits && neighbors[i].step == neighbors[last_processed].step) {
+	continue;
+    }
     std::vector<nemo::SM> sm_v;
     s = g_pika_server->db()->ZRangebyscore(key, (double)min, (double)max, sm_v, false, false);
     if (!s.ok()) {
@@ -317,10 +322,12 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
         result.push_back(item);
       }
     }
+    last_processed = i;
   }
+  
   // If using the count opiton
   if (range.count) {
-    count_limit = range.count_limit;
+    count_limit = result.size() < range.count_limit ? result.size() : range.count_limit;
   } else {
     count_limit = result.size();
   }
@@ -366,9 +373,9 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
         geohashDecodeToLongLatWGS84(hash, xy);
         double distance = geohashGetDistance(longitude, latitude, xy[0], xy[1]);
         distance = length_converter(distance, range.unit);
-        char buf[32];
-        int64_t len = slash::d2string(buf, sizeof(buf), distance);
-        res.AppendStringLen(len);
+	char buf[32];
+	sprintf(buf, "%.4f", distance);
+	res.AppendStringLen(strlen(buf));
         res.AppendContent(buf);
       }
       // If using withcoord option
