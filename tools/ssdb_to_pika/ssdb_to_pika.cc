@@ -21,7 +21,7 @@ void MigrateKv(const std::string& ip, const int port,
     delete client;
     return;
   }
-  std::cout << "kv client start to migrate, from " << start << " to " << end << std::endl;
+  std::cout << std::this_thread::get_id() << ", Kv client start to migrate, from " << start << " to " << end << std::endl;
 
   std::vector<std::string> kvs;
   ssdb::Status status_ssdb;
@@ -48,6 +48,8 @@ void MigrateKv(const std::string& ip, const int port,
     }
     prev_start = kvs.back();
   }
+
+  std::cout << std::this_thread::get_id() << ", Kv client done" << std::endl;
   
 }
 
@@ -65,7 +67,7 @@ void MigrateHash(const std::string& ip, const int port,
     delete client;
     return;
   }
-  std::cout << "Hash client start to migrate, from " << keys.front() << " to " << keys.back() << std::endl;
+  std::cout << std::this_thread::get_id() << ", Hash client start to migrate, " << keys.size() << " keys, from " << keys.front() << " to " << keys.back() << std::endl;
 
   std::vector<std::string> fvs;
   ssdb::Status status_ssdb;
@@ -73,6 +75,7 @@ void MigrateHash(const std::string& ip, const int port,
 
   std::string prev_start_field = "";
   for (auto iter = keys.begin(); iter != keys.end(); iter++) {
+    prev_start_field = "";
     while (true) {
       fvs.clear();
       status_ssdb = client->hscan(*iter, prev_start_field, "", kBatchLen, &fvs);
@@ -93,9 +96,10 @@ void MigrateHash(const std::string& ip, const int port,
           return;
         }
       }
-      prev_start_field = fvs.back();
+      prev_start_field = fvs[fvs.size() - 2];
     }
   }
+  std::cout << std::this_thread::get_id() << ", Hash client done" << std::endl;
 }
 
 void MigrateQueue(const std::string& ip, const int port,
@@ -112,13 +116,12 @@ void MigrateQueue(const std::string& ip, const int port,
     delete client;
     return;
   }
-  std::cout << "Queue client start to migrate, from " << keys.front() << " to " << keys.back() << std::endl;
+  std::cout << std::this_thread::get_id() << ", Queue client start to migrate, from " << keys.front() << " to " << keys.back() << std::endl;
 
   std::vector<std::string> fs;
   ssdb::Status status_ssdb;
   nemo::Status status_nemo;
 
-  std::string prev_start_field = "";
   int64_t start = 0;
   int64_t len = 0;
   for (auto iter = keys.begin(); iter != keys.end(); iter++) {
@@ -146,6 +149,7 @@ void MigrateQueue(const std::string& ip, const int port,
       start += fs.size();
     }
   }
+  std::cout << std::this_thread::get_id() << ", Queue client done" << std::endl;
 }
 
 void MigrateZset(const std::string& ip, const int port,
@@ -162,7 +166,7 @@ void MigrateZset(const std::string& ip, const int port,
     delete client;
     return;
   }
-  std::cout << "Zset client start to migrate, from " << keys.front() << " to " << keys.back() << std::endl;
+  std::cout << std::this_thread::get_id() << ", Zset client start to migrate, from " << keys.front() << " to " << keys.back() << std::endl;
 
   std::vector<std::string> sms;
   ssdb::Status status_ssdb;
@@ -171,6 +175,7 @@ void MigrateZset(const std::string& ip, const int port,
   std::string prev_start_member = "";
   int64_t zadd_res;
   for (auto iter = keys.begin(); iter != keys.end(); iter++) {
+    prev_start_member = "";
     while (true) {
       sms.clear();
       status_ssdb = client->zscan(*iter, prev_start_member, NULL, NULL, kBatchLen, &sms);
@@ -194,6 +199,7 @@ void MigrateZset(const std::string& ip, const int port,
       prev_start_member = sms[sms.size() - 2];
     }
   }
+  std::cout << std::this_thread::get_id() << ", Zset client done" << std::endl;
 }
 
 void DoKv(const std::string& ip, const int port,
@@ -216,7 +222,7 @@ void DoKv(const std::string& ip, const int port,
   
   ssdb::Status status_ssdb;
   std::vector<std::string> keys;
-  std::thread *threads[100];
+  std::thread *threads[1000];
   int thread_num = 0;
   std::string prev_start = "";
   while (true) {
@@ -229,7 +235,7 @@ void DoKv(const std::string& ip, const int port,
       break;
     }
     if (keys.empty()) {
-      std::cout << "Kv center client keys done, thread_num: " << thread_num << std::endl;
+      std::cout << "Kv center client dispatch keys done, thread_num: " << thread_num << std::endl;
       delete client;
       break;
     }
@@ -267,7 +273,7 @@ void DoHash(const std::string& ip, const int port,
   std::string end = "";
   
   ssdb::Status status_ssdb;
-  std::thread *threads[100];
+  std::thread *threads[1000];
   int thread_num = 0;
   std::string prev_start = "";
   std::vector<std::string> keys;
@@ -285,7 +291,7 @@ void DoHash(const std::string& ip, const int port,
     keys.assign(resp->begin() + 1, resp->end());
 
     if (keys.empty()) {
-      std::cout << "Hash center client keys done, thread_num: " << thread_num << std::endl;
+      std::cout << "Hash center client dispatch keys done, thread_num: " << thread_num << std::endl;
       delete client;
       break;
     }
@@ -323,7 +329,7 @@ void DoZset(const std::string& ip, const int port,
   std::string end = "";
   
   ssdb::Status status_ssdb;
-  std::thread *threads[100];
+  std::thread *threads[1000];
   int thread_num = 0;
   std::string prev_start = "";
   std::vector<std::string> keys;
@@ -341,7 +347,7 @@ void DoZset(const std::string& ip, const int port,
     keys.assign(resp->begin() + 1, resp->end());
 
     if (keys.empty()) {
-      std::cout << "Zset center client keys done, thread_num: " << thread_num << std::endl;
+      std::cout << "Zset center client dispatch keys done, thread_num: " << thread_num << std::endl;
       delete client;
       break;
     }
@@ -379,7 +385,7 @@ void DoQueue(const std::string& ip, const int port,
   std::string end = "";
   
   ssdb::Status status_ssdb;
-  std::thread *threads[100];
+  std::thread *threads[1000];
   int thread_num = 0;
   std::string prev_start = "";
   std::vector<std::string> keys;
@@ -397,7 +403,7 @@ void DoQueue(const std::string& ip, const int port,
     keys.assign(resp->begin() + 1, resp->end());
 
     if (keys.empty()) {
-      std::cout << "Queue center client keys done, thread_num: " << thread_num << std::endl;
+      std::cout << "Queue center client dispatch keys done, thread_num: " << thread_num << std::endl;
       delete client;
       break;
     }
