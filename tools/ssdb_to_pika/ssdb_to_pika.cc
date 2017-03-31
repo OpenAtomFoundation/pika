@@ -49,7 +49,7 @@ void MigrateKv(const std::string& ip, const int port,
         std::cout << "Kv client set error, key: " << *iter << std::endl;
       }
     }
-    prev_start = kvs.back();
+    prev_start = kvs[kvs.size() - 2];
   }
 
   std::cout << std::this_thread::get_id() << ", Kv client done" << std::endl;
@@ -464,6 +464,7 @@ int main(int argc, char** argv) {
     password = argv[4];
   }
 
+  auto start = std::chrono::steady_clock::now();
   nemo::Options option;
   option.write_buffer_size = 268435456; //256M
   option.target_file_size_base = 20971520; //20M
@@ -484,5 +485,7 @@ int main(int argc, char** argv) {
   thread_queue.join();
 
   delete db;
+  auto end = std::chrono::steady_clock::now();
+  std::cout << "Migrate used " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << "s" << std::endl;
   return 0;
 }
