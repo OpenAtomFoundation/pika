@@ -5,7 +5,7 @@
 #include "nemo.h"
 
 const int kBatchLen = 1000;
-const int kSplitNum = 1000000;
+const int kSplitNum = 500000;
 
 void MigrateKv(const std::string& ip, const int port,
     const std::string& password, nemo::Nemo* db,
@@ -15,11 +15,14 @@ void MigrateKv(const std::string& ip, const int port,
     std::cout << "Kv client failed to connect to ssdb" << std::endl;
     return;
   }
-  const std::vector<std::string> *resp = client->request("auth", password);
-  if (!resp || resp->empty() || resp->front() != "ok") {
-    std::cout << "Kv client auth error" << std::endl;
-    delete client;
-    return;
+  const std::vector<std::string> *resp;
+  if (password != "") {
+    resp = client->request("auth", password);
+    if (!resp || resp->empty() || resp->front() != "ok") {
+      std::cout << "Kv client auth error" << std::endl;
+      delete client;
+      return;
+    }
   }
   std::cout << std::this_thread::get_id() << ", Kv client start to migrate, from " << start << " to " << end << std::endl;
 
@@ -61,11 +64,14 @@ void MigrateHash(const std::string& ip, const int port,
     std::cout << "Hash client failed to connect to ssdb" << std::endl;
     return;
   }
-  const std::vector<std::string> *resp = client->request("auth", password);
-  if (!resp || resp->empty() || resp->front() != "ok") {
-    std::cout << "Hash client auth error" << std::endl;
-    delete client;
-    return;
+  const std::vector<std::string> *resp;
+  if (password != "") {
+    resp = client->request("auth", password);
+    if (!resp || resp->empty() || resp->front() != "ok") {
+      std::cout << "Hash client auth error" << std::endl;
+      delete client;
+      return;
+    }
   }
   std::cout << std::this_thread::get_id() << ", Hash client start to migrate, " << keys.size() << " keys, from " << keys.front() << " to " << keys.back() << std::endl;
 
@@ -110,13 +116,16 @@ void MigrateQueue(const std::string& ip, const int port,
     std::cout << "Queue client failed to connect to ssdb" << std::endl;
     return;
   }
-  const std::vector<std::string> *resp = client->request("auth", password);
-  if (!resp || resp->empty() || resp->front() != "ok") {
-    std::cout << "Queue client auth error" << std::endl;
-    delete client;
-    return;
+  const std::vector<std::string> *resp;
+  if (password != "") {
+    resp = client->request("auth", password);
+    if (!resp || resp->empty() || resp->front() != "ok") {
+      std::cout << "Queue client auth error" << std::endl;
+      delete client;
+      return;
+    }
   }
-  std::cout << std::this_thread::get_id() << ", Queue client start to migrate, from " << keys.front() << " to " << keys.back() << std::endl;
+  std::cout << std::this_thread::get_id() << ", Queue client start to migrate, " << keys.size() << " keys, from " << keys.front() << " to " << keys.back() << std::endl;
 
   std::vector<std::string> fs;
   ssdb::Status status_ssdb;
@@ -160,13 +169,16 @@ void MigrateZset(const std::string& ip, const int port,
     std::cout << "Zset client failed to connect to ssdb" << std::endl;
     return;
   }
-  const std::vector<std::string> *resp = client->request("auth", password);
-  if (!resp || resp->empty() || resp->front() != "ok") {
-    std::cout << "Zset client auth error" << std::endl;
-    delete client;
-    return;
+  const std::vector<std::string> *resp;
+  if (password != "") {
+    resp = client->request("auth", password);
+    if (!resp || resp->empty() || resp->front() != "ok") {
+      std::cout << "Zset client auth error" << std::endl;
+      delete client;
+      return;
+    }
   }
-  std::cout << std::this_thread::get_id() << ", Zset client start to migrate, from " << keys.front() << " to " << keys.back() << std::endl;
+  std::cout << std::this_thread::get_id() << ", Zset client start to migrate, " << keys.size() << " keys, from " << keys.front() << " to " << keys.back() << std::endl;
 
   std::vector<std::string> sms;
   ssdb::Status status_ssdb;
@@ -210,13 +222,15 @@ void DoKv(const std::string& ip, const int port,
     std::cout << "Kv center client failed to connect to ssdb" << std::endl;
     return;
   }
-  const std::vector<std::string> *resp = client->request("auth", password);
-  if (!resp || resp->empty() || resp->front() != "ok") {
-    std::cout << "Kv client auth error" << std::endl;
-    delete client;
-    return;
+  const std::vector<std::string> *resp;
+  if (password != "") {
+    resp = client->request("auth", password);
+    if (!resp || resp->empty() || resp->front() != "ok") {
+      std::cout << "Kv center client auth error" << std::endl;
+      delete client;
+      return;
+    }
   }
-
   std::string start = "";
   std::string end = "";
   
@@ -259,16 +273,18 @@ void DoHash(const std::string& ip, const int port,
 
   ssdb::Client *client = ssdb::Client::connect(ip, port);
   if (client == NULL) {
-    std::cout << "Kv center client failed to connect to ssdb" << std::endl;
+    std::cout << "Hash center client failed to connect to ssdb" << std::endl;
     return;
   }
-  const std::vector<std::string>* resp = client->request("auth", password);
-  if (!resp || resp->empty() || resp->front() != "ok") {
-    std::cout << "Kv client auth error" << std::endl;
-    delete client;
-    return;
+  const std::vector<std::string> *resp;
+  if (password != "") {
+    resp = client->request("auth", password);
+    if (!resp || resp->empty() || resp->front() != "ok") {
+      std::cout << "Hash center client auth error" << std::endl;
+      delete client;
+      return;
+    }
   }
-
   std::string start = "";
   std::string end = "";
   
@@ -315,14 +331,17 @@ void DoZset(const std::string& ip, const int port,
 
   ssdb::Client *client = ssdb::Client::connect(ip, port);
   if (client == NULL) {
-    std::cout << "Kv center client failed to connect to ssdb" << std::endl;
+    std::cout << "Zset center client failed to connect to ssdb" << std::endl;
     return;
   }
-  const std::vector<std::string>* resp = client->request("auth", password);
-  if (!resp || resp->empty() || resp->front() != "ok") {
-    std::cout << "Kv client auth error" << std::endl;
-    delete client;
-    return;
+  const std::vector<std::string> *resp;
+  if (password != "") {
+    resp = client->request("auth", password);
+    if (!resp || resp->empty() || resp->front() != "ok") {
+      std::cout << "Zset center client auth error" << std::endl;
+      delete client;
+      return;
+    }
   }
 
   std::string start = "";
@@ -374,11 +393,14 @@ void DoQueue(const std::string& ip, const int port,
     std::cout << "Queue center client failed to connect to ssdb" << std::endl;
     return;
   }
-  const std::vector<std::string>* resp = client->request("auth", password);
+  const std::vector<std::string> *resp;
+  if (password != "") {
+  resp = client->request("auth", password);
   if (!resp || resp->empty() || resp->front() != "ok") {
-    std::cout << "Queue client auth error" << std::endl;
+    std::cout << "Queue center client auth error" << std::endl;
     delete client;
     return;
+  }
   }
 
   std::string start = "";
@@ -424,20 +446,23 @@ void DoQueue(const std::string& ip, const int port,
 
 void Usage() {
   std::cout << "usage:" << std::endl
-    << "./ssdb2pika ssdb_server_ip ssdb_server_port ssdb_server_passwd pika_db_path"
+    << "./ssdb2pika ssdb_server_ip ssdb_server_port pika_db_path [ssdb_server_passwd]"
     << std::endl;
 }
 
 int main(int argc, char** argv) {
-  if (argc != 5) {
+  if (argc != 4 && argc != 5) {
     Usage();
     return -1;
   }
 
   const char *ip = argv[1];
   int port = atoi(argv[2]);
-  std::string password = argv[3];
-  std::string nemo_path = argv[4];
+  std::string nemo_path = argv[3];
+  std::string password = "";
+  if (argc == 5) {
+    password = argv[4];
+  }
 
   nemo::Options option;
   option.write_buffer_size = 268435456; //256M
