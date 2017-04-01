@@ -51,7 +51,7 @@ void MigrateKv(const std::string& ip, const int port,
     }
     prev_start = kvs[kvs.size() - 2];
   }
-
+  delete client;
   std::cout << std::this_thread::get_id() << ", Kv client done" << std::endl;
   
 }
@@ -105,6 +105,7 @@ void MigrateHash(const std::string& ip, const int port,
       prev_start_field = fvs[fvs.size() - 2];
     }
   }
+  delete client;
   std::cout << std::this_thread::get_id() << ", Hash client done" << std::endl;
 }
 
@@ -158,6 +159,7 @@ void MigrateQueue(const std::string& ip, const int port,
       start += fs.size();
     }
   }
+  delete client;
   std::cout << std::this_thread::get_id() << ", Queue client done" << std::endl;
 }
 
@@ -211,6 +213,7 @@ void MigrateZset(const std::string& ip, const int port,
       prev_start_member = sms[sms.size() - 2];
     }
   }
+  delete client;
   std::cout << std::this_thread::get_id() << ", Zset client done" << std::endl;
 }
 

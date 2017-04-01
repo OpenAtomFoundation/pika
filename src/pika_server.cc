@@ -297,6 +297,8 @@ void PikaServer::Start() {
 void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
   std::string ip_port = slash::IpPortString(ip, port);
   
+  int slave_num = 0;
+  {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
   while (iter != slaves_.end()) {
@@ -312,10 +314,18 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
     delete static_cast<PikaBinlogSenderThread*>(iter->sender);
   }
   slaves_.erase(iter);
-  return;
+  slave_num = slaves_.size();
+  }
+
+  slash::RWLock l(&state_protector_, true);
+  if (slave_num == 0) {
+    role_ &= ~PIKA_ROLE_MASTER;
+  }
 }
 
 void PikaServer::DeleteSlave(int fd) {
+  int slave_num = 0;
+  {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
 
@@ -329,6 +339,12 @@ void PikaServer::DeleteSlave(int fd) {
       break;
     }
     iter++;
+  }
+  slave_num = slaves_.size();
+  }
+  slash::RWLock l(&state_protector_, true);
+  if (slave_num == 0) {
+    role_ &= ~PIKA_ROLE_MASTER;
   }
 }
 
