@@ -34,6 +34,7 @@ public:
   std::string db_path()   { RWLock l(&rwlock_, false); return db_path_; }
   std::string db_sync_path()   { RWLock l(&rwlock_, false); return db_sync_path_; }
   int db_sync_speed()   { RWLock l(&rwlock_, false); return db_sync_speed_; }
+  std::string compact_cron() { RWLock l(&rwlock_, false); return compact_cron_; }
   int write_buffer_size() { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
 
@@ -151,6 +152,7 @@ private:
   std::string db_path_;
   std::string db_sync_path_;
   int db_sync_speed_;
+  std::string compact_cron_;
   int write_buffer_size_;
   int log_level_;
   bool daemonize_;

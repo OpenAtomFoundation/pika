@@ -103,6 +103,26 @@ int PikaConf::Load()
     sync_buffer_size_ = 100;
   }
 
+  compact_cron_ = "";
+  GetConfStr("compact-cron", &compact_cron_);
+  if (compact_cron_ != "") {
+    std::string::size_type len = compact_cron_.length();
+    std::string::size_type colon = compact_cron_.find(":");
+    std::string::size_type underline = compact_cron_.find("-");
+    if (colon == std::string::npos || underline == std::string::npos ||
+        colon >= underline || colon + 1 >= len ||
+        colon + 1 == underline || underline + 1 >= len) {
+        compact_cron_ = "";
+    } else {
+      int start = std::atoi(compact_cron_.substr(0, colon).c_str());
+      int end = std::atoi(compact_cron_.substr(colon+1, underline).c_str());
+      int usage = std::atoi(compact_cron_.substr(underline+1).c_str());
+      if (start < 0 || start > 23 || end < 0 || end > 23 || usage < 0 || usage > 100) {
+        compact_cron_ = "";
+      }
+    }
+  }
+
   // write_buffer_size
   GetConfInt("write-buffer-size", &write_buffer_size_);
   if (write_buffer_size_ <= 0 ) {
@@ -206,8 +226,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("root-connection-num", root_connection_num_);
   SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
   SetConfBool("slave-read-only", readonly_);
-  SetConfStr("db-sync-path", db_sync_path_);
-  SetConfInt("db-sync-speed", db_sync_speed_);
+  SetConfStr("compact-cron", compact_cron_);
   SetConfStr("network-interface", network_interface_);
   SetConfStr("slaveof", slaveof_);
 

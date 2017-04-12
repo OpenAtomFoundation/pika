@@ -27,6 +27,7 @@ extern PikaConf *g_pika_conf;
 PikaServer::PikaServer() :
   ping_thread_(NULL),
   exit_(false),
+  have_scheduled_crontask_(false),
   sid_(0),
   master_ip_(""),
   master_connection_(0),
@@ -1099,6 +1100,53 @@ bool PikaServer::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
   return true;
 }
 
+void PikaServer::AutoCompactRange() {
+  std::string cc = g_pika_conf->compact_cron();
+  if (cc == "") {
+    return;
+  } else {
+    std::string::size_type colon = cc.find(":");
+    std::string::size_type underline = cc.find("-");
+    int start = std::atoi(cc.substr(0, colon).c_str());
+    int end = std::atoi(cc.substr(colon+1, underline).c_str());
+    int usage = std::atoi(cc.substr(underline+1).c_str());
+    std::time_t t = std::time(nullptr);
+    std::tm* t_m = std::localtime(&t);
+    bool in_window = false;
+    if (start < end && (t_m->tm_hour >= start && t_m->tm_hour < end)) {
+      in_window = true;
+    } else if (start > end && ((t_m->tm_hour >= start && t_m->tm_hour < 24) ||
+          (t_m->tm_hour >= 0 && t_m->tm_hour < end))) {
+      in_window = true;
+    } else {
+      have_scheduled_crontask_ = false;
+    }
+
+    if (!have_scheduled_crontask_ && in_window) {
+      struct statfs disk_info;
+      int ret = statfs(g_pika_conf->db_path().c_str(), &disk_info);
+      if (ret == -1) {
+        LOG(WARNING) << "statfs error: " << strerror(errno);
+        return;
+      }
+
+      uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
+
+      uint64_t db_size = slash::Du(g_pika_conf->db_path());
+      if ((db_size / total_size) * 100 >= usage) {
+        nemo::Status s = db_->Compact(nemo::kALL);
+        if (s.ok()) {
+          LOG(INFO) << "schedule compactRange, dbsize: " << db_size << " disksize: " << total_size;
+        } else {
+          LOG(INFO) << "schedule compactRange Failed, dbsize: " << db_size << " disksize: " << total_size
+            << " error: " << s.ToString();
+        }
+        have_scheduled_crontask_ = true;
+      }
+    }
+  }
+}
+
 void PikaServer::AutoPurge() {
   if (!PurgeLogs(0, false, false)) {
     DLOG(WARNING) << "Auto purge failed";
@@ -1309,6 +1357,8 @@ uint64_t PikaServer::ServerCurrentQps() {
 }
 
 void PikaServer::DoTimingTask() {
+  // Maybe schedule compactrange
+  AutoCompactRange();
   // Purge log
   AutoPurge();
 

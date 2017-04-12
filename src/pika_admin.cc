@@ -765,6 +765,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "db-sync-speed");
       EncodeInt32(&ret, g_pika_conf->db_sync_speed());
+  } else if (get_item == "compact-cron") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "compact-cron");
+      EncodeString(&ret, g_pika_conf->compact_cron());
   } else if (get_item == "maxmemory") {
       ret = "*2\r\n";
       EncodeString(&ret, "maxmemory");
@@ -874,7 +878,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
   } else if (get_item == "*") {
-    ret = "*72\r\n";
+    ret = "*74\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "thread-num");
@@ -943,6 +947,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, g_pika_conf->db_sync_path());
     EncodeString(&ret, "db-sync-speed");
     EncodeInt32(&ret, g_pika_conf->db_sync_speed());
+    EncodeString(&ret, "compact-cron");
+    EncodeString(&ret, g_pika_conf->compact_cron());
     EncodeString(&ret, "network-interface");
     EncodeString(&ret, g_pika_conf->network_interface());
     EncodeString(&ret, "slaveof");

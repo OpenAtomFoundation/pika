@@ -10,6 +10,7 @@
 #include <functional>
 #include <map>
 #include <unordered_set>
+#include <sys/statfs.h>
 #include <nemo.h>
 #include <time.h>
 #include "pika_binlog.h"
@@ -37,6 +38,16 @@ class PikaServer
 public:
   PikaServer();
   ~PikaServer();
+
+  static uint64_t DiskSize(std::string path) {
+    struct statfs diskInfo;
+    int ret = statfs(path.c_str(), &diskInfo);
+    if (ret == -1) {
+      LOG(WARNING) << "Get DiskSize error: " << strerror(errno);
+      return 0;
+    }
+    return diskInfo.f_bsize * diskInfo.f_blocks;
+  }
 
   /*
    * Get & Set 
@@ -317,6 +328,7 @@ private:
   std::shared_ptr<nemo::Nemo> db_;
 
   time_t start_time_s_;
+  bool have_scheduled_crontask_;
 
   int worker_num_;
   PikaWorkerThread* pika_worker_thread_[PIKA_MAX_WORKER_THREAD_NUM];
@@ -371,6 +383,7 @@ private:
   
   static void DoPurgeLogs(void* arg);
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
+  void AutoCompactRange();
   void AutoPurge();
   bool CouldPurge(uint32_t index);
 
