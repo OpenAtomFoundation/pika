@@ -123,7 +123,18 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
-      LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
+      std::string slow_log;
+      for (int i = 0; i < argv_.size(); i++) {
+        slow_log.append(" ");
+        slow_log.append(slash::ToRead(argv_[i]));
+        if (slow_log.size() >= 1000) {
+          slow_log.resize(1000);
+          slow_log.append("...\"");
+          break;
+        }
+      }
+      LOG(ERROR) << "command:" << slow_log << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
+//      LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
     }
   }
 
