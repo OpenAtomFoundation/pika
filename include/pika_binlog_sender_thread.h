@@ -69,7 +69,7 @@ class PikaBinlogSenderThread : public pink::Thread {
 
   pthread_rwlock_t rwlock_;
 
-
+  int timeout_ms_;
   pink::RedisCli *cli_;
 
   virtual void* ThreadMain();

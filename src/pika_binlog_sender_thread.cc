@@ -29,7 +29,8 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port, 
     backing_store_(new char[kBlockSize]),
     buffer_(),
     ip_(ip),
-    port_(port) {
+    port_(port),
+    timeout_ms_(1000) {
       cli_ = new RedisCli();
 
       last_record_offset_ = con_offset % kBlockSize;
@@ -264,6 +265,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
     LOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") " << result.ToString();
 
     if (result.ok()) {
+      cli_->set_send_timeout(timeout_ms_);
       while (true) {
         // 2. Should Parse new msg;
         if (last_send_flag) {
@@ -287,6 +289,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
           last_send_flag = true;
         } else {
           last_send_flag = false;
+          DLOG(INFO) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") failed,  " << result.ToString();
           //close(sockfd_);
           break;
         }
