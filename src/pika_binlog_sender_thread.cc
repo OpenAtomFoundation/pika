@@ -30,7 +30,7 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port, 
     buffer_(),
     ip_(ip),
     port_(port),
-    timeout_ms_(1000) {
+    timeout_ms_(35000) {
       cli_ = new RedisCli();
 
       last_record_offset_ = con_offset % kBlockSize;
