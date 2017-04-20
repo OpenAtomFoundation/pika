@@ -1105,8 +1105,8 @@ void PikaServer::AutoCompactRange() {
   if (cc == "") {
     return;
   } else {
-    std::string::size_type colon = cc.find(":");
-    std::string::size_type underline = cc.find("-");
+    std::string::size_type colon = cc.find("-");
+    std::string::size_type underline = cc.find("/");
     int start = std::atoi(cc.substr(0, colon).c_str());
     int end = std::atoi(cc.substr(colon+1, underline).c_str());
     int usage = std::atoi(cc.substr(underline+1).c_str());
@@ -1121,7 +1121,8 @@ void PikaServer::AutoCompactRange() {
     } else {
       have_scheduled_crontask_ = false;
     }
-
+//    LOG(INFO) << "start: " << start << " end: " << end << " usage " << usage <<
+//      " have_scheduled: " << have_scheduled_crontask_ << " in_window: " << in_window;
     if (!have_scheduled_crontask_ && in_window) {
       struct statfs disk_info;
       int ret = statfs(g_pika_conf->db_path().c_str(), &disk_info);
@@ -1131,14 +1132,16 @@ void PikaServer::AutoCompactRange() {
       }
 
       uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
+      uint64_t free_size = disk_info.f_bsize * disk_info.f_blocks;
 
-      uint64_t db_size = slash::Du(g_pika_conf->db_path());
-      if ((db_size / total_size) * 100 >= usage) {
+//      LOG(INFO) << "free_size: " << free_size << " disk_size: " << total_size <<
+//        " cal: " << ((double)free_size / total_size) * 100;
+      if (((double)free_size / total_size) * 100 >= usage) {
         nemo::Status s = db_->Compact(nemo::kALL);
         if (s.ok()) {
-          LOG(INFO) << "schedule compactRange, dbsize: " << db_size << " disksize: " << total_size;
+          LOG(INFO) << "schedule compactRange, freesize: " << free_size << " disksize: " << total_size;
         } else {
-          LOG(INFO) << "schedule compactRange Failed, dbsize: " << db_size << " disksize: " << total_size
+          LOG(INFO) << "schedule compactRange Failed, freesize: " << free_size << " disksize: " << total_size
             << " error: " << s.ToString();
         }
         have_scheduled_crontask_ = true;

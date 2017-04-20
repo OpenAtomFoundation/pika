@@ -107,8 +107,8 @@ int PikaConf::Load()
   GetConfStr("compact-cron", &compact_cron_);
   if (compact_cron_ != "") {
     std::string::size_type len = compact_cron_.length();
-    std::string::size_type colon = compact_cron_.find(":");
-    std::string::size_type underline = compact_cron_.find("-");
+    std::string::size_type colon = compact_cron_.find("-");
+    std::string::size_type underline = compact_cron_.find("/");
     if (colon == std::string::npos || underline == std::string::npos ||
         colon >= underline || colon + 1 >= len ||
         colon + 1 == underline || underline + 1 >= len) {

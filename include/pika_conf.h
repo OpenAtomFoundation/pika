@@ -138,6 +138,11 @@ public:
     RWLock l(&rwlock_, true);
     db_sync_speed_ = value;
   }
+  void SetCompactCron(const std::string &value) {
+    RWLock l(&rwlock_, true);
+    compact_cron_ = value;
+  
+  }
 
   int Load();
   int ConfigRewrite();
