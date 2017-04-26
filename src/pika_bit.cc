@@ -83,7 +83,7 @@ void BitGetCmd::Do() {
 
 void BitCountCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameSet);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameBitCount);
     return;
   }
   key_ = argv[1];
