@@ -47,4 +47,11 @@ private:
   AuthStat auth_stat_;
 };
 
+struct ClientInfo {
+  int fd;
+  std::string ip_port;
+  int last_interaction;
+  PikaClientConn* conn;
+};
+
 #endif

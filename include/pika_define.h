@@ -9,15 +9,8 @@
 
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 
-
-const std::string kPikaVersion = "2.2.0";
+const std::string kPikaVersion = "2.2.1";
 const std::string kPikaPidFile = "pika.pid";
-
-struct ClientInfo {
-  int fd;
-  std::string ip_port;
-  int last_interaction;
-};
 
 struct WorkerCronTask {
   int task;

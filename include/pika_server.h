@@ -293,7 +293,7 @@ public:
 /*
  * Monitor used
  */
-  void AddMonitorClient(pink::RedisConn* client_ptr);
+  void AddMonitorClient(PikaClientConn* client_ptr);
   void AddMonitorMessage(const std::string &monitor_message);
   bool HasMonitorClients();
 

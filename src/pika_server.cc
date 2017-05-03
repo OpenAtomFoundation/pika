@@ -149,78 +149,82 @@ PikaServer::~PikaServer() {
 }
 
 bool PikaServer::ServerInit() {
-	std::string network_interface = g_pika_conf->network_interface();
+  std::string network_interface = g_pika_conf->network_interface();
 
   if (network_interface == "") {
-	
-	  std::ifstream routeFile("/proc/net/route", std::ios_base::in);
-	  if (!routeFile.good())
-	  {
-	      return false;
-	  }
 
-	  std::string line;
-	  std::vector<std::string> tokens;
-	  while(std::getline(routeFile, line))
-	  {
-	      std::istringstream stream(line);
-	      std::copy(std::istream_iterator<std::string>(stream),
-	                std::istream_iterator<std::string>(),
-	                std::back_inserter<std::vector<std::string> >(tokens));
-	  
-	      // the default interface is the one having the second 
-	      // field, Destination, set to "00000000"
-	      if ((tokens.size() >= 2) && (tokens[1] == std::string("00000000")))
-	      {
-	          network_interface = tokens[0];
-	          break;
-	      }
-	  
-	      tokens.clear();
-	  }
-	  routeFile.close();
+    std::ifstream routeFile("/proc/net/route", std::ios_base::in);
+    if (!routeFile.good())
+    {
+      return false;
+    }
+
+    std::string line;
+    std::vector<std::string> tokens;
+    while(std::getline(routeFile, line))
+    {
+      std::istringstream stream(line);
+      std::copy(std::istream_iterator<std::string>(stream),
+          std::istream_iterator<std::string>(),
+          std::back_inserter<std::vector<std::string> >(tokens));
+
+      // the default interface is the one having the second 
+      // field, Destination, set to "00000000"
+      if ((tokens.size() >= 2) && (tokens[1] == std::string("00000000")))
+      {
+        network_interface = tokens[0];
+        break;
+      }
+
+      tokens.clear();
+    }
+    routeFile.close();
   } 
-	LOG(INFO) << "Using Networker Interface: " << network_interface;
+  LOG(INFO) << "Using Networker Interface: " << network_interface;
 
-	struct ifaddrs * ifAddrStruct = NULL;
+  struct ifaddrs * ifAddrStruct = NULL;
   struct ifaddrs * ifa = NULL;
   void * tmpAddrPtr = NULL;
 
-  getifaddrs(&ifAddrStruct);
+  if (getifaddrs(&ifAddrStruct) == -1) {
+    LOG(FATAL) << "getifaddrs failed: " << strerror(errno);
+  }
 
   for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-      if (ifa ->ifa_addr->sa_family==AF_INET) { // Check it is
-          // a valid IPv4 address
-          tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-          char addressBuffer[INET_ADDRSTRLEN];
-          inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-					if (std::string(ifa->ifa_name) == network_interface) {
-						host_ = addressBuffer;
-						break;
-					}
+    if (ifa->ifa_addr == NULL) {
+      continue;
+    }
+    if (ifa ->ifa_addr->sa_family==AF_INET) { // Check it is
+      // a valid IPv4 address
+      tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+      char addressBuffer[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
+      if (std::string(ifa->ifa_name) == network_interface) {
+        host_ = addressBuffer;
+        break;
       }
-      else if (ifa->ifa_addr->sa_family==AF_INET6) { // Check it is
-          // a valid IPv6 address
-          tmpAddrPtr = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
-          char addressBuffer[INET6_ADDRSTRLEN];
-          inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
-					if (std::string(ifa->ifa_name) == network_interface) {
-						host_ = addressBuffer;
-						break;
-					}
+    } else if (ifa->ifa_addr->sa_family==AF_INET6) { // Check it is
+      // a valid IPv6 address
+      tmpAddrPtr = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
+      char addressBuffer[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
+      if (std::string(ifa->ifa_name) == network_interface) {
+        host_ = addressBuffer;
+        break;
       }
+    }
   }
 
   if (ifAddrStruct != NULL) {
-      freeifaddrs(ifAddrStruct);
-	}
+    freeifaddrs(ifAddrStruct);
+  }
   if (ifa == NULL) {
     LOG(FATAL) << "error network interface: " << network_interface << ", please check!";
   }
 
-	port_ = g_pika_conf->port();	
+  port_ = g_pika_conf->port();	
   LOG(INFO) << "host: " << host_ << " port: " << port_;
-	return true;
+  return true;
 
 }
 
@@ -252,19 +256,19 @@ void PikaServer::Start() {
   if (ret != pink::kSuccess) {
     delete logger_;
     db_.reset();
-    LOG(FATAL) << "Start BinlogReceiver Error: " << ret;
+    LOG(FATAL) << "Start BinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
   }
   ret = pika_heartbeat_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
     db_.reset();
-    LOG(FATAL) << "Start Heartbeat Error: " << ret;
+    LOG(FATAL) << "Start Heartbeat Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
   }
   ret = pika_trysync_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
     db_.reset();
-    LOG(FATAL) << "Start Trysync Error: " << ret;
+    LOG(FATAL) << "Start Trysync Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
   }
 
   time(&start_time_s_);
@@ -1210,7 +1214,7 @@ void PikaServer::DoPurgeDir(void* arg) {
   delete static_cast<std::string*>(arg);
 }
 
-void PikaServer::AddMonitorClient(pink::RedisConn* client_ptr) {
+void PikaServer::AddMonitorClient(PikaClientConn* client_ptr) {
   monitor_thread_->AddMonitorClient(client_ptr);
 }
 

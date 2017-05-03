@@ -23,7 +23,7 @@ public:
   PikaMonitorThread();
   virtual ~PikaMonitorThread();
 
-  void AddMonitorClient(pink::RedisConn* client_ptr);
+  void AddMonitorClient(PikaClientConn* client_ptr);
   void AddMonitorMessage(const std::string &monitor_message);
   int32_t ThreadClientList(std::vector<ClientInfo>* client = NULL);
   bool ThreadClientKill(const std::string& ip_port = "all");

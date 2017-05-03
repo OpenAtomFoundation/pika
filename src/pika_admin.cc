@@ -509,6 +509,7 @@ void InfoCmd::InfoServer(std::string &info) {
   tmp_stream << "uptime_in_seconds:" << (current_time_s - g_pika_server->start_time_s()) << "\r\n";
   tmp_stream << "uptime_in_days:" << (current_time_s / (24*3600) - g_pika_server->start_time_s() / (24*3600) + 1) << "\r\n";
   tmp_stream << "config_file:" << g_pika_conf->conf_path() << "\r\n";
+  tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
   
   info.append(tmp_stream.str());
 }
