@@ -58,6 +58,8 @@ struct SlaveItem {
 #define PIKA_ROLE_SLAVE 1
 #define PIKA_ROLE_MASTER 2
 
+//resolve ip
+#define NET_IP_STR_LEN 46 /* INET6_ADDRSTRLEN is 46, but we need to be sure */
 
 /*
  * The size of Binlogfile
