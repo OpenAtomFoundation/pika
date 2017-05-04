@@ -44,7 +44,7 @@ void PikaWorkerThread::CronHandle() {
  *  Find timeout client
  */
     if (now.tv_sec - static_cast<PikaClientConn*>(iter->second)->last_interaction().tv_sec > g_pika_conf->timeout()) {
-      LOG(INFO) << "Find Timeout Client: " << static_cast<PikaClientConn*>(iter->second)->ip_port();
+//      LOG(INFO) << "Find Timeout Client: " << static_cast<PikaClientConn*>(iter->second)->ip_port();
       AddCronTask(WorkerCronTask{TASK_KILL, static_cast<PikaClientConn*>(iter->second)->ip_port()});
     }
     iter++;
