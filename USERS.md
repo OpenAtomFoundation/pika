@@ -23,6 +23,7 @@
 ## 4. Apus
 <img src="http://i.imgur.com/kHqACbn.png" height = "50" width = "60" alt="Apus">
 已上线
+
 ## 5. 飞凡电商
 <img src="http://i.imgur.com/2c57z8U.png" height = "50" width = "60" alt="Ffan">
 
@@ -45,7 +46,7 @@
 用于存储推送中的离线数据消息
 
 ## 9. 迅雷
-<img src="http://i.imgur.com/o8ZDXCH.png" height = "50" width = "60", alt="XL">
+<img src="http://i.imgur.com/o8ZDXCH.png" height = "50" width = "60" alt="XL">
 
 用户存储个性化推荐数据, 目前使用15台机器
 
@@ -59,11 +60,16 @@
 已上线
 
 ## 11. 第一弹
-<img src="http://i.imgur.com/Ll6SifR.png" height = "100" width = "120" alt="DYD">
+<img src="http://i.imgur.com/Ll6SifR.png" height = "50" width = "60" alt="DYD">
 
 已上线
 
 ## 12. 亿玛科技
-<img src="http://i.imgur.com/vJbAfri.png" height = "100" width = "120" alt="YM">
+<img src="http://i.imgur.com/vJbAfri.png" height = "50" width = "60" alt="YM">
+
+已上线
+
+## 13. 小米
+<img src="http://i.imgur.com/aNxzwsY.png" height = "50" width = "60" alt="XM">
 
 已上线
