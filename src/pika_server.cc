@@ -1136,17 +1136,17 @@ void PikaServer::AutoCompactRange() {
       }
 
       uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
-      uint64_t free_size = disk_info.f_bsize * disk_info.f_blocks;
+      uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
 
 //      LOG(INFO) << "free_size: " << free_size << " disk_size: " << total_size <<
 //        " cal: " << ((double)free_size / total_size) * 100;
       if (((double)free_size / total_size) * 100 >= usage) {
         nemo::Status s = db_->Compact(nemo::kALL);
         if (s.ok()) {
-          LOG(INFO) << "schedule compactRange, freesize: " << free_size << " disksize: " << total_size;
+          LOG(INFO) << "schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
         } else {
-          LOG(INFO) << "schedule compactRange Failed, freesize: " << free_size << " disksize: " << total_size
-            << " error: " << s.ToString();
+          LOG(INFO) << "schedule compactRange Failed, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576
+            << "MB, error: " << s.ToString();
         }
         have_scheduled_crontask_ = true;
       }
