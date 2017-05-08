@@ -80,6 +80,12 @@ public:
     slash::RWLock(&state_protector_, false);
     return repl_state_;
   }
+  bool force_full_sync() {
+    return force_full_sync_;
+  }
+  void SetForceFullSync(bool v) {
+    force_full_sync_ = v;
+  }
 /*
  * Master use
  */
@@ -352,6 +358,7 @@ private:
   int master_port_;
   int repl_state_;
   int role_;
+  bool force_full_sync_;
 
   /*
    * Bgsave use

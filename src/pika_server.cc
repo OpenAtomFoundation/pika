@@ -34,6 +34,7 @@ PikaServer::PikaServer() :
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
+  force_full_sync_(false),
   bgsave_engine_(NULL),
   purging_(false),
   binlogbg_exit_(false),
@@ -753,8 +754,13 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < con_offset)) {
+  if (filenum != UINT32_MAX &&
+      (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < con_offset))) {
     return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
+  }
+
+  if (filenum == UINT32_MAX) {
+    LOG(INFO) << "Maybe force full sync";
   }
 
   // Create and set sender

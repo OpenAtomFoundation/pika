@@ -49,6 +49,13 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   int cur_size = argv.end() - it;
   if (cur_size == 0) {
 
+  } else if (cur_size == 1) {
+    std::string command = *it++;
+    if (command != "force") {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+    g_pika_server->SetForceFullSync(true);
   } else if (cur_size == 2) {
     have_offset_ = true;
     std::string str_filenum = *it++;

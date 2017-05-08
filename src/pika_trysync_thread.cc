@@ -48,8 +48,13 @@ bool PikaTrysyncThread::Send() {
   uint64_t pro_offset;
   g_pika_server->logger_->GetProducerStatus(&filenum, &pro_offset);
   
-  argv.push_back(std::to_string(filenum));
-  argv.push_back(std::to_string(pro_offset));
+  if (g_pika_server->force_full_sync()) {
+    argv.push_back(std::to_string(UINT32_MAX));
+    argv.push_back(std::to_string(0));
+  } else {
+    argv.push_back(std::to_string(filenum));
+    argv.push_back(std::to_string(pro_offset));
+  }
   pink::RedisCli::SerializeCommand(argv, &tbuf_str);
 
   wbuf_str.append(tbuf_str);
@@ -179,6 +184,7 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
   // Update master offset
   g_pika_server->logger_->SetProducerStatus(filenum, offset);
   g_pika_server->WaitDBSyncFinish();
+  g_pika_server->SetForceFullSync(false);
   return true;
 }
 
