@@ -69,6 +69,8 @@ cd output
 ```
 若编译过程中，提示有依赖的库没有安装，则有提示安装后再重新编译
 
+**注：我们推荐使用TCMalloc来进行内存管理**
+
 ## 使用
 ```
 	./output/bin/pika -c ./conf/pika.conf
