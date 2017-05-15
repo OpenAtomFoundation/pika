@@ -752,7 +752,7 @@ void ScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
       }
       if (opt == "match") {
         pattern_ = argv[index];
-      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_)) {
+      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
