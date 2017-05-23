@@ -11,6 +11,7 @@
 #include "pika_slot.h"
 
 #include <sys/utsname.h>
+#include <gperftools/malloc_extension.h>
 
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
@@ -1174,4 +1175,65 @@ void DbsizeCmd::Do() {
   }
   int32_t dbsize = key_nums_v[0] + key_nums_v[1] + key_nums_v[2] + key_nums_v[3] + key_nums_v[4];
   res_.AppendInteger(dbsize);
+}
+
+void MemoryCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  (void)ptr_info;
+  if (argv.size() != 2 && argv.size() != 3) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameMemory);
+    return;
+  }
+  rate_ = 0;
+  std::string type = slash::StringToLower(argv[1]);
+  if (type == "stats") {
+    type_ = 0;
+  } else if (type == "rate") {
+    type_ = 1;
+    if (argv.size() == 3) {
+      if (!slash::string2l(argv[2].data(), argv[2].size(), &rate_)) {
+        res_.SetRes(CmdRes::kSyntaxErr, kCmdNameMemory);
+      }
+    }
+  } else if (type == "list") {
+    type_ = 2;
+  } else if (type == "free") {
+    type_ = 3;
+  } else {
+    res_.SetRes(CmdRes::kInvalidParameter, kCmdNameMemory);
+    return;
+  }
+  
+}
+
+void MemoryCmd::Do() {
+  std::vector<MallocExtension::FreeListInfo> fli;
+  std::vector<std::string> elems;
+  switch(type_) {
+    case 0:
+      char stats[1024];
+      MallocExtension::instance()->GetStats(stats, 1024);
+      slash::StringSplit(stats, '\n', elems);
+      res_.AppendArrayLen(elems.size());
+      for (auto& i : elems) {
+        res_.AppendString(i);
+      }
+      break;
+    case 1:
+      if (rate_) {
+        MallocExtension::instance()->SetMemoryReleaseRate(rate_);
+      }
+      res_.AppendInteger(MallocExtension::instance()->GetMemoryReleaseRate());
+      break;
+    case 2:
+      MallocExtension::instance()->GetFreeListSizes(&fli);
+      res_.AppendArrayLen(fli.size());
+      for (auto& i : fli) {
+        res_.AppendString("type: " + std::string(i.type) + ", min: " + std::to_string(i.min_object_size) +
+          ", max: " + std::to_string(i.max_object_size) + ", total: " + std::to_string(i.total_bytes_free));
+      }
+      break;
+    case 3:
+      MallocExtension::instance()->ReleaseFreeMemory();
+      res_.SetRes(CmdRes::kOk);
+  }
 }

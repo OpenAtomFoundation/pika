@@ -228,4 +228,15 @@ public:
 private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
+
+class MemoryCmd : public Cmd {
+public:
+  MemoryCmd() {
+  }
+  virtual void Do();
+private:
+  int64_t type_;
+  int64_t rate_;
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
 #endif

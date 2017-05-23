@@ -61,7 +61,8 @@ LIBS = -lpthread \
 	   -lz \
 	   -lbz2 \
 	   -lsnappy \
-	   -lrt
+	   -lrt \
+		 -ltcmalloc
 
 NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
 GLOG = $(SO_DIR)/libglog.so.0

@@ -33,6 +33,7 @@ const std::string kCmdNameInfo = "info";
 const std::string kCmdNameConfig = "config";
 const std::string kCmdNameMonitor = "monitor";
 const std::string kCmdNameDbsize = "dbsize";
+const std::string kCmdNameMemory = "memory";
 
 //Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
