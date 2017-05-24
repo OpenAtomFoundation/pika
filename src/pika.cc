@@ -11,7 +11,9 @@
 #include "pika_define.h"
 #include "pika_slot.h"
 #include "env.h"
+#ifdef TCMALLOC_EXTENSION
 #include <gperftools/malloc_extension.h>
+#endif
 
 PikaConf *g_pika_conf;
 
@@ -139,7 +141,9 @@ int main(int argc, char *argv[]) {
     usage();
     exit(-1);
   }
+#ifdef TCMALLOC_EXTENSION
   MallocExtension::instance()->Initialize();
+#endif
   PikaConfInit(path);
 
   rlimit limit;
