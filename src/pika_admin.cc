@@ -11,7 +11,9 @@
 #include "pika_slot.h"
 
 #include <sys/utsname.h>
+#ifdef TCMALLOC_EXTENSION
 #include <gperftools/malloc_extension.h>
+#endif
 
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
@@ -1176,11 +1178,11 @@ void DbsizeCmd::Do() {
   int32_t dbsize = key_nums_v[0] + key_nums_v[1] + key_nums_v[2] + key_nums_v[3] + key_nums_v[4];
   res_.AppendInteger(dbsize);
 }
-
-void MemoryCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+#ifdef TCMALLOC_EXTENSION
+void TcmallocCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   (void)ptr_info;
   if (argv.size() != 2 && argv.size() != 3) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameMemory);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameTcmalloc);
     return;
   }
   rate_ = 0;
@@ -1191,7 +1193,7 @@ void MemoryCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
     type_ = 1;
     if (argv.size() == 3) {
       if (!slash::string2l(argv[2].data(), argv[2].size(), &rate_)) {
-        res_.SetRes(CmdRes::kSyntaxErr, kCmdNameMemory);
+        res_.SetRes(CmdRes::kSyntaxErr, kCmdNameTcmalloc);
       }
     }
   } else if (type == "list") {
@@ -1199,13 +1201,13 @@ void MemoryCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   } else if (type == "free") {
     type_ = 3;
   } else {
-    res_.SetRes(CmdRes::kInvalidParameter, kCmdNameMemory);
+    res_.SetRes(CmdRes::kInvalidParameter, kCmdNameTcmalloc);
     return;
   }
   
 }
 
-void MemoryCmd::Do() {
+void TcmallocCmd::Do() {
   std::vector<MallocExtension::FreeListInfo> fli;
   std::vector<std::string> elems;
   switch(type_) {
@@ -1237,3 +1239,4 @@ void MemoryCmd::Do() {
       res_.SetRes(CmdRes::kOk);
   }
 }
+#endif

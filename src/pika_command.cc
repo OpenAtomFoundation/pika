@@ -55,8 +55,10 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMonitor, monitorptr));
   CmdInfo* dbsizeptr = new CmdInfo(kCmdNameDbsize, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameDbsize, dbsizeptr));
-  CmdInfo* memoryptr = new CmdInfo(kCmdNameMemory, -2, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMemory, memoryptr));
+#ifdef TCMALLOC_EXTENSION
+  CmdInfo* tcmallocptr = new CmdInfo(kCmdNameTcmalloc, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTcmalloc, tcmallocptr));
+#endif
 
 
   //migrate slot
@@ -463,8 +465,10 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMonitor, monitorptr));
   Cmd* dbsizeptr = new DbsizeCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDbsize, dbsizeptr));
-  Cmd* memoryptr = new MemoryCmd();
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMemory, memoryptr));
+#ifdef TCMALLOC_EXTENSION
+  Cmd* tcmallocptr = new TcmallocCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTcmalloc, tcmallocptr));
+#endif
 
   //migrate slot
   Cmd* slotmgrtslotptr = new SlotsMgrtTagSlotCmd();

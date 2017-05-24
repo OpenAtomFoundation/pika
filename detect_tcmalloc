@@ -1,0 +1,36 @@
+#!/bin/sh
+
+OUTPUT=$1
+if test -z "$OUTPUT"; then
+  echo "usage: $0 <output-filename>" >&2
+  exit 1
+fi
+
+# Delete existing output, if it exists
+rm -f "$OUTPUT"
+touch "$OUTPUT"
+
+if test -z "$CXX"; then
+    CXX=g++
+fi
+
+# Test whether tcmalloc is available
+if echo 'int main() {}' | $CXX $CFLAGS -x c++ - -o /dev/null \
+  -ltcmalloc 2>/dev/null; then
+    TCMALLOC_LDFLAGS=" -ltcmalloc"
+fi
+
+# Test whether malloc_extension is available
+$CXX $CFLAGS -x c++ - -o /dev/null -ltcmalloc 2>/dev/null  <<EOF
+  #include <gperftools/malloc_extension.h>
+  int main() {
+    MallocExtension::instance()->Initialize();;
+    return 0;
+  }
+EOF
+if [ "$?" = 0 ]; then
+    TCMALLOC_EXTENSION_FLAGS=" -DTCMALLOC_EXTENSION"
+fi
+
+echo "TCMALLOC_EXTENSION_FLAGS=$TCMALLOC_EXTENSION_FLAGS" >> "$OUTPUT"
+echo "TCMALLOC_LDFLAGS=$TCMALLOC_LDFLAGS" >> "$OUTPUT"

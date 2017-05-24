@@ -32,7 +32,8 @@ OBJECT = pika
 SRC_DIR = ./src
 THIRD_PATH = ./third
 OUTPUT = ./output
-
+dummy := $(shell ("$(CURDIR)/detect_tcmalloc" "$(CURDIR)/make_config.mk"))
+include make_config.mk
 
 INCLUDE_PATH = -I./include/ \
 			   -I./src/ \
@@ -61,8 +62,10 @@ LIBS = -lpthread \
 	   -lz \
 	   -lbz2 \
 	   -lsnappy \
-	   -lrt \
-		 -ltcmalloc
+	   -lrt 
+
+LIBS += $(TCMALLOC_LDFLAGS)
+CXXFLAGS += $(TCMALLOC_EXTENSION_FLAGS)
 
 NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
 GLOG = $(SO_DIR)/libglog.so.0
@@ -130,11 +133,13 @@ clean:
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(OUTPUT)/*
 	rm -rf $(OUTPUT)
+	rm -rf $(CURDIR)/make_config.mk
 	
 distclean: 
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(OUTPUT)/*
 	rm -rf $(OUTPUT)
+	rm -rf $(CURDIR)/make_config.mk
 	make distclean -C $(THIRD_PATH)/nemo/3rdparty/nemo-rocksdb/
 	make clean -C $(THIRD_PATH)/nemo/
 	make clean -C $(THIRD_PATH)/pink/

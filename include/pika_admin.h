@@ -228,10 +228,10 @@ public:
 private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
-
-class MemoryCmd : public Cmd {
+#ifdef TCMALLOC_EXTENSION
+class TcmallocCmd : public Cmd {
 public:
-  MemoryCmd() {
+  TcmallocCmd() {
   }
   virtual void Do();
 private:
@@ -239,4 +239,5 @@ private:
   int64_t rate_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
+#endif
 #endif
