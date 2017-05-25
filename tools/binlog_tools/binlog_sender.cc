@@ -337,6 +337,7 @@ int main(int argc, char *argv[]) {
   }
 
   fclose (error_fp);
+  delete rcli;
   delete binlog_consumer;
   delete old_logger;
   return 0;
