@@ -231,6 +231,8 @@ int main(int argc, char *argv[]) {
     binlog_consumer = new OldBinlogConsumer(old_logger);
   } else if (log_type == "new") {
     binlog_consumer = new NewBinlogConsumer(old_logger);
+  } else {
+    binlog_consumer = nullptr;
   }
   
   Status s;

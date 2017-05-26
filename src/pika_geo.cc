@@ -327,7 +327,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
   
   // If using the count opiton
   if (range.count) {
-    count_limit = result.size() < range.count_limit ? result.size() : range.count_limit;
+    count_limit = static_cast<int>(result.size()) < range.count_limit ? result.size() : range.count_limit;
   } else {
     count_limit = result.size();
   }

@@ -124,7 +124,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
       std::string slow_log;
-      for (int i = 0; i < argv_.size(); i++) {
+      for (unsigned int i = 0; i < argv_.size(); i++) {
         slow_log.append(" ");
         slow_log.append(slash::ToRead(argv_[i]));
         if (slow_log.size() >= 1000) {
