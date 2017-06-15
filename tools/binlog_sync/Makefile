@@ -31,13 +31,12 @@ THIRD_PATH = ../../third
 INCLUDE_PATH = -I../../include/ \
 			   -I../../src/ \
 			   -I$(THIRD_PATH)/glog/src/ \
-			   -I$(THIRD_PATH)/slash/output/include/ \
-			   -I$(THIRD_PATH)/pink/output/include/ \
-			   -I$(THIRD_PATH)/pink/output/
+			   -I$(THIRD_PATH)/slash \
+			   -I$(THIRD_PATH)/pink
 
 LIB_PATH = -L./ \
-		   -L$(THIRD_PATH)/slash/output/lib/ \
-		   -L$(THIRD_PATH)/pink/output/lib/ \
+		   -L$(THIRD_PATH)/slash/slash/lib \
+		   -L$(THIRD_PATH)/pink/pink/lib \
 		   -L$(THIRD_PATH)/glog/.libs/
 
 
@@ -47,8 +46,8 @@ LIBS = -lpthread \
 		 -lpink
 
 GLOG = $(THIRD_PATH)/glog/.libs/libglog.so.0
-PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
-SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
+PINK = $(THIRD_PATH)/pink/pink/lib/libpink.a
+SLASH = $(THIRD_PATH)/slash/slash/lib/libslash.a
 
 .PHONY: all clean
 
@@ -70,10 +69,10 @@ $(OBJECT): $(GLOG) $(PINK) $(SLASH) $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH)  $(LFLAGS) $(LIBS) 
 
 $(SLASH):
-	make -C $(THIRD_PATH)/slash/
+	make -C $(THIRD_PATH)/slash/slash
 
 $(PINK):
-	make -C $(THIRD_PATH)/pink/
+	make -C $(THIRD_PATH)/pink/pink SLASH_PATH=$(THIRD_PATH)/slash
 
 $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 

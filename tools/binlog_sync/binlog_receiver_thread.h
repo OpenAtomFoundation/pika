@@ -8,31 +8,58 @@
 
 #include <queue>
 
-#include "holy_thread.h"
-#include "slash_mutex.h"
+#include "pink/include/server_thread.h"
+#include "slash/include/slash_mutex.h"
 #include "pika_define.h"
 #include "master_conn.h"
 
-class BinlogReceiverThread : public pink::HolyThread<MasterConn>
-{
-public:
+class BinlogReceiverThread {
+ public:
   BinlogReceiverThread(int port, int cron_interval = 0);
   virtual ~BinlogReceiverThread();
-  virtual void CronHandle();
-  virtual bool AccessHandle(std::string& ip);
+	int StartThread();
+
   void KillBinlogSender();
   int32_t ThreadClientNum() {
-    slash::RWLock(&rwlock_, false);
-    int32_t num = conns_.size();
-    return num;
+    return thread_rep_->conn_num();
   }
 
+ private:
+  class MasterConnFactory : public pink::ConnFactory {
+   public:
+    virtual pink::PinkConn *NewPinkConn(int connfd,
+                                        const std::string &ip_port,
+                                        pink::Thread *thread) const {
+      return new MasterConn(connfd, ip_port, thread);
+    }
+  };
 
-private:
+  class PikaBinlogReceiverHandles : public pink::ServerHandle {
+   public:
+    explicit PikaBinlogReceiverHandles(BinlogReceiverThread* binlog_receiver)
+        : binlog_receiver_(binlog_receiver) {
+    }
+    void CronHandle() {
+      binlog_receiver_->CronHandle();
+    }
+    void AccessHandle(std::string& ip) {
+      binlog_receiver_->AccessHandle(ip);
+    }
+
+   private:
+    BinlogReceiverThread* binlog_receiver_;
+  };
+
+  MasterConnFactory* conn_factory_;
+  PikaBinlogReceiverHandles* handles_;
+  pink::ServerThread* thread_rep_;
+
   slash::Mutex mutex_; // protect cron_task_
-  void AddCronTask(WorkerCronTask task);
-  void KillAll();
   std::queue<WorkerCronTask> cron_tasks_;
 
+  void AddCronTask(WorkerCronTask task);
+  void KillAll();
+  virtual void CronHandle();
+  virtual bool AccessHandle(std::string& ip);
 };
 #endif

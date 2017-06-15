@@ -12,36 +12,28 @@
 #include "pika_define.h"
 #include "pika_binlog_sender_thread.h"
 #include "pika_master_conn.h"
-#include "redis_cli.h"
-
-using slash::Status;
-using slash::Slice;
-using pink::RedisCli;
+#include "pink/include/redis_cli.h"
 
 extern PikaServer* g_pika_server;
 
 PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
-  : con_offset_(con_offset),
-    filenum_(filenum),
-    initial_offset_(0),
-    end_of_buffer_offset_(kBlockSize),
-    queue_(queue),
-    backing_store_(new char[kBlockSize]),
-    buffer_(),
-    ip_(ip),
-    port_(port),
-    timeout_ms_(35000) {
-      cli_ = new RedisCli();
-
-      last_record_offset_ = con_offset % kBlockSize;
-      pthread_rwlock_init(&rwlock_, NULL);
+    : con_offset_(con_offset),
+      filenum_(filenum),
+      initial_offset_(0),
+      end_of_buffer_offset_(kBlockSize),
+      queue_(queue),
+      backing_store_(new char[kBlockSize]),
+      buffer_(),
+      ip_(ip),
+      port_(port),
+      timeout_ms_(35000) {
+  cli_ = pink::NewRedisCli();
+  last_record_offset_ = con_offset % kBlockSize;
+  pthread_rwlock_init(&rwlock_, NULL);
 }
 
 PikaBinlogSenderThread::~PikaBinlogSenderThread() {
-  should_exit_ = true;
-
-  pthread_join(thread_id(), NULL);
-
+  StopThread();
   delete queue_;
   pthread_rwlock_destroy(&rwlock_);
   delete [] backing_store_;
@@ -207,7 +199,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
   uint64_t pro_offset;
 
   Binlog* logger = g_pika_server->logger_;
-  while (!should_exit_) {
+  while (!should_stop()) {
     logger->GetProducerStatus(&pro_num, &pro_offset);
     if (filenum_ == pro_num && con_offset_ == pro_offset) {
       //DLOG(INFO) << "BinlogSender Parse no new msg, filenum_" << filenum_ << ", con_offset " << con_offset_;
@@ -243,7 +235,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
     }
   }
     
-  if (should_exit_) {
+  if (should_stop()) {
     return Status::Corruption("should exit");
   }
   return s;
@@ -251,13 +243,12 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
 
 // When we encount
 void* PikaBinlogSenderThread::ThreadMain() {
-  Status s;
-  pink::Status result;
+  Status s, result;
   bool last_send_flag = true;
   std::string scratch;
   scratch.reserve(1024 * 1024);
 
-  while (!should_exit_) {
+  while (!should_stop()) {
 
     sleep(1);
     // 1. Connect to slave

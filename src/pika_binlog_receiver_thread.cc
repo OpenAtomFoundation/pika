@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <glog/logging.h>
+#include "pink/include/pink_conn.h"
 #include "pika_binlog_receiver_thread.h"
 #include "pika_master_conn.h"
 #include "pika_server.h"
@@ -11,31 +12,50 @@
 
 extern PikaServer* g_pika_server;
 
-PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::string &ip, int port, int cron_interval) :
-  HolyThread::HolyThread(ip, port, cron_interval),
-  thread_querynum_(0),
-  last_thread_querynum_(0),
-  last_time_us_(slash::NowMicros()),
-  last_sec_thread_querynum_(0),
-  serial_(0) {
+PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::string &ip, int port,
+                                                   int cron_interval)
+    : thread_querynum_(0),
+      last_thread_querynum_(0),
+      last_time_us_(slash::NowMicros()),
+      last_sec_thread_querynum_(0),
+      serial_(0) {
+  conn_factory_ = new MasterConnFactory();
+  handles_ = new PikaBinlogReceiverHandles(this);
+  thread_rep_ = pink::NewHolyThread(ip, port, conn_factory_,
+                                    cron_interval, handles_);
+  pthread_rwlock_init(&rwlock_, nullptr);
   cmds_.reserve(300);
   InitCmdTable(&cmds_);
 }
 
-PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::set<std::string> &ips, int port, int cron_interval) :
-  HolyThread::HolyThread(ips, port, cron_interval),
-  thread_querynum_(0),
-  last_thread_querynum_(0),
-  last_time_us_(slash::NowMicros()),
-  last_sec_thread_querynum_(0),
-  serial_(0) {
+PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::set<std::string> &ips, int port,
+                                                   int cron_interval)
+    : thread_querynum_(0),
+      last_thread_querynum_(0),
+      last_time_us_(slash::NowMicros()),
+      last_sec_thread_querynum_(0),
+      serial_(0) {
+  conn_factory_ = new MasterConnFactory();
+  handles_ = new PikaBinlogReceiverHandles(this);
+  thread_rep_ = pink::NewHolyThread(ips, port, conn_factory_,
+                                    cron_interval, handles_);
+  pthread_rwlock_init(&rwlock_, nullptr);
   cmds_.reserve(300);
   InitCmdTable(&cmds_);
 }
 
 PikaBinlogReceiverThread::~PikaBinlogReceiverThread() {
-    DestoryCmdTable(cmds_);
-    LOG(INFO) << "BinlogReceiver thread " << thread_id() << " exit!!!";
+  thread_rep_->StopThread();
+  delete handles_;
+  delete conn_factory_;
+  DestoryCmdTable(cmds_);
+  LOG(INFO) << "BinlogReceiver thread " << thread_rep_->thread_id() << " exit!!!";
+  delete thread_rep_;
+  pthread_rwlock_destroy(&rwlock_);
+}
+
+int PikaBinlogReceiverThread::StartThread() {
+  return thread_rep_->StartThread();
 }
 
 bool PikaBinlogReceiverThread::AccessHandle(std::string& ip) {
@@ -83,15 +103,6 @@ void PikaBinlogReceiverThread::AddCronTask(WorkerCronTask task) {
 }
 
 void PikaBinlogReceiverThread::KillAll() {
-  {
-  slash::RWLock l(&rwlock_, true);
-  std::map<int, void*>::iterator iter = conns_.begin();
-  while (iter != conns_.end()) {
-    LOG(INFO) << "==========Kill Master Sender Conn==============";
-    close(iter->first);
-    delete(static_cast<PikaMasterConn*>(iter->second));
-    iter = conns_.erase(iter);
-  }
-  }
+  thread_rep_->Cleanup();
   g_pika_server->MinusMasterConnection();
 }

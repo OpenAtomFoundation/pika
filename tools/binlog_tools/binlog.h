@@ -17,11 +17,11 @@
 # include <inttypes.h>
 #endif 
 
-#include "env.h"
+#include "slash/include/env.h"
+#include "slash/include/slash_mutex.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_slice.h"
 #include "pika_define.h"
-#include "slash_mutex.h"
-#include "slash_status.h"
-#include "slash_slice.h"
 
 using slash::RWLock;
 using slash::Status;

@@ -17,12 +17,10 @@
 # include <inttypes.h>
 #endif 
 
-#include "env.h"
-//#include "port.h"
+#include "slash/include/env.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
 #include "pika_define.h"
-
-#include "slash_status.h"
-#include "slash_mutex.h"
 
 using slash::Status;
 using slash::Slice;

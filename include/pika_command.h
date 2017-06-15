@@ -9,9 +9,10 @@
 #include <deque>
 #include <string>
 #include <memory>
-#include <redis_conn.h>
 #include <unordered_map>
-#include "slash_string.h"
+
+#include "slash/include/slash_string.h"
+#include "pink/include/redis_conn.h"
 
 
 //Constant for command name

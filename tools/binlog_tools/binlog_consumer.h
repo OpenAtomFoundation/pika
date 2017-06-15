@@ -6,14 +6,13 @@
 #ifndef PIKA_TOOLS_BINLOGTOOLS_BINLOG_CONSUMER_H_
 #define PIKA_TOOLS_BINLOGTOOLS_BINLOG_CONSUMER_H_
 
-//#include "redis_cli.h"
 #include <atomic>
-#include "slice.h"
-#include "status.h"
 
+#include "slash/include/env.h"
+#include "slash/include/slash_slice.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
 #include "binlog.h"
-#include "env.h"
-#include "slash_mutex.h"
 
 // binlog consumer can read a binlog file and parse the data in it
 class BinlogConsumer{

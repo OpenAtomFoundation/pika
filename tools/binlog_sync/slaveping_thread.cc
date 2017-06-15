@@ -10,29 +10,30 @@
 
 extern BinlogSync* g_binlog_sync;
 
-pink::Status SlavepingThread::Send() {
+Status SlavepingThread::Send() {
   std::string wbuf_str;
   if (!is_first_send_) {
-    pink::RedisCli::SerializeCommand(&wbuf_str, "ping");
+    pink::SerializeRedisCommand(&wbuf_str, "ping");
   } else {
     pink::RedisCmdArgsType argv;
     argv.push_back("spci");
     argv.push_back(std::to_string(sid_));
-    pink::RedisCli::SerializeCommand(argv, &wbuf_str);
+    pink::SerializeRedisCommand(argv, &wbuf_str);
     is_first_send_ = false;
   }
   DLOG(INFO) << wbuf_str;
   return cli_->Send(&wbuf_str);
 }
 
-pink::Status SlavepingThread::RecvProc() {
-  pink::Status s = cli_->Recv(NULL);
+Status SlavepingThread::RecvProc() {
+  pink::RedisCmdArgsType argv;
+  Status s = cli_->Recv(&argv);
   if (s.ok()) {
-    slash::StringToLower(cli_->argv_[0]);
-    DLOG(INFO) << "Reply from master after ping: " << cli_->argv_[0];
-    if (cli_->argv_[0] == "pong" || cli_->argv_[0] == "ok") {
+    slash::StringToLower(argv[0]);
+    DLOG(INFO) << "Reply from master after ping: " << argv[0];
+    if (argv[0] == "pong" || argv[0] == "ok") {
     } else {
-      s = pink::Status::Corruption("");
+      s = Status::Corruption("");
     }
   } else {
     DLOG(INFO) << "RecvProc, recv error: " << s.ToString();
@@ -45,16 +46,16 @@ void* SlavepingThread::ThreadMain() {
   struct timeval now;
   gettimeofday(&now, NULL);
   last_interaction = now;
-  pink::Status s;
+  Status s;
   int connect_retry_times = 0;
-  while (!should_exit_ && g_binlog_sync->ShouldStartPingMaster()) {
-    if (!should_exit_ && (cli_->Connect(g_binlog_sync->master_ip(), g_binlog_sync->master_port() + 2000)).ok()) {
+  while (!should_stop() && g_binlog_sync->ShouldStartPingMaster()) {
+    if (!should_stop() && (cli_->Connect(g_binlog_sync->master_ip(), g_binlog_sync->master_port() + 2000)).ok()) {
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
       connect_retry_times = 0;
       g_binlog_sync->PlusMasterConnection();
       while (true) {
-        if (should_exit_) {
+        if (should_stop()) {
           DLOG(INFO) << "Close Slaveping Thread now";
           close(cli_->fd());
           g_binlog_sync->binlog_receiver_thread()->KillBinlogSender();
@@ -87,7 +88,7 @@ void* SlavepingThread::ThreadMain() {
         sleep(1);
       }
       g_binlog_sync->MinusMasterConnection();
-    } else if (!should_exit_) {
+    } else if (!should_stop()) {
       DLOG(INFO) << "Slaveping, Connect timeout";
       if ((++connect_retry_times) >= 30) {
         DLOG(INFO) << "Slaveping, Connect timeout 10 times, disconnect with master";

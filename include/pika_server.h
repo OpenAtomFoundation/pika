@@ -13,6 +13,7 @@
 #include <sys/statfs.h>
 #include <nemo.h>
 #include <time.h>
+
 #include "pika_binlog.h"
 #include "pika_binlog_receiver_thread.h"
 #include "pika_binlog_sender_thread.h"
@@ -25,9 +26,9 @@
 #include "pika_define.h"
 #include "pika_binlog_bgworker.h"
 
-#include "slash_status.h"
-#include "slash_mutex.h"
-#include "bg_thread.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
+#include "pink/include/bg_thread.h"
 #include "nemo_backupable.h"
 
 using slash::Status;
@@ -337,7 +338,7 @@ private:
   bool have_scheduled_crontask_;
 
   int worker_num_;
-  PikaWorkerThread* pika_worker_thread_[PIKA_MAX_WORKER_THREAD_NUM];
+  PikaWorkerThread** pika_worker_thread_;
   PikaDispatchThread* pika_dispatch_thread_;
 
   PikaBinlogReceiverThread* pika_binlog_receiver_thread_;

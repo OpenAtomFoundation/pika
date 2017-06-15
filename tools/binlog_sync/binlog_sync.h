@@ -12,8 +12,8 @@
 #include "trysync_thread.h"
 #include "pika_define.h"
 
-#include "slash_status.h"
-#include "slash_mutex.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
 
 using slash::Status;
 using slash::Slice;

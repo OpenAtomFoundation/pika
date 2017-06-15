@@ -10,8 +10,8 @@
 
 extern BinlogSync *g_binlog_sync;
 
-MasterConn::MasterConn(int fd, std::string ip_port, pink::Thread* thread) :
-  RedisConn(fd, ip_port) {
+MasterConn::MasterConn(int fd, std::string ip_port, pink::Thread* thread)
+      : RedisConn(fd, ip_port, thread) {
   self_thread_ = dynamic_cast<BinlogReceiverThread*>(thread);
 }
 

@@ -4,7 +4,8 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <vector>
-#include "slash_string.h"
+
+#include "slash/include/slash_string.h"
 #include "nemo.h"
 #include "pika_list.h"
 #include "pika_server.h"

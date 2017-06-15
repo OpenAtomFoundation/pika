@@ -4,23 +4,38 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <glog/logging.h>
+#include "slash/include/slash_mutex.h"
+#include "pink/include/pink_conn.h"
 #include "pika_heartbeat_thread.h"
 #include "pika_heartbeat_conn.h"
-#include "slash_mutex.h"
 #include "pika_server.h"
 
 extern PikaServer* g_pika_server;
 
-PikaHeartbeatThread::PikaHeartbeatThread(std::string& ip, int port, int cron_interval) :
-  HolyThread::HolyThread(ip, port, cron_interval) {
+PikaHeartbeatThread::PikaHeartbeatThread(std::string& ip, int port, int
+                                         cron_interval) {
+  conn_factory_ = new HeartbeatConnFactory();
+  handles_ = new PikaHeartbeatHandles(this);
+  thread_rep_ = NewHolyThread(ip, port, conn_factory_, cron_interval, handles_);
 }
 
-PikaHeartbeatThread::PikaHeartbeatThread(std::set<std::string>& ips, int port, int cron_interval) :
-  HolyThread::HolyThread(ips, port, cron_interval) {
+PikaHeartbeatThread::PikaHeartbeatThread(std::set<std::string>& ips, int port,
+                                         int cron_interval) {
+  conn_factory_ = new HeartbeatConnFactory();
+  handles_ = new PikaHeartbeatHandles(this);
+  thread_rep_ = NewHolyThread(ips, port, conn_factory_, cron_interval, handles_);
 }
 
 PikaHeartbeatThread::~PikaHeartbeatThread() {
-  LOG(INFO) << "PikaHeartbeat thread " << thread_id() << " exit!!!";
+  thread_rep_->StopThread();
+  delete conn_factory_;
+  delete handles_;
+  LOG(INFO) << "PikaHeartbeat thread " << thread_rep_->thread_id() << " exit!!!";
+  delete thread_rep_;
+}
+
+int PikaHeartbeatThread::StartThread() {
+  return thread_rep_->StartThread();
 }
 
 void PikaHeartbeatThread::CronHandle() {
@@ -30,9 +45,9 @@ void PikaHeartbeatThread::CronHandle() {
 	struct timeval now;
 	gettimeofday(&now, NULL);
   {
-	slash::RWLock l(&rwlock_, true); // Use WriteLock to iterate the conns_
-	std::map<int, void*>::iterator iter = conns_.begin();
-  while (iter != conns_.end()) {
+	slash::RWLock l(thread_rep_->conn_rwlock(), true); // Use WriteLock to iterate the conns_
+	std::map<int, pink::PinkConn*>::iterator iter = thread_rep_->conns()->begin();
+  while (iter != thread_rep_->conns()->end()) {
     if (now.tv_sec - static_cast<PikaHeartbeatConn*>(iter->second)->last_interaction().tv_sec > 20) {
       LOG(INFO) << "Find Timeout Slave: " << static_cast<PikaHeartbeatConn*>(iter->second)->ip_port();
 			close(iter->first);
@@ -40,7 +55,7 @@ void PikaHeartbeatThread::CronHandle() {
 			g_pika_server->DeleteSlave(iter->first);
 
 			delete(static_cast<PikaHeartbeatConn*>(iter->second));
-			iter = conns_.erase(iter);
+			iter = thread_rep_->conns()->erase(iter);
 
 
 			continue;
@@ -96,9 +111,11 @@ bool PikaHeartbeatThread::AccessHandle(std::string& ip) {
 }
 
 bool PikaHeartbeatThread::FindSlave(int fd) {
-  slash::RWLock(&rwlock_, false);
-  std::map<int, void*>::iterator iter;
-  for (iter = conns_.begin(); iter != conns_.end(); iter++) {
+  slash::RWLock(thread_rep_->conn_rwlock(), false);
+  std::map<int, pink::PinkConn*>::iterator iter;
+  for (iter = thread_rep_->conns()->begin();
+       iter != thread_rep_->conns()->end();
+       iter++) {
     if (iter->first == fd) {
       return true;
     }

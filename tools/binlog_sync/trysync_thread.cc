@@ -9,6 +9,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
+
+#include "slash/include/slash_status.h"
 #include "slaveping_thread.h"
 #include "trysync_thread.h"
 #include "binlog_sync.h"
@@ -16,8 +18,7 @@
 extern BinlogSync* g_binlog_sync;
 
 TrysyncThread::~TrysyncThread() {
-  should_exit_ = true;
-  pthread_join(thread_id(), NULL);
+  StopThread();
   delete cli_;
   DLOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
 }
@@ -29,7 +30,7 @@ bool TrysyncThread::Send() {
   if (requirepass != "") {
     argv.push_back("auth");
     argv.push_back(requirepass);
-    pink::RedisCli::SerializeCommand(argv, &wbuf_str);
+    pink::SerializeRedisCommand(argv, &wbuf_str);
   }
 
   argv.clear();
@@ -43,12 +44,12 @@ bool TrysyncThread::Send() {
   
   argv.push_back(std::to_string(filenum));
   argv.push_back(std::to_string(pro_offset));
-  pink::RedisCli::SerializeCommand(argv, &tbuf_str);
+  pink::SerializeRedisCommand(argv, &tbuf_str);
 
   wbuf_str.append(tbuf_str);
   DLOG(INFO) << wbuf_str;
 
-  pink::Status s;
+  slash::Status s;
   s = cli_->Send(&wbuf_str);
   if (!s.ok()) {
     LOG(WARNING) << "Connect master, Send, error: " <<strerror(errno);
@@ -60,17 +61,18 @@ bool TrysyncThread::Send() {
 bool TrysyncThread::RecvProc() {
   bool should_auth = g_binlog_sync->requirepass() == "" ? false : true;
   bool is_authed = false;
-  pink::Status s;
+  slash::Status s;
   std::string reply;
 
+	pink::RedisCmdArgsType argv;
   while (1) {
-    s = cli_->Recv(NULL);
+    s = cli_->Recv(&argv);
     if (!s.ok()) {
       LOG(WARNING) << "Connect master, Recv, error: " <<strerror(errno);
       return false;
     }
 
-    reply = cli_->argv_[0];
+    reply = argv[0];
     DLOG(INFO) << "Reply from master after trysync: " << reply;
     if (!is_authed && should_auth) {
       if (kInnerReplOk != slash::StringToLower(reply)) {
@@ -79,7 +81,7 @@ bool TrysyncThread::RecvProc() {
       }
       is_authed = true;
     } else {
-      if (cli_->argv_.size() == 1 &&
+      if (argv.size() == 1 &&
           slash::string2l(reply.data(), reply.size(), &sid_)) {
         // Luckly, I got your point, the sync is comming
         DLOG(INFO) << "Recv sid from master: " << sid_;
@@ -98,7 +100,7 @@ bool TrysyncThread::RecvProc() {
 }
 
 void* TrysyncThread::ThreadMain() {
-  while (!should_exit_) {
+  while (!should_stop()) {
     sleep(1);
     if (!g_binlog_sync->ShouldConnectMaster()) {
       continue;

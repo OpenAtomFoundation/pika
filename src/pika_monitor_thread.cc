@@ -7,26 +7,24 @@
 #include <utility>
 #include <sys/time.h>
 
+#include "pink/include/pink_define.h"
 #include "pika_monitor_thread.h"
 #include "pika_server.h"
-#include "pink_define.h"
 #include "pika_conf.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
-PikaMonitorThread::PikaMonitorThread() :
-  pink::Thread(),
-  monitor_cond_(&monitor_mutex_protector_),
-  is_running_(false),
-  should_exit_(false) {
+PikaMonitorThread::PikaMonitorThread()
+  : pink::Thread(),
+    monitor_cond_(&monitor_mutex_protector_) {
 }
 
 PikaMonitorThread::~PikaMonitorThread() {
-  should_exit_ = true;
-  if (is_running_) {
+  set_should_stop(true);
+  if (is_running()) {
     monitor_cond_.SignalAll();
-    pthread_join(thread_id(), NULL);
+    StopThread();
   }
   for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
       iter != monitor_clients_.end();
@@ -122,17 +120,6 @@ bool PikaMonitorThread::HasMonitorClients() {
   return !monitor_clients_.empty();
 }
 
-void PikaMonitorThread::StartThread() {
-  {
-    slash::MutexLock lm(&monitor_mutex_protector_);
-    if (is_running_) {
-      return;
-    }
-    is_running_ = true;
-  }
-  pink::Thread::StartThread();
-}
-
 pink::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message) {
   ssize_t nwritten = 0, message_len_sended = 0, message_len_left = message.size();
   while (message_len_left > 0) {
@@ -153,14 +140,14 @@ void* PikaMonitorThread::ThreadMain() {
   std::string messages_transfer;
   MonitorCronTask task;
   pink::WriteStatus write_status;
-  while (!should_exit_) {
+  while (!should_stop()) {
     {
       slash::MutexLock lm(&monitor_mutex_protector_);
-      while (monitor_messages_.empty() && cron_tasks_.empty() && !should_exit_) {
+      while (monitor_messages_.empty() && cron_tasks_.empty() && !should_stop()) {
         monitor_cond_.Wait();
       }
     }
-    if (should_exit_) {
+    if (should_stop()) {
       break;
     } 
     {

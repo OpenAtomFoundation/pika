@@ -4,18 +4,31 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <glog/logging.h>
+
+#include "pink/include/pink_conn.h"
 #include "binlog_receiver_thread.h"
 #include "master_conn.h"
 #include "binlog_sync.h"
 
 extern BinlogSync* g_binlog_sync;
 
-BinlogReceiverThread::BinlogReceiverThread(int port, int cron_interval) :
-  HolyThread::HolyThread(port, cron_interval) {
+BinlogReceiverThread::BinlogReceiverThread(int port, int cron_interval) {
+  conn_factory_ = new MasterConnFactory();
+  handles_ = new PikaBinlogReceiverHandles(this);
+  thread_rep_ = pink::NewHolyThread(port, conn_factory_,
+                                    cron_interval, handles_);
 }
 
 BinlogReceiverThread::~BinlogReceiverThread() {
-  DLOG(INFO) << "BinlogReceiver thread " << thread_id() << " exit!!!";
+  thread_rep_->StopThread();
+  delete conn_factory_;
+  delete handles_;;
+  DLOG(INFO) << "BinlogReceiver thread " << thread_rep_->thread_id() << " exit!!!";
+	delete thread_rep_;
+}
+
+int BinlogReceiverThread::StartThread() {
+  return thread_rep_->StartThread();
 }
 
 bool BinlogReceiverThread::AccessHandle(std::string& ip) {
@@ -62,15 +75,6 @@ void BinlogReceiverThread::AddCronTask(WorkerCronTask task) {
 }
 
 void BinlogReceiverThread::KillAll() {
-  {
-  slash::RWLock l(&rwlock_, true);
-  std::map<int, void*>::iterator iter = conns_.begin();
-  while (iter != conns_.end()) {
-    DLOG(INFO) << "==========Kill Master Sender Conn==============";
-    close(iter->first);
-    delete(static_cast<MasterConn*>(iter->second));
-    iter = conns_.erase(iter);
-  }
-  }
+  thread_rep_->Cleanup();
   g_binlog_sync->MinusMasterConnection();
 }

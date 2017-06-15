@@ -15,8 +15,8 @@ extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 
-PikaClientConn::PikaClientConn(int fd, std::string ip_port, pink::Thread* thread) :
-  RedisConn(fd, ip_port) {
+PikaClientConn::PikaClientConn(int fd, std::string ip_port, pink::Thread* thread)
+      : RedisConn(fd, ip_port, thread) {
   self_thread_ = dynamic_cast<PikaWorkerThread*>(thread);
   auth_stat_.Init();
 }

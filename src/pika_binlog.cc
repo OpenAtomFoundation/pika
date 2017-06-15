@@ -14,7 +14,7 @@
 
 #include <glog/logging.h>
 
-#include "slash_mutex.h"
+#include "slash/include/slash_mutex.h"
 
 using slash::RWLock;
 

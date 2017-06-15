@@ -13,31 +13,61 @@ extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
 PikaDispatchThread::PikaDispatchThread(int port, int work_num,
-                                       PikaWorkerThread** pika_worker_thread,
-                                       int cron_interval, int queue_limit) :
-  DispatchThread::DispatchThread(port, work_num,
-                                 reinterpret_cast<pink::WorkerThread<PikaClientConn>**>(pika_worker_thread),
-                                 cron_interval, queue_limit) {
+                                       int cron_interval, int queue_limit) {
+  work_num_ = work_num;
+  conn_factory_ = new ClientConnFactory();
+  handles_ = new PikaDispatchHandles(this);
+  pika_worker_threads_ = new PikaWorkerThread*[work_num_];
+  for (int i = 0; i < work_num_; i++) {
+    pika_worker_threads_[i] = new PikaWorkerThread(conn_factory_, 1000);
+  }
+  thread_rep_ = pink::NewDispatchThread(port, work_num_,
+                                        reinterpret_cast<pink::Thread**>(pika_worker_threads_),
+                                        cron_interval, queue_limit, handles_);
 }
 
 PikaDispatchThread::PikaDispatchThread(std::string &ip, int port, int work_num,
-                                       PikaWorkerThread** pika_worker_thread,
-                                       int cron_interval, int queue_limit) :
-  DispatchThread::DispatchThread(ip, port, work_num,
-                                 reinterpret_cast<pink::WorkerThread<PikaClientConn>**>(pika_worker_thread),
-                                 cron_interval, queue_limit) {
+                                       int cron_interval, int queue_limit) {
+  work_num_ = work_num;
+  conn_factory_ = new ClientConnFactory();
+  handles_ = new PikaDispatchHandles(this);
+  pika_worker_threads_ = new PikaWorkerThread*[work_num_];
+  for (int i = 0; i < work_num_; i++) {
+    pika_worker_threads_[i] = new PikaWorkerThread(conn_factory_, 1000);
+  }
+  thread_rep_ = pink::NewDispatchThread(ip, port, work_num_,
+                                        reinterpret_cast<pink::Thread**>(pika_worker_threads_),
+                                        cron_interval, queue_limit, handles_);
 }
 
 PikaDispatchThread::PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
-                                       PikaWorkerThread** pika_worker_thread,
-                                       int cron_interval, int queue_limit) :
-  DispatchThread::DispatchThread(ips, port, work_num,
-                                 reinterpret_cast<pink::WorkerThread<PikaClientConn>**>(pika_worker_thread),
-                                 cron_interval, queue_limit) {
+                                       int cron_interval, int queue_limit) {
+  work_num_ = work_num;
+  conn_factory_ = new ClientConnFactory();
+  handles_ = new PikaDispatchHandles(this);
+  pika_worker_threads_ = new PikaWorkerThread*[work_num_];
+  for (int i = 0; i < work_num_; i++) {
+    pika_worker_threads_[i] = new PikaWorkerThread(conn_factory_, 1000);
+  }
+  thread_rep_ = pink::NewDispatchThread(ips, port, work_num_,
+                                        reinterpret_cast<pink::Thread**>(pika_worker_threads_),
+                                        cron_interval, queue_limit, handles_);
 }
 
 PikaDispatchThread::~PikaDispatchThread() {
-  LOG(INFO) << "dispatch thread " << thread_id() << " exit!!!";
+  thread_rep_->StopThread();
+  delete conn_factory_;
+  delete handles_;
+  for (int i = 0; i < work_num_; i++) {
+    delete pika_worker_threads_[i];
+  }
+  delete[] pika_worker_threads_;
+  LOG(INFO) << "dispatch thread " << thread_rep_->thread_id() << " exit!!!";
+  delete thread_rep_;
+}
+
+int PikaDispatchThread::StartThread() {
+  return thread_rep_->StartThread();
 }
 
 bool PikaDispatchThread::AccessHandle(std::string& ip) {
@@ -59,8 +89,8 @@ bool PikaDispatchThread::AccessHandle(std::string& ip) {
 
 int PikaDispatchThread::ClientNum() {
   int num = 0;
-  for (int i = 0; i < work_num(); i++) {
-    num += ((PikaWorkerThread**)worker_thread())[i]->ThreadClientNum();
+  for (int i = 0; i < work_num_; i++) {
+    num += pika_worker_threads_[i]->ThreadClientNum();
   }
   return num;
 }

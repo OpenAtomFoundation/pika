@@ -6,11 +6,9 @@
 #ifndef PIKA_MASTER_CONN_H_
 #define PIKA_MASTER_CONN_H_
 
-#include "redis_conn.h"
-#include "pink_thread.h"
+#include "pink/include/redis_conn.h"
 #include "pika_command.h"
 
-//class pink::Thread;
 class PikaBinlogReceiverThread;
 
 class PikaMasterConn: public pink::RedisConn {

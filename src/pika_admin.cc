@@ -3,8 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "slash_string.h"
-#include "rsync.h"
+#include "slash/include/slash_string.h"
+#include "slash/include/rsync.h"
 #include "pika_conf.h"
 #include "pika_admin.h"
 #include "pika_server.h"
@@ -1138,6 +1138,7 @@ void MonitorCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
 void MonitorCmd::Do() {
   PikaWorkerThread* self_thread = self_client_->self_thread();
+  slash::RWLock l(&self_thread->rwlock_, true);
   self_thread->conns_.erase(self_client_->fd());
   self_thread->pink_epoll()->PinkDelEvent(self_client_->fd());
   g_pika_server->AddMonitorClient(self_client_);

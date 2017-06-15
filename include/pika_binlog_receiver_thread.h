@@ -9,22 +9,20 @@
 #include <queue>
 #include <set>
 
-#include "holy_thread.h"
-#include "slash_mutex.h"
-#include "env.h"
+#include "pink/include/server_thread.h"
+#include "slash/include/slash_mutex.h"
+#include "slash/include/env.h"
 #include "pika_define.h"
 #include "pika_master_conn.h"
 #include "pika_command.h"
 
-class PikaBinlogReceiverThread : public pink::HolyThread<PikaMasterConn>
-{
-public:
+class PikaBinlogReceiverThread {
+ public:
   PikaBinlogReceiverThread(std::string &ip, int port, int cron_interval = 0);
   PikaBinlogReceiverThread(std::set<std::string> &ips, int port, int cron_interval = 0);
-  virtual ~PikaBinlogReceiverThread();
-  virtual void CronHandle();
-  virtual bool AccessHandle(std::string& ip);
+  ~PikaBinlogReceiverThread();
   void KillBinlogSender();
+  int StartThread();
 
   uint64_t thread_querynum() {
     slash::RWLock(&rwlock_, false);
@@ -60,21 +58,51 @@ public:
   }
 
   int32_t ThreadClientNum() {
-    slash::RWLock(&rwlock_, false);
-    int32_t num = conns_.size();
-    return num;
+    return thread_rep_->conn_num();
   }
 
   Cmd* GetCmd(const std::string& opt) {
     return GetCmdFromTable(opt, cmds_);
   }
 
-private:
-  slash::Mutex mutex_; // protect cron_task_
+ private:
+  class MasterConnFactory : public pink::ConnFactory {
+   public:
+    virtual pink::PinkConn *NewPinkConn(int connfd,
+                                        const std::string &ip_port,
+                                        pink::Thread *thread) const {
+      return new PikaMasterConn(connfd, ip_port, thread);
+    }
+  };
+
+  class PikaBinlogReceiverHandles : public pink::ServerHandle {
+   public:
+    explicit PikaBinlogReceiverHandles(PikaBinlogReceiverThread* binlog_receiver)
+        : binlog_receiver_(binlog_receiver) {
+    }
+    void CronHandle() {
+      binlog_receiver_->CronHandle();
+    }
+    void AccessHandle(std::string& ip) {
+      binlog_receiver_->AccessHandle(ip);
+    }
+
+   private:
+    PikaBinlogReceiverThread* binlog_receiver_;
+  };
+
+  MasterConnFactory* conn_factory_;
+  PikaBinlogReceiverHandles* handles_;
+  pink::ServerThread* thread_rep_;
+
+  bool AccessHandle(std::string& ip);
+  void CronHandle();
   void AddCronTask(WorkerCronTask task);
   void KillAll();
+  slash::Mutex mutex_; // protect cron_task_
   std::queue<WorkerCronTask> cron_tasks_;
 
+  pthread_rwlock_t rwlock_;
   std::unordered_map<std::string, Cmd*> cmds_;
   uint64_t thread_querynum_;
   uint64_t last_thread_querynum_;

@@ -8,19 +8,17 @@
 
 #include <queue>
 
-#include "worker_thread.h"
+#include "pink/include/worker_thread.h"
 #include "pika_define.h"
-#include "slash_mutex.h"
-#include "env.h"
+#include "slash/include/slash_mutex.h"
+#include "slash/include/env.h"
 #include "pika_client_conn.h"
 #include "pika_command.h"
 
-class PikaWorkerThread : public pink::WorkerThread<PikaClientConn>
-{
-public:
-  PikaWorkerThread(int cron_interval = 0);
+class PikaWorkerThread : public pink::WorkerThread {
+ public:
+  PikaWorkerThread(pink::ConnFactory* conn_factory, int cron_interval = 0);
   virtual ~PikaWorkerThread();
-  virtual void CronHandle();
 
   int64_t ThreadClientList(std::vector<ClientInfo> *clients = NULL);
   bool ThreadClientKill(std::string ip_port = "");
@@ -58,7 +56,8 @@ public:
   Cmd* GetCmd(const std::string& opt) {
     return GetCmdFromTable(opt, cmds_);
   }
-private:
+
+ private:
   slash::Mutex mutex_; // protect cron_task_
   std::queue<WorkerCronTask> cron_tasks_;
 
@@ -69,6 +68,7 @@ private:
 
   std::unordered_map<std::string, Cmd*> cmds_;
 
+  virtual void CronHandle();
   void AddCronTask(WorkerCronTask task);
   bool FindClient(std::string ip_port);
   void ClientKill(std::string ip_port);

@@ -5,7 +5,8 @@
 
 #include <sstream>
 #include <algorithm>
-#include "slash_string.h"
+
+#include "slash/include/slash_string.h"
 #include "nemo.h"
 #include "pika_geo.h"
 #include "pika_server.h"

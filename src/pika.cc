@@ -5,12 +5,14 @@
 
 #include <glog/logging.h>
 #include <sys/resource.h>
+
+#include "slash/include/env.h"
 #include "pika_server.h"
 #include "pika_command.h"
 #include "pika_conf.h"
 #include "pika_define.h"
 #include "pika_slot.h"
-#include "env.h"
+
 #ifdef TCMALLOC_EXTENSION
 #include <gperftools/malloc_extension.h>
 #endif

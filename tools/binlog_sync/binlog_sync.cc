@@ -7,9 +7,13 @@
 #include <assert.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
-#include "env.h"
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include "slash/include/env.h"
+#include "slash/include/slash_string.h"
 #include "binlog_sync.h"
-#include "slash_string.h"
 
 BinlogSync::BinlogSync(int64_t filenum, int64_t offset, int port, std::string& master_ip, int master_port, std::string& passwd, std::string& log_path) :
   filenum_(filenum),
@@ -195,8 +199,7 @@ void BinlogSync::RemoveMaster() {
   master_port_ = -1;
   }
   if (ping_thread_ != NULL) {
-    ping_thread_->should_exit_ = true;
-    int err = pthread_join(ping_thread_->thread_id(), NULL);
+    int err = ping_thread_->StopThread();
     if (err != 0) {
       std::string msg = "can't join thread " + std::string(strerror(err));
       LOG(WARNING) << msg;
