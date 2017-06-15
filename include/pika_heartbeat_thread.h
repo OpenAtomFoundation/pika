@@ -37,11 +37,11 @@ class PikaHeartbeatThread {
     explicit PikaHeartbeatHandles(PikaHeartbeatThread* heartbeat_thread)
         : heartbeat_thread_(heartbeat_thread) {
     }
-    void CronHandle() {
+    void CronHandle() const {
       heartbeat_thread_->CronHandle();
     }
-    void AccessHandle(std::string& ip) {
-      heartbeat_thread_->AccessHandle(ip);
+    bool AccessHandle(std::string& ip) const {
+      return heartbeat_thread_->AccessHandle(ip);
     }
 
    private:

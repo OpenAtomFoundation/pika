@@ -27,11 +27,17 @@ class BinlogReceiverThread {
  private:
   class MasterConnFactory : public pink::ConnFactory {
    public:
+    MasterConnFactory(BinlogReceiverThread* binlog_receiver)
+        : binlog_receiver_(binlog_receiver) {
+    }
     virtual pink::PinkConn *NewPinkConn(int connfd,
                                         const std::string &ip_port,
                                         pink::Thread *thread) const {
-      return new MasterConn(connfd, ip_port, thread);
+      return new MasterConn(connfd, ip_port, binlog_receiver_);
     }
+
+   private:
+    BinlogReceiverThread* binlog_receiver_;
   };
 
   class PikaBinlogReceiverHandles : public pink::ServerHandle {
@@ -39,11 +45,11 @@ class BinlogReceiverThread {
     explicit PikaBinlogReceiverHandles(BinlogReceiverThread* binlog_receiver)
         : binlog_receiver_(binlog_receiver) {
     }
-    void CronHandle() {
+    void CronHandle() const {
       binlog_receiver_->CronHandle();
     }
-    void AccessHandle(std::string& ip) {
-      binlog_receiver_->AccessHandle(ip);
+    bool AccessHandle(std::string& ip) const {
+      return binlog_receiver_->AccessHandle(ip);
     }
 
    private:

@@ -13,7 +13,8 @@ class PikaBinlogReceiverThread;
 
 class PikaMasterConn: public pink::RedisConn {
 public:
-  PikaMasterConn(int fd, std::string ip_port, pink::Thread *thread);
+  PikaMasterConn(int fd, std::string ip_port,
+                 PikaBinlogReceiverThread* binlog_receiver);
   virtual ~PikaMasterConn();
   virtual int DealMessage();
 private:

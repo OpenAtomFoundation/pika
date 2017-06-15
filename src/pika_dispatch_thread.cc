@@ -12,34 +12,6 @@
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
-PikaDispatchThread::PikaDispatchThread(int port, int work_num,
-                                       int cron_interval, int queue_limit) {
-  work_num_ = work_num;
-  conn_factory_ = new ClientConnFactory();
-  handles_ = new PikaDispatchHandles(this);
-  pika_worker_threads_ = new PikaWorkerThread*[work_num_];
-  for (int i = 0; i < work_num_; i++) {
-    pika_worker_threads_[i] = new PikaWorkerThread(conn_factory_, 1000);
-  }
-  thread_rep_ = pink::NewDispatchThread(port, work_num_,
-                                        reinterpret_cast<pink::Thread**>(pika_worker_threads_),
-                                        cron_interval, queue_limit, handles_);
-}
-
-PikaDispatchThread::PikaDispatchThread(std::string &ip, int port, int work_num,
-                                       int cron_interval, int queue_limit) {
-  work_num_ = work_num;
-  conn_factory_ = new ClientConnFactory();
-  handles_ = new PikaDispatchHandles(this);
-  pika_worker_threads_ = new PikaWorkerThread*[work_num_];
-  for (int i = 0; i < work_num_; i++) {
-    pika_worker_threads_[i] = new PikaWorkerThread(conn_factory_, 1000);
-  }
-  thread_rep_ = pink::NewDispatchThread(ip, port, work_num_,
-                                        reinterpret_cast<pink::Thread**>(pika_worker_threads_),
-                                        cron_interval, queue_limit, handles_);
-}
-
 PikaDispatchThread::PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
                                        int cron_interval, int queue_limit) {
   work_num_ = work_num;

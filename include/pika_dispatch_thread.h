@@ -12,10 +12,6 @@
 
 class PikaDispatchThread {
  public:
-  PikaDispatchThread(int port, int work_num,
-                     int cron_interval, int queue_limit);
-  PikaDispatchThread(std::string &ip, int port, int work_num,
-                     int cron_interval, int queue_limit);
   PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
                      int cron_interval, int queue_limit);
   ~PikaDispatchThread();
@@ -41,8 +37,8 @@ class PikaDispatchThread {
     explicit PikaDispatchHandles(PikaDispatchThread* pika_disptcher)
         : pika_disptcher_(pika_disptcher) {
     }
-    void AccessHandle(std::string& ip) {
-      pika_disptcher_->AccessHandle(ip);
+    bool AccessHandle(std::string& ip) const {
+      return pika_disptcher_->AccessHandle(ip);
     }
 
    private:

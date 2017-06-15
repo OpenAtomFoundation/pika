@@ -12,22 +12,6 @@
 
 extern PikaServer* g_pika_server;
 
-PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::string &ip, int port,
-                                                   int cron_interval)
-    : thread_querynum_(0),
-      last_thread_querynum_(0),
-      last_time_us_(slash::NowMicros()),
-      last_sec_thread_querynum_(0),
-      serial_(0) {
-  conn_factory_ = new MasterConnFactory();
-  handles_ = new PikaBinlogReceiverHandles(this);
-  thread_rep_ = pink::NewHolyThread(ip, port, conn_factory_,
-                                    cron_interval, handles_);
-  pthread_rwlock_init(&rwlock_, nullptr);
-  cmds_.reserve(300);
-  InitCmdTable(&cmds_);
-}
-
 PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::set<std::string> &ips, int port,
                                                    int cron_interval)
     : thread_querynum_(0),
@@ -35,11 +19,12 @@ PikaBinlogReceiverThread::PikaBinlogReceiverThread(std::set<std::string> &ips, i
       last_time_us_(slash::NowMicros()),
       last_sec_thread_querynum_(0),
       serial_(0) {
-  conn_factory_ = new MasterConnFactory();
+  conn_factory_ = new MasterConnFactory(this);
   handles_ = new PikaBinlogReceiverHandles(this);
   thread_rep_ = pink::NewHolyThread(ips, port, conn_factory_,
                                     cron_interval, handles_);
-  pthread_rwlock_init(&rwlock_, nullptr);
+  thread_rep_->set_thread_name("BinlogReceiverThread");
+  pthread_rwlock_init(&rwlock_, NULL);
   cmds_.reserve(300);
   InitCmdTable(&cmds_);
 }

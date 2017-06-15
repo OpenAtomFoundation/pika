@@ -14,7 +14,7 @@ class BinlogReceiverThread;
 
 class MasterConn: public pink::RedisConn {
 public:
-  MasterConn(int fd, std::string ip_port, pink::Thread *thread);
+  MasterConn(int fd, std::string ip_port, BinlogReceiverThread* binlog_receiver);
   virtual ~MasterConn();
   virtual int DealMessage();
 private:

@@ -13,10 +13,11 @@ extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
 static const int RAW_ARGS_LEN = 1024 * 1024; 
-PikaMasterConn::PikaMasterConn(int fd, std::string ip_port, pink::Thread* thread)
-      : RedisConn(fd, ip_port, thread) {
+PikaMasterConn::PikaMasterConn(int fd, std::string ip_port,
+                               PikaBinlogReceiverThread* binlog_receiver)
+      : RedisConn(fd, ip_port, NULL),
+        self_thread_(binlog_receiver) {
   raw_args_.reserve(RAW_ARGS_LEN);
-  self_thread_ = dynamic_cast<PikaBinlogReceiverThread*>(thread);
 }
 
 PikaMasterConn::~PikaMasterConn() {

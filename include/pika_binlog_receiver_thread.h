@@ -18,25 +18,24 @@
 
 class PikaBinlogReceiverThread {
  public:
-  PikaBinlogReceiverThread(std::string &ip, int port, int cron_interval = 0);
   PikaBinlogReceiverThread(std::set<std::string> &ips, int port, int cron_interval = 0);
   ~PikaBinlogReceiverThread();
   void KillBinlogSender();
   int StartThread();
 
   uint64_t thread_querynum() {
-    slash::RWLock(&rwlock_, false);
+    slash::RWLock l(&rwlock_, false);
     return thread_querynum_;
   }
 
   void ResetThreadQuerynum() {
-    slash::RWLock(&rwlock_, true);
+    slash::RWLock l(&rwlock_, true);
     thread_querynum_ = 0;
     last_thread_querynum_ = 0;
   }
 
   uint64_t last_sec_thread_querynum() {
-    slash::RWLock(&rwlock_, false);
+    slash::RWLock l(&rwlock_, false);
     return last_sec_thread_querynum_;
   }
 
@@ -45,13 +44,13 @@ class PikaBinlogReceiverThread {
   }
 
   void PlusThreadQuerynum() {
-    slash::RWLock(&rwlock_, true);
+    slash::RWLock l(&rwlock_, true);
     thread_querynum_++;
   }
 
   void ResetLastSecQuerynum() {
     uint64_t cur_time_ms = slash::NowMicros();
-    slash::RWLock(&rwlock_, true);
+    slash::RWLock l(&rwlock_, true);
     last_sec_thread_querynum_ = (thread_querynum_ - last_thread_querynum_) * 1000000 / (cur_time_ms - last_time_us_+1);
     last_time_us_ = cur_time_ms;
     last_thread_querynum_ = thread_querynum_;
@@ -68,11 +67,17 @@ class PikaBinlogReceiverThread {
  private:
   class MasterConnFactory : public pink::ConnFactory {
    public:
+    MasterConnFactory(PikaBinlogReceiverThread* binlog_receiver)
+        : binlog_receiver_(binlog_receiver) {
+    }
     virtual pink::PinkConn *NewPinkConn(int connfd,
                                         const std::string &ip_port,
                                         pink::Thread *thread) const {
-      return new PikaMasterConn(connfd, ip_port, thread);
+      return new PikaMasterConn(connfd, ip_port, binlog_receiver_);
     }
+
+   private:
+    PikaBinlogReceiverThread* binlog_receiver_;
   };
 
   class PikaBinlogReceiverHandles : public pink::ServerHandle {
@@ -80,11 +85,11 @@ class PikaBinlogReceiverThread {
     explicit PikaBinlogReceiverHandles(PikaBinlogReceiverThread* binlog_receiver)
         : binlog_receiver_(binlog_receiver) {
     }
-    void CronHandle() {
+    void CronHandle() const {
       binlog_receiver_->CronHandle();
     }
-    void AccessHandle(std::string& ip) {
-      binlog_receiver_->AccessHandle(ip);
+    bool AccessHandle(std::string& ip) const {
+      return binlog_receiver_->AccessHandle(ip);
     }
 
    private:

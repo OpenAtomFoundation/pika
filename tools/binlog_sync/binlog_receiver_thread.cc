@@ -13,7 +13,7 @@
 extern BinlogSync* g_binlog_sync;
 
 BinlogReceiverThread::BinlogReceiverThread(int port, int cron_interval) {
-  conn_factory_ = new MasterConnFactory();
+  conn_factory_ = new MasterConnFactory(this);
   handles_ = new PikaBinlogReceiverHandles(this);
   thread_rep_ = pink::NewHolyThread(port, conn_factory_,
                                     cron_interval, handles_);
