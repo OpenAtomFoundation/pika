@@ -23,7 +23,7 @@ public:
   virtual ~PikaSlavepingThread() {
     StopThread();
     delete cli_;
-    DLOG(INFO) << " Slaveping thread " << pthread_self() << " exit!!!";
+    DLOG(INFO) << " Slaveping thread " << thread_id() << " exit!!!";
 	};
 
   Status Send();

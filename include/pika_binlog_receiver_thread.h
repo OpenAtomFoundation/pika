@@ -51,7 +51,8 @@ class PikaBinlogReceiverThread {
   void ResetLastSecQuerynum() {
     uint64_t cur_time_ms = slash::NowMicros();
     slash::RWLock l(&rwlock_, true);
-    last_sec_thread_querynum_ = (thread_querynum_ - last_thread_querynum_) * 1000000 / (cur_time_ms - last_time_us_+1);
+    last_sec_thread_querynum_ = (thread_querynum_ - last_thread_querynum_) *
+      1000000 / (cur_time_ms - last_time_us_+1);
     last_time_us_ = cur_time_ms;
     last_thread_querynum_ = thread_querynum_;
   }
@@ -72,7 +73,7 @@ class PikaBinlogReceiverThread {
     }
     virtual pink::PinkConn *NewPinkConn(int connfd,
                                         const std::string &ip_port,
-                                        pink::Thread *thread) const {
+                                        pink::Thread *thread) const override {
       return new PikaMasterConn(connfd, ip_port, binlog_receiver_);
     }
 
@@ -85,10 +86,10 @@ class PikaBinlogReceiverThread {
     explicit PikaBinlogReceiverHandles(PikaBinlogReceiverThread* binlog_receiver)
         : binlog_receiver_(binlog_receiver) {
     }
-    void CronHandle() const {
+    void CronHandle() const override {
       binlog_receiver_->CronHandle();
     }
-    bool AccessHandle(std::string& ip) const {
+    bool AccessHandle(std::string& ip) const override {
       return binlog_receiver_->AccessHandle(ip);
     }
 

@@ -46,7 +46,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   // Check authed
   if (!auth_stat_.IsAuthed(cinfo_ptr)) {
-//    LOG(WARNING) << "(" << ip_port() << ")Authentication required";
     return "-ERR NOAUTH Authentication required.\r\n";
   }
   
@@ -67,7 +66,8 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   std::string monitor_message;
   bool is_monitoring = g_pika_server->HasMonitorClients();
   if (is_monitoring) {
-    monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) + " [" + this->ip_port() + "]";
+    monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) +
+      " [" + this->ip_port() + "]";
     for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
       monitor_message += " " + slash::ToRead(*iter);
     }
@@ -86,13 +86,13 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   std::string raw_args;
   if (cinfo_ptr->is_write()) {
-      if (g_pika_conf->readonly()) {
-        return "-ERR Server in read-only\r\n";
-      }
-      raw_args = RestoreArgs();
-      if (argv_.size() >= 2) {
-        g_pika_server->mutex_record_.Lock(argv_[1]);
-      }
+    if (g_pika_conf->readonly()) {
+      return "-ERR Server in read-only\r\n";
+    }
+    raw_args = RestoreArgs();
+    if (argv_.size() >= 2) {
+      g_pika_server->mutex_record_.Lock(argv_[1]);
+    }
   }
 
   // Add read lock for no suspend command
@@ -103,21 +103,21 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
-      if (c_ptr->res().ok()) {
-          g_pika_server->logger_->Lock();
-          g_pika_server->logger_->Put(raw_args);
-          g_pika_server->logger_->Unlock();
-      }
+    if (c_ptr->res().ok()) {
+      g_pika_server->logger_->Lock();
+      g_pika_server->logger_->Put(raw_args);
+      g_pika_server->logger_->Unlock();
+    }
   }
 
   if (!cinfo_ptr->is_suspend()) {
-      g_pika_server->RWUnlock();
+    g_pika_server->RWUnlock();
   }
 
   if (cinfo_ptr->is_write()) {
-      if (argv_.size() >= 2) {
-        g_pika_server->mutex_record_.Unlock(argv_[1]);
-      }
+    if (argv_.size() >= 2) {
+      g_pika_server->mutex_record_.Unlock(argv_[1]);
+    }
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {

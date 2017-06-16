@@ -16,7 +16,10 @@
 
 extern PikaServer* g_pika_server;
 
-PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port, slash::SequentialFile *queue, uint32_t filenum, uint64_t con_offset)
+PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port,
+                                               slash::SequentialFile *queue,
+                                               uint32_t filenum,
+                                               uint64_t con_offset)
     : con_offset_(con_offset),
       filenum_(filenum),
       initial_offset_(0),
@@ -36,7 +39,7 @@ PikaBinlogSenderThread::~PikaBinlogSenderThread() {
   StopThread();
   delete queue_;
   pthread_rwlock_destroy(&rwlock_);
-  delete [] backing_store_;
+  delete[] backing_store_;
   delete cli_;
 
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";

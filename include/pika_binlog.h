@@ -29,8 +29,7 @@ std::string NewFileName(const std::string name, const uint32_t current);
 
 class Version;
 
-class Binlog
-{
+class Binlog {
  public:
   Binlog(const std::string& Binlog_path, const int file_size = 100 * 1024 * 1024);
   ~Binlog();

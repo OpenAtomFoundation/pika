@@ -27,8 +27,8 @@ class PikaHeartbeatThread {
    public:
     virtual pink::PinkConn *NewPinkConn(int connfd,
                                         const std::string &ip_port,
-                                        pink::Thread *thread) const {
-      return new PikaHeartbeatConn(connfd, ip_port, thread);
+                                        pink::Thread *thread) const override {
+      return new PikaHeartbeatConn(connfd, ip_port);
     }
   };
 
@@ -37,10 +37,10 @@ class PikaHeartbeatThread {
     explicit PikaHeartbeatHandles(PikaHeartbeatThread* heartbeat_thread)
         : heartbeat_thread_(heartbeat_thread) {
     }
-    void CronHandle() const {
+    void CronHandle() const override {
       heartbeat_thread_->CronHandle();
     }
-    bool AccessHandle(std::string& ip) const {
+    bool AccessHandle(std::string& ip) const override {
       return heartbeat_thread_->AccessHandle(ip);
     }
 

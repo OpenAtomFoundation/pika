@@ -22,7 +22,7 @@ PikaTrysyncThread::~PikaTrysyncThread() {
   StopThread();
   slash::StopRsync(g_pika_conf->db_sync_path());
   delete cli_;
-  LOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
+  LOG(INFO) << " Trysync thread " << thread_id() << " exit!!!";
 }
 
 bool PikaTrysyncThread::Send() {

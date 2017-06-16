@@ -22,7 +22,7 @@ PikaDispatchThread::PikaDispatchThread(std::set<std::string> &ips, int port, int
     pika_worker_threads_[i] = new PikaWorkerThread(conn_factory_, 1000);
   }
   thread_rep_ = pink::NewDispatchThread(ips, port, work_num_,
-                                        reinterpret_cast<pink::Thread**>(pika_worker_threads_),
+                                        reinterpret_cast<pink::WorkerThread**>(pika_worker_threads_),
                                         cron_interval, queue_limit, handles_);
 }
 

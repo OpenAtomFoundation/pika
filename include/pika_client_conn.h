@@ -17,7 +17,7 @@
 class PikaWorkerThread;
 
 class PikaClientConn: public pink::RedisConn {
-public:
+ public:
   PikaClientConn(int fd, std::string ip_port, pink::Thread *thread);
   virtual ~PikaClientConn();
   virtual int DealMessage();
@@ -25,18 +25,18 @@ public:
     return self_thread_;
   }
 
-private:
+ private:
   PikaWorkerThread* self_thread_;
   std::string DoCmd(const std::string& opt);
   std::string RestoreArgs();
 
   // Auth related
   class AuthStat {
-  public:
+   public:
     void Init();
     bool IsAuthed(const CmdInfo* const cinfo_ptr);
     bool ChecknUpdate(const std::string& arg);
-  private:
+   private:
     enum StatType {
       kNoAuthed = 0,
       kAdminAuthed,

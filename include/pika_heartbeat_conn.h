@@ -15,11 +15,9 @@ class PikaHeartbeatThread;
 
 class PikaHeartbeatConn: public pink::RedisConn {
  public:
-  PikaHeartbeatConn(int fd, std::string ip_port, pink::Thread *thread);
+  PikaHeartbeatConn(int fd, std::string ip_port);
   virtual ~PikaHeartbeatConn();
   virtual int DealMessage();
- private:
-  PikaHeartbeatThread* pika_thread_;
 };
 
 #endif
