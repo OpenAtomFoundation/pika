@@ -14,9 +14,10 @@
 using slash::Status;
 
 class PikaSlavepingThread : public pink::Thread {
-public:
-  PikaSlavepingThread(int64_t sid) : sid_(sid),
-  is_first_send_(true) {
+ public:
+  PikaSlavepingThread(int64_t sid)
+      : sid_(sid),
+        is_first_send_(true) {
     cli_ = pink::NewRedisCli();
     cli_->set_connect_timeout(1500);
 	};
@@ -29,7 +30,7 @@ public:
   Status Send();
   Status RecvProc();
 
-private:
+ private:
   int64_t sid_;
   bool is_first_send_;
 

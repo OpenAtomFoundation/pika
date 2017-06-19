@@ -28,12 +28,12 @@ PikaDispatchThread::PikaDispatchThread(std::set<std::string> &ips, int port, int
 
 PikaDispatchThread::~PikaDispatchThread() {
   thread_rep_->StopThread();
-  delete conn_factory_;
-  delete handles_;
   for (int i = 0; i < work_num_; i++) {
     delete pika_worker_threads_[i];
   }
   delete[] pika_worker_threads_;
+  delete conn_factory_;
+  delete handles_;
   LOG(INFO) << "dispatch thread " << thread_rep_->thread_id() << " exit!!!";
   delete thread_rep_;
 }
