@@ -23,6 +23,7 @@
 #include "pika_monitor_thread.h"
 #include "pika_define.h"
 #include "pika_binlog_bgworker.h"
+#include "pika_slot.h"
 
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
@@ -226,9 +227,18 @@ class PikaServer {
     bgslots_reload_.reloading = false;
   }
 
-  /*
-   * PurgeLog used
-   */
+/*
+ * SlotsMgrt used
+ */
+int SlotsMigrateOne(const std::string &key);
+bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot, int64_t keys_num);
+bool GetSlotsMigrateResul(int64_t *moved, int64_t *remained);
+void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
+bool SlotsMigrateAsyncCancel();
+
+/*
+ * PurgeLog used
+ */
   struct PurgeArg {
     PikaServer *p;
     uint32_t to;
@@ -386,6 +396,12 @@ class PikaServer {
    */
   BGSlotsReload bgslots_reload_;
   static void DoBgslotsreload(void* arg);
+
+  /*
+   * SlotsMgrt use
+   */
+  //slash::Mutex slotsmgrt_protector_;
+  SlotsMgrtSenderThread* slotsmgrt_sender_thread_;
 
   /*
    * Purgelogs use

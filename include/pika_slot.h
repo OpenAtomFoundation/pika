@@ -4,6 +4,9 @@
 #include "pika_command.h"
 #include "pika_client_conn.h"
 #include "strings.h"
+#include "pink_thread.h"
+#include "slash_mutex.h"
+#include "redis_cli.h"
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 const size_t MaxKeySendSize = 10 * 1024;
@@ -115,6 +118,80 @@ private:
     pattern_ = "*";
     count_ = 10;
   }
-};  
+};
+
+class SlotsMgrtTagSlotAsyncCmd : public Cmd {
+public:
+    SlotsMgrtTagSlotAsyncCmd() {}
+    virtual void Do();
+private:
+    std::string dest_ip_;
+    int64_t dest_port_;
+    int64_t timeout_ms_;
+    int64_t max_bulks_;
+    int64_t max_bytes_;
+    int64_t slot_num_;
+    int64_t keys_num_;
+
+    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class SlotsMgrtExecWrapperCmd : public Cmd {
+public:
+    SlotsMgrtExecWrapperCmd() {}
+    virtual void Do();
+private:
+    std::string key_;
+    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class SlotsMgrtAsyncStatusCmd : public Cmd {
+public:
+    SlotsMgrtAsyncStatusCmd() {}
+    virtual void Do();
+private:
+    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class SlotsMgrtAsyncCancelCmd : public Cmd {
+public:
+    SlotsMgrtAsyncCancelCmd() {}
+    virtual void Do();
+private:
+    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class SlotsMgrtSenderThread : public pink::Thread {
+public:
+    SlotsMgrtSenderThread();
+    virtual ~SlotsMgrtSenderThread();
+    int SlotsMigrateOne(const std::string &key);
+    bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot, int64_t keys_num);
+    bool GetSlotsMigrateResul(int64_t *moved, int64_t *remained);
+    void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
+    bool SlotsMigrateAsyncCancel();
+private:
+    std::string dest_ip_;
+    int64_t dest_port_;
+    int64_t timeout_ms_;
+    int64_t slot_num_;
+    int64_t keys_num_;
+    int64_t moved_keys_num_; // during one batch moved
+    int64_t moved_keys_all_; // all keys moved in the slot
+    int64_t remained_keys_num_;
+    std::vector<std::pair<const char, std::string>> migrating_batch_;
+    std::vector<std::pair<const char, std::string>> migrating_ones_;
+    pink::RedisCli *cli_;
+    pthread_rwlock_t rwlock_db_;
+    pthread_rwlock_t rwlock_batch_;
+    pthread_rwlock_t rwlock_ones_;
+    slash::CondVar slotsmgrt_cond_;
+    slash::Mutex slotsmgrt_cond_mutex_;
+    std::atomic<bool> is_migrating_;
+    std::atomic<bool> should_exit_;
+
+    bool ElectMigrateKeys();
+    virtual void* ThreadMain();
+};
 
 #endif
