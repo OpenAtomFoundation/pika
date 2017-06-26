@@ -44,7 +44,7 @@ int64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo> *clients) {
   return conns.size();
 }
 
-bool PikaDispatchThread::PikaDispatchHandles::AccessHandle(std::string& ip) const {
+bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();
   }

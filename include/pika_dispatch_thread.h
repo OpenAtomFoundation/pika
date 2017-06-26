@@ -119,9 +119,9 @@ class PikaDispatchThread {
     }
   };
 
-  class PikaDispatchHandles : public pink::ServerHandle {
+  class Handles : public pink::ServerHandle {
    public:
-    explicit PikaDispatchHandles(PikaDispatchThread* pika_disptcher)
+    explicit Handles(PikaDispatchThread* pika_disptcher)
         : pika_disptcher_(pika_disptcher) {
     }
     bool AccessHandle(std::string& ip) const override;
@@ -147,7 +147,7 @@ class PikaDispatchThread {
   };
 
   ClientConnFactory conn_factory_;
-  PikaDispatchHandles handles_;
+  Handles handles_;
   std::vector<PikaWorkerSpecificData*> workers_data_;
   pink::ServerThread* thread_rep_;
 

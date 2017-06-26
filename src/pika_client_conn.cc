@@ -135,7 +135,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
         }
       }
       LOG(ERROR) << "command:" << slow_log << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
-//      LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
     }
   }
 

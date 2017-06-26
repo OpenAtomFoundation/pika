@@ -23,10 +23,6 @@ class PikaBinlogReceiverThread {
   void KillBinlogSender();
   int StartThread();
 
-  int32_t ThreadClientNum() {
-    return thread_rep_->conn_num();
-  }
-
   uint64_t GetnPlusSerial() {
     return serial_++;
   }
@@ -52,15 +48,6 @@ class PikaBinlogReceiverThread {
     thread_querynum_++;
   }
 
-  void ResetLastSecQuerynum() {
-    uint64_t cur_time_ms = slash::NowMicros();
-    slash::WriteLock l(&rwlock_);
-    last_sec_thread_querynum_ = (thread_querynum_ - last_thread_querynum_) *
-      1000000 / (cur_time_ms - last_time_us_+1);
-    last_time_us_ = cur_time_ms;
-    last_thread_querynum_ = thread_querynum_;
-  }
-
  private:
   class MasterConnFactory : public pink::ConnFactory {
    public:
@@ -79,9 +66,9 @@ class PikaBinlogReceiverThread {
     PikaBinlogReceiverThread* binlog_receiver_;
   };
 
-  class PikaBinlogReceiverHandles : public pink::ServerHandle {
+  class Handles : public pink::ServerHandle {
    public:
-    explicit PikaBinlogReceiverHandles(PikaBinlogReceiverThread* binlog_receiver)
+    explicit Handles(PikaBinlogReceiverThread* binlog_receiver)
         : binlog_receiver_(binlog_receiver) {
     }
 
@@ -96,7 +83,7 @@ class PikaBinlogReceiverThread {
   };
 
   MasterConnFactory conn_factory_;
-  PikaBinlogReceiverHandles handles_;
+  Handles handles_;
   pink::ServerThread* thread_rep_;
 
   slash::RWMutex rwlock_;
@@ -105,5 +92,14 @@ class PikaBinlogReceiverThread {
   uint64_t last_time_us_;
   uint64_t last_sec_thread_querynum_;
   uint64_t serial_;
+
+  void ResetLastSecQuerynum() {
+    uint64_t cur_time_ms = slash::NowMicros();
+    slash::WriteLock l(&rwlock_);
+    last_sec_thread_querynum_ = (thread_querynum_ - last_thread_querynum_) *
+      1000000 / (cur_time_ms - last_time_us_+1);
+    last_time_us_ = cur_time_ms;
+    last_thread_querynum_ = thread_querynum_;
+  }
 };
 #endif

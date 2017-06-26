@@ -30,9 +30,9 @@ class PikaHeartbeatThread {
     }
   };
 
-  class PikaHeartbeatHandles : public pink::ServerHandle {
+  class Handles : public pink::ServerHandle {
    public:
-    explicit PikaHeartbeatHandles(PikaHeartbeatThread* heartbeat_thread)
+    explicit Handles(PikaHeartbeatThread* heartbeat_thread)
         : heartbeat_thread_(heartbeat_thread) {
     }
     void CronHandle() const override;
@@ -45,7 +45,7 @@ class PikaHeartbeatThread {
 
  private:
   HeartbeatConnFactory conn_factory_;
-  PikaHeartbeatHandles handles_;
+  Handles handles_;
   pink::ServerThread* thread_rep_;
 };
 

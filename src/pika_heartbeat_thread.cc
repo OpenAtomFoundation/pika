@@ -29,7 +29,7 @@ int PikaHeartbeatThread::StartThread() {
   return thread_rep_->StartThread();
 }
 
-void PikaHeartbeatThread::PikaHeartbeatHandles::CronHandle() const {
+void PikaHeartbeatThread::Handles::CronHandle() const {
 	struct timeval now;
 	gettimeofday(&now, NULL);
 
@@ -63,13 +63,12 @@ void PikaHeartbeatThread::PikaHeartbeatHandles::CronHandle() const {
 	}
 }
 
-void PikaHeartbeatThread::PikaHeartbeatHandles::FdTimeoutHandle(int fd,
-                                                                const std::string& ip_port) const {
+void PikaHeartbeatThread::Handles::FdTimeoutHandle(int fd, const std::string& ip_port) const {
   LOG(INFO) << "Find Timeout Slave: " << ip_port;
   g_pika_server->DeleteSlave(fd);
 }
 
-bool PikaHeartbeatThread::PikaHeartbeatHandles::AccessHandle(std::string& ip) const {
+bool PikaHeartbeatThread::Handles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();
   }
