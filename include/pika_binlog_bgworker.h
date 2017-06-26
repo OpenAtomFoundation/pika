@@ -14,6 +14,7 @@ class BinlogBGWorker {
       : binlogbg_thread_(full) {
     cmds_.reserve(300);
     InitCmdTable(&cmds_);
+    binlogbg_thread_.set_thread_name("BinlogBGWorker");
   }
   ~BinlogBGWorker() {
     DestoryCmdTable(cmds_);

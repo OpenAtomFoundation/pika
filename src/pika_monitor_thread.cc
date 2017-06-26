@@ -18,6 +18,7 @@ extern PikaConf* g_pika_conf;
 PikaMonitorThread::PikaMonitorThread()
   : pink::Thread(),
     monitor_cond_(&monitor_mutex_protector_) {
+  set_thread_name("MonitorThread");
 }
 
 PikaMonitorThread::~PikaMonitorThread() {

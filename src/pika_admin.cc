@@ -1137,10 +1137,8 @@ void MonitorCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void MonitorCmd::Do() {
-  PikaWorkerThread* self_thread = self_client_->self_thread();
-  slash::RWLock l(&self_thread->rwlock_, true);
-  self_thread->conns_.erase(self_client_->fd());
-  self_thread->pink_epoll()->PinkDelEvent(self_client_->fd());
+  // TODO (gaodq)
+  self_client_->DelEvent(self_client_->fd());
   g_pika_server->AddMonitorClient(self_client_);
   g_pika_server->AddMonitorMessage("OK");
 }

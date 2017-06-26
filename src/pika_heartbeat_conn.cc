@@ -14,9 +14,6 @@ PikaHeartbeatConn::PikaHeartbeatConn(int fd, std::string ip_port)
       : RedisConn(fd, ip_port, NULL) {
 }
 
-PikaHeartbeatConn::~PikaHeartbeatConn() {
-}
-
 int PikaHeartbeatConn::DealMessage() {
   set_is_reply(true);
   if (argv_[0] == "ping") {

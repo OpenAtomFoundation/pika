@@ -10,18 +10,19 @@
 #include "pika_server.h"
 #include "pika_conf.h"
 #include "pika_client_conn.h"
+#include "pika_dispatch_thread.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 
-PikaClientConn::PikaClientConn(int fd, std::string ip_port, pink::Thread* thread)
-      : RedisConn(fd, ip_port, thread) {
-  self_thread_ = dynamic_cast<PikaWorkerThread*>(thread);
+PikaClientConn::PikaClientConn(int fd, std::string ip_port,
+                               pink::ServerThread* server_thread,
+                               void* worker_specific_data)
+      : RedisConn(fd, ip_port, server_thread),
+        server_thread_(server_thread),
+        self_data_(reinterpret_cast<PikaWorkerSpecificData*>(worker_specific_data)) {
   auth_stat_.Init();
-}
-
-PikaClientConn::~PikaClientConn() {
 }
 
 std::string PikaClientConn::RestoreArgs() {
@@ -39,7 +40,7 @@ std::string PikaClientConn::RestoreArgs() {
 std::string PikaClientConn::DoCmd(const std::string& opt) {
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
-  Cmd* c_ptr = self_thread_->GetCmd(opt);
+  Cmd* c_ptr = self_data_->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
       return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
   }
@@ -147,7 +148,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 }
 
 int PikaClientConn::DealMessage() {
-  self_thread_->PlusThreadQuerynum();
+  self_data_->PlusThreadQuerynum();
   
   if (argv_.empty()) return -2;
   std::string opt = argv_[0];

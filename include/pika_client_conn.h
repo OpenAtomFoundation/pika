@@ -13,20 +13,22 @@
 #include "pink/include/pink_thread.h"
 #include "pika_command.h"
 
-
-class PikaWorkerThread;
+class PikaWorkerSpecificData;
 
 class PikaClientConn: public pink::RedisConn {
  public:
-  PikaClientConn(int fd, std::string ip_port, pink::Thread *thread);
-  virtual ~PikaClientConn();
+  PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
+                 void* worker_specific_data);
+  virtual ~PikaClientConn() {}
   virtual int DealMessage();
-  PikaWorkerThread* self_thread() {
-    return self_thread_;
+  void DelEvent(int fd) {
+    return server_thread_->DelEvent(fd);
   }
 
  private:
-  PikaWorkerThread* self_thread_;
+  pink::ServerThread* server_thread_;
+  PikaWorkerSpecificData* self_data_;
+
   std::string DoCmd(const std::string& opt);
   std::string RestoreArgs();
 

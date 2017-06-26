@@ -20,6 +20,7 @@ class PikaSlavepingThread : public pink::Thread {
         is_first_send_(true) {
     cli_ = pink::NewRedisCli();
     cli_->set_connect_timeout(1500);
+    set_thread_name("SlavepingThread");
 	};
   virtual ~PikaSlavepingThread() {
     StopThread();

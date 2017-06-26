@@ -20,9 +20,6 @@ class BinlogReceiverThread {
 	int StartThread();
 
   void KillBinlogSender();
-  int32_t ThreadClientNum() {
-    return thread_rep_->conn_num();
-  }
 
  private:
   class MasterConnFactory : public pink::ConnFactory {
@@ -32,7 +29,8 @@ class BinlogReceiverThread {
     }
     virtual pink::PinkConn *NewPinkConn(int connfd,
                                         const std::string &ip_port,
-                                        pink::Thread *thread) const {
+                                        pink::ServerThread *thread,
+                                        void* worker_specific_data) const override {
       return new MasterConn(connfd, ip_port, binlog_receiver_);
     }
 
@@ -45,27 +43,15 @@ class BinlogReceiverThread {
     explicit PikaBinlogReceiverHandles(BinlogReceiverThread* binlog_receiver)
         : binlog_receiver_(binlog_receiver) {
     }
-    void CronHandle() const {
-      binlog_receiver_->CronHandle();
-    }
-    bool AccessHandle(std::string& ip) const {
-      return binlog_receiver_->AccessHandle(ip);
-    }
+
+    bool AccessHandle(std::string& ip) const override;
 
    private:
     BinlogReceiverThread* binlog_receiver_;
   };
 
-  MasterConnFactory* conn_factory_;
-  PikaBinlogReceiverHandles* handles_;
+  MasterConnFactory conn_factory_;
+  PikaBinlogReceiverHandles handles_;
   pink::ServerThread* thread_rep_;
-
-  slash::Mutex mutex_; // protect cron_task_
-  std::queue<WorkerCronTask> cron_tasks_;
-
-  void AddCronTask(WorkerCronTask task);
-  void KillAll();
-  virtual void CronHandle();
-  virtual bool AccessHandle(std::string& ip);
 };
 #endif

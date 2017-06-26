@@ -21,7 +21,6 @@
 #include "pika_slaveping_thread.h"
 #include "pika_dispatch_thread.h"
 #include "pika_trysync_thread.h"
-#include "pika_worker_thread.h"
 #include "pika_monitor_thread.h"
 #include "pika_define.h"
 #include "pika_binlog_bgworker.h"
@@ -338,7 +337,6 @@ private:
   bool have_scheduled_crontask_;
 
   int worker_num_;
-  PikaWorkerThread** pika_worker_thread_;
   PikaDispatchThread* pika_dispatch_thread_;
 
   PikaBinlogReceiverThread* pika_binlog_receiver_thread_;

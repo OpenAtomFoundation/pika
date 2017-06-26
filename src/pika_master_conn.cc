@@ -14,9 +14,10 @@ extern PikaConf* g_pika_conf;
 
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 PikaMasterConn::PikaMasterConn(int fd, std::string ip_port,
-                               PikaBinlogReceiverThread* binlog_receiver)
-      : RedisConn(fd, ip_port, NULL),
-        self_thread_(binlog_receiver) {
+                               void* worker_specific_data)
+      : RedisConn(fd, ip_port, NULL) {
+  binlog_receiver_ =
+    reinterpret_cast<PikaBinlogReceiverThread*>(worker_specific_data);
   raw_args_.reserve(RAW_ARGS_LEN);
 }
 
@@ -36,7 +37,7 @@ void PikaMasterConn::RestoreArgs() {
 int PikaMasterConn::DealMessage() {
   //no reply
   //eq set_is_reply(false);
-  self_thread_->PlusThreadQuerynum();
+  binlog_receiver_->PlusThreadQuerynum();
   if (argv_.empty()) {
     return -2;
   }
@@ -57,7 +58,7 @@ int PikaMasterConn::DealMessage() {
 
   // Here, the binlog dispatch thread, instead of the binlog bgthread takes on the task to write binlog
   // Only when the server is readonly
-  uint64_t serial = self_thread_->GetnPlusSerial();
+  uint64_t serial = binlog_receiver_->GetnPlusSerial();
   if (is_readonly) {
     if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
       return -2;

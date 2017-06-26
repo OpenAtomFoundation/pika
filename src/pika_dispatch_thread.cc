@@ -13,27 +13,15 @@ extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
 PikaDispatchThread::PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
-                                       int cron_interval, int queue_limit) {
-  work_num_ = work_num;
-  conn_factory_ = new ClientConnFactory();
-  handles_ = new PikaDispatchHandles(this);
-  pika_worker_threads_ = new PikaWorkerThread*[work_num_];
-  for (int i = 0; i < work_num_; i++) {
-    pika_worker_threads_[i] = new PikaWorkerThread(conn_factory_, 1000);
-  }
-  thread_rep_ = pink::NewDispatchThread(ips, port, work_num_,
-                                        reinterpret_cast<pink::WorkerThread**>(pika_worker_threads_),
-                                        cron_interval, queue_limit, handles_);
+                                       int cron_interval, int queue_limit)
+      : handles_(this) {
+  thread_rep_ = pink::NewDispatchThread(ips, port, work_num, &conn_factory_,
+                                        cron_interval, queue_limit, &handles_);
+  thread_rep_->set_thread_name("Dispatcher");
 }
 
 PikaDispatchThread::~PikaDispatchThread() {
   thread_rep_->StopThread();
-  for (int i = 0; i < work_num_; i++) {
-    delete pika_worker_threads_[i];
-  }
-  delete[] pika_worker_threads_;
-  delete conn_factory_;
-  delete handles_;
   LOG(INFO) << "dispatch thread " << thread_rep_->thread_id() << " exit!!!";
   delete thread_rep_;
 }
@@ -42,12 +30,26 @@ int PikaDispatchThread::StartThread() {
   return thread_rep_->StartThread();
 }
 
-bool PikaDispatchThread::AccessHandle(std::string& ip) {
+int64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo> *clients) {
+  assert(clients);
+  auto conns = thread_rep_->conns();
+  for (auto& conn : conns) {
+    clients->push_back(ClientInfo {
+                         conn.first,
+                         conn.second->ip_port(),
+                         conn.second->last_interaction().tv_sec,
+                         reinterpret_cast<PikaClientConn*>(conn.second),
+                       });
+  }
+  return conns.size();
+}
+
+bool PikaDispatchThread::PikaDispatchHandles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();
   }
 
-  int client_num = ClientNum();
+  int client_num = pika_disptcher_->thread_rep_->conn_num();
   if ((client_num >= g_pika_conf->maxclients() + g_pika_conf->root_connection_num())
       || (client_num >= g_pika_conf->maxclients() && ip != g_pika_server->host())) {
     LOG(WARNING) << "Max connections reach, Deny new comming: " << ip;
@@ -57,12 +59,4 @@ bool PikaDispatchThread::AccessHandle(std::string& ip) {
   DLOG(INFO) << "new clinet comming, ip: " << ip;
   g_pika_server->incr_accumulative_connections();
   return true;
-}
-
-int PikaDispatchThread::ClientNum() {
-  int num = 0;
-  for (int i = 0; i < work_num_; i++) {
-    num += pika_worker_threads_[i]->ThreadClientNum();
-  }
-  return num;
 }

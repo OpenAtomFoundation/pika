@@ -14,6 +14,7 @@ public:
   PikaTrysyncThread() {
     cli_ = pink::NewRedisCli();
     cli_->set_connect_timeout(1500);
+    set_thread_name("TrysyncThread");
 	};
   virtual ~PikaTrysyncThread();
 

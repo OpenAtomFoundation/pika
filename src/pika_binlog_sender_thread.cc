@@ -33,6 +33,7 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port,
   cli_ = pink::NewRedisCli();
   last_record_offset_ = con_offset % kBlockSize;
   pthread_rwlock_init(&rwlock_, NULL);
+  set_thread_name("BinlogSender");
 }
 
 PikaBinlogSenderThread::~PikaBinlogSenderThread() {

@@ -85,7 +85,6 @@ PikaServer::PikaServer() :
   int worker_queue_limit = g_pika_conf->maxclients() / worker_num_ + 100;
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
   pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, 3000, worker_queue_limit);
-  pika_worker_thread_ = pika_dispatch_thread_->pika_worker_threads();
   pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(ips, port_ + 1000, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
@@ -1299,19 +1298,13 @@ void PikaServer::InitKeyScan() {
 }
 
 void PikaServer::ClientKillAll() {
-  for (int idx = 0; idx != worker_num_; idx++) {
-    pika_worker_thread_[idx]->ThreadClientKill();
-  }
+  pika_dispatch_thread_->ClientKillAll();
   monitor_thread_->ThreadClientKill();
 }
 
 int PikaServer::ClientKill(const std::string &ip_port) {
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    if (pika_worker_thread_[idx]->ThreadClientKill(ip_port)) {
-      return 1;
-    }
-  }
-  if (monitor_thread_->ThreadClientKill(ip_port)) {
+  if (pika_dispatch_thread_->ClientKill(ip_port) ||
+      monitor_thread_->ThreadClientKill(ip_port)) {
     return 1;
   }
   return 0;
@@ -1319,9 +1312,7 @@ int PikaServer::ClientKill(const std::string &ip_port) {
 
 int64_t PikaServer::ClientList(std::vector<ClientInfo> *clients) {
   int64_t clients_num = 0;
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    clients_num += pika_worker_thread_[idx]->ThreadClientList(clients);
-  }
+  clients_num += pika_dispatch_thread_->ThreadClientList(clients);
   clients_num += monitor_thread_->ThreadClientList(clients);
   return clients_num;
 }
@@ -1340,26 +1331,20 @@ void PikaServer::RWUnlock() {
 
 uint64_t PikaServer::ServerQueryNum() {
   uint64_t server_query_num = 0;
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    server_query_num += pika_worker_thread_[idx]->thread_querynum();
-  }
+  server_query_num += pika_dispatch_thread_->thread_querynum();
   server_query_num += pika_binlog_receiver_thread_->thread_querynum();
   return server_query_num;
 }
 
 void PikaServer::ResetStat() {
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    pika_worker_thread_[idx]->ResetThreadQuerynum();
-  }
+  pika_dispatch_thread_->ResetThreadQuerynum();
   pika_binlog_receiver_thread_->ResetThreadQuerynum();
   accumulative_connections_ = 0;
 }
 
 uint64_t PikaServer::ServerCurrentQps() {
   uint64_t server_current_qps = 0;
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    server_current_qps += pika_worker_thread_[idx]->last_sec_thread_querynum();
-  }
+  server_current_qps += pika_dispatch_thread_->last_sec_thread_querynum();
   server_current_qps += pika_binlog_receiver_thread_->last_sec_thread_querynum();
   return server_current_qps;
 }

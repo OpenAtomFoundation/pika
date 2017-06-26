@@ -10,12 +10,10 @@
 
 extern BinlogSync *g_binlog_sync;
 
-MasterConn::MasterConn(int fd, std::string ip_port, BinlogReceiverThread* binlog_receiver)
+MasterConn::MasterConn(int fd, std::string ip_port,
+                       BinlogReceiverThread* binlog_receiver)
       : RedisConn(fd, ip_port, NULL),
         self_thread_(binlog_receiver) {
-}
-
-MasterConn::~MasterConn() {
 }
 
 void MasterConn::RestoreArgs() {
