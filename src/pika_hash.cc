@@ -445,14 +445,14 @@ void HScanCmd::Do() {
     use_pattern = true;
   }
   for (; iter->Valid() && count_; iter->Next()) {
+    count_--;
+    cursor_++;
     if (use_pattern && !slash::stringmatchlen(pattern_.data(), pattern_.size(), iter->field().data(), iter->field().size(), 0)) {
       continue;
     } 
-    count_--;
-    cursor_++;
     fv_v.push_back({iter->field(), iter->value()});
   }
-  if (fv_v.size() <= 0 || !(iter->Valid())) {
+  if (!(iter->Valid())) {
     cursor_ = 0;
   }
   delete iter;
