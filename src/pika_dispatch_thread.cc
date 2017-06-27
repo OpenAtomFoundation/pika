@@ -31,17 +31,18 @@ int PikaDispatchThread::StartThread() {
 }
 
 int64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo> *clients) {
-  assert(clients);
-  auto conns = thread_rep_->conns();
-  for (auto& conn : conns) {
-    clients->push_back(ClientInfo {
+  if (clients != nullptr) {
+    auto conns = thread_rep_->conns();
+    for (auto& conn : conns) {
+      clients->push_back(ClientInfo {
                          conn.first,
                          conn.second->ip_port(),
                          conn.second->last_interaction().tv_sec,
                          reinterpret_cast<PikaClientConn*>(conn.second),
-                       });
+                         });
+    }
   }
-  return conns.size();
+  return thread_rep_->conn_num();
 }
 
 bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {

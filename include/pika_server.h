@@ -289,7 +289,7 @@ public:
  */
   void ClientKillAll();
   int ClientKill(const std::string &ip_port);
-  int64_t ClientList(std::vector<ClientInfo> *clients = NULL);
+  int64_t ClientList(std::vector<ClientInfo> *clients = nullptr);
 
   // rwlock_
   void RWLockWriter();
