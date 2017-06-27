@@ -32,17 +32,14 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port,
       timeout_ms_(35000) {
   cli_ = pink::NewRedisCli();
   last_record_offset_ = con_offset % kBlockSize;
-  pthread_rwlock_init(&rwlock_, NULL);
   set_thread_name("BinlogSender");
 }
 
 PikaBinlogSenderThread::~PikaBinlogSenderThread() {
   StopThread();
-  delete queue_;
-  pthread_rwlock_destroy(&rwlock_);
-  delete[] backing_store_;
   delete cli_;
-
+  delete[] backing_store_;
+  delete queue_;
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
 }
 

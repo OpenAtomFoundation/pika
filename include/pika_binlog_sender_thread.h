@@ -25,20 +25,8 @@ class PikaBinlogSenderThread : public pink::Thread {
 
   virtual ~PikaBinlogSenderThread();
 
-  /*
-   * Get and Set
-   */
-  uint64_t last_record_offset () {
-    slash::RWLock l(&rwlock_, false);
-    return last_record_offset_;
-  }
   uint32_t filenum() {
-    slash::RWLock l(&rwlock_, false);
     return filenum_;
-  }
-  uint64_t con_offset() {
-    slash::RWLock l(&rwlock_, false);
-    return con_offset_;
   }
 
   int trim();
@@ -61,7 +49,6 @@ class PikaBinlogSenderThread : public pink::Thread {
   slash::SequentialFile* queue_;
   char* const backing_store_;
   Slice buffer_;
-
 
   std::string ip_;
   int port_;
