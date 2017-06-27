@@ -12,7 +12,7 @@
 #define RM_RECONN   4
 
 #define READ_BUF_MAX 100
-#define MSG_BLOCK_MAX 128 * 1024
+#define MSG_BLOCK_MAX 512 * 1024
 
 typedef struct ConnInfo{
     ConnInfo(){}
@@ -42,7 +42,7 @@ private:
     CondVar buf_rcond_;
     std::deque<std::string> read_buffer_;
     std::string to_send_;
-    std::string last_sent_;
+    std::string current_bulk_;
     bool message_get_();
     bool check_succ_(const std::string&, long&, long&);
     int mask_wait_(int fd, int mask, long long milliseconds);
