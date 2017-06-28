@@ -163,14 +163,14 @@ void SScanCmd::Do() {
     cursor_ = 0;
   }
   for (; iter->Valid() && count_; iter->Next()) {
+    count_--;
+    cursor_++;
     if (pattern_ != "*" && !slash::stringmatchlen(pattern_.data(), pattern_.size(), iter->member().data(), iter->member().size(), 0)) {
       continue;
     }
     members.push_back(iter->member());
-    count_--;
-    cursor_++;
   }
-  if (members.size() <= 0 || !iter->Valid()) {
+  if (!iter->Valid()) {
     cursor_ = 0;
   }
   res_.AppendContent("*2");
