@@ -14,6 +14,7 @@
 #include <sstream>
 #include <iostream>
 #include <iterator>
+#include <ctime>
 #include "env.h"
 #include "rsync.h"
 #include "pika_server.h"

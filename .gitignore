@@ -28,8 +28,8 @@
 *.app
 
 # Log path
+make_config.mk
 log/
-pikatests/
 lib/
 tools/
 output/
