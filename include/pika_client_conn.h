@@ -21,9 +21,6 @@ class PikaClientConn: public pink::RedisConn {
                  void* worker_specific_data);
   virtual ~PikaClientConn() {}
   virtual int DealMessage();
-  void DelEvent(int fd) {
-    return server_thread_->DelEvent(fd);
-  }
 
  private:
   pink::ServerThread* server_thread_;

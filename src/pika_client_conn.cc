@@ -75,14 +75,18 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
-  if (opt == kCmdNameMonitor) {
-    PikaClientConn* self = this;
-    argv_.push_back(std::string(reinterpret_cast<char*>(&self), sizeof(PikaClientConn*)));
-  }
   // Initial
   c_ptr->Initial(argv_, cinfo_ptr);
   if (!c_ptr->res().ok()) {
     return c_ptr->res().message();
+  }
+
+  if (opt == kCmdNameMonitor) {
+    pink::PinkConn* conn = server_thread_->MoveConnOut(fd());
+    assert(conn == this);
+    g_pika_server->AddMonitorClient(static_cast<PikaClientConn*>(conn));
+    g_pika_server->AddMonitorMessage("OK");
+    return ""; // Monitor thread will return "OK"
   }
 
   std::string raw_args;

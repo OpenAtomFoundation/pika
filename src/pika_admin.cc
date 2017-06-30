@@ -1129,18 +1129,13 @@ void ConfigCmd::ConfigResetstat(std::string &ret) {
 
 void MonitorCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   (void)ptr_info;
-  if (argv.size() != 2) { //append a arg in DoCmd for monitor cmd
+  if (argv.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameMonitor);
     return;
   }
-  memcpy(&self_client_, argv[1].data(), sizeof(PikaClientConn*));
 }
 
 void MonitorCmd::Do() {
-  // TODO (gaodq)
-  self_client_->DelEvent(self_client_->fd());
-  g_pika_server->AddMonitorClient(self_client_);
-  g_pika_server->AddMonitorMessage("OK");
 }
 
 void DbsizeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {

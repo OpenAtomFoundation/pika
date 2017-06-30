@@ -216,7 +216,6 @@ public:
   }
   virtual void Do();
 private:
-  PikaClientConn* self_client_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 

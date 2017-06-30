@@ -34,33 +34,32 @@ void PikaHeartbeatThread::Handles::CronHandle() const {
 	gettimeofday(&now, NULL);
 
   /*
-   * find out: 1. stay STAGE_ONE too long
-   *					 2. the hb_fd have already be deleted
+   * find out stay STAGE_ONE too long
    * erase it in slaves_;
    */
-	{
-		slash::MutexLock l(&g_pika_server->slave_mutex_);
-    for (auto& slave : g_pika_server->slaves_) {
-      DLOG(INFO) << "sid: " << slave.sid << " ip_port: " << slave.ip_port <<
-        " port " << slave.port << " sender_tid: " << slave.sender_tid <<
-        " hb_fd: " << slave.hb_fd << " stage :" << slave.stage <<
-        " sender: " << slave.sender << " create_time: " << slave.create_time.tv_sec;
+  slash::MutexLock l(&g_pika_server->slave_mutex_);
+  for (auto& slave : g_pika_server->slaves_) {
+    DLOG(INFO) << "sid: " << slave.sid << " ip_port: " << slave.ip_port <<
+      " port " << slave.port << " sender_tid: " << slave.sender_tid <<
+      " hb_fd: " << slave.hb_fd << " stage :" << slave.stage <<
+      " sender: " << slave.sender << " create_time: " << slave.create_time.tv_sec;
 
-			if ((slave.stage == SLAVE_ITEM_STAGE_ONE &&
-           now.tv_sec - slave.create_time.tv_sec > 30) ||
-          (slave.stage == SLAVE_ITEM_STAGE_TWO &&
-           !heartbeat_thread_->thread_rep_->fd_exist(slave.hb_fd))) {
-
-        // Kill BinlogSender
-        LOG(WARNING) << "Erase slave " << slave.ip_port <<
-          " from slaves map of heartbeat thread";
-        //TODO maybe bug here
-        g_pika_server->slave_mutex_.Unlock();
-        g_pika_server->DeleteSlave(slave.hb_fd);
-        g_pika_server->slave_mutex_.Lock();
-      }
+    if (slave.stage == SLAVE_ITEM_STAGE_ONE &&
+        now.tv_sec - slave.create_time.tv_sec > 30) {
+      // Kill BinlogSender
+      LOG(WARNING) << "Erase slave stay STAGE_ONE too long: " <<
+        slave.ip_port << " from slaves map of heartbeat thread";
+      //TODO maybe bug here
+      g_pika_server->slave_mutex_.Unlock();
+      g_pika_server->DeleteSlave(slave.hb_fd);
+      g_pika_server->slave_mutex_.Lock();
     }
-	}
+  }
+}
+
+void PikaHeartbeatThread::Handles::FdClosedHandle(int fd, const std::string& ip_port) const {
+  LOG(INFO) << "Find closed Slave: " << ip_port;
+  g_pika_server->DeleteSlave(fd);
 }
 
 void PikaHeartbeatThread::Handles::FdTimeoutHandle(int fd, const std::string& ip_port) const {

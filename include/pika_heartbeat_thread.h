@@ -36,6 +36,7 @@ class PikaHeartbeatThread {
         : heartbeat_thread_(heartbeat_thread) {
     }
     void CronHandle() const override;
+    void FdClosedHandle(int fd, const std::string& ip_port) const override;
     void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
     bool AccessHandle(std::string& ip) const override;
 
