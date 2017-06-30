@@ -2,6 +2,7 @@
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
+#include <sys/time.h>
 
 #include "slash_string.h"
 #include "rsync.h"
@@ -81,7 +82,7 @@ void SlaveofCmd::Do() {
     // Stop rsync
     LOG(INFO) << "start slaveof, stop rsync first";
     slash::StopRsync(g_pika_conf->db_sync_path());
-    
+
     g_pika_server->RemoveMaster();
     res_.SetRes(CmdRes::kOk);
     return;
@@ -197,7 +198,7 @@ void BgsaveCmd::Do() {
   g_pika_server->Bgsave();
   const PikaServer::BGSaveInfo& info = g_pika_server->bgsave_info();
   char buf[256];
-  snprintf(buf, sizeof(buf), "+%s : %u: %lu", 
+  snprintf(buf, sizeof(buf), "+%s : %u: %lu",
       info.s_start_time.c_str(), info.filenum, info.offset);
   res_.AppendContent(buf);
 }
@@ -240,7 +241,7 @@ void PurgelogstoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
     return;
   }
   std::string filename = slash::StringToLower(argv[1]);
-  if (filename.size() <= kBinlogPrefixLen || 
+  if (filename.size() <= kBinlogPrefixLen ||
       kBinlogPrefix != filename.substr(0, kBinlogPrefixLen)) {
     res_.SetRes(CmdRes::kInvalidParameter);
     return;
@@ -278,7 +279,7 @@ void SelectCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   }
 
   int64_t db_id;
-  if (!slash::string2l(argv[1].data(), argv[1].size(), &db_id) || 
+  if (!slash::string2l(argv[1].data(), argv[1].size(), &db_id) ||
       db_id < 0 || db_id > 15) {
     res_.SetRes(CmdRes::kInvalidIndex);
   }
@@ -488,7 +489,7 @@ void InfoCmd::Do() {
       InfoData(info);
       break;
     default:
-      //kInfoErr is nothing 
+      //kInfoErr is nothing
       break;
   }
 
@@ -519,7 +520,7 @@ void InfoCmd::InfoServer(std::string &info) {
   tmp_stream << "uptime_in_seconds:" << (current_time_s - g_pika_server->start_time_s()) << "\r\n";
   tmp_stream << "uptime_in_days:" << (current_time_s / (24*3600) - g_pika_server->start_time_s() / (24*3600) + 1) << "\r\n";
   tmp_stream << "config_file:" << g_pika_conf->conf_path() << "\r\n";
-  
+
   info.append(tmp_stream.str());
 }
 
@@ -553,7 +554,7 @@ void InfoCmd::InfoStats(std::string &info) {
   if (is_scaning) {
     tmp_stream << current_time_s - key_scan_info.start_time;
   }
-  tmp_stream << "\r\n"; 
+  tmp_stream << "\r\n";
   tmp_stream << "is_compact:" << g_pika_server->db()->GetCurrentTaskType() << "\r\n";
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
 
@@ -571,7 +572,7 @@ void InfoCmd::InfoReplication(std::string &info) {
     case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE : tmp_stream << "MASTER/SLAVE)\r\nrole:slave\r\n"; break;
     default: info.append("ERR: server role is error\r\n"); return;
   }
-  
+
   std::string slaves_list_str;
   //int32_t slaves_num = g_pika_server->GetSlaveListString(slaves_list_str);
   switch (host_role) {
@@ -592,7 +593,7 @@ void InfoCmd::InfoReplication(std::string &info) {
     case PIKA_ROLE_MASTER :
       tmp_stream << "connected_slaves:" << g_pika_server->GetSlaveListString(slaves_list_str) << "\r\n" << slaves_list_str;
   }
-  
+
   info.append(tmp_stream.str());
 }
 
@@ -633,13 +634,13 @@ void InfoCmd::InfoLog(std::string &info) {
   tmp_stream << "log_size:" << log_size << "\r\n";
   tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
   tmp_stream << "safety_purge:" << (g_pika_server->GetPurgeWindow(purge_max) ?
-      kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none") << "\r\n"; 
+      kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none") << "\r\n";
   tmp_stream << "expire_logs_days:" << g_pika_conf->expire_logs_days() << "\r\n";
   tmp_stream << "expire_logs_nums:" << g_pika_conf->expire_logs_nums() << "\r\n";
   uint32_t filenum;
   uint64_t offset;
   g_pika_server->logger_->GetProducerStatus(&filenum, &offset);
-  tmp_stream << "binlog_offset:" << filenum << " " << offset << "\r\n"; 
+  tmp_stream << "binlog_offset:" << filenum << " " << offset << "\r\n";
 
   info.append(tmp_stream.str());
   return;
@@ -647,9 +648,9 @@ void InfoCmd::InfoLog(std::string &info) {
 
 void InfoCmd::InfoData(std::string &info) {
   std::stringstream tmp_stream;
-  
+
   int64_t db_size = slash::Du(g_pika_conf->db_path());
-  tmp_stream << "# Data" << "\r\n"; 
+  tmp_stream << "# Data" << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";
   tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
@@ -702,7 +703,7 @@ void ConfigCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
     res_.SetRes(CmdRes::kErrOther, "CONFIG subcommand must be one of GET, SET, RESETSTAT, REWRITE");
     return;
   }
-  config_args_v_.assign(argv.begin()+1, argv.end()); 
+  config_args_v_.assign(argv.begin()+1, argv.end());
   return;
 }
 
@@ -1178,6 +1179,26 @@ void DbsizeCmd::Do() {
   int32_t dbsize = key_nums_v[0] + key_nums_v[1] + key_nums_v[2] + key_nums_v[3] + key_nums_v[4];
   res_.AppendInteger(dbsize);
 }
+
+void TimeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  (void)ptr_info;
+  if (argv.size() != 1) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameTime);
+    return;
+  }
+}
+
+void TimeCmd::Do() {
+  struct timeval tv;
+  if (gettimeofday(&tv, NULL) == 0) {
+    res_.AppendArrayLen(2);
+    res_.AppendString(std::to_string(tv.tv_sec));
+    res_.AppendString(std::to_string(tv.tv_usec));
+  } else {
+    res_.SetRes(CmdRes::kErrOther, strerror(errno));
+  }
+}
+
 #ifdef TCMALLOC_EXTENSION
 void TcmallocCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   (void)ptr_info;
@@ -1204,7 +1225,7 @@ void TcmallocCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
     res_.SetRes(CmdRes::kInvalidParameter, kCmdNameTcmalloc);
     return;
   }
-  
+
 }
 
 void TcmallocCmd::Do() {

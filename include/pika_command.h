@@ -33,6 +33,7 @@ const std::string kCmdNameInfo = "info";
 const std::string kCmdNameConfig = "config";
 const std::string kCmdNameMonitor = "monitor";
 const std::string kCmdNameDbsize = "dbsize";
+const std::string kCmdNameTime = "time";
 #ifdef TCMALLOC_EXTENSION
 const std::string kCmdNameTcmalloc = "tcmalloc";
 #endif
@@ -412,7 +413,7 @@ const CmdInfo* GetCmdInfo(const std::string& opt);
 void DestoryCmdInfoTable();
 // Method for Cmd Table
 void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table);
-Cmd* GetCmdFromTable(const std::string& opt, 
+Cmd* GetCmdFromTable(const std::string& opt,
     const std::unordered_map<std::string, Cmd*> &cmd_table);
 void DestoryCmdTable(std::unordered_map<std::string, Cmd*> &cmd_table);
 
