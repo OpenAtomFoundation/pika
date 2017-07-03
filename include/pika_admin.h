@@ -177,7 +177,7 @@ private:
     rescan_ = false;
     off_ = false;
   }
-   
+
   void InfoServer(std::string &info);
   void InfoClients(std::string &info);
   void InfoStats(std::string &info);
@@ -228,6 +228,16 @@ public:
 private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
+
+class TimeCmd : public Cmd {
+public:
+  TimeCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
+
 #ifdef TCMALLOC_EXTENSION
 class TcmallocCmd : public Cmd {
 public:

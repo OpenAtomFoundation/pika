@@ -55,6 +55,8 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMonitor, monitorptr));
   CmdInfo* dbsizeptr = new CmdInfo(kCmdNameDbsize, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameDbsize, dbsizeptr));
+  CmdInfo* timeptr = new CmdInfo(kCmdNameTime, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTime, timeptr));
 #ifdef TCMALLOC_EXTENSION
   CmdInfo* tcmallocptr = new CmdInfo(kCmdNameTcmalloc, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTcmalloc, tcmallocptr));
@@ -465,6 +467,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMonitor, monitorptr));
   Cmd* dbsizeptr = new DbsizeCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDbsize, dbsizeptr));
+  Cmd* timeptr = new TimeCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTime, timeptr));
 #ifdef TCMALLOC_EXTENSION
   Cmd* tcmallocptr = new TcmallocCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTcmalloc, tcmallocptr));
@@ -832,4 +836,3 @@ void DestoryCmdTable(std::unordered_map<std::string, Cmd*> &cmd_table) {
     delete it->second;
   }
 }
-
