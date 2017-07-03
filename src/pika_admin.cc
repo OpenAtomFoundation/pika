@@ -1192,8 +1192,14 @@ void TimeCmd::Do() {
   struct timeval tv;
   if (gettimeofday(&tv, NULL) == 0) {
     res_.AppendArrayLen(2);
-    res_.AppendString(std::to_string(tv.tv_sec));
-    res_.AppendString(std::to_string(tv.tv_usec));
+    char buf[32];
+    int32_t len = slash::ll2string(buf, sizeof(buf), tv.tv_sec);
+    res_.AppendStringLen(len);
+    res_.AppendContent(buf);
+
+    len = slash::ll2string(buf, sizeof(buf), tv.tv_usec);
+    res_.AppendStringLen(len);
+    res_.AppendContent(buf);
   } else {
     res_.SetRes(CmdRes::kErrOther, strerror(errno));
   }
