@@ -7,6 +7,8 @@
 #include <vector>
 #include <algorithm>
 #include <glog/logging.h>
+
+#include "slash/include/slash_coding.h"
 #include "pika_server.h"
 #include "pika_conf.h"
 #include "pika_client_conn.h"
@@ -89,12 +91,12 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return ""; // Monitor thread will return "OK"
   }
 
-  std::string raw_args;
+  // std::string raw_args;
   if (cinfo_ptr->is_write()) {
     if (g_pika_conf->readonly()) {
       return "-ERR Server in read-only\r\n";
     }
-    raw_args = RestoreArgs();
+    // raw_args = RestoreArgs();
     if (argv_.size() >= 2) {
       g_pika_server->mutex_record_.Lock(argv_[1]);
     }
@@ -105,12 +107,28 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     g_pika_server->RWLockReader();
   }
 
+  uint32_t exec_time = time(nullptr);
+  std::string send_to_hub = "0" /* or "1" */;
   c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
     if (c_ptr->res().ok()) {
       g_pika_server->logger_->Lock();
-      g_pika_server->logger_->Put(raw_args);
+
+      uint32_t filenum = 0;
+      uint64_t offset = 0;
+      std::string binlog_info;
+      g_pika_server->logger_->GetProducerStatus(&filenum, &offset);
+      slash::PutFixed32(&binlog_info, exec_time);
+      slash::PutFixed32(&binlog_info, filenum);
+      slash::PutFixed64(&binlog_info, offset);
+
+      argv_.push_back(kPikaBinlogMagic);
+      argv_.push_back(g_pika_conf->server_id());
+      argv_.push_back(binlog_info);
+      argv_.push_back(send_to_hub);
+
+      g_pika_server->logger_->Put(RestoreArgs());
       g_pika_server->logger_->Unlock();
     }
   }

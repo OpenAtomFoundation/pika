@@ -37,6 +37,7 @@ class PikaConf : public slash::BaseConf {
   std::string compact_cron() { RWLock l(&rwlock_, false); return compact_cron_; }
   int write_buffer_size() { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
+  std::string server_id() { RWLock l(&rwlock_, false); return server_id_; }
 
   std::string requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
   std::string masterauth()     { RWLock l(&rwlock_, false); return masterauth_; }
@@ -163,6 +164,7 @@ private:
   bool daemonize_;
   bool slotmigrate_;
   int timeout_;
+  std::string server_id_;
   std::string requirepass_;
   std::string masterauth_;
   std::string userpass_;
