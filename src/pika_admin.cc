@@ -127,7 +127,6 @@ void TrysyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-
 }
 
 void TrysyncCmd::Do() {

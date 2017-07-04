@@ -60,8 +60,9 @@ int PikaConf::Load()
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
     bgsave_path_ += "/";
   }
+  GetConfInt("expire-dump-days", &expire_dump_days_);
   GetConfStr("dump-prefix", &bgsave_prefix_);
-  
+
   GetConfInt("expire-logs-nums", &expire_logs_nums_);
   if (expire_logs_nums_ <= 10 ) {
       expire_logs_nums_ = 10;
@@ -72,7 +73,7 @@ int PikaConf::Load()
   }
   GetConfStr("compression", &compression_);
   GetConfBool("slave-read-only", &readonly_);
-  
+
   //
   // Immutable Sections
   //

@@ -50,7 +50,7 @@ public:
   }
 
   /*
-   * Get & Set 
+   * Get & Set
    */
   std::string host() {
     return host_;
@@ -70,7 +70,7 @@ public:
   const std::shared_ptr<nemo::Nemo> db() {
     return db_;
   }
-  
+
 
   int role() {
     slash::RWLock(&state_protector_, false);
@@ -104,7 +104,7 @@ public:
   int32_t GetSlaveListString(std::string& slave_list_str);
   Status GetSmallestValidLog(uint32_t* max);
   void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
-  void BecomeMaster(); 
+  void BecomeMaster();
 
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
@@ -282,7 +282,7 @@ public:
   void KeyScan();
   void RunKeyScan();
   void StopKeyScan();
-  
+
 
 /*
  * client related
@@ -321,7 +321,7 @@ void SignalNextBinlogBGSerial();
     return accumulative_connections_;
   }
   void incr_accumulative_connections() {
-    ++accumulative_connections_;  
+    ++accumulative_connections_;
   }
   void ResetStat();
   slash::RecordMutex mutex_record_;
@@ -345,7 +345,7 @@ private:
   PikaTrysyncThread* pika_trysync_thread_;
 
   /*
-   * Master use 
+   * Master use
    */
   int64_t sid_;
 
@@ -367,7 +367,7 @@ private:
   pink::BGThread bgsave_thread_;
   nemo::BackupEngine *bgsave_engine_;
   BGSaveInfo bgsave_info_;
-  
+
   static void DoBgsave(void* arg);
   bool InitBgsaveEnv();
   bool InitBgsaveEngine();
@@ -387,11 +387,12 @@ private:
    */
   std::atomic<bool> purging_;
   pink::BGThread purge_thread_;
-  
+
   static void DoPurgeLogs(void* arg);
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   void AutoCompactRange();
   void AutoPurge();
+  void AutoDeleteExpiredDump();
   bool CouldPurge(uint32_t index);
 
   /*
@@ -404,7 +405,7 @@ private:
   static void DoDBSync(void* arg);
 
   /*
-   * Flushall use 
+   * Flushall use
    */
   static void DoPurgeDir(void* arg);
   /*
@@ -428,7 +429,7 @@ private:
   uint64_t binlogbg_serial_;
   std::vector<BinlogBGWorker*> binlogbg_workers_;
   std::hash<std::string> str_hash;
- 
+
 
   /*
    * for statistic
