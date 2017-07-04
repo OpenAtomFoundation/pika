@@ -17,7 +17,7 @@ class BinlogBGWorker {
     binlogbg_thread_.set_thread_name("BinlogBGWorker");
   }
   ~BinlogBGWorker() {
-    DestoryCmdTable(cmds_);
+    DestoryCmdTable(&cmds_);
   }
   Cmd* GetCmd(const std::string& opt) {
     return GetCmdFromTable(opt, cmds_);
@@ -31,7 +31,7 @@ class BinlogBGWorker {
   static void DoBinlogBG(void* arg);
 
  private:
-  std::unordered_map<std::string, Cmd*> cmds_;
+  CmdTable cmds_;
   pink::BGThread binlogbg_thread_;
   
   struct BinlogBGArg {

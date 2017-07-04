@@ -36,10 +36,11 @@ class PikaBinlogReceiverThread {
         : binlog_receiver_(binlog_receiver) {
     }
 
-    virtual pink::PinkConn *NewPinkConn(int connfd,
-                                        const std::string &ip_port,
-                                        pink::ServerThread *thread,
-                                        void* worker_specific_data) const override {
+    virtual pink::PinkConn *NewPinkConn(
+        int connfd,
+        const std::string &ip_port,
+        pink::ServerThread *thread,
+        void* worker_specific_data) const override {
       return new PikaMasterConn(connfd, ip_port, binlog_receiver_);
     }
 

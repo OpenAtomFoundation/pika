@@ -22,7 +22,7 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                void* worker_specific_data)
       : RedisConn(fd, ip_port, server_thread),
         server_thread_(server_thread),
-        self_data_(reinterpret_cast<PikaWorkerSpecificData*>(worker_specific_data)) {
+        cmds_table_(reinterpret_cast<CmdTable*>(worker_specific_data)) {
   auth_stat_.Init();
 }
 
@@ -41,7 +41,7 @@ std::string PikaClientConn::RestoreArgs() {
 std::string PikaClientConn::DoCmd(const std::string& opt) {
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
-  Cmd* c_ptr = self_data_->GetCmd(opt);
+  Cmd* c_ptr = GetCmdFromTable(opt, *cmds_table_);
   if (!cinfo_ptr || !c_ptr) {
       return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
   }

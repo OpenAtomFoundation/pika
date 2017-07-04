@@ -15,25 +15,6 @@
 extern PikaConf *g_pika_conf;
 extern PikaServer* g_pika_server;
 
-class PikaWorkerSpecificData {
- public:
-  PikaWorkerSpecificData() {
-    cmds_.reserve(300);
-    InitCmdTable(&cmds_);
-  }
-
-  virtual ~PikaWorkerSpecificData() {
-    DestoryCmdTable(cmds_);
-  }
-
-  Cmd* GetCmd(const std::string& opt) {
-    return GetCmdFromTable(opt, cmds_);
-  }
-
- private:
-  std::unordered_map<std::string, Cmd*> cmds_;
-};
-
 class PikaDispatchThread {
  public:
   PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
@@ -43,21 +24,17 @@ class PikaDispatchThread {
 
   int64_t ThreadClientList(std::vector<ClientInfo> *clients);
 
-  bool ClientKill(std::string ip_port) {
-    return thread_rep_->KillConn(ip_port);
-  }
-
-  void ClientKillAll() {
-    thread_rep_->KillAllConns();
-  }
+  bool ClientKill(const std::string& ip_port);
+  void ClientKillAll();
 
  private:
   class ClientConnFactory : public pink::ConnFactory {
    public:
-    virtual pink::PinkConn *NewPinkConn(int connfd,
-                                        const std::string &ip_port,
-                                        pink::ServerThread *server_thread,
-                                        void* worker_specific_data) const {
+    virtual pink::PinkConn *NewPinkConn(
+        int connfd,
+        const std::string &ip_port,
+        pink::ServerThread *server_thread,
+        void* worker_specific_data) const {
       return new PikaClientConn(connfd, ip_port, server_thread, worker_specific_data);
     }
   };
@@ -68,21 +45,9 @@ class PikaDispatchThread {
         : pika_disptcher_(pika_disptcher) {
     }
     bool AccessHandle(std::string& ip) const override;
-
-    void CronHandle() const override {
-      pika_disptcher_->thread_rep_->set_keepalive_timeout(g_pika_conf->timeout());
-      g_pika_server->ResetLastSecQuerynum();
-    }
-
-    int CreateWorkerSpecificData(void** data) const override {
-      *data = pika_disptcher_->NewPikaWorkerSpecificData();
-      return 0;
-    }
-
-    int DeleteWorkerSpecificData(void* data) const override {
-      delete reinterpret_cast<PikaWorkerSpecificData*>(data);
-      return 0;
-    }
+    void CronHandle() const override;
+    int CreateWorkerSpecificData(void** data) const override;
+    int DeleteWorkerSpecificData(void* data) const override;
 
    private:
     PikaDispatchThread* pika_disptcher_;
@@ -90,12 +55,6 @@ class PikaDispatchThread {
 
   ClientConnFactory conn_factory_;
   Handles handles_;
-  std::vector<PikaWorkerSpecificData*> workers_data_;
   pink::ServerThread* thread_rep_;
-
-  PikaWorkerSpecificData* NewPikaWorkerSpecificData() {
-    workers_data_.push_back(new PikaWorkerSpecificData());
-    return workers_data_.back();
-  }
 };
 #endif

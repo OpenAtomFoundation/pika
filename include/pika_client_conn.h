@@ -23,8 +23,8 @@ class PikaClientConn: public pink::RedisConn {
   virtual int DealMessage();
 
  private:
-  pink::ServerThread* server_thread_;
-  PikaWorkerSpecificData* self_data_;
+  pink::ServerThread* const server_thread_;
+  CmdTable* const cmds_table_;
 
   std::string DoCmd(const std::string& opt);
   std::string RestoreArgs();

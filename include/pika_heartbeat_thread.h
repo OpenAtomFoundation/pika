@@ -22,10 +22,11 @@ class PikaHeartbeatThread {
  private:
   class HeartbeatConnFactory : public pink::ConnFactory {
    public:
-    virtual pink::PinkConn *NewPinkConn(int connfd,
-                                        const std::string &ip_port,
-                                        pink::ServerThread *thread,
-                                        void* worker_specific_data) const override {
+    virtual pink::PinkConn *NewPinkConn(
+        int connfd,
+        const std::string &ip_port,
+        pink::ServerThread *thread,
+        void* worker_specific_data) const override {
       return new PikaHeartbeatConn(connfd, ip_port);
     }
   };

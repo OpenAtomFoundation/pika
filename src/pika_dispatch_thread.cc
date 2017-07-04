@@ -45,6 +45,14 @@ int64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo> *clients) {
   return conns_info.size();
 }
 
+bool PikaDispatchThread::ClientKill(const std::string& ip_port) {
+  return thread_rep_->KillConn(ip_port);
+}
+
+void PikaDispatchThread::ClientKillAll() {
+  thread_rep_->KillAllConns();
+}
+
 bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();
@@ -60,4 +68,24 @@ bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
   DLOG(INFO) << "new clinet comming, ip: " << ip;
   g_pika_server->incr_accumulative_connections();
   return true;
+}
+
+void PikaDispatchThread::Handles::CronHandle() const {
+  pika_disptcher_->thread_rep_->set_keepalive_timeout(g_pika_conf->timeout());
+  g_pika_server->ResetLastSecQuerynum();
+}
+
+int PikaDispatchThread::Handles::CreateWorkerSpecificData(void** data) const {
+  CmdTable* cmds = new CmdTable;
+  cmds->reserve(300);
+  InitCmdTable(cmds);
+  *data = reinterpret_cast<void*>(cmds);
+  return 0;
+}
+
+int PikaDispatchThread::Handles::DeleteWorkerSpecificData(void* data) const {
+  CmdTable* cmds = reinterpret_cast<CmdTable*>(data);
+  DestoryCmdTable(cmds);
+  delete cmds;
+  return 0;
 }
