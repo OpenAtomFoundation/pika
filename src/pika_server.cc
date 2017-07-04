@@ -1226,7 +1226,7 @@ void PikaServer::AutoDeleteExpiredDump() {
     if (interval_days >= expiry_days) {
       slash::MutexLock ldb(&db_sync_protector_);
       if (db_sync_slaves_.size() == 0) {
-        LOG(INFO) << "Delete expired dump file:" << db_sync_path + dump_dir[i];
+        LOG(INFO) << "Delete expired dump file: " << db_sync_path + dump_dir[i];
         slash::DeleteDirIfExist(db_sync_path + dump_dir[i]);
       }
     }

@@ -61,6 +61,9 @@ int PikaConf::Load()
     bgsave_path_ += "/";
   }
   GetConfInt("expire-dump-days", &expire_dump_days_);
+  if (expire_dump_days_ <= 0 ) {
+      expire_dump_days_ = 1;
+  }
   GetConfStr("dump-prefix", &bgsave_prefix_);
 
   GetConfInt("expire-logs-nums", &expire_logs_nums_);
