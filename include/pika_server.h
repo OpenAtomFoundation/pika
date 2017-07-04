@@ -19,7 +19,6 @@
 #include "pika_binlog_sender_thread.h"
 #include "pika_heartbeat_thread.h"
 #include "pika_slaveping_thread.h"
-#include "pika_dispatch_thread.h"
 #include "pika_trysync_thread.h"
 #include "pika_monitor_thread.h"
 #include "pika_define.h"
@@ -33,9 +32,10 @@
 using slash::Status;
 using slash::Slice;
 
-class PikaServer
-{
-public:
+class PikaDispatchThread;
+
+class PikaServer {
+ public:
   PikaServer();
   ~PikaServer();
 
@@ -86,9 +86,9 @@ public:
   void SetForceFullSync(bool v) {
     force_full_sync_ = v;
   }
-/*
- * Master use
- */
+  /*
+   * Master use
+   */
   int64_t GenSid() {
     // slave_mutex has been locked from exterior
     int64_t sid = sid_;
@@ -109,9 +109,9 @@ public:
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
 
-/*
- * Slave use
- */
+  /*
+   * Slave use
+   */
   bool SetMaster(std::string& master_ip, int master_port);
   bool ShouldConnectMaster();
   void ConnectMasterDone();
@@ -135,21 +135,21 @@ public:
 
   PikaSlavepingThread* ping_thread_;
 
-/*
- * Server init info
- */
+  /*
+   * Server init info
+   */
   bool ServerInit();
 
-/*
- * Binlog
- */
+  /*
+   * Binlog
+   */
   Binlog *logger_;
   Status AddBinlogSender(const std::string& ip, int64_t port,
       uint32_t filenum, uint64_t con_offset);
 
-/*
- * BGSave used
- */
+  /*
+   * BGSave used
+   */
   struct BGSaveInfo {
     bool bgsaving;
     time_t start_time;
@@ -182,9 +182,9 @@ public:
   }
 
 
-/*
- * BGSlotsReload used
- */
+  /*
+   * BGSlotsReload used
+   */
   struct BGSlotsReload {
     bool reloading;
     time_t start_time;
@@ -226,9 +226,9 @@ public:
     bgslots_reload_.reloading = false;
   }
 
-/*
- * PurgeLog used
- */
+  /*
+   * PurgeLog used
+   */
   struct PurgeArg {
     PikaServer *p;
     uint32_t to;
@@ -242,9 +242,9 @@ public:
     purging_ = false;
   }
 
-/*
- * DBSync used
- */
+  /*
+   * DBSync used
+   */
   struct DBSyncArg {
     PikaServer *p;
     std::string ip;
@@ -260,9 +260,9 @@ public:
   bool FlushAll();
   void PurgeDir(std::string& path);
 
-/*
- *Keyscan used
- */
+  /*
+   *Keyscan used
+   */
   struct KeyScanInfo {
     time_t start_time;
     std::string s_start_time;
@@ -284,9 +284,9 @@ public:
   void StopKeyScan();
   
 
-/*
- * client related
- */
+  /*
+   * client related
+   */
   void ClientKillAll();
   int ClientKill(const std::string &ip_port);
   int64_t ClientList(std::vector<ClientInfo> *clients = nullptr);
@@ -296,37 +296,39 @@ public:
   void RWLockReader();
   void RWUnlock();
 
-/*
- * Monitor used
- */
+  /*
+   * Monitor used
+   */
   void AddMonitorClient(PikaClientConn* client_ptr);
   void AddMonitorMessage(const std::string &monitor_message);
   bool HasMonitorClients();
 
-/*
- * Binlog Receiver use
- */
-void DispatchBinlogBG(const std::string &key,
-    PikaCmdArgsType* argv, const std::string& raw_args,
-    uint64_t cur_serial, bool readonly);
-bool WaitTillBinlogBGSerial(uint64_t my_serial);
-void SignalNextBinlogBGSerial();
+  /*
+   * Binlog Receiver use
+   */
+  void DispatchBinlogBG(const std::string &key,
+      PikaCmdArgsType* argv, const std::string& raw_args,
+      uint64_t cur_serial, bool readonly);
+  bool WaitTillBinlogBGSerial(uint64_t my_serial);
+  void SignalNextBinlogBGSerial();
 
-/*
- *for statistic
- */
+  /*
+   *for statistic
+   */
+  void PlusThreadQuerynum();
   uint64_t ServerQueryNum();
   uint64_t ServerCurrentQps();
+  void ResetLastSecQuerynum(); /* Invoked in PikaDispatchThread's CronHandle */
   uint64_t accumulative_connections() {
-    return accumulative_connections_;
+    return statistic_data_.accumulative_connections;
   }
   void incr_accumulative_connections() {
-    ++accumulative_connections_;  
+    ++statistic_data_.accumulative_connections;  
   }
   void ResetStat();
   slash::RecordMutex mutex_record_;
 
-private:
+ private:
   std::atomic<bool> exit_;
   std::string host_;
   int port_;
@@ -432,7 +434,23 @@ private:
   /*
    * for statistic
    */
-  std::atomic<uint64_t> accumulative_connections_;
+  struct StatisticData {
+    StatisticData()
+        : accumulative_connections(0),
+          thread_querynum(0),
+          last_thread_querynum(0),
+          last_sec_thread_querynum(0),
+          last_time_us(0) {
+    }
+
+    slash::RWMutex statistic_lock;
+    std::atomic<uint64_t> accumulative_connections;
+    uint64_t thread_querynum;
+    uint64_t last_thread_querynum;
+    uint64_t last_sec_thread_querynum;
+    uint64_t last_time_us;
+  };
+  StatisticData statistic_data_;
 
   static void DoKeyScan(void *arg);
   void InitKeyScan();
@@ -440,8 +458,5 @@ private:
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);
 };
-
-
-
 
 #endif

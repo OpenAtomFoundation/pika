@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+
 #include <glog/logging.h>
 #include "pika_server.h"
 #include "pika_conf.h"
@@ -151,7 +152,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 }
 
 int PikaClientConn::DealMessage() {
-  self_data_->PlusThreadQuerynum();
+  g_pika_server->PlusThreadQuerynum();
   
   if (argv_.empty()) return -2;
   std::string opt = argv_[0];

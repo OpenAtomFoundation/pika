@@ -16,10 +16,6 @@ PikaBinlogReceiverThread::PikaBinlogReceiverThread(const std::set<std::string> &
                                                    int cron_interval)
       : conn_factory_(this),
         handles_(this),
-        thread_querynum_(0),
-        last_thread_querynum_(0),
-        last_time_us_(slash::NowMicros()),
-        last_sec_thread_querynum_(0),
         serial_(0) {
   thread_rep_ = pink::NewHolyThread(ips, port, &conn_factory_,
                                     cron_interval, &handles_);

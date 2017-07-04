@@ -37,7 +37,7 @@ void PikaMasterConn::RestoreArgs() {
 int PikaMasterConn::DealMessage() {
   //no reply
   //eq set_is_reply(false);
-  binlog_receiver_->PlusThreadQuerynum();
+  g_pika_server->PlusThreadQuerynum();
   if (argv_.empty()) {
     return -2;
   }

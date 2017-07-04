@@ -22,6 +22,7 @@
 #include "pika_server.h"
 #include "pika_conf.h"
 #include "pika_slot.h"
+#include "pika_dispatch_thread.h"
 
 extern PikaConf *g_pika_conf;
 
@@ -40,8 +41,7 @@ PikaServer::PikaServer() :
   purging_(false),
   binlogbg_exit_(false),
   binlogbg_cond_(&binlogbg_mutex_),
-  binlogbg_serial_(0),
-  accumulative_connections_(0) {
+  binlogbg_serial_(0) {
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
@@ -1329,24 +1329,36 @@ void PikaServer::RWUnlock() {
   pthread_rwlock_unlock(&rwlock_);
 }
 
+void PikaServer::PlusThreadQuerynum() {
+  slash::WriteLock l(&statistic_data_.statistic_lock);
+  statistic_data_.thread_querynum++;
+}
+
 uint64_t PikaServer::ServerQueryNum() {
-  uint64_t server_query_num = 0;
-  server_query_num += pika_dispatch_thread_->thread_querynum();
-  server_query_num += pika_binlog_receiver_thread_->thread_querynum();
-  return server_query_num;
+  slash::ReadLock l(&statistic_data_.statistic_lock);
+  return statistic_data_.thread_querynum;
 }
 
 void PikaServer::ResetStat() {
-  pika_dispatch_thread_->ResetThreadQuerynum();
-  pika_binlog_receiver_thread_->ResetThreadQuerynum();
-  accumulative_connections_ = 0;
+  statistic_data_.accumulative_connections.store(0);
+  slash::WriteLock l(&statistic_data_.statistic_lock);
+  statistic_data_.thread_querynum = 0;
+  statistic_data_.last_thread_querynum = 0;
 }
 
 uint64_t PikaServer::ServerCurrentQps() {
-  uint64_t server_current_qps = 0;
-  server_current_qps += pika_dispatch_thread_->last_sec_thread_querynum();
-  server_current_qps += pika_binlog_receiver_thread_->last_sec_thread_querynum();
-  return server_current_qps;
+  slash::ReadLock l(&statistic_data_.statistic_lock);
+  return statistic_data_.last_sec_thread_querynum;
+}
+
+void PikaServer::ResetLastSecQuerynum() {
+ slash::WriteLock l(&statistic_data_.statistic_lock);
+ uint64_t cur_time_us = slash::NowMicros();
+ statistic_data_.last_sec_thread_querynum = (
+      (statistic_data_.thread_querynum - statistic_data_.last_thread_querynum)
+      * 1000000 / (cur_time_us - statistic_data_.last_time_us + 1));
+ statistic_data_.last_thread_querynum = statistic_data_.thread_querynum;
+ statistic_data_.last_time_us = cur_time_us;
 }
 
 void PikaServer::DoTimingTask() {
@@ -1363,4 +1375,3 @@ void PikaServer::DoTimingTask() {
    slash::StopRsync(g_pika_conf->db_sync_path());
  }
 }
-

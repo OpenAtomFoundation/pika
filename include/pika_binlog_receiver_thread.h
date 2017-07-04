@@ -20,32 +20,13 @@ class PikaBinlogReceiverThread {
  public:
   PikaBinlogReceiverThread(const std::set<std::string> &ips, int port, int cron_interval = 0);
   ~PikaBinlogReceiverThread();
-  void KillBinlogSender();
+
   int StartThread();
+
+  void KillBinlogSender();
 
   uint64_t GetnPlusSerial() {
     return serial_++;
-  }
-
-  uint64_t thread_querynum() {
-    slash::ReadLock l(&rwlock_);
-    return thread_querynum_;
-  }
-
-  void ResetThreadQuerynum() {
-    slash::WriteLock l(&rwlock_);
-    thread_querynum_ = 0;
-    last_thread_querynum_ = 0;
-  }
-
-  uint64_t last_sec_thread_querynum() {
-    slash::ReadLock l(&rwlock_);
-    return last_sec_thread_querynum_;
-  }
-
-  void PlusThreadQuerynum() {
-    slash::WriteLock l(&rwlock_);
-    thread_querynum_++;
   }
 
  private:
@@ -72,10 +53,6 @@ class PikaBinlogReceiverThread {
         : binlog_receiver_(binlog_receiver) {
     }
 
-    void CronHandle() const override {
-      binlog_receiver_->ResetLastSecQuerynum();
-    }
-
     bool AccessHandle(std::string& ip) const override;
 
    private:
@@ -86,20 +63,6 @@ class PikaBinlogReceiverThread {
   Handles handles_;
   pink::ServerThread* thread_rep_;
 
-  slash::RWMutex rwlock_;
-  uint64_t thread_querynum_;
-  uint64_t last_thread_querynum_;
-  uint64_t last_time_us_;
-  uint64_t last_sec_thread_querynum_;
   uint64_t serial_;
-
-  void ResetLastSecQuerynum() {
-    uint64_t cur_time_ms = slash::NowMicros();
-    slash::WriteLock l(&rwlock_);
-    last_sec_thread_querynum_ = (thread_querynum_ - last_thread_querynum_) *
-      1000000 / (cur_time_ms - last_time_us_+1);
-    last_time_us_ = cur_time_ms;
-    last_thread_querynum_ = thread_querynum_;
-  }
 };
 #endif
