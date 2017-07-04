@@ -51,4 +51,6 @@ bool PikaBinlogReceiverThread::Handles::AccessHandle(std::string& ip) const {
 
 void PikaBinlogReceiverThread::KillBinlogSender() {
   thread_rep_->KillAllConns();
+  // FIXME (gaodq) do in crontask ?
+  g_pika_server->MinusMasterConnection();
 }

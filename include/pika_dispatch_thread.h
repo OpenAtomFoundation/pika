@@ -8,7 +8,10 @@
 
 #include "slash/include/env.h"
 #include "pink/include/server_thread.h"
+#include "pika_conf.h"
 #include "pika_client_conn.h"
+
+extern PikaConf *g_pika_conf;
 
 class PikaWorkerSpecificData {
  public:
@@ -130,6 +133,7 @@ class PikaDispatchThread {
       for (auto data : pika_disptcher_->workers_data_) {
         data->ResetLastSecQuerynum();
       }
+      pika_disptcher_->thread_rep_->set_keepalive_timeout(g_pika_conf->timeout());
     }
 
     int CreateWorkerSpecificData(void** data) const override {

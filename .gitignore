@@ -37,3 +37,5 @@ output/
 # third party
 gdb.txt
 tags
+
+make_config.mk
