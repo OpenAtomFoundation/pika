@@ -60,8 +60,12 @@ int PikaConf::Load()
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
     bgsave_path_ += "/";
   }
+  GetConfInt("expire-dump-days", &expire_dump_days_);
+  if (expire_dump_days_ < 0 ) {
+      expire_dump_days_ = 0;
+  }
   GetConfStr("dump-prefix", &bgsave_prefix_);
-  
+
   GetConfInt("expire-logs-nums", &expire_logs_nums_);
   if (expire_logs_nums_ <= 10 ) {
       expire_logs_nums_ = 10;
@@ -72,7 +76,7 @@ int PikaConf::Load()
   }
   GetConfStr("compression", &compression_);
   GetConfBool("slave-read-only", &readonly_);
-  
+
   //
   // Immutable Sections
   //
@@ -218,6 +222,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("daemonize", daemonize_ ? "yes" : "no");
   SetConfStr("slotmigrate", slotmigrate_ ? "yes" : "no");
   SetConfStr("dump-path", bgsave_path_);
+  SetConfInt("expire-dump-days", expire_dump_days_);
   SetConfStr("pidfile", pidfile_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("target-file-size-base", target_file_size_base_);
