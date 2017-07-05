@@ -6,22 +6,23 @@
 #include <fstream>
 #include <glog/logging.h>
 #include <poll.h>
+
+#include "slash/include/env.h"
+#include "slash/include/rsync.h"
+#include "slash/include/slash_status.h"
 #include "pika_slaveping_thread.h"
 #include "pika_trysync_thread.h"
 #include "pika_server.h"
 #include "pika_conf.h"
-#include "env.h"
-#include "rsync.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
 PikaTrysyncThread::~PikaTrysyncThread() {
-  should_exit_ = true;
-  pthread_join(thread_id(), NULL);
+  StopThread();
   slash::StopRsync(g_pika_conf->db_sync_path());
   delete cli_;
-  LOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
+  LOG(INFO) << " Trysync thread " << thread_id() << " exit!!!";
 }
 
 bool PikaTrysyncThread::Send() {
@@ -32,11 +33,11 @@ bool PikaTrysyncThread::Send() {
   if (masterauth != "") {
     argv.push_back("auth");
     argv.push_back(masterauth);
-    pink::RedisCli::SerializeCommand(argv, &wbuf_str);
+    pink::SerializeRedisCommand(argv, &wbuf_str);
   } else if (requirepass != ""){
     argv.push_back("auth");
     argv.push_back(requirepass);
-    pink::RedisCli::SerializeCommand(argv, &wbuf_str);
+    pink::SerializeRedisCommand(argv, &wbuf_str);
   }
 
   argv.clear();
@@ -55,13 +56,12 @@ bool PikaTrysyncThread::Send() {
     argv.push_back(std::to_string(filenum));
     argv.push_back(std::to_string(pro_offset));
   }
-  pink::RedisCli::SerializeCommand(argv, &tbuf_str);
+  pink::SerializeRedisCommand(argv, &tbuf_str);
 
   wbuf_str.append(tbuf_str);
   LOG(INFO) << wbuf_str;
 
-  pink::Status s;
-  s = cli_->Send(&wbuf_str);
+  slash::Status s = cli_->Send(&wbuf_str);
   if (!s.ok()) {
     LOG(WARNING) << "Connect master, Send, error: " <<strerror(errno);
     return false;
@@ -72,17 +72,18 @@ bool PikaTrysyncThread::Send() {
 bool PikaTrysyncThread::RecvProc() {
   bool should_auth = g_pika_conf->requirepass() == "" ? false : true;
   bool is_authed = false;
-  pink::Status s;
+  slash::Status s;
   std::string reply;
 
+  pink::RedisCmdArgsType argv;
   while (1) {
-    s = cli_->Recv(NULL);
+    s = cli_->Recv(&argv);
     if (!s.ok()) {
       LOG(WARNING) << "Connect master, Recv, error: " <<strerror(errno);
       return false;
     }
 
-    reply = cli_->argv_[0];
+    reply = argv[0];
     LOG(WARNING) << "Reply from master after trysync: " << reply;
     if (!is_authed && should_auth) {
       if (kInnerReplOk != slash::StringToLower(reply)) {
@@ -92,7 +93,7 @@ bool PikaTrysyncThread::RecvProc() {
       }
       is_authed = true;
     } else {
-      if (cli_->argv_.size() == 1 &&
+      if (argv.size() == 1 &&
           slash::string2l(reply.data(), reply.size(), &sid_)) {
         // Luckly, I got your point, the sync is comming
         LOG(INFO) << "Recv sid from master: " << sid_;
@@ -200,7 +201,7 @@ void PikaTrysyncThread::PrepareRsync() {
 
 // TODO maybe use RedisCli
 void* PikaTrysyncThread::ThreadMain() {
-  while (!should_exit_) {
+  while (!should_stop()) {
     sleep(1);
     if (g_pika_server->WaitingDBSync()) {
       //Try to update offset by db sync

@@ -12,14 +12,13 @@
 #include <deque>
 #include <queue>
 
-#include "pink_thread.h"
-#include "pink_epoll.h"
+#include "pink/include/pink_thread.h"
+#include "slash/include/slash_mutex.h"
 #include "pika_client_conn.h"
-#include "slash_mutex.h"
 #include "pika_define.h"
 
 class PikaMonitorThread : public pink::Thread {
-public:
+ public:
   PikaMonitorThread();
   virtual ~PikaMonitorThread();
 
@@ -29,7 +28,7 @@ public:
   bool ThreadClientKill(const std::string& ip_port = "all");
   bool HasMonitorClients();
 
-private:
+ private:
   void AddCronTask(MonitorCronTask task);
   bool FindClient(const std::string& ip_port);
   pink::WriteStatus SendMessage(int32_t fd, std::string& message);
@@ -40,12 +39,9 @@ private:
 
   std::list<ClientInfo> monitor_clients_;
   std::deque<std::string> monitor_messages_;
-  std::atomic<bool> is_running_;
-  std::atomic<bool> should_exit_;
   std::queue<MonitorCronTask> cron_tasks_;
 
   virtual void* ThreadMain();
   void RemoveMonitorClient(int32_t client_fd);
-  void StartThread();
 };
 #endif

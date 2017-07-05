@@ -8,19 +8,15 @@
 
 #include <glog/logging.h>
 
-#include "redis_conn.h"
-#include "pink_thread.h"
-
+#include "pink/include/redis_conn.h"
+#include "pink/include/pink_thread.h"
 
 class PikaHeartbeatThread;
 
 class PikaHeartbeatConn: public pink::RedisConn {
-public:
-  PikaHeartbeatConn(int fd, std::string ip_port, pink::Thread *thread);
-  virtual ~PikaHeartbeatConn();
+ public:
+  PikaHeartbeatConn(int fd, std::string ip_port);
   virtual int DealMessage();
-private:
-  PikaHeartbeatThread* pika_thread_;
 };
 
 #endif

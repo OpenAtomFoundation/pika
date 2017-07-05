@@ -14,19 +14,17 @@
 #include <deque>
 #include <pthread.h>
 
-#include "slice.h"
-#include "slash_mutex.h"
-#include "status.h"
+#include "slash/include/slash_mutex.h"
+#include "slash/include/slash_slice.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/env.h"
 
 #ifndef __STDC_FORMAT_MACROS
 # define __STDC_FORMAT_MACROS
 # include <inttypes.h>
 #endif 
 
-#include "env.h"
 #include "pika_define.h"
-
-
 #include "binlog.h"
 
 // binlog consumer can read a binlog file and parse the data in it

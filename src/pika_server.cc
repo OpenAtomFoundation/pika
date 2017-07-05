@@ -15,13 +15,15 @@
 #include <iostream>
 #include <iterator>
 #include <ctime>
-#include "env.h"
-#include "rsync.h"
+
+#include "slash/include/env.h"
+#include "slash/include/rsync.h"
+#include "slash/include/slash_string.h"
+#include "pink/include/bg_thread.h"
 #include "pika_server.h"
-#include "slash_string.h"
-#include "bg_thread.h"
 #include "pika_conf.h"
 #include "pika_slot.h"
+#include "pika_dispatch_thread.h"
 
 extern PikaConf *g_pika_conf;
 
@@ -40,8 +42,7 @@ PikaServer::PikaServer() :
   purging_(false),
   binlogbg_exit_(false),
   binlogbg_cond_(&binlogbg_mutex_),
-  binlogbg_serial_(0),
-  accumulative_connections_(0) {
+  binlogbg_serial_(0) {
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
@@ -71,10 +72,8 @@ PikaServer::PikaServer() :
   LOG(INFO) << "DB Success";
 
   // Create thread
-  worker_num_ = g_pika_conf->thread_num();
-  for (int i = 0; i < worker_num_; i++) {
-    pika_worker_thread_[i] = new PikaWorkerThread(1000);
-  }
+  worker_num_ = std::min(g_pika_conf->thread_num(),
+                         PIKA_MAX_WORKER_THREAD_NUM);
 
   std::set<std::string> ips;
   if (g_pika_conf->network_interface().empty()) {
@@ -86,7 +85,8 @@ PikaServer::PikaServer() :
   // We estimate the queue size
   int worker_queue_limit = g_pika_conf->maxclients() / worker_num_ + 100;
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
-  pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, pika_worker_thread_, 3000, worker_queue_limit);
+  pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, 3000,
+                                                 worker_queue_limit);
   pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(ips, port_ + 1000, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
@@ -107,10 +107,6 @@ PikaServer::~PikaServer() {
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   delete pika_dispatch_thread_;
-
-  for (int i = 0; i < worker_num_; i++) {
-    delete pika_worker_thread_[i];
-  }
 
   {
   slash::MutexLock l(&slave_mutex_);
@@ -139,7 +135,7 @@ PikaServer::~PikaServer() {
   delete monitor_thread_;
 
   StopKeyScan();
-  key_scan_thread_.Stop();
+  key_scan_thread_.StopThread();
 
   DestoryCmdInfoTable();
   delete logger_;
@@ -601,8 +597,7 @@ void PikaServer::SyncError() {
   repl_state_ = PIKA_REPL_ERROR;
   }
   if (ping_thread_ != NULL) {
-    ping_thread_->should_exit_ = true;
-    int err = pthread_join(ping_thread_->thread_id(), NULL);
+    int err = ping_thread_->StopThread();
     if (err != 0) {
       std::string msg = "can't join thread " + std::string(strerror(err));
       LOG(WARNING) << msg;
@@ -623,8 +618,7 @@ void PikaServer::RemoveMaster() {
   master_port_ = -1;
   }
   if (ping_thread_ != NULL) {
-    ping_thread_->should_exit_ = true;
-    int err = pthread_join(ping_thread_->thread_id(), NULL);
+    int err = ping_thread_->StopThread();
     if (err != 0) {
       std::string msg = "can't join thread " + std::string(strerror(err));
       LOG(WARNING) << msg;
@@ -670,7 +664,7 @@ void PikaServer::DBSync(const std::string& ip, int port) {
   }
   // Reuse the bgsave_thread_
   // Since we expect Bgsave and DBSync execute serially
-  bgsave_thread_.StartIfNeed();
+  bgsave_thread_.StartThread();
   DBSyncArg *arg = new DBSyncArg(this, ip, port);
   bgsave_thread_.Schedule(&DoDBSync, static_cast<void*>(arg));
 }
@@ -869,7 +863,7 @@ void PikaServer::Bgsave() {
   LOG(INFO) << "after prepare bgsave";
 
   // Start new thread if needed
-  bgsave_thread_.StartIfNeed();
+  bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(&DoBgsave, static_cast<void*>(this));
 }
 
@@ -932,7 +926,7 @@ void PikaServer::Bgslotsreload() {
   LOG(INFO) << "Start slot reloading";
 
   // Start new thread if needed
-  bgsave_thread_.StartIfNeed();
+  bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
 }
 
@@ -981,7 +975,7 @@ bool PikaServer::PurgeLogs(uint32_t to, bool manual, bool force) {
   arg->manual = manual;
   arg->force = force;
   // Start new thread if needed
-  purge_thread_.StartIfNeed();
+  purge_thread_.StartThread();
   purge_thread_.Schedule(&DoPurgeLogs, static_cast<void*>(arg));
   return true;
 }
@@ -1275,7 +1269,7 @@ bool PikaServer::FlushAll() {
 void PikaServer::PurgeDir(std::string& path) {
   std::string *dir_path = new std::string(path);
   // Start new thread if needed
-  purge_thread_.StartIfNeed();
+  purge_thread_.StartThread();
   purge_thread_.Schedule(&DoPurgeDir, static_cast<void*>(dir_path));
 }
 
@@ -1358,7 +1352,7 @@ void PikaServer::KeyScan() {
   key_scan_info_.key_scaning_ = true;
   key_scan_protector_.Unlock();
 
-  key_scan_thread_.StartIfNeed();
+  key_scan_thread_.StartThread();
   InitKeyScan();
   key_scan_thread_.Schedule(&DoKeyScan, reinterpret_cast<void*>(this));
 }
@@ -1371,19 +1365,13 @@ void PikaServer::InitKeyScan() {
 }
 
 void PikaServer::ClientKillAll() {
-  for (int idx = 0; idx != worker_num_; idx++) {
-    pika_worker_thread_[idx]->ThreadClientKill();
-  }
+  pika_dispatch_thread_->ClientKillAll();
   monitor_thread_->ThreadClientKill();
 }
 
 int PikaServer::ClientKill(const std::string &ip_port) {
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    if (pika_worker_thread_[idx]->ThreadClientKill(ip_port)) {
-      return 1;
-    }
-  }
-  if (monitor_thread_->ThreadClientKill(ip_port)) {
+  if (pika_dispatch_thread_->ClientKill(ip_port) ||
+      monitor_thread_->ThreadClientKill(ip_port)) {
     return 1;
   }
   return 0;
@@ -1391,9 +1379,7 @@ int PikaServer::ClientKill(const std::string &ip_port) {
 
 int64_t PikaServer::ClientList(std::vector<ClientInfo> *clients) {
   int64_t clients_num = 0;
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    clients_num += pika_worker_thread_[idx]->ThreadClientList(clients);
-  }
+  clients_num += pika_dispatch_thread_->ThreadClientList(clients);
   clients_num += monitor_thread_->ThreadClientList(clients);
   return clients_num;
 }
@@ -1410,30 +1396,36 @@ void PikaServer::RWUnlock() {
   pthread_rwlock_unlock(&rwlock_);
 }
 
+void PikaServer::PlusThreadQuerynum() {
+  slash::WriteLock l(&statistic_data_.statistic_lock);
+  statistic_data_.thread_querynum++;
+}
+
 uint64_t PikaServer::ServerQueryNum() {
-  uint64_t server_query_num = 0;
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    server_query_num += pika_worker_thread_[idx]->thread_querynum();
-  }
-  server_query_num += pika_binlog_receiver_thread_->thread_querynum();
-  return server_query_num;
+  slash::ReadLock l(&statistic_data_.statistic_lock);
+  return statistic_data_.thread_querynum;
 }
 
 void PikaServer::ResetStat() {
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    pika_worker_thread_[idx]->ResetThreadQuerynum();
-  }
-  pika_binlog_receiver_thread_->ResetThreadQuerynum();
-  accumulative_connections_ = 0;
+  statistic_data_.accumulative_connections.store(0);
+  slash::WriteLock l(&statistic_data_.statistic_lock);
+  statistic_data_.thread_querynum = 0;
+  statistic_data_.last_thread_querynum = 0;
 }
 
 uint64_t PikaServer::ServerCurrentQps() {
-  uint64_t server_current_qps = 0;
-  for (int idx = 0; idx != worker_num_; ++idx) {
-    server_current_qps += pika_worker_thread_[idx]->last_sec_thread_querynum();
-  }
-  server_current_qps += pika_binlog_receiver_thread_->last_sec_thread_querynum();
-  return server_current_qps;
+  slash::ReadLock l(&statistic_data_.statistic_lock);
+  return statistic_data_.last_sec_thread_querynum;
+}
+
+void PikaServer::ResetLastSecQuerynum() {
+ slash::WriteLock l(&statistic_data_.statistic_lock);
+ uint64_t cur_time_us = slash::NowMicros();
+ statistic_data_.last_sec_thread_querynum = (
+      (statistic_data_.thread_querynum - statistic_data_.last_thread_querynum)
+      * 1000000 / (cur_time_us - statistic_data_.last_time_us + 1));
+ statistic_data_.last_thread_querynum = statistic_data_.thread_querynum;
+ statistic_data_.last_time_us = cur_time_us;
 }
 
 void PikaServer::DoTimingTask() {

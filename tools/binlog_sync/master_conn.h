@@ -6,16 +6,16 @@
 #ifndef MASTER_CONN_H_
 #define MASTER_CONN_H_
 
-#include "redis_conn.h"
-#include "pink_thread.h"
+#include "pink/include/redis_conn.h"
+#include "pink/include/pink_thread.h"
 #include "pika_command.h"
 
 class BinlogReceiverThread;
 
 class MasterConn: public pink::RedisConn {
 public:
-  MasterConn(int fd, std::string ip_port, pink::Thread *thread);
-  virtual ~MasterConn();
+  MasterConn(int fd, std::string ip_port, BinlogReceiverThread* binlog_receiver);
+  virtual ~MasterConn() {}
   virtual int DealMessage();
 private:
   BinlogReceiverThread* self_thread_;

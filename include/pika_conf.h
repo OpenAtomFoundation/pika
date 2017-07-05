@@ -6,20 +6,20 @@
 #ifndef PIKA_CONF_H_
 #define PIKA_CONF_H_
 #include <pthread.h>
-#include "stdlib.h"
+#include <stdlib.h>
 #include <string>
 #include <vector>
 
-#include "base_conf.h"
-#include "slash_mutex.h"
-#include "slash_string.h"
+#include "slash/include/base_conf.h"
+#include "slash/include/slash_mutex.h"
+#include "slash/include/slash_string.h"
+#include "slash/include/xdebug.h"
 #include "pika_define.h"
-#include "xdebug.h"
 
 typedef slash::RWLock RWLock;
 
 class PikaConf : public slash::BaseConf {
-public:
+ public:
   PikaConf(const std::string& path);
   ~PikaConf()             { pthread_rwlock_destroy(&rwlock_); }
 

@@ -821,18 +821,17 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoRadiusByMember, georadiusbymemberptr));
 }
 
-Cmd* GetCmdFromTable(const std::string& opt,
-    const std::unordered_map<std::string, Cmd*> &cmd_table) {
-  std::unordered_map<std::string, Cmd*>::const_iterator it = cmd_table.find(opt);
+Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table) {
+  CmdTable::const_iterator it = cmd_table.find(opt);
   if (it != cmd_table.end()) {
     return it->second;
   }
   return NULL;
 }
 
-void DestoryCmdTable(std::unordered_map<std::string, Cmd*> &cmd_table) {
-  std::unordered_map<std::string, Cmd*>::const_iterator it = cmd_table.begin();
-  for (; it != cmd_table.end(); ++it) {
+void DestoryCmdTable(CmdTable* cmd_table) {
+  CmdTable::const_iterator it = cmd_table->begin();
+  for (; it != cmd_table->end(); ++it) {
     delete it->second;
   }
 }

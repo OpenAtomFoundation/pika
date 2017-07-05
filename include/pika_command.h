@@ -9,9 +9,10 @@
 #include <deque>
 #include <string>
 #include <memory>
-#include <redis_conn.h>
 #include <unordered_map>
-#include "slash_string.h"
+
+#include "slash/include/slash_string.h"
+#include "pink/include/redis_conn.h"
 
 
 //Constant for command name
@@ -407,15 +408,17 @@ private:
   Cmd& operator=(const Cmd&);
 };
 
+typedef std::unordered_map<std::string, Cmd*> CmdTable;
+
 // Method for CmdInfo Table
 void InitCmdInfoTable();
 const CmdInfo* GetCmdInfo(const std::string& opt);
 void DestoryCmdInfoTable();
+
 // Method for Cmd Table
-void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table);
-Cmd* GetCmdFromTable(const std::string& opt,
-    const std::unordered_map<std::string, Cmd*> &cmd_table);
-void DestoryCmdTable(std::unordered_map<std::string, Cmd*> &cmd_table);
+void InitCmdTable(CmdTable* cmd_table);
+Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table);
+void DestoryCmdTable(CmdTable* cmd_table);
 
 void inline RedisAppendContent(std::string& str, const std::string& value) {
   str.append(value.data(), value.size());

@@ -6,22 +6,24 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+
 #include <glog/logging.h>
 #include "pika_server.h"
 #include "pika_conf.h"
 #include "pika_client_conn.h"
+#include "pika_dispatch_thread.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 
-PikaClientConn::PikaClientConn(int fd, std::string ip_port, pink::Thread* thread) :
-  RedisConn(fd, ip_port) {
-  self_thread_ = dynamic_cast<PikaWorkerThread*>(thread);
+PikaClientConn::PikaClientConn(int fd, std::string ip_port,
+                               pink::ServerThread* server_thread,
+                               void* worker_specific_data)
+      : RedisConn(fd, ip_port, server_thread),
+        server_thread_(server_thread),
+        cmds_table_(reinterpret_cast<CmdTable*>(worker_specific_data)) {
   auth_stat_.Init();
-}
-
-PikaClientConn::~PikaClientConn() {
 }
 
 std::string PikaClientConn::RestoreArgs() {
@@ -39,14 +41,13 @@ std::string PikaClientConn::RestoreArgs() {
 std::string PikaClientConn::DoCmd(const std::string& opt) {
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
-  Cmd* c_ptr = self_thread_->GetCmd(opt);
+  Cmd* c_ptr = GetCmdFromTable(opt, *cmds_table_);
   if (!cinfo_ptr || !c_ptr) {
       return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
   }
 
   // Check authed
   if (!auth_stat_.IsAuthed(cinfo_ptr)) {
-//    LOG(WARNING) << "(" << ip_port() << ")Authentication required";
     return "-ERR NOAUTH Authentication required.\r\n";
   }
   
@@ -67,32 +68,37 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   std::string monitor_message;
   bool is_monitoring = g_pika_server->HasMonitorClients();
   if (is_monitoring) {
-    monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) + " [" + this->ip_port() + "]";
+    monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) +
+      " [" + this->ip_port() + "]";
     for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
       monitor_message += " " + slash::ToRead(*iter);
     }
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
-  if (opt == kCmdNameMonitor) {
-    PikaClientConn* self = this;
-    argv_.push_back(std::string(reinterpret_cast<char*>(&self), sizeof(PikaClientConn*)));
-  }
   // Initial
   c_ptr->Initial(argv_, cinfo_ptr);
   if (!c_ptr->res().ok()) {
     return c_ptr->res().message();
   }
 
+  if (opt == kCmdNameMonitor) {
+    pink::PinkConn* conn = server_thread_->MoveConnOut(fd());
+    assert(conn == this);
+    g_pika_server->AddMonitorClient(static_cast<PikaClientConn*>(conn));
+    g_pika_server->AddMonitorMessage("OK");
+    return ""; // Monitor thread will return "OK"
+  }
+
   std::string raw_args;
   if (cinfo_ptr->is_write()) {
-      if (g_pika_conf->readonly()) {
-        return "-ERR Server in read-only\r\n";
-      }
-      raw_args = RestoreArgs();
-      if (argv_.size() >= 2) {
-        g_pika_server->mutex_record_.Lock(argv_[1]);
-      }
+    if (g_pika_conf->readonly()) {
+      return "-ERR Server in read-only\r\n";
+    }
+    raw_args = RestoreArgs();
+    if (argv_.size() >= 2) {
+      g_pika_server->mutex_record_.Lock(argv_[1]);
+    }
   }
 
   // Add read lock for no suspend command
@@ -103,21 +109,21 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
-      if (c_ptr->res().ok()) {
-          g_pika_server->logger_->Lock();
-          g_pika_server->logger_->Put(raw_args);
-          g_pika_server->logger_->Unlock();
-      }
+    if (c_ptr->res().ok()) {
+      g_pika_server->logger_->Lock();
+      g_pika_server->logger_->Put(raw_args);
+      g_pika_server->logger_->Unlock();
+    }
   }
 
   if (!cinfo_ptr->is_suspend()) {
-      g_pika_server->RWUnlock();
+    g_pika_server->RWUnlock();
   }
 
   if (cinfo_ptr->is_write()) {
-      if (argv_.size() >= 2) {
-        g_pika_server->mutex_record_.Unlock(argv_[1]);
-      }
+    if (argv_.size() >= 2) {
+      g_pika_server->mutex_record_.Unlock(argv_[1]);
+    }
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
@@ -134,7 +140,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
         }
       }
       LOG(ERROR) << "command:" << slow_log << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
-//      LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
     }
   }
 
@@ -147,7 +152,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 }
 
 int PikaClientConn::DealMessage() {
-  self_thread_->PlusThreadQuerynum();
+  g_pika_server->PlusThreadQuerynum();
   
   if (argv_.empty()) return -2;
   std::string opt = argv_[0];

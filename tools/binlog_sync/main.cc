@@ -5,8 +5,12 @@
 
 #include <glog/logging.h>
 #include <random>
-#include "binlog_sync.h"
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
+#include "binlog_sync.h"
 
 BinlogSync* g_binlog_sync;
 

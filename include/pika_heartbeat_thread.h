@@ -6,18 +6,49 @@
 #ifndef PIKA_HEARTBEAT_THREAD_H_
 #define PIKA_HEARTBEAT_THREAD_H_
 
-#include "holy_thread.h"
+#include <set>
+#include <string>
+
+#include "pink/include/server_thread.h"
 #include "pika_heartbeat_conn.h"
 
-class PikaHeartbeatThread : public pink::HolyThread<PikaHeartbeatConn>
-{
-public:
-  PikaHeartbeatThread(std::string &ip, int port, int cron_interval = 0);
-  PikaHeartbeatThread(std::set<std::string> &ip, int port, int cron_interval = 0);
-  virtual ~PikaHeartbeatThread();
-  virtual void CronHandle();
-  virtual bool AccessHandle(std::string& ip_port);
+class PikaHeartbeatThread {
+ public:
+  PikaHeartbeatThread(std::set<std::string> &ips, int port, int cron_interval = 0);
+  ~PikaHeartbeatThread();
 
-  bool FindSlave(int fd); //hb_fd
+  int StartThread();
+
+ private:
+  class HeartbeatConnFactory : public pink::ConnFactory {
+   public:
+    virtual pink::PinkConn *NewPinkConn(
+        int connfd,
+        const std::string &ip_port,
+        pink::ServerThread *thread,
+        void* worker_specific_data) const override {
+      return new PikaHeartbeatConn(connfd, ip_port);
+    }
+  };
+
+  class Handles : public pink::ServerHandle {
+   public:
+    explicit Handles(PikaHeartbeatThread* heartbeat_thread)
+        : heartbeat_thread_(heartbeat_thread) {
+    }
+    void CronHandle() const override;
+    void FdClosedHandle(int fd, const std::string& ip_port) const override;
+    void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
+    bool AccessHandle(std::string& ip) const override;
+
+   private:
+    PikaHeartbeatThread* heartbeat_thread_;
+  };
+
+ private:
+  HeartbeatConnFactory conn_factory_;
+  Handles handles_;
+  pink::ServerThread* thread_rep_;
 };
+
 #endif

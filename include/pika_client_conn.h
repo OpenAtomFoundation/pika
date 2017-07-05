@@ -9,34 +9,33 @@
 #include <glog/logging.h>
 #include <atomic>
 
-#include "redis_conn.h"
-#include "pink_thread.h"
+#include "pink/include/redis_conn.h"
+#include "pink/include/pink_thread.h"
 #include "pika_command.h"
 
-
-class PikaWorkerThread;
+class PikaWorkerSpecificData;
 
 class PikaClientConn: public pink::RedisConn {
-public:
-  PikaClientConn(int fd, std::string ip_port, pink::Thread *thread);
-  virtual ~PikaClientConn();
+ public:
+  PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
+                 void* worker_specific_data);
+  virtual ~PikaClientConn() {}
   virtual int DealMessage();
-  PikaWorkerThread* self_thread() {
-    return self_thread_;
-  }
 
-private:
-  PikaWorkerThread* self_thread_;
+ private:
+  pink::ServerThread* const server_thread_;
+  CmdTable* const cmds_table_;
+
   std::string DoCmd(const std::string& opt);
   std::string RestoreArgs();
 
   // Auth related
   class AuthStat {
-  public:
+   public:
     void Init();
     bool IsAuthed(const CmdInfo* const cinfo_ptr);
     bool ChecknUpdate(const std::string& arg);
-  private:
+   private:
     enum StatType {
       kNoAuthed = 0,
       kAdminAuthed,

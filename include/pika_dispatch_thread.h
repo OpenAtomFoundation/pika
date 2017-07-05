@@ -6,24 +6,50 @@
 #ifndef PIKA_DISPATCH_THREAD_H_
 #define PIKA_DISPATCH_THREAD_H_
 
-#include "pika_worker_thread.h"
-#include "dispatch_thread.h"
+#include "slash/include/env.h"
+#include "pink/include/server_thread.h"
 #include "pika_client_conn.h"
 
-class PikaDispatchThread : public pink::DispatchThread<PikaClientConn>
-{
-public:
-  PikaDispatchThread(int port, int work_num, PikaWorkerThread** pika_worker_thread,
-                     int cron_interval, int queue_limit);
-  PikaDispatchThread(std::string &ip, int port, int work_num,
-                     PikaWorkerThread** pika_worker_thread,
-                     int cron_interval, int queue_limit);
+class PikaDispatchThread {
+ public:
   PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
-                     PikaWorkerThread** pika_worker_thread,
                      int cron_interval, int queue_limit);
-  virtual ~PikaDispatchThread();
-  virtual bool AccessHandle(std::string& ip);
+  ~PikaDispatchThread();
+  int StartThread();
 
-  int ClientNum();
+  int64_t ThreadClientList(std::vector<ClientInfo> *clients);
+
+  bool ClientKill(const std::string& ip_port);
+  void ClientKillAll();
+
+ private:
+  class ClientConnFactory : public pink::ConnFactory {
+   public:
+    virtual pink::PinkConn *NewPinkConn(
+        int connfd,
+        const std::string &ip_port,
+        pink::ServerThread *server_thread,
+        void* worker_specific_data) const {
+      return new PikaClientConn(connfd, ip_port, server_thread, worker_specific_data);
+    }
+  };
+
+  class Handles : public pink::ServerHandle {
+   public:
+    explicit Handles(PikaDispatchThread* pika_disptcher)
+        : pika_disptcher_(pika_disptcher) {
+    }
+    bool AccessHandle(std::string& ip) const override;
+    void CronHandle() const override;
+    int CreateWorkerSpecificData(void** data) const override;
+    int DeleteWorkerSpecificData(void* data) const override;
+
+   private:
+    PikaDispatchThread* pika_disptcher_;
+  };
+
+  ClientConnFactory conn_factory_;
+  Handles handles_;
+  pink::ServerThread* thread_rep_;
 };
 #endif

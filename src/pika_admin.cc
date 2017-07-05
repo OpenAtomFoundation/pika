@@ -4,8 +4,8 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 #include <sys/time.h>
 
-#include "slash_string.h"
-#include "rsync.h"
+#include "slash/include/slash_string.h"
+#include "slash/include/rsync.h"
 #include "pika_conf.h"
 #include "pika_admin.h"
 #include "pika_server.h"
@@ -1143,19 +1143,13 @@ void ConfigCmd::ConfigResetstat(std::string &ret) {
 
 void MonitorCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   (void)ptr_info;
-  if (argv.size() != 2) { //append a arg in DoCmd for monitor cmd
+  if (argv.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameMonitor);
     return;
   }
-  memcpy(&self_client_, argv[1].data(), sizeof(PikaClientConn*));
 }
 
 void MonitorCmd::Do() {
-  PikaWorkerThread* self_thread = self_client_->self_thread();
-  self_thread->conns_.erase(self_client_->fd());
-  self_thread->pink_epoll()->PinkDelEvent(self_client_->fd());
-  g_pika_server->AddMonitorClient(self_client_);
-  g_pika_server->AddMonitorMessage("OK");
 }
 
 void DbsizeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {

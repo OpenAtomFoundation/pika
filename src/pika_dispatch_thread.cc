@@ -12,40 +12,54 @@
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
-PikaDispatchThread::PikaDispatchThread(int port, int work_num,
-                                       PikaWorkerThread** pika_worker_thread,
-                                       int cron_interval, int queue_limit) :
-  DispatchThread::DispatchThread(port, work_num,
-                                 reinterpret_cast<pink::WorkerThread<PikaClientConn>**>(pika_worker_thread),
-                                 cron_interval, queue_limit) {
-}
-
-PikaDispatchThread::PikaDispatchThread(std::string &ip, int port, int work_num,
-                                       PikaWorkerThread** pika_worker_thread,
-                                       int cron_interval, int queue_limit) :
-  DispatchThread::DispatchThread(ip, port, work_num,
-                                 reinterpret_cast<pink::WorkerThread<PikaClientConn>**>(pika_worker_thread),
-                                 cron_interval, queue_limit) {
-}
-
 PikaDispatchThread::PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
-                                       PikaWorkerThread** pika_worker_thread,
-                                       int cron_interval, int queue_limit) :
-  DispatchThread::DispatchThread(ips, port, work_num,
-                                 reinterpret_cast<pink::WorkerThread<PikaClientConn>**>(pika_worker_thread),
-                                 cron_interval, queue_limit) {
+                                       int cron_interval, int queue_limit)
+      : handles_(this) {
+  thread_rep_ = pink::NewDispatchThread(ips, port, work_num, &conn_factory_,
+                                        cron_interval, queue_limit, &handles_);
+  thread_rep_->set_thread_name("Dispatcher");
 }
 
 PikaDispatchThread::~PikaDispatchThread() {
-  LOG(INFO) << "dispatch thread " << thread_id() << " exit!!!";
+  thread_rep_->StopThread();
+  LOG(INFO) << "dispatch thread " << thread_rep_->thread_id() << " exit!!!";
+  delete thread_rep_;
 }
 
-bool PikaDispatchThread::AccessHandle(std::string& ip) {
+int PikaDispatchThread::StartThread() {
+  return thread_rep_->StartThread();
+}
+
+int64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo> *clients) {
+  std::vector<pink::ServerThread::ConnInfo> conns_info =
+    thread_rep_->conns_info();
+  if (clients != nullptr) {
+    for (auto& info : conns_info) {
+      clients->push_back({
+                          info.fd,
+                          info.ip_port,
+                          info.last_interaction.tv_sec,
+                          nullptr /* PinkConn pointer, doesn't need here */
+                         });
+    }
+  }
+  return conns_info.size();
+}
+
+bool PikaDispatchThread::ClientKill(const std::string& ip_port) {
+  return thread_rep_->KillConn(ip_port);
+}
+
+void PikaDispatchThread::ClientKillAll() {
+  thread_rep_->KillAllConns();
+}
+
+bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();
   }
 
-  int client_num = ClientNum();
+  int client_num = pika_disptcher_->thread_rep_->conn_num();
   if ((client_num >= g_pika_conf->maxclients() + g_pika_conf->root_connection_num())
       || (client_num >= g_pika_conf->maxclients() && ip != g_pika_server->host())) {
     LOG(WARNING) << "Max connections reach, Deny new comming: " << ip;
@@ -57,10 +71,22 @@ bool PikaDispatchThread::AccessHandle(std::string& ip) {
   return true;
 }
 
-int PikaDispatchThread::ClientNum() {
-  int num = 0;
-  for (int i = 0; i < work_num(); i++) {
-    num += ((PikaWorkerThread**)worker_thread())[i]->ThreadClientNum();
-  }
-  return num;
+void PikaDispatchThread::Handles::CronHandle() const {
+  pika_disptcher_->thread_rep_->set_keepalive_timeout(g_pika_conf->timeout());
+  g_pika_server->ResetLastSecQuerynum();
+}
+
+int PikaDispatchThread::Handles::CreateWorkerSpecificData(void** data) const {
+  CmdTable* cmds = new CmdTable;
+  cmds->reserve(300);
+  InitCmdTable(cmds);
+  *data = reinterpret_cast<void*>(cmds);
+  return 0;
+}
+
+int PikaDispatchThread::Handles::DeleteWorkerSpecificData(void* data) const {
+  CmdTable* cmds = reinterpret_cast<CmdTable*>(data);
+  DestoryCmdTable(cmds);
+  delete cmds;
+  return 0;
 }

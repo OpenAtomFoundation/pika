@@ -6,7 +6,7 @@
 #include "pika_binlog_bgworker.h"
 #include "pika_server.h"
 #include "pika_conf.h"
-#include "slash_string.h"
+#include "slash/include/slash_string.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;

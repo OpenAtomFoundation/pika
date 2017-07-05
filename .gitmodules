@@ -9,4 +9,4 @@
 	url = https://github.com/Qihoo360/pink.git
 [submodule "third/slash"]
 	path = third/slash
-	url = https://github.com/baotiao/slash.git
+	url = https://github.com/Qihoo360/slash.git

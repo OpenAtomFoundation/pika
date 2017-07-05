@@ -41,14 +41,13 @@ INCLUDE_PATH = -I./include/ \
 			   -I$(THIRD_PATH)/nemo/output/include/ \
 				 -I$(THIRD_PATH)/nemo/3rdparty/nemo-rocksdb/rocksdb/ \
 				 -I$(THIRD_PATH)/nemo/3rdparty/nemo-rocksdb/rocksdb/include \
-			   -I$(THIRD_PATH)/slash/output/include/ \
-			   -I$(THIRD_PATH)/pink/output/include/ \
-			   -I$(THIRD_PATH)/pink/output/
+			   -I$(THIRD_PATH)/slash \
+			   -I$(THIRD_PATH)/pink \
 
 LIB_PATH = -L./ \
 		   -L$(THIRD_PATH)/nemo/output/lib/ \
-		   -L$(THIRD_PATH)/slash/output/lib/ \
-		   -L$(THIRD_PATH)/pink/output/lib/ \
+		   -L$(THIRD_PATH)/slash/slash/lib/ \
+		   -L$(THIRD_PATH)/pink/pink/lib/ \
 		   -L$(THIRD_PATH)/glog/.libs/
 
 
@@ -69,8 +68,8 @@ CXXFLAGS += $(TCMALLOC_EXTENSION_FLAGS)
 
 NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
 GLOG = $(SO_DIR)/libglog.so.0
-PINK = $(THIRD_PATH)/pink/output/lib/libpink.a
-SLASH = $(THIRD_PATH)/slash/output/lib/libslash.a
+PINK = $(THIRD_PATH)/pink/lib/libpink.a
+SLASH = $(THIRD_PATH)/slash/lib/libslash.a
 
 .PHONY: all clean
 
@@ -114,10 +113,10 @@ $(NEMO):
 	make -C $(THIRD_PATH)/nemo/
 
 $(SLASH):
-	make -C $(THIRD_PATH)/slash/
+	make -C $(THIRD_PATH)/slash/slash/
 
 $(PINK):
-	make -C $(THIRD_PATH)/pink/
+	make -C $(THIRD_PATH)/pink/pink/ SLASH_PATH=$(THIRD_PATH)/slash
 
 $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
@@ -142,8 +141,8 @@ distclean:
 	rm -rf $(CURDIR)/make_config.mk
 	make distclean -C $(THIRD_PATH)/nemo/3rdparty/nemo-rocksdb/
 	make clean -C $(THIRD_PATH)/nemo/
-	make clean -C $(THIRD_PATH)/pink/
-	make clean -C $(THIRD_PATH)/slash/
+	make clean -C $(THIRD_PATH)/pink/pink
+	make clean -C $(THIRD_PATH)/slash/slash
 	make distclean -C $(THIRD_PATH)/glog/
 	make clean -C $(CURDIR)/tools/aof_to_pika
 	make clean -C $(CURDIR)/tools/pika_monitor

@@ -5,13 +5,14 @@
 
 #include <glog/logging.h>
 #include <iostream>
-#include "redis_cli.h"
 #include <stdio.h>
 #include <errno.h>
 #include <string>
 #include <signal.h>
 #include <tuple>
 
+#include "pink/include/pink_cli.h"
+#include "pink/include/redis_cli.h"
 #include "binlog.h"
 #include "binlog_consumer.h"
 #include "binlog_producer.h"
@@ -245,10 +246,10 @@ int main(int argc, char *argv[]) {
   /*
    * Connect
    */
-  pink::RedisCli *rcli = new pink::RedisCli();
+  pink::PinkCli *rcli = pink::NewRedisCli();
   rcli->set_connect_timeout(3000);
   fprintf (stderr, "Connecting...\n");
-  pink::Status pink_s = rcli->Connect(ip, port);
+  Status pink_s = rcli->Connect(ip, port);
   if (!pink_s.ok()) {
       fprintf (stderr, "Connect failed, %s\n", pink_s.ToString().c_str());
       exit(-1);

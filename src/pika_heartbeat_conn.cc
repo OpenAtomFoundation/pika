@@ -6,16 +6,12 @@
 #include <glog/logging.h>
 #include "pika_heartbeat_conn.h"
 #include "pika_server.h"
-#include "slash_string.h"
+#include "slash/include/slash_string.h"
 
 extern PikaServer *g_pika_server;
 
-PikaHeartbeatConn::PikaHeartbeatConn(int fd, std::string ip_port, pink::Thread* thread) :
-  RedisConn(fd, ip_port) {
-  pika_thread_ = reinterpret_cast<PikaHeartbeatThread*>(thread);
-}
-
-PikaHeartbeatConn::~PikaHeartbeatConn() {
+PikaHeartbeatConn::PikaHeartbeatConn(int fd, std::string ip_port)
+      : RedisConn(fd, ip_port, NULL) {
 }
 
 int PikaHeartbeatConn::DealMessage() {
