@@ -31,7 +31,8 @@ int PikaDispatchThread::StartThread() {
 }
 
 int64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo> *clients) {
-  auto conns_info = thread_rep_->conns_info();
+  std::vector<pink::ServerThread::ConnInfo> conns_info =
+    thread_rep_->conns_info();
   if (clients != nullptr) {
     for (auto& info : conns_info) {
       clients->push_back({

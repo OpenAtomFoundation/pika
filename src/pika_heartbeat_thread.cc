@@ -57,12 +57,14 @@ void PikaHeartbeatThread::Handles::CronHandle() const {
   }
 }
 
-void PikaHeartbeatThread::Handles::FdClosedHandle(int fd, const std::string& ip_port) const {
+void PikaHeartbeatThread::Handles::FdClosedHandle(
+        int fd, const std::string& ip_port) const {
   LOG(INFO) << "Find closed Slave: " << ip_port;
   g_pika_server->DeleteSlave(fd);
 }
 
-void PikaHeartbeatThread::Handles::FdTimeoutHandle(int fd, const std::string& ip_port) const {
+void PikaHeartbeatThread::Handles::FdTimeoutHandle(
+        int fd, const std::string& ip_port) const {
   LOG(INFO) << "Find Timeout Slave: " << ip_port;
   g_pika_server->DeleteSlave(fd);
 }

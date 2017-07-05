@@ -53,8 +53,6 @@ class PikaBinlogSenderThread : public pink::Thread {
   std::string ip_;
   int port_;
 
-  pthread_rwlock_t rwlock_;
-
   int timeout_ms_;
   pink::PinkCli *cli_;
 

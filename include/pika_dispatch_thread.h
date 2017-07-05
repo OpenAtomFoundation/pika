@@ -9,11 +9,6 @@
 #include "slash/include/env.h"
 #include "pink/include/server_thread.h"
 #include "pika_client_conn.h"
-#include "pika_conf.h"
-#include "pika_server.h"
-
-extern PikaConf *g_pika_conf;
-extern PikaServer* g_pika_server;
 
 class PikaDispatchThread {
  public:
