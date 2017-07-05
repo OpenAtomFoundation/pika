@@ -15,7 +15,6 @@
 #include <iostream>
 #include <iterator>
 #include <ctime>
-#include <dirent.h>
 #include "env.h"
 #include "rsync.h"
 #include "pika_server.h"
@@ -1185,16 +1184,11 @@ void PikaServer::AutoDeleteExpiredDump() {
   }
 
   // Directory traversal
-  DIR * dir = opendir(db_sync_path.c_str());
-  struct dirent * d_ent = NULL;
-  while ((d_ent = readdir(dir)) != NULL) {
-    // Ignore "." and ".."
-    if (strcmp(d_ent->d_name, ".") == 0 || strcmp(d_ent->d_name, "..") == 0) {
-      continue;
-    }
-    if (d_ent->d_type == DT_DIR) {
-      dump_dir.push_back(d_ent->d_name);
-    }
+  if (slash::GetChildren(db_sync_path, dump_dir) != 0) {
+    return;
+  }
+  for (size_t i = 0; i < dump_dir.size(); i++) {
+    LOG(INFO) << dump_dir[i];
   }
   // Handle dump directory
   for (size_t i = 0; i < dump_dir.size(); i++) {
