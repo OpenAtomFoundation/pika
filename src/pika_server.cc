@@ -1441,7 +1441,7 @@ void PikaServer::DoTimingTask() {
   AutoCompactRange();
   // Purge log
   AutoPurge();
-  //Delete expired dump
+  // Delete expired dump
   AutoDeleteExpiredDump();
 
   // Check rsync deamon
