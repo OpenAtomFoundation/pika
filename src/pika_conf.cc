@@ -222,6 +222,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("daemonize", daemonize_ ? "yes" : "no");
   SetConfStr("slotmigrate", slotmigrate_ ? "yes" : "no");
   SetConfStr("dump-path", bgsave_path_);
+  SetConfInt("expire-dump-days", expire_dump_days_);
   SetConfStr("pidfile", pidfile_);
   SetConfInt("maxclients", maxclients_);
   SetConfInt("target-file-size-base", target_file_size_base_);

@@ -824,6 +824,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "dump-path");
       EncodeString(&ret, g_pika_conf->bgsave_path());
+  } else if (get_item == "expire-dump-days") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "expire-dump-days");
+      EncodeInt32(&ret, g_pika_conf->expire_dump_days());
   } else if (get_item == "pidfile") {
       ret = "*2\r\n";
       EncodeString(&ret, "pidfile");
