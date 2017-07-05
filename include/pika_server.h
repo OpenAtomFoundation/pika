@@ -33,6 +33,8 @@
 using slash::Status;
 using slash::Slice;
 
+extern int GenericResolve(const std::string &host, char *ipbuf, size_t ipbuf_len);
+
 class PikaServer
 {
 public:

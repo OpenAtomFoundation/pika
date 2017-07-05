@@ -22,8 +22,37 @@
 #include "bg_thread.h"
 #include "pika_conf.h"
 #include "pika_slot.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
 extern PikaConf *g_pika_conf;
+
+int GenericResolve(const std::string &host, char *ipbuf, size_t ipbuf_len) {
+    struct addrinfo hints, *info;
+    int rv;
+
+    memset(&hints,0,sizeof(hints));
+    //if (flags & ANET_IP_ONLY) hints.ai_flags = AI_NUMERICHOST;
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;  /* specify socktype to avoid dups */
+
+    if ((rv = getaddrinfo(host.c_str(), NULL, &hints, &info)) != 0) {
+        LOG(ERROR) << "getaddrinfo error for:" << host;
+        return -1;
+    }
+    if (info->ai_family == AF_INET) {
+        struct sockaddr_in *sa = (struct sockaddr_in *)info->ai_addr;
+        inet_ntop(AF_INET, &(sa->sin_addr), ipbuf, ipbuf_len);
+    } else {
+        struct sockaddr_in6 *sa = (struct sockaddr_in6 *)info->ai_addr;
+        inet_ntop(AF_INET6, &(sa->sin6_addr), ipbuf, ipbuf_len);
+    }
+
+    freeaddrinfo(info);
+    return 0;
+}
 
 PikaServer::PikaServer() :
   ping_thread_(NULL),
@@ -495,7 +524,13 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
   }
   slash::RWLock l(&state_protector_, true);
   if ((role_ ^ PIKA_ROLE_SLAVE) && repl_state_ == PIKA_REPL_NO_CONNECT) {
-    master_ip_ = master_ip;
+    char ip[NET_IP_STR_LEN];
+    if (GenericResolve(master_ip, ip, sizeof(ip)) != 0) {
+        LOG(WARNING) << "Failed to resolve hostname:" << master_ip ;
+    }
+    std::string str_ip(ip);
+    LOG(INFO) << "resolve hostname: " << master_ip << " to ip: " << str_ip;
+    master_ip_ = str_ip;
     master_port_ = master_port;
     role_ |= PIKA_ROLE_SLAVE;
     repl_state_ = PIKA_REPL_CONNECT;
