@@ -15,6 +15,7 @@
 #include <iostream>
 #include <iterator>
 #include <ctime>
+#include <dirent.h>
 #include "env.h"
 #include "rsync.h"
 #include "pika_server.h"
@@ -47,7 +48,7 @@ PikaServer::PikaServer() :
   pthread_rwlockattr_init(&attr);
   pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
   pthread_rwlock_init(&rwlock_, &attr);
-  
+
   //Init server ip host
   if (!ServerInit()) {
     LOG(FATAL) << "ServerInit iotcl error";
@@ -91,7 +92,7 @@ PikaServer::PikaServer() :
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
-  
+
   //for (int j = 0; j < g_pika_conf->binlogbg_thread_num; j++) {
   for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
     binlogbg_workers_.push_back(new BinlogBGWorker(g_pika_conf->sync_buffer_size()));
@@ -170,7 +171,7 @@ bool PikaServer::ServerInit() {
           std::istream_iterator<std::string>(),
           std::back_inserter<std::vector<std::string> >(tokens));
 
-      // the default interface is the one having the second 
+      // the default interface is the one having the second
       // field, Destination, set to "00000000"
       if ((tokens.size() >= 2) && (tokens[1] == std::string("00000000")))
       {
@@ -181,7 +182,7 @@ bool PikaServer::ServerInit() {
       tokens.clear();
     }
     routeFile.close();
-  } 
+  }
   LOG(INFO) << "Using Networker Interface: " << network_interface;
 
   struct ifaddrs * ifAddrStruct = NULL;
@@ -224,7 +225,7 @@ bool PikaServer::ServerInit() {
     LOG(FATAL) << "error network interface: " << network_interface << ", please check!";
   }
 
-  port_ = g_pika_conf->port();	
+  port_ = g_pika_conf->port();
   LOG(INFO) << "host: " << host_ << " port: " << port_;
   return true;
 
@@ -291,7 +292,7 @@ void PikaServer::Start() {
   LOG(INFO) << "Pika Server going to start";
   while (!exit_) {
     DoTimingTask();
-    // wake up every half hour
+    // wake up every 10 second
     int try_num = 0;
     while (!exit_ && try_num++ < 10) {
       sleep(1);
@@ -303,7 +304,6 @@ void PikaServer::Start() {
 
 void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
   std::string ip_port = slash::IpPortString(ip, port);
-  
   int slave_num = 0;
   {
   slash::MutexLock l(&slave_mutex_);
@@ -382,7 +382,7 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
     LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
     return false;
   }
- 
+
   if (0 != slash::RenameFile(new_path.c_str(), db_path.c_str())) {
     LOG(WARNING) << "Failed to rename new db path when change db, error: " << strerror(errno);
     return false;
@@ -413,7 +413,7 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
 // return -1 when slave already exist
 int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   std::string ip_port = slash::IpPortString(ip, port);
-  
+
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
   while (iter != slaves_.end()) {
@@ -441,7 +441,7 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
 bool PikaServer::SetSlaveSender(const std::string& ip, int64_t port,
     PikaBinlogSenderThread* s){
   std::string ip_port = slash::IpPortString(ip, port);
-  
+
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
   while (iter != slaves_.end()) {
@@ -466,7 +466,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   size_t index = 0;
   std::string slave_ip_port;
   std::stringstream tmp_stream;
-  
+
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
   for (; iter != slaves_.end(); ++iter) {
@@ -681,7 +681,7 @@ void PikaServer::DoDBSync(void* arg) {
   PikaServer* ps = ppurge->p;
 
   ps->DBSyncSendFile(ppurge->ip, ppurge->port);
-  
+
   delete (PurgeArg*)arg;
 }
 
@@ -718,7 +718,7 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
       break;
     }
   }
- 
+
   // Clear target path
   slash::RsyncSendClearTarget(bg_path + "/kv", "kv", remote);
   slash::RsyncSendClearTarget(bg_path + "/hash", "hash", remote);
@@ -844,7 +844,7 @@ bool PikaServer::RunBgsaveEngine(const std::string path) {
   // Backup to tmp dir
   nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(path);
   LOG(INFO) << "Create new backup finished.";
-  
+
   if (!nemo_s.ok()) {
     LOG(WARNING) << "backup failed :" << nemo_s.ToString();
     return false;
@@ -861,7 +861,7 @@ void PikaServer::Bgsave() {
     }
     bgsave_info_.bgsaving = true;
   }
-  
+
   // Prepare for Bgsaving
   if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
     ClearBgsave();
@@ -886,7 +886,7 @@ void PikaServer::DoBgsave(void* arg) {
   out.open(info.path + "/info", std::ios::in | std::ios::trunc);
   if (out.is_open()) {
     out << (time(NULL) - info.start_time) << "s\n"
-      << p->host() << "\n" 
+      << p->host() << "\n"
       << p->port() << "\n"
       << info.filenum << "\n"
       << info.offset << "\n";
@@ -929,7 +929,7 @@ void PikaServer::Bgslotsreload() {
   bgslots_reload_.cursor = 0;
   bgslots_reload_.pattern = "*";
   bgslots_reload_.count = 100;
-  
+
   LOG(INFO) << "Start slot reloading";
 
   // Start new thread if needed
@@ -1037,7 +1037,7 @@ bool PikaServer::CouldPurge(uint32_t index) {
     }
     PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
     uint32_t filenum = pb->filenum();
-    if (index > filenum) { 
+    if (index > filenum) {
       return false;
     }
   }
@@ -1059,7 +1059,7 @@ bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to) ||           // Argument bound
         remain_expire_num > 0 ||                 // Expire num trigger
-        (stat(((g_pika_conf->log_path() + it->second)).c_str(), &file_stat) == 0 &&     
+        (stat(((g_pika_conf->log_path() + it->second)).c_str(), &file_stat) == 0 &&
          file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days()*24*3600)) // Expire time trigger
     {
       // We check this every time to avoid lock when we do file deletion
@@ -1093,7 +1093,7 @@ bool PikaServer::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
   std::vector<std::string> children;
   int ret = slash::GetChildren(g_pika_conf->log_path(), children);
   if (ret != 0){
-    LOG(WARNING) << "Get all files in log path failed! error:" << ret; 
+    LOG(WARNING) << "Get all files in log path failed! error:" << ret;
     return false;
   }
 
@@ -1106,7 +1106,7 @@ bool PikaServer::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
     }
     sindex = (*it).substr(kBinlogPrefixLen);
     if (slash::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
-      binlogs.insert(std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it)); 
+      binlogs.insert(std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it));
     }
   }
   return true;
@@ -1169,6 +1169,71 @@ void PikaServer::AutoPurge() {
   }
 }
 
+void PikaServer::AutoDeleteExpiredDump() {
+  std::string db_sync_path = g_pika_conf->bgsave_path();
+  int expiry_days = g_pika_conf->expire_dump_days();
+  std::vector<std::string> dump_dir;
+
+  // Never expire
+  if (expiry_days == 0) {
+    return;
+  }
+  // Directory traversal
+  DIR * dir = opendir(db_sync_path.c_str());
+  struct dirent * d_ent = NULL;
+  while ((d_ent = readdir(dir)) != NULL) {
+    // Ignore "." and ".."
+    if (strcmp(d_ent->d_name, ".") == 0 || strcmp(d_ent->d_name, "..") == 0) {
+      continue;
+    }
+    if (d_ent->d_type == DT_DIR) {
+      dump_dir.push_back(d_ent->d_name);
+    }
+  }
+  // Handle dump directory
+  for (size_t i = 0; i < dump_dir.size(); i++) {
+    // Parse filename
+    int dump_year = std::atoi(dump_dir[i].substr(0, 4).c_str());
+    int dump_month = std::atoi(dump_dir[i].substr(4, 2).c_str());
+    int dump_day = std::atoi(dump_dir[i].substr(6, 2).c_str());
+
+    time_t t = time(NULL);
+    struct tm *now = localtime(&t);
+    int now_year = now->tm_year + 1900;
+    int now_month = now->tm_mon + 1;
+    int now_day = now->tm_mday;
+
+    struct tm dump_time, now_time;
+
+    dump_time.tm_year = dump_year;
+    dump_time.tm_mon = dump_month;
+    dump_time.tm_mday = dump_day;
+    dump_time.tm_hour = 0;
+    dump_time.tm_min = 0;
+    dump_time.tm_sec = 0;
+
+    now_time.tm_year = now_year;
+    now_time.tm_mon = now_month;
+    now_time.tm_mday = now_day;
+    now_time.tm_hour = 0;
+    now_time.tm_min = 0;
+    now_time.tm_sec = 0;
+
+    long dump_timestamp = mktime(&dump_time);
+    long now_timestamp = mktime(&now_time);
+    // How many days, 1 day = 86400s
+    int interval_days = (now_timestamp - dump_timestamp) / 86400;
+
+    if (interval_days >= expiry_days) {
+      slash::MutexLock ldb(&db_sync_protector_);
+      if (db_sync_slaves_.size() == 0) {
+        LOG(INFO) << "Delete expired dump file: " << db_sync_path + dump_dir[i];
+        slash::DeleteDirIfExist(db_sync_path + dump_dir[i]);
+      }
+    }
+  }
+}
+
 bool PikaServer::FlushAll() {
   {
     slash::MutexLock l(&bgsave_protector_);
@@ -1204,7 +1269,7 @@ bool PikaServer::FlushAll() {
   db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(g_pika_conf->db_path(), option));
   LOG(INFO) << "open new db success";
   PurgeDir(dbpath);
-  return true; 
+  return true;
 }
 
 void PikaServer::PurgeDir(std::string& path) {
@@ -1280,7 +1345,7 @@ void PikaServer::StopKeyScan() {
   slash::MutexLock l(&key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     db_->StopScanKeyNum();
-    key_scan_info_.key_scaning_ = false; 
+    key_scan_info_.key_scaning_ = false;
   }
 }
 
@@ -1290,7 +1355,7 @@ void PikaServer::KeyScan() {
     key_scan_protector_.Unlock();
     return;
   }
-  key_scan_info_.key_scaning_ = true; 
+  key_scan_info_.key_scaning_ = true;
   key_scan_protector_.Unlock();
 
   key_scan_thread_.StartIfNeed();
@@ -1376,6 +1441,8 @@ void PikaServer::DoTimingTask() {
   AutoCompactRange();
   // Purge log
   AutoPurge();
+  //Delete expired dump
+  AutoDeleteExpiredDump();
 
   // Check rsync deamon
  if (((role_ & PIKA_ROLE_SLAVE) ^ PIKA_ROLE_SLAVE) || // Not a slave
@@ -1385,4 +1452,3 @@ void PikaServer::DoTimingTask() {
    slash::StopRsync(g_pika_conf->db_sync_path());
  }
 }
-

@@ -42,6 +42,7 @@ public:
   std::string masterauth()     { RWLock l(&rwlock_, false); return masterauth_; }
   bool slotmigrate()     { RWLock l(&rwlock_, false); return slotmigrate_; }
   std::string bgsave_path()     { RWLock l(&rwlock_, false); return bgsave_path_; }
+  int expire_dump_days() { RWLock l(&rwlock_, false); return expire_dump_days_; }
   std::string bgsave_prefix()     { RWLock l(&rwlock_, false); return bgsave_prefix_; }
   std::string userpass()        { RWLock l(&rwlock_, false); return userpass_; }
   const std::string suser_blacklist() {
@@ -86,6 +87,10 @@ public:
     if (value[value.length() - 1] != '/') {
       bgsave_path_ += "/";
     }
+  }
+  void SetExpireDumpDays(const int value) {
+    RWLock l(&rwlock_, true);
+    expire_dump_days_ = value;
   }
   void SetBgsavePrefix(const std::string &value) {
     RWLock l(&rwlock_, true);
@@ -141,7 +146,7 @@ public:
   void SetCompactCron(const std::string &value) {
     RWLock l(&rwlock_, true);
     compact_cron_ = value;
-  
+
   }
 
   int Load();
@@ -156,6 +161,7 @@ private:
   std::string log_path_;
   std::string db_path_;
   std::string db_sync_path_;
+  int expire_dump_days_;
   int db_sync_speed_;
   std::string compact_cron_;
   int write_buffer_size_;
