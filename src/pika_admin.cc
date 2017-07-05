@@ -928,6 +928,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->slotmigrate());
     EncodeString(&ret, "dump-path");
     EncodeString(&ret, g_pika_conf->bgsave_path());
+    EncodeString(&ret, "expire-dump-days");
+    EncodeInt32(&ret, g_pika_conf->expire_dump_days());
     EncodeString(&ret, "dump-prefix");
     EncodeString(&ret, g_pika_conf->bgsave_prefix());
     EncodeString(&ret, "pidfile");
@@ -986,6 +988,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "userblacklist");
     EncodeString(&ret, "dump-prefix");
     EncodeString(&ret, "maxclients");
+    EncodeString(&ret, "expire-dump-days");
     EncodeString(&ret, "expire-logs-days");
     EncodeString(&ret, "expire-logs-nums");
     EncodeString(&ret, "root-connection-num");
@@ -1040,6 +1043,13 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetMaxConnection(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "expire-dump-days") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire-dump-days'\r\n";
+      return;
+    }
+    g_pika_conf->SetExpireDumpDays(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-days") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {

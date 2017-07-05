@@ -1178,6 +1178,12 @@ void PikaServer::AutoDeleteExpiredDump() {
   if (expiry_days == 0) {
     return;
   }
+
+  // Dump is not exist
+  if (!slash::FileExists(db_sync_path)) {
+    return;
+  }
+
   // Directory traversal
   DIR * dir = opendir(db_sync_path.c_str());
   struct dirent * d_ent = NULL;
