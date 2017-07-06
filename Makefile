@@ -30,7 +30,7 @@ endif
 
 OBJECT = pika
 SRC_DIR = ./src
-THIRD_PATH = ./third
+THIRD_PATH = $(CURDIR)/third
 OUTPUT = ./output
 dummy := $(shell ("$(CURDIR)/detect_tcmalloc" "$(CURDIR)/make_config.mk"))
 include make_config.mk
