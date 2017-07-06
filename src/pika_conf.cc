@@ -41,6 +41,8 @@ int PikaConf::Load()
   if (timeout_ <= 0) {
       timeout_ = 60; // 60s
   }
+  GetConfStr("server_id", &server_id_);
+  // TODO (gaodq) default server_id
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
   GetConfStr("userpass", &userpass_);
@@ -214,6 +216,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfInt("write-buffer-size", write_buffer_size_);
   SetConfInt("timeout", timeout_);
+  SetConfStr("server_id", server_id_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
   SetConfStr("userpass", userpass_);
