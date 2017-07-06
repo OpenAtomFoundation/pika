@@ -160,6 +160,63 @@ void TrysyncCmd::Do() {
   }
 }
 
+void InternalTrysyncCmd::DoInitial(PikaCmdArgsType &argv,
+                                   const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameTrysync);
+    return;
+  }
+  PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
+  hub_ip_ = *it++;
+
+  std::string str_hub_port = *it++;
+  if (!slash::string2l(str_hub_port.data(), str_hub_port.size(), &hub_port_) ||
+      hub_port_ <= 0) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+
+  std::string str_filenum = *it++;
+  if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) ||
+      filenum_ < 0) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+
+  std::string str_pro_offset = *it++;
+  if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) ||
+      pro_offset_ < 0) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+}
+
+void InternalTrysyncCmd::Do() {
+  LOG(INFO) << "InternalTrysync, Hub ip: " << hub_ip_ << "Hub port:" << hub_port_
+    << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
+  int64_t sid = g_pika_server->TryAddHub(hub_ip_, hub_port_);
+  if (sid >= 0) {
+    Status status = g_pika_server->AddHubBinlogSender(hub_ip_, hub_port_,
+        filenum_, pro_offset_);
+    if (status.ok()) {
+      res_.AppendInteger(sid);
+      LOG(INFO) << "Send Sid to Slave: " << sid;
+      return;
+    }
+    // Create Sender failed, delete the slave
+    g_pika_server->DeleteHub();
+
+    LOG(WARNING) << "hub offset is larger than mine, slave ip: " << hub_ip_
+      << "slave port:" << hub_port_
+      << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_;
+    res_.SetRes(CmdRes::kErrOther, "InvalidOffset");
+  } else {
+    LOG(WARNING) << "hub already exist, hub ip: " << hub_ip_
+      << "hub port: " << hub_port_;
+    res_.SetRes(CmdRes::kErrOther, "AlreadyExist");
+  }
+}
+
 void AuthCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameAuth);

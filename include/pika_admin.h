@@ -44,6 +44,19 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
+class InternalTrysyncCmd : public Cmd {
+public:
+  InternalTrysyncCmd() {
+  }
+  virtual void Do();
+private:
+  std::string hub_ip_;
+  int64_t hub_port_;
+  int64_t filenum_;
+  int64_t pro_offset_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
 class AuthCmd : public Cmd {
 public:
   AuthCmd() {

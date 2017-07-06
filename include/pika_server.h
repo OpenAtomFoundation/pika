@@ -136,6 +136,15 @@ class PikaServer {
   PikaSlavepingThread* ping_thread_;
 
   /*
+   * Hub use
+   */
+  void DeleteHub();
+  int64_t TryAddHub(const std::string& ip, int64_t port);
+  Status AddHubBinlogSender(const std::string& ip, int64_t port,
+      uint32_t filenum, uint64_t con_offset);
+  SlaveItem pika_hub_;
+
+  /*
    * Server init info
    */
   bool ServerInit();

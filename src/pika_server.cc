@@ -432,6 +432,41 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   return s.sid;
 }
 
+int64_t PikaServer::TryAddHub(const std::string& ip, int64_t port) {
+  std::string ip_port = slash::IpPortString(ip, port);
+
+  if (pika_hub_.ip_port == ip_port) {
+    // Already exist
+    return -1;
+  }
+
+  // Not exist, so add new
+  LOG(INFO) << "Add hub, " << ip << ":" << port;
+  pika_hub_.sid = GenSid();
+  pika_hub_.ip_port = ip_port;
+  pika_hub_.port = port;
+  pika_hub_.hb_fd = -1;
+  // TODO (gaodq) need this ?
+  pika_hub_.stage = SLAVE_ITEM_STAGE_ONE;
+  gettimeofday(&pika_hub_.create_time, NULL);
+  pika_hub_.sender = NULL;
+  return pika_hub_.sid;
+}
+
+void PikaServer::DeleteHub() {
+  if (pika_hub_.sender != nullptr) {
+    delete reinterpret_cast<PikaBinlogSenderThread*>(pika_hub_.sender);
+  }
+  pika_hub_.sid = 0;
+  pika_hub_.ip_port.clear();
+  pika_hub_.port = 0;
+  pika_hub_.sender_tid = 0;
+  pika_hub_.hb_fd = 0;
+  pika_hub_.stage = 0;
+  pika_hub_.sender;
+  pika_hub_.create_time;
+}
+
 // Set binlog sender of SlaveItem
 bool PikaServer::SetSlaveSender(const std::string& ip, int64_t port,
     PikaBinlogSenderThread* s){
@@ -781,6 +816,49 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
     delete sender;
     LOG(WARNING) << "AddBinlogSender failed";
     return Status::NotFound("AddBinlogSender bad sender");
+  }
+}
+
+Status PikaServer::AddHubBinlogSender(const std::string& ip, int64_t port,
+                                      uint32_t filenum, uint64_t con_offset) {
+  // Sanitize
+  if (con_offset > logger_->file_size()) {
+    return Status::InvalidArgument("AddHubBinlogSender invalid offset");
+  }
+  uint32_t cur_filenum = 0;
+  uint64_t cur_offset = 0;
+  logger_->GetProducerStatus(&cur_filenum, &cur_offset);
+  if (cur_filenum < filenum ||
+      (cur_filenum == filenum && cur_offset < con_offset)) {
+    return Status::InvalidArgument("AddHubBinlogSender invalid binlog offset");
+  }
+
+  // Create and set sender
+  slash::SequentialFile *readfile;
+  std::string confile = NewFileName(logger_->filename, filenum);
+  if (!slash::FileExists(confile)) {
+    // Not found binlog specified by filenum
+    return Status::Incomplete("File does not exist");
+  }
+  if (!slash::NewSequentialFile(confile, &readfile).ok()) {
+    return Status::IOError("AddHubBinlogSender new sequtialfile");
+  }
+
+  PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(ip,
+      port, readfile, filenum, con_offset);
+
+  if (sender->trim() == 0 && // Error binlog
+      slash::IpPortString(ip, port) == pika_hub_.ip_port) {
+    pika_hub_.sender = sender;
+    pika_hub_.sender_tid = sender->thread_id();
+    LOG(INFO) << "SetHubSender ok, tid is " << pika_hub_.sender_tid <<
+      " hd_fd: " << pika_hub_.hb_fd << " stage: " << pika_hub_.stage;
+    sender->StartThread();
+    return Status::OK();
+  } else {
+    delete sender;
+    LOG(WARNING) << "AddHubBinlogSender failed";
+    return Status::NotFound("AddHubBinlogSender bad sender");
   }
 }
 
