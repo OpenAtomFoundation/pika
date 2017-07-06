@@ -432,25 +432,25 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   return s.sid;
 }
 
-int64_t PikaServer::TryAddHub(const std::string& ip, int64_t port) {
+bool PikaServer::TryAddHub(const std::string& ip, int64_t port) {
   std::string ip_port = slash::IpPortString(ip, port);
 
   if (pika_hub_.ip_port == ip_port) {
     // Already exist
-    return -1;
+    return false;
   }
 
   // Not exist, so add new
   LOG(INFO) << "Add hub, " << ip << ":" << port;
-  pika_hub_.sid = GenSid();
+  pika_hub_.sid = 0;
   pika_hub_.ip_port = ip_port;
   pika_hub_.port = port;
   pika_hub_.hb_fd = -1;
   // TODO (gaodq) need this ?
-  pika_hub_.stage = SLAVE_ITEM_STAGE_ONE;
+  pika_hub_.stage = 0;
   gettimeofday(&pika_hub_.create_time, NULL);
   pika_hub_.sender = NULL;
-  return pika_hub_.sid;
+  return true;
 }
 
 void PikaServer::DeleteHub() {
@@ -463,8 +463,8 @@ void PikaServer::DeleteHub() {
   pika_hub_.sender_tid = 0;
   pika_hub_.hb_fd = 0;
   pika_hub_.stage = 0;
-  pika_hub_.sender;
-  pika_hub_.create_time;
+  pika_hub_.sender = nullptr;
+  pika_hub_.create_time = {0, 0};
 }
 
 // Set binlog sender of SlaveItem
@@ -617,7 +617,6 @@ void PikaServer::PlusMasterConnection() {
 bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
-//  if (repl_state_ != PIKA_REPL_NO_CONNECT && repl_state_ != PIKA_REPL_WAIT_DBSYNC && ip == master_ip_) {
   if ((repl_state_ == PIKA_REPL_CONNECTING || repl_state_ == PIKA_REPL_CONNECTED) &&
       ip == master_ip_) {
     return true;

@@ -194,13 +194,13 @@ void InternalTrysyncCmd::DoInitial(PikaCmdArgsType &argv,
 void InternalTrysyncCmd::Do() {
   LOG(INFO) << "InternalTrysync, Hub ip: " << hub_ip_ << "Hub port:" << hub_port_
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
-  int64_t sid = g_pika_server->TryAddHub(hub_ip_, hub_port_);
-  if (sid >= 0) {
+  bool exist = g_pika_server->TryAddHub(hub_ip_, hub_port_);
+  if (!exist) {
     Status status = g_pika_server->AddHubBinlogSender(hub_ip_, hub_port_,
         filenum_, pro_offset_);
     if (status.ok()) {
-      res_.AppendInteger(sid);
-      LOG(INFO) << "Send Sid to Slave: " << sid;
+      res_.SetRes(CmdRes::kOk);
+      LOG(INFO) << "Send OK to Hub";
       return;
     }
     // Create Sender failed, delete the slave
