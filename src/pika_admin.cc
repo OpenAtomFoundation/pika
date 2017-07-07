@@ -194,7 +194,7 @@ void InternalTrysyncCmd::DoInitial(PikaCmdArgsType &argv,
 void InternalTrysyncCmd::Do() {
   LOG(INFO) << "InternalTrysync, Hub ip: " << hub_ip_ << "Hub port:" << hub_port_
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
-  bool exist = g_pika_server->TryAddHub(hub_ip_, hub_port_);
+  bool exist = !g_pika_server->TryAddHub(hub_ip_, hub_port_);
   if (!exist) {
     Status status = g_pika_server->AddHubBinlogSender(hub_ip_, hub_port_,
         filenum_, pro_offset_);
@@ -213,7 +213,7 @@ void InternalTrysyncCmd::Do() {
   } else {
     LOG(WARNING) << "hub already exist, hub ip: " << hub_ip_
       << "hub port: " << hub_port_;
-    res_.SetRes(CmdRes::kErrOther, "AlreadyExist");
+    res_.SetRes(CmdRes::kOk);
   }
 }
 

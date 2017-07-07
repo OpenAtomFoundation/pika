@@ -39,12 +39,12 @@ int PikaMasterConn::DealMessage() {
   //no reply
   //eq set_is_reply(false);
   g_pika_server->PlusThreadQuerynum();
-  if (argv_.size() < 6) { /* 1 command, 5 infomation */
+  if (argv_.size() < 5) { /* 1 command, 4 infomation */
     return -2;
   }
 
   // extra info
-  auto iter = argv_.end() - 5;
+  auto iter = argv_.end() - 4;
   if (*iter != kPikaBinlogMagic) {
     // Unknow binlog
     return -2;

@@ -93,12 +93,16 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   // std::string raw_args;
+  std::string need_send_to_hub = "0" /* or "1" */;
   if (cinfo_ptr->is_write()) {
     if (g_pika_conf->readonly()) {
       return "-ERR Server in read-only\r\n";
     }
     // raw_args = RestoreArgs();
     if (argv_.size() >= 2) {
+      if (argv_[1] == kCmdNameSet) {
+        need_send_to_hub = "1";
+      }
       g_pika_server->mutex_record_.Lock(argv_[1]);
     }
   }
@@ -109,7 +113,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   uint32_t exec_time = time(nullptr);
-  std::string send_to_hub = "0" /* or "1" */;
   c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
@@ -127,7 +130,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       argv_.push_back(kPikaBinlogMagic);
       argv_.push_back(g_pika_conf->server_id());
       argv_.push_back(binlog_info);
-      argv_.push_back(send_to_hub);
+      argv_.push_back(need_send_to_hub);
 
       g_pika_server->logger_->Put(RestoreArgs());
       g_pika_server->logger_->Unlock();

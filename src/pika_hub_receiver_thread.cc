@@ -18,7 +18,8 @@ PikaHubReceiverThread::PikaHubReceiverThread(const std::set<std::string> &ips, i
         serial_(0) {
   thread_rep_ = pink::NewHolyThread(ips, port, &conn_factory_,
                                     cron_interval, &handles_);
-  thread_rep_->set_thread_name("BinlogReceiver");
+  thread_rep_->set_thread_name("HubReceiver");
+  thread_rep_->set_keepalive_timeout(0);
 }
 
 PikaHubReceiverThread::~PikaHubReceiverThread() {

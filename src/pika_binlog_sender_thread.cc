@@ -236,7 +236,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
         const char* send_to_hub = scratch.data() + scratch.size() - 3/* 1\r\n */;
         // send_to_hub must be '1' or '0'
         if (*send_to_hub == '0') {
-          LOG(INFO) << "Not send to Hub";
+          // LOG(INFO) << "Not send to Hub";
           // TODO (gaodq)
         }
       }

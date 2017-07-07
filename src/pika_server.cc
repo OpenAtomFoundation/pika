@@ -88,6 +88,7 @@ PikaServer::PikaServer() :
   pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, 3000,
                                                  worker_queue_limit);
   pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(ips, port_ + 1000, 1000);
+  pika_hub_receiver_thread_ = new PikaHubReceiverThread(ips, port_ + 1100, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
@@ -122,6 +123,7 @@ PikaServer::~PikaServer() {
 
   delete pika_trysync_thread_;
   delete ping_thread_;
+  delete pika_hub_receiver_thread_;
   delete pika_binlog_receiver_thread_;
 
   binlogbg_exit_ = true;
@@ -255,6 +257,12 @@ void PikaServer::Start() {
     delete logger_;
     db_.reset();
     LOG(FATAL) << "Start BinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+  }
+  ret = pika_hub_receiver_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start HubBinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
   }
   ret = pika_heartbeat_thread_->StartThread();
   if (ret != pink::kSuccess) {
@@ -844,7 +852,7 @@ Status PikaServer::AddHubBinlogSender(const std::string& ip, int64_t port,
   }
 
   PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(ip,
-      port, readfile, filenum, con_offset);
+      port + 1000, readfile, filenum, con_offset);
 
   if (sender->trim() == 0 && // Error binlog
       slash::IpPortString(ip, port) == pika_hub_.ip_port) {

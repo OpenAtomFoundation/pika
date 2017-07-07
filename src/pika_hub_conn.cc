@@ -36,21 +36,14 @@ int PikaHubConn::DealMessage() {
   //no reply
   //eq set_is_reply(false);
   g_pika_server->PlusThreadQuerynum();
-  if (argv_.size() < 6) { /* 1 command, 5 infomation */
+  if (argv_.size() < 5) { /* 1 command, 4 infomation */
     return -2;
   }
 
   // extra info
   auto iter = argv_.end() - 1;
-  *(iter--) = "0"; // set send_to_hub
-  std::string binlog_info = *(iter--);
-  uint32_t exec_time;
-  uint32_t filenum;
-  uint64_t offset;
-  slash::GetFixed32(&binlog_info, &exec_time);
-  slash::GetFixed32(&binlog_info, &filenum);
-  slash::GetFixed64(&binlog_info, &offset);
-  std::string server_id = *(iter--);
+  *iter = "0"; // set not send_to_hub
+  iter = argv_.end() - 4;
   if (*iter != kPikaBinlogMagic) {
     // Unknow binlog
     return -2;

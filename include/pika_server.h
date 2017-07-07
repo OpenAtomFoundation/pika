@@ -16,6 +16,7 @@
 
 #include "pika_binlog.h"
 #include "pika_binlog_receiver_thread.h"
+#include "pika_hub_receiver_thread.h"
 #include "pika_binlog_sender_thread.h"
 #include "pika_heartbeat_thread.h"
 #include "pika_slaveping_thread.h"
@@ -138,6 +139,7 @@ class PikaServer {
   /*
    * Hub use
    */
+  PikaHubReceiverThread* pika_hub_receiver_thread_;
   void DeleteHub();
   bool TryAddHub(const std::string& ip, int64_t port);
   Status AddHubBinlogSender(const std::string& ip, int64_t port,
