@@ -703,6 +703,8 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
     }
     // We need specify the speed limit for every single file
     ret = slash::RsyncSendFile(*it, target_path, remote);
+
+
     if (0 != ret) {
       LOG(WARNING) << "rsync send file failed! From: " << *it
         << ", To: " << target_path
@@ -1181,9 +1183,7 @@ void PikaServer::AutoDeleteExpiredDump() {
   if (slash::GetChildren(db_sync_path, dump_dir) != 0) {
     return;
   }
-  for (size_t i = 0; i < dump_dir.size(); i++) {
-    LOG(INFO) << dump_dir[i];
-  }
+
   // Handle dump directory
   for (size_t i = 0; i < dump_dir.size(); i++) {
     // Parse filename

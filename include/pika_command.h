@@ -35,6 +35,7 @@ const std::string kCmdNameConfig = "config";
 const std::string kCmdNameMonitor = "monitor";
 const std::string kCmdNameDbsize = "dbsize";
 const std::string kCmdNameTime = "time";
+const std::string kCmdNameDelbackup = "delbackup";
 #ifdef TCMALLOC_EXTENSION
 const std::string kCmdNameTcmalloc = "tcmalloc";
 #endif

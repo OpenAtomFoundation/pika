@@ -1212,6 +1212,38 @@ void TimeCmd::Do() {
   }
 }
 
+void DelbackupCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  (void)ptr_info;
+  if (argv.size() != 1) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDelbackup);
+    return;
+  }
+}
+
+void DelbackupCmd::Do() {
+  std::string db_sync_path = g_pika_conf->bgsave_path();
+  std::vector<std::string> dump_dir;
+
+  // Dump file is not exist
+  if (!slash::FileExists(db_sync_path)) {
+    res_.AppendString(db_sync_path);
+    return;
+  }
+  // Directory traversal
+  if (slash::GetChildren(db_sync_path, dump_dir) != 0) {
+    res_.SetRes(CmdRes::kOk);
+    return;
+  }
+  for (size_t i = 0; i < dump_dir.size(); i++) {
+    if (g_pika_server->CountSyncSlaves() == 0) {
+      LOG(INFO) << "Delete dump file: " << db_sync_path + dump_dir[i];
+      slash::DeleteDirIfExist(db_sync_path + dump_dir[i]);
+    }
+  }
+  res_.SetRes(CmdRes::kOk);
+  return;
+}
+
 #ifdef TCMALLOC_EXTENSION
 void TcmallocCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   (void)ptr_info;
