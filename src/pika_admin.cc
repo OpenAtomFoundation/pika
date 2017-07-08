@@ -1235,19 +1235,19 @@ void DelbackupCmd::Do() {
     return;
   }
 
-  bool clean = false;
+  int len = dump_dir.size();
   for (size_t i = 0; i < dump_dir.size(); i++) {
     if (g_pika_server->CountSyncSlaves() == 0) {
       LOG(INFO) << "Delete dump file: " << db_sync_path + dump_dir[i];
       slash::DeleteDirIfExist(db_sync_path + dump_dir[i]);
+      len--;
     } else if (g_pika_server->bgsave_info().path != dump_dir[i]){
       LOG(INFO) << "Delete dump file: " << db_sync_path + dump_dir[i];
       slash::DeleteDirIfExist(db_sync_path + dump_dir[i]);
-    } else {
-      clean = true;
+      len--;
     }
   }
-  if (clean) {
+  if (len == 0) {
     g_pika_server->bgsave_info().Clear();
   }
 
