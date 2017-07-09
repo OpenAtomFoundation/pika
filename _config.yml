@@ -1,0 +1,8 @@
+title: Pika
+description: A nosql database server
+google_analytics: 
+show_downloads: true
+theme: jekyll-theme-minimal
+
+gems:
+  - jekyll-mentions
