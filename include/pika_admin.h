@@ -237,6 +237,15 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
+class DelbackupCmd : public Cmd {
+public:
+  DelbackupCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
+
 #ifdef TCMALLOC_EXTENSION
 class TcmallocCmd : public Cmd {
 public:

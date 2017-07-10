@@ -254,7 +254,11 @@ class PikaServer {
   };
   void DBSyncSendFile(const std::string& ip, int port);
   bool ChangeDb(const std::string& new_path);
-
+  int CountSyncSlaves() {
+    slash::MutexLock ldb(&db_sync_protector_);
+    return db_sync_slaves_.size();
+  }
+  slash::Mutex & GetSlavesMutex() { return db_sync_protector_; }
 
   //flushall
   bool FlushAll();
