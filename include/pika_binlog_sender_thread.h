@@ -38,6 +38,7 @@ class PikaBinlogSenderThread : public pink::Thread {
   Status Parse(std::string &scratch);
   Status Consume(std::string &scratch);
   unsigned int ReadPhysicalRecord(slash::Slice *fragment);
+  bool ImHubSender();
 
   uint64_t con_offset_;
   uint32_t filenum_;

@@ -146,6 +146,10 @@ unsigned int PikaBinlogSenderThread::ReadPhysicalRecord(slash::Slice *result) {
   return type;
 }
 
+inline bool PikaBinlogSenderThread::ImHubSender() {
+  return g_pika_server->IsHub(ip_);
+}
+
 Status PikaBinlogSenderThread::Consume(std::string &scratch) {
   Status s;
   if (last_record_offset_ < initial_offset_) {
@@ -231,15 +235,14 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
       } else {
         usleep(10000);
       }
-    } else {
-      if (!scratch.empty() && scratch.size() > 3) {
-        const char* send_to_hub = scratch.data() + scratch.size() - 3/* 1\r\n */;
-        // send_to_hub must be '1' or '0'
-        if (*send_to_hub == '0') {
-          // LOG(INFO) << "Not send to Hub";
-          // TODO (gaodq)
-        }
+    } else if (ImHubSender() && scratch.size() > 3) {
+      const char* send_to_hub = scratch.data() + scratch.size() - 3/* 1\r\n */;
+      if (*send_to_hub == '1') {
+        break; // Send this binlog
+      } else {
+        continue; // Next binlog
       }
+    } else {
       break;
     }
   }
