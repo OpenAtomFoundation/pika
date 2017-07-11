@@ -140,14 +140,12 @@ class PikaServer {
    * Hub use
    */
   PikaHubReceiverThread* pika_hub_receiver_thread_;
-  void DeleteHub();
-  bool TryAddHub(const std::string& ip, int64_t port);
-  Status AddHubBinlogSender(const std::string& ip, int64_t port,
-      uint32_t filenum, uint64_t con_offset);
+  Status AddHub(const std::string& ip, int64_t port,
+                uint32_t filenum, uint64_t con_offset);
   bool IsHub(const std::string& ip) {
     return pika_hub_.ip_port.find(ip) != std::string::npos;
   }
-  SlaveItem pika_hub_;
+  SlaveItem pika_hub_; // Hub is a specific slave
 
   /*
    * Server init info

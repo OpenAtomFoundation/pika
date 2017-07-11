@@ -30,11 +30,9 @@ class PikaBinlogSenderThread : public pink::Thread {
   }
 
   int trim();
-  uint64_t get_next(bool &is_error);
-
 
  private:
-
+  uint64_t get_next(bool &is_error);
   Status Parse(std::string &scratch);
   Status Consume(std::string &scratch);
   unsigned int ReadPhysicalRecord(slash::Slice *fragment);

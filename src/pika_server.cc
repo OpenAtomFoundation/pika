@@ -121,6 +121,8 @@ PikaServer::~PikaServer() {
   }
   }
 
+  delete reinterpret_cast<PikaBinlogSenderThread*>(pika_hub_.sender);
+
   delete pika_trysync_thread_;
   delete ping_thread_;
   delete pika_hub_receiver_thread_;
@@ -438,41 +440,6 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   s.sender = NULL;
   slaves_.push_back(s);
   return s.sid;
-}
-
-bool PikaServer::TryAddHub(const std::string& ip, int64_t port) {
-  std::string ip_port = slash::IpPortString(ip, port);
-
-  if (pika_hub_.ip_port == ip_port) {
-    // Already exist
-    return false;
-  }
-
-  // Not exist, so add new
-  LOG(INFO) << "Add hub, " << ip << ":" << port;
-  pika_hub_.sid = 0;
-  pika_hub_.ip_port = ip_port;
-  pika_hub_.port = port;
-  pika_hub_.hb_fd = -1;
-  // TODO (gaodq) need this ?
-  pika_hub_.stage = 0;
-  gettimeofday(&pika_hub_.create_time, NULL);
-  pika_hub_.sender = NULL;
-  return true;
-}
-
-void PikaServer::DeleteHub() {
-  if (pika_hub_.sender != nullptr) {
-    delete reinterpret_cast<PikaBinlogSenderThread*>(pika_hub_.sender);
-  }
-  pika_hub_.sid = 0;
-  pika_hub_.ip_port.clear();
-  pika_hub_.port = 0;
-  pika_hub_.sender_tid = 0;
-  pika_hub_.hb_fd = 0;
-  pika_hub_.stage = 0;
-  pika_hub_.sender = nullptr;
-  pika_hub_.create_time = {0, 0};
 }
 
 // Set binlog sender of SlaveItem
@@ -826,8 +793,18 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
   }
 }
 
-Status PikaServer::AddHubBinlogSender(const std::string& ip, int64_t port,
-                                      uint32_t filenum, uint64_t con_offset) {
+Status PikaServer::AddHub(const std::string& ip, int64_t port,
+                          uint32_t filenum, uint64_t con_offset) {
+  LOG(INFO) << "Add hub, " << ip << ":" << port;
+  std::string ip_port = slash::IpPortString(ip, port);
+  if (pika_hub_.ip_port == ip_port) {
+    // Already exist, maybe different offset
+    delete reinterpret_cast<PikaBinlogSenderThread*>(pika_hub_.sender);
+  }
+  pika_hub_.ip_port = ip_port;
+  pika_hub_.port = port;
+  gettimeofday(&pika_hub_.create_time, NULL);
+
   // Sanitize
   if (con_offset > logger_->file_size()) {
     return Status::InvalidArgument("AddHubBinlogSender invalid offset");
@@ -854,8 +831,7 @@ Status PikaServer::AddHubBinlogSender(const std::string& ip, int64_t port,
   PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(ip,
       port + 1000, readfile, filenum, con_offset);
 
-  if (sender->trim() == 0 && // Error binlog
-      slash::IpPortString(ip, port) == pika_hub_.ip_port) {
+  if (sender->trim() == 0) { // Error binlog
     pika_hub_.sender = sender;
     pika_hub_.sender_tid = sender->thread_id();
     LOG(INFO) << "SetHubSender ok, tid is " << pika_hub_.sender_tid <<

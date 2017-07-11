@@ -16,7 +16,8 @@ extern PikaConf* g_pika_conf;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 PikaHubConn::PikaHubConn(int fd, std::string ip_port,
                                void* worker_specific_data)
-      : RedisConn(fd, ip_port, NULL) {
+      : RedisConn(fd, ip_port, NULL),
+        dummy_info("") {
   hub_receiver_ =
     reinterpret_cast<PikaHubReceiverThread*>(worker_specific_data);
   raw_args_.reserve(RAW_ARGS_LEN);
@@ -36,22 +37,18 @@ int PikaHubConn::DealMessage() {
   //no reply
   //eq set_is_reply(false);
   g_pika_server->PlusThreadQuerynum();
-  if (argv_.size() < 5) { /* 1 command, 4 infomation */
+  if (argv_.empty()) {
     return -2;
   }
 
-  // extra info
-  auto iter = argv_.end() - 1;
-  *iter = "0"; // set not send_to_hub
-  iter = argv_.end() - 4;
-  if (*iter != kPikaBinlogMagic) {
-    // Unknow binlog
-    return -2;
-  }
-
+  // Unused extra info, just for hub binlog sender
+  argv_.push_back(kPikaBinlogMagic);
+  argv_.push_back(g_pika_conf->server_id());
+  argv_.push_back(dummy_info);
+  argv_.push_back("0");
   RestoreArgs();
 
-  argv_.erase(iter, argv_.end());
+  argv_.erase(argv_.end() - 4, argv_.end());
 
   // Monitor related
   if (g_pika_server->HasMonitorClients()) {

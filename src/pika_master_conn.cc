@@ -39,20 +39,17 @@ int PikaMasterConn::DealMessage() {
   //no reply
   //eq set_is_reply(false);
   g_pika_server->PlusThreadQuerynum();
-  if (argv_.size() < 5) { /* 1 command, 4 infomation */
-    return -2;
-  }
-
-  // extra info
-  auto iter = argv_.end() - 4;
-  if (*iter != kPikaBinlogMagic) {
-    // Unknow binlog
+  if (argv_.empty()) {
     return -2;
   }
 
   RestoreArgs();
 
-  argv_.erase(iter, argv_.end());
+  if (argv_.size() > 4 &&
+      *(argv_.end() - 4) == kPikaBinlogMagic) {
+    // Record new binlog format
+    argv_.erase(argv_.end() - 4, argv_.end());
+  }
 
   // Monitor related
   std::string monitor_message;

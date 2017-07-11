@@ -100,7 +100,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     }
     // raw_args = RestoreArgs();
     if (argv_.size() >= 2) {
-      if (argv_[1] == kCmdNameSet) {
+      if (opt == kCmdNameSet) {
         need_send_to_hub = "1";
       }
       g_pika_server->mutex_record_.Lock(argv_[1]);
@@ -127,6 +127,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       slash::PutFixed32(&binlog_info, filenum);
       slash::PutFixed64(&binlog_info, offset);
 
+      // Extra binlog info
       argv_.push_back(kPikaBinlogMagic);
       argv_.push_back(g_pika_conf->server_id());
       argv_.push_back(binlog_info);
