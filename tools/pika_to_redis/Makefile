@@ -22,12 +22,10 @@ LIBS = -Wl,-Bstatic -lnemo -lrocksdb\
 
 
 INCLUDE_PATH = -I../../third/pink/ \
-							 -I../../third/slash/ \
-							 -I../../third/nemo/include/ \
-							 -I../../third/nemo/3rdparty/nemo-rocksdb/include/ \
-							 -I../../third/nemo/3rdparty/nemo-rocksdb/rocksdb/include/ \
-
-#pika/third/pink/include
+			   -I../../third/slash/ \
+			   -I../../third/nemo/include/ \
+			   -I../../third/nemo/3rdparty/nemo-rocksdb/include/ \
+			   -I../../third/nemo/3rdparty/nemo-rocksdb/rocksdb/include/ \
 
 
 .PHONY: all clean

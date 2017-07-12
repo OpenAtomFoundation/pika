@@ -4,6 +4,7 @@
 #include "nemo.h"
 #include "slash/include/slash_mutex.h"
 #include "pink/include/pink_thread.h"
+#include "pink/include/redis_cli.h"
 #include "sender_thread.h"
 
 class ParseThread : public pink::Thread {
