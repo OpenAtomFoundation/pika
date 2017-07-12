@@ -20,6 +20,24 @@ SenderThread::SenderThread(pink::PinkCli *cli) :
     buf_r_cond_(&buf_mutex_),
     buf_w_cond_(&buf_mutex_)
 {
+  std::string authentication = "*2\r\n$4\r\nAUTH\r\n$11\r\nshq19950614\r\n";
+  int fd = cli_->fd();
+  int nwritten = write(fd, authentication.c_str(), authentication.size());
+  if (nwritten == -1) {
+    if (errno != EAGAIN && errno != EINTR) {
+      // std::cout << "Error writting to the server :" << strerror(errno) << std::endl;
+      log_err("Error writting to the server : %s", strerror(errno));
+    } else {
+      nwritten = 0;
+    }
+  }
+  /*
+  char authentication_buff[1024];
+  int nreadlen = read(fd, authentication_buff, 1024);
+  if (nreadlen != 0) {
+    std::cout << authentication_buff;
+  }
+  */
 }
 
 SenderThread::~SenderThread() {
@@ -160,7 +178,7 @@ void *SenderThread::ThreadMain() {
               for(int i = 0; i < 20; i++) {
                 magic[i] = rand() % 26 + 65;
               }
-              memcpy(echo + 21, magic, sizeof(echo) - 1);
+              memcpy(echo + 21, magic, 20);
               memcpy(buf_, echo, sizeof(echo) - 1);
               buf_len_ = sizeof(echo) - 1;
               buf_pos_ = 0;

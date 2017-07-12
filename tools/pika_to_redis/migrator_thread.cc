@@ -3,10 +3,6 @@
 MigratorThread::~MigratorThread() {
 }
 
-void MigratorThread::ComposeCmd(nemo::Iterator * iter,char type) {
-
-}
-
 void MigratorThread::MigrateDB(char type) {
   if (type == nemo::DataType::kKv) {
     nemo::KIterator *iter = db_->KScan("", "", -1, false);

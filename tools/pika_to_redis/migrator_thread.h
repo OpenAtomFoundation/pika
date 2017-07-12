@@ -26,7 +26,6 @@ class MigratorThread : public pink::Thread {
 
   static std::string GetKey(const rocksdb::Iterator *it);
   void MigrateDB(char type);
-  void ComposeCmd(nemo::Iterator * iter, char type);
   void DispatchKey(const std::string &key, char type);
 
   virtual void *ThreadMain();

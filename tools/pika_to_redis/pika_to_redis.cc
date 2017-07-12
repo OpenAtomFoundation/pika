@@ -27,7 +27,7 @@ void HumanTime(int64_t time) {
   int64_t minutes = time / 60;
   int64_t secs = time % 60;
 
-  std::cout << hours << "hour " << minutes << "min " << secs << "s\n";
+  std::cout << hours << " hour " << minutes << " min " << secs << "s\n";
 }
 
 int64_t GetNum() {
@@ -49,8 +49,8 @@ void PrintConf() {
 
 void Usage() {
   std::cout << "Usage: " << std::endl;
-  std::cout << "./pika_to_redis db_path ip port sender_num\n";
-  std::cout << "example: ./pika_to_redis ~/db 127.0.0.1 6379 16\n";
+  std::cout << "      ./pika_to_redis db_path ip port sender_num\n";
+  std::cout << "      example: ./pika_to_redis ~/db 127.0.0.1 6379 16\n";
 }
 
 int64_t NowMicros() {
