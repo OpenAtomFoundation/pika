@@ -35,7 +35,7 @@ SenderThread::SenderThread(pink::PinkCli *cli) :
   char auth_resp[128];
   int nreadlen = read(fd, auth_resp, 128);
   if (nreadlen != 0) {
-    if (auth_resp == "+OK") {
+    if (std::string(auth_resp) == "+OK\r\n") {
       log_info("Authentic success");
     } else {
       log_info("Invalid password");

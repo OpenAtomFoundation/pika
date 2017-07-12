@@ -14,12 +14,13 @@ void ParseThread::ParseKey(const std::string &key,char type) {
   } else if (type == nemo::DataType::kSSize) {
     ParseSKey(key);
   } else if (type == nemo::DataType::kKv) {
-    ParseKKey();
+    ParseKKey(key);
   }
 
   if (type == nemo::DataType::kKv) {
     return;
   }
+
   int64_t ttl;
   // int64_t *ttl = -1;
   db_->TTL(key, &ttl);
@@ -54,30 +55,9 @@ void ParseThread::SetTTL(const std::string &key, int64_t ttl) {
 
 
 
-void ParseThread::ParseKKey() {
-  nemo::KIterator *iter = db_->KScan("", "", -1, false);
-  // SET <key> <vaule> [EX SEC]
-  for (; iter->Valid(); iter->Next()) {
-    pink::RedisCmdArgsType argv;
-    std::string cmd;
-
-    std::string key = iter->key();
-    int64_t ttl;
-    db_->TTL(key, &ttl);
-
-    argv.push_back("SET");
-    argv.push_back(key);
-    argv.push_back(iter->value());
-
-    if (ttl > 0) {
-      argv.push_back("EX");
-      argv.push_back(std::to_string(ttl));
-    }
-
-    pink::SerializeRedisCommand(argv, &cmd);
+void ParseThread::ParseKKey(const std::string &cmd) {
     PlusNum();
     sender_->LoadCmd(cmd);
-  }
 }
 
 void ParseThread::ParseHKey(const std::string &key) {

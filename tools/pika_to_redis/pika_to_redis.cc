@@ -73,7 +73,6 @@ int main(int argc, char **argv)
   if (db_path[db_path.length() - 1] != '/') {
     db_path.append("/");
   }
-
   PrintConf();
 
   // init db
@@ -96,7 +95,7 @@ int main(int argc, char **argv)
   //std::unique_ptr<rocksdb::DB> hash_db_;
   std::shared_ptr<rocksdb::DBNemo> list_db_;
   std::shared_ptr<rocksdb::DBNemo> zset_db_;
-std::shared_ptr<rocksdb::DBNemo> set_db_;
+  std::shared_ptr<rocksdb::DBNemo> set_db_;
 
   rocksdb::DBNemo *db_ttl;
 
@@ -154,10 +153,10 @@ std::shared_ptr<rocksdb::DBNemo> set_db_;
   }
 
   migrators.push_back(new MigratorThread(kv_db_, parsers, nemo::DataType::kKv));
-  migrators.push_back(new MigratorThread(hash_db_, parsers, nemo::DataType::kHSize));
-  migrators.push_back(new MigratorThread(set_db_, parsers, nemo::DataType::kSSize));
+  //migrators.push_back(new MigratorThread(hash_db_, parsers, nemo::DataType::kHSize));
+  //migrators.push_back(new MigratorThread(set_db_, parsers, nemo::DataType::kSSize));
   migrators.push_back(new MigratorThread(list_db_, parsers, nemo::DataType::kLMeta));
-  migrators.push_back(new MigratorThread(zset_db_, parsers, nemo::DataType::kZSize));
+  //migrators.push_back(new MigratorThread(zset_db_, parsers, nemo::DataType::kZSize));
 
   // start threads
   for (size_t i = 0; i < migrators.size(); i++) {
