@@ -70,13 +70,71 @@ int main(int argc, char **argv)
   port = atoi(argv[3]);
   num_thread = atoi(argv[4]);
 
+  if (db_path[db_path.length() - 1] != '/') {
+    db_path.append("/");
+  }
+
   PrintConf();
 
   // init db
   nemo::Options option;
   option.write_buffer_size = 256 * 1024 * 1024; // 256M
   option.target_file_size_base = 20 * 1024 * 1024; // 20M
-  db = new nemo::Nemo(db_path ,option);
+
+  // Open Options
+  rocksdb::Options open_options_;
+  open_options_.create_if_missing = true;
+  open_options_.write_buffer_size =256 * 1024 * 1024; // 256M
+  open_options_.max_manifest_file_size = 64*1024*1024;
+  open_options_.max_log_file_size = 512*1024*1024;
+  open_options_.keep_log_file_num = 10;
+  open_options_.target_file_size_base = 20 * 1024 * 1024; // 20M
+
+
+  std::shared_ptr<rocksdb::DBNemo> kv_db_;
+  std::shared_ptr<rocksdb::DBNemo> hash_db_;
+  //std::unique_ptr<rocksdb::DB> hash_db_;
+  std::shared_ptr<rocksdb::DBNemo> list_db_;
+  std::shared_ptr<rocksdb::DBNemo> zset_db_;
+std::shared_ptr<rocksdb::DBNemo> set_db_;
+
+  rocksdb::DBNemo *db_ttl;
+
+  rocksdb::Status s = rocksdb::DBNemo::Open(open_options_, db_path + "kv", &db_ttl, rocksdb::kMetaPrefixKv);
+  if (!s.ok()) {
+    fprintf (stderr, "[FATAL] open kv db failed, %s\n", s.ToString().c_str());
+    exit(-1);
+  }
+  kv_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
+
+  s = rocksdb::DBNemo::Open(open_options_, db_path + "hash", &db_ttl, rocksdb::kMetaPrefixHash);
+  if (!s.ok()) {
+    fprintf (stderr, "[FATAL] open hash db failed, %s\n", s.ToString().c_str());
+    exit(-1);
+  }
+  hash_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
+
+  s = rocksdb::DBNemo::Open(open_options_, db_path + "list", &db_ttl, rocksdb::kMetaPrefixList);
+  if (!s.ok()) {
+    fprintf (stderr, "[FATAL] open list db failed, %s\n", s.ToString().c_str());
+    exit(-1);
+  }
+  list_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
+
+  s = rocksdb::DBNemo::Open(open_options_, db_path + "zset", &db_ttl, rocksdb::kMetaPrefixZset);
+  if (!s.ok()) {
+    fprintf (stderr, "[FATAL] open zset db failed, %s\n", s.ToString().c_str());
+    exit(-1);
+  }
+  zset_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
+
+  s = rocksdb::DBNemo::Open(open_options_, db_path + "set", &db_ttl, rocksdb::kMetaPrefixSet);
+  if (!s.ok()) {
+    fprintf (stderr, "[FATAL] open set db failed, %s\n", s.ToString().c_str());
+    exit(-1);
+  }
+  set_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
+
 
   // init ParseThread and SenderThread
   slash::Status pink_s;
@@ -95,11 +153,11 @@ int main(int argc, char **argv)
     parsers.push_back(new ParseThread(db, sender));
   }
 
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kKv));
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kHSize));
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kSSize));
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kLMeta));
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kZSize));
+  migrators.push_back(new MigratorThread(kv_db_, parsers, nemo::DataType::kKv));
+  migrators.push_back(new MigratorThread(hash_db_, parsers, nemo::DataType::kHSize));
+  migrators.push_back(new MigratorThread(set_db_, parsers, nemo::DataType::kSSize));
+  migrators.push_back(new MigratorThread(list_db_, parsers, nemo::DataType::kLMeta));
+  migrators.push_back(new MigratorThread(zset_db_, parsers, nemo::DataType::kZSize));
 
   // start threads
   for (size_t i = 0; i < migrators.size(); i++) {

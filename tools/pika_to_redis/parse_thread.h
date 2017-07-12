@@ -30,7 +30,7 @@ private:
   // prase key and generate cmd
   void SetTTL(const std::string &key, int64_t ttl);
   void ParseKey(const std::string &key,char type);
-  void ParseKKey(const std::string &key);
+  void ParseKKey();
   void ParseHKey(const std::string &key);
   void ParseSKey(const std::string &key);
   void ParseZKey(const std::string &key);

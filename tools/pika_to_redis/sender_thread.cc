@@ -31,13 +31,16 @@ SenderThread::SenderThread(pink::PinkCli *cli) :
       nwritten = 0;
     }
   }
-  /*
-  char authentication_buff[1024];
-  int nreadlen = read(fd, authentication_buff, 1024);
+
+  char auth_resp[128];
+  int nreadlen = read(fd, auth_resp, 128);
   if (nreadlen != 0) {
-    std::cout << authentication_buff;
+    if (auth_resp == "+OK") {
+      log_info("Authentic success");
+    } else {
+      log_info("Invalid password");
+    }
   }
-  */
 }
 
 SenderThread::~SenderThread() {

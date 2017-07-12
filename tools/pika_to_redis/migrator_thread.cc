@@ -4,42 +4,19 @@ MigratorThread::~MigratorThread() {
 }
 
 void MigratorThread::MigrateDB(char type) {
-  if (type == nemo::DataType::kKv) {
-    nemo::KIterator *iter = db_->KScan("", "", -1, false);
-    // SET <key> <vaule> [EX SEC]
-    for (; iter->Valid(); iter->Next()) {
-      pink::RedisCmdArgsType argv;
-      std::string cmd;
+    rocksdb::ReadOptions iterate_options;
+    rocksdb::Iterator *it = db_->NewIterator(iterate_options);
+    std::string key_start = "a";
+    key_start[0] = type;
+    it->Seek(key_start);
 
-      std::string key = iter->key();
-      int64_t ttl;
-      db_->TTL(key, &ttl);
-
-      argv.push_back("SET");
-      argv.push_back(key);
-      argv.push_back(iter->value());
-
-      if (ttl > 0) {
-        argv.push_back("EX");
-        argv.push_back(std::to_string(ttl));
+    for (; it->Valid(); it->Next()) {
+      if (type != it->key().ToString().at(0)) {
+        break;
       }
-
-      pink::SerializeRedisCommand(argv, &cmd);
-      DispatchKey(cmd, type);
+      std::string key = it->key().ToString().substr(1);
+      DispatchKey(key, type);
     }
-  }
-  /*
-  else if (type == nemo::DataType::kHash) {
-    nemo::KIterator *iter = db_->HScan("", "", -1, false);
-    ComposeCmd(iter, type);
-  } else if (type == nemo::DataType::kZSet) {
-    nemo::KIterator *iter = db_->ZScan("", "", -1, false);
-    ComposeCmd(iter, type);
-  } else if (type == nemo::DataType::kSet) {
-    nemo::KIterator *iter = db_->SScan("", "", -1, false);
-    ComposeCmd(iter, type);
-  } else {  // List
-  }*/
 }
 
 std::string  MigratorThread::GetKey(const rocksdb::Iterator *it) {
