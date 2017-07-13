@@ -68,18 +68,24 @@ cd output
 3.把gcc版本临时切换到4.8(若已是，则忽略), 在CentOs上执行如下命令：
 
 ```
-	a. sudo rpm --import http://ftp.scientificlinux.org/linux/scientific/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
-	b. sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo -O /etc/yum.repos.d/devtools-2.repo
-	c. sudo yum install -y devtoolset-2-gcc devtoolset-2-binutils devtoolset-2-gcc-c++
-	d. scl enable devtoolset-2 bash
+	a. sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo -O /etc/yum.repos.d/devtools-2.repo
+	b. sudo yum install -y devtoolset-2-gcc devtoolset-2-binutils devtoolset-2-gcc-c++
+	c. scl enable devtoolset-2 bash
 ```
 4.获取源代码
 
 ```
 	git clone --recursive https://github.com/Qihoo360/pika.git && cd pika
 ```
+5.切换到最新release版本
 
-5.编译
+```
+	a. 执行 git tag 查看最新的release tag，（如 v2.2.3）
+	b. 执行 git checkout TAG切换到最新版本，（如 git checkout v2.2.3)
+	c. 执行 git submodule update更新依赖
+```
+
+6.编译
 
 ```
 	make __REL=1
