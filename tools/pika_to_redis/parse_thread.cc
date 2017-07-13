@@ -23,6 +23,7 @@ void ParseThread::ParseKey(const std::string &key,char type) {
 
   int64_t ttl;
   // int64_t *ttl = -1;
+
   db_->TTL(key, &ttl);
   /*
   if (type == nemo::DataType::kHSize) {
@@ -122,7 +123,8 @@ void ParseThread::ParseLKey(const std::string &key) {
   int64_t pos = 0;
   int64_t len = 512;
 
-  db_->LRange(key, pos, pos + len-1, ivs);
+  db_->LRange(key, pos, pos+len-1, ivs);
+
   while (!ivs.empty()) {
     pink::RedisCmdArgsType argv;
     std::string cmd;
@@ -139,7 +141,7 @@ void ParseThread::ParseLKey(const std::string &key) {
 
     pos += len;
     ivs.clear();
-    db_->LRange(key, pos, pos + len-1, ivs);
+    db_->LRange(key, pos, pos+len-1, ivs);
   }
 }
 

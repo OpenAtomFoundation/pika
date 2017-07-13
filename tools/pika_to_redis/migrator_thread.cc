@@ -4,22 +4,19 @@ MigratorThread::~MigratorThread() {
 }
 
 void MigratorThread::MigrateDB(char type) {
-    rocksdb::ReadOptions iterate_options;
-    rocksdb::Iterator *it = db_->NewIterator(iterate_options);
-
     if (type == nemo::DataType::kKv) {
-      std::string start_key = "k";
+      nemo::KIterator *it = db_->KScan("", "", -1, false);
       std::string key, value;
-      it->Seek(start_key);
-      while (it->Valid()) {
-        key = it->key().ToString();
-        value = it->value().ToString();
 
+      while (it->Valid()) {
+        key = it->key();
+        value = it->value();
+        std::cout << key << std::endl;
         pink::RedisCmdArgsType argv;
         std::string cmd;
 
-        int32_t ttl;
-        db_->GetKeyTTL(rocksdb::ReadOptions(), key, &ttl);
+        int64_t ttl;
+        db_->TTL(key, &ttl);
 
         argv.push_back("SET");
         argv.push_back(key);
@@ -33,16 +30,27 @@ void MigratorThread::MigrateDB(char type) {
         DispatchKey(cmd, type);
       }
     } else {
-      std::string key_start;
-      key_start[0] = type;
-      it->Seek(key_start);
-      for (; it->Valid(); it->Next()) {
-        if (type != it->key().ToString().at(0)) {
-          break;
+      char c_type = 'a';
+      switch (type) {
+        case nemo::DataType::kHSize:
+            c_type = 'h';
+            break;
+        case nemo::DataType::kSSize:
+            c_type = 's';
+            break;
+        case nemo::DataType::kLMeta:
+            c_type = 'l';
+            break;
+        case nemo::DataType::kZSize:
+            c_type = 'z';
+            break;
         }
-        std::string key = it->key().ToString().substr(1);
-        std::cout << key << std::endl;
-        DispatchKey(key, type);
+        std::vector<std::string> keys;
+        std::string pattern  = "*";
+        db_->Scanbytype(c_type, pattern, keys);
+        for (size_t i = 0; i < keys.size(); i++) {
+          std::cout << keys[i] << std::endl;
+          DispatchKey(keys[i], type);
       }
     }
 }

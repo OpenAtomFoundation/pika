@@ -73,23 +73,24 @@ int main(int argc, char **argv)
   if (db_path[db_path.length() - 1] != '/') {
     db_path.append("/");
   }
+  std::cout<<db_path << "";
   PrintConf();
 
   // init db
   nemo::Options option;
   option.write_buffer_size = 256 * 1024 * 1024; // 256M
   option.target_file_size_base = 20 * 1024 * 1024; // 20M
+  db = new nemo::Nemo(db_path ,option);
 
   // Open Options
   rocksdb::Options open_options_;
   open_options_.create_if_missing = true;
-  open_options_.write_buffer_size =256 * 1024 * 1024; // 256M
+  open_options_.write_buffer_size = 256 * 1024 * 1024; // 256M
   open_options_.max_manifest_file_size = 64*1024*1024;
   open_options_.max_log_file_size = 512*1024*1024;
   open_options_.keep_log_file_num = 10;
-  open_options_.target_file_size_base = 20 * 1024 * 1024; // 20M
 
-
+/*
   std::shared_ptr<rocksdb::DBNemo> kv_db_;
   std::shared_ptr<rocksdb::DBNemo> hash_db_;
   //std::unique_ptr<rocksdb::DB> hash_db_;
@@ -133,7 +134,7 @@ int main(int argc, char **argv)
     exit(-1);
   }
   set_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
-
+*/
 
   // init ParseThread and SenderThread
   slash::Status pink_s;
@@ -152,11 +153,11 @@ int main(int argc, char **argv)
     parsers.push_back(new ParseThread(db, sender));
   }
 
-  migrators.push_back(new MigratorThread(kv_db_, parsers, nemo::DataType::kKv));
-  //migrators.push_back(new MigratorThread(hash_db_, parsers, nemo::DataType::kHSize));
-  //migrators.push_back(new MigratorThread(set_db_, parsers, nemo::DataType::kSSize));
-  migrators.push_back(new MigratorThread(list_db_, parsers, nemo::DataType::kLMeta));
-  //migrators.push_back(new MigratorThread(zset_db_, parsers, nemo::DataType::kZSize));
+  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kKv));
+  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kHSize));
+  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kSSize));
+  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kLMeta));
+  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kZSize));
 
   // start threads
   for (size_t i = 0; i < migrators.size(); i++) {

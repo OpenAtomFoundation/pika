@@ -7,7 +7,7 @@
 
 class MigratorThread : public pink::Thread {
  public:
-  MigratorThread(std::shared_ptr<rocksdb::DBNemo> db, std::vector<ParseThread*> &parsers, char type) :
+  MigratorThread(nemo::Nemo *db, std::vector<ParseThread*> &parsers, char type) :
       db_(db),
       parsers_(parsers),
       type_(type),
@@ -18,7 +18,7 @@ class MigratorThread : public pink::Thread {
   virtual ~ MigratorThread();
   bool should_exit_;
  private:
-  std::shared_ptr<rocksdb::DBNemo> db_;
+  nemo::Nemo *db_;
   std::vector<ParseThread*> parsers_;
   char type_;
   int thread_index_;
