@@ -9,6 +9,7 @@
 
 const int64_t kTestPoint = 500000;
 const int64_t kTestNum = LLONG_MAX;
+const int64_t kDataSetNum = 5;
 
 std::string db_path = "/home/yinshucheng/test/db";
 std::string ip = "127.0.0.1";
@@ -27,13 +28,13 @@ void HumanTime(int64_t time) {
   int64_t minutes = time / 60;
   int64_t secs = time % 60;
 
-  std::cout << hours << " hour " << minutes << " min " << secs << "s\n";
+  std::cout << hours << " hour " << minutes << " min " << secs << " s\n";
 }
 
 int64_t GetNum() {
   int64_t num = 0;
-  for (size_t i = 0; i < num_thread; i++) {
-    num += parsers[i]->num();
+  for (size_t i = 0; i < migrators.size(); i++) {
+    num += migrators[i]->num();
   }
   return num;
 }
@@ -74,6 +75,8 @@ int main(int argc, char **argv)
     db_path.append("/");
   }
   std::cout<<db_path << "";
+
+  bool should_exit = true;
   PrintConf();
 
   // init db
@@ -138,7 +141,7 @@ int main(int argc, char **argv)
 
   // init ParseThread and SenderThread
   slash::Status pink_s;
-  for (size_t i = 0; i < num_thread; i++) {
+  for (size_t i = 0; i < kDataSetNum; i++) {
      // init a redis-cli
     pink::PinkCli *cli = pink::NewRedisCli();
     cli->set_connect_timeout(3000);
@@ -150,27 +153,29 @@ int main(int argc, char **argv)
     }
     SenderThread *sender = new SenderThread(cli);
     senders.push_back(sender);
-    parsers.push_back(new ParseThread(db, sender));
+    //parsers.push_back(new ParseThread(db, sender));
   }
 
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kKv));
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kHSize));
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kSSize));
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kLMeta));
-  migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kZSize));
+  //migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kKv));
+  //migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kHSize));
+  //migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kSSize));
+  migrators.push_back(new MigratorThread(db, senders[3], nemo::DataType::kLMeta));
+  //migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kZSize));
 
   // start threads
   for (size_t i = 0; i < migrators.size(); i++) {
     migrators[i]->StartThread();
   }
-  for (size_t i = 0; i < num_thread; i++) {
-    parsers[i]->StartThread();
+  for (size_t i = 0; i < kDataSetNum; i++) {
+    //parsers[i]->StartThread();
     senders[i]->StartThread();
   }
 
+
   int64_t start_time = NowMicros();
   int times = 1;
-  while(1) {
+  /*
+  while(!should_exit) {
     sleep(1);
     int64_t num = GetNum();
     if (num >= kTestPoint * times) {
@@ -181,13 +186,14 @@ int main(int argc, char **argv)
     }
 
     // check if all migrators have exited
-    bool should_exit = true;
+
     for (size_t i = 0; i < migrators.size(); i++) {
       if (!migrators[i]->should_exit_) {
         should_exit = false;
         break;
       }
     }
+
 
     if (num >= kTestNum) {
       should_exit = true;
@@ -201,16 +207,19 @@ int main(int argc, char **argv)
       break;
     }
   }
+  */
 
-  for (size_t i = 0; i < num_thread; i++) {
-    parsers[i]->JoinThread();
+  for (size_t i = 0; i < kDataSetNum; i++) {
+    //parsers[i]->JoinThread();
+    //migrators[i]->JoinThread();
     senders[i]->JoinThread();
   }
+
 
   int64_t replies = 0;
   int64_t errors = 0;
   int64_t records = GetNum();
-  for (size_t i = 0; i < num_thread; i++) {
+  for (size_t i = 0; i < kDataSetNum; i++) {
     replies += senders[i]->elements();
     errors += senders[i]->err();
   }
@@ -218,8 +227,8 @@ int main(int argc, char **argv)
   for (size_t i = 0; i < migrators.size(); i++) {
     delete migrators[i];
   }
-  for (size_t i = 0; i < num_thread; i++) {
-    delete parsers[i];
+  for (size_t i = 0; i < 5; i++) {
+    //delete parsers[i];
     delete senders[i];
   }
 
@@ -227,9 +236,9 @@ int main(int argc, char **argv)
   int64_t curr = NowMicros() - start_time;
   std::cout << "Running time  :";
   HumanTime(curr);
-  std::cout << "Total records :" << records << " have been migreated\n";
-  std::cout << "Total replies :" << replies << " received from redis server\n";
-  std::cout << "Total errors  :" << errors << " received from redis server\n";
+  std::cout << "Total records : " << records << " have been migreated\n";
+  std::cout << "Total replies : " << replies << " received from redis server\n";
+  std::cout << "Total errors  : " << errors << " received from redis server\n";
   delete db;
   return 0;
 }

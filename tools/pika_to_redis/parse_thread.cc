@@ -54,10 +54,9 @@ void ParseThread::SetTTL(const std::string &key, int64_t ttl) {
   sender_->LoadCmd(cmd);
 }
 
-
-
 void ParseThread::ParseKKey(const std::string &cmd) {
     PlusNum();
+    std::cout << cmd << std::endl;
     sender_->LoadCmd(cmd);
 }
 
@@ -134,6 +133,7 @@ void ParseThread::ParseLKey(const std::string &key) {
 
     for (it = ivs.begin(); it != ivs.end(); ++it) {
       PlusNum();
+      std::cout << "list key " << key << " list value " << it->val << std::endl;
       argv.push_back(it->val);
     }
     pink::SerializeRedisCommand(argv, &cmd);

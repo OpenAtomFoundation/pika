@@ -20,6 +20,8 @@ SenderThread::SenderThread(pink::PinkCli *cli) :
     buf_r_cond_(&buf_mutex_),
     buf_w_cond_(&buf_mutex_)
 {
+  /*
+  // Auth
   std::string authentication = "*2\r\n$4\r\nAUTH\r\n$11\r\nshq19950614\r\n";
   int fd = cli_->fd();
   int nwritten = write(fd, authentication.c_str(), authentication.size());
@@ -41,6 +43,7 @@ SenderThread::SenderThread(pink::PinkCli *cli) :
       log_info("Invalid password");
     }
   }
+  */
 }
 
 SenderThread::~SenderThread() {
