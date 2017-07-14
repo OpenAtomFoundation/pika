@@ -156,11 +156,11 @@ int main(int argc, char **argv)
     //parsers.push_back(new ParseThread(db, sender));
   }
 
-  //migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kKv));
-  //migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kHSize));
-  //migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kSSize));
+  migrators.push_back(new MigratorThread(db, senders[0], nemo::DataType::kKv));
+  migrators.push_back(new MigratorThread(db, senders[1], nemo::DataType::kHSize));
+  migrators.push_back(new MigratorThread(db, senders[2], nemo::DataType::kSSize));
   migrators.push_back(new MigratorThread(db, senders[3], nemo::DataType::kLMeta));
-  //migrators.push_back(new MigratorThread(db, parsers, nemo::DataType::kZSize));
+  migrators.push_back(new MigratorThread(db, senders[4], nemo::DataType::kZSize));
 
   // start threads
   for (size_t i = 0; i < migrators.size(); i++) {
