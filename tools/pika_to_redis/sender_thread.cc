@@ -149,7 +149,8 @@ void *SenderThread::ThreadMain() {
 
             if (type == REDIS_REPLY_ERROR) {
               err_++;
-              log_warn("%s", std::string(p, len).data());
+              log_err("%s", std::string(p, len).data());
+              return NULL;
             } else {
               elements_++;
               // Recive command "ECHO magic" reply

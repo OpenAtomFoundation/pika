@@ -184,7 +184,7 @@ int main(int argc, char **argv)
   int64_t curr = NowMicros() - start_time;
   std::cout << "Running time  :";
   HumanTime(curr);
-  std::cout << "Total records : " << records << " have been migreated\n";
+  std::cout << "Total records : " << records << " have been Scaned\n";
   std::cout << "Total replies : " << replies << " received from redis server\n";
   std::cout << "Total errors  : " << errors << " received from redis server\n";
   delete db;
