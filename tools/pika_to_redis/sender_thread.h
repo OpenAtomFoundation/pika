@@ -10,7 +10,7 @@
 
 class SenderThread : public pink::Thread{
 public:
-  SenderThread(pink::PinkCli *cli);
+  SenderThread(pink::PinkCli *cli, std::string password);
   ~SenderThread();
   void LoadCmd(const std::string &cmd);
   void Stop();
@@ -25,11 +25,12 @@ public:
 private:
   static const int kReadable = 1;
   static const int kWritable = 2;
-  static const size_t kBufSize = 2097152; //2M
+  static const size_t kBufSize = 2097152; // 2M
   static const size_t kWirteLoopMaxBYTES = 1024 * 2048; // 10k cmds
 
   int Wait(int fd, int mask, long long milliseconds);
 
+  std::string password_;
   pink::PinkCli *cli_;
   char buf_[kBufSize];
   size_t buf_len_ = 0;

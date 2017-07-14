@@ -11,12 +11,12 @@ const int64_t kTestPoint = 500000;
 const int64_t kTestNum = LLONG_MAX;
 const int64_t kDataSetNum = 5;
 
-std::string db_path = "/home/yinshucheng/test/db";
-std::string ip = "127.0.0.1";
-int port = 6379;
-size_t num_thread = 12;
+std::string db_path;
+std::string ip;
+int port;
+std::string password;
 
-std::vector<ParseThread*> parsers;
+//std::vector<ParseThread*> parsers;
 std::vector<SenderThread*> senders;
 std::vector<MigratorThread*> migrators;
 nemo::Nemo *db;
@@ -41,17 +41,17 @@ int64_t GetNum() {
 
 void PrintConf() {
   std::cout << "db_path : " << db_path << std::endl;
-  std::cout << "ip : " << ip << std::endl;
-  std::cout << "port : " << port << std::endl;
-  std::cout << "num_sender : " << num_thread << std::endl;
+  std::cout << "redis ip : " << ip << std::endl;
+  std::cout << "redis port : " << port << std::endl;
+  //std::cout << "num_sender : " << num_thread << std::endl;
   std::cout << "====================================" << std::endl;
 
 }
 
 void Usage() {
   std::cout << "Usage: " << std::endl;
-  std::cout << "      ./pika_to_redis db_path ip port sender_num\n";
-  std::cout << "      example: ./pika_to_redis ~/db 127.0.0.1 6379 16\n";
+  std::cout << "      ./pika_to_redis db_path ip port [password]\n";
+  std::cout << "      example: ./pika_to_redis ~/db 127.0.0.1 6379 123456\n";
 }
 
 int64_t NowMicros() {
@@ -62,21 +62,21 @@ int64_t NowMicros() {
 
 int main(int argc, char **argv)
 {
-  if (argc != 5) {
+  if (argc < 4) {
     Usage();
     return -1;
   }
   db_path = std::string(argv[1]);
   ip = std::string(argv[2]);
   port = atoi(argv[3]);
-  num_thread = atoi(argv[4]);
+  if (argc == 5) {
+    password = std::string(argv[4]);
+  }
 
   if (db_path[db_path.length() - 1] != '/') {
     db_path.append("/");
   }
-  std::cout<<db_path << "";
 
-  bool should_exit = true;
   PrintConf();
 
   // init db
@@ -93,51 +93,6 @@ int main(int argc, char **argv)
   open_options_.max_log_file_size = 512*1024*1024;
   open_options_.keep_log_file_num = 10;
 
-/*
-  std::shared_ptr<rocksdb::DBNemo> kv_db_;
-  std::shared_ptr<rocksdb::DBNemo> hash_db_;
-  //std::unique_ptr<rocksdb::DB> hash_db_;
-  std::shared_ptr<rocksdb::DBNemo> list_db_;
-  std::shared_ptr<rocksdb::DBNemo> zset_db_;
-  std::shared_ptr<rocksdb::DBNemo> set_db_;
-
-  rocksdb::DBNemo *db_ttl;
-
-  rocksdb::Status s = rocksdb::DBNemo::Open(open_options_, db_path + "kv", &db_ttl, rocksdb::kMetaPrefixKv);
-  if (!s.ok()) {
-    fprintf (stderr, "[FATAL] open kv db failed, %s\n", s.ToString().c_str());
-    exit(-1);
-  }
-  kv_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
-
-  s = rocksdb::DBNemo::Open(open_options_, db_path + "hash", &db_ttl, rocksdb::kMetaPrefixHash);
-  if (!s.ok()) {
-    fprintf (stderr, "[FATAL] open hash db failed, %s\n", s.ToString().c_str());
-    exit(-1);
-  }
-  hash_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
-
-  s = rocksdb::DBNemo::Open(open_options_, db_path + "list", &db_ttl, rocksdb::kMetaPrefixList);
-  if (!s.ok()) {
-    fprintf (stderr, "[FATAL] open list db failed, %s\n", s.ToString().c_str());
-    exit(-1);
-  }
-  list_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
-
-  s = rocksdb::DBNemo::Open(open_options_, db_path + "zset", &db_ttl, rocksdb::kMetaPrefixZset);
-  if (!s.ok()) {
-    fprintf (stderr, "[FATAL] open zset db failed, %s\n", s.ToString().c_str());
-    exit(-1);
-  }
-  zset_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
-
-  s = rocksdb::DBNemo::Open(open_options_, db_path + "set", &db_ttl, rocksdb::kMetaPrefixSet);
-  if (!s.ok()) {
-    fprintf (stderr, "[FATAL] open set db failed, %s\n", s.ToString().c_str());
-    exit(-1);
-  }
-  set_db_ = std::shared_ptr<rocksdb::DBNemo>(db_ttl);
-*/
 
   // init ParseThread and SenderThread
   slash::Status pink_s;
@@ -151,9 +106,8 @@ int main(int argc, char **argv)
       log_err("cann't connect %s:%d:%s\n", ip.data(), port, pink_s.ToString().data());
       return -1;
     }
-    SenderThread *sender = new SenderThread(cli);
+    SenderThread *sender = new SenderThread(cli, password);
     senders.push_back(sender);
-    //parsers.push_back(new ParseThread(db, sender));
   }
 
   migrators.push_back(new MigratorThread(db, senders[0], nemo::DataType::kKv));
@@ -173,7 +127,6 @@ int main(int argc, char **argv)
 
 
   int64_t start_time = NowMicros();
-  int times = 1;
   /*
   while(!should_exit) {
     sleep(1);
@@ -210,8 +163,6 @@ int main(int argc, char **argv)
   */
 
   for (size_t i = 0; i < kDataSetNum; i++) {
-    //parsers[i]->JoinThread();
-    //migrators[i]->JoinThread();
     senders[i]->JoinThread();
   }
 
@@ -224,11 +175,8 @@ int main(int argc, char **argv)
     errors += senders[i]->err();
   }
 
-  for (size_t i = 0; i < migrators.size(); i++) {
+  for (size_t i = 0; i < kDataSetNum; i++) {
     delete migrators[i];
-  }
-  for (size_t i = 0; i < 5; i++) {
-    //delete parsers[i];
     delete senders[i];
   }
 

@@ -13,38 +13,15 @@ enum REDIS_STATUS {
   REDIS_REPLY_ERROR
 };
 
-SenderThread::SenderThread(pink::PinkCli *cli) :
+SenderThread::SenderThread(pink::PinkCli *cli, std::string password):
+    password_(password),
     cli_(cli),
     buf_len_(0),
     buf_pos_(0),
     buf_r_cond_(&buf_mutex_),
     buf_w_cond_(&buf_mutex_)
-{
-  /*
-  // Auth
-  std::string authentication = "*2\r\n$4\r\nAUTH\r\n$11\r\nshq19950614\r\n";
-  int fd = cli_->fd();
-  int nwritten = write(fd, authentication.c_str(), authentication.size());
-  if (nwritten == -1) {
-    if (errno != EAGAIN && errno != EINTR) {
-      // std::cout << "Error writting to the server :" << strerror(errno) << std::endl;
-      log_err("Error writting to the server : %s", strerror(errno));
-    } else {
-      nwritten = 0;
-    }
+  {
   }
-
-  char auth_resp[128];
-  int nreadlen = read(fd, auth_resp, 128);
-  if (nreadlen != 0) {
-    if (std::string(auth_resp) == "+OK\r\n") {
-      log_info("Authentic success");
-    } else {
-      log_info("Invalid password");
-    }
-  }
-  */
-}
 
 SenderThread::~SenderThread() {
   delete cli_;
@@ -95,6 +72,29 @@ void SenderThread::Stop() {
 
 void *SenderThread::ThreadMain() {
   int fd = cli_->fd();
+  // Auth
+  if (!password_.empty()) {
+    std::string authentication = "*2\r\n$4\r\nAUTH\r\n$" + std::to_string(password_.size()) + "\r\n" + password_ + "\r\n";
+    int nwritten = write(fd, authentication.c_str(), authentication.size());
+    if (nwritten == -1) {
+      if (errno != EAGAIN && errno != EINTR) {
+        log_err("Error writting to the server : %s", strerror(errno));
+      } else {
+        nwritten = 0;
+      }
+    }
+
+    char auth_resp[128];
+    int nreadlen = read(fd, auth_resp, 128);
+    if (nreadlen != 0) {
+      if (std::string(auth_resp) == "+OK\r\n") {
+        log_info("Authentic success");
+      } else {
+        log_info("Invalid password");
+        return NULL;
+      }
+    }
+  }
   char magic[20];
   srand(time(NULL));
   int eof = 0;

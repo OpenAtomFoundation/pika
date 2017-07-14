@@ -11,7 +11,6 @@ void MigratorThread::MigrateDB(char type) {
       while (it->Valid()) {
         key = it->key();
         value = it->value();
-        std::cout << key << " " << value << std::endl;
         pink::RedisCmdArgsType argv;
         std::string cmd;
 
@@ -64,12 +63,12 @@ void MigratorThread::MigrateDB(char type) {
 std::string  MigratorThread::GetKey(const rocksdb::Iterator *it) {
   return it->key().ToString().substr(1);
 }
-
+/*
 void MigratorThread::DispatchKey(const std::string &key, char type) {
   parsers_[thread_index_]->Schedul(key, type);
   thread_index_ = (thread_index_ + 1) % num_thread_;
 }
-
+*/
 void MigratorThread::ParseKey(const std::string &key,char type) {
   if (type == nemo::DataType::kHSize) {
     ParseHKey(key);

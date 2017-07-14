@@ -3,7 +3,7 @@
 
 #include "nemo.h"
 #include "pink/include/redis_cli.h"
-#include "parse_thread.h"
+#include "sender_thread.h"
 
 class MigratorThread : public pink::Thread {
  public:
@@ -35,11 +35,11 @@ class MigratorThread : public pink::Thread {
   bool should_exit_;
  private:
   nemo::Nemo *db_;
-  std::vector<ParseThread*> parsers_;
+  //std::vector<ParseThread*> parsers_;
   SenderThread *sender_;
   char type_;
   int thread_index_;
-  int num_thread_;
+  //int num_thread_;
 
   static std::string GetKey(const rocksdb::Iterator *it);
   void MigrateDB(char type);

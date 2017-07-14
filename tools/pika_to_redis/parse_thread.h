@@ -1,3 +1,4 @@
+/*
 #ifndef PARSE_THREAD_H_
 #define PARSE_THREAD_H_
 
@@ -63,3 +64,4 @@ private:
   virtual void *ThreadMain();
 };
 #endif
+*/

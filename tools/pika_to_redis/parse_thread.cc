@@ -1,3 +1,4 @@
+/*
 #include "parse_thread.h"
 
 ParseThread::~ParseThread() {
@@ -25,7 +26,7 @@ void ParseThread::ParseKey(const std::string &key,char type) {
   // int64_t *ttl = -1;
 
   db_->TTL(key, &ttl);
-  /*
+  
   if (type == nemo::DataType::kHSize) {
     db_->HTTL(key, &ttl);
   } else if (type == nemo::DataType::kSSize) {
@@ -35,7 +36,7 @@ void ParseThread::ParseKey(const std::string &key,char type) {
   } else if (type == nemo::DataType::kZSize) {
     db_->ZTTL(key, &ttl);
   }
-  */
+  
   // no kv, because kv cmd: SET key value ttl
   SetTTL(key, ttl);
 
@@ -192,3 +193,5 @@ void *ParseThread::ThreadMain() {
   std::cout << "Parser " <<  pthread_self() << " exit \n";
   return NULL;
 }
+
+*/
