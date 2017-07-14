@@ -11,7 +11,7 @@ void MigratorThread::MigrateDB(char type) {
       while (it->Valid()) {
         key = it->key();
         value = it->value();
-        /*
+        std::cout << key << " " << value << std::endl;
         pink::RedisCmdArgsType argv;
         std::string cmd;
 
@@ -25,15 +25,16 @@ void MigratorThread::MigrateDB(char type) {
           argv.push_back("EX");
           argv.push_back(std::to_string(ttl));
         }
-        */
+        
         it->Next();
-        /*
         pink::SerializeRedisCommand(argv, &cmd);
-        */
-        std::cout << key << " " << value << std::endl;
-        ParseKey(key, type);
+        PlusNum();
+        sender_->LoadCmd(cmd);
+
+        //ParseKey(key, type);
         //DispatchKey(cmd, type);
       }
+      delete it;
     } else {
       char c_type = 'a';
       switch (type) {
@@ -54,7 +55,6 @@ void MigratorThread::MigrateDB(char type) {
         std::string pattern  = "*";
         db_->Scanbytype(c_type, pattern, keys);
         for (size_t i = 0; i < keys.size(); i++) {
-          std::cout << keys[i] << std::endl;
           ParseKey(keys[i], type);
           //DispatchKey(keys[i], type);
       }
@@ -124,7 +124,6 @@ void MigratorThread::SetTTL(const std::string &key, int64_t ttl) {
 
 void MigratorThread::ParseKKey(const std::string &cmd) {
     PlusNum();
-    std::cout << cmd << std::endl;
     sender_->LoadCmd(cmd);
 }
 
@@ -201,7 +200,6 @@ void MigratorThread::ParseLKey(const std::string &key) {
 
     for (it = ivs.begin(); it != ivs.end(); ++it) {
       PlusNum();
-      std::cout << "list key " << key << " list value " << it->val << std::endl;
       argv.push_back(it->val);
     }
     pink::SerializeRedisCommand(argv, &cmd);
