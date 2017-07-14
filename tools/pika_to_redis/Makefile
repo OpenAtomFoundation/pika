@@ -41,11 +41,11 @@ all: $(OBJECT)
 
 #$(OBJECT): $(OBJECT).o
 #p2r : p2r.o worker_thread.o parse_thread.o sender_thread.o
-pika_to_redis : pika_to_redis.o migrator_thread.o sender_thread.o parse_thread.o
+pika_to_redis : pika_to_redis.o migrator_thread.o sender_thread.o
 	$(GCC) $(CPPFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
-p2r_test_correct : p2r_test_correct.o
-	$(GCC) $(CPPFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+#p2r_test_correct : p2r_test_correct.o
+#	$(GCC) $(CPPFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 %.o : %.cc
 	$(GCC) $(CPPFLAGS) -c $< -o $@ $(INCLUDE_PATH)

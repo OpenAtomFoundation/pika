@@ -3,7 +3,6 @@
 #include <sstream>
 #include "pink/include/redis_cli.h"
 #include "nemo.h"
-#include "parse_thread.h"
 #include "sender_thread.h"
 #include "migrator_thread.h"
 
