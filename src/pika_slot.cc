@@ -1005,7 +1005,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do() {
 
     bool ret = g_pika_server->SlotsMigrateBatch(dest_ip_, dest_port_, timeout_ms_, slot_num_, keys_num_);
     if (!ret) {
-        LOG(ERROR) << "Slots migrate batch keys error";
+        LOG(WARNING) << "Slots migrate batch keys error";
         res_.SetRes(CmdRes::kErrOther, "Slots migrating keys Batch error");
         return;
     }
@@ -1017,7 +1017,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do() {
         res_.AppendInteger(moved);
         res_.AppendInteger(remained);
     } else {
-        LOG(ERROR) << "Slots migrate batch keys get result error";
+        LOG(WARNING) << "Slots migrate batch keys get result error";
         res_.SetRes(CmdRes::kErrOther, "Slots migrating keys Batch get result error");
         return;
     }
@@ -1156,7 +1156,7 @@ int SlotsMgrtSenderThread::SlotsMigrateOne(const std::string &key){
         if (s.IsNotFound()) {
             return 0;
         } else {
-            LOG(ERROR) << "Migrate one key: "<< key <<" error: " <<strerror(errno);
+            LOG(WARNING) << "Migrate one key: "<< key <<" error: " <<strerror(errno);
             return -1;
         }
     }
@@ -1173,7 +1173,7 @@ int SlotsMgrtSenderThread::SlotsMigrateOne(const std::string &key){
     }else if (type_str=="none"){
         return 0;
     }else{
-        LOG(ERROR) << "Migrate  key: "<<key <<" type: " << type_str << " is  illegal";
+        LOG(WARNING) << "Migrate  key: "<<key <<" type: " << type_str << " is  illegal";
         return -1;
     }
 
@@ -1182,10 +1182,10 @@ int SlotsMgrtSenderThread::SlotsMigrateOne(const std::string &key){
     // so need to check if the key exists first, if not exists the proxy forwards the request to destination server
     // if the key exists, it is an error which should not happen.
     if(slot_num != slot_num_ ) {
-        LOG(ERROR) << "Slot : "<<slot_num <<" is not the migrating slot:" << slot_num_;
+        LOG(WARNING) << "Slot : "<<slot_num <<" is not the migrating slot:" << slot_num_;
         return -1;
     } else if(!is_migrating_) {
-        LOG(ERROR) << "Slot : "<<slot_num <<" is not migrating";
+        LOG(WARNING) << "Slot : "<<slot_num <<" is not migrating";
         return -1;
     }
 
@@ -1202,7 +1202,7 @@ int SlotsMgrtSenderThread::SlotsMigrateOne(const std::string &key){
     s = g_pika_server->db()->SRem(slotKey, key_type+key, &remained);
     if (!s.ok()) {
         // s.IsNotFound() is also error, key found in db but not in slotkey, run slotsreload cmd first
-        LOG(ERROR) << "Migrate key: "<< key <<" srem from slotkey error: " <<strerror(errno);
+        LOG(WARNING) << "Migrate key: "<< key <<" srem from slotkey error: " <<strerror(errno);
         return -1;
     }
 
@@ -1221,7 +1221,7 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
         keys_num_ = keys_num;
         bool ret = ElectMigrateKeys();
         if (!ret) {
-            LOG(ERROR) << "Slots migrating sender get batch keys error";
+            LOG(WARNING) << "Slots migrating sender get batch keys error";
             is_migrating_ = false;
             return false;
         }
@@ -1239,7 +1239,7 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
         is_migrating_ = true;
         bool ret = ElectMigrateKeys();
         if (!ret) {
-            LOG(ERROR) << "Slots migrating sender get batch keys error";
+            LOG(WARNING) << "Slots migrating sender get batch keys error";
             is_migrating_ = false;
             return false;
         }
@@ -1253,7 +1253,7 @@ bool SlotsMgrtSenderThread::GetSlotsMigrateResul(int64_t *moved, int64_t *remain
     slotsmgrt_cond_.TimedWait(timeout_ms_);
     *moved = moved_keys_num_;
     if(*moved < 0) {
-        LOG(ERROR) << "Slots migrate error in slot: " << slot_num_;
+        LOG(WARNING) << "Slots migrate error in slot: " << slot_num_;
         return false;
     }
     *remained = remained_keys_num_;
@@ -1297,7 +1297,7 @@ bool SlotsMgrtSenderThread::ElectMigrateKeys(){
         LOG(WARNING) << "No keys in slot: " << slot_num_;
         return true;
     } else if(db_remained_keys < 0) {
-        LOG(ERROR) << "Scard slotkey error in slot: " << slot_num_;
+        LOG(WARNING) << "Scard slotkey error in slot: " << slot_num_;
         return false;
     }
     std::string tkey, key;
@@ -1316,7 +1316,7 @@ bool SlotsMgrtSenderThread::ElectMigrateKeys(){
                 LOG(INFO) << "Zrem key "<< key <<" not found";
                 continue;
             } else {
-                LOG(ERROR) << "Zrem key: " << key <<" from slotKey, error: " <<strerror(errno);
+                LOG(WARNING) << "Zrem key: " << key <<" from slotKey, error: " <<strerror(errno);
                 std::vector<std::pair<const char, std::string>>().swap(migrating_batch_);
                 return false;
             }
@@ -1350,12 +1350,13 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                     std::vector<std::pair<const char, std::string>>().swap(migrating_ones_);
                 }
 
-                // migrate keys batch
-                {
+                iter = migrating_batch_.begin();
+                while(iter != migrating_batch_.end()) {
+                    size_t j = 0;
                     slash::RWLock lb(&rwlock_batch_, false);
-                    for (iter = migrating_batch_.begin(); iter != migrating_batch_.end(); iter++) {
+                    for (; (iter != migrating_batch_.end()) && (j<200); iter++,j++) {
                         if (MigrateOneKey(cli_, iter->second, iter->first) < 0){
-                            LOG(ERROR) << "Migrate batch key: " << iter->second <<" error: ";
+                            LOG(WARNING) << "Migrate batch key: " << iter->second <<" error: ";
                             slotsmgrt_cond_.Signal();
                             is_migrating_ = false;
                             should_exit_ = true;
@@ -1364,6 +1365,13 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                         moved_keys_num_++;
                         moved_keys_all_++;
                         remained_keys_num_--;
+                    }
+                    for(; j>0; j-- ) {
+                        pink::Status s;
+                        s = cli_->Recv(NULL);
+                        if (!s.ok()) {
+                            break;
+                        }
                     }
                 }
 
@@ -1382,7 +1390,7 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                 slotsmgrt_cond_.Signal();
             }
         } else {
-            LOG(ERROR)  << "Slots Migrate Sender Connect server(" << dest_ip_ << ":" << dest_port_ << ") error";
+            LOG(WARNING)  << "Slots Migrate Sender Connect server(" << dest_ip_ << ":" << dest_port_ << ") error";
             moved_keys_num_ = -1;
             is_migrating_ = false;
             should_exit_ = true;
