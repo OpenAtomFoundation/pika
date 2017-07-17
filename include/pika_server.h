@@ -145,6 +145,12 @@ class PikaServer {
   bool IsHub(const std::string& ip) {
     return pika_hub_.ip_port.find(ip) != std::string::npos;
   }
+  void HubConnected() {
+    slash::MutexLock l(&hub_mutex_);
+    pika_hub_.stage = SLAVE_ITEM_STAGE_TWO;
+  }
+  void DeleteHub(const std::string& ip_port);
+  slash::Mutex hub_mutex_;
   SlaveItem pika_hub_; // Hub is a specific slave
 
   /*

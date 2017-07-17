@@ -261,7 +261,6 @@ void* PikaBinlogSenderThread::ThreadMain() {
   scratch.reserve(1024 * 1024);
 
   while (!should_stop()) {
-
     sleep(1);
     // 1. Connect to slave
     result = cli_->Connect(ip_, port_, g_pika_server->host());
@@ -293,7 +292,6 @@ void* PikaBinlogSenderThread::ThreadMain() {
         } else {
           last_send_flag = false;
           DLOG(INFO) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") failed,  " << result.ToString();
-          //close(sockfd_);
           break;
         }
       }

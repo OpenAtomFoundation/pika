@@ -41,5 +41,11 @@ bool PikaHubReceiverThread::Handles::AccessHandle(std::string& ip) const {
     LOG(WARNING) << "HubReceiverThread AccessHandle failed: " << ip;
     return false;
   }
+  g_pika_server->HubConnected();
   return true;
+}
+
+void PikaHubReceiverThread::Handles::FdClosedHandle(
+        int fd, const std::string& ip_port) const {
+  g_pika_server->DeleteHub(ip_port);
 }

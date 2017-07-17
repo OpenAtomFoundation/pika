@@ -71,6 +71,12 @@ PikaServer::PikaServer() :
   assert(db_);
   LOG(INFO) << "DB Success";
 
+  // Init pika hub info
+  pika_hub_.ip_port = "";
+  pika_hub_.port = 0;
+  pika_hub_.sender = nullptr;
+  pika_hub_.stage = 0;
+
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(),
                          PIKA_MAX_WORKER_THREAD_NUM);
@@ -797,13 +803,32 @@ Status PikaServer::AddHub(const std::string& ip, int64_t port,
                           uint32_t filenum, uint64_t con_offset) {
   LOG(INFO) << "Add hub, " << ip << ":" << port;
   std::string ip_port = slash::IpPortString(ip, port);
-  if (pika_hub_.ip_port == ip_port) {
-    // Already exist, maybe different offset
-    delete reinterpret_cast<PikaBinlogSenderThread*>(pika_hub_.sender);
+  PikaBinlogSenderThread* sender;
+
+  {
+  slash::MutexLock l(&hub_mutex_);
+  sender = reinterpret_cast<PikaBinlogSenderThread*>(pika_hub_.sender);
+  if (pika_hub_.ip_port == ip_port &&
+      pika_hub_.stage == SLAVE_ITEM_STAGE_TWO) {
+    // Already exist
+    return Status::OK();
+  } else if (sender != nullptr &&
+             pika_hub_.stage == SLAVE_ITEM_STAGE_ONE) {
+    sleep(1);
+    if (pika_hub_.stage == SLAVE_ITEM_STAGE_TWO) {
+      return Status::OK();
+    }
   }
+  delete sender;
+  LOG(INFO) << "Delete old binlogsender: " << pika_hub_.sender_tid;
+  LOG(INFO) << "Create new binlogsender: " << ip_port;
+  // Create new pika_hub
   pika_hub_.ip_port = ip_port;
   pika_hub_.port = port;
+  pika_hub_.sender = nullptr;
+  pika_hub_.stage = SLAVE_ITEM_STAGE_ONE;
   gettimeofday(&pika_hub_.create_time, NULL);
+  }
 
   // Sanitize
   if (con_offset > logger_->file_size()) {
@@ -828,21 +853,37 @@ Status PikaServer::AddHub(const std::string& ip, int64_t port,
     return Status::IOError("AddHubBinlogSender new sequtialfile");
   }
 
-  PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(ip,
-      port + 1000, readfile, filenum, con_offset);
+  sender = new PikaBinlogSenderThread(ip, port + 1000, readfile, filenum,
+                                      con_offset);
 
-  if (sender->trim() == 0) { // Error binlog
+  if (sender->trim() == 0 &&
+      sender->StartThread() == 0) { // Error binlog
     pika_hub_.sender = sender;
     pika_hub_.sender_tid = sender->thread_id();
-    LOG(INFO) << "SetHubSender ok, tid is " << pika_hub_.sender_tid <<
-      " hd_fd: " << pika_hub_.hb_fd << " stage: " << pika_hub_.stage;
-    sender->StartThread();
+    LOG(INFO) << "SetHubSender ok, tid is " << pika_hub_.sender_tid;
     return Status::OK();
   } else {
     delete sender;
     LOG(WARNING) << "AddHubBinlogSender failed";
     return Status::NotFound("AddHubBinlogSender bad sender");
   }
+}
+
+void PikaServer::DeleteHub(const std::string& ip_port) {
+  hub_mutex_.Lock();
+  if (pika_hub_.ip_port != ip_port) {
+    hub_mutex_.Unlock();
+    return;
+  }
+  pika_hub_.ip_port = "";
+  pika_hub_.port = 0;
+  pika_hub_.stage = 0;
+  PikaBinlogSenderThread* sender =
+    reinterpret_cast<PikaBinlogSenderThread*>(pika_hub_.sender);
+  pika_hub_.sender = nullptr;
+  hub_mutex_.Unlock();
+
+  delete sender;
 }
 
 // Prepare engine, need bgsave_protector protect

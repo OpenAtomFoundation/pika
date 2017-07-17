@@ -55,6 +55,7 @@ class PikaHubReceiverThread {
     }
 
     bool AccessHandle(std::string& ip) const override;
+    void FdClosedHandle(int fd, const std::string& ip) const override;
 
    private:
     PikaHubReceiverThread* hub_receiver_;
