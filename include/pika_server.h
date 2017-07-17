@@ -149,7 +149,7 @@ class PikaServer {
     slash::MutexLock l(&hub_mutex_);
     pika_hub_.stage = SLAVE_ITEM_STAGE_TWO;
   }
-  void DeleteHub(const std::string& ip_port);
+  void DeleteHub();
   slash::Mutex hub_mutex_;
   SlaveItem pika_hub_; // Hub is a specific slave
 

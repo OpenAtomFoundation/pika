@@ -47,5 +47,6 @@ bool PikaHubReceiverThread::Handles::AccessHandle(std::string& ip) const {
 
 void PikaHubReceiverThread::Handles::FdClosedHandle(
         int fd, const std::string& ip_port) const {
-  g_pika_server->DeleteHub(ip_port);
+  LOG(INFO) << "HubReceiverThread Fd closed: " << ip_port;
+  g_pika_server->DeleteHub();
 }

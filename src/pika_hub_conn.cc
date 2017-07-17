@@ -37,7 +37,6 @@ int PikaHubConn::DealMessage() {
   //no reply
   //eq set_is_reply(false);
   g_pika_server->PlusThreadQuerynum();
-  return 0;
   if (argv_.empty()) {
     return -2;
   }

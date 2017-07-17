@@ -869,12 +869,8 @@ Status PikaServer::AddHub(const std::string& ip, int64_t port,
   }
 }
 
-void PikaServer::DeleteHub(const std::string& ip_port) {
+void PikaServer::DeleteHub() {
   hub_mutex_.Lock();
-  if (pika_hub_.ip_port != ip_port) {
-    hub_mutex_.Unlock();
-    return;
-  }
   pika_hub_.ip_port = "";
   pika_hub_.port = 0;
   pika_hub_.stage = 0;
@@ -883,6 +879,7 @@ void PikaServer::DeleteHub(const std::string& ip_port) {
   pika_hub_.sender = nullptr;
   hub_mutex_.Unlock();
 
+  LOG(INFO) << "remove pika_hub";
   delete sender;
 }
 

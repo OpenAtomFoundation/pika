@@ -199,7 +199,8 @@ void InternalTrysyncCmd::Do() {
   if (!status.ok()) {
     LOG(WARNING) << "hub offset is larger than mine, slave ip: " << hub_ip_
       << "slave port:" << hub_port_
-      << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_;
+      << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_ << " "
+      << status.ToString();
     res_.SetRes(CmdRes::kErrOther, "InvalidOffset");
   }
   res_.SetRes(CmdRes::kOk);
