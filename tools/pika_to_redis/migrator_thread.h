@@ -8,10 +8,11 @@
 
 class MigratorThread : public pink::Thread {
  public:
-  MigratorThread(nemo::Nemo *db, Sender* sender, char type) :
+  MigratorThread(nemo::Nemo *db, std::vector<Sender *> senders, char type, int thread_num) :
       db_(db),
-      sender_(sender),
+      senders_(senders),
       type_(type),
+      thread_num_(thread_num),
       thread_index_(0),
       num_(0)
       {
@@ -36,13 +37,14 @@ class MigratorThread : public pink::Thread {
  private:
   nemo::Nemo *db_;
   //std::vector<ParseThread*> parsers_;
-  Sender* sender_;
+  std::vector<Sender *> senders_;
   char type_;
+  int thread_num_;
   int thread_index_;
 
   static std::string GetKey(const rocksdb::Iterator *it);
-  void MigrateDB(char type);
-  //void DispatchKey(const std::string &key);
+  void MigrateDB(const char type);
+  void DispatchKey(const std::string &key);
 
   int64_t num_;
   slash::Mutex num_mutex_;

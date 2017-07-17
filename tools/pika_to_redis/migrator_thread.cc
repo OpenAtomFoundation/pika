@@ -3,7 +3,7 @@
 MigratorThread::~MigratorThread() {
 }
 
-void MigratorThread::MigrateDB(char type) {
+void MigratorThread::MigrateDB(const char type) {
     if (type == nemo::DataType::kKv) {
       nemo::KIterator *it = db_->KScan("", "", -1, false);
       std::string key, value;
@@ -28,10 +28,8 @@ void MigratorThread::MigrateDB(char type) {
         it->Next();
         pink::SerializeRedisCommand(argv, &cmd);
         PlusNum();
-        sender_->LoadCmd(cmd);
-
-        //ParseKey(key, type);
-        //DispatchKey(cmd, type);
+        cmd = 'k' + cmd;
+        DispatchKey(cmd);
       }
       delete it;
     } else {
@@ -50,163 +48,35 @@ void MigratorThread::MigrateDB(char type) {
             c_type = 'z';
             break;
         }
-        std::vector<std::string> keys;
-        std::string pattern  = "*";
-        db_->Scanbytype(c_type, pattern, keys);
-        for (size_t i = 0; i < keys.size(); i++) {
-          ParseKey(keys[i], type);
-          //DispatchKey(keys[i], type);
-      }
+        rocksdb::Iterator *it = db_->Scanbytype(c_type);
+        std::string key_start = "a";
+        key_start[0] = type;
+        it->Seek(key_start);
+        for (; it->Valid(); it->Next()) {
+          PlusNum();
+          DispatchKey(it->key().ToString());
+        }
     }
 }
 
-/*
-void MigratorThread::DispatchKey(const std::string &key, char type) {
-  parsers_[thread_index_]->Schedul(key, type);
-  thread_index_ = (thread_index_ + 1) % num_thread_;
-}
-*/
-void MigratorThread::ParseKey(const std::string &key,char type) {
-  if (type == nemo::DataType::kHSize) {
-    ParseHKey(key);
-  } else if (type == nemo::DataType::kSSize) {
-    ParseSKey(key);
-  } else if (type == nemo::DataType::kLMeta) {
-    ParseLKey(key);
-  } else if (type == nemo::DataType::kZSize) {
-    ParseZKey(key);
-  } else if (type == nemo::DataType::kSSize) {
-    ParseSKey(key);
-  } else if (type == nemo::DataType::kKv) {
-    ParseKKey(key);
-  }
-
-  if (type == nemo::DataType::kKv) {
-    return;
-  }
-
-  int64_t ttl;
-  // int64_t *ttl = -1;
-
-  db_->TTL(key, &ttl);
-
-  // no kv, because kv cmd: SET key value ttl
-  SetTTL(key, ttl);
-
-}
-
-void MigratorThread::SetTTL(const std::string &key, int64_t ttl) {
-  if (ttl < 0) return;
-  pink::RedisCmdArgsType argv;
-  std::string cmd;
-
-  argv.push_back("EXPIRE");
-  argv.push_back(key);
-  argv.push_back(std::to_string(ttl));
-
-  pink::SerializeRedisCommand(argv, &cmd);
-  sender_->LoadCmd(cmd);
-}
-
-void MigratorThread::ParseKKey(const std::string &cmd) {
-    PlusNum();
-    sender_->LoadCmd(cmd);
-}
-
-void MigratorThread::ParseHKey(const std::string &key) {
-  nemo::HIterator *iter = db_->HScan(key, "", "", -1, false);
-  for (; iter->Valid(); iter->Next()) {
-    pink::RedisCmdArgsType argv;
-    std::string cmd;
-
-    argv.push_back("HSET");
-    argv.push_back(iter->key());
-    argv.push_back(iter->field());
-    argv.push_back(iter->value());
-
-    pink::SerializeRedisCommand(argv, &cmd);
-    PlusNum();
-    sender_->LoadCmd(cmd);
-  }
-  delete iter;
-}
-
-void MigratorThread::ParseSKey(const std::string &key) {
-  nemo::SIterator *iter = db_->SScan(key, -1, false);
-  for (; iter->Valid(); iter->Next()) {
-    pink::RedisCmdArgsType argv;
-    std::string cmd;
-
-    argv.push_back("SADD");
-    argv.push_back(iter->key());
-    argv.push_back(iter->member());
-
-    pink::SerializeRedisCommand(argv, &cmd);
-    PlusNum();
-    sender_->LoadCmd(cmd);
-  }
-  delete iter;
-}
-
-void MigratorThread::ParseZKey(const std::string &key) {
-  nemo::ZIterator *iter = db_->ZScan(key, nemo::ZSET_SCORE_MIN,
-                                     nemo::ZSET_SCORE_MAX, -1, false);
-  for (; iter->Valid(); iter->Next()) {
-    pink::RedisCmdArgsType argv;
-    std::string cmd;
-
-    std::string score = std::to_string(iter->score());
-
-    argv.push_back("ZADD");
-    argv.push_back(iter->key());
-    argv.push_back(score);
-    argv.push_back(iter->member());
-
-    pink::SerializeRedisCommand(argv, &cmd);
-    PlusNum();
-    sender_->LoadCmd(cmd);
-  }
-  delete iter;
-}
-
-void MigratorThread::ParseLKey(const std::string &key) {
-  std::vector<nemo::IV> ivs;
-  std::vector<nemo::IV>::const_iterator it;
-  int64_t pos = 0;
-  int64_t len = 512;
-
-  db_->LRange(key, pos, pos+len-1, ivs);
-
-  while (!ivs.empty()) {
-    pink::RedisCmdArgsType argv;
-    std::string cmd;
-
-    argv.push_back("RPUSH");
-    argv.push_back(key);
-
-    for (it = ivs.begin(); it != ivs.end(); ++it) {
-      PlusNum();
-      argv.push_back(it->val);
+void MigratorThread::DispatchKey(const std::string &key) {
+  int index = 0;
+  for (index = thread_index_; index != thread_index_ - 1; index = (index + 1) % thread_num_) {
+    if (senders_[index]->QueueSize() < 10000) {
+      senders_[index]->LoadKey(key);
+      thread_index_ = (thread_index_ + 1) % thread_num_;
+      return;
     }
-    pink::SerializeRedisCommand(argv, &cmd);
-    sender_->LoadCmd(cmd);
-
-    pos += len;
-    ivs.clear();
-    db_->LRange(key, pos, pos+len-1, ivs);
+  }
+  if (index == thread_index_) {
+    log_info("The maximum length of a queue is more than %d, wait for 1 seconds.", 10000); 
+	  std::this_thread::sleep_for(std::chrono::microseconds(1));
   }
 }
 
-/*
-void MigratorThread::DispatchKey(const std::string &cmd) {
-  senders_[thread_index_]->LoadCmd(cmd);
-  thread_index_ = (thread_index_ + 1) % thread_num_;
-}
-*/
 void *MigratorThread::ThreadMain() {
   MigrateDB(type_);
   should_exit_ = true;
   log_info("%c keys have been dispatched completly", static_cast<char>(type_));
-  sender_->Stop();
   return NULL;
 }

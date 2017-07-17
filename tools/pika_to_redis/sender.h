@@ -12,9 +12,9 @@
 
 class Sender : public pink::Thread {
 public:
-	Sender(std::string ip, int64_t port, std::string password);
+	Sender(nemo::Nemo *db, std::string ip, int64_t port, std::string password);
 	virtual ~Sender();
-	void LoadCmd(const std::string &cmd);
+	void LoadKey(const std::string &cmd);
 	void Stop() {
   	  should_exit_ = true;
 	}
@@ -23,13 +23,14 @@ public:
   	}
 
   	int QueueSize() {
-  	  slash::MutexLock l(&cmd_mutex_);
-  	  int len = cmd_queue_.size();
+  	  slash::MutexLock l(&keys_mutex_);
+  	  int len = keys_queue_.size();
   	  return len;
   	}
 private:
-	slash::Mutex cmd_mutex_;
-	std::queue<std::string> cmd_queue_;
+	nemo::Nemo *db_;
+	slash::Mutex keys_mutex_;
+	std::queue<std::string> keys_queue_;
 	std::string ip_;
 	int port_;
 	std::string password_;

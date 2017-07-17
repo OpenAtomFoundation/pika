@@ -17,7 +17,7 @@ const int64_t kDataSetNum = 5;
 std::string db_path;
 std::string ip;
 int port;
-int thread_num;
+size_t thread_num;
 std::string password;
 
 //std::vector<ParseThread*> parsers;
@@ -29,7 +29,7 @@ void PrintConf() {
   std::cout << "db_path : " << db_path << std::endl;
   std::cout << "redis ip : " << ip << std::endl;
   std::cout << "redis port : " << port << std::endl;
-  //std::cout << "num_sender : " << num_thread << std::endl;
+  std::cout << "thread_num : " << thread_num << std::endl;
   std::cout << "====================================" << std::endl;
 
 }
@@ -48,7 +48,7 @@ int64_t NowMicros() {
 
 int main(int argc, char **argv)
 {
-  if (argc < 4) {
+  if (argc < 5) {
     Usage();
     return -1;
   }
@@ -57,8 +57,9 @@ int main(int argc, char **argv)
   db_path = std::string(argv[1]);
   ip = std::string(argv[2]);
   port = atoi(argv[3]);
-  if (argc == 5) {
-    password = std::string(argv[4]);
+  thread_num = atoi(argv[4]);
+  if (argc == 6) {
+    password = std::string(argv[5]);
   }
 
   if (db_path[db_path.length() - 1] != '/') {
@@ -83,20 +84,23 @@ int main(int argc, char **argv)
 
 
   // Init SenderThread
-  for (size_t i = 0; i < kDataSetNum; i++) {
-    Sender *sender = new Sender(ip, port, password);
+  for (size_t i = 0; i < thread_num; i++) {
+    Sender *sender = new Sender(db, ip, port, password);
     senders.push_back(sender);
   }
 
-  migrators.push_back(new MigratorThread(db, senders[0], nemo::DataType::kKv));
-  migrators.push_back(new MigratorThread(db, senders[1], nemo::DataType::kHSize));
-  migrators.push_back(new MigratorThread(db, senders[2], nemo::DataType::kSSize));
-  migrators.push_back(new MigratorThread(db, senders[3], nemo::DataType::kLMeta));
-  migrators.push_back(new MigratorThread(db, senders[4], nemo::DataType::kZSize));
+  migrators.push_back(new MigratorThread(db, senders, nemo::DataType::kKv, thread_num));
+  migrators.push_back(new MigratorThread(db, senders, nemo::DataType::kHSize, thread_num));
+  migrators.push_back(new MigratorThread(db, senders, nemo::DataType::kSSize, thread_num));
+  migrators.push_back(new MigratorThread(db, senders, nemo::DataType::kLMeta, thread_num));
+  migrators.push_back(new MigratorThread(db, senders, nemo::DataType::kZSize, thread_num));
 
   // start threads
   for (size_t i = 0; i < kDataSetNum; i++) {
     migrators[i]->StartThread();
+  }
+
+  for (size_t i = 0; i < thread_num; i++) {
     senders[i]->StartThread();
   }
 
@@ -135,8 +139,14 @@ int main(int argc, char **argv)
     }
   }
   */
+  for(size_t i = 0; i < kDataSetNum; i++) {
+    migrators[i]->JoinThread();
+  }
+  for(size_t i = 0; i < thread_num; i++) {
+    senders[i]->Stop();
+  }
 
-  for (size_t i = 0; i < kDataSetNum; i++) {
+  for (size_t i = 0; i < thread_num; i++) {
     senders[i]->JoinThread();
   }
 
@@ -144,8 +154,10 @@ int main(int argc, char **argv)
   int64_t replies = 0, records = 0;
   for (size_t i = 0; i < kDataSetNum; i++) {
     records += migrators[i]->num();
+    //delete migrators[i];
+  }
+  for (size_t i = 0; i < thread_num; i++) {
     replies += senders[i]->elements();
-    delete migrators[i];
     delete senders[i];
   }
 

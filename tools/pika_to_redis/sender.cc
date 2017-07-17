@@ -1,14 +1,15 @@
 #include "sender.h"
 
-Sender::Sender(std::string ip, int64_t port, std::string password):
+Sender::Sender(nemo::Nemo *db, std::string ip, int64_t port, std::string password):
+	db_(db),
 	ip_(ip),
 	port_(port),
 	password_(password),
-    should_exit_(false),
-    elements_(0),
-    full_(10000)
-    {
-    }
+  should_exit_(false),
+  elements_(0),
+  full_(10000)
+  {
+  }
 	    
 Sender::~Sender() {
   //delete bg_thread_;
@@ -37,29 +38,16 @@ void Sender::SendData(void *arg) {
   }
  
 */
-
-void Sender::LoadCmd(const std::string &cmd) {
-	if (QueueSize() <= full_) {
-	  slash::MutexLock l(&cmd_mutex_);
-	  cmd_queue_.push(cmd);
-	} else {
-	  log_info("The maximum length of a queue is more than %d, wait for 1 seconds.", int(full_));
-	  std::this_thread::sleep_for(std::chrono::microseconds(1));
-	}
-	//struct DataPack *data = new DataPack;
-	//data->cli = cli_;
-	//data->cmd = cmd;
-	//bg_thread_->Schedule(SendData, NULL);
-    //bg_thread_->Schedule(SendData, (void*)data);
-    //elements_++;
-	//bg_thread_->Schedule(&SendData, (void*)&data);
+void Sender::LoadKey(const std::string &key) {
+  slash::MutexLock l(&keys_mutex_);
+  keys_queue_.push(key);
 }
 
 void *Sender::ThreadMain() {
   log_info("Start sender thread...");
 
   pink::PinkCli *cli = NULL;
-  
+  std::string command, expire_command;
   while (!should_exit_ || QueueSize() != 0) {
   	if (QueueSize() == 0)
   		continue;
@@ -125,18 +113,125 @@ void *Sender::ThreadMain() {
   	 	  }
   		}
 	  }
-  	} else {
-	  slash::MutexLock l(&cmd_mutex_);
-  	  slash::Status s = cli->Send(&cmd_queue_.front());
-  	  if (s.ok()) {
+    } else {
+      // Parse keys
+	    slash::MutexLock l(&keys_mutex_);
+      std::string key = keys_queue_.front();
+      char type = key[0];
+      if (type == nemo::DataType::kHSize) {   // Hash
+        std::string h_key = key.substr(1);
+        nemo::HIterator *iter = db_->HScan(h_key, "", "", -1, false);
+  	    for (; iter->Valid(); iter->Next()) {
+          pink::RedisCmdArgsType argv;
+
+          argv.push_back("HSET");
+          argv.push_back(iter->key());
+          argv.push_back(iter->field());
+          argv.push_back(iter->value());
+
+          pink::SerializeRedisCommand(argv, &command);
+        }
+        delete iter;
+      } else if (type == nemo::DataType::kSSize) {  // Set
+        std::string s_key = key.substr(1);
+        nemo::SIterator *iter = db_->SScan(s_key, -1, false);
+        for (; iter->Valid(); iter->Next()) {
+          pink::RedisCmdArgsType argv;
+
+          argv.push_back("SADD");
+          argv.push_back(iter->key());
+          argv.push_back(iter->member());
+
+          pink::SerializeRedisCommand(argv, &command);
+        }  
+        delete iter;
+      } else if (type == nemo::DataType::kLMeta) {  // List
+        std::string l_key = key.substr(1);
+        std::vector<nemo::IV> ivs;
+        std::vector<nemo::IV>::const_iterator it;
+        int64_t pos = 0;
+        int64_t len = 512;
+
+        db_->LRange(l_key, pos, pos+len-1, ivs);
+
+        while (!ivs.empty()) {
+          pink::RedisCmdArgsType argv;
+          std::string cmd;
+
+          argv.push_back("RPUSH");
+          argv.push_back(key);
+
+          for (it = ivs.begin(); it != ivs.end(); ++it) {
+            argv.push_back(it->val);
+          }
+          pink::SerializeRedisCommand(argv, &command);
+
+          pos += len;
+          ivs.clear();
+          db_->LRange(key, pos, pos+len-1, ivs);
+        }
+      } else if (type == nemo::DataType::kZSize) {  // Zset
+        std::string z_key = key.substr(1);
+        nemo::ZIterator *iter = db_->ZScan(z_key, nemo::ZSET_SCORE_MIN,
+                                     nemo::ZSET_SCORE_MAX, -1, false);
+        for (; iter->Valid(); iter->Next()) {
+          pink::RedisCmdArgsType argv;
+
+          std::string score = std::to_string(iter->score());
+
+          argv.push_back("ZADD");
+          argv.push_back(iter->key());
+          argv.push_back(score);
+          argv.push_back(iter->member());
+
+          pink::SerializeRedisCommand(argv, &command);
+        }
+        delete iter;
+      } else if (type == nemo::DataType::kKv) {   // Kv
+        std::string k_key = key.substr(1);
+  	    command = k_key;
+      } 
+
+      if (type != nemo::DataType::kKv) {
+  	    int64_t ttl = -1;
+        std::string e_key = key.substr(1);
+	      db_->TTL(key, &ttl);
+
+	      if (ttl >= 0) {
+  	      pink::RedisCmdArgsType argv;
+          std::string cmd;
+
+	        argv.push_back("EXPIRE");
+  	      argv.push_back(key);
+  	      argv.push_back(std::to_string(ttl));
+
+  	      pink::SerializeRedisCommand(argv, &expire_command);
+ 	      }
+      }
+  	
+      // Send command
+      slash::Status s = cli->Send(&command);
+      //std::cout << command << std::endl;
+      if (s.ok()) {
   	    elements_++;
-  	    cmd_queue_.pop();
+        keys_queue_.pop();
   	  } else {
   	    cli->Close();
   	    log_info("%s", s.ToString().data());
   	    cli = NULL;
         std::this_thread::sleep_for(std::chrono::microseconds(1));
   	  }
+    
+      // Send expire command
+      if (!expire_command.empty()) {
+        slash::Status s = cli->Send(&expire_command);
+        if (!s.ok()) {
+  	      cli->Close();
+  	      log_info("%s", s.ToString().data());
+  	      cli = NULL;
+          std::this_thread::sleep_for(std::chrono::microseconds(1));
+  	    }
+      }
     }
   }
   delete cli;
