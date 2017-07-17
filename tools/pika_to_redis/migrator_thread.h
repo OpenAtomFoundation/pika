@@ -1,19 +1,19 @@
 #ifndef MIGRATOR_THREAD_H_
 #define MIGRATOR_THREAD_H_
 
+#include <iostream>
 #include "nemo.h"
 #include "pink/include/redis_cli.h"
-#include "sender_thread.h"
+#include "sender.h"
 
 class MigratorThread : public pink::Thread {
  public:
-  MigratorThread(nemo::Nemo *db, SenderThread *sender, char type) :
+  MigratorThread(nemo::Nemo *db, Sender* sender, char type) :
       db_(db),
       sender_(sender),
       type_(type),
       thread_index_(0),
       num_(0)
-      //num_thread_(parsers.size())
       {
       }
 
@@ -36,14 +36,13 @@ class MigratorThread : public pink::Thread {
  private:
   nemo::Nemo *db_;
   //std::vector<ParseThread*> parsers_;
-  SenderThread *sender_;
+  Sender* sender_;
   char type_;
   int thread_index_;
-  //int num_thread_;
 
   static std::string GetKey(const rocksdb::Iterator *it);
   void MigrateDB(char type);
-  void DispatchKey(const std::string &key, char type);
+  //void DispatchKey(const std::string &key);
 
   int64_t num_;
   slash::Mutex num_mutex_;

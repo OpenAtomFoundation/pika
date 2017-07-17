@@ -3,8 +3,12 @@
 #include <sstream>
 #include "pink/include/redis_cli.h"
 #include "nemo.h"
-#include "sender_thread.h"
+//#include "sender_thread.h"
+#include "sender.h"
 #include "migrator_thread.h"
+
+using std::chrono::high_resolution_clock;
+using std::chrono::milliseconds;
 
 const int64_t kTestPoint = 500000;
 const int64_t kTestNum = LLONG_MAX;
@@ -13,30 +17,13 @@ const int64_t kDataSetNum = 5;
 std::string db_path;
 std::string ip;
 int port;
+int thread_num;
 std::string password;
 
 //std::vector<ParseThread*> parsers;
-std::vector<SenderThread*> senders;
+std::vector<Sender*> senders;
 std::vector<MigratorThread*> migrators;
 nemo::Nemo *db;
-
-void HumanTime(int64_t time) {
-  time = time / 1000000;
-  int64_t hours = time / 3600;
-  time = time % 3600;
-  int64_t minutes = time / 60;
-  int64_t secs = time % 60;
-
-  std::cout << hours << " hour " << minutes << " min " << secs << " s\n";
-}
-
-int64_t GetNum() {
-  int64_t num = 0;
-  for (size_t i = 0; i < migrators.size(); i++) {
-    num += migrators[i]->num();
-  }
-  return num;
-}
 
 void PrintConf() {
   std::cout << "db_path : " << db_path << std::endl;
@@ -65,6 +52,8 @@ int main(int argc, char **argv)
     Usage();
     return -1;
   }
+  high_resolution_clock::time_point start = high_resolution_clock::now();
+
   db_path = std::string(argv[1]);
   ip = std::string(argv[2]);
   port = atoi(argv[3]);
@@ -78,7 +67,7 @@ int main(int argc, char **argv)
 
   PrintConf();
 
-  // init db
+  // Init db
   nemo::Options option;
   option.write_buffer_size = 256 * 1024 * 1024; // 256M
   option.target_file_size_base = 20 * 1024 * 1024; // 20M
@@ -93,19 +82,9 @@ int main(int argc, char **argv)
   open_options_.keep_log_file_num = 10;
 
 
-  // init ParseThread and SenderThread
-  slash::Status pink_s;
+  // Init SenderThread
   for (size_t i = 0; i < kDataSetNum; i++) {
-     // init a redis-cli
-    pink::PinkCli *cli = pink::NewRedisCli();
-    cli->set_connect_timeout(3000);
-    pink_s = cli->Connect(ip, port);
-    if(!pink_s.ok()) {
-      Usage();
-      log_err("cann't connect %s:%d:%s\n", ip.data(), port, pink_s.ToString().data());
-      return -1;
-    }
-    SenderThread *sender = new SenderThread(cli, password);
+    Sender *sender = new Sender(ip, port, password);
     senders.push_back(sender);
   }
 
@@ -116,16 +95,12 @@ int main(int argc, char **argv)
   migrators.push_back(new MigratorThread(db, senders[4], nemo::DataType::kZSize));
 
   // start threads
-  for (size_t i = 0; i < migrators.size(); i++) {
-    migrators[i]->StartThread();
-  }
   for (size_t i = 0; i < kDataSetNum; i++) {
-    //parsers[i]->StartThread();
+    migrators[i]->StartThread();
     senders[i]->StartThread();
   }
 
 
-  int64_t start_time = NowMicros();
   /*
   while(!should_exit) {
     sleep(1);
@@ -166,26 +141,24 @@ int main(int argc, char **argv)
   }
 
 
-  int64_t replies = 0;
-  int64_t errors = 0;
-  int64_t records = GetNum();
+  int64_t replies = 0, records = 0;
   for (size_t i = 0; i < kDataSetNum; i++) {
+    records += migrators[i]->num();
     replies += senders[i]->elements();
-    errors += senders[i]->err();
-  }
-
-  for (size_t i = 0; i < kDataSetNum; i++) {
     delete migrators[i];
     delete senders[i];
   }
 
+  high_resolution_clock::time_point end = high_resolution_clock::now();
+  std::chrono::hours  h = std::chrono::duration_cast<std::chrono::hours>(end - start);
+  std::chrono::minutes  m = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::chrono::seconds  s = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+
   std::cout << "====================================" << std::endl;
-  int64_t curr = NowMicros() - start_time;
   std::cout << "Running time  :";
-  HumanTime(curr);
+  std::cout << h.count() << " hour " << m.count() << " min " << s.count() << " s\n";
   std::cout << "Total records : " << records << " have been Scaned\n";
   std::cout << "Total replies : " << replies << " received from redis server\n";
-  std::cout << "Total errors  : " << errors << " received from redis server\n";
   delete db;
   return 0;
 }

@@ -60,9 +60,6 @@ void MigratorThread::MigrateDB(char type) {
     }
 }
 
-std::string  MigratorThread::GetKey(const rocksdb::Iterator *it) {
-  return it->key().ToString().substr(1);
-}
 /*
 void MigratorThread::DispatchKey(const std::string &key, char type) {
   parsers_[thread_index_]->Schedul(key, type);
@@ -92,17 +89,7 @@ void MigratorThread::ParseKey(const std::string &key,char type) {
   // int64_t *ttl = -1;
 
   db_->TTL(key, &ttl);
-  /*
-  if (type == nemo::DataType::kHSize) {
-    db_->HTTL(key, &ttl);
-  } else if (type == nemo::DataType::kSSize) {
-    db_->STTL(key, &ttl);
-  } else if (type == nemo::DataType::kLMeta) {
-    db_->LTTL(key, &ttl);
-  } else if (type == nemo::DataType::kZSize) {
-    db_->ZTTL(key, &ttl);
-  }
-  */
+
   // no kv, because kv cmd: SET key value ttl
   SetTTL(key, ttl);
 
@@ -210,11 +197,16 @@ void MigratorThread::ParseLKey(const std::string &key) {
   }
 }
 
+/*
+void MigratorThread::DispatchKey(const std::string &cmd) {
+  senders_[thread_index_]->LoadCmd(cmd);
+  thread_index_ = (thread_index_ + 1) % thread_num_;
+}
+*/
 void *MigratorThread::ThreadMain() {
   MigrateDB(type_);
   should_exit_ = true;
-  std::cout << type_ << " keys have been dispatched completly" << std::endl;
+  log_info("%c keys have been dispatched completly", static_cast<char>(type_));
   sender_->Stop();
-
   return NULL;
 }
