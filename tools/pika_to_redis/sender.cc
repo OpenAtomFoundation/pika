@@ -12,32 +12,8 @@ Sender::Sender(nemo::Nemo *db, std::string ip, int64_t port, std::string passwor
   }
 	    
 Sender::~Sender() {
-  //delete bg_thread_;
 }
 
-/*
-void Sender::SendData(void *arg) {
-  //std::cout << " task : " << *((int *)arg) << std::endl;
-  //delete (int*)arg;
-  //struct DataPack *data = ((DataPack*)arg);
-  //std::cout << data->cmd << std::endl;
-
-  //std::string send_data = std::string(data->cmd);
-  
-  std::cout << "send ..." << std::endl;
-  
-  slash::Status s = data->cli->Send(&send_data);
-
-  if (!s.ok()) {
-	// TODO log  and retry      	
-    data->cli->Close();
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  } else {
-	//std::cout << "send..." << std::endl;
-	//delete (DataPack*)arg;
-  }
- 
-*/
 void Sender::LoadKey(const std::string &key) {
   slash::MutexLock l(&keys_mutex_);
   keys_queue_.push(key);
@@ -47,8 +23,8 @@ void *Sender::ThreadMain() {
   log_info("Start sender thread...");
 
   pink::PinkCli *cli = NULL;
-  std::string command, expire_command;
   while (!should_exit_ || QueueSize() != 0) {
+    std::string command, expire_command;
   	if (QueueSize() == 0)
   		continue;
   	if (cli == NULL) {
@@ -83,36 +59,36 @@ void *Sender::ThreadMain() {
   	  		  return NULL;
   	  		}
   		  } else {
-  		  	cli->Close();
+  		  	  cli->Close();
   	  	    log_info("%s", s.ToString().data());
   	  	    cli = NULL;
-  	 		continue;
-    	  }
-  		} else {
-  		  // If forget to input password
-  		  pink::RedisCmdArgsType argv, resp;
-    	  std::string cmd;
+  	 		    continue;
+    	    }
+  		  } else {
+  		    // If forget to input password
+  		    pink::RedisCmdArgsType argv, resp;
+    	    std::string cmd;
 
-    	  argv.push_back("PING");
-    	  pink::SerializeRedisCommand(argv, &cmd);
-    	  slash::Status s = cli->Send(&cmd);
+    	    argv.push_back("PING");
+    	    pink::SerializeRedisCommand(argv, &cmd);
+    	    slash::Status s = cli->Send(&cmd);
     	  
-    	  if (s.ok()) {
-      	  	s = cli->Recv(&resp);
-      	  	if (s.ok()) {
+    	    if (s.ok()) {
+      	    s = cli->Recv(&resp);
+      	    if (s.ok()) {
        	  	  if (resp[0] == "NOAUTH Authentication required.") {
-  	  		  log_info("Authentication required");
-  	  		  return NULL;
+  	  		      log_info("Authentication required");
+  	  		      return NULL;
   	  	      }
   	  	    } else {
   	  	      cli->Close();
   	  	      log_info("%s", s.ToString().data());
   	  	      cli = NULL;
-  	 		  continue;
-  	 		}
-  	 	  }
-  		}
-	  }
+  	 		      continue;
+  	 		    }
+  	 	    }
+  		  }
+	    }
     } else {
       // Parse keys
 	    slash::MutexLock l(&keys_mutex_);
@@ -211,7 +187,6 @@ void *Sender::ThreadMain() {
   	
       // Send command
       slash::Status s = cli->Send(&command);
-      //std::cout << command << std::endl;
       if (s.ok()) {
   	    elements_++;
         keys_queue_.pop();
@@ -219,7 +194,7 @@ void *Sender::ThreadMain() {
   	    cli->Close();
   	    log_info("%s", s.ToString().data());
   	    cli = NULL;
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
+        continue;
   	  }
     
       // Send expire command
@@ -229,7 +204,7 @@ void *Sender::ThreadMain() {
   	      cli->Close();
   	      log_info("%s", s.ToString().data());
   	      cli = NULL;
-          std::this_thread::sleep_for(std::chrono::microseconds(1));
+          continue;
   	    }
       }
     }
