@@ -1,13 +1,14 @@
 #include "sender.h"
 
 Sender::Sender(nemo::Nemo *db, std::string ip, int64_t port, std::string password):
+  rsignal_(&mu_),
+  wsignal_(&mu_),
 	db_(db),
 	ip_(ip),
 	port_(port),
 	password_(password),
   should_exit_(false),
-  elements_(0),
-  full_(10000)
+  elements_(0)
   {
   }
 	    
@@ -16,17 +17,25 @@ Sender::~Sender() {
 
 void Sender::LoadKey(const std::string &key) {
   slash::MutexLock l(&keys_mutex_);
-  keys_queue_.push(key);
+  if (keys_queue_.size() < 100000) {
+    keys_queue_.push(key);
+    rsignal_.Signal();
+  } else {
+    wsignal_.Wait();
+  }
 }
 
 void *Sender::ThreadMain() {
   log_info("Start sender thread...");
 
   pink::PinkCli *cli = NULL;
-  while (!should_exit_ || QueueSize() != 0) {
+  while (!should_exit_ ) {
     std::string command, expire_command;
-  	if (QueueSize() == 0)
-  		continue;
+  	while (!should_exit_ || QueueSize() == 0)
+  		rsignal_.Wait();
+    if (should_exit_) {
+      return NULL;
+    }
   	if (cli == NULL) {
   	  // Connect to redis
       cli = pink::NewRedisCli();
@@ -91,8 +100,12 @@ void *Sender::ThreadMain() {
 	    }
     } else {
       // Parse keys
-	    slash::MutexLock l(&keys_mutex_);
-      std::string key = keys_queue_.front();
+      std::string key;
+	    {
+        slash::MutexLock l(&keys_mutex_);
+        key = keys_queue_.front();
+        keys_queue_.pop();
+      }
       char type = key[0];
       if (type == nemo::DataType::kHSize) {   // Hash
         std::string h_key = key.substr(1);
@@ -168,6 +181,7 @@ void *Sender::ThreadMain() {
   	    command = k_key;
       } 
 
+      // expire
       if (type != nemo::DataType::kKv) {
   	    int64_t ttl = -1;
         std::string e_key = key.substr(1);
@@ -189,8 +203,9 @@ void *Sender::ThreadMain() {
       slash::Status s = cli->Send(&command);
       if (s.ok()) {
   	    elements_++;
-        keys_queue_.pop();
+        wsignal_.Signal();
   	  } else {
+        keys_queue_.push(key);
   	    cli->Close();
   	    log_info("%s", s.ToString().data());
   	    cli = NULL;

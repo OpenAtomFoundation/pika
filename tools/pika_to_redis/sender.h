@@ -28,8 +28,11 @@ public:
   	  return len;
   	}
 private:
+	slash::CondVar rsignal_;
+	slash::CondVar wsignal_;
 	nemo::Nemo *db_;
 	slash::Mutex keys_mutex_;
+	slash::Mutex mu_;
 	std::queue<std::string> keys_queue_;
 	std::string ip_;
 	int port_;
@@ -37,7 +40,6 @@ private:
 	std::string cmd_;
   	bool should_exit_;
   	int64_t elements_;
-  	int64_t full_;
 
 	virtual void *ThreadMain();
 };

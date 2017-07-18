@@ -60,18 +60,8 @@ void MigratorThread::MigrateDB(const char type) {
 }
 
 void MigratorThread::DispatchKey(const std::string &key) {
-  int index = 0;
-  for (index = thread_index_; index != thread_index_ - 1; index = (index + 1) % thread_num_) {
-    if (senders_[index]->QueueSize() < 10000) {
-      senders_[index]->LoadKey(key);
-      thread_index_ = (thread_index_ + 1) % thread_num_;
-      return;
-    }
-  }
-  if (index == thread_index_) {
-    log_info("The maximum length of a queue is more than %d, wait for 1 seconds.", 10000); 
-	  std::this_thread::sleep_for(std::chrono::microseconds(1));
-  }
+  senders_[thread_index_]->LoadKey(key);
+  thread_index_ = (thread_index_ + 1) % thread_num_;
 }
 
 void *MigratorThread::ThreadMain() {
