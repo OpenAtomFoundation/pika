@@ -3,7 +3,6 @@
 #include <sstream>
 #include "pink/include/redis_cli.h"
 #include "nemo.h"
-//#include "sender_thread.h"
 #include "sender.h"
 #include "migrator_thread.h"
 
@@ -20,7 +19,6 @@ int port;
 size_t thread_num;
 std::string password;
 
-//std::vector<ParseThread*> parsers;
 std::vector<Sender*> senders;
 std::vector<MigratorThread*> migrators;
 nemo::Nemo *db;
@@ -38,12 +36,6 @@ void Usage() {
   std::cout << "Usage: " << std::endl;
   std::cout << "      ./pika_to_redis db_path ip port [password]\n";
   std::cout << "      example: ./pika_to_redis ~/db 127.0.0.1 6379 123456\n";
-}
-
-int64_t NowMicros() {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 
 int main(int argc, char **argv)
@@ -99,53 +91,17 @@ int main(int argc, char **argv)
   for (size_t i = 0; i < kDataSetNum; i++) {
     migrators[i]->StartThread();
   }
-
   for (size_t i = 0; i < thread_num; i++) {
     senders[i]->StartThread();
   }
 
 
-  /*
-  while(!should_exit) {
-    sleep(1);
-    int64_t num = GetNum();
-    if (num >= kTestPoint * times) {
-      times++;
-      int64_t dur = NowMicros() - start_time;
-      std::cout << "Running time:" << dur / 1000000 << "s "
-         << num << " records" << std::endl;
-    }
-
-    // check if all migrators have exited
-
-    for (size_t i = 0; i < migrators.size(); i++) {
-      if (!migrators[i]->should_exit_) {
-        should_exit = false;
-        break;
-      }
-    }
-
-
-    if (num >= kTestNum) {
-      should_exit = true;
-    }
-
-    // inform parser to exit
-    if (should_exit) {
-      for (size_t i = 0; i < num_thread; i++) {
-        parsers[i]->Stop();
-      }
-      break;
-    }
-  }
-  */
   for(size_t i = 0; i < kDataSetNum; i++) {
     migrators[i]->JoinThread();
   }
   for(size_t i = 0; i < thread_num; i++) {
     senders[i]->Stop();
   }
-
   for (size_t i = 0; i < thread_num; i++) {
     senders[i]->JoinThread();
   }
@@ -154,7 +110,7 @@ int main(int argc, char **argv)
   int64_t replies = 0, records = 0;
   for (size_t i = 0; i < kDataSetNum; i++) {
     records += migrators[i]->num();
-    //delete migrators[i];
+    delete migrators[i];
   }
   for (size_t i = 0; i < thread_num; i++) {
     replies += senders[i]->elements();
@@ -168,7 +124,7 @@ int main(int argc, char **argv)
 
   std::cout << "====================================" << std::endl;
   std::cout << "Running time  :";
-  std::cout << h.count() << " hour " << m.count() << " min " << s.count() << " s\n";
+  std::cout << h.count() << " hour " << m.count() - h.count() * 60 << " min " << s.count() - h.count() * 60 * 60 << " s\n";
   std::cout << "Total records : " << records << " have been Scaned\n";
   std::cout << "Total replies : " << replies << " received from redis server\n";
   delete db;
