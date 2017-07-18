@@ -39,73 +39,73 @@ void *Sender::ThreadMain() {
     std::string command, expire_command;
 
     keys_mutex_.Lock();
-  	while (keys_queue_.size() == 0) {
-  		rsignal_.Wait();
+    while (keys_queue_.size() == 0) {
+      rsignal_.Wait();
     }
     keys_mutex_.Unlock();
 
-  	if (cli == NULL) {
-  	  // Connect to redis
+    if (cli == NULL) {
+      // Connect to redis
       cli = pink::NewRedisCli();
-  	  cli->set_connect_timeout(1000);
-  	  slash::Status s = cli->Connect(ip_, port_);
-  	  if (!s.ok()) {
-  	  	cli = NULL;
-    	log_info("Can not connect to %s:%d: %s", ip_.data(), port_, s.ToString().data());
-	  	continue;
-	  } else {
-	  	// Connect success
-	  	log_info("Connect to %s:%d:%s", ip_.data(), port_, s.ToString().data());
+      cli->set_connect_timeout(1000);
+      slash::Status s = cli->Connect(ip_, port_);
+      if (!s.ok()) {
+        cli = NULL;
+        log_info("Can not connect to %s:%d: %s", ip_.data(), port_, s.ToString().data());
+        continue;
+      } else {
+        // Connect success
+        log_info("Connect to %s:%d:%s", ip_.data(), port_, s.ToString().data());
 
-	  	// Authentication
-  		if (!password_.empty()) {
-    	  pink::RedisCmdArgsType argv, resp;
-    	  std::string cmd;
+        // Authentication
+        if (!password_.empty()) {
+          pink::RedisCmdArgsType argv, resp;
+          std::string cmd;
 
-    	  argv.push_back("AUTH");
-    	  argv.push_back(password_);
-    	  pink::SerializeRedisCommand(argv, &cmd);
-    	  slash::Status s = cli->Send(&cmd);
+          argv.push_back("AUTH");
+          argv.push_back(password_);
+          pink::SerializeRedisCommand(argv, &cmd);
+          slash::Status s = cli->Send(&cmd);
 
-    	  if (s.ok()) {
-      	  	s = cli->Recv(&resp);
-       	  	if (resp[0] == "OK") {
-  	  		  log_info("Authentic success");
-  	  	    } else {
-  	  		  log_info("Invalid password");
-  	  		  return NULL;
-  	  		}
-  		  } else {
-  		  	cli->Close();
-  	  	    log_info("%s", s.ToString().data());
-  	  	    cli = NULL;
-  	 		continue;
-    	    }
-  		  } else {
-  		    // If forget to input password
-  		    pink::RedisCmdArgsType argv, resp;
-    	    std::string cmd;
+          if (s.ok()) {
+            s = cli->Recv(&resp);
+            if (resp[0] == "OK") {
+              log_info("Authentic success");
+            } else {
+              log_info("Invalid password");
+              return NULL;
+            }
+          } else {
+            cli->Close();
+            log_info("%s", s.ToString().data());
+            cli = NULL;
+            continue;
+          }
+        } else {
+          // If forget to input password
+          pink::RedisCmdArgsType argv, resp;
+          std::string cmd;
 
-    	    argv.push_back("PING");
-    	    pink::SerializeRedisCommand(argv, &cmd);
-    	    slash::Status s = cli->Send(&cmd);
+          argv.push_back("PING");
+          pink::SerializeRedisCommand(argv, &cmd);
+          slash::Status s = cli->Send(&cmd);
 
-    	    if (s.ok()) {
-      	      s = cli->Recv(&resp);
-      	      if (s.ok()) {
-       	  	    if (resp[0] == "NOAUTH Authentication required.") {
-  	  		      log_info("Authentication required");
-  	  		      return NULL;
-  	  	        }
-  	  	      } else {
-  	  	        cli->Close();
-  	  	        log_info("%s", s.ToString().data());
-  	  	        cli = NULL;
-  	 		    continue;
-  	 		  }
-  	 	    }
-  		  }
-	    }
+          if (s.ok()) {
+            s = cli->Recv(&resp);
+            if (s.ok()) {
+              if (resp[0] == "NOAUTH Authentication required.") {
+                log_info("Authentication required");
+                return NULL;
+              }
+            } else {
+              cli->Close();
+              log_info("%s", s.ToString().data());
+              cli = NULL;
+              continue;
+            }
+          }
+        }
+      }
     } else {
       // Parse keys
       std::string key;
@@ -120,7 +120,7 @@ void *Sender::ThreadMain() {
       if (type == nemo::DataType::kHSize) {   // Hash
         std::string h_key = key.substr(1);
         nemo::HIterator *iter = db_->HScan(h_key, "", "", -1, false);
-  	    for (; iter->Valid(); iter->Next()) {
+        for (; iter->Valid(); iter->Next()) {
           pink::RedisCmdArgsType argv;
 
           argv.push_back("HSET");
@@ -187,49 +187,49 @@ void *Sender::ThreadMain() {
         }
         delete iter;
       } else if (type == nemo::DataType::kKv) {   // Kv
-          std::string k_key = key.substr(1);
-  	      command = k_key;
+        std::string k_key = key.substr(1);
+        command = k_key;
       }
 
       // expire
       if (type != nemo::DataType::kKv) {
-  	    int64_t ttl = -1;
+        int64_t ttl = -1;
         std::string e_key = key.substr(1);
-	      db_->TTL(key, &ttl);
+        db_->TTL(key, &ttl);
 
-	      if (ttl >= 0) {
-  	        pink::RedisCmdArgsType argv;
-            std::string cmd;
+        if (ttl >= 0) {
+          pink::RedisCmdArgsType argv;
+          std::string cmd;
 
-	        argv.push_back("EXPIRE");
-  	        argv.push_back(key);
-  	        argv.push_back(std::to_string(ttl));
+          argv.push_back("EXPIRE");
+          argv.push_back(key);
+          argv.push_back(std::to_string(ttl));
 
-  	        pink::SerializeRedisCommand(argv, &expire_command);
- 	     }
+          pink::SerializeRedisCommand(argv, &expire_command);
+        }
       }
 
       // Send command
       slash::Status s = cli->Send(&command);
       if (s.ok()) {
-  	    elements_++;
-  	  } else {
+        elements_++;
+      } else {
         LoadKey(key);
-  	    cli->Close();
-  	    log_info("%s", s.ToString().data());
-  	    cli = NULL;
+        cli->Close();
+        log_info("%s", s.ToString().data());
+        cli = NULL;
         continue;
-  	  }
+      }
 
       // Send expire command
       if (!expire_command.empty()) {
         slash::Status s = cli->Send(&expire_command);
         if (!s.ok()) {
-  	      cli->Close();
-  	      log_info("%s", s.ToString().data());
-  	      cli = NULL;
+          cli->Close();
+          log_info("%s", s.ToString().data());
+          cli = NULL;
           continue;
-  	    }
+        }
       }
     }
   }
