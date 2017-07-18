@@ -32,7 +32,6 @@ private:
 	slash::CondVar wsignal_;
 	nemo::Nemo *db_;
 	slash::Mutex keys_mutex_;
-	slash::Mutex mu_;
 	std::queue<std::string> keys_queue_;
 	std::string ip_;
 	int port_;

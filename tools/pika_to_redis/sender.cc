@@ -1,27 +1,33 @@
 #include "sender.h"
 
 Sender::Sender(nemo::Nemo *db, std::string ip, int64_t port, std::string password):
-  rsignal_(&mu_),
-  wsignal_(&mu_),
-	db_(db),
-	ip_(ip),
-	port_(port),
-	password_(password),
+  rsignal_(&keys_mutex_),
+  wsignal_(&keys_mutex_),
+  db_(db),
+  ip_(ip),
+  port_(port),
+  password_(password),
   should_exit_(false),
   elements_(0)
   {
   }
-	    
+
 Sender::~Sender() {
 }
 
 void Sender::LoadKey(const std::string &key) {
-  slash::MutexLock l(&keys_mutex_);
+  keys_mutex_.Lock();
   if (keys_queue_.size() < 100000) {
     keys_queue_.push(key);
     rsignal_.Signal();
+    keys_mutex_.Unlock();
   } else {
-    wsignal_.Wait();
+    while (keys_queue_.size() > 100000) {
+      wsignal_.Wait();
+    }
+    keys_queue_.push(key);
+    rsignal_.Signal();
+    keys_mutex_.Unlock();
   }
 }
 
@@ -29,13 +35,15 @@ void *Sender::ThreadMain() {
   log_info("Start sender thread...");
 
   pink::PinkCli *cli = NULL;
-  while (!should_exit_ ) {
+  while (!should_exit_ || QueueSize() != 0) {
     std::string command, expire_command;
-  	while (!should_exit_ || QueueSize() == 0)
+
+    keys_mutex_.Lock();
+  	while (keys_queue_.size() == 0) {
   		rsignal_.Wait();
-    if (should_exit_) {
-      return NULL;
     }
+    keys_mutex_.Unlock();
+
   	if (cli == NULL) {
   	  // Connect to redis
       cli = pink::NewRedisCli();
@@ -48,7 +56,7 @@ void *Sender::ThreadMain() {
 	  } else {
 	  	// Connect success
 	  	log_info("Connect to %s:%d:%s", ip_.data(), port_, s.ToString().data());
-	  	
+
 	  	// Authentication
   		if (!password_.empty()) {
     	  pink::RedisCmdArgsType argv, resp;
@@ -58,7 +66,7 @@ void *Sender::ThreadMain() {
     	  argv.push_back(password_);
     	  pink::SerializeRedisCommand(argv, &cmd);
     	  slash::Status s = cli->Send(&cmd);
-    	  
+
     	  if (s.ok()) {
       	  	s = cli->Recv(&resp);
        	  	if (resp[0] == "OK") {
@@ -68,10 +76,10 @@ void *Sender::ThreadMain() {
   	  		  return NULL;
   	  		}
   		  } else {
-  		  	  cli->Close();
+  		  	cli->Close();
   	  	    log_info("%s", s.ToString().data());
   	  	    cli = NULL;
-  	 		    continue;
+  	 		continue;
     	    }
   		  } else {
   		    // If forget to input password
@@ -81,31 +89,33 @@ void *Sender::ThreadMain() {
     	    argv.push_back("PING");
     	    pink::SerializeRedisCommand(argv, &cmd);
     	    slash::Status s = cli->Send(&cmd);
-    	  
+
     	    if (s.ok()) {
-      	    s = cli->Recv(&resp);
-      	    if (s.ok()) {
-       	  	  if (resp[0] == "NOAUTH Authentication required.") {
+      	      s = cli->Recv(&resp);
+      	      if (s.ok()) {
+       	  	    if (resp[0] == "NOAUTH Authentication required.") {
   	  		      log_info("Authentication required");
   	  		      return NULL;
-  	  	      }
-  	  	    } else {
-  	  	      cli->Close();
-  	  	      log_info("%s", s.ToString().data());
-  	  	      cli = NULL;
-  	 		      continue;
-  	 		    }
+  	  	        }
+  	  	      } else {
+  	  	        cli->Close();
+  	  	        log_info("%s", s.ToString().data());
+  	  	        cli = NULL;
+  	 		    continue;
+  	 		  }
   	 	    }
   		  }
 	    }
     } else {
       // Parse keys
       std::string key;
-	    {
-        slash::MutexLock l(&keys_mutex_);
-        key = keys_queue_.front();
-        keys_queue_.pop();
-      }
+
+      keys_mutex_.Lock();
+      key = keys_queue_.front();
+      keys_queue_.pop();
+      wsignal_.Signal();
+      keys_mutex_.Unlock();
+
       char type = key[0];
       if (type == nemo::DataType::kHSize) {   // Hash
         std::string h_key = key.substr(1);
@@ -132,7 +142,7 @@ void *Sender::ThreadMain() {
           argv.push_back(iter->member());
 
           pink::SerializeRedisCommand(argv, &command);
-        }  
+        }
         delete iter;
       } else if (type == nemo::DataType::kLMeta) {  // List
         std::string l_key = key.substr(1);
@@ -177,9 +187,9 @@ void *Sender::ThreadMain() {
         }
         delete iter;
       } else if (type == nemo::DataType::kKv) {   // Kv
-        std::string k_key = key.substr(1);
-  	    command = k_key;
-      } 
+          std::string k_key = key.substr(1);
+  	      command = k_key;
+      }
 
       // expire
       if (type != nemo::DataType::kKv) {
@@ -188,30 +198,29 @@ void *Sender::ThreadMain() {
 	      db_->TTL(key, &ttl);
 
 	      if (ttl >= 0) {
-  	      pink::RedisCmdArgsType argv;
-          std::string cmd;
+  	        pink::RedisCmdArgsType argv;
+            std::string cmd;
 
 	        argv.push_back("EXPIRE");
-  	      argv.push_back(key);
-  	      argv.push_back(std::to_string(ttl));
+  	        argv.push_back(key);
+  	        argv.push_back(std::to_string(ttl));
 
-  	      pink::SerializeRedisCommand(argv, &expire_command);
- 	      }
+  	        pink::SerializeRedisCommand(argv, &expire_command);
+ 	     }
       }
-  	
+
       // Send command
       slash::Status s = cli->Send(&command);
       if (s.ok()) {
   	    elements_++;
-        wsignal_.Signal();
   	  } else {
-        keys_queue_.push(key);
+        LoadKey(key);
   	    cli->Close();
   	    log_info("%s", s.ToString().data());
   	    cli = NULL;
         continue;
   	  }
-    
+
       // Send expire command
       if (!expire_command.empty()) {
         slash::Status s = cli->Send(&expire_command);
