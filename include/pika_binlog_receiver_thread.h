@@ -29,6 +29,10 @@ class PikaBinlogReceiverThread {
     return serial_++;
   }
 
+  Cmd* GetCmd(const std::string& opt) {
+    return GetCmdFromTable(opt, cmds_);
+  }
+
  private:
   class MasterConnFactory : public pink::ConnFactory {
    public:
@@ -63,6 +67,8 @@ class PikaBinlogReceiverThread {
   MasterConnFactory conn_factory_;
   Handles handles_;
   pink::ServerThread* thread_rep_;
+
+  CmdTable cmds_;
 
   uint64_t serial_;
 };

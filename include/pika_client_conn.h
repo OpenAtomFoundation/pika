@@ -27,7 +27,6 @@ class PikaClientConn: public pink::RedisConn {
   CmdTable* const cmds_table_;
 
   std::string DoCmd(const std::string& opt);
-  std::string RestoreArgs();
 
   // Auth related
   class AuthStat {

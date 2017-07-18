@@ -18,9 +18,6 @@ class PikaHubConn: public pink::RedisConn {
 
  private:
   PikaHubReceiverThread* hub_receiver_;
-  void RestoreArgs();
-  std::string raw_args_;
-  const std::string dummy_info;
 };
 
 #endif

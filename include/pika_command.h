@@ -14,6 +14,7 @@
 #include "slash/include/slash_string.h"
 #include "pink/include/redis_conn.h"
 
+const std::string kPikaBinlogMagic = "__PIKA_X#$SKGI";
 
 //Constant for command name
 //Admin
@@ -176,10 +177,11 @@ const std::string kCmdNameGeoRadius = "georadius";
 const std::string kCmdNameGeoRadiusByMember = "georadiusbymember";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
+static const int RAW_ARGS_LEN = 1024 * 1024; 
 
 enum CmdFlagsMask {
   kCmdFlagsMaskRW               = 1,
-  kCmdFlagsMaskType             = 28,
+  kCmdFlagsMaskType             = 30,
   kCmdFlagsMaskLocal            = 32,
   kCmdFlagsMaskSuspend          = 64,
   kCmdFlagsMaskPrior            = 128,
@@ -386,25 +388,56 @@ private:
 };
 
 class Cmd {
-public:
+ public:
   Cmd() {}
   virtual ~Cmd() {}
+
   virtual void Do() = 0;
+
   void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) {
     res_.clear(); // Clear res content
     Clear();      // Clear cmd, Derived class can has own implement
     DoInitial(argvs, ptr_info);
   };
+
   CmdRes& res() {
     return res_;
   }
 
-protected:
+  virtual std::string ToBinlog(const PikaCmdArgsType& argv,
+                               const std::string& server_id,
+                               const std::string& binlog_info,
+                               bool need_send_to_hub) {
+    std::string res;
+    res.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(res, argv.size() + 4, "*");
+    for (auto& v : argv) {
+      RedisAppendLen(res, v.size(), "$");
+      RedisAppendContent(res, v);
+    }
+    // kPikaBinlogMagic
+    RedisAppendLen(res, kPikaBinlogMagic.size(), "$");
+    RedisAppendContent(res, kPikaBinlogMagic);
+    // server_id
+    RedisAppendLen(res, server_id.size(), "$");
+    RedisAppendContent(res, server_id);
+    // binlog_info
+    RedisAppendLen(res, binlog_info.size(), "$");
+    RedisAppendContent(res, binlog_info);
+    // need_send_to_hub
+    std::string v = need_send_to_hub ? "1" : "0";
+    RedisAppendLen(res, v.size(), "$");
+    RedisAppendContent(res, v);
+    return res;
+  }
+
+ protected:
   CmdRes res_;
 
-private:
+ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
   virtual void Clear() {};
+
   Cmd(const Cmd&);
   Cmd& operator=(const Cmd&);
 };
@@ -421,15 +454,17 @@ void InitCmdTable(CmdTable* cmd_table);
 Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table);
 void DestoryCmdTable(CmdTable* cmd_table);
 
-void inline RedisAppendContent(std::string& str, const std::string& value) {
+void RedisAppendContent(std::string& str, const std::string& value) {
   str.append(value.data(), value.size());
   str.append(kNewLine);
 }
-void inline RedisAppendLen(std::string& str, int ori, const std::string &prefix) {
+
+void RedisAppendLen(std::string& str, int ori, const std::string &prefix) {
   char buf[32];
   slash::ll2string(buf, 32, static_cast<long long>(ori));
   str.append(prefix);
   str.append(buf);
   str.append(kNewLine);
 }
+
 #endif

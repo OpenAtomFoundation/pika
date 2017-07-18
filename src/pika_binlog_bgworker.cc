@@ -54,11 +54,16 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   // Force the binlog write option to serialize
   // Unlock, clean env, and exit when error happend
   bool error_happend = false;
+  std::string dummy_binlog_info("");
   if (!is_readonly) {
     error_happend = !g_pika_server->WaitTillBinlogBGSerial(my_serial);
     if (!error_happend) {
       g_pika_server->logger_->Lock();
-      g_pika_server->logger_->Put(bgarg->raw_args);
+      g_pika_server->logger_->Put(c_ptr->ToBinlog(
+          argv,
+          g_pika_conf->server_id(),
+          dummy_binlog_info,
+          false));
       g_pika_server->logger_->Unlock();
       g_pika_server->SignalNextBinlogBGSerial();
     }

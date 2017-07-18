@@ -1393,10 +1393,9 @@ bool PikaServer::HasMonitorClients() {
 }
 
 void PikaServer::DispatchBinlogBG(const std::string &key,
-    PikaCmdArgsType* argv, const std::string& raw_args,
-    uint64_t cur_serial, bool readonly) {
+    PikaCmdArgsType* argv, uint64_t cur_serial, bool readonly) {
   size_t index = str_hash(key) % binlogbg_workers_.size();
-  binlogbg_workers_[index]->Schedule(argv, raw_args, cur_serial, readonly);
+  binlogbg_workers_[index]->Schedule(argv, cur_serial, readonly);
 }
 
 bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {

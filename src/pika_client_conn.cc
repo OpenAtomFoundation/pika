@@ -17,7 +17,6 @@
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
-static const int RAW_ARGS_LEN = 1024 * 1024; 
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                pink::ServerThread* server_thread,
@@ -26,18 +25,6 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
         server_thread_(server_thread),
         cmds_table_(reinterpret_cast<CmdTable*>(worker_specific_data)) {
   auth_stat_.Init();
-}
-
-std::string PikaClientConn::RestoreArgs() {
-  std::string res;
-  res.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(res, argv_.size(), "*");
-  PikaCmdArgsType::const_iterator it = argv_.begin();
-  for ( ; it != argv_.end(); ++it) {
-    RedisAppendLen(res, (*it).size(), "$");
-    RedisAppendContent(res, *it);
-  }
-  return res;
 }
 
 std::string PikaClientConn::DoCmd(const std::string& opt) {
@@ -93,15 +80,14 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   // std::string raw_args;
-  std::string need_send_to_hub = "0" /* or "1" */;
+  bool need_send_to_hub = false;
   if (cinfo_ptr->is_write()) {
     if (g_pika_conf->readonly()) {
       return "-ERR Server in read-only\r\n";
     }
-    // raw_args = RestoreArgs();
     if (argv_.size() >= 2) {
-      if (opt == kCmdNameSet) {
-        need_send_to_hub = "1";
+      if (cinfo_ptr->flag_type() & kCmdFlagsKv) {
+        need_send_to_hub = true;
       }
       g_pika_server->mutex_record_.Lock(argv_[1]);
     }
@@ -127,13 +113,12 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       slash::PutFixed32(&binlog_info, filenum);
       slash::PutFixed64(&binlog_info, offset);
 
-      // Extra binlog info
-      argv_.push_back(kPikaBinlogMagic);
-      argv_.push_back(g_pika_conf->server_id());
-      argv_.push_back(binlog_info);
-      argv_.push_back(need_send_to_hub);
+      g_pika_server->logger_->Put(c_ptr->ToBinlog(
+          argv_,
+          g_pika_conf->server_id(),
+          binlog_info,
+          need_send_to_hub));
 
-      g_pika_server->logger_->Put(RestoreArgs());
       g_pika_server->logger_->Unlock();
     }
   }

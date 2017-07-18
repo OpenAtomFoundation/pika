@@ -135,6 +135,4 @@ class Version {
   void operator=(const Version&);
 };
 
-const std::string kPikaBinlogMagic = "__PIKA_X#$SKGI";
-
 #endif
