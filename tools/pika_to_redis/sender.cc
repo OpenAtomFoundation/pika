@@ -16,6 +16,71 @@ Sender::Sender(nemo::Nemo *db, std::string ip, int64_t port, std::string passwor
 Sender::~Sender() {
 }
 
+void Sender::ConnectRedis() {
+  while (cli_ == NULL) {
+    // Connect to redis
+    cli_ = pink::NewRedisCli();
+    cli_->set_connect_timeout(1000);
+    slash::Status s = cli_->Connect(ip_, port_);
+    if (!s.ok()) {
+      cli_ = NULL;
+      log_info("Can not connect to %s:%d: %s", ip_.data(), port_, s.ToString().data());
+      continue;
+    } else {
+      // Connect success
+      log_info("Connect to %s:%d:%s", ip_.data(), port_, s.ToString().data());
+
+      // Authentication
+      if (!password_.empty()) {
+        pink::RedisCmdArgsType argv, resp;
+        std::string cmd;
+
+        argv.push_back("AUTH");
+        argv.push_back(password_);
+        pink::SerializeRedisCommand(argv, &cmd);
+        slash::Status s = cli_->Send(&cmd);
+
+        if (s.ok()) {
+          s = cli_->Recv(&resp);
+          if (resp[0] == "OK") {
+            log_info("Authentic success");
+          } else {
+            log_info("Invalid password");
+            continue;
+          }
+        } else {
+          cli_->Close();
+          log_info("%s", s.ToString().data());
+          cli_ = NULL;
+          continue;
+        }
+      } else {
+        // If forget to input password
+        pink::RedisCmdArgsType argv, resp;
+        std::string cmd;
+
+        argv.push_back("PING");
+        pink::SerializeRedisCommand(argv, &cmd);
+        slash::Status s = cli_->Send(&cmd);
+
+        if (s.ok()) {
+          s = cli_->Recv(&resp);
+          if (s.ok()) {
+            if (resp[0] == "NOAUTH Authentication required.") {
+              log_info("Authentication required");
+              continue;
+            }
+          } else {
+            cli_->Close();
+            log_info("%s", s.ToString().data());
+            cli_ = NULL;
+          }
+        }
+      }
+    }
+  }
+}
+
 void Sender::LoadKey(const std::string &key) {
   keys_mutex_.Lock();
   if (keys_queue_.size() < 100000) {
@@ -41,6 +106,7 @@ void Sender::SendCommand(std::string &command, const std::string &key) {
     cli_->Close();
     log_info("%s", s.ToString().data());
     cli_ = NULL;
+    ConnectRedis();
   }
 }
 
@@ -53,11 +119,12 @@ void *Sender::ThreadMain() {
     // Resend expire command
     if (!expire_command_.empty() && cli_ != NULL) {
       slash::Status s = cli_->Send(&expire_command_);
+      std::cout << expire_command_ << std::endl;
       if (!s.ok()) {
         cli_->Close();
         cli_ = NULL;
         log_info("%s", s.ToString().data());
-        break;
+        ConnectRedis();
       } else {
         expire_command_.clear();
       }
@@ -69,74 +136,13 @@ void *Sender::ThreadMain() {
         rsignal_.Wait();
       }
       keys_mutex_.Unlock();
-      //std::cout << "w " << std::endl;
       if (QueueSize() == 0 && should_exit_) {
         return NULL;
       }
     }
 
     if (cli_ == NULL) {
-      // Connect to redis
-      cli_ = pink::NewRedisCli();
-      cli_->set_connect_timeout(1000);
-      slash::Status s = cli_->Connect(ip_, port_);
-      if (!s.ok()) {
-        cli_ = NULL;
-        log_info("Can not connect to %s:%d: %s", ip_.data(), port_, s.ToString().data());
-        continue;
-      } else {
-        // Connect success
-        log_info("Connect to %s:%d:%s", ip_.data(), port_, s.ToString().data());
-
-        // Authentication
-        if (!password_.empty()) {
-          pink::RedisCmdArgsType argv, resp;
-          std::string cmd;
-
-          argv.push_back("AUTH");
-          argv.push_back(password_);
-          pink::SerializeRedisCommand(argv, &cmd);
-          slash::Status s = cli_->Send(&cmd);
-
-          if (s.ok()) {
-            s = cli_->Recv(&resp);
-            if (resp[0] == "OK") {
-              log_info("Authentic success");
-            } else {
-              log_info("Invalid password");
-              return NULL;
-            }
-          } else {
-            cli_->Close();
-            log_info("%s", s.ToString().data());
-            cli_ = NULL;
-            continue;
-          }
-        } else {
-          // If forget to input password
-          pink::RedisCmdArgsType argv, resp;
-          std::string cmd;
-
-          argv.push_back("PING");
-          pink::SerializeRedisCommand(argv, &cmd);
-          slash::Status s = cli_->Send(&cmd);
-
-          if (s.ok()) {
-            s = cli_->Recv(&resp);
-            if (s.ok()) {
-              if (resp[0] == "NOAUTH Authentication required.") {
-                log_info("Authentication required");
-                return NULL;
-              }
-            } else {
-              cli_->Close();
-              log_info("%s", s.ToString().data());
-              cli_ = NULL;
-              continue;
-            }
-          }
-        }
-      }
+      ConnectRedis();
     } else {
       if (QueueSize() == 0) {
         continue;
@@ -251,7 +257,7 @@ void *Sender::ThreadMain() {
             cli_->Close();
             log_info("%s", s.ToString().data());
             cli_ = NULL;
-            continue;
+            ConnectRedis();
           } else {
             expire_command_.clear();
           }
@@ -261,6 +267,7 @@ void *Sender::ThreadMain() {
   }
 
   delete cli_;
+  delete db_;
   log_info("Sender thread complete");
   return NULL;
 }

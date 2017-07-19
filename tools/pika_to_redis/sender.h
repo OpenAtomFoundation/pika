@@ -31,6 +31,7 @@ public:
   	  int len = keys_queue_.size();
   	  return len;
   	}
+	void ConnectRedis();
 private:
 	pink::PinkCli *cli_;
 	slash::CondVar rsignal_;
