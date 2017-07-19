@@ -17,6 +17,9 @@ public:
 	void LoadKey(const std::string &cmd);
 	void Stop() {
   	  should_exit_ = true;
+	  keys_mutex_.Lock();
+	  rsignal_.Signal();
+      keys_mutex_.Unlock();
 	}
 	int64_t elements() {
       return elements_;
@@ -35,11 +38,10 @@ private:
 	nemo::Nemo *db_;
 	slash::Mutex keys_mutex_;
 	std::queue<std::string> keys_queue_;
-	std::queue<std::string> expire_command_queue_;
+	std::string expire_command_;
 	std::string ip_;
 	int port_;
 	std::string password_;
-	std::string cmd_;
   	bool should_exit_;
   	int64_t elements_;
 

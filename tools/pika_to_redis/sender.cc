@@ -46,15 +46,34 @@ void Sender::SendCommand(std::string &command, const std::string &key) {
 
 void *Sender::ThreadMain() {
   log_info("Start sender thread...");
+  expire_command_.clear();
 
-  while (!should_exit_ || QueueSize() != 0) {
-    std::string command, expire_command;
-
-    keys_mutex_.Lock();
-    while (keys_queue_.size() == 0) {
-      rsignal_.Wait();
+  while (!should_exit_ || QueueSize() != 0 || !expire_command_.empty()) {
+    std::string command;
+    // Resend expire command
+    if (!expire_command_.empty() && cli_ != NULL) {
+      slash::Status s = cli_->Send(&expire_command_);
+      if (!s.ok()) {
+        cli_->Close();
+        cli_ = NULL;
+        log_info("%s", s.ToString().data());
+        break;
+      } else {
+        expire_command_.clear();
+      }
     }
-    keys_mutex_.Unlock();
+    
+    if (expire_command_.empty()) {
+      keys_mutex_.Lock();
+      while (keys_queue_.size() == 0 && !should_exit_) {
+        rsignal_.Wait();
+      }
+      keys_mutex_.Unlock();
+      //std::cout << "w " << std::endl;
+      if (QueueSize() == 0 && should_exit_) {
+        return NULL;
+      }
+    }
 
     if (cli_ == NULL) {
       // Connect to redis
@@ -119,6 +138,9 @@ void *Sender::ThreadMain() {
         }
       }
     } else {
+      if (QueueSize() == 0) {
+        continue;
+      }
       // Parse keys
       std::string key;
 
@@ -223,28 +245,16 @@ void *Sender::ThreadMain() {
           argv.push_back(e_key);
           argv.push_back(std::to_string(ttl));
 
-          pink::SerializeRedisCommand(argv, &expire_command);
-          slash::Status s = cli_->Send(&expire_command);
+          pink::SerializeRedisCommand(argv, &expire_command_);
+          slash::Status s = cli_->Send(&expire_command_);
           if (!s.ok()) {
-            expire_command_queue_.push(expire_command);
             cli_->Close();
             log_info("%s", s.ToString().data());
             cli_ = NULL;
             continue;
+          } else {
+            expire_command_.clear();
           }
-        }
-      }
-      // Resend expire command
-      while (expire_command_queue_.size() != 0) {
-        std::string expire_command = expire_command_queue_.front();
-        expire_command_queue_.pop();
-        slash::Status s = cli_->Send(&expire_command);
-        if (!s.ok()) {
-          expire_command_queue_.push(expire_command);
-          cli_->Close();
-          log_info("%s", s.ToString().data());
-          cli_ = NULL;
-          continue;
         }
       }
     }

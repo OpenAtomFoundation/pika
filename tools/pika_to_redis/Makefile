@@ -1,8 +1,6 @@
 GCC = g++
-#CPPFLAGS = -Wall -W -Wno-unused-parameter -g -O2 -std=c++11
 CPPFLAGS = -Wall -W -Wno-unused-parameter -DDEBUG -D__XDEBUG__ -g -O3 -std=c++11
 OBJECT = pika_to_redis
-#p2r_test_correct
 
 LIB_PATH = -L ../../third/nemo/output/lib/ \
 					 -L ../../third/pink/pink/lib/ \
@@ -30,16 +28,9 @@ INCLUDE_PATH = -I../../third/pink/ \
 
 .PHONY: all clean
 
-
-# BASE_BOJS := $(wildcard *.cpp)
-# BASE_BOJS += $(wildcard *.c)
-# OBJS := $(patsubst %.cpp,%.o,$(BASE_BOJS))
-
-
 all: $(OBJECT)
 	rm *.o
 
-#$(OBJECT): $(OBJECT).o
 pika_to_redis : pika_to_redis.o migrator_thread.o sender.o
 	$(GCC) $(CPPFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 

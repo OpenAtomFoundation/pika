@@ -27,13 +27,11 @@ class MigratorThread : public pink::Thread {
   bool should_exit_;
  private:
   nemo::Nemo *db_;
-  //std::vector<ParseThread*> parsers_;
   std::vector<Sender *> senders_;
   char type_;
   int thread_num_;
   int thread_index_;
 
-  static std::string GetKey(const rocksdb::Iterator *it);
   void MigrateDB(const char type);
   void DispatchKey(const std::string &key);
 
