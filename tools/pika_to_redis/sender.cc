@@ -234,7 +234,6 @@ void *Sender::ThreadMain() {
           }
         }
       }
-      
       // Resend expire command
       while (expire_command_queue_.size() != 0) {
         std::string expire_command = expire_command_queue_.front();
@@ -255,3 +254,4 @@ void *Sender::ThreadMain() {
   log_info("Sender thread complete");
   return NULL;
 }
+
