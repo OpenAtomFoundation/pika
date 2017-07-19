@@ -91,7 +91,8 @@ PikaServer::PikaServer() :
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
-
+  slotsmgrt_sender_thread_ = new SlotsMgrtSenderThread();
+  
   //for (int j = 0; j < g_pika_conf->binlogbg_thread_num; j++) {
   for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
     binlogbg_workers_.push_back(new BinlogBGWorker(g_pika_conf->sync_buffer_size()));
@@ -121,6 +122,7 @@ PikaServer::~PikaServer() {
   }
 
   delete pika_trysync_thread_;
+  delete slotsmgrt_sender_thread_;
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
 
@@ -962,6 +964,26 @@ void PikaServer::DoBgslotsreload(void* arg) {
   }
   p->SetSlotsreloading(false);
   LOG(INFO) << "Finish slot reloading";
+}
+
+int PikaServer::SlotsMigrateOne(const std::string &key){
+  return slotsmgrt_sender_thread_->SlotsMigrateOne(key);
+}
+
+bool PikaServer::SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot, int64_t keys_num){
+  return slotsmgrt_sender_thread_->SlotsMigrateBatch(ip, port, time_out, slot, keys_num);
+}
+
+bool PikaServer::GetSlotsMigrateResul(int64_t *moved, int64_t *remained) {
+  return slotsmgrt_sender_thread_->GetSlotsMigrateResul(moved, remained);
+}
+
+void PikaServer::GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained) {
+  slotsmgrt_sender_thread_->GetSlotsMgrtSenderStatus(ip, port, slot, migrating, moved, remained);
+}
+
+bool PikaServer::SlotsMigrateAsyncCancel() {
+  return slotsmgrt_sender_thread_->SlotsMigrateAsyncCancel();
 }
 
 bool PikaServer::PurgeLogs(uint32_t to, bool manual, bool force) {

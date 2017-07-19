@@ -51,6 +51,11 @@ const std::string kCmdNameSlotsReload = "slotsreload";
 const std::string kCmdNameSlotsReloadOff = "slotsreloadoff";
 const std::string kCmdNameSlotsDel = "slotsdel";
 const std::string kCmdNameSlotsScan = "slotsscan";
+const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
+const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
+const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
+const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
+const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
 
 //Kv
 const std::string kCmdNameSet = "set";

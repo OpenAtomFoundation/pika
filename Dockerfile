@@ -15,8 +15,6 @@ RUN yum -y update && \
 ENV PIKA  /pika
 COPY . ${PIKA}
 WORKDIR ${PIKA}
-RUN git submodule init
-RUN git submodule update
 RUN make __REL=1
 RUN cp -f ${PIKA}/output/lib/libglog.so.0 /usr/lib64/
 ENV PATH   ${PIKA}/output/bin:${PATH}
