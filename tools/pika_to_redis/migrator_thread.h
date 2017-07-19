@@ -18,15 +18,6 @@ class MigratorThread : public pink::Thread {
       {
       }
 
-  // prase key and generate cmd
-  void SetTTL(const std::string &key, int64_t ttl);
-  void ParseKey(const std::string &key,char type);
-  void ParseKKey(const std::string &key);
-  void ParseHKey(const std::string &key);
-  void ParseSKey(const std::string &key);
-  void ParseZKey(const std::string &key);
-  void ParseLKey(const std::string &key);
-
   int64_t num() {
     slash::MutexLock l(&num_mutex_);
     return num_;

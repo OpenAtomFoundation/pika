@@ -22,17 +22,20 @@ public:
       return elements_;
   	}
 
+	void SendCommand(std::string &command, const std::string &key);
   	int QueueSize() {
   	  slash::MutexLock l(&keys_mutex_);
   	  int len = keys_queue_.size();
   	  return len;
   	}
 private:
+	pink::PinkCli *cli_;
 	slash::CondVar rsignal_;
 	slash::CondVar wsignal_;
 	nemo::Nemo *db_;
 	slash::Mutex keys_mutex_;
 	std::queue<std::string> keys_queue_;
+	std::queue<std::string> expire_command_queue_;
 	std::string ip_;
 	int port_;
 	std::string password_;
