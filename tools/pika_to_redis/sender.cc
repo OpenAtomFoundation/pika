@@ -45,7 +45,9 @@ void Sender::ConnectRedis() {
           if (resp[0] == "OK") {
             log_info("Authentic success");
           } else {
-            log_info("Invalid password");
+            cli_->Close();
+            log_err("Invalid password");
+            cli_ = NULL;
             continue;
           }
         } else {
@@ -67,7 +69,9 @@ void Sender::ConnectRedis() {
           s = cli_->Recv(&resp);
           if (s.ok()) {
             if (resp[0] == "NOAUTH Authentication required.") {
-              log_info("Authentication required");
+              cli_->Close();
+              log_err("Authentication required");
+              cli_ = NULL;
               continue;
             }
           } else {
@@ -267,7 +271,6 @@ void *Sender::ThreadMain() {
   }
 
   delete cli_;
-  delete db_;
   log_info("Sender thread complete");
   return NULL;
 }
