@@ -34,8 +34,8 @@ void PrintConf() {
 
 void Usage() {
   std::cout << "Usage: " << std::endl;
-  std::cout << "      ./pika_to_redis db_path ip port [password]\n";
-  std::cout << "      example: ./pika_to_redis ~/db 127.0.0.1 6379 123456\n";
+  std::cout << "      ./pika_to_redis db_path ip port thread_number [password]\n";
+  std::cout << "      example: ./pika_to_redis ~/db 127.0.0.1 6379 8 123456\n";
 }
 
 int main(int argc, char **argv)
