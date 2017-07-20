@@ -202,6 +202,8 @@ void InternalTrysyncCmd::Do() {
       << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_ << " "
       << status.ToString();
     res_.SetRes(CmdRes::kErrOther, "InvalidOffset");
+    LOG(INFO) << "InvalidOffset: " << filenum_ << ":" << pro_offset_;
+    return;
   }
   res_.SetRes(CmdRes::kOk);
   LOG(INFO) << "Send OK to Hub";

@@ -13,17 +13,18 @@
  * kv
  */
 class SetCmd : public Cmd {
-public:
+ public:
   enum SetCondition{kANY, kNX, kXX};
   SetCmd() : sec_(0), condition_(kANY) {};
-  virtual void Do();
-private:
+  virtual void Do() override;
+
+ private:
   std::string key_;
   std::string value_;
   int64_t sec_;
   SetCmd::SetCondition condition_;
-  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
-  virtual void Clear() {
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) override;
+  virtual void Clear() override {
     sec_ = 0;
     condition_ = kANY;
   }
@@ -213,43 +214,49 @@ private:
 };
 
 class ExpireCmd : public Cmd {
-public:
+ public:
   ExpireCmd() {}
   virtual void Do();
-private:
+
+ private:
   std::string key_;
   int64_t sec_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
+  virtual void ToBinlogInternal(std::string& res, const PikaCmdArgsType& argv) override;
 };
 
 class PexpireCmd : public Cmd {
-public:
+ public:
   PexpireCmd() {}
   virtual void Do();
-private:
+
+ private:
   std::string key_;
   int64_t msec_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
+  virtual void ToBinlogInternal(std::string& res, const PikaCmdArgsType& argv) override;
 };
 
 class ExpireatCmd : public Cmd {
-public:
+ public:
   ExpireatCmd() {}
   virtual void Do();
-private:
+
+ private:
   std::string key_;
   int64_t time_stamp_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
 };
 
 class PexpireatCmd : public Cmd {
-public:
-    PexpireatCmd() {}
-    virtual void Do();
-private:
+ public:
+  PexpireatCmd() {}
+  virtual void Do();
+
+ private:
   std::string key_;
   int64_t time_stamp_ms_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
 };
 
 class TtlCmd : public Cmd {

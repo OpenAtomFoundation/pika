@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "slash/include/slash_string.h"
 #include "slash/include/slash_coding.h"
 #include <glog/logging.h>
 #include "pika_master_conn.h"
@@ -28,7 +29,11 @@ int PikaMasterConn::DealMessage() {
     return -2;
   }
 
-  Cmd* c_ptr = binlog_receiver_->GetCmd(argv_[0]);
+  if (argv_.size() > 4 &&
+      *(argv_.end() - 4) == kPikaBinlogMagic) {
+    // Record new binlog format
+    argv_.erase(argv_.end() - 4, argv_.end());
+  }
 
   // Monitor related
   std::string monitor_message;
@@ -51,6 +56,9 @@ int PikaMasterConn::DealMessage() {
     if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
       return -2;
     }
+    std::string opt = slash::StringToLower(argv_[0]);
+    Cmd* c_ptr = binlog_receiver_->GetCmd(opt);
+
     g_pika_server->logger_->Lock();
     g_pika_server->logger_->Put(c_ptr->ToBinlog(
         argv_,

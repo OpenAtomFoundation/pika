@@ -578,6 +578,23 @@ void ExpireCmd::Do() {
   return;
 }
 
+void ExpireCmd::ToBinlogInternal(std::string& res, const PikaCmdArgsType& argv) {
+  // to expireat cmd
+  std::string expireat_cmd("expireat");
+  RedisAppendLen(res, expireat_cmd.size(), "$");
+  RedisAppendContent(res, expireat_cmd);
+  // key
+  RedisAppendLen(res, argv[1].size(), "$");
+  RedisAppendContent(res, argv[1]);
+  // sec
+  char buf[100];
+  int64_t expireat = time(nullptr) + sec_;
+  slash::ll2string(buf, 100, expireat);
+  std::string at(buf);
+  RedisAppendLen(res, at.size(), "$");
+  RedisAppendContent(res, at);
+}
+
 void PexpireCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePexpire);
@@ -600,6 +617,23 @@ void PexpireCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
+}
+
+void PexpireCmd::ToBinlogInternal(std::string& res, const PikaCmdArgsType& argv) {
+  // to pexpireat cmd
+  std::string pexpireat_cmd("pexpireat");
+  RedisAppendLen(res, pexpireat_cmd.size(), "$");
+  RedisAppendContent(res, pexpireat_cmd);
+  // key
+  RedisAppendLen(res, argv[1].size(), "$");
+  RedisAppendContent(res, argv[1]);
+  // sec
+  char buf[100];
+  int64_t pexpireat = slash::NowMicros() / 1000 + msec_;
+  slash::ll2string(buf, 100, pexpireat);
+  std::string at(buf);
+  RedisAppendLen(res, at.size(), "$");
+  RedisAppendContent(res, at);
 }
 
 void ExpireatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {

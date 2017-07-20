@@ -16,6 +16,8 @@ PikaHubReceiverThread::PikaHubReceiverThread(const std::set<std::string> &ips, i
       : conn_factory_(this),
         handles_(this),
         serial_(0) {
+  cmds_.reserve(300);
+  InitCmdTable(&cmds_);
   thread_rep_ = pink::NewHolyThread(ips, port, &conn_factory_,
                                     cron_interval, &handles_);
   thread_rep_->set_thread_name("HubReceiver");
