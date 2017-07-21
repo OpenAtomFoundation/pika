@@ -1,7 +1,7 @@
 ## 1. 奇虎360
 <img src="http://i.imgur.com/dcHpCm4.png" height = "50" width = "60" alt="Qihoo360">
 
-在360, pika已替换全部redis大容量实例和ssdb实例，目前已有800+实例，每天访问量150亿，存储容量13.5T，主要业务包括手机助手、云盘等
+在360, pika已替换几乎全部的Redis大容量实例和所有的SSDB，目前已有1000+实例，每天访问量900亿，存储容量18T，折合内存大致54T
 
 ## 2. 新浪微博
 <img src="http://i.imgur.com/jjZczkN.png" height = "50" width = "60" alt="Weibo">
@@ -82,4 +82,4 @@
 ## 15. 360游戏
 <img src="http://i.imgur.com/ktPV3JU.jpg?2" height = "50" width = "60" alt="XL">
 
-360游戏已全面完成ssdb到pika的替换
+360游戏已全面完成SSDB到pika的替换
