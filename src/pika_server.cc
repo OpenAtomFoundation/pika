@@ -1165,6 +1165,7 @@ void PikaServer::AutoPurge() {
 }
 
 void PikaServer::AutoDeleteExpiredDump() {
+  std::string db_sync_prefix = g_pika_conf->bgsave_prefix();
   std::string db_sync_path = g_pika_conf->bgsave_path();
   int expiry_days = g_pika_conf->expire_dump_days();
   std::vector<std::string> dump_dir;
@@ -1186,10 +1187,11 @@ void PikaServer::AutoDeleteExpiredDump() {
 
   // Handle dump directory
   for (size_t i = 0; i < dump_dir.size(); i++) {
+    std::string dump_dir_name = dump_dir[i].substr(db_sync_prefix.size(), dump_dir[i].size());
     // Parse filename
-    int dump_year = std::atoi(dump_dir[i].substr(0, 4).c_str());
-    int dump_month = std::atoi(dump_dir[i].substr(4, 2).c_str());
-    int dump_day = std::atoi(dump_dir[i].substr(6, 2).c_str());
+    int dump_year = std::atoi(dump_dir_name.substr(0, 4).c_str());
+    int dump_month = std::atoi(dump_dir_name.substr(4, 2).c_str());
+    int dump_day = std::atoi(dump_dir_name.substr(6, 2).c_str());
 
     time_t t = time(NULL);
     struct tm *now = localtime(&t);

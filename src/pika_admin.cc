@@ -130,7 +130,7 @@ void TrysyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void TrysyncCmd::Do() {
-  LOG(INFO) << "Trysync, Slave ip: " << slave_ip_ << "Slave port:" << slave_port_
+  LOG(INFO) << "Trysync, Slave ip: " << slave_ip_ << " Slave port:" << slave_port_
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
   int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_);
   if (sid >= 0) {
@@ -824,9 +824,9 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "dump-path");
       EncodeString(&ret, g_pika_conf->bgsave_path());
-  } else if (get_item == "expire-dump-days") {
+  } else if (get_item == "dump-expire") {
       ret = "*2\r\n";
-      EncodeString(&ret, "expire-dump-days");
+      EncodeString(&ret, "dump-expire");
       EncodeInt32(&ret, g_pika_conf->expire_dump_days());
   } else if (get_item == "pidfile") {
       ret = "*2\r\n";
@@ -928,7 +928,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->slotmigrate());
     EncodeString(&ret, "dump-path");
     EncodeString(&ret, g_pika_conf->bgsave_path());
-    EncodeString(&ret, "expire-dump-days");
+    EncodeString(&ret, "dump-expire");
     EncodeInt32(&ret, g_pika_conf->expire_dump_days());
     EncodeString(&ret, "dump-prefix");
     EncodeString(&ret, g_pika_conf->bgsave_prefix());
@@ -988,7 +988,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "userblacklist");
     EncodeString(&ret, "dump-prefix");
     EncodeString(&ret, "maxclients");
-    EncodeString(&ret, "expire-dump-days");
+    EncodeString(&ret, "dump-expire");
     EncodeString(&ret, "expire-logs-days");
     EncodeString(&ret, "expire-logs-nums");
     EncodeString(&ret, "root-connection-num");
@@ -1044,9 +1044,9 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetMaxConnection(ival);
     ret = "+OK\r\n";
-  } else if (set_item == "expire-dump-days") {
+  } else if (set_item == "dump-expire") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire-dump-days'\r\n";
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'dump-expire'\r\n";
       return;
     }
     g_pika_conf->SetExpireDumpDays(ival);
@@ -1237,14 +1237,17 @@ void DelbackupCmd::Do() {
 
   int len = dump_dir.size();
   for (size_t i = 0; i < dump_dir.size(); i++) {
+    std::string dump_dir_name = db_sync_path + dump_dir[i];
     if (g_pika_server->CountSyncSlaves() == 0) {
-      LOG(INFO) << "Delete dump file: " << db_sync_path + dump_dir[i];
-      slash::DeleteDirIfExist(db_sync_path + dump_dir[i]);
+      LOG(INFO) << "Not syncing, delete dump file: " << dump_dir_name;
+      slash::DeleteDirIfExist(dump_dir_name);
       len--;
-    } else if (g_pika_server->bgsave_info().path != dump_dir[i]){
-      LOG(INFO) << "Delete dump file: " << db_sync_path + dump_dir[i];
-      slash::DeleteDirIfExist(db_sync_path + dump_dir[i]);
+    } else if (g_pika_server->bgsave_info().path != dump_dir_name){
+      LOG(INFO) << "Syncing, delete expired dump file: " << dump_dir_name;
+      slash::DeleteDirIfExist(dump_dir_name);
       len--;
+    } else {
+      LOG(INFO) <<"Syncing, can not delete any dump file" << std::endl;
     }
   }
   if (len == 0) {
