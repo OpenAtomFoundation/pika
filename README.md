@@ -12,23 +12,24 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 <table>
 <tr>
 <td height = "100" width = "150"><img src="http://i.imgur.com/dcHpCm4.png" alt="Qihoo"></td>
+<td height = "100" width = "150"><img src="http://i.imgur.com/ktPV3JU.jpg?1" alt="360game"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/jjZczkN.png" alt="Weibo"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/zoel46r.gif" alt="Garena"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/kHqACbn.png" alt="Apus"></td>
 </tr>
 <tr>
+<td height = "100" width = "150"><img src="http://i.imgur.com/kHqACbn.png" alt="Apus"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/2c57z8U.png" alt="Ffan"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/rUiO5VU.png" alt="Meituan"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/px5mEuW.png" alt="XES"></td>
-<td height = "100" width = "150"><img src="http://imgur.com/yJe4FP8.png" alt="HX"></td>
 </tr>
 <tr>
+<td height = "100" width = "150"><img src="http://imgur.com/yJe4FP8.png" alt="HX"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/o8ZDXCH.png" alt="XL"></td>
 <td height = "100" width = "150"><img src="http://imgur.com/w3qNQ9T.png" alt="GWD"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/Ll6SifR.png" alt="DYD"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/vJbAfri.png" alt="YM"></td>
 </tr>
 <tr>
+<td height = "100" width = "150"><img src="http://i.imgur.com/vJbAfri.png" alt="YM"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/aNxzwsY.png" alt="XM"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/mrWxwkF.png" alt="XL"></td>
 </tr>
