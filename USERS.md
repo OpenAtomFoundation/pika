@@ -78,3 +78,8 @@
 <img src="http://i.imgur.com/mrWxwkF.png" height = "50" width = "60" alt="XL">
 
 已上线
+
+## 15. 360游戏
+<img src="http://i.imgur.com/ktPV3JU.jpg?1" height = "50" width = "60" alt="XL">
+
+360游戏已全面完成ssdb到pika的替换
