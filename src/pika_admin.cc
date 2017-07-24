@@ -1226,7 +1226,7 @@ void DelbackupCmd::Do() {
 
   // Dump file is not exist
   if (!slash::FileExists(db_sync_path)) {
-    res_.AppendString(db_sync_path);
+    res_.SetRes(CmdRes::kOk);
     return;
   }
   // Directory traversal
@@ -1247,7 +1247,7 @@ void DelbackupCmd::Do() {
       slash::DeleteDirIfExist(dump_dir_name);
       len--;
     } else {
-      LOG(INFO) <<"Syncing, can not delete any dump file" << std::endl;
+      LOG(INFO) << "Syncing, can not delete " << dump_dir_name << " dump file" << std::endl;
     }
   }
   if (len == 0) {
