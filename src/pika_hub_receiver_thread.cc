@@ -5,9 +5,9 @@
 
 #include <glog/logging.h>
 #include "pink/include/pink_conn.h"
-#include "pika_hub_receiver_thread.h"
-#include "pika_server.h"
-#include "pika_command.h"
+#include "include/pika_hub_receiver_thread.h"
+#include "include/pika_server.h"
+#include "include/pika_command.h"
 
 extern PikaServer* g_pika_server;
 
@@ -38,8 +38,8 @@ bool PikaHubReceiverThread::Handles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();
   }
-  if (hub_receiver_->thread_rep_->conn_num() != 0 ||
-      !g_pika_server->IsHub(ip)) {
+  if (hub_receiver_->thread_rep_->conn_num() != 0) {
+      // !g_pika_server->IsHub(ip)) {
     LOG(WARNING) << "HubReceiverThread AccessHandle failed: " << ip;
     return false;
   }

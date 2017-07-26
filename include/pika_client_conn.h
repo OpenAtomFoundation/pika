@@ -11,7 +11,7 @@
 
 #include "pink/include/redis_conn.h"
 #include "pink/include/pink_thread.h"
-#include "pika_command.h"
+#include "include/pika_command.h"
 
 class PikaWorkerSpecificData;
 

@@ -3,9 +3,9 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "pika_binlog_bgworker.h"
-#include "pika_server.h"
-#include "pika_conf.h"
+#include "include/pika_binlog_bgworker.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
 #include "slash/include/slash_string.h"
 
 extern PikaServer* g_pika_server;

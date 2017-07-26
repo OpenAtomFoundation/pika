@@ -3,20 +3,19 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_binlog_sender_thread.h"
+#include "include/pika_hub_sender.h"
 
 #include <glog/logging.h>
 #include <poll.h>
 
 #include "include/pika_server.h"
 #include "include/pika_define.h"
-#include "include/pika_binlog_sender_thread.h"
 #include "include/pika_master_conn.h"
 #include "pink/include/redis_cli.h"
 
 extern PikaServer* g_pika_server;
 
-PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port,
+PikaHubSenderThread::PikaHubSenderThread(const std::string &ip, int port,
                                                slash::SequentialFile *queue,
                                                uint32_t filenum,
                                                uint64_t con_offset)
@@ -35,7 +34,7 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port,
   set_thread_name("BinlogSender");
 }
 
-PikaBinlogSenderThread::~PikaBinlogSenderThread() {
+PikaHubSenderThread::~PikaHubSenderThread() {
   StopThread();
   delete cli_;
   delete[] backing_store_;
@@ -43,7 +42,7 @@ PikaBinlogSenderThread::~PikaBinlogSenderThread() {
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
 }
 
-int PikaBinlogSenderThread::trim() {
+int PikaHubSenderThread::trim() {
   slash::Status s;
   uint64_t start_block = (con_offset_ / kBlockSize) * kBlockSize;
   s = queue_->Skip((con_offset_ / kBlockSize) * kBlockSize);
@@ -68,7 +67,7 @@ int PikaBinlogSenderThread::trim() {
   return 0;
 }
 
-uint64_t PikaBinlogSenderThread::get_next(bool &is_error) {
+uint64_t PikaHubSenderThread::get_next(bool &is_error) {
   uint64_t offset = 0;
   slash::Status s;
   is_error = false;
@@ -109,7 +108,7 @@ uint64_t PikaBinlogSenderThread::get_next(bool &is_error) {
   return offset;
 }
 
-unsigned int PikaBinlogSenderThread::ReadPhysicalRecord(slash::Slice *result) {
+unsigned int PikaHubSenderThread::ReadPhysicalRecord(slash::Slice *result) {
   slash::Status s;
   if (end_of_buffer_offset_ - last_record_offset_ <= kHeaderSize) {
     queue_->Skip(end_of_buffer_offset_ - last_record_offset_);
@@ -146,7 +145,7 @@ unsigned int PikaBinlogSenderThread::ReadPhysicalRecord(slash::Slice *result) {
   return type;
 }
 
-Status PikaBinlogSenderThread::Consume(std::string &scratch) {
+Status PikaHubSenderThread::Consume(std::string &scratch) {
   Status s;
   if (last_record_offset_ < initial_offset_) {
     return slash::Status::IOError("last_record_offset exceed");
@@ -193,7 +192,7 @@ Status PikaBinlogSenderThread::Consume(std::string &scratch) {
 
 // Get a whole message; 
 // the status will be OK, IOError or Corruption;
-Status PikaBinlogSenderThread::Parse(std::string &scratch) {
+Status PikaHubSenderThread::Parse(std::string &scratch) {
   scratch.clear();
   Status s;
   uint32_t pro_num;
@@ -231,6 +230,13 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
       } else {
         usleep(10000);
       }
+    } else if (ImHubSender() && scratch.size() > 3) {
+      const char* send_to_hub = scratch.data() + scratch.size() - 3/* 1\r\n */;
+      if (*send_to_hub == '1') {
+        break; // Send this binlog
+      } else {
+        continue; // Next binlog
+      }
     } else {
       break;
     }
@@ -243,7 +249,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
 }
 
 // When we encount
-void* PikaBinlogSenderThread::ThreadMain() {
+void* PikaHubSenderThread::ThreadMain() {
   Status s, result;
   bool last_send_flag = true;
   std::string scratch;
@@ -274,6 +280,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
         }
 
         // 3. After successful parse, we send msg;
+        //DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
         result = cli_->Send(&scratch);
         if (result.ok()) {
           last_send_flag = true;

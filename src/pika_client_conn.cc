@@ -10,10 +10,10 @@
 #include <glog/logging.h>
 
 #include "slash/include/slash_coding.h"
-#include "pika_server.h"
-#include "pika_conf.h"
-#include "pika_client_conn.h"
-#include "pika_dispatch_thread.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
+#include "include/pika_client_conn.h"
+#include "include/pika_dispatch_thread.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;

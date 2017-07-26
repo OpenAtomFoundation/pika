@@ -14,16 +14,17 @@
 #include <nemo.h>
 #include <time.h>
 
-#include "pika_binlog.h"
-#include "pika_binlog_receiver_thread.h"
-#include "pika_hub_receiver_thread.h"
-#include "pika_binlog_sender_thread.h"
-#include "pika_heartbeat_thread.h"
-#include "pika_slaveping_thread.h"
-#include "pika_trysync_thread.h"
-#include "pika_monitor_thread.h"
-#include "pika_define.h"
-#include "pika_binlog_bgworker.h"
+#include "include/pika_binlog.h"
+#include "include/pika_binlog_receiver_thread.h"
+#include "include/pika_hub_receiver_thread.h"
+#include "include/pika_hub_sender.h"
+#include "include/pika_binlog_sender_thread.h"
+#include "include/pika_heartbeat_thread.h"
+#include "include/pika_slaveping_thread.h"
+#include "include/pika_trysync_thread.h"
+#include "include/pika_monitor_thread.h"
+#include "include/pika_define.h"
+#include "include/pika_binlog_bgworker.h"
 
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
@@ -101,7 +102,7 @@ class PikaServer {
   void DeleteSlave(const std::string& ip, int64_t port);
   int64_t TryAddSlave(const std::string& ip, int64_t port);
   bool SetSlaveSender(const std::string& ip, int64_t port,
-      PikaBinlogSenderThread* s);
+      PikaHubSenderThread* s);
   int32_t GetSlaveListString(std::string& slave_list_str);
   Status GetSmallestValidLog(uint32_t* max);
   void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
@@ -142,9 +143,6 @@ class PikaServer {
   PikaHubReceiverThread* pika_hub_receiver_thread_;
   Status AddHub(const std::string& ip, int64_t port,
                 uint32_t filenum, uint64_t con_offset);
-  bool IsHub(const std::string& ip) {
-    return pika_hub_.ip_port.find(ip) != std::string::npos;
-  }
   void HubConnected() {
     slash::MutexLock l(&hub_mutex_);
     pika_hub_.stage = SLAVE_ITEM_STAGE_TWO;

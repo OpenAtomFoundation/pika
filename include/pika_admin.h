@@ -5,8 +5,8 @@
 
 #ifndef PIKA_ADMIN_H_
 #define PIKA_ADMIN_H_
-#include "pika_command.h"
-#include "pika_client_conn.h"
+#include "include/pika_command.h"
+#include "include/pika_client_conn.h"
 
 /*
  * Admin

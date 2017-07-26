@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "pika_binlog.h"
+#include "include/pika_binlog.h"
 
 #include <iostream>
 #include <string>
@@ -45,14 +45,7 @@ Status Version::StableSave() {
   char *p = save_->GetData();
   memcpy(p, &pro_offset_, sizeof(uint64_t));
   p += 20;
-  //memcpy(p, &con_offset_, sizeof(uint64_t));
-  //p += 8;
-  //memcpy(p, &item_num_, sizeof(uint32_t));
-  //p += 4;
   memcpy(p, &pro_num_, sizeof(uint32_t));
-  //p += 4;
-  //memcpy(p, &con_num_, sizeof(uint32_t));
-  //p += 4;
   return Status::OK();
 }
 
@@ -60,11 +53,8 @@ Status Version::Init() {
   Status s;
   if (save_->GetData() != NULL) {
     memcpy((char*)(&pro_offset_), save_->GetData(), sizeof(uint64_t));
-    //memcpy((char*)(&con_offset_), save_->GetData() + 8, sizeof(uint64_t));
     memcpy((char*)(&item_num_), save_->GetData() + 16, sizeof(uint32_t));
     memcpy((char*)(&pro_num_), save_->GetData() + 20, sizeof(uint32_t));
-    //memcpy((char*)(&con_num_), save_->GetData() + 24, sizeof(uint32_t));
-    // DLOG(INFO) << "Version Init pro_offset "<< pro_offset_ << " itemnum " << item_num << " pro_num " << pro_num_ << " con_num " << con_num_;
     return Status::OK();
   } else {
     return Status::Corruption("version init error");
@@ -163,49 +153,13 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) {
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
-  //*filenum = version_->pro_num();
-  //*pro_offset = version_->pro_offset();
 
   return Status::OK();
 }
 
 // Note: mutex lock should be held
 Status Binlog::Put(const std::string &item) {
-  Status s;
-
-  /* Check to roll log file */
-  uint64_t filesize = queue_->Filesize();
-  if (filesize > file_size_) {
-    delete queue_;
-    queue_ = NULL;
-
-    pro_num_++;
-    std::string profile = NewFileName(filename, pro_num_);
-    slash::NewWritableFile(profile, &queue_);
-
-    {
-      slash::RWLock(&(version_->rwlock_), true);
-      version_->pro_offset_ = 0;
-      version_->pro_num_ = pro_num_;
-      //version_->set_pro_offset(0);
-      //version_->set_pro_num(pro_num_);
-      version_->StableSave();
-      //version_->debug();
-    }
-    InitLogFile();
-  }
-
-  int pro_offset;
-  s = Produce(Slice(item.data(), item.size()), &pro_offset);
-  if (s.ok()) {
-    slash::RWLock(&(version_->rwlock_), true);
-    //version_->plus_item_num();
-    version_->pro_offset_ = pro_offset;
-    //version_->set_pro_offset(pro_offset);
-    version_->StableSave();
-  }
-
-  return s;
+  return Put(item.c_str(), item.size());
 }
 
 // Note: mutex lock should be held
@@ -226,12 +180,8 @@ Status Binlog::Put(const char* item, int len) {
       slash::RWLock(&(version_->rwlock_), true);
       version_->pro_offset_ = 0;
       version_->pro_num_ = pro_num_;
-      //version_->set_pro_offset(0);
-      //version_->set_pro_num(pro_num_);
       version_->StableSave();
     }
-    //version_->debug();
-
     InitLogFile();
   }
 
@@ -240,8 +190,6 @@ Status Binlog::Put(const char* item, int len) {
   if (s.ok()) {
     slash::RWLock(&(version_->rwlock_), true);
     version_->pro_offset_ = pro_offset;
-    //version_->plus_item_num();
-    //version_->set_pro_offset(pro_offset);
     version_->StableSave();
   }
 
@@ -276,11 +224,8 @@ Status Binlog::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *
         }
     }
     block_offset_ += static_cast<int>(kHeaderSize + n);
-    // log_info("block_offset %d", (kHeaderSize + n));
 
     *temp_pro_offset += kHeaderSize + n;
-    //version_->rise_pro_offset((uint64_t)(kHeaderSize + n));
-    //version_->StableSave();
     return s;
 }
 
@@ -297,9 +242,7 @@ Status Binlog::Produce(const Slice &item, int *temp_pro_offset) {
     if (static_cast<size_t>(leftover) < kHeaderSize) {
       if (leftover > 0) {
         queue_->Append(Slice("\x00\x00\x00\x00\x00\x00\x00", leftover));
-        //version_->rise_pro_offset(leftover);
         *temp_pro_offset += leftover;
-        //version_->StableSave();
       }
       block_offset_ = 0;
     }
@@ -401,8 +344,6 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
     slash::RWLock(&(version_->rwlock_), true);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
-    //version_->set_pro_num(pro_num);
-    //version_->set_pro_offset(pro_offset);
     version_->StableSave();
   }
 

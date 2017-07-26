@@ -12,9 +12,9 @@
 #include "pink/include/server_thread.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/env.h"
-#include "pika_define.h"
-#include "pika_hub_conn.h"
-#include "pika_command.h"
+#include "include/pika_define.h"
+#include "include/pika_hub_conn.h"
+#include "include/pika_command.h"
 
 class PikaHubReceiverThread {
  public:

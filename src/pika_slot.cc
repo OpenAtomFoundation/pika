@@ -6,9 +6,9 @@
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_status.h"
 #include "nemo.h"
-#include "pika_conf.h"
-#include "pika_slot.h"
-#include "pika_server.h"
+#include "include/pika_conf.h"
+#include "include/pika_slot.h"
+#include "include/pika_server.h"
 
 #define min(a, b)  (((a) > (b)) ? (b) : (a))
 

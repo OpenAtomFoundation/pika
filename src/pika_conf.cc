@@ -4,7 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "sys/stat.h"
-#include "pika_conf.h"
+#include "include/pika_conf.h"
 #include "glog/logging.h"
 
 #include <fstream>

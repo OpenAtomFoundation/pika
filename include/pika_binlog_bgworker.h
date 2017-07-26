@@ -5,7 +5,7 @@
 
 #ifndef PIKA_BINLOG_BGWORKER_H_
 #define PIKA_BINLOG_BGWORKER_H_
-#include "pika_command.h"
+#include "include/pika_command.h"
 #include "pink/include/bg_thread.h"
 
 class BinlogBGWorker {

@@ -5,7 +5,7 @@
 
 #ifndef PIKA_KV_H_
 #define PIKA_KV_H_
-#include "pika_command.h"
+#include "include/pika_command.h"
 #include "nemo.h"
 
 

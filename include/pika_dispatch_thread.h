@@ -8,7 +8,7 @@
 
 #include "slash/include/env.h"
 #include "pink/include/server_thread.h"
-#include "pika_client_conn.h"
+#include "include/pika_client_conn.h"
 
 class PikaDispatchThread {
  public:

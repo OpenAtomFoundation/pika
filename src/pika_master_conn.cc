@@ -6,10 +6,10 @@
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_coding.h"
 #include <glog/logging.h>
-#include "pika_master_conn.h"
-#include "pika_server.h"
-#include "pika_conf.h"
-#include "pika_binlog_receiver_thread.h"
+#include "include/pika_master_conn.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
+#include "include/pika_binlog_receiver_thread.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;

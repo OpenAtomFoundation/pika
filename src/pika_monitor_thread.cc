@@ -8,9 +8,9 @@
 #include <sys/time.h>
 
 #include "pink/include/pink_define.h"
-#include "pika_monitor_thread.h"
-#include "pika_server.h"
-#include "pika_conf.h"
+#include "include/pika_monitor_thread.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;

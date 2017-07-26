@@ -6,10 +6,10 @@
 
 #include "slash/include/slash_string.h"
 #include "slash/include/rsync.h"
-#include "pika_conf.h"
-#include "pika_admin.h"
-#include "pika_server.h"
-#include "pika_slot.h"
+#include "include/pika_conf.h"
+#include "include/pika_admin.h"
+#include "include/pika_server.h"
+#include "include/pika_slot.h"
 
 #include <sys/utsname.h>
 #ifdef TCMALLOC_EXTENSION

@@ -35,8 +35,7 @@ OUTPUT = ./output
 dummy := $(shell ("$(CURDIR)/detect_tcmalloc" "$(CURDIR)/make_config.mk"))
 include make_config.mk
 
-INCLUDE_PATH = -I./include/ \
-			   -I./src/ \
+INCLUDE_PATH = -I. \
 			   -I$(THIRD_PATH)/glog/src/ \
 			   -I$(THIRD_PATH)/nemo/output/include/ \
 				 -I$(THIRD_PATH)/nemo/3rdparty/nemo-rocksdb/rocksdb/ \

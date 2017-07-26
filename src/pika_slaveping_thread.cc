@@ -7,8 +7,8 @@
 #include <poll.h>
 
 #include "pink/include/redis_cli.h"
-#include "pika_slaveping_thread.h"
-#include "pika_server.h"
+#include "include/pika_slaveping_thread.h"
+#include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
 

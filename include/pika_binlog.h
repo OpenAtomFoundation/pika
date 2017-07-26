@@ -20,7 +20,7 @@
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/env.h"
-#include "pika_define.h"
+#include "include/pika_define.h"
 
 using slash::Status;
 using slash::Slice;

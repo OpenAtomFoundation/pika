@@ -6,10 +6,10 @@
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_coding.h"
 #include <glog/logging.h>
-#include "pika_master_conn.h"
-#include "pika_server.h"
-#include "pika_conf.h"
-#include "pika_hub_receiver_thread.h"
+#include "include/pika_master_conn.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
+#include "include/pika_hub_receiver_thread.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
@@ -60,6 +60,6 @@ int PikaHubConn::DealMessage() {
   PikaCmdArgsType *argv = new PikaCmdArgsType(argv_);
   std::string dispatch_key = argv_.size() >= 2 ? argv_[1] : argv_[0];
   g_pika_server->DispatchBinlogBG(dispatch_key, argv,
-      serial, true);
+      serial, true /* Set bgworker readonly true */);
   return 0;
 }

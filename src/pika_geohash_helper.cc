@@ -35,7 +35,7 @@
  */
 
 //#include "fmacros.h"
-#include "pika_geohash_helper.h"
+#include "include/pika_geohash_helper.h"
 //#include "debugmacro.h"
 #include <math.h>
 

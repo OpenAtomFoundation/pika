@@ -7,7 +7,7 @@
 #define PIKA_MASTER_CONN_H_
 
 #include "pink/include/redis_conn.h"
-#include "pika_command.h"
+#include "include/pika_command.h"
 
 class PikaBinlogReceiverThread;
 

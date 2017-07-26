@@ -16,14 +16,14 @@
 using slash::Status;
 using slash::Slice;
 
-class PikaBinlogSenderThread : public pink::Thread {
+class PikaHubSenderThread : public pink::Thread {
  public:
 
-  PikaBinlogSenderThread(const std::string &ip, int port,
-                         slash::SequentialFile *queue,
-                         uint32_t filenum, uint64_t con_offset);
+  PikaHubSenderThread(const std::string &ip, int port,
+                      slash::SequentialFile *queue,
+                      uint32_t filenum, uint64_t con_offset);
 
-  virtual ~PikaBinlogSenderThread();
+  virtual ~PikaHubSenderThread();
 
   uint32_t filenum() {
     return filenum_;

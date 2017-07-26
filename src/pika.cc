@@ -7,11 +7,11 @@
 #include <sys/resource.h>
 
 #include "slash/include/env.h"
-#include "pika_server.h"
-#include "pika_command.h"
-#include "pika_conf.h"
-#include "pika_define.h"
-#include "pika_slot.h"
+#include "include/pika_server.h"
+#include "include/pika_command.h"
+#include "include/pika_conf.h"
+#include "include/pika_define.h"
+#include "include/pika_slot.h"
 
 #ifdef TCMALLOC_EXTENSION
 #include <gperftools/malloc_extension.h>

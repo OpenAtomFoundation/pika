@@ -14,7 +14,7 @@
 #include "slash/include/slash_mutex.h"
 #include "slash/include/slash_string.h"
 #include "slash/include/xdebug.h"
-#include "pika_define.h"
+#include "include/pika_define.h"
 
 typedef slash::RWLock RWLock;
 

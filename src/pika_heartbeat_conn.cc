@@ -4,9 +4,9 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <glog/logging.h>
-#include "pika_heartbeat_conn.h"
-#include "pika_server.h"
 #include "slash/include/slash_string.h"
+#include "include/pika_heartbeat_conn.h"
+#include "include/pika_server.h"
 
 extern PikaServer *g_pika_server;
 

@@ -1,8 +1,8 @@
 #ifndef PIKA_SLOT_H_
 #define PIKA_SLOT_H_
 
-#include "pika_command.h"
-#include "pika_client_conn.h"
+#include "include/pika_command.h"
+#include "include/pika_client_conn.h"
 #include "strings.h"
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";

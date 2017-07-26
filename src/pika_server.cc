@@ -20,10 +20,10 @@
 #include "slash/include/rsync.h"
 #include "slash/include/slash_string.h"
 #include "pink/include/bg_thread.h"
-#include "pika_server.h"
-#include "pika_conf.h"
-#include "pika_slot.h"
-#include "pika_dispatch_thread.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
+#include "include/pika_slot.h"
+#include "include/pika_dispatch_thread.h"
 
 extern PikaConf *g_pika_conf;
 
@@ -810,12 +810,14 @@ Status PikaServer::AddHub(const std::string& ip, int64_t port,
   sender = reinterpret_cast<PikaBinlogSenderThread*>(pika_hub_.sender);
   if (pika_hub_.ip_port == ip_port &&
       pika_hub_.stage == SLAVE_ITEM_STAGE_TWO) {
-    // Already exist
+    // Already established
     return Status::OK();
   } else if (sender != nullptr &&
              pika_hub_.stage == SLAVE_ITEM_STAGE_ONE) {
+    // Received multiple internaltrysync
     sleep(1);
     if (pika_hub_.stage == SLAVE_ITEM_STAGE_TWO) {
+      // Only accept one hub
       return Status::OK();
     }
   }
@@ -867,6 +869,7 @@ Status PikaServer::AddHub(const std::string& ip, int64_t port,
     LOG(WARNING) << "AddHubBinlogSender failed";
     return Status::NotFound("AddHubBinlogSender bad sender");
   }
+
 }
 
 void PikaServer::DeleteHub() {

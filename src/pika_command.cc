@@ -3,16 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "pika_admin.h"
-#include "pika_slot.h"
-#include "pika_kv.h"
-#include "pika_hash.h"
-#include "pika_list.h"
-#include "pika_set.h"
-#include "pika_zset.h"
-#include "pika_bit.h"
-#include "pika_hyperloglog.h"
-#include "pika_geo.h"
+#include "include/pika_admin.h"
+#include "include/pika_slot.h"
+#include "include/pika_kv.h"
+#include "include/pika_hash.h"
+#include "include/pika_list.h"
+#include "include/pika_set.h"
+#include "include/pika_zset.h"
+#include "include/pika_bit.h"
+#include "include/pika_hyperloglog.h"
+#include "include/pika_geo.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
 
