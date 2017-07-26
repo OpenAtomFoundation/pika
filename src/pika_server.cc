@@ -1171,7 +1171,7 @@ void PikaServer::AutoDeleteExpiredDump() {
   std::vector<std::string> dump_dir;
 
   // Never expire
-  if (expiry_days == 0) {
+  if (expiry_days <= 0) {
     return;
   }
 
@@ -1187,11 +1187,21 @@ void PikaServer::AutoDeleteExpiredDump() {
 
   // Handle dump directory
   for (size_t i = 0; i < dump_dir.size(); i++) {
-    std::string dump_dir_name = dump_dir[i].substr(db_sync_prefix.size(), dump_dir[i].size());
+    if (dump_dir[i].substr(0, db_sync_prefix.size()) != db_sync_prefix || dump_dir[i].size() != (db_sync_prefix.size() + 8)) {
+      continue;
+    }
+
+    std::string str_date = dump_dir[i].substr(db_sync_prefix.size(), (dump_dir[i].size() - db_sync_prefix.size()));
+    char *end = NULL;
+    std::strtol(str_date.c_str(), &end, 10);
+    if (*end != 0) {
+      continue;
+    }
+
     // Parse filename
-    int dump_year = std::atoi(dump_dir_name.substr(0, 4).c_str());
-    int dump_month = std::atoi(dump_dir_name.substr(4, 2).c_str());
-    int dump_day = std::atoi(dump_dir_name.substr(6, 2).c_str());
+    int dump_year = std::atoi(str_date.substr(0, 4).c_str());
+    int dump_month = std::atoi(str_date.substr(4, 2).c_str());
+    int dump_day = std::atoi(str_date.substr(6, 2).c_str());
 
     time_t t = time(NULL);
     struct tm *now = localtime(&t);
@@ -1221,10 +1231,15 @@ void PikaServer::AutoDeleteExpiredDump() {
     int interval_days = (now_timestamp - dump_timestamp) / 86400;
 
     if (interval_days >= expiry_days) {
-      slash::MutexLock ldb(&db_sync_protector_);
-      if (db_sync_slaves_.size() == 0) {
-        LOG(INFO) << "Delete expired dump file: " << db_sync_path + dump_dir[i];
-        slash::DeleteDirIfExist(db_sync_path + dump_dir[i]);
+      std::string dump_file = db_sync_path + dump_dir[i];
+      if (CountSyncSlaves() == 0) {
+        LOG(INFO) << "Not syncing, delete dump file: " << dump_file;
+        slash::DeleteDirIfExist(dump_file);
+      } else if (bgsave_info().path != dump_file) {
+        LOG(INFO) << "Syncing, delete expired dump file: " << dump_file;
+        slash::DeleteDirIfExist(dump_file);
+      } else {
+        LOG(INFO) << "Syncing, can not delete " << dump_file << " dump file";
       }
     }
   }

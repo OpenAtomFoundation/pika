@@ -1221,12 +1221,13 @@ void DelbackupCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
 }
 
 void DelbackupCmd::Do() {
+  std::string db_sync_prefix = g_pika_conf->bgsave_prefix();
   std::string db_sync_path = g_pika_conf->bgsave_path();
   std::vector<std::string> dump_dir;
 
   // Dump file is not exist
   if (!slash::FileExists(db_sync_path)) {
-    res_.AppendString(db_sync_path);
+    res_.SetRes(CmdRes::kOk);
     return;
   }
   // Directory traversal
@@ -1237,6 +1238,17 @@ void DelbackupCmd::Do() {
 
   int len = dump_dir.size();
   for (size_t i = 0; i < dump_dir.size(); i++) {
+    if (dump_dir[i].substr(0, db_sync_prefix.size()) != db_sync_prefix || dump_dir[i].size() != (db_sync_prefix.size() + 8)) {
+      continue;
+    }
+
+    std::string str_date = dump_dir[i].substr(db_sync_prefix.size(), (dump_dir[i].size() - db_sync_prefix.size()));
+    char *end = NULL;
+    std::strtol(str_date.c_str(), &end, 10);
+    if (*end != 0) {
+      continue;
+    }
+
     std::string dump_dir_name = db_sync_path + dump_dir[i];
     if (g_pika_server->CountSyncSlaves() == 0) {
       LOG(INFO) << "Not syncing, delete dump file: " << dump_dir_name;
@@ -1247,7 +1259,7 @@ void DelbackupCmd::Do() {
       slash::DeleteDirIfExist(dump_dir_name);
       len--;
     } else {
-      LOG(INFO) <<"Syncing, can not delete any dump file" << std::endl;
+      LOG(INFO) << "Syncing, can not delete " << dump_dir_name << " dump file" << std::endl;
     }
   }
   if (len == 0) {
