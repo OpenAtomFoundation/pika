@@ -83,3 +83,8 @@
 <img src="http://i.imgur.com/ktPV3JU.jpg?2" height = "50" width = "60" alt="XL">
 
 360游戏已全面完成SSDB到pika的替换
+
+## 15. 猎豹移动
+<img src="http://i.imgur.com/DX6Ey4p.jpg" height = "50" width = "60" alt="LB">
+
+用于大量页面数据、离线用户计算数据的存放
