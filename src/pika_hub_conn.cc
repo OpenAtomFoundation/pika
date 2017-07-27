@@ -3,22 +3,19 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include <glog/logging.h>
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_coding.h"
-#include <glog/logging.h>
-#include "include/pika_master_conn.h"
 #include "include/pika_server.h"
 #include "include/pika_conf.h"
-#include "include/pika_hub_receiver_thread.h"
+#include "include/pika_hub_manager.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
-PikaHubConn::PikaHubConn(int fd, std::string ip_port,
-                               void* worker_specific_data)
-      : RedisConn(fd, ip_port, NULL) {
-  hub_receiver_ =
-    reinterpret_cast<PikaHubReceiverThread*>(worker_specific_data);
+PikaHubConn::PikaHubConn(int fd, std::string ip_port, CmdTable* cmds)
+    : RedisConn(fd, ip_port, nullptr),
+      cmds_(cmds) {
 }
 
 int PikaHubConn::DealMessage() {
@@ -39,27 +36,30 @@ int PikaHubConn::DealMessage() {
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
-  uint64_t serial = hub_receiver_->GetnPlusSerial();
-
-  if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
-    return -2;
-  }
   std::string opt = slash::StringToLower(argv_[0]);
-  Cmd* c_ptr = hub_receiver_->GetCmd(opt);
-  std::string dummy_binlog_info("");
+
+  if (opt == "ping") {
+    set_is_reply(true);
+    memcpy(wbuf_ + wbuf_len_, "+PONG\r\n", 7);
+    wbuf_len_ += 7;
+    DLOG(INFO) << "Receive ping";
+    return 0;
+  }
+
+  Cmd* c_ptr = GetCmdFromTable(opt, *cmds_);
+  std::string dummy_binlog_info;
 
   g_pika_server->logger_->Lock();
   g_pika_server->logger_->Put(c_ptr->ToBinlog(
       argv_,
       g_pika_conf->server_id(),
       dummy_binlog_info,
-      false));
+      false /* need not send to hub */));
   g_pika_server->logger_->Unlock();
-  g_pika_server->SignalNextBinlogBGSerial();
 
   PikaCmdArgsType *argv = new PikaCmdArgsType(argv_);
   std::string dispatch_key = argv_.size() >= 2 ? argv_[1] : argv_[0];
   g_pika_server->DispatchBinlogBG(dispatch_key, argv,
-      serial, true /* Set bgworker readonly true */);
+      0 /* Unused */, true /* Set hub connection's bgworker readonly */);
   return 0;
 }

@@ -16,9 +16,8 @@
 
 #include "include/pika_binlog.h"
 #include "include/pika_binlog_receiver_thread.h"
-#include "include/pika_hub_receiver_thread.h"
-#include "include/pika_hub_sender.h"
 #include "include/pika_binlog_sender_thread.h"
+#include "include/pika_hub_manager.h"
 #include "include/pika_heartbeat_thread.h"
 #include "include/pika_slaveping_thread.h"
 #include "include/pika_trysync_thread.h"
@@ -102,7 +101,7 @@ class PikaServer {
   void DeleteSlave(const std::string& ip, int64_t port);
   int64_t TryAddSlave(const std::string& ip, int64_t port);
   bool SetSlaveSender(const std::string& ip, int64_t port,
-      PikaHubSenderThread* s);
+      PikaBinlogSenderThread* s);
   int32_t GetSlaveListString(std::string& slave_list_str);
   Status GetSmallestValidLog(uint32_t* max);
   void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
@@ -140,16 +139,17 @@ class PikaServer {
   /*
    * Hub use
    */
-  PikaHubReceiverThread* pika_hub_receiver_thread_;
-  Status AddHub(const std::string& ip, int64_t port,
-                uint32_t filenum, uint64_t con_offset);
-  void HubConnected() {
-    slash::MutexLock l(&hub_mutex_);
-    pika_hub_.stage = SLAVE_ITEM_STAGE_TWO;
+  PikaHubManager* pika_hub_manager_;
+  Status AddHub(const std::string& ip, int port,
+                uint32_t filenum, uint64_t con_offset) {
+    return pika_hub_manager_->AddHub(ip, port, filenum, con_offset);
   }
-  void DeleteHub();
-  slash::Mutex hub_mutex_;
-  SlaveItem pika_hub_; // Hub is a specific slave
+  void HubConnected() {
+    pika_hub_manager_->HubConnected();
+  }
+  void StopHub() {
+    pika_hub_manager_->StopHub();
+  }
 
   /*
    * Server init info

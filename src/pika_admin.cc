@@ -195,18 +195,19 @@ void InternalTrysyncCmd::Do() {
   LOG(INFO) << "InternalTrysync, Hub ip: " << hub_ip_ << "Hub port:" << hub_port_
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
 
-  Status status = g_pika_server->AddHub(hub_ip_, hub_port_, filenum_, pro_offset_);
+  Status status = g_pika_server->AddHub(hub_ip_, hub_port_ + 1000, filenum_, pro_offset_);
   if (!status.ok()) {
     LOG(WARNING) << "hub offset is larger than mine, slave ip: " << hub_ip_
       << "slave port:" << hub_port_
       << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_ << " "
       << status.ToString();
+    // treat errors as InvalidOffset
     res_.SetRes(CmdRes::kErrOther, "InvalidOffset");
     LOG(INFO) << "InvalidOffset: " << filenum_ << ":" << pro_offset_;
-    return;
+  } else {
+    res_.SetRes(CmdRes::kOk);
+    LOG(INFO) << "Send OK to Hub";
   }
-  res_.SetRes(CmdRes::kOk);
-  LOG(INFO) << "Send OK to Hub";
 }
 
 void AuthCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
