@@ -27,6 +27,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 <td height = "100" width = "150"><img src="http://i.imgur.com/vJbAfri.png" alt="YM"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/aNxzwsY.png" alt="XM"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/mrWxwkF.png" alt="XL"></td>
+<td height = "100" width = "150"><img src="http://i.imgur.com/DX6Ey4p.jpg" alt="LB"></td>
 </tr>
 </table>
 
