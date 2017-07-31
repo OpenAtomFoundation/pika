@@ -144,6 +144,9 @@ class PikaServer {
                 uint32_t filenum, uint64_t con_offset) {
     return pika_hub_manager_->AddHub(ip, port, filenum, con_offset);
   }
+  std::string HubStatus() {
+    return pika_hub_manager_->StatusToString();
+  }
   void HubConnected() {
     pika_hub_manager_->HubConnected();
   }

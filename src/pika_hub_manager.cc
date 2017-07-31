@@ -7,6 +7,8 @@
 
 #include <glog/logging.h>
 #include <poll.h>
+#include <unistd.h>
+#include <sys/syscall.h>
 
 #include "include/pika_server.h"
 #include "include/pika_define.h"
@@ -17,15 +19,12 @@ extern PikaServer* g_pika_server;
 PikaHubManager::PikaHubManager(const std::set<std::string> &ips, int port,
                                int cron_interval)
     : hub_stage_(UNSTARTED),
-      filenum_(0),
-      con_offset_(0),
+      hub_filenum_(0),
+      hub_con_offset_(0),
+      sending_window_({0, 0}),
       hub_receiver_(new PikaHubReceiverThread(ips, port, cron_interval)){
   for (int i = 0; i < kMaxHubSender; i++) {
-    sender_threads_[i].reset(new PikaHubSenderThread());
-    sender_threads_[i]->SetNotifier(
-        std::bind(&PikaHubManager::Notifier, this,
-                  std::placeholders::_1, std::placeholders::_2,
-                  std::placeholders::_3));
+    sender_threads_[i].reset(new PikaHubSenderThread(i, this));
   }
 }
 
@@ -37,29 +36,27 @@ Status PikaHubManager::AddHub(const std::string hub_ip, int hub_port,
   {
   slash::MutexLock l(&hub_mutex_);
   if (hub_stage_ == UNSTARTED) {
-    hub_stage_ = STARTING;
-    filenum_ = filenum;
-    con_offset_ = con_offset;
+    hub_filenum_ = filenum;
+    hub_con_offset_ = con_offset;
     // need start
   } else if (hub_stage_ == STARTING) {
     // only handle one request
     return Status::OK();
   } else if (hub_stage_ == STARTED && 
-             filenum != filenum_ && con_offset != con_offset_) {
+             filenum != hub_filenum_ && con_offset != hub_con_offset_) {
     // need reset
-    hub_stage_ = STARTING;
-    filenum_ = filenum;
-    con_offset_ = con_offset;
+    hub_filenum_ = filenum;
+    hub_con_offset_ = con_offset;
   } else {
     // already exist
     return Status::OK();
   }
   } // Unlock
   
+  // start or reset senders
   hub_ip_ = hub_ip;
   hub_port_ = hub_port;
 
-  // start or reset senders
   Status s = ResetSenders();
   hub_stage_ = s.ok() ? STARTING : UNSTARTED;
   return s;
@@ -70,110 +67,152 @@ Status PikaHubManager::ResetSenders() {
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   g_pika_server->logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (con_offset_ > g_pika_server->logger_->file_size() ||
-      cur_filenum < filenum_ ||
-      (cur_filenum == filenum_ && cur_offset < con_offset_)) {
+  if (hub_con_offset_ > g_pika_server->logger_->file_size() ||
+      cur_filenum < hub_filenum_ ||
+      (cur_filenum == hub_filenum_ && cur_offset < hub_con_offset_)) {
     return Status::InvalidArgument("AddHubBinlogSender invalid binlog offset");
   }
 
-  Status s;
-  uint32_t f = filenum_, i = 0;
-  for (; f <= cur_filenum && i <= kMaxHubSender;
-       f++) {
-    assert(hub_stage_ == STARTING);
-    std::future<Status> fres = sender_threads_[i]->Reset(f, hub_ip_, hub_port_);
-    s = fres.get();
-    if (!s.ok()) {
-      return s;
+  for (int i = 0; i < kMaxHubSender; i++) {
+    if (sender_threads_[i]->StartOrRestartThread(hub_ip_, hub_port_) != 0) {
+      LOG(ERROR) << "Start hub sender failed!";
+      return Status::Corruption("Start hub sender failed!");
     }
   }
 
-  sending_window_.first = filenum_;
-  sending_window_.second = f - 1;
-  DLOG(INFO) << "Hub sending window: " << sending_window_.first << "-" <<
-    sending_window_.second;
+  // Init status, if cur_filenum equal second + 1, there is new binlog files
+  slash::MutexLock l(&sending_window_protector_);
+  hub_filenum_ = 0; // DEBUG
+  sending_window_.left = static_cast<int64_t>(hub_filenum_);
+  sending_window_.right = static_cast<int64_t>(hub_filenum_) - 1;
+  DLOG(INFO) << "Reset hub sending window: " << sending_window_.left << "-" <<
+    sending_window_.right;
 
-  return s;
+  return Status::OK();
 }
 
 // Will be invoded in PikaHubSenderThread
-void PikaHubManager::Notifier(PikaHubSenderThread* thread, uint32_t filenum,
-                                bool* should_wait) {
+bool PikaHubManager::GetNextFilenum(PikaHubSenderThread* thread,
+                                    uint32_t* filenum, uint64_t* con_offset) {
+  bool should_wait = true;
   uint32_t cur_filenum;
   uint64_t cur_offset;
   g_pika_server->logger_->GetProducerStatus(&cur_filenum, &cur_offset);
 
-  slash::MutexLock l(&hub_mutex_);
-  if (filenum == sending_window_.first &&
-      cur_filenum > sending_window_.second) {
-    // FIXME(gaodq) Ignore result
-    thread->Reset(sending_window_.second, hub_ip_, hub_port_);
-    sending_window_.first++;
-    sending_window_.second++;
-    *should_wait = false;
-  } else {
-    *should_wait = true;
-  }
+  slash::MutexLock l(&sending_window_protector_);
 
-  DLOG(INFO) << "Hub sending window: " << sending_window_.first << "-" <<
-    sending_window_.second;
-}
+  auto record = working_map_.find(thread);
+  if (cur_filenum > sending_window_.right) {
+    uint32_t new_filenum;
+    // There is new file to assign
+    if (record == working_map_.end()) {
+      // New thread
+      new_filenum = ++sending_window_.right;
+      working_map_.insert(std::make_pair(thread, new_filenum));
 
-std::future<Status> PikaHubSenderThread::Reset(uint32_t filenum, const
-                                               std::string& hub_ip, int hub_port) {
-  reset_result_ = std::move(std::promise<Status>());
+      should_wait = false;
+    } else if (record->second == sending_window_.left) {
+      // Left window has finished
+      sending_window_.left++;
 
-  reset_func_ = [&, filenum, hub_ip, hub_port]() {
-    DLOG(INFO) << "Do reset, " << filenum << " " << hub_ip << ":" << hub_port;
-    std::string confile = NewFileName(g_pika_server->logger_->filename, filenum);
-    if (!slash::FileExists(confile)) {
-      // Not found binlog specified by filenum
-      reset_result_.set_value(Status::Incomplete("File does not exist"));
-      return;
-    }
-    slash::SequentialFile* readfile = nullptr;
-    if (!slash::NewSequentialFile(confile, &readfile).ok()) {
-      reset_result_.set_value(Status::IOError("AddHubBinlogSender new sequtialfile"));
-      return;
-    }
-    if (readfile != nullptr) {
-      queue_.reset(readfile);
+      new_filenum = ++sending_window_.right;
+      working_map_[thread] = new_filenum;
+
+      should_wait = false;
     } else {
-      queue_.release();
+      // Middle has finished, should wait
     }
 
-    hub_ip_ = hub_ip;
-    hub_port_ = hub_port;
-    con_offset_ = 0;
-    filenum_ = filenum;
-    last_record_offset_ = 0;
+    if (!should_wait) {
+      // Assign a new file
+      *filenum = new_filenum;
+      *con_offset = 0;
 
-    if (trim() != 0) {
-      reset_result_.set_value(Status::Corruption("Trim failed"));
-      return;
+      DLOG(INFO) << "Hub sending window: " <<
+        sending_window_.left << "-" << sending_window_.right;
+      DLOG(INFO) << "Working map: ";
+      for (auto& info : working_map_) {
+        DLOG(INFO) << "    ---- Thread " << info.first << " processing " <<
+          info.second;
+      }
     }
-
-    reset_result_.set_value(Status::OK());
-  };
-
-  need_reset_ = true;
-
-  // Try StartThread, maybe already started
-  if (Thread::StartThread() != 0) {
-    reset_result_.set_value(Status::Corruption("StartThread failed"));
   }
-  DLOG(INFO) << "Start hub binlog sender thread";
 
-  return reset_result_.get_future();
+  return should_wait;
 }
 
-PikaHubSenderThread::PikaHubSenderThread()
-    : need_reset_(false),
+std::string PikaHubManager::StatusToString() {
+  std::stringstream tmp_stream;
+  const std::string CRLF = "\r\n";
+
+  tmp_stream << "sending window: " <<
+    sending_window_.left << " - " << sending_window_.right << CRLF;
+  tmp_stream << "working map: " << CRLF;
+  for (auto& info : working_map_) {
+    tmp_stream << "    --- " <<
+      info.first->GetTid() << ": " << info.second << CRLF;
+  }
+
+  return tmp_stream.str();
+}
+
+// Hub sender thread
+
+int PikaHubSenderThread::StartOrRestartThread(const std::string& hub_ip,
+                                              const int hub_port) {
+  // Try stop first
+  int ret = Thread::StopThread();
+  if (ret != 0) {
+    return ret;
+  }
+
+  // Set hub info
+  hub_ip_ = hub_ip;
+  hub_port_ = hub_port;
+
+  set_should_stop(false);
+  return Thread::StartThread();
+}
+
+bool PikaHubSenderThread::ResetStatus() {
+  bool should_wait = pika_hub_manager_->GetNextFilenum(this, &filenum_, &con_offset_);
+  if (should_wait) {
+    return true;
+  }
+
+  std::string confile = NewFileName(g_pika_server->logger_->filename, filenum_);
+  if (!slash::FileExists(confile)) {
+    // Not found binlog specified by filenum
+    LOG(ERROR) << "File does not exist: " << filenum_;
+    set_should_stop(true);
+    return false;
+  }
+
+  slash::SequentialFile* readfile = nullptr;
+  if (!slash::NewSequentialFile(confile, &readfile).ok()) {
+    LOG(ERROR) << "AddHubBinlogSender new sequtialfile failed";
+    set_should_stop(true);
+    return false;
+  }
+  queue_.reset(readfile);
+
+  if (TrimOffset() != 0) {
+    LOG(ERROR) << "Trim failed";
+    set_should_stop(true);
+    return false;
+  }
+
+  return false;
+}
+
+PikaHubSenderThread::PikaHubSenderThread(int i, PikaHubManager* manager)
+    : pika_hub_manager_(manager),
       backing_store_(new char[kBlockSize]),
       buffer_(),
-      timeout_ms_(35000) {
+      timeout_ms_(35000),
+      tid_(0) {
   cli_.reset(pink::NewRedisCli());
-  set_thread_name("BinlogSender");
+  set_thread_name("HubBinlogSender" + std::to_string(i));
 }
 
 PikaHubSenderThread::~PikaHubSenderThread() {
@@ -182,7 +221,7 @@ PikaHubSenderThread::~PikaHubSenderThread() {
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
 }
 
-int PikaHubSenderThread::trim() {
+int PikaHubSenderThread::TrimOffset() {
   slash::Status s;
   uint64_t start_block = (con_offset_ / kBlockSize) * kBlockSize;
   s = queue_->Skip((con_offset_ / kBlockSize) * kBlockSize);
@@ -333,7 +372,7 @@ Status PikaHubSenderThread::Parse(std::string &scratch) {
   uint32_t pro_num;
   uint64_t pro_offset;
 
-  while (!should_stop() && !need_reset_) {
+  while (!should_stop()) {
     g_pika_server->logger_->GetProducerStatus(&pro_num, &pro_offset);
     if (filenum_ == pro_num && con_offset_ == pro_offset) {
       usleep(10000);
@@ -342,18 +381,12 @@ Status PikaHubSenderThread::Parse(std::string &scratch) {
 
     s = Consume(scratch);
 
+    // Notify manager to get next File
     if (s.IsEndFile()) {
-      std::string confile = NewFileName(g_pika_server->logger_->filename, filenum_ + 1);
-
-      // Roll to next File
-      if (slash::FileExists(confile)) {
-        bool should_wait = false;
-        notify_manager_(this, filenum_, &should_wait);
-        if (should_wait) {
-          usleep(10000);
-        }
-      } else {
-        usleep(10000);
+      DLOG(INFO) << "Reach end of file: " << filenum_;
+      bool should_wait = ResetStatus();
+      if (should_wait) {
+        sleep(1);
       }
     } else if (scratch.size() > 3) {
       const char* send_to_hub = scratch.data() + scratch.size() - 3/* 1\r\n */;
@@ -380,12 +413,16 @@ void* PikaHubSenderThread::ThreadMain() {
   std::string scratch;
   scratch.reserve(1024 * 1024);
 
+  // Assign tid_
+  tid_ = syscall(SYS_gettid);
+
+  bool should_wait = true;
   while (!should_stop()) {
-    if (need_reset_) {
-      need_reset_ = false;
-      reset_func_();
+    should_wait = ResetStatus();
+    if (should_wait) {
+      sleep(1);
+      continue;
     }
-    sleep(1);
     // 1. Connect to slave
     result = cli_->Connect(hub_ip_, hub_port_, g_pika_server->host());
     LOG(INFO) << "BinlogSender Connect slave(" << hub_ip_ << ":" <<
@@ -404,11 +441,6 @@ void* PikaHubSenderThread::ThreadMain() {
           } else if (s.IsIOError()) {
             LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
             continue;
-          } else if (need_reset_) {
-            need_reset_ = false;
-            reset_func_();
-            DLOG(INFO) << "Reset hub binlog sender";
-            break;
           }
         }
 
@@ -430,6 +462,8 @@ void* PikaHubSenderThread::ThreadMain() {
   }
   return nullptr;
 }
+
+// Hub receiver
 
 PikaHubReceiverThread::PikaHubReceiverThread(const std::set<std::string> &ips, int port,
                                              int cron_interval)

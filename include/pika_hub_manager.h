@@ -27,33 +27,33 @@ using slash::Slice;
 
 const int kMaxHubSender = 10;
 
+class PikaHubManager;
+
 class PikaHubSenderThread : public pink::Thread {
  public:
 
-  PikaHubSenderThread();
+  PikaHubSenderThread(int i, PikaHubManager* manager);
   virtual ~PikaHubSenderThread();
 
-  int trim();
-  void SetNotifier(std::function<void(PikaHubSenderThread*, int, bool*)>&& f) {
-    notify_manager_ = f;
+  int StartOrRestartThread(const std::string& hub_ip, const int hub_port);
+
+  int GetTid() {
+    return tid_;
   }
-  std::future<Status> Reset(uint32_t filenum, const std::string& hub_ip_,
-                           const int hub_port_);
 
  private:
+  bool ResetStatus();
+  int TrimOffset();
+
   uint64_t get_next(bool &is_error);
   Status Parse(std::string &scratch);
   Status Consume(std::string &scratch);
   unsigned int ReadPhysicalRecord(slash::Slice *fragment);
 
-  std::promise<Status> reset_result_;
-  std::atomic<bool> need_reset_;
-  std::function<void()> reset_func_;
-  std::function<void(PikaHubSenderThread*, int, bool*)> notify_manager_;
+  PikaHubManager* pika_hub_manager_;
 
-  uint64_t con_offset_;
   uint32_t filenum_;
-
+  uint64_t con_offset_;
   uint64_t last_record_offset_;
 
   std::unique_ptr<slash::SequentialFile> queue_;
@@ -66,6 +66,7 @@ class PikaHubSenderThread : public pink::Thread {
   int timeout_ms_;
   std::unique_ptr<pink::PinkCli> cli_;
 
+  int tid_;
   virtual void* ThreadMain();
 };
 
@@ -134,6 +135,8 @@ class PikaHubManager {
   Status AddHub(const std::string hub_ip, int hub_port,
                 uint32_t filenum, uint64_t con_offset);
 
+  std::string StatusToString();
+
   void HubConnected() {
     hub_stage_ = STARTED;
   }
@@ -142,8 +145,9 @@ class PikaHubManager {
   }
 
  private:
+  friend class PikaHubSenderThread;
   Status ResetSenders();
-  void Notifier(PikaHubSenderThread* thread, uint32_t filenum, bool* should_wait);
+  bool GetNextFilenum(PikaHubSenderThread* thread, uint32_t* filenum, uint64_t* con_offset);
 
   enum HUBSTAGE { UNSTARTED, STARTING, STARTED };
   slash::Mutex hub_mutex_;
@@ -151,11 +155,18 @@ class PikaHubManager {
   std::string hub_ip_;
   int hub_port_;
   // which file I will send
-  uint32_t filenum_;
-  uint64_t con_offset_;
-  std::pair<uint32_t, uint32_t> sending_window_;
+  uint32_t hub_filenum_;
+  uint64_t hub_con_offset_;
+
+  slash::Mutex sending_window_protector_;
+  // std::pair<int64_t, int64_t> sending_window_;
+  struct {
+    int64_t left;
+    int64_t right;
+  } sending_window_;
 
   std::unique_ptr<PikaHubSenderThread> sender_threads_[kMaxHubSender];
+  std::map<PikaHubSenderThread*, uint32_t> working_map_;
   std::unique_ptr<PikaHubReceiverThread> hub_receiver_;
 };
 

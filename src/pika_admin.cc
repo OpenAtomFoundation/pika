@@ -441,6 +441,7 @@ void ShutdownCmd::Do() {
 const std::string InfoCmd::kAllSection = "all";
 const std::string InfoCmd::kServerSection = "server";
 const std::string InfoCmd::kClientsSection = "clients";
+const std::string InfoCmd::kHubSection = "hub";
 const std::string InfoCmd::kStatsSection = "stats";
 const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
@@ -465,6 +466,8 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     info_section_ = kInfoServer;
   } else if (argv[1] == kClientsSection) {
     info_section_ = kInfoClients;
+  } else if (argv[1] == kHubSection) {
+    info_section_ = kInfoHub;
   } else if (argv[1] == kStatsSection) {
     info_section_ = kInfoStats;
   } else if (argv[1] == kReplicationSection) {
@@ -506,6 +509,8 @@ void InfoCmd::Do() {
       info.append("\r\n");
       InfoClients(info);
       info.append("\r\n");
+      InfoHub(info);
+      info.append("\r\n");
       InfoStats(info);
       info.append("\r\n");
       InfoReplication(info);
@@ -517,6 +522,9 @@ void InfoCmd::Do() {
       break;
     case kInfoClients:
       InfoClients(info);
+      break;
+    case kInfoHub:
+      InfoHub(info);
       break;
     case kInfoStats:
       InfoStats(info);
@@ -577,6 +585,14 @@ void InfoCmd::InfoClients(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Clients\r\n";
   tmp_stream << "connected_clients:" << g_pika_server->ClientList() << "\r\n";
+
+  info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoHub(std::string &info) {
+  std::stringstream tmp_stream;
+  tmp_stream << "# Hub\r\n";
+  tmp_stream << g_pika_server->HubStatus() << "\r\n";
 
   info.append(tmp_stream.str());
 }

@@ -159,6 +159,7 @@ public:
     kInfoErr = 0x0,
     kInfoServer,
     kInfoClients,
+    kInfoHub,
     kInfoStats,
     kInfoReplication,
     kInfoKeyspace,
@@ -179,6 +180,7 @@ private:
   const static std::string kAllSection;
   const static std::string kServerSection;
   const static std::string kClientsSection;
+  const static std::string kHubSection;
   const static std::string kStatsSection;
   const static std::string kReplicationSection;
   const static std::string kKeyspaceSection;
@@ -193,6 +195,7 @@ private:
 
   void InfoServer(std::string &info);
   void InfoClients(std::string &info);
+  void InfoHub(std::string &info);
   void InfoStats(std::string &info);
   void InfoReplication(std::string &info);
   void InfoKeyspace(std::string &info);
