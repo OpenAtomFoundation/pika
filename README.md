@@ -34,6 +34,9 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 <td height = "100" width = "150"><img src="http://i.imgur.com/mrWxwkF.png" alt="XL"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/DX6Ey4p.jpg" alt="LB"></td>
 </tr>
+<tr>
+<td height = "100" width = "150"><img src="http://imgur.com/0oaVKlk.png" alt="YM"></td>
+</tr>
 </table>
 
 [More](https://github.com/Qihoo360/pika/blob/master/USERS.md)
