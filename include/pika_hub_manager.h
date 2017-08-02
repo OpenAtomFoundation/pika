@@ -35,10 +35,15 @@ class PikaHubSenderThread : public pink::Thread {
   PikaHubSenderThread(int i, PikaHubManager* manager);
   virtual ~PikaHubSenderThread();
 
-  int StartOrRestartThread(const std::string& hub_ip, const int hub_port);
+  int TryStartThread(const std::string& hub_ip, const int hub_port);
 
   int GetTid() {
     return tid_;
+  }
+
+  enum STATUS { UNSTARTED, WORKING, WAITING, ENDOFFILE };
+  STATUS SenderStatus() {
+    return status_;
   }
 
  private:
@@ -51,6 +56,9 @@ class PikaHubSenderThread : public pink::Thread {
   unsigned int ReadPhysicalRecord(slash::Slice *fragment);
 
   PikaHubManager* pika_hub_manager_;
+
+  STATUS status_;
+  std::atomic<bool> should_reset_;
 
   uint32_t filenum_;
   uint64_t con_offset_;
@@ -85,6 +93,9 @@ class PikaHubReceiverThread {
   ~PikaHubReceiverThread();
 
   int StartThread();
+  void KillAllConns() {
+    thread_rep_->KillAllConns();
+  }
 
  private:
   class HubConnFactory : public pink::ConnFactory {
@@ -122,6 +133,8 @@ class PikaHubReceiverThread {
   Handles handles_;
   pink::ServerThread* thread_rep_;
 
+  int hub_connections_;
+
   CmdTable cmds_;
 };
 
@@ -140,8 +153,11 @@ class PikaHubManager {
   void HubConnected() {
     hub_stage_ = STARTED;
   }
-  void StopHub() {
-    hub_stage_ = UNSTARTED;
+  void StopHub(int connnection_num) {
+    if (connnection_num == 1)
+      hub_stage_ = DEGRADE;
+    else
+      hub_stage_ = STOPED;
   }
 
  private:
@@ -149,8 +165,8 @@ class PikaHubManager {
   Status ResetSenders();
   bool GetNextFilenum(PikaHubSenderThread* thread, uint32_t* filenum, uint64_t* con_offset);
 
-  enum HUBSTAGE { UNSTARTED, STARTING, STARTED };
-  slash::Mutex hub_mutex_;
+  enum HUBSTAGE { STOPED, STARTING, DEGRADE, READY, STARTED };
+  slash::Mutex hub_stage_protector_;
   HUBSTAGE hub_stage_;
   std::string hub_ip_;
   int hub_port_;
@@ -159,7 +175,6 @@ class PikaHubManager {
   uint64_t hub_con_offset_;
 
   slash::Mutex sending_window_protector_;
-  // std::pair<int64_t, int64_t> sending_window_;
   struct {
     int64_t left;
     int64_t right;

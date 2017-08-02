@@ -28,8 +28,7 @@ OBJECT = binlog_sync
 SRC_DIR = .
 THIRD_PATH = ../../third
 
-INCLUDE_PATH = -I../../include/ \
-			   -I../../src/ \
+INCLUDE_PATH = -I../.. \
 			   -I$(THIRD_PATH)/glog/src/ \
 			   -I$(THIRD_PATH)/slash \
 			   -I$(THIRD_PATH)/pink

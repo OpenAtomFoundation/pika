@@ -10,7 +10,7 @@
 
 #include "pink/include/server_thread.h"
 #include "slash/include/slash_mutex.h"
-#include "pika_define.h"
+#include "include/pika_define.h"
 #include "master_conn.h"
 
 class BinlogReceiverThread {

@@ -195,7 +195,9 @@ void InternalTrysyncCmd::Do() {
   LOG(INFO) << "InternalTrysync, Hub ip: " << hub_ip_ << "Hub port:" << hub_port_
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
 
-  Status status = g_pika_server->AddHub(hub_ip_, hub_port_ + 1000, filenum_, pro_offset_);
+  Status status = g_pika_server->pika_hub_manager_->AddHub(
+      hub_ip_, hub_port_ + 1000, filenum_, pro_offset_);
+
   if (!status.ok()) {
     LOG(WARNING) << "hub offset is larger than mine, slave ip: " << hub_ip_
       << "slave port:" << hub_port_
@@ -203,7 +205,6 @@ void InternalTrysyncCmd::Do() {
       << status.ToString();
     // treat errors as InvalidOffset
     res_.SetRes(CmdRes::kErrOther, "InvalidOffset");
-    LOG(INFO) << "InvalidOffset: " << filenum_ << ":" << pro_offset_;
   } else {
     res_.SetRes(CmdRes::kOk);
     LOG(INFO) << "Send OK to Hub";
@@ -592,7 +593,7 @@ void InfoCmd::InfoClients(std::string &info) {
 void InfoCmd::InfoHub(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Hub\r\n";
-  tmp_stream << g_pika_server->HubStatus() << "\r\n";
+  tmp_stream << g_pika_server->pika_hub_manager_->StatusToString() << "\r\n";
 
   info.append(tmp_stream.str());
 }

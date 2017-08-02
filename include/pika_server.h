@@ -140,19 +140,6 @@ class PikaServer {
    * Hub use
    */
   PikaHubManager* pika_hub_manager_;
-  Status AddHub(const std::string& ip, int port,
-                uint32_t filenum, uint64_t con_offset) {
-    return pika_hub_manager_->AddHub(ip, port, filenum, con_offset);
-  }
-  std::string HubStatus() {
-    return pika_hub_manager_->StatusToString();
-  }
-  void HubConnected() {
-    pika_hub_manager_->HubConnected();
-  }
-  void StopHub() {
-    pika_hub_manager_->StopHub();
-  }
 
   /*
    * Server init info
