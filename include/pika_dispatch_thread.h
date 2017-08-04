@@ -39,6 +39,7 @@ class PikaDispatchThread {
     explicit Handles(PikaDispatchThread* pika_disptcher)
         : pika_disptcher_(pika_disptcher) {
     }
+    using pink::ServerHandle::AccessHandle;
     bool AccessHandle(std::string& ip) const override;
     void CronHandle() const override;
     int CreateWorkerSpecificData(void** data) const override;

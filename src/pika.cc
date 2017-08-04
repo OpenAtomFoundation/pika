@@ -12,6 +12,7 @@
 #include "pika_conf.h"
 #include "pika_define.h"
 #include "pika_slot.h"
+#include "pika_version.h"
 
 #ifdef TCMALLOC_EXTENSION
 #include <gperftools/malloc_extension.h>
@@ -22,7 +23,10 @@ PikaConf *g_pika_conf;
 PikaServer* g_pika_server;
 
 static void version() {
-    printf("-----------Pika server %s ----------\n", kPikaVersion.c_str());
+    char version[32];
+    snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR,
+        PIKA_MINOR, PIKA_PATCH);
+    printf("-----------Pika server %s ----------\n", version);
 }
 
 static void PikaConfInit(const std::string& path) {
@@ -101,13 +105,16 @@ static void PikaSignalSetup() {
 
 static void usage()
 {
+    char version[32];
+    snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR,
+        PIKA_MINOR, PIKA_PATCH);
     fprintf(stderr,
             "Pika module %s\n"
             "usage: pika [-hv] [-c conf/file]\n"
             "\t-h               -- show this help\n"
             "\t-c conf/file     -- config file \n"
             "  example: ./output/bin/pika -c ./conf/pika.conf\n",
-            kPikaVersion.c_str()
+            version
            );
 }
 

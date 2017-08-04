@@ -2,10 +2,11 @@ GCC = g++
 CPPFLAGS = -Wall -W -Wno-unused-parameter -DDEBUG -D__XDEBUG__ -g -O3 -std=c++11
 OBJECT = pika_to_redis
 
-LIB_PATH = -L ../../third/nemo/output/lib/ \
+LIB_PATH = -L ../../third/nemo/lib/ \
 					 -L ../../third/pink/pink/lib/ \
 					 -L ../../third/slash/slash/lib/ \
-					 -L ../../third/nemo/3rdparty/nemo-rocksdb/output/lib \
+					 -L ../../third/nemo-rocksdb/lib \
+					 -L ../../third/rocksdb/
 
 LIBS = -Wl,-Bstatic -lnemo -lrocksdb\
 			 -Wl,-Bdynamic -lpthread\
@@ -16,14 +17,14 @@ LIBS = -Wl,-Bstatic -lnemo -lrocksdb\
 			 -lpink \
 			 -lslash \
 			 -lnemodb \
-			 -lrocksdb \
+			 -lrocksdb
 
 
 INCLUDE_PATH = -I../../third/pink/ \
 			   -I../../third/slash/ \
 			   -I../../third/nemo/include/ \
-			   -I../../third/nemo/3rdparty/nemo-rocksdb/include/ \
-			   -I../../third/nemo/3rdparty/nemo-rocksdb/rocksdb/include/ \
+			   -I../../third/nemo-rocksdb/include/ \
+			   -I../../third/rocksdb/include/
 
 
 .PHONY: all clean

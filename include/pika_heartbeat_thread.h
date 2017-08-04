@@ -39,6 +39,7 @@ class PikaHeartbeatThread {
     void CronHandle() const override;
     void FdClosedHandle(int fd, const std::string& ip_port) const override;
     void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
+    using pink::ServerHandle::AccessHandle;
     bool AccessHandle(std::string& ip) const override;
 
    private:

@@ -49,7 +49,7 @@ class PikaClientConn: public pink::RedisConn {
 struct ClientInfo {
   int fd;
   std::string ip_port;
-  int last_interaction;
+  int64_t last_interaction;
   PikaClientConn* conn;
 };
 

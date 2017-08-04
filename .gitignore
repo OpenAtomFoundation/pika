@@ -39,3 +39,4 @@ gdb.txt
 tags
 
 make_config.mk
+src/*.d

@@ -10,6 +10,8 @@
 #include "pika_admin.h"
 #include "pika_server.h"
 #include "pika_slot.h"
+#include "pika_version.h"
+#include "build_version.h"
 
 #include <sys/utsname.h>
 #ifdef TCMALLOC_EXTENSION
@@ -508,8 +510,14 @@ void InfoCmd::InfoServer(std::string &info) {
 
   time_t current_time_s = time(NULL);
   std::stringstream tmp_stream;
+  char version[32];
+  snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR,
+      PIKA_MINOR, PIKA_PATCH);
   tmp_stream << "# Server\r\n";
-  tmp_stream << "pika_version:" << kPikaVersion << "\r\n";
+  tmp_stream << "pika_version:" << version << "\r\n";
+  tmp_stream << pika_build_git_sha << "\r\n";
+  tmp_stream << "pika_build_compile_date: " <<
+    pika_build_compile_date << "\r\n";
   tmp_stream << "os:" << host_info.sysname << " " << host_info.release << " " << host_info.machine << "\r\n";
   tmp_stream << "arch_bits:" << (reinterpret_cast<char*>(&host_info.machine) + strlen(host_info.machine) - 2) << "\r\n";
   tmp_stream << "process_id:" << getpid() << "\r\n";

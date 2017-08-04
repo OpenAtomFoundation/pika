@@ -1,21 +1,3 @@
-
-include ../../Makefile.global
-
-UNAME := $(shell if [ -f "/etc/redhat-release" ]; then echo "CentOS"; else echo "Ubuntu"; fi)
-
-OSVERSION := $(shell cat /etc/redhat-release | cut -d "." -f 1 | awk '{print $$NF}')
-
-ifeq ($(UNAME), Ubuntu)
-  SO_DIR = $(CURDIR)/lib/ubuntu
-  TOOLS_DIR = $(CURDIR)/tools/ubuntu
-else ifeq ($(OSVERSION), 5)
-  SO_DIR = $(CURDIR)/lib/5.4
-  TOOLS_DIR = $(CURDIR)/tools/5.4
-else
-  SO_DIR = $(CURDIR)/lib/6.2
-  TOOLS_DIR = $(CURDIR)/tools/6.2
-endif
-
 CXX = g++
 
 ifeq ($(__REL), 1)
@@ -59,20 +41,11 @@ OBJS = $(patsubst %.cc,%.o,$(BASE_OBJS))
 
 
 all: $(OBJECT)
-	@echo "UNAME    : $(UNAME)"
-	@echo "SO_DIR   : $(SO_DIR)"
-	@echo "TOOLS_DIR: $(TOOLS_DIR)"
 	@echo "Success, go, go, go..."
 
 
 $(OBJECT): $(GLOG) $(PINK) $(SLASH) $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH)  $(LFLAGS) $(LIBS) 
-
-$(SLASH):
-	make -C $(THIRD_PATH)/slash/slash
-
-$(PINK):
-	make -C $(THIRD_PATH)/pink/pink SLASH_PATH=$(THIRD_PATH)/slash
 
 $(OBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
@@ -80,9 +53,6 @@ $(OBJS): %.o : %.cc
 $(TOBJS): %.o : %.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
 
-$(GLOG):
-	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
-	
 clean: 
 	rm -rf $(SRC_DIR)/*.o
 	rm -rf $(OBJECT)

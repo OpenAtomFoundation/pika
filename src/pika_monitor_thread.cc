@@ -22,7 +22,7 @@ PikaMonitorThread::PikaMonitorThread()
 }
 
 PikaMonitorThread::~PikaMonitorThread() {
-  set_should_stop(true);
+  set_should_stop();
   if (is_running()) {
     monitor_cond_.SignalAll();
     StopThread();

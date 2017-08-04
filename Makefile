@@ -1,156 +1,250 @@
+CLEAN_FILES = # deliberately empty, so we can append below.
+CXX=g++
+PLATFORM_LDFLAGS= -lpthread -lrt
+PLATFORM_CXXFLAGS= -std=c++11 -fno-builtin-memcmp -msse -msse4.2 
+PROFILING_FLAGS=-pg
+OPT=
+LDFLAGS += -Wl,-rpath=$(RPATH)
 
-include Makefile.global
-#RPATH = /usr/local/pika21/lib/
-#LFLAGS = -Wl,-rpath=$(RPATH)
+# DEBUG_LEVEL can have two values:
+# * DEBUG_LEVEL=2; this is the ultimate debug mode. It will compile pika
+# without any optimizations. To compile with level 2, issue `make dbg`
+# * DEBUG_LEVEL=0; this is the debug level we use for release. If you're
+# running pika in production you most definitely want to compile pika
+# with debug level 0. To compile with level 0, run `make`,
 
+# Set the default DEBUG_LEVEL to 0
+DEBUG_LEVEL?=0
 
-UNAME := $(shell if [ -f "/etc/redhat-release" ]; then echo "CentOS"; else echo "Ubuntu"; fi)
-
-OSVERSION := $(shell cat /etc/redhat-release | cut -d "." -f 1 | awk '{print $$NF}')
-
-ifeq ($(UNAME), Ubuntu)
-  SO_DIR = $(CURDIR)/lib/ubuntu
-  TOOLS_DIR = $(CURDIR)/tools/ubuntu
-else ifeq ($(OSVERSION), 5)
-  SO_DIR = $(CURDIR)/lib/5.4
-  TOOLS_DIR = $(CURDIR)/tools/5.4
-else
-  SO_DIR = $(CURDIR)/lib/6.2
-  TOOLS_DIR = $(CURDIR)/tools/6.2
+ifeq ($(MAKECMDGOALS),dbg)
+  DEBUG_LEVEL=2
 endif
 
-CXX = g++
-
-ifeq ($(__REL), 1)
-#CXXFLAGS = -Wall -W -DDEBUG -g -O0 -D__XDEBUG__ -fPIC -Wno-unused-function -std=c++11
-	CXXFLAGS = -O2 -g -pipe -fPIC -W -DNDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX  -DOS_LINUX -std=c++11 -gdwarf-2 -Wno-redundant-decls
+# compile with -O2 if debug level is not 2
+ifneq ($(DEBUG_LEVEL), 2)
+OPT += -O2 -fno-omit-frame-pointer
+# if we're compiling for release, compile without debug code (-DNDEBUG) and
+# don't treat warnings as errors
+OPT += -DNDEBUG
+DISABLE_WARNING_AS_ERROR=1
+# Skip for archs that don't support -momit-leaf-frame-pointer
+ifeq (,$(shell $(CXX) -fsyntax-only -momit-leaf-frame-pointer -xc /dev/null 2>&1))
+OPT += -momit-leaf-frame-pointer
+endif
 else
-	CXXFLAGS = -O0 -g -pg -pipe -fPIC -W -DDEBUG -Wwrite-strings -Wpointer-arith -Wreorder -Wswitch -Wsign-promo -Wredundant-decls -Wformat -Wall -Wno-unused-parameter -D_GNU_SOURCE -D__STDC_FORMAT_MACROS -DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX  -DOS_LINUX -std=c++11 -Wno-redundant-decls
+$(warning Warning: Compiling in debug mode. Don't use the resulting binary in production)
+OPT += $(PROFILING_FLAGS)
+DEBUG_SUFFIX = "_debug"
 endif
 
-OBJECT = pika
-SRC_DIR = ./src
-THIRD_PATH = $(CURDIR)/third
-OUTPUT = ./output
-dummy := $(shell ("$(CURDIR)/detect_tcmalloc" "$(CURDIR)/make_config.mk"))
+# Link tcmalloc if exist
+dummy := $(shell ("$(CURDIR)/detect_environment" "$(CURDIR)/make_config.mk"))
 include make_config.mk
+CLEAN_FILES += $(CURDIR)/make_config.mk
+PLATFORM_LDFLAGS += $(TCMALLOC_LDFLAGS)
+PLATFORM_CXXFLAGS += $(TCMALLOC_EXTENSION_FLAGS)
 
-INCLUDE_PATH = -I./include/ \
-			   -I./src/ \
-			   -I$(THIRD_PATH)/glog/src/ \
-			   -I$(THIRD_PATH)/nemo/output/include/ \
-				 -I$(THIRD_PATH)/nemo/3rdparty/nemo-rocksdb/rocksdb/ \
-				 -I$(THIRD_PATH)/nemo/3rdparty/nemo-rocksdb/rocksdb/include \
-			   -I$(THIRD_PATH)/slash \
-			   -I$(THIRD_PATH)/pink \
+# ----------------------------------------------
+OUTPUT = $(CURDIR)/output
+THIRD_PATH = $(CURDIR)/third
+SRC_PATH = $(CURDIR)/src
+
+# ----------------Dependences-------------------
+
+ifndef SLASH_PATH
+SLASH_PATH = $(THIRD_PATH)/slash
+endif
+SLASH = $(SLASH_PATH)/slash/lib/libslash$(DEBUG_SUFFIX).a
+
+ifndef PINK_PATH
+PINK_PATH = $(THIRD_PATH)/pink
+endif
+PINK = $(PINK_PATH)/pink/lib/libpink$(DEBUG_SUFFIX).a
+
+ifndef ROCKSDB_PATH
+ROCKSDB_PATH = $(THIRD_PATH)/rocksdb
+endif
+ROCKSDB = $(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).a
+
+ifndef NEMODB_PATH
+NEMODB_PATH = $(THIRD_PATH)/nemo-rocksdb
+endif
+NEMODB = $(NEMODB_PATH)/lib/libnemodb$(DEBUG_SUFFIX).a
+
+ifndef NEMO_PATH
+NEMO_PATH = $(THIRD_PATH)/nemo
+endif
+NEMO = $(NEMO_PATH)/lib/libnemo$(DEBUG_SUFFIX).a
+
+ifndef GLOG_PATH
+GLOG_PATH = $(THIRD_PATH)/glog
+endif
+GLOG = $(GLOG_PATH)/.libs/libglog.so.0.0.0
+
+INCLUDE_PATH = -I./include \
+							 -I$(SLASH_PATH)/ \
+							 -I$(PINK_PATH)/ \
+							 -I$(NEMO_PATH)/include \
+							 -I$(NEMODB_PATH)/include \
+							 -I$(ROCKSDB_PATH)/ \
+							 -I$(ROCKSDB_PATH)/include \
+							 -I$(GLOG_PATH)/src/
 
 LIB_PATH = -L./ \
-		   -L$(THIRD_PATH)/nemo/output/lib/ \
-		   -L$(THIRD_PATH)/slash/slash/lib/ \
-		   -L$(THIRD_PATH)/pink/pink/lib/ \
-		   -L$(THIRD_PATH)/glog/.libs/
+					 -L$(SLASH_PATH)/slash/lib/ \
+					 -L$(PINK_PATH)/pink/lib/ \
+					 -L$(NEMO_PATH)/lib/ \
+					 -L$(NEMODB_PATH)/lib \
+					 -L$(ROCKSDB_PATH)/ \
+					 -L$(GLOG_PATH)/.libs/
+
+LDFLAGS += $(LIB_PATH) \
+					 -lprotobuf \
+			 		 -lpink$(DEBUG_SUFFIX) \
+			 		 -lslash$(DEBUG_SUFFIX) \
+					 -lnemo$(DEBUG_SUFFIX) \
+					 -lnemodb$(DEBUG_SUFFIX) \
+					 -lrocksdb$(DEBUG_SUFFIX) \
+					 -lglog \
+			 		 -lz \
+			 		 -lbz2 \
+			 		 -lsnappy
+
+# ---------------End Dependences----------------
+
+VERSION_CC=$(SRC_PATH)/build_version.cc
+LIB_SOURCES :=  $(VERSION_CC) \
+				$(filter-out $(VERSION_CC), $(wildcard $(SRC_PATH)/*.cc))
 
 
-LIBS = -lpthread \
-	   -lglog \
-	   -lnemo \
-		 -lnemodb \
-	   -lslash \
-	   -lrocksdb \
-		 -lpink \
-	   -lz \
-	   -lbz2 \
-	   -lsnappy \
-	   -lrt 
+#-----------------------------------------------
 
-LIBS += $(TCMALLOC_LDFLAGS)
-CXXFLAGS += $(TCMALLOC_EXTENSION_FLAGS)
+AM_DEFAULT_VERBOSITY = 0
 
-NEMO = $(THIRD_PATH)/nemo/output/lib/libnemo.a
-GLOG = $(SO_DIR)/libglog.so.0
-PINK = $(THIRD_PATH)/pink/lib/libpink.a
-SLASH = $(THIRD_PATH)/slash/lib/libslash.a
+AM_V_GEN = $(am__v_GEN_$(V))
+am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
+am__v_GEN_0 = @echo "  GEN     " $(notdir $@);
+am__v_GEN_1 =
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
+am__v_at_1 =
 
-.PHONY: all clean
+AM_V_CC = $(am__v_CC_$(V))
+am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
+am__v_CC_0 = @echo "  CC      " $(notdir $@);
+am__v_CC_1 =
+CCLD = $(CC)
+LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_$(V))
+am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CCLD_0 = @echo "  CCLD    " $(notdir $@);
+am__v_CCLD_1 =
+
+AM_LINK = $(AM_V_CCLD)$(CXX) $^ $(EXEC_LDFLAGS) -o $@ $(LDFLAGS)
+
+CXXFLAGS += -g
+
+# This (the first rule) must depend on "all".
+default: all
+
+WARNING_FLAGS = -W -Wextra -Wall -Wsign-compare \
+  							-Wno-unused-parameter -Woverloaded-virtual \
+								-Wnon-virtual-dtor -Wno-missing-field-initializers
+
+ifndef DISABLE_WARNING_AS_ERROR
+  WARNING_FLAGS += -Werror
+endif
+
+CXXFLAGS += $(WARNING_FLAGS) $(INCLUDE_PATH) $(PLATFORM_CXXFLAGS) $(OPT)
+
+LDFLAGS += $(PLATFORM_LDFLAGS)
+
+date := $(shell date +%F)
+git_sha := $(shell git rev-parse HEAD 2>/dev/null)
+gen_build_version = sed -e s/@@GIT_SHA@@/$(git_sha)/ -e s/@@GIT_DATE_TIME@@/$(date)/ src/build_version.cc.in
+# Record the version of the source that we are compiling.
+# We keep a record of the git revision in this file.  It is then built
+# as a regular source file as part of the compilation process.
+# One can run "strings executable_filename | grep _build_" to find
+# the version of the source that we used to build the executable file.
+CLEAN_FILES += $(SRC_PATH)/build_version.cc
+
+$(SRC_PATH)/build_version.cc: FORCE
+	$(AM_V_GEN)rm -f $@-t
+	$(AM_V_at)$(gen_build_version) > $@-t
+	$(AM_V_at)if test -f $@; then         \
+	  cmp -s $@-t $@ && rm -f $@-t || mv -f $@-t $@;    \
+	else mv -f $@-t $@; fi
+FORCE: 
+
+LIBOBJECTS = $(LIB_SOURCES:.cc=.o)
+
+# if user didn't config LIBNAME, set the default
+ifeq ($(BINNAME),)
+# we should only run pika in production with DEBUG_LEVEL 0
+BINNAME=pika$(DEBUG_SUFFIX)
+endif
+BINARY = ${BINNAME}
+
+.PHONY: distclean clean dbg all
+
+%.o: %.cc
+	  $(AM_V_CC)$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.d: %.cc
+	@set -e; rm -f $@; $(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's,\($(notdir $*)\)\.o[ :]*,$(SRC_DIR)/\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+ifneq ($(MAKECMDGOALS),clean)
+  -include $(LIBOBJECTS:.o=.d)
+endif
 
 
-BASE_OBJS := $(wildcard $(SRC_DIR)/*.cc)
-BASE_OBJS += $(wildcard $(SRC_DIR)/*.c)
-BASE_OBJS += $(wildcard $(SRC_DIR)/*.cpp)
-OBJS = $(patsubst %.cc,%.o,$(BASE_OBJS))
+all: $(BINARY)
 
+dbg: $(BINARY)
 
-all: $(OBJECT)
-	@echo "UNAME    : $(UNAME)"
-	@echo "SO_DIR   : $(SO_DIR)"
-	@echo "TOOLS_DIR: $(TOOLS_DIR)"
-	make -C $(CURDIR)/tools/aof_to_pika/
-	cp $(CURDIR)/tools/aof_to_pika/output/bin/* $(TOOLS_DIR)
-	make __REL=1 -C $(CURDIR)/tools/binlog_sync/
-	cp $(CURDIR)/tools/binlog_sync/binlog_sync $(TOOLS_DIR)
-	make __REL=1 -C $(CURDIR)/tools/binlog_tools/
-	cp $(CURDIR)/tools/binlog_tools/binlog_sender $(TOOLS_DIR)
-	cp $(CURDIR)/tools/binlog_tools/binlog_parser $(TOOLS_DIR)
-	rm -rf $(OUTPUT)
-	mkdir $(OUTPUT)
-	mkdir $(OUTPUT)/bin
-	cp -r ./conf $(OUTPUT)/
-	mkdir $(OUTPUT)/lib
-	cp -r $(SO_DIR)/*  $(OUTPUT)/lib
-	cp $(OBJECT) $(OUTPUT)/bin/
-	mkdir $(OUTPUT)/tools
-	if [ -d $(TOOLS_DIR) ]; then \
-		cp -r $(TOOLS_DIR)/* $(OUTPUT)/tools/; \
-	fi
-	rm -rf $(OBJECT)
-	@echo "Success, go, go, go..."
-
-
-$(OBJECT): $(NEMO) $(GLOG) $(PINK) $(SLASH) $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(INCLUDE_PATH) $(LIB_PATH)  $(LFLAGS) $(LIBS) 
-
-$(NEMO):
-	make -C $(THIRD_PATH)/nemo/
+$(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(NEMODB) $(NEMO) $(GLOG) $(LIBOBJECTS)
+	$(AM_V_at)rm -f $@
+	$(AM_V_at)$(AM_LINK)
+	$(AM_V_at)rm -rf $(OUTPUT)
+	$(AM_V_at)mkdir -p $(OUTPUT)/bin
+	$(AM_V_at)mv $@ $(OUTPUT)/bin
+	$(AM_V_at)cp -r $(CURDIR)/conf $(OUTPUT)
+	$(AM_V_at)mkdir -p $(OUTPUT)/lib
+	$(AM_V_at)cp -r $(GLOG) $(OUTPUT)/lib
+	
 
 $(SLASH):
-	make -C $(THIRD_PATH)/slash/slash/
+	$(AM_V_at)make -C $(SLASH_PATH)/slash/ DEBUG_LEVEL=$(DEBUG_LEVEL)
 
 $(PINK):
-	make -C $(THIRD_PATH)/pink/pink/ SLASH_PATH=$(THIRD_PATH)/slash
+	$(AM_V_at)make -C $(PINK_PATH)/pink/ DEBUG_LEVEL=$(DEBUG_LEVEL)  SLASH_PATH=$(SLASH_PATH)
 
-$(OBJS): %.o : %.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
+$(ROCKSDB):
+	$(AM_V_at)make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ static_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL)
 
-$(TOBJS): %.o : %.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@ $(INCLUDE_PATH) 
+$(NEMODB):
+	$(AM_V_at)make -C $(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
+
+$(NEMO):
+	$(AM_V_at)make -C $(NEMO_PATH) NEMODB_PATH=$(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
 
 $(GLOG):
-	#cd $(THIRD_PATH)/glog; ./configure; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
-	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore; cp $(CURDIR)/third/glog/.libs/libglog.so.0 $(SO_DIR);
+	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore;
 
-clean: 
-	rm -rf $(SRC_DIR)/*.o
-	rm -rf $(OUTPUT)/*
+clean:
 	rm -rf $(OUTPUT)
-	rm -rf $(CURDIR)/make_config.mk
-	
-distclean: 
-	rm -rf $(SRC_DIR)/*.o
-	rm -rf $(OUTPUT)/*
-	rm -rf $(OUTPUT)
-	rm -rf $(CURDIR)/make_config.mk
-	make distclean -C $(THIRD_PATH)/nemo/3rdparty/nemo-rocksdb/
-	make clean -C $(THIRD_PATH)/nemo/
-	make clean -C $(THIRD_PATH)/pink/pink
-	make clean -C $(THIRD_PATH)/slash/slash
-	make distclean -C $(THIRD_PATH)/glog/
-	make clean -C $(CURDIR)/tools/aof_to_pika
-	make clean -C $(CURDIR)/tools/pika_monitor
-	make clean -C $(CURDIR)/tools/binlog_sync
-	make clean -C $(CURDIR)/tools/binlog_tools
-	rm -rf $(TOOLS_DIR)/aof_to_pika
-	rm -rf $(TOOLS_DIR)/binlog_sync
-	rm -rf $(TOOLS_DIR)/binlog_parser
-	rm -rf $(TOOLS_DIR)/binlog_sender
-	rm -rf $(SO_DIR)/libglog.so*
+	rm -rf $(CLEAN_FILES)
+	find $(SRC_PATH) -name "*.[oda]*" -exec rm -f {} \;
+	find $(SRC_PATH) -type f -regex ".*\.\(\(gcda\)\|\(gcno\)\)" -exec rm {} \;
 
+distclean: clean
+	make -C $(PINK_PATH)/pink/ SLASH_PATH=$(SLASH_PATH) clean
+	make -C $(SLASH_PATH)/slash/ clean
+	make -C $(NEMO_PATH) NEMODB_PATH=$(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) clean
+	make -C $(NEMODB_PATH)/ ROCKSDB_PATH=$(ROCKSDB_PATH) clean
+	make -C $(ROCKSDB_PATH)/ clean
+#	make -C $(GLOG_PATH)/ clean

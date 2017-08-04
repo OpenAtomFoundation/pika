@@ -5,15 +5,15 @@ SRC_DIR = .
 OUTPUT = .
 
 INCLUDE_PATH = -I./ \
-							 -I../../third/nemo/output/include \
-							 -I../../third/nemo/3rdparty/nemo-rocksdb/output/include \
-							 -I../../third/nemo/3rdparty/nemo-rocksdb/rocksdb \
-							 -I../../third/nemo/3rdparty/nemo-rocksdb/rocksdb/include
+							 -I../../third/nemo/include \
+							 -I../../third/nemo-rocksdb/include \
+							 -I../../third/rocksdb \
+							 -I../../third/rocksdb/include
 
 STATIC_LIBS = ./libssdb-client.a \
-					    ../../third/nemo/output/lib/libnemo.a \
-					    ../../third/nemo/output/lib/libnemodb.a \
-					    ../../third/nemo/output/lib/librocksdb.a
+					    ../../third/nemo/lib/libnemo.a \
+					    ../../third/nemo-rocksdb/lib/libnemodb.a \
+					    ../../third/rocksdb/librocksdb.a
 
 LIBS = -lsnappy \
 			 -lrt \

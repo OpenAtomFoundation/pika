@@ -54,6 +54,7 @@ class PikaBinlogReceiverThread {
         : binlog_receiver_(binlog_receiver) {
     }
 
+    using pink::ServerHandle::AccessHandle;
     bool AccessHandle(std::string& ip) const override;
 
    private:
