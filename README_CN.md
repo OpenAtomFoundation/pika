@@ -68,7 +68,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 4.获取源代码
 
 ```
-	git clone git@github.com:Qihoo360/pika.git && cd pika
+	git clone https://github.com/Qihoo360/pika.git && cd pika
 ```
 5.切换到最新release版本
 
@@ -160,11 +160,11 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 ```
 
 ### 与SSDB性能对比（[详情](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb)）
-<img src="http://imgur.com/rGMZmpD.png" height = "400" width = "480" alt="1">
-<img src="http://imgur.com/gnwMDof.png" height = "400" width = "480" alt="10">
+<img src="http://imgur.com/rGMZmpD.png" height = "60%" width = "60%" alt="1">
+<img src="http://imgur.com/gnwMDof.png" height = "60%" width = "60%" alt="10">
 
 ### 与Redis性能对比
-<img src="http://imgur.com/k99VyFN.png" height = "400" width = "600" alt="2">
+<img src="http://imgur.com/k99VyFN.png" height = "70%" width = "70%" alt="2">
 
 ## 文档
 1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
