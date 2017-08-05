@@ -44,21 +44,9 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 * 完善的[运维](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明)命令
 
 
-## 快速试用
-  如果想快速试用pika，目前提供了Centos5，Centos6的binary版本，可以在[release页面](https://github.com/Qihoo360/pika/releases)看到，具体文件是pikaX.Y.Z_centosK_bin.tar.gz。
-
-```
-# 1. 解压文件
-tar zxf pikaX.Y.Z_centosK_bin.tar.gz
-# 2. 切到output目录（rpath是./lib）
-cd output
-# 3. 运行pika:
-./bin/pika -c conf/pika.conf
-```
-
 ## 编译安装
 
-1.在编译机上安装snappy protobuf， CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
+1.在编译机上安装snappy，protobuf， CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
 
 ```
     yum install snappy-devel protobuf-devel
@@ -104,7 +92,7 @@ cd output
 	./output/bin/pika -c ./conf/pika.conf
 ```
 
-##.清空编译
+## 清空编译
 
 ```
   如果需要清空编译内容，视不同情况使用一下两种方法其一：
