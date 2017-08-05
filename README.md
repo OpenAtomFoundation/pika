@@ -76,7 +76,7 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 Get source code recursive, then pika will pull all submodules
 
 ```
-git clone git@github.com:Qihoo360/pika.git
+git clone https://github.com/Qihoo360/pika.git
 ```
 
 
@@ -152,11 +152,11 @@ Get
 
 ### pika vs ssdb ([Detail](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb))
 
-<img src="http://imgur.com/rGMZmpD.png" height = "400" width = "480" alt="1">
-<img src="http://imgur.com/gnwMDof.png" height = "400" width = "480" alt="10">
+<img src="http://imgur.com/rGMZmpD.png" height = "60%" width = "60%" alt="1">
+<img src="http://imgur.com/gnwMDof.png" height = "60%" width = "60%" alt="10">
 
 ## pika vs redis
-<img src="http://imgur.com/k99VyFN.png" height = "400" width = "600" alt="2">
+<img src="http://imgur.com/k99VyFN.png" height = "70%" width = "70%" alt="2">
  
 ## Documents
 
@@ -169,4 +169,4 @@ Mail: g-infra-bada@360.cn
 QQ group: 294254078
 For more information about Pika, Atlas and some other technology please pay attention to our Hulk platform official account
 
-<img src="http://i.imgur.com/pL4ni57.png" height = "400" width = "600" alt="2">
+<img src="http://i.imgur.com/pL4ni57.png" height = "50%" width = "50%" alt="2">
