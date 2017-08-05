@@ -58,10 +58,10 @@ cd output
 
 ## 编译安装
 
-1.在编译机上安装snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel l ibbz2-dev zlib-devel等。CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
+1.在编译机上安装snappy protobuf， CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
 
 ```
-    yum install snappy-devel bz2 libzip-dev libsnappy-dev libprotobuf-dev libevent-dev protobuf-compiler libgoogle-glog-dev protobuf-devel libevent-devel bzip2-devel libbz2-dev zlib-devel
+    yum install snappy-devel protobuf-devel
 ```
 
 2.安装g++(若没有安装), 在CentOS上执行如下命令：
@@ -80,21 +80,21 @@ cd output
 4.获取源代码
 
 ```
-	git clone --recursive https://github.com/Qihoo360/pika.git && cd pika
+	git clone git@github.com:Qihoo360/pika.git && cd pika
 ```
 5.切换到最新release版本
 
 ```
-	a. 执行 git tag 查看最新的release tag，（如 v2.2.3）
-	b. 执行 git checkout TAG切换到最新版本，（如 git checkout v2.2.3)
-	c. 执行 git submodule update更新依赖
+	a. 执行 git tag 查看最新的release tag，（如 v2.2.4）
+	b. 执行 git checkout TAG切换到最新版本，（如 git checkout v2.2.4）
 ```
 
 6.编译
 
 ```
-	make __REL=1
+	make
 ```
+
 若编译过程中，提示有依赖的库没有安装，则有提示安装后再重新编译
 
 **注：我们推荐使用TCMalloc来进行内存管理**
@@ -103,15 +103,15 @@ cd output
 ```
 	./output/bin/pika -c ./conf/pika.conf
 ```
-若启动失败，把./lib/_VERSION/的内容拷贝到Makefile定义的rpath目录下，然后重新启动
+
+##.清空编译
 
 ```
-	cp PIKA_SOURCE/lib/_VERSION/* RPATH
-```
-PIKA_SOURCE表示的pika的源代码根目录；
-_VERSION表示的是编译机的CenOS版本，如6.2， 5.4...
-RPATH在Makefile定义，表示的是程序运行的库预先加载路径
+  如果需要清空编译内容，视不同情况使用一下两种方法其一：
 
+  1. 执行make clean来清空pika的编译内容
+  2. 执行make distclean来清空pika及所有依赖的编译内容（一般用于彻底重新编译）
+```
 
 ## 性能
 

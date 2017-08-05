@@ -48,19 +48,6 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 * support master-slave mode (slaveof)
 * various [management](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明) interfaces
 
-## Quickstart and Try
-  You can try to use our pre-build binary versions. For now, only Centos5 and Centos6 are supported. The binary ones can be found at [the release page](https://github.com/Qihoo360/pika/releases) which are called pikaX.Y.Z_centosK_bin.tar.gz.
-
-```
-# 1. unzip file
-tar zxf pikaX.Y.Z_centosK_bin.tar.gz
-# 2. change working directory to output
-#   note: we should in this directory, caz the RPATH is ./lib;
-cd output
-# 3. run pika:
-./bin/pika -c conf/pika.conf
-```
-
 ## For developer
 
 ### RoadMap
@@ -70,10 +57,7 @@ cd output
 ### Dependencies
 
 * snappy - a library for fast data compression
-* zlib - a library for fast data compression
-* bzips - a library for fast data compression
 * protobuf - google protobuf library
-* glog - google log library
 
 Upgrade your gcc to version at least 4.8 to get C++11 support.
 
@@ -92,14 +76,14 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 Get source code recursive, then pika will pull all submodules
 
 ```
-git clone --recursive https://github.com/baotiao/pika.git
+git clone git@github.com:Qihoo360/pika.git
 ```
 
 
 Then compile pika
 
 ```
-make __REL=1
+make
 ```
 
 ## Usage
@@ -107,16 +91,6 @@ make __REL=1
 ```
 ./output/bin/pika -c ./conf/pika.conf
 ```
-
-If failed, move pika source/lib/_VERSION/lib/ to the rpath defined in Makefile and relanch. 
-
-```
-cp PIKA_SOURCE/lib/_VERSION/* RPATH
-```
-The PIKA_SOURCE stands for pika source code's root directory;  
-The __VERSION represents the OS's version, such as 6.2, 5.4...  
-The RPATH is defined in pika's Makefile
-
 
 ## Performance
 

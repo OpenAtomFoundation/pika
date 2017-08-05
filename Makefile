@@ -214,8 +214,6 @@ $(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(NEMODB) $(NEMO) $(GLOG) $(LIBOBJECTS)
 	$(AM_V_at)mkdir -p $(OUTPUT)/bin
 	$(AM_V_at)mv $@ $(OUTPUT)/bin
 	$(AM_V_at)cp -r $(CURDIR)/conf $(OUTPUT)
-	$(AM_V_at)mkdir -p $(OUTPUT)/lib
-	$(AM_V_at)cp -r $(GLOG) $(OUTPUT)/lib
 	
 
 $(SLASH):
