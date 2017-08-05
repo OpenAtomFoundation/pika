@@ -686,24 +686,25 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   }
   // Get all files need to send
   std::vector<std::string> descendant;
-  if (!slash::GetDescendant(bg_path, descendant)) {
-    LOG(WARNING) << "Get Descendant when try to do db sync failed";
+  if (!slash::GetChildren(bg_path, descendant)) {
+    LOG(WARNING) << "Get child directory when try to do db sync failed";
   }
 
   // Iterate to send files
   int ret = 0;
-  std::string target_path;
+  std::string local_path, target_path;
   std::string module = kDBSyncModule + "_" + slash::IpPortString(host_, port_);
   std::vector<std::string>::iterator it = descendant.begin();
   slash::RsyncRemote remote(ip, port, module, g_pika_conf->db_sync_speed() * 1024);
   for (; it != descendant.end(); ++it) {
-    target_path = (*it).substr(bg_path.size() + 1);
+    local_path = bg_path + "/" + *it;
+    target_path = *it;
+
     if (target_path == kBgsaveInfoFile) {
       continue;
     }
     // We need specify the speed limit for every single file
-    ret = slash::RsyncSendFile(*it, target_path, remote);
-
+    ret = slash::RsyncSendFile(local_path, target_path, remote);
 
     if (0 != ret) {
       LOG(WARNING) << "rsync send file failed! From: " << *it
