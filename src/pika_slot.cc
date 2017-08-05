@@ -178,9 +178,9 @@ static int kvGet(const std::string key, std::string &value){
 }
 
 // delete key from db
-static int keyDel(const std::string key){
+static int keyDel(const std::string key, const char key_type){
     int64_t count = 0;
-    nemo::Status s = g_pika_server->db()->Del(key, &count);
+    nemo::Status s = g_pika_server->db()->DelSingleType(key, &count, key_type);
     if (!s.ok()) {
         if (s.IsNotFound()) {
             LOG(WARNING) << "Del key: "<< key <<" not found ";
@@ -238,7 +238,7 @@ static int migrateKv(const std::string dest_ip, const int64_t dest_port, const s
     }
 
     delete cli;
-    keyDel(key); //key already been migrated successfully, del error doesn't matter
+    keyDel(key, 'k'); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
 
@@ -294,7 +294,7 @@ static int migrateHash(const std::string dest_ip, const int64_t dest_port, const
     }
 
     delete cli;
-    keyDel(key); //key already been migrated successfully, del error doesn't matter
+    keyDel(key, 'h'); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
 
@@ -349,7 +349,7 @@ static int migrateList(const std::string dest_ip, const int64_t dest_port, const
     }
 
     delete cli;
-    keyDel(key); //key already been migrated successfully, del error doesn't matter
+    keyDel(key, 'l'); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
 
@@ -404,7 +404,7 @@ static int migrateSet(const std::string dest_ip, const int64_t dest_port, const 
     }
 
     delete cli;
-    keyDel(key); //key already been migrated successfully, del error doesn't matter
+    keyDel(key, 's'); //key already been migrated successfully, del error doesn't matter
     return 1;
 }
 
@@ -460,7 +460,7 @@ static int migrateZset(const std::string dest_ip, const int64_t dest_port, const
     }
 
     delete cli;
-    keyDel(key);
+    keyDel(key, 'z');
     return 1;
 }
 
