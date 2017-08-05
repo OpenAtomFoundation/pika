@@ -20,6 +20,9 @@ ifeq ($(MAKECMDGOALS),dbg)
   DEBUG_LEVEL=2
 endif
 
+$(info updating submodule)
+dummy := $(shell (git submodule init && git submodule update))
+
 # compile with -O2 if debug level is not 2
 ifneq ($(DEBUG_LEVEL), 2)
 OPT += -O2 -fno-omit-frame-pointer
@@ -42,6 +45,7 @@ dummy := $(shell ("$(CURDIR)/detect_environment" "$(CURDIR)/make_config.mk"))
 include make_config.mk
 CLEAN_FILES += $(CURDIR)/make_config.mk
 PLATFORM_LDFLAGS += $(TCMALLOC_LDFLAGS)
+PLATFORM_LDFLAGS += $(ROCKSDB_LDFLAGS)
 PLATFORM_CXXFLAGS += $(TCMALLOC_EXTENSION_FLAGS)
 
 # ----------------------------------------------
@@ -105,10 +109,7 @@ LDFLAGS += $(LIB_PATH) \
 					 -lnemo$(DEBUG_SUFFIX) \
 					 -lnemodb$(DEBUG_SUFFIX) \
 					 -lrocksdb$(DEBUG_SUFFIX) \
-					 -lglog \
-			 		 -lz \
-			 		 -lbz2 \
-			 		 -lsnappy
+					 -lglog
 
 # ---------------End Dependences----------------
 

@@ -32,9 +32,81 @@ if [ "$?" = 0 ]; then
     TCMALLOC_EXTENSION_FLAGS=" -DTCMALLOC_EXTENSION"
 fi
 
+# Test whether Snappy library is installed
+# http://code.google.com/p/snappy/
+$CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
+  #include <snappy.h>
+  int main() {}
+EOF
+if [ "$?" = 0 ]; then
+    ROCKSDB_LDFLAGS="$ROCKSDB_LDFLAGS -lsnappy"
+fi
+
+# Test whether gflags library is installed
+# http://gflags.github.io/gflags/
+# check if the namespace is gflags
+$CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null << EOF
+  #include <gflags/gflags.h>
+  using namespace gflags;
+  int main() {}
+EOF
+if [ "$?" = 0 ]; then
+    ROCKSDB_LDFLAGS="$ROCKSDB_LDFLAGS -lgflags"
+else
+  # check if namespace is google
+  $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null << EOF
+    #include <gflags/gflags.h>
+    using namespace google;
+    int main() {}
+EOF
+if [ "$?" = 0 ]; then
+    ROCKSDB_LDFLAGS="$ROCKSDB_LDFLAGS -lgflags"
+fi
+fi
+
+# Test whether zlib library is installed
+$CXX $CFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
+  #include <zlib.h>
+  int main() {}
+EOF
+if [ "$?" = 0 ]; then
+    ROCKSDB_LDFLAGS="$ROCKSDB_LDFLAGS -lz"
+fi
+
+# Test whether bzip library is installed
+$CXX $CFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
+  #include <bzlib.h>
+  int main() {}
+EOF
+if [ "$?" = 0 ]; then
+    ROCKSDB_LDFLAGS="$ROCKSDB_LDFLAGS -lbz2"
+fi
+
+# Test whether lz4 library is installed
+$CXX $CFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
+  #include <lz4.h>
+  #include <lz4hc.h>
+  int main() {}
+EOF
+if [ "$?" = 0 ]; then
+    ROCKSDB_LDFLAGS="$ROCKSDB_LDFLAGS -llz4"
+fi
+
+# Test whether zstd library is installed
+$CXX $CFLAGS $COMMON_FLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
+  #include <zstd.h>
+  int main() {}
+EOF
+if [ "$?" = 0 ]; then
+    ROCKSDB_LDFLAGS="$ROCKSDB_LDFLAGS -lzstd"
+fi
+
+
+
 # Test processor nums
 PROCESSOR_NUMS=$(cat /proc/cpuinfo | grep processor | wc -l)
 
+echo "ROCKSDB_LDFLAGS=$ROCKSDB_LDFLAGS" >> "$OUTPUT"
 echo "TCMALLOC_EXTENSION_FLAGS=$TCMALLOC_EXTENSION_FLAGS" >> "$OUTPUT"
 echo "TCMALLOC_LDFLAGS=$TCMALLOC_LDFLAGS" >> "$OUTPUT"
 echo "PROCESSOR_NUMS=$PROCESSOR_NUMS" >> "$OUTPUT"

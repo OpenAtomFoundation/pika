@@ -40,3 +40,4 @@ tags
 
 make_config.mk
 src/*.d
+src/build_version.cc

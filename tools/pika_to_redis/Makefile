@@ -2,6 +2,7 @@ GCC = g++
 CPPFLAGS = -Wall -W -Wno-unused-parameter -DDEBUG -D__XDEBUG__ -g -O3 -std=c++11
 OBJECT = pika_to_redis
 
+include ../../make_config.mk
 LIB_PATH = -L ../../third/nemo/lib/ \
 					 -L ../../third/pink/pink/lib/ \
 					 -L ../../third/slash/slash/lib/ \
@@ -10,14 +11,12 @@ LIB_PATH = -L ../../third/nemo/lib/ \
 
 LIBS = -Wl,-Bstatic -lnemo -lrocksdb\
 			 -Wl,-Bdynamic -lpthread\
-			 -lsnappy \
 			 -lrt \
-			 -lz \
-			 -lbz2 \
 			 -lpink \
 			 -lslash \
 			 -lnemodb \
 			 -lrocksdb
+LIBS += $(ROCKSDB_LDFLAGS)
 
 
 INCLUDE_PATH = -I../../third/pink/ \

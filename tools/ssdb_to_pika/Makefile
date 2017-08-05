@@ -4,6 +4,7 @@ OBJECT = ssdb_to_pika
 SRC_DIR = .
 OUTPUT = .
 
+include ../../make_config.mk
 INCLUDE_PATH = -I./ \
 							 -I../../third/nemo/include \
 							 -I../../third/nemo-rocksdb/include \
@@ -15,11 +16,8 @@ STATIC_LIBS = ./libssdb-client.a \
 					    ../../third/nemo-rocksdb/lib/libnemodb.a \
 					    ../../third/rocksdb/librocksdb.a
 
-LIBS = -lsnappy \
-			 -lrt \
-			 -lz \
-			 -lbz2 \
-			 -lpthread
+LIBS = -lrt -pthread
+LIBS += $(ROCKSDB_LDFLAGS)
 
 .PHONY: all clean
 
