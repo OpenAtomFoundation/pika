@@ -4,6 +4,7 @@ MAINTAINER left2right <yqzhang@easemob.com>
 RUN yum -y update && \
     yum -y install snappy-devel && \
     yum -y install protobuf-devel && \
+    yum -y install glog-devel && \
     yum -y install gcc-c++ && \
     yum -y install make && \
     yum -y install git
