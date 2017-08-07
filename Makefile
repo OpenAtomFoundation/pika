@@ -83,7 +83,10 @@ NEMO = $(NEMO_PATH)/lib/libnemo$(DEBUG_SUFFIX).a
 ifndef GLOG_PATH
 GLOG_PATH = $(THIRD_PATH)/glog
 endif
-GLOG = $(GLOG_PATH)/.libs/libglog.so.0.0.0
+
+ifeq ($(360), 1)
+GLOG := $(GLOG_PATH)/.libs/libglog.so.0.0.0
+endif
 
 INCLUDE_PATH = -I./include \
 							 -I$(SLASH_PATH)/ \
@@ -91,16 +94,22 @@ INCLUDE_PATH = -I./include \
 							 -I$(NEMO_PATH)/include \
 							 -I$(NEMODB_PATH)/include \
 							 -I$(ROCKSDB_PATH)/ \
-							 -I$(ROCKSDB_PATH)/include \
-							 -I$(GLOG_PATH)/src/
+							 -I$(ROCKSDB_PATH)/include
+
+ifeq ($(360),1)
+INCLUDE_PATH += -I$(GLOG_PATH)/src/
+endif
 
 LIB_PATH = -L./ \
 					 -L$(SLASH_PATH)/slash/lib/ \
 					 -L$(PINK_PATH)/pink/lib/ \
 					 -L$(NEMO_PATH)/lib/ \
 					 -L$(NEMODB_PATH)/lib \
-					 -L$(ROCKSDB_PATH)/ \
-					 -L$(GLOG_PATH)/.libs/
+					 -L$(ROCKSDB_PATH)/
+
+ifeq ($(360),1)
+LIB_PATH += -L$(GLOG_PATH)/.libs/
+endif
 
 LDFLAGS += $(LIB_PATH) \
 					 -lprotobuf \

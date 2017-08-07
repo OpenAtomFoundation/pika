@@ -58,6 +58,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 
 * snappy - a library for fast data compression
 * protobuf - google protobuf library
+* glog - google log library
 
 Upgrade your gcc to version at least 4.8 to get C++11 support.
 
