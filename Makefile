@@ -20,8 +20,10 @@ ifeq ($(MAKECMDGOALS),dbg)
   DEBUG_LEVEL=2
 endif
 
+ifneq ($(DISABLE_UPDATE_SB), 1)
 $(info updating submodule)
 dummy := $(shell (git submodule init && git submodule update))
+endif
 
 # compile with -O2 if debug level is not 2
 ifneq ($(DEBUG_LEVEL), 2)
