@@ -12,7 +12,7 @@
 	url = https://github.com/Qihoo360/slash.git
 [submodule "third/nemo-rocksdb"]
 	path = third/nemo-rocksdb
-	url = http://github.com/Qihoo360/nemo-rocksdb.git
+	url = https://github.com/Qihoo360/nemo-rocksdb.git
 [submodule "third/rocksdb"]
 	path = third/rocksdb
 	url = https://github.com/facebook/rocksdb.git
