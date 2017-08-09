@@ -811,10 +811,14 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "port");
       EncodeInt32(&ret, g_pika_conf->port());
-  } else if (get_item == "double-master-addr") {
+  } else if (get_item == "double-master-ip") {
       ret = "*2\r\n";
-      EncodeString(&ret, "double-master-addr");
-      EncodeString(&ret, g_pika_conf->double_master_addr());
+      EncodeString(&ret, "double-master-ip");
+      EncodeString(&ret, g_pika_conf->double_master_ip());
+  } else if (get_item == "double-master-port") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "double-master-port");
+      EncodeInt32(&ret, g_pika_conf->double_master_port());
   } else if (get_item == "double-master-sid") {
       ret = "*2\r\n";
       EncodeString(&ret, "double-master-sid");
@@ -968,11 +972,13 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
   } else if (get_item == "*") {
-    ret = "*80\r\n";
+    ret = "*82\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
-    EncodeString(&ret, "double-master-addr");
-    EncodeString(&ret, g_pika_conf->double_master_addr());
+    EncodeString(&ret, "double-master-ip");
+    EncodeString(&ret, g_pika_conf->double_master_ip());
+    EncodeString(&ret, "double-master-port");
+    EncodeInt32(&ret, g_pika_conf->double_master_port());
     EncodeString(&ret, "double-master-sid");
     EncodeInt32(&ret, g_pika_conf->double_master_sid());
     EncodeString(&ret, "thread-num");

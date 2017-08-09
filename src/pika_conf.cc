@@ -85,7 +85,8 @@ int PikaConf::Load()
   // Immutable Sections
   //
   GetConfInt("port", &port_);
-  GetConfStr("double-master-addr", &double_master_addr_);
+  GetConfStr("double-master-ip", &double_master_ip_);
+  GetConfInt("double-master-port", &double_master_port_);
   GetConfInt("double-master-sid", &double_master_sid_);
   GetConfStr("log-path", &log_path_);
   GetConfStr("db-path", &db_path_);
