@@ -85,6 +85,8 @@ int PikaConf::Load()
   // Immutable Sections
   //
   GetConfInt("port", &port_);
+  GetConfStr("double-master-addr", &double_master_addr_);
+  GetConfInt("double-master-sid", &double_master_sid_);
   GetConfStr("log-path", &log_path_);
   GetConfStr("db-path", &db_path_);
   if (log_path_[log_path_.length() - 1] != '/') {

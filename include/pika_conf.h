@@ -25,6 +25,8 @@ class PikaConf : public slash::BaseConf {
 
   // Getter
   int port()              { RWLock l(&rwlock_, false); return port_; }
+  std::string double_master_addr() { RWLock l(&rwlock_, false); return double_master_addr_; }
+  int double_master_sid()        { RWLock l(&rwlock_, false); return double_master_sid_; }
   std::string slaveof() {RWLock l(&rwlock_, false); return slaveof_;}
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
   int sync_thread_num()        { RWLock l(&rwlock_, false); return sync_thread_num_; }
@@ -75,6 +77,11 @@ class PikaConf : public slash::BaseConf {
 
   // Setter
   void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
+  void SetDoubleMasterAddr(const std::string value) {
+    RWLock l(&rwlock_, true);
+    double_master_addr_ = value;
+  }
+  void SetDoubleMasterSid(const int value)      { RWLock l(&rwlock_, true); double_master_sid_ = value; }
   void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
   void SetLogLevel(const int value)             { RWLock l(&rwlock_, true); log_level_ = value; }
   void SetTimeout(const int value)              { RWLock l(&rwlock_, true); timeout_ = value; }
@@ -155,6 +162,8 @@ class PikaConf : public slash::BaseConf {
 
 private:
   int port_;
+  std::string double_master_addr_;
+  int double_master_sid_;
   std::string slaveof_;
   int thread_num_;
   int sync_thread_num_;

@@ -811,6 +811,14 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "port");
       EncodeInt32(&ret, g_pika_conf->port());
+  } else if (get_item == "double-master-addr") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "double-master-addr");
+      EncodeString(&ret, g_pika_conf->double_master_addr());
+  } else if (get_item == "double-master-sid") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "double-master-sid");
+      EncodeInt32(&ret, g_pika_conf->double_master_sid());
   } else if (get_item == "thread-num") {
       ret = "*2\r\n";
       EncodeString(&ret, "thread-num");
@@ -960,9 +968,13 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
   } else if (get_item == "*") {
-    ret = "*76\r\n";
+    ret = "*80\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
+    EncodeString(&ret, "double-master-addr");
+    EncodeString(&ret, g_pika_conf->double_master_addr());
+    EncodeString(&ret, "double-master-sid");
+    EncodeInt32(&ret, g_pika_conf->double_master_sid());
     EncodeString(&ret, "thread-num");
     EncodeInt32(&ret, g_pika_conf->thread_num());
     EncodeString(&ret, "sync-thread-num");
