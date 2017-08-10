@@ -52,6 +52,9 @@ bool PikaTrysyncThread::Send() {
   if (g_pika_server->force_full_sync()) {
     argv.push_back(std::to_string(UINT32_MAX));
     argv.push_back(std::to_string(0));
+  } else if (g_pika_server->DoubleMasterMode()) {
+    argv.push_back(std::to_string(0));
+    argv.push_back(std::to_string(0));
   } else {
     argv.push_back(std::to_string(filenum));
     argv.push_back(std::to_string(pro_offset));
@@ -218,19 +221,21 @@ void* PikaTrysyncThread::ThreadMain() {
     
     std::string master_ip = g_pika_server->master_ip();
     int master_port = g_pika_server->master_port();
-    
-    // Start rsync
     std::string dbsync_path = g_pika_conf->db_sync_path();
-    PrepareRsync();
-    std::string ip_port = slash::IpPortString(master_ip, master_port);
-    // We append the master ip port after module name
-    // To make sure only data from current master is received
-    int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, g_pika_server->host(), g_pika_conf->port() + 3000);
-    if (0 != ret) {
-      LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
-    }
-    LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
 
+    // Only in master-slave mode need to start rsync service
+    if (!g_pika_server->DoubleMasterMode()) {
+      // Start rsync service
+      PrepareRsync();
+      std::string ip_port = slash::IpPortString(master_ip, master_port);
+      // We append the master ip port after module name
+      // To make sure only data from current master is received
+      int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, g_pika_server->host(), g_pika_conf->port() + 3000);
+      if (0 != ret) {
+        LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
+      }
+      LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
+    }
 
     if ((cli_->Connect(master_ip, master_port, g_pika_server->host())).ok()) {
       cli_->set_send_timeout(30000);

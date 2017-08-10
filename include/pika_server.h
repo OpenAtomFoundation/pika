@@ -126,7 +126,10 @@ class PikaServer {
   void NeedWaitDBSync();
   void WaitDBSyncFinish();
   void KillBinlogSenderConn();
-
+  /*
+   * Double master use
+   */
+  bool DoubleMasterMode() { return double_master_mode_; }
   void Start();
   void Exit() {
     exit_ = true;
@@ -365,6 +368,11 @@ class PikaServer {
   int repl_state_;
   int role_;
   bool force_full_sync_;
+
+  /*
+   * Double master use
+   */
+  bool double_master_mode_;
 
   /*
    * Bgsave use

@@ -272,11 +272,14 @@ void* PikaBinlogSenderThread::ThreadMain() {
             continue;
           }
         }
-
+        // Parse binlog
+        std::vector<string> items;
+        slash::StringSplit(scratch, "\r\n", items);
         // 3. After successful parse, we send msg;
         result = cli_->Send(&scratch);
         if (result.ok()) {
           last_send_flag = true;
+          LOG(INFO) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") " << scratch << " " << result.ToString();
         } else {
           last_send_flag = false;
           DLOG(INFO) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") failed,  " << result.ToString();

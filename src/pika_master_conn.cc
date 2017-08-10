@@ -60,9 +60,15 @@ int PikaMasterConn::DealMessage() {
     Cmd* c_ptr = binlog_receiver_->GetCmd(opt);
 
     g_pika_server->logger_->Lock();
+    int64_t server_sid = 0;
+    if (g_pika_server->DoubleMasterMode()) {
+      server_sid = g_pika_conf->double_master_sid();
+    } else {
+      server_sid = g_pika_conf->server_id();
+    }
     g_pika_server->logger_->Put(c_ptr->ToBinlog(
         argv_,
-        g_pika_conf->server_id(),
+        server_sid,
         dummy_binlog_info,
         false));
     g_pika_server->logger_->Unlock();
