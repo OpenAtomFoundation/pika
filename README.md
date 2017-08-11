@@ -97,58 +97,194 @@ make
 
 ### test environment
 
-2 same hardware server, one for running pika, the other for running redis-benchmark
+**CPU module**：Intel(R) Xeon(R) CPU E5-2690 v4 @ 2.60GHz
 
-	CPU: 24 Cores, Intel(R) Xeon(R) CPU E5-2630 v2 @ 2.60GHz
-	MEM: 165157944 kB
-	OS: CentOS release 6.2 (Final)
-	NETWORK CARD: Intel Corporation I350 Gigabit Network Connection
+**CPU threads**：56
 
-### test interfaces
-	
-	Set, Get
-	
-### test method
+**MEMORY**：256G
 
-	run pika with 16 work threads, run redis-benchmark on another server as follow: 
-	./redis-benchmark -h ... -p ... -n 1000000000 -t set,get -r 10000000000 -c 120 -d 200
-	execute 1 billion Set and 1 billion Get commands altogether
-	
-### test result
-``` 
-Set
-1000000000 requests completed in 11890.80 seconds
-18.09% <= 1 milliseconds
-93.32% <= 2 milliseconds
-99.71% <= 3 milliseconds
-99.86% <= 4 milliseconds
-99.92% <= 5 milliseconds
-99.94% <= 6 milliseconds
-99.96% <= 7 milliseconds
-99.97% <= 8 milliseconds
-99.97% <= 9 milliseconds
+**DISK**：3T flash
+
+**NETWORK**：10000baseT/Full * 2
+
+**OS**：centos 6.6
+
+### benchmark tools
+
+[**vire-benchmark**](https://deep011.github.io/vire-benchmark)
+
+### Test 1
+
+#### Purpose
+
+On different pika worker threads, we test the pika max QPS.
+
+#### Condition
+
+pika db_size : 800G
+
+value : 128bytes
+
+CPU is not binded
+
+#### Result
+
+Description : Horizontal axis is the pika threads number; Vertical axis is the QPS. Pika value size is 128bytes. set3/get7 means 30% set and 70% get.
+
+<img src="https://deep011.github.io/public/images/pika_benchmark/pika_threads_test.png" height = "60%" width = "60%" alt="1"/>
+
+#### Conclusion
+
+The best pika work threads number is 20-24.
+
+### Test 2
+
+#### Purpose
+
+On the pika optimal worker threads, we test the pika round-trip time.
+
+#### Condition
+
+**pika db_size**：800G
+
+**value**：128bytes
+
+#### Result
+
+```c
+====== GET ======
+  10000000 requests completed in 23.10 seconds
+  200 parallel clients
+  3 bytes payload
+  keep alive: 1
+99.89% <= 1 milliseconds
+100.00% <= 2 milliseconds
+100.00% <= 3 milliseconds
+100.00% <= 5 milliseconds
+100.00% <= 6 milliseconds
+100.00% <= 7 milliseconds
+100.00% <= 7 milliseconds
+432862.97 requests per second
+```
+
+```c
+====== SET ======
+  10000000 requests completed in 36.15 seconds
+  200 parallel clients
+  3 bytes payload
+  keep alive: 1
+91.97% <= 1 milliseconds
+99.98% <= 2 milliseconds
+99.98% <= 3 milliseconds
+99.98% <= 4 milliseconds
+99.98% <= 5 milliseconds
+99.98% <= 6 milliseconds
+99.98% <= 7 milliseconds
+99.98% <= 9 milliseconds
 99.98% <= 10 milliseconds
 99.98% <= 11 milliseconds
-99.99% <= 12 milliseconds
-...
-100.00% <= 19 milliseconds
-...
-100.00% <= 137 milliseconds
-
-84098.66 requests per second
+99.98% <= 12 milliseconds
+99.98% <= 13 milliseconds
+99.98% <= 16 milliseconds
+99.98% <= 18 milliseconds
+99.99% <= 19 milliseconds
+99.99% <= 23 milliseconds
+99.99% <= 24 milliseconds
+99.99% <= 25 milliseconds
+99.99% <= 27 milliseconds
+99.99% <= 28 milliseconds
+99.99% <= 34 milliseconds
+99.99% <= 37 milliseconds
+99.99% <= 39 milliseconds
+99.99% <= 40 milliseconds
+99.99% <= 46 milliseconds
+99.99% <= 48 milliseconds
+99.99% <= 49 milliseconds
+99.99% <= 50 milliseconds
+99.99% <= 51 milliseconds
+99.99% <= 52 milliseconds
+99.99% <= 61 milliseconds
+99.99% <= 63 milliseconds
+99.99% <= 72 milliseconds
+99.99% <= 73 milliseconds
+99.99% <= 74 milliseconds
+99.99% <= 76 milliseconds
+99.99% <= 83 milliseconds
+99.99% <= 84 milliseconds
+99.99% <= 88 milliseconds
+99.99% <= 89 milliseconds
+99.99% <= 133 milliseconds
+99.99% <= 134 milliseconds
+99.99% <= 146 milliseconds
+99.99% <= 147 milliseconds
+100.00% <= 203 milliseconds
+100.00% <= 204 milliseconds
+100.00% <= 208 milliseconds
+100.00% <= 217 milliseconds
+100.00% <= 218 milliseconds
+100.00% <= 219 milliseconds
+100.00% <= 220 milliseconds
+100.00% <= 229 milliseconds
+100.00% <= 229 milliseconds
+276617.50 requests per second
 ```
- 
-```
-Get
-1000000000 requests completed in 9063.05 seconds
-84.97% <= 1 milliseconds
-99.76% <= 2 milliseconds
-99.99% <= 3 milliseconds
-100.00% <= 4 milliseconds
-...
-100.00% <= 33 milliseconds
 
-110338.10 requests per second
+#### Conclusion
+
+All the 99.9% get/set RRT are below 2ms.
+
+### Test 3
+
+#### Purpose
+
+On the pika optimal worker threads, we test the max qps for different commands.
+
+#### Condition
+
+**pika worker threads**：20
+
+**key count**：10000
+
+**field count**：100（except list）
+
+**value**：128bytes
+
+**commands execute times**：10000000(except lrange)
+
+#### Result
+
+```c
+PING_INLINE: 548606.50 requests per second
+PING_BULK: 544573.31 requests per second
+SET: 231830.31 requests per second
+GET: 512163.91 requests per second
+INCR: 230861.56 requests per second
+MSET (10 keys): 94991.12 requests per second
+LPUSH: 196093.81 requests per second
+RPUSH: 195186.69 requests per second
+LPOP: 131156.14 requests per second
+RPOP: 152292.77 requests per second
+LPUSH (needed to benchmark LRANGE): 196734.20 requests per second
+LRANGE_10 (first 10 elements): 334448.16 requests per second
+LRANGE_100 (first 100 elements): 50705.12 requests per second
+LRANGE_300 (first 300 elements): 16745.16 requests per second
+LRANGE_450 (first 450 elements): 6787.94 requests per second
+LRANGE_600 (first 600 elements): 3170.38 requests per second
+SADD: 160885.52 requests per second
+SPOP: 128920.80 requests per second
+HSET: 180209.41 requests per second
+HINCRBY: 153364.81 requests per second
+HINCRBYFLOAT: 141095.47 requests per second
+HGET: 506791.00 requests per second
+HMSET (10 fields): 27777.31 requests per second
+HMGET (10 fields): 38998.52 requests per second
+HGETALL: 109059.58 requests per second
+ZADD: 120583.62 requests per second
+ZREM: 161689.33 requests per second
+PFADD: 6153.47 requests per second
+PFCOUNT: 28312.57 requests per second
+PFADD (needed to benchmark PFMERGE): 6166.37 requests per second
+PFMERGE: 6007.09 requests per second
 ```
 
 ### pika vs ssdb ([Detail](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb))
@@ -156,7 +292,7 @@ Get
 <img src="http://imgur.com/rGMZmpD.png" height = "60%" width = "60%" alt="1">
 <img src="http://imgur.com/gnwMDof.png" height = "60%" width = "60%" alt="10">
 
-## pika vs redis
+### pika vs redis
 <img src="http://imgur.com/k99VyFN.png" height = "70%" width = "70%" alt="2">
  
 ## Documents
