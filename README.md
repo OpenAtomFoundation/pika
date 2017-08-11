@@ -93,7 +93,7 @@ make
 ./output/bin/pika -c ./conf/pika.conf
 ```
 
-## Performance
+## Performance (provided by [deep011](https://github.com/deep011))
 
 ### test environment
 
