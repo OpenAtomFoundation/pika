@@ -27,7 +27,7 @@ void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
       condition_ = SetCmd::kXX;
     } else if (opt == "nx") {
       condition_ = SetCmd::kNX;
-    } else if (opt == "ex") {
+    } else if (opt == "ex" || opt == "px") {
       index++;
       if (index == argv.size()) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -36,6 +36,9 @@ void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
       if (!slash::string2l(argv[index].data(), argv[index].size(), &sec_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
+      }
+      if (opt == "px") {
+        sec_ /= 1000;
       }
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
