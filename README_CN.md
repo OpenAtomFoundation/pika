@@ -101,7 +101,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
   2. 执行make distclean来清空pika及所有依赖的编译内容（一般用于彻底重新编译）
 ```
 
-## 性能
+## 性能 (感谢[deep011](https://github.com/deep011)提供性能测试结果)
 
 ### 测试环境
 
