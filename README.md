@@ -4,7 +4,7 @@
 
 ## Introduction[中文](https://github.com/Qihoo360/pika/blob/master/README_CN.md)
 
-Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization. You can alse use pika in twemproxy or codis(*pika has supported data migration in codis，thanks [left2right](https://github.com/left2right)*) for distributed Redis solution
+Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization. You can also use pika together with twemproxy or codis(*pika has supported data migration in codis，thanks [left2right](https://github.com/left2right)*) for distributed Redis solution
 
 
 ## UserList
@@ -74,14 +74,14 @@ If it comes to some missing libs, install them according to the prompts and retr
 
 Upgrade your gcc to version at least 4.8 to get C++11 support.
 
-Get source code recursive, then pika will pull all submodules
+Get the source code
 
 ```
 git clone https://github.com/Qihoo360/pika.git
 ```
 
 
-Then compile pika
+Then compile pika, all submodules will be updated automatically.
 
 ```
 make
@@ -105,7 +105,7 @@ make
 
 **DISK**：3T flash
 
-**NETWORK**：10000baseT/Full * 2
+**NETWORK**：10GBase-T/Full * 2
 
 **OS**：centos 6.6
 
@@ -117,7 +117,7 @@ make
 
 #### Purpose
 
-On different pika worker threads, we test the pika max QPS.
+With different number of pika worker threads, we test pika's max QPS.
 
 #### Condition
 
@@ -125,23 +125,23 @@ pika db_size : 800G
 
 value : 128bytes
 
-CPU is not binded
+Threads are not bound to CPU cores.
 
 #### Result
 
-Description : Horizontal axis is the pika threads number; Vertical axis is the QPS. Pika value size is 128bytes. set3/get7 means 30% set and 70% get.
+Description : Horizontal axis is the number of worker threads; Vertical axis is the QPS. The value size is 128bytes. set3/get7 means 30% set and 70% get.
 
 <img src="https://deep011.github.io/public/images/pika_benchmark/pika_threads_test.png" height = "60%" width = "60%" alt="1"/>
 
 #### Conclusion
 
-The best pika work threads number is 20-24.
+The best pika worker threads number is 20-24.
 
 ### Test 2
 
 #### Purpose
 
-On the pika optimal worker threads, we test the pika round-trip time.
+With the optimal worker threads number, we test pika's round-trip time.
 
 #### Condition
 
@@ -231,13 +231,13 @@ On the pika optimal worker threads, we test the pika round-trip time.
 
 #### Conclusion
 
-All the 99.9% get/set RRT are below 2ms.
+Both the 99.9% get/set RTT are below 2ms.
 
 ### Test 3
 
 #### Purpose
 
-On the pika optimal worker threads, we test the max qps for different commands.
+With the optimal worker threads number, we test the max qps of different commands.
 
 #### Condition
 
