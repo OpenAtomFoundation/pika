@@ -87,7 +87,7 @@ int PikaConf::Load()
   GetConfInt("port", &port_);
   GetConfStr("double-master-ip", &double_master_ip_);
   GetConfInt("double-master-port", &double_master_port_);
-  GetConfInt("double-master-sid", &double_master_sid_);
+  GetConfStr("double-master-sid", &double_master_sid_);
   GetConfStr("log-path", &log_path_);
   GetConfStr("db-path", &db_path_);
   if (log_path_[log_path_.length() - 1] != '/') {

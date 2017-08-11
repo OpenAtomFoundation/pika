@@ -27,7 +27,7 @@ class PikaConf : public slash::BaseConf {
   int port()              { RWLock l(&rwlock_, false); return port_; }
   std::string double_master_ip() { RWLock l(&rwlock_, false); return double_master_ip_; }
   int double_master_port() { RWLock l(&rwlock_, false); return double_master_port_; }
-  int double_master_sid()        { RWLock l(&rwlock_, false); return double_master_sid_; }
+  std::string double_master_sid()        { RWLock l(&rwlock_, false); return double_master_sid_; }
   std::string slaveof() {RWLock l(&rwlock_, false); return slaveof_;}
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
   int sync_thread_num()        { RWLock l(&rwlock_, false); return sync_thread_num_; }
@@ -160,7 +160,7 @@ private:
   int port_;
   std::string double_master_ip_;
   int double_master_port_;
-  int double_master_sid_;
+  std::string double_master_sid_;
   std::string slaveof_;
   int thread_num_;
   int sync_thread_num_;

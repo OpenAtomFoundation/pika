@@ -238,12 +238,15 @@ void* PikaTrysyncThread::ThreadMain() {
     }
 
     if ((cli_->Connect(master_ip, master_port, g_pika_server->host())).ok()) {
+      LOG(INFO) << "Connect to master ip:" << master_ip << "port: " << master_port;
       cli_->set_send_timeout(30000);
       cli_->set_recv_timeout(30000);
       if (Send() && RecvProc()) {
         g_pika_server->ConnectMasterDone();
-        // Stop rsync, binlog sync with master is begin
-        slash::StopRsync(dbsync_path);
+        if (!g_pika_server->DoubleMasterMode()) {
+          // Stop rsync, binlog sync with master is begin
+          slash::StopRsync(dbsync_path);
+        }
         delete g_pika_server->ping_thread_;
         g_pika_server->ping_thread_ = new PikaSlavepingThread(sid_);
         g_pika_server->ping_thread_->StartThread();

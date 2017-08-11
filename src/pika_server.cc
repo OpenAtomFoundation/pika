@@ -298,6 +298,7 @@ void PikaServer::Start() {
   if (!g_pika_conf->double_master_ip().empty()) {
     std::string double_master_ip = g_pika_conf->double_master_ip();
     int32_t double_master_port = g_pika_conf->double_master_port();
+    double_master_sid_ = g_pika_conf->double_master_sid();
     if ((double_master_ip == "127.0.0.1" || double_master_ip == host_) && double_master_port == port_) {
     LOG(FATAL) << "set yourself as the peer-master, please check";
     } else {
@@ -444,7 +445,7 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   LOG(INFO) << "Add new slave, " << ip << ":" << port;
   SlaveItem s;
   if (double_master_mode_) {
-    s.sid = g_pika_conf->double_master_sid();
+    s.sid = std::stoi(g_pika_conf->double_master_sid());
   } else {
     s.sid = GenSid();
   }
@@ -526,13 +527,13 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
     if (!double_master_mode_) {
       role_ |= PIKA_ROLE_SLAVE;
       repl_state_ = PIKA_REPL_CONNECT;
-      LOG(INFO) << "open read-only mode";
+      LOG(INFO) << "Open read-only mode";
       g_pika_conf->SetReadonly(true);
       return true;
     } else {
       role_ |= PIKA_ROLE_DOUBLE_MASTER;
       repl_state_ = PIKA_REPL_CONNECT;
-      LOG(INFO) << "in doule-master mode, do not open read-only mode";
+      LOG(INFO) << "In double-master mode, do not open read-only mode";
       return true;
     }
   }

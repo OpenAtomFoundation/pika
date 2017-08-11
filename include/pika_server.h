@@ -130,6 +130,8 @@ class PikaServer {
    * Double master use
    */
   bool DoubleMasterMode() { return double_master_mode_; }
+  std::string DoubleMasterSid() { return double_master_sid_; }
+
   void Start();
   void Exit() {
     exit_ = true;
@@ -372,6 +374,7 @@ class PikaServer {
   /*
    * Double master use
    */
+  std::string double_master_sid_;
   bool double_master_mode_;
 
   /*

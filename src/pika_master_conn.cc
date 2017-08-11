@@ -52,7 +52,7 @@ int PikaMasterConn::DealMessage() {
   // Only when the server is readonly
   uint64_t serial = binlog_receiver_->GetnPlusSerial();
   std::string dummy_binlog_info("");
-  if (is_readonly) {
+  if (is_readonly || g_pika_server->DoubleMasterMode()) {
     if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
       return -2;
     }
@@ -60,11 +60,13 @@ int PikaMasterConn::DealMessage() {
     Cmd* c_ptr = binlog_receiver_->GetCmd(opt);
 
     g_pika_server->logger_->Lock();
-    int64_t server_sid = 0;
+    std::string server_sid;
     if (g_pika_server->DoubleMasterMode()) {
       server_sid = g_pika_conf->double_master_sid();
+      LOG(INFO) << "Receive binlog from the peer-master";
     } else {
       server_sid = g_pika_conf->server_id();
+      LOG(INFO) << "Receive binlog from the master";
     }
     g_pika_server->logger_->Put(c_ptr->ToBinlog(
         argv_,
