@@ -301,12 +301,33 @@ PFMERGE: 6007.09 requests per second
 
 整体表现很不错，个别命令表现较弱（LRANGE，PFADD，PFMERGE）。
 
-### 与SSDB性能对比（[详情](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb)）
-<img src="http://imgur.com/rGMZmpD.png" height = "60%" width = "60%" alt="1">
-<img src="http://imgur.com/gnwMDof.png" height = "60%" width = "60%" alt="10">
+### 测试四
 
-### 与Redis性能对比
-<img src="http://imgur.com/k99VyFN.png" height = "70%" width = "70%" alt="2">
+#### 测试目的
+
+Pika与Redis的极限QPS对比。
+
+#### 测试条件
+
+**pika的worker线程数**：20
+
+**key数量**：10000
+
+**field数量**：100（list除外）
+
+**value**：128字节
+
+**命令执行次数**：1000万（lrange除外）
+
+**Redis版本**：3.2.0
+
+#### 测试结果
+
+<img src="https://deep011.github.io/public/images/pika_benchmark/pika_vs_redis_qps.png" height = "60%" width = "60%" alt="1"/>
+
+#### 结论
+
+Pika单实例的极限QPS不输于Redis单实例。
 
 ## 文档
 1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
