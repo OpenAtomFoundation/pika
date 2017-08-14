@@ -287,13 +287,29 @@ PFADD (needed to benchmark PFMERGE): 6166.37 requests per second
 PFMERGE: 6007.09 requests per second
 ```
 
-### pika vs ssdb ([Detail](https://github.com/Qihoo360/pika/wiki/pika-vs-ssdb))
+### Test 4
 
-<img src="http://imgur.com/rGMZmpD.png" height = "60%" width = "60%" alt="1">
-<img src="http://imgur.com/gnwMDof.png" height = "60%" width = "60%" alt="10">
+#### Purpose
 
-### pika vs redis
-<img src="http://imgur.com/k99VyFN.png" height = "70%" width = "70%" alt="2">
+Compare the pika max qps with the redis.
+
+#### Condition
+
+**pika worker threads**：20
+
+**key count**：10000
+
+**field count**：100（except list）
+
+**value**：128bytes
+
+**commands execute times**：10000000(except lrange)
+
+**Redis version**：3.2.0
+
+#### Result
+
+<img src="https://deep011.github.io/public/images/pika_benchmark/pika_vs_redis_qps.png" height = "60%" width = "60%" alt="1"/>
  
 ## Documents
 
