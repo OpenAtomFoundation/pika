@@ -58,10 +58,17 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   if (!is_readonly) {
     error_happend = !g_pika_server->WaitTillBinlogBGSerial(my_serial);
     if (!error_happend) {
+      std::string server_sid;
+      if (g_pika_server->DoubleMasterMode()) {
+        server_sid = g_pika_conf->double_master_sid();
+        LOG(INFO) << "In double master mode, Receive binlog from the peer-master";
+      } else {
+        server_sid = g_pika_conf->server_id();
+      }
       g_pika_server->logger_->Lock();
       g_pika_server->logger_->Put(c_ptr->ToBinlog(
           argv,
-          g_pika_conf->server_id(),
+          server_sid,
           dummy_binlog_info,
           false));
       g_pika_server->logger_->Unlock();
