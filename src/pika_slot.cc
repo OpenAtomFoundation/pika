@@ -552,7 +552,7 @@ void SlotsMgrtTagSlotCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const 
     }
 
     std::string str_slot_num = *it++;
-    if (!slash::string2l(str_slot_num.data(), str_slot_num.size(), &slot_num_) || slot_num_ <= 0) {
+    if (!slash::string2l(str_slot_num.data(), str_slot_num.size(), &slot_num_) || slot_num_ < 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
     }
