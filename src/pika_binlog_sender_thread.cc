@@ -272,6 +272,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
             continue;
           }
         }
+
         // Parse binlog
         std::vector<std::string> items;
         std::string token, delimiter = "\r\n", scratch_copy = scratch;
@@ -284,10 +285,13 @@ void* PikaBinlogSenderThread::ThreadMain() {
         items.push_back(scratch_copy);
         std::string binlog_sid = items[items.size() - 6];
         LOG(INFO) << "This binlog server id: " << binlog_sid;
+
+        // If this binlog from the peer-master, can not resend to the peer-master
         if (binlog_sid == g_pika_server->DoubleMasterSid()) {
           LOG(INFO) << "This binlog from the peer-master";
           continue;
         }
+
         // 3. After successful parse, we send msg;
         result = cli_->Send(&scratch);
         if (result.ok()) {

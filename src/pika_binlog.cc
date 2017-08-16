@@ -30,6 +30,10 @@ std::string NewFileName(const std::string name, const uint32_t current) {
 Version::Version(slash::RWFile *save)
   : pro_offset_(0),
     pro_num_(0),
+    double_master_send_offset_(0),
+    double_master_send_num_(0),
+    double_master_recv_offset_(0),
+    double_master_recv_num_(0),
     save_(save) {
   assert(save_ != NULL);
 
@@ -46,6 +50,14 @@ Status Version::StableSave() {
   memcpy(p, &pro_offset_, sizeof(uint64_t));
   p += 20;
   memcpy(p, &pro_num_, sizeof(uint32_t));
+  p += 4;
+  memcpy(p, &double_master_send_offset_, sizeof(uint64_t));
+  p += 8;
+  memcpy(p, &double_master_send_num_, sizeof(uint32_t));
+  p += 4;
+  memcpy(p, &double_master_recv_offset_, sizeof(uint64_t));
+  p += 8;
+  memcpy(p, &double_master_recv_num_, sizeof(uint32_t));
   return Status::OK();
 }
 
@@ -55,6 +67,10 @@ Status Version::Init() {
     memcpy((char*)(&pro_offset_), save_->GetData(), sizeof(uint64_t));
     memcpy((char*)(&item_num_), save_->GetData() + 16, sizeof(uint32_t));
     memcpy((char*)(&pro_num_), save_->GetData() + 20, sizeof(uint32_t));
+    memcpy((char*)(&double_master_send_offset_), save_->GetData() + 24, sizeof(uint64_t));
+    memcpy((char*)(&double_master_send_num_), save_->GetData() + 32, sizeof(uint32_t));
+    memcpy((char*)(&double_master_recv_offset_), save_->GetData() + 36, sizeof(uint64_t));
+    memcpy((char*)(&double_master_recv_num_), save_->GetData() + 44, sizeof(uint32_t));
     return Status::OK();
   } else {
     return Status::Corruption("version init error");
@@ -153,6 +169,46 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) {
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
+
+  return Status::OK();
+}
+
+Status Binlog::GetDoubleSendInfo(uint32_t* double_filenum, uint64_t* double_offset) {
+  slash::RWLock(&(version_->rwlock_), false);
+
+  *double_filenum = version_->double_master_send_offset_;
+  *double_offset = version_->double_master_send_num_;
+
+  return Status::OK();
+}
+
+Status Binlog::GetDoubleRecvInfo(uint32_t* double_filenum, uint64_t* double_offset) {
+  slash::RWLock(&(version_->rwlock_), false);
+
+  *double_filenum = version_->double_master_recv_offset_;
+  *double_offset = version_->double_master_recv_num_;
+
+  return Status::OK();
+}
+
+Status Binlog::SetDoubleSendInfo(uint32_t double_filenum, uint64_t double_offset) {
+  slash::RWLock(&(version_->rwlock_), true);
+
+  version_->double_master_send_num_ = double_filenum;
+  version_->double_master_send_offset_ = double_offset;
+
+  version_->StableSave();
+
+  return Status::OK();
+}
+
+Status Binlog::SetDoubleRecvInfo(uint32_t double_filenum, uint64_t double_offset) {
+  slash::RWLock(&(version_->rwlock_), true);
+
+  version_->double_master_recv_num_ = double_filenum;
+  version_->double_master_recv_offset_ = double_offset;
+
+  version_->StableSave();
 
   return Status::OK();
 }

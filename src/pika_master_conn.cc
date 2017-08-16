@@ -29,10 +29,13 @@ int PikaMasterConn::DealMessage() {
     return -2;
   }
 
-  if (argv_.size() > 4 &&
-      *(argv_.end() - 4) == kPikaBinlogMagic) {
-    // Record new binlog format
-    argv_.erase(argv_.end() - 4, argv_.end());
+  // TODO(shq) maybe monitor do not need these infomation
+  if (!g_pika_server->DoubleMasterMode()) {
+    if (argv_.size() > 4 &&
+        *(argv_.end() - 4) == kPikaBinlogMagic) {
+      // Record new binlog format
+      argv_.erase(argv_.end() - 4, argv_.end());
+    }
   }
 
   // Monitor related

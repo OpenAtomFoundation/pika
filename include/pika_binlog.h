@@ -46,6 +46,16 @@ class Binlog {
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
 
+  // Double master used
+  Status GetDoubleSendInfo(uint32_t* double_filenum, uint64_t* double_offset);
+
+  Status GetDoubleRecvInfo(uint32_t* double_filenum, uint64_t* double_offset);
+
+  Status SetDoubleSendInfo(uint32_t double_filenum, uint64_t double_offset);
+
+  Status SetDoubleRecvInfo(uint32_t double_filenum, uint64_t double_offset);
+
+
   static Status AppendBlank(slash::WritableFile *file, uint64_t len);
 
   slash::WritableFile *queue() { return queue_; }
@@ -114,6 +124,13 @@ class Version {
 
   uint64_t pro_offset_;
   uint32_t pro_num_;
+
+  // Double master used
+  uint64_t double_master_send_offset_;
+  uint32_t double_master_send_num_;
+  uint64_t double_master_recv_offset_;
+  uint32_t double_master_recv_num_;
+
   pthread_rwlock_t rwlock_;
 
   void debug() {

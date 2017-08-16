@@ -101,6 +101,15 @@ PikaServer::PikaServer() :
 
   pthread_rwlock_init(&state_protector_, NULL);
   logger_ = new Binlog(g_pika_conf->log_path(), g_pika_conf->binlog_file_size());
+
+
+  uint64_t double_send_offset, double_recv_offset;
+  uint32_t double_send_num, double_recv_num;
+  logger_->GetDoubleSendInfo(&double_send_num, &double_send_offset);
+  logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
+
+  LOG(INFO) << "double send info: " << double_send_offset << " " << double_send_num;
+  LOG(INFO) << "double recv info: " << double_recv_offset << " " << double_recv_num;
 }
 
 PikaServer::~PikaServer() {
@@ -280,7 +289,7 @@ void PikaServer::Start() {
 
   time(&start_time_s_);
 
-  //SetMaster("127.0.0.1", 9221);
+  // SetMaster("127.0.0.1", 9221);
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
     int32_t sep = slaveof.find(":");
