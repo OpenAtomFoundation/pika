@@ -20,19 +20,20 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   std::string opt = argv[0];
   slash::StringToLower(opt);
 
-  uint32_t file_num = 0;
+  // Parse binlog info
+  uint32_t filenum = 0;
   uint64_t offset = 0;
   if (argv.size() > 4 && *(argv.end() - 4) == kPikaBinlogMagic) {
     // Get filenum and offset
     std::string binlog_info = argv[argv.size() - 2];
-    memcpy((char*)(&file_num), binlog_info.data() + 4, sizeof(uint32_t));
+    memcpy((char*)(&filenum), binlog_info.data() + 4, sizeof(uint32_t));
     memcpy((char*)(&offset), binlog_info.data() + 8, sizeof(uint64_t));
 
     // Record new binlog format
     argv.erase(argv.end() - 4, argv.end());
   }
+  LOG(INFO) << "The binlog info: " << filenum << " " << offset;
 
-  LOG(INFO) << "The binlog info: " << file_num << " " << offset;
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = self->GetCmd(opt);
@@ -86,6 +87,10 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
           dummy_binlog_info,
           false));
       g_pika_server->logger_->Unlock();
+      if (g_pika_server->DoubleMasterMode()) {
+        // In double moaster mode, update binlog recv info
+        g_pika_server->logger_->SetDoubleRecvInfo(filenum, offset);
+      }
       g_pika_server->SignalNextBinlogBGSerial();
     }
   }

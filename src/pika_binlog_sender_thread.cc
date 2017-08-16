@@ -275,6 +275,8 @@ void* PikaBinlogSenderThread::ThreadMain() {
 
         // Parse binlog
         std::vector<std::string> items;
+        uint32_t binlog_filenum;
+        uint64_t binlog_offset;
         std::string token, delimiter = "\r\n", scratch_copy = scratch;
         size_t pos = 0;
         while ((pos = scratch_copy.find(delimiter)) != std::string::npos) {
@@ -284,6 +286,10 @@ void* PikaBinlogSenderThread::ThreadMain() {
         }
         items.push_back(scratch_copy);
         std::string binlog_sid = items[items.size() - 6];
+
+        std::string binlog_info = items[items.size() - 4];
+        memcpy((char*)(&binlog_filenum), binlog_info.data() + 4, sizeof(uint32_t));
+        memcpy((char*)(&binlog_offset), binlog_info.data() + 8, sizeof(uint64_t));
         LOG(INFO) << "This binlog server id: " << binlog_sid;
 
         // If this binlog from the peer-master, can not resend to the peer-master
@@ -297,6 +303,12 @@ void* PikaBinlogSenderThread::ThreadMain() {
         if (result.ok()) {
           last_send_flag = true;
           LOG(INFO) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") " << scratch << " " << result.ToString();
+          if (g_pika_server->DoubleMasterMode()) {
+            // In double master mode, update binlog send info
+            g_pika_server->logger_->SetDoubleSendInfo(binlog_filenum, binlog_offset);
+            LOG(INFO) << "The binlog info: " << binlog_filenum << " " << binlog_offset;
+          }
+
         } else {
           last_send_flag = false;
           DLOG(INFO) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") failed,  " << result.ToString();

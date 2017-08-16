@@ -113,7 +113,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       slash::PutFixed32(&binlog_info, filenum);
       slash::PutFixed64(&binlog_info, offset);
 
-      LOG(INFO) << "The binlog info: " << filenum << " " << offset;
       g_pika_server->logger_->Put(c_ptr->ToBinlog(
           argv_,
           g_pika_conf->server_id(),
