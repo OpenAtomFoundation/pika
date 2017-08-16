@@ -53,8 +53,11 @@ bool PikaTrysyncThread::Send() {
     argv.push_back(std::to_string(UINT32_MAX));
     argv.push_back(std::to_string(0));
   } else if (g_pika_server->DoubleMasterMode()) {
-    argv.push_back(std::to_string(0));
-    argv.push_back(std::to_string(0));
+    uint64_t double_recv_offset;
+    uint32_t double_recv_num;
+    g_pika_server->logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
+    argv.push_back(std::to_string(double_recv_num));
+    argv.push_back(std::to_string(double_recv_offset));
   } else {
     argv.push_back(std::to_string(filenum));
     argv.push_back(std::to_string(pro_offset));
