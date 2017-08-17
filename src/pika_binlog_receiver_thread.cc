@@ -36,8 +36,8 @@ bool PikaBinlogReceiverThread::Handles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {
     ip = g_pika_server->host();
   }
-  if (binlog_receiver_->thread_rep_->conn_num() != 0 ||
-      !g_pika_server->ShouldAccessConnAsMaster(ip)) {
+//  if (binlog_receiver_->thread_rep_->conn_num() != 0 ||
+  if (!g_pika_server->ShouldAccessConnAsMaster(ip)) {
     LOG(WARNING) << "BinlogReceiverThread AccessHandle failed: " << ip;
     return false;
   }

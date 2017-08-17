@@ -91,8 +91,8 @@ void* PikaSlavepingThread::ThreadMain() {
         }
         sleep(1);
       }
-      sleep(2);
       g_pika_server->MinusMasterConnection();
+      sleep(2);
     } else if (!should_stop()) {
       LOG(WARNING) << "Slaveping, Connect timeout";
       if ((++connect_retry_times) >= 30) {
