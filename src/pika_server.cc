@@ -104,6 +104,7 @@ PikaServer::PikaServer() :
 
   uint64_t double_recv_offset;
   uint32_t double_recv_num;
+  //logger_->SetDoubleRecvInfo(9999, 9999);
   logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
   LOG(INFO) << "double recv info: " << double_recv_offset << " " << double_recv_num;
 }
@@ -655,7 +656,13 @@ void PikaServer::RemoveMaster() {
   {
   slash::RWLock l(&state_protector_, true);
   repl_state_ = PIKA_REPL_NO_CONNECT;
-  role_ &= ~PIKA_ROLE_SLAVE;
+  if (DoubleMasterMode()) {
+    role_ &= ~PIKA_ROLE_DOUBLE_MASTER;
+    double_master_mode_ = false;
+  } else {
+    role_ &= ~PIKA_ROLE_SLAVE;
+  }
+
   master_ip_ = "";
   master_port_ = -1;
   }

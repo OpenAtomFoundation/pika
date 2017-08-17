@@ -126,11 +126,21 @@ class PikaServer {
   void NeedWaitDBSync();
   void WaitDBSyncFinish();
   void KillBinlogSenderConn();
+
   /*
    * Double master use
    */
-  bool DoubleMasterMode() { return double_master_mode_; }
-  std::string DoubleMasterSid() { return double_master_sid_; }
+  bool DoubleMasterMode() {
+    slash::MutexLock l(&double_mutex_);
+    return double_master_mode_;
+  }
+
+  std::string DoubleMasterSid() {
+    slash::MutexLock l(&double_mutex_);
+    return double_master_sid_;
+  }
+  slash::Mutex double_mutex_; // protect double master;
+
 
   void Start();
   void Exit() {

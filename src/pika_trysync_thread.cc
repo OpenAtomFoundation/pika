@@ -105,8 +105,8 @@ bool PikaTrysyncThread::RecvProc() {
         LOG(INFO) << "Recv sid from master: " << sid_;
         break;
       }
-      // Failed
 
+      // Failed
       if (kInnerReplWait == reply) {
         // You can't sync this time, but may be different next time,
         // This may happened when 
@@ -116,8 +116,15 @@ bool PikaTrysyncThread::RecvProc() {
         LOG(INFO) << "Need wait to sync";
         g_pika_server->NeedWaitDBSync();
       } else {
-        LOG(WARNING) << "something wrong with sync, come in SyncError stage";
-        g_pika_server->SyncError();
+        // In double master mode
+        if ((g_pika_server->master_ip() == g_pika_conf->double_master_ip() || g_pika_conf->double_master_ip() == "127.0.0.1")
+             && g_pika_server->master_port() == g_pika_conf->double_master_port()) {
+          g_pika_server->RemoveMaster();
+          LOG(INFO) << "Because the invalid filenum and offset, close the connection between the peer-masters";
+        } else {  // In master slave mode
+          LOG(WARNING) << "something wrong with sync, come in SyncError stage";
+          g_pika_server->SyncError();
+        }
       }
       return false;
     }
