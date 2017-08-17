@@ -73,8 +73,8 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 5.切换到最新release版本
 
 ```
-	a. 执行 git tag 查看最新的release tag，（如 v2.2.4）
-	b. 执行 git checkout TAG切换到最新版本，（如 git checkout v2.2.4）
+	a. 执行 git tag 查看最新的release tag，（如 v2.2.5）
+	b. 执行 git checkout TAG切换到最新版本，（如 git checkout v2.2.5）
 ```
 
 6.编译
