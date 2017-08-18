@@ -168,8 +168,8 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) {
 Status Binlog::GetDoubleRecvInfo(uint32_t* double_filenum, uint64_t* double_offset) {
   slash::RWLock(&(version_->rwlock_), false);
 
-  *double_filenum = version_->double_master_recv_offset_;
-  *double_offset = version_->double_master_recv_num_;
+  *double_filenum = version_->double_master_recv_num_;
+  *double_offset = version_->double_master_recv_offset_;
 
   return Status::OK();
 }

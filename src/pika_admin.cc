@@ -145,9 +145,6 @@ void TrysyncCmd::Do() {
     // Create Sender failed, delete the slave
     g_pika_server->DeleteSlave(slave_ip_, slave_port_);
 
-    auto a3 = g_pika_conf->double_master_ip();
-    auto a4 = g_pika_conf->double_master_port();
-    LOG(INFO) << slave_ip_ << " " << slave_port_ << " " << a3 << " " << a4;
     if ((g_pika_conf->double_master_ip() == slave_ip_ || g_pika_conf->double_master_ip() == "127.0.0.1")
         && g_pika_conf->double_master_port() == slave_port_) {
       g_pika_server->RemoveMaster();
