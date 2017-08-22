@@ -137,6 +137,10 @@ void TrysyncCmd::Do() {
     Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
         filenum_, pro_offset_);
     if (status.ok()) {
+      if ((g_pika_conf->double_master_ip() == slave_ip_ || g_pika_conf->double_master_ip() == "127.0.0.1")
+          && g_pika_conf->double_master_port() == slave_port_) {
+        g_pika_server->DoubleMasterRequestDone();
+      }
       res_.AppendInteger(sid);
       LOG(INFO) << "Send Sid to Slave: " << sid;
       g_pika_server->BecomeMaster();
@@ -454,6 +458,7 @@ const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kLogSection = "log";
 const std::string InfoCmd::kDataSection = "data";
+const std::string InfoCmd::kDoubleMaster = "doublemaster";
 
 void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   (void)ptr_info;
@@ -496,7 +501,9 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     info_section_ = kInfoLog;
   } else if (argv[1] == kDataSection) {
     info_section_ = kInfoData;
-  }else {
+  } else if (argv[1] == kDoubleMaster) {
+    info_section_ = kInfoDoubleMaster;
+  } else {
     info_section_ = kInfoErr;
   }
   if (argc != 2) {
@@ -523,6 +530,8 @@ void InfoCmd::Do() {
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
+      info.append("\r\n");
+      InfoDoubleMaster(info);
       break;
     case kInfoServer:
       InfoServer(info);
@@ -551,6 +560,9 @@ void InfoCmd::Do() {
       break;
     case kInfoData:
       InfoData(info);
+      break;
+    case kInfoDoubleMaster:
+      InfoDoubleMaster(info);
       break;
     default:
       //kInfoErr is nothing
@@ -666,6 +678,26 @@ void InfoCmd::InfoReplication(std::string &info) {
       tmp_stream << "connected_slaves:" << g_pika_server->GetSlaveListString(slaves_list_str) << "\r\n" << slaves_list_str;
   }
 
+  info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoDoubleMaster(std::string &info) {
+  int host_role = g_pika_server->role();
+  std::stringstream tmp_stream;
+  tmp_stream << "# DoubleMaster(";
+  switch (host_role) {
+    case PIKA_ROLE_SINGLE :
+    case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
+    case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\b"; break;
+    case PIKA_ROLE_DOUBLE_MASTER : tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
+    default : info.append("ERR: server role is error\r\n"); return;
+  }
+  switch(host_role) {
+    case PIKA_ROLE_DOUBLE_MASTER :
+      tmp_stream << "the peer-master host:" << g_pika_server->master_ip() << "\r\n";
+      tmp_stream << "the peer-master port:" << g_pika_server->master_port() << "\r\n";
+      tmp_stream << "double_master_state: " << (g_pika_server->double_master_state()) << "\r\n";
+  }
   info.append(tmp_stream.str());
 }
 

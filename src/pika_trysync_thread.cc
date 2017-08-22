@@ -256,6 +256,8 @@ void* PikaTrysyncThread::ThreadMain() {
         if (!g_pika_server->DoubleMasterMode()) {
           // Stop rsync, binlog sync with master is begin
           slash::StopRsync(dbsync_path);
+        } else {
+          g_pika_server->DoubleMasterRequestDone();
         }
         delete g_pika_server->ping_thread_;
         g_pika_server->ping_thread_ = new PikaSlavepingThread(sid_);

@@ -580,6 +580,15 @@ bool PikaServer::ShouldConnectMaster() {
   return false;
 }
 
+void PikaServer::DoubleMasterRequestDone() {
+  slash::RWLock l(&state_protector_, true);
+  if (double_master_state_ == PIKA_REPL_NO_CONNECT) {
+    double_master_state_ = PIKA_REPL_DOUBLE_MASTER_CONNECTING;
+  } else if (double_master_state_ == PIKA_REPL_DOUBLE_MASTER_CONNECTING) {
+    double_master_state_ = PIKA_REPL_DOUBLE_MASTER_CONNECTED;
+  }
+}
+
 void PikaServer::ConnectMasterDone() {
   slash::RWLock l(&state_protector_, true);
   if (repl_state_ == PIKA_REPL_CONNECT) {

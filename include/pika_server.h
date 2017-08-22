@@ -139,7 +139,15 @@ class PikaServer {
     slash::MutexLock l(&double_mutex_);
     return double_master_sid_;
   }
+
   slash::Mutex double_mutex_; // protect double master;
+
+  void DoubleMasterRequestDone();
+
+  int double_master_state() {
+    slash::RWLock(&state_protector_, false);
+    return double_master_state_;
+  }
 
 
   void Start();
@@ -386,7 +394,7 @@ class PikaServer {
    */
   std::string double_master_sid_;
   bool double_master_mode_;
-
+  int double_master_state_;
   /*
    * Bgsave use
    */

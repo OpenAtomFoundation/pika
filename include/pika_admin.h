@@ -166,7 +166,8 @@ public:
     kInfoBgstats,
     kInfoLog,
     kInfoData,
-    kInfoAll
+    kInfoAll,
+    kInfoDoubleMaster
   };
 
   InfoCmd() : rescan_(false), off_(false) {
@@ -186,6 +187,7 @@ private:
   const static std::string kKeyspaceSection;
   const static std::string kLogSection;
   const static std::string kDataSection;
+  const static std::string kDoubleMaster;
 
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
@@ -201,6 +203,7 @@ private:
   void InfoKeyspace(std::string &info);
   void InfoLog(std::string &info);
   void InfoData(std::string &info);
+  void InfoDoubleMaster(std::string &info);
 };
 
 class ShutdownCmd : public Cmd {
