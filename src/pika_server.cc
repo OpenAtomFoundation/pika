@@ -31,6 +31,7 @@ PikaServer::PikaServer() :
   ping_thread_(NULL),
   exit_(false),
   have_scheduled_crontask_(false),
+  last_check_compact_time_({0, 0}),
   sid_(0),
   master_ip_(""),
   master_connection_(0),
@@ -1109,10 +1110,44 @@ bool PikaServer::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
 }
 
 void PikaServer::AutoCompactRange() {
-  std::string cc = g_pika_conf->compact_cron();
-  if (cc == "") {
+  struct statfs disk_info;
+  int ret = statfs(g_pika_conf->db_path().c_str(), &disk_info);
+  if (ret == -1) {
+    LOG(WARNING) << "statfs error: " << strerror(errno);
     return;
-  } else {
+  }
+
+  uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
+  uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
+//      LOG(INFO) << "free_size: " << free_size << " disk_size: " << total_size <<
+//        " cal: " << ((double)free_size / total_size) * 100;
+  std::string ci = g_pika_conf->compact_interval();
+  std::string cc = g_pika_conf->compact_cron();
+
+  if (ci != "") {
+    std::string::size_type slash = ci.find("/");
+    int interval = std::atoi(ci.substr(0, slash).c_str());
+    int usage = std::atoi(ci.substr(slash+1).c_str());
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    if (last_check_compact_time_.tv_sec == 0 ||
+          now.tv_sec - last_check_compact_time_.tv_sec
+          >= interval * 3600) {
+      gettimeofday(&last_check_compact_time_, NULL);
+      if (((double)free_size / total_size) * 100 >= usage) {
+        nemo::Status s = db_->Compact(nemo::kALL);
+        if (s.ok()) {
+          LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
+        } else {
+          LOG(INFO) << "[Interval]schedule compactRange Failed, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576
+            << "MB, error: " << s.ToString();
+        }
+      }
+    }
+    return;
+  }
+
+  if (cc != "") {
     std::string::size_type colon = cc.find("-");
     std::string::size_type underline = cc.find("/");
     int start = std::atoi(cc.substr(0, colon).c_str());
@@ -1129,27 +1164,13 @@ void PikaServer::AutoCompactRange() {
     } else {
       have_scheduled_crontask_ = false;
     }
-//    LOG(INFO) << "start: " << start << " end: " << end << " usage " << usage <<
-//      " have_scheduled: " << have_scheduled_crontask_ << " in_window: " << in_window;
     if (!have_scheduled_crontask_ && in_window) {
-      struct statfs disk_info;
-      int ret = statfs(g_pika_conf->db_path().c_str(), &disk_info);
-      if (ret == -1) {
-        LOG(WARNING) << "statfs error: " << strerror(errno);
-        return;
-      }
-
-      uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
-      uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
-
-//      LOG(INFO) << "free_size: " << free_size << " disk_size: " << total_size <<
-//        " cal: " << ((double)free_size / total_size) * 100;
       if (((double)free_size / total_size) * 100 >= usage) {
         nemo::Status s = db_->Compact(nemo::kALL);
         if (s.ok()) {
-          LOG(INFO) << "schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
+          LOG(INFO) << "[Cron]schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
         } else {
-          LOG(INFO) << "schedule compactRange Failed, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576
+          LOG(INFO) << "[Cron]schedule compactRange Failed, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576
             << "MB, error: " << s.ToString();
         }
         have_scheduled_crontask_ = true;

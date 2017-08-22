@@ -35,6 +35,7 @@ class PikaConf : public slash::BaseConf {
   std::string db_sync_path()   { RWLock l(&rwlock_, false); return db_sync_path_; }
   int db_sync_speed()   { RWLock l(&rwlock_, false); return db_sync_speed_; }
   std::string compact_cron() { RWLock l(&rwlock_, false); return compact_cron_; }
+  std::string compact_interval() { RWLock l(&rwlock_, false); return compact_interval_; }
   int write_buffer_size() { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
 
@@ -146,7 +147,10 @@ class PikaConf : public slash::BaseConf {
   void SetCompactCron(const std::string &value) {
     RWLock l(&rwlock_, true);
     compact_cron_ = value;
-
+  }
+  void SetCompactInterval(const std::string &value) {
+    RWLock l(&rwlock_, true);
+    compact_interval_ = value;
   }
 
   int Load();
@@ -164,6 +168,7 @@ private:
   int expire_dump_days_;
   int db_sync_speed_;
   std::string compact_cron_;
+  std::string compact_interval_;
   int write_buffer_size_;
   int log_level_;
   bool daemonize_;

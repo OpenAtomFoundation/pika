@@ -788,6 +788,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "compact-cron");
       EncodeString(&ret, g_pika_conf->compact_cron());
+  } else if (get_item == "compact-interval") {
+      ret = "*2\r\n";
+      EncodeString(&ret, "compact-interval");
+      EncodeString(&ret, g_pika_conf->compact_interval());
   } else if (get_item == "maxmemory") {
       ret = "*2\r\n";
       EncodeString(&ret, "maxmemory");
@@ -901,7 +905,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
   } else if (get_item == "*") {
-    ret = "*76\r\n";
+    ret = "*78\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "thread-num");
@@ -974,6 +978,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->db_sync_speed());
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, g_pika_conf->compact_cron());
+    EncodeString(&ret, "compact-interval");
+    EncodeString(&ret, g_pika_conf->compact_interval());
     EncodeString(&ret, "network-interface");
     EncodeString(&ret, g_pika_conf->network_interface());
     EncodeString(&ret, "slaveof");
@@ -986,7 +992,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*16\r\n";
+    ret = "*18\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
@@ -1003,6 +1009,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "slowlog-log-slower-than");
     EncodeString(&ret, "slave-read-only");
     EncodeString(&ret, "db-sync-speed");
+    EncodeString(&ret, "compact-cron");
+    EncodeString(&ret, "compact-interval");
     return;
   }
   std::string value = config_args_v_[2];
@@ -1132,6 +1140,26 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     } else {
       g_pika_conf->SetCompactCron(value);
+      ret = "+OK\r\n";
+    }
+  } else if (set_item == "compact-interval") {
+    bool invalid = false;
+    std::string::size_type len = value.length();
+    std::string::size_type slash = value.find("/");
+    if (slash == std::string::npos || slash + 1 >= len) {
+      invalid = true;
+    } else {
+      int interval = std::atoi(value.substr(0, slash).c_str());
+      int usage = std::atoi(value.substr(slash+1).c_str());
+      if (interval <= 0 || usage < 0 || usage > 100) {
+        invalid = true;
+      }
+    }
+    if (invalid) {
+      ret = "-ERR invalid compact-interval\r\n";
+      return;
+    } else {
+      g_pika_conf->SetCompactInterval(value);
       ret = "+OK\r\n";
     }
   } else {

@@ -126,6 +126,21 @@ int PikaConf::Load()
       }
     }
   }
+  compact_interval_ = "";
+  GetConfStr("compact-interval", &compact_interval_);
+  if (compact_interval_ != "") {
+    std::string::size_type len = compact_interval_.length();
+    std::string::size_type slash = compact_interval_.find("/");
+    if (slash == std::string::npos || slash + 1 >= len) {
+      compact_interval_ = "";
+    } else {
+      int interval = std::atoi(compact_interval_.substr(0, slash).c_str());
+      int usage = std::atoi(compact_interval_.substr(slash+1).c_str());
+      if (interval <= 0 || usage < 0 || usage > 100) {
+        compact_interval_ = "";
+      }
+    }
+  }
 
   // write_buffer_size
   GetConfInt("write-buffer-size", &write_buffer_size_);
@@ -232,6 +247,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
   SetConfBool("slave-read-only", readonly_);
   SetConfStr("compact-cron", compact_cron_);
+  SetConfStr("compact-interval", compact_interval_);
   SetConfStr("network-interface", network_interface_);
   SetConfStr("slaveof", slaveof_);
 

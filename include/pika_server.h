@@ -341,6 +341,7 @@ class PikaServer {
 
   time_t start_time_s_;
   bool have_scheduled_crontask_;
+  struct timeval last_check_compact_time_;
 
   int worker_num_;
   PikaDispatchThread* pika_dispatch_thread_;
