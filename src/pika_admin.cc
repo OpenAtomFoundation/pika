@@ -137,7 +137,7 @@ void TrysyncCmd::Do() {
     Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
         filenum_, pro_offset_);
     if (status.ok()) {
-      if ((g_pika_conf->double_master_ip() == slave_ip_ || g_pika_conf->double_master_ip() == "127.0.0.1")
+      if ((g_pika_conf->double_master_ip() == slave_ip_ || (g_pika_conf->double_master_ip() == "127.0.0.1" && g_pika_server->host() == slave_ip_))
           && g_pika_conf->double_master_port() == slave_port_) {
         g_pika_server->DoubleMasterRequestDone();
       }

@@ -94,7 +94,11 @@ class PikaServer {
     // slave_mutex has been locked from exterior
     int64_t sid = sid_;
     sid_++;
-    return sid;
+    if (sid == double_master_sid_) {
+      return GenSid();
+    } else {
+      return sid;
+    }
   }
 
   void DeleteSlave(int fd); // hb_fd
@@ -135,7 +139,7 @@ class PikaServer {
     return double_master_mode_;
   }
 
-  std::string DoubleMasterSid() {
+  int64_t DoubleMasterSid() {
     slash::MutexLock l(&double_mutex_);
     return double_master_sid_;
   }
@@ -144,13 +148,18 @@ class PikaServer {
 
   void DoubleMasterRequestDone();
 
+  void ResetDoubleMasterState() {
+    slash::RWLock(&state_protector_, false);
+    double_master_state_ = PIKA_REPL_NO_CONNECT;
+  }
+
   int double_master_state() {
     slash::RWLock(&state_protector_, false);
     return double_master_state_;
   }
 
-
   void Start();
+
   void Exit() {
     exit_ = true;
   }
@@ -392,7 +401,7 @@ class PikaServer {
   /*
    * Double master use
    */
-  std::string double_master_sid_;
+  int64_t double_master_sid_;
   bool double_master_mode_;
   int double_master_state_;
   /*

@@ -20,10 +20,13 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   std::string opt = argv[0];
   slash::StringToLower(opt);
 
+  std::string server_id;
   // Parse binlog info
   uint32_t filenum = 0;
   uint64_t offset = 0;
   if (argv.size() > 4 && *(argv.end() - 4) == kPikaBinlogMagic) {
+    // Get server id
+    server_id = argv[argv.size() -3];
     // Get filenum and offset
     std::string binlog_info = argv[argv.size() - 2];
     memcpy((char*)(&filenum), binlog_info.data() + 4, sizeof(uint32_t));
@@ -72,18 +75,13 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   if (!is_readonly) {
     error_happend = !g_pika_server->WaitTillBinlogBGSerial(my_serial);
     if (!error_happend) {
-      std::string server_sid;
-      if (g_pika_server->DoubleMasterMode()) {
-        // TODO(shq) check the server id of binlog
-        server_sid = g_pika_conf->double_master_sid();
-        LOG(INFO) << "In double master mode, Receive binlog from the peer-master";
-      } else {
-        server_sid = g_pika_conf->server_id();
+      if (!g_pika_server->DoubleMasterMode() && !server_id.empty()) {
+        server_id = g_pika_conf->server_id();
       }
       g_pika_server->logger_->Lock();
       g_pika_server->logger_->Put(c_ptr->ToBinlog(
           argv,
-          server_sid,
+          server_id,
           dummy_binlog_info,
           false));
       g_pika_server->logger_->Unlock();

@@ -38,7 +38,9 @@ PikaServer::PikaServer() :
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
   force_full_sync_(false),
+  double_master_sid_(0),
   double_master_mode_(false),
+  double_master_state_(PIKA_REPL_NO_CONNECT),
   bgsave_engine_(NULL),
   purging_(false),
   binlogbg_exit_(false),
@@ -104,7 +106,6 @@ PikaServer::PikaServer() :
 
   uint64_t double_recv_offset;
   uint32_t double_recv_num;
-  //logger_->SetDoubleRecvInfo(9999, 9999);
   logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
   LOG(INFO) << "double recv info: " << double_recv_offset << " " << double_recv_num;
 }
@@ -304,7 +305,7 @@ void PikaServer::Start() {
   if (!g_pika_conf->double_master_ip().empty()) {
     std::string double_master_ip = g_pika_conf->double_master_ip();
     int32_t double_master_port = g_pika_conf->double_master_port();
-    double_master_sid_ = g_pika_conf->double_master_sid();
+    double_master_sid_ = std::stoi(g_pika_conf->double_master_sid());
     if ((double_master_ip == "127.0.0.1" || double_master_ip == host_) && double_master_port == port_) {
     LOG(FATAL) << "set yourself as the peer-master, please check";
     } else {
