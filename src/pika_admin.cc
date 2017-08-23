@@ -86,6 +86,7 @@ void SlaveofCmd::Do() {
     slash::StopRsync(g_pika_conf->db_sync_path());
 
     g_pika_server->RemoveMaster();
+    g_pika_server->SetForceFullSync(false);
     res_.SetRes(CmdRes::kOk);
     return;
   }
