@@ -7,6 +7,7 @@
 #include "include/pika_server.h"
 #include "include/pika_conf.h"
 #include "slash/include/slash_string.h"
+#include "slash/include/slash_coding.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
@@ -29,9 +30,8 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     server_id = argv[argv.size() -3];
     // Get filenum and offset
     std::string binlog_info = argv[argv.size() - 2];
-    memcpy((char*)(&filenum), binlog_info.data() + 4, sizeof(uint32_t));
-    memcpy((char*)(&offset), binlog_info.data() + 8, sizeof(uint64_t));
-
+    filenum = slash::DecodeFixed32(binlog_info.data() + 4);
+    offset = slash::DecodeFixed64(binlog_info.data() + 8);
     // Record new binlog format
     argv.erase(argv.end() - 4, argv.end());
   }
