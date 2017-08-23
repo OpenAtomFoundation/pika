@@ -75,7 +75,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   if (!is_readonly) {
     error_happend = !g_pika_server->WaitTillBinlogBGSerial(my_serial);
     if (!error_happend) {
-      if (!g_pika_server->DoubleMasterMode() && !server_id.empty()) {
+      if (!g_pika_server->DoubleMasterMode()) {
         server_id = g_pika_conf->server_id();
       }
       g_pika_server->logger_->Lock();
