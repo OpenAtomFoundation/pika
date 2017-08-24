@@ -35,7 +35,6 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     // Record new binlog format
     argv.erase(argv.end() - 4, argv.end());
   }
-  LOG(INFO) << "The binlog info: " << filenum << " " << offset;
 
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);

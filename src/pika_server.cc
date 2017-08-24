@@ -451,8 +451,8 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   // Not exist, so add new
   LOG(INFO) << "Add new slave, " << ip << ":" << port;
   SlaveItem s;
-  if (double_master_mode_) {
-    s.sid = std::stoi(g_pika_conf->double_master_sid());
+  if (ip == master_ip_ && port == master_port_) {  // Double master mode
+    s.sid = double_master_sid_;
   } else {
     s.sid = GenSid();
   }

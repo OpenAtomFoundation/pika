@@ -78,21 +78,23 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void SlaveofCmd::Do() {
-  if (is_noone_) {
-    // Stop rsync
-    LOG(INFO) << "start slaveof, stop rsync first";
-    slash::StopRsync(g_pika_conf->db_sync_path());
+  if (!g_pika_server->DoubleMasterMode()) {
+    if (is_noone_) {
+      // Stop rsync
+      LOG(INFO) << "start slaveof, stop rsync first";
+      slash::StopRsync(g_pika_conf->db_sync_path());
 
-    g_pika_server->RemoveMaster();
-    res_.SetRes(CmdRes::kOk);
-    return;
-  }
-  if (have_offset_) {
-    // Before we send the trysync command, we need purge current logs older than the sync point
-    if (filenum_ > 0) {
-      g_pika_server->PurgeLogs(filenum_ - 1, true, true);
+      g_pika_server->RemoveMaster();
+      res_.SetRes(CmdRes::kOk);
+      return;
     }
-    g_pika_server->logger_->SetProducerStatus(filenum_, pro_offset_);
+    if (have_offset_) {
+      // Before we send the trysync command, we need purge current logs older than the sync point
+      if (filenum_ > 0) {
+        g_pika_server->PurgeLogs(filenum_ - 1, true, true);
+      }
+      g_pika_server->logger_->SetProducerStatus(filenum_, pro_offset_);
+    }
   }
   bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
   if (sm_ret) {
@@ -697,6 +699,7 @@ void InfoCmd::InfoDoubleMaster(std::string &info) {
       tmp_stream << "the peer-master host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "the peer-master port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "double_master_state: " << (g_pika_server->double_master_state()) << "\r\n";
+      tmp_stream << "double_master_server_id:" << g_pika_server->DoubleMasterSid() << "\r\n";
   }
   info.append(tmp_stream.str());
 }
