@@ -284,11 +284,9 @@ void* PikaBinlogSenderThread::ThreadMain() {
         }
         items.push_back(scratch_copy);
         std::string binlog_sid = items[items.size() - 6];
-        LOG(INFO) << "This binlog server id: " << binlog_sid;
 
         // If this binlog from the peer-master, can not resend to the peer-master
         if (std::atoi(binlog_sid.c_str()) == g_pika_server->DoubleMasterSid() && ip_ == g_pika_server->master_ip() && port_ == (g_pika_server->master_port()+1000)) {
-          LOG(INFO) << "This binlog from the peer-master";
           continue;
         }
 
