@@ -346,6 +346,8 @@ void KeysCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
+  } else if (argv.size() > 3) {
+    res_.SetRes(CmdRes::kSyntaxErr);
   }
   return;
 }

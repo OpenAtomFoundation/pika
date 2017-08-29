@@ -42,9 +42,11 @@ start_server {tags {"keys"}} {
   test {KEYS syntax error} {
     catch {r keys * a} e1
     catch {r keys * b} e2
-    catch {r keys * c} e3
+    catch {r keys * c d} e3
+    catch {r keys} e4
     assert_equal {ERR syntax error} [set e1]
     assert_equal {ERR syntax error} [set e2]
     assert_equal {ERR syntax error} [set e3]
+    assert_equal {ERR wrong number of arguments for 'keys' command} [set e4]
   }
 }
