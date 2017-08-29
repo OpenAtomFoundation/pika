@@ -114,7 +114,6 @@ LIB_PATH += -L$(GLOG_PATH)/.libs/
 endif
 
 LDFLAGS += $(LIB_PATH) \
-					 -lprotobuf \
 			 		 -lpink$(DEBUG_SUFFIX) \
 			 		 -lslash$(DEBUG_SUFFIX) \
 					 -lnemo$(DEBUG_SUFFIX) \
@@ -203,16 +202,6 @@ BINARY = ${BINNAME}
 
 %.o: %.cc
 	  $(AM_V_CC)$(CXX) $(CXXFLAGS) -c $< -o $@
-
-%.d: %.cc
-	@set -e; rm -f $@; $(CXX) -MM $(CXXFLAGS) $< > $@.$$$$; \
-	sed 's,\($(notdir $*)\)\.o[ :]*,$(SRC_DIR)/\1.o $@ : ,g' < $@.$$$$ > $@; \
-	rm -f $@.$$$$
-
-ifneq ($(MAKECMDGOALS),clean)
-  -include $(LIBOBJECTS:.o=.d)
-endif
-
 
 all: $(BINARY)
 
