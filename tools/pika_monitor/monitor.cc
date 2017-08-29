@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include <hiredis.h>
+#include <unistd.h>
 
 #define VERSION "1.0.0"
 
