@@ -126,11 +126,15 @@ private:
 
 class KeysCmd : public Cmd {
 public:
-  KeysCmd() {}
+  KeysCmd() : type_("a") {}
   virtual void Do();
 private:
   std::string pattern_;
+  std::string type_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    type_ = "a";
+  }
 };
 
 class SetnxCmd : public Cmd {
