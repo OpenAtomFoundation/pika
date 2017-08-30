@@ -26,27 +26,29 @@ start_server {tags {"keys"}} {
     r zadd zset_2 1 "a"
     r sadd set_1 "a"
     r sadd set_2 "a"
-    assert_equal {kv_1 kv_2} [r keys * k]
-    assert_equal {hash_1 hash_2} [r keys * h]
-    assert_equal {list_1 list_2} [r keys * l]
-    assert_equal {zset_1 zset_2} [r keys * z]
-    assert_equal {set_1 set_2} [r keys * s]
+    assert_equal {kv_1 kv_2} [r keys * string]
+    assert_equal {hash_1 hash_2} [r keys * hash]
+    assert_equal {list_1 list_2} [r keys * list]
+    assert_equal {zset_1 zset_2} [r keys * zset]
+    assert_equal {set_1 set_2} [r keys * set]
     assert_equal {kv_1 kv_2 hash_1 hash_2 zset_1 zset_2 set_1 set_2 list_1 list_2} [r keys *]
-    assert_equal {kv_1 kv_2} [r keys * k]
-    assert_equal {hash_1 hash_2} [r keys * h]
-    assert_equal {list_1 list_2} [r keys * l]
-    assert_equal {zset_1 zset_2} [r keys * z]
-    assert_equal {set_1 set_2} [r keys * s]
+    assert_equal {kv_1 kv_2} [r keys * string]
+    assert_equal {hash_1 hash_2} [r keys * hash]
+    assert_equal {list_1 list_2} [r keys * list]
+    assert_equal {zset_1 zset_2} [r keys * zset]
+    assert_equal {set_1 set_2} [r keys * set]
   }
 
   test {KEYS syntax error} {
     catch {r keys * a} e1
-    catch {r keys * b} e2
+    catch {r keys * strings} e2
     catch {r keys * c d} e3
     catch {r keys} e4
+    catch {r keys * set zset} e5
     assert_equal {ERR syntax error} [set e1]
     assert_equal {ERR syntax error} [set e2]
     assert_equal {ERR syntax error} [set e3]
     assert_equal {ERR wrong number of arguments for 'keys' command} [set e4]
+    assert_equal {ERR syntax error} [set e5]
   }
 }
