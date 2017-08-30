@@ -355,7 +355,7 @@ void KeysCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void KeysCmd::Do() {
   std::vector<std::string> keys;
-  nemo::Status s = g_pika_server->db()->Keys(pattern_, keys, type_.data());
+  nemo::Status s = g_pika_server->db()->Keys(pattern_, keys, type_);
   res_.AppendArrayLen(keys.size());
   for (std::vector<std::string>::iterator iter = keys.begin(); iter != keys.end(); iter++) {
     res_.AppendStringLen(iter->size());
