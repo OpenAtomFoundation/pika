@@ -341,12 +341,9 @@ void KeysCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   }
   pattern_ = argv[1];
   if (argv.size() == 3) {
-    if (argv[2] == "string" || argv[2] == "zset" || argv[2] == "set" || argv[2] == "list" || argv[2] == "hash") {
-      if (argv[2] == "string") {
-        type_ = "k"; 
-      } else {
-        type_ = argv[2].at(0);
-      }
+    std::string opt = slash::StringToLower(argv[2]);
+    if (opt == "string" || opt == "zset" || opt == "set" || opt == "list" || opt == "hash") {
+        type_ = opt;
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
