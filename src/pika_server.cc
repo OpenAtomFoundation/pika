@@ -106,7 +106,6 @@ PikaServer::PikaServer() :
 
   uint64_t double_recv_offset;
   uint32_t double_recv_num;
-  //logger_->SetDoubleRecvInfo(9999,9999);
   logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
   LOG(INFO) << "double recv info: filenum " << double_recv_num << " offset " << double_recv_offset;
 }
