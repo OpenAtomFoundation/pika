@@ -139,6 +139,11 @@ class PikaServer {
     return double_master_mode_;
   }
 
+  void SetDoubleMasterMode(bool mode) {
+    slash::MutexLock l(&double_mutex_);
+    double_master_mode_ = mode;
+  }
+
   int64_t DoubleMasterSid() {
     slash::MutexLock l(&double_mutex_);
     return double_master_sid_;

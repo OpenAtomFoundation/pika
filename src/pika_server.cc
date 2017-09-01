@@ -106,8 +106,9 @@ PikaServer::PikaServer() :
 
   uint64_t double_recv_offset;
   uint32_t double_recv_num;
+  //logger_->SetDoubleRecvInfo(9999,9999);
   logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
-  LOG(INFO) << "double recv info: " << double_recv_offset << " " << double_recv_num;
+  LOG(INFO) << "double recv info: filenum " << double_recv_num << " offset " << double_recv_offset;
 }
 
 PikaServer::~PikaServer() {
@@ -550,7 +551,7 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
 
 bool PikaServer::WaitingDBSync() {
   slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
+  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_ << " double_master_repl_state: " << double_master_state_;
   if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
     return true;
   }
@@ -794,6 +795,21 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   }
   if (0 == ret) {
     LOG(INFO) << "rsync send files success";
+    // If receiver is the peer-master, 
+    // need to re-add it and recover the double mode
+    if (!DoubleMasterMode() && (g_pika_conf->double_master_ip() == ip || host() == ip) 
+        && (g_pika_conf->double_master_port() + 3000) == port) {
+      double_master_mode_ = true;
+      std::string master_ip = ip;
+      int master_port = port - 3000;
+      SetMaster(master_ip, master_port);
+      // Update Recv Info
+      uint32_t update_filenum;
+      uint64_t update_offset;
+      logger_->GetProducerStatus(&update_filenum, &update_offset);
+      logger_->SetDoubleRecvInfo(update_filenum, update_offset);
+      LOG(INFO) << "Update recv info filenum: " << update_filenum << " offset: " << update_offset;
+    }
   }
 }
 
@@ -804,7 +820,7 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
     uint32_t filenum, uint64_t con_offset) {
   // Sanity check
   if (con_offset > logger_->file_size()) {
-    return Status::InvalidArgument("AddBinlogSender invalid offset");
+    return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
   }
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
@@ -823,6 +839,12 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
   std::string confile = NewFileName(logger_->filename, filenum);
   if (!slash::FileExists(confile)) {
     // Not found binlog specified by filenum
+    // If in double-master mode, return error status
+    if (DoubleMasterMode() && (g_pika_conf->double_master_ip() == ip || (g_pika_conf->double_master_ip() == "127.0.0.1" && host() == ip))
+          && g_pika_conf->double_master_port() == port) {
+      return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
+    }
+
     TryDBSync(ip, port + 3000, cur_filenum);
     return Status::Incomplete("Bgsaving and DBSync first");
   }
@@ -1241,9 +1263,7 @@ void PikaServer::AutoDeleteExpiredDump() {
   if (slash::GetChildren(db_sync_path, dump_dir) != 0) {
     return;
   }
-  for (size_t i = 0; i < dump_dir.size(); i++) {
-    LOG(INFO) << dump_dir[i];
-  }
+  
   // Handle dump directory
   for (size_t i = 0; i < dump_dir.size(); i++) {
     // Parse filename

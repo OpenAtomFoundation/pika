@@ -198,6 +198,21 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
 
   // Update master offset
   g_pika_server->logger_->SetProducerStatus(filenum, offset);
+
+  // If sender is the peer-master
+  // need to recover the double mode after rsync finished.
+  if (!g_pika_server->DoubleMasterMode() && ((g_pika_conf->double_master_ip() == master_ip || g_pika_server->host() == master_ip)
+                                             && g_pika_conf->double_master_port() == master_port)) {
+    g_pika_server->logger_->SetDoubleRecvInfo(filenum, offset);
+    uint32_t update_filenum;
+    uint64_t update_offset;
+    g_pika_server->logger_->GetDoubleRecvInfo(&update_filenum, &update_offset);
+    LOG(INFO) << "Update receive infomation after rsync finished. filenum: " << update_filenum << "offset: " << update_offset;
+    // Close read-only mode
+    g_pika_conf->SetReadonly(false);
+    // Reopen double master mode
+    g_pika_server->SetDoubleMasterMode(true); 
+  }
   g_pika_server->WaitDBSyncFinish();
   g_pika_server->SetForceFullSync(false);
   return true;
