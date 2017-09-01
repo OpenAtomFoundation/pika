@@ -100,11 +100,10 @@ void SlaveofCmd::Do() {
   }
 
   // The conf file already configured double-master item, but now this
-  // connection maybe broken
+  // connection maybe broken and need to rsync all of binlog
   if (!g_pika_server->DoubleMasterMode() && ((g_pika_conf->double_master_ip() == master_ip_ || g_pika_server->host() == master_ip_)
                                              && g_pika_conf->double_master_port() == master_port_)) {
     g_pika_server->PurgeLogs(0, true, true);
-    g_pika_server->logger_->SetProducerStatus(filenum_, pro_offset_);
     g_pika_server->SetForceFullSync(true);
   }
   bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
@@ -707,7 +706,7 @@ void InfoCmd::InfoDoubleMaster(std::string &info) {
     case PIKA_ROLE_DOUBLE_MASTER : tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
     default : info.append("ERR: server role is error\r\n"); return;
   }
-  
+
   tmp_stream << "the peer-master host:" << g_pika_server->master_ip() << "\r\n";
   tmp_stream << "the peer-master port:" << g_pika_server->master_port() << "\r\n";
   tmp_stream << "double_master_mode: " << (g_pika_server->DoubleMasterMode() ? "True" : "False") << "\r\n";
@@ -718,7 +717,7 @@ void InfoCmd::InfoDoubleMaster(std::string &info) {
   uint32_t double_recv_num;
   g_pika_server->logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
   tmp_stream << "double_master_recv_info: filenum " << double_recv_num << " offset " << double_recv_offset << "\r\n";
-  
+
   info.append(tmp_stream.str());
 }
 
