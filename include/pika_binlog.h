@@ -51,11 +51,9 @@ class Binlog {
 
   Status SetDoubleRecvInfo(uint32_t double_filenum, uint64_t double_offset);
 
-
   static Status AppendBlank(slash::WritableFile *file, uint64_t len);
 
   slash::WritableFile *queue() { return queue_; }
-
 
   uint64_t file_size() {
     return file_size_;
