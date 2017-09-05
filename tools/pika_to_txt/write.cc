@@ -1,0 +1,41 @@
+#include <iostream>
+#include <fstream>
+
+#include "write.h"
+
+WriteThread::~WriteThread() {
+}
+
+void WriteThread::Load(std::string data) {
+  data_mutex_.Lock();
+  if (data_.size() < 100000) {
+    data_.push(data);
+    rsignal_.Signal();
+    data_mutex_.Unlock();
+  } else {
+    while (data_.size() > 100000) {
+      wsignal_.Wait(); 
+    }
+    data_.push(data);
+    rsignal_.Signal();
+    data_mutex_.Unlock();
+  }
+}
+
+void *WriteThread::ThreadMain() {
+  std::cout << "Start write to file" << std::endl;
+  std::ofstream fout(filename_, std::ios::out|std::ios::binary);
+  while(!should_exit_ || QueueSize() != 0) {
+    if (QueueSize() == 0) {
+      continue; 
+    }
+    data_mutex_.Lock();
+    std::string data = data_.front();
+    data_.pop();  
+    data_mutex_.Unlock();
+    fout.write((char*)&data, data.length());
+    num_++;
+  }
+  return NULL;
+}
+
