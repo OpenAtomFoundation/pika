@@ -32,7 +32,7 @@ INCLUDE_PATH = -I../../third/pink/ \
 all: $(OBJECT)
 				rm *.o
 
-txt_to_pika : txt_to_pika.o scan.o insert.o
+txt_to_pika : txt_to_pika.o scan.o sender.o
 				$(GCC) $(CPPFLAGS) -o $@ $^ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 %.o : %.cc
