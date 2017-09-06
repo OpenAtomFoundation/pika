@@ -1,6 +1,9 @@
 #include <iostream>
+#include <chrono>
 #include "scan.h"
 #include "sender.h"
+
+using std::chrono::high_resolution_clock;
 
 void Usage() {
   std::cout << "Usage: " << std::endl;
@@ -13,6 +16,8 @@ int main(int argc, char **argv) {
     Usage();
     return 0;
   }
+
+  high_resolution_clock::time_point start = high_resolution_clock::now();
 
   std::string password;
   int thread_num = 8;
@@ -88,7 +93,15 @@ int main(int argc, char **argv) {
   std::cout <<"Total " << records << " records hash been executed by pika" << std::endl;
 
   delete scan_thread;
+  
+  high_resolution_clock::time_point end = high_resolution_clock::now();
+  std::chrono::hours  h = std::chrono::duration_cast<std::chrono::hours>(end - start);
+  std::chrono::minutes  m = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::chrono::seconds  s = std::chrono::duration_cast<std::chrono::seconds>(end - start);
 
+  std::cout << "====================================" << std::endl;
+  std::cout << "Running time  :";
+  std::cout << h.count() << " hour " << m.count() - h.count() * 60 << " min " << s.count() - h.count() * 60 * 60 << " s\n" << std::endl;
   return 0; 
 }
 
