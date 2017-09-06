@@ -24,7 +24,7 @@ void WriteThread::Load(std::string data) {
 
 void *WriteThread::ThreadMain() {
   std::cout << "Start write to file" << std::endl;
-  std::ofstream fout(filename_, std::ios::out|std::ios::binary);
+  std::fstream fout(filename_, std::ios::out|std::ios::binary);
   while(!should_exit_ || QueueSize() != 0) {
     if (QueueSize() == 0) {
       continue; 
@@ -33,9 +33,10 @@ void *WriteThread::ThreadMain() {
     std::string data = data_.front();
     data_.pop();  
     data_mutex_.Unlock();
-    fout.write((char*)&data, data.length());
+    fout.write(data.c_str(), data.size());
     num_++;
   }
+  fout.close();
   return NULL;
 }
 
