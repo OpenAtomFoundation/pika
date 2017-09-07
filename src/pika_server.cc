@@ -428,6 +428,16 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
       iter->hb_fd = hb_fd;
       iter->stage = SLAVE_ITEM_STAGE_TWO;
       LOG(INFO) << "New Master-Slave connection established successfully, Slave host: " << iter->ip_port;
+      
+      // If receive 'spci' from the peer-master, re-add it
+      if (DoubleMasterMode() && double_master_state_ == PIKA_REPL_NO_CONNECT && iter->sid == double_master_sid_) {
+        std::string double_master_ip = g_pika_conf->double_master_ip();
+        int32_t double_master_port = g_pika_conf->double_master_port();
+        SetMaster(double_master_ip, double_master_port);
+        DoubleMasterRequestDone();
+      } else if (DoubleMasterMode() && iter->sid == double_master_sid_) {
+        DoubleMasterRequestDone(); 
+      }
       break;
     }
     iter++;
@@ -669,7 +679,6 @@ void PikaServer::RemoveMaster() {
   repl_state_ = PIKA_REPL_NO_CONNECT;
   if (DoubleMasterMode()) {
     role_ &= ~PIKA_ROLE_DOUBLE_MASTER;
-    double_master_mode_ = false;
   } else {
     role_ &= ~PIKA_ROLE_SLAVE;
   }
@@ -796,12 +805,8 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
     LOG(INFO) << "rsync send files success";
     // If receiver is the peer-master, 
     // need to re-add it and recover the double mode
-    if (!DoubleMasterMode() && (g_pika_conf->double_master_ip() == ip || host() == ip) 
+    if ((g_pika_conf->double_master_ip() == ip || host() == ip)
         && (g_pika_conf->double_master_port() + 3000) == port) {
-      double_master_mode_ = true;
-      std::string master_ip = ip;
-      int master_port = port - 3000;
-      SetMaster(master_ip, master_port);
       // Update Recv Info
       uint32_t update_filenum;
       uint64_t update_offset;

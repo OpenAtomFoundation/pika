@@ -154,12 +154,12 @@ class PikaServer {
   void DoubleMasterRequestDone();
 
   void ResetDoubleMasterState() {
-    slash::RWLock(&state_protector_, false);
+    slash::RWLock(&double_state_protector_, false);
     double_master_state_ = PIKA_REPL_NO_CONNECT;
   }
 
   int double_master_state() {
-    slash::RWLock(&state_protector_, false);
+    slash::RWLock(&double_state_protector_, false);
     return double_master_state_;
   }
 
@@ -406,6 +406,7 @@ class PikaServer {
   /*
    * Double master use
    */
+  pthread_rwlock_t double_state_protector_; //protect below, use for double-master mode
   int64_t double_master_sid_;
   bool double_master_mode_;
   int double_master_state_;

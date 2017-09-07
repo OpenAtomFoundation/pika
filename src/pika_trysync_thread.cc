@@ -210,8 +210,6 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
     LOG(INFO) << "Update receive infomation after rsync finished. filenum: " << update_filenum << "offset: " << update_offset;
     // Close read-only mode
     g_pika_conf->SetReadonly(false);
-    // Reopen double master mode
-    g_pika_server->SetDoubleMasterMode(true); 
   }
   g_pika_server->WaitDBSyncFinish();
   g_pika_server->SetForceFullSync(false);
@@ -250,7 +248,8 @@ void* PikaTrysyncThread::ThreadMain() {
     std::string dbsync_path = g_pika_conf->db_sync_path();
 
     // Only in master-slave mode need to start rsync service
-    if (!g_pika_server->DoubleMasterMode()) {
+    if (!g_pika_server->DoubleMasterMode() || (g_pika_server->DoubleMasterMode()
+          && g_pika_server->double_master_state() == PIKA_REPL_NO_CONNECT)) {
       // Start rsync service
       PrepareRsync();
       std::string ip_port = slash::IpPortString(master_ip, master_port);
@@ -269,10 +268,9 @@ void* PikaTrysyncThread::ThreadMain() {
       cli_->set_recv_timeout(30000);
       if (Send() && RecvProc()) {
         g_pika_server->ConnectMasterDone();
-        if (!g_pika_server->DoubleMasterMode()) {
-          // Stop rsync, binlog sync with master is begin
-          slash::StopRsync(dbsync_path);
-        } else {
+        // Stop rsync, binlog sync with master is begin
+        slash::StopRsync(dbsync_path);
+        if (g_pika_server->DoubleMasterMode()) {
           g_pika_server->DoubleMasterRequestDone();
         }
         delete g_pika_server->ping_thread_;
