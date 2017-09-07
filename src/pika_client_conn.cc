@@ -159,11 +159,11 @@ int PikaClientConn::DealMessage() {
   slash::StringToLower(opt);
   std::string res = DoCmd(opt);
   
-  while ((wbuf_size_ - wbuf_len_ <= res.size())) {
-    if (!ExpandWbuf()) {
-      LOG(WARNING) << "wbuf is too large";
-      memcpy(wbuf_, "-ERR buf is too large\r\n", 23);
-      wbuf_len_ = 23;
+  if ((wbuf_size_ - wbuf_len_ < res.size())) {
+    if (!ExpandWbufTo(wbuf_len_ + res.size())) {
+      LOG(WARNING) << "ExpandWbufTo " << wbuf_len_ + res.size() << " Failed";
+      memcpy(wbuf_, "-ERR expand writer buffer failed\r\n", 34);
+      wbuf_len_ = 34;
       set_is_reply(true);
       return 0;
     }
