@@ -123,7 +123,7 @@ void InitCmdInfoTable() {
   CmdInfo* mgetptr = new CmdInfo(kCmdNameMget, -2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameMget, mgetptr));
   ////Keys
-  CmdInfo* keysptr = new CmdInfo(kCmdNameKeys, 2, kCmdFlagsRead | kCmdFlagsKv);
+  CmdInfo* keysptr = new CmdInfo(kCmdNameKeys, -2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameKeys, keysptr));
   ////Setnx
   CmdInfo* setnxptr = new CmdInfo(kCmdNameSetnx, 3, kCmdFlagsWrite | kCmdFlagsKv);

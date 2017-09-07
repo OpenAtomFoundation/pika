@@ -340,12 +340,22 @@ void KeysCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     return;
   }
   pattern_ = argv[1];
+  if (argv.size() == 3) {
+    std::string opt = slash::StringToLower(argv[2]);
+    if (opt == "string" || opt == "zset" || opt == "set" || opt == "list" || opt == "hash") {
+        type_ = opt;
+    } else {
+      res_.SetRes(CmdRes::kSyntaxErr);
+    }
+  } else if (argv.size() > 3) {
+    res_.SetRes(CmdRes::kSyntaxErr);
+  }
   return;
 }
 
 void KeysCmd::Do() {
   std::vector<std::string> keys;
-  nemo::Status s = g_pika_server->db()->Keys(pattern_, keys);
+  nemo::Status s = g_pika_server->db()->Keys(pattern_, keys, type_);
   res_.AppendArrayLen(keys.size());
   for (std::vector<std::string>::iterator iter = keys.begin(); iter != keys.end(); iter++) {
     res_.AppendStringLen(iter->size());

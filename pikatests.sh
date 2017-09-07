@@ -1,4 +1,6 @@
 #!/bin/bash
+rm -rf ./log
+rm -rf .db
 cp output/bin/pika src/redis-server
 cp output/conf/pika.conf tests/assets/default.conf
 
