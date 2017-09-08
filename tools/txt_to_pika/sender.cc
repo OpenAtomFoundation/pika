@@ -124,6 +124,12 @@ void *SenderThread::ThreadMain() {
   log_info("Start sender thread...");
 
   while (!should_exit_ || QueueSize() != 0) {
+    cmd_mutex_.Lock();
+    while (cmd_queue_.size() == 0 && !should_exit_) {
+      rsignal_.Wait();
+    }
+    cmd_mutex_.Unlock();
+
     if (cli_ == NULL) {
       ConnectPika(); 
       continue;
@@ -132,6 +138,8 @@ void *SenderThread::ThreadMain() {
       cmd_mutex_.Lock();
       std::string cmd = cmd_queue_.front();
       cmd_queue_.pop();
+      std::cout << cmd << std::endl;
+      wsignal_.Signal();
       cmd_mutex_.Unlock();
       SendCommand(cmd);
     }

@@ -53,5 +53,6 @@ void ScanThread::DispatchCmd(const std::string &cmd) {
 
 void *ScanThread::ThreadMain() {
   ScanFile();
+  std::cout << "Scan file complete";
   return NULL;
 }
