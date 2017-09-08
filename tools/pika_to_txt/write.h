@@ -14,6 +14,12 @@ class WriteThread : public pink::Thread {
       wsignal_(&data_mutex_)
   {
   }
+    void Stop() {
+      should_exit_ = true;
+	    data_mutex_.Lock();
+	    rsignal_.Signal();
+      data_mutex_.Unlock();
+	  }
     ~WriteThread();
 
     void Load(std::string data);

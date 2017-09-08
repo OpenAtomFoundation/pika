@@ -28,6 +28,5 @@ void ScanThread::Scandb() {
 
 void *ScanThread::ThreadMain() {
   Scandb();
-  write_thread_->should_exit_ = true;
   return NULL;
 }

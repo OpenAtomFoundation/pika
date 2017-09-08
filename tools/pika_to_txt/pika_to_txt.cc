@@ -45,10 +45,13 @@ int main(int argc, char **argv) {
   write_thread->StartThread();
   
   scan_thread->JoinThread();
+
+  write_thread->Stop();
   write_thread->JoinThread();
 
   std::cout <<"Total " << scan_thread->Num()  << " records has been scaned"<< std::endl;
   std::cout <<"Total " << write_thread->Num() << " records hash been writed to file" << std::endl;
+
   delete db;
   delete write_thread;
   delete scan_thread;
