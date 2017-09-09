@@ -6,7 +6,7 @@ ScanThread::~ScanThread() {
 }
 
 void ScanThread::ScanFile() {
-  std::cout << "Start to scan" << std::endl;
+  log_info("Start to scan");
 
   std::ifstream fout(filename_, std::ios::binary);
   fout.seekg(0, std::ios::end);
@@ -29,9 +29,16 @@ void ScanThread::ScanFile() {
     str_value.append(value, value_len);
 
     pink::RedisCmdArgsType argv;
-    argv.push_back("SET");
-    argv.push_back(str_key);
-    argv.push_back(str_value);
+    if (ttl_ > 0) {
+      argv.push_back("SETEX");
+      argv.push_back(str_key);
+      argv.push_back(std::to_string(ttl_));
+      argv.push_back(str_value);
+    } else {
+      argv.push_back("SET");
+      argv.push_back(str_key);
+      argv.push_back(str_value);
+    }
     
     pink::SerializeRedisCommand(argv, &cmd);
     
@@ -53,6 +60,6 @@ void ScanThread::DispatchCmd(const std::string &cmd) {
 
 void *ScanThread::ThreadMain() {
   ScanFile();
-  std::cout << "Scan file complete";
+  log_info("Scan file complete");
   return NULL;
 }

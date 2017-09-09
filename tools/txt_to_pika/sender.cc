@@ -138,7 +138,6 @@ void *SenderThread::ThreadMain() {
       cmd_mutex_.Lock();
       std::string cmd = cmd_queue_.front();
       cmd_queue_.pop();
-      std::cout << cmd << std::endl;
       wsignal_.Signal();
       cmd_mutex_.Unlock();
       SendCommand(cmd);

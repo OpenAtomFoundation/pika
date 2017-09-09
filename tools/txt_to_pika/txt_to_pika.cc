@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   std::string filename = std::string(argv[1]);
   std::string ip = std::string(argv[2]);
   int port = std::stoi(std::string(argv[3]));
-  int ttl = 0;
+  int ttl = -1;
   std::vector<SenderThread *> senders;
 
   int index = 4;
@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
     senders.push_back(new SenderThread(ip, port, password));
   }
 
-  ScanThread* scan_thread = new ScanThread(filename, senders);
+  ScanThread* scan_thread = new ScanThread(filename, senders, ttl);
 
   for (int i = 0; i < thread_num; i++) {
     senders[i]->StartThread(); 
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
     delete senders[i]; 
   }
   
-  std::cout <<"Total " << scan_thread->Num()  << " records has been scaned"<< std::endl;
+  std::cout << std::endl << "Total " << scan_thread->Num()  << " records has been scaned"<< std::endl;
   std::cout <<"Total " << records << " records hash been executed by pika" << std::endl;
 
   delete scan_thread;

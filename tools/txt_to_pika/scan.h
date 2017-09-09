@@ -10,11 +10,12 @@
 
 class ScanThread : public pink::Thread {
   public:
-    ScanThread(std::string filename, std::vector<SenderThread *> senders) :
+    ScanThread(std::string filename, std::vector<SenderThread *> senders, int ttl) :
       filename_(filename),
       num_(0),
       senders_(senders),
-      thread_index_(0)
+      thread_index_(0),
+      ttl_(ttl)
       {
       }
 
@@ -29,6 +30,7 @@ class ScanThread : public pink::Thread {
     int num_;
     std::vector<SenderThread *> senders_;
     int thread_index_;
+    int ttl_;
 
     void* ThreadMain();
 };
