@@ -164,8 +164,9 @@ void TrysyncCmd::Do() {
     g_pika_server->DeleteSlave(slave_ip_, slave_port_);
 
     // In the double master mode, need to remove the peer-master
-    if ((g_pika_conf->double_master_ip() == slave_ip_ || (g_pika_conf->double_master_ip() == "127.0.0.1" && g_pika_server->host() == slave_ip_))
-        && g_pika_conf->double_master_port() == slave_port_) {
+    if (g_pika_server->DoubleMasterMode() && (g_pika_conf->double_master_ip() == slave_ip_ || (g_pika_conf->double_master_ip() == "127.0.0.1" && g_pika_server->host() == slave_ip_))
+        && g_pika_conf->double_master_port() == slave_port_
+        && g_pika_server->double_master_state() != PIKA_REPL_NO_CONNECT) {
       g_pika_server->RemoveMaster();
       g_pika_server->ResetDoubleMasterState();
       LOG(INFO) << "Because the invalid filenum and offset, close the connection between the peer-masters";
@@ -278,7 +279,6 @@ void BgsaveCmd::Do() {
       info.s_start_time.c_str(), info.filenum, info.offset);
   res_.AppendContent(buf);
 }
-
 void BgsaveoffCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsaveoff);
@@ -669,7 +669,7 @@ void InfoCmd::InfoReplication(std::string &info) {
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
     case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\n"; break;
-    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE : tmp_stream << "MASTER/SLAVE)\r\nrole:slave\r\n"; break;
+    case PIKA_ROLE_DOUBLE_MASTER : tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
     default: info.append("ERR: server role is error\r\n"); return;
   }
 

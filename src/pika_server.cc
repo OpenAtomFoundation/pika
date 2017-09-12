@@ -352,6 +352,9 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
   slash::RWLock l(&state_protector_, true);
   if (slave_num == 0) {
     role_ &= ~PIKA_ROLE_MASTER;
+    if (DoubleMasterMode()) {
+      role_ |= PIKA_ROLE_DOUBLE_MASTER;
+    }
   }
 }
 
@@ -377,6 +380,9 @@ void PikaServer::DeleteSlave(int fd) {
   slash::RWLock l(&state_protector_, true);
   if (slave_num == 0) {
     role_ &= ~PIKA_ROLE_MASTER;
+    if (DoubleMasterMode()) {
+      role_ |= PIKA_ROLE_DOUBLE_MASTER; 
+    }
   }
 }
 
@@ -625,6 +631,9 @@ void PikaServer::MinusMasterConnection() {
       // two connection with master has been deleted
       if (role_ & PIKA_ROLE_SLAVE) {
         repl_state_ = PIKA_REPL_CONNECT; // not change by slaveof no one, so set repl_state = PIKA_REPL_CONNECT, continue to connect master
+        if (role_ == PIKA_ROLE_DOUBLE_MASTER) {
+          double_master_state_ = PIKA_REPL_CONNECT;
+        }
       } else {
         repl_state_ = PIKA_REPL_NO_CONNECT; // change by slaveof no one, so set repl_state = PIKA_REPL_NO_CONNECT, reset to SINGLE state
       }
