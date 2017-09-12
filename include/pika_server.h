@@ -151,18 +151,6 @@ class PikaServer {
 
   slash::Mutex double_mutex_; // protect double master;
 
-  void DoubleMasterRequestDone();
-
-  void ResetDoubleMasterState() {
-    slash::RWLock(&double_state_protector_, false);
-    double_master_state_ = PIKA_REPL_NO_CONNECT;
-  }
-
-  int double_master_state() {
-    slash::RWLock(&double_state_protector_, false);
-    return double_master_state_;
-  }
-
   void Start();
 
   void Exit() {

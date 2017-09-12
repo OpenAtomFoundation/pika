@@ -120,7 +120,6 @@ bool PikaTrysyncThread::RecvProc() {
         if ((g_pika_server->master_ip() == g_pika_conf->double_master_ip() || g_pika_conf->double_master_ip() == "127.0.0.1")
              && g_pika_server->master_port() == g_pika_conf->double_master_port()) {
           g_pika_server->RemoveMaster();
-          g_pika_server->ResetDoubleMasterState();
           LOG(INFO) << "Because the invalid filenum and offset, close the connection between the peer-masters";
         } else {  // In master slave mode
           LOG(WARNING) << "something wrong with sync, come in SyncError stage";
@@ -266,9 +265,7 @@ void* PikaTrysyncThread::ThreadMain() {
         g_pika_server->ConnectMasterDone();
         // Stop rsync, binlog sync with master is begin
         slash::StopRsync(dbsync_path);
-        if (g_pika_server->DoubleMasterMode()) {
-          g_pika_server->DoubleMasterRequestDone();
-        }
+
         delete g_pika_server->ping_thread_;
         g_pika_server->ping_thread_ = new PikaSlavepingThread(sid_);
         g_pika_server->ping_thread_->StartThread();

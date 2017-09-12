@@ -440,9 +440,6 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
         std::string double_master_ip = g_pika_conf->double_master_ip();
         int32_t double_master_port = g_pika_conf->double_master_port();
         SetMaster(double_master_ip, double_master_port);
-        DoubleMasterRequestDone();
-      } else if (DoubleMasterMode() && iter->sid == double_master_sid_) {
-        DoubleMasterRequestDone(); 
       }
       break;
     }
@@ -556,7 +553,6 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
       return true;
     } else {
       role_ |= PIKA_ROLE_DOUBLE_MASTER;
-      double_master_state_ = PIKA_REPL_CONNECT;
       repl_state_ = PIKA_REPL_CONNECT;
       LOG(INFO) << "In double-master mode, do not open read-only mode";
       return true;
@@ -597,15 +593,6 @@ bool PikaServer::ShouldConnectMaster() {
     return true;
   }
   return false;
-}
-
-void PikaServer::DoubleMasterRequestDone() {
-  slash::RWLock l(&state_protector_, true);
-  if (double_master_state_ == PIKA_REPL_CONNECT) {
-    double_master_state_ = PIKA_REPL_DOUBLE_MASTER_CONNECTING;
-  } else if (double_master_state_ == PIKA_REPL_DOUBLE_MASTER_CONNECTING) {
-    double_master_state_ = PIKA_REPL_DOUBLE_MASTER_CONNECTED;
-  }
 }
 
 void PikaServer::ConnectMasterDone() {

@@ -103,7 +103,7 @@ void SlaveofCmd::Do() {
   // The conf file already configured double-master item, but now this
   // connection maybe broken and need to rsync all of binlog
   if (g_pika_server->DoubleMasterMode() && ((g_pika_conf->double_master_ip() == master_ip_ || g_pika_server->host() == master_ip_) && g_pika_conf->double_master_port() == master_port_)
-      && g_pika_server->double_master_state() == PIKA_REPL_NO_CONNECT) {
+      && g_pika_server->repl_state() == PIKA_REPL_NO_CONNECT) {
     g_pika_server->PurgeLogs(0, true, true);
     g_pika_server->SetForceFullSync(true);
     
@@ -166,9 +166,8 @@ void TrysyncCmd::Do() {
     // In the double master mode, need to remove the peer-master
     if (g_pika_server->DoubleMasterMode() && (g_pika_conf->double_master_ip() == slave_ip_ || (g_pika_conf->double_master_ip() == "127.0.0.1" && g_pika_server->host() == slave_ip_))
         && g_pika_conf->double_master_port() == slave_port_
-        && g_pika_server->double_master_state() != PIKA_REPL_NO_CONNECT) {
+        && g_pika_server->repl_state() != PIKA_REPL_NO_CONNECT) {
       g_pika_server->RemoveMaster();
-      g_pika_server->ResetDoubleMasterState();
       LOG(INFO) << "Because the invalid filenum and offset, close the connection between the peer-masters";
     }
 
@@ -713,7 +712,6 @@ void InfoCmd::InfoDoubleMaster(std::string &info) {
   tmp_stream << "the peer-master port:" << g_pika_server->master_port() << "\r\n";
   tmp_stream << "double_master_mode: " << (g_pika_server->DoubleMasterMode() ? "True" : "False") << "\r\n";
   tmp_stream << "repl_state: " << (g_pika_server->repl_state()) << "\r\n";
-  tmp_stream << "double_master_state: " << (g_pika_server->double_master_state()) << "\r\n";
   tmp_stream << "double_master_server_id:" << g_pika_server->DoubleMasterSid() << "\r\n";
   uint64_t double_recv_offset;
   uint32_t double_recv_num;
