@@ -78,10 +78,8 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void SlaveofCmd::Do() {
-  bool sm_ret;
   // In master-salve mode
-  if (!g_pika_server->DoubleMasterMode() && ((g_pika_conf->double_master_ip() != master_ip_ || g_pika_server->host() != master_ip_)
-                                             && g_pika_conf->double_master_port() != master_port_)) {
+  if (!g_pika_server->DoubleMasterMode()) {
     if (is_noone_) {
       // Stop rsync
       LOG(INFO) << "start slaveof, stop rsync first";
@@ -107,11 +105,10 @@ void SlaveofCmd::Do() {
     g_pika_server->PurgeLogs(0, true, true);
     g_pika_server->SetForceFullSync(true);
     
-    sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
     g_pika_conf->SetReadonly(true);
-  } else {
-    sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
   }
+
+  bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
   
   if (sm_ret) {
     res_.SetRes(CmdRes::kOk);

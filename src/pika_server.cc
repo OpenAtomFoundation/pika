@@ -40,7 +40,6 @@ PikaServer::PikaServer() :
   force_full_sync_(false),
   double_master_sid_(0),
   double_master_mode_(false),
-  double_master_state_(PIKA_REPL_NO_CONNECT),
   bgsave_engine_(NULL),
   purging_(false),
   binlogbg_exit_(false),
@@ -436,7 +435,7 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
       LOG(INFO) << "New Master-Slave connection established successfully, Slave host: " << iter->ip_port;
       
       // If receive 'spci' from the peer-master
-      if (DoubleMasterMode() && double_master_state_ == PIKA_REPL_NO_CONNECT && iter->sid == double_master_sid_) {
+      if (DoubleMasterMode() && repl_state_ == PIKA_REPL_NO_CONNECT && iter->sid == double_master_sid_) {
         std::string double_master_ip = g_pika_conf->double_master_ip();
         int32_t double_master_port = g_pika_conf->double_master_port();
         SetMaster(double_master_ip, double_master_port);
@@ -563,7 +562,7 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
 
 bool PikaServer::WaitingDBSync() {
   slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_ << " double_master_repl_state: " << double_master_state_;
+  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
   if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
     return true;
   }
@@ -618,9 +617,6 @@ void PikaServer::MinusMasterConnection() {
       // two connection with master has been deleted
       if (role_ & PIKA_ROLE_SLAVE) {
         repl_state_ = PIKA_REPL_CONNECT; // not change by slaveof no one, so set repl_state = PIKA_REPL_CONNECT, continue to connect master
-        if (role_ == PIKA_ROLE_DOUBLE_MASTER) {
-          double_master_state_ = PIKA_REPL_CONNECT;
-        }
       } else {
         repl_state_ = PIKA_REPL_NO_CONNECT; // change by slaveof no one, so set repl_state = PIKA_REPL_NO_CONNECT, reset to SINGLE state
       }
@@ -842,7 +838,7 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
     // Not found binlog specified by filenum
     // If in double-master mode, return error status
     if (DoubleMasterMode() && (g_pika_conf->double_master_ip() == ip || (g_pika_conf->double_master_ip() == "127.0.0.1" && host() == ip)) && g_pika_conf->double_master_port() == port
-        && double_master_state_ != PIKA_REPL_NO_CONNECT) {
+        && repl_state_ != PIKA_REPL_NO_CONNECT) {
       return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
     }
 
