@@ -117,8 +117,7 @@ bool PikaTrysyncThread::RecvProc() {
         g_pika_server->NeedWaitDBSync();
       } else {
         // In double master mode
-        if ((g_pika_server->master_ip() == g_pika_conf->double_master_ip() || g_pika_conf->double_master_ip() == "127.0.0.1")
-             && g_pika_server->master_port() == g_pika_conf->double_master_port()) {
+        if (g_pika_server->IsDoubleMaster(g_pika_server->master_ip(), g_pika_server->master_port())) {
           g_pika_server->RemoveMaster();
           LOG(INFO) << "Because the invalid filenum and offset, close the connection between the peer-masters";
         } else {  // In master slave mode
@@ -200,8 +199,7 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
 
   // If sender is the peer-master
   // need to recover the double mode after rsync finished.
-  if (g_pika_server->DoubleMasterMode() && ((g_pika_conf->double_master_ip() == master_ip || g_pika_server->host() == master_ip)
-                                             && g_pika_conf->double_master_port() == master_port)) {
+  if (g_pika_server->DoubleMasterMode() && g_pika_server->IsDoubleMaster(master_ip, master_port)) {
     g_pika_server->logger_->SetDoubleRecvInfo(filenum, offset);
     uint32_t update_filenum;
     uint64_t update_offset;

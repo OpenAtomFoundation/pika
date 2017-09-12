@@ -135,21 +135,14 @@ class PikaServer {
    * Double master use
    */
   bool DoubleMasterMode() {
-    slash::MutexLock l(&double_mutex_);
     return double_master_mode_;
   }
 
-  void SetDoubleMasterMode(bool mode) {
-    slash::MutexLock l(&double_mutex_);
-    double_master_mode_ = mode;
-  }
-
   int64_t DoubleMasterSid() {
-    slash::MutexLock l(&double_mutex_);
     return double_master_sid_;
   }
 
-  slash::Mutex double_mutex_; // protect double master;
+  bool IsDoubleMaster(const std::string master_ip, int master_port);
 
   void Start();
 
@@ -394,7 +387,6 @@ class PikaServer {
   /*
    * Double master use
    */
-  pthread_rwlock_t double_state_protector_; //protect below, use for double-master mode
   int64_t double_master_sid_;
   bool double_master_mode_;
   /*

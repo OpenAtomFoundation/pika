@@ -424,6 +424,15 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
   return true;
 }
 
+bool PikaServer::IsDoubleMaster(const std::string master_ip, int master_port) {
+  if ((g_pika_conf->double_master_ip() == master_ip || host() == master_ip) && g_pika_conf->double_master_port() == master_port) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
 void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
@@ -463,7 +472,7 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   // Not exist, so add new
   LOG(INFO) << "Add new slave, " << ip << ":" << port;
   SlaveItem s;
-  if (DoubleMasterMode() && (ip == g_pika_conf->double_master_ip() || ip == host()) && port == g_pika_conf->double_master_port()) {  // Double master mode
+  if (DoubleMasterMode() && IsDoubleMaster(ip, port)) {  // Double master mode
     s.sid = double_master_sid_;
   } else {
     s.sid = GenSid();
@@ -837,8 +846,7 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
   if (!slash::FileExists(confile)) {
     // Not found binlog specified by filenum
     // If in double-master mode, return error status
-    if (DoubleMasterMode() && (g_pika_conf->double_master_ip() == ip || (g_pika_conf->double_master_ip() == "127.0.0.1" && host() == ip)) && g_pika_conf->double_master_port() == port
-        && repl_state_ != PIKA_REPL_NO_CONNECT) {
+    if (DoubleMasterMode() && IsDoubleMaster(ip, port) && repl_state_ != PIKA_REPL_NO_CONNECT) {
       return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
     }
 
