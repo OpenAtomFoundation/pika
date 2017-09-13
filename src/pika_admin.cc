@@ -1121,19 +1121,21 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     ret = "+OK\r\n";
   } else if (set_item == "compact-cron") {
     bool invalid = false;
-    std::string::size_type len = value.length();
-    std::string::size_type colon = value.find("-");
-    std::string::size_type underline = value.find("/");
-    if (colon == std::string::npos || underline == std::string::npos ||
-        colon >= underline || colon + 1 >= len ||
-        colon + 1 == underline || underline + 1 >= len) {
-      invalid = true;
-    } else {
-      int start = std::atoi(value.substr(0, colon).c_str());
-      int end = std::atoi(value.substr(colon+1, underline).c_str());
-      int usage = std::atoi(value.substr(underline+1).c_str());
-      if (start < 0 || start > 23 || end < 0 || end > 23 || usage < 0 || usage > 100) {
+    if (value != "") {
+      std::string::size_type len = value.length();
+      std::string::size_type colon = value.find("-");
+      std::string::size_type underline = value.find("/");
+      if (colon == std::string::npos || underline == std::string::npos ||
+          colon >= underline || colon + 1 >= len ||
+          colon + 1 == underline || underline + 1 >= len) {
         invalid = true;
+      } else {
+        int start = std::atoi(value.substr(0, colon).c_str());
+        int end = std::atoi(value.substr(colon+1, underline).c_str());
+        int usage = std::atoi(value.substr(underline+1).c_str());
+        if (start < 0 || start > 23 || end < 0 || end > 23 || usage < 0 || usage > 100) {
+          invalid = true;
+        }
       }
     }
     if (invalid) {
@@ -1145,15 +1147,17 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
   } else if (set_item == "compact-interval") {
     bool invalid = false;
-    std::string::size_type len = value.length();
-    std::string::size_type slash = value.find("/");
-    if (slash == std::string::npos || slash + 1 >= len) {
-      invalid = true;
-    } else {
-      int interval = std::atoi(value.substr(0, slash).c_str());
-      int usage = std::atoi(value.substr(slash+1).c_str());
-      if (interval <= 0 || usage < 0 || usage > 100) {
+    if (value != "") {
+      std::string::size_type len = value.length();
+      std::string::size_type slash = value.find("/");
+      if (slash == std::string::npos || slash + 1 >= len) {
         invalid = true;
+      } else {
+        int interval = std::atoi(value.substr(0, slash).c_str());
+        int usage = std::atoi(value.substr(slash+1).c_str());
+        if (interval <= 0 || usage < 0 || usage > 100) {
+          invalid = true;
+        }
       }
     }
     if (invalid) {
