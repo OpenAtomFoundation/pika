@@ -198,13 +198,10 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
   g_pika_server->logger_->SetProducerStatus(filenum, offset);
 
   // If sender is the peer-master
-  // need to recover the double mode after rsync finished.
+  // need to update receive binlog info after rsync finished.
   if (g_pika_server->DoubleMasterMode() && g_pika_server->IsDoubleMaster(master_ip, master_port)) {
     g_pika_server->logger_->SetDoubleRecvInfo(filenum, offset);
-    uint32_t update_filenum;
-    uint64_t update_offset;
-    g_pika_server->logger_->GetDoubleRecvInfo(&update_filenum, &update_offset);
-    LOG(INFO) << "Update receive infomation after rsync finished. filenum: " << update_filenum << " offset: " << update_offset;
+    LOG(INFO) << "Update receive infomation after rsync finished. filenum: " << filenum << " offset: " << offset;
     // Close read-only mode
     g_pika_conf->SetReadonly(false);
   }

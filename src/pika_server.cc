@@ -751,9 +751,13 @@ void PikaServer::DoDBSync(void* arg) {
 
 void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   std::string bg_path;
+  uint32_t binlog_filenum;
+  uint64_t binlog_offset;
   {
     slash::MutexLock l(&bgsave_protector_);
     bg_path = bgsave_info_.path;
+    binlog_filenum = bgsave_info_.filenum;
+    binlog_offset = bgsave_info_.offset;
   }
   // Get all files need to send
   std::vector<std::string> descendant;
@@ -806,15 +810,12 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   if (0 == ret) {
     LOG(INFO) << "rsync send files success";
     // If receiver is the peer-master, 
-    // need to re-add it and recover the double mode
+    // need to update receive binlog info
     if ((g_pika_conf->double_master_ip() == ip || host() == ip)
         && (g_pika_conf->double_master_port() + 3000) == port) {
       // Update Recv Info
-      uint32_t update_filenum;
-      uint64_t update_offset;
-      logger_->GetProducerStatus(&update_filenum, &update_offset);
-      logger_->SetDoubleRecvInfo(update_filenum, update_offset);
-      LOG(INFO) << "Update recv info filenum: " << update_filenum << " offset: " << update_offset;
+      logger_->SetDoubleRecvInfo(binlog_filenum, binlog_offset);
+      LOG(INFO) << "Update recv info filenum: " << binlog_filenum << " offset: " << binlog_offset;
     }
   }
 }
