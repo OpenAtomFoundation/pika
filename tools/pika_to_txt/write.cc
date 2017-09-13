@@ -35,7 +35,6 @@ void *WriteThread::ThreadMain() {
     if (QueueSize() != 0) {
       data_mutex_.Lock();
       std::string data = data_.front();
-      std::cout << data << std::endl;
       data_.pop();  
       wsignal_.Signal();
       data_mutex_.Unlock();

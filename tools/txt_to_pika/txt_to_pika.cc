@@ -30,19 +30,20 @@ int main(int argc, char **argv) {
   int index = 4;
   if (argc > 4) {
     while (index < (argc -1)) {
-      if (std::string(argv[index++]) == "-n") {
+      int flag = index++;
+      if (std::string(argv[flag]) == "-n") {
         thread_num = std::stoi(std::string(argv[index++]));
         if (index > (argc - 1)) {
           break; 
         }
       }
-      if (std::string(argv[index++]) == "-t") {
+      if (std::string(argv[flag]) == "-t") {
         ttl = std::stoi(std::string(argv[index++]));
         if (index > (argc - 1)) {
           break; 
         }
       }
-      if (std::string(argv[index++]) == "-p") {
+      if (std::string(argv[flag]) == "-p") {
         password = std::string(argv[index++]);
         if (index > (argc - 1)) {
           break; 

@@ -10,10 +10,10 @@ void ScanThread::ScanFile() {
 
   std::ifstream fout(filename_, std::ios::binary);
   fout.seekg(0, std::ios::end);
-  int filesize = fout.tellg();
+  uint64_t  filesize = fout.tellg();
   fout.seekg(0, std::ios::beg);
 
-  int index = 0;
+  uint64_t index = 0;
   while (index < filesize) {
     std::string str_key, str_value, cmd;
     uint32_t key_len;
