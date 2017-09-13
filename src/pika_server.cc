@@ -846,7 +846,7 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
   if (!slash::FileExists(confile)) {
     // Not found binlog specified by filenum
     // If in double-master mode, return error status
-    if (DoubleMasterMode() && IsDoubleMaster(ip, port) && repl_state_ != PIKA_REPL_NO_CONNECT) {
+    if (DoubleMasterMode() && IsDoubleMaster(ip, port) && filenum != UINT32_MAX) {
       return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
     }
 

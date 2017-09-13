@@ -100,10 +100,15 @@ void SlaveofCmd::Do() {
 
   // The conf file already configured double-master item, but now this
   // connection maybe broken and need to rsync all of binlog
-  if (g_pika_server->DoubleMasterMode() && g_pika_server->IsDoubleMaster(master_ip_, master_port_) && g_pika_server->repl_state() == PIKA_REPL_NO_CONNECT) {
-    g_pika_server->PurgeLogs(0, true, true);
-    g_pika_server->SetForceFullSync(true);
-    g_pika_conf->SetReadonly(true);
+  if (g_pika_server->DoubleMasterMode() && g_pika_server->repl_state() == PIKA_REPL_NO_CONNECT) {
+    if (g_pika_server->IsDoubleMaster(master_ip_, master_port_)) {
+      g_pika_server->PurgeLogs(0, true, true);
+      g_pika_server->SetForceFullSync(true);
+      g_pika_conf->SetReadonly(true);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "In double master mode, can not set other server as the peer-master");
+      return;
+    }
   }
 
   bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
@@ -159,7 +164,7 @@ void TrysyncCmd::Do() {
     g_pika_server->DeleteSlave(slave_ip_, slave_port_);
 
     // In the double master mode, need to remove the peer-master
-    if (g_pika_server->DoubleMasterMode() && g_pika_server->IsDoubleMaster(slave_ip_, slave_port_) && g_pika_server->repl_state() != PIKA_REPL_NO_CONNECT) {
+    if (g_pika_server->DoubleMasterMode() && g_pika_server->IsDoubleMaster(slave_ip_, slave_port_) && filenum_ != UINT32_MAX) {
       g_pika_server->RemoveMaster();
       LOG(INFO) << "Because the invalid filenum and offset, close the connection between the peer-masters";
     }
