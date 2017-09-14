@@ -43,10 +43,10 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 
 ## 编译安装
 
-1.在编译机上安装snappy，glog，protobuf，CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
+1.在编译机上安装snappy，glog，CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
 
 ```
-    yum install snappy-devel protobuf-devel glog-devel
+    yum install snappy-devel glog-devel
 ```
 
 2.安装g++(若没有安装), 在CentOS上执行如下命令：

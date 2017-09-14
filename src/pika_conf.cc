@@ -163,13 +163,13 @@ int PikaConf::Load()
     max_background_flushes_ = 4;
   }
 
-  max_background_compactions_ = 1;
+  max_background_compactions_ = 2;
   GetConfInt("max-background-compactions", &max_background_compactions_);
   if (max_background_compactions_ <= 0) {
-    max_background_compactions_ = 1;
+    max_background_compactions_ = 2;
   }
-  if (max_background_compactions_ >= 4) {
-    max_background_compactions_ = 4;
+  if (max_background_compactions_ >= 8) {
+    max_background_compactions_ = 8;
   }
 
   max_cache_files_ = 5000;

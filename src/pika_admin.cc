@@ -565,6 +565,7 @@ void InfoCmd::InfoStats(std::string &info) {
   tmp_stream << "\r\n";
   tmp_stream << "is_compact:" << g_pika_server->db()->GetCurrentTaskType() << "\r\n";
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
+  tmp_stream << "compact_interval:" << g_pika_conf->compact_interval() << "\r\n";
 
   info.append(tmp_stream.str());
 }
