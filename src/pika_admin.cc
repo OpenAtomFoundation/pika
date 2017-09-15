@@ -666,7 +666,12 @@ void InfoCmd::InfoReplication(std::string &info) {
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
     case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\n"; break;
-    case PIKA_ROLE_DOUBLE_MASTER : tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
+    case PIKA_ROLE_DOUBLE_MASTER :
+        if (g_pika_server->DoubleMasterMode()) {
+          tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
+        } else {
+          tmp_stream << "MASTER/SLAVE)\r\nrole:slave\r\n"; break;
+        }
     default: info.append("ERR: server role is error\r\n"); return;
   }
 
@@ -702,12 +707,17 @@ void InfoCmd::InfoDoubleMaster(std::string &info) {
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
     case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\b"; break;
-    case PIKA_ROLE_DOUBLE_MASTER : tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
+    case PIKA_ROLE_DOUBLE_MASTER :
+        if (g_pika_server->DoubleMasterMode()) {
+          tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
+        } else {
+          tmp_stream << "MASTER/SLAVE)\r\nrole:slave\r\n"; break;
+        }
     default : info.append("ERR: server role is error\r\n"); return;
   }
 
-  tmp_stream << "the peer-master host:" << g_pika_server->master_ip() << "\r\n";
-  tmp_stream << "the peer-master port:" << g_pika_server->master_port() << "\r\n";
+  tmp_stream << "the peer-master host:" << g_pika_conf->double_master_ip() << "\r\n";
+  tmp_stream << "the peer-master port:" << g_pika_conf->double_master_port() << "\r\n";
   tmp_stream << "double_master_mode: " << (g_pika_server->DoubleMasterMode() ? "True" : "False") << "\r\n";
   tmp_stream << "repl_state: " << (g_pika_server->repl_state()) << "\r\n";
   tmp_stream << "double_master_server_id:" << g_pika_server->DoubleMasterSid() << "\r\n";
