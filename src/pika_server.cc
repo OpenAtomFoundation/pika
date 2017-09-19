@@ -30,6 +30,7 @@ extern PikaConf *g_pika_conf;
 PikaServer::PikaServer() :
   ping_thread_(NULL),
   exit_(false),
+  binlog_io_error_(false),
   have_scheduled_crontask_(false),
   last_check_compact_time_({0, 0}),
   sid_(0),
