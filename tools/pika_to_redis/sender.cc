@@ -119,6 +119,7 @@ void Sender::SendCommand(std::string &command, const std::string &key) {
 void *Sender::ThreadMain() {
   log_info("Start sender thread...");
   expire_command_.clear();
+  int cnt = 0;
 
   while (!should_exit_ || QueueSize() != 0 || !expire_command_.empty()) {
     std::string command;
@@ -180,6 +181,7 @@ void *Sender::ThreadMain() {
 
           pink::SerializeRedisCommand(argv, &command);
           SendCommand(command, key);
+          cnt++;
         }
         delete iter;
       } else if (type == nemo::DataType::kSSize) {  // Set
@@ -194,6 +196,7 @@ void *Sender::ThreadMain() {
 
           pink::SerializeRedisCommand(argv, &command);
           SendCommand(command, key);
+          cnt++;
         }
         delete iter;
       } else if (type == nemo::DataType::kLMeta) {  // List
@@ -217,6 +220,7 @@ void *Sender::ThreadMain() {
           }
           pink::SerializeRedisCommand(argv, &command);
           SendCommand(command, key);
+          cnt++;
 
           pos += len;
           ivs.clear();
@@ -238,13 +242,23 @@ void *Sender::ThreadMain() {
 
           pink::SerializeRedisCommand(argv, &command);
           SendCommand(command, key);
+          cnt++;
         }
         delete iter;
       } else if (type == nemo::DataType::kKv) {   // Kv
         std::string k_key = key.substr(1);
         command = k_key;
         SendCommand(command, key);
+        cnt++;
       }
+
+      if (cnt >= 200) {
+        for(; cnt > 0; cnt--) {
+          cli_->Recv(NULL);
+        }
+      }
+
+      continue;
 
       // expire command
       if (type != nemo::DataType::kKv) {
@@ -273,6 +287,9 @@ void *Sender::ThreadMain() {
         }
       }
     }
+  }
+  for(; cnt > 0; cnt--) {
+    cli_->Recv(NULL);
   }
 
   delete cli_;
