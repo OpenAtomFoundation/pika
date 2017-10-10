@@ -60,7 +60,7 @@
 已上线
 
 ## 11. 第一弹
-<img src="http://i.imgur.com/Ll6SifR.png" height = "50" width = "60" alt="DYD">
+<img src="https://imgur.com/KMVr3Z6.png" height = "50" width = "60" alt="DYD">
 
 已上线
 
