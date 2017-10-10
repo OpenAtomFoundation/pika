@@ -130,6 +130,15 @@ class PikaServer {
   void Exit() {
     exit_ = true;
   }
+
+  void SetBinlogIoError(bool error) {
+    binlog_io_error_ = error;
+  }
+
+  bool BinlogIoError() {
+    return binlog_io_error_;
+  }
+
   void DoTimingTask();
   void Cleanup();
 
@@ -334,6 +343,7 @@ class PikaServer {
 
  private:
   std::atomic<bool> exit_;
+  std::atomic<bool> binlog_io_error_;
   std::string host_;
   int port_;
   pthread_rwlock_t rwlock_;
