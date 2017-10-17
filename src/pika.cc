@@ -190,6 +190,15 @@ int main(int argc, char *argv[]) {
   }
 
   g_pika_server->Start();
+  
+  if (g_pika_conf->daemonize()) {
+    unlink(g_pika_conf->pidfile().c_str());
+  }
 
+  delete g_pika_server;
+  DestoryCmdInfoTable();
+  ::google::ShutdownGoogleLogging();
+  delete g_pika_conf;
+  
   return 0;
 }

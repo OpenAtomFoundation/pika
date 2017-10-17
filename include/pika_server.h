@@ -140,7 +140,6 @@ class PikaServer {
   }
 
   void DoTimingTask();
-  void Cleanup();
 
   PikaSlavepingThread* ping_thread_;
 

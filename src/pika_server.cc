@@ -139,7 +139,6 @@ PikaServer::~PikaServer() {
   StopKeyScan();
   key_scan_thread_.StopThread();
 
-  DestoryCmdInfoTable();
   delete logger_;
   db_.reset();
   pthread_rwlock_destroy(&state_protector_);
@@ -228,22 +227,6 @@ bool PikaServer::ServerInit() {
 
 }
 
-void PikaServer::Cleanup() {
-  // shutdown server
-  if (g_pika_conf->daemonize()) {
-    unlink(g_pika_conf->pidfile().c_str());
-  }
-
-//  DestoryCmdInfoTable();
-
-  //g_pika_server->shutdown = true;
-  //sleep(1);
-
-  delete this;
-  delete g_pika_conf;
-  ::google::ShutdownGoogleLogging();
-}
-
 void PikaServer::Start() {
   int ret = 0;
   ret = pika_dispatch_thread_->StartThread();
@@ -296,7 +279,6 @@ void PikaServer::Start() {
     }
   }
   LOG(INFO) << "Goodbye...";
-  Cleanup();
 }
 
 void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
