@@ -844,6 +844,13 @@ bool PikaServer::InitBgsaveEngine() {
 }
 
 bool PikaServer::RunBgsaveEngine(const std::string path) {
+  // Prepare for Bgsaving
+  if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
+    ClearBgsave();
+    return false;
+  }
+  LOG(INFO) << "after prepare bgsave";
+
   // Backup to tmp dir
   nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(path);
   LOG(INFO) << "Create new backup finished.";
@@ -864,13 +871,6 @@ void PikaServer::Bgsave() {
     }
     bgsave_info_.bgsaving = true;
   }
-
-  // Prepare for Bgsaving
-  if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
-    ClearBgsave();
-    return;
-  }
-  LOG(INFO) << "after prepare bgsave";
 
   // Start new thread if needed
   bgsave_thread_.StartThread();
