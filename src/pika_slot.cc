@@ -582,6 +582,8 @@ int SlotsMgrtTagSlotCmd::SlotKeyPop(){
     if (!s.ok()) {
         LOG(WARNING) << "Zrem key: " << key_ <<" from slotKey, error: " <<strerror(errno);
     }
+
+    delete iter;
     return 0;
 }
 
