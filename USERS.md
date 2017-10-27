@@ -95,6 +95,9 @@
 Venus平台已经上线pika+QConf，其他系统在陆续上线中
 
 ## 17. 脉脉
-<img src="https://imgur.com/qN6z25x.png" height = "50" width = "60" alt="MST">
+<img src="https://imgur.com/qN6z25x.png" height = "50" width = "60" alt="MM">
+
+## 18. 唯品会
+<img src="https://i.imgur.com/G9MOvZe.jpg" height = "50" width = "60" alt="VIP">
 
 已上线
