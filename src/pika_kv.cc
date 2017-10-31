@@ -798,12 +798,3 @@ void ScanCmd::Do() {
   }
   return;
 }
-
-
-
-
-
-
-
-
-
