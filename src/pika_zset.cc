@@ -969,4 +969,3 @@ void ZRemrangebylexCmd::Do() {
   res_.AppendInteger(count);
   return;
 }
-
