@@ -675,12 +675,16 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   }
   // Get all files need to send
   std::vector<std::string> descendant;
-  if (!slash::GetChildren(bg_path, descendant)) {
-    LOG(WARNING) << "Get child directory when try to do db sync failed";
+  int ret = 0;
+  LOG(INFO) << "Start Send files in " << bg_path << " to " << ip;
+  ret = slash::GetChildren(bg_path, descendant);
+  if (ret != 0) {
+    LOG(WARNING) << "Get child directory when try to do sync failed, error: " << strerror(ret);
+    return;
   }
 
   // Iterate to send files
-  int ret = 0;
+  ret = 0;
   std::string local_path, target_path;
   std::string module = kDBSyncModule + "_" + slash::IpPortString(host_, port_);
   std::vector<std::string>::iterator it = descendant.begin();
