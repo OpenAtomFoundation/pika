@@ -474,7 +474,3 @@ void HScanCmd::Do() {
   }
   return;
 }
-
-
-
-
