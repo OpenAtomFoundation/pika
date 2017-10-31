@@ -294,4 +294,3 @@ void* PikaBinlogSenderThread::ThreadMain() {
   }
   return NULL;
 }
-

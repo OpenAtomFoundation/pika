@@ -224,6 +224,3 @@ void BitOpCmd::Do() {
   }
 
 }
-
-
-
