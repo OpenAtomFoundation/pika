@@ -93,6 +93,7 @@ PikaServer::PikaServer() :
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
+  pika_pubsub_thread_ = new pink::PubSubThread();
 
   //for (int j = 0; j < g_pika_conf->binlogbg_thread_num; j++) {
   for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
@@ -125,6 +126,7 @@ PikaServer::~PikaServer() {
   delete pika_trysync_thread_;
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
+  delete pika_pubsub_thread_;
 
   binlogbg_exit_ = true;
   std::vector<BinlogBGWorker*>::iterator binlogbg_iter = binlogbg_workers_.begin();
@@ -253,6 +255,13 @@ void PikaServer::Start() {
     db_.reset();
     LOG(FATAL) << "Start Trysync Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
   }
+  ret = pika_pubsub_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Pubsub Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+  }
+
 
   time(&start_time_s_);
 
@@ -1310,6 +1319,22 @@ void PikaServer::DoPurgeDir(void* arg) {
   slash::DeleteDir(path);
   LOG(INFO) << "Delete dir: " << path << " done";
   delete static_cast<std::string*>(arg);
+}
+
+// PubSub
+int PikaServer::Publish(int fd, const std::string& channel, const std::string& msg) {
+  int receivers = pika_pubsub_thread_->Publish(fd, channel, msg);
+  return receivers;
+}
+
+void PikaServer::Subscribe(pink::PinkConn* conn, const std::vector<std::string> channels) {
+  std::string resp = "+OK\r\n";
+  pika_pubsub_thread_->Subscribe(conn, channels, false, resp);
+}
+
+void PikaServer::UnSubscribe(pink::PinkConn* conn, const std::vector<std::string> channels) {
+  std::string resp = "+OK\r\n";
+  pika_pubsub_thread_->UnSubscribe(conn, channels, false, resp);
 }
 
 void PikaServer::AddMonitorClient(PikaClientConn* client_ptr) {

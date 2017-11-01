@@ -82,12 +82,38 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return c_ptr->res().message();
   }
 
+  // Monitor
   if (opt == kCmdNameMonitor) {
     pink::PinkConn* conn = server_thread_->MoveConnOut(fd());
     assert(conn == this);
     g_pika_server->AddMonitorClient(static_cast<PikaClientConn*>(conn));
     g_pika_server->AddMonitorMessage("OK");
     return ""; // Monitor thread will return "OK"
+  }
+  
+  // PubSub
+  if (opt == kCmdNamePublish) {               // Publish
+    std::string channel = argv_[1];
+    std::string msg = argv_[2];
+    std::string redis_msg = "+" + msg + "\r\n";
+    int receivers = g_pika_server->Publish(fd(), channel, redis_msg);
+    return ":"+ std::to_string(receivers) + "\r\n";
+  } else if (opt == kCmdNameSubscribe) {      // Subscribe
+    pink::PinkConn* conn = server_thread_->MoveConnOut(fd());
+    std::vector<std::string > channels;
+    for(size_t i = 1; i < argv_.size(); i++) {
+      channels.push_back(argv_[i]);
+    }
+    g_pika_server->Subscribe(conn, channels);
+    return "";
+  } else if (opt == kCmdNameUnSubscribe) {    // UnSubscribe
+    pink::PinkConn* conn = server_thread_->MoveConnOut(fd());
+    std::vector<std::string > channels;
+    for(size_t i = 1; i < argv_.size(); i++) {
+      channels.push_back(argv_[i]);
+    }
+    g_pika_server->UnSubscribe(conn, channels);
+    return "";
   }
 
   std::string raw_args;
