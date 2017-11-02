@@ -1327,14 +1327,12 @@ int PikaServer::Publish(int fd, const std::string& channel, const std::string& m
   return receivers;
 }
 
-void PikaServer::Subscribe(pink::PinkConn* conn, const std::vector<std::string> channels) {
-  std::string resp = "+OK\r\n";
-  pika_pubsub_thread_->Subscribe(conn, channels, false, resp);
+void PikaServer::Subscribe(pink::PinkConn* conn, const std::vector<std::string> channels, std::map<std::string, int>& result) {
+  pika_pubsub_thread_->Subscribe(conn, channels, false, result);
 }
 
-void PikaServer::UnSubscribe(pink::PinkConn* conn, const std::vector<std::string> channels) {
-  std::string resp = "+OK\r\n";
-  pika_pubsub_thread_->UnSubscribe(conn, channels, false, resp);
+void PikaServer::UnSubscribe(pink::PinkConn* conn, const std::vector<std::string> channels, std::map<std::string, int>& result) {
+  pika_pubsub_thread_->UnSubscribe(conn, channels, false, result);
 }
 
 void PikaServer::AddMonitorClient(PikaClientConn* client_ptr) {
