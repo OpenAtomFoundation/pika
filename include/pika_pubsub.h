@@ -37,4 +37,31 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
+class PUnSubscribeCmd : public Cmd {
+public:
+  PUnSubscribeCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
+
+class PSubscribeCmd : public Cmd {
+public:
+  PSubscribeCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
+
+class PubSubCmd : public Cmd {
+public:
+  PubSubCmd() {
+  }
+  virtual void Do();
+private:
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
+
 #endif

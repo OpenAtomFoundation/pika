@@ -35,3 +35,33 @@ void UnSubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 void UnSubscribeCmd::Do() {
 }
 
+void PSubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePSubscribe);
+    return;
+  }
+}
+
+void PSubscribeCmd::Do() {
+}
+
+void PUnSubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePUnSubscribe);
+    return;
+  }
+}
+
+void PUnSubscribeCmd::Do() {
+}
+
+void PubSubCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePubSub);
+    return;
+  }
+}
+
+void PubSubCmd::Do() {
+}
+

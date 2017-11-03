@@ -27,6 +27,7 @@ class PikaClientConn: public pink::RedisConn {
   void SetPubSub(bool is_pubsub) {
     is_pubsub_ = is_pubsub; 
   }
+
  private:
   pink::ServerThread* const server_thread_;
   CmdTable* const cmds_table_;

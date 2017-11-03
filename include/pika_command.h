@@ -179,6 +179,9 @@ const std::string kCmdNameGeoRadiusByMember = "georadiusbymember";
 const std::string kCmdNamePublish = "publish";
 const std::string kCmdNameSubscribe = "subscribe";
 const std::string kCmdNameUnSubscribe = "unsubscribe";
+const std::string kCmdNamePubSub = "pubsub";
+const std::string kCmdNamePSubscribe = "psubscribe";
+const std::string kCmdNamePUnSubscribe = "punsubscribde";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 
