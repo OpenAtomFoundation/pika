@@ -27,7 +27,7 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
   auth_stat_.Init();
 }
 
-std::string ConstructPubSubResp(std::string cmd, std::map<std::string, int> result) {
+std::string ConstructPubSubResp(std::string cmd, std::vector<std::pair<std::string, int>> result) {
   std::stringstream resp;
   for (auto it = result.begin(); it != result.end(); it++) {
     resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd << "\r\n" << "$" << it->first.length() << "\r\n" << it->first << "\r\n" << ":" << it->second << "\r\n";
@@ -94,7 +94,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   // PubSub connection
   if (this->PubSub()) {
     if (opt != kCmdNameSubscribe && opt != kCmdNameUnSubscribe && opt != kCmdNamePing) {
-      return "-ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context";
+      return "-ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context\r\n";
     }
   }
 
@@ -108,13 +108,13 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   // PubSub
-  if (opt == kCmdNamePublish) {               // Publish
+  if (opt == kCmdNamePublish) {                                     // Publish
     std::string channel = argv_[1];
     std::string msg = argv_[2];
     std::string redis_msg = "+" + msg + "\r\n";
     int receivers = g_pika_server->Publish(fd(), channel, redis_msg);
     return ":"+ std::to_string(receivers) + "\r\n";
-  } else if (opt == kCmdNameSubscribe) {      // Subscribe
+  } else if (opt == kCmdNameSubscribe) {                            // Subscribe
     pink::PinkConn* conn = this;
     if (!this->PubSub()) {
       conn = server_thread_->MoveConnOut(fd());
@@ -123,17 +123,21 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     for(size_t i = 1; i < argv_.size(); i++) {
       channels.push_back(argv_[i]);
     }
-    std::map<std::string, int> result;
+    std::vector<std::pair<std::string, int>> result;
     g_pika_server->Subscribe(conn, channels, result);
     this->SetPubSub(true);
-    return ConstructPubSubResp(kCmdNameUnSubscribe, result);
-  } else if (opt == kCmdNameUnSubscribe) {    // UnSubscribe
+    return ConstructPubSubResp(kCmdNameSubscribe, result);
+  } else if (opt == kCmdNameUnSubscribe) {                         // UnSubscribe
     std::vector<std::string > channels;
     for(size_t i = 1; i < argv_.size(); i++) {
       channels.push_back(argv_[i]);
     }
-    std::map<std::string, int> result;
-    g_pika_server->UnSubscribe(this, channels, result);
+    std::vector<std::pair<std::string, int>> result;
+    int subscribed = g_pika_server->UnSubscribe(this, channels, result);
+    if (subscribed == 0) {
+      server_thread_->MoveConnIn(this);
+      this->SetPubSub(false);
+    }
     return ConstructPubSubResp(kCmdNameUnSubscribe, result);
   }
 
