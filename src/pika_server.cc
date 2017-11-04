@@ -1338,6 +1338,10 @@ int PikaServer::UnSubscribe(pink::PinkConn* conn, const std::vector<std::string>
   return subscribed;
 }
 
+void PikaServer::PubSub(std::map<std::string, std::vector<pink::PinkConn* >>& pubsub_channel, std::map<std::string, std::vector<pink::PinkConn* >>& pubsub_pattern) {
+  pika_pubsub_thread_->PubSub(pubsub_channel, pubsub_pattern);
+}
+
 void PikaServer::AddMonitorClient(PikaClientConn* client_ptr) {
   monitor_thread_->AddMonitorClient(client_ptr);
 }

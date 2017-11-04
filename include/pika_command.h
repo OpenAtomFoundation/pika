@@ -181,7 +181,7 @@ const std::string kCmdNameSubscribe = "subscribe";
 const std::string kCmdNameUnSubscribe = "unsubscribe";
 const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
-const std::string kCmdNamePUnSubscribe = "punsubscribde";
+const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 

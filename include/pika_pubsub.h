@@ -61,6 +61,8 @@ public:
   }
   virtual void Do();
 private:
+  std::string subcommand_;
+  std::vector<std::string > arguments_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 

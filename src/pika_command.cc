@@ -421,19 +421,19 @@ void InitCmdInfoTable() {
   CmdInfo* publishptr = new CmdInfo(kCmdNamePublish, 3, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePublish, publishptr));
   //Subscribe
-  CmdInfo* subscribeptr = new CmdInfo(kCmdNameSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub);
+  CmdInfo* subscribeptr = new CmdInfo(kCmdNameSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSubscribe, subscribeptr));
   //UnSubscribe
   CmdInfo* unsubscribeptr = new CmdInfo(kCmdNameUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameUnSubscribe, unsubscribeptr));
   //PSubscribe
-  CmdInfo* psubscribeptr = new CmdInfo(kCmdNamePSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub);
+  CmdInfo* psubscribeptr = new CmdInfo(kCmdNamePSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePSubscribe, psubscribeptr));
   //PUnSubscribe
   CmdInfo* punsubscribeptr = new CmdInfo(kCmdNamePUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePUnSubscribe, punsubscribeptr));
   //PubSub
-  CmdInfo* pubsubptr = new CmdInfo(kCmdNamePubSub, -1, kCmdFlagsRead | kCmdFlagsPubSub);
+  CmdInfo* pubsubptr = new CmdInfo(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePubSub, pubsubptr));
 }
 
