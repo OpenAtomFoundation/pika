@@ -65,7 +65,7 @@ void PubSubCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   }
   subcommand_ = slash::StringToLower(argv[1]);
   if (subcommand_ != "channels" && subcommand_ != "numsub" && subcommand_ != "numpat") {
-    res_.SetRes(CmdRes::kErrOther, "ERR Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
+    res_.SetRes(CmdRes::kErrOther, "Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
   }
   for (size_t i = 2; i < argv.size(); i++) {
     arguments_.push_back(argv[i]); 
