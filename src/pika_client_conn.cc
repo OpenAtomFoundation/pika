@@ -113,7 +113,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
   // PubSub
   if (opt == kCmdNamePublish) {                                     // Publish
-    std::string channel = argv_[1];
+    std::string channel = slash::StringToLower(argv_[1]);
     std::string msg = argv_[2];
     int receivers = g_pika_server->Publish(fd(), channel, msg);
     return ":"+ std::to_string(receivers) + "\r\n";
@@ -124,7 +124,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     }
     std::vector<std::string > channels;
     for(size_t i = 1; i < argv_.size(); i++) {
-      channels.push_back(argv_[i]);
+      channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->Subscribe(conn, channels, false, result);
@@ -133,7 +133,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   } else if (opt == kCmdNameUnSubscribe) {                          // UnSubscribe
     std::vector<std::string > channels;
     for(size_t i = 1; i < argv_.size(); i++) {
-      channels.push_back(argv_[i]);
+      channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
     int subscribed = g_pika_server->UnSubscribe(this, channels, false, result);
@@ -149,7 +149,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     }
     std::vector<std::string > channels;
     for(size_t i = 1; i < argv_.size(); i++) {
-      channels.push_back(argv_[i]);
+      channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->Subscribe(conn, channels, true, result);
@@ -158,7 +158,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   } else if (opt == kCmdNamePUnSubscribe) {                          // PUnSubscribe
     std::vector<std::string > channels;
     for(size_t i = 1; i < argv_.size(); i++) {
-      channels.push_back(argv_[i]);
+      channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
     int subscribed = g_pika_server->UnSubscribe(this, channels, true, result);

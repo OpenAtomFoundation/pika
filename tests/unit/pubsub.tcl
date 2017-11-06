@@ -212,7 +212,7 @@ start_server {tags {"pubsub"}} {
         assert_equal 2 [r publish foo.bar hello]
         assert_equal {message foo.bar hello} [$rd1 read]
         assert_equal {pmessage foo.* foo.bar hello} [$rd1 read]
-
+        
         unsubscribe $rd1
         punsubscribe $rd1
         # clean up clients
