@@ -116,7 +116,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     std::string channel = slash::StringToLower(argv_[1]);
     std::string msg = argv_[2];
     int receivers = g_pika_server->Publish(fd(), channel, msg);
-    return ":"+ std::to_string(receivers) + "\r\n";
+    return ":" + std::to_string(receivers) + "\r\n";
   } else if (opt == kCmdNameSubscribe) {                            // Subscribe
     pink::PinkConn* conn = this;
     if (!this->PubSub()) {
