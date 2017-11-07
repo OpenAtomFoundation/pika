@@ -3,10 +3,11 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "pika_binlog_bgworker.h"
-#include "pika_server.h"
-#include "pika_conf.h"
+#include "include/pika_binlog_bgworker.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
 #include "slash/include/slash_string.h"
+#include "slash/include/slash_coding.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
@@ -19,6 +20,21 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   BinlogBGWorker *self = bgarg->myself;
   std::string opt = argv[0];
   slash::StringToLower(opt);
+
+  std::string server_id;
+  // Parse binlog info
+  uint32_t filenum = 0;
+  uint64_t offset = 0;
+  if (argv.size() > 4 && *(argv.end() - 4) == kPikaBinlogMagic) {
+    // Get server id
+    server_id = argv[argv.size() -3];
+    // Get filenum and offset
+    std::string binlog_info = argv[argv.size() - 2];
+    filenum = slash::DecodeFixed32(binlog_info.data() + 4);
+    offset = slash::DecodeFixed64(binlog_info.data() + 8);
+    // Record new binlog format
+    argv.erase(argv.end() - 4, argv.end());
+  }
 
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
@@ -54,12 +70,27 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   // Force the binlog write option to serialize
   // Unlock, clean env, and exit when error happend
   bool error_happend = false;
+  std::string dummy_binlog_info("");
   if (!is_readonly) {
     error_happend = !g_pika_server->WaitTillBinlogBGSerial(my_serial);
     if (!error_happend) {
+      if (!g_pika_server->DoubleMasterMode()) {
+        server_id = g_pika_conf->server_id();
+      }
       g_pika_server->logger_->Lock();
-      g_pika_server->logger_->Put(bgarg->raw_args);
+      std::string binlog = c_ptr->ToBinlog(
+          argv,
+          server_id,
+          dummy_binlog_info,
+          false /* need not send to hub */);
+      if (!binlog.empty()) {
+        g_pika_server->logger_->Put(binlog);
+      }
       g_pika_server->logger_->Unlock();
+      if (g_pika_server->DoubleMasterMode()) {
+        // In double moaster mode, update binlog recv info
+        g_pika_server->logger_->SetDoubleRecvInfo(filenum, offset);
+      }
       g_pika_server->SignalNextBinlogBGSerial();
     }
   }

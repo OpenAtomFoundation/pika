@@ -6,7 +6,7 @@
 #ifndef PIKA_HYPERLOGLOG_H_
 #define PIKA_HYPERLOGLOG_H_
 
-#include "pika_command.h"
+#include "include/pika_command.h"
 #include "nemo.h"
 
 /*

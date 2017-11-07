@@ -5,7 +5,7 @@
 
 #ifndef PIKA_GEO_H_
 #define PIKA_GEO_H_
-#include "pika_command.h"
+#include "include/pika_command.h"
 #include "nemo.h"
 
 

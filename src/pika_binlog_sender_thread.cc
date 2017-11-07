@@ -3,15 +3,15 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "pika_binlog_sender_thread.h"
+#include "include/pika_binlog_sender_thread.h"
 
 #include <glog/logging.h>
 #include <poll.h>
 
-#include "pika_server.h"
-#include "pika_define.h"
-#include "pika_binlog_sender_thread.h"
-#include "pika_master_conn.h"
+#include "include/pika_server.h"
+#include "include/pika_define.h"
+#include "include/pika_binlog_sender_thread.h"
+#include "include/pika_master_conn.h"
 #include "pink/include/redis_cli.h"
 
 extern PikaServer* g_pika_server;
@@ -250,7 +250,6 @@ void* PikaBinlogSenderThread::ThreadMain() {
   scratch.reserve(1024 * 1024);
 
   while (!should_stop()) {
-
     sleep(2);
     // 1. Connect to slave
     result = cli_->Connect(ip_, port_, g_pika_server->host());
@@ -274,15 +273,30 @@ void* PikaBinlogSenderThread::ThreadMain() {
           }
         }
 
+        // Parse binlog
+        std::vector<std::string> items;
+        std::string token, delimiter = "\r\n", scratch_copy = scratch;
+        size_t pos = 0;
+        while ((pos = scratch_copy.find(delimiter)) != std::string::npos) {
+          token = scratch_copy.substr(0, pos);
+          items.push_back(token);
+          scratch_copy.erase(0, pos + delimiter.length());
+        }
+        items.push_back(scratch_copy);
+        std::string binlog_sid = items[items.size() - 6];
+
+        // If this binlog from the peer-master, can not resend to the peer-master
+        if (std::atoi(binlog_sid.c_str()) == g_pika_server->DoubleMasterSid() && ip_ == g_pika_server->master_ip() && port_ == (g_pika_server->master_port()+1000)) {
+          continue;
+        }
+
         // 3. After successful parse, we send msg;
-        //DLOG(INFO) << "BinlogSender Parse ok, filenum = " << filenum_ << ", con_offset = " << con_offset_;
         result = cli_->Send(&scratch);
         if (result.ok()) {
           last_send_flag = true;
         } else {
           last_send_flag = false;
           LOG(WARNING) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") failed,  " << result.ToString();
-          //close(sockfd_);
           break;
         }
       }

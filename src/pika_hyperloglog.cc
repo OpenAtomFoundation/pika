@@ -6,8 +6,8 @@
 #include <vector>
 #include "slash/include/slash_string.h"
 #include "nemo.h"
-#include "pika_server.h"
-#include "pika_hyperloglog.h"
+#include "include/pika_server.h"
+#include "include/pika_hyperloglog.h"
 
 extern PikaServer *g_pika_server;
 

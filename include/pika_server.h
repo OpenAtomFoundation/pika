@@ -14,15 +14,16 @@
 #include <nemo.h>
 #include <time.h>
 
-#include "pika_binlog.h"
-#include "pika_binlog_receiver_thread.h"
-#include "pika_binlog_sender_thread.h"
-#include "pika_heartbeat_thread.h"
-#include "pika_slaveping_thread.h"
-#include "pika_trysync_thread.h"
-#include "pika_monitor_thread.h"
-#include "pika_define.h"
-#include "pika_binlog_bgworker.h"
+#include "include/pika_binlog.h"
+#include "include/pika_binlog_receiver_thread.h"
+#include "include/pika_binlog_sender_thread.h"
+#include "include/pika_hub_manager.h"
+#include "include/pika_heartbeat_thread.h"
+#include "include/pika_slaveping_thread.h"
+#include "include/pika_trysync_thread.h"
+#include "include/pika_monitor_thread.h"
+#include "include/pika_define.h"
+#include "include/pika_binlog_bgworker.h"
 
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
@@ -93,7 +94,11 @@ class PikaServer {
     // slave_mutex has been locked from exterior
     int64_t sid = sid_;
     sid_++;
-    return sid;
+    if (sid == double_master_sid_) {
+      return GenSid();
+    } else {
+      return sid;
+    }
   }
 
   void DeleteSlave(int fd); // hb_fd
@@ -126,7 +131,21 @@ class PikaServer {
   void WaitDBSyncFinish();
   void KillBinlogSenderConn();
 
+  /*
+   * Double master use
+   */
+  bool DoubleMasterMode() {
+    return double_master_mode_;
+  }
+
+  int64_t DoubleMasterSid() {
+    return double_master_sid_;
+  }
+
+  bool IsDoubleMaster(const std::string master_ip, int master_port);
+
   void Start();
+
   void Exit() {
     exit_ = true;
   }
@@ -142,6 +161,11 @@ class PikaServer {
   void DoTimingTask();
 
   PikaSlavepingThread* ping_thread_;
+
+  /*
+   * Hub use
+   */
+  PikaHubManager* pika_hub_manager_;
 
   /*
    * Server init info
@@ -319,8 +343,7 @@ class PikaServer {
    * Binlog Receiver use
    */
   void DispatchBinlogBG(const std::string &key,
-      PikaCmdArgsType* argv, const std::string& raw_args,
-      uint64_t cur_serial, bool readonly);
+      PikaCmdArgsType* argv, uint64_t cur_serial, bool readonly);
   bool WaitTillBinlogBGSerial(uint64_t my_serial);
   void SignalNextBinlogBGSerial();
 
@@ -375,6 +398,11 @@ class PikaServer {
   int role_;
   bool force_full_sync_;
 
+  /*
+   * Double master use
+   */
+  int64_t double_master_sid_;
+  bool double_master_mode_;
   /*
    * Bgsave use
    */

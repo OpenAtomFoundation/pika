@@ -87,30 +87,30 @@ GLOG_PATH = $(THIRD_PATH)/glog
 endif
 
 ifeq ($(360), 1)
-GLOG := $(GLOG_PATH)/.libs/libglog.so.0.0.0
+GLOG := $(GLOG_PATH)/.libs/libglog.a
 endif
 
-INCLUDE_PATH = -I./include \
-							 -I$(SLASH_PATH)/ \
-							 -I$(PINK_PATH)/ \
+INCLUDE_PATH = -I. \
+							 -I$(SLASH_PATH) \
+							 -I$(PINK_PATH) \
 							 -I$(NEMO_PATH)/include \
 							 -I$(NEMODB_PATH)/include \
-							 -I$(ROCKSDB_PATH)/ \
+							 -I$(ROCKSDB_PATH) \
 							 -I$(ROCKSDB_PATH)/include
 
 ifeq ($(360),1)
-INCLUDE_PATH += -I$(GLOG_PATH)/src/
+INCLUDE_PATH += -I$(GLOG_PATH)/src
 endif
 
 LIB_PATH = -L./ \
-					 -L$(SLASH_PATH)/slash/lib/ \
-					 -L$(PINK_PATH)/pink/lib/ \
-					 -L$(NEMO_PATH)/lib/ \
+					 -L$(SLASH_PATH)/slash/lib \
+					 -L$(PINK_PATH)/pink/lib \
+					 -L$(NEMO_PATH)/lib \
 					 -L$(NEMODB_PATH)/lib \
-					 -L$(ROCKSDB_PATH)/
+					 -L$(ROCKSDB_PATH)
 
 ifeq ($(360),1)
-LIB_PATH += -L$(GLOG_PATH)/.libs/
+LIB_PATH += -L$(GLOG_PATH)/.libs
 endif
 
 LDFLAGS += $(LIB_PATH) \
@@ -232,7 +232,7 @@ $(NEMO):
 	$(AM_V_at)make -C $(NEMO_PATH) NEMODB_PATH=$(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
 
 $(GLOG):
-	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore;
+	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure --disable-shared; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore;
 
 clean:
 	rm -rf $(OUTPUT)

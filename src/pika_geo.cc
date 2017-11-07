@@ -8,10 +8,10 @@
 
 #include "slash/include/slash_string.h"
 #include "nemo.h"
-#include "pika_geo.h"
-#include "pika_server.h"
-#include "pika_slot.h"
-#include "pika_geohash_helper.h"
+#include "include/pika_geo.h"
+#include "include/pika_server.h"
+#include "include/pika_slot.h"
+#include "include/pika_geohash_helper.h"
 
 extern PikaServer *g_pika_server;
 

@@ -4,7 +4,7 @@ OBJECT = aof_to_pika
 SRC_DIR = ./src
 OUTPUT = ./output
 
-INCLUDE_PATH = -I./include/ 
+INCLUDE_PATH = -I./include -I../..
 
 LIBS = -lpthread 
 

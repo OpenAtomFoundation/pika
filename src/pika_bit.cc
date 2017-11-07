@@ -6,9 +6,9 @@
 #include <limits>
 #include "slash/include/slash_string.h"
 #include "nemo.h"
-#include "pika_bit.h"
-#include "pika_server.h"
-#include "pika_slot.h"
+#include "include/pika_bit.h"
+#include "include/pika_server.h"
+#include "include/pika_slot.h"
 
 extern PikaServer *g_pika_server;
 

@@ -11,7 +11,7 @@
 
 #include "pink/include/redis_conn.h"
 #include "pink/include/pink_thread.h"
-#include "pika_command.h"
+#include "include/pika_command.h"
 
 class PikaWorkerSpecificData;
 
@@ -27,7 +27,6 @@ class PikaClientConn: public pink::RedisConn {
   CmdTable* const cmds_table_;
 
   std::string DoCmd(const std::string& opt);
-  std::string RestoreArgs();
 
   // Auth related
   class AuthStat {
