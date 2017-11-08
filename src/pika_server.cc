@@ -1322,8 +1322,9 @@ void PikaServer::DoPurgeDir(void* arg) {
 }
 
 // PubSub
-int PikaServer::Publish(int fd, const std::string& channel, const std::string& msg) {
-  int receivers = pika_pubsub_thread_->Publish(fd, channel, msg);
+// Publish
+int PikaServer::Publish(const std::string& channel, const std::string& msg) {
+  int receivers = pika_pubsub_thread_->Publish(channel, msg);
   return receivers;
 }
 
