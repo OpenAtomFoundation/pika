@@ -16,6 +16,8 @@ public:
   }
   virtual void Do();
 private:
+  std::string channel_;
+  std::string msg_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 

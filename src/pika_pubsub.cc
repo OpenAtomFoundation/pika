@@ -13,9 +13,14 @@ void PublishCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePublish);
     return;
   }
+  channel_ = slash::StringToLower(argv[1]);
+  msg_ = argv[2];
 }
 
 void PublishCmd::Do() {
+  int receivers = g_pika_server->Publish(channel_, msg_);
+  res_.AppendInteger(receivers);
+  return;
 }
 
 void SubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
