@@ -122,7 +122,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
-    g_pika_server->Subscribe(conn, channels, false, result);
+    g_pika_server->Subscribe(conn, channels, false, &result);
     this->SetPubSub(true);
     return ConstructPubSubResp(kCmdNameSubscribe, result);
   } else if (opt == kCmdNameUnSubscribe) {                          // UnSubscribe
@@ -131,9 +131,13 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
-    int subscribed = g_pika_server->UnSubscribe(this, channels, false, result);
+    int subscribed = g_pika_server->UnSubscribe(this, channels, false, &result);
     if (subscribed == 0 && this->PubSub()) {
-      server_thread_->MoveConnIn(this);
+      /*
+       * if the number of client subscribed is zero,
+       * the client will exit the Pub/Sub state
+       */
+      server_thread_->HandleNewConn(fd(), ip_port());
       this->SetPubSub(false);
     }
     return ConstructPubSubResp(kCmdNameUnSubscribe, result);
@@ -147,7 +151,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
-    g_pika_server->Subscribe(conn, channels, true, result);
+    g_pika_server->Subscribe(conn, channels, true, &result);
     this->SetPubSub(true);
     return ConstructPubSubResp(kCmdNamePSubscribe, result);
   } else if (opt == kCmdNamePUnSubscribe) {                          // PUnSubscribe
@@ -156,9 +160,13 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
-    int subscribed = g_pika_server->UnSubscribe(this, channels, true, result);
+    int subscribed = g_pika_server->UnSubscribe(this, channels, true, &result);
     if (subscribed == 0 && this->PubSub()) {
-      server_thread_->MoveConnIn(this);
+      /*
+       * if the number of client subscribed is zero,
+       * the client will exit the Pub/Sub state
+       */
+      server_thread_->HandleNewConn(fd(), ip_port());
       this->SetPubSub(false);
     }
     return ConstructPubSubResp(kCmdNamePUnSubscribe, result);

@@ -1329,12 +1329,12 @@ int PikaServer::Publish(const std::string& channel, const std::string& msg) {
 }
 
 // Subscribe/PSubscribe
-void PikaServer::Subscribe(pink::PinkConn* conn, const std::vector<std::string> channels, bool pattern, std::vector<std::pair<std::string, int>>& result) {
+void PikaServer::Subscribe(pink::PinkConn* conn, const std::vector<std::string>& channels, bool pattern, std::vector<std::pair<std::string, int>>* result) {
   pika_pubsub_thread_->Subscribe(conn, channels, pattern, result);
 }
 
 // UnSubscribe/PUnSubscribe
-int PikaServer::UnSubscribe(pink::PinkConn* conn, const std::vector<std::string> channels, bool pattern, std::vector<std::pair<std::string, int>>& result) {
+int PikaServer::UnSubscribe(pink::PinkConn* conn, const std::vector<std::string>& channels, bool pattern, std::vector<std::pair<std::string, int>>* result) {
   int subscribed = pika_pubsub_thread_->UnSubscribe(conn, channels, pattern, result);
   return subscribed;
 }
