@@ -296,7 +296,7 @@ PikaHubSenderThread::PikaHubSenderThread(int i, PikaHubManager* manager)
 PikaHubSenderThread::~PikaHubSenderThread() {
   StopThread();
   delete[] backing_store_;
-  LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
+  LOG(INFO) << "A BinlogSender thread exit!";
 }
 
 int PikaHubSenderThread::TrimOffset() {
