@@ -207,7 +207,7 @@ class PikaServer {
   }
   void Bgsave();
   bool Bgsaveoff();
-  bool RunBgsaveEngine(const std::string path);
+  bool RunBgsaveEngine();
   void FinishBgsave() {
     slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.bgsaving = false;

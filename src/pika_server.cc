@@ -917,16 +917,21 @@ bool PikaServer::InitBgsaveEngine() {
   return true;
 }
 
-bool PikaServer::RunBgsaveEngine(const std::string path) {
+bool PikaServer::RunBgsaveEngine() {
   // Prepare for Bgsaving
   if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
     ClearBgsave();
     return false;
   }
   LOG(INFO) << "after prepare bgsave";
+  
+  BGSaveInfo info = bgsave_info();
+  LOG(INFO) << "   bgsave_info: path=" << info.path
+    << ",  filenum=" << info.filenum
+    << ", offset=" << info.offset;
 
   // Backup to tmp dir
-  nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(path);
+  nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(info.path);
   LOG(INFO) << "Create new backup finished.";
 
   if (!nemo_s.ok()) {
@@ -953,12 +958,12 @@ void PikaServer::Bgsave() {
 
 void PikaServer::DoBgsave(void* arg) {
   PikaServer* p = static_cast<PikaServer*>(arg);
-  BGSaveInfo info = p->bgsave_info();
 
   // Do bgsave
-  bool ok = p->RunBgsaveEngine(info.path);
+  bool ok = p->RunBgsaveEngine();
 
   // Some output
+  BGSaveInfo info = p->bgsave_info();
   std::ofstream out;
   out.open(info.path + "/info", std::ios::in | std::ios::trunc);
   if (out.is_open()) {
