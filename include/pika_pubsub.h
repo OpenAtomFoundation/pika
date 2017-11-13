@@ -11,61 +11,55 @@
  * pubsub
  */
 class PublishCmd : public Cmd {
-public:
-  PublishCmd() {
-  }
-  virtual void Do();
-private:
-  std::string channel_;
-  std::string msg_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  public:
+    PublishCmd() {}
+    virtual void Do();
+  private:
+    std::string channel_;
+    std::string msg_;
+    virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class SubscribeCmd : public Cmd {
-public:
-  SubscribeCmd() {
-  }
-  virtual void Do();
-private:
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  public:
+    SubscribeCmd() {}
+    virtual void Do();
+  private:
+    virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class UnSubscribeCmd : public Cmd {
-public:
-  UnSubscribeCmd() {
-  }
-  virtual void Do();
-private:
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  public:
+    UnSubscribeCmd() {}
+    virtual void Do();
+  private:
+    virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class PUnSubscribeCmd : public Cmd {
-public:
-  PUnSubscribeCmd() {
-  }
-  virtual void Do();
-private:
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  public:
+    PUnSubscribeCmd() {}
+    virtual void Do();
+  private:
+    virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class PSubscribeCmd : public Cmd {
-public:
-  PSubscribeCmd() {
-  }
-  virtual void Do();
-private:
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  public:
+    PSubscribeCmd() {}
+    virtual void Do();
+  private:
+    virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class PubSubCmd : public Cmd {
-public:
-  PubSubCmd() {
-  }
-  virtual void Do();
-private:
-  std::string subcommand_;
-  std::vector<std::string > arguments_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  public:
+    PubSubCmd() {}
+    virtual void Do();
+  private:
+    std::string subcommand_;
+    std::vector<std::string > arguments_;
+    virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
-#endif
+#endif  // INCLUDE_PIKA_PUBSUB_H_

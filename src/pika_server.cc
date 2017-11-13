@@ -1322,6 +1322,7 @@ void PikaServer::DoPurgeDir(void* arg) {
 }
 
 // PubSub
+
 // Publish
 int PikaServer::Publish(const std::string& channel, const std::string& msg) {
   int receivers = pika_pubsub_thread_->Publish(channel, msg);
@@ -1339,8 +1340,20 @@ int PikaServer::UnSubscribe(pink::PinkConn* conn, const std::vector<std::string>
   return subscribed;
 }
 
-void PikaServer::PubSub(std::map<std::string, std::vector<pink::PinkConn* >>& pubsub_channel, std::map<std::string, std::vector<pink::PinkConn* >>& pubsub_pattern) {
-  pika_pubsub_thread_->PubSub(pubsub_channel, pubsub_pattern);
+/*
+ * PubSub
+ */
+void PikaServer::PubSubChannels(const std::string& pattern,
+                      std::vector<std::string >* result) {
+  pika_pubsub_thread_->PubSubChannels(pattern, result);
+}
+
+void PikaServer::PubSubNumSub(const std::vector<std::string>& channels,
+                    std::vector<std::pair<std::string, int>>* result) {
+  pika_pubsub_thread_->PubSubNumSub(channels, result);
+}
+int PikaServer::PubSubNumPat() {
+  return pika_pubsub_thread_->PubSubNumPat();
 }
 
 void PikaServer::AddMonitorClient(PikaClientConn* client_ptr) {

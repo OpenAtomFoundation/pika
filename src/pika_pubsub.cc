@@ -78,59 +78,25 @@ void PubSubCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void PubSubCmd::Do() {
-  std::map<std::string, std::vector<pink::PinkConn* >> pubsub_channel;
-  std::map<std::string, std::vector<pink::PinkConn* >> pubsub_pattern;
-  std::map<std::string, int> result;
-  g_pika_server->PubSub(pubsub_channel, pubsub_pattern);
-
   if (subcommand_ == "channels") {
-    if (arguments_.size() == 0) {
-      for(auto it = pubsub_channel.begin(); it != pubsub_channel.end(); it++) {
-        if (it->second.size() != 0) {
-          result[it->first] = 0;
-        }
-      }
-      for(auto it = pubsub_pattern.begin(); it != pubsub_pattern.end(); it++) {
-        if (it->second.size() != 0) {
-          result[it->first] = 0;
-        }
-      } 
-    } else {
-      std::string pattern = arguments_.front();
-      for(auto it = pubsub_channel.begin(); it != pubsub_channel.end(); it++) {
-        if (slash::stringmatchlen(it->first.c_str(), it->first.size(), pattern.c_str(), pattern.size(), 0)) {
-          if (it->second.size() != 0) {
-            result[it->first] = 0;
-          }
-        }
-      }
-      for(auto it = pubsub_pattern.begin(); it != pubsub_pattern.end(); it++) {
-        if (slash::stringmatchlen(it->first.c_str(), it->first.size(), pattern.c_str(), pattern.size(), 0)) {
-          if (it->second.size() != 0) {
-            result[it->first] = 0;
-          }
-        }
-      } 
+    std::string pattern = "";
+    std::vector<std::string > result;
+    if (arguments_.size() == 1) {
+      pattern = arguments_[0];
+    } else if (arguments_.size() > 1) {
+      res_.SetRes(CmdRes::kErrOther, "Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
+      return;
     }
+    g_pika_server->PubSubChannels(arguments_[1], &result);
+
     res_.AppendArrayLen(result.size());
     for (auto it = result.begin(); it != result.end(); ++it) {
-      res_.AppendStringLen(it->first.length());
-      res_.AppendContent(it->first); 
+      res_.AppendStringLen((*it).length());
+      res_.AppendContent(*it);
     }
   } else if (subcommand_ == "numsub") {
-    for(size_t i = 0; i < arguments_.size(); i++) {
-      result[arguments_[i]] = 0;
-      for(auto it = pubsub_channel.begin(); it != pubsub_channel.end(); it++) {
-        if (it->first == arguments_[i]) {
-          result[it->first] = it->second.size();
-        }
-      }
-      for(auto it = pubsub_pattern.begin(); it != pubsub_pattern.end(); it++) {
-        if (it->first == arguments_[i]) {
-          result[it->first] = it->second.size();
-        }
-      } 
-    } 
+    std::vector<std::pair<std::string, int>> result;
+    g_pika_server->PubSubNumSub(arguments_, &result);
     res_.AppendArrayLen(result.size() * 2);
     for (auto it = result.begin(); it != result.end(); ++it) {
       res_.AppendStringLen(it->first.length());
@@ -139,10 +105,7 @@ void PubSubCmd::Do() {
     }
     return;
   } else if (subcommand_ == "numpat") {
-    int subscribed = 0; 
-    for(auto it = pubsub_pattern.begin(); it != pubsub_pattern.end(); it++) {
-      subscribed += it->second.size(); 
-    }
+    int subscribed = g_pika_server->PubSubNumPat();
     res_.AppendInteger(subscribed);
   }
   return;
