@@ -27,17 +27,20 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
   auth_stat_.Init();
 }
 
-std::string ConstructPubSubResp(std::string cmd, std::vector<std::pair<std::string, int>> result) {
+std::string ConstructPubSubResp(const std::string& cmd,
+                                const std::vector<std::pair<std::string, int>>& result) {
   std::stringstream resp;
   if (result.size() == 0) {
-    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd << "\r\n" << "$" << -1 << "\r\n" << ":" << 0 << "\r\n";
+    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd <<
+      "\r\n" << "$" << -1 << "\r\n" << ":" << 0 << "\r\n";
   }
   for (auto it = result.begin(); it != result.end(); it++) {
-    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd << "\r\n" << "$" << it->first.length() << "\r\n" << it->first << "\r\n" << ":" << it->second << "\r\n";
+    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd <<
+      "\r\n" << "$" << it->first.length() << "\r\n" << it->first <<
+      "\r\n" << ":" << it->second << "\r\n";
   }
   return resp.str();
 }
-
 
 std::string PikaClientConn::RestoreArgs() {
   std::string res;
@@ -63,7 +66,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   if (!auth_stat_.IsAuthed(cinfo_ptr)) {
     return "-ERR NOAUTH Authentication required.\r\n";
   }
-  
+
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = slash::NowMicros();
@@ -97,7 +100,11 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
  
   // PubSub connection
   if (this->PubSub()) {
-    if (opt != kCmdNameSubscribe && opt != kCmdNameUnSubscribe && opt != kCmdNamePing && opt != kCmdNamePSubscribe && opt != kCmdNamePUnSubscribe) {
+    if (opt != kCmdNameSubscribe &&
+        opt != kCmdNameUnSubscribe &&
+        opt != kCmdNamePing &&
+        opt != kCmdNamePSubscribe &&
+        opt != kCmdNamePUnSubscribe) {
       return "-ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context\r\n";
     }
   }
@@ -118,7 +125,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       conn = server_thread_->MoveConnOut(fd());
     }
     std::vector<std::string > channels;
-    for(size_t i = 1; i < argv_.size(); i++) {
+    for (size_t i = 1; i < argv_.size(); i++) {
       channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
@@ -127,7 +134,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return ConstructPubSubResp(kCmdNameSubscribe, result);
   } else if (opt == kCmdNameUnSubscribe) {                          // UnSubscribe
     std::vector<std::string > channels;
-    for(size_t i = 1; i < argv_.size(); i++) {
+    for (size_t i = 1; i < argv_.size(); i++) {
       channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
@@ -147,7 +154,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       conn = server_thread_->MoveConnOut(fd());
     }
     std::vector<std::string > channels;
-    for(size_t i = 1; i < argv_.size(); i++) {
+    for (size_t i = 1; i < argv_.size(); i++) {
       channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
@@ -156,7 +163,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return ConstructPubSubResp(kCmdNamePSubscribe, result);
   } else if (opt == kCmdNamePUnSubscribe) {                          // PUnSubscribe
     std::vector<std::string > channels;
-    for(size_t i = 1; i < argv_.size(); i++) {
+    for (size_t i = 1; i < argv_.size(); i++) {
       channels.push_back(slash::StringToLower(argv_[i]));
     }
     std::vector<std::pair<std::string, int>> result;
@@ -235,7 +242,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   if (opt == kCmdNameAuth) {
-    if(!auth_stat_.ChecknUpdate(c_ptr->res().raw_message())) {
+    if (!auth_stat_.ChecknUpdate(c_ptr->res().raw_message())) {
 //      LOG(WARNING) << "(" << ip_port() << ")Wrong Password";
     }
   }
@@ -244,7 +251,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
 
 int PikaClientConn::DealMessage() {
   g_pika_server->PlusThreadQuerynum();
-  
+
   if (argv_.empty()) return -2;
   std::string opt = argv_[0];
   slash::StringToLower(opt);
@@ -306,7 +313,7 @@ bool PikaClientConn::AuthStat::ChecknUpdate(const std::string& message) {
   // Situations to change auth status
   if (message == "USER") {
     stat_ = kLimitAuthed;
-  } else if (message == "ROOT"){
+  } else if (message == "ROOT") {
     stat_ = kAdminAuthed;
   } else {
     return false;
