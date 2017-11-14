@@ -164,7 +164,6 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return this->ConstructPubSubResp(kCmdNamePUnSubscribe, result);
   }
 
-  std::string raw_args;
   if (cinfo_ptr->is_write()) {
     if (g_pika_server->BinlogIoError()) {
       return "-ERR Writing binlog failed, maybe no space left on device\r\n";
