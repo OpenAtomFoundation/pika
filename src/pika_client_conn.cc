@@ -27,21 +27,6 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
   auth_stat_.Init();
 }
 
-std::string ConstructPubSubResp(const std::string& cmd,
-                                const std::vector<std::pair<std::string, int>>& result) {
-  std::stringstream resp;
-  if (result.size() == 0) {
-    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd <<
-      "\r\n" << "$" << -1 << "\r\n" << ":" << 0 << "\r\n";
-  }
-  for (auto it = result.begin(); it != result.end(); it++) {
-    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd <<
-      "\r\n" << "$" << it->first.length() << "\r\n" << it->first <<
-      "\r\n" << ":" << it->second << "\r\n";
-  }
-  return resp.str();
-}
-
 std::string PikaClientConn::RestoreArgs() {
   std::string res;
   res.reserve(RAW_ARGS_LEN);
