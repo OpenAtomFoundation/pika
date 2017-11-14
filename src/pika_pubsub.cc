@@ -3,8 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "pika_pubsub.h"
-#include "pika_server.h"
+#include "include/pika_pubsub.h"
+#include "include/pika_server.h"
 
 extern PikaServer *g_pika_server;
 

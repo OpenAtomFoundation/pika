@@ -13,6 +13,7 @@
 #include "include/pika_bit.h"
 #include "include/pika_hyperloglog.h"
 #include "include/pika_geo.h"
+#include "include/pika_pubsub.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
 
