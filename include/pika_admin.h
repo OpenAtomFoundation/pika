@@ -5,8 +5,8 @@
 
 #ifndef PIKA_ADMIN_H_
 #define PIKA_ADMIN_H_
-#include "pika_command.h"
-#include "pika_client_conn.h"
+#include "include/pika_command.h"
+#include "include/pika_client_conn.h"
 
 /*
  * Admin
@@ -39,6 +39,19 @@ public:
 private:
   std::string slave_ip_;
   int64_t slave_port_;
+  int64_t filenum_;
+  int64_t pro_offset_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
+class InternalTrysyncCmd : public Cmd {
+public:
+  InternalTrysyncCmd() {
+  }
+  virtual void Do();
+private:
+  std::string hub_ip_;
+  int64_t hub_port_;
   int64_t filenum_;
   int64_t pro_offset_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
@@ -146,13 +159,15 @@ public:
     kInfoErr = 0x0,
     kInfoServer,
     kInfoClients,
+    kInfoHub,
     kInfoStats,
     kInfoReplication,
     kInfoKeyspace,
     kInfoBgstats,
     kInfoLog,
     kInfoData,
-    kInfoAll
+    kInfoAll,
+    kInfoDoubleMaster
   };
 
   InfoCmd() : rescan_(false), off_(false) {
@@ -166,11 +181,13 @@ private:
   const static std::string kAllSection;
   const static std::string kServerSection;
   const static std::string kClientsSection;
+  const static std::string kHubSection;
   const static std::string kStatsSection;
   const static std::string kReplicationSection;
   const static std::string kKeyspaceSection;
   const static std::string kLogSection;
   const static std::string kDataSection;
+  const static std::string kDoubleMaster;
 
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
@@ -180,11 +197,13 @@ private:
 
   void InfoServer(std::string &info);
   void InfoClients(std::string &info);
+  void InfoHub(std::string &info);
   void InfoStats(std::string &info);
   void InfoReplication(std::string &info);
   void InfoKeyspace(std::string &info);
   void InfoLog(std::string &info);
   void InfoData(std::string &info);
+  void InfoDoubleMaster(std::string &info);
 };
 
 class ShutdownCmd : public Cmd {

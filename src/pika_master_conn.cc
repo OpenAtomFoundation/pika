@@ -3,35 +3,22 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "slash/include/slash_string.h"
+#include "slash/include/slash_coding.h"
 #include <glog/logging.h>
-#include "pika_master_conn.h"
-#include "pika_server.h"
-#include "pika_conf.h"
-#include "pika_binlog_receiver_thread.h"
+#include "include/pika_master_conn.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
+#include "include/pika_binlog_receiver_thread.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
-static const int RAW_ARGS_LEN = 1024 * 1024; 
 PikaMasterConn::PikaMasterConn(int fd, std::string ip_port,
                                void* worker_specific_data)
       : RedisConn(fd, ip_port, NULL) {
   binlog_receiver_ =
     reinterpret_cast<PikaBinlogReceiverThread*>(worker_specific_data);
-  raw_args_.reserve(RAW_ARGS_LEN);
-}
-
-PikaMasterConn::~PikaMasterConn() {
-}
-
-void PikaMasterConn::RestoreArgs() {
-  raw_args_.clear();
-  RedisAppendLen(raw_args_, argv_.size(), "*");
-  PikaCmdArgsType::const_iterator it = argv_.begin();
-  for ( ; it != argv_.end(); ++it) {
-    RedisAppendLen(raw_args_, (*it).size(), "$");
-    RedisAppendContent(raw_args_, *it);
-  }
 }
 
 int PikaMasterConn::DealMessage() {
@@ -42,38 +29,52 @@ int PikaMasterConn::DealMessage() {
     return -2;
   }
 
+  // TODO(shq) maybe monitor do not need these infomation
+  if (!g_pika_server->DoubleMasterMode()) {
+    if (argv_.size() > 4 &&
+        *(argv_.end() - 4) == kPikaBinlogMagic) {
+      // Record new binlog format
+      argv_.erase(argv_.end() - 4, argv_.end());
+    }
+  }
+
   // Monitor related
   std::string monitor_message;
-  bool is_monitoring = g_pika_server->HasMonitorClients();
-  if (is_monitoring) {
-    monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) + " [" + this->ip_port() + "]";
+  if (g_pika_server->HasMonitorClients()) {
+    std::string monitor_message = std::to_string(1.0*slash::NowMicros()/1000000)
+      + " [" + this->ip_port() + "]";
     for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
       monitor_message += " " + slash::ToRead(*iter);
     }
     g_pika_server->AddMonitorMessage(monitor_message);
   }
-  RestoreArgs();
 
   bool is_readonly = g_pika_conf->readonly();
 
   // Here, the binlog dispatch thread, instead of the binlog bgthread takes on the task to write binlog
   // Only when the server is readonly
   uint64_t serial = binlog_receiver_->GetnPlusSerial();
+  std::string dummy_binlog_info("");
   if (is_readonly) {
     if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
       return -2;
     }
+    std::string opt = slash::StringToLower(argv_[0]);
+    Cmd* c_ptr = binlog_receiver_->GetCmd(opt);
+
     g_pika_server->logger_->Lock();
-    g_pika_server->logger_->Put(raw_args_);
+    g_pika_server->logger_->Put(c_ptr->ToBinlog(
+        argv_,
+        g_pika_conf->server_id(),
+        dummy_binlog_info,
+        false));
     g_pika_server->logger_->Unlock();
     g_pika_server->SignalNextBinlogBGSerial();
   }
 
   PikaCmdArgsType *argv = new PikaCmdArgsType(argv_);
   std::string dispatch_key = argv_.size() >= 2 ? argv_[1] : argv_[0];
-  g_pika_server->DispatchBinlogBG(dispatch_key, argv, raw_args_,
-      serial, is_readonly);
-  //  memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
-  //  wbuf_len_ += res.size();
+  g_pika_server->DispatchBinlogBG(dispatch_key, argv, serial, is_readonly);
+
   return 0;
 }

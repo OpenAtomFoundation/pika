@@ -14,7 +14,7 @@
 #include "slash/include/slash_mutex.h"
 #include "slash/include/slash_string.h"
 #include "slash/include/xdebug.h"
-#include "pika_define.h"
+#include "include/pika_define.h"
 
 typedef slash::RWLock RWLock;
 
@@ -25,6 +25,9 @@ class PikaConf : public slash::BaseConf {
 
   // Getter
   int port()              { RWLock l(&rwlock_, false); return port_; }
+  std::string double_master_ip() { RWLock l(&rwlock_, false); return double_master_ip_; }
+  int double_master_port() { RWLock l(&rwlock_, false); return double_master_port_; }
+  std::string double_master_sid()        { RWLock l(&rwlock_, false); return double_master_sid_; }
   std::string slaveof() {RWLock l(&rwlock_, false); return slaveof_;}
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
   int sync_thread_num()        { RWLock l(&rwlock_, false); return sync_thread_num_; }
@@ -38,6 +41,7 @@ class PikaConf : public slash::BaseConf {
   std::string compact_interval() { RWLock l(&rwlock_, false); return compact_interval_; }
   int write_buffer_size() { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int timeout()           { RWLock l(&rwlock_, false); return timeout_; }
+  std::string server_id() { RWLock l(&rwlock_, false); return server_id_; }
 
   std::string requirepass()     { RWLock l(&rwlock_, false); return requirepass_; }
   std::string masterauth()     { RWLock l(&rwlock_, false); return masterauth_; }
@@ -158,6 +162,9 @@ class PikaConf : public slash::BaseConf {
 
 private:
   int port_;
+  std::string double_master_ip_;
+  int double_master_port_;
+  std::string double_master_sid_;
   std::string slaveof_;
   int thread_num_;
   int sync_thread_num_;
@@ -174,6 +181,7 @@ private:
   bool daemonize_;
   bool slotmigrate_;
   int timeout_;
+  std::string server_id_;
   std::string requirepass_;
   std::string masterauth_;
   std::string userpass_;

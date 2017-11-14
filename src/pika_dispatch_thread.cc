@@ -4,10 +4,10 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <glog/logging.h>
-#include "pika_dispatch_thread.h"
-#include "pika_client_conn.h"
-#include "pika_server.h"
-#include "pika_conf.h"
+#include "include/pika_dispatch_thread.h"
+#include "include/pika_client_conn.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;

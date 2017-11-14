@@ -12,9 +12,9 @@
 #include "pink/include/server_thread.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/env.h"
-#include "pika_define.h"
-#include "pika_master_conn.h"
-#include "pika_command.h"
+#include "include/pika_define.h"
+#include "include/pika_master_conn.h"
+#include "include/pika_command.h"
 
 class PikaBinlogReceiverThread {
  public:
@@ -27,6 +27,10 @@ class PikaBinlogReceiverThread {
 
   uint64_t GetnPlusSerial() {
     return serial_++;
+  }
+
+  Cmd* GetCmd(const std::string& opt) {
+    return GetCmdFromTable(opt, cmds_);
   }
 
  private:
@@ -64,6 +68,8 @@ class PikaBinlogReceiverThread {
   MasterConnFactory conn_factory_;
   Handles handles_;
   pink::ServerThread* thread_rep_;
+
+  CmdTable cmds_;
 
   uint64_t serial_;
 };

@@ -6,14 +6,13 @@
 #ifndef BINLOG_SYNC_H_
 #define BINLOG_SYNC_H_
 
-#include "pika_binlog.h"
+#include "slash/include/slash_status.h"
+#include "slash/include/slash_mutex.h"
+#include "include/pika_binlog.h"
+#include "include/pika_define.h"
 #include "binlog_receiver_thread.h"
 #include "slaveping_thread.h"
 #include "trysync_thread.h"
-#include "pika_define.h"
-
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_mutex.h"
 
 using slash::Status;
 using slash::Slice;

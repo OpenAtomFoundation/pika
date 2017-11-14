@@ -4,7 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "sys/stat.h"
-#include "pika_conf.h"
+#include "include/pika_conf.h"
 #include "glog/logging.h"
 
 #include <fstream>
@@ -40,6 +40,10 @@ int PikaConf::Load()
   GetConfInt("timeout", &timeout_);
   if (timeout_ <= 0) {
       timeout_ = 60; // 60s
+  }
+  GetConfStr("server-id", &server_id_);
+  if (server_id_.empty()) {
+    server_id_ = "1";
   }
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
@@ -81,6 +85,12 @@ int PikaConf::Load()
   // Immutable Sections
   //
   GetConfInt("port", &port_);
+  GetConfStr("double-master-ip", &double_master_ip_);
+  GetConfInt("double-master-port", &double_master_port_);
+  GetConfStr("double-master-server-id", &double_master_sid_);
+  if (double_master_sid_.empty()) {
+    double_master_sid_ = "0";
+  }
   GetConfStr("log-path", &log_path_);
   GetConfStr("db-path", &db_path_);
   if (log_path_[log_path_.length() - 1] != '/') {
@@ -229,6 +239,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfInt("write-buffer-size", write_buffer_size_);
   SetConfInt("timeout", timeout_);
+  SetConfStr("server-id", server_id_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
   SetConfStr("userpass", userpass_);

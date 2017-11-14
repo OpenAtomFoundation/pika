@@ -20,7 +20,7 @@
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/env.h"
-#include "pika_define.h"
+#include "include/pika_define.h"
 
 using slash::Status;
 using slash::Slice;
@@ -46,10 +46,14 @@ class Binlog {
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
 
+  // Double master used
+  Status GetDoubleRecvInfo(uint32_t* double_filenum, uint64_t* double_offset);
+
+  Status SetDoubleRecvInfo(uint32_t double_filenum, uint64_t double_offset);
+
   static Status AppendBlank(slash::WritableFile *file, uint64_t len);
 
   slash::WritableFile *queue() { return queue_; }
-
 
   uint64_t file_size() {
     return file_size_;
@@ -114,6 +118,11 @@ class Version {
 
   uint64_t pro_offset_;
   uint32_t pro_num_;
+
+  // Double master used
+  uint64_t double_master_recv_offset_;
+  uint32_t double_master_recv_num_;
+
   pthread_rwlock_t rwlock_;
 
   void debug() {

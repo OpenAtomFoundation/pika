@@ -8,14 +8,15 @@
 #include <algorithm>
 
 #include <glog/logging.h>
-#include "pika_server.h"
-#include "pika_conf.h"
-#include "pika_client_conn.h"
-#include "pika_dispatch_thread.h"
+
+#include "slash/include/slash_coding.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
+#include "include/pika_client_conn.h"
+#include "include/pika_dispatch_thread.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
-static const int RAW_ARGS_LEN = 1024 * 1024; 
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                pink::ServerThread* server_thread,
@@ -25,18 +26,6 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
         cmds_table_(reinterpret_cast<CmdTable*>(worker_specific_data)),
         is_pubsub_(false) {
   auth_stat_.Init();
-}
-
-std::string PikaClientConn::RestoreArgs() {
-  std::string res;
-  res.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(res, argv_.size(), "*");
-  PikaCmdArgsType::const_iterator it = argv_.begin();
-  for ( ; it != argv_.end(); ++it) {
-    RedisAppendLen(res, (*it).size(), "$");
-    RedisAppendContent(res, *it);
-  }
-  return res;
 }
 
 std::string PikaClientConn::DoCmd(const std::string& opt) {
@@ -163,7 +152,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     }
     return this->ConstructPubSubResp(kCmdNamePUnSubscribe, result);
   }
-  
+
   bool need_send_to_hub = false;
   if (cinfo_ptr->is_write()) {
     if (g_pika_server->BinlogIoError()) {
@@ -172,8 +161,10 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     if (g_pika_conf->readonly()) {
       return "-ERR Server in read-only\r\n";
     }
-    raw_args = RestoreArgs();
     if (argv_.size() >= 2) {
+      if (cinfo_ptr->flag_type() & kCmdFlagsKv) {
+        need_send_to_hub = true;
+      }
       g_pika_server->mutex_record_.Lock(argv_[1]);
     }
   }
@@ -183,15 +174,33 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     g_pika_server->RWLockReader();
   }
 
+  uint32_t exec_time = time(nullptr);
   c_ptr->Do();
 
   if (cinfo_ptr->is_write()) {
     if (c_ptr->res().ok()) {
       g_pika_server->logger_->Lock();
-      slash::Status s = g_pika_server->logger_->Put(raw_args);
+      uint32_t filenum = 0;
+      uint64_t offset = 0;
+      std::string binlog_info;
+      g_pika_server->logger_->GetProducerStatus(&filenum, &offset);
+      slash::PutFixed32(&binlog_info, exec_time);
+      slash::PutFixed32(&binlog_info, filenum);
+      slash::PutFixed64(&binlog_info, offset);
+
+      std::string binlog = c_ptr->ToBinlog(
+          argv_,
+          g_pika_conf->server_id(),
+          binlog_info,
+          need_send_to_hub);
+      slash::Status s;
+      if (!binlog.empty()) {
+        s = g_pika_server->logger_->Put(binlog);
+      }
+
       g_pika_server->logger_->Unlock();
       if (!s.ok()) {
-        LOG(INFO) << "Writing binlog failed, maybe no space left on device";
+        LOG(WARNING) << "Writing binlog failed, maybe no space left on device";
         g_pika_server->SetBinlogIoError(true);
         g_pika_conf->SetReadonly(true);
         return "-ERR Writing binlog failed, maybe no space left on device\r\n";

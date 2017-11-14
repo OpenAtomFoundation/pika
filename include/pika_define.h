@@ -49,7 +49,7 @@ struct SlaveItem {
 #define PIKA_ROLE_SINGLE 0
 #define PIKA_ROLE_SLAVE 1
 #define PIKA_ROLE_MASTER 2
-
+#define PIKA_ROLE_DOUBLE_MASTER 3
 
 /*
  * The size of Binlogfile

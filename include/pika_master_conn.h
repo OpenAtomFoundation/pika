@@ -7,19 +7,16 @@
 #define PIKA_MASTER_CONN_H_
 
 #include "pink/include/redis_conn.h"
-#include "pika_command.h"
+#include "include/pika_command.h"
 
 class PikaBinlogReceiverThread;
 
 class PikaMasterConn: public pink::RedisConn {
  public:
   PikaMasterConn(int fd, std::string ip_port, void* worker_specific_data);
-  virtual ~PikaMasterConn();
   virtual int DealMessage();
  private:
   PikaBinlogReceiverThread* binlog_receiver_;
-  void RestoreArgs();
-  std::string raw_args_;
 };
 
 #endif

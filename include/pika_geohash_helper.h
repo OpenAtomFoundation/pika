@@ -32,7 +32,7 @@
 #ifndef PIKA_GEOHASH_HELPER_H_
 #define PIKA_GEOHASH_HELPER_H_
 
-#include "pika_geohash.h"
+#include "include/pika_geohash.h"
 
 #define GZERO(s) s.bits = s.step = 0;
 #define GISZERO(s) (!s.bits && !s.step)

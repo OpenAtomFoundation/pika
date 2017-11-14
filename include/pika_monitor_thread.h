@@ -14,8 +14,8 @@
 
 #include "pink/include/pink_thread.h"
 #include "slash/include/slash_mutex.h"
-#include "pika_client_conn.h"
-#include "pika_define.h"
+#include "include/pika_client_conn.h"
+#include "include/pika_define.h"
 
 class PikaMonitorThread : public pink::Thread {
  public:

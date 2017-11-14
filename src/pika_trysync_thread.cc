@@ -10,10 +10,10 @@
 #include "slash/include/env.h"
 #include "slash/include/rsync.h"
 #include "slash/include/slash_status.h"
-#include "pika_slaveping_thread.h"
-#include "pika_trysync_thread.h"
-#include "pika_server.h"
-#include "pika_conf.h"
+#include "include/pika_slaveping_thread.h"
+#include "include/pika_trysync_thread.h"
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
@@ -52,6 +52,12 @@ bool PikaTrysyncThread::Send() {
   if (g_pika_server->force_full_sync()) {
     argv.push_back(std::to_string(UINT32_MAX));
     argv.push_back(std::to_string(0));
+  } else if (g_pika_server->DoubleMasterMode()) {
+    uint64_t double_recv_offset;
+    uint32_t double_recv_num;
+    g_pika_server->logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
+    argv.push_back(std::to_string(double_recv_num));
+    argv.push_back(std::to_string(double_recv_offset));
   } else {
     argv.push_back(std::to_string(filenum));
     argv.push_back(std::to_string(pro_offset));
@@ -100,8 +106,8 @@ bool PikaTrysyncThread::RecvProc() {
         LOG(INFO) << "Recv sid from master: " << sid_;
         break;
       }
-      // Failed
 
+      // Failed
       if (kInnerReplWait == reply) {
         // You can't sync this time, but may be different next time,
         // This may happened when 
@@ -111,9 +117,14 @@ bool PikaTrysyncThread::RecvProc() {
         LOG(INFO) << "Need wait to sync";
         g_pika_server->NeedWaitDBSync();
       } else {
-//        LOG(WARNING) << "something wrong with sync, come in SyncError stage";
-//        g_pika_server->SyncError();
-        LOG(WARNING) << "trysync, error: " << reply;
+        // In double master mode
+        if (g_pika_server->IsDoubleMaster(g_pika_server->master_ip(), g_pika_server->master_port())) {
+          g_pika_server->RemoveMaster();
+          LOG(INFO) << "Because the invalid filenum and offset, close the connection between the peer-masters";
+        } else {  // In master slave mode
+          LOG(WARNING) << "something wrong with sync, come in SyncError stage";
+          g_pika_server->SyncError();
+        }
       }
       return false;
     }
@@ -186,6 +197,15 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
 
   // Update master offset
   g_pika_server->logger_->SetProducerStatus(filenum, offset);
+
+  // If sender is the peer-master
+  // need to update receive binlog info after rsync finished.
+  if (g_pika_server->DoubleMasterMode() && g_pika_server->IsDoubleMaster(master_ip, master_port)) {
+    g_pika_server->logger_->SetDoubleRecvInfo(filenum, offset);
+    LOG(INFO) << "Update receive infomation after rsync finished. filenum: " << filenum << " offset: " << offset;
+    // Close read-only mode
+    g_pika_conf->SetReadonly(false);
+  }
   g_pika_server->WaitDBSyncFinish();
   g_pika_server->SetForceFullSync(false);
   return true;
@@ -220,9 +240,9 @@ void* PikaTrysyncThread::ThreadMain() {
     
     std::string master_ip = g_pika_server->master_ip();
     int master_port = g_pika_server->master_port();
-    
-    // Start rsync
     std::string dbsync_path = g_pika_conf->db_sync_path();
+
+    // Start rsync service
     PrepareRsync();
     std::string ip_port = slash::IpPortString(master_ip, master_port);
     // We append the master ip port after module name
@@ -233,14 +253,15 @@ void* PikaTrysyncThread::ThreadMain() {
     }
     LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
 
-
     if ((cli_->Connect(master_ip, master_port, g_pika_server->host())).ok()) {
+      LOG(INFO) << "Connect to master ip:" << master_ip << "port: " << master_port;
       cli_->set_send_timeout(30000);
       cli_->set_recv_timeout(30000);
       if (Send() && RecvProc()) {
         g_pika_server->ConnectMasterDone();
         // Stop rsync, binlog sync with master is begin
         slash::StopRsync(dbsync_path);
+
         delete g_pika_server->ping_thread_;
         g_pika_server->ping_thread_ = new PikaSlavepingThread(sid_);
         g_pika_server->ping_thread_->StartThread();

@@ -25,6 +25,9 @@ void InitCmdInfoTable() {
   ////Trysync
   CmdInfo* trysyncptr = new CmdInfo(kCmdNameTrysync, 5, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend | kCmdFlagsAdminRequire);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTrysync, trysyncptr));
+  ////InternalTrysync for Pika HUB
+  CmdInfo* internal_trysyncptr = new CmdInfo(kCmdNameInternalTrysync, 5, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend | kCmdFlagsAdminRequire);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameInternalTrysync, internal_trysyncptr ));
   CmdInfo* authptr = new CmdInfo(kCmdNameAuth, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameAuth, authptr));
   CmdInfo* bgsaveptr = new CmdInfo(kCmdNameBgsave, 1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
@@ -459,6 +462,9 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////Trysync
   Cmd* trysyncptr = new TrysyncCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTrysync, trysyncptr));
+  ////InternalTrysync
+  Cmd* internal_trysyncptr = new InternalTrysyncCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameInternalTrysync, internal_trysyncptr));
   Cmd* authptr = new AuthCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAuth, authptr));
   Cmd* bgsaveptr = new BgsaveCmd();
