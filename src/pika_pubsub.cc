@@ -87,7 +87,7 @@ void PubSubCmd::Do() {
       res_.SetRes(CmdRes::kErrOther, "Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
       return;
     }
-    g_pika_server->PubSubChannels(arguments_[1], &result);
+    g_pika_server->PubSubChannels(pattern, &result);
 
     res_.AppendArrayLen(result.size());
     for (auto it = result.begin(); it != result.end(); ++it) {

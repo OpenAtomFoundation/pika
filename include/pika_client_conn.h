@@ -21,10 +21,10 @@ class PikaClientConn: public pink::RedisConn {
                  void* worker_specific_data);
   virtual ~PikaClientConn() {}
   virtual int DealMessage();
-  bool PubSub() {
+  bool IsPubSub() {
     return is_pubsub_; 
   }
-  void SetPubSub(bool is_pubsub) {
+  void SetIsPubSub(bool is_pubsub) {
     is_pubsub_ = is_pubsub; 
   }
 

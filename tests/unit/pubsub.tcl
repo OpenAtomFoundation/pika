@@ -95,9 +95,7 @@ start_server {tags {"pubsub"}} {
         assert_equal 2 [r publish chan1 hello]
         assert_equal {message chan1 hello} [$rd1 read]
         assert_equal {message chan1 hello} [$rd2 read]
-      
-        unsubscribe $rd1
-        unsubscribe $rd2
+
         # clean up clients
         $rd1 close
         $rd2 close
@@ -111,7 +109,6 @@ start_server {tags {"pubsub"}} {
         assert_equal 0 [r publish chan2 hello]
         assert_equal 0 [r publish chan3 hello]
 
-        unsubscribe $rd1
         # clean up clients
         $rd1 close
     }
@@ -122,7 +119,6 @@ start_server {tags {"pubsub"}} {
         assert_equal 1 [r publish chan1 hello]
         assert_equal {message chan1 hello} [$rd1 read]
 
-        unsubscribe $rd1
         # clean up clients
         $rd1 close
     }
@@ -173,8 +169,6 @@ start_server {tags {"pubsub"}} {
         assert_equal {pmessage chan.* chan.foo hello} [$rd1 read]
         assert_equal {pmessage chan.* chan.foo hello} [$rd2 read]
 
-        punsubscribe $rd1
-        punsubscribe $rd2
         # clean up clients
         $rd1 close
         $rd2 close
@@ -203,6 +197,17 @@ start_server {tags {"pubsub"}} {
     test "NUMSUB returns numbers, not strings (#1561)" {
         r pubsub numsub abc def
     } {abc 0 def 0}
+    
+    test "PubSub return value" {
+      set rd1 [redis_deferring_client]
+      assert_equal {1} [subscribe $rd1 {foo.bar}]
+      assert_equal {2} [psubscribe $rd1 {foo.*}]
+      assert_equal {foo.bar} [r pubsub channels]
+      assert_equal {1} [r pubsub numpat]
+      assert_equal {foo.bar 1} [r pubsub numsub foo.bar]
+
+      $rd1 close
+    }
 
     test "Mix SUBSCRIBE and PSUBSCRIBE" {
         set rd1 [redis_deferring_client]
@@ -212,9 +217,7 @@ start_server {tags {"pubsub"}} {
         assert_equal 2 [r publish foo.bar hello]
         assert_equal {message foo.bar hello} [$rd1 read]
         assert_equal {pmessage foo.* foo.bar hello} [$rd1 read]
-        
-        unsubscribe $rd1
-        punsubscribe $rd1
+
         # clean up clients
         $rd1 close
     }

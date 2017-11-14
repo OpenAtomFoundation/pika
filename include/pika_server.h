@@ -324,7 +324,7 @@ class PikaServer {
                   std::vector<std::pair<std::string, int>>* result);
 
   void PubSubChannels(const std::string& pattern,
-                      std::vector<std::string >* result);
+                      std::vector<std::string>* result);
 
   void PubSubNumSub(const std::vector<std::string>& channels,
                     std::vector<std::pair<std::string, int>>* result);
