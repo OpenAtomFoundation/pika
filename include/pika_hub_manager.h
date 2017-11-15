@@ -154,7 +154,8 @@ class PikaHubManager {
   }
 
   Status AddHub(const std::string hub_ip, int hub_port,
-                uint32_t filenum, uint64_t con_offset);
+                uint32_t filenum, uint64_t con_offset,
+                bool send_most_recently);
 
   std::string hub_ip() { return hub_ip_; }
 
@@ -170,7 +171,7 @@ class PikaHubManager {
 
  private:
   friend class PikaHubSenderThread;
-  Status ResetSenders();
+  Status ResetSenders(bool send_most_recently);
   bool GetNextFilenum(PikaHubSenderThread* thread,
     uint32_t* filenum, uint64_t* con_offset);
 
