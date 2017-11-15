@@ -30,7 +30,7 @@ PikaHubManager::PikaHubManager(const std::set<std::string> &ips, int port,
 
 Status PikaHubManager::AddHub(
     const std::string hub_ip, int hub_port,
-    uint32_t filenum, uint64_t con_offset
+    uint32_t filenum, uint64_t con_offset,
     bool send_most_recently) {
   std::string ip_port = slash::IpPortString(hub_ip, hub_port);
   LOG(INFO) << "Try add hub, " << ip_port;
@@ -105,7 +105,8 @@ Status PikaHubManager::ResetSenders(bool send_most_recently) {
       return Status::InvalidArgument("AddHubBinlogSender invalid binlog offset");
     }
   }
-  LOG(INFO) << "Ready to send binlog file: " << hub_filenum_;
+  LOG(INFO) << "Send most recently file: " << (send_most_recently ? "yes" : "no")
+    << ", ready to send binlog file: " << hub_filenum_;
 
   for (int i = 0; i < kMaxHubSender; i++) {
     if (sender_threads_[i]->TryStartThread(hub_ip_, hub_port_) != 0) {
