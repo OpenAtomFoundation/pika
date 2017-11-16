@@ -177,6 +177,14 @@ const std::string kCmdNameGeoHash = "geohash";
 const std::string kCmdNameGeoRadius = "georadius";
 const std::string kCmdNameGeoRadiusByMember = "georadiusbymember";
 
+//Pub/Sub
+const std::string kCmdNamePublish = "publish";
+const std::string kCmdNameSubscribe = "subscribe";
+const std::string kCmdNameUnSubscribe = "unsubscribe";
+const std::string kCmdNamePubSub = "pubsub";
+const std::string kCmdNamePSubscribe = "psubscribe";
+const std::string kCmdNamePUnSubscribe = "punsubscribe";
+
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 
@@ -201,6 +209,7 @@ enum CmdFlags {
   kCmdFlagsBit            = 12,
   kCmdFlagsHyperLogLog    = 14,
   kCmdFlagsGeo            = 16,
+  kCmdFlagsPubSub         = 18,
   kCmdFlagsNoLocal        = 0, //default nolocal
   kCmdFlagsLocal          = 32,
   kCmdFlagsNoSuspend      = 0, //default nosuspend

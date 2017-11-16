@@ -21,10 +21,17 @@ class PikaClientConn: public pink::RedisConn {
                  void* worker_specific_data);
   virtual ~PikaClientConn() {}
   virtual int DealMessage();
+  bool IsPubSub() {
+    return is_pubsub_; 
+  }
+  void SetIsPubSub(bool is_pubsub) {
+    is_pubsub_ = is_pubsub; 
+  }
 
  private:
   pink::ServerThread* const server_thread_;
   CmdTable* const cmds_table_;
+  bool is_pubsub_;
 
   std::string DoCmd(const std::string& opt);
 

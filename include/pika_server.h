@@ -28,6 +28,7 @@
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
 #include "pink/include/bg_thread.h"
+#include "pink/include/pink_pubsub.h"
 #include "nemo_backupable.h"
 
 using slash::Status;
@@ -333,6 +334,28 @@ class PikaServer {
   void RWUnlock();
 
   /*
+   * PubSub used
+   */
+  int Publish(const std::string& channel, const std::string& msg);
+  void Subscribe(pink::PinkConn* conn,
+                 const std::vector<std::string>& channels,
+                 const bool pattern,
+                 std::vector<std::pair<std::string, int>>* result);
+
+  int UnSubscribe(pink::PinkConn* conn,
+                  const std::vector<std::string>& channels,
+                  const bool pattern,
+                  std::vector<std::pair<std::string, int>>* result);
+
+  void PubSubChannels(const std::string& pattern,
+                      std::vector<std::string>* result);
+
+  void PubSubNumSub(const std::vector<std::string>& channels,
+                    std::vector<std::pair<std::string, int>>* result);
+
+  int PubSubNumPat();
+
+  /*
    * Monitor used
    */
   void AddMonitorClient(PikaClientConn* client_ptr);
@@ -462,6 +485,11 @@ class PikaServer {
    * Monitor use
    */
   PikaMonitorThread* monitor_thread_;
+
+  /*
+   *  Pubsub use
+   */
+  pink::PubSubThread * pika_pubsub_thread_;
 
   /*
    * Binlog Receiver use

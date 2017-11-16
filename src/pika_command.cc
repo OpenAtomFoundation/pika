@@ -13,6 +13,7 @@
 #include "include/pika_bit.h"
 #include "include/pika_hyperloglog.h"
 #include "include/pika_geo.h"
+#include "include/pika_pubsub.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
 
@@ -417,6 +418,26 @@ void InitCmdInfoTable() {
   ////GeoRadiusByMember
   CmdInfo* georadiusbymemberptr = new CmdInfo(kCmdNameGeoRadiusByMember, -5, kCmdFlagsRead | kCmdFlagsGeo);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoRadiusByMember, georadiusbymemberptr));
+
+  //Pub/Sub
+  //Publish
+  CmdInfo* publishptr = new CmdInfo(kCmdNamePublish, 3, kCmdFlagsRead | kCmdFlagsPubSub);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePublish, publishptr));
+  //Subscribe
+  CmdInfo* subscribeptr = new CmdInfo(kCmdNameSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSubscribe, subscribeptr));
+  //UnSubscribe
+  CmdInfo* unsubscribeptr = new CmdInfo(kCmdNameUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameUnSubscribe, unsubscribeptr));
+  //PSubscribe
+  CmdInfo* psubscribeptr = new CmdInfo(kCmdNamePSubscribe, -2, kCmdFlagsRead | kCmdFlagsPubSub);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePSubscribe, psubscribeptr));
+  //PUnSubscribe
+  CmdInfo* punsubscribeptr = new CmdInfo(kCmdNamePUnSubscribe, -1, kCmdFlagsRead | kCmdFlagsPubSub);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePUnSubscribe, punsubscribeptr));
+  //PubSub
+  CmdInfo* pubsubptr = new CmdInfo(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePubSub, pubsubptr));
 }
 
 void DestoryCmdInfoTable() {
@@ -829,6 +850,26 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////GeoRadiusByMember
   Cmd * georadiusbymemberptr = new GeoRadiusByMemberCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoRadiusByMember, georadiusbymemberptr));
+
+  //PubSub
+  ////Publish
+  Cmd * publishptr = new PublishCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePublish, publishptr));
+  ////Subscribe
+  Cmd * subscribeptr = new SubscribeCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSubscribe, subscribeptr));
+  ////UnSubscribe
+  Cmd * unsubscribeptr = new UnSubscribeCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameUnSubscribe, unsubscribeptr));
+  ////PSubscribe
+  Cmd * psubscribeptr = new PSubscribeCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePSubscribe, psubscribeptr));
+  ////PUnSubscribe
+  Cmd * punsubscribeptr = new PUnSubscribeCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePUnSubscribe, punsubscribeptr));
+  ////PubSub
+  Cmd * pubsubptr = new PubSubCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePubSub, pubsubptr));
 }
 
 Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table) {
