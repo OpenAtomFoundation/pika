@@ -215,6 +215,8 @@ void InternalTrysyncCmd::DoInitial(PikaCmdArgsType &argv,
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
+
+  send_most_recently_ = (*it == "1");
 }
 
 void InternalTrysyncCmd::Do() {
@@ -222,7 +224,9 @@ void InternalTrysyncCmd::Do() {
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
 
   Status status = g_pika_server->pika_hub_manager_->AddHub(
-      hub_ip_, hub_port_ + 1000, filenum_, pro_offset_);
+      hub_ip_, hub_port_ + 1000,
+      filenum_, pro_offset_,
+      send_most_recently_);
 
   if (!status.ok()) {
     LOG(WARNING) << "hub offset is larger than mine, slave ip: " << hub_ip_

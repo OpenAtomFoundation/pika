@@ -30,11 +30,18 @@ int PikaMasterConn::DealMessage() {
   }
 
   // TODO(shq) maybe monitor do not need these infomation
+  std::string server_id;
+  std::string binlog_info;
   if (!g_pika_server->DoubleMasterMode()) {
     if (argv_.size() > 4 &&
         *(argv_.end() - 4) == kPikaBinlogMagic) {
       // Record new binlog format
-      argv_.erase(argv_.end() - 4, argv_.end());
+      argv_.pop_back();  // send_to_hub flag
+      binlog_info = argv_.back();  // binlog_info
+      argv_.pop_back();
+      server_id = argv_.back();  // server_id
+      argv_.pop_back();
+      argv_.pop_back();  //  kPikaBinlogMagic
     }
   }
 
@@ -54,7 +61,6 @@ int PikaMasterConn::DealMessage() {
   // Here, the binlog dispatch thread, instead of the binlog bgthread takes on the task to write binlog
   // Only when the server is readonly
   uint64_t serial = binlog_receiver_->GetnPlusSerial();
-  std::string dummy_binlog_info("");
   if (is_readonly) {
     if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
       return -2;
@@ -65,8 +71,8 @@ int PikaMasterConn::DealMessage() {
     g_pika_server->logger_->Lock();
     g_pika_server->logger_->Put(c_ptr->ToBinlog(
         argv_,
-        g_pika_conf->server_id(),
-        dummy_binlog_info,
+        server_id.empty() ? g_pika_conf->server_id() : server_id,
+        binlog_info,
         false));
     g_pika_server->logger_->Unlock();
     g_pika_server->SignalNextBinlogBGSerial();

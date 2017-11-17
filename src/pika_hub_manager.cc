@@ -28,8 +28,10 @@ PikaHubManager::PikaHubManager(const std::set<std::string> &ips, int port,
   }
 }
 
-Status PikaHubManager::AddHub(const std::string hub_ip, int hub_port,
-                                uint32_t filenum, uint64_t con_offset) {
+Status PikaHubManager::AddHub(
+    const std::string hub_ip, int hub_port,
+    uint32_t filenum, uint64_t con_offset,
+    bool send_most_recently) {
   std::string ip_port = slash::IpPortString(hub_ip, hub_port);
   LOG(INFO) << "Try add hub, " << ip_port;
 
@@ -65,27 +67,46 @@ Status PikaHubManager::AddHub(const std::string hub_ip, int hub_port,
   hub_ip_ = hub_ip;
   hub_port_ = hub_port;
 
-  Status s = ResetSenders();
+  Status s = ResetSenders(send_most_recently);
   hub_stage_ = s.ok() ? DEGRADE : STOPED;
   return s;
 }
 
-Status PikaHubManager::ResetSenders() {
+Status PikaHubManager::ResetSenders(bool send_most_recently) {
   assert(hub_stage_ < STARTED);
   // Sanitize
   uint32_t cur_filenum = 0;
   uint64_t cur_offset = 0;
   g_pika_server->logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (hub_con_offset_ > g_pika_server->logger_->file_size() ||
-      cur_filenum < hub_filenum_ ||
-      (cur_filenum == hub_filenum_ && cur_offset < hub_con_offset_)) {
-    return Status::InvalidArgument("AddHubBinlogSender invalid binlog offset");
+  // We just care about filenum
+  hub_con_offset_ = 0;
+  if (send_most_recently) {
+    // Find a valid file num close to hub_filenum_
+    if (hub_filenum_ >= cur_filenum) {
+      hub_filenum_ = cur_filenum;
+    }
+
+    while (hub_filenum_ <= cur_filenum) {
+      std::string confile =
+        NewFileName(g_pika_server->logger_->filename, hub_filenum_);
+      if (slash::FileExists(confile)) {
+        break;
+      }
+      hub_filenum_++;
+    }
+    if (hub_filenum_ > cur_filenum) {
+      return Status::InvalidArgument("AddHubBinlogSender invalid binlog offset");
+    }
+  } else {
+    std::string confile =
+      NewFileName(g_pika_server->logger_->filename, hub_filenum_);
+    if (hub_filenum_ > cur_filenum ||
+        !slash::FileExists(confile)) {
+      return Status::InvalidArgument("AddHubBinlogSender invalid binlog offset");
+    }
   }
-  std::string confile = NewFileName(g_pika_server->logger_->filename, hub_filenum_);
-  if (!slash::FileExists(confile)) {
-    // Not found binlog specified by filenum
-    return Status::InvalidArgument("AddHubBinlogSender file does not exist");
-  }
+  LOG(INFO) << "Send most recently file: " << (send_most_recently ? "yes" : "no")
+    << ", ready to send binlog file: " << hub_filenum_;
 
   for (int i = 0; i < kMaxHubSender; i++) {
     if (sender_threads_[i]->TryStartThread(hub_ip_, hub_port_) != 0) {

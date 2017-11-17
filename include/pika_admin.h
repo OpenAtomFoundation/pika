@@ -12,12 +12,16 @@
  * Admin
  */
 class SlaveofCmd : public Cmd {
-public:
-  SlaveofCmd() : is_noone_(false), have_offset_(false),
-  filenum_(0), pro_offset_(0) {
+ public:
+  SlaveofCmd()
+      : is_noone_(false),
+        have_offset_(false),
+        filenum_(0),
+        pro_offset_(0) {
   }
   virtual void Do();
-private:
+
+ private:
   std::string master_ip_;
   int64_t master_port_;
   bool is_noone_;
@@ -32,11 +36,11 @@ private:
 };
 
 class TrysyncCmd : public Cmd {
-public:
-  TrysyncCmd() {
-  }
+ public:
+  TrysyncCmd() {}
   virtual void Do();
-private:
+
+ private:
   std::string slave_ip_;
   int64_t slave_port_;
   int64_t filenum_;
@@ -45,116 +49,117 @@ private:
 };
 
 class InternalTrysyncCmd : public Cmd {
-public:
-  InternalTrysyncCmd() {
-  }
+ public:
+  InternalTrysyncCmd() {}
   virtual void Do();
-private:
+
+ private:
   std::string hub_ip_;
   int64_t hub_port_;
   int64_t filenum_;
   int64_t pro_offset_;
+  bool send_most_recently_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class AuthCmd : public Cmd {
-public:
-  AuthCmd() {
-  }
+ public:
+  AuthCmd() {}
   virtual void Do();
-private:
+
+ private:
   std::string pwd_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class BgsaveCmd : public Cmd {
-public:
-  BgsaveCmd() {
-  }
+ public:
+  BgsaveCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class BgsaveoffCmd : public Cmd {
-public:
-  BgsaveoffCmd() {
-  }
+ public:
+  BgsaveoffCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class CompactCmd : public Cmd {
-public:
-  CompactCmd() {
-  }
+ public:
+  CompactCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class PurgelogstoCmd : public Cmd {
-public:
-  PurgelogstoCmd() : num_(0){
-  }
+ public:
+  PurgelogstoCmd() : num_(0) {}
   virtual void Do();
-private:
+
+ private:
   uint32_t num_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class PingCmd : public Cmd {
-public:
-  PingCmd() {
-  }
+ public:
+  PingCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SelectCmd : public Cmd {
-public:
-  SelectCmd() {
-  }
+ public:
+  SelectCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class FlushallCmd : public Cmd {
-public:
-  FlushallCmd() {
-  }
+ public:
+  FlushallCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ReadonlyCmd : public Cmd {
-public:
-  ReadonlyCmd() : is_open_(false) {
-  }
+ public:
+  ReadonlyCmd() : is_open_(false) {}
   virtual void Do();
-private:
+
+ private:
   bool is_open_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ClientCmd : public Cmd {
-public:
-  ClientCmd() {
-  }
+ public:
+  ClientCmd() {}
   virtual void Do();
   const static std::string CLIENT_LIST_S;
   const static std::string CLIENT_KILL_S;
-private:
+
+ private:
   std::string operation_, ip_port_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class InfoCmd : public Cmd {
-public:
+ public:
   enum InfoSection {
     kInfoErr = 0x0,
     kInfoServer,
@@ -170,10 +175,10 @@ public:
     kInfoDoubleMaster
   };
 
-  InfoCmd() : rescan_(false), off_(false) {
-  }
+  InfoCmd() : rescan_(false), off_(false) {}
   virtual void Do();
-private:
+
+ private:
   InfoSection info_section_;
   bool rescan_; //whether to rescan the keyspace
   bool off_;
@@ -207,20 +212,20 @@ private:
 };
 
 class ShutdownCmd : public Cmd {
-public:
-  ShutdownCmd() {
-  }
+ public:
+  ShutdownCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ConfigCmd : public Cmd {
-public:
-  ConfigCmd() {
-  }
+ public:
+  ConfigCmd() {}
   virtual void Do();
-private:
+
+ private:
   std::vector<std::string> config_args_v_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   void ConfigGet(std::string &ret);
@@ -230,51 +235,51 @@ private:
 };
 
 class MonitorCmd : public Cmd {
-public:
-  MonitorCmd() {
-  }
+ public:
+  MonitorCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class DbsizeCmd : public Cmd {
-public:
-  DbsizeCmd() {
-  }
+ public:
+  DbsizeCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class TimeCmd : public Cmd {
-public:
-  TimeCmd() {
-  }
+ public:
+  TimeCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class DelbackupCmd : public Cmd {
-public:
-  DelbackupCmd() {
-  }
+ public:
+  DelbackupCmd() {}
   virtual void Do();
-private:
+
+ private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 #ifdef TCMALLOC_EXTENSION
 class TcmallocCmd : public Cmd {
-public:
-  TcmallocCmd() {
-  }
+ public:
+  TcmallocCmd() {}
   virtual void Do();
-private:
+
+ private:
   int64_t type_;
   int64_t rate_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 #endif
-#endif
+#endif  // PIKA_ADMIN_H_

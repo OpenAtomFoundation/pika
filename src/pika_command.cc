@@ -27,7 +27,7 @@ void InitCmdInfoTable() {
   CmdInfo* trysyncptr = new CmdInfo(kCmdNameTrysync, 5, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend | kCmdFlagsAdminRequire);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTrysync, trysyncptr));
   ////InternalTrysync for Pika HUB
-  CmdInfo* internal_trysyncptr = new CmdInfo(kCmdNameInternalTrysync, 5, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend | kCmdFlagsAdminRequire);
+  CmdInfo* internal_trysyncptr = new CmdInfo(kCmdNameInternalTrysync, 6, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend | kCmdFlagsAdminRequire);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameInternalTrysync, internal_trysyncptr ));
   CmdInfo* authptr = new CmdInfo(kCmdNameAuth, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameAuth, authptr));

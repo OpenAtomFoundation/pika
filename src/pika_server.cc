@@ -1128,7 +1128,8 @@ bool PikaServer::CouldPurge(uint32_t index) {
     }
     PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
     uint32_t filenum = pb->filenum();
-    if (index > filenum) {
+    if (index > filenum ||  // slaves
+        !pika_hub_manager_->CouldPurge(index)) {  // pika hub
       return false;
     }
   }

@@ -154,10 +154,14 @@ class PikaHubManager {
   }
 
   Status AddHub(const std::string hub_ip, int hub_port,
-                uint32_t filenum, uint64_t con_offset);
+                uint32_t filenum, uint64_t con_offset,
+                bool send_most_recently);
 
-  std::string hub_ip() {
-    return hub_ip_;
+  std::string hub_ip() { return hub_ip_; }
+
+  bool CouldPurge(int file_tobe_purged) {
+    slash::MutexLock l(&sending_window_protector_);
+    return file_tobe_purged < sending_window_.left;
   }
 
   std::string StatusToString();
@@ -165,11 +169,9 @@ class PikaHubManager {
   void HubConnected() { hub_stage_ = STARTED; }
   void StopHub(int connnection_num);
 
-  slash::Mutex sending_window_protector_;
-
  private:
   friend class PikaHubSenderThread;
-  Status ResetSenders();
+  Status ResetSenders(bool send_most_recently);
   bool GetNextFilenum(PikaHubSenderThread* thread,
     uint32_t* filenum, uint64_t* con_offset);
 
@@ -182,6 +184,7 @@ class PikaHubManager {
   uint32_t hub_filenum_;
   uint64_t hub_con_offset_;
 
+  slash::Mutex sending_window_protector_;
   struct {
     int64_t left;
     int64_t right;
