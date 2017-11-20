@@ -1151,7 +1151,8 @@ bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to) ||           // Argument bound
         remain_expire_num > 0 ||                 // Expire num trigger
-        (stat(((g_pika_conf->log_path() + it->second)).c_str(), &file_stat) == 0 &&
+        (binlogs.size() > 10 /* at lease remain 10 files */
+         && stat(((g_pika_conf->log_path() + it->second)).c_str(), &file_stat) == 0 &&
          file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days()*24*3600)) // Expire time trigger
     {
       // We check this every time to avoid lock when we do file deletion
