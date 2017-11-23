@@ -11,6 +11,7 @@ sudo yum install hiredis-devel
 ```
 
 修改 Makefile:
+
 设置`HIREDIS_INCLUDE` 为`hiredis`头文件所在位置
 
 设置`HIREDIS_LIB`为`hiredis`静态库所在位置
