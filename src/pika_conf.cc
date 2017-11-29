@@ -38,7 +38,7 @@ int PikaConf::Load()
     exit(-1);
   }
   GetConfInt("timeout", &timeout_);
-  if (timeout_ <= 0) {
+  if (timeout_ < 0) {
       timeout_ = 60; // 60s
   }
   GetConfStr("server-id", &server_id_);
