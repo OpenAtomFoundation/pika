@@ -37,21 +37,12 @@ class PikaHubSenderThread : public pink::Thread {
 
   int TryStartThread(const std::string& hub_ip, const int hub_port);
 
-  int GetTid() {
-    return tid_;
-  }
+  int GetTid() { return tid_; }
 
   enum STATUS { UNSTARTED, WORKING, WAITING, ENDOFFILE };
-  STATUS SenderStatus() {
-    return status_;
-  }
+  STATUS SenderStatus() { return status_; }
 
-  void CloseClient() {
-    cli_->Close();
-    // Close socket connnection
-    cli_.reset(pink::NewRedisCli());
-    should_reset_ = true;
-  }
+  void Reset() { should_reset_ = true; should_reconnect_ = true; }
 
  private:
   bool ResetStatus();
@@ -66,6 +57,7 @@ class PikaHubSenderThread : public pink::Thread {
 
   STATUS status_;
   std::atomic<bool> should_reset_;
+  std::atomic<bool> should_reconnect_;
 
   uint32_t filenum_;
   uint64_t con_offset_;

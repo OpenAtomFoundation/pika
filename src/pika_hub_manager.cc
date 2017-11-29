@@ -19,6 +19,7 @@ extern PikaServer* g_pika_server;
 PikaHubManager::PikaHubManager(const std::set<std::string> &ips, int port,
                                int cron_interval)
     : hub_stage_(STOPED),
+      hub_port_(0),
       hub_filenum_(0),
       hub_con_offset_(0),
       sending_window_({0, -1}),
@@ -245,7 +246,7 @@ void PikaHubManager::StopHub(int connnection_num) {
     } else {
       hub_stage_ = STOPED;
       for (int i = 0; i < kMaxHubSender; i++) {
-        sender_threads_[i]->CloseClient();
+        sender_threads_[i]->Reset();
       }
       slash::MutexLock l(&sending_window_protector_);
       sending_window_.left = 0;
@@ -524,6 +525,7 @@ void* PikaHubSenderThread::ThreadMain() {
   bool should_wait = true;
   while (!should_stop()) {
     if (should_reset_) {
+      cli_.reset(pink::NewRedisCli());
       should_wait = ResetStatus();
       if (should_wait) {
         status_ = UNSTARTED;
@@ -539,6 +541,7 @@ void* PikaHubSenderThread::ThreadMain() {
     // 1. Connect to hub
     result = cli_->Connect(hub_ip_, hub_port_, g_pika_server->host());
     if (result.ok()) {
+      should_reconnect_ = false;
       LOG(INFO) << "Hub Sender Connect hub(" << hub_ip_ << ":" <<
         hub_port_ << ") " << result.ToString() << ", filenum: " << filenum_;
 
@@ -559,7 +562,7 @@ void* PikaHubSenderThread::ThreadMain() {
         }
 
         // 3. After successful parse, we send msg;
-        if (!cli_->Available()) {
+        if (should_reconnect_) {
           last_send_flag = false;
           break;
         }

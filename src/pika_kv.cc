@@ -924,7 +924,7 @@ std::string PexpireatCmd::ToBinlog(
   RedisAppendContent(res, key_);
   // sec
   char buf[100];
-  int64_t expireat = time(nullptr) + time_stamp_ms_ / 1000;
+  int64_t expireat = time_stamp_ms_ / 1000;
   slash::ll2string(buf, 100, expireat);
   std::string at(buf);
   RedisAppendLen(res, at.size(), "$");
