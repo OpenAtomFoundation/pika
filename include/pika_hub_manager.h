@@ -11,6 +11,7 @@
 #include <set>
 #include <memory>
 #include <future>
+#include <sstream>
 
 #include "pink/include/server_thread.h"
 #include "pink/include/pink_thread.h"
