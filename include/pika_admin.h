@@ -7,6 +7,9 @@
 #define PIKA_ADMIN_H_
 
 #include <sstream>
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <iomanip>
 
 #include "include/pika_command.h"
 #include "include/pika_client_conn.h"
@@ -169,6 +172,7 @@ class InfoCmd : public Cmd {
     kInfoClients,
     kInfoHub,
     kInfoStats,
+    kInfoCPU,
     kInfoReplication,
     kInfoKeyspace,
     kInfoBgstats,
@@ -191,6 +195,7 @@ class InfoCmd : public Cmd {
   const static std::string kClientsSection;
   const static std::string kHubSection;
   const static std::string kStatsSection;
+  const static std::string kCPUSection;
   const static std::string kReplicationSection;
   const static std::string kKeyspaceSection;
   const static std::string kLogSection;
@@ -207,6 +212,7 @@ class InfoCmd : public Cmd {
   void InfoClients(std::string &info);
   void InfoHub(std::string &info);
   void InfoStats(std::string &info);
+  void InfoCPU(std::string &info);
   void InfoReplication(std::string &info);
   void InfoKeyspace(std::string &info);
   void InfoLog(std::string &info);

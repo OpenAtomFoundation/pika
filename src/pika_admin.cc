@@ -473,6 +473,7 @@ const std::string InfoCmd::kServerSection = "server";
 const std::string InfoCmd::kClientsSection = "clients";
 const std::string InfoCmd::kHubSection = "hub";
 const std::string InfoCmd::kStatsSection = "stats";
+const std::string InfoCmd::kCPUSection = "cpu";
 const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kLogSection = "log";
@@ -501,6 +502,8 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     info_section_ = kInfoHub;
   } else if (argv[1] == kStatsSection) {
     info_section_ = kInfoStats;
+  } else if (argv[1] == kCPUSection) {
+    info_section_ = kInfoCPU;
   } else if (argv[1] == kReplicationSection) {
     info_section_ = kInfoReplication;
   } else if (argv[1] == kKeyspaceSection) {
@@ -546,6 +549,8 @@ void InfoCmd::Do() {
       info.append("\r\n");
       InfoStats(info);
       info.append("\r\n");
+      InfoCPU(info);
+      info.append("\r\n");
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
@@ -563,6 +568,9 @@ void InfoCmd::Do() {
       break;
     case kInfoStats:
       InfoStats(info);
+      break;
+    case kInfoCPU:
+      InfoCPU(info);
       break;
     case kInfoReplication:
       InfoReplication(info);
@@ -669,6 +677,31 @@ void InfoCmd::InfoStats(std::string &info) {
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
   tmp_stream << "compact_interval:" << g_pika_conf->compact_interval() << "\r\n";
 
+  info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoCPU(std::string &info) {
+  struct rusage self_ru, c_ru;
+  getrusage(RUSAGE_SELF, &self_ru);
+  getrusage(RUSAGE_CHILDREN, &c_ru);
+  std::stringstream tmp_stream;
+  tmp_stream << "# CPU\r\n";
+  tmp_stream << "used_cpu_sys:" <<
+    setiosflags(std::ios::fixed) << std::setprecision(2) <<
+    (float)self_ru.ru_stime.tv_sec+(float)self_ru.ru_stime.tv_usec/1000000 <<
+    "\r\n";
+  tmp_stream << "used_cpu_user:" <<
+    setiosflags(std::ios::fixed) << std::setprecision(2) <<
+    (float)self_ru.ru_utime.tv_sec+(float)self_ru.ru_utime.tv_usec/1000000 <<
+    "\r\n";
+  tmp_stream << "used_cpu_sys_children:" <<
+    setiosflags(std::ios::fixed) << std::setprecision(2) <<
+    (float)c_ru.ru_stime.tv_sec+(float)c_ru.ru_stime.tv_usec/1000000 <<
+    "\r\n";
+  tmp_stream << "used_cpu_user_children:" <<
+    setiosflags(std::ios::fixed) << std::setprecision(2) <<
+    (float)c_ru.ru_utime.tv_sec+(float)c_ru.ru_utime.tv_usec/1000000 <<
+    "\r\n";
   info.append(tmp_stream.str());
 }
 
