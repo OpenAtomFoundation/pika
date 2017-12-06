@@ -20,7 +20,7 @@ class PikaClientConn: public pink::RedisConn {
   PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
                  void* worker_specific_data);
   virtual ~PikaClientConn() {}
-  virtual int DealMessage();
+  virtual int DealMessage(PikaCmdArgsType& argv, std::string* response);
   bool IsPubSub() {
     return is_pubsub_; 
   }
@@ -33,7 +33,7 @@ class PikaClientConn: public pink::RedisConn {
   CmdTable* const cmds_table_;
   bool is_pubsub_;
 
-  std::string DoCmd(const std::string& opt);
+  std::string DoCmd(PikaCmdArgsType& argv, const std::string& opt);
 
   // Auth related
   class AuthStat {

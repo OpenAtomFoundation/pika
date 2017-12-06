@@ -8,6 +8,7 @@
 
 #include <glog/logging.h>
 
+#include "include/pika_command.h"
 #include "pink/include/redis_conn.h"
 #include "pink/include/pink_thread.h"
 
@@ -16,7 +17,7 @@ class PikaHeartbeatThread;
 class PikaHeartbeatConn: public pink::RedisConn {
  public:
   PikaHeartbeatConn(int fd, std::string ip_port);
-  virtual int DealMessage();
+  virtual int DealMessage(PikaCmdArgsType& argv, std::string* response);
 };
 
 #endif
