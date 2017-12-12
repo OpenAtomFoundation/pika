@@ -696,6 +696,7 @@ void InfoCmd::InfoReplication(std::string &info) {
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_CONNECTED ? "up" : "down") << "\r\n";
+      tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->readonly() << "\r\n";
       tmp_stream << "repl_state: " << (g_pika_server->repl_state()) << "\r\n";
       break;
@@ -1055,8 +1056,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     ret = "*2\r\n";
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
+  } else if (get_item == "slave-priority") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "slave-priority");
+    EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else if (get_item == "*") {
-    ret = "*82\r\n";
+    ret = "*86\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1141,6 +1146,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, g_pika_conf->network_interface());
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
+    EncodeString(&ret, "slaveof-priority");
+    EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else {
     ret = "*0\r\n";
   }
@@ -1168,6 +1175,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
+    EncodeString(&ret, "slave-priority");
     return;
   }
   std::string value = config_args_v_[2];
@@ -1223,6 +1231,13 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetExpireDumpDays(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "slave-priority") {
+     if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slave-priority'\r\n";
+      return;
+    }
+    g_pika_conf->SetSlavePriority(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-days") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {

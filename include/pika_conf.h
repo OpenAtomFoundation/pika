@@ -29,6 +29,7 @@ class PikaConf : public slash::BaseConf {
   int double_master_port() { RWLock l(&rwlock_, false); return double_master_port_; }
   std::string double_master_sid()        { RWLock l(&rwlock_, false); return double_master_sid_; }
   std::string slaveof() {RWLock l(&rwlock_, false); return slaveof_;}
+  int slave_priority() {RWLock l(&rwlock_, false); return slave_priority_;}
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
   int sync_thread_num()        { RWLock l(&rwlock_, false); return sync_thread_num_; }
   int sync_buffer_size()        { RWLock l(&rwlock_, false); return sync_buffer_size_; }
@@ -86,6 +87,7 @@ class PikaConf : public slash::BaseConf {
     RWLock l(&rwlock_, true);
     slaveof_ = value;
   }
+  void SetSlavePriority(const int value)        { RWLock l(&rwlock_, true); slave_priority_ = value; }
   void SetBgsavePath(const std::string &value) {
     RWLock l(&rwlock_, true);
     bgsave_path_ = value;
@@ -166,6 +168,7 @@ private:
   int double_master_port_;
   std::string double_master_sid_;
   std::string slaveof_;
+  int slave_priority_;
   int thread_num_;
   int sync_thread_num_;
   int sync_buffer_size_;
