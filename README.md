@@ -37,6 +37,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 <tr>
 <td height = "100" width = "150"><img src="https://imgur.com/qN6z25x.png" alt="MM"></td>
 <td height = "100" width = "150"><img src="https://i.imgur.com/G9MOvZe.jpg" alt="VIP"></td>
+<td height = "100" width = "150"><img src="https://imgur.com/vQW5qr3.png" alt="LK"></td>
 </tr>
 </table>
 
