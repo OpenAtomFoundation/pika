@@ -20,13 +20,10 @@ class PikaClientConn: public pink::RedisConn {
   PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
                  void* worker_specific_data);
   virtual ~PikaClientConn() {}
-  virtual int DealMessage(PikaCmdArgsType& argv, std::string* response);
-  bool IsPubSub() {
-    return is_pubsub_; 
-  }
-  void SetIsPubSub(bool is_pubsub) {
-    is_pubsub_ = is_pubsub; 
-  }
+  int DealMessage(PikaCmdArgsType& argv, std::string* response) override;
+
+  bool IsPubSub() { return is_pubsub_; }
+  void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
 
  private:
   pink::ServerThread* const server_thread_;

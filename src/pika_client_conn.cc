@@ -252,7 +252,13 @@ int PikaClientConn::DealMessage(
   std::string opt = argv[0];
   slash::StringToLower(opt);
 
-  response->append(DoCmd(argv, opt));
+  if (response->empty()) {
+    // Avoid memory copy
+    *response = std::move(DoCmd(argv, opt));
+  } else {
+    // Maybe pipeline
+    response->append(DoCmd(argv, opt));
+  }
   return 0;
 }
 
