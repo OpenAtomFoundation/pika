@@ -82,15 +82,23 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 void SlaveofCmd::Do() {
   // In master-salve mode
   if (!g_pika_server->DoubleMasterMode()) {
-    if (is_noone_) {
-      // Stop rsync
-      LOG(INFO) << "start slaveof, stop rsync first";
-      slash::StopRsync(g_pika_conf->db_sync_path());
-
-      g_pika_server->RemoveMaster();
+    // Check if we are already connected to the specified master
+    if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_) &&
+        g_pika_server->master_port() == master_port_) {
       res_.SetRes(CmdRes::kOk);
       return;
     }
+
+    // Stop rsync
+    LOG(INFO) << "start slaveof, stop rsync first";
+    slash::StopRsync(g_pika_conf->db_sync_path());
+    g_pika_server->RemoveMaster();
+
+    if (is_noone_) {
+      res_.SetRes(CmdRes::kOk);
+      return;
+    }
+
     if (have_offset_) {
       // Before we send the trysync command, we need purge current logs older than the sync point
       if (filenum_ > 0) {
