@@ -420,16 +420,16 @@ void SRandmemberCmd::Do() {
   std::vector<std::string> members;
   nemo::Status s = g_pika_server->db()->SRandMember(key_, members, count_);
   if (s.ok() || s.IsNotFound()) {
-    if (members.size() > 1) {
+    if (members.size() == 1) {
+      res_.AppendStringLen(members[0].size());
+      res_.AppendContent(members[0]);
+    } else {
       res_.AppendArrayLen(members.size());
       std::vector<std::string>::const_iterator iter = members.begin();
       for (; iter != members.end(); iter++) {
         res_.AppendStringLen(iter->size());
         res_.AppendContent(*iter);
       }
-    } else {
-      res_.AppendStringLen(members[0].size());
-      res_.AppendContent(members[0]);
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
