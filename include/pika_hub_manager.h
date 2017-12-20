@@ -153,6 +153,12 @@ class PikaHubManager {
   std::string hub_ip() { return hub_ip_; }
 
   bool CouldPurge(int file_tobe_purged) {
+    hub_stage_protector_.Lock();
+    if (hub_stage_ != STARTED) {
+      return true;
+    }
+    hub_stage_protector_.Unlock();
+
     slash::MutexLock l(&sending_window_protector_);
     return file_tobe_purged < sending_window_.left;
   }
