@@ -82,15 +82,23 @@ void SlaveofCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 void SlaveofCmd::Do() {
   // In master-salve mode
   if (!g_pika_server->DoubleMasterMode()) {
-    if (is_noone_) {
-      // Stop rsync
-      LOG(INFO) << "start slaveof, stop rsync first";
-      slash::StopRsync(g_pika_conf->db_sync_path());
-
-      g_pika_server->RemoveMaster();
+    // Check if we are already connected to the specified master
+    if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_) &&
+        g_pika_server->master_port() == master_port_) {
       res_.SetRes(CmdRes::kOk);
       return;
     }
+
+    // Stop rsync
+    LOG(INFO) << "start slaveof, stop rsync first";
+    slash::StopRsync(g_pika_conf->db_sync_path());
+    g_pika_server->RemoveMaster();
+
+    if (is_noone_) {
+      res_.SetRes(CmdRes::kOk);
+      return;
+    }
+
     if (have_offset_) {
       // Before we send the trysync command, we need purge current logs older than the sync point
       if (filenum_ > 0) {
@@ -729,6 +737,7 @@ void InfoCmd::InfoReplication(std::string &info) {
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_CONNECTED ? "up" : "down") << "\r\n";
+      tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->readonly() << "\r\n";
       tmp_stream << "repl_state: " << (g_pika_server->repl_state()) << "\r\n";
       break;
@@ -1088,8 +1097,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     ret = "*2\r\n";
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
+  } else if (get_item == "slave-priority") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "slave-priority");
+    EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else if (get_item == "*") {
-    ret = "*84\r\n";
+    ret = "*86\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1174,6 +1187,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, g_pika_conf->network_interface());
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
+    EncodeString(&ret, "slaveof-priority");
+    EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else {
     ret = "*0\r\n";
   }
@@ -1182,7 +1197,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*18\r\n";
+    ret = "*19\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
@@ -1201,6 +1216,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
+    EncodeString(&ret, "slave-priority");
     return;
   }
   std::string value = config_args_v_[2];
@@ -1256,6 +1272,13 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetExpireDumpDays(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "slave-priority") {
+     if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slave-priority'\r\n";
+      return;
+    }
+    g_pika_conf->SetSlavePriority(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-days") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
