@@ -674,6 +674,10 @@ void InfoCmd::InfoStats(std::string &info) {
   bool is_reloading = g_pika_server->GetSlotsreloading();
   tmp_stream << "is_slots_reloading:" << (is_reloading ? "Yes, " : "No, ") << bgslotsreload_info.s_start_time << ", "
                                 << (is_reloading ? (current_time_s - bgslotsreload_info.start_time) : 0) << "\r\n";
+  PikaServer::BGSlotsCleanup bgslotscleanup_info = g_pika_server->bgslots_cleanup();
+  bool is_cleanuping = g_pika_server->GetSlotscleanuping();
+  tmp_stream << "is_slots_cleanuping:" << (is_cleanuping ? "Yes, " : "No, ") << bgslotscleanup_info.s_start_time << ", "
+                                << (is_cleanuping ? (current_time_s - bgslotscleanup_info.start_time) : 0) << "\r\n";
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
   bool is_scaning = g_pika_server->key_scaning();
   tmp_stream << "is_scaning_keyspace:" << (is_scaning ? ("Yes, " + key_scan_info.s_start_time) + "," : "No");
