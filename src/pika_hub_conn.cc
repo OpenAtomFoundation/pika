@@ -18,11 +18,12 @@ PikaHubConn::PikaHubConn(int fd, std::string ip_port, CmdTable* cmds)
       cmds_(cmds) {
 }
 
-int PikaHubConn::DealMessage() {
+int PikaHubConn::DealMessage(
+    PikaCmdArgsType& argv, std::string* response) {
   //no reply
   //eq set_is_reply(false);
   g_pika_server->PlusThreadQuerynum();
-  if (argv_.empty()) {
+  if (argv.empty()) {
     return -2;
   }
 
@@ -30,19 +31,16 @@ int PikaHubConn::DealMessage() {
   if (g_pika_server->HasMonitorClients()) {
     std::string monitor_message = std::to_string(1.0*slash::NowMicros()/1000000)
       + " [" + this->ip_port() + "]";
-    for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
+    for (PikaCmdArgsType::iterator iter = argv.begin(); iter != argv.end(); iter++) {
       monitor_message += " " + slash::ToRead(*iter);
     }
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
-  std::string opt = slash::StringToLower(argv_[0]);
+  std::string opt = slash::StringToLower(argv[0]);
 
   if (opt == "ping") {
-    set_is_reply(true);
-    memcpy(wbuf_ + wbuf_len_, "+PONG\r\n", 7);
-    wbuf_len_ += 7;
-    DLOG(INFO) << "Receive ping";
+    response->append("+PONG\r\n");
     return 0;
   }
 
@@ -51,23 +49,21 @@ int PikaHubConn::DealMessage() {
   std::string dummy_binlog_info("X");
   if (!cinfo_ptr || !c_ptr || !(cinfo_ptr->flag_type() & kCmdFlagsKv)) {
     // Error message
-    set_is_reply(true);
-    memcpy(wbuf_ + wbuf_len_, "-Err Fuck youself\r\n", 19);
-    wbuf_len_ += 19;
+    response->append("-Err Fuck youself\r\n");
     return 0;
   }
 
   g_pika_server->logger_->Lock();
   g_pika_server->logger_->Put(c_ptr->ToBinlog(
-      argv_,
+      argv,
       g_pika_conf->server_id(),
       dummy_binlog_info,
       false /* need not send to hub */));
   g_pika_server->logger_->Unlock();
 
-  PikaCmdArgsType *argv = new PikaCmdArgsType(argv_);
-  std::string dispatch_key = argv_.size() >= 2 ? argv_[1] : argv_[0];
-  g_pika_server->DispatchBinlogBG(dispatch_key, argv,
+  PikaCmdArgsType *v = new PikaCmdArgsType(argv);
+  std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
+  g_pika_server->DispatchBinlogBG(dispatch_key, v,
       0 /* Unused */, true /* Set hub connection's bgworker readonly */);
   return 0;
 }

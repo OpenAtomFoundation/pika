@@ -81,7 +81,7 @@ class PikaHubSenderThread : public pink::Thread {
 class PikaHubConn: public pink::RedisConn {
  public:
   PikaHubConn(int fd, std::string ip_port, CmdTable* cmds);
-  virtual int DealMessage();
+  virtual int DealMessage(PikaCmdArgsType& argv, std::string* reponse);
 
  private:
   CmdTable* cmds_;

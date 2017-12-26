@@ -21,11 +21,12 @@ PikaMasterConn::PikaMasterConn(int fd, std::string ip_port,
     reinterpret_cast<PikaBinlogReceiverThread*>(worker_specific_data);
 }
 
-int PikaMasterConn::DealMessage() {
+int PikaMasterConn::DealMessage(
+    PikaCmdArgsType& argv, std::string* response) {
   //no reply
   //eq set_is_reply(false);
   g_pika_server->PlusThreadQuerynum();
-  if (argv_.empty()) {
+  if (argv.empty()) {
     return -2;
   }
 
@@ -33,15 +34,15 @@ int PikaMasterConn::DealMessage() {
   std::string server_id;
   std::string binlog_info;
   if (!g_pika_server->DoubleMasterMode()) {
-    if (argv_.size() > 4 &&
-        *(argv_.end() - 4) == kPikaBinlogMagic) {
+    if (argv.size() > 4 &&
+        *(argv.end() - 4) == kPikaBinlogMagic) {
       // Record new binlog format
-      argv_.pop_back();  // send_to_hub flag
-      binlog_info = argv_.back();  // binlog_info
-      argv_.pop_back();
-      server_id = argv_.back();  // server_id
-      argv_.pop_back();
-      argv_.pop_back();  //  kPikaBinlogMagic
+      argv.pop_back();  // send_to_hub flag
+      binlog_info = argv.back();  // binlog_info
+      argv.pop_back();
+      server_id = argv.back();  // server_id
+      argv.pop_back();
+      argv.pop_back();  //  kPikaBinlogMagic
     }
   }
 
@@ -50,7 +51,7 @@ int PikaMasterConn::DealMessage() {
   if (g_pika_server->HasMonitorClients()) {
     std::string monitor_message = std::to_string(1.0*slash::NowMicros()/1000000)
       + " [" + this->ip_port() + "]";
-    for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
+    for (PikaCmdArgsType::iterator iter = argv.begin(); iter != argv.end(); iter++) {
       monitor_message += " " + slash::ToRead(*iter);
     }
     g_pika_server->AddMonitorMessage(monitor_message);
@@ -65,12 +66,12 @@ int PikaMasterConn::DealMessage() {
     if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
       return -2;
     }
-    std::string opt = slash::StringToLower(argv_[0]);
+    std::string opt = slash::StringToLower(argv[0]);
     Cmd* c_ptr = binlog_receiver_->GetCmd(opt);
 
     g_pika_server->logger_->Lock();
     g_pika_server->logger_->Put(c_ptr->ToBinlog(
-        argv_,
+        argv,
         server_id.empty() ? g_pika_conf->server_id() : server_id,
         binlog_info,
         false));
@@ -78,9 +79,9 @@ int PikaMasterConn::DealMessage() {
     g_pika_server->SignalNextBinlogBGSerial();
   }
 
-  PikaCmdArgsType *argv = new PikaCmdArgsType(argv_);
-  std::string dispatch_key = argv_.size() >= 2 ? argv_[1] : argv_[0];
-  g_pika_server->DispatchBinlogBG(dispatch_key, argv, serial, is_readonly);
+  PikaCmdArgsType *v = new PikaCmdArgsType(argv);
+  std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
+  g_pika_server->DispatchBinlogBG(dispatch_key, v, serial, is_readonly);
 
   return 0;
 }

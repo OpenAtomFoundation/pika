@@ -28,7 +28,8 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
   auth_stat_.Init();
 }
 
-std::string PikaClientConn::DoCmd(const std::string& opt) {
+std::string PikaClientConn::DoCmd(
+    PikaCmdArgsType& argv, const std::string& opt) {
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = GetCmdFromTable(opt, *cmds_table_);
@@ -60,14 +61,14 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   if (is_monitoring) {
     monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) +
       " [" + this->ip_port() + "]";
-    for (PikaCmdArgsType::iterator iter = argv_.begin(); iter != argv_.end(); iter++) {
+    for (PikaCmdArgsType::iterator iter = argv.begin(); iter != argv.end(); iter++) {
       monitor_message += " " + slash::ToRead(*iter);
     }
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
   // Initial
-  c_ptr->Initial(argv_, cinfo_ptr);
+  c_ptr->Initial(argv, cinfo_ptr);
   if (!c_ptr->res().ok()) {
     return c_ptr->res().message();
   }
@@ -99,8 +100,8 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       conn = server_thread_->MoveConnOut(fd());
     }
     std::vector<std::string > channels;
-    for (size_t i = 1; i < argv_.size(); i++) {
-      channels.push_back(slash::StringToLower(argv_[i]));
+    for (size_t i = 1; i < argv.size(); i++) {
+      channels.push_back(slash::StringToLower(argv[i]));
     }
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->Subscribe(conn, channels, false, &result);
@@ -108,8 +109,8 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return this->ConstructPubSubResp(kCmdNameSubscribe, result);
   } else if (opt == kCmdNameUnSubscribe) {                          // UnSubscribe
     std::vector<std::string > channels;
-    for (size_t i = 1; i < argv_.size(); i++) {
-      channels.push_back(slash::StringToLower(argv_[i]));
+    for (size_t i = 1; i < argv.size(); i++) {
+      channels.push_back(slash::StringToLower(argv[i]));
     }
     std::vector<std::pair<std::string, int>> result;
     int subscribed = g_pika_server->UnSubscribe(this, channels, false, &result);
@@ -128,8 +129,8 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       conn = server_thread_->MoveConnOut(fd());
     }
     std::vector<std::string > channels;
-    for (size_t i = 1; i < argv_.size(); i++) {
-      channels.push_back(slash::StringToLower(argv_[i]));
+    for (size_t i = 1; i < argv.size(); i++) {
+      channels.push_back(slash::StringToLower(argv[i]));
     }
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->Subscribe(conn, channels, true, &result);
@@ -137,8 +138,8 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     return this->ConstructPubSubResp(kCmdNamePSubscribe, result);
   } else if (opt == kCmdNamePUnSubscribe) {                          // PUnSubscribe
     std::vector<std::string > channels;
-    for (size_t i = 1; i < argv_.size(); i++) {
-      channels.push_back(slash::StringToLower(argv_[i]));
+    for (size_t i = 1; i < argv.size(); i++) {
+      channels.push_back(slash::StringToLower(argv[i]));
     }
     std::vector<std::pair<std::string, int>> result;
     int subscribed = g_pika_server->UnSubscribe(this, channels, true, &result);
@@ -161,11 +162,11 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     if (g_pika_conf->readonly()) {
       return "-ERR Server in read-only\r\n";
     }
-    if (argv_.size() >= 2) {
+    if (argv.size() >= 2) {
       if (cinfo_ptr->flag_type() & kCmdFlagsKv) {
         need_send_to_hub = true;
       }
-      g_pika_server->mutex_record_.Lock(argv_[1]);
+      g_pika_server->mutex_record_.Lock(argv[1]);
     }
   }
 
@@ -189,7 +190,7 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
       slash::PutFixed64(&binlog_info, offset);
 
       std::string binlog = c_ptr->ToBinlog(
-          argv_,
+          argv,
           g_pika_conf->server_id(),
           binlog_info,
           need_send_to_hub);
@@ -213,8 +214,8 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   }
 
   if (cinfo_ptr->is_write()) {
-    if (argv_.size() >= 2) {
-      g_pika_server->mutex_record_.Unlock(argv_[1]);
+    if (argv.size() >= 2) {
+      g_pika_server->mutex_record_.Unlock(argv[1]);
     }
   }
 
@@ -222,9 +223,9 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
     int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
       std::string slow_log;
-      for (unsigned int i = 0; i < argv_.size(); i++) {
+      for (unsigned int i = 0; i < argv.size(); i++) {
         slow_log.append(" ");
-        slow_log.append(slash::ToRead(argv_[i]));
+        slow_log.append(slash::ToRead(argv[i]));
         if (slow_log.size() >= 1000) {
           slow_log.resize(1000);
           slow_log.append("...\"");
@@ -243,26 +244,21 @@ std::string PikaClientConn::DoCmd(const std::string& opt) {
   return c_ptr->res().message();
 }
 
-int PikaClientConn::DealMessage() {
+int PikaClientConn::DealMessage(
+    PikaCmdArgsType& argv, std::string* response) {
   g_pika_server->PlusThreadQuerynum();
 
-  if (argv_.empty()) return -2;
-  std::string opt = argv_[0];
+  if (argv.empty()) return -2;
+  std::string opt = argv[0];
   slash::StringToLower(opt);
-  std::string res = DoCmd(opt);
-  
-  if ((wbuf_size_ - wbuf_len_ < res.size())) {
-    if (!ExpandWbufTo(wbuf_len_ + res.size())) {
-      LOG(WARNING) << "ExpandWbufTo " << wbuf_len_ + res.size() << " Failed";
-      memcpy(wbuf_, "-ERR expand writer buffer failed\r\n", 34);
-      wbuf_len_ = 34;
-      set_is_reply(true);
-      return 0;
-    }
+
+  if (response->empty()) {
+    // Avoid memory copy
+    *response = std::move(DoCmd(argv, opt));
+  } else {
+    // Maybe pipeline
+    response->append(DoCmd(argv, opt));
   }
-  memcpy(wbuf_ + wbuf_len_, res.data(), res.size());
-  wbuf_len_ += res.size();
-  set_is_reply(true);
   return 0;
 }
 
