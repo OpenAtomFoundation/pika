@@ -18,6 +18,22 @@
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
+static std::string ConstructPubSubResp(
+                                const std::string& cmd,
+                                const std::vector<std::pair<std::string, int>>& result) {
+  std::stringstream resp;
+  if (result.size() == 0) {
+    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd << "\r\n" <<
+                        "$" << -1           << "\r\n" << ":" << 0      << "\r\n";
+  }
+  for (auto it = result.begin(); it != result.end(); it++) {
+    resp << "*3\r\n" << "$" << cmd.length()       << "\r\n" << cmd       << "\r\n" <<
+                        "$" << it->first.length() << "\r\n" << it->first << "\r\n" <<
+                        ":" << it->second         << "\r\n";
+  }
+  return resp.str();
+}
+
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                pink::ServerThread* server_thread,
                                void* worker_specific_data)
@@ -106,7 +122,7 @@ std::string PikaClientConn::DoCmd(
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->Subscribe(conn, channels, false, &result);
     this->SetIsPubSub(true);
-    return this->ConstructPubSubResp(kCmdNameSubscribe, result);
+    return ConstructPubSubResp(kCmdNameSubscribe, result);
   } else if (opt == kCmdNameUnSubscribe) {                          // UnSubscribe
     std::vector<std::string > channels;
     for (size_t i = 1; i < argv.size(); i++) {
@@ -122,7 +138,7 @@ std::string PikaClientConn::DoCmd(
       server_thread_->HandleNewConn(fd(), ip_port());
       this->SetIsPubSub(false);
     }
-    return this->ConstructPubSubResp(kCmdNameUnSubscribe, result);
+    return ConstructPubSubResp(kCmdNameUnSubscribe, result);
   } else if (opt == kCmdNamePSubscribe) {                           // PSubscribe
     pink::PinkConn* conn = this;
     if (!this->IsPubSub()) {
@@ -135,7 +151,7 @@ std::string PikaClientConn::DoCmd(
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->Subscribe(conn, channels, true, &result);
     this->SetIsPubSub(true);
-    return this->ConstructPubSubResp(kCmdNamePSubscribe, result);
+    return ConstructPubSubResp(kCmdNamePSubscribe, result);
   } else if (opt == kCmdNamePUnSubscribe) {                          // PUnSubscribe
     std::vector<std::string > channels;
     for (size_t i = 1; i < argv.size(); i++) {
@@ -151,7 +167,7 @@ std::string PikaClientConn::DoCmd(
       server_thread_->HandleNewConn(fd(), ip_port());
       this->SetIsPubSub(false);
     }
-    return this->ConstructPubSubResp(kCmdNamePUnSubscribe, result);
+    return ConstructPubSubResp(kCmdNamePUnSubscribe, result);
   }
 
   bool need_send_to_hub = false;
