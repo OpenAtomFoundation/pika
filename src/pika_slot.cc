@@ -1068,7 +1068,7 @@ void SlotsMgrtExecWrapperCmd::Do() {
 
 void SlotsMgrtAsyncStatusCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
-        res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtExecWrapper);
+        res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncStatus);
     }
     return;
 }
