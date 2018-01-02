@@ -67,8 +67,13 @@ PikaServer::PikaServer() :
   option.max_open_files = g_pika_conf->max_cache_files();
   option.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
 	if (g_pika_conf->compression() == "none") {
-		 option.compression = false;
+    option.compression = nemo::Options::CompressionType::kNoCompression;
+  } else if (g_pika_conf->compression() == "snappy") {
+    option.compression = nemo::Options::CompressionType::kSnappyCompression;
+  } else if (g_pika_conf->compression() == "zlib") {
+    option.compression = nemo::Options::CompressionType::kZlibCompression;
   }
+
   std::string db_path = g_pika_conf->db_path();
   LOG(INFO) << "Prepare DB...";
   db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
@@ -393,7 +398,11 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
   option.max_open_files = g_pika_conf->max_cache_files();
   option.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
   if (g_pika_conf->compression() == "none") {
-    option.compression = false;
+    option.compression = nemo::Options::CompressionType::kNoCompression;
+  } else if (g_pika_conf->compression() == "snappy") {
+    option.compression = nemo::Options::CompressionType::kSnappyCompression;
+  } else if (g_pika_conf->compression() == "zlib") {
+    option.compression = nemo::Options::CompressionType::kZlibCompression;
   }
   std::string db_path = g_pika_conf->db_path();
   std::string tmp_path(db_path);
@@ -1395,8 +1404,13 @@ bool PikaServer::FlushAll() {
   option.max_open_files = g_pika_conf->max_cache_files();
   option.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
   if (g_pika_conf->compression() == "none") {
-    option.compression = false;
+    option.compression = nemo::Options::CompressionType::kNoCompression;
+  } else if (g_pika_conf->compression() == "snappy") {
+    option.compression = nemo::Options::CompressionType::kSnappyCompression;
+  } else if (g_pika_conf->compression() == "zlib") {
+    option.compression = nemo::Options::CompressionType::kZlibCompression;
   }
+
   LOG(INFO) << "Prepare open new db...";
   db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(g_pika_conf->db_path(), option));
   LOG(INFO) << "open new db success";
