@@ -1080,15 +1080,23 @@ void SlotsMgrtAsyncStatusCmd::Do() {
     bool migrating;
     g_pika_server->GetSlotsMgrtSenderStatus(&ip, &port, &slot, &migrating, &moved, &remained);
     std::string mstatus = migrating ? "yes" : "no";
-    std::stringstream tmp_stream;
-    tmp_stream << "dest server: " << ip << ":" << std::to_string(port) << "\r\n";
-    tmp_stream << "slot number: " << std::to_string(slot) << "\r\n";
-    tmp_stream << "migrating  : " << mstatus << "\r\n";
-    tmp_stream << "moved keys : " << std::to_string(moved) << "\r\n";
-    tmp_stream << "remain keys: " << std::to_string(remained) << "\r\n";
-    status.append(tmp_stream.str());
+    res_.AppendArrayLen(5);
+    status = "dest server: " + ip + ":" + std::to_string(port);
     res_.AppendStringLen(status.size());
     res_.AppendContent(status);
+    status = "slot number: " + std::to_string(slot);
+    res_.AppendStringLen(status.size());
+    res_.AppendContent(status);
+    status = "migrating  : " + mstatus;
+    res_.AppendStringLen(status.size());
+    res_.AppendContent(status);
+    status = "moved keys : " + std::to_string(moved);
+    res_.AppendStringLen(status.size());
+    res_.AppendContent(status);
+    status = "remain keys: " + std::to_string(remained);
+    res_.AppendStringLen(status.size());
+    res_.AppendContent(status);
+
     return;
 }
 
