@@ -841,7 +841,8 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
  * BinlogSender
  */
 Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
-    uint32_t filenum, uint64_t con_offset) {
+                                   int64_t sid,
+                                   uint32_t filenum, uint64_t con_offset) {
   // Sanity check
   if (con_offset > logger_->file_size()) {
     return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
@@ -876,7 +877,7 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
   }
 
   PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(ip,
-      port + 1000, readfile, filenum, con_offset);
+      port + 1000, sid, readfile, filenum, con_offset);
 
   if (sender->trim() == 0 // Error binlog
       && SetSlaveSender(ip, port, sender)) { // SlaveItem not exist

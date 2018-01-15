@@ -17,6 +17,7 @@
 extern PikaServer* g_pika_server;
 
 PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port,
+                                               int64_t sid,
                                                slash::SequentialFile *queue,
                                                uint32_t filenum,
                                                uint64_t con_offset)
@@ -29,6 +30,7 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port,
       buffer_(),
       ip_(ip),
       port_(port),
+      sid_(sid),
       timeout_ms_(35000) {
   cli_ = pink::NewRedisCli();
   last_record_offset_ = con_offset % kBlockSize;
@@ -257,6 +259,17 @@ void* PikaBinlogSenderThread::ThreadMain() {
 
     if (result.ok()) {
       cli_->set_send_timeout(timeout_ms_);
+      // Auth sid
+      std::string wbuf_str;
+      pink::RedisCmdArgsType argv;
+      argv.push_back("auth");
+      argv.push_back(std::to_string(sid_));
+      pink::SerializeRedisCommand(argv, &wbuf_str);
+      result = cli_->Send(&wbuf_str);
+      if (!result.ok()) {
+        LOG(WARNING) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") failed,  " << result.ToString();
+        break;
+      }
       while (true) {
         // 2. Should Parse new msg;
         if (last_send_flag) {

@@ -17,6 +17,7 @@ extern PikaConf* g_pika_conf;
 PikaMasterConn::PikaMasterConn(int fd, std::string ip_port,
                                void* worker_specific_data)
       : RedisConn(fd, ip_port, NULL) {
+  is_first_send_ = true;
   binlog_receiver_ =
     reinterpret_cast<PikaBinlogReceiverThread*>(worker_specific_data);
 }
@@ -27,6 +28,19 @@ int PikaMasterConn::DealMessage(
   //eq set_is_reply(false);
   g_pika_server->PlusThreadQuerynum();
   if (argv.empty()) {
+    return -2;
+  }
+
+  // Auth
+  if (is_first_send_) {
+    if (argv[0] == "auth") {
+      if (argv[1] == std::to_string(g_pika_server->sid())) {
+        is_first_send_ = false;
+        LOG(INFO) << "BinlogReceiverThread AccessHandle success, my sid: " << g_pika_server->sid() << " auth sid: " << argv[1];
+        return 0;
+      }
+    }
+    LOG(WARNING) << "BinlogReceiverThread AccessHandle failed";
     return -2;
   }
 

@@ -104,6 +104,7 @@ bool PikaTrysyncThread::RecvProc() {
           slash::string2l(reply.data(), reply.size(), &sid_)) {
         // Luckly, I got your point, the sync is comming
         LOG(INFO) << "Recv sid from master: " << sid_;
+        g_pika_server->SetSid(sid_);
         break;
       }
 

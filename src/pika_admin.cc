@@ -163,7 +163,8 @@ void TrysyncCmd::Do() {
   int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_);
   if (sid >= 0) {
     Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
-        filenum_, pro_offset_);
+                                                   sid,
+                                                   filenum_, pro_offset_);
     if (status.ok()) {
       res_.AppendInteger(sid);
       LOG(INFO) << "Send Sid to Slave: " << sid;

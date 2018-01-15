@@ -70,6 +70,15 @@ class PikaServer {
   int master_port() {
     return master_port_;
   }
+
+  int64_t sid() {
+    return sid_;
+  }
+
+  void SetSid(int64_t sid) {
+    sid_ = sid;
+  }
+
   const std::shared_ptr<nemo::Nemo> db() {
     return db_;
   }
@@ -179,7 +188,8 @@ class PikaServer {
    */
   Binlog *logger_;
   Status AddBinlogSender(const std::string& ip, int64_t port,
-      uint32_t filenum, uint64_t con_offset);
+                         int64_t sid,
+                         uint32_t filenum, uint64_t con_offset);
 
   /*
    * BGSave used
