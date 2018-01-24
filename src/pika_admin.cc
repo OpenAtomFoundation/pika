@@ -307,14 +307,35 @@ void BgsaveoffCmd::Do() {
 }
 
 void CompactCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+  if (!ptr_info->CheckArg(argv.size())
+    || argv.size() > 2) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameCompact);
     return;
+  }
+
+  if (argv.size() == 2) {
+    struct_type_ = slash::StringToLower(argv[1]);
   }
 }
 
 void CompactCmd::Do() {
-  nemo::Status s = g_pika_server->db()->Compact(nemo::kALL);
+  nemo::Status s;
+  if (struct_type_.empty()) {
+    s = g_pika_server->db()->Compact(nemo::kALL);
+  } else if (struct_type_ == "string") {
+    s = g_pika_server->db()->Compact(nemo::kKV_DB);
+  } else if (struct_type_ == "hash") {
+    s = g_pika_server->db()->Compact(nemo::kHASH_DB);
+  } else if (struct_type_ == "set") {
+    s = g_pika_server->db()->Compact(nemo::kSET_DB);
+  } else if (struct_type_ == "zset") {
+    s = g_pika_server->db()->Compact(nemo::kZSET_DB);
+  } else if (struct_type_ == "list") {
+    s = g_pika_server->db()->Compact(nemo::kLIST_DB);
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType);
+    return;
+  }
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {

@@ -102,7 +102,11 @@ class CompactCmd : public Cmd {
   virtual void Do();
 
  private:
+  std::string struct_type_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    struct_type_.clear();
+  }
 };
 
 class PurgelogstoCmd : public Cmd {
@@ -150,6 +154,9 @@ class FlushdbCmd : public Cmd {
  private:
   std::string db_name_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    db_name_.clear();
+  }
 };
 
 class ReadonlyCmd : public Cmd {
