@@ -391,6 +391,36 @@ void FlushallCmd::Do() {
   g_pika_server->RWUnlock();
 }
 
+void FlushdbCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushdb);
+    return;
+  }
+  if (argv[1] == "string") {
+    db_name_ = "kv";
+  } else if (argv[1] == "hash") {
+    db_name_ = "hash";
+  } else if (argv[1] == "set") {
+    db_name_ = "set";
+  } else if (argv[1] == "zset") {
+    db_name_ = "zset";
+  } else if (argv[1] == "list") {
+    db_name_ = "list";
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType);
+  }
+}
+
+void FlushdbCmd::Do() {
+  g_pika_server->RWLockWriter();
+  if (g_pika_server->FlushDb(db_name_)) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushdb");
+  }
+  g_pika_server->RWUnlock();
+}
+
 void ReadonlyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameReadonly);

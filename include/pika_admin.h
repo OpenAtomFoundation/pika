@@ -142,6 +142,16 @@ class FlushallCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
+class FlushdbCmd : public Cmd {
+ public:
+  FlushdbCmd() {}
+  virtual void Do();
+
+ private:
+  std::string db_name_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+};
+
 class ReadonlyCmd : public Cmd {
  public:
   ReadonlyCmd() : is_open_(false) {}
