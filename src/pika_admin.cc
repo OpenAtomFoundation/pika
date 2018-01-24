@@ -396,15 +396,16 @@ void FlushdbCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushdb);
     return;
   }
-  if (argv[1] == "string") {
+  std::string struct_type = slash::StringToLower(argv[1]);
+  if (struct_type == "string") {
     db_name_ = "kv";
-  } else if (argv[1] == "hash") {
+  } else if (struct_type == "hash") {
     db_name_ = "hash";
-  } else if (argv[1] == "set") {
+  } else if (struct_type == "set") {
     db_name_ = "set";
-  } else if (argv[1] == "zset") {
+  } else if (struct_type == "zset") {
     db_name_ = "zset";
-  } else if (argv[1] == "list") {
+  } else if (struct_type == "list") {
     db_name_ = "list";
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
