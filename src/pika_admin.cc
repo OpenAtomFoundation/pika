@@ -307,14 +307,35 @@ void BgsaveoffCmd::Do() {
 }
 
 void CompactCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+  if (!ptr_info->CheckArg(argv.size())
+    || argv.size() > 2) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameCompact);
     return;
+  }
+
+  if (argv.size() == 2) {
+    struct_type_ = slash::StringToLower(argv[1]);
   }
 }
 
 void CompactCmd::Do() {
-  nemo::Status s = g_pika_server->db()->Compact(nemo::kALL);
+  nemo::Status s;
+  if (struct_type_.empty()) {
+    s = g_pika_server->db()->Compact(nemo::kALL);
+  } else if (struct_type_ == "string") {
+    s = g_pika_server->db()->Compact(nemo::kKV_DB);
+  } else if (struct_type_ == "hash") {
+    s = g_pika_server->db()->Compact(nemo::kHASH_DB);
+  } else if (struct_type_ == "set") {
+    s = g_pika_server->db()->Compact(nemo::kSET_DB);
+  } else if (struct_type_ == "zset") {
+    s = g_pika_server->db()->Compact(nemo::kZSET_DB);
+  } else if (struct_type_ == "list") {
+    s = g_pika_server->db()->Compact(nemo::kLIST_DB);
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType);
+    return;
+  }
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -387,6 +408,37 @@ void FlushallCmd::Do() {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushall");
+  }
+  g_pika_server->RWUnlock();
+}
+
+void FlushdbCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushdb);
+    return;
+  }
+  std::string struct_type = slash::StringToLower(argv[1]);
+  if (struct_type == "string") {
+    db_name_ = "kv";
+  } else if (struct_type == "hash") {
+    db_name_ = "hash";
+  } else if (struct_type == "set") {
+    db_name_ = "set";
+  } else if (struct_type == "zset") {
+    db_name_ = "zset";
+  } else if (struct_type == "list") {
+    db_name_ = "list";
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType);
+  }
+}
+
+void FlushdbCmd::Do() {
+  g_pika_server->RWLockWriter();
+  if (g_pika_server->FlushDb(db_name_)) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushdb");
   }
   g_pika_server->RWUnlock();
 }

@@ -175,6 +175,11 @@ class PikaServer {
   bool ServerInit();
 
   /*
+   * Nemo options init
+   */
+  void NemoOptionInit(nemo::Options* option);
+
+  /*
    * Binlog
    */
   Binlog *logger_;
@@ -358,8 +363,9 @@ class PikaServer {
   }
   slash::Mutex & GetSlavesMutex() { return db_sync_protector_; }
 
-  //flushall
+  //flushall & flushdb
   bool FlushAll();
+  bool FlushDb(const std::string& db_name);
   void PurgeDir(std::string& path);
 
   /*

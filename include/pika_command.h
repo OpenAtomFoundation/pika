@@ -29,6 +29,7 @@ const std::string kCmdNamePurgelogsto = "purgelogsto";
 const std::string kCmdNamePing = "ping";
 const std::string kCmdNameSelect = "select";
 const std::string kCmdNameFlushall = "flushall";
+const std::string kCmdNameFlushdb = "flushdb";
 const std::string kCmdNameReadonly = "readonly";
 const std::string kCmdNameClient = "client";
 const std::string kCmdNameShutdown = "shutdown";
@@ -297,6 +298,7 @@ public:
     kInvalidParameter,
     kWrongNum,
     kInvalidIndex,
+    kInvalidDbType,
     kErrOther,
   };
 
@@ -360,6 +362,9 @@ public:
       break;
     case kInvalidIndex:
       result = "-ERR invalid DB index\r\n";
+      break;
+    case kInvalidDbType:
+      result = "-ERR invalid DB type\r\n";
       break;
     case kErrOther:
       result = "-ERR ";
