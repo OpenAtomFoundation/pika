@@ -1687,6 +1687,10 @@ void PikaServer::ResetStat() {
   statistic_data_.last_thread_querynum = 0;
 }
 
+void PikaServer::SetDispatchQueueLimit(int queue_limit) {
+  pika_dispatch_thread_->SetQueueLimit(queue_limit);
+}
+
 uint64_t PikaServer::ServerCurrentQps() {
   slash::ReadLock l(&statistic_data_.statistic_lock);
   return statistic_data_.last_sec_thread_querynum;

@@ -461,6 +461,8 @@ class PikaServer {
   void ResetStat();
   slash::RecordMutex mutex_record_;
 
+  void SetDispatchQueueLimit(int queue_limit);
+
  private:
   std::atomic<bool> exit_;
   std::atomic<bool> binlog_io_error_;

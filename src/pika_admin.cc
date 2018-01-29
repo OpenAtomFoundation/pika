@@ -1269,6 +1269,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'maxclients'\r\n";
       return;
     }
+    g_pika_server->SetDispatchQueueLimit(ival);
     g_pika_conf->SetMaxConnection(ival);
     ret = "+OK\r\n";
   } else if (set_item == "dump-expire") {
