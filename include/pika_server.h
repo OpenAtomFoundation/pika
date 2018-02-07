@@ -497,6 +497,16 @@ class PikaServer {
    */
   int64_t double_master_sid_;
   bool double_master_mode_;
+ 
+   /*
+   * DBSync use
+   */
+  slash::Mutex db_sync_protector_;
+  std::unordered_set<std::string> db_sync_slaves_;
+  void TryDBSync(const std::string& ip, int port, int32_t top);
+  void DBSync(const std::string& ip, int port);
+  static void DoDBSync(void* arg);
+ 
   /*
    * Bgsave use
    */
@@ -546,15 +556,6 @@ class PikaServer {
   void AutoPurge();
   void AutoDeleteExpiredDump();
   bool CouldPurge(uint32_t index);
-
-  /*
-   * DBSync use
-   */
-  slash::Mutex db_sync_protector_;
-  std::unordered_set<std::string> db_sync_slaves_;
-  void TryDBSync(const std::string& ip, int port, int32_t top);
-  void DBSync(const std::string& ip, int port);
-  static void DoDBSync(void* arg);
 
   /*
    * Flushall use
