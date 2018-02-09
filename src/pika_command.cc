@@ -106,6 +106,8 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtAsyncStatus, slotmgrtasyncstatus));
   CmdInfo* slotmgrtasynccancel = new CmdInfo(kCmdNameSlotsMgrtAsyncCancel, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtAsyncCancel, slotmgrtasynccancel));
+  CmdInfo* slotsrestoreptr = new CmdInfo(kCmdNameSlotsrestore, -4, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsrestore, slotsrestoreptr));
 
 
   //Kv
@@ -558,6 +560,9 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtAsyncStatus, slotmgrtasyncstatusptr));
   Cmd* slotmgrtasynccancelptr = new SlotsMgrtAsyncCancelCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtAsyncCancel, slotmgrtasynccancelptr));
+  Cmd* slotsrestoreptr = new SlotsrestoreCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsrestore, slotsrestoreptr));
+
 
   //Kv
   ////SetCmd

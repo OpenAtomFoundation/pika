@@ -6,6 +6,7 @@
 #include "include/pika_command.h"
 #include "include/pika_client_conn.h"
 #include "strings.h"
+#include "pika_redis.h"
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 const size_t MaxKeySendSize = 10 * 1024;
@@ -208,6 +209,25 @@ private:
 
     bool ElectMigrateKeys();
     virtual void* ThreadMain();
+};
+
+////slotsrestore key ttl(ms) value(rdb)
+struct RestoreKey {
+	std::string key;
+	int64_t ttlms;
+	std::string value;
+};
+
+class SlotsrestoreCmd : public Cmd {
+public:
+	SlotsrestoreCmd() {}
+	virtual void Do();
+private:
+	virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    slash::Status BinlogPut(pink::RedisCmdArgsType &argv);
+    void WriteCommandToBinlog(const std::string &key, const int64_t ttlms, const restore_value &dbvalue);
+
+	std::vector<struct RestoreKey> restore_keys_;
 };
 
 #endif

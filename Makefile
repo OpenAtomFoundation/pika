@@ -54,6 +54,7 @@ PLATFORM_CXXFLAGS += $(TCMALLOC_EXTENSION_FLAGS)
 OUTPUT = $(CURDIR)/output
 THIRD_PATH = $(CURDIR)/third
 SRC_PATH = $(CURDIR)/src
+UTILS_PATH = $(CURDIR)/utils
 
 # ----------------Dependences-------------------
 
@@ -96,7 +97,8 @@ INCLUDE_PATH = -I. \
 							 -I$(NEMO_PATH)/include \
 							 -I$(NEMODB_PATH)/include \
 							 -I$(ROCKSDB_PATH) \
-							 -I$(ROCKSDB_PATH)/include
+							 -I$(ROCKSDB_PATH)/include \
+							 -I$(UTILS_PATH) 
 
 ifeq ($(360),1)
 INCLUDE_PATH += -I$(GLOG_PATH)/src
@@ -191,6 +193,9 @@ FORCE:
 
 LIBOBJECTS = $(LIB_SOURCES:.cc=.o)
 
+BASE_OBJS := $(wildcard $(UTILS_PATH)/*.cc)
+OBJS = $(patsubst %.cc,%.o,$(BASE_OBJS))
+
 # if user didn't config LIBNAME, set the default
 ifeq ($(BINNAME),)
 # we should only run pika in production with DEBUG_LEVEL 0
@@ -207,7 +212,7 @@ all: $(BINARY)
 
 dbg: $(BINARY)
 
-$(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(NEMODB) $(NEMO) $(GLOG) $(LIBOBJECTS)
+$(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(NEMODB) $(NEMO) $(GLOG) $(LIBOBJECTS) $(OBJS)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)
 	$(AM_V_at)rm -rf $(OUTPUT)
@@ -239,6 +244,7 @@ clean:
 	rm -rf $(CLEAN_FILES)
 	find $(SRC_PATH) -name "*.[oda]*" -exec rm -f {} \;
 	find $(SRC_PATH) -type f -regex ".*\.\(\(gcda\)\|\(gcno\)\)" -exec rm {} \;
+	find $(UTILS_PATH) -name "*.[oda]*" -exec rm -f {} \;
 
 distclean: clean
 	make -C $(PINK_PATH)/pink/ SLASH_PATH=$(SLASH_PATH) clean

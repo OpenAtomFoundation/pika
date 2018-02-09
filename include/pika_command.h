@@ -61,6 +61,7 @@ const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
 const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
 const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
 const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
+const std::string kCmdNameSlotsrestore = "slotsrestore";
 
 //Kv
 const std::string kCmdNameSet = "set";
