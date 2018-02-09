@@ -223,8 +223,8 @@ std::string PikaClientConn::DoCmd(
         if (!cinfo_ptr->is_suspend()) {
           g_pika_server->RWUnlock();
         }
-        if (argv_.size() >= 2) {
-          g_pika_server->mutex_record_.Unlock(argv_[1]);
+        if (argv.size() >= 2) {
+          g_pika_server->mutex_record_.Unlock(argv[1]);
         }
         
         return "-ERR Writing binlog failed, maybe no space left on device\r\n";
