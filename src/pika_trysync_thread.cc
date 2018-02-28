@@ -76,7 +76,7 @@ bool PikaTrysyncThread::Send() {
 }
 
 bool PikaTrysyncThread::RecvProc() {
-  bool should_auth = g_pika_conf->requirepass() == "" ? false : true;
+  bool should_auth = g_pika_conf->masterauth() == "" ? false : true;
   bool is_authed = false;
   slash::Status s;
   std::string reply;
