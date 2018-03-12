@@ -795,6 +795,13 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
     if (target_path == kBgsaveInfoFile) {
       continue;
     }
+
+    if (slash::IsDir(local_path) == 0 &&
+        local_path.back() != '/') {
+      local_path.push_back('/');
+      target_path.push_back('/');
+    }
+
     // We need specify the speed limit for every single file
     ret = slash::RsyncSendFile(local_path, target_path, remote);
 
