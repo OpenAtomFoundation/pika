@@ -291,7 +291,6 @@ void PikaServer::Start() {
 
   time(&start_time_s_);
 
-  // SetMaster("127.0.0.1", 9221);
   std::string slaveof = g_pika_conf->slaveof();
   if (!slaveof.empty()) {
     int32_t sep = slaveof.find(":");
