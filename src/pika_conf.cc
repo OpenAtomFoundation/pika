@@ -229,6 +229,8 @@ int PikaConf::Load()
 }
 
 int PikaConf::ConfigRewrite() {
+  ReloadConf();
+
   SetConfInt("port", port_);
   SetConfInt("thread-num", thread_num_);
   SetConfInt("sync-thread-num", sync_thread_num_);
