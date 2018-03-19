@@ -1243,7 +1243,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, g_pika_conf->network_interface());
     EncodeString(&ret, "slaveof");
     EncodeString(&ret, g_pika_conf->slaveof());
-    EncodeString(&ret, "slaveof-priority");
+    EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else {
     ret = "*0\r\n";
