@@ -818,7 +818,7 @@ void InfoCmd::InfoDoubleMaster(std::string &info) {
   switch (host_role) {
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
-    case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\b"; break;
+    case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\n"; break;
     case PIKA_ROLE_DOUBLE_MASTER :
         if (g_pika_server->DoubleMasterMode()) {
           tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
