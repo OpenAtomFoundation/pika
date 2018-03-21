@@ -6,7 +6,7 @@
 	url = https://github.com/Qihoo360/glog.git
 [submodule "third/pink"]
 	path = third/pink
-	url = https://github.com/Qihoo360/pink.git
+	url = https://github.com/PikaLabs/pink.git
 [submodule "third/slash"]
 	path = third/slash
 	url = https://github.com/Qihoo360/slash.git
