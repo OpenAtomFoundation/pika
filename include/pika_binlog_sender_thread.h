@@ -20,6 +20,7 @@ class PikaBinlogSenderThread : public pink::Thread {
  public:
 
   PikaBinlogSenderThread(const std::string &ip, int port,
+                         int64_t sid,
                          slash::SequentialFile *queue,
                          uint32_t filenum, uint64_t con_offset);
 
@@ -50,6 +51,7 @@ class PikaBinlogSenderThread : public pink::Thread {
 
   std::string ip_;
   int port_;
+  int64_t sid_;
 
   int timeout_ms_;
   pink::PinkCli *cli_;

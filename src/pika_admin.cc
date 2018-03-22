@@ -163,7 +163,8 @@ void TrysyncCmd::Do() {
   int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_);
   if (sid >= 0) {
     Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
-        filenum_, pro_offset_);
+                                                   sid,
+                                                   filenum_, pro_offset_);
     if (status.ok()) {
       res_.AppendInteger(sid);
       LOG(INFO) << "Send Sid to Slave: " << sid;
@@ -1320,6 +1321,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'maxclients'\r\n";
       return;
     }
+    g_pika_server->SetDispatchQueueLimit(ival);
     g_pika_conf->SetMaxConnection(ival);
     ret = "+OK\r\n";
   } else if (set_item == "dump-expire") {

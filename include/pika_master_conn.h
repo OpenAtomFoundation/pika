@@ -16,6 +16,7 @@ class PikaMasterConn: public pink::RedisConn {
   PikaMasterConn(int fd, std::string ip_port, void* worker_specific_data);
   virtual int DealMessage(PikaCmdArgsType& argv, std::string* response);
  private:
+  bool is_first_send_;
   PikaBinlogReceiverThread* binlog_receiver_;
 };
 

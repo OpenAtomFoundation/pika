@@ -22,6 +22,10 @@ class PikaDispatchThread {
   bool ClientKill(const std::string& ip_port);
   void ClientKillAll();
 
+  void SetQueueLimit(int queue_limit) {
+    thread_rep_->SetQueueLimit(queue_limit);
+  }
+
  private:
   class ClientConnFactory : public pink::ConnFactory {
    public:

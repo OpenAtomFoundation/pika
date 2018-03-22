@@ -16,6 +16,7 @@
 #include <iterator>
 #include <ctime>
 #include <algorithm>
+#include <sys/resource.h>
 
 #include "slash/include/env.h"
 #include "slash/include/rsync.h"
@@ -850,7 +851,8 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
  * BinlogSender
  */
 Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
-    uint32_t filenum, uint64_t con_offset) {
+                                   int64_t sid,
+                                   uint32_t filenum, uint64_t con_offset) {
   // Sanity check
   if (con_offset > logger_->file_size()) {
     return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
@@ -885,7 +887,7 @@ Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
   }
 
   PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(ip,
-      port + 1000, readfile, filenum, con_offset);
+      port + 1000, sid, readfile, filenum, con_offset);
 
   if (sender->trim() == 0 // Error binlog
       && SetSlaveSender(ip, port, sender)) { // SlaveItem not exist
@@ -1718,6 +1720,25 @@ void PikaServer::ResetStat() {
   slash::WriteLock l(&statistic_data_.statistic_lock);
   statistic_data_.thread_querynum = 0;
   statistic_data_.last_thread_querynum = 0;
+}
+
+void PikaServer::SetDispatchQueueLimit(int queue_limit) {
+  rlimit limit;
+  if (getrlimit(RLIMIT_NOFILE,&limit) == -1) {
+    LOG(WARNING) << "getrlimit error: " << strerror(errno);
+  } else if (limit.rlim_cur < static_cast<unsigned int>(g_pika_conf->maxclients() + PIKA_MIN_RESERVED_FDS)) {
+    rlim_t old_limit = limit.rlim_cur;
+    rlim_t best_limit = g_pika_conf->maxclients() + PIKA_MIN_RESERVED_FDS;
+    limit.rlim_cur = best_limit > limit.rlim_max ? limit.rlim_max-1 : best_limit;
+    limit.rlim_max = best_limit > limit.rlim_max ? limit.rlim_max-1 : best_limit;
+    if (setrlimit(RLIMIT_NOFILE,&limit) != -1) {
+      LOG(WARNING) << "your 'limit -n ' of " << old_limit << " is not enough for Redis to start. pika have successfully reconfig it to " << limit.rlim_cur;
+    } else {
+      LOG(FATAL) << "your 'limit -n ' of " << old_limit << " is not enough for Redis to start. pika can not reconfig it(" << strerror(errno) << "), do it by yourself";
+    }
+  }
+
+  pika_dispatch_thread_->SetQueueLimit(queue_limit);
 }
 
 uint64_t PikaServer::ServerCurrentQps() {
