@@ -257,6 +257,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
     result = cli_->Connect(ip_, port_, g_pika_server->host());
     LOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") " << result.ToString();
 
+    // 2. Auth
     if (result.ok()) {
       cli_->set_send_timeout(timeout_ms_);
       // Auth sid
@@ -271,7 +272,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
         break;
       }
       while (true) {
-        // 2. Should Parse new msg;
+        // 3. Should Parse new msg;
         if (last_send_flag) {
           s = Parse(scratch);
           //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
@@ -303,7 +304,7 @@ void* PikaBinlogSenderThread::ThreadMain() {
           continue;
         }
 
-        // 3. After successful parse, we send msg;
+        // 4. After successful parse, we send msg;
         result = cli_->Send(&scratch);
         if (result.ok()) {
           last_send_flag = true;
