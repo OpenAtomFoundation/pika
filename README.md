@@ -52,9 +52,8 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 
 ## For developer
 
-### RoadMap
-
-* optimize engine nemo to improve list performance
+### Releases
+The User can download the binary release from [releases](https://github.com/Qihoo360/pika/releases) or compile the source release.
 
 ### Dependencies
 
