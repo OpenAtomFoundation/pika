@@ -40,7 +40,7 @@ int PikaMasterConn::DealMessage(
         return 0;
       }
     }
-    LOG(WARNING) << "BinlogReceiverThread AccessHandle failed";
+    LOG(INFO) << "BinlogReceiverThread AccessHandle failed, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
     return -2;
   }
 

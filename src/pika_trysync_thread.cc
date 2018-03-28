@@ -29,14 +29,9 @@ bool PikaTrysyncThread::Send() {
   pink::RedisCmdArgsType argv;
   std::string wbuf_str;
   std::string masterauth = g_pika_conf->masterauth();
-  std::string requirepass = g_pika_conf->requirepass();
   if (masterauth != "") {
     argv.push_back("auth");
     argv.push_back(masterauth);
-    pink::SerializeRedisCommand(argv, &wbuf_str);
-  } else if (requirepass != ""){
-    argv.push_back("auth");
-    argv.push_back(requirepass);
     pink::SerializeRedisCommand(argv, &wbuf_str);
   }
 
@@ -93,8 +88,6 @@ bool PikaTrysyncThread::RecvProc() {
     LOG(WARNING) << "Reply from master after trysync: " << reply;
     if (!is_authed && should_auth) {
       if (kInnerReplOk != slash::StringToLower(reply)) {
-//        LOG(WARNING) << "auth with master, error, come in SyncError stage";
-//        g_pika_server->SyncError();
         LOG(WARNING) << "Auth with master error: " << reply;
         return false;
       }
@@ -118,6 +111,7 @@ bool PikaTrysyncThread::RecvProc() {
         LOG(INFO) << "Need wait to sync";
         g_pika_server->NeedWaitDBSync();
       } else {
+        LOG(WARNING) << "Connect to master error: " << reply;
         // In double master mode
         if (g_pika_server->IsDoubleMaster(g_pika_server->master_ip(), g_pika_server->master_port())) {
           g_pika_server->RemoveMaster();
