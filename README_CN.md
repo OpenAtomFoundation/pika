@@ -47,7 +47,13 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 * 完善的[运维](https://github.com/Qihoo360/pika/wiki/pika的一些管理命令方式说明)命令
 
 
-## 编译安装
+## 使用
+
+### 二进制包使用
+
+用户可以直接从[releases](https://github.com/Qihoo360/pika/releases)下载最新的二进制版本包直接使用.
+
+### 编译使用
 
 1.在编译机上安装snappy，glog，CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
 
