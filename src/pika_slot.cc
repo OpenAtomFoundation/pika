@@ -16,8 +16,6 @@
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
 
-const int asyncRecvsNum = 200;
-
 uint32_t crc32tab[256];
 void CRC32TableInit(uint32_t poly) {
     int i, j;
@@ -136,8 +134,40 @@ static int doMigrate(pink::PinkCli *cli, std::string send_str){
     slash::Status s;
     s = cli->Send(&send_str);
     if (!s.ok()) {
-        LOG(WARNING) << "slotKvMigrate Send error: " <<strerror(errno);
+        LOG(WARNING) << "Slot Migrate Send error: " <<strerror(errno);
         return -1;
+    }
+    // Recv
+    s = cli->Recv(NULL);
+    if (!s.ok()) {
+        LOG(WARNING) << "Slot Migrate Recv error: " <<strerror(errno);
+        return -1;
+    }
+    return 0;
+}
+
+//do migrate cli auth
+static int doAuth(pink::PinkCli *cli){
+    pink::RedisCmdArgsType argv;
+    std::string wbuf_str;
+    std::string requirepass = g_pika_conf->requirepass();
+    if (requirepass != "") {
+        argv.push_back("auth");
+        argv.push_back(requirepass);
+        pink::SerializeRedisCommand(argv, &wbuf_str);
+
+        slash::Status s;
+        s = cli->Send(&wbuf_str);
+        if (!s.ok()) {
+            LOG(WARNING) << "Slot Migrate auth error: " <<strerror(errno);
+            return -1;
+        }
+        // Recv
+        s = cli->Recv(NULL);
+        if (!s.ok()) {
+            LOG(WARNING) << "Slot Migrate auth Recv error: " <<strerror(errno);
+            return -1;
+        }
     }
     return 0;
 }
@@ -562,20 +592,7 @@ void SlotsMgrtTagSlotCmd::Do() {
     if ((cli->Connect(dest_ip_, dest_port_, g_pika_server->host())).ok()) {
         cli->set_send_timeout(timeout_ms_);
         cli->set_recv_timeout(timeout_ms_);
-
-        pink::RedisCmdArgsType argv;
-        std::string wbuf_str;
-        std::string requirepass = g_pika_conf->requirepass();
-        if (requirepass != "") {
-            argv.push_back("auth");
-            argv.push_back(requirepass);
-            pink::SerializeRedisCommand(argv, &wbuf_str);
-        }
-
-        slash::Status s;
-        s = cli->Send(&wbuf_str);
-        if (!s.ok()) {
-            LOG(WARNING) << "Slot Migrate auth error: " <<strerror(errno);
+        if (doAuth(cli) < 0) {
             res_.SetRes(CmdRes::kErrOther, "Slot Migrate auth destination server error");
             cli->Close();
             delete cli;
@@ -697,20 +714,7 @@ void SlotsMgrtTagOneCmd::Do() {
     if ((cli->Connect(dest_ip_, dest_port_, g_pika_server->host())).ok()) {
         cli->set_send_timeout(timeout_ms_);
         cli->set_recv_timeout(timeout_ms_);
-
-        pink::RedisCmdArgsType argv;
-        std::string wbuf_str;
-        std::string requirepass = g_pika_conf->requirepass();
-        if (requirepass != "") {
-            argv.push_back("auth");
-            argv.push_back(requirepass);
-            pink::SerializeRedisCommand(argv, &wbuf_str);
-        }
-
-        slash::Status s;
-        s = cli->Send(&wbuf_str);
-        if (!s.ok()) {
-            LOG(WARNING) << "Slot Migrate auth error: " <<strerror(errno);
+        if (doAuth(cli) < 0) {
             res_.SetRes(CmdRes::kErrOther, "Slot Migrate auth destination server error");
             cli->Close();
             delete cli;
@@ -1299,6 +1303,8 @@ bool SlotsMgrtSenderThread::SlotsMigrateAsyncCancel() {
     if (is_running()) {
         StopThread();
     }
+    std::vector<std::pair<const char, std::string>>().swap(migrating_batch_);
+    std::vector<std::pair<const char, std::string>>().swap(migrating_ones_);
     return true;
 }
 
@@ -1354,6 +1360,15 @@ void* SlotsMgrtSenderThread::ThreadMain() {
         LOG(INFO) << "Slots Migrate Sender Connect server(" << dest_ip_ << ":" << dest_port_ << ") " << result.ToString();
 
         if (result.ok()) {
+            cli_->set_send_timeout(timeout_ms_);
+            cli_->set_recv_timeout(timeout_ms_);
+            if (doAuth(cli_) < 0) {
+                slotsmgrt_cond_.Signal();
+                is_migrating_ = false;
+                should_exit_ = true;
+                goto migrate_end;
+            }
+
             std::string slotKey = SlotKeyPrefix+std::to_string(slot_num_);
             std::vector<std::pair<const char, std::string>>::const_iterator iter;
             while (is_migrating_) {
@@ -1372,9 +1387,8 @@ void* SlotsMgrtSenderThread::ThreadMain() {
 
                 iter = migrating_batch_.begin();
                 while(iter != migrating_batch_.end()) {
-                    size_t j = 0;
                     slash::RWLock lb(&rwlock_batch_, false);
-                    for (; (iter != migrating_batch_.end()) && (j<asyncRecvsNum); iter++,j++) {
+                    for (; iter != migrating_batch_.end(); iter++) {
                         if (MigrateOneKey(cli_, iter->second, iter->first) < 0){
                             LOG(WARNING) << "Migrate batch key: " << iter->second <<" error: ";
                             slotsmgrt_cond_.Signal();
@@ -1385,13 +1399,6 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                         moved_keys_num_++;
                         moved_keys_all_++;
                         remained_keys_num_--;
-                    }
-                    for(; j>0; j-- ) {
-                        slash::Status s;
-                        s = cli_->Recv(NULL);
-                        if (!s.ok()) {
-                            break;
-                        }
                     }
                 }
 
@@ -1422,5 +1429,6 @@ migrate_end:
         cli_->Close();
         sleep(1);
     }
+    LOG(INFO) << "SlotsMgrtSender thread " << thread_id() << " finished!";
     return NULL;
 }
