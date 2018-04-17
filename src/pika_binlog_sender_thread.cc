@@ -290,14 +290,13 @@ void* PikaBinlogSenderThread::ThreadMain() {
         // Parse binlog
         std::vector<std::string> items;
         std::string token, delimiter = "\r\n", scratch_copy = scratch;
-        size_t pos = 0;
-        while ((pos = scratch_copy.find(delimiter)) != std::string::npos) {
-          token = scratch_copy.substr(0, pos);
+        size_t last_pos = 0, pos = 0;
+        while ((pos = scratch_copy.find(delimiter, last_pos)) != std::string::npos) {
+          token = scratch_copy.substr(last_pos, pos - last_pos);
           items.push_back(token);
-          scratch_copy.erase(0, pos + delimiter.length());
+          last_pos = pos + delimiter.length();
         }
-        items.push_back(scratch_copy);
-        std::string binlog_sid = items[items.size() - 6];
+        std::string binlog_sid = items[items.size() - 5];
 
         // If this binlog from the peer-master, can not resend to the peer-master
         if (std::atoi(binlog_sid.c_str()) == g_pika_server->DoubleMasterSid() && ip_ == g_pika_server->master_ip() && port_ == (g_pika_server->master_port()+1000)) {
