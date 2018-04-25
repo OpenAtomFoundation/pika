@@ -122,6 +122,9 @@ class PikaConf : public slash::BaseConf {
   void SetUserBlackList(const std::string &value) {
     RWLock l(&rwlock_, true);
     slash::StringSplit(value, COMMA, user_blacklist_);
+    for (auto& item : user_blacklist_) {
+      slash::StringToLower(item);
+    }
   }
   void SetReadonly(const bool value) {
     RWLock l(&rwlock_, true); readonly_ = value;
