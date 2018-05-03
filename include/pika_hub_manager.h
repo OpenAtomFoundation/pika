@@ -166,6 +166,7 @@ class PikaHubManager {
 
   std::string StatusToString();
 
+  bool IsHubStoped()  { return hub_stage_ == STOPED;}
   void HubConnected() { hub_stage_ = STARTED; }
   void StopHub(int connnection_num);
 
