@@ -606,8 +606,10 @@ void InfoCmd::Do() {
       info.append("\r\n");
       InfoClients(info);
       info.append("\r\n");
-      InfoHub(info);
-      info.append("\r\n");
+      if (!g_pika_server->pika_hub_manager_->IsHubStoped()) {
+        InfoHub(info);
+        info.append("\r\n");
+      }
       InfoStats(info);
       info.append("\r\n");
       InfoCPU(info);
@@ -615,8 +617,10 @@ void InfoCmd::Do() {
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
-      info.append("\r\n");
-      InfoDoubleMaster(info);
+      if (g_pika_server->DoubleMasterMode()) {
+        info.append("\r\n");
+        InfoDoubleMaster(info);
+      }
       break;
     case kInfoServer:
       InfoServer(info);
