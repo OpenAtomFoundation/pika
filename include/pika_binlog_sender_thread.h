@@ -41,9 +41,7 @@ class PikaBinlogSenderThread : public pink::Thread {
   uint64_t con_offset_;
   uint32_t filenum_;
 
-  uint64_t initial_offset_;
   uint64_t last_record_offset_;
-  uint64_t end_of_buffer_offset_;
 
   slash::SequentialFile* queue_;
   char* const backing_store_;
