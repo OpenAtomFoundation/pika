@@ -23,8 +23,6 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port,
                                                uint64_t con_offset)
     : con_offset_(con_offset),
       filenum_(filenum),
-      initial_offset_(0),
-      end_of_buffer_offset_(kBlockSize),
       queue_(queue),
       backing_store_(new char[kBlockSize]),
       buffer_(),
@@ -113,9 +111,9 @@ uint64_t PikaBinlogSenderThread::get_next(bool &is_error) {
 
 unsigned int PikaBinlogSenderThread::ReadPhysicalRecord(slash::Slice *result) {
   slash::Status s;
-  if (end_of_buffer_offset_ - last_record_offset_ <= kHeaderSize) {
-    queue_->Skip(end_of_buffer_offset_ - last_record_offset_);
-    con_offset_ += (end_of_buffer_offset_ - last_record_offset_);
+  if (kBlockSize - last_record_offset_ <= kHeaderSize) {
+    queue_->Skip(kBlockSize - last_record_offset_);
+    con_offset_ += (kBlockSize - last_record_offset_);
     last_record_offset_ = 0;
   }
   buffer_.clear();
@@ -150,9 +148,6 @@ unsigned int PikaBinlogSenderThread::ReadPhysicalRecord(slash::Slice *result) {
 
 Status PikaBinlogSenderThread::Consume(std::string &scratch) {
   Status s;
-  if (last_record_offset_ < initial_offset_) {
-    return slash::Status::IOError("last_record_offset exceed");
-  }
 
   slash::Slice fragment;
   while (true) {
@@ -227,8 +222,6 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
 
         filenum_++;
         con_offset_ = 0;
-        initial_offset_ = 0;
-        end_of_buffer_offset_ = kBlockSize;
         last_record_offset_ = con_offset_ % kBlockSize;
       } else {
         usleep(10000);
