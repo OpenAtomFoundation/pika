@@ -150,7 +150,7 @@ void *Sender::ThreadMain() {
 
     if (cli_ == NULL) {
       ConnectRedis();
-      if (should_exit_) {
+      if (QueueSize() == 0 && should_exit_) {
         return NULL;
       }
     } else {
