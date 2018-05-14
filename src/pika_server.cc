@@ -537,12 +537,24 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
       // Binlog Sender has not yet created
       continue;
     }
+
+    uint32_t master_filenum, slave_filenum;
+    uint64_t master_offset, slave_offset;
+    logger_->GetProducerStatus(&master_filenum, &master_offset);
+    PikaBinlogSenderThread* ptr_sender = static_cast<PikaBinlogSenderThread*>(iter->sender);
+    slave_filenum = ptr_sender->filenum();
+    slave_offset = ptr_sender->con_offset();
+
+    uint64_t lag = (master_filenum - slave_filenum) * logger_->file_size()
+      + (master_offset - slave_offset);
+
     slave_ip_port =(*iter).ip_port;
     tmp_stream << "slave" << index++
       << ":ip=" << slave_ip_port.substr(0, slave_ip_port.find(":"))
-      << ",port=" << slave_ip_port.substr(slave_ip_port.find(":")+1)
+      << ",port=" << slave_ip_port.substr(slave_ip_port.find(":") + 1)
       << ",state=" << ((*iter).stage == SLAVE_ITEM_STAGE_TWO ? "online" : "offline")
       << ",sid=" << (*iter).sid
+      << ",lag=" << lag
       << "\r\n";
   }
   slave_list_str.assign(tmp_stream.str());
