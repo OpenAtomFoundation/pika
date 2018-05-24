@@ -408,10 +408,12 @@ void SRandmemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
   if (argv.size() > 3) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSRandmember);
     return;
-  } else if (argv.size() < 3) {
-    return;
-  } else if (!slash::string2l(argv[2].data(), argv[2].size(), &count_)) {
-    res_.SetRes(CmdRes::kInvalidInt);
+  } else if (argv.size() == 3) {
+    if (!slash::string2l(argv[2].data(), argv[2].size(), &count_)) {
+      res_.SetRes(CmdRes::kInvalidInt);
+    } else {
+      reply_arr = true;;
+    }
   }
   return;
 }
@@ -420,7 +422,7 @@ void SRandmemberCmd::Do() {
   std::vector<std::string> members;
   nemo::Status s = g_pika_server->db()->SRandMember(key_, members, count_);
   if (s.ok() || s.IsNotFound()) {
-    if (members.size() == 1) {
+    if (!reply_arr) {
       res_.AppendStringLen(members[0].size());
       res_.AppendContent(members[0]);
     } else {
