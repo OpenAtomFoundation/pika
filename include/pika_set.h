@@ -156,9 +156,11 @@ public:
 private:
   std::string key_;
   int64_t count_;
+  bool reply_arr;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
     count_ = 1;
+    reply_arr = false;
   }
 };
 
