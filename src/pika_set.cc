@@ -422,7 +422,7 @@ void SRandmemberCmd::Do() {
   std::vector<std::string> members;
   nemo::Status s = g_pika_server->db()->SRandMember(key_, members, count_);
   if (s.ok() || s.IsNotFound()) {
-    if (!reply_arr) {
+    if (!reply_arr && members.size()) {
       res_.AppendStringLen(members[0].size());
       res_.AppendContent(members[0]);
     } else {
