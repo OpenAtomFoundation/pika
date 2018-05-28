@@ -7,6 +7,7 @@
 #define PIKA_KV_H_
 #include "include/pika_command.h"
 #include "nemo.h"
+#include "blackwidow/blackwidow.h"
 
 
 /*
@@ -53,7 +54,8 @@ class IncrCmd : public Cmd {
   IncrCmd() {}
   virtual void Do();
  private:
-  std::string key_, new_value_;
+  std::string key_;
+  int64_t new_value_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
@@ -67,8 +69,8 @@ class IncrbyCmd : public Cmd {
   IncrbyCmd() {}
   virtual void Do();
  private:
-  std::string key_, new_value_;
-  int64_t by_;
+  std::string key_;
+  int64_t by_, new_value_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
@@ -82,7 +84,7 @@ class IncrbyfloatCmd : public Cmd {
   IncrbyfloatCmd() {}
   virtual void Do();
  private:
-  std::string key_, new_value_;
+  std::string key_, value_, new_value_;
   double by_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
@@ -97,7 +99,8 @@ class DecrCmd : public Cmd {
   DecrCmd() {}
   virtual void Do();
  private:
-  std::string key_, new_value_;
+  std::string key_;
+  int64_t new_value_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
@@ -111,8 +114,8 @@ class DecrbyCmd : public Cmd {
   DecrbyCmd() {}
   virtual void Do();
  private:
-  std::string key_, new_value_;
-  int64_t by_;
+  std::string key_;
+  int64_t by_, new_value_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
@@ -170,7 +173,7 @@ class SetnxCmd : public Cmd {
  private:
   std::string key_;
   std::string value_;
-  int64_t success_;
+  int32_t success_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
     const PikaCmdArgsType& argv,
@@ -195,7 +198,7 @@ class MsetCmd : public Cmd {
   MsetCmd() {}
   virtual void Do();
  private:
-  std::vector<nemo::KV> kvs_;
+  std::vector<blackwidow::BlackWidow::KeyValue> kvs_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
@@ -209,8 +212,8 @@ class MsetnxCmd : public Cmd {
   MsetnxCmd() {}
   virtual void Do();
  private:
-  std::vector<nemo::KV> kvs_;
-  int64_t success_;
+  std::vector<blackwidow::BlackWidow::KeyValue> kvs_;
+  int32_t success_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
