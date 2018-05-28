@@ -51,16 +51,16 @@ void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void SetCmd::Do() {
   nemo::Status s;
-  int64_t res = 1;
+  int32_t res = 1;
   switch (condition_) {
     case SetCmd::kXX:
-      s = g_pika_server->db()->Setxx(key_, value_, &res, sec_);
+      s = g_pika_server->bdb()->Setxx(key_, value_, &res);
       break;
     case SetCmd::kNX:
-      s = g_pika_server->db()->Setnx(key_, value_, &res, sec_);
+      s = g_pika_server->bdb()->Setnx(key_, value_, &res);
       break;
     default:
-      s = g_pika_server->db()->Set(key_, value_, sec_);
+      s = g_pika_server->bdb()->Set(key_, value_);
       break;
   }
 
@@ -87,7 +87,7 @@ void GetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void GetCmd::Do() {
   std::string value;
-  nemo::Status s = g_pika_server->db()->Get(key_, &value);
+  rocksdb::Status s = g_pika_server->bdb()->Get(key_, &value);
   if (s.ok()) {
     res_.AppendStringLen(value.size());
     res_.AppendContent(value);
@@ -109,16 +109,17 @@ void DelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void DelCmd::Do() {
-  int64_t count = 0;
   std::vector<std::string>::const_iterator it;
   for (it = keys_.begin(); it != keys_.end(); it++) {
     SlotKeyRem(*it);
   }
-  nemo::Status s = g_pika_server->db()->MDel(keys_, &count);
-  if (s.ok()) {
+
+  std::map<blackwidow::BlackWidow::DataType, blackwidow::Status> type_status;
+  int64_t count = g_pika_server->bdb()->Del(keys_, &type_status);
+  if (count >= 0) {
     res_.AppendInteger(count);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "delete error");
   }
   return;
 }
@@ -133,11 +134,11 @@ void IncrCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void IncrCmd::Do() {
-  nemo::Status s = g_pika_server->db()->Incrby(key_, 1, new_value_);
+  rocksdb::Status s = g_pika_server->bdb()->Incrby(key_, 1, &new_value_);
   if (s.ok()) {
-   res_.AppendContent(":" + new_value_);
+   res_.AppendContent(":" + std::to_string(new_value_));
    SlotKeyAdd("k", key_);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -164,8 +165,9 @@ std::string IncrCmd::ToBinlog(
   RedisAppendLen(res, key_.size(), "$");
   RedisAppendContent(res, key_);
   // value
-  RedisAppendLen(res, new_value_.size(), "$");
-  RedisAppendContent(res, new_value_);
+  std::string value = std::to_string(new_value_);
+  RedisAppendLen(res, value.size(), "$");
+  RedisAppendContent(res, value);
 
   AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
   return res;
@@ -185,11 +187,11 @@ void IncrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void IncrbyCmd::Do() {
-  nemo::Status s = g_pika_server->db()->Incrby(key_, by_, new_value_);
+  rocksdb::Status s = g_pika_server->bdb()->Incrby(key_, by_, &new_value_);
   if (s.ok()) {
-    res_.AppendContent(":" + new_value_);
+    res_.AppendContent(":" + std::to_string(new_value_));
     SlotKeyAdd("k", key_);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -216,8 +218,9 @@ std::string IncrbyCmd::ToBinlog(
   RedisAppendLen(res, key_.size(), "$");
   RedisAppendContent(res, key_);
   // value
-  RedisAppendLen(res, new_value_.size(), "$");
-  RedisAppendContent(res, new_value_);
+  std::string value = std::to_string(new_value_);
+  RedisAppendLen(res, value.size(), "$");
+  RedisAppendContent(res, value);
 
   AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
   return res;
@@ -229,6 +232,7 @@ void IncrbyfloatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
     return;
   }
   key_ = argv[1];
+  value_ = argv[2];
   if (!slash::string2d(argv[2].data(), argv[2].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidFloat);
     return;
@@ -237,12 +241,12 @@ void IncrbyfloatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 }
 
 void IncrbyfloatCmd::Do() {
-  nemo::Status s = g_pika_server->db()->Incrbyfloat(key_, by_, new_value_);
+  rocksdb::Status s = g_pika_server->bdb()->Incrbyfloat(key_, value_, &new_value_);
   if (s.ok()) {
     res_.AppendStringLen(new_value_.size());
     res_.AppendContent(new_value_);
     SlotKeyAdd("k", key_);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a float"){
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a vaild float"){
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -286,10 +290,10 @@ void DecrCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void DecrCmd::Do() {
-  nemo::Status s = g_pika_server->db()->Decrby(key_, 1, new_value_);
+  rocksdb::Status s = g_pika_server->bdb()->Decrby(key_, 1, &new_value_);
   if (s.ok()) {
-   res_.AppendContent(":" + new_value_);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
+   res_.AppendContent(":" + std::to_string(new_value_));
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -316,8 +320,9 @@ std::string DecrCmd::ToBinlog(
   RedisAppendLen(res, key_.size(), "$");
   RedisAppendContent(res, key_);
   // value
-  RedisAppendLen(res, new_value_.size(), "$");
-  RedisAppendContent(res, new_value_);
+  std::string value = std::to_string(new_value_);
+  RedisAppendLen(res, value.size(), "$");
+  RedisAppendContent(res, value);
 
   AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
   return res;
@@ -337,10 +342,10 @@ void DecrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void DecrbyCmd::Do() {
-  nemo::Status s = g_pika_server->db()->Decrby(key_, by_, new_value_);
+  rocksdb::Status s = g_pika_server->bdb()->Decrby(key_, by_, &new_value_);
   if (s.ok()) {
-    res_.AppendContent(":" + new_value_);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a integer") {
+    res_.AppendContent(":" + std::to_string(new_value_));
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -367,8 +372,9 @@ std::string DecrbyCmd::ToBinlog(
   RedisAppendLen(res, key_.size(), "$");
   RedisAppendContent(res, key_);
   // value
-  RedisAppendLen(res, new_value_.size(), "$");
-  RedisAppendContent(res, new_value_);
+  std::string value = std::to_string(new_value_);
+  RedisAppendLen(res, value.size(), "$");
+  RedisAppendContent(res, value);
 
   AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
   return res;
@@ -386,7 +392,7 @@ void GetsetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void GetsetCmd::Do() {
   std::string old_value;
-  nemo::Status s = g_pika_server->db()->GetSet(key_, new_value_, &old_value);
+  rocksdb::Status s = g_pika_server->bdb()->GetSet(key_, new_value_, &old_value);
   if (s.ok()) {
     if (old_value.empty()) {
       res_.AppendContent("$-1");
@@ -412,8 +418,8 @@ void AppendCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void AppendCmd::Do() {
-  int64_t new_len = 0;
-  nemo::Status s = g_pika_server->db()->Append(key_, value_, &new_len);
+  int32_t new_len = 0;
+  rocksdb::Status s = g_pika_server->bdb()->Append(key_, value_, &new_len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(new_len);
     SlotKeyAdd("k", key_);
@@ -434,14 +440,13 @@ void MgetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void MgetCmd::Do() {
-  std::vector<nemo::KVS> kvs_v;
-  nemo::Status s = g_pika_server->db()->MGet(keys_, kvs_v);
-  res_.AppendArrayLen(kvs_v.size());
-  std::vector<nemo::KVS>::const_iterator iter;
-  for (iter = kvs_v.begin(); iter != kvs_v.end(); iter++) {
-    if ((iter->status).ok()) {
-      res_.AppendStringLen((iter->val).size());
-      res_.AppendContent(iter->val);
+  std::vector<std::string> values;
+  rocksdb::Status s = g_pika_server->bdb()->MGet(keys_, &values);
+  res_.AppendArrayLen(values.size());
+  for (const auto& value : values) {
+    if (!value.empty()) {
+      res_.AppendStringLen(value.size());
+      res_.AppendContent(value);
     } else {
       res_.AppendContent("$-1");
     }
@@ -491,7 +496,7 @@ void SetnxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void SetnxCmd::Do() {
   success_ = 0;
-  nemo::Status s = g_pika_server->db()->Setnx(key_, value_, &success_);
+  rocksdb::Status s = g_pika_server->bdb()->Setnx(key_, value_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
     SlotKeyAdd("k", key_);
@@ -542,7 +547,7 @@ void SetexCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void SetexCmd::Do() {
-  nemo::Status s = g_pika_server->db()->Set(key_, value_, sec_);
+  rocksdb::Status s = g_pika_server->bdb()->Setex(key_, value_, sec_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
     SlotKeyAdd("k", key_);
@@ -563,16 +568,16 @@ void MsetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   }
   kvs_.clear();
   for (size_t index = 1; index != argc; index += 2) {
-    kvs_.push_back({argv[index], argv[index+1]});
+    kvs_.push_back({argv[index], argv[index + 1]});
   }
   return;
 }
 
 void MsetCmd::Do() {
-  nemo::Status s = g_pika_server->db()->MSet(kvs_);
+  blackwidow::Status s = g_pika_server->bdb()->MSet(kvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
-    std::vector<nemo::KV>::const_iterator it;
+    std::vector<blackwidow::BlackWidow::KeyValue>::const_iterator it;
     for (it = kvs_.begin(); it != kvs_.end(); it++) {
       SlotKeyAdd("k", it->key);
     }
@@ -589,7 +594,7 @@ std::string MsetCmd::ToBinlog(
   std::string res;
   res.reserve(RAW_ARGS_LEN);
 
-  std::vector<nemo::KV>::const_iterator it;
+  std::vector<blackwidow::BlackWidow::KeyValue>::const_iterator it;
   for (it = kvs_.begin(); it != kvs_.end(); it++) {
     RedisAppendLen(res, 3 + 4, "*");
 
@@ -601,8 +606,8 @@ std::string MsetCmd::ToBinlog(
     RedisAppendLen(res, it->key.size(), "$");
     RedisAppendContent(res, it->key);
     // value
-    RedisAppendLen(res, it->val.size(), "$");
-    RedisAppendContent(res, it->val);
+    RedisAppendLen(res, it->value.size(), "$");
+    RedisAppendContent(res, it->value);
 
     AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
   }
@@ -621,17 +626,17 @@ void MsetnxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   }
   kvs_.clear();
   for (size_t index = 1; index != argc; index += 2) {
-    kvs_.push_back({argv[index], argv[index+1]});
+    kvs_.push_back({argv[index], argv[index + 1]});
   }
   return;
 }
 
 void MsetnxCmd::Do() {
   success_ = 0;
-  nemo::Status s = g_pika_server->db()->MSetnx(kvs_, &success_);
+  rocksdb::Status s = g_pika_server->bdb()->MSetnx(kvs_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
-    std::vector<nemo::KV>::const_iterator it;
+    std::vector<blackwidow::BlackWidow::KeyValue>::const_iterator it;
     for (it = kvs_.begin(); it != kvs_.end(); it++) {
       SlotKeyAdd("k", it->key);
     }
@@ -649,7 +654,7 @@ std::string MsetnxCmd::ToBinlog(
   if (success_) {
     res.reserve(RAW_ARGS_LEN);
 
-    std::vector<nemo::KV>::const_iterator it;
+    std::vector<blackwidow::BlackWidow::KeyValue>::const_iterator it;
     for (it = kvs_.begin(); it != kvs_.end(); it++) {
       RedisAppendLen(res, 3 + 4, "*");
 
@@ -661,8 +666,8 @@ std::string MsetnxCmd::ToBinlog(
       RedisAppendLen(res, it->key.size(), "$");
       RedisAppendContent(res, it->key);
       // value
-      RedisAppendLen(res, it->val.size(), "$");
-      RedisAppendContent(res, it->val);
+      RedisAppendLen(res, it->value.size(), "$");
+      RedisAppendContent(res, it->value);
 
       AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
     }
@@ -689,7 +694,7 @@ void GetrangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 
 void GetrangeCmd::Do() {
   std::string substr;
-  nemo::Status s = g_pika_server->db()->Getrange(key_, start_, end_, substr);
+  rocksdb::Status s = g_pika_server->bdb()->Getrange(key_, start_, end_, &substr);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendStringLen(substr.size());
     res_.AppendContent(substr);
@@ -713,8 +718,8 @@ void SetrangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 }
 
 void SetrangeCmd::Do() {
-  int64_t new_len;
-  nemo::Status s = g_pika_server->db()->Setrange(key_, offset_, value_, &new_len);
+  int32_t new_len;
+  rocksdb::Status s = g_pika_server->bdb()->Setrange(key_, offset_, value_, &new_len);
   if (s.ok()) {
     res_.AppendInteger(new_len);
     SlotKeyAdd("k", key_);
@@ -734,8 +739,8 @@ void StrlenCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void StrlenCmd::Do() {
-  int64_t len = 0;
-  nemo::Status s = g_pika_server->db()->Strlen(key_, &len);
+  int32_t len = 0;
+  rocksdb::Status s = g_pika_server->bdb()->Strlen(key_, &len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
