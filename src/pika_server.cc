@@ -59,6 +59,7 @@ PikaServer::PikaServer() :
   if (!ServerInit()) {
     LOG(FATAL) << "ServerInit iotcl error";
   }
+
   // Create nemo handle
   nemo::Options option;
   NemoOptionInit(&option);
@@ -68,6 +69,19 @@ PikaServer::PikaServer() :
   db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
   assert(db_);
   LOG(INFO) << "DB Success";
+
+  //Create blackwidow handle
+  rocksdb::Options rocksdb_option;
+  RocksdbOptionInit(&rocksdb_option);
+
+  std::string bdb_path = "./blackwidow_db/";
+  LOG(INFO) << "Prepare Blackwidow DB...";
+  bdb_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  rocksdb::Status s = bdb_->Open(rocksdb_option, bdb_path);
+  assert(bdb_);
+  assert(s.ok());
+  LOG(INFO) << "DB Success";
+
 
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(),
@@ -248,6 +262,20 @@ void PikaServer::NemoOptionInit(nemo::Options* option) {
   } else if (g_pika_conf->compression() == "zlib") {
     option->compression = nemo::Options::CompressionType::kZlibCompression;
   }
+}
+
+void PikaServer::RocksdbOptionInit(rocksdb::Options* option) {
+  option->create_if_missing = true;
+  option->keep_log_file_num = 10;
+  option->max_manifest_file_size = 64 * 1024 * 1024;
+  option->max_log_file_size = 512 * 1024 * 1024;
+
+  option->write_buffer_size = g_pika_conf->write_buffer_size();
+  option->target_file_size_base = g_pika_conf->target_file_size_base();
+  option->max_background_flushes = g_pika_conf->max_background_flushes();
+  option->max_background_compactions = g_pika_conf->max_background_compactions();
+  option->max_open_files = g_pika_conf->max_cache_files();
+  option->max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
 }
 
 void PikaServer::Start() {

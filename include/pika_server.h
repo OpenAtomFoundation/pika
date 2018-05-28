@@ -30,6 +30,7 @@
 #include "slash/include/slash_mutex.h"
 #include "pink/include/bg_thread.h"
 #include "pink/include/pink_pubsub.h"
+#include "blackwidow/blackwidow.h"
 #include "nemo_backupable.h"
 
 using slash::Status;
@@ -83,6 +84,9 @@ class PikaServer {
     return db_;
   }
 
+  const std::shared_ptr<blackwidow::BlackWidow> bdb() {
+    return bdb_;
+  }
 
   int role() {
     slash::RWLock(&state_protector_, false);
@@ -187,6 +191,10 @@ class PikaServer {
    * Nemo options init
    */
   void NemoOptionInit(nemo::Options* option);
+  /*
+   * Blackwidow options init
+   */
+  void RocksdbOptionInit(rocksdb::Options* option);
 
   /*
    * Binlog
@@ -476,6 +484,7 @@ class PikaServer {
   int port_;
   pthread_rwlock_t rwlock_;
   std::shared_ptr<nemo::Nemo> db_;
+  std::shared_ptr<blackwidow::BlackWidow> bdb_;
 
   time_t start_time_s_;
   bool have_scheduled_crontask_;
