@@ -86,6 +86,11 @@ ifndef GLOG_PATH
 GLOG_PATH = $(THIRD_PATH)/glog
 endif
 
+ifndef BLACKWIDOW_PATH
+BLACKWIDOW_PATH = $(THIRD_PATH)/blackwidow
+endif
+BLACKWIDOW = $(BLACKWIDOW_PATH)/lib/libblackwidow$(DEBUG_SUFFIX).a
+
 ifeq ($(360), 1)
 GLOG := $(GLOG_PATH)/.libs/libglog.a
 endif
@@ -95,6 +100,7 @@ INCLUDE_PATH = -I. \
 							 -I$(PINK_PATH) \
 							 -I$(NEMO_PATH)/include \
 							 -I$(NEMODB_PATH)/include \
+							 -I$(BLACKWIDOW_PATH)/include \
 							 -I$(ROCKSDB_PATH) \
 							 -I$(ROCKSDB_PATH)/include
 
@@ -107,6 +113,7 @@ LIB_PATH = -L./ \
 					 -L$(PINK_PATH)/pink/lib \
 					 -L$(NEMO_PATH)/lib \
 					 -L$(NEMODB_PATH)/lib \
+					 -L$(BLACKWIDOW_PATH)/lib \
 					 -L$(ROCKSDB_PATH)
 
 ifeq ($(360),1)
@@ -118,6 +125,7 @@ LDFLAGS += $(LIB_PATH) \
 			 		 -lslash$(DEBUG_SUFFIX) \
 					 -lnemo$(DEBUG_SUFFIX) \
 					 -lnemodb$(DEBUG_SUFFIX) \
+					 -lblackwidow$(DEBUG_SUFFIX) \
 					 -lrocksdb$(DEBUG_SUFFIX) \
 					 -lglog
 
@@ -207,7 +215,7 @@ all: $(BINARY)
 
 dbg: $(BINARY)
 
-$(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(NEMODB) $(NEMO) $(GLOG) $(LIBOBJECTS)
+$(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(NEMODB) $(NEMO) $(BLACKWIDOW) $(GLOG) $(LIBOBJECTS)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)
 	$(AM_V_at)rm -rf $(OUTPUT)
@@ -231,6 +239,10 @@ $(NEMODB):
 $(NEMO):
 	$(AM_V_at)make -C $(NEMO_PATH) NEMODB_PATH=$(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
 
+$(BLACKWIDOW):
+	$(AM_V_at)make -C $(BLACKWIDOW_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
+
+
 $(GLOG):
 	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure --disable-shared; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore;
 
@@ -245,5 +257,6 @@ distclean: clean
 	make -C $(SLASH_PATH)/slash/ clean
 	make -C $(NEMO_PATH) NEMODB_PATH=$(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) clean
 	make -C $(NEMODB_PATH)/ ROCKSDB_PATH=$(ROCKSDB_PATH) clean
+	make -C $(BLACKWIDOW_PATH)/ clean
 	make -C $(ROCKSDB_PATH)/ clean
 #	make -C $(GLOG_PATH)/ clean
