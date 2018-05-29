@@ -1,6 +1,6 @@
 CLEAN_FILES = # deliberately empty, so we can append below.
 CXX=g++
-PLATFORM_LDFLAGS= -lpthread -lrt
+PLATFORM_LDFLAGS= -lpthread -lrt -lunwind
 PLATFORM_CXXFLAGS= -std=c++11 -fno-builtin-memcmp -msse -msse4.2 
 PROFILING_FLAGS=-pg
 OPT=
@@ -86,11 +86,20 @@ ifndef GLOG_PATH
 GLOG_PATH = $(THIRD_PATH)/glog
 endif
 
+ifndef GFLAGS_PATH
+GFLAGS_PATH = $(THIRD_PATH)/gflags
+endif
+
+ifndef GTEST_PATH
+GTEST_PATH = $(THIRD_PATH)/googletest
+endif
+
 ifeq ($(360), 1)
-GLOG := $(GLOG_PATH)/.libs/libglog.a
+GLOG := -lglog
 endif
 
 INCLUDE_PATH = -I. \
+							 -I$(GFLAGS_PATJ)/build/include \
 							 -I$(SLASH_PATH) \
 							 -I$(PINK_PATH) \
 							 -I$(NEMO_PATH)/include \
@@ -99,10 +108,13 @@ INCLUDE_PATH = -I. \
 							 -I$(ROCKSDB_PATH)/include
 
 ifeq ($(360),1)
-INCLUDE_PATH += -I$(GLOG_PATH)/src
+INCLUDE_PATH += -I$(GLOG_PATH)/src \
+							 -I$(GFLAGS_PATJ)/build/include \
+							 -I$(GTEST_PATH)/googletest/include
 endif
 
 LIB_PATH = -L./ \
+					 -L$(GFLAGS_PATH)/build/lib \
 					 -L$(SLASH_PATH)/slash/lib \
 					 -L$(PINK_PATH)/pink/lib \
 					 -L$(NEMO_PATH)/lib \
@@ -110,7 +122,9 @@ LIB_PATH = -L./ \
 					 -L$(ROCKSDB_PATH)
 
 ifeq ($(360),1)
-LIB_PATH += -L$(GLOG_PATH)/.libs
+LIB_PATH += -L$(GLOG_PATH)/build/.libs \
+					 -L$(GFLAGS_PATH)/build/lib \
+					 -L$(GTEST_PATH)/build/googlemock/gtest
 endif
 
 LDFLAGS += $(LIB_PATH) \
@@ -161,7 +175,7 @@ default: all
 
 WARNING_FLAGS = -W -Wextra -Wall -Wsign-compare \
   							-Wno-unused-parameter -Woverloaded-virtual \
-								-Wnon-virtual-dtor -Wno-missing-field-initializers
+							-Wnon-virtual-dtor -Wno-missing-field-initializers
 
 ifndef DISABLE_WARNING_AS_ERROR
   WARNING_FLAGS += -Werror
@@ -232,7 +246,9 @@ $(NEMO):
 	$(AM_V_at)make -C $(NEMO_PATH) NEMODB_PATH=$(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
 
 $(GLOG):
-	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure --disable-shared; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore;
+	cd $(GFLAGS_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then cmake -DCMAKE_CXX_FLAGS=-fPIC ..; fi; make; echo 'build' > $(GFLAGS_PATH)/.gitignore;
+	cd $(GTEST_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then cmake -DCMAKE_CXX_FLAGS=-fPIC ..; fi; make; echo 'build' > $(GTEST_PATH)/.gitignore;
+	cd $(GLOG_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then ../configure --disable-shared "LDFLAGS=-L$(GFLAGS_PATH)/build/lib -L$(GTEST_PATH)/build/googlemock/gtest" "CPPFLAGS=-I$(GFLAGS_PATH)/build/include -I$(GTEST_PATH)/googletest/include"; fi; make; echo 'build' > $(GLOG_PATH)/.gitignore;
 
 clean:
 	rm -rf $(OUTPUT)
