@@ -27,12 +27,10 @@ void LIndexCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 void LIndexCmd::Do() {
   std::string value;
-  nemo::Status s = g_pika_server->db()->LIndex(key_, index_, &value);
+  rocksdb::Status s = g_pika_server->bdb()->LIndex(key_, index_, &value);
   if (s.ok()) {
     res_.AppendString(value);
-  } else if (s.IsNotFound() 
-      || (s.IsCorruption() && s.ToString() == "Corruption: index out of range")) { 
-    //TODO refine the return value of nemo
+  } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -47,9 +45,9 @@ void LInsertCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   key_ = argv[1];
   std::string dir = slash::StringToLower(argv[2]);
   if (dir == "before" ) {
-    dir_ = nemo::BEFORE;
+    dir_ = blackwidow::BlackWidow::Before;
   } else if (dir == "after") {
-    dir_ = nemo::AFTER;
+    dir_ = blackwidow::BlackWidow::After;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
@@ -58,8 +56,8 @@ void LInsertCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   value_ = argv[4];
 }
 void LInsertCmd::Do() {
-  int64_t llen;
-  nemo::Status s = g_pika_server->db()->LInsert(key_, dir_, pivot_, value_, &llen);
+  int64_t llen = 0;
+  rocksdb::Status s = g_pika_server->bdb()->LInsert(key_, dir_, pivot_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {
@@ -75,8 +73,8 @@ void LLenCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   key_ = argv[1];
 }
 void LLenCmd::Do() {
-  int64_t llen;
-  nemo::Status s = g_pika_server->db()->LLen(key_, &llen);
+  uint64_t llen = 0;
+  rocksdb::Status s = g_pika_server->bdb()->LLen(key_, &llen);
   if (s.ok() || s.IsNotFound()){
     res_.AppendInteger(llen);
   } else {
@@ -96,20 +94,13 @@ void LPushCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   }
 }
 void LPushCmd::Do() {
-  int64_t llen = 0;
-  nemo::Status s;
-  std::vector<std::string>::iterator it = values_.begin();
-  for (; it != values_.end(); ++it) {
-    s = g_pika_server->db()->LPush(key_, *it, &llen);
-    if (!s.ok()) {
-      break;
-    }
-  }
-  if (it != values_.end()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-  } else {
+  uint64_t llen = 0;
+  rocksdb::Status s = g_pika_server->bdb()->LPush(key_, values_, &llen);
+  if (s.ok()) {
     res_.AppendInteger(llen);
     SlotKeyAdd("l", key_);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -122,7 +113,7 @@ void LPopCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 void LPopCmd::Do() {
   std::string value;
-  nemo::Status s = g_pika_server->db()->LPop(key_, &value);
+  rocksdb::Status s = g_pika_server->bdb()->LPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
     KeyNotExistsRem("l", key_);
@@ -142,8 +133,8 @@ void LPushxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   value_ = argv[2];
 }
 void LPushxCmd::Do() {
-  int64_t llen = 0;
-  nemo::Status s = g_pika_server->db()->LPushx(key_, value_, &llen);
+  uint64_t llen = 0;
+  rocksdb::Status s = g_pika_server->bdb()->LPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
     SlotKeyAdd("l", key_);
@@ -170,14 +161,13 @@ void LRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   return;
 }
 void LRangeCmd::Do() {
-  std::vector<nemo::IV> ivs;
-  nemo::Status s = g_pika_server->db()->LRange(key_, left_, right_, ivs);
+  std::vector<std::string> values;
+  rocksdb::Status s = g_pika_server->bdb()->LRange(key_, left_, right_, &values);
   if (s.ok()) {
-    res_.AppendArrayLen(ivs.size());
-    std::vector<nemo::IV>::iterator iter;
-    for (iter = ivs.begin(); iter != ivs.end(); iter++) {
-      res_.AppendString(iter->val);
-    }    
+    res_.AppendArrayLen(values.size());
+    for (const auto& value : values) {
+      res_.AppendString(value);
+    }
   } else if (s.IsNotFound()) {
     res_.AppendArrayLen(0);
   } else {
@@ -199,8 +189,8 @@ void LRemCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   value_ = argv[3];
 }
 void LRemCmd::Do() {
-  int64_t res;
-  nemo::Status s = g_pika_server->db()->LRem(key_, count_, value_, &res);
+  uint64_t res = 0;
+  rocksdb::Status s = g_pika_server->bdb()->LRem(key_, count_, value_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
   } else {
@@ -223,7 +213,7 @@ void LSetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   value_ = argv[3];
 }
 void LSetCmd::Do() {
-    nemo::Status s = g_pika_server->db()->LSet(key_, index_, value_);
+    rocksdb::Status s = g_pika_server->bdb()->LSet(key_, index_, value_);
     if (s.ok()) {
       res_.SetRes(CmdRes::kOk);
     } else if (s.IsNotFound()) {
@@ -254,7 +244,7 @@ void LTrimCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   return;
 }
 void LTrimCmd::Do() {
-  nemo::Status s = g_pika_server->db()->LTrim(key_, start_, stop_);
+  rocksdb::Status s = g_pika_server->bdb()->LTrim(key_, start_, stop_);
   if (s.ok() || s.IsNotFound()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -271,7 +261,7 @@ void RPopCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 void RPopCmd::Do() {
   std::string value;
-  nemo::Status s = g_pika_server->db()->RPop(key_, &value);
+  rocksdb::Status s = g_pika_server->bdb()->RPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
     KeyNotExistsRem("l", key_);
@@ -292,10 +282,10 @@ void RPopLPushCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
 }
 void RPopLPushCmd::Do() {
   std::string value;
-  nemo::Status s = g_pika_server->db()->RPopLPush(source_, receiver_, value);
+  rocksdb::Status s = g_pika_server->bdb()->RPoplpush(source_, receiver_, &value);
   if (s.ok()) {
     res_.AppendString(value);
-  } else if (s.IsNotFound() && s.ToString() == "NotFound: not found the source key") {
+  } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -314,20 +304,13 @@ void RPushCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   }
 }
 void RPushCmd::Do() {
-  int64_t llen = 0;
-  nemo::Status s;
-  std::vector<std::string>::iterator it = values_.begin();
-  for (; it != values_.end(); ++it) {
-    s = g_pika_server->db()->RPush(key_, *it, &llen);
-    if (!s.ok()) {
-      break;
-    }
-  }
-  if (it != values_.end()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-  } else {
+  uint64_t llen = 0;
+  rocksdb::Status s = g_pika_server->bdb()->RPush(key_, values_, &llen);
+  if (s.ok()) {
     res_.AppendInteger(llen);
     SlotKeyAdd("l", key_);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -340,8 +323,8 @@ void RPushxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   value_ = argv[2];
 }
 void RPushxCmd::Do() {
-  int64_t llen = 0;
-  nemo::Status s = g_pika_server->db()->RPushx(key_, value_, &llen);
+  uint64_t llen = 0;
+  rocksdb::Status s = g_pika_server->bdb()->RPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
     SlotKeyAdd("l", key_);
