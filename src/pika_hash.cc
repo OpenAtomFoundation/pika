@@ -25,17 +25,14 @@ void HDelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void HDelCmd::Do() {
-  int64_t num = 0;
-  nemo::Status s;
-  size_t index = 0, fields_num = fields_.size();
-  for (; index != fields_num; index++) {
-    s = g_pika_server->db()->HDel(key_, fields_[index]);
-    if (s.ok()) {
-      num++;
-    }
+  int32_t num = 0;
+  rocksdb::Status s = g_pika_server->bdb()->HDel(key_, fields_, &num);
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendInteger(num);
+    KeyNotExistsRem("h", key_);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  res_.AppendInteger(num);
-  KeyNotExistsRem("h", key_);
   return;
 }
 
@@ -47,6 +44,18 @@ void HSetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   key_ = argv[1];
   field_ = argv[2];
   value_ = argv[3];
+  return;
+}
+
+void HSetCmd::Do() {
+  int32_t ret = 0;
+  rocksdb::Status s = g_pika_server->bdb()->HSet(key_, field_, value_, &ret);
+  if (s.ok()) {
+    res_.AppendContent(":" + std::to_string(ret));
+    SlotKeyAdd("h", key_);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
   return;
 }
 
@@ -62,7 +71,7 @@ void HGetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void HGetCmd::Do() {
   std::string value;
-  nemo::Status s = g_pika_server->db()->HGet(key_, field_, &value);
+  rocksdb::Status s = g_pika_server->bdb()->HGet(key_, field_, &value);
   if (s.ok()) {
     res_.AppendStringLen(value.size());
     res_.AppendContent(value);
@@ -83,16 +92,15 @@ void HGetallCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void HGetallCmd::Do() {
-  std::vector<nemo::FV> fvs;
-  nemo::Status s = g_pika_server->db()->HGetall(key_, fvs);
+  std::vector<blackwidow::BlackWidow::FieldValue> fvs;
+  rocksdb::Status s = g_pika_server->bdb()->HGetall(key_, &fvs);
   if (s.ok()) {
-    res_.AppendArrayLen(fvs.size()*2);
-    std::vector<nemo::FV>::const_iterator iter;
-    for (iter = fvs.begin(); iter != fvs.end(); iter++) {
-      res_.AppendStringLen(iter->field.size());
-      res_.AppendContent(iter->field);
-      res_.AppendStringLen(iter->val.size());
-      res_.AppendContent(iter->val);
+    res_.AppendArrayLen(fvs.size() * 2);
+    for (const auto& fv : fvs) {
+      res_.AppendStringLen(fv.field.size());
+      res_.AppendContent(fv.field);
+      res_.AppendStringLen(fv.value.size());
+      res_.AppendContent(fv.value);
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -100,33 +108,6 @@ void HGetallCmd::Do() {
   return;
 }
 
-static void DoHSet(const std::string &key, const std::string &field, const std::string &value, CmdRes& res, const std::string &exp_res) {
-  nemo::Status s = g_pika_server->db()->HSet(key, field, value);
-  if (s.ok()) {
-    res.AppendContent(exp_res);
-  } else {
-    res.SetRes(CmdRes::kErrOther, s.ToString());
-  }
-}
-
-void HSetCmd::Do() {
-  std::string tmp;
-  nemo::Status s = g_pika_server->db()->HGet(key_, field_, &tmp);
-  if (s.ok()) {
-    if (tmp != value_) {
-      DoHSet(key_, field_, value_, res_, ":0");
-      SlotKeyAdd("h", key_);
-    } else {
-      res_.AppendContent(":0");
-    }
-  } else if (s.IsNotFound()) {
-    DoHSet(key_, field_, value_, res_, ":1");
-    SlotKeyAdd("h", key_);
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-  }
-  return;
-}
 
 void HExistsCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
@@ -139,12 +120,13 @@ void HExistsCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void HExistsCmd::Do() {
-  std::string value;
-  bool exist = g_pika_server->db()->HExists(key_, field_);
-  if (exist) {
+  rocksdb::Status s = g_pika_server->bdb()->HExists(key_, field_);
+  if (s.ok()) {
     res_.AppendContent(":1");
-  } else {
+  } else if (s.IsNotFound()) {
     res_.AppendContent(":0");
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
 
@@ -163,12 +145,12 @@ void HIncrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void HIncrbyCmd::Do() {
-  std::string new_value;
-  nemo::Status s = g_pika_server->db()->HIncrby(key_, field_, by_, new_value);
+  int64_t new_value;
+  rocksdb::Status s = g_pika_server->bdb()->HIncrby(key_, field_, by_, &new_value);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendContent(":" + new_value);
+    res_.AppendContent(":" + std::to_string(new_value));
     SlotKeyAdd("h", key_);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not integer") {
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: hash value is not an integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -185,21 +167,18 @@ void HIncrbyfloatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_
   }
   key_ = argv[1];
   field_ = argv[2];
-  if (argv[3].find(" ") != std::string::npos || !slash::string2d(argv[3].data(), argv[3].size(), &by_)) {
-    res_.SetRes(CmdRes::kInvalidFloat);
-    return;
-  }
+  by_ = argv[3];
   return;
 }
 
 void HIncrbyfloatCmd::Do() {
   std::string new_value;
-  nemo::Status s = g_pika_server->db()->HIncrbyfloat(key_, field_, by_, new_value);
+  rocksdb::Status s = g_pika_server->bdb()->HIncrbyfloat(key_, field_, by_, &new_value);
   if (s.ok()) {
     res_.AppendStringLen(new_value.size());
     res_.AppendContent(new_value);
     SlotKeyAdd("h", key_);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not float") {
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -244,9 +223,9 @@ void HLenCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void HLenCmd::Do() {
-  int64_t len = 0;
-  len = g_pika_server->db()->HLen(key_);
-  if (len >= 0) {
+  int32_t len = 0;
+  rocksdb::Status s = g_pika_server->bdb()->HLen(key_, &len);
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
     res_.SetRes(CmdRes::kErrOther, "something wrong in hlen");
@@ -268,15 +247,14 @@ void HMgetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void HMgetCmd::Do() {
-  std::vector<nemo::FVS> fvs_v;
-  nemo::Status s = g_pika_server->db()->HMGet(key_, fields_, fvs_v);
-  if (s.ok()) {
-    res_.AppendArrayLen(fvs_v.size());
-    std::vector<nemo::FVS>::const_iterator iter = fvs_v.begin();
-    for (; iter != fvs_v.end(); iter++) {
-      if ((iter->status).ok()) {
-        res_.AppendStringLen(iter->val.size());
-        res_.AppendContent(iter->val);
+  std::vector<std::string> values;
+  rocksdb::Status s = g_pika_server->bdb()->HMGet(key_, fields_, &values);
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendArrayLen(values.size());
+    for (const auto& value : values) {
+      if (!value.empty()) {
+        res_.AppendStringLen(value.size());
+        res_.AppendContent(value);
       } else {
         res_.AppendContent("$-1");
       }
@@ -299,15 +277,15 @@ void HMsetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     return;
   }
   size_t index = 2;
-  fv_v_.clear();
+  fvs_.clear();
   for (; index < argc; index += 2) {
-    fv_v_.push_back({argv[index], argv[index+1]});  
+    fvs_.push_back({argv[index], argv[index + 1]});
   }
   return;
 }
 
 void HMsetCmd::Do() {
-  nemo::Status s = g_pika_server->db()->HMSet(key_, fv_v_);
+  rocksdb::Status s = g_pika_server->bdb()->HMSet(key_, fvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
     SlotKeyAdd("h", key_);
@@ -329,12 +307,11 @@ void HSetnxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void HSetnxCmd::Do() {
-  nemo::Status s = g_pika_server->db()->HSetnx(key_, field_, value_);
+  int32_t ret = 0;
+  rocksdb::Status s = g_pika_server->bdb()->HSetnx(key_, field_, value_, &ret);
   if (s.ok()) {
-    res_.AppendContent(":1");
+    res_.AppendContent(":" + std::to_string(ret));
     SlotKeyAdd("h", key_);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: Already Exist") {
-    res_.AppendContent(":0");
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -351,8 +328,9 @@ void HStrlenCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void HStrlenCmd::Do() {
-  int64_t len = g_pika_server->db()->HStrlen(key_, field_);
-  if (len >= 0) {
+  int32_t len = 0;
+  rocksdb::Status s = g_pika_server->bdb()->HStrlen(key_, field_, &len);
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
     res_.SetRes(CmdRes::kErrOther, "something wrong in hstrlen");
@@ -370,14 +348,13 @@ void HValsCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void HValsCmd::Do() {
-  std::vector<std::string> vals;
-  nemo::Status s = g_pika_server->db()->HVals(key_, vals);
-  if (s.ok()) {
-    res_.AppendArrayLen(vals.size());
-    std::vector<std::string>::const_iterator iter = vals.begin();
-    for (; iter != vals.end(); iter++) {
-      res_.AppendStringLen(iter->size());
-      res_.AppendContent(*iter);
+  std::vector<std::string> values;
+  rocksdb::Status s = g_pika_server->bdb()->HVals(key_, &values);
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendArrayLen(values.size());
+    for (const auto& value : values) {
+      res_.AppendStringLen(value.size());
+      res_.AppendContent(value);
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());

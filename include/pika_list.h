@@ -7,6 +7,7 @@
 #define PIKA_LIST_H_
 #include "include/pika_command.h"
 #include "nemo.h"
+#include "blackwidow/blackwidow.h"
 
 
 /*
@@ -27,11 +28,11 @@ class LIndexCmd : public Cmd {
 
 class LInsertCmd : public Cmd {
   public:
-    LInsertCmd() : dir_(nemo::AFTER) {};
+    LInsertCmd() : dir_(blackwidow::BlackWidow::After) {};
     virtual void Do();
   private:
     std::string key_;
-    nemo::Position dir_;
+    blackwidow::BlackWidow::BeforeOrAfter dir_;
     std::string pivot_;
     std::string value_;
     virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);

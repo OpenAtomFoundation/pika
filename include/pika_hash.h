@@ -7,6 +7,7 @@
 #define PIKA_HASH_H_
 #include "include/pika_command.h"
 #include "nemo.h"
+#include "blackwidow/blackwidow.h"
 
 
 /*
@@ -74,8 +75,7 @@ public:
   HIncrbyfloatCmd() {}
   virtual void Do();
 private:
-  std::string key_, field_;
-  double by_;
+  std::string key_, field_, by_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
@@ -113,7 +113,7 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  std::vector<nemo::FV> fv_v_;
+  std::vector<blackwidow::BlackWidow::FieldValue> fvs_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
