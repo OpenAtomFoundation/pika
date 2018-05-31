@@ -70,7 +70,11 @@ PINK = $(PINK_PATH)/pink/lib/libpink$(DEBUG_SUFFIX).a
 ifndef ROCKSDB_PATH
 ROCKSDB_PATH = $(THIRD_PATH)/rocksdb
 endif
+ifeq ($(USE_DYNAMIC_ROCKSDB),1)
+ROCKSDB = $(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).so
+else
 ROCKSDB = $(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).a
+endif
 
 ifndef NEMODB_PATH
 NEMODB_PATH = $(THIRD_PATH)/nemo-rocksdb
@@ -99,7 +103,7 @@ GLOG := -lglog
 endif
 
 INCLUDE_PATH = -I. \
-							 -I$(GFLAGS_PATJ)/build/include \
+							 -I$(GLOG_PATH)/build/src \
 							 -I$(SLASH_PATH) \
 							 -I$(PINK_PATH) \
 							 -I$(NEMO_PATH)/include \
@@ -130,10 +134,11 @@ endif
 LDFLAGS += $(LIB_PATH) \
 			 		 -lpink$(DEBUG_SUFFIX) \
 			 		 -lslash$(DEBUG_SUFFIX) \
-					 -lnemo$(DEBUG_SUFFIX) \
-					 -lnemodb$(DEBUG_SUFFIX) \
-					 -lrocksdb$(DEBUG_SUFFIX) \
-					 -lglog
+					 -lglog \
+					 -lgflags
+ifneq ($(USE_DYNAMIC_ROCKSDB),1)
+LDFLAGS += -llz4 -lzstd -lbz2 -lsnappy -lz
+endif
 
 # ---------------End Dependences----------------
 
@@ -221,14 +226,17 @@ all: $(BINARY)
 
 dbg: $(BINARY)
 
-$(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(NEMODB) $(NEMO) $(GLOG) $(LIBOBJECTS)
+$(BINARY): $(LIBOBJECTS) $(SLASH) $(PINK) $(NEMO) $(NEMODB) $(ROCKSDB) $(GLOG)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)
 	$(AM_V_at)rm -rf $(OUTPUT)
 	$(AM_V_at)mkdir -p $(OUTPUT)/bin
 	$(AM_V_at)mv $@ $(OUTPUT)/bin
 	$(AM_V_at)cp -r $(CURDIR)/conf $(OUTPUT)
-	
+ifeq ($(USE_DYNAMIC_ROCKSDB),1)
+	$(AM_V_at)cp -d $(ROCKSDB)* $(OUTPUT)/bin
+endif
+
 
 $(SLASH):
 	$(AM_V_at)make -C $(SLASH_PATH)/slash/ DEBUG_LEVEL=$(DEBUG_LEVEL)
@@ -236,8 +244,11 @@ $(SLASH):
 $(PINK):
 	$(AM_V_at)make -C $(PINK_PATH)/pink/ DEBUG_LEVEL=$(DEBUG_LEVEL) NO_PB=1 SLASH_PATH=$(SLASH_PATH)
 
-$(ROCKSDB):
+$(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).a:
 	$(AM_V_at)make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ static_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL)
+
+$(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).so:
+	$(AM_V_at)make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ shared_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL)
 
 $(NEMODB):
 	$(AM_V_at)make -C $(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
@@ -245,10 +256,10 @@ $(NEMODB):
 $(NEMO):
 	$(AM_V_at)make -C $(NEMO_PATH) NEMODB_PATH=$(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
 
-$(GLOG):
-	cd $(GFLAGS_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then cmake -DCMAKE_CXX_FLAGS=-fPIC ..; fi; make; echo 'build' > $(GFLAGS_PATH)/.gitignore;
-	cd $(GTEST_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then cmake -DCMAKE_CXX_FLAGS=-fPIC ..; fi; make; echo 'build' > $(GTEST_PATH)/.gitignore;
-	cd $(GLOG_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then ../configure --disable-shared "LDFLAGS=-L$(GFLAGS_PATH)/build/lib -L$(GTEST_PATH)/build/googlemock/gtest" "CPPFLAGS=-I$(GFLAGS_PATH)/build/include -I$(GTEST_PATH)/googletest/include"; fi; make; echo 'build' > $(GLOG_PATH)/.gitignore;
+$(GLOG): FORCE
+	cd $(GFLAGS_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then cmake -DCMAKE_CXX_FLAGS=-fPIC ..; fi; make -j $(PROCESSOR_NUMS); echo 'build' > $(GFLAGS_PATH)/.gitignore;
+	cd $(GTEST_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then cmake -DCMAKE_CXX_FLAGS=-fPIC ..; fi; make -j $(PROCESSOR_NUMS); echo 'build' > $(GTEST_PATH)/.gitignore;
+	cd $(GLOG_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then ../configure --disable-shared "LDFLAGS=-L$(GFLAGS_PATH)/build/lib -L$(GTEST_PATH)/build/googlemock/gtest" "CPPFLAGS=-I$(GFLAGS_PATH)/build/include -I$(GTEST_PATH)/googletest/include"; fi; make -j $(PROCESSOR_NUMS); echo 'build' > $(GLOG_PATH)/.gitignore;
 
 clean:
 	rm -rf $(OUTPUT)
@@ -262,4 +273,6 @@ distclean: clean
 	make -C $(NEMO_PATH) NEMODB_PATH=$(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) clean
 	make -C $(NEMODB_PATH)/ ROCKSDB_PATH=$(ROCKSDB_PATH) clean
 	make -C $(ROCKSDB_PATH)/ clean
-#	make -C $(GLOG_PATH)/ clean
+#	make -C $(GFLAGS_PATH)/build/ clean
+#	make -C $(GTEST_PATH)/build/ clean
+#	make -C $(GLOG_PATH)/build/ clean
