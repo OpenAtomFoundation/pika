@@ -1,6 +1,6 @@
 CLEAN_FILES = # deliberately empty, so we can append below.
 CXX=g++
-PLATFORM_LDFLAGS= -lpthread -lrt -lunwind
+PLATFORM_LDFLAGS= -lpthread -lrt
 PLATFORM_CXXFLAGS= -std=c++11 -fno-builtin-memcmp -msse -msse4.2 
 PROFILING_FLAGS=-pg
 OPT=
@@ -98,8 +98,12 @@ ifndef GTEST_PATH
 GTEST_PATH = $(THIRD_PATH)/googletest
 endif
 
+ifndef UNWIND_PATH
+UNWIND_PATH = $(THIRD_PATH)/libunwind
+endif
+
 ifeq ($(360), 1)
-GLOG := -lglog
+GLOG := -lglog -lunwind
 endif
 
 INCLUDE_PATH = -I. \
@@ -127,6 +131,7 @@ LIB_PATH = -L./ \
 
 ifeq ($(360),1)
 LIB_PATH += -L$(GLOG_PATH)/build/.libs \
+					 -L$(UNWIND_PATH)/build/src/.libs \
 					 -L$(GFLAGS_PATH)/build/lib \
 					 -L$(GTEST_PATH)/build/googlemock/gtest
 endif
@@ -134,7 +139,6 @@ endif
 LDFLAGS += $(LIB_PATH) \
 			 		 -lpink$(DEBUG_SUFFIX) \
 			 		 -lslash$(DEBUG_SUFFIX) \
-					 -lglog \
 					 -lgflags
 ifneq ($(USE_DYNAMIC_ROCKSDB),1)
 LDFLAGS += -llz4 -lzstd -lbz2 -lsnappy -lz
@@ -245,10 +249,10 @@ $(PINK):
 	$(AM_V_at)make -C $(PINK_PATH)/pink/ DEBUG_LEVEL=$(DEBUG_LEVEL) NO_PB=1 SLASH_PATH=$(SLASH_PATH)
 
 $(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).a:
-	$(AM_V_at)make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ static_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL)
+	$(AM_V_at)make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ static_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL) USE_RTTI=1
 
 $(ROCKSDB_PATH)/librocksdb$(DEBUG_SUFFIX).so:
-	$(AM_V_at)make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ shared_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL)
+	$(AM_V_at)make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ shared_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL) USE_RTTI=1
 
 $(NEMODB):
 	$(AM_V_at)make -C $(NEMODB_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
@@ -258,6 +262,7 @@ $(NEMO):
 
 $(GLOG): FORCE
 	cd $(GFLAGS_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then cmake -DCMAKE_CXX_FLAGS=-fPIC ..; fi; make -j $(PROCESSOR_NUMS); echo 'build' > $(GFLAGS_PATH)/.gitignore;
+	cd $(UNWIND_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then ../autogen.sh; fi; make -j $(PROCESSOR_NUMS); echo 'build' > $(UNWIND_PATH)/.gitignore;
 	cd $(GTEST_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then cmake -DCMAKE_CXX_FLAGS=-fPIC ..; fi; make -j $(PROCESSOR_NUMS); echo 'build' > $(GTEST_PATH)/.gitignore;
 	cd $(GLOG_PATH); mkdir -p build; cd build; if [ ! -e ./Makefile ]; then ../configure --disable-shared "LDFLAGS=-L$(GFLAGS_PATH)/build/lib -L$(GTEST_PATH)/build/googlemock/gtest" "CPPFLAGS=-I$(GFLAGS_PATH)/build/include -I$(GTEST_PATH)/googletest/include"; fi; make -j $(PROCESSOR_NUMS); echo 'build' > $(GLOG_PATH)/.gitignore;
 

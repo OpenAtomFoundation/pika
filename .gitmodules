@@ -22,3 +22,6 @@
 [submodule "third/googletest"]
 	path = third/googletest
 	url = https://github.com/google/googletest
+[submodule "third/libunwind"]
+	path = third/libunwind
+	url = https://github.com/libunwind/libunwind
