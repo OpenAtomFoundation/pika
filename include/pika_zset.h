@@ -7,6 +7,7 @@
 #define PIKA_ZSET_H_
 #include "include/pika_command.h"
 #include "nemo.h"
+#include "blackwidow/blackwidow.h"
 
 
 /*
@@ -18,7 +19,7 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  std::vector<nemo::SM> sms_v_;
+  std::vector<blackwidow::BlackWidow::ScoreMember> score_members;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
@@ -84,15 +85,16 @@ private:
 
 class ZsetRangebyscoreParentCmd : public Cmd {
 public:
-  ZsetRangebyscoreParentCmd() : is_lo_(false), is_ro_(false), is_ws_(false), offset_(0), count_(-1) {}
+  ZsetRangebyscoreParentCmd() : left_close_(true), right_close_(true), with_scores_(false), offset_(0), count_(-1) {}
 protected:
   std::string key_;
   double min_score_, max_score_;
-  bool is_lo_, is_ro_, is_ws_;
+  bool left_close_, right_close_, with_scores_;
   int64_t offset_, count_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
-    is_lo_ = is_ro_ = is_ws_ = false;
+    left_close_ = right_close_ = true;
+    with_scores_ = false;
     offset_ = 0;
     count_ = -1;
   }
@@ -114,16 +116,16 @@ private:
 
 class ZCountCmd : public Cmd {
 public:
-  ZCountCmd() : is_lo_(false), is_ro_(false) {}
+  ZCountCmd() : left_close_(true), right_close_(true) {}
   virtual void Do();
 private:
   std::string key_;
   double min_score_, max_score_;
-  bool is_lo_, is_ro_;
+  bool left_close_, right_close_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
-    is_lo_ = false;
-    is_ro_ = false;
+    left_close_ = true;
+    right_close_ = true;
   }
 };
 
@@ -139,16 +141,16 @@ private:
 
 class ZsetUIstoreParentCmd : public Cmd {
 public:
-  ZsetUIstoreParentCmd() : aggregate_(nemo::SUM) {}
+  ZsetUIstoreParentCmd() : aggregate_(blackwidow::BlackWidow::SUM) {}
 protected:
   std::string dest_key_;
   int64_t num_keys_;
-  nemo::Aggregate aggregate_;
+  blackwidow::BlackWidow::AGGREGATE aggregate_;
   std::vector<std::string> keys_;
   std::vector<double> weights_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
-    aggregate_ = nemo::SUM;
+    aggregate_ = blackwidow::BlackWidow::SUM;
   }
 };
 
@@ -200,13 +202,14 @@ private:
 
 class ZsetRangebylexParentCmd : public Cmd {
 public:
-  ZsetRangebylexParentCmd() : offset_(0), count_(-1) {}
+  ZsetRangebylexParentCmd() : left_close_(true), right_close_(true), offset_(0), count_(-1) {}
 protected:
   std::string key_, min_member_, max_member_;
-  bool is_lo_, is_ro_;
+  bool left_close_, right_close_;
   int64_t offset_, count_;
   virtual void DoInitial(PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
+    left_close_ = right_close_ = true;
     offset_ = 0;
     count_ = -1;
   }
@@ -228,12 +231,15 @@ private:
 
 class ZLexcountCmd : public Cmd {
 public:
-  ZLexcountCmd() {}
+  ZLexcountCmd() : left_close_(true), right_close_(true) {}
   virtual void Do();
 private:
   std::string key_, min_member_, max_member_;
-  bool is_lo_, is_ro_;
+  bool left_close_, right_close_;
   virtual void DoInitial(PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    left_close_ = right_close_ = true;
+  }
 };
 
 class ZRemrangebyrankCmd : public Cmd {
@@ -248,27 +254,29 @@ private:
 
 class ZRemrangebyscoreCmd : public Cmd {
 public:
-  ZRemrangebyscoreCmd() : is_lo_(false), is_ro_(false) {}
+  ZRemrangebyscoreCmd() : left_close_(true), right_close_(true) {}
   virtual void Do();
 private:
   std::string key_;
   double min_score_, max_score_;
-  bool is_lo_, is_ro_;
+  bool left_close_, right_close_;
   virtual void DoInitial(PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
-    is_lo_ = false;
-    is_ro_ = false;
+    left_close_ =  right_close_ = true;
   }
 };
 
 class ZRemrangebylexCmd : public Cmd {
 public:
-  ZRemrangebylexCmd() {}
+  ZRemrangebylexCmd() : left_close_(true), right_close_(true) {}
   virtual void Do();
 private:
   std::string key_;
   std::string min_member_, max_member_;
-  bool is_lo_, is_ro_;
+  bool left_close_, right_close_;
   virtual void DoInitial(PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    left_close_ =  right_close_ = true;
+  }
 };
 #endif
