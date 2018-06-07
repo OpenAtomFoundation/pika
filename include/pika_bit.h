@@ -6,7 +6,7 @@
 #ifndef PIKA_BIT_H_
 #define PIKA_BIT_H_
 #include "include/pika_command.h"
-#include "nemo.h"
+#include "blackwidow/blackwidow.h"
 
 
 /*
@@ -91,11 +91,11 @@ public:
 private:
   std::string dest_key_;
   std::vector<std::string> src_keys_;
-  nemo::BitOpType op_;
+  blackwidow::BlackWidow::BitOpType op_;
   virtual void Clear() {
     dest_key_ = "";
     src_keys_.clear();
-    op_ = nemo::kBitOpDefault;
+    op_ = blackwidow::BlackWidow::kBitOpDefault;
   }
 
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
