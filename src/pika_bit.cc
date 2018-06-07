@@ -5,7 +5,6 @@
 
 #include <limits>
 #include "slash/include/slash_string.h"
-#include "nemo.h"
 #include "include/pika_bit.h"
 #include "include/pika_server.h"
 #include "include/pika_slot.h"
@@ -44,8 +43,8 @@ void BitSetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void BitSetCmd::Do() {
   std::string value;
-  int64_t bit_val;
-  nemo::Status s = g_pika_server->db()->BitSet(key_, bit_offset_, on_, &bit_val);
+  int32_t bit_val = 0;
+  rocksdb::Status s = g_pika_server->bdb()->SetBit(key_, bit_offset_, on_, &bit_val);
   if (s.ok()){
     res_.AppendInteger((int)bit_val);
     SlotKeyAdd("k", key_);
@@ -72,8 +71,8 @@ void BitGetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void BitGetCmd::Do() {
-  int64_t bit_val;
-  nemo::Status s = g_pika_server->db()->BitGet(key_, bit_offset_, &bit_val);
+  int32_t bit_val = 0;
+  rocksdb::Status s = g_pika_server->bdb()->GetBit(key_, bit_offset_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger((int)bit_val);
   } else {
@@ -106,14 +105,16 @@ void BitCountCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 }
 
 void BitCountCmd::Do() {
-  int64_t bit_val;
-  nemo::Status s;
-  if (count_all_)
-    s = g_pika_server->db()->BitCount(key_, &bit_val);
-  else if (!count_all_)
-    s = g_pika_server->db()->BitCount(key_, start_offset_, end_offset_, &bit_val);
-  if (s.ok()) {
-    res_.AppendInteger((int)bit_val);
+  int32_t count = 0;
+  rocksdb::Status s;
+  if (count_all_) {
+    s = g_pika_server->bdb()->BitCount(key_, start_offset_, end_offset_, &count, false);
+  } else {
+    s = g_pika_server->bdb()->BitCount(key_, start_offset_, end_offset_, &count, true);
+  }
+
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendInteger(count);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -160,15 +161,14 @@ void BitPosCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void BitPosCmd::Do() {
-  int64_t pos;
-  nemo::Status s;
+  int64_t pos = 0;
+  rocksdb::Status s;
   if (pos_all_) {
-    s = g_pika_server->db()->BitPos(key_, bit_val_, &pos);
-  }
-  else if (!pos_all_ && !endoffset_set_) {
-    s = g_pika_server->db()->BitPos(key_, bit_val_, start_offset_, &pos);
+    s = g_pika_server->bdb()->BitPos(key_, bit_val_, &pos);
+  } else if (!pos_all_ && !endoffset_set_) {
+    s = g_pika_server->bdb()->BitPos(key_, bit_val_, start_offset_, &pos);
   } else if (!pos_all_ && endoffset_set_) {
-    s = g_pika_server->db()->BitPos(key_, bit_val_, start_offset_, end_offset_, &pos);
+    s = g_pika_server->bdb()->BitPos(key_, bit_val_, start_offset_, end_offset_, &pos);
   }
   if (s.ok()) {
     res_.AppendInteger((int)pos);
@@ -184,21 +184,21 @@ void BitOpCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   }
   std::string op_str = slash::StringToLower(argv[1]);
   if (op_str == "not") {
-    op_ = nemo::kBitOpNot;
+    op_ = blackwidow::BlackWidow::kBitOpNot;
   } else if (op_str == "and") {
-    op_ = nemo::kBitOpAnd;
+    op_ = blackwidow::BlackWidow::kBitOpAnd;
   } else if (op_str == "or") {
-    op_ = nemo::kBitOpOr;
+    op_ = blackwidow::BlackWidow::kBitOpOr;
   } else if (op_str == "xor") {
-    op_ = nemo::kBitOpXor;
+    op_ = blackwidow::BlackWidow::kBitOpXor;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr, kCmdNameBitOp);
     return;
   }
-  if (op_ == nemo::kBitOpNot && argv.size() != 4) {
+  if (op_ == blackwidow::BlackWidow::kBitOpNot && argv.size() != 4) {
       res_.SetRes(CmdRes::kWrongBitOpNotNum, kCmdNameBitOp);
       return;
-  } else if (op_ != nemo::kBitOpNot && argv.size() < 4) {
+  } else if (op_ != blackwidow::BlackWidow::kBitOpNot && argv.size() < 4) {
       res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
       return;
   } else if (argv.size() >= kMaxBitOpInputKey) {
@@ -214,13 +214,11 @@ void BitOpCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void BitOpCmd::Do() {
-  std::int64_t result_length;
-  nemo::Status s;
-  s = g_pika_server->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
+  int64_t result_length;
+  rocksdb::Status s = g_pika_server->bdb()->BitOp(op_, dest_key_, src_keys_, &result_length);
   if (s.ok()) {
-    res_.AppendInteger((int)result_length);
+    res_.AppendInteger(result_length);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-
 }
