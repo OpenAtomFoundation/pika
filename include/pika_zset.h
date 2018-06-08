@@ -19,7 +19,7 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  std::vector<blackwidow::BlackWidow::ScoreMember> score_members;
+  std::vector<blackwidow::ScoreMember> score_members;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
@@ -141,16 +141,16 @@ private:
 
 class ZsetUIstoreParentCmd : public Cmd {
 public:
-  ZsetUIstoreParentCmd() : aggregate_(blackwidow::BlackWidow::SUM) {}
+  ZsetUIstoreParentCmd() : aggregate_(blackwidow::SUM) {}
 protected:
   std::string dest_key_;
   int64_t num_keys_;
-  blackwidow::BlackWidow::AGGREGATE aggregate_;
+  blackwidow::AGGREGATE aggregate_;
   std::vector<std::string> keys_;
   std::vector<double> weights_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
-    aggregate_ = blackwidow::BlackWidow::SUM;
+    aggregate_ = blackwidow::SUM;
   }
 };
 
