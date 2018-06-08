@@ -198,7 +198,7 @@ class MsetCmd : public Cmd {
   MsetCmd() {}
   virtual void Do();
  private:
-  std::vector<blackwidow::BlackWidow::KeyValue> kvs_;
+  std::vector<blackwidow::KeyValue> kvs_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
@@ -212,7 +212,7 @@ class MsetnxCmd : public Cmd {
   MsetnxCmd() {}
   virtual void Do();
  private:
-  std::vector<blackwidow::BlackWidow::KeyValue> kvs_;
+  std::vector<blackwidow::KeyValue> kvs_;
   int32_t success_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(

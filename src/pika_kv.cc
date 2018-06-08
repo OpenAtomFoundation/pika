@@ -114,7 +114,7 @@ void DelCmd::Do() {
     SlotKeyRem(*it);
   }
 
-  std::map<blackwidow::BlackWidow::DataType, blackwidow::Status> type_status;
+  std::map<blackwidow::DataType, blackwidow::Status> type_status;
   int64_t count = g_pika_server->bdb()->Del(keys_, &type_status);
   if (count >= 0) {
     res_.AppendInteger(count);
@@ -577,7 +577,7 @@ void MsetCmd::Do() {
   blackwidow::Status s = g_pika_server->bdb()->MSet(kvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
-    std::vector<blackwidow::BlackWidow::KeyValue>::const_iterator it;
+    std::vector<blackwidow::KeyValue>::const_iterator it;
     for (it = kvs_.begin(); it != kvs_.end(); it++) {
       SlotKeyAdd("k", it->key);
     }
@@ -594,7 +594,7 @@ std::string MsetCmd::ToBinlog(
   std::string res;
   res.reserve(RAW_ARGS_LEN);
 
-  std::vector<blackwidow::BlackWidow::KeyValue>::const_iterator it;
+  std::vector<blackwidow::KeyValue>::const_iterator it;
   for (it = kvs_.begin(); it != kvs_.end(); it++) {
     RedisAppendLen(res, 3 + 4, "*");
 
@@ -636,7 +636,7 @@ void MsetnxCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->MSetnx(kvs_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
-    std::vector<blackwidow::BlackWidow::KeyValue>::const_iterator it;
+    std::vector<blackwidow::KeyValue>::const_iterator it;
     for (it = kvs_.begin(); it != kvs_.end(); it++) {
       SlotKeyAdd("k", it->key);
     }
@@ -654,7 +654,7 @@ std::string MsetnxCmd::ToBinlog(
   if (success_) {
     res.reserve(RAW_ARGS_LEN);
 
-    std::vector<blackwidow::BlackWidow::KeyValue>::const_iterator it;
+    std::vector<blackwidow::KeyValue>::const_iterator it;
     for (it = kvs_.begin(); it != kvs_.end(); it++) {
       RedisAppendLen(res, 3 + 4, "*");
 

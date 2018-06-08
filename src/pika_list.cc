@@ -45,9 +45,9 @@ void LInsertCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
   key_ = argv[1];
   std::string dir = slash::StringToLower(argv[2]);
   if (dir == "before" ) {
-    dir_ = blackwidow::BlackWidow::Before;
+    dir_ = blackwidow::Before;
   } else if (dir == "after") {
-    dir_ = blackwidow::BlackWidow::After;
+    dir_ = blackwidow::After;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;

@@ -113,7 +113,7 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  std::vector<blackwidow::BlackWidow::FieldValue> fvs_;
+  std::vector<blackwidow::FieldValue> fvs_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 

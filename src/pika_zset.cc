@@ -209,7 +209,7 @@ void ZRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void ZRangeCmd::Do() {
-  std::vector<blackwidow::BlackWidow::ScoreMember> score_members;
+  std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = g_pika_server->bdb()->ZRange(key_, start_, stop_, &score_members);
   if (s.ok()) {
     if (is_ws_) {
@@ -245,7 +245,7 @@ void ZRevrangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
 }
 
 void ZRevrangeCmd::Do() {
-  std::vector<blackwidow::BlackWidow::ScoreMember> score_members;
+  std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = g_pika_server->bdb()->ZRevrange(key_, start_, stop_, &score_members);
   if (s.ok()) {
     if (is_ws_) {
@@ -358,7 +358,7 @@ void ZRangebyscoreCmd::Do() {
     res_.AppendContent("*0");
     return;
   }
-  std::vector<blackwidow::BlackWidow::ScoreMember> score_members;
+  std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = g_pika_server->bdb()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -400,7 +400,7 @@ void ZRevrangebyscoreCmd::Do() {
     res_.AppendContent("*0");
     return;
   }
-  std::vector<blackwidow::BlackWidow::ScoreMember> score_members;
+  std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = g_pika_server->bdb()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -526,11 +526,11 @@ void ZsetUIstoreParentCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const
       }
       slash::StringToLower(argv[index]);
       if (argv[index] == "sum") {
-        aggregate_ = blackwidow::BlackWidow::SUM;
+        aggregate_ = blackwidow::SUM;
       } else if (argv[index] == "min") {
-        aggregate_ = blackwidow::BlackWidow::MIN;
+        aggregate_ = blackwidow::MIN;
       } else if (argv[index] == "max") {
-        aggregate_ = blackwidow::BlackWidow::MAX;
+        aggregate_ = blackwidow::MAX;
       } else {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
