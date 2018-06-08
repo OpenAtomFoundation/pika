@@ -320,19 +320,19 @@ void CompactCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void CompactCmd::Do() {
-  nemo::Status s;
+  rocksdb::Status s;
   if (struct_type_.empty()) {
-    s = g_pika_server->db()->Compact(nemo::kALL);
+    s = g_pika_server->bdb()->Compact(blackwidow::kAll);
   } else if (struct_type_ == "string") {
-    s = g_pika_server->db()->Compact(nemo::kKV_DB);
+    s = g_pika_server->bdb()->Compact(blackwidow::kStrings);
   } else if (struct_type_ == "hash") {
-    s = g_pika_server->db()->Compact(nemo::kHASH_DB);
+    s = g_pika_server->bdb()->Compact(blackwidow::kHashes);
   } else if (struct_type_ == "set") {
-    s = g_pika_server->db()->Compact(nemo::kSET_DB);
+    s = g_pika_server->bdb()->Compact(blackwidow::kSets);
   } else if (struct_type_ == "zset") {
-    s = g_pika_server->db()->Compact(nemo::kZSET_DB);
+    s = g_pika_server->bdb()->Compact(blackwidow::kZSets);
   } else if (struct_type_ == "list") {
-    s = g_pika_server->db()->Compact(nemo::kLIST_DB);
+    s = g_pika_server->bdb()->Compact(blackwidow::kLists);
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
@@ -742,7 +742,7 @@ void InfoCmd::InfoStats(std::string &info) {
     tmp_stream << current_time_s - key_scan_info.start_time;
   }
   tmp_stream << "\r\n";
-  tmp_stream << "is_compact:" << g_pika_server->db()->GetCurrentTaskType() << "\r\n";
+  tmp_stream << "is_compact:" << g_pika_server->bdb()->GetCurrentTaskType() << "\r\n";
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
   tmp_stream << "compact_interval:" << g_pika_conf->compact_interval() << "\r\n";
 
@@ -905,9 +905,9 @@ void InfoCmd::InfoData(std::string &info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
-  uint64_t memtable_usage, table_reader_usage;
-  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
-  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+  uint64_t memtable_usage = 0, table_reader_usage = 0;
+  g_pika_server->bdb()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
+  g_pika_server->bdb()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
 
   tmp_stream << "used_memory:" << (memtable_usage + table_reader_usage) << "\r\n";
   tmp_stream << "used_memory_human:" << ((memtable_usage + table_reader_usage) >> 20) << "M\r\n";
