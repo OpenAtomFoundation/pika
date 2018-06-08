@@ -91,11 +91,11 @@ public:
 private:
   std::string dest_key_;
   std::vector<std::string> src_keys_;
-  blackwidow::BlackWidow::BitOpType op_;
+  blackwidow::BitOpType op_;
   virtual void Clear() {
     dest_key_ = "";
     src_keys_.clear();
-    op_ = blackwidow::BlackWidow::kBitOpDefault;
+    op_ = blackwidow::kBitOpDefault;
   }
 
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);

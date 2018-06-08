@@ -184,21 +184,21 @@ void BitOpCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   }
   std::string op_str = slash::StringToLower(argv[1]);
   if (op_str == "not") {
-    op_ = blackwidow::BlackWidow::kBitOpNot;
+    op_ = blackwidow::kBitOpNot;
   } else if (op_str == "and") {
-    op_ = blackwidow::BlackWidow::kBitOpAnd;
+    op_ = blackwidow::kBitOpAnd;
   } else if (op_str == "or") {
-    op_ = blackwidow::BlackWidow::kBitOpOr;
+    op_ = blackwidow::kBitOpOr;
   } else if (op_str == "xor") {
-    op_ = blackwidow::BlackWidow::kBitOpXor;
+    op_ = blackwidow::kBitOpXor;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr, kCmdNameBitOp);
     return;
   }
-  if (op_ == blackwidow::BlackWidow::kBitOpNot && argv.size() != 4) {
+  if (op_ == blackwidow::kBitOpNot && argv.size() != 4) {
       res_.SetRes(CmdRes::kWrongBitOpNotNum, kCmdNameBitOp);
       return;
-  } else if (op_ != blackwidow::BlackWidow::kBitOpNot && argv.size() < 4) {
+  } else if (op_ != blackwidow::kBitOpNot && argv.size() < 4) {
       res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
       return;
   } else if (argv.size() >= kMaxBitOpInputKey) {

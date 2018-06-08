@@ -28,11 +28,11 @@ class LIndexCmd : public Cmd {
 
 class LInsertCmd : public Cmd {
   public:
-    LInsertCmd() : dir_(blackwidow::BlackWidow::After) {};
+    LInsertCmd() : dir_(blackwidow::After) {};
     virtual void Do();
   private:
     std::string key_;
-    blackwidow::BlackWidow::BeforeOrAfter dir_;
+    blackwidow::BeforeOrAfter dir_;
     std::string pivot_;
     std::string value_;
     virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
