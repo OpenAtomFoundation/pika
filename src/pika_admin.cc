@@ -1585,6 +1585,20 @@ void DelbackupCmd::Do() {
   return;
 }
 
+void EchoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameEcho);
+    return;
+  }
+  body_ = argv[1];
+  return;
+}
+
+void EchoCmd::Do() {
+  res_.AppendString(body_);
+  return;
+}
+
 #ifdef TCMALLOC_EXTENSION
 void TcmallocCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   (void)ptr_info;

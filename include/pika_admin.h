@@ -296,6 +296,16 @@ class DelbackupCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
+class EchoCmd : public Cmd {
+ public:
+  EchoCmd() {}
+  virtual void Do();
+
+ private:
+  std::string body_;
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
+
 #ifdef TCMALLOC_EXTENSION
 class TcmallocCmd : public Cmd {
  public:
