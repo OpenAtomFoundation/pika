@@ -1674,7 +1674,7 @@ void PikaServer::SignalNextBinlogBGSerial() {
 void PikaServer::RunKeyScan() {
   std::vector<uint64_t> new_key_nums_v;
 
-  nemo::Status s = db_->GetKeyNum(new_key_nums_v);
+  rocksdb::Status s = bdb_->GetKeyNum(&new_key_nums_v);
 
   slash::MutexLock lm(&key_scan_protector_);
   if (s.ok()) {
@@ -1691,7 +1691,7 @@ void PikaServer::DoKeyScan(void *arg) {
 void PikaServer::StopKeyScan() {
   slash::MutexLock l(&key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
-    db_->StopScanKeyNum();
+    bdb_->StopScanKeyNum();
     key_scan_info_.key_scaning_ = false;
   }
 }
