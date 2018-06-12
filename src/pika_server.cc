@@ -256,25 +256,29 @@ void PikaServer::Start() {
   if (ret != pink::kSuccess) {
     delete logger_;
     db_.reset();
-    LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+    LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_) + " conflict"
+            : ": other error") << ", Listen on this port to handle the connected redis client";
   }
   ret = pika_binlog_receiver_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
     db_.reset();
-    LOG(FATAL) << "Start BinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+    LOG(FATAL) << "Start BinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 1000) + " conflict"
+            : ": other error") << ", Listen on this port to handle the data sent by the Binlog Sender";
   }
   ret = pika_hub_manager_->StartReceiver();
   if (ret != pink::kSuccess) {
     delete logger_;
     db_.reset();
-    LOG(FATAL) << "Start HubBinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+    LOG(FATAL) << "Start HubBinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 1100) + " conflict"
+            : ": other error") << ", Listen on this port to handle the connection requests of the pika hub";
   }
   ret = pika_heartbeat_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
     db_.reset();
-    LOG(FATAL) << "Start Heartbeat Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+    LOG(FATAL) << "Start Heartbeat Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 2000) + " conflict"
+            : ": other error") << ", Listen on this port to receive the heartbeat packets sent by the master";
   }
   ret = pika_trysync_thread_->StartThread();
   if (ret != pink::kSuccess) {
