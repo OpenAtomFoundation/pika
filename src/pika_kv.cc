@@ -475,11 +475,10 @@ void KeysCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void KeysCmd::Do() {
   std::vector<std::string> keys;
-  nemo::Status s = g_pika_server->db()->Keys(pattern_, keys, type_);
+  rocksdb::Status s = g_pika_server->bdb()->Keys(type_, pattern_, &keys);
   res_.AppendArrayLen(keys.size());
-  for (std::vector<std::string>::iterator iter = keys.begin(); iter != keys.end(); iter++) {
-    res_.AppendStringLen(iter->size());
-    res_.AppendContent(*iter);
+  for (const auto& key : keys) {
+    res_.AppendString(key);
   }
   return;
 }
@@ -760,13 +759,12 @@ void ExistsCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void ExistsCmd::Do() {
-  int64_t res;
-
-  nemo::Status s = g_pika_server->db()->Exists(keys_, &res);
-  if (s.ok() || s.IsNotFound()) {
+  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  int64_t res = g_pika_server->bdb()->Exists(keys_, &type_status);
+  if (res != -1) {
     res_.AppendInteger(res);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "exists error");
   }
   return;
 }
