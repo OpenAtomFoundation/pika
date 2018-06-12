@@ -1023,7 +1023,7 @@ void TypeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void TypeCmd::Do() {
   std::string res;
-  nemo::Status s = g_pika_server->db()->Type(key_, &res);
+  rocksdb::Status s = g_pika_server->bdb()->Type(key_, &res);
   if (s.ok()) {
     res_.AppendContent("+" + res);
   } else {
