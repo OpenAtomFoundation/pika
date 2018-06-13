@@ -143,43 +143,24 @@ void SScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void SScanCmd::Do() {
-  int64_t card = g_pika_server->db()->SCard(key_);
-  if (card >= 0 && cursor_ >= card) {
-    cursor_ = 0;
-  }
+  int64_t next_cursor = 0;
   std::vector<std::string> members;
-  nemo::SIterator *iter = g_pika_server->db()->SScan(key_, -1);
-  iter->Skip(cursor_);
-  if (!iter->Valid()) {
-    delete iter;
-    iter = g_pika_server->db()->SScan(key_, -1);
-    cursor_ = 0;
-  }
-  for (; iter->Valid() && count_; iter->Next()) {
-    count_--;
-    cursor_++;
-    if (pattern_ != "*" && !slash::stringmatchlen(pattern_.data(), pattern_.size(), iter->member().data(), iter->member().size(), 0)) {
-      continue;
-    }
-    members.push_back(iter->member());
-  }
-  if (!iter->Valid()) {
-    cursor_ = 0;
-  }
-  res_.AppendContent("*2");
-  
-  char buf[32];
-  int64_t len = slash::ll2string(buf, sizeof(buf), cursor_);
-  res_.AppendStringLen(len);
-  res_.AppendContent(buf);
+  rocksdb::Status s = g_pika_server->bdb()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
 
-  res_.AppendArrayLen(members.size());
-  std::vector<std::string>::const_iterator iter_member = members.begin();
-  for (; iter_member != members.end(); iter_member++) {
-    res_.AppendStringLen(iter_member->size());
-    res_.AppendContent(*iter_member);
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendContent("*2");
+    char buf[32];
+    int64_t len = slash::ll2string(buf, sizeof(buf), next_cursor);
+    res_.AppendStringLen(len);
+    res_.AppendContent(buf);
+
+    res_.AppendArrayLen(members.size());
+    for (const auto& member : members) {
+      res_.AppendString(member);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  delete iter;
   return;
 }
 

@@ -1118,8 +1118,7 @@ void ScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void ScanCmd::Do() {
   std::vector<std::string> keys;
-  int64_t cursor_ret = 0;
-  nemo::Status s = g_pika_server->db()->Scan(cursor_, pattern_, count_, keys, &cursor_ret);
+  int64_t cursor_ret = g_pika_server->bdb()->Scan(cursor_, pattern_, count_, &keys);
   
   res_.AppendArrayLen(2);
 
