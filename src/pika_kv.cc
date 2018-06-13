@@ -764,7 +764,7 @@ void ExistsCmd::Do() {
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
-    res_.SetRes(CmdRes::kErrOther, "exists error");
+    res_.SetRes(CmdRes::kErrOther, "exists internal error");
   }
   return;
 }
@@ -783,12 +783,12 @@ void ExpireCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void ExpireCmd::Do() {
-  int64_t res = 0;
-  nemo::Status s = g_pika_server->db()->Expire(key_, sec_, &res);
-  if (s.ok() || s.IsNotFound()) {
+  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  int64_t res = g_pika_server->bdb()->Expire(key_, sec_, &type_status);
+  if (res != -1) {
     res_.AppendInteger(res);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "expire internal error");
   }
   return;
 }
@@ -835,12 +835,12 @@ void PexpireCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void PexpireCmd::Do() {
-  int64_t res = 0;
-  nemo::Status s = g_pika_server->db()->Expire(key_, msec_/1000, &res);
-  if (s.ok() || s.IsNotFound()) {
+  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  int64_t res = g_pika_server->bdb()->Expire(key_, msec_/1000, &type_status);
+  if (res != -1) {
     res_.AppendInteger(res);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "expire internal error");
   }
   return;
 }
@@ -887,12 +887,12 @@ void ExpireatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 }
 
 void ExpireatCmd::Do() {
-  int64_t res = 0;
-  nemo::Status s = g_pika_server->db()->Expireat(key_, time_stamp_, &res);
-  if (s.ok() || s.IsNotFound()) {
+  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  int32_t res = g_pika_server->bdb()->Expireat(key_, time_stamp_, &type_status);
+  if (res != -1) {
     res_.AppendInteger(res);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "expireat internal error");
   }
 }
 
@@ -938,13 +938,14 @@ std::string PexpireatCmd::ToBinlog(
 }
 
 void PexpireatCmd::Do() {
-  int64_t res = 0;
-  nemo::Status s = g_pika_server->db()->Expireat(key_, time_stamp_ms_/1000, &res);
-  if (s.ok() || s.IsNotFound()) {
+  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  int32_t res = g_pika_server->bdb()->Expireat(key_, time_stamp_ms_/1000, &type_status);
+  if (res != -1) {
     res_.AppendInteger(res);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "pexpireat internal error");
   }
+  return;
 }
 
 void TtlCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
@@ -957,12 +958,29 @@ void TtlCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void TtlCmd::Do() {
-  int64_t ttl = 0;
-  nemo::Status s = g_pika_server->db()->TTL(key_, &ttl);
-  if (s.ok() || s.IsNotFound()) {
-    res_.AppendInteger(ttl);
+  std::map<blackwidow::DataType, int64_t> type_timestamp;
+  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  type_timestamp = g_pika_server->bdb()->TTL(key_, &type_status);
+  for (const auto& item : type_timestamp) {
+     // mean operation exception errors happen in database
+     if (item.second == -3) {
+       res_.SetRes(CmdRes::kErrOther, "ttl internal error");
+       return;
+     }
+  }
+  if (type_timestamp[blackwidow::kStrings] != -2) {
+    res_.AppendInteger(type_timestamp[blackwidow::kStrings]);
+  } else if (type_timestamp[blackwidow::kHashes] != -2) {
+    res_.AppendInteger(type_timestamp[blackwidow::kHashes]);
+  } else if (type_timestamp[blackwidow::kLists] != -2) {
+    res_.AppendInteger(type_timestamp[blackwidow::kLists]);
+  } else if (type_timestamp[blackwidow::kSets] != -2) {
+    res_.AppendInteger(type_timestamp[blackwidow::kSets]);
+  } else if (type_timestamp[blackwidow::kZSets] != -2) {
+    res_.AppendInteger(type_timestamp[blackwidow::kZSets]);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    // mean this key not exist
+    res_.AppendInteger(-2);
   }
   return;
 }
@@ -977,15 +995,49 @@ void PttlCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void PttlCmd::Do() {
-  int64_t ttl = 0;
-  nemo::Status s = g_pika_server->db()->TTL(key_, &ttl);
-  if (ttl > 0) {
-    ttl *= 1000;
+  std::map<blackwidow::DataType, int64_t> type_timestamp;
+  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  type_timestamp = g_pika_server->bdb()->TTL(key_, &type_status);
+  for (const auto& item : type_timestamp) {
+     // mean operation exception errors happen in database
+     if (item.second == -3) {
+       res_.SetRes(CmdRes::kErrOther, "ttl internal error");
+       return;
+     }
   }
-  if (s.ok() || s.IsNotFound()) {
-    res_.AppendInteger(ttl);
+  if (type_timestamp[blackwidow::kStrings] != -2) {
+    if (type_timestamp[blackwidow::kStrings] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[blackwidow::kStrings] * 1000);
+    }
+  } else if (type_timestamp[blackwidow::kHashes] != -2) {
+    if (type_timestamp[blackwidow::kHashes] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[blackwidow::kHashes] * 1000);
+    }
+  } else if (type_timestamp[blackwidow::kLists] != -2) {
+    if (type_timestamp[blackwidow::kLists] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[blackwidow::kLists] * 1000);
+    }
+  } else if (type_timestamp[blackwidow::kSets] != -2) {
+    if (type_timestamp[blackwidow::kSets] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[blackwidow::kSets] * 1000);
+    }
+  } else if (type_timestamp[blackwidow::kZSets] != -2) {
+    if (type_timestamp[blackwidow::kZSets] == -1) {
+      res_.AppendInteger(-1);
+    } else {
+      res_.AppendInteger(type_timestamp[blackwidow::kZSets] * 1000);
+    }
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    // mean this key not exist
+    res_.AppendInteger(-2);
   }
   return;
 }
@@ -1000,12 +1052,12 @@ void PersistCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void PersistCmd::Do() {
-  int64_t res = 0;
-  nemo::Status s = g_pika_server->db()->Persist(key_, &res);
-  if (s.ok() || s.IsNotFound()) {
+  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  int32_t res = g_pika_server->bdb()->Persist(key_, &type_status);
+  if (res != -1) {
     res_.AppendInteger(res);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    res_.SetRes(CmdRes::kErrOther, "persist internal error");
   }
   return;
 }
