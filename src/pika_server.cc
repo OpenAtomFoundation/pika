@@ -24,7 +24,6 @@
 #include "pink/include/bg_thread.h"
 #include "include/pika_server.h"
 #include "include/pika_conf.h"
-#include "include/pika_slot.h"
 #include "include/pika_dispatch_thread.h"
 
 extern PikaConf *g_pika_conf;
@@ -105,7 +104,6 @@ PikaServer::PikaServer() :
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
   pika_pubsub_thread_ = new pink::PubSubThread();
-  slotsmgrt_sender_thread_ = new SlotsMgrtSenderThread();
 
   //for (int j = 0; j < g_pika_conf->binlogbg_thread_num; j++) {
   for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
@@ -140,7 +138,6 @@ PikaServer::~PikaServer() {
   }
   }
 
-  delete slotsmgrt_sender_thread_;
   delete pika_trysync_thread_;
   delete ping_thread_;
   delete pika_hub_manager_;
@@ -1068,147 +1065,6 @@ bool PikaServer::Bgsaveoff() {
     bgsave_engine_->StopBackup();
   }
   return true;
-}
-
-void PikaServer::Bgslotsreload() {
-  // Only one thread can go through
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    if (bgslots_reload_.reloading || bgsave_info_.bgsaving) {
-      return;
-    }
-    bgslots_reload_.reloading = true;
-  }
-
-  bgslots_reload_.start_time = time(NULL);
-  char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_reload_.start_time));
-  bgslots_reload_.s_start_time.assign(s_time, len);
-  bgslots_reload_.cursor = 0;
-  bgslots_reload_.pattern = "*";
-  bgslots_reload_.count = 100;
-
-  LOG(INFO) << "Start slot reloading";
-
-  // Start new thread if needed
-  bgslots_reload_thread_.StartThread();
-  bgslots_reload_thread_.Schedule(&DoBgslotsreload, static_cast<void*>(this));
-}
-
-void PikaServer::DoBgslotsreload(void* arg) {
-  PikaServer* p = static_cast<PikaServer*>(arg);
-  BGSlotsReload reload = p->bgslots_reload();
-
-  // Do slotsreload
-  std::vector<std::string> keys;
-  int64_t cursor_ret = -1;
-  while(cursor_ret != 0 && p->GetSlotsreloading()){
-    nemo::Status s = p->db()->Scan(reload.cursor, reload.pattern, reload.count, keys, &cursor_ret);
-    if (!s.ok()){
-      LOG(WARNING) << "BG slotsreload error: " <<strerror(errno);
-      return;
-    }
-    std::vector<std::string>::const_iterator iter;
-    for (iter = keys.begin(); iter != keys.end(); iter++){
-      std::string key_type;
-      if ((*iter).find(SlotKeyPrefix) != std::string::npos){
-        continue;
-      }
-      if(KeyType(*iter, key_type) > 0){
-        SlotKeyAdd(key_type, *iter);
-      }
-    }
-
-    reload.cursor = cursor_ret;
-    p->SetSlotsreloadingCursor(cursor_ret);
-    keys.clear();
-  }
-  p->SetSlotsreloading(false);
-  LOG(INFO) << "Finish slot reloading";
-}
-
-void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots) {
-  // Only one thread can go through
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    if (bgslots_cleanup_.cleanuping || bgslots_reload_.reloading || bgsave_info_.bgsaving) {
-      return;
-    }
-    bgslots_cleanup_.cleanuping = true;
-  }
-
-  bgslots_cleanup_.start_time = time(NULL);
-  char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgslots_cleanup_.start_time));
-  bgslots_cleanup_.s_start_time.assign(s_time, len);
-  bgslots_cleanup_.cursor = 0;
-  bgslots_cleanup_.pattern = "*";
-  bgslots_cleanup_.count = 100;
-  bgslots_cleanup_.cleanup_slots.swap(cleanupSlots);
-  LOG(INFO) << "Start slot cleanup!";
-
-  // Start new thread if needed
-  bgslots_cleanup_thread_.StartThread();
-  bgslots_cleanup_thread_.Schedule(&DoBgslotscleanup, static_cast<void*>(this));
-}
-
-void PikaServer::DoBgslotscleanup(void* arg) {
-  PikaServer* p = static_cast<PikaServer*>(arg);
-  BGSlotsCleanup cleanup = p->bgslots_cleanup();
-
-  // Do slotscleanup
-  std::vector<std::string> keys;
-  int64_t cursor_ret = -1;
-  std::vector<int> cleanupSlots(cleanup.cleanup_slots);
-  while(cursor_ret != 0 && p->GetSlotscleanuping()){
-    nemo::Status s = p->db()->Scan(cleanup.cursor, cleanup.pattern, cleanup.count, keys, &cursor_ret);
-    if (!s.ok()){
-      LOG(WARNING) << "BG slotscleanup error: " <<strerror(errno);
-      return;
-    }
-    std::string key_type;
-    std::vector<std::string>::const_iterator iter;
-    for (iter = keys.begin(); iter != keys.end(); iter++){
-      if ((*iter).find(SlotKeyPrefix) != std::string::npos){
-        continue;
-      }
-      if(std::find(cleanupSlots.begin(), cleanupSlots.end(), SlotNum(*iter)) != cleanupSlots.end()){
-        if(KeyType(*iter, key_type) > 0){
-          if(KeyDelete(*iter, key_type[0]) <= 0){
-            LOG(WARNING) << "BG slots_cleanup slot " << SlotNum(*iter) << " key "<< *iter << " error";
-          }
-        }
-      }
-    }
-
-    cleanup.cursor = cursor_ret;
-    p->SetSlotscleanupingCursor(cursor_ret);
-    keys.clear();
-  }
-  p->SetSlotscleanuping(false);
-  std::vector<int> empty;
-  p->SetCleanupSlots(empty);
-  LOG(INFO) << "Finish slots cleanup!";
-}
-
-int PikaServer::SlotsMigrateOne(const std::string &key){
-  return slotsmgrt_sender_thread_->SlotsMigrateOne(key);
-}
-
-bool PikaServer::SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot, int64_t keys_num){
-  return slotsmgrt_sender_thread_->SlotsMigrateBatch(ip, port, time_out, slot, keys_num);
-}
-
-bool PikaServer::GetSlotsMigrateResul(int64_t *moved, int64_t *remained) {
-  return slotsmgrt_sender_thread_->GetSlotsMigrateResul(moved, remained);
-}
-
-void PikaServer::GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained) {
-  slotsmgrt_sender_thread_->GetSlotsMgrtSenderStatus(ip, port, slot, migrating, moved, remained);
-}
-
-bool PikaServer::SlotsMigrateAsyncCancel() {
-  return slotsmgrt_sender_thread_->SlotsMigrateAsyncCancel();
 }
 
 bool PikaServer::PurgeLogs(uint32_t to, bool manual, bool force) {

@@ -24,7 +24,6 @@
 #include "include/pika_monitor_thread.h"
 #include "include/pika_define.h"
 #include "include/pika_binlog_bgworker.h"
-#include "include/pika_slot.h"
 
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
@@ -240,114 +239,6 @@ class PikaServer {
 
 
   /*
-   * BGSlotsReload used
-   */
-  struct BGSlotsReload {
-    bool reloading;
-    time_t start_time;
-    std::string s_start_time;
-    int64_t cursor;
-    std::string pattern;
-    int64_t count;
-    BGSlotsReload() : reloading(false), cursor(0), pattern("*"), count(100){}
-    void Clear() {
-      reloading = false;
-      pattern = "*";
-      count = 100;
-      cursor = 0;
-    }
-  };
-  BGSlotsReload bgslots_reload() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgslots_reload_;
-  }
-  bool GetSlotsreloading() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgslots_reload_.reloading;
-  }
-  void SetSlotsreloading(bool reloading) {
-    slash::MutexLock l(&bgsave_protector_);
-    bgslots_reload_.reloading = reloading;
-  }
-  void SetSlotsreloadingCursor(int64_t cursor) {
-    slash::MutexLock l(&bgsave_protector_);
-    bgslots_reload_.cursor = cursor;
-  }
-  int64_t GetSlotsreloadingCursor() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgslots_reload_.cursor;
-  }
-  void Bgslotsreload();
-  void StopBgslotsreload() {
-    slash::MutexLock l(&bgsave_protector_);
-    bgslots_reload_.reloading = false;
-  }
-
-/*
- * BGSlotsCleanup used
- */
-  struct BGSlotsCleanup {
-    bool cleanuping;
-    time_t start_time;
-    std::string s_start_time;
-    int64_t cursor;
-    std::string pattern;
-    int64_t count;
-    std::vector<int> cleanup_slots;
-    BGSlotsCleanup() : cleanuping(false), cursor(0), pattern("*"), count(100){}
-    void Clear() {
-      cleanuping = false;
-      pattern = "*";
-      count = 100;
-      cursor = 0;
-    }
-  };
-  BGSlotsCleanup bgslots_cleanup() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgslots_cleanup_;
-  }
-  bool GetSlotscleanuping() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgslots_cleanup_.cleanuping;
-  }
-  void SetSlotscleanuping(bool cleanuping) {
-    slash::MutexLock l(&bgsave_protector_);
-    bgslots_cleanup_.cleanuping = cleanuping;
-  }
-  void SetSlotscleanupingCursor(int64_t cursor) {
-    slash::MutexLock l(&bgsave_protector_);
-    bgslots_cleanup_.cursor = cursor;
-  }
-  int64_t GetSlotscleanupingCursor() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgslots_cleanup_.cursor;
-  }
-  void SetCleanupSlots(std::vector<int> cleanup_slots) {
-    slash::MutexLock l(&bgsave_protector_);
-    bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
-  }
-  std::vector<int> GetCleanupSlots() {
-    slash::MutexLock l(&bgsave_protector_);
-    return bgslots_cleanup_.cleanup_slots;
-  }
-  void Bgslotscleanup(std::vector<int> cleanup_slots);
-  void StopBgslotscleanup() {
-    slash::MutexLock l(&bgsave_protector_);
-    bgslots_cleanup_.cleanuping = false;
-    std::vector<int> cleanup_slots;
-    bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
-  }
-
-  /*
-   * SlotsMgrt used
-   */
-  int SlotsMigrateOne(const std::string &key);
-  bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot, int64_t keys_num);
-  bool GetSlotsMigrateResul(int64_t *moved, int64_t *remained);
-  void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
-  bool SlotsMigrateAsyncCancel();
-
-  /*
    * PurgeLog used
    */
   struct PurgeArg {
@@ -533,27 +424,6 @@ class PikaServer {
     slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.Clear();
   }
-
-  /*
-   * BGSlotsReload use
-   */
-  BGSlotsReload bgslots_reload_;
-  pink::BGThread bgslots_reload_thread_;
-  static void DoBgslotsreload(void* arg);
-
-  /*
-   * BGSlotsCleanup use
-   */
-  BGSlotsCleanup bgslots_cleanup_;
-  pink::BGThread bgslots_cleanup_thread_;
-  static void DoBgslotscleanup(void* arg);
-
-  /*
-   * SlotsMgrt use
-   */
-  //slash::Mutex slotsmgrt_protector_;
-  SlotsMgrtSenderThread* slotsmgrt_sender_thread_;
-
 
   /*
    * Purgelogs use
