@@ -11,7 +11,6 @@
 #include "include/pika_zset.h"
 #include "include/pika_bit.h"
 #include "include/pika_hyperloglog.h"
-#include "include/pika_geo.h"
 #include "include/pika_pubsub.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
@@ -792,26 +791,6 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////pfmergeCmd
   Cmd * pfmergeptr = new PfMergeCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePfMerge, pfmergeptr));
-
-  //GEO
-  ////GepAdd
-  Cmd * geoaddptr = new GeoAddCmd();
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoAdd, geoaddptr));
-  ////GeoPos
-  Cmd * geoposptr = new GeoPosCmd();
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoPos, geoposptr));
-  ////GeoDist
-  Cmd * geodistptr = new GeoDistCmd();
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoDist, geodistptr));
-  ////GeoHash
-  Cmd * geohashptr = new GeoHashCmd();
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoHash, geohashptr));
-  ////GeoRadius
-  Cmd * georadiusptr = new GeoRadiusCmd();
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoRadius, georadiusptr));
-  ////GeoRadiusByMember
-  Cmd * georadiusbymemberptr = new GeoRadiusByMemberCmd();
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoRadiusByMember, georadiusbymemberptr));
 
   //PubSub
   ////Publish
