@@ -7,7 +7,6 @@
 #include "nemo.h"
 #include "include/pika_hash.h"
 #include "include/pika_server.h"
-#include "include/pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -29,7 +28,6 @@ void HDelCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->HDel(key_, fields_, &num);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(num);
-    KeyNotExistsRem("h", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -52,7 +50,6 @@ void HSetCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->HSet(key_, field_, value_, &ret);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
-    SlotKeyAdd("h", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -149,7 +146,6 @@ void HIncrbyCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->HIncrby(key_, field_, by_, &new_value);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent(":" + std::to_string(new_value));
-    SlotKeyAdd("h", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: hash value is not an integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -177,7 +173,6 @@ void HIncrbyfloatCmd::Do() {
   if (s.ok()) {
     res_.AppendStringLen(new_value.size());
     res_.AppendContent(new_value);
-    SlotKeyAdd("h", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
@@ -286,7 +281,6 @@ void HMsetCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->HMSet(key_, fvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
-    SlotKeyAdd("h", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -309,7 +303,6 @@ void HSetnxCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->HSetnx(key_, field_, value_, &ret);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
-    SlotKeyAdd("h", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
