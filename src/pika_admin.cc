@@ -9,7 +9,6 @@
 #include "include/pika_conf.h"
 #include "include/pika_admin.h"
 #include "include/pika_server.h"
-#include "include/pika_slot.h"
 #include "include/build_version.h"
 #include "include/pika_version.h"
 
@@ -727,14 +726,6 @@ void InfoCmd::InfoStats(std::string &info) {
   time_t current_time_s = time(NULL);
   tmp_stream << "is_bgsaving:" << (is_bgsaving ? "Yes, " : "No, ") << bgsave_info.s_start_time << ", "
                                 << (is_bgsaving ? (current_time_s - bgsave_info.start_time) : 0) << "\r\n";
-  PikaServer::BGSlotsReload bgslotsreload_info = g_pika_server->bgslots_reload();
-  bool is_reloading = g_pika_server->GetSlotsreloading();
-  tmp_stream << "is_slots_reloading:" << (is_reloading ? "Yes, " : "No, ") << bgslotsreload_info.s_start_time << ", "
-                                << (is_reloading ? (current_time_s - bgslotsreload_info.start_time) : 0) << "\r\n";
-  PikaServer::BGSlotsCleanup bgslotscleanup_info = g_pika_server->bgslots_cleanup();
-  bool is_cleanuping = g_pika_server->GetSlotscleanuping();
-  tmp_stream << "is_slots_cleanuping:" << (is_cleanuping ? "Yes, " : "No, ") << bgslotscleanup_info.s_start_time << ", "
-                                << (is_cleanuping ? (current_time_s - bgslotscleanup_info.start_time) : 0) << "\r\n";
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
   bool is_scaning = g_pika_server->key_scaning();
   tmp_stream << "is_scaning_keyspace:" << (is_scaning ? ("Yes, " + key_scan_info.s_start_time) + "," : "No");
@@ -1476,22 +1467,6 @@ void DbsizeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void DbsizeCmd::Do() {
-  if (g_pika_conf->slotmigrate()){
-    int64_t dbsize = 0;
-    for (int i = 0; i < HASH_SLOTS_SIZE; ++i){
-      int64_t card = 0;
-      card = g_pika_server->db()->SCard(SlotKeyPrefix+std::to_string(i));
-      if (card >= 0) {
-        dbsize += card;
-      }else {
-        res_.SetRes(CmdRes::kErrOther, "Get dbsize error");
-        return;
-      }
-    }
-    res_.AppendInteger(dbsize);
-    return;
-  }
-
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
   std::vector<uint64_t> &key_nums_v = key_scan_info.key_nums_v;
   if (key_scan_info.key_nums_v.size() != 5) {

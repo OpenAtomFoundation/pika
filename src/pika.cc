@@ -11,7 +11,6 @@
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
-#include "include/pika_slot.h"
 #include "include/pika_version.h"
 
 #ifdef TCMALLOC_EXTENSION
@@ -180,7 +179,6 @@ int main(int argc, char *argv[]) {
   PikaGlogInit();
   PikaSignalSetup();
   InitCmdInfoTable();
-  InitCRC32Table();
 
   LOG(INFO) << "Server at: " << path;
   g_pika_server = new PikaServer();

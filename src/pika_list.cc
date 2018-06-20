@@ -9,7 +9,6 @@
 #include "nemo.h"
 #include "include/pika_list.h"
 #include "include/pika_server.h"
-#include "include/pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -98,7 +97,6 @@ void LPushCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->LPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
-    SlotKeyAdd("l", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -116,7 +114,6 @@ void LPopCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->LPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
-    KeyNotExistsRem("l", key_);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -137,7 +134,6 @@ void LPushxCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->LPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
-    SlotKeyAdd("l", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -196,7 +192,6 @@ void LRemCmd::Do() {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  KeyNotExistsRem("l", key_);
 }
 
 void LSetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
@@ -264,7 +259,6 @@ void RPopCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->RPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
-    KeyNotExistsRem("l", key_);
   } else if (s.IsNotFound()) {
     res_.AppendStringLen(-1);
   } else {
@@ -308,7 +302,6 @@ void RPushCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->RPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
-    SlotKeyAdd("l", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -327,7 +320,6 @@ void RPushxCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->RPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
-    SlotKeyAdd("l", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

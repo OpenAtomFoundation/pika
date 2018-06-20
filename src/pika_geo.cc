@@ -10,7 +10,6 @@
 #include "nemo.h"
 #include "include/pika_geo.h"
 #include "include/pika_server.h"
-#include "include/pika_slot.h"
 #include "include/pika_geohash_helper.h"
 
 extern PikaServer *g_pika_server;
@@ -69,7 +68,6 @@ void GeoAddCmd::Do() {
       return;
     }
   }
-  SlotKeyAdd("z", key_);
   res_.AppendInteger(count);
   return;
 }

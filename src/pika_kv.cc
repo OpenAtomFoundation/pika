@@ -7,7 +7,6 @@
 #include "nemo.h"
 #include "include/pika_kv.h"
 #include "include/pika_server.h"
-#include "include/pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -70,7 +69,6 @@ void SetCmd::Do() {
     } else {
       res_.AppendArrayLen(-1);;
     }
-    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -111,7 +109,6 @@ void DelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 void DelCmd::Do() {
   std::vector<std::string>::const_iterator it;
   for (it = keys_.begin(); it != keys_.end(); it++) {
-    SlotKeyRem(*it);
   }
 
   std::map<blackwidow::DataType, blackwidow::Status> type_status;
@@ -137,7 +134,6 @@ void IncrCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->Incrby(key_, 1, &new_value_);
   if (s.ok()) {
    res_.AppendContent(":" + std::to_string(new_value_));
-   SlotKeyAdd("k", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -190,7 +186,6 @@ void IncrbyCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->Incrby(key_, by_, &new_value_);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
-    SlotKeyAdd("k", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -245,7 +240,6 @@ void IncrbyfloatCmd::Do() {
   if (s.ok()) {
     res_.AppendStringLen(new_value_.size());
     res_.AppendContent(new_value_);
-    SlotKeyAdd("k", key_);
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a vaild float"){
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
@@ -400,7 +394,6 @@ void GetsetCmd::Do() {
       res_.AppendStringLen(old_value.size());
       res_.AppendContent(old_value);
     }
-    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -422,7 +415,6 @@ void AppendCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->Append(key_, value_, &new_len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(new_len);
-    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -498,7 +490,6 @@ void SetnxCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->Setnx(key_, value_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
-    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -549,7 +540,6 @@ void SetexCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->Setex(key_, value_, sec_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
-    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -576,10 +566,6 @@ void MsetCmd::Do() {
   blackwidow::Status s = g_pika_server->bdb()->MSet(kvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
-    std::vector<blackwidow::KeyValue>::const_iterator it;
-    for (it = kvs_.begin(); it != kvs_.end(); it++) {
-      SlotKeyAdd("k", it->key);
-    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -635,10 +621,6 @@ void MsetnxCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->MSetnx(kvs_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
-    std::vector<blackwidow::KeyValue>::const_iterator it;
-    for (it = kvs_.begin(); it != kvs_.end(); it++) {
-      SlotKeyAdd("k", it->key);
-    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -721,7 +703,6 @@ void SetrangeCmd::Do() {
   rocksdb::Status s = g_pika_server->bdb()->Setrange(key_, offset_, value_, &new_len);
   if (s.ok()) {
     res_.AppendInteger(new_len);
-    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
