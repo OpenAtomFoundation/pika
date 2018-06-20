@@ -199,13 +199,11 @@ void HKeysCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void HKeysCmd::Do() {
   std::vector<std::string> fields;
-  nemo::Status s = g_pika_server->db()->HKeys(key_, fields);
-  if (s.ok()) {
+  rocksdb::Status s = g_pika_server->bdb()->HKeys(key_, &fields);
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(fields.size());
-    std::vector<std::string>::const_iterator iter;
-    for (iter = fields.begin(); iter != fields.end(); iter++) {
-      res_.AppendStringLen(iter->size());
-      res_.AppendContent(*iter);
+    for (const auto& field : fields) {
+      res_.AppendString(field);
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -402,52 +400,24 @@ void HScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void HScanCmd::Do() {
-  int64_t hlen = g_pika_server->db()->HLen(key_);
-  if (hlen >= 0 && cursor_ >= hlen) {
-    cursor_ = 0;
-  }
-  if (hlen <= 512) {
-    count_ = 512;
-  }
-  nemo::HIterator *iter = g_pika_server->db()->HScan(key_, "", "", -1);
-  iter->Skip(cursor_);
-  if (!iter->Valid()) {
-    delete iter;
-    iter = g_pika_server->db()->HScan(key_, "", "", -1);
-    cursor_ = 0;
-  }
-  std::vector<nemo::FV> fv_v;
-  bool use_pattern = false;
-  if (pattern_ != "*") {
-    use_pattern = true;
-  }
-  for (; iter->Valid() && count_; iter->Next()) {
-    count_--;
-    cursor_++;
-    if (use_pattern && !slash::stringmatchlen(pattern_.data(), pattern_.size(), iter->field().data(), iter->field().size(), 0)) {
-      continue;
-    } 
-    fv_v.push_back({iter->field(), iter->value()});
-  }
-  if (!(iter->Valid())) {
-    cursor_ = 0;
-  }
-  delete iter;
-  
-  res_.AppendContent("*2");
+  int64_t next_cursor = 0;
+  std::vector<blackwidow::FieldValue> field_values;
+  rocksdb::Status s = g_pika_server->bdb()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
 
-  char buf[32];
-  int32_t len = slash::ll2string(buf, sizeof(buf), cursor_);
-  res_.AppendStringLen(len);
-  res_.AppendContent(buf);
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendContent("*2");
+    char buf[32];
+    int32_t len = slash::ll2string(buf, sizeof(buf), next_cursor);
+    res_.AppendStringLen(len);
+    res_.AppendContent(buf);
 
-  res_.AppendArrayLen(fv_v.size()*2);
-  std::vector<nemo::FV>::const_iterator iter_fv = fv_v.begin();
-  for (; iter_fv != fv_v.end(); iter_fv++) {
-    res_.AppendStringLen(iter_fv->field.size());
-    res_.AppendContent(iter_fv->field);
-    res_.AppendStringLen(iter_fv->val.size());
-    res_.AppendContent(iter_fv->val);
+    res_.AppendArrayLen(field_values.size()*2);
+    for (const auto& field_value : field_values) {
+      res_.AppendString(field_value.field);
+      res_.AppendString(field_value.value);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
 }
