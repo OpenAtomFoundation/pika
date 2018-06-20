@@ -106,49 +106,27 @@ void ZScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void ZScanCmd::Do() {
-  int64_t card = g_pika_server->db()->ZCard(key_);
-  if (card >= 0 && cursor_ >= card) {
-    cursor_ = 0;
-  }
-  if (card <= 128) {
-    count_ = 128;
-  }
-  std::vector<nemo::SM> sms_v;
-  nemo::ZIterator *iter = g_pika_server->db()->ZScan(key_, nemo::ZSET_SCORE_MIN, nemo::ZSET_SCORE_MAX, -1);
-  iter->Skip(cursor_);
-  if (!iter->Valid()) {
-    delete iter;
-    iter = g_pika_server->db()->ZScan(key_, nemo::ZSET_SCORE_MIN, nemo::ZSET_SCORE_MAX, -1);
-    cursor_ = 0;
-  }
-  for (; iter->Valid() && count_; iter->Next()) {
-    count_--;
-    cursor_++;
-    if (pattern_ != "*" && !slash::stringmatchlen(pattern_.data(), pattern_.size(), iter->member().data(), iter->member().size(), 0)) {
-      continue;
-    }
-    sms_v.push_back({iter->score(), iter->member()});
-  }
-  if (!iter->Valid()) {
-    cursor_ = 0;
-  }
-  res_.AppendContent("*2");
-  
-  char buf[32];
-  int64_t len = slash::ll2string(buf, sizeof(buf), cursor_);
-  res_.AppendStringLen(len);
-  res_.AppendContent(buf);
-
-  res_.AppendArrayLen(sms_v.size() * 2); 
-  std::vector<nemo::SM>::const_iterator iter_sm = sms_v.begin();
-  for (; iter_sm != sms_v.end(); iter_sm++) {
-    res_.AppendStringLen(iter_sm->member.size());
-    res_.AppendContent(iter_sm->member);
-    len = slash::d2string(buf, sizeof(buf), iter_sm->score);
+  int64_t next_cursor = 0;
+  std::vector<blackwidow::ScoreMember> score_members;
+  rocksdb::Status s = g_pika_server->bdb()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendContent("*2");
+    char buf[32];
+    int64_t len = slash::ll2string(buf, sizeof(buf), next_cursor);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
+
+    res_.AppendArrayLen(score_members.size() * 2);
+    for (const auto& score_member : score_members) {
+      res_.AppendString(score_member.member);
+
+      len = slash::d2string(buf, sizeof(buf), score_member.score);
+      res_.AppendStringLen(len);
+      res_.AppendContent(buf);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  delete iter;
   return;
 }
 
