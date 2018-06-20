@@ -59,24 +59,14 @@ PikaServer::PikaServer() :
     LOG(FATAL) << "ServerInit iotcl error";
   }
 
-  // Create nemo handle
-  nemo::Options option;
-  NemoOptionInit(&option);
-
-  std::string db_path = g_pika_conf->db_path();
-  LOG(INFO) << "Prepare DB...";
-  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
-  assert(db_);
-  LOG(INFO) << "DB Success";
-
   //Create blackwidow handle
   rocksdb::Options rocksdb_option;
   RocksdbOptionInit(&rocksdb_option);
 
-  std::string bdb_path = "./blackwidow_db/";
+  std::string db_path = g_pika_conf->db_path();
   LOG(INFO) << "Prepare Blackwidow DB...";
   bdb_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = bdb_->Open(rocksdb_option, bdb_path);
+  rocksdb::Status s = bdb_->Open(rocksdb_option, db_path);
   assert(bdb_);
   assert(s.ok());
   LOG(INFO) << "DB Success";
@@ -243,22 +233,6 @@ bool PikaServer::ServerInit() {
   LOG(INFO) << "host: " << host_ << " port: " << port_;
   return true;
 
-}
-
-void PikaServer::NemoOptionInit(nemo::Options* option) {
-  option->write_buffer_size = g_pika_conf->write_buffer_size();
-  option->target_file_size_base = g_pika_conf->target_file_size_base();
-  option->max_background_flushes = g_pika_conf->max_background_flushes();
-  option->max_background_compactions = g_pika_conf->max_background_compactions();
-  option->max_open_files = g_pika_conf->max_cache_files();
-  option->max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
-  if (g_pika_conf->compression() == "none") {
-    option->compression = nemo::Options::CompressionType::kNoCompression;
-  } else if (g_pika_conf->compression() == "snappy") {
-    option->compression = nemo::Options::CompressionType::kSnappyCompression;
-  } else if (g_pika_conf->compression() == "zlib") {
-    option->compression = nemo::Options::CompressionType::kZlibCompression;
-  }
 }
 
 void PikaServer::RocksdbOptionInit(rocksdb::Options* option) {
@@ -1395,11 +1369,15 @@ bool PikaServer::FlushAll() {
   dbpath.append("/deleting");
   slash::RenameFile(g_pika_conf->db_path(), dbpath.c_str());
 
-  nemo::Options option;
-  NemoOptionInit(&option);
+  //Create blackwidow handle
+  rocksdb::Options rocksdb_option;
+  RocksdbOptionInit(&rocksdb_option);
 
   LOG(INFO) << "Prepare open new db...";
-  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(g_pika_conf->db_path(), option));
+  bdb_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  rocksdb::Status s = bdb_->Open(rocksdb_option, g_pika_conf->db_path());
+  assert(bdb_);
+  assert(s.ok());
   LOG(INFO) << "open new db success";
   PurgeDir(dbpath);
   return true;
@@ -1419,8 +1397,7 @@ bool PikaServer::FlushDb(const std::string& db_name) {
     }
   }
 
-  std::string db_alias = db_name != "kv" ? db_name : "string";
-  LOG(INFO) << "Delete old " + db_alias + " db...";
+  LOG(INFO) << "Delete old " + db_name + " db...";
   db_.reset();
 
   std::string dbpath = g_pika_conf->db_path();
@@ -1428,15 +1405,18 @@ bool PikaServer::FlushDb(const std::string& db_name) {
      dbpath.append("/");
   }
   std::string sub_dbpath = dbpath + db_name;
-  std::string del_dbpath = dbpath + db_alias + "_deleting";
+  std::string del_dbpath = dbpath + db_name + "_deleting";
   slash::RenameFile(sub_dbpath, del_dbpath);
 
-  nemo::Options option;
-  NemoOptionInit(&option);
+  rocksdb::Options rocksdb_option;
+  RocksdbOptionInit(&rocksdb_option);
 
-  LOG(INFO) << "Prepare open new " + db_alias + " db...";
-  db_ = std::shared_ptr<nemo::Nemo>(new nemo::Nemo(g_pika_conf->db_path(), option));
-  LOG(INFO) << "open new " + db_alias + " db success";
+  LOG(INFO) << "Prepare open new " + db_name + " db...";
+  bdb_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  rocksdb::Status s = bdb_->Open(rocksdb_option, g_pika_conf->db_path());
+  assert(bdb_);
+  assert(s.ok());
+  LOG(INFO) << "open new " + db_name + " db success";
   PurgeDir(del_dbpath);
   return true;
 }
