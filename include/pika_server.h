@@ -30,7 +30,7 @@
 #include "pink/include/bg_thread.h"
 #include "pink/include/pink_pubsub.h"
 #include "blackwidow/blackwidow.h"
-#include "nemo_backupable.h"
+#include "blackwidow/backupable.h"
 
 using slash::Status;
 using slash::Slice;
@@ -414,7 +414,7 @@ class PikaServer {
    */
   slash::Mutex bgsave_protector_;
   pink::BGThread bgsave_thread_;
-  nemo::BackupEngine *bgsave_engine_;
+  blackwidow::BackupEngine *bgsave_engine_;
   BGSaveInfo bgsave_info_;
 
   static void DoBgsave(void* arg);
