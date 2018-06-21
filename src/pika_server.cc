@@ -943,9 +943,9 @@ bool PikaServer::InitBgsaveEnv() {
 // Prepare bgsave env, need bgsave_protector protect
 bool PikaServer::InitBgsaveEngine() {
   delete bgsave_engine_;
-  nemo::Status nemo_s = nemo::BackupEngine::Open(db().get(), &bgsave_engine_);
-  if (!nemo_s.ok()) {
-    LOG(WARNING) << "open backup engine failed " << nemo_s.ToString();
+  rocksdb::Status s = blackwidow::BackupEngine::Open(bdb().get(), &bgsave_engine_);
+  if (!s.ok()) {
+    LOG(WARNING) << "open backup engine failed " << s.ToString();
     return false;
   }
 
@@ -955,9 +955,9 @@ bool PikaServer::InitBgsaveEngine() {
       slash::MutexLock l(&bgsave_protector_);
       logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
     }
-    nemo_s = bgsave_engine_->SetBackupContent();
-    if (!nemo_s.ok()){
-      LOG(WARNING) << "set backup content failed " << nemo_s.ToString();
+    s = bgsave_engine_->SetBackupContent();
+    if (!s.ok()){
+      LOG(WARNING) << "set backup content failed " << s.ToString();
       return false;
     }
   }
@@ -978,11 +978,11 @@ bool PikaServer::RunBgsaveEngine() {
     << ", offset=" << info.offset;
 
   // Backup to tmp dir
-  nemo::Status nemo_s = bgsave_engine_->CreateNewBackup(info.path);
+  rocksdb::Status s = bgsave_engine_->CreateNewBackup(info.path);
   LOG(INFO) << "Create new backup finished.";
 
-  if (!nemo_s.ok()) {
-    LOG(WARNING) << "backup failed :" << nemo_s.ToString();
+  if (!s.ok()) {
+    LOG(WARNING) << "backup failed :" << s.ToString();
     return false;
   }
   return true;
