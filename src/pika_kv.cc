@@ -4,7 +4,6 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "slash/include/slash_string.h"
-#include "nemo.h"
 #include "include/pika_kv.h"
 #include "include/pika_server.h"
 
@@ -49,7 +48,7 @@ void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void SetCmd::Do() {
-  nemo::Status s;
+  rocksdb::Status s;
   int32_t res = 1;
   switch (condition_) {
     case SetCmd::kXX:

@@ -209,11 +209,11 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
 void PikaTrysyncThread::PrepareRsync() {
   std::string db_sync_path = g_pika_conf->db_sync_path();
   slash::StopRsync(db_sync_path);
-  slash::CreatePath(db_sync_path + "kv");
-  slash::CreatePath(db_sync_path + "hash");
-  slash::CreatePath(db_sync_path + "list");
-  slash::CreatePath(db_sync_path + "set");
-  slash::CreatePath(db_sync_path + "zset");
+  slash::CreatePath(db_sync_path + "strings");
+  slash::CreatePath(db_sync_path + "hashes");
+  slash::CreatePath(db_sync_path + "lists");
+  slash::CreatePath(db_sync_path + "sets");
+  slash::CreatePath(db_sync_path + "zsets");
 }
 
 // TODO maybe use RedisCli

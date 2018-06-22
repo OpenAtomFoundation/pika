@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "slash/include/slash_string.h"
-#include "nemo.h"
 #include "include/pika_list.h"
 #include "include/pika_server.h"
 

@@ -5,7 +5,6 @@
 
 #include <vector>
 #include "slash/include/slash_string.h"
-#include "nemo.h"
 #include "include/pika_server.h"
 #include "include/pika_hyperloglog.h"
 
