@@ -11,7 +11,6 @@
 #include <map>
 #include <unordered_set>
 #include <sys/statfs.h>
-#include <nemo.h>
 #include <time.h>
 
 #include "include/pika_binlog.h"
@@ -77,10 +76,6 @@ class PikaServer {
 
   void SetSid(int64_t sid) {
     sid_ = sid;
-  }
-
-  const std::shared_ptr<nemo::Nemo> db() {
-    return db_;
   }
 
   const std::shared_ptr<blackwidow::BlackWidow> bdb() {
@@ -186,10 +181,6 @@ class PikaServer {
    */
   bool ServerInit();
 
-  /*
-   * Nemo options init
-   */
-  void NemoOptionInit(nemo::Options* option);
   /*
    * Blackwidow options init
    */
@@ -374,7 +365,6 @@ class PikaServer {
   std::string host_;
   int port_;
   pthread_rwlock_t rwlock_;
-  std::shared_ptr<nemo::Nemo> db_;
   std::shared_ptr<blackwidow::BlackWidow> bdb_;
 
   time_t start_time_s_;
