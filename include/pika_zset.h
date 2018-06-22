@@ -6,7 +6,6 @@
 #ifndef PIKA_ZSET_H_
 #define PIKA_ZSET_H_
 #include "include/pika_command.h"
-#include "nemo.h"
 #include "blackwidow/blackwidow.h"
 
 

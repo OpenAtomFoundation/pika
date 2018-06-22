@@ -4,7 +4,6 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "slash/include/slash_string.h"
-#include "nemo.h"
 #include "include/pika_hash.h"
 #include "include/pika_server.h"
 

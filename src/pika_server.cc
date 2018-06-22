@@ -148,7 +148,7 @@ PikaServer::~PikaServer() {
   key_scan_thread_.StopThread();
 
   delete logger_;
-  db_.reset();
+  bdb_.reset();
   pthread_rwlock_destroy(&state_protector_);
   pthread_rwlock_destroy(&rwlock_);
 
@@ -247,6 +247,14 @@ void PikaServer::RocksdbOptionInit(rocksdb::Options* option) {
   option->max_background_compactions = g_pika_conf->max_background_compactions();
   option->max_open_files = g_pika_conf->max_cache_files();
   option->max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
+
+  if (g_pika_conf->compression() == "none") {
+    option->compression = rocksdb::CompressionType::kNoCompression;
+  } else if (g_pika_conf->compression() == "snappy") {
+    option->compression = rocksdb::CompressionType::kSnappyCompression;
+  } else if (g_pika_conf->compression() == "zlib") {
+    option->compression = rocksdb::CompressionType::kZlibCompression;
+  }
 }
 
 void PikaServer::Start() {
@@ -254,41 +262,41 @@ void PikaServer::Start() {
   ret = pika_dispatch_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    db_.reset();
+    bdb_.reset();
     LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_) + " conflict"
             : ": other error") << ", Listen on this port to handle the connected redis client";
   }
   ret = pika_binlog_receiver_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    db_.reset();
+    bdb_.reset();
     LOG(FATAL) << "Start BinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 1000) + " conflict"
             : ": other error") << ", Listen on this port to handle the data sent by the Binlog Sender";
   }
   ret = pika_hub_manager_->StartReceiver();
   if (ret != pink::kSuccess) {
     delete logger_;
-    db_.reset();
+    bdb_.reset();
     LOG(FATAL) << "Start HubBinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 1100) + " conflict"
             : ": other error") << ", Listen on this port to handle the connection requests of the pika hub";
   }
   ret = pika_heartbeat_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    db_.reset();
+    bdb_.reset();
     LOG(FATAL) << "Start Heartbeat Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 2000) + " conflict"
             : ": other error") << ", Listen on this port to receive the heartbeat packets sent by the master";
   }
   ret = pika_trysync_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    db_.reset();
+    bdb_.reset();
     LOG(FATAL) << "Start Trysync Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
   }
   ret = pika_pubsub_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    db_.reset();
+    bdb_.reset();
     LOG(FATAL) << "Start Pubsub Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
   }
 
@@ -398,7 +406,12 @@ void PikaServer::DeleteSlave(int fd) {
  * db remain the old one if return false
  */
 bool PikaServer::ChangeDb(const std::string& new_path) {
-  nemo::Options option;
+
+  rocksdb::Options option;
+  option.create_if_missing = true;
+  option.keep_log_file_num = 10;
+  option.max_manifest_file_size = 64 * 1024 * 1024;
+  option.max_log_file_size = 512 * 1024 * 1024;
 
   option.write_buffer_size = g_pika_conf->write_buffer_size();
   option.target_file_size_base = g_pika_conf->target_file_size_base();
@@ -406,13 +419,15 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
   option.max_background_compactions = g_pika_conf->max_background_compactions();
   option.max_open_files = g_pika_conf->max_cache_files();
   option.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
+
   if (g_pika_conf->compression() == "none") {
-    option.compression = nemo::Options::CompressionType::kNoCompression;
+    option.compression = rocksdb::CompressionType::kNoCompression;
   } else if (g_pika_conf->compression() == "snappy") {
-    option.compression = nemo::Options::CompressionType::kSnappyCompression;
+    option.compression = rocksdb::CompressionType::kSnappyCompression;
   } else if (g_pika_conf->compression() == "zlib") {
-    option.compression = nemo::Options::CompressionType::kZlibCompression;
+    option.compression = rocksdb::CompressionType::kZlibCompression;
   }
+
   std::string db_path = g_pika_conf->db_path();
   std::string tmp_path(db_path);
   if (tmp_path.back() == '/') {
@@ -423,7 +438,7 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
 
   RWLock l(&rwlock_, true);
   LOG(INFO) << "Prepare change db from: " << tmp_path;
-  db_.reset();
+  bdb_.reset();
   if (0 != slash::RenameFile(db_path.c_str(), tmp_path)) {
     LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
     return false;
@@ -433,8 +448,11 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
     LOG(WARNING) << "Failed to rename new db path when change db, error: " << strerror(errno);
     return false;
   }
-  db_.reset(new nemo::Nemo(db_path, option));
-  assert(db_);
+
+  bdb_.reset(new blackwidow::BlackWidow());
+  rocksdb::Status s = bdb_->Open(option, db_path);
+  assert(bdb_);
+  assert(s.ok());
   slash::DeleteDirIfExist(tmp_path);
   LOG(INFO) << "Change db success";
   return true;
@@ -830,11 +848,11 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   }
 
   // Clear target path
-  slash::RsyncSendClearTarget(bg_path + "/kv", "kv", remote);
-  slash::RsyncSendClearTarget(bg_path + "/hash", "hash", remote);
-  slash::RsyncSendClearTarget(bg_path + "/list", "list", remote);
-  slash::RsyncSendClearTarget(bg_path + "/set", "set", remote);
-  slash::RsyncSendClearTarget(bg_path + "/zset", "zset", remote);
+  slash::RsyncSendClearTarget(bg_path + "/strings", "strings", remote);
+  slash::RsyncSendClearTarget(bg_path + "/hashes", "hashes", remote);
+  slash::RsyncSendClearTarget(bg_path + "/lists", "lists", remote);
+  slash::RsyncSendClearTarget(bg_path + "/sets", "sets", remote);
+  slash::RsyncSendClearTarget(bg_path + "/zsets", "zsets", remote);
 
   // Send info file at last
   if (0 == ret) {
@@ -1212,7 +1230,7 @@ void PikaServer::AutoCompactRange() {
           >= interval * 3600) {
       gettimeofday(&last_check_compact_time_, NULL);
       if (((double)free_size / total_size) * 100 >= usage) {
-        nemo::Status s = db_->Compact(nemo::kALL);
+        rocksdb::Status s = bdb_->Compact(blackwidow::kAll);
         if (s.ok()) {
           LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
         } else {
@@ -1243,7 +1261,7 @@ void PikaServer::AutoCompactRange() {
     }
     if (!have_scheduled_crontask_ && in_window) {
       if (((double)free_size / total_size) * 100 >= usage) {
-        nemo::Status s = db_->Compact(nemo::kALL);
+        rocksdb::Status s = bdb_->Compact(blackwidow::kAll);
         if (s.ok()) {
           LOG(INFO) << "[Cron]schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
         } else {
@@ -1358,7 +1376,7 @@ bool PikaServer::FlushAll() {
   }
 
   LOG(INFO) << "Delete old db...";
-  db_.reset();
+  bdb_.reset();
 
   std::string dbpath = g_pika_conf->db_path();
   if (dbpath[dbpath.length() - 1] == '/') {
@@ -1398,7 +1416,7 @@ bool PikaServer::FlushDb(const std::string& db_name) {
   }
 
   LOG(INFO) << "Delete old " + db_name + " db...";
-  db_.reset();
+  bdb_.reset();
 
   std::string dbpath = g_pika_conf->db_path();
   if (dbpath[dbpath.length() - 1] != '/') {
