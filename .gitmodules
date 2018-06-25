@@ -16,3 +16,12 @@
 [submodule "third/rocksdb"]
 	path = third/rocksdb
 	url = https://github.com/facebook/rocksdb.git
+[submodule "third/gflags"]
+	path = third/gflags
+	url = https://github.com/gflags/gflags
+[submodule "third/googletest"]
+	path = third/googletest
+	url = https://github.com/google/googletest
+[submodule "third/libunwind"]
+	path = third/libunwind
+	url = https://github.com/libunwind/libunwind
