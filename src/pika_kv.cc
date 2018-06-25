@@ -52,13 +52,13 @@ void SetCmd::Do() {
   int32_t res = 1;
   switch (condition_) {
     case SetCmd::kXX:
-      s = g_pika_server->bdb()->Setxx(key_, value_, &res, sec_);
+      s = g_pika_server->db()->Setxx(key_, value_, &res, sec_);
       break;
     case SetCmd::kNX:
-      s = g_pika_server->bdb()->Setnx(key_, value_, &res, sec_);
+      s = g_pika_server->db()->Setnx(key_, value_, &res, sec_);
       break;
     default:
-      s = g_pika_server->bdb()->Set(key_, value_, sec_);
+      s = g_pika_server->db()->Set(key_, value_, sec_);
       break;
   }
 
@@ -84,7 +84,7 @@ void GetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void GetCmd::Do() {
   std::string value;
-  rocksdb::Status s = g_pika_server->bdb()->Get(key_, &value);
+  rocksdb::Status s = g_pika_server->db()->Get(key_, &value);
   if (s.ok()) {
     res_.AppendStringLen(value.size());
     res_.AppendContent(value);
@@ -111,7 +111,7 @@ void DelCmd::Do() {
   }
 
   std::map<blackwidow::DataType, blackwidow::Status> type_status;
-  int64_t count = g_pika_server->bdb()->Del(keys_, &type_status);
+  int64_t count = g_pika_server->db()->Del(keys_, &type_status);
   if (count >= 0) {
     res_.AppendInteger(count);
   } else {
@@ -130,7 +130,7 @@ void IncrCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void IncrCmd::Do() {
-  rocksdb::Status s = g_pika_server->bdb()->Incrby(key_, 1, &new_value_);
+  rocksdb::Status s = g_pika_server->db()->Incrby(key_, 1, &new_value_);
   if (s.ok()) {
    res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
@@ -182,7 +182,7 @@ void IncrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void IncrbyCmd::Do() {
-  rocksdb::Status s = g_pika_server->bdb()->Incrby(key_, by_, &new_value_);
+  rocksdb::Status s = g_pika_server->db()->Incrby(key_, by_, &new_value_);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
@@ -235,7 +235,7 @@ void IncrbyfloatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 }
 
 void IncrbyfloatCmd::Do() {
-  rocksdb::Status s = g_pika_server->bdb()->Incrbyfloat(key_, value_, &new_value_);
+  rocksdb::Status s = g_pika_server->db()->Incrbyfloat(key_, value_, &new_value_);
   if (s.ok()) {
     res_.AppendStringLen(new_value_.size());
     res_.AppendContent(new_value_);
@@ -283,7 +283,7 @@ void DecrCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void DecrCmd::Do() {
-  rocksdb::Status s = g_pika_server->bdb()->Decrby(key_, 1, &new_value_);
+  rocksdb::Status s = g_pika_server->db()->Decrby(key_, 1, &new_value_);
   if (s.ok()) {
    res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
@@ -335,7 +335,7 @@ void DecrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 }
 
 void DecrbyCmd::Do() {
-  rocksdb::Status s = g_pika_server->bdb()->Decrby(key_, by_, &new_value_);
+  rocksdb::Status s = g_pika_server->db()->Decrby(key_, by_, &new_value_);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
@@ -385,7 +385,7 @@ void GetsetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void GetsetCmd::Do() {
   std::string old_value;
-  rocksdb::Status s = g_pika_server->bdb()->GetSet(key_, new_value_, &old_value);
+  rocksdb::Status s = g_pika_server->db()->GetSet(key_, new_value_, &old_value);
   if (s.ok()) {
     if (old_value.empty()) {
       res_.AppendContent("$-1");
@@ -411,7 +411,7 @@ void AppendCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void AppendCmd::Do() {
   int32_t new_len = 0;
-  rocksdb::Status s = g_pika_server->bdb()->Append(key_, value_, &new_len);
+  rocksdb::Status s = g_pika_server->db()->Append(key_, value_, &new_len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(new_len);
   } else {
@@ -432,7 +432,7 @@ void MgetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void MgetCmd::Do() {
   std::vector<std::string> values;
-  rocksdb::Status s = g_pika_server->bdb()->MGet(keys_, &values);
+  rocksdb::Status s = g_pika_server->db()->MGet(keys_, &values);
   res_.AppendArrayLen(values.size());
   for (const auto& value : values) {
     if (!value.empty()) {
@@ -466,7 +466,7 @@ void KeysCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void KeysCmd::Do() {
   std::vector<std::string> keys;
-  rocksdb::Status s = g_pika_server->bdb()->Keys(type_, pattern_, &keys);
+  rocksdb::Status s = g_pika_server->db()->Keys(type_, pattern_, &keys);
   res_.AppendArrayLen(keys.size());
   for (const auto& key : keys) {
     res_.AppendString(key);
@@ -486,7 +486,7 @@ void SetnxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void SetnxCmd::Do() {
   success_ = 0;
-  rocksdb::Status s = g_pika_server->bdb()->Setnx(key_, value_, &success_);
+  rocksdb::Status s = g_pika_server->db()->Setnx(key_, value_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
   } else {
@@ -536,7 +536,7 @@ void SetexCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void SetexCmd::Do() {
-  rocksdb::Status s = g_pika_server->bdb()->Setex(key_, value_, sec_);
+  rocksdb::Status s = g_pika_server->db()->Setex(key_, value_, sec_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -562,7 +562,7 @@ void MsetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void MsetCmd::Do() {
-  blackwidow::Status s = g_pika_server->bdb()->MSet(kvs_);
+  blackwidow::Status s = g_pika_server->db()->MSet(kvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -617,7 +617,7 @@ void MsetnxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void MsetnxCmd::Do() {
   success_ = 0;
-  rocksdb::Status s = g_pika_server->bdb()->MSetnx(kvs_, &success_);
+  rocksdb::Status s = g_pika_server->db()->MSetnx(kvs_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
   } else {
@@ -674,7 +674,7 @@ void GetrangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 
 void GetrangeCmd::Do() {
   std::string substr;
-  rocksdb::Status s = g_pika_server->bdb()->Getrange(key_, start_, end_, &substr);
+  rocksdb::Status s = g_pika_server->db()->Getrange(key_, start_, end_, &substr);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendStringLen(substr.size());
     res_.AppendContent(substr);
@@ -699,7 +699,7 @@ void SetrangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 
 void SetrangeCmd::Do() {
   int32_t new_len;
-  rocksdb::Status s = g_pika_server->bdb()->Setrange(key_, offset_, value_, &new_len);
+  rocksdb::Status s = g_pika_server->db()->Setrange(key_, offset_, value_, &new_len);
   if (s.ok()) {
     res_.AppendInteger(new_len);
   } else {
@@ -719,7 +719,7 @@ void StrlenCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void StrlenCmd::Do() {
   int32_t len = 0;
-  rocksdb::Status s = g_pika_server->bdb()->Strlen(key_, &len);
+  rocksdb::Status s = g_pika_server->db()->Strlen(key_, &len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
@@ -740,7 +740,7 @@ void ExistsCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void ExistsCmd::Do() {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int64_t res = g_pika_server->bdb()->Exists(keys_, &type_status);
+  int64_t res = g_pika_server->db()->Exists(keys_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -764,7 +764,7 @@ void ExpireCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void ExpireCmd::Do() {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int64_t res = g_pika_server->bdb()->Expire(key_, sec_, &type_status);
+  int64_t res = g_pika_server->db()->Expire(key_, sec_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -816,7 +816,7 @@ void PexpireCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
 void PexpireCmd::Do() {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int64_t res = g_pika_server->bdb()->Expire(key_, msec_/1000, &type_status);
+  int64_t res = g_pika_server->db()->Expire(key_, msec_/1000, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -868,7 +868,7 @@ void ExpireatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 
 void ExpireatCmd::Do() {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int32_t res = g_pika_server->bdb()->Expireat(key_, time_stamp_, &type_status);
+  int32_t res = g_pika_server->db()->Expireat(key_, time_stamp_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -919,7 +919,7 @@ std::string PexpireatCmd::ToBinlog(
 
 void PexpireatCmd::Do() {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int32_t res = g_pika_server->bdb()->Expireat(key_, time_stamp_ms_/1000, &type_status);
+  int32_t res = g_pika_server->db()->Expireat(key_, time_stamp_ms_/1000, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -940,7 +940,7 @@ void TtlCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 void TtlCmd::Do() {
   std::map<blackwidow::DataType, int64_t> type_timestamp;
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  type_timestamp = g_pika_server->bdb()->TTL(key_, &type_status);
+  type_timestamp = g_pika_server->db()->TTL(key_, &type_status);
   for (const auto& item : type_timestamp) {
      // mean operation exception errors happen in database
      if (item.second == -3) {
@@ -977,7 +977,7 @@ void PttlCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 void PttlCmd::Do() {
   std::map<blackwidow::DataType, int64_t> type_timestamp;
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  type_timestamp = g_pika_server->bdb()->TTL(key_, &type_status);
+  type_timestamp = g_pika_server->db()->TTL(key_, &type_status);
   for (const auto& item : type_timestamp) {
      // mean operation exception errors happen in database
      if (item.second == -3) {
@@ -1033,7 +1033,7 @@ void PersistCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
 void PersistCmd::Do() {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int32_t res = g_pika_server->bdb()->Persist(key_, &type_status);
+  int32_t res = g_pika_server->db()->Persist(key_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -1053,7 +1053,7 @@ void TypeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void TypeCmd::Do() {
   std::string res;
-  rocksdb::Status s = g_pika_server->bdb()->Type(key_, &res);
+  rocksdb::Status s = g_pika_server->db()->Type(key_, &res);
   if (s.ok()) {
     res_.AppendContent("+" + res);
   } else {
@@ -1098,7 +1098,7 @@ void ScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void ScanCmd::Do() {
   std::vector<std::string> keys;
-  int64_t cursor_ret = g_pika_server->bdb()->Scan(cursor_, pattern_, count_, &keys);
+  int64_t cursor_ret = g_pika_server->db()->Scan(cursor_, pattern_, count_, &keys);
   
   res_.AppendArrayLen(2);
 

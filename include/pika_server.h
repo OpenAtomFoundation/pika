@@ -78,8 +78,8 @@ class PikaServer {
     sid_ = sid;
   }
 
-  const std::shared_ptr<blackwidow::BlackWidow> bdb() {
-    return bdb_;
+  const std::shared_ptr<blackwidow::BlackWidow> db() {
+    return db_;
   }
 
   int role() {
@@ -365,7 +365,7 @@ class PikaServer {
   std::string host_;
   int port_;
   pthread_rwlock_t rwlock_;
-  std::shared_ptr<blackwidow::BlackWidow> bdb_;
+  std::shared_ptr<blackwidow::BlackWidow> db_;
 
   time_t start_time_s_;
   bool have_scheduled_crontask_;

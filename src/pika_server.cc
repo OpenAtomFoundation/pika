@@ -65,9 +65,9 @@ PikaServer::PikaServer() :
 
   std::string db_path = g_pika_conf->db_path();
   LOG(INFO) << "Prepare Blackwidow DB...";
-  bdb_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = bdb_->Open(rocksdb_option, db_path);
-  assert(bdb_);
+  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  rocksdb::Status s = db_->Open(rocksdb_option, db_path);
+  assert(db_);
   assert(s.ok());
   LOG(INFO) << "DB Success";
 
@@ -148,7 +148,7 @@ PikaServer::~PikaServer() {
   key_scan_thread_.StopThread();
 
   delete logger_;
-  bdb_.reset();
+  db_.reset();
   pthread_rwlock_destroy(&state_protector_);
   pthread_rwlock_destroy(&rwlock_);
 
@@ -262,41 +262,41 @@ void PikaServer::Start() {
   ret = pika_dispatch_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    bdb_.reset();
+    db_.reset();
     LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_) + " conflict"
             : ": other error") << ", Listen on this port to handle the connected redis client";
   }
   ret = pika_binlog_receiver_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    bdb_.reset();
+    db_.reset();
     LOG(FATAL) << "Start BinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 1000) + " conflict"
             : ": other error") << ", Listen on this port to handle the data sent by the Binlog Sender";
   }
   ret = pika_hub_manager_->StartReceiver();
   if (ret != pink::kSuccess) {
     delete logger_;
-    bdb_.reset();
+    db_.reset();
     LOG(FATAL) << "Start HubBinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 1100) + " conflict"
             : ": other error") << ", Listen on this port to handle the connection requests of the pika hub";
   }
   ret = pika_heartbeat_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    bdb_.reset();
+    db_.reset();
     LOG(FATAL) << "Start Heartbeat Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 2000) + " conflict"
             : ": other error") << ", Listen on this port to receive the heartbeat packets sent by the master";
   }
   ret = pika_trysync_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    bdb_.reset();
+    db_.reset();
     LOG(FATAL) << "Start Trysync Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
   }
   ret = pika_pubsub_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
-    bdb_.reset();
+    db_.reset();
     LOG(FATAL) << "Start Pubsub Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
   }
 
@@ -438,7 +438,7 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
 
   RWLock l(&rwlock_, true);
   LOG(INFO) << "Prepare change db from: " << tmp_path;
-  bdb_.reset();
+  db_.reset();
   if (0 != slash::RenameFile(db_path.c_str(), tmp_path)) {
     LOG(WARNING) << "Failed to rename db path when change db, error: " << strerror(errno);
     return false;
@@ -449,9 +449,9 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
     return false;
   }
 
-  bdb_.reset(new blackwidow::BlackWidow());
-  rocksdb::Status s = bdb_->Open(option, db_path);
-  assert(bdb_);
+  db_.reset(new blackwidow::BlackWidow());
+  rocksdb::Status s = db_->Open(option, db_path);
+  assert(db_);
   assert(s.ok());
   slash::DeleteDirIfExist(tmp_path);
   LOG(INFO) << "Change db success";
@@ -961,7 +961,7 @@ bool PikaServer::InitBgsaveEnv() {
 // Prepare bgsave env, need bgsave_protector protect
 bool PikaServer::InitBgsaveEngine() {
   delete bgsave_engine_;
-  rocksdb::Status s = blackwidow::BackupEngine::Open(bdb().get(), &bgsave_engine_);
+  rocksdb::Status s = blackwidow::BackupEngine::Open(db().get(), &bgsave_engine_);
   if (!s.ok()) {
     LOG(WARNING) << "open backup engine failed " << s.ToString();
     return false;
@@ -1230,7 +1230,7 @@ void PikaServer::AutoCompactRange() {
           >= interval * 3600) {
       gettimeofday(&last_check_compact_time_, NULL);
       if (((double)free_size / total_size) * 100 >= usage) {
-        rocksdb::Status s = bdb_->Compact(blackwidow::kAll);
+        rocksdb::Status s = db_->Compact(blackwidow::kAll);
         if (s.ok()) {
           LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
         } else {
@@ -1261,7 +1261,7 @@ void PikaServer::AutoCompactRange() {
     }
     if (!have_scheduled_crontask_ && in_window) {
       if (((double)free_size / total_size) * 100 >= usage) {
-        rocksdb::Status s = bdb_->Compact(blackwidow::kAll);
+        rocksdb::Status s = db_->Compact(blackwidow::kAll);
         if (s.ok()) {
           LOG(INFO) << "[Cron]schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
         } else {
@@ -1376,7 +1376,7 @@ bool PikaServer::FlushAll() {
   }
 
   LOG(INFO) << "Delete old db...";
-  bdb_.reset();
+  db_.reset();
 
   std::string dbpath = g_pika_conf->db_path();
   if (dbpath[dbpath.length() - 1] == '/') {
@@ -1392,9 +1392,9 @@ bool PikaServer::FlushAll() {
   RocksdbOptionInit(&rocksdb_option);
 
   LOG(INFO) << "Prepare open new db...";
-  bdb_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = bdb_->Open(rocksdb_option, g_pika_conf->db_path());
-  assert(bdb_);
+  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  rocksdb::Status s = db_->Open(rocksdb_option, g_pika_conf->db_path());
+  assert(db_);
   assert(s.ok());
   LOG(INFO) << "open new db success";
   PurgeDir(dbpath);
@@ -1416,7 +1416,7 @@ bool PikaServer::FlushDb(const std::string& db_name) {
   }
 
   LOG(INFO) << "Delete old " + db_name + " db...";
-  bdb_.reset();
+  db_.reset();
 
   std::string dbpath = g_pika_conf->db_path();
   if (dbpath[dbpath.length() - 1] != '/') {
@@ -1430,9 +1430,9 @@ bool PikaServer::FlushDb(const std::string& db_name) {
   RocksdbOptionInit(&rocksdb_option);
 
   LOG(INFO) << "Prepare open new " + db_name + " db...";
-  bdb_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = bdb_->Open(rocksdb_option, g_pika_conf->db_path());
-  assert(bdb_);
+  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  rocksdb::Status s = db_->Open(rocksdb_option, g_pika_conf->db_path());
+  assert(db_);
   assert(s.ok());
   LOG(INFO) << "open new " + db_name + " db success";
   PurgeDir(del_dbpath);
@@ -1528,7 +1528,7 @@ void PikaServer::SignalNextBinlogBGSerial() {
 void PikaServer::RunKeyScan() {
   std::vector<uint64_t> new_key_nums_v;
 
-  rocksdb::Status s = bdb_->GetKeyNum(&new_key_nums_v);
+  rocksdb::Status s = db_->GetKeyNum(&new_key_nums_v);
 
   slash::MutexLock lm(&key_scan_protector_);
   if (s.ok()) {
@@ -1545,7 +1545,7 @@ void PikaServer::DoKeyScan(void *arg) {
 void PikaServer::StopKeyScan() {
   slash::MutexLock l(&key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
-    bdb_->StopScanKeyNum();
+    db_->StopScanKeyNum();
     key_scan_info_.key_scaning_ = false;
   }
 }

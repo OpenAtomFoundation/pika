@@ -24,7 +24,7 @@ void SAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void SAddCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->SAdd(key_, members_, &count);
+  rocksdb::Status s = g_pika_server->db()->SAdd(key_, members_, &count);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -44,7 +44,7 @@ void SPopCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void SPopCmd::Do() {
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->bdb()->SPop(key_, 1, &members);
+  rocksdb::Status s = g_pika_server->db()->SPop(key_, 1, &members);
   if (s.ok()) {
     res_.AppendStringLen(members[0].size());
     res_.AppendContent(members[0]);
@@ -67,7 +67,7 @@ void SCardCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void SCardCmd::Do() {
   int32_t card = 0;
-  rocksdb::Status s = g_pika_server->bdb()->SCard(key_, &card);
+  rocksdb::Status s = g_pika_server->db()->SCard(key_, &card);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(card);
   } else {
@@ -87,7 +87,7 @@ void SMembersCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 
 void SMembersCmd::Do() {
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->bdb()->SMembers(key_, &members);
+  rocksdb::Status s = g_pika_server->db()->SMembers(key_, &members);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(members.size());
     for (const auto& member : members) {
@@ -141,7 +141,7 @@ void SScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 void SScanCmd::Do() {
   int64_t next_cursor = 0;
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->bdb()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
+  rocksdb::Status s = g_pika_server->db()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
@@ -174,7 +174,7 @@ void SRemCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void SRemCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->SRem(key_, members_, &count);
+  rocksdb::Status s = g_pika_server->db()->SRem(key_, members_, &count);
   res_.AppendInteger(count);
   return;
 }
@@ -191,7 +191,7 @@ void SUnionCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void SUnionCmd::Do() {
   std::vector<std::string> members;
-  g_pika_server->bdb()->SUnion(keys_, &members);
+  g_pika_server->db()->SUnion(keys_, &members);
   res_.AppendArrayLen(members.size());
   for (const auto& member : members) {
     res_.AppendStringLen(member.size());
@@ -214,7 +214,7 @@ void SUnionstoreCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 
 void SUnionstoreCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->SUnionstore(dest_key_, keys_, &count);
+  rocksdb::Status s = g_pika_server->db()->SUnionstore(dest_key_, keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -235,7 +235,7 @@ void SInterCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void SInterCmd::Do() {
   std::vector<std::string> members;
-  g_pika_server->bdb()->SInter(keys_, &members);
+  g_pika_server->db()->SInter(keys_, &members);
   res_.AppendArrayLen(members.size());
   for (const auto& member : members) {
     res_.AppendStringLen(member.size());
@@ -258,7 +258,7 @@ void SInterstoreCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 
 void SInterstoreCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->SInterstore(dest_key_, keys_, &count);
+  rocksdb::Status s = g_pika_server->db()->SInterstore(dest_key_, keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -279,7 +279,7 @@ void SIsmemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
 
 void SIsmemberCmd::Do() {
   int32_t is_member = 0;
-  g_pika_server->bdb()->SIsmember(key_, member_, &is_member);
+  g_pika_server->db()->SIsmember(key_, member_, &is_member);
   if (is_member) {
     res_.AppendContent(":1");
   } else {
@@ -299,7 +299,7 @@ void SDiffCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void SDiffCmd::Do() {
   std::vector<std::string> members;
-  g_pika_server->bdb()->SDiff(keys_, &members);
+  g_pika_server->db()->SDiff(keys_, &members);
   res_.AppendArrayLen(members.size());
   for (const auto& member : members) {
     res_.AppendStringLen(member.size());
@@ -322,7 +322,7 @@ void SDiffstoreCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_in
 
 void SDiffstoreCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->SDiffstore(dest_key_, keys_, &count);
+  rocksdb::Status s = g_pika_server->db()->SDiffstore(dest_key_, keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -343,7 +343,7 @@ void SMoveCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void SMoveCmd::Do() {
   int32_t res = 0;
-  rocksdb::Status s = g_pika_server->bdb()->SMove(src_key_, dest_key_, member_, &res);
+  rocksdb::Status s = g_pika_server->db()->SMove(src_key_, dest_key_, member_, &res);
   if (s.ok() || s.IsNotFound()) {
     if (s.IsNotFound()){
       res_.AppendInteger(res);
@@ -377,7 +377,7 @@ void SRandmemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 
 void SRandmemberCmd::Do() {
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->bdb()->SRandmember(key_, count_, &members);
+  rocksdb::Status s = g_pika_server->db()->SRandmember(key_, count_, &members);
   if (s.ok()) {
     if (!reply_arr && members.size()) {
       res_.AppendStringLen(members[0].size());
