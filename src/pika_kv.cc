@@ -52,13 +52,13 @@ void SetCmd::Do() {
   int32_t res = 1;
   switch (condition_) {
     case SetCmd::kXX:
-      s = g_pika_server->bdb()->Setxx(key_, value_, &res);
+      s = g_pika_server->bdb()->Setxx(key_, value_, &res, sec_);
       break;
     case SetCmd::kNX:
-      s = g_pika_server->bdb()->Setnx(key_, value_, &res);
+      s = g_pika_server->bdb()->Setnx(key_, value_, &res, sec_);
       break;
     default:
-      s = g_pika_server->bdb()->Set(key_, value_);
+      s = g_pika_server->bdb()->Set(key_, value_, sec_);
       break;
   }
 
