@@ -26,7 +26,7 @@ void PfAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void PfAddCmd::Do() {
   bool update = false;
-  rocksdb::Status s = g_pika_server->bdb()->PfAdd(key_, values_, &update);
+  rocksdb::Status s = g_pika_server->db()->PfAdd(key_, values_, &update);
   if (s.ok() && update) {
     res_.AppendInteger(1);
   } else if (s.ok() && !update) {
@@ -49,7 +49,7 @@ void PfCountCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
 void PfCountCmd::Do() {
   int64_t value_ = 0;
-  rocksdb::Status s = g_pika_server->bdb()->PfCount(keys_, &value_);
+  rocksdb::Status s = g_pika_server->db()->PfCount(keys_, &value_);
   if (s.ok()) {
     res_.AppendInteger(value_);
   } else {
@@ -69,7 +69,7 @@ void PfMergeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 }
 
 void PfMergeCmd::Do() {
-  rocksdb::Status s = g_pika_server->bdb()->PfMerge(keys_);
+  rocksdb::Status s = g_pika_server->db()->PfMerge(keys_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
