@@ -185,7 +185,7 @@ void ZRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 void ZRangeCmd::Do() {
   std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = g_pika_server->bdb()->ZRange(key_, start_, stop_, &score_members);
-  if (s.ok()) {
+  if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
       int64_t len;
@@ -367,6 +367,15 @@ void ZRevrangebyscoreCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const 
     return;
   }
   ZsetRangebyscoreParentCmd::DoInitial(argv, NULL);
+  double tmp_score;
+  tmp_score = min_score_;
+  min_score_ = max_score_;
+  max_score_ = tmp_score;
+
+  bool tmp_close;
+  tmp_close = left_close_;
+  left_close_ = right_close_;
+  right_close_ = tmp_close;
 }
 
 void ZRevrangebyscoreCmd::Do() {
@@ -780,13 +789,12 @@ void ZLexcountCmd::Do() {
     return;
   }
   int32_t count = 0;
-  std::vector<std::string> members;
   rocksdb::Status s = g_pika_server->bdb()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
-  res_.AppendInteger(members.size());
+  res_.AppendInteger(count);
   return;
 }
 

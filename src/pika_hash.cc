@@ -90,7 +90,7 @@ void HGetallCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 void HGetallCmd::Do() {
   std::vector<blackwidow::FieldValue> fvs;
   rocksdb::Status s = g_pika_server->bdb()->HGetall(key_, &fvs);
-  if (s.ok()) {
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(fvs.size() * 2);
     for (const auto& fv : fvs) {
       res_.AppendStringLen(fv.field.size());

@@ -378,7 +378,7 @@ void SRandmemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 void SRandmemberCmd::Do() {
   std::vector<std::string> members;
   rocksdb::Status s = g_pika_server->bdb()->SRandmember(key_, count_, &members);
-  if (s.ok() || s.IsNotFound()) {
+  if (s.ok()) {
     if (!reply_arr && members.size()) {
       res_.AppendStringLen(members[0].size());
       res_.AppendContent(members[0]);
@@ -389,6 +389,8 @@ void SRandmemberCmd::Do() {
         res_.AppendContent(member);
       }
     }
+  } else if (s.IsNotFound()) {
+    res_.AppendStringLen(-1);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
