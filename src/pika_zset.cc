@@ -35,7 +35,7 @@ void ZAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void ZAddCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZAdd(key_, score_members, &count);
+  rocksdb::Status s = g_pika_server->db()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -55,7 +55,7 @@ void ZCardCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void ZCardCmd::Do() {
   int32_t card = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZCard(key_, &card);
+  rocksdb::Status s = g_pika_server->db()->ZCard(key_, &card);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(card);
   } else {
@@ -105,7 +105,7 @@ void ZScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 void ZScanCmd::Do() {
   int64_t next_cursor = 0;
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->bdb()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
+  rocksdb::Status s = g_pika_server->db()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
@@ -143,7 +143,7 @@ void ZIncrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
 
 void ZIncrbyCmd::Do() {
   double score = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZIncrby(key_, member_, by_, &score);
+  rocksdb::Status s = g_pika_server->db()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
     std::string new_value = std::to_string(score);
     res_.AppendStringLen(new_value.size());
@@ -184,7 +184,7 @@ void ZRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void ZRangeCmd::Do() {
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->bdb()->ZRange(key_, start_, stop_, &score_members);
+  rocksdb::Status s = g_pika_server->db()->ZRange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
@@ -220,7 +220,7 @@ void ZRevrangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
 
 void ZRevrangeCmd::Do() {
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->bdb()->ZRevrange(key_, start_, stop_, &score_members);
+  rocksdb::Status s = g_pika_server->db()->ZRevrange(key_, start_, stop_, &score_members);
   if (s.ok()) {
     if (is_ws_) {
       char buf[32];
@@ -333,7 +333,7 @@ void ZRangebyscoreCmd::Do() {
     return;
   }
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->bdb()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  rocksdb::Status s = g_pika_server->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -384,7 +384,7 @@ void ZRevrangebyscoreCmd::Do() {
     return;
   }
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->bdb()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  rocksdb::Status s = g_pika_server->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -433,7 +433,7 @@ void ZCountCmd::Do() {
   }
 
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  rocksdb::Status s = g_pika_server->db()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -455,7 +455,7 @@ void ZRemCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void ZRemCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZRem(key_, members_, &count);
+  rocksdb::Status s = g_pika_server->db()->ZRem(key_, members_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -536,7 +536,7 @@ void ZUnionstoreCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 
 void ZUnionstoreCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, &count);
+  rocksdb::Status s = g_pika_server->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -556,7 +556,7 @@ void ZInterstoreCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 
 void ZInterstoreCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZInterstore(dest_key_, keys_, weights_, aggregate_, &count);
+  rocksdb::Status s = g_pika_server->db()->ZInterstore(dest_key_, keys_, weights_, aggregate_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -582,7 +582,7 @@ void ZRankCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void ZRankCmd::Do() {
   int32_t rank = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZRank(key_, member_, &rank);
+  rocksdb::Status s = g_pika_server->db()->ZRank(key_, member_, &rank);
   if (s.ok()) {
     res_.AppendInteger(rank);
   } else if (s.IsNotFound()){
@@ -602,7 +602,7 @@ void ZRevrankCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info
 
 void ZRevrankCmd::Do() {
   int32_t revrank = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZRevrank(key_, member_, &revrank);
+  rocksdb::Status s = g_pika_server->db()->ZRevrank(key_, member_, &revrank);
   if (s.ok()) {
     res_.AppendInteger(revrank);
   } else if (s.IsNotFound()){
@@ -623,7 +623,7 @@ void ZScoreCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void ZScoreCmd::Do() {
   double score = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZScore(key_, member_, &score);
+  rocksdb::Status s = g_pika_server->db()->ZScore(key_, member_, &score);
   if (s.ok()) {
     char buf[32];
     int64_t len = slash::d2string(buf, sizeof(buf), score);
@@ -714,7 +714,7 @@ void ZRangebylexCmd::Do() {
     return;
   }
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->bdb()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  rocksdb::Status s = g_pika_server->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -754,7 +754,7 @@ void ZRevrangebylexCmd::Do() {
     return;
   }
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->bdb()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  rocksdb::Status s = g_pika_server->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -789,7 +789,7 @@ void ZLexcountCmd::Do() {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  rocksdb::Status s = g_pika_server->db()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -816,7 +816,7 @@ void ZRemrangebyrankCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const p
 
 void ZRemrangebyrankCmd::Do() {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
+  rocksdb::Status s = g_pika_server->db()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -845,7 +845,7 @@ void ZRemrangebyscoreCmd::Do() {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  rocksdb::Status s = g_pika_server->db()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -874,7 +874,7 @@ void ZRemrangebylexCmd::Do() {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->bdb()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  rocksdb::Status s = g_pika_server->db()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;

@@ -43,7 +43,7 @@ void BitSetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 void BitSetCmd::Do() {
   std::string value;
   int32_t bit_val = 0;
-  rocksdb::Status s = g_pika_server->bdb()->SetBit(key_, bit_offset_, on_, &bit_val);
+  rocksdb::Status s = g_pika_server->db()->SetBit(key_, bit_offset_, on_, &bit_val);
   if (s.ok()){
     res_.AppendInteger((int)bit_val);
   } else {
@@ -70,7 +70,7 @@ void BitGetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void BitGetCmd::Do() {
   int32_t bit_val = 0;
-  rocksdb::Status s = g_pika_server->bdb()->GetBit(key_, bit_offset_, &bit_val);
+  rocksdb::Status s = g_pika_server->db()->GetBit(key_, bit_offset_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger((int)bit_val);
   } else {
@@ -106,9 +106,9 @@ void BitCountCmd::Do() {
   int32_t count = 0;
   rocksdb::Status s;
   if (count_all_) {
-    s = g_pika_server->bdb()->BitCount(key_, start_offset_, end_offset_, &count, false);
+    s = g_pika_server->db()->BitCount(key_, start_offset_, end_offset_, &count, false);
   } else {
-    s = g_pika_server->bdb()->BitCount(key_, start_offset_, end_offset_, &count, true);
+    s = g_pika_server->db()->BitCount(key_, start_offset_, end_offset_, &count, true);
   }
 
   if (s.ok() || s.IsNotFound()) {
@@ -162,11 +162,11 @@ void BitPosCmd::Do() {
   int64_t pos = 0;
   rocksdb::Status s;
   if (pos_all_) {
-    s = g_pika_server->bdb()->BitPos(key_, bit_val_, &pos);
+    s = g_pika_server->db()->BitPos(key_, bit_val_, &pos);
   } else if (!pos_all_ && !endoffset_set_) {
-    s = g_pika_server->bdb()->BitPos(key_, bit_val_, start_offset_, &pos);
+    s = g_pika_server->db()->BitPos(key_, bit_val_, start_offset_, &pos);
   } else if (!pos_all_ && endoffset_set_) {
-    s = g_pika_server->bdb()->BitPos(key_, bit_val_, start_offset_, end_offset_, &pos);
+    s = g_pika_server->db()->BitPos(key_, bit_val_, start_offset_, end_offset_, &pos);
   }
   if (s.ok()) {
     res_.AppendInteger((int)pos);
@@ -213,7 +213,7 @@ void BitOpCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 
 void BitOpCmd::Do() {
   int64_t result_length;
-  rocksdb::Status s = g_pika_server->bdb()->BitOp(op_, dest_key_, src_keys_, &result_length);
+  rocksdb::Status s = g_pika_server->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
   if (s.ok()) {
     res_.AppendInteger(result_length);
   } else {
