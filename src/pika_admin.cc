@@ -1501,6 +1501,37 @@ void EchoCmd::Do() {
   return;
 }
 
+void ScandbCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameEcho);
+    return;
+  }
+  if (argv.size() == 1) {
+    type_ = blackwidow::kAll;
+  } else {
+    if (argv[1] == "string") {
+      type_ = blackwidow::kStrings;
+    } else if (argv[1] == "hash") {
+      type_ = blackwidow::kHashes;
+    } else if (argv[1] == "set") {
+      type_ = blackwidow::kSets;
+    } else if (argv[1] == "zset") {
+      type_ = blackwidow::kZSets;
+    } else if (argv[1] == "list") {
+      type_ = blackwidow::kLists;
+    } else {
+      res_.SetRes(CmdRes::kInvalidDbType);
+    }
+  }
+  return;
+}
+
+void ScandbCmd::Do() {
+  g_pika_server->db()->ScanDatabase(type_);
+  res_.SetRes(CmdRes::kOk);
+  return;
+}
+
 #ifdef TCMALLOC_EXTENSION
 void TcmallocCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   (void)ptr_info;
