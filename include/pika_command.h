@@ -20,7 +20,6 @@ const std::string kPikaBinlogMagic = "__PIKA_X#$SKGI";
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";
 const std::string kCmdNameTrysync = "trysync";
-const std::string kCmdNameInternalTrysync = "internaltrysync";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameBgsaveoff = "bgsaveoff";
