@@ -194,61 +194,6 @@ void TrysyncCmd::Do() {
   }
 }
 
-void InternalTrysyncCmd::DoInitial(PikaCmdArgsType &argv,
-                                   const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameTrysync);
-    return;
-  }
-  PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
-  hub_ip_ = *it++;
-
-  std::string str_hub_port = *it++;
-  if (!slash::string2l(str_hub_port.data(), str_hub_port.size(), &hub_port_) ||
-      hub_port_ <= 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
-  }
-
-  std::string str_filenum = *it++;
-  if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) ||
-      filenum_ < 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
-  }
-
-  std::string str_pro_offset = *it++;
-  if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) ||
-      pro_offset_ < 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
-  }
-
-  send_most_recently_ = (*it == "1");
-}
-
-void InternalTrysyncCmd::Do() {
-  LOG(INFO) << "InternalTrysync, Hub ip: " << hub_ip_ << "Hub port:" << hub_port_
-    << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
-
-  Status status = g_pika_server->pika_hub_manager_->AddHub(
-      hub_ip_, hub_port_ + 1000,
-      filenum_, pro_offset_,
-      send_most_recently_);
-
-  if (!status.ok()) {
-    LOG(WARNING) << "hub offset is larger than mine, slave ip: " << hub_ip_
-      << "slave port:" << hub_port_
-      << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_ << " "
-      << status.ToString();
-    // treat errors as InvalidOffset
-    res_.SetRes(CmdRes::kErrOther, "InvalidOffset");
-  } else {
-    res_.SetRes(CmdRes::kOk);
-    LOG(INFO) << "Send OK to Hub";
-  }
-}
-
 void AuthCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameAuth);
@@ -531,7 +476,6 @@ void ShutdownCmd::Do() {
 const std::string InfoCmd::kAllSection = "all";
 const std::string InfoCmd::kServerSection = "server";
 const std::string InfoCmd::kClientsSection = "clients";
-const std::string InfoCmd::kHubSection = "hub";
 const std::string InfoCmd::kStatsSection = "stats";
 const std::string InfoCmd::kCPUSection = "cpu";
 const std::string InfoCmd::kReplicationSection = "replication";
@@ -558,8 +502,6 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     info_section_ = kInfoServer;
   } else if (argv[1] == kClientsSection) {
     info_section_ = kInfoClients;
-  } else if (argv[1] == kHubSection) {
-    info_section_ = kInfoHub;
   } else if (argv[1] == kStatsSection) {
     info_section_ = kInfoStats;
   } else if (argv[1] == kCPUSection) {
@@ -605,10 +547,6 @@ void InfoCmd::Do() {
       info.append("\r\n");
       InfoClients(info);
       info.append("\r\n");
-      if (!g_pika_server->pika_hub_manager_->IsHubStoped()) {
-        InfoHub(info);
-        info.append("\r\n");
-      }
       InfoStats(info);
       info.append("\r\n");
       InfoCPU(info);
@@ -626,9 +564,6 @@ void InfoCmd::Do() {
       break;
     case kInfoClients:
       InfoClients(info);
-      break;
-    case kInfoHub:
-      InfoHub(info);
       break;
     case kInfoStats:
       InfoStats(info);
@@ -702,14 +637,6 @@ void InfoCmd::InfoClients(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Clients\r\n";
   tmp_stream << "connected_clients:" << g_pika_server->ClientList() << "\r\n";
-
-  info.append(tmp_stream.str());
-}
-
-void InfoCmd::InfoHub(std::string &info) {
-  std::stringstream tmp_stream;
-  tmp_stream << "# Hub\r\n";
-  tmp_stream << g_pika_server->pika_hub_manager_->StatusToString() << "\r\n";
 
   info.append(tmp_stream.str());
 }
