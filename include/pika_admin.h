@@ -13,6 +13,7 @@
 
 #include "include/pika_command.h"
 #include "include/pika_client_conn.h"
+#include "blackwidow/blackwidow.h"
 
 /*
  * Admin
@@ -290,6 +291,19 @@ class EchoCmd : public Cmd {
  private:
   std::string body_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
+
+class ScandbCmd : public Cmd {
+ public:
+  ScandbCmd() : type_(blackwidow::kAll) {}
+  virtual void Do();
+
+ private:
+  blackwidow::DataType type_;
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    type_ = blackwidow::kAll;
+  }
 };
 
 #ifdef TCMALLOC_EXTENSION
