@@ -16,7 +16,6 @@
 #include "include/pika_binlog.h"
 #include "include/pika_binlog_receiver_thread.h"
 #include "include/pika_binlog_sender_thread.h"
-#include "include/pika_hub_manager.h"
 #include "include/pika_heartbeat_thread.h"
 #include "include/pika_slaveping_thread.h"
 #include "include/pika_trysync_thread.h"
@@ -170,11 +169,6 @@ class PikaServer {
   void DoTimingTask();
 
   PikaSlavepingThread* ping_thread_;
-
-  /*
-   * Hub use
-   */
-  PikaHubManager* pika_hub_manager_;
 
   /*
    * Server init info
