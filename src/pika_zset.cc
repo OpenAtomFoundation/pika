@@ -145,9 +145,10 @@ void ZIncrbyCmd::Do() {
   double score = 0;
   rocksdb::Status s = g_pika_server->db()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
-    std::string new_value = std::to_string(score);
-    res_.AppendStringLen(new_value.size());
-    res_.AppendContent(new_value);
+    char buf[32];
+    int64_t len = slash::d2string(buf, sizeof(buf), score);
+    res_.AppendStringLen(len);
+    res_.AppendContent(buf);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
