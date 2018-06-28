@@ -43,11 +43,11 @@ void SPopCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void SPopCmd::Do() {
-  std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->db()->SPop(key_, 1, &members);
+  std::string member;
+  rocksdb::Status s = g_pika_server->db()->SPop(key_, &member);
   if (s.ok()) {
-    res_.AppendStringLen(members[0].size());
-    res_.AppendContent(members[0]);
+    res_.AppendStringLen(member.size());
+    res_.AppendContent(member);
   } else if (s.IsNotFound()) {
     res_.AppendContent("$-1");
   } else {
