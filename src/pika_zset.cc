@@ -211,18 +211,34 @@ void ZRangeCmd::Do() {
   return;
 }
 
+static void Calcmirror(int64_t &start, int64_t &stop, int32_t t_size) {
+  int64_t t_start = stop >= 0 ? stop : t_size + stop;
+  int64_t t_stop = start >= 0 ? start : t_size + start;
+  t_start = t_size - 1 - t_start;
+  t_stop = t_size - 1 - t_stop;
+  start = t_start >= 0 ? t_start : t_start - t_size;
+  stop = t_stop >= 0 ? t_stop : t_stop - t_size;
+}
+
 void ZRevrangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRevrange);
     return;
   }
   ZsetRangeParentCmd::DoInitial(argv, NULL);
+  int32_t card = 0;
+  rocksdb::Status status = g_pika_server->db()->ZCard(key_, &card);
+  if (!status.ok() && !status.IsNotFound()) {
+    res_.SetRes(CmdRes::kErrOther, "zcard error");
+    return;
+  }
+  Calcmirror(start_, stop_, card);
 }
 
 void ZRevrangeCmd::Do() {
   std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = g_pika_server->db()->ZRevrange(key_, start_, stop_, &score_members);
-  if (s.ok()) {
+  if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
       int64_t len;
