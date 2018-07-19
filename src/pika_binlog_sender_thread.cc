@@ -241,7 +241,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
 void* PikaBinlogSenderThread::ThreadMain() {
   Status s, result;
   bool last_send_flag = true;
-  std::string scratch;
+  std::string header, scratch, transfer;
   scratch.reserve(1024 * 1024);
 
   while (!should_stop()) {
@@ -254,12 +254,16 @@ void* PikaBinlogSenderThread::ThreadMain() {
     if (result.ok()) {
       cli_->set_send_timeout(timeout_ms_);
       // Auth sid
-      std::string wbuf_str;
+      std::string auth_cmd;
       pink::RedisCmdArgsType argv;
       argv.push_back("auth");
       argv.push_back(std::to_string(sid_));
-      pink::SerializeRedisCommand(argv, &wbuf_str);
-      result = cli_->Send(&wbuf_str);
+      pink::SerializeRedisCommand(argv, &auth_cmd);
+      header.clear();
+      slash::PutFixed16(&header, TransferOperate::kTypeAuth);
+      slash::PutFixed32(&header, auth_cmd.size());
+      transfer = header + auth_cmd;
+      result = cli_->Send(&transfer);
       if (!result.ok()) {
         LOG(WARNING) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") failed,  " << result.ToString();
         break;
@@ -281,23 +285,24 @@ void* PikaBinlogSenderThread::ThreadMain() {
         }
 
         // Parse binlog
-        std::vector<std::string> items;
-        std::string token, delimiter = "\r\n", scratch_copy = scratch;
-        size_t last_pos = 0, pos = 0;
-        while ((pos = scratch_copy.find(delimiter, last_pos)) != std::string::npos) {
-          token = scratch_copy.substr(last_pos, pos - last_pos);
-          items.push_back(token);
-          last_pos = pos + delimiter.length();
-        }
-        std::string binlog_sid = items[items.size() - 5];
+        BinlogItem binlog_item;
+        PikaBinlogTransverter::BinlogDecode(BinlogType::TypeFirst,
+                                            scratch,
+                                            &binlog_item);
 
         // If this binlog from the peer-master, can not resend to the peer-master
-        if (std::atoi(binlog_sid.c_str()) == g_pika_server->DoubleMasterSid() && ip_ == g_pika_server->master_ip() && port_ == (g_pika_server->master_port()+1000)) {
+        if (binlog_item.server_id() == g_pika_server->DoubleMasterSid()
+          && ip_ == g_pika_server->master_ip()
+          && port_ == (g_pika_server->master_port() + 1000)) {
           continue;
         }
 
         // 4. After successful parse, we send msg;
-        result = cli_->Send(&scratch);
+        header.clear();
+        slash::PutFixed16(&header, TransferOperate::kTypeBinlog);
+        slash::PutFixed32(&header, scratch.size());
+        transfer = header + scratch;
+        result = cli_->Send(&transfer);
         if (result.ok()) {
           last_send_flag = true;
         } else {

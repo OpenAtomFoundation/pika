@@ -45,6 +45,7 @@ int PikaMasterConn::DealMessage(
   }
 
   // TODO(shq) maybe monitor do not need these infomation
+  BinlogItem binlog_item;
   std::string server_id;
   std::string binlog_info;
   if (!g_pika_server->DoubleMasterMode()) {
@@ -52,10 +53,23 @@ int PikaMasterConn::DealMessage(
         *(argv.end() - 4) == kPikaBinlogMagic) {
       // Record new binlog format
       argv.pop_back();  // send_to_hub flag
+
       binlog_info = argv.back();  // binlog_info
       argv.pop_back();
+      uint32_t exec_time = 0;
+      uint32_t filenum = 0;
+      uint64_t offset = 0;
+      slash::GetFixed32(&binlog_info, &exec_time);
+      slash::GetFixed32(&binlog_info, &filenum);
+      slash::GetFixed64(&binlog_info, &offset);
+      binlog_item.set_exec_time(exec_time);
+      binlog_item.set_filenum(filenum);
+      binlog_item.set_offset(offset);
+
       server_id = argv.back();  // server_id
       argv.pop_back();
+      binlog_item.set_server_id(std::atoi(server_id.c_str()));
+
       argv.pop_back();  //  kPikaBinlogMagic
     }
   }
@@ -84,18 +98,20 @@ int PikaMasterConn::DealMessage(
     Cmd* c_ptr = binlog_receiver_->GetCmd(opt);
 
     g_pika_server->logger_->Lock();
-    g_pika_server->logger_->Put(c_ptr->ToBinlog(
-        argv,
-        server_id.empty() ? g_pika_conf->server_id() : server_id,
-        binlog_info,
-        false));
+    g_pika_server->logger_->Put(c_ptr->ToBinlog(argv,
+                                                binlog_item.exec_time(),
+                                                std::to_string(binlog_item.server_id()),
+                                                binlog_item.logic_id(),
+                                                binlog_item.filenum(),
+                                                binlog_item.offset()));
     g_pika_server->logger_->Unlock();
     g_pika_server->SignalNextBinlogBGSerial();
   }
 
   PikaCmdArgsType *v = new PikaCmdArgsType(argv);
+  BinlogItem *b = new BinlogItem(binlog_item);
   std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
-  g_pika_server->DispatchBinlogBG(dispatch_key, v, serial, is_readonly);
+  g_pika_server->DispatchBinlogBG(dispatch_key, v, b, serial, is_readonly);
 
   return 0;
 }

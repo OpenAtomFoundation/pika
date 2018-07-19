@@ -28,10 +28,11 @@ std::string NewFileName(const std::string name, const uint32_t current) {
  * Version
  */
 Version::Version(slash::RWFile *save)
-  : pro_offset_(0),
-    pro_num_(0),
-    double_master_recv_offset_(0),
+  : pro_num_(0),
+    pro_offset_(0),
+    logic_id_(0),
     double_master_recv_num_(0),
+    double_master_recv_offset_(0),
     save_(save) {
   assert(save_ != NULL);
 
@@ -45,24 +46,27 @@ Version::~Version() {
 
 Status Version::StableSave() {
   char *p = save_->GetData();
-  memcpy(p, &pro_offset_, sizeof(uint64_t));
-  p += 20;
   memcpy(p, &pro_num_, sizeof(uint32_t));
+  p += 4;
+  memcpy(p, &pro_offset_, sizeof(uint64_t));
+  p += 8;
+  memcpy(p, &logic_id_, sizeof(uint64_t));
+  p += 8;
+  memcpy(p, &double_master_recv_num_, sizeof(uint32_t));
   p += 4;
   memcpy(p, &double_master_recv_offset_, sizeof(uint64_t));
   p += 8;
-  memcpy(p, &double_master_recv_num_, sizeof(uint32_t));
   return Status::OK();
 }
 
 Status Version::Init() {
   Status s;
   if (save_->GetData() != NULL) {
-    memcpy((char*)(&pro_offset_), save_->GetData(), sizeof(uint64_t));
-    memcpy((char*)(&item_num_), save_->GetData() + 16, sizeof(uint32_t));
-    memcpy((char*)(&pro_num_), save_->GetData() + 20, sizeof(uint32_t));
+    memcpy((char*)(&pro_num_), save_->GetData(), sizeof(uint32_t));
+    memcpy((char*)(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
+    memcpy((char*)(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
+    memcpy((char*)(&double_master_recv_num_), save_->GetData() + 20, sizeof(uint32_t));
     memcpy((char*)(&double_master_recv_offset_), save_->GetData() + 24, sizeof(uint64_t));
-    memcpy((char*)(&double_master_recv_num_), save_->GetData() + 32, sizeof(uint32_t));
     return Status::OK();
   } else {
     return Status::Corruption("version init error");
@@ -74,7 +78,6 @@ Status Version::Init() {
  */
 Binlog::Binlog(const std::string& binlog_path, const int file_size) :
     consumer_num_(0),
-    item_num_(0),
     version_(NULL),
     queue_(NULL),
     versionfile_(NULL),
@@ -156,11 +159,14 @@ void Binlog::InitLogFile() {
   block_offset_ = filesize % kBlockSize;
 }
 
-Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset) {
+Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id) {
   slash::RWLock(&(version_->rwlock_), false);
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
+  if (logic_id != NULL) {
+    *logic_id = version_->logic_id_;
+  }
 
   return Status::OK();
 }
@@ -218,6 +224,7 @@ Status Binlog::Put(const char* item, int len) {
   if (s.ok()) {
     slash::RWLock(&(version_->rwlock_), true);
     version_->pro_offset_ = pro_offset;
+    version_->logic_id_++;
     version_->StableSave();
   }
 
