@@ -58,9 +58,11 @@ class IncrCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class IncrbyCmd : public Cmd {
@@ -73,9 +75,11 @@ class IncrbyCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class IncrbyfloatCmd : public Cmd {
@@ -88,9 +92,11 @@ class IncrbyfloatCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class DecrCmd : public Cmd {
@@ -103,9 +109,11 @@ class DecrCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class DecrbyCmd : public Cmd {
@@ -118,9 +126,11 @@ class DecrbyCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class GetsetCmd : public Cmd {
@@ -175,10 +185,12 @@ class SetnxCmd : public Cmd {
   int32_t success_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
-    const PikaCmdArgsType& argv,
-    const std::string& server_id,
-    const std::string& binlog_info,
-    bool need_send_to_hub) override;
+      const PikaCmdArgsType& argv,
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class SetexCmd : public Cmd {
@@ -201,9 +213,11 @@ class MsetCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class MsetnxCmd : public Cmd {
@@ -216,9 +230,11 @@ class MsetnxCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class GetrangeCmd : public Cmd {
@@ -272,9 +288,11 @@ class ExpireCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class PexpireCmd : public Cmd {
@@ -288,9 +306,11 @@ class PexpireCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class ExpireatCmd : public Cmd {
@@ -315,9 +335,11 @@ class PexpireatCmd : public Cmd {
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
+      uint32_t exec_time,
       const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class TtlCmd : public Cmd {

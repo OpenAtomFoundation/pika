@@ -40,7 +40,7 @@ class Binlog {
   Status Put(const std::string &item);
   Status Put(const char* item, int len);
 
-  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset);
+  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id = NULL);
   /*
    * Set Producer pro_num and pro_offset with lock
    */
@@ -99,8 +99,6 @@ class Binlog {
   void operator=(const Binlog&);
 };
 
-// We have to reserve the useless con_offset_, con_num_ and item_num,
-// to be compatable with version 1.x .
 class Version {
  public:
   Version(slash::RWFile *save);
@@ -111,17 +109,13 @@ class Version {
   // RWLock should be held when access members.
   Status StableSave();
 
-  uint32_t item_num()                  { return item_num_; }
-  void set_item_num(uint32_t item_num) { item_num_ = item_num; }
-  void plus_item_num()                 { item_num_++; }
-  void minus_item_num()                { item_num_--; }
-
-  uint64_t pro_offset_;
   uint32_t pro_num_;
+  uint64_t pro_offset_;
+  uint64_t logic_id_;
 
   // Double master used
-  uint64_t double_master_recv_offset_;
   uint32_t double_master_recv_num_;
+  uint64_t double_master_recv_offset_;
 
   pthread_rwlock_t rwlock_;
 
@@ -133,11 +127,6 @@ class Version {
  private:
 
   slash::RWFile *save_;
-
-  // Not used
-  uint64_t con_offset_;
-  uint32_t con_num_;
-  uint32_t item_num_;
 
   // No copying allowed;
   Version(const Version&);
