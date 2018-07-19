@@ -450,7 +450,8 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
 }
 
 bool PikaServer::IsDoubleMaster(const std::string master_ip, int master_port) {
-  if ((g_pika_conf->double_master_ip() == master_ip || host() == master_ip) && g_pika_conf->double_master_port() == master_port) {
+  if ((g_pika_conf->double_master_ip() == master_ip || host() == master_ip)
+    && g_pika_conf->double_master_port() == master_port) {
     return true;
   } else {
     return false;
@@ -1492,9 +1493,9 @@ bool PikaServer::HasMonitorClients() {
 }
 
 void PikaServer::DispatchBinlogBG(const std::string &key,
-    PikaCmdArgsType* argv, uint64_t cur_serial, bool readonly) {
+    PikaCmdArgsType* argv, BinlogItem* binlog_item, uint64_t cur_serial, bool readonly) {
   size_t index = str_hash(key) % binlogbg_workers_.size();
-  binlogbg_workers_[index]->Schedule(argv, cur_serial, readonly);
+  binlogbg_workers_[index]->Schedule(argv, binlog_item, cur_serial, readonly);
 }
 
 bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {

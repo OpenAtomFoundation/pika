@@ -14,6 +14,7 @@
 #include "slash/include/env.h"
 #include "include/pika_define.h"
 #include "include/pika_master_conn.h"
+#include "include/pika_new_master_conn.h"
 #include "include/pika_command.h"
 
 class PikaBinlogReceiverThread {
@@ -45,7 +46,7 @@ class PikaBinlogReceiverThread {
         const std::string &ip_port,
         pink::ServerThread *thread,
         void* worker_specific_data) const override {
-      return new PikaMasterConn(connfd, ip_port, binlog_receiver_);
+      return new PikaNewMasterConn(connfd, ip_port, binlog_receiver_);
     }
 
    private:

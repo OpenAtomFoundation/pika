@@ -14,6 +14,8 @@
 #include "slash/include/slash_string.h"
 #include "pink/include/redis_conn.h"
 
+#include "include/pika_binlog_transverter.h"
+
 const std::string kPikaBinlogMagic = "__PIKA_X#$SKGI";
 
 //Constant for command name
@@ -427,47 +429,33 @@ class Cmd {
     return res_;
   }
 
-  virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
-      const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) {
-    std::string res;
-    res.reserve(RAW_ARGS_LEN);
-    RedisAppendLen(res, argv.size() + 4, "*");
+  virtual std::string ToBinlog(const PikaCmdArgsType& argv,
+                               uint32_t exec_time,
+                               const std::string& server_id,
+                               uint64_t logic_id,
+                               uint32_t filenum,
+                               uint64_t offset) {
+    std::string content;
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, argv.size(), "*");
 
     for (auto& v : argv) {
-      RedisAppendLen(res, v.size(), "$");
-      RedisAppendContent(res, v);
+      RedisAppendLen(content, v.size(), "$");
+      RedisAppendContent(content, v);
     }
 
-    AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
-
-    return res;
+    return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
+                                               exec_time,
+                                               std::stoi(server_id),
+                                               logic_id,
+                                               filenum,
+                                               offset,
+                                               content,
+                                               {});
   }
 
  protected:
   CmdRes res_;
-
-  void AppendAffiliatedInfo(
-      std::string& res,
-      const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) {
-    // kPikaBinlogMagic
-    RedisAppendLen(res, kPikaBinlogMagic.size(), "$");
-    RedisAppendContent(res, kPikaBinlogMagic);
-    // server_id
-    RedisAppendLen(res, server_id.size(), "$");
-    RedisAppendContent(res, server_id);
-    // binlog_info
-    RedisAppendLen(res, binlog_info.size(), "$");
-    RedisAppendContent(res, binlog_info);
-    // need_send_to_hub
-    std::string v = need_send_to_hub ? "1" : "0";
-    RedisAppendLen(res, v.size(), "$");
-    RedisAppendContent(res, v);
-  }
 
  private:
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;

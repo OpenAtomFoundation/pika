@@ -22,8 +22,8 @@ class BinlogBGWorker {
   Cmd* GetCmd(const std::string& opt) {
     return GetCmdFromTable(opt, cmds_);
   }
-  void Schedule(PikaCmdArgsType *argv, uint64_t serial, bool readonly) {
-    BinlogBGArg *arg = new BinlogBGArg(argv, serial, readonly, this);
+  void Schedule(PikaCmdArgsType *argv, BinlogItem* binlog_item, uint64_t serial, bool readonly) {
+    BinlogBGArg *arg = new BinlogBGArg(argv, binlog_item, serial, readonly, this);
     binlogbg_thread_.StartThread();
     binlogbg_thread_.Schedule(&DoBinlogBG, static_cast<void*>(arg));
   }
@@ -35,12 +35,13 @@ class BinlogBGWorker {
   
   struct BinlogBGArg {
     PikaCmdArgsType *argv;
+    BinlogItem* binlog_item;
     uint64_t serial;
     bool readonly; // Server readonly status at the view of binlog dispatch thread
     BinlogBGWorker *myself;
-    BinlogBGArg(PikaCmdArgsType* _argv, uint64_t _s,
+    BinlogBGArg(PikaCmdArgsType* _argv, BinlogItem* _binlog_item, uint64_t _s,
                 bool _readonly, BinlogBGWorker* _my)
-        : argv(_argv), serial(_s), readonly(_readonly), myself(_my) {
+        : argv(_argv), binlog_item(_binlog_item), serial(_s), readonly(_readonly), myself(_my) {
     }
   };
 
