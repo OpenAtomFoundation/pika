@@ -71,7 +71,7 @@ pink::ReadStatus PikaNewMasterConn::ReadBody(uint32_t body_length) {
   if (rbuf_len_ == HEADER_LEN + body_length) {
     return pink::kReadAll;
   } else if (rbuf_len_ > HEADER_LEN + body_length) {
-    LOG(ERROR) << "rbuf_len_ larger than sum of header length (6 Byte) and body_length, rbuf_len_:"
+    LOG(INFO) << "rbuf_len_ larger than sum of header length (6 Byte) and body_length, rbuf_len_:"
       << rbuf_len_ << " body_length:" << body_length;
   }
 
@@ -119,14 +119,14 @@ pink::ReadStatus PikaNewMasterConn::ParseRedisRESPArray(const std::string& conte
   int32_t content_len = content.size();
   long multibulk_len = 0, bulk_len = 0;
   if (content.empty() || content[0] != '*') {
-    LOG(ERROR) << "Content empty() or the first character of the redis protocol string not equal '*'";
+    LOG(INFO) << "Content empty() or the first character of the redis protocol string not equal '*'";
     return pink::kParseError;
   }
   pos = FindNextSeparators(content, next_parse_pos);
   if (pos != -1 && GetNextNum(content, next_parse_pos, pos, &multibulk_len) != -1) {
     next_parse_pos = pos + 1;
   } else {
-    LOG(ERROR) << "Find next separators error or get next num error";
+    LOG(INFO) << "Find next separators error or get next num error";
     return pink::kParseError;
   }
 
@@ -139,7 +139,7 @@ pink::ReadStatus PikaNewMasterConn::ParseRedisRESPArray(const std::string& conte
   argv->clear();
   while (multibulk_len) {
     if (content[next_parse_pos] != '$') {
-      LOG(ERROR) << "The first charactor of the RESP type element not equal '$'";
+      LOG(INFO) << "The first charactor of the RESP type element not equal '$'";
       return pink::kParseError;
     }
 
@@ -155,12 +155,12 @@ pink::ReadStatus PikaNewMasterConn::ParseRedisRESPArray(const std::string& conte
         multibulk_len--;
       }
     } else {
-      LOG(ERROR) << "Find next separators error or get next num error";
+      LOG(INFO) << "Find next separators error or get next num error";
       return pink::kParseError;
     }
   }
   if (content_len != next_parse_pos) {
-    LOG(ERROR) << "Incomplete parse";
+    LOG(INFO) << "Incomplete parse";
     return pink::kParseError;
   } else {
     return pink::kOk;
@@ -187,7 +187,7 @@ pink::ReadStatus PikaNewMasterConn::GetRequest() {
   slash::GetFixed32(&header, &body_length);
 
   if (type != kTypeAuth && type != kTypeBinlog) {
-    LOG(ERROR) << "Unrecognizable Type: " << type;
+    LOG(INFO) << "Unrecognizable Type: " << type;
     return pink::kParseError;
   }
 
@@ -211,7 +211,7 @@ pink::ReadStatus PikaNewMasterConn::GetRequest() {
   std::string body(rbuf_ + HEADER_LEN, body_length);
   if (type == kTypeAuth) {
     if ((status = ParseRedisRESPArray(body, &argv)) != pink::kOk) {
-      LOG(ERROR) << "Type auth ParseRedisRESPArray error";
+      LOG(INFO) << "Type auth ParseRedisRESPArray error";
       return status;
     }
     if (!ProcessAuth(argv)) {
