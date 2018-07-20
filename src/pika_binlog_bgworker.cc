@@ -97,7 +97,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
-      LOG(ERROR) << "command:" << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
+      LOG(ERROR) << "command: " << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
     }
   }
 

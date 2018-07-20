@@ -242,7 +242,7 @@ std::string PikaClientConn::DoCmd(
           break;
         }
       }
-      LOG(ERROR) << "command:" << slow_log << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration << ", ip_port: " << ip_port();
+      LOG(ERROR) << "ip_port: "<< ip_port() << ", command:" << slow_log << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
     }
   }
 
