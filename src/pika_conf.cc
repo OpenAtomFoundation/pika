@@ -81,6 +81,7 @@ int PikaConf::Load()
   GetConfStr("compression", &compression_);
   GetConfBool("slave-read-only", &readonly_);
   GetConfInt("slave-priority", &slave_priority_);
+  GetConfStr("identify-binlog-type", &identify_binlog_type_);
 
   //
   // Immutable Sections
@@ -265,6 +266,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("network-interface", network_interface_);
   SetConfStr("slaveof", slaveof_);
   SetConfInt("slave-priority", slave_priority_);
+  SetConfStr("identify-binlog-type", identify_binlog_type_);
 
   SetConfInt("binlog-file-size", binlog_file_size_);
   SetConfStr("compression", compression_);
