@@ -16,6 +16,9 @@
 #include "include/pika_master_conn.h"
 #include "include/pika_new_master_conn.h"
 #include "include/pika_command.h"
+#include "include/pika_conf.h"
+
+extern PikaConf* g_pika_conf;
 
 class PikaBinlogReceiverThread {
  public:
@@ -46,7 +49,13 @@ class PikaBinlogReceiverThread {
         const std::string &ip_port,
         pink::ServerThread *thread,
         void* worker_specific_data) const override {
-      return new PikaNewMasterConn(connfd, ip_port, binlog_receiver_);
+        if (g_pika_conf->identify_binlog_type() == "new") {
+          LOG(INFO) << "Master conn factory create pika new master conn";
+          return new PikaNewMasterConn(connfd, ip_port, binlog_receiver_);
+        } else {
+          LOG(INFO) << "Master conn factory create pika master conn";
+          return new PikaMasterConn(connfd, ip_port, binlog_receiver_);
+        }
     }
 
    private:
