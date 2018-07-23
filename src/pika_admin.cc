@@ -1080,8 +1080,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     ret = "*2\r\n";
     EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
+  } else if (get_item == "identify-binlog-type") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "identify-binlog-type");
+    EncodeString(&ret, g_pika_conf->identify_binlog_type());
   } else if (get_item == "*") {
-    ret = "*86\r\n";
+    ret = "*88\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1168,6 +1172,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, g_pika_conf->slaveof());
     EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
+    EncodeString(&ret, "identify-binlog-type");
+    EncodeString(&ret, g_pika_conf->identify_binlog_type());
   } else {
     ret = "*0\r\n";
   }
@@ -1176,7 +1182,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*19\r\n";
+    ret = "*20\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
@@ -1196,6 +1202,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
     EncodeString(&ret, "slave-priority");
+    EncodeString(&ret, "identify-binlog-type");
     return;
   }
   std::string value = config_args_v_[2];
@@ -1357,6 +1364,18 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     } else {
       g_pika_conf->SetCompactInterval(value);
+      ret = "+OK\r\n";
+    }
+  } else if (set_item == "identify-binlog-type") {
+    int role = g_pika_server->role();
+    if (role & PIKA_ROLE_SLAVE || role & PIKA_ROLE_DOUBLE_MASTER) {
+      ret = "-ERR need to close master-slave or double-master mode first\r\n";
+      return;
+    } else if (value != "old" && value != "new") {
+      ret = "-ERR invalid identify-binlog-type\r\n";
+      return;
+    } else {
+      g_pika_conf->SetIdentifyBinlogType(value);
       ret = "+OK\r\n";
     }
   } else {
