@@ -33,14 +33,14 @@ int PikaMasterConn::DealMessage(
 
   // Auth
   if (is_first_send_) {
-    if (argv[0] == "auth") {
+    if (argv.size() == 2 && argv[0] == "auth") {
       if (argv[1] == std::to_string(g_pika_server->sid())) {
         is_first_send_ = false;
         LOG(INFO) << "BinlogReceiverThread AccessHandle succeeded, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
         return 0;
       }
+      LOG(INFO) << "BinlogReceiverThread AccessHandle failed, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
     }
-    LOG(INFO) << "BinlogReceiverThread AccessHandle failed, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
     return -2;
   }
 
