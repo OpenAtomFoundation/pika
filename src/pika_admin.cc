@@ -710,7 +710,6 @@ void InfoCmd::InfoReplication(std::string &info) {
   }
 
   std::string slaves_list_str;
-  //int32_t slaves_num = g_pika_server->GetSlaveListString(slaves_list_str);
   switch (host_role) {
     case PIKA_ROLE_SLAVE :
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
@@ -718,14 +717,14 @@ void InfoCmd::InfoReplication(std::string &info) {
       tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_CONNECTED ? "up" : "down") << "\r\n";
       tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->readonly() << "\r\n";
-      tmp_stream << "repl_state: " << (g_pika_server->repl_state()) << "\r\n";
+      tmp_stream << "repl_state: " << (g_pika_server->repl_state_str()) << "\r\n";
       break;
     case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE :
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_CONNECTED ? "up" : "down") << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->readonly() << "\r\n";
-      tmp_stream << "repl_state: " << (g_pika_server->repl_state()) << "\r\n";
+      tmp_stream << "repl_state: " << (g_pika_server->repl_state_str()) << "\r\n";
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER :
       tmp_stream << "connected_slaves:" << g_pika_server->GetSlaveListString(slaves_list_str) << "\r\n" << slaves_list_str;

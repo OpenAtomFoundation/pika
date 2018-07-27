@@ -187,7 +187,8 @@ pink::ReadStatus PikaNewMasterConn::GetRequest() {
   slash::GetFixed32(&header, &body_length);
 
   if (type != kTypeAuth && type != kTypeBinlog) {
-    LOG(INFO) << "Unrecognizable Type: " << type;
+    LOG(INFO) << "Unrecognizable Type: " << type << " maybe identify binlog type error";
+    g_pika_server->SyncError();
     return pink::kParseError;
   }
 
@@ -220,18 +221,18 @@ pink::ReadStatus PikaNewMasterConn::GetRequest() {
   } else if (type == kTypeBinlog) {
     BinlogItem item;
     if (!PikaBinlogTransverter::BinlogDecode(TypeFirst, body, &item)) {
-      LOG(ERROR) << "Binlog decode error: " << item.ToString().c_str();
+      LOG(INFO) << "Binlog decode error: " << item.ToString().c_str();
       return pink::kParseError;
     }
     if ((status = ParseRedisRESPArray(item.content(), &argv)) != pink::kOk) {
-      LOG(ERROR) << "Type Binlog ParseRedisRESPArray error: " << item.ToString().c_str();
+      LOG(INFO) << "Type Binlog ParseRedisRESPArray error: " << item.ToString().c_str();
       return status;
     }
     if (!ProcessBinlogData(argv, item)) {
       return pink::kDealError;
     }
   } else {
-    LOG(ERROR) << "Unrecognizable Type";
+    LOG(INFO) << "Unrecognizable Type";
     return pink::kParseError;
   }
 
