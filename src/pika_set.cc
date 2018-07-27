@@ -6,6 +6,7 @@
 #include "slash/include/slash_string.h"
 #include "include/pika_set.h"
 #include "include/pika_server.h"
+#include "include/pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -29,6 +30,7 @@ void SAddCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
+  SlotKeyAdd("s", key_);
   res_.AppendInteger(count);
   return;
 }
@@ -48,6 +50,7 @@ void SPopCmd::Do() {
   if (s.ok()) {
     res_.AppendStringLen(member.size());
     res_.AppendContent(member);
+    KeyNotExistsRem("s", key_);
   } else if (s.IsNotFound()) {
     res_.AppendContent("$-1");
   } else {
@@ -177,6 +180,7 @@ void SRemCmd::Do() {
   int32_t count = 0;
   rocksdb::Status s = g_pika_server->db()->SRem(key_, members_, &count);
   res_.AppendInteger(count);
+  KeyNotExistsRem("s", key_);
   return;
 }
 
@@ -350,10 +354,13 @@ void SMoveCmd::Do() {
       res_.AppendInteger(res);
     } else {
       res_.AppendInteger(res);
+      SlotKeyAdd("s", dest_key_);
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+
+  KeyNotExistsRem("s", src_key_);
   return;
 }
 

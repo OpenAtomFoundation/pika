@@ -6,6 +6,7 @@
 #include "slash/include/slash_string.h"
 #include "include/pika_zset.h"
 #include "include/pika_server.h"
+#include "include/pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -37,6 +38,7 @@ void ZAddCmd::Do() {
   int32_t count = 0;
   rocksdb::Status s = g_pika_server->db()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
+    SlotKeyAdd("z", key_);
     res_.AppendInteger(count);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -150,6 +152,7 @@ void ZIncrbyCmd::Do() {
     int64_t len = slash::d2string(buf, sizeof(buf), score);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
+    SlotKeyAdd("z", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -459,6 +462,7 @@ void ZRemCmd::Do() {
   rocksdb::Status s = g_pika_server->db()->ZRem(key_, members_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
+    KeyNotExistsRem("z", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -818,6 +822,7 @@ void ZRemrangebyrankCmd::Do() {
   rocksdb::Status s = g_pika_server->db()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
+    KeyNotExistsRem("z", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -849,6 +854,7 @@ void ZRemrangebyscoreCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
+  KeyNotExistsRem("z", key_);
   res_.AppendInteger(count);
   return;
 }
@@ -878,6 +884,7 @@ void ZRemrangebylexCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
   }
+  KeyNotExistsRem("z", key_);
   res_.AppendInteger(count);
   return;
 }

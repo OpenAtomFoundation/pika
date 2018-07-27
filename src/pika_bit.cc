@@ -7,6 +7,7 @@
 #include "slash/include/slash_string.h"
 #include "include/pika_bit.h"
 #include "include/pika_server.h"
+#include "include/pika_slot.h"
 
 extern PikaServer *g_pika_server;
 
@@ -46,6 +47,7 @@ void BitSetCmd::Do() {
   rocksdb::Status s = g_pika_server->db()->SetBit(key_, bit_offset_, on_, &bit_val);
   if (s.ok()){
     res_.AppendInteger((int)bit_val);
+    SlotKeyAdd("k", key_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

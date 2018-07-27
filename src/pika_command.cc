@@ -4,6 +4,7 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_admin.h"
+#include "include/pika_slot.h"
 #include "include/pika_kv.h"
 #include "include/pika_hash.h"
 #include "include/pika_list.h"
@@ -69,6 +70,43 @@ void InitCmdInfoTable() {
   CmdInfo* tcmallocptr = new CmdInfo(kCmdNameTcmalloc, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTcmalloc, tcmallocptr));
 #endif
+
+
+  //migrate slot
+  CmdInfo* slotmgrtslotptr = new CmdInfo(kCmdNameSlotsMgrtSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtSlot, slotmgrtslotptr));
+  CmdInfo* slotmgrttagslotptr = new CmdInfo(kCmdNameSlotsMgrtTagSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtTagSlot, slotmgrttagslotptr));
+  CmdInfo* slotmgrtoneptr = new CmdInfo(kCmdNameSlotsMgrtOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtOne, slotmgrtoneptr));
+  CmdInfo* slotmgrttagoneptr = new CmdInfo(kCmdNameSlotsMgrtTagOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtTagOne, slotmgrttagoneptr));
+  CmdInfo* slotsinfoptr = new CmdInfo(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsInfo, slotsinfoptr));
+  CmdInfo* slotshashkeyptr = new CmdInfo(kCmdNameSlotsHashKey, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsHashKey, slotshashkeyptr));
+  CmdInfo* slotsreloadptr = new CmdInfo(kCmdNameSlotsReload, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsReload, slotsreloadptr));
+  CmdInfo* slotsreloadoffptr = new CmdInfo(kCmdNameSlotsReloadOff, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsReloadOff, slotsreloadoffptr));
+  CmdInfo* slotsdelptr = new CmdInfo(kCmdNameSlotsDel, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsDel, slotsdelptr));
+  CmdInfo* slotsscanptr = new CmdInfo(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsScan, slotsscanptr));
+  CmdInfo* slotscleanupptr = new CmdInfo(kCmdNameSlotsCleanup, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsCleanup, slotscleanupptr));
+  CmdInfo* slotscleanupoffptr = new CmdInfo(kCmdNameSlotsCleanupOff, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsCleanupOff, slotscleanupoffptr));
+  CmdInfo* slotmgrttagslotasyncptr = new CmdInfo(kCmdNameSlotsMgrtTagSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtTagSlotAsync, slotmgrttagslotasyncptr));
+  CmdInfo* slotmgrtslotasyncptr = new CmdInfo(kCmdNameSlotsMgrtSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtSlotAsync, slotmgrtslotasyncptr));
+  CmdInfo* slotmgrtexecwrapper = new CmdInfo(kCmdNameSlotsMgrtExecWrapper, -3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtExecWrapper, slotmgrtexecwrapper));
+  CmdInfo* slotmgrtasyncstatus = new CmdInfo(kCmdNameSlotsMgrtAsyncStatus, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtAsyncStatus, slotmgrtasyncstatus));
+  CmdInfo* slotmgrtasynccancel = new CmdInfo(kCmdNameSlotsMgrtAsyncCancel, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlotsMgrtAsyncCancel, slotmgrtasynccancel));
 
 
   //Kv
@@ -513,6 +551,42 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   Cmd* tcmallocptr = new TcmallocCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTcmalloc, tcmallocptr));
 #endif
+
+  //migrate slot
+  Cmd* slotmgrtslotptr = new SlotsMgrtTagSlotCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtSlot, slotmgrtslotptr));
+  Cmd* slotmgrttagslotptr = new SlotsMgrtTagSlotCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagSlot, slotmgrttagslotptr));
+  Cmd* slotmgrtoneptr = new SlotsMgrtTagOneCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtOne, slotmgrtoneptr));
+  Cmd* slotmgrttagoneptr = new SlotsMgrtTagOneCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagOne, slotmgrttagoneptr));
+  Cmd* slotsinfoptr = new SlotsInfoCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsInfo, slotsinfoptr));
+  Cmd* slotshashkeyptr = new SlotsHashKeyCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsHashKey, slotshashkeyptr));
+  Cmd* slotsreloadptr = new SlotsReloadCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsReload, slotsreloadptr));
+  Cmd* slotsreloadoffptr = new SlotsReloadOffCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsReloadOff, slotsreloadoffptr));
+  Cmd* slotsdelptr = new SlotsDelCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsDel, slotsdelptr));
+  Cmd* slotsscanptr = new SlotsScanCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsScan, slotsscanptr));
+  Cmd* slotscleanupptr = new SlotsCleanupCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsCleanup, slotscleanupptr));
+  Cmd* slotscleanupoffptr = new SlotsCleanupOffCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsCleanupOff, slotscleanupoffptr));
+  Cmd* slotmgrttagslotasyncptr = new SlotsMgrtTagSlotAsyncCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagSlotAsync, slotmgrttagslotasyncptr));
+  Cmd* slotmgrtslotasyncptr = new SlotsMgrtTagSlotAsyncCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtSlotAsync, slotmgrtslotasyncptr));
+  Cmd* slotmgrtexecwrapperptr = new SlotsMgrtExecWrapperCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtExecWrapper, slotmgrtexecwrapperptr));
+  Cmd* slotmgrtasyncstatusptr = new SlotsMgrtAsyncStatusCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtAsyncStatus, slotmgrtasyncstatusptr));
+  Cmd* slotmgrtasynccancelptr = new SlotsMgrtAsyncCancelCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtAsyncCancel, slotmgrtasynccancelptr));
 
   //Kv
   ////SetCmd
