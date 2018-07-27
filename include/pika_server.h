@@ -89,6 +89,25 @@ class PikaServer {
     slash::RWLock(&state_protector_, false);
     return repl_state_;
   }
+  std::string repl_state_str() {
+    slash::RWLock(&state_protector_, false);
+    switch (repl_state_) {
+      case PIKA_REPL_NO_CONNECT:
+        return "no connect";
+      case PIKA_REPL_CONNECT:
+        return "connect";
+      case PIKA_REPL_CONNECTING:
+        return "connecting";
+      case PIKA_REPL_CONNECTED:
+        return "connected";
+      case PIKA_REPL_WAIT_DBSYNC:
+        return "wait dbsync";
+      case PIKA_REPL_ERROR:
+        return "error";
+      default:
+        return "";
+    }
+  }
   bool force_full_sync() {
     return force_full_sync_;
   }
@@ -168,6 +187,7 @@ class PikaServer {
 
   void DoTimingTask();
 
+  slash::Mutex slaveping_protector_;
   PikaSlavepingThread* ping_thread_;
 
   /*

@@ -49,12 +49,12 @@ class PikaBinlogReceiverThread {
         const std::string &ip_port,
         pink::ServerThread *thread,
         void* worker_specific_data) const override {
-        if (g_pika_conf->identify_binlog_type() == "new") {
-          LOG(INFO) << "Master conn factory create pika new master conn";
-          return new PikaNewMasterConn(connfd, ip_port, binlog_receiver_);
-        } else {
+        if (g_pika_conf->identify_binlog_type() == "old") {
           LOG(INFO) << "Master conn factory create pika master conn";
           return new PikaMasterConn(connfd, ip_port, binlog_receiver_);
+        } else {
+          LOG(INFO) << "Master conn factory create pika new master conn";
+          return new PikaNewMasterConn(connfd, ip_port, binlog_receiver_);
         }
     }
 
