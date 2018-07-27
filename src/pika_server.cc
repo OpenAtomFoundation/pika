@@ -1143,10 +1143,10 @@ void PikaServer::Bgslotscleanup(std::vector<int> cleanupSlots) {
   // Only one thread can go through
   {
     slash::MutexLock l(&bgsave_protector_);
-    if (bgslots_cleanup_.cleanuping || bgslots_reload_.reloading || bgsave_info_.bgsaving) {
+    if (bgslots_cleanup_.cleaningup || bgslots_reload_.reloading || bgsave_info_.bgsaving) {
       return;
     }
-    bgslots_cleanup_.cleanuping = true;
+    bgslots_cleanup_.cleaningup = true;
   }
 
   bgslots_cleanup_.start_time = time(NULL);
@@ -1172,7 +1172,7 @@ void PikaServer::DoBgslotscleanup(void* arg) {
   std::vector<std::string> keys;
   int64_t cursor_ret = -1;
   std::vector<int> cleanupSlots(cleanup.cleanup_slots);
-  while(cursor_ret != 0 && p->GetSlotscleanuping()){
+  while(cursor_ret != 0 && p->GetSlotscleaningup()){
     cursor_ret = p->db()->Scan(cleanup.cursor, cleanup.pattern, cleanup.count, &keys);
 
     std::string key_type;
@@ -1191,10 +1191,10 @@ void PikaServer::DoBgslotscleanup(void* arg) {
     }
 
     cleanup.cursor = cursor_ret;
-    p->SetSlotscleanupingCursor(cursor_ret);
+    p->SetSlotscleaningupCursor(cursor_ret);
     keys.clear();
   }
-  p->SetSlotscleanuping(false);
+  p->SetSlotscleaningup(false);
   std::vector<int> empty;
   p->SetCleanupSlots(empty);
   LOG(INFO) << "Finish slots cleanup!";

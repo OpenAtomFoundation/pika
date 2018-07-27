@@ -308,16 +308,16 @@ class PikaServer {
  * BGSlotsCleanup used
  */
   struct BGSlotsCleanup {
-    bool cleanuping;
+    bool cleaningup;
     time_t start_time;
     std::string s_start_time;
     int64_t cursor;
     std::string pattern;
     int64_t count;
     std::vector<int> cleanup_slots;
-    BGSlotsCleanup() : cleanuping(false), cursor(0), pattern("*"), count(100){}
+    BGSlotsCleanup() : cleaningup(false), cursor(0), pattern("*"), count(100){}
     void Clear() {
-      cleanuping = false;
+      cleaningup = false;
       pattern = "*";
       count = 100;
       cursor = 0;
@@ -327,19 +327,19 @@ class PikaServer {
     slash::MutexLock l(&bgsave_protector_);
     return bgslots_cleanup_;
   }
-  bool GetSlotscleanuping() {
+  bool GetSlotscleaningup() {
     slash::MutexLock l(&bgsave_protector_);
-    return bgslots_cleanup_.cleanuping;
+    return bgslots_cleanup_.cleaningup;
   }
-  void SetSlotscleanuping(bool cleanuping) {
+  void SetSlotscleaningup(bool cleaningup) {
     slash::MutexLock l(&bgsave_protector_);
-    bgslots_cleanup_.cleanuping = cleanuping;
+    bgslots_cleanup_.cleaningup = cleaningup;
   }
-  void SetSlotscleanupingCursor(int64_t cursor) {
+  void SetSlotscleaningupCursor(int64_t cursor) {
     slash::MutexLock l(&bgsave_protector_);
     bgslots_cleanup_.cursor = cursor;
   }
-  int64_t GetSlotscleanupingCursor() {
+  int64_t GetSlotscleaningupCursor() {
     slash::MutexLock l(&bgsave_protector_);
     return bgslots_cleanup_.cursor;
   }
@@ -354,7 +354,7 @@ class PikaServer {
   void Bgslotscleanup(std::vector<int> cleanup_slots);
   void StopBgslotscleanup() {
     slash::MutexLock l(&bgsave_protector_);
-    bgslots_cleanup_.cleanuping = false;
+    bgslots_cleanup_.cleaningup = false;
     std::vector<int> cleanup_slots;
     bgslots_cleanup_.cleanup_slots.swap(cleanup_slots);
   }
