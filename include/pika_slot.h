@@ -5,6 +5,7 @@
 #include "pink/include/pink_cli.h"
 #include "include/pika_command.h"
 #include "include/pika_client_conn.h"
+#include "blackwidow/blackwidow.h"
 #include "strings.h"
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";

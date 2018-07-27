@@ -1118,11 +1118,8 @@ void PikaServer::DoBgslotsreload(void* arg) {
   std::vector<std::string> keys;
   int64_t cursor_ret = -1;
   while(cursor_ret != 0 && p->GetSlotsreloading()){
-    nemo::Status s = p->db()->Scan(reload.cursor, reload.pattern, reload.count, keys, &cursor_ret);
-    if (!s.ok()){
-      LOG(WARNING) << "BG slotsreload error: " <<strerror(errno);
-      return;
-    }
+    cursor_ret = p->db()->Scan(reload.cursor, reload.pattern, reload.count, &keys);
+
     std::vector<std::string>::const_iterator iter;
     for (iter = keys.begin(); iter != keys.end(); iter++){
       std::string key_type;
@@ -1176,11 +1173,8 @@ void PikaServer::DoBgslotscleanup(void* arg) {
   int64_t cursor_ret = -1;
   std::vector<int> cleanupSlots(cleanup.cleanup_slots);
   while(cursor_ret != 0 && p->GetSlotscleanuping()){
-    nemo::Status s = p->db()->Scan(cleanup.cursor, cleanup.pattern, cleanup.count, keys, &cursor_ret);
-    if (!s.ok()){
-      LOG(WARNING) << "BG slotscleanup error: " <<strerror(errno);
-      return;
-    }
+    cursor_ret = p->db()->Scan(cleanup.cursor, cleanup.pattern, cleanup.count, &keys);
+
     std::string key_type;
     std::vector<std::string>::const_iterator iter;
     for (iter = keys.begin(); iter != keys.end(); iter++){

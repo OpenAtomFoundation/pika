@@ -1579,8 +1579,8 @@ void DbsizeCmd::Do() {
   if (g_pika_conf->slotmigrate()){
     int64_t dbsize = 0;
     for (int i = 0; i < HASH_SLOTS_SIZE; ++i){
-      int64_t card = 0;
-      card = g_pika_server->db()->SCard(SlotKeyPrefix+std::to_string(i));
+      int32_t card = 0;
+      rocksdb::Status s = g_pika_server->db()->SCard(SlotKeyPrefix+std::to_string(i), &card);
       if (card >= 0) {
         dbsize += card;
       }else {
