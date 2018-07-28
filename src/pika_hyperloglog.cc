@@ -34,6 +34,9 @@ void PfAddCmd::Do() {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+  if (s.ok()) {
+    SlotKeyAdd("k", key_);
+  }
 }
 
 void PfCountCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
