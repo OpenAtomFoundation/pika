@@ -1060,7 +1060,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do() {
     }
 
     int64_t moved = 0, remained = 0;
-    ret = g_pika_server->GetSlotsMigrateResul(&moved, &remained);
+    ret = g_pika_server->GetSlotsMigrateResult(&moved, &remained);
     if (ret){
         res_.AppendArrayLen(2);
         res_.AppendInteger(moved);
@@ -1263,7 +1263,7 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
     // if is_migrating_, does some check and prepare the keys to be migrated 
     if (is_migrating_){
         if (!(dest_ip_==ip && dest_port_==port && slot_num_==slot)) {
-            LOG(WARNING) << "wrong des_ip, des_port or slot_num";
+            LOG(WARNING) << "wrong dest_ip, dest_port or slot_num";
             return false;
         }
         timeout_ms_ = time_out;
@@ -1296,7 +1296,7 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
     return true;
 }
 
-bool SlotsMgrtSenderThread::GetSlotsMigrateResul(int64_t *moved, int64_t *remained){
+bool SlotsMgrtSenderThread::GetSlotsMigrateResult(int64_t *moved, int64_t *remained){
     slash::MutexLock lm(&slotsmgrt_cond_mutex_);
     slotsmgrt_cond_.TimedWait(timeout_ms_);
     *moved = moved_keys_num_;

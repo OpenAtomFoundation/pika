@@ -184,7 +184,7 @@ public:
     virtual ~SlotsMgrtSenderThread();
     int SlotsMigrateOne(const std::string &key);
     bool SlotsMigrateBatch(const std::string &ip, int64_t port, int64_t time_out, int64_t slot, int64_t keys_num);
-    bool GetSlotsMigrateResul(int64_t *moved, int64_t *remained);
+    bool GetSlotsMigrateResult(int64_t *moved, int64_t *remained);
     void GetSlotsMgrtSenderStatus(std::string *ip, int64_t *port, int64_t *slot, bool *migrating, int64_t *moved, int64_t *remained);
     bool SlotsMigrateAsyncCancel();
 private:
