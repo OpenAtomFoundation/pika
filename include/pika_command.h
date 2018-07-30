@@ -275,7 +275,7 @@ private:
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
-void inline RedisAppendLen(std::string& str, int ori, const std::string &prefix);
+void inline RedisAppendLen(std::string& str, int64_t ori, const std::string &prefix);
 
 const std::string kNewLine = "\r\n";
 
@@ -381,13 +381,13 @@ public:
   }
 
   // Inline functions for Create Redis protocol
-  void AppendStringLen(int ori) {
+  void AppendStringLen(int64_t ori) {
     RedisAppendLen(message_, ori, "$");
   }
-  void AppendArrayLen(int ori) {
+  void AppendArrayLen(int64_t ori) {
     RedisAppendLen(message_, ori, "*");
   }
-  void AppendInteger(int ori) {
+  void AppendInteger(int64_t ori) {
     RedisAppendLen(message_, ori, ":");
   }
   void AppendContent(const std::string &value) {
@@ -482,7 +482,7 @@ void RedisAppendContent(std::string& str, const std::string& value) {
   str.append(kNewLine);
 }
 
-void RedisAppendLen(std::string& str, int ori, const std::string &prefix) {
+void RedisAppendLen(std::string& str, int64_t ori, const std::string &prefix) {
   char buf[32];
   slash::ll2string(buf, 32, static_cast<long long>(ori));
   str.append(prefix);
