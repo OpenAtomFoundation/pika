@@ -1418,7 +1418,7 @@ void DbsizeCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, "keyspace error");
     return;
   }
-  int32_t dbsize = key_nums_v[0] + key_nums_v[1] + key_nums_v[2] + key_nums_v[3] + key_nums_v[4];
+  int64_t dbsize = key_nums_v[0] + key_nums_v[1] + key_nums_v[2] + key_nums_v[3] + key_nums_v[4];
   res_.AppendInteger(dbsize);
 }
 
