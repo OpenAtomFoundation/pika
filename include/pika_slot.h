@@ -205,7 +205,6 @@ private:
     slash::CondVar slotsmgrt_cond_;
     slash::Mutex slotsmgrt_cond_mutex_;
     std::atomic<bool> is_migrating_;
-    std::atomic<bool> should_exit_;
 
     bool ElectMigrateKeys();
     virtual void* ThreadMain();

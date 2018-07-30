@@ -1162,8 +1162,7 @@ SlotsMgrtSenderThread::SlotsMgrtSenderThread() :
     moved_keys_all_(-1),
     remained_keys_num_(-1),
     slotsmgrt_cond_(&slotsmgrt_cond_mutex_),
-    is_migrating_(false),
-    should_exit_(false) {
+    is_migrating_(false) {
         cli_ = pink::NewRedisCli();
         pthread_rwlockattr_t attr;
         pthread_rwlockattr_init(&attr);
@@ -1181,7 +1180,7 @@ SlotsMgrtSenderThread::~SlotsMgrtSenderThread() {
         StopThread();
     }
     is_migrating_ = false;
-    should_exit_ = true;
+    set_should_stop();
     pthread_rwlock_destroy(&rwlock_db_);
     pthread_rwlock_destroy(&rwlock_batch_);
     pthread_rwlock_destroy(&rwlock_ones_);
@@ -1272,6 +1271,7 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
         if (!ret) {
             LOG(WARNING) << "Slots migrating sender get batch keys error";
             is_migrating_ = false;
+            set_should_stop();
             return false;
         }
         return true;
@@ -1303,6 +1303,7 @@ bool SlotsMgrtSenderThread::GetSlotsMigrateResult(int64_t *moved, int64_t *remai
     *remained = remained_keys_num_;
     if(*remained <= 0){
         is_migrating_ == false;
+        set_should_stop();
         StopThread();
     }
     return true;
@@ -1322,8 +1323,6 @@ void SlotsMgrtSenderThread::GetSlotsMgrtSenderStatus(std::string *ip, int64_t *p
 
 bool SlotsMgrtSenderThread::SlotsMigrateAsyncCancel() {
     slash::RWLock l(&rwlock_db_, true);
-    slash::RWLock lb(&rwlock_batch_, true);
-    slash::RWLock lo(&rwlock_ones_, true);
     dest_ip_ = "none";
     dest_port_ = -1;
     timeout_ms_ = 3000;
@@ -1332,10 +1331,12 @@ bool SlotsMgrtSenderThread::SlotsMigrateAsyncCancel() {
     moved_keys_all_ = -1;
     remained_keys_num_ = -1;
     is_migrating_ = false;
-    should_exit_ = false;
     if (is_running()) {
+        set_should_stop();
         StopThread();
     }
+    slash::RWLock lb(&rwlock_batch_, true);
+    slash::RWLock lo(&rwlock_ones_, true);
     std::vector<std::pair<const char, std::string>>().swap(migrating_batch_);
     std::vector<std::pair<const char, std::string>>().swap(migrating_ones_);
     return true;
@@ -1350,7 +1351,6 @@ bool SlotsMgrtSenderThread::ElectMigrateKeys(){
     remained_keys_num_ = card + migrating_batch_.size() + migrating_ones_.size();
     if (remained_keys_num_ == 0){
         LOG(WARNING) << "No keys in slot: " << slot_num_;
-        should_exit_ = true;
         is_migrating_ = false;
         return true;
     } else if (remained_keys_num_ < 0) {
@@ -1386,7 +1386,6 @@ bool SlotsMgrtSenderThread::ElectMigrateKeys(){
         }
     }
 
-    should_exit_ = false;
     return true;
 }
 
@@ -1395,7 +1394,7 @@ void* SlotsMgrtSenderThread::ThreadMain() {
     slash::Status result;
     cli_->set_connect_timeout(timeout_ms_);
     moved_keys_all_ = 0;
-    while (!should_exit_) {
+    while (!should_stop()) {
         result = cli_->Connect(dest_ip_, dest_port_, g_pika_server->host());
         LOG(INFO) << "Slots Migrate Sender Connect server(" << dest_ip_ << ":" << dest_port_ << ") " << result.ToString();
 
@@ -1405,7 +1404,7 @@ void* SlotsMgrtSenderThread::ThreadMain() {
             if (doAuth(cli_) < 0) {
                 slotsmgrt_cond_.Signal();
                 is_migrating_ = false;
-                should_exit_ = true;
+                set_should_stop();
                 goto migrate_end;
             }
 
@@ -1436,7 +1435,7 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                             LOG(WARNING) << "Migrate batch key: " << iter->second <<" error: ";
                             slotsmgrt_cond_.Signal();
                             is_migrating_ = false;
-                            should_exit_ = true;
+                            set_should_stop();
                             goto migrate_end;
                         } else {
                             j += r;
@@ -1464,7 +1463,7 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                     slotsmgrt_cond_.Signal();
                     moved_keys_num_ = 0;
                     is_migrating_ = false;
-                    should_exit_ = true;
+                    set_should_stop();
                     goto migrate_end;
                 }
                 slotsmgrt_cond_.Signal();
@@ -1473,7 +1472,7 @@ void* SlotsMgrtSenderThread::ThreadMain() {
             LOG(WARNING)  << "Slots Migrate Sender Connect server(" << dest_ip_ << ":" << dest_port_ << ") error";
             moved_keys_num_ = -1;
             is_migrating_ = false;
-            should_exit_ = true;
+            set_should_stop();
             slotsmgrt_cond_.Signal();
         }
 
