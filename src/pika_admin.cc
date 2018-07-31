@@ -999,10 +999,6 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "daemonize");
       EncodeString(&ret, g_pika_conf->daemonize() ? "yes" : "no");
-  } else if (get_item == "slotmigrate") {
-      ret = "*2\r\n";
-      EncodeString(&ret, "slotmigrate");
-      EncodeString(&ret, g_pika_conf->slotmigrate() ? "yes" : "no");
   } else if (get_item == "dump-path") {
       ret = "*2\r\n";
       EncodeString(&ret, "dump-path");
@@ -1084,7 +1080,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "identify-binlog-type");
     EncodeString(&ret, g_pika_conf->identify_binlog_type());
   } else if (get_item == "*") {
-    ret = "*88\r\n";
+    ret = "*86\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1121,8 +1117,6 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, g_pika_conf->suser_blacklist());
     EncodeString(&ret, "daemonize");
     EncodeInt32(&ret, g_pika_conf->daemonize());
-    EncodeString(&ret, "slotmigrate");
-    EncodeInt32(&ret, g_pika_conf->slotmigrate());
     EncodeString(&ret, "dump-path");
     EncodeString(&ret, g_pika_conf->bgsave_path());
     EncodeString(&ret, "dump-expire");
@@ -1181,12 +1175,11 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*20\r\n";
+    ret = "*19\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
-    EncodeString(&ret, "slotmigrate");
     EncodeString(&ret, "userpass");
     EncodeString(&ret, "userblacklist");
     EncodeString(&ret, "dump-prefix");
@@ -1231,9 +1224,6 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     ret = "+OK\r\n";
   } else if (set_item == "masterauth") {
     g_pika_conf->SetMasterAuth(value);
-    ret = "+OK\r\n";
-  } else if (set_item == "slotmigrate") {
-    g_pika_conf->SetSlotMigrate(value);
     ret = "+OK\r\n";
   } else if (set_item == "userpass") {
     g_pika_conf->SetUserPass(value);
