@@ -60,6 +60,7 @@ void GeoAddCmd::Do() {
   int32_t count = 0;
   rocksdb::Status s = g_pika_server->db()->ZAdd(key_, score_members, &count); 
   if (s.ok()) {
+    SlotKeyAdd("z", key_);
     res_.AppendInteger(count);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -346,6 +347,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
+    SlotKeyAdd("z", range.storekey);
     res.AppendInteger(count_limit);
     return;
   } else {
