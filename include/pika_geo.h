@@ -6,8 +6,6 @@
 #ifndef PIKA_GEO_H_
 #define PIKA_GEO_H_
 #include "include/pika_command.h"
-#include "nemo.h"
-
 
 /*
  * zset
