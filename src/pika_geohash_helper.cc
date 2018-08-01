@@ -60,7 +60,7 @@ static inline double rad_deg(double ang) { return ang / D_R; }
 /* This function is used in order to estimate the step (bits precision)
  * of the 9 search area boxes during radius queries. */
 uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
-    if (range_meters == 0) return 18;
+    if (range_meters == 0) return 26;
     int step = 1;
     while (range_meters < MERCATOR_MAX) {
         range_meters *= 2;
@@ -78,14 +78,28 @@ uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
 
     /* Frame to valid range. */
     if (step < 1) step = 1;
-    if (step > 18) step = 18;
+    if (step > 26) step = 26;
     return step;
 }
 
 /* Return the bounding box of the search area centered at latitude,longitude
  * having a radius of radius_meter. bounds[0] - bounds[2] is the minimum
  * and maxium longitude, while bounds[1] - bounds[3] is the minimum and
- * maximum latitude. */
+ * maximum latitude.
+ *
+ * This function does not behave correctly with very large radius values, for
+ * instance for the coordinates 81.634948934258375 30.561509253718668 and a
+ * radius of 7083 kilometers, it reports as bounding boxes:
+ *
+ * min_lon 7.680495, min_lat -33.119473, max_lon 155.589402, max_lat 94.242491
+ *
+ * However, for instance, a min_lon of 7.680495 is not correct, because the
+ * point -1.27579540014266968 61.33421815228281559 is at less than 7000
+ * kilometers away.
+ *
+ * Since this function is currently only used as an optimization, the
+ * optimization is not used for very big radiuses, however the function
+ * should be fixed. */
 int geohashBoundingBox(double longitude, double latitude, double radius_meters,
                        double *bounds) {
     if (!bounds) return 0;
@@ -154,25 +168,27 @@ GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double 
     }
 
     /* Exclude the search areas that are useless. */
-    if (area.latitude.min < min_lat) {
-        GZERO(neighbors.south);
-        GZERO(neighbors.south_west);
-        GZERO(neighbors.south_east);
-    }
-    if (area.latitude.max > max_lat) {
-        GZERO(neighbors.north);
-        GZERO(neighbors.north_east);
-        GZERO(neighbors.north_west);
-    }
-    if (area.longitude.min < min_lon) {
-        GZERO(neighbors.west);
-        GZERO(neighbors.south_west);
-        GZERO(neighbors.north_west);
-    }
-    if (area.longitude.max > max_lon) {
-        GZERO(neighbors.east);
-        GZERO(neighbors.south_east);
-        GZERO(neighbors.north_east);
+    if (steps >= 2) {
+        if (area.latitude.min < min_lat) {
+            GZERO(neighbors.south);
+            GZERO(neighbors.south_west);
+            GZERO(neighbors.south_east);
+        }
+        if (area.latitude.max > max_lat) {
+            GZERO(neighbors.north);
+            GZERO(neighbors.north_east);
+            GZERO(neighbors.north_west);
+        }
+        if (area.longitude.min < min_lon) {
+            GZERO(neighbors.west);
+            GZERO(neighbors.south_west);
+            GZERO(neighbors.north_west);
+        }
+        if (area.longitude.max > max_lon) {
+            GZERO(neighbors.east);
+            GZERO(neighbors.south_east);
+            GZERO(neighbors.north_east);
+        }
     }
     radius.hash = hash;
     radius.neighbors = neighbors;
@@ -187,7 +203,7 @@ GeoHashRadius geohashGetAreasByRadiusWGS84(double longitude, double latitude,
 
 GeoHashFix52Bits geohashAlign52Bits(const GeoHashBits hash) {
     uint64_t bits = hash.bits;
-    bits <<= (36 - hash.step * 2);
+    bits <<= (52 - hash.step * 2);
     return bits;
 }
 

@@ -44,7 +44,7 @@ extern "C" {
 #define RANGEISZERO(r) (!(r).max && !(r).min)
 #define RANGEPISZERO(r) (r == NULL || RANGEISZERO(*r))
 
-#define GEO_STEP_MAX 18 /* 26*2 = 52 bits. */
+#define GEO_STEP_MAX 26 /* 26*2 = 52 bits. */
 
 /* Limits from EPSG:900913 / EPSG:3785 / OSGEO:41001 */
 #define GEO_LAT_MIN -85.05112878
@@ -115,4 +115,4 @@ void geohashNeighbors(const GeoHashBits *hash, GeoHashNeighbors *neighbors);
 #if defined(__cplusplus)
 }
 #endif
-#endif /* GEOHASH_H_ */
+#endif /* PIKA_GEOHASH_H_ */

@@ -29,8 +29,8 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PIKA_GEOHASH_HELPER_H_
-#define PIKA_GEOHASH_HELPER_H_
+#ifndef PIKA_GEOHASH_HELPER_HPP_
+#define PIKA_GEOHASH_HELPER_HPP_
 
 #include "include/pika_geohash.h"
 
@@ -67,4 +67,4 @@ int geohashGetDistanceIfInRadiusWGS84(double x1, double y1, double x2,
                                       double y2, double radius,
                                       double *distance);
 
-#endif /* GEOHASH_HELPER_HPP_ */
+#endif /* PIKA_GEOHASH_HELPER_HPP_ */

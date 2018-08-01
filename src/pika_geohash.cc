@@ -144,14 +144,14 @@ int geohashEncode(const GeoHashRange *long_range, const GeoHashRange *lat_range,
         (longitude - long_range->min) / (long_range->max - long_range->min);
 
     /* convert to fixed point based on the step size */
-    lat_offset *= (1 << step);
-    long_offset *= (1 << step);
+    lat_offset *= (1ULL << step);
+    long_offset *= (1ULL << step);
     hash->bits = interleave64(lat_offset, long_offset);
     return 1;
 }
 
 int geohashEncodeType(double longitude, double latitude, uint8_t step, GeoHashBits *hash) {
-    GeoHashRange r[2] = {GeoHashRange()};
+    GeoHashRange r[2] = {{0}};
     geohashGetCoordRange(&r[0], &r[1]);
     return geohashEncode(&r[0], &r[1], longitude, latitude, step, hash);
 }
@@ -194,7 +194,7 @@ int geohashDecode(const GeoHashRange long_range, const GeoHashRange lat_range,
 }
 
 int geohashDecodeType(const GeoHashBits hash, GeoHashArea *area) {
-    GeoHashRange r[2] = {GeoHashRange()};
+    GeoHashRange r[2] = {{0}};
     geohashGetCoordRange(&r[0], &r[1]);
     return geohashDecode(r[0], r[1], hash, area);
 }
@@ -211,7 +211,7 @@ int geohashDecodeAreaToLongLat(const GeoHashArea *area, double *xy) {
 }
 
 int geohashDecodeToLongLatType(const GeoHashBits hash, double *xy) {
-    GeoHashArea area = GeoHashArea();
+    GeoHashArea area = {{0}};
     if (!xy || !geohashDecodeType(hash, &area))
         return 0;
     return geohashDecodeAreaToLongLat(&area, xy);
