@@ -11,6 +11,7 @@
 #include "include/pika_zset.h"
 #include "include/pika_bit.h"
 #include "include/pika_hyperloglog.h"
+#include "include/pika_geo.h"
 #include "include/pika_pubsub.h"
 
 static std::unordered_map<std::string, CmdInfo*> cmd_infos(300);    /* Table for CmdInfo */
@@ -376,6 +377,26 @@ void InitCmdInfoTable() {
   ////PfMerge
   CmdInfo* pfmergeptr = new CmdInfo(kCmdNamePfMerge, -3, kCmdFlagsWrite | kCmdFlagsHyperLogLog);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePfMerge, pfmergeptr));
+
+  //GEO
+  ////GeoAdd
+  CmdInfo* geoaddptr = new CmdInfo(kCmdNameGeoAdd, -5, kCmdFlagsWrite | kCmdFlagsGeo);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoAdd, geoaddptr));
+  ////GeoPos
+  CmdInfo* geoposptr = new CmdInfo(kCmdNameGeoPos, -2, kCmdFlagsRead | kCmdFlagsGeo);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoPos, geoposptr));
+  ////GeoDist
+  CmdInfo* geodistptr = new CmdInfo(kCmdNameGeoDist, -4, kCmdFlagsRead | kCmdFlagsGeo);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoDist, geodistptr));
+  ////GeoHash
+  CmdInfo* geohashptr = new CmdInfo(kCmdNameGeoHash, -2, kCmdFlagsRead | kCmdFlagsGeo);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoHash, geohashptr));
+  ////GeoRadius
+  CmdInfo* georadiusptr = new CmdInfo(kCmdNameGeoRadius, -6, kCmdFlagsRead | kCmdFlagsGeo);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoRadius, georadiusptr));
+  ////GeoRadiusByMember
+  CmdInfo* georadiusbymemberptr = new CmdInfo(kCmdNameGeoRadiusByMember, -5, kCmdFlagsRead | kCmdFlagsGeo);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameGeoRadiusByMember, georadiusbymemberptr));
 
   //Pub/Sub
   //Publish
@@ -769,6 +790,26 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////pfmergeCmd
   Cmd * pfmergeptr = new PfMergeCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePfMerge, pfmergeptr));
+
+  //GEO
+  ////GepAdd
+  Cmd * geoaddptr = new GeoAddCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoAdd, geoaddptr));
+  ////GeoPos
+  Cmd * geoposptr = new GeoPosCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoPos, geoposptr));
+  ////GeoDist
+  Cmd * geodistptr = new GeoDistCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoDist, geodistptr));
+  ////GeoHash
+  Cmd * geohashptr = new GeoHashCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoHash, geohashptr));
+  ////GeoRadius
+  Cmd * georadiusptr = new GeoRadiusCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoRadius, georadiusptr));
+  ////GeoRadiusByMember
+  Cmd * georadiusbymemberptr = new GeoRadiusByMemberCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGeoRadiusByMember, georadiusbymemberptr));
 
   //PubSub
   ////Publish
