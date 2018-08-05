@@ -63,7 +63,7 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  std::vector<std::string> member_;
+  std::vector<std::string> members_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
@@ -82,7 +82,7 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  std::vector<std::string> member_;
+  std::vector<std::string> members_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
