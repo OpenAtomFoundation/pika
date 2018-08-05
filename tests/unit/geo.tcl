@@ -49,6 +49,9 @@ proc compare_lists {List1 List2} {
 #
 # The format is: seed km lon lat
 set regression_vectors {
+    {1482225976969 7083 81.634948934258375 30.561509253718668}
+    {1482340074151 5416 -70.863281847379767 -46.347003465679947}
+    {1499014685896 6064 -89.818768962202014 -40.463868561416803}
     {1412 156 149.29737817929004 15.95807862745508}
     {441574 143 59.235461856813856 66.269555127373678}
     {160645 187 -101.88575239939883 49.061997951502917}
@@ -76,7 +79,7 @@ start_server {tags {"geo"}} {
                 foo bar "luck market"
         } err
         set err
-    } {ERR value is not an float}
+    } {*valid*}
 
     test {GEOADD multi add} {
         r geoadd nyc -73.9733487 40.7648057 "central park n/q/r" -73.9903085 40.7362513 "union square" -74.0131604 40.7126674 "wtc one" -73.7858139 40.6428986 "jfk" -73.9375699 40.7498929 "q4" -73.9564142 40.7480973 4545
@@ -84,7 +87,7 @@ start_server {tags {"geo"}} {
 
     test {Check geoset values} {
         r zrange nyc 0 -1 withscores
-    } {{wtc one} 27341826966 {union square} 27341850054 {central park n/q/r} 27341854268 4545 27341854808 {lic market} 27341854925 q4 27341855317 jfk 27342161644}
+    } {{wtc one} 1791873972053020 {union square} 1791875485187452 {central park n/q/r} 1791875761332224 4545 1791875796750882 {lic market} 1791875804419201 q4 1791875830079666 jfk 1791895905559723}
 
     test {GEORADIUS simple (sorted)} {
         r georadius nyc -73.9798091 40.7598464 3 km asc
@@ -92,7 +95,7 @@ start_server {tags {"geo"}} {
 
     test {GEORADIUS withdist (sorted)} {
         r georadius nyc -73.9798091 40.7598464 3 km withdist asc
-    } {{{central park n/q/r} 0.7953} {4545 2.3672} {{union square} 2.7844}}
+    } {{{central park n/q/r} 0.7750} {4545 2.3651} {{union square} 2.7697}}
 
     test {GEORADIUS with COUNT} {
         r georadius nyc -73.9798091 40.7598464 10 km COUNT 3
@@ -118,14 +121,14 @@ start_server {tags {"geo"}} {
 
     test {GEORADIUSBYMEMBER withdist (sorted)} {
         r georadiusbymember nyc "wtc one" 7 km withdist
-    } {{{wtc one} 0.0000} {{union square} 3.1908} {{central park n/q/r} 6.6785} {4545 6.1410} {{lic market} 6.8411}}
+    } {{{wtc one} 0.0000} {{union square} 3.2544} {{central park n/q/r} 6.7000} {4545 6.1975} {{lic market} 6.8969}}
 
     test {GEOHASH is able to return geohash strings} {
         # Example from Wikipedia.
         r del points
         r geoadd points -5.6 42.6 test
         lindex [r geohash points test] 0
-    } {ezs42e4d0j0}
+    } {ezs42e44yx0}
 
     test {GEOPOS simple} {
         r del points
@@ -149,7 +152,7 @@ start_server {tags {"geo"}} {
         r geoadd points 13.361389 38.115556 "Palermo" \
                         15.087269 37.502669 "Catania"
         set m [r geodist points Palermo Catania]
-        assert {$m > 166285 && $m < 166287}
+        assert {$m > 166274 && $m < 166275}
         set km [r geodist points Palermo Catania km]
         assert {$km > 166.2 && $km < 166.3}
     }
@@ -209,14 +212,14 @@ start_server {tags {"geo"}} {
         r del points
         r geoadd points 13.361389 38.115556 "Palermo" \
                         15.087269 37.502669 "Catania"
-        r georadius points 13.361389 38.115556 500 km storedist points3 asc count 1
-        assert {[r zcard points3] == 1}
-        set res [r zrange points3 0 -1 withscores]
+        r georadius points 13.361389 38.115556 500 km storedist points2 asc count 1
+        assert {[r zcard points2] == 1}
+        set res [r zrange points2 0 -1 withscores]
         assert {[lindex $res 0] eq "Palermo"}
 
-        r georadius points 13.361389 38.115556 500 km storedist points4 desc count 1
-        assert {[r zcard points4] == 1}
-        set res [r zrange points4 0 -1 withscores]
+        r georadius points 13.361389 38.115556 500 km storedist points2 desc count 1
+        assert {[r zcard points2] == 1}
+        set res [r zrange points2 0 -1 withscores]
         assert {[lindex $res 0] eq "Catania"}
     }
 
@@ -254,10 +257,11 @@ start_server {tags {"geo"}} {
             for {set j 0} {$j < 20000} {incr j} {
                 geo_random_point lon lat
                 lappend argv $lon $lat "place:$j"
-                if {[geo_distance $lon $lat $search_lon $search_lat] < $radius_m} {
+                set distance [geo_distance $lon $lat $search_lon $search_lat]
+                if {$distance < $radius_m} {
                     lappend tcl_result "place:$j"
-                    lappend debuginfo "place:$j $lon $lat [expr {[geo_distance $lon $lat $search_lon $search_lat]/1000}] km"
                 }
+                lappend debuginfo "place:$j $lon $lat [expr {$distance/1000}] km"
             }
             r geoadd mypoints {*}$argv
             set res [lsort [r georadius mypoints $search_lon $search_lat $radius_km km]]

@@ -343,7 +343,7 @@ public:
     case kInvalidBitPosArgument:
       return "-ERR The bit argument must be 1 or 0.\r\n";
     case kInvalidFloat:
-      return "-ERR value is not an float\r\n";
+      return "-ERR value is not a valid float\r\n";
     case kOverFlow:
       return "-ERR increment or decrement would overflow\r\n";
     case kNotFound:

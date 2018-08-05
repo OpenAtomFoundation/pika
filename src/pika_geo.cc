@@ -25,19 +25,18 @@ void GeoAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   }
   key_ = argv[1];
   pos_.clear();
-  size_t index = 2;
-  for (; index < argc; index += 3) {
-    struct GeoPoint point;
-    double longitude, latitude;
+  struct GeoPoint point;
+  double longitude, latitude;
+  for (size_t index = 2; index < argc; index += 3) {
     if (!slash::string2d(argv[index].data(), argv[index].size(), &longitude)) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
-    if (!slash::string2d(argv[index+1].data(), argv[index+1].size(), &latitude)) {
+    if (!slash::string2d(argv[index + 1].data(), argv[index + 1].size(), &latitude)) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
-    point.member = argv[index+2];
+    point.member = argv[index + 2];
     point.longitude = longitude;
     point.latitude = latitude;
     pos_.push_back(point);
@@ -47,17 +46,16 @@ void GeoAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void GeoAddCmd::Do() {
   std::vector<blackwidow::ScoreMember> score_members;
-  std::vector<GeoPoint>::const_iterator iter = pos_.begin();
-  for (; iter != pos_.end(); iter++) {
+  for (const auto& geo_point : pos_) {
     // Convert coordinates to geohash
     GeoHashBits hash;
-    geohashEncodeWGS84(iter->longitude, iter->latitude, GEO_STEP_MAX, &hash);
+    geohashEncodeWGS84(geo_point.longitude, geo_point.latitude, GEO_STEP_MAX, &hash);
     GeoHashFix52Bits bits = geohashAlign52Bits(hash);
     // Convert uint64 to double
     double score;
     std::string str_bits = std::to_string(bits);
     slash::string2d(str_bits.data(), str_bits.size(), &score);
-    score_members.push_back({score, iter->member});
+    score_members.push_back({score, geo_point.member});
   }
   int32_t count = 0;
   rocksdb::Status s = g_pika_server->db()->ZAdd(key_, score_members, &count); 
@@ -75,18 +73,18 @@ void GeoPosCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
     return;
   }
   key_ = argv[1];
-  member_.clear();
+  members_.clear();
   size_t pos = 2;
   while (pos < argv.size()) {
-    member_.push_back(argv[pos++]);
+    members_.push_back(argv[pos++]);
   }
 }
 
 void GeoPosCmd::Do() {
   double score;
-  res_.AppendArrayLen(member_.size());
-  for (auto v : member_) {
-    rocksdb::Status s = g_pika_server->db()->ZScore(key_, v, &score);
+  res_.AppendArrayLen(members_.size());
+  for (const auto& member : members_) {
+    rocksdb::Status s = g_pika_server->db()->ZScore(key_, member, &score);
     if (s.ok()) {
       double xy[2];
       GeoHashBits hash = { .bits = (uint64_t)score, .step = GEO_STEP_MAX };
@@ -201,19 +199,19 @@ void GeoHashCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info)
     return;
   }
   key_ = argv[1];
-  member_.clear();
+  members_.clear();
   size_t pos = 2;
   while (pos < argv.size()) {
-    member_.push_back(argv[pos++]);
+    members_.push_back(argv[pos++]);
   }
 }
 
 void GeoHashCmd::Do() {
   const char * geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
-  res_.AppendArrayLen(member_.size());
-  for (auto v : member_) {
+  res_.AppendArrayLen(members_.size());
+  for (const auto& member : members_) {
     double score;
-    rocksdb::Status s = g_pika_server->db()->ZScore(key_, v, &score);
+    rocksdb::Status s = g_pika_server->db()->ZScore(key_, member, &score);
     if (s.ok()) {
       double xy[2];
       GeoHashBits hash = { .bits = (uint64_t)score, .step = GEO_STEP_MAX };
@@ -370,9 +368,9 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
         geohashDecodeToLongLatWGS84(hash, xy);
         double distance = geohashGetDistance(longitude, latitude, xy[0], xy[1]);
         distance = length_converter(distance, range.unit);
-	char buf[32];
-	sprintf(buf, "%.4f", distance);
-	res.AppendStringLen(strlen(buf));
+        char buf[32];
+        sprintf(buf, "%.4f", distance);
+        res.AppendStringLen(strlen(buf));
         res.AppendContent(buf);
       }
       // If using withhash option
