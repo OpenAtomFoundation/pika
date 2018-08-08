@@ -222,7 +222,7 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
 
         filenum_++;
         con_offset_ = 0;
-        last_record_offset_ = con_offset_ % kBlockSize;
+        last_record_offset_ = 0;
       } else {
         usleep(10000);
       }
