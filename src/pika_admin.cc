@@ -1357,7 +1357,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
   } else if (set_item == "identify-binlog-type") {
     int role = g_pika_server->role();
-    if (role & PIKA_ROLE_SLAVE || role & PIKA_ROLE_DOUBLE_MASTER) {
+    if (role == PIKA_ROLE_SLAVE || role == PIKA_ROLE_DOUBLE_MASTER) {
       ret = "-ERR need to close master-slave or double-master mode first\r\n";
       return;
     } else if (value != "old" && value != "new") {
