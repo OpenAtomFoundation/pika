@@ -773,9 +773,9 @@ void PikaServer::TryDBSync(const std::string& ip, int port, int32_t top) {
 
 void PikaServer::DBSync(const std::string& ip, int port) {
   // Only one DBSync task for every ip_port
-  std::string ip_port = slash::IpPortString(ip, port);
   {
     slash::MutexLock ldb(&db_sync_protector_);
+    std::string ip_port = slash::IpPortString(ip, port);
     if (db_sync_slaves_.find(ip_port) != db_sync_slaves_.end()) {
       return;
     }
@@ -813,6 +813,9 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   LOG(INFO) << "Start Send files in " << bg_path << " to " << ip;
   ret = slash::GetChildren(bg_path, descendant);
   if (ret != 0) {
+    std::string ip_port = slash::IpPortString(ip, port);
+    slash::MutexLock ldb(&db_sync_protector_);
+    db_sync_slaves_.erase(ip_port);
     LOG(WARNING) << "Get child directory when try to do sync failed, error: " << strerror(ret);
     return;
   }
@@ -864,8 +867,8 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   }
 
   // remove slave
-  std::string ip_port = slash::IpPortString(ip, port);
   {
+    std::string ip_port = slash::IpPortString(ip, port);
     slash::MutexLock ldb(&db_sync_protector_);
     db_sync_slaves_.erase(ip_port);
   }
