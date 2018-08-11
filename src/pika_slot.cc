@@ -1360,7 +1360,7 @@ bool SlotsMgrtSenderThread::ElectMigrateKeys(){
     std::string key;
     char key_type;
 
-    std::string pattern;
+    std::string pattern("*");
     std::vector<std::string> members;
     int64_t cursor = 0, next_cursor = 0;
 
