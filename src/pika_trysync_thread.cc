@@ -6,6 +6,9 @@
 #include <fstream>
 #include <glog/logging.h>
 #include <poll.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "slash/include/env.h"
 #include "slash/include/rsync.h"
@@ -25,7 +28,7 @@ PikaTrysyncThread::~PikaTrysyncThread() {
   LOG(INFO) << " Trysync thread " << thread_id() << " exit!!!";
 }
 
-bool PikaTrysyncThread::Send() {
+bool PikaTrysyncThread::Send(std::string lip) {
   pink::RedisCmdArgsType argv;
   std::string wbuf_str;
   std::string masterauth = g_pika_conf->masterauth();
@@ -38,7 +41,7 @@ bool PikaTrysyncThread::Send() {
   argv.clear();
   std::string tbuf_str;
   argv.push_back("trysync");
-  argv.push_back(g_pika_server->host());
+  argv.push_back(lip);
   argv.push_back(std::to_string(g_pika_server->port()));
   uint32_t filenum;
   uint64_t pro_offset;
@@ -239,20 +242,42 @@ void* PikaTrysyncThread::ThreadMain() {
 
     // Start rsync service
     PrepareRsync();
-    std::string ip_port = slash::IpPortString(master_ip, master_port);
-    // We append the master ip port after module name
-    // To make sure only data from current master is received
-    int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, g_pika_server->host(), g_pika_conf->port() + 3000);
-    if (0 != ret) {
-      LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
-    }
-    LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
 
-    if ((cli_->Connect(master_ip, master_port, g_pika_server->host())).ok()) {
+    if ((cli_->Connect(master_ip, master_port, "")).ok()) {
       LOG(INFO) << "Connect to master ip:" << master_ip << "port: " << master_port;
       cli_->set_send_timeout(30000);
       cli_->set_recv_timeout(30000);
-      if (Send() && RecvProc()) {
+      std::string ip_port = slash::IpPortString(master_ip, master_port);
+      struct sockaddr_in laddr;
+      socklen_t llen = sizeof(laddr);
+      getsockname(cli_->fd(), (struct sockaddr*) &laddr, &llen);
+      std::string lip(inet_ntoa(laddr.sin_addr));
+      // We append the master ip port after module name
+      // To make sure only data from current master is received
+      int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, lip, g_pika_conf->port() + 3000);
+      if (0 != ret) {
+        LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
+      }
+      LOG(INFO) << "Finish to start rsync, path:" << dbsync_path;
+
+      // Make sure the listening addr of rsyncd is accessible, avoid the corner case
+      // that rsync --daemon process is started but not finished listening on the socket
+      pink::PinkCli *rsync = pink::NewRedisCli();
+      int retry_times;
+      for (retry_times = 0; retry_times < 5; retry_times++) {
+        if (rsync->Connect(lip, g_pika_conf->port() + 3000, "").ok()) {
+          LOG(INFO) << "rsync successfully started, address:" << lip << ":" << g_pika_conf->port() + 3000;
+          rsync->Close();
+          break;
+        } else {
+          sleep(1);
+        }
+      }
+      if (retry_times >= 5) {
+        LOG(WARNING) << "connecting to rsync failed, address:" << lip << ":" << g_pika_conf->port() + 3000;
+      }
+
+      if (Send(lip) && RecvProc()) {
         g_pika_server->ConnectMasterDone();
         // Stop rsync, binlog sync with master is begin
         slash::StopRsync(dbsync_path);

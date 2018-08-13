@@ -53,7 +53,7 @@ void* PikaSlavepingThread::ThreadMain() {
   while (!should_stop() && g_pika_server->ShouldStartPingMaster()) {
     if (!should_stop() && (cli_->Connect(g_pika_server->master_ip(),
                                          g_pika_server->master_port() + 2000,
-                                         g_pika_server->host())).ok()) {
+                                         "")).ok()) {
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
       connect_retry_times = 0;
