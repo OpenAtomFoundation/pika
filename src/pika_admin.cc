@@ -779,7 +779,7 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
   tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
-  tmp_stream << "kv keys:" << key_nums_v[0] << "\r\n";
+  tmp_stream << "string keys:" << key_nums_v[0] << "\r\n";
   tmp_stream << "hash keys:" << key_nums_v[1] << "\r\n";
   tmp_stream << "list keys:" << key_nums_v[2] << "\r\n";
   tmp_stream << "zset keys:" << key_nums_v[3] << "\r\n";
