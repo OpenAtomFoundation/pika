@@ -299,7 +299,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
     }
     std::vector<blackwidow::ScoreMember> score_members;
     s = g_pika_server->db()->ZRangebyscore(key, (double)min, (double)max, true, true, &score_members);
-    if (!s.ok()) {
+    if (!s.ok() && !s.IsNotFound()) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
