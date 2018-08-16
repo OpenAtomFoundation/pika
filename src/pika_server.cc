@@ -823,7 +823,16 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   // Iterate to send files
   ret = 0;
   std::string local_path, target_path;
-  std::string module = kDBSyncModule + "_" + slash::IpPortString(host_, port_);
+  pink::PinkCli *cli = pink::NewRedisCli();
+  std::string lip(host_);
+  if (cli->Connect(ip, port, "").ok()) {
+    struct sockaddr_in laddr;
+    socklen_t llen = sizeof(laddr);
+    getsockname(cli->fd(), (struct sockaddr*) &laddr, &llen);
+    lip = inet_ntoa(laddr.sin_addr);
+    cli->Close();
+  }
+  std::string module = kDBSyncModule + "_" + slash::IpPortString(lip, port_);
   std::vector<std::string>::iterator it = descendant.begin();
   slash::RsyncRemote remote(ip, port, module, g_pika_conf->db_sync_speed() * 1024);
   for (; it != descendant.end(); ++it) {
@@ -861,7 +870,21 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
 
   // Send info file at last
   if (0 == ret) {
-    if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, kBgsaveInfoFile, remote))) {
+    // need to modify the IP addr in the info file
+    if (lip.compare(host_) != 0) {
+      std::ofstream fix;
+      std::string fn = bg_path + "/" + kBgsaveInfoFile + "." + std::to_string(time(NULL));
+      fix.open(fn, std::ios::in | std::ios::trunc);
+      if (fix.is_open()) {
+        fix << "0s\n" << lip << "\n" << port_ << "\n" << binlog_filenum << "\n" << binlog_offset << "\n";
+        fix.close();
+      }
+      ret = slash::RsyncSendFile(fn, kBgsaveInfoFile, remote);
+      slash::DeleteFile(fn);
+      if (ret != 0) {
+        LOG(WARNING) << "send modified info file failed";
+      }
+    } else if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, kBgsaveInfoFile, remote))) {
       LOG(WARNING) << "send info file failed";
     }
   }
@@ -1035,7 +1058,7 @@ void PikaServer::DoBgsave(void* arg) {
   // Some output
   BGSaveInfo info = p->bgsave_info();
   std::ofstream out;
-  out.open(info.path + "/info", std::ios::in | std::ios::trunc);
+  out.open(info.path + "/" + kBgsaveInfoFile, std::ios::in | std::ios::trunc);
   if (out.is_open()) {
     out << (time(NULL) - info.start_time) << "s\n"
       << p->host() << "\n"

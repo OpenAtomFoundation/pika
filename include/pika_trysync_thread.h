@@ -23,7 +23,7 @@ class PikaTrysyncThread : public pink::Thread {
   int64_t sid_;
   pink::PinkCli *cli_;
 
-  bool Send();
+  bool Send(std::string lip);
   bool RecvProc();
   void PrepareRsync();
   bool TryUpdateMasterOffset();
