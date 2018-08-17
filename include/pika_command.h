@@ -80,6 +80,7 @@ const std::string kCmdNameMget = "mget";
 const std::string kCmdNameKeys = "keys";
 const std::string kCmdNameSetnx = "setnx";
 const std::string kCmdNameSetex = "setex";
+const std::string kCmdNameDelvx = "delvx";
 const std::string kCmdNameMset = "mset";
 const std::string kCmdNameMsetnx = "msetnx";
 const std::string kCmdNameGetrange = "getrange";
@@ -95,6 +96,7 @@ const std::string kCmdNamePttl = "pttl";
 const std::string kCmdNamePersist = "persist";
 const std::string kCmdNameType = "type";
 const std::string kCmdNameScan = "scan";
+
 //Hash
 const std::string kCmdNameHDel = "hdel";
 const std::string kCmdNameHSet = "hset";
@@ -439,7 +441,7 @@ class Cmd {
     content.reserve(RAW_ARGS_LEN);
     RedisAppendLen(content, argv.size(), "*");
 
-    for (auto& v : argv) {
+    for (const auto& v : argv) {
       RedisAppendLen(content, v.size(), "$");
       RedisAppendContent(content, v);
     }

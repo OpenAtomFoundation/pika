@@ -14,18 +14,21 @@
  */
 class SetCmd : public Cmd {
  public:
-  enum SetCondition{kANY, kNX, kXX};
+  enum SetCondition{kANY, kNX, kXX, kVX};
   SetCmd() : sec_(0), condition_(kANY) {};
   virtual void Do() override;
 
  private:
   std::string key_;
   std::string value_;
+  std::string target_;
+  int32_t success_;
   int64_t sec_;
   SetCmd::SetCondition condition_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) override;
   virtual void Clear() override {
     sec_ = 0;
+    success_ = 0;
     condition_ = kANY;
   }
 };
@@ -201,6 +204,17 @@ private:
   std::string key_;
   int64_t sec_;
   std::string value_;
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
+
+class DelvxCmd : public Cmd {
+public:
+  DelvxCmd() {}
+  virtual void Do();
+private:
+  std::string key_;
+  std::string value_;
+  int32_t success_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
