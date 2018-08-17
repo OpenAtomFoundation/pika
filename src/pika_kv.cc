@@ -25,6 +25,15 @@ void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
       condition_ = SetCmd::kXX;
     } else if (opt == "nx") {
       condition_ = SetCmd::kNX;
+    } else if (opt == "vx") {
+      condition_ = SetCmd::kVX;
+      index++;
+      if (index == argv.size()) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;
+      } else {
+        target_ = argv[index];
+      }
     } else if (opt == "ex" || opt == "px") {
       index++;
       if (index == argv.size()) {
@@ -57,16 +66,23 @@ void SetCmd::Do() {
     case SetCmd::kNX:
       s = g_pika_server->db()->Setnx(key_, value_, &res, sec_);
       break;
+    case SetCmd::kVX:
+      s = g_pika_server->db()->Setvx(key_, target_, value_, &success_, sec_);
+      break;
     default:
       s = g_pika_server->db()->Set(key_, value_, sec_);
       break;
   }
 
   if (s.ok() || s.IsNotFound()) {
-    if (res == 1) {
-      res_.SetRes(CmdRes::kOk);
+    if (condition_ == SetCmd::kVX) {
+      res_.AppendInteger(success_);
     } else {
-      res_.AppendArrayLen(-1);;
+      if (res == 1) {
+        res_.SetRes(CmdRes::kOk);
+      } else {
+        res_.AppendArrayLen(-1);;
+      }
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -106,10 +122,6 @@ void DelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void DelCmd::Do() {
-  std::vector<std::string>::const_iterator it;
-  for (it = keys_.begin(); it != keys_.end(); it++) {
-  }
-
   std::map<blackwidow::DataType, blackwidow::Status> type_status;
   int64_t count = g_pika_server->db()->Del(keys_, &type_status);
   if (count >= 0) {
@@ -588,6 +600,25 @@ void SetexCmd::Do() {
   rocksdb::Status s = g_pika_server->db()->Setex(key_, value_, sec_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+void DelvxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDelvx);
+    return;
+  }
+  key_ = argv[1];
+  value_ = argv[2];
+  return;
+}
+
+void DelvxCmd::Do() {
+  rocksdb::Status s = g_pika_server->db()->Delvx(key_, value_, &success_);
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendInteger(success_);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
