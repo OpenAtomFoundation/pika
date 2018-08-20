@@ -188,7 +188,6 @@ pink::ReadStatus PikaNewMasterConn::GetRequest() {
 
   if (type != kTypeAuth && type != kTypeBinlog) {
     LOG(INFO) << "Unrecognizable Type: " << type << " maybe identify binlog type error";
-    g_pika_server->SyncError();
     return pink::kParseError;
   }
 

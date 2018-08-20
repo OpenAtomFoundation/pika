@@ -187,7 +187,6 @@ class PikaServer {
 
   void DoTimingTask();
 
-  slash::Mutex slaveping_protector_;
   PikaSlavepingThread* ping_thread_;
 
   /*

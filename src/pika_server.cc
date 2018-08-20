@@ -128,11 +128,7 @@ PikaServer::~PikaServer() {
   }
 
   delete pika_trysync_thread_;
-  {
-    slash::MutexLock l(&slaveping_protector_);
-    delete ping_thread_;
-    ping_thread_ = NULL;
-  }
+  delete ping_thread_;
   delete pika_binlog_receiver_thread_;
   delete pika_pubsub_thread_;
 
@@ -704,17 +700,14 @@ void PikaServer::SyncError() {
   slash::RWLock l(&state_protector_, true);
   repl_state_ = PIKA_REPL_ERROR;
   }
-  {
-    slash::MutexLock l(&slaveping_protector_);
-    if (ping_thread_ != NULL) {
-      int err = ping_thread_->StopThread();
-      if (err != 0) {
-        std::string msg = "can't join thread " + std::string(strerror(err));
-        LOG(WARNING) << msg;
-      }
-      delete ping_thread_;
-      ping_thread_ = NULL;
+  if (ping_thread_ != NULL)  {
+    int err = ping_thread_->StopThread();
+    if (err != 0) {
+      std::string msg = "can't join thread " + std::string(strerror(err));
+      LOG(WARNING) << msg;
     }
+    delete ping_thread_;
+    ping_thread_ = NULL;
   }
   LOG(WARNING) << "Sync error, set repl_state to PIKA_REPL_ERROR";
 }
@@ -733,17 +726,14 @@ void PikaServer::RemoveMaster() {
   master_ip_ = "";
   master_port_ = -1;
   }
-  {
-    slash::MutexLock l(&slaveping_protector_);
-    if (ping_thread_ != NULL) {
-      int err = ping_thread_->StopThread();
-      if (err != 0) {
-        std::string msg = "can't join thread " + std::string(strerror(err));
-        LOG(WARNING) << msg;
-      }
-      delete ping_thread_;
-      ping_thread_ = NULL;
+  if (ping_thread_ != NULL) {
+    int err = ping_thread_->StopThread();
+    if (err != 0) {
+      std::string msg = "can't join thread " + std::string(strerror(err));
+      LOG(WARNING) << msg;
     }
+    delete ping_thread_;
+    ping_thread_ = NULL;
   }
   {
   slash::RWLock l(&state_protector_, true);
