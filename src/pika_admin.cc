@@ -1051,10 +1051,18 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "slowlog-log-slower-than");
       EncodeInt32(&ret, g_pika_conf->slowlog_slower_than());
+  } else if (get_item == "write-binlog") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "write-binlog");
+    EncodeString(&ret, g_pika_conf->write_binlog() ? "yes" : "no");
   } else if (get_item == "binlog-file-size") {
       ret = "*2\r\n";
       EncodeString(&ret, "binlog-file-size");
       EncodeInt32(&ret, g_pika_conf->binlog_file_size());
+  } else if (get_item == "identify-binlog-type") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "identify-binlog-type");
+    EncodeString(&ret, g_pika_conf->identify_binlog_type());
   } else if (get_item == "compression") {
       ret = "*2\r\n";
       EncodeString(&ret, "compression");
@@ -1075,12 +1083,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     ret = "*2\r\n";
     EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
-  } else if (get_item == "identify-binlog-type") {
-    ret = "*2\r\n";
-    EncodeString(&ret, "identify-binlog-type");
-    EncodeString(&ret, g_pika_conf->identify_binlog_type());
   } else if (get_item == "*") {
-    ret = "*86\r\n";
+    ret = "*88\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1147,8 +1151,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->slowlog_slower_than());
     EncodeString(&ret, "slave-read-only");
     EncodeInt32(&ret, g_pika_conf->readonly());
+    EncodeString(&ret, "write-binlog");
+    EncodeString(&ret, g_pika_conf->write_binlog() ? "yes" : "no");
     EncodeString(&ret, "binlog-file-size");
     EncodeInt32(&ret, g_pika_conf->binlog_file_size());
+    EncodeString(&ret, "identify-binlog-type");
+    EncodeString(&ret, g_pika_conf->identify_binlog_type());
     EncodeString(&ret, "compression");
     EncodeString(&ret, g_pika_conf->compression());
     EncodeString(&ret, "db-sync-path");
@@ -1165,8 +1173,6 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, g_pika_conf->slaveof());
     EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
-    EncodeString(&ret, "identify-binlog-type");
-    EncodeString(&ret, g_pika_conf->identify_binlog_type());
   } else {
     ret = "*0\r\n";
   }
@@ -1175,7 +1181,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*19\r\n";
+    ret = "*20\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
@@ -1190,11 +1196,12 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "root-connection-num");
     EncodeString(&ret, "slowlog-log-slower-than");
     EncodeString(&ret, "slave-read-only");
+    EncodeString(&ret, "write-binlog");
+    EncodeString(&ret, "identify-binlog-type");
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
     EncodeString(&ret, "slave-priority");
-    EncodeString(&ret, "identify-binlog-type");
     return;
   }
   std::string value = config_args_v_[2];
@@ -1297,6 +1304,30 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetReadonly(is_readonly);
     ret = "+OK\r\n";
+  } else if (set_item == "identify-binlog-type") {
+    int role = g_pika_server->role();
+    if (role == PIKA_ROLE_SLAVE || role == PIKA_ROLE_DOUBLE_MASTER) {
+      ret = "-ERR need to close master-slave or double-master mode first\r\n";
+      return;
+    } else if (value != "new" && value != "old") {
+      ret = "-ERR invalid identify-binlog-type (new or old)\r\n";
+      return;
+    } else {
+      g_pika_conf->SetIdentifyBinlogType(value);
+      ret = "+OK\r\n";
+    }
+  } else if (set_item == "write-binlog") {
+    int role = g_pika_server->role();
+    if (role == PIKA_ROLE_SLAVE || role == PIKA_ROLE_DOUBLE_MASTER) {
+      ret = "-ERR need to close master-slave or double-master mode first\r\n";
+      return;
+    } else if (value != "yes" && value != "no") {
+      ret = "-ERR invalid write-binlog (yes or no)\r\n";
+      return;
+    } else {
+      g_pika_conf->SetWriteBinlog(value);
+      ret = "+OK\r\n";
+    }
   } else if (set_item == "db-sync-speed") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'db-sync-speed(MB)'\r\n";
@@ -1353,18 +1384,6 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     } else {
       g_pika_conf->SetCompactInterval(value);
-      ret = "+OK\r\n";
-    }
-  } else if (set_item == "identify-binlog-type") {
-    int role = g_pika_server->role();
-    if (role == PIKA_ROLE_SLAVE || role == PIKA_ROLE_DOUBLE_MASTER) {
-      ret = "-ERR need to close master-slave or double-master mode first\r\n";
-      return;
-    } else if (value != "old" && value != "new") {
-      ret = "-ERR invalid identify-binlog-type\r\n";
-      return;
-    } else {
-      g_pika_conf->SetIdentifyBinlogType(value);
       ret = "+OK\r\n";
     }
   } else {

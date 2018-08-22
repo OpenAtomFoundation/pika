@@ -190,7 +190,8 @@ std::string PikaClientConn::DoCmd(
   uint32_t exec_time = time(nullptr);
   c_ptr->Do();
 
-  if (cinfo_ptr->is_write()) {
+  if (g_pika_conf->write_binlog()
+    && cinfo_ptr->is_write()) {
     if (c_ptr->res().ok()) {
       g_pika_server->logger_->Lock();
       uint32_t filenum = 0;

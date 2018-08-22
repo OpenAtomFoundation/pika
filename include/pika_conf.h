@@ -30,6 +30,7 @@ class PikaConf : public slash::BaseConf {
   std::string double_master_sid()        { RWLock l(&rwlock_, false); return double_master_sid_; }
   std::string slaveof() {RWLock l(&rwlock_, false); return slaveof_;}
   int slave_priority() {RWLock l(&rwlock_, false); return slave_priority_;}
+  bool write_binlog() {RWLock l(&rwlock_, false); return write_binlog_;}
   std::string identify_binlog_type() {RWLock l(&rwlock_, false); return identify_binlog_type_;}
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
   int sync_thread_num()        { RWLock l(&rwlock_, false); return sync_thread_num_; }
@@ -89,6 +90,10 @@ class PikaConf : public slash::BaseConf {
     slaveof_ = value;
   }
   void SetSlavePriority(const int value)        { RWLock l(&rwlock_, true); slave_priority_ = value; }
+  void SetWriteBinlog(const std::string& value) {
+    RWLock l(&rwlock_, true);
+    write_binlog_ = (value == "yes") ? true : false;
+  }
   void SetIdentifyBinlogType(const std::string& value) {
     RWLock l(&rwlock_, true);
     identify_binlog_type_ = value;
@@ -223,6 +228,7 @@ private:
   //
   // Critical configure items
   //
+  bool write_binlog_;
   int target_file_size_base_;
   int binlog_file_size_;
 
