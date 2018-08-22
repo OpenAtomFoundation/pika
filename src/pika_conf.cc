@@ -81,7 +81,6 @@ int PikaConf::Load()
   GetConfStr("compression", &compression_);
   GetConfBool("slave-read-only", &readonly_);
   GetConfInt("slave-priority", &slave_priority_);
-  GetConfStr("identify-binlog-type", &identify_binlog_type_);
 
   //
   // Immutable Sections
@@ -199,8 +198,15 @@ int PikaConf::Load()
   std::string dmz;
   GetConfStr("daemonize", &dmz);
   daemonize_ =  (dmz == "yes") ? true : false;
+
+  // binlog
+  std::string wb;
+  GetConfStr("write-binlog", &wb);
+  write_binlog_ = (wb == "yes") ? true : false;
+  GetConfStr("identify-binlog-type", &identify_binlog_type_);
   GetConfInt("binlog-file-size", &binlog_file_size_);
-  if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024)) {
+  if (binlog_file_size_ < 1024
+    || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024)) {
     binlog_file_size_ = 100 * 1024 * 1024;    // 100M
   }
   GetConfStr("pidfile", &pidfile_);
@@ -266,9 +272,10 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("network-interface", network_interface_);
   SetConfStr("slaveof", slaveof_);
   SetConfInt("slave-priority", slave_priority_);
-  SetConfStr("identify-binlog-type", identify_binlog_type_);
 
+  SetConfStr("write-binlog", write_binlog_ ? "yes" : "no");
   SetConfInt("binlog-file-size", binlog_file_size_);
+  SetConfStr("identify-binlog-type", identify_binlog_type_);
   SetConfStr("compression", compression_);
   SetConfInt("max-background-flushes", max_background_flushes_);
   SetConfInt("max-background-compactions", max_background_compactions_);

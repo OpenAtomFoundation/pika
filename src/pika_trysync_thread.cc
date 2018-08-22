@@ -278,6 +278,8 @@ void* PikaTrysyncThread::ThreadMain() {
       }
 
       if (Send(lip) && RecvProc()) {
+        LOG(INFO) << "Open write-binlog mode";
+        g_pika_conf->SetWriteBinlog("yes");
         g_pika_server->ConnectMasterDone();
         // Stop rsync, binlog sync with master is begin
         slash::StopRsync(dbsync_path);
