@@ -306,6 +306,21 @@ class ScandbCmd : public Cmd {
   }
 };
 
+class SlowlogCmd : public Cmd {
+ public:
+  enum SlowlogCondition{kGET, kLEN, kRESET};
+  SlowlogCmd() : condition_(kGET) {}
+  virtual void Do();
+ private:
+  int64_t number_;
+  SlowlogCmd::SlowlogCondition condition_;
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    number_ = 10;
+    condition_ = kGET;
+  }
+};
+
 #ifdef TCMALLOC_EXTENSION
 class TcmallocCmd : public Cmd {
  public:
