@@ -73,6 +73,7 @@ class PikaConf : public slash::BaseConf {
   int maxclients()           { RWLock l(&rwlock_, false); return maxclients_; }
   int root_connection_num()     { RWLock l(&rwlock_, false); return root_connection_num_; }
   int slowlog_slower_than()     { RWLock l(&rwlock_, false); return slowlog_log_slower_than_; }
+  int slowlog_max_len()         { RWLock L(&rwlock_, false); return slowlog_max_len_; }
   std::string network_interface() { RWLock l(&rwlock_, false); return network_interface_; }
 
   // Immutable config items, we don't use lock.
@@ -159,6 +160,10 @@ class PikaConf : public slash::BaseConf {
     RWLock l(&rwlock_, true);
     slowlog_log_slower_than_ = value;
   }
+  void SetSlowlogMaxLen(const int value) {
+    RWLock l(&rwlock_, true);
+    slowlog_max_len_ = value;
+  }
   void SetDbSyncSpeed(const int value) {
     RWLock l(&rwlock_, true);
     db_sync_speed_ = value;
@@ -212,6 +217,7 @@ private:
   int maxclients_;
   int root_connection_num_;
   int slowlog_log_slower_than_;
+  int slowlog_max_len_;
   int expire_logs_days_;
   int expire_logs_nums_;
   bool readonly_;

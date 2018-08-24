@@ -231,6 +231,7 @@ std::string PikaClientConn::DoCmd(
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
+    int32_t start_time = start_us / 1000000;
     int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
       std::string slow_log;
@@ -243,7 +244,8 @@ std::string PikaClientConn::DoCmd(
           break;
         }
       }
-      LOG(ERROR) << "ip_port: "<< ip_port() << ", command:" << slow_log << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
+      LOG(ERROR) << "ip_port: "<< ip_port() << ", command:" << slow_log << ", start_time(s): " << start_time << ", duration(us): " << duration;
+      g_pika_server->SlowlogPushEntry(argv, start_time, duration);
     }
   }
 

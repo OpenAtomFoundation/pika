@@ -47,7 +47,8 @@ PikaServer::PikaServer() :
   purging_(false),
   binlogbg_exit_(false),
   binlogbg_cond_(&binlogbg_mutex_),
-  binlogbg_serial_(0) {
+  binlogbg_serial_(0),
+  slowlog_entry_id_(0) {
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
@@ -1540,6 +1541,68 @@ void PikaServer::SignalNextBinlogBGSerial() {
   ++binlogbg_serial_;
   binlogbg_cond_.SignalAll();
   binlogbg_mutex_.Unlock();
+}
+
+void PikaServer::SlowlogTrim() {
+  RWLock l(&slowlog_protector_, true);
+  uint32_t slowlog_max_len = static_cast<uint32_t>(g_pika_conf->slowlog_max_len());
+  while (slowlog_list_.size() > slowlog_max_len) {
+    slowlog_list_.pop_back();
+  }
+}
+
+void PikaServer::SlowlogReset() {
+  RWLock l(&slowlog_protector_, true);
+  slowlog_list_.clear();
+}
+
+uint32_t PikaServer::SlowlogLen() {
+  RWLock l(&slowlog_protector_, false);
+  return slowlog_list_.size();
+}
+
+void PikaServer::SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs) {
+  RWLock l(&slowlog_protector_, false);
+  slowlogs->clear();
+  std::list<SlowlogEntry>::const_iterator iter = slowlog_list_.begin();
+  while (number-- && iter != slowlog_list_.end()) {
+    slowlogs->push_back(*iter);
+    iter++;
+  }
+}
+
+void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int64_t duration) {
+  SlowlogEntry entry;
+  uint32_t slargc = (argv.size() < SLOWLOG_ENTRY_MAX_ARGC)
+      ? argv.size() : SLOWLOG_ENTRY_MAX_ARGC;
+
+  for (uint32_t idx = 0; idx < slargc; ++idx) {
+    if (slargc != argv.size() && idx == slargc - 1) {
+      char buffer[32];
+      sprintf(buffer, "... (%lu more arguments)", argv.size() - slargc + 1);
+      entry.argv.push_back(std::string(buffer));
+    } else {
+      if (argv[idx].size() > SLOWLOG_ENTRY_MAX_STRING) {
+        char buffer[32];
+        sprintf(buffer, "... (%lu more bytes)", argv[idx].size() - SLOWLOG_ENTRY_MAX_STRING);
+        std::string suffix(buffer);
+        std::string brief = argv[idx].substr(0, SLOWLOG_ENTRY_MAX_STRING);
+        entry.argv.push_back(brief + suffix);
+      } else {
+        entry.argv.push_back(argv[idx]);
+      }
+    }
+  }
+
+  {
+    RWLock l(&slowlog_protector_, true);
+    entry.id = slowlog_entry_id_++;
+    entry.start_time = time;
+    entry.duration = duration;
+    slowlog_list_.push_front(entry);
+  }
+
+  SlowlogTrim();
 }
 
 void PikaServer::RunKeyScan() {

@@ -355,6 +355,15 @@ class PikaServer {
   void SignalNextBinlogBGSerial();
 
   /*
+   * Slowlog use
+   */
+  void SlowlogTrim();
+  void SlowlogReset();
+  uint32_t SlowlogLen();
+  void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
+  void SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int64_t duration);
+
+  /*
    *for statistic
    */
   void PlusThreadQuerynum();
@@ -454,6 +463,7 @@ class PikaServer {
    * Flushall use
    */
   static void DoPurgeDir(void* arg);
+
   /*
    * Keyscan use
    */
@@ -481,6 +491,12 @@ class PikaServer {
   std::vector<BinlogBGWorker*> binlogbg_workers_;
   std::hash<std::string> str_hash;
 
+  /*
+   * Slowlog use
+   */
+  pthread_rwlock_t slowlog_protector_;
+  uint64_t slowlog_entry_id_;
+  std::list<SlowlogEntry> slowlog_list_;
 
   /*
    * for statistic

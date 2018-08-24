@@ -57,6 +57,7 @@ int PikaConf::Load()
       root_connection_num_ = 2;
   }
   GetConfInt("slowlog-log-slower-than", &slowlog_log_slower_than_);
+  GetConfInt("slowlog-max-len", &slowlog_max_len_);
   std::string user_blacklist;
   GetConfStr("userblacklist", &user_blacklist);
   SetUserBlackList(std::string(user_blacklist));
@@ -266,6 +267,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("expire-logs-nums", expire_logs_nums_);
   SetConfInt("root-connection-num", root_connection_num_);
   SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
+  SetConfInt("slowlog-max-len", slowlog_max_len_);
   SetConfBool("slave-read-only", readonly_);
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);
