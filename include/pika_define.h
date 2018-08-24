@@ -6,6 +6,7 @@
 #ifndef PIKA_DEFINE_H_
 #define PIKA_DEFINE_H_
 
+#include "include/pika_command.h"
 
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 
@@ -30,6 +31,18 @@ struct SlaveItem {
   int stage;
   void* sender;
   struct timeval create_time;
+};
+
+//slowlog define
+#define SLOWLOG_ENTRY_MAX_ARGC 32
+#define SLOWLOG_ENTRY_MAX_STRING 128
+
+//slowlog entry
+struct SlowlogEntry {
+  int64_t id;
+  int64_t start_time;
+  int64_t duration;
+  PikaCmdArgsType argv;
 };
 
 #define PIKA_MIN_RESERVED_FDS 5000

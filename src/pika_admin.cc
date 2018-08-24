@@ -1051,6 +1051,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "slowlog-log-slower-than");
       EncodeInt32(&ret, g_pika_conf->slowlog_slower_than());
+  } else if (get_item == "slowlog-max-len") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "slowlog-max-len");
+    EncodeInt32(&ret, g_pika_conf->slowlog_max_len());
   } else if (get_item == "write-binlog") {
     ret = "*2\r\n";
     EncodeString(&ret, "write-binlog");
@@ -1084,7 +1088,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else if (get_item == "*") {
-    ret = "*88\r\n";
+    ret = "*90\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1149,6 +1153,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->root_connection_num());
     EncodeString(&ret, "slowlog-log-slower-than");
     EncodeInt32(&ret, g_pika_conf->slowlog_slower_than());
+    EncodeString(&ret, "slowlog-max-len");
+    EncodeInt32(&ret, g_pika_conf->slowlog_max_len());
     EncodeString(&ret, "slave-read-only");
     EncodeInt32(&ret, g_pika_conf->readonly());
     EncodeString(&ret, "write-binlog");
@@ -1181,7 +1187,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*20\r\n";
+    ret = "*21\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
@@ -1195,6 +1201,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "expire-logs-nums");
     EncodeString(&ret, "root-connection-num");
     EncodeString(&ret, "slowlog-log-slower-than");
+    EncodeString(&ret, "slowlog-max-len");
     EncodeString(&ret, "slave-read-only");
     EncodeString(&ret, "write-binlog");
     EncodeString(&ret, "identify-binlog-type");
@@ -1290,6 +1297,14 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetSlowlogSlowerThan(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "slowlog-max-len") {
+    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slowlog-max-len'\r\n";
+      return;
+    }
+    g_pika_conf->SetSlowlogMaxLen(ival);
+    g_pika_server->SlowlogTrim();
     ret = "+OK\r\n";
   } else if (set_item == "slave-read-only") {
     slash::StringToLower(value);
@@ -1556,6 +1571,51 @@ void ScandbCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 void ScandbCmd::Do() {
   g_pika_server->db()->ScanDatabase(type_);
   res_.SetRes(CmdRes::kOk);
+  return;
+}
+
+void SlowlogCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlowlog);
+    return;
+  }
+  if (argv.size() == 2 && !strcasecmp(argv[1].data(), "reset")) {
+    condition_ = SlowlogCmd::kRESET;
+  } else if (argv.size() == 2 && !strcasecmp(argv[1].data(), "len")) {
+    condition_ = SlowlogCmd::kLEN;
+  } else if ((argv.size() == 2 || argv.size() == 3) && !strcasecmp(argv[1].data(), "get")) {
+    condition_ = SlowlogCmd::kGET;
+    if (argv.size() == 3 && !slash::string2l(argv[2].data(), argv[2].size(), &number_)) {
+      res_.SetRes(CmdRes::kInvalidInt);
+      return;
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "Unknown SLOWLOG subcommand or wrong # of args. Try GET, RESET, LEN.");
+    return;
+  }
+}
+
+void SlowlogCmd::Do() {
+  if (condition_ == SlowlogCmd::kRESET) {
+    g_pika_server->SlowlogReset();
+    res_.SetRes(CmdRes::kOk);
+  } else if (condition_ ==  SlowlogCmd::kLEN) {
+    res_.AppendInteger(g_pika_server->SlowlogLen());
+  } else {
+    std::vector<SlowlogEntry> slowlogs;
+    g_pika_server->SlowlogObtain(number_, &slowlogs);
+    res_.AppendArrayLen(slowlogs.size());
+    for (const auto& slowlog : slowlogs) {
+      res_.AppendArrayLen(4);
+      res_.AppendInteger(slowlog.id);
+      res_.AppendInteger(slowlog.start_time);
+      res_.AppendInteger(slowlog.duration);
+      res_.AppendArrayLen(slowlog.argv.size());
+      for (const auto& arg : slowlog.argv) {
+        res_.AppendString(arg);
+      }
+    }
+  }
   return;
 }
 
