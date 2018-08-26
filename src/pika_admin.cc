@@ -1249,8 +1249,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetBgsavePrefix(value);
     ret = "+OK\r\n";
   } else if (set_item == "maxclients") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'maxclients'\r\n";
+    if (!slash::string2l(value.data(), value.size(), &ival) && ival > 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'maxclients'\r\n";
       return;
     }
     g_pika_conf->SetMaxConnection(ival);
@@ -1258,42 +1258,42 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     ret = "+OK\r\n";
   } else if (set_item == "dump-expire") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'dump-expire'\r\n";
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'dump-expire'\r\n";
       return;
     }
     g_pika_conf->SetExpireDumpDays(ival);
     ret = "+OK\r\n";
   } else if (set_item == "slave-priority") {
      if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slave-priority'\r\n";
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slave-priority'\r\n";
       return;
     }
     g_pika_conf->SetSlavePriority(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-days") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire-logs-days'\r\n";
+    if (!slash::string2l(value.data(), value.size(), &ival) && ival > 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-days'\r\n";
       return;
     }
     g_pika_conf->SetExpireLogsDays(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-nums") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'expire-logs-nums'\r\n";
+    if (!slash::string2l(value.data(), value.size(), &ival) && ival > 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-nums'\r\n";
       return;
     }
     g_pika_conf->SetExpireLogsNums(ival);
     ret = "+OK\r\n";
   } else if (set_item == "root-connection-num") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'root-connection-num'\r\n";
+    if (!slash::string2l(value.data(), value.size(), &ival) && ival > 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'root-connection-num'\r\n";
       return;
     }
     g_pika_conf->SetRootConnectionNum(ival);
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-log-slower-than") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slowlog-log-slower-than'\r\n";
+    if (!slash::string2l(value.data(), value.size(), &ival) && ival >= 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slowlog-log-slower-than'\r\n";
       return;
     }
     g_pika_conf->SetSlowlogSlowerThan(ival);
@@ -1314,7 +1314,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     } else if (value == "0" || value == "no") {
       is_readonly = false;
     } else {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'slave-read-only'\r\n";
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slave-read-only'\r\n";
       return;
     }
     g_pika_conf->SetReadonly(is_readonly);
@@ -1345,7 +1345,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
   } else if (set_item == "db-sync-speed") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'db-sync-speed(MB)'\r\n";
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'db-sync-speed(MB)'\r\n";
       return;
     }
     if (ival < 0 || ival > 125) {
