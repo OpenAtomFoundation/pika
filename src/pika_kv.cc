@@ -605,6 +605,29 @@ void SetexCmd::Do() {
   }
 }
 
+void PsetexCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePsetex);
+    return;
+  }
+  key_ = argv[1];
+  if (!slash::string2l(argv[2].data(), argv[2].size(), &usec_)) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+  value_ = argv[3];
+  return;
+}
+
+void PsetexCmd::Do() {
+  rocksdb::Status s = g_pika_server->db()->Setex(key_, value_, usec_ / 1000);
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
 void DelvxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDelvx);

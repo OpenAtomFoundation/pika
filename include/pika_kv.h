@@ -207,6 +207,17 @@ private:
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
+class PsetexCmd : public Cmd {
+public:
+  PsetexCmd() {}
+  virtual void Do();
+private:
+  std::string key_;
+  int64_t usec_;
+  std::string value_;
+  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+};
+
 class DelvxCmd : public Cmd {
 public:
   DelvxCmd() {}

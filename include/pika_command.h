@@ -81,6 +81,7 @@ const std::string kCmdNameMget = "mget";
 const std::string kCmdNameKeys = "keys";
 const std::string kCmdNameSetnx = "setnx";
 const std::string kCmdNameSetex = "setex";
+const std::string kCmdNamePsetex = "psetex";
 const std::string kCmdNameDelvx = "delvx";
 const std::string kCmdNameMset = "mset";
 const std::string kCmdNameMsetnx = "msetnx";
