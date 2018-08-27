@@ -116,6 +116,9 @@ void InitCmdInfoTable() {
   ////Setex
   CmdInfo* setexptr = new CmdInfo(kCmdNameSetex, 4, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSetex, setexptr));
+  ////Psetex
+  CmdInfo* psetexptr = new CmdInfo(kCmdNamePsetex, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePsetex, psetexptr));
   ////Delvx
   CmdInfo* delvxptr = new CmdInfo(kCmdNameDelvx, 3, kCmdFlagsWrite | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameDelvx, delvxptr));
@@ -537,6 +540,9 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////SetexCmd
   Cmd* setexptr = new SetexCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSetex, setexptr));
+  ////PsetexCmd
+  Cmd* psetexptr = new PsetexCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePsetex, psetexptr));
   ////DelvxCmd
   Cmd* delvxptr = new DelvxCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDelvx, delvxptr));

@@ -107,6 +107,8 @@ PikaServer::PikaServer() :
   uint32_t double_recv_num;
   logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
   LOG(INFO) << "double recv info: filenum " << double_recv_num << " offset " << double_recv_offset;
+
+  pthread_rwlock_init(&slowlog_protector_, NULL);
 }
 
 PikaServer::~PikaServer() {
@@ -148,8 +150,9 @@ PikaServer::~PikaServer() {
 
   delete logger_;
   db_.reset();
-  pthread_rwlock_destroy(&state_protector_);
   pthread_rwlock_destroy(&rwlock_);
+  pthread_rwlock_destroy(&state_protector_);
+  pthread_rwlock_destroy(&slowlog_protector_);
 
   LOG(INFO) << "PikaServer " << pthread_self() << " exit!!!";
 }
@@ -1544,16 +1547,17 @@ void PikaServer::SignalNextBinlogBGSerial() {
 }
 
 void PikaServer::SlowlogTrim() {
-  RWLock l(&slowlog_protector_, true);
-  uint32_t slowlog_max_len = static_cast<uint32_t>(g_pika_conf->slowlog_max_len());
-  while (slowlog_list_.size() > slowlog_max_len) {
+  pthread_rwlock_wrlock(&slowlog_protector_);
+  while (slowlog_list_.size() > static_cast<uint32_t>(g_pika_conf->slowlog_max_len())) {
     slowlog_list_.pop_back();
   }
+  pthread_rwlock_unlock(&slowlog_protector_);
 }
 
 void PikaServer::SlowlogReset() {
-  RWLock l(&slowlog_protector_, true);
+  pthread_rwlock_wrlock(&slowlog_protector_);
   slowlog_list_.clear();
+  pthread_rwlock_unlock(&slowlog_protector_);
 }
 
 uint32_t PikaServer::SlowlogLen() {
@@ -1562,13 +1566,14 @@ uint32_t PikaServer::SlowlogLen() {
 }
 
 void PikaServer::SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs) {
-  RWLock l(&slowlog_protector_, false);
+  pthread_rwlock_rdlock(&slowlog_protector_);
   slowlogs->clear();
   std::list<SlowlogEntry>::const_iterator iter = slowlog_list_.begin();
   while (number-- && iter != slowlog_list_.end()) {
     slowlogs->push_back(*iter);
     iter++;
   }
+  pthread_rwlock_unlock(&slowlog_protector_);
 }
 
 void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int64_t duration) {
@@ -1594,13 +1599,12 @@ void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int
     }
   }
 
-  {
-    RWLock l(&slowlog_protector_, true);
-    entry.id = slowlog_entry_id_++;
-    entry.start_time = time;
-    entry.duration = duration;
-    slowlog_list_.push_front(entry);
-  }
+  pthread_rwlock_wrlock(&slowlog_protector_);
+  entry.id = slowlog_entry_id_++;
+  entry.start_time = time;
+  entry.duration = duration;
+  slowlog_list_.push_front(entry);
+  pthread_rwlock_unlock(&slowlog_protector_);
 
   SlowlogTrim();
 }
