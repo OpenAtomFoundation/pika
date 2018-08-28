@@ -29,6 +29,8 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   Cmd* c_ptr = self->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
     LOG(WARNING) << "Error operation from binlog: " << opt;
+    delete bgarg;
+    return;
   }
   c_ptr->res().clear();
 
@@ -36,6 +38,8 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   c_ptr->Initial(argv, cinfo_ptr);
   if (!c_ptr->res().ok()) {
     LOG(WARNING) << "Fail to initial command from binlog: " << opt;
+    delete bgarg;
+    return;
   }
 
   uint64_t start_us = 0;
@@ -101,7 +105,5 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     }
   }
 
-  delete bgarg->argv;
-  delete bgarg->binlog_item;
   delete bgarg;
 }

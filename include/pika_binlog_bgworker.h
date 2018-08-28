@@ -43,6 +43,10 @@ class BinlogBGWorker {
                 bool _readonly, BinlogBGWorker* _my)
         : argv(_argv), binlog_item(_binlog_item), serial(_s), readonly(_readonly), myself(_my) {
     }
+    ~BinlogBGArg() {
+      delete argv;
+      delete binlog_item;
+    }
   };
 
 };
