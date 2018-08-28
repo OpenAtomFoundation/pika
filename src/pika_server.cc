@@ -1675,6 +1675,13 @@ int64_t PikaServer::ClientList(std::vector<ClientInfo> *clients) {
   return clients_num;
 }
 
+int64_t PikaServer::ClientNum() {
+  int64_t num = 0;
+  num += pika_dispatch_thread_->ClientNum();
+  num += monitor_thread_->ClientNum();
+  return num;
+}
+
 void PikaServer::RWLockWriter() {
   pthread_rwlock_wrlock(&rwlock_);
 }

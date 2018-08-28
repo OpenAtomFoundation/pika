@@ -311,6 +311,7 @@ class PikaServer {
   void ClientKillAll();
   int ClientKill(const std::string &ip_port);
   int64_t ClientList(std::vector<ClientInfo> *clients = nullptr);
+  int64_t ClientNum();
 
   // rwlock_
   void RWLockWriter();
