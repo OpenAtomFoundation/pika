@@ -10,7 +10,9 @@
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 const size_t MaxKeySendSize = 10 * 1024;
-//crc 32
+const int asyncRecvsNum = 64;
+
+// crc32
 #define HASH_SLOTS_MASK 0x000003ff
 #define HASH_SLOTS_SIZE (HASH_SLOTS_MASK + 1)
 
