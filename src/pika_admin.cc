@@ -1443,7 +1443,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "+OK\r\n";
     }
   } else {
-    ret = "-ERR No such configure item\r\n";
+    ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }
 }
 
