@@ -68,7 +68,7 @@ int KeyType(const std::string key, std::string &key_type) {
     std::string type_str;
     rocksdb::Status s = g_pika_server->db()->Type(key, &type_str);
     if (!s.ok()) {
-        LOG(WARNING) << "Get key type error: "<< key << " " << s.ToString();
+        LOG(WARNING) << "Get key type error: " << key << " " << s.ToString();
         key_type = "";
         return -1; 
     }
@@ -83,7 +83,7 @@ int KeyType(const std::string key, std::string &key_type) {
     } else if (type_str == "zset") {
         key_type = "z";
     } else {
-        LOG(WARNING) << "Get key type error: "<< key;
+        LOG(WARNING) << "Get key type error: " << key;
         key_type = "";
         return -1;
     }
@@ -175,11 +175,11 @@ static int kvGet(const std::string key, std::string &value){
     if (!s.ok()) {
         if (s.IsNotFound()) {
             value = "";
-            LOG(WARNING) << "Get kv key: "<< key << " not found ";
+            LOG(WARNING) << "Get kv key: " << key << " not found ";
             return 0;
         } else {
             value = "";
-            LOG(WARNING) << "Get kv key: "<< key << " error: " << s.ToString();
+            LOG(WARNING) << "Get kv key: " << key << " error: " << s.ToString();
             return -1;
         }
     } 
@@ -199,10 +199,10 @@ int KeyDelete(const std::string key, const char key_type){
     std::vector<std::string> keys(1, key);
     int64_t count = g_pika_server->db()->DelByType(keys, map[key_type]);
     if (count == 0) {
-        LOG(WARNING) << "Del key: "<< key << " at slot "<< SlotNum(key) << " not found ";
+        LOG(WARNING) << "Del key: " << key << " at slot " << SlotNum(key) << " not found ";
         return 0;
     } else if (count < 0) {
-        LOG(WARNING) << "Del key: "<< key << " at slot "<< SlotNum(key) << " error";
+        LOG(WARNING) << "Del key: " << key << " at slot " << SlotNum(key) << " error";
         return -1;
     }
     return 1;
@@ -290,10 +290,10 @@ static int hashGetall(const std::string key, std::vector<blackwidow::FieldValue>
     rocksdb::Status s = g_pika_server->db()->HGetall(key, fvs);
     if (!s.ok()) {
         if (s.IsNotFound()) {
-            LOG(WARNING) << "HGetall key: "<< key << " not found ";
+            LOG(WARNING) << "HGetall key: " << key << " not found ";
             return 0;
         } else {
-            LOG(WARNING) << "HGetall key: "<< key << " error: " << s.ToString();
+            LOG(WARNING) << "HGetall key: " << key << " error: " << s.ToString();
             return -1;
         }
     }
@@ -316,7 +316,7 @@ static int migrateHash(pink::PinkCli *cli, const std::string key){
     std::string send_str;
     for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i){
         if (i > 0){
-            LOG(WARNING) << "Migrate big key: "<< key << " size: " << keySize << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
+            LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
         }
         argv.clear();
         send_str = "";
@@ -349,10 +349,10 @@ static int listGetall(const std::string key, std::vector<std::string> *values){
     rocksdb::Status s = g_pika_server->db()->LRange(key, 0, -1, values);
     if (!s.ok()) {
         if (s.IsNotFound()) {
-            LOG(WARNING) << "List get key: "<< key << " value not found ";
+            LOG(WARNING) << "List get key: " << key << " value not found ";
             return 0;
         } else {
-            LOG(WARNING) << "List get key: "<< key << " value error: " << s.ToString();
+            LOG(WARNING) << "List get key: " << key << " value error: " << s.ToString();
             return -1;
         }
     }
@@ -375,7 +375,7 @@ static int migrateList(pink::PinkCli *cli, const std::string key){
     std::string send_str;
     for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i){
         if (i > 0){
-            LOG(WARNING) << "Migrate big key: "<< key << " size: " << keySize << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
+            LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
         }
         argv.clear();
         send_str = "";
@@ -407,10 +407,10 @@ static int setGetall(const std::string key, std::vector<std::string> *members){
     rocksdb::Status s = g_pika_server->db()->SMembers(key, members);
     if (!s.ok()) {
         if (s.IsNotFound()) {
-            LOG(WARNING) << "Set get key: "<< key << " value not found ";
+            LOG(WARNING) << "Set get key: " << key << " value not found ";
             return 0;
         } else {
-            LOG(WARNING) << "Set get key: "<< key << " value error: " << s.ToString();
+            LOG(WARNING) << "Set get key: " << key << " value error: " << s.ToString();
             return -1;
         }
     }
@@ -433,7 +433,7 @@ static int migrateSet(pink::PinkCli *cli, const std::string key){
     std::string send_str;
     for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i){
         if (i > 0){
-            LOG(WARNING) << "Migrate big key: "<< key << " size: " << keySize << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
+            LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
         }
         argv.clear();
         send_str = "";
@@ -465,10 +465,10 @@ static int zsetGetall(const std::string key, std::vector<blackwidow::ScoreMember
     rocksdb::Status s = g_pika_server->db()->ZRange(key, 0, -1, score_members);
     if (!s.ok()) {
         if (s.IsNotFound()) {
-            LOG(WARNING) << "zset get key: "<< key << " not found ";
+            LOG(WARNING) << "zset get key: " << key << " not found ";
             return 0;
         } else {
-            LOG(WARNING) << "zset get key: "<< key << " value error: " << s.ToString();
+            LOG(WARNING) << "zset get key: " << key << " value error: " << s.ToString();
             return -1;
         }
     }
@@ -491,7 +491,7 @@ static int migrateZset(pink::PinkCli *cli, const std::string key){
     std::string send_str;
     for (size_t i = 0; i <= keySize / MaxKeySendSize; ++i){
         if (i > 0) {
-            LOG(WARNING) << "Migrate big key: "<< key << " size: " << keySize << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
+            LOG(WARNING) << "Migrate big key: " << key << " size: " << keySize << " migrated value: " << min((i + 1) * MaxKeySendSize, keySize);
         }
         argv.clear();
         send_str = "";
@@ -615,7 +615,7 @@ int SlotsMgrtTagSlotCmd::SlotKeyPop(){
     std::string member;
     rocksdb::Status s = g_pika_server->db()->SPop(slotKey, &member);
     if (!s.ok()) {
-        LOG(WARNING) << "Migrate slot: "<< slot_num_ << " error: " << s.ToString();
+        LOG(WARNING) << "Migrate slot: " << slot_num_ << " error: " << s.ToString();
         res_.AppendArrayLen(2);
         res_.AppendInteger(0);
         res_.AppendInteger(0);
@@ -703,10 +703,10 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck() {
     rocksdb::Status s = g_pika_server->db()->Type(key_, &type_str);
     if (!s.ok()) {
         if (s.IsNotFound()) {
-            LOG(INFO) << "Migrate slot key "<< key_ << " not found";
+            LOG(INFO) << "Migrate slot key " << key_ << " not found";
             res_.AppendInteger(0);
         } else {
-            LOG(WARNING) << "Migrate slot key: "<< key_ << " error: " << s.ToString();
+            LOG(WARNING) << "Migrate slot key: " << key_ << " error: " << s.ToString();
             res_.SetRes(CmdRes::kErrOther, "migrate slot error");
         }
         return -1; 
@@ -722,7 +722,7 @@ int SlotsMgrtTagOneCmd::KeyTypeCheck() {
     } else if (type_str == "zset") {
         key_type_ = 'z';
     } else {
-        LOG(WARNING) << "Migrate slot key: "<<key_ << " not found";
+        LOG(WARNING) << "Migrate slot key: " <<key_ << " not found";
         res_.AppendInteger(0);
         return -1;
     }
@@ -1143,7 +1143,7 @@ void SlotsMgrtAsyncCancelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* co
 
 void SlotsMgrtAsyncCancelCmd::Do() {
     bool ret = g_pika_server->SlotsMigrateAsyncCancel();
-    if(!ret) {
+    if (!ret) {
         res_.SetRes(CmdRes::kErrOther, "slotsmgrt-async-cancel error");
     }
     res_.SetRes(CmdRes::kOk);
@@ -1171,7 +1171,7 @@ SlotsMgrtSenderThread::SlotsMgrtSenderThread() :
 }
 
 SlotsMgrtSenderThread::~SlotsMgrtSenderThread() {
-    if(is_migrating_) {
+    if (is_migrating_) {
         slotsmgrt_cond_.SignalAll();
     }
     if (is_running()) {
@@ -1200,7 +1200,7 @@ int SlotsMgrtSenderThread::SlotsMigrateOne(const std::string &key){
             LOG(INFO) << "Migrate key: " << key << " not found";
             return 0;
         } else {
-            LOG(WARNING) << "Migrate one key: "<< key << " error: " << s.ToString();
+            LOG(WARNING) << "Migrate one key: " << key << " error: " << s.ToString();
             return -1;
         }
     }
@@ -1225,11 +1225,11 @@ int SlotsMgrtSenderThread::SlotsMigrateOne(const std::string &key){
     // has not been returned to proxy, during this time, some more request on this slot are sent to the server,
     // so need to check if the key exists first, if not exists the proxy forwards the request to destination server
     // if the key exists, it is an error which should not happen.
-    if(slot_num != slot_num_ ) {
-        LOG(WARNING) << "Slot : "<<slot_num << " is not the migrating slot:" << slot_num_;
+    if (slot_num != slot_num_ ) {
+        LOG(WARNING) << "Slot : " <<slot_num << " is not the migrating slot:" << slot_num_;
         return -1;
-    } else if(!is_migrating_) {
-        LOG(WARNING) << "Slot : "<<slot_num << " is not migrating";
+    } else if (!is_migrating_) {
+        LOG(WARNING) << "Slot : " <<slot_num << " is not migrating";
         return -1;
     }
 
@@ -1289,7 +1289,7 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
             return false;
         } else if (remained_keys_num_ != 0) {
             StartThread();
-            LOG(INFO) << "Migrate batch slot: "<< slot;
+            LOG(INFO) << "Migrate batch slot: " << slot;
         }
     }
     return true;
@@ -1300,7 +1300,7 @@ bool SlotsMgrtSenderThread::GetSlotsMigrateResult(int64_t *moved, int64_t *remai
     slotsmgrt_cond_.TimedWait(timeout_ms_);
     *moved = moved_keys_num_;
     *remained = remained_keys_num_;
-    if(*remained <= 0){
+    if (*remained <= 0){
         is_migrating_ == false;
         set_should_stop();
         StopThread();
