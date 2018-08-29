@@ -88,6 +88,8 @@ std::string PikaClientConn::DoCmd(
   if (!c_ptr->res().ok()) {
     return c_ptr->res().message();
   }
+
+  g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
  
   // PubSub connection
   if (this->IsPubSub()) {
@@ -259,7 +261,6 @@ std::string PikaClientConn::DoCmd(
 
 int PikaClientConn::DealMessage(
     PikaCmdArgsType& argv, std::string* response) {
-  g_pika_server->PlusThreadQuerynum();
 
   if (argv.empty()) return -2;
   std::string opt = argv[0];

@@ -174,14 +174,15 @@ class InfoCmd : public Cmd {
     kInfoErr = 0x0,
     kInfoServer,
     kInfoClients,
-    kInfoHub,
     kInfoStats,
+    kInfoExecCount,
     kInfoCPU,
     kInfoReplication,
     kInfoKeyspace,
     kInfoBgstats,
     kInfoLog,
     kInfoData,
+    kInfo,
     kInfoAll,
     kInfoDoubleMaster
   };
@@ -194,11 +195,12 @@ class InfoCmd : public Cmd {
   bool rescan_; //whether to rescan the keyspace
   bool off_;
 
+  const static std::string kInfoSection;
   const static std::string kAllSection;
   const static std::string kServerSection;
   const static std::string kClientsSection;
-  const static std::string kHubSection;
   const static std::string kStatsSection;
+  const static std::string kExecCountSection;
   const static std::string kCPUSection;
   const static std::string kReplicationSection;
   const static std::string kKeyspaceSection;
@@ -214,8 +216,8 @@ class InfoCmd : public Cmd {
 
   void InfoServer(std::string &info);
   void InfoClients(std::string &info);
-  void InfoHub(std::string &info);
   void InfoStats(std::string &info);
+  void InfoExecCount(std::string &info);
   void InfoCPU(std::string &info);
   void InfoReplication(std::string &info);
   void InfoKeyspace(std::string &info);
