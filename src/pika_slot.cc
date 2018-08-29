@@ -1287,9 +1287,10 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
             LOG(WARNING) << "Slots migrating sender get batch keys error";
             is_migrating_ = false;
             return false;
+        } else if (remained_keys_num_ != 0) {
+            StartThread();
+            LOG(INFO) << "Migrate batch slot: "<< slot;
         }
-        StartThread();
-        LOG(INFO) << "Migrate batch slot: "<< slot;
     }
     return true;
 }
