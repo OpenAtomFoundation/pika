@@ -666,7 +666,7 @@ void InfoCmd::InfoServer(std::string &info) {
 void InfoCmd::InfoClients(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Clients\r\n";
-  tmp_stream << "connected_clients:" << g_pika_server->ClientList() << "\r\n";
+  tmp_stream << "connected_clients:" << g_pika_server->ClientNum() << "\r\n";
 
   info.append(tmp_stream.str());
 }

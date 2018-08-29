@@ -27,6 +27,7 @@ class PikaMonitorThread : public pink::Thread {
   int32_t ThreadClientList(std::vector<ClientInfo>* client = NULL);
   bool ThreadClientKill(const std::string& ip_port = "all");
   bool HasMonitorClients();
+  int64_t ClientNum() { return (int64_t) monitor_clients_.size(); }
 
  private:
   void AddCronTask(MonitorCronTask task);
