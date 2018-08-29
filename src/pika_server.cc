@@ -1687,9 +1687,11 @@ void PikaServer::RWUnlock() {
   pthread_rwlock_unlock(&rwlock_);
 }
 
-void PikaServer::PlusThreadQuerynum() {
-  slash::WriteLock l(&statistic_data_.statistic_lock);
+void PikaServer::UpdateQueryNumAndExecCountTable(const std::string& command) {
+  statistic_data_.statistic_lock.WriteLock();
   statistic_data_.thread_querynum++;
+  statistic_data_.exec_count_table[command]++;
+  statistic_data_.statistic_lock.WriteUnlock();
 }
 
 uint64_t PikaServer::ServerQueryNum() {
@@ -1726,6 +1728,11 @@ void PikaServer::SetDispatchQueueLimit(int queue_limit) {
 uint64_t PikaServer::ServerCurrentQps() {
   slash::ReadLock l(&statistic_data_.statistic_lock);
   return statistic_data_.last_sec_thread_querynum;
+}
+
+std::unordered_map<std::string, uint64_t> PikaServer::ServerExecCountTable() {
+  slash::ReadLock l(&statistic_data_.statistic_lock);
+  return statistic_data_.exec_count_table;
 }
 
 void PikaServer::ResetLastSecQuerynum() {

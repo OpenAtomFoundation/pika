@@ -473,10 +473,12 @@ void ShutdownCmd::Do() {
   res_.SetRes(CmdRes::kNone);
 }
 
+const std::string InfoCmd::kInfoSection = "info";
 const std::string InfoCmd::kAllSection = "all";
 const std::string InfoCmd::kServerSection = "server";
 const std::string InfoCmd::kClientsSection = "clients";
 const std::string InfoCmd::kStatsSection = "stats";
+const std::string InfoCmd::kExecCountSection= "command_exec_count";
 const std::string InfoCmd::kCPUSection = "cpu";
 const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
@@ -492,7 +494,7 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     return;
   }
   if (argc == 1) {
-    info_section_ = kInfoAll;
+    info_section_ = kInfo;
     return;
   } //then the agc is 2 or 3
   slash::StringToLower(argv[1]);
@@ -504,6 +506,8 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     info_section_ = kInfoClients;
   } else if (argv[1] == kStatsSection) {
     info_section_ = kInfoStats;
+  } else if (argv[1] == kExecCountSection) {
+    info_section_ = kInfoExecCount;
   } else if (argv[1] == kCPUSection) {
     info_section_ = kInfoCPU;
   } else if (argv[1] == kReplicationSection) {
@@ -538,7 +542,7 @@ void InfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 void InfoCmd::Do() {
   std::string info;
   switch (info_section_) {
-    case kInfoAll:
+    case kInfo:
       InfoServer(info);
       info.append("\r\n");
       InfoData(info);
@@ -559,6 +563,29 @@ void InfoCmd::Do() {
         InfoDoubleMaster(info);
       }
       break;
+    case kInfoAll:
+      InfoServer(info);
+      info.append("\r\n");
+      InfoData(info);
+      info.append("\r\n");
+      InfoLog(info);
+      info.append("\r\n");
+      InfoClients(info);
+      info.append("\r\n");
+      InfoStats(info);
+      info.append("\r\n");
+      InfoExecCount(info);
+      info.append("\r\n");
+      InfoCPU(info);
+      info.append("\r\n");
+      InfoReplication(info);
+      info.append("\r\n");
+      InfoKeyspace(info);
+      if (g_pika_server->DoubleMasterMode()) {
+        info.append("\r\n");
+        InfoDoubleMaster(info);
+      }
+      break;
     case kInfoServer:
       InfoServer(info);
       break;
@@ -567,6 +594,9 @@ void InfoCmd::Do() {
       break;
     case kInfoStats:
       InfoStats(info);
+      break;
+    case kInfoExecCount:
+      InfoExecCount(info);
       break;
     case kInfoCPU:
       InfoCPU(info);
@@ -664,6 +694,17 @@ void InfoCmd::InfoStats(std::string &info) {
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
   tmp_stream << "compact_interval:" << g_pika_conf->compact_interval() << "\r\n";
 
+  info.append(tmp_stream.str());
+}
+
+void InfoCmd::InfoExecCount(std::string &info) {
+  std::stringstream tmp_stream;
+  tmp_stream << "# Command_Exec_Count\r\n";
+
+  std::unordered_map<std::string, uint64_t> command_exec_count_table = g_pika_server->ServerExecCountTable();
+  for (const auto& item : command_exec_count_table) {
+    tmp_stream << item.first << ":" << item.second << "\r\n";
+  }
   info.append(tmp_stream.str());
 }
 

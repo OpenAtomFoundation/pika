@@ -26,11 +26,11 @@ int PikaMasterConn::DealMessage(
     PikaCmdArgsType& argv, std::string* response) {
   //no reply
   //eq set_is_reply(false);
-  g_pika_server->PlusThreadQuerynum();
   if (argv.empty()) {
     return -2;
   }
 
+  g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
   // Auth
   if (is_first_send_) {
     if (argv.size() == 2 && argv[0] == "auth") {

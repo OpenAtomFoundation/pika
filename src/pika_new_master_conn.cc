@@ -248,13 +248,13 @@ void PikaNewMasterConn::TryResizeBuffer() {
 }
 
 bool PikaNewMasterConn::ProcessAuth(const pink::RedisCmdArgsType& argv) {
-  g_pika_server->PlusThreadQuerynum();
   if (argv.empty() || argv.size() != 2) {
     return false;
   }
   if (argv[0] == "auth") {
     if (argv[1] == std::to_string(g_pika_server->sid())) {
       is_authed_ = true;
+      g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
       LOG(INFO) << "BinlogReceiverThread AccessHandle succeeded, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
       return true;
     }
@@ -270,7 +270,7 @@ bool PikaNewMasterConn::ProcessBinlogData(const pink::RedisCmdArgsType& argv, co
   } else if (argv.empty()) {
     return false;
   } else {
-    g_pika_server->PlusThreadQuerynum();
+    g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
   }
 
   // Monitor related

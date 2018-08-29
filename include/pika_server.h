@@ -366,10 +366,11 @@ class PikaServer {
   /*
    *for statistic
    */
-  void PlusThreadQuerynum();
   uint64_t ServerQueryNum();
   uint64_t ServerCurrentQps();
+  std::unordered_map<std::string, uint64_t> ServerExecCountTable();
   void ResetLastSecQuerynum(); /* Invoked in PikaDispatchThread's CronHandle */
+  void UpdateQueryNumAndExecCountTable(const std::string& command);
   uint64_t accumulative_connections() {
     return statistic_data_.accumulative_connections;
   }
@@ -512,6 +513,7 @@ class PikaServer {
 
     slash::RWMutex statistic_lock;
     std::atomic<uint64_t> accumulative_connections;
+    std::unordered_map<std::string, uint64_t> exec_count_table;
     uint64_t thread_querynum;
     uint64_t last_thread_querynum;
     uint64_t last_sec_thread_querynum;
