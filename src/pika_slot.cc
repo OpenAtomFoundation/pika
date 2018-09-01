@@ -151,20 +151,27 @@ static int doAuth(pink::PinkCli *cli){
     if (requirepass != "") {
         argv.push_back("auth");
         argv.push_back(requirepass);
-        pink::SerializeRedisCommand(argv, &wbuf_str);
+    } else {
+        argv.push_back("ping");
+    }
+    pink::SerializeRedisCommand(argv, &wbuf_str);
 
-        slash::Status s;
-        s = cli->Send(&wbuf_str);
-        if (!s.ok()) {
-            LOG(WARNING) << "Slot Migrate auth error: " << s.ToString();
-            return -1;
-        }
-        // Recv
-        s = cli->Recv(NULL);
-        if (!s.ok()) {
-            LOG(WARNING) << "Slot Migrate auth Recv error: " << s.ToString();
-            return -1;
-        }
+    slash::Status s;
+    s = cli->Send(&wbuf_str);
+    if (!s.ok()) {
+        LOG(WARNING) << "Slot Migrate auth Send error: " << s.ToString();
+        return -1;
+    }
+    // Recv
+    s = cli->Recv(&argv);
+    if (!s.ok()) {
+        LOG(WARNING) << "Slot Migrate auth Recv error: " << s.ToString();
+        return -1;
+    }
+    slash::StringToLower(argv[0]);
+    if (argv[0] != "ok" && argv[0] != "pong" && argv[0].find("no password") == std::string::npos) {
+        LOG(WARNING) << "Slot Migrate auth error: " << argv[0];
+        return -1;
     }
     return 0;
 }
