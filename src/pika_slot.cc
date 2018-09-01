@@ -1302,6 +1302,7 @@ bool SlotsMgrtSenderThread::GetSlotsMigrateResult(int64_t *moved, int64_t *remai
     *remained = remained_keys_num_;
     if (*remained <= 0){
         is_migrating_ == false;
+        moved_keys_num_ = 0;
         set_should_stop();
         StopThread();
     }
@@ -1460,7 +1461,6 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                 if (remained_keys_num_ == 0) {
                     LOG(INFO) << "Migrate slot: " << slot_num_ << " finished";
                     slotsmgrt_cond_.Signal();
-                    moved_keys_num_ = 0;
                     is_migrating_ = false;
                     set_should_stop();
                     break;
