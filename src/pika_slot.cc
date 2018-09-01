@@ -1284,7 +1284,7 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
             return false;
         }
         return true;
-    // if not migrating, prepare the keys and start thread migrating
+    // if not migrating, start thread migrating
     } else {
         // set state and start a new sender
         dest_ip_ = ip;
@@ -1297,15 +1297,8 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
             StopThread();
         }
         error_ = false;
-        bool ret = ElectMigrateKeys();
-        if (!ret) {
-            LOG(WARNING) << "Slots migrating sender get batch keys error";
-            is_migrating_ = false;
-            return false;
-        } else if (remained_keys_num_ != 0) {
-            StartThread();
-            LOG(INFO) << "Migrate batch slot: " << slot;
-        }
+        StartThread();
+        LOG(INFO) << "Migrate batch slot: " << slot;
     }
     return true;
 }
@@ -1423,6 +1416,18 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                 break;
             }
 
+            bool ret = ElectMigrateKeys();
+            if (!ret) {
+                slotsmgrt_cond_.Signal();
+                LOG(WARNING) << "Slots migrating sender get batch keys error";
+                is_migrating_ = false;
+                set_should_stop();
+                break;
+            } else if (remained_keys_num_ == 0) {
+                set_should_stop();
+                break;
+            }
+    
             std::string slotKey = SlotKeyPrefix+std::to_string(slot_num_);
             std::vector<std::pair<const char, std::string>>::const_iterator iter;
             while (is_migrating_) {
