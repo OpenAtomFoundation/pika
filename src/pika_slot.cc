@@ -265,7 +265,7 @@ static int migrateKv(pink::PinkCli *cli, const std::string key, bool async){
     if (kvGet(key, value) < 0){
         return -1;
     }
-    if (value==""){
+    if (value == ""){
         return 0;
     }
 

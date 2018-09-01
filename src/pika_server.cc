@@ -1117,7 +1117,7 @@ void PikaServer::DoBgslotsreload(void* arg) {
   // Do slotsreload
   std::vector<std::string> keys;
   int64_t cursor_ret = -1;
-  while(cursor_ret != 0 && p->GetSlotsreloading()){
+  while (cursor_ret != 0 && p->GetSlotsreloading()){
     cursor_ret = p->db()->Scan(reload.cursor, reload.pattern, reload.count, &keys);
 
     std::vector<std::string>::const_iterator iter;
@@ -1126,7 +1126,7 @@ void PikaServer::DoBgslotsreload(void* arg) {
       if ((*iter).find(SlotKeyPrefix) != std::string::npos){
         continue;
       }
-      if(KeyType(*iter, key_type) > 0){
+      if (KeyType(*iter, key_type) > 0){
         SlotKeyAdd(key_type, *iter);
       }
     }
@@ -1172,7 +1172,7 @@ void PikaServer::DoBgslotscleanup(void* arg) {
   std::vector<std::string> keys;
   int64_t cursor_ret = -1;
   std::vector<int> cleanupSlots(cleanup.cleanup_slots);
-  while(cursor_ret != 0 && p->GetSlotscleaningup()){
+  while (cursor_ret != 0 && p->GetSlotscleaningup()){
     cursor_ret = p->db()->Scan(cleanup.cursor, cleanup.pattern, cleanup.count, &keys);
 
     std::string key_type;
@@ -1181,9 +1181,9 @@ void PikaServer::DoBgslotscleanup(void* arg) {
       if ((*iter).find(SlotKeyPrefix) != std::string::npos){
         continue;
       }
-      if(std::find(cleanupSlots.begin(), cleanupSlots.end(), SlotNum(*iter)) != cleanupSlots.end()){
-        if(KeyType(*iter, key_type) > 0){
-          if(KeyDelete(*iter, key_type[0]) <= 0){
+      if (std::find(cleanupSlots.begin(), cleanupSlots.end(), SlotNum(*iter)) != cleanupSlots.end()){
+        if (KeyType(*iter, key_type) > 0){
+          if (KeyDelete(*iter, key_type[0]) <= 0){
             LOG(WARNING) << "BG slots_cleanup slot " << SlotNum(*iter) << " key "<< *iter << " error";
           }
         }
