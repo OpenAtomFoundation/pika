@@ -252,7 +252,7 @@ static int migrateKeyTTl(pink::PinkCli *cli, const std::string key){
 }
 
 // migrate one kv key
-static int migrateKv(pink::PinkCli *cli, const std::string key){
+static int migrateKv(pink::PinkCli *cli, const std::string key, bool async){
     int r, ret = 0;
     std::string value;
     if (kvGet(key, value) < 0){
@@ -281,7 +281,9 @@ static int migrateKv(pink::PinkCli *cli, const std::string key){
         ret += r;
     }
 
-    KeyDelete(key, 'k'); //key already been migrated successfully, del error doesn't matter
+    if (!async) {
+        KeyDelete(key, 'k'); //key already been migrated successfully, del error doesn't matter
+    }
     return ret;
 }
 
@@ -301,7 +303,7 @@ static int hashGetall(const std::string key, std::vector<blackwidow::FieldValue>
 }
 
 // migrate one hash key
-static int migrateHash(pink::PinkCli *cli, const std::string key){
+static int migrateHash(pink::PinkCli *cli, const std::string key, bool async){
     int r, ret = 0;
     std::vector<blackwidow::FieldValue> fvs;
     if (hashGetall(key, &fvs) < 0){
@@ -340,7 +342,9 @@ static int migrateHash(pink::PinkCli *cli, const std::string key){
         ret += r;
     }
 
-    KeyDelete(key, 'h'); //key already been migrated successfully, del error doesn't matter
+    if (!async) {
+        KeyDelete(key, 'h'); //key already been migrated successfully, del error doesn't matter
+    }
     return ret;
 }
 
@@ -360,7 +364,7 @@ static int listGetall(const std::string key, std::vector<std::string> *values){
 }
 
 // migrate one list key
-static int migrateList(pink::PinkCli *cli, const std::string key){
+static int migrateList(pink::PinkCli *cli, const std::string key, bool async){
     int r, ret = 0;
     std::vector<std::string> values;
     if (listGetall(key, &values) < 0){
@@ -398,7 +402,9 @@ static int migrateList(pink::PinkCli *cli, const std::string key){
         ret += r;
     }
 
-    KeyDelete(key, 'l'); //key already been migrated successfully, del error doesn't matter
+    if (!async) {
+        KeyDelete(key, 'l'); //key already been migrated successfully, del error doesn't matter
+    }
     return ret;
 }
 
@@ -418,7 +424,7 @@ static int setGetall(const std::string key, std::vector<std::string> *members){
 }
 
 // migrate one set key
-static int migrateSet(pink::PinkCli *cli, const std::string key){
+static int migrateSet(pink::PinkCli *cli, const std::string key, bool async){
     int r, ret = 0;
     std::vector<std::string> members;
     if (setGetall(key, &members) < 0){
@@ -456,7 +462,9 @@ static int migrateSet(pink::PinkCli *cli, const std::string key){
         ret += r;
     }
 
-    KeyDelete(key, 's'); //key already been migrated successfully, del error doesn't matter
+    if (!async) {
+        KeyDelete(key, 's'); //key already been migrated successfully, del error doesn't matter
+    }
     return ret;
 }
 
@@ -476,7 +484,7 @@ static int zsetGetall(const std::string key, std::vector<blackwidow::ScoreMember
 }
 
 // migrate zset key
-static int migrateZset(pink::PinkCli *cli, const std::string key){
+static int migrateZset(pink::PinkCli *cli, const std::string key, bool async){
     int r, ret = 0;
     std::vector<blackwidow::ScoreMember> score_members;
     if (zsetGetall(key, &score_members) < 0){
@@ -515,40 +523,42 @@ static int migrateZset(pink::PinkCli *cli, const std::string key){
         ret += r;
     }
 
-    KeyDelete(key, 'z');
+    if (!async) {
+        KeyDelete(key, 'z');
+    }
     return ret;
 }
 
 // migrate key
-static int MigrateOneKey(pink::PinkCli *cli, const std::string key, const char key_type){
+static int MigrateOneKey(pink::PinkCli *cli, const std::string key, const char key_type, bool async){
     int ret;
     switch (key_type) {
         case 'k':
-            if ((ret = migrateKv(cli, key)) < 0){
+            if ((ret = migrateKv(cli, key, async)) < 0){
                 SlotKeyAdd("k", key);
                 return -1;
             }
             break;
         case 'h':
-            if ((ret = migrateHash(cli, key)) < 0){
+            if ((ret = migrateHash(cli, key, async)) < 0){
                 SlotKeyAdd("h", key);
                 return -1;
             }
             break;
         case 'l':
-            if ((ret = migrateList(cli, key)) < 0){
+            if ((ret = migrateList(cli, key, async)) < 0){
                 SlotKeyAdd("l", key);
                 return -1;
             }
             break;
         case 's':
-            if ((ret = migrateSet(cli, key)) < 0){
+            if ((ret = migrateSet(cli, key, async)) < 0){
                 SlotKeyAdd("s", key);
                 return -1;
             }
             break;
         case 'z':
-            if ((ret = migrateZset(cli, key)) < 0){
+            if ((ret = migrateZset(cli, key, async)) < 0){
                 SlotKeyAdd("z", key);
                 return -1;
             }
@@ -646,7 +656,7 @@ void SlotsMgrtTagSlotCmd::Do() {
             return;
         }
 
-        if (MigrateOneKey(cli, key_, key_type_) < 0){
+        if (MigrateOneKey(cli, key_, key_type_, false) < 0){
             res_.SetRes(CmdRes::kErrOther, "migrate slot error");
             cli->Close();
             delete cli;
@@ -769,7 +779,7 @@ void SlotsMgrtTagOneCmd::Do() {
             return;
         }
 
-        if (MigrateOneKey(cli, key_, key_type_) < 0){
+        if (MigrateOneKey(cli, key_, key_type_, false) < 0){
             res_.SetRes(CmdRes::kErrOther, "migrate one error");
             cli->Close();
             delete cli;
@@ -1159,6 +1169,7 @@ SlotsMgrtSenderThread::SlotsMgrtSenderThread() :
     moved_keys_num_(-1),
     moved_keys_all_(-1),
     remained_keys_num_(-1),
+    error_(false),
     slotsmgrt_cond_(&slotsmgrt_cond_mutex_),
     is_migrating_(false) {
         cli_ = pink::NewRedisCli();
@@ -1282,6 +1293,10 @@ bool SlotsMgrtSenderThread::SlotsMigrateBatch(const std::string &ip, int64_t por
         slot_num_ = slot;
         keys_num_ = keys_num;
         is_migrating_ = true;
+        if (error_) {
+            StopThread();
+        }
+        error_ = false;
         bool ret = ElectMigrateKeys();
         if (!ret) {
             LOG(WARNING) << "Slots migrating sender get batch keys error";
@@ -1431,11 +1446,12 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                     size_t j = 0;
                     slash::RWLock lb(&rwlock_batch_, false);
                     for (int r; iter != migrating_batch_.end() && (j < asyncRecvsNum); iter++) {
-                        if ((r = MigrateOneKey(cli_, iter->second, iter->first)) < 0){
+                        if ((r = MigrateOneKey(cli_, iter->second, iter->first, true)) < 0){
                             LOG(WARNING) << "Migrate batch key: " << iter->second << " error: ";
                             slotsmgrt_cond_.Signal();
                             is_migrating_ = false;
                             set_should_stop();
+                            error_ = true;
                             break;
                         } else {
                             j += r;
@@ -1444,13 +1460,28 @@ void* SlotsMgrtSenderThread::ThreadMain() {
                         moved_keys_all_++;
                         remained_keys_num_--;
                     }
+                    if (error_) {
+                        break;
+                    }
                     for (; j>0; j--) {
                         slash::Status s;
                         s = cli_->Recv(NULL);
                         if (!s.ok()) {
+                            LOG(WARNING) << "Migrate batch Recv error";
+                            slotsmgrt_cond_.Signal();
+                            is_migrating_ = false;
+                            set_should_stop();
+                            error_ = true;
                             break;
                         }
                     }
+                }
+                if (error_) {
+                    break;
+                }
+
+                for (const auto& item : migrating_batch_) {
+                    KeyDelete(item.second, item.first);
                 }
 
                 {
@@ -1472,6 +1503,7 @@ void* SlotsMgrtSenderThread::ThreadMain() {
             moved_keys_num_ = -1;
             is_migrating_ = false;
             set_should_stop();
+            error_ = true;
             slotsmgrt_cond_.Signal();
         }
     }

@@ -198,6 +198,7 @@ private:
     int64_t moved_keys_num_; // during one batch moved
     int64_t moved_keys_all_; // all keys moved in the slot
     int64_t remained_keys_num_;
+    bool error_;
     std::vector<std::pair<const char, std::string>> migrating_batch_;
     std::vector<std::pair<const char, std::string>> migrating_ones_;
     pink::PinkCli *cli_;
