@@ -1182,14 +1182,14 @@ SlotsMgrtSenderThread::SlotsMgrtSenderThread() :
 }
 
 SlotsMgrtSenderThread::~SlotsMgrtSenderThread() {
+    set_should_stop();
     if (is_migrating_) {
+        is_migrating_ = false;
         slotsmgrt_cond_.SignalAll();
     }
     if (is_running()) {
         StopThread();
     }
-    is_migrating_ = false;
-    set_should_stop();
     pthread_rwlock_destroy(&rwlock_db_);
     pthread_rwlock_destroy(&rwlock_batch_);
     pthread_rwlock_destroy(&rwlock_ones_);
