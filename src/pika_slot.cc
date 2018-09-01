@@ -636,7 +636,7 @@ void SlotsMgrtTagSlotCmd::Do() {
 
     pink::PinkCli *cli = pink::NewRedisCli();
     cli->set_connect_timeout(timeout_ms_);
-    if ((cli->Connect(dest_ip_, dest_port_, g_pika_server->host())).ok()) {
+    if ((cli->Connect(dest_ip_, dest_port_, "")).ok()) {
         cli->set_send_timeout(timeout_ms_);
         cli->set_recv_timeout(timeout_ms_);
         if (doAuth(cli) < 0) {
@@ -759,7 +759,7 @@ void SlotsMgrtTagOneCmd::Do() {
 
     pink::PinkCli *cli = pink::NewRedisCli();
     cli->set_connect_timeout(timeout_ms_);
-    if ((cli->Connect(dest_ip_, dest_port_, g_pika_server->host())).ok()) {
+    if ((cli->Connect(dest_ip_, dest_port_, "")).ok()) {
         cli->set_send_timeout(timeout_ms_);
         cli->set_recv_timeout(timeout_ms_);
         if (doAuth(cli) < 0) {
@@ -1395,7 +1395,7 @@ void* SlotsMgrtSenderThread::ThreadMain() {
     cli_->set_connect_timeout(timeout_ms_);
     moved_keys_all_ = 0;
     while (!should_stop()) {
-        result = cli_->Connect(dest_ip_, dest_port_, g_pika_server->host());
+        result = cli_->Connect(dest_ip_, dest_port_, "");
         LOG(INFO) << "Slots Migrate Sender Connect server(" << dest_ip_ << ":" << dest_port_ << ") " << result.ToString();
 
         if (result.ok()) {
