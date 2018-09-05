@@ -58,6 +58,9 @@ int PikaConf::Load()
   }
   GetConfInt("slowlog-log-slower-than", &slowlog_log_slower_than_);
   GetConfInt("slowlog-max-len", &slowlog_max_len_);
+  if (slowlog_max_len_ == 0) {
+    slowlog_max_len_ = 128;
+  }
   std::string user_blacklist;
   GetConfStr("userblacklist", &user_blacklist);
   SetUserBlackList(std::string(user_blacklist));
@@ -203,7 +206,7 @@ int PikaConf::Load()
   // binlog
   std::string wb;
   GetConfStr("write-binlog", &wb);
-  write_binlog_ = (wb == "yes") ? true : false;
+  write_binlog_ = (wb == "no") ? false : true;
   GetConfStr("identify-binlog-type", &identify_binlog_type_);
   GetConfInt("binlog-file-size", &binlog_file_size_);
   if (binlog_file_size_ < 1024
