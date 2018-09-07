@@ -106,12 +106,14 @@ bool PikaMonitorThread::FindClient(const std::string &ip_port) {
 }
 
 bool PikaMonitorThread::ThreadClientKill(const std::string& ip_port) {
-  if (ip_port == "all") {
-    AddCronTask({TASK_KILLALL, "all"});
-  } else if (FindClient(ip_port)) {
-    AddCronTask({TASK_KILL, ip_port});
-  } else {
-    return false;
+  if (is_running()) {
+    if (ip_port == "all") {
+      AddCronTask({TASK_KILLALL, "all"});
+    } else if (FindClient(ip_port)) {
+      AddCronTask({TASK_KILL, ip_port});
+    } else {
+      return false;
+    }
   }
   return true;
 }
@@ -157,7 +159,7 @@ void* PikaMonitorThread::ThreadMain() {
         task = cron_tasks_.front();
         cron_tasks_.pop();
         RemoveMonitorClient(task.ip_port);
-        if (TASK_KILLALL) {
+        if (task.task == TASK_KILLALL) {
           std::queue<MonitorCronTask> empty_queue;
           cron_tasks_.swap(empty_queue);
         }
