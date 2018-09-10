@@ -1688,9 +1688,10 @@ void PikaServer::RWUnlock() {
 }
 
 void PikaServer::UpdateQueryNumAndExecCountTable(const std::string& command) {
+  std::string cmd(command);
   statistic_data_.statistic_lock.WriteLock();
   statistic_data_.thread_querynum++;
-  statistic_data_.exec_count_table[command]++;
+  statistic_data_.exec_count_table[slash::StringToUpper(cmd)]++;
   statistic_data_.statistic_lock.WriteUnlock();
 }
 
