@@ -1521,7 +1521,9 @@ void* SlotsMgrtSenderThread::ThreadMain() {
     }
 
     cli_->Close();
-    sleep(1);
+    if (error_) {
+        sleep(1);
+    }
 
     LOG(INFO) << "SlotsMgrtSender thread " << thread_id() << " finished!";
     return NULL;
