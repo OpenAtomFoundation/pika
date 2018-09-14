@@ -1088,6 +1088,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
       ret = "*2\r\n";
       EncodeString(&ret, "root-connection-num");
       EncodeInt32(&ret, g_pika_conf->root_connection_num());
+  } else if (get_item == "slowlog-write-errorlog") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "slowlog-write-errorlog");
+    EncodeString(&ret, g_pika_conf->slowlog_write_errorlog() ? "yes" : "no");
   } else if (get_item == "slowlog-log-slower-than") {
       ret = "*2\r\n";
       EncodeString(&ret, "slowlog-log-slower-than");
@@ -1129,7 +1133,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else if (get_item == "*") {
-    ret = "*90\r\n";
+    ret = "*92\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1192,6 +1196,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->expire_logs_nums());
     EncodeString(&ret, "root-connection-num");
     EncodeInt32(&ret, g_pika_conf->root_connection_num());
+    EncodeString(&ret, "slowlog-write-errorlog");
+    EncodeString(&ret, g_pika_conf->slowlog_write_errorlog() ? "yes" : "no");
     EncodeString(&ret, "slowlog-log-slower-than");
     EncodeInt32(&ret, g_pika_conf->slowlog_slower_than());
     EncodeString(&ret, "slowlog-max-len");
@@ -1228,7 +1234,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*21\r\n";
+    ret = "*22\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
@@ -1241,6 +1247,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "expire-logs-days");
     EncodeString(&ret, "expire-logs-nums");
     EncodeString(&ret, "root-connection-num");
+    EncodeString(&ret, "slowlog-write-errorlog");
     EncodeString(&ret, "slowlog-log-slower-than");
     EncodeString(&ret, "slowlog-max-len");
     EncodeString(&ret, "slave-read-only");
@@ -1331,6 +1338,18 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetRootConnectionNum(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "slowlog-write-errorlog") {
+    bool is_write_errorlog;
+    if (value == "yes") {
+      is_write_errorlog = true;
+    } else if (value == "no") {
+      is_write_errorlog = false;
+    } else {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slowlog-write-errorlog'\r\n";
+      return;
+    }
+    g_pika_conf->SetSlowlogWriteErrorlog(is_write_errorlog);
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-log-slower-than") {
     if (!slash::string2l(value.data(), value.size(), &ival) && ival >= 0) {
