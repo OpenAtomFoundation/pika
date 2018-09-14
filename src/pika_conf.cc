@@ -56,6 +56,11 @@ int PikaConf::Load()
   if (root_connection_num_ < 0) {
       root_connection_num_ = 2;
   }
+
+  std::string swe;
+  GetConfStr("slowlog-write-errorlog", &swe);
+  slowlog_write_errorlog_ = swe == "yes" ? true : false;
+
   GetConfInt("slowlog-log-slower-than", &slowlog_log_slower_than_);
   GetConfInt("slowlog-max-len", &slowlog_max_len_);
   if (slowlog_max_len_ == 0) {
@@ -269,6 +274,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("expire-logs-days", expire_logs_days_);
   SetConfInt("expire-logs-nums", expire_logs_nums_);
   SetConfInt("root-connection-num", root_connection_num_);
+  SetConfStr("slowlog-write-errorlog", slowlog_write_errorlog_ ? "yes" : "no");
   SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
   SetConfInt("slowlog-max-len", slowlog_max_len_);
   SetConfBool("slave-read-only", readonly_);

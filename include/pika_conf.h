@@ -72,6 +72,7 @@ class PikaConf : public slash::BaseConf {
   bool readonly()               { RWLock l(&rwlock_, false); return readonly_; }
   int maxclients()           { RWLock l(&rwlock_, false); return maxclients_; }
   int root_connection_num()     { RWLock l(&rwlock_, false); return root_connection_num_; }
+  bool slowlog_write_errorlog() { RWLock l(&rwlock_, false); return slowlog_write_errorlog_;}
   int slowlog_slower_than()     { RWLock l(&rwlock_, false); return slowlog_log_slower_than_; }
   int slowlog_max_len()         { RWLock L(&rwlock_, false); return slowlog_max_len_; }
   std::string network_interface() { RWLock l(&rwlock_, false); return network_interface_; }
@@ -156,6 +157,10 @@ class PikaConf : public slash::BaseConf {
     RWLock l(&rwlock_, true);
     root_connection_num_ = value;
   }
+  void SetSlowlogWriteErrorlog(const bool value) {
+    RWLock l(&rwlock_, true);
+    slowlog_write_errorlog_ = value;
+  }
   void SetSlowlogSlowerThan(const int value) {
     RWLock l(&rwlock_, true);
     slowlog_log_slower_than_ = value;
@@ -216,6 +221,7 @@ private:
   std::string compression_;
   int maxclients_;
   int root_connection_num_;
+  bool slowlog_write_errorlog_;
   int slowlog_log_slower_than_;
   int slowlog_max_len_;
   int expire_logs_days_;
