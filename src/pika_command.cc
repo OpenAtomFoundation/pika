@@ -167,6 +167,9 @@ void InitCmdInfoTable() {
   ////Scan
   CmdInfo* scanptr = new CmdInfo(kCmdNameScan, -2, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameScan, scanptr));
+  ////Scanx
+  CmdInfo* scanxptr = new CmdInfo(kCmdNameScanx, -3, kCmdFlagsRead | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameScanx, scanxptr));
 
   //Hash
   ////HDel
@@ -214,6 +217,9 @@ void InitCmdInfoTable() {
   ///HScan
   CmdInfo* hscanptr = new CmdInfo(kCmdNameHScan, -3, kCmdFlagsRead | kCmdFlagsHash);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHScan, hscanptr));
+  ///HScanx
+  CmdInfo* hscanxptr = new CmdInfo(kCmdNameHScanx, -3, kCmdFlagsRead | kCmdFlagsHash);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameHScanx, hscanxptr));
 
   //List
   ////LIndex
@@ -591,6 +597,9 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////ScanCmd
   Cmd* scanptr = new ScanCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameScan, scanptr));
+  ////ScanxCmd
+  Cmd* scanxptr = new ScanxCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameScanx, scanxptr));
   //Hash
   ////HDelCmd
   Cmd* hdelptr = new HDelCmd();
@@ -637,6 +646,9 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////HScanCmd
   Cmd* hscanptr = new HScanCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHScan, hscanptr));
+  ////HScanxCmd
+  Cmd* hscanxptr = new HScanxCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHScanx, hscanxptr));
   //List
   Cmd* lindexptr = new LIndexCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLIndex, lindexptr));
