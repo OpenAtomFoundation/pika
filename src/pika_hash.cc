@@ -413,3 +413,60 @@ void HScanCmd::Do() {
   }
   return;
 }
+
+void HScanxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameHScan);
+    return;
+  }
+  key_ = argv[1];
+  start_field_ = argv[2];
+
+  size_t index = 3, argc = argv.size();
+  while (index < argc) {
+    std::string opt = slash::StringToLower(argv[index]);
+    if (opt == "match" || opt == "count") {
+      index++;
+      if (index >= argc) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;
+      }
+      if (opt == "match") {
+        pattern_ = argv[index];
+      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_)) {
+        res_.SetRes(CmdRes::kInvalidInt);
+        return;
+      }
+    } else {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+    index++;
+  }
+  if (count_ < 0) {
+    res_.SetRes(CmdRes::kSyntaxErr);
+    return;
+  }
+  return;
+}
+
+void HScanxCmd::Do() {
+  std::string next_field;
+  std::vector<blackwidow::FieldValue> field_values;
+  rocksdb::Status s = g_pika_server->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
+
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendArrayLen(2);
+    res_.AppendStringLen(next_field.size());
+    res_.AppendContent(next_field);
+
+    res_.AppendArrayLen(2 * field_values.size());
+    for (const auto& field_value : field_values) {
+      res_.AppendString(field_value.field);
+      res_.AppendString(field_value.value);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  return;
+}

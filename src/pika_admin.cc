@@ -1611,15 +1611,15 @@ void ScandbCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
   if (argv.size() == 1) {
     type_ = blackwidow::kAll;
   } else {
-    if (argv[1] == "string") {
+    if (!strcasecmp(argv[1].data(),"string")) {
       type_ = blackwidow::kStrings;
-    } else if (argv[1] == "hash") {
+    } else if (!strcasecmp(argv[1].data(), "hash")) {
       type_ = blackwidow::kHashes;
-    } else if (argv[1] == "set") {
+    } else if (!strcasecmp(argv[1].data(), "set")) {
       type_ = blackwidow::kSets;
-    } else if (argv[1] == "zset") {
+    } else if (!strcasecmp(argv[1].data(), "zset")) {
       type_ = blackwidow::kZSets;
-    } else if (argv[1] == "list") {
+    } else if (!strcasecmp(argv[1].data(), "list")) {
       type_ = blackwidow::kLists;
     } else {
       res_.SetRes(CmdRes::kInvalidDbType);

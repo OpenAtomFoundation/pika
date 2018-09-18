@@ -98,6 +98,7 @@ const std::string kCmdNamePttl = "pttl";
 const std::string kCmdNamePersist = "persist";
 const std::string kCmdNameType = "type";
 const std::string kCmdNameScan = "scan";
+const std::string kCmdNameScanx = "scanx";
 
 //Hash
 const std::string kCmdNameHDel = "hdel";
@@ -115,6 +116,7 @@ const std::string kCmdNameHSetnx = "hsetnx";
 const std::string kCmdNameHStrlen = "hstrlen";
 const std::string kCmdNameHVals = "hvals";
 const std::string kCmdNameHScan = "hscan";
+const std::string kCmdNameHScanx = "hscanx";
 
 //List
 const std::string kCmdNameLIndex = "lindex";

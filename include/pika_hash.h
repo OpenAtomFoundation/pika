@@ -150,7 +150,20 @@ public:
 private:
   std::string key_, pattern_;
   int64_t cursor_, count_;
-  bool use_pattern_, use_count_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    pattern_ = "*";
+    count_ = 10;
+  }
+};
+
+class HScanxCmd : public Cmd {
+public:
+  HScanxCmd() : pattern_("*"), count_(10) {}
+  virtual void Do();
+private:
+  std::string key_, start_field_, pattern_;
+  int64_t count_;
   virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
     pattern_ = "*";

@@ -417,4 +417,20 @@ private:
     count_ = 10;
   }
 };
+
+class ScanxCmd : public Cmd {
+public:
+  ScanxCmd() : pattern_("*"), count_(10) {}
+  virtual void Do();
+private:
+  blackwidow::DataType type_;
+  std::string start_key_;
+  std::string pattern_;
+  int64_t count_;
+  virtual void DoInitial(PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    pattern_ = "*";
+    count_ = 10;
+  }
+};
 #endif
