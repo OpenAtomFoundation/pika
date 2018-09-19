@@ -1260,3 +1260,69 @@ void ScanCmd::Do() {
   }
   return;
 }
+
+void ScanxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameScanx);
+    return;
+  }
+  if (!strcasecmp(argv[1].data(), "string")) {
+    type_ = blackwidow::kStrings;
+  } else if (!strcasecmp(argv[1].data(), "hash")) {
+    type_ = blackwidow::kHashes;
+  } else if (!strcasecmp(argv[1].data(), "set")) {
+    type_ = blackwidow::kSets;
+  } else if (!strcasecmp(argv[1].data(), "zset")) {
+    type_ = blackwidow::kZSets;
+  } else if (!strcasecmp(argv[1].data(), "list")) {
+    type_ = blackwidow::kLists;
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType);
+    return;
+  }
+
+  start_key_ = argv[2];
+  size_t index = 3, argc = argv.size();
+  while (index < argc) {
+    std::string opt = slash::StringToLower(argv[index]);
+    if (opt == "match" || opt == "count") {
+      index++;
+      if (index >= argc) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;
+      }
+      if (opt == "match") {
+        pattern_ = argv[index];
+      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_) || count_ <= 0) {
+        res_.SetRes(CmdRes::kInvalidInt);
+        return;
+      }
+    } else {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+    index++;
+  }
+  return;
+}
+
+void ScanxCmd::Do() {
+  std::string next_key;
+  std::vector<std::string> keys;
+  rocksdb::Status s = g_pika_server->db()->Scanx(type_, start_key_, pattern_, count_, &keys, &next_key);
+
+  if (s.ok()) {
+    res_.AppendArrayLen(2);
+    res_.AppendStringLen(next_key.size());
+    res_.AppendContent(next_key);
+
+    res_.AppendArrayLen(keys.size());
+    std::vector<std::string>::const_iterator iter;
+    for (const auto& key : keys){
+      res_.AppendString(key);
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  return;
+}
