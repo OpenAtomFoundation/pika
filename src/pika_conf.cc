@@ -203,16 +203,16 @@ int PikaConf::Load()
     max_bytes_for_level_multiplier_ = 5;
   }
 
-  block_size_ = 4096;
+  block_size_ = 4 * 1024;
   GetConfInt("block-size", &block_size_);
   if (block_size_ <= 0) {
-    block_size_ = 4096;
+    block_size_ = 4 * 1024;
   }
 
-  block_cache_ = 8388608;
+  block_cache_ = 8 * 1024 * 1024;
   GetConfInt("block-cache", &block_cache_);
   if (block_cache_ <= 0) {
-    block_cache_ = 4096;
+    block_cache_ = 8 * 1024 * 1024;
   }
 
   std::string ciafb;

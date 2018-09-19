@@ -239,7 +239,7 @@ bool PikaServer::ServerInit() {
 
 }
 
-void PikaServer::RocksdbTableOptionInit(rocksdb::BlockBasedTableOptions *table_option) {
+void PikaServer::RocksdbTableOptionInit(rocksdb::BlockBasedTableOptions* table_option) {
   table_option->block_size = g_pika_conf->block_size();
   table_option->block_cache = rocksdb::NewLRUCache(g_pika_conf->block_cache());
   table_option->cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
