@@ -209,10 +209,10 @@ int PikaConf::Load()
     block_size_ = 4 * 1024;
   }
 
-  block_cache_ = 8 * 1024 * 1024;
+  block_cache_ = 0;
   GetConfInt("block-cache", &block_cache_);
-  if (block_cache_ <= 0) {
-    block_cache_ = 8 * 1024 * 1024;
+  if (block_cache_ < 0) {
+    block_cache_ = 0;
   }
 
   std::string ciafb;
