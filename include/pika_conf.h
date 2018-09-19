@@ -66,6 +66,11 @@ class PikaConf : public slash::BaseConf {
   int max_background_compactions()   { RWLock l(&rwlock_, false); return max_background_compactions_; }
   int max_cache_files()          { RWLock l(&rwlock_, false); return max_cache_files_; }
   int max_bytes_for_level_multiplier() {RWLock l(&rwlock_, false); return max_bytes_for_level_multiplier_; }
+  int block_size() {RWLock l(&rwlock_, false); return block_size_; }
+  int block_cache() {RWLock l(&rwlock_, false); return block_cache_; }
+  bool cache_index_and_filter_blocks() {RWLock l(&rwlock_, false); return cache_index_and_filter_blocks_; }
+  bool optimize_filters_for_hits() {RWLock l(&rwlock_, false); return optimize_filters_for_hits_; }
+  bool level_compaction_dynamic_level_bytes() {RWLock l(&rwlock_, false); return level_compaction_dynamic_level_bytes_; }
   int expire_logs_nums()        { RWLock l(&rwlock_, false); return expire_logs_nums_; }
   int expire_logs_days()        { RWLock l(&rwlock_, false); return expire_logs_days_; }
   std::string conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
@@ -232,6 +237,12 @@ private:
   int max_background_compactions_;
   int max_cache_files_;
   int max_bytes_for_level_multiplier_;
+  int block_size_;
+  int block_cache_;
+  bool cache_index_and_filter_blocks_;
+  bool optimize_filters_for_hits_;
+  bool level_compaction_dynamic_level_bytes_;
+
   std::string network_interface_;
 
   //char username_[30];

@@ -203,6 +203,30 @@ int PikaConf::Load()
     max_bytes_for_level_multiplier_ = 5;
   }
 
+  block_size_ = 4096;
+  GetConfInt("block-size", &block_size_);
+  if (block_size_ <= 0) {
+    block_size_ = 4096;
+  }
+
+  block_cache_ = 8388608;
+  GetConfInt("block-cache", &block_cache_);
+  if (block_cache_ <= 0) {
+    block_cache_ = 4096;
+  }
+
+  std::string ciafb;
+  GetConfStr("cache-index-and-filter-blocks", &ciafb);
+  cache_index_and_filter_blocks_ = (ciafb == "yes") ? true : false;
+
+  std::string offh;
+  GetConfStr("optimize-filters-for-hits", &offh);
+  optimize_filters_for_hits_ = (offh == "yes") ? true : false;
+
+  std::string lcdlb;
+  GetConfStr("level-compaction-dynamic-level-bytes", &lcdlb);
+  level_compaction_dynamic_level_bytes_ = (lcdlb == "yes") ? true : false;
+
   // daemonize
   std::string dmz;
   GetConfStr("daemonize", &dmz);
@@ -292,6 +316,11 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-background-compactions", max_background_compactions_);
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-bytes-for-level-multiplier", max_bytes_for_level_multiplier_);
+  SetConfInt("block-size", block_size_);
+  SetConfInt("block-cache", block_cache_);
+  SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
+  SetConfStr("optimize-filters-for-hits", optimize_filters_for_hits_ ? "yes" : "no");
+  SetConfStr("level-compaction-dynamic-level-bytes", level_compaction_dynamic_level_bytes_ ? "yes" : "no");
 
   return WriteBack();
 }
