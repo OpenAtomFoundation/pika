@@ -1076,6 +1076,26 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     ret = "*2\r\n";
     EncodeString(&ret, "max-bytes-for-level-multiplier");
     EncodeInt32(&ret, g_pika_conf->max_bytes_for_level_multiplier());
+  } else if (get_item == "block-size") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "block-size");
+    EncodeInt32(&ret, g_pika_conf->block_size());
+  } else if (get_item == "block-cache") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "block-cache");
+    EncodeInt32(&ret, g_pika_conf->block_cache());
+  } else if (get_item == "cache-index-and-filter-blocks") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "cache-index-and-filter-blocks");
+    EncodeString(&ret, g_pika_conf->cache_index_and_filter_blocks() ? "yes" : "no");
+  } else if (get_item == "optimize-filters-for-hits") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "optimize-filters-for-hits");
+    EncodeString(&ret, g_pika_conf->optimize_filters_for_hits() ? "yes" : "no"); 
+  } else if (get_item == "level-compaction-dynamic-level-bytes") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "level-compaction-dynamic-level-bytes");
+    EncodeString(&ret, g_pika_conf->level_compaction_dynamic_level_bytes() ? "yes" : "no");
   } else if (get_item == "expire-logs-days") {
     ret = "*2\r\n";
     EncodeString(&ret, "expire-logs-days");
@@ -1133,7 +1153,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else if (get_item == "*") {
-    ret = "*92\r\n";
+    ret = "*102\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1190,6 +1210,16 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->max_cache_files());
     EncodeString(&ret, "max-bytes-for-level-multiplier");
     EncodeInt32(&ret, g_pika_conf->max_bytes_for_level_multiplier());
+    EncodeString(&ret, "block-size");
+    EncodeInt32(&ret, g_pika_conf->block_size());
+    EncodeString(&ret, "block-cache");
+    EncodeInt32(&ret, g_pika_conf->block_cache());
+    EncodeString(&ret, "cache-index-and-filter-blocks");
+    EncodeString(&ret, g_pika_conf->cache_index_and_filter_blocks() ? "yes" : "no");
+    EncodeString(&ret, "optimize-filters-for-hits");
+    EncodeString(&ret, g_pika_conf->optimize_filters_for_hits() ? "yes" : "no"); 
+    EncodeString(&ret, "level-compaction-dynamic-level-bytes");
+    EncodeString(&ret, g_pika_conf->level_compaction_dynamic_level_bytes() ? "yes" : "no");
     EncodeString(&ret, "expire-logs-days");
     EncodeInt32(&ret, g_pika_conf->expire_logs_days());
     EncodeString(&ret, "expire-logs-nums");

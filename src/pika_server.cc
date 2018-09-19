@@ -62,12 +62,14 @@ PikaServer::PikaServer() :
 
   //Create blackwidow handle
   rocksdb::Options rocksdb_option;
+  rocksdb::BlockBasedTableOptions rocksdb_table_option;
   RocksdbOptionInit(&rocksdb_option);
+  RocksdbTableOptionInit(&rocksdb_table_option);
 
   std::string db_path = g_pika_conf->db_path();
   LOG(INFO) << "Prepare Blackwidow DB...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(rocksdb_option, db_path);
+  rocksdb::Status s = db_->Open(rocksdb_option, rocksdb_table_option, db_path);
   assert(db_);
   assert(s.ok());
   LOG(INFO) << "DB Success";
@@ -237,6 +239,13 @@ bool PikaServer::ServerInit() {
 
 }
 
+void PikaServer::RocksdbTableOptionInit(rocksdb::BlockBasedTableOptions* table_option) {
+  table_option->block_size = g_pika_conf->block_size();
+  table_option->block_cache = rocksdb::NewLRUCache(g_pika_conf->block_cache());
+  table_option->cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
+}
+
+
 void PikaServer::RocksdbOptionInit(rocksdb::Options* option) {
   option->create_if_missing = true;
   option->keep_log_file_num = 10;
@@ -249,6 +258,8 @@ void PikaServer::RocksdbOptionInit(rocksdb::Options* option) {
   option->max_background_compactions = g_pika_conf->max_background_compactions();
   option->max_open_files = g_pika_conf->max_cache_files();
   option->max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
+  option->optimize_filters_for_hits = g_pika_conf->optimize_filters_for_hits();
+  option->level_compaction_dynamic_level_bytes = g_pika_conf->level_compaction_dynamic_level_bytes();
 
   if (g_pika_conf->compression() == "none") {
     option->compression = rocksdb::CompressionType::kNoCompression;
@@ -402,26 +413,10 @@ void PikaServer::DeleteSlave(int fd) {
  */
 bool PikaServer::ChangeDb(const std::string& new_path) {
 
-  rocksdb::Options option;
-  option.create_if_missing = true;
-  option.keep_log_file_num = 10;
-  option.max_manifest_file_size = 64 * 1024 * 1024;
-  option.max_log_file_size = 512 * 1024 * 1024;
-
-  option.write_buffer_size = g_pika_conf->write_buffer_size();
-  option.target_file_size_base = g_pika_conf->target_file_size_base();
-  option.max_background_flushes = g_pika_conf->max_background_flushes();
-  option.max_background_compactions = g_pika_conf->max_background_compactions();
-  option.max_open_files = g_pika_conf->max_cache_files();
-  option.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
-
-  if (g_pika_conf->compression() == "none") {
-    option.compression = rocksdb::CompressionType::kNoCompression;
-  } else if (g_pika_conf->compression() == "snappy") {
-    option.compression = rocksdb::CompressionType::kSnappyCompression;
-  } else if (g_pika_conf->compression() == "zlib") {
-    option.compression = rocksdb::CompressionType::kZlibCompression;
-  }
+  rocksdb::Options rocksdb_option;
+  rocksdb::BlockBasedTableOptions rocksdb_table_option;
+  RocksdbOptionInit(&rocksdb_option);
+  RocksdbTableOptionInit(&rocksdb_table_option);
 
   std::string db_path = g_pika_conf->db_path();
   std::string tmp_path(db_path);
@@ -445,7 +440,7 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
   }
 
   db_.reset(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(option, db_path);
+  rocksdb::Status s = db_->Open(rocksdb_option, rocksdb_table_option, db_path);
   assert(db_);
   assert(s.ok());
   slash::DeleteDirIfExist(tmp_path);
@@ -1410,11 +1405,13 @@ bool PikaServer::FlushAll() {
 
   //Create blackwidow handle
   rocksdb::Options rocksdb_option;
+  rocksdb::BlockBasedTableOptions rocksdb_table_option;
   RocksdbOptionInit(&rocksdb_option);
+  RocksdbTableOptionInit(&rocksdb_table_option);
 
   LOG(INFO) << "Prepare open new db...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(rocksdb_option, g_pika_conf->db_path());
+  rocksdb::Status s = db_->Open(rocksdb_option, rocksdb_table_option, g_pika_conf->db_path());
   assert(db_);
   assert(s.ok());
   LOG(INFO) << "open new db success";
@@ -1448,11 +1445,13 @@ bool PikaServer::FlushDb(const std::string& db_name) {
   slash::RenameFile(sub_dbpath, del_dbpath);
 
   rocksdb::Options rocksdb_option;
+  rocksdb::BlockBasedTableOptions rocksdb_table_option;
   RocksdbOptionInit(&rocksdb_option);
+  RocksdbTableOptionInit(&rocksdb_table_option);
 
   LOG(INFO) << "Prepare open new " + db_name + " db...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(rocksdb_option, g_pika_conf->db_path());
+  rocksdb::Status s = db_->Open(rocksdb_option, rocksdb_table_option, g_pika_conf->db_path());
   assert(db_);
   assert(s.ok());
   LOG(INFO) << "open new " + db_name + " db success";
