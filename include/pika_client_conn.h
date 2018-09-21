@@ -9,16 +9,16 @@
 #include <glog/logging.h>
 #include <atomic>
 
-#include "pink/include/redis_conn.h"
+#include "pink/include/asyn_redis_conn.h"
 #include "pink/include/pink_thread.h"
 #include "include/pika_command.h"
 
 class PikaWorkerSpecificData;
 
-class PikaClientConn: public pink::RedisConn {
+class PikaClientConn: public pink::AsynRedisConn {
  public:
   PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
-                 void* worker_specific_data);
+                 void* worker_specific_data, pink::PinkEpoll* pink_epoll);
   virtual ~PikaClientConn() {}
   int DealMessage(PikaCmdArgsType& argv, std::string* response) override;
 

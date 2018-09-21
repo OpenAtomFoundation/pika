@@ -33,8 +33,9 @@ class PikaDispatchThread {
         int connfd,
         const std::string &ip_port,
         pink::ServerThread *server_thread,
-        void* worker_specific_data) const {
-      return new PikaClientConn(connfd, ip_port, server_thread, worker_specific_data);
+        void* worker_specific_data,
+        pink::PinkEpoll* pink_epoll) const {
+      return new PikaClientConn(connfd, ip_port, server_thread, worker_specific_data, pink_epoll);
     }
   };
 

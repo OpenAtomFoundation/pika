@@ -26,7 +26,8 @@ class PikaHeartbeatThread {
         int connfd,
         const std::string &ip_port,
         pink::ServerThread *thread,
-        void* worker_specific_data) const override {
+        void* worker_specific_data,
+        pink::PinkEpoll* pink_epoll) const override {
       return new PikaHeartbeatConn(connfd, ip_port);
     }
   };
