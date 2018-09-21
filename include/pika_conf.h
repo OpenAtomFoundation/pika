@@ -68,6 +68,7 @@ class PikaConf : public slash::BaseConf {
   int max_bytes_for_level_multiplier() {RWLock l(&rwlock_, false); return max_bytes_for_level_multiplier_; }
   int block_size() {RWLock l(&rwlock_, false); return block_size_; }
   int block_cache() {RWLock l(&rwlock_, false); return block_cache_; }
+  bool share_block_cache() {RWLock l(&rwlock_, false); return share_block_cache_; }
   bool cache_index_and_filter_blocks() {RWLock l(&rwlock_, false); return cache_index_and_filter_blocks_; }
   bool optimize_filters_for_hits() {RWLock l(&rwlock_, false); return optimize_filters_for_hits_; }
   bool level_compaction_dynamic_level_bytes() {RWLock l(&rwlock_, false); return level_compaction_dynamic_level_bytes_; }
@@ -239,6 +240,7 @@ private:
   int max_bytes_for_level_multiplier_;
   int block_size_;
   int block_cache_;
+  bool share_block_cache_;
   bool cache_index_and_filter_blocks_;
   bool optimize_filters_for_hits_;
   bool level_compaction_dynamic_level_bytes_;

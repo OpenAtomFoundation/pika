@@ -211,9 +211,13 @@ int PikaConf::Load()
 
   block_cache_ = 8 * 1024 * 1024;
   GetConfInt("block-cache", &block_cache_);
-  if (block_cache_ <= 0) {
+  if (block_cache_ < 0) {
     block_cache_ = 8 * 1024 * 1024;
   }
+
+  std::string sbc;
+  GetConfStr("share-block-cache", &sbc);
+  share_block_cache_ = (sbc == "yes") ? true : false;
 
   std::string ciafb;
   GetConfStr("cache-index-and-filter-blocks", &ciafb);
@@ -318,6 +322,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-bytes-for-level-multiplier", max_bytes_for_level_multiplier_);
   SetConfInt("block-size", block_size_);
   SetConfInt("block-cache", block_cache_);
+  SetConfStr("share-block-cache", share_block_cache_ ? "yes" : "no");
   SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
   SetConfStr("optimize-filters-for-hits", optimize_filters_for_hits_ ? "yes" : "no");
   SetConfStr("level-compaction-dynamic-level-bytes", level_compaction_dynamic_level_bytes_ ? "yes" : "no");

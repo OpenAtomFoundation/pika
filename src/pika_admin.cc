@@ -1084,6 +1084,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     ret = "*2\r\n";
     EncodeString(&ret, "block-cache");
     EncodeInt32(&ret, g_pika_conf->block_cache());
+  } else if (get_item == "share-block-cache") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "share-block-cache");
+    EncodeString(&ret, g_pika_conf->share_block_cache() ? "yes" : "no");
   } else if (get_item == "cache-index-and-filter-blocks") {
     ret = "*2\r\n";
     EncodeString(&ret, "cache-index-and-filter-blocks");
@@ -1153,7 +1157,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else if (get_item == "*") {
-    ret = "*102\r\n";
+    ret = "*104\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1214,6 +1218,8 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->block_size());
     EncodeString(&ret, "block-cache");
     EncodeInt32(&ret, g_pika_conf->block_cache());
+    EncodeString(&ret, "share-block-cache");
+    EncodeString(&ret, g_pika_conf->share_block_cache() ? "yes" : "no");
     EncodeString(&ret, "cache-index-and-filter-blocks");
     EncodeString(&ret, g_pika_conf->cache_index_and_filter_blocks() ? "yes" : "no");
     EncodeString(&ret, "optimize-filters-for-hits");
