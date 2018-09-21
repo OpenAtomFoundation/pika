@@ -36,8 +36,9 @@ static std::string ConstructPubSubResp(
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                pink::ServerThread* server_thread,
-                               void* worker_specific_data)
-      : RedisConn(fd, ip_port, server_thread),
+                               void* worker_specific_data,
+                               pink::PinkEpoll* pink_epoll)
+      : AsynRedisConn(fd, ip_port, server_thread, pink_epoll),
         server_thread_(server_thread),
         cmds_table_(reinterpret_cast<CmdTable*>(worker_specific_data)),
         is_pubsub_(false) {
