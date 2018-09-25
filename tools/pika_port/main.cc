@@ -183,7 +183,8 @@ int main(int argc, char *argv[])
     std::random_device rd;
     std::mt19937 mt(rd());
     std::uniform_int_distribution<int> di(10000, 40000);
-    g_conf.local_port = di(mt);
+    // g_conf.local_port = di(mt);
+	g_conf.local_port = 21333;
     LOG(INFO) << "Use random port: " << g_conf.local_port;
   }
 

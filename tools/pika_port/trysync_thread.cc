@@ -65,7 +65,7 @@ bool TrysyncThread::Send(std::string lip) {
   uint32_t filenum;
   uint64_t pro_offset;
   g_pika_port->logger()->GetProducerStatus(&filenum, &pro_offset);
-  LOG(WARNING) << "producer filenum: " << filenum << ", producer offset:" << pro_offset;
+  LOG(INFO) << "producer filenum: " << filenum << ", producer offset:" << pro_offset;
 
   argv.push_back(std::to_string(filenum));
   argv.push_back(std::to_string(pro_offset));
@@ -78,9 +78,10 @@ bool TrysyncThread::Send(std::string lip) {
   slash::Status s;
   s = cli_->Send(&wbuf_str);
   if (!s.ok()) {
-    LOG(WARNING) << "Connect master, Send, error: " <<strerror(errno);
+    LOG(WARNING) << "Connect master, Send " << wbuf_str << ", error: " << strerror(errno);
     return false;
   }
+
   return true;
 }
 
@@ -248,7 +249,7 @@ int TrysyncThread::Retransmit() {
   options.write_buffer_size = 512 * 1024 * 1024; // 512M
   options.target_file_size_base = 40 * 1024 * 1024; // 40M
   blackwidow::RedisStrings stringsDB;
-  s = stringsDB.Open(options, db_path);
+  s = stringsDB.Open(options, db_path + "strings");
   assert(s.ok());
   LOG(INFO) << "Open DB " << db_path << " Success";
 
@@ -393,5 +394,6 @@ void* TrysyncThread::ThreadMain() {
       LOG(WARNING) << "Failed to connect to master, " << master_ip << ":" << master_port;
     }
   }
+
   return NULL;
 }

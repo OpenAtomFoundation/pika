@@ -32,6 +32,8 @@ void RedisSender::ConnectRedis() {
     // Connect to redis
     cli_ = pink::NewRedisCli();
     cli_->set_connect_timeout(1000);
+    cli_->set_recv_timeout(10000);
+    cli_->set_send_timeout(10000);
     slash::Status s = cli_->Connect(ip_, port_);
     if (!s.ok()) {
       cli_ = NULL;
@@ -99,6 +101,7 @@ void RedisSender::ConnectRedis() {
 }
 
 void RedisSender::Stop() {
+  set_should_stop();
   should_exit_ = true;
   commands_mutex_.Lock();
   rsignal_.Signal();

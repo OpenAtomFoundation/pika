@@ -68,7 +68,7 @@ public:
     return logger_;
   }
 
-  int SendRedisCommand(std::string &command, std::string &key);
+  int SendRedisCommand(const std::string &command, const std::string &key);
 
   bool SetMaster(std::string& master_ip, int master_port);
   bool ShouldConnectMaster();

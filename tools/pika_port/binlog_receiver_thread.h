@@ -22,6 +22,15 @@ public:
 
   void KillBinlogSender();
 
+  // uint64_t GetnPlusSerial() {
+  //   return serial_++;
+  // }
+
+  // Cmd* GetCmd(const std::string& opt) {
+  //   return GetCmdFromTable(opt, cmds_);
+  // }
+
+
  private:
   class MasterConnFactory : public pink::ConnFactory {
    public:
@@ -56,5 +65,8 @@ public:
   MasterConnFactory conn_factory_;
   Handles handles_;
   pink::ServerThread* thread_rep_;
+
+  // CmdTable cmds_;
+  // uint64_t serial_;
 };
 #endif

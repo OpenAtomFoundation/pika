@@ -89,11 +89,17 @@ void PikaPort::Cleanup() {
   // sender_->JoinThread();
   // delete cli_;
   // delete sender_;
+
+  if (ping_thread_) {
+    ping_thread_->StopThread();
+  }
+  trysync_thread_->StopThread();
   size_t thread_num = g_conf.forward_thread_num;
   for(size_t i = 0; i < thread_num; i++) {
     senders_[i]->Stop();
   }
   for (size_t i = 0; i < thread_num; i++) {
+    // senders_[i]->set_should_stop();
     senders_[i]->JoinThread();
   }
   int64_t replies = 0;
@@ -136,7 +142,7 @@ void PikaPort::Stop() {
   mutex_.Unlock();
 }
 
-int PikaPort::SendRedisCommand(std::string &command, std::string &key) {
+int PikaPort::SendRedisCommand(const std::string &command, const std::string &key) {
   // Send command
   size_t idx = std::hash<std::string>()(key) % g_conf.forward_thread_num;
   senders_[idx]->SendRedisCommand(command);

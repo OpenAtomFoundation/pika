@@ -38,11 +38,12 @@ bool BinlogReceiverThread::Handles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {
     ip = g_conf.local_ip;
   }
-  if (binlog_receiver_->thread_rep_->conn_num() != 0 ||
-      !g_pika_port->ShouldAccessConnAsMaster(ip)) {
-    LOG(INFO) << "BinlogReceiverThread AccessHandle failed";
-    return false;
-  }
+  LOG(INFO) << "Master Binlog Sender: " << ip << " connecting";
+  // if (binlog_receiver_->thread_rep_->conn_num() != 0 ||
+  //     !g_pika_port->ShouldAccessConnAsMaster(ip)) {
+  //   LOG(INFO) << "BinlogReceiverThread AccessHandle failed";
+  //   return false;
+  // }
   g_pika_port->PlusMasterConnection();
   return true;
 }

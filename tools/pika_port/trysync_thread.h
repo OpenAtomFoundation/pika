@@ -21,8 +21,8 @@ class TrysyncThread : public pink::Thread {
   virtual ~TrysyncThread();
 
  private:
+  long sid_;
   int sockfd_;
-  int64_t sid_;
   pink::PinkCli *cli_;
 
   bool Send(std::string lip);
