@@ -20,7 +20,7 @@ Status SlavepingThread::Send() {
     argv.push_back(std::to_string(sid_));
     pink::SerializeRedisCommand(argv, &wbuf_str);
     is_first_send_ = false;
-    LOG(INFO) << wbuf_str;
+    LOG(INFO) << "spci " << sid_;
   }
 
   return cli_->Send(&wbuf_str);

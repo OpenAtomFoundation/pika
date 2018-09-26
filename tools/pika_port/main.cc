@@ -9,13 +9,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 
+#include "log.h"
 #include "pika_port.h"
 #include "conf.h"
 
 Conf g_conf;
-
 PikaPort* g_pika_port;
+int pidFileFd = 0;
 
 static void GlogInit(std::string& log_path, bool is_daemon) {
   if (!slash::FileExists(log_path)) {
@@ -30,6 +32,38 @@ static void GlogInit(std::string& log_path, bool is_daemon) {
   FLAGS_max_log_size = 1800;
   FLAGS_logbufsecs = 0;
   ::google::InitGoogleLogging("PikaPort");
+}
+
+static int lockFile(int fd) {
+  struct flock lock;
+  lock.l_type = F_WRLCK;
+  lock.l_start = 0;
+  lock.l_whence = SEEK_SET;
+  lock.l_len = 0;
+
+  return fcntl(fd, F_SETLK, &lock);
+}
+
+static void createPidFile(char *file) {
+  int fd = open(file, O_RDWR | O_CREAT | O_DIRECT, S_IRUSR | S_IWUSR);
+  pinfo("open %s = %d", file, fd);
+  if (-1 == fd) {
+    pfatal("open(%s) = %d, error:%m", file, fd);
+  }
+
+  int ret = lockFile(fd);
+  pinfo("lockFile(%d) = %d", fd, ret);
+  if (ret < 0) {
+    close(fd);
+    pfatal("lock(%d) = %d, error:%m", fd, ret);
+  }
+
+  int pid = (int)(getpid());
+  char buf[32];
+  sprintf(buf, "%d\n", pid);
+  pinfo("buf %s", buf);
+  write(fd, buf, strlen(buf) + 1);
+  pidFileFd = fd;
 }
 
 static void daemonize() {
@@ -47,10 +81,11 @@ static void close_std() {
   }
 }
 
-#include <unistd.h>
-
 static void IntSigHandle(const int sig) {
   LOG(INFO) << "Catch Signal " << sig << ", cleanup...";
+  if (2 < pidFileFd) {
+    close(pidFileFd);
+  }
   g_pika_port->Stop();
 }
 
@@ -207,6 +242,8 @@ int main(int argc, char *argv[])
     exit(-1);
   }
 
+  createPidFile("/tmp/pika_port");
+
   // daemonize if needed
   if (is_daemon) {
     daemonize();
@@ -224,3 +261,4 @@ int main(int argc, char *argv[])
 
   return 0;
 }
+

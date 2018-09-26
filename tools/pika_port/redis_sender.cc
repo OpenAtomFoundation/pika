@@ -156,7 +156,6 @@ int RedisSender::SendCommand(std::string &command) {
 
 void *RedisSender::ThreadMain() {
   LOG(INFO) << "Start sender " << id_ << " thread...";
-  // sleep(15);
   int cnt = 0;
   int ret = 0;
 
@@ -165,10 +164,11 @@ void *RedisSender::ThreadMain() {
   while (!should_exit_) {
     commands_mutex_.Lock();
     while (commands_queue_.size() == 0 && !should_exit_) {
-      // rsignal_.TimedWait(100);
-      rsignal_.Wait();
+      rsignal_.TimedWait(100);
+      // rsignal_.Wait();
     }
-    if (commands_queue_.size() == 0 && should_exit_) {
+    // if (commands_queue_.size() == 0 && should_exit_) {
+    if (should_exit_) {
       commands_mutex_.Unlock();
       break;
     }

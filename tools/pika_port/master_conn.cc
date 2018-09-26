@@ -255,7 +255,7 @@ bool MasterConn::ProcessAuth(const pink::RedisCmdArgsType& argv) {
     if (argv[1] == std::to_string(g_pika_port->sid())) {
       is_authed_ = true;
       LOG(INFO) << "BinlogReceiverThread AccessHandle succeeded, My server id: "
-                << g_pika_port->sid() << " Master auth server id: " << argv[1];
+                << g_pika_port->sid() << ", Master auth server id: " << argv[1];
       return true;
     }
   }
