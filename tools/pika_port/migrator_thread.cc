@@ -1,6 +1,7 @@
 #include "migrator_thread.h"
 #include "const.h"
 
+#include <unistd.h>
 #include <glog/logging.h>
 
 #include "blackwidow/blackwidow.h"
@@ -28,15 +29,8 @@ void MigratorThread::MigrateStringsDB() {
   }
 
   auto iter = rocksDB->NewIterator(iterator_options);
-  for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
+  for (iter->SeekToFirst(); !should_exit_ && iter->Valid(); iter->Next()) {
     blackwidow::ParsedStringsValue parsed_strings_value(iter->value());
-	// printf("[key : %-30s] [value : %-30s] [timestamp : %-10d] [version : %d] [survival_time : %d]\n",
-    //   iter->key().ToString().c_str(),
-    //   parsed_strings_value.value().ToString().c_str(),
-    //   parsed_strings_value.timestamp(),
-    //   parsed_strings_value.version(),
-    //   survival_time);
-
 	int32_t ttl = 0;
     int64_t ts = (int64_t)(parsed_strings_value.timestamp());
 	if (ts != 0) {
@@ -46,6 +40,14 @@ void MigratorThread::MigrateStringsDB() {
 	    continue;
 	  }
 	}
+
+    // printf("[key : %-30s] [value : %-30s] [timestamp : %-10d] [version : %d] [survival_time : %d]\n",
+    //   iter->key().ToString().c_str(),
+    //   parsed_strings_value.value().ToString().c_str(),
+    //   parsed_strings_value.timestamp(),
+    //   parsed_strings_value.version(),
+    //   ttl);
+    // sleep(3);
 
     pink::RedisCmdArgsType argv;
     std::string cmd;

@@ -5,8 +5,8 @@
 
 #include "pink/include/redis_cli.h"
 
-#include "pika_sender.h"
 #include "conf.h"
+#include "pika_sender.h"
 
 class MigratorThread : public pink::Thread {
  public:
@@ -19,14 +19,17 @@ class MigratorThread : public pink::Thread {
       num_(0) {
   }
 
+  virtual ~ MigratorThread();
+
   int64_t num() {
     slash::MutexLock l(&num_mutex_);
     return num_;
   }
-  
-  virtual ~ MigratorThread();
-  bool should_exit_;
 
+  void Stop() {
+	should_exit_ = true;
+  }
+  
  private:
   void PlusNum() {
     slash::MutexLock l(&num_mutex_);
@@ -38,6 +41,8 @@ class MigratorThread : public pink::Thread {
 
  private:
   void* db_;
+
+  bool should_exit_;
 
   std::vector<PikaSender *> *senders_;
   char type_;

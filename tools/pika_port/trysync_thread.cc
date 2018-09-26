@@ -35,6 +35,23 @@ TrysyncThread::~TrysyncThread() {
   LOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
 }
 
+void TrysyncThread::Stop() {
+  retransmit_mutex_.Lock();
+  if (retransmit_flag_) {
+    size_t size = senders_.size();
+    for (size_t i = 0; i < size; i++) {
+      senders_[i]->Stop();
+    }
+
+    size = migrators_.size();
+    for (size_t i = 0; i < size; i++) {
+      migrators_[i]->Stop();
+    }
+  }
+  retransmit_mutex_.Unlock();
+  StopThread();
+}
+
 void TrysyncThread::PrepareRsync() {
   std::string db_sync_path = g_conf.dump_path;
   slash::StopRsync(db_sync_path);
@@ -208,13 +225,8 @@ bool TrysyncThread::TryUpdateMasterOffset() {
   return true;
 }
 
-#include "pika_sender.h"
-#include "migrator_thread.h"
-
 #include <iostream>
 #include <sstream>
-#include <vector>
-#include <memory>
 
 #include "rocksdb/db.h"
 #include "rocksdb/status.h"
@@ -224,6 +236,7 @@ bool TrysyncThread::TryUpdateMasterOffset() {
 using std::chrono::high_resolution_clock;
 using std::chrono::milliseconds;
 
+#include "log.h"
 int TrysyncThread::Retransmit() {
   std::string db_path = g_conf.dump_path;
   std::string ip = g_conf.forward_ip;
@@ -231,14 +244,16 @@ int TrysyncThread::Retransmit() {
   size_t thread_num = g_conf.forward_thread_num;
   std::string password = g_conf.forward_passwd;
   
-  std::vector<PikaSender*> senders;
-  std::vector<std::unique_ptr<MigratorThread>> migrators;
   rocksdb::Status s;
 
   high_resolution_clock::time_point start = high_resolution_clock::now();
   if (db_path[db_path.length() - 1] != '/') {
     db_path.append("/");
   }
+
+  retransmit_mutex_.Lock();
+  retransmit_flag_ = true;
+  retransmit_mutex_.Unlock();
 
   // Init db
   rocksdb::Options options;
@@ -255,43 +270,53 @@ int TrysyncThread::Retransmit() {
 
   // Init SenderThread
   for (size_t i = 0; i < thread_num; i++) {
-    senders.emplace_back(new PikaSender((void*)(&stringsDB), ip, port, password));
+    senders_.emplace_back(new PikaSender((void*)(&stringsDB), ip, port, password));
   }
 
-  migrators.emplace_back(new MigratorThread((void*)(&stringsDB), &senders, blackwidow::kStrings, thread_num));
-  // migrators.emplace_back(new MigratorThread(db.get(), &senders, blackwidow::kHashes, thread_num));
-  // migrators.emplace_back(new MigratorThread(db.get(), &senders, blackwidow::kSets, thread_num));
-  // migrators.emplace_back(new MigratorThread(db.get(), &senders, blackwidow::kLists, thread_num));
-  // migrators.emplace_back(new MigratorThread(db.get(), &senders, blackwidow::kZSets, thread_num));
+  migrators_.emplace_back(new MigratorThread((void*)(&stringsDB), &senders_, blackwidow::kStrings, thread_num));
+  // migrators_.emplace_back(new MigratorThread(db.get(), &senders_, blackwidow::kHashes, thread_num));
+  // migrators_.emplace_back(new MigratorThread(db.get(), &senders_, blackwidow::kSets, thread_num));
+  // migrators_.emplace_back(new MigratorThread(db.get(), &senders_, blackwidow::kLists, thread_num));
+  // migrators_.emplace_back(new MigratorThread(db.get(), &senders_, blackwidow::kZSets, thread_num));
 
   // start threads
   // for (size_t i = 0; i < kDataSetNum; i++) {
-  for (size_t i = 0; i < 1; i++) {
-    migrators[i]->StartThread();
-  }
-  for (size_t i = 0; i < thread_num; i++) {
-    senders[i]->StartThread();
+  size_t size = senders_.size();
+  for (size_t i = 0; i < size; i++) {
+    senders_[i]->StartThread();
   }
 
-  // for(size_t i = 0; i < kDataSetNum; i++) {
-  for(size_t i = 0; i < 1; i++) {
-    migrators[i]->JoinThread();
+  size = migrators_.size();
+  for (size_t i = 0; i < size; i++) {
+    migrators_[i]->StartThread();
   }
-  for(size_t i = 0; i < thread_num; i++) {
-    senders[i]->Stop();
+  size = migrators_.size();
+  for (size_t i = 0; i < size; i++) {
+    migrators_[i]->JoinThread();
   }
-  for (size_t i = 0; i < thread_num; i++) {
-    senders[i]->JoinThread();
+
+  size = senders_.size();
+  for (size_t i = 0; i < size; i++) {
+    senders_[i]->Stop();
   }
+
+  for (size_t i = 0; i < size; i++) {
+    senders_[i]->JoinThread();
+  }
+
+  retransmit_mutex_.Lock();
+  retransmit_flag_ = false;
+  retransmit_mutex_.Unlock();
 
   int64_t replies = 0, records = 0;
   // for (size_t i = 0; i < kDataSetNum; i++) {
-  //   records += migrators[i]->num();
-  //   delete migrators[i];
-  // }
+  for (size_t i = 0; i < 1; i++) {
+    records += migrators_[i]->num();
+    delete migrators_[i];
+  }
   for (size_t i = 0; i < thread_num; i++) {
-    replies += senders[i]->elements();
-    delete senders[i];
+    replies += senders_[i]->elements();
+    delete senders_[i];
   }
 
   high_resolution_clock::time_point end = high_resolution_clock::now();
@@ -354,7 +379,8 @@ void* TrysyncThread::ThreadMain() {
       std::string lip(::inet_ntoa(laddr.sin_addr));
       // We append the master ip port after module name
       // To make sure only data from current master is received
-      int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, lip, g_conf.local_port + 3000);
+	  int rsync_port = g_conf.local_port + 3000;
+      int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, lip, rsync_port);
       if (0 != ret) {
         LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
       }
@@ -363,7 +389,6 @@ void* TrysyncThread::ThreadMain() {
       // Make sure the listenning addr of rsyncd is accessible, to avoid the corner case
       // that "rsync --daemon" process has started but can not bind its port which is
 	  // used by other process.
-	  int rsync_port = g_conf.local_port + 3000;
       pink::PinkCli *rsync = pink::NewRedisCli();
       int retry_times;
       for (retry_times = 0; retry_times < 5; retry_times++) {

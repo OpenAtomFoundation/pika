@@ -81,19 +81,10 @@ bool PikaPort::Init() {
 
 void PikaPort::Cleanup() {
   // shutdown server
-//  if (g_conf->daemonize()) {
-//    unlink(g_conf->pidfile().c_str());
-//  }
-
-  // sender_->Stop();
-  // sender_->JoinThread();
-  // delete cli_;
-  // delete sender_;
-
   if (ping_thread_) {
     ping_thread_->StopThread();
   }
-  trysync_thread_->StopThread();
+  trysync_thread_->Stop();
   size_t thread_num = g_conf.forward_thread_num;
   for(size_t i = 0; i < thread_num; i++) {
     senders_[i]->Stop();
@@ -161,6 +152,7 @@ bool PikaPort::SetMaster(std::string& master_ip, int master_port) {
     LOG(INFO) << "set role_ = PIKA_ROLE_PORT, repl_state_ = PIKA_REPL_CONNECT";
     return true;
   }
+
   return false;
 }
 

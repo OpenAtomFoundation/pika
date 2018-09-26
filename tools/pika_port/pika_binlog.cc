@@ -31,8 +31,6 @@ Version::Version(slash::RWFile *save)
   : pro_num_(0),
     pro_offset_(0),
     logic_id_(0),
-    double_master_recv_num_(0),
-    double_master_recv_offset_(0),
     save_(save) {
   assert(save_ != NULL);
 
@@ -52,9 +50,9 @@ Status Version::StableSave() {
   p += 8;
   memcpy(p, &logic_id_, sizeof(uint64_t));
   p += 8;
-  memcpy(p, &double_master_recv_num_, sizeof(uint32_t));
+  // memcpy(p, &double_master_recv_num_, sizeof(uint32_t));
   p += 4;
-  memcpy(p, &double_master_recv_offset_, sizeof(uint64_t));
+  // memcpy(p, &double_master_recv_offset_, sizeof(uint64_t));
   p += 8;
   return Status::OK();
 }
@@ -65,8 +63,8 @@ Status Version::Init() {
     memcpy((char*)(&pro_num_), save_->GetData(), sizeof(uint32_t));
     memcpy((char*)(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
     memcpy((char*)(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
-    memcpy((char*)(&double_master_recv_num_), save_->GetData() + 20, sizeof(uint32_t));
-    memcpy((char*)(&double_master_recv_offset_), save_->GetData() + 24, sizeof(uint64_t));
+    // memcpy((char*)(&double_master_recv_num_), save_->GetData() + 20, sizeof(uint32_t));
+    // memcpy((char*)(&double_master_recv_offset_), save_->GetData() + 24, sizeof(uint64_t));
     return Status::OK();
   } else {
     return Status::Corruption("version init error");
@@ -167,26 +165,6 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64
   if (logic_id != NULL) {
     *logic_id = version_->logic_id_;
   }
-
-  return Status::OK();
-}
-
-Status Binlog::GetDoubleRecvInfo(uint32_t* double_filenum, uint64_t* double_offset) {
-  slash::RWLock(&(version_->rwlock_), false);
-
-  *double_filenum = version_->double_master_recv_num_;
-  *double_offset = version_->double_master_recv_offset_;
-
-  return Status::OK();
-}
-
-Status Binlog::SetDoubleRecvInfo(uint32_t double_filenum, uint64_t double_offset) {
-  slash::RWLock(&(version_->rwlock_), true);
-
-  version_->double_master_recv_num_ = double_filenum;
-  version_->double_master_recv_offset_ = double_offset;
-
-  version_->StableSave();
 
   return Status::OK();
 }

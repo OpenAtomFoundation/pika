@@ -131,7 +131,7 @@ void *PikaSender::ThreadMain() {
     // Resend expire command
     if (!expire_command_.empty() && cli_ != NULL) {
       slash::Status s = cli_->Send(&expire_command_);
-      std::cout << expire_command_ << std::endl;
+      // std::cout << expire_command_ << std::endl;
       if (!s.ok()) {
         cli_->Close();
         cli_ = NULL;
@@ -145,17 +145,20 @@ void *PikaSender::ThreadMain() {
     if (expire_command_.empty()) {
       keys_mutex_.Lock();
       while (keys_queue_.size() == 0 && !should_exit_) {
-        rsignal_.Wait();
+        rsignal_.TimedWait(100);
+        // rsignal_.Wait();
       }
       keys_mutex_.Unlock();
-      if (QueueSize() == 0 && should_exit_) {
+      // if (QueueSize() == 0 && should_exit_) {
+      if (should_exit_) {
         return NULL;
       }
     }
 
     if (cli_ == NULL) {
       ConnectRedis();
-      if (QueueSize() == 0 && should_exit_) {
+      // if (QueueSize() == 0 && should_exit_) {
+      if (should_exit_) {
         return NULL;
       }
     } else {
