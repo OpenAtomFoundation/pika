@@ -20,7 +20,12 @@ class PikaClientConn: public pink::AsynRedisConn {
   PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
                  void* worker_specific_data, pink::PinkEpoll* pink_epoll);
   virtual ~PikaClientConn() {}
-  int DealMessage(PikaCmdArgsType& argv, std::string* response) override;
+
+  void AsynProcessRedisCmd() override;
+
+  void BatchExecRedisCmd();
+  int DealMessage(PikaCmdArgsType& argv);
+  static void DoBackgroundTask(void* arg);
 
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
