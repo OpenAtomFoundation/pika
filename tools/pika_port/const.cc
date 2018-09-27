@@ -1,5 +1,7 @@
 #include "const.h"
 
+#include "blackwidow/blackwidow.h"
+
 #include "include/pika_define.h"
 
 std::string PikaState(int state) {
@@ -54,3 +56,30 @@ std::string PikaRole(int role) {
   return roleStr;
 }
 
+const char* GetDBTypeString(int type) {
+  switch (type) {
+    case int(blackwidow::kStrings) : {
+	  return "blackwidow::kStrings";
+    }
+
+    case int(blackwidow::kLists) : {
+	  return "blackwidow::kLists";
+    }
+
+    case int(blackwidow::kHashes) : {
+	  return "blackwidow::kHashes";
+    }
+
+    case int(blackwidow::kSets) : {
+	  return "blackwidow::kSets";
+    }
+
+    case int(blackwidow::kZSets) : {
+	  return "blackwidow::kZSets";
+    }
+
+    default: {
+	  return "blackwidow::Unknown";
+    }
+  }
+}

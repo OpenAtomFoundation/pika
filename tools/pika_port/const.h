@@ -27,5 +27,7 @@ const char kSuffixList = 'L';
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 
+const char* GetDBTypeString(int type);
+
 #endif
 

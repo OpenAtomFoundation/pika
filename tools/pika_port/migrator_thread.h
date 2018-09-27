@@ -10,7 +10,7 @@
 
 class MigratorThread : public pink::Thread {
  public:
-  MigratorThread(void *db, std::vector<PikaSender *> *senders, char type, int thread_num) :
+  MigratorThread(void *db, std::vector<PikaSender *> *senders, int type, int thread_num) :
       db_(db),
       senders_(senders),
       type_(type),
@@ -36,21 +36,25 @@ class MigratorThread : public pink::Thread {
     ++num_;
   }
 
+  void DispatchKey(const std::string &key);
+
+  void MigrateDB();
   void MigrateStringsDB();
+  void MigrateListsDB();
+  void MigrateHashesDB();
+  void MigrateSetsDB();
+  void MigrateZsetsDB();
+
   virtual void *ThreadMain();
 
  private:
   void* db_;
-
   bool should_exit_;
 
   std::vector<PikaSender *> *senders_;
-  char type_;
+  int type_;
   int thread_num_;
   int thread_index_;
-
-  void MigrateDB(const char type);
-  void DispatchKey(const std::string &key);
 
   int64_t num_;
   slash::Mutex num_mutex_;

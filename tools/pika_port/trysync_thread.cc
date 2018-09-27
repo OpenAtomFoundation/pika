@@ -158,6 +158,7 @@ bool TrysyncThread::RecvProc() {
   return true;
 }
 
+#include "log.h"
 // Try to update master offset
 // This may happend when dbsync from master finished
 // Here we do:
@@ -231,7 +232,12 @@ bool TrysyncThread::TryUpdateMasterOffset() {
 #include "rocksdb/db.h"
 #include "rocksdb/status.h"
 #include "rocksdb/slice.h"
+
 #include "src/redis_strings.h"
+#include "src/redis_lists.h"
+#include "src/redis_hashes.h"
+#include "src/redis_sets.h"
+#include "src/redis_zsets.h"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::milliseconds;
@@ -251,9 +257,10 @@ int TrysyncThread::Retransmit() {
     db_path.append("/");
   }
 
-  retransmit_mutex_.Lock();
-  retransmit_flag_ = true;
-  retransmit_mutex_.Unlock();
+  // Init SenderThread
+  for (size_t i = 0; i < thread_num; i++) {
+    senders_.emplace_back(new PikaSender(ip, port, password));
+  }
 
   // Init db
   rocksdb::Options options;
@@ -263,24 +270,52 @@ int TrysyncThread::Retransmit() {
   options.max_log_file_size = 512 * 1024 * 1024;
   options.write_buffer_size = 512 * 1024 * 1024; // 512M
   options.target_file_size_base = 40 * 1024 * 1024; // 40M
-  blackwidow::RedisStrings stringsDB;
-  s = stringsDB.Open(options, db_path + "strings");
-  assert(s.ok());
-  LOG(INFO) << "Open DB " << db_path << " Success";
 
-  // Init SenderThread
-  for (size_t i = 0; i < thread_num; i++) {
-    senders_.emplace_back(new PikaSender((void*)(&stringsDB), ip, port, password));
+  blackwidow::RedisStrings stringsDB;
+  std::string path = db_path + "strings";
+  s = stringsDB.Open(options, path);
+  LOG(INFO) << "Open strings DB " << path << " result "  << s.ToString();
+  if (s.ok()) {
+    migrators_.emplace_back(new MigratorThread((void*)(&stringsDB), &senders_, blackwidow::kStrings, thread_num));
+  }
+ 
+  blackwidow::RedisSets listsDB;
+  path = db_path + "lists";
+  s = listsDB.Open(options, path);
+  LOG(INFO) << "Open lists DB " << path << " result " << s.ToString();
+  if (s.ok()) {
+    migrators_.emplace_back(new MigratorThread((void*)(&listsDB), &senders_, blackwidow::kLists, thread_num));
   }
 
-  migrators_.emplace_back(new MigratorThread((void*)(&stringsDB), &senders_, blackwidow::kStrings, thread_num));
-  // migrators_.emplace_back(new MigratorThread(db.get(), &senders_, blackwidow::kHashes, thread_num));
-  // migrators_.emplace_back(new MigratorThread(db.get(), &senders_, blackwidow::kSets, thread_num));
-  // migrators_.emplace_back(new MigratorThread(db.get(), &senders_, blackwidow::kLists, thread_num));
-  // migrators_.emplace_back(new MigratorThread(db.get(), &senders_, blackwidow::kZSets, thread_num));
+  blackwidow::RedisHashes hashesDB;
+  path = db_path + "hashes";
+  s = hashesDB.Open(options, path);
+  LOG(INFO) << "Open hashes DB " << path << " result " << s.ToString();
+  if (s.ok()) {
+    migrators_.emplace_back(new MigratorThread((void*)(&hashesDB), &senders_, blackwidow::kHashes, thread_num));
+  }
+
+  blackwidow::RedisSets setsDB;
+  path = db_path + "sets";
+  s = setsDB.Open(options, path);
+  LOG(INFO) << "Open sets DB " << path << " result "  << s.ToString();
+  if (s.ok()) {
+    migrators_.emplace_back(new MigratorThread((void*)(&setsDB), &senders_, blackwidow::kSets, thread_num));
+  }
+
+  blackwidow::RedisZSets zsetsDB;
+  path = db_path + "zsets";
+  s = zsetsDB.Open(options, path);
+  LOG(INFO) << "Open zsets DB " << path << " result " << s.ToString();
+  if (s.ok()) {
+    migrators_.emplace_back(new MigratorThread((void*)(&zsetsDB), &senders_, blackwidow::kZSets, thread_num));
+  }
+
+  retransmit_mutex_.Lock();
+  retransmit_flag_ = true;
+  retransmit_mutex_.Unlock();
 
   // start threads
-  // for (size_t i = 0; i < kDataSetNum; i++) {
   size_t size = senders_.size();
   for (size_t i = 0; i < size; i++) {
     senders_[i]->StartThread();
@@ -299,7 +334,7 @@ int TrysyncThread::Retransmit() {
   for (size_t i = 0; i < size; i++) {
     senders_[i]->Stop();
   }
-
+  size = senders_.size();
   for (size_t i = 0; i < size; i++) {
     senders_[i]->JoinThread();
   }
@@ -309,11 +344,12 @@ int TrysyncThread::Retransmit() {
   retransmit_mutex_.Unlock();
 
   int64_t replies = 0, records = 0;
-  // for (size_t i = 0; i < kDataSetNum; i++) {
-  for (size_t i = 0; i < 1; i++) {
+  size = migrators_.size();
+  for (size_t i = 0; i < size; i++) {
     records += migrators_[i]->num();
     delete migrators_[i];
   }
+  size = senders_.size();
   for (size_t i = 0; i < thread_num; i++) {
     replies += senders_[i]->elements();
     delete senders_[i];
@@ -402,6 +438,7 @@ void* TrysyncThread::ThreadMain() {
       }
       if (retry_times >= 5) {
         LOG(WARNING) << "connecting to rsync failed, address:" << lip << ":" << rsync_port;
+        pfatal("connecting to rsync failed, address %s:%d", lip.c_str(), rsync_port);
       }
 
       if (Send(lip) && RecvProc()) {

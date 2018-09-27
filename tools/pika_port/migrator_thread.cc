@@ -2,13 +2,20 @@
 #include "const.h"
 
 #include <unistd.h>
+
+#include <vector>
+
 #include <glog/logging.h>
 
 #include "blackwidow/blackwidow.h"
+
 #include "src/redis_strings.h"
+#include "src/redis_lists.h"
+#include "src/redis_hashes.h"
+#include "src/redis_sets.h"
+#include "src/redis_zsets.h"
 #include "src/scope_snapshot.h"
 #include "src/strings_value_format.h"
-
 
 MigratorThread::~MigratorThread() {
 }
@@ -25,21 +32,21 @@ void MigratorThread::MigrateStringsDB() {
   int64_t curtime;
   if (!rocksDB->GetEnv()->GetCurrentTime(&curtime).ok()) {
     LOG(WARNING) << "failed to get current time by db->GetEnv()->GetCurrentTime()";
-	return;
+    return;
   }
 
   auto iter = rocksDB->NewIterator(iterator_options);
   for (iter->SeekToFirst(); !should_exit_ && iter->Valid(); iter->Next()) {
     blackwidow::ParsedStringsValue parsed_strings_value(iter->value());
-	int32_t ttl = 0;
+    int32_t ttl = 0;
     int64_t ts = (int64_t)(parsed_strings_value.timestamp());
-	if (ts != 0) {
-	  int64_t diff = ts - curtime;
-	  ttl = diff > 0 ? diff : -1;
-	  if (ttl < 0) {
-	    continue;
-	  }
-	}
+    if (ts != 0) {
+      int64_t diff = ts - curtime;
+      ttl = diff > 0 ? diff : -1;
+      if (ttl < 0) {
+        continue;
+      }
+    }
 
     // printf("[key : %-30s] [value : %-30s] [timestamp : %-10d] [version : %d] [survival_time : %d]\n",
     //   iter->key().ToString().c_str(),
@@ -68,35 +75,83 @@ void MigratorThread::MigrateStringsDB() {
   delete iter;
 }
 
-void MigratorThread::MigrateDB(const char type) {
-  if (type == blackwidow::kStrings) {
-    MigrateStringsDB();
-  } /* else {
-    char c_type = 'a';
-    switch (type) {
-      case blackwidow::kHSize:
-          c_type = 'h';
-          break;
-      case blackwidow::kSSize:
-          c_type = 's';
-          break;
-      case blackwidow:::kLMeta:
-          c_type = 'l';
-          break;
-      case blackwidow::kZSize:
-          c_type = 'z';
-          break;
-      }
-      rocksdb::Iterator *it = db_->Scanbytype(c_type);
-      std::string key_start = "a";
-      key_start[0] = type;
-      it->Seek(key_start);
-      for (; it->Valid(); it->Next()) {
-        PlusNum();
-        DispatchKey(it->key().ToString());
-      }
+void MigratorThread::MigrateListsDB() {
+
+}
+
+void MigratorThread::MigrateHashesDB() {
+  blackwidow::RedisHashes* db = (blackwidow::RedisHashes*)(db_);
+  std::vector<std::string> keys;
+
+  std::string pattern("*");
+  blackwidow::Status s = db->ScanKeys(pattern, &keys);
+  if (!s.ok()) {
+    LOG(FATAL) << "db->ScanKeys(pattern:*) = " << s.ToString();
+    return;
   }
-  */
+
+  for (auto k : keys) {
+    std::vector<blackwidow::FieldValue> fvs;
+    s = db->HGetall(k, &fvs);
+    if (!s.ok()) {
+      LOG(WARNING) << "db->HGetall(key:" << k << ") = " << s.ToString();
+      continue;
+    }
+    for (auto fv : fvs) {
+      pink::RedisCmdArgsType argv;
+      std::string cmd;
+
+      argv.push_back("HSET");
+      argv.push_back(k);
+      argv.push_back(fv.field);
+      argv.push_back(fv.value);
+      
+      pink::SerializeRedisCommand(argv, &cmd);
+      PlusNum();
+      cmd += kSuffixHash;
+      DispatchKey(cmd);
+    }
+  }
+}
+
+void MigratorThread::MigrateSetsDB() {
+}
+
+void MigratorThread::MigrateZsetsDB() {
+}
+
+void MigratorThread::MigrateDB() {
+  switch (int(type_)) {
+    case int(blackwidow::kStrings) : {
+      MigrateStringsDB();
+      break;
+    }
+
+    case int(blackwidow::kLists) : {
+      MigrateListsDB();
+      break;
+    }
+
+    case int(blackwidow::kHashes) : {
+      MigrateHashesDB();
+      break;
+    }
+
+    case int(blackwidow::kSets) : {
+      MigrateSetsDB();
+      break;
+    }
+
+    case int(blackwidow::kZSets) : {
+      MigrateZsetsDB();
+      break;
+    }
+
+    default: {
+      LOG(ERROR) << "illegal db type " << type_;
+      break;
+    }
+  }
 }
 
 void MigratorThread::DispatchKey(const std::string &key) {
@@ -105,9 +160,10 @@ void MigratorThread::DispatchKey(const std::string &key) {
 }
 
 void *MigratorThread::ThreadMain() {
-  MigrateDB(type_);
+  MigrateDB();
   should_exit_ = true;
-  LOG(INFO) << static_cast<char>(type_) << " keys have been dispatched completly";
+
+  LOG(INFO) << GetDBTypeString(type_) << " keys have been dispatched completly";
   return NULL;
 }
 

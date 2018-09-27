@@ -5,11 +5,10 @@
 
 #include "slash/include/xdebug.h"
 
-PikaSender::PikaSender(void *db, std::string ip, int64_t port, std::string password):
+PikaSender::PikaSender(std::string ip, int64_t port, std::string password):
   cli_(NULL),
   rsignal_(&keys_mutex_),
   wsignal_(&keys_mutex_),
-  db_(db),
   ip_(ip),
   port_(port),
   password_(password),
@@ -181,94 +180,21 @@ void *PikaSender::ThreadMain() {
 	  }
 
       char type = key[keySize - 1];
-	  /*
-      if (type == nemo::DataType::kHSize) {   // Hash
-        std::string h_key = key.substr(1);
-        nemo::HIterator *iter = db_->HScan(h_key, "", "", -1, false);
-        for (; iter->Valid(); iter->Next()) {
-          pink::RedisCmdArgsType argv;
-
-          argv.push_back("HSET");
-          argv.push_back(iter->key());
-          argv.push_back(iter->field());
-          argv.push_back(iter->value());
-
-          pink::SerializeRedisCommand(argv, &command);
+	  switch (type) {
+		case kSuffixKv:
+		case kSuffixZset:
+		case kSuffixSet:
+		case kSuffixList:
+	    case kSuffixHash: {
+          command.assign(key.data(), keySize - 1);
           SendCommand(command, key);
           cnt++;
-        }
-        delete iter;
-      } else if (type == nemo::DataType::kSSize) {  // Set
-        std::string s_key = key.substr(1);
-        if (s_key.find(SlotKeyPrefix) != std::string::npos) {
-          continue;
-        }
-
-        nemo::SIterator *iter = db_->SScan(s_key, -1, false);
-        for (; iter->Valid(); iter->Next()) {
-          pink::RedisCmdArgsType argv;
-
-          argv.push_back("SADD");
-          argv.push_back(iter->key());
-          argv.push_back(iter->member());
-
-          pink::SerializeRedisCommand(argv, &command);
-          SendCommand(command, key);
-          cnt++;
-        }
-        delete iter;
-      } else if (type == nemo::DataType::kLMeta) {  // List
-        std::string l_key = key.substr(1);
-        std::vector<nemo::IV> ivs;
-        std::vector<nemo::IV>::const_iterator it;
-        int64_t pos = 0;
-        int64_t len = 512;
-
-        db_->LRange(l_key, pos, pos+len-1, ivs);
-
-        while (!ivs.empty()) {
-          pink::RedisCmdArgsType argv;
-          std::string cmd;
-
-          argv.push_back("RPUSH");
-          argv.push_back(l_key);
-
-          for (it = ivs.begin(); it != ivs.end(); ++it) {
-            argv.push_back(it->val);
-          }
-          pink::SerializeRedisCommand(argv, &command);
-          SendCommand(command, key);
-          cnt++;
-
-          pos += len;
-          ivs.clear();
-          db_->LRange(l_key, pos, pos+len-1, ivs);
-        }
-      } else if (type == nemo::DataType::kZSize) {  // Zset
-        std::string z_key = key.substr(1);
-        nemo::ZIterator *iter = db_->ZScan(z_key, nemo::ZSET_SCORE_MIN,
-                                     nemo::ZSET_SCORE_MAX, -1, false);
-        for (; iter->Valid(); iter->Next()) {
-          pink::RedisCmdArgsType argv;
-
-          std::string score = std::to_string(iter->score());
-
-          argv.push_back("ZADD");
-          argv.push_back(iter->key());
-          argv.push_back(score);
-          argv.push_back(iter->member());
-
-          pink::SerializeRedisCommand(argv, &command);
-          SendCommand(command, key);
-          cnt++;
-        }
-        delete iter;
-      } else */ if (type == kSuffixKv) {   // Kv
-        command.assign(key.data(), keySize - 1);
-        SendCommand(command, key);
-        cnt++;
-      } else {
-	    LOG(WARNING) << "illegal type:" << type;
+	      break;
+		}
+	    default: {
+	      LOG(WARNING) << "illegal type:" << type;
+	      break;
+		}
 	  }
 
       if (cnt >= 200) {

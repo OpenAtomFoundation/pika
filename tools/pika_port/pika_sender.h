@@ -14,7 +14,7 @@
 
 class PikaSender : public pink::Thread {
 public:
-	PikaSender(void *db, std::string ip, int64_t port, std::string password);
+	PikaSender(std::string ip, int64_t port, std::string password);
 	virtual ~PikaSender();
 	void LoadKey(const std::string &cmd);
 	void Stop() {
@@ -38,7 +38,6 @@ private:
 	pink::PinkCli *cli_;
 	slash::CondVar rsignal_;
 	slash::CondVar wsignal_;
-	void *db_;
 	slash::Mutex keys_mutex_;
 	std::queue<std::string> keys_queue_;
 	std::string expire_command_;
