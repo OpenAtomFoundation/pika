@@ -14,9 +14,11 @@
 #include "include/pika_conf.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_dispatch_thread.h"
+#include "include/pika_cmd_table_manager.h"
 
-extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
+extern PikaServer* g_pika_server;
+extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 static std::string ConstructPubSubResp(
                                 const std::string& cmd,
@@ -49,7 +51,7 @@ std::string PikaClientConn::DoCmd(
     PikaCmdArgsType& argv, const std::string& opt) {
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
-  Cmd* c_ptr = GetCmdFromTable(opt, *cmds_table_);
+  Cmd* c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
   if (!cinfo_ptr || !c_ptr) {
       return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
   }
@@ -232,21 +234,41 @@ std::string PikaClientConn::DoCmd(
   return c_ptr->res().message();
 }
 
-int PikaClientConn::DealMessage(
-    PikaCmdArgsType& argv, std::string* response) {
+void PikaClientConn::AsynProcessRedisCmd() {
+  g_pika_server->Schedule(&DoBackgroundTask, this);
+}
+
+void PikaClientConn::BatchExecRedisCmd() {
+  bool success = true;
+  for (auto& argv : argvs_) {
+    if (DealMessage(argv) != 0) {
+      success = false;
+      break;
+    }
+  }
+  argvs_.clear();
+  NotifyEpoll(success);
+}
+
+int PikaClientConn::DealMessage(PikaCmdArgsType& argv) {
 
   if (argv.empty()) return -2;
   std::string opt = argv[0];
   slash::StringToLower(opt);
 
-  if (response->empty()) {
+  if (response_.empty()) {
     // Avoid memory copy
-    *response = std::move(DoCmd(argv, opt));
+    response_ = std::move(DoCmd(argv, opt));
   } else {
     // Maybe pipeline
-    response->append(DoCmd(argv, opt));
+    response_.append(DoCmd(argv, opt));
   }
   return 0;
+}
+
+void PikaClientConn::DoBackgroundTask(void* arg) {
+  PikaClientConn* conn = static_cast<PikaClientConn*>(arg);
+  conn->BatchExecRedisCmd();
 }
 
 // Initial permission status
