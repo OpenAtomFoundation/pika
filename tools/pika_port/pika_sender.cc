@@ -179,24 +179,8 @@ void *PikaSender::ThreadMain() {
 		  continue;
 	  }
 
-      char type = key[keySize - 1];
-	  switch (type) {
-		case kSuffixKv:
-		case kSuffixZset:
-		case kSuffixSet:
-		case kSuffixList:
-	    case kSuffixHash: {
-          command.assign(key.data(), keySize - 1);
-          SendCommand(command, key);
-          cnt++;
-	      break;
-		}
-	    default: {
-	      LOG(WARNING) << "illegal type:" << type;
-	      break;
-		}
-	  }
-
+      SendCommand(key, key);
+      cnt++;
       if (cnt >= 200) {
         for(; cnt > 0; cnt--) {
           cli_->Recv(NULL);

@@ -19,12 +19,6 @@ const int64_t kDataSetNum = 5;
 std::string PikaState(int state);
 std::string PikaRole(int role) ;
 
-const char kSuffixKv = 'K';
-const char kSuffixHash = 'H';
-const char kSuffixZset = 'Z';
-const char kSuffixSet = 'S';
-const char kSuffixList = 'L';
-
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 
 const char* GetDBTypeString(int type);

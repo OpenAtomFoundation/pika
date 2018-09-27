@@ -69,7 +69,6 @@ void MigratorThread::MigrateStringsDB() {
     
     pink::SerializeRedisCommand(argv, &cmd);
     PlusNum();
-    cmd += kSuffixKv;
     DispatchKey(cmd);
   }
   delete iter;
@@ -108,7 +107,6 @@ void MigratorThread::MigrateHashesDB() {
       
       pink::SerializeRedisCommand(argv, &cmd);
       PlusNum();
-      cmd += kSuffixHash;
       DispatchKey(cmd);
     }
   }
@@ -118,6 +116,39 @@ void MigratorThread::MigrateSetsDB() {
 }
 
 void MigratorThread::MigrateZsetsDB() {
+  blackwidow::RedisZSets* db = (blackwidow::RedisZSets*)(db_);
+  std::vector<std::string> keys;
+
+  std::string pattern("*");
+  blackwidow::Status s = db->ScanKeys(pattern, &keys);
+  if (!s.ok()) {
+    LOG(FATAL) << "db->ScanKeys(pattern:*) = " << s.ToString();
+    return;
+  }
+
+  for (auto k : keys) {
+    std::vector<blackwidow::ScoreMember> score_members;
+    s = db->ZRange(k, 0, -1, &score_members);
+    if (!s.ok()) {
+      LOG(WARNING) << "db->ZRange(key:" << k << ") = " << s.ToString();
+      continue;
+    }
+    for (auto sm : score_members) {
+      pink::RedisCmdArgsType argv;
+      std::string cmd;
+
+	  std::string score = std::to_string(sm.score);
+
+      argv.push_back("ZADD");
+      argv.push_back(k);
+      argv.push_back(score);
+      argv.push_back(sm.member);
+      
+      pink::SerializeRedisCommand(argv, &cmd);
+      PlusNum();
+      DispatchKey(cmd);
+    }
+  }
 }
 
 void MigratorThread::MigrateDB() {
