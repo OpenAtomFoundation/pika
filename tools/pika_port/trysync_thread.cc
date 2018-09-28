@@ -279,7 +279,7 @@ int TrysyncThread::Retransmit() {
     migrators_.emplace_back(new MigratorThread((void*)(&stringsDB), &senders_, blackwidow::kStrings, thread_num));
   }
  
-  blackwidow::RedisSets listsDB;
+  blackwidow::RedisLists listsDB;
   path = db_path + "lists";
   s = listsDB.Open(options, path);
   LOG(INFO) << "Open lists DB " << path << " result " << s.ToString();

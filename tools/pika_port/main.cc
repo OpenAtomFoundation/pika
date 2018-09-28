@@ -46,23 +46,17 @@ static int lockFile(int fd) {
 
 static void createPidFile(char *file) {
   int fd = open(file, O_RDWR | O_CREAT | O_DIRECT, S_IRUSR | S_IWUSR);
-  pinfo("open %s = %d", file, fd);
   if (-1 == fd) {
     pfatal("open(%s) = %d, error:%m", file, fd);
   }
 
   int ret = lockFile(fd);
-  pinfo("lockFile(%d) = %d", fd, ret);
   if (ret < 0) {
     close(fd);
     pfatal("lock(%d) = %d, error:%m", fd, ret);
   }
 
-  int pid = (int)(getpid());
-  char buf[32];
-  sprintf(buf, "%d\n", pid);
-  pinfo("buf %s", buf);
-  write(fd, buf, strlen(buf) + 1);
+  // int pid = (int)(getpid());
   pidFileFd = fd;
 }
 

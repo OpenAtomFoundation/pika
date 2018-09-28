@@ -3,15 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <functional>
-
-#include <glog/logging.h>
 #include <assert.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+#include <functional>
+
+#include <glog/logging.h>
 
 #include "slash/include/env.h"
 #include "slash/include/slash_string.h"

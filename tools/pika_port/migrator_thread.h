@@ -16,6 +16,7 @@ class MigratorThread : public pink::Thread {
       type_(type),
       thread_num_(thread_num),
       thread_index_(0),
+	  should_exit_(false),
       num_(0) {
   }
 
@@ -36,7 +37,7 @@ class MigratorThread : public pink::Thread {
     ++num_;
   }
 
-  void DispatchKey(const std::string &key);
+  void DispatchKey(const std::string &command, const std::string& key = "");
 
   void MigrateDB();
   void MigrateStringsDB();
