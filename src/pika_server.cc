@@ -61,13 +61,13 @@ PikaServer::PikaServer() :
   }
 
   //Create blackwidow handle
-  rocksdb::Options rocksdb_option;
-  RocksdbOptionInit(&rocksdb_option);
+  blackwidow::BlackwidowOptions bw_option;
+  RocksdbOptionInit(&bw_option);
 
   std::string db_path = g_pika_conf->db_path();
   LOG(INFO) << "Prepare Blackwidow DB...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(rocksdb_option, db_path);
+  rocksdb::Status s = db_->Open(bw_option, db_path);
   assert(db_);
   assert(s.ok());
   LOG(INFO) << "DB Success";
@@ -237,26 +237,33 @@ bool PikaServer::ServerInit() {
 
 }
 
-void PikaServer::RocksdbOptionInit(rocksdb::Options* option) {
-  option->create_if_missing = true;
-  option->keep_log_file_num = 10;
-  option->max_manifest_file_size = 64 * 1024 * 1024;
-  option->max_log_file_size = 512 * 1024 * 1024;
+void PikaServer::RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) {
+  bw_option->options.create_if_missing = true;
+  bw_option->options.keep_log_file_num = 10;
+  bw_option->options.max_manifest_file_size = 64 * 1024 * 1024;
+  bw_option->options.max_log_file_size = 512 * 1024 * 1024;
 
-  option->write_buffer_size = g_pika_conf->write_buffer_size();
-  option->target_file_size_base = g_pika_conf->target_file_size_base();
-  option->max_background_flushes = g_pika_conf->max_background_flushes();
-  option->max_background_compactions = g_pika_conf->max_background_compactions();
-  option->max_open_files = g_pika_conf->max_cache_files();
-  option->max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
+  bw_option->options.write_buffer_size = g_pika_conf->write_buffer_size();
+  bw_option->options.target_file_size_base = g_pika_conf->target_file_size_base();
+  bw_option->options.max_background_flushes = g_pika_conf->max_background_flushes();
+  bw_option->options.max_background_compactions = g_pika_conf->max_background_compactions();
+  bw_option->options.max_open_files = g_pika_conf->max_cache_files();
+  bw_option->options.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
+  bw_option->options.optimize_filters_for_hits = g_pika_conf->optimize_filters_for_hits();
+  bw_option->options.level_compaction_dynamic_level_bytes = g_pika_conf->level_compaction_dynamic_level_bytes();
 
   if (g_pika_conf->compression() == "none") {
-    option->compression = rocksdb::CompressionType::kNoCompression;
+    bw_option->options.compression = rocksdb::CompressionType::kNoCompression;
   } else if (g_pika_conf->compression() == "snappy") {
-    option->compression = rocksdb::CompressionType::kSnappyCompression;
+    bw_option->options.compression = rocksdb::CompressionType::kSnappyCompression;
   } else if (g_pika_conf->compression() == "zlib") {
-    option->compression = rocksdb::CompressionType::kZlibCompression;
+    bw_option->options.compression = rocksdb::CompressionType::kZlibCompression;
   }
+
+  bw_option->table_options.block_size = g_pika_conf->block_size();
+  bw_option->table_options.cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
+  bw_option->block_cache_size = g_pika_conf->block_cache();
+  bw_option->share_block_cache = g_pika_conf->share_block_cache();
 }
 
 void PikaServer::Start() {
@@ -402,26 +409,8 @@ void PikaServer::DeleteSlave(int fd) {
  */
 bool PikaServer::ChangeDb(const std::string& new_path) {
 
-  rocksdb::Options option;
-  option.create_if_missing = true;
-  option.keep_log_file_num = 10;
-  option.max_manifest_file_size = 64 * 1024 * 1024;
-  option.max_log_file_size = 512 * 1024 * 1024;
-
-  option.write_buffer_size = g_pika_conf->write_buffer_size();
-  option.target_file_size_base = g_pika_conf->target_file_size_base();
-  option.max_background_flushes = g_pika_conf->max_background_flushes();
-  option.max_background_compactions = g_pika_conf->max_background_compactions();
-  option.max_open_files = g_pika_conf->max_cache_files();
-  option.max_bytes_for_level_multiplier = g_pika_conf->max_bytes_for_level_multiplier();
-
-  if (g_pika_conf->compression() == "none") {
-    option.compression = rocksdb::CompressionType::kNoCompression;
-  } else if (g_pika_conf->compression() == "snappy") {
-    option.compression = rocksdb::CompressionType::kSnappyCompression;
-  } else if (g_pika_conf->compression() == "zlib") {
-    option.compression = rocksdb::CompressionType::kZlibCompression;
-  }
+  blackwidow::BlackwidowOptions bw_option;
+  RocksdbOptionInit(&bw_option);
 
   std::string db_path = g_pika_conf->db_path();
   std::string tmp_path(db_path);
@@ -445,7 +434,7 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
   }
 
   db_.reset(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(option, db_path);
+  rocksdb::Status s = db_->Open(bw_option, db_path);
   assert(db_);
   assert(s.ok());
   slash::DeleteDirIfExist(tmp_path);
@@ -1409,12 +1398,12 @@ bool PikaServer::FlushAll() {
   slash::RenameFile(g_pika_conf->db_path(), dbpath.c_str());
 
   //Create blackwidow handle
-  rocksdb::Options rocksdb_option;
-  RocksdbOptionInit(&rocksdb_option);
+  blackwidow::BlackwidowOptions bw_option;
+  RocksdbOptionInit(&bw_option);
 
   LOG(INFO) << "Prepare open new db...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(rocksdb_option, g_pika_conf->db_path());
+  rocksdb::Status s = db_->Open(bw_option, g_pika_conf->db_path());
   assert(db_);
   assert(s.ok());
   LOG(INFO) << "open new db success";
@@ -1447,12 +1436,12 @@ bool PikaServer::FlushDb(const std::string& db_name) {
   std::string del_dbpath = dbpath + db_name + "_deleting";
   slash::RenameFile(sub_dbpath, del_dbpath);
 
-  rocksdb::Options rocksdb_option;
-  RocksdbOptionInit(&rocksdb_option);
+  blackwidow::BlackwidowOptions bw_option;
+  RocksdbOptionInit(&bw_option);
 
   LOG(INFO) << "Prepare open new " + db_name + " db...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(rocksdb_option, g_pika_conf->db_path());
+  rocksdb::Status s = db_->Open(bw_option, g_pika_conf->db_path());
   assert(db_);
   assert(s.ok());
   LOG(INFO) << "open new " + db_name + " db success";

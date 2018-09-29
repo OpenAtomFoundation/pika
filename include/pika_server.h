@@ -197,7 +197,7 @@ class PikaServer {
   /*
    * Blackwidow options init
    */
-  void RocksdbOptionInit(rocksdb::Options* option);
+  void RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option);
 
   /*
    * Binlog
