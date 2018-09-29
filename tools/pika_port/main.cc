@@ -21,7 +21,7 @@ int pidFileFd = 0;
 
 static void GlogInit(std::string& log_path, bool is_daemon) {
   if (!slash::FileExists(log_path)) {
-    slash::CreatePath(log_path); 
+    slash::CreatePath(log_path);
   }
 
   if (!is_daemon) {
@@ -95,8 +95,8 @@ static void Usage()
 {
     fprintf(stderr,
             "Usage: pika_port [-h] [-t local_ip -p local_port -i master_ip -o master_port "
-			"-m forward_ip -n forward_port -x forward_thread_num -y forward_passwd]\n"
-			"-f filenum -s offset -w password -r rsync_dump_path  -l log_path "
+            "-m forward_ip -n forward_port -x forward_thread_num -y forward_passwd]\n"
+            "-f filenum -s offset -w password -r rsync_dump_path  -l log_path "
             "\t-h               -- show this help\n"
             "\t-t     -- local host ip(OPTIONAL default: 127.0.0.1) \n"
             "\t-p     -- local port(OPTIONAL) \n"
@@ -111,9 +111,10 @@ static void Usage()
             "\t-w     -- password for master(OPTIONAL) \n"
             "\t-r     -- rsync dump data path(OPTIONAL default: ./rsync_dump) \n"
             "\t-l     -- local log path(OPTIONAL default: ./log) \n"
+            "\t-b     -- max batch number when port rsync dump data (OPTIONAL default: 512) \n"
             "\t-d     -- daemonize(OPTIONAL) \n"
             "  example: ./pika_port -t 127.0.0.1 -p 12345 -i 127.0.0.1 -o 9221 "
-			"-m 127.0.0.1 -n 6379 -x 7 -f 0 -s 0 -w abc -l ./log -r ./rsync_dump -d\n"
+            "-m 127.0.0.1 -n 6379 -x 7 -f 0 -s 0 -w abc -l ./log -r ./rsync_dump -b 512 -d\n"
            );
 }
 
@@ -128,7 +129,7 @@ int main(int argc, char *argv[])
   char buf[1024];
   bool is_daemon = false;
   long num = 0;
-  while (-1 != (c = getopt(argc, argv, "t:p:i:o:f:s:w:r:l:m:n:x:y:dh"))) {
+  while (-1 != (c = getopt(argc, argv, "t:p:i:o:f:s:w:r:l:m:n:x:y:b:dh"))) {
     switch (c) {
       case 't':
         snprintf(buf, 1024, "%s", optarg);
@@ -196,6 +197,12 @@ int main(int argc, char *argv[])
           g_conf.log_path.append("/");
         }
         break;
+      case 'b':
+        snprintf(buf, 1024, "%s", optarg);
+        slash::string2l(buf, strlen(buf), &(num));
+        g_conf.sync_batch_num = (size_t)(num);
+        break;
+
       case 'd':
         is_daemon = true;
         break;
@@ -213,24 +220,27 @@ int main(int argc, char *argv[])
     std::mt19937 mt(rd());
     std::uniform_int_distribution<int> di(10000, 40000);
     // g_conf.local_port = di(mt);
-	g_conf.local_port = 21333;
+    g_conf.local_port = 21333;
     LOG(INFO) << "Use random port: " << g_conf.local_port;
   }
 
   std::cout << "local_ip:" << g_conf.local_ip << " "
-            << "local_port:" << g_conf.local_port << " "
-            << "master_ip:"  << g_conf.master_ip << " "
-            << "master_port:"  << g_conf.master_port << " "
-            << "forward_ip:"  << g_conf.forward_ip << " "
-            << "forward_port:"  << g_conf.forward_port << " "
-            << "forward_passwd:"  << g_conf.forward_passwd << " "
-            << "forward_thread_num:" << g_conf.forward_thread_num << " "
-            << "log_path:"   << g_conf.log_path << " "
-            << "dump_path:"  << g_conf.dump_path << " "
-            << "filenum:"    << g_conf.filenum << " "
-            << "offset:"     << g_conf.offset << " "
-            << "passwd:"     << g_conf.passwd << std::endl;
-  if (g_conf.master_port == 0 || g_conf.forward_port == 0) {
+            << ", local_port:" << g_conf.local_port << " "
+            << ", master_ip:"  << g_conf.master_ip << " "
+            << ", master_port:"  << g_conf.master_port << " "
+            << ", forward_ip:"  << g_conf.forward_ip << " "
+            << ", forward_port:"  << g_conf.forward_port << " "
+            << ", forward_passwd:"  << g_conf.forward_passwd << " "
+            << ", forward_thread_num:" << g_conf.forward_thread_num << " "
+            << ", log_path:"   << g_conf.log_path << " "
+            << ", dump_path:"  << g_conf.dump_path << " "
+            << ", filenum:"    << g_conf.filenum << " "
+            << ", offset:"     << g_conf.offset << " "
+            << ", passwd:"     << g_conf.passwd << " "
+            << ", sync_batch_num:"  << g_conf.sync_batch_num << " "
+            << std::endl;
+
+  if (g_conf.master_port == 0 || g_conf.forward_port == 0 || g_conf.sync_batch_num == 0) {
     fprintf (stderr, "Invalid Arguments\n" );
     Usage();
     exit(-1);

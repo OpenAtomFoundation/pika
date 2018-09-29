@@ -18,6 +18,7 @@ class Conf {
    offset = 0;
    log_path = "./log/";
    dump_path = "./rsync_dump/";
+   sync_batch_num = 512;
   }
 
  public:
@@ -34,6 +35,7 @@ class Conf {
   std::string passwd;
   std::string log_path;
   std::string dump_path;
+  size_t sync_batch_num;
 };
 
 extern Conf g_conf;

@@ -66,7 +66,7 @@ void MigratorThread::MigrateStringsDB() {
       argv.push_back("EX");
       argv.push_back(std::to_string(ttl));
     }
-    
+
     pink::SerializeRedisCommand(argv, &cmd);
     PlusNum();
     // DispatchKey(cmd, iter->key().ToString());
@@ -89,41 +89,40 @@ void MigratorThread::MigrateListsDB() {
   for (auto k : keys) {
     if (should_exit_) {
       break;
-	}
+    }
 
     int64_t pos = 0;
-	std::vector<std::string> list;
-    s = db->LRange(k, pos, pos + MAX_BATCH_LIMIT - 1, &list);
+    std::vector<std::string> list;
+    s = db->LRange(k, pos, pos + g_conf.sync_batch_num - 1, &list);
     if (!s.ok()) {
       LOG(WARNING) << "db->LRange(key:" << k << ", pos:" << pos
-		           << ", batch size: " << MAX_BATCH_LIMIT << ") = " << s.ToString();
+                   << ", batch size: " << g_conf.sync_batch_num << ") = " << s.ToString();
       continue;
     }
 
-    while (s.ok() && !list.empty()) {
-      if (should_exit_) {
-        break;
-	  }
+    while (s.ok() && !should_exit_ && !list.empty()) {
       pink::RedisCmdArgsType argv;
       std::string cmd;
 
       argv.push_back("RPUSH");
       argv.push_back(k);
       for (auto e : list) {
+        // PlusNum();
         argv.push_back(e);
       }
- 
+
       pink::SerializeRedisCommand(argv, &cmd);
+
       PlusNum();
       DispatchKey(cmd, k);
 
-      pos += MAX_BATCH_LIMIT;
+      pos += g_conf.sync_batch_num;
       list.clear();
-      s = db->LRange(k, pos, pos + MAX_BATCH_LIMIT - 1, &list);
+      s = db->LRange(k, pos, pos + g_conf.sync_batch_num - 1, &list);
       if (!s.ok()) {
         LOG(WARNING) << "db->LRange(key:" << k << ", pos:" << pos
-		             << ", batch size: " << MAX_BATCH_LIMIT << ") = " << s.ToString();
-	  } 
+                     << ", batch size: " << g_conf.sync_batch_num << ") = " << s.ToString();
+      }
     }
   }
 }
@@ -142,7 +141,7 @@ void MigratorThread::MigrateHashesDB() {
   for (auto k : keys) {
     if (should_exit_) {
       break;
-	}
+    }
     std::vector<blackwidow::FieldValue> fvs;
     s = db->HGetall(k, &fvs);
     if (!s.ok()) {
@@ -150,18 +149,21 @@ void MigratorThread::MigrateHashesDB() {
       continue;
     }
 
-    for (auto fv : fvs) {
-      if (should_exit_) {
-        break;
-	  }
+    auto it = fvs.begin();
+    while (!should_exit_ && it != fvs.end()) {
       pink::RedisCmdArgsType argv;
       std::string cmd;
 
-      argv.push_back("HSET");
+      argv.push_back("HMSET");
       argv.push_back(k);
-      argv.push_back(fv.field);
-      argv.push_back(fv.value);
-      
+      for (size_t idx = 0;
+           idx < g_conf.sync_batch_num && !should_exit_ && it != fvs.end();
+           idx ++, it ++) {
+        argv.push_back(it->field);
+        argv.push_back(it->value);
+        // PlusNum();
+      }
+
       pink::SerializeRedisCommand(argv, &cmd);
       PlusNum();
       // DispatchKey(cmd, k);
@@ -184,32 +186,30 @@ void MigratorThread::MigrateSetsDB() {
   for (auto k : keys) {
     if (should_exit_) {
       break;
-	}
+    }
     std::vector<std::string> members;
     s = db->SMembers(k, &members);
     if (!s.ok()) {
       LOG(WARNING) << "db->SMembers(key:" << k << ") = " << s.ToString();
       continue;
     }
-    for (auto it = members.begin(); !should_exit_ && it != members.end(); it++) {
+    auto it = members.begin();
+    while (!should_exit_ && it != members.end()) {
       std::string cmd;
       pink::RedisCmdArgsType argv;
 
       argv.push_back("SADD");
       argv.push_back(k);
-	  for (int32_t idx = 0;
-	       idx < MAX_BATCH_LIMIT && !should_exit_ && it != members.end();
-	       idx ++, it ++) {
+      for (size_t idx = 0;
+           idx < g_conf.sync_batch_num && !should_exit_ && it != members.end();
+           idx ++, it ++) {
         argv.push_back(*it);
-	  }
-      
+      }
+
       pink::SerializeRedisCommand(argv, &cmd);
       PlusNum();
       // DispatchKey(cmd, k);
       DispatchKey(cmd);
-	  if (it == members.end()) {
-	    break;
-	  }
     }
   }
 }
@@ -228,27 +228,28 @@ void MigratorThread::MigrateZsetsDB() {
   for (auto k : keys) {
     if (should_exit_) {
       break;
-	}
+    }
     std::vector<blackwidow::ScoreMember> score_members;
     s = db->ZRange(k, 0, -1, &score_members);
     if (!s.ok()) {
       LOG(WARNING) << "db->ZRange(key:" << k << ") = " << s.ToString();
       continue;
     }
-    for (auto sm : score_members) {
-      if (should_exit_) {
-        break;
-	  }
+    auto it = score_members.begin();
+    while (!should_exit_ && it != score_members.end()) {
       pink::RedisCmdArgsType argv;
       std::string cmd;
 
-	  std::string score = std::to_string(sm.score);
-
       argv.push_back("ZADD");
       argv.push_back(k);
-      argv.push_back(score);
-      argv.push_back(sm.member);
-      
+
+      for (size_t idx = 0;
+           idx < g_conf.sync_batch_num && !should_exit_ && it != score_members.end();
+           idx ++, it ++) {
+        argv.push_back(std::to_string(it->score));
+        argv.push_back(it->member);
+      }
+
       pink::SerializeRedisCommand(argv, &cmd);
       PlusNum();
       // DispatchKey(cmd, k);
@@ -295,7 +296,7 @@ void MigratorThread::DispatchKey(const std::string &command, const std::string& 
   thread_index_ = (thread_index_ + 1) % thread_num_;
   size_t idx = thread_index_;
   if (key.size()) { // no empty
-    std::hash<std::string>()(key) % thread_num_;
+    idx = std::hash<std::string>()(key) % thread_num_;
   }
   (*senders_)[idx]->LoadKey(command);
 }

@@ -11,39 +11,47 @@ def getValue(length=200,chars=string.ascii_letters+string.digits):
 
 def setRedis(args):
     r = redis.StrictRedis(host=args[0], port=int(args[1]))
+
+    # z, field = "set:transfer:test:pika:1", getKeys(12)
+    # r.zadd(z, 0, field, 1, '1', 2, '2', 3, '3', 4, '4', 5, '5', 6, '6', 7, '7', 8, '8', 9, '9', 10, '10', 11, '11')
+
     num = 0
-    while int(num) < 5000000:
+    max = 5000000
+    while int(num) < int(max):
         num = num + 1
 
         # key, value
-        key1, value1 = "string:transfer:test:" + getKeys(12), getValue(30)
-        r.set(key1, value1)
+        key, value = "string:transfer:test:" + getKeys(12), getValue(30)
+        r.set(key, value)
 
         # list
         l = "list:transfer:test:pika" + getKeys(15)
-        r.lpush(l, 1)
-        r.lpush(l, 2)
-        r.lpush(l, 3)
-        r.lpush(l, 4)
-        r.lpush(l, 5)
-        r.lpush(l, 6)
-        r.lpush(l, 7)
-        r.lpush(l, 8)
-        r.lpush(l, 9)
-        r.lpush(l, 10)
+        r.lpush(l, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 
         # hashtable
         ht, field, value = "hashtable:transfer:test:pika" + getKeys(12), getKeys(12), getValue(30)
-        r.hset(ht, field, value)
+        r.hmset(ht, {field : value,
+                 field + str(1) : value,
+                 field + str(2) : value,
+                 field + str(3) : value,
+                 field + str(4) : value,
+                 field + str(5) : value,
+                 field + str(6) : value,
+                 field + str(7) : value,
+                 field + str(8) : value,
+                 field + str(9) : value,
+                 field + str(0) : value,
+                 field + str(10) : value,
+                 field + str(11) : value,
+               })
 
         # set
         s, field = "set:transfer:test:pika" + getKeys(12), getKeys(12)
-        r.sadd(s, field)
-        # r.sadd(s, str(num))
+        r.sadd(s, field, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
 
         # zset
-        z, field = "transfer:test:pika" + getKeys(12), getKeys(12)
-        r.zadd(z, num, field)
+        z, field = "zset:transfer:test:pika" + getKeys(12), getKeys(12)
+        r.zadd(z, 0, field, 1, '1', 2, '2', 3, '3', 4, '4', 5, '5', 6, '6', 7, '7', 8, '8', 9, '9', 10, '10', 11, '11')
 
 if __name__=="__main__":
     setRedis(['10.1.1.1', '10000'])

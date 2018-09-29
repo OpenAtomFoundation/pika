@@ -17,8 +17,6 @@ const int64_t kTestPoint = 500000;
 const int64_t kTestNum = LLONG_MAX;
 const int64_t kDataSetNum = 5;
 
-#define MAX_BATCH_LIMIT 512
-
 std::string PikaState(int state);
 std::string PikaRole(int role) ;
 
