@@ -31,7 +31,7 @@
 make_config.mk
 log/
 lib/
-tools/
+# tools/
 output/
 
 # DB
