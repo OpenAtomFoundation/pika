@@ -124,6 +124,20 @@ void MigratorThread::MigrateListsDB() {
                      << ", batch size: " << g_conf.sync_batch_num << ") = " << s.ToString();
       }
     }
+
+	int64_t ttl = -1;
+	s = db->TTL(k, &ttl);
+	if (s.ok() && ttl > 0) {
+      pink::RedisCmdArgsType argv;
+      std::string cmd;
+      
+      argv.push_back("EXPIRE");
+      argv.push_back(k);
+      argv.push_back(std::to_string(ttl));
+      pink::SerializeRedisCommand(argv, &cmd);
+      PlusNum();
+      DispatchKey(cmd);
+	}
   }
 }
 
@@ -169,6 +183,20 @@ void MigratorThread::MigrateHashesDB() {
       // DispatchKey(cmd, k);
       DispatchKey(cmd);
     }
+
+	int64_t ttl = -1;
+	s = db->TTL(k, &ttl);
+	if (s.ok() && ttl > 0) {
+      pink::RedisCmdArgsType argv;
+      std::string cmd;
+      
+      argv.push_back("EXPIRE");
+      argv.push_back(k);
+      argv.push_back(std::to_string(ttl));
+      pink::SerializeRedisCommand(argv, &cmd);
+      PlusNum();
+      DispatchKey(cmd);
+	}
   }
 }
 
@@ -211,6 +239,20 @@ void MigratorThread::MigrateSetsDB() {
       // DispatchKey(cmd, k);
       DispatchKey(cmd);
     }
+
+	int64_t ttl = -1;
+	s = db->TTL(k, &ttl);
+	if (s.ok() && ttl > 0) {
+      pink::RedisCmdArgsType argv;
+      std::string cmd;
+      
+      argv.push_back("EXPIRE");
+      argv.push_back(k);
+      argv.push_back(std::to_string(ttl));
+      pink::SerializeRedisCommand(argv, &cmd);
+      PlusNum();
+      DispatchKey(cmd);
+	}
   }
 }
 
@@ -255,6 +297,20 @@ void MigratorThread::MigrateZsetsDB() {
       // DispatchKey(cmd, k);
       DispatchKey(cmd);
     }
+
+	int64_t ttl = -1;
+	s = db->TTL(k, &ttl);
+	if (s.ok() && ttl > 0) {
+      pink::RedisCmdArgsType argv;
+      std::string cmd;
+      
+      argv.push_back("EXPIRE");
+      argv.push_back(k);
+      argv.push_back(std::to_string(ttl));
+      pink::SerializeRedisCommand(argv, &cmd);
+      PlusNum();
+      DispatchKey(cmd);
+	}
   }
 }
 
