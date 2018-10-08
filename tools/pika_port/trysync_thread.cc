@@ -271,9 +271,12 @@ int TrysyncThread::Retransmit() {
   options.write_buffer_size = 512 * 1024 * 1024; // 512M
   options.target_file_size_base = 40 * 1024 * 1024; // 40M
 
+  blackwidow::BlackwidowOptions bwOptions;
+  bwOptions.options = options;
+
   blackwidow::RedisStrings stringsDB;
   std::string path = db_path + "strings";
-  s = stringsDB.Open(options, path);
+  s = stringsDB.Open(bwOptions, path);
   LOG(INFO) << "Open strings DB " << path << " result "  << s.ToString();
   if (s.ok()) {
     migrators_.emplace_back(new MigratorThread((void*)(&stringsDB), &senders_, blackwidow::kStrings, thread_num));
@@ -281,7 +284,7 @@ int TrysyncThread::Retransmit() {
  
   blackwidow::RedisLists listsDB;
   path = db_path + "lists";
-  s = listsDB.Open(options, path);
+  s = listsDB.Open(bwOptions, path);
   LOG(INFO) << "Open lists DB " << path << " result " << s.ToString();
   if (s.ok()) {
     migrators_.emplace_back(new MigratorThread((void*)(&listsDB), &senders_, blackwidow::kLists, thread_num));
@@ -289,7 +292,7 @@ int TrysyncThread::Retransmit() {
 
   blackwidow::RedisHashes hashesDB;
   path = db_path + "hashes";
-  s = hashesDB.Open(options, path);
+  s = hashesDB.Open(bwOptions, path);
   LOG(INFO) << "Open hashes DB " << path << " result " << s.ToString();
   if (s.ok()) {
     migrators_.emplace_back(new MigratorThread((void*)(&hashesDB), &senders_, blackwidow::kHashes, thread_num));
@@ -297,7 +300,7 @@ int TrysyncThread::Retransmit() {
 
   blackwidow::RedisSets setsDB;
   path = db_path + "sets";
-  s = setsDB.Open(options, path);
+  s = setsDB.Open(bwOptions, path);
   LOG(INFO) << "Open sets DB " << path << " result "  << s.ToString();
   if (s.ok()) {
     migrators_.emplace_back(new MigratorThread((void*)(&setsDB), &senders_, blackwidow::kSets, thread_num));
@@ -305,7 +308,7 @@ int TrysyncThread::Retransmit() {
 
   blackwidow::RedisZSets zsetsDB;
   path = db_path + "zsets";
-  s = zsetsDB.Open(options, path);
+  s = zsetsDB.Open(bwOptions, path);
   LOG(INFO) << "Open zsets DB " << path << " result " << s.ToString();
   if (s.ok()) {
     migrators_.emplace_back(new MigratorThread((void*)(&zsetsDB), &senders_, blackwidow::kZSets, thread_num));
