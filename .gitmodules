@@ -1,9 +1,6 @@
 [submodule "third/glog"]
 	path = third/glog
 	url = https://github.com/Qihoo360/glog.git
-[submodule "third/pink"]
-	path = third/pink
-	url = https://github.com/PikaLabs/pink.git
 [submodule "third/slash"]
 	path = third/slash
 	url = https://github.com/Qihoo360/slash.git
@@ -13,3 +10,6 @@
 [submodule "third/blackwidow"]
 	path = third/blackwidow
 	url = https://github.com/Axlgrep/blackwidow.git
+[submodule "third/pink"]
+	path = third/pink
+	url = https://github.com/Qihoo360/pink.git
