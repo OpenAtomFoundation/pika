@@ -17,6 +17,10 @@ class PikaWorkerSpecificData;
 
 class PikaClientConn: public pink::AsynRedisConn {
  public:
+  struct BgTaskArg {
+    std::shared_ptr<PikaClientConn> pcc;
+  };
+
   PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
                  void* worker_specific_data, pink::PinkEpoll* pink_epoll);
   virtual ~PikaClientConn() {}
@@ -58,7 +62,7 @@ struct ClientInfo {
   int fd;
   std::string ip_port;
   int64_t last_interaction;
-  PikaClientConn* conn;
+  std::shared_ptr<PikaClientConn> conn;
 };
 
 #endif
