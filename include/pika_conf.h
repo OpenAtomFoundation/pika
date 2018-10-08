@@ -34,6 +34,7 @@ class PikaConf : public slash::BaseConf {
   bool write_binlog() {RWLock l(&rwlock_, false); return write_binlog_;}
   std::string identify_binlog_type() {RWLock l(&rwlock_, false); return identify_binlog_type_;}
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
+  int thread_pool_size()       { RWLock l(&rwlock_, false); return thread_pool_size_; }
   int sync_thread_num()        { RWLock l(&rwlock_, false); return sync_thread_num_; }
   int sync_buffer_size()        { RWLock l(&rwlock_, false); return sync_buffer_size_; }
   std::string log_path()  { RWLock l(&rwlock_, false); return log_path_; }
@@ -104,6 +105,7 @@ class PikaConf : public slash::BaseConf {
     TryPushDiffCommands("timeout", std::to_string(value));
     timeout_ = value;
   }
+  void SetThreadPoolSize(const int value)       { RWLock l(&rwlock_, true); thread_pool_size_ = value; }
   void SetSlaveof(const std::string value) {
     RWLock l(&rwlock_, true);
     slaveof_ = value;
@@ -244,6 +246,7 @@ private:
   std::string slaveof_;
   int slave_priority_;
   int thread_num_;
+  int thread_pool_size_;
   int sync_thread_num_;
   int sync_buffer_size_;
   std::string log_path_;

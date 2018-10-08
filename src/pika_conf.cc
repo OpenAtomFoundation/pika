@@ -117,6 +117,13 @@ int PikaConf::Load()
   if (thread_num_ > 24) {
     thread_num_ = 24;
   }
+  GetConfInt("thread-pool-size", &thread_pool_size_);
+  if (thread_pool_size_ <= 0) {
+    thread_pool_size_ = 8;
+  }
+  if (thread_pool_size_ > 24) {
+    thread_pool_size_ = 24;
+  }
   GetConfInt("sync-thread-num", &sync_thread_num_);
   if (sync_thread_num_ <= 0) {
     sync_thread_num_ = 3;
@@ -301,6 +308,7 @@ int PikaConf::ConfigRewrite() {
 
   SetConfInt("port", port_);
   SetConfInt("thread-num", thread_num_);
+  SetConfInt("thread-pool-size", thread_pool_size_);
   SetConfInt("sync-thread-num", sync_thread_num_);
   SetConfInt("sync-buffer-size", sync_buffer_size_);
   SetConfStr("log-path", log_path_);

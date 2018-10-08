@@ -94,7 +94,7 @@ PikaServer::PikaServer() :
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
   pika_pubsub_thread_ = new pink::PubSubThread();
-  pika_thread_pool_ = new pink::ThreadPool(8, 100000);
+  pika_thread_pool_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
 
   //for (int j = 0; j < g_pika_conf->binlogbg_thread_num; j++) {
   for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
