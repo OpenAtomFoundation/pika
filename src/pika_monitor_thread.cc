@@ -35,7 +35,7 @@ PikaMonitorThread::~PikaMonitorThread() {
   LOG(INFO) << " PikaMonitorThread " << pthread_self() << " exit!!!";
 }
 
-void PikaMonitorThread::AddMonitorClient(PikaClientConn* client_ptr) {
+void PikaMonitorThread::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
   StartThread();
   slash::MutexLock lm(&monitor_mutex_protector_);
   monitor_clients_.push_back(ClientInfo{client_ptr->fd(), client_ptr->ip_port(), 0, client_ptr});
@@ -46,12 +46,10 @@ void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
   for (; iter != monitor_clients_.end(); ++iter) {
     if (ip_port == "all") {
       close(iter->fd);
-      delete iter->conn;
       continue;
     }
     if (iter->ip_port  == ip_port) {
       close(iter->fd);
-      delete iter->conn;
       break;
     }
   }

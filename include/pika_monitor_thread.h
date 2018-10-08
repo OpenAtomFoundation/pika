@@ -22,7 +22,7 @@ class PikaMonitorThread : public pink::Thread {
   PikaMonitorThread();
   virtual ~PikaMonitorThread();
 
-  void AddMonitorClient(PikaClientConn* client_ptr);
+  void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
   void AddMonitorMessage(const std::string &monitor_message);
   int32_t ThreadClientList(std::vector<ClientInfo>* client = NULL);
   bool ThreadClientKill(const std::string& ip_port = "all");

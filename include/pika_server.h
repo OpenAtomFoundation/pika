@@ -342,12 +342,12 @@ class PikaServer {
    * PubSub used
    */
   int Publish(const std::string& channel, const std::string& msg);
-  void Subscribe(pink::PinkConn* conn,
+  void Subscribe(std::shared_ptr<pink::PinkConn> conn,
                  const std::vector<std::string>& channels,
                  const bool pattern,
                  std::vector<std::pair<std::string, int>>* result);
 
-  int UnSubscribe(pink::PinkConn* conn,
+  int UnSubscribe(std::shared_ptr<pink::PinkConn> conn,
                   const std::vector<std::string>& channels,
                   const bool pattern,
                   std::vector<std::pair<std::string, int>>* result);
@@ -363,7 +363,7 @@ class PikaServer {
   /*
    * Monitor used
    */
-  void AddMonitorClient(PikaClientConn* client_ptr);
+  void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
   void AddMonitorMessage(const std::string &monitor_message);
   bool HasMonitorClients();
 

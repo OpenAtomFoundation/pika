@@ -1485,12 +1485,18 @@ int PikaServer::Publish(const std::string& channel, const std::string& msg) {
 }
 
 // Subscribe/PSubscribe
-void PikaServer::Subscribe(pink::PinkConn* conn, const std::vector<std::string>& channels, bool pattern, std::vector<std::pair<std::string, int>>* result) {
+void PikaServer::Subscribe(std::shared_ptr<pink::PinkConn> conn,
+                           const std::vector<std::string>& channels,
+                           bool pattern,
+                           std::vector<std::pair<std::string, int>>* result) {
   pika_pubsub_thread_->Subscribe(conn, channels, pattern, result);
 }
 
 // UnSubscribe/PUnSubscribe
-int PikaServer::UnSubscribe(pink::PinkConn* conn, const std::vector<std::string>& channels, bool pattern, std::vector<std::pair<std::string, int>>* result) {
+int PikaServer::UnSubscribe(std::shared_ptr<pink::PinkConn> conn,
+                            const std::vector<std::string>& channels,
+                            bool pattern,
+                            std::vector<std::pair<std::string, int>>* result) {
   int subscribed = pika_pubsub_thread_->UnSubscribe(conn, channels, pattern, result);
   return subscribed;
 }
@@ -1511,7 +1517,7 @@ int PikaServer::PubSubNumPat() {
   return pika_pubsub_thread_->PubSubNumPat();
 }
 
-void PikaServer::AddMonitorClient(PikaClientConn* client_ptr) {
+void PikaServer::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
   monitor_thread_->AddMonitorClient(client_ptr);
 }
 

@@ -107,16 +107,16 @@ std::string PikaClientConn::DoCmd(
 
   // Monitor
   if (opt == kCmdNameMonitor) {
-    pink::PinkConn* conn = server_thread_->MoveConnOut(fd());
-    assert(conn == this);
-    g_pika_server->AddMonitorClient(static_cast<PikaClientConn*>(conn));
+    std::shared_ptr<PinkConn> conn = server_thread_->MoveConnOut(fd());
+    assert(conn.get() == this);
+    g_pika_server->AddMonitorClient(std::dynamic_pointer_cast<PikaClientConn>(conn));
     g_pika_server->AddMonitorMessage("OK");
     return ""; // Monitor thread will return "OK"
   }
 
   //PubSub
   if (opt == kCmdNamePSubscribe || opt == kCmdNameSubscribe) {             // PSubscribe or Subscribe
-    pink::PinkConn* conn = this;
+    std::shared_ptr<PinkConn> conn = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
     if (!this->IsPubSub()) {
       conn = server_thread_->MoveConnOut(fd());
     }
@@ -134,7 +134,8 @@ std::string PikaClientConn::DoCmd(
       channels.push_back(slash::StringToLower(argv[i]));
     }
     std::vector<std::pair<std::string, int>> result;
-    int subscribed = g_pika_server->UnSubscribe(this, channels, opt == kCmdNamePUnSubscribe, &result);
+    std::shared_ptr<PinkConn> conn = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
+    int subscribed = g_pika_server->UnSubscribe(conn, channels, opt == kCmdNamePUnSubscribe, &result);
     if (subscribed == 0 && this->IsPubSub()) {
       /*
        * if the number of client subscribed is zero,
@@ -235,7 +236,9 @@ std::string PikaClientConn::DoCmd(
 }
 
 void PikaClientConn::AsynProcessRedisCmd() {
-  g_pika_server->Schedule(&DoBackgroundTask, this);
+  BgTaskArg* arg = new BgTaskArg();
+  arg->pcc = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
+  g_pika_server->Schedule(&DoBackgroundTask, arg);
 }
 
 void PikaClientConn::BatchExecRedisCmd() {
@@ -267,8 +270,9 @@ int PikaClientConn::DealMessage(PikaCmdArgsType& argv) {
 }
 
 void PikaClientConn::DoBackgroundTask(void* arg) {
-  PikaClientConn* conn = static_cast<PikaClientConn*>(arg);
-  conn->BatchExecRedisCmd();
+  BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
+  bg_arg->pcc->BatchExecRedisCmd();
+  delete bg_arg;
 }
 
 // Initial permission status

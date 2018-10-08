@@ -44,7 +44,7 @@ class PikaBinlogReceiverThread {
         : binlog_receiver_(binlog_receiver) {
     }
 
-    virtual pink::PinkConn *NewPinkConn(
+    virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
         int connfd,
         const std::string &ip_port,
         pink::ServerThread *thread,
@@ -52,10 +52,10 @@ class PikaBinlogReceiverThread {
         pink::PinkEpoll* pink_epoll) const override {
         if (g_pika_conf->identify_binlog_type() == "old") {
           LOG(INFO) << "Master conn factory create pika master conn";
-          return new PikaMasterConn(connfd, ip_port, binlog_receiver_);
+          return std::make_shared<PikaMasterConn>(connfd, ip_port, binlog_receiver_);
         } else {
           LOG(INFO) << "Master conn factory create pika new master conn";
-          return new PikaNewMasterConn(connfd, ip_port, binlog_receiver_);
+          return std::make_shared<PikaNewMasterConn>(connfd, ip_port, binlog_receiver_);
         }
     }
 
