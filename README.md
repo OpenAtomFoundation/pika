@@ -12,7 +12,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 <table>
 <tr>
 <td height = "100" width = "150"><img src="http://i.imgur.com/dcHpCm4.png" alt="Qihoo"></td>
-<td height = "100" width = "150"><img src="http://i.imgur.com/ktPV3JU.jpg?2" alt="360game"></td>
+<td height = "100" width = "150"><img src="https://i.imgur.com/BIjqe9R.jpg" alt="360game"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/jjZczkN.png" alt="Weibo"></td>
 <td height = "100" width = "150"><img src="http://i.imgur.com/zoel46r.gif" alt="Garena"></td>
 </tr>
