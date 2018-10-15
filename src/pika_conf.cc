@@ -163,7 +163,7 @@ int PikaConf::Load()
   }
 
   // write_buffer_size
-  GetConfInt("write-buffer-size", &write_buffer_size_);
+  GetConfInt64("write-buffer-size", &write_buffer_size_);
   if (write_buffer_size_ <= 0 ) {
       write_buffer_size_ = 4194304; // 40M
   }
@@ -204,13 +204,13 @@ int PikaConf::Load()
   }
 
   block_size_ = 4 * 1024;
-  GetConfInt("block-size", &block_size_);
+  GetConfInt64("block-size", &block_size_);
   if (block_size_ <= 0) {
     block_size_ = 4 * 1024;
   }
 
   block_cache_ = 8 * 1024 * 1024;
-  GetConfInt("block-cache", &block_cache_);
+  GetConfInt64("block-cache", &block_cache_);
   if (block_cache_ < 0) {
     block_cache_ = 8 * 1024 * 1024;
   }
@@ -284,7 +284,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("db-path", db_path_);
   SetConfStr("db-sync-path", db_sync_path_);
   SetConfInt("db-sync-speed", db_sync_speed_);
-  SetConfInt("write-buffer-size", write_buffer_size_);
+  SetConfInt64("write-buffer-size", write_buffer_size_);
   SetConfInt("timeout", timeout_);
   SetConfStr("server-id", server_id_);
   SetConfStr("requirepass", requirepass_);
@@ -320,8 +320,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("max-background-compactions", max_background_compactions_);
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-bytes-for-level-multiplier", max_bytes_for_level_multiplier_);
-  SetConfInt("block-size", block_size_);
-  SetConfInt("block-cache", block_cache_);
+  SetConfInt64("block-size", block_size_);
+  SetConfInt64("block-cache", block_cache_);
   SetConfStr("share-block-cache", share_block_cache_ ? "yes" : "no");
   SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
   SetConfStr("optimize-filters-for-hits", optimize_filters_for_hits_ ? "yes" : "no");
