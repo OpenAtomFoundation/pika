@@ -946,6 +946,15 @@ static void EncodeInt32(std::string *dst, const int32_t v) {
   dst->append("\r\n");
 }
 
+static void EncodeInt64(std::string *dst, const int64_t v) {
+  std::string vstr = std::to_string(v);
+  dst->append("$");
+  dst->append(std::to_string(vstr.length()));
+  dst->append("\r\n");
+  dst->append(vstr);
+  dst->append("\r\n");
+}
+
 void ConfigCmd::ConfigGet(std::string &ret) {
   std::string get_item = config_args_v_[1];
   if (get_item == "port") {
@@ -1011,7 +1020,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
   } else if (get_item == "write-buffer-size") {
     ret = "*2\r\n";
     EncodeString(&ret, "write-buffer-size");
-    EncodeInt32(&ret, g_pika_conf->write_buffer_size());
+    EncodeInt64(&ret, g_pika_conf->write_buffer_size());
   } else if (get_item == "timeout") {
     ret = "*2\r\n";
     EncodeString(&ret, "timeout");
@@ -1079,11 +1088,11 @@ void ConfigCmd::ConfigGet(std::string &ret) {
   } else if (get_item == "block-size") {
     ret = "*2\r\n";
     EncodeString(&ret, "block-size");
-    EncodeInt32(&ret, g_pika_conf->block_size());
+    EncodeInt64(&ret, g_pika_conf->block_size());
   } else if (get_item == "block-cache") {
     ret = "*2\r\n";
     EncodeString(&ret, "block-cache");
-    EncodeInt32(&ret, g_pika_conf->block_cache());
+    EncodeInt64(&ret, g_pika_conf->block_cache());
   } else if (get_item == "share-block-cache") {
     ret = "*2\r\n";
     EncodeString(&ret, "share-block-cache");
@@ -1181,7 +1190,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "maxmemory");
     EncodeInt32(&ret, g_pika_conf->write_buffer_size());
     EncodeString(&ret, "write-buffer-size");
-    EncodeInt32(&ret, g_pika_conf->write_buffer_size());
+    EncodeInt64(&ret, g_pika_conf->write_buffer_size());
     EncodeString(&ret, "timeout");
     EncodeInt32(&ret, g_pika_conf->timeout());
     EncodeString(&ret, "requirepass");
@@ -1215,9 +1224,9 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "max-bytes-for-level-multiplier");
     EncodeInt32(&ret, g_pika_conf->max_bytes_for_level_multiplier());
     EncodeString(&ret, "block-size");
-    EncodeInt32(&ret, g_pika_conf->block_size());
+    EncodeInt64(&ret, g_pika_conf->block_size());
     EncodeString(&ret, "block-cache");
-    EncodeInt32(&ret, g_pika_conf->block_cache());
+    EncodeInt64(&ret, g_pika_conf->block_cache());
     EncodeString(&ret, "share-block-cache");
     EncodeString(&ret, g_pika_conf->share_block_cache() ? "yes" : "no");
     EncodeString(&ret, "cache-index-and-filter-blocks");
