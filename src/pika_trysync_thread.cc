@@ -268,6 +268,7 @@ void* PikaTrysyncThread::ThreadMain() {
         if (rsync->Connect(lip, g_pika_conf->port() + 3000, "").ok()) {
           LOG(INFO) << "rsync successfully started, address:" << lip << ":" << g_pika_conf->port() + 3000;
           rsync->Close();
+          delete rsync;
           break;
         } else {
           sleep(1);
