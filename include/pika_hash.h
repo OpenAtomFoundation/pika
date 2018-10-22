@@ -170,4 +170,38 @@ private:
     count_ = 10;
   }
 };
+
+class PKHScanRangeCmd : public Cmd {
+public:
+  PKHScanRangeCmd() : pattern_("*"), limit_(10) {}
+  virtual void Do();
+private:
+  std::string key_;
+  std::string field_start_;
+  std::string field_end_;
+  std::string pattern_;
+  int64_t limit_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    pattern_ = "*";
+    limit_ = 10;
+  }
+};
+
+class PKHRScanRangeCmd : public Cmd {
+public:
+  PKHRScanRangeCmd() : pattern_("*"), limit_(10) {}
+  virtual void Do();
+private:
+  std::string key_;
+  std::string field_start_;
+  std::string field_end_;
+  std::string pattern_;
+  int64_t limit_;
+  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    pattern_ = "*";
+    limit_ = 10;
+  }
+};
 #endif
