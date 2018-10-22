@@ -433,4 +433,42 @@ private:
     count_ = 10;
   }
 };
+
+class PKScanRangeCmd : public Cmd {
+public:
+  PKScanRangeCmd() : pattern_("*"), limit_(10), string_with_value(false) {}
+  virtual void Do();
+private:
+  blackwidow::DataType type_;
+  std::string key_start_;
+  std::string key_end_;
+  std::string pattern_;
+  int64_t limit_;
+  bool string_with_value;
+  virtual void DoInitial(PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    pattern_ = "*";
+    limit_ = 10;
+    string_with_value = false;
+  }
+};
+
+class PKRScanRangeCmd : public Cmd {
+public:
+  PKRScanRangeCmd() : pattern_("*"), limit_(10), string_with_value(false) {}
+  virtual void Do();
+private:
+  blackwidow::DataType type_;
+  std::string key_start_;
+  std::string key_end_;
+  std::string pattern_;
+  int64_t limit_;
+  bool string_with_value;
+  virtual void DoInitial(PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    pattern_ = "*";
+    limit_ = 10;
+    string_with_value = false;
+  }
+};
 #endif

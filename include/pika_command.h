@@ -99,6 +99,8 @@ const std::string kCmdNamePersist = "persist";
 const std::string kCmdNameType = "type";
 const std::string kCmdNameScan = "scan";
 const std::string kCmdNameScanx = "scanx";
+const std::string kCmdNamePKScanRange = "pkscanrange";
+const std::string kCmdNamePKRScanRange = "pkrscanrange";
 
 //Hash
 const std::string kCmdNameHDel = "hdel";
@@ -117,6 +119,8 @@ const std::string kCmdNameHStrlen = "hstrlen";
 const std::string kCmdNameHVals = "hvals";
 const std::string kCmdNameHScan = "hscan";
 const std::string kCmdNameHScanx = "hscanx";
+const std::string kCmdNamePKHScanRange = "pkhscanrange";
+const std::string kCmdNamePKHRScanRange = "pkhrscanrange";
 
 //List
 const std::string kCmdNameLIndex = "lindex";

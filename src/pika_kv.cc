@@ -1326,3 +1326,163 @@ void ScanxCmd::Do() {
   }
   return;
 }
+
+void PKScanRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePKScanRange);
+    return;
+  }
+  if (!strcasecmp(argv[1].data(), "string_with_value")) {
+    type_ = blackwidow::kStrings;
+    string_with_value = true;
+  } else if (!strcasecmp(argv[1].data(), "string")) {
+    type_ = blackwidow::kStrings;
+  } else if (!strcasecmp(argv[1].data(), "hash")) {
+    type_ = blackwidow::kHashes;
+  } else if (!strcasecmp(argv[1].data(), "set")) {
+    type_ = blackwidow::kSets;
+  } else if (!strcasecmp(argv[1].data(), "zset")) {
+    type_ = blackwidow::kZSets;
+  } else if (!strcasecmp(argv[1].data(), "list")) {
+    type_ = blackwidow::kLists;
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType);
+    return;
+  }
+
+  key_start_ = argv[2];
+  key_end_ = argv[3];
+  size_t index = 4, argc = argv.size();
+  while (index < argc) {
+    std::string opt = slash::StringToLower(argv[index]);
+    if (opt == "match" || opt == "limit") {
+      index++;
+      if (index >= argc) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;
+      }
+      if (opt == "match") {
+        pattern_ = argv[index];
+      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &limit_) || limit_ <= 0) {
+        res_.SetRes(CmdRes::kInvalidInt);
+        return;
+      }
+    } else {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+    index++;
+  }
+  return;
+}
+
+void PKScanRangeCmd::Do() {
+  std::string next_key;
+  std::vector<std::string> keys;
+  std::vector<blackwidow::KeyValue> kvs;
+  rocksdb::Status s = g_pika_server->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+
+  if (s.ok()) {
+    res_.AppendArrayLen(2);
+    res_.AppendStringLen(next_key.size());
+    res_.AppendContent(next_key);
+
+    if (type_ == blackwidow::kStrings) {
+      res_.AppendArrayLen(string_with_value ? 2 * kvs.size() : kvs.size());
+      for (const auto& kv : kvs) {
+        res_.AppendString(kv.key);
+        if (string_with_value) {
+          res_.AppendString(kv.value);
+        }
+      }
+    } else {
+      res_.AppendArrayLen(keys.size());
+      for (const auto& key : keys){
+        res_.AppendString(key);
+      }
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  return;
+}
+
+void PKRScanRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePKRScanRange);
+    return;
+  }
+  if (!strcasecmp(argv[1].data(), "string_with_value")) {
+    type_ = blackwidow::kStrings;
+    string_with_value = true;
+  } else if (!strcasecmp(argv[1].data(), "string")) {
+    type_ = blackwidow::kStrings;
+  } else if (!strcasecmp(argv[1].data(), "hash")) {
+    type_ = blackwidow::kHashes;
+  } else if (!strcasecmp(argv[1].data(), "set")) {
+    type_ = blackwidow::kSets;
+  } else if (!strcasecmp(argv[1].data(), "zset")) {
+    type_ = blackwidow::kZSets;
+  } else if (!strcasecmp(argv[1].data(), "list")) {
+    type_ = blackwidow::kLists;
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType);
+    return;
+  }
+
+  key_start_ = argv[2];
+  key_end_ = argv[3];
+  size_t index = 4, argc = argv.size();
+  while (index < argc) {
+    std::string opt = slash::StringToLower(argv[index]);
+    if (opt == "match" || opt == "limit") {
+      index++;
+      if (index >= argc) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;
+      }
+      if (opt == "match") {
+        pattern_ = argv[index];
+      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &limit_) || limit_ <= 0) {
+        res_.SetRes(CmdRes::kInvalidInt);
+        return;
+      }
+    } else {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+    index++;
+  }
+  return;
+}
+
+void PKRScanRangeCmd::Do() {
+  std::string next_key;
+  std::vector<std::string> keys;
+  std::vector<blackwidow::KeyValue> kvs;
+  rocksdb::Status s = g_pika_server->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+
+  if (s.ok()) {
+    res_.AppendArrayLen(2);
+    res_.AppendStringLen(next_key.size());
+    res_.AppendContent(next_key);
+
+    if (type_ == blackwidow::kStrings) {
+      res_.AppendArrayLen(string_with_value ? 2 * kvs.size() : kvs.size());
+      for (const auto& kv : kvs) {
+        res_.AppendString(kv.key);
+        if (string_with_value) {
+          res_.AppendString(kv.value);
+        }
+      }
+    } else {
+      res_.AppendArrayLen(keys.size());
+      for (const auto& key : keys){
+        res_.AppendString(key);
+      }
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  return;
+}
