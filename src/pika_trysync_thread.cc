@@ -244,7 +244,7 @@ void* PikaTrysyncThread::ThreadMain() {
     PrepareRsync();
 
     if ((cli_->Connect(master_ip, master_port, "")).ok()) {
-      LOG(INFO) << "Connect to master ip:" << master_ip << "port: " << master_port;
+      LOG(INFO) << "Connect to master ip:" << master_ip << " port: " << master_port;
       cli_->set_send_timeout(30000);
       cli_->set_recv_timeout(30000);
       std::string ip_port = slash::IpPortString(master_ip, master_port);

@@ -324,7 +324,7 @@ void PikaServer::Start() {
     int32_t double_master_port = g_pika_conf->double_master_port();
     double_master_sid_ = std::stoi(g_pika_conf->double_master_sid());
     if ((double_master_ip == "127.0.0.1" || double_master_ip == host_) && double_master_port == port_) {
-    LOG(FATAL) << "set yourself as the peer-master, please check";
+    LOG(FATAL) << "Set yourself as the peer-master, please check";
     } else {
       double_master_mode_ = true;
       SetMaster(double_master_ip, double_master_port);
@@ -355,6 +355,18 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
     }
     iter++;
   }
+
+  slave_num = slaves_.size();
+  {
+  slash::RWLock l(&state_protector_, true);
+  if (slave_num == 0) {
+    role_ &= ~PIKA_ROLE_MASTER;
+    if (DoubleMasterMode()) {
+      role_ |= PIKA_ROLE_DOUBLE_MASTER;
+    }
+  }
+  }
+
   if (iter == slaves_.end()) {
     return;
   }
@@ -362,15 +374,6 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
     delete static_cast<PikaBinlogSenderThread*>(iter->sender);
   }
   slaves_.erase(iter);
-  slave_num = slaves_.size();
-  }
-
-  slash::RWLock l(&state_protector_, true);
-  if (slave_num == 0) {
-    role_ &= ~PIKA_ROLE_MASTER;
-    if (DoubleMasterMode()) {
-      role_ |= PIKA_ROLE_DOUBLE_MASTER;
-    }
   }
 }
 
@@ -706,7 +709,6 @@ void PikaServer::SyncError() {
 }
 
 void PikaServer::RemoveMaster() {
-
   {
   slash::RWLock l(&state_protector_, true);
   repl_state_ = PIKA_REPL_NO_CONNECT;
@@ -722,7 +724,7 @@ void PikaServer::RemoveMaster() {
   if (ping_thread_ != NULL) {
     int err = ping_thread_->StopThread();
     if (err != 0) {
-      std::string msg = "can't join thread " + std::string(strerror(err));
+      std::string msg = "Can't join thread " + std::string(strerror(err));
       LOG(WARNING) << msg;
     }
     delete ping_thread_;
@@ -732,7 +734,7 @@ void PikaServer::RemoveMaster() {
   slash::RWLock l(&state_protector_, true);
   master_connection_ = 0;
   }
-  LOG(INFO) << "close read-only mode";
+  LOG(INFO) << "Close read-only mode";
   g_pika_conf->SetReadonly(false);
 }
 
