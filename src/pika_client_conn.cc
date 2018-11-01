@@ -111,8 +111,8 @@ std::string PikaClientConn::DoCmd(
     return ""; // Monitor thread will return "OK"
   }
 
-  // PubSub
-  if (opt == kCmdNameSubscribe) {                                   // Subscribe
+  //PubSub
+  if (opt == kCmdNamePSubscribe || opt == kCmdNameSubscribe) {             // PSubscribe or Subscribe
     pink::PinkConn* conn = this;
     if (!this->IsPubSub()) {
       conn = server_thread_->MoveConnOut(fd());
@@ -122,16 +122,16 @@ std::string PikaClientConn::DoCmd(
       channels.push_back(slash::StringToLower(argv[i]));
     }
     std::vector<std::pair<std::string, int>> result;
-    g_pika_server->Subscribe(conn, channels, false, &result);
+    g_pika_server->Subscribe(conn, channels, opt == kCmdNamePSubscribe, &result);
     this->SetIsPubSub(true);
-    return ConstructPubSubResp(kCmdNameSubscribe, result);
-  } else if (opt == kCmdNameUnSubscribe) {                          // UnSubscribe
+    return ConstructPubSubResp(opt, result);
+  } else if (opt == kCmdNamePUnSubscribe || opt == kCmdNameUnSubscribe) {  // PUnSubscribe or UnSubscribe
     std::vector<std::string > channels;
     for (size_t i = 1; i < argv.size(); i++) {
       channels.push_back(slash::StringToLower(argv[i]));
     }
     std::vector<std::pair<std::string, int>> result;
-    int subscribed = g_pika_server->UnSubscribe(this, channels, false, &result);
+    int subscribed = g_pika_server->UnSubscribe(this, channels, opt == kCmdNamePUnSubscribe, &result);
     if (subscribed == 0 && this->IsPubSub()) {
       /*
        * if the number of client subscribed is zero,
@@ -140,36 +140,7 @@ std::string PikaClientConn::DoCmd(
       server_thread_->HandleNewConn(fd(), ip_port());
       this->SetIsPubSub(false);
     }
-    return ConstructPubSubResp(kCmdNameUnSubscribe, result);
-  } else if (opt == kCmdNamePSubscribe) {                           // PSubscribe
-    pink::PinkConn* conn = this;
-    if (!this->IsPubSub()) {
-      conn = server_thread_->MoveConnOut(fd());
-    }
-    std::vector<std::string > channels;
-    for (size_t i = 1; i < argv.size(); i++) {
-      channels.push_back(slash::StringToLower(argv[i]));
-    }
-    std::vector<std::pair<std::string, int>> result;
-    g_pika_server->Subscribe(conn, channels, true, &result);
-    this->SetIsPubSub(true);
-    return ConstructPubSubResp(kCmdNamePSubscribe, result);
-  } else if (opt == kCmdNamePUnSubscribe) {                          // PUnSubscribe
-    std::vector<std::string > channels;
-    for (size_t i = 1; i < argv.size(); i++) {
-      channels.push_back(slash::StringToLower(argv[i]));
-    }
-    std::vector<std::pair<std::string, int>> result;
-    int subscribed = g_pika_server->UnSubscribe(this, channels, true, &result);
-    if (subscribed == 0 && this->IsPubSub()) {
-      /*
-       * if the number of client subscribed is zero,
-       * the client will exit the Pub/Sub state
-       */
-      server_thread_->HandleNewConn(fd(), ip_port());
-      this->SetIsPubSub(false);
-    }
-    return ConstructPubSubResp(kCmdNamePUnSubscribe, result);
+    return ConstructPubSubResp(opt, result);
   }
 
   if (cinfo_ptr->is_write()) {
