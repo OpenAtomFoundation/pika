@@ -239,16 +239,19 @@ void HMgetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void HMgetCmd::Do() {
-  std::vector<std::string> values;
-  rocksdb::Status s = g_pika_server->db()->HMGet(key_, fields_, &values);
+  std::vector<blackwidow::ValueStatus> value_statuss;
+  rocksdb::Status s = g_pika_server->db()->HMGet(key_, fields_, &value_statuss);
   if (s.ok() || s.IsNotFound()) {
-    res_.AppendArrayLen(values.size());
-    for (const auto& value : values) {
-      if (!value.empty()) {
-        res_.AppendStringLen(value.size());
-        res_.AppendContent(value);
-      } else {
+    res_.AppendArrayLen(value_statuss.size());
+    for (const auto& value_status : value_statuss) {
+      if (value_status.status.ok()) {
+        res_.AppendStringLen(value_status.value.size());
+        res_.AppendContent(value_status.value);
+      } else if (value_status.status.IsNotFound()) {
         res_.AppendContent("$-1");
+      } else{
+        res_.SetRes(CmdRes::kErrOther, s.ToString());
+        break;
       }
     }
   } else {
