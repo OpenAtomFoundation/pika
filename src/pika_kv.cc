@@ -1091,22 +1091,14 @@ void TtlCmd::Do() {
      if (item.second == -3) {
        res_.SetRes(CmdRes::kErrOther, "ttl internal error");
        return;
+     } else if (item.second != -2) {
+       res_.AppendInteger(item.second);
+       return;
      }
   }
-  if (type_timestamp[blackwidow::kStrings] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kStrings]);
-  } else if (type_timestamp[blackwidow::kHashes] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kHashes]);
-  } else if (type_timestamp[blackwidow::kLists] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kLists]);
-  } else if (type_timestamp[blackwidow::kSets] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kSets]);
-  } else if (type_timestamp[blackwidow::kZSets] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kZSets]);
-  } else {
-    // mean this key not exist
-    res_.AppendInteger(-2);
-  }
+
+  // mean this key not exist
+  res_.AppendInteger(-2);
   return;
 }
 
