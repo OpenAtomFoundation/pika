@@ -1358,7 +1358,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetBgsavePrefix(value);
     ret = "+OK\r\n";
   } else if (set_item == "maxclients") {
-    if (!slash::string2l(value.data(), value.size(), &ival) && ival > 0) {
+    if (!slash::string2l(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'maxclients'\r\n";
       return;
     }
@@ -1380,21 +1380,21 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSlavePriority(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-days") {
-    if (!slash::string2l(value.data(), value.size(), &ival) && ival > 0) {
+    if (!slash::string2l(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-days'\r\n";
       return;
     }
     g_pika_conf->SetExpireLogsDays(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-nums") {
-    if (!slash::string2l(value.data(), value.size(), &ival) && ival > 0) {
+    if (!slash::string2l(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'expire-logs-nums'\r\n";
       return;
     }
     g_pika_conf->SetExpireLogsNums(ival);
     ret = "+OK\r\n";
   } else if (set_item == "root-connection-num") {
-    if (!slash::string2l(value.data(), value.size(), &ival) && ival > 0) {
+    if (!slash::string2l(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'root-connection-num'\r\n";
       return;
     }
@@ -1413,7 +1413,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSlowlogWriteErrorlog(is_write_errorlog);
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-log-slower-than") {
-    if (!slash::string2l(value.data(), value.size(), &ival) && ival >= 0) {
+    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slowlog-log-slower-than'\r\n";
       return;
     }
