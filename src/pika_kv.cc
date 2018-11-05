@@ -483,16 +483,20 @@ void MgetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
 }
 
 void MgetCmd::Do() {
-  std::vector<std::string> values;
-  rocksdb::Status s = g_pika_server->db()->MGet(keys_, &values);
-  res_.AppendArrayLen(values.size());
-  for (const auto& value : values) {
-    if (!value.empty()) {
-      res_.AppendStringLen(value.size());
-      res_.AppendContent(value);
-    } else {
-      res_.AppendContent("$-1");
+  std::vector<blackwidow::ValueStatus> vss;
+  rocksdb::Status s = g_pika_server->db()->MGet(keys_, &vss);
+  if (s.ok()) {
+    res_.AppendArrayLen(vss.size());
+    for (const auto& vs : vss) {
+      if (vs.status.ok()) {
+        res_.AppendStringLen(vs.value.size());
+        res_.AppendContent(vs.value);
+      } else {
+        res_.AppendContent("$-1");
+      }
     }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
 }
@@ -1099,10 +1103,10 @@ void TtlCmd::Do() {
     res_.AppendInteger(type_timestamp[blackwidow::kHashes]);
   } else if (type_timestamp[blackwidow::kLists] != -2) {
     res_.AppendInteger(type_timestamp[blackwidow::kLists]);
-  } else if (type_timestamp[blackwidow::kSets] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kSets]);
   } else if (type_timestamp[blackwidow::kZSets] != -2) {
     res_.AppendInteger(type_timestamp[blackwidow::kZSets]);
+  } else if (type_timestamp[blackwidow::kSets] != -2) {
+    res_.AppendInteger(type_timestamp[blackwidow::kSets]);
   } else {
     // mean this key not exist
     res_.AppendInteger(-2);
