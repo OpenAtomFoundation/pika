@@ -828,7 +828,7 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   }
 
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
-  std::vector<uint64_t> &key_nums_v = key_scan_info.key_nums_v;
+  std::vector<blackwidow::VaildAndInVaildKeyNum> &key_nums_v = key_scan_info.key_nums_v;
   if (key_scan_info.key_nums_v.size() != 5) {
     info.append("info keyspace error\r\n");
     return;
@@ -836,11 +836,16 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
   tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
-  tmp_stream << "string keys:" << key_nums_v[0] << "\r\n";
-  tmp_stream << "hash keys:" << key_nums_v[1] << "\r\n";
-  tmp_stream << "list keys:" << key_nums_v[2] << "\r\n";
-  tmp_stream << "zset keys:" << key_nums_v[3] << "\r\n";
-  tmp_stream << "set keys:" << key_nums_v[4] << "\r\n";
+  tmp_stream << "string keys:" << key_nums_v[0].vaild_key_num << "\r\n";
+  tmp_stream << "string invaild keys:" << key_nums_v[0].invaild_key_num << "\r\n";
+  tmp_stream << "hash keys:" << key_nums_v[1].vaild_key_num << "\r\n";
+  tmp_stream << "hash invaild keys:" << key_nums_v[1].invaild_key_num << "\r\n";
+  tmp_stream << "list keys:" << key_nums_v[2].vaild_key_num << "\r\n";
+  tmp_stream << "list invaild keys:" << key_nums_v[2].invaild_key_num << "\r\n";
+  tmp_stream << "zset keys:" << key_nums_v[3].vaild_key_num << "\r\n";
+  tmp_stream << "zset invaild keys:" << key_nums_v[3].invaild_key_num << "\r\n";
+  tmp_stream << "set keys:" << key_nums_v[4].vaild_key_num << "\r\n";
+  tmp_stream << "set invaild keys:" << key_nums_v[4].invaild_key_num << "\r\n";
   info.append(tmp_stream.str());
 
   if (rescan_) {
@@ -1558,12 +1563,16 @@ void DbsizeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) 
 
 void DbsizeCmd::Do() {
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
-  std::vector<uint64_t> &key_nums_v = key_scan_info.key_nums_v;
+  std::vector<blackwidow::VaildAndInVaildKeyNum> &key_nums_v = key_scan_info.key_nums_v;
   if (key_scan_info.key_nums_v.size() != 5) {
     res_.SetRes(CmdRes::kErrOther, "keyspace error");
     return;
   }
-  int64_t dbsize = key_nums_v[0] + key_nums_v[1] + key_nums_v[2] + key_nums_v[3] + key_nums_v[4];
+  int64_t dbsize = key_nums_v[0].vaild_key_num
+    + key_nums_v[1].vaild_key_num
+    + key_nums_v[2].vaild_key_num
+    + key_nums_v[3].vaild_key_num
+    + key_nums_v[4].vaild_key_num;
   res_.AppendInteger(dbsize);
 }
 
