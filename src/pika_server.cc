@@ -1601,7 +1601,7 @@ void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int
 }
 
 void PikaServer::RunKeyScan() {
-  std::vector<uint64_t> new_key_nums_v;
+  std::vector<blackwidow::VaildAndInVaildKeyNum> new_key_nums_v;
 
   rocksdb::Status s = db_->GetKeyNum(&new_key_nums_v);
 
