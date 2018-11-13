@@ -1090,6 +1090,14 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     ret = "*2\r\n";
     EncodeString(&ret, "target-file-size-base");
     EncodeInt32(&ret, g_pika_conf->target_file_size_base());
+  } else if (get_item == "max-cache-statistic-keys") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "max-cache-statistic-keys");
+    EncodeInt32(&ret, g_pika_conf->max_cache_statistic_keys());
+  } else if (get_item == "small-compaction-threshold") {
+    ret = "*2\r\n";
+    EncodeString(&ret, "small-compaction-threshold");
+    EncodeInt32(&ret, g_pika_conf->small_compaction_threshold());
   } else if (get_item == "max-background-flushes") {
     ret = "*2\r\n";
     EncodeString(&ret, "max-background-flushes");
@@ -1187,7 +1195,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slave-priority");
     EncodeInt32(&ret, g_pika_conf->slave_priority());
   } else if (get_item == "*") {
-    ret = "*104\r\n";
+    ret = "*108\r\n";
     EncodeString(&ret, "port");
     EncodeInt32(&ret, g_pika_conf->port());
     EncodeString(&ret, "double-master-ip");
@@ -1236,6 +1244,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&ret, g_pika_conf->maxclients());
     EncodeString(&ret, "target-file-size-base");
     EncodeInt32(&ret, g_pika_conf->target_file_size_base());
+    EncodeString(&ret, "max-cache-statistic-keys");
+    EncodeInt32(&ret, g_pika_conf->max_cache_statistic_keys());
+    EncodeString(&ret, "small-compaction-threshold");
+    EncodeInt32(&ret, g_pika_conf->small_compaction_threshold());
     EncodeString(&ret, "max-background-flushes");
     EncodeInt32(&ret, g_pika_conf->max_background_flushes());
     EncodeString(&ret, "max-background-compactions");
