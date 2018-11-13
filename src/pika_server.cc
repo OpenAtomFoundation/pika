@@ -264,6 +264,8 @@ void PikaServer::RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) {
   bw_option->table_options.cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
   bw_option->block_cache_size = g_pika_conf->block_cache();
   bw_option->share_block_cache = g_pika_conf->share_block_cache();
+  bw_option->statistics_max_size = g_pika_conf->max_cache_statistic_keys();
+  bw_option->small_compaction_threshold = g_pika_conf->small_compaction_threshold();
 }
 
 void PikaServer::Start() {

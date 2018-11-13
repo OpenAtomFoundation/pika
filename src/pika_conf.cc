@@ -174,6 +174,19 @@ int PikaConf::Load()
       target_file_size_base_ = 1048576; // 10M
   }
 
+  max_cache_statistic_keys_ = 0;
+  GetConfInt("max-cache-statistic-keys", &max_cache_statistic_keys_);
+  if (max_cache_statistic_keys_ <= 0) {
+    max_cache_statistic_keys_ = 0;
+  }
+
+  small_compaction_threshold_ = 5000;
+  GetConfInt("small-compaction-threshold", &small_compaction_threshold_);
+  if (small_compaction_threshold_ <= 0
+    || small_compaction_threshold_ >= 100000) {
+    small_compaction_threshold_ = 5000;
+  }
+
   max_background_flushes_ = 1;
   GetConfInt("max-background-flushes", &max_background_flushes_);
   if (max_background_flushes_ <= 0) {
@@ -316,6 +329,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("binlog-file-size", binlog_file_size_);
   SetConfStr("identify-binlog-type", identify_binlog_type_);
   SetConfStr("compression", compression_);
+  SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
+  SetConfInt("small-compaction-threshold", small_compaction_threshold_);
   SetConfInt("max-background-flushes", max_background_flushes_);
   SetConfInt("max-background-compactions", max_background_compactions_);
   SetConfInt("max-cache-files", max_cache_files_);
