@@ -43,8 +43,6 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameFlushall, flushallptr));
   CmdInfo* flushdbptr = new CmdInfo(kCmdNameFlushdb, 2, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameFlushdb, flushdbptr));
-  CmdInfo* readonlyptr = new CmdInfo(kCmdNameReadonly, 2, kCmdFlagsRead | kCmdFlagsSuspend | kCmdFlagsAdmin);
-  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameReadonly, readonlyptr));
   CmdInfo* clientptr = new CmdInfo(kCmdNameClient, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameClient, clientptr));
   CmdInfo* shutdownptr = new CmdInfo(kCmdNameShutdown, 1, kCmdFlagsRead | kCmdFlagsLocal | kCmdFlagsAdmin);
@@ -486,8 +484,6 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameFlushall, flushallptr));
   Cmd* flushdbptr = new FlushdbCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameFlushdb, flushdbptr));
-  Cmd* readonlyptr = new ReadonlyCmd();
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameReadonly, readonlyptr));
   Cmd* clientptr = new ClientCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameClient, clientptr));
   Cmd* shutdownptr = new ShutdownCmd();

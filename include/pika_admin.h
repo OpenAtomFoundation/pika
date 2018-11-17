@@ -146,16 +146,6 @@ class FlushdbCmd : public Cmd {
   }
 };
 
-class ReadonlyCmd : public Cmd {
- public:
-  ReadonlyCmd() : is_open_(false) {}
-  virtual void Do();
-
- private:
-  bool is_open_;
-  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
-};
-
 class ClientCmd : public Cmd {
  public:
   ClientCmd() {}

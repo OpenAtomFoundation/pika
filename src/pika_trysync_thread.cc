@@ -201,8 +201,6 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
   if (g_pika_server->DoubleMasterMode() && g_pika_server->IsDoubleMaster(master_ip, master_port)) {
     g_pika_server->logger_->SetDoubleRecvInfo(filenum, offset);
     LOG(INFO) << "Update receive infomation after rsync finished. filenum: " << filenum << " offset: " << offset;
-    // Close read-only mode
-    g_pika_conf->SetReadonly(false);
   }
   g_pika_server->WaitDBSyncFinish();
   g_pika_server->SetForceFullSync(false);

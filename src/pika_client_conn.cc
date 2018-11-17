@@ -147,7 +147,7 @@ std::string PikaClientConn::DoCmd(
     if (g_pika_server->BinlogIoError()) {
       return "-ERR Writing binlog failed, maybe no space left on device\r\n";
     }
-    if (g_pika_conf->readonly()) {
+    if (g_pika_server->readonly()) {
       return "-ERR Server in read-only\r\n";
     }
     if (argv.size() >= 2) {
@@ -187,7 +187,6 @@ std::string PikaClientConn::DoCmd(
       if (!s.ok()) {
         LOG(WARNING) << "Writing binlog failed, maybe no space left on device";
         g_pika_server->SetBinlogIoError(true);
-        g_pika_conf->SetReadonly(true);
         return "-ERR Writing binlog failed, maybe no space left on device\r\n";
       }
     }

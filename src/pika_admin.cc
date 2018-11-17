@@ -129,7 +129,6 @@ void SlaveofCmd::Do() {
     if (g_pika_server->IsDoubleMaster(master_ip_, master_port_)) {
       g_pika_server->PurgeLogs(0, true, true);
       g_pika_server->SetForceFullSync(true);
-      g_pika_conf->SetReadonly(true);
     } else {
       res_.SetRes(CmdRes::kErrOther, "In double master mode, can not set other server as the peer-master");
       return;
@@ -199,7 +198,7 @@ void TrysyncCmd::Do() {
       res_.AppendString(kInnerReplWait);
     } else {
       LOG(WARNING) << "slave offset is larger than mine, slave ip: " << slave_ip_
-        << "slave port:" << slave_port_
+        << " slave port: " << slave_port_
         << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_;
       res_.SetRes(CmdRes::kErrOther, "InvalidOffset");
     }
@@ -401,32 +400,6 @@ void FlushdbCmd::Do() {
   } else {
     res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushdb");
   }
-  g_pika_server->RWUnlock();
-}
-
-void ReadonlyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameReadonly);
-    return;
-  }
-  std::string opt = slash::StringToLower(argv[1]);
-  if (opt == "on" || opt == "1") {
-    is_open_ = true;
-  } else if (opt == "off" || opt == "0") {
-    is_open_ = false;
-  } else {
-    res_.SetRes(CmdRes::kSyntaxErr, kCmdNameReadonly);
-    return;
-  }
-}
-void ReadonlyCmd::Do() {
-  g_pika_server->RWLockWriter();
-  if (is_open_) {
-    g_pika_conf->SetReadonly(true);
-  } else {
-    g_pika_conf->SetReadonly(false);
-  }
-  res_.SetRes(CmdRes::kOk);
   g_pika_server->RWUnlock();
 }
 
@@ -773,14 +746,14 @@ void InfoCmd::InfoReplication(std::string &info) {
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_CONNECTED ? "up" : "down") << "\r\n";
       tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
-      tmp_stream << "slave_read_only:" << g_pika_conf->readonly() << "\r\n";
+      tmp_stream << "slave_read_only:" << (g_pika_conf->slave_read_only() ? "yes" : "no") << "\r\n";
       tmp_stream << "repl_state: " << (g_pika_server->repl_state_str()) << "\r\n";
       break;
     case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE :
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_CONNECTED ? "up" : "down") << "\r\n";
-      tmp_stream << "slave_read_only:" << g_pika_conf->readonly() << "\r\n";
+      tmp_stream << "slave_read_only:" << (g_pika_conf->slave_read_only() ? "yes" : "no") << "\r\n";
       tmp_stream << "repl_state: " << (g_pika_server->repl_state_str()) << "\r\n";
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER :
@@ -1181,7 +1154,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
   } else if (get_item == "slave-read-only") {
     ret = "*2\r\n";
     EncodeString(&ret, "slave-read-only");
-    if (g_pika_conf->readonly()) {
+    if (g_pika_conf->slave_read_only()) {
       EncodeString(&ret, "yes");
     } else {
       EncodeString(&ret, "no");
@@ -1281,7 +1254,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&ret, "slowlog-max-len");
     EncodeInt32(&ret, g_pika_conf->slowlog_max_len());
     EncodeString(&ret, "slave-read-only");
-    EncodeInt32(&ret, g_pika_conf->readonly());
+    EncodeString(&ret, g_pika_conf->slave_read_only() ? "yes" : "no");
     EncodeString(&ret, "write-binlog");
     EncodeString(&ret, g_pika_conf->write_binlog() ? "yes" : "no");
     EncodeString(&ret, "binlog-file-size");
@@ -1455,7 +1428,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slave-read-only'\r\n";
       return;
     }
-    g_pika_conf->SetReadonly(is_readonly);
+    g_pika_conf->SetSlaveReadOnly(is_readonly);
     ret = "+OK\r\n";
   } else if (set_item == "identify-binlog-type") {
     int role = g_pika_server->role();

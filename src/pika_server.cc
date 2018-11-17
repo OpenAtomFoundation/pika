@@ -592,8 +592,6 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
     if (!double_master_mode_) {
       role_ |= PIKA_ROLE_SLAVE;
       repl_state_ = PIKA_REPL_CONNECT;
-      LOG(INFO) << "Open read-only mode";
-      g_pika_conf->SetReadonly(true);
       return true;
     } else {
       role_ |= PIKA_ROLE_DOUBLE_MASTER;
@@ -736,8 +734,6 @@ void PikaServer::RemoveMaster() {
   slash::RWLock l(&state_protector_, true);
   master_connection_ = 0;
   }
-  LOG(INFO) << "Close read-only mode";
-  g_pika_conf->SetReadonly(false);
 }
 
 void PikaServer::TryDBSync(const std::string& ip, int port, int32_t top) {
