@@ -31,7 +31,6 @@ const std::string kCmdNamePing = "ping";
 const std::string kCmdNameSelect = "select";
 const std::string kCmdNameFlushall = "flushall";
 const std::string kCmdNameFlushdb = "flushdb";
-const std::string kCmdNameReadonly = "readonly";
 const std::string kCmdNameClient = "client";
 const std::string kCmdNameShutdown = "shutdown";
 const std::string kCmdNameInfo = "info";

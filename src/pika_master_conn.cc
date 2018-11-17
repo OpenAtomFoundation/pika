@@ -85,7 +85,7 @@ int PikaMasterConn::DealMessage(
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
-  bool is_readonly = g_pika_conf->readonly();
+  bool is_readonly = g_pika_server->readonly();
 
   // Here, the binlog dispatch thread, instead of the binlog bgthread takes on the task to write binlog
   // Only when the server is readonly

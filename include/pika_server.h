@@ -85,6 +85,16 @@ class PikaServer {
     slash::RWLock(&state_protector_, false);
     return role_;
   }
+
+  bool readonly() {
+    slash::RWLock(&state_protector_, false);
+    if ((role_ & PIKA_ROLE_SLAVE)
+      && g_pika_conf->slave_read_only()) {
+      return true;
+    }
+    return false;
+  }
+
   int repl_state() {
     slash::RWLock(&state_protector_, false);
     return repl_state_;

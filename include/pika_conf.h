@@ -77,7 +77,7 @@ class PikaConf : public slash::BaseConf {
   int expire_logs_nums()        { RWLock l(&rwlock_, false); return expire_logs_nums_; }
   int expire_logs_days()        { RWLock l(&rwlock_, false); return expire_logs_days_; }
   std::string conf_path()       { RWLock l(&rwlock_, false); return conf_path_; }
-  bool readonly()               { RWLock l(&rwlock_, false); return readonly_; }
+  bool slave_read_only()        { RWLock l(&rwlock_, false); return slave_read_only_; }
   int maxclients()           { RWLock l(&rwlock_, false); return maxclients_; }
   int root_connection_num()     { RWLock l(&rwlock_, false); return root_connection_num_; }
   bool slowlog_write_errorlog() { RWLock l(&rwlock_, false); return slowlog_write_errorlog_;}
@@ -146,8 +146,8 @@ class PikaConf : public slash::BaseConf {
       slash::StringToLower(item);
     }
   }
-  void SetReadonly(const bool value) {
-    RWLock l(&rwlock_, true); readonly_ = value;
+  void SetSlaveReadOnly(const bool value) {
+    RWLock l(&rwlock_, true); slave_read_only_ = value;
   }
   void SetExpireLogsNums(const int value){
     RWLock l(&rwlock_, true);
@@ -234,7 +234,7 @@ private:
   int slowlog_max_len_;
   int expire_logs_days_;
   int expire_logs_nums_;
-  bool readonly_;
+  bool slave_read_only_;
   std::string conf_path_;
   int max_cache_statistic_keys_;
   int small_compaction_threshold_;
