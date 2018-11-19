@@ -88,7 +88,8 @@ class PikaServer {
 
   bool readonly() {
     slash::RWLock(&state_protector_, false);
-    if ((role_ & PIKA_ROLE_SLAVE)
+    if (!DoubleMasterMode()
+      && (role_ & PIKA_ROLE_SLAVE)
       && g_pika_conf->slave_read_only()) {
       return true;
     }
