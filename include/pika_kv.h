@@ -236,13 +236,6 @@ class MsetCmd : public Cmd {
  private:
   std::vector<blackwidow::KeyValue> kvs_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
-  virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
 };
 
 class MsetnxCmd : public Cmd {
@@ -253,13 +246,6 @@ class MsetnxCmd : public Cmd {
   std::vector<blackwidow::KeyValue> kvs_;
   int32_t success_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
-  virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
 };
 
 class GetrangeCmd : public Cmd {
