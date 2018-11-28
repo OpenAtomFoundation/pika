@@ -11,9 +11,11 @@
 #include <sys/resource.h>
 #include <iomanip>
 
+#include "blackwidow/blackwidow.h"
+#include "slash/include/slash_string.h"
+
 #include "include/pika_command.h"
 #include "include/pika_client_conn.h"
-#include "blackwidow/blackwidow.h"
 
 /*
  * Admin
