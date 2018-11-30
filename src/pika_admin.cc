@@ -1104,7 +1104,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->max_cache_statistic_keys());
   }
 
-  if (slash::stringmatch(pattern.data(), "small-compaction-theshold", 1)) {
+  if (slash::stringmatch(pattern.data(), "small-compaction-threshold", 1)) {
     elements += 2;
     EncodeString(&config_body, "small-compaction-threshold");
     EncodeInt32(&config_body, g_pika_conf->small_compaction_threshold());
@@ -1158,7 +1158,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&config_body, g_pika_conf->cache_index_and_filter_blocks() ? "yes" : "no");
   }
 
-  if (slash::stringmatch(pattern.data(), "optimize-filter-for-hits", 1)) {
+  if (slash::stringmatch(pattern.data(), "optimize-filters-for-hits", 1)) {
     elements += 2;
     EncodeString(&config_body, "optimize-filters-for-hits");
     EncodeString(&config_body, g_pika_conf->optimize_filters_for_hits() ? "yes" : "no");
@@ -1286,7 +1286,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*22\r\n";
+    ret = "*24\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
@@ -1305,6 +1305,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "slave-read-only");
     EncodeString(&ret, "write-binlog");
     EncodeString(&ret, "identify-binlog-type");
+    EncodeString(&ret, "max-cache-statistic-keys");
+    EncodeString(&ret, "small-compaction-threshold");
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
@@ -1443,6 +1445,22 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       g_pika_conf->SetIdentifyBinlogType(value);
       ret = "+OK\r\n";
     }
+  } else if (set_item == "max-cache-statistic-keys") {
+    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-cache-statistic-keys'\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxCacheStatisticKeys(ival);
+    g_pika_server->db()->SetMaxCacheStatisticKeys(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "small-compaction-threshold") {
+    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'small-compaction-threshold'\r\n";
+      return;
+    }
+    g_pika_conf->SetSmallCompactionThreshold(ival);
+    g_pika_server->db()->SetSmallCompactionThreshold(ival);
+    ret = "+OK\r\n";
   } else if (set_item == "write-binlog") {
     int role = g_pika_server->role();
     if (role == PIKA_ROLE_SLAVE || role == PIKA_ROLE_DOUBLE_MASTER) {

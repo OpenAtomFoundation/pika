@@ -108,6 +108,14 @@ class PikaConf : public slash::BaseConf {
     RWLock l(&rwlock_, true);
     identify_binlog_type_ = value;
   }
+  void SetMaxCacheStatisticKeys(const int value) {
+    RWLock l(&rwlock_, true);
+    max_cache_statistic_keys_ = value;
+  }
+  void SetSmallCompactionThreshold(const int value) {
+    RWLock l(&rwlock_, true);
+    small_compaction_threshold_ = value;
+  }
   void SetBgsavePath(const std::string &value) {
     RWLock l(&rwlock_, true);
     bgsave_path_ = value;
