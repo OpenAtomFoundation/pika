@@ -39,8 +39,9 @@ static std::string ConstructPubSubResp(
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                pink::ServerThread* server_thread,
                                void* worker_specific_data,
-                               pink::PinkEpoll* pink_epoll)
-      : AsynRedisConn(fd, ip_port, server_thread, pink_epoll),
+                               pink::PinkEpoll* pink_epoll,
+                               const pink::HandleType& handle_type)
+      : RedisConn(fd, ip_port, server_thread, pink_epoll, handle_type),
         server_thread_(server_thread),
         cmds_table_(reinterpret_cast<CmdTable*>(worker_specific_data)),
         is_pubsub_(false) {
@@ -244,7 +245,7 @@ void PikaClientConn::AsynProcessRedisCmd() {
 void PikaClientConn::BatchExecRedisCmd() {
   bool success = true;
   for (auto& argv : argvs_) {
-    if (DealMessage(argv) != 0) {
+    if (DealMessage(argv, &response_) != 0) {
       success = false;
       break;
     }
@@ -253,7 +254,7 @@ void PikaClientConn::BatchExecRedisCmd() {
   NotifyEpoll(success);
 }
 
-int PikaClientConn::DealMessage(PikaCmdArgsType& argv) {
+int PikaClientConn::DealMessage(PikaCmdArgsType& argv, std::string* response) {
 
   if (argv.empty()) return -2;
   std::string opt = argv[0];
@@ -261,10 +262,10 @@ int PikaClientConn::DealMessage(PikaCmdArgsType& argv) {
 
   if (response_.empty()) {
     // Avoid memory copy
-    response_ = std::move(DoCmd(argv, opt));
+    *response = std::move(DoCmd(argv, opt));
   } else {
     // Maybe pipeline
-    response_.append(DoCmd(argv, opt));
+    response->append(DoCmd(argv, opt));
   }
   return 0;
 }
