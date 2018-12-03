@@ -9,26 +9,26 @@
 #include <glog/logging.h>
 #include <atomic>
 
-#include "pink/include/asyn_redis_conn.h"
 #include "pink/include/pink_thread.h"
 #include "include/pika_command.h"
 
 class PikaWorkerSpecificData;
 
-class PikaClientConn: public pink::AsynRedisConn {
+class PikaClientConn: public pink::RedisConn {
  public:
   struct BgTaskArg {
     std::shared_ptr<PikaClientConn> pcc;
   };
 
   PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
-                 void* worker_specific_data, pink::PinkEpoll* pink_epoll);
+                 void* worker_specific_data, pink::PinkEpoll* pink_epoll,
+                 const pink::HandleType& handle_type);
   virtual ~PikaClientConn() {}
 
   void AsynProcessRedisCmd() override;
 
   void BatchExecRedisCmd();
-  int DealMessage(PikaCmdArgsType& argv);
+  int DealMessage(pink::RedisCmdArgsType& argv, std::string* response);
   static void DoBackgroundTask(void* arg);
 
   bool IsPubSub() { return is_pubsub_; }
