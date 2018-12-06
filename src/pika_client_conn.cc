@@ -126,8 +126,9 @@ std::string PikaClientConn::DoCmd(
       channels.push_back(slash::StringToLower(argv[i]));
     }
     std::vector<std::pair<std::string, int>> result;
-    g_pika_server->Subscribe(conn, channels, opt == kCmdNamePSubscribe, &result);
     this->SetIsPubSub(true);
+    this->SetHandleType(pink::HandleType::kSynchronous);
+    g_pika_server->Subscribe(conn, channels, opt == kCmdNamePSubscribe, &result);
     return ConstructPubSubResp(opt, result);
   } else if (opt == kCmdNamePUnSubscribe || opt == kCmdNameUnSubscribe) {  // PUnSubscribe or UnSubscribe
     std::vector<std::string > channels;
