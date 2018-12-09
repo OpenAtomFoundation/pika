@@ -15,6 +15,7 @@
 #include "include/pika_define.h"
 #include "include/pika_master_conn.h"
 #include "include/pika_new_master_conn.h"
+#include "include/pika_binlog_receiver_conn.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
 
@@ -48,15 +49,9 @@ class PikaBinlogReceiverThread {
         int connfd,
         const std::string &ip_port,
         pink::ServerThread *thread,
-        void* worker_specific_data,
-        pink::PinkEpoll* pink_epoll) const override {
-        if (g_pika_conf->identify_binlog_type() == "old") {
-          LOG(INFO) << "Master conn factory create pika master conn";
-          return std::make_shared<PikaMasterConn>(connfd, ip_port, binlog_receiver_);
-        } else {
-          LOG(INFO) << "Master conn factory create pika new master conn";
-          return std::make_shared<PikaNewMasterConn>(connfd, ip_port, binlog_receiver_);
-        }
+        void* worker_specific_data) const override {
+        LOG(INFO) << "Master conn factory creat pika binlog conn ip_port" << ip_port;
+        return new PikaBinlogReceiverConn(connfd, ip_port, binlog_receiver_);
     }
 
    private:
