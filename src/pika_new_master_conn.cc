@@ -2,11 +2,11 @@
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
+#include "include/pika_new_master_conn.h"
 
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_coding.h"
 #include <glog/logging.h>
-#include "include/pika_new_master_conn.h"
 #include "include/pika_server.h"
 #include "include/pika_conf.h"
 #include "include/pika_binlog_transverter.h"
@@ -83,93 +83,14 @@ pink::ReadStatus PikaNewMasterConn::ReadBody(uint32_t body_length) {
   return pink::kReadAll;
 }
 
-int32_t PikaNewMasterConn::FindNextSeparators(const std::string& content, int32_t pos) {
-  int32_t length = content.size();
-  if (pos >= length) {
-    return -1;
-  }
-  while (pos < length) {
-    if (content[pos] == '\n') {
-      return pos;
-    }
-    pos++;
-  }
-  return -1;
-}
-
-int32_t PikaNewMasterConn::GetNextNum(const std::string& content, int32_t left_pos, int32_t right_pos, long* value) {
-  //  left_pos        right_pos
-  //      |------   -------|
-  //            |   |
-  //            *3\r\n
-  //            012 3
-  // num range [left_pos + 1, right_pos - 2]
-  assert(left_pos < right_pos);
-  if (slash::string2l(content.data() + left_pos + 1,  right_pos - left_pos - 2, value)) {
-    return 0;
-  }
-  return -1;
-}
-
-// RedisRESPArray : *3\r\n$3\r\nset\r\n$3\r\nkey\r\n$5\r\nvalue\r\n
-pink::ReadStatus PikaNewMasterConn::ParseRedisRESPArray(const std::string& content, pink::RedisCmdArgsType* argv) {
-
-  int32_t pos = 0;
-  int32_t next_parse_pos = 0;
-  int32_t content_len = content.size();
-  long multibulk_len = 0, bulk_len = 0;
-  if (content.empty() || content[0] != '*') {
-    LOG(INFO) << "Content empty() or the first character of the redis protocol string not equal '*'";
-    return pink::kParseError;
-  }
-  pos = FindNextSeparators(content, next_parse_pos);
-  if (pos != -1 && GetNextNum(content, next_parse_pos, pos, &multibulk_len) != -1) {
-    next_parse_pos = pos + 1;
-  } else {
-    LOG(INFO) << "Find next separators error or get next num error";
-    return pink::kParseError;
-  }
-
-  // next_parst_pos          pos
-  //        |-------   -------|
-  //               |   |
-  //               $3\r\nset\r\n
-  //               012 3 4567 8
-
-  argv->clear();
-  while (multibulk_len) {
-    if (content[next_parse_pos] != '$') {
-      LOG(INFO) << "The first charactor of the RESP type element not equal '$'";
-      return pink::kParseError;
-    }
-
-    bulk_len = -1;
-    pos = FindNextSeparators(content, next_parse_pos);
-    if (pos != -1 && GetNextNum(content, next_parse_pos, pos, &bulk_len) != -1) {
-      if (pos + 1 + bulk_len + 2 > content_len) {
-        return pink::kParseError;
-      } else {
-        next_parse_pos = pos + 1;
-        argv->emplace_back(content.data() + next_parse_pos, bulk_len);
-        next_parse_pos = next_parse_pos + bulk_len + 2;
-        multibulk_len--;
-      }
-    } else {
-      LOG(INFO) << "Find next separators error or get next num error";
-      return pink::kParseError;
-    }
-  }
-  if (content_len != next_parse_pos) {
-    LOG(INFO) << "Incomplete parse";
-    return pink::kParseError;
-  } else {
-    return pink::kOk;
-  }
-}
 
 void PikaNewMasterConn::ResetStatus() {
   rbuf_len_ = 0;
   rbuf_cur_pos_ = 0;
+}
+// RedisRESPArray : *3\r\n$3\r\nset\r\n$3\r\nkey\r\n$5\r\nvalue\r\n
+pink::ReadStatus PikaNewMasterConn::ParseRedisRESPArray(const std::string& content, pink::RedisCmdArgsType* argv) {
+  return pink::kOk;
 }
 
 pink::ReadStatus PikaNewMasterConn::GetRequest() {

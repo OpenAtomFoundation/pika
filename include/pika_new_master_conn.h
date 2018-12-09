@@ -6,22 +6,10 @@
 #ifndef PIKA_NEW_MASTER_CONN_H_
 #define PIKA_NEW_MASTER_CONN_H_
 
-/*
- * **************Header**************
- * | <Transfer Type> | <Body Lenth> |
- *       2 Bytes         4 Bytes
- */
-#define HEADER_LEN 6
-
 #include "pink/include/pink_conn.h"
 #include "include/pika_command.h"
 
 class PikaBinlogReceiverThread;
-
-enum TransferOperate{
-  kTypeAuth = 1,
-  kTypeBinlog = 2
-};
 
 class PikaNewMasterConn: public pink::PinkConn {
   public:
