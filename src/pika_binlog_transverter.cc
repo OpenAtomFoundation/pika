@@ -116,3 +116,34 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type,
   }
   return true;
 }
+
+bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(BinlogType type,
+                                         const std::string& binlog,
+                                         BinlogItem* binlog_item) {
+  uint16_t binlog_type = 0;
+  std::string binlog_str = binlog;
+  slash::GetFixed16(&binlog_str, &binlog_type);
+  if (binlog_type != type) {
+    LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
+    return false;
+  }
+  slash::GetFixed32(&binlog_str, &binlog_item->exec_time_);
+  slash::GetFixed32(&binlog_str, &binlog_item->server_id_);
+  slash::GetFixed64(&binlog_str, &binlog_item->logic_id_);
+  slash::GetFixed32(&binlog_str, &binlog_item->filenum_);
+  slash::GetFixed64(&binlog_str, &binlog_item->offset_);
+  return true;
+}
+
+bool PikaBinlogTransverter::BinlogHeaderDecode(BinlogType type,
+                                               const std::string& header,
+                                               BinlogHeader* binlog_header) {
+  std::string header_str = header;
+  slash::GetFixed16(&header_str, &(binlog_header->header_type_));
+  slash::GetFixed32(&header_str, &(binlog_header->item_length_));
+  if (binlog_header->header_type_ != kTypeAuth && binlog_header->header_type_ != kTypeBinlog) {
+    LOG(ERROR) << "Unrecognizable Type: " << binlog_header->header_type_ << " identify binlog type error";
+    return false;
+  }
+  return true;
+}
