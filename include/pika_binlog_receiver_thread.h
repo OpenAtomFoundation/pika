@@ -49,9 +49,10 @@ class PikaBinlogReceiverThread {
         int connfd,
         const std::string &ip_port,
         pink::ServerThread *thread,
-        void* worker_specific_data) const override {
+        void* worker_specific_data,
+        pink::PinkEpoll* pink_epoll) const override {
         LOG(INFO) << "Master conn factory creat pika binlog conn ip_port" << ip_port;
-        return new PikaBinlogReceiverConn(connfd, ip_port, binlog_receiver_);
+        return std::make_shared<PikaBinlogReceiverConn>(connfd, ip_port, binlog_receiver_);
     }
 
    private:

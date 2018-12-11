@@ -32,7 +32,6 @@ class PikaConf : public slash::BaseConf {
   std::string slaveof() {RWLock l(&rwlock_, false); return slaveof_;}
   int slave_priority() {RWLock l(&rwlock_, false); return slave_priority_;}
   bool write_binlog() {RWLock l(&rwlock_, false); return write_binlog_;}
-  std::string identify_binlog_type() {RWLock l(&rwlock_, false); return identify_binlog_type_;}
   int thread_num()        { RWLock l(&rwlock_, false); return thread_num_; }
   int thread_pool_size()       { RWLock l(&rwlock_, false); return thread_pool_size_; }
   int sync_thread_num()        { RWLock l(&rwlock_, false); return sync_thread_num_; }
@@ -120,11 +119,6 @@ class PikaConf : public slash::BaseConf {
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("write-binlog", value);
     write_binlog_ = (value == "yes") ? true : false;
-  }
-  void SetIdentifyBinlogType(const std::string& value) {
-    RWLock l(&rwlock_, true);
-    TryPushDiffCommands("identify-binlog-type", value);
-    identify_binlog_type_ = value;
   }
   void SetMaxCacheStatisticKeys(const int value) {
     RWLock l(&rwlock_, true);
@@ -270,7 +264,6 @@ private:
   std::string bgsave_path_;
   std::string bgsave_prefix_;
   std::string pidfile_;
-  std::string identify_binlog_type_;
 
   //char pidfile_[PIKA_WORD_SIZE];
   std::string compression_;
