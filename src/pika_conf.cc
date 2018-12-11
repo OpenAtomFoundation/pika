@@ -273,8 +273,8 @@ int PikaConf::Load()
     db_sync_path_ += "/";
   }
   GetConfInt("db-sync-speed", &db_sync_speed_);
-  if (db_sync_speed_ < 0 || db_sync_speed_ > 125) {
-    db_sync_speed_ = 125;
+  if (db_sync_speed_ < 0 || db_sync_speed_ > 1024) {
+    db_sync_speed_ = 1024;
   }
   // network interface
   network_interface_ = "";
