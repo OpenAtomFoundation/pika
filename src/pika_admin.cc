@@ -1219,12 +1219,6 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->binlog_file_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "identify-binlog-type", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "identify-binlog-type");
-    EncodeString(&config_body, g_pika_conf->identify_binlog_type());
-  }
-
   if (slash::stringmatch(pattern.data(), "compression", 1)) {
     elements += 2;
     EncodeString(&config_body, "compression");
@@ -1281,7 +1275,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*24\r\n";
+    ret = "*23\r\n";
     EncodeString(&ret, "loglevel");
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
@@ -1299,7 +1293,6 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "slowlog-max-len");
     EncodeString(&ret, "slave-read-only");
     EncodeString(&ret, "write-binlog");
-    EncodeString(&ret, "identify-binlog-type");
     EncodeString(&ret, "max-cache-statistic-keys");
     EncodeString(&ret, "small-compaction-threshold");
     EncodeString(&ret, "db-sync-speed");
@@ -1428,18 +1421,6 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetSlaveReadOnly(is_readonly);
     ret = "+OK\r\n";
-  } else if (set_item == "identify-binlog-type") {
-    int role = g_pika_server->role();
-    if (role == PIKA_ROLE_SLAVE || role == PIKA_ROLE_DOUBLE_MASTER) {
-      ret = "-ERR need to close master-slave or double-master mode first\r\n";
-      return;
-    } else if (value != "new" && value != "old") {
-      ret = "-ERR invalid identify-binlog-type (new or old)\r\n";
-      return;
-    } else {
-      g_pika_conf->SetIdentifyBinlogType(value);
-      ret = "+OK\r\n";
-    }
   } else if (set_item == "max-cache-statistic-keys") {
     if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-cache-statistic-keys'\r\n";
