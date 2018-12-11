@@ -1473,8 +1473,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'db-sync-speed(MB)'\r\n";
       return;
     }
-    if (ival < 0 || ival > 125) {
-      ival = 125;
+    if (ival < 0 || ival > 1024) {
+      ival = 1024;
     }
     g_pika_conf->SetDbSyncSpeed(ival);
     ret = "+OK\r\n";
