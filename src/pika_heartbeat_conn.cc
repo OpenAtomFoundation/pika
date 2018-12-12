@@ -14,8 +14,8 @@ PikaHeartbeatConn::PikaHeartbeatConn(int fd, std::string ip_port)
       : RedisConn(fd, ip_port, NULL) {
 }
 
-int PikaHeartbeatConn::DealMessage(
-    PikaCmdArgsType& argv, std::string* response) {
+int PikaHeartbeatConn::DealMessage(const PikaCmdArgsType& argv,
+                                   std::string* response) {
   if (argv[0] == "ping") {
     response->append("+PONG\r\n");
   } else if (argv[0] == "spci") {

@@ -13,8 +13,6 @@
 #include "slash/include/slash_mutex.h"
 #include "slash/include/env.h"
 #include "include/pika_define.h"
-#include "include/pika_master_conn.h"
-#include "include/pika_new_master_conn.h"
 #include "include/pika_binlog_receiver_conn.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"

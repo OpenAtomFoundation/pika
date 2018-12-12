@@ -28,7 +28,7 @@ class PikaBinlogReceiverConn: public pink::PinkConn {
   BinlogHeader binlog_header_;
   BinlogItem binlog_item_;
  private:
-  static int DealMessage(pink::RedisParser* parser, pink::RedisCmdArgsType& argv);
+  static int DealMessage(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
   pink::ReadStatus ParseRedisParserStatus(pink::RedisParserStatus status);
 
   char* rbuf_;

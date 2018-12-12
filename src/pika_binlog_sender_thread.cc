@@ -11,7 +11,6 @@
 #include "include/pika_server.h"
 #include "include/pika_define.h"
 #include "include/pika_binlog_sender_thread.h"
-#include "include/pika_master_conn.h"
 #include "pink/include/redis_cli.h"
 
 extern PikaServer* g_pika_server;

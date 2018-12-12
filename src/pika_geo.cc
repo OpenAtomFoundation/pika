@@ -13,7 +13,7 @@
 
 extern PikaServer *g_pika_server;
 
-void GeoAddCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GeoAddCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoAdd);
     return;
@@ -67,7 +67,7 @@ void GeoAddCmd::Do() {
   return;
 }
 
-void GeoPosCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GeoPosCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoPos);
     return;
@@ -133,7 +133,7 @@ static bool check_unit(const std::string & unit) {
   }
 }
 
-void GeoDistCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GeoDistCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoDist);
     return;
@@ -193,7 +193,7 @@ void GeoDistCmd::Do() {
   res_.AppendContent(buf);
 }
 
-void GeoHashCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GeoHashCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoHash);
     return;
@@ -398,7 +398,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
   }
 }
 
-void GeoRadiusCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GeoRadiusCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
     return;
@@ -471,7 +471,7 @@ void GeoRadiusCmd::Do() {
   GetAllNeighbors(key_, range_, this->res_);
 }
 
-void GeoRadiusByMemberCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GeoRadiusByMemberCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
     return;

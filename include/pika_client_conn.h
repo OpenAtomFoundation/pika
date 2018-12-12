@@ -18,6 +18,7 @@ class PikaClientConn: public pink::RedisConn {
  public:
   struct BgTaskArg {
     std::shared_ptr<PikaClientConn> pcc;
+    std::vector<pink::RedisCmdArgsType> redis_cmds;
   };
 
   PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
@@ -25,10 +26,10 @@ class PikaClientConn: public pink::RedisConn {
                  const pink::HandleType& handle_type);
   virtual ~PikaClientConn() {}
 
-  void AsynProcessRedisCmd() override;
+  void AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs) override;
 
-  void BatchExecRedisCmd();
-  int DealMessage(pink::RedisCmdArgsType& argv, std::string* response);
+  void BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs);
+  int DealMessage(const pink::RedisCmdArgsType& argv, std::string* response);
   static void DoBackgroundTask(void* arg);
 
   bool IsPubSub() { return is_pubsub_; }
@@ -39,7 +40,7 @@ class PikaClientConn: public pink::RedisConn {
   CmdTable* const cmds_table_;
   bool is_pubsub_;
 
-  std::string DoCmd(PikaCmdArgsType& argv, const std::string& opt);
+  std::string DoCmd(const PikaCmdArgsType& argv, const std::string& opt);
 
   // Auth related
   class AuthStat {
