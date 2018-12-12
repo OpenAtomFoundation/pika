@@ -25,7 +25,7 @@ class SetCmd : public Cmd {
   int32_t success_;
   int64_t sec_;
   SetCmd::SetCondition condition_;
-  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) override;
+  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) override;
   virtual void Clear() override {
     sec_ = 0;
     success_ = 0;
@@ -39,7 +39,7 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class DelCmd : public Cmd {
@@ -48,7 +48,7 @@ class DelCmd : public Cmd {
   virtual void Do();
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(PikaCmdArgsType &argvs, const  CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argvs, const  CmdInfo* const ptr_info);
 };
 
 class IncrCmd : public Cmd {
@@ -58,7 +58,7 @@ class IncrCmd : public Cmd {
  private:
   std::string key_;
   int64_t new_value_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -75,7 +75,7 @@ class IncrbyCmd : public Cmd {
  private:
   std::string key_;
   int64_t by_, new_value_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -92,7 +92,7 @@ class IncrbyfloatCmd : public Cmd {
  private:
   std::string key_, value_, new_value_;
   double by_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -109,7 +109,7 @@ class DecrCmd : public Cmd {
  private:
   std::string key_;
   int64_t new_value_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -126,7 +126,7 @@ class DecrbyCmd : public Cmd {
  private:
   std::string key_;
   int64_t by_, new_value_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -143,7 +143,7 @@ public:
 private:
   std::string key_;
   std::string new_value_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class AppendCmd : public Cmd {
@@ -153,7 +153,7 @@ public:
 private:
   std::string key_;
   std::string value_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class MgetCmd : public Cmd {
@@ -162,7 +162,7 @@ public:
   virtual void Do();
 private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class KeysCmd : public Cmd {
@@ -172,7 +172,7 @@ public:
 private:
   std::string pattern_;
   std::string type_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual void Clear() {
     type_ = "all";
   }
@@ -186,7 +186,7 @@ class SetnxCmd : public Cmd {
   std::string key_;
   std::string value_;
   int32_t success_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -204,7 +204,7 @@ private:
   std::string key_;
   int64_t sec_;
   std::string value_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class PsetexCmd : public Cmd {
@@ -215,7 +215,7 @@ private:
   std::string key_;
   int64_t usec_;
   std::string value_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class DelvxCmd : public Cmd {
@@ -226,7 +226,7 @@ private:
   std::string key_;
   std::string value_;
   int32_t success_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class MsetCmd : public Cmd {
@@ -235,7 +235,7 @@ class MsetCmd : public Cmd {
   virtual void Do();
  private:
   std::vector<blackwidow::KeyValue> kvs_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class MsetnxCmd : public Cmd {
@@ -245,7 +245,7 @@ class MsetnxCmd : public Cmd {
  private:
   std::vector<blackwidow::KeyValue> kvs_;
   int32_t success_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class GetrangeCmd : public Cmd {
@@ -256,7 +256,7 @@ private:
   std::string key_;
   int64_t start_;
   int64_t end_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class SetrangeCmd : public Cmd {
@@ -267,7 +267,7 @@ private:
   std::string key_;
   int64_t offset_;
   std::string value_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class StrlenCmd : public Cmd {
@@ -276,7 +276,7 @@ public:
   virtual void Do();
 private:
   std::string key_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class ExistsCmd : public Cmd {
@@ -285,7 +285,7 @@ public:
   virtual void Do();
 private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class ExpireCmd : public Cmd {
@@ -296,7 +296,7 @@ class ExpireCmd : public Cmd {
  private:
   std::string key_;
   int64_t sec_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -314,7 +314,7 @@ class PexpireCmd : public Cmd {
  private:
   std::string key_;
   int64_t msec_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -332,7 +332,7 @@ class ExpireatCmd : public Cmd {
  private:
   std::string key_;
   int64_t time_stamp_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
 };
 
 class PexpireatCmd : public Cmd {
@@ -343,7 +343,7 @@ class PexpireatCmd : public Cmd {
  private:
   std::string key_;
   int64_t time_stamp_ms_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -359,7 +359,7 @@ public:
     virtual void Do();
 private:
   std::string key_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class PttlCmd : public Cmd {
@@ -368,7 +368,7 @@ public:
     virtual void Do();
 private:
   std::string key_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class PersistCmd : public Cmd {
@@ -377,7 +377,7 @@ public:
     virtual void Do();
 private:
   std::string key_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class TypeCmd : public Cmd {
@@ -386,7 +386,7 @@ public:
     virtual void Do();
 private:
   std::string key_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class ScanCmd : public Cmd {
@@ -397,7 +397,7 @@ private:
   int64_t cursor_;
   std::string pattern_;
   int64_t count_;
-  virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
   virtual void Clear() {
     pattern_ = "*";
     count_ = 10;
@@ -413,7 +413,7 @@ private:
   std::string start_key_;
   std::string pattern_;
   int64_t count_;
-  virtual void DoInitial(PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
   virtual void Clear() {
     pattern_ = "*";
     count_ = 10;
@@ -431,7 +431,7 @@ private:
   std::string pattern_;
   int64_t limit_;
   bool string_with_value;
-  virtual void DoInitial(PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
   virtual void Clear() {
     pattern_ = "*";
     limit_ = 10;
@@ -450,7 +450,7 @@ private:
   std::string pattern_;
   int64_t limit_;
   bool string_with_value;
-  virtual void DoInitial(PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
   virtual void Clear() {
     pattern_ = "*";
     limit_ = 10;

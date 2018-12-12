@@ -102,11 +102,6 @@ pink::ReadStatus PikaBinlogReceiverConn::GetRequest() {
   last_read_pos_ += nread;
   msg_peak_ = last_read_pos_;
 
-  for (int i = 0; i < nread; ++i) {
-    LOG(INFO) << i <<" "<< *(rbuf_ + i + next_read_pos);
-  }
-  
-  // bullshit logic 
   char* cur_process_p = rbuf_ + next_read_pos;
   int processed_len = 0;
   pink::ReadStatus read_status = pink::kReadError;
@@ -213,10 +208,7 @@ bool PikaBinlogReceiverConn::ProcessBinlogData(const pink::RedisCmdArgsType& arg
   return true;
 }
 
-int PikaBinlogReceiverConn::DealMessage(pink::RedisParser* parser, pink::RedisCmdArgsType& argv) {
-  for (auto& i : argv) {
-    LOG(INFO) << "DealMessage "<<  i;
-  }
+int PikaBinlogReceiverConn::DealMessage(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
   PikaBinlogReceiverConn* conn = reinterpret_cast<PikaBinlogReceiverConn*>(parser->data);
   if (conn->binlog_header_.header_type_ == kTypeAuth) {
     return conn->ProcessAuth(argv) == true ? 0 : -1;

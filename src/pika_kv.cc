@@ -9,7 +9,7 @@
 
 extern PikaServer *g_pika_server;
 
-void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSet);
     return;
@@ -20,12 +20,12 @@ void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   sec_ = 0;
   size_t index = 3;
   while (index != argv.size()) {
-    std::string opt = slash::StringToLower(argv[index]);
-    if (opt == "xx") {
+    std::string opt = argv[index];
+    if (!strcasecmp(opt.data(), "xx")) {
       condition_ = SetCmd::kXX;
-    } else if (opt == "nx") {
+    } else if (!strcasecmp(opt.data(), "nx")) {
       condition_ = SetCmd::kNX;
-    } else if (opt == "vx") {
+    } else if (!strcasecmp(opt.data(), "vx")) {
       condition_ = SetCmd::kVX;
       index++;
       if (index == argv.size()) {
@@ -34,7 +34,7 @@ void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
       } else {
         target_ = argv[index];
       }
-    } else if (opt == "ex" || opt == "px") {
+    } else if (!strcasecmp(opt.data(), "ex") || !strcasecmp(opt.data(), "px")) {
       index++;
       if (index == argv.size()) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -44,7 +44,7 @@ void SetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
-      if (opt == "px") {
+      if (!strcasecmp(opt.data(), "px")) {
         sec_ /= 1000;
       }
     } else {
@@ -89,7 +89,7 @@ void SetCmd::Do() {
   }
 }
 
-void GetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGet);
     return;
@@ -111,12 +111,12 @@ void GetCmd::Do() {
   }
 }
 
-void DelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void DelCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDel);
     return;
   }
-  std::vector<std::string>::iterator iter = argv.begin();
+  std::vector<std::string>::const_iterator iter = argv.begin();
   keys_.assign(++iter, argv.end());
   return;
 }
@@ -132,7 +132,7 @@ void DelCmd::Do() {
   return;
 }
 
-void IncrCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void IncrCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncr);
     return;
@@ -188,7 +188,7 @@ std::string IncrCmd::ToBinlog(
                                              {});
 }
 
-void IncrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void IncrbyCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncrby);
     return;
@@ -248,7 +248,7 @@ std::string IncrbyCmd::ToBinlog(
                                              {});
 }
 
-void IncrbyfloatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void IncrbyfloatCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncrbyfloat);
     return;
@@ -309,7 +309,7 @@ std::string IncrbyfloatCmd::ToBinlog(
                                              {});
 }
 
-void DecrCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void DecrCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDecr);
     return;
@@ -365,7 +365,7 @@ std::string DecrCmd::ToBinlog(
                                              {});
 }
 
-void DecrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void DecrbyCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDecrby);
     return;
@@ -425,7 +425,7 @@ std::string DecrbyCmd::ToBinlog(
                                              {});
 }
 
-void GetsetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GetsetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGetset);
     return;
@@ -451,7 +451,7 @@ void GetsetCmd::Do() {
   return;
 }
 
-void AppendCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void AppendCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameAppend);
     return;
@@ -472,7 +472,7 @@ void AppendCmd::Do() {
   return;
 }
 
-void MgetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void MgetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameMget);
     return;
@@ -501,16 +501,20 @@ void MgetCmd::Do() {
   return;
 }
 
-void KeysCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void KeysCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameKeys);
     return;
   }
   pattern_ = argv[1];
   if (argv.size() == 3) {
-    std::string opt = slash::StringToLower(argv[2]);
-    if (opt == "string" || opt == "zset" || opt == "set" || opt == "list" || opt == "hash") {
-        type_ = opt;
+    std::string opt = argv[2];
+    if (!strcasecmp(opt.data(), "string")
+      || !strcasecmp(opt.data(), "zset")
+      || !strcasecmp(opt.data(), "set")
+      || !strcasecmp(opt.data(), "list")
+      || !strcasecmp(opt.data(),"hash")) {
+      type_ = slash::StringToLower(opt);
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
@@ -530,7 +534,7 @@ void KeysCmd::Do() {
   return;
 }
 
-void SetnxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SetnxCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSetnx);
     return;
@@ -586,7 +590,7 @@ std::string SetnxCmd::ToBinlog(
   return content;
 }
 
-void SetexCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SetexCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSetex);
     return;
@@ -609,7 +613,7 @@ void SetexCmd::Do() {
   }
 }
 
-void PsetexCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PsetexCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePsetex);
     return;
@@ -632,7 +636,7 @@ void PsetexCmd::Do() {
   }
 }
 
-void DelvxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void DelvxCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDelvx);
     return;
@@ -651,7 +655,7 @@ void DelvxCmd::Do() {
   }
 }
 
-void MsetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void MsetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameMset);
     return;
@@ -677,7 +681,7 @@ void MsetCmd::Do() {
   }
 }
 
-void MsetnxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void MsetnxCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameMsetnx);
     return;
@@ -704,7 +708,7 @@ void MsetnxCmd::Do() {
   }
 }
 
-void GetrangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void GetrangeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGetrange);
     return;
@@ -732,7 +736,7 @@ void GetrangeCmd::Do() {
   }
 }
 
-void SetrangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SetrangeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSetrange);
     return;
@@ -757,7 +761,7 @@ void SetrangeCmd::Do() {
   return;
 }
 
-void StrlenCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void StrlenCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameStrlen);
     return;
@@ -777,7 +781,7 @@ void StrlenCmd::Do() {
   return;
 }
 
-void ExistsCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void ExistsCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameExists);
     return;
@@ -798,7 +802,7 @@ void ExistsCmd::Do() {
   return;
 }
 
-void ExpireCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void ExpireCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameExpire);
     return;
@@ -858,7 +862,7 @@ std::string ExpireCmd::ToBinlog(
                                              {});
 }
 
-void PexpireCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PexpireCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePexpire);
     return;
@@ -918,7 +922,7 @@ std::string PexpireCmd::ToBinlog(
                                              {});
 }
 
-void ExpireatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void ExpireatCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameExpireat);
     return;
@@ -941,7 +945,7 @@ void ExpireatCmd::Do() {
   }
 }
 
-void PexpireatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PexpireatCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePexpireat);
     return;
@@ -1001,7 +1005,7 @@ void PexpireatCmd::Do() {
   return;
 }
 
-void TtlCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void TtlCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameTtl);
     return;
@@ -1038,7 +1042,7 @@ void TtlCmd::Do() {
   return;
 }
 
-void PttlCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PttlCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePttl);
     return;
@@ -1095,7 +1099,7 @@ void PttlCmd::Do() {
   return;
 }
 
-void PersistCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PersistCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePersist);
     return;
@@ -1115,7 +1119,7 @@ void PersistCmd::Do() {
   return;
 }
 
-void TypeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void TypeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameType);
     return;
@@ -1135,7 +1139,7 @@ void TypeCmd::Do() {
   return;
 }
 
-void ScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void ScanCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameScan);
     return;
@@ -1147,14 +1151,15 @@ void ScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   size_t index = 2, argc = argv.size();
 
   while (index < argc) {
-    std::string opt = slash::StringToLower(argv[index]); 
-    if (opt == "match" || opt == "count") {
+    std::string opt = argv[index];
+    if (!strcasecmp(opt.data(), "match")
+      || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (opt == "match") {
+      if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv[index];
       } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
@@ -1189,7 +1194,7 @@ void ScanCmd::Do() {
   return;
 }
 
-void ScanxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void ScanxCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameScanx);
     return;
@@ -1212,14 +1217,15 @@ void ScanxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   start_key_ = argv[2];
   size_t index = 3, argc = argv.size();
   while (index < argc) {
-    std::string opt = slash::StringToLower(argv[index]);
-    if (opt == "match" || opt == "count") {
+    std::string opt = argv[index];
+    if (!strcasecmp(opt.data(), "match")
+      || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (opt == "match") {
+      if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv[index];
       } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
@@ -1255,7 +1261,7 @@ void ScanxCmd::Do() {
   return;
 }
 
-void PKScanRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PKScanRangeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePKScanRange);
     return;
@@ -1282,14 +1288,15 @@ void PKScanRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
   key_end_ = argv[3];
   size_t index = 4, argc = argv.size();
   while (index < argc) {
-    std::string opt = slash::StringToLower(argv[index]);
-    if (opt == "match" || opt == "limit") {
+    std::string opt = argv[index];
+    if (!strcasecmp(opt.data(), "match")
+      || !strcasecmp(opt.data(), "limit")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (opt == "match") {
+      if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv[index];
       } else if (!slash::string2l(argv[index].data(), argv[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
@@ -1335,7 +1342,7 @@ void PKScanRangeCmd::Do() {
   return;
 }
 
-void PKRScanRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PKRScanRangeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePKRScanRange);
     return;
@@ -1362,14 +1369,15 @@ void PKRScanRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_
   key_end_ = argv[3];
   size_t index = 4, argc = argv.size();
   while (index < argc) {
-    std::string opt = slash::StringToLower(argv[index]);
-    if (opt == "match" || opt == "limit") {
+    std::string opt = argv[index];
+    if (!strcasecmp(opt.data(), "match")
+      || !strcasecmp(opt.data(), "limit")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (opt == "match") {
+      if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv[index];
       } else if (!slash::string2l(argv[index].data(), argv[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);

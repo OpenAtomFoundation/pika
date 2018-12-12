@@ -48,8 +48,8 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
   auth_stat_.Init();
 }
 
-std::string PikaClientConn::DoCmd(
-    PikaCmdArgsType& argv, const std::string& opt) {
+std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
+                                  const std::string& opt) {
   // Get command info
   const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
@@ -81,7 +81,7 @@ std::string PikaClientConn::DoCmd(
   if (is_monitoring) {
     monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) +
       " [0 " + this->ip_port() + "]";
-    for (PikaCmdArgsType::iterator iter = argv.begin(); iter != argv.end(); iter++) {
+    for (PikaCmdArgsType::const_iterator iter = argv.begin(); iter != argv.end(); iter++) {
       monitor_message += " " + slash::ToRead(*iter);
     }
     g_pika_server->AddMonitorMessage(monitor_message);
@@ -123,7 +123,7 @@ std::string PikaClientConn::DoCmd(
     }
     std::vector<std::string > channels;
     for (size_t i = 1; i < argv.size(); i++) {
-      channels.push_back(slash::StringToLower(argv[i]));
+      channels.push_back(argv[i]);
     }
     std::vector<std::pair<std::string, int>> result;
     this->SetIsPubSub(true);
@@ -133,7 +133,7 @@ std::string PikaClientConn::DoCmd(
   } else if (opt == kCmdNamePUnSubscribe || opt == kCmdNameUnSubscribe) {  // PUnSubscribe or UnSubscribe
     std::vector<std::string > channels;
     for (size_t i = 1; i < argv.size(); i++) {
-      channels.push_back(slash::StringToLower(argv[i]));
+      channels.push_back(argv[i]);
     }
     std::vector<std::pair<std::string, int>> result;
     std::shared_ptr<PinkConn> conn = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
@@ -237,25 +237,25 @@ std::string PikaClientConn::DoCmd(
   return c_ptr->res().message();
 }
 
-void PikaClientConn::AsynProcessRedisCmd() {
+void PikaClientConn::AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs) {
   BgTaskArg* arg = new BgTaskArg();
+  arg->redis_cmds = argvs;
   arg->pcc = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
   g_pika_server->Schedule(&DoBackgroundTask, arg);
 }
 
-void PikaClientConn::BatchExecRedisCmd() {
+void PikaClientConn::BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs) {
   bool success = true;
-  for (auto& argv : argvs_) {
+  for (const auto& argv : argvs) {
     if (DealMessage(argv, &response_) != 0) {
       success = false;
       break;
     }
   }
-  argvs_.clear();
   NotifyEpoll(success);
 }
 
-int PikaClientConn::DealMessage(PikaCmdArgsType& argv, std::string* response) {
+int PikaClientConn::DealMessage(const PikaCmdArgsType& argv, std::string* response) {
 
   if (argv.empty()) return -2;
   std::string opt = argv[0];
@@ -273,7 +273,7 @@ int PikaClientConn::DealMessage(PikaCmdArgsType& argv, std::string* response) {
 
 void PikaClientConn::DoBackgroundTask(void* arg) {
   BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
-  bg_arg->pcc->BatchExecRedisCmd();
+  bg_arg->pcc->BatchExecRedisCmd(bg_arg->redis_cmds);
   delete bg_arg;
 }
 

@@ -10,7 +10,7 @@
 
 extern PikaServer *g_pika_server;
 
-void BitSetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void BitSetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitSet);
     return;
@@ -51,7 +51,7 @@ void BitSetCmd::Do() {
   }
 }
 
-void BitGetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void BitGetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitGet);
     return;
@@ -78,7 +78,7 @@ void BitGetCmd::Do() {
   }
 }
 
-void BitCountCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void BitCountCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitCount);
     return;
@@ -118,7 +118,7 @@ void BitCountCmd::Do() {
   }
 }
 
-void BitPosCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void BitPosCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitPos);
     return;
@@ -175,19 +175,19 @@ void BitPosCmd::Do() {
   }
 }
 
-void BitOpCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void BitOpCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
     return;
   }
-  std::string op_str = slash::StringToLower(argv[1]);
-  if (op_str == "not") {
+  std::string op_str = argv[1];
+  if (!strcasecmp(op_str.data(), "not")) {
     op_ = blackwidow::kBitOpNot;
-  } else if (op_str == "and") {
+  } else if (!strcasecmp(op_str.data(), "and")) {
     op_ = blackwidow::kBitOpAnd;
-  } else if (op_str == "or") {
+  } else if (!strcasecmp(op_str.data(), "or")) {
     op_ = blackwidow::kBitOpOr;
-  } else if (op_str == "xor") {
+  } else if (!strcasecmp(op_str.data(), "xor")) {
     op_ = blackwidow::kBitOpXor;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr, kCmdNameBitOp);
