@@ -428,7 +428,7 @@ class Cmd {
 
   virtual void Do() = 0;
 
-  void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) {
+  void Initial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) {
     res_.clear(); // Clear res content
     Clear();      // Clear cmd, Derived class can has own implement
     DoInitial(argvs, ptr_info);
@@ -467,7 +467,7 @@ class Cmd {
   CmdRes res_;
 
  private:
-  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
+  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
   virtual void Clear() {};
 
   Cmd(const Cmd&);

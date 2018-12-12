@@ -11,7 +11,7 @@
 
 extern PikaServer *g_pika_server;
 
-void LIndexCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LIndexCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
     return;
@@ -35,16 +35,16 @@ void LIndexCmd::Do() {
   }
 }
 
-void LInsertCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LInsertCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLInsert);
     return;
   }
   key_ = argv[1];
-  std::string dir = slash::StringToLower(argv[2]);
-  if (dir == "before" ) {
+  std::string dir = argv[2];
+  if (!strcasecmp(dir.data(), "before")) {
     dir_ = blackwidow::Before;
-  } else if (dir == "after") {
+  } else if (!strcasecmp(dir.data(), "after")) {
     dir_ = blackwidow::After;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr);
@@ -63,7 +63,7 @@ void LInsertCmd::Do() {
   }
 }
 
-void LLenCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LLenCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLLen);
     return;
@@ -80,7 +80,7 @@ void LLenCmd::Do() {
   }
 }
 
-void LPushCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LPushCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLPush);
     return;
@@ -101,7 +101,7 @@ void LPushCmd::Do() {
   }
 }
 
-void LPopCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LPopCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
     return;
@@ -120,7 +120,7 @@ void LPopCmd::Do() {
   }
 }
 
-void LPushxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LPushxCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLPushx);
     return;
@@ -138,7 +138,7 @@ void LPushxCmd::Do() {
   }
 }
 
-void LRangeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LRangeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLRange);
     return;
@@ -170,7 +170,7 @@ void LRangeCmd::Do() {
   }
 }
 
-void LRemCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LRemCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLRem);
     return;
@@ -193,7 +193,7 @@ void LRemCmd::Do() {
   }
 }
 
-void LSetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LSetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLSet);
     return;
@@ -220,7 +220,7 @@ void LSetCmd::Do() {
     }
 }
 
-void LTrimCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void LTrimCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLSet);
     return;
@@ -246,7 +246,7 @@ void LTrimCmd::Do() {
   }
 }
 
-void RPopCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void RPopCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
     return;
@@ -265,7 +265,7 @@ void RPopCmd::Do() {
   }
 }
 
-void RPopLPushCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void RPopLPushCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameRPopLPush);
     return;
@@ -285,7 +285,7 @@ void RPopLPushCmd::Do() {
   }
 }
 
-void RPushCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void RPushCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameRPush);
     return;
@@ -306,7 +306,7 @@ void RPushCmd::Do() {
   }
 }
 
-void RPushxCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void RPushxCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameRPushx);
     return;

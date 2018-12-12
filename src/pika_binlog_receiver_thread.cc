@@ -6,7 +6,6 @@
 #include <glog/logging.h>
 #include "pink/include/pink_conn.h"
 #include "include/pika_binlog_receiver_thread.h"
-#include "include/pika_master_conn.h"
 #include "include/pika_server.h"
 #include "include/pika_command.h"
 

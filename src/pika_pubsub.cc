@@ -8,12 +8,12 @@
 
 extern PikaServer *g_pika_server;
 
-void PublishCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PublishCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePublish);
     return;
   }
-  channel_ = slash::StringToLower(argv[1]);
+  channel_ = argv[1];
   msg_ = argv[2];
 }
 
@@ -23,7 +23,7 @@ void PublishCmd::Do() {
   return;
 }
 
-void SubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSubscribe);
     return;
@@ -33,7 +33,7 @@ void SubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
 void SubscribeCmd::Do() {
 }
 
-void UnSubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void UnSubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameUnSubscribe);
     return;
@@ -43,7 +43,7 @@ void UnSubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_i
 void UnSubscribeCmd::Do() {
 }
 
-void PSubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PSubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePSubscribe);
     return;
@@ -53,7 +53,7 @@ void PSubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_in
 void PSubscribeCmd::Do() {
 }
 
-void PUnSubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PUnSubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePUnSubscribe);
     return;
@@ -63,13 +63,15 @@ void PUnSubscribeCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_
 void PUnSubscribeCmd::Do() {
 }
 
-void PubSubCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void PubSubCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePubSub);
     return;
   }
-  subcommand_ = slash::StringToLower(argv[1]);
-  if (subcommand_ != "channels" && subcommand_ != "numsub" && subcommand_ != "numpat") {
+  subcommand_ = argv[1];
+  if (strcasecmp(subcommand_.data(), "channels")
+    && strcasecmp(subcommand_.data(), "numsub")
+    && strcasecmp(subcommand_.data(), "numpat")) {
     res_.SetRes(CmdRes::kErrOther, "Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
   }
   for (size_t i = 2; i < argv.size(); i++) {

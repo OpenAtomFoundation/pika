@@ -19,7 +19,7 @@ class LIndexCmd : public Cmd {
   private:
     std::string key_;
     int64_t index_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
     virtual void Clear() {
       index_ = 0;
     }
@@ -34,7 +34,7 @@ class LInsertCmd : public Cmd {
     blackwidow::BeforeOrAfter dir_;
     std::string pivot_;
     std::string value_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class LLenCmd : public Cmd {
@@ -43,7 +43,7 @@ class LLenCmd : public Cmd {
     virtual void Do();
   private:
     std::string key_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class LPopCmd : public Cmd {
@@ -52,7 +52,7 @@ class LPopCmd : public Cmd {
     virtual void Do();
   private:
     std::string key_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class LPushCmd : public Cmd {
@@ -62,7 +62,7 @@ class LPushCmd : public Cmd {
   private:
     std::string key_;
     std::vector<std::string> values_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
     virtual void Clear() {
       values_.clear();
     }
@@ -75,7 +75,7 @@ class LPushxCmd : public Cmd {
   private:
     std::string key_;
     std::string value_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class LRangeCmd : public Cmd {
@@ -86,7 +86,7 @@ class LRangeCmd : public Cmd {
     std::string key_;
     int64_t left_;
     int64_t right_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class LRemCmd : public Cmd {
@@ -97,7 +97,7 @@ class LRemCmd : public Cmd {
     std::string key_;
     int64_t count_;
     std::string value_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class LSetCmd : public Cmd {
@@ -108,7 +108,7 @@ class LSetCmd : public Cmd {
     std::string key_;
     int64_t index_;
     std::string value_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class LTrimCmd : public Cmd {
@@ -119,7 +119,7 @@ class LTrimCmd : public Cmd {
     std::string key_;
     int64_t start_;
     int64_t stop_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class RPopCmd : public Cmd {
@@ -128,7 +128,7 @@ class RPopCmd : public Cmd {
     virtual void Do();
   private:
     std::string key_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class RPopLPushCmd : public Cmd {
@@ -138,7 +138,7 @@ class RPopLPushCmd : public Cmd {
   private:
     std::string source_;
     std::string receiver_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class RPushCmd : public Cmd {
@@ -148,7 +148,7 @@ class RPushCmd : public Cmd {
   private:
     std::string key_;
     std::vector<std::string> values_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
     virtual void Clear() {
       values_.clear();
     }
@@ -160,6 +160,6 @@ class RPushxCmd : public Cmd {
   private:
     std::string key_;
     std::string value_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 #endif
