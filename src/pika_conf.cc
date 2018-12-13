@@ -289,8 +289,10 @@ int PikaConf::Load()
   return ret;
 }
 
-void PikaConf::PushDiffCommands(const std::string& command, const std::string& value) {
-  diff_commands_[command] = value;
+void PikaConf::TryPushDiffCommands(const std::string& command, const std::string& value) {
+  if (!CheckConfExist(command)) {
+    diff_commands_[command] = value;
+  }
 }
 
 int PikaConf::ConfigRewrite() {
