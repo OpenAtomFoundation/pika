@@ -18,6 +18,7 @@
 
 typedef slash::RWLock RWLock;
 
+// global class, class members well initialized
 class PikaConf : public slash::BaseConf {
  public:
   PikaConf(const std::string& path);
@@ -93,27 +94,43 @@ class PikaConf : public slash::BaseConf {
   // Setter
   void SetPort(const int value)                 { RWLock l(&rwlock_, true); port_ = value; }
   void SetThreadNum(const int value)            { RWLock l(&rwlock_, true); thread_num_ = value; }
-  void SetLogLevel(const int value)             { RWLock l(&rwlock_, true); log_level_ = value; }
-  void SetTimeout(const int value)              { RWLock l(&rwlock_, true); timeout_ = value; }
+  void SetLogLevel(const int value) {
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("loglevel", value ? "ERROR" : "INFO");
+    log_level_ = value;
+  }
+  void SetTimeout(const int value) {
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("timeout", std::to_string(value));
+    timeout_ = value;
+  }
   void SetSlaveof(const std::string value) {
     RWLock l(&rwlock_, true);
     slaveof_ = value;
   }
-  void SetSlavePriority(const int value)        { RWLock l(&rwlock_, true); slave_priority_ = value; }
+  void SetSlavePriority(const int value) {
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("slave-priority", std::to_string(value));
+    slave_priority_ = value;
+  }
   void SetWriteBinlog(const std::string& value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("write-binlog", value);
     write_binlog_ = (value == "yes") ? true : false;
   }
   void SetIdentifyBinlogType(const std::string& value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("identify-binlog-type", value);
     identify_binlog_type_ = value;
   }
   void SetMaxCacheStatisticKeys(const int value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("max-cache-statistic-keys", std::to_string(value));
     max_cache_statistic_keys_ = value;
   }
   void SetSmallCompactionThreshold(const int value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("small-compaction-threshold", std::to_string(value));
     small_compaction_threshold_ = value;
   }
   void SetBgsavePath(const std::string &value) {
@@ -125,18 +142,22 @@ class PikaConf : public slash::BaseConf {
   }
   void SetExpireDumpDays(const int value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("dump-expire", std::to_string(value));
     expire_dump_days_ = value;
   }
   void SetBgsavePrefix(const std::string &value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("dump-prefix", value);
     bgsave_prefix_ = value;
   }
   void SetRequirePass(const std::string &value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("requirepass", value);
     requirepass_ = value;
   }
   void SetMasterAuth(const std::string &value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("masterauth", value);
     masterauth_ = value;
   }
   void SetSlotMigrate(const std::string &value) {
@@ -145,56 +166,70 @@ class PikaConf : public slash::BaseConf {
   }
   void SetUserPass(const std::string &value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("userpass", value);
     userpass_ = value;
   }
   void SetUserBlackList(const std::string &value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("userblacklist", value);
     slash::StringSplit(value, COMMA, user_blacklist_);
     for (auto& item : user_blacklist_) {
       slash::StringToLower(item);
     }
   }
   void SetSlaveReadOnly(const bool value) {
-    RWLock l(&rwlock_, true); slave_read_only_ = value;
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("slave-read-only", value == true ? "yes" : "no");
+    slave_read_only_ = value;
   }
   void SetExpireLogsNums(const int value){
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("expire-logs-nums", std::to_string(value));
     expire_logs_nums_ = value;
   }
   void SetExpireLogsDays(const int value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("expire-logs-days", std::to_string(value));
     expire_logs_days_ = value;
   }
   void SetMaxConnection(const int value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("maxclients", std::to_string(value));
     maxclients_ = value;
   }
   void SetRootConnectionNum(const int value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("root-connection-num", std::to_string(value));
     root_connection_num_ = value;
   }
   void SetSlowlogWriteErrorlog(const bool value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("slowlog-write-errorlog", value == true ? "yes" : "no");
     slowlog_write_errorlog_ = value;
   }
   void SetSlowlogSlowerThan(const int value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("slowlog-log-slower-than", std::to_string(value));
     slowlog_log_slower_than_ = value;
   }
   void SetSlowlogMaxLen(const int value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("slowlog-max-len", std::to_string(value));
     slowlog_max_len_ = value;
   }
   void SetDbSyncSpeed(const int value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("db-sync-speed", std::to_string(value));
     db_sync_speed_ = value;
   }
   void SetCompactCron(const std::string &value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("compact-cron", value);
     compact_cron_ = value;
   }
   void SetCompactInterval(const std::string &value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("compact-interval", value);
     compact_interval_ = value;
   }
 
@@ -258,6 +293,10 @@ private:
   bool level_compaction_dynamic_level_bytes_;
 
   std::string network_interface_;
+
+  // diff commands between cached commands and config file commands
+  std::map<std::string, std::string> diff_commands_;
+  void TryPushDiffCommands(const std::string& command, const std::string& value);
 
   //char username_[30];
   //char password_[30];
