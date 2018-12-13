@@ -237,22 +237,26 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   return c_ptr->res().message();
 }
 
-void PikaClientConn::AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs) {
+void PikaClientConn::AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) {
   BgTaskArg* arg = new BgTaskArg();
   arg->redis_cmds = argvs;
+  arg->response = response;
   arg->pcc = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
   g_pika_server->Schedule(&DoBackgroundTask, arg);
 }
 
-void PikaClientConn::BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs) {
+void PikaClientConn::BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) {
   bool success = true;
   for (const auto& argv : argvs) {
-    if (DealMessage(argv, &response_) != 0) {
+    if (DealMessage(argv, response) != 0) {
       success = false;
       break;
     }
   }
-  NotifyEpoll(success);
+  if (!response->empty()) {
+    set_is_reply(true);
+    NotifyEpoll(success);
+  }
 }
 
 int PikaClientConn::DealMessage(const PikaCmdArgsType& argv, std::string* response) {
@@ -261,7 +265,7 @@ int PikaClientConn::DealMessage(const PikaCmdArgsType& argv, std::string* respon
   std::string opt = argv[0];
   slash::StringToLower(opt);
 
-  if (response_.empty()) {
+  if (response->empty()) {
     // Avoid memory copy
     *response = std::move(DoCmd(argv, opt));
   } else {
@@ -273,7 +277,7 @@ int PikaClientConn::DealMessage(const PikaCmdArgsType& argv, std::string* respon
 
 void PikaClientConn::DoBackgroundTask(void* arg) {
   BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
-  bg_arg->pcc->BatchExecRedisCmd(bg_arg->redis_cmds);
+  bg_arg->pcc->BatchExecRedisCmd(bg_arg->redis_cmds, bg_arg->response);
   delete bg_arg;
 }
 
