@@ -19,6 +19,7 @@ class PikaClientConn: public pink::RedisConn {
   struct BgTaskArg {
     std::shared_ptr<PikaClientConn> pcc;
     std::vector<pink::RedisCmdArgsType> redis_cmds;
+    std::string* response;
   };
 
   PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
@@ -26,9 +27,9 @@ class PikaClientConn: public pink::RedisConn {
                  const pink::HandleType& handle_type);
   virtual ~PikaClientConn() {}
 
-  void AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs) override;
+  void AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) override;
 
-  void BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs);
+  void BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response);
   int DealMessage(const pink::RedisCmdArgsType& argv, std::string* response);
   static void DoBackgroundTask(void* arg);
 
