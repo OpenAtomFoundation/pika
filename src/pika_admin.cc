@@ -1736,20 +1736,19 @@ void TcmallocCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const pt
     return;
   }
   rate_ = 0;
-  std::string tmp = argv[1];
-  std::string type = slash::StringToLower(tmp);
-  if (type == "stats") {
+  std::string type = argv[1];
+  if (!strcasecmp(type.data(), "stats")) {
     type_ = 0;
-  } else if (type == "rate") {
+  } else if (!strcasecmp(type.data(), "rate")) {
     type_ = 1;
     if (argv.size() == 3) {
       if (!slash::string2l(argv[2].data(), argv[2].size(), &rate_)) {
         res_.SetRes(CmdRes::kSyntaxErr, kCmdNameTcmalloc);
       }
     }
-  } else if (type == "list") {
+  } else if (!strcasecmp(type.data(), "list")) {
     type_ = 2;
-  } else if (type == "free") {
+  } else if (!strcasecmp(type.data(), "free")) {
     type_ = 3;
   } else {
     res_.SetRes(CmdRes::kInvalidParameter, kCmdNameTcmalloc);
