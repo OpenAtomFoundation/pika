@@ -289,13 +289,6 @@ void* PikaBinlogSenderThread::ThreadMain() {
                                             scratch,
                                             &binlog_item);
 
-        // If this binlog from the peer-master, can not resend to the peer-master
-        if (binlog_item.server_id() == g_pika_server->DoubleMasterSid()
-          && ip_ == g_pika_server->master_ip()
-          && port_ == (g_pika_server->master_port() + 1000)) {
-          continue;
-        }
-
         // 4. After successful parse, we send msg;
         header.clear();
         slash::PutFixed16(&header, TransferOperate::kTypeBinlog);

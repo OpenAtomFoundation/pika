@@ -80,61 +80,29 @@ void SlaveofCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr
 }
 
 void SlaveofCmd::Do() {
-  // In master-salve mode
-  if (!g_pika_server->DoubleMasterMode()) {
-    // Check if we are already connected to the specified master
-    if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_) &&
-        g_pika_server->master_port() == master_port_) {
-      res_.SetRes(CmdRes::kOk);
-      return;
-    }
-
-    // Stop rsync
-    LOG(INFO) << "Start slaveof, stop rsync first";
-    slash::StopRsync(g_pika_conf->db_sync_path());
-    g_pika_server->RemoveMaster();
-
-    if (is_noone_) {
-      res_.SetRes(CmdRes::kOk);
-      g_pika_conf->SetSlaveof(std::string());
-      return;
-    }
-
-    if (have_offset_) {
-      // Before we send the trysync command, we need purge current logs older than the sync point
-      if (filenum_ > 0) {
-        g_pika_server->PurgeLogs(filenum_ - 1, true, true);
-      }
-      g_pika_server->logger_->SetProducerStatus(filenum_, pro_offset_);
-    }
-  } else {
-    if (is_noone_) {
-      // Stop rsync
-      LOG(INFO) << "Slaveof no one in double-master mode";
-      slash::StopRsync(g_pika_conf->db_sync_path());
-
-      g_pika_server->RemoveMaster();
-
-      std::string double_master_ip = g_pika_conf->double_master_ip();
-      if (double_master_ip == "127.0.0.1") {
-        double_master_ip = g_pika_server->host();
-      }
-      g_pika_server->DeleteSlave(double_master_ip, g_pika_conf->double_master_port());
-      res_.SetRes(CmdRes::kOk);
-      return;
-    }
+  // Check if we are already connected to the specified master
+  if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_) &&
+      g_pika_server->master_port() == master_port_) {
+    res_.SetRes(CmdRes::kOk);
+    return;
   }
 
-  // The conf file already configured double-master item, but now this
-  // connection maybe broken and need to rsync all of binlog
-  if (g_pika_server->DoubleMasterMode() && g_pika_server->repl_state() == PIKA_REPL_NO_CONNECT) {
-    if (g_pika_server->IsDoubleMaster(master_ip_, master_port_)) {
-      g_pika_server->PurgeLogs(0, true, true);
-      g_pika_server->SetForceFullSync(true);
-    } else {
-      res_.SetRes(CmdRes::kErrOther, "In double master mode, can not set other server as the peer-master");
-      return;
+  // Stop rsync
+  LOG(INFO) << "Start slaveof, stop rsync first";
+  slash::StopRsync(g_pika_conf->db_sync_path());
+  g_pika_server->RemoveMaster();
+
+  if (is_noone_) {
+    res_.SetRes(CmdRes::kOk);
+    return;
+  }
+
+  if (have_offset_) {
+    // Before we send the trysync command, we need purge current logs older than the sync point
+    if (filenum_ > 0) {
+      g_pika_server->PurgeLogs(filenum_ - 1, true, true);
     }
+    g_pika_server->logger_->SetProducerStatus(filenum_, pro_offset_);
   }
 
   bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
@@ -190,12 +158,6 @@ void TrysyncCmd::Do() {
     }
     // Create Sender failed, delete the slave
     g_pika_server->DeleteSlave(slave_ip_, slave_port_);
-
-    // In the double master mode, need to remove the peer-master
-    if (g_pika_server->DoubleMasterMode() && g_pika_server->IsDoubleMaster(slave_ip_, slave_port_) && filenum_ != UINT32_MAX) {
-      g_pika_server->RemoveMaster();
-      LOG(INFO) << "Because the invalid filenum and offset, close the connection between the peer-masters";
-    }
 
     if (status.IsIncomplete()) {
       res_.AppendString(kInnerReplWait);
@@ -478,7 +440,6 @@ const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kLogSection = "log";
 const std::string InfoCmd::kDataSection = "data";
-const std::string InfoCmd::kDoubleMaster = "doublemaster";
 
 void InfoCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   (void)ptr_info;
@@ -523,12 +484,10 @@ void InfoCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_in
       res_.SetRes(CmdRes::kSyntaxErr);
     }
     return;
-  } else if (argv[1] == kLogSection) {
+  } else if (!strcasecmp(argv[1].data(), kLogSection.data())) {
     info_section_ = kInfoLog;
-  } else if (argv[1] == kDataSection) {
+  } else if (!strcasecmp(argv[1].data(), kDataSection.data())) {
     info_section_ = kInfoData;
-  } else if (argv[1] == kDoubleMaster) {
-    info_section_ = kInfoDoubleMaster;
   } else {
     info_section_ = kInfoErr;
   }
@@ -556,10 +515,6 @@ void InfoCmd::Do() {
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
-      if (g_pika_server->DoubleMasterMode()) {
-        info.append("\r\n");
-        InfoDoubleMaster(info);
-      }
       break;
     case kInfoAll:
       InfoServer(info);
@@ -579,10 +534,6 @@ void InfoCmd::Do() {
       InfoReplication(info);
       info.append("\r\n");
       InfoKeyspace(info);
-      if (g_pika_server->DoubleMasterMode()) {
-        info.append("\r\n");
-        InfoDoubleMaster(info);
-      }
       break;
     case kInfoServer:
       InfoServer(info);
@@ -614,9 +565,6 @@ void InfoCmd::Do() {
       break;
     case kInfoData:
       InfoData(info);
-      break;
-    case kInfoDoubleMaster:
-      InfoDoubleMaster(info);
       break;
     default:
       //kInfoErr is nothing
@@ -739,12 +687,6 @@ void InfoCmd::InfoReplication(std::string &info) {
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
     case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\n"; break;
-    case PIKA_ROLE_DOUBLE_MASTER :
-        if (g_pika_server->DoubleMasterMode()) {
-          tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
-        } else {
-          tmp_stream << "MASTER/SLAVE)\r\nrole:slave\r\n"; break;
-        }
     default: info.append("ERR: server role is error\r\n"); return;
   }
 
@@ -768,36 +710,6 @@ void InfoCmd::InfoReplication(std::string &info) {
     case PIKA_ROLE_MASTER :
       tmp_stream << "connected_slaves:" << g_pika_server->GetSlaveListString(slaves_list_str) << "\r\n" << slaves_list_str;
   }
-
-  info.append(tmp_stream.str());
-}
-
-void InfoCmd::InfoDoubleMaster(std::string &info) {
-  int host_role = g_pika_server->role();
-  std::stringstream tmp_stream;
-  tmp_stream << "# DoubleMaster(";
-  switch (host_role) {
-    case PIKA_ROLE_SINGLE :
-    case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
-    case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\n"; break;
-    case PIKA_ROLE_DOUBLE_MASTER :
-        if (g_pika_server->DoubleMasterMode()) {
-          tmp_stream << "DOUBLEMASTER)\r\nrole:double_master\r\n"; break;
-        } else {
-          tmp_stream << "MASTER/SLAVE)\r\nrole:slave\r\n"; break;
-        }
-    default : info.append("ERR: server role is error\r\n"); return;
-  }
-
-  tmp_stream << "the peer-master host:" << g_pika_conf->double_master_ip() << "\r\n";
-  tmp_stream << "the peer-master port:" << g_pika_conf->double_master_port() << "\r\n";
-  tmp_stream << "the peer-master server_id:" << g_pika_server->DoubleMasterSid() << "\r\n";
-  tmp_stream << "double_master_mode: " << (g_pika_server->DoubleMasterMode() ? "True" : "False") << "\r\n";
-  tmp_stream << "repl_state: " << (g_pika_server->repl_state()) << "\r\n";
-  uint64_t double_recv_offset;
-  uint32_t double_recv_num;
-  g_pika_server->logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
-  tmp_stream << "double_master_recv_info: filenum " << double_recv_num << " offset " << double_recv_offset << "\r\n";
 
   info.append(tmp_stream.str());
 }
@@ -965,24 +877,6 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     elements += 2;
     EncodeString(&config_body, "port");
     EncodeInt32(&config_body, g_pika_conf->port());
-  }
-
-  if (slash::stringmatch(pattern.data(), "double-master-ip", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "double-master-ip");
-    EncodeString(&config_body, g_pika_conf->double_master_ip());
-  }
-
-  if (slash::stringmatch(pattern.data(), "double-master-port", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "double-master-port");
-    EncodeInt32(&config_body, g_pika_conf->double_master_port());
-  }
-
-  if (slash::stringmatch(pattern.data(), "double-master-sid", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "double-master-sid");
-    EncodeString(&config_body, g_pika_conf->double_master_sid());
   }
 
   if (slash::stringmatch(pattern.data(), "thread-num", 1)) {
@@ -1451,8 +1345,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     ret = "+OK\r\n";
   } else if (set_item == "write-binlog") {
     int role = g_pika_server->role();
-    if (role == PIKA_ROLE_SLAVE || role == PIKA_ROLE_DOUBLE_MASTER) {
-      ret = "-ERR need to close master-slave or double-master mode first\r\n";
+    if (role == PIKA_ROLE_SLAVE) {
+      ret = "-ERR need to close master-slave mode first\r\n";
       return;
     } else if (value != "yes" && value != "no") {
       ret = "-ERR invalid write-binlog (yes or no)\r\n";
