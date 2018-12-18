@@ -62,7 +62,6 @@ const int PIKA_REPL_ERROR         = 5;
 const int PIKA_ROLE_SINGLE        = 0;
 const int PIKA_ROLE_SLAVE         = 1;
 const int PIKA_ROLE_MASTER        = 2;
-const int PIKA_ROLE_DOUBLE_MASTER = 3;
 
 /*
  * The size of Binlogfile

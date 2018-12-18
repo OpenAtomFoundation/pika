@@ -50,12 +50,6 @@ bool PikaTrysyncThread::Send(std::string lip) {
   if (g_pika_server->force_full_sync()) {
     argv.push_back(std::to_string(UINT32_MAX));
     argv.push_back(std::to_string(0));
-  } else if (g_pika_server->DoubleMasterMode()) {
-    uint64_t double_recv_offset;
-    uint32_t double_recv_num;
-    g_pika_server->logger_->GetDoubleRecvInfo(&double_recv_num, &double_recv_offset);
-    argv.push_back(std::to_string(double_recv_num));
-    argv.push_back(std::to_string(double_recv_offset));
   } else {
     argv.push_back(std::to_string(filenum));
     argv.push_back(std::to_string(pro_offset));
@@ -115,14 +109,8 @@ bool PikaTrysyncThread::RecvProc() {
         g_pika_server->NeedWaitDBSync();
       } else {
         LOG(WARNING) << "Connect to master error: " << reply;
-        // In double master mode
-        if (g_pika_server->IsDoubleMaster(g_pika_server->master_ip(), g_pika_server->master_port())) {
-          g_pika_server->RemoveMaster();
-          LOG(INFO) << "Because the invalid filenum and offset, close the connection between the peer-masters";
-        } else {  // In master slave mode
-          LOG(WARNING) << "something wrong with sync, come in SyncError stage";
-          g_pika_server->SyncError();
-        }
+        LOG(WARNING) << "something wrong with sync, come in SyncError stage";
+        g_pika_server->SyncError();
       }
       return false;
     }
@@ -195,13 +183,6 @@ bool PikaTrysyncThread::TryUpdateMasterOffset() {
 
   // Update master offset
   g_pika_server->logger_->SetProducerStatus(filenum, offset);
-
-  // If sender is the peer-master
-  // need to update receive binlog info after rsync finished.
-  if (g_pika_server->DoubleMasterMode() && g_pika_server->IsDoubleMaster(master_ip, master_port)) {
-    g_pika_server->logger_->SetDoubleRecvInfo(filenum, offset);
-    LOG(INFO) << "Update receive infomation after rsync finished. filenum: " << filenum << " offset: " << offset;
-  }
   g_pika_server->WaitDBSyncFinish();
   g_pika_server->SetForceFullSync(false);
   return true;
