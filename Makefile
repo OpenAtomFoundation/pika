@@ -204,10 +204,10 @@ BINARY = ${BINNAME}
 .PHONY: distclean clean dbg all
 
 %.pb.cc %.pb.h: %.proto $(PROTOC)
-		$(AM_V_CC)$(PROTOC) -I=$(SRC_PATH) --cpp_out=$(SRC_PATH) $<
+	$(AM_V_CC)$(PROTOC) -I=$(SRC_PATH) --cpp_out=$(SRC_PATH) $<
 
 %.o: %.cc
-	  $(AM_V_CC)$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(AM_V_CC)$(CXX) $(CXXFLAGS) -c $< -o $@
 
 proto : $(PIKA_PROTO_GENS)
 
@@ -237,7 +237,7 @@ $(BLACKWIDOW):
 	$(AM_V_at)make -C $(BLACKWIDOW_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) SLASH_PATH=$(SLASH_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
 
 $(PROTOBUF) $(PROTOC):
-	cd $(PROTOBUF_PATH); autoreconf -if; ./configure --prefix=$(PROTOBUF_PATH)/_install; make install
+	cd $(PROTOBUF_PATH); autoreconf -if; ./configure --prefix=$(PROTOBUF_PATH)/_install --disable-shared; make install
 
 $(GLOG):
 	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure --disable-shared; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore;
