@@ -430,13 +430,14 @@ void ClientCmd::Do() {
     std::vector<ClientInfo> clients;
     g_pika_server->ClientList(&clients);
     std::vector<ClientInfo>::iterator iter= clients.begin();
-    std::string reply = "+";
+    std::string reply = "";
     char buf[128];
     while (iter != clients.end()) {
-      snprintf(buf, sizeof(buf), "addr=%s fd=%d idle=%ld\n", iter->ip_port.c_str(), iter->fd, iter->last_interaction == 0 ? 0 : now.tv_sec - iter->last_interaction);
+      snprintf(buf, sizeof(buf), "addr=%s fd=%d idle=%ld\r\n", iter->ip_port.c_str(), iter->fd, iter->last_interaction == 0 ? 0 : now.tv_sec - iter->last_interaction);
       reply.append(buf);
       iter++;
     }
+    res_.AppendStringLen(reply.size());
     res_.AppendContent(reply);
   } else if (operation_ == CLIENT_KILL_S && ip_port_ == "all") {
     g_pika_server->ClientKillAll();
