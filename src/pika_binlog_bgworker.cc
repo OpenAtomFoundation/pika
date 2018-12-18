@@ -65,9 +65,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   if (!is_readonly) {
     error_happend = !g_pika_server->WaitTillBinlogBGSerial(my_serial);
     if (!error_happend) {
-      if (!g_pika_server->DoubleMasterMode()) {
-        server_id = g_pika_conf->server_id();
-      }
+      server_id = g_pika_conf->server_id();
       g_pika_server->logger_->Lock();
       std::string binlog = c_ptr->ToBinlog(argv,
                                            binlog_item.exec_time(),
@@ -79,10 +77,6 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
         g_pika_server->logger_->Put(binlog);
       }
       g_pika_server->logger_->Unlock();
-      if (g_pika_server->DoubleMasterMode()) {
-        // In double moaster mode, update binlog recv info
-        g_pika_server->logger_->SetDoubleRecvInfo(binlog_item.filenum(), binlog_item.offset());
-      }
       g_pika_server->SignalNextBinlogBGSerial();
     }
   }
