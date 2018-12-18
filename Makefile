@@ -81,6 +81,12 @@ BLACKWIDOW_PATH = $(THIRD_PATH)/blackwidow
 endif
 BLACKWIDOW = $(BLACKWIDOW_PATH)/lib/libblackwidow$(DEBUG_SUFFIX).a
 
+ifndef PROTOBUF_PATH
+PROTOBUF_PATH = $(THIRD_PATH)/protobuf
+endif
+PROTOBUF = $(PROTOBUF_PATH)/_install/lib/libprotobuf.a
+PROTOC = $(PROTOBUF_PATH)/_install/bin/protoc
+
 ifeq ($(360), 1)
 GLOG := $(GLOG_PATH)/.libs/libglog.a
 endif
@@ -90,7 +96,8 @@ INCLUDE_PATH = -I. \
 							 -I$(PINK_PATH) \
 							 -I$(BLACKWIDOW_PATH)/include \
 							 -I$(ROCKSDB_PATH) \
-							 -I$(ROCKSDB_PATH)/include
+							 -I$(ROCKSDB_PATH)/include \
+							 -I$(PROTOBUF_PATH)/_install/include
 
 ifeq ($(360),1)
 INCLUDE_PATH += -I$(GLOG_PATH)/src
@@ -100,7 +107,7 @@ LIB_PATH = -L./ \
 					 -L$(SLASH_PATH)/slash/lib \
 					 -L$(PINK_PATH)/pink/lib \
 					 -L$(BLACKWIDOW_PATH)/lib \
-					 -L$(ROCKSDB_PATH)
+					 -L$(ROCKSDB_PATH)        \
 
 ifeq ($(360),1)
 LIB_PATH += -L$(GLOG_PATH)/.libs
@@ -111,13 +118,16 @@ LDFLAGS += $(LIB_PATH) \
 			 		 -lslash$(DEBUG_SUFFIX) \
 					 -lblackwidow$(DEBUG_SUFFIX) \
 					 -lrocksdb$(DEBUG_SUFFIX) \
-					 -lglog
+					 -lglog \
 
 # ---------------End Dependences----------------
 
 VERSION_CC=$(SRC_PATH)/build_version.cc
 LIB_SOURCES :=  $(VERSION_CC) \
 				$(filter-out $(VERSION_CC), $(wildcard $(SRC_PATH)/*.cc))
+
+PIKA_PROTO := $(wildcard $(SRC_PATH)/*.proto)
+PIKA_PROTO_GENS:= $(PIKA_PROTO:%.proto=%.pb.cc) $(PIKA_PROTO:%.proto=%.pb.h)
 
 
 #-----------------------------------------------
@@ -182,6 +192,7 @@ $(SRC_PATH)/build_version.cc: FORCE
 FORCE: 
 
 LIBOBJECTS = $(LIB_SOURCES:.cc=.o)
+PROTOOBJECTS = $(PIKA_PROTO:.proto=.pb.o)
 
 # if user didn't config LIBNAME, set the default
 ifeq ($(BINNAME),)
@@ -192,14 +203,19 @@ BINARY = ${BINNAME}
 
 .PHONY: distclean clean dbg all
 
+%.pb.cc %.pb.h: %.proto $(PROTOC)
+		$(AM_V_CC)$(PROTOC) -I=$(SRC_PATH) --cpp_out=$(SRC_PATH) $<
+
 %.o: %.cc
 	  $(AM_V_CC)$(CXX) $(CXXFLAGS) -c $< -o $@
+
+proto : $(PIKA_PROTO_GENS)
 
 all: $(BINARY)
 
 dbg: $(BINARY)
 
-$(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(BLACKWIDOW) $(GLOG) $(LIBOBJECTS)
+$(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(BLACKWIDOW) $(GLOG) $(PROTOOBJECTS) $(PROTOBUF) $(LIBOBJECTS)
 	$(AM_V_at)rm -f $@
 	$(AM_V_at)$(AM_LINK)
 	$(AM_V_at)rm -rf $(OUTPUT)
@@ -220,12 +236,16 @@ $(ROCKSDB):
 $(BLACKWIDOW):
 	$(AM_V_at)make -C $(BLACKWIDOW_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) SLASH_PATH=$(SLASH_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
 
+$(PROTOBUF) $(PROTOC):
+	cd $(PROTOBUF_PATH); autoreconf -if; ./configure --prefix=$(PROTOBUF_PATH)/_install; make install
+
 $(GLOG):
 	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure --disable-shared; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore;
 
 clean:
 	rm -rf $(OUTPUT)
 	rm -rf $(CLEAN_FILES)
+	rm -rf $(PIKA_PROTO_GENS)
 	find $(SRC_PATH) -name "*.[oda]*" -exec rm -f {} \;
 	find $(SRC_PATH) -type f -regex ".*\.\(\(gcda\)\|\(gcno\)\)" -exec rm {} \;
 
@@ -234,4 +254,5 @@ distclean: clean
 	make -C $(SLASH_PATH)/slash/ clean
 	make -C $(BLACKWIDOW_PATH)/ clean
 	make -C $(ROCKSDB_PATH)/ clean
+	make -C $(PROTOBUF_PATH)/ clean
 #	make -C $(GLOG_PATH)/ clean
