@@ -18,6 +18,11 @@
 
 typedef slash::RWLock RWLock;
 
+struct TableStruct {
+  std::string table_name;
+  uint32_t partition_num;
+};
+
 // global class, class members well initialized
 class PikaConf : public slash::BaseConf {
  public:
@@ -57,6 +62,10 @@ class PikaConf : public slash::BaseConf {
   }
   const std::vector<std::string>& vuser_blacklist() {
     RWLock l(&rwlock_, false); return user_blacklist_;
+  }
+  const std::vector<TableStruct>& table_structs() {
+    RWLock l(&rwlock_, false);
+    return table_structs_;
   }
   std::string compression()     { RWLock l(&rwlock_, false); return compression_; }
   int target_file_size_base()   { RWLock l(&rwlock_, false); return target_file_size_base_; }
@@ -254,6 +263,7 @@ private:
   std::string masterauth_;
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
+  std::vector<TableStruct> table_structs_;
   std::string bgsave_path_;
   std::string bgsave_prefix_;
   std::string pidfile_;
