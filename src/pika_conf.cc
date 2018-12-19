@@ -72,6 +72,20 @@ int PikaConf::Load()
   for (auto& item : user_blacklist_) {
     slash::StringToLower(item);
   }
+
+  std::vector<std::string> elems;
+  std::vector<std::string> table_struct_strs;
+  GetConfStrVec("table-struct", &table_struct_strs);
+  for (const auto& item : table_struct_strs) {
+    slash::StringSplit(item, ':', elems);
+    if (elems.size() == 2) {
+      table_structs_.push_back({elems[0], static_cast<uint32_t>(atoi(elems[1].data()))});
+    }
+  }
+  if (table_structs_.empty()) {
+    table_structs_.push_back({"default", 1});
+  }
+
   GetConfStr("dump-path", &bgsave_path_);
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
     bgsave_path_ += "/";
