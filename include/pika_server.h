@@ -22,6 +22,7 @@
 #include "include/pika_monitor_thread.h"
 #include "include/pika_define.h"
 #include "include/pika_binlog_bgworker.h"
+#include "include/pika_table.h"
 
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
@@ -125,6 +126,17 @@ class PikaServer {
   void SetForceFullSync(bool v) {
     force_full_sync_ = v;
   }
+
+  /*
+   * Partition use
+   */
+  std::shared_ptr<Partition> GetTablePartitionById(
+                                  const std::string& table_name,
+                                  uint32_t partition_id);
+  std::shared_ptr<Partition> GetTablePartitionByKey(
+                                  const std::string& table_name,
+                                  const std::string& key);
+
   /*
    * Master use
    */
@@ -394,6 +406,13 @@ class PikaServer {
   int port_;
   pthread_rwlock_t rwlock_;
   std::shared_ptr<blackwidow::BlackWidow> db_;
+
+  /*
+   * table use
+   */
+  pthread_rwlock_t tables_rw_;
+  std::unordered_map<std::string, std::shared_ptr<Table>> tables_;
+  std::shared_ptr<Table> GetTable(const std::string &table_name);
 
   time_t start_time_s_;
   bool have_scheduled_crontask_;
