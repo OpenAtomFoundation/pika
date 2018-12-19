@@ -1,60 +1,121 @@
 package InnerMessage;
 
 enum Type {
- kSyncMeta = 1;
- kTrySync  = 2;
+  kMetaSync   = 1;
+  kTrySync    = 2;
+  kBinlogSync = 3;
+  kDbSync     = 4;
 }
 
 enum StatusCode {
- kOk       = 1;
- kWait     = 2;
- kError    = 3;
+  kOk       = 1;
+  kWait     = 2;
+  kError    = 3;
 }
 
 message SyncOffset {
- required int32  filenum = 1;
- required int64  offset  = 2;
- optional bool   force   = 3;
+  required int32  filenum = 1;
+  required int64  offset  = 2;
+  optional bool   force   = 3;
 }
 
 message Node {
- required string ip   = 1;
- required int32  port = 2;
+  required string ip   = 1;
+  required int32  port = 2;
 }
 
-message Table {
- required string table_name    = 1;
- required int32  partition_num = 2;
+enum TrySyncType {
+  kTrySyncMasterAuth   = 1;
+  kTrySyncMasterNoAuth = 2;
 }
 
+enum BinlogSyncType {
+  kBinlogSyncAuth = 1;
+  kBinlogSyncInfo = 2;
+}
+
+// Request message
 message InnerRequst {
- message SyncMeta {
-  required Node node = 1;
- }
+  // slave to master
+  message MetaSync {
+    required Node node = 1;
+  }
 
- message TrySync {
-  required Node       node         = 1;
-  required string     table_name   = 2;
-  required int32      partition_id = 3;
-  required SyncOffset sync_offset  = 4;
- }
+  // slave to master
+  message TrySync {
+    required TrySyncType type         = 1;
+    required Node        node         = 2;
+    required string      table_name   = 3;
+    required int32       partition_id = 4;
+    required SyncOffset  sync_offset  = 5;
+    optional string      mater_auth   = 6; 
+  }
 
- required Type type          = 1;
- optional SyncMeta sync_meta = 2;
- optional TrySync  try_sync  = 3;
+  // master to slave
+  message BinlogSync {
+    message BinlogSyncAuth {
+      required string server_id = 1;
+    }
+    message BinlogSyncInfo {
+      required bytes binlog = 1;
+    } 
+    required BinlogSyncType type          = 1;
+    required Node           node          = 2;
+    required string         table_name    = 3;
+    required int32          partition_num = 4;
+    optional BinlogSyncAuth sync_auth     = 5; 
+    optional BinlogSyncInfo sync_info     = 6; 
+  }
+
+  // master to slave
+  message DbSync {
+    required string table_name   = 1;
+    required int32  partition_id = 2;
+  }
+
+  required Type      type         = 1;
+  optional MetaSync  meta_sync    = 2;
+  optional TrySync   try_sync     = 3;
+  optional BinlogSync binlog_sync = 4; 
 }
 
+message PartitionInfo {
+  required int32  partition_id = 1;
+  required string role         = 2;
+  required Node   master       = 3;
+  repeated Node   slaves       = 4;
+}
+
+// Response message
 message InnerResponse {
- message SyncMeta {
-  repeated Table tables = 1;
- }
+  // master to slave
+  message MetaSync {
+    message TableInfo {
+      required string        table_name = 1;
+      repeated PartitionInfo par_info   = 2;
+    }
+    repeated TableInfo tables_info = 1;
+  }
 
- message TrySync {
-  required StatusCode code   = 1;
-  optional string     reply  = 2;
- }
+  // master to slave
+  message TrySync {
+    required SyncOffset sync_offset = 1; 
+    //optional string     reply  = 2;
+    required int32      s_id = 2;
+  }
 
- required Type type          = 1;
- optional SyncMeta sync_meta = 2;
- optional TrySync  try_sync  = 3;
+  // slave to master
+  message BinlogSync {
+    required SyncOffset sync_offset = 1;
+  }
+
+  // slave to master
+  message DbSync {
+  }
+  required Type       type        = 1;
+  required StatusCode code        = 2;
+  optional MetaSync   meta_sync   = 3;
+  optional TrySync    try_sync    = 4;
+  optional BinlogSync binlog_sync = 5;
+  optional DbSync     db_sync     = 6;
 }
