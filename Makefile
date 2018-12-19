@@ -237,7 +237,7 @@ $(BLACKWIDOW):
 	$(AM_V_at)make -C $(BLACKWIDOW_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) SLASH_PATH=$(SLASH_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
 
 $(PROTOBUF) $(PROTOC):
-	cd $(PROTOBUF_PATH); autoreconf -if; ./configure --prefix=$(PROTOBUF_PATH)/_install --disable-shared; make install
+	cd $(PROTOBUF_PATH); autoreconf -if; ./configure --prefix=$(PROTOBUF_PATH)/_install --disable-shared; make install; echo '*' > $(PROTOBUF_PATH)/.gitignore
 
 $(GLOG):
 	cd $(THIRD_PATH)/glog; if [ ! -f ./Makefile ]; then ./configure --disable-shared; fi; make; echo '*' > $(CURDIR)/third/glog/.gitignore;
