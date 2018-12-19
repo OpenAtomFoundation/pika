@@ -16,17 +16,11 @@ enum StatusCode {
 message SyncOffset {
   required int32  filenum = 1;
   required int64  offset  = 2;
-  optional bool   force   = 3;
 }
 
 message Node {
   required string ip   = 1;
   required int32  port = 2;
-}
-
-enum TrySyncType {
-  kTrySyncMasterAuth   = 1;
-  kTrySyncMasterNoAuth = 2;
 }
 
 enum BinlogSyncType {
@@ -43,18 +37,17 @@ message InnerRequst {
 
   // slave to master
   message TrySync {
-    required TrySyncType type         = 1;
-    required Node        node         = 2;
-    required string      table_name   = 3;
-    required int32       partition_id = 4;
-    required SyncOffset  sync_offset  = 5;
-    optional string      mater_auth   = 6; 
+    required Node        node         = 1;
+    required string      table_name   = 2;
+    required int32       partition_id = 3;
+    required SyncOffset  sync_offset  = 4;
+    optional bool        force        = 5;
   }
 
   // master to slave
   message BinlogSync {
     message BinlogSyncAuth {
-      required string server_id = 1;
+      required string s_id = 1;
     }
     message BinlogSyncInfo {
       required bytes binlog = 1;
@@ -63,8 +56,9 @@ message InnerRequst {
     required Node           node          = 2;
     required string         table_name    = 3;
     required int32          partition_num = 4;
-    optional BinlogSyncAuth sync_auth     = 5; 
-    optional BinlogSyncInfo sync_info     = 6; 
+    required SyncOffset     sync_offset   = 5;
+    optional BinlogSyncAuth sync_auth     = 6;
+    optional BinlogSyncInfo sync_info     = 7;
   }
 
   // master to slave
@@ -81,9 +75,8 @@ message InnerRequst {
 
 message PartitionInfo {
   required int32  partition_id = 1;
-  required string role         = 2;
-  required Node   master       = 3;
-  repeated Node   slaves       = 4;
+  required Node   master       = 2;
+  repeated Node   slaves       = 3;
 }
 
 // Response message
@@ -99,9 +92,8 @@ message InnerResponse {
 
   // master to slave
   message TrySync {
-    required SyncOffset sync_offset = 1; 
-    //optional string     reply  = 2;
-    required int32      s_id = 2;
+    required int32  s_id   = 1;
+    optional string reply  = 2;
   }
 
   // slave to master
