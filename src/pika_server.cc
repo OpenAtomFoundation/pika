@@ -63,12 +63,28 @@ PikaServer::PikaServer() :
   RocksdbOptionInit(&bw_option);
 
   std::string db_path = g_pika_conf->db_path();
+  std::string log_path = g_pika_conf->log_path();
   LOG(INFO) << "Prepare Blackwidow DB...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(bw_option, db_path);
   assert(db_);
   assert(s.ok());
   LOG(INFO) << "DB Success";
+
+
+  pthread_rwlockattr_t tables_rw_attr;
+  pthread_rwlockattr_init(&tables_rw_attr);
+  pthread_rwlockattr_setkind_np(&tables_rw_attr,
+          PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  pthread_rwlock_init(&tables_rw_, &tables_rw_attr);
+
+  std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+  for (const auto& table : table_structs) {
+    std::string name = table.table_name;
+    uint32_t num = table.partition_num;
+    tables_.emplace(name, std::shared_ptr<Table>(
+                new Table(name, num, db_path, log_path)));
+  }
 
 
   // Create thread
@@ -145,7 +161,10 @@ PikaServer::~PikaServer() {
 
   delete logger_;
   db_.reset();
+  tables_.clear();
+
   pthread_rwlock_destroy(&rwlock_);
+  pthread_rwlock_destroy(&tables_rw_);
   pthread_rwlock_destroy(&state_protector_);
   pthread_rwlock_destroy(&slowlog_protector_);
 
@@ -334,6 +353,20 @@ void PikaServer::Start() {
     }
   }
   LOG(INFO) << "Goodbye...";
+}
+
+std::shared_ptr<Partition> PikaServer::GetTablePartitionById(
+                                    const std::string& table_name,
+                                    uint32_t partition_id) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  return table ? table->GetPartitionById(partition_id) : NULL;
+}
+
+std::shared_ptr<Partition> PikaServer::GetTablePartitionByKey(
+                                    const std::string& table_name,
+                                    const std::string& key) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  return table ? table->GetPartitionByKey(key) : NULL;
 }
 
 void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
@@ -1652,6 +1685,12 @@ void PikaServer::ResetStat() {
   slash::WriteLock l(&statistic_data_.statistic_lock);
   statistic_data_.thread_querynum = 0;
   statistic_data_.last_thread_querynum = 0;
+}
+
+std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {
+  slash::RWLock l(&tables_rw_, false);
+  auto iter = tables_.find(table_name);
+  return (iter == tables_.end()) ? NULL : iter->second;
 }
 
 void PikaServer::SetDispatchQueueLimit(int queue_limit) {
