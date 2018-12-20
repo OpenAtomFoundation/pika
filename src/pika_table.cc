@@ -39,6 +39,16 @@ Table::~Table() {
   partitions_.clear();
 }
 
+bool Table::IsCommandSupport(const std::string& cmd) const {
+  if (partition_num_ == 1) {
+    return true;
+  } else {
+    std::string command = cmd;
+    slash::StringToLower(command);
+    auto iter = TableMayNotSupportCommands.find(command);
+    return (iter == TableMayNotSupportCommands.end()) ? true : false;
+  }
+}
 std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
   slash::RWLock l(&partitions_rw_, false);
   auto iter = partitions_.find(partition_id);
@@ -46,6 +56,7 @@ std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
 }
 
 std::shared_ptr<Partition> Table::GetPartitionByKey(const std::string& key) {
-  // Implement it later
-  return NULL;
+  slash::RWLock l(&partitions_rw_, false);
+  auto iter = partitions_.find(std::hash<std::string>()(key) % partition_num_);
+  return (iter == partitions_.end()) ? NULL : iter->second;
 }
