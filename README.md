@@ -4,7 +4,7 @@
 
 ## Introduction[中文](https://github.com/Qihoo360/pika/blob/master/README_CN.md)
 
-Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization. You can also use pika together with twemproxy or codis(*pika has supported data migration in codis，thanks [left2right](https://github.com/left2right) and [fancy-rabbit](https://github.com/fancy-rabbit)*) for distributed Redis solution
+Pika is a persistent huge storage service, compatible with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also supports master-slave mode by slaveof command, including full and partial synchronization. You can also use pika together with twemproxy or codis(*pika has supported data migration in codis，thanks [left2right](https://github.com/left2right) and [fancy-rabbit](https://github.com/fancy-rabbit)*) for distributed Redis solution
 
 
 ## UserList
@@ -129,7 +129,7 @@ Threads are not bound to CPU cores.
 
 #### Result
 
-Description : Horizontal axis is the number of worker threads; Vertical axis is the QPS. The value size is 128bytes. set3/get7 means 30% set and 70% get.
+Description: Horizontal axis is the number of worker threads; Vertical axis is the QPS. The value size is 128bytes. set3/get7 means 30% set and 70% get.
 
 <img src="https://deep011.github.io/public/images/pika_benchmark/pika_threads_test.png" height = "60%" width = "60%" alt="1"/>
 
