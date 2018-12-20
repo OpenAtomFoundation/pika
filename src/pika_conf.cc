@@ -85,6 +85,7 @@ int PikaConf::Load()
   if (table_structs_.empty()) {
     table_structs_.push_back({"default", 1});
   }
+  default_table_ = table_structs_[0].table_name;
 
   GetConfStr("dump-path", &bgsave_path_);
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {

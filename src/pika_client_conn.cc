@@ -38,12 +38,11 @@ static std::string ConstructPubSubResp(
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                pink::ServerThread* server_thread,
-                               void* worker_specific_data,
                                pink::PinkEpoll* pink_epoll,
                                const pink::HandleType& handle_type)
       : RedisConn(fd, ip_port, server_thread, pink_epoll, handle_type),
         server_thread_(server_thread),
-        cmds_table_(reinterpret_cast<CmdTable*>(worker_specific_data)),
+        current_table_(g_pika_conf->default_table()),
         is_pubsub_(false) {
   auth_stat_.Init();
 }
@@ -106,6 +105,17 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     }
   }
 
+  // Select
+  if (opt == kCmdNameSelect) {
+    std::string table_name = argv[1];
+    if (g_pika_server->IsTableExist(table_name)) {
+      current_table_ = table_name;
+      return "+OK\r\n";
+    } else {
+      return "-ERR invalid Table Name\r\n";
+    }
+  }
+
   // Monitor
   if (opt == kCmdNameMonitor) {
     std::shared_ptr<PinkConn> conn = server_thread_->MoveConnOut(fd());
@@ -147,6 +157,10 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
       this->SetIsPubSub(false);
     }
     return ConstructPubSubResp(opt, result);
+  }
+
+  if (!g_pika_server->IsTableSupportCommand(current_table_, opt)) {
+    return "-ERR CROSS PARTITION Keys in this request command may don't hash to the same partition\r\n";
   }
 
   if (cinfo_ptr->is_write()) {

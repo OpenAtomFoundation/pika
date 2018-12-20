@@ -23,15 +23,17 @@ class Partition {
             const std::string& table_log_path);
   virtual ~Partition();
 
-  uint32_t partition_id() const {
-    return partition_id_;
-  }
+  uint32_t partition_id() const;
+  std::string partition_name() const;
+  std::shared_ptr<Binlog> logger() const;
+  std::shared_ptr<blackwidow::BlackWidow> db() const;
+
+
+  void RecordLock(const std::string& key);
+  void RecordUnLock(const std::string& key);
 
   void RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const;
 
-  const std::shared_ptr<blackwidow::BlackWidow> db() const {
-    return db_;
-  }
 
  private:
   std::string table_name_;
@@ -41,10 +43,11 @@ class Partition {
   std::string log_path_;
   std::string partition_name_;
 
-  pthread_rwlock_t db_rw_;
-  std::shared_ptr<blackwidow::BlackWidow> db_;
-
   std::shared_ptr<Binlog> logger_;
+
+  pthread_rwlock_t db_rw_;
+  slash::RecordMutex mutex_record_;
+  std::shared_ptr<blackwidow::BlackWidow> db_;
 
   /*
    * No allowed copy and copy assign
