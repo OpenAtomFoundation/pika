@@ -67,6 +67,7 @@ class PikaConf : public slash::BaseConf {
     RWLock l(&rwlock_, false);
     return table_structs_;
   }
+  std::string default_table()   { RWLock l(&rwlock_, false); return default_table_;}
   std::string compression()     { RWLock l(&rwlock_, false); return compression_; }
   int target_file_size_base()   { RWLock l(&rwlock_, false); return target_file_size_base_; }
   int max_cache_statistic_keys() {RWLock l(&rwlock_, false); return max_cache_statistic_keys_;}
@@ -265,6 +266,7 @@ private:
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
   std::vector<TableStruct> table_structs_;
+  std::string default_table_;
   std::string bgsave_path_;
   std::string bgsave_prefix_;
   std::string pidfile_;

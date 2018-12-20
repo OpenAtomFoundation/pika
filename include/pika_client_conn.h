@@ -22,8 +22,9 @@ class PikaClientConn: public pink::RedisConn {
     std::string* response;
   };
 
-  PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
-                 void* worker_specific_data, pink::PinkEpoll* pink_epoll,
+  PikaClientConn(int fd, std::string ip_port,
+                 pink::ServerThread *server_thread,
+                 pink::PinkEpoll* pink_epoll,
                  const pink::HandleType& handle_type);
   virtual ~PikaClientConn() {}
 
@@ -38,7 +39,7 @@ class PikaClientConn: public pink::RedisConn {
 
  private:
   pink::ServerThread* const server_thread_;
-  CmdTable* const cmds_table_;
+  std::string current_table_;
   bool is_pubsub_;
 
   std::string DoCmd(const PikaCmdArgsType& argv, const std::string& opt);

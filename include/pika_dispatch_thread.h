@@ -35,7 +35,7 @@ class PikaDispatchThread {
         pink::ServerThread* server_thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const {
-      return std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, worker_specific_data, pink_epoll, pink::HandleType::kAsynchronous);
+      return std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, pink_epoll, pink::HandleType::kAsynchronous);
     }
   };
 
@@ -47,8 +47,6 @@ class PikaDispatchThread {
     using pink::ServerHandle::AccessHandle;
     bool AccessHandle(std::string& ip) const override;
     void CronHandle() const override;
-    int CreateWorkerSpecificData(void** data) const override;
-    int DeleteWorkerSpecificData(void* data) const override;
 
    private:
     PikaDispatchThread* pika_disptcher_;
