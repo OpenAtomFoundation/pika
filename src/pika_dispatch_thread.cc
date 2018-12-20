@@ -75,18 +75,3 @@ void PikaDispatchThread::Handles::CronHandle() const {
   pika_disptcher_->thread_rep_->set_keepalive_timeout(g_pika_conf->timeout());
   g_pika_server->ResetLastSecQuerynum();
 }
-
-int PikaDispatchThread::Handles::CreateWorkerSpecificData(void** data) const {
-  //CmdTable* cmds = new CmdTable;
-  //cmds->reserve(300);
-  //InitCmdTable(cmds);
-  //*data = reinterpret_cast<void*>(cmds);
-  return 0;
-}
-
-int PikaDispatchThread::Handles::DeleteWorkerSpecificData(void* data) const {
-  //CmdTable* cmds = reinterpret_cast<CmdTable*>(data);
-  //DestoryCmdTable(cmds);
-  //delete cmds;
-  return 0;
-}
