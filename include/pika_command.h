@@ -16,8 +16,6 @@
 
 #include "include/pika_binlog_transverter.h"
 
-const std::string kPikaBinlogMagic = "__PIKA_X#$SKGI";
-
 //Constant for command name
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";

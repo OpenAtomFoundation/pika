@@ -9,11 +9,21 @@
 #include <string>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "iostream"
 
+#include "include/pika_command.h"
 #include "include/pika_partition.h"
 
+static std::unordered_set<std::string> TableMayNotSupportCommands {kCmdNameDel,
+                       kCmdNameMget,        kCmdNameKeys,          kCmdNameMset,
+                       kCmdNameMsetnx,      kCmdNameScan,          kCmdNameScanx,
+                       kCmdNamePKScanRange, kCmdNamePKRScanRange,  kCmdNameRPopLPush,
+                       kCmdNameZUnionstore, kCmdNameZInterstore,   kCmdNameSUnion,
+                       kCmdNameSUnionstore, kCmdNameSInter,        kCmdNameSInterstore,
+                       kCmdNameSDiff,       kCmdNameSDiffstore,    kCmdNameSMove,
+                       kCmdNamePfCount,     kCmdNamePfMerge};
 
 class Table {
  public:
@@ -22,6 +32,8 @@ class Table {
         const std::string& db_path,
         const std::string& log_path);
   virtual ~Table();
+
+  bool IsCommandSupport(const std::string& cmd) const;
 
   std::shared_ptr<Partition> GetPartitionById(uint32_t partition_id);
   std::shared_ptr<Partition> GetPartitionByKey(const std::string& key);
