@@ -355,6 +355,19 @@ void PikaServer::Start() {
   LOG(INFO) << "Goodbye...";
 }
 
+bool PikaServer::IsTableExist(const std::string& table_name) {
+  return GetTable(table_name) ? true : false;
+}
+
+bool PikaServer::IsTableSupportCommand(const std::string& table_name,
+                                       const std::string& command) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  if (table && table->IsCommandSupport(command)) {
+    return true;
+  }
+  return false;
+}
+
 std::shared_ptr<Partition> PikaServer::GetTablePartitionById(
                                     const std::string& table_name,
                                     uint32_t partition_id) {
