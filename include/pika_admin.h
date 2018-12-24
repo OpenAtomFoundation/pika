@@ -22,12 +22,8 @@
  */
 class SlaveofCmd : public Cmd {
  public:
-  SlaveofCmd()
-      : is_noone_(false),
-        have_offset_(false),
-        filenum_(0),
-        pro_offset_(0) {
-  }
+  SlaveofCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), is_noone_(false), have_offset_(false), filenum_(0), pro_offset_(0) {}
   virtual void Do();
 
  private:
@@ -46,7 +42,8 @@ class SlaveofCmd : public Cmd {
 
 class TrysyncCmd : public Cmd {
  public:
-  TrysyncCmd() {}
+  TrysyncCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -59,7 +56,8 @@ class TrysyncCmd : public Cmd {
 
 class AuthCmd : public Cmd {
  public:
-  AuthCmd() {}
+  AuthCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -69,7 +67,8 @@ class AuthCmd : public Cmd {
 
 class BgsaveCmd : public Cmd {
  public:
-  BgsaveCmd() {}
+  BgsaveCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -78,7 +77,8 @@ class BgsaveCmd : public Cmd {
 
 class BgsaveoffCmd : public Cmd {
  public:
-  BgsaveoffCmd() {}
+  BgsaveoffCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -87,7 +87,8 @@ class BgsaveoffCmd : public Cmd {
 
 class CompactCmd : public Cmd {
  public:
-  CompactCmd() {}
+  CompactCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -100,7 +101,8 @@ class CompactCmd : public Cmd {
 
 class PurgelogstoCmd : public Cmd {
  public:
-  PurgelogstoCmd() : num_(0) {}
+  PurgelogstoCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), num_(0) {}
   virtual void Do();
 
  private:
@@ -110,7 +112,8 @@ class PurgelogstoCmd : public Cmd {
 
 class PingCmd : public Cmd {
  public:
-  PingCmd() {}
+  PingCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -119,7 +122,8 @@ class PingCmd : public Cmd {
 
 class SelectCmd : public Cmd {
  public:
-  SelectCmd() {}
+  SelectCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -128,7 +132,8 @@ class SelectCmd : public Cmd {
 
 class FlushallCmd : public Cmd {
  public:
-  FlushallCmd() {}
+  FlushallCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -137,7 +142,8 @@ class FlushallCmd : public Cmd {
 
 class FlushdbCmd : public Cmd {
  public:
-  FlushdbCmd() {}
+  FlushdbCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -150,7 +156,8 @@ class FlushdbCmd : public Cmd {
 
 class ClientCmd : public Cmd {
  public:
-  ClientCmd() {}
+  ClientCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
   const static std::string CLIENT_LIST_S;
   const static std::string CLIENT_KILL_S;
@@ -179,7 +186,8 @@ class InfoCmd : public Cmd {
     kInfoDoubleMaster
   };
 
-  InfoCmd() : rescan_(false), off_(false) {}
+  InfoCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), rescan_(false), off_(false) {}
   virtual void Do();
 
  private:
@@ -220,7 +228,8 @@ class InfoCmd : public Cmd {
 
 class ShutdownCmd : public Cmd {
  public:
-  ShutdownCmd() {}
+  ShutdownCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -229,7 +238,8 @@ class ShutdownCmd : public Cmd {
 
 class ConfigCmd : public Cmd {
  public:
-  ConfigCmd() {}
+  ConfigCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -243,7 +253,8 @@ class ConfigCmd : public Cmd {
 
 class MonitorCmd : public Cmd {
  public:
-  MonitorCmd() {}
+  MonitorCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -252,7 +263,8 @@ class MonitorCmd : public Cmd {
 
 class DbsizeCmd : public Cmd {
  public:
-  DbsizeCmd() {}
+  DbsizeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -261,7 +273,8 @@ class DbsizeCmd : public Cmd {
 
 class TimeCmd : public Cmd {
  public:
-  TimeCmd() {}
+  TimeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -270,7 +283,8 @@ class TimeCmd : public Cmd {
 
 class DelbackupCmd : public Cmd {
  public:
-  DelbackupCmd() {}
+  DelbackupCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -279,7 +293,8 @@ class DelbackupCmd : public Cmd {
 
 class EchoCmd : public Cmd {
  public:
-  EchoCmd() {}
+  EchoCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -289,7 +304,8 @@ class EchoCmd : public Cmd {
 
 class ScandbCmd : public Cmd {
  public:
-  ScandbCmd() : type_(blackwidow::kAll) {}
+  ScandbCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), type_(blackwidow::kAll) {}
   virtual void Do();
 
  private:
@@ -303,7 +319,8 @@ class ScandbCmd : public Cmd {
 class SlowlogCmd : public Cmd {
  public:
   enum SlowlogCondition{kGET, kLEN, kRESET};
-  SlowlogCmd() : condition_(kGET) {}
+  SlowlogCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), condition_(kGET) {}
   virtual void Do();
  private:
   int64_t number_;
@@ -318,7 +335,8 @@ class SlowlogCmd : public Cmd {
 #ifdef TCMALLOC_EXTENSION
 class TcmallocCmd : public Cmd {
  public:
-  TcmallocCmd() {}
+  TcmallocCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:

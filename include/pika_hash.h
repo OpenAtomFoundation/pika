@@ -14,140 +14,155 @@
  */
 
 class HDelCmd : public Cmd {
-public:
-  HDelCmd() {}
+ public:
+  HDelCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<std::string> fields_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HGetCmd : public Cmd {
-public:
-  HGetCmd() {}
+ public:
+  HGetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, field_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HGetallCmd : public Cmd {
-public:
-  HGetallCmd() {}
+ public:
+  HGetallCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HSetCmd : public Cmd {
-public:
-  HSetCmd() {}
+ public:
+  HSetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, field_, value_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HExistsCmd : public Cmd {
-public:
-  HExistsCmd() {}
+ public:
+  HExistsCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, field_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HIncrbyCmd : public Cmd {
-public:
-  HIncrbyCmd() {}
+ public:
+  HIncrbyCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, field_;
   int64_t by_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HIncrbyfloatCmd : public Cmd {
-public:
-  HIncrbyfloatCmd() {}
+ public:
+  HIncrbyfloatCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, field_, by_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HKeysCmd : public Cmd {
-public:
-  HKeysCmd() {}
+ public:
+  HKeysCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HLenCmd : public Cmd {
-public:
-  HLenCmd() {}
+ public:
+  HLenCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HMgetCmd : public Cmd {
-public:
-  HMgetCmd() {}
+ public:
+  HMgetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<std::string> fields_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HMsetCmd : public Cmd {
-public:
-  HMsetCmd() {}
+ public:
+  HMsetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<blackwidow::FieldValue> fvs_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HSetnxCmd : public Cmd {
-public:
-  HSetnxCmd() {}
+ public:
+  HSetnxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, field_, value_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HStrlenCmd : public Cmd {
-public:
-  HStrlenCmd() {}
+ public:
+  HStrlenCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, field_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HValsCmd : public Cmd {
-public:
-  HValsCmd() {}
+ public:
+  HValsCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, field_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class HScanCmd : public Cmd {
-public:
-  HScanCmd() : pattern_("*"), count_(10) {}
+ public:
+  HScanCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual void Do();
-private:
+ private:
   std::string key_, pattern_;
   int64_t cursor_, count_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
@@ -158,10 +173,11 @@ private:
 };
 
 class HScanxCmd : public Cmd {
-public:
-  HScanxCmd() : pattern_("*"), count_(10) {}
+ public:
+  HScanxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual void Do();
-private:
+ private:
   std::string key_, start_field_, pattern_;
   int64_t count_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
@@ -172,10 +188,11 @@ private:
 };
 
 class PKHScanRangeCmd : public Cmd {
-public:
-  PKHScanRangeCmd() : pattern_("*"), limit_(10) {}
+ public:
+  PKHScanRangeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), limit_(10) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::string field_start_;
   std::string field_end_;
@@ -189,10 +206,11 @@ private:
 };
 
 class PKHRScanRangeCmd : public Cmd {
-public:
-  PKHRScanRangeCmd() : pattern_("*"), limit_(10) {}
+ public:
+  PKHRScanRangeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), limit_(10) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::string field_start_;
   std::string field_end_;
