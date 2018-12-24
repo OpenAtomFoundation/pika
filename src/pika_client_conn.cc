@@ -87,12 +87,12 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   }
 
   // Initial
-  c_ptr->Initial(argv, cinfo_ptr);
+  c_ptr->Initial(argv, current_table_, cinfo_ptr);
   if (!c_ptr->res().ok()) {
     return c_ptr->res().message();
   }
 
-  g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
+  g_pika_server->UpdateQueryNumAndExecCountTable(opt);
  
   // PubSub connection
   if (this->IsPubSub()) {
@@ -163,16 +163,16 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     return "-ERR CROSS PARTITION Keys in this request command may don't hash to the same partition\r\n";
   }
 
-  if (cinfo_ptr->is_write()) {
-    if (g_pika_server->BinlogIoError()) {
+  // TODO: Consider special commands, like flushall, flushdb?
+  if (cinfo_ptr->is_write()
+    && argv.size() >= 2) {
+    if (g_pika_server->IsPartitionBinlogIoError(current_table_, argv[1])) {
       return "-ERR Writing binlog failed, maybe no space left on device\r\n";
     }
     if (g_pika_server->readonly()) {
       return "-ERR Server in read-only\r\n";
     }
-    if (argv.size() >= 2) {
-      g_pika_server->mutex_record_.Lock(argv[1]);
-    }
+    g_pika_server->PartitionRecordLock(current_table_, argv[1]);
   }
 
   // Add read lock for no suspend command
@@ -184,13 +184,16 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   c_ptr->Do();
 
   if (cinfo_ptr->is_write()
-    && g_pika_conf->write_binlog()) {
+    && g_pika_conf->write_binlog()
+    && argv.size() >= 2) {
     if (c_ptr->res().ok()) {
-      g_pika_server->logger_->Lock();
+      std::shared_ptr<Partition> partition =
+        g_pika_server->GetTablePartitionByKey(current_table_, argv[1]);
+      partition->logger()->Lock();
       uint32_t filenum = 0;
       uint64_t offset = 0;
       uint64_t logic_id = 0;
-      g_pika_server->logger_->GetProducerStatus(&filenum, &offset, &logic_id);
+      partition->logger()->GetProducerStatus(&filenum, &offset, &logic_id);
 
       std::string binlog = c_ptr->ToBinlog(argv,
                                            exec_time,
@@ -200,13 +203,13 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
                                            offset);
       slash::Status s;
       if (!binlog.empty()) {
-        s = g_pika_server->logger_->Put(binlog);
+        s = partition->logger()->Put(binlog);
       }
 
-      g_pika_server->logger_->Unlock();
+      partition->logger()->Unlock();
       if (!s.ok()) {
-        LOG(WARNING) << "Writing binlog failed, maybe no space left on device";
-        g_pika_server->SetBinlogIoError(true);
+        LOG(WARNING) << partition->partition_name() << " Writing binlog failed, maybe no space left on device";
+        partition->SetBinlogIoError(true);
         return "-ERR Writing binlog failed, maybe no space left on device\r\n";
       }
     }
@@ -216,10 +219,9 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     g_pika_server->RWUnlock();
   }
 
-  if (cinfo_ptr->is_write()) {
-    if (argv.size() >= 2) {
-      g_pika_server->mutex_record_.Unlock(argv[1]);
-    }
+  if (cinfo_ptr->is_write()
+    && argv.size() >= 2) {
+    g_pika_server->PartitionRecordUnLock(current_table_, argv[1]);
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
