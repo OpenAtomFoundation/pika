@@ -426,9 +426,12 @@ class Cmd {
 
   virtual void Do() = 0;
 
-  void Initial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) {
+  void Initial(const PikaCmdArgsType &argvs,
+               const std::string& table_name,
+               const CmdInfo* const ptr_info) {
     res_.clear(); // Clear res content
     Clear();      // Clear cmd, Derived class can has own implement
+    table_name_ = table_name;
     DoInitial(argvs, ptr_info);
   };
 
@@ -463,6 +466,7 @@ class Cmd {
 
  protected:
   CmdRes res_;
+  std::string table_name_;
 
  private:
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
