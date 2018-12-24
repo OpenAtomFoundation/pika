@@ -12,47 +12,52 @@
  */
 
 class SAddCmd : public Cmd {
-public:
-  SAddCmd() {}
+ public:
+  SAddCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<std::string> members_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SPopCmd : public Cmd {
-public:
-  SPopCmd() {}
+ public:
+  SPopCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SCardCmd : public Cmd {
-public:
-  SCardCmd() {}
+ public:
+  SCardCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SMembersCmd : public Cmd {
-public:
-  SMembersCmd() {}
+ public:
+  SMembersCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SScanCmd : public Cmd {
-public:
-  SScanCmd() : pattern_("*"), count_(10) {}
+ public:
+  SScanCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual void Do();
-private:
+ private:
   std::string key_, pattern_;
   int64_t cursor_, count_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
@@ -63,95 +68,105 @@ private:
 };
 
 class SRemCmd : public Cmd {
-public:
-  SRemCmd() {}
+ public:
+  SRemCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<std::string> members_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SUnionCmd : public Cmd {
-public:
-  SUnionCmd() {}
+ public:
+  SUnionCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SUnionstoreCmd : public Cmd {
-public:
-  SUnionstoreCmd() {}
+ public:
+  SUnionstoreCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string dest_key_;
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SInterCmd : public Cmd {
-public:
-  SInterCmd() {}
+ public:
+  SInterCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SInterstoreCmd : public Cmd {
-public:
-  SInterstoreCmd() {}
+ public:
+  SInterstoreCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string dest_key_;
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SIsmemberCmd : public Cmd {
-public:
-  SIsmemberCmd() {}
+ public:
+  SIsmemberCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, member_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SDiffCmd : public Cmd {
-public:
-  SDiffCmd() {}
+ public:
+  SDiffCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SDiffstoreCmd : public Cmd {
-public:
-  SDiffstoreCmd() {}
+ public:
+  SDiffstoreCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string dest_key_;
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SMoveCmd : public Cmd {
-public:
-  SMoveCmd() {}
+ public:
+  SMoveCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string src_key_, dest_key_, member_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SRandmemberCmd : public Cmd {
-public:
-  SRandmemberCmd() : count_(1) {}
+ public:
+  SRandmemberCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), count_(1) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   int64_t count_;
   bool reply_arr;
