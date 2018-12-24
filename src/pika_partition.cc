@@ -26,13 +26,14 @@ Partition::Partition(const std::string& table_name,
                      const std::string& table_db_path,
                      const std::string& table_log_path) :
   table_name_(table_name),
-  partition_id_(partition_id) {
+  partition_id_(partition_id),
+  binlog_io_error_(false) {
 
   db_path_ = PartitionPath(table_db_path, partition_id_);
   log_path_ = PartitionPath(table_log_path, partition_id_);
   partition_name_ = PartitionName(table_name_, partition_id_);
 
-  pthread_rwlock_init(&db_rw_, NULL);
+  pthread_rwlock_init(&db_rwlock_, NULL);
 
   //Create blackwidow handle
   blackwidow::BlackwidowOptions bw_option;
@@ -50,7 +51,7 @@ Partition::Partition(const std::string& table_name,
 }
 
 Partition::~Partition() {
-  pthread_rwlock_destroy(&db_rw_);
+  pthread_rwlock_destroy(&db_rwlock_);
   db_.reset();
   logger_.reset();
 }
@@ -71,12 +72,40 @@ std::shared_ptr<blackwidow::BlackWidow> Partition::db() const {
   return db_;
 }
 
+void Partition::BinlogLock() {
+  logger_->Lock();
+}
+
+void Partition::BinlogUnLock() {
+  logger_->Unlock();
+}
+
+void Partition::DbRWLockWriter() {
+  pthread_rwlock_wrlock(&db_rwlock_);
+}
+
+void Partition::DbRWLockReader() {
+  pthread_rwlock_rdlock(&db_rwlock_);
+}
+
+void Partition::DbRWUnLock() {
+  pthread_rwlock_unlock(&db_rwlock_);
+}
+
 void Partition::RecordLock(const std::string& key) {
   mutex_record_.Lock(key);
 }
 
 void Partition::RecordUnLock(const std::string& key) {
   mutex_record_.Unlock(key);
+}
+
+void Partition::SetBinlogIoError(bool error) {
+  binlog_io_error_ = error;
+}
+
+bool Partition::IsBinlogIoError() {
+  return binlog_io_error_;
 }
 
 void Partition::RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const {
