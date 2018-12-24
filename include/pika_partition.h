@@ -29,8 +29,16 @@ class Partition {
   std::shared_ptr<blackwidow::BlackWidow> db() const;
 
 
+  void BinlogLock();
+  void BinlogUnLock();
+  void DbRWLockWriter();
+  void DbRWLockReader();
+  void DbRWUnLock();
   void RecordLock(const std::string& key);
   void RecordUnLock(const std::string& key);
+
+  void SetBinlogIoError(bool error);
+  bool IsBinlogIoError();
 
   void RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const;
 
@@ -44,8 +52,9 @@ class Partition {
   std::string partition_name_;
 
   std::shared_ptr<Binlog> logger_;
+  std::atomic<bool> binlog_io_error_;
 
-  pthread_rwlock_t db_rw_;
+  pthread_rwlock_t db_rwlock_;
   slash::RecordMutex mutex_record_;
   std::shared_ptr<blackwidow::BlackWidow> db_;
 
