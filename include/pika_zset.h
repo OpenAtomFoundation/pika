@@ -13,29 +13,32 @@
  * zset
  */
 class ZAddCmd : public Cmd {
-public:
-  ZAddCmd() {}
+ public:
+  ZAddCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<blackwidow::ScoreMember> score_members;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZCardCmd : public Cmd {
-public:
-  ZCardCmd() {}
+ public:
+  ZCardCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZScanCmd : public Cmd {
-public:
-  ZScanCmd() : pattern_("*"), count_(10) {}
+ public:
+  ZScanCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual void Do();
-private:
+ private:
   std::string key_, pattern_;
   int64_t cursor_, count_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
@@ -46,19 +49,21 @@ private:
 };
 
 class ZIncrbyCmd : public Cmd {
-public:
-  ZIncrbyCmd() {}
+ public:
+  ZIncrbyCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, member_;
   double by_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZsetRangeParentCmd : public Cmd {
-public:
-  ZsetRangeParentCmd() : is_ws_(false) {}
-protected:
+ public:
+  ZsetRangeParentCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), is_ws_(false) {}
+ protected:
   std::string key_;
   int64_t start_, stop_;
   bool is_ws_;
@@ -69,23 +74,28 @@ protected:
 };
 
 class ZRangeCmd : public ZsetRangeParentCmd {
-public:
+ public:
+  ZRangeCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetRangeParentCmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZRevrangeCmd : public ZsetRangeParentCmd {
-public:
+ public:
+  ZRevrangeCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetRangeParentCmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZsetRangebyscoreParentCmd : public Cmd {
-public:
-  ZsetRangebyscoreParentCmd() : left_close_(true), right_close_(true), with_scores_(false), offset_(0), count_(-1) {}
-protected:
+ public:
+  ZsetRangebyscoreParentCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), left_close_(true), right_close_(true), with_scores_(false), offset_(0), count_(-1) {}
+ protected:
   std::string key_;
   double min_score_, max_score_;
   bool left_close_, right_close_, with_scores_;
@@ -100,24 +110,29 @@ protected:
 };
 
 class ZRangebyscoreCmd : public ZsetRangebyscoreParentCmd {
-public:
+ public:
+  ZRangebyscoreCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetRangebyscoreParentCmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZRevrangebyscoreCmd : public ZsetRangebyscoreParentCmd {
-public:
+ public:
+  ZRevrangebyscoreCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetRangebyscoreParentCmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZCountCmd : public Cmd {
-public:
-  ZCountCmd() : left_close_(true), right_close_(true) {}
+ public:
+  ZCountCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), left_close_(true), right_close_(true) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   double min_score_, max_score_;
   bool left_close_, right_close_;
@@ -129,19 +144,21 @@ private:
 };
 
 class ZRemCmd : public Cmd {
-public:
-  ZRemCmd() {}
+ public:
+  ZRemCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<std::string> members_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZsetUIstoreParentCmd : public Cmd {
-public:
-  ZsetUIstoreParentCmd() : aggregate_(blackwidow::SUM) {}
-protected:
+ public:
+  ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), aggregate_(blackwidow::SUM) {}
+ protected:
   std::string dest_key_;
   int64_t num_keys_;
   blackwidow::AGGREGATE aggregate_;
@@ -154,55 +171,66 @@ protected:
 };
 
 class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
-public:
+ public:
+  ZUnionstoreCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetUIstoreParentCmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZInterstoreCmd : public ZsetUIstoreParentCmd {
-public:
+ public:
+  ZInterstoreCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetUIstoreParentCmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class ZsetRankParentCmd : public Cmd {
-public:
-  ZsetRankParentCmd() {}
-protected:
+ public:
+  ZsetRankParentCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
+ protected:
   std::string key_, member_;
   virtual void DoInitial(const PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
 };
 
 class ZRankCmd : public ZsetRankParentCmd {
-public:
+ public:
+  ZRankCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetRankParentCmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   virtual void DoInitial(const PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
 };
 
 class ZRevrankCmd : public ZsetRankParentCmd {
-public:
+ public:
+  ZRevrankCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetRankParentCmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   virtual void DoInitial(const PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
 };
 
 class ZScoreCmd : public ZsetRankParentCmd {
-public:
-  ZScoreCmd() {}
+ public:
+  ZScoreCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetRankParentCmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, member_;
   virtual void DoInitial(const PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
 };
 
 
 class ZsetRangebylexParentCmd : public Cmd {
-public:
-  ZsetRangebylexParentCmd() : left_close_(true), right_close_(true), offset_(0), count_(-1) {}
-protected:
+ public:
+  ZsetRangebylexParentCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), left_close_(true), right_close_(true), offset_(0), count_(-1) {}
+ protected:
   std::string key_, min_member_, max_member_;
   bool left_close_, right_close_;
   int64_t offset_, count_;
@@ -215,24 +243,29 @@ protected:
 };
 
 class ZRangebylexCmd : public ZsetRangebylexParentCmd {
-public:
+ public:
+  ZRangebylexCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetRangebylexParentCmd(name, arity, flag) {}
   virtual void Do();
-private: 
+ private: 
   virtual void DoInitial(const PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
 };
 
 class ZRevrangebylexCmd : public ZsetRangebylexParentCmd {
-public:
+ public:
+  ZRevrangebylexCmd(const std::string& name, int arity, uint16_t flag)
+      : ZsetRangebylexParentCmd(name, arity, flag) {}
   virtual void Do();
-private: 
+ private: 
   virtual void DoInitial(const PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
 };
 
 class ZLexcountCmd : public Cmd {
-public:
-  ZLexcountCmd() : left_close_(true), right_close_(true) {}
+ public:
+  ZLexcountCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), left_close_(true), right_close_(true) {}
   virtual void Do();
-private:
+ private:
   std::string key_, min_member_, max_member_;
   bool left_close_, right_close_;
   virtual void DoInitial(const PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
@@ -242,20 +275,22 @@ private:
 };
 
 class ZRemrangebyrankCmd : public Cmd {
-public:
-  ZRemrangebyrankCmd() {}
+ public:
+  ZRemrangebyrankCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   int64_t start_rank_, stop_rank_;
   virtual void DoInitial(const PikaCmdArgsType & argvs, const CmdInfo* const ptr_info);
 };
 
 class ZRemrangebyscoreCmd : public Cmd {
-public:
-  ZRemrangebyscoreCmd() : left_close_(true), right_close_(true) {}
+ public:
+  ZRemrangebyscoreCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), left_close_(true), right_close_(true) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   double min_score_, max_score_;
   bool left_close_, right_close_;
@@ -266,10 +301,11 @@ private:
 };
 
 class ZRemrangebylexCmd : public Cmd {
-public:
-  ZRemrangebylexCmd() : left_close_(true), right_close_(true) {}
+ public:
+  ZRemrangebylexCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), left_close_(true), right_close_(true) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::string min_member_, max_member_;
   bool left_close_, right_close_;

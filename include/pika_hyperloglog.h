@@ -12,10 +12,11 @@
  * hyperloglog
  */
 class PfAddCmd : public Cmd {
-public:
-  PfAddCmd() {};
+ public:
+  PfAddCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<std::string> values_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
@@ -25,10 +26,11 @@ private:
 };
 
 class PfCountCmd : public Cmd {
-public:
-  PfCountCmd() {};
+ public:
+  PfCountCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
@@ -37,10 +39,11 @@ private:
 };
 
 class PfMergeCmd : public Cmd {
-public:
-  PfMergeCmd() {};
+ public:
+  PfMergeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name,  arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {

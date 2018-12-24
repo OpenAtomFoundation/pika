@@ -13,10 +13,11 @@
  * bitoperation
  */
 class BitGetCmd : public Cmd {
-public:
-  BitGetCmd() {};
+ public:
+  BitGetCmd(const std::string& name, int arity, uint16_t flag)
+        : Cmd(name, arity, flag) {};
   virtual void Do();
-private:
+ private:
   std::string key_;
   int64_t  bit_offset_;
   virtual void Clear() {
@@ -28,10 +29,11 @@ private:
 };
 
 class BitSetCmd : public Cmd {
-public:
-  BitSetCmd() {};
+ public:
+  BitSetCmd(const std::string& name, int arity, uint16_t flag)
+        : Cmd(name, arity, flag) {};
   virtual void Do();
-private:
+ private:
   std::string key_;
   int64_t  bit_offset_;
   int64_t  on_;
@@ -44,10 +46,11 @@ private:
 };
 
 class BitCountCmd : public Cmd {
-public:
-  BitCountCmd() {}
+ public:
+  BitCountCmd(const std::string& name, int arity, uint16_t flag)
+        : Cmd(name, arity, flag) {};
   virtual void Do();
-private:
+ private:
   std::string key_;
   bool  count_all_;
   int64_t  start_offset_;
@@ -62,10 +65,11 @@ private:
 };
 
 class BitPosCmd : public Cmd {
-public:
-  BitPosCmd() {};
+ public:
+  BitPosCmd(const std::string& name, int arity, uint16_t flag)
+        : Cmd(name, arity, flag) {};
   virtual void Do();
-private:
+ private:
   std::string key_;
   bool  pos_all_;
   bool  endoffset_set_;
@@ -85,10 +89,11 @@ private:
 };
 
 class BitOpCmd : public Cmd {
-public:
-  BitOpCmd() {};
+ public:
+  BitOpCmd(const std::string& name, int arity, uint16_t flag)
+        : Cmd(name, arity, flag) {};
   virtual void Do();
-private:
+ private:
   std::string dest_key_;
   std::vector<std::string> src_keys_;
   blackwidow::BitOpType op_;
