@@ -15,7 +15,8 @@
 class SetCmd : public Cmd {
  public:
   enum SetCondition{kANY, kNX, kXX, kVX};
-  SetCmd() : sec_(0), condition_(kANY) {};
+  SetCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag), sec_(0), condition_(kANY) {};
   virtual void Do() override;
 
  private:
@@ -34,17 +35,19 @@ class SetCmd : public Cmd {
 };
 
 class GetCmd : public Cmd {
-public:
-  GetCmd() {};
+ public:
+  GetCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
-private:
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class DelCmd : public Cmd {
  public:
-  DelCmd() {}
+  DelCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
  private:
   std::vector<std::string> keys_;
@@ -53,7 +56,8 @@ class DelCmd : public Cmd {
 
 class IncrCmd : public Cmd {
  public:
-  IncrCmd() {}
+  IncrCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
  private:
   std::string key_;
@@ -70,7 +74,8 @@ class IncrCmd : public Cmd {
 
 class IncrbyCmd : public Cmd {
  public:
-  IncrbyCmd() {}
+  IncrbyCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
  private:
   std::string key_;
@@ -87,7 +92,8 @@ class IncrbyCmd : public Cmd {
 
 class IncrbyfloatCmd : public Cmd {
  public:
-  IncrbyfloatCmd() {}
+  IncrbyfloatCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
  private:
   std::string key_, value_, new_value_;
@@ -104,7 +110,8 @@ class IncrbyfloatCmd : public Cmd {
 
 class DecrCmd : public Cmd {
  public:
-  DecrCmd() {}
+  DecrCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
  private:
   std::string key_;
@@ -121,7 +128,8 @@ class DecrCmd : public Cmd {
 
 class DecrbyCmd : public Cmd {
  public:
-  DecrbyCmd() {}
+  DecrbyCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
  private:
   std::string key_;
@@ -137,39 +145,43 @@ class DecrbyCmd : public Cmd {
 };
 
 class GetsetCmd : public Cmd {
-public:
-  GetsetCmd() {}
+ public:
+  GetsetCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::string new_value_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class AppendCmd : public Cmd {
-public:
-  AppendCmd() {}
+ public:
+  AppendCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::string value_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class MgetCmd : public Cmd {
-public:
-  MgetCmd() {}
+ public:
+  MgetCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {};
   virtual void Do();
-private:
+ private:
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class KeysCmd : public Cmd {
-public:
-  KeysCmd() : type_("all") {}
+ public:
+  KeysCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag), type_("all") {}
   virtual void Do();
-private:
+ private:
   std::string pattern_;
   std::string type_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
@@ -180,7 +192,8 @@ private:
 
 class SetnxCmd : public Cmd {
  public:
-  SetnxCmd() {}
+  SetnxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
  private:
   std::string key_;
@@ -197,10 +210,11 @@ class SetnxCmd : public Cmd {
 };
 
 class SetexCmd : public Cmd {
-public:
-  SetexCmd() {}
+ public:
+  SetexCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   int64_t sec_;
   std::string value_;
@@ -208,10 +222,11 @@ private:
 };
 
 class PsetexCmd : public Cmd {
-public:
-  PsetexCmd() {}
+ public:
+  PsetexCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   int64_t usec_;
   std::string value_;
@@ -219,10 +234,11 @@ private:
 };
 
 class DelvxCmd : public Cmd {
-public:
-  DelvxCmd() {}
+ public:
+  DelvxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::string value_;
   int32_t success_;
@@ -231,7 +247,8 @@ private:
 
 class MsetCmd : public Cmd {
  public:
-  MsetCmd() {}
+  MsetCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
  private:
   std::vector<blackwidow::KeyValue> kvs_;
@@ -240,7 +257,8 @@ class MsetCmd : public Cmd {
 
 class MsetnxCmd : public Cmd {
  public:
-  MsetnxCmd() {}
+  MsetnxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
  private:
   std::vector<blackwidow::KeyValue> kvs_;
@@ -249,10 +267,11 @@ class MsetnxCmd : public Cmd {
 };
 
 class GetrangeCmd : public Cmd {
-public:
-  GetrangeCmd() {}
+ public:
+  GetrangeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   int64_t start_;
   int64_t end_;
@@ -260,10 +279,11 @@ private:
 };
 
 class SetrangeCmd : public Cmd {
-public:
-  SetrangeCmd() {}
+ public:
+  SetrangeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   int64_t offset_;
   std::string value_;
@@ -271,26 +291,29 @@ private:
 };
 
 class StrlenCmd : public Cmd {
-public:
-  StrlenCmd() {}
+ public:
+  StrlenCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class ExistsCmd : public Cmd {
-public:
-  ExistsCmd() {}
+ public:
+  ExistsCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::vector<std::string> keys_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class ExpireCmd : public Cmd {
  public:
-  ExpireCmd() {}
+  ExpireCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -308,7 +331,8 @@ class ExpireCmd : public Cmd {
 
 class PexpireCmd : public Cmd {
  public:
-  PexpireCmd() {}
+  PexpireCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -326,7 +350,8 @@ class PexpireCmd : public Cmd {
 
 class ExpireatCmd : public Cmd {
  public:
-  ExpireatCmd() {}
+  ExpireatCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -337,7 +362,8 @@ class ExpireatCmd : public Cmd {
 
 class PexpireatCmd : public Cmd {
  public:
-  PexpireatCmd() {}
+  PexpireatCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
 
  private:
@@ -354,46 +380,51 @@ class PexpireatCmd : public Cmd {
 };
 
 class TtlCmd : public Cmd {
-public:
-    TtlCmd() {}
-    virtual void Do();
-private:
+ public:
+  TtlCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
+  virtual void Do();
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class PttlCmd : public Cmd {
-public:
-    PttlCmd() {}
-    virtual void Do();
-private:
+ public:
+  PttlCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
+  virtual void Do();
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class PersistCmd : public Cmd {
-public:
-    PersistCmd() {}
-    virtual void Do();
-private:
+ public:
+  PersistCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
+  virtual void Do();
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class TypeCmd : public Cmd {
-public:
-    TypeCmd() {}
-    virtual void Do();
-private:
+ public:
+ TypeCmd(const std::string& name, int arity, uint16_t flag)
+     : Cmd(name, arity, flag) {}
+  virtual void Do();
+ private:
   std::string key_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
 };
 
 class ScanCmd : public Cmd {
-public:
-  ScanCmd() : pattern_("*"), count_(10) {}
+ public:
+  ScanCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual void Do();
-private:
+ private:
   int64_t cursor_;
   std::string pattern_;
   int64_t count_;
@@ -405,10 +436,11 @@ private:
 };
 
 class ScanxCmd : public Cmd {
-public:
-  ScanxCmd() : pattern_("*"), count_(10) {}
+ public:
+  ScanxCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual void Do();
-private:
+ private:
   blackwidow::DataType type_;
   std::string start_key_;
   std::string pattern_;
@@ -421,10 +453,11 @@ private:
 };
 
 class PKScanRangeCmd : public Cmd {
-public:
-  PKScanRangeCmd() : pattern_("*"), limit_(10), string_with_value(false) {}
+ public:
+  PKScanRangeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), limit_(10), string_with_value(false) {}
   virtual void Do();
-private:
+ private:
   blackwidow::DataType type_;
   std::string key_start_;
   std::string key_end_;
@@ -440,10 +473,11 @@ private:
 };
 
 class PKRScanRangeCmd : public Cmd {
-public:
-  PKRScanRangeCmd() : pattern_("*"), limit_(10), string_with_value(false) {}
+ public:
+  PKRScanRangeCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag), pattern_("*"), limit_(10), string_with_value(false) {}
   virtual void Do();
-private:
+ private:
   blackwidow::DataType type_;
   std::string key_start_;
   std::string key_end_;
