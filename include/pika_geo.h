@@ -48,49 +48,54 @@
  };
 
 class GeoAddCmd : public Cmd {
-public:
-  GeoAddCmd() {}
+ public:
+  GeoAddCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<GeoPoint> pos_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class GeoPosCmd : public Cmd {
-public:
-  GeoPosCmd() {}
+ public:
+  GeoPosCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<std::string> members_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class GeoDistCmd : public Cmd {
-public:
-  GeoDistCmd() {}
+ public:
+  GeoDistCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_, first_pos_, second_pos_, unit_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class GeoHashCmd : public Cmd {
-public:
-  GeoHashCmd() {}
+ public:
+  GeoHashCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   std::vector<std::string> members_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class GeoRadiusCmd : public Cmd {
-public:
-  GeoRadiusCmd() {}
+ public:
+  GeoRadiusCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   GeoRange range_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
@@ -108,10 +113,11 @@ private:
 };
 
 class GeoRadiusByMemberCmd : public Cmd {
-public:
-  GeoRadiusByMemberCmd() {}
+ public:
+  GeoRadiusByMemberCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
   virtual void Do();
-private:
+ private:
   std::string key_;
   GeoRange range_;
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
