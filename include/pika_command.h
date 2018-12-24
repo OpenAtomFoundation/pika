@@ -240,48 +240,6 @@ enum CmdFlags {
 };
 
 
-class CmdInfo {
-public:
-  CmdInfo(const std::string _name, int _num, uint16_t _flag)
-    : name_(_name), arity_(_num), flag_(_flag) {}
-  bool CheckArg(int num) const {
-    if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
-      return false;
-    }
-    return true;
-  }
-  bool is_write() const {
-    return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
-  }
-  uint16_t flag_type() const {
-    return flag_ & kCmdFlagsMaskType;
-  }
-  bool is_local() const {
-    return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
-  }
-  // Others need to be suspended when a suspend command run
-  bool is_suspend() const {
-    return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
-  }
-  bool is_prior() const {
-    return ((flag_ & kCmdFlagsMaskPrior) == kCmdFlagsPrior);
-  }
-  // Must with admin auth
-  bool is_admin_require() const {
-    return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
-  }
-  std::string name() const {
-    return name_;
-  }
-private:
-  std::string name_;
-  int arity_;
-  uint16_t flag_;
-
-  CmdInfo(const CmdInfo&);
-  CmdInfo& operator=(const CmdInfo&);
-};
-
 void inline RedisAppendContent(std::string& str, const std::string& value);
 void inline RedisAppendLen(std::string& str, int64_t ori, const std::string &prefix);
 
@@ -420,9 +378,47 @@ private:
   CmdRet ret_;
 };
 
+class CmdInfo {
+public:
+  CmdInfo(const std::string _name, int _num, uint16_t _flag)
+    : name_(_name), arity_(_num), flag_(_flag) {}
+  bool CheckArg(int num) const {
+    if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
+      return false;
+    }
+    return true;
+  }
+  bool is_write() const {
+    return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
+  }
+  bool is_local() const {
+    return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
+  }
+  // Others need to be suspended when a suspend command run
+  bool is_suspend() const {
+    return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
+  }
+  // Must with admin auth
+  bool is_admin_require() const {
+    return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
+  }
+  std::string name() const {
+    return name_;
+  }
+private:
+  std::string name_;
+  int arity_;
+  uint16_t flag_;
+
+  CmdInfo(const CmdInfo&);
+  CmdInfo& operator=(const CmdInfo&);
+};
+
+
 class Cmd {
  public:
-  Cmd() {}
+  Cmd(const std::string& name, int arity, uint16_t flag)
+    : name_(name), arity_(arity), flag_(flag) {}
   virtual ~Cmd() {}
 
   virtual void Do() = 0;
@@ -436,6 +432,23 @@ class Cmd {
     DoInitial(argvs, ptr_info);
   };
 
+  bool is_write() const {
+    return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
+  }
+  bool is_local() const {
+    return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
+  }
+  // Others need to be suspended when a suspend command run
+  bool is_suspend() const {
+    return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
+  }
+  // Must with admin auth
+  bool is_admin_require() const {
+    return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
+  }
+  std::string name() const {
+    return name_;
+  }
   CmdRes& res() {
     return res_;
   }
@@ -466,10 +479,21 @@ class Cmd {
   }
 
  protected:
+  std::string name_;
+  int arity_;
+  uint16_t flag_;
+
   CmdRes res_;
   std::string table_name_;
 
  private:
+  bool CheckArg(int num) const {
+    if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
+      return false;
+    }
+    return true;
+  }
+
   virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
   virtual void Clear() {};
 
