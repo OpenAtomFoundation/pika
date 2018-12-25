@@ -182,7 +182,6 @@ int main(int argc, char *argv[]) {
 
   PikaGlogInit();
   PikaSignalSetup();
-  InitCmdInfoTable();
 
   LOG(INFO) << "Server at: " << path;
   g_pika_server = new PikaServer();
@@ -200,7 +199,6 @@ int main(int argc, char *argv[]) {
 
   delete g_pika_server;
   delete g_pika_cmd_table_manager;
-  DestoryCmdInfoTable();
   ::google::ShutdownGoogleLogging();
   delete g_pika_conf;
   

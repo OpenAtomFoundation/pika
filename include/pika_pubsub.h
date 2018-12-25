@@ -18,7 +18,7 @@ class PublishCmd : public Cmd {
  private:
   std::string channel_;
   std::string msg_;
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SubscribeCmd : public Cmd {
@@ -27,7 +27,7 @@ class SubscribeCmd : public Cmd {
      : Cmd(name,  arity, flag) {}
   virtual void Do();
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class UnSubscribeCmd : public Cmd {
@@ -36,7 +36,7 @@ class UnSubscribeCmd : public Cmd {
      : Cmd(name,  arity, flag) {}
   virtual void Do();
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class PUnSubscribeCmd : public Cmd {
@@ -45,7 +45,7 @@ class PUnSubscribeCmd : public Cmd {
      : Cmd(name,  arity, flag) {}
   virtual void Do();
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class PSubscribeCmd : public Cmd {
@@ -54,7 +54,7 @@ class PSubscribeCmd : public Cmd {
      : Cmd(name,  arity, flag) {}
   virtual void Do();
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class PubSubCmd : public Cmd {
@@ -65,7 +65,7 @@ class PubSubCmd : public Cmd {
  private:
   std::string subcommand_;
   std::vector<std::string > arguments_;
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   virtual void Clear() {
     arguments_.clear();
   }

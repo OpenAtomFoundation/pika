@@ -33,7 +33,7 @@ class SlaveofCmd : public Cmd {
   bool have_offset_;
   int64_t filenum_;
   int64_t pro_offset_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   virtual void Clear() {
     is_noone_ = false;
     have_offset_ = false;
@@ -51,7 +51,7 @@ class TrysyncCmd : public Cmd {
   int64_t slave_port_;
   int64_t filenum_;
   int64_t pro_offset_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class AuthCmd : public Cmd {
@@ -62,7 +62,7 @@ class AuthCmd : public Cmd {
 
  private:
   std::string pwd_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class BgsaveCmd : public Cmd {
@@ -72,7 +72,7 @@ class BgsaveCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class BgsaveoffCmd : public Cmd {
@@ -82,7 +82,7 @@ class BgsaveoffCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class CompactCmd : public Cmd {
@@ -93,7 +93,7 @@ class CompactCmd : public Cmd {
 
  private:
   std::string struct_type_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   virtual void Clear() {
     struct_type_.clear();
   }
@@ -107,7 +107,7 @@ class PurgelogstoCmd : public Cmd {
 
  private:
   uint32_t num_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class PingCmd : public Cmd {
@@ -117,7 +117,7 @@ class PingCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SelectCmd : public Cmd {
@@ -127,7 +127,7 @@ class SelectCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class FlushallCmd : public Cmd {
@@ -137,7 +137,7 @@ class FlushallCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class FlushdbCmd : public Cmd {
@@ -148,7 +148,7 @@ class FlushdbCmd : public Cmd {
 
  private:
   std::string db_name_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   virtual void Clear() {
     db_name_.clear();
   }
@@ -164,7 +164,7 @@ class ClientCmd : public Cmd {
 
  private:
   std::string operation_, ip_port_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class InfoCmd : public Cmd {
@@ -208,7 +208,7 @@ class InfoCmd : public Cmd {
   const static std::string kDataSection;
   const static std::string kDoubleMaster;
 
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   virtual void Clear() {
     rescan_ = false;
     off_ = false;
@@ -233,7 +233,7 @@ class ShutdownCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class ConfigCmd : public Cmd {
@@ -244,7 +244,7 @@ class ConfigCmd : public Cmd {
 
  private:
   std::vector<std::string> config_args_v_;
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   void ConfigGet(std::string &ret);
   void ConfigSet(std::string &ret);
   void ConfigRewrite(std::string &ret);
@@ -258,7 +258,7 @@ class MonitorCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class DbsizeCmd : public Cmd {
@@ -268,7 +268,7 @@ class DbsizeCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class TimeCmd : public Cmd {
@@ -278,7 +278,7 @@ class TimeCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class DelbackupCmd : public Cmd {
@@ -288,7 +288,7 @@ class DelbackupCmd : public Cmd {
   virtual void Do();
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class EchoCmd : public Cmd {
@@ -299,7 +299,7 @@ class EchoCmd : public Cmd {
 
  private:
   std::string body_;
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class ScandbCmd : public Cmd {
@@ -310,7 +310,7 @@ class ScandbCmd : public Cmd {
 
  private:
   blackwidow::DataType type_;
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   virtual void Clear() {
     type_ = blackwidow::kAll;
   }
@@ -325,7 +325,7 @@ class SlowlogCmd : public Cmd {
  private:
   int64_t number_;
   SlowlogCmd::SlowlogCondition condition_;
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   virtual void Clear() {
     number_ = 10;
     condition_ = kGET;
@@ -342,7 +342,7 @@ class TcmallocCmd : public Cmd {
  private:
   int64_t type_;
   int64_t rate_;
-  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 #endif
 #endif  // PIKA_ADMIN_H_
