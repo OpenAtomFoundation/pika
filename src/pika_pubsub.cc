@@ -8,8 +8,8 @@
 
 extern PikaServer *g_pika_server;
 
-void PublishCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void PublishCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePublish);
     return;
   }
@@ -23,8 +23,8 @@ void PublishCmd::Do() {
   return;
 }
 
-void SubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void SubscribeCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSubscribe);
     return;
   }
@@ -33,8 +33,8 @@ void SubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const p
 void SubscribeCmd::Do() {
 }
 
-void UnSubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void UnSubscribeCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameUnSubscribe);
     return;
   }
@@ -43,8 +43,8 @@ void UnSubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const
 void UnSubscribeCmd::Do() {
 }
 
-void PSubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void PSubscribeCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePSubscribe);
     return;
   }
@@ -53,8 +53,8 @@ void PSubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const 
 void PSubscribeCmd::Do() {
 }
 
-void PUnSubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void PUnSubscribeCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePUnSubscribe);
     return;
   }
@@ -63,8 +63,8 @@ void PUnSubscribeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* cons
 void PUnSubscribeCmd::Do() {
 }
 
-void PubSubCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void PubSubCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePubSub);
     return;
   }
