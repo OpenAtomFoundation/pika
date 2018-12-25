@@ -19,7 +19,7 @@ class PfAddCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> values_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argvs) override;
   virtual void Clear() {
     values_.clear();
   }
@@ -32,7 +32,7 @@ class PfCountCmd : public Cmd {
   virtual void Do();
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argvs) override;
   virtual void Clear() {
     keys_.clear();
   }
@@ -45,7 +45,7 @@ class PfMergeCmd : public Cmd {
   virtual void Do();
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argvs) override;
   virtual void Clear() {
     keys_.clear();
   }

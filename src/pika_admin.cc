@@ -21,8 +21,8 @@
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
 
-void SlaveofCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void SlaveofCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
     return;
   }
@@ -115,8 +115,8 @@ void SlaveofCmd::Do() {
   }
 }
 
-void TrysyncCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void TrysyncCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameTrysync);
     return;
   }
@@ -174,8 +174,8 @@ void TrysyncCmd::Do() {
   }
 }
 
-void AuthCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void AuthCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameAuth);
     return;
   }
@@ -201,8 +201,8 @@ void AuthCmd::Do() {
   }
 }
 
-void BgsaveCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void BgsaveCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsave);
     return;
   }
@@ -215,8 +215,8 @@ void BgsaveCmd::Do() {
       info.s_start_time.c_str(), info.filenum, info.offset);
   res_.AppendContent(buf);
 }
-void BgsaveoffCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void BgsaveoffCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsaveoff);
     return;
   }
@@ -231,8 +231,8 @@ void BgsaveoffCmd::Do() {
   res_.SetRes(ret);
 }
 
-void CompactCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())
+void CompactCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())
     || argv.size() > 2) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameCompact);
     return;
@@ -272,8 +272,8 @@ void CompactCmd::Do() {
   }
 }
 
-void PurgelogstoCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void PurgelogstoCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePurgelogsto);
     return;
   }
@@ -300,8 +300,8 @@ void PurgelogstoCmd::Do() {
   }
 }
 
-void PingCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void PingCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePing);
     return;
   }
@@ -310,8 +310,8 @@ void PingCmd::Do() {
   res_.SetRes(CmdRes::kPong);
 }
 
-void SelectCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void SelectCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
     return;
   }
@@ -320,8 +320,8 @@ void SelectCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_
 void SelectCmd::Do() {
 }
 
-void FlushallCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void FlushallCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushall);
     return;
   }
@@ -336,8 +336,8 @@ void FlushallCmd::Do() {
   g_pika_server->RWUnlock();
 }
 
-void FlushdbCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void FlushdbCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushdb);
     return;
   }
@@ -367,8 +367,8 @@ void FlushdbCmd::Do() {
   g_pika_server->RWUnlock();
 }
 
-void ClientCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void ClientCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameClient);
     return;
   }
@@ -410,8 +410,8 @@ void ClientCmd::Do() {
   return;
 }
 
-void ShutdownCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void ShutdownCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameShutdown);
     return;
   }
@@ -435,8 +435,7 @@ const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kLogSection = "log";
 const std::string InfoCmd::kDataSection = "data";
 
-void InfoCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  (void)ptr_info;
+void InfoCmd::DoInitial(const PikaCmdArgsType& argv) {
   size_t argc = argv.size();
   if (argc > 3) {
     res_.SetRes(CmdRes::kSyntaxErr);
@@ -784,8 +783,8 @@ void InfoCmd::InfoData(std::string &info) {
   return;
 }
 
-void ConfigCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void ConfigCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameConfig);
     return;
   }
@@ -1435,8 +1434,7 @@ void ConfigCmd::ConfigResetstat(std::string &ret) {
   ret = "+OK\r\n";
 }
 
-void MonitorCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  (void)ptr_info;
+void MonitorCmd::DoInitial(const PikaCmdArgsType& argv) {
   if (argv.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameMonitor);
     return;
@@ -1446,8 +1444,7 @@ void MonitorCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr
 void MonitorCmd::Do() {
 }
 
-void DbsizeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  (void)ptr_info;
+void DbsizeCmd::DoInitial(const PikaCmdArgsType& argv) {
   if (argv.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDbsize);
     return;
@@ -1469,8 +1466,7 @@ void DbsizeCmd::Do() {
   res_.AppendInteger(dbsize);
 }
 
-void TimeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  (void)ptr_info;
+void TimeCmd::DoInitial(const PikaCmdArgsType& argv) {
   if (argv.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameTime);
     return;
@@ -1494,8 +1490,7 @@ void TimeCmd::Do() {
   }
 }
 
-void DelbackupCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  (void)ptr_info;
+void DelbackupCmd::DoInitial(const PikaCmdArgsType& argv) {
   if (argv.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDelbackup);
     return;
@@ -1552,8 +1547,8 @@ void DelbackupCmd::Do() {
   return;
 }
 
-void EchoCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void EchoCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameEcho);
     return;
   }
@@ -1566,8 +1561,8 @@ void EchoCmd::Do() {
   return;
 }
 
-void ScandbCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void ScandbCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameEcho);
     return;
   }
@@ -1597,8 +1592,8 @@ void ScandbCmd::Do() {
   return;
 }
 
-void SlowlogCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void SlowlogCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlowlog);
     return;
   }
@@ -1643,8 +1638,7 @@ void SlowlogCmd::Do() {
 }
 
 #ifdef TCMALLOC_EXTENSION
-void TcmallocCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  (void)ptr_info;
+void TcmallocCmd::DoInitial(const PikaCmdArgsType& argv) {
   if (argv.size() != 2 && argv.size() != 3) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameTcmalloc);
     return;

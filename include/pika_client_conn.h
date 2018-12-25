@@ -48,7 +48,7 @@ class PikaClientConn: public pink::RedisConn {
   class AuthStat {
    public:
     void Init();
-    bool IsAuthed(const CmdInfo* const cinfo_ptr);
+    bool IsAuthed(const Cmd* const cmd_ptr);
     bool ChecknUpdate(const std::string& arg);
    private:
     enum StatType {

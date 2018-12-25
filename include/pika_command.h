@@ -424,12 +424,11 @@ class Cmd {
   virtual void Do() = 0;
 
   void Initial(const PikaCmdArgsType &argvs,
-               const std::string& table_name,
-               const CmdInfo* const ptr_info) {
+               const std::string& table_name) {
     res_.clear(); // Clear res content
     Clear();      // Clear cmd, Derived class can has own implement
     table_name_ = table_name;
-    DoInitial(argvs, ptr_info);
+    DoInitial(argvs);
   };
 
   bool is_write() const {
@@ -479,6 +478,13 @@ class Cmd {
   }
 
  protected:
+  bool CheckArg(int num) const {
+    if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
+      return false;
+    }
+    return true;
+  }
+
   std::string name_;
   int arity_;
   uint16_t flag_;
@@ -487,14 +493,7 @@ class Cmd {
   std::string table_name_;
 
  private:
-  bool CheckArg(int num) const {
-    if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
-      return false;
-    }
-    return true;
-  }
-
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
+  virtual void DoInitial(const PikaCmdArgsType& argv) = 0;
   virtual void Clear() {};
 
   Cmd(const Cmd&);

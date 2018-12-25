@@ -10,8 +10,8 @@
 
 extern PikaServer *g_pika_server;
 
-void BitSetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void BitSetCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitSet);
     return;
   }
@@ -51,8 +51,8 @@ void BitSetCmd::Do() {
   }
 }
 
-void BitGetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void BitGetCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitGet);
     return;
   }
@@ -78,8 +78,8 @@ void BitGetCmd::Do() {
   }
 }
 
-void BitCountCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void BitCountCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitCount);
     return;
   }
@@ -118,8 +118,8 @@ void BitCountCmd::Do() {
   }
 }
 
-void BitPosCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void BitPosCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitPos);
     return;
   }
@@ -175,8 +175,8 @@ void BitPosCmd::Do() {
   }
 }
 
-void BitOpCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void BitOpCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
     return;
   }
