@@ -55,7 +55,7 @@ class GeoAddCmd : public Cmd {
  private:
   std::string key_;
   std::vector<GeoPoint> pos_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv);
 };
 
 class GeoPosCmd : public Cmd {
@@ -66,7 +66,7 @@ class GeoPosCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> members_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv);
 };
 
 class GeoDistCmd : public Cmd {
@@ -76,7 +76,7 @@ class GeoDistCmd : public Cmd {
   virtual void Do();
  private:
   std::string key_, first_pos_, second_pos_, unit_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv);
 };
 
 class GeoHashCmd : public Cmd {
@@ -87,7 +87,7 @@ class GeoHashCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> members_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv);
 };
 
 class GeoRadiusCmd : public Cmd {
@@ -98,7 +98,7 @@ class GeoRadiusCmd : public Cmd {
  private:
   std::string key_;
   GeoRange range_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv);
   virtual void Clear() {
     range_.withdist = false;
     range_.withcoord = false;
@@ -120,7 +120,7 @@ class GeoRadiusByMemberCmd : public Cmd {
  private:
   std::string key_;
   GeoRange range_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv);
   virtual void Clear() {
     range_.withdist = false;
     range_.withcoord = false;

@@ -24,10 +24,9 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
 
   std::string server_id = std::to_string(binlog_item.server_id());
 
-  // Get command info
-  const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
+  // Get command
   Cmd* c_ptr = self->GetCmd(opt);
-  if (!cinfo_ptr || !c_ptr) {
+  if (!c_ptr) {
     LOG(WARNING) << "Error operation from binlog: " << opt;
     delete bgarg;
     return;
@@ -35,7 +34,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   c_ptr->res().clear();
 
   // Initial
-  c_ptr->Initial(argv, g_pika_conf->default_table(), cinfo_ptr);
+  c_ptr->Initial(argv, g_pika_conf->default_table());
   if (!c_ptr->res().ok()) {
     LOG(WARNING) << "Fail to initial command from binlog: " << opt;
     delete bgarg;
@@ -55,7 +54,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   }
 
   // Add read lock for no suspend command
-  if (!cinfo_ptr->is_suspend()) {
+  if (!c_ptr->is_suspend()) {
     g_pika_server->RWLockReader();
   }
 
@@ -85,7 +84,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     c_ptr->Do();
   }
 
-  if (!cinfo_ptr->is_suspend()) {
+  if (!c_ptr->is_suspend()) {
     g_pika_server->RWUnlock();
   }
 

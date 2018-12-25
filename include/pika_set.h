@@ -19,7 +19,7 @@ class SAddCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> members_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SPopCmd : public Cmd {
@@ -29,7 +29,7 @@ class SPopCmd : public Cmd {
   virtual void Do();
  private:
   std::string key_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SCardCmd : public Cmd {
@@ -39,7 +39,7 @@ class SCardCmd : public Cmd {
   virtual void Do();
  private:
   std::string key_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SMembersCmd : public Cmd {
@@ -49,7 +49,7 @@ class SMembersCmd : public Cmd {
   virtual void Do();
  private:
   std::string key_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SScanCmd : public Cmd {
@@ -60,7 +60,7 @@ class SScanCmd : public Cmd {
  private:
   std::string key_, pattern_;
   int64_t cursor_, count_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   virtual void Clear() {
     pattern_ = "*";
     count_ = 10;
@@ -75,7 +75,7 @@ class SRemCmd : public Cmd {
  private:
   std::string key_;
   std::vector<std::string> members_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SUnionCmd : public Cmd {
@@ -85,7 +85,7 @@ class SUnionCmd : public Cmd {
   virtual void Do();
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SUnionstoreCmd : public Cmd {
@@ -96,7 +96,7 @@ class SUnionstoreCmd : public Cmd {
  private:
   std::string dest_key_;
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SInterCmd : public Cmd {
@@ -106,7 +106,7 @@ class SInterCmd : public Cmd {
   virtual void Do();
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SInterstoreCmd : public Cmd {
@@ -117,7 +117,7 @@ class SInterstoreCmd : public Cmd {
  private:
   std::string dest_key_;
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SIsmemberCmd : public Cmd {
@@ -127,7 +127,7 @@ class SIsmemberCmd : public Cmd {
   virtual void Do();
  private:
   std::string key_, member_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SDiffCmd : public Cmd {
@@ -137,7 +137,7 @@ class SDiffCmd : public Cmd {
   virtual void Do();
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SDiffstoreCmd : public Cmd {
@@ -148,7 +148,7 @@ class SDiffstoreCmd : public Cmd {
  private:
   std::string dest_key_;
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SMoveCmd : public Cmd {
@@ -158,7 +158,7 @@ class SMoveCmd : public Cmd {
   virtual void Do();
  private:
   std::string src_key_, dest_key_, member_;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class SRandmemberCmd : public Cmd {
@@ -170,7 +170,7 @@ class SRandmemberCmd : public Cmd {
   std::string key_;
   int64_t count_;
   bool reply_arr;
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
   virtual void Clear() {
     count_ = 1;
     reply_arr = false;

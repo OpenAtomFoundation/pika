@@ -50,14 +50,13 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
 std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
                                   const std::string& opt) {
   // Get command info
-  const CmdInfo* const cinfo_ptr = GetCmdInfo(opt);
   Cmd* c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
-  if (!cinfo_ptr || !c_ptr) {
+  if (!c_ptr) {
       return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
   }
 
   // Check authed
-  if (!auth_stat_.IsAuthed(cinfo_ptr)) {
+  if (!auth_stat_.IsAuthed(c_ptr)) {
     return "-ERR NOAUTH Authentication required.\r\n";
   }
 
@@ -67,7 +66,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   }
 
   // For now, only shutdown need check local
-  if (cinfo_ptr->is_local()) {
+  if (c_ptr->is_local()) {
     if (ip_port().find("127.0.0.1") == std::string::npos
         && ip_port().find(g_pika_server->host()) == std::string::npos) {
       LOG(WARNING) << "\'shutdown\' should be localhost";
@@ -87,7 +86,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   }
 
   // Initial
-  c_ptr->Initial(argv, current_table_, cinfo_ptr);
+  c_ptr->Initial(argv, current_table_);
   if (!c_ptr->res().ok()) {
     return c_ptr->res().message();
   }
@@ -164,7 +163,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   }
 
   // TODO: Consider special commands, like flushall, flushdb?
-  if (cinfo_ptr->is_write()
+  if (c_ptr->is_write()
     && argv.size() >= 2) {
     if (g_pika_server->IsPartitionBinlogIoError(current_table_, argv[1])) {
       return "-ERR Writing binlog failed, maybe no space left on device\r\n";
@@ -176,14 +175,14 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   }
 
   // Add read lock for no suspend command
-  if (!cinfo_ptr->is_suspend()) {
+  if (!c_ptr->is_suspend()) {
     g_pika_server->RWLockReader();
   }
 
   uint32_t exec_time = time(nullptr);
   c_ptr->Do();
 
-  if (cinfo_ptr->is_write()
+  if (c_ptr->is_write()
     && g_pika_conf->write_binlog()
     && argv.size() >= 2) {
     if (c_ptr->res().ok()) {
@@ -215,11 +214,11 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     }
   }
 
-  if (!cinfo_ptr->is_suspend()) {
+  if (!c_ptr->is_suspend()) {
     g_pika_server->RWUnlock();
   }
 
-  if (cinfo_ptr->is_write()
+  if (c_ptr->is_write()
     && argv.size() >= 2) {
     g_pika_server->PartitionRecordUnLock(current_table_, argv[1]);
   }
@@ -309,8 +308,8 @@ void PikaClientConn::AuthStat::Init() {
 }
 
 // Check permission for current command
-bool PikaClientConn::AuthStat::IsAuthed(const CmdInfo* const cinfo_ptr) {
-  std::string opt = cinfo_ptr->name();
+bool PikaClientConn::AuthStat::IsAuthed(const Cmd* const cmd_ptr) {
+  std::string opt = cmd_ptr->name();
   if (opt == kCmdNameAuth) {
     return true;
   }
@@ -321,8 +320,8 @@ bool PikaClientConn::AuthStat::IsAuthed(const CmdInfo* const cinfo_ptr) {
     case kAdminAuthed:
       break;
     case kLimitAuthed:
-      if (cinfo_ptr->is_admin_require() 
-          || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
+      if (cmd_ptr->is_admin_require()
+        || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
       return false;
       }
       break;
