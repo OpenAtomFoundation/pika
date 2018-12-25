@@ -10,8 +10,8 @@
 
 extern PikaServer *g_pika_server;
 
-void PfAddCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void PfAddCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePfAdd);
     return;
   }
@@ -36,8 +36,8 @@ void PfAddCmd::Do() {
   }
 }
 
-void PfCountCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void PfCountCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePfCount);
     return;
   }
@@ -57,8 +57,8 @@ void PfCountCmd::Do() {
   }
 }
 
-void PfMergeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
-  if (!ptr_info->CheckArg(argv.size())) {
+void PfMergeCmd::DoInitial(const PikaCmdArgsType& argv) {
+  if (!CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePfMerge);
     return;
   }
