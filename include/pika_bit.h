@@ -24,8 +24,7 @@ class BitGetCmd : public Cmd {
     key_ = "";
     bit_offset_ = -1;
   }
-
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class BitSetCmd : public Cmd {
@@ -42,7 +41,7 @@ class BitSetCmd : public Cmd {
     bit_offset_ = -1;
     on_ = -1;
   }
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class BitCountCmd : public Cmd {
@@ -61,7 +60,7 @@ class BitCountCmd : public Cmd {
     start_offset_ = -1;
     end_offset_ = -1;
   }
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class BitPosCmd : public Cmd {
@@ -84,8 +83,7 @@ class BitPosCmd : public Cmd {
     start_offset_ = -1;
     end_offset_ = -1;
   }
-
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 
 class BitOpCmd : public Cmd {
@@ -102,7 +100,6 @@ class BitOpCmd : public Cmd {
     src_keys_.clear();
     op_ = blackwidow::kBitOpDefault;
   }
-
-  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType& argv) override;
 };
 #endif
