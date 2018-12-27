@@ -9,20 +9,20 @@
 
 extern PikaServer *g_pika_server;
 
-void HDelCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HDelCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHDel);
     return;
   }
-  key_ = argv[1];
-  PikaCmdArgsType::const_iterator iter = argv.begin();
+  key_ = argv_[1];
+  PikaCmdArgsType::iterator iter = argv_.begin();
   iter++; 
   iter++;
-  fields_.assign(iter, argv.end());
+  fields_.assign(iter, argv_.end());
   return;
 }
 
-void HDelCmd::Do() {
+void HDelCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t num = 0;
   rocksdb::Status s = g_pika_server->db()->HDel(key_, fields_, &num);
   if (s.ok() || s.IsNotFound()) {
@@ -33,18 +33,18 @@ void HDelCmd::Do() {
   return;
 }
 
-void HSetCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HSetCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHSet);
     return;
   }
-  key_ = argv[1];
-  field_ = argv[2];
-  value_ = argv[3];
+  key_ = argv_[1];
+  field_ = argv_[2];
+  value_ = argv_[3];
   return;
 }
 
-void HSetCmd::Do() {
+void HSetCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t ret = 0;
   rocksdb::Status s = g_pika_server->db()->HSet(key_, field_, value_, &ret);
   if (s.ok()) {
@@ -55,17 +55,17 @@ void HSetCmd::Do() {
   return;
 }
 
-void HGetCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HGetCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHGet);
     return;
   }
-  key_ = argv[1];
-  field_ = argv[2];
+  key_ = argv_[1];
+  field_ = argv_[2];
   return;
 }
 
-void HGetCmd::Do() {
+void HGetCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
   rocksdb::Status s = g_pika_server->db()->HGet(key_, field_, &value);
   if (s.ok()) {
@@ -78,16 +78,16 @@ void HGetCmd::Do() {
   }
 }
 
-void HGetallCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HGetallCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHGetall);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   return;
 }
 
-void HGetallCmd::Do() {
+void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::FieldValue> fvs;
   rocksdb::Status s = g_pika_server->db()->HGetall(key_, &fvs);
   if (s.ok() || s.IsNotFound()) {
@@ -105,17 +105,17 @@ void HGetallCmd::Do() {
 }
 
 
-void HExistsCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HExistsCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHExists);
     return;
   }
-  key_ = argv[1];
-  field_ = argv[2];
+  key_ = argv_[1];
+  field_ = argv_[2];
   return;
 }
 
-void HExistsCmd::Do() {
+void HExistsCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = g_pika_server->db()->HExists(key_, field_);
   if (s.ok()) {
     res_.AppendContent(":1");
@@ -126,21 +126,21 @@ void HExistsCmd::Do() {
   }
 }
 
-void HIncrbyCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HIncrbyCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHIncrby);
     return;
   }
-  key_ = argv[1];
-  field_ = argv[2];
-  if (argv[3].find(" ") != std::string::npos || !slash::string2l(argv[3].data(), argv[3].size(), &by_)) {
+  key_ = argv_[1];
+  field_ = argv_[2];
+  if (argv_[3].find(" ") != std::string::npos || !slash::string2l(argv_[3].data(), argv_[3].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   return;
 }
 
-void HIncrbyCmd::Do() {
+void HIncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t new_value;
   rocksdb::Status s = g_pika_server->db()->HIncrby(key_, field_, by_, &new_value);
   if (s.ok() || s.IsNotFound()) {
@@ -155,18 +155,18 @@ void HIncrbyCmd::Do() {
   return;
 }
 
-void HIncrbyfloatCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HIncrbyfloatCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHIncrbyfloat);
     return;
   }
-  key_ = argv[1];
-  field_ = argv[2];
-  by_ = argv[3];
+  key_ = argv_[1];
+  field_ = argv_[2];
+  by_ = argv_[3];
   return;
 }
 
-void HIncrbyfloatCmd::Do() {
+void HIncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
   std::string new_value;
   rocksdb::Status s = g_pika_server->db()->HIncrbyfloat(key_, field_, by_, &new_value);
   if (s.ok()) {
@@ -182,16 +182,16 @@ void HIncrbyfloatCmd::Do() {
   return;
 }
 
-void HKeysCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HKeysCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHKeys);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   return;
 }
 
-void HKeysCmd::Do() {
+void HKeysCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> fields;
   rocksdb::Status s = g_pika_server->db()->HKeys(key_, &fields);
   if (s.ok() || s.IsNotFound()) {
@@ -205,16 +205,16 @@ void HKeysCmd::Do() {
   return;
 }
 
-void HLenCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HLenCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHLen);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   return;
 }
 
-void HLenCmd::Do() {
+void HLenCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t len = 0;
   rocksdb::Status s = g_pika_server->db()->HLen(key_, &len);
   if (s.ok() || s.IsNotFound()) {
@@ -225,20 +225,20 @@ void HLenCmd::Do() {
   return;
 }
 
-void HMgetCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HMgetCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHMget);
     return;
   }
-  key_ = argv[1];
-  PikaCmdArgsType::const_iterator iter = argv.begin();
+  key_ = argv_[1];
+  PikaCmdArgsType::iterator iter = argv_.begin();
   iter++;
   iter++;
-  fields_.assign(iter, argv.end()); 
+  fields_.assign(iter, argv_.end()); 
   return;
 }
 
-void HMgetCmd::Do() {
+void HMgetCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::ValueStatus> vss;
   rocksdb::Status s = g_pika_server->db()->HMGet(key_, fields_, &vss);
   if (s.ok() || s.IsNotFound()) {
@@ -257,13 +257,13 @@ void HMgetCmd::Do() {
   return;
 }
 
-void HMsetCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HMsetCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHMset);
     return;
   }
-  key_ = argv[1];
-  size_t argc = argv.size();
+  key_ = argv_[1];
+  size_t argc = argv_.size();
   if (argc % 2 != 0) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHMset);
     return;
@@ -271,12 +271,12 @@ void HMsetCmd::DoInitial(const PikaCmdArgsType& argv) {
   size_t index = 2;
   fvs_.clear();
   for (; index < argc; index += 2) {
-    fvs_.push_back({argv[index], argv[index + 1]});
+    fvs_.push_back({argv_[index], argv_[index + 1]});
   }
   return;
 }
 
-void HMsetCmd::Do() {
+void HMsetCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = g_pika_server->db()->HMSet(key_, fvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
@@ -286,18 +286,18 @@ void HMsetCmd::Do() {
   return;
 }
 
-void HSetnxCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HSetnxCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHSetnx);
     return;
   }
-  key_ = argv[1];
-  field_ = argv[2];
-  value_ = argv[3];
+  key_ = argv_[1];
+  field_ = argv_[2];
+  value_ = argv_[3];
   return;
 }
 
-void HSetnxCmd::Do() {
+void HSetnxCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t ret = 0;
   rocksdb::Status s = g_pika_server->db()->HSetnx(key_, field_, value_, &ret);
   if (s.ok()) {
@@ -307,17 +307,17 @@ void HSetnxCmd::Do() {
   }
 }
 
-void HStrlenCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HStrlenCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHStrlen);
     return;
   }
-  key_ = argv[1];
-  field_ = argv[2];
+  key_ = argv_[1];
+  field_ = argv_[2];
   return;
 }
 
-void HStrlenCmd::Do() {
+void HStrlenCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t len = 0;
   rocksdb::Status s = g_pika_server->db()->HStrlen(key_, field_, &len);
   if (s.ok() || s.IsNotFound()) {
@@ -328,16 +328,16 @@ void HStrlenCmd::Do() {
   return;
 }
 
-void HValsCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HValsCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHVals);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   return;
 }
 
-void HValsCmd::Do() {
+void HValsCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> values;
   rocksdb::Status s = g_pika_server->db()->HVals(key_, &values);
   if (s.ok() || s.IsNotFound()) {
@@ -352,20 +352,20 @@ void HValsCmd::Do() {
   return;
 }
 
-void HScanCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HScanCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHScan);
     return;
   }
-  key_ = argv[1];
-  if (!slash::string2l(argv[2].data(), argv[2].size(), &cursor_)) {
+  key_ = argv_[1];
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  size_t index = 3, argc = argv.size();
+  size_t index = 3, argc = argv_.size();
 
   while (index < argc) {
-    std::string opt = argv[index];
+    std::string opt = argv_[index];
     if (!strcasecmp(opt.data(), "match")
       || !strcasecmp(opt.data(), "count")) {
       index++;
@@ -374,8 +374,8 @@ void HScanCmd::DoInitial(const PikaCmdArgsType& argv) {
         return;
       }
       if (!strcasecmp(opt.data(), "match")) {
-        pattern_ = argv[index];
-      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_)) {
+        pattern_ = argv_[index];
+      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -392,7 +392,7 @@ void HScanCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void HScanCmd::Do() {
+void HScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t next_cursor = 0;
   std::vector<blackwidow::FieldValue> field_values;
   rocksdb::Status s = g_pika_server->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
@@ -415,17 +415,17 @@ void HScanCmd::Do() {
   return;
 }
 
-void HScanxCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void HScanxCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHScan);
     return;
   }
-  key_ = argv[1];
-  start_field_ = argv[2];
+  key_ = argv_[1];
+  start_field_ = argv_[2];
 
-  size_t index = 3, argc = argv.size();
+  size_t index = 3, argc = argv_.size();
   while (index < argc) {
-    std::string opt = argv[index];
+    std::string opt = argv_[index];
     if (!strcasecmp(opt.data(), "match")
       || !strcasecmp(opt.data(), "count")) {
       index++;
@@ -434,8 +434,8 @@ void HScanxCmd::DoInitial(const PikaCmdArgsType& argv) {
         return;
       }
       if (!strcasecmp(opt.data(), "match")) {
-        pattern_ = argv[index];
-      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_)) {
+        pattern_ = argv_[index];
+      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -452,7 +452,7 @@ void HScanxCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void HScanxCmd::Do() {
+void HScanxCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
   std::vector<blackwidow::FieldValue> field_values;
   rocksdb::Status s = g_pika_server->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
@@ -473,18 +473,18 @@ void HScanxCmd::Do() {
   return;
 }
 
-void PKHScanRangeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PKHScanRangeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePKHScanRange);
     return;
   }
-  key_ = argv[1];
-  field_start_ = argv[2];
-  field_end_ = argv[3];
+  key_ = argv_[1];
+  field_start_ = argv_[2];
+  field_end_ = argv_[3];
 
-  size_t index = 4, argc = argv.size();
+  size_t index = 4, argc = argv_.size();
   while (index < argc) {
-    std::string opt = argv[index];
+    std::string opt = argv_[index];
     if (!strcasecmp(opt.data(), "match")
       || !strcasecmp(opt.data(), "limit")) {
       index++;
@@ -493,8 +493,8 @@ void PKHScanRangeCmd::DoInitial(const PikaCmdArgsType& argv) {
         return;
       }
       if (!strcasecmp(opt.data(), "match")) {
-        pattern_ = argv[index];
-      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &limit_) || limit_ <= 0) {
+        pattern_ = argv_[index];
+      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -507,7 +507,7 @@ void PKHScanRangeCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void PKHScanRangeCmd::Do() {
+void PKHScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
   std::vector<blackwidow::FieldValue> field_values;
   rocksdb::Status s = g_pika_server->db()->PKHScanRange(key_, field_start_, field_end_,
@@ -528,18 +528,18 @@ void PKHScanRangeCmd::Do() {
   return;
 }
 
-void PKHRScanRangeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PKHRScanRangeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePKHRScanRange);
     return;
   }
-  key_ = argv[1];
-  field_start_ = argv[2];
-  field_end_ = argv[3];
+  key_ = argv_[1];
+  field_start_ = argv_[2];
+  field_end_ = argv_[3];
 
-  size_t index = 4, argc = argv.size();
+  size_t index = 4, argc = argv_.size();
   while (index < argc) {
-    std::string opt = argv[index];
+    std::string opt = argv_[index];
     if (!strcasecmp(opt.data(), "match")
       || !strcasecmp(opt.data(), "limit")) {
       index++;
@@ -548,8 +548,8 @@ void PKHRScanRangeCmd::DoInitial(const PikaCmdArgsType& argv) {
         return;
       }
       if (!strcasecmp(opt.data(), "match")) {
-        pattern_ = argv[index];
-      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &limit_) || limit_ <= 0) {
+        pattern_ = argv_[index];
+      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -562,7 +562,7 @@ void PKHRScanRangeCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void PKHRScanRangeCmd::Do() {
+void PKHRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
   std::vector<blackwidow::FieldValue> field_values;
   rocksdb::Status s = g_pika_server->db()->PKHRScanRange(key_, field_start_, field_end_,

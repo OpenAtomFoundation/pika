@@ -42,7 +42,7 @@ struct SlowlogEntry {
   int64_t id;
   int64_t start_time;
   int64_t duration;
-  PikaCmdArgsType argv;
+  pink::RedisCmdArgsType argv;
 };
 
 #define PIKA_MIN_RESERVED_FDS 5000
