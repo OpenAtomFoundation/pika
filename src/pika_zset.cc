@@ -9,31 +9,31 @@
 
 extern PikaServer *g_pika_server;
 
-void ZAddCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZAddCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZAdd);
     return;
   }
-  size_t argc = argv.size();
+  size_t argc = argv_.size();
   if (argc % 2 == 1) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   score_members.clear();
   double score;
   size_t index = 2;
   for (; index < argc; index += 2) {
-    if (!slash::string2d(argv[index].data(), argv[index].size(), &score)) {
+    if (!slash::string2d(argv_[index].data(), argv_[index].size(), &score)) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
-    score_members.push_back({score, argv[index + 1]});
+    score_members.push_back({score, argv_[index + 1]});
   }
   return;
 }
 
-void ZAddCmd::Do() {
+void ZAddCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
   rocksdb::Status s = g_pika_server->db()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
@@ -44,16 +44,16 @@ void ZAddCmd::Do() {
   return;
 }
 
-void ZCardCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZCardCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZCard);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   return;
 }
 
-void ZCardCmd::Do() {
+void ZCardCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t card = 0;
   rocksdb::Status s = g_pika_server->db()->ZCard(key_, &card);
   if (s.ok() || s.IsNotFound()) {
@@ -64,19 +64,19 @@ void ZCardCmd::Do() {
   return;
 }
 
-void ZScanCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZScanCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZScan);
     return;
   }
-  key_ = argv[1];
-  if (!slash::string2l(argv[2].data(), argv[2].size(), &cursor_)) {
+  key_ = argv_[1];
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZScan);
     return;
   }
-  size_t argc = argv.size(), index = 3;
+  size_t argc = argv_.size(), index = 3;
   while (index < argc) {
-    std::string opt = argv[index];
+    std::string opt = argv_[index];
     if (!strcasecmp(opt.data(), "match")
       || !strcasecmp(opt.data(), "count")) {
       index++;
@@ -85,8 +85,8 @@ void ZScanCmd::DoInitial(const PikaCmdArgsType& argv) {
         return;
       }
       if (!strcasecmp(opt.data(), "match")) {
-        pattern_ = argv[index];
-      } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_)) {
+        pattern_ = argv_[index];
+      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -103,7 +103,7 @@ void ZScanCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void ZScanCmd::Do() {
+void ZScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t next_cursor = 0;
   std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = g_pika_server->db()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
@@ -128,21 +128,21 @@ void ZScanCmd::Do() {
   return;
 }
 
-void ZIncrbyCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZIncrbyCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZIncrby);
     return;
   }
-  key_ = argv[1];
-  if (!slash::string2d(argv[2].data(), argv[2].size(), &by_)) {
+  key_ = argv_[1];
+  if (!slash::string2d(argv_[2].data(), argv_[2].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidFloat);
     return;
   }
-  member_ = argv[3];
+  member_ = argv_[3];
   return;
 }
 
-void ZIncrbyCmd::Do() {
+void ZIncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   double score = 0;
   rocksdb::Status s = g_pika_server->db()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
@@ -156,34 +156,34 @@ void ZIncrbyCmd::Do() {
   return;
 }
 
-void ZsetRangeParentCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (argv.size() == 5 && !strcasecmp(argv[4].data(), "withscores")) {
+void ZsetRangeParentCmd::DoInitial() {
+  if (argv_.size() == 5 && !strcasecmp(argv_[4].data(), "withscores")) {
     is_ws_ = true;
-  } else if (argv.size() != 4) {
+  } else if (argv_.size() != 4) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  key_ = argv[1];
-  if (!slash::string2l(argv[2].data(), argv[2].size(), &start_)) {
+  key_ = argv_[1];
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &start_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!slash::string2l(argv[3].data(), argv[3].size(), &stop_)) {
+  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &stop_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   return;
 }
 
-void ZRangeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRangeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRange);
     return;
   }
-  ZsetRangeParentCmd::DoInitial(argv);
+  ZsetRangeParentCmd::DoInitial();
 }
 
-void ZRangeCmd::Do() {
+void ZRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = g_pika_server->db()->ZRange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
@@ -211,15 +211,15 @@ void ZRangeCmd::Do() {
   return;
 }
 
-void ZRevrangeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRevrangeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRevrange);
     return;
   }
-  ZsetRangeParentCmd::DoInitial(argv);
+  ZsetRangeParentCmd::DoInitial();
 }
 
-void ZRevrangeCmd::Do() {
+void ZRevrangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = g_pika_server->db()->ZRevrange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
@@ -280,33 +280,33 @@ static void FitLimit(int64_t &count, int64_t &offset, const int64_t size) {
   count = (offset + count < size) ? count : size - offset;
 }
 
-void ZsetRangebyscoreParentCmd::DoInitial(const PikaCmdArgsType& argv) {
-  key_ = argv[1];
-  int32_t ret = DoScoreStrRange(argv[2], argv[3], &left_close_, &right_close_, &min_score_, &max_score_);
+void ZsetRangebyscoreParentCmd::DoInitial() {
+  key_ = argv_[1];
+  int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_score_, &max_score_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max is not a float");
     return;
   }
-  size_t argc = argv.size();
+  size_t argc = argv_.size();
   if (argc < 5) {
     return;
   }
   size_t index = 4;
   while (index < argc) {
-    if (!strcasecmp(argv[index].data(), "withscores")) {
+    if (!strcasecmp(argv_[index].data(), "withscores")) {
       with_scores_ = true;
-    } else if (!strcasecmp(argv[index].data(), "limit")) {
+    } else if (!strcasecmp(argv_[index].data(), "limit")) {
       if (index + 3 > argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
       index++;
-      if (!slash::string2l(argv[index].data(), argv[index].size(), &offset_)) {
+      if (!slash::string2l(argv_[index].data(), argv_[index].size(), &offset_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
       index++;
-      if (!slash::string2l(argv[index].data(), argv[index].size(), &count_)) {
+      if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       } 
@@ -318,15 +318,15 @@ void ZsetRangebyscoreParentCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 }
 
-void ZRangebyscoreCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRangebyscoreCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRangebyscore);
     return;
   }
-  ZsetRangebyscoreParentCmd::DoInitial(argv);
+  ZsetRangebyscoreParentCmd::DoInitial();
 }
 
-void ZRangebyscoreCmd::Do() {
+void ZRangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
   if (min_score_ == blackwidow::ZSET_SCORE_MAX || max_score_ == blackwidow::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
@@ -360,12 +360,12 @@ void ZRangebyscoreCmd::Do() {
   return;
 }
 
-void ZRevrangebyscoreCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRevrangebyscoreCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRevrangebyscore);
     return;
   }
-  ZsetRangebyscoreParentCmd::DoInitial(argv);
+  ZsetRangebyscoreParentCmd::DoInitial();
   double tmp_score;
   tmp_score = min_score_;
   min_score_ = max_score_;
@@ -377,7 +377,7 @@ void ZRevrangebyscoreCmd::DoInitial(const PikaCmdArgsType& argv) {
   right_close_ = tmp_close;
 }
 
-void ZRevrangebyscoreCmd::Do() {
+void ZRevrangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
   if (min_score_ == blackwidow::ZSET_SCORE_MAX || max_score_ == blackwidow::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
@@ -411,13 +411,13 @@ void ZRevrangebyscoreCmd::Do() {
   return;
 }
 
-void ZCountCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZCountCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZCount);
     return;
   }
-  key_ = argv[1];
-  int32_t ret = DoScoreStrRange(argv[2], argv[3], &left_close_, &right_close_, &min_score_, &max_score_);
+  key_ = argv_[1];
+  int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_score_, &max_score_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max is not a float");
     return;
@@ -425,7 +425,7 @@ void ZCountCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void ZCountCmd::Do() {
+void ZCountCmd::Do(std::shared_ptr<Partition> partition) {
   if (min_score_ == blackwidow::ZSET_SCORE_MAX || max_score_ == blackwidow::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
@@ -441,18 +441,18 @@ void ZCountCmd::Do() {
   return;
 }
 
-void ZRemCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRemCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRem);
     return;
   }
-  key_ = argv[1];
-  PikaCmdArgsType::const_iterator iter = argv.begin() + 2;
-  members_.assign(iter, argv.end());
+  key_ = argv_[1];
+  PikaCmdArgsType::iterator iter = argv_.begin() + 2;
+  members_.assign(iter, argv_.end());
   return;
 }
 
-void ZRemCmd::Do() {
+void ZRemCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
   rocksdb::Status s = g_pika_server->db()->ZRem(key_, members_, &count);
   if (s.ok() || s.IsNotFound()) {
@@ -463,9 +463,9 @@ void ZRemCmd::Do() {
   return;
 }
 
-void ZsetUIstoreParentCmd::DoInitial(const PikaCmdArgsType& argv) {
-  dest_key_ = argv[1];
-  if (!slash::string2l(argv[2].data(), argv[2].size(), &num_keys_)) {
+void ZsetUIstoreParentCmd::DoInitial() {
+  dest_key_ = argv_[1];
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &num_keys_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -473,16 +473,16 @@ void ZsetUIstoreParentCmd::DoInitial(const PikaCmdArgsType& argv) {
     res_.SetRes(CmdRes::kErrOther, "at least 1 input key is needed for ZUNIONSTORE/ZINTERSTORE");
     return;
   }
-  int argc = argv.size();
+  int argc = argv_.size();
   if (argc < num_keys_ + 3) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  keys_.assign(argv.begin() + 3, argv.begin() + 3 + num_keys_);
+  keys_.assign(argv_.begin() + 3, argv_.begin() + 3 + num_keys_);
   weights_.assign(num_keys_, 1);
   int index = num_keys_ + 3;
   while (index < argc) {
-    if (!strcasecmp(argv[index].data(), "weights")) {
+    if (!strcasecmp(argv_[index].data(), "weights")) {
       index++;
       if (argc < index + num_keys_) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -491,23 +491,23 @@ void ZsetUIstoreParentCmd::DoInitial(const PikaCmdArgsType& argv) {
       double weight;
       int base = index;
       for (; index < base + num_keys_; index++) {
-        if (!slash::string2d(argv[index].data(), argv[index].size(), &weight)) {
+        if (!slash::string2d(argv_[index].data(), argv_[index].size(), &weight)) {
           res_.SetRes(CmdRes::kErrOther, "weight value is not a float");
           return;
         }
         weights_[index-base] = weight;
       }
-    } else if (!strcasecmp(argv[index].data(), "aggregate")) {
+    } else if (!strcasecmp(argv_[index].data(), "aggregate")) {
       index++;
       if (argc < index + 1) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!strcasecmp(argv[index].data(), "sum")) {
+      if (!strcasecmp(argv_[index].data(), "sum")) {
         aggregate_ = blackwidow::SUM;
-      } else if (!strcasecmp(argv[index].data(), "min")) {
+      } else if (!strcasecmp(argv_[index].data(), "min")) {
         aggregate_ = blackwidow::MIN;
-      } else if (!strcasecmp(argv[index].data(), "max")) {
+      } else if (!strcasecmp(argv_[index].data(), "max")) {
         aggregate_ = blackwidow::MAX;
       } else {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -522,15 +522,15 @@ void ZsetUIstoreParentCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void ZUnionstoreCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZUnionstoreCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZUnionstore);
     return;
   }
-  ZsetUIstoreParentCmd::DoInitial(argv);
+  ZsetUIstoreParentCmd::DoInitial();
 }
 
-void ZUnionstoreCmd::Do() {
+void ZUnionstoreCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
   rocksdb::Status s = g_pika_server->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, &count);
   if (s.ok()) {
@@ -541,16 +541,16 @@ void ZUnionstoreCmd::Do() {
   return;
 }
 
-void ZInterstoreCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZInterstoreCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZInterstore);
     return;
   }
-  ZsetUIstoreParentCmd::DoInitial(argv);
+  ZsetUIstoreParentCmd::DoInitial();
   return;
 }
 
-void ZInterstoreCmd::Do() {
+void ZInterstoreCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
   rocksdb::Status s = g_pika_server->db()->ZInterstore(dest_key_, keys_, weights_, aggregate_, &count);
   if (s.ok()) {
@@ -561,21 +561,21 @@ void ZInterstoreCmd::Do() {
   return;
 }
 
-void ZsetRankParentCmd::DoInitial(const PikaCmdArgsType& argv) {
-  key_ = argv[1];
-  member_ = argv[2];
+void ZsetRankParentCmd::DoInitial() {
+  key_ = argv_[1];
+  member_ = argv_[2];
   return;
 }
 
-void ZRankCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRankCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRank);
     return;
   }
-  ZsetRankParentCmd::DoInitial(argv);
+  ZsetRankParentCmd::DoInitial();
 }
 
-void ZRankCmd::Do() {
+void ZRankCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t rank = 0;
   rocksdb::Status s = g_pika_server->db()->ZRank(key_, member_, &rank);
   if (s.ok()) {
@@ -587,15 +587,15 @@ void ZRankCmd::Do() {
   }
 }
 
-void ZRevrankCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRevrankCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRevrank);
     return;
   }
-  ZsetRankParentCmd::DoInitial(argv);
+  ZsetRankParentCmd::DoInitial();
 }
 
-void ZRevrankCmd::Do() {
+void ZRevrankCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t revrank = 0;
   rocksdb::Status s = g_pika_server->db()->ZRevrank(key_, member_, &revrank);
   if (s.ok()) {
@@ -607,16 +607,16 @@ void ZRevrankCmd::Do() {
   }
 }
 
-void ZScoreCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZScoreCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZScore);
     return;
   }
-  key_ = argv[1];
-  member_ = argv[2];
+  key_ = argv_[1];
+  member_ = argv_[2];
 }
 
-void ZScoreCmd::Do() {
+void ZScoreCmd::Do(std::shared_ptr<Partition> partition) {
   double score = 0;
   rocksdb::Status s = g_pika_server->db()->ZScore(key_, member_, &score);
   if (s.ok()) {
@@ -670,39 +670,39 @@ static int32_t DoMemberRange(const std::string &raw_min_member,
   return 0;
 }
 
-void ZsetRangebylexParentCmd::DoInitial(const PikaCmdArgsType& argv) {
-  key_ = argv[1];
-  int32_t ret = DoMemberRange(argv[2], argv[3], &left_close_, &right_close_, &min_member_, &max_member_);
+void ZsetRangebylexParentCmd::DoInitial() {
+  key_ = argv_[1];
+  int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_member_, &max_member_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max not valid string range item");
     return;
   }
-  size_t argc = argv.size();
+  size_t argc = argv_.size();
   if (argc == 4) {
     return;
-  } else if (argc != 7 || strcasecmp(argv[4].data(), "limit")) {
+  } else if (argc != 7 || strcasecmp(argv_[4].data(), "limit")) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  if (!slash::string2l(argv[5].data(), argv[5].size(), &offset_)) {
+  if (!slash::string2l(argv_[5].data(), argv_[5].size(), &offset_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!slash::string2l(argv[6].data(), argv[6].size(), &count_)) {
+  if (!slash::string2l(argv_[6].data(), argv_[6].size(), &count_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
-void ZRangebylexCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRangebylexCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRangebylex);
     return;
   }
-  ZsetRangebylexParentCmd::DoInitial(argv);
+  ZsetRangebylexParentCmd::DoInitial();
 }
 
-void ZRangebylexCmd::Do() {
+void ZRangebylexCmd::Do(std::shared_ptr<Partition> partition) {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
@@ -724,12 +724,12 @@ void ZRangebylexCmd::Do() {
   return;
 }
 
-void ZRevrangebylexCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRevrangebylexCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRevrangebylex);
     return;
   }
-  ZsetRangebylexParentCmd::DoInitial(argv);
+  ZsetRangebylexParentCmd::DoInitial();
 
   std::string tmp_s;
   tmp_s = min_member_;
@@ -742,7 +742,7 @@ void ZRevrangebylexCmd::DoInitial(const PikaCmdArgsType& argv) {
   right_close_ = tmp_b;
 }
 
-void ZRevrangebylexCmd::Do() {
+void ZRevrangebylexCmd::Do(std::shared_ptr<Partition> partition) {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;
@@ -764,20 +764,20 @@ void ZRevrangebylexCmd::Do() {
   return;
 }
 
-void ZLexcountCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZLexcountCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZLexcount);
     return;
   }
-  key_ = argv[1];
-  int32_t ret = DoMemberRange(argv[2], argv[3], &left_close_, &right_close_, &min_member_, &max_member_);
+  key_ = argv_[1];
+  int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_member_, &max_member_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max not valid string range item");
     return;
   }
 }
 
-void ZLexcountCmd::Do() {
+void ZLexcountCmd::Do(std::shared_ptr<Partition> partition) {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent(":0");
     return;
@@ -792,23 +792,23 @@ void ZLexcountCmd::Do() {
   return;
 }
 
-void ZRemrangebyrankCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRemrangebyrankCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRemrangebyrank);
     return;
   }
-  key_ = argv[1];
-  if (!slash::string2l(argv[2].data(), argv[2].size(), &start_rank_)) {
+  key_ = argv_[1];
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &start_rank_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!slash::string2l(argv[3].data(), argv[3].size(), &stop_rank_)) {
+  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &stop_rank_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 }
 
-void ZRemrangebyrankCmd::Do() {
+void ZRemrangebyrankCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
   rocksdb::Status s = g_pika_server->db()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
   if (s.ok() || s.IsNotFound()) {
@@ -819,13 +819,13 @@ void ZRemrangebyrankCmd::Do() {
   return;
 }
 
-void ZRemrangebyscoreCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRemrangebyscoreCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRemrangebyscore);
     return;
   }
-  key_ = argv[1];
-  int32_t ret = DoScoreStrRange(argv[2], argv[3], &left_close_, &right_close_, &min_score_, &max_score_);
+  key_ = argv_[1];
+  int32_t ret = DoScoreStrRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_score_, &max_score_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max is not a float");
     return;
@@ -833,7 +833,7 @@ void ZRemrangebyscoreCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void ZRemrangebyscoreCmd::Do() {
+void ZRemrangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
   if (min_score_ == blackwidow::ZSET_SCORE_MAX || max_score_ == blackwidow::ZSET_SCORE_MIN) {
     res_.AppendContent(":0");
     return;
@@ -848,13 +848,13 @@ void ZRemrangebyscoreCmd::Do() {
   return;
 }
 
-void ZRemrangebylexCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ZRemrangebylexCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZRemrangebylex);
     return;
   }
-  key_ = argv[1];
-  int32_t ret = DoMemberRange(argv[2], argv[3], &left_close_, &right_close_, &min_member_, &max_member_);
+  key_ = argv_[1];
+  int32_t ret = DoMemberRange(argv_[2], argv_[3], &left_close_, &right_close_, &min_member_, &max_member_);
   if (ret == -1) {
     res_.SetRes(CmdRes::kErrOther, "min or max not valid string range item");
     return;
@@ -862,7 +862,7 @@ void ZRemrangebylexCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void ZRemrangebylexCmd::Do() {
+void ZRemrangebylexCmd::Do(std::shared_ptr<Partition> partition) {
   if (min_member_ == "+" || max_member_ == "-") {
     res_.AppendContent("*0");
     return;

@@ -34,6 +34,7 @@ class Table {
   virtual ~Table();
 
   bool IsCommandSupport(const std::string& cmd) const;
+  bool IsBinlogIoError() ;
 
   std::shared_ptr<Partition> GetPartitionById(uint32_t partition_id);
   std::shared_ptr<Partition> GetPartitionByKey(const std::string& key);
