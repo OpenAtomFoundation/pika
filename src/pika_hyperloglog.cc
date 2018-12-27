@@ -10,21 +10,21 @@
 
 extern PikaServer *g_pika_server;
 
-void PfAddCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PfAddCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePfAdd);
     return;
   }
-  if (argv.size() > 1) {
-    key_ = argv[1];
+  if (argv_.size() > 1) {
+    key_ = argv_[1];
     size_t pos = 2;
-    while (pos < argv.size()) {
-      values_.push_back(argv[pos++]);
+    while (pos < argv_.size()) {
+      values_.push_back(argv_[pos++]);
     }
   }
 }
 
-void PfAddCmd::Do() {
+void PfAddCmd::Do(std::shared_ptr<Partition> partition) {
   bool update = false;
   rocksdb::Status s = g_pika_server->db()->PfAdd(key_, values_, &update);
   if (s.ok() && update) {
@@ -36,18 +36,18 @@ void PfAddCmd::Do() {
   }
 }
 
-void PfCountCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PfCountCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePfCount);
     return;
   }
   size_t pos = 1;
-  while (pos < argv.size()) {
-    keys_.push_back(argv[pos++]);
+  while (pos < argv_.size()) {
+    keys_.push_back(argv_[pos++]);
   }
 }
 
-void PfCountCmd::Do() {
+void PfCountCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t value_ = 0;
   rocksdb::Status s = g_pika_server->db()->PfCount(keys_, &value_);
   if (s.ok()) {
@@ -57,18 +57,18 @@ void PfCountCmd::Do() {
   }
 }
 
-void PfMergeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PfMergeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePfMerge);
     return;
   }
   size_t pos = 1;
-  while (pos < argv.size()) {
-    keys_.push_back(argv[pos++]);
+  while (pos < argv_.size()) {
+    keys_.push_back(argv_[pos++]);
   }
 }
 
-void PfMergeCmd::Do() {
+void PfMergeCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = g_pika_server->db()->PfMerge(keys_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);

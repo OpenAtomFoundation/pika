@@ -15,6 +15,9 @@
 #include "include/pika_conf.h"
 #include "include/pika_binlog.h"
 
+class Cmd;
+class Binlog;
+
 class Partition {
  public:
   Partition(const std::string& table_name,
@@ -28,6 +31,7 @@ class Partition {
   std::shared_ptr<Binlog> logger() const;
   std::shared_ptr<blackwidow::BlackWidow> db() const;
 
+  void DoCommand(const Cmd* const cmd);
 
   void BinlogLock();
   void BinlogUnLock();

@@ -16,7 +16,7 @@ class BitGetCmd : public Cmd {
  public:
   BitGetCmd(const std::string& name, int arity, uint16_t flag)
         : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string key_;
   int64_t  bit_offset_;
@@ -24,14 +24,14 @@ class BitGetCmd : public Cmd {
     key_ = "";
     bit_offset_ = -1;
   }
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class BitSetCmd : public Cmd {
  public:
   BitSetCmd(const std::string& name, int arity, uint16_t flag)
         : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string key_;
   int64_t  bit_offset_;
@@ -41,14 +41,14 @@ class BitSetCmd : public Cmd {
     bit_offset_ = -1;
     on_ = -1;
   }
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class BitCountCmd : public Cmd {
  public:
   BitCountCmd(const std::string& name, int arity, uint16_t flag)
         : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string key_;
   bool  count_all_;
@@ -60,14 +60,14 @@ class BitCountCmd : public Cmd {
     start_offset_ = -1;
     end_offset_ = -1;
   }
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class BitPosCmd : public Cmd {
  public:
   BitPosCmd(const std::string& name, int arity, uint16_t flag)
         : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string key_;
   bool  pos_all_;
@@ -83,14 +83,14 @@ class BitPosCmd : public Cmd {
     start_offset_ = -1;
     end_offset_ = -1;
   }
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class BitOpCmd : public Cmd {
  public:
   BitOpCmd(const std::string& name, int arity, uint16_t flag)
         : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string dest_key_;
   std::vector<std::string> src_keys_;
@@ -100,6 +100,6 @@ class BitOpCmd : public Cmd {
     src_keys_.clear();
     op_ = blackwidow::kBitOpDefault;
   }
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 #endif

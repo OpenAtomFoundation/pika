@@ -13,30 +13,30 @@
 
 extern PikaServer *g_pika_server;
 
-void GeoAddCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void GeoAddCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoAdd);
     return;
   }
-  size_t argc = argv.size();
+  size_t argc = argv_.size();
   if ((argc - 2) % 3 != 0) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoAdd);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   pos_.clear();
   struct GeoPoint point;
   double longitude, latitude;
   for (size_t index = 2; index < argc; index += 3) {
-    if (!slash::string2d(argv[index].data(), argv[index].size(), &longitude)) {
+    if (!slash::string2d(argv_[index].data(), argv_[index].size(), &longitude)) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
-    if (!slash::string2d(argv[index + 1].data(), argv[index + 1].size(), &latitude)) {
+    if (!slash::string2d(argv_[index + 1].data(), argv_[index + 1].size(), &latitude)) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
-    point.member = argv[index + 2];
+    point.member = argv_[index + 2];
     point.longitude = longitude;
     point.latitude = latitude;
     pos_.push_back(point);
@@ -44,7 +44,7 @@ void GeoAddCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void GeoAddCmd::Do() {
+void GeoAddCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::ScoreMember> score_members;
   for (const auto& geo_point : pos_) {
     // Convert coordinates to geohash
@@ -67,20 +67,20 @@ void GeoAddCmd::Do() {
   return;
 }
 
-void GeoPosCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void GeoPosCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoPos);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   members_.clear();
   size_t pos = 2;
-  while (pos < argv.size()) {
-    members_.push_back(argv[pos++]);
+  while (pos < argv_.size()) {
+    members_.push_back(argv_[pos++]);
   }
 }
 
-void GeoPosCmd::Do() {
+void GeoPosCmd::Do(std::shared_ptr<Partition> partition) {
   double score;
   res_.AppendArrayLen(members_.size());
   for (const auto& member : members_) {
@@ -133,23 +133,23 @@ static bool check_unit(const std::string & unit) {
   }
 }
 
-void GeoDistCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void GeoDistCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoDist);
     return;
   }
-  if (argv.size() < 4) {
+  if (argv_.size() < 4) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoDist);
     return;
-  } else if (argv.size() > 5) {
+  } else if (argv_.size() > 5) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  key_ = argv[1];
-  first_pos_ = argv[2];
-  second_pos_ = argv[3];
-  if (argv.size() == 5) {
-    unit_ = argv[4];
+  key_ = argv_[1];
+  first_pos_ = argv_[2];
+  second_pos_ = argv_[3];
+  if (argv_.size() == 5) {
+    unit_ = argv_[4];
   } else {
     unit_ = "m";
   }
@@ -159,7 +159,7 @@ void GeoDistCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 }
 
-void GeoDistCmd::Do() {
+void GeoDistCmd::Do(std::shared_ptr<Partition> partition) {
   double first_score, second_score, first_xy[2], second_xy[2];
   rocksdb::Status s = g_pika_server->db()->ZScore(key_, first_pos_, &first_score);
   if (s.ok()) {
@@ -193,20 +193,20 @@ void GeoDistCmd::Do() {
   res_.AppendContent(buf);
 }
 
-void GeoHashCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void GeoHashCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoHash);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   members_.clear();
   size_t pos = 2;
-  while (pos < argv.size()) {
-    members_.push_back(argv[pos++]);
+  while (pos < argv_.size()) {
+    members_.push_back(argv_[pos++]);
   }
 }
 
-void GeoHashCmd::Do() {
+void GeoHashCmd::Do(std::shared_ptr<Partition> partition) {
   const char * geoalphabet= "0123456789bcdefghjkmnpqrstuvwxyz";
   res_.AppendArrayLen(members_.size());
   for (const auto& member : members_) {
@@ -398,38 +398,38 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
   }
 }
 
-void GeoRadiusCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void GeoRadiusCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
     return;
   }
-  key_ = argv[1];
-  slash::string2d(argv[2].data(), argv[2].size(), &range_.longitude);
-  slash::string2d(argv[3].data(), argv[3].size(), &range_.latitude);
-  slash::string2d(argv[4].data(), argv[4].size(), &range_.distance);
-  range_.unit = argv[5];
+  key_ = argv_[1];
+  slash::string2d(argv_[2].data(), argv_[2].size(), &range_.longitude);
+  slash::string2d(argv_[3].data(), argv_[3].size(), &range_.latitude);
+  slash::string2d(argv_[4].data(), argv_[4].size(), &range_.distance);
+  range_.unit = argv_[5];
   if (!check_unit(range_.unit)) {
     res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
     return;
   }
   size_t pos = 6;
-  while (pos < argv.size()) {
-    if (!strcasecmp(argv[pos].c_str(), "withdist")) {
+  while (pos < argv_.size()) {
+    if (!strcasecmp(argv_[pos].c_str(), "withdist")) {
       range_.withdist = true;
       range_.option_num++;
-    } else if (!strcasecmp(argv[pos].c_str(), "withhash")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "withhash")) {
       range_.withhash = true;	
       range_.option_num++;
-    } else if (!strcasecmp(argv[pos].c_str(), "withcoord")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "withcoord")) {
       range_.withcoord = true;	
       range_.option_num++;
-    } else if (!strcasecmp(argv[pos].c_str(), "count")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "count")) {
       range_.count = true; 
-      if (argv.size() < (pos+2)) {
+      if (argv_.size() < (pos+2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;        
       }
-      std::string str_count = argv[++pos];
+      std::string str_count = argv_[++pos];
       for (auto s : str_count) {
         if (!isdigit(s)) {
           res_.SetRes(CmdRes::kErrOther, "value is not an integer or out of range");
@@ -437,23 +437,23 @@ void GeoRadiusCmd::DoInitial(const PikaCmdArgsType& argv) {
         }
       } 
       range_.count_limit = std::stoi(str_count);
-    } else if (!strcasecmp(argv[pos].c_str(), "store")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "store")) {
       range_.store = true;
-      if (argv.size() < (pos+2)) {
+      if (argv_.size() < (pos+2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;        
       }
-      range_.storekey = argv[++pos];
-    } else if (!strcasecmp(argv[pos].c_str(), "storedist")) {
+      range_.storekey = argv_[++pos];
+    } else if (!strcasecmp(argv_[pos].c_str(), "storedist")) {
       range_.storedist = true;
-      if (argv.size() < (pos+2)) {
+      if (argv_.size() < (pos+2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;        
       }
-      range_.storekey = argv[++pos];
-    } else if (!strcasecmp(argv[pos].c_str(), "asc")) {
+      range_.storekey = argv_[++pos];
+    } else if (!strcasecmp(argv_[pos].c_str(), "asc")) {
       range_.sort = Asc;	
-    } else if (!strcasecmp(argv[pos].c_str(), "desc")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "desc")) {
       range_.sort = Desc;	
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
@@ -467,41 +467,41 @@ void GeoRadiusCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 }
 
-void GeoRadiusCmd::Do() {
+void GeoRadiusCmd::Do(std::shared_ptr<Partition> partition) {
   GetAllNeighbors(key_, range_, this->res_);
 }
 
-void GeoRadiusByMemberCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void GeoRadiusByMemberCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameGeoRadius);
     return;
   }
-  key_ = argv[1];
-  range_.member = argv[2];
-  slash::string2d(argv[3].data(), argv[3].size(), &range_.distance);
-  range_.unit = argv[4];
+  key_ = argv_[1];
+  range_.member = argv_[2];
+  slash::string2d(argv_[3].data(), argv_[3].size(), &range_.distance);
+  range_.unit = argv_[4];
   if (!check_unit(range_.unit)) {
     res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
     return;
   }
   size_t pos = 5;
-  while (pos < argv.size()) {
-    if (!strcasecmp(argv[pos].c_str(), "withdist")) {
+  while (pos < argv_.size()) {
+    if (!strcasecmp(argv_[pos].c_str(), "withdist")) {
       range_.withdist = true;
       range_.option_num++;
-    } else if (!strcasecmp(argv[pos].c_str(), "withhash")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "withhash")) {
       range_.withhash = true; 
       range_.option_num++;
-    } else if (!strcasecmp(argv[pos].c_str(), "withcoord")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "withcoord")) {
       range_.withcoord = true;  
       range_.option_num++;
-    } else if (!strcasecmp(argv[pos].c_str(), "count")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "count")) {
       range_.count = true; 
-      if (argv.size() < (pos+2)) {
+      if (argv_.size() < (pos+2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;        
       }
-      std::string str_count = argv[++pos];
+      std::string str_count = argv_[++pos];
       for (auto s : str_count) {
         if (!isdigit(s)) {
           res_.SetRes(CmdRes::kErrOther, "value is not an integer or out of range");
@@ -509,23 +509,23 @@ void GeoRadiusByMemberCmd::DoInitial(const PikaCmdArgsType& argv) {
         }
       } 
       range_.count_limit = std::stoi(str_count);
-    } else if (!strcasecmp(argv[pos].c_str(), "store")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "store")) {
       range_.store = true;
-      if (argv.size() < (pos+2)) {
+      if (argv_.size() < (pos+2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;        
       }
-      range_.storekey = argv[++pos];
-    } else if (!strcasecmp(argv[pos].c_str(), "storedist")) {
+      range_.storekey = argv_[++pos];
+    } else if (!strcasecmp(argv_[pos].c_str(), "storedist")) {
       range_.storedist = true;
-      if (argv.size() < (pos+2)) {
+      if (argv_.size() < (pos+2)) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;        
       }
-      range_.storekey = argv[++pos];
-    } else if (!strcasecmp(argv[pos].c_str(), "asc")) {
+      range_.storekey = argv_[++pos];
+    } else if (!strcasecmp(argv_[pos].c_str(), "asc")) {
       range_.sort = Asc;  
-    } else if (!strcasecmp(argv[pos].c_str(), "desc")) {
+    } else if (!strcasecmp(argv_[pos].c_str(), "desc")) {
       range_.sort = Desc; 
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
@@ -539,7 +539,7 @@ void GeoRadiusByMemberCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 }
 
-void GeoRadiusByMemberCmd::Do() {
+void GeoRadiusByMemberCmd::Do(std::shared_ptr<Partition> partition) {
   double score;
   rocksdb::Status s = g_pika_server->db()->ZScore(key_, range_.member, &score);
   if (s.ok()) {

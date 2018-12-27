@@ -21,18 +21,18 @@
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
 
-void SlaveofCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void SlaveofCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
     return;
   }
-  PikaCmdArgsType::const_iterator it = argv.begin() + 1; //Remember the first args is the opt name
+  PikaCmdArgsType::const_iterator it = argv_.begin() + 1; //Remember the first args is the opt name
 
   master_ip_ = *it++;
 
   is_noone_ = false;
   if (!strcasecmp(master_ip_.data(), "no") && !strcasecmp(it->data(), "one")) {
-    if (argv.end() - it == 1) {
+    if (argv_.end() - it == 1) {
       is_noone_ = true;
     } else {
       res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
@@ -52,7 +52,7 @@ void SlaveofCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 
   have_offset_ = false;
-  int cur_size = argv.end() - it;
+  int cur_size = argv_.end() - it;
   if (cur_size == 0) {
 
   } else if (cur_size == 1) {
@@ -79,7 +79,7 @@ void SlaveofCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 }
 
-void SlaveofCmd::Do() {
+void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   // Check if we are already connected to the specified master
   if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_) &&
       g_pika_server->master_port() == master_port_) {
@@ -115,12 +115,12 @@ void SlaveofCmd::Do() {
   }
 }
 
-void TrysyncCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void TrysyncCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameTrysync);
     return;
   }
-  PikaCmdArgsType::const_iterator it = argv.begin() + 1; //Remember the first args is the opt name
+  PikaCmdArgsType::const_iterator it = argv_.begin() + 1; //Remember the first args is the opt name
   slave_ip_ = *it++;
 
   std::string str_slave_port = *it++;
@@ -142,7 +142,7 @@ void TrysyncCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 }
 
-void TrysyncCmd::Do() {
+void TrysyncCmd::Do(std::shared_ptr<Partition> partition) {
   LOG(INFO) << "Trysync, Slave ip: " << slave_ip_ << " Slave port:" << slave_port_
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
   int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_);
@@ -174,15 +174,15 @@ void TrysyncCmd::Do() {
   }
 }
 
-void AuthCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void AuthCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameAuth);
     return;
   }
-  pwd_ = argv[1];
+  pwd_ = argv_[1];
 }
 
-void AuthCmd::Do() {
+void AuthCmd::Do(std::shared_ptr<Partition> partition) {
   std::string root_password(g_pika_conf->requirepass());
   std::string user_password(g_pika_conf->userpass());
   if (user_password.empty() && root_password.empty()) {
@@ -201,13 +201,13 @@ void AuthCmd::Do() {
   }
 }
 
-void BgsaveCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void BgsaveCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsave);
     return;
   }
 }
-void BgsaveCmd::Do() {
+void BgsaveCmd::Do(std::shared_ptr<Partition> partition) {
   g_pika_server->Bgsave();
   const PikaServer::BGSaveInfo& info = g_pika_server->bgsave_info();
   char buf[256];
@@ -215,13 +215,13 @@ void BgsaveCmd::Do() {
       info.s_start_time.c_str(), info.filenum, info.offset);
   res_.AppendContent(buf);
 }
-void BgsaveoffCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void BgsaveoffCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsaveoff);
     return;
   }
 }
-void BgsaveoffCmd::Do() {
+void BgsaveoffCmd::Do(std::shared_ptr<Partition> partition) {
   CmdRes::CmdRet ret;
   if (g_pika_server->Bgsaveoff()) {
    ret = CmdRes::kOk;
@@ -231,9 +231,9 @@ void BgsaveoffCmd::Do() {
   res_.SetRes(ret);
 }
 
-void CompactCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())
-    || argv.size() > 2) {
+void CompactCmd::DoInitial() {
+  if (!CheckArg(argv_.size())
+    || argv_.size() > 2) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameCompact);
     return;
   }
@@ -242,12 +242,12 @@ void CompactCmd::DoInitial(const PikaCmdArgsType& argv) {
     return;
   }
 
-  if (argv.size() == 2) {
-    struct_type_ = argv[1];
+  if (argv_.size() == 2) {
+    struct_type_ = argv_[1];
   }
 }
 
-void CompactCmd::Do() {
+void CompactCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s;
   if (struct_type_.empty()) {
     s = g_pika_server->db()->Compact(blackwidow::kAll);
@@ -272,12 +272,12 @@ void CompactCmd::Do() {
   }
 }
 
-void PurgelogstoCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PurgelogstoCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePurgelogsto);
     return;
   }
-  std::string filename = argv[1];
+  std::string filename = argv_[1];
   slash::StringToLower(filename);
   if (filename.size() <= kBinlogPrefixLen ||
       kBinlogPrefix != filename.substr(0, kBinlogPrefixLen)) {
@@ -292,7 +292,7 @@ void PurgelogstoCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
   num_ = num;
 }
-void PurgelogstoCmd::Do() {
+void PurgelogstoCmd::Do(std::shared_ptr<Partition> partition) {
   if (g_pika_server->PurgeLogs(num_, true, false)) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -300,33 +300,33 @@ void PurgelogstoCmd::Do() {
   }
 }
 
-void PingCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PingCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePing);
     return;
   }
 }
-void PingCmd::Do() {
+void PingCmd::Do(std::shared_ptr<Partition> partition) {
   res_.SetRes(CmdRes::kPong);
 }
 
-void SelectCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void SelectCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
     return;
   }
 }
 
-void SelectCmd::Do() {
+void SelectCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
-void FlushallCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void FlushallCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushall);
     return;
   }
 }
-void FlushallCmd::Do() {
+void FlushallCmd::Do(std::shared_ptr<Partition> partition) {
   g_pika_server->RWLockWriter();
   if (g_pika_server->FlushAll()) {
     res_.SetRes(CmdRes::kOk);
@@ -336,12 +336,12 @@ void FlushallCmd::Do() {
   g_pika_server->RWUnlock();
 }
 
-void FlushdbCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void FlushdbCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushdb);
     return;
   }
-  std::string struct_type = argv[1];
+  std::string struct_type = argv_[1];
   if (!strcasecmp(struct_type.data(), "string")) {
     db_name_ = "strings";
   } else if (!strcasecmp(struct_type.data(), "hash")) {
@@ -357,7 +357,7 @@ void FlushdbCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 }
 
-void FlushdbCmd::Do() {
+void FlushdbCmd::Do(std::shared_ptr<Partition> partition) {
   g_pika_server->RWLockWriter();
   if (g_pika_server->FlushDb(db_name_)) {
     res_.SetRes(CmdRes::kOk);
@@ -367,24 +367,24 @@ void FlushdbCmd::Do() {
   g_pika_server->RWUnlock();
 }
 
-void ClientCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ClientCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameClient);
     return;
   }
-  if (!strcasecmp(argv[1].data(), "list") && argv.size() == 2) {
+  if (!strcasecmp(argv_[1].data(), "list") && argv_.size() == 2) {
     //nothing
-  } else if (!strcasecmp(argv[1].data(), "kill") && argv.size() == 3) {
-    ip_port_ = argv[2];
+  } else if (!strcasecmp(argv_[1].data(), "kill") && argv_.size() == 3) {
+    ip_port_ = argv_[2];
   } else {
     res_.SetRes(CmdRes::kErrOther, "Syntax error, try CLIENT (LIST | KILL ip:port)");
     return;
   }
-  operation_ = argv[1];
+  operation_ = argv_[1];
   return;
 }
 
-void ClientCmd::Do() {
+void ClientCmd::Do(std::shared_ptr<Partition> partition) {
   if (!strcasecmp(operation_.data(), "list")) {
     struct timeval now;
     gettimeofday(&now, NULL);
@@ -410,14 +410,14 @@ void ClientCmd::Do() {
   return;
 }
 
-void ShutdownCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ShutdownCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameShutdown);
     return;
   }
 }
 // no return
-void ShutdownCmd::Do() {
+void ShutdownCmd::Do(std::shared_ptr<Partition> partition) {
   DLOG(WARNING) << "handle \'shutdown\'";
   g_pika_server->Exit();
   res_.SetRes(CmdRes::kNone);
@@ -435,8 +435,8 @@ const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kLogSection = "log";
 const std::string InfoCmd::kDataSection = "data";
 
-void InfoCmd::DoInitial(const PikaCmdArgsType& argv) {
-  size_t argc = argv.size();
+void InfoCmd::DoInitial() {
+  size_t argc = argv_.size();
   if (argc > 3) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
@@ -446,40 +446,40 @@ void InfoCmd::DoInitial(const PikaCmdArgsType& argv) {
     return;
   } //then the agc is 2 or 3
 
-  if (!strcasecmp(argv[1].data(), kAllSection.data())) {
+  if (!strcasecmp(argv_[1].data(), kAllSection.data())) {
     info_section_ = kInfoAll;
-  } else if (!strcasecmp(argv[1].data(), kServerSection.data())) {
+  } else if (!strcasecmp(argv_[1].data(), kServerSection.data())) {
     info_section_ = kInfoServer;
-  } else if (!strcasecmp(argv[1].data(), kClientsSection.data())) {
+  } else if (!strcasecmp(argv_[1].data(), kClientsSection.data())) {
     info_section_ = kInfoClients;
-  } else if (!strcasecmp(argv[1].data(), kStatsSection.data())) {
+  } else if (!strcasecmp(argv_[1].data(), kStatsSection.data())) {
     info_section_ = kInfoStats;
-  } else if (!strcasecmp(argv[1].data(), kExecCountSection.data())) {
+  } else if (!strcasecmp(argv_[1].data(), kExecCountSection.data())) {
     info_section_ = kInfoExecCount;
-  } else if (!strcasecmp(argv[1].data(), kCPUSection.data())) {
+  } else if (!strcasecmp(argv_[1].data(), kCPUSection.data())) {
     info_section_ = kInfoCPU;
-  } else if (!strcasecmp(argv[1].data(), kReplicationSection.data())) {
+  } else if (!strcasecmp(argv_[1].data(), kReplicationSection.data())) {
     info_section_ = kInfoReplication;
-  } else if (!strcasecmp(argv[1].data(), kKeyspaceSection.data())) {
+  } else if (!strcasecmp(argv_[1].data(), kKeyspaceSection.data())) {
     info_section_ = kInfoKeyspace;
     if (argc == 2) {
       return;
     }
-    if (argv[2] == "1") { //info keyspace [ 0 | 1 | off ]
+    if (argv_[2] == "1") { //info keyspace [ 0 | 1 | off ]
       if (g_pika_server->db()->GetCurrentTaskType() == "All") {
         res_.SetRes(CmdRes::kErrOther, "The compact operation is executing, Try again later");
       } else {
         rescan_ = true;
       }
-    } else if (argv[2] == "off") {
+    } else if (argv_[2] == "off") {
       off_ = true;
-    } else if (argv[2] != "0") {
+    } else if (argv_[2] != "0") {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
     return;
-  } else if (!strcasecmp(argv[1].data(), kLogSection.data())) {
+  } else if (!strcasecmp(argv_[1].data(), kLogSection.data())) {
     info_section_ = kInfoLog;
-  } else if (!strcasecmp(argv[1].data(), kDataSection.data())) {
+  } else if (!strcasecmp(argv_[1].data(), kDataSection.data())) {
     info_section_ = kInfoData;
   } else {
     info_section_ = kInfoErr;
@@ -489,7 +489,7 @@ void InfoCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 }
 
-void InfoCmd::Do() {
+void InfoCmd::Do(std::shared_ptr<Partition> partition) {
   std::string info;
   switch (info_section_) {
     case kInfo:
@@ -783,31 +783,31 @@ void InfoCmd::InfoData(std::string &info) {
   return;
 }
 
-void ConfigCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ConfigCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameConfig);
     return;
   }
-  size_t argc = argv.size();
-  if (!strcasecmp(argv[1].data(), "get")) {
+  size_t argc = argv_.size();
+  if (!strcasecmp(argv_[1].data(), "get")) {
     if (argc != 3) {
       res_.SetRes(CmdRes::kErrOther, "Wrong number of arguments for CONFIG get");
       return;
     }
-  } else if (!strcasecmp(argv[1].data(), "set")) {
-    if (argc == 3 && argv[2] != "*") {
+  } else if (!strcasecmp(argv_[1].data(), "set")) {
+    if (argc == 3 && argv_[2] != "*") {
       res_.SetRes(CmdRes::kErrOther, "Wrong number of arguments for CONFIG set");
       return;
     } else if (argc != 4 && argc != 3) {
       res_.SetRes(CmdRes::kErrOther, "Wrong number of arguments for CONFIG set");
       return;
     }
-  } else if (!strcasecmp(argv[1].data(), "rewrite")) {
+  } else if (!strcasecmp(argv_[1].data(), "rewrite")) {
     if (argc != 2) {
       res_.SetRes(CmdRes::kErrOther, "Wrong number of arguments for CONFIG rewrite");
       return;
     }
-  } else if (!strcasecmp(argv[1].data(), "resetstat")) {
+  } else if (!strcasecmp(argv_[1].data(), "resetstat")) {
     if (argc != 2) {
       res_.SetRes(CmdRes::kErrOther, "Wrong number of arguments for CONFIG resetstat");
       return;
@@ -816,11 +816,11 @@ void ConfigCmd::DoInitial(const PikaCmdArgsType& argv) {
     res_.SetRes(CmdRes::kErrOther, "CONFIG subcommand must be one of GET, SET, RESETSTAT, REWRITE");
     return;
   }
-  config_args_v_.assign(argv.begin() + 1, argv.end());
+  config_args_v_.assign(argv_.begin() + 1, argv_.end());
   return;
 }
 
-void ConfigCmd::Do() {
+void ConfigCmd::Do(std::shared_ptr<Partition> partition) {
   std::string config_ret;
   if (!strcasecmp(config_args_v_[0].data(), "get")) {
     ConfigGet(config_ret);
@@ -1434,24 +1434,24 @@ void ConfigCmd::ConfigResetstat(std::string &ret) {
   ret = "+OK\r\n";
 }
 
-void MonitorCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (argv.size() != 1) {
+void MonitorCmd::DoInitial() {
+  if (argv_.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameMonitor);
     return;
   }
 }
 
-void MonitorCmd::Do() {
+void MonitorCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
-void DbsizeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (argv.size() != 1) {
+void DbsizeCmd::DoInitial() {
+  if (argv_.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDbsize);
     return;
   }
 }
 
-void DbsizeCmd::Do() {
+void DbsizeCmd::Do(std::shared_ptr<Partition> partition) {
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
   std::vector<blackwidow::KeyInfo>& key_infos = key_scan_info.key_infos;
   if (key_infos.size() != 5) {
@@ -1466,14 +1466,14 @@ void DbsizeCmd::Do() {
   res_.AppendInteger(dbsize);
 }
 
-void TimeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (argv.size() != 1) {
+void TimeCmd::DoInitial() {
+  if (argv_.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameTime);
     return;
   }
 }
 
-void TimeCmd::Do() {
+void TimeCmd::Do(std::shared_ptr<Partition> partition) {
   struct timeval tv;
   if (gettimeofday(&tv, NULL) == 0) {
     res_.AppendArrayLen(2);
@@ -1490,14 +1490,14 @@ void TimeCmd::Do() {
   }
 }
 
-void DelbackupCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (argv.size() != 1) {
+void DelbackupCmd::DoInitial() {
+  if (argv_.size() != 1) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDelbackup);
     return;
   }
 }
 
-void DelbackupCmd::Do() {
+void DelbackupCmd::Do(std::shared_ptr<Partition> partition) {
   std::string db_sync_prefix = g_pika_conf->bgsave_prefix();
   std::string db_sync_path = g_pika_conf->bgsave_path();
   std::vector<std::string> dump_dir;
@@ -1547,37 +1547,37 @@ void DelbackupCmd::Do() {
   return;
 }
 
-void EchoCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void EchoCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameEcho);
     return;
   }
-  body_ = argv[1];
+  body_ = argv_[1];
   return;
 }
 
-void EchoCmd::Do() {
+void EchoCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendString(body_);
   return;
 }
 
-void ScandbCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void ScandbCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameEcho);
     return;
   }
-  if (argv.size() == 1) {
+  if (argv_.size() == 1) {
     type_ = blackwidow::kAll;
   } else {
-    if (!strcasecmp(argv[1].data(),"string")) {
+    if (!strcasecmp(argv_[1].data(),"string")) {
       type_ = blackwidow::kStrings;
-    } else if (!strcasecmp(argv[1].data(), "hash")) {
+    } else if (!strcasecmp(argv_[1].data(), "hash")) {
       type_ = blackwidow::kHashes;
-    } else if (!strcasecmp(argv[1].data(), "set")) {
+    } else if (!strcasecmp(argv_[1].data(), "set")) {
       type_ = blackwidow::kSets;
-    } else if (!strcasecmp(argv[1].data(), "zset")) {
+    } else if (!strcasecmp(argv_[1].data(), "zset")) {
       type_ = blackwidow::kZSets;
-    } else if (!strcasecmp(argv[1].data(), "list")) {
+    } else if (!strcasecmp(argv_[1].data(), "list")) {
       type_ = blackwidow::kLists;
     } else {
       res_.SetRes(CmdRes::kInvalidDbType);
@@ -1586,24 +1586,24 @@ void ScandbCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void ScandbCmd::Do() {
+void ScandbCmd::Do(std::shared_ptr<Partition> partition) {
   g_pika_server->db()->ScanDatabase(type_);
   res_.SetRes(CmdRes::kOk);
   return;
 }
 
-void SlowlogCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void SlowlogCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlowlog);
     return;
   }
-  if (argv.size() == 2 && !strcasecmp(argv[1].data(), "reset")) {
+  if (argv_.size() == 2 && !strcasecmp(argv_[1].data(), "reset")) {
     condition_ = SlowlogCmd::kRESET;
-  } else if (argv.size() == 2 && !strcasecmp(argv[1].data(), "len")) {
+  } else if (argv_.size() == 2 && !strcasecmp(argv_[1].data(), "len")) {
     condition_ = SlowlogCmd::kLEN;
-  } else if ((argv.size() == 2 || argv.size() == 3) && !strcasecmp(argv[1].data(), "get")) {
+  } else if ((argv_.size() == 2 || argv_.size() == 3) && !strcasecmp(argv_[1].data(), "get")) {
     condition_ = SlowlogCmd::kGET;
-    if (argv.size() == 3 && !slash::string2l(argv[2].data(), argv[2].size(), &number_)) {
+    if (argv_.size() == 3 && !slash::string2l(argv_[2].data(), argv_[2].size(), &number_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -1613,7 +1613,7 @@ void SlowlogCmd::DoInitial(const PikaCmdArgsType& argv) {
   }
 }
 
-void SlowlogCmd::Do() {
+void SlowlogCmd::Do(std::shared_ptr<Partition> partition) {
   if (condition_ == SlowlogCmd::kRESET) {
     g_pika_server->SlowlogReset();
     res_.SetRes(CmdRes::kOk);
@@ -1638,19 +1638,19 @@ void SlowlogCmd::Do() {
 }
 
 #ifdef TCMALLOC_EXTENSION
-void TcmallocCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (argv.size() != 2 && argv.size() != 3) {
+void TcmallocCmd::DoInitial() {
+  if (argv_.size() != 2 && argv_.size() != 3) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameTcmalloc);
     return;
   }
   rate_ = 0;
-  std::string type = argv[1];
+  std::string type = argv_[1];
   if (!strcasecmp(type.data(), "stats")) {
     type_ = 0;
   } else if (!strcasecmp(type.data(), "rate")) {
     type_ = 1;
-    if (argv.size() == 3) {
-      if (!slash::string2l(argv[2].data(), argv[2].size(), &rate_)) {
+    if (argv_.size() == 3) {
+      if (!slash::string2l(argv_[2].data(), argv_[2].size(), &rate_)) {
         res_.SetRes(CmdRes::kSyntaxErr, kCmdNameTcmalloc);
       }
     }
@@ -1665,7 +1665,7 @@ void TcmallocCmd::DoInitial(const PikaCmdArgsType& argv) {
 
 }
 
-void TcmallocCmd::Do() {
+void TcmallocCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<MallocExtension::FreeListInfo> fli;
   std::vector<std::string> elems;
   switch(type_) {
