@@ -10,17 +10,17 @@
 
 extern PikaServer *g_pika_server;
 
-void BitSetCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void BitSetCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitSet);
     return;
   }
-  key_ = argv[1];
-  if (!slash::string2l(argv[2].data(), argv[2].size(), &bit_offset_)) {
+  key_ = argv_[1];
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
     res_.SetRes(CmdRes::kInvalidBitOffsetInt);
     return;
   }
-  if (!slash::string2l(argv[3].data(), argv[3].size(), &on_)) {
+  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &on_)) {
     res_.SetRes(CmdRes::kInvalidBitInt);
     return;
   }
@@ -40,7 +40,7 @@ void BitSetCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void BitSetCmd::Do() {
+void BitSetCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
   int32_t bit_val = 0;
   rocksdb::Status s = g_pika_server->db()->SetBit(key_, bit_offset_, on_, &bit_val);
@@ -51,13 +51,13 @@ void BitSetCmd::Do() {
   }
 }
 
-void BitGetCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void BitGetCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitGet);
     return;
   }
-  key_ = argv[1];
-  if (!slash::string2l(argv[2].data(), argv[2].size(), &bit_offset_)) {
+  key_ = argv_[1];
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
     res_.SetRes(CmdRes::kInvalidBitOffsetInt);
     return;
   }
@@ -68,7 +68,7 @@ void BitGetCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void BitGetCmd::Do() {
+void BitGetCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t bit_val = 0;
   rocksdb::Status s = g_pika_server->db()->GetBit(key_, bit_offset_, &bit_val);
   if (s.ok()) {
@@ -78,23 +78,23 @@ void BitGetCmd::Do() {
   }
 }
 
-void BitCountCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void BitCountCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitCount);
     return;
   }
-  key_ = argv[1];
-  if (argv.size() == 4) {
+  key_ = argv_[1];
+  if (argv_.size() == 4) {
     count_all_ = false;
-    if (!slash::string2l(argv[2].data(), argv[2].size(), &start_offset_)) {
+    if (!slash::string2l(argv_[2].data(), argv_[2].size(), &start_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
-    if (!slash::string2l(argv[3].data(), argv[3].size(), &end_offset_)) {
+    if (!slash::string2l(argv_[3].data(), argv_[3].size(), &end_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
-  } else if (argv.size() == 2) {
+  } else if (argv_.size() == 2) {
     count_all_ = true;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr, kCmdNameBitCount);
@@ -102,7 +102,7 @@ void BitCountCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void BitCountCmd::Do() {
+void BitCountCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
   rocksdb::Status s;
   if (count_all_) {
@@ -118,13 +118,13 @@ void BitCountCmd::Do() {
   }
 }
 
-void BitPosCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void BitPosCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitPos);
     return;
   }
-  key_ = argv[1];
-  if (!slash::string2l(argv[2].data(), argv[2].size(), &bit_val_)) {
+  key_ = argv_[1];
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &bit_val_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -132,24 +132,24 @@ void BitPosCmd::DoInitial(const PikaCmdArgsType& argv) {
     res_.SetRes(CmdRes::kInvalidBitPosArgument);
     return;
   }
-  if (argv.size() == 3) {
+  if (argv_.size() == 3) {
     pos_all_ = true;
     endoffset_set_ = false;
-  } else if (argv.size() == 4) {
+  } else if (argv_.size() == 4) {
     pos_all_ = false;
     endoffset_set_ = false;
-    if (!slash::string2l(argv[3].data(), argv[3].size(), &start_offset_)) {
+    if (!slash::string2l(argv_[3].data(), argv_[3].size(), &start_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     } 
-  } else if (argv.size() == 5) {
+  } else if (argv_.size() == 5) {
     pos_all_ = false;
     endoffset_set_ = true;
-    if (!slash::string2l(argv[3].data(), argv[3].size(), &start_offset_)) {
+    if (!slash::string2l(argv_[3].data(), argv_[3].size(), &start_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     } 
-    if (!slash::string2l(argv[4].data(), argv[4].size(), &end_offset_)) {
+    if (!slash::string2l(argv_[4].data(), argv_[4].size(), &end_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -158,7 +158,7 @@ void BitPosCmd::DoInitial(const PikaCmdArgsType& argv) {
   return;
 }
 
-void BitPosCmd::Do() {
+void BitPosCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t pos = 0;
   rocksdb::Status s;
   if (pos_all_) {
@@ -175,12 +175,12 @@ void BitPosCmd::Do() {
   }
 }
 
-void BitOpCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void BitOpCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
     return;
   }
-  std::string op_str = argv[1];
+  std::string op_str = argv_[1];
   if (!strcasecmp(op_str.data(), "not")) {
     op_ = blackwidow::kBitOpNot;
   } else if (!strcasecmp(op_str.data(), "and")) {
@@ -193,25 +193,25 @@ void BitOpCmd::DoInitial(const PikaCmdArgsType& argv) {
     res_.SetRes(CmdRes::kSyntaxErr, kCmdNameBitOp);
     return;
   }
-  if (op_ == blackwidow::kBitOpNot && argv.size() != 4) {
+  if (op_ == blackwidow::kBitOpNot && argv_.size() != 4) {
       res_.SetRes(CmdRes::kWrongBitOpNotNum, kCmdNameBitOp);
       return;
-  } else if (op_ != blackwidow::kBitOpNot && argv.size() < 4) {
+  } else if (op_ != blackwidow::kBitOpNot && argv_.size() < 4) {
       res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
       return;
-  } else if (argv.size() >= kMaxBitOpInputKey) {
+  } else if (argv_.size() >= kMaxBitOpInputKey) {
       res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
       return;
   }
 
-  dest_key_ = argv[2].data();
-  for(unsigned int i = 3; i <= argv.size() - 1; i++) {
-      src_keys_.push_back(argv[i].data());
+  dest_key_ = argv_[2].data();
+  for(unsigned int i = 3; i <= argv_.size() - 1; i++) {
+      src_keys_.push_back(argv_[i].data());
   }
   return;
 }
 
-void BitOpCmd::Do() {
+void BitOpCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t result_length;
   rocksdb::Status s = g_pika_server->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
   if (s.ok()) {

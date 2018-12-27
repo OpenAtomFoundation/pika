@@ -11,19 +11,19 @@
 
 extern PikaServer *g_pika_server;
 
-void LIndexCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LIndexCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
     return;
   }
-  key_ = argv[1];
-  std::string index = argv[2];
+  key_ = argv_[1];
+  std::string index = argv_[2];
   if (!slash::string2l(index.data(), index.size(), &index_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;
 }
-void LIndexCmd::Do() {
+void LIndexCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
   rocksdb::Status s = g_pika_server->db()->LIndex(key_, index_, &value);
   if (s.ok()) {
@@ -35,13 +35,13 @@ void LIndexCmd::Do() {
   }
 }
 
-void LInsertCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LInsertCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLInsert);
     return;
   }
-  key_ = argv[1];
-  std::string dir = argv[2];
+  key_ = argv_[1];
+  std::string dir = argv_[2];
   if (!strcasecmp(dir.data(), "before")) {
     dir_ = blackwidow::Before;
   } else if (!strcasecmp(dir.data(), "after")) {
@@ -50,10 +50,10 @@ void LInsertCmd::DoInitial(const PikaCmdArgsType& argv) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  pivot_ = argv[3];
-  value_ = argv[4];
+  pivot_ = argv_[3];
+  value_ = argv_[4];
 }
-void LInsertCmd::Do() {
+void LInsertCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t llen = 0;
   rocksdb::Status s = g_pika_server->db()->LInsert(key_, dir_, pivot_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
@@ -63,14 +63,14 @@ void LInsertCmd::Do() {
   }
 }
 
-void LLenCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LLenCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLLen);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
 }
-void LLenCmd::Do() {
+void LLenCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
   rocksdb::Status s = g_pika_server->db()->LLen(key_, &llen);
   if (s.ok() || s.IsNotFound()){
@@ -80,18 +80,18 @@ void LLenCmd::Do() {
   }
 }
 
-void LPushCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LPushCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLPush);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   size_t pos = 2;
-  while (pos < argv.size()) {
-    values_.push_back(argv[pos++]);
+  while (pos < argv_.size()) {
+    values_.push_back(argv_[pos++]);
   }
 }
-void LPushCmd::Do() {
+void LPushCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
   rocksdb::Status s = g_pika_server->db()->LPush(key_, values_, &llen);
   if (s.ok()) {
@@ -101,14 +101,14 @@ void LPushCmd::Do() {
   }
 }
 
-void LPopCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LPopCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
 }
-void LPopCmd::Do() {
+void LPopCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
   rocksdb::Status s = g_pika_server->db()->LPop(key_, &value);
   if (s.ok()) {
@@ -120,15 +120,15 @@ void LPopCmd::Do() {
   }
 }
 
-void LPushxCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LPushxCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLPushx);
     return;
   }
-  key_ = argv[1];
-  value_ = argv[2];
+  key_ = argv_[1];
+  value_ = argv_[2];
 }
-void LPushxCmd::Do() {
+void LPushxCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
   rocksdb::Status s = g_pika_server->db()->LPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
@@ -138,24 +138,24 @@ void LPushxCmd::Do() {
   }
 }
 
-void LRangeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LRangeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLRange);
     return;
   }
-  key_ = argv[1];
-  std::string left = argv[2];
+  key_ = argv_[1];
+  std::string left = argv_[2];
   if (!slash::string2l(left.data(), left.size(), &left_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  std::string right = argv[3];
+  std::string right = argv_[3];
   if (!slash::string2l(right.data(), right.size(), &right_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;
 }
-void LRangeCmd::Do() {
+void LRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> values;
   rocksdb::Status s = g_pika_server->db()->LRange(key_, left_, right_, &values);
   if (s.ok()) {
@@ -170,20 +170,20 @@ void LRangeCmd::Do() {
   }
 }
 
-void LRemCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LRemCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLRem);
     return;
   }
-  key_ = argv[1];
-  std::string count = argv[2];
+  key_ = argv_[1];
+  std::string count = argv_[2];
   if (!slash::string2l(count.data(), count.size(), &count_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  value_ = argv[3];
+  value_ = argv_[3];
 }
-void LRemCmd::Do() {
+void LRemCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t res = 0;
   rocksdb::Status s = g_pika_server->db()->LRem(key_, count_, value_, &res);
   if (s.ok() || s.IsNotFound()) {
@@ -193,20 +193,20 @@ void LRemCmd::Do() {
   }
 }
 
-void LSetCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LSetCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLSet);
     return;
   }
-  key_ = argv[1];
-  std::string index = argv[2];
+  key_ = argv_[1];
+  std::string index = argv_[2];
   if (!slash::string2l(index.data(), index.size(), &index_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  value_ = argv[3];
+  value_ = argv_[3];
 }
-void LSetCmd::Do() {
+void LSetCmd::Do(std::shared_ptr<Partition> partition) {
     rocksdb::Status s = g_pika_server->db()->LSet(key_, index_, value_);
     if (s.ok()) {
       res_.SetRes(CmdRes::kOk);
@@ -220,24 +220,24 @@ void LSetCmd::Do() {
     }
 }
 
-void LTrimCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void LTrimCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLSet);
     return;
   }
-  key_ = argv[1];
-  std::string start = argv[2];
+  key_ = argv_[1];
+  std::string start = argv_[2];
   if (!slash::string2l(start.data(), start.size(), &start_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  std::string stop = argv[3];
+  std::string stop = argv_[3];
   if (!slash::string2l(stop.data(), stop.size(), &stop_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;
 }
-void LTrimCmd::Do() {
+void LTrimCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = g_pika_server->db()->LTrim(key_, start_, stop_);
   if (s.ok() || s.IsNotFound()) {
     res_.SetRes(CmdRes::kOk);
@@ -246,14 +246,14 @@ void LTrimCmd::Do() {
   }
 }
 
-void RPopCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void RPopCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameRPop);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
 }
-void RPopCmd::Do() {
+void RPopCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
   rocksdb::Status s = g_pika_server->db()->RPop(key_, &value);
   if (s.ok()) {
@@ -265,15 +265,15 @@ void RPopCmd::Do() {
   }
 }
 
-void RPopLPushCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void RPopLPushCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameRPopLPush);
     return;
   }
-  source_ = argv[1];
-  receiver_ = argv[2];
+  source_ = argv_[1];
+  receiver_ = argv_[2];
 }
-void RPopLPushCmd::Do() {
+void RPopLPushCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
   rocksdb::Status s = g_pika_server->db()->RPoplpush(source_, receiver_, &value);
   if (s.ok()) {
@@ -285,18 +285,18 @@ void RPopLPushCmd::Do() {
   }
 }
 
-void RPushCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void RPushCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameRPush);
     return;
   }
-  key_ = argv[1];
+  key_ = argv_[1];
   size_t pos = 2;
-  while (pos < argv.size()) {
-    values_.push_back(argv[pos++]);
+  while (pos < argv_.size()) {
+    values_.push_back(argv_[pos++]);
   }
 }
-void RPushCmd::Do() {
+void RPushCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
   rocksdb::Status s = g_pika_server->db()->RPush(key_, values_, &llen);
   if (s.ok()) {
@@ -306,15 +306,15 @@ void RPushCmd::Do() {
   }
 }
 
-void RPushxCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void RPushxCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameRPushx);
     return;
   }
-  key_ = argv[1];
-  value_ = argv[2];
+  key_ = argv_[1];
+  value_ = argv_[2];
 }
-void RPushxCmd::Do() {
+void RPushxCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
   rocksdb::Status s = g_pika_server->db()->RPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {

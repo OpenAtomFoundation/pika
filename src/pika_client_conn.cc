@@ -163,9 +163,8 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   }
 
   // TODO: Consider special commands, like flushall, flushdb?
-  if (c_ptr->is_write()
-    && argv.size() >= 2) {
-    if (g_pika_server->IsPartitionBinlogIoError(current_table_, argv[1])) {
+  if (c_ptr->is_write()) {
+    if (g_pika_server->IsTableBinlogIoError(current_table_)) {
       return "-ERR Writing binlog failed, maybe no space left on device\r\n";
     }
     if (g_pika_server->readonly()) {

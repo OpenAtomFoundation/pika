@@ -8,78 +8,78 @@
 
 extern PikaServer *g_pika_server;
 
-void PublishCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PublishCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePublish);
     return;
   }
-  channel_ = argv[1];
-  msg_ = argv[2];
+  channel_ = argv_[1];
+  msg_ = argv_[2];
 }
 
-void PublishCmd::Do() {
+void PublishCmd::Do(std::shared_ptr<Partition> partition) {
   int receivers = g_pika_server->Publish(channel_, msg_);
   res_.AppendInteger(receivers);
   return;
 }
 
-void SubscribeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void SubscribeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSubscribe);
     return;
   }
 }
 
-void SubscribeCmd::Do() {
+void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
-void UnSubscribeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void UnSubscribeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameUnSubscribe);
     return;
   }
 }
 
-void UnSubscribeCmd::Do() {
+void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
-void PSubscribeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PSubscribeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePSubscribe);
     return;
   }
 }
 
-void PSubscribeCmd::Do() {
+void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
-void PUnSubscribeCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PUnSubscribeCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePUnSubscribe);
     return;
   }
 }
 
-void PUnSubscribeCmd::Do() {
+void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
-void PubSubCmd::DoInitial(const PikaCmdArgsType& argv) {
-  if (!CheckArg(argv.size())) {
+void PubSubCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePubSub);
     return;
   }
-  subcommand_ = argv[1];
+  subcommand_ = argv_[1];
   if (strcasecmp(subcommand_.data(), "channels")
     && strcasecmp(subcommand_.data(), "numsub")
     && strcasecmp(subcommand_.data(), "numpat")) {
     res_.SetRes(CmdRes::kErrOther, "Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
   }
-  for (size_t i = 2; i < argv.size(); i++) {
-    arguments_.push_back(argv[i]); 
+  for (size_t i = 2; i < argv_.size(); i++) {
+    arguments_.push_back(argv_[i]); 
   }
 }
 
-void PubSubCmd::Do() {
+void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
   if (subcommand_ == "channels") {
     std::string pattern = "";
     std::vector<std::string > result;

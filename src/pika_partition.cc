@@ -72,6 +72,9 @@ std::shared_ptr<blackwidow::BlackWidow> Partition::db() const {
   return db_;
 }
 
+void Partition::DoCommand(const Cmd* const cmd) {
+}
+
 void Partition::BinlogLock() {
   logger_->Lock();
 }

@@ -49,6 +49,17 @@ bool Table::IsCommandSupport(const std::string& cmd) const {
     return (iter == TableMayNotSupportCommands.end()) ? true : false;
   }
 }
+
+bool Table::IsBinlogIoError() {
+  slash::RWLock l(&partitions_rw_, false);
+  for (const auto& item : partitions_) {
+    if (item.second->IsBinlogIoError()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
   slash::RWLock l(&partitions_rw_, false);
   auto iter = partitions_.find(partition_id);
