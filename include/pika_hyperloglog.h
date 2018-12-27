@@ -15,11 +15,11 @@ class PfAddCmd : public Cmd {
  public:
   PfAddCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   std::vector<std::string> values_;
-  virtual void DoInitial(const PikaCmdArgsType& argvs) override;
+  virtual void DoInitial() override;
   virtual void Clear() {
     values_.clear();
   }
@@ -29,10 +29,10 @@ class PfCountCmd : public Cmd {
  public:
   PfCountCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType& argvs) override;
+  virtual void DoInitial() override;
   virtual void Clear() {
     keys_.clear();
   }
@@ -42,10 +42,10 @@ class PfMergeCmd : public Cmd {
  public:
   PfMergeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType& argvs) override;
+  virtual void DoInitial() override;
   virtual void Clear() {
     keys_.clear();
   }

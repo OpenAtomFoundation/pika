@@ -17,7 +17,8 @@ class SetCmd : public Cmd {
   enum SetCondition{kANY, kNX, kXX, kVX};
   SetCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag), sec_(0), condition_(kANY) {};
-  virtual void Do() override;
+  virtual std::string current_key() override { return key_; }
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
 
  private:
   std::string key_;
@@ -26,7 +27,7 @@ class SetCmd : public Cmd {
   int32_t success_;
   int64_t sec_;
   SetCmd::SetCondition condition_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual void Clear() override {
     sec_ = 0;
     success_ = 0;
@@ -38,31 +39,31 @@ class GetCmd : public Cmd {
  public:
   GetCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class DelCmd : public Cmd {
  public:
   DelCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class IncrCmd : public Cmd {
  public:
   IncrCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t new_value_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -76,11 +77,11 @@ class IncrbyCmd : public Cmd {
  public:
   IncrbyCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t by_, new_value_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -94,11 +95,11 @@ class IncrbyfloatCmd : public Cmd {
  public:
   IncrbyfloatCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, value_, new_value_;
   double by_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -112,11 +113,11 @@ class DecrCmd : public Cmd {
  public:
   DecrCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t new_value_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -130,11 +131,11 @@ class DecrbyCmd : public Cmd {
  public:
   DecrbyCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t by_, new_value_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -148,43 +149,43 @@ class GetsetCmd : public Cmd {
  public:
   GetsetCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   std::string new_value_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class AppendCmd : public Cmd {
  public:
   AppendCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   std::string value_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class MgetCmd : public Cmd {
  public:
   MgetCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class KeysCmd : public Cmd {
  public:
   KeysCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag), type_("all") {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string pattern_;
   std::string type_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual void Clear() {
     type_ = "all";
   }
@@ -194,12 +195,12 @@ class SetnxCmd : public Cmd {
  public:
   SetnxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   std::string value_;
   int32_t success_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -213,113 +214,112 @@ class SetexCmd : public Cmd {
  public:
   SetexCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t sec_;
   std::string value_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class PsetexCmd : public Cmd {
  public:
   PsetexCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t usec_;
   std::string value_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class DelvxCmd : public Cmd {
  public:
   DelvxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   std::string value_;
   int32_t success_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class MsetCmd : public Cmd {
  public:
   MsetCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::vector<blackwidow::KeyValue> kvs_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class MsetnxCmd : public Cmd {
  public:
   MsetnxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::vector<blackwidow::KeyValue> kvs_;
   int32_t success_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class GetrangeCmd : public Cmd {
  public:
   GetrangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t start_;
   int64_t end_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class SetrangeCmd : public Cmd {
  public:
   SetrangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t offset_;
   std::string value_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class StrlenCmd : public Cmd {
  public:
   StrlenCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class ExistsCmd : public Cmd {
  public:
   ExistsCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::vector<std::string> keys_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class ExpireCmd : public Cmd {
  public:
   ExpireCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
-
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t sec_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -333,12 +333,11 @@ class PexpireCmd : public Cmd {
  public:
   PexpireCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
-
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t msec_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -352,24 +351,22 @@ class ExpireatCmd : public Cmd {
  public:
   ExpireatCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
-
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t time_stamp_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class PexpireatCmd : public Cmd {
  public:
   PexpireatCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
-
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t time_stamp_ms_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual std::string ToBinlog(
       const PikaCmdArgsType& argv,
       uint32_t exec_time,
@@ -383,52 +380,52 @@ class TtlCmd : public Cmd {
  public:
   TtlCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class PttlCmd : public Cmd {
  public:
   PttlCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class PersistCmd : public Cmd {
  public:
   PersistCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class TypeCmd : public Cmd {
  public:
- TypeCmd(const std::string& name, int arity, uint16_t flag)
+  TypeCmd(const std::string& name, int arity, uint16_t flag)
      : Cmd(name, arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class ScanCmd : public Cmd {
  public:
   ScanCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   int64_t cursor_;
   std::string pattern_;
   int64_t count_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
     count_ = 10;
@@ -439,13 +436,13 @@ class ScanxCmd : public Cmd {
  public:
   ScanxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   blackwidow::DataType type_;
   std::string start_key_;
   std::string pattern_;
   int64_t count_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
     count_ = 10;
@@ -456,7 +453,7 @@ class PKScanRangeCmd : public Cmd {
  public:
   PKScanRangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), limit_(10), string_with_value(false) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   blackwidow::DataType type_;
   std::string key_start_;
@@ -464,7 +461,7 @@ class PKScanRangeCmd : public Cmd {
   std::string pattern_;
   int64_t limit_;
   bool string_with_value;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
     limit_ = 10;
@@ -476,7 +473,7 @@ class PKRScanRangeCmd : public Cmd {
  public:
   PKRScanRangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), limit_(10), string_with_value(false) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   blackwidow::DataType type_;
   std::string key_start_;
@@ -484,7 +481,7 @@ class PKRScanRangeCmd : public Cmd {
   std::string pattern_;
   int64_t limit_;
   bool string_with_value;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
     limit_ = 10;
