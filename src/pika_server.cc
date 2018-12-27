@@ -355,21 +355,9 @@ void PikaServer::Start() {
   LOG(INFO) << "Goodbye...";
 }
 
-bool PikaServer::IsPartitionBinlogIoError(const std::string& table_name,
-                                          const std::string& key) {
-  std::shared_ptr<Partition> partition =
-      GetTablePartitionByKey(table_name, key);
-  return partition ? partition->IsBinlogIoError() : true;
-}
-
-void PikaServer::SetPartitionBinlogIoError(const std::string& table_name,
-                                           const std::string& key,
-                                           bool error) {
-  std::shared_ptr<Partition> partition =
-      GetTablePartitionByKey(table_name, key);
-  if (partition) {
-    partition->SetBinlogIoError(error);
-  }
+bool PikaServer::IsTableBinlogIoError(const std::string& table_name) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  return table ? table->IsBinlogIoError() : true;
 }
 
 void PikaServer::PartitionRecordLock(const std::string& table_name,

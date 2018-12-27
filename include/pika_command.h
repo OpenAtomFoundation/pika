@@ -16,6 +16,8 @@
 
 #include "include/pika_binlog_transverter.h"
 
+class Partition;
+
 //Constant for command name
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";
@@ -213,30 +215,32 @@ enum CmdFlagsMask {
   kCmdFlagsMaskLocal            = 32,
   kCmdFlagsMaskSuspend          = 64,
   kCmdFlagsMaskPrior            = 128,
-  kCmdFlagsMaskAdminRequire     = 256
+  kCmdFlagsMaskAdminRequire     = 256,
+  kCmdFlagsMaskSinglePartition  = 512
 };
 
 enum CmdFlags {
-  kCmdFlagsRead           = 0, //default rw
-  kCmdFlagsWrite          = 1,
-  kCmdFlagsAdmin          = 0, //default type
-  kCmdFlagsKv             = 2,
-  kCmdFlagsHash           = 4,
-  kCmdFlagsList           = 6,
-  kCmdFlagsSet            = 8,
-  kCmdFlagsZset           = 10,
-  kCmdFlagsBit            = 12,
-  kCmdFlagsHyperLogLog    = 14,
-  kCmdFlagsGeo            = 16,
-  kCmdFlagsPubSub         = 18,
-  kCmdFlagsNoLocal        = 0, //default nolocal
-  kCmdFlagsLocal          = 32,
-  kCmdFlagsNoSuspend      = 0, //default nosuspend
-  kCmdFlagsSuspend        = 64,
-  kCmdFlagsNoPrior        = 0, //default noprior
-  kCmdFlagsPrior          = 128,
-  kCmdFlagsNoAdminRequire = 0, //default no need admin
-  kCmdFlagsAdminRequire   = 256
+  kCmdFlagsRead            = 0, //default rw
+  kCmdFlagsWrite           = 1,
+  kCmdFlagsAdmin           = 0, //default type
+  kCmdFlagsKv              = 2,
+  kCmdFlagsHash            = 4,
+  kCmdFlagsList            = 6,
+  kCmdFlagsSet             = 8,
+  kCmdFlagsZset            = 10,
+  kCmdFlagsBit             = 12,
+  kCmdFlagsHyperLogLog     = 14,
+  kCmdFlagsGeo             = 16,
+  kCmdFlagsPubSub          = 18,
+  kCmdFlagsNoLocal         = 0, //default nolocal
+  kCmdFlagsLocal           = 32,
+  kCmdFlagsNoSuspend       = 0, //default nosuspend
+  kCmdFlagsSuspend         = 64,
+  kCmdFlagsNoPrior         = 0, //default noprior
+  kCmdFlagsPrior           = 128,
+  kCmdFlagsNoAdminRequire  = 0, //default no need admin
+  kCmdFlagsAdminRequire    = 256,
+  kCmdFlagsSinglePartition = 512
 };
 
 
@@ -378,122 +382,48 @@ private:
   CmdRet ret_;
 };
 
-class CmdInfo {
-public:
-  CmdInfo(const std::string _name, int _num, uint16_t _flag)
-    : name_(_name), arity_(_num), flag_(_flag) {}
-  bool CheckArg(int num) const {
-    if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
-      return false;
-    }
-    return true;
-  }
-  bool is_write() const {
-    return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
-  }
-  bool is_local() const {
-    return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
-  }
-  // Others need to be suspended when a suspend command run
-  bool is_suspend() const {
-    return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
-  }
-  // Must with admin auth
-  bool is_admin_require() const {
-    return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
-  }
-  std::string name() const {
-    return name_;
-  }
-private:
-  std::string name_;
-  int arity_;
-  uint16_t flag_;
-
-  CmdInfo(const CmdInfo&);
-  CmdInfo& operator=(const CmdInfo&);
-};
-
-
 class Cmd {
  public:
   Cmd(const std::string& name, int arity, uint16_t flag)
     : name_(name), arity_(arity), flag_(flag) {}
   virtual ~Cmd() {}
 
-  virtual void Do() = 0;
+  virtual std::string current_key();
+  virtual void Process();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) = 0;
 
-  void Initial(const PikaCmdArgsType &argvs,
-               const std::string& table_name) {
-    res_.clear(); // Clear res content
-    Clear();      // Clear cmd, Derived class can has own implement
-    table_name_ = table_name;
-    DoInitial(argvs);
-  };
+  void Initial(const PikaCmdArgsType& argv,
+               const std::string& table_name);
 
-  bool is_write() const {
-    return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
-  }
-  bool is_local() const {
-    return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
-  }
-  // Others need to be suspended when a suspend command run
-  bool is_suspend() const {
-    return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
-  }
-  // Must with admin auth
-  bool is_admin_require() const {
-    return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
-  }
-  std::string name() const {
-    return name_;
-  }
-  CmdRes& res() {
-    return res_;
-  }
+  bool is_write() const;
+  bool is_local() const;
+  bool is_suspend() const;
+  bool is_admin_require() const;
+  bool is_single_partition() const;
+
+  std::string name() const;
+  CmdRes& res();
 
   virtual std::string ToBinlog(const PikaCmdArgsType& argv,
                                uint32_t exec_time,
                                const std::string& server_id,
                                uint64_t logic_id,
                                uint32_t filenum,
-                               uint64_t offset) {
-    std::string content;
-    content.reserve(RAW_ARGS_LEN);
-    RedisAppendLen(content, argv.size(), "*");
-
-    for (const auto& v : argv) {
-      RedisAppendLen(content, v.size(), "$");
-      RedisAppendContent(content, v);
-    }
-
-    return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                               exec_time,
-                                               std::stoi(server_id),
-                                               logic_id,
-                                               filenum,
-                                               offset,
-                                               content,
-                                               {});
-  }
+                               uint64_t offset);
 
  protected:
-  bool CheckArg(int num) const {
-    if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
-      return false;
-    }
-    return true;
-  }
+  bool CheckArg(int num) const;
 
   std::string name_;
   int arity_;
   uint16_t flag_;
 
   CmdRes res_;
+  PikaCmdArgsType argv_;
   std::string table_name_;
 
  private:
-  virtual void DoInitial(const PikaCmdArgsType& argv) = 0;
+  virtual void DoInitial() = 0;
   virtual void Clear() {};
 
   Cmd(const Cmd&);
@@ -501,11 +431,6 @@ class Cmd {
 };
 
 typedef std::unordered_map<std::string, Cmd*> CmdTable;
-
-// Method for CmdInfo Table
-void InitCmdInfoTable();
-const CmdInfo* GetCmdInfo(const std::string& opt);
-void DestoryCmdInfoTable();
 
 // Method for Cmd Table
 void InitCmdTable(CmdTable* cmd_table);

@@ -13,6 +13,9 @@
 #include "include/pika_hyperloglog.h"
 #include "include/pika_geo.h"
 #include "include/pika_pubsub.h"
+#include "include/pika_server.h"
+
+extern PikaServer* g_pika_server;
 
 void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   //Admin
@@ -454,4 +457,90 @@ void DestoryCmdTable(CmdTable* cmd_table) {
   for (; it != cmd_table->end(); ++it) {
     delete it->second;
   }
+}
+
+void Cmd::Initial(const PikaCmdArgsType& argv,
+                  const std::string& table_name) {
+  argv_ = argv;
+  table_name_ = table_name;
+  res_.clear(); // Clear res content
+  Clear();      // Clear cmd, Derived class can has own implement
+  DoInitial();
+};
+
+std::string Cmd::current_key() {
+  return "";
+}
+
+void Cmd::Process() {
+  if (is_single_partition()) {
+    std::shared_ptr<Partition> partition =
+        g_pika_server->GetTablePartitionByKey(table_name_, current_key());
+    if (!partition) {
+      res_.SetRes(CmdRes::kErrOther, "Partition not found");
+    } else {
+      partition->DoCommand(this);
+    }
+  } else {
+    Do();
+  }
+}
+
+
+bool Cmd::is_write() const {
+  return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
+}
+bool Cmd::is_local() const {
+  return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
+}
+// Others need to be suspended when a suspend command run
+bool Cmd::is_suspend() const {
+  return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
+}
+// Must with admin auth
+bool Cmd::is_admin_require() const {
+  return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
+}
+bool Cmd::is_single_partition() const {
+  return ((flag_ & kCmdFlagsMaskSinglePartition) == kCmdFlagsAdminRequire);
+}
+
+std::string Cmd::name() const {
+  return name_;
+}
+CmdRes& Cmd::res() {
+  return res_;
+}
+
+std::string Cmd::ToBinlog(const PikaCmdArgsType& argv,
+                          uint32_t exec_time,
+                          const std::string& server_id,
+                          uint64_t logic_id,
+                          uint32_t filenum,
+                          uint64_t offset) {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, argv.size(), "*");
+
+  for (const auto& v : argv) {
+    RedisAppendLen(content, v.size(), "$");
+    RedisAppendContent(content, v);
+  }
+
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
+                                             exec_time,
+                                             std::stoi(server_id),
+                                             logic_id,
+                                             filenum,
+                                             offset,
+                                             content,
+                                             {});
+}
+
+bool Cmd::CheckArg(int num) const {
+  if ((arity_ > 0 && num != arity_)
+    || (arity_ < 0 && num < -arity_)) {
+    return false;
+  }
+  return true;
 }

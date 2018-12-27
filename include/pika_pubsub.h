@@ -14,58 +14,58 @@ class PublishCmd : public Cmd {
  public:
   PublishCmd(const std::string& name, int arity, uint16_t flag)
      : Cmd(name,  arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string channel_;
   std::string msg_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class SubscribeCmd : public Cmd {
  public:
   SubscribeCmd(const std::string& name, int arity, uint16_t flag)
      : Cmd(name,  arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class UnSubscribeCmd : public Cmd {
  public:
   UnSubscribeCmd(const std::string& name, int arity, uint16_t flag)
      : Cmd(name,  arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class PUnSubscribeCmd : public Cmd {
  public:
   PUnSubscribeCmd(const std::string& name, int arity, uint16_t flag)
      : Cmd(name,  arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class PSubscribeCmd : public Cmd {
  public:
   PSubscribeCmd(const std::string& name, int arity, uint16_t flag)
      : Cmd(name,  arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
 };
 
 class PubSubCmd : public Cmd {
  public:
   PubSubCmd(const std::string& name, int arity, uint16_t flag)
      : Cmd(name,  arity, flag) {}
-  virtual void Do();
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string subcommand_;
   std::vector<std::string > arguments_;
-  virtual void DoInitial(const PikaCmdArgsType& argv) override;
+  virtual void DoInitial() override;
   virtual void Clear() {
     arguments_.clear();
   }

@@ -130,11 +130,7 @@ class PikaServer {
   /*
    * Table Partition use
    */
-  bool IsPartitionBinlogIoError(const std::string& table_name,
-                                const std::string& key);
-  void SetPartitionBinlogIoError(const std::string& table_name,
-                                 const std::string& key,
-                                 bool error);
+  bool IsTableBinlogIoError(const std::string& table_name);
   void PartitionRecordLock(const std::string& table_name,
                            const std::string& key);
   void PartitionRecordUnLock(const std::string& table_name,
