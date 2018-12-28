@@ -139,6 +139,7 @@ void SlaveofCmd::Do() {
   
   if (sm_ret) {
     res_.SetRes(CmdRes::kOk);
+    g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
   } else {
     res_.SetRes(CmdRes::kErrOther, "Server is not in correct state for slaveof");
   }

@@ -104,8 +104,9 @@ class PikaConf : public slash::BaseConf {
     TryPushDiffCommands("timeout", std::to_string(value));
     timeout_ = value;
   }
-  void SetSlaveof(const std::string value) {
+  void SetSlaveof(const std::string& value) {
     RWLock l(&rwlock_, true);
+    TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
   }
   void SetSlavePriority(const int value) {
