@@ -387,7 +387,7 @@ class Cmd {
     : name_(name), arity_(arity), flag_(flag) {}
   virtual ~Cmd() {}
 
-  virtual std::string current_key();
+  virtual std::string current_key() const;
   virtual void Process();
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) = 0;
 
@@ -403,8 +403,7 @@ class Cmd {
   std::string name() const;
   CmdRes& res();
 
-  virtual std::string ToBinlog(const PikaCmdArgsType& argv,
-                               uint32_t exec_time,
+  virtual std::string ToBinlog(uint32_t exec_time,
                                const std::string& server_id,
                                uint64_t logic_id,
                                uint32_t filenum,

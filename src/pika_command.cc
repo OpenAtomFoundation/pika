@@ -72,7 +72,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
 
   //Kv
   ////SetCmd
-  Cmd* setptr = new SetCmd(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* setptr = new SetCmd(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSet, setptr));
   ////GetCmd
   Cmd* getptr = new GetCmd(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsKv);
@@ -465,7 +465,7 @@ void Cmd::Initial(const PikaCmdArgsType& argv,
   DoInitial();
 };
 
-std::string Cmd::current_key() {
+std::string Cmd::current_key() const {
   return "";
 }
 
@@ -499,7 +499,7 @@ bool Cmd::is_admin_require() const {
   return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
 }
 bool Cmd::is_single_partition() const {
-  return ((flag_ & kCmdFlagsMaskSinglePartition) == kCmdFlagsAdminRequire);
+  return ((flag_ & kCmdFlagsMaskSinglePartition) == kCmdFlagsSinglePartition);
 }
 
 std::string Cmd::name() const {
@@ -509,17 +509,16 @@ CmdRes& Cmd::res() {
   return res_;
 }
 
-std::string Cmd::ToBinlog(const PikaCmdArgsType& argv,
-                          uint32_t exec_time,
+std::string Cmd::ToBinlog(uint32_t exec_time,
                           const std::string& server_id,
                           uint64_t logic_id,
                           uint32_t filenum,
                           uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, argv.size(), "*");
+  RedisAppendLen(content, argv_.size(), "*");
 
-  for (const auto& v : argv) {
+  for (const auto& v : argv_) {
     RedisAppendLen(content, v.size(), "$");
     RedisAppendContent(content, v);
   }
