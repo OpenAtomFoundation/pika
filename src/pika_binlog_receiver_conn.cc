@@ -189,10 +189,10 @@ bool PikaBinlogReceiverConn::ProcessBinlogData(const pink::RedisCmdArgsType& arg
     }
     std::string opt = argv[0];
     Cmd* c_ptr = binlog_receiver_->GetCmd(slash::StringToLower(opt));
+    c_ptr->Initial(argv, g_pika_conf->default_table());
 
     g_pika_server->logger_->Lock();
-    g_pika_server->logger_->Put(c_ptr->ToBinlog(argv,
-                                                binlog_item.exec_time(),
+    g_pika_server->logger_->Put(c_ptr->ToBinlog(binlog_item.exec_time(),
                                                 std::to_string(binlog_item.server_id()),
                                                 binlog_item.logic_id(),
                                                 binlog_item.filenum(),
