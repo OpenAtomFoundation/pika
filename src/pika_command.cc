@@ -75,103 +75,103 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   Cmd* setptr = new SetCmd(kCmdNameSet, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSet, setptr));
   ////GetCmd
-  Cmd* getptr = new GetCmd(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* getptr = new GetCmd(kCmdNameGet, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGet, getptr));
   ////DelCmd
-  Cmd* delptr = new DelCmd(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* delptr = new DelCmd(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDel, delptr));
   ////IncrCmd
-  Cmd* incrptr = new IncrCmd(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* incrptr = new IncrCmd(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameIncr, incrptr));
   ////IncrbyCmd
-  Cmd* incrbyptr = new IncrbyCmd(kCmdNameIncrby, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* incrbyptr = new IncrbyCmd(kCmdNameIncrby, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameIncrby, incrbyptr));
   ////IncrbyfloatCmd
-  Cmd* incrbyfloatptr = new IncrbyfloatCmd(kCmdNameIncrbyfloat, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* incrbyfloatptr = new IncrbyfloatCmd(kCmdNameIncrbyfloat, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameIncrbyfloat, incrbyfloatptr));
   ////DecrCmd
-  Cmd* decrptr = new DecrCmd(kCmdNameDecr, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* decrptr = new DecrCmd(kCmdNameDecr, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDecr, decrptr));
   ////DecrbyCmd
-  Cmd* decrbyptr = new DecrbyCmd(kCmdNameDecrby, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* decrbyptr = new DecrbyCmd(kCmdNameDecrby, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDecrby, decrbyptr));
   ////GetsetCmd
-  Cmd* getsetptr = new GetsetCmd(kCmdNameGetset, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* getsetptr = new GetsetCmd(kCmdNameGetset, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGetset, getsetptr));
   ////AppendCmd
-  Cmd* appendptr = new AppendCmd(kCmdNameAppend, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* appendptr = new AppendCmd(kCmdNameAppend, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAppend, appendptr));
   ////MgetCmd
-  Cmd* mgetptr = new MgetCmd(kCmdNameMget, -2, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* mgetptr = new MgetCmd(kCmdNameMget, -2, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMget, mgetptr));
   ////KeysCmd
-  Cmd* keysptr = new KeysCmd(kCmdNameKeys, -2, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* keysptr = new KeysCmd(kCmdNameKeys, -2, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameKeys, keysptr));
   ////SetnxCmd
-  Cmd* setnxptr = new SetnxCmd(kCmdNameSetnx, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* setnxptr = new SetnxCmd(kCmdNameSetnx, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSetnx, setnxptr));
   ////SetexCmd
-  Cmd* setexptr = new SetexCmd(kCmdNameSetex, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* setexptr = new SetexCmd(kCmdNameSetex, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSetex, setexptr));
   ////PsetexCmd
-  Cmd* psetexptr = new PsetexCmd(kCmdNamePsetex, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* psetexptr = new PsetexCmd(kCmdNamePsetex, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePsetex, psetexptr));
   ////DelvxCmd
-  Cmd* delvxptr = new DelvxCmd(kCmdNameDelvx, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* delvxptr = new DelvxCmd(kCmdNameDelvx, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDelvx, delvxptr));
   ////MSetCmd
-  Cmd* msetptr = new MsetCmd(kCmdNameMset, -3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* msetptr = new MsetCmd(kCmdNameMset, -3, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMset, msetptr));
   ////MSetnxCmd
-  Cmd* msetnxptr = new MsetnxCmd(kCmdNameMsetnx, -3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* msetnxptr = new MsetnxCmd(kCmdNameMsetnx, -3, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameMsetnx, msetnxptr));
   ////GetrangeCmd
-  Cmd* getrangeptr = new GetrangeCmd(kCmdNameGetrange, 4, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* getrangeptr = new GetrangeCmd(kCmdNameGetrange, 4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameGetrange, getrangeptr));
   ////SetrangeCmd
-  Cmd* setrangeptr = new SetrangeCmd(kCmdNameSetrange, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* setrangeptr = new SetrangeCmd(kCmdNameSetrange, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSetrange, setrangeptr));
   ////StrlenCmd
-  Cmd* strlenptr = new StrlenCmd(kCmdNameStrlen, 2, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* strlenptr = new StrlenCmd(kCmdNameStrlen, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameStrlen, strlenptr));
   ////ExistsCmd
-  Cmd* existsptr = new ExistsCmd(kCmdNameExists, -2, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* existsptr = new ExistsCmd(kCmdNameExists, -2, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameExists, existsptr));
   ////ExpireCmd
-  Cmd* expireptr = new ExpireCmd(kCmdNameExpire, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* expireptr = new ExpireCmd(kCmdNameExpire, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameExpire, expireptr));
   ////PexpireCmd
-  Cmd* pexpireptr = new PexpireCmd(kCmdNamePexpire, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* pexpireptr = new PexpireCmd(kCmdNamePexpire, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePexpire, pexpireptr));
   ////ExpireatCmd
-  Cmd* expireatptr = new ExpireatCmd(kCmdNameExpireat, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* expireatptr = new ExpireatCmd(kCmdNameExpireat, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameExpireat, expireatptr));
   ////PexpireatCmd
-  Cmd* pexpireatptr = new PexpireatCmd(kCmdNamePexpireat, 3, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* pexpireatptr = new PexpireatCmd(kCmdNamePexpireat, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePexpireat, pexpireatptr));
   ////TtlCmd
-  Cmd* ttlptr = new TtlCmd(kCmdNameTtl, 2, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* ttlptr = new TtlCmd(kCmdNameTtl, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTtl, ttlptr));
   ////PttlCmd
-  Cmd* pttlptr = new PttlCmd(kCmdNamePttl, 2, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* pttlptr = new PttlCmd(kCmdNamePttl, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePttl, pttlptr));
   ////PersistCmd
-  Cmd* persistptr = new PersistCmd(kCmdNamePersist, 2, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* persistptr = new PersistCmd(kCmdNamePersist, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePersist, persistptr));
   ////TypeCmd
-  Cmd* typeptr = new TypeCmd(kCmdNameType, 2, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* typeptr = new TypeCmd(kCmdNameType, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameType, typeptr));
   ////ScanCmd
-  Cmd* scanptr = new ScanCmd(kCmdNameScan, -2, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* scanptr = new ScanCmd(kCmdNameScan, -2, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameScan, scanptr));
   ////ScanxCmd
-  Cmd* scanxptr = new ScanxCmd(kCmdNameScanx, -3, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* scanxptr = new ScanxCmd(kCmdNameScanx, -3, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameScanx, scanxptr));
   ////PKScanRange
-  Cmd* pkscanrangeptr = new PKScanRangeCmd(kCmdNamePKScanRange, -4, kCmdFlagsRead | kCmdFlagsKv);
+  Cmd* pkscanrangeptr = new PKScanRangeCmd(kCmdNamePKScanRange, -4, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKScanRange, pkscanrangeptr));
-  ////PKScanRange
-  Cmd* pkrscanrangeptr = new PKRScanRangeCmd(kCmdNamePKRScanRange, -4, kCmdFlagsRead | kCmdFlagsKv);
+  ////PKRScanRange
+  Cmd* pkrscanrangeptr = new PKRScanRangeCmd(kCmdNamePKRScanRange, -4, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKRScanRange, pkrscanrangeptr));
 
   //Hash
@@ -478,6 +478,8 @@ void Cmd::Process() {
     } else {
       partition->DoCommand(this);
     }
+  } else if (is_multi_partition()) {
+    Do();
   } else {
     Do();
   }
@@ -499,7 +501,10 @@ bool Cmd::is_admin_require() const {
   return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
 }
 bool Cmd::is_single_partition() const {
-  return ((flag_ & kCmdFlagsMaskSinglePartition) == kCmdFlagsSinglePartition);
+  return ((flag_ & kCmdFlagsMaskPartition) == kCmdFlagsSinglePartition);
+}
+bool Cmd::is_multi_partition() const {
+  return ((flag_ & kCmdFlagsMaskPartition) == kCmdFlagsMultiPartition);
 }
 
 std::string Cmd::name() const {
