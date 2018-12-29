@@ -16,6 +16,7 @@ class BitGetCmd : public Cmd {
  public:
   BitGetCmd(const std::string& name, int arity, uint16_t flag)
         : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string key_;
@@ -31,6 +32,7 @@ class BitSetCmd : public Cmd {
  public:
   BitSetCmd(const std::string& name, int arity, uint16_t flag)
         : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string key_;
@@ -48,6 +50,7 @@ class BitCountCmd : public Cmd {
  public:
   BitCountCmd(const std::string& name, int arity, uint16_t flag)
         : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string key_;
@@ -67,6 +70,7 @@ class BitPosCmd : public Cmd {
  public:
   BitPosCmd(const std::string& name, int arity, uint16_t flag)
         : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
  private:
   std::string key_;

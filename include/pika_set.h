@@ -15,6 +15,7 @@ class SAddCmd : public Cmd {
  public:
   SAddCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -26,6 +27,7 @@ class SPopCmd : public Cmd {
  public:
   SPopCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -36,6 +38,7 @@ class SCardCmd : public Cmd {
  public:
   SCardCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -46,6 +49,7 @@ class SMembersCmd : public Cmd {
  public:
   SMembersCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -56,6 +60,7 @@ class SScanCmd : public Cmd {
  public:
   SScanCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, pattern_;
@@ -71,6 +76,7 @@ class SRemCmd : public Cmd {
  public:
   SRemCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -124,6 +130,7 @@ class SIsmemberCmd : public Cmd {
  public:
   SIsmemberCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, member_;
@@ -165,6 +172,7 @@ class SRandmemberCmd : public Cmd {
  public:
   SRandmemberCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), count_(1) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;

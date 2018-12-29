@@ -16,6 +16,7 @@ class LIndexCmd : public Cmd {
  public:
   LIndexCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), index_(0) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -30,6 +31,7 @@ class LInsertCmd : public Cmd {
  public:
   LInsertCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), dir_(blackwidow::After) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -43,6 +45,7 @@ class LLenCmd : public Cmd {
  public:
   LLenCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -53,6 +56,7 @@ class LPopCmd : public Cmd {
  public:
   LPopCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -63,6 +67,7 @@ class LPushCmd : public Cmd {
  public:
   LPushCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -77,7 +82,8 @@ class LPushxCmd : public Cmd {
  public:
   LPushxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
-    virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual std::string current_key() const { return key_; }
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   std::string value_;
@@ -88,6 +94,7 @@ class LRangeCmd : public Cmd {
  public:
   LRangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), left_(0), right_(0) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -100,6 +107,7 @@ class LRemCmd : public Cmd {
  public:
   LRemCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), count_(0) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -112,6 +120,7 @@ class LSetCmd : public Cmd {
  public:
   LSetCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), index_(0) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -124,6 +133,7 @@ class LTrimCmd : public Cmd {
  public:
   LTrimCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), start_(0), stop_(0) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -136,6 +146,7 @@ class RPopCmd : public Cmd {
  public:
   RPopCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -157,6 +168,7 @@ class RPushCmd : public Cmd {
  public:
   RPushCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -171,6 +183,7 @@ class RPushxCmd : public Cmd {
  public:
   RPushxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;

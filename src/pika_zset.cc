@@ -35,7 +35,7 @@ void ZAddCmd::DoInitial() {
 
 void ZAddCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZAdd(key_, score_members, &count);
+  rocksdb::Status s = partition->db()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -55,7 +55,7 @@ void ZCardCmd::DoInitial() {
 
 void ZCardCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t card = 0;
-  rocksdb::Status s = g_pika_server->db()->ZCard(key_, &card);
+  rocksdb::Status s = partition->db()->ZCard(key_, &card);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(card);
   } else {
@@ -106,7 +106,7 @@ void ZScanCmd::DoInitial() {
 void ZScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t next_cursor = 0;
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->db()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
+  rocksdb::Status s = partition->db()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
@@ -144,7 +144,7 @@ void ZIncrbyCmd::DoInitial() {
 
 void ZIncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   double score = 0;
-  rocksdb::Status s = g_pika_server->db()->ZIncrby(key_, member_, by_, &score);
+  rocksdb::Status s = partition->db()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
     char buf[32];
     int64_t len = slash::d2string(buf, sizeof(buf), score);
@@ -185,7 +185,7 @@ void ZRangeCmd::DoInitial() {
 
 void ZRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->db()->ZRange(key_, start_, stop_, &score_members);
+  rocksdb::Status s = partition->db()->ZRange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
@@ -221,7 +221,7 @@ void ZRevrangeCmd::DoInitial() {
 
 void ZRevrangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->db()->ZRevrange(key_, start_, stop_, &score_members);
+  rocksdb::Status s = partition->db()->ZRevrange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
       char buf[32];
@@ -332,7 +332,7 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  rocksdb::Status s = partition->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -383,7 +383,7 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::vector<blackwidow::ScoreMember> score_members;
-  rocksdb::Status s = g_pika_server->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  rocksdb::Status s = partition->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -432,7 +432,7 @@ void ZCountCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  rocksdb::Status s = partition->db()->ZCount(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -454,7 +454,7 @@ void ZRemCmd::DoInitial() {
 
 void ZRemCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZRem(key_, members_, &count);
+  rocksdb::Status s = partition->db()->ZRem(key_, members_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -577,7 +577,7 @@ void ZRankCmd::DoInitial() {
 
 void ZRankCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t rank = 0;
-  rocksdb::Status s = g_pika_server->db()->ZRank(key_, member_, &rank);
+  rocksdb::Status s = partition->db()->ZRank(key_, member_, &rank);
   if (s.ok()) {
     res_.AppendInteger(rank);
   } else if (s.IsNotFound()){
@@ -597,7 +597,7 @@ void ZRevrankCmd::DoInitial() {
 
 void ZRevrankCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t revrank = 0;
-  rocksdb::Status s = g_pika_server->db()->ZRevrank(key_, member_, &revrank);
+  rocksdb::Status s = partition->db()->ZRevrank(key_, member_, &revrank);
   if (s.ok()) {
     res_.AppendInteger(revrank);
   } else if (s.IsNotFound()){
@@ -618,7 +618,7 @@ void ZScoreCmd::DoInitial() {
 
 void ZScoreCmd::Do(std::shared_ptr<Partition> partition) {
   double score = 0;
-  rocksdb::Status s = g_pika_server->db()->ZScore(key_, member_, &score);
+  rocksdb::Status s = partition->db()->ZScore(key_, member_, &score);
   if (s.ok()) {
     char buf[32];
     int64_t len = slash::d2string(buf, sizeof(buf), score);
@@ -708,7 +708,7 @@ void ZRangebylexCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  rocksdb::Status s = partition->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -748,7 +748,7 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
+  rocksdb::Status s = partition->db()->ZRangebylex(key_, min_member_, max_member_, left_close_, right_close_, &members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -783,7 +783,7 @@ void ZLexcountCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  rocksdb::Status s = partition->db()->ZLexcount(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -810,7 +810,7 @@ void ZRemrangebyrankCmd::DoInitial() {
 
 void ZRemrangebyrankCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
+  rocksdb::Status s = partition->db()->ZRemrangebyrank(key_, start_rank_, stop_rank_, &count);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(count);
   } else {
@@ -839,7 +839,7 @@ void ZRemrangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  rocksdb::Status s = partition->db()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -868,7 +868,7 @@ void ZRemrangebylexCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  rocksdb::Status s = partition->db()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
