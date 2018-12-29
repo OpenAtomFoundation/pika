@@ -51,6 +51,7 @@ class GeoAddCmd : public Cmd {
  public:
   GeoAddCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -62,6 +63,7 @@ class GeoPosCmd : public Cmd {
  public:
   GeoPosCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -73,6 +75,7 @@ class GeoDistCmd : public Cmd {
  public:
   GeoDistCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, first_pos_, second_pos_, unit_;
@@ -83,6 +86,7 @@ class GeoHashCmd : public Cmd {
  public:
   GeoHashCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;

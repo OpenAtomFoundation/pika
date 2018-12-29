@@ -58,7 +58,7 @@ void GeoAddCmd::Do(std::shared_ptr<Partition> partition) {
     score_members.push_back({score, geo_point.member});
   }
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZAdd(key_, score_members, &count); 
+  rocksdb::Status s = partition->db()->ZAdd(key_, score_members, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -84,7 +84,7 @@ void GeoPosCmd::Do(std::shared_ptr<Partition> partition) {
   double score;
   res_.AppendArrayLen(members_.size());
   for (const auto& member : members_) {
-    rocksdb::Status s = g_pika_server->db()->ZScore(key_, member, &score);
+    rocksdb::Status s = partition->db()->ZScore(key_, member, &score);
     if (s.ok()) {
       double xy[2];
       GeoHashBits hash = { .bits = (uint64_t)score, .step = GEO_STEP_MAX };
@@ -161,7 +161,7 @@ void GeoDistCmd::DoInitial() {
 
 void GeoDistCmd::Do(std::shared_ptr<Partition> partition) {
   double first_score, second_score, first_xy[2], second_xy[2];
-  rocksdb::Status s = g_pika_server->db()->ZScore(key_, first_pos_, &first_score);
+  rocksdb::Status s = partition->db()->ZScore(key_, first_pos_, &first_score);
   if (s.ok()) {
     GeoHashBits hash = { .bits = (uint64_t)first_score, .step = GEO_STEP_MAX };
     geohashDecodeToLongLatWGS84(hash, first_xy);
@@ -173,7 +173,7 @@ void GeoDistCmd::Do(std::shared_ptr<Partition> partition) {
     return;	
   }
 
-  s = g_pika_server->db()->ZScore(key_, second_pos_, &second_score);
+  s = partition->db()->ZScore(key_, second_pos_, &second_score);
   if (s.ok()) {
     GeoHashBits hash = { .bits = (uint64_t)second_score, .step = GEO_STEP_MAX };
     geohashDecodeToLongLatWGS84(hash, second_xy);
@@ -211,7 +211,7 @@ void GeoHashCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendArrayLen(members_.size());
   for (const auto& member : members_) {
     double score;
-    rocksdb::Status s = g_pika_server->db()->ZScore(key_, member, &score);
+    rocksdb::Status s = partition->db()->ZScore(key_, member, &score);
     if (s.ok()) {
       double xy[2];
       GeoHashBits hash = { .bits = (uint64_t)score, .step = GEO_STEP_MAX };
