@@ -374,19 +374,19 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
 
   //BitMap
   ////bitsetCmd
-  Cmd* bitsetptr = new BitSetCmd(kCmdNameBitSet, 4, kCmdFlagsWrite | kCmdFlagsBit);
+  Cmd* bitsetptr = new BitSetCmd(kCmdNameBitSet, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsBit);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitSet, bitsetptr));
   ////bitgetCmd
-  Cmd* bitgetptr = new BitGetCmd(kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsBit);
+  Cmd* bitgetptr = new BitGetCmd(kCmdNameBitGet, 3, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsBit);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitGet, bitgetptr));
   ////bitcountCmd
-  Cmd* bitcountptr = new BitCountCmd(kCmdNameBitCount, -2, kCmdFlagsRead | kCmdFlagsBit);
+  Cmd* bitcountptr = new BitCountCmd(kCmdNameBitCount, -2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsBit);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitCount, bitcountptr));
   ////bitposCmd
-  Cmd* bitposptr = new BitPosCmd(kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsBit);
+  Cmd* bitposptr = new BitPosCmd(kCmdNameBitPos, -3, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsBit);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitPos, bitposptr));
   ////bitopCmd
-  Cmd* bitopptr = new BitOpCmd(kCmdNameBitOp, -3, kCmdFlagsWrite | kCmdFlagsBit);
+  Cmd* bitopptr = new BitOpCmd(kCmdNameBitOp, -3, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsBit);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBitOp, bitopptr));
 
   //HyperLogLog

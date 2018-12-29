@@ -43,7 +43,7 @@ void BitSetCmd::DoInitial() {
 void BitSetCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
   int32_t bit_val = 0;
-  rocksdb::Status s = g_pika_server->db()->SetBit(key_, bit_offset_, on_, &bit_val);
+  rocksdb::Status s = partition->db()->SetBit(key_, bit_offset_, on_, &bit_val);
   if (s.ok()){
     res_.AppendInteger((int)bit_val);
   } else {
@@ -70,7 +70,7 @@ void BitGetCmd::DoInitial() {
 
 void BitGetCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t bit_val = 0;
-  rocksdb::Status s = g_pika_server->db()->GetBit(key_, bit_offset_, &bit_val);
+  rocksdb::Status s = partition->db()->GetBit(key_, bit_offset_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger((int)bit_val);
   } else {
@@ -106,9 +106,9 @@ void BitCountCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
   rocksdb::Status s;
   if (count_all_) {
-    s = g_pika_server->db()->BitCount(key_, start_offset_, end_offset_, &count, false);
+    s = partition->db()->BitCount(key_, start_offset_, end_offset_, &count, false);
   } else {
-    s = g_pika_server->db()->BitCount(key_, start_offset_, end_offset_, &count, true);
+    s = partition->db()->BitCount(key_, start_offset_, end_offset_, &count, true);
   }
 
   if (s.ok() || s.IsNotFound()) {
@@ -162,11 +162,11 @@ void BitPosCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t pos = 0;
   rocksdb::Status s;
   if (pos_all_) {
-    s = g_pika_server->db()->BitPos(key_, bit_val_, &pos);
+    s = partition->db()->BitPos(key_, bit_val_, &pos);
   } else if (!pos_all_ && !endoffset_set_) {
-    s = g_pika_server->db()->BitPos(key_, bit_val_, start_offset_, &pos);
+    s = partition->db()->BitPos(key_, bit_val_, start_offset_, &pos);
   } else if (!pos_all_ && endoffset_set_) {
-    s = g_pika_server->db()->BitPos(key_, bit_val_, start_offset_, end_offset_, &pos);
+    s = partition->db()->BitPos(key_, bit_val_, start_offset_, end_offset_, &pos);
   }
   if (s.ok()) {
     res_.AppendInteger((int)pos);
