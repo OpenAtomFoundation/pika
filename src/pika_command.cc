@@ -327,49 +327,49 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
 
   //Set
   ////SAddCmd
-  Cmd* saddptr = new SAddCmd(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSet);
+  Cmd* saddptr = new SAddCmd(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSAdd, saddptr));
   ////SPopCmd
-  Cmd* spopptr = new SPopCmd(kCmdNameSPop, 2, kCmdFlagsWrite | kCmdFlagsSet);
+  Cmd* spopptr = new SPopCmd(kCmdNameSPop, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSPop, spopptr));
   ////SCardCmd
-  Cmd* scardptr = new SCardCmd(kCmdNameSCard, 2, kCmdFlagsRead | kCmdFlagsSet);
+  Cmd* scardptr = new SCardCmd(kCmdNameSCard, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSCard, scardptr));
   ////SMembersCmd
-  Cmd* smembersptr = new SMembersCmd(kCmdNameSMembers, 2, kCmdFlagsRead | kCmdFlagsSet);
+  Cmd* smembersptr = new SMembersCmd(kCmdNameSMembers, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSMembers, smembersptr));
   ////SScanCmd
-  Cmd* sscanptr = new SScanCmd(kCmdNameSScan, -3, kCmdFlagsRead | kCmdFlagsSet);
+  Cmd* sscanptr = new SScanCmd(kCmdNameSScan, -3, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSScan, sscanptr));
-  ////SScanCmd
-  Cmd* sremptr = new SRemCmd(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSet);
+  ////SRemCmd
+  Cmd* sremptr = new SRemCmd(kCmdNameSRem, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSRem, sremptr));
   ////SUnionCmd
-  Cmd* sunionptr = new SUnionCmd(kCmdNameSUnion, -2, kCmdFlagsRead | kCmdFlagsSet);
+  Cmd* sunionptr = new SUnionCmd(kCmdNameSUnion, -2, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSUnion, sunionptr));
   ////SUnionstoreCmd
-  Cmd* sunionstoreptr = new SUnionstoreCmd(kCmdNameSUnionstore, -3, kCmdFlagsWrite | kCmdFlagsSet);
+  Cmd* sunionstoreptr = new SUnionstoreCmd(kCmdNameSUnionstore, -3, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSUnionstore, sunionstoreptr));
   ////SInterCmd
-  Cmd* sinterptr = new SInterCmd(kCmdNameSInter, -2, kCmdFlagsRead | kCmdFlagsSet);
+  Cmd* sinterptr = new SInterCmd(kCmdNameSInter, -2, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSInter, sinterptr));
   ////SInterstoreCmd
-  Cmd* sinterstoreptr = new SInterstoreCmd(kCmdNameSInterstore, -3, kCmdFlagsWrite | kCmdFlagsSet);
+  Cmd* sinterstoreptr = new SInterstoreCmd(kCmdNameSInterstore, -3, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSInterstore, sinterstoreptr));
   ////SIsmemberCmd
-  Cmd* sismemberptr = new SIsmemberCmd(kCmdNameSIsmember, 3, kCmdFlagsRead | kCmdFlagsSet);
+  Cmd* sismemberptr = new SIsmemberCmd(kCmdNameSIsmember, 3, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSIsmember, sismemberptr));
   ////SDiffCmd
-  Cmd* sdiffptr = new SDiffCmd(kCmdNameSDiff, -2, kCmdFlagsRead | kCmdFlagsSet);
+  Cmd* sdiffptr = new SDiffCmd(kCmdNameSDiff, -2, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSDiff, sdiffptr));
   ////SDiffstoreCmd
-  Cmd* sdiffstoreptr = new SDiffstoreCmd(kCmdNameSDiffstore, -3, kCmdFlagsWrite | kCmdFlagsSet);
+  Cmd* sdiffstoreptr = new SDiffstoreCmd(kCmdNameSDiffstore, -3, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSDiffstore, sdiffstoreptr));
   ////SMoveCmd
-  Cmd* smoveptr = new SMoveCmd(kCmdNameSMove, 4, kCmdFlagsWrite | kCmdFlagsSet);
+  Cmd* smoveptr = new SMoveCmd(kCmdNameSMove, 4, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSMove, smoveptr));
   ////SRandmemberCmd
-  Cmd* srandmemberptr = new SRandmemberCmd(kCmdNameSRandmember, -2, kCmdFlagsRead | kCmdFlagsSet);
+  Cmd* srandmemberptr = new SRandmemberCmd(kCmdNameSRandmember, -2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSRandmember, srandmemberptr));
 
   //BitMap
