@@ -25,7 +25,7 @@ void LIndexCmd::DoInitial() {
 }
 void LIndexCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
-  rocksdb::Status s = g_pika_server->db()->LIndex(key_, index_, &value);
+  rocksdb::Status s = partition->db()->LIndex(key_, index_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -55,7 +55,7 @@ void LInsertCmd::DoInitial() {
 }
 void LInsertCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t llen = 0;
-  rocksdb::Status s = g_pika_server->db()->LInsert(key_, dir_, pivot_, value_, &llen);
+  rocksdb::Status s = partition->db()->LInsert(key_, dir_, pivot_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {
@@ -72,7 +72,7 @@ void LLenCmd::DoInitial() {
 }
 void LLenCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
-  rocksdb::Status s = g_pika_server->db()->LLen(key_, &llen);
+  rocksdb::Status s = partition->db()->LLen(key_, &llen);
   if (s.ok() || s.IsNotFound()){
     res_.AppendInteger(llen);
   } else {
@@ -93,7 +93,7 @@ void LPushCmd::DoInitial() {
 }
 void LPushCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
-  rocksdb::Status s = g_pika_server->db()->LPush(key_, values_, &llen);
+  rocksdb::Status s = partition->db()->LPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
   } else {
@@ -110,7 +110,7 @@ void LPopCmd::DoInitial() {
 }
 void LPopCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
-  rocksdb::Status s = g_pika_server->db()->LPop(key_, &value);
+  rocksdb::Status s = partition->db()->LPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -130,7 +130,7 @@ void LPushxCmd::DoInitial() {
 }
 void LPushxCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
-  rocksdb::Status s = g_pika_server->db()->LPushx(key_, value_, &llen);
+  rocksdb::Status s = partition->db()->LPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {
@@ -157,7 +157,7 @@ void LRangeCmd::DoInitial() {
 }
 void LRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> values;
-  rocksdb::Status s = g_pika_server->db()->LRange(key_, left_, right_, &values);
+  rocksdb::Status s = partition->db()->LRange(key_, left_, right_, &values);
   if (s.ok()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -185,7 +185,7 @@ void LRemCmd::DoInitial() {
 }
 void LRemCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t res = 0;
-  rocksdb::Status s = g_pika_server->db()->LRem(key_, count_, value_, &res);
+  rocksdb::Status s = partition->db()->LRem(key_, count_, value_, &res);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(res);
   } else {
@@ -207,7 +207,7 @@ void LSetCmd::DoInitial() {
   value_ = argv_[3];
 }
 void LSetCmd::Do(std::shared_ptr<Partition> partition) {
-    rocksdb::Status s = g_pika_server->db()->LSet(key_, index_, value_);
+    rocksdb::Status s = partition->db()->LSet(key_, index_, value_);
     if (s.ok()) {
       res_.SetRes(CmdRes::kOk);
     } else if (s.IsNotFound()) {
@@ -238,7 +238,7 @@ void LTrimCmd::DoInitial() {
   return;
 }
 void LTrimCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->LTrim(key_, start_, stop_);
+  rocksdb::Status s = partition->db()->LTrim(key_, start_, stop_);
   if (s.ok() || s.IsNotFound()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -255,7 +255,7 @@ void RPopCmd::DoInitial() {
 }
 void RPopCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
-  rocksdb::Status s = g_pika_server->db()->RPop(key_, &value);
+  rocksdb::Status s = partition->db()->RPop(key_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
@@ -298,7 +298,7 @@ void RPushCmd::DoInitial() {
 }
 void RPushCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
-  rocksdb::Status s = g_pika_server->db()->RPush(key_, values_, &llen);
+  rocksdb::Status s = partition->db()->RPush(key_, values_, &llen);
   if (s.ok()) {
     res_.AppendInteger(llen);
   } else {
@@ -316,7 +316,7 @@ void RPushxCmd::DoInitial() {
 }
 void RPushxCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
-  rocksdb::Status s = g_pika_server->db()->RPushx(key_, value_, &llen);
+  rocksdb::Status s = partition->db()->RPushx(key_, value_, &llen);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {
