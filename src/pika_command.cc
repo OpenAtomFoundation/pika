@@ -262,67 +262,67 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
 
   //Zset
   ////ZAddCmd
-  Cmd* zaddptr = new ZAddCmd(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsZset);
+  Cmd* zaddptr = new ZAddCmd(kCmdNameZAdd, -4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZAdd, zaddptr));
   ////ZCardCmd
-  Cmd* zcardptr = new ZCardCmd(kCmdNameZCard, 2, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zcardptr = new ZCardCmd(kCmdNameZCard, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZCard, zcardptr));
   ////ZScanCmd
-  Cmd* zscanptr = new ZScanCmd(kCmdNameZScan, -3, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zscanptr = new ZScanCmd(kCmdNameZScan, -3, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZScan, zscanptr));
   ////ZIncrbyCmd
-  Cmd* zincrbyptr = new ZIncrbyCmd(kCmdNameZIncrby, 4, kCmdFlagsWrite | kCmdFlagsZset);
+  Cmd* zincrbyptr = new ZIncrbyCmd(kCmdNameZIncrby, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZIncrby, zincrbyptr));
   ////ZRangeCmd
-  Cmd* zrangeptr = new ZRangeCmd(kCmdNameZRange, -4, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zrangeptr = new ZRangeCmd(kCmdNameZRange, -4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRange, zrangeptr));
   ////ZRevrangeCmd
-  Cmd* zrevrangeptr = new ZRevrangeCmd(kCmdNameZRevrange, -4, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zrevrangeptr = new ZRevrangeCmd(kCmdNameZRevrange, -4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRevrange, zrevrangeptr));
   ////ZRangebyscoreCmd
-  Cmd* zrangebyscoreptr = new ZRangebyscoreCmd(kCmdNameZRangebyscore, -4, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zrangebyscoreptr = new ZRangebyscoreCmd(kCmdNameZRangebyscore, -4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRangebyscore, zrangebyscoreptr));
   ////ZRevrangebyscoreCmd
-  Cmd* zrevrangebyscoreptr = new ZRevrangebyscoreCmd(kCmdNameZRevrangebyscore, -4, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zrevrangebyscoreptr = new ZRevrangebyscoreCmd(kCmdNameZRevrangebyscore, -4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRevrangebyscore, zrevrangebyscoreptr));
   ////ZCountCmd
-  Cmd* zcountptr = new ZCountCmd(kCmdNameZCount, 4, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zcountptr = new ZCountCmd(kCmdNameZCount, 4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZCount, zcountptr));
   ////ZRemCmd
-  Cmd* zremptr = new ZRemCmd(kCmdNameZRem, -3, kCmdFlagsWrite | kCmdFlagsZset);
+  Cmd* zremptr = new ZRemCmd(kCmdNameZRem, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRem, zremptr));
   ////ZUnionstoreCmd
-  Cmd* zunionstoreptr = new ZUnionstoreCmd(kCmdNameZUnionstore, -4, kCmdFlagsWrite | kCmdFlagsZset);
+  Cmd* zunionstoreptr = new ZUnionstoreCmd(kCmdNameZUnionstore, -4, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZUnionstore, zunionstoreptr));
   ////ZInterstoreCmd
-  Cmd* zinterstoreptr = new ZInterstoreCmd(kCmdNameZInterstore, -4, kCmdFlagsWrite | kCmdFlagsZset);
+  Cmd* zinterstoreptr = new ZInterstoreCmd(kCmdNameZInterstore, -4, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZInterstore, zinterstoreptr));
   ////ZRankCmd
-  Cmd* zrankptr = new ZRankCmd(kCmdNameZRank, 3, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zrankptr = new ZRankCmd(kCmdNameZRank, 3, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRank, zrankptr));
   ////ZRevrankCmd
-  Cmd* zrevrankptr = new ZRevrankCmd(kCmdNameZRevrank, 3, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zrevrankptr = new ZRevrankCmd(kCmdNameZRevrank, 3, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRevrank, zrevrankptr));
   ////ZScoreCmd
-  Cmd* zscoreptr = new ZScoreCmd(kCmdNameZScore, 3, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zscoreptr = new ZScoreCmd(kCmdNameZScore, 3, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZScore, zscoreptr));
   ////ZRangebylexCmd
-  Cmd* zrangebylexptr = new ZRangebylexCmd(kCmdNameZRangebylex, -4, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zrangebylexptr = new ZRangebylexCmd(kCmdNameZRangebylex, -4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRangebylex, zrangebylexptr));
   ////ZRevrangebylexCmd
-  Cmd* zrevrangebylexptr = new ZRevrangebylexCmd(kCmdNameZRevrangebylex, -4, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zrevrangebylexptr = new ZRevrangebylexCmd(kCmdNameZRevrangebylex, -4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRevrangebylex, zrevrangebylexptr));
   ////ZLexcountCmd
-  Cmd* zlexcountptr = new ZLexcountCmd(kCmdNameZLexcount, 4, kCmdFlagsRead | kCmdFlagsZset);
+  Cmd* zlexcountptr = new ZLexcountCmd(kCmdNameZLexcount, 4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZLexcount, zlexcountptr));
   ////ZRemrangebyrankCmd
-  Cmd* zremrangebyrankptr = new ZRemrangebyrankCmd(kCmdNameZRemrangebyrank, 4, kCmdFlagsWrite | kCmdFlagsZset);
+  Cmd* zremrangebyrankptr = new ZRemrangebyrankCmd(kCmdNameZRemrangebyrank, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRemrangebyrank, zremrangebyrankptr));
   ////ZRemrangebyscoreCmd
-  Cmd* zremrangebyscoreptr = new ZRemrangebyscoreCmd(kCmdNameZRemrangebyscore, 4, kCmdFlagsWrite | kCmdFlagsZset);
+  Cmd* zremrangebyscoreptr = new ZRemrangebyscoreCmd(kCmdNameZRemrangebyscore, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRemrangebyscore, zremrangebyscoreptr));
   ////ZRemrangebylexCmd
-  Cmd* zremrangebylexptr = new ZRemrangebylexCmd(kCmdNameZRemrangebylex, 4, kCmdFlagsWrite | kCmdFlagsZset);
+  Cmd* zremrangebylexptr = new ZRemrangebylexCmd(kCmdNameZRemrangebylex, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRemrangebylex, zremrangebylexptr));
 
   //Set
