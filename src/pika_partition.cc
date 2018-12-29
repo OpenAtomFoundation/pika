@@ -72,7 +72,47 @@ std::shared_ptr<blackwidow::BlackWidow> Partition::db() const {
   return db_;
 }
 
-void Partition::DoCommand(const Cmd* const cmd) {
+void Partition::DoCommand(Cmd* const cmd) {
+  DbRWLockReader();
+  if (cmd->is_write()) {
+    RecordLock(cmd->current_key());
+  }
+
+  uint32_t exec_time = time(nullptr);
+  cmd->Do(shared_from_this());
+
+  if (cmd->res().ok()
+    && cmd->is_write()
+    && g_pika_conf->write_binlog()) {
+
+    logger_->Lock();
+    uint32_t filenum = 0;
+    uint64_t offset = 0;
+    uint64_t logic_id = 0;
+    logger_->GetProducerStatus(&filenum, &offset, &logic_id);
+
+    std::string binlog = cmd->ToBinlog(exec_time,
+                                       g_pika_conf->server_id(),
+                                       logic_id,
+                                       filenum,
+                                       offset);
+    slash::Status s;
+    if (!binlog.empty()) {
+      s = logger_->Put(binlog);
+    }
+
+    logger_->Unlock();
+    if (!s.ok()) {
+      LOG(WARNING) << partition_name() << " Writing binlog failed, maybe no space left on device";
+      SetBinlogIoError(true);
+      cmd->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
+    }
+  }
+
+  if (cmd->is_write()) {
+    RecordUnLock(cmd->current_key());
+  }
+  DbRWUnLock();
 }
 
 void Partition::BinlogLock() {

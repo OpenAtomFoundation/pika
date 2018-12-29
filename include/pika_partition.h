@@ -7,6 +7,7 @@
 #define PIKA_PARTITION_H_
 
 #include <string>
+#include <memory>
 
 #include "iostream"
 
@@ -18,7 +19,7 @@
 class Cmd;
 class Binlog;
 
-class Partition {
+class Partition : public std::enable_shared_from_this<Partition> {
  public:
   Partition(const std::string& table_name,
             uint32_t partition_id,
@@ -31,7 +32,7 @@ class Partition {
   std::shared_ptr<Binlog> logger() const;
   std::shared_ptr<blackwidow::BlackWidow> db() const;
 
-  void DoCommand(const Cmd* const cmd);
+  void DoCommand(Cmd* const cmd);
 
   void BinlogLock();
   void BinlogUnLock();

@@ -26,7 +26,7 @@ void PfAddCmd::DoInitial() {
 
 void PfAddCmd::Do(std::shared_ptr<Partition> partition) {
   bool update = false;
-  rocksdb::Status s = g_pika_server->db()->PfAdd(key_, values_, &update);
+  rocksdb::Status s = partition->db()->PfAdd(key_, values_, &update);
   if (s.ok() && update) {
     res_.AppendInteger(1);
   } else if (s.ok() && !update) {

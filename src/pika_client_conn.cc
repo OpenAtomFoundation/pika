@@ -170,57 +170,10 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     if (g_pika_server->readonly()) {
       return "-ERR Server in read-only\r\n";
     }
-    g_pika_server->PartitionRecordLock(current_table_, argv[1]);
   }
 
-  // Add read lock for no suspend command
-  if (!c_ptr->is_suspend()) {
-    g_pika_server->RWLockReader();
-  }
-
-  uint32_t exec_time = time(nullptr);
-  c_ptr->Do();
-
-  if (c_ptr->is_write()
-    && g_pika_conf->write_binlog()
-    && argv.size() >= 2) {
-    if (c_ptr->res().ok()) {
-      std::shared_ptr<Partition> partition =
-        g_pika_server->GetTablePartitionByKey(current_table_, argv[1]);
-      partition->logger()->Lock();
-      uint32_t filenum = 0;
-      uint64_t offset = 0;
-      uint64_t logic_id = 0;
-      partition->logger()->GetProducerStatus(&filenum, &offset, &logic_id);
-
-      std::string binlog = c_ptr->ToBinlog(argv,
-                                           exec_time,
-                                           g_pika_conf->server_id(),
-                                           logic_id,
-                                           filenum,
-                                           offset);
-      slash::Status s;
-      if (!binlog.empty()) {
-        s = partition->logger()->Put(binlog);
-      }
-
-      partition->logger()->Unlock();
-      if (!s.ok()) {
-        LOG(WARNING) << partition->partition_name() << " Writing binlog failed, maybe no space left on device";
-        partition->SetBinlogIoError(true);
-        return "-ERR Writing binlog failed, maybe no space left on device\r\n";
-      }
-    }
-  }
-
-  if (!c_ptr->is_suspend()) {
-    g_pika_server->RWUnlock();
-  }
-
-  if (c_ptr->is_write()
-    && argv.size() >= 2) {
-    g_pika_server->PartitionRecordUnLock(current_table_, argv[1]);
-  }
+  // Process Command
+  c_ptr->Process();
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     int32_t start_time = start_us / 1000000;
