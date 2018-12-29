@@ -61,8 +61,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     if (!error_happend) {
       server_id = g_pika_conf->server_id();
       g_pika_server->logger_->Lock();
-      std::string binlog = c_ptr->ToBinlog(argv,
-                                           binlog_item.exec_time(),
+      std::string binlog = c_ptr->ToBinlog(binlog_item.exec_time(),
                                            server_id,
                                            binlog_item.logic_id(),
                                            binlog_item.filenum(),

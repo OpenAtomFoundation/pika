@@ -24,7 +24,7 @@ void SAddCmd::DoInitial() {
 
 void SAddCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->SAdd(key_, members_, &count);
+  rocksdb::Status s = partition->db()->SAdd(key_, members_, &count);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -44,7 +44,7 @@ void SPopCmd::DoInitial() {
 
 void SPopCmd::Do(std::shared_ptr<Partition> partition) {
   std::string member;
-  rocksdb::Status s = g_pika_server->db()->SPop(key_, &member);
+  rocksdb::Status s = partition->db()->SPop(key_, &member);
   if (s.ok()) {
     res_.AppendStringLen(member.size());
     res_.AppendContent(member);
@@ -67,7 +67,7 @@ void SCardCmd::DoInitial() {
 
 void SCardCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t card = 0;
-  rocksdb::Status s = g_pika_server->db()->SCard(key_, &card);
+  rocksdb::Status s = partition->db()->SCard(key_, &card);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(card);
   } else {
@@ -87,7 +87,7 @@ void SMembersCmd::DoInitial() {
 
 void SMembersCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->db()->SMembers(key_, &members);
+  rocksdb::Status s = partition->db()->SMembers(key_, &members);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(members.size());
     for (const auto& member : members) {
@@ -142,7 +142,7 @@ void SScanCmd::DoInitial() {
 void SScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t next_cursor = 0;
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->db()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
+  rocksdb::Status s = partition->db()->SScan(key_, cursor_, pattern_, count_, &members, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
@@ -175,7 +175,7 @@ void SRemCmd::DoInitial() {
 
 void SRemCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->SRem(key_, members_, &count);
+  rocksdb::Status s = partition->db()->SRem(key_, members_, &count);
   res_.AppendInteger(count);
   return;
 }
@@ -280,7 +280,7 @@ void SIsmemberCmd::DoInitial() {
 
 void SIsmemberCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t is_member = 0;
-  g_pika_server->db()->SIsmember(key_, member_, &is_member);
+  partition->db()->SIsmember(key_, member_, &is_member);
   if (is_member) {
     res_.AppendContent(":1");
   } else {
@@ -378,7 +378,7 @@ void SRandmemberCmd::DoInitial() {
 
 void SRandmemberCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> members;
-  rocksdb::Status s = g_pika_server->db()->SRandmember(key_, count_, &members);
+  rocksdb::Status s = partition->db()->SRandmember(key_, count_, &members);
   if (s.ok() || s.IsNotFound()) {
     if (!reply_arr && members.size()) {
       res_.AppendStringLen(members[0].size());

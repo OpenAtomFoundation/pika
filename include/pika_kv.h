@@ -17,7 +17,7 @@ class SetCmd : public Cmd {
   enum SetCondition {kNONE, kNX, kXX, kVX, kEXORPX};
   SetCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag), sec_(0), condition_(kNONE) {};
-  virtual std::string current_key() override { return key_; }
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
 
  private:
@@ -46,6 +46,7 @@ class GetCmd : public Cmd {
  public:
   GetCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -66,13 +67,13 @@ class IncrCmd : public Cmd {
  public:
   IncrCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t new_value_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -84,13 +85,13 @@ class IncrbyCmd : public Cmd {
  public:
   IncrbyCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t by_, new_value_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -102,13 +103,13 @@ class IncrbyfloatCmd : public Cmd {
  public:
   IncrbyfloatCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, value_, new_value_;
   double by_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -120,13 +121,13 @@ class DecrCmd : public Cmd {
  public:
   DecrCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t new_value_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -138,13 +139,13 @@ class DecrbyCmd : public Cmd {
  public:
   DecrbyCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t by_, new_value_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -156,6 +157,7 @@ class GetsetCmd : public Cmd {
  public:
   GetsetCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -167,6 +169,7 @@ class AppendCmd : public Cmd {
  public:
   AppendCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -202,6 +205,7 @@ class SetnxCmd : public Cmd {
  public:
   SetnxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -209,7 +213,6 @@ class SetnxCmd : public Cmd {
   int32_t success_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -221,6 +224,7 @@ class SetexCmd : public Cmd {
  public:
   SetexCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -240,6 +244,7 @@ class PsetexCmd : public Cmd {
  public:
   PsetexCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -259,6 +264,7 @@ class DelvxCmd : public Cmd {
  public:
   DelvxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -292,6 +298,7 @@ class GetrangeCmd : public Cmd {
  public:
   GetrangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -304,6 +311,7 @@ class SetrangeCmd : public Cmd {
  public:
   SetrangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -316,6 +324,7 @@ class StrlenCmd : public Cmd {
  public:
   StrlenCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -336,13 +345,13 @@ class ExpireCmd : public Cmd {
  public:
   ExpireCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t sec_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -354,13 +363,13 @@ class PexpireCmd : public Cmd {
  public:
   PexpireCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t msec_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -372,6 +381,7 @@ class ExpireatCmd : public Cmd {
  public:
   ExpireatCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -383,13 +393,13 @@ class PexpireatCmd : public Cmd {
  public:
   PexpireatCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
   int64_t time_stamp_ms_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -401,6 +411,7 @@ class TtlCmd : public Cmd {
  public:
   TtlCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -411,6 +422,7 @@ class PttlCmd : public Cmd {
  public:
   PttlCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -421,6 +433,7 @@ class PersistCmd : public Cmd {
  public:
   PersistCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -431,6 +444,7 @@ class TypeCmd : public Cmd {
  public:
   TypeCmd(const std::string& name, int arity, uint16_t flag)
      : Cmd(name, arity, flag) {}
+  virtual std::string current_key() const { return key_; }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;

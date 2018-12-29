@@ -67,19 +67,19 @@ void SetCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t res = 1;
   switch (condition_) {
     case SetCmd::kXX:
-      s = g_pika_server->db()->Setxx(key_, value_, &res, sec_);
+      s = partition->db()->Setxx(key_, value_, &res, sec_);
       break;
     case SetCmd::kNX:
-      s = g_pika_server->db()->Setnx(key_, value_, &res, sec_);
+      s = partition->db()->Setnx(key_, value_, &res, sec_);
       break;
     case SetCmd::kVX:
-      s = g_pika_server->db()->Setvx(key_, target_, value_, &success_, sec_);
+      s = partition->db()->Setvx(key_, target_, value_, &success_, sec_);
       break;
     case SetCmd::kEXORPX:
-      s = g_pika_server->db()->Setex(key_, value_, sec_);
+      s = partition->db()->Setex(key_, value_, sec_);
       break;
     default:
-      s = g_pika_server->db()->Set(key_, value_);
+      s = partition->db()->Set(key_, value_);
       break;
   }
 
@@ -151,7 +151,7 @@ void GetCmd::DoInitial() {
 
 void GetCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
-  rocksdb::Status s = g_pika_server->db()->Get(key_, &value);
+  rocksdb::Status s = partition->db()->Get(key_, &value);
   if (s.ok()) {
     res_.AppendStringLen(value.size());
     res_.AppendContent(value);
@@ -193,7 +193,7 @@ void IncrCmd::DoInitial() {
 }
 
 void IncrCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->Incrby(key_, 1, &new_value_);
+  rocksdb::Status s = partition->db()->Incrby(key_, 1, &new_value_);
   if (s.ok()) {
    res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
@@ -207,7 +207,6 @@ void IncrCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string IncrCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -253,7 +252,7 @@ void IncrbyCmd::DoInitial() {
 }
 
 void IncrbyCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->Incrby(key_, by_, &new_value_);
+  rocksdb::Status s = partition->db()->Incrby(key_, by_, &new_value_);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
@@ -267,7 +266,6 @@ void IncrbyCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string IncrbyCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -314,7 +312,7 @@ void IncrbyfloatCmd::DoInitial() {
 }
 
 void IncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->Incrbyfloat(key_, value_, &new_value_);
+  rocksdb::Status s = partition->db()->Incrbyfloat(key_, value_, &new_value_);
   if (s.ok()) {
     res_.AppendStringLen(new_value_.size());
     res_.AppendContent(new_value_);
@@ -329,7 +327,6 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string IncrbyfloatCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -370,7 +367,7 @@ void DecrCmd::DoInitial() {
 }
 
 void DecrCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->Decrby(key_, 1, &new_value_);
+  rocksdb::Status s = partition->db()->Decrby(key_, 1, &new_value_);
   if (s.ok()) {
    res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
@@ -384,7 +381,6 @@ void DecrCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string DecrCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -430,7 +426,7 @@ void DecrbyCmd::DoInitial() {
 }
 
 void DecrbyCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->Decrby(key_, by_, &new_value_);
+  rocksdb::Status s = partition->db()->Decrby(key_, by_, &new_value_);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
@@ -444,7 +440,6 @@ void DecrbyCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string DecrbyCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -488,7 +483,7 @@ void GetsetCmd::DoInitial() {
 
 void GetsetCmd::Do(std::shared_ptr<Partition> partition) {
   std::string old_value;
-  rocksdb::Status s = g_pika_server->db()->GetSet(key_, new_value_, &old_value);
+  rocksdb::Status s = partition->db()->GetSet(key_, new_value_, &old_value);
   if (s.ok()) {
     if (old_value.empty()) {
       res_.AppendContent("$-1");
@@ -514,7 +509,7 @@ void AppendCmd::DoInitial() {
 
 void AppendCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t new_len = 0;
-  rocksdb::Status s = g_pika_server->db()->Append(key_, value_, &new_len);
+  rocksdb::Status s = partition->db()->Append(key_, value_, &new_len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(new_len);
   } else {
@@ -597,7 +592,7 @@ void SetnxCmd::DoInitial() {
 
 void SetnxCmd::Do(std::shared_ptr<Partition> partition) {
   success_ = 0;
-  rocksdb::Status s = g_pika_server->db()->Setnx(key_, value_, &success_);
+  rocksdb::Status s = partition->db()->Setnx(key_, value_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
   } else {
@@ -607,7 +602,6 @@ void SetnxCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string SetnxCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -656,7 +650,7 @@ void SetexCmd::DoInitial() {
 }
 
 void SetexCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->Setex(key_, value_, sec_);
+  rocksdb::Status s = partition->db()->Setex(key_, value_, sec_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -718,7 +712,7 @@ void PsetexCmd::DoInitial() {
 }
 
 void PsetexCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->Setex(key_, value_, usec_ / 1000);
+  rocksdb::Status s = partition->db()->Setex(key_, value_, usec_ / 1000);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -776,7 +770,7 @@ void DelvxCmd::DoInitial() {
 }
 
 void DelvxCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->Delvx(key_, value_, &success_);
+  rocksdb::Status s = partition->db()->Delvx(key_, value_, &success_);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(success_);
   } else {
@@ -856,7 +850,7 @@ void GetrangeCmd::DoInitial() {
 
 void GetrangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string substr;
-  rocksdb::Status s = g_pika_server->db()->Getrange(key_, start_, end_, &substr);
+  rocksdb::Status s = partition->db()->Getrange(key_, start_, end_, &substr);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendStringLen(substr.size());
     res_.AppendContent(substr);
@@ -881,7 +875,7 @@ void SetrangeCmd::DoInitial() {
 
 void SetrangeCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t new_len;
-  rocksdb::Status s = g_pika_server->db()->Setrange(key_, offset_, value_, &new_len);
+  rocksdb::Status s = partition->db()->Setrange(key_, offset_, value_, &new_len);
   if (s.ok()) {
     res_.AppendInteger(new_len);
   } else {
@@ -901,7 +895,7 @@ void StrlenCmd::DoInitial() {
 
 void StrlenCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t len = 0;
-  rocksdb::Status s = g_pika_server->db()->Strlen(key_, &len);
+  rocksdb::Status s = partition->db()->Strlen(key_, &len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
@@ -946,7 +940,7 @@ void ExpireCmd::DoInitial() {
 
 void ExpireCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int64_t res = g_pika_server->db()->Expire(key_, sec_, &type_status);
+  int64_t res = partition->db()->Expire(key_, sec_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -956,7 +950,6 @@ void ExpireCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string ExpireCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -1006,7 +999,7 @@ void PexpireCmd::DoInitial() {
 
 void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int64_t res = g_pika_server->db()->Expire(key_, msec_/1000, &type_status);
+  int64_t res = partition->db()->Expire(key_, msec_/1000, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -1016,7 +1009,6 @@ void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string PexpireCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -1066,7 +1058,7 @@ void ExpireatCmd::DoInitial() {
 
 void ExpireatCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int32_t res = g_pika_server->db()->Expireat(key_, time_stamp_, &type_status);
+  int32_t res = partition->db()->Expireat(key_, time_stamp_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -1088,7 +1080,6 @@ void PexpireatCmd::DoInitial() {
 }
 
 std::string PexpireatCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -1125,7 +1116,7 @@ std::string PexpireatCmd::ToBinlog(
 
 void PexpireatCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int32_t res = g_pika_server->db()->Expireat(key_, time_stamp_ms_/1000, &type_status);
+  int32_t res = partition->db()->Expireat(key_, time_stamp_ms_/1000, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -1146,7 +1137,7 @@ void TtlCmd::DoInitial() {
 void TtlCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<blackwidow::DataType, int64_t> type_timestamp;
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  type_timestamp = g_pika_server->db()->TTL(key_, &type_status);
+  type_timestamp = partition->db()->TTL(key_, &type_status);
   for (const auto& item : type_timestamp) {
      // mean operation exception errors happen in database
      if (item.second == -3) {
@@ -1183,7 +1174,7 @@ void PttlCmd::DoInitial() {
 void PttlCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<blackwidow::DataType, int64_t> type_timestamp;
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  type_timestamp = g_pika_server->db()->TTL(key_, &type_status);
+  type_timestamp = partition->db()->TTL(key_, &type_status);
   for (const auto& item : type_timestamp) {
      // mean operation exception errors happen in database
      if (item.second == -3) {
@@ -1239,7 +1230,7 @@ void PersistCmd::DoInitial() {
 
 void PersistCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int32_t res = g_pika_server->db()->Persist(key_, &type_status);
+  int32_t res = partition->db()->Persist(key_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -1259,7 +1250,7 @@ void TypeCmd::DoInitial() {
 
 void TypeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string res;
-  rocksdb::Status s = g_pika_server->db()->Type(key_, &res);
+  rocksdb::Status s = partition->db()->Type(key_, &res);
   if (s.ok()) {
     res_.AppendContent("+" + res);
   } else {

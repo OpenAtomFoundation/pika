@@ -210,37 +210,39 @@ typedef pink::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 
 enum CmdFlagsMask {
-  kCmdFlagsMaskRW               = 1,
-  kCmdFlagsMaskType             = 30,
-  kCmdFlagsMaskLocal            = 32,
-  kCmdFlagsMaskSuspend          = 64,
-  kCmdFlagsMaskPrior            = 128,
-  kCmdFlagsMaskAdminRequire     = 256,
-  kCmdFlagsMaskSinglePartition  = 512
+  kCmdFlagsMaskRW            = 1,
+  kCmdFlagsMaskType          = 30,
+  kCmdFlagsMaskLocal         = 32,
+  kCmdFlagsMaskSuspend       = 64,
+  kCmdFlagsMaskPrior         = 128,
+  kCmdFlagsMaskAdminRequire  = 256,
+  kCmdFlagsMaskPartition     = 1536
 };
 
 enum CmdFlags {
-  kCmdFlagsRead            = 0, //default rw
-  kCmdFlagsWrite           = 1,
-  kCmdFlagsAdmin           = 0, //default type
-  kCmdFlagsKv              = 2,
-  kCmdFlagsHash            = 4,
-  kCmdFlagsList            = 6,
-  kCmdFlagsSet             = 8,
-  kCmdFlagsZset            = 10,
-  kCmdFlagsBit             = 12,
-  kCmdFlagsHyperLogLog     = 14,
-  kCmdFlagsGeo             = 16,
-  kCmdFlagsPubSub          = 18,
-  kCmdFlagsNoLocal         = 0, //default nolocal
-  kCmdFlagsLocal           = 32,
-  kCmdFlagsNoSuspend       = 0, //default nosuspend
-  kCmdFlagsSuspend         = 64,
-  kCmdFlagsNoPrior         = 0, //default noprior
-  kCmdFlagsPrior           = 128,
-  kCmdFlagsNoAdminRequire  = 0, //default no need admin
-  kCmdFlagsAdminRequire    = 256,
-  kCmdFlagsSinglePartition = 512
+  kCmdFlagsRead                  = 0, //default rw
+  kCmdFlagsWrite                 = 1,
+  kCmdFlagsAdmin                 = 0, //default type
+  kCmdFlagsKv                    = 2,
+  kCmdFlagsHash                  = 4,
+  kCmdFlagsList                  = 6,
+  kCmdFlagsSet                   = 8,
+  kCmdFlagsZset                  = 10,
+  kCmdFlagsBit                   = 12,
+  kCmdFlagsHyperLogLog           = 14,
+  kCmdFlagsGeo                   = 16,
+  kCmdFlagsPubSub                = 18,
+  kCmdFlagsNoLocal               = 0, //default nolocal
+  kCmdFlagsLocal                 = 32,
+  kCmdFlagsNoSuspend             = 0, //default nosuspend
+  kCmdFlagsSuspend               = 64,
+  kCmdFlagsNoPrior               = 0, //default noprior
+  kCmdFlagsPrior                 = 128,
+  kCmdFlagsNoAdminRequire        = 0, //default no need admin
+  kCmdFlagsAdminRequire          = 256,
+  kCmdFlagsDoNotSpecifyPartition = 0, //default do not specify partition
+  kCmdFlagsSinglePartition       = 512,
+  kCmdFlagsMultiPartition        = 1024
 };
 
 
@@ -388,24 +390,24 @@ class Cmd {
     : name_(name), arity_(arity), flag_(flag) {}
   virtual ~Cmd() {}
 
-  virtual std::string current_key();
+  virtual std::string current_key() const;
   virtual void Process();
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) = 0;
 
   void Initial(const PikaCmdArgsType& argv,
                const std::string& table_name);
 
-  bool is_write() const;
-  bool is_local() const;
-  bool is_suspend() const;
-  bool is_admin_require() const;
+  bool is_write()            const;
+  bool is_local()            const;
+  bool is_suspend()          const;
+  bool is_admin_require()    const;
   bool is_single_partition() const;
+  bool is_multi_partition()  const;
 
   std::string name() const;
   CmdRes& res();
 
-  virtual std::string ToBinlog(const PikaCmdArgsType& argv,
-                               uint32_t exec_time,
+  virtual std::string ToBinlog(uint32_t exec_time,
                                const std::string& server_id,
                                uint64_t logic_id,
                                uint32_t filenum,
