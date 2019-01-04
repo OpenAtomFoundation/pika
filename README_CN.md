@@ -342,6 +342,6 @@ Pika与Redis的极限QPS对比。
 1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
 
 ## 联系方式
-邮箱：g-infra-bada@360.cn
+邮箱：g-infra@360.cn
 
 QQ群：294254078
