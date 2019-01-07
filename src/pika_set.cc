@@ -5,9 +5,6 @@
 
 #include "slash/include/slash_string.h"
 #include "include/pika_set.h"
-#include "include/pika_server.h"
-
-extern PikaServer *g_pika_server;
 
 void SAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -192,7 +189,7 @@ void SUnionCmd::DoInitial() {
 
 void SUnionCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> members;
-  g_pika_server->db()->SUnion(keys_, &members);
+  partition->db()->SUnion(keys_, &members);
   res_.AppendArrayLen(members.size());
   for (const auto& member : members) {
     res_.AppendStringLen(member.size());
@@ -215,7 +212,7 @@ void SUnionstoreCmd::DoInitial() {
 
 void SUnionstoreCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->SUnionstore(dest_key_, keys_, &count);
+  rocksdb::Status s = partition->db()->SUnionstore(dest_key_, keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -236,7 +233,7 @@ void SInterCmd::DoInitial() {
 
 void SInterCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> members;
-  g_pika_server->db()->SInter(keys_, &members);
+  partition->db()->SInter(keys_, &members);
   res_.AppendArrayLen(members.size());
   for (const auto& member : members) {
     res_.AppendStringLen(member.size());
@@ -259,7 +256,7 @@ void SInterstoreCmd::DoInitial() {
 
 void SInterstoreCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->SInterstore(dest_key_, keys_, &count);
+  rocksdb::Status s = partition->db()->SInterstore(dest_key_, keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -300,7 +297,7 @@ void SDiffCmd::DoInitial() {
 
 void SDiffCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> members;
-  g_pika_server->db()->SDiff(keys_, &members);
+  partition->db()->SDiff(keys_, &members);
   res_.AppendArrayLen(members.size());
   for (const auto& member : members) {
     res_.AppendStringLen(member.size());
@@ -323,7 +320,7 @@ void SDiffstoreCmd::DoInitial() {
 
 void SDiffstoreCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->SDiffstore(dest_key_, keys_, &count);
+  rocksdb::Status s = partition->db()->SDiffstore(dest_key_, keys_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -344,7 +341,7 @@ void SMoveCmd::DoInitial() {
 
 void SMoveCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t res = 0;
-  rocksdb::Status s = g_pika_server->db()->SMove(src_key_, dest_key_, member_, &res);
+  rocksdb::Status s = partition->db()->SMove(src_key_, dest_key_, member_, &res);
   if (s.ok() || s.IsNotFound()) {
     if (s.IsNotFound()){
       res_.AppendInteger(res);

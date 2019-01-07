@@ -5,10 +5,8 @@
 
 #include <limits>
 #include "slash/include/slash_string.h"
-#include "include/pika_bit.h"
-#include "include/pika_server.h"
 
-extern PikaServer *g_pika_server;
+#include "include/pika_bit.h"
 
 void BitSetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -213,7 +211,7 @@ void BitOpCmd::DoInitial() {
 
 void BitOpCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t result_length;
-  rocksdb::Status s = g_pika_server->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
+  rocksdb::Status s = partition->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
   if (s.ok()) {
     res_.AppendInteger(result_length);
   } else {

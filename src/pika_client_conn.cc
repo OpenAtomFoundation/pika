@@ -173,7 +173,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   }
 
   // Process Command
-  c_ptr->Process();
+  c_ptr->Execute();
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     int32_t start_time = start_us / 1000000;

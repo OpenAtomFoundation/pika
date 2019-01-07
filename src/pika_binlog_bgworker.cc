@@ -80,7 +80,7 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
   }
 
   if (!error_happend) {
-    c_ptr->Do();
+    c_ptr->Execute();
   }
 
   if (!c_ptr->is_suspend()) {
