@@ -5,9 +5,6 @@
 
 #include "slash/include/slash_string.h"
 #include "include/pika_zset.h"
-#include "include/pika_server.h"
-
-extern PikaServer *g_pika_server;
 
 void ZAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -532,7 +529,7 @@ void ZUnionstoreCmd::DoInitial() {
 
 void ZUnionstoreCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, &count);
+  rocksdb::Status s = partition->db()->ZUnionstore(dest_key_, keys_, weights_, aggregate_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {
@@ -552,7 +549,7 @@ void ZInterstoreCmd::DoInitial() {
 
 void ZInterstoreCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
-  rocksdb::Status s = g_pika_server->db()->ZInterstore(dest_key_, keys_, weights_, aggregate_, &count);
+  rocksdb::Status s = partition->db()->ZInterstore(dest_key_, keys_, weights_, aggregate_, &count);
   if (s.ok()) {
     res_.AppendInteger(count);
   } else {

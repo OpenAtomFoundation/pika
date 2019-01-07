@@ -5,10 +5,8 @@
 
 #include <vector>
 #include "slash/include/slash_string.h"
-#include "include/pika_server.h"
-#include "include/pika_hyperloglog.h"
 
-extern PikaServer *g_pika_server;
+#include "include/pika_hyperloglog.h"
 
 void PfAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -49,7 +47,7 @@ void PfCountCmd::DoInitial() {
 
 void PfCountCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t value_ = 0;
-  rocksdb::Status s = g_pika_server->db()->PfCount(keys_, &value_);
+  rocksdb::Status s = partition->db()->PfCount(keys_, &value_);
   if (s.ok()) {
     res_.AppendInteger(value_);
   } else {
@@ -69,7 +67,7 @@ void PfMergeCmd::DoInitial() {
 }
 
 void PfMergeCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->PfMerge(keys_);
+  rocksdb::Status s = partition->db()->PfMerge(keys_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
