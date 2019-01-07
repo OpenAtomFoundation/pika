@@ -60,6 +60,10 @@ bool Table::IsBinlogIoError() {
   return false;
 }
 
+uint32_t Table::PartitionNum() {
+  return partition_num_;
+}
+
 std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
   slash::RWLock l(&partitions_rw_, false);
   auto iter = partitions_.find(partition_id);
@@ -67,6 +71,7 @@ std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
 }
 
 std::shared_ptr<Partition> Table::GetPartitionByKey(const std::string& key) {
+  assert(partition_num_ != 0);
   slash::RWLock l(&partitions_rw_, false);
   auto iter = partitions_.find(std::hash<std::string>()(key) % partition_num_);
   return (iter == partitions_.end()) ? NULL : iter->second;

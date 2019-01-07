@@ -5,8 +5,11 @@
 
 #ifndef PIKA_KV_H_
 #define PIKA_KV_H_
-#include "include/pika_command.h"
+
 #include "blackwidow/blackwidow.h"
+
+#include "include/pika_command.h"
+#include "include/pika_partition.h"
 
 
 /*
