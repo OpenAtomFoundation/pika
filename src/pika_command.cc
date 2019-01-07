@@ -469,20 +469,37 @@ std::string Cmd::current_key() const {
   return "";
 }
 
-void Cmd::Process() {
-  if (is_single_partition()) {
-    std::shared_ptr<Partition> partition =
-        g_pika_server->GetTablePartitionByKey(table_name_, current_key());
-    if (!partition) {
-      res_.SetRes(CmdRes::kErrOther, "Partition not found");
-    } else {
-      partition->DoCommand(this);
-    }
+void Cmd::Execute() {
+  if (is_single_partition()
+    || g_pika_server->GetPartitionNumByTable(table_name_) == 1) {
+    ProcessSinglePartitionCmd();
   } else if (is_multi_partition()) {
-    Do();
+    ProcessMultiPartitionCmd();
   } else {
-    Do();
+    ProcessDoNotSpecifyPartitionCmd();
   }
+}
+
+void Cmd::ProcessSinglePartitionCmd() {
+  std::shared_ptr<Partition> partition;
+  if (is_single_partition()) {
+    partition = g_pika_server->GetTablePartitionByKey(table_name_, current_key());
+  } else {
+    partition = g_pika_server->GetTablePartitionById(table_name_, 0);
+  }
+
+  if (!partition) {
+    res_.SetRes(CmdRes::kErrOther, "Partition not found");
+    return;
+  }
+  partition->DoCommand(this);
+}
+
+void Cmd::ProcessMultiPartitionCmd() {
+}
+
+void Cmd::ProcessDoNotSpecifyPartitionCmd() {
+  Do();
 }
 
 

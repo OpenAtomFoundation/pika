@@ -7,9 +7,6 @@
 
 #include "slash/include/slash_string.h"
 #include "include/pika_list.h"
-#include "include/pika_server.h"
-
-extern PikaServer *g_pika_server;
 
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -275,7 +272,7 @@ void RPopLPushCmd::DoInitial() {
 }
 void RPopLPushCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
-  rocksdb::Status s = g_pika_server->db()->RPoplpush(source_, receiver_, &value);
+  rocksdb::Status s = partition->db()->RPoplpush(source_, receiver_, &value);
   if (s.ok()) {
     res_.AppendString(value);
   } else if (s.IsNotFound()) {
