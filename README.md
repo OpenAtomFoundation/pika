@@ -317,7 +317,7 @@ Compare the pika max qps with the redis.
 
 ## Contact Us
 
-Mail: g-infra-bada@360.cn
+Mail: g-infra@360.cn
 
 QQ group: 294254078
 
