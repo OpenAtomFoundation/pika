@@ -391,7 +391,10 @@ class Cmd {
   virtual ~Cmd() {}
 
   virtual std::string current_key() const;
-  virtual void Process();
+  virtual void Execute();
+  virtual void ProcessSinglePartitionCmd();
+  virtual void ProcessMultiPartitionCmd();
+  virtual void ProcessDoNotSpecifyPartitionCmd();
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) = 0;
 
   void Initial(const PikaCmdArgsType& argv,

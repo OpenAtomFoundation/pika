@@ -5,9 +5,6 @@
 
 #include "slash/include/slash_string.h"
 #include "include/pika_kv.h"
-#include "include/pika_server.h"
-
-extern PikaServer *g_pika_server;
 
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
 void SetCmd::DoInitial() {
@@ -174,7 +171,7 @@ void DelCmd::DoInitial() {
 
 void DelCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<blackwidow::DataType, blackwidow::Status> type_status;
-  int64_t count = g_pika_server->db()->Del(keys_, &type_status);
+  int64_t count = partition->db()->Del(keys_, &type_status);
   if (count >= 0) {
     res_.AppendInteger(count);
   } else {
@@ -530,7 +527,7 @@ void MgetCmd::DoInitial() {
 
 void MgetCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::ValueStatus> vss;
-  rocksdb::Status s = g_pika_server->db()->MGet(keys_, &vss);
+  rocksdb::Status s = partition->db()->MGet(keys_, &vss);
   if (s.ok()) {
     res_.AppendArrayLen(vss.size());
     for (const auto& vs : vss) {
@@ -572,7 +569,7 @@ void KeysCmd::DoInitial() {
 
 void KeysCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> keys;
-  rocksdb::Status s = g_pika_server->db()->Keys(type_, pattern_, &keys);
+  rocksdb::Status s = partition->db()->Keys(type_, pattern_, &keys);
   res_.AppendArrayLen(keys.size());
   for (const auto& key : keys) {
     res_.AppendString(key);
@@ -796,7 +793,7 @@ void MsetCmd::DoInitial() {
 }
 
 void MsetCmd::Do(std::shared_ptr<Partition> partition) {
-  blackwidow::Status s = g_pika_server->db()->MSet(kvs_);
+  blackwidow::Status s = partition->db()->MSet(kvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -823,7 +820,7 @@ void MsetnxCmd::DoInitial() {
 
 void MsetnxCmd::Do(std::shared_ptr<Partition> partition) {
   success_ = 0;
-  rocksdb::Status s = g_pika_server->db()->MSetnx(kvs_, &success_);
+  rocksdb::Status s = partition->db()->MSetnx(kvs_, &success_);
   if (s.ok()) {
     res_.AppendInteger(success_);
   } else {
@@ -916,7 +913,7 @@ void ExistsCmd::DoInitial() {
 
 void ExistsCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
-  int64_t res = g_pika_server->db()->Exists(keys_, &type_status);
+  int64_t res = partition->db()->Exists(keys_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -1296,7 +1293,7 @@ void ScanCmd::DoInitial() {
 
 void ScanCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> keys;
-  int64_t cursor_ret = g_pika_server->db()->Scan(cursor_, pattern_, count_, &keys);
+  int64_t cursor_ret = partition->db()->Scan(cursor_, pattern_, count_, &keys);
   
   res_.AppendArrayLen(2);
 
@@ -1363,7 +1360,7 @@ void ScanxCmd::DoInitial() {
 void ScanxCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
   std::vector<std::string> keys;
-  rocksdb::Status s = g_pika_server->db()->Scanx(type_, start_key_, pattern_, count_, &keys, &next_key);
+  rocksdb::Status s = partition->db()->Scanx(type_, start_key_, pattern_, count_, &keys, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
@@ -1460,7 +1457,7 @@ void PKScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<blackwidow::KeyValue> kvs;
-  rocksdb::Status s = g_pika_server->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s = partition->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
@@ -1541,7 +1538,7 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<blackwidow::KeyValue> kvs;
-  rocksdb::Status s = g_pika_server->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s = partition->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);

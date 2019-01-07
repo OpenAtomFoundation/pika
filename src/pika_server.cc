@@ -391,6 +391,11 @@ bool PikaServer::IsTableSupportCommand(const std::string& table_name,
   return false;
 }
 
+uint32_t PikaServer::GetPartitionNumByTable(const std::string& table_name) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  return table ? table->PartitionNum() : 0;
+}
+
 std::shared_ptr<Partition> PikaServer::GetTablePartitionById(
                                     const std::string& table_name,
                                     uint32_t partition_id) {
