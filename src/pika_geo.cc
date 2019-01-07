@@ -8,10 +8,7 @@
 
 #include "slash/include/slash_string.h"
 #include "include/pika_geo.h"
-#include "include/pika_server.h"
 #include "include/pika_geohash_helper.h"
-
-extern PikaServer *g_pika_server;
 
 void GeoAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -252,7 +249,7 @@ static bool sort_distance_desc(const NeighborPoint & pos1, const NeighborPoint &
   return pos1.distance > pos2.distance;
 }
 
-static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
+static void GetAllNeighbors(std::shared_ptr<Partition> partition, std::string & key, GeoRange & range, CmdRes & res) {
   rocksdb::Status s;
   double longitude = range.longitude, latitude = range.latitude, distance = range.distance;
   int count_limit = 0;
@@ -298,7 +295,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
 	continue;
     }
     std::vector<blackwidow::ScoreMember> score_members;
-    s = g_pika_server->db()->ZRangebyscore(key, (double)min, (double)max, true, true, &score_members);
+    s = partition->db()->ZRangebyscore(key, (double)min, (double)max, true, true, &score_members);
     if (!s.ok() && !s.IsNotFound()) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
       return;
@@ -341,7 +338,7 @@ static void GetAllNeighbors(std::string & key, GeoRange & range, CmdRes & res) {
       score_members.push_back({score, result[i].member});
     }
     int32_t count = 0;
-    s = g_pika_server->db()->ZAdd(range.storekey, score_members, &count); 
+    s = partition->db()->ZAdd(range.storekey, score_members, &count);
     if (!s.ok()) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
       return;
@@ -468,7 +465,7 @@ void GeoRadiusCmd::DoInitial() {
 }
 
 void GeoRadiusCmd::Do(std::shared_ptr<Partition> partition) {
-  GetAllNeighbors(key_, range_, this->res_);
+  GetAllNeighbors(partition, key_, range_, this->res_);
 }
 
 void GeoRadiusByMemberCmd::DoInitial() {
@@ -541,7 +538,7 @@ void GeoRadiusByMemberCmd::DoInitial() {
 
 void GeoRadiusByMemberCmd::Do(std::shared_ptr<Partition> partition) {
   double score;
-  rocksdb::Status s = g_pika_server->db()->ZScore(key_, range_.member, &score);
+  rocksdb::Status s = partition->db()->ZScore(key_, range_.member, &score);
   if (s.ok()) {
     double xy[2];
     GeoHashBits hash = { .bits = (uint64_t)score, .step = GEO_STEP_MAX };
@@ -549,5 +546,5 @@ void GeoRadiusByMemberCmd::Do(std::shared_ptr<Partition> partition) {
     range_.longitude = xy[0];
     range_.latitude = xy[1];
   }
-  GetAllNeighbors(key_, range_, this->res_);
+  GetAllNeighbors(partition, key_, range_, this->res_);
 }
