@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include "slash/include/base_conf.h"
 #include "slash/include/slash_mutex.h"
