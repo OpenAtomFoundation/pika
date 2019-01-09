@@ -35,6 +35,26 @@
 using slash::Status;
 using slash::Slice;
 
+/*
+ * kCmdNameSlaveof
+ * kCmdNameBgsave
+ * kCmdNameBgsaveoff
+ * kCmdNameCompact
+ * kCmdNamePurgelogsto
+ * kCmdNameFlushall
+ * kCmdNameFlushdb
+ * kCmdNameInfo
+ * kCmdNameDbsize
+ * kCmdNameDelbackup
+ * kCmdNameScandb
+ */
+
+static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
+                       kCmdNameBgsave,      kCmdNameBgsaveoff,    kCmdNameCompact,
+                       kCmdNamePurgelogsto, kCmdNameFlushall,     kCmdNameFlushdb,
+                       kCmdNameInfo,        kCmdNameDbsize,       kCmdNameDelbackup,
+                       kCmdNameScandb};
+
 class PikaDispatchThread;
 
 class PikaServer {
@@ -130,6 +150,7 @@ class PikaServer {
   /*
    * Table Partition use
    */
+  bool IsCommandCurrentSupport(const std::string& command);
   bool IsTableBinlogIoError(const std::string& table_name);
   void PartitionRecordLock(const std::string& table_name,
                            const std::string& key);

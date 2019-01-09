@@ -355,6 +355,12 @@ void PikaServer::Start() {
   LOG(INFO) << "Goodbye...";
 }
 
+bool PikaServer::IsCommandCurrentSupport(const std::string& command) {
+  std::string cmd = command;
+  slash::StringToLower(cmd);
+  return CurrentNotSupportCommands.find(cmd) == CurrentNotSupportCommands.end();
+}
+
 bool PikaServer::IsTableBinlogIoError(const std::string& table_name) {
   std::shared_ptr<Table> table = GetTable(table_name);
   return table ? table->IsBinlogIoError() : true;
