@@ -206,13 +206,10 @@ void BgsaveCmd::DoInitial() {
   }
 }
 void BgsaveCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->Bgsave();
-  const PikaServer::BGSaveInfo& info = g_pika_server->bgsave_info();
-  char buf[256];
-  snprintf(buf, sizeof(buf), "+%s : %u: %lu",
-      info.s_start_time.c_str(), info.filenum, info.offset);
-  res_.AppendContent(buf);
+  g_pika_server->BgSaveWholeTable(table_name_);
+  res_.AppendContent("+Background saving started");
 }
+
 void BgsaveoffCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsaveoff);

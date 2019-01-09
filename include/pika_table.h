@@ -33,8 +33,9 @@ class Table {
         const std::string& log_path);
   virtual ~Table();
 
+  void BgSaveTable();
   bool IsCommandSupport(const std::string& cmd) const;
-  bool IsBinlogIoError() ;
+  bool IsBinlogIoError();
   uint32_t PartitionNum();
 
   std::shared_ptr<Partition> GetPartitionById(uint32_t partition_id);

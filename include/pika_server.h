@@ -50,11 +50,11 @@ using slash::Slice;
  */
 
 static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
-                       kCmdNameBgsave,      kCmdNameBgsaveoff,    kCmdNameCompact,
-                       kCmdNamePurgelogsto, kCmdNameFlushall,     kCmdNameFlushdb,
-                       kCmdNameInfo,        kCmdNameDbsize,       kCmdNameDelbackup,
-                       kCmdNameScandb};
+                       kCmdNameCompact,     kCmdNamePurgelogsto,  kCmdNameFlushall,
+                       kCmdNameFlushdb,     kCmdNameInfo,         kCmdNameDbsize,
+                       kCmdNameDelbackup,   kCmdNameScandb};
 
+class Table;
 class PikaDispatchThread;
 
 class PikaServer {
@@ -274,6 +274,7 @@ class PikaServer {
     slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_.bgsaving;
   }
+  void BgSaveWholeTable(const std::string& table_name);
   void Bgsave();
   bool Bgsaveoff();
   bool RunBgsaveEngine();
@@ -281,6 +282,7 @@ class PikaServer {
     slash::MutexLock l(&bgsave_protector_);
     bgsave_info_.bgsaving = false;
   }
+  void BGSaveTaskSchedule(void (*function)(void*), void* arg);
 
 
   /*
@@ -440,7 +442,7 @@ class PikaServer {
    */
   pthread_rwlock_t tables_rw_;
   std::unordered_map<std::string, std::shared_ptr<Table>> tables_;
-  std::shared_ptr<Table> GetTable(const std::string &table_name);
+  std::shared_ptr<Table> GetTable(const std::string& table_name);
 
   time_t start_time_s_;
   bool have_scheduled_crontask_;
@@ -474,6 +476,7 @@ class PikaServer {
    * Bgsave use
    */
   slash::Mutex bgsave_protector_;
+  slash::Mutex bgsave_thread_protector_;
   pink::BGThread bgsave_thread_;
   blackwidow::BackupEngine *bgsave_engine_;
   BGSaveInfo bgsave_info_;

@@ -39,6 +39,13 @@ Table::~Table() {
   partitions_.clear();
 }
 
+void Table::BgSaveTable() {
+  slash::RWLock(&partitions_rw_, false);
+  for (const auto& item : partitions_) {
+    item.second->BgSavePartition();
+  }
+}
+
 bool Table::IsCommandSupport(const std::string& cmd) const {
   if (partition_num_ == 1) {
     return true;

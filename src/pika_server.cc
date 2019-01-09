@@ -1032,6 +1032,15 @@ bool PikaServer::RunBgsaveEngine() {
   return true;
 }
 
+void PikaServer::BgSaveWholeTable(const std::string& table_name) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  if (!table) {
+    LOG(WARNING) << "table : " << table_name << " not exist, bgsave failed!";
+    return;
+  }
+  table->BgSaveTable();
+}
+
 void PikaServer::Bgsave() {
   // Only one thread can go through
   {
@@ -1083,6 +1092,12 @@ bool PikaServer::Bgsaveoff() {
     bgsave_engine_->StopBackup();
   }
   return true;
+}
+
+void PikaServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {
+  slash::MutexLock l(&bgsave_thread_protector_);
+  bgsave_thread_.StartThread();
+  bgsave_thread_.Schedule(function, arg);
 }
 
 bool PikaServer::PurgeLogs(uint32_t to, bool manual, bool force) {
