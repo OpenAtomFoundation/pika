@@ -210,22 +210,6 @@ void BgsaveCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendContent("+Background saving started");
 }
 
-void BgsaveoffCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsaveoff);
-    return;
-  }
-}
-void BgsaveoffCmd::Do(std::shared_ptr<Partition> partition) {
-  CmdRes::CmdRet ret;
-  if (g_pika_server->Bgsaveoff()) {
-   ret = CmdRes::kOk;
-  } else {
-   ret = CmdRes::kNoneBgsave;
-  }
-  res_.SetRes(ret);
-}
-
 void CompactCmd::DoInitial() {
   if (!CheckArg(argv_.size())
     || argv_.size() > 2) {

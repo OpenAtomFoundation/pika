@@ -1081,19 +1081,6 @@ void PikaServer::DoBgsave(void* arg) {
   p->FinishBgsave();
 }
 
-bool PikaServer::Bgsaveoff() {
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    if (!bgsave_info_.bgsaving) {
-      return false;
-    }
-  }
-  if (bgsave_engine_ != NULL) {
-    bgsave_engine_->StopBackup();
-  }
-  return true;
-}
-
 void PikaServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {
   slash::MutexLock l(&bgsave_thread_protector_);
   bgsave_thread_.StartThread();

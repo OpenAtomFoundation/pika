@@ -276,7 +276,6 @@ class PikaServer {
   }
   void BgSaveWholeTable(const std::string& table_name);
   void Bgsave();
-  bool Bgsaveoff();
   bool RunBgsaveEngine();
   void FinishBgsave() {
     slash::MutexLock l(&bgsave_protector_);

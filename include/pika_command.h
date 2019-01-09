@@ -24,7 +24,6 @@ const std::string kCmdNameSlaveof = "slaveof";
 const std::string kCmdNameTrysync = "trysync";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
-const std::string kCmdNameBgsaveoff = "bgsaveoff";
 const std::string kCmdNameCompact = "compact";
 const std::string kCmdNamePurgelogsto = "purgelogsto";
 const std::string kCmdNamePing = "ping";
