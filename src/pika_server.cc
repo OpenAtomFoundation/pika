@@ -355,6 +355,12 @@ void PikaServer::Start() {
   LOG(INFO) << "Goodbye...";
 }
 
+std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {
+  slash::RWLock l(&tables_rw_, false);
+  auto iter = tables_.find(table_name);
+  return (iter == tables_.end()) ? NULL : iter->second;
+}
+
 bool PikaServer::IsCommandCurrentSupport(const std::string& command) {
   std::string cmd = command;
   slash::StringToLower(cmd);
@@ -1717,12 +1723,6 @@ void PikaServer::ResetStat() {
   slash::WriteLock l(&statistic_data_.statistic_lock);
   statistic_data_.thread_querynum = 0;
   statistic_data_.last_thread_querynum = 0;
-}
-
-std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {
-  slash::RWLock l(&tables_rw_, false);
-  auto iter = tables_.find(table_name);
-  return (iter == tables_.end()) ? NULL : iter->second;
 }
 
 void PikaServer::SetDispatchQueueLimit(int queue_limit) {

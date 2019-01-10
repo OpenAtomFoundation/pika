@@ -40,9 +40,16 @@ Table::~Table() {
 }
 
 void Table::BgSaveTable() {
-  slash::RWLock(&partitions_rw_, false);
+  slash::RWLock l(&partitions_rw_, false);
   for (const auto& item : partitions_) {
     item.second->BgSavePartition();
+  }
+}
+
+void Table::CompactTable(const blackwidow::DataType& type) {
+  slash::RWLock l(&partitions_rw_, false);
+  for (const auto& item : partitions_) {
+    item.second->db()->Compact(type);
   }
 }
 

@@ -272,6 +272,7 @@ public:
     kWrongNum,
     kInvalidIndex,
     kInvalidDbType,
+    kInvalidTable,
     kErrOther,
   };
 
@@ -338,6 +339,9 @@ public:
       break;
     case kInvalidDbType:
       result = "-ERR invalid DB type\r\n";
+      break;
+    case kInvalidTable:
+      result = "-ERR invalid Table\r\n";
       break;
     case kErrOther:
       result = "-ERR ";

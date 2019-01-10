@@ -223,27 +223,30 @@ void CompactCmd::DoInitial() {
 }
 
 void CompactCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s;
+  blackwidow::DataType type;
   if (struct_type_.empty()) {
-    s = g_pika_server->db()->Compact(blackwidow::kAll);
+    type = blackwidow::kAll;
   } else if (!strcasecmp(struct_type_.data(), "string")) {
-    s = g_pika_server->db()->Compact(blackwidow::kStrings);
+    type = blackwidow::kStrings;
   } else if (!strcasecmp(struct_type_.data(), "hash")) {
-    s = g_pika_server->db()->Compact(blackwidow::kHashes);
+    type = blackwidow::kHashes;
   } else if (!strcasecmp(struct_type_.data(), "set")) {
-    s = g_pika_server->db()->Compact(blackwidow::kSets);
+    type = blackwidow::kSets;
   } else if (!strcasecmp(struct_type_.data(), "zset")) {
-    s = g_pika_server->db()->Compact(blackwidow::kZSets);
+    type = blackwidow::kZSets;
   } else if (!strcasecmp(struct_type_.data(), "list")) {
-    s = g_pika_server->db()->Compact(blackwidow::kLists);
+    type = blackwidow::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
   }
-  if (s.ok()) {
-    res_.SetRes(CmdRes::kOk);
+
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    table->CompactTable(type);
+    res_.SetRes(CmdRes::kOk);
   }
 }
 

@@ -37,9 +37,6 @@ using slash::Slice;
 
 /*
  * kCmdNameSlaveof
- * kCmdNameBgsave
- * kCmdNameBgsaveoff
- * kCmdNameCompact
  * kCmdNamePurgelogsto
  * kCmdNameFlushall
  * kCmdNameFlushdb
@@ -50,7 +47,7 @@ using slash::Slice;
  */
 
 static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
-                       kCmdNameCompact,     kCmdNamePurgelogsto,  kCmdNameFlushall,
+                                            kCmdNamePurgelogsto,  kCmdNameFlushall,
                        kCmdNameFlushdb,     kCmdNameInfo,         kCmdNameDbsize,
                        kCmdNameDelbackup,   kCmdNameScandb};
 
@@ -150,6 +147,7 @@ class PikaServer {
   /*
    * Table Partition use
    */
+  std::shared_ptr<Table> GetTable(const std::string& table_name);
   bool IsCommandCurrentSupport(const std::string& command);
   bool IsTableBinlogIoError(const std::string& table_name);
   void PartitionRecordLock(const std::string& table_name,
@@ -441,7 +439,6 @@ class PikaServer {
    */
   pthread_rwlock_t tables_rw_;
   std::unordered_map<std::string, std::shared_ptr<Table>> tables_;
-  std::shared_ptr<Table> GetTable(const std::string& table_name);
 
   time_t start_time_s_;
   bool have_scheduled_crontask_;

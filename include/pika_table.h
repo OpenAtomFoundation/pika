@@ -13,6 +13,8 @@
 
 #include "iostream"
 
+#include "blackwidow/blackwidow.h"
+
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
@@ -34,6 +36,7 @@ class Table {
   virtual ~Table();
 
   void BgSaveTable();
+  void CompactTable(const blackwidow::DataType& type);
   bool IsCommandSupport(const std::string& cmd) const;
   bool IsBinlogIoError();
   uint32_t PartitionNum();
