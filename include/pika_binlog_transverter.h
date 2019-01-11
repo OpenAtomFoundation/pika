@@ -14,10 +14,10 @@
 
 
 /*
- *  * **************Header**************
- *   * | <Transfer Type> | <Body Lenth> |
- *    *       2 Bytes         4 Bytes
- *     */
+ * **************Header**************
+ *  | <Transfer Type> | <Body Lenth> |
+ *       2 Bytes         4 Bytes
+ */
 #define HEADER_LEN 6
 
 enum TransferOperate{
