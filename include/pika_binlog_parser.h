@@ -19,6 +19,16 @@ class PikaBinlogParser {
  public:
   PikaBinlogParser();
   ~PikaBinlogParser();
+  /* Scrube header and decode info from input
+   * Provide bytes need to be scrubed from rbuf
+   * the scrubed rbuf is std redis string
+   * Return one command at most
+   *
+   * @param rbub len, input read buffer and length
+   * @param processed_len, binlog parser parsed length
+   * including cached length and parsed length
+   * @param scrubed_len, len need to be scrubed from the begining fo rbuf
+   */
   pink::ReadStatus ScrubReadBuffer(const char* rbuf, int len, int* processed_len, int* scrubed_len, BinlogHeader* binlog_header, BinlogItem* binlog_item);
   BinlogHeader& binlog_header() {
     return binlog_header_;
@@ -27,6 +37,12 @@ class PikaBinlogParser {
     return binlog_item_;
   }
  private:
+  pink::ReadStatus BinlogParseHeader(const char* rbuf, int len, int* processed_len, int* scrubed_len, BinlogHeader* binlog_header, BinlogItem* binlog_item);
+
+  pink::ReadStatus BinlogParseDecode(const char* rbuf, int len, int* processed_len, int* scrubed_len, BinlogHeader* binlog_header, BinlogItem* binlog_item);
+
+  pink::ReadStatus BinlogParseContent(const char* rbuf, int len, int* processed_len, int* scrubed_len, BinlogHeader* binlog_header, BinlogItem* binlog_item);
+
   void ResetStatus();
   BinlogHeader binlog_header_;
   BinlogItem binlog_item_;
