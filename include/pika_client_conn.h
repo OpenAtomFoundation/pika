@@ -23,7 +23,7 @@ class PikaClientConn: public pink::RedisConn {
   };
 
   PikaClientConn(int fd, std::string ip_port,
-                 pink::ServerThread *server_thread,
+                 pink::Thread *server_thread,
                  pink::PinkEpoll* pink_epoll,
                  const pink::HandleType& handle_type);
   virtual ~PikaClientConn() {}

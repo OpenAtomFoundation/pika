@@ -25,7 +25,7 @@ class PikaHeartbeatThread {
     virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
         int connfd,
         const std::string &ip_port,
-        pink::ServerThread *thread,
+        pink::Thread *thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const override {
       return std::make_shared<PikaHeartbeatConn>(connfd, ip_port);
