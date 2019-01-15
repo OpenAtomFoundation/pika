@@ -1673,6 +1673,29 @@ void PikaServer::InitKeyScan() {
   key_scan_info_.s_start_time.assign(s_time, len);
 }
 
+void PikaServer::KeyScanWholeTable(const std::string& table_name) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  if (!table) {
+    LOG(WARNING) << "table : " << table_name << " not exist, key scan failed!";
+    return;
+  }
+  table->KeyScan();
+}
+
+void PikaServer::StopKeyScanWholeTable(const std::string& table_name) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  if (!table) {
+    LOG(WARNING) << "table : " << table_name << " not exist, stop key scan failed!";
+    return;
+  }
+  table->StopKeyScan();
+}
+
+void PikaServer::KeyScanTaskSchedule(void (*function)(void*), void* arg) {
+  key_scan_thread_.StartThread();
+  key_scan_thread_.Schedule(function, arg);
+}
+
 void PikaServer::ClientKillAll() {
   pika_dispatch_thread_->ClientKillAll();
   monitor_thread_->ThreadClientKill();

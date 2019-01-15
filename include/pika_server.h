@@ -40,7 +40,6 @@ using slash::Slice;
  * kCmdNamePurgelogsto
  * kCmdNameFlushall
  * kCmdNameFlushdb
- * kCmdNameInfo
  * kCmdNameDbsize
  * kCmdNameDelbackup
  * kCmdNameScandb
@@ -48,7 +47,7 @@ using slash::Slice;
 
 static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
                                             kCmdNamePurgelogsto,  kCmdNameFlushall,
-                       kCmdNameFlushdb,     kCmdNameInfo,         kCmdNameDbsize,
+                       kCmdNameFlushdb,                           kCmdNameDbsize,
                        kCmdNameDelbackup,   kCmdNameScandb};
 
 class Table;
@@ -347,6 +346,9 @@ class PikaServer {
   void KeyScan();
   void RunKeyScan();
   void StopKeyScan();
+  void KeyScanWholeTable(const std::string& table_name);
+  void StopKeyScanWholeTable(const std::string& table_name);
+  void KeyScanTaskSchedule(void (*function)(void*), void* arg);
 
 
   /*

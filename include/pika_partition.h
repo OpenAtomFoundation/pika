@@ -15,8 +15,8 @@
 #include "blackwidow/blackwidow.h"
 #include "blackwidow/backupable.h"
 
-#include "include/pika_server.h"
 #include "include/pika_conf.h"
+#include "include/pika_server.h"
 #include "include/pika_binlog.h"
 
 class Cmd;
@@ -36,10 +36,6 @@ struct BGSaveInfo {
     filenum = 0;
     offset = 0;
   }
-};
-
-struct BGSaveArg {
-  std::shared_ptr<Partition> partition;
 };
 
 class Partition : public std::enable_shared_from_this<Partition> {
@@ -91,7 +87,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   std::shared_ptr<blackwidow::BlackWidow> db_;
 
   /*
-   * Bgsave use
+   * BgSave use
    */
   static void DoBgSave(void* arg);
   bool RunBgsaveEngine();

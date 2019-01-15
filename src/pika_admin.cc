@@ -683,13 +683,18 @@ void InfoCmd::InfoReplication(std::string &info) {
 
 void InfoCmd::InfoKeyspace(std::string &info) {
   if (off_) {
-    g_pika_server->StopKeyScan();
+    g_pika_server->StopKeyScanWholeTable(table_name_);
     off_ = false;
     return;
   }
 
-  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
-  std::vector<blackwidow::KeyInfo>& key_infos = key_scan_info.key_infos;
+  KeyScanInfo key_scan_info;
+  std::vector<blackwidow::KeyInfo> key_infos;
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (table) {
+    key_scan_info = table->key_scan_info();
+    key_infos = key_scan_info.key_infos;
+  }
   if (key_infos.size() != 5) {
     info.append("info keyspace error\r\n");
     return;
@@ -705,7 +710,7 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   info.append(tmp_stream.str());
 
   if (rescan_) {
-    g_pika_server->KeyScan();
+    g_pika_server->KeyScanWholeTable(table_name_);
   }
   return;
 }

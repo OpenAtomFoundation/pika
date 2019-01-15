@@ -159,9 +159,9 @@ void Partition::BgSavePartition() {
     return;
   }
   bgsave_info_.bgsaving = true;
-  BGSaveArg* bg_save_arg = new BGSaveArg();
-  bg_save_arg->partition = shared_from_this();
-  g_pika_server->BGSaveTaskSchedule(&DoBgSave, static_cast<void*>(bg_save_arg));
+  BgTaskArg* bg_task_arg = new BgTaskArg();
+  bg_task_arg->partition = shared_from_this();
+  g_pika_server->BGSaveTaskSchedule(&DoBgSave, static_cast<void*>(bg_task_arg));
 }
 
 BGSaveInfo Partition::bgsave_info() {
@@ -170,13 +170,13 @@ BGSaveInfo Partition::bgsave_info() {
 }
 
 void Partition::DoBgSave(void* arg) {
-  BGSaveArg* bg_save_arg = static_cast<BGSaveArg*>(arg);
+  BgTaskArg* bg_task_arg = static_cast<BgTaskArg*>(arg);
 
   // Do BgSave
-  bool success = bg_save_arg->partition->RunBgsaveEngine();
+  bool success = bg_task_arg->partition->RunBgsaveEngine();
 
   // Some output
-  BGSaveInfo info = bg_save_arg->partition->bgsave_info();
+  BGSaveInfo info = bg_task_arg->partition->bgsave_info();
   std::ofstream out;
   out.open(info.path + "/" + kBgsaveInfoFile, std::ios::in | std::ios::trunc);
   if (out.is_open()) {
@@ -191,9 +191,9 @@ void Partition::DoBgSave(void* arg) {
     std::string fail_path = info.path + "_FAILED";
     slash::RenameFile(info.path.c_str(), fail_path.c_str());
   }
-  bg_save_arg->partition->FinishBgsave();
+  bg_task_arg->partition->FinishBgsave();
 
-  delete bg_save_arg;
+  delete bg_task_arg;
 }
 
 bool Partition::RunBgsaveEngine() {
@@ -218,11 +218,6 @@ bool Partition::RunBgsaveEngine() {
     return false;
   }
   return true;
-}
-
-void Partition::ClearBgsave() {
-  slash::MutexLock l(&bgsave_protector_);
-  bgsave_info_.Clear();
 }
 
 // Prepare engine, need bgsave_protector protect
@@ -270,6 +265,11 @@ bool Partition::InitBgsaveEngine() {
     }
   }
   return true;
+}
+
+void Partition::ClearBgsave() {
+  slash::MutexLock l(&bgsave_protector_);
+  bgsave_info_.Clear();
 }
 
 void Partition::FinishBgsave() {
