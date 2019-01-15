@@ -38,14 +38,12 @@ using slash::Slice;
 /*
  * kCmdNameSlaveof
  * kCmdNamePurgelogsto
- * kCmdNameDbsize
  * kCmdNameDelbackup
  * kCmdNameScandb
  */
 
 static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
                                             kCmdNamePurgelogsto,
-                                                                  kCmdNameDbsize,
                        kCmdNameDelbackup,   kCmdNameScandb};
 
 class Table;

@@ -1420,18 +1420,23 @@ void DbsizeCmd::DoInitial() {
 }
 
 void DbsizeCmd::Do(std::shared_ptr<Partition> partition) {
-  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
-  std::vector<blackwidow::KeyInfo>& key_infos = key_scan_info.key_infos;
-  if (key_infos.size() != 5) {
-    res_.SetRes(CmdRes::kErrOther, "keyspace error");
-    return;
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
+  } else {
+    KeyScanInfo key_scan_info = table->key_scan_info();
+    std::vector<blackwidow::KeyInfo> key_infos = key_scan_info.key_infos;
+    if (key_infos.size() != 5) {
+      res_.SetRes(CmdRes::kErrOther, "keyspace error");
+      return;
+    }
+    int64_t dbsize = key_infos[0].keys
+        + key_infos[1].keys
+        + key_infos[2].keys
+        + key_infos[3].keys
+        + key_infos[4].keys;
+    res_.AppendInteger(dbsize);
   }
-  int64_t dbsize = key_infos[0].keys
-    + key_infos[1].keys
-    + key_infos[2].keys
-    + key_infos[3].keys
-    + key_infos[4].keys;
-  res_.AppendInteger(dbsize);
 }
 
 void TimeCmd::DoInitial() {
