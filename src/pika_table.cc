@@ -67,6 +67,18 @@ bool Table::FlushAllTable() {
   return true;
 }
 
+bool Table::FlushDbTable(const std::string& db_name) {
+  slash::MutexLock ml(&key_scan_protector_);
+  if (key_scan_info_.key_scaning_) {
+    return false;
+  }
+  slash::RWLock rwl(&partitions_rw_, false);
+  for (const auto& item : partitions_) {
+    item.second->FlushDb(db_name);
+  }
+  return true;
+}
+
 bool Table::IsCommandSupport(const std::string& cmd) const {
   if (partition_num_ == 1) {
     return true;

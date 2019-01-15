@@ -339,13 +339,16 @@ void FlushdbCmd::DoInitial() {
 }
 
 void FlushdbCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->RWLockWriter();
-  if (g_pika_server->FlushDb(db_name_)) {
-    res_.SetRes(CmdRes::kOk);
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
   } else {
-    res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushdb");
+    if (table->FlushDbTable(db_name_)) {
+      res_.SetRes(CmdRes::kOk);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushdb");
+    }
   }
-  g_pika_server->RWUnlock();
 }
 
 void ClientCmd::DoInitial() {

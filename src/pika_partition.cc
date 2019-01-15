@@ -284,7 +284,7 @@ bool Partition::FlushAll() {
     return false;
   }
 
-  LOG(INFO) << table_name_ << " Delete old db...";
+  LOG(INFO) << partition_name_ << " Delete old db...";
   db_.reset();
 
   std::string dbpath = db_path_;
@@ -298,17 +298,46 @@ bool Partition::FlushAll() {
   blackwidow::BlackwidowOptions bw_option;
   RocksdbOptionInit(&bw_option);
 
-  LOG(INFO) << table_name_ << " Prepare open new db...";
+  LOG(INFO) << partition_name_ << " Prepare open new db...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(bw_option, db_path_);
   assert(db_);
   assert(s.ok());
-  LOG(INFO) << table_name_ << " open new db success";
+  LOG(INFO) << partition_name_ << " open new db success";
   PurgeDir(dbpath);
   return true;
 }
 
 bool Partition::FlushDb(const std::string& db_name) {
+  slash::RWLock rwl(&db_rwlock_, true);
+  slash::MutexLock ml(&bgsave_protector_);
+  if (bgsave_info_.bgsaving) {
+    return false;
+  }
+
+  LOG(INFO) << partition_name_ << " Delete old " + db_name + " db...";
+  db_.reset();
+
+  std::string dbpath = db_path_;
+  if (dbpath[dbpath.length() - 1] != '/') {
+    dbpath.append("/");
+  }
+
+  std::string sub_dbpath = dbpath + db_name;
+  std::string del_dbpath = dbpath + db_name + "_deleting";
+  slash::RenameFile(sub_dbpath, del_dbpath);
+
+  // create blackwidow handle
+  blackwidow::BlackwidowOptions bw_option;
+  RocksdbOptionInit(&bw_option);
+
+  LOG(INFO) << partition_name_ << " Prepare open new " + db_name + " db...";
+  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  rocksdb::Status s = db_->Open(bw_option, db_path_);
+  assert(db_);
+  assert(s.ok());
+  LOG(INFO) << partition_name_ << " open new " + db_name + " db success";
+  PurgeDir(del_dbpath);
   return true;
 }
 

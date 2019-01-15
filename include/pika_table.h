@@ -54,6 +54,7 @@ class Table : public std::enable_shared_from_this<Table>{
   void BgSaveTable();
   void CompactTable(const blackwidow::DataType& type);
   bool FlushAllTable();
+  bool FlushDbTable(const std::string& db_name);
   bool IsCommandSupport(const std::string& cmd) const;
   bool IsBinlogIoError();
   uint32_t PartitionNum();
