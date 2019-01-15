@@ -68,6 +68,10 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void BgSavePartition();
   BGSaveInfo bgsave_info();
 
+  // Flushall & Flushdb use
+  bool FlushAll();
+  bool FlushDb(const std::string& db_name);
+
   void RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const;
 
 
@@ -98,6 +102,12 @@ class Partition : public std::enable_shared_from_this<Partition> {
   BGSaveInfo bgsave_info_;
   slash::Mutex bgsave_protector_;
   blackwidow::BackupEngine* bgsave_engine_;
+
+  /*
+   * Flushall & Flushdb use
+   */
+  static void DoPurgeDir(void* arg);
+  void PurgeDir(std::string& path);
 
   /*
    * No allowed copy and copy assign

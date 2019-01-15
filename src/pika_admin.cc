@@ -305,13 +305,16 @@ void FlushallCmd::DoInitial() {
   }
 }
 void FlushallCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->RWLockWriter();
-  if (g_pika_server->FlushAll()) {
-    res_.SetRes(CmdRes::kOk);
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
   } else {
-    res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushall");
+    if (table->FlushAllTable()) {
+      res_.SetRes(CmdRes::kOk);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushall");
+    }
   }
-  g_pika_server->RWUnlock();
 }
 
 void FlushdbCmd::DoInitial() {

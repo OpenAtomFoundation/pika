@@ -38,7 +38,6 @@ using slash::Slice;
 /*
  * kCmdNameSlaveof
  * kCmdNamePurgelogsto
- * kCmdNameFlushall
  * kCmdNameFlushdb
  * kCmdNameDbsize
  * kCmdNameDelbackup
@@ -46,7 +45,7 @@ using slash::Slice;
  */
 
 static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
-                                            kCmdNamePurgelogsto,  kCmdNameFlushall,
+                                            kCmdNamePurgelogsto,
                        kCmdNameFlushdb,                           kCmdNameDbsize,
                        kCmdNameDelbackup,   kCmdNameScandb};
 
@@ -319,6 +318,7 @@ class PikaServer {
   bool FlushAll();
   bool FlushDb(const std::string& db_name);
   void PurgeDir(std::string& path);
+  void PurgeDirTaskSchedule(void (*function)(void*), void* arg);
 
   /*
    *Keyscan used

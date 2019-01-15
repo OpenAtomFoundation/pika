@@ -55,6 +55,18 @@ void Table::CompactTable(const blackwidow::DataType& type) {
   }
 }
 
+bool Table::FlushAllTable() {
+  slash::MutexLock ml(&key_scan_protector_);
+  if (key_scan_info_.key_scaning_) {
+    return false;
+  }
+  slash::RWLock rwl(&partitions_rw_, false);
+  for (const auto& item : partitions_) {
+    item.second->FlushAll();
+  }
+  return true;
+}
+
 bool Table::IsCommandSupport(const std::string& cmd) const {
   if (partition_num_ == 1) {
     return true;

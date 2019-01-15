@@ -277,6 +277,54 @@ void Partition::FinishBgsave() {
   bgsave_info_.bgsaving = false;
 }
 
+bool Partition::FlushAll() {
+  slash::RWLock rwl(&db_rwlock_, true);
+  slash::MutexLock ml(&bgsave_protector_);
+  if (bgsave_info_.bgsaving) {
+    return false;
+  }
+
+  LOG(INFO) << table_name_ << " Delete old db...";
+  db_.reset();
+
+  std::string dbpath = db_path_;
+  if (dbpath[dbpath.length() - 1] == '/') {
+    dbpath.erase(dbpath.length() - 1);
+  }
+  dbpath.append("_deleting/");
+  slash::RenameFile(db_path_, dbpath.c_str());
+
+  //Create blackwidow handle
+  blackwidow::BlackwidowOptions bw_option;
+  RocksdbOptionInit(&bw_option);
+
+  LOG(INFO) << table_name_ << " Prepare open new db...";
+  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  rocksdb::Status s = db_->Open(bw_option, db_path_);
+  assert(db_);
+  assert(s.ok());
+  LOG(INFO) << table_name_ << " open new db success";
+  PurgeDir(dbpath);
+  return true;
+}
+
+bool Partition::FlushDb(const std::string& db_name) {
+  return true;
+}
+
+void Partition::PurgeDir(std::string& path) {
+  std::string *dir_path = new std::string(path);
+  g_pika_server->PurgeDirTaskSchedule(&DoPurgeDir, static_cast<void*>(dir_path));
+}
+
+void Partition::DoPurgeDir(void* arg) {
+  std::string path = *(static_cast<std::string*>(arg));
+  LOG(INFO) << "Delete dir: " << path << " start";
+  slash::DeleteDir(path);
+  LOG(INFO) << "Delete dir: " << path << " done";
+  delete static_cast<std::string*>(arg);
+}
+
 void Partition::RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const {
   bw_option->options.create_if_missing = true;
   bw_option->options.keep_log_file_num = 10;

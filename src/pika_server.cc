@@ -1487,6 +1487,11 @@ void PikaServer::DoPurgeDir(void* arg) {
   delete static_cast<std::string*>(arg);
 }
 
+void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
+  purge_thread_.StartThread();
+  purge_thread_.Schedule(function, arg);
+}
+
 // PubSub
 
 // Publish
