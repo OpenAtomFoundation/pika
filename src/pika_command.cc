@@ -29,8 +29,6 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAuth, authptr));
   Cmd* bgsaveptr = new BgsaveCmd(kCmdNameBgsave, 1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBgsave, bgsaveptr));
-  Cmd* bgsaveoffptr = new BgsaveoffCmd(kCmdNameBgsaveoff, 1, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBgsaveoff, bgsaveoffptr));
   Cmd* compactptr = new CompactCmd(kCmdNameCompact, -1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameCompact, compactptr));
   Cmd* purgelogptr = new PurgelogstoCmd(kCmdNamePurgelogsto, 2, kCmdFlagsRead | kCmdFlagsAdmin);

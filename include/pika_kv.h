@@ -37,7 +37,6 @@ class SetCmd : public Cmd {
     condition_ = kNONE;
   }
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -235,7 +234,6 @@ class SetexCmd : public Cmd {
   std::string value_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -255,7 +253,6 @@ class PsetexCmd : public Cmd {
   std::string value_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,

@@ -24,7 +24,6 @@ const std::string kCmdNameSlaveof = "slaveof";
 const std::string kCmdNameTrysync = "trysync";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
-const std::string kCmdNameBgsaveoff = "bgsaveoff";
 const std::string kCmdNameCompact = "compact";
 const std::string kCmdNamePurgelogsto = "purgelogsto";
 const std::string kCmdNamePing = "ping";
@@ -274,6 +273,7 @@ public:
     kWrongNum,
     kInvalidIndex,
     kInvalidDbType,
+    kInvalidTable,
     kErrOther,
   };
 
@@ -340,6 +340,9 @@ public:
       break;
     case kInvalidDbType:
       result = "-ERR invalid DB type\r\n";
+      break;
+    case kInvalidTable:
+      result = "-ERR invalid Table\r\n";
       break;
     case kErrOther:
       result = "-ERR ";
