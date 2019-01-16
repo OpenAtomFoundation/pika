@@ -1499,23 +1499,15 @@ void DelbackupCmd::Do(std::shared_ptr<Partition> partition) {
       continue;
     }
 
-    std::string dump_dir_name = db_sync_path + dump_dir[i];
+    std::string dump_dir_name = db_sync_path + dump_dir[i] + "/" + table_name_;
     if (g_pika_server->CountSyncSlaves() == 0) {
       LOG(INFO) << "Not syncing, delete dump file: " << dump_dir_name;
-      slash::DeleteDirIfExist(dump_dir_name);
-      len--;
-    } else if (g_pika_server->bgsave_info().path != dump_dir_name){
-      LOG(INFO) << "Syncing, delete expired dump file: " << dump_dir_name;
       slash::DeleteDirIfExist(dump_dir_name);
       len--;
     } else {
       LOG(INFO) << "Syncing, can not delete " << dump_dir_name << " dump file" << std::endl;
     }
   }
-  if (len == 0) {
-    g_pika_server->bgsave_info().Clear();
-  }
-
   res_.SetRes(CmdRes::kOk);
   return;
 }
