@@ -75,16 +75,6 @@ class BgsaveCmd : public Cmd {
   virtual void DoInitial() override;
 };
 
-class BgsaveoffCmd : public Cmd {
- public:
-  BgsaveoffCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-
- private:
-  virtual void DoInitial() override;
-};
-
 class CompactCmd : public Cmd {
  public:
   CompactCmd(const std::string& name, int arity, uint16_t flag)

@@ -355,6 +355,18 @@ void PikaServer::Start() {
   LOG(INFO) << "Goodbye...";
 }
 
+std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {
+  slash::RWLock l(&tables_rw_, false);
+  auto iter = tables_.find(table_name);
+  return (iter == tables_.end()) ? NULL : iter->second;
+}
+
+bool PikaServer::IsCommandCurrentSupport(const std::string& command) {
+  std::string cmd = command;
+  slash::StringToLower(cmd);
+  return CurrentNotSupportCommands.find(cmd) == CurrentNotSupportCommands.end();
+}
+
 bool PikaServer::IsTableBinlogIoError(const std::string& table_name) {
   std::shared_ptr<Table> table = GetTable(table_name);
   return table ? table->IsBinlogIoError() : true;
@@ -1026,6 +1038,15 @@ bool PikaServer::RunBgsaveEngine() {
   return true;
 }
 
+void PikaServer::BgSaveWholeTable(const std::string& table_name) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  if (!table) {
+    LOG(WARNING) << "table : " << table_name << " not exist, bgsave failed!";
+    return;
+  }
+  table->BgSaveTable();
+}
+
 void PikaServer::Bgsave() {
   // Only one thread can go through
   {
@@ -1066,17 +1087,10 @@ void PikaServer::DoBgsave(void* arg) {
   p->FinishBgsave();
 }
 
-bool PikaServer::Bgsaveoff() {
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    if (!bgsave_info_.bgsaving) {
-      return false;
-    }
-  }
-  if (bgsave_engine_ != NULL) {
-    bgsave_engine_->StopBackup();
-  }
-  return true;
+void PikaServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {
+  slash::MutexLock l(&bgsave_thread_protector_);
+  bgsave_thread_.StartThread();
+  bgsave_thread_.Schedule(function, arg);
 }
 
 bool PikaServer::PurgeLogs(uint32_t to, bool manual, bool force) {
@@ -1473,6 +1487,11 @@ void PikaServer::DoPurgeDir(void* arg) {
   delete static_cast<std::string*>(arg);
 }
 
+void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
+  purge_thread_.StartThread();
+  purge_thread_.Schedule(function, arg);
+}
+
 // PubSub
 
 // Publish
@@ -1659,6 +1678,29 @@ void PikaServer::InitKeyScan() {
   key_scan_info_.s_start_time.assign(s_time, len);
 }
 
+void PikaServer::KeyScanWholeTable(const std::string& table_name) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  if (!table) {
+    LOG(WARNING) << "table : " << table_name << " not exist, key scan failed!";
+    return;
+  }
+  table->KeyScan();
+}
+
+void PikaServer::StopKeyScanWholeTable(const std::string& table_name) {
+  std::shared_ptr<Table> table = GetTable(table_name);
+  if (!table) {
+    LOG(WARNING) << "table : " << table_name << " not exist, stop key scan failed!";
+    return;
+  }
+  table->StopKeyScan();
+}
+
+void PikaServer::KeyScanTaskSchedule(void (*function)(void*), void* arg) {
+  key_scan_thread_.StartThread();
+  key_scan_thread_.Schedule(function, arg);
+}
+
 void PikaServer::ClientKillAll() {
   pika_dispatch_thread_->ClientKillAll();
   monitor_thread_->ThreadClientKill();
@@ -1709,12 +1751,6 @@ void PikaServer::ResetStat() {
   slash::WriteLock l(&statistic_data_.statistic_lock);
   statistic_data_.thread_querynum = 0;
   statistic_data_.last_thread_querynum = 0;
-}
-
-std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {
-  slash::RWLock l(&tables_rw_, false);
-  auto iter = tables_.find(table_name);
-  return (iter == tables_.end()) ? NULL : iter->second;
 }
 
 void PikaServer::SetDispatchQueueLimit(int queue_limit) {
