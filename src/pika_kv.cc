@@ -96,7 +96,6 @@ void SetCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string SetCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -133,7 +132,7 @@ std::string SetCmd::ToBinlog(
                                                content,
                                                {});
   } else {
-    return Cmd::ToBinlog(argv, exec_time, server_id, logic_id, filenum, offset);
+    return Cmd::ToBinlog(exec_time, server_id, logic_id, filenum, offset);
   }
 }
 
@@ -656,7 +655,6 @@ void SetexCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string SetexCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -718,7 +716,6 @@ void PsetexCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 std::string PsetexCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
       uint32_t exec_time,
       const std::string& server_id,
       uint64_t logic_id,
@@ -1394,7 +1391,7 @@ void PKSetexAtCmd::DoInitial() {
 }
 
 void PKSetexAtCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = g_pika_server->db()->PKSetexAt(key_, value_, time_stamp_);
+  rocksdb::Status s = partition->db()->PKSetexAt(key_, value_, time_stamp_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {

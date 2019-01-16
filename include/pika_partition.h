@@ -8,16 +8,35 @@
 
 #include <string>
 #include <memory>
+#include <fstream>
 
 #include "iostream"
 
 #include "blackwidow/blackwidow.h"
+#include "blackwidow/backupable.h"
 
 #include "include/pika_conf.h"
+#include "include/pika_server.h"
 #include "include/pika_binlog.h"
 
 class Cmd;
 class Binlog;
+
+struct BGSaveInfo {
+  bool bgsaving;
+  time_t start_time;
+  std::string s_start_time;
+  std::string path;
+  uint32_t filenum;
+  uint64_t offset;
+  BGSaveInfo() : bgsaving(false), filenum(0), offset(0){}
+  void Clear() {
+    bgsaving = false;
+    path.clear();
+    filenum = 0;
+    offset = 0;
+  }
+};
 
 class Partition : public std::enable_shared_from_this<Partition> {
  public:
@@ -45,6 +64,14 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void SetBinlogIoError(bool error);
   bool IsBinlogIoError();
 
+  // BgSave use;
+  void BgSavePartition();
+  BGSaveInfo bgsave_info();
+
+  // Flushall & Flushdb use
+  bool FlushAll();
+  bool FlushDb(const std::string& db_name);
+
   void RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const;
 
 
@@ -62,6 +89,25 @@ class Partition : public std::enable_shared_from_this<Partition> {
   pthread_rwlock_t db_rwlock_;
   slash::RecordMutex mutex_record_;
   std::shared_ptr<blackwidow::BlackWidow> db_;
+
+  /*
+   * BgSave use
+   */
+  static void DoBgSave(void* arg);
+  bool RunBgsaveEngine();
+  bool InitBgsaveEnv();
+  bool InitBgsaveEngine();
+  void ClearBgsave();
+  void FinishBgsave();
+  BGSaveInfo bgsave_info_;
+  slash::Mutex bgsave_protector_;
+  blackwidow::BackupEngine* bgsave_engine_;
+
+  /*
+   * Flushall & Flushdb use
+   */
+  static void DoPurgeDir(void* arg);
+  void PurgeDir(std::string& path);
 
   /*
    * No allowed copy and copy assign
