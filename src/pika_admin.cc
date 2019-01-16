@@ -207,27 +207,8 @@ void BgsaveCmd::DoInitial() {
   }
 }
 void BgsaveCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->Bgsave();
-  const PikaServer::BGSaveInfo& info = g_pika_server->bgsave_info();
-  char buf[256];
-  snprintf(buf, sizeof(buf), "+%s : %u: %lu",
-      info.s_start_time.c_str(), info.filenum, info.offset);
-  res_.AppendContent(buf);
-}
-void BgsaveoffCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsaveoff);
-    return;
-  }
-}
-void BgsaveoffCmd::Do(std::shared_ptr<Partition> partition) {
-  CmdRes::CmdRet ret;
-  if (g_pika_server->Bgsaveoff()) {
-   ret = CmdRes::kOk;
-  } else {
-   ret = CmdRes::kNoneBgsave;
-  }
-  res_.SetRes(ret);
+  g_pika_server->BgSaveWholeTable(table_name_);
+  res_.AppendContent("+Background saving started");
 }
 
 void CompactCmd::DoInitial() {
@@ -243,27 +224,30 @@ void CompactCmd::DoInitial() {
 }
 
 void CompactCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s;
+  blackwidow::DataType type;
   if (struct_type_.empty()) {
-    s = g_pika_server->db()->Compact(blackwidow::kAll);
+    type = blackwidow::kAll;
   } else if (!strcasecmp(struct_type_.data(), "string")) {
-    s = g_pika_server->db()->Compact(blackwidow::kStrings);
+    type = blackwidow::kStrings;
   } else if (!strcasecmp(struct_type_.data(), "hash")) {
-    s = g_pika_server->db()->Compact(blackwidow::kHashes);
+    type = blackwidow::kHashes;
   } else if (!strcasecmp(struct_type_.data(), "set")) {
-    s = g_pika_server->db()->Compact(blackwidow::kSets);
+    type = blackwidow::kSets;
   } else if (!strcasecmp(struct_type_.data(), "zset")) {
-    s = g_pika_server->db()->Compact(blackwidow::kZSets);
+    type = blackwidow::kZSets;
   } else if (!strcasecmp(struct_type_.data(), "list")) {
-    s = g_pika_server->db()->Compact(blackwidow::kLists);
+    type = blackwidow::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
   }
-  if (s.ok()) {
-    res_.SetRes(CmdRes::kOk);
+
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
   } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    table->CompactTable(type);
+    res_.SetRes(CmdRes::kOk);
   }
 }
 
@@ -322,13 +306,16 @@ void FlushallCmd::DoInitial() {
   }
 }
 void FlushallCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->RWLockWriter();
-  if (g_pika_server->FlushAll()) {
-    res_.SetRes(CmdRes::kOk);
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
   } else {
-    res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushall");
+    if (table->FlushAllTable()) {
+      res_.SetRes(CmdRes::kOk);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushall");
+    }
   }
-  g_pika_server->RWUnlock();
 }
 
 void FlushdbCmd::DoInitial() {
@@ -353,13 +340,16 @@ void FlushdbCmd::DoInitial() {
 }
 
 void FlushdbCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->RWLockWriter();
-  if (g_pika_server->FlushDb(db_name_)) {
-    res_.SetRes(CmdRes::kOk);
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
   } else {
-    res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushdb");
+    if (table->FlushDbTable(db_name_)) {
+      res_.SetRes(CmdRes::kOk);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushdb");
+    }
   }
-  g_pika_server->RWUnlock();
 }
 
 void ClientCmd::DoInitial() {
@@ -700,13 +690,18 @@ void InfoCmd::InfoReplication(std::string &info) {
 
 void InfoCmd::InfoKeyspace(std::string &info) {
   if (off_) {
-    g_pika_server->StopKeyScan();
+    g_pika_server->StopKeyScanWholeTable(table_name_);
     off_ = false;
     return;
   }
 
-  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
-  std::vector<blackwidow::KeyInfo>& key_infos = key_scan_info.key_infos;
+  KeyScanInfo key_scan_info;
+  std::vector<blackwidow::KeyInfo> key_infos;
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (table) {
+    key_scan_info = table->key_scan_info();
+    key_infos = key_scan_info.key_infos;
+  }
   if (key_infos.size() != 5) {
     info.append("info keyspace error\r\n");
     return;
@@ -722,7 +717,7 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   info.append(tmp_stream.str());
 
   if (rescan_) {
-    g_pika_server->KeyScan();
+    g_pika_server->KeyScanWholeTable(table_name_);
   }
   return;
 }
@@ -1426,18 +1421,23 @@ void DbsizeCmd::DoInitial() {
 }
 
 void DbsizeCmd::Do(std::shared_ptr<Partition> partition) {
-  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
-  std::vector<blackwidow::KeyInfo>& key_infos = key_scan_info.key_infos;
-  if (key_infos.size() != 5) {
-    res_.SetRes(CmdRes::kErrOther, "keyspace error");
-    return;
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
+  } else {
+    KeyScanInfo key_scan_info = table->key_scan_info();
+    std::vector<blackwidow::KeyInfo> key_infos = key_scan_info.key_infos;
+    if (key_infos.size() != 5) {
+      res_.SetRes(CmdRes::kErrOther, "keyspace error");
+      return;
+    }
+    int64_t dbsize = key_infos[0].keys
+        + key_infos[1].keys
+        + key_infos[2].keys
+        + key_infos[3].keys
+        + key_infos[4].keys;
+    res_.AppendInteger(dbsize);
   }
-  int64_t dbsize = key_infos[0].keys
-    + key_infos[1].keys
-    + key_infos[2].keys
-    + key_infos[3].keys
-    + key_infos[4].keys;
-  res_.AppendInteger(dbsize);
 }
 
 void TimeCmd::DoInitial() {
@@ -1500,23 +1500,15 @@ void DelbackupCmd::Do(std::shared_ptr<Partition> partition) {
       continue;
     }
 
-    std::string dump_dir_name = db_sync_path + dump_dir[i];
+    std::string dump_dir_name = db_sync_path + dump_dir[i] + "/" + table_name_;
     if (g_pika_server->CountSyncSlaves() == 0) {
       LOG(INFO) << "Not syncing, delete dump file: " << dump_dir_name;
-      slash::DeleteDirIfExist(dump_dir_name);
-      len--;
-    } else if (g_pika_server->bgsave_info().path != dump_dir_name){
-      LOG(INFO) << "Syncing, delete expired dump file: " << dump_dir_name;
       slash::DeleteDirIfExist(dump_dir_name);
       len--;
     } else {
       LOG(INFO) << "Syncing, can not delete " << dump_dir_name << " dump file" << std::endl;
     }
   }
-  if (len == 0) {
-    g_pika_server->bgsave_info().Clear();
-  }
-
   res_.SetRes(CmdRes::kOk);
   return;
 }
@@ -1561,8 +1553,13 @@ void ScandbCmd::DoInitial() {
 }
 
 void ScandbCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->db()->ScanDatabase(type_);
-  res_.SetRes(CmdRes::kOk);
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
+  } else {
+    table->ScanDatabase(type_);
+    res_.SetRes(CmdRes::kOk);
+  }
   return;
 }
 

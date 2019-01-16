@@ -158,6 +158,10 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     return ConstructPubSubResp(opt, result);
   }
 
+  if (!g_pika_server->IsCommandCurrentSupport(opt)) {
+    return "-ERR Command current not support\r\n";
+  }
+
   if (!g_pika_server->IsTableSupportCommand(current_table_, opt)) {
     return "-ERR CROSS PARTITION Keys in this request command may don't hash to the same partition\r\n";
   }
