@@ -64,6 +64,7 @@ class Table : public std::enable_shared_from_this<Table>{
   void KeyScan();
   void RunKeyScan();
   void StopKeyScan();
+  void ScanDatabase(const blackwidow::DataType& type);
   KeyScanInfo key_scan_info();
 
 

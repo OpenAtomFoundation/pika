@@ -1552,8 +1552,13 @@ void ScandbCmd::DoInitial() {
 }
 
 void ScandbCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->db()->ScanDatabase(type_);
-  res_.SetRes(CmdRes::kOk);
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
+  } else {
+    table->ScanDatabase(type_);
+    res_.SetRes(CmdRes::kOk);
+  }
   return;
 }
 

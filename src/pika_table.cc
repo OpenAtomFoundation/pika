@@ -157,6 +157,14 @@ void Table::StopKeyScan() {
   key_scan_info_.key_scaning_ = false;
 }
 
+void Table::ScanDatabase(const blackwidow::DataType& type) {
+  slash::RWLock rwl(&partitions_rw_, false);
+  for (const auto& item : partitions_) {
+    printf("\n\npartition name : %s\n", item.second->partition_name().c_str());
+    item.second->db()->ScanDatabase(type);
+  }
+}
+
 KeyScanInfo Table::key_scan_info() {
   slash::MutexLock lm(&key_scan_protector_);
   return key_scan_info_;

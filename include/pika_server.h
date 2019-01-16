@@ -38,12 +38,10 @@ using slash::Slice;
 /*
  * kCmdNameSlaveof
  * kCmdNamePurgelogsto
- * kCmdNameScandb
  */
 
 static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
-                                            kCmdNamePurgelogsto,
-                                                                  kCmdNameScandb};
+                                            kCmdNamePurgelogsto                   };
 
 class Table;
 class PikaDispatchThread;
