@@ -156,12 +156,12 @@ PikaServer::~PikaServer() {
   delete pika_heartbeat_thread_;
   delete monitor_thread_;
 
-  StopKeyScan();
-  key_scan_thread_.StopThread();
-
   delete logger_;
   db_.reset();
   tables_.clear();
+
+  bgsave_thread_.StopThread();
+  key_scan_thread_.StopThread();
 
   pthread_rwlock_destroy(&rwlock_);
   pthread_rwlock_destroy(&tables_rw_);
@@ -1394,99 +1394,6 @@ void PikaServer::AutoDeleteExpiredDump() {
   }
 }
 
-bool PikaServer::FlushAll() {
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    if (bgsave_info_.bgsaving) {
-      return false;
-    }
-  }
-  {
-    slash::MutexLock l(&key_scan_protector_);
-    if (key_scan_info_.key_scaning_) {
-      return false;
-    }
-  }
-
-  LOG(INFO) << "Delete old db...";
-  db_.reset();
-
-  std::string dbpath = g_pika_conf->db_path();
-  if (dbpath[dbpath.length() - 1] == '/') {
-    dbpath.erase(dbpath.length() - 1);
-  }
-  int pos = dbpath.find_last_of('/');
-  dbpath = dbpath.substr(0, pos);
-  dbpath.append("/deleting");
-  slash::RenameFile(g_pika_conf->db_path(), dbpath.c_str());
-
-  //Create blackwidow handle
-  blackwidow::BlackwidowOptions bw_option;
-  RocksdbOptionInit(&bw_option);
-
-  LOG(INFO) << "Prepare open new db...";
-  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(bw_option, g_pika_conf->db_path());
-  assert(db_);
-  assert(s.ok());
-  LOG(INFO) << "open new db success";
-  PurgeDir(dbpath);
-  return true;
-}
-
-bool PikaServer::FlushDb(const std::string& db_name) {
-  {
-    slash::MutexLock l(&bgsave_protector_);
-    if (bgsave_info_.bgsaving) {
-      return false;
-    }
-  }
-  {
-    slash::MutexLock l(&key_scan_protector_);
-    if (key_scan_info_.key_scaning_) {
-      return false;
-    }
-  }
-
-  LOG(INFO) << "Delete old " + db_name + " db...";
-  db_.reset();
-
-  std::string dbpath = g_pika_conf->db_path();
-  if (dbpath[dbpath.length() - 1] != '/') {
-     dbpath.append("/");
-  }
-  std::string sub_dbpath = dbpath + db_name;
-  std::string del_dbpath = dbpath + db_name + "_deleting";
-  slash::RenameFile(sub_dbpath, del_dbpath);
-
-  blackwidow::BlackwidowOptions bw_option;
-  RocksdbOptionInit(&bw_option);
-
-  LOG(INFO) << "Prepare open new " + db_name + " db...";
-  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(bw_option, g_pika_conf->db_path());
-  assert(db_);
-  assert(s.ok());
-  LOG(INFO) << "open new " + db_name + " db success";
-  PurgeDir(del_dbpath);
-  return true;
-}
-
-void PikaServer::PurgeDir(std::string& path) {
-  std::string *dir_path = new std::string(path);
-  // Start new thread if needed
-  purge_thread_.StartThread();
-  purge_thread_.Schedule(&DoPurgeDir, static_cast<void*>(dir_path));
-}
-
-void PikaServer::DoPurgeDir(void* arg) {
-  std::string path = *(static_cast<std::string*>(arg));
-  LOG(INFO) << "Delete dir: " << path << " start";
-  slash::DeleteDir(path);
-  LOG(INFO) << "Delete dir: " << path << " done";
-  delete static_cast<std::string*>(arg);
-}
-
 void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
   purge_thread_.StartThread();
   purge_thread_.Schedule(function, arg);
@@ -1632,51 +1539,6 @@ void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int
   SlowlogTrim();
 }
 
-void PikaServer::RunKeyScan() {
-  std::vector<blackwidow::KeyInfo> new_key_infos;
-
-  rocksdb::Status s = db_->GetKeyNum(&new_key_infos);
-
-  slash::MutexLock lm(&key_scan_protector_);
-  if (s.ok()) {
-    key_scan_info_.key_infos = new_key_infos;
-  }
-  key_scan_info_.key_scaning_ = false;
-}
-
-void PikaServer::DoKeyScan(void *arg) {
-  PikaServer *p = reinterpret_cast<PikaServer*>(arg);
-  p->RunKeyScan();
-}
-
-void PikaServer::StopKeyScan() {
-  slash::MutexLock l(&key_scan_protector_);
-  if (key_scan_info_.key_scaning_) {
-    db_->StopScanKeyNum();
-    key_scan_info_.key_scaning_ = false;
-  }
-}
-
-void PikaServer::KeyScan() {
-  key_scan_protector_.Lock();
-  if (key_scan_info_.key_scaning_) {
-    key_scan_protector_.Unlock();
-    return;
-  }
-  key_scan_info_.key_scaning_ = true;
-  key_scan_protector_.Unlock();
-
-  key_scan_thread_.StartThread();
-  InitKeyScan();
-  key_scan_thread_.Schedule(&DoKeyScan, reinterpret_cast<void*>(this));
-}
-
-void PikaServer::InitKeyScan() {
-  key_scan_info_.start_time = time(NULL);
-  char s_time[32];
-  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
-  key_scan_info_.s_start_time.assign(s_time, len);
-}
 
 void PikaServer::KeyScanWholeTable(const std::string& table_name) {
   std::shared_ptr<Table> table = GetTable(table_name);

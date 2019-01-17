@@ -309,37 +309,11 @@ class PikaServer {
   slash::Mutex & GetSlavesMutex() { return db_sync_protector_; }
 
   //flushall & flushdb
-  bool FlushAll();
-  bool FlushDb(const std::string& db_name);
-  void PurgeDir(std::string& path);
   void PurgeDirTaskSchedule(void (*function)(void*), void* arg);
 
   /*
    *Keyscan used
    */
-  struct KeyScanInfo {
-    time_t start_time;
-    std::string s_start_time;
-    std::vector<blackwidow::KeyInfo> key_infos; //the order is strings, hashes, lists, zsets, sets
-    bool key_scaning_;
-    KeyScanInfo() :
-        start_time(0),
-        s_start_time("1970-01-01 08:00:00"),
-        key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}),
-        key_scaning_(false) {
-    }
-  };
-  bool key_scaning() {
-    slash::MutexLock lm(&key_scan_protector_);
-    return key_scan_info_.key_scaning_;
-  }
-  KeyScanInfo key_scan_info() {
-    slash::MutexLock lm(&key_scan_protector_);
-    return key_scan_info_;
-  }
-  void KeyScan();
-  void RunKeyScan();
-  void StopKeyScan();
   void KeyScanWholeTable(const std::string& table_name);
   void StopKeyScanWholeTable(const std::string& table_name);
   void KeyScanTaskSchedule(void (*function)(void*), void* arg);
@@ -513,7 +487,6 @@ class PikaServer {
    */
   slash::Mutex key_scan_protector_;
   pink::BGThread key_scan_thread_;
-  KeyScanInfo key_scan_info_;
 
   /*
    * Monitor use

@@ -37,6 +37,7 @@ Table::Table(const std::string& table_name,
 }
 
 Table::~Table() {
+  StopKeyScan();
   pthread_rwlock_destroy(&partitions_rw_);
   partitions_.clear();
 }
