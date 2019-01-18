@@ -1011,7 +1011,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
   if (slash::stringmatch(pattern.data(), "maxmemory", 1)) {
     elements += 2;
     EncodeString(&config_body, "maxmemory");
-    EncodeInt32(&config_body, g_pika_conf->write_buffer_size());
+    EncodeInt64(&config_body, g_pika_conf->write_buffer_size());
   }
 
   if (slash::stringmatch(pattern.data(), "write-buffer-size", 1)) {
