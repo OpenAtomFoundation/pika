@@ -49,7 +49,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   uint32_t partition_id() const;
   std::string partition_name() const;
   std::shared_ptr<Binlog> logger() const;
-  std::shared_ptr<blackwidow::BlackWidow> db() const;
+  std::shared_ptr<blackwidow::BlackWidow> db();
 
   void DoCommand(Cmd* const cmd);
 

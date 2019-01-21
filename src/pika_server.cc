@@ -1247,8 +1247,6 @@ void PikaServer::AutoCompactRange() {
 
   uint64_t total_size = disk_info.f_bsize * disk_info.f_blocks;
   uint64_t free_size = disk_info.f_bsize * disk_info.f_bfree;
-//      LOG(INFO) << "free_size: " << free_size << " disk_size: " << total_size <<
-//        " cal: " << ((double)free_size / total_size) * 100;
   std::string ci = g_pika_conf->compact_interval();
   std::string cc = g_pika_conf->compact_cron();
 
@@ -1259,11 +1257,10 @@ void PikaServer::AutoCompactRange() {
     struct timeval now;
     gettimeofday(&now, NULL);
     if (last_check_compact_time_.tv_sec == 0 ||
-          now.tv_sec - last_check_compact_time_.tv_sec
-          >= interval * 3600) {
+      now.tv_sec - last_check_compact_time_.tv_sec >= interval * 3600) {
       gettimeofday(&last_check_compact_time_, NULL);
       if (((double)free_size / total_size) * 100 >= usage) {
-        rocksdb::Status s = db_->Compact(blackwidow::kAll);
+        Status s = DoSameThingEveryPartition(TaskType::kCompactAll);
         if (s.ok()) {
           LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
         } else {
@@ -1294,7 +1291,7 @@ void PikaServer::AutoCompactRange() {
     }
     if (!have_scheduled_crontask_ && in_window) {
       if (((double)free_size / total_size) * 100 >= usage) {
-        rocksdb::Status s = db_->Compact(blackwidow::kAll);
+        Status s = DoSameThingEveryPartition(TaskType::kCompactAll);
         if (s.ok()) {
           LOG(INFO) << "[Cron]schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
         } else {
@@ -1393,6 +1390,25 @@ void PikaServer::AutoDeleteExpiredDump() {
     }
   }
 }
+
+Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
+  slash::RWLock rwl(&tables_rw_, false);
+  for (const auto& table_item : tables_) {
+    for (const auto& partition_item : table_item.second->partitions_) {
+      switch (type) {
+        case TaskType::kCompactAll:
+          partition_item.second->db()->Compact(blackwidow::DataType::kAll);
+          break;
+        case TaskType::kDeleteExpiredDump:
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  return Status::OK();
+}
+
 
 void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
   purge_thread_.StartThread();

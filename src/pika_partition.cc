@@ -71,7 +71,8 @@ std::shared_ptr<Binlog> Partition::logger() const {
   return logger_;
 }
 
-std::shared_ptr<blackwidow::BlackWidow> Partition::db() const {
+std::shared_ptr<blackwidow::BlackWidow> Partition::db() {
+  slash::RWLock rwl(&db_rwlock_, false);
   return db_;
 }
 

@@ -46,6 +46,11 @@ static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveo
 class Table;
 class PikaDispatchThread;
 
+enum TaskType {
+  kCompactAll,
+  kDeleteExpiredDump,
+};
+
 class PikaServer {
  public:
   PikaServer();
@@ -210,8 +215,6 @@ class PikaServer {
   bool BinlogIoError() {
     return binlog_io_error_;
   }
-
-  void DoTimingTask();
 
   PikaSlavepingThread* ping_thread_;
 
@@ -460,13 +463,18 @@ class PikaServer {
    */
   std::atomic<bool> purging_;
   pink::BGThread purge_thread_;
-
   static void DoPurgeLogs(void* arg);
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
+  bool CouldPurge(uint32_t index);
+
+  /*
+   * TimingTask use
+   */
+  void DoTimingTask();
   void AutoCompactRange();
   void AutoPurge();
   void AutoDeleteExpiredDump();
-  bool CouldPurge(uint32_t index);
+  Status DoSameThingEveryPartition(const TaskType& type);
 
   /*
    * DBSync use
@@ -536,9 +544,6 @@ class PikaServer {
     uint64_t last_time_us;
   };
   StatisticData statistic_data_;
-
-  static void DoKeyScan(void *arg);
-  void InitKeyScan();
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);
