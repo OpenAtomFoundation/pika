@@ -218,10 +218,12 @@ void CompactCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameCompact);
     return;
   }
-  if (g_pika_server->key_scaning()) {
-    res_.SetRes(CmdRes::kErrOther, "The info keyspace operation is executing, Try again later");
-    return;
-  }
+
+  // TODO Judge all tables
+  //if (g_pika_server->key_scaning()) {
+  //  res_.SetRes(CmdRes::kErrOther, "The info keyspace operation is executing, Try again later");
+  //  return;
+  //}
 
   if (argv_.size() == 2) {
     struct_type_ = argv_[1];
@@ -601,6 +603,11 @@ void InfoCmd::InfoClients(std::string &info) {
 }
 
 void InfoCmd::InfoStats(std::string &info) {
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    return;
+  }
+
   std::stringstream tmp_stream;
   tmp_stream << "# Stats\r\n";
 
@@ -612,8 +619,8 @@ void InfoCmd::InfoStats(std::string &info) {
   time_t current_time_s = time(NULL);
   tmp_stream << "is_bgsaving:" << (is_bgsaving ? "Yes, " : "No, ") << bgsave_info.s_start_time << ", "
                                 << (is_bgsaving ? (current_time_s - bgsave_info.start_time) : 0) << "\r\n";
-  PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
-  bool is_scaning = g_pika_server->key_scaning();
+  KeyScanInfo key_scan_info = table->key_scan_info();
+  bool is_scaning = table->key_scaning();
   tmp_stream << "is_scaning_keyspace:" << (is_scaning ? ("Yes, " + key_scan_info.s_start_time) + "," : "No");
   if (is_scaning) {
     tmp_stream << current_time_s - key_scan_info.start_time;

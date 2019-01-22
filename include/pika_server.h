@@ -46,6 +46,11 @@ static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveo
 class Table;
 class PikaDispatchThread;
 
+enum TaskType {
+  kCompactAll,
+  kPurgeLog
+};
+
 class PikaServer {
  public:
   PikaServer();
@@ -211,8 +216,6 @@ class PikaServer {
     return binlog_io_error_;
   }
 
-  void DoTimingTask();
-
   PikaSlavepingThread* ping_thread_;
 
   /*
@@ -289,6 +292,7 @@ class PikaServer {
   void ClearPurge() {
     purging_ = false;
   }
+  void PurgelogsTaskSchedule(void (*function)(void*), void* arg);
 
   /*
    * DBSync used
@@ -309,39 +313,11 @@ class PikaServer {
   slash::Mutex & GetSlavesMutex() { return db_sync_protector_; }
 
   //flushall & flushdb
-  bool FlushAll();
-  bool FlushDb(const std::string& db_name);
-  void PurgeDir(std::string& path);
   void PurgeDirTaskSchedule(void (*function)(void*), void* arg);
 
   /*
    *Keyscan used
    */
-  struct KeyScanInfo {
-    time_t start_time;
-    std::string s_start_time;
-    int32_t duration;
-    std::vector<blackwidow::KeyInfo> key_infos; //the order is strings, hashes, lists, zsets, sets
-    bool key_scaning_;
-    KeyScanInfo() :
-        start_time(0),
-        s_start_time("1970-01-01 08:00:00"),
-        duration(-2),
-        key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}),
-        key_scaning_(false) {
-    }
-  };
-  bool key_scaning() {
-    slash::MutexLock lm(&key_scan_protector_);
-    return key_scan_info_.key_scaning_;
-  }
-  KeyScanInfo key_scan_info() {
-    slash::MutexLock lm(&key_scan_protector_);
-    return key_scan_info_;
-  }
-  void KeyScan();
-  void RunKeyScan();
-  void StopKeyScan();
   void KeyScanWholeTable(const std::string& table_name);
   void StopKeyScanWholeTable(const std::string& table_name);
   void KeyScanTaskSchedule(void (*function)(void*), void* arg);
@@ -488,13 +464,18 @@ class PikaServer {
    */
   std::atomic<bool> purging_;
   pink::BGThread purge_thread_;
-
   static void DoPurgeLogs(void* arg);
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
+  bool CouldPurge(uint32_t index);
+
+  /*
+   * TimingTask use
+   */
+  void DoTimingTask();
   void AutoCompactRange();
   void AutoPurge();
   void AutoDeleteExpiredDump();
-  bool CouldPurge(uint32_t index);
+  Status DoSameThingEveryPartition(const TaskType& type);
 
   /*
    * DBSync use
@@ -515,7 +496,6 @@ class PikaServer {
    */
   slash::Mutex key_scan_protector_;
   pink::BGThread key_scan_thread_;
-  KeyScanInfo key_scan_info_;
 
   /*
    * Monitor use
@@ -565,9 +545,6 @@ class PikaServer {
     uint64_t last_time_us;
   };
   StatisticData statistic_data_;
-
-  static void DoKeyScan(void *arg);
-  void InitKeyScan();
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);
