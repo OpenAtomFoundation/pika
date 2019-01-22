@@ -29,7 +29,8 @@ Partition::Partition(const std::string& table_name,
   table_name_(table_name),
   partition_id_(partition_id),
   binlog_io_error_(false),
-  bgsave_engine_(NULL) {
+  bgsave_engine_(NULL),
+  purging_(false) {
 
   db_path_ = PartitionPath(table_db_path, partition_id_);
   log_path_ = PartitionPath(table_log_path, partition_id_);
@@ -71,13 +72,14 @@ std::shared_ptr<Binlog> Partition::logger() const {
   return logger_;
 }
 
-std::shared_ptr<blackwidow::BlackWidow> Partition::db() {
-  slash::RWLock rwl(&db_rwlock_, false);
+std::shared_ptr<blackwidow::BlackWidow> Partition::db() const {
   return db_;
 }
 
 void Partition::DoCommand(Cmd* const cmd) {
-  slash::RWLock rw(&db_rwlock_, false);
+  if (!cmd->is_suspend()) {
+    DbRWLockReader();
+  }
   if (cmd->is_write()) {
     RecordLock(cmd->current_key());
   }
@@ -107,7 +109,7 @@ void Partition::DoCommand(Cmd* const cmd) {
 
     logger_->Unlock();
     if (!s.ok()) {
-      LOG(WARNING) << partition_name() << " Writing binlog failed, maybe no space left on device";
+      LOG(WARNING) << partition_name_ << " Writing binlog failed, maybe no space left on device";
       SetBinlogIoError(true);
       cmd->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
     }
@@ -116,6 +118,13 @@ void Partition::DoCommand(Cmd* const cmd) {
   if (cmd->is_write()) {
     RecordUnLock(cmd->current_key());
   }
+  if (!cmd->is_suspend()) {
+    DbRWUnLock();
+  }
+}
+
+void Partition::Compact(const blackwidow::DataType& type) {
+  db_->Compact(type);
 }
 
 void Partition::BinlogLock() {
@@ -353,6 +362,113 @@ void Partition::DoPurgeDir(void* arg) {
   slash::DeleteDir(path);
   LOG(INFO) << "Delete dir: " << path << " done";
   delete static_cast<std::string*>(arg);
+}
+
+bool Partition::PurgeLogs(uint32_t to, bool manual, bool force) {
+  // Only one thread can go through
+  bool expect = false;
+  if (!purging_.compare_exchange_strong(expect, true)) {
+    LOG(WARNING) << "purge process already exist";
+    return false;
+  }
+  PurgeArg *arg = new PurgeArg();
+  arg->partition = shared_from_this();
+  arg->to = to;
+  arg->manual = manual;
+  arg->force = force;
+  g_pika_server->PurgelogsTaskSchedule(&DoPurgeLogs, static_cast<void*>(arg));
+  return true;
+}
+
+void Partition::ClearPurge() {
+  purging_ = false;
+}
+
+void Partition::DoPurgeLogs(void* arg) {
+  PurgeArg* purge = static_cast<PurgeArg*>(arg);
+  purge->partition->PurgeFiles(purge->to, purge->manual, purge->force);
+  purge->partition->ClearPurge();
+  delete (PurgeArg*)arg;
+}
+
+bool Partition::PurgeFiles(uint32_t to, bool manual, bool force) {
+  std::map<uint32_t, std::string> binlogs;
+  if (!GetBinlogFiles(binlogs)) {
+    LOG(WARNING) << partition_name_ << " Could not get binlog files!";
+    return false;
+  }
+
+  int delete_num = 0;
+  struct stat file_stat;
+  int remain_expire_num = binlogs.size() - g_pika_conf->expire_logs_nums();
+  std::map<uint32_t, std::string>::iterator it;
+  for (it = binlogs.begin(); it != binlogs.end(); ++it) {
+    if ((manual && it->first <= to) ||           // Argument bound
+        remain_expire_num > 0 ||                 // Expire num trigger
+        (binlogs.size() > 10 /* at lease remain 10 files */
+         && stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&
+         file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days()*24*3600)) { // Expire time trigger
+      // We check this every time to avoid lock when we do file deletion
+      if (!CouldPurge(it->first) && !force) {
+        LOG(WARNING) << partition_name_ << " Could not purge "<< (it->first) << ", since it is already be used";
+        return false;
+      }
+
+      // Do delete
+      slash::Status s = slash::DeleteFile(log_path_ + it->second);
+      if (s.ok()) {
+        ++delete_num;
+        --remain_expire_num;
+      } else {
+        LOG(WARNING) << partition_name_ << " Purge log file : " << (it->second) <<  " failed! error:" << s.ToString();
+      }
+    } else {
+      // Break when face the first one not satisfied
+      // Since the binlogs is order by the file index
+      break;
+    }
+  }
+  if (delete_num) {
+    LOG(INFO) << partition_name_ << " Success purge "<< delete_num;
+  }
+  return true;
+}
+
+bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
+  std::vector<std::string> children;
+  int ret = slash::GetChildren(log_path_, children);
+  if (ret != 0) {
+    LOG(WARNING) << partition_name_ << " Get all files in log path failed! error:" << ret;
+    return false;
+  }
+
+  int64_t index = 0;
+  std::string sindex;
+  std::vector<std::string>::iterator it;
+  for (it = children.begin(); it != children.end(); ++it) {
+    if ((*it).compare(0, kBinlogPrefixLen, kBinlogPrefix) != 0) {
+      continue;
+    }
+    sindex = (*it).substr(kBinlogPrefixLen);
+    if (slash::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
+      binlogs.insert(std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it));
+    }
+  }
+  return true;
+}
+
+bool Partition::CouldPurge(uint32_t index) {
+  uint32_t pro_num;
+  uint64_t tmp;
+  logger_->GetProducerStatus(&pro_num, &tmp);
+
+  index += 10; //remain some more
+  if (index > pro_num) {
+    return false;
+  }
+  // After implementing multiple Table synchronization,
+  // additional judgment needs to be made
+  return true;
 }
 
 void Partition::RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const {

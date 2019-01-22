@@ -1168,6 +1168,11 @@ bool PikaServer::CouldPurge(uint32_t index) {
   return true;
 }
 
+void PikaServer::PurgelogsTaskSchedule(void (*function)(void*), void* arg) {
+  purge_thread_.StartThread();
+  purge_thread_.Schedule(function, arg);
+}
+
 bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
 {
   std::map<uint32_t, std::string> binlogs;
@@ -1305,10 +1310,7 @@ void PikaServer::AutoCompactRange() {
 }
 
 void PikaServer::AutoPurge() {
-  if (!PurgeLogs(0, false, false)) {
-    DLOG(WARNING) << "Auto purge failed";
-    return;
-  }
+  DoSameThingEveryPartition(TaskType::kPurgeLog);
 }
 
 void PikaServer::AutoDeleteExpiredDump() {
@@ -1397,9 +1399,10 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
     for (const auto& partition_item : table_item.second->partitions_) {
       switch (type) {
         case TaskType::kCompactAll:
-          partition_item.second->db()->Compact(blackwidow::DataType::kAll);
+          partition_item.second->Compact(blackwidow::DataType::kAll);
           break;
-        case TaskType::kDeleteExpiredDump:
+        case TaskType::kPurgeLog:
+          partition_item.second->PurgeLogs(0, false, false);
           break;
         default:
           break;

@@ -52,7 +52,7 @@ void Table::BgSaveTable() {
 void Table::CompactTable(const blackwidow::DataType& type) {
   slash::RWLock l(&partitions_rw_, false);
   for (const auto& item : partitions_) {
-    item.second->db()->Compact(type);
+    item.second->Compact(type);
   }
 }
 

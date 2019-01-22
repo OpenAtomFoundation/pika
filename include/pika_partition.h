@@ -38,6 +38,13 @@ struct BGSaveInfo {
   }
 };
 
+struct PurgeArg {
+  std::shared_ptr<Partition> partition;
+  uint32_t to;
+  bool manual;
+  bool force; // Ignore the delete window
+};
+
 class Partition : public std::enable_shared_from_this<Partition> {
  public:
   Partition(const std::string& table_name,
@@ -49,9 +56,10 @@ class Partition : public std::enable_shared_from_this<Partition> {
   uint32_t partition_id() const;
   std::string partition_name() const;
   std::shared_ptr<Binlog> logger() const;
-  std::shared_ptr<blackwidow::BlackWidow> db();
+  std::shared_ptr<blackwidow::BlackWidow> db() const;
 
   void DoCommand(Cmd* const cmd);
+  void Compact(const blackwidow::DataType& type);
 
   void BinlogLock();
   void BinlogUnLock();
@@ -71,6 +79,10 @@ class Partition : public std::enable_shared_from_this<Partition> {
   // Flushall & Flushdb use
   bool FlushAll();
   bool FlushDb(const std::string& db_name);
+
+  // Purgelogs use
+  bool PurgeLogs(uint32_t to, bool manual, bool force);
+  void ClearPurge();
 
   void RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const;
 
@@ -108,6 +120,15 @@ class Partition : public std::enable_shared_from_this<Partition> {
    */
   static void DoPurgeDir(void* arg);
   void PurgeDir(std::string& path);
+
+  /*
+   * Purgelogs use
+   */
+  static void DoPurgeLogs(void* arg);
+  bool PurgeFiles(uint32_t to, bool manual, bool force);
+  bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
+  bool CouldPurge(uint32_t index);
+  std::atomic<bool> purging_;
 
   /*
    * No allowed copy and copy assign

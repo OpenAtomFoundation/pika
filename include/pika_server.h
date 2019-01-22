@@ -48,7 +48,7 @@ class PikaDispatchThread;
 
 enum TaskType {
   kCompactAll,
-  kDeleteExpiredDump,
+  kPurgeLog
 };
 
 class PikaServer {
@@ -292,6 +292,7 @@ class PikaServer {
   void ClearPurge() {
     purging_ = false;
   }
+  void PurgelogsTaskSchedule(void (*function)(void*), void* arg);
 
   /*
    * DBSync used
