@@ -14,7 +14,6 @@
 /*
  * hash
  */
-
 class HDelCmd : public Cmd {
  public:
   HDelCmd(const std::string& name, int arity, uint16_t flag)

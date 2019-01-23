@@ -3,14 +3,15 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <glog/logging.h>
 #include "include/pika_dispatch_thread.h"
-#include "include/pika_client_conn.h"
-#include "include/pika_server.h"
-#include "include/pika_conf.h"
 
-extern PikaServer* g_pika_server;
+#include <glog/logging.h>
+
+#include "include/pika_conf.h"
+#include "include/pika_server.h"
+
 extern PikaConf* g_pika_conf;
+extern PikaServer* g_pika_server;
 
 PikaDispatchThread::PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
                                        int cron_interval, int queue_limit)

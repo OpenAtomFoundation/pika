@@ -3,9 +3,6 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <vector>
-#include "slash/include/slash_string.h"
-
 #include "include/pika_hyperloglog.h"
 
 void PfAddCmd::DoInitial() {

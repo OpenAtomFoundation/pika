@@ -3,11 +3,9 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <glog/logging.h>
-#include "pink/include/pink_conn.h"
 #include "include/pika_binlog_receiver_thread.h"
+
 #include "include/pika_server.h"
-#include "include/pika_command.h"
 
 extern PikaServer* g_pika_server;
 

@@ -3,17 +3,19 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_admin.h"
+#include "include/pika_command.h"
+
 #include "include/pika_kv.h"
-#include "include/pika_hash.h"
-#include "include/pika_list.h"
-#include "include/pika_set.h"
-#include "include/pika_zset.h"
 #include "include/pika_bit.h"
-#include "include/pika_hyperloglog.h"
+#include "include/pika_set.h"
 #include "include/pika_geo.h"
+#include "include/pika_list.h"
+#include "include/pika_zset.h"
+#include "include/pika_hash.h"
+#include "include/pika_admin.h"
 #include "include/pika_pubsub.h"
 #include "include/pika_server.h"
+#include "include/pika_hyperloglog.h"
 
 extern PikaServer* g_pika_server;
 

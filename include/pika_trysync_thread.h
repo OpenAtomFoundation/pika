@@ -6,8 +6,8 @@
 #ifndef PIKA_TRYSYNC_THREAD_H_
 #define PIKA_TRYSYNC_THREAD_H_
 
+#include "pink/include/pink_cli.h"
 #include "pink/include/pink_thread.h"
-#include "pink/include/redis_cli.h"
 
 class PikaTrysyncThread : public pink::Thread {
  public:

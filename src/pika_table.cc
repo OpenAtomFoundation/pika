@@ -5,6 +5,8 @@
 
 #include "include/pika_table.h"
 
+#include "include/pika_server.h"
+
 extern PikaServer* g_pika_server;
 
 std::string TablePath(const std::string& path,

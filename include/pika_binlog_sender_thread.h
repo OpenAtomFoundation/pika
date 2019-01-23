@@ -6,12 +6,11 @@
 #ifndef PIKA_BINLOG_SENDER_THREAD_H_
 #define PIKA_BINLOG_SENDER_THREAD_H_
 
-#include "pink/include/pink_thread.h"
 #include "pink/include/pink_cli.h"
+#include "pink/include/pink_thread.h"
+#include "slash/include/env.h"
 #include "slash/include/slash_slice.h"
 #include "slash/include/slash_status.h"
-#include "slash/include/env.h"
-#include "slash/include/slash_mutex.h"
 
 using slash::Status;
 using slash::Slice;

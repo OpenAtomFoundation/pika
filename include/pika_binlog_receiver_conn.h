@@ -7,9 +7,8 @@
 #define PIKA_BINLOG_RECEIVER_CONN_H_
 
 #include "pink/include/pink_conn.h"
-#include "include/pika_command.h"
 #include "pink/include/redis_parser.h"
-#include "include/pika_binlog_transverter.h"
+
 #include "include/pika_binlog_parser.h"
 
 class PikaBinlogReceiverThread;

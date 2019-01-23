@@ -7,7 +7,8 @@
 #define PIKA_BINLOG_PARSER_H_
 
 #include "pink/include/pink_conn.h"
-#include "include/pika_command.h"
+
+#include "include/pika_binlog_transverter.h"
 
 enum BinlogParserStatus {
   kBinlogParserNone = 0,

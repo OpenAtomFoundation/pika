@@ -1,6 +1,9 @@
-#include "include/pika_binlog_parser.h"
+// Copyright (c) 2018-present, Qihoo, Inc.  All rights reserved.
+// This source code is licensed under the BSD-style license found in the
+// LICENSE file in the root directory of this source tree. An additional grant
+// of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_binlog_transverter.h"
+#include "include/pika_binlog_parser.h"
 
 PikaBinlogParser::PikaBinlogParser()
     : processed_item_content_len_(kBinlogParserNone) {
