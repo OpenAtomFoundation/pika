@@ -3,11 +3,12 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <sstream>
+#include "include/pika_geo.h"
+
 #include <algorithm>
 
 #include "slash/include/slash_string.h"
-#include "include/pika_geo.h"
+
 #include "include/pika_geohash_helper.h"
 
 void GeoAddCmd::DoInitial() {

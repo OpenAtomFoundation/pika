@@ -3,9 +3,10 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <glog/logging.h>
-#include "slash/include/slash_string.h"
 #include "include/pika_heartbeat_conn.h"
+
+#include "slash/include/slash_string.h"
+
 #include "include/pika_server.h"
 
 extern PikaServer *g_pika_server;

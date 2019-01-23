@@ -6,20 +6,10 @@
 #ifndef PIKA_BINLOG_H_
 #define PIKA_BINLOG_H_
 
-#include <cstdio>
-#include <list>
-#include <string>
-#include <deque>
-#include <pthread.h>
-
-#ifndef __STDC_FORMAT_MACROS
-# define __STDC_FORMAT_MACROS
-# include <inttypes.h>
-#endif 
-
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_mutex.h"
 #include "slash/include/env.h"
+#include "slash/include/slash_mutex.h"
+#include "slash/include/slash_status.h"
+
 #include "include/pika_define.h"
 
 using slash::Status;
@@ -27,7 +17,35 @@ using slash::Slice;
 
 std::string NewFileName(const std::string name, const uint32_t current);
 
-class Version;
+class Version {
+ public:
+  Version(slash::RWFile *save);
+  ~Version();
+
+  Status Init();
+
+  // RWLock should be held when access members.
+  Status StableSave();
+
+  uint32_t pro_num_;
+  uint64_t pro_offset_;
+  uint64_t logic_id_;
+
+  pthread_rwlock_t rwlock_;
+
+  void debug() {
+    slash::RWLock(&rwlock_, false);
+    printf ("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
+  }
+
+ private:
+
+  slash::RWFile *save_;
+
+  // No copying allowed;
+  Version(const Version&);
+  void operator=(const Version&);
+};
 
 class Binlog {
  public:
@@ -92,36 +110,6 @@ class Binlog {
   // No copying allowed
   Binlog(const Binlog&);
   void operator=(const Binlog&);
-};
-
-class Version {
- public:
-  Version(slash::RWFile *save);
-  ~Version();
-
-  Status Init();
-
-  // RWLock should be held when access members.
-  Status StableSave();
-
-  uint32_t pro_num_;
-  uint64_t pro_offset_;
-  uint64_t logic_id_;
-
-  pthread_rwlock_t rwlock_;
-
-  void debug() {
-    slash::RWLock(&rwlock_, false);
-    printf ("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
-  }
-
- private:
-
-  slash::RWFile *save_;
-
-  // No copying allowed;
-  Version(const Version&);
-  void operator=(const Version&);
 };
 
 #endif

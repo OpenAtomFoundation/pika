@@ -3,10 +3,11 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <limits>
+#include "include/pika_bit.h"
+
 #include "slash/include/slash_string.h"
 
-#include "include/pika_bit.h"
+#include "include/pika_define.h"
 
 void BitSetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

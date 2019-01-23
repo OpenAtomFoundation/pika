@@ -5,6 +5,10 @@
 
 #include "include/pika_binlog_transverter.h"
 
+#include <glog/logging.h>
+
+#include "slash/include/slash_coding.h"
+
 uint32_t BinlogItem::exec_time() const {
   return exec_time_;
 }

@@ -5,16 +5,8 @@
 
 #include "include/pika_binlog.h"
 
-#include <iostream>
-#include <string>
-#include <stdint.h>
-#include <signal.h>
-#include <unistd.h>
 #include <sys/time.h>
-
 #include <glog/logging.h>
-
-#include "slash/include/slash_mutex.h"
 
 using slash::RWLock;
 

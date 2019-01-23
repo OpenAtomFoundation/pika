@@ -2,17 +2,19 @@
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
-#include <sys/time.h>
 
-#include "slash/include/slash_string.h"
-#include "slash/include/rsync.h"
-#include "include/pika_conf.h"
 #include "include/pika_admin.h"
-#include "include/pika_server.h"
-#include "include/build_version.h"
-#include "include/pika_version.h"
 
+#include <sys/time.h>
 #include <sys/utsname.h>
+
+#include "slash/include/rsync.h"
+
+#include "include/pika_conf.h"
+#include "include/pika_server.h"
+#include "include/pika_version.h"
+#include "include/build_version.h"
+
 #ifdef TCMALLOC_EXTENSION
 #include <gperftools/malloc_extension.h>
 #endif

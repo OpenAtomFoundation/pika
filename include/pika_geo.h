@@ -5,32 +5,32 @@
 
 #ifndef PIKA_GEO_H_
 #define PIKA_GEO_H_
+
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
 /*
  * zset
  */
- enum Sort
-{
+enum Sort {
   Unsort,	//default
   Asc,
   Desc
 };
 
- struct GeoPoint {
+struct GeoPoint {
   std::string member;
   double longitude;
   double latitude;
 };
 
- struct NeighborPoint{
-   std::string member;
-   double score;
-   double distance;
- };
+struct NeighborPoint {
+  std::string member;
+  double score;
+  double distance;
+};
 
- struct GeoRange {
+struct GeoRange {
   std::string member;
   double longitude;
   double latitude;
@@ -46,7 +46,7 @@
   bool storedist;
   std::string storekey;
   Sort sort;
- };
+};
 
 class GeoAddCmd : public Cmd {
  public:

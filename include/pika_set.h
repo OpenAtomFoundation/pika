@@ -9,12 +9,9 @@
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
-
-
 /*
  * set
  */
-
 class SAddCmd : public Cmd {
  public:
   SAddCmd(const std::string& name, int arity, uint16_t flag)
