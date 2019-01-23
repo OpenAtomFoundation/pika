@@ -54,11 +54,6 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     g_pika_server->mutex_record_.Lock(argv[1]);
   }
 
-  // Add read lock for no suspend command
-  if (!cinfo_ptr->is_suspend()) {
-    g_pika_server->RWLockReader();
-  }
-
   // Force the binlog write option to serialize
   // Unlock, clean env, and exit when error happend
   bool error_happend = false;
@@ -85,6 +80,11 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
       }
       g_pika_server->SignalNextBinlogBGSerial();
     }
+  }
+
+  // Add read lock for no suspend command
+  if (!cinfo_ptr->is_suspend()) {
+    g_pika_server->RWLockReader();
   }
 
   if (!error_happend) {
