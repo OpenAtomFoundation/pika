@@ -5,17 +5,16 @@
 
 #ifndef  PIKA_MONITOR_THREAD_H_
 #define  PIKA_MONITOR_THREAD_H_
-#include <map>
-#include <set>
-#include <atomic>
+
 #include <list>
 #include <deque>
 #include <queue>
 
 #include "pink/include/pink_thread.h"
 #include "slash/include/slash_mutex.h"
-#include "include/pika_client_conn.h"
+
 #include "include/pika_define.h"
+#include "include/pika_client_conn.h"
 
 class PikaMonitorThread : public pink::Thread {
  public:

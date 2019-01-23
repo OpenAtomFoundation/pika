@@ -3,8 +3,11 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "slash/include/slash_string.h"
 #include "include/pika_kv.h"
+
+#include "slash/include/slash_string.h"
+
+#include "include/pika_binlog_transverter.h"
 
 void SetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

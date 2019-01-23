@@ -5,17 +5,13 @@
 
 #ifndef PIKA_CONF_H_
 #define PIKA_CONF_H_
-#include <pthread.h>
-#include <stdlib.h>
-#include <string>
-#include <vector>
+
+#include <map>
 #include <unordered_set>
 
 #include "slash/include/base_conf.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/slash_string.h"
-#include "slash/include/xdebug.h"
-#include "include/pika_define.h"
 
 typedef slash::RWLock RWLock;
 

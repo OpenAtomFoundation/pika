@@ -6,13 +6,9 @@
 #ifndef PIKA_HEARTBEAT_CONN_H_
 #define PIKA_HEARTBEAT_CONN_H_
 
-#include <glog/logging.h>
+#include "pink/include/redis_conn.h"
 
 #include "include/pika_command.h"
-#include "pink/include/redis_conn.h"
-#include "pink/include/pink_thread.h"
-
-class PikaHeartbeatThread;
 
 class PikaHeartbeatConn: public pink::RedisConn {
  public:

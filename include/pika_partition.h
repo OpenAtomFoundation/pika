@@ -6,21 +6,12 @@
 #ifndef PIKA_PARTITION_H_
 #define PIKA_PARTITION_H_
 
-#include <string>
-#include <memory>
-#include <fstream>
-
-#include "iostream"
-
 #include "blackwidow/blackwidow.h"
 #include "blackwidow/backupable.h"
 
-#include "include/pika_conf.h"
-#include "include/pika_server.h"
 #include "include/pika_binlog.h"
 
 class Cmd;
-class Binlog;
 
 struct BGSaveInfo {
   bool bgsaving;
@@ -36,13 +27,6 @@ struct BGSaveInfo {
     filenum = 0;
     offset = 0;
   }
-};
-
-struct PurgeArg {
-  std::shared_ptr<Partition> partition;
-  uint32_t to;
-  bool manual;
-  bool force; // Ignore the delete window
 };
 
 class Partition : public std::enable_shared_from_this<Partition> {
@@ -137,5 +121,13 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void operator=(const Partition&);
 
 };
+
+struct PurgeArg {
+  std::shared_ptr<Partition> partition;
+  uint32_t to;
+  bool manual;
+  bool force; // Ignore the delete window
+};
+
 
 #endif

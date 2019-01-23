@@ -5,7 +5,12 @@
 
 #include "include/pika_partition.h"
 
-extern PikaConf *g_pika_conf;
+#include <fstream>
+
+#include "include/pika_conf.h"
+#include "include/pika_server.h"
+
+extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
 
 std::string PartitionPath(const std::string& table_path,

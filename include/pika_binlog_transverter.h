@@ -6,12 +6,9 @@
 #ifndef PIKA_BINLOG_TRANSVERTER_H_
 #define PIKA_BINLOG_TRANSVERTER_H_
 
-#include <iostream>
 #include <vector>
-#include <glog/logging.h>
-
-#include "slash/include/slash_coding.h"
-
+#include <stdint.h>
+#include <iostream>
 
 /*
  * **************Header**************

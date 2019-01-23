@@ -4,10 +4,12 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_binlog_bgworker.h"
-#include "include/pika_server.h"
-#include "include/pika_conf.h"
+
 #include "slash/include/slash_string.h"
 #include "slash/include/slash_coding.h"
+
+#include "include/pika_server.h"
+#include "include/pika_conf.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;

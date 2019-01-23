@@ -5,6 +5,13 @@
 
 #include "include/pika_cmd_table_manager.h"
 
+#include <unistd.h>
+#include <sys/syscall.h>
+
+#include "slash/include/slash_mutex.h"
+
+#define gettid() syscall(__NR_gettid)
+
 PikaCmdTableManager::PikaCmdTableManager() {
   pthread_rwlock_init(&map_protector_, NULL);
 }

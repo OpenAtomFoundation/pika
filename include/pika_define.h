@@ -6,7 +6,7 @@
 #ifndef PIKA_DEFINE_H_
 #define PIKA_DEFINE_H_
 
-#include "include/pika_command.h"
+#include "pink/include/redis_cli.h"
 
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 
