@@ -32,7 +32,7 @@ class PikaDispatchThread {
     virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
         int connfd,
         const std::string &ip_port,
-        pink::ServerThread* server_thread,
+        pink::Thread* server_thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const {
       return std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, pink_epoll, pink::HandleType::kAsynchronous);
