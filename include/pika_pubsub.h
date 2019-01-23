@@ -5,6 +5,7 @@
 
 #ifndef PIKA_PUBSUB_H_
 #define PIKA_PUBSUB_H_
+
 #include "pika_command.h"
 
 /*

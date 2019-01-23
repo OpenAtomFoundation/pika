@@ -6,31 +6,28 @@
 #ifndef PIKA_SERVER_H_
 #define PIKA_SERVER_H_
 
-#include <vector>
-#include <functional>
-#include <map>
-#include <unordered_set>
 #include <sys/statfs.h>
-#include <time.h>
+#include <memory>
 
-#include "include/pika_binlog.h"
-#include "include/pika_binlog_receiver_thread.h"
-#include "include/pika_binlog_sender_thread.h"
-#include "include/pika_heartbeat_thread.h"
-#include "include/pika_slaveping_thread.h"
-#include "include/pika_trysync_thread.h"
-#include "include/pika_monitor_thread.h"
-#include "include/pika_define.h"
-#include "include/pika_binlog_bgworker.h"
-#include "include/pika_table.h"
-
-#include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
+#include "slash/include/slash_status.h"
 #include "pink/include/bg_thread.h"
-#include "pink/include/pink_pubsub.h"
 #include "pink/include/thread_pool.h"
+#include "pink/include/pink_pubsub.h"
 #include "blackwidow/blackwidow.h"
 #include "blackwidow/backupable.h"
+
+#include "include/pika_conf.h"
+#include "include/pika_table.h"
+#include "include/pika_binlog.h"
+#include "include/pika_define.h"
+#include "include/pika_trysync_thread.h"
+#include "include/pika_monitor_thread.h"
+#include "include/pika_binlog_bgworker.h"
+#include "include/pika_heartbeat_thread.h"
+#include "include/pika_slaveping_thread.h"
+#include "include/pika_binlog_sender_thread.h"
+#include "include/pika_binlog_receiver_thread.h"
 
 using slash::Status;
 using slash::Slice;
@@ -45,6 +42,8 @@ static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveo
 
 class Table;
 class PikaDispatchThread;
+
+extern PikaConf *g_pika_conf;
 
 enum TaskType {
   kCompactAll,

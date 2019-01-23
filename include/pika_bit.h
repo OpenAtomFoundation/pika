@@ -11,7 +11,6 @@
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
-
 /*
  * bitoperation
  */

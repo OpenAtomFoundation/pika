@@ -5,13 +5,10 @@
 
 #include "include/pika_binlog_sender_thread.h"
 
-#include <glog/logging.h>
-#include <poll.h>
+#include "pink/include/redis_cli.h"
+#include "slash/include/slash_coding.h"
 
 #include "include/pika_server.h"
-#include "include/pika_define.h"
-#include "include/pika_binlog_sender_thread.h"
-#include "pink/include/redis_cli.h"
 
 extern PikaServer* g_pika_server;
 

@@ -3,23 +3,24 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "include/pika_trysync_thread.h"
+
 #include <fstream>
-#include <glog/logging.h>
-#include <poll.h>
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 
+#include "pink/include/redis_cli.h"
 #include "slash/include/env.h"
 #include "slash/include/rsync.h"
 #include "slash/include/slash_status.h"
-#include "include/pika_slaveping_thread.h"
-#include "include/pika_trysync_thread.h"
-#include "include/pika_server.h"
-#include "include/pika_conf.h"
 
-extern PikaServer* g_pika_server;
+#include "include/pika_conf.h"
+#include "include/pika_server.h"
+#include "include/pika_slaveping_thread.h"
+
 extern PikaConf* g_pika_conf;
+extern PikaServer* g_pika_server;
 
 PikaTrysyncThread::~PikaTrysyncThread() {
   StopThread();

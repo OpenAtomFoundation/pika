@@ -6,10 +6,11 @@
 #ifndef PIKA_SLAVEPING_THREAD_H_
 #define PIKA_SLAVEPING_THREAD_H_
 
-#include "slash/include/slash_mutex.h"
+#include <glog/logging.h>
+
 #include "slash/include/slash_status.h"
-#include "pink/include/pink_thread.h"
 #include "pink/include/pink_cli.h"
+#include "pink/include/pink_thread.h"
 
 using slash::Status;
 

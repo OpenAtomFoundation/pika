@@ -5,14 +5,8 @@
 
 #ifndef PIKA_CMD_TABLE_MANAGER_H_
 #define PIKA_CMD_TABLE_MANAGER_H_
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/syscall.h>
 
-#include "slash/include/slash_mutex.h"
 #include "include/pika_command.h"
-
-#define gettid() syscall(__NR_gettid)
 
 class PikaCmdTableManager {
  public:

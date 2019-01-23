@@ -3,13 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "sys/stat.h"
 #include "include/pika_conf.h"
-#include "glog/logging.h"
 
-#include <fstream>
-
-#include <iostream>
 #include <algorithm>
 
 PikaConf::PikaConf(const std::string& path):
