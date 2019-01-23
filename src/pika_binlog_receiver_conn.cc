@@ -2,9 +2,8 @@
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
-#include "include/pika_binlog_receiver_conn.h"
 
-#include <glog/logging.h>
+#include "include/pika_binlog_receiver_conn.h"
 
 #include "include/pika_server.h"
 

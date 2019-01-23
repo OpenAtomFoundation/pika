@@ -6,13 +6,7 @@
 #ifndef PIKA_CLIENT_CONN_H_
 #define PIKA_CLIENT_CONN_H_
 
-#include <glog/logging.h>
-#include <atomic>
-
-#include "pink/include/pink_thread.h"
 #include "include/pika_command.h"
-
-class PikaWorkerSpecificData;
 
 class PikaClientConn: public pink::RedisConn {
  public:

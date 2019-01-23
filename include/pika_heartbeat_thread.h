@@ -7,9 +7,7 @@
 #define PIKA_HEARTBEAT_THREAD_H_
 
 #include <set>
-#include <string>
 
-#include "pink/include/server_thread.h"
 #include "pika_heartbeat_conn.h"
 
 class PikaHeartbeatThread {

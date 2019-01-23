@@ -3,30 +3,22 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "include/pika_server.h"
+
 #include <fstream>
-#include <glog/logging.h>
-#include <assert.h>
-#include <sys/types.h>
 #include <ifaddrs.h>
 #include <netinet/in.h>
-#include <string.h>
 #include <arpa/inet.h>
-#include <sstream>
-#include <iostream>
 #include <iterator>
 #include <ctime>
-#include <algorithm>
 #include <sys/resource.h>
 
 #include "slash/include/env.h"
 #include "slash/include/rsync.h"
 #include "slash/include/slash_string.h"
 #include "pink/include/bg_thread.h"
-#include "include/pika_server.h"
-#include "include/pika_conf.h"
-#include "include/pika_dispatch_thread.h"
 
-extern PikaConf *g_pika_conf;
+#include "include/pika_dispatch_thread.h"
 
 PikaServer::PikaServer() :
   ping_thread_(NULL),

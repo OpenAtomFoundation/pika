@@ -6,18 +6,10 @@
 #ifndef PIKA_BINLOG_RECEIVER_THREAD_H_
 #define PIKA_BINLOG_RECEIVER_THREAD_H_
 
-#include <queue>
-#include <set>
+#include <glog/logging.h>
 
-#include "pink/include/server_thread.h"
-#include "slash/include/slash_mutex.h"
-#include "slash/include/env.h"
-#include "include/pika_define.h"
-#include "include/pika_binlog_receiver_conn.h"
 #include "include/pika_command.h"
-#include "include/pika_conf.h"
-
-extern PikaConf* g_pika_conf;
+#include "include/pika_binlog_receiver_conn.h"
 
 class PikaBinlogReceiverThread {
  public:

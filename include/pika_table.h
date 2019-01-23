@@ -6,16 +6,10 @@
 #ifndef PIKA_TABLE_H_
 #define PIKA_TABLE_H_
 
-#include <string>
-#include <memory>
-#include <unordered_map>
 #include <unordered_set>
-
-#include "iostream"
 
 #include "blackwidow/blackwidow.h"
 
-#include "include/pika_server.h"
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 

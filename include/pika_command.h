@@ -6,17 +6,12 @@
 #ifndef PIKA_COMMAND_H_
 #define PIKA_COMMAND_H_
 
-#include <deque>
-#include <string>
-#include <memory>
 #include <unordered_map>
 
-#include "slash/include/slash_string.h"
 #include "pink/include/redis_conn.h"
+#include "slash/include/slash_string.h"
 
-#include "include/pika_binlog_transverter.h"
-
-class Partition;
+#include "include/pika_partition.h"
 
 //Constant for command name
 //Admin
