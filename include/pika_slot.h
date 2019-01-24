@@ -45,7 +45,7 @@ private:
     std::string key_;
     char key_type_;
 
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
     int SlotKeyPop();
 };
 
@@ -61,7 +61,7 @@ private:
     int64_t slot_num_;
     char key_type_;
 
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
     int KeyTypeCheck();
     int SlotKeyRemCheck();
 };
@@ -71,7 +71,7 @@ public:
     SlotsInfoCmd() {}
     virtual void Do();
 private:
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsHashKeyCmd : public Cmd {
@@ -80,7 +80,7 @@ public:
     virtual void Do();
 private:
     std::vector<std::string> keys_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsReloadCmd : public Cmd {
@@ -88,7 +88,7 @@ public:
     SlotsReloadCmd() {}
     virtual void Do();
 private:
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsReloadOffCmd : public Cmd {
@@ -96,7 +96,7 @@ public:
     SlotsReloadOffCmd() {}
     virtual void Do();
 private:
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsDelCmd : public Cmd {
@@ -105,7 +105,7 @@ public:
     virtual void Do();
 private:
     std::vector<std::string> slots_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsScanCmd : public Cmd {
@@ -115,7 +115,7 @@ public:
 private:
   std::string key_, pattern_;
   int64_t cursor_, count_;
-  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+  virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
   virtual void Clear() {
     pattern_ = "*";
     count_ = 10;
@@ -128,7 +128,7 @@ public:
     virtual void Do();
     std::vector<int> cleanup_slots_;
 private:
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsCleanupOffCmd : public Cmd {
@@ -136,7 +136,7 @@ public:
     SlotsCleanupOffCmd() {}
     virtual void Do();
 private:
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsMgrtTagSlotAsyncCmd : public Cmd {
@@ -152,7 +152,7 @@ private:
     int64_t slot_num_;
     int64_t keys_num_;
 
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsMgrtExecWrapperCmd : public Cmd {
@@ -161,7 +161,7 @@ public:
     virtual void Do();
 private:
     std::string key_;
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsMgrtAsyncStatusCmd : public Cmd {
@@ -169,7 +169,7 @@ public:
     SlotsMgrtAsyncStatusCmd() {}
     virtual void Do();
 private:
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsMgrtAsyncCancelCmd : public Cmd {
@@ -177,7 +177,7 @@ public:
     SlotsMgrtAsyncCancelCmd() {}
     virtual void Do();
 private:
-    virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
+    virtual void DoInitial(const PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
 class SlotsMgrtSenderThread: public pink::Thread {

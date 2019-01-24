@@ -594,13 +594,14 @@ static void SlotKeyLenCheck(const std::string slotKey, CmdRes& res){
     return;
 }
 
-void SlotsMgrtTagSlotCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsMgrtTagSlotCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtTagSlot);
         return;
     }
-    PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
-    dest_ip_ = slash::StringToLower(*it++);
+    PikaCmdArgsType::const_iterator it = argv.begin() + 1; //Remember the first args is the opt name
+    dest_ip_ = *it++;
+    slash::StringToLower(dest_ip_);
 
     std::string str_dest_port = *it++;
     if (!slash::string2l(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
@@ -684,13 +685,14 @@ void SlotsMgrtTagSlotCmd::Do() {
     return;
 }
 
-void SlotsMgrtTagOneCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsMgrtTagOneCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtTagOne);
         return;
     }
-    PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
-    dest_ip_ = slash::StringToLower(*it++);
+    PikaCmdArgsType::const_iterator it = argv.begin() + 1; //Remember the first args is the opt name
+    dest_ip_ = *it++;
+    slash::StringToLower(dest_ip_);
 
     std::string str_dest_port = *it++;
     if (!slash::string2l(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
@@ -709,7 +711,8 @@ void SlotsMgrtTagOneCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const p
         return;
     }
 
-    key_ = slash::StringToLower(*it++);
+    key_ = *it++;
+    slash::StringToLower(key_);
 
     slot_num_ = SlotNum(key_);
 }
@@ -806,7 +809,7 @@ void SlotsMgrtTagOneCmd::Do() {
     return;
 }
 
-void SlotsInfoCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsInfoCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsInfo);
     }
@@ -837,11 +840,11 @@ void SlotsInfoCmd::Do() {
     return;
 }
 
-void SlotsHashKeyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsHashKeyCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsHashKey);
     }
-    std::vector<std::string>::iterator iter = argv.begin();
+    std::vector<std::string>::const_iterator iter = argv.begin();
     keys_.assign(++iter, argv.end());
     return;
 }
@@ -855,7 +858,7 @@ void SlotsHashKeyCmd::Do() {
     return;
 }
 
-void SlotsReloadCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsReloadCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsReload);
     }
@@ -872,7 +875,7 @@ void SlotsReloadCmd::Do() {
     return;
 }
 
-void SlotsReloadOffCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsReloadOffCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsReloadOff);
     }
@@ -885,12 +888,12 @@ void SlotsReloadOffCmd::Do() {
     return;
 }
 
-void SlotsCleanupCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsCleanupCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsCleanup);
     }
 
-    PikaCmdArgsType::iterator iter = argv.begin() + 1; //Remember the first args is the opt name
+    PikaCmdArgsType::const_iterator iter = argv.begin() + 1; //Remember the first args is the opt name
     std::string slot;
     long slotLong;
     std::vector<int> slots;
@@ -917,7 +920,7 @@ void SlotsCleanupCmd::Do() {
     return;
 }
 
-void SlotsCleanupOffCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsCleanupOffCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsCleanupOff);
     }
@@ -930,11 +933,11 @@ void SlotsCleanupOffCmd::Do() {
     return;
 }
 
-void SlotsDelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsDelCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsDel);
     }
-    std::vector<std::string>::iterator iter = argv.begin();
+    std::vector<std::string>::const_iterator iter = argv.begin();
     slots_.assign(++iter, argv.end());
     return;
 }
@@ -955,7 +958,7 @@ void SlotsDelCmd::Do() {
     return;
 }
 
-void SlotsScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsScanCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsScan);
         return;
@@ -967,14 +970,14 @@ void SlotsScanCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
     }
     size_t argc = argv.size(), index = 3;
     while (index < argc) {
-        std::string opt = slash::StringToLower(argv[index]); 
-        if (opt == "match" || opt == "count") {
+        std::string opt = argv[index];
+        if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
             index++;
             if (index >= argc) {
                 res_.SetRes(CmdRes::kSyntaxErr);
                 return;
             }
-            if (opt == "match") {
+            if (!strcasecmp(opt.data(), "match")) {
                 pattern_ = argv[index];
             } else if (!slash::string2l(argv[index].data(), argv[index].size(), &count_)) {
                 res_.SetRes(CmdRes::kInvalidInt);
@@ -1016,12 +1019,13 @@ void SlotsScanCmd::Do() {
     return;
 }
 
-void SlotsMgrtTagSlotAsyncCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsMgrtTagSlotAsyncCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtTagSlotAsync);
     }
-    PikaCmdArgsType::iterator it = argv.begin() + 1; //Remember the first args is the opt name
-    dest_ip_ = slash::StringToLower(*it++);
+    PikaCmdArgsType::const_iterator it = argv.begin() + 1; //Remember the first args is the opt name
+    dest_ip_ = *it++;
+    slash::StringToLower(dest_ip_);
 
     std::string str_dest_port = *it++;
     if (!slash::string2l(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
@@ -1088,12 +1092,13 @@ void SlotsMgrtTagSlotAsyncCmd::Do() {
     return;
 }
 
-void SlotsMgrtExecWrapperCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsMgrtExecWrapperCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtExecWrapper);
     }
-    PikaCmdArgsType::iterator it = argv.begin() + 1;
-    key_ = slash::StringToLower(*it++);
+    PikaCmdArgsType::const_iterator it = argv.begin() + 1;
+    key_ = *it++;
+    slash::StringToLower(key_);
     return;
 }
 
@@ -1117,7 +1122,7 @@ void SlotsMgrtExecWrapperCmd::Do() {
     return;
 }
 
-void SlotsMgrtAsyncStatusCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsMgrtAsyncStatusCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncStatus);
     }
@@ -1151,7 +1156,7 @@ void SlotsMgrtAsyncStatusCmd::Do() {
     return;
 }
 
-void SlotsMgrtAsyncCancelCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+void SlotsMgrtAsyncCancelCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
     if (!ptr_info->CheckArg(argv.size())) {
         res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncCancel);
     }
