@@ -437,7 +437,7 @@ void ClientCmd::Do() {
       reply.append(buf);
       iter++;
     }
-    res_.AppendContent(reply);
+    res_.AppendString(reply);
   } else if (!strcasecmp(operation_.data(), "kill") && !strcasecmp(ip_port_.data(), "all")) {
     g_pika_server->ClientKillAll();
     res_.SetRes(CmdRes::kOk);
