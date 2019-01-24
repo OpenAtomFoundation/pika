@@ -6,6 +6,7 @@
 #include "include/pika_binlog_receiver_thread.h"
 
 #include "include/pika_server.h"
+#include "include/pika_repl_server_thread.h"
 
 extern PikaServer* g_pika_server;
 
@@ -16,7 +17,7 @@ PikaBinlogReceiverThread::PikaBinlogReceiverThread(const std::set<std::string> &
         serial_(0) {
   cmds_.reserve(300);
   InitCmdTable(&cmds_);
-  thread_rep_ = pink::NewHolyThread(ips, port, &conn_factory_,
+  thread_rep_ = new PikaReplServerThread(ips, port, &conn_factory_,
                                     cron_interval, &handles_);
   thread_rep_->set_thread_name("BinlogReceiver");
 }
