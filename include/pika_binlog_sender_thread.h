@@ -11,10 +11,12 @@
 #include "slash/include/env.h"
 #include "slash/include/slash_slice.h"
 #include "slash/include/slash_status.h"
+#include "include/pika_repl_client.h"
 
 using slash::Status;
 using slash::Slice;
 
+class PikaReplClient;
 class PikaBinlogSenderThread : public pink::Thread {
  public:
 
@@ -34,6 +36,8 @@ class PikaBinlogSenderThread : public pink::Thread {
 
   int trim();
 
+  PikaReplClient* rm_client;
+
  private:
   uint64_t get_next(bool &is_error);
   Status Parse(std::string &scratch);
@@ -51,9 +55,6 @@ class PikaBinlogSenderThread : public pink::Thread {
   std::string ip_;
   int port_;
   int64_t sid_;
-
-  int timeout_ms_;
-  pink::PinkCli *cli_;
 
   virtual void* ThreadMain();
 };
