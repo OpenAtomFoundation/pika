@@ -29,9 +29,9 @@ class PikaBinlogReceiverThread {
   }
 
  private:
-  class MasterConnFactory : public pink::ConnFactory {
+  class BinlogReceiverConnFactory : public pink::ConnFactory {
    public:
-    explicit MasterConnFactory(PikaBinlogReceiverThread* binlog_receiver)
+    explicit BinlogReceiverConnFactory(PikaBinlogReceiverThread* binlog_receiver)
         : binlog_receiver_(binlog_receiver) {
     }
 
@@ -62,7 +62,7 @@ class PikaBinlogReceiverThread {
     PikaBinlogReceiverThread* binlog_receiver_;
   };
 
-  MasterConnFactory conn_factory_;
+  BinlogReceiverConnFactory conn_factory_;
   Handles handles_;
   pink::ServerThread* thread_rep_;
 
