@@ -24,16 +24,17 @@ PikaBinlogSenderThread::PikaBinlogSenderThread(const std::string &ip, int port,
       buffer_(),
       ip_(ip),
       port_(port),
-      sid_(sid),
-      timeout_ms_(35000) {
-  cli_ = pink::NewRedisCli();
+      sid_(sid) {
   last_record_offset_ = con_offset % kBlockSize;
   set_thread_name("BinlogSender");
+
+  rm_client = new PikaReplClient(10, 180);
+  rm_client->Start();
 }
 
 PikaBinlogSenderThread::~PikaBinlogSenderThread() {
   StopThread();
-  delete cli_;
+  delete rm_client;
   delete[] backing_store_;
   delete queue_;
   LOG(INFO) << "a BinlogSender thread " << thread_id() << " exit!";
@@ -236,74 +237,52 @@ Status PikaBinlogSenderThread::Parse(std::string &scratch) {
 // When we encount
 void* PikaBinlogSenderThread::ThreadMain() {
   Status s, result;
-  bool last_send_flag = true;
   std::string header, scratch, transfer;
   scratch.reserve(1024 * 1024);
 
   while (!should_stop()) {
     sleep(2);
-    // 1. Connect to slave
-    result = cli_->Connect(ip_, port_, "");
     LOG(INFO) << "BinlogSender Connect slave(" << ip_ << ":" << port_ << ") " << result.ToString();
 
     // 2. Auth
-    if (result.ok()) {
-      cli_->set_send_timeout(timeout_ms_);
-      // Auth sid
-      std::string auth_cmd;
-      pink::RedisCmdArgsType argv;
-      argv.push_back("auth");
-      argv.push_back(std::to_string(sid_));
-      pink::SerializeRedisCommand(argv, &auth_cmd);
-      header.clear();
-      slash::PutFixed16(&header, TransferOperate::kTypeAuth);
-      slash::PutFixed32(&header, auth_cmd.size());
-      transfer = header + auth_cmd;
-      result = cli_->Send(&transfer);
-      if (!result.ok()) {
-        LOG(WARNING) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") failed,  " << result.ToString();
+    // Auth sid
+    std::string auth_cmd;
+    pink::RedisCmdArgsType argv;
+    argv.push_back("auth");
+    argv.push_back(std::to_string(sid_));
+    pink::SerializeRedisCommand(argv, &auth_cmd);
+    header.clear();
+    slash::PutFixed16(&header, TransferOperate::kTypeAuth);
+    slash::PutFixed32(&header, auth_cmd.size());
+    transfer = header + auth_cmd;
+    rm_client->Write(ip_, port_, transfer);
+    while (true) {
+      // 3. Parse msg from binlog
+      s = Parse(scratch);
+
+      if (s.IsCorruption()) {     // should exit
+        LOG(WARNING) << "BinlogSender Parse failed, will exit, error: " << s.ToString();
+        break;
+      } else if (s.IsIOError()) {
+        LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
         break;
       }
-      while (true) {
-        // 3. Should Parse new msg;
-        if (last_send_flag) {
-          s = Parse(scratch);
-          //DLOG(INFO) << "BinlogSender Parse, return " << s.ToString();
 
-          if (s.IsCorruption()) {     // should exit
-            LOG(WARNING) << "BinlogSender Parse failed, will exit, error: " << s.ToString();
-            //close(sockfd_);
-            break;
-          } else if (s.IsIOError()) {
-            LOG(WARNING) << "BinlogSender Parse error, " << s.ToString();
-            continue;
-          }
-        }
+      // Parse binlog
+      BinlogItem binlog_item;
+      PikaBinlogTransverter::BinlogDecode(BinlogType::TypeFirst,
+                                          scratch,
+                                          &binlog_item);
 
-        // Parse binlog
-        BinlogItem binlog_item;
-        PikaBinlogTransverter::BinlogDecode(BinlogType::TypeFirst,
-                                            scratch,
-                                            &binlog_item);
-
-        // 4. After successful parse, we send msg;
-        header.clear();
-        slash::PutFixed16(&header, TransferOperate::kTypeBinlog);
-        slash::PutFixed32(&header, scratch.size());
-        transfer = header + scratch;
-        result = cli_->Send(&transfer);
-        if (result.ok()) {
-          last_send_flag = true;
-        } else {
-          last_send_flag = false;
-          LOG(WARNING) << "BinlogSender send slave(" << ip_ << ":" << port_ << ") failed,  " << result.ToString();
-          break;
-        }
-      }
+      // 4. After successful parse, we send msg;
+      header.clear();
+      slash::PutFixed16(&header, TransferOperate::kTypeBinlog);
+      slash::PutFixed32(&header, scratch.size());
+      transfer = header + scratch;
+      rm_client->Write(ip_, port_, transfer);
     }
 
     // error
-    cli_->Close();
     sleep(1);
   }
   return NULL;
