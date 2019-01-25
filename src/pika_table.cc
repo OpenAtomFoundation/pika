@@ -44,6 +44,10 @@ Table::~Table() {
   partitions_.clear();
 }
 
+std::string Table::table_name() {
+  return table_name_;
+}
+
 void Table::BgSaveTable() {
   slash::RWLock l(&partitions_rw_, false);
   for (const auto& item : partitions_) {

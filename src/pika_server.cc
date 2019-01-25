@@ -1401,26 +1401,6 @@ void PikaServer::AutoDeleteExpiredDump() {
   }
 }
 
-Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
-  slash::RWLock rwl(&tables_rw_, false);
-  for (const auto& table_item : tables_) {
-    for (const auto& partition_item : table_item.second->partitions_) {
-      switch (type) {
-        case TaskType::kCompactAll:
-          partition_item.second->Compact(blackwidow::DataType::kAll);
-          break;
-        case TaskType::kPurgeLog:
-          partition_item.second->PurgeLogs(0, false, false);
-          break;
-        default:
-          break;
-      }
-    }
-  }
-  return Status::OK();
-}
-
-
 void PikaServer::PurgeDirTaskSchedule(void (*function)(void*), void* arg) {
   purge_thread_.StartThread();
   purge_thread_.Schedule(function, arg);
@@ -1564,6 +1544,42 @@ void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int
   pthread_rwlock_unlock(&slowlog_protector_);
 
   SlowlogTrim();
+}
+
+Status PikaServer::DoSameThingEveryTable(const TaskType& type) {
+  slash::RWLock rwl(&tables_rw_, false);
+  for (const auto& table_item : tables_) {
+    switch (type) {
+      case TaskType::kStartKeyScan:
+        table_item.second->KeyScan();
+        break;
+      case TaskType::kStopKeyScan:
+        table_item.second->StopKeyScan();
+        break;
+      default:
+        break;
+    }
+  }
+  return Status::OK();
+}
+
+Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
+  slash::RWLock rwl(&tables_rw_, false);
+  for (const auto& table_item : tables_) {
+    for (const auto& partition_item : table_item.second->partitions_) {
+      switch (type) {
+        case TaskType::kCompactAll:
+          partition_item.second->Compact(blackwidow::DataType::kAll);
+          break;
+        case TaskType::kPurgeLog:
+          partition_item.second->PurgeLogs(0, false, false);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+  return Status::OK();
 }
 
 void PikaServer::KeyScanWholeTable(const std::string& table_name) {

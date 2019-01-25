@@ -708,38 +708,36 @@ void InfoCmd::InfoReplication(std::string &info) {
 
 void InfoCmd::InfoKeyspace(std::string &info) {
   if (off_) {
-    g_pika_server->StopKeyScanWholeTable(table_name_);
+    g_pika_server->DoSameThingEveryTable(TaskType::kStopKeyScan);
     off_ = false;
     return;
   }
 
-  int32_t duration = 0; 
+  std::string table_name;
   KeyScanInfo key_scan_info;
   std::vector<blackwidow::KeyInfo> key_infos;
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (table) {
-    key_scan_info = table->key_scan_info();
-    key_infos = key_scan_info.key_infos;
-  }
-  if (key_infos.size() != 5) {
-    info.append("info keyspace error\r\n");
-    return;
-  }
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
-  tmp_stream << "# Time: " << key_scan_info.s_start_time << "\r\n";
-  if (duration != -2) {
-    tmp_stream << "# Duration: " << (duration == -1 ? "In Processing" : std::to_string(duration) + "s" )<< "\r\n";
+  slash::RWLock rwl(&g_pika_server->tables_rw_, false);
+  for (const auto& table_item : g_pika_server->tables_) {
+    table_name = table_item.second->table_name();
+    key_scan_info = table_item.second->key_scan_info();
+    key_infos = key_scan_info.key_infos;
+    if (key_infos.size() != 5) {
+      info.append("info keyspace error\r\n");
+      return;
+    }
+    tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
+    tmp_stream << table_name << "_Strings: keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invaild_keys=" << key_infos[0].invaild_keys << "\r\n";
+    tmp_stream << table_name << "_Hashes: keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invaild_keys=" << key_infos[1].invaild_keys << "\r\n";
+    tmp_stream << table_name << "_Lists: keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invaild_keys=" << key_infos[2].invaild_keys << "\r\n";
+    tmp_stream << table_name << "_Zsets: keys=" << key_infos[3].keys << ", expires=" << key_infos[3].expires << ", invaild_keys=" << key_infos[3].invaild_keys << "\r\n";
+    tmp_stream << table_name << "_Sets: keys=" << key_infos[4].keys << ", expires=" << key_infos[4].expires << ", invaild_keys=" << key_infos[4].invaild_keys << "\r\n\r\n";
   }
-  tmp_stream << "Strings: keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invaild_keys=" << key_infos[0].invaild_keys << "\r\n";
-  tmp_stream << "Hashes: keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invaild_keys=" << key_infos[1].invaild_keys << "\r\n";
-  tmp_stream << "Lists: keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invaild_keys=" << key_infos[2].invaild_keys << "\r\n";
-  tmp_stream << "Zsets: keys=" << key_infos[3].keys << ", expires=" << key_infos[3].expires << ", invaild_keys=" << key_infos[3].invaild_keys << "\r\n";
-  tmp_stream << "Sets: keys=" << key_infos[4].keys << ", expires=" << key_infos[4].expires << ", invaild_keys=" << key_infos[4].invaild_keys << "\r\n";
   info.append(tmp_stream.str());
 
   if (rescan_) {
-    g_pika_server->KeyScanWholeTable(table_name_);
+    g_pika_server->DoSameThingEveryTable(TaskType::kStartKeyScan);
   }
   return;
 }
@@ -747,19 +745,22 @@ void InfoCmd::InfoKeyspace(std::string &info) {
 void InfoCmd::InfoLog(std::string &info) {
   std::stringstream  tmp_stream;
   tmp_stream << "# Log" << "\r\n";
-  uint32_t purge_max;
   int64_t log_size = slash::Du(g_pika_conf->log_path());
   tmp_stream << "log_size:" << log_size << "\r\n";
   tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
-  tmp_stream << "safety_purge:" << (g_pika_server->GetPurgeWindow(purge_max) ?
-      kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none") << "\r\n";
   tmp_stream << "expire_logs_days:" << g_pika_conf->expire_logs_days() << "\r\n";
   tmp_stream << "expire_logs_nums:" << g_pika_conf->expire_logs_nums() << "\r\n";
+
   uint32_t filenum;
   uint64_t offset;
-  g_pika_server->logger_->GetProducerStatus(&filenum, &offset);
-  tmp_stream << "binlog_offset:" << filenum << " " << offset << "\r\n";
-
+  slash::RWLock table_rwl(&g_pika_server->tables_rw_, false);
+  for (const auto& table_item : g_pika_server->tables_) {
+    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    for (const auto& patition_item : table_item.second->partitions_) {
+      patition_item.second->logger()->GetProducerStatus(&filenum, &offset);
+      tmp_stream << patition_item.second->partition_name() << ":binlog_offset=" << filenum << " " << offset << "\r\n";
+    }
+  }
   info.append(tmp_stream.str());
   return;
 }
@@ -774,9 +775,19 @@ void InfoCmd::InfoData(std::string &info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
-  uint64_t memtable_usage = 0, table_reader_usage = 0;
-  g_pika_server->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
-  g_pika_server->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+  uint64_t total_memtable_usage = 0, memtable_usage = 0;
+  uint64_t total_table_reader_usage = 0, table_reader_usage = 0;
+  slash::RWLock table_rwl(&g_pika_server->tables_rw_, false);
+  for (const auto& table_item : g_pika_server->tables_) {
+    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    for (const auto& patition_item : table_item.second->partitions_) {
+      memtable_usage = table_reader_usage = 0;
+      patition_item.second->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
+      patition_item.second->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+      total_memtable_usage += memtable_usage;
+      total_table_reader_usage += table_reader_usage;
+    }
+  }
 
   tmp_stream << "used_memory:" << (memtable_usage + table_reader_usage) << "\r\n";
   tmp_stream << "used_memory_human:" << ((memtable_usage + table_reader_usage) >> 20) << "M\r\n";
