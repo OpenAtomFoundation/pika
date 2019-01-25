@@ -28,6 +28,7 @@
 #include "include/pika_slaveping_thread.h"
 #include "include/pika_binlog_sender_thread.h"
 #include "include/pika_binlog_receiver_thread.h"
+#include "include/pika_dispatch_thread.h"
 
 using slash::Status;
 using slash::Slice;
@@ -40,11 +41,7 @@ using slash::Slice;
 static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
                                             kCmdNamePurgelogsto                   };
 
-class Table;
-class PikaDispatchThread;
-
 extern PikaConf *g_pika_conf;
-
 enum TaskType {
   kCompactAll,
   kPurgeLog
