@@ -6,8 +6,6 @@
 #ifndef PIKA_DISPATCH_THREAD_H_
 #define PIKA_DISPATCH_THREAD_H_
 
-#include "pink/include/server_thread.h"
-
 #include "include/pika_client_conn.h"
 
 class PikaDispatchThread {
