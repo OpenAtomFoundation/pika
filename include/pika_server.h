@@ -47,13 +47,17 @@ extern PikaConf *g_pika_conf;
 
 enum TaskType {
   kCompactAll,
-  kPurgeLog
+  kPurgeLog,
+  kStartKeyScan,
+  kStopKeyScan,
 };
 
 class PikaServer {
  public:
   PikaServer();
   ~PikaServer();
+
+  friend class InfoCmd;
 
   static uint64_t DiskSize(std::string path) {
     struct statfs diskInfo;
@@ -380,6 +384,9 @@ class PikaServer {
   void SlowlogObtain(int64_t number, std::vector<SlowlogEntry>* slowlogs);
   void SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int64_t duration);
 
+  Status DoSameThingEveryTable(const TaskType& type);
+  Status DoSameThingEveryPartition(const TaskType& type);
+
   /*
    *for statistic
    */
@@ -411,7 +418,7 @@ class PikaServer {
    * table use
    */
   pthread_rwlock_t tables_rw_;
-  std::unordered_map<std::string, std::shared_ptr<Table>> tables_;
+  std::map<std::string, std::shared_ptr<Table>> tables_;
 
   time_t start_time_s_;
   bool have_scheduled_crontask_;
@@ -474,7 +481,6 @@ class PikaServer {
   void AutoCompactRange();
   void AutoPurge();
   void AutoDeleteExpiredDump();
-  Status DoSameThingEveryPartition(const TaskType& type);
 
   /*
    * DBSync use
