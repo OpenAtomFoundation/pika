@@ -45,8 +45,10 @@ class Table : public std::enable_shared_from_this<Table>{
         const std::string& log_path);
   virtual ~Table();
 
+  friend class InfoCmd;
   friend class PikaServer;
 
+  std::string table_name();
   void BgSaveTable();
   void CompactTable(const blackwidow::DataType& type);
   bool FlushAllTable();
