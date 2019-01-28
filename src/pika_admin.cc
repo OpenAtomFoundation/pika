@@ -209,7 +209,7 @@ void BgsaveCmd::DoInitial() {
   }
 }
 void BgsaveCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->BgSaveWholeTable(table_name_);
+  g_pika_server->DoSameThingEveryTable(TaskType::kBgSave);
   res_.AppendContent("+Background saving started");
 }
 
@@ -226,31 +226,23 @@ void CompactCmd::DoInitial() {
 }
 
 void CompactCmd::Do(std::shared_ptr<Partition> partition) {
-  blackwidow::DataType type;
   if (struct_type_.empty()) {
-    type = blackwidow::kAll;
+    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactAll);
   } else if (!strcasecmp(struct_type_.data(), "string")) {
-    type = blackwidow::kStrings;
+    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactStrings);
   } else if (!strcasecmp(struct_type_.data(), "hash")) {
-    type = blackwidow::kHashes;
+    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactHashes);
   } else if (!strcasecmp(struct_type_.data(), "set")) {
-    type = blackwidow::kSets;
+    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactSets);
   } else if (!strcasecmp(struct_type_.data(), "zset")) {
-    type = blackwidow::kZSets;
+    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactZSets);
   } else if (!strcasecmp(struct_type_.data(), "list")) {
-    type = blackwidow::kLists;
+    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactList);
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
   }
-
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (!table) {
-    res_.SetRes(CmdRes::kInvalidTable);
-  } else {
-    table->CompactTable(type);
-    res_.SetRes(CmdRes::kOk);
-  }
+  res_.SetRes(CmdRes::kOk);
 }
 
 void PurgelogstoCmd::DoInitial() {
@@ -594,30 +586,25 @@ void InfoCmd::InfoClients(std::string &info) {
 }
 
 void InfoCmd::InfoStats(std::string &info) {
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (!table) {
-    return;
+  bool is_scaning = false, is_compact = false, is_bgsaving = false;
+  slash::RWLock table_rwl(&g_pika_server->tables_rw_, false);
+  for (const auto& table_item : g_pika_server->tables_) {
+    is_scaning = table_item.second->key_scaning() ? true : is_scaning;
+    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    for (const auto& patition_item : table_item.second->partitions_) {
+      is_bgsaving = patition_item.second->bgsave_info().bgsaving ? true : is_bgsaving;
+      is_compact = strcasecmp(patition_item.second->db()->GetCurrentTaskType().data(), "no") ? true : is_compact;
+    }
   }
 
   std::stringstream tmp_stream;
   tmp_stream << "# Stats\r\n";
-
   tmp_stream << "total_connections_received:" << g_pika_server->accumulative_connections() << "\r\n";
   tmp_stream << "instantaneous_ops_per_sec:" << g_pika_server->ServerCurrentQps() << "\r\n";
   tmp_stream << "total_commands_processed:" << g_pika_server->ServerQueryNum() << "\r\n";
-  PikaServer::BGSaveInfo bgsave_info = g_pika_server->bgsave_info();
-  bool is_bgsaving = g_pika_server->bgsaving();
-  time_t current_time_s = time(NULL);
-  tmp_stream << "is_bgsaving:" << (is_bgsaving ? "Yes, " : "No, ") << bgsave_info.s_start_time << ", "
-                                << (is_bgsaving ? (current_time_s - bgsave_info.start_time) : 0) << "\r\n";
-  KeyScanInfo key_scan_info = table->key_scan_info();
-  bool is_scaning = table->key_scaning();
-  tmp_stream << "is_scaning_keyspace:" << (is_scaning ? ("Yes, " + key_scan_info.s_start_time) + "," : "No");
-  if (is_scaning) {
-    tmp_stream << current_time_s - key_scan_info.start_time;
-  }
-  tmp_stream << "\r\n";
-  tmp_stream << "is_compact:" << g_pika_server->db()->GetCurrentTaskType() << "\r\n";
+  tmp_stream << "is_bgsaving:" << (is_bgsaving ? "Yes" : "No") << "\r\n";
+  tmp_stream << "is_scaning_keyspace:" << (is_scaning ? "Yes" : "No") << "\r\n";
+  tmp_stream << "is_compact:" << (is_compact ? "Yes" : "No") << "\r\n";
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
   tmp_stream << "compact_interval:" << g_pika_conf->compact_interval() << "\r\n";
 
