@@ -10,11 +10,13 @@
 PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)
     : cron_interval_(cron_interval),
       keepalive_timeout_(keepalive_timeout) {
-  client_thread_ = new pink::ClientThread(&conn_factory_, cron_interval_, keepalive_timeout_);
+  handle_ = new ReplClientHandle();
+  client_thread_ = new pink::ClientThread(&conn_factory_, cron_interval_, keepalive_timeout_, handle_, NULL);
   client_thread_->set_thread_name("PikaReplClient");
 }
 
 PikaReplClient::~PikaReplClient() {
+  client_thread_->StopThread();
   delete client_thread_;
 }
 
@@ -26,6 +28,6 @@ int PikaReplClient::Start() {
   return res;
 }
 
-void PikaReplClient::Write(const std::string& ip, const int port, const std::string& msg) {
-  client_thread_->Write(ip, port, msg);
+slash::Status PikaReplClient::Write(const std::string& ip, const int port, const std::string& msg) {
+  return client_thread_->Write(ip, port, msg);
 }
