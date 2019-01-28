@@ -45,9 +45,15 @@ extern PikaConf *g_pika_conf;
 
 enum TaskType {
   kCompactAll,
+  kCompactStrings,
+  kCompactHashes,
+  kCompactSets,
+  kCompactZSets,
+  kCompactList,
   kPurgeLog,
   kStartKeyScan,
   kStopKeyScan,
+  kBgSave
 };
 
 class PikaServer {
@@ -268,7 +274,6 @@ class PikaServer {
     slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_.bgsaving;
   }
-  void BgSaveWholeTable(const std::string& table_name);
   void Bgsave();
   bool RunBgsaveEngine();
   void FinishBgsave() {
