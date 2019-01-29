@@ -11,14 +11,6 @@
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
-static std::set<std::string> TableMayNotSupportCommands {kCmdNameDel,
-             kCmdNameMget,        kCmdNameKeys,          kCmdNameMset,
-             kCmdNameMsetnx,      kCmdNameScan,          kCmdNameScanx,
-             kCmdNamePKScanRange, kCmdNamePKRScanRange,  kCmdNameRPopLPush,
-             kCmdNameZUnionstore, kCmdNameZInterstore,   kCmdNameSUnion,
-             kCmdNameSUnionstore, kCmdNameSInter,        kCmdNameSInterstore,
-             kCmdNameSDiff,       kCmdNameSDiffstore,    kCmdNameSMove,
-             kCmdNamePfCount,     kCmdNamePfMerge};
 /*
  *Keyscan used
  */
@@ -51,7 +43,6 @@ class Table : public std::enable_shared_from_this<Table>{
   void CompactTable(const blackwidow::DataType& type);
   bool FlushAllTable();
   bool FlushDbTable(const std::string& db_name);
-  bool IsCommandSupport(const std::string& cmd) const;
   bool IsBinlogIoError();
   uint32_t PartitionNum();
 

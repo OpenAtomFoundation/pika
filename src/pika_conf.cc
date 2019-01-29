@@ -6,6 +6,7 @@
 #include "include/pika_conf.h"
 
 #include <algorithm>
+#include <strings.h>
 
 PikaConf::PikaConf(const std::string& path):
   slash::BaseConf(path), conf_path_(path)
@@ -69,17 +70,34 @@ int PikaConf::Load()
     slash::StringToLower(item);
   }
 
-  int32_t partition_num;
-  std::vector<std::string> elems;
-  std::vector<std::string> table_struct_strs;
-  std::unordered_set<std::string> unique;
-  GetConfStrVec("table-struct", &table_struct_strs);
-  for (const auto& item : table_struct_strs) {
-    slash::StringSplit(item, ':', elems);
-    if (elems.size() == 2 && unique.find(elems[0]) == unique.end()) {
-      partition_num = atoi(elems[1].data());
-      table_structs_.push_back({elems[0], partition_num > 0 ? static_cast<uint32_t>(partition_num) : 1});
-      unique.insert(elems[0]);
+  std::string instance_mode;
+  GetConfStr("instance-mode", &instance_mode);
+  classic_mode_ = !strcasecmp(instance_mode.data(), "classic");
+
+  if (classic_mode_) {
+    std::vector<std::string> db_list;
+    std::unordered_set<std::string> unique;
+    GetConfStrVec("db-list", &db_list);
+    for (const auto& db : db_list) {
+      if (!unique.count(db)) {
+        table_structs_.push_back({db, 1});
+        unique.insert(db);
+      }
+    }
+  } else {
+    int32_t partition_num;
+    std::vector<std::string> elems;
+    std::vector<std::string> table_strs;
+    std::unordered_set<std::string> unique;
+    GetConfStrVec("table-list", &table_strs);
+    for (const auto& item : table_strs) {
+      slash::StringSplit(item, ':', elems);
+      if (elems.size() == 2 && !unique.count(elems[0])) {
+        partition_num = atoi(elems[1].data());
+        table_structs_.push_back({elems[0], partition_num > 0
+                ? static_cast<uint32_t>(partition_num) : 1});
+        unique.insert(elems[0]);
+      }
     }
   }
   if (table_structs_.empty()) {

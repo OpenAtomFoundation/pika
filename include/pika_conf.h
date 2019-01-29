@@ -60,6 +60,7 @@ class PikaConf : public slash::BaseConf {
   const std::vector<std::string>& vuser_blacklist() {
     RWLock l(&rwlock_, false); return user_blacklist_;
   }
+  bool classic_mode()           { RWLock l(&rwlock_, false); return classic_mode_;}
   const std::vector<TableStruct>& table_structs() {
     RWLock l(&rwlock_, false);
     return table_structs_;
@@ -262,6 +263,7 @@ private:
   std::string masterauth_;
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
+  bool classic_mode_;
   std::vector<TableStruct> table_structs_;
   std::string default_table_;
   std::string bgsave_path_;
