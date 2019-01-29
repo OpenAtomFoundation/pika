@@ -385,13 +385,14 @@ bool PikaServer::IsTableExist(const std::string& table_name) {
   return GetTable(table_name) ? true : false;
 }
 
-bool PikaServer::IsTableSupportCommand(const std::string& table_name,
-                                       const std::string& command) {
-  std::shared_ptr<Table> table = GetTable(table_name);
-  if (table && table->IsCommandSupport(command)) {
+bool PikaServer::IsCommandSupport(const std::string& command) {
+  if (g_pika_conf->classic_mode()) {
     return true;
+  } else {
+    std::string cmd = command;
+    slash::StringToLower(cmd);
+    return !ShardingModeNotSupportCommands.count(cmd);
   }
-  return false;
 }
 
 uint32_t PikaServer::GetPartitionNumByTable(const std::string& table_name) {
