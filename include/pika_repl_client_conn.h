@@ -9,25 +9,16 @@
 #include <vector>
 #include <string>
 
-#include "pink/include/redis_conn.h"
+#include "pink/include/pb_conn.h"
 #include "pink/include/pink_thread.h"
 
-class PikaReplClientConn: public pink::RedisConn {
+class PikaReplClientConn: public pink::PbConn {
  public:
-  struct TaskArg {
-    std::string argv;
-    int port;
-    TaskArg(const std::string _argv, int _port) : argv(_argv), port(_port) {
-    }
-  };
-
   PikaReplClientConn(int fd, const std::string& ip_port, pink::Thread *thread, void* worker_specific_data);
   virtual ~PikaReplClientConn() = default;
 
-  static void DoReplClinetTask(void* arg);
-
-  void AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) override;
-  int DealMessage(const pink::RedisCmdArgsType& argv, std::string* response) override;
+  static void DoReplClientTask(void* arg);
+  int DealMessage() override;
  private:
 };
 
