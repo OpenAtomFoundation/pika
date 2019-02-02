@@ -41,13 +41,28 @@ using slash::Slice;
 static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
                                             kCmdNamePurgelogsto                   };
 
+static std::set<std::string> ShardingModeNotSupportCommands {kCmdNameDel,
+                 kCmdNameMget,        kCmdNameKeys,          kCmdNameMset,
+                 kCmdNameMsetnx,      kCmdNameScan,          kCmdNameScanx,
+                 kCmdNamePKScanRange, kCmdNamePKRScanRange,  kCmdNameRPopLPush,
+                 kCmdNameZUnionstore, kCmdNameZInterstore,   kCmdNameSUnion,
+                 kCmdNameSUnionstore, kCmdNameSInter,        kCmdNameSInterstore,
+                 kCmdNameSDiff,       kCmdNameSDiffstore,    kCmdNameSMove,
+                 kCmdNamePfCount,     kCmdNamePfMerge};
+
 extern PikaConf *g_pika_conf;
 
 enum TaskType {
   kCompactAll,
+  kCompactStrings,
+  kCompactHashes,
+  kCompactSets,
+  kCompactZSets,
+  kCompactList,
   kPurgeLog,
   kStartKeyScan,
   kStopKeyScan,
+  kBgSave
 };
 
 class PikaServer {
@@ -153,8 +168,7 @@ class PikaServer {
   void PartitionRecordUnLock(const std::string& table_name,
                              const std::string& key);
   bool IsTableExist(const std::string& table_name);
-  bool IsTableSupportCommand(const std::string& table_name,
-                             const std::string& command);
+  bool IsCommandSupport(const std::string& command);
   uint32_t GetPartitionNumByTable(const std::string& table_name);
   std::shared_ptr<Partition> GetTablePartitionById(
                                   const std::string& table_name,
@@ -268,7 +282,6 @@ class PikaServer {
     slash::MutexLock l(&bgsave_protector_);
     return bgsave_info_.bgsaving;
   }
-  void BgSaveWholeTable(const std::string& table_name);
   void Bgsave();
   bool RunBgsaveEngine();
   void FinishBgsave() {

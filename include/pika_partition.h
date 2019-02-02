@@ -77,6 +77,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
 
   std::string db_path_;
   std::string log_path_;
+  std::string bgsave_sub_path_;
   std::string partition_name_;
 
   std::shared_ptr<Binlog> logger_;

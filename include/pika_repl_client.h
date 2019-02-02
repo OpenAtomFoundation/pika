@@ -15,6 +15,34 @@
 #include "pink/include/pink_conn.h"
 #include "pink/include/client_thread.h"
 #include "pink/include/thread_pool.h"
+#include "slash/include/slash_status.h"
+
+class ReplClientHandle : public pink::ClientHandle {
+ public:
+  //  void CronHandle() const override {
+  //    std::cout << "HandleCronHandle" << std::endl;
+  //  }
+  //  void FdTimeoutHandle(int fd, const std::string& ip_port) const override {
+  //    std::cout << "FdTimeoutHandle ip_port" << std::endl;
+  //  }
+  //  void FdClosedHandle(int fd, const std::string& ip_port) const override {
+  //    std::cout << "FdClosedHandle " << fd << " ip_port " << ip_port << std::endl;
+  //  }
+  //  bool AccessHandle(std::string& ip) const override {
+  //    // ban 127.0.0.1 if you want to test this routine
+  //    if (ip.find("127.0.0.2") != std::string::npos) {
+  //      std::cout << "AccessHandle " << ip << std::endl;
+  //      return false;
+  //    }
+  //    return true;
+  //  }
+  //  int CreateWorkerSpecificData(void** data) const override {
+  //    return 0;
+  //  }
+  //  int DeleteWorkerSpecificData(void* data) const override {
+  //    return 0;
+  //  }
+};
 
 #include "slash/include/slash_status.h"
 

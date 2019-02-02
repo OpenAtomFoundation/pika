@@ -102,7 +102,6 @@ PikaServer::PikaServer() :
   pika_pubsub_thread_ = new pink::PubSubThread();
   pika_thread_pool_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
 
-  //for (int j = 0; j < g_pika_conf->binlogbg_thread_num; j++) {
   for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
     binlogbg_workers_.push_back(new BinlogBGWorker(g_pika_conf->sync_buffer_size()));
   }
@@ -386,13 +385,14 @@ bool PikaServer::IsTableExist(const std::string& table_name) {
   return GetTable(table_name) ? true : false;
 }
 
-bool PikaServer::IsTableSupportCommand(const std::string& table_name,
-                                       const std::string& command) {
-  std::shared_ptr<Table> table = GetTable(table_name);
-  if (table && table->IsCommandSupport(command)) {
+bool PikaServer::IsCommandSupport(const std::string& command) {
+  if (g_pika_conf->classic_mode()) {
     return true;
+  } else {
+    std::string cmd = command;
+    slash::StringToLower(cmd);
+    return !ShardingModeNotSupportCommands.count(cmd);
   }
-  return false;
 }
 
 uint32_t PikaServer::GetPartitionNumByTable(const std::string& table_name) {
@@ -1030,15 +1030,6 @@ bool PikaServer::RunBgsaveEngine() {
   return true;
 }
 
-void PikaServer::BgSaveWholeTable(const std::string& table_name) {
-  std::shared_ptr<Table> table = GetTable(table_name);
-  if (!table) {
-    LOG(WARNING) << "table : " << table_name << " not exist, bgsave failed!";
-    return;
-  }
-  table->BgSaveTable();
-}
-
 void PikaServer::Bgsave() {
   // Only one thread can go through
   {
@@ -1540,6 +1531,9 @@ Status PikaServer::DoSameThingEveryTable(const TaskType& type) {
       case TaskType::kStopKeyScan:
         table_item.second->StopKeyScan();
         break;
+      case TaskType::kBgSave:
+        table_item.second->BgSaveTable();
+        break;
       default:
         break;
     }
@@ -1554,6 +1548,21 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
       switch (type) {
         case TaskType::kCompactAll:
           partition_item.second->Compact(blackwidow::DataType::kAll);
+          break;
+        case TaskType::kCompactStrings:
+          partition_item.second->Compact(blackwidow::DataType::kStrings);
+          break;
+        case TaskType::kCompactHashes:
+          partition_item.second->Compact(blackwidow::DataType::kHashes);
+          break;
+        case TaskType::kCompactSets:
+          partition_item.second->Compact(blackwidow::DataType::kSets);
+          break;
+        case TaskType::kCompactZSets:
+          partition_item.second->Compact(blackwidow::DataType::kZSets);
+          break;
+        case TaskType::kCompactList:
+          partition_item.second->Compact(blackwidow::DataType::kLists);
           break;
         case TaskType::kPurgeLog:
           partition_item.second->PurgeLogs(0, false, false);

@@ -27,6 +27,14 @@ std::string PartitionName(const std::string& table_name,
   return std::string(buf);
 }
 
+std::string BgsaveSubPath(const std::string& table_name,
+                          uint32_t partition_id) {
+  char buf[256];
+  std::string partition_id_str = std::to_string(partition_id);
+  snprintf(buf, sizeof(buf), "%s/%s", table_name.data(), partition_id_str.data());
+  return std::string(buf);
+}
+
 Partition::Partition(const std::string& table_name,
                      uint32_t partition_id,
                      const std::string& table_db_path,
@@ -37,9 +45,14 @@ Partition::Partition(const std::string& table_name,
   bgsave_engine_(NULL),
   purging_(false) {
 
-  db_path_ = PartitionPath(table_db_path, partition_id_);
-  log_path_ = PartitionPath(table_log_path, partition_id_);
-  partition_name_ = PartitionName(table_name_, partition_id_);
+  db_path_ = g_pika_conf->classic_mode() ?
+      table_db_path : PartitionPath(table_db_path, partition_id_);
+  log_path_ = g_pika_conf->classic_mode() ?
+      table_log_path : PartitionPath(table_log_path, partition_id_);
+  bgsave_sub_path_ = g_pika_conf->classic_mode() ?
+      table_name : BgsaveSubPath(table_name_, partition_id_);
+  partition_name_ = g_pika_conf->classic_mode() ?
+      table_name : PartitionName(table_name_, partition_id_);
 
   pthread_rwlock_init(&db_rwlock_, NULL);
 
@@ -244,7 +257,7 @@ bool Partition::InitBgsaveEnv() {
   int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
   bgsave_info_.s_start_time.assign(s_time, len);
   std::string time_sub_path = g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
-  bgsave_info_.path = g_pika_conf->bgsave_path() + time_sub_path + "/" + table_name_ + "/" + std::to_string(partition_id_);
+  bgsave_info_.path = g_pika_conf->bgsave_path() + time_sub_path + "/" + bgsave_sub_path_;
   if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
     LOG(WARNING) << partition_name_ << " remove exist bgsave dir failed";
     return false;
