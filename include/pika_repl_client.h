@@ -9,11 +9,20 @@
 #include <string>
 #include <memory>
 
+#include "include/pika_binlog_reader.h"
 #include "include/pika_repl_client_conn.h"
+
 #include "pink/include/pink_conn.h"
 #include "pink/include/client_thread.h"
 #include "pink/include/thread_pool.h"
+
 #include "slash/include/slash_status.h"
+
+#include "src/pika_inner_message.pb.h"
+
+#define kBinlogSyncBatchNum 10
+
+using slash::Status;
 
 class ReplClientHandle : public pink::ClientHandle {
  public:
@@ -42,13 +51,25 @@ class ReplClientHandle : public pink::ClientHandle {
   //  }
 };
 
+struct RmNode {
+  std::string table_;
+  int partition_;
+  std::string ip_;
+  int port_;
+  RmNode(const std::string& table, int partition, const std::string& ip, int port) : table_(table), partition_(partition), ip_(ip), port_(port) {
+  }
+};
+
 class PikaReplClient {
  public:
   PikaReplClient(int cron_interval, int keepalive_timeout);
   ~PikaReplClient();
   slash::Status Write(const std::string& ip, const int port, const std::string& msg);
-  void ThreadPollSchedule(pink::TaskFunc func, void*arg);
+  //void ThreadPollSchedule(pink::TaskFunc func, void*arg);
   int Start();
+  Status AddBinlogReader(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
+  void RunStateMachine(const RmNode& slave);
+  bool NeedToSendBinlog(const RmNode& slave);
  private:
   class ReplClientConnFactory : public pink::ConnFactory {
    public:
@@ -61,11 +82,23 @@ class PikaReplClient {
       return std::make_shared<PikaReplClientConn>(connfd, ip_port, thread, worker_specific_data);
     }
   };
+
+  PikaBinlogReader* NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
+
+  Status TrySyncBinlog(const RmNode& slave, bool authed);
+  void BuildAuthPb(const RmNode& slave, InnerMessage::InnerRequest& request);
+  void BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest& request);
+
+  Status BuildAuthMsg(std::string* scratch);
+  Status BuildBinlogMsgFromFile(PikaBinlogReader* binlog_reader, std::string* scratch, uint32_t* filenum, uint64_t* offset);
+
   ReplClientConnFactory conn_factory_;
   int cron_interval_;
   int keepalive_timeout_;
   pink::ClientThread* client_thread_;
   pink::ClientHandle* handle_;
+  // keys of this map: table_partition_slaveip:port
+  std::map<std::string, PikaBinlogReader*> slave_binlog_readers_;
 };
 
 #endif

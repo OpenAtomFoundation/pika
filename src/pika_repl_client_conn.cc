@@ -4,7 +4,10 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_repl_client_conn.h"
+
 #include "include/pika_server.h"
+
+#include "src/pika_inner_message.pb.h"
 
 extern PikaServer* g_pika_server;
 
@@ -12,21 +15,19 @@ PikaReplClientConn::PikaReplClientConn(int fd,
                                const std::string& ip_port,
                                pink::Thread* thread,
                                void* worker_specific_data)
-      : RedisConn(fd, ip_port, thread, nullptr, pink::HandleType::kSynchronous) {
+      : pink::PbConn(fd, ip_port, thread) {
 }
 
-void DoReplClientTadk(void* arg) {
-  PikaReplClientConn::TaskArg* info = reinterpret_cast<PikaReplClientConn::TaskArg*>(arg);
+void PikaReplClientConn::DoReplClientTask(void* arg) {
+  InnerMessage::InnerResponse* response = reinterpret_cast<InnerMessage::InnerResponse*>(arg);
   //  std::string& argv = info->argv;
   //  int port = info->port;
-  delete info;
+  delete response;
 }
 
-void PikaReplClientConn::AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) {
-  TaskArg* arg = new TaskArg(argvs[0][0], 12000);
-  g_pika_server->Schedule(&DoReplClientTadk, arg);
-}
-
-int PikaReplClientConn::DealMessage(const pink::RedisCmdArgsType& argv, std::string* response) {
+int PikaReplClientConn::DealMessage() {
+  InnerMessage::InnerResponse* res = new InnerMessage::InnerResponse();
+  res->ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  g_pika_server->Schedule(&DoReplClientTask, res);
   return 0;
 }
