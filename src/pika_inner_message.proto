@@ -23,13 +23,8 @@ message Node {
   required int32  port = 2;
 }
 
-enum BinlogSyncType {
-  kBinlogSyncAuth = 1;
-  kBinlogSyncInfo = 2;
-}
-
 // Request message
-message InnerRequst {
+message InnerRequest {
   // slave to master
   message MetaSync {
     required Node node = 1;
@@ -46,19 +41,11 @@ message InnerRequst {
 
   // master to slave
   message BinlogSync {
-    message BinlogSyncAuth {
-      required string s_id = 1;
-    }
-    message BinlogSyncInfo {
-      required bytes binlog = 1;
-    } 
-    required BinlogSyncType type          = 1;
-    required Node           node          = 2;
-    required string         table_name    = 3;
-    required int32          partition_num = 4;
-    required SyncOffset     sync_offset   = 5;
-    optional BinlogSyncAuth sync_auth     = 6;
-    optional BinlogSyncInfo sync_info     = 7;
+    required Node           node          = 1;
+    required string         table_name    = 2;
+    required int32          partition_id  = 3;
+    optional SyncOffset     sync_offset   = 4;
+    required bytes          binlog        = 5;
   }
 
   // master to slave
@@ -70,7 +57,7 @@ message InnerRequst {
   required Type      type         = 1;
   optional MetaSync  meta_sync    = 2;
   optional TrySync   try_sync     = 3;
-  optional BinlogSync binlog_sync = 4; 
+  repeated BinlogSync binlog_sync = 4;
 }
 
 message PartitionInfo {
