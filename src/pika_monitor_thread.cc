@@ -133,11 +133,14 @@ pink::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& messag
       if (++retry >= 10) {
         return pink::kWriteError;
       } else {
+        // Sleep one second wait for client consume message
+        sleep(1);
         continue;
       }
     } else if (nwritten == -1) {
       return pink::kWriteError;
     }
+    if (retry > 0) retry = 0;
     message_len_sended += nwritten;
     message_len_left -= nwritten;
   }
