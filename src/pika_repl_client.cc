@@ -24,6 +24,7 @@ PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)
 PikaReplClient::~PikaReplClient() {
   client_thread_->StopThread();
   delete client_thread_;
+  delete handle_;
   for (auto iter : slave_binlog_readers_) {
     delete iter.second;
   }
