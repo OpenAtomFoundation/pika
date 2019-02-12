@@ -17,8 +17,7 @@ PikaBinlogReceiverThread::PikaBinlogReceiverThread(const std::set<std::string> &
         serial_(0) {
   cmds_.reserve(300);
   InitCmdTable(&cmds_);
-  thread_rep_ = new PikaReplServerThread(ips, port, &conn_factory_,
-                                    cron_interval, &handles_);
+  thread_rep_ = new PikaReplServerThread(ips, port, cron_interval);
   thread_rep_->set_thread_name("BinlogReceiver");
 }
 

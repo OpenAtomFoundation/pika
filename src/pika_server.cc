@@ -100,6 +100,8 @@ PikaServer::PikaServer() :
   pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
   pika_pubsub_thread_ = new pink::PubSubThread();
+  pika_repl_client_ = new PikaReplClient(3000, 60);
+  pika_repl_server_ = new PikaReplServer(ips, port_ + 3000, 3000);
   pika_thread_pool_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
 
   for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
@@ -136,6 +138,8 @@ PikaServer::~PikaServer() {
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
   delete pika_pubsub_thread_;
+  delete pika_repl_client_;
+  delete pika_repl_server_;
 
   binlogbg_exit_ = true;
   std::vector<BinlogBGWorker*>::iterator binlogbg_iter = binlogbg_workers_.begin();
@@ -317,6 +321,20 @@ void PikaServer::Start() {
     delete logger_;
     db_.reset();
     LOG(FATAL) << "Start Pubsub Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+  }
+
+  ret = pika_repl_client_->Start();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Repl Client Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+
+  ret = pika_repl_server_->Start();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Repl Server Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
 
 
