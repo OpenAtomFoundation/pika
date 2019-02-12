@@ -1,14 +1,15 @@
-// Copyright (c) 2015-present, Qihoo, Inc.  All rights reserved.
+// Copyright (c) 2019-present, Qihoo, Inc.  All rights reserved.
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_repl_server_thread.h"
 
-PikaReplServerThread::PikaReplServerThread(const std::set<std::string> &ips, int port, pink::ConnFactory* conn_factory, int cron_interval, const pink::ServerHandle* handle)
-  : HolyThread(ips, port, conn_factory, cron_interval, handle) {
+PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips,
+                                           int port,
+                                           int cron_interval)
+  : HolyThread(ips, port, &conn_factory_, cron_interval, &handles_) {
 }
-
 
 void PikaReplServerThread::Write(const std::string& msg, const std::string& ip_port, int fd) {
   {
@@ -16,6 +17,13 @@ void PikaReplServerThread::Write(const std::string& msg, const std::string& ip_p
     write_buf_[fd] += msg;
   }
   NotifyWrite(ip_port, fd);
+}
+
+void PikaReplServerThread::Handles::CronHandle() const {
+}
+
+bool PikaReplServerThread::Handles::AccessHandle(std::string& ip) const {
+  return true;
 }
 
 void PikaReplServerThread::NotifyWrite(const std::string& ip_port, int fd) {
