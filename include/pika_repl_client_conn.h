@@ -6,11 +6,7 @@
 #ifndef PIKA_REPL_CLIENT_CONN_H_
 #define PIKA_REPL_CLIENT_CONN_H_
 
-#include <vector>
-#include <string>
-
 #include "pink/include/pb_conn.h"
-#include "pink/include/pink_thread.h"
 
 class PikaReplClientConn: public pink::PbConn {
  public:

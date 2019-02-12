@@ -9,8 +9,6 @@
 #include "slash/include/slash_coding.h"
 #include "slash/include/env.h"
 
-#include <glog/logging.h>
-
 extern PikaServer* g_pika_server;
 
 PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)
@@ -28,6 +26,7 @@ PikaReplClient::~PikaReplClient() {
   for (auto iter : slave_binlog_readers_) {
     delete iter.second;
   }
+  LOG(INFO) << "PikaReplClient exit!!!";
 }
 
 static inline void BuildBinlogReaderIndex(const RmNode& slave, std::string* index) {
