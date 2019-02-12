@@ -29,6 +29,8 @@
 #include "include/pika_binlog_sender_thread.h"
 #include "include/pika_binlog_receiver_thread.h"
 #include "include/pika_dispatch_thread.h"
+#include "include/pika_repl_client.h"
+#include "include/pika_repl_server.h"
 
 using slash::Status;
 using slash::Slice;
@@ -519,9 +521,15 @@ class PikaServer {
   PikaMonitorThread* monitor_thread_;
 
   /*
-   *  Pubsub use
+   * Pubsub use
    */
-  pink::PubSubThread * pika_pubsub_thread_;
+  pink::PubSubThread* pika_pubsub_thread_;
+
+  /*
+   * Communication use
+   */
+  PikaReplClient* pika_repl_client_;
+  PikaReplServer* pika_repl_server_;
 
   /*
    * Binlog Receiver use
