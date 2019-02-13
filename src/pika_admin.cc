@@ -22,59 +22,40 @@
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
 
+/*
+ * slaveof no one
+ * slaveof ip port
+ * slaveof ip port force
+ */
 void SlaveofCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
     return;
   }
-  PikaCmdArgsType::const_iterator it = argv_.begin() + 1; //Remember the first args is the opt name
 
-  master_ip_ = *it++;
-
-  is_noone_ = false;
-  if (!strcasecmp(master_ip_.data(), "no") && !strcasecmp(it->data(), "one")) {
-    if (argv_.end() - it == 1) {
-      is_noone_ = true;
-    } else {
-      res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
-    }
+  if (argv_.size() == 3
+    && !strcasecmp(argv_[1].data(), "no")
+    && !strcasecmp(argv_[2].data(), "one")) {
+    is_noone_ = true;
     return;
   }
 
-  std::string str_master_port = *it++;
+  master_ip_ = argv_[1];
+  std::string str_master_port = argv_[2];
   if (!slash::string2l(str_master_port.data(), str_master_port.size(), &master_port_) || master_port_ <= 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
 
-  if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host()) && master_port_ == g_pika_server->port()) {
+  if ((master_ip_ == "127.0.0.1" || master_ip_ == g_pika_server->host())
+    && master_port_ == g_pika_server->port()) {
     res_.SetRes(CmdRes::kErrOther, "you fucked up");
     return;
   }
 
-  have_offset_ = false;
-  int cur_size = argv_.end() - it;
-  if (cur_size == 0) {
-
-  } else if (cur_size == 1) {
-    std::string command = *it++;
-    if (command != "force") {
-      res_.SetRes(CmdRes::kSyntaxErr);
-      return;
-    }
+  if (argv_.size() == 4
+    && !strcasecmp(argv_[3].data(), "force")) {
     g_pika_server->SetForceFullSync(true);
-  } else if (cur_size == 2) {
-    have_offset_ = true;
-    std::string str_filenum = *it++;
-    if (!slash::string2l(str_filenum.data(), str_filenum.size(), &filenum_) || filenum_ < 0) {
-      res_.SetRes(CmdRes::kInvalidInt);
-      return;
-    }
-    std::string str_pro_offset = *it++;
-    if (!slash::string2l(str_pro_offset.data(), str_pro_offset.size(), &pro_offset_) || pro_offset_ < 0) {
-      res_.SetRes(CmdRes::kInvalidInt);
-      return;
-    }
   } else {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
   }
@@ -82,8 +63,8 @@ void SlaveofCmd::DoInitial() {
 
 void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   // Check if we are already connected to the specified master
-  if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_) &&
-      g_pika_server->master_port() == master_port_) {
+  if ((master_ip_ == "127.0.0.1" || g_pika_server->master_ip() == master_ip_)
+    && g_pika_server->master_port() == master_port_) {
     res_.SetRes(CmdRes::kOk);
     return;
   }
@@ -96,14 +77,6 @@ void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   if (is_noone_) {
     res_.SetRes(CmdRes::kOk);
     return;
-  }
-
-  if (have_offset_) {
-    // Before we send the trysync command, we need purge current logs older than the sync point
-    if (filenum_ > 0) {
-      g_pika_server->PurgeLogs(filenum_ - 1, true, true);
-    }
-    g_pika_server->logger_->SetProducerStatus(filenum_, pro_offset_);
   }
 
   bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);

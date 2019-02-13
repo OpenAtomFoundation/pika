@@ -21,20 +21,16 @@
 class SlaveofCmd : public Cmd {
  public:
   SlaveofCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), is_noone_(false), have_offset_(false), filenum_(0), pro_offset_(0) {}
+      : Cmd(name, arity, flag), is_noone_(false) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
 
  private:
   std::string master_ip_;
   int64_t master_port_;
   bool is_noone_;
-  bool have_offset_;
-  int64_t filenum_;
-  int64_t pro_offset_;
   virtual void DoInitial() override;
   virtual void Clear() {
     is_noone_ = false;
-    have_offset_ = false;
   }
 };
 
