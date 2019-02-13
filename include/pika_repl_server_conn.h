@@ -6,16 +6,37 @@
 #ifndef PIKA_REPL_SERVER_CONN_H_
 #define PIKA_REPL_SERVER_CONN_H_
 
+#include <string>
+
 #include "pink/include/pb_conn.h"
+#include "pink/include/redis_parser.h"
+#include "pink/include/pink_thread.h"
+
+#include "src/pika_inner_message.pb.h"
+#include "include/pika_binlog_parser.h"
+
+class PikaBinlogReceiverThread;
 
 class PikaReplServerConn: public pink::PbConn {
  public:
-  PikaReplServerConn(int fd, const std::string& ip_port, pink::Thread* thread, void* worker_specific_data);
-  virtual ~PikaReplServerConn() = default;
+  PikaReplServerConn(int fd, std::string ip_port, pink::Thread* thread, void* worker_specific_data);
+  virtual ~PikaReplServerConn();
 
-  static void DoReplServerTask(void* arg);
-  int DealMessage() override;
+  int DealMessage();
+  bool ProcessAuth(const pink::RedisCmdArgsType& argv);
+  bool ProcessBinlogData(const pink::RedisCmdArgsType& argv, const BinlogItem& binlog_item);
+
+  BinlogHeader binlog_header_;
+  BinlogItem binlog_item_;
  private:
+  static int ParserDealMessage(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
+  int HandleBinlogSync(const InnerMessage::InnerRequest& req);
+
+  bool is_authed_;
+  pink::RedisParser redis_parser_;
+  PikaBinlogParser binlog_parser_;
+
+  PikaBinlogReceiverThread* binlog_receiver_;
 };
 
-#endif
+#endif  // INCLUDE_PIKA_REPL_SERVER_CONN_H_
