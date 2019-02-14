@@ -53,11 +53,12 @@ void SlaveofCmd::DoInitial() {
     return;
   }
 
-  if (argv_.size() == 4
-    && !strcasecmp(argv_[3].data(), "force")) {
-    g_pika_server->SetForceFullSync(true);
-  } else {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
+  if (argv_.size() == 4) {
+    if (!strcasecmp(argv_[3].data(), "force")) {
+      g_pika_server->SetForceFullSync(true);
+    } else {
+      res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
+    }
   }
 }
 

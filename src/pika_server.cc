@@ -97,11 +97,11 @@ PikaServer::PikaServer() :
                                                  worker_queue_limit);
   pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(ips, port_ + 1000, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
-  pika_trysync_thread_ = new PikaTrysyncThread();
   monitor_thread_ = new PikaMonitorThread();
   pika_pubsub_thread_ = new pink::PubSubThread();
   pika_repl_client_ = new PikaReplClient(3000, 60);
   pika_repl_server_ = new PikaReplServer(ips, port_ + 3000, 3000);
+  pika_auxiliary_thread_ = new PikaAuxiliaryThread();
   pika_thread_pool_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
 
   for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
@@ -134,12 +134,12 @@ PikaServer::~PikaServer() {
   }
   }
 
-  delete pika_trysync_thread_;
   delete ping_thread_;
   delete pika_binlog_receiver_thread_;
   delete pika_pubsub_thread_;
   delete pika_repl_client_;
   delete pika_repl_server_;
+  delete pika_auxiliary_thread_;
 
   binlogbg_exit_ = true;
   std::vector<BinlogBGWorker*>::iterator binlogbg_iter = binlogbg_workers_.begin();
@@ -310,12 +310,6 @@ void PikaServer::Start() {
     LOG(FATAL) << "Start Heartbeat Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 2000) + " conflict"
             : ": other error") << ", Listen on this port to receive the heartbeat packets sent by the master";
   }
-  ret = pika_trysync_thread_->StartThread();
-  if (ret != pink::kSuccess) {
-    delete logger_;
-    db_.reset();
-    LOG(FATAL) << "Start Trysync Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
-  }
   ret = pika_pubsub_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
@@ -337,6 +331,12 @@ void PikaServer::Start() {
     LOG(FATAL) << "Start Repl Server Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
 
+  ret = pika_auxiliary_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  }
 
   time(&start_time_s_);
 
@@ -646,7 +646,7 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
     master_ip_ = master_ip;
     master_port_ = master_port;
     role_ |= PIKA_ROLE_SLAVE;
-    repl_state_ = PIKA_REPL_CONNECT;
+    repl_state_ = PIKA_REPL_SHOULD_META_SYNC;
     return true;
   }
   return false;
@@ -675,6 +675,18 @@ void PikaServer::WaitDBSyncFinish() {
 
 void PikaServer::KillBinlogSenderConn() {
   pika_binlog_receiver_thread_->KillBinlogSender();
+}
+
+bool PikaServer::ShouldMetaSync() {
+  slash::RWLock l(&state_protector_, false);
+  return repl_state_ == PIKA_REPL_SHOULD_META_SYNC;
+}
+
+void PikaServer::MetaSyncDone() {
+  slash::RWLock l(&state_protector_, true);
+  if (repl_state_ == PIKA_REPL_WAIT_META_SYNC_RESPONSE) {
+    repl_state_ = PIKA_REPL_SHOULD_TRYSYNC;
+  }
 }
 
 bool PikaServer::ShouldConnectMaster() {
@@ -740,20 +752,8 @@ bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
 }
 
 void PikaServer::SyncError() {
-
-  {
   slash::RWLock l(&state_protector_, true);
   repl_state_ = PIKA_REPL_ERROR;
-  }
-  if (ping_thread_ != NULL)  {
-    int err = ping_thread_->StopThread();
-    if (err != 0) {
-      std::string msg = "can't join thread " + std::string(strerror(err));
-      LOG(WARNING) << msg;
-    }
-    delete ping_thread_;
-    ping_thread_ = NULL;
-  }
   LOG(WARNING) << "Sync error, set repl_state to PIKA_REPL_ERROR";
 }
 
@@ -1438,6 +1438,13 @@ void PikaServer::PubSubNumSub(const std::vector<std::string>& channels,
 }
 int PikaServer::PubSubNumPat() {
   return pika_pubsub_thread_->PubSubNumPat();
+}
+
+Status PikaServer::SendMetaSyncRequest() {
+  Status status = pika_repl_client_->SendMetaSync();
+  slash::RWLock l(&state_protector_, true);
+  repl_state_ = PIKA_REPL_WAIT_META_SYNC_RESPONSE;
+  return status;
 }
 
 void PikaServer::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {

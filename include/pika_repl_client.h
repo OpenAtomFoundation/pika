@@ -70,6 +70,8 @@ class PikaReplClient {
   Status AddBinlogReader(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
   void RunStateMachine(const RmNode& slave);
   bool NeedToSendBinlog(const RmNode& slave);
+  Status SendMetaSync();
+
  private:
   class ReplClientConnFactory : public pink::ConnFactory {
    public:
