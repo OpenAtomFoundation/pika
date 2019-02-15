@@ -30,6 +30,7 @@ class PikaReplServerConn: public pink::PbConn {
   BinlogItem binlog_item_;
  private:
   static int ParserDealMessage(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
+  int HandleMetaSyncRequest(const InnerMessage::InnerRequest& req);
   int HandleBinlogSync(const InnerMessage::InnerRequest& req);
 
   bool is_authed_;

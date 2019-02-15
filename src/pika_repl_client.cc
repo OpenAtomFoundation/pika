@@ -90,6 +90,24 @@ bool PikaReplClient::NeedToSendBinlog(const RmNode& slave) {
   return !(reader->ReadToTheEnd());
 }
 
+Status PikaReplClient::SendMetaSync() {
+  InnerMessage::InnerRequest request;
+  request.set_type(InnerMessage::kMetaSync);
+  InnerMessage::InnerRequest::MetaSync* meta_sync = request.mutable_meta_sync();
+  InnerMessage::Node* node = meta_sync->mutable_node();
+  node->set_ip(g_pika_server->host());
+  node->set_port(g_pika_server->port());
+
+  std::string to_send;
+  if (!request.SerializeToString(&to_send)) {
+    return Status::Corruption("Serialize Failed");
+  }
+
+  std::string master_ip = g_pika_server->master_ip();
+  int master_port = g_pika_server->master_port();
+  return client_thread_->Write(master_ip, master_port + 3000, to_send);
+}
+
 Status PikaReplClient::TrySyncBinlog(const RmNode& slave, bool authed) {
   InnerMessage::InnerRequest request;
   if (!authed) {
