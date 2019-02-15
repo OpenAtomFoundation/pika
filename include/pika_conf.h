@@ -16,6 +16,13 @@
 typedef slash::RWLock RWLock;
 
 struct TableStruct {
+  TableStruct(const std::string& tn, const uint32_t pn)
+      : table_name(tn), partition_num(pn) {}
+
+  bool operator == (const TableStruct& table_struct) const {
+    return table_name == table_struct.table_name
+        && partition_num == table_struct.partition_num;
+  }
   std::string table_name;
   uint32_t partition_num;
 };
