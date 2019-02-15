@@ -31,17 +31,16 @@
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
+#include "include/pika_auxiliary_thread.h"
 
 using slash::Status;
 using slash::Slice;
 
 /*
- * kCmdNameSlaveof
  * kCmdNamePurgelogsto
  */
 
-static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNameSlaveof,
-                                            kCmdNamePurgelogsto                   };
+static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNamePurgelogsto};
 
 static std::set<std::string> ShardingModeNotSupportCommands {kCmdNameDel,
                  kCmdNameMget,        kCmdNameKeys,          kCmdNameMset,
@@ -218,6 +217,8 @@ class PikaServer {
   void NeedWaitDBSync();
   void WaitDBSyncFinish();
   void KillBinlogSenderConn();
+  bool ShouldMetaSync();
+  void MetaSyncDone();
 
   void Start();
 
@@ -372,6 +373,11 @@ class PikaServer {
                     std::vector<std::pair<std::string, int>>* result);
 
   int PubSubNumPat();
+
+  /*
+   * Communication use
+   */
+  Status SendMetaSyncRequest();
 
   /*
    * Monitor used
@@ -530,6 +536,7 @@ class PikaServer {
    */
   PikaReplClient* pika_repl_client_;
   PikaReplServer* pika_repl_server_;
+  PikaAuxiliaryThread* pika_auxiliary_thread_;
 
   /*
    * Binlog Receiver use

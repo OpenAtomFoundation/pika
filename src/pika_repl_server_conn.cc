@@ -5,9 +5,11 @@
 
 #include "include/pika_repl_server_conn.h"
 
+#include "include/pika_conf.h"
 #include "include/pika_server.h"
 #include "include/pika_cmd_table_manager.h"
 
+extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
@@ -33,6 +35,7 @@ int PikaReplServerConn::DealMessage() {
   int res = 0;
   switch (req.type()) {
     case InnerMessage::kMetaSync:
+      HandleMetaSyncRequest(req);
       break;
     case InnerMessage::kTrySync:
       break;
@@ -44,6 +47,26 @@ int PikaReplServerConn::DealMessage() {
       break;
   }
   return res;
+}
+
+int PikaReplServerConn::HandleMetaSyncRequest(const InnerMessage::InnerRequest& req) {
+  std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+  InnerMessage::InnerResponse response;
+  response.set_code(InnerMessage::kOk);
+  response.set_type(InnerMessage::kMetaSync);
+  InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
+  meta_sync->set_classic_mode(g_pika_conf->classic_mode());
+  for (const auto& table_struct : table_structs) {
+    InnerMessage::InnerResponse_MetaSync_TableInfo* table_info = meta_sync->add_tables_info();
+    table_info->set_table_name(table_struct.table_name);
+    table_info->set_partition_num(table_struct.partition_num);
+  }
+
+  std::string reply_str;
+  if (!response.SerializeToString(&reply_str)) {
+    return -1;
+  }
+  return WriteResp(reply_str);
 }
 
 int PikaReplServerConn::HandleBinlogSync(const InnerMessage::InnerRequest& req) {
