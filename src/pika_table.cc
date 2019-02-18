@@ -19,12 +19,14 @@ std::string TablePath(const std::string& path,
 Table::Table(const std::string& table_name,
              uint32_t partition_num,
              const std::string& db_path,
-             const std::string& log_path) :
+             const std::string& log_path,
+             const std::string& trash_path) :
   table_name_(table_name),
   partition_num_(partition_num) {
 
   db_path_ = TablePath(db_path, table_name_);
   log_path_ = TablePath(log_path, table_name_);
+  trash_path_ = TablePath(trash_path, table_name_);
 
   slash::CreatePath(db_path_);
   slash::CreatePath(log_path_);
@@ -33,7 +35,7 @@ Table::Table(const std::string& table_name,
 
   for (uint32_t idx = 0; idx < partition_num_; ++idx) {
     partitions_.emplace(idx, std::shared_ptr<Partition>(
-                new Partition(table_name_, idx, db_path_, log_path_)));
+                new Partition(table_name_, idx, db_path_, log_path_, trash_path_)));
   }
 
 }
@@ -44,7 +46,7 @@ Table::~Table() {
   partitions_.clear();
 }
 
-std::string Table::table_name() {
+std::string Table::GetTableName() {
   return table_name_;
 }
 
@@ -100,11 +102,6 @@ uint32_t Table::PartitionNum() {
   return partition_num_;
 }
 
-bool Table::key_scaning() {
-  slash::MutexLock ml(&key_scan_protector_);
-  return key_scan_info_.key_scaning_;
-}
-
 void Table::KeyScan() {
   slash::MutexLock ml(&key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
@@ -116,6 +113,11 @@ void Table::KeyScan() {
   BgTaskArg* bg_task_arg = new BgTaskArg();
   bg_task_arg->table = shared_from_this();
   g_pika_server->KeyScanTaskSchedule(&DoKeyScan, reinterpret_cast<void*>(bg_task_arg));
+}
+
+bool Table::IsKeyScaning() {
+  slash::MutexLock ml(&key_scan_protector_);
+  return key_scan_info_.key_scaning_;
 }
 
 void Table::RunKeyScan() {
@@ -156,12 +158,12 @@ void Table::StopKeyScan() {
 void Table::ScanDatabase(const blackwidow::DataType& type) {
   slash::RWLock rwl(&partitions_rw_, false);
   for (const auto& item : partitions_) {
-    printf("\n\npartition name : %s\n", item.second->partition_name().c_str());
+    printf("\n\npartition name : %s\n", item.second->GetPartitionName().c_str());
     item.second->db()->ScanDatabase(type);
   }
 }
 
-KeyScanInfo Table::key_scan_info() {
+KeyScanInfo Table::GetKeyScanInfo() {
   slash::MutexLock lm(&key_scan_protector_);
   return key_scan_info_;
 }
@@ -177,6 +179,14 @@ void Table::InitKeyScan() {
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
+}
+
+void Table::LeaveAllPartition() {
+  slash::RWLock rwl(&partitions_rw_, true);
+  for (const auto& item : partitions_) {
+    item.second->Leave();
+  }
+  partitions_.clear();
 }
 
 std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {

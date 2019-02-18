@@ -161,6 +161,8 @@ class PikaServer {
   /*
    * Table Partition use
    */
+  void InitTableStruct();
+  bool RebuildTableStruct(const std::vector<TableStruct>& table_structs);
   std::shared_ptr<Table> GetTable(const std::string& table_name);
   bool IsCommandCurrentSupport(const std::string& command);
   bool IsTableBinlogIoError(const std::string& table_name);
@@ -168,6 +170,9 @@ class PikaServer {
                            const std::string& key);
   void PartitionRecordUnLock(const std::string& table_name,
                              const std::string& key);
+  bool IsBgSaving();
+  bool IsKeyScaning();
+  bool IsCompacting();
   bool IsTableExist(const std::string& table_name);
   bool IsCommandSupport(const std::string& command);
   uint32_t GetPartitionNumByTable(const std::string& table_name);

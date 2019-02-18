@@ -71,14 +71,7 @@ PikaServer::PikaServer() :
           PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
   pthread_rwlock_init(&tables_rw_, &tables_rw_attr);
 
-  std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
-  for (const auto& table : table_structs) {
-    std::string name = table.table_name;
-    uint32_t num = table.partition_num;
-    tables_.emplace(name, std::shared_ptr<Table>(
-                new Table(name, num, db_path, log_path)));
-  }
-
+  InitTableStruct();
 
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(),
@@ -365,6 +358,44 @@ void PikaServer::Start() {
   LOG(INFO) << "Goodbye...";
 }
 
+void PikaServer::InitTableStruct() {
+  std::string db_path = g_pika_conf->db_path();
+  std::string log_path = g_pika_conf->log_path();
+  std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+  for (const auto& table : table_structs) {
+    std::string name = table.table_name;
+    uint32_t num = table.partition_num;
+    tables_.emplace(name, std::shared_ptr<Table>(
+                new Table(name, num, db_path, log_path, "./trash/")));
+  }
+}
+
+bool PikaServer::RebuildTableStruct(const std::vector<TableStruct>& table_structs) {
+  if (IsKeyScaning()) {
+    LOG(WARNING) << "Some table in key scaning, rebuild table struct failed";
+    return false;
+  }
+
+  if (IsBgSaving()) {
+    LOG(WARNING) << "Some table in bgsaving, rebuild table struct failed";
+    return false;
+  }
+
+  {
+    slash::RWLock rwl(&tables_rw_, true);
+    for (const auto& table_item : tables_) {
+      table_item.second->LeaveAllPartition();
+    }
+    tables_.clear();
+  }
+
+  // TODO(Axlgrep): The new table structure needs to be written back
+  // to the pika.conf file
+  g_pika_conf->SetTableStructs(table_structs);
+  InitTableStruct();
+  return true;
+}
+
 std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {
   slash::RWLock l(&tables_rw_, false);
   auto iter = tables_.find(table_name);
@@ -398,6 +429,42 @@ void PikaServer::PartitionRecordUnLock(const std::string& table_name,
   if (partition) {
     partition->RecordUnLock(key);
   }
+}
+
+bool PikaServer::IsBgSaving() {
+  slash::RWLock table_rwl(&tables_rw_, false);
+  for (const auto& table_item : tables_) {
+    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    for (const auto& patition_item : table_item.second->partitions_) {
+      if (patition_item.second->IsBgSaving()) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool PikaServer::IsKeyScaning() {
+  slash::RWLock table_rwl(&tables_rw_, false);
+  for (const auto& table_item : tables_) {
+    if (table_item.second->IsKeyScaning()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool PikaServer::IsCompacting() {
+  slash::RWLock table_rwl(&tables_rw_, false);
+  for (const auto& table_item : tables_) {
+    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    for (const auto& patition_item : table_item.second->partitions_) {
+      if (strcasecmp(patition_item.second->db()->GetCurrentTaskType().data(), "no")) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool PikaServer::IsTableExist(const std::string& table_name) {

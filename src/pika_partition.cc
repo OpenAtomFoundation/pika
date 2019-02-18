@@ -38,7 +38,8 @@ std::string BgsaveSubPath(const std::string& table_name,
 Partition::Partition(const std::string& table_name,
                      uint32_t partition_id,
                      const std::string& table_db_path,
-                     const std::string& table_log_path) :
+                     const std::string& table_log_path,
+                     const std::string& table_trash_path) :
   table_name_(table_name),
   partition_id_(partition_id),
   binlog_io_error_(false),
@@ -49,6 +50,8 @@ Partition::Partition(const std::string& table_name,
       table_db_path : PartitionPath(table_db_path, partition_id_);
   log_path_ = g_pika_conf->classic_mode() ?
       table_log_path : PartitionPath(table_log_path, partition_id_);
+  trash_path_ = g_pika_conf->classic_mode() ?
+      table_trash_path : PartitionPath(table_trash_path, partition_id_);
   bgsave_sub_path_ = g_pika_conf->classic_mode() ?
       table_name : BgsaveSubPath(table_name_, partition_id_);
   partition_name_ = g_pika_conf->classic_mode() ?
@@ -63,6 +66,7 @@ Partition::Partition(const std::string& table_name,
   LOG(INFO) << partition_name_ << " prepare Blackwidow DB...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(bw_option, db_path_);
+  opened_ = s.ok() ? true : false;
   assert(db_);
   assert(s.ok());
   LOG(INFO) << partition_name_ << " DB Success";
@@ -78,11 +82,48 @@ Partition::~Partition() {
   delete bgsave_engine_;
 }
 
-uint32_t Partition::partition_id() const {
+void Partition::Leave() {
+  Close();
+  MoveToTrash();
+}
+
+void Partition::Close() {
+  if (!opened_) {
+    return;
+  }
+  slash::RWLock rwl(&db_rwlock_, true);
+  db_.reset();
+  logger_.reset();
+  opened_ = false;
+}
+
+// Before call this function, should
+// close db and log first
+void Partition::MoveToTrash() {
+  if (opened_) {
+    return;
+  }
+
+  // Move data and log to Trash
+  slash::CreatePath(trash_path_);
+  std::string db_trash(trash_path_ + "db/");
+  std::string log_trash(trash_path_ + "log/");
+
+  slash::DeleteDirIfExist(db_trash);
+  if (slash::RenameFile(db_path_.data(), db_trash.data())) {
+    LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
+  }
+  slash::DeleteDirIfExist(log_trash);
+  if (slash::RenameFile(log_path_.data(), log_trash.data())) {
+    LOG(WARNING) << "Failed to move log to trash, error: " << strerror(errno);
+  }
+}
+
+uint32_t Partition::GetPartitionId() const {
   return partition_id_;
 }
 
-std::string Partition::partition_name() const {
+std::string Partition::GetPartitionName() const {
   return partition_name_;
 }
 
@@ -95,6 +136,12 @@ std::shared_ptr<blackwidow::BlackWidow> Partition::db() const {
 }
 
 void Partition::DoCommand(Cmd* const cmd) {
+  if (!opened_) {
+    LOG(WARNING) << partition_name_ << " not opened, failed to exec command";
+    cmd->res().SetRes(CmdRes::kErrOther, "Partition Not Opened");
+    return;
+  }
+
   if (!cmd->is_suspend()) {
     DbRWLockReader();
   }
@@ -142,6 +189,7 @@ void Partition::DoCommand(Cmd* const cmd) {
 }
 
 void Partition::Compact(const blackwidow::DataType& type) {
+  if (!opened_) return;
   db_->Compact(type);
 }
 
@@ -179,6 +227,11 @@ void Partition::SetBinlogIoError(bool error) {
 
 bool Partition::IsBinlogIoError() {
   return binlog_io_error_;
+}
+
+bool Partition::IsBgSaving() {
+  slash::MutexLock ml(&bgsave_protector_);
+  return bgsave_info_.bgsaving;
 }
 
 void Partition::BgSavePartition() {

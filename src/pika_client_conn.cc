@@ -164,6 +164,10 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     return "-ERR This command only support in classic mode\r\n";
   }
 
+  if (!g_pika_server->IsTableExist(current_table_)) {
+    return "-ERR Table not found\r\n";
+  }
+
   // TODO: Consider special commands, like flushall, flushdb?
   if (c_ptr->is_write()) {
     if (g_pika_server->IsTableBinlogIoError(current_table_)) {
