@@ -186,6 +186,10 @@ class PikaConf : public slash::BaseConf {
       slash::StringToLower(item);
     }
   }
+  void SetTableStructs(const std::vector<TableStruct>& table_structs) {
+    RWLock l(&rwlock_, true);
+    table_structs_ = table_structs;
+  }
   void SetSlaveReadOnly(const bool value) {
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("slave-read-only", value == true ? "yes" : "no");

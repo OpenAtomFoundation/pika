@@ -32,13 +32,14 @@ class Table : public std::enable_shared_from_this<Table>{
   Table(const std::string& table_name,
         uint32_t partition_num,
         const std::string& db_path,
-        const std::string& log_path);
+        const std::string& log_path,
+        const std::string& trash_path);
   virtual ~Table();
 
   friend class InfoCmd;
   friend class PikaServer;
 
-  std::string table_name();
+  std::string GetTableName();
   void BgSaveTable();
   void CompactTable(const blackwidow::DataType& type);
   bool FlushAllTable();
@@ -47,14 +48,14 @@ class Table : public std::enable_shared_from_this<Table>{
   uint32_t PartitionNum();
 
   // KeyScan use;
-  bool key_scaning();
   void KeyScan();
+  bool IsKeyScaning();
   void RunKeyScan();
   void StopKeyScan();
   void ScanDatabase(const blackwidow::DataType& type);
-  KeyScanInfo key_scan_info();
+  KeyScanInfo GetKeyScanInfo();
 
-
+  void LeaveAllPartition();
   std::shared_ptr<Partition> GetPartitionById(uint32_t partition_id);
   std::shared_ptr<Partition> GetPartitionByKey(const std::string& key);
 
@@ -63,6 +64,7 @@ class Table : public std::enable_shared_from_this<Table>{
   uint32_t partition_num_;
   std::string db_path_;
   std::string log_path_;
+  std::string trash_path_;
 
   pthread_rwlock_t partitions_rw_;
   std::map<int32_t, std::shared_ptr<Partition>> partitions_;
