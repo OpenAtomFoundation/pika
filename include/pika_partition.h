@@ -34,11 +34,12 @@ class Partition : public std::enable_shared_from_this<Partition> {
   Partition(const std::string& table_name,
             uint32_t partition_id,
             const std::string& table_db_path,
-            const std::string& table_log_path);
+            const std::string& table_log_path,
+            const std::string& table_trash_path);
   virtual ~Partition();
 
-  uint32_t partition_id() const;
-  std::string partition_name() const;
+  uint32_t GetPartitionId() const;
+  std::string GetPartitionName() const;
   std::shared_ptr<Binlog> logger() const;
   std::shared_ptr<blackwidow::BlackWidow> db() const;
 
@@ -56,7 +57,12 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void SetBinlogIoError(bool error);
   bool IsBinlogIoError();
 
+  void Leave();
+  void Close();
+  void MoveToTrash();
+
   // BgSave use;
+  bool IsBgSaving();
   void BgSavePartition();
   BGSaveInfo bgsave_info();
 
@@ -77,9 +83,11 @@ class Partition : public std::enable_shared_from_this<Partition> {
 
   std::string db_path_;
   std::string log_path_;
+  std::string trash_path_;
   std::string bgsave_sub_path_;
   std::string partition_name_;
 
+  bool opened_;
   std::shared_ptr<Binlog> logger_;
   std::atomic<bool> binlog_io_error_;
 
