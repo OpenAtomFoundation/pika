@@ -571,25 +571,14 @@ void InfoCmd::InfoClients(std::string &info) {
 }
 
 void InfoCmd::InfoStats(std::string &info) {
-  bool is_scaning = false, is_compact = false, is_bgsaving = false;
-  slash::RWLock table_rwl(&g_pika_server->tables_rw_, false);
-  for (const auto& table_item : g_pika_server->tables_) {
-    is_scaning = table_item.second->key_scaning() ? true : is_scaning;
-    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
-    for (const auto& patition_item : table_item.second->partitions_) {
-      is_bgsaving = patition_item.second->bgsave_info().bgsaving ? true : is_bgsaving;
-      is_compact = strcasecmp(patition_item.second->db()->GetCurrentTaskType().data(), "no") ? true : is_compact;
-    }
-  }
-
   std::stringstream tmp_stream;
   tmp_stream << "# Stats\r\n";
   tmp_stream << "total_connections_received:" << g_pika_server->accumulative_connections() << "\r\n";
   tmp_stream << "instantaneous_ops_per_sec:" << g_pika_server->ServerCurrentQps() << "\r\n";
   tmp_stream << "total_commands_processed:" << g_pika_server->ServerQueryNum() << "\r\n";
-  tmp_stream << "is_bgsaving:" << (is_bgsaving ? "Yes" : "No") << "\r\n";
-  tmp_stream << "is_scaning_keyspace:" << (is_scaning ? "Yes" : "No") << "\r\n";
-  tmp_stream << "is_compact:" << (is_compact ? "Yes" : "No") << "\r\n";
+  tmp_stream << "is_bgsaving:" << (g_pika_server->IsBgSaving() ? "Yes" : "No") << "\r\n";
+  tmp_stream << "is_scaning_keyspace:" << (g_pika_server->IsKeyScaning() ? "Yes" : "No") << "\r\n";
+  tmp_stream << "is_compact:" << (g_pika_server->IsCompacting() ? "Yes" : "No") << "\r\n";
   tmp_stream << "compact_cron:" << g_pika_conf->compact_cron() << "\r\n";
   tmp_stream << "compact_interval:" << g_pika_conf->compact_interval() << "\r\n";
 
@@ -681,8 +670,8 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   tmp_stream << "# Keyspace\r\n";
   slash::RWLock rwl(&g_pika_server->tables_rw_, false);
   for (const auto& table_item : g_pika_server->tables_) {
-    table_name = table_item.second->table_name();
-    key_scan_info = table_item.second->key_scan_info();
+    table_name = table_item.second->GetTableName();
+    key_scan_info = table_item.second->GetKeyScanInfo();
     key_infos = key_scan_info.key_infos;
     if (key_infos.size() != 5) {
       info.append("info keyspace error\r\n");
@@ -719,7 +708,7 @@ void InfoCmd::InfoLog(std::string &info) {
     slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
     for (const auto& patition_item : table_item.second->partitions_) {
       patition_item.second->logger()->GetProducerStatus(&filenum, &offset);
-      tmp_stream << patition_item.second->partition_name() << ":binlog_offset=" << filenum << " " << offset << "\r\n";
+      tmp_stream << patition_item.second->GetPartitionName() << ":binlog_offset=" << filenum << " " << offset << "\r\n";
     }
   }
   info.append(tmp_stream.str());
@@ -1432,7 +1421,7 @@ void DbsizeCmd::Do(std::shared_ptr<Partition> partition) {
   if (!table) {
     res_.SetRes(CmdRes::kInvalidTable);
   } else {
-    KeyScanInfo key_scan_info = table->key_scan_info();
+    KeyScanInfo key_scan_info = table->GetKeyScanInfo();
     std::vector<blackwidow::KeyInfo> key_infos = key_scan_info.key_infos;
     if (key_infos.size() != 5) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
