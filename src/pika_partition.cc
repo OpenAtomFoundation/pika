@@ -385,7 +385,7 @@ bool Partition::FlushAll() {
   assert(db_);
   assert(s.ok());
   LOG(INFO) << partition_name_ << " open new db success";
-  PurgeDir(dbpath);
+  g_pika_server->PurgeDir(dbpath);
   return true;
 }
 
@@ -418,21 +418,8 @@ bool Partition::FlushDb(const std::string& db_name) {
   assert(db_);
   assert(s.ok());
   LOG(INFO) << partition_name_ << " open new " + db_name + " db success";
-  PurgeDir(del_dbpath);
+  g_pika_server->PurgeDir(del_dbpath);
   return true;
-}
-
-void Partition::PurgeDir(std::string& path) {
-  std::string *dir_path = new std::string(path);
-  g_pika_server->PurgeDirTaskSchedule(&DoPurgeDir, static_cast<void*>(dir_path));
-}
-
-void Partition::DoPurgeDir(void* arg) {
-  std::string path = *(static_cast<std::string*>(arg));
-  LOG(INFO) << "Delete dir: " << path << " start";
-  slash::DeleteDir(path);
-  LOG(INFO) << "Delete dir: " << path << " done";
-  delete static_cast<std::string*>(arg);
 }
 
 bool Partition::PurgeLogs(uint32_t to, bool manual, bool force) {
