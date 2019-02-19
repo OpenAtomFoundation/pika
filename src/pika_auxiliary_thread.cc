@@ -20,6 +20,7 @@ void* PikaAuxiliaryThread::ThreadMain() {
     sleep(1);
     if (g_pika_server->ShouldMetaSync()) {
       g_pika_server->SendMetaSyncRequest();
+      continue;
     }
   }
   return NULL;

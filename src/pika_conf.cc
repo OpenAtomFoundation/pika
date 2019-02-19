@@ -134,6 +134,7 @@ int PikaConf::Load()
   GetConfInt("port", &port_);
   GetConfStr("log-path", &log_path_);
   GetConfStr("db-path", &db_path_);
+  GetConfStr("trash-path", &trash_path_);
   if (log_path_[log_path_.length() - 1] != '/') {
     log_path_ += "/";
   }
@@ -354,6 +355,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("log-path", log_path_);
   SetConfStr("loglevel", log_level_ ? "ERROR" : "INFO");
   SetConfStr("db-path", db_path_);
+  SetConfStr("trash-path", trash_path_);
   SetConfStr("db-sync-path", db_sync_path_);
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
