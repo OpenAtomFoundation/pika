@@ -5,6 +5,8 @@
 
 #include "include/pika_repl_server_conn.h"
 
+#include <glog/logging.h>
+
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
 #include "include/pika_cmd_table_manager.h"
@@ -19,7 +21,7 @@ PikaReplServerConn::PikaReplServerConn(int fd,
                                        void* worker_specific_data)
     : PbConn(fd, ip_port, thread),
       is_authed_(false) {
-  binlog_receiver_ = reinterpret_cast<PikaBinlogReceiverThread*>(worker_specific_data);
+  binlog_receiver_ = reinterpret_cast<PikaReplServerThread*>(worker_specific_data);
   pink::RedisParserSettings settings;
   settings.DealMessage = &(PikaReplServerConn::ParserDealMessage);
   redis_parser_.RedisParserInit(REDIS_PARSER_REQUEST, settings);
@@ -31,7 +33,11 @@ PikaReplServerConn::~PikaReplServerConn() {
 
 int PikaReplServerConn::DealMessage() {
   InnerMessage::InnerRequest req;
-  req.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  bool parse_res = req.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  if (!parse_res) {
+    LOG(WARNING) << "Pika repl server connection pb parse error.";
+    return -1;
+  }
   int res = 0;
   switch (req.type()) {
     case InnerMessage::kMetaSync:
@@ -87,6 +93,7 @@ int PikaReplServerConn::HandleBinlogSync(const InnerMessage::InnerRequest& req) 
     }
     const char* redis_parser_start = binlog_req.binlog().data() + scrubed_len;
     int redis_parser_len = static_cast<int>(binlog_req.binlog().size()) - scrubed_len;
+    processed_len = 0;
     pink::RedisParserStatus ret = redis_parser_.ProcessInputBuffer(
       redis_parser_start, redis_parser_len, &processed_len);
     if (ret != pink::kRedisParserDone) {
@@ -164,7 +171,7 @@ bool PikaReplServerConn::ProcessBinlogData(const pink::RedisCmdArgsType& argv, c
 }
 
 int PikaReplServerConn::ParserDealMessage(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
-  PikaBinlogReceiverConn* conn = reinterpret_cast<PikaBinlogReceiverConn*>(parser->data);
+  PikaReplServerConn* conn = reinterpret_cast<PikaReplServerConn*>(parser->data);
   if (conn->binlog_header_.header_type_ == kTypeAuth) {
     return conn->ProcessAuth(argv) == true ? 0 : -1;
   } else if (conn->binlog_header_.header_type_ == kTypeBinlog) {

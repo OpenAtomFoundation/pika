@@ -23,6 +23,8 @@ typedef WorkerCronTask MonitorCronTask;
 
 //slave item
 struct SlaveItem {
+  std::string table;
+  uint32_t partition_id;
   int64_t sid;
   std::string ip_port;
   int port;
