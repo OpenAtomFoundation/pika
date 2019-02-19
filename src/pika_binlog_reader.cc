@@ -10,9 +10,11 @@
 PikaBinlogReader::PikaBinlogReader(slash::SequentialFile *queue,
     std::shared_ptr<Binlog> logger,
     uint32_t cur_filenum,
-    uint64_t cur_offset)
+    uint64_t cur_offset,
+    int64_t sid)
     : cur_filenum_(cur_filenum),
       cur_offset_(cur_offset),
+      sid_(sid),
       logger_(logger),
       queue_(queue),
       backing_store_(new char[kBlockSize]),
@@ -56,6 +58,7 @@ int PikaBinlogReader::Seek() {
       cur_offset_ = start_block + res;
       break;
     }
+    ret = 0;
     is_error = GetNext(&ret);
     if (is_error == true) {
       return -1;
@@ -63,7 +66,6 @@ int PikaBinlogReader::Seek() {
     res += ret;
   }
   last_record_offset_ = cur_offset_ % kBlockSize;
-
   return 0;
 }
 
@@ -106,7 +108,7 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
       break;
     }
   }
-  *size += offset;
+  *size = offset;
   return is_error;
 }
 
@@ -211,13 +213,6 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
   while (retry == 0 || ((retry == 1) && s.IsEndFile())) {
     retry++;
     s = Consume(scratch, filenum, offset);
-
-    {
-    slash::RWLock(&(rwlock_), false);
-    if (cur_filenum_ == pro_num && cur_offset_ == pro_offset) {
-      return Status::EndFile("End of cur log file");
-    }
-    }
 
     if (s.IsEndFile()) {
       std::string confile;

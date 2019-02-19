@@ -11,12 +11,14 @@
 
 #include "include/pika_server.h"
 
+#include "pink/src/holy_thread.h"
+
 extern PikaServer* g_pika_server;
 
 PikaHeartbeatThread::PikaHeartbeatThread(std::set<std::string>& ips, int port,
                                          int cron_interval)
       : handles_(this) {
-  thread_rep_ = NewHolyThread(ips, port, &conn_factory_, cron_interval, &handles_);
+  thread_rep_ = new pink::HolyThread(ips, port, &conn_factory_, cron_interval, &handles_, false);
   thread_rep_->set_keepalive_timeout(20);
 }
 
