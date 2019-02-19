@@ -83,6 +83,14 @@ class PikaServer {
     return diskInfo.f_bsize * diskInfo.f_blocks;
   }
 
+  static void DoPurgeDir(void* arg) {
+    std::string path = *(static_cast<std::string*>(arg));
+    LOG(INFO) << "Delete dir: " << path << " start";
+    slash::DeleteDir(path);
+    LOG(INFO) << "Delete dir: " << path << " done";
+    delete static_cast<std::string*>(arg);
+  }
+
   /*
    * Get & Set
    */
@@ -335,6 +343,7 @@ class PikaServer {
   slash::Mutex & GetSlavesMutex() { return db_sync_protector_; }
 
   //flushall & flushdb
+  void PurgeDir(const std::string& path);
   void PurgeDirTaskSchedule(void (*function)(void*), void* arg);
 
   /*
@@ -514,11 +523,6 @@ class PikaServer {
   void TryDBSync(const std::string& ip, int port, int32_t top);
   void DBSync(const std::string& ip, int port);
   static void DoDBSync(void* arg);
-
-  /*
-   * Flushall use
-   */
-  static void DoPurgeDir(void* arg);
 
   /*
    * Keyscan use
