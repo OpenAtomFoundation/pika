@@ -53,7 +53,7 @@ class ReplClientHandle : public pink::ClientHandle {
 
 struct RmNode {
   std::string table_;
-  int partition_;
+  uint32_t partition_;
   std::string ip_;
   int port_;
   RmNode(const std::string& table, int partition, const std::string& ip, int port) : table_(table), partition_(partition), ip_(ip), port_(port) {
@@ -67,7 +67,8 @@ class PikaReplClient {
   slash::Status Write(const std::string& ip, const int port, const std::string& msg);
   //void ThreadPollSchedule(pink::TaskFunc func, void*arg);
   int Start();
-  Status AddBinlogReader(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
+  Status AddBinlogReader(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset, int64_t sid);
+  Status RemoveBinlogReader(const RmNode& slave);
   void RunStateMachine(const RmNode& slave);
   bool NeedToSendBinlog(const RmNode& slave);
   Status SendMetaSync();
@@ -85,14 +86,14 @@ class PikaReplClient {
     }
   };
 
-  PikaBinlogReader* NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
+  PikaBinlogReader* NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset, int64_t sid);
 
   Status TrySyncBinlog(const RmNode& slave, bool authed);
   void BuildAuthPb(const RmNode& slave, InnerMessage::InnerRequest& request);
   void BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest& request);
 
-  Status BuildAuthMsg(std::string* scratch);
-  Status BuildBinlogMsgFromFile(PikaBinlogReader* binlog_reader, std::string* scratch, uint32_t* filenum, uint64_t* offset);
+  Status BuildAuthMsg(const RmNode& slave, std::string* scratch);
+  Status BuildBinlogMsgFromFile(const RmNode& slave, std::string* scratch, uint32_t* filenum, uint64_t* offset);
 
   ReplClientConnFactory conn_factory_;
   int cron_interval_;

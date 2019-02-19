@@ -121,11 +121,13 @@ void TrysyncCmd::DoInitial() {
 void TrysyncCmd::Do(std::shared_ptr<Partition> partition) {
   LOG(INFO) << "Trysync, Slave ip: " << slave_ip_ << " Slave port:" << slave_port_
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
-  int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_);
+  int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_, "default", 0);
   if (sid >= 0) {
-    Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
-                                                   sid,
-                                                   filenum_, pro_offset_);
+    //Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
+    //                                               sid,
+    //                                               filenum_, pro_offset_);
+    Status status = g_pika_server->AddBinlogSender("default", 0, slave_ip_,
+                                                   slave_port_, sid, filenum_, pro_offset_);
     if (status.ok()) {
       res_.AppendInteger(sid);
       LOG(INFO) << "Send Sid to Slave: " << sid;
@@ -138,7 +140,7 @@ void TrysyncCmd::Do(std::shared_ptr<Partition> partition) {
     if (status.IsIncomplete()) {
       res_.AppendString(kInnerReplWait);
     } else {
-      LOG(WARNING) << "slave offset is larger than mine, slave ip: " << slave_ip_
+      LOG(WARNING) << status.ToString() << " maybe slave offset is larger than mine, slave ip: " << slave_ip_
         << " slave port: " << slave_port_
         << " filenum: " << filenum_ << " pro_offset_: " << pro_offset_;
       res_.SetRes(CmdRes::kErrOther, "InvalidOffset");

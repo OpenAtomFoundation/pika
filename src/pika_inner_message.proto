@@ -34,7 +34,7 @@ message InnerRequest {
   message TrySync {
     required Node        node         = 1;
     required string      table_name   = 2;
-    required int32       partition_id = 3;
+    required uint32      partition_id = 3;
     required SyncOffset  sync_offset  = 4;
     optional bool        force        = 5;
   }
@@ -43,7 +43,7 @@ message InnerRequest {
   message BinlogSync {
     required Node           node          = 1;
     required string         table_name    = 2;
-    required int32          partition_id  = 3;
+    required uint32         partition_id  = 3;
     optional SyncOffset     sync_offset   = 4;
     required bytes          binlog        = 5;
   }
@@ -51,7 +51,7 @@ message InnerRequest {
   // master to slave
   message DbSync {
     required string table_name   = 1;
-    required int32  partition_id = 2;
+    required uint32 partition_id = 2;
   }
 
   required Type      type         = 1;
@@ -61,7 +61,7 @@ message InnerRequest {
 }
 
 message PartitionInfo {
-  required int32  partition_id = 1;
+  required uint32 partition_id = 1;
   required Node   master       = 2;
   repeated Node   slaves       = 3;
 }

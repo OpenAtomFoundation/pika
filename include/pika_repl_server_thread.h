@@ -17,17 +17,28 @@ class PikaReplServerThread : public pink::HolyThread {
 
   void Write(const std::string& msg, const std::string& ip_port, int fd);
 
+  // for ProcessBinlogData use
+  uint64_t GetnPlusSerial() {
+    return serial_++;
+  }
+
  private:
   class ReplServerConnFactory : public pink::ConnFactory {
    public:
+    explicit ReplServerConnFactory(PikaReplServerThread* binlog_receiver)
+        : binlog_receiver_(binlog_receiver) {
+    }
+
     virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
         int connfd,
         const std::string& ip_port,
         pink::Thread* thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const override {
-      return std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, worker_specific_data);
+      return std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_);
     }
+    private:
+     PikaReplServerThread* binlog_receiver_;
   };
 
   class Handles : public pink::ServerHandle {
@@ -42,6 +53,7 @@ class PikaReplServerThread : public pink::HolyThread {
 
   ReplServerConnFactory conn_factory_;
   Handles handles_;
+  uint64_t serial_;
 
   slash::Mutex write_buf_mu_;
   std::map<int, std::string> write_buf_;

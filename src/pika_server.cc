@@ -528,6 +528,8 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
   if (iter->sender != NULL) {
     delete static_cast<PikaBinlogSenderThread*>(iter->sender);
   }
+  RmNode slave(iter->table, iter->partition_id, ip, port);
+  pika_repl_client_->RemoveBinlogReader(slave);
   slaves_.erase(iter);
   }
 }
@@ -543,6 +545,17 @@ void PikaServer::DeleteSlave(int fd) {
       if (iter->sender != NULL) {
         delete static_cast<PikaBinlogSenderThread*>(iter->sender);
       }
+      std::string ip;
+      int port;
+      bool res =  slash::ParseIpPortString(iter->ip_port, ip, port);
+      if (!res) {
+        LOG(WARNING) << "Parse ip port error " << iter->ip_port;
+        slaves_.erase(iter);
+        LOG(INFO) << "Delete slave success";
+        break;
+      }
+      RmNode slave(iter->table, iter->partition_id, ip, port);
+      pika_repl_client_->RemoveBinlogReader(slave);
       slaves_.erase(iter);
       LOG(INFO) << "Delete slave success";
       break;
@@ -614,7 +627,7 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
 
 // Try add Slave, return slave sid if success,
 // return -1 when slave already exist
-int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
+int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port, const std::string& table, uint32_t partition_id) {
   std::string ip_port = slash::IpPortString(ip, port);
 
   slash::MutexLock l(&slave_mutex_);
@@ -629,6 +642,8 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   // Not exist, so add new
   LOG(INFO) << "Add new slave, " << ip << ":" << port;
   SlaveItem s;
+  s.table = table;
+  s.partition_id = partition_id;
   s.sid = GenSid();
   s.ip_port = ip_port;
   s.port = port;
@@ -995,6 +1010,24 @@ void PikaServer::DBSyncSendFile(const std::string& ip, int port) {
   if (0 == ret) {
     LOG(INFO) << "rsync send files success";
   }
+}
+
+Status PikaServer::AddBinlogSender(const std::string& table_name,
+                                   uint32_t partition_id,
+                                   const std::string& ip,
+                                   int64_t port,
+                                   int64_t sid,
+                                   uint32_t filenum, uint64_t con_offset) {
+  // shift 3000 to connect repl sserver
+  RmNode slave(table_name, partition_id, ip, port + 3000);
+  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
+  std::shared_ptr<Binlog>logger = partition->logger();
+  Status res = pika_repl_client_->AddBinlogReader(slave, logger, filenum, con_offset, sid);
+  if (!res.ok()) {
+    return res;
+  }
+  pika_repl_client_->RunStateMachine(slave);
+  return Status::OK();
 }
 
 /*
