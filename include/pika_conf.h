@@ -45,6 +45,7 @@ class PikaConf : public slash::BaseConf {
   std::string log_path()  { RWLock l(&rwlock_, false); return log_path_; }
   int log_level()         { RWLock l(&rwlock_, false); return log_level_; }
   std::string db_path()   { RWLock l(&rwlock_, false); return db_path_; }
+  std::string trash_path()     { RWLock l(&rwlock_, false); return trash_path_; }
   std::string db_sync_path()   { RWLock l(&rwlock_, false); return db_sync_path_; }
   int db_sync_speed()   { RWLock l(&rwlock_, false); return db_sync_speed_; }
   std::string compact_cron() { RWLock l(&rwlock_, false); return compact_cron_; }
@@ -260,6 +261,7 @@ private:
   std::string log_path_;
   std::string db_path_;
   std::string db_sync_path_;
+  std::string trash_path_;
   int expire_dump_days_;
   int db_sync_speed_;
   std::string compact_cron_;

@@ -67,6 +67,7 @@ int PikaReplClientConn::HandleMetaSyncResponse(const InnerMessage::InnerResponse
   if (force_full_sync) {
     // Purge and rbuild Table Struct consistent with master
     g_pika_server->RebuildTableStruct(master_table_structs);
+    g_pika_server->PurgeDir(g_pika_conf->trash_path());
   }
 
   g_pika_server->MetaSyncDone();

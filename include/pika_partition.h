@@ -109,12 +109,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   blackwidow::BackupEngine* bgsave_engine_;
 
   /*
-   * Flushall & Flushdb use
-   */
-  static void DoPurgeDir(void* arg);
-  void PurgeDir(std::string& path);
-
-  /*
    * Purgelogs use
    */
   static void DoPurgeLogs(void* arg);
