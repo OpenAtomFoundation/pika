@@ -7,8 +7,10 @@
 
 PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips,
                                            int port,
-                                           int cron_interval)
-  : HolyThread(ips, port, &conn_factory_, cron_interval, &handles_) {
+                                           int cron_interval) :
+  HolyThread(ips, port, &conn_factory_, cron_interval, &handles_, true),
+  conn_factory_(this),
+  serial_(0) {
 }
 
 void PikaReplServerThread::Write(const std::string& msg, const std::string& ip_port, int fd) {

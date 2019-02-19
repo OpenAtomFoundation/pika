@@ -20,12 +20,15 @@ using slash::Slice;
 
 class PikaBinlogReader {
  public:
-  PikaBinlogReader(slash::SequentialFile* queue, std::shared_ptr<Binlog> logger, uint32_t cur_filenum, uint64_t cur_offset);
+  PikaBinlogReader(slash::SequentialFile* queue, std::shared_ptr<Binlog> logger, uint32_t cur_filenum, uint64_t cur_offset, int64_t sid);
   ~PikaBinlogReader();
   Status Get(std::string* scratch, uint32_t* filenum, uint64_t* offset);
   int Seek();
   bool ReadToTheEnd();
   void GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset);
+  int64_t sid() {
+    return sid_;
+  }
  private:
   bool GetNext(uint64_t* size);
   unsigned int ReadPhysicalRecord(slash::Slice *redult, uint32_t* filenum, uint64_t* offset);
@@ -36,6 +39,7 @@ class PikaBinlogReader {
   uint32_t cur_filenum_;
   uint64_t cur_offset_;
   uint64_t last_record_offset_;
+  int64_t sid_;
 
   std::shared_ptr<Binlog> logger_;
   slash::SequentialFile *queue_;

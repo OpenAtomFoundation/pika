@@ -15,7 +15,7 @@
 #include "src/pika_inner_message.pb.h"
 #include "include/pika_binlog_parser.h"
 
-class PikaBinlogReceiverThread;
+class PikaReplServerThread;
 
 class PikaReplServerConn: public pink::PbConn {
  public:
@@ -37,7 +37,7 @@ class PikaReplServerConn: public pink::PbConn {
   pink::RedisParser redis_parser_;
   PikaBinlogParser binlog_parser_;
 
-  PikaBinlogReceiverThread* binlog_receiver_;
+  PikaReplServerThread* binlog_receiver_;
 };
 
 #endif  // INCLUDE_PIKA_REPL_SERVER_CONN_H_
