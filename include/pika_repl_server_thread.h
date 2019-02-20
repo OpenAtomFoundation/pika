@@ -15,8 +15,6 @@ class PikaReplServerThread : public pink::HolyThread {
   PikaReplServerThread(const std::set<std::string>& ips, int port, int cron_interval);
   virtual ~PikaReplServerThread() = default;
 
-  void Write(const std::string& msg, const std::string& ip_port, int fd);
-
   // for ProcessBinlogData use
   uint64_t GetnPlusSerial() {
     return serial_++;
@@ -35,7 +33,7 @@ class PikaReplServerThread : public pink::HolyThread {
         pink::Thread* thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const override {
-      return std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_);
+      return std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, pink_epoll);
     }
     private:
      PikaReplServerThread* binlog_receiver_;
@@ -48,15 +46,9 @@ class PikaReplServerThread : public pink::HolyThread {
     bool AccessHandle(std::string& ip) const override;
   };
 
-  void NotifyWrite(const std::string& ip_port, int fd);
-  virtual void ProcessNotifyEvents(const pink::PinkFiredEvent* pfe) override;
-
   ReplServerConnFactory conn_factory_;
   Handles handles_;
   uint64_t serial_;
-
-  slash::Mutex write_buf_mu_;
-  std::map<int, std::string> write_buf_;
 };
 
 #endif

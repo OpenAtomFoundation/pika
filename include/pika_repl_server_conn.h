@@ -19,7 +19,7 @@ class PikaReplServerThread;
 
 class PikaReplServerConn: public pink::PbConn {
  public:
-  PikaReplServerConn(int fd, std::string ip_port, pink::Thread* thread, void* worker_specific_data);
+  PikaReplServerConn(int fd, std::string ip_port, pink::Thread* thread, void* worker_specific_data, pink::PinkEpoll* epoll);
   virtual ~PikaReplServerConn();
 
   int DealMessage();
