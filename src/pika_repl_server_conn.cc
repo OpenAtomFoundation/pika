@@ -44,6 +44,7 @@ int PikaReplServerConn::DealMessage() {
       HandleMetaSyncRequest(req);
       break;
     case InnerMessage::kTrySync:
+      HandleTrySync(req);
       break;
     case InnerMessage::kBinlogSync:
       res = HandleBinlogSync(req);
@@ -58,8 +59,8 @@ int PikaReplServerConn::DealMessage() {
 int PikaReplServerConn::HandleMetaSyncRequest(const InnerMessage::InnerRequest& req) {
   std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
   InnerMessage::InnerResponse response;
-  response.set_code(InnerMessage::kOk);
-  response.set_type(InnerMessage::kMetaSync);
+  response.set_code(InnerMessage::StatusCode::kOk);
+  response.set_type(InnerMessage::Type::kMetaSync);
   InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
   meta_sync->set_classic_mode(g_pika_conf->classic_mode());
   for (const auto& table_struct : table_structs) {
@@ -77,6 +78,29 @@ int PikaReplServerConn::HandleMetaSyncRequest(const InnerMessage::InnerRequest& 
     return -1;
   }
   NotifyWrite();
+  return 0;
+}
+
+int PikaReplServerConn::HandleTrySync(const InnerMessage::InnerRequest& req) {
+  InnerMessage::InnerRequest::TrySync try_sync = req.try_sync();
+  std::string table_name = try_sync.table_name();
+  uint32_t partition_id = try_sync.partition_id();
+  bool force = try_sync.force();
+  InnerMessage::BinlogOffset slave_boffset = try_sync.binlog_offset();
+
+  InnerMessage::InnerResponse response;
+  if (force) {
+  } else {
+    BinlogOffset boffset;
+    if (!g_pika_server->GetTablePartitionBinlogOffset(table_name, partition_id, &boffset)) {
+      response.set_code(InnerMessage::StatusCode::kError);
+    } else {
+      if (boffset.filenum < slave_boffset.filenum()
+        || (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
+        response.set_code(InnerMessage::StatusCode::kError);
+      }
+    }
+  }
   return 0;
 }
 

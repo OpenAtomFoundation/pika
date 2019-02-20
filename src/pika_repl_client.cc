@@ -120,6 +120,36 @@ Status PikaReplClient::SendMetaSync() {
 
   std::string master_ip = g_pika_server->master_ip();
   int master_port = g_pika_server->master_port();
+  LOG(INFO) << "Send Meta Sync Request to Master ("
+    << master_ip << ":" << master_port << ")";
+  return client_thread_->Write(master_ip, master_port + 3000, to_send);
+}
+
+Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
+                                            uint32_t partition_id,
+                                            const BinlogOffset& boffset) {
+  InnerMessage::InnerRequest request;
+  request.set_type(InnerMessage::kTrySync);
+  InnerMessage::InnerRequest::TrySync* try_sync = request.mutable_try_sync();
+  InnerMessage::Node* node = try_sync->mutable_node();
+  node->set_ip(g_pika_server->host());
+  node->set_port(g_pika_server->port());
+  try_sync->set_table_name(table_name);
+  try_sync->set_partition_id(partition_id);
+
+  bool force_sync = g_pika_server->force_full_sync();
+  try_sync->set_force(force_sync);
+  InnerMessage::BinlogOffset* binlog_offset = try_sync->mutable_binlog_offset();
+  binlog_offset->set_filenum(force_sync ? 0 : boffset.filenum);
+  binlog_offset->set_offset(force_sync ? 0 : boffset.offset);
+
+  std::string to_send;
+  if (!request.SerializeToString(&to_send)) {
+    return Status::Corruption("Serialize Failed");
+  }
+
+  std::string master_ip = g_pika_server->master_ip();
+  int master_port = g_pika_server->master_port();
   return client_thread_->Write(master_ip, master_port + 3000, to_send);
 }
 
@@ -179,9 +209,9 @@ void PikaReplClient::BuildBinlogPb(const RmNode& slave, const std::string& msg, 
   node->set_port(slave.port_);
   binlog_msg->set_table_name(slave.table_);
   binlog_msg->set_partition_id(slave.partition_);
-  InnerMessage::SyncOffset* sync_offset = binlog_msg->mutable_sync_offset();
-  sync_offset->set_filenum(filenum);
-  sync_offset->set_offset(offset);
+  InnerMessage::BinlogOffset* binlog_offset = binlog_msg->mutable_binlog_offset();
+  binlog_offset->set_filenum(filenum);
+  binlog_offset->set_offset(offset);
   binlog_msg->set_binlog(msg);
 }
 

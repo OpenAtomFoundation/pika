@@ -20,8 +20,41 @@ void* PikaAuxiliaryThread::ThreadMain() {
     sleep(1);
     if (g_pika_server->ShouldMetaSync()) {
       g_pika_server->SendMetaSyncRequest();
+      LOG(INFO) << "Send meta sync request finish";
       continue;
+    }
+    if (g_pika_server->ShouldMarkTryConnect()) {
+      g_pika_server->DoSameThingEveryPartition(TaskType::kMarkTryConnectState);
+      g_pika_server->MarkTryConnectDone();
+      LOG(INFO) << "mark try connect finish";
+      continue;
+    }
+    if (g_pika_server->ShouldTrySyncPartition()) {
+      RunEveryPartitionStateMachine();
     }
   }
   return NULL;
+}
+
+void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
+  std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+  for (const auto& table : table_structs) {
+    for (size_t idx = 0; idx < table.partition_num; ++idx) {
+      std::shared_ptr<Partition> partition =
+        g_pika_server->GetTablePartitionById(table.table_name, idx);
+      if (!partition) {
+        LOG(WARNING) << "Partition not found, Table Name: "
+          << table.table_name << " Partition Id: " << idx;
+        continue;
+      }
+      if (partition->State() == ReplState::kWaitReply
+        || partition->State() == ReplState::kConnected) {
+        continue;
+      }
+      if (partition->State() == ReplState::kTryConnect) {
+        g_pika_server->SendPartitionTrySyncRequest(partition);
+        continue;
+      }
+    }
+  }
 }

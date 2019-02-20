@@ -15,6 +15,7 @@ class PikaAuxiliaryThread : public pink::Thread {
 
   private:
     virtual void* ThreadMain();
+    void RunEveryPartitionStateMachine();
 };
 
 #endif

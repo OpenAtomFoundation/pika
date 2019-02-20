@@ -63,7 +63,8 @@ enum TaskType {
   kPurgeLog,
   kStartKeyScan,
   kStopKeyScan,
-  kBgSave
+  kBgSave,
+  kMarkTryConnectState
 };
 
 class PikaServer {
@@ -174,16 +175,15 @@ class PikaServer {
   std::shared_ptr<Table> GetTable(const std::string& table_name);
   bool IsCommandCurrentSupport(const std::string& command);
   bool IsTableBinlogIoError(const std::string& table_name);
-  void PartitionRecordLock(const std::string& table_name,
-                           const std::string& key);
-  void PartitionRecordUnLock(const std::string& table_name,
-                             const std::string& key);
   bool IsBgSaving();
   bool IsKeyScaning();
   bool IsCompacting();
   bool IsTableExist(const std::string& table_name);
   bool IsCommandSupport(const std::string& command);
   uint32_t GetPartitionNumByTable(const std::string& table_name);
+  bool GetTablePartitionBinlogOffset(const std::string& table_name,
+                                     uint32_t partition_id,
+                                     BinlogOffset* const boffset);
   std::shared_ptr<Partition> GetTablePartitionById(
                                   const std::string& table_name,
                                   uint32_t partition_id);
@@ -230,8 +230,12 @@ class PikaServer {
   void NeedWaitDBSync();
   void WaitDBSyncFinish();
   void KillBinlogSenderConn();
+
   bool ShouldMetaSync();
   void MetaSyncDone();
+  bool ShouldMarkTryConnect();
+  void MarkTryConnectDone();
+  bool ShouldTrySyncPartition();
 
   void Start();
 
@@ -398,6 +402,7 @@ class PikaServer {
    * Communication use
    */
   Status SendMetaSyncRequest();
+  Status SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition);
 
   /*
    * Monitor used

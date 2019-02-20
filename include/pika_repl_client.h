@@ -9,12 +9,14 @@
 #include <string>
 #include <memory>
 
-#include "include/pika_repl_client_thread.h"
-#include "include/pika_binlog_reader.h"
-
+#include "pink/include/pink_conn.h"
+#include "pink/include/client_thread.h"
+#include "pink/include/thread_pool.h"
 #include "slash/include/slash_status.h"
 
-#include "src/pika_inner_message.pb.h"
+#include "include/pika_partition.h"
+#include "include/pika_binlog_reader.h"
+#include "include/pika_repl_client_thread.h"
 
 #define kBinlogSyncBatchNum 10
 
@@ -40,7 +42,11 @@ class PikaReplClient {
   Status RemoveBinlogReader(const RmNode& slave);
   void RunStateMachine(const RmNode& slave);
   bool NeedToSendBinlog(const RmNode& slave);
+
   Status SendMetaSync();
+  Status SendPartitionTrySync(const std::string& table_name,
+                              uint32_t partition_id,
+                              const BinlogOffset& boffset);
 
  private:
   PikaBinlogReader* NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset, int64_t sid);

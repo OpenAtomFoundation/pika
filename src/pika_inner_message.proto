@@ -13,9 +13,9 @@ enum StatusCode {
   kError    = 3;
 }
 
-message SyncOffset {
-  required int32  filenum = 1;
-  required int64  offset  = 2;
+message BinlogOffset {
+  required uint32  filenum = 1;
+  required uint64  offset  = 2;
 }
 
 message Node {
@@ -32,11 +32,11 @@ message InnerRequest {
 
   // slave to master
   message TrySync {
-    required Node        node         = 1;
-    required string      table_name   = 2;
-    required uint32      partition_id = 3;
-    required SyncOffset  sync_offset  = 4;
-    optional bool        force        = 5;
+    required Node         node           = 1;
+    required string       table_name     = 2;
+    required uint32       partition_id   = 3;
+    required BinlogOffset binlog_offset  = 4;
+    required bool         force          = 5;
   }
 
   // master to slave
@@ -44,7 +44,7 @@ message InnerRequest {
     required Node           node          = 1;
     required string         table_name    = 2;
     required uint32         partition_id  = 3;
-    optional SyncOffset     sync_offset   = 4;
+    optional BinlogOffset   binlog_offset = 4;
     required bytes          binlog        = 5;
   }
 
@@ -86,7 +86,7 @@ message InnerResponse {
 
   // slave to master
   message BinlogSync {
-    required SyncOffset sync_offset = 1;
+    required BinlogOffset binlog_offset = 1;
   }
 
   // slave to master
