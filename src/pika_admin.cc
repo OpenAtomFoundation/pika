@@ -126,6 +126,9 @@ void TrysyncCmd::Do(std::shared_ptr<Partition> partition) {
     //Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
     //                                               sid,
     //                                               filenum_, pro_offset_);
+
+    // Hard code here
+    // Remove hard code by setting classic mode macro default table default partition
     Status status = g_pika_server->AddBinlogSender("default", 0, slave_ip_,
                                                    slave_port_, sid, filenum_, pro_offset_);
     if (status.ok()) {

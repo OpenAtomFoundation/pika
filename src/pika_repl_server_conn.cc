@@ -18,8 +18,8 @@ extern PikaCmdTableManager* g_pika_cmd_table_manager;
 PikaReplServerConn::PikaReplServerConn(int fd,
                                        std::string ip_port,
                                        pink::Thread* thread,
-                                       void* worker_specific_data)
-    : PbConn(fd, ip_port, thread),
+                                       void* worker_specific_data, pink::PinkEpoll* epoll)
+    : PbConn(fd, ip_port, thread, epoll),
       is_authed_(false) {
   binlog_receiver_ = reinterpret_cast<PikaReplServerThread*>(worker_specific_data);
   pink::RedisParserSettings settings;

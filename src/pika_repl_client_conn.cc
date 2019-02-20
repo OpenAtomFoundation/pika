@@ -14,8 +14,9 @@ extern PikaServer* g_pika_server;
 PikaReplClientConn::PikaReplClientConn(int fd,
                                const std::string& ip_port,
                                pink::Thread* thread,
-                               void* worker_specific_data)
-      : pink::PbConn(fd, ip_port, thread) {
+                               void* worker_specific_data,
+                               pink::PinkEpoll* epoll)
+      : pink::PbConn(fd, ip_port, thread, epoll) {
 }
 
 void PikaReplClientConn::DoReplClientTask(void* arg) {
