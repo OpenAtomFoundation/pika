@@ -9,18 +9,22 @@ enum Type {
 
 enum StatusCode {
   kOk       = 1;
-  kWait     = 2;
-  kError    = 3;
+  kError    = 2;
 }
 
-message SyncOffset {
-  required int32  filenum = 1;
-  required int64  offset  = 2;
+message BinlogOffset {
+  required uint32  filenum = 1;
+  required uint64  offset  = 2;
 }
 
 message Node {
   required string ip   = 1;
   required int32  port = 2;
+}
+
+message Partition {
+  required string table_name   = 1;
+  required uint32 partition_id = 2;
 }
 
 // Request message
@@ -32,11 +36,10 @@ message InnerRequest {
 
   // slave to master
   message TrySync {
-    required Node        node         = 1;
-    required string      table_name   = 2;
-    required uint32      partition_id = 3;
-    required SyncOffset  sync_offset  = 4;
-    optional bool        force        = 5;
+    required Node         node           = 1;
+    required Partition    partition      = 2;
+    required BinlogOffset binlog_offset  = 3;
+    required bool         force          = 4;
   }
 
   // master to slave
@@ -44,7 +47,7 @@ message InnerRequest {
     required Node           node          = 1;
     required string         table_name    = 2;
     required uint32         partition_id  = 3;
-    optional SyncOffset     sync_offset   = 4;
+    optional BinlogOffset   binlog_offset = 4;
     required bytes          binlog        = 5;
   }
 
@@ -80,13 +83,20 @@ message InnerResponse {
 
   // master to slave
   message TrySync {
-    required int32  s_id   = 1;
-    optional string reply  = 2;
+    enum ReplyCode {
+      kOk            = 1;
+      kInvalidOffset = 2;
+      kWait          = 3;
+      kError         = 4;
+    }
+    required ReplyCode reply_code = 1;
+    required Partition partition  = 2;
+    optional int32     sid        = 3;
   }
 
   // slave to master
   message BinlogSync {
-    required SyncOffset sync_offset = 1;
+    required BinlogOffset binlog_offset = 1;
   }
 
   // slave to master

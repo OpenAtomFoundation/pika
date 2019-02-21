@@ -44,7 +44,7 @@ int PikaReplClientConn::HandleMetaSyncResponse(const InnerMessage::InnerResponse
   if (g_pika_conf->classic_mode() != meta_sync.classic_mode()) {
     LOG(WARNING) << "Self in " << (g_pika_conf->classic_mode() ? "classic" : "sharding")
         << " mode, but master in " << (meta_sync.classic_mode() ? "classic" : "sharding")
-        << " mode, failed to establish a master-slave relationship";
+        << " mode, failed to establish master-slave relationship";
     g_pika_server->SyncError();
     return -1;
   }
@@ -60,18 +60,43 @@ int PikaReplClientConn::HandleMetaSyncResponse(const InnerMessage::InnerResponse
   if (!force_full_sync
     && !IsTableStructConsistent(self_table_structs, master_table_structs)) {
     LOG(WARNING) << "Self table structs inconsistent with master"
-        << " ,failed to establish a master-slave relationship";
+        << ", failed to establish master-slave relationship";
     g_pika_server->SyncError();
     return -1;
   }
 
   if (force_full_sync) {
-    // Purge and rbuild Table Struct consistent with master
-    g_pika_server->RebuildTableStruct(master_table_structs);
+    LOG(INFO) << "Force full sync, need to rebuild table struct first";
+    // Purge and rebuild Table Struct consistent with master
+    if (!g_pika_server->RebuildTableStruct(master_table_structs)) {
+      LOG(WARNING) << "Need force full sync but rebuild table struct error"
+        << ", failed to establish master-slave relationship";
+      g_pika_server->SyncError();
+      return -1;
+    }
     g_pika_server->PurgeDir(g_pika_conf->trash_path());
   }
-
+  LOG(INFO) << "Finish to handle meta sync response";
   g_pika_server->MetaSyncDone();
+  return 0;
+}
+
+int PikaReplClientConn::HandleTrySyncResponse(const InnerMessage::InnerResponse& response) {
+  const InnerMessage::InnerResponse_TrySync try_sync_response = response.try_sync();
+  const InnerMessage::Partition partition_response = try_sync_response.partition();
+  std::string table_name = partition_response.table_name();
+  uint32_t partition_id  = partition_response.partition_id();
+  std::string partition_name = table_name + "_" + std::to_string(partition_id);
+
+  if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kError) {
+    LOG(WARNING) << "Partition: " << partition_name << " TrySync Error";
+  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kWait) {
+    LOG(WARNING) << "Partition: " << partition_name << " Need wait to sync";
+  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kInvalidOffset) {
+    LOG(WARNING) << "Partition: " << partition_name << " TrySync Error, Because the invalid filenum and offset";
+  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
+    LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
+  }
   return 0;
 }
 
@@ -82,6 +107,9 @@ int PikaReplClientConn::DealMessage() {
   switch (response.type()) {
     case InnerMessage::kMetaSync:
       res = HandleMetaSyncResponse(response);
+      break;
+    case InnerMessage::kTrySync:
+      res = HandleTrySyncResponse(response);
       break;
     default:
       break;

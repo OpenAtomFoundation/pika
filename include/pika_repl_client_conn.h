@@ -22,6 +22,7 @@ class PikaReplClientConn: public pink::PbConn {
   bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
                                const std::vector<TableStruct>& expect_tables);
   int HandleMetaSyncResponse(const InnerMessage::InnerResponse& response);
+  int HandleTrySyncResponse(const InnerMessage::InnerResponse& response);
 };
 
 #endif
