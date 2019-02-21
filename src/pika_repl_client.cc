@@ -11,18 +11,14 @@
 
 extern PikaServer* g_pika_server;
 
-PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)
-    : cron_interval_(cron_interval),
-      keepalive_timeout_(keepalive_timeout) {
-  handle_ = new ReplClientHandle();
-  client_thread_ = new pink::ClientThread(&conn_factory_, cron_interval_, keepalive_timeout_, handle_, NULL);
+PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) {
+  client_thread_ = new PikaReplClientThread(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
 }
 
 PikaReplClient::~PikaReplClient() {
   client_thread_->StopThread();
   delete client_thread_;
-  delete handle_;
   for (auto iter : slave_binlog_readers_) {
     delete iter.second;
   }
