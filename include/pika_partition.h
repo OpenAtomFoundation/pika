@@ -29,6 +29,32 @@ struct BGSaveInfo {
   }
 };
 
+struct BinlogOffset {
+  uint32_t filenum;
+  uint64_t offset;
+  BinlogOffset()
+      : filenum(0), offset(0) {}
+  BinlogOffset(uint32_t num, uint64_t off)
+      : filenum(num), offset(off) {}
+};
+
+enum ReplState {
+  kNoConnect = 0,
+  kTryConnect = 1,
+  kWaitReply = 2,
+  kConnected = 3,
+  kWaitDBSync = 4,
+};
+
+// debug only
+const std::string ReplStateMsg[] = {
+  "kNoConnect",
+  "kTryConnect",
+  "kWaitReply",
+  "kConnected",
+  "kWaitDBSync"
+};
+
 class Partition : public std::enable_shared_from_this<Partition> {
  public:
   Partition(const std::string& table_name,
@@ -38,6 +64,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
             const std::string& table_trash_path);
   virtual ~Partition();
 
+  std::string GetTableName() const;
   uint32_t GetPartitionId() const;
   std::string GetPartitionName() const;
   std::shared_ptr<Binlog> logger() const;
@@ -46,8 +73,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void DoCommand(Cmd* const cmd);
   void Compact(const blackwidow::DataType& type);
 
-  void BinlogLock();
-  void BinlogUnLock();
   void DbRWLockWriter();
   void DbRWLockReader();
   void DbRWUnLock();
@@ -56,6 +81,12 @@ class Partition : public std::enable_shared_from_this<Partition> {
 
   void SetBinlogIoError(bool error);
   bool IsBinlogIoError();
+  bool GetBinlogOffset(BinlogOffset* const boffset);
+  bool SetBinlogOffset(const BinlogOffset& boffset);
+
+  ReplState State();
+  void MarkTryConnectState();
+  void MarkWaitReplyState();
 
   void Leave();
   void Close();
@@ -94,6 +125,10 @@ class Partition : public std::enable_shared_from_this<Partition> {
   pthread_rwlock_t db_rwlock_;
   slash::RecordMutex mutex_record_;
   std::shared_ptr<blackwidow::BlackWidow> db_;
+
+  pthread_rwlock_t state_rwlock_;  // protect partition status below
+  ReplState repl_state_;
+
 
   /*
    * BgSave use

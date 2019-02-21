@@ -43,6 +43,7 @@ Partition::Partition(const std::string& table_name,
   table_name_(table_name),
   partition_id_(partition_id),
   binlog_io_error_(false),
+  repl_state_(ReplState::kNoConnect),
   bgsave_engine_(NULL),
   purging_(false) {
 
@@ -57,7 +58,13 @@ Partition::Partition(const std::string& table_name,
   partition_name_ = g_pika_conf->classic_mode() ?
       table_name : PartitionName(table_name_, partition_id_);
 
-  pthread_rwlock_init(&db_rwlock_, NULL);
+  pthread_rwlockattr_t attr;
+  pthread_rwlockattr_init(&attr);
+  pthread_rwlockattr_setkind_np(&attr,
+          PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+
+  pthread_rwlock_init(&db_rwlock_, &attr);
+  pthread_rwlock_init(&state_rwlock_, &attr);
 
   //Create blackwidow handle
   blackwidow::BlackwidowOptions bw_option;
@@ -76,10 +83,10 @@ Partition::Partition(const std::string& table_name,
 }
 
 Partition::~Partition() {
-  pthread_rwlock_destroy(&db_rwlock_);
-  db_.reset();
-  logger_.reset();
+  Close();
   delete bgsave_engine_;
+  pthread_rwlock_destroy(&db_rwlock_);
+  pthread_rwlock_destroy(&state_rwlock_);
 }
 
 void Partition::Leave() {
@@ -117,6 +124,10 @@ void Partition::MoveToTrash() {
   if (slash::RenameFile(log_path_.data(), log_trash.data())) {
     LOG(WARNING) << "Failed to move log to trash, error: " << strerror(errno);
   }
+}
+
+std::string Partition::GetTableName() const {
+  return table_name_;
 }
 
 uint32_t Partition::GetPartitionId() const {
@@ -193,14 +204,6 @@ void Partition::Compact(const blackwidow::DataType& type) {
   db_->Compact(type);
 }
 
-void Partition::BinlogLock() {
-  logger_->Lock();
-}
-
-void Partition::BinlogUnLock() {
-  logger_->Unlock();
-}
-
 void Partition::DbRWLockWriter() {
   pthread_rwlock_wrlock(&db_rwlock_);
 }
@@ -227,6 +230,37 @@ void Partition::SetBinlogIoError(bool error) {
 
 bool Partition::IsBinlogIoError() {
   return binlog_io_error_;
+}
+
+bool Partition::GetBinlogOffset(BinlogOffset* const boffset) {
+  if (opened_) {
+    logger_->GetProducerStatus(&boffset->filenum, &boffset->offset);
+    return true;
+  }
+  return false;
+}
+
+bool Partition::SetBinlogOffset(const BinlogOffset& boffset) {
+  if (opened_) {
+    logger_->SetProducerStatus(boffset.filenum, boffset.offset);
+    return true;
+  }
+  return false;
+}
+
+ReplState Partition::State() {
+  slash::RWLock rwl(&state_rwlock_, false);
+  return repl_state_;
+}
+
+void Partition::MarkTryConnectState() {
+  slash::RWLock rwl(&state_rwlock_, true);
+  repl_state_ = ReplState::kTryConnect;
+}
+
+void Partition::MarkWaitReplyState() {
+  slash::RWLock rwl(&state_rwlock_, true);
+  repl_state_ = ReplState::kWaitReply;
 }
 
 bool Partition::IsBgSaving() {
