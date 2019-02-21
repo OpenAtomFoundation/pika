@@ -405,24 +405,6 @@ bool PikaServer::IsTableBinlogIoError(const std::string& table_name) {
   return table ? table->IsBinlogIoError() : true;
 }
 
-void PikaServer::PartitionRecordLock(const std::string& table_name,
-                                     const std::string& key) {
-  std::shared_ptr<Partition> partition =
-      GetTablePartitionByKey(table_name, key);
-  if (partition) {
-    partition->RecordLock(key);
-  }
-}
-
-void PikaServer::PartitionRecordUnLock(const std::string& table_name,
-                                       const std::string& key) {
-  std::shared_ptr<Partition> partition =
-      GetTablePartitionByKey(table_name, key);
-  if (partition) {
-    partition->RecordUnLock(key);
-  }
-}
-
 bool PikaServer::IsBgSaving() {
   slash::RWLock table_rwl(&tables_rw_, false);
   for (const auto& table_item : tables_) {
@@ -476,6 +458,17 @@ bool PikaServer::IsCommandSupport(const std::string& command) {
 uint32_t PikaServer::GetPartitionNumByTable(const std::string& table_name) {
   std::shared_ptr<Table> table = GetTable(table_name);
   return table ? table->PartitionNum() : 0;
+}
+
+bool PikaServer::GetTablePartitionBinlogOffset(const std::string& table_name,
+                                               uint32_t partition_id,
+                                               BinlogOffset* const boffset) {
+  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
+  if (!partition) {
+    return false;
+  } else {
+    return partition->GetBinlogOffset(boffset);
+  }
 }
 
 std::shared_ptr<Partition> PikaServer::GetTablePartitionById(
@@ -751,18 +744,6 @@ void PikaServer::WaitDBSyncFinish() {
 void PikaServer::KillBinlogSenderConn() {
 }
 
-bool PikaServer::ShouldMetaSync() {
-  slash::RWLock l(&state_protector_, false);
-  return repl_state_ == PIKA_REPL_SHOULD_META_SYNC;
-}
-
-void PikaServer::MetaSyncDone() {
-  slash::RWLock l(&state_protector_, true);
-  if (repl_state_ == PIKA_REPL_WAIT_META_SYNC_RESPONSE) {
-    repl_state_ = PIKA_REPL_SHOULD_TRYSYNC;
-  }
-}
-
 bool PikaServer::ShouldConnectMaster() {
   slash::RWLock l(&state_protector_, false);
   DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
@@ -786,6 +767,33 @@ bool PikaServer::ShouldStartPingMaster() {
     return true;
   }
   return false;
+}
+
+bool PikaServer::ShouldMetaSync() {
+  slash::RWLock l(&state_protector_, false);
+  return repl_state_ == PIKA_REPL_SHOULD_META_SYNC;
+}
+
+void PikaServer::MetaSyncDone() {
+  slash::RWLock l(&state_protector_, true);
+  assert(repl_state_ == PIKA_REPL_WAIT_META_SYNC_RESPONSE);
+  repl_state_ = PIKA_REPL_SHOULD_MARK_TRY_CONNECT;
+}
+
+bool PikaServer::ShouldMarkTryConnect() {
+  slash::RWLock l(&state_protector_, false);
+  return repl_state_ == PIKA_REPL_SHOULD_MARK_TRY_CONNECT;
+}
+
+void PikaServer::MarkTryConnectDone() {
+  slash::RWLock l(&state_protector_, true);
+  assert(repl_state_ == PIKA_REPL_SHOULD_MARK_TRY_CONNECT);
+  repl_state_ = PIKA_REPL_CONNECTING;
+}
+
+bool PikaServer::ShouldTrySyncPartition() {
+  slash::RWLock l(&state_protector_, false);
+  return repl_state_ == PIKA_REPL_CONNECTING;
 }
 
 void PikaServer::MinusMasterConnection() {
@@ -1557,6 +1565,19 @@ Status PikaServer::SendMetaSyncRequest() {
   return status;
 }
 
+Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition) {
+  BinlogOffset boffset;
+  if (!partition->GetBinlogOffset(&boffset)) {
+    LOG(WARNING) << "Get partition binlog offset failed";
+    return Status::Corruption("Partition get binlog offset error");
+  }
+  std::string table_name = partition->GetTableName();
+  uint32_t partition_id = partition->GetPartitionId();
+  Status status = pika_repl_client_->SendPartitionTrySync(table_name, partition_id, boffset);
+  partition->MarkWaitReplyState();
+  return status;
+}
+
 void PikaServer::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
   monitor_thread_->AddMonitorClient(client_ptr);
 }
@@ -1701,6 +1722,9 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
           break;
         case TaskType::kPurgeLog:
           partition_item.second->PurgeLogs(0, false, false);
+          break;
+        case TaskType::kMarkTryConnectState:
+          partition_item.second->MarkTryConnectState();
           break;
         default:
           break;

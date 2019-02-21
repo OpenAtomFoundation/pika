@@ -31,6 +31,7 @@ class PikaReplServerConn: public pink::PbConn {
  private:
   static int ParserDealMessage(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
   int HandleMetaSyncRequest(const InnerMessage::InnerRequest& req);
+  int HandleTrySync(const InnerMessage::InnerRequest& req);
   int HandleBinlogSync(const InnerMessage::InnerRequest& req);
 
   pink::RedisParser redis_parser_;
