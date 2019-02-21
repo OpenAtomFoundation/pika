@@ -9,12 +9,8 @@
 #include <string>
 #include <memory>
 
+#include "include/pika_repl_client_thread.h"
 #include "include/pika_binlog_reader.h"
-#include "include/pika_repl_client_conn.h"
-
-#include "pink/include/pink_conn.h"
-#include "pink/include/client_thread.h"
-#include "pink/include/thread_pool.h"
 
 #include "slash/include/slash_status.h"
 
@@ -23,33 +19,6 @@
 #define kBinlogSyncBatchNum 10
 
 using slash::Status;
-
-class ReplClientHandle : public pink::ClientHandle {
- public:
-  //  void CronHandle() const override {
-  //    std::cout << "HandleCronHandle" << std::endl;
-  //  }
-  //  void FdTimeoutHandle(int fd, const std::string& ip_port) const override {
-  //    std::cout << "FdTimeoutHandle ip_port" << std::endl;
-  //  }
-  //  void FdClosedHandle(int fd, const std::string& ip_port) const override {
-  //    std::cout << "FdClosedHandle " << fd << " ip_port " << ip_port << std::endl;
-  //  }
-  //  bool AccessHandle(std::string& ip) const override {
-  //    // ban 127.0.0.1 if you want to test this routine
-  //    if (ip.find("127.0.0.2") != std::string::npos) {
-  //      std::cout << "AccessHandle " << ip << std::endl;
-  //      return false;
-  //    }
-  //    return true;
-  //  }
-  //  int CreateWorkerSpecificData(void** data) const override {
-  //    return 0;
-  //  }
-  //  int DeleteWorkerSpecificData(void* data) const override {
-  //    return 0;
-  //  }
-};
 
 struct RmNode {
   std::string table_;
@@ -74,18 +43,6 @@ class PikaReplClient {
   Status SendMetaSync();
 
  private:
-  class ReplClientConnFactory : public pink::ConnFactory {
-   public:
-    virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
-        int connfd,
-        const std::string &ip_port,
-        pink::Thread *thread,
-        void* worker_specific_data,
-        pink::PinkEpoll* pink_epoll) const override {
-      return std::make_shared<PikaReplClientConn>(connfd, ip_port, thread, worker_specific_data, pink_epoll);
-    }
-  };
-
   PikaBinlogReader* NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset, int64_t sid);
 
   Status TrySyncBinlog(const RmNode& slave, bool authed);
@@ -95,11 +52,7 @@ class PikaReplClient {
   Status BuildAuthMsg(const RmNode& slave, std::string* scratch);
   Status BuildBinlogMsgFromFile(const RmNode& slave, std::string* scratch, uint32_t* filenum, uint64_t* offset);
 
-  ReplClientConnFactory conn_factory_;
-  int cron_interval_;
-  int keepalive_timeout_;
-  pink::ClientThread* client_thread_;
-  pink::ClientHandle* handle_;
+  PikaReplClientThread* client_thread_;
   // keys of this map: table_partition_slaveip:port
   std::map<std::string, PikaBinlogReader*> slave_binlog_readers_;
 };

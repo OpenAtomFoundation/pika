@@ -72,7 +72,12 @@ int PikaReplServerConn::HandleMetaSyncRequest(const InnerMessage::InnerRequest& 
   if (!response.SerializeToString(&reply_str)) {
     return -1;
   }
-  return WriteResp(reply_str);
+  int res = WriteResp(reply_str);
+  if (res) {
+    return -1;
+  }
+  NotifyWrite();
+  return 0;
 }
 
 int PikaReplServerConn::HandleBinlogSync(const InnerMessage::InnerRequest& req) {
