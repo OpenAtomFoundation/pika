@@ -89,7 +89,6 @@ PikaServer::PikaServer() :
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
   pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, 3000,
                                                  worker_queue_limit);
-  pika_binlog_receiver_thread_ = new PikaBinlogReceiverThread(ips, port_ + 1000, 1000);
   pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   monitor_thread_ = new PikaMonitorThread();
   pika_pubsub_thread_ = new pink::PubSubThread();
@@ -129,7 +128,6 @@ PikaServer::~PikaServer() {
   }
 
   delete ping_thread_;
-  delete pika_binlog_receiver_thread_;
   delete pika_pubsub_thread_;
   delete pika_repl_client_;
   delete pika_repl_server_;
@@ -289,13 +287,6 @@ void PikaServer::Start() {
     db_.reset();
     LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_) + " conflict"
             : ": other error") << ", Listen on this port to handle the connected redis client";
-  }
-  ret = pika_binlog_receiver_thread_->StartThread();
-  if (ret != pink::kSuccess) {
-    delete logger_;
-    db_.reset();
-    LOG(FATAL) << "Start BinlogReceiver Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 1000) + " conflict"
-            : ": other error") << ", Listen on this port to handle the data sent by the Binlog Sender";
   }
   ret = pika_heartbeat_thread_->StartThread();
   if (ret != pink::kSuccess) {
@@ -758,7 +749,6 @@ void PikaServer::WaitDBSyncFinish() {
 }
 
 void PikaServer::KillBinlogSenderConn() {
-  pika_binlog_receiver_thread_->KillBinlogSender();
 }
 
 bool PikaServer::ShouldMetaSync() {
@@ -1022,7 +1012,7 @@ Status PikaServer::AddBinlogSender(const std::string& table_name,
   RmNode slave(table_name, partition_id, ip, port + 3000);
   std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
   std::shared_ptr<Binlog>logger = partition->logger();
-  Status res = pika_repl_client_->AddBinlogReader(slave, logger, filenum, con_offset, sid);
+  Status res = pika_repl_client_->AddBinlogReader(slave, logger, filenum, con_offset);
   if (!res.ok()) {
     return res;
   }

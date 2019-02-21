@@ -52,11 +52,11 @@ Status PikaReplClient::RemoveBinlogReader(const RmNode& slave) {
   return Status::OK();
 }
 
-Status PikaReplClient::AddBinlogReader(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset, int64_t sid) {
+Status PikaReplClient::AddBinlogReader(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
   std::string index;
   BuildBinlogReaderIndex(slave, &index);
   RemoveBinlogReader(slave);
-  PikaBinlogReader* binlog_reader = NewPikaBinlogReader(logger, filenum, offset, sid);
+  PikaBinlogReader* binlog_reader = NewPikaBinlogReader(logger, filenum, offset);
   if (!binlog_reader) {
     return Status::Corruption(index + " new binlog reader failed");
   }
@@ -70,12 +70,7 @@ Status PikaReplClient::AddBinlogReader(const RmNode& slave, std::shared_ptr<Binl
 }
 
 void PikaReplClient::RunStateMachine(const RmNode& slave) {
-  Status s = TrySyncBinlog(slave, false);
-  if (!s.ok()) {
-    LOG(INFO) << s.ToString();
-    return;
-  }
-  s = TrySyncBinlog(slave, true);
+  Status s = TrySendSyncBinlog(slave);
   if (!s.ok()) {
     LOG(INFO) << s.ToString();
     return;
@@ -123,18 +118,9 @@ Status PikaReplClient::SendMetaSync() {
   return client_thread_->Write(master_ip, master_port + 3000, to_send);
 }
 
-Status PikaReplClient::TrySyncBinlog(const RmNode& slave, bool authed) {
+Status PikaReplClient::TrySendSyncBinlog(const RmNode& slave) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kBinlogSync);
-  if (!authed) {
-    BuildAuthPb(slave, request);
-    std::string msg;
-    bool res = request.SerializeToString(&msg);
-    if (!res) {
-      return Status::Corruption("Serialize Failed");
-    }
-    return client_thread_->Write(slave.ip_, slave.port_, msg);
-  }
 
   if (!NeedToSendBinlog(slave)) {
     return Status::OK();
@@ -159,19 +145,6 @@ Status PikaReplClient::TrySyncBinlog(const RmNode& slave, bool authed) {
   return client_thread_->Write(slave.ip_, slave.port_, to_send);
 }
 
-void PikaReplClient::BuildAuthPb(const RmNode& slave, InnerMessage::InnerRequest& request) {
-  InnerMessage::InnerRequest::BinlogSync* binlog_msg = request.add_binlog_sync();
-  InnerMessage::Node* node = binlog_msg->mutable_node();
-  node->set_ip(slave.ip_);
-  node->set_port(slave.port_);
-  binlog_msg->set_table_name(slave.table_);
-  binlog_msg->set_partition_id(slave.partition_);
-
-  std::string raw_binlog;
-  BuildAuthMsg(slave, &raw_binlog);
-  binlog_msg->set_binlog(raw_binlog);
-}
-
 void PikaReplClient::BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest& request) {
   InnerMessage::InnerRequest::BinlogSync* binlog_msg = request.add_binlog_sync();
   InnerMessage::Node* node = binlog_msg->mutable_node();
@@ -183,31 +156,6 @@ void PikaReplClient::BuildBinlogPb(const RmNode& slave, const std::string& msg, 
   sync_offset->set_filenum(filenum);
   sync_offset->set_offset(offset);
   binlog_msg->set_binlog(msg);
-}
-
-Status PikaReplClient::BuildAuthMsg(const RmNode& slave, std::string* scratch) {
-  std::string index;
-  BuildBinlogReaderIndex(slave, &index);
-  auto iter = slave_binlog_readers_.find(index);
-  if (iter == slave_binlog_readers_.end()) {
-    return Status::NotFound(index + " not found");
-  }
-  PikaBinlogReader* reader = iter->second;
-  // Auth sid
-  int64_t sid = reader->sid();
-  std::string auth_cmd;
-  pink::RedisCmdArgsType argv;
-  argv.push_back("auth");
-  argv.push_back(std::to_string(sid));
-  int res = pink::SerializeRedisCommand(argv, &auth_cmd);
-  if (res) {
-    return Status::Corruption("Serialize Redis Command failed");
-  }
-  std::string header;
-  slash::PutFixed16(&header, TransferOperate::kTypeAuth);
-  slash::PutFixed32(&header, auth_cmd.size());
-  *scratch = header + auth_cmd;
-  return Status::OK();
 }
 
 Status PikaReplClient::BuildBinlogMsgFromFile(const RmNode& slave, std::string* scratch, uint32_t* filenum, uint64_t* offset) {
@@ -224,14 +172,10 @@ Status PikaReplClient::BuildBinlogMsgFromFile(const RmNode& slave, std::string* 
   if (!s.ok()) {
     return s;
   }
-  std::string header;
-  slash::PutFixed16(&header, TransferOperate::kTypeBinlog);
-  slash::PutFixed32(&header, scratch->size());
-  *scratch = header + *scratch;
   return Status::OK();
 }
 
-PikaBinlogReader* PikaReplClient::NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset, int64_t sid) {
+PikaBinlogReader* PikaReplClient::NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
   std::string confile = NewFileName(logger->filename, filenum);
   if (!slash::FileExists(confile)) {
     return NULL;
@@ -240,5 +184,5 @@ PikaBinlogReader* PikaReplClient::NewPikaBinlogReader(std::shared_ptr<Binlog> lo
   if (!slash::NewSequentialFile(confile, &readfile).ok()) {
     return NULL;
   }
-  return new PikaBinlogReader(readfile, logger, filenum, offset, sid);
+  return new PikaBinlogReader(readfile, logger, filenum, offset);
 }

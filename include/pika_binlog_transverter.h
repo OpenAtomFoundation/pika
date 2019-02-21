@@ -11,18 +11,6 @@
 #include <iostream>
 
 /*
- * **************Header**************
- *  | <Transfer Type> | <Body Lenth> |
- *       2 Bytes         4 Bytes
- */
-#define HEADER_LEN 6
-
-enum TransferOperate{
-  kTypeAuth = 1,
-  kTypeBinlog = 2
-};
-
-/*
  * ***********************************************Type First Binlog Item Format***********************************************
  * | <Type> | <Create Time> | <Server Id> | <Binlog Logic Id> | <File Num> | <Offset> | <Content Length> |      <Content>     |
  *  2 Bytes      4 Bytes        4 Bytes          8 Bytes         4 Bytes     8 Bytes         4 Bytes      content length Bytes
@@ -34,14 +22,6 @@ enum BinlogType {
   TypeFirst = 1,
 };
 
-struct BinlogHeader {
-  uint16_t header_type_;
-  uint32_t item_length_;
-  BinlogHeader() {
-    header_type_ = 0;
-    item_length_ = 0;
-  }
-};
 
 class BinlogItem {
   public:
@@ -95,9 +75,6 @@ class PikaBinlogTransverter{
                              const std::string& binlog,
                              BinlogItem* binlog_item);
 
-    static bool BinlogHeaderDecode(BinlogType type,
-                                   const std::string& binlog,
-                                   BinlogHeader* binlog_header);
     static bool BinlogItemWithoutContentDecode(BinlogType type,
                                                const std::string& binlog,
                                                BinlogItem* binlog_item);
