@@ -19,8 +19,7 @@ PikaReplServerConn::PikaReplServerConn(int fd,
                                        std::string ip_port,
                                        pink::Thread* thread,
                                        void* worker_specific_data, pink::PinkEpoll* epoll)
-    : PbConn(fd, ip_port, thread, epoll),
-      is_authed_(false) {
+    : PbConn(fd, ip_port, thread, epoll) {
   binlog_receiver_ = reinterpret_cast<PikaReplServerThread*>(worker_specific_data);
   pink::RedisParserSettings settings;
   settings.DealMessage = &(PikaReplServerConn::ParserDealMessage);
@@ -83,22 +82,12 @@ int PikaReplServerConn::HandleMetaSyncRequest(const InnerMessage::InnerRequest& 
 int PikaReplServerConn::HandleBinlogSync(const InnerMessage::InnerRequest& req) {
   for (int i = 0; i < req.binlog_sync_size(); ++i) {
     const InnerMessage::InnerRequest::BinlogSync& binlog_req = req.binlog_sync(i);
-    int processed_len = 0;
-    int scrubed_len = 0;
-    pink::ReadStatus scrub_status = binlog_parser_.ScrubReadBuffer(
-        binlog_req.binlog().data(),
-        binlog_req.binlog().size(),
-        &processed_len,
-        &scrubed_len,
-        &binlog_header_,
-        &binlog_item_);
-    if (scrub_status != pink::kReadAll
-        || processed_len != static_cast<int>(binlog_req.binlog().size())) {
+    if(!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_req.binlog(), &binlog_item_)) {
       return -1;
     }
-    const char* redis_parser_start = binlog_req.binlog().data() + scrubed_len;
-    int redis_parser_len = static_cast<int>(binlog_req.binlog().size()) - scrubed_len;
-    processed_len = 0;
+    const char* redis_parser_start = binlog_req.binlog().data() + BINLOG_ENCODE_LEN;
+    int redis_parser_len = static_cast<int>(binlog_req.binlog().size()) - BINLOG_ENCODE_LEN;
+    int processed_len = 0;
     pink::RedisParserStatus ret = redis_parser_.ProcessInputBuffer(
       redis_parser_start, redis_parser_len, &processed_len);
     if (ret != pink::kRedisParserDone) {
@@ -108,31 +97,9 @@ int PikaReplServerConn::HandleBinlogSync(const InnerMessage::InnerRequest& req) 
   return 0;
 }
 
-bool PikaReplServerConn::ProcessAuth(const pink::RedisCmdArgsType& argv) {
-  if (argv.empty() || argv.size() != 2) {
-    return false;
-  }
-  if (argv[0] == "auth") {
-    if (argv[1] == std::to_string(g_pika_server->sid())) {
-      is_authed_ = true;
-      g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
-      LOG(INFO) << "BinlogReceiverThread AccessHandle succeeded, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
-      return true;
-    }
-  }
-  LOG(INFO) << "BinlogReceiverThread AccessHandle failed, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
-  return false;
-}
 
 bool PikaReplServerConn::ProcessBinlogData(const pink::RedisCmdArgsType& argv, const BinlogItem& binlog_item) {
-  if (!is_authed_) {
-    LOG(INFO) << "Need Auth First";
-    return false;
-  } else if (argv.empty()) {
-    return false;
-  } else {
-    g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
-  }
+  g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
 
   // Monitor related
   std::string monitor_message;
@@ -177,10 +144,5 @@ bool PikaReplServerConn::ProcessBinlogData(const pink::RedisCmdArgsType& argv, c
 
 int PikaReplServerConn::ParserDealMessage(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
   PikaReplServerConn* conn = reinterpret_cast<PikaReplServerConn*>(parser->data);
-  if (conn->binlog_header_.header_type_ == kTypeAuth) {
-    return conn->ProcessAuth(argv) == true ? 0 : -1;
-  } else if (conn->binlog_header_.header_type_ == kTypeBinlog) {
-    return conn->ProcessBinlogData(argv, conn->binlog_item_) == true ? 0 : -1;
-  }
-  return -1;
+  return conn->ProcessBinlogData(argv, conn->binlog_item_) == true ? 0 : -1;
 }

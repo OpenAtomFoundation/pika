@@ -252,8 +252,8 @@ void* PikaBinlogSenderThread::ThreadMain() {
     argv.push_back(std::to_string(sid_));
     pink::SerializeRedisCommand(argv, &auth_cmd);
     header.clear();
-    slash::PutFixed16(&header, TransferOperate::kTypeAuth);
-    slash::PutFixed32(&header, auth_cmd.size());
+    //slash::PutFixed16(&header, TransferOperate::kTypeAuth);
+    ///slash::PutFixed32(&header, auth_cmd.size());
     transfer = header + auth_cmd;
     rm_client->Write(ip_, port_, transfer);
     while (true) {
@@ -276,8 +276,8 @@ void* PikaBinlogSenderThread::ThreadMain() {
 
       // 4. After successful parse, we send msg;
       header.clear();
-      slash::PutFixed16(&header, TransferOperate::kTypeBinlog);
-      slash::PutFixed32(&header, scratch.size());
+      //slash::PutFixed16(&header, TransferOperate::kTypeBinlog);
+      //slash::PutFixed32(&header, scratch.size());
       transfer = header + scratch;
       rm_client->Write(ip_, port_, transfer);
     }
