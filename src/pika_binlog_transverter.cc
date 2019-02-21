@@ -138,16 +138,3 @@ bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(BinlogType type,
   slash::GetFixed64(&binlog_str, &binlog_item->offset_);
   return true;
 }
-
-bool PikaBinlogTransverter::BinlogHeaderDecode(BinlogType type,
-                                               const std::string& header,
-                                               BinlogHeader* binlog_header) {
-  std::string header_str = header;
-  slash::GetFixed16(&header_str, &(binlog_header->header_type_));
-  slash::GetFixed32(&header_str, &(binlog_header->item_length_));
-  if (binlog_header->header_type_ != kTypeAuth && binlog_header->header_type_ != kTypeBinlog) {
-    LOG(ERROR) << "Unrecognizable Type: " << binlog_header->header_type_ << " identify binlog type error";
-    return false;
-  }
-  return true;
-}

@@ -27,7 +27,6 @@
 #include "include/pika_heartbeat_thread.h"
 #include "include/pika_slaveping_thread.h"
 #include "include/pika_binlog_sender_thread.h"
-#include "include/pika_binlog_receiver_thread.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
@@ -467,7 +466,6 @@ class PikaServer {
   PikaDispatchThread* pika_dispatch_thread_;
   pink::ThreadPool* pika_thread_pool_;
 
-  PikaBinlogReceiverThread* pika_binlog_receiver_thread_;
   PikaHeartbeatThread* pika_heartbeat_thread_;
   PikaTrysyncThread* pika_trysync_thread_;
 

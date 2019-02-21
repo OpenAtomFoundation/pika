@@ -10,11 +10,9 @@
 PikaBinlogReader::PikaBinlogReader(slash::SequentialFile *queue,
     std::shared_ptr<Binlog> logger,
     uint32_t cur_filenum,
-    uint64_t cur_offset,
-    int64_t sid)
+    uint64_t cur_offset)
     : cur_filenum_(cur_filenum),
       cur_offset_(cur_offset),
-      sid_(sid),
       logger_(logger),
       queue_(queue),
       backing_store_(new char[kBlockSize]),

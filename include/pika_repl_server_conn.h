@@ -13,7 +13,8 @@
 #include "pink/include/pink_thread.h"
 
 #include "src/pika_inner_message.pb.h"
-#include "include/pika_binlog_parser.h"
+
+#include "include/pika_binlog_transverter.h"
 
 class PikaReplServerThread;
 
@@ -26,16 +27,13 @@ class PikaReplServerConn: public pink::PbConn {
   bool ProcessAuth(const pink::RedisCmdArgsType& argv);
   bool ProcessBinlogData(const pink::RedisCmdArgsType& argv, const BinlogItem& binlog_item);
 
-  BinlogHeader binlog_header_;
   BinlogItem binlog_item_;
  private:
   static int ParserDealMessage(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
   int HandleMetaSyncRequest(const InnerMessage::InnerRequest& req);
   int HandleBinlogSync(const InnerMessage::InnerRequest& req);
 
-  bool is_authed_;
   pink::RedisParser redis_parser_;
-  PikaBinlogParser binlog_parser_;
 
   PikaReplServerThread* binlog_receiver_;
 };
