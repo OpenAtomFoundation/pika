@@ -1643,6 +1643,30 @@ void PikaServer::DispatchBinlogBG(const std::string &key,
   binlogbg_workers_[index]->Schedule(argv, binlog_item, cur_serial, readonly);
 }
 
+void PikaServer::ScheduleReplBinlogSyncTask(std::string table_partition,
+    const std::shared_ptr<InnerMessage::InnerRequest> req,
+    std::shared_ptr<pink::PbConn> conn,
+    void* req_private_data) {
+  pika_repl_server_->ScheduleBinlogSyncTask(table_partition, req, conn, req_private_data);
+}
+
+void PikaServer::ScheduleReplMetaSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+    std::shared_ptr<pink::PbConn> conn,
+    void* req_private_data) {
+  pika_repl_server_->ScheduleMetaSyncTask(req, conn, req_private_data);
+}
+
+void PikaServer::ScheduleReplTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+    std::shared_ptr<pink::PbConn> conn,
+    void* req_private_data) {
+  pika_repl_server_->ScheduleTrySyncTask(req, conn, req_private_data);
+}
+
+void PikaServer::ScheduleReplDbTask(const std::string &key,
+    PikaCmdArgsType* argv, BinlogItem* binlog_item) {
+  pika_repl_server_->ScheduleDbTask(key, argv, binlog_item);
+}
+
 bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {
   binlogbg_mutex_.Lock();
   //DLOG(INFO) << "Binlog serial wait: " << my_serial << ", current: " << binlogbg_serial_;

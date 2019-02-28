@@ -23,6 +23,7 @@ class PikaReplClientConn: public pink::PbConn {
                                const std::vector<TableStruct>& expect_tables);
   int HandleMetaSyncResponse(const InnerMessage::InnerResponse& response);
   int HandleTrySyncResponse(const InnerMessage::InnerResponse& response);
+  int HandleBinlogSyncResponse(const InnerMessage::InnerResponse& response);
 };
 
 #endif

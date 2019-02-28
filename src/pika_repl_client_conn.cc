@@ -97,6 +97,8 @@ int PikaReplClientConn::HandleTrySyncResponse(const InnerMessage::InnerResponse&
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   }
+
+  int PikaReplClientConn::HandleBinlogSyncResponse(const InnerMessage::InnerResponse& response) {
   return 0;
 }
 
@@ -110,6 +112,9 @@ int PikaReplClientConn::DealMessage() {
       break;
     case InnerMessage::kTrySync:
       res = HandleTrySyncResponse(response);
+      break;
+    case InnerMessage::kBinlogSync:
+      res = HandleBinlogSyncResponse(response);
       break;
     default:
       break;

@@ -29,6 +29,32 @@ struct RmNode {
   int port_;
   RmNode(const std::string& table, int partition, const std::string& ip, int port) : table_(table), partition_(partition), ip_(ip), port_(port) {
   }
+  RmNode(const RmNode& node) {
+    table_ = node.table_;
+    partition_ = node.partition_;
+    ip_ = node.ip_;
+    port_ = node.port_;
+  }
+};
+
+struct BinlogChip {
+  uint32_t file_num_;
+  uint64_t offset_;
+  std::string binlog_;
+  BinlogChip(uint32_t file_num, uint64_t offset, std::string binlog) :file_num_(file_num), offset_(offset), binlog_(binlog) {
+  }
+  BinlogChip(const BinlogChip& binlog_chip) {
+    file_num_ = binlog_chip.file_num_;
+    offset_ = binlog_chip.offset_;
+    binlog_ = binlog_chip.binlog_;
+  }
+};
+
+struct WriteTask {
+  struct RmNode rm_node_;
+  struct BinlogChip binlog_chip_;
+  WriteTask(RmNode rm_node, BinlogChip binlog_chip) : rm_node_(rm_node), binlog_chip_(binlog_chip) {
+  }
 };
 
 class PikaReplClient {
@@ -47,18 +73,27 @@ class PikaReplClient {
   Status SendPartitionTrySync(const std::string& table_name,
                               uint32_t partition_id,
                               const BinlogOffset& boffset);
+  Status SendSyncBinlog(const RmNode& slave);
+
+  void ConsumeWriteQueue();
 
  private:
   PikaBinlogReader* NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
 
-  Status TrySendSyncBinlog(const RmNode& slave);
+  void ProduceWriteQueue(WriteTask& task);
+
   void BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest& request);
 
   Status BuildBinlogMsgFromFile(const RmNode& slave, std::string* scratch, uint32_t* filenum, uint64_t* offset);
 
   PikaReplClientThread* client_thread_;
+
   // keys of this map: table_partition_slaveip:port
   std::map<std::string, PikaBinlogReader*> slave_binlog_readers_;
+
+  slash::Mutex  write_queue_mu_;
+  // every host owns a queue
+  std::unordered_map<std::string, std::queue<WriteTask>> write_queues_;  // ip+port, queue<WriteTask>
 };
 
 #endif

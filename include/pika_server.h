@@ -478,6 +478,25 @@ class PikaServer {
 
   void SetDispatchQueueLimit(int queue_limit);
 
+  /*
+   * for RM {repl client, repl server} use
+   */
+  void ScheduleReplBinlogSyncTask(std::string table_partition,
+      const std::shared_ptr<InnerMessage::InnerRequest> req,
+      std::shared_ptr<pink::PbConn> conn,
+      void* req_private_data);
+
+  void ScheduleReplMetaSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+      std::shared_ptr<pink::PbConn> conn,
+      void* req_private_data);
+
+  void ScheduleReplTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+      std::shared_ptr<pink::PbConn> conn,
+      void* req_private_data);
+
+  void ScheduleReplDbTask(const std::string &key,
+      PikaCmdArgsType* argv, BinlogItem* binlog_item);
+
  private:
   std::atomic<bool> exit_;
   std::atomic<bool> binlog_io_error_;
