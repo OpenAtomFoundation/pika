@@ -168,6 +168,9 @@ void InitCmdInfoTable() {
   ////Scanx
   CmdInfo* scanxptr = new CmdInfo(kCmdNameScanx, -3, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameScanx, scanxptr));
+  ////PKSetexAt
+  CmdInfo* pksetexatptr = new CmdInfo(kCmdNamePKSetexAt, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePKSetexAt, pksetexatptr));
   ////PKScanRange
   CmdInfo* pkscanrangeptr = new CmdInfo(kCmdNamePKScanRange, -4, kCmdFlagsRead | kCmdFlagsKv);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePKScanRange, pkscanrangeptr));
@@ -608,6 +611,9 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////ScanxCmd
   Cmd* scanxptr = new ScanxCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameScanx, scanxptr));
+  ////PKSetexAtCmd
+  Cmd* pksetexatptr = new PKSetexAtCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKSetexAt, pksetexatptr));
   ////PKScanRange
   Cmd* pkscanrangeptr = new PKScanRangeCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKScanRange, pkscanrangeptr));

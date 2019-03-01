@@ -1261,6 +1261,31 @@ void ScanxCmd::Do() {
   return;
 }
 
+void PKSetexAtCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
+  if (!ptr_info->CheckArg(argv.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePKSetexAt);
+    return;
+  }
+  key_ = argv[1];
+  value_ = argv[3];
+  if (!slash::string2l(argv[2].data(), argv[2].size(), &time_stamp_)
+    || time_stamp_ >= INT32_MAX) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+  return;
+}
+
+void PKSetexAtCmd::Do() {
+  rocksdb::Status s = g_pika_server->db()->PKSetexAt(key_, value_, time_stamp_);
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  return;
+}
+
 void PKScanRangeCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePKScanRange);

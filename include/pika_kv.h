@@ -420,6 +420,20 @@ private:
   }
 };
 
+class PKSetexAtCmd : public Cmd {
+public:
+  PKSetexAtCmd() : time_stamp_(0) {}
+  virtual void Do();
+private:
+  std::string key_;
+  std::string value_;
+  int64_t time_stamp_;
+  virtual void DoInitial(const PikaCmdArgsType& argv, const CmdInfo* const ptr_info);
+  virtual void Clear() {
+    time_stamp_ = 0;
+  }
+};
+
 class PKScanRangeCmd : public Cmd {
 public:
   PKScanRangeCmd() : pattern_("*"), limit_(10), string_with_value(false) {}
