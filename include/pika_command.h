@@ -98,6 +98,7 @@ const std::string kCmdNamePersist = "persist";
 const std::string kCmdNameType = "type";
 const std::string kCmdNameScan = "scan";
 const std::string kCmdNameScanx = "scanx";
+const std::string kCmdNamePKSetexAt = "pksetexat";
 const std::string kCmdNamePKScanRange = "pkscanrange";
 const std::string kCmdNamePKRScanRange = "pkrscanrange";
 
