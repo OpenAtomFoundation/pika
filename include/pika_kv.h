@@ -14,8 +14,8 @@
  */
 class SetCmd : public Cmd {
  public:
-  enum SetCondition{kANY, kNX, kXX, kVX};
-  SetCmd() : sec_(0), condition_(kANY) {};
+  enum SetCondition {kNONE, kNX, kXX, kVX, kEXORPX};
+  SetCmd() : sec_(0), condition_(kNONE) {};
   virtual void Do() override;
 
  private:
@@ -29,8 +29,15 @@ class SetCmd : public Cmd {
   virtual void Clear() override {
     sec_ = 0;
     success_ = 0;
-    condition_ = kANY;
+    condition_ = kNONE;
   }
+  virtual std::string ToBinlog(
+      const PikaCmdArgsType& argv,
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class GetCmd : public Cmd {
@@ -205,6 +212,13 @@ private:
   int64_t sec_;
   std::string value_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual std::string ToBinlog(
+      const PikaCmdArgsType& argv,
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class PsetexCmd : public Cmd {
@@ -216,6 +230,13 @@ private:
   int64_t usec_;
   std::string value_;
   virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual std::string ToBinlog(
+      const PikaCmdArgsType& argv,
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
 };
 
 class DelvxCmd : public Cmd {
