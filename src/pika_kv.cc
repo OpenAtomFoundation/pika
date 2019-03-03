@@ -16,7 +16,7 @@ void SetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
   }
   key_ = argv[1];
   value_ = argv[2];
-  condition_ = SetCmd::kANY;
+  condition_ = SetCmd::kNONE;
   sec_ = 0;
   size_t index = 3;
   while (index != argv.size()) {
@@ -35,6 +35,7 @@ void SetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
         target_ = argv[index];
       }
     } else if (!strcasecmp(opt.data(), "ex") || !strcasecmp(opt.data(), "px")) {
+      condition_ = SetCmd::kEXORPX;
       index++;
       if (index == argv.size()) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -69,8 +70,11 @@ void SetCmd::Do() {
     case SetCmd::kVX:
       s = g_pika_server->db()->Setvx(key_, target_, value_, &success_, sec_);
       break;
+    case SetCmd::kEXORPX:
+      s = g_pika_server->db()->Setex(key_, value_, sec_);
+      break;
     default:
-      s = g_pika_server->db()->Set(key_, value_, sec_);
+      s = g_pika_server->db()->Set(key_, value_);
       break;
   }
 
@@ -86,6 +90,48 @@ void SetCmd::Do() {
     }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+std::string SetCmd::ToBinlog(
+      const PikaCmdArgsType& argv,
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) {
+  if (condition_ == SetCmd::kEXORPX) {
+    std::string content;
+    content.reserve(RAW_ARGS_LEN);
+    RedisAppendLen(content, 4, "*");
+
+    // to pksetexat cmd
+    std::string pksetexat_cmd("pksetexat");
+    RedisAppendLen(content, pksetexat_cmd.size(), "$");
+    RedisAppendContent(content, pksetexat_cmd);
+    // key
+    RedisAppendLen(content, key_.size(), "$");
+    RedisAppendContent(content, key_);
+    // time_stamp
+    char buf[100];
+    int32_t time_stamp = time(nullptr) + sec_;
+    slash::ll2string(buf, 100, time_stamp);
+    std::string at(buf);
+    RedisAppendLen(content, at.size(), "$");
+    RedisAppendContent(content, at);
+    // value
+    RedisAppendLen(content, value_.size(), "$");
+    RedisAppendContent(content, value_);
+    return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
+                                               exec_time,
+                                               std::stoi(server_id),
+                                               logic_id,
+                                               filenum,
+                                               offset,
+                                               content,
+                                               {});
+  } else {
+    return Cmd::ToBinlog(argv, exec_time, server_id, logic_id, filenum, offset);
   }
 }
 
@@ -613,6 +659,45 @@ void SetexCmd::Do() {
   }
 }
 
+std::string SetexCmd::ToBinlog(
+      const PikaCmdArgsType& argv,
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) {
+
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLen(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLen(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  int32_t time_stamp = time(nullptr) + sec_;
+  slash::ll2string(buf, 100, time_stamp);
+  std::string at(buf);
+  RedisAppendLen(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  RedisAppendLen(content, value_.size(), "$");
+  RedisAppendContent(content, value_);
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
+                                             exec_time,
+                                             std::stoi(server_id),
+                                             logic_id,
+                                             filenum,
+                                             offset,
+                                             content,
+                                             {});
+}
+
 void PsetexCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePsetex);
@@ -634,6 +719,45 @@ void PsetexCmd::Do() {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+
+std::string PsetexCmd::ToBinlog(
+      const PikaCmdArgsType& argv,
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) {
+
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 4, "*");
+
+  // to pksetexat cmd
+  std::string pksetexat_cmd("pksetexat");
+  RedisAppendLen(content, pksetexat_cmd.size(), "$");
+  RedisAppendContent(content, pksetexat_cmd);
+  // key
+  RedisAppendLen(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // time_stamp
+  char buf[100];
+  int32_t time_stamp = time(nullptr) + usec_ / 1000;
+  slash::ll2string(buf, 100, time_stamp);
+  std::string at(buf);
+  RedisAppendLen(content, at.size(), "$");
+  RedisAppendContent(content, at);
+  // value
+  RedisAppendLen(content, value_.size(), "$");
+  RedisAppendContent(content, value_);
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
+                                             exec_time,
+                                             std::stoi(server_id),
+                                             logic_id,
+                                             filenum,
+                                             offset,
+                                             content,
+                                             {});
 }
 
 void DelvxCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
