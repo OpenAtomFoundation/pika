@@ -36,14 +36,18 @@ bool PikaReplClientConn::IsTableStructConsistent(
   return true;
 }
 
-int PikaReplClientConn::HandleMetaSyncResponse(const std::shared_ptr<InnerMessage::InnerResponse>  response) {
+void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
+  ReplRespArg* resp_arg = static_cast<ReplRespArg*>(arg);
+  std::shared_ptr<pink::PbConn> conn = resp_arg->conn;
+  std::shared_ptr<InnerMessage::InnerResponse> response = resp_arg->resp;
+
   const InnerMessage::InnerResponse_MetaSync meta_sync = response->meta_sync();
   if (g_pika_conf->classic_mode() != meta_sync.classic_mode()) {
     LOG(WARNING) << "Self in " << (g_pika_conf->classic_mode() ? "classic" : "sharding")
         << " mode, but master in " << (meta_sync.classic_mode() ? "classic" : "sharding")
         << " mode, failed to establish master-slave relationship";
     g_pika_server->SyncError();
-    return -1;
+    return;
   }
 
   std::vector<TableStruct> master_table_structs;
@@ -55,11 +59,11 @@ int PikaReplClientConn::HandleMetaSyncResponse(const std::shared_ptr<InnerMessag
   bool force_full_sync = g_pika_server->force_full_sync();
   std::vector<TableStruct> self_table_structs = g_pika_conf->table_structs();
   if (!force_full_sync
-    && !IsTableStructConsistent(self_table_structs, master_table_structs)) {
+    && !PikaReplClientConn::IsTableStructConsistent(self_table_structs, master_table_structs)) {
     LOG(WARNING) << "Self table structs inconsistent with master"
         << ", failed to establish master-slave relationship";
     g_pika_server->SyncError();
-    return -1;
+    return;
   }
 
   if (force_full_sync) {
@@ -69,17 +73,20 @@ int PikaReplClientConn::HandleMetaSyncResponse(const std::shared_ptr<InnerMessag
       LOG(WARNING) << "Need force full sync but rebuild table struct error"
         << ", failed to establish master-slave relationship";
       g_pika_server->SyncError();
-      return -1;
+      return;
     }
     g_pika_server->PurgeDir(g_pika_conf->trash_path());
   }
   LOG(INFO) << "Finish to handle meta sync response";
   g_pika_server->MetaSyncDone();
-  return 0;
 }
 
-int PikaReplClientConn::HandleTrySyncResponse(const InnerMessage::InnerResponse& response) {
-  const InnerMessage::InnerResponse_TrySync try_sync_response = response.try_sync();
+void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
+  ReplRespArg* resp_arg = static_cast<ReplRespArg*>(arg);
+  std::shared_ptr<pink::PbConn> conn = resp_arg->conn;
+  std::shared_ptr<InnerMessage::InnerResponse> response = resp_arg->resp;
+
+  const InnerMessage::InnerResponse_TrySync try_sync_response = response->try_sync();
   const InnerMessage::Partition partition_response = try_sync_response.partition();
   std::string table_name = partition_response.table_name();
   uint32_t partition_id  = partition_response.partition_id();
@@ -94,32 +101,34 @@ int PikaReplClientConn::HandleTrySyncResponse(const InnerMessage::InnerResponse&
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   }
-
-  int PikaReplClientConn::HandleBinlogSyncResponse(const InnerMessage::InnerResponse& response) {
-  return 0;
 }
 
 int PikaReplClientConn::DealMessage() {
-  int res = 0;
   std::shared_ptr<InnerMessage::InnerResponse> response =  std::make_shared<InnerMessage::InnerResponse>();
   response->ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
   switch (response->type()) {
     case InnerMessage::kMetaSync:
-      res = HandleMetaSyncResponse(response);
+    {
+      ReplRespArg* arg = new ReplRespArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
+      g_pika_server->ScheduleReplCliTask(&PikaReplClientConn::HandleMetaSyncResponse, static_cast<void*>(arg));
       break;
+    }
     case InnerMessage::kTrySync:
-      res = HandleTrySyncResponse(response);
+    {
+      ReplRespArg* arg = new ReplRespArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
+      g_pika_server->ScheduleReplCliTask(&PikaReplClientConn::HandleTrySyncResponse, static_cast<void*>(arg));
       break;
+    }
     case InnerMessage::kBinlogSync:
     {
       ReplRespArg* arg = new ReplRespArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_server->ScheduleReplCliTask(&PikaReplClientConn::HandleBinlogSyncResponse, static_cast<void*>(arg));
-      res = 0;
+      break;
     }
     default:
       break;
   }
-  return res;
+  return 0;
 }
 
 void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
@@ -142,7 +151,7 @@ void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
     delete resp_arg;
     return;
   }
-  const InnerMessage::SyncOffset& sync_offset = binlog_ack.sync_offset();
+  const InnerMessage::BinlogOffset& binlog_offset = binlog_ack.binlog_offset();
 
   uint64_t now;
   struct timeval tv;
@@ -150,7 +159,7 @@ void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
   now = tv.tv_sec;
 
   // Set ack info from slave
-  res = g_pika_server->SetBinlogAckInfo(table_name, partition_id, ip, port, sync_offset.filenum(), sync_offset.offset(), now);
+  res = g_pika_server->SetBinlogAckInfo(table_name, partition_id, ip, port, binlog_offset.filenum(), binlog_offset.offset(), now);
   if (!res) {
     LOG(WARNING) << "Update binlog ack failed " << table_name << " " << partition_id;
     delete resp_arg;

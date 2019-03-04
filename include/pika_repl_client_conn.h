@@ -18,15 +18,12 @@ class PikaReplClientConn: public pink::PbConn {
   PikaReplClientConn(int fd, const std::string& ip_port, pink::Thread *thread, void* worker_specific_data, pink::PinkEpoll* epoll);
   virtual ~PikaReplClientConn() = default;
   static void HandleBinlogSyncResponse(void* arg);
-
+  static void HandleMetaSyncResponse(void* arg);
+  static void HandleTrySyncResponse(void* arg);
+  static bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
+                               const std::vector<TableStruct>& expect_tables);
   int DealMessage() override;
  private:
-  bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
-                               const std::vector<TableStruct>& expect_tables);
-  int HandleMetaSyncResponse(const InnerMessage::InnerResponse& response);
-  int HandleTrySyncResponse(const InnerMessage::InnerResponse& response);
-  int HandleMetaSyncResponse(const std::shared_ptr<InnerMessage::InnerResponse> response);
-
   struct ReplRespArg {
     std::shared_ptr<InnerMessage::InnerResponse> resp;
     std::shared_ptr<pink::PbConn> conn;

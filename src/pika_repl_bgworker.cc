@@ -36,6 +36,7 @@ void PikaReplBgWorker::ScheduleRequest(const std::shared_ptr<InnerMessage::Inner
       bg_thread_.Schedule(&PikaReplBgWorker::HandleMetaSyncRequest, static_cast<void*>(arg));
       break;
     case InnerMessage::kTrySync:
+      bg_thread_.Schedule(&PikaReplBgWorker::HandleTrySyncRequest, static_cast<void*>(arg));
       break;
     case InnerMessage::kBinlogSync:
       bg_thread_.Schedule(&PikaReplBgWorker::HandleBinlogSyncRequest, static_cast<void*>(arg));
@@ -130,9 +131,9 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
   InnerMessage::InnerResponse_BinlogSync* binlog_sync_resp = response.mutable_binlog_sync();
   binlog_sync_resp->set_table_name(table_name);
   binlog_sync_resp->set_partition_id(partition_id);
-  InnerMessage::SyncOffset* sync_offset = binlog_sync_resp->mutable_sync_offset();
-  sync_offset->set_filenum(file_num);
-  sync_offset->set_offset(offset);
+  InnerMessage::BinlogOffset* binlog_offset = binlog_sync_resp->mutable_binlog_offset();
+  binlog_offset->set_filenum(file_num);
+  binlog_offset->set_offset(offset);
 
   std::string reply_str;
   if (!response.SerializeToString(&reply_str)) {
@@ -237,4 +238,61 @@ void PikaReplBgWorker::HandleWriteDb(void* arg) {
   }
 
   delete bg_worker_arg;
+}
+
+void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
+  ReplBgWorkerArg* bg_worker_arg = static_cast<ReplBgWorkerArg*>(arg);
+  const std::shared_ptr<InnerMessage::InnerRequest> req = bg_worker_arg->req;
+  std::shared_ptr<pink::PbConn> conn = bg_worker_arg->conn;
+
+  InnerMessage::InnerRequest::TrySync try_sync_request = req->try_sync();
+  InnerMessage::Partition partition_request = try_sync_request.partition();
+  std::string table_name = partition_request.table_name();
+  uint32_t partition_id = partition_request.partition_id();
+  bool force = try_sync_request.force();
+  std::string partition_name = table_name + "_" + std::to_string(partition_id);
+  InnerMessage::BinlogOffset slave_boffset = try_sync_request.binlog_offset();
+  InnerMessage::Node node = try_sync_request.node();
+  LOG(INFO) << "Trysync, Slave ip: " << node.ip() << ", Slave port:"
+    << node.port() << ", Partition: " << partition_name << ", filenum: "
+    << slave_boffset.filenum() << ", pro_offset: " << slave_boffset.offset();
+
+  InnerMessage::InnerResponse response;
+  response.set_type(InnerMessage::Type::kTrySync);
+  response.set_code(InnerMessage::StatusCode::kOk);
+  InnerMessage::InnerResponse::TrySync* try_sync_response = response.mutable_try_sync();
+  InnerMessage::Partition* partition_response = try_sync_response->mutable_partition();
+  partition_response->set_table_name(table_name);
+  partition_response->set_partition_id(partition_id);
+  if (force) {
+  } else {
+    BinlogOffset boffset;
+    if (!g_pika_server->GetTablePartitionBinlogOffset(table_name, partition_id, &boffset)) {
+      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+      LOG(WARNING) << "Handle TrySync, Partition: "
+        << partition_name << " not found, TrySync failed";
+    } else {
+      if (boffset.filenum < slave_boffset.filenum()
+        || (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
+        try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kInvalidOffset);
+        LOG(WARNING) << "Slave offset is larger than mine, Slave ip: "
+          << node.ip() << ", Slave port: " << node.port() << ", Partition: "
+          << partition_name << ", filenum: " << slave_boffset.filenum()
+          << ", pro_offset_: " <<  slave_boffset.offset();
+      } else {
+        try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
+        try_sync_response->set_sid(0);
+      }
+    }
+  }
+
+  delete bg_worker_arg;
+
+  std::string reply_str;
+  if (!response.SerializeToString(&reply_str)
+    || conn->WriteResp(reply_str)) {
+    LOG(WARNING) << "Handle Try Sync Failed";
+    return;
+  }
+  conn->NotifyWrite();
 }
