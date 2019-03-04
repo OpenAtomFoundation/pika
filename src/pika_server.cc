@@ -1265,22 +1265,37 @@ void PikaServer::AutoCompactRange() {
   }
 
   if (cc != "") {
-    std::string::size_type colon = cc.find("-");
-    std::string::size_type underline = cc.find("/");
-    int start = std::atoi(cc.substr(0, colon).c_str());
-    int end = std::atoi(cc.substr(colon+1, underline).c_str());
-    int usage = std::atoi(cc.substr(underline+1).c_str());
+    bool have_week = false;
+    std::string compact_cron, week_str;
+    int slash_num = count(cc.begin(), cc.end(), '/');
+    if (slash_num == 2) {
+      have_week = true;
+      std::string::size_type first_slash = cc.find("/");
+      week_str = cc.substr(0, first_slash);
+      compact_cron = cc.substr(first_slash + 1);
+    } else {
+      compact_cron = cc;
+    }
+
+    std::string::size_type colon = compact_cron.find("-");
+    std::string::size_type underline = compact_cron.find("/");
+    int week = have_week ? (std::atoi(week_str.c_str()) % 7) : 0;
+    int start = std::atoi(compact_cron.substr(0, colon).c_str());
+    int end = std::atoi(compact_cron.substr(colon+1, underline).c_str());
+    int usage = std::atoi(compact_cron.substr(underline+1).c_str());
     std::time_t t = std::time(nullptr);
     std::tm* t_m = std::localtime(&t);
+
     bool in_window = false;
     if (start < end && (t_m->tm_hour >= start && t_m->tm_hour < end)) {
-      in_window = true;
+      in_window = have_week ? (week == t_m->tm_wday) : true;
     } else if (start > end && ((t_m->tm_hour >= start && t_m->tm_hour < 24) ||
           (t_m->tm_hour >= 0 && t_m->tm_hour < end))) {
-      in_window = true;
+      in_window = have_week ? false : true;
     } else {
       have_scheduled_crontask_ = false;
     }
+
     if (!have_scheduled_crontask_ && in_window) {
       if (((double)free_size / total_size) * 100 >= usage) {
         rocksdb::Status s = db_->Compact(blackwidow::kAll);
