@@ -241,6 +241,10 @@ void PikaServer::Schedule(pink::TaskFunc func, void* arg) {
   pika_thread_pool_->Schedule(func, arg);
 }
 
+void PikaServer::ScheduleReplCliTask(pink::TaskFunc func, void* arg) {
+  pika_repl_client_->Schedule(func, arg);
+}
+
 void PikaServer::RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) {
   bw_option->options.create_if_missing = true;
   bw_option->options.keep_log_file_num = 10;
@@ -1625,6 +1629,11 @@ Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partit
   return status;
 }
 
+Status PikaServer::SendBinlogSyncRequest(const std::string& table, uint32_t partition, const std::string& ip, int port) {
+  RmNode slave = RmNode(table, partition, ip, port);
+  return pika_repl_client_->SendBinlogSync(slave);
+}
+
 void PikaServer::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
   monitor_thread_->AddMonitorClient(client_ptr);
 }
@@ -1665,6 +1674,18 @@ void PikaServer::ScheduleReplTrySyncTask(const std::shared_ptr<InnerMessage::Inn
 void PikaServer::ScheduleReplDbTask(const std::string &key,
     PikaCmdArgsType* argv, BinlogItem* binlog_item) {
   pika_repl_server_->ScheduleDbTask(key, argv, binlog_item);
+}
+
+bool PikaServer::SetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
+    uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time) {
+  RmNode slave = RmNode(table, partition, ip, port);
+  return pika_repl_client_->SetAckInfo(slave, ack_file_num, ack_offset, active_time);
+}
+
+bool PikaServer::GetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
+    uint32_t* ack_file_num, uint64_t* ack_offset, uint64_t* active_time) {
+  RmNode slave = RmNode(table, partition, ip, port);
+  return pika_repl_client_->GetAckInfo(slave, ack_file_num, ack_offset, active_time);
 }
 
 bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {

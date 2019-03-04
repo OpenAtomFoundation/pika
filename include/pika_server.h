@@ -497,6 +497,19 @@ class PikaServer {
   void ScheduleReplDbTask(const std::string &key,
       PikaCmdArgsType* argv, BinlogItem* binlog_item);
 
+  bool SetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
+      uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time);
+
+  bool GetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
+    uint32_t* ack_file_num, uint64_t* ack_offset, uint64_t* active_time);
+
+  Status SendMetaSyncRequest();
+
+  Status SendBinlogSyncRequest(const std::string& table, uint32_t partition, const std::string& ip, int port);
+
+  // schedule repl_client thread pool
+  void ScheduleReplCliTask(pink::TaskFunc func, void*arg);
+
  private:
   std::atomic<bool> exit_;
   std::atomic<bool> binlog_io_error_;

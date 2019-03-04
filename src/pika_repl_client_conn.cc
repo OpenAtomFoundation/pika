@@ -5,8 +5,10 @@
 
 #include "include/pika_repl_client_conn.h"
 
+#include <sys/time.h>
+
 #include "include/pika_server.h"
-#include "src/pika_inner_message.pb.h"
+#include "slash/include/slash_string.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
@@ -17,11 +19,6 @@ PikaReplClientConn::PikaReplClientConn(int fd,
                                void* worker_specific_data,
                                pink::PinkEpoll* epoll)
       : pink::PbConn(fd, ip_port, thread, epoll) {
-}
-
-void PikaReplClientConn::DoReplClientTask(void* arg) {
-  InnerMessage::InnerResponse* response = reinterpret_cast<InnerMessage::InnerResponse*>(arg);
-  delete response;
 }
 
 bool PikaReplClientConn::IsTableStructConsistent(
@@ -39,8 +36,8 @@ bool PikaReplClientConn::IsTableStructConsistent(
   return true;
 }
 
-int PikaReplClientConn::HandleMetaSyncResponse(const InnerMessage::InnerResponse& response) {
-  const InnerMessage::InnerResponse_MetaSync meta_sync = response.meta_sync();
+int PikaReplClientConn::HandleMetaSyncResponse(const std::shared_ptr<InnerMessage::InnerResponse>  response) {
+  const InnerMessage::InnerResponse_MetaSync meta_sync = response->meta_sync();
   if (g_pika_conf->classic_mode() != meta_sync.classic_mode()) {
     LOG(WARNING) << "Self in " << (g_pika_conf->classic_mode() ? "classic" : "sharding")
         << " mode, but master in " << (meta_sync.classic_mode() ? "classic" : "sharding")
@@ -104,9 +101,9 @@ int PikaReplClientConn::HandleTrySyncResponse(const InnerMessage::InnerResponse&
 
 int PikaReplClientConn::DealMessage() {
   int res = 0;
-  InnerMessage::InnerResponse response;
-  response.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
-  switch (response.type()) {
+  std::shared_ptr<InnerMessage::InnerResponse> response =  std::make_shared<InnerMessage::InnerResponse>();
+  response->ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  switch (response->type()) {
     case InnerMessage::kMetaSync:
       res = HandleMetaSyncResponse(response);
       break;
@@ -114,10 +111,56 @@ int PikaReplClientConn::DealMessage() {
       res = HandleTrySyncResponse(response);
       break;
     case InnerMessage::kBinlogSync:
-      res = HandleBinlogSyncResponse(response);
-      break;
+    {
+      ReplRespArg* arg = new ReplRespArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
+      g_pika_server->ScheduleReplCliTask(&PikaReplClientConn::HandleBinlogSyncResponse, static_cast<void*>(arg));
+      res = 0;
+    }
     default:
       break;
   }
   return res;
+}
+
+void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
+  ReplRespArg* resp_arg = static_cast<ReplRespArg*>(arg);
+  std::shared_ptr<pink::PbConn> conn = resp_arg->conn;
+  std::shared_ptr<InnerMessage::InnerResponse> resp = resp_arg->resp;
+  if (!resp->has_binlog_sync()) {
+    LOG(WARNING) << "Pb parse error";
+    delete resp_arg;
+    return;
+  }
+  const InnerMessage::InnerResponse_BinlogSync& binlog_ack = resp->binlog_sync();
+  std::string table_name = binlog_ack.table_name();
+  uint32_t partition_id = binlog_ack.partition_id();
+  std::string ip;
+  int port = 0;
+  bool res = slash::ParseIpPortString(conn->ip_port(), ip, port);
+  if (!res) {
+    LOG(WARNING) << "Parse Error ParseIpPortString faile";
+    delete resp_arg;
+    return;
+  }
+  const InnerMessage::SyncOffset& sync_offset = binlog_ack.sync_offset();
+
+  uint64_t now;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  now = tv.tv_sec;
+
+  // Set ack info from slave
+  res = g_pika_server->SetBinlogAckInfo(table_name, partition_id, ip, port, sync_offset.filenum(), sync_offset.offset(), now);
+  if (!res) {
+    LOG(WARNING) << "Update binlog ack failed " << table_name << " " << partition_id;
+    delete resp_arg;
+    return;
+  }
+  delete resp_arg;
+
+  Status s = g_pika_server->SendBinlogSyncRequest(table_name, partition_id, ip, port);
+  if (!s.ok()) {
+    LOG(WARNING) << "Send BinlogSync Request failed " << table_name << " " << partition_id;
+    return;
+  }
 }

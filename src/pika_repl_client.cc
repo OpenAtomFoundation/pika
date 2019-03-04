@@ -15,14 +15,18 @@ extern PikaServer* g_pika_server;
 PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) {
   client_thread_ = new PikaReplClientThread(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
+  client_tp_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
+  pthread_rwlock_init(&binlog_ctl_rw_, NULL);
 }
 
 PikaReplClient::~PikaReplClient() {
   client_thread_->StopThread();
   delete client_thread_;
-  for (auto iter : slave_binlog_readers_) {
+  for (auto iter : binlog_ctl_) {
     delete iter.second;
   }
+  delete client_tp_;
+  pthread_rwlock_destroy(&binlog_ctl_rw_);
   LOG(INFO) << "PikaReplClient exit!!!";
 }
 
@@ -34,6 +38,10 @@ int PikaReplClient::Start() {
   int res = client_thread_->StartThread();
   if (res != pink::kSuccess) {
     LOG(FATAL) << "Start ReplClient ClientThread Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+  res = client_tp_->start_thread_pool();
+  if (res != pink::kSuccess) {
+    LOG(FATAL) << "Start ThreadPool Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
   return res;
 }
@@ -82,6 +90,48 @@ void PikaReplClient::ConsumeWriteQueue() {
   }
 }
 
+bool PikaReplClient::SetAckInfo(const RmNode& slave, uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time) {
+  std::string index;
+  BuildBinlogReaderIndex(slave, &index);
+  BinlogSyncCtl* ctl = nullptr;
+  {
+  slash::RWLock l(&binlog_ctl_rw_, false);
+  if (binlog_ctl_.find(index) == binlog_ctl_.end()) {
+    return false;
+  }
+  ctl = binlog_ctl_[index];
+  }
+
+  {
+  slash::MutexLock l(&(ctl->ctl_mu_));
+  ctl->ack_file_num_ = ack_file_num;
+  ctl->ack_offset_ = ack_offset;
+  ctl->active_time_ = active_time;
+  }
+  return true;
+}
+
+bool PikaReplClient::GetAckInfo(const RmNode& slave, uint32_t* ack_file_num, uint64_t* ack_offset, uint64_t* active_time) {
+  std::string index;
+  BuildBinlogReaderIndex(slave, &index);
+  BinlogSyncCtl* ctl = nullptr;
+  {
+  slash::RWLock l(&binlog_ctl_rw_, false);
+  if (binlog_ctl_.find(index) == binlog_ctl_.end()) {
+    return false;
+  }
+  ctl = binlog_ctl_[index];
+  }
+
+  {
+  slash::MutexLock l(&(ctl->ctl_mu_));
+  *ack_file_num = ctl->ack_file_num_;
+  *ack_offset = ctl->ack_offset_;
+  *active_time = ctl->active_time_;
+  }
+  return true;
+}
+
 Status PikaReplClient::Write(const std::string& ip, const int port, const std::string& msg) {
   // shift port 3000 tobe inner connect port
   return client_thread_->Write(ip, port, msg);
@@ -90,9 +140,12 @@ Status PikaReplClient::Write(const std::string& ip, const int port, const std::s
 Status PikaReplClient::RemoveBinlogReader(const RmNode& slave) {
   std::string index;
   BuildBinlogReaderIndex(slave, &index);
-  if (slave_binlog_readers_.find(index) != slave_binlog_readers_.end()) {
-    delete slave_binlog_readers_[index];
-    slave_binlog_readers_.erase(index);
+  {
+  slash::RWLock l(&binlog_ctl_rw_, true);
+  if (binlog_ctl_.find(index) != binlog_ctl_.end()) {
+    delete binlog_ctl_[index];
+    binlog_ctl_.erase(index);
+  }
   }
   return Status::OK();
 }
@@ -110,12 +163,15 @@ Status PikaReplClient::AddBinlogReader(const RmNode& slave, std::shared_ptr<Binl
     delete binlog_reader;
     return Status::Corruption(index + "  binlog reader init failed");
   }
-  slave_binlog_readers_[index] = binlog_reader;
+  {
+  slash::RWLock l(&binlog_ctl_rw_, true);
+  binlog_ctl_[index] = new BinlogSyncCtl(binlog_reader);
+  }
   return Status::OK();
 }
 
 void PikaReplClient::RunStateMachine(const RmNode& slave) {
-  Status s = SendSyncBinlog(slave);
+  Status s = SendBinlogSync(slave);
   if (!s.ok()) {
     LOG(INFO) << s.ToString();
     return;
@@ -137,12 +193,17 @@ void PikaReplClient::RunStateMachine(const RmNode& slave) {
 bool PikaReplClient::NeedToSendBinlog(const RmNode& slave) {
   std::string index;
   BuildBinlogReaderIndex(slave, &index);
-  auto binlog_reader_iter = slave_binlog_readers_.find(index);
-  if (binlog_reader_iter == slave_binlog_readers_.end()) {
+  BinlogSyncCtl* ctl;
+  {
+  slash::RWLock l(&binlog_ctl_rw_, false);
+  auto binlog_reader_iter = binlog_ctl_.find(index);
+  if (binlog_reader_iter == binlog_ctl_.end()) {
     return false;
   }
-  PikaBinlogReader* reader = binlog_reader_iter->second;
-  return !(reader->ReadToTheEnd());
+  ctl = binlog_reader_iter->second;
+  }
+  slash::MutexLock l(&(ctl->ctl_mu_));
+  return !(ctl->reader_->ReadToTheEnd());
 }
 
 Status PikaReplClient::SendMetaSync() {
@@ -194,7 +255,7 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
   return client_thread_->Write(master_ip, master_port + 3000, to_send);
 }
 
-Status PikaReplClient::SendSyncBinlog(const RmNode& slave) {
+Status PikaReplClient::SendBinlogSync(const RmNode& slave) {
   if (!NeedToSendBinlog(slave)) {
     return Status::OK();
   }
@@ -230,16 +291,23 @@ void PikaReplClient::BuildBinlogPb(const RmNode& slave, const std::string& msg, 
 Status PikaReplClient::BuildBinlogMsgFromFile(const RmNode& slave, std::string* scratch, uint32_t* filenum, uint64_t* offset) {
   std::string index;
   BuildBinlogReaderIndex(slave, &index);
-  auto iter = slave_binlog_readers_.find(index);
-  if (iter == slave_binlog_readers_.end()) {
+  BinlogSyncCtl* ctl;
+  {
+  slash::RWLock l(&binlog_ctl_rw_, false);
+  auto iter = binlog_ctl_.find(index);
+  if (iter == binlog_ctl_.end()) {
     return Status::NotFound(index + " not found");
   }
-  PikaBinlogReader* reader = iter->second;
+  ctl = iter->second;
+  }
 
+  {
+  slash::MutexLock l(&(ctl->ctl_mu_));
   // Get command supports append binlog
-  Status s = reader->Get(scratch, filenum, offset);
+  Status s = ctl->reader_->Get(scratch, filenum, offset);
   if (!s.ok()) {
     return s;
+  }
   }
   return Status::OK();
 }

@@ -18,6 +18,9 @@
 #include "include/pika_binlog_reader.h"
 #include "include/pika_repl_client_thread.h"
 
+#include "pink/include/thread_pool.h"
+#include "src/pika_inner_message.pb.h"
+
 #define kBinlogSyncBatchNum 10
 
 using slash::Status;
@@ -73,9 +76,16 @@ class PikaReplClient {
   Status SendPartitionTrySync(const std::string& table_name,
                               uint32_t partition_id,
                               const BinlogOffset& boffset);
-  Status SendSyncBinlog(const RmNode& slave);
+  Status SendBinlogSync(const RmNode& slave);
 
   void ConsumeWriteQueue();
+
+  void Schedule(pink::TaskFunc func, void* arg){
+    client_tp_->Schedule(func, arg);
+  }
+
+  bool SetAckInfo(const RmNode& slave, uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time);
+  bool GetAckInfo(const RmNode& slave, uint32_t* act_file_num, uint64_t* ack_offset, uint64_t* active_time);
 
  private:
   PikaBinlogReader* NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
@@ -88,12 +98,33 @@ class PikaReplClient {
 
   PikaReplClientThread* client_thread_;
 
+
+  struct BinlogSyncCtl {
+    slash::Mutex ctl_mu_;
+    PikaBinlogReader* reader_;
+    uint32_t ack_file_num_;
+    uint64_t ack_offset_;
+    uint64_t active_time_;
+
+    BinlogSyncCtl(PikaBinlogReader* reader)
+      : reader_(reader), ack_file_num_(0), ack_offset_(0), active_time_(0) {
+    }
+    ~BinlogSyncCtl() {
+      if (reader_) {
+        delete reader_;
+      }
+    }
+  };
+
+  pthread_rwlock_t binlog_ctl_rw_;
   // keys of this map: table_partition_slaveip:port
-  std::map<std::string, PikaBinlogReader*> slave_binlog_readers_;
+  std::map<std::string, BinlogSyncCtl*> binlog_ctl_;
 
   slash::Mutex  write_queue_mu_;
   // every host owns a queue
   std::unordered_map<std::string, std::queue<WriteTask>> write_queues_;  // ip+port, queue<WriteTask>
+
+  pink::ThreadPool* client_tp_;
 };
 
 #endif
