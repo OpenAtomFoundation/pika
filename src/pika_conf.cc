@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include <iostream>
+#include <algorithm>
 
 PikaConf::PikaConf(const std::string& path):
   slash::BaseConf(path), conf_path_(path)
@@ -141,22 +142,36 @@ int PikaConf::Load()
   compact_cron_ = "";
   GetConfStr("compact-cron", &compact_cron_);
   if (compact_cron_ != "") {
-    std::string::size_type len = compact_cron_.length();
-    std::string::size_type colon = compact_cron_.find("-");
-    std::string::size_type underline = compact_cron_.find("/");
+    bool have_week = false;
+    std::string compact_cron, week_str;
+    int slash_num = count(compact_cron_.begin(), compact_cron_.end(), '/');
+    if (slash_num == 2) {
+      have_week = true;
+      std::string::size_type first_slash = compact_cron_.find("/");
+      week_str = compact_cron_.substr(0, first_slash);
+      compact_cron = compact_cron_.substr(first_slash + 1);
+    } else {
+      compact_cron = compact_cron_;
+    }
+
+    std::string::size_type len = compact_cron.length();
+    std::string::size_type colon = compact_cron.find("-");
+    std::string::size_type underline = compact_cron.find("/");
     if (colon == std::string::npos || underline == std::string::npos ||
         colon >= underline || colon + 1 >= len ||
         colon + 1 == underline || underline + 1 >= len) {
         compact_cron_ = "";
     } else {
-      int start = std::atoi(compact_cron_.substr(0, colon).c_str());
-      int end = std::atoi(compact_cron_.substr(colon+1, underline).c_str());
-      int usage = std::atoi(compact_cron_.substr(underline+1).c_str());
-      if (start < 0 || start > 23 || end < 0 || end > 23 || usage < 0 || usage > 100) {
+      int week = std::atoi(week_str.c_str());
+      int start = std::atoi(compact_cron.substr(0, colon).c_str());
+      int end = std::atoi(compact_cron.substr(colon + 1, underline).c_str());
+      int usage = std::atoi(compact_cron.substr(underline + 1).c_str());
+      if ((have_week && (week < 1 || week > 7)) || start < 0 || start > 23 || end < 0 || end > 23 || usage < 0 || usage > 100) {
         compact_cron_ = "";
       }
     }
   }
+
   compact_interval_ = "";
   GetConfStr("compact-interval", &compact_interval_);
   if (compact_interval_ != "") {
