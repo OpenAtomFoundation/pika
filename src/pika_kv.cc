@@ -9,6 +9,7 @@
 
 extern PikaServer *g_pika_server;
 
+/* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
 void SetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSet);
@@ -35,7 +36,7 @@ void SetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
         target_ = argv[index];
       }
     } else if (!strcasecmp(opt.data(), "ex") || !strcasecmp(opt.data(), "px")) {
-      condition_ = SetCmd::kEXORPX;
+      condition_ = (condition_ == SetCmd::kNONE) ? SetCmd::kEXORPX : condition_;
       index++;
       if (index == argv.size()) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -44,7 +45,11 @@ void SetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_inf
       if (!slash::string2l(argv[index].data(), argv[index].size(), &sec_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
+      } else if (sec_ <= 0) {
+        res_.SetRes(CmdRes::kErrOther, "invalid expire time in set");
+        return;
       }
+
       if (!strcasecmp(opt.data(), "px")) {
         sec_ /= 1000;
       }
@@ -959,7 +964,7 @@ std::string ExpireCmd::ToBinlog(
       uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, argv.size(), "*");
+  RedisAppendLen(content, 3, "*");
 
   // to expireat cmd
   std::string expireat_cmd("expireat");
