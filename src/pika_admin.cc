@@ -274,6 +274,10 @@ void CompactCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr
     res_.SetRes(CmdRes::kWrongNum, kCmdNameCompact);
     return;
   }
+  if (g_pika_server->key_scaning()) {
+    res_.SetRes(CmdRes::kErrOther, "The info keyspace operation is executing, Try again later");
+    return;
+  }
 
   if (argv.size() == 2) {
     struct_type_ = argv[1];
@@ -507,7 +511,11 @@ void InfoCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_in
       return;
     }
     if (argv[2] == "1") { //info keyspace [ 0 | 1 | off ]
-      rescan_ = true;
+      if (g_pika_server->db()->GetCurrentTaskType() == "All") {
+        res_.SetRes(CmdRes::kErrOther, "The compact operation is executing, Try again later");
+      } else {
+        rescan_ = true;
+      }
     } else if (argv[2] == "off") {
       off_ = true;
     } else if (argv[2] != "0") {
