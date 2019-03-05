@@ -801,6 +801,7 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   }
 
   PikaServer::KeyScanInfo key_scan_info = g_pika_server->key_scan_info();
+  int32_t duration = key_scan_info.duration;
   std::vector<blackwidow::KeyInfo>& key_infos = key_scan_info.key_infos;
   if (key_infos.size() != 5) {
     info.append("info keyspace error\r\n");
@@ -808,7 +809,8 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   }
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
-  tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
+  tmp_stream << "# Time: " << key_scan_info.s_start_time << "\r\n";
+  tmp_stream << "# Duration: " << (duration == -1 ? "In Processing" : std::to_string(duration) + "s" )<< "\r\n";
   tmp_stream << "Strings: keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invaild_keys=" << key_infos[0].invaild_keys << "\r\n";
   tmp_stream << "Hashes: keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invaild_keys=" << key_infos[1].invaild_keys << "\r\n";
   tmp_stream << "Lists: keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invaild_keys=" << key_infos[2].invaild_keys << "\r\n";

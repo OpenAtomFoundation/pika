@@ -1639,6 +1639,7 @@ void PikaServer::RunKeyScan() {
   slash::MutexLock lm(&key_scan_protector_);
   if (s.ok()) {
     key_scan_info_.key_infos = new_key_infos;
+    key_scan_info_.duration = time(NULL) - key_scan_info_.start_time;
   }
   key_scan_info_.key_scaning_ = false;
 }
@@ -1675,6 +1676,7 @@ void PikaServer::InitKeyScan() {
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
+  key_scan_info_.duration = -1;
 }
 
 void PikaServer::ClientKillAll() {
