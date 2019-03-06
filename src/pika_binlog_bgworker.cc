@@ -99,10 +99,13 @@ void BinlogBGWorker::DoBinlogBG(void* arg) {
     g_pika_server->mutex_record_.Unlock(argv[1]);
   }
   if (g_pika_conf->slowlog_slower_than() >= 0) {
+    int32_t start_time = start_us / 1000000;
     int64_t duration = slash::NowMicros() - start_us;
-    if (g_pika_conf->slowlog_write_errorlog()
-      && duration > g_pika_conf->slowlog_slower_than()) {
-      LOG(ERROR) << "command: " << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
+    if (duration > g_pika_conf->slowlog_slower_than()) {
+      g_pika_server->SlowlogPushEntry(argv, start_time, duration);
+      if (g_pika_conf->slowlog_write_errorlog()) {
+        LOG(ERROR) << "command: " << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
+      }
     }
   }
 
