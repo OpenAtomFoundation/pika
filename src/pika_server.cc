@@ -594,6 +594,69 @@ bool PikaServer::ChangeDb(const std::string& new_path) {
   return true;
 }
 
+void PikaServer::TryDBSync(const std::string& ip, int port,
+                           const std::string& table_name,
+                           uint32_t partition_id, int32_t top) {
+  std::shared_ptr<Partition> partition =
+    GetTablePartitionById(table_name, partition_id);
+  if (!partition) {
+    LOG(WARNING) << "Partition: " << partition->GetPartitionName()
+      << " Not Found, TryDBSync Failed";
+  } else {
+    BgSaveInfo bgsave_info = partition->bgsave_info();
+    std::string logger_filename = partition->logger()->filename;
+    if (slash::IsDir(bgsave_info.path) != 0
+      || !slash::FileExists(NewFileName(logger_filename, bgsave_info.filenum))
+      || top - bgsave_info.filenum > kDBSyncMaxGap) {
+      // Need Bgsave first
+      partition->BgSavePartition();
+    }
+    DBSync(ip, port, table_name, partition_id);
+  }
+}
+
+std::string PikaServer::DbSyncTaskIndex(const std::string& ip,
+                                        int port,
+                                        const std::string& table_name,
+                                        uint32_t partition_id) {
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s:%d_%s:%d",
+      ip.data(), port, table_name.data(), partition_id);
+  return buf;
+}
+
+void PikaServer::DBSync(const std::string& ip, int port,
+                        const std::string& table_name,
+                        uint32_t partition_id) {
+  {
+    std::string task_index =
+      DbSyncTaskIndex(ip, port, table_name, partition_id);
+    slash::MutexLock ml(&db_sync_protector_);
+    if (db_sync_slaves_.find(task_index) != db_sync_slaves_.end()) {
+      return;
+    }
+    db_sync_slaves_.insert(task_index);
+  }
+  // Reuse the bgsave_thread_
+  // Since we expect BgSave and DBSync execute serially
+  bgsave_thread_.StartThread();
+  NewDBSyncArg* arg = new NewDBSyncArg(this, ip, port, table_name, partition_id);
+  bgsave_thread_.Schedule(&NewDoDbSync, reinterpret_cast<void*>(arg));
+}
+
+void PikaServer::NewDoDbSync(void* arg) {
+  NewDBSyncArg* dbsa = reinterpret_cast<NewDBSyncArg*>(arg);
+  PikaServer* const ps = dbsa->p;
+  ps->NewDbSyncSendFile(dbsa->ip, dbsa->port,
+      dbsa->table_name, dbsa->partition_id);
+  delete dbsa;
+}
+
+void PikaServer::NewDbSyncSendFile(const std::string& ip, int port,
+                                   const std::string& table_name,
+                                   uint32_t partition_id) {
+}
+
 void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();

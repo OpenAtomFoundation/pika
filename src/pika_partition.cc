@@ -279,7 +279,7 @@ void Partition::BgSavePartition() {
   g_pika_server->BGSaveTaskSchedule(&DoBgSave, static_cast<void*>(bg_task_arg));
 }
 
-BGSaveInfo Partition::bgsave_info() {
+BgSaveInfo Partition::bgsave_info() {
   slash::MutexLock l(&bgsave_protector_);
   return bgsave_info_;
 }
@@ -291,7 +291,7 @@ void Partition::DoBgSave(void* arg) {
   bool success = bg_task_arg->partition->RunBgsaveEngine();
 
   // Some output
-  BGSaveInfo info = bg_task_arg->partition->bgsave_info();
+  BgSaveInfo info = bg_task_arg->partition->bgsave_info();
   std::ofstream out;
   out.open(info.path + "/" + kBgsaveInfoFile, std::ios::in | std::ios::trunc);
   if (out.is_open()) {
@@ -319,7 +319,7 @@ bool Partition::RunBgsaveEngine() {
   }
   LOG(INFO) << partition_name_ << " after prepare bgsave";
 
-  BGSaveInfo info = bgsave_info();
+  BgSaveInfo info = bgsave_info();
   LOG(INFO) << partition_name_ << " bgsave_info: path=" << info.path
     << ",  filenum=" << info.filenum
     << ", offset=" << info.offset;

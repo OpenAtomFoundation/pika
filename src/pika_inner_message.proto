@@ -4,7 +4,6 @@ enum Type {
   kMetaSync   = 1;
   kTrySync    = 2;
   kBinlogSync = 3;
-  kDbSync     = 4;
 }
 
 enum StatusCode {
