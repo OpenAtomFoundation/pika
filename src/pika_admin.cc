@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 #include <sys/time.h>
+#include <algorithm>
 
 #include "slash/include/slash_string.h"
 #include "slash/include/rsync.h"
@@ -818,7 +819,9 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
   tmp_stream << "# Time: " << key_scan_info.s_start_time << "\r\n";
-  tmp_stream << "# Duration: " << (duration == -1 ? "In Processing" : std::to_string(duration) + "s" )<< "\r\n";
+  if (duration != -2) {
+    tmp_stream << "# Duration: " << (duration == -1 ? "In Processing" : std::to_string(duration) + "s" )<< "\r\n";
+  }
   tmp_stream << "Strings: keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invaild_keys=" << key_infos[0].invaild_keys << "\r\n";
   tmp_stream << "Hashes: keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invaild_keys=" << key_infos[1].invaild_keys << "\r\n";
   tmp_stream << "Lists: keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invaild_keys=" << key_infos[2].invaild_keys << "\r\n";
@@ -1471,18 +1474,31 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   } else if (set_item == "compact-cron") {
     bool invalid = false;
     if (value != "") {
-      std::string::size_type len = value.length();
-      std::string::size_type colon = value.find("-");
-      std::string::size_type underline = value.find("/");
+      bool have_week = false;
+      std::string compact_cron, week_str;
+      int slash_num = count(value.begin(), value.end(), '/');
+      if (slash_num == 2) {
+        have_week = true;
+        std::string::size_type first_slash = value.find("/");
+        week_str = value.substr(0, first_slash);
+        compact_cron = value.substr(first_slash + 1);
+      } else {
+        compact_cron = value;
+      }
+
+      std::string::size_type len = compact_cron.length();
+      std::string::size_type colon = compact_cron.find("-");
+      std::string::size_type underline = compact_cron.find("/");
       if (colon == std::string::npos || underline == std::string::npos ||
           colon >= underline || colon + 1 >= len ||
           colon + 1 == underline || underline + 1 >= len) {
-        invalid = true;
+          invalid = true;
       } else {
-        int start = std::atoi(value.substr(0, colon).c_str());
-        int end = std::atoi(value.substr(colon+1, underline).c_str());
-        int usage = std::atoi(value.substr(underline+1).c_str());
-        if (start < 0 || start > 23 || end < 0 || end > 23 || usage < 0 || usage > 100) {
+        int week = std::atoi(week_str.c_str());
+        int start = std::atoi(compact_cron.substr(0, colon).c_str());
+        int end = std::atoi(compact_cron.substr(colon + 1, underline).c_str());
+        int usage = std::atoi(compact_cron.substr(underline + 1).c_str());
+        if ((have_week && (week < 1 || week > 7)) || start < 0 || start > 23 || end < 0 || end > 23 || usage < 0 || usage > 100) {
           invalid = true;
         }
       }
