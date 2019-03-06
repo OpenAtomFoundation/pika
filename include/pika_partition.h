@@ -13,14 +13,14 @@
 
 class Cmd;
 
-struct BGSaveInfo {
+struct BgSaveInfo {
   bool bgsaving;
   time_t start_time;
   std::string s_start_time;
   std::string path;
   uint32_t filenum;
   uint64_t offset;
-  BGSaveInfo() : bgsaving(false), filenum(0), offset(0){}
+  BgSaveInfo() : bgsaving(false), filenum(0), offset(0) {}
   void Clear() {
     bgsaving = false;
     path.clear();
@@ -42,8 +42,8 @@ enum ReplState {
   kNoConnect = 0,
   kTryConnect = 1,
   kWaitReply = 2,
-  kConnected = 3,
-  kWaitDBSync = 4,
+  kWaitDBSync = 3,
+  kConnected = 4,
 };
 
 // debug only
@@ -95,7 +95,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   // BgSave use;
   bool IsBgSaving();
   void BgSavePartition();
-  BGSaveInfo bgsave_info();
+  BgSaveInfo bgsave_info();
 
   // Flushall & Flushdb use
   bool FlushAll();
@@ -139,7 +139,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool InitBgsaveEngine();
   void ClearBgsave();
   void FinishBgsave();
-  BGSaveInfo bgsave_info_;
+  BgSaveInfo bgsave_info_;
   slash::Mutex bgsave_protector_;
   blackwidow::BackupEngine* bgsave_engine_;
 

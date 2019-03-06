@@ -351,6 +351,35 @@ class PikaServer {
   }
   slash::Mutex & GetSlavesMutex() { return db_sync_protector_; }
 
+
+  struct NewDBSyncArg {
+    PikaServer* p;
+    std::string ip;
+    int port;
+    std::string table_name;
+    uint32_t partition_id;
+    NewDBSyncArg(PikaServer* const _p,
+                 const std::string& _ip,
+                 int _port,
+                 const std::string& _table_name,
+                 uint32_t _partition_id)
+        : p(_p), ip(_ip), port(_port),
+          table_name(_table_name), partition_id(_partition_id) {}
+  };
+  void TryDBSync(const std::string& ip, int port,
+                 const std::string& table_name,
+                 uint32_t partition_id, int32_t top);
+  std::string DbSyncTaskIndex(const std::string& ip, int port,
+                              const std::string& table_name,
+                              uint32_t partition_id);
+  void DBSync(const std::string& ip, int port,
+              const std::string& table_name,
+              uint32_t partition_id);
+  void NewDbSyncSendFile(const std::string& ip, int port,
+                         const std::string& table_name,
+                         uint32_t partition_id);
+
+
   //flushall & flushdb
   void PurgeDir(const std::string& path);
   void PurgeDirTaskSchedule(void (*function)(void*), void* arg);
@@ -532,6 +561,8 @@ class PikaServer {
   void TryDBSync(const std::string& ip, int port, int32_t top);
   void DBSync(const std::string& ip, int port);
   static void DoDBSync(void* arg);
+
+  static void NewDoDbSync(void* arg);
 
   /*
    * Keyscan use
