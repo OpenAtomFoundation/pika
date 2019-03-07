@@ -33,11 +33,13 @@ class PikaReplServer {
                            std::shared_ptr<pink::PbConn> conn,
                            void* req_private_data);
 
-  void ScheduleDbTask(const std::string &key,
+  void ScheduleDbTask(const std::string& key,
                       PikaCmdArgsType* argv,
-                      BinlogItem* binlog_item);
+                      BinlogItem* binlog_item,
+                      const std::string& table_name,
+                      uint32_t partition_id);
  private:
-  size_t GetHashIndex(std::string key);
+  size_t GetHashIndex(std::string key, bool upper_half);
   void UpdateNextAvail() {
     next_avail_ = (next_avail_ + 1) % bg_workers_.size();
   }

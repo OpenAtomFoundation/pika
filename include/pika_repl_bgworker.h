@@ -22,8 +22,12 @@ class PikaReplBgWorker {
   explicit PikaReplBgWorker(int queue_size);
   void ScheduleRequest(const std::shared_ptr<InnerMessage::InnerRequest> req,
       std::shared_ptr<pink::PbConn> conn, void* req_private_data);
-  void ScheduleWriteDb(PikaCmdArgsType* argv, BinlogItem* binlog_item);
+  void ScheduleWriteDb(PikaCmdArgsType* argv, BinlogItem* binlog_item,
+      const std::string table_name, uint32_t partition_id);
   int StartThread();
+  void QueueSize(int* size_a, int* size_b) {
+    bg_thread_.QueueSize(size_a, size_b);
+  }
 
   static void HandleMetaSyncRequest(void* arg);
   static void HandleBinlogSyncRequest(void* arg);
@@ -33,6 +37,8 @@ class PikaReplBgWorker {
   BinlogItem binlog_item_;
   pink::RedisParser redis_parser_;
   std::string ip_port_;
+  std::string table_name_;
+  uint32_t partition_id_;
 
  private:
   pink::BGThread bg_thread_;
@@ -51,8 +57,10 @@ class PikaReplBgWorker {
   struct WriteDbBgArg {
     PikaCmdArgsType *argv;
     BinlogItem* binlog_item;
-    WriteDbBgArg(PikaCmdArgsType* _argv, BinlogItem* _binlog_item)
-        : argv(_argv), binlog_item(_binlog_item) {
+    std::string table_name;
+    uint32_t partition_id;
+    WriteDbBgArg(PikaCmdArgsType* _argv, BinlogItem* _binlog_item, const std::string _table_name, uint32_t _partition_id)
+        : argv(_argv), binlog_item(_binlog_item), table_name(_table_name), partition_id(_partition_id) {
     }
     ~WriteDbBgArg() {
       delete argv;

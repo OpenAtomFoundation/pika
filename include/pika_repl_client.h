@@ -38,6 +38,21 @@ struct RmNode {
     ip_ = node.ip_;
     port_ = node.port_;
   }
+  bool operator <(const RmNode& other) const {
+    if (table_ < other.table_) {
+      return true;
+    } else if (partition_ < other.partition_) {
+      return true;
+    } else if (ip_ < other.ip_) {
+      return true;
+    } else if (port_ < other.port_) {
+      return true;
+    }
+    return false;
+  }
+  std::string ToString() const {
+     return table_ + "_" + std::to_string(partition_) + "_" + ip_ + ":" + std::to_string(port_);
+  }
 };
 
 struct BinlogChip {
@@ -69,7 +84,7 @@ class PikaReplClient {
   int Start();
   Status AddBinlogReader(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
   Status RemoveBinlogReader(const RmNode& slave);
-  void RunStateMachine(const RmNode& slave);
+
   bool NeedToSendBinlog(const RmNode& slave);
 
   Status SendMetaSync();
@@ -78,7 +93,9 @@ class PikaReplClient {
                               const BinlogOffset& boffset);
   Status SendBinlogSync(const RmNode& slave);
 
-  void ConsumeWriteQueue();
+  Status TriggerSendBinlogSync();
+
+  int ConsumeWriteQueue();
 
   void Schedule(pink::TaskFunc func, void* arg){
     client_tp_->Schedule(func, arg);
@@ -94,8 +111,6 @@ class PikaReplClient {
 
   void BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest& request);
 
-  Status BuildBinlogMsgFromFile(const RmNode& slave, std::string* scratch, uint32_t* filenum, uint64_t* offset);
-
   PikaReplClientThread* client_thread_;
 
 
@@ -106,8 +121,8 @@ class PikaReplClient {
     uint64_t ack_offset_;
     uint64_t active_time_;
 
-    BinlogSyncCtl(PikaBinlogReader* reader)
-      : reader_(reader), ack_file_num_(0), ack_offset_(0), active_time_(0) {
+    BinlogSyncCtl(PikaBinlogReader* reader, uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time)
+      : reader_(reader), ack_file_num_(ack_file_num), ack_offset_(ack_offset), active_time_(active_time) {
     }
     ~BinlogSyncCtl() {
       if (reader_) {
@@ -117,8 +132,7 @@ class PikaReplClient {
   };
 
   pthread_rwlock_t binlog_ctl_rw_;
-  // keys of this map: table_partition_slaveip:port
-  std::map<std::string, BinlogSyncCtl*> binlog_ctl_;
+  std::map<RmNode, BinlogSyncCtl*> binlog_ctl_;
 
   slash::Mutex  write_queue_mu_;
   // every host owns a queue

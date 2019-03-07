@@ -17,7 +17,6 @@ PikaAuxiliaryThread::~PikaAuxiliaryThread() {
 
 void* PikaAuxiliaryThread::ThreadMain() {
   while (!should_stop()) {
-    sleep(1);
     if (g_pika_server->ShouldMetaSync()) {
       g_pika_server->SendMetaSyncRequest();
       LOG(INFO) << "Send meta sync request finish";
@@ -31,6 +30,21 @@ void* PikaAuxiliaryThread::ThreadMain() {
     }
     if (g_pika_server->ShouldTrySyncPartition()) {
       RunEveryPartitionStateMachine();
+    }
+    // TODO(whoiami) timeout
+    Status s = g_pika_server->TriggerSendBinlogSync();
+    if (!s.ok()) {
+      LOG(WARNING) << s.ToString();
+    }
+    // send to peer
+    int res = g_pika_server->SendToPeer();
+    if (!res) {
+      // sleep 100 ms
+      mu_.Lock();
+      cv_.TimedWait(100);
+      mu_.Unlock();
+    } else {
+      //LOG_EVERY_N(INFO, 100) << "Consume binlog number " << res;
     }
   }
   return NULL;

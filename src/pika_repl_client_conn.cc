@@ -47,6 +47,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
         << " mode, but master in " << (meta_sync.classic_mode() ? "classic" : "sharding")
         << " mode, failed to establish master-slave relationship";
     g_pika_server->SyncError();
+    delete resp_arg;
     return;
   }
 
@@ -63,6 +64,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     LOG(WARNING) << "Self table structs inconsistent with master"
         << ", failed to establish master-slave relationship";
     g_pika_server->SyncError();
+    delete resp_arg;
     return;
   }
 
@@ -73,12 +75,14 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
       LOG(WARNING) << "Need force full sync but rebuild table struct error"
         << ", failed to establish master-slave relationship";
       g_pika_server->SyncError();
+      delete resp_arg;
       return;
     }
     g_pika_server->PurgeDir(g_pika_conf->trash_path());
   }
   LOG(INFO) << "Finish to handle meta sync response";
   g_pika_server->MetaSyncDone();
+  delete resp_arg;
 }
 
 void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
@@ -99,8 +103,9 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kInvalidOffset) {
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error, Because the invalid filenum and offset";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
-    LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
+    LOG(INFO) << "Partition: " << partition_name << " TrySync Ok";
   }
+  delete resp_arg;
 }
 
 int PikaReplClientConn::DealMessage() {
@@ -169,7 +174,8 @@ void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
 
   Status s = g_pika_server->SendBinlogSyncRequest(table_name, partition_id, ip, port);
   if (!s.ok()) {
-    LOG(WARNING) << "Send BinlogSync Request failed " << table_name << " " << partition_id;
+    LOG(WARNING) << "Send BinlogSync Request failed " << table_name << " " << partition_id << s.ToString();
     return;
   }
+  g_pika_server->SignalAuxiliary();
 }

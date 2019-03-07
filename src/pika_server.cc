@@ -128,9 +128,9 @@ PikaServer::~PikaServer() {
 
   delete ping_thread_;
   delete pika_pubsub_thread_;
+  delete pika_auxiliary_thread_;
   delete pika_repl_client_;
   delete pika_repl_server_;
-  delete pika_auxiliary_thread_;
 
   binlogbg_exit_ = true;
   std::vector<BinlogBGWorker*>::iterator binlogbg_iter = binlogbg_workers_.begin();
@@ -1090,8 +1090,7 @@ Status PikaServer::AddBinlogSender(const std::string& table_name,
   if (!res.ok()) {
     return res;
   }
-  pika_repl_client_->RunStateMachine(slave);
-  return Status::OK();
+  return pika_repl_client_->SendBinlogSync(slave);
 }
 
 /*
@@ -1672,8 +1671,9 @@ void PikaServer::ScheduleReplTrySyncTask(const std::shared_ptr<InnerMessage::Inn
 }
 
 void PikaServer::ScheduleReplDbTask(const std::string &key,
-    PikaCmdArgsType* argv, BinlogItem* binlog_item) {
-  pika_repl_server_->ScheduleDbTask(key, argv, binlog_item);
+    PikaCmdArgsType* argv, BinlogItem* binlog_item,
+    const std::string& table_name, uint32_t partition_id) {
+  pika_repl_server_->ScheduleDbTask(key, argv, binlog_item, table_name, partition_id);
 }
 
 bool PikaServer::SetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
@@ -1686,6 +1686,20 @@ bool PikaServer::GetBinlogAckInfo(const std::string& table, uint32_t partition, 
     uint32_t* ack_file_num, uint64_t* ack_offset, uint64_t* active_time) {
   RmNode slave = RmNode(table, partition, ip, port);
   return pika_repl_client_->GetAckInfo(slave, ack_file_num, ack_offset, active_time);
+}
+
+int PikaServer::SendToPeer() {
+  return pika_repl_client_->ConsumeWriteQueue();
+}
+
+Status PikaServer::TriggerSendBinlogSync() {
+  return pika_repl_client_->TriggerSendBinlogSync();
+}
+
+void PikaServer::SignalAuxiliary() {
+  pika_auxiliary_thread_->mu_.Lock();
+  pika_auxiliary_thread_->cv_.Signal();
+  pika_auxiliary_thread_->mu_.Unlock();
 }
 
 bool PikaServer::WaitTillBinlogBGSerial(uint64_t my_serial) {

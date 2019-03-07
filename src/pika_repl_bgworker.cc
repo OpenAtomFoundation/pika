@@ -22,6 +22,8 @@ PikaReplBgWorker::PikaReplBgWorker(int queue_size)
   settings.DealMessage = &(PikaReplBgWorker::HandleWriteBinlog);
   redis_parser_.RedisParserInit(REDIS_PARSER_REQUEST, settings);
   redis_parser_.data = this;
+  table_name_ = g_pika_conf->default_table();
+  partition_id_ = 0;
 }
 
 int PikaReplBgWorker::StartThread() {
@@ -48,8 +50,9 @@ void PikaReplBgWorker::ScheduleRequest(const std::shared_ptr<InnerMessage::Inner
   }
 }
 
-void PikaReplBgWorker::ScheduleWriteDb(PikaCmdArgsType* argv, BinlogItem* binlog_item) {
-  WriteDbBgArg* arg = new WriteDbBgArg(argv, binlog_item);
+void PikaReplBgWorker::ScheduleWriteDb(PikaCmdArgsType* argv, BinlogItem* binlog_item,
+    const std::string table_name, uint32_t partition_id) {
+  WriteDbBgArg* arg = new WriteDbBgArg(argv, binlog_item, table_name, partition_id);
   bg_thread_.Schedule(&PikaReplBgWorker::HandleWriteDb, static_cast<void*>(arg));
 }
 
@@ -93,6 +96,15 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
   std::vector<int>* index = static_cast<std::vector<int>* >(bg_worker_arg->req_private_data);
   PikaReplBgWorker* worker = bg_worker_arg->worker;
   worker->ip_port_ = conn->ip_port();
+
+  const InnerMessage::InnerRequest::BinlogSync& binlog_req =
+    req->binlog_sync((*index)[(*index).size() - 1]);
+  std::string table_name = binlog_req.table_name();
+  uint32_t partition_id = binlog_req.partition_id();
+
+  worker->table_name_ = table_name;
+  worker->partition_id_ = partition_id;
+
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerRequest::BinlogSync& binlog_req = req->binlog_sync((*index)[i]);
     if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_req.binlog(), &worker->binlog_item_)) {
@@ -115,10 +127,6 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
   }
 
   // build response
-  const InnerMessage::InnerRequest::BinlogSync& binlog_req =
-    req->binlog_sync((*index)[(*index).size() - 1]);
-  std::string table_name = binlog_req.table_name();
-  uint32_t partition_id = binlog_req.partition_id();
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   std::shared_ptr<Binlog> logger = partition->logger();
   uint32_t file_num;
@@ -173,28 +181,41 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
 
   std::string opt = argv[0];
   Cmd* c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
-  c_ptr->Initial(argv, g_pika_conf->default_table());
+  // Initial
+  c_ptr->Initial(argv, worker->table_name_);
+  if (!c_ptr->res().ok()) {
+    LOG(WARNING) << "Fail to initial command from binlog: " << opt;
+    return -1;
+  }
 
-  g_pika_server->logger_->Lock();
-  g_pika_server->logger_->Put(c_ptr->ToBinlog(binlog_item.exec_time(),
+  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(worker->table_name_, worker->partition_id_);
+  std::shared_ptr<Binlog> logger = partition->logger();
+
+  logger->Lock();
+  logger->Put(c_ptr->ToBinlog(binlog_item.exec_time(),
                                               std::to_string(binlog_item.server_id()),
                                               binlog_item.logic_id(),
                                               binlog_item.filenum(),
                                               binlog_item.offset()));
-  g_pika_server->logger_->Unlock();
+  uint32_t filenum;
+  uint64_t offset;
+  logger->GetProducerStatus(&filenum, &offset);
+  logger->Unlock();
 
   PikaCmdArgsType *v = new PikaCmdArgsType(argv);
   BinlogItem *b = new BinlogItem(binlog_item);
   std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
-  g_pika_server->ScheduleReplDbTask(dispatch_key, v, b);
+  g_pika_server->ScheduleReplDbTask(dispatch_key, v, b, worker->table_name_, worker->partition_id_);
   return 0;
 }
 
 void PikaReplBgWorker::HandleWriteDb(void* arg) {
   WriteDbBgArg *bg_worker_arg = static_cast<WriteDbBgArg*>(arg);
-  PikaCmdArgsType argv = *(bg_worker_arg->argv);
+  PikaCmdArgsType* argv = bg_worker_arg->argv;
   BinlogItem binlog_item = *(bg_worker_arg->binlog_item);
-  std::string opt = argv[0];
+  std::string table_name = bg_worker_arg->table_name;
+  uint32_t partition_id = bg_worker_arg->partition_id;
+  std::string opt = (*argv)[0];
   slash::StringToLower(opt);
 
   // Get command
@@ -207,7 +228,7 @@ void PikaReplBgWorker::HandleWriteDb(void* arg) {
   c_ptr->res().clear();
 
   // Initial
-  c_ptr->Initial(argv, g_pika_conf->default_table());
+  c_ptr->Initial(*argv, table_name);
   if (!c_ptr->res().ok()) {
     LOG(WARNING) << "Fail to initial command from binlog: " << opt;
     delete bg_worker_arg;
@@ -218,13 +239,13 @@ void PikaReplBgWorker::HandleWriteDb(void* arg) {
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = slash::NowMicros();
   }
-
+  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   // Add read lock for no suspend command
   if (!c_ptr->is_suspend()) {
     g_pika_server->RWLockReader();
   }
 
-  c_ptr->Execute();
+  c_ptr->Do(partition);
 
   if (!c_ptr->is_suspend()) {
     g_pika_server->RWUnlock();
@@ -282,10 +303,23 @@ void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
       } else {
         try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
         try_sync_response->set_sid(0);
+        LOG(INFO) << "Try Incrental SYNC " << " master filenum: " << boffset.filenum << " offset: " << boffset.offset
+          << " slave filenum: " << slave_boffset.filenum() << " offset: " << slave_boffset.offset();
+        // incremental sync
+        Status s = g_pika_server->AddBinlogSender(
+            table_name,
+            partition_id,
+            node.ip(),
+            node.port(),
+            0,
+            slave_boffset.filenum(),
+            slave_boffset.offset());
+        if (!s.ok()) {
+          LOG(WARNING) << s.ToString();
+        }
       }
     }
   }
-
   delete bg_worker_arg;
 
   std::string reply_str;
