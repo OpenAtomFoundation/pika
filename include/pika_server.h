@@ -310,7 +310,7 @@ class PikaServer {
     KeyScanInfo() :
         start_time(0),
         s_start_time("1970-01-01 08:00:00"),
-        duration(-1),
+        duration(-2),
         key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}),
         key_scaning_(false) {
     }
