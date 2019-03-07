@@ -43,8 +43,6 @@ void PikaReplBgWorker::ScheduleRequest(const std::shared_ptr<InnerMessage::Inner
     case InnerMessage::kBinlogSync:
       bg_thread_.Schedule(&PikaReplBgWorker::HandleBinlogSyncRequest, static_cast<void*>(arg));
       break;
-    case InnerMessage::kDbSync:
-      break;
     default:
       break;
   }
