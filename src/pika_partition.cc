@@ -35,6 +35,20 @@ std::string BgsaveSubPath(const std::string& table_name,
   return std::string(buf);
 }
 
+std::string DbSyncPath(const std::string& sync_path,
+                       const std::string& table_name,
+                       const uint32_t partition_id,
+                       bool classic_mode) {
+  char buf[256];
+  std::string partition_id_str = std::to_string(partition_id);
+  if (classic_mode) {
+    snprintf(buf, sizeof(buf), "%s/", table_name.data());
+  } else {
+    snprintf(buf, sizeof(buf), "%s/%s/", table_name.data(), partition_id_str.data());
+  }
+  return sync_path + buf;
+}
+
 Partition::Partition(const std::string& table_name,
                      uint32_t partition_id,
                      const std::string& table_db_path,
@@ -44,6 +58,7 @@ Partition::Partition(const std::string& table_name,
   partition_id_(partition_id),
   binlog_io_error_(false),
   repl_state_(ReplState::kNoConnect),
+  full_sync_(false),
   bgsave_engine_(NULL),
   purging_(false) {
 
@@ -55,6 +70,8 @@ Partition::Partition(const std::string& table_name,
       table_trash_path : PartitionPath(table_trash_path, partition_id_);
   bgsave_sub_path_ = g_pika_conf->classic_mode() ?
       table_name : BgsaveSubPath(table_name_, partition_id_);
+  dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_,
+          partition_id_,  g_pika_conf->classic_mode());
   partition_name_ = g_pika_conf->classic_mode() ?
       table_name : PartitionName(table_name_, partition_id_);
 
@@ -261,6 +278,145 @@ void Partition::MarkTryConnectState() {
 void Partition::MarkWaitReplyState() {
   slash::RWLock rwl(&state_rwlock_, true);
   repl_state_ = ReplState::kWaitReply;
+}
+
+void Partition::MarkWaitDBSyncState() {
+  slash::RWLock rwl(&state_rwlock_, true);
+  repl_state_ = ReplState::kWaitDBSync;
+}
+
+bool Partition::FullSync() {
+  return full_sync_;
+}
+
+void Partition::SetFullSync(bool full_sync) {
+  full_sync_ = full_sync;
+}
+
+void Partition::PrepareRsync() {
+  slash::DeleteDirIfExist(dbsync_path_);
+  slash::CreatePath(dbsync_path_ + "strings");
+  slash::CreatePath(dbsync_path_ + "hashes");
+  slash::CreatePath(dbsync_path_ + "lists");
+  slash::CreatePath(dbsync_path_ + "sets");
+  slash::CreatePath(dbsync_path_ + "zsets");
+}
+
+// Try to update master offset
+// This may happend when dbsync from master finished
+// Here we do:
+// 1, Check dbsync finished, got the new binlog offset
+// 2, Replace the old db
+// 3, Update master offset, and the PikaAuxiliaryThread cron will connect and do slaveof task with master
+bool Partition::TryUpdateMasterOffset() {
+  std::string info_path = dbsync_path_ + kBgsaveInfoFile;
+  if (!slash::FileExists(info_path)) {
+    return false;
+  }
+
+  // Got new binlog offset
+  std::ifstream is(info_path);
+  if (!is) {
+    LOG(WARNING) << "Partition: " << partition_name_
+        << ", Failed to open info file after db sync";
+    return false;
+  }
+  std::string line, master_ip;
+  int lineno = 0;
+  int64_t filenum = 0, offset = 0, tmp = 0, master_port = 0;
+  while (std::getline(is, line)) {
+    lineno++;
+    if (lineno == 2) {
+      master_ip = line;
+    } else if (lineno > 2 && lineno < 6) {
+      if (!slash::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
+        LOG(WARNING) << "Partition: " << partition_name_
+            << ", Format of info file after db sync error, line : " << line;
+        is.close();
+        return false;
+      }
+      if (lineno == 3) { master_port = tmp; }
+      else if (lineno == 4) { filenum = tmp; }
+      else { offset = tmp; }
+
+    } else if (lineno > 5) {
+      LOG(WARNING) << "Partition: " << partition_name_
+          << ", Format of info file after db sync error, line : " << line;
+      is.close();
+      return false;
+    }
+  }
+  is.close();
+
+  LOG(INFO) << "Partition: " << partition_name_ << "Information from dbsync info"
+      << ",  master_ip: " << master_ip
+      << ", master_port: " << master_port
+      << ", filenum: " << filenum
+      << ", offset: " << offset;
+
+  // Sanity check
+  if (master_ip != g_pika_server->master_ip() ||
+      master_port != g_pika_server->master_port()) {
+    LOG(WARNING) << "Partition: " << partition_name_
+        << "Error master ip port: " << master_ip << ":" << master_port;
+    return false;
+  }
+
+  slash::DeleteFile(info_path);
+  if (!ChangeDb(dbsync_path_)) {
+    LOG(WARNING) << "Partition: " << partition_name_
+        << ", Failed to change db";
+    return false;
+  }
+
+  // Update master offset
+  logger_->SetProducerStatus(filenum, offset);
+  full_sync_ = false;
+  MarkTryConnectState();
+  return true;
+}
+
+/*
+ * Change a new db locate in new_path
+ * return true when change success
+ * db remain the old one if return false
+ */
+bool Partition::ChangeDb(const std::string& new_path) {
+
+  blackwidow::BlackwidowOptions bw_option;
+  RocksdbOptionInit(&bw_option);
+
+  std::string tmp_path(db_path_);
+  if (tmp_path.back() == '/') {
+    tmp_path.resize(tmp_path.size() - 1);
+  }
+  tmp_path += "_bak";
+  slash::DeleteDirIfExist(tmp_path);
+
+  RWLock l(&db_rwlock_, true);
+  LOG(INFO) << "Partition: "<< partition_name_
+      << ", Prepare change db from: " << tmp_path;
+  db_.reset();
+
+  if (0 != slash::RenameFile(db_path_.c_str(), tmp_path)) {
+    LOG(WARNING) << "Partition: " << partition_name_
+        << ", Failed to rename db path when change db, error: " << strerror(errno);
+    return false;
+  }
+
+  if (0 != slash::RenameFile(new_path.c_str(), db_path_.c_str())) {
+    LOG(WARNING) << "Partition: " << partition_name_
+        << ", Failed to rename new db path when change db, error: " << strerror(errno);
+    return false;
+  }
+
+  db_.reset(new blackwidow::BlackWidow());
+  rocksdb::Status s = db_->Open(bw_option, db_path_);
+  assert(db_);
+  assert(s.ok());
+  slash::DeleteDirIfExist(tmp_path);
+  LOG(INFO) << "Partition:" << partition_name_ << ", Change db success";
+  return true;
 }
 
 bool Partition::IsBgSaving() {

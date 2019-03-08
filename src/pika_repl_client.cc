@@ -192,7 +192,8 @@ Status PikaReplClient::SendMetaSync() {
 
 Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
                                             uint32_t partition_id,
-                                            const BinlogOffset& boffset) {
+                                            const BinlogOffset& boffset,
+                                            bool force_sync) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kTrySync);
   InnerMessage::InnerRequest::TrySync* try_sync = request.mutable_try_sync();
@@ -203,7 +204,6 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
   partition->set_table_name(table_name);
   partition->set_partition_id(partition_id);
 
-  bool force_sync = g_pika_server->force_full_sync();
   try_sync->set_force(force_sync);
   InnerMessage::BinlogOffset* binlog_offset = try_sync->mutable_binlog_offset();
   binlog_offset->set_filenum(force_sync ? 0 : boffset.filenum);

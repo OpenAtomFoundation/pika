@@ -71,9 +71,6 @@ void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
 
-  // Stop rsync
-  LOG(INFO) << "Start slaveof, stop rsync first";
-  slash::StopRsync(g_pika_conf->db_sync_path());
   g_pika_server->RemoveMaster();
 
   if (is_noone_) {

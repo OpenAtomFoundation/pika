@@ -108,6 +108,7 @@ PikaServer::PikaServer() :
 }
 
 PikaServer::~PikaServer() {
+  slash::StopRsync(g_pika_conf->db_sync_path());
   delete bgsave_engine_;
   delete pika_thread_pool_;
 
@@ -327,6 +328,13 @@ void PikaServer::Start() {
     LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
 
+  ret = slash::StartRsync(g_pika_conf->db_sync_path(), kDBSyncModule, host_, g_pika_conf->port() + 4000);
+  if (0 != ret) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Rsync Error Path:" << g_pika_conf->db_sync_path() << " error : " << ret;
+  }
+
   time(&start_time_s_);
 
   std::string slaveof = g_pika_conf->slaveof();
@@ -473,6 +481,18 @@ bool PikaServer::GetTablePartitionBinlogOffset(const std::string& table_name,
   } else {
     return partition->GetBinlogOffset(boffset);
   }
+}
+
+void PikaServer::PreparePartitionTrySync() {
+  slash::RWLock rwl(&tables_rw_, false);
+  for (const auto& table_item : tables_) {
+    for (const auto& partition_item : table_item.second->partitions_) {
+      partition_item.second->SetFullSync(force_full_sync_);
+      partition_item.second->MarkTryConnectState();
+    }
+  }
+  MarkTryConnectDone();
+  force_full_sync_ = false;
 }
 
 std::shared_ptr<Partition> PikaServer::GetTablePartitionById(
@@ -659,6 +679,85 @@ void PikaServer::NewDoDbSync(void* arg) {
 void PikaServer::NewDbSyncSendFile(const std::string& ip, int port,
                                    const std::string& table_name,
                                    uint32_t partition_id) {
+  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
+  if (!partition) {
+    LOG(WARNING) << "Partition: " << partition->GetPartitionName()
+      << " Not Found, DbSync send file Failed";
+    return;
+  }
+
+  std::string bg_path;
+  BgSaveInfo bgsave_info = partition->bgsave_info();
+  bg_path = bgsave_info.path;
+
+  // Get all files need to send
+  std::vector<std::string> descendant;
+  int ret = 0;
+  LOG(INFO) << "Start Send files in " << bg_path << " to " << ip;
+  ret = slash::GetChildren(bg_path, descendant);
+  if (ret != 0) {
+    std::string ip_port = slash::IpPortString(ip, port);
+    slash::MutexLock ldb(&db_sync_protector_);
+    db_sync_slaves_.erase(ip_port);
+    LOG(WARNING) << "Get child directory when try to do sync failed, error: " << strerror(ret);
+    return;
+  }
+
+  std::string local_path, target_path;
+  std::string remote_path = g_pika_conf->classic_mode() ? table_name : table_name + "/" + std::to_string(partition_id);
+  std::vector<std::string>::const_iterator iter = descendant.begin();
+  slash::RsyncRemote remote(ip, port, kDBSyncModule, g_pika_conf->db_sync_speed() * 1024);
+  for (; iter != descendant.end(); ++iter) {
+    local_path = bg_path + "/" + *iter;
+    target_path = remote_path + "/" + *iter;
+
+    if (*iter == kBgsaveInfoFile) {
+      continue;
+    }
+
+    if (slash::IsDir(local_path) == 0 &&
+        local_path.back() != '/') {
+      local_path.push_back('/');
+      target_path.push_back('/');
+    }
+
+    // We need specify the speed limit for every single file
+    ret = slash::RsyncSendFile(local_path, target_path, remote);
+
+    if (0 != ret) {
+      LOG(WARNING) << "rsync send file failed! From: " << *iter
+        << ", To: " << target_path
+        << ", At: " << ip << ":" << port
+        << ", Error: " << ret;
+      break;
+    }
+  }
+
+  // Clear target path
+  slash::RsyncSendClearTarget(bg_path + "/strings", remote_path + "/strings", remote);
+  slash::RsyncSendClearTarget(bg_path + "/hashes", remote_path + "/hashes", remote);
+  slash::RsyncSendClearTarget(bg_path + "/lists", remote_path + "/lists", remote);
+  slash::RsyncSendClearTarget(bg_path + "/sets", remote_path + "/sets", remote);
+  slash::RsyncSendClearTarget(bg_path + "/zsets", remote_path + "/zsets", remote);
+
+  // Send info file at last
+  if (0 == ret) {
+    if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile, remote))) {
+      LOG(WARNING) << "send info file failed";
+    }
+  }
+
+  // remove slave
+  {
+    std::string task_index =
+      DbSyncTaskIndex(ip, port, table_name, partition_id);
+    slash::MutexLock ml(&db_sync_protector_);
+    db_sync_slaves_.erase(task_index);
+  }
+
+  if (0 == ret) {
+    LOG(INFO) << "rsync send files success";
+  }
 }
 
 void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
@@ -1639,7 +1738,9 @@ Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partit
   }
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
-  Status status = pika_repl_client_->SendPartitionTrySync(table_name, partition_id, boffset);
+  bool force = partition->FullSync();
+  partition->PrepareRsync();
+  Status status = pika_repl_client_->SendPartitionTrySync(table_name, partition_id, boffset, force);
   partition->MarkWaitReplyState();
   return status;
 }
@@ -1845,9 +1946,6 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
         case TaskType::kPurgeLog:
           partition_item.second->PurgeLogs(0, false, false);
           break;
-        case TaskType::kMarkTryConnectState:
-          partition_item.second->MarkTryConnectState();
-          break;
         default:
           break;
       }
@@ -1977,12 +2075,4 @@ void PikaServer::DoTimingTask() {
   AutoPurge();
   // Delete expired dump
   AutoDeleteExpiredDump();
-
-  // Check rsync deamon
- if (((role_ & PIKA_ROLE_SLAVE) ^ PIKA_ROLE_SLAVE) || // Not a slave
-   repl_state_ == PIKA_REPL_NO_CONNECT ||
-   repl_state_ == PIKA_REPL_CONNECTED ||
-   repl_state_ == PIKA_REPL_ERROR) {
-   slash::StopRsync(g_pika_conf->db_sync_path());
- }
 }
