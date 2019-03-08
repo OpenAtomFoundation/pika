@@ -87,6 +87,13 @@ class Partition : public std::enable_shared_from_this<Partition> {
   ReplState State();
   void MarkTryConnectState();
   void MarkWaitReplyState();
+  void MarkWaitDBSyncState();
+  bool FullSync();
+  void SetFullSync(bool full_sync);
+
+  void PrepareRsync();
+  bool TryUpdateMasterOffset();
+  bool ChangeDb(const std::string& new_path);
 
   void Leave();
   void Close();
@@ -116,6 +123,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   std::string log_path_;
   std::string trash_path_;
   std::string bgsave_sub_path_;
+  std::string dbsync_path_;
   std::string partition_name_;
 
   bool opened_;
@@ -128,6 +136,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
 
   pthread_rwlock_t state_rwlock_;  // protect partition status below
   ReplState repl_state_;
+  bool full_sync_;
 
 
   /*

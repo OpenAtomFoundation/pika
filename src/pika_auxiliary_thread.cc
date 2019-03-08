@@ -21,14 +21,11 @@ void* PikaAuxiliaryThread::ThreadMain() {
       g_pika_server->SendMetaSyncRequest();
       LOG(INFO) << "Send meta sync request finish";
       continue;
-    }
-    if (g_pika_server->ShouldMarkTryConnect()) {
-      g_pika_server->DoSameThingEveryPartition(TaskType::kMarkTryConnectState);
-      g_pika_server->MarkTryConnectDone();
-      LOG(INFO) << "mark try connect finish";
+    } else if (g_pika_server->ShouldMarkTryConnect()) {
+      g_pika_server->PreparePartitionTrySync();
+      LOG(INFO) << "Mark try connect finish";
       continue;
-    }
-    if (g_pika_server->ShouldTrySyncPartition()) {
+    } else if (g_pika_server->ShouldTrySyncPartition()) {
       RunEveryPartitionStateMachine();
     }
     // TODO(whoiami) timeout
@@ -61,13 +58,13 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
           << table.table_name << " Partition Id: " << idx;
         continue;
       }
-      if (partition->State() == ReplState::kWaitReply
-        || partition->State() == ReplState::kConnected) {
-        continue;
-      }
       if (partition->State() == ReplState::kTryConnect) {
         g_pika_server->SendPartitionTrySyncRequest(partition);
+      } else if (partition->State() == ReplState::kWaitReply) {
         continue;
+      } else if (partition->State() == ReplState::kWaitDBSync) {
+        partition->TryUpdateMasterOffset();
+      } else if (partition->State() == ReplState::kConnected) {
       }
     }
   }

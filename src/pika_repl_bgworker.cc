@@ -274,7 +274,8 @@ void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
   InnerMessage::Node node = try_sync_request.node();
   LOG(INFO) << "Trysync, Slave ip: " << node.ip() << ", Slave port:"
     << node.port() << ", Partition: " << partition_name << ", filenum: "
-    << slave_boffset.filenum() << ", pro_offset: " << slave_boffset.offset();
+    << slave_boffset.filenum() << ", pro_offset: " << slave_boffset.offset()
+    << ", force: " << (force ? "yes" : "no");
 
   InnerMessage::InnerResponse response;
   response.set_type(InnerMessage::Type::kTrySync);
@@ -284,6 +285,9 @@ void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
   partition_response->set_table_name(table_name);
   partition_response->set_partition_id(partition_id);
   if (force) {
+    LOG(INFO) << "Partition: " << partition_name << " force full sync, BgSave and DbSync first";
+    g_pika_server->TryDBSync(node.ip(), node.port() + 4000, table_name, partition_id, slave_boffset.filenum());
+    try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kWait);
   } else {
     BinlogOffset boffset;
     if (!g_pika_server->GetTablePartitionBinlogOffset(table_name, partition_id, &boffset)) {
@@ -297,7 +301,8 @@ void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
         LOG(WARNING) << "Slave offset is larger than mine, Slave ip: "
           << node.ip() << ", Slave port: " << node.port() << ", Partition: "
           << partition_name << ", filenum: " << slave_boffset.filenum()
-          << ", pro_offset_: " <<  slave_boffset.offset();
+          << ", pro_offset_: " << slave_boffset.offset() << ", force: "
+          << (force ? "yes" : "no");
       } else {
         try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
         try_sync_response->set_sid(0);

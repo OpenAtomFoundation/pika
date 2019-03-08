@@ -94,16 +94,23 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   const InnerMessage::Partition partition_response = try_sync_response.partition();
   std::string table_name = partition_response.table_name();
   uint32_t partition_id  = partition_response.partition_id();
-  std::string partition_name = table_name + "_" + std::to_string(partition_id);
+  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
+  if (!partition) {
+    LOG(WARNING) << "Partition: " << table_name << ":" << partition_id << " Not Found";
+    delete resp_arg;
+    return;
+  }
 
-  if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kError) {
-    LOG(WARNING) << "Partition: " << partition_name << " TrySync Error";
+  std::string partition_name = partition->GetPartitionName();
+  if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
+    LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kWait) {
-    LOG(WARNING) << "Partition: " << partition_name << " Need wait to sync";
+    partition->MarkWaitDBSyncState();
+    LOG(INFO)    << "Partition: " << partition_name << " Need Wait To Sync";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kInvalidOffset) {
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error, Because the invalid filenum and offset";
-  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
-    LOG(INFO) << "Partition: " << partition_name << " TrySync Ok";
+  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kError) {
+    LOG(WARNING) << "Partition: " << partition_name << " TrySync Error";
   }
   delete resp_arg;
 }
