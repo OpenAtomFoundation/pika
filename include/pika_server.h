@@ -63,7 +63,6 @@ enum TaskType {
   kStartKeyScan,
   kStopKeyScan,
   kBgSave,
-  kMarkTryConnectState
 };
 
 class PikaServer {
@@ -183,6 +182,7 @@ class PikaServer {
   bool GetTablePartitionBinlogOffset(const std::string& table_name,
                                      uint32_t partition_id,
                                      BinlogOffset* const boffset);
+  void PreparePartitionTrySync();
   std::shared_ptr<Partition> GetTablePartitionById(
                                   const std::string& table_name,
                                   uint32_t partition_id);

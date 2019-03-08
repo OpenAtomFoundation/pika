@@ -90,7 +90,8 @@ class PikaReplClient {
   Status SendMetaSync();
   Status SendPartitionTrySync(const std::string& table_name,
                               uint32_t partition_id,
-                              const BinlogOffset& boffset);
+                              const BinlogOffset& boffset,
+                              bool force);
   Status SendBinlogSync(const RmNode& slave);
 
   Status TriggerSendBinlogSync();
