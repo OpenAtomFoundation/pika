@@ -427,12 +427,6 @@ class PikaServer {
   int PubSubNumPat();
 
   /*
-   * Communication use
-   */
-  Status SendMetaSyncRequest();
-  Status SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition);
-
-  /*
    * Monitor used
    */
   void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
@@ -478,6 +472,55 @@ class PikaServer {
 
   void SetDispatchQueueLimit(int queue_limit);
 
+  /*
+   * for RM {repl client, repl server} use
+   */
+  void ScheduleReplBinlogSyncTask(std::string table_partition,
+      const std::shared_ptr<InnerMessage::InnerRequest> req,
+      std::shared_ptr<pink::PbConn> conn,
+      void* req_private_data);
+
+  void ScheduleReplMetaSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+      std::shared_ptr<pink::PbConn> conn,
+      void* req_private_data);
+
+  void ScheduleReplTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+      std::shared_ptr<pink::PbConn> conn,
+      void* req_private_data);
+
+  void ScheduleReplDbTask(const std::string &key,
+      PikaCmdArgsType* argv, BinlogItem* binlog_item,
+      const std::string& table_name, uint32_t partition_id);
+
+  bool SetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
+      uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time);
+
+  bool GetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
+    uint32_t* ack_file_num, uint64_t* ack_offset, uint64_t* active_time);
+
+  /*
+   * Communication use
+   */
+  Status SendMetaSyncRequest();
+  Status SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition);
+
+  Status SendBinlogSyncRequest(const std::string& table, uint32_t partition, const std::string& ip, int port);
+
+  // schedule repl_client thread pool
+  void ScheduleReplCliTask(pink::TaskFunc func, void*arg);
+
+  /*
+   * For repl client write queue consumer
+   * return value: consumed binlog task
+   */
+  int SendToPeer();
+
+  /*
+   * Used to trigger binglog sync process
+   */
+  Status TriggerSendBinlogSync();
+
+  void SignalAuxiliary();
  private:
   std::atomic<bool> exit_;
   std::atomic<bool> binlog_io_error_;

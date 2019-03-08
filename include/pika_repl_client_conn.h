@@ -8,6 +8,8 @@
 
 #include "pink/include/pb_conn.h"
 
+#include <memory>
+
 #include "include/pika_conf.h"
 #include "src/pika_inner_message.pb.h"
 
@@ -15,14 +17,19 @@ class PikaReplClientConn: public pink::PbConn {
  public:
   PikaReplClientConn(int fd, const std::string& ip_port, pink::Thread *thread, void* worker_specific_data, pink::PinkEpoll* epoll);
   virtual ~PikaReplClientConn() = default;
-
-  static void DoReplClientTask(void* arg);
+  static void HandleBinlogSyncResponse(void* arg);
+  static void HandleMetaSyncResponse(void* arg);
+  static void HandleTrySyncResponse(void* arg);
+  static bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
+                               const std::vector<TableStruct>& expect_tables);
   int DealMessage() override;
  private:
-  bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
-                               const std::vector<TableStruct>& expect_tables);
-  int HandleMetaSyncResponse(const InnerMessage::InnerResponse& response);
-  int HandleTrySyncResponse(const InnerMessage::InnerResponse& response);
+  struct ReplRespArg {
+    std::shared_ptr<InnerMessage::InnerResponse> resp;
+    std::shared_ptr<pink::PbConn> conn;
+    ReplRespArg(std::shared_ptr<InnerMessage::InnerResponse> _resp, std::shared_ptr<pink::PbConn> _conn) : resp(_resp), conn(_conn) {
+    }
+  };
 };
 
 #endif
