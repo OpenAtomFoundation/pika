@@ -8,15 +8,46 @@
 
 #include "include/pika_repl_server_thread.h"
 
+#include <vector>
+
+#include "include/pika_repl_bgworker.h"
+#include "include/pika_command.h"
+#include "pika_binlog_transverter.h"
+
 class PikaReplServer {
-  public:
-   PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval);
-   ~PikaReplServer();
+ public:
+  PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval);
+  ~PikaReplServer();
+  int Start();
 
-   int Start();
+  void ScheduleBinlogSyncTask(std::string table_partition,
+                              const std::shared_ptr<InnerMessage::InnerRequest> req,
+                              std::shared_ptr<pink::PbConn> conn,
+                              void* req_private_data);
 
-  private:
-   PikaReplServerThread* pika_repl_server_thread_;
+  void ScheduleMetaSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+                            std::shared_ptr<pink::PbConn> conn,
+                            void* req_private_data);
+
+  void ScheduleTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+                           std::shared_ptr<pink::PbConn> conn,
+                           void* req_private_data);
+
+  void ScheduleDbTask(const std::string& key,
+                      PikaCmdArgsType* argv,
+                      BinlogItem* binlog_item,
+                      const std::string& table_name,
+                      uint32_t partition_id);
+ private:
+  size_t GetHashIndex(std::string key, bool upper_half);
+  void UpdateNextAvail() {
+    next_avail_ = (next_avail_ + 1) % bg_workers_.size();
+  }
+
+  PikaReplServerThread* pika_repl_server_thread_;
+  std::vector<PikaReplBgWorker*> bg_workers_;
+  int next_avail_;
+  std::hash<std::string> str_hash;
 };
 
 #endif

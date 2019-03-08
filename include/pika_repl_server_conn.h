@@ -9,14 +9,9 @@
 #include <string>
 
 #include "pink/include/pb_conn.h"
-#include "pink/include/redis_parser.h"
 #include "pink/include/pink_thread.h"
 
 #include "src/pika_inner_message.pb.h"
-
-#include "include/pika_binlog_transverter.h"
-
-class PikaReplServerThread;
 
 class PikaReplServerConn: public pink::PbConn {
  public:
@@ -24,19 +19,9 @@ class PikaReplServerConn: public pink::PbConn {
   virtual ~PikaReplServerConn();
 
   int DealMessage();
-  bool ProcessAuth(const pink::RedisCmdArgsType& argv);
-  bool ProcessBinlogData(const pink::RedisCmdArgsType& argv, const BinlogItem& binlog_item);
-
-  BinlogItem binlog_item_;
  private:
-  static int ParserDealMessage(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
-  int HandleMetaSyncRequest(const InnerMessage::InnerRequest& req);
-  int HandleTrySync(const InnerMessage::InnerRequest& req);
-  int HandleBinlogSync(const InnerMessage::InnerRequest& req);
-
-  pink::RedisParser redis_parser_;
-
-  PikaReplServerThread* binlog_receiver_;
+  // dispatch binlog by its table_name + partition
+  void DispatchBinlogReq(const std::shared_ptr<InnerMessage::InnerRequest> req);
 };
 
 #endif  // INCLUDE_PIKA_REPL_SERVER_CONN_H_
