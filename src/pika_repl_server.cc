@@ -15,7 +15,7 @@ PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int port, int c
   pika_repl_server_thread_ = new PikaReplServerThread(ips, port, cron_interval);
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
   for (int i = 0; i < 2 * g_pika_conf->sync_thread_num(); ++i) {
-    bg_workers_.push_back(new PikaReplBgWorker(g_pika_conf->sync_buffer_size()));
+    bg_workers_.push_back(new PikaReplBgWorker(PIKA_SYNC_BUFFER_SIZE));
   }
 }
 

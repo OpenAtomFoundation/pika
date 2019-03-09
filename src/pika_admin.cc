@@ -197,11 +197,10 @@ void CompactCmd::DoInitial() {
     return;
   }
 
-  // TODO Judge all tables
-  //if (g_pika_server->key_scaning()) {
-  //  res_.SetRes(CmdRes::kErrOther, "The info keyspace operation is executing, Try again later");
-  //  return;
-  //}
+  if (g_pika_server->IsKeyScaning()) {
+    res_.SetRes(CmdRes::kErrOther, "The info keyspace operation is executing, Try again later");
+    return;
+  }
 
   if (argv_.size() == 2) {
     struct_type_ = argv_[1];
@@ -428,7 +427,7 @@ void InfoCmd::DoInitial() {
       return;
     }
     if (argv_[2] == "1") { //info keyspace [ 0 | 1 | off ]
-      if (g_pika_server->db()->GetCurrentTaskType() == "All") {
+      if (g_pika_server->IsCompacting()) {
         res_.SetRes(CmdRes::kErrOther, "The compact operation is executing, Try again later");
       } else {
         rescan_ = true;
@@ -845,28 +844,22 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->thread_num());
   }
 
+  if (slash::stringmatch(pattern.data(), "thread-pool-size", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "thread-pool-size");
+    EncodeInt32(&config_body, g_pika_conf->thread_pool_size());
+  }
+
   if (slash::stringmatch(pattern.data(), "sync-thread-num", 1)) {
     elements += 2;
     EncodeString(&config_body, "sync-thread-num");
     EncodeInt32(&config_body, g_pika_conf->sync_thread_num());
   }
 
-  if (slash::stringmatch(pattern.data(), "sync-buffer-size", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "sync-buffer-size");
-    EncodeInt32(&config_body, g_pika_conf->sync_buffer_size());
-  }
-
   if (slash::stringmatch(pattern.data(), "log-path", 1)) {
     elements += 2;
     EncodeString(&config_body, "log-path");
     EncodeString(&config_body, g_pika_conf->log_path());
-  }
-
-  if (slash::stringmatch(pattern.data(), "loglevel", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "loglevel");
-    EncodeString(&config_body, g_pika_conf->log_level() ? "ERROR" : "INFO");
   }
 
   if (slash::stringmatch(pattern.data(), "db-path", 1)) {
@@ -915,6 +908,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     elements += 2;
     EncodeString(&config_body, "userblacklist");
     EncodeString(&config_body, (g_pika_conf->suser_blacklist()).c_str());
+  }
+
+  if (slash::stringmatch(pattern.data(), "instance-mode", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "instance-mode");
+    EncodeString(&config_body, (g_pika_conf->classic_mode() ? "classic" : "sharding"));
   }
 
   if (slash::stringmatch(pattern.data(), "daemonize", 1)) {
@@ -1141,8 +1140,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*23\r\n";
-    EncodeString(&ret, "loglevel");
+    ret = "*22\r\n";
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
@@ -1167,22 +1165,9 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "slave-priority");
     return;
   }
-  std::string value = config_args_v_[2];
   long int ival;
-  if (set_item == "loglevel") {
-    slash::StringToLower(value);
-    if (value == "info") {
-      ival = 0;
-    } else if (value == "error") {
-      ival = 1;
-    } else {
-      ret = "-ERR Invalid argument " + value + " for CONFIG SET 'loglevel'\r\n";
-      return;
-    }
-    g_pika_conf->SetLogLevel(ival);
-    FLAGS_minloglevel = g_pika_conf->log_level();
-    ret = "+OK\r\n";
-  } else if (set_item == "timeout") {
+  std::string value = config_args_v_[2];
+  if (set_item == "timeout") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'timeout'\r\n";
       return;

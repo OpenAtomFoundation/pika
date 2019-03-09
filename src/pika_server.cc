@@ -98,7 +98,7 @@ PikaServer::PikaServer() :
   pika_thread_pool_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
 
   for (int j = 0; j < g_pika_conf->sync_thread_num(); j++) {
-    binlogbg_workers_.push_back(new BinlogBGWorker(g_pika_conf->sync_buffer_size()));
+    binlogbg_workers_.push_back(new BinlogBGWorker(PIKA_SYNC_BUFFER_SIZE));
   }
 
   pthread_rwlock_init(&state_protector_, NULL);
