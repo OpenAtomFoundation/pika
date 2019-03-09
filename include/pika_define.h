@@ -8,6 +8,7 @@
 
 #include "pink/include/redis_cli.h"
 
+#define PIKA_SYNC_BUFFER_SIZE      1000
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 
 const std::string kPikaPidFile = "pika.pid";

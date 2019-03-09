@@ -21,19 +21,6 @@ int PikaConf::Load()
     return ret;
   }
 
-  // Mutable Section
-  std::string loglevel;
-  GetConfStr("loglevel", &loglevel);
-  slash::StringToLower(loglevel);
-  if (loglevel == "info") {
-    SetLogLevel(0);
-  } else if (loglevel == "error") {
-    SetLogLevel(1);
-  } else {
-    SetLogLevel(0);
-    fprintf(stderr, "Invalid loglevel value in conf file, only INFO or ERROR\n");
-    exit(-1);
-  }
   GetConfInt("timeout", &timeout_);
   if (timeout_ < 0) {
       timeout_ = 60; // 60s
@@ -158,12 +145,6 @@ int PikaConf::Load()
   }
   if (sync_thread_num_ > 24) {
     sync_thread_num_ = 24;
-  }
-  GetConfInt("sync-buffer-size", &sync_buffer_size_);
-  if (sync_buffer_size_ <= 0) {
-    sync_buffer_size_ = 5;
-  } else if (sync_buffer_size_ > 100) {
-    sync_buffer_size_ = 100;
   }
 
   compact_cron_ = "";
@@ -313,11 +294,6 @@ int PikaConf::Load()
   }
   GetConfStr("pidfile", &pidfile_);
 
-  // slot migrate
-  std::string smgrt;
-  GetConfStr("slotmigrate", &smgrt);
-  slotmigrate_ =  (smgrt == "yes") ? true : false;
-
   // db sync
   GetConfStr("db-sync-path", &db_sync_path_);
   if (db_sync_path_[db_sync_path_.length() - 1] != '/') {
@@ -351,9 +327,7 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("thread-num", thread_num_);
   SetConfInt("thread-pool-size", thread_pool_size_);
   SetConfInt("sync-thread-num", sync_thread_num_);
-  SetConfInt("sync-buffer-size", sync_buffer_size_);
   SetConfStr("log-path", log_path_);
-  SetConfStr("loglevel", log_level_ ? "ERROR" : "INFO");
   SetConfStr("db-path", db_path_);
   SetConfStr("trash-path", trash_path_);
   SetConfStr("db-sync-path", db_sync_path_);
@@ -367,7 +341,6 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("userblacklist", suser_blacklist());
   SetConfStr("dump-prefix", bgsave_prefix_);
   SetConfStr("daemonize", daemonize_ ? "yes" : "no");
-  SetConfStr("slotmigrate", slotmigrate_ ? "yes" : "no");
   SetConfStr("dump-path", bgsave_path_);
   SetConfInt("dump-expire", expire_dump_days_);
   SetConfStr("pidfile", pidfile_);
