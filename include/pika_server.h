@@ -23,6 +23,7 @@
 #include "include/pika_define.h"
 #include "include/pika_trysync_thread.h"
 #include "include/pika_monitor_thread.h"
+#include "include/pika_rsync_service.h"
 #include "include/pika_binlog_bgworker.h"
 #include "include/pika_heartbeat_thread.h"
 #include "include/pika_slaveping_thread.h"
@@ -595,6 +596,7 @@ class PikaServer {
   void AutoCompactRange();
   void AutoPurge();
   void AutoDeleteExpiredDump();
+  void AutoKeepAliveRSync();
 
   /*
    * DBSync use
@@ -617,6 +619,11 @@ class PikaServer {
    * Monitor use
    */
   PikaMonitorThread* monitor_thread_;
+
+  /*
+   * Rsync use
+   */
+  PikaRsyncService* pika_rsync_service_;
 
   /*
    * Pubsub use
