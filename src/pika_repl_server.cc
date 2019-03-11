@@ -11,7 +11,10 @@
 
 extern PikaConf* g_pika_conf;
 
-PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval) : next_avail_(0) {
+PikaReplServer::PikaReplServer(const std::set<std::string>& ips,
+                               int port,
+                               int cron_interval)
+    : next_avail_(0) {
   pika_repl_server_thread_ = new PikaReplServerThread(ips, port, cron_interval);
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
   for (int i = 0; i < 2 * g_pika_conf->sync_thread_num(); ++i) {
@@ -31,33 +34,45 @@ PikaReplServer::~PikaReplServer() {
 int PikaReplServer::Start() {
   int res = pika_repl_server_thread_->StartThread();
   if (res != pink::kSuccess) {
-    LOG(FATAL) << "Start Pika Repl Server Thread Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+    LOG(FATAL) << "Start Pika Repl Server Thread Error: " << res
+        << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
   for (size_t i = 0; i < bg_workers_.size(); ++i) {
     res = bg_workers_[i]->StartThread();
     if (res != pink::kSuccess) {
-      LOG(FATAL) << "Start Pika Repl Worker Thread Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+      LOG(FATAL) << "Start Pika Repl Worker Thread Error: " << res
+          << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
     }
   }
   return res;
 }
 
-void PikaReplServer::ScheduleBinlogSyncTask(std::string table_partition, const std::shared_ptr<InnerMessage::InnerRequest> req, std::shared_ptr<pink::PbConn> conn, void* req_private_data) {
+void PikaReplServer::ScheduleBinlogSyncTask(
+        std::string table_partition,
+        const std::shared_ptr<InnerMessage::InnerRequest> req,
+        std::shared_ptr<pink::PbConn> conn, void* req_private_data) {
   size_t index = GetHashIndex(table_partition, true);
   bg_workers_[index]->ScheduleRequest(req, conn, req_private_data);
 }
 
-void PikaReplServer::ScheduleMetaSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req, std::shared_ptr<pink::PbConn> conn, void* req_private_data) {
+void PikaReplServer::ScheduleMetaSyncTask(
+        const std::shared_ptr<InnerMessage::InnerRequest> req,
+        std::shared_ptr<pink::PbConn> conn, void* req_private_data) {
   bg_workers_[next_avail_]->ScheduleRequest(req, conn, req_private_data);
   UpdateNextAvail();
 }
 
-void PikaReplServer::ScheduleTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req, std::shared_ptr<pink::PbConn> conn, void* req_private_data) {
+void PikaReplServer::ScheduleTrySyncTask(
+        const std::shared_ptr<InnerMessage::InnerRequest> req,
+        std::shared_ptr<pink::PbConn> conn, void* req_private_data) {
   bg_workers_[next_avail_]->ScheduleRequest(req, conn, NULL);
   UpdateNextAvail();
 }
 
-void PikaReplServer::ScheduleDbTask(const std::string& key, PikaCmdArgsType* argv, BinlogItem* binlog_item, const std::string& table_name, uint32_t partition_id) {
+void PikaReplServer::ScheduleDbTask(
+        const std::string& key, PikaCmdArgsType* argv,
+        BinlogItem* binlog_item, const std::string& table_name,
+        uint32_t partition_id) {
   size_t index = GetHashIndex(key, false);
   bg_workers_[index]->ScheduleWriteDb(argv, binlog_item, table_name, partition_id);
 }

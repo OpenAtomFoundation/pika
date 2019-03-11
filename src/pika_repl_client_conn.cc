@@ -41,6 +41,14 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   std::shared_ptr<pink::PbConn> conn = resp_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = resp_arg->resp;
 
+  if (response->code() != InnerMessage::kOk) {
+    std::string reply = response->has_reply() ? response->reply() : "";
+    LOG(WARNING) << "Meta Sync Failed: " << reply;
+    g_pika_server->SyncError();
+    delete resp_arg;
+    return;
+  }
+
   const InnerMessage::InnerResponse_MetaSync meta_sync = response->meta_sync();
   if (g_pika_conf->classic_mode() != meta_sync.classic_mode()) {
     LOG(WARNING) << "Self in " << (g_pika_conf->classic_mode() ? "classic" : "sharding")

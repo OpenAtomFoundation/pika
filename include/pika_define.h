@@ -11,6 +11,10 @@
 #define PIKA_SYNC_BUFFER_SIZE      1000
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 
+/* Port shift */
+const int kPortShiftRSync = 1000;
+const int kPortShiftReplServer = 2000;
+
 const std::string kPikaPidFile = "pika.pid";
 
 struct WorkerCronTask {

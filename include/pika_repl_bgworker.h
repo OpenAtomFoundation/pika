@@ -50,8 +50,12 @@ class PikaReplBgWorker {
     std::shared_ptr<pink::PbConn> conn;
     void* req_private_data;
     PikaReplBgWorker* worker;
-    ReplBgWorkerArg(const std::shared_ptr<InnerMessage::InnerRequest> _req, std::shared_ptr<pink::PbConn> _conn, void* _req_private_data, PikaReplBgWorker* _worker) : req(_req), conn(_conn), req_private_data(_req_private_data), worker(_worker) {
-    }
+    ReplBgWorkerArg(const std::shared_ptr<InnerMessage::InnerRequest> _req,
+                    std::shared_ptr<pink::PbConn> _conn,
+                    void* _req_private_data,
+                    PikaReplBgWorker* _worker)
+        : req(_req), conn(_conn),
+          req_private_data(_req_private_data), worker(_worker) {}
   };
 
   struct WriteDbBgArg {

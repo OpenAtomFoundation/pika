@@ -129,7 +129,7 @@ bool PikaReplClient::GetAckInfo(const RmNode& slave, uint32_t* ack_file_num, uin
 }
 
 Status PikaReplClient::Write(const std::string& ip, const int port, const std::string& msg) {
-  // shift port 3000 tobe inner connect port
+  // shift port 2000 tobe inner connect port
   return client_thread_->Write(ip, port, msg);
 }
 
@@ -178,6 +178,11 @@ Status PikaReplClient::SendMetaSync() {
   node->set_ip(g_pika_server->host());
   node->set_port(g_pika_server->port());
 
+  std::string masterauth = g_pika_conf->masterauth();
+  if (!masterauth.empty()) {
+    meta_sync->set_auth(masterauth);
+  }
+
   std::string to_send;
   if (!request.SerializeToString(&to_send)) {
     return Status::Corruption("Serialize Failed");
@@ -187,7 +192,7 @@ Status PikaReplClient::SendMetaSync() {
   int master_port = g_pika_server->master_port();
   LOG(INFO) << "Send Meta Sync Request to Master ("
     << master_ip << ":" << master_port << ")";
-  return client_thread_->Write(master_ip, master_port + 3000, to_send);
+  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
 
 Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
@@ -216,7 +221,7 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
 
   std::string master_ip = g_pika_server->master_ip();
   int master_port = g_pika_server->master_port();
-  return client_thread_->Write(master_ip, master_port + 3000, to_send);
+  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
 
 
