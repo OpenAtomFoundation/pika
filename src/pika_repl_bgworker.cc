@@ -59,27 +59,31 @@ void PikaReplBgWorker::HandleMetaSyncRequest(void* arg) {
   const std::shared_ptr<InnerMessage::InnerRequest> req = bg_worker_arg->req;
   std::shared_ptr<pink::PbConn> conn = bg_worker_arg->conn;
 
-  std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+  InnerMessage::InnerRequest::MetaSync meta_sync_request = req->meta_sync();
+  std::string masterauth = meta_sync_request.has_auth() ? meta_sync_request.auth() : "";
+
   InnerMessage::InnerResponse response;
-  response.set_code(InnerMessage::kOk);
   response.set_type(InnerMessage::kMetaSync);
-  InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
-  meta_sync->set_classic_mode(g_pika_conf->classic_mode());
-  for (const auto& table_struct : table_structs) {
-    InnerMessage::InnerResponse_MetaSync_TableInfo* table_info = meta_sync->add_tables_info();
-    table_info->set_table_name(table_struct.table_name);
-    table_info->set_partition_num(table_struct.partition_num);
+  if (!g_pika_conf->requirepass().empty()
+    && g_pika_conf->requirepass() != masterauth) {
+    response.set_code(InnerMessage::kError);
+    response.set_reply("Auth with master error, Invalid masterauth");
+  } else {
+    response.set_code(InnerMessage::kOk);
+    InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
+    meta_sync->set_classic_mode(g_pika_conf->classic_mode());
+    std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+    for (const auto& table_struct : table_structs) {
+      InnerMessage::InnerResponse_MetaSync_TableInfo* table_info = meta_sync->add_tables_info();
+      table_info->set_table_name(table_struct.table_name);
+      table_info->set_partition_num(table_struct.partition_num);
+    }
   }
 
   std::string reply_str;
-  if (!response.SerializeToString(&reply_str)) {
+  if (!response.SerializeToString(&reply_str)
+    || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Process MetaSync request serialization failed";
-    delete bg_worker_arg;
-    return;
-  }
-  int res = conn->WriteResp(reply_str);
-  if (res) {
-    LOG(WARNING) << "Process MetaSync request write resp failed";
     delete bg_worker_arg;
     return;
   }
@@ -142,16 +146,9 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
   binlog_offset->set_offset(offset);
 
   std::string reply_str;
-  if (!response.SerializeToString(&reply_str)) {
+  if (!response.SerializeToString(&reply_str)
+    || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Process MetaSync request serialization failed";
-    delete index;
-    delete bg_worker_arg;
-    return;
-  }
-
-  int res = conn->WriteResp(reply_str);
-  if (res) {
-    LOG(WARNING) << "Process BinlogSync request write resp failed";
     delete index;
     delete bg_worker_arg;
     return;
@@ -286,7 +283,7 @@ void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
   partition_response->set_partition_id(partition_id);
   if (force) {
     LOG(INFO) << "Partition: " << partition_name << " force full sync, BgSave and DbSync first";
-    g_pika_server->TryDBSync(node.ip(), node.port() + 4000, table_name, partition_id, slave_boffset.filenum());
+    g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, table_name, partition_id, slave_boffset.filenum());
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kWait);
   } else {
     BinlogOffset boffset;
@@ -323,13 +320,14 @@ void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
       }
     }
   }
-  delete bg_worker_arg;
 
   std::string reply_str;
   if (!response.SerializeToString(&reply_str)
     || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Handle Try Sync Failed";
+    delete bg_worker_arg;
     return;
   }
   conn->NotifyWrite();
+  delete bg_worker_arg;
 }

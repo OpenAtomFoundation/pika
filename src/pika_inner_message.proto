@@ -30,7 +30,8 @@ message Partition {
 message InnerRequest {
   // slave to master
   message MetaSync {
-    required Node node = 1;
+    required Node   node = 1;
+    optional string auth = 2;
   }
 
   // slave to master
@@ -105,8 +106,9 @@ message InnerResponse {
   }
   required Type       type        = 1;
   required StatusCode code        = 2;
-  optional MetaSync   meta_sync   = 3;
-  optional TrySync    try_sync    = 4;
-  optional BinlogSync binlog_sync = 5;
-  optional DbSync     db_sync     = 6;
+  optional string     reply       = 3;
+  optional MetaSync   meta_sync   = 4;
+  optional TrySync    try_sync    = 5;
+  optional BinlogSync binlog_sync = 6;
+  optional DbSync     db_sync     = 7;
 }

@@ -89,11 +89,10 @@ PikaServer::PikaServer() :
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
   pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, 3000,
                                                  worker_queue_limit);
-  pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + 2000, 1000);
   monitor_thread_ = new PikaMonitorThread();
   pika_pubsub_thread_ = new pink::PubSubThread();
   pika_repl_client_ = new PikaReplClient(3000, 60);
-  pika_repl_server_ = new PikaReplServer(ips, port_ + 3000, 3000);
+  pika_repl_server_ = new PikaReplServer(ips, port_ + kPortShiftReplServer, 3000);
   pika_auxiliary_thread_ = new PikaAuxiliaryThread();
   pika_thread_pool_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
 
@@ -141,7 +140,6 @@ PikaServer::~PikaServer() {
     delete (*binlogbg_iter);
     binlogbg_iter++;
   }
-  delete pika_heartbeat_thread_;
   delete monitor_thread_;
 
   delete logger_;
@@ -293,13 +291,6 @@ void PikaServer::Start() {
     LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_) + " conflict"
             : ": other error") << ", Listen on this port to handle the connected redis client";
   }
-  ret = pika_heartbeat_thread_->StartThread();
-  if (ret != pink::kSuccess) {
-    delete logger_;
-    db_.reset();
-    LOG(FATAL) << "Start Heartbeat Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + 2000) + " conflict"
-            : ": other error") << ", Listen on this port to receive the heartbeat packets sent by the master";
-  }
   ret = pika_pubsub_thread_->StartThread();
   if (ret != pink::kSuccess) {
     delete logger_;
@@ -328,7 +319,7 @@ void PikaServer::Start() {
     LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
 
-  ret = slash::StartRsync(g_pika_conf->db_sync_path(), kDBSyncModule, host_, g_pika_conf->port() + 4000);
+  ret = slash::StartRsync(g_pika_conf->db_sync_path(), kDBSyncModule, host_, g_pika_conf->port() + kPortShiftRSync);
   if (0 != ret) {
     delete logger_;
     db_.reset();
@@ -1183,7 +1174,7 @@ Status PikaServer::AddBinlogSender(const std::string& table_name,
                                    int64_t sid,
                                    uint32_t filenum, uint64_t con_offset) {
   // shift 3000 to connect repl sserver
-  RmNode slave(table_name, partition_id, ip, port + 3000);
+  RmNode slave(table_name, partition_id, ip, port + kPortShiftReplServer);
   std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
   std::shared_ptr<Binlog>logger = partition->logger();
   Status res = pika_repl_client_->AddBinlogReader(slave, logger, filenum, con_offset);
