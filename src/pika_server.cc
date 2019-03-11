@@ -90,6 +90,8 @@ PikaServer::PikaServer() :
   pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, 3000,
                                                  worker_queue_limit);
   monitor_thread_ = new PikaMonitorThread();
+  pika_rsync_service_ = new PikaRsyncService(g_pika_conf->db_sync_path(), host_,
+                                             g_pika_conf->port() + kPortShiftRSync);
   pika_pubsub_thread_ = new pink::PubSubThread();
   pika_repl_client_ = new PikaReplClient(3000, 60);
   pika_repl_server_ = new PikaReplServer(ips, port_ + kPortShiftReplServer, 3000);
@@ -107,7 +109,6 @@ PikaServer::PikaServer() :
 }
 
 PikaServer::~PikaServer() {
-  slash::StopRsync(g_pika_conf->db_sync_path());
   delete bgsave_engine_;
   delete pika_thread_pool_;
 
@@ -132,6 +133,7 @@ PikaServer::~PikaServer() {
   delete pika_auxiliary_thread_;
   delete pika_repl_client_;
   delete pika_repl_server_;
+  delete pika_rsync_service_;
 
   binlogbg_exit_ = true;
   std::vector<BinlogBGWorker*>::iterator binlogbg_iter = binlogbg_workers_.begin();
@@ -319,7 +321,7 @@ void PikaServer::Start() {
     LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
 
-  ret = slash::StartRsync(g_pika_conf->db_sync_path(), kDBSyncModule, host_, g_pika_conf->port() + kPortShiftRSync);
+  ret = pika_rsync_service_->StartRsync();
   if (0 != ret) {
     delete logger_;
     db_.reset();
@@ -1665,6 +1667,13 @@ void PikaServer::AutoDeleteExpiredDump() {
   }
 }
 
+void PikaServer::AutoKeepAliveRSync() {
+  if (!pika_rsync_service_->CheckRsyncAlive()) {
+    LOG(WARNING) << "The Rsync service is down, Try to restart";
+    pika_rsync_service_->StartRsync();
+  }
+}
+
 void PikaServer::PurgeDir(const std::string& path) {
   std::string* dir_path = new std::string(path);
   PurgeDirTaskSchedule(&DoPurgeDir, static_cast<void*>(dir_path));
@@ -2066,4 +2075,6 @@ void PikaServer::DoTimingTask() {
   AutoPurge();
   // Delete expired dump
   AutoDeleteExpiredDump();
+  // Cheek Rsync Status
+  AutoKeepAliveRSync();
 }
