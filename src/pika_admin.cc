@@ -666,6 +666,7 @@ void InfoCmd::InfoKeyspace(std::string &info) {
 
   std::string table_name;
   KeyScanInfo key_scan_info;
+  int32_t duration;
   std::vector<blackwidow::KeyInfo> key_infos;
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
@@ -674,11 +675,15 @@ void InfoCmd::InfoKeyspace(std::string &info) {
     table_name = table_item.second->GetTableName();
     key_scan_info = table_item.second->GetKeyScanInfo();
     key_infos = key_scan_info.key_infos;
+    duration = key_scan_info.duration;
     if (key_infos.size() != 5) {
       info.append("info keyspace error\r\n");
       return;
     }
     tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
+    if (duration != -2) {
+      tmp_stream << "# Duration: " << (duration == -1 ? "In Processing" : std::to_string(duration) + "s" )<< "\r\n";
+    }
     tmp_stream << table_name << "_Strings: keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invaild_keys=" << key_infos[0].invaild_keys << "\r\n";
     tmp_stream << table_name << "_Hashes: keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invaild_keys=" << key_infos[1].invaild_keys << "\r\n";
     tmp_stream << table_name << "_Lists: keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invaild_keys=" << key_infos[2].invaild_keys << "\r\n";
