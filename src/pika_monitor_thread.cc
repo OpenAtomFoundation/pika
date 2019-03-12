@@ -24,7 +24,7 @@ PikaMonitorThread::~PikaMonitorThread() {
       ++iter) {
     close(iter->fd);
   }
-  LOG(INFO) << " PikaMonitorThread " << pthread_self() << " exit!!!";
+  LOG(INFO) << "PikaMonitorThread " << pthread_self() << " exit!!!";
 }
 
 void PikaMonitorThread::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
