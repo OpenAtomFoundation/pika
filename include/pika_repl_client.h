@@ -30,8 +30,9 @@ struct RmNode {
   uint32_t partition_;
   std::string ip_;
   int port_;
-  RmNode(const std::string& table, int partition, const std::string& ip, int port) : table_(table), partition_(partition), ip_(ip), port_(port) {
-  }
+  RmNode(const std::string& table, int partition,
+         const std::string& ip, int port)
+      : table_(table), partition_(partition), ip_(ip), port_(port) {}
   RmNode(const RmNode& node) {
     table_ = node.table_;
     partition_ = node.partition_;
