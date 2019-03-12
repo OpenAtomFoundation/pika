@@ -686,13 +686,15 @@ void PikaServer::NewDbSyncSendFile(const std::string& ip, int port,
   // Get all files need to send
   std::vector<std::string> descendant;
   int ret = 0;
-  LOG(INFO) << "Start Send files in " << bg_path << " to " << ip;
+  LOG(INFO) << "Partition: " << partition->GetPartitionName()
+    << " Start Send files in " << bg_path << " to " << ip;
   ret = slash::GetChildren(bg_path, descendant);
   if (ret != 0) {
     std::string ip_port = slash::IpPortString(ip, port);
     slash::MutexLock ldb(&db_sync_protector_);
     db_sync_slaves_.erase(ip_port);
-    LOG(WARNING) << "Get child directory when try to do sync failed, error: " << strerror(ret);
+    LOG(WARNING) << "Partition: " << partition->GetPartitionName()
+      << " Get child directory when try to do sync failed, error: " << strerror(ret);
     return;
   }
 
@@ -718,7 +720,8 @@ void PikaServer::NewDbSyncSendFile(const std::string& ip, int port,
     ret = slash::RsyncSendFile(local_path, target_path, remote);
 
     if (0 != ret) {
-      LOG(WARNING) << "rsync send file failed! From: " << *iter
+      LOG(WARNING) << "Partition: " << partition->GetPartitionName()
+        << " RSync send file failed! From: " << *iter
         << ", To: " << target_path
         << ", At: " << ip << ":" << port
         << ", Error: " << ret;
@@ -736,7 +739,7 @@ void PikaServer::NewDbSyncSendFile(const std::string& ip, int port,
   // Send info file at last
   if (0 == ret) {
     if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile, remote))) {
-      LOG(WARNING) << "send info file failed";
+      LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Info File Failed";
     }
   }
 
@@ -749,7 +752,7 @@ void PikaServer::NewDbSyncSendFile(const std::string& ip, int port,
   }
 
   if (0 == ret) {
-    LOG(INFO) << "rsync send files success";
+    LOG(INFO) << "Partition: " << partition->GetPartitionName() << " RSync Send Files Success";
   }
 }
 
