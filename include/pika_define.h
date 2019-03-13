@@ -12,8 +12,9 @@
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 
 /* Port shift */
-const int kPortShiftRSync = 1000;
-const int kPortShiftReplServer = 2000;
+const int kPortShiftRSync      = 1000;
+const int kPortShiftHeatBeat   = 2000;
+const int kPortShiftReplServer = 3000;
 
 const std::string kPikaPidFile = "pika.pid";
 
@@ -28,8 +29,6 @@ typedef WorkerCronTask MonitorCronTask;
 
 //slave item
 struct SlaveItem {
-  std::string table;
-  uint32_t partition_id;
   int64_t sid;
   std::string ip_port;
   int port;
@@ -56,14 +55,6 @@ struct SlowlogEntry {
 
 const int SLAVE_ITEM_STAGE_ONE    = 1;
 const int SLAVE_ITEM_STAGE_TWO    = 2;
-
-//repl_state_
-//const int PIKA_REPL_NO_CONNECT    = 0;
-const int PIKA_REPL_CONNECT       = 1;
-//const int PIKA_REPL_CONNECTING    = 2;
-const int PIKA_REPL_CONNECTED     = 3;
-const int PIKA_REPL_WAIT_DBSYNC   = 8;
-//const int PIKA_REPL_ERROR         = 5;
 
 //repl_state_
 const int PIKA_REPL_NO_CONNECT                = 0;

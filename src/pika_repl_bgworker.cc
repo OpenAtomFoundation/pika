@@ -60,6 +60,7 @@ void PikaReplBgWorker::HandleMetaSyncRequest(void* arg) {
   std::shared_ptr<pink::PbConn> conn = bg_worker_arg->conn;
 
   InnerMessage::InnerRequest::MetaSync meta_sync_request = req->meta_sync();
+  InnerMessage::Node node = meta_sync_request.node();
   std::string masterauth = meta_sync_request.has_auth() ? meta_sync_request.auth() : "";
 
   InnerMessage::InnerResponse response;
@@ -69,14 +70,21 @@ void PikaReplBgWorker::HandleMetaSyncRequest(void* arg) {
     response.set_code(InnerMessage::kError);
     response.set_reply("Auth with master error, Invalid masterauth");
   } else {
-    response.set_code(InnerMessage::kOk);
-    InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
-    meta_sync->set_classic_mode(g_pika_conf->classic_mode());
-    std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
-    for (const auto& table_struct : table_structs) {
-      InnerMessage::InnerResponse_MetaSync_TableInfo* table_info = meta_sync->add_tables_info();
-      table_info->set_table_name(table_struct.table_name);
-      table_info->set_partition_num(table_struct.partition_num);
+    int64_t sid = g_pika_server->TryAddSlave(node.ip(), node.port());
+    if (sid < 0) {
+      response.set_code(InnerMessage::kError);
+      response.set_reply("Slave AlreadyExist");
+    } else {
+      response.set_code(InnerMessage::kOk);
+      InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
+      meta_sync->set_sid(sid);
+      meta_sync->set_classic_mode(g_pika_conf->classic_mode());
+      std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+      for (const auto& table_struct : table_structs) {
+        InnerMessage::InnerResponse_MetaSync_TableInfo* table_info = meta_sync->add_tables_info();
+        table_info->set_table_name(table_struct.table_name);
+        table_info->set_partition_num(table_struct.partition_num);
+      }
     }
   }
 
@@ -271,7 +279,7 @@ void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   if (!partition) {
     response.set_code(InnerMessage::kError);
-    response.set_reply("TrySync error, Partition not found");
+    response.set_reply("Partition not found");
     LOG(WARNING) << "Table Name: " << table_name << " Partition ID: "
       << partition_id << " Not Found, TrySync Error";
   } else {

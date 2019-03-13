@@ -270,19 +270,9 @@ ReplState Partition::State() {
   return repl_state_;
 }
 
-void Partition::MarkTryConnectState() {
+void Partition::SetReplState(const ReplState& state) {
   slash::RWLock rwl(&state_rwlock_, true);
-  repl_state_ = ReplState::kTryConnect;
-}
-
-void Partition::MarkWaitReplyState() {
-  slash::RWLock rwl(&state_rwlock_, true);
-  repl_state_ = ReplState::kWaitReply;
-}
-
-void Partition::MarkWaitDBSyncState() {
-  slash::RWLock rwl(&state_rwlock_, true);
-  repl_state_ = ReplState::kWaitDBSync;
+  repl_state_ = state;
 }
 
 bool Partition::FullSync() {
@@ -372,7 +362,7 @@ bool Partition::TryUpdateMasterOffset() {
   // Update master offset
   logger_->SetProducerStatus(filenum, offset);
   full_sync_ = false;
-  MarkTryConnectState();
+  SetReplState(ReplState::kTryConnect);
   return true;
 }
 

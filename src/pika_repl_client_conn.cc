@@ -88,6 +88,14 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     }
     g_pika_server->PurgeDir(g_pika_conf->trash_path());
   }
+
+  g_pika_conf->SetWriteBinlog("yes");
+
+  int64_t sid = meta_sync.sid();
+  delete g_pika_server->ping_thread_;
+  g_pika_server->ping_thread_ = new PikaSlavepingThread(sid);
+  g_pika_server->ping_thread_->StartThread();
+
   LOG(INFO) << "Finish to handle meta sync response";
   g_pika_server->MetaSyncDone();
   delete resp_arg;
@@ -97,6 +105,13 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   ReplRespArg* resp_arg = static_cast<ReplRespArg*>(arg);
   std::shared_ptr<pink::PbConn> conn = resp_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = resp_arg->resp;
+
+  if (response->code() != InnerMessage::kOk) {
+    std::string reply = response->has_reply() ? response->reply() : "";
+    LOG(WARNING) << "TrySync Failed: " << reply;
+    delete resp_arg;
+    return;
+  }
 
   const InnerMessage::InnerResponse_TrySync try_sync_response = response->try_sync();
   const InnerMessage::Partition partition_response = try_sync_response.partition();
@@ -111,13 +126,16 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
 
   std::string partition_name = partition->GetPartitionName();
   if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
+    partition->SetReplState(ReplState::kConnected);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kWait) {
-    partition->MarkWaitDBSyncState();
+    partition->SetReplState(ReplState::kWaitDBSync);
     LOG(INFO)    << "Partition: " << partition_name << " Need Wait To Sync";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kInvalidOffset) {
+    partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error, Because the invalid filenum and offset";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kError) {
+    partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error";
   }
   delete resp_arg;

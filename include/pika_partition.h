@@ -39,11 +39,12 @@ struct BinlogOffset {
 };
 
 enum ReplState {
-  kNoConnect = 0,
+  kNoConnect  = 0,
   kTryConnect = 1,
-  kWaitReply = 2,
+  kWaitReply  = 2,
   kWaitDBSync = 3,
-  kConnected = 4,
+  kConnected  = 4,
+  kError      = 5
 };
 
 // debug only
@@ -52,7 +53,8 @@ const std::string ReplStateMsg[] = {
   "kTryConnect",
   "kWaitReply",
   "kConnected",
-  "kWaitDBSync"
+  "kWaitDBSync",
+  "kError"
 };
 
 class Partition : public std::enable_shared_from_this<Partition> {
@@ -85,9 +87,8 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool SetBinlogOffset(const BinlogOffset& boffset);
 
   ReplState State();
-  void MarkTryConnectState();
-  void MarkWaitReplyState();
-  void MarkWaitDBSyncState();
+  void SetReplState(const ReplState& state);
+
   bool FullSync();
   void SetFullSync(bool full_sync);
 

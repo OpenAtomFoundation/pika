@@ -4,6 +4,7 @@ enum Type {
   kMetaSync   = 1;
   kTrySync    = 2;
   kBinlogSync = 3;
+  kHeatBeat   = 4;
 }
 
 enum StatusCode {
@@ -51,16 +52,24 @@ message InnerRequest {
     required bytes          binlog        = 5;
   }
 
+  // slave to master
+  message HeatBeat {
+    required Node   node = 1;
+    required string ping = 2;
+    optional int64  sid  = 3;
+  }
+
   // master to slave
   message DbSync {
     required string table_name   = 1;
     required uint32 partition_id = 2;
   }
 
-  required Type      type         = 1;
-  optional MetaSync  meta_sync    = 2;
-  optional TrySync   try_sync     = 3;
+  required Type       type        = 1;
+  optional MetaSync   meta_sync   = 2;
+  optional TrySync    try_sync    = 3;
   repeated BinlogSync binlog_sync = 4;
+  optional HeatBeat   heat_beat   = 5;
 }
 
 message PartitionInfo {
@@ -79,6 +88,7 @@ message InnerResponse {
     }
     required bool      classic_mode = 1;
     repeated TableInfo tables_info  = 2;
+    required int64     sid          = 3;
   }
 
   // master to slave
@@ -102,6 +112,11 @@ message InnerResponse {
   }
 
   // slave to master
+  message HeatBeat {
+    required string pong = 1;
+  }
+
+  // slave to master
   message DbSync {
   }
   required Type       type        = 1;
@@ -110,5 +125,6 @@ message InnerResponse {
   optional MetaSync   meta_sync   = 4;
   optional TrySync    try_sync    = 5;
   optional BinlogSync binlog_sync = 6;
-  optional DbSync     db_sync     = 7;
+  optional HeatBeat   heat_beat   = 7;
+  optional DbSync     db_sync     = 8;
 }

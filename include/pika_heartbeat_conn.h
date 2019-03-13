@@ -6,14 +6,18 @@
 #ifndef PIKA_HEARTBEAT_CONN_H_
 #define PIKA_HEARTBEAT_CONN_H_
 
-#include "pink/include/redis_conn.h"
+#include "pink/include/pb_conn.h"
 
 #include "include/pika_command.h"
 
-class PikaHeartbeatConn: public pink::RedisConn {
+class PikaHeartbeatConn : public pink::PbConn {
  public:
-  PikaHeartbeatConn(int fd, std::string ip_port);
-  virtual int DealMessage(const PikaCmdArgsType& argv, std::string* response);
+  PikaHeartbeatConn(int fd, std::string ip_port,
+          pink::Thread* thread, void* worker_specific_data,
+          pink::PinkEpoll* epoll);
+  virtual ~PikaHeartbeatConn();
+
+  virtual int DealMessage();
 };
 
 #endif
