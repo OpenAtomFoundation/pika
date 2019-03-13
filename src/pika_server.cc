@@ -89,6 +89,7 @@ PikaServer::PikaServer() :
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
   pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, 3000,
                                                  worker_queue_limit);
+  pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + kPortShiftHeatBeat, 1000);
   monitor_thread_ = new PikaMonitorThread();
   pika_rsync_service_ = new PikaRsyncService(g_pika_conf->db_sync_path(), host_,
                                              g_pika_conf->port() + kPortShiftRSync);
@@ -142,6 +143,7 @@ PikaServer::~PikaServer() {
     delete (*binlogbg_iter);
     binlogbg_iter++;
   }
+  delete pika_heartbeat_thread_;
   delete monitor_thread_;
 
   delete logger_;
@@ -321,6 +323,14 @@ void PikaServer::Start() {
     LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
 
+  ret = pika_heartbeat_thread_->StartThread();
+  if (ret != pink::kSuccess) {
+    delete logger_;
+    db_.reset();
+    LOG(FATAL) << "Start Heartbeat Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + kPortShiftHeatBeat) + " conflict"
+            : ": other error") << ", Listen on this port to receive the heartbeat packets sent by the master";
+  }
+
   ret = pika_rsync_service_->StartRsync();
   if (0 != ret) {
     delete logger_;
@@ -481,7 +491,7 @@ void PikaServer::PreparePartitionTrySync() {
   for (const auto& table_item : tables_) {
     for (const auto& partition_item : table_item.second->partitions_) {
       partition_item.second->SetFullSync(force_full_sync_);
-      partition_item.second->MarkTryConnectState();
+      partition_item.second->SetReplState(ReplState::kTryConnect);
     }
   }
   MarkTryConnectDone();
@@ -529,9 +539,9 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
   if (iter->sender != NULL) {
     delete static_cast<PikaBinlogSenderThread*>(iter->sender);
   }
-  RmNode slave(iter->table, iter->partition_id, ip, port);
-  pika_repl_client_->RemoveBinlogSyncCtl(slave);
-  slaves_.erase(iter);
+  //RmNode slave(iter->table, iter->partition_id, ip, port);
+  //pika_repl_client_->RemoveBinlogSyncCtl(slave);
+  //slaves_.erase(iter);
   }
 }
 
@@ -555,9 +565,9 @@ void PikaServer::DeleteSlave(int fd) {
         LOG(INFO) << "Delete slave success";
         break;
       }
-      RmNode slave(iter->table, iter->partition_id, ip, port);
-      pika_repl_client_->RemoveBinlogSyncCtl(slave);
-      slaves_.erase(iter);
+      //RmNode slave(iter->table, iter->partition_id, ip, port);
+      //pika_repl_client_->RemoveBinlogSyncCtl(slave);
+      //slaves_.erase(iter);
       LOG(INFO) << "Delete slave success";
       break;
     }
@@ -773,13 +783,14 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
 
 // Try add Slave, return slave sid if success,
 // return -1 when slave already exist
-int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port, const std::string& table, uint32_t partition_id) {
+int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   std::string ip_port = slash::IpPortString(ip, port);
 
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
   while (iter != slaves_.end()) {
     if (iter->ip_port == ip_port) {
+      LOG(INFO) << "Slave already exist, " << ip << ":" << port;
       return -1;
     }
     iter++;
@@ -788,8 +799,6 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port, const std::
   // Not exist, so add new
   LOG(INFO) << "Add new slave, " << ip << ":" << port;
   SlaveItem s;
-  s.table = table;
-  s.partition_id = partition_id;
   s.sid = GenSid();
   s.ip_port = ip_port;
   s.port = port;
@@ -882,55 +891,6 @@ bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
   return false;
 }
 
-bool PikaServer::WaitingDBSync() {
-  slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
-  if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
-    return true;
-  }
-  return false;
-}
-
-void PikaServer::NeedWaitDBSync() {
-  slash::RWLock l(&state_protector_, true);
-  repl_state_ = PIKA_REPL_WAIT_DBSYNC;
-}
-
-void PikaServer::WaitDBSyncFinish() {
-  slash::RWLock l(&state_protector_, true);
-  if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
-    repl_state_ = PIKA_REPL_CONNECT;
-  }
-}
-
-void PikaServer::KillBinlogSenderConn() {
-}
-
-bool PikaServer::ShouldConnectMaster() {
-  slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "repl_state: " << repl_state_ << " role: " << role_ << " master_connection: " << master_connection_;
-  if (repl_state_ == PIKA_REPL_CONNECT) {
-    return true;
-  }
-  return false;
-}
-
-void PikaServer::ConnectMasterDone() {
-  slash::RWLock l(&state_protector_, true);
-  if (repl_state_ == PIKA_REPL_CONNECT) {
-    repl_state_ = PIKA_REPL_CONNECTING;
-  }
-}
-
-bool PikaServer::ShouldStartPingMaster() {
-  slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_ << " repl_state " << repl_state_;
-  if (repl_state_ == PIKA_REPL_CONNECTING && master_connection_ < 2) {
-    return true;
-  }
-  return false;
-}
-
 bool PikaServer::ShouldMetaSync() {
   slash::RWLock l(&state_protector_, false);
   return repl_state_ == PIKA_REPL_SHOULD_META_SYNC;
@@ -958,41 +918,10 @@ bool PikaServer::ShouldTrySyncPartition() {
   return repl_state_ == PIKA_REPL_CONNECTING;
 }
 
-void PikaServer::MinusMasterConnection() {
+void PikaServer::MarkEstablishSuccess() {
   slash::RWLock l(&state_protector_, true);
-  if (master_connection_ > 0) {
-    if ((--master_connection_) <= 0) {
-      // two connection with master has been deleted
-      if (role_ & PIKA_ROLE_SLAVE) {
-        repl_state_ = PIKA_REPL_CONNECT; // not change by slaveof no one, so set repl_state = PIKA_REPL_CONNECT, continue to connect master
-      } else {
-        repl_state_ = PIKA_REPL_NO_CONNECT; // change by slaveof no one, so set repl_state = PIKA_REPL_NO_CONNECT, reset to SINGLE state
-      }
-      master_connection_ = 0;
-    }
-  }
-}
-
-void PikaServer::PlusMasterConnection() {
-  slash::RWLock l(&state_protector_, true);
-  if (master_connection_ < 2) {
-    if ((++master_connection_) >= 2) {
-      // two connection with master has been established
-      repl_state_ = PIKA_REPL_CONNECTED;
-      master_connection_ = 2;
-      LOG(INFO) << "Master-Slave connection established successfully";
-    }
-  }
-}
-
-bool PikaServer::ShouldAccessConnAsMaster(const std::string& ip) {
-  slash::RWLock l(&state_protector_, false);
-  DLOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << repl_state_ << " ip: " << ip << " master_ip: " << master_ip_;
-  if ((repl_state_ == PIKA_REPL_CONNECTING || repl_state_ == PIKA_REPL_CONNECTED) &&
-      ip == master_ip_) {
-    return true;
-  }
-  return false;
+  assert(repl_state_ == PIKA_REPL_CONNECTING);
+  repl_state_ = PIKA_REPL_ESTABLISH_SUCCESS;
 }
 
 void PikaServer::SyncError() {
@@ -1736,7 +1665,8 @@ Status PikaServer::SendMetaSyncRequest() {
 Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition) {
   BinlogOffset boffset;
   if (!partition->GetBinlogOffset(&boffset)) {
-    LOG(WARNING) << "Get partition binlog offset failed";
+    LOG(WARNING) << "Partition: " << partition->GetPartitionName()
+        << ",  Get partition binlog offset failed";
     return Status::Corruption("Partition get binlog offset error");
   }
   std::string table_name = partition->GetTableName();
@@ -1744,7 +1674,7 @@ Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partit
   bool force = partition->FullSync();
   partition->PrepareRsync();
   Status status = pika_repl_client_->SendPartitionTrySync(table_name, partition_id, boffset, force);
-  partition->MarkWaitReplyState();
+  partition->SetReplState(ReplState::kWaitReply);
   return status;
 }
 

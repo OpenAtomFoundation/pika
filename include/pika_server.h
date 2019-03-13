@@ -21,7 +21,6 @@
 #include "include/pika_table.h"
 #include "include/pika_binlog.h"
 #include "include/pika_define.h"
-#include "include/pika_trysync_thread.h"
 #include "include/pika_monitor_thread.h"
 #include "include/pika_rsync_service.h"
 #include "include/pika_binlog_bgworker.h"
@@ -145,14 +144,16 @@ class PikaServer {
     switch (repl_state_) {
       case PIKA_REPL_NO_CONNECT:
         return "no connect";
-      case PIKA_REPL_CONNECT:
-        return "connect";
+      case PIKA_REPL_SHOULD_META_SYNC:
+        return "should meta sync";
+      case PIKA_REPL_WAIT_META_SYNC_RESPONSE:
+        return "wait meta sync response";
+      case PIKA_REPL_SHOULD_MARK_TRY_CONNECT:
+        return "should mark try connect";
       case PIKA_REPL_CONNECTING:
         return "connecting";
-      case PIKA_REPL_CONNECTED:
-        return "connected";
-      case PIKA_REPL_WAIT_DBSYNC:
-        return "wait dbsync";
+      case PIKA_REPL_ESTABLISH_SUCCESS:
+        return "establish success";
       case PIKA_REPL_ERROR:
         return "error";
       default:
@@ -203,11 +204,10 @@ class PikaServer {
 
   void DeleteSlave(int fd); // hb_fd
   void DeleteSlave(const std::string& ip, int64_t port);
-  int64_t TryAddSlave(const std::string& ip, int64_t port, const std::string& table, uint32_t partition_id);
+  int64_t TryAddSlave(const std::string& ip, int64_t port);
   bool SetSlaveSender(const std::string& ip, int64_t port,
       PikaBinlogSenderThread* s);
   int32_t GetSlaveListString(std::string& slave_list_str);
-  Status GetSmallestValidLog(uint32_t* max);
   void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
   void BecomeMaster();
 
@@ -218,17 +218,8 @@ class PikaServer {
    * Slave use
    */
   bool SetMaster(std::string& master_ip, int master_port);
-  bool ShouldConnectMaster();
-  void ConnectMasterDone();
-  bool ShouldStartPingMaster();
-  void MinusMasterConnection();
-  void PlusMasterConnection();
-  bool ShouldAccessConnAsMaster(const std::string& ip);
   void SyncError();
   void RemoveMaster();
-  bool WaitingDBSync();
-  void NeedWaitDBSync();
-  void WaitDBSyncFinish();
   void KillBinlogSenderConn();
 
   bool ShouldMetaSync();
@@ -236,6 +227,7 @@ class PikaServer {
   bool ShouldMarkTryConnect();
   void MarkTryConnectDone();
   bool ShouldTrySyncPartition();
+  void MarkEstablishSuccess();
 
   void Start();
 
@@ -545,7 +537,6 @@ class PikaServer {
   pink::ThreadPool* pika_thread_pool_;
 
   PikaHeartbeatThread* pika_heartbeat_thread_;
-  PikaTrysyncThread* pika_trysync_thread_;
 
   /*
    * Master use
