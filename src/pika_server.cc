@@ -539,9 +539,9 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
   if (iter->sender != NULL) {
     delete static_cast<PikaBinlogSenderThread*>(iter->sender);
   }
-  //RmNode slave(iter->table, iter->partition_id, ip, port);
-  //pika_repl_client_->RemoveBinlogSyncCtl(slave);
-  //slaves_.erase(iter);
+  RmNode slave(iter->table, iter->partition_id, ip, port);
+  pika_repl_client_->RemoveBinlogSyncCtl(slave);
+  slaves_.erase(iter);
   }
 }
 
@@ -565,9 +565,9 @@ void PikaServer::DeleteSlave(int fd) {
         LOG(INFO) << "Delete slave success";
         break;
       }
-      //RmNode slave(iter->table, iter->partition_id, ip, port);
-      //pika_repl_client_->RemoveBinlogSyncCtl(slave);
-      //slaves_.erase(iter);
+      RmNode slave(iter->table, iter->partition_id, ip, port);
+      pika_repl_client_->RemoveBinlogSyncCtl(slave);
+      slaves_.erase(iter);
       LOG(INFO) << "Delete slave success";
       break;
     }
