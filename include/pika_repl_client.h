@@ -21,7 +21,7 @@
 #include "pink/include/thread_pool.h"
 #include "src/pika_inner_message.pb.h"
 
-#define kBinlogSyncBatchNum 10
+#define kBinlogSyncBatchNum 1000
 
 using slash::Status;
 
