@@ -118,7 +118,7 @@ void TrysyncCmd::DoInitial() {
 void TrysyncCmd::Do(std::shared_ptr<Partition> partition) {
   LOG(INFO) << "Trysync, Slave ip: " << slave_ip_ << " Slave port:" << slave_port_
     << " filenum: " << filenum_ << " pro_offset: " << pro_offset_;
-  int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_, "default", 0);
+  int64_t sid = g_pika_server->TryAddSlave(slave_ip_, slave_port_);
   if (sid >= 0) {
     //Status status = g_pika_server->AddBinlogSender(slave_ip_, slave_port_,
     //                                               sid,
@@ -638,7 +638,7 @@ void InfoCmd::InfoReplication(std::string &info) {
     case PIKA_ROLE_SLAVE :
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
-      tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_CONNECTED ? "up" : "down") << "\r\n";
+      tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_ESTABLISH_SUCCESS ? "up" : "down") << "\r\n";
       tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       tmp_stream << "repl_state: " << (g_pika_server->repl_state_str()) << "\r\n";
@@ -646,7 +646,7 @@ void InfoCmd::InfoReplication(std::string &info) {
     case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE :
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
-      tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_CONNECTED ? "up" : "down") << "\r\n";
+      tmp_stream << "master_link_status:" << (g_pika_server->repl_state() == PIKA_REPL_ESTABLISH_SUCCESS ? "up" : "down") << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       tmp_stream << "repl_state: " << (g_pika_server->repl_state_str()) << "\r\n";
     case PIKA_ROLE_SINGLE :
