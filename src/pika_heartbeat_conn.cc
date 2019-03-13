@@ -5,27 +5,45 @@
 
 #include "include/pika_heartbeat_conn.h"
 
-#include "slash/include/slash_string.h"
-
 #include "include/pika_server.h"
 
-extern PikaServer *g_pika_server;
+extern PikaServer* g_pika_server;
 
-PikaHeartbeatConn::PikaHeartbeatConn(int fd, std::string ip_port)
-      : RedisConn(fd, ip_port, NULL) {
+PikaHeartbeatConn::PikaHeartbeatConn(int fd,
+                                     std::string ip_port,
+                                     pink::Thread* thread,
+                                     void* worker_specific_data, pink::PinkEpoll* epoll)
+    : PbConn(fd, ip_port, thread, epoll) {
 }
 
-int PikaHeartbeatConn::DealMessage(const PikaCmdArgsType& argv,
-                                   std::string* response) {
-  if (argv[0] == "ping") {
-    response->append("+PONG\r\n");
-  } else if (argv[0] == "spci") {
-    int64_t sid = -1;
-    slash::string2l(argv[1].data(), argv[1].size(), &sid);
-    g_pika_server->MayUpdateSlavesMap(sid, fd());
-    response->append("+OK\r\n");
-  } else {
-    response->append("-ERR What the fuck are u sending\r\n");
+PikaHeartbeatConn::~PikaHeartbeatConn() {
+}
+
+int PikaHeartbeatConn::DealMessage() {
+  InnerMessage::InnerRequest request;
+  InnerMessage::InnerResponse response;
+  bool res = request.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  if (!res) {
+    LOG(WARNING) << "Pika heart beat connection pb parse error.";
+    return -1;
   }
-  return 0;
+  if (request.type() != InnerMessage::kHeatBeat) {
+    LOG(WARNING) << "Request Type error.";
+    return -1;
+  } else {
+    InnerMessage::InnerRequest::HeatBeat heat_beat_req = request.heat_beat();
+    if (heat_beat_req.has_sid()) {
+      int64_t sid = heat_beat_req.sid();
+      g_pika_server->MayUpdateSlavesMap(sid, fd());
+    }
+
+    response.set_code(InnerMessage::kOk);
+    response.set_type(InnerMessage::kHeatBeat);
+    InnerMessage::InnerResponse::HeatBeat* heat_beat_resp = response.mutable_heat_beat();
+    heat_beat_resp->set_pong("PONG");
+  }
+
+  std::string reply;
+  response.SerializeToString(&reply);
+  return WriteResp(reply);
 }

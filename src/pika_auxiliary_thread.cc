@@ -48,9 +48,11 @@ void* PikaAuxiliaryThread::ThreadMain() {
 }
 
 void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
+  int total = 0, connected = 0;
   std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
   for (const auto& table : table_structs) {
     for (size_t idx = 0; idx < table.partition_num; ++idx) {
+      total++;
       std::shared_ptr<Partition> partition =
         g_pika_server->GetTablePartitionById(table.table_name, idx);
       if (!partition) {
@@ -65,7 +67,12 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
       } else if (partition->State() == ReplState::kWaitDBSync) {
         partition->TryUpdateMasterOffset();
       } else if (partition->State() == ReplState::kConnected) {
+        connected++;
       }
     }
+  }
+
+  if (total == connected) {
+    g_pika_server->MarkEstablishSuccess();
   }
 }

@@ -6,8 +6,6 @@
 #ifndef PIKA_HEARTBEAT_THREAD_H_
 #define PIKA_HEARTBEAT_THREAD_H_
 
-#include <set>
-
 #include "pika_heartbeat_conn.h"
 
 class PikaHeartbeatThread {
@@ -22,11 +20,11 @@ class PikaHeartbeatThread {
    public:
     virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
         int connfd,
-        const std::string &ip_port,
-        pink::Thread *thread,
+        const std::string& ip_port,
+        pink::Thread* thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const override {
-      return std::make_shared<PikaHeartbeatConn>(connfd, ip_port);
+      return std::make_shared<PikaHeartbeatConn>(connfd, ip_port, thread, worker_specific_data, pink_epoll);
     }
   };
 
