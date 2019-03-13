@@ -98,9 +98,7 @@ bool PikaReplClient::SetAckInfo(const RmNode& slave, uint32_t ack_file_num, uint
     return false;
   }
   ctl = binlog_ctl_[slave];
-  }
 
-  {
   slash::MutexLock l(&(ctl->ctl_mu_));
   ctl->ack_file_num_ = ack_file_num;
   ctl->ack_offset_ = ack_offset;
@@ -117,9 +115,7 @@ bool PikaReplClient::GetAckInfo(const RmNode& slave, uint32_t* ack_file_num, uin
     return false;
   }
   ctl = binlog_ctl_[slave];
-  }
 
-  {
   slash::MutexLock l(&(ctl->ctl_mu_));
   *ack_file_num = ctl->ack_file_num_;
   *ack_offset = ctl->ack_offset_;
@@ -128,12 +124,28 @@ bool PikaReplClient::GetAckInfo(const RmNode& slave, uint32_t* ack_file_num, uin
   return true;
 }
 
+Status PikaReplClient::GetBinlogReaderStatus(const RmNode& slave, uint32_t* file_num, uint64_t* offset) {
+  BinlogSyncCtl* ctl = nullptr;
+  {
+  slash::RWLock l(&binlog_ctl_rw_, false);
+  auto iter = binlog_ctl_.find(slave);
+  if (iter == binlog_ctl_.end()) {
+    return Status::NotFound(slave.ToString() + " not found");
+  }
+  ctl = iter->second;
+
+  slash::MutexLock l(&(ctl->ctl_mu_));
+  ctl->reader_->GetReaderStatus(file_num, offset);
+  }
+  return Status::OK();
+}
+
 Status PikaReplClient::Write(const std::string& ip, const int port, const std::string& msg) {
   // shift port 2000 tobe inner connect port
   return client_thread_->Write(ip, port, msg);
 }
 
-Status PikaReplClient::RemoveBinlogReader(const RmNode& slave) {
+Status PikaReplClient::RemoveBinlogSyncCtl(const RmNode& slave) {
   {
   slash::RWLock l(&binlog_ctl_rw_, true);
   if (binlog_ctl_.find(slave) != binlog_ctl_.end()) {
@@ -144,8 +156,8 @@ Status PikaReplClient::RemoveBinlogReader(const RmNode& slave) {
   return Status::OK();
 }
 
-Status PikaReplClient::AddBinlogReader(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
-  RemoveBinlogReader(slave);
+Status PikaReplClient::AddBinlogSyncCtl(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
+  RemoveBinlogSyncCtl(slave);
   PikaBinlogReader* binlog_reader = NewPikaBinlogReader(logger, filenum, offset);
   if (!binlog_reader) {
     return Status::Corruption(slave.ToString() + " new binlog reader failed");
@@ -234,9 +246,7 @@ Status PikaReplClient::SendBinlogSync(const RmNode& slave) {
     return Status::NotFound(slave.ToString() + " not found");
   }
   ctl = iter->second;
-  }
 
-  {
   slash::MutexLock l(&(ctl->ctl_mu_));
   for (int i = 0; i < kBinlogSyncBatchNum; ++i) {
     std::string msg;
