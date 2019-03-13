@@ -93,7 +93,7 @@ int PikaReplClient::ConsumeWriteQueue() {
 bool PikaReplClient::SetAckInfo(const RmNode& slave, uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time) {
   BinlogSyncCtl* ctl = nullptr;
   {
-  slash::RWLock l(&binlog_ctl_rw_, false);
+  slash::RWLock l_rw(&binlog_ctl_rw_, false);
   if (binlog_ctl_.find(slave) == binlog_ctl_.end()) {
     return false;
   }
@@ -110,7 +110,7 @@ bool PikaReplClient::SetAckInfo(const RmNode& slave, uint32_t ack_file_num, uint
 bool PikaReplClient::GetAckInfo(const RmNode& slave, uint32_t* ack_file_num, uint64_t* ack_offset, uint64_t* active_time) {
   BinlogSyncCtl* ctl = nullptr;
   {
-  slash::RWLock l(&binlog_ctl_rw_, false);
+  slash::RWLock l_rw(&binlog_ctl_rw_, false);
   if (binlog_ctl_.find(slave) == binlog_ctl_.end()) {
     return false;
   }
@@ -127,7 +127,7 @@ bool PikaReplClient::GetAckInfo(const RmNode& slave, uint32_t* ack_file_num, uin
 Status PikaReplClient::GetBinlogReaderStatus(const RmNode& slave, uint32_t* file_num, uint64_t* offset) {
   BinlogSyncCtl* ctl = nullptr;
   {
-  slash::RWLock l(&binlog_ctl_rw_, false);
+  slash::RWLock l_rw(&binlog_ctl_rw_, false);
   auto iter = binlog_ctl_.find(slave);
   if (iter == binlog_ctl_.end()) {
     return Status::NotFound(slave.ToString() + " not found");
@@ -147,7 +147,7 @@ Status PikaReplClient::Write(const std::string& ip, const int port, const std::s
 
 Status PikaReplClient::RemoveBinlogSyncCtl(const RmNode& slave) {
   {
-  slash::RWLock l(&binlog_ctl_rw_, true);
+  slash::RWLock l_rw(&binlog_ctl_rw_, true);
   if (binlog_ctl_.find(slave) != binlog_ctl_.end()) {
     delete binlog_ctl_[slave];
     binlog_ctl_.erase(slave);
@@ -240,7 +240,7 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
 Status PikaReplClient::SendBinlogSync(const RmNode& slave) {
   BinlogSyncCtl* ctl = nullptr;
   {
-  slash::RWLock l(&binlog_ctl_rw_, false);
+  slash::RWLock l_rw(&binlog_ctl_rw_, false);
   auto iter = binlog_ctl_.find(slave);
   if (iter == binlog_ctl_.end()) {
     return Status::NotFound(slave.ToString() + " not found");
