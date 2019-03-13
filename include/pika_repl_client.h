@@ -30,29 +30,33 @@ struct RmNode {
   uint32_t partition_;
   std::string ip_;
   int port_;
+
   RmNode(const std::string& table, int partition,
          const std::string& ip, int port)
       : table_(table), partition_(partition), ip_(ip), port_(port) {}
+
   RmNode(const RmNode& node) {
     table_ = node.table_;
     partition_ = node.partition_;
     ip_ = node.ip_;
     port_ = node.port_;
   }
-  bool operator <(const RmNode& other) const {
-    if (table_ < other.table_) {
-      return true;
-    } else if (partition_ < other.partition_) {
-      return true;
-    } else if (ip_ < other.ip_) {
-      return true;
-    } else if (port_ < other.port_) {
+
+  bool operator==(const RmNode& other) const {
+    if (table_ == other.table_ && partition_ == other.partition_) {
       return true;
     }
     return false;
   }
+
   std::string ToString() const {
      return table_ + "_" + std::to_string(partition_) + "_" + ip_ + ":" + std::to_string(port_);
+  }
+};
+
+struct hash_name {
+  size_t operator()(const RmNode& n) const{
+    return std::hash<std::string>()(n.table_) ^ std::hash<uint32_t>()(n.partition_);
   }
 };
 
@@ -133,7 +137,7 @@ class PikaReplClient {
   };
 
   pthread_rwlock_t binlog_ctl_rw_;
-  std::map<RmNode, BinlogSyncCtl*> binlog_ctl_;
+  std::unordered_map<RmNode, BinlogSyncCtl*, hash_name> binlog_ctl_;
 
   slash::Mutex  write_queue_mu_;
   // every host owns a queue
