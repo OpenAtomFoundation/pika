@@ -123,7 +123,7 @@ bool PikaReplClient::GetAckInfo(const RmNode& slave, uint32_t* ack_file_num, uin
   return true;
 }
 
-Status PikaReplClient::GetBinlogReaderStatus(const RmNode& slave, uint32_t* file_num, uint64_t* offset) {
+Status PikaReplClient::GetBinlogReaderStatus(const RmNode& slave, BinlogOffset* const boffset) {
   BinlogSyncCtl* ctl = nullptr;
   {
   slash::RWLock l_rw(&binlog_ctl_rw_, false);
@@ -134,7 +134,7 @@ Status PikaReplClient::GetBinlogReaderStatus(const RmNode& slave, uint32_t* file
   ctl = iter->second;
 
   slash::MutexLock l(&(ctl->ctl_mu_));
-  ctl->reader_->GetReaderStatus(file_num, offset);
+  ctl->reader_->GetReaderStatus(&boffset->filenum, &boffset->offset);
   }
   return Status::OK();
 }
@@ -142,6 +142,22 @@ Status PikaReplClient::GetBinlogReaderStatus(const RmNode& slave, uint32_t* file
 Status PikaReplClient::Write(const std::string& ip, const int port, const std::string& msg) {
   // shift port 2000 tobe inner connect port
   return client_thread_->Write(ip, port, msg);
+}
+
+Status PikaReplClient::RemoveSlave(const SlaveItem& slave) {
+  {
+    slash::RWLock l_rw(&binlog_ctl_rw_, true);
+    for (const auto& ts : slave.table_structs) {
+      for (size_t idx = 0; idx < ts.partition_num; ++idx) {
+        RmNode rm_node(ts.table_name, idx, slave.ip, slave.port);
+        if (binlog_ctl_.find(rm_node) != binlog_ctl_.end()) {
+          delete binlog_ctl_[rm_node];
+          binlog_ctl_.erase(rm_node);
+        }
+      }
+    }
+  }
+  return Status::OK();
 }
 
 Status PikaReplClient::RemoveBinlogSyncCtl(const RmNode& slave) {

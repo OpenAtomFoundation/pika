@@ -34,20 +34,6 @@ class SlaveofCmd : public Cmd {
   }
 };
 
-class TrysyncCmd : public Cmd {
- public:
-  TrysyncCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-
- private:
-  std::string slave_ip_;
-  int64_t slave_port_;
-  int64_t filenum_;
-  int64_t pro_offset_;
-  virtual void DoInitial() override;
-};
-
 class AuthCmd : public Cmd {
  public:
   AuthCmd(const std::string& name, int arity, uint16_t flag)
