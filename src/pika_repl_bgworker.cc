@@ -228,7 +228,6 @@ void PikaReplBgWorker::HandleWriteDb(void* arg) {
     delete bg_worker_arg;
     return;
   }
-  c_ptr->res().clear();
 
   // Initial
   c_ptr->Initial(*argv, table_name);
