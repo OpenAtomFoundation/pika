@@ -49,9 +49,6 @@ void PikaReplClient::ProduceWriteQueue(WriteTask& task) {
 }
 
 int PikaReplClient::ConsumeWriteQueue() {
-  InnerMessage::InnerRequest request;
-  request.set_type(InnerMessage::kBinlogSync);
-
   int counter = 0;
   slash::MutexLock l(&write_queue_mu_);
   for (auto& iter : write_queues_) {
@@ -59,6 +56,8 @@ int PikaReplClient::ConsumeWriteQueue() {
     if (queue.empty()) {
       continue;
     }
+    InnerMessage::InnerRequest request;
+    request.set_type(InnerMessage::kBinlogSync);
     size_t batch_index = queue.size() > kBinlogSyncBatchNum ? kBinlogSyncBatchNum : queue.size();
     std::string ip;
     int port = 0;
