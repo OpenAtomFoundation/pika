@@ -5,17 +5,17 @@
 
 #include "include/pika_repl_server_thread.h"
 
+#include "include/pika_server.h"
+
+extern PikaServer* g_pika_server;
+
 PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips,
                                            int port,
                                            int cron_interval) :
-  HolyThread(ips, port, &conn_factory_, cron_interval, &handles_, true),
+  HolyThread(ips, port, &conn_factory_, cron_interval, &handle_, true),
   conn_factory_(this),
   serial_(0) {
 }
 
-void PikaReplServerThread::Handles::CronHandle() const {
-}
-
-bool PikaReplServerThread::Handles::AccessHandle(std::string& ip) const {
-  return true;
+void PikaReplServerThread::ReplServerHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
 }

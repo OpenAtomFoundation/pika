@@ -39,15 +39,13 @@ class PikaReplServerThread : public pink::HolyThread {
      PikaReplServerThread* binlog_receiver_;
   };
 
-  class Handles : public pink::ServerHandle {
+  class ReplServerHandle : public pink::ServerHandle {
    public:
-    void CronHandle() const override;
-    using pink::ServerHandle::AccessHandle;
-    bool AccessHandle(std::string& ip) const override;
+    virtual void FdClosedHandle(int fd, const std::string& ip_port) const override;
   };
 
   ReplServerConnFactory conn_factory_;
-  Handles handles_;
+  ReplServerHandle handle_;
   uint64_t serial_;
 };
 

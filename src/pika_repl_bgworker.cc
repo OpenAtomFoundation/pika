@@ -92,6 +92,7 @@ void PikaReplBgWorker::HandleMetaSyncRequest(void* arg) {
   if (!response.SerializeToString(&reply_str)
     || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Process MetaSync request serialization failed";
+    conn->NotifyClose();
     delete bg_worker_arg;
     return;
   }
@@ -119,6 +120,7 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
     const InnerMessage::InnerRequest::BinlogSync& binlog_req = req->binlog_sync((*index)[i]);
     if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_req.binlog(), &worker->binlog_item_)) {
       LOG(WARNING) << "Binlog item decode failed";
+      conn->NotifyClose();
       delete index;
       delete bg_worker_arg;
       return;
@@ -130,6 +132,7 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
       redis_parser_start, redis_parser_len, &processed_len);
     if (ret != pink::kRedisParserDone) {
       LOG(WARNING) << "Redis parser failed";
+      conn->NotifyClose();
       delete index;
       delete bg_worker_arg;
       return;
@@ -157,6 +160,7 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
   if (!response.SerializeToString(&reply_str)
     || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Process MetaSync request serialization failed";
+    conn->NotifyClose();
     delete index;
     delete bg_worker_arg;
     return;
@@ -344,6 +348,7 @@ void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
   if (!response.SerializeToString(&reply_str)
     || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Handle Try Sync Failed";
+    conn->NotifyClose();
     delete bg_worker_arg;
     return;
   }
