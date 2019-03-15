@@ -105,6 +105,7 @@ class PikaReplClient {
   Status TriggerSendBinlogSync();
 
   int ConsumeWriteQueue();
+  void DropItemInWriteQueue(const std::string& ip, int port);
 
   void Schedule(pink::TaskFunc func, void* arg){
     client_tp_->Schedule(func, arg);
@@ -118,7 +119,7 @@ class PikaReplClient {
 
   void ProduceWriteQueue(WriteTask& task);
 
-  void BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest& request);
+  void BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest* request);
 
   PikaReplClientThread* client_thread_;
 
