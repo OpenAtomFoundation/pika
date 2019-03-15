@@ -59,6 +59,7 @@ enum TaskType {
   kCompactSets,
   kCompactZSets,
   kCompactList,
+  kResetReplState,
   kPurgeLog,
   kStartKeyScan,
   kStopKeyScan,
@@ -543,7 +544,6 @@ class PikaServer {
    */
   pthread_rwlock_t state_protector_; //protect below, use for master-slave mode
   std::string master_ip_;
-  int master_connection_;
   int master_port_;
   int repl_state_;
   int role_;

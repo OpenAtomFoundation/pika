@@ -29,7 +29,6 @@ PikaServer::PikaServer() :
   last_check_compact_time_({0, 0}),
   sid_(0),
   master_ip_(""),
-  master_connection_(0),
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
@@ -883,13 +882,15 @@ void PikaServer::SyncError() {
 
 void PikaServer::RemoveMaster() {
   {
-  slash::RWLock l(&state_protector_, true);
-  repl_state_ = PIKA_REPL_NO_CONNECT;
-  role_ &= ~PIKA_ROLE_SLAVE;
+    slash::RWLock l(&state_protector_, true);
+    repl_state_ = PIKA_REPL_NO_CONNECT;
+    role_ &= ~PIKA_ROLE_SLAVE;
 
-  master_ip_ = "";
-  master_port_ = -1;
+    master_ip_ = "";
+    master_port_ = -1;
+    DoSameThingEveryPartition(TaskType::kResetReplState);
   }
+
   if (ping_thread_ != NULL) {
     int err = ping_thread_->StopThread();
     if (err != 0) {
@@ -898,10 +899,6 @@ void PikaServer::RemoveMaster() {
     }
     delete ping_thread_;
     ping_thread_ = NULL;
-  }
-  {
-  slash::RWLock l(&state_protector_, true);
-  master_connection_ = 0;
   }
 }
 
@@ -1781,6 +1778,9 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
           break;
         case TaskType::kCompactList:
           partition_item.second->Compact(blackwidow::DataType::kLists);
+          break;
+        case TaskType::kResetReplState:
+          partition_item.second->SetReplState(ReplState::kNoConnect);
           break;
         case TaskType::kPurgeLog:
           partition_item.second->PurgeLogs(0, false, false);
