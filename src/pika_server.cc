@@ -516,6 +516,7 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
     while (iter != slaves_.end()) {
       if (iter->ip_port == ip_port) {
         pika_repl_client_->RemoveSlave(*iter);
+        pika_repl_client_->DropItemInWriteQueue(ip, port);
         slaves_.erase(iter);
         LOG(INFO) << "Delete slave success";
         break;
@@ -540,6 +541,7 @@ void PikaServer::DeleteSlave(int fd) {
     while (iter != slaves_.end()) {
       if (iter->hb_fd == fd) {
         pika_repl_client_->RemoveSlave(*iter);
+        pika_repl_client_->DropItemInWriteQueue(iter->ip, iter->port);
         slaves_.erase(iter);
         LOG(INFO) << "Delete slave success";
         break;
