@@ -8,6 +8,8 @@
 
 #include "pink/include/redis_cli.h"
 
+#include "include/pika_conf.h"
+
 #define PIKA_SYNC_BUFFER_SIZE      1000
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 
@@ -31,11 +33,12 @@ typedef WorkerCronTask MonitorCronTask;
 struct SlaveItem {
   int64_t sid;
   std::string ip_port;
+  std::string ip;
   int port;
   pthread_t sender_tid;
   int hb_fd;
   int stage;
-  void* sender;
+  std::vector<TableStruct> table_structs;
   struct timeval create_time;
 };
 

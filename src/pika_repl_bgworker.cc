@@ -70,7 +70,8 @@ void PikaReplBgWorker::HandleMetaSyncRequest(void* arg) {
     response.set_code(InnerMessage::kError);
     response.set_reply("Auth with master error, Invalid masterauth");
   } else {
-    int64_t sid = g_pika_server->TryAddSlave(node.ip(), node.port());
+    std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+    int64_t sid = g_pika_server->TryAddSlave(node.ip(), node.port(), table_structs);
     if (sid < 0) {
       response.set_code(InnerMessage::kError);
       response.set_reply("Slave AlreadyExist");
@@ -79,7 +80,6 @@ void PikaReplBgWorker::HandleMetaSyncRequest(void* arg) {
       InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
       meta_sync->set_sid(sid);
       meta_sync->set_classic_mode(g_pika_conf->classic_mode());
-      std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
       for (const auto& table_struct : table_structs) {
         InnerMessage::InnerResponse_MetaSync_TableInfo* table_info = meta_sync->add_tables_info();
         table_info->set_table_name(table_struct.table_name);

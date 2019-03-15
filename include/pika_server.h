@@ -204,9 +204,8 @@ class PikaServer {
 
   void DeleteSlave(int fd); // hb_fd
   void DeleteSlave(const std::string& ip, int64_t port);
-  int64_t TryAddSlave(const std::string& ip, int64_t port);
-  bool SetSlaveSender(const std::string& ip, int64_t port,
-      PikaBinlogSenderThread* s);
+  int64_t TryAddSlave(const std::string& ip, int64_t port,
+                      const std::vector<TableStruct>& table_structs);
   int32_t GetSlaveListString(std::string& slave_list_str);
   void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
   void BecomeMaster();
@@ -264,10 +263,6 @@ class PikaServer {
    * Binlog
    */
   Binlog *logger_;
-  Status AddBinlogSender(const std::string& ip, int64_t port,
-                         int64_t sid,
-                         uint32_t filenum, uint64_t con_offset);
-
   Status AddBinlogSender(const std::string& table_name,
                          uint32_t partition_id,
                          const std::string& ip, int64_t port,
