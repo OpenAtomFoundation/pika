@@ -121,9 +121,6 @@ PikaServer::~PikaServer() {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
   while (iter != slaves_.end()) {
-    if (iter->sender != NULL) {
-      delete static_cast<PikaBinlogSenderThread*>(iter->sender);
-    }
     iter =  slaves_.erase(iter);
     LOG(INFO) << "Delete slave success";
   }
@@ -514,70 +511,50 @@ std::shared_ptr<Partition> PikaServer::GetTablePartitionByKey(
 
 void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
   std::string ip_port = slash::IpPortString(ip, port);
-  int slave_num = 0;
   {
-  slash::MutexLock l(&slave_mutex_);
-  std::vector<SlaveItem>::iterator iter = slaves_.begin();
-  while (iter != slaves_.end()) {
-    if (iter->ip_port == ip_port) {
-      break;
-    }
-    iter++;
-  }
-
-  slave_num = slaves_.size();
-  {
-  slash::RWLock l(&state_protector_, true);
-  if (slave_num == 0) {
-    role_ &= ~PIKA_ROLE_MASTER;
-  }
-  }
-
-  if (iter == slaves_.end()) {
-    return;
-  }
-  if (iter->sender != NULL) {
-    delete static_cast<PikaBinlogSenderThread*>(iter->sender);
-  }
-  //RmNode slave(iter->table, iter->partition_id, ip, port);
-  //pika_repl_client_->RemoveBinlogSyncCtl(slave);
-  //slaves_.erase(iter);
-  }
-}
-
-void PikaServer::DeleteSlave(int fd) {
-  int slave_num = 0;
-  {
-  slash::MutexLock l(&slave_mutex_);
-  std::vector<SlaveItem>::iterator iter = slaves_.begin();
-
-  while (iter != slaves_.end()) {
-    if (iter->hb_fd == fd) {
-      if (iter->sender != NULL) {
-        delete static_cast<PikaBinlogSenderThread*>(iter->sender);
-      }
-      std::string ip;
-      int port;
-      bool res =  slash::ParseIpPortString(iter->ip_port, ip, port);
-      if (!res) {
-        LOG(WARNING) << "Parse ip port error " << iter->ip_port;
+    slash::MutexLock l(&slave_mutex_);
+    std::vector<SlaveItem>::iterator iter = slaves_.begin();
+    while (iter != slaves_.end()) {
+      if (iter->ip_port == ip_port) {
+        pika_repl_client_->RemoveSlave(*iter);
         slaves_.erase(iter);
         LOG(INFO) << "Delete slave success";
         break;
       }
-      //RmNode slave(iter->table, iter->partition_id, ip, port);
-      //pika_repl_client_->RemoveBinlogSyncCtl(slave);
-      //slaves_.erase(iter);
-      LOG(INFO) << "Delete slave success";
-      break;
+      iter++;
     }
-    iter++;
   }
-  slave_num = slaves_.size();
+
+  int slave_num = slaves_.size();
+  {
+    slash::RWLock l(&state_protector_, true);
+    if (slave_num == 0) {
+      role_ &= ~PIKA_ROLE_MASTER;
+    }
   }
-  slash::RWLock l(&state_protector_, true);
-  if (slave_num == 0) {
-    role_ &= ~PIKA_ROLE_MASTER;
+}
+
+void PikaServer::DeleteSlave(int fd) {
+  {
+    slash::MutexLock l(&slave_mutex_);
+    std::vector<SlaveItem>::iterator iter = slaves_.begin();
+    while (iter != slaves_.end()) {
+      if (iter->hb_fd == fd) {
+        pika_repl_client_->RemoveSlave(*iter);
+        slaves_.erase(iter);
+        LOG(INFO) << "Delete slave success";
+        break;
+      }
+      iter++;
+    }
+  }
+
+  int slave_num = slaves_.size();
+  {
+    slash::RWLock l(&state_protector_, true);
+    if (slave_num == 0) {
+      role_ &= ~PIKA_ROLE_MASTER;
+    }
   }
 }
 
@@ -783,7 +760,8 @@ void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
 
 // Try add Slave, return slave sid if success,
 // return -1 when slave already exist
-int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
+int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port,
+                                const std::vector<TableStruct>& table_structs) {
   std::string ip_port = slash::IpPortString(ip, port);
 
   slash::MutexLock l(&slave_mutex_);
@@ -801,71 +779,44 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port) {
   SlaveItem s;
   s.sid = GenSid();
   s.ip_port = ip_port;
+  s.ip = ip;
   s.port = port;
   s.hb_fd = -1;
   s.stage = SLAVE_ITEM_STAGE_ONE;
+  s.table_structs = table_structs;
   gettimeofday(&s.create_time, NULL);
-  s.sender = NULL;
   slaves_.push_back(s);
   return s.sid;
 }
 
-// Set binlog sender of SlaveItem
-bool PikaServer::SetSlaveSender(const std::string& ip, int64_t port,
-    PikaBinlogSenderThread* s){
-  std::string ip_port = slash::IpPortString(ip, port);
-
-  slash::MutexLock l(&slave_mutex_);
-  std::vector<SlaveItem>::iterator iter = slaves_.begin();
-  while (iter != slaves_.end()) {
-    if (iter->ip_port == ip_port) {
-      break;
-    }
-    iter++;
-  }
-  if (iter == slaves_.end()) {
-    // Not exist
-    return false;
-  }
-
-  iter->sender = s;
-  iter->sender_tid = s->thread_id();
-  LOG(INFO) << "SetSlaveSender ok, tid is " << iter->sender_tid
-    << " hd_fd: " << iter->hb_fd << " stage: " << iter->stage;
-  return true;
-}
-
 int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   size_t index = 0;
-  std::string slave_ip_port;
+  BinlogOffset master_boffset;
+  BinlogOffset slave_boffset;
   std::stringstream tmp_stream;
-
   slash::MutexLock l(&slave_mutex_);
-  std::vector<SlaveItem>::iterator iter = slaves_.begin();
-  for (; iter != slaves_.end(); ++iter) {
-    if ((*iter).sender == NULL) {
-      // Binlog Sender has not yet created
-      continue;
+  for (const auto& slave : slaves_) {
+    tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",sid=" << slave.sid << ",lag=";
+    for (const auto& ts : slave.table_structs) {
+      for (size_t idx = 0; idx < ts.partition_num; ++idx) {
+        std::shared_ptr<Partition> partition = GetTablePartitionById(ts.table_name, idx);
+        RmNode rm_node(ts.table_name, idx, slave.ip, slave.port + kPortShiftReplServer);
+        if (!partition || !partition->GetBinlogOffset(&master_boffset)) {
+          continue;
+        } else {
+          Status s = pika_repl_client_->GetBinlogReaderStatus(rm_node, &slave_boffset);
+          if (s.ok()) {
+            uint64_t lag =
+              (master_boffset.filenum - slave_boffset.filenum) * g_pika_conf->binlog_file_size()
+              + (master_boffset.offset - slave_boffset.offset);
+            tmp_stream << "(" << partition->GetPartitionName() << ":" << lag << ")";
+          } else {
+            tmp_stream << "(" << partition->GetPartitionName() << ":not syncing)";
+          }
+        }
+      }
     }
-
-    uint32_t master_filenum, slave_filenum;
-    uint64_t master_offset, slave_offset;
-    logger_->GetProducerStatus(&master_filenum, &master_offset);
-    PikaBinlogSenderThread* ptr_sender = static_cast<PikaBinlogSenderThread*>(iter->sender);
-    slave_filenum = ptr_sender->filenum();
-    slave_offset = ptr_sender->con_offset();
-
-    uint64_t lag = (master_filenum - slave_filenum) * logger_->file_size()
-      + (master_offset - slave_offset);
-
-    slave_ip_port =(*iter).ip_port;
-    tmp_stream << "slave" << index++
-      << ":ip=" << slave_ip_port.substr(0, slave_ip_port.find(":"))
-      << ",port=" << slave_ip_port.substr(slave_ip_port.find(":") + 1)
-      << ",state=" << ((*iter).stage == SLAVE_ITEM_STAGE_TWO ? "online" : "offline")
-      << ",sid=" << (*iter).sid
-      << ",lag=" << lag
-      << "\r\n";
+    tmp_stream << "\r\n";
   }
   slave_list_str.assign(tmp_stream.str());
   return index;
@@ -1118,53 +1069,6 @@ Status PikaServer::AddBinlogSender(const std::string& table_name,
   return pika_repl_client_->SendBinlogSync(slave);
 }
 
-/*
- * BinlogSender
- */
-Status PikaServer::AddBinlogSender(const std::string& ip, int64_t port,
-                                   int64_t sid,
-                                   uint32_t filenum, uint64_t con_offset) {
-  // Sanity check
-  if (con_offset > logger_->file_size()) {
-    return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
-  }
-  uint32_t cur_filenum = 0;
-  uint64_t cur_offset = 0;
-  logger_->GetProducerStatus(&cur_filenum, &cur_offset);
-  if (filenum != UINT32_MAX &&
-      (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < con_offset))) {
-    return Status::InvalidArgument("AddBinlogSender invalid binlog offset");
-  }
-
-  if (filenum == UINT32_MAX) {
-    LOG(INFO) << "Maybe force full sync";
-  }
-
-  // Create and set sender
-  slash::SequentialFile *readfile;
-  std::string confile = NewFileName(logger_->filename, filenum);
-  if (!slash::FileExists(confile)) {
-    TryDBSync(ip, port + 3000, cur_filenum);
-    return Status::Incomplete("Bgsaving and DBSync first");
-  }
-  if (!slash::NewSequentialFile(confile, &readfile).ok()) {
-    return Status::IOError("AddBinlogSender new sequtialfile");
-  }
-
-  PikaBinlogSenderThread* sender = new PikaBinlogSenderThread(ip,
-      port + 1000, sid, readfile, filenum, con_offset);
-
-  if (sender->trim() == 0 // Error binlog
-      && SetSlaveSender(ip, port, sender)) { // SlaveItem not exist
-    sender->StartThread();
-    return Status::OK();
-  } else {
-    delete sender;
-    LOG(WARNING) << "AddBinlogSender failed";
-    return Status::NotFound("AddBinlogSender bad sender");
-  }
-}
-
 // Prepare engine, need bgsave_protector protect
 bool PikaServer::InitBgsaveEnv() {
   {
@@ -1318,13 +1222,14 @@ bool PikaServer::GetPurgeWindow(uint32_t &max) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator it;
   for (it = slaves_.begin(); it != slaves_.end(); ++it) {
-    if ((*it).sender == NULL) {
-      // One Binlog Sender has not yet created, no purge
-      return false;
-    }
-    PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
-    uint32_t filenum = pb->filenum();
-    max = filenum < max ? filenum : max;
+    // TODO Axl
+    //if ((*it).sender == NULL) {
+    //  // One Binlog Sender has not yet created, no purge
+    //  return false;
+    //}
+    //PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
+    //uint32_t filenum = pb->filenum();
+    //max = filenum < max ? filenum : max;
   }
   // remain some more
   if (max >= 10) {
@@ -1346,15 +1251,16 @@ bool PikaServer::CouldPurge(uint32_t index) {
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator it;
   for (it = slaves_.begin(); it != slaves_.end(); ++it) {
-    if ((*it).sender == NULL) {
-      // One Binlog Sender has not yet created, no purge
-      return false;
-    }
-    PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
-    uint32_t filenum = pb->filenum();
-    if (index > filenum) {   // slaves
-      return false;
-    }
+    // TODO Axl
+    //if ((*it).sender == NULL) {
+    //  // One Binlog Sender has not yet created, no purge
+    //  return false;
+    //}
+    //PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
+    //uint32_t filenum = pb->filenum();
+    //if (index > filenum) {   // slaves
+    //  return false;
+    //}
   }
   return true;
 }

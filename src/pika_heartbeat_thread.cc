@@ -45,7 +45,7 @@ void PikaHeartbeatThread::Handles::CronHandle() const {
     DLOG(INFO) << "sid: " << slave.sid << " ip_port: " << slave.ip_port <<
       " port " << slave.port << " sender_tid: " << slave.sender_tid <<
       " hb_fd: " << slave.hb_fd << " stage :" << slave.stage <<
-      " sender: " << slave.sender << " create_time: " << slave.create_time.tv_sec;
+      " create_time: " << slave.create_time.tv_sec;
 
     if (slave.stage == SLAVE_ITEM_STAGE_ONE &&
         now.tv_sec - slave.create_time.tv_sec > 30) {

@@ -43,7 +43,9 @@ struct RmNode {
   }
 
   bool operator==(const RmNode& other) const {
-    if (table_ == other.table_ && partition_ == other.partition_) {
+    if (table_ == other.table_
+      && partition_ == other.partition_
+      && ip_ == other.ip_ && port_ == other.port_) {
       return true;
     }
     return false;
@@ -56,7 +58,7 @@ struct RmNode {
 
 struct hash_name {
   size_t operator()(const RmNode& n) const{
-    return std::hash<std::string>()(n.table_) ^ std::hash<uint32_t>()(n.partition_);
+    return std::hash<std::string>()(n.table_) ^ std::hash<uint32_t>()(n.partition_) ^ std::hash<std::string>()(n.ip_) ^ std::hash<int>()(n.port_);
   }
 };
 
@@ -89,8 +91,9 @@ class PikaReplClient {
   int Start();
 
   Status AddBinlogSyncCtl(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
+  Status RemoveSlave(const SlaveItem& slave);
   Status RemoveBinlogSyncCtl(const RmNode& slave);
-  Status GetBinlogReaderStatus(const RmNode& slave, uint32_t* file_num, uint64_t* offset);
+  Status GetBinlogReaderStatus(const RmNode& slave, BinlogOffset* const boffset);
 
   Status SendMetaSync();
   Status SendPartitionTrySync(const std::string& table_name,
