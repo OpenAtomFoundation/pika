@@ -70,7 +70,7 @@ int PikaReplClient::ConsumeWriteQueue() {
       BuildBinlogPb(task.rm_node_,
                     task.binlog_chip_.binlog_,
                     task.binlog_chip_.file_num_,
-                    task.binlog_chip_.offset_, request);
+                    task.binlog_chip_.offset_, &request);
 
       counter++;
     }
@@ -87,6 +87,12 @@ int PikaReplClient::ConsumeWriteQueue() {
     }
   }
   return counter;
+}
+
+void PikaReplClient::DropItemInWriteQueue(const std::string& ip, int port) {
+  slash::MutexLock l(&write_queue_mu_);
+  std::string index = ip + ":" + std::to_string(port);
+  write_queues_.erase(index);
 }
 
 bool PikaReplClient::SetAckInfo(const RmNode& slave, uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time) {
@@ -311,8 +317,8 @@ Status PikaReplClient::TriggerSendBinlogSync() {
   return Status::OK();
 }
 
-void PikaReplClient::BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest& request) {
-  InnerMessage::InnerRequest::BinlogSync* binlog_msg = request.add_binlog_sync();
+void PikaReplClient::BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest* request) {
+  InnerMessage::InnerRequest::BinlogSync* binlog_msg = request->add_binlog_sync();
   InnerMessage::Node* node = binlog_msg->mutable_node();
   node->set_ip(slave.ip_);
   node->set_port(slave.port_);

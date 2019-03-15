@@ -45,6 +45,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "Meta Sync Failed: " << reply;
     g_pika_server->SyncError();
+    conn->NotifyClose();
     delete resp_arg;
     return;
   }
@@ -55,6 +56,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
         << " mode, but master in " << (meta_sync.classic_mode() ? "classic" : "sharding")
         << " mode, failed to establish master-slave relationship";
     g_pika_server->SyncError();
+    conn->NotifyClose();
     delete resp_arg;
     return;
   }
@@ -72,6 +74,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     LOG(WARNING) << "Self table structs inconsistent with master"
         << ", failed to establish master-slave relationship";
     g_pika_server->SyncError();
+    conn->NotifyClose();
     delete resp_arg;
     return;
   }
@@ -83,6 +86,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
       LOG(WARNING) << "Need force full sync but rebuild table struct error"
         << ", failed to establish master-slave relationship";
       g_pika_server->SyncError();
+      conn->NotifyClose();
       delete resp_arg;
       return;
     }
@@ -109,6 +113,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "TrySync Failed: " << reply;
+    conn->NotifyClose();
     delete resp_arg;
     return;
   }
@@ -120,6 +125,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   if (!partition) {
     LOG(WARNING) << "Partition: " << table_name << ":" << partition_id << " Not Found";
+    conn->NotifyClose();
     delete resp_arg;
     return;
   }
@@ -134,9 +140,11 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kInvalidOffset) {
     partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error, Because the invalid filenum and offset";
+    conn->NotifyClose();
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kError) {
     partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error";
+    conn->NotifyClose();
   }
   delete resp_arg;
 }
@@ -175,6 +183,7 @@ void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
   std::shared_ptr<InnerMessage::InnerResponse> resp = resp_arg->resp;
   if (!resp->has_binlog_sync()) {
     LOG(WARNING) << "Pb parse error";
+    conn->NotifyClose();
     delete resp_arg;
     return;
   }
@@ -186,6 +195,7 @@ void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
   bool res = slash::ParseIpPortString(conn->ip_port(), ip, port);
   if (!res) {
     LOG(WARNING) << "Parse Error ParseIpPortString faile";
+    conn->NotifyClose();
     delete resp_arg;
     return;
   }
@@ -200,6 +210,7 @@ void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
   res = g_pika_server->SetBinlogAckInfo(table_name, partition_id, ip, port, binlog_offset.filenum(), binlog_offset.offset(), now);
   if (!res) {
     LOG(WARNING) << "Update binlog ack failed " << table_name << " " << partition_id;
+    conn->NotifyClose();
     delete resp_arg;
     return;
   }
@@ -208,6 +219,7 @@ void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
   Status s = g_pika_server->SendBinlogSyncRequest(table_name, partition_id, ip, port);
   if (!s.ok()) {
     LOG(WARNING) << "Send BinlogSync Request failed " << table_name << " " << partition_id << s.ToString();
+    conn->NotifyClose();
     return;
   }
   g_pika_server->SignalAuxiliary();
