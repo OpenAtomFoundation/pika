@@ -149,10 +149,12 @@ Status PikaReplClient::RemoveSlave(const SlaveItem& slave) {
     slash::RWLock l_rw(&binlog_ctl_rw_, true);
     for (const auto& ts : slave.table_structs) {
       for (size_t idx = 0; idx < ts.partition_num; ++idx) {
-        RmNode rm_node(ts.table_name, idx, slave.ip, slave.port);
+        RmNode rm_node(ts.table_name, idx, slave.ip, slave.port + kPortShiftReplServer);
         if (binlog_ctl_.find(rm_node) != binlog_ctl_.end()) {
           delete binlog_ctl_[rm_node];
           binlog_ctl_.erase(rm_node);
+        } else {
+          LOG(WARNING) << "Delete RmNode: " << rm_node.ToString() << " Failed";
         }
       }
     }
