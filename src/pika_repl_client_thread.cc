@@ -14,6 +14,4 @@ PikaReplClientThread::PikaReplClientThread(int cron_interval, int keepalive_time
 }
 
 void PikaReplClientThread::ReplClientHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
-  LOG(INFO) << "Connection " << ip_port << " Fd " << fd << " closed!";
-  g_pika_server->DeleteSlave(fd);
 };
