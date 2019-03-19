@@ -163,34 +163,6 @@ void CompactCmd::Do(std::shared_ptr<Partition> partition) {
   res_.SetRes(CmdRes::kOk);
 }
 
-void PurgelogstoCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNamePurgelogsto);
-    return;
-  }
-  std::string filename = argv_[1];
-  slash::StringToLower(filename);
-  if (filename.size() <= kBinlogPrefixLen ||
-      kBinlogPrefix != filename.substr(0, kBinlogPrefixLen)) {
-    res_.SetRes(CmdRes::kInvalidParameter);
-    return;
-  }
-  std::string str_num = filename.substr(kBinlogPrefixLen);
-  int64_t num = 0;
-  if (!slash::string2l(str_num.data(), str_num.size(), &num) || num < 0) {
-    res_.SetRes(CmdRes::kInvalidParameter);
-    return;
-  }
-  num_ = num;
-}
-void PurgelogstoCmd::Do(std::shared_ptr<Partition> partition) {
-  if (g_pika_server->PurgeLogs(num_, true, false)) {
-    res_.SetRes(CmdRes::kOk);
-  } else {
-    res_.SetRes(CmdRes::kPurgeExist);
-  }
-}
-
 void PingCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePing);
