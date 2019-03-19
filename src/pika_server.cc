@@ -406,12 +406,6 @@ std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {
   return (iter == tables_.end()) ? NULL : iter->second;
 }
 
-bool PikaServer::IsCommandCurrentSupport(const std::string& command) {
-  std::string cmd = command;
-  slash::StringToLower(cmd);
-  return CurrentNotSupportCommands.find(cmd) == CurrentNotSupportCommands.end();
-}
-
 bool PikaServer::IsTableBinlogIoError(const std::string& table_name) {
   std::shared_ptr<Table> table = GetTable(table_name);
   return table ? table->IsBinlogIoError() : true;
@@ -825,6 +819,25 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   return index;
 }
 
+bool PikaServer::PartitionCouldPurge(const std::string& table_name,
+                                     uint32_t partition_id, uint32_t index) {
+  BinlogOffset slave_boffset;
+  slash::MutexLock l(&slave_mutex_);
+  for (const auto& slave : slaves_) {
+    RmNode rm_node(table_name, partition_id, slave.ip, slave.port + kPortShiftReplServer);
+    Status s = pika_repl_client_->GetBinlogReaderStatus(rm_node, &slave_boffset);
+    if (s.ok()) {
+      if (index >= slave_boffset.filenum) {
+        return false;
+      }
+    } else {
+      // One BinlogSyncCtl has not yet created, no purge
+      return false;
+    }
+  }
+  return true;
+}
+
 void PikaServer::BecomeMaster() {
   slash::RWLock l(&state_protector_, true);
   role_ |= PIKA_ROLE_MASTER;
@@ -1226,155 +1239,9 @@ void PikaServer::BGSaveTaskSchedule(void (*function)(void*), void* arg) {
   bgsave_thread_.Schedule(function, arg);
 }
 
-bool PikaServer::PurgeLogs(uint32_t to, bool manual, bool force) {
-  // Only one thread can go through
-  bool expect = false;
-  if (!purging_.compare_exchange_strong(expect, true)) {
-    LOG(WARNING) << "purge process already exist";
-    return false;
-  }
-  PurgeArg *arg = new PurgeArg();
-  arg->p = this;
-  arg->to = to;
-  arg->manual = manual;
-  arg->force = force;
-  // Start new thread if needed
-  purge_thread_.StartThread();
-  purge_thread_.Schedule(&DoPurgeLogs, static_cast<void*>(arg));
-  return true;
-}
-
-void PikaServer::DoPurgeLogs(void* arg) {
-  PurgeArg *ppurge = static_cast<PurgeArg*>(arg);
-  PikaServer* ps = ppurge->p;
-
-  ps->PurgeFiles(ppurge->to, ppurge->manual, ppurge->force);
-
-  ps->ClearPurge();
-  delete (PurgeArg*)arg;
-}
-
-bool PikaServer::GetPurgeWindow(uint32_t &max) {
-  uint64_t tmp;
-  logger_->GetProducerStatus(&max, &tmp);
-  slash::MutexLock l(&slave_mutex_);
-  std::vector<SlaveItem>::iterator it;
-  for (it = slaves_.begin(); it != slaves_.end(); ++it) {
-    // TODO Axl
-    //if ((*it).sender == NULL) {
-    //  // One Binlog Sender has not yet created, no purge
-    //  return false;
-    //}
-    //PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
-    //uint32_t filenum = pb->filenum();
-    //max = filenum < max ? filenum : max;
-  }
-  // remain some more
-  if (max >= 10) {
-    max -= 10;
-    return true;
-  }
-  return false;
-}
-
-bool PikaServer::CouldPurge(uint32_t index) {
-  uint32_t pro_num;
-  uint64_t tmp;
-  logger_->GetProducerStatus(&pro_num, &tmp);
-
-  index += 10; //remain some more
-  if (index > pro_num) {
-    return false;
-  }
-  slash::MutexLock l(&slave_mutex_);
-  std::vector<SlaveItem>::iterator it;
-  for (it = slaves_.begin(); it != slaves_.end(); ++it) {
-    // TODO Axl
-    //if ((*it).sender == NULL) {
-    //  // One Binlog Sender has not yet created, no purge
-    //  return false;
-    //}
-    //PikaBinlogSenderThread *pb = static_cast<PikaBinlogSenderThread*>((*it).sender);
-    //uint32_t filenum = pb->filenum();
-    //if (index > filenum) {   // slaves
-    //  return false;
-    //}
-  }
-  return true;
-}
-
 void PikaServer::PurgelogsTaskSchedule(void (*function)(void*), void* arg) {
   purge_thread_.StartThread();
   purge_thread_.Schedule(function, arg);
-}
-
-bool PikaServer::PurgeFiles(uint32_t to, bool manual, bool force)
-{
-  std::map<uint32_t, std::string> binlogs;
-  if (!GetBinlogFiles(binlogs)) {
-    LOG(WARNING) << "Could not get binlog files!";
-    return false;
-  }
-
-  int delete_num = 0;
-  struct stat file_stat;
-  int remain_expire_num = binlogs.size() - g_pika_conf->expire_logs_nums();
-  std::map<uint32_t, std::string>::iterator it;
-  for (it = binlogs.begin(); it != binlogs.end(); ++it) {
-    if ((manual && it->first <= to) ||           // Argument bound
-        remain_expire_num > 0 ||                 // Expire num trigger
-        (binlogs.size() > 10 /* at lease remain 10 files */
-         && stat(((g_pika_conf->log_path() + it->second)).c_str(), &file_stat) == 0 &&
-         file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days()*24*3600)) // Expire time trigger
-    {
-      // We check this every time to avoid lock when we do file deletion
-      if (!CouldPurge(it->first) && !force) {
-        LOG(WARNING) << "Could not purge "<< (it->first) << ", since it is already be used";
-        return false;
-      }
-
-      // Do delete
-      slash::Status s = slash::DeleteFile(g_pika_conf->log_path() + it->second);
-      if (s.ok()) {
-        ++delete_num;
-        --remain_expire_num;
-      } else {
-        LOG(WARNING) << "Purge log file : " << (it->second) <<  " failed! error:" << s.ToString();
-      }
-    } else {
-      // Break when face the first one not satisfied
-      // Since the binlogs is order by the file index
-      break;
-    }
-  }
-  if (delete_num) {
-    LOG(INFO) << "Success purge "<< delete_num;
-  }
-
-  return true;
-}
-
-bool PikaServer::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
-  std::vector<std::string> children;
-  int ret = slash::GetChildren(g_pika_conf->log_path(), children);
-  if (ret != 0){
-    LOG(WARNING) << "Get all files in log path failed! error:" << ret;
-    return false;
-  }
-
-  int64_t index = 0;
-  std::string sindex;
-  std::vector<std::string>::iterator it;
-  for (it = children.begin(); it != children.end(); ++it) {
-    if ((*it).compare(0, kBinlogPrefixLen, kBinlogPrefix) != 0) {
-      continue;
-    }
-    sindex = (*it).substr(kBinlogPrefixLen);
-    if (slash::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
-      binlogs.insert(std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it));
-    }
-  }
-  return true;
 }
 
 void PikaServer::AutoCompactRange() {
@@ -1828,7 +1695,7 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
           partition_item.second->SetReplState(ReplState::kNoConnect);
           break;
         case TaskType::kPurgeLog:
-          partition_item.second->PurgeLogs(0, false, false);
+          partition_item.second->PurgeLogs();
           break;
         default:
           break;

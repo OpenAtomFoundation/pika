@@ -76,6 +76,7 @@ void PikaReplBgWorker::HandleMetaSyncRequest(void* arg) {
       response.set_code(InnerMessage::kError);
       response.set_reply("Slave AlreadyExist");
     } else {
+      g_pika_server->BecomeMaster();
       response.set_code(InnerMessage::kOk);
       InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
       meta_sync->set_sid(sid);
