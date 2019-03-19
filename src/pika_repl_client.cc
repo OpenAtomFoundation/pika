@@ -219,13 +219,15 @@ Status PikaReplClient::SendMetaSync() {
   }
 
   std::string to_send;
+  std::string master_ip = g_pika_server->master_ip();
+  int master_port = g_pika_server->master_port();
   if (!request.SerializeToString(&to_send)) {
+    LOG(WARNING) << "Serialize Meta Sync Request Failed, to Master ("
+      << master_ip << ":" << master_port << ")";
     return Status::Corruption("Serialize Failed");
   }
 
-  std::string master_ip = g_pika_server->master_ip();
-  int master_port = g_pika_server->master_port();
-  LOG(INFO) << "Send Meta Sync Request to Master ("
+  LOG(INFO) << "Try Send Meta Sync Request to Master ("
     << master_ip << ":" << master_port << ")";
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
@@ -250,12 +252,13 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
   binlog_offset->set_offset(force_sync ? 0 : boffset.offset);
 
   std::string to_send;
-  if (!request.SerializeToString(&to_send)) {
-    return Status::Corruption("Serialize Failed");
-  }
-
   std::string master_ip = g_pika_server->master_ip();
   int master_port = g_pika_server->master_port();
+  if (!request.SerializeToString(&to_send)) {
+    LOG(WARNING) << "Serialize Partition TrySync Request Failed, to Master ("
+      << master_ip << ":" << master_port << ")";
+    return Status::Corruption("Serialize Failed");
+  }
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
 

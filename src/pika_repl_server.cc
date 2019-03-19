@@ -77,6 +77,10 @@ void PikaReplServer::ScheduleDbTask(
   bg_workers_[index]->ScheduleWriteDb(argv, binlog_item, table_name, partition_id);
 }
 
+void PikaReplServer::KillAllConns() {
+  return pika_repl_server_thread_->KillAllConns();
+}
+
 size_t PikaReplServer::GetHashIndex(std::string key, bool upper_half) {
   size_t hash_base = bg_workers_.size() / 2;
   return (str_hash(key) % hash_base) + (upper_half ? 0 : hash_base);

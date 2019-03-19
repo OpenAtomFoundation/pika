@@ -19,15 +19,14 @@ void* PikaAuxiliaryThread::ThreadMain() {
   while (!should_stop()) {
     if (g_pika_server->ShouldMetaSync()) {
       g_pika_server->SendMetaSyncRequest();
-      LOG(INFO) << "Send meta sync request finish";
-      continue;
+    } else if (g_pika_server->ShouldWaitMetaSyncResponse()) {
+      g_pika_server->CheckWaitMetaSyncTimeout();
     } else if (g_pika_server->ShouldMarkTryConnect()) {
       g_pika_server->PreparePartitionTrySync();
-      LOG(INFO) << "Mark try connect finish";
-      continue;
     } else if (g_pika_server->ShouldTrySyncPartition()) {
       RunEveryPartitionStateMachine();
     }
+
     // TODO(whoiami) timeout
     Status s = g_pika_server->TriggerSendBinlogSync();
     if (!s.ok()) {
