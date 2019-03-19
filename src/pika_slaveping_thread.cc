@@ -54,8 +54,10 @@ void* PikaSlavepingThread::ThreadMain() {
   struct timeval last_interaction;
   last_interaction = now;
   int connect_retry_times = 0;
+  std::string ip_port =
+      slash::IpPortString(g_pika_server->master_ip(), g_pika_server->master_port());
 
-  while (!should_stop()) {
+  while (!should_stop() && g_pika_server->ShouldStartPingMaster()) {
     if (!should_stop() && (cli_->Connect(g_pika_server->master_ip(),
                            g_pika_server->master_port() + kPortShiftHeatBeat,
                            "")).ok()) {
@@ -63,12 +65,11 @@ void* PikaSlavepingThread::ThreadMain() {
       cli_->set_recv_timeout(1000);
       connect_retry_times = 0;
 
-      // g_pika_server ping success status
       while (true) {
         if (should_stop()) {
-          LOG(INFO) << "Close Slaveping Thread now";
+          LOG(INFO) << "Close Slaveping Thread now, master: " << ip_port;
           cli_->Close();
-          // Kill sync binlog conn
+          g_pika_server->KillMasterSyncConn();
           break;
         }
 
@@ -79,31 +80,33 @@ void* PikaSlavepingThread::ThreadMain() {
         if (s.ok()) {
           gettimeofday(&last_interaction, NULL);
         } else if (s.IsTimeout()) {
-          LOG(WARNING) << "Slaveping timeout once";
+          LOG(WARNING) << "Slaveping timeout once, master: " << ip_port;
           gettimeofday(&now, NULL);
           if (now.tv_sec - last_interaction.tv_sec > 30) {
             //timeout;
-            LOG(WARNING) << "Ping master timeout";
+            LOG(WARNING) << "Ping master timeout, master: " << ip_port;
             cli_->Close();
-            // kill sync binlog conn
+            g_pika_server->KillMasterSyncConn();
+            g_pika_server->ResetMetaSyncStatus();
             break;
           }
         } else {
-          LOG(WARNING) << "Ping master error";
+          LOG(WARNING) << "Ping master error, master: " << ip_port;
           cli_->Close();
-          // kill sync binlog conn
+          g_pika_server->KillMasterSyncConn();
+          g_pika_server->ResetMetaSyncStatus();
           break;
         }
         sleep(1);
       }
-      // g_pika_server ping error status
       sleep(2);
     } else if (!should_stop()) {
-      LOG(WARNING) << "Slaveping, Connect timeout";
-      if ((++connect_retry_times) >= 30) {
+      LOG(WARNING) << "Slaveping, Connect timeout, master: " << ip_port;
+      if ((++connect_retry_times) >= 10) {
         LOG(WARNING) << "Slaveping, Connect timeout 10 times, disconnect with master";
         cli_->Close();
-          // kill sync binlog conn
+        g_pika_server->KillMasterSyncConn();
+        g_pika_server->ResetMetaSyncStatus();
         connect_retry_times = 0;
       }
     }

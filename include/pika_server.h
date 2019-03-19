@@ -220,10 +220,14 @@ class PikaServer {
   bool SetMaster(std::string& master_ip, int master_port);
   void SyncError();
   void RemoveMaster();
-  void KillBinlogSenderConn();
+  void KillMasterSyncConn();
+  void ResetMetaSyncStatus();
+  bool ShouldStartPingMaster();
 
   bool ShouldMetaSync();
   void MetaSyncDone();
+  bool ShouldWaitMetaSyncResponse();
+  void CheckWaitMetaSyncTimeout();
   bool ShouldMarkTryConnect();
   void MarkTryConnectDone();
   bool ShouldTrySyncPartition();
@@ -547,6 +551,7 @@ class PikaServer {
   int master_port_;
   int repl_state_;
   int role_;
+  int last_meta_sync_timestamp_;
   bool force_full_sync_;
 
   /*

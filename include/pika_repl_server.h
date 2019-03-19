@@ -38,6 +38,7 @@ class PikaReplServer {
                       BinlogItem* binlog_item,
                       const std::string& table_name,
                       uint32_t partition_id);
+  void KillAllConns();
  private:
   size_t GetHashIndex(std::string key, bool upper_half);
   void UpdateNextAvail() {

@@ -93,15 +93,14 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     g_pika_server->PurgeDir(g_pika_conf->trash_path());
   }
 
+  g_pika_server->MetaSyncDone();
   g_pika_conf->SetWriteBinlog("yes");
 
-  int64_t sid = meta_sync.sid();
   delete g_pika_server->ping_thread_;
-  g_pika_server->ping_thread_ = new PikaSlavepingThread(sid);
+  g_pika_server->ping_thread_ = new PikaSlavepingThread(meta_sync.sid());
   g_pika_server->ping_thread_->StartThread();
 
   LOG(INFO) << "Finish to handle meta sync response";
-  g_pika_server->MetaSyncDone();
   delete resp_arg;
 }
 
