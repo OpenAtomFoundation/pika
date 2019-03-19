@@ -156,10 +156,6 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     return ConstructPubSubResp(opt, result);
   }
 
-  if (!g_pika_server->IsCommandCurrentSupport(opt)) {
-    return "-ERR This command current not support\r\n";
-  }
-
   if (!g_pika_server->IsCommandSupport(opt)) {
     return "-ERR This command only support in classic mode\r\n";
   }

@@ -110,7 +110,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool FlushDb(const std::string& db_name);
 
   // Purgelogs use
-  bool PurgeLogs(uint32_t to, bool manual, bool force);
+  bool PurgeLogs();
   void ClearPurge();
 
   void RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const;
@@ -157,7 +157,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
    * Purgelogs use
    */
   static void DoPurgeLogs(void* arg);
-  bool PurgeFiles(uint32_t to, bool manual, bool force);
+  bool PurgeFiles();
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   bool CouldPurge(uint32_t index);
   std::atomic<bool> purging_;

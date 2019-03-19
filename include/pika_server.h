@@ -35,12 +35,6 @@
 using slash::Status;
 using slash::Slice;
 
-/*
- * kCmdNamePurgelogsto
- */
-
-static std::unordered_set<std::string> CurrentNotSupportCommands {kCmdNamePurgelogsto};
-
 static std::set<std::string> ShardingModeNotSupportCommands {kCmdNameDel,
                  kCmdNameMget,        kCmdNameKeys,          kCmdNameMset,
                  kCmdNameMsetnx,      kCmdNameScan,          kCmdNameScanx,
@@ -174,7 +168,6 @@ class PikaServer {
   void InitTableStruct();
   bool RebuildTableStruct(const std::vector<TableStruct>& table_structs);
   std::shared_ptr<Table> GetTable(const std::string& table_name);
-  bool IsCommandCurrentSupport(const std::string& command);
   bool IsTableBinlogIoError(const std::string& table_name);
   bool IsBgSaving();
   bool IsKeyScaning();
@@ -208,6 +201,8 @@ class PikaServer {
   int64_t TryAddSlave(const std::string& ip, int64_t port,
                       const std::vector<TableStruct>& table_structs);
   int32_t GetSlaveListString(std::string& slave_list_str);
+  bool PartitionCouldPurge(const std::string& table_name,
+                           uint32_t partition_id, uint32_t index);
   void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
   void BecomeMaster();
 
@@ -319,11 +314,6 @@ class PikaServer {
     bool force; // Ignore the delete window
   };
   bool PurgeLogs(uint32_t to, bool manual, bool force);
-  bool PurgeFiles(uint32_t to, bool manual, bool force);
-  bool GetPurgeWindow(uint32_t &max);
-  void ClearPurge() {
-    purging_ = false;
-  }
   void PurgelogsTaskSchedule(void (*function)(void*), void* arg);
 
   /*
