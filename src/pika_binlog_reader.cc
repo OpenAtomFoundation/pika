@@ -144,8 +144,8 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(slash::Slice *result, uint32_t
   if (s.ok()) {
     slash::RWLock(&(rwlock_), true);
     *filenum = cur_filenum_;
-    *offset = cur_offset_;
     cur_offset_ += (kHeaderSize + length);
+    *offset = cur_offset_;
   }
   return type;
 }

@@ -110,9 +110,12 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
   worker->ip_port_ = conn->ip_port();
 
   const InnerMessage::InnerRequest::BinlogSync& binlog_req =
-    req->binlog_sync((*index)[(*index).size() - 1]);
+    req->binlog_sync((*index)[0]);
   std::string table_name = binlog_req.table_name();
   uint32_t partition_id = binlog_req.partition_id();
+  const InnerMessage::BinlogOffset& start_boffset = binlog_req.binlog_offset();
+  uint32_t start_filenum = start_boffset.filenum();
+  uint64_t start_offset = start_boffset.offset();
 
   worker->table_name_ = table_name;
   worker->partition_id_ = partition_id;
@@ -143,9 +146,9 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
   // build response
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   std::shared_ptr<Binlog> logger = partition->logger();
-  uint32_t file_num;
-  uint64_t offset;
-  logger->GetProducerStatus(&file_num, &offset);
+  uint32_t end_filenum;
+  uint64_t end_offset;
+  logger->GetProducerStatus(&end_filenum, &end_offset);
 
   InnerMessage::InnerResponse response;
   response.set_code(InnerMessage::kOk);
@@ -153,9 +156,12 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
   InnerMessage::InnerResponse_BinlogSync* binlog_sync_resp = response.mutable_binlog_sync();
   binlog_sync_resp->set_table_name(table_name);
   binlog_sync_resp->set_partition_id(partition_id);
-  InnerMessage::BinlogOffset* binlog_offset = binlog_sync_resp->mutable_binlog_offset();
-  binlog_offset->set_filenum(file_num);
-  binlog_offset->set_offset(offset);
+  InnerMessage::BinlogOffset* binlog_offset_start = binlog_sync_resp->mutable_binlog_offset_start();
+  binlog_offset_start->set_filenum(start_filenum);
+  binlog_offset_start->set_offset(start_offset);
+  InnerMessage::BinlogOffset* binlog_offset_end = binlog_sync_resp->mutable_binlog_offset_end();
+  binlog_offset_end->set_filenum(end_filenum);
+  binlog_offset_end->set_offset(end_offset);
 
   std::string reply_str;
   if (!response.SerializeToString(&reply_str)

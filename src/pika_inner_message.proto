@@ -106,9 +106,10 @@ message InnerResponse {
 
   // slave to master
   message BinlogSync {
-    required string       table_name     = 1;
-    required uint32       partition_id   = 2;
-    required BinlogOffset binlog_offset  = 3;
+    required string       table_name           = 1;
+    required uint32       partition_id         = 2;
+    required BinlogOffset binlog_offset_start  = 3;
+    required BinlogOffset binlog_offset_end    = 4;
   }
 
   // slave to master
