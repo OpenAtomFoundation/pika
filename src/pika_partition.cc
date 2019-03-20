@@ -691,20 +691,6 @@ bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
   return true;
 }
 
-bool Partition::CouldPurge(uint32_t index) {
-  uint32_t pro_num;
-  uint64_t tmp;
-  logger_->GetProducerStatus(&pro_num, &tmp);
-
-  index += 10; //remain some more
-  if (index > pro_num) {
-    return false;
-  }
-  // After implementing multiple Table synchronization,
-  // additional judgment needs to be made
-  return g_pika_server->PartitionCouldPurge(table_name_, partition_id_, index);
-}
-
 void Partition::RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const {
   bw_option->options.create_if_missing = true;
   bw_option->options.keep_log_file_num = 10;

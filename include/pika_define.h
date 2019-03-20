@@ -14,11 +14,12 @@
 #define PIKA_MAX_WORKER_THREAD_NUM      24
 #define PIKA_META_SYNC_MAX_WAIT_TIME    3
 
+class PikaServer;
+
 /* Port shift */
 const int kPortShiftRSync      = 1000;
 const int kPortShiftHeatBeat   = 2000;
 const int kPortShiftReplServer = 3000;
-
 
 const std::string kPikaPidFile = "pika.pid";
 
@@ -42,6 +43,22 @@ struct SlaveItem {
   int stage;
   std::vector<TableStruct> table_structs;
   struct timeval create_time;
+};
+
+//dbsync arg
+struct DBSyncArg {
+  PikaServer* p;
+  std::string ip;
+  int port;
+  std::string table_name;
+  uint32_t partition_id;
+  DBSyncArg(PikaServer* const _p,
+            const std::string& _ip,
+            int _port,
+            const std::string& _table_name,
+            uint32_t _partition_id)
+      : p(_p), ip(_ip), port(_port),
+        table_name(_table_name), partition_id(_partition_id) {}
 };
 
 //slowlog define
