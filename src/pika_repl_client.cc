@@ -53,39 +53,42 @@ int PikaReplClient::ConsumeWriteQueue() {
   slash::MutexLock l(&write_queue_mu_);
   for (auto& iter : write_queues_) {
     std::queue<WriteTask>& queue = iter.second;
-    if (queue.empty()) {
-      continue;
-    }
-    InnerMessage::InnerRequest request;
-    request.set_type(InnerMessage::kBinlogSync);
-    size_t batch_index = queue.size() > kBinlogSyncBatchNum ? kBinlogSyncBatchNum : queue.size();
-    std::string ip;
-    int port = 0;
-    if (!slash::ParseIpPortString(iter.first, ip, port)) {
-      LOG(WARNING) << "Parse ip_port error " << iter.first;
-    }
-    for (size_t i = 0; i < batch_index; ++i) {
-      WriteTask task = queue.front();
-      queue.pop();
-      BuildBinlogPb(task.rm_node_,
-                    task.binlog_chip_.binlog_,
-                    task.binlog_chip_.file_num_,
-                    task.binlog_chip_.offset_, &request);
+    for (int i = 0; i < kBinlogSendPacketNum; ++i) {
+      if (queue.empty()) {
+        break;
+      }
+      InnerMessage::InnerRequest request;
+      request.set_type(InnerMessage::kBinlogSync);
+      size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
+      std::string ip;
+      int port = 0;
+      if (!slash::ParseIpPortString(iter.first, ip, port)) {
+        LOG(WARNING) << "Parse ip_port error " << iter.first;
+      }
+      for (size_t i = 0; i < batch_index; ++i) {
+        WriteTask task = queue.front();
+        queue.pop();
+        BuildBinlogPb(task.rm_node_,
+                      task.binlog_chip_.binlog_,
+                      task.binlog_chip_.file_num_,
+                      task.binlog_chip_.offset_, &request);
 
-      counter++;
-    }
-    std::string to_send;
-    bool res = request.SerializeToString(&to_send);
-    if (!res) {
-      LOG(WARNING) << "Serialize Failed";
-      continue;
-    }
-    Status s = client_thread_->Write(ip, port, to_send);
-    if (!s.ok()) {
-      LOG(WARNING) << "write to " << ip << ":" << port << " failed";
-      continue;
+        counter++;
+      }
+      std::string to_send;
+      bool res = request.SerializeToString(&to_send);
+      if (!res) {
+        LOG(WARNING) << "Serialize Failed";
+        continue;
+      }
+      Status s = client_thread_->Write(ip, port, to_send);
+      if (!s.ok()) {
+        LOG(WARNING) << "write to " << ip << ":" << port << " failed";
+        continue;
+      }
     }
   }
+
   return counter;
 }
 
@@ -95,18 +98,47 @@ void PikaReplClient::DropItemInWriteQueue(const std::string& ip, int port) {
   write_queues_.erase(index);
 }
 
-bool PikaReplClient::SetAckInfo(const RmNode& slave, uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time) {
+bool PikaReplClient::SetAckInfo(const RmNode& slave, uint32_t ack_filenum_start, uint64_t ack_offset_start, uint32_t ack_filenum_end, uint64_t ack_offset_end, uint64_t active_time) {
   BinlogSyncCtl* ctl = nullptr;
   {
   slash::RWLock l_rw(&binlog_ctl_rw_, false);
   if (binlog_ctl_.find(slave) == binlog_ctl_.end()) {
+    LOG(WARNING) << "slave " << slave.ToString() << " not found.";
     return false;
   }
   ctl = binlog_ctl_[slave];
 
   slash::MutexLock l(&(ctl->ctl_mu_));
-  ctl->ack_file_num_ = ack_file_num;
-  ctl->ack_offset_ = ack_offset;
+  std::vector<BinlogWinItem>& window = ctl->binlog_win_;
+  BinlogWinItem start_item(ack_filenum_start, ack_offset_start);
+  BinlogWinItem end_item(ack_filenum_end, ack_offset_end);
+  size_t start_pos = kBinlogReadWinSize, end_pos = kBinlogReadWinSize;
+  for (size_t i = 0; i < window.size(); ++i) {
+    if (window[i] == start_item) {
+      start_pos = i;
+    }
+    if (window[i] == end_item) {
+      end_pos = i;
+      break;
+    }
+  }
+  if (start_pos == kBinlogReadWinSize || end_pos == kBinlogReadWinSize) {
+    LOG(WARNING) << " ack offset not found in binlog controller window";
+    return false;
+  }
+  for (size_t i = start_pos; i <= end_pos; ++i) {
+    window[i].acked_ = true;
+  }
+  while(!window.empty()) {
+    if ((window.begin())->acked_) {
+      ctl->ack_file_num_ = window.begin()->filenum_;
+      ctl->ack_offset_ = window.begin()->offset_;
+      window.erase(window.begin());
+    } else {
+      break;
+    }
+  }
+  //LOG(INFO) << " offset start " << ack_filenum_start << " " << ack_offset_start << " offset end " << ack_filenum_end <<" "<< ack_offset_end << " ctl offset " << ctl->ack_file_num_ << " " << ctl->ack_offset_;
   ctl->active_time_ = active_time;
   }
   return true;
@@ -146,7 +178,6 @@ Status PikaReplClient::GetBinlogReaderStatus(const RmNode& slave, BinlogOffset* 
 }
 
 Status PikaReplClient::Write(const std::string& ip, const int port, const std::string& msg) {
-  // shift port 2000 tobe inner connect port
   return client_thread_->Write(ip, port, msg);
 }
 
@@ -172,6 +203,7 @@ Status PikaReplClient::RemoveBinlogSyncCtl(const RmNode& slave) {
   {
   slash::RWLock l_rw(&binlog_ctl_rw_, true);
   if (binlog_ctl_.find(slave) != binlog_ctl_.end()) {
+    LOG(INFO) << "Remove Binlog Controller " << slave.ToString();
     delete binlog_ctl_[slave];
     binlog_ctl_.erase(slave);
   }
@@ -201,6 +233,7 @@ Status PikaReplClient::AddBinlogSyncCtl(const RmNode& slave, std::shared_ptr<Bin
   gettimeofday(&tv, NULL);
   now = tv.tv_sec;
   binlog_ctl_[slave] = new BinlogSyncCtl(binlog_reader, cur_file_num, cur_offset, now);
+  LOG(INFO) << "Add Binlog Controller" << slave.ToString();
   }
   return Status::OK();
 }
@@ -274,7 +307,8 @@ Status PikaReplClient::SendBinlogSync(const RmNode& slave) {
   ctl = iter->second;
 
   slash::MutexLock l(&(ctl->ctl_mu_));
-  for (int i = 0; i < kBinlogSyncBatchNum; ++i) {
+  size_t send_size = kBinlogReadWinSize - ctl->binlog_win_.size();
+  for (size_t i = 0; i < send_size; ++i) {
     std::string msg;
     uint32_t filenum;
     uint64_t offset;
@@ -284,6 +318,7 @@ Status PikaReplClient::SendBinlogSync(const RmNode& slave) {
     } else if (s.IsCorruption() || s.IsIOError()) {
       return s;
     }
+    ctl->binlog_win_.push_back(BinlogWinItem(filenum, offset));
     WriteTask task(slave, BinlogChip(filenum, offset, msg));
     ProduceWriteQueue(task);
   }
@@ -300,8 +335,9 @@ Status PikaReplClient::TriggerSendBinlogSync() {
     uint32_t send_file_num;
     uint64_t send_offset;
     ctl->reader_->GetReaderStatus(&send_file_num, &send_offset);
+    //LOG_EVERY_N(INFO, 1000) << binlog_ctl.first.ToString() << " Reader " << send_file_num << " " << send_offset << " ack " << ctl->ack_file_num_ << " " << ctl->ack_offset_ << " ctl size " << binlog_ctl_.size();
     if (ctl->ack_file_num_ == send_file_num && ctl->ack_offset_ == send_offset) {
-      for (int i = 0; i < kBinlogSyncBatchNum; ++i) {
+      for (int i = 0; i < kBinlogReadWinSize; ++i) {
         std::string msg;
         uint32_t filenum;
         uint64_t offset;
@@ -311,6 +347,7 @@ Status PikaReplClient::TriggerSendBinlogSync() {
         } else if (s.IsCorruption() || s.IsIOError()) {
           return s;
         }
+        ctl->binlog_win_.push_back(BinlogWinItem(filenum, offset));
         WriteTask task(binlog_ctl.first, BinlogChip(filenum, offset, msg));
         ProduceWriteQueue(task);
       }

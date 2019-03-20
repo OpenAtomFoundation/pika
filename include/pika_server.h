@@ -475,8 +475,7 @@ class PikaServer {
       PikaCmdArgsType* argv, BinlogItem* binlog_item,
       const std::string& table_name, uint32_t partition_id);
 
-  bool SetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
-      uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time);
+  bool SetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port, uint32_t ack_filenum_start, uint64_t ack_offset_start, uint32_t ack_filenum_end, uint64_t ack_offset_end, uint64_t active_time);
 
   bool GetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
     uint32_t* ack_file_num, uint64_t* ack_offset, uint64_t* active_time);

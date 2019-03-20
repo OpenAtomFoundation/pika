@@ -198,7 +198,8 @@ void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
     delete resp_arg;
     return;
   }
-  const InnerMessage::BinlogOffset& binlog_offset = binlog_ack.binlog_offset();
+  const InnerMessage::BinlogOffset& binlog_offset_start = binlog_ack.binlog_offset_start();
+  const InnerMessage::BinlogOffset& binlog_offset_end = binlog_ack.binlog_offset_end();
 
   uint64_t now;
   struct timeval tv;
@@ -206,7 +207,9 @@ void PikaReplClientConn::HandleBinlogSyncResponse(void* arg) {
   now = tv.tv_sec;
 
   // Set ack info from slave
-  res = g_pika_server->SetBinlogAckInfo(table_name, partition_id, ip, port, binlog_offset.filenum(), binlog_offset.offset(), now);
+  res = g_pika_server->SetBinlogAckInfo(table_name, partition_id, ip, port,
+      binlog_offset_start.filenum(), binlog_offset_start.offset(),
+      binlog_offset_end.filenum(), binlog_offset_end.offset(), now);
   if (!res) {
     LOG(WARNING) << "Update binlog ack failed " << table_name << " " << partition_id;
     conn->NotifyClose();

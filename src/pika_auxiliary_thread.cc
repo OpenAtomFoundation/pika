@@ -40,7 +40,7 @@ void* PikaAuxiliaryThread::ThreadMain() {
       cv_.TimedWait(100);
       mu_.Unlock();
     } else {
-      //LOG_EVERY_N(INFO, 100) << "Consume binlog number " << res;
+      //LOG_EVERY_N(INFO, 1000) << "Consume binlog number " << res;
     }
   }
   return NULL;
