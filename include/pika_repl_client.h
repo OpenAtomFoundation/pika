@@ -21,7 +21,9 @@
 #include "pink/include/thread_pool.h"
 #include "src/pika_inner_message.pb.h"
 
-#define kBinlogSyncBatchNum 1000
+#define kBinlogSendPacketNum 30
+#define kBinlogSendBatchNum 100
+#define kBinlogReadWinSize 3000
 
 using slash::Status;
 
@@ -111,7 +113,7 @@ class PikaReplClient {
     client_tp_->Schedule(func, arg);
   }
 
-  bool SetAckInfo(const RmNode& slave, uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time);
+  bool SetAckInfo(const RmNode& slave, uint32_t ack_filenum_start, uint64_t ack_offset_start, uint32_t ack_filenum_end, uint64_t ack_offset_end, uint64_t active_time);
   bool GetAckInfo(const RmNode& slave, uint32_t* act_file_num, uint64_t* ack_offset, uint64_t* active_time);
 
  private:
@@ -123,12 +125,28 @@ class PikaReplClient {
 
   PikaReplClientThread* client_thread_;
 
+  struct BinlogWinItem {
+    uint32_t filenum_;
+    uint64_t offset_;
+    bool acked_;
+    bool operator==(const BinlogWinItem& other) const {
+      if (filenum_ == other.filenum_ && offset_ == other.offset_) {
+        return true;
+      }
+      return false;
+    }
+    BinlogWinItem(uint32_t filenum, uint64_t offset) : filenum_(filenum), offset_(offset), acked_(false) {
+    }
+  };
+
   struct BinlogSyncCtl {
     slash::Mutex ctl_mu_;
     PikaBinlogReader* reader_;
     uint32_t ack_file_num_;
     uint64_t ack_offset_;
     uint64_t active_time_;
+    // TODO implement ring buffer
+    std::vector<BinlogWinItem> binlog_win_;
 
     BinlogSyncCtl(PikaBinlogReader* reader, uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time)
       : reader_(reader), ack_file_num_(ack_file_num), ack_offset_(ack_offset), active_time_(active_time) {

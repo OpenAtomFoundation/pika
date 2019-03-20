@@ -1542,9 +1542,11 @@ void PikaServer::ScheduleReplDbTask(const std::string &key,
 }
 
 bool PikaServer::SetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
-    uint32_t ack_file_num, uint64_t ack_offset, uint64_t active_time) {
+    uint32_t ack_filenum_start, uint64_t ack_offset_start,
+    uint32_t ack_filenum_end, uint64_t ack_offset_end,
+    uint64_t active_time) {
   RmNode slave = RmNode(table, partition, ip, port);
-  return pika_repl_client_->SetAckInfo(slave, ack_file_num, ack_offset, active_time);
+  return pika_repl_client_->SetAckInfo(slave, ack_filenum_start, ack_offset_start, ack_filenum_end, ack_offset_end, active_time);
 }
 
 bool PikaServer::GetBinlogAckInfo(const std::string& table, uint32_t partition, const std::string& ip, int port,
