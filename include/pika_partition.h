@@ -159,7 +159,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   static void DoPurgeLogs(void* arg);
   bool PurgeFiles();
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
-  bool CouldPurge(uint32_t index);
   std::atomic<bool> purging_;
 
   /*
