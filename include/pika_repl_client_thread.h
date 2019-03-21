@@ -36,8 +36,7 @@ class PikaReplClientThread : public pink::ClientThread {
    public:
     void CronHandle() const override {
     }
-    void FdTimeoutHandle(int fd, const std::string& ip_port) const override {
-    }
+    void FdTimeoutHandle(int fd, const std::string& ip_port) const override;
     void FdClosedHandle(int fd, const std::string& ip_port) const override;
     bool AccessHandle(std::string& ip) const override {
       // ban 127.0.0.1 if you want to test this routine
