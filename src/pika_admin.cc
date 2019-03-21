@@ -1191,7 +1191,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetMaxCacheStatisticKeys(ival);
-    g_pika_server->db()->SetMaxCacheStatisticKeys(ival);
+    g_pika_server->PartitionSetMaxCacheStatisticKeys(ival);
     ret = "+OK\r\n";
   } else if (set_item == "small-compaction-threshold") {
     if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
@@ -1199,7 +1199,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetSmallCompactionThreshold(ival);
-    g_pika_server->db()->SetSmallCompactionThreshold(ival);
+    g_pika_server->PartitionSetSmallCompactionThreshold(ival);
     ret = "+OK\r\n";
   } else if (set_item == "write-binlog") {
     int role = g_pika_server->role();
