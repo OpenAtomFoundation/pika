@@ -187,10 +187,8 @@ Status PikaReplClient::RemoveSlave(const SlaveItem& slave) {
     for (const auto& ts : slave.table_structs) {
       for (size_t idx = 0; idx < ts.partition_num; ++idx) {
         RmNode rm_node(ts.table_name, idx, slave.ip, slave.port + kPortShiftReplServer);
-        if (binlog_ctl_.find(rm_node) != binlog_ctl_.end()) {
-          delete binlog_ctl_[rm_node];
-          binlog_ctl_.erase(rm_node);
-        } else {
+        Status s = RemoveBinlogSyncCtl(rm_node);
+        if (!s.ok()) {
           LOG(WARNING) << "Delete RmNode: " << rm_node.ToString() << " Failed";
         }
       }

@@ -15,7 +15,9 @@ PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips,
   HolyThread(ips, port, &conn_factory_, cron_interval, &handle_, true),
   conn_factory_(this),
   serial_(0) {
+  set_keepalive_timeout(180);
 }
 
 void PikaReplServerThread::ReplServerHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
+  LOG(INFO) << "ServerThread close " << fd << " " << ip_port;
 }
