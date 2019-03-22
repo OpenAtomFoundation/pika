@@ -36,7 +36,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSelect, selectptr));
   Cmd* flushallptr = new FlushallCmd(kCmdNameFlushall, 1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameFlushall, flushallptr));
-  Cmd* flushdbptr = new FlushdbCmd(kCmdNameFlushdb, 2, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin);
+  Cmd* flushdbptr = new FlushdbCmd(kCmdNameFlushdb, -1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameFlushdb, flushdbptr));
   Cmd* clientptr = new ClientCmd(kCmdNameClient, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameClient, clientptr));
@@ -468,14 +468,52 @@ std::string Cmd::current_key() const {
 }
 
 void Cmd::Execute() {
-  if (is_single_partition()
-    || g_pika_server->GetPartitionNumByTable(table_name_) == 1) {
+  if (name_ == kCmdNameFlushdb) {
+    ProcessFlushDBCmd();
+  } else if (name_ == kCmdNameFlushall) {
+    ProcessFlushAllCmd();
+  } else if (is_single_partition() || g_pika_conf->classic_mode()) {
     ProcessSinglePartitionCmd();
   } else if (is_multi_partition()) {
     ProcessMultiPartitionCmd();
   } else {
     ProcessDoNotSpecifyPartitionCmd();
   }
+}
+
+void Cmd::ProcessFlushDBCmd() {
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kInvalidTable);
+  } else {
+    if (table->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+    } else {
+      slash::RWLock l_prw(&table->partitions_rw_, true);
+      for (const auto& partition_item : table->partitions_) {
+        partition_item.second->DoCommand(this);
+      }
+      res_.SetRes(CmdRes::kOk);
+    }
+  }
+}
+
+void Cmd::ProcessFlushAllCmd() {
+  slash::RWLock l_trw(&g_pika_server->tables_rw_, true);
+  for (const auto& table_item : g_pika_server->tables_) {
+    if (table_item.second->IsKeyScaning()) {
+      res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+      return;
+    }
+  }
+
+  for (const auto& table_item : g_pika_server->tables_) {
+    slash::RWLock l_prw(&table_item.second->partitions_rw_, true);
+    for (const auto& partition_item : table_item.second->partitions_) {
+      partition_item.second->DoCommand(this);
+    }
+  }
+  res_.SetRes(CmdRes::kOk);
 }
 
 void Cmd::ProcessSinglePartitionCmd() {
@@ -494,12 +532,12 @@ void Cmd::ProcessSinglePartitionCmd() {
 }
 
 void Cmd::ProcessMultiPartitionCmd() {
+  LOG(INFO) << "Process Multi partition Cmd? -> " << name_;
 }
 
 void Cmd::ProcessDoNotSpecifyPartitionCmd() {
   Do();
 }
-
 
 bool Cmd::is_write() const {
   return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
