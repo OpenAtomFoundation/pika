@@ -87,7 +87,6 @@ Partition::Partition(const std::string& table_name,
   blackwidow::BlackwidowOptions bw_option;
   RocksdbOptionInit(&bw_option);
 
-  LOG(INFO) << partition_name_ << " prepare Blackwidow DB...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(bw_option, db_path_);
   opened_ = s.ok() ? true : false;
@@ -538,7 +537,7 @@ void Partition::FinishBgsave() {
   bgsave_info_.bgsaving = false;
 }
 
-bool Partition::FlushAll() {
+bool Partition::FlushDB() {
   slash::RWLock rwl(&db_rwlock_, true);
   slash::MutexLock ml(&bgsave_protector_);
   if (bgsave_info_.bgsaving) {
@@ -559,17 +558,16 @@ bool Partition::FlushAll() {
   blackwidow::BlackwidowOptions bw_option;
   RocksdbOptionInit(&bw_option);
 
-  LOG(INFO) << partition_name_ << " Prepare open new db...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(bw_option, db_path_);
   assert(db_);
   assert(s.ok());
-  LOG(INFO) << partition_name_ << " open new db success";
+  LOG(INFO) << partition_name_ << " Open new db success";
   g_pika_server->PurgeDir(dbpath);
   return true;
 }
 
-bool Partition::FlushDb(const std::string& db_name) {
+bool Partition::FlushSubDB(const std::string& db_name) {
   slash::RWLock rwl(&db_rwlock_, true);
   slash::MutexLock ml(&bgsave_protector_);
   if (bgsave_info_.bgsaving) {
@@ -592,7 +590,6 @@ bool Partition::FlushDb(const std::string& db_name) {
   blackwidow::BlackwidowOptions bw_option;
   RocksdbOptionInit(&bw_option);
 
-  LOG(INFO) << partition_name_ << " Prepare open new " + db_name + " db...";
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(bw_option, db_path_);
   assert(db_);

@@ -38,14 +38,15 @@ class Table : public std::enable_shared_from_this<Table>{
         const std::string& trash_path);
   virtual ~Table();
 
+  friend class Cmd;
   friend class InfoCmd;
   friend class PikaServer;
 
   std::string GetTableName();
   void BgSaveTable();
   void CompactTable(const blackwidow::DataType& type);
-  bool FlushAllTable();
-  bool FlushDbTable(const std::string& db_name);
+  bool FlushPartitionDB();
+  bool FlushPartitionSubDB(const std::string& db_name);
   bool IsBinlogIoError();
   uint32_t PartitionNum();
 

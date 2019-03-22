@@ -52,13 +52,16 @@ struct StatisticData {
 };
 
 static std::set<std::string> ShardingModeNotSupportCommands {kCmdNameDel,
-                 kCmdNameMget,        kCmdNameKeys,          kCmdNameMset,
-                 kCmdNameMsetnx,      kCmdNameScan,          kCmdNameScanx,
-                 kCmdNamePKScanRange, kCmdNamePKRScanRange,  kCmdNameRPopLPush,
-                 kCmdNameZUnionstore, kCmdNameZInterstore,   kCmdNameSUnion,
-                 kCmdNameSUnionstore, kCmdNameSInter,        kCmdNameSInterstore,
-                 kCmdNameSDiff,       kCmdNameSDiffstore,    kCmdNameSMove,
-                 kCmdNamePfCount,     kCmdNamePfMerge};
+             kCmdNameMget,        kCmdNameKeys,              kCmdNameMset,
+             kCmdNameMsetnx,      kCmdNameExists,            kCmdNameScan,
+             kCmdNameScanx,       kCmdNamePKScanRange,       kCmdNamePKRScanRange,
+             kCmdNameRPopLPush,   kCmdNameZUnionstore,       kCmdNameZInterstore,
+             kCmdNameSUnion,      kCmdNameSUnionstore,       kCmdNameSInter,
+             kCmdNameSInterstore, kCmdNameSDiff,             kCmdNameSDiffstore,
+             kCmdNameSMove,       kCmdNameBitOp,             kCmdNamePfAdd,
+             kCmdNamePfCount,     kCmdNamePfMerge,           kCmdNameGeoAdd,
+             kCmdNameGeoPos,      kCmdNameGeoDist,           kCmdNameGeoHash,
+             kCmdNameGeoRadius,   kCmdNameGeoRadiusByMember};
 
 extern PikaConf *g_pika_conf;
 
@@ -125,7 +128,6 @@ class PikaServer {
   void PreparePartitionTrySync();
   void PartitionSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   void PartitionSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
-  uint32_t GetPartitionNumByTable(const std::string& table_name);
   bool PartitionCouldPurge(const std::string& table_name,
                            uint32_t partition_id, uint32_t index);
   bool GetTablePartitionBinlogOffset(const std::string& table_name,
@@ -227,8 +229,6 @@ class PikaServer {
   /*
    * Keyscan used
    */
-  void KeyScanWholeTable(const std::string& table_name);
-  void StopKeyScanWholeTable(const std::string& table_name);
   void KeyScanTaskSchedule(pink::TaskFunc func, void* arg);
 
   /*
@@ -319,6 +319,7 @@ class PikaServer {
   void PubSubNumSub(const std::vector<std::string>& channels,
                     std::vector<std::pair<std::string, int>>* result);
 
+  friend class Cmd;
   friend class InfoCmd;
   friend class PikaReplClientConn;
 
