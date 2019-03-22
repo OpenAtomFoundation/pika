@@ -539,11 +539,6 @@ void PikaServer::PartitionSetSmallCompactionThreshold(uint32_t small_compaction_
   }
 }
 
-uint32_t PikaServer::GetPartitionNumByTable(const std::string& table_name) {
-  std::shared_ptr<Table> table = GetTable(table_name);
-  return table ? table->PartitionNum() : 0;
-}
-
 bool PikaServer::PartitionCouldPurge(const std::string& table_name,
                                      uint32_t partition_id, uint32_t index) {
   BinlogOffset slave_boffset;
@@ -1066,24 +1061,6 @@ std::string PikaServer::DbSyncTaskIndex(const std::string& ip,
   snprintf(buf, sizeof(buf), "%s:%d_%s:%d",
       ip.data(), port, table_name.data(), partition_id);
   return buf;
-}
-
-void PikaServer::KeyScanWholeTable(const std::string& table_name) {
-  std::shared_ptr<Table> table = GetTable(table_name);
-  if (!table) {
-    LOG(WARNING) << "table : " << table_name << " not exist, key scan failed!";
-    return;
-  }
-  table->KeyScan();
-}
-
-void PikaServer::StopKeyScanWholeTable(const std::string& table_name) {
-  std::shared_ptr<Table> table = GetTable(table_name);
-  if (!table) {
-    LOG(WARNING) << "table : " << table_name << " not exist, stop key scan failed!";
-    return;
-  }
-  table->StopKeyScan();
 }
 
 void PikaServer::KeyScanTaskSchedule(pink::TaskFunc func, void* arg) {

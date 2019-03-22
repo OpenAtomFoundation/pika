@@ -64,26 +64,26 @@ void Table::CompactTable(const blackwidow::DataType& type) {
   }
 }
 
-bool Table::FlushAllTable() {
+bool Table::FlushPartitionDB() {
   slash::MutexLock ml(&key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return false;
   }
   slash::RWLock rwl(&partitions_rw_, false);
   for (const auto& item : partitions_) {
-    item.second->FlushAll();
+    item.second->FlushDB();
   }
   return true;
 }
 
-bool Table::FlushDbTable(const std::string& db_name) {
+bool Table::FlushPartitionSubDB(const std::string& db_name) {
   slash::MutexLock ml(&key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return false;
   }
   slash::RWLock rwl(&partitions_rw_, false);
   for (const auto& item : partitions_) {
-    item.second->FlushDb(db_name);
+    item.second->FlushSubDB(db_name);
   }
   return true;
 }

@@ -190,16 +190,36 @@ void FlushallCmd::DoInitial() {
   }
 }
 void FlushallCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (!table) {
-    res_.SetRes(CmdRes::kInvalidTable);
+  if (!partition) {
+    LOG(INFO) << "Flushall, but partition not found";
   } else {
-    if (table->FlushAllTable()) {
-      res_.SetRes(CmdRes::kOk);
-    } else {
-      res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushall");
-    }
+    partition->FlushDB();
   }
+}
+
+// flushall convert flushdb writes to every partition binlog
+std::string FlushallCmd::ToBinlog(
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) {
+  std::string content;
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 1, "*");
+
+  // to flushdb cmd
+  std::string flushdb_cmd("flushdb");
+  RedisAppendLen(content, flushdb_cmd.size(), "$");
+  RedisAppendContent(content, flushdb_cmd);
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
+                                             exec_time,
+                                             std::stoi(server_id),
+                                             logic_id,
+                                             filenum,
+                                             offset,
+                                             content,
+                                             {});
 }
 
 void FlushdbCmd::DoInitial() {
@@ -207,31 +227,34 @@ void FlushdbCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameFlushdb);
     return;
   }
-  std::string struct_type = argv_[1];
-  if (!strcasecmp(struct_type.data(), "string")) {
-    db_name_ = "strings";
-  } else if (!strcasecmp(struct_type.data(), "hash")) {
-    db_name_ = "hashes";
-  } else if (!strcasecmp(struct_type.data(), "set")) {
-    db_name_ = "sets";
-  } else if (!strcasecmp(struct_type.data(), "zset")) {
-    db_name_ = "zsets";
-  } else if (!strcasecmp(struct_type.data(), "list")) {
-    db_name_ = "lists";
+  if (argv_.size() == 1) {
+    db_name_ = "all";
   } else {
-    res_.SetRes(CmdRes::kInvalidDbType);
+    std::string struct_type = argv_[1];
+    if (!strcasecmp(struct_type.data(), "string")) {
+      db_name_ = "strings";
+    } else if (!strcasecmp(struct_type.data(), "hash")) {
+      db_name_ = "hashes";
+    } else if (!strcasecmp(struct_type.data(), "set")) {
+      db_name_ = "sets";
+    } else if (!strcasecmp(struct_type.data(), "zset")) {
+      db_name_ = "zsets";
+    } else if (!strcasecmp(struct_type.data(), "list")) {
+      db_name_ = "lists";
+    } else {
+      res_.SetRes(CmdRes::kInvalidDbType);
+    }
   }
 }
 
 void FlushdbCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (!table) {
-    res_.SetRes(CmdRes::kInvalidTable);
+  if (!partition) {
+    LOG(INFO) << "Flushdb, but partition not found";
   } else {
-    if (table->FlushDbTable(db_name_)) {
-      res_.SetRes(CmdRes::kOk);
+    if (db_name_ == "all") {
+      partition->FlushDB();
     } else {
-      res_.SetRes(CmdRes::kErrOther, "There are some bgthread using db now, can not flushdb");
+      partition->FlushSubDB(db_name_);
     }
   }
 }

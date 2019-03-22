@@ -99,7 +99,6 @@ void* PikaSlavepingThread::ThreadMain() {
         }
         sleep(1);
       }
-      sleep(2);
     } else if (!should_stop()) {
       LOG(WARNING) << "Slaveping, Connect timeout, master: " << ip_port;
       if ((++connect_retry_times) >= 10) {

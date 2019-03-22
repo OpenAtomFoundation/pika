@@ -369,6 +369,8 @@ class Cmd {
 
   virtual std::string current_key() const;
   virtual void Execute();
+  virtual void ProcessFlushDBCmd();
+  virtual void ProcessFlushAllCmd();
   virtual void ProcessSinglePartitionCmd();
   virtual void ProcessMultiPartitionCmd();
   virtual void ProcessDoNotSpecifyPartitionCmd();
