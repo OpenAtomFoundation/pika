@@ -138,7 +138,6 @@ bool PikaReplClient::SetAckInfo(const RmNode& slave, uint32_t ack_filenum_start,
       break;
     }
   }
-  //LOG(INFO) << " offset start " << ack_filenum_start << " " << ack_offset_start << " offset end " << ack_filenum_end <<" "<< ack_offset_end << " ctl offset " << ctl->ack_file_num_ << " " << ctl->ack_offset_;
   ctl->active_time_ = active_time;
   }
   return true;
@@ -161,7 +160,7 @@ bool PikaReplClient::GetAckInfo(const RmNode& slave, uint32_t* ack_file_num, uin
   return true;
 }
 
-Status PikaReplClient::GetBinlogReaderStatus(const RmNode& slave, BinlogOffset* const boffset) {
+Status PikaReplClient::GetBinlogSyncCtlStatus(const RmNode& slave, BinlogOffset* const sent_boffset, BinlogOffset* const acked_boffset) {
   BinlogSyncCtl* ctl = nullptr;
   {
   slash::RWLock l_rw(&binlog_ctl_rw_, false);
@@ -172,7 +171,9 @@ Status PikaReplClient::GetBinlogReaderStatus(const RmNode& slave, BinlogOffset* 
   ctl = iter->second;
 
   slash::MutexLock l(&(ctl->ctl_mu_));
-  ctl->reader_->GetReaderStatus(&boffset->filenum, &boffset->offset);
+  ctl->reader_->GetReaderStatus(&sent_boffset->filenum, &sent_boffset->offset);
+  acked_boffset->filenum = ctl->ack_file_num_;
+  acked_boffset->offset = ctl->ack_offset_;
   }
   return Status::OK();
 }
