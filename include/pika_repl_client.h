@@ -95,7 +95,7 @@ class PikaReplClient {
   Status AddBinlogSyncCtl(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
   Status RemoveSlave(const SlaveItem& slave);
   Status RemoveBinlogSyncCtl(const RmNode& slave);
-  Status GetBinlogReaderStatus(const RmNode& slave, BinlogOffset* const boffset);
+  Status GetBinlogSyncCtlStatus(const RmNode& slave, BinlogOffset* const sent_boffset, BinlogOffset* const acked_boffset);
 
   Status SendMetaSync();
   Status SendPartitionTrySync(const std::string& table_name,
