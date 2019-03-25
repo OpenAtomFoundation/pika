@@ -59,7 +59,7 @@ int PikaConf::Load()
 
   std::string instance_mode;
   GetConfStr("instance-mode", &instance_mode);
-  classic_mode_ = !strcasecmp(instance_mode.data(), "classic");
+  classic_mode_ = (instance_mode.empty() || !strcasecmp(instance_mode.data(), "classic"));
 
   if (classic_mode_) {
     std::vector<std::string> db_list;
