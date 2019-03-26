@@ -728,8 +728,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
             uint64_t lag =
               (master_boffset.filenum - sent_slave_boffset.filenum) * g_pika_conf->binlog_file_size()
               + (master_boffset.offset - sent_slave_boffset.offset);
-            tmp_stream << "(" << partition->GetPartitionName() << ":" << lag << " sent " << sent_slave_boffset.filenum << " " << sent_slave_boffset.offset
-              << " acked " << acked_slave_boffset.filenum << " " << acked_slave_boffset.offset << ")";
+            tmp_stream << "(" << partition->GetPartitionName() << ":" << lag << ")";
             sync_status_stream << "  (" << partition->GetPartitionName() << ":" << "sent " << sent_slave_boffset.filenum << " " << sent_slave_boffset.offset
               << " acked " << acked_slave_boffset.filenum << " " << acked_slave_boffset.offset<< ")" << "\r\n";
           } else {
