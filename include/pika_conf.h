@@ -60,6 +60,7 @@ class PikaConf : public slash::BaseConf {
   const std::string suser_blacklist()               { RWLock l(&rwlock_, false); return slash::StringConcat(user_blacklist_, COMMA); }
   const std::vector<std::string>& vuser_blacklist() { RWLock l(&rwlock_, false); return user_blacklist_;}
   bool classic_mode()                               { RWLock l(&rwlock_, false); return classic_mode_;}
+  int databases()                                   { RWLock l(&rwlock_, false); return databases_;}
   const std::vector<TableStruct>& table_structs()   { RWLock l(&rwlock_, false); return table_structs_; }
   std::string default_table()                       { RWLock l(&rwlock_, false); return default_table_;}
   std::string compression()                         { RWLock l(&rwlock_, false); return compression_; }
@@ -175,6 +176,10 @@ class PikaConf : public slash::BaseConf {
       slash::StringToLower(item);
     }
   }
+  void SetDatabases(const int databases) {
+    RWLock l(&rwlock_, true);
+    databases_ = databases;
+  }
   void SetTableStructs(const std::vector<TableStruct>& table_structs) {
     RWLock l(&rwlock_, true);
     table_structs_ = table_structs;
@@ -262,6 +267,7 @@ class PikaConf : public slash::BaseConf {
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
   bool classic_mode_;
+  int databases_;
   std::vector<TableStruct> table_structs_;
   std::string default_table_;
   std::string bgsave_path_;

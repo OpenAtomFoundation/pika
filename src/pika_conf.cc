@@ -62,14 +62,10 @@ int PikaConf::Load()
   classic_mode_ = (instance_mode.empty() || !strcasecmp(instance_mode.data(), "classic"));
 
   if (classic_mode_) {
-    std::vector<std::string> db_list;
-    std::unordered_set<std::string> unique;
-    GetConfStrVec("db-list", &db_list);
-    for (const auto& db : db_list) {
-      if (!unique.count(db)) {
-        table_structs_.push_back({db, 1});
-        unique.insert(db);
-      }
+    GetConfInt("databases", &databases_);
+    databases_ = (databases_ < 1 || databases_ > 8) ? 1 : databases_;
+    for (int idx = 0; idx < databases_; ++idx) {
+      table_structs_.push_back({std::to_string(idx), 1});
     }
   } else {
     int32_t partition_num;
