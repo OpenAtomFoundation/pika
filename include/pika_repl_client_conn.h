@@ -19,6 +19,7 @@ class PikaReplClientConn: public pink::PbConn {
   virtual ~PikaReplClientConn() = default;
   static void HandleBinlogSyncResponse(void* arg);
   static void HandleMetaSyncResponse(void* arg);
+  static void HandleDBSyncResponse(void* arg);
   static void HandleTrySyncResponse(void* arg);
   static bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
                                const std::vector<TableStruct>& expect_tables);

@@ -29,6 +29,10 @@ class PikaReplServer {
                             std::shared_ptr<pink::PbConn> conn,
                             void* req_private_data);
 
+  void ScheduleDBSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+                          std::shared_ptr<pink::PbConn> conn,
+                          void* req_private_data);
+
   void ScheduleTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
                            std::shared_ptr<pink::PbConn> conn,
                            void* req_private_data);

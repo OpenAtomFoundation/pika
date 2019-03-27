@@ -98,10 +98,12 @@ class PikaReplClient {
   Status GetBinlogSyncCtlStatus(const RmNode& slave, BinlogOffset* const sent_boffset, BinlogOffset* const acked_boffset);
 
   Status SendMetaSync();
+  Status SendPartitionDBSync(const std::string& table_name,
+                             uint32_t partition_id,
+                             const BinlogOffset& boffset);
   Status SendPartitionTrySync(const std::string& table_name,
                               uint32_t partition_id,
-                              const BinlogOffset& boffset,
-                              bool force);
+                              const BinlogOffset& boffset);
   Status SendBinlogSync(const RmNode& slave);
 
   Status TriggerSendBinlogSync();

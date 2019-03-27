@@ -273,6 +273,7 @@ class PikaServer {
   void SignalAuxiliary();
   Status TriggerSendBinlogSync();
   Status SendMetaSyncRequest();
+  Status SendPartitionDBSyncRequest(std::shared_ptr<Partition> partition);
   Status SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition);
   Status SendBinlogSyncRequest(const std::string& table, uint32_t partition,
                                const std::string& ip, int port);
@@ -291,6 +292,9 @@ class PikaServer {
   void ScheduleReplDbTask(const std::string &key,
                           PikaCmdArgsType* argv, BinlogItem* binlog_item,
                           const std::string& table_name, uint32_t partition_id);
+  void ScheduleReplDBSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+                              std::shared_ptr<pink::PbConn> conn,
+                              void* req_private_data);
   void ScheduleReplTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
                                std::shared_ptr<pink::PbConn> conn,
                                void* req_private_data);

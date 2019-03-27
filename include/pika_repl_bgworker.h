@@ -31,6 +31,7 @@ class PikaReplBgWorker {
 
   static void HandleMetaSyncRequest(void* arg);
   static void HandleBinlogSyncRequest(void* arg);
+  static void HandleDBSyncRequest(void* arg);
   static void HandleTrySyncRequest(void* arg);
   static void HandleWriteDb(void* arg);
 

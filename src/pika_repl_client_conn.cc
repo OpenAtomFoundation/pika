@@ -104,6 +104,43 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   delete resp_arg;
 }
 
+void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
+  ReplRespArg* resp_arg = static_cast<ReplRespArg*>(arg);
+  std::shared_ptr<pink::PbConn> conn = resp_arg->conn;
+  std::shared_ptr<InnerMessage::InnerResponse> response = resp_arg->resp;
+
+  if (response->code() != InnerMessage::kOk) {
+    std::string reply = response->has_reply() ? response->reply() : "";
+    LOG(WARNING) << "DBSync Failed: " << reply;
+    conn->NotifyClose();
+    delete resp_arg;
+    return;
+  }
+
+  const InnerMessage::InnerResponse_DBSync db_sync_response = response->db_sync();
+  const InnerMessage::Partition partition_response = db_sync_response.partition();
+  std::string table_name = partition_response.table_name();
+  uint32_t partition_id  = partition_response.partition_id();
+  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
+  if (!partition) {
+    LOG(WARNING) << "Partition: " << table_name << ":" << partition_id << " Not Found";
+    conn->NotifyClose();
+    delete resp_arg;
+    return;
+  }
+
+  std::string partition_name = partition->GetPartitionName();
+  if (db_sync_response.reply_code() == InnerMessage::InnerResponse::DBSync::kWait) {
+    partition->SetReplState(ReplState::kWaitDBSync);
+    LOG(INFO)    << "Partition: " << partition_name << " Need Wait To Sync";
+  } else {
+    partition->SetReplState(ReplState::kError);
+    LOG(WARNING) << "Partition: " << partition_name << " DBSync Error, Invaild Reply Code";
+    conn->NotifyClose();
+  }
+  delete resp_arg;
+}
+
 void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   ReplRespArg* resp_arg = static_cast<ReplRespArg*>(arg);
   std::shared_ptr<pink::PbConn> conn = resp_arg->conn;
@@ -133,10 +170,10 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
     partition->SetReplState(ReplState::kConnected);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
-  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kWait) {
-    partition->SetReplState(ReplState::kWaitDBSync);
-    LOG(INFO)    << "Partition: " << partition_name << " Need Wait To Sync";
-  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kInvalidOffset) {
+  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {
+    partition->SetReplState(ReplState::kTryDBSync);
+    LOG(INFO)    << "Partition: " << partition_name << " Need To Try DBSync";
+  } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointLarger) {
     partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error, Because the invalid filenum and offset";
     conn->NotifyClose();
@@ -156,6 +193,12 @@ int PikaReplClientConn::DealMessage() {
     {
       ReplRespArg* arg = new ReplRespArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_server->ScheduleReplCliTask(&PikaReplClientConn::HandleMetaSyncResponse, static_cast<void*>(arg));
+      break;
+    }
+    case InnerMessage::kDBSync:
+    {
+      ReplRespArg* arg = new ReplRespArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
+      g_pika_server->ScheduleReplCliTask(&PikaReplClientConn::HandleDBSyncResponse, static_cast<void*>(arg));
       break;
     }
     case InnerMessage::kTrySync:

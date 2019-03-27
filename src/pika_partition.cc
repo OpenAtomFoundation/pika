@@ -404,7 +404,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
   assert(db_);
   assert(s.ok());
   slash::DeleteDirIfExist(tmp_path);
-  LOG(INFO) << "Partition:" << partition_name_ << ", Change db success";
+  LOG(INFO) << "Partition: " << partition_name_ << ", Change db success";
   return true;
 }
 

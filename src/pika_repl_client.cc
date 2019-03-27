@@ -264,10 +264,38 @@ Status PikaReplClient::SendMetaSync() {
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
 
+Status PikaReplClient::SendPartitionDBSync(const std::string& table_name,
+                                           uint32_t partition_id,
+                                           const BinlogOffset& boffset) {
+  InnerMessage::InnerRequest request;
+  request.set_type(InnerMessage::kDBSync);
+  InnerMessage::InnerRequest::DBSync* db_sync = request.mutable_db_sync();
+  InnerMessage::Node* node = db_sync->mutable_node();
+  node->set_ip(g_pika_server->host());
+  node->set_port(g_pika_server->port());
+  InnerMessage::Partition* partition = db_sync->mutable_partition();
+  partition->set_table_name(table_name);
+  partition->set_partition_id(partition_id);
+
+  InnerMessage::BinlogOffset* binlog_offset = db_sync->mutable_binlog_offset();
+  binlog_offset->set_filenum(boffset.filenum);
+  binlog_offset->set_offset(boffset.offset);
+
+  std::string to_send;
+  std::string master_ip = g_pika_server->master_ip();
+  int master_port = g_pika_server->master_port();
+  if (!request.SerializeToString(&to_send)) {
+    LOG(WARNING) << "Serialize Partition DBSync Request Failed, to Master ("
+      << master_ip << ":" << master_port << ")";
+    return Status::Corruption("Serialize Failed");
+  }
+  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
+}
+
+
 Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
                                             uint32_t partition_id,
-                                            const BinlogOffset& boffset,
-                                            bool force_sync) {
+                                            const BinlogOffset& boffset) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kTrySync);
   InnerMessage::InnerRequest::TrySync* try_sync = request.mutable_try_sync();
@@ -278,10 +306,9 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
   partition->set_table_name(table_name);
   partition->set_partition_id(partition_id);
 
-  try_sync->set_force(force_sync);
   InnerMessage::BinlogOffset* binlog_offset = try_sync->mutable_binlog_offset();
-  binlog_offset->set_filenum(force_sync ? 0 : boffset.filenum);
-  binlog_offset->set_offset(force_sync ? 0 : boffset.offset);
+  binlog_offset->set_filenum(boffset.filenum);
+  binlog_offset->set_offset(boffset.offset);
 
   std::string to_send;
   std::string master_ip = g_pika_server->master_ip();

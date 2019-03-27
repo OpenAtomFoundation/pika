@@ -36,6 +36,12 @@ int PikaReplServerConn::DealMessage() {
           std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()),
           NULL);
       break;
+    case InnerMessage::kDBSync:
+      g_pika_server->ScheduleReplMetaSyncTask(
+          req,
+          std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()),
+          NULL);
+      break;
     case InnerMessage::kTrySync:
       g_pika_server->ScheduleReplTrySyncTask(
           req,
