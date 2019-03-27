@@ -1243,6 +1243,21 @@ Status PikaServer::SendMetaSyncRequest() {
   return status;
 }
 
+Status PikaServer::SendPartitionDBSyncRequest(std::shared_ptr<Partition> partition) {
+  BinlogOffset boffset;
+  if (!partition->GetBinlogOffset(&boffset)) {
+    LOG(WARNING) << "Partition: " << partition->GetPartitionName()
+        << ",  Get partition binlog offset failed";
+    return Status::Corruption("Partition get binlog offset error");
+  }
+  partition->PrepareRsync();
+  std::string table_name = partition->GetTableName();
+  uint32_t partition_id = partition->GetPartitionId();
+  Status status = pika_repl_client_->SendPartitionDBSync(table_name, partition_id, boffset);
+  partition->SetReplState(ReplState::kWaitReply);
+  return status;
+}
+
 Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition) {
   BinlogOffset boffset;
   if (!partition->GetBinlogOffset(&boffset)) {
@@ -1252,9 +1267,7 @@ Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partit
   }
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
-  bool force = partition->FullSync();
-  partition->PrepareRsync();
-  Status status = pika_repl_client_->SendPartitionTrySync(table_name, partition_id, boffset, force);
+  Status status = pika_repl_client_->SendPartitionTrySync(table_name, partition_id, boffset);
   partition->SetReplState(ReplState::kWaitReply);
   return status;
 }
@@ -1289,6 +1302,12 @@ void PikaServer::ScheduleReplDbTask(const std::string &key,
                                     const std::string& table_name,
                                     uint32_t partition_id) {
   pika_repl_server_->ScheduleDbTask(key, argv, binlog_item, table_name, partition_id);
+}
+
+void PikaServer::ScheduleReplDBSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
+                                        std::shared_ptr<pink::PbConn> conn,
+                                        void* req_private_data) {
+  pika_repl_server_->ScheduleDBSyncTask(req, conn, req_private_data);
 }
 
 void PikaServer::ScheduleReplTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
