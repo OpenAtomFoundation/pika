@@ -62,6 +62,13 @@ void PikaReplServer::ScheduleMetaSyncTask(
   UpdateNextAvail();
 }
 
+void PikaReplServer::ScheduleDBSyncTask(
+        const std::shared_ptr<InnerMessage::InnerRequest> req,
+        std::shared_ptr<pink::PbConn> conn, void* req_private_data) {
+  bg_workers_[next_avail_]->ScheduleRequest(req, conn, NULL);
+  UpdateNextAvail();
+}
+
 void PikaReplServer::ScheduleTrySyncTask(
         const std::shared_ptr<InnerMessage::InnerRequest> req,
         std::shared_ptr<pink::PbConn> conn, void* req_private_data) {
