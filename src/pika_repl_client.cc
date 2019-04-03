@@ -12,11 +12,14 @@
 
 extern PikaServer* g_pika_server;
 
-PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) {
+PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) : next_avail_(0) {
   client_thread_ = new PikaReplClientThread(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
-  client_tp_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
   pthread_rwlock_init(&binlog_ctl_rw_, NULL);
+
+  for (int i = 0; i < 2 * g_pika_conf->sync_thread_num(); ++i) {
+    bg_workers_.push_back(new PikaReplBgWorker(PIKA_SYNC_BUFFER_SIZE));
+  }
 }
 
 PikaReplClient::~PikaReplClient() {
@@ -25,8 +28,11 @@ PikaReplClient::~PikaReplClient() {
   for (auto iter : binlog_ctl_) {
     delete iter.second;
   }
-  delete client_tp_;
   pthread_rwlock_destroy(&binlog_ctl_rw_);
+
+  for (size_t i = 0; i < bg_workers_.size(); ++i) {
+    delete bg_workers_[i];
+  }
   LOG(INFO) << "PikaReplClient exit!!!";
 }
 
@@ -35,11 +41,42 @@ int PikaReplClient::Start() {
   if (res != pink::kSuccess) {
     LOG(FATAL) << "Start ReplClient ClientThread Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
-  res = client_tp_->start_thread_pool();
-  if (res != pink::kSuccess) {
-    LOG(FATAL) << "Start ThreadPool Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  for (size_t i = 0; i < bg_workers_.size(); ++i) {
+    res = bg_workers_[i]->StartThread();
+    if (res != pink::kSuccess) {
+      LOG(FATAL) << "Start Pika Repl Worker Thread Error: " << res
+          << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+    }
   }
   return res;
+}
+
+void PikaReplClient::Schedule(pink::TaskFunc func, void* arg) {
+  bg_workers_[next_avail_]->Schedule(func, arg);
+  UpdateNextAvail();
+}
+
+void PikaReplClient::ScheduleWriteBinlogTask(std::string table_partition,
+    const std::shared_ptr<InnerMessage::InnerResponse> res,
+    std::shared_ptr<pink::PbConn> conn, void* res_private_data) {
+  size_t index = GetHashIndex(table_partition, true);
+  ReplClientWriteBinlogTaskArg* task_arg =
+    new ReplClientWriteBinlogTaskArg(res, conn, res_private_data, bg_workers_[index]);
+  bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteBinlog, static_cast<void*>(task_arg));
+}
+
+void PikaReplClient::ScheduleWriteDBTask(const std::string& dispatch_key,
+    PikaCmdArgsType* argv, BinlogItem* binlog_item,
+    const std::string& table_name, uint32_t partition_id) {
+  size_t index = GetHashIndex(dispatch_key, false);
+  ReplClientWriteDBTaskArg* task_arg =
+    new ReplClientWriteDBTaskArg(argv, binlog_item, table_name, partition_id);
+  bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
+}
+
+size_t PikaReplClient::GetHashIndex(std::string key, bool upper_half) {
+  size_t hash_base = bg_workers_.size() / 2;
+  return (str_hash(key) % hash_base) + (upper_half ? 0 : hash_base);
 }
 
 void PikaReplClient::ProduceWriteQueue(WriteTask& task) {
@@ -49,47 +86,47 @@ void PikaReplClient::ProduceWriteQueue(WriteTask& task) {
 }
 
 int PikaReplClient::ConsumeWriteQueue() {
-  int counter = 0;
-  slash::MutexLock l(&write_queue_mu_);
-  for (auto& iter : write_queues_) {
-    std::queue<WriteTask>& queue = iter.second;
-    for (int i = 0; i < kBinlogSendPacketNum; ++i) {
-      if (queue.empty()) {
-        break;
-      }
-      InnerMessage::InnerRequest request;
-      request.set_type(InnerMessage::kBinlogSync);
-      size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
-      std::string ip;
-      int port = 0;
-      if (!slash::ParseIpPortString(iter.first, ip, port)) {
-        LOG(WARNING) << "Parse ip_port error " << iter.first;
-      }
-      for (size_t i = 0; i < batch_index; ++i) {
-        WriteTask task = queue.front();
-        queue.pop();
-        BuildBinlogPb(task.rm_node_,
-                      task.binlog_chip_.binlog_,
-                      task.binlog_chip_.file_num_,
-                      task.binlog_chip_.offset_, &request);
+  //int counter = 0;
+  //slash::MutexLock l(&write_queue_mu_);
+  //for (auto& iter : write_queues_) {
+  //  std::queue<WriteTask>& queue = iter.second;
+  //  for (int i = 0; i < kBinlogSendPacketNum; ++i) {
+  //    if (queue.empty()) {
+  //      break;
+  //    }
+  //    InnerMessage::InnerRequest request;
+  //    request.set_type(InnerMessage::kBinlogSync);
+  //    size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
+  //    std::string ip;
+  //    int port = 0;
+  //    if (!slash::ParseIpPortString(iter.first, ip, port)) {
+  //      LOG(WARNING) << "Parse ip_port error " << iter.first;
+  //    }
+  //    for (size_t i = 0; i < batch_index; ++i) {
+  //      WriteTask task = queue.front();
+  //      queue.pop();
+  //      BuildBinlogPb(task.rm_node_,
+  //                    task.binlog_chip_.binlog_,
+  //                    task.binlog_chip_.file_num_,
+  //                    task.binlog_chip_.offset_, &request);
 
-        counter++;
-      }
-      std::string to_send;
-      bool res = request.SerializeToString(&to_send);
-      if (!res) {
-        LOG(WARNING) << "Serialize Failed";
-        continue;
-      }
-      Status s = client_thread_->Write(ip, port, to_send);
-      if (!s.ok()) {
-        LOG(WARNING) << "write to " << ip << ":" << port << " failed";
-        continue;
-      }
-    }
-  }
-
-  return counter;
+  //      counter++;
+  //    }
+  //    std::string to_send;
+  //    bool res = request.SerializeToString(&to_send);
+  //    if (!res) {
+  //      LOG(WARNING) << "Serialize Failed";
+  //      continue;
+  //    }
+  //    Status s = client_thread_->Write(ip, port, to_send);
+  //    if (!s.ok()) {
+  //      LOG(WARNING) << "write to " << ip << ":" << port << " failed";
+  //      continue;
+  //    }
+  //  }
+  //}
+  //return counter;
+  return 0;
 }
 
 void PikaReplClient::DropItemInWriteQueue(const std::string& ip, int port) {
@@ -321,6 +358,35 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
 
+Status PikaReplClient::SendPartitionBinlogSyncAck(const std::string& table_name,
+                                                  uint32_t partition_id,
+                                                  const BinlogOffset& ack_start,
+                                                  const BinlogOffset& ack_end) {
+  InnerMessage::InnerRequest request;
+  request.set_type(InnerMessage::kBinlogSync);
+  InnerMessage::InnerRequest::BinlogSync* binlog_sync = request.mutable_binlog_sync();
+  binlog_sync->set_table_name(table_name);
+  binlog_sync->set_partition_id(partition_id);
+
+  InnerMessage::BinlogOffset* ack_range_start = binlog_sync->mutable_ack_range_start();
+  ack_range_start->set_filenum(ack_start.filenum);
+  ack_range_start->set_offset(ack_start.offset);
+
+  InnerMessage::BinlogOffset* ack_range_end = binlog_sync->mutable_ack_range_end();
+  ack_range_end->set_filenum(ack_end.filenum);
+  ack_range_end->set_offset(ack_end.offset);
+
+  std::string to_send;
+  std::string master_ip = g_pika_server->master_ip();
+  int master_port = g_pika_server->master_port();
+  if (!request.SerializeToString(&to_send)) {
+    LOG(WARNING) << "Serialize Partition BinlogSync Request Failed, to Master ("
+      << master_ip << ":" << master_port << ")";
+    return Status::Corruption("Serialize Failed");
+  }
+  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
+}
+
 
 Status PikaReplClient::SendBinlogSync(const RmNode& slave) {
   BinlogSyncCtl* ctl = nullptr;
@@ -384,16 +450,16 @@ Status PikaReplClient::TriggerSendBinlogSync() {
 }
 
 void PikaReplClient::BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest* request) {
-  InnerMessage::InnerRequest::BinlogSync* binlog_msg = request->add_binlog_sync();
-  InnerMessage::Node* node = binlog_msg->mutable_node();
-  node->set_ip(slave.ip_);
-  node->set_port(slave.port_);
-  binlog_msg->set_table_name(slave.table_);
-  binlog_msg->set_partition_id(slave.partition_);
-  InnerMessage::BinlogOffset* binlog_offset = binlog_msg->mutable_binlog_offset();
-  binlog_offset->set_filenum(filenum);
-  binlog_offset->set_offset(offset);
-  binlog_msg->set_binlog(msg);
+  //InnerMessage::InnerRequest::BinlogSync* binlog_msg = request->add_binlog_sync();
+  //InnerMessage::Node* node = binlog_msg->mutable_node();
+  //node->set_ip(slave.ip_);
+  //node->set_port(slave.port_);
+  //binlog_msg->set_table_name(slave.table_);
+  //binlog_msg->set_partition_id(slave.partition_);
+  //InnerMessage::BinlogOffset* binlog_offset = binlog_msg->mutable_binlog_offset();
+  //binlog_offset->set_filenum(filenum);
+  //binlog_offset->set_offset(offset);
+  //binlog_msg->set_binlog(msg);
 }
 
 PikaBinlogReader* PikaReplClient::NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
