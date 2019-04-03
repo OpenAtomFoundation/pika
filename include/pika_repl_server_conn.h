@@ -17,11 +17,7 @@ class PikaReplServerConn: public pink::PbConn {
  public:
   PikaReplServerConn(int fd, std::string ip_port, pink::Thread* thread, void* worker_specific_data, pink::PinkEpoll* epoll);
   virtual ~PikaReplServerConn();
-
   int DealMessage();
- private:
-  // dispatch binlog by its table_name + partition
-  void DispatchBinlogReq(const std::shared_ptr<InnerMessage::InnerRequest> req);
 };
 
 #endif  // INCLUDE_PIKA_REPL_SERVER_CONN_H_

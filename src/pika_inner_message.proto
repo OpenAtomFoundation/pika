@@ -1,11 +1,11 @@
 package InnerMessage;
 
 enum Type {
-  kMetaSync   = 1;
-  kTrySync    = 2;
-  kDBSync     = 3;
-  kBinlogSync = 4;
-  kHeatBeat   = 5;
+  kMetaSync    = 1;
+  kTrySync     = 2;
+  kDBSync      = 3;
+  kBinlogSync  = 4;
+  kHeatBeat    = 5;
 }
 
 enum StatusCode {
@@ -50,13 +50,11 @@ message InnerRequest {
     required BinlogOffset binlog_offset  = 3;
   }
 
-  // master to slave
   message BinlogSync {
-    required Node           node          = 1;
-    required string         table_name    = 2;
-    required uint32         partition_id  = 3;
-    optional BinlogOffset   binlog_offset = 4;
-    required bytes          binlog        = 5;
+    required string       table_name      = 1;
+    required uint32       partition_id    = 2;
+    required BinlogOffset ack_range_start = 3;
+    required BinlogOffset ack_range_end   = 4;
   }
 
   // slave to master
@@ -66,12 +64,12 @@ message InnerRequest {
     optional int64  sid  = 3;
   }
 
-  required Type       type        = 1;
-  optional MetaSync   meta_sync   = 2;
-  optional TrySync    try_sync    = 3;
-  optional DBSync     db_sync     = 4;
-  repeated BinlogSync binlog_sync = 5;
-  optional HeatBeat   heat_beat   = 6;
+  required Type        type         = 1;
+  optional MetaSync    meta_sync    = 2;
+  optional TrySync     try_sync     = 3;
+  optional DBSync      db_sync      = 4;
+  optional BinlogSync  binlog_sync  = 5;
+  optional HeatBeat    heat_beat    = 6;
 }
 
 message PartitionInfo {
@@ -115,12 +113,13 @@ message InnerResponse {
     required Partition partition  = 2;
   }
 
-  // slave to master
+  // master to slave
   message BinlogSync {
-    required string       table_name           = 1;
-    required uint32       partition_id         = 2;
-    required BinlogOffset binlog_offset_start  = 3;
-    required BinlogOffset binlog_offset_end    = 4;
+    required Node           node          = 1;
+    required string         table_name    = 2;
+    required uint32         partition_id  = 3;
+    required BinlogOffset   binlog_offset = 4;
+    required bytes          binlog        = 5;
   }
 
   // slave to master
@@ -128,12 +127,12 @@ message InnerResponse {
     required string pong = 1;
   }
 
-  required Type       type        = 1;
-  required StatusCode code        = 2;
-  optional string     reply       = 3;
-  optional MetaSync   meta_sync   = 4;
-  optional DBSync     db_sync     = 5;
-  optional TrySync    try_sync    = 6;
-  optional BinlogSync binlog_sync = 7;
-  optional HeatBeat   heat_beat   = 8;
+  required Type       type         = 1;
+  required StatusCode code         = 2;
+  optional string     reply        = 3;
+  optional MetaSync   meta_sync    = 4;
+  optional DBSync     db_sync      = 5;
+  optional TrySync    try_sync     = 6;
+  repeated BinlogSync binlog_sync  = 7;
+  optional HeatBeat   heat_beat    = 8;
 }

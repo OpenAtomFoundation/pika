@@ -16,6 +16,7 @@
 
 #include "include/pika_partition.h"
 #include "include/pika_binlog_reader.h"
+#include "include/pika_repl_bgworker.h"
 #include "include/pika_repl_client_thread.h"
 
 #include "pink/include/thread_pool.h"
@@ -84,13 +85,61 @@ struct WriteTask {
   }
 };
 
+struct ReplClientTaskArg {
+  std::shared_ptr<InnerMessage::InnerResponse> res;
+  std::shared_ptr<pink::PbConn> conn;
+  ReplClientTaskArg(std::shared_ptr<InnerMessage::InnerResponse> _res,
+                    std::shared_ptr<pink::PbConn> _conn)
+      : res(_res), conn(_conn) {}
+};
+
+struct ReplClientWriteBinlogTaskArg {
+  std::shared_ptr<InnerMessage::InnerResponse> res;
+  std::shared_ptr<pink::PbConn> conn;
+  void* res_private_data;
+  PikaReplBgWorker* worker;
+  ReplClientWriteBinlogTaskArg(
+          const std::shared_ptr<InnerMessage::InnerResponse> _res,
+          std::shared_ptr<pink::PbConn> _conn,
+          void* _res_private_data,
+          PikaReplBgWorker* _worker) :
+      res(_res), conn(_conn),
+      res_private_data(_res_private_data), worker(_worker) {}
+};
+
+struct ReplClientWriteDBTaskArg {
+  PikaCmdArgsType* argv;
+  BinlogItem* binlog_item;
+  std::string table_name;
+  uint32_t partition_id;
+  ReplClientWriteDBTaskArg(PikaCmdArgsType* _argv,
+                           BinlogItem* _binlog_item,
+                           const std::string _table_name,
+                           uint32_t _partition_id)
+      : argv(_argv), binlog_item(_binlog_item),
+        table_name(_table_name), partition_id(_partition_id) {}
+  ~ReplClientWriteDBTaskArg() {
+    delete argv;
+    delete binlog_item;
+  }
+};
+
+
 class PikaReplClient {
  public:
   PikaReplClient(int cron_interval, int keepalive_timeout);
   ~PikaReplClient();
   slash::Status Write(const std::string& ip, const int port, const std::string& msg);
-  //void ThreadPollSchedule(pink::TaskFunc func, void*arg);
+
   int Start();
+  void Schedule(pink::TaskFunc func, void* arg);
+  void ScheduleWriteBinlogTask(std::string table_partition,
+                              const std::shared_ptr<InnerMessage::InnerResponse> res,
+                              std::shared_ptr<pink::PbConn> conn,
+                              void* req_private_data);
+  void ScheduleWriteDBTask(const std::string& dispatch_key,
+                           PikaCmdArgsType* argv, BinlogItem* binlog_item,
+                           const std::string& table_name, uint32_t partition_id);
 
   Status AddBinlogSyncCtl(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
   Status RemoveSlave(const SlaveItem& slave);
@@ -104,6 +153,10 @@ class PikaReplClient {
   Status SendPartitionTrySync(const std::string& table_name,
                               uint32_t partition_id,
                               const BinlogOffset& boffset);
+  Status SendPartitionBinlogSyncAck(const std::string& table_name,
+                                    uint32_t partition_id,
+                                    const BinlogOffset& ack_start,
+                                    const BinlogOffset& ack_end);
   Status SendBinlogSync(const RmNode& slave);
 
   Status TriggerSendBinlogSync();
@@ -111,14 +164,15 @@ class PikaReplClient {
   int ConsumeWriteQueue();
   void DropItemInWriteQueue(const std::string& ip, int port);
 
-  void Schedule(pink::TaskFunc func, void* arg){
-    client_tp_->Schedule(func, arg);
-  }
-
   bool SetAckInfo(const RmNode& slave, uint32_t ack_filenum_start, uint64_t ack_offset_start, uint32_t ack_filenum_end, uint64_t ack_offset_end, uint64_t active_time);
   bool GetAckInfo(const RmNode& slave, uint32_t* act_file_num, uint64_t* ack_offset, uint64_t* active_time);
 
  private:
+  size_t GetHashIndex(std::string key, bool upper_half);
+  void UpdateNextAvail() {
+    next_avail_ = (next_avail_ + 1) % bg_workers_.size();
+  }
+
   PikaBinlogReader* NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
 
   void ProduceWriteQueue(WriteTask& task);
@@ -167,7 +221,9 @@ class PikaReplClient {
   // every host owns a queue
   std::unordered_map<std::string, std::queue<WriteTask>> write_queues_;  // ip+port, queue<WriteTask>
 
-  pink::ThreadPool* client_tp_;
+  int next_avail_;
+  std::hash<std::string> str_hash;
+  std::vector<PikaReplBgWorker*> bg_workers_;
 };
 
 #endif

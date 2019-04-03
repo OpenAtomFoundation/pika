@@ -6,53 +6,38 @@
 #ifndef PIKA_REPL_SERVER_H_
 #define PIKA_REPL_SERVER_H_
 
-#include "include/pika_repl_server_thread.h"
+#include "pink/include/thread_pool.h"
+
 
 #include <vector>
 
-#include "include/pika_repl_bgworker.h"
 #include "include/pika_command.h"
-#include "pika_binlog_transverter.h"
+#include "include/pika_repl_bgworker.h"
+#include "include/pika_repl_server_thread.h"
+
+struct ReplServerTaskArg {
+  std::shared_ptr<InnerMessage::InnerRequest> req;
+  std::shared_ptr<pink::PbConn> conn;
+  ReplServerTaskArg(std::shared_ptr<InnerMessage::InnerRequest> _req, std::shared_ptr<pink::PbConn> _conn)
+      : req(_req), conn(_conn) {}
+};
 
 class PikaReplServer {
  public:
   PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval);
   ~PikaReplServer();
   int Start();
-
-  void ScheduleBinlogSyncTask(std::string table_partition,
-                              const std::shared_ptr<InnerMessage::InnerRequest> req,
-                              std::shared_ptr<pink::PbConn> conn,
-                              void* req_private_data);
-
-  void ScheduleMetaSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
-                            std::shared_ptr<pink::PbConn> conn,
-                            void* req_private_data);
-
-  void ScheduleDBSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
-                          std::shared_ptr<pink::PbConn> conn,
-                          void* req_private_data);
-
-  void ScheduleTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
-                           std::shared_ptr<pink::PbConn> conn,
-                           void* req_private_data);
-
-  void ScheduleDbTask(const std::string& key,
-                      PikaCmdArgsType* argv,
-                      BinlogItem* binlog_item,
-                      const std::string& table_name,
-                      uint32_t partition_id);
+  void Schedule(pink::TaskFunc func, void* arg);
   void KillAllConns();
- private:
-  size_t GetHashIndex(std::string key, bool upper_half);
-  void UpdateNextAvail() {
-    next_avail_ = (next_avail_ + 1) % bg_workers_.size();
-  }
 
+  static void HandleMetaSyncRequest(void* arg);
+  static void HandleTrySyncRequest(void* arg);
+  static void HandleDBSyncRequest(void* arg);
+  static void HandleBinlogSyncAckRequest(void* arg);
+
+ private:
+  pink::ThreadPool* server_tp_;
   PikaReplServerThread* pika_repl_server_thread_;
-  std::vector<PikaReplBgWorker*> bg_workers_;
-  int next_avail_;
-  std::hash<std::string> str_hash;
 };
 
 #endif

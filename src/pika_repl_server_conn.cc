@@ -31,49 +31,31 @@ int PikaReplServerConn::DealMessage() {
   int res = 0;
   switch (req->type()) {
     case InnerMessage::kMetaSync:
-      g_pika_server->ScheduleReplMetaSyncTask(
-          req,
-          std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()),
-          NULL);
+    {
+      ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleMetaSyncRequest, task_arg);
       break;
-    case InnerMessage::kDBSync:
-      g_pika_server->ScheduleReplMetaSyncTask(
-          req,
-          std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()),
-          NULL);
-      break;
+    }
     case InnerMessage::kTrySync:
-      g_pika_server->ScheduleReplTrySyncTask(
-          req,
-          std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()),
-          NULL);
+    {
+      ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleTrySyncRequest, task_arg);
       break;
+    }
+    case InnerMessage::kDBSync:
+    {
+      ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleDBSyncRequest, task_arg);
+      break;
+    }
     case InnerMessage::kBinlogSync:
-      DispatchBinlogReq(req);
+    {
+      ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleBinlogSyncAckRequest, task_arg);
       break;
+    }
     default:
       break;
   }
   return res;
-}
-
-void PikaReplServerConn::DispatchBinlogReq(const std::shared_ptr<InnerMessage::InnerRequest> req) {
-  // partition to a bunch of binlog chips
-  std::unordered_map<std::string, std::vector<int>*> par_binlog;
-  for (int i = 0; i < req->binlog_sync_size(); ++i) {
-    const InnerMessage::InnerRequest::BinlogSync& binlog_req = req->binlog_sync(i);
-    // hash key: table + partition_id
-    std::string key = binlog_req.table_name() + std::to_string(binlog_req.partition_id());
-    if (par_binlog.find(key) == par_binlog.end()) {
-      par_binlog[key] = new std::vector<int>();
-    }
-    par_binlog[key]->push_back(i);
-  }
-  for (auto& binlog_nums : par_binlog) {
-    g_pika_server->ScheduleReplBinlogSyncTask(
-        binlog_nums.first,
-        req,
-        std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()),
-        reinterpret_cast<void*>(binlog_nums.second));
-  }
 }
