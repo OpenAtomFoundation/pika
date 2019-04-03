@@ -275,6 +275,8 @@ class PikaServer {
   Status SendMetaSyncRequest();
   Status SendPartitionDBSyncRequest(std::shared_ptr<Partition> partition);
   Status SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition);
+  Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
+                                           const BinlogOffset& ack_start, const BinlogOffset& ack_end);
   Status SendBinlogSyncRequest(const std::string& table, uint32_t partition,
                                const std::string& ip, int port);
 
@@ -289,21 +291,14 @@ class PikaServer {
   bool GetBinlogAckInfo(const std::string& table, uint32_t partition,
                         const std::string& ip, int port, uint32_t* ack_file_num,
                         uint64_t* ack_offset, uint64_t* active_time);
-  void ScheduleReplDbTask(const std::string &key,
-                          PikaCmdArgsType* argv, BinlogItem* binlog_item,
-                          const std::string& table_name, uint32_t partition_id);
-  void ScheduleReplDBSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
-                              std::shared_ptr<pink::PbConn> conn,
-                              void* req_private_data);
-  void ScheduleReplTrySyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
-                               std::shared_ptr<pink::PbConn> conn,
-                               void* req_private_data);
-  void ScheduleReplMetaSyncTask(const std::shared_ptr<InnerMessage::InnerRequest> req,
-                                std::shared_ptr<pink::PbConn> conn,
-                                void* req_private_data);
-  void ScheduleReplBinlogSyncTask(std::string table_partition,
-                                  const std::shared_ptr<InnerMessage::InnerRequest> req,
-                                  std::shared_ptr<pink::PbConn> conn, void* req_private_data);
+  void ScheduleReplServerBGTask(pink::TaskFunc func, void* arg);
+  void ScheduleReplClientBGTask(pink::TaskFunc func, void* arg);
+  void ScheduleWriteBinlogTask(const std::string& table_partition,
+                               const std::shared_ptr<InnerMessage::InnerResponse> res,
+                               std::shared_ptr<pink::PbConn> conn, void* res_private_data);
+  void ScheduleWriteDBTask(const std::string& dispatch_key,
+                           PikaCmdArgsType* argv, BinlogItem* binlog_item,
+                           const std::string& table_name, uint32_t partition_id);
 
   /*
    * PubSub used

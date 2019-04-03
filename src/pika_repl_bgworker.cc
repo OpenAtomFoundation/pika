@@ -30,110 +30,40 @@ int PikaReplBgWorker::StartThread() {
   return bg_thread_.StartThread();
 }
 
-void PikaReplBgWorker::ScheduleRequest(const std::shared_ptr<InnerMessage::InnerRequest> req,
-    std::shared_ptr<pink::PbConn> conn, void* req_private_data) {
-  ReplBgWorkerArg* arg = new ReplBgWorkerArg(req, conn, req_private_data, this);
-  switch (req->type()) {
-    case InnerMessage::kMetaSync:
-      bg_thread_.Schedule(&PikaReplBgWorker::HandleMetaSyncRequest, static_cast<void*>(arg));
-      break;
-    case InnerMessage::kDBSync:
-      bg_thread_.Schedule(&PikaReplBgWorker::HandleDBSyncRequest, static_cast<void*>(arg));
-      break;
-    case InnerMessage::kTrySync:
-      bg_thread_.Schedule(&PikaReplBgWorker::HandleTrySyncRequest, static_cast<void*>(arg));
-      break;
-    case InnerMessage::kBinlogSync:
-      bg_thread_.Schedule(&PikaReplBgWorker::HandleBinlogSyncRequest, static_cast<void*>(arg));
-      break;
-    default:
-      break;
-  }
+void PikaReplBgWorker::Schedule(pink::TaskFunc func, void* arg) {
+  bg_thread_.Schedule(func, arg);
 }
 
-void PikaReplBgWorker::ScheduleWriteDb(PikaCmdArgsType* argv, BinlogItem* binlog_item,
-    const std::string table_name, uint32_t partition_id) {
-  WriteDbBgArg* arg = new WriteDbBgArg(argv, binlog_item, table_name, partition_id);
-  bg_thread_.Schedule(&PikaReplBgWorker::HandleWriteDb, static_cast<void*>(arg));
-}
-
-void PikaReplBgWorker::HandleMetaSyncRequest(void* arg) {
-  ReplBgWorkerArg* bg_worker_arg = static_cast<ReplBgWorkerArg*>(arg);
-  const std::shared_ptr<InnerMessage::InnerRequest> req = bg_worker_arg->req;
-  std::shared_ptr<pink::PbConn> conn = bg_worker_arg->conn;
-
-  InnerMessage::InnerRequest::MetaSync meta_sync_request = req->meta_sync();
-  InnerMessage::Node node = meta_sync_request.node();
-  std::string masterauth = meta_sync_request.has_auth() ? meta_sync_request.auth() : "";
-
-  InnerMessage::InnerResponse response;
-  response.set_type(InnerMessage::kMetaSync);
-  if (!g_pika_conf->requirepass().empty()
-    && g_pika_conf->requirepass() != masterauth) {
-    response.set_code(InnerMessage::kError);
-    response.set_reply("Auth with master error, Invalid masterauth");
-  } else {
-    std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
-    int64_t sid = g_pika_server->TryAddSlave(node.ip(), node.port(), table_structs);
-    if (sid < 0) {
-      response.set_code(InnerMessage::kError);
-      response.set_reply("Slave AlreadyExist");
-    } else {
-      g_pika_server->BecomeMaster();
-      response.set_code(InnerMessage::kOk);
-      InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
-      meta_sync->set_sid(sid);
-      meta_sync->set_classic_mode(g_pika_conf->classic_mode());
-      for (const auto& table_struct : table_structs) {
-        InnerMessage::InnerResponse_MetaSync_TableInfo* table_info = meta_sync->add_tables_info();
-        table_info->set_table_name(table_struct.table_name);
-        table_info->set_partition_num(table_struct.partition_num);
-      }
-    }
-  }
-
-  std::string reply_str;
-  if (!response.SerializeToString(&reply_str)
-    || conn->WriteResp(reply_str)) {
-    LOG(WARNING) << "Process MetaSync request serialization failed";
-    conn->NotifyClose();
-    delete bg_worker_arg;
-    return;
-  }
-  conn->NotifyWrite();
-  delete bg_worker_arg;
-}
-
-void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
-  ReplBgWorkerArg* bg_worker_arg = static_cast<ReplBgWorkerArg*>(arg);
-  const std::shared_ptr<InnerMessage::InnerRequest> req = bg_worker_arg->req;
-  std::shared_ptr<pink::PbConn> conn = bg_worker_arg->conn;
-  std::vector<int>* index = static_cast<std::vector<int>* >(bg_worker_arg->req_private_data);
-  PikaReplBgWorker* worker = bg_worker_arg->worker;
+void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
+  ReplClientWriteBinlogTaskArg* task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
+  const std::shared_ptr<InnerMessage::InnerResponse> res = task_arg->res;
+  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::vector<int>* index = static_cast<std::vector<int>* >(task_arg->res_private_data);
+  PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
-  const InnerMessage::InnerRequest::BinlogSync& binlog_req =
-    req->binlog_sync((*index)[0]);
-  std::string table_name = binlog_req.table_name();
-  uint32_t partition_id = binlog_req.partition_id();
-  const InnerMessage::BinlogOffset& start_boffset = binlog_req.binlog_offset();
-  uint32_t start_filenum = start_boffset.filenum();
-  uint64_t start_offset = start_boffset.offset();
-
+  // may coredump?
+  const InnerMessage::InnerResponse::BinlogSync& binlog_res =
+    res->binlog_sync((*index)[0]);
+  std::string table_name = binlog_res.table_name();
+  uint32_t partition_id = binlog_res.partition_id();
+  BinlogOffset ack_start, ack_end;
+  ack_start.filenum = binlog_res.binlog_offset().filenum();
+  ack_start.offset = binlog_res.binlog_offset().offset();
   worker->table_name_ = table_name;
   worker->partition_id_ = partition_id;
 
   for (size_t i = 0; i < index->size(); ++i) {
-    const InnerMessage::InnerRequest::BinlogSync& binlog_req = req->binlog_sync((*index)[i]);
-    if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_req.binlog(), &worker->binlog_item_)) {
+    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+    if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_res.binlog(), &worker->binlog_item_)) {
       LOG(WARNING) << "Binlog item decode failed";
       conn->NotifyClose();
       delete index;
-      delete bg_worker_arg;
+      delete task_arg;
       return;
     }
-    const char* redis_parser_start = binlog_req.binlog().data() + BINLOG_ENCODE_LEN;
-    int redis_parser_len = static_cast<int>(binlog_req.binlog().size()) - BINLOG_ENCODE_LEN;
+    const char* redis_parser_start = binlog_res.binlog().data() + BINLOG_ENCODE_LEN;
+    int redis_parser_len = static_cast<int>(binlog_res.binlog().size()) - BINLOG_ENCODE_LEN;
     int processed_len = 0;
     pink::RedisParserStatus ret = worker->redis_parser_.ProcessInputBuffer(
       redis_parser_start, redis_parser_len, &processed_len);
@@ -141,43 +71,18 @@ void PikaReplBgWorker::HandleBinlogSyncRequest(void* arg) {
       LOG(WARNING) << "Redis parser failed";
       conn->NotifyClose();
       delete index;
-      delete bg_worker_arg;
+      delete task_arg;
       return;
     }
   }
+  delete index;
+  delete task_arg;
 
-  // build response
+  // Reply Ack to master immediately
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   std::shared_ptr<Binlog> logger = partition->logger();
-  uint32_t end_filenum;
-  uint64_t end_offset;
-  logger->GetProducerStatus(&end_filenum, &end_offset);
-
-  InnerMessage::InnerResponse response;
-  response.set_code(InnerMessage::kOk);
-  response.set_type(InnerMessage::kBinlogSync);
-  InnerMessage::InnerResponse_BinlogSync* binlog_sync_resp = response.mutable_binlog_sync();
-  binlog_sync_resp->set_table_name(table_name);
-  binlog_sync_resp->set_partition_id(partition_id);
-  InnerMessage::BinlogOffset* binlog_offset_start = binlog_sync_resp->mutable_binlog_offset_start();
-  binlog_offset_start->set_filenum(start_filenum);
-  binlog_offset_start->set_offset(start_offset);
-  InnerMessage::BinlogOffset* binlog_offset_end = binlog_sync_resp->mutable_binlog_offset_end();
-  binlog_offset_end->set_filenum(end_filenum);
-  binlog_offset_end->set_offset(end_offset);
-
-  std::string reply_str;
-  if (!response.SerializeToString(&reply_str)
-    || conn->WriteResp(reply_str)) {
-    LOG(WARNING) << "Process MetaSync request serialization failed";
-    conn->NotifyClose();
-    delete index;
-    delete bg_worker_arg;
-    return;
-  }
-  conn->NotifyWrite();
-  delete index;
-  delete bg_worker_arg;
+  logger->GetProducerStatus(&ack_end.filenum, &ack_end.offset);
+  g_pika_server->SendPartitionBinlogSyncAckRequest(table_name, partition_id, ack_start, ack_end);
 }
 
 int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
@@ -210,10 +115,10 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
 
   logger->Lock();
   logger->Put(c_ptr->ToBinlog(binlog_item.exec_time(),
-                                              std::to_string(binlog_item.server_id()),
-                                              binlog_item.logic_id(),
-                                              binlog_item.filenum(),
-                                              binlog_item.offset()));
+                              std::to_string(binlog_item.server_id()),
+                              binlog_item.logic_id(),
+                              binlog_item.filenum(),
+                              binlog_item.offset()));
   uint32_t filenum;
   uint64_t offset;
   logger->GetProducerStatus(&filenum, &offset);
@@ -222,16 +127,16 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
   PikaCmdArgsType *v = new PikaCmdArgsType(argv);
   BinlogItem *b = new BinlogItem(binlog_item);
   std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
-  g_pika_server->ScheduleReplDbTask(dispatch_key, v, b, worker->table_name_, worker->partition_id_);
+  g_pika_server->ScheduleWriteDBTask(dispatch_key, v, b, worker->table_name_, worker->partition_id_);
   return 0;
 }
 
-void PikaReplBgWorker::HandleWriteDb(void* arg) {
-  WriteDbBgArg *bg_worker_arg = static_cast<WriteDbBgArg*>(arg);
-  PikaCmdArgsType* argv = bg_worker_arg->argv;
-  BinlogItem binlog_item = *(bg_worker_arg->binlog_item);
-  std::string table_name = bg_worker_arg->table_name;
-  uint32_t partition_id = bg_worker_arg->partition_id;
+void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
+  ReplClientWriteDBTaskArg* task_arg = static_cast<ReplClientWriteDBTaskArg*>(arg);
+  PikaCmdArgsType* argv = task_arg->argv;
+  BinlogItem binlog_item = *(task_arg->binlog_item);
+  std::string table_name = task_arg->table_name;
+  uint32_t partition_id = task_arg->partition_id;
   std::string opt = (*argv)[0];
   slash::StringToLower(opt);
 
@@ -239,7 +144,7 @@ void PikaReplBgWorker::HandleWriteDb(void* arg) {
   Cmd* c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Error operation from binlog: " << opt;
-    delete bg_worker_arg;
+    delete task_arg;
     return;
   }
 
@@ -247,7 +152,7 @@ void PikaReplBgWorker::HandleWriteDb(void* arg) {
   c_ptr->Initial(*argv, table_name);
   if (!c_ptr->res().ok()) {
     LOG(WARNING) << "Fail to initial command from binlog: " << opt;
-    delete bg_worker_arg;
+    delete task_arg;
     return;
   }
 
@@ -273,124 +178,6 @@ void PikaReplBgWorker::HandleWriteDb(void* arg) {
       LOG(ERROR) << "command: " << opt << ", start_time(s): " << start_us / 1000000 << ", duration(us): " << duration;
     }
   }
-
-  delete bg_worker_arg;
+  delete task_arg;
 }
 
-void PikaReplBgWorker::HandleDBSyncRequest(void* arg) {
-  ReplBgWorkerArg* bg_worker_arg = static_cast<ReplBgWorkerArg*>(arg);
-  const std::shared_ptr<InnerMessage::InnerRequest> req = bg_worker_arg->req;
-  std::shared_ptr<pink::PbConn> conn = bg_worker_arg->conn;
-
-  InnerMessage::InnerRequest::DBSync db_sync_request = req->db_sync();
-  InnerMessage::Partition partition_request = db_sync_request.partition();
-  InnerMessage::Node node = db_sync_request.node();
-  InnerMessage::BinlogOffset slave_boffset = db_sync_request.binlog_offset();
-  std::string table_name = partition_request.table_name();
-  uint32_t partition_id = partition_request.partition_id();
-
-  InnerMessage::InnerResponse response;
-  response.set_code(InnerMessage::kOk);
-  response.set_type(InnerMessage::Type::kDBSync);
-  InnerMessage::InnerResponse::DBSync* db_sync_response = response.mutable_db_sync();
-  InnerMessage::Partition* partition_response = db_sync_response->mutable_partition();
-  partition_response->set_table_name(table_name);
-  partition_response->set_partition_id(partition_id);
-
-  LOG(INFO) << "Handle partition DBSync Request";
-  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync,
-      table_name, partition_id, slave_boffset.filenum());
-  db_sync_response->set_reply_code(InnerMessage::InnerResponse::DBSync::kWait);
-
-  std::string reply_str;
-  if (!response.SerializeToString(&reply_str)
-    || conn->WriteResp(reply_str)) {
-    LOG(WARNING) << "Handle DBSync Failed";
-    conn->NotifyClose();
-    delete bg_worker_arg;
-    return;
-  }
-  conn->NotifyWrite();
-  delete bg_worker_arg;
-
-}
-
-void PikaReplBgWorker::HandleTrySyncRequest(void* arg) {
-  ReplBgWorkerArg* bg_worker_arg = static_cast<ReplBgWorkerArg*>(arg);
-  const std::shared_ptr<InnerMessage::InnerRequest> req = bg_worker_arg->req;
-  std::shared_ptr<pink::PbConn> conn = bg_worker_arg->conn;
-
-  InnerMessage::InnerRequest::TrySync try_sync_request = req->try_sync();
-  InnerMessage::Partition partition_request = try_sync_request.partition();
-  std::string table_name = partition_request.table_name();
-  uint32_t partition_id = partition_request.partition_id();
-
-  InnerMessage::InnerResponse response;
-  response.set_type(InnerMessage::Type::kTrySync);
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
-  if (!partition) {
-    response.set_code(InnerMessage::kError);
-    response.set_reply("Partition not found");
-    LOG(WARNING) << "Table Name: " << table_name << " Partition ID: "
-      << partition_id << " Not Found, TrySync Error";
-  } else {
-    std::string partition_name = partition->GetPartitionName();
-    InnerMessage::BinlogOffset slave_boffset = try_sync_request.binlog_offset();
-    InnerMessage::Node node = try_sync_request.node();
-    LOG(INFO) << "Trysync, Slave ip: " << node.ip() << ", Slave port:"
-      << node.port() << ", Partition: " << partition_name << ", filenum: "
-      << slave_boffset.filenum() << ", pro_offset: " << slave_boffset.offset();
-
-    response.set_code(InnerMessage::kOk);
-    InnerMessage::InnerResponse::TrySync* try_sync_response = response.mutable_try_sync();
-    InnerMessage::Partition* partition_response = try_sync_response->mutable_partition();
-    InnerMessage::BinlogOffset* master_partition_boffset = try_sync_response->mutable_binlog_offset();
-    partition_response->set_table_name(table_name);
-    partition_response->set_partition_id(partition_id);
-    BinlogOffset boffset;
-    if (!partition->GetBinlogOffset(&boffset)) {
-      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-      LOG(WARNING) << "Handle TrySync, Partition: "
-        << partition_name << " Get binlog offset error, TrySync failed";
-    } else {
-      master_partition_boffset->set_filenum(boffset.filenum);
-      master_partition_boffset->set_offset(boffset.offset);
-      if (boffset.filenum < slave_boffset.filenum()
-        || (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
-        try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointLarger);
-        LOG(WARNING) << "Slave offset is larger than mine, Slave ip: "
-          << node.ip() << ", Slave port: " << node.port() << ", Partition: "
-          << partition_name << ", filenum: " << slave_boffset.filenum()
-          << ", pro_offset_: " << slave_boffset.offset();
-      } else {
-        std::string confile = NewFileName(partition->logger()->filename, slave_boffset.filenum());
-        if (!slash::FileExists(confile)) {
-          LOG(INFO) << "Partition: " << partition_name << " binlog has been purged, may need full sync";
-          try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
-        } else {
-          try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
-          try_sync_response->set_sid(0);
-          // incremental sync
-          Status s = g_pika_server->AddBinlogSender(table_name, partition_id,
-              node.ip(), node.port(), 0, slave_boffset.filenum(), slave_boffset.offset());
-          if (s.ok()) {
-            LOG(INFO) << "Partition: " << partition_name << " TrySync Success";
-          } else {
-            LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
-          }
-        }
-      }
-    }
-  }
-
-  std::string reply_str;
-  if (!response.SerializeToString(&reply_str)
-    || conn->WriteResp(reply_str)) {
-    LOG(WARNING) << "Handle Try Sync Failed";
-    conn->NotifyClose();
-    delete bg_worker_arg;
-    return;
-  }
-  conn->NotifyWrite();
-  delete bg_worker_arg;
-}

@@ -9,8 +9,9 @@
 #include <memory>
 #include <string>
 
-#include "pink/include/bg_thread.h"
 #include "pink/include/pb_conn.h"
+#include "pink/include/bg_thread.h"
+#include "pink/include/thread_pool.h"
 
 #include "src/pika_inner_message.pb.h"
 
@@ -20,20 +21,10 @@
 class PikaReplBgWorker {
  public:
   explicit PikaReplBgWorker(int queue_size);
-  void ScheduleRequest(const std::shared_ptr<InnerMessage::InnerRequest> req,
-      std::shared_ptr<pink::PbConn> conn, void* req_private_data);
-  void ScheduleWriteDb(PikaCmdArgsType* argv, BinlogItem* binlog_item,
-      const std::string table_name, uint32_t partition_id);
   int StartThread();
-  void QueueSize(int* size_a, int* size_b) {
-    bg_thread_.QueueSize(size_a, size_b);
-  }
-
-  static void HandleMetaSyncRequest(void* arg);
-  static void HandleBinlogSyncRequest(void* arg);
-  static void HandleDBSyncRequest(void* arg);
-  static void HandleTrySyncRequest(void* arg);
-  static void HandleWriteDb(void* arg);
+  void Schedule(pink::TaskFunc func, void* arg);
+  static void HandleBGWorkerWriteBinlog(void* arg);
+  static void HandleBGWorkerWriteDB(void* arg);
 
   BinlogItem binlog_item_;
   pink::RedisParser redis_parser_;
@@ -43,35 +34,7 @@ class PikaReplBgWorker {
 
  private:
   pink::BGThread bg_thread_;
-
   static int HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
-
-  struct ReplBgWorkerArg {
-    const std::shared_ptr<InnerMessage::InnerRequest> req;
-    std::shared_ptr<pink::PbConn> conn;
-    void* req_private_data;
-    PikaReplBgWorker* worker;
-    ReplBgWorkerArg(const std::shared_ptr<InnerMessage::InnerRequest> _req,
-                    std::shared_ptr<pink::PbConn> _conn,
-                    void* _req_private_data,
-                    PikaReplBgWorker* _worker)
-        : req(_req), conn(_conn),
-          req_private_data(_req_private_data), worker(_worker) {}
-  };
-
-  struct WriteDbBgArg {
-    PikaCmdArgsType *argv;
-    BinlogItem* binlog_item;
-    std::string table_name;
-    uint32_t partition_id;
-    WriteDbBgArg(PikaCmdArgsType* _argv, BinlogItem* _binlog_item, const std::string _table_name, uint32_t _partition_id)
-        : argv(_argv), binlog_item(_binlog_item), table_name(_table_name), partition_id(_partition_id) {
-    }
-    ~WriteDbBgArg() {
-      delete argv;
-      delete binlog_item;
-    }
-  };
 };
 
 #endif  // PIKA_REPL_BGWROKER_H_
