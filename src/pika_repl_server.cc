@@ -19,13 +19,38 @@ PikaReplServer::PikaReplServer(const std::set<std::string>& ips,
   server_tp_ = new pink::ThreadPool(PIKA_REPL_SERVER_TP_SIZE, 100000);
   pika_repl_server_thread_ = new PikaReplServerThread(ips, port, cron_interval);
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
+  pthread_rwlock_init(&client_conn_rwlock_, NULL);
 }
 
 PikaReplServer::~PikaReplServer() {
   pika_repl_server_thread_->StopThread();
   delete pika_repl_server_thread_;
   delete server_tp_;
+  pthread_rwlock_destroy(&client_conn_rwlock_);
   LOG(INFO) << "PikaReplServer exit!!!";
+}
+
+slash::Status PikaReplServer::Write(const std::string& ip,
+                                    const int port,
+                                    const std::string& msg) {
+  slash::RWLock l(&client_conn_rwlock_, false);
+  const std::string ip_port = slash::IpPortString(ip, port);
+  if (client_conn_map.find(ip_port) == client_conn_map.end()) {
+    return Status::NotFound("The " + ip_port + " fd cannot be found");
+  }
+  int fd = client_conn_map[ip_port];
+  std::shared_ptr<pink::PbConn> conn =
+      std::dynamic_pointer_cast<pink::PbConn>(pika_repl_server_thread_->get_conn(fd));
+  if (conn == nullptr) {
+    return Status::NotFound("The" + ip_port + " conn cannot be found");
+  }
+
+  if (conn->WriteResp(msg)) {
+    conn->NotifyClose();
+    return Status::Corruption("The" + ip_port + " conn, Write Resp Failed");
+  }
+  conn->NotifyWrite();
+  return Status::OK();
 }
 
 int PikaReplServer::Start() {
@@ -43,6 +68,21 @@ int PikaReplServer::Start() {
 
 void PikaReplServer::Schedule(pink::TaskFunc func, void* arg){
   server_tp_->Schedule(func, arg);
+}
+
+void PikaReplServer::UpdateClientConnMap(const std::string& ip_port, int fd) {
+  slash::RWLock l(&client_conn_rwlock_, true);
+  client_conn_map[ip_port] = fd;
+}
+
+void PikaReplServer::RemoveClientConn(int fd) {
+  slash::RWLock l(&client_conn_rwlock_, true);
+  std::map<std::string, int>::const_iterator iter = client_conn_map.begin();
+  while (iter != client_conn_map.end()) {
+    if (iter->second == fd) {
+      iter = client_conn_map.erase(iter);
+    }
+  }
 }
 
 void PikaReplServer::KillAllConns() {
@@ -67,6 +107,8 @@ void PikaReplServer::HandleMetaSyncRequest(void* arg) {
   } else {
     std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
     int64_t sid = g_pika_server->TryAddSlave(node.ip(), node.port(), table_structs);
+    const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+    g_pika_server->ReplServerUpdateClientConnMap(ip_port, conn->fd());
     if (sid < 0) {
       response.set_code(InnerMessage::kError);
       response.set_reply("Slave AlreadyExist");

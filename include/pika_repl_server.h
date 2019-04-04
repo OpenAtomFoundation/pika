@@ -26,8 +26,12 @@ class PikaReplServer {
  public:
   PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval);
   ~PikaReplServer();
+  slash::Status Write(const std::string& ip, const int port, const std::string& msg);
+
   int Start();
   void Schedule(pink::TaskFunc func, void* arg);
+  void UpdateClientConnMap(const std::string& ip_port, int fd);
+  void RemoveClientConn(int fd);
   void KillAllConns();
 
   static void HandleMetaSyncRequest(void* arg);
@@ -38,6 +42,9 @@ class PikaReplServer {
  private:
   pink::ThreadPool* server_tp_;
   PikaReplServerThread* pika_repl_server_thread_;
+
+  pthread_rwlock_t client_conn_rwlock_;
+  std::map<std::string, int> client_conn_map;
 };
 
 #endif

@@ -20,4 +20,5 @@ PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips,
 
 void PikaReplServerThread::ReplServerHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
   LOG(INFO) << "ServerThread close " << fd << " " << ip_port;
+  g_pika_server->ReplServerRemoveClientConn(fd);
 }
