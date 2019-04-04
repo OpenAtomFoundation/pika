@@ -291,6 +291,8 @@ class PikaServer {
   bool GetBinlogAckInfo(const std::string& table, uint32_t partition,
                         const std::string& ip, int port, uint32_t* ack_file_num,
                         uint64_t* ack_offset, uint64_t* active_time);
+  void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
+  void ReplServerRemoveClientConn(int fd);
   void ScheduleReplServerBGTask(pink::TaskFunc func, void* arg);
   void ScheduleReplClientBGTask(pink::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(const std::string& table_partition,
