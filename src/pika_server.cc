@@ -1303,6 +1303,15 @@ bool PikaServer::GetBinlogAckInfo(const std::string& table, uint32_t partition,
   return pika_repl_client_->GetAckInfo(slave, ack_file_num, ack_offset, active_time);
 }
 
+void PikaServer::ReplServerUpdateClientConnMap(const std::string& ip_port,
+                                               int fd) {
+  pika_repl_server_->UpdateClientConnMap(ip_port, fd);
+}
+
+void PikaServer::ReplServerRemoveClientConn(int fd) {
+  pika_repl_server_->RemoveClientConn(fd);
+}
+
 void PikaServer::ScheduleReplServerBGTask(pink::TaskFunc func, void* arg) {
   pika_repl_server_->Schedule(func, arg);
 }
