@@ -20,10 +20,11 @@ using slash::Slice;
 
 class PikaBinlogReader {
  public:
-  PikaBinlogReader(slash::SequentialFile* queue, std::shared_ptr<Binlog> logger, uint32_t cur_filenum, uint64_t cur_offset);
+  PikaBinlogReader(uint32_t cur_filenum, uint64_t cur_offset);
+  PikaBinlogReader();
   ~PikaBinlogReader();
   Status Get(std::string* scratch, uint32_t* filenum, uint64_t* offset);
-  int Seek();
+  int Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
   bool ReadToTheEnd();
   void GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset);
  private:

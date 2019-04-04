@@ -36,6 +36,16 @@ struct BinlogOffset {
       : filenum(0), offset(0) {}
   BinlogOffset(uint32_t num, uint64_t off)
       : filenum(num), offset(off) {}
+  BinlogOffset(const BinlogOffset& other) {
+    filenum = other.filenum;
+    offset = other.offset;
+  }
+  bool operator==(const BinlogOffset& other) const {
+    if (filenum == other.filenum && offset == other.offset) {
+      return true;
+    }
+    return false;
+  }
 };
 
 enum ReplState {
