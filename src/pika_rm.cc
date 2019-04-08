@@ -143,7 +143,7 @@ Status SyncPartition::AddSlaveNode(const std::string& ip, int port) {
   slash::MutexLock l(&partition_mu_);
   for (auto& slave : slaves_) {
     if (ip == slave->Ip() && port == slave->Port()) {
-      return Status::Corruption(slave->ToString() + " exist");
+      return Status::OK();
     }
   }
   slaves_.push_back(std::make_shared<SlaveNode>(ip, port, partition_info_.table_name_, partition_info_.partition_id_));
@@ -256,7 +256,9 @@ Status SyncPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave
     WriteTask task(rm_node, BinlogChip(sent_offset, msg));
     tasks.push_back(task);
   }
-  g_pika_rm->ProduceWriteQueue(slave_ptr->Ip(), slave_ptr->Port(), tasks);
+  if (!tasks.empty()) {
+    g_pika_rm->ProduceWriteQueue(slave_ptr->Ip(), slave_ptr->Port(), tasks);
+  }
   return Status::OK();
 }
 
@@ -416,6 +418,10 @@ Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const Bin
   if (!s.ok()) {
     return s;
   }
+  s = partition->SyncBinlogToWq(slave.Ip(), slave.Port());
+  if (!s.ok()) {
+    return s;
+  }
   return Status::OK();
 }
 
@@ -480,6 +486,12 @@ Status PikaReplicaManager::AddSlave(const RmNode& slave) {
 Status PikaReplicaManager::RecordNodePartition(const RmNode& slave) {
   std::string index = slave.Ip() + ":" + std::to_string(slave.Port());
   slash::MutexLock l(&node_partitions_mu_);
+  std::vector<RmNode>& partitions = node_partitions_[index];
+  for (size_t i = 0; i < partitions.size(); ++i) {
+    if (slave == partitions[i]) {
+      return Status::OK();
+    }
+  }
   node_partitions_[index].push_back(slave);
   return Status::OK();
 }
@@ -539,6 +551,32 @@ Status PikaReplicaManager::LostConnection(const std::string& ip, int port) {
     }
   }
   node_partitions_.erase(index);
+  return Status::OK();
+}
+
+Status PikaReplicaManager::ActivateBinlogSync(const RmNode& slave, const std::shared_ptr<Binlog> binlog, const BinlogOffset& offset) {
+  slash::RWLock l(&partitions_rw_, false);
+  if (sync_partitions_.find(slave.NodePartitionInfo()) == sync_partitions_.end()) {
+    return Status::NotFound(slave.ToString() + " not found");
+  }
+  std::shared_ptr<SyncPartition> partition = sync_partitions_[slave.NodePartitionInfo()];
+  Status s = partition->ActivateSlaveBinlogSync(slave.Ip(), slave.Port(), binlog, offset);
+  if (!s.ok()) {
+    return s;
+  }
+  return Status::OK();
+}
+
+Status PikaReplicaManager::ActivateDbSync(const RmNode& slave) {
+  slash::RWLock l(&partitions_rw_, false);
+  if (sync_partitions_.find(slave.NodePartitionInfo()) == sync_partitions_.end()) {
+    return Status::NotFound(slave.ToString() + " not found");
+  }
+  std::shared_ptr<SyncPartition> partition = sync_partitions_[slave.NodePartitionInfo()];
+  Status s = partition->ActivateSlaveDbSync(slave.Ip(), slave.Port());
+  if (!s.ok()) {
+    return s;
+  }
   return Status::OK();
 }
 

@@ -283,6 +283,10 @@ class PikaReplicaManager {
 
   Status LostConnection(const std::string& ip, int port);
 
+  Status ActivateBinlogSync(const RmNode& slave, const std::shared_ptr<Binlog> binlog, const BinlogOffset& offset);
+  Status ActivateDbSync(const RmNode& slave);
+
+  // Update binlog win and try to send next binlog
   Status UpdateSyncBinlogStatus(const RmNode& slave, const BinlogOffset& offset_start, const BinlogOffset& offset_end);
   Status GetSyncBinlogStatus(const RmNode& slave, BinlogOffset* sent_boffset, BinlogOffset* acked_boffset);
 
