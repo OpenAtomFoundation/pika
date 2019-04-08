@@ -7,11 +7,13 @@
 
 #include <glog/logging.h>
 
+#include "include/pika_rm.h"
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 
 PikaReplServer::PikaReplServer(const std::set<std::string>& ips,
                                int port,
@@ -194,8 +196,7 @@ void PikaReplServer::HandleTrySyncRequest(void* arg) {
           try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
           try_sync_response->set_sid(0);
           // incremental sync
-          Status s = g_pika_server->AddBinlogSender(table_name, partition_id,
-              node.ip(), node.port(), 0, slave_boffset.filenum(), slave_boffset.offset());
+          Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id));
           if (s.ok()) {
             LOG(INFO) << "Partition: " << partition_name << " TrySync Success";
           } else {
@@ -287,10 +288,11 @@ void PikaReplServer::HandleBinlogSyncAckRequest(void* arg) {
   now = tv.tv_sec;
 
   // Set ack info from slave
-  res = g_pika_server->SetBinlogAckInfo(table_name, partition_id, ip, port,
-      ack_range_start.filenum(), ack_range_start.offset(),
-      ack_range_end.filenum(), ack_range_end.offset(), now);
-  if (!res) {
+  RmNode slave_node = RmNode(table_name, partition_id, ip, port);
+  Status s = g_pika_rm->UpdateSyncBinlogStatus(slave_node,
+          BinlogOffset(ack_range_start.filenum(), ack_range_start.offset()),
+          BinlogOffset(ack_range_end.filenum(), ack_range_end.offset()));
+  if (!s.ok()) {
     LOG(WARNING) << "Update binlog ack failed " << table_name << " " << partition_id;
     conn->NotifyClose();
     delete task_arg;

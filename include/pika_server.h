@@ -153,11 +153,11 @@ class PikaServer {
   int32_t GetSlaveListString(std::string& slave_list_str);
   int64_t TryAddSlave(const std::string& ip, int64_t port,
                       const std::vector<TableStruct>& table_structs);
-  Status AddBinlogSender(const std::string& table_name,
-                         uint32_t partition_id,
-                         const std::string& ip, int64_t port,
-                         int64_t sid,
-                         uint32_t filenum, uint64_t con_offset);
+  //Status AddBinlogSender(const std::string& table_name,
+  //                       uint32_t partition_id,
+  //                       const std::string& ip, int64_t port,
+  //                       int64_t sid,
+  //                       uint32_t filenum, uint64_t con_offset);
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
 
@@ -277,20 +277,20 @@ class PikaServer {
   Status SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition);
   Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
                                            const BinlogOffset& ack_start, const BinlogOffset& ack_end);
-  Status SendBinlogSyncRequest(const std::string& table, uint32_t partition,
-                               const std::string& ip, int port);
+  //Status SendBinlogSyncRequest(const std::string& table, uint32_t partition,
+  //                             const std::string& ip, int port);
 
   /*
    * RM {repl client, repl server} used
    */
-  bool SetBinlogAckInfo(const std::string& table, uint32_t partition,
-                        const std::string& ip, int port,
-                        uint32_t ack_filenum_start, uint64_t ack_offset_start,
-                        uint32_t ack_filenum_end, uint64_t ack_offset_end,
-                        uint64_t active_time);
-  bool GetBinlogAckInfo(const std::string& table, uint32_t partition,
-                        const std::string& ip, int port, uint32_t* ack_file_num,
-                        uint64_t* ack_offset, uint64_t* active_time);
+  //bool SetBinlogAckInfo(const std::string& table, uint32_t partition,
+  //                      const std::string& ip, int port,
+  //                      uint32_t ack_filenum_start, uint64_t ack_offset_start,
+  //                      uint32_t ack_filenum_end, uint64_t ack_offset_end,
+  //                      uint64_t active_time);
+  //bool GetBinlogAckInfo(const std::string& table, uint32_t partition,
+  //                      const std::string& ip, int port, uint32_t* ack_file_num,
+  //                      uint64_t* ack_offset, uint64_t* active_time);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
   void ReplServerRemoveClientConn(int fd);
   void ScheduleReplServerBGTask(pink::TaskFunc func, void* arg);
