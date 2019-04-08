@@ -7,19 +7,29 @@
 
 #include <glog/logging.h>
 
-PikaBinlogReader::PikaBinlogReader(slash::SequentialFile *queue,
-    std::shared_ptr<Binlog> logger,
-    uint32_t cur_filenum,
+PikaBinlogReader::PikaBinlogReader(uint32_t cur_filenum,
     uint64_t cur_offset)
     : cur_filenum_(cur_filenum),
       cur_offset_(cur_offset),
-      logger_(logger),
-      queue_(queue),
+      logger_(nullptr),
+      queue_(nullptr),
       backing_store_(new char[kBlockSize]),
       buffer_() {
   last_record_offset_ = cur_offset % kBlockSize;
   pthread_rwlock_init(&rwlock_, NULL);
 }
+
+PikaBinlogReader::PikaBinlogReader()
+    : cur_filenum_(0),
+      cur_offset_(0),
+      logger_(nullptr),
+      queue_(nullptr),
+      backing_store_(new char[kBlockSize]),
+      buffer_() {
+  last_record_offset_ = 0 % kBlockSize;
+  pthread_rwlock_init(&rwlock_, NULL);
+}
+
 
 PikaBinlogReader::~PikaBinlogReader() {
   delete[] backing_store_;
@@ -41,8 +51,26 @@ bool PikaBinlogReader::ReadToTheEnd() {
   return (pro_num == cur_filenum_ && pro_offset == cur_offset_);
 }
 
-int PikaBinlogReader::Seek() {
+int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
+  std::string confile = NewFileName(logger->filename, filenum);
+  if (!slash::FileExists(confile)) {
+    return -1;
+  }
+  slash::SequentialFile* readfile;
+  if (!slash::NewSequentialFile(confile, &readfile).ok()) {
+    return -1;
+  }
+  if (queue_) {
+    delete queue_;
+  }
+  queue_ = readfile;
+  logger_ = logger;
+
   slash::RWLock(&(rwlock_), true);
+  cur_filenum_ = filenum;
+  cur_offset_ = offset;
+  last_record_offset_ = cur_filenum_ % kBlockSize;
+
   slash::Status s;
   uint64_t start_block = (cur_offset_ / kBlockSize) * kBlockSize;
   s = queue_->Skip((cur_offset_ / kBlockSize) * kBlockSize);
@@ -195,6 +223,9 @@ Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64
 // Append to scratch;
 // the status will be OK, IOError or Corruption, EndFile;
 Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* offset) {
+  if (logger_ == nullptr || queue_ == NULL) {
+    return Status::Corruption("Not seek");
+  }
   scratch->clear();
   Status s = Status::OK();
   uint32_t pro_num;
