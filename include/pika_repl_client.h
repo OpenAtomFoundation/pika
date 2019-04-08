@@ -14,7 +14,7 @@
 #include "pink/include/thread_pool.h"
 #include "slash/include/slash_status.h"
 
-#include "include/pika_rm.h"
+#include "include/pika_define.h"
 #include "include/pika_partition.h"
 #include "include/pika_binlog_reader.h"
 #include "include/pika_repl_bgworker.h"

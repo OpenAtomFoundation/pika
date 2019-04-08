@@ -16,8 +16,8 @@
 
 #include "include/pika_partition.h"
 #include "include/pika_binlog_reader.h"
-// #include "include/pika_repl_client.h"
-// #include "include/pika_repl_server.h"
+#include "include/pika_repl_client.h"
+#include "include/pika_repl_server.h"
 
 #define kBinlogSendPacketNum 30
 #define kBinlogSendBatchNum 100
@@ -25,113 +25,10 @@
 
 using slash::Status;
 
-enum Role {
-  kPartitionSingle = 0,
-  kPartitionMaster = 1,
-  kPartitionSlave  = 2,
-};
-
-enum SlaveState {
-  kSlaveNotSync    = 0,
-  kSlaveDbSync     = 1,
-  kSlaveBinlogSync = 2,
-};
-
-enum BinlogSyncState {
-  kNotSync         = 0,
-  kReadFromCache   = 1,
-  kReadFromFile    = 2,
-};
-
-class Node {
- public:
-  Node(const std::string& ip, int port) : ip_(ip), port_(port) {
-  }
-  Node() : port_(0) {
-  }
-  const std::string& Ip() const {
-    return ip_;
-  }
-  int Port() const {
-    return port_;
-  }
-  std::string ToString() const {
-    return ip_ + ":" + std::to_string(port_);
-  }
- private:
-  std::string ip_;
-  int port_;
-};
-
-struct PartitionInfo {
-  PartitionInfo(const std::string& table_name, uint32_t partition_id)
-    : table_name_(table_name), partition_id_(partition_id) {
-  }
-  PartitionInfo(const PartitionInfo& other) {
-    table_name_ = other.table_name_;
-    partition_id_ = other.partition_id_;
-  }
-  PartitionInfo() : partition_id_(0) {
-  }
-  bool operator==(const PartitionInfo& other) const {
-    if (table_name_ == other.table_name_
-        && partition_id_ == other.partition_id_) {
-      return true;
-    }
-    return false;
-  }
-  std::string table_name_;
-  uint32_t partition_id_;
-};
-
 struct hash_partition_info {
   size_t operator()(const PartitionInfo& n) const {
     return std::hash<std::string>()(n.table_name_) ^ std::hash<uint32_t>()(n.partition_id_);
   }
-};
-
-class RmNode : public Node {
- public:
-  RmNode(const std::string& ip, int port,
-      const PartitionInfo& partition_info)
-    : Node(ip, port), partition_info_(partition_info), session_id_(0) {
-  }
-  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id) : Node(ip, port), partition_info_(table_name, partition_id), session_id_(0) {
-  }
-  RmNode() : Node(), partition_info_(), session_id_(0) {
-  }
-
-  bool operator==(const RmNode& other) const {
-    if (partition_info_.table_name_ == other.TableName()
-      && partition_info_.partition_id_ == other.PartitionId()
-      && Ip() == other.Ip() && Port() == other.Port()) {
-      return true;
-    }
-    return false;
-  }
-
-  const std::string& TableName() const {
-    return partition_info_.table_name_;
-  }
-  uint32_t PartitionId() const {
-    return partition_info_.partition_id_;
-  }
-  const PartitionInfo& NodePartitionInfo() const {
-    return partition_info_;
-  }
-  void SetSessionId(uint32_t session_id) {
-    session_id_ = session_id;
-  }
-  uint32_t SessionId() const {
-    return session_id_;
-  }
-  std::string ToString() const {
-    return TableName() + "_" + std::to_string(PartitionId()) + "_" + Ip() + std::to_string(Port());
-  }
-
- private:
-  PartitionInfo partition_info_;
-  uint32_t session_id_;
 };
 
 struct hash_rm_node {
@@ -241,24 +138,6 @@ class SyncPartition {
   // std::shared_ptr<Binlog> binlog_;
 };
 
-struct BinlogChip {
-  BinlogOffset offset_;
-  std::string binlog_;
-  BinlogChip(BinlogOffset offset, std::string binlog) : offset_(offset), binlog_(binlog) {
-  }
-  BinlogChip(const BinlogChip& binlog_chip) {
-    offset_ = binlog_chip.offset_;
-    binlog_ = binlog_chip.binlog_;
-  }
-};
-
-struct WriteTask {
-  struct RmNode rm_node_;
-  struct BinlogChip binlog_chip_;
-  WriteTask(RmNode rm_node, BinlogChip binlog_chip) : rm_node_(rm_node), binlog_chip_(binlog_chip) {
-  }
-};
-
 class BinlogReaderManager {
  public:
   ~BinlogReaderManager();
@@ -274,6 +153,11 @@ class PikaReplicaManager {
  public:
   PikaReplicaManager();
   ~PikaReplicaManager();
+
+  void Start();
+
+  PikaReplClient* GetPikaReplClient();
+  PikaReplServer* GetPikaReplServer();
 
   Status AddSyncPartition(const std::string& table_name, uint32_t partition_id);
   Status RemoveSyncPartition(const std::string& table_name, uint32_t partition_id);
@@ -316,6 +200,9 @@ class PikaReplicaManager {
   slash::Mutex  write_queue_mu_;
   // every host owns a queue
   std::unordered_map<std::string, std::queue<WriteTask>> write_queues_;  // ip+port, queue<WriteTask>
+
+  PikaReplClient* pika_repl_client_;
+  PikaReplServer* pika_repl_server_;
 };
 
 #endif  //  PIKA_RM_H

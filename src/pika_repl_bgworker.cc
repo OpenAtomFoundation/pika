@@ -45,8 +45,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   // may coredump?
   const InnerMessage::InnerResponse::BinlogSync& binlog_res =
     res->binlog_sync((*index)[0]);
-  std::string table_name = binlog_res.table_name();
-  uint32_t partition_id = binlog_res.partition_id();
+  std::string table_name = binlog_res.partition().table_name();
+  uint32_t partition_id = binlog_res.partition().partition_id();
   BinlogOffset ack_start, ack_end;
   ack_start.filenum = binlog_res.binlog_offset().filenum();
   ack_start.offset = binlog_res.binlog_offset().offset();

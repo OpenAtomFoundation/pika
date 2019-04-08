@@ -8,6 +8,7 @@
 #include <sys/resource.h>
 
 #include "slash/include/env.h"
+#include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
@@ -19,9 +20,9 @@
 #include <gperftools/malloc_extension.h>
 #endif
 
-PikaConf *g_pika_conf;
-
+PikaConf* g_pika_conf;
 PikaServer* g_pika_server;
+PikaReplicaManager* g_pika_rm;
 
 PikaCmdTableManager* g_pika_cmd_table_manager;
 
@@ -185,12 +186,14 @@ int main(int argc, char *argv[]) {
 
   LOG(INFO) << "Server at: " << path;
   g_pika_server = new PikaServer();
+  g_pika_rm = new PikaReplicaManager();
   g_pika_cmd_table_manager = new PikaCmdTableManager();
 
   if (g_pika_conf->daemonize()) {
     close_std();
   }
 
+  g_pika_rm->Start();
   g_pika_server->Start();
   
   if (g_pika_conf->daemonize()) {
@@ -198,6 +201,7 @@ int main(int argc, char *argv[]) {
   }
 
   delete g_pika_server;
+  delete g_pika_rm;
   delete g_pika_cmd_table_manager;
   ::google::ShutdownGoogleLogging();
   delete g_pika_conf;

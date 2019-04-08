@@ -32,6 +32,30 @@ PikaReplServer::~PikaReplServer() {
   LOG(INFO) << "PikaReplServer exit!!!";
 }
 
+slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
+                                                   int port,
+                                                   const std::vector<WriteTask>& tasks) {
+  InnerMessage::InnerResponse response;
+  response.set_code(InnerMessage::kOk);
+  response.set_type(InnerMessage::Type::kBinlogSync);
+  for (const auto task :tasks) {
+    InnerMessage::InnerResponse::BinlogSync* binlog_sync = response.add_binlog_sync();
+    InnerMessage::Partition* partition = binlog_sync->mutable_partition();
+    partition->set_table_name(task.rm_node_.TableName());
+    partition->set_partition_id(task.rm_node_.PartitionId());
+    InnerMessage::BinlogOffset* boffset = binlog_sync->mutable_binlog_offset();
+    boffset->set_filenum(task.binlog_chip_.offset_.filenum);
+    boffset->set_offset(task.binlog_chip_.offset_.offset);
+    binlog_sync->set_binlog(task.binlog_chip_.binlog_);
+  }
+
+  std::string binlog_chip_pb;
+  if (!response.SerializeToString(&binlog_chip_pb)) {
+    return Status::Corruption("Serialized Failed");
+  }
+  return Write(ip, port, binlog_chip_pb);
+}
+
 slash::Status PikaReplServer::Write(const std::string& ip,
                                     const int port,
                                     const std::string& msg) {
@@ -282,11 +306,6 @@ void PikaReplServer::HandleBinlogSyncAckRequest(void* arg) {
   const InnerMessage::BinlogOffset& ack_range_start = binlog_ack.ack_range_start();
   const InnerMessage::BinlogOffset& ack_range_end = binlog_ack.ack_range_end();
 
-  uint64_t now;
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  now = tv.tv_sec;
-
   // Set ack info from slave
   RmNode slave_node = RmNode(table_name, partition_id, ip, port);
   Status s = g_pika_rm->UpdateSyncBinlogStatus(slave_node,
@@ -299,7 +318,5 @@ void PikaReplServer::HandleBinlogSyncAckRequest(void* arg) {
     return;
   }
   delete task_arg;
-
-  // TODO Notify RM Send Binlog ?
   return;
 }

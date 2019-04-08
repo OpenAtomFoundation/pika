@@ -40,7 +40,6 @@ void DoDBSync(void* arg) {
   delete dbsa;
 }
 
-
 PikaServer::PikaServer() :
   exit_(false),
   have_scheduled_crontask_(false),
@@ -89,8 +88,6 @@ PikaServer::PikaServer() :
   pika_rsync_service_ = new PikaRsyncService(g_pika_conf->db_sync_path(), host_,
                                              g_pika_conf->port() + kPortShiftRSync);
   pika_pubsub_thread_ = new pink::PubSubThread();
-  pika_repl_client_ = new PikaReplClient(3000, 60);
-  pika_repl_server_ = new PikaReplServer(ips, port_ + kPortShiftReplServer, 3000);
   pika_auxiliary_thread_ = new PikaAuxiliaryThread();
   pika_thread_pool_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
 
@@ -116,8 +113,6 @@ PikaServer::~PikaServer() {
   delete ping_thread_;
   delete pika_pubsub_thread_;
   delete pika_auxiliary_thread_;
-  delete pika_repl_client_;
-  delete pika_repl_server_;
   delete pika_rsync_service_;
   delete pika_thread_pool_;
 
@@ -232,18 +227,6 @@ void PikaServer::Start() {
   if (ret != pink::kSuccess) {
     tables_.clear();
     LOG(FATAL) << "Start Pubsub Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
-  }
-
-  ret = pika_repl_client_->Start();
-  if (ret != pink::kSuccess) {
-    tables_.clear();
-    LOG(FATAL) << "Start Repl Client Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
-  }
-
-  ret = pika_repl_server_->Start();
-  if (ret != pink::kSuccess) {
-    tables_.clear();
-    LOG(FATAL) << "Start Repl Server Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
 
   ret = pika_auxiliary_thread_->StartThread();
@@ -778,25 +761,6 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port,
   return s.sid;
 }
 
-//Status PikaServer::AddBinlogSender(const std::string& table_name,
-//                                   uint32_t partition_id,
-//                                   const std::string& ip,
-//                                   int64_t port,
-//                                   int64_t sid,
-//                                   uint32_t filenum, uint64_t con_offset) {
-//  // shift 3000 to connect repl sserver
-//  RmNode slave(table_name, partition_id, ip, port + kPortShiftReplServer);
-//  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
-//  std::shared_ptr<Binlog>logger = partition->logger();
-//  return Status::OK();
-//  // TODO: 
-//  //Status res = pika_repl_client_->AddBinlogSyncCtl(slave, logger, filenum, con_offset);
-//  //if (!res.ok()) {
-//  //  return res;
-//  //}
-//  //return pika_repl_client_->SendBinlogSync(slave);
-//}
-
 void PikaServer::SyncError() {
   slash::RWLock l(&state_protector_, true);
   repl_state_ = PIKA_REPL_ERROR;
@@ -826,7 +790,7 @@ void PikaServer::RemoveMaster() {
 }
 
 void PikaServer::KillMasterSyncConn() {
-  pika_repl_server_->KillAllConns();
+  g_pika_rm->GetPikaReplServer()->KillAllConns();
 }
 
 bool PikaServer::ShouldStartPingMaster() {
@@ -925,7 +889,7 @@ void PikaServer::PurgelogsTaskSchedule(pink::TaskFunc func, void* arg) {
 }
 
 void PikaServer::ScheduleReplCliTask(pink::TaskFunc func, void* arg) {
-  pika_repl_client_->Schedule(func, arg);
+  g_pika_rm->GetPikaReplClient()->Schedule(func, arg);
 }
 
 void PikaServer::PurgeDir(const std::string& path) {
@@ -1241,7 +1205,7 @@ Status PikaServer::SendMetaSyncRequest() {
   // Sleep one second to avoid frequent try Meta Sync
   // when the connection is closed
   sleep(1);
-  Status status = pika_repl_client_->SendMetaSync();
+  Status status = g_pika_rm->GetPikaReplClient()->SendMetaSync();
   last_meta_sync_timestamp_ = time(NULL);
   slash::RWLock l(&state_protector_, true);
   repl_state_ = PIKA_REPL_WAIT_META_SYNC_RESPONSE;
@@ -1258,7 +1222,7 @@ Status PikaServer::SendPartitionDBSyncRequest(std::shared_ptr<Partition> partiti
   partition->PrepareRsync();
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
-  Status status = pika_repl_client_->SendPartitionDBSync(table_name, partition_id, boffset);
+  Status status = g_pika_rm->GetPikaReplClient()->SendPartitionDBSync(table_name, partition_id, boffset);
   partition->SetReplState(ReplState::kWaitReply);
   return status;
 }
@@ -1272,7 +1236,7 @@ Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partit
   }
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
-  Status status = pika_repl_client_->SendPartitionTrySync(table_name, partition_id, boffset);
+  Status status = g_pika_rm->GetPikaReplClient()->SendPartitionTrySync(table_name, partition_id, boffset);
   partition->SetReplState(ReplState::kWaitReply);
   return status;
 }
@@ -1281,62 +1245,37 @@ Status PikaServer::SendPartitionBinlogSyncAckRequest(const std::string& table,
                                                      uint32_t partition_id,
                                                      const BinlogOffset& ack_start,
                                                      const BinlogOffset& ack_end) {
-  return pika_repl_client_->SendPartitionBinlogSyncAck(table, partition_id, ack_start, ack_end);
+  return g_pika_rm->GetPikaReplClient()->SendPartitionBinlogSyncAck(table, partition_id, ack_start, ack_end);
 }
-
-//Status PikaServer::SendBinlogSyncRequest(const std::string& table,
-//                                         uint32_t partition,
-//                                         const std::string& ip, int port) {
-//  RmNode slave = RmNode(table, partition, ip, port);
-//  return pika_repl_client_->SendBinlogSync(slave);
-//}
-
-//bool PikaServer::SetBinlogAckInfo(const std::string& table, uint32_t partition,
-//                                  const std::string& ip, int port,
-//                                  uint32_t ack_filenum_start, uint64_t ack_offset_start,
-//                                  uint32_t ack_filenum_end, uint64_t ack_offset_end,
-//                                  uint64_t active_time) {
-//  RmNode slave_node = RmNode(table, partition, ip, port);
-//  return g_pika_rm->UpdateSyncBinlogStatus(slave_node,
-//          BinlogOffset(ack_filenum_start, ack_offset_start), BinlogOffset(ack_filenum_end, ack_offset_end));
-//}
-
-//bool PikaServer::GetBinlogAckInfo(const std::string& table, uint32_t partition,
-//                                  const std::string& ip, int port,
-//                                  uint32_t* ack_file_num, uint64_t* ack_offset,
-//                                  uint64_t* active_time) {
-//  RmNode slave = RmNode(table, partition, ip, port);
-//  return pika_repl_client_->GetAckInfo(slave, ack_file_num, ack_offset, active_time);
-//}
 
 void PikaServer::ReplServerUpdateClientConnMap(const std::string& ip_port,
                                                int fd) {
-  pika_repl_server_->UpdateClientConnMap(ip_port, fd);
+  g_pika_rm->GetPikaReplServer()->UpdateClientConnMap(ip_port, fd);
 }
 
 void PikaServer::ReplServerRemoveClientConn(int fd) {
-  pika_repl_server_->RemoveClientConn(fd);
+  g_pika_rm->GetPikaReplServer()->RemoveClientConn(fd);
 }
 
 void PikaServer::ScheduleReplServerBGTask(pink::TaskFunc func, void* arg) {
-  pika_repl_server_->Schedule(func, arg);
+  g_pika_rm->GetPikaReplServer()->Schedule(func, arg);
 }
 
 void PikaServer::ScheduleReplClientBGTask(pink::TaskFunc func, void* arg) {
-  pika_repl_client_->Schedule(func, arg);
+  g_pika_rm->GetPikaReplClient()->Schedule(func, arg);
 }
 
 void PikaServer::ScheduleWriteBinlogTask(const std::string& table_partition,
                                          const std::shared_ptr<InnerMessage::InnerResponse> res,
                                          std::shared_ptr<pink::PbConn> conn,
                                          void* res_private_data) {
-  pika_repl_client_->ScheduleWriteBinlogTask(table_partition, res, conn, res_private_data);
+  g_pika_rm->GetPikaReplClient()->ScheduleWriteBinlogTask(table_partition, res, conn, res_private_data);
 }
 
 void PikaServer::ScheduleWriteDBTask(const std::string& dispatch_key,
                                      PikaCmdArgsType* argv, BinlogItem* binlog_item,
                                      const std::string& table_name, uint32_t partition_id) {
-  pika_repl_client_->ScheduleWriteDBTask(dispatch_key, argv, binlog_item, table_name, partition_id);
+  g_pika_rm->GetPikaReplClient()->ScheduleWriteDBTask(dispatch_key, argv, binlog_item, table_name, partition_id);
 }
 
 int PikaServer::PubSubNumPat() {
