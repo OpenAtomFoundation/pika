@@ -8,7 +8,6 @@
 
 #include "pink/include/thread_pool.h"
 
-
 #include <vector>
 
 #include "include/pika_command.h"
@@ -26,6 +25,8 @@ class PikaReplServer {
  public:
   PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval);
   ~PikaReplServer();
+
+  slash::Status SendSlaveBinlogChips(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
   slash::Status Write(const std::string& ip, const int port, const std::string& msg);
 
   int Start();

@@ -55,6 +55,7 @@ message InnerRequest {
     required uint32       partition_id    = 2;
     required BinlogOffset ack_range_start = 3;
     required BinlogOffset ack_range_end   = 4;
+    required bool         first_send      = 5;
   }
 
   // slave to master
@@ -115,11 +116,9 @@ message InnerResponse {
 
   // master to slave
   message BinlogSync {
-    required Node           node          = 1;
-    required string         table_name    = 2;
-    required uint32         partition_id  = 3;
-    required BinlogOffset   binlog_offset = 4;
-    required bytes          binlog        = 5;
+    required Partition      partition     = 1;
+    required BinlogOffset   binlog_offset = 2;
+    required bytes          binlog        = 3;
   }
 
   // slave to master

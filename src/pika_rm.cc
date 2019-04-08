@@ -3,11 +3,17 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "set"
+
 #include "include/pika_rm.h"
+#include "include/pika_conf.h"
+#include "include/pika_repl_client.h"
+#include "include/pika_repl_server.h"
 
 #include <glog/logging.h>
 
-PikaReplicaManager* g_pika_rm;
+extern PikaConf *g_pika_conf;
+extern PikaReplicaManager* g_pika_rm;
 
 /* BinlogReaderManager */
 
@@ -363,6 +369,42 @@ int SyncWindow::Remainings() {
 
 /* PikaReplicaManger */
 
+PikaReplicaManager::PikaReplicaManager() {
+  std::set<std::string> ips;
+  ips.insert("0.0.0.0");
+  int port = g_pika_conf->port() + kPortShiftReplServer;
+  pika_repl_client_ = new PikaReplClient(3000, 60);
+  pika_repl_server_ = new PikaReplServer(ips, port, 3000);
+  pthread_rwlock_init(&partitions_rw_, NULL);
+}
+
+PikaReplicaManager::~PikaReplicaManager() {
+  delete pika_repl_client_;
+  delete pika_repl_server_;
+  pthread_rwlock_destroy(&partitions_rw_);
+}
+
+void PikaReplicaManager::Start() {
+  int ret = 0;
+  ret = pika_repl_client_->Start();
+  if (ret != pink::kSuccess) {
+    LOG(FATAL) << "Start Repl Client Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+
+  ret = pika_repl_server_->Start();
+  if (ret != pink::kSuccess) {
+    LOG(FATAL) << "Start Repl Server Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+}
+
+PikaReplClient* PikaReplicaManager::GetPikaReplClient() {
+  return pika_repl_client_;
+}
+
+PikaReplServer* PikaReplicaManager::GetPikaReplServer() {
+  return pika_repl_server_;
+}
+
 void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks) {
   slash::MutexLock l(&write_queue_mu_);
   std::string index = ip + ":" + std::to_string(port);
@@ -392,11 +434,11 @@ int PikaReplicaManager::ConsumeWriteQueue() {
         queue.pop();
         counter++;
       }
-      // Status s = repl_server_->SendSlaveBinlogChips(ip, port, to_send);
-      // if (!s.ok()) {
-      //   LOG(WARNING) << "send binlog to " << ip << ":" << port << " failed";
-      //   write_queues_.erase(iter.first);
-      // }
+      Status s = pika_repl_server_->SendSlaveBinlogChips(ip, port, to_send);
+      if (!s.ok()) {
+        LOG(WARNING) << "send binlog to " << ip << ":" << port << " failed, " << s.ToString();
+        write_queues_.erase(iter.first);
+      }
     }
   }
   return counter;
