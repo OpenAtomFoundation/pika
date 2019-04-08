@@ -46,6 +46,25 @@ struct SlaveItem {
   struct timeval create_time;
 };
 
+struct BinlogOffset {
+  uint32_t filenum;
+  uint64_t offset;
+  BinlogOffset()
+      : filenum(0), offset(0) {}
+  BinlogOffset(uint32_t num, uint64_t off)
+      : filenum(num), offset(off) {}
+  BinlogOffset(const BinlogOffset& other) {
+    filenum = other.filenum;
+    offset = other.offset;
+  }
+  bool operator==(const BinlogOffset& other) const {
+    if (filenum == other.filenum && offset == other.offset) {
+      return true;
+    }
+    return false;
+  }
+};
+
 //dbsync arg
 struct DBSyncArg {
   PikaServer* p;
@@ -60,6 +79,128 @@ struct DBSyncArg {
             uint32_t _partition_id)
       : p(_p), ip(_ip), port(_port),
         table_name(_table_name), partition_id(_partition_id) {}
+};
+
+// rm define
+enum Role {
+  kPartitionSingle = 0,
+  kPartitionMaster = 1,
+  kPartitionSlave  = 2,
+};
+
+enum SlaveState {
+  kSlaveNotSync    = 0,
+  kSlaveDbSync     = 1,
+  kSlaveBinlogSync = 2,
+};
+
+enum BinlogSyncState {
+  kNotSync         = 0,
+  kReadFromCache   = 1,
+  kReadFromFile    = 2,
+};
+
+struct BinlogChip {
+  BinlogOffset offset_;
+  std::string binlog_;
+  BinlogChip(BinlogOffset offset, std::string binlog) : offset_(offset), binlog_(binlog) {
+  }
+  BinlogChip(const BinlogChip& binlog_chip) {
+    offset_ = binlog_chip.offset_;
+    binlog_ = binlog_chip.binlog_;
+  }
+};
+
+struct PartitionInfo {
+  PartitionInfo(const std::string& table_name, uint32_t partition_id)
+    : table_name_(table_name), partition_id_(partition_id) {
+  }
+  PartitionInfo(const PartitionInfo& other) {
+    table_name_ = other.table_name_;
+    partition_id_ = other.partition_id_;
+  }
+  PartitionInfo() : partition_id_(0) {
+  }
+  bool operator==(const PartitionInfo& other) const {
+    if (table_name_ == other.table_name_
+        && partition_id_ == other.partition_id_) {
+      return true;
+    }
+    return false;
+  }
+  std::string table_name_;
+  uint32_t partition_id_;
+};
+
+class Node {
+ public:
+  Node(const std::string& ip, int port) : ip_(ip), port_(port) {
+  }
+  Node() : port_(0) {
+  }
+  const std::string& Ip() const {
+    return ip_;
+  }
+  int Port() const {
+    return port_;
+  }
+  std::string ToString() const {
+    return ip_ + ":" + std::to_string(port_);
+  }
+ private:
+  std::string ip_;
+  int port_;
+};
+
+class RmNode : public Node {
+ public:
+  RmNode(const std::string& ip, int port,
+      const PartitionInfo& partition_info)
+    : Node(ip, port), partition_info_(partition_info), session_id_(0) {
+  }
+  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id) : Node(ip, port), partition_info_(table_name, partition_id), session_id_(0) {
+  }
+  RmNode() : Node(), partition_info_(), session_id_(0) {
+  }
+
+  bool operator==(const RmNode& other) const {
+    if (partition_info_.table_name_ == other.TableName()
+      && partition_info_.partition_id_ == other.PartitionId()
+      && Ip() == other.Ip() && Port() == other.Port()) {
+      return true;
+    }
+    return false;
+  }
+
+  const std::string& TableName() const {
+    return partition_info_.table_name_;
+  }
+  uint32_t PartitionId() const {
+    return partition_info_.partition_id_;
+  }
+  const PartitionInfo& NodePartitionInfo() const {
+    return partition_info_;
+  }
+  void SetSessionId(uint32_t session_id) {
+    session_id_ = session_id;
+  }
+  uint32_t SessionId() const {
+    return session_id_;
+  }
+  std::string ToString() const {
+    return TableName() + "_" + std::to_string(PartitionId()) + "_" + Ip() + ":" + std::to_string(Port());
+  }
+
+ private:
+  PartitionInfo partition_info_;
+  uint32_t session_id_;
+};
+
+struct WriteTask {
+  struct RmNode rm_node_;
+  struct BinlogChip binlog_chip_;
+  WriteTask(RmNode rm_node, BinlogChip binlog_chip) : rm_node_(rm_node), binlog_chip_(binlog_chip) {
+  }
 };
 
 //slowlog define

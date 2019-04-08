@@ -14,7 +14,7 @@
 #include "pink/include/thread_pool.h"
 #include "slash/include/slash_status.h"
 
-#include "include/pika_rm.h"
+#include "include/pika_define.h"
 #include "include/pika_partition.h"
 #include "include/pika_binlog_reader.h"
 #include "include/pika_repl_bgworker.h"
@@ -91,7 +91,8 @@ class PikaReplClient {
   Status SendPartitionBinlogSyncAck(const std::string& table_name,
                                     uint32_t partition_id,
                                     const BinlogOffset& ack_start,
-                                    const BinlogOffset& ack_end);
+                                    const BinlogOffset& ack_end,
+                                    bool is_frist_send);
  private:
   size_t GetHashIndex(std::string key, bool upper_half);
   void UpdateNextAvail() {

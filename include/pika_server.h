@@ -276,21 +276,12 @@ class PikaServer {
   Status SendPartitionDBSyncRequest(std::shared_ptr<Partition> partition);
   Status SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition);
   Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
-                                           const BinlogOffset& ack_start, const BinlogOffset& ack_end);
-  //Status SendBinlogSyncRequest(const std::string& table, uint32_t partition,
-  //                             const std::string& ip, int port);
+                                           const BinlogOffset& ack_start, const BinlogOffset& ack_end,
+                                           bool is_frist_send = false);
 
   /*
    * RM {repl client, repl server} used
    */
-  //bool SetBinlogAckInfo(const std::string& table, uint32_t partition,
-  //                      const std::string& ip, int port,
-  //                      uint32_t ack_filenum_start, uint64_t ack_offset_start,
-  //                      uint32_t ack_filenum_end, uint64_t ack_offset_end,
-  //                      uint64_t active_time);
-  //bool GetBinlogAckInfo(const std::string& table, uint32_t partition,
-  //                      const std::string& ip, int port, uint32_t* ack_file_num,
-  //                      uint64_t* ack_offset, uint64_t* active_time);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
   void ReplServerRemoveClientConn(int fd);
   void ScheduleReplServerBGTask(pink::TaskFunc func, void* arg);
@@ -417,8 +408,6 @@ class PikaServer {
   /*
    * Communication used
    */
-  PikaReplClient* pika_repl_client_;
-  PikaReplServer* pika_repl_server_;
   PikaAuxiliaryThread* pika_auxiliary_thread_;
 
   /*
