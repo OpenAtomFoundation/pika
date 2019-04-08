@@ -19,7 +19,10 @@
 #include "slash/include/slash_string.h"
 #include "pink/include/bg_thread.h"
 
+#include "include/pika_rm.h"
 #include "include/pika_dispatch_thread.h"
+
+extern PikaReplicaManager* g_pika_rm;
 
 void DoPurgeDir(void* arg) {
   std::string path = *(static_cast<std::string*>(arg));
@@ -546,7 +549,7 @@ bool PikaServer::PartitionCouldPurge(const std::string& table_name,
   slash::MutexLock l(&slave_mutex_);
   for (const auto& slave : slaves_) {
     RmNode rm_node(table_name, partition_id, slave.ip, slave.port + kPortShiftReplServer);
-    Status s = pika_repl_client_->GetBinlogSyncCtlStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
+    Status s = g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
     if (s.ok()) {
       if (index >= acked_slave_boffset.filenum) {
         return false;
@@ -640,8 +643,8 @@ void PikaServer::DeleteSlave(int fd) {
     std::vector<SlaveItem>::iterator iter = slaves_.begin();
     while (iter != slaves_.end()) {
       if (iter->hb_fd == fd) {
-        pika_repl_client_->RemoveSlave(*iter);
-        pika_repl_client_->DropItemInWriteQueue(iter->ip, iter->port);
+        g_pika_rm->LostConnection(iter->ip, iter->port);
+        g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
         slaves_.erase(iter);
         LOG(INFO) << "Delete slave success";
         break;
@@ -666,8 +669,8 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
     std::vector<SlaveItem>::iterator iter = slaves_.begin();
     while (iter != slaves_.end()) {
       if (iter->ip_port == ip_port) {
-        pika_repl_client_->RemoveSlave(*iter);
-        pika_repl_client_->DropItemInWriteQueue(ip, port);
+        g_pika_rm->LostConnection(iter->ip, iter->port);
+        g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
         slaves_.erase(iter);
         LOG(INFO) << "Delete slave success";
         break;
@@ -723,7 +726,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
         if (!partition || !partition->GetBinlogOffset(&master_boffset)) {
           continue;
         } else {
-          Status s = pika_repl_client_->GetBinlogSyncCtlStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
+          Status s = g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
           if (s.ok()) {
             uint64_t lag =
               (master_boffset.filenum - sent_slave_boffset.filenum) * g_pika_conf->binlog_file_size()
@@ -775,22 +778,24 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port,
   return s.sid;
 }
 
-Status PikaServer::AddBinlogSender(const std::string& table_name,
-                                   uint32_t partition_id,
-                                   const std::string& ip,
-                                   int64_t port,
-                                   int64_t sid,
-                                   uint32_t filenum, uint64_t con_offset) {
-  // shift 3000 to connect repl sserver
-  RmNode slave(table_name, partition_id, ip, port + kPortShiftReplServer);
-  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
-  std::shared_ptr<Binlog>logger = partition->logger();
-  Status res = pika_repl_client_->AddBinlogSyncCtl(slave, logger, filenum, con_offset);
-  if (!res.ok()) {
-    return res;
-  }
-  return pika_repl_client_->SendBinlogSync(slave);
-}
+//Status PikaServer::AddBinlogSender(const std::string& table_name,
+//                                   uint32_t partition_id,
+//                                   const std::string& ip,
+//                                   int64_t port,
+//                                   int64_t sid,
+//                                   uint32_t filenum, uint64_t con_offset) {
+//  // shift 3000 to connect repl sserver
+//  RmNode slave(table_name, partition_id, ip, port + kPortShiftReplServer);
+//  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
+//  std::shared_ptr<Binlog>logger = partition->logger();
+//  return Status::OK();
+//  // TODO: 
+//  //Status res = pika_repl_client_->AddBinlogSyncCtl(slave, logger, filenum, con_offset);
+//  //if (!res.ok()) {
+//  //  return res;
+//  //}
+//  //return pika_repl_client_->SendBinlogSync(slave);
+//}
 
 void PikaServer::SyncError() {
   slash::RWLock l(&state_protector_, true);
@@ -1219,7 +1224,7 @@ std::unordered_map<std::string, uint64_t> PikaServer::ServerExecCountTable() {
 }
 
 int PikaServer::SendToPeer() {
-  return pika_repl_client_->ConsumeWriteQueue();
+  return g_pika_rm->ConsumeWriteQueue();
 }
 
 void PikaServer::SignalAuxiliary() {
@@ -1229,7 +1234,7 @@ void PikaServer::SignalAuxiliary() {
 }
 
 Status PikaServer::TriggerSendBinlogSync() {
-  return pika_repl_client_->TriggerSendBinlogSync();
+  return g_pika_rm->WakeUpBinlogSync();
 }
 
 Status PikaServer::SendMetaSyncRequest() {
@@ -1279,29 +1284,30 @@ Status PikaServer::SendPartitionBinlogSyncAckRequest(const std::string& table,
   return pika_repl_client_->SendPartitionBinlogSyncAck(table, partition_id, ack_start, ack_end);
 }
 
-Status PikaServer::SendBinlogSyncRequest(const std::string& table,
-                                         uint32_t partition,
-                                         const std::string& ip, int port) {
-  RmNode slave = RmNode(table, partition, ip, port);
-  return pika_repl_client_->SendBinlogSync(slave);
-}
+//Status PikaServer::SendBinlogSyncRequest(const std::string& table,
+//                                         uint32_t partition,
+//                                         const std::string& ip, int port) {
+//  RmNode slave = RmNode(table, partition, ip, port);
+//  return pika_repl_client_->SendBinlogSync(slave);
+//}
 
-bool PikaServer::SetBinlogAckInfo(const std::string& table, uint32_t partition,
-                                  const std::string& ip, int port,
-                                  uint32_t ack_filenum_start, uint64_t ack_offset_start,
-                                  uint32_t ack_filenum_end, uint64_t ack_offset_end,
-                                  uint64_t active_time) {
-  RmNode slave = RmNode(table, partition, ip, port);
-  return pika_repl_client_->SetAckInfo(slave, ack_filenum_start, ack_offset_start, ack_filenum_end, ack_offset_end, active_time);
-}
+//bool PikaServer::SetBinlogAckInfo(const std::string& table, uint32_t partition,
+//                                  const std::string& ip, int port,
+//                                  uint32_t ack_filenum_start, uint64_t ack_offset_start,
+//                                  uint32_t ack_filenum_end, uint64_t ack_offset_end,
+//                                  uint64_t active_time) {
+//  RmNode slave_node = RmNode(table, partition, ip, port);
+//  return g_pika_rm->UpdateSyncBinlogStatus(slave_node,
+//          BinlogOffset(ack_filenum_start, ack_offset_start), BinlogOffset(ack_filenum_end, ack_offset_end));
+//}
 
-bool PikaServer::GetBinlogAckInfo(const std::string& table, uint32_t partition,
-                                  const std::string& ip, int port,
-                                  uint32_t* ack_file_num, uint64_t* ack_offset,
-                                  uint64_t* active_time) {
-  RmNode slave = RmNode(table, partition, ip, port);
-  return pika_repl_client_->GetAckInfo(slave, ack_file_num, ack_offset, active_time);
-}
+//bool PikaServer::GetBinlogAckInfo(const std::string& table, uint32_t partition,
+//                                  const std::string& ip, int port,
+//                                  uint32_t* ack_file_num, uint64_t* ack_offset,
+//                                  uint64_t* active_time) {
+//  RmNode slave = RmNode(table, partition, ip, port);
+//  return pika_repl_client_->GetAckInfo(slave, ack_file_num, ack_offset, active_time);
+//}
 
 void PikaServer::ReplServerUpdateClientConnMap(const std::string& ip_port,
                                                int fd) {
