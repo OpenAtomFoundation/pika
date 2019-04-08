@@ -249,11 +249,11 @@ Status PikaReplClient::RemoveBinlogSyncCtl(const RmNode& slave) {
 
 Status PikaReplClient::AddBinlogSyncCtl(const RmNode& slave, std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
   RemoveBinlogSyncCtl(slave);
-  PikaBinlogReader* binlog_reader = NewPikaBinlogReader(logger, filenum, offset);
+  PikaBinlogReader* binlog_reader = new PikaBinlogReader(filenum, offset);
   if (!binlog_reader) {
     return Status::Corruption(slave.ToString() + " new binlog reader failed");
   }
-  int res = binlog_reader->Seek();
+  int res = binlog_reader->Seek(logger, filenum, offset);
   if (res) {
     delete binlog_reader;
     return Status::Corruption(slave.ToString() + "  binlog reader init failed");
@@ -460,16 +460,4 @@ void PikaReplClient::BuildBinlogPb(const RmNode& slave, const std::string& msg, 
   //binlog_offset->set_filenum(filenum);
   //binlog_offset->set_offset(offset);
   //binlog_msg->set_binlog(msg);
-}
-
-PikaBinlogReader* PikaReplClient::NewPikaBinlogReader(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
-  std::string confile = NewFileName(logger->filename, filenum);
-  if (!slash::FileExists(confile)) {
-    return NULL;
-  }
-  slash::SequentialFile* readfile;
-  if (!slash::NewSequentialFile(confile, &readfile).ok()) {
-    return NULL;
-  }
-  return new PikaBinlogReader(readfile, logger, filenum, offset);
 }
