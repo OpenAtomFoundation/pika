@@ -52,6 +52,7 @@ SlaveNode::SlaveNode(const std::string& ip, int port,
     const std::string& table_name, uint32_t partition_id)
   : RmNode(ip, port, PartitionInfo(table_name, partition_id)),
   slave_state(kSlaveNotSync),
+  last_active_time(0),
   b_state(kNotSync), sent_offset(), acked_offset() {
 }
 
@@ -325,6 +326,33 @@ Status SyncPartition::WakeUpSlaveBinlogSync() {
   }
   return Status::OK();
 }
+
+Status SyncPartition::SetLastActiveTime(const std::string& ip, int port, uint64_t time) {
+  slash::MutexLock l(&partition_mu_);
+  std::shared_ptr<SlaveNode> slave_ptr = nullptr;
+  Status s = GetSlaveNode(ip, port, &slave_ptr);
+  if (!s.ok()) {
+    return s;
+  }
+  slave_ptr->Lock();
+  slave_ptr->last_active_time = time;
+  slave_ptr->Unlock();
+  return Status::OK();
+}
+
+Status SyncPartition::GetLastActiveTime(const std::string& ip, int port, uint64_t* time) {
+  slash::MutexLock l(&partition_mu_);
+  std::shared_ptr<SlaveNode> slave_ptr = nullptr;
+  Status s = GetSlaveNode(ip, port, &slave_ptr);
+  if (!s.ok()) {
+    return s;
+  }
+  slave_ptr->Lock();
+  *time = slave_ptr->last_active_time;
+  slave_ptr->Unlock();
+  return Status::OK();
+}
+
 
 /* SyncWindow */
 
@@ -619,6 +647,26 @@ Status PikaReplicaManager::ActivateDbSync(const RmNode& slave) {
   if (!s.ok()) {
     return s;
   }
+  return Status::OK();
+}
+
+Status PikaReplicaManager::SetLastActiveTime(const RmNode& slave, uint64_t time) {
+  slash::RWLock l(&partitions_rw_, false);
+  if (sync_partitions_.find(slave.NodePartitionInfo()) == sync_partitions_.end()) {
+    return Status::NotFound(slave.ToString() + " not found");
+  }
+  std::shared_ptr<SyncPartition> partition = sync_partitions_[slave.NodePartitionInfo()];
+  partition->SetLastActiveTime(slave.Ip(), slave.Port(), time);
+  return Status::OK();
+}
+
+Status PikaReplicaManager::GetLastActiveTime(const RmNode& slave, uint64_t* time) {
+  slash::RWLock l(&partitions_rw_, false);
+  if (sync_partitions_.find(slave.NodePartitionInfo()) == sync_partitions_.end()) {
+    return Status::NotFound(slave.ToString() + " not found");
+  }
+  std::shared_ptr<SyncPartition> partition = sync_partitions_[slave.NodePartitionInfo()];
+  partition->GetLastActiveTime(slave.Ip(), slave.Port(), time);
   return Status::OK();
 }
 

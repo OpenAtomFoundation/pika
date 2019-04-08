@@ -83,6 +83,7 @@ class SlaveNode : public RmNode {
     slave_mu_.Unlock();
   }
   SlaveState slave_state;
+  uint64_t last_active_time;
 
   BinlogSyncState b_state;
   SyncWindow sync_win;
@@ -112,6 +113,9 @@ class SyncPartition {
   Status SyncBinlogToWq(const std::string& ip, int port);
   Status UpdateSlaveBinlogAckInfo(const std::string& ip, int port, const BinlogOffset& start, const BinlogOffset& end);
   Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset, BinlogOffset* acked_offset);
+
+  Status SetLastActiveTime(const std::string& ip, int port, uint64_t time);
+  Status GetLastActiveTime(const std::string& ip, int port, uint64_t* time);
 
   Status WakeUpSlaveBinlogSync();
 
@@ -173,6 +177,9 @@ class PikaReplicaManager {
   // Update binlog win and try to send next binlog
   Status UpdateSyncBinlogStatus(const RmNode& slave, const BinlogOffset& offset_start, const BinlogOffset& offset_end);
   Status GetSyncBinlogStatus(const RmNode& slave, BinlogOffset* sent_boffset, BinlogOffset* acked_boffset);
+
+  Status SetLastActiveTime(const RmNode& slave, uint64_t time);
+  Status GetLastActiveTime(const RmNode& slave, uint64_t* time);
 
   Status WakeUpBinlogSync();
 
