@@ -201,7 +201,10 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
 
   std::string partition_name = partition->GetPartitionName();
   if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
+    BinlogOffset boffset;
     partition->SetReplState(ReplState::kConnected);
+    partition->logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
+    g_pika_server->SendPartitionBinlogSyncAckRequest(table_name, partition_id, boffset, boffset, true);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {
     partition->SetReplState(ReplState::kTryDBSync);

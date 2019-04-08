@@ -55,6 +55,7 @@ message InnerRequest {
     required uint32       partition_id    = 2;
     required BinlogOffset ack_range_start = 3;
     required BinlogOffset ack_range_end   = 4;
+    required bool         first_send      = 5;
   }
 
   // slave to master

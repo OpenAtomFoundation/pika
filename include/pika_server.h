@@ -276,7 +276,8 @@ class PikaServer {
   Status SendPartitionDBSyncRequest(std::shared_ptr<Partition> partition);
   Status SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition);
   Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
-                                           const BinlogOffset& ack_start, const BinlogOffset& ack_end);
+                                           const BinlogOffset& ack_start, const BinlogOffset& ack_end,
+                                           bool is_frist_send = false);
 
   /*
    * RM {repl client, repl server} used

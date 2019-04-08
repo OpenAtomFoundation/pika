@@ -188,7 +188,7 @@ class RmNode : public Node {
     return session_id_;
   }
   std::string ToString() const {
-    return TableName() + "_" + std::to_string(PartitionId()) + "_" + Ip() + std::to_string(Port());
+    return TableName() + "_" + std::to_string(PartitionId()) + "_" + Ip() + ":" + std::to_string(Port());
   }
 
  private:

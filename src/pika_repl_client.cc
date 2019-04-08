@@ -163,12 +163,14 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
 Status PikaReplClient::SendPartitionBinlogSyncAck(const std::string& table_name,
                                                   uint32_t partition_id,
                                                   const BinlogOffset& ack_start,
-                                                  const BinlogOffset& ack_end) {
+                                                  const BinlogOffset& ack_end,
+                                                  bool is_first_send) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kBinlogSync);
   InnerMessage::InnerRequest::BinlogSync* binlog_sync = request.mutable_binlog_sync();
   binlog_sync->set_table_name(table_name);
   binlog_sync->set_partition_id(partition_id);
+  binlog_sync->set_first_send(is_first_send);
 
   InnerMessage::BinlogOffset* ack_range_start = binlog_sync->mutable_ack_range_start();
   ack_range_start->set_filenum(ack_start.filenum);

@@ -284,7 +284,7 @@ void PikaReplServer::HandleBinlogSyncAckRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
-  if (req->has_binlog_sync()) {
+  if (!req->has_binlog_sync()) {
     LOG(WARNING) << "Pb parse error";
     conn->NotifyClose();
     delete task_arg;
@@ -303,11 +303,16 @@ void PikaReplServer::HandleBinlogSyncAckRequest(void* arg) {
     return;
   }
 
+  bool is_first_send = binlog_ack.first_send();
   const InnerMessage::BinlogOffset& ack_range_start = binlog_ack.ack_range_start();
   const InnerMessage::BinlogOffset& ack_range_end = binlog_ack.ack_range_end();
 
+
   // Set ack info from slave
   RmNode slave_node = RmNode(table_name, partition_id, ip, port);
+  if (is_first_send) {
+    // TODO: ActivateBinlogSync
+  }
   Status s = g_pika_rm->UpdateSyncBinlogStatus(slave_node,
           BinlogOffset(ack_range_start.filenum(), ack_range_start.offset()),
           BinlogOffset(ack_range_end.filenum(), ack_range_end.offset()));
