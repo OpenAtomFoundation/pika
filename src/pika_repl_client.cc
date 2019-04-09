@@ -160,7 +160,7 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
 
-Status PikaReplClient::SendPartitionBinlogSyncAck(const std::string& table_name,
+Status PikaReplClient::SendPartitionBinlogSync(const std::string& table_name,
                                                   uint32_t partition_id,
                                                   const BinlogOffset& ack_start,
                                                   const BinlogOffset& ack_end,
@@ -168,6 +168,9 @@ Status PikaReplClient::SendPartitionBinlogSyncAck(const std::string& table_name,
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kBinlogSync);
   InnerMessage::InnerRequest::BinlogSync* binlog_sync = request.mutable_binlog_sync();
+  InnerMessage::Node* node = binlog_sync->mutable_node();
+  node->set_ip(g_pika_server->host());
+  node->set_port(g_pika_server->port());
   binlog_sync->set_table_name(table_name);
   binlog_sync->set_partition_id(partition_id);
   binlog_sync->set_first_send(is_first_send);

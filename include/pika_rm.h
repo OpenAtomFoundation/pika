@@ -171,7 +171,7 @@ class PikaReplicaManager {
 
   Status LostConnection(const std::string& ip, int port);
 
-  Status ActivateBinlogSync(const RmNode& slave, const std::shared_ptr<Binlog> binlog, const BinlogOffset& offset);
+  Status ActivateBinlogSync(const RmNode& slave, const BinlogOffset& offset);
   Status ActivateDbSync(const RmNode& slave);
 
   // Update binlog win and try to send next binlog
@@ -193,6 +193,7 @@ class PikaReplicaManager {
   BinlogReaderManager binlog_reader_mgr;
 
  private:
+  void InitPartition();
   Status AddSlave(const RmNode& slave);
   Status RecordNodePartition(const RmNode& slave);
   Status RemoveSlave(const RmNode& slave);

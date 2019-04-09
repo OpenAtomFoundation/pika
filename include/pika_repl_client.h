@@ -88,7 +88,7 @@ class PikaReplClient {
   Status SendPartitionTrySync(const std::string& table_name,
                               uint32_t partition_id,
                               const BinlogOffset& boffset);
-  Status SendPartitionBinlogSyncAck(const std::string& table_name,
+  Status SendPartitionBinlogSync(const std::string& table_name,
                                     uint32_t partition_id,
                                     const BinlogOffset& ack_start,
                                     const BinlogOffset& ack_end,

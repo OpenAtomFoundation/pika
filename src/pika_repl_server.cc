@@ -186,7 +186,7 @@ void PikaReplServer::HandleTrySyncRequest(void* arg) {
     std::string partition_name = partition->GetPartitionName();
     InnerMessage::BinlogOffset slave_boffset = try_sync_request.binlog_offset();
     InnerMessage::Node node = try_sync_request.node();
-    LOG(INFO) << "Trysync, Slave ip: " << node.ip() << ", Slave port:"
+    LOG(INFO) << "Receive Trysync, Slave ip: " << node.ip() << ", Slave port:"
       << node.port() << ", Partition: " << partition_name << ", filenum: "
       << slave_boffset.filenum() << ", pro_offset: " << slave_boffset.offset();
 
@@ -280,7 +280,7 @@ void PikaReplServer::HandleDBSyncRequest(void* arg) {
   delete task_arg;
 }
 
-void PikaReplServer::HandleBinlogSyncAckRequest(void* arg) {
+void PikaReplServer::HandleBinlogSyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
@@ -290,34 +290,39 @@ void PikaReplServer::HandleBinlogSyncAckRequest(void* arg) {
     delete task_arg;
     return;
   }
-  const InnerMessage::InnerRequest::BinlogSync& binlog_ack = req->binlog_sync();
-  std::string table_name = binlog_ack.table_name();
-  uint32_t partition_id = binlog_ack.partition_id();
-  std::string ip;
-  int port = 0;
-  bool res = slash::ParseIpPortString(conn->ip_port(), ip, port);
-  if (!res) {
-    LOG(WARNING) << "Parse Error ParseIpPortString faile";
-    conn->NotifyClose();
+  const InnerMessage::InnerRequest::BinlogSync& binlog_req = req->binlog_sync();
+  InnerMessage::Node node = binlog_req.node();
+  std::string table_name = binlog_req.table_name();
+  uint32_t partition_id = binlog_req.partition_id();
+
+  bool is_first_send = binlog_req.first_send();
+  const InnerMessage::BinlogOffset& ack_range_start = binlog_req.ack_range_start();
+  const InnerMessage::BinlogOffset& ack_range_end = binlog_req.ack_range_end();
+  BinlogOffset range_start(ack_range_start.filenum(), ack_range_start.offset());
+  BinlogOffset range_end(ack_range_end.filenum(), ack_range_end.offset());
+
+  // Set ack info from slave
+  RmNode slave_node = RmNode(node.ip(), node.port(), table_name, partition_id);
+  if (is_first_send) {
+    if (!(range_start == range_end)) {
+      LOG(WARNING) << "first binlogsync request pb argument invalid";
+      conn->NotifyClose();
+      delete task_arg;
+      return;
+    }
+    Status s = g_pika_rm->ActivateBinlogSync(slave_node, range_start);
+    if (!s.ok()) {
+      LOG(WARNING) << "Activate Binlog Sync failed " << slave_node.ToString() << " " << s.ToString();
+      conn->NotifyClose();
+      delete task_arg;
+      return;
+    }
     delete task_arg;
     return;
   }
-
-  bool is_first_send = binlog_ack.first_send();
-  const InnerMessage::BinlogOffset& ack_range_start = binlog_ack.ack_range_start();
-  const InnerMessage::BinlogOffset& ack_range_end = binlog_ack.ack_range_end();
-
-
-  // Set ack info from slave
-  RmNode slave_node = RmNode(table_name, partition_id, ip, port);
-  if (is_first_send) {
-    // TODO: ActivateBinlogSync
-  }
-  Status s = g_pika_rm->UpdateSyncBinlogStatus(slave_node,
-          BinlogOffset(ack_range_start.filenum(), ack_range_start.offset()),
-          BinlogOffset(ack_range_end.filenum(), ack_range_end.offset()));
+  Status s = g_pika_rm->UpdateSyncBinlogStatus(slave_node, range_start, range_end);
   if (!s.ok()) {
-    LOG(WARNING) << "Update binlog ack failed " << table_name << " " << partition_id;
+    LOG(WARNING) << "Update binlog ack failed " << table_name << " " << partition_id << " " << s.ToString();
     conn->NotifyClose();
     delete task_arg;
     return;
