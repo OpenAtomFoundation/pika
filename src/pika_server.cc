@@ -531,7 +531,7 @@ bool PikaServer::PartitionCouldPurge(const std::string& table_name,
   BinlogOffset acked_slave_boffset;
   slash::MutexLock l(&slave_mutex_);
   for (const auto& slave : slaves_) {
-    RmNode rm_node(table_name, partition_id, slave.ip, slave.port + kPortShiftReplServer);
+    RmNode rm_node(slave.ip, slave.port, table_name, partition_id);
     Status s = g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
     if (s.ok()) {
       if (index >= acked_slave_boffset.filenum) {
@@ -705,21 +705,21 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
     for (const auto& ts : slave.table_structs) {
       for (size_t idx = 0; idx < ts.partition_num; ++idx) {
         std::shared_ptr<Partition> partition = GetTablePartitionById(ts.table_name, idx);
-        RmNode rm_node(ts.table_name, idx, slave.ip, slave.port + kPortShiftReplServer);
-        if (!partition || !partition->GetBinlogOffset(&master_boffset)) {
-          continue;
-        } else {
-          Status s = g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
-          if (s.ok()) {
+        RmNode rm_node(slave.ip, slave.port, ts.table_name, idx);
+        Status s = g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
+        if (s.ok()) {
+          if (!partition || !partition->GetBinlogOffset(&master_boffset)) {
+            continue;
+          } else {
             uint64_t lag =
               (master_boffset.filenum - sent_slave_boffset.filenum) * g_pika_conf->binlog_file_size()
               + (master_boffset.offset - sent_slave_boffset.offset);
             tmp_stream << "(" << partition->GetPartitionName() << ":" << lag << ")";
             sync_status_stream << "  (" << partition->GetPartitionName() << ":" << "sent " << sent_slave_boffset.filenum << " " << sent_slave_boffset.offset
               << " acked " << acked_slave_boffset.filenum << " " << acked_slave_boffset.offset<< ")" << "\r\n";
-          } else {
-            tmp_stream << "(" << partition->GetPartitionName() << ":not syncing)";
           }
+        } else {
+          tmp_stream << "(" << partition->GetPartitionName() << ":not syncing)";
         }
       }
     }
