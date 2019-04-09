@@ -1246,7 +1246,7 @@ Status PikaServer::SendPartitionBinlogSyncAckRequest(const std::string& table,
                                                      const BinlogOffset& ack_start,
                                                      const BinlogOffset& ack_end,
                                                      bool is_first_send) {
-  return g_pika_rm->GetPikaReplClient()->SendPartitionBinlogSyncAck(table, partition_id, ack_start, ack_end, is_first_send);
+  return g_pika_rm->GetPikaReplClient()->SendPartitionBinlogSync(table, partition_id, ack_start, ack_end, is_first_send);
 }
 
 void PikaServer::ReplServerUpdateClientConnMap(const std::string& ip_port,
