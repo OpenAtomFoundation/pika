@@ -77,10 +77,10 @@ class SlaveNode : public RmNode {
   SlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id);
   ~SlaveNode();
   void Lock() {
-    slave_mu_.Lock();
+    slave_mu.Lock();
   }
   void Unlock() {
-    slave_mu_.Unlock();
+    slave_mu.Unlock();
   }
   SlaveState slave_state;
   uint64_t last_active_time;
@@ -94,8 +94,7 @@ class SlaveNode : public RmNode {
   Status InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, const BinlogOffset& offset);
   void ReleaseBinlogFileReader();
 
- private:
-  slash::Mutex slave_mu_;
+  slash::Mutex slave_mu;
 };
 
 class SyncPartition {
