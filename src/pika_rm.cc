@@ -193,6 +193,7 @@ Status SyncPartition::ActivateSlaveBinlogSync(const std::string& ip, int port, c
     // read binlog file from file
     s = slave_ptr->InitBinlogFileReader(binlog, offset);
     if (!s.ok()) {
+      slave_ptr->Unlock();
       return Status::Corruption("Init binlog file reader failed" + s.ToString());
     }
     slave_ptr->b_state = kReadFromFile;
@@ -214,13 +215,15 @@ Status SyncPartition::SyncBinlogToWq(const std::string& ip, int port) {
   if (!s.ok()) {
     return s;
   }
-  slave_ptr->Lock();
+
+  {
+  slash::MutexLock l(&slave_ptr->slave_mu);
   if (slave_ptr->b_state == kReadFromFile) {
     ReadBinlogFileToWq(slave_ptr);
   } else if (slave_ptr->b_state == kReadFromCache) {
     ReadCachedBinlogToWq(slave_ptr);
   }
-  slave_ptr->Unlock();
+  }
   return Status::OK();
 }
 
@@ -231,10 +234,12 @@ Status SyncPartition::ActivateSlaveDbSync(const std::string& ip, int port) {
   if (!s.ok()) {
     return s;
   }
-  slave_ptr->Lock();
+
+  {
+  slash::MutexLock l(&slave_ptr->slave_mu);
   slave_ptr->slave_state = kSlaveDbSync;
   // invoke db sync
-  slave_ptr->Unlock();
+  }
   return Status::OK();
 }
 
@@ -289,7 +294,8 @@ Status SyncPartition::UpdateSlaveBinlogAckInfo(const std::string& ip, int port, 
     return s;
   }
 
-  slave_ptr->Lock();
+  {
+  slash::MutexLock l(&slave_ptr->slave_mu);
   if (slave_ptr->slave_state != kSlaveBinlogSync) {
     return Status::Corruption(ip + std::to_string(port) + "state not BinlogSync");
   }
@@ -297,7 +303,7 @@ Status SyncPartition::UpdateSlaveBinlogAckInfo(const std::string& ip, int port, 
   if (!res) {
     return Status::Corruption("UpdateAckedInfo failed");
   }
-  slave_ptr->Unlock();
+  }
   return Status::OK();
 }
 
@@ -308,17 +314,20 @@ Status SyncPartition::GetSlaveSyncBinlogInfo(const std::string& ip, int port, Bi
   if (!s.ok()) {
     return s;
   }
-  slave_ptr->Lock();
+
+  {
+  slash::MutexLock l(&slave_ptr->slave_mu);
   *sent_offset = slave_ptr->sent_offset;
   *acked_offset = slave_ptr->acked_offset;
-  slave_ptr->Unlock();
+  }
   return Status::OK();
 }
 
 Status SyncPartition::WakeUpSlaveBinlogSync() {
   slash::MutexLock l(&partition_mu_);
   for (auto& slave_ptr : slaves_) {
-    slave_ptr->Lock();
+    {
+    slash::MutexLock l(&slave_ptr->slave_mu);
     if (slave_ptr->sent_offset == slave_ptr->acked_offset) {
       if (slave_ptr->b_state == kReadFromFile) {
         ReadBinlogFileToWq(slave_ptr);
@@ -326,7 +335,7 @@ Status SyncPartition::WakeUpSlaveBinlogSync() {
         ReadCachedBinlogToWq(slave_ptr);
       }
     }
-    slave_ptr->Unlock();
+    }
   }
   return Status::OK();
 }
@@ -338,9 +347,11 @@ Status SyncPartition::SetLastActiveTime(const std::string& ip, int port, uint64_
   if (!s.ok()) {
     return s;
   }
-  slave_ptr->Lock();
+
+  {
+  slash::MutexLock l(&slave_ptr->slave_mu);
   slave_ptr->last_active_time = time;
-  slave_ptr->Unlock();
+  }
   return Status::OK();
 }
 
@@ -351,9 +362,11 @@ Status SyncPartition::GetLastActiveTime(const std::string& ip, int port, uint64_
   if (!s.ok()) {
     return s;
   }
-  slave_ptr->Lock();
+
+  {
+  slash::MutexLock l(&slave_ptr->slave_mu);
   *time = slave_ptr->last_active_time;
-  slave_ptr->Unlock();
+  }
   return Status::OK();
 }
 
