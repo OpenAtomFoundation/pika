@@ -51,7 +51,7 @@ int PikaReplServerConn::DealMessage() {
     case InnerMessage::kBinlogSync:
     {
       ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
-      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleBinlogSyncAckRequest, task_arg);
+      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleBinlogSyncRequest, task_arg);
       break;
     }
     default:
