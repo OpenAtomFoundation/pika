@@ -7,6 +7,7 @@
 #define PIKA_DEFINE_H_
 
 #include "pink/include/redis_cli.h"
+#include <glog/logging.h>
 
 #include "include/pika_conf.h"
 

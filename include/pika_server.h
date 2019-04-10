@@ -23,8 +23,6 @@
 #include "include/pika_define.h"
 #include "include/pika_monitor_thread.h"
 #include "include/pika_rsync_service.h"
-#include "include/pika_heartbeat_thread.h"
-#include "include/pika_slaveping_thread.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
@@ -167,7 +165,6 @@ class PikaServer {
    */
   void SyncError();
   void RemoveMaster();
-  void KillMasterSyncConn();
   bool ShouldStartPingMaster();
   bool SetMaster(std::string& master_ip, int master_port);
 
@@ -355,7 +352,6 @@ class PikaServer {
    * Master used
    */
   int64_t sid_;
-  PikaHeartbeatThread* pika_heartbeat_thread_;
 
   /*
    * Slave used
@@ -366,7 +362,6 @@ class PikaServer {
   int role_;
   int last_meta_sync_timestamp_;
   bool force_full_sync_;
-  PikaSlavepingThread* ping_thread_;
   pthread_rwlock_t state_protector_; //protect below, use for master-slave mode
 
   /*
