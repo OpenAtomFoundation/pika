@@ -474,6 +474,7 @@ void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, cons
 int PikaReplicaManager::ConsumeWriteQueue() {
   int counter = 0;
   slash::MutexLock l(&write_queue_mu_);
+  std::vector<std::string> to_delete;
   for (auto& iter : write_queues_) {
     std::queue<WriteTask>& queue = iter.second;
     for (int i = 0; i < kBinlogSendPacketNum; ++i) {
@@ -485,6 +486,7 @@ int PikaReplicaManager::ConsumeWriteQueue() {
       int port = 0;
       if (!slash::ParseIpPortString(iter.first, ip, port)) {
         LOG(WARNING) << "Parse ip_port error " << iter.first;
+        continue;
       }
       std::vector<WriteTask> to_send;
       for (size_t i = 0; i < batch_index; ++i) {
@@ -495,9 +497,13 @@ int PikaReplicaManager::ConsumeWriteQueue() {
       Status s = pika_repl_server_->SendSlaveBinlogChips(ip, port, to_send);
       if (!s.ok()) {
         LOG(WARNING) << "send binlog to " << ip << ":" << port << " failed, " << s.ToString();
-        write_queues_.erase(iter.first);
+        to_delete.push_back(iter.first);
+        break;
       }
     }
+  }
+  for (auto& del_queue : to_delete) {
+    write_queues_.erase(del_queue);
   }
   return counter;
 }
