@@ -128,11 +128,6 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
 
   g_pika_server->MetaSyncDone();
   g_pika_conf->SetWriteBinlog("yes");
-
-  delete g_pika_server->ping_thread_;
-  g_pika_server->ping_thread_ = new PikaSlavepingThread(meta_sync.sid());
-  g_pika_server->ping_thread_->StartThread();
-
   LOG(INFO) << "Finish to handle meta sync response";
   delete task_arg;
 }

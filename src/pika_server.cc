@@ -51,7 +51,6 @@ PikaServer::PikaServer() :
   role_(PIKA_ROLE_SINGLE),
   last_meta_sync_timestamp_(-1),
   force_full_sync_(false),
-  ping_thread_(NULL),
   slowlog_entry_id_(0) {
 
   //Init server ip host
@@ -83,7 +82,6 @@ PikaServer::PikaServer() :
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
   pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, 3000,
                                                  worker_queue_limit);
-  pika_heartbeat_thread_ = new PikaHeartbeatThread(ips, port_ + kPortShiftHeatBeat, 1000);
   pika_monitor_thread_ = new PikaMonitorThread();
   pika_rsync_service_ = new PikaRsyncService(g_pika_conf->db_sync_path(), host_,
                                              g_pika_conf->port() + kPortShiftRSync);
@@ -110,13 +108,11 @@ PikaServer::~PikaServer() {
     }
   }
 
-  delete ping_thread_;
   delete pika_pubsub_thread_;
   delete pika_auxiliary_thread_;
   delete pika_rsync_service_;
   delete pika_thread_pool_;
 
-  delete pika_heartbeat_thread_;
   delete pika_monitor_thread_;
 
   tables_.clear();
@@ -233,13 +229,6 @@ void PikaServer::Start() {
   if (ret != pink::kSuccess) {
     tables_.clear();
     LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
-  }
-
-  ret = pika_heartbeat_thread_->StartThread();
-  if (ret != pink::kSuccess) {
-    tables_.clear();
-    LOG(FATAL) << "Start Heartbeat Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_ + kPortShiftHeatBeat) + " conflict"
-            : ": other error") << ", Listen on this port to receive the heartbeat packets sent by the master";
   }
 
   ret = pika_rsync_service_->StartRsync();
@@ -777,20 +766,6 @@ void PikaServer::RemoveMaster() {
     master_port_ = -1;
     DoSameThingEveryPartition(TaskType::kResetReplState);
   }
-
-  if (ping_thread_ != NULL) {
-    int err = ping_thread_->StopThread();
-    if (err != 0) {
-      std::string msg = "Can't join thread " + std::string(strerror(err));
-      LOG(WARNING) << msg;
-    }
-    delete ping_thread_;
-    ping_thread_ = NULL;
-  }
-}
-
-void PikaServer::KillMasterSyncConn() {
-  g_pika_rm->GetPikaReplServer()->KillAllConns();
 }
 
 bool PikaServer::ShouldStartPingMaster() {
