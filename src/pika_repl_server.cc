@@ -132,7 +132,7 @@ void PikaReplServer::HandleMetaSyncRequest(void* arg) {
     response.set_reply("Auth with master error, Invalid masterauth");
   } else {
     std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
-    int64_t sid = g_pika_server->TryAddSlave(node.ip(), node.port(), table_structs);
+    int64_t sid = g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), table_structs);
     const std::string ip_port = slash::IpPortString(node.ip(), node.port());
     g_pika_server->ReplServerUpdateClientConnMap(ip_port, conn->fd());
     if (sid < 0) {

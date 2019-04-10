@@ -76,6 +76,10 @@ Status PikaReplClient::Write(const std::string& ip, const int port, const std::s
   return client_thread_->Write(ip, port, msg);
 }
 
+Status PikaReplClient::Close(const std::string& ip, const int port) {
+  return client_thread_->Close(ip, port);
+}
+
 Status PikaReplClient::SendMetaSync() {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kMetaSync);

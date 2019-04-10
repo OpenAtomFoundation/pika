@@ -20,8 +20,13 @@ void PikaReplClientThread::ReplClientHandle::FdClosedHandle(int fd, const std::s
   int port = 0;
   if (!slash::ParseIpPortString(ip_port, ip, port)) {
     LOG(WARNING) << "Parse ip_port error " << ip_port;
+    return;
   }
-  g_pika_server->DeleteSlave(ip, port);
+  if (ip == g_pika_server->master_ip()
+    && port == g_pika_server->master_port() + kPortShiftReplServer) {
+    LOG(WARNING) << "Master conn disconnect : " << ip_port << " try reconnect";
+    g_pika_server->ResetMetaSyncStatus();
+  }
 };
 
 void PikaReplClientThread::ReplClientHandle::FdTimeoutHandle(int fd, const std::string& ip_port) const {
