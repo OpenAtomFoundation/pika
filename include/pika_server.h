@@ -144,12 +144,11 @@ class PikaServer {
    */
   int64_t GenSid();
   void BecomeMaster();
-  void DeleteSlave(int fd);   //hearbeat fd
+  void DeleteSlave(int fd);   //conn fd
   void DeleteSlave(const std::string& ip, int64_t port);
-  void MayUpdateSlavesMap(int64_t sid, int32_t hb_fd);
   int32_t CountSyncSlaves();
   int32_t GetSlaveListString(std::string& slave_list_str);
-  int64_t TryAddSlave(const std::string& ip, int64_t port,
+  int64_t TryAddSlave(const std::string& ip, int64_t port, int fd,
                       const std::vector<TableStruct>& table_structs);
   //Status AddBinlogSender(const std::string& table_name,
   //                       uint32_t partition_id,

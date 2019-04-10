@@ -40,8 +40,7 @@ struct SlaveItem {
   std::string ip_port;
   std::string ip;
   int port;
-  pthread_t sender_tid;
-  int hb_fd;
+  int conn_fd;
   int stage;
   std::vector<TableStruct> table_structs;
   struct timeval create_time;

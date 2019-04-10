@@ -614,7 +614,7 @@ void PikaServer::DeleteSlave(int fd) {
     slash::MutexLock l(&slave_mutex_);
     std::vector<SlaveItem>::iterator iter = slaves_.begin();
     while (iter != slaves_.end()) {
-      if (iter->hb_fd == fd) {
+      if (iter->conn_fd == fd) {
         g_pika_rm->LostConnection(iter->ip, iter->port);
         g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
         slaves_.erase(iter);
@@ -657,21 +657,6 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
     if (slave_num == 0) {
       role_ &= ~PIKA_ROLE_MASTER;
     }
-  }
-}
-
-void PikaServer::MayUpdateSlavesMap(int64_t sid, int32_t hb_fd) {
-  slash::MutexLock l(&slave_mutex_);
-  std::vector<SlaveItem>::iterator iter = slaves_.begin();
-  LOG(INFO) << "MayUpdateSlavesMap, sid: " << sid << " hb_fd: " << hb_fd;
-  while (iter != slaves_.end()) {
-    if (iter->sid == sid) {
-      iter->hb_fd = hb_fd;
-      iter->stage = SLAVE_ITEM_STAGE_TWO;
-      LOG(INFO) << "New Master-Slave connection established successfully, Slave host: " << iter->ip_port;
-      break;
-    }
-    iter++;
   }
 }
 
@@ -721,7 +706,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
 
 // Try add Slave, return slave sid if success,
 // return -1 when slave already exist
-int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port,
+int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
                                 const std::vector<TableStruct>& table_structs) {
   std::string ip_port = slash::IpPortString(ip, port);
 
@@ -742,7 +727,7 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port,
   s.ip_port = ip_port;
   s.ip = ip;
   s.port = port;
-  s.hb_fd = -1;
+  s.conn_fd = fd;
   s.stage = SLAVE_ITEM_STAGE_ONE;
   s.table_structs = table_structs;
   gettimeofday(&s.create_time, NULL);
@@ -761,6 +746,8 @@ void PikaServer::RemoveMaster() {
     slash::RWLock l(&state_protector_, true);
     repl_state_ = PIKA_REPL_NO_CONNECT;
     role_ &= ~PIKA_ROLE_SLAVE;
+
+    g_pika_rm->GetPikaReplClient()->Close(master_ip_, master_port_ + kPortShiftReplServer);
 
     master_ip_ = "";
     master_port_ = -1;
