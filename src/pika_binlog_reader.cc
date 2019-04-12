@@ -228,32 +228,19 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
   }
   scratch->clear();
   Status s = Status::OK();
-  uint32_t pro_num;
-  uint64_t pro_offset;
 
-  logger_->GetProducerStatus(&pro_num, &pro_offset);
-  {
-  slash::RWLock(&(rwlock_), false);
-  if (cur_filenum_ == pro_num && cur_offset_ == pro_offset) {
-    return Status::EndFile("End of cur log file");
-  }
-  }
-  int retry = 0;
-  while (retry == 0 || ((retry == 1) && s.IsEndFile())) {
-    retry++;
+  do {
+    if (ReadToTheEnd()) {
+      return Status::EndFile("End of cur log file");
+    }
     s = Consume(scratch, filenum, offset);
-
     if (s.IsEndFile()) {
-      std::string confile;
-      {
-      slash::RWLock(&(rwlock_), false);
-      if (cur_filenum_ == pro_num) {
-        return Status::EndFile("End of cur log file");
-      }
-      confile = NewFileName(logger_->filename, cur_filenum_ + 1);
-      }
+      std::string confile = NewFileName(logger_->filename, cur_filenum_ + 1);
 
-      // Roll to next File need retry
+      // sleep 10ms wait produce thread generate the new binlog
+      usleep(10000);
+
+      // Roll to next file need retry;
       if (slash::FileExists(confile)) {
         DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
         delete queue_;
@@ -261,18 +248,19 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
 
         slash::NewSequentialFile(confile, &(queue_));
         {
-        slash::RWLock(&(rwlock_), true);
-        cur_filenum_++;
-        cur_offset_ = 0;
+          slash::RWLock(&(rwlock_), true);
+          cur_filenum_++;
+          cur_offset_ = 0;
         }
         last_record_offset_ = 0;
       } else {
         return Status::IOError("File Does Not Exists");
       }
-    } else if (!s.ok()) {
-      return Status::Corruption("Data Corruption");
+    } else {
+      break;
     }
-  }
+  } while (s.IsEndFile());
+
   return Status::OK();
 }
 

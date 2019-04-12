@@ -197,16 +197,3 @@ Status PikaReplClient::SendPartitionBinlogSync(const std::string& table_name,
   }
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
-
-void PikaReplClient::BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest* request) {
-  //InnerMessage::InnerRequest::BinlogSync* binlog_msg = request->add_binlog_sync();
-  //InnerMessage::Node* node = binlog_msg->mutable_node();
-  //node->set_ip(slave.ip_);
-  //node->set_port(slave.port_);
-  //binlog_msg->set_table_name(slave.table_);
-  //binlog_msg->set_partition_id(slave.partition_);
-  //InnerMessage::BinlogOffset* binlog_offset = binlog_msg->mutable_binlog_offset();
-  //binlog_offset->set_filenum(filenum);
-  //binlog_offset->set_offset(offset);
-  //binlog_msg->set_binlog(msg);
-}

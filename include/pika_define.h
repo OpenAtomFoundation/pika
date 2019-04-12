@@ -128,6 +128,9 @@ struct PartitionInfo {
     }
     return false;
   }
+  std::string ToString() {
+    return table_name_ + "_" + std::to_string(partition_id_);
+  }
   std::string table_name_;
   uint32_t partition_id_;
 };
