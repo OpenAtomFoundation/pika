@@ -100,8 +100,6 @@ class PikaReplClient {
     next_avail_ = (next_avail_ + 1) % bg_workers_.size();
   }
 
-  void BuildBinlogPb(const RmNode& slave, const std::string& msg, uint32_t filenum, uint64_t offset, InnerMessage::InnerRequest* request);
-
   PikaReplClientThread* client_thread_;
   int next_avail_;
   std::hash<std::string> str_hash;

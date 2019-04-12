@@ -259,6 +259,8 @@ Status SyncPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave
     if (s.IsEndFile()) {
       break;
     } else if (s.IsCorruption() || s.IsIOError()) {
+      LOG(WARNING) << partition_info_.ToString()
+        << " Read Binlog error : " << s.ToString();
       return s;
     }
     slave_ptr->sync_win.Push(SyncWinItem(filenum, offset));
@@ -395,16 +397,14 @@ bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_it
   for (size_t i = start_pos; i <= end_pos; ++i) {
     win_[i].acked_ = true;
   }
-  BinlogOffset recent_acked_offset;
   while (!win_.empty()) {
     if (win_[0].acked_) {
-      recent_acked_offset = win_[0].offset_;
+      *acked_offset = win_[0].offset_;
       win_.erase(win_.begin());
     } else {
       break;
     }
   }
-  *acked_offset = recent_acked_offset;
   return true;
 }
 
