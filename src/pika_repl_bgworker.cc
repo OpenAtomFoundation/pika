@@ -7,12 +7,14 @@
 
 #include <glog/logging.h>
 
+#include "include/pika_rm.h"
 #include "include/pika_conf.h"
-#include "include/pika_cmd_table_manager.h"
 #include "include/pika_server.h"
+#include "include/pika_cmd_table_manager.h"
 
-extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
+extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 PikaReplBgWorker::PikaReplBgWorker(int queue_size)
@@ -28,6 +30,10 @@ PikaReplBgWorker::PikaReplBgWorker(int queue_size)
 
 int PikaReplBgWorker::StartThread() {
   return bg_thread_.StartThread();
+}
+
+int PikaReplBgWorker::StopThread() {
+  return bg_thread_.StopThread();
 }
 
 void PikaReplBgWorker::Schedule(pink::TaskFunc func, void* arg) {
@@ -127,7 +133,7 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
   PikaCmdArgsType *v = new PikaCmdArgsType(argv);
   BinlogItem *b = new BinlogItem(binlog_item);
   std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
-  g_pika_server->ScheduleWriteDBTask(dispatch_key, v, b, worker->table_name_, worker->partition_id_);
+  g_pika_rm->ScheduleWriteDBTask(dispatch_key, v, b, worker->table_name_, worker->partition_id_);
   return 0;
 }
 

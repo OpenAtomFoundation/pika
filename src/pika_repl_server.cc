@@ -25,11 +25,29 @@ PikaReplServer::PikaReplServer(const std::set<std::string>& ips,
 }
 
 PikaReplServer::~PikaReplServer() {
-  pika_repl_server_thread_->StopThread();
   delete pika_repl_server_thread_;
   delete server_tp_;
   pthread_rwlock_destroy(&client_conn_rwlock_);
   LOG(INFO) << "PikaReplServer exit!!!";
+}
+
+int PikaReplServer::Start() {
+  int res = pika_repl_server_thread_->StartThread();
+  if (res != pink::kSuccess) {
+    LOG(FATAL) << "Start Pika Repl Server Thread Error: " << res
+        << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+  res = server_tp_->start_thread_pool();
+  if (res != pink::kSuccess) {
+    LOG(FATAL) << "Start ThreadPool Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+  return res;
+}
+
+int PikaReplServer::Stop() {
+  pika_repl_server_thread_->StopThread();
+  server_tp_->stop_thread_pool();
+  return 0;
 }
 
 slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
@@ -79,19 +97,6 @@ slash::Status PikaReplServer::Write(const std::string& ip,
   return Status::OK();
 }
 
-int PikaReplServer::Start() {
-  int res = pika_repl_server_thread_->StartThread();
-  if (res != pink::kSuccess) {
-    LOG(FATAL) << "Start Pika Repl Server Thread Error: " << res
-        << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
-  }
-  res = server_tp_->start_thread_pool();
-  if (res != pink::kSuccess) {
-    LOG(FATAL) << "Start ThreadPool Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
-  }
-  return res;
-}
-
 void PikaReplServer::Schedule(pink::TaskFunc func, void* arg){
   server_tp_->Schedule(func, arg);
 }
@@ -134,7 +139,7 @@ void PikaReplServer::HandleMetaSyncRequest(void* arg) {
     std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
     int64_t sid = g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), table_structs);
     const std::string ip_port = slash::IpPortString(node.ip(), node.port());
-    g_pika_server->ReplServerUpdateClientConnMap(ip_port, conn->fd());
+    g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
     if (sid < 0) {
       response.set_code(InnerMessage::kError);
       response.set_reply("Slave AlreadyExist");

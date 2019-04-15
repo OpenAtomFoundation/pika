@@ -7,11 +7,14 @@
 
 #include <sys/time.h>
 
-#include "include/pika_server.h"
 #include "slash/include/slash_string.h"
+
+#include "include/pika_rm.h"
+#include "include/pika_server.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 
 PikaReplClientConn::PikaReplClientConn(int fd,
                                const std::string& ip_port,
@@ -43,19 +46,19 @@ int PikaReplClientConn::DealMessage() {
     case InnerMessage::kMetaSync:
     {
       ReplClientTaskArg* task_arg = new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
-      g_pika_server->ScheduleReplClientBGTask(&PikaReplClientConn::HandleMetaSyncResponse, static_cast<void*>(task_arg));
+      g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleMetaSyncResponse, static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kDBSync:
     {
       ReplClientTaskArg* task_arg = new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
-      g_pika_server->ScheduleReplClientBGTask(&PikaReplClientConn::HandleDBSyncResponse, static_cast<void*>(task_arg));
+      g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleDBSyncResponse, static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kTrySync:
     {
       ReplClientTaskArg* task_arg = new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
-      g_pika_server->ScheduleReplClientBGTask(&PikaReplClientConn::HandleTrySyncResponse, static_cast<void*>(task_arg));
+      g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleTrySyncResponse, static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kBinlogSync:
@@ -231,7 +234,7 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
   }
 
   for (auto& binlog_nums : par_binlog) {
-    g_pika_server->ScheduleWriteBinlogTask(
+    g_pika_rm->ScheduleWriteBinlogTask(
         binlog_nums.first,
         res,
         std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
