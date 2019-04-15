@@ -26,10 +26,12 @@ class PikaReplServer {
   PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval);
   ~PikaReplServer();
 
+  int Start();
+  int Stop();
+
   slash::Status SendSlaveBinlogChips(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
   slash::Status Write(const std::string& ip, const int port, const std::string& msg);
 
-  int Start();
   void Schedule(pink::TaskFunc func, void* arg);
   void UpdateClientConnMap(const std::string& ip_port, int fd);
   void RemoveClientConn(int fd);
