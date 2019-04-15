@@ -158,6 +158,7 @@ class PikaReplicaManager {
   ~PikaReplicaManager();
 
   void Start();
+  void Stop();
 
   PikaReplClient* GetPikaReplClient();
   PikaReplServer* GetPikaReplServer();
@@ -186,6 +187,19 @@ class PikaReplicaManager {
   void ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
   int ConsumeWriteQueue();
   void DropItemInWriteQueue(const std::string& ip, int port);
+
+  // Schedule Task
+  void ScheduleReplServerBGTask(pink::TaskFunc func, void* arg);
+  void ScheduleReplClientBGTask(pink::TaskFunc func, void* arg);
+  void ScheduleWriteBinlogTask(const std::string& table_partition,
+                               const std::shared_ptr<InnerMessage::InnerResponse> res,
+                               std::shared_ptr<pink::PbConn> conn, void* res_private_data);
+  void ScheduleWriteDBTask(const std::string& dispatch_key,
+                           PikaCmdArgsType* argv, BinlogItem* binlog_item,
+                           const std::string& table_name, uint32_t partition_id);
+
+  void ReplServerRemoveClientConn(int fd);
+  void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
 
   // bool GetConn(const RmNode& slave, std::shared_ptr<pink::PbConn>& conn);
 

@@ -20,8 +20,7 @@ class PikaServer;
 
 /* Port shift */
 const int kPortShiftRSync      = 1000;
-const int kPortShiftHeatBeat   = 2000;
-const int kPortShiftReplServer = 3000;
+const int kPortShiftReplServer = 2000;
 
 const std::string kPikaPidFile = "pika.pid";
 

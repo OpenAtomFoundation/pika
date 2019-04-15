@@ -200,6 +200,10 @@ int main(int argc, char *argv[]) {
     unlink(g_pika_conf->pidfile().c_str());
   }
 
+  // stop PikaReplicaManager first，avoid internal threads
+  // may references to dead PikaServer
+  g_pika_rm->Stop();
+
   delete g_pika_server;
   delete g_pika_rm;
   delete g_pika_cmd_table_manager;

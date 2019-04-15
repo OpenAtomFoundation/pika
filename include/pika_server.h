@@ -196,11 +196,6 @@ class PikaServer {
   void PurgelogsTaskSchedule(pink::TaskFunc func, void* arg);
 
   /*
-   * ReplClient used
-   */
-  void ScheduleReplCliTask(pink::TaskFunc func, void*arg);
-
-  /*
    * Flushall & Flushdb used
    */
   void PurgeDir(const std::string& path);
@@ -274,20 +269,6 @@ class PikaServer {
   Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
                                            const BinlogOffset& ack_start, const BinlogOffset& ack_end,
                                            bool is_frist_send = false);
-
-  /*
-   * RM {repl client, repl server} used
-   */
-  void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
-  void ReplServerRemoveClientConn(int fd);
-  void ScheduleReplServerBGTask(pink::TaskFunc func, void* arg);
-  void ScheduleReplClientBGTask(pink::TaskFunc func, void* arg);
-  void ScheduleWriteBinlogTask(const std::string& table_partition,
-                               const std::shared_ptr<InnerMessage::InnerResponse> res,
-                               std::shared_ptr<pink::PbConn> conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::string& dispatch_key,
-                           PikaCmdArgsType* argv, BinlogItem* binlog_item,
-                           const std::string& table_name, uint32_t partition_id);
 
   /*
    * PubSub used

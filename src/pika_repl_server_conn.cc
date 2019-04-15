@@ -7,9 +7,11 @@
 
 #include <glog/logging.h>
 
+#include "include/pika_rm.h"
 #include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 
 PikaReplServerConn::PikaReplServerConn(int fd,
                                        std::string ip_port,
@@ -33,25 +35,25 @@ int PikaReplServerConn::DealMessage() {
     case InnerMessage::kMetaSync:
     {
       ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
-      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleMetaSyncRequest, task_arg);
+      g_pika_rm->ScheduleReplServerBGTask(&PikaReplServer::HandleMetaSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kTrySync:
     {
       ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
-      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleTrySyncRequest, task_arg);
+      g_pika_rm->ScheduleReplServerBGTask(&PikaReplServer::HandleTrySyncRequest, task_arg);
       break;
     }
     case InnerMessage::kDBSync:
     {
       ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
-      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleDBSyncRequest, task_arg);
+      g_pika_rm->ScheduleReplServerBGTask(&PikaReplServer::HandleDBSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kBinlogSync:
     {
       ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
-      g_pika_server->ScheduleReplServerBGTask(&PikaReplServer::HandleBinlogSyncRequest, task_arg);
+      g_pika_rm->ScheduleReplServerBGTask(&PikaReplServer::HandleBinlogSyncRequest, task_arg);
       break;
     }
     default:

@@ -443,6 +443,19 @@ void PikaReplicaManager::Start() {
   }
 }
 
+void PikaReplicaManager::Stop() {
+  pika_repl_client_->Stop();
+  pika_repl_server_->Stop();
+}
+
+PikaReplClient* PikaReplicaManager::GetPikaReplClient() {
+  return pika_repl_client_;
+}
+
+PikaReplServer* PikaReplicaManager::GetPikaReplServer() {
+  return pika_repl_server_;
+}
+
 void PikaReplicaManager::InitPartition() {
   std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
   for (const auto& table : table_structs) {
@@ -453,14 +466,6 @@ void PikaReplicaManager::InitPartition() {
         = std::make_shared<SyncPartition>(table_name, index);
     }
   }
-}
-
-PikaReplClient* PikaReplicaManager::GetPikaReplClient() {
-  return pika_repl_client_;
-}
-
-PikaReplServer* PikaReplicaManager::GetPikaReplServer() {
-  return pika_repl_server_;
 }
 
 void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks) {
@@ -512,6 +517,36 @@ void PikaReplicaManager::DropItemInWriteQueue(const std::string& ip, int port) {
   slash::MutexLock l(&write_queue_mu_);
   std::string index = ip + ":" + std::to_string(port);
   write_queues_.erase(index);
+}
+
+void PikaReplicaManager::ScheduleReplServerBGTask(pink::TaskFunc func, void* arg) {
+  pika_repl_server_->Schedule(func, arg);
+}
+
+void PikaReplicaManager::ScheduleReplClientBGTask(pink::TaskFunc func, void* arg) {
+  pika_repl_client_->Schedule(func, arg);
+}
+
+void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& table_partition,
+        const std::shared_ptr<InnerMessage::InnerResponse> res,
+        std::shared_ptr<pink::PbConn> conn,
+        void* res_private_data) {
+  pika_repl_client_->ScheduleWriteBinlogTask(table_partition, res, conn, res_private_data);
+}
+
+void PikaReplicaManager::ScheduleWriteDBTask(const std::string& dispatch_key,
+        PikaCmdArgsType* argv, BinlogItem* binlog_item,
+        const std::string& table_name, uint32_t partition_id) {
+  pika_repl_client_->ScheduleWriteDBTask(dispatch_key, argv, binlog_item, table_name, partition_id);
+}
+
+void PikaReplicaManager::ReplServerRemoveClientConn(int fd) {
+  pika_repl_server_->RemoveClientConn(fd);
+}
+
+void PikaReplicaManager::ReplServerUpdateClientConnMap(const std::string& ip_port,
+                                                       int fd) {
+  pika_repl_server_->UpdateClientConnMap(ip_port, fd);
 }
 
 Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const BinlogOffset& range_start, const BinlogOffset& range_end) {

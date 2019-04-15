@@ -44,6 +44,14 @@ int PikaReplClient::Start() {
   return res;
 }
 
+int PikaReplClient::Stop() {
+  client_thread_->StopThread();
+  for (size_t i = 0; i < bg_workers_.size(); ++i) {
+    bg_workers_[i]->StopThread();
+  }
+  return 0;
+}
+
 void PikaReplClient::Schedule(pink::TaskFunc func, void* arg) {
   bg_workers_[next_avail_]->Schedule(func, arg);
   UpdateNextAvail();
