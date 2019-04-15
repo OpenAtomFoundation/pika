@@ -850,10 +850,6 @@ void PikaServer::PurgelogsTaskSchedule(pink::TaskFunc func, void* arg) {
   purge_thread_.Schedule(func, arg);
 }
 
-void PikaServer::ScheduleReplCliTask(pink::TaskFunc func, void* arg) {
-  g_pika_rm->GetPikaReplClient()->Schedule(func, arg);
-}
-
 void PikaServer::PurgeDir(const std::string& path) {
   std::string* dir_path = new std::string(path);
   PurgeDirTaskSchedule(&DoPurgeDir, static_cast<void*>(dir_path));
@@ -1209,36 +1205,6 @@ Status PikaServer::SendPartitionBinlogSyncAckRequest(const std::string& table,
                                                      const BinlogOffset& ack_end,
                                                      bool is_first_send) {
   return g_pika_rm->GetPikaReplClient()->SendPartitionBinlogSync(table, partition_id, ack_start, ack_end, is_first_send);
-}
-
-void PikaServer::ReplServerUpdateClientConnMap(const std::string& ip_port,
-                                               int fd) {
-  g_pika_rm->GetPikaReplServer()->UpdateClientConnMap(ip_port, fd);
-}
-
-void PikaServer::ReplServerRemoveClientConn(int fd) {
-  g_pika_rm->GetPikaReplServer()->RemoveClientConn(fd);
-}
-
-void PikaServer::ScheduleReplServerBGTask(pink::TaskFunc func, void* arg) {
-  g_pika_rm->GetPikaReplServer()->Schedule(func, arg);
-}
-
-void PikaServer::ScheduleReplClientBGTask(pink::TaskFunc func, void* arg) {
-  g_pika_rm->GetPikaReplClient()->Schedule(func, arg);
-}
-
-void PikaServer::ScheduleWriteBinlogTask(const std::string& table_partition,
-                                         const std::shared_ptr<InnerMessage::InnerResponse> res,
-                                         std::shared_ptr<pink::PbConn> conn,
-                                         void* res_private_data) {
-  g_pika_rm->GetPikaReplClient()->ScheduleWriteBinlogTask(table_partition, res, conn, res_private_data);
-}
-
-void PikaServer::ScheduleWriteDBTask(const std::string& dispatch_key,
-                                     PikaCmdArgsType* argv, BinlogItem* binlog_item,
-                                     const std::string& table_name, uint32_t partition_id) {
-  g_pika_rm->GetPikaReplClient()->ScheduleWriteDBTask(dispatch_key, argv, binlog_item, table_name, partition_id);
 }
 
 int PikaServer::PubSubNumPat() {

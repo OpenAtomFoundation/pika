@@ -69,10 +69,13 @@ class PikaReplClient {
  public:
   PikaReplClient(int cron_interval, int keepalive_timeout);
   ~PikaReplClient();
+
+  int Start();
+  int Stop();
+
   slash::Status Write(const std::string& ip, const int port, const std::string& msg);
   slash::Status Close(const std::string& ip, const int port);
 
-  int Start();
   void Schedule(pink::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(std::string table_partition,
                               const std::shared_ptr<InnerMessage::InnerResponse> res,

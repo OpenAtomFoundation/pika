@@ -5,9 +5,11 @@
 
 #include "include/pika_repl_server_thread.h"
 
+#include "include/pika_rm.h"
 #include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 
 PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips,
                                            int port,
@@ -21,5 +23,5 @@ PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips,
 void PikaReplServerThread::ReplServerHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
   LOG(INFO) << "ServerThread close " << fd << " " << ip_port;
   g_pika_server->DeleteSlave(fd);
-  g_pika_server->ReplServerRemoveClientConn(fd);
+  g_pika_rm->ReplServerRemoveClientConn(fd);
 }
