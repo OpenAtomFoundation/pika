@@ -752,6 +752,7 @@ void PikaServer::RemoveMaster() {
     if (master_ip_ != "" && master_port_ != -1) {
       g_pika_rm->GetPikaReplClient()->Close(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->LostConnection(master_ip_, master_port_);
+      LOG(INFO) << "Remove Master " << master_ip_ << ":" << master_port_;
     }
 
     master_ip_ = "";
