@@ -107,6 +107,9 @@ class PikaReplClient {
   int next_avail_;
   std::hash<std::string> str_hash;
   std::vector<PikaReplBgWorker*> bg_workers_;
+
+  std::string local_ip_;
+  int local_port_;
 };
 
 #endif
