@@ -214,7 +214,7 @@ Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>&
     if (s.IsEndFile()) {
       break;
     } else if (s.IsCorruption() || s.IsIOError()) {
-      LOG(WARNING) << partition_info_.ToString()
+      LOG(WARNING) << SyncPartitionInfo().ToString()
         << " Read Binlog error : " << s.ToString();
       return s;
     }

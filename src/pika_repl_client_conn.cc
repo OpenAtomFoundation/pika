@@ -240,7 +240,7 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
   for (auto& binlog_nums : par_binlog) {
     RmNode node(binlog_nums.first.table_name_, binlog_nums.first.partition_id_);
     g_pika_rm->SetSlaveLastRecvTime(node, slash::NowMicros());
-    g_pika_server->ScheduleWriteBinlogTask(
+    g_pika_rm->GetPikaReplClient()->ScheduleWriteBinlogTask(
         binlog_nums.first.table_name_ + std::to_string(binlog_nums.first.partition_id_),
         res,
         std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
