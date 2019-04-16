@@ -11,7 +11,6 @@
 class PikaRsyncService {
  public:
   PikaRsyncService(const std::string& raw_path,
-                   const std::string& host,
                    const int port);
   ~PikaRsyncService();
   int StartRsync();
@@ -21,7 +20,6 @@ class PikaRsyncService {
   std::string raw_path_;
   std::string rsync_path_;
   std::string pid_path_;
-  std::string host_;
   int port_;
 };
 
