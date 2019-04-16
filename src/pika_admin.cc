@@ -561,6 +561,7 @@ void InfoCmd::InfoReplication(std::string &info) {
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
     case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\n"; break;
+    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE : tmp_stream << "Master && SLAVE)\r\nrole:master&&slave\r\n"; break;
     default: info.append("ERR: server role is error\r\n"); return;
   }
 

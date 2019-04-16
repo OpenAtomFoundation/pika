@@ -112,7 +112,9 @@ void PikaReplServer::RemoveClientConn(int fd) {
   while (iter != client_conn_map.end()) {
     if (iter->second == fd) {
       iter = client_conn_map.erase(iter);
+      break;
     }
+    iter++;
   }
 }
 
@@ -197,6 +199,9 @@ void PikaReplServer::HandleTrySyncRequest(void* arg) {
 
     response.set_code(InnerMessage::kOk);
     InnerMessage::InnerResponse::TrySync* try_sync_response = response.mutable_try_sync();
+    InnerMessage::Node* resp_node = try_sync_response->mutable_node();
+    resp_node->set_ip(g_pika_server->host());
+    resp_node->set_port(g_pika_server->port());
     InnerMessage::Partition* partition_response = try_sync_response->mutable_partition();
     InnerMessage::BinlogOffset* master_partition_boffset = try_sync_response->mutable_binlog_offset();
     partition_response->set_table_name(table_name);
@@ -296,8 +301,8 @@ void PikaReplServer::HandleBinlogSyncRequest(void* arg) {
     return;
   }
   const InnerMessage::InnerRequest::BinlogSync& binlog_req = req->binlog_sync();
-  InnerMessage::Node node = binlog_req.node();
-  std::string table_name = binlog_req.table_name();
+  const InnerMessage::Node& node = binlog_req.node();
+  const std::string& table_name = binlog_req.table_name();
   uint32_t partition_id = binlog_req.partition_id();
 
   bool is_first_send = binlog_req.first_send();
@@ -308,6 +313,15 @@ void PikaReplServer::HandleBinlogSyncRequest(void* arg) {
 
   // Set ack info from slave
   RmNode slave_node = RmNode(node.ip(), node.port(), table_name, partition_id);
+
+  Status s = g_pika_rm->SetMasterLastRecvTime(slave_node, slash::NowMicros());
+  if (!s.ok()) {
+    LOG(WARNING) << "SetMasterLastRecvTime failed " << table_name << " " << partition_id << " " << s.ToString();
+    conn->NotifyClose();
+    delete task_arg;
+    return;
+  }
+
   if (is_first_send) {
     if (!(range_start == range_end)) {
       LOG(WARNING) << "first binlogsync request pb argument invalid";
@@ -325,7 +339,14 @@ void PikaReplServer::HandleBinlogSyncRequest(void* arg) {
     delete task_arg;
     return;
   }
-  Status s = g_pika_rm->UpdateSyncBinlogStatus(slave_node, range_start, range_end);
+
+  // not the first_send the range_ack cant be 0
+  // set this case as ping
+  if (range_start == BinlogOffset() && range_end == BinlogOffset()) {
+    delete task_arg;
+    return;
+  }
+  s = g_pika_rm->UpdateSyncBinlogStatus(slave_node, range_start, range_end);
   if (!s.ok()) {
     LOG(WARNING) << "Update binlog ack failed " << table_name << " " << partition_id << " " << s.ToString();
     conn->NotifyClose();

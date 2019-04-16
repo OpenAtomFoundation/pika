@@ -48,19 +48,31 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
-  // may coredump?
-  const InnerMessage::InnerResponse::BinlogSync& binlog_res =
-    res->binlog_sync((*index)[0]);
-  std::string table_name = binlog_res.partition().table_name();
-  uint32_t partition_id = binlog_res.partition().partition_id();
+  std::string table_name;
+  uint32_t partition_id = 0;
   BinlogOffset ack_start, ack_end;
-  ack_start.filenum = binlog_res.binlog_offset().filenum();
-  ack_start.offset = binlog_res.binlog_offset().offset();
+  // find the first not keepalive binlogsync
+  for (size_t i = 0; i < index->size(); ++i) {
+    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+    if (i == 0) {
+      table_name = binlog_res.partition().table_name();
+      partition_id = binlog_res.partition().partition_id();
+    }
+    if (!binlog_res.binlog().empty()) {
+      ack_start.filenum = binlog_res.binlog_offset().filenum();
+      ack_start.offset = binlog_res.binlog_offset().offset();
+      break;
+    }
+  }
   worker->table_name_ = table_name;
   worker->partition_id_ = partition_id;
 
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+    // empty binlog treated as keepalive packet
+    if (binlog_res.binlog().empty()) {
+      continue;
+    }
     if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_res.binlog(), &worker->binlog_item_)) {
       LOG(WARNING) << "Binlog item decode failed";
       conn->NotifyClose();
@@ -88,6 +100,11 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   std::shared_ptr<Binlog> logger = partition->logger();
   logger->GetProducerStatus(&ack_end.filenum, &ack_end.offset);
+  // keepalive case
+  if (ack_start == BinlogOffset()) {
+    // set ack_end as 0
+    ack_end = ack_start;
+  }
   g_pika_server->SendPartitionBinlogSyncAckRequest(table_name, partition_id, ack_start, ack_end);
 }
 

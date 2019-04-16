@@ -7,6 +7,8 @@
 
 #include <sys/time.h>
 
+#include "include/pika_server.h"
+#include "include/pika_rm.h"
 #include "slash/include/slash_string.h"
 
 #include "include/pika_rm.h"
@@ -185,8 +187,9 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     return;
   }
 
-  const InnerMessage::InnerResponse_TrySync try_sync_response = response->try_sync();
-  const InnerMessage::Partition partition_response = try_sync_response.partition();
+  const InnerMessage::InnerResponse_TrySync& try_sync_response = response->try_sync();
+  const InnerMessage::Partition& partition_response = try_sync_response.partition();
+  const InnerMessage::Node& node = try_sync_response.node();
   std::string table_name = partition_response.table_name();
   uint32_t partition_id  = partition_response.partition_id();
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
@@ -202,6 +205,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     BinlogOffset boffset;
     partition->SetReplState(ReplState::kConnected);
     partition->logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
+    g_pika_rm->AddSyncSlavePartition(RmNode(node.ip(), node.port(), table_name, partition_id));
     g_pika_server->SendPartitionBinlogSyncAckRequest(table_name, partition_id, boffset, boffset, true);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {
@@ -221,21 +225,23 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
 
 void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse> res) {
   // partition to a bunch of binlog chips
-  std::unordered_map<std::string, std::vector<int>*> par_binlog;
+  std::unordered_map<PartitionInfo, std::vector<int>*, hash_partition_info> par_binlog;
   for (int i = 0; i < res->binlog_sync_size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_response = res->binlog_sync(i);
     // hash key: table + partition_id
-    InnerMessage::Partition partition = binlog_response.partition();
-    std::string key = partition.table_name() + std::to_string(partition.partition_id());
-    if (par_binlog.find(key) == par_binlog.end()) {
-      par_binlog[key] = new std::vector<int>();
+    const InnerMessage::Partition& partition = binlog_response.partition();
+    PartitionInfo p_info(partition.table_name(), partition.partition_id());
+    if (par_binlog.find(p_info) == par_binlog.end()) {
+      par_binlog[p_info] = new std::vector<int>();
     }
-    par_binlog[key]->push_back(i);
+    par_binlog[p_info]->push_back(i);
   }
 
   for (auto& binlog_nums : par_binlog) {
-    g_pika_rm->ScheduleWriteBinlogTask(
-        binlog_nums.first,
+    RmNode node(binlog_nums.first.table_name_, binlog_nums.first.partition_id_);
+    g_pika_rm->SetSlaveLastRecvTime(node, slash::NowMicros());
+    g_pika_rm->GetPikaReplClient()->ScheduleWriteBinlogTask(
+        binlog_nums.first.table_name_ + std::to_string(binlog_nums.first.partition_id_),
         res,
         std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
         reinterpret_cast<void*>(binlog_nums.second));
