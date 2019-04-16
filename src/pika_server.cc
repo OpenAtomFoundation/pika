@@ -17,6 +17,8 @@
 #include "slash/include/env.h"
 #include "slash/include/rsync.h"
 #include "slash/include/slash_string.h"
+#include "pink/include/pink_cli.h"
+#include "pink/include/redis_cli.h"
 #include "pink/include/bg_thread.h"
 
 #include "include/pika_rm.h"
@@ -83,7 +85,7 @@ PikaServer::PikaServer() :
   pika_dispatch_thread_ = new PikaDispatchThread(ips, port_, worker_num_, 3000,
                                                  worker_queue_limit);
   pika_monitor_thread_ = new PikaMonitorThread();
-  pika_rsync_service_ = new PikaRsyncService(g_pika_conf->db_sync_path(), host_,
+  pika_rsync_service_ = new PikaRsyncService(g_pika_conf->db_sync_path(),
                                              g_pika_conf->port() + kPortShiftRSync);
   pika_pubsub_thread_ = new pink::PubSubThread();
   pika_auxiliary_thread_ = new PikaAuxiliaryThread();
@@ -910,9 +912,10 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
     return;
   }
 
-  std::string bg_path;
   BgSaveInfo bgsave_info = partition->bgsave_info();
-  bg_path = bgsave_info.path;
+  std::string bg_path = bgsave_info.path;
+  uint32_t binlog_filenum = bgsave_info.filenum;
+  uint64_t binlog_offset = bgsave_info.offset;
 
   // Get all files need to send
   std::vector<std::string> descendant;
@@ -967,9 +970,38 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
   slash::RsyncSendClearTarget(bg_path + "/sets", remote_path + "/sets", remote);
   slash::RsyncSendClearTarget(bg_path + "/zsets", remote_path + "/zsets", remote);
 
+  pink::PinkCli* cli = pink::NewRedisCli();
+  std::string lip(host_);
+  if (cli->Connect(ip, port, "").ok()) {
+    struct sockaddr_in laddr;
+    socklen_t llen = sizeof(laddr);
+    getsockname(cli->fd(), (struct sockaddr*) &laddr, &llen);
+    lip = inet_ntoa(laddr.sin_addr);
+    cli->Close();
+    delete cli;
+  } else {
+    LOG(WARNING) << "Rsync try connect slave rsync service error"
+        << ", slave rsync service(" << ip << ":" << port << ")";
+    delete cli;
+  }
+
   // Send info file at last
   if (0 == ret) {
-    if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile, remote))) {
+    // need to modify the IP addr in the info file
+    if (lip.compare(host_)) {
+      std::ofstream fix;
+      std::string fn = bg_path + "/" + kBgsaveInfoFile + "." + std::to_string(time(NULL));
+      fix.open(fn, std::ios::in | std::ios::trunc);
+      if (fix.is_open()) {
+        fix << "0s\n" << lip << "\n" << port_ << "\n" << binlog_filenum << "\n" << binlog_offset << "\n";
+        fix.close();
+      }
+      ret = slash::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, remote);
+      slash::DeleteFile(fn);
+      if (ret != 0) {
+        LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Modified Info File Failed";
+      }
+    } else if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile, remote))) {
       LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Info File Failed";
     }
   }

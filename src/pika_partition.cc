@@ -308,6 +308,7 @@ bool Partition::TryUpdateMasterOffset() {
   if (!is) {
     LOG(WARNING) << "Partition: " << partition_name_
         << ", Failed to open info file after db sync";
+    SetReplState(ReplState::kError);
     return false;
   }
   std::string line, master_ip;
@@ -322,6 +323,7 @@ bool Partition::TryUpdateMasterOffset() {
         LOG(WARNING) << "Partition: " << partition_name_
             << ", Format of info file after db sync error, line : " << line;
         is.close();
+        SetReplState(ReplState::kError);
         return false;
       }
       if (lineno == 3) { master_port = tmp; }
@@ -332,12 +334,13 @@ bool Partition::TryUpdateMasterOffset() {
       LOG(WARNING) << "Partition: " << partition_name_
           << ", Format of info file after db sync error, line : " << line;
       is.close();
+      SetReplState(ReplState::kError);
       return false;
     }
   }
   is.close();
 
-  LOG(INFO) << "Partition: " << partition_name_ << "Information from dbsync info"
+  LOG(INFO) << "Partition: " << partition_name_ << " Information from dbsync info"
       << ",  master_ip: " << master_ip
       << ", master_port: " << master_port
       << ", filenum: " << filenum
@@ -347,7 +350,8 @@ bool Partition::TryUpdateMasterOffset() {
   if (master_ip != g_pika_server->master_ip() ||
       master_port != g_pika_server->master_port()) {
     LOG(WARNING) << "Partition: " << partition_name_
-        << "Error master ip port: " << master_ip << ":" << master_port;
+        << " Error master ip port: " << master_ip << ":" << master_port;
+    SetReplState(ReplState::kError);
     return false;
   }
 
@@ -355,6 +359,7 @@ bool Partition::TryUpdateMasterOffset() {
   if (!ChangeDb(dbsync_path_)) {
     LOG(WARNING) << "Partition: " << partition_name_
         << ", Failed to change db";
+    SetReplState(ReplState::kError);
     return false;
   }
 

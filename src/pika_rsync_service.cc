@@ -13,9 +13,8 @@
 #include "include/pika_define.h"
 
 PikaRsyncService::PikaRsyncService(const std::string& raw_path,
-                                   const std::string& host,
                                    const int port)
-    : raw_path_(raw_path), host_(host), port_(port) {
+    : raw_path_(raw_path), port_(port) {
   if (raw_path_.back() != '/') {
     raw_path_ += "/";
   }
@@ -34,7 +33,7 @@ PikaRsyncService::~PikaRsyncService() {
 
 int PikaRsyncService::StartRsync() {
   int ret = 0;
-  ret = slash::StartRsync(raw_path_, kDBSyncModule, host_, port_);
+  ret = slash::StartRsync(raw_path_, kDBSyncModule, "0.0.0.0", port_);
   if (ret != 0) {
     LOG(WARNING) << "Failed to start rsync, path:" << raw_path_ << " error : " << ret;
     return -1;
