@@ -127,17 +127,24 @@ struct PartitionInfo {
     }
     return false;
   }
-  std::string ToString() {
+  std::string ToString() const {
     return table_name_ + "_" + std::to_string(partition_id_);
   }
   std::string table_name_;
   uint32_t partition_id_;
 };
 
+struct hash_partition_info {
+  size_t operator()(const PartitionInfo& n) const {
+    return std::hash<std::string>()(n.table_name_) ^ std::hash<uint32_t>()(n.partition_id_);
+  }
+};
+
 class Node {
  public:
   Node(const std::string& ip, int port) : ip_(ip), port_(port) {
   }
+  virtual ~Node() = default;
   Node() : port_(0) {
   }
   const std::string& Ip() const {
@@ -158,13 +165,15 @@ class RmNode : public Node {
  public:
   RmNode(const std::string& ip, int port,
       const PartitionInfo& partition_info)
-    : Node(ip, port), partition_info_(partition_info), session_id_(0) {
+    : Node(ip, port), partition_info_(partition_info), session_id_(0), last_send_time_(0), last_recv_time_(0) {
   }
-  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id) : Node(ip, port), partition_info_(table_name, partition_id), session_id_(0) {
+  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id) : Node(ip, port), partition_info_(table_name, partition_id), session_id_(0), last_send_time_(0), last_recv_time_(0) {
   }
-  RmNode() : Node(), partition_info_(), session_id_(0) {
+  RmNode() : Node(), partition_info_(), session_id_(0), last_send_time_(0), last_recv_time_(0) {
   }
-
+  RmNode(const std::string& table_name, uint32_t partition_id) : Node(), partition_info_(table_name, partition_id), session_id_(0), last_send_time_(0), last_recv_time_(0) {
+  }
+  virtual ~RmNode() = default;
   bool operator==(const RmNode& other) const {
     if (partition_info_.table_name_ == other.TableName()
       && partition_info_.partition_id_ == other.PartitionId()
@@ -192,10 +201,29 @@ class RmNode : public Node {
   std::string ToString() const {
     return TableName() + "_" + std::to_string(PartitionId()) + "_" + Ip() + ":" + std::to_string(Port());
   }
-
+  void SetLastSendTime(uint64_t last_send_time) {
+    last_send_time_ = last_send_time;
+  }
+  uint64_t LastSendTime() const {
+    return last_send_time_;
+  }
+  void SetLastRecvTime(uint64_t last_recv_time) {
+    last_recv_time_ = last_recv_time;
+  }
+  uint64_t LastRecvTime() const {
+    return last_recv_time_;
+  }
  private:
   PartitionInfo partition_info_;
   uint32_t session_id_;
+  uint64_t last_send_time_;
+  uint64_t last_recv_time_;
+};
+
+struct hash_rm_node {
+  size_t operator()(const RmNode& n) const {
+    return std::hash<std::string>()(n.TableName()) ^ std::hash<uint32_t>()(n.PartitionId()) ^ std::hash<std::string>()(n.Ip()) ^ std::hash<int>()(n.Port());
+  }
 };
 
 struct WriteTask {

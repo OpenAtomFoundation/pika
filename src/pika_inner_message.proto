@@ -59,7 +59,6 @@ message InnerRequest {
     required bool         first_send      = 6;
   }
 
-  // slave to master
   message HeatBeat {
     required Node   node = 1;
     required string ping = 2;
@@ -102,9 +101,10 @@ message InnerResponse {
       kError             = 4;
     }
     required ReplyCode    reply_code    = 1;
-    required Partition    partition     = 2;
-    optional BinlogOffset binlog_offset = 3;
-    optional int32        sid           = 4;
+    required Node         node          = 2;
+    required Partition    partition     = 3;
+    optional BinlogOffset binlog_offset = 4;
+    optional int32        sid           = 5;
   }
 
   message DBSync {

@@ -619,8 +619,8 @@ void PikaServer::DeleteSlave(int fd) {
       if (iter->conn_fd == fd) {
         g_pika_rm->LostConnection(iter->ip, iter->port);
         g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
+        LOG(INFO) << "Delete slave success" << iter->ip << " " << iter->port;
         slaves_.erase(iter);
-        LOG(INFO) << "Delete slave success";
         break;
       }
       iter++;
@@ -646,7 +646,7 @@ void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
         g_pika_rm->LostConnection(iter->ip, iter->port);
         g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
         slaves_.erase(iter);
-        LOG(INFO) << "Delete slave success";
+        LOG(INFO) << "Delete slave success" << iter->ip << " " << iter->port;
         break;
       }
       iter++;
@@ -673,10 +673,10 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   BinlogOffset sent_slave_boffset;
   BinlogOffset acked_slave_boffset;
   std::stringstream tmp_stream;
-  std::stringstream sync_status_stream;
-  sync_status_stream << "  sync points:" << "\r\n";
   slash::MutexLock l(&slave_mutex_);
   for (const auto& slave : slaves_) {
+    std::stringstream sync_status_stream;
+    sync_status_stream << "  sync points:" << "\r\n";
     tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",sid=" << slave.sid << ",lag=";
     for (const auto& ts : slave.table_structs) {
       for (size_t idx = 0; idx < ts.partition_num; ++idx) {
@@ -749,7 +749,10 @@ void PikaServer::RemoveMaster() {
     repl_state_ = PIKA_REPL_NO_CONNECT;
     role_ &= ~PIKA_ROLE_SLAVE;
 
-    g_pika_rm->GetPikaReplClient()->Close(master_ip_, master_port_ + kPortShiftReplServer);
+    if (master_ip_ != "" && master_port_ != -1) {
+      g_pika_rm->GetPikaReplClient()->Close(master_ip_, master_port_ + kPortShiftReplServer);
+      g_pika_rm->LostConnection(master_ip_, master_port_);
+    }
 
     master_ip_ = "";
     master_port_ = -1;

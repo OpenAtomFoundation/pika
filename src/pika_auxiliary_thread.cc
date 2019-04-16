@@ -7,8 +7,10 @@
 
 #include "include/pika_server.h"
 #include "include/pika_define.h"
+#include "include/pika_rm.h"
 
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 
 PikaAuxiliaryThread::~PikaAuxiliaryThread() {
   StopThread();
@@ -27,8 +29,13 @@ void* PikaAuxiliaryThread::ThreadMain() {
       RunEveryPartitionStateMachine();
     }
 
+    Status s = g_pika_rm->CheckSyncTimeout(slash::NowMicros());
+    if (!s.ok()) {
+      LOG(WARNING) << s.ToString();
+    }
+
     // TODO(whoiami) timeout
-    Status s = g_pika_server->TriggerSendBinlogSync();
+    s = g_pika_server->TriggerSendBinlogSync();
     if (!s.ok()) {
       LOG(WARNING) << s.ToString();
     }

@@ -23,19 +23,11 @@
 #define kBinlogSendBatchNum 100
 #define kBinlogReadWinSize 3000
 
+// unit seconds
+#define kSendKeepAliveTimeout (10 * 1000000)
+#define kRecvKeepAliveTimeout (20 * 1000000)
+
 using slash::Status;
-
-struct hash_partition_info {
-  size_t operator()(const PartitionInfo& n) const {
-    return std::hash<std::string>()(n.table_name_) ^ std::hash<uint32_t>()(n.partition_id_);
-  }
-};
-
-struct hash_rm_node {
-  size_t operator()(const RmNode& n) const {
-    return std::hash<std::string>()(n.TableName()) ^ std::hash<uint32_t>()(n.PartitionId()) ^ std::hash<std::string>()(n.Ip()) ^ std::hash<int>()(n.Port());
-  }
-};
 
 struct SyncWinItem {
   BinlogOffset offset_;
@@ -64,13 +56,6 @@ class SyncWindow {
   std::vector<SyncWinItem> win_;
 };
 
-// role slave use
-class MasterNode : public RmNode {
- public:
-  MasterNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id);
-  MasterNode();
-};
-
 // role master use
 class SlaveNode : public RmNode {
  public:
@@ -83,7 +68,6 @@ class SlaveNode : public RmNode {
     slave_mu.Unlock();
   }
   SlaveState slave_state;
-  uint64_t last_active_time;
 
   BinlogSyncState b_state;
   SyncWindow sync_win;
@@ -100,9 +84,19 @@ class SlaveNode : public RmNode {
 class SyncPartition {
  public:
   SyncPartition(const std::string& table_name, uint32_t partition_id);
-  void BecomeMaster();
-  void BecomeSlave(const std::string& master_ip, int master_port);
-  void BecomeSingle();
+  virtual ~SyncPartition() = default;
+
+  PartitionInfo& SyncPartitionInfo() {
+    return partition_info_;
+  }
+ private:
+  // std::shared_ptr<Binlog> binlog_;
+  PartitionInfo partition_info_;
+};
+
+class SyncMasterPartition : public SyncPartition {
+ public:
+  SyncMasterPartition(const std::string& table_name, uint32_t partition_id);
   Status AddSlaveNode(const std::string& ip, int port);
   Status RemoveSlaveNode(const std::string& ip, int port);
 
@@ -113,10 +107,14 @@ class SyncPartition {
   Status UpdateSlaveBinlogAckInfo(const std::string& ip, int port, const BinlogOffset& start, const BinlogOffset& end);
   Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset, BinlogOffset* acked_offset);
 
-  Status SetLastActiveTime(const std::string& ip, int port, uint64_t time);
-  Status GetLastActiveTime(const std::string& ip, int port, uint64_t* time);
+  Status SetLastSendTime(const std::string& ip, int port, uint64_t time);
+  Status GetLastSendTime(const std::string& ip, int port, uint64_t* time);
+
+  Status SetLastRecvTime(const std::string& ip, int port, uint64_t time);
+  Status GetLastRecvTime(const std::string& ip, int port, uint64_t* time);
 
   Status WakeUpSlaveBinlogSync();
+  Status CheckSyncTimeout(uint64_t now);
 
  private:
   bool CheckReadBinlogFromCache();
@@ -130,15 +128,32 @@ class SyncPartition {
   Status GetSlaveNode(const std::string& ip, int port, std::shared_ptr<SlaveNode>* slave_node);
 
   slash::Mutex partition_mu_;
-  PartitionInfo partition_info_;
-  Role role_;
-  // role slave use
-  MasterNode m_info_;
-  ReplState repl_state_;
-  // role master use
+
   std::vector<std::shared_ptr<SlaveNode>> slaves_;
   // BinlogCacheWindow win_;
-  // std::shared_ptr<Binlog> binlog_;
+};
+
+class SyncSlavePartition : public SyncPartition {
+ public:
+  SyncSlavePartition(const std::string& table_name, uint32_t partition_id, const RmNode& master);
+
+  Status SetLastRecvTime(uint64_t time);
+  Status GetLastRecvTime(uint64_t* time);
+
+  Status CheckSyncTimeout(uint64_t now, bool* to_del);
+
+  const std::string& MasterIp() {
+    return m_info_.Ip();
+  }
+
+  int MasterPort() {
+    return m_info_.Port();
+  }
+ private:
+  slash::Mutex partition_mu_;
+
+  RmNode m_info_;
+  ReplState repl_state_;
 };
 
 class BinlogReaderManager {
@@ -163,8 +178,18 @@ class PikaReplicaManager {
   PikaReplClient* GetPikaReplClient();
   PikaReplServer* GetPikaReplServer();
 
-  Status AddSyncPartition(const std::string& table_name, uint32_t partition_id);
-  Status RemoveSyncPartition(const std::string& table_name, uint32_t partition_id);
+  Status AddSyncMasterPartition(const std::string& table_name, uint32_t partition_id);
+  Status RemoveSyncMasterPartition(const std::string& table_name, uint32_t partition_id);
+
+  Status AddSyncSlavePartition(const RmNode& node);
+  Status RemoveSyncSlavePartition(const RmNode& node);
+
+  Status SetMasterLastRecvTime(const RmNode& slave, uint64_t time);
+  Status SetSlaveLastRecvTime(const RmNode& slave, uint64_t time);
+
+  Status CheckSyncTimeout(uint64_t now);
+
+  // following funcs invoked by master partition only
 
   Status AddPartitionSlave(const RmNode& slave);
   Status RemovePartitionSlave(const RmNode& slave);
@@ -177,9 +202,6 @@ class PikaReplicaManager {
   // Update binlog win and try to send next binlog
   Status UpdateSyncBinlogStatus(const RmNode& slave, const BinlogOffset& offset_start, const BinlogOffset& offset_end);
   Status GetSyncBinlogStatus(const RmNode& slave, BinlogOffset* sent_boffset, BinlogOffset* acked_boffset);
-
-  Status SetLastActiveTime(const RmNode& slave, uint64_t time);
-  Status GetLastActiveTime(const RmNode& slave, uint64_t* time);
 
   Status WakeUpBinlogSync();
 
@@ -201,8 +223,6 @@ class PikaReplicaManager {
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
 
-  // bool GetConn(const RmNode& slave, std::shared_ptr<pink::PbConn>& conn);
-
   BinlogReaderManager binlog_reader_mgr;
 
  private:
@@ -215,8 +235,10 @@ class PikaReplicaManager {
   slash::Mutex node_partitions_mu_;
   // used to manage peer slave node to partition map
   std::unordered_map<std::string, std::vector<RmNode>> node_partitions_;
+
   pthread_rwlock_t partitions_rw_;
-  std::unordered_map<PartitionInfo, std::shared_ptr<SyncPartition>, hash_partition_info> sync_partitions_;
+  std::unordered_map<PartitionInfo, std::shared_ptr<SyncMasterPartition>, hash_partition_info> sync_master_partitions_;
+  std::unordered_map<PartitionInfo, std::shared_ptr<SyncSlavePartition>, hash_partition_info> sync_slave_partitions_;
 
   slash::Mutex  write_queue_mu_;
   // every host owns a queue
