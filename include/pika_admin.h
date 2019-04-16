@@ -31,6 +31,8 @@ class SlaveofCmd : public Cmd {
   virtual void DoInitial() override;
   virtual void Clear() {
     is_noone_ = false;
+    master_ip_.clear();
+    master_port_ = 0;
   }
 };
 
