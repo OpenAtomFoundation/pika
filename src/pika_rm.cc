@@ -532,6 +532,18 @@ void PikaReplicaManager::InitPartition() {
   }
 }
 
+Status PikaReplicaManager::RebuildPartition() {
+  slash::RWLock l(&partitions_rw_, true);
+  if (!sync_slave_partitions_.empty()) {
+    return Status::Corruption("Slave partition is NOT empty");
+  }
+  sync_master_partitions_.clear();
+  InitPartition();
+  LOG(INFO) << "Rebuild Sync Partition Success! " <<
+    "Rebuilded partition size " << sync_master_partitions_.size();
+  return Status::OK();
+}
+
 void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks) {
   slash::MutexLock l(&write_queue_mu_);
   std::string index = ip + ":" + std::to_string(port);
@@ -644,18 +656,6 @@ Status PikaReplicaManager::GetSyncBinlogStatus(const RmNode& slave, BinlogOffset
 }
 
 Status PikaReplicaManager::AddPartitionSlave(const RmNode& slave) {
-  Status s = AddSlave(slave);
-  if (!s.ok()) {
-    return s;
-  }
-  s = RecordNodePartition(slave);
-  if (!s.ok()) {
-    return s;
-  }
-  return Status::OK();
-}
-
-Status PikaReplicaManager::AddSlave(const RmNode& slave) {
   slash::RWLock l(&partitions_rw_, false);
   if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
     return Status::NotFound(slave.ToString() + " not found");
@@ -672,32 +672,7 @@ Status PikaReplicaManager::AddSlave(const RmNode& slave) {
   return Status::OK();
 }
 
-Status PikaReplicaManager::RecordNodePartition(const RmNode& slave) {
-  std::string index = slave.Ip() + ":" + std::to_string(slave.Port());
-  slash::MutexLock l(&node_partitions_mu_);
-  std::vector<RmNode>& partitions = node_partitions_[index];
-  for (size_t i = 0; i < partitions.size(); ++i) {
-    if (slave == partitions[i]) {
-      return Status::OK();
-    }
-  }
-  node_partitions_[index].push_back(slave);
-  return Status::OK();
-}
-
 Status PikaReplicaManager::RemovePartitionSlave(const RmNode& slave) {
-  Status s = RemoveSlave(slave);
-  if (!s.ok()) {
-    return s;
-  }
-  s = EraseNodePartition(slave);
-  if (!s.ok()) {
-    return s;
-  }
-  return Status::OK();
-}
-
-Status PikaReplicaManager::RemoveSlave(const RmNode& slave) {
   slash::RWLock l(&partitions_rw_, false);
   if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
     return Status::NotFound(slave.ToString() + " not found");
@@ -710,39 +685,17 @@ Status PikaReplicaManager::RemoveSlave(const RmNode& slave) {
   return Status::OK();
 }
 
-Status PikaReplicaManager::EraseNodePartition(const RmNode& slave) {
-  std::string index = slave.Ip() + ":" + std::to_string(slave.Port());
-  slash::MutexLock l(&node_partitions_mu_);
-  if (node_partitions_.find(index) == node_partitions_.end()) {
-    return Status::NotFound(slave.ToString());
-  }
-  std::vector<RmNode>& rm_nodes = node_partitions_[index];
-  for (size_t i = 0; i < rm_nodes.size(); ++i) {
-    if (rm_nodes[i] == slave) {
-      rm_nodes.erase(rm_nodes.begin() + i);
-      return Status::OK();
-    }
-  }
-  return Status::NotFound("slave " + slave.ToString());
-}
-
 Status PikaReplicaManager::LostConnection(const std::string& ip, int port) {
-  std::string index = ip + ":" + std::to_string(port);
-  slash::MutexLock l(&node_partitions_mu_);
-  // if masterpartition owns ip+port slave
-  if (node_partitions_.find(index) != node_partitions_.end()) {
-    std::vector<RmNode>& rm_nodes = node_partitions_[index];
-    for (auto& rm_node : rm_nodes) {
-      Status s = RemoveSlave(rm_node);
-      if (!s.ok()) {
-        return s;
-      }
+  slash::RWLock l_part(&partitions_rw_, true);
+  for (auto& iter : sync_master_partitions_) {
+    std::shared_ptr<SyncMasterPartition> partition = iter.second;
+    Status s = partition->RemoveSlaveNode(ip, port);
+    if (!s.ok() && !s.IsNotFound()) {
+      LOG(WARNING) << "Lost Connection failed " << s.ToString();
     }
-    node_partitions_.erase(index);
   }
 
   std::vector<PartitionInfo> to_del;
-  slash::RWLock l_part(&partitions_rw_, true);
   for (auto& iter : sync_slave_partitions_) {
     std::shared_ptr<SyncSlavePartition> partition = iter.second;
     if (partition->MasterIp() == ip && partition->MasterPort() == port) {
