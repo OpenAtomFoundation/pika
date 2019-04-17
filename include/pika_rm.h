@@ -187,6 +187,8 @@ class PikaReplicaManager {
   Status SetMasterLastRecvTime(const RmNode& slave, uint64_t time);
   Status SetSlaveLastRecvTime(const RmNode& slave, uint64_t time);
 
+  Status RebuildPartition();
+
   Status CheckSyncTimeout(uint64_t now);
 
   // following funcs invoked by master partition only
@@ -227,14 +229,6 @@ class PikaReplicaManager {
 
  private:
   void InitPartition();
-  Status AddSlave(const RmNode& slave);
-  Status RecordNodePartition(const RmNode& slave);
-  Status RemoveSlave(const RmNode& slave);
-  Status EraseNodePartition(const RmNode& slave);
-
-  slash::Mutex node_partitions_mu_;
-  // used to manage peer slave node to partition map
-  std::unordered_map<std::string, std::vector<RmNode>> node_partitions_;
 
   pthread_rwlock_t partitions_rw_;
   std::unordered_map<PartitionInfo, std::shared_ptr<SyncMasterPartition>, hash_partition_info> sync_master_partitions_;
