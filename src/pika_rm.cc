@@ -108,7 +108,7 @@ Status SyncMasterPartition::AddSlaveNode(const std::string& ip, int port) {
   slave_ptr->SetLastSendTime(slash::NowMicros());
   slave_ptr->SetLastRecvTime(slash::NowMicros());
   slaves_.push_back(slave_ptr);
-  LOG(INFO) << "Partition " << SyncPartitionInfo().ToString() << " Master AddSlaveNode"<< ip << " " << port;
+  LOG(INFO) << "Add Slave Node Partition " << SyncPartitionInfo().ToString() << ", Master AddSlaveNode"<< ip << ":" << port;
   return Status::OK();
 }
 
@@ -118,7 +118,7 @@ Status SyncMasterPartition::RemoveSlaveNode(const std::string& ip, int port) {
     std::shared_ptr<SlaveNode> slave = slaves_[i];
     if (ip == slave->Ip() && port == slave->Port()) {
       slaves_.erase(slaves_.begin() + i);
-      LOG(INFO) << "Partiiton " << SyncPartitionInfo().ToString() << "Master RemoveSlaveNode"<< ip << " " << port;
+      LOG(INFO) << "Remove Slave Node Partiiton " << SyncPartitionInfo().ToString() << ", Master RemoveSlaveNode "<< ip << ":" << port;
       return Status::OK();
     }
   }
