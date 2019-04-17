@@ -354,5 +354,6 @@ void PikaReplServer::HandleBinlogSyncRequest(void* arg) {
     return;
   }
   delete task_arg;
+  g_pika_server->SignalAuxiliary();
   return;
 }
