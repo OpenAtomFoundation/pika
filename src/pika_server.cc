@@ -401,6 +401,11 @@ bool PikaServer::RebuildTableStruct(const std::vector<TableStruct>& table_struct
   // to the pika.conf file
   g_pika_conf->SetTableStructs(table_structs);
   InitTableStruct();
+  Status s = g_pika_rm->RebuildPartition();
+  if (!s.ok()) {
+    LOG(WARNING) << s.ToString();
+    return false;
+  }
   return true;
 }
 
