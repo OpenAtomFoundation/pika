@@ -40,6 +40,10 @@ void PikaReplBgWorker::Schedule(pink::TaskFunc func, void* arg) {
   bg_thread_.Schedule(func, arg);
 }
 
+void PikaReplBgWorker::QueueClear() {
+  bg_thread_.QueueClear();
+}
+
 void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   ReplClientWriteBinlogTaskArg* task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerResponse> res = task_arg->res;
@@ -69,6 +73,19 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+    if (!g_pika_rm->CheckSlavePartitionSessionId(
+                binlog_res.partition().table_name(),
+                binlog_res.partition().partition_id(),
+                binlog_res.session_id())) {
+      LOG(WARNING) << "Check Session failed "
+          << binlog_res.partition().table_name()
+          << "_" << binlog_res.partition().partition_id();
+      conn->NotifyClose();
+      delete index;
+      delete task_arg;
+      return;
+    }
+
     // empty binlog treated as keepalive packet
     if (binlog_res.binlog().empty()) {
       continue;

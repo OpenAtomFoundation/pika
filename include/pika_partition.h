@@ -132,7 +132,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   ReplState repl_state_;
   bool full_sync_;
 
-
   /*
    * BgSave use
    */

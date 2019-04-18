@@ -145,7 +145,6 @@ class PikaServer {
   int64_t GenSid();
   void BecomeMaster();
   void DeleteSlave(int fd);   //conn fd
-  void DeleteSlave(const std::string& ip, int64_t port);
   int32_t CountSyncSlaves();
   int32_t GetSlaveListString(std::string& slave_list_str);
   int64_t TryAddSlave(const std::string& ip, int64_t port, int fd,

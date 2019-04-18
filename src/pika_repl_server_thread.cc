@@ -21,7 +21,7 @@ PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips,
 }
 
 void PikaReplServerThread::ReplServerHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
-  LOG(INFO) << "ServerThread close " << fd << " " << ip_port;
+  LOG(INFO) << "ServerThread close fd:" << fd << ",  ip_port:" << ip_port;
   g_pika_server->DeleteSlave(fd);
   g_pika_rm->ReplServerRemoveClientConn(fd);
 }

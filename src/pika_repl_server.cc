@@ -58,6 +58,7 @@ slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
   response.set_type(InnerMessage::Type::kBinlogSync);
   for (const auto task :tasks) {
     InnerMessage::InnerResponse::BinlogSync* binlog_sync = response.add_binlog_sync();
+    binlog_sync->set_session_id(task.rm_node_.SessionId());
     InnerMessage::Partition* partition = binlog_sync->mutable_partition();
     partition->set_table_name(task.rm_node_.TableName());
     partition->set_partition_id(task.rm_node_.PartitionId());
@@ -199,9 +200,6 @@ void PikaReplServer::HandleTrySyncRequest(void* arg) {
 
     response.set_code(InnerMessage::kOk);
     InnerMessage::InnerResponse::TrySync* try_sync_response = response.mutable_try_sync();
-    InnerMessage::Node* resp_node = try_sync_response->mutable_node();
-    resp_node->set_ip(g_pika_server->host());
-    resp_node->set_port(g_pika_server->port());
     InnerMessage::Partition* partition_response = try_sync_response->mutable_partition();
     InnerMessage::BinlogOffset* master_partition_boffset = try_sync_response->mutable_binlog_offset();
     partition_response->set_table_name(table_name);
@@ -227,14 +225,20 @@ void PikaReplServer::HandleTrySyncRequest(void* arg) {
           LOG(INFO) << "Partition: " << partition_name << " binlog has been purged, may need full sync";
           try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
         } else {
-          try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
-          try_sync_response->set_sid(0);
-          // incremental sync
-          Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id));
-          if (s.ok()) {
-            LOG(INFO) << "Partition: " << partition_name << " TrySync Success";
+          int32_t session_id = g_pika_rm->GenPartitionSessionId(table_name, partition_id);
+          if (session_id != -1) {
+            try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
+            try_sync_response->set_session_id(session_id);
+            // incremental sync
+            Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
+            if (s.ok()) {
+              LOG(INFO) << "Partition: " << partition_name << " TrySync Success";
+            } else {
+              LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
+            }
           } else {
-            LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
+            try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+            LOG(WARNING) << "Partition: " << partition_name << ", Gen Session id Failed";
           }
         }
       }
@@ -306,17 +310,28 @@ void PikaReplServer::HandleBinlogSyncRequest(void* arg) {
   uint32_t partition_id = binlog_req.partition_id();
 
   bool is_first_send = binlog_req.first_send();
+  int32_t session_id = binlog_req.session_id();
   const InnerMessage::BinlogOffset& ack_range_start = binlog_req.ack_range_start();
   const InnerMessage::BinlogOffset& ack_range_end = binlog_req.ack_range_end();
   BinlogOffset range_start(ack_range_start.filenum(), ack_range_start.offset());
   BinlogOffset range_end(ack_range_end.filenum(), ack_range_end.offset());
+
+  if (!g_pika_rm->CheckMasterPartitionSessionId(node.ip(),
+              node.port(), table_name, partition_id, session_id)) {
+    LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port()
+        << ", " << table_name << "_" << partition_id;
+    conn->NotifyClose();
+    delete task_arg;
+    return;
+  }
 
   // Set ack info from slave
   RmNode slave_node = RmNode(node.ip(), node.port(), table_name, partition_id);
 
   Status s = g_pika_rm->SetMasterLastRecvTime(slave_node, slash::NowMicros());
   if (!s.ok()) {
-    LOG(WARNING) << "SetMasterLastRecvTime failed " << table_name << " " << partition_id << " " << s.ToString();
+    LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port()
+        << ", " << table_name << "_" << partition_id << " " << s.ToString();
     conn->NotifyClose();
     delete task_arg;
     return;
