@@ -42,6 +42,9 @@ struct SyncWinItem {
   }
   SyncWinItem(uint32_t filenum, uint64_t offset) : offset_(filenum, offset), acked_(false) {
   }
+  std::string ToString() const {
+    return offset_.ToString() + " acked: " + std::to_string(acked_);
+  }
 };
 
 class SyncWindow {
@@ -51,6 +54,17 @@ class SyncWindow {
   void Push(const SyncWinItem& item);
   bool Update(const SyncWinItem& start_item, const SyncWinItem& end_item, BinlogOffset* acked_offset);
   int Remainings();
+  std::string ToStringStatus() const {
+    if (win_.empty()) {
+      return "      Size: " + std::to_string(win_.size()) + "\r\n";
+    } else {
+      std::string res;
+      res += "      Size: " + std::to_string(win_.size()) + "\r\n";
+      res += ("      Begin_item: " + win_.begin()->ToString() + "\r\n");
+      res += ("      End_item: " + win_.rbegin()->ToString() + "\r\n");
+      return res;
+    }
+  }
  private:
   // TODO(whoiami) ring buffer maybe
   std::vector<SyncWinItem> win_;
@@ -73,6 +87,8 @@ class SlaveNode : public RmNode {
   SyncWindow sync_win;
   BinlogOffset sent_offset;
   BinlogOffset acked_offset;
+
+  std::string ToStringStatus();
 
   std::shared_ptr<PikaBinlogReader> binlog_reader;
   Status InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, const BinlogOffset& offset);
@@ -116,6 +132,8 @@ class SyncMasterPartition : public SyncPartition {
   Status WakeUpSlaveBinlogSync();
   Status CheckSyncTimeout(uint64_t now);
 
+  std::string ToStringStatus();
+
  private:
   bool CheckReadBinlogFromCache();
   // inovker need to hold partition_mu_
@@ -141,6 +159,8 @@ class SyncSlavePartition : public SyncPartition {
   Status GetLastRecvTime(uint64_t* time);
 
   Status CheckSyncTimeout(uint64_t now, bool* to_del);
+
+  std::string ToStringStatus();
 
   const std::string& MasterIp() {
     return m_info_.Ip();
@@ -190,6 +210,8 @@ class PikaReplicaManager {
   Status RebuildPartition();
 
   Status CheckSyncTimeout(uint64_t now);
+
+  void RmStatus(std::string* debug_info);
 
   // following funcs invoked by master partition only
 
