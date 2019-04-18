@@ -82,6 +82,17 @@ void SlaveNode::ReleaseBinlogFileReader() {
   binlog_reader = nullptr;
 }
 
+std::string SlaveNode::ToStringStatus() {
+  std::stringstream tmp_stream;
+  tmp_stream << "    Slave_state: " << SlaveStateMsg[slave_state] << "\r\n";
+  tmp_stream << "    Binlog_sync_state: " << BinlogSyncStateMsg[b_state] << "\r\n";
+  tmp_stream << "    Sync_window: " << "\r\n" << sync_win.ToStringStatus();
+  tmp_stream << "    Sent_offset: " << sent_offset.ToString() << "\r\n";
+  tmp_stream << "    Acked_offset: " << acked_offset.ToString() << "\r\n";
+  tmp_stream << "    Binlog_reader activated: " << (binlog_reader != nullptr) << "\r\n";
+  return tmp_stream.str();
+}
+
 /* SyncPartition */
 
 SyncPartition::SyncPartition(const std::string& table_name, uint32_t partition_id)
@@ -402,6 +413,18 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
   return Status::OK();
 }
 
+std::string SyncMasterPartition::ToStringStatus() {
+  std::stringstream tmp_stream;
+  slash::MutexLock l(&partition_mu_);
+  for (size_t i = 0; i < slaves_.size(); ++i) {
+    std::shared_ptr<SlaveNode> slave_ptr = slaves_[i];
+    slash::MutexLock l(&slave_ptr->slave_mu);
+    tmp_stream << "  slave[" << i << "]: "  << slave_ptr->ToString() <<
+      "\r\n" << slave_ptr->ToStringStatus();
+  }
+  return tmp_stream.str();
+}
+
 /* SyncSlavePartition */
 
 SyncSlavePartition::SyncSlavePartition(const std::string& table_name, uint32_t partition_id, const RmNode& master) : SyncPartition(table_name, partition_id), m_info_(master), repl_state_(kNoConnect) {
@@ -435,6 +458,11 @@ Status SyncSlavePartition::CheckSyncTimeout(uint64_t now, bool* del) {
     *del = true;
   }
   return Status::OK();
+}
+
+std::string SyncSlavePartition::ToStringStatus() {
+  return "  Master: " + MasterIp() + ":" + std::to_string(MasterPort()) + "\r\n" + "  SyncStatus "
+    + ReplStateMsg[repl_state_] + "\r\n";
 }
 
 /* SyncWindow */
@@ -851,4 +879,20 @@ Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
     LOG(INFO) <<" Slave del slave partition success " << partition_info.ToString();
   }
   return Status::OK();
+}
+
+void PikaReplicaManager::RmStatus(std::string* info) {
+  slash::RWLock l(&partitions_rw_, false);
+  std::stringstream tmp_stream;
+  tmp_stream << "Master partition(" << sync_master_partitions_.size() << "):" << "\r\n";
+  for (auto& iter : sync_master_partitions_) {
+    tmp_stream << " Partition " << iter.second->SyncPartitionInfo().ToString()
+      << "\r\n" << iter.second->ToStringStatus() << "\r\n";
+  }
+  tmp_stream << "Slave partition(" << sync_slave_partitions_.size() << "):" << "\r\n";
+  for (auto& iter : sync_slave_partitions_) {
+    tmp_stream << " Partition " << iter.second->SyncPartitionInfo().ToString()
+      << "\r\n" << iter.second->ToStringStatus() << "\r\n";
+  }
+  info->append(tmp_stream.str());
 }
