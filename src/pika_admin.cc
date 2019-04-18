@@ -13,6 +13,7 @@
 
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
+#include "include/pika_rm.h"
 #include "include/pika_version.h"
 #include "include/build_version.h"
 
@@ -22,6 +23,7 @@
 
 extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
+extern PikaReplicaManager *g_pika_rm;
 
 /*
  * slaveof no one
@@ -326,6 +328,7 @@ const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
 const std::string InfoCmd::kLogSection = "log";
 const std::string InfoCmd::kDataSection = "data";
+const std::string InfoCmd::kDebugSection = "debug";
 
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
@@ -373,7 +376,10 @@ void InfoCmd::DoInitial() {
     info_section_ = kInfoLog;
   } else if (!strcasecmp(argv_[1].data(), kDataSection.data())) {
     info_section_ = kInfoData;
-  } else {
+  } else if (!strcasecmp(argv_[1].data(), kDebugSection.data())) {
+    info_section_ = kInfoDebug;
+  }
+  else {
     info_section_ = kInfoErr;
   }
   if (argc != 2) {
@@ -450,6 +456,9 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
       break;
     case kInfoData:
       InfoData(info);
+      break;
+    case kInfoDebug:
+      InfoDebug(info);
       break;
     default:
       //kInfoErr is nothing
@@ -683,6 +692,14 @@ void InfoCmd::InfoData(std::string &info) {
   tmp_stream << "db_tablereader_usage:" << table_reader_usage << "\r\n";
 
   info.append(tmp_stream.str());
+  return;
+}
+
+void InfoCmd::InfoDebug(std::string& info) {
+  std::stringstream tmp_stream;
+  tmp_stream << "# Synchronization Status" << "\r\n";
+  info.append(tmp_stream.str());
+  g_pika_rm->RmStatus(&info);
   return;
 }
 
@@ -1553,7 +1570,6 @@ void TcmallocCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidParameter, kCmdNameTcmalloc);
     return;
   }
-
 }
 
 void TcmallocCmd::Do(std::shared_ptr<Partition> partition) {
