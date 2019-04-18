@@ -189,7 +189,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
 
   const InnerMessage::InnerResponse_TrySync& try_sync_response = response->try_sync();
   const InnerMessage::Partition& partition_response = try_sync_response.partition();
-  const InnerMessage::Node& node = try_sync_response.node();
   std::string table_name = partition_response.table_name();
   uint32_t partition_id  = partition_response.partition_id();
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
@@ -203,9 +202,10 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   std::string partition_name = partition->GetPartitionName();
   if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
     BinlogOffset boffset;
+    uint32_t session_id = try_sync_response.session_id();
     partition->SetReplState(ReplState::kConnected);
     partition->logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
-    g_pika_rm->AddSyncSlavePartition(RmNode(node.ip(), node.port(), table_name, partition_id));
+    g_pika_rm->AddSyncSlavePartition(RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), table_name, partition_id, session_id));
     g_pika_server->SendPartitionBinlogSyncAckRequest(table_name, partition_id, boffset, boffset, true);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {
@@ -227,10 +227,10 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
   // partition to a bunch of binlog chips
   std::unordered_map<PartitionInfo, std::vector<int>*, hash_partition_info> par_binlog;
   for (int i = 0; i < res->binlog_sync_size(); ++i) {
-    const InnerMessage::InnerResponse::BinlogSync& binlog_response = res->binlog_sync(i);
+    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
     // hash key: table + partition_id
-    const InnerMessage::Partition& partition = binlog_response.partition();
-    PartitionInfo p_info(partition.table_name(), partition.partition_id());
+    PartitionInfo p_info(binlog_res.partition().table_name(),
+                         binlog_res.partition().partition_id());
     if (par_binlog.find(p_info) == par_binlog.end()) {
       par_binlog[p_info] = new std::vector<int>();
     }

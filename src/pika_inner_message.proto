@@ -56,13 +56,8 @@ message InnerRequest {
     required uint32       partition_id    = 3;
     required BinlogOffset ack_range_start = 4;
     required BinlogOffset ack_range_end   = 5;
-    required bool         first_send      = 6;
-  }
-
-  message HeatBeat {
-    required Node   node = 1;
-    required string ping = 2;
-    optional int64  sid  = 3;
+    required int32        session_id      = 6;
+    required bool         first_send      = 7;
   }
 
   required Type        type         = 1;
@@ -70,7 +65,6 @@ message InnerRequest {
   optional TrySync     try_sync     = 3;
   optional DBSync      db_sync      = 4;
   optional BinlogSync  binlog_sync  = 5;
-  optional HeatBeat    heat_beat    = 6;
 }
 
 message PartitionInfo {
@@ -101,10 +95,9 @@ message InnerResponse {
       kError             = 4;
     }
     required ReplyCode    reply_code    = 1;
-    required Node         node          = 2;
-    required Partition    partition     = 3;
-    optional BinlogOffset binlog_offset = 4;
-    optional int32        sid           = 5;
+    required Partition    partition     = 2;
+    optional BinlogOffset binlog_offset = 3;
+    optional int32        session_id    = 4;
   }
 
   message DBSync {
@@ -120,11 +113,7 @@ message InnerResponse {
     required Partition      partition     = 1;
     required BinlogOffset   binlog_offset = 2;
     required bytes          binlog        = 3;
-  }
-
-  // slave to master
-  message HeatBeat {
-    required string pong = 1;
+    required int32          session_id    = 4;
   }
 
   required Type       type         = 1;
@@ -134,5 +123,4 @@ message InnerResponse {
   optional DBSync     db_sync      = 5;
   optional TrySync    try_sync     = 6;
   repeated BinlogSync binlog_sync  = 7;
-  optional HeatBeat   heat_beat    = 8;
 }

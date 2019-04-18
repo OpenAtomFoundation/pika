@@ -15,9 +15,11 @@
 #include "slash/include/env.h"
 #include "slash/include/slash_string.h"
 
+#include "include/pika_rm.h"
 #include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 
 PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) : next_avail_(0) {
   client_thread_ = new PikaReplClientThread(cron_interval, keepalive_timeout);
@@ -80,6 +82,12 @@ void PikaReplClient::ScheduleWriteDBTask(const std::string& dispatch_key,
   ReplClientWriteDBTaskArg* task_arg =
     new ReplClientWriteDBTaskArg(argv, binlog_item, table_name, partition_id);
   bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
+}
+
+void PikaReplClient::DropWriteBinlogTask() {
+  for (size_t idx = 0; idx < bg_workers_.size() / 2; ++idx) {
+    bg_workers_[idx]->QueueClear();
+  }
 }
 
 size_t PikaReplClient::GetHashIndex(std::string key, bool upper_half) {
@@ -220,6 +228,9 @@ Status PikaReplClient::SendPartitionBinlogSync(const std::string& table_name,
   InnerMessage::BinlogOffset* ack_range_end = binlog_sync->mutable_ack_range_end();
   ack_range_end->set_filenum(ack_end.filenum);
   ack_range_end->set_offset(ack_end.offset);
+
+  int32_t session_id = g_pika_rm->GetSlavePartitionSessionId(table_name, partition_id);
+  binlog_sync->set_session_id(session_id);
 
   std::string to_send;
   std::string master_ip = g_pika_server->master_ip();

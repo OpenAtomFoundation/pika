@@ -73,7 +73,7 @@ class SyncWindow {
 // role master use
 class SlaveNode : public RmNode {
  public:
-  SlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id);
+  SlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int session_id);
   ~SlaveNode();
   void Lock() {
     slave_mu.Lock();
@@ -113,7 +113,7 @@ class SyncPartition {
 class SyncMasterPartition : public SyncPartition {
  public:
   SyncMasterPartition(const std::string& table_name, uint32_t partition_id);
-  Status AddSlaveNode(const std::string& ip, int port);
+  Status AddSlaveNode(const std::string& ip, int port, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
 
   Status ActivateSlaveBinlogSync(const std::string& ip, int port, const std::shared_ptr<Binlog> binlog, const BinlogOffset& offset);
@@ -134,6 +134,11 @@ class SyncMasterPartition : public SyncPartition {
 
   std::string ToStringStatus();
 
+  int32_t GenSessionId();
+  bool    CheckSessionId(const std::string& ip, int port,
+                         const std::string& table_name,
+                         uint64_t partition_id, int session_id);
+
  private:
   bool CheckReadBinlogFromCache();
   // inovker need to hold partition_mu_
@@ -146,8 +151,11 @@ class SyncMasterPartition : public SyncPartition {
   Status GetSlaveNode(const std::string& ip, int port, std::shared_ptr<SlaveNode>* slave_node);
 
   slash::Mutex partition_mu_;
-
   std::vector<std::shared_ptr<SlaveNode>> slaves_;
+
+  slash::Mutex session_mu_;
+  int32_t session_id_;
+
   // BinlogCacheWindow win_;
 };
 
@@ -165,10 +173,13 @@ class SyncSlavePartition : public SyncPartition {
   const std::string& MasterIp() {
     return m_info_.Ip();
   }
-
   int MasterPort() {
     return m_info_.Port();
   }
+  int32_t MasterSessionId() {
+    return m_info_.SessionId();
+  }
+
  private:
   slash::Mutex partition_mu_;
 
@@ -228,6 +239,15 @@ class PikaReplicaManager {
   Status GetSyncBinlogStatus(const RmNode& slave, BinlogOffset* sent_boffset, BinlogOffset* acked_boffset);
 
   Status WakeUpBinlogSync();
+
+  // Session Id
+  int32_t GenPartitionSessionId(const std::string& table_name, uint32_t partition_id);
+  int32_t GetSlavePartitionSessionId(const std::string& table_name, uint32_t partition_id);
+  bool CheckSlavePartitionSessionId(const std::string& table_name, uint32_t partition_id,
+                                    int session_id);
+  bool CheckMasterPartitionSessionId(const std::string& ip, int port,
+                                     const std::string& table_name,
+                                     uint32_t partition_id, int session_id);
 
   // write_queue related
   void ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks);

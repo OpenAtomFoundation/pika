@@ -176,15 +176,42 @@ class Node {
 class RmNode : public Node {
  public:
   RmNode(const std::string& ip, int port,
-      const PartitionInfo& partition_info)
-    : Node(ip, port), partition_info_(partition_info), session_id_(0), last_send_time_(0), last_recv_time_(0) {
-  }
-  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id) : Node(ip, port), partition_info_(table_name, partition_id), session_id_(0), last_send_time_(0), last_recv_time_(0) {
-  }
-  RmNode() : Node(), partition_info_(), session_id_(0), last_send_time_(0), last_recv_time_(0) {
-  }
-  RmNode(const std::string& table_name, uint32_t partition_id) : Node(), partition_info_(table_name, partition_id), session_id_(0), last_send_time_(0), last_recv_time_(0) {
-  }
+         const PartitionInfo& partition_info)
+    : Node(ip, port),
+      partition_info_(partition_info),
+      session_id_(0),
+      last_send_time_(0),
+      last_recv_time_(0) {}
+
+  RmNode(const std::string& ip,
+         int port,
+         const std::string& table_name,
+         uint32_t partition_id)
+      : Node(ip, port),
+        partition_info_(table_name, partition_id),
+        session_id_(0),
+        last_send_time_(0),
+        last_recv_time_(0) {}
+
+  RmNode(const std::string& ip,
+         int port,
+         const std::string& table_name,
+         uint32_t partition_id,
+         int32_t session_id)
+      : Node(ip, port),
+        partition_info_(table_name, partition_id),
+        session_id_(session_id),
+        last_send_time_(0),
+        last_recv_time_(0) {}
+
+  RmNode(const std::string& table_name,
+         uint32_t partition_id)
+      : Node(),
+        partition_info_(table_name, partition_id),
+        session_id_(0),
+        last_send_time_(0),
+        last_recv_time_(0) {}
+
   virtual ~RmNode() = default;
   bool operator==(const RmNode& other) const {
     if (partition_info_.table_name_ == other.TableName()
@@ -207,7 +234,7 @@ class RmNode : public Node {
   void SetSessionId(uint32_t session_id) {
     session_id_ = session_id;
   }
-  uint32_t SessionId() const {
+  int32_t SessionId() const {
     return session_id_;
   }
   std::string ToString() const {
@@ -227,7 +254,7 @@ class RmNode : public Node {
   }
  private:
   PartitionInfo partition_info_;
-  uint32_t session_id_;
+  int32_t session_id_;
   uint64_t last_send_time_;
   uint64_t last_recv_time_;
 };
