@@ -84,6 +84,7 @@ class PikaReplClient {
   void ScheduleWriteDBTask(const std::string& dispatch_key,
                            PikaCmdArgsType* argv, BinlogItem* binlog_item,
                            const std::string& table_name, uint32_t partition_id);
+  void DropWriteBinlogTask();
 
   Status SendMetaSync();
   Status SendPartitionDBSync(const std::string& table_name,
@@ -93,10 +94,10 @@ class PikaReplClient {
                               uint32_t partition_id,
                               const BinlogOffset& boffset);
   Status SendPartitionBinlogSync(const std::string& table_name,
-                                    uint32_t partition_id,
-                                    const BinlogOffset& ack_start,
-                                    const BinlogOffset& ack_end,
-                                    bool is_frist_send);
+                                 uint32_t partition_id,
+                                 const BinlogOffset& ack_start,
+                                 const BinlogOffset& ack_end,
+                                 bool is_frist_send);
  private:
   size_t GetHashIndex(std::string key, bool upper_half);
   void UpdateNextAvail() {

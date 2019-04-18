@@ -24,6 +24,7 @@ class PikaReplBgWorker {
   int StartThread();
   int StopThread();
   void Schedule(pink::TaskFunc func, void* arg);
+  void QueueClear();
   static void HandleBGWorkerWriteBinlog(void* arg);
   static void HandleBGWorkerWriteDB(void* arg);
 

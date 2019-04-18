@@ -624,34 +624,8 @@ void PikaServer::DeleteSlave(int fd) {
       if (iter->conn_fd == fd) {
         g_pika_rm->LostConnection(iter->ip, iter->port);
         g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
-        LOG(INFO) << "Delete slave success" << iter->ip << " " << iter->port;
+        LOG(INFO) << "Delete Slave Success, " << iter->ip << ":" << iter->port;
         slaves_.erase(iter);
-        break;
-      }
-      iter++;
-    }
-  }
-
-  int slave_num = slaves_.size();
-  {
-    slash::RWLock l(&state_protector_, true);
-    if (slave_num == 0) {
-      role_ &= ~PIKA_ROLE_MASTER;
-    }
-  }
-}
-
-void PikaServer::DeleteSlave(const std::string& ip, int64_t port) {
-  std::string ip_port = slash::IpPortString(ip, port);
-  {
-    slash::MutexLock l(&slave_mutex_);
-    std::vector<SlaveItem>::iterator iter = slaves_.begin();
-    while (iter != slaves_.end()) {
-      if (iter->ip_port == ip_port) {
-        g_pika_rm->LostConnection(iter->ip, iter->port);
-        g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
-        slaves_.erase(iter);
-        LOG(INFO) << "Delete slave success" << iter->ip << " " << iter->port;
         break;
       }
       iter++;
@@ -756,6 +730,7 @@ void PikaServer::RemoveMaster() {
 
     if (master_ip_ != "" && master_port_ != -1) {
       g_pika_rm->GetPikaReplClient()->Close(master_ip_, master_port_ + kPortShiftReplServer);
+      g_pika_rm->GetPikaReplClient()->DropWriteBinlogTask();
       g_pika_rm->LostConnection(master_ip_, master_port_);
       LOG(INFO) << "Remove Master " << master_ip_ << ":" << master_port_;
     }
