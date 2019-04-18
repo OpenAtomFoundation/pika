@@ -161,7 +161,8 @@ class InfoCmd : public Cmd {
     kInfoData,
     kInfo,
     kInfoAll,
-    kInfoDoubleMaster
+    kInfoDoubleMaster,
+    kInfoDebug
   };
 
   InfoCmd(const std::string& name, int arity, uint16_t flag)
@@ -184,6 +185,7 @@ class InfoCmd : public Cmd {
   const static std::string kKeyspaceSection;
   const static std::string kLogSection;
   const static std::string kDataSection;
+  const static std::string kDebugSection;
   const static std::string kDoubleMaster;
 
   virtual void DoInitial() override;
@@ -201,6 +203,7 @@ class InfoCmd : public Cmd {
   void InfoKeyspace(std::string &info);
   void InfoLog(std::string &info);
   void InfoData(std::string &info);
+  void InfoDebug(std::string &info);
   void InfoDoubleMaster(std::string &info);
 };
 

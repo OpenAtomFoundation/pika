@@ -56,6 +56,9 @@ struct BinlogOffset {
     filenum = other.filenum;
     offset = other.offset;
   }
+  std::string ToString() const {
+    return "filenum: " + std::to_string(filenum) + " offset: " + std::to_string(offset);
+  }
   bool operator==(const BinlogOffset& other) const {
     if (filenum == other.filenum && offset == other.offset) {
       return true;
@@ -81,11 +84,6 @@ struct DBSyncArg {
 };
 
 // rm define
-enum Role {
-  kPartitionSingle = 0,
-  kPartitionMaster = 1,
-  kPartitionSlave  = 2,
-};
 
 enum SlaveState {
   kSlaveNotSync    = 0,
@@ -93,10 +91,24 @@ enum SlaveState {
   kSlaveBinlogSync = 2,
 };
 
+// debug only
+const std::string SlaveStateMsg[] = {
+  "kSlaveNotSync",
+  "kSlaveDbSync",
+  "kSlaveBinlogSync"
+};
+
 enum BinlogSyncState {
   kNotSync         = 0,
   kReadFromCache   = 1,
   kReadFromFile    = 2,
+};
+
+// debug only
+const std::string BinlogSyncStateMsg[] = {
+  "kNotSync",
+  "kReadFromCache",
+  "kReadFromFile"
 };
 
 struct BinlogChip {
