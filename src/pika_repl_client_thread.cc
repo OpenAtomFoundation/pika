@@ -30,5 +30,15 @@ void PikaReplClientThread::ReplClientHandle::FdClosedHandle(int fd, const std::s
 };
 
 void PikaReplClientThread::ReplClientHandle::FdTimeoutHandle(int fd, const std::string& ip_port) const {
-  LOG(INFO) << "slave " << ip_port << " " << fd << " timeout";
+  std::string ip;
+  int port = 0;
+  if (!slash::ParseIpPortString(ip_port, ip, port)) {
+    LOG(WARNING) << "Parse ip_port error " << ip_port;
+    return;
+  }
+  if (ip == g_pika_server->master_ip()
+    && port == g_pika_server->master_port() + kPortShiftReplServer) {
+    LOG(WARNING) << "Master conn timeout : " << ip_port << " try reconnect";
+    g_pika_server->ResetMetaSyncStatus();
+  }
 };

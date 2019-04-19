@@ -123,7 +123,7 @@ Status SyncMasterPartition::AddSlaveNode(const std::string& ip, int port, int se
   slave_ptr->SetLastSendTime(slash::NowMicros());
   slave_ptr->SetLastRecvTime(slash::NowMicros());
   slaves_.push_back(slave_ptr);
-  LOG(INFO) << "Add Slave Node Partition " << SyncPartitionInfo().ToString() << ", Master AddSlaveNode "<< ip << ":" << port;
+  LOG(INFO) << "Add Slave Node, partition: " << SyncPartitionInfo().ToString() << ", ip_port: "<< ip << ":" << port;
   return Status::OK();
 }
 
@@ -133,7 +133,8 @@ Status SyncMasterPartition::RemoveSlaveNode(const std::string& ip, int port) {
     std::shared_ptr<SlaveNode> slave = slaves_[i];
     if (ip == slave->Ip() && port == slave->Port()) {
       slaves_.erase(slaves_.begin() + i);
-      LOG(INFO) << "Remove Slave Node Partiiton " << SyncPartitionInfo().ToString() << ", Master RemoveSlaveNode "<< ip << ":" << port;
+      LOG(INFO) << "Remove Slave Node, Partition: " << SyncPartitionInfo().ToString()
+        << ", ip_port: "<< ip << ":" << port;
       return Status::OK();
     }
   }
@@ -761,13 +762,13 @@ Status PikaReplicaManager::LostConnection(const std::string& ip, int port) {
   for (auto& iter : sync_slave_partitions_) {
     std::shared_ptr<SyncSlavePartition> partition = iter.second;
     if (partition->MasterIp() == ip && partition->MasterPort() == port) {
-      LOG(INFO) << "Slave Delete Slave Partition " << partition->SyncPartitionInfo().ToString()
-        << " master " << partition->MasterIp() << ":" << partition->MasterPort();
       to_del.push_back(partition->SyncPartitionInfo());
     }
   }
-  for (auto& partition_info : to_del) {
-    sync_slave_partitions_.erase(partition_info);
+  for (auto& p_info : to_del) {
+    LOG(INFO) << "Remove Master Node, Partition: " << p_info.ToString()
+      << ", ip_port:" << ip << ":" << port;
+    sync_slave_partitions_.erase(p_info);
   }
   return Status::OK();
 }
@@ -857,8 +858,8 @@ Status PikaReplicaManager::AddSyncSlavePartition(const RmNode& node) {
   }
   sync_slave_partitions_[partition_info] =
     std::make_shared<SyncSlavePartition>(node.TableName(), node.PartitionId(), node);
-  LOG(INFO) << "Slave Add salve partition " << partition_info.ToString() <<
-    ", Master " << node.Ip() << ":" << node.Port();
+  LOG(INFO) << "Add Master Node, partition: " << partition_info.ToString() <<
+    ", ip_port: " << node.Ip() << ":" << node.Port();
   return Status::OK();
 }
 
@@ -969,7 +970,7 @@ Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
   }
   for (auto& partition_info : to_del) {
     sync_slave_partitions_.erase(partition_info);
-    LOG(INFO) <<" Slave del slave partition success " << partition_info.ToString();
+    LOG(INFO) << "SyncTimeout Delete Master Node Success, partition: " << partition_info.ToString();
   }
   return Status::OK();
 }
