@@ -13,8 +13,8 @@
 
 #define PIKA_SYNC_BUFFER_SIZE           1000
 #define PIKA_MAX_WORKER_THREAD_NUM      24
-#define PIKA_META_SYNC_MAX_WAIT_TIME    3
 #define PIKA_REPL_SERVER_TP_SIZE        3
+#define PIKA_META_SYNC_MAX_WAIT_TIME    5
 
 class PikaServer;
 
@@ -35,7 +35,6 @@ typedef WorkerCronTask MonitorCronTask;
 
 //slave item
 struct SlaveItem {
-  int64_t sid;
   std::string ip_port;
   std::string ip;
   int port;

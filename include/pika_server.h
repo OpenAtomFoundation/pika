@@ -95,8 +95,6 @@ class PikaServer {
   time_t start_time_s();
   std::string master_ip();
   int master_port();
-  int64_t sid();
-  void SetSid(int64_t sid);
   int role();
   bool readonly();
   int repl_state();
@@ -142,18 +140,12 @@ class PikaServer {
   /*
    * Master use
    */
-  int64_t GenSid();
   void BecomeMaster();
   void DeleteSlave(int fd);   //conn fd
   int32_t CountSyncSlaves();
   int32_t GetSlaveListString(std::string& slave_list_str);
-  int64_t TryAddSlave(const std::string& ip, int64_t port, int fd,
-                      const std::vector<TableStruct>& table_structs);
-  //Status AddBinlogSender(const std::string& table_name,
-  //                       uint32_t partition_id,
-  //                       const std::string& ip, int64_t port,
-  //                       int64_t sid,
-  //                       uint32_t filenum, uint64_t con_offset);
+  bool TryAddSlave(const std::string& ip, int64_t port, int fd,
+                   const std::vector<TableStruct>& table_structs);
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
 
@@ -326,11 +318,6 @@ class PikaServer {
   pink::ThreadPool* pika_thread_pool_;
   PikaDispatchThread* pika_dispatch_thread_;
 
-
-  /*
-   * Master used
-   */
-  int64_t sid_;
 
   /*
    * Slave used

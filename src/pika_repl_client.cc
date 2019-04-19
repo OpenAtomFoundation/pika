@@ -117,8 +117,11 @@ Status PikaReplClient::SendMetaSync() {
     delete cli;
   } else {
     LOG(WARNING) << "Failed to connect master, Master ("
-      << g_pika_server->master_ip() << ":" << g_pika_server->master_port() << ")";
-    g_pika_server->SyncError();
+      << g_pika_server->master_ip() << ":" << g_pika_server->master_port() << "), try reconnect";
+    // Sleep three seconds to avoid frequent try Meta Sync
+    // when the connection fails
+    sleep(3);
+    g_pika_server->ResetMetaSyncStatus();
     delete cli;
     return Status::Corruption("Connect master error");
   }
