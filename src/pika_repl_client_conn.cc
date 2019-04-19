@@ -202,7 +202,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   std::string partition_name = partition->GetPartitionName();
   if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
     BinlogOffset boffset;
-    uint32_t session_id = try_sync_response.session_id();
+    int32_t session_id = try_sync_response.session_id();
     partition->SetReplState(ReplState::kConnected);
     partition->logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
     g_pika_rm->AddSyncSlavePartition(RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), table_name, partition_id, session_id));
@@ -214,11 +214,9 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointLarger) {
     partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error, Because the invalid filenum and offset";
-    conn->NotifyClose();
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kError) {
     partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error";
-    conn->NotifyClose();
   }
   delete task_arg;
 }

@@ -83,7 +83,6 @@ message InnerResponse {
     }
     required bool      classic_mode = 1;
     repeated TableInfo tables_info  = 2;
-    required int64     sid          = 3;
   }
 
   // master to slave

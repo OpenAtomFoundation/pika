@@ -46,7 +46,6 @@ PikaServer::PikaServer() :
   exit_(false),
   have_scheduled_crontask_(false),
   last_check_compact_time_({0, 0}),
-  sid_(0),
   master_ip_(""),
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
@@ -287,14 +286,6 @@ std::string PikaServer::master_ip() {
 
 int PikaServer::master_port() {
   return master_port_;
-}
-
-int64_t PikaServer::sid() {
-  return sid_;
-}
-
-void PikaServer::SetSid(int64_t sid) {
-  sid_ = sid;
 }
 
 int PikaServer::role() {
@@ -603,14 +594,6 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
   return Status::OK();
 }
 
-
-int64_t PikaServer::GenSid() {
-  // slave_mutex has been locked from exterior
-  int64_t sid = sid_;
-  sid_++;
-  return sid;
-}
-
 void PikaServer::BecomeMaster() {
   slash::RWLock l(&state_protector_, true);
   role_ |= PIKA_ROLE_MASTER;
@@ -624,7 +607,7 @@ void PikaServer::DeleteSlave(int fd) {
       if (iter->conn_fd == fd) {
         g_pika_rm->LostConnection(iter->ip, iter->port);
         g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
-        LOG(INFO) << "Delete Slave Success, " << iter->ip << ":" << iter->port;
+        LOG(INFO) << "Delete Slave Success, ip_port: " << iter->ip << ":" << iter->port;
         slaves_.erase(iter);
         break;
       }
@@ -656,7 +639,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   for (const auto& slave : slaves_) {
     std::stringstream sync_status_stream;
     sync_status_stream << "  sync points:" << "\r\n";
-    tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",sid=" << slave.sid << ",lag=";
+    tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",lag=";
     for (const auto& ts : slave.table_structs) {
       for (size_t idx = 0; idx < ts.partition_num; ++idx) {
         std::shared_ptr<Partition> partition = GetTablePartitionById(ts.table_name, idx);
@@ -685,26 +668,25 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   return index;
 }
 
-// Try add Slave, return slave sid if success,
-// return -1 when slave already exist
-int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
-                                const std::vector<TableStruct>& table_structs) {
+// Try add Slave, return true if success,
+// return false when slave already exist
+bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
+                             const std::vector<TableStruct>& table_structs) {
   std::string ip_port = slash::IpPortString(ip, port);
 
   slash::MutexLock l(&slave_mutex_);
   std::vector<SlaveItem>::iterator iter = slaves_.begin();
   while (iter != slaves_.end()) {
     if (iter->ip_port == ip_port) {
-      LOG(INFO) << "Slave already exist, " << ip << ":" << port;
-      return -1;
+      LOG(WARNING) << "Slave Already Exist, ip_port: " << ip << ":" << port;
+      return false;
     }
     iter++;
   }
 
   // Not exist, so add new
-  LOG(INFO) << "Add new slave, " << ip << ":" << port;
+  LOG(INFO) << "Add New Slave, " << ip << ":" << port;
   SlaveItem s;
-  s.sid = GenSid();
   s.ip_port = ip_port;
   s.ip = ip;
   s.port = port;
@@ -713,7 +695,7 @@ int64_t PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
   s.table_structs = table_structs;
   gettimeofday(&s.create_time, NULL);
   slaves_.push_back(s);
-  return s.sid;
+  return true;
 }
 
 void PikaServer::SyncError() {
@@ -732,7 +714,7 @@ void PikaServer::RemoveMaster() {
       g_pika_rm->GetPikaReplClient()->Close(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->GetPikaReplClient()->DropWriteBinlogTask();
       g_pika_rm->LostConnection(master_ip_, master_port_);
-      LOG(INFO) << "Remove Master " << master_ip_ << ":" << master_port_;
+      LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
 
     master_ip_ = "";
@@ -1176,13 +1158,12 @@ Status PikaServer::TriggerSendBinlogSync() {
 }
 
 Status PikaServer::SendMetaSyncRequest() {
-  // Sleep one second to avoid frequent try Meta Sync
-  // when the connection is closed
-  sleep(1);
   Status status = g_pika_rm->GetPikaReplClient()->SendMetaSync();
-  last_meta_sync_timestamp_ = time(NULL);
-  slash::RWLock l(&state_protector_, true);
-  repl_state_ = PIKA_REPL_WAIT_META_SYNC_RESPONSE;
+  if (status.ok()) {
+    last_meta_sync_timestamp_ = time(NULL);
+    slash::RWLock l(&state_protector_, true);
+    repl_state_ = PIKA_REPL_WAIT_META_SYNC_RESPONSE;
+  }
   return status;
 }
 
