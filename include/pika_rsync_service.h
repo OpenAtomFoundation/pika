@@ -15,6 +15,7 @@ class PikaRsyncService {
   ~PikaRsyncService();
   int StartRsync();
   bool CheckRsyncAlive();
+  int ListenPort();
 
  private:
   std::string raw_path_;

@@ -53,3 +53,7 @@ int PikaRsyncService::StartRsync() {
 bool PikaRsyncService::CheckRsyncAlive() {
   return slash::FileExists(pid_path_);
 }
+
+int PikaRsyncService::ListenPort() {
+  return port_;
+}

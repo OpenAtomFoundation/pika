@@ -15,6 +15,8 @@ class PikaReplServerThread : public pink::HolyThread {
   PikaReplServerThread(const std::set<std::string>& ips, int port, int cron_interval);
   virtual ~PikaReplServerThread() = default;
 
+  int ListenPort();
+
   // for ProcessBinlogData use
   uint64_t GetnPlusSerial() {
     return serial_++;
@@ -46,6 +48,7 @@ class PikaReplServerThread : public pink::HolyThread {
 
   ReplServerConnFactory conn_factory_;
   ReplServerHandle handle_;
+  int port_;
   uint64_t serial_;
 };
 

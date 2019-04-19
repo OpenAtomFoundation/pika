@@ -235,7 +235,8 @@ void PikaServer::Start() {
   ret = pika_rsync_service_->StartRsync();
   if (0 != ret) {
     tables_.clear();
-    LOG(FATAL) << "Start Rsync Error Path:" << g_pika_conf->db_sync_path() << " error : " << ret;
+    LOG(FATAL) << "Start Rsync Error: bind port " +std::to_string(pika_rsync_service_->ListenPort()) + " conflict"
+      <<  ", Listen on this port to receive Master FullSync Data";
   }
 
   time(&start_time_s_);
@@ -639,7 +640,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   for (const auto& slave : slaves_) {
     std::stringstream sync_status_stream;
     sync_status_stream << "  sync points:" << "\r\n";
-    tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",lag=";
+    tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",conn_fd=" << slave.conn_fd << ",lag=";
     for (const auto& ts : slave.table_structs) {
       for (size_t idx = 0; idx < ts.partition_num; ++idx) {
         std::shared_ptr<Partition> partition = GetTablePartitionById(ts.table_name, idx);
