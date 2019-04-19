@@ -237,7 +237,8 @@ class RmNode : public Node {
     return session_id_;
   }
   std::string ToString() const {
-    return TableName() + "_" + std::to_string(PartitionId()) + "_" + Ip() + ":" + std::to_string(Port());
+    return "partition=" + TableName() + "_" + std::to_string(PartitionId()) + ",ip_port="
+        + Ip() + ":" + std::to_string(Port()) + ",session id=" + std::to_string(SessionId());
   }
   void SetLastSendTime(uint64_t last_send_time) {
     last_send_time_ = last_send_time;

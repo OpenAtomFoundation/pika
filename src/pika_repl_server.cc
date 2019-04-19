@@ -35,7 +35,8 @@ int PikaReplServer::Start() {
   int res = pika_repl_server_thread_->StartThread();
   if (res != pink::kSuccess) {
     LOG(FATAL) << "Start Pika Repl Server Thread Error: " << res
-        << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+        << (res == pink::kBindError ? ": bind port " + std::to_string(pika_repl_server_thread_->ListenPort()) + " conflict" : ": create thread error ")
+        << ", Listen on this port to handle the request sent by the Slave";
   }
   res = server_tp_->start_thread_pool();
   if (res != pink::kSuccess) {
