@@ -71,8 +71,25 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   worker->table_name_ = table_name;
   worker->partition_id_ = partition_id;
 
+  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
+  if (!partition) {
+      LOG(WARNING) << "Partition " << table_name << "_" << partition_id << " Not Found";
+      delete index;
+      delete task_arg;
+      return;
+  }
+
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+    // if pika are not current a slave or partition not in
+    // BinlogSync state, we drop remain write binlog task
+    if ((g_pika_server->role() ^ PIKA_ROLE_SLAVE)
+      || (partition->State() != ReplState::kConnected)) {
+      delete index;
+      delete task_arg;
+      return;
+    }
+
     if (!g_pika_rm->CheckSlavePartitionSessionId(
                 binlog_res.partition().table_name(),
                 binlog_res.partition().partition_id(),
@@ -80,7 +97,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       LOG(WARNING) << "Check Session failed "
           << binlog_res.partition().table_name()
           << "_" << binlog_res.partition().partition_id();
-      conn->NotifyClose();
+      partition->SetReplState(ReplState::kTryConnect);
       delete index;
       delete task_arg;
       return;
@@ -92,7 +109,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     }
     if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog_res.binlog(), &worker->binlog_item_)) {
       LOG(WARNING) << "Binlog item decode failed";
-      conn->NotifyClose();
+      partition->SetReplState(ReplState::kTryConnect);
       delete index;
       delete task_arg;
       return;
@@ -104,7 +121,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       redis_parser_start, redis_parser_len, &processed_len);
     if (ret != pink::kRedisParserDone) {
       LOG(WARNING) << "Redis parser failed";
-      conn->NotifyClose();
+      partition->SetReplState(ReplState::kTryConnect);
       delete index;
       delete task_arg;
       return;
@@ -114,7 +131,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   delete task_arg;
 
   // Reply Ack to master immediately
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   std::shared_ptr<Binlog> logger = partition->logger();
   logger->GetProducerStatus(&ack_end.filenum, &ack_end.offset);
   // keepalive case

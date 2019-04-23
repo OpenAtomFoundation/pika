@@ -84,7 +84,6 @@ class PikaReplClient {
   void ScheduleWriteDBTask(const std::string& dispatch_key,
                            PikaCmdArgsType* argv, BinlogItem* binlog_item,
                            const std::string& table_name, uint32_t partition_id);
-  void DropWriteBinlogTask();
 
   Status SendMetaSync();
   Status SendPartitionDBSync(const std::string& table_name,

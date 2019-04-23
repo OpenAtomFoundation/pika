@@ -84,12 +84,6 @@ void PikaReplClient::ScheduleWriteDBTask(const std::string& dispatch_key,
   bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
 }
 
-void PikaReplClient::DropWriteBinlogTask() {
-  for (size_t idx = 0; idx < bg_workers_.size() / 2; ++idx) {
-    bg_workers_[idx]->QueueClear();
-  }
-}
-
 size_t PikaReplClient::GetHashIndex(std::string key, bool upper_half) {
   size_t hash_base = bg_workers_.size() / 2;
   return (str_hash(key) % hash_base) + (upper_half ? 0 : hash_base);
