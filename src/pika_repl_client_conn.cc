@@ -145,7 +145,6 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "DBSync Failed: " << reply;
-    conn->NotifyClose();
     delete task_arg;
     return;
   }
@@ -157,7 +156,6 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   if (!partition) {
     LOG(WARNING) << "Partition: " << table_name << ":" << partition_id << " Not Found";
-    conn->NotifyClose();
     delete task_arg;
     return;
   }
@@ -169,7 +167,6 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   } else {
     partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "Partition: " << partition_name << " DBSync Error, Invaild Reply Code";
-    conn->NotifyClose();
   }
   delete task_arg;
 }
@@ -182,7 +179,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "TrySync Failed: " << reply;
-    conn->NotifyClose();
     delete task_arg;
     return;
   }
@@ -194,7 +190,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   if (!partition) {
     LOG(WARNING) << "Partition: " << table_name << ":" << partition_id << " Not Found";
-    conn->NotifyClose();
     delete task_arg;
     return;
   }

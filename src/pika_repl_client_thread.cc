@@ -16,6 +16,7 @@ PikaReplClientThread::PikaReplClientThread(int cron_interval, int keepalive_time
 }
 
 void PikaReplClientThread::ReplClientHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
+  LOG(INFO) << "ReplClient Close conn, fd=" << fd << ", ip_port=" << ip_port;
   std::string ip;
   int port = 0;
   if (!slash::ParseIpPortString(ip_port, ip, port)) {
@@ -23,13 +24,15 @@ void PikaReplClientThread::ReplClientHandle::FdClosedHandle(int fd, const std::s
     return;
   }
   if (ip == g_pika_server->master_ip()
-    && port == g_pika_server->master_port() + kPortShiftReplServer) {
+    && port == g_pika_server->master_port() + kPortShiftReplServer
+    && PIKA_REPL_ERROR != g_pika_server->repl_state()) {      // if state machine in error state, no retry
     LOG(WARNING) << "Master conn disconnect : " << ip_port << " try reconnect";
     g_pika_server->ResetMetaSyncStatus();
   }
 };
 
 void PikaReplClientThread::ReplClientHandle::FdTimeoutHandle(int fd, const std::string& ip_port) const {
+  LOG(INFO) << "ReplClient Timeout conn, fd=" << fd << ", ip_port=" << ip_port;
   std::string ip;
   int port = 0;
   if (!slash::ParseIpPortString(ip_port, ip, port)) {
