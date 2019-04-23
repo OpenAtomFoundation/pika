@@ -282,10 +282,12 @@ time_t PikaServer::start_time_s() {
 }
 
 std::string PikaServer::master_ip() {
+  slash::RWLock(&state_protector_, false);
   return master_ip_;
 }
 
 int PikaServer::master_port() {
+  slash::RWLock(&state_protector_, false);
   return master_port_;
 }
 
@@ -713,7 +715,6 @@ void PikaServer::RemoveMaster() {
 
     if (master_ip_ != "" && master_port_ != -1) {
       g_pika_rm->GetPikaReplClient()->Close(master_ip_, master_port_ + kPortShiftReplServer);
-      g_pika_rm->GetPikaReplClient()->DropWriteBinlogTask();
       g_pika_rm->LostConnection(master_ip_, master_port_);
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
