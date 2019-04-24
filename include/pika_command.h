@@ -313,7 +313,9 @@ public:
       result = "-ERR invalid DB index\r\n";
       break;
     case kInvalidDbType:
-      result = "-ERR invalid DB type\r\n";
+      result = "-ERR invalid DB for '";
+      result.append(message_);
+      result.append("'\r\n");
       break;
     case kInvalidTable:
       result = "-ERR invalid Table for '";
