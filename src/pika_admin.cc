@@ -128,7 +128,6 @@ void BgsaveCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsave);
     return;
   }
-  LogCommand();
   if (argv_.size() == 2) {
     std::vector<std::string> tables;
     slash::StringSplit(argv_[1], COMMA, tables);
@@ -145,12 +144,13 @@ void BgsaveCmd::DoInitial() {
 
 void BgsaveCmd::Do(std::shared_ptr<Partition> partition) {
   g_pika_server->DoSameThingSpecificTable(TaskType::kBgSave, bgsave_tables_);
+  LogCommand();
   res_.AppendContent("+Background saving started");
 }
 
 void CompactCmd::DoInitial() {
   if (!CheckArg(argv_.size())
-    || argv_.size() > 2) {
+    || argv_.size() > 3) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameCompact);
     return;
   }
@@ -160,28 +160,43 @@ void CompactCmd::DoInitial() {
     return;
   }
 
-  if (argv_.size() == 2) {
+  if (argv_.size() == 1) {
+    struct_type_ = "all";
+  } else if (argv_.size() == 2) {
     struct_type_ = argv_[1];
+  } else if (argv_.size() == 3) {
+    std::vector<std::string> tables;
+    slash::StringSplit(argv_[1], COMMA, tables);
+    for (const auto& table : tables) {
+      if (!g_pika_server->IsTableExist(table)) {
+        res_.SetRes(CmdRes::kInvalidTable, table);
+        return;
+      } else {
+        compact_tables_.insert(table);
+      }
+    }
+    struct_type_ = argv_[2];
   }
 }
 
 void CompactCmd::Do(std::shared_ptr<Partition> partition) {
-  if (struct_type_.empty()) {
-    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactAll);
+  if (!strcasecmp(struct_type_.data(), "all")) {
+    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactAll, compact_tables_);
   } else if (!strcasecmp(struct_type_.data(), "string")) {
-    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactStrings);
+    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactStrings, compact_tables_);
   } else if (!strcasecmp(struct_type_.data(), "hash")) {
-    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactHashes);
+    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactHashes, compact_tables_);
   } else if (!strcasecmp(struct_type_.data(), "set")) {
-    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactSets);
+    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactSets, compact_tables_);
   } else if (!strcasecmp(struct_type_.data(), "zset")) {
-    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactZSets);
+    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactZSets, compact_tables_);
   } else if (!strcasecmp(struct_type_.data(), "list")) {
-    g_pika_server->DoSameThingEveryPartition(TaskType::kCompactList);
+    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactList, compact_tables_);
   } else {
-    res_.SetRes(CmdRes::kInvalidDbType);
+    res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
     return;
   }
+  LogCommand();
   res_.SetRes(CmdRes::kOk);
 }
 
@@ -191,6 +206,7 @@ void PingCmd::DoInitial() {
     return;
   }
 }
+
 void PingCmd::Do(std::shared_ptr<Partition> partition) {
   res_.SetRes(CmdRes::kPong);
 }
@@ -376,7 +392,6 @@ void InfoCmd::DoInitial() {
   } else if (!strcasecmp(argv_[1].data(), kReplicationSection.data())) {
     info_section_ = kInfoReplication;
   } else if (!strcasecmp(argv_[1].data(), kKeyspaceSection.data())) {
-    LogCommand();
     info_section_ = kInfoKeyspace;
     if (argc == 2) {
       return;
@@ -637,6 +652,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   if (off_) {
     g_pika_server->DoSameThingSpecificTable(TaskType::kStopKeyScan);
     off_ = false;
+    LogCommand();
     return;
   }
 
@@ -671,6 +687,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   if (rescan_) {
     g_pika_server->DoSameThingSpecificTable(TaskType::kStartKeyScan, keyspace_scan_tables);
   }
+  LogCommand();
   return;
 }
 
