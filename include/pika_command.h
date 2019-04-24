@@ -399,6 +399,7 @@ class Cmd {
 
  protected:
   bool CheckArg(int num) const;
+  void LogCommand() const;
 
   std::string name_;
   int arity_;

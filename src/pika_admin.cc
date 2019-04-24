@@ -128,9 +128,23 @@ void BgsaveCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBgsave);
     return;
   }
+  LogCommand();
+  if (argv_.size() == 2) {
+    std::vector<std::string> tables;
+    slash::StringSplit(argv_[1], COMMA, tables);
+    for (const auto& table : tables) {
+      if (!g_pika_server->IsTableExist(table)) {
+        res_.SetRes(CmdRes::kInvalidTable, table);
+        return;
+      } else {
+        bgsave_tables_.insert(table);
+      }
+    }
+  }
 }
+
 void BgsaveCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->DoSameThingSpecificTable(TaskType::kBgSave);
+  g_pika_server->DoSameThingSpecificTable(TaskType::kBgSave, bgsave_tables_);
   res_.AppendContent("+Background saving started");
 }
 
@@ -362,14 +376,8 @@ void InfoCmd::DoInitial() {
   } else if (!strcasecmp(argv_[1].data(), kReplicationSection.data())) {
     info_section_ = kInfoReplication;
   } else if (!strcasecmp(argv_[1].data(), kKeyspaceSection.data())) {
+    LogCommand();
     info_section_ = kInfoKeyspace;
-    std::string info_keyspace_cmd;
-    for (size_t i = 0; i < argc; ++i) {
-      info_keyspace_cmd.append(" ");
-      info_keyspace_cmd.append(argv_[i]);
-    }
-    LOG(INFO) << "command:" << info_keyspace_cmd;
-
     if (argc == 2) {
       return;
     }

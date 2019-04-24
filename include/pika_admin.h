@@ -55,6 +55,10 @@ class BgsaveCmd : public Cmd {
 
  private:
   virtual void DoInitial() override;
+  virtual void Clear() {
+    bgsave_tables_.clear();
+  }
+  std::set<std::string> bgsave_tables_;
 };
 
 class CompactCmd : public Cmd {
