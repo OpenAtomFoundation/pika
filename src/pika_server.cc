@@ -473,6 +473,24 @@ Status PikaServer::DoSameThingSpecificTable(const TaskType& type, const std::set
       continue;
     } else {
       switch (type) {
+        case TaskType::kCompactAll:
+          table_item.second->Compact(blackwidow::DataType::kAll);
+          break;
+        case TaskType::kCompactStrings:
+          table_item.second->Compact(blackwidow::DataType::kStrings);
+          break;
+        case TaskType::kCompactHashes:
+          table_item.second->Compact(blackwidow::DataType::kHashes);
+          break;
+        case TaskType::kCompactSets:
+          table_item.second->Compact(blackwidow::DataType::kSets);
+          break;
+        case TaskType::kCompactZSets:
+          table_item.second->Compact(blackwidow::DataType::kZSets);
+          break;
+        case TaskType::kCompactList:
+          table_item.second->Compact(blackwidow::DataType::kLists);
+          break;
         case TaskType::kStartKeyScan:
           table_item.second->KeyScan();
           break;
@@ -571,24 +589,6 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
   for (const auto& table_item : tables_) {
     for (const auto& partition_item : table_item.second->partitions_) {
       switch (type) {
-        case TaskType::kCompactAll:
-          partition_item.second->Compact(blackwidow::DataType::kAll);
-          break;
-        case TaskType::kCompactStrings:
-          partition_item.second->Compact(blackwidow::DataType::kStrings);
-          break;
-        case TaskType::kCompactHashes:
-          partition_item.second->Compact(blackwidow::DataType::kHashes);
-          break;
-        case TaskType::kCompactSets:
-          partition_item.second->Compact(blackwidow::DataType::kSets);
-          break;
-        case TaskType::kCompactZSets:
-          partition_item.second->Compact(blackwidow::DataType::kZSets);
-          break;
-        case TaskType::kCompactList:
-          partition_item.second->Compact(blackwidow::DataType::kLists);
-          break;
         case TaskType::kResetReplState:
           partition_item.second->SetReplState(ReplState::kNoConnect);
           break;

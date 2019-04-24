@@ -169,6 +169,13 @@ KeyScanInfo Table::GetKeyScanInfo() {
   return key_scan_info_;
 }
 
+void Table::Compact(const blackwidow::DataType& type) {
+  slash::RWLock rwl(&partitions_rw_, true);
+  for (const auto& item : partitions_) {
+    item.second->Compact(type);
+  }
+}
+
 void Table::DoKeyScan(void *arg) {
   BgTaskArg* bg_task_arg = reinterpret_cast<BgTaskArg*>(arg);
   bg_task_arg->table->RunKeyScan();

@@ -68,11 +68,13 @@ class CompactCmd : public Cmd {
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
 
  private:
-  std::string struct_type_;
   virtual void DoInitial() override;
   virtual void Clear() {
     struct_type_.clear();
+    compact_tables_.clear();
   }
+  std::string struct_type_;
+  std::set<std::string> compact_tables_;
 };
 
 class PurgelogstoCmd : public Cmd {

@@ -58,6 +58,9 @@ class Table : public std::enable_shared_from_this<Table>{
   void ScanDatabase(const blackwidow::DataType& type);
   KeyScanInfo GetKeyScanInfo();
 
+  // Compact use;
+  void Compact(const blackwidow::DataType& type);
+
   void LeaveAllPartition();
   std::shared_ptr<Partition> GetPartitionById(uint32_t partition_id);
   std::shared_ptr<Partition> GetPartitionByKey(const std::string& key);
