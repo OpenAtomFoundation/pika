@@ -26,7 +26,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlaveof, slaveofptr));
   Cmd* authptr = new AuthCmd(kCmdNameAuth, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAuth, authptr));
-  Cmd* bgsaveptr = new BgsaveCmd(kCmdNameBgsave, 1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
+  Cmd* bgsaveptr = new BgsaveCmd(kCmdNameBgsave, -1, kCmdFlagsRead | kCmdFlagsAdmin | kCmdFlagsSuspend);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBgsave, bgsaveptr));
   Cmd* compactptr = new CompactCmd(kCmdNameCompact, -1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameCompact, compactptr));
@@ -597,4 +597,13 @@ bool Cmd::CheckArg(int num) const {
     return false;
   }
   return true;
+}
+
+void Cmd::LogCommand() const {
+  std::string command;
+  for (const auto& item : argv_) {
+    command.append(" ");
+    command.append(item);
+  }
+  LOG(INFO) << "command:" << command;
 }
