@@ -394,6 +394,7 @@ void InfoCmd::DoInitial() {
   } else if (!strcasecmp(argv_[1].data(), kKeyspaceSection.data())) {
     info_section_ = kInfoKeyspace;
     if (argc == 2) {
+      LogCommand();
       return;
     }
     // info keyspace [ 0 | 1 | off ]
@@ -421,6 +422,7 @@ void InfoCmd::DoInitial() {
     } else if (argv_[2] != "0") {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
+    LogCommand();
     return;
   } else if (!strcasecmp(argv_[1].data(), kLogSection.data())) {
     info_section_ = kInfoLog;
@@ -652,7 +654,6 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   if (off_) {
     g_pika_server->DoSameThingSpecificTable(TaskType::kStopKeyScan);
     off_ = false;
-    LogCommand();
     return;
   }
 
@@ -687,7 +688,6 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   if (rescan_) {
     g_pika_server->DoSameThingSpecificTable(TaskType::kStartKeyScan, keyspace_scan_tables);
   }
-  LogCommand();
   return;
 }
 
