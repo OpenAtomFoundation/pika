@@ -149,8 +149,10 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
   // Monitor related
   std::string monitor_message;
   if (g_pika_server->HasMonitorClients()) {
+    std::string table_name = g_pika_conf->classic_mode()
+      ? worker->table_name_.substr(2) : worker->table_name_;
     std::string monitor_message = std::to_string(1.0 * slash::NowMicros() / 1000000)
-      + " [" + worker->ip_port_ + "]";
+      + " [" + table_name + " " + worker->ip_port_ + "]";
     for (const auto& item : argv) {
       monitor_message += " " + slash::ToRead(item);
     }
