@@ -43,6 +43,12 @@ void SlaveofCmd::DoInitial() {
     return;
   }
 
+  // self is master of A , want to slavof B
+  if (g_pika_server->role() & PIKA_ROLE_MASTER) {
+    res_.SetRes(CmdRes::kErrOther, "already master of others, invalid usage");
+    return;
+  }
+
   master_ip_ = argv_[1];
   std::string str_master_port = argv_[2];
   if (!slash::string2l(str_master_port.data(), str_master_port.size(), &master_port_) || master_port_ <= 0) {
