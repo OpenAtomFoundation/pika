@@ -464,21 +464,27 @@ bool PikaServer::IsTableBinlogIoError(const std::string& table_name) {
   return table ? table->IsBinlogIoError() : true;
 }
 
-Status PikaServer::DoSameThingEveryTable(const TaskType& type) {
+// If no collection of specified tables is given, we execute task in all tables
+Status PikaServer::DoSameThingSpecificTable(const TaskType& type, const std::set<std::string>& tables) {
   slash::RWLock rwl(&tables_rw_, false);
   for (const auto& table_item : tables_) {
-    switch (type) {
-      case TaskType::kStartKeyScan:
-        table_item.second->KeyScan();
-        break;
-      case TaskType::kStopKeyScan:
-        table_item.second->StopKeyScan();
-        break;
-      case TaskType::kBgSave:
-        table_item.second->BgSaveTable();
-        break;
-      default:
-        break;
+    if (!tables.empty()
+      && tables.find(table_item.first) == tables.end()) {
+      continue;
+    } else {
+      switch (type) {
+        case TaskType::kStartKeyScan:
+          table_item.second->KeyScan();
+          break;
+        case TaskType::kStopKeyScan:
+          table_item.second->StopKeyScan();
+          break;
+        case TaskType::kBgSave:
+          table_item.second->BgSaveTable();
+          break;
+        default:
+          break;
+      }
     }
   }
   return Status::OK();

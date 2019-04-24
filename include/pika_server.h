@@ -116,7 +116,7 @@ class PikaServer {
   bool IsTableExist(const std::string& table_name);
   bool IsCommandSupport(const std::string& command);
   bool IsTableBinlogIoError(const std::string& table_name);
-  Status DoSameThingEveryTable(const TaskType& type);
+  Status DoSameThingSpecificTable(const TaskType& type, const std::set<std::string>& tables = {});
 
   /*
    * Partition use
