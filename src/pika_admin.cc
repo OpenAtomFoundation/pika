@@ -130,7 +130,7 @@ void BgsaveCmd::DoInitial() {
   }
 }
 void BgsaveCmd::Do(std::shared_ptr<Partition> partition) {
-  g_pika_server->DoSameThingEveryTable(TaskType::kBgSave);
+  g_pika_server->DoSameThingSpecificTable(TaskType::kBgSave);
   res_.AppendContent("+Background saving started");
 }
 
@@ -338,7 +338,7 @@ const std::string InfoCmd::kDebugSection = "debug";
 
 void InfoCmd::DoInitial() {
   size_t argc = argv_.size();
-  if (argc > 3) {
+  if (argc > 4) {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
@@ -363,13 +363,34 @@ void InfoCmd::DoInitial() {
     info_section_ = kInfoReplication;
   } else if (!strcasecmp(argv_[1].data(), kKeyspaceSection.data())) {
     info_section_ = kInfoKeyspace;
+    std::string info_keyspace_cmd;
+    for (size_t i = 0; i < argc; ++i) {
+      info_keyspace_cmd.append(" ");
+      info_keyspace_cmd.append(argv_[i]);
+    }
+    LOG(INFO) << "command:" << info_keyspace_cmd;
+
     if (argc == 2) {
       return;
     }
-    if (argv_[2] == "1") { //info keyspace [ 0 | 1 | off ]
+    // info keyspace [ 0 | 1 | off ]
+    // info keyspace 1 db0,db1
+    if (argv_[2] == "1") {
       if (g_pika_server->IsCompacting()) {
         res_.SetRes(CmdRes::kErrOther, "The compact operation is executing, Try again later");
       } else {
+        if (argc == 4) {
+          std::vector<std::string> tables;
+          slash::StringSplit(argv_[3], COMMA, tables);
+          for (const auto& table : tables) {
+            if (!g_pika_server->IsTableExist(table)) {
+              res_.SetRes(CmdRes::kInvalidTable, table);
+              return;
+            } else {
+              keyspace_scan_tables.insert(table);
+            }
+          }
+        }
         rescan_ = true;
       }
     } else if (argv_[2] == "off") {
@@ -477,7 +498,7 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
-void InfoCmd::InfoServer(std::string &info) {
+void InfoCmd::InfoServer(std::string& info) {
   static struct utsname host_info;
   static bool host_info_valid = false;
   if (!host_info_valid) {
@@ -509,7 +530,7 @@ void InfoCmd::InfoServer(std::string &info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoClients(std::string &info) {
+void InfoCmd::InfoClients(std::string& info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Clients\r\n";
   tmp_stream << "connected_clients:" << g_pika_server->ClientList() << "\r\n";
@@ -517,7 +538,7 @@ void InfoCmd::InfoClients(std::string &info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoStats(std::string &info) {
+void InfoCmd::InfoStats(std::string& info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Stats\r\n";
   tmp_stream << "total_connections_received:" << g_pika_server->accumulative_connections() << "\r\n";
@@ -532,7 +553,7 @@ void InfoCmd::InfoStats(std::string &info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoExecCount(std::string &info) {
+void InfoCmd::InfoExecCount(std::string& info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Command_Exec_Count\r\n";
 
@@ -543,7 +564,7 @@ void InfoCmd::InfoExecCount(std::string &info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoCPU(std::string &info) {
+void InfoCmd::InfoCPU(std::string& info) {
   struct rusage self_ru, c_ru;
   getrusage(RUSAGE_SELF, &self_ru);
   getrusage(RUSAGE_CHILDREN, &c_ru);
@@ -568,7 +589,7 @@ void InfoCmd::InfoCPU(std::string &info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoReplication(std::string &info) {
+void InfoCmd::InfoReplication(std::string& info) {
   int host_role = g_pika_server->role();
   std::stringstream tmp_stream;
   tmp_stream << "# Replication(";
@@ -604,9 +625,9 @@ void InfoCmd::InfoReplication(std::string &info) {
   info.append(tmp_stream.str());
 }
 
-void InfoCmd::InfoKeyspace(std::string &info) {
+void InfoCmd::InfoKeyspace(std::string& info) {
   if (off_) {
-    g_pika_server->DoSameThingEveryTable(TaskType::kStopKeyScan);
+    g_pika_server->DoSameThingSpecificTable(TaskType::kStopKeyScan);
     off_ = false;
     return;
   }
@@ -640,12 +661,12 @@ void InfoCmd::InfoKeyspace(std::string &info) {
   info.append(tmp_stream.str());
 
   if (rescan_) {
-    g_pika_server->DoSameThingEveryTable(TaskType::kStartKeyScan);
+    g_pika_server->DoSameThingSpecificTable(TaskType::kStartKeyScan, keyspace_scan_tables);
   }
   return;
 }
 
-void InfoCmd::InfoLog(std::string &info) {
+void InfoCmd::InfoLog(std::string& info) {
   std::stringstream  tmp_stream;
   tmp_stream << "# Log" << "\r\n";
   int64_t log_size = slash::Du(g_pika_conf->log_path());
@@ -668,7 +689,7 @@ void InfoCmd::InfoLog(std::string &info) {
   return;
 }
 
-void InfoCmd::InfoData(std::string &info) {
+void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
 
   int64_t db_size = slash::Du(g_pika_conf->db_path());

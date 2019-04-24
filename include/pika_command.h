@@ -316,7 +316,9 @@ public:
       result = "-ERR invalid DB type\r\n";
       break;
     case kInvalidTable:
-      result = "-ERR invalid Table\r\n";
+      result = "-ERR invalid Table for '";
+      result.append(message_);
+      result.append("'\r\n");
       break;
     case kErrOther:
       result = "-ERR ";

@@ -156,12 +156,10 @@ class InfoCmd : public Cmd {
     kInfoCPU,
     kInfoReplication,
     kInfoKeyspace,
-    kInfoBgstats,
     kInfoLog,
     kInfoData,
     kInfo,
     kInfoAll,
-    kInfoDoubleMaster,
     kInfoDebug
   };
 
@@ -173,6 +171,7 @@ class InfoCmd : public Cmd {
   InfoSection info_section_;
   bool rescan_; //whether to rescan the keyspace
   bool off_;
+  std::set<std::string> keyspace_scan_tables;
 
   const static std::string kInfoSection;
   const static std::string kAllSection;
@@ -186,25 +185,24 @@ class InfoCmd : public Cmd {
   const static std::string kLogSection;
   const static std::string kDataSection;
   const static std::string kDebugSection;
-  const static std::string kDoubleMaster;
 
   virtual void DoInitial() override;
   virtual void Clear() {
     rescan_ = false;
     off_ = false;
+    keyspace_scan_tables.clear();
   }
 
-  void InfoServer(std::string &info);
-  void InfoClients(std::string &info);
-  void InfoStats(std::string &info);
-  void InfoExecCount(std::string &info);
-  void InfoCPU(std::string &info);
-  void InfoReplication(std::string &info);
-  void InfoKeyspace(std::string &info);
-  void InfoLog(std::string &info);
-  void InfoData(std::string &info);
-  void InfoDebug(std::string &info);
-  void InfoDoubleMaster(std::string &info);
+  void InfoServer(std::string& info);
+  void InfoClients(std::string& info);
+  void InfoStats(std::string& info);
+  void InfoExecCount(std::string& info);
+  void InfoCPU(std::string& info);
+  void InfoReplication(std::string& info);
+  void InfoKeyspace(std::string& info);
+  void InfoLog(std::string& info);
+  void InfoData(std::string& info);
+  void InfoDebug(std::string& info);
 };
 
 class ShutdownCmd : public Cmd {
