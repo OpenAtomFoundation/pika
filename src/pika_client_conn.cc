@@ -104,14 +104,18 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
 
   // Select
   if (opt == kCmdNameSelect) {
-    std::string table_name = argv[1];
+    std::string table_name;
     if (g_pika_conf->classic_mode()) {
       int index = atoi(argv[1].data());
       if (std::to_string(index) != argv[1]) {
         return "-ERR invalid DB index\r\n";
       } else if (index < 0 || index >= g_pika_conf->databases()) {
         return "-ERR DB index is out of range\r\n";
+      } else {
+        table_name = "db" + argv[1];
       }
+    } else {
+      table_name = argv[1];
     }
     if (g_pika_server->IsTableExist(table_name)) {
       current_table_ = table_name;

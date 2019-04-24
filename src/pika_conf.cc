@@ -65,7 +65,7 @@ int PikaConf::Load()
     GetConfInt("databases", &databases_);
     databases_ = (databases_ < 1 || databases_ > 8) ? 1 : databases_;
     for (int idx = 0; idx < databases_; ++idx) {
-      table_structs_.push_back({std::to_string(idx), 1});
+      table_structs_.push_back({"db" + std::to_string(idx), 1});
     }
   } else {
     int32_t partition_num;
