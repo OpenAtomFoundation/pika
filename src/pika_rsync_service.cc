@@ -6,11 +6,15 @@
 #include "include/pika_rsync_service.h"
 
 #include <glog/logging.h>
+#include <fstream>
 
 #include "slash/include/env.h"
 #include "slash/include/rsync.h"
 
 #include "include/pika_define.h"
+#include "include/pika_conf.h"
+
+extern PikaConf *g_pika_conf;
 
 PikaRsyncService::PikaRsyncService(const std::string& raw_path,
                                    const int port)
@@ -33,12 +37,21 @@ PikaRsyncService::~PikaRsyncService() {
 
 int PikaRsyncService::StartRsync() {
   int ret = 0;
-  ret = slash::StartRsync(raw_path_, kDBSyncModule, "0.0.0.0", port_);
+  std::string auth;
+  if (g_pika_conf->masterauth().empty()) {
+    auth = kDefaultRsyncAuth;
+  } else {
+    auth = g_pika_conf->masterauth();
+  }
+  ret = slash::StartRsync(raw_path_, kDBSyncModule, "0.0.0.0", port_, auth);
   if (ret != 0) {
     LOG(WARNING) << "Failed to start rsync, path:" << raw_path_ << " error : " << ret;
     return -1;
   }
-
+  ret = CreateSecretFile();
+  if (ret != 0) {
+    LOG(WARNING) << "Failed to create secret file";
+  }
   // Make sure the listening addr of rsyncd is accessible, avoid the corner case
   // that rsync --daemon process is started but not finished listening on the socket
   sleep(1);
@@ -48,6 +61,38 @@ int PikaRsyncService::StartRsync() {
     return -1;
   }
   return 0;
+}
+
+int PikaRsyncService::CreateSecretFile() {
+  std::string secret_file_path = g_pika_conf->db_sync_path();
+  if (g_pika_conf->db_sync_path().back() != '/') {
+    secret_file_path += "/";
+  }
+  secret_file_path += slash::kRsyncSubDir + "/";
+  slash::CreatePath(secret_file_path);
+  secret_file_path += kPikaSecretFile;
+
+  std::string auth;
+  if (g_pika_conf->requirepass().empty()) {
+    auth = kDefaultRsyncAuth;
+  } else {
+    auth = g_pika_conf->requirepass();
+  }
+
+  std::ofstream secret_stream(secret_file_path.c_str());
+  if (!secret_stream) {
+    return -1;
+  }
+  secret_stream << auth;
+  secret_stream.close();
+
+  // secret file cant be other-accessible
+  std::string cmd = "chmod 600 " + secret_file_path;
+  int ret = system(cmd.c_str());
+  if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
+    return 0;
+  }
+  return ret;
 }
 
 bool PikaRsyncService::CheckRsyncAlive() {
