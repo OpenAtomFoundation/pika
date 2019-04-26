@@ -23,6 +23,8 @@ const int kPortShiftRSync      = 1000;
 const int kPortShiftReplServer = 2000;
 
 const std::string kPikaPidFile = "pika.pid";
+const std::string kPikaSecretFile = "rsync.secret";
+const std::string kDefaultRsyncAuth = "default";
 
 struct WorkerCronTask {
   int task;
