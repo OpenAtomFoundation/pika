@@ -910,6 +910,12 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
   std::string remote_path = g_pika_conf->classic_mode() ? table_name : table_name + "/" + std::to_string(partition_id);
   std::vector<std::string>::const_iterator iter = descendant.begin();
   slash::RsyncRemote remote(ip, port, kDBSyncModule, g_pika_conf->db_sync_speed() * 1024);
+  std::string secret_file_path = g_pika_conf->db_sync_path();
+  if (g_pika_conf->db_sync_path().back() != '/') {
+    secret_file_path += "/";
+  }
+  secret_file_path += slash::kRsyncSubDir + "/" + kPikaSecretFile;
+
   for (; iter != descendant.end(); ++iter) {
     local_path = bg_path + "/" + *iter;
     target_path = remote_path + "/" + *iter;
@@ -925,8 +931,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
     }
 
     // We need specify the speed limit for every single file
-    ret = slash::RsyncSendFile(local_path, target_path, remote);
-
+    ret = slash::RsyncSendFile(local_path, target_path, secret_file_path, remote);
     if (0 != ret) {
       LOG(WARNING) << "Partition: " << partition->GetPartitionName()
         << " RSync send file failed! From: " << *iter
@@ -936,13 +941,12 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
       break;
     }
   }
-
   // Clear target path
-  slash::RsyncSendClearTarget(bg_path + "/strings", remote_path + "/strings", remote);
-  slash::RsyncSendClearTarget(bg_path + "/hashes", remote_path + "/hashes", remote);
-  slash::RsyncSendClearTarget(bg_path + "/lists", remote_path + "/lists", remote);
-  slash::RsyncSendClearTarget(bg_path + "/sets", remote_path + "/sets", remote);
-  slash::RsyncSendClearTarget(bg_path + "/zsets", remote_path + "/zsets", remote);
+  slash::RsyncSendClearTarget(bg_path + "/strings", remote_path + "/strings", secret_file_path, remote);
+  slash::RsyncSendClearTarget(bg_path + "/hashes", remote_path + "/hashes", secret_file_path, remote);
+  slash::RsyncSendClearTarget(bg_path + "/lists", remote_path + "/lists", secret_file_path, remote);
+  slash::RsyncSendClearTarget(bg_path + "/sets", remote_path + "/sets", secret_file_path, remote);
+  slash::RsyncSendClearTarget(bg_path + "/zsets", remote_path + "/zsets", secret_file_path, remote);
 
   pink::PinkCli* cli = pink::NewRedisCli();
   std::string lip(host_);
@@ -970,16 +974,15 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
         fix << "0s\n" << lip << "\n" << port_ << "\n" << binlog_filenum << "\n" << binlog_offset << "\n";
         fix.close();
       }
-      ret = slash::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, remote);
+      ret = slash::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);
       slash::DeleteFile(fn);
       if (ret != 0) {
         LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Modified Info File Failed";
       }
-    } else if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile, remote))) {
+    } else if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote))) {
       LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Info File Failed";
     }
   }
-
   // remove slave
   {
     std::string task_index =

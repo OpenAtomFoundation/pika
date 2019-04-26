@@ -18,6 +18,7 @@ class PikaRsyncService {
   int ListenPort();
 
  private:
+  int CreateSecretFile();
   std::string raw_path_;
   std::string rsync_path_;
   std::string pid_path_;
