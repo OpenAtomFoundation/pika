@@ -17,6 +17,12 @@ class PikaReplServerConn: public pink::PbConn {
  public:
   PikaReplServerConn(int fd, std::string ip_port, pink::Thread* thread, void* worker_specific_data, pink::PinkEpoll* epoll);
   virtual ~PikaReplServerConn();
+
+  static void HandleMetaSyncRequest(void* arg);
+  static void HandleTrySyncRequest(void* arg);
+  static void HandleDBSyncRequest(void* arg);
+  static void HandleBinlogSyncRequest(void* arg);
+
   int DealMessage();
 };
 
