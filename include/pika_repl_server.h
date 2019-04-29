@@ -37,11 +37,6 @@ class PikaReplServer {
   void RemoveClientConn(int fd);
   void KillAllConns();
 
-  static void HandleMetaSyncRequest(void* arg);
-  static void HandleTrySyncRequest(void* arg);
-  static void HandleDBSyncRequest(void* arg);
-  static void HandleBinlogSyncRequest(void* arg);
-
  private:
   pink::ThreadPool* server_tp_;
   PikaReplServerThread* pika_repl_server_thread_;

@@ -17,6 +17,7 @@ class PikaReplClientConn: public pink::PbConn {
  public:
   PikaReplClientConn(int fd, const std::string& ip_port, pink::Thread *thread, void* worker_specific_data, pink::PinkEpoll* epoll);
   virtual ~PikaReplClientConn() = default;
+
   static void HandleMetaSyncResponse(void* arg);
   static void HandleDBSyncResponse(void* arg);
   static void HandleTrySyncResponse(void* arg);
