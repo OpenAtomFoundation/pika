@@ -59,13 +59,13 @@ PikaServer::PikaServer() :
     LOG(FATAL) << "ServerInit iotcl error";
   }
 
+  InitBlackwidowOptions();
+
   pthread_rwlockattr_t tables_rw_attr;
   pthread_rwlockattr_init(&tables_rw_attr);
   pthread_rwlockattr_setkind_np(&tables_rw_attr,
           PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
   pthread_rwlock_init(&tables_rw_, &tables_rw_attr);
-
-  InitTableStruct();
 
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(),
@@ -208,6 +208,9 @@ bool PikaServer::ServerInit() {
 }
 
 void PikaServer::Start() {
+  // We Init Table Struct Before Start The following thread
+  InitTableStruct();
+
   int ret = 0;
   ret = pika_thread_pool_->start_thread_pool();
   if (ret != pink::kSuccess) {
@@ -358,6 +361,9 @@ void PikaServer::SetDispatchQueueLimit(int queue_limit) {
   pika_dispatch_thread_->SetQueueLimit(queue_limit);
 }
 
+blackwidow::BlackwidowOptions PikaServer::bw_options() {
+  return bw_options_;
+}
 
 void PikaServer::InitTableStruct() {
   std::string db_path = g_pika_conf->db_path();
@@ -1430,4 +1436,63 @@ void PikaServer::AutoKeepAliveRSync() {
     LOG(WARNING) << "The Rsync service is down, Try to restart";
     pika_rsync_service_->StartRsync();
   }
+}
+
+void PikaServer::InitBlackwidowOptions() {
+
+  // For rocksdb::Options
+  bw_options_.options.create_if_missing = true;
+  bw_options_.options.keep_log_file_num = 10;
+  bw_options_.options.max_manifest_file_size = 64 * 1024 * 1024;
+  bw_options_.options.max_log_file_size = 512 * 1024 * 1024;
+
+  bw_options_.options.write_buffer_size =
+      g_pika_conf->write_buffer_size();
+  bw_options_.options.write_buffer_manager.reset(
+          new rocksdb::WriteBufferManager(g_pika_conf->max_write_buffer_size()));
+  bw_options_.options.target_file_size_base =
+      g_pika_conf->target_file_size_base();
+  bw_options_.options.max_background_flushes =
+      g_pika_conf->max_background_flushes();
+  bw_options_.options.max_background_compactions =
+      g_pika_conf->max_background_compactions();
+  bw_options_.options.max_open_files =
+      g_pika_conf->max_cache_files();
+  bw_options_.options.max_bytes_for_level_multiplier =
+      g_pika_conf->max_bytes_for_level_multiplier();
+  bw_options_.options.optimize_filters_for_hits =
+      g_pika_conf->optimize_filters_for_hits();
+  bw_options_.options.level_compaction_dynamic_level_bytes =
+      g_pika_conf->level_compaction_dynamic_level_bytes();
+
+
+  if (g_pika_conf->compression() == "none") {
+    bw_options_.options.compression =
+        rocksdb::CompressionType::kNoCompression;
+  } else if (g_pika_conf->compression() == "snappy") {
+    bw_options_.options.compression =
+        rocksdb::CompressionType::kSnappyCompression;
+  } else if (g_pika_conf->compression() == "zlib") {
+    bw_options_.options.compression =
+        rocksdb::CompressionType::kZlibCompression;
+  }
+
+  // For rocksdb::BlockBasedTableOptions
+  bw_options_.table_options.block_size = g_pika_conf->block_size();
+  bw_options_.table_options.cache_index_and_filter_blocks =
+      g_pika_conf->cache_index_and_filter_blocks();
+  bw_options_.block_cache_size = g_pika_conf->block_cache();
+  bw_options_.share_block_cache = g_pika_conf->share_block_cache();
+
+  if (bw_options_.block_cache_size == 0) {
+    bw_options_.table_options.no_block_cache = true;
+  } else if (bw_options_.share_block_cache) {
+    bw_options_.table_options.block_cache =
+      rocksdb::NewLRUCache(bw_options_.block_cache_size);
+  }
+
+  // For Blackwidow small compaction
+  bw_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
+  bw_options_.small_compaction_threshold =
+      g_pika_conf->small_compaction_threshold();
 }
