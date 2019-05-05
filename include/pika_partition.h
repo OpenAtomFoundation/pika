@@ -106,9 +106,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool PurgeLogs();
   void ClearPurge();
 
-  void RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const;
-
-
  private:
   std::string table_name_;
   uint32_t partition_id_;

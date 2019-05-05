@@ -83,12 +83,9 @@ Partition::Partition(const std::string& table_name,
   pthread_rwlock_init(&db_rwlock_, &attr);
   pthread_rwlock_init(&state_rwlock_, &attr);
 
-  //Create blackwidow handle
-  blackwidow::BlackwidowOptions bw_option;
-  RocksdbOptionInit(&bw_option);
-
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(bw_option, db_path_);
+  rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
+
   opened_ = s.ok() ? true : false;
   assert(db_);
   assert(s.ok());
@@ -377,9 +374,6 @@ bool Partition::TryUpdateMasterOffset() {
  */
 bool Partition::ChangeDb(const std::string& new_path) {
 
-  blackwidow::BlackwidowOptions bw_option;
-  RocksdbOptionInit(&bw_option);
-
   std::string tmp_path(db_path_);
   if (tmp_path.back() == '/') {
     tmp_path.resize(tmp_path.size() - 1);
@@ -405,7 +399,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
   }
 
   db_.reset(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(bw_option, db_path_);
+  rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
   assert(db_);
   assert(s.ok());
   slash::DeleteDirIfExist(tmp_path);
@@ -559,12 +553,8 @@ bool Partition::FlushDB() {
   dbpath.append("_deleting/");
   slash::RenameFile(db_path_, dbpath.c_str());
 
-  //Create blackwidow handle
-  blackwidow::BlackwidowOptions bw_option;
-  RocksdbOptionInit(&bw_option);
-
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(bw_option, db_path_);
+  rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
   assert(db_);
   assert(s.ok());
   LOG(INFO) << partition_name_ << " Open new db success";
@@ -591,12 +581,8 @@ bool Partition::FlushSubDB(const std::string& db_name) {
   std::string del_dbpath = dbpath + db_name + "_deleting";
   slash::RenameFile(sub_dbpath, del_dbpath);
 
-  // create blackwidow handle
-  blackwidow::BlackwidowOptions bw_option;
-  RocksdbOptionInit(&bw_option);
-
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
-  rocksdb::Status s = db_->Open(bw_option, db_path_);
+  rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
   assert(db_);
   assert(s.ok());
   LOG(INFO) << partition_name_ << " open new " + db_name + " db success";
@@ -693,46 +679,3 @@ bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
   return true;
 }
 
-void Partition::RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) const {
-  bw_option->options.create_if_missing = true;
-  bw_option->options.keep_log_file_num = 10;
-  bw_option->options.max_manifest_file_size = 64 * 1024 * 1024;
-  bw_option->options.max_log_file_size = 512 * 1024 * 1024;
-
-  bw_option->options.write_buffer_size =
-                g_pika_conf->write_buffer_size();
-  bw_option->options.target_file_size_base =
-                g_pika_conf->target_file_size_base();
-  bw_option->options.max_background_flushes =
-                g_pika_conf->max_background_flushes();
-  bw_option->options.max_background_compactions =
-                g_pika_conf->max_background_compactions();
-  bw_option->options.max_open_files =
-                g_pika_conf->max_cache_files();
-  bw_option->options.max_bytes_for_level_multiplier =
-                g_pika_conf->max_bytes_for_level_multiplier();
-  bw_option->options.optimize_filters_for_hits =
-                g_pika_conf->optimize_filters_for_hits();
-  bw_option->options.level_compaction_dynamic_level_bytes =
-                g_pika_conf->level_compaction_dynamic_level_bytes();
-
-  if (g_pika_conf->compression() == "none") {
-    bw_option->options.compression =
-        rocksdb::CompressionType::kNoCompression;
-  } else if (g_pika_conf->compression() == "snappy") {
-    bw_option->options.compression =
-        rocksdb::CompressionType::kSnappyCompression;
-  } else if (g_pika_conf->compression() == "zlib") {
-    bw_option->options.compression =
-        rocksdb::CompressionType::kZlibCompression;
-  }
-
-  bw_option->table_options.block_size = g_pika_conf->block_size();
-  bw_option->table_options.cache_index_and_filter_blocks =
-      g_pika_conf->cache_index_and_filter_blocks();
-  bw_option->block_cache_size = g_pika_conf->block_cache();
-  bw_option->share_block_cache = g_pika_conf->share_block_cache();
-  bw_option->statistics_max_size = g_pika_conf->max_cache_statistic_keys();
-  bw_option->small_compaction_threshold =
-      g_pika_conf->small_compaction_threshold();
-}

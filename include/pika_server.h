@@ -102,7 +102,7 @@ class PikaServer {
   bool force_full_sync();
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
-
+  blackwidow::BlackwidowOptions bw_options();
 
   /*
    * Table use
@@ -296,6 +296,9 @@ class PikaServer {
   std::string host_;
   int port_;
   time_t start_time_s_;
+
+  blackwidow::BlackwidowOptions bw_options_;
+  void InitBlackwidowOptions();
 
   std::atomic<bool> exit_;
 

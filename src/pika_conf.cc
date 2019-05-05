@@ -195,13 +195,19 @@ int PikaConf::Load()
   // write_buffer_size
   GetConfInt64("write-buffer-size", &write_buffer_size_);
   if (write_buffer_size_ <= 0 ) {
-      write_buffer_size_ = 4194304; // 40M
+    write_buffer_size_ = 268435456;       // 256Mb
+  }
+
+  // max_write_buffer_size
+  GetConfInt64("max-write-buffer-size", &max_write_buffer_size_);
+  if (max_write_buffer_size_ <= 0) {
+    max_write_buffer_size_ = 2147483648;  // 2Gb
   }
 
   // target_file_size_base
   GetConfInt("target-file-size-base", &target_file_size_base_);
   if (target_file_size_base_ <= 0) {
-      target_file_size_base_ = 1048576; // 10M
+    target_file_size_base_ = 1048576;     // 10Mb
   }
 
   max_cache_statistic_keys_ = 0;
