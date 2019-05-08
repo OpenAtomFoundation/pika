@@ -738,10 +738,10 @@ void InfoCmd::InfoData(std::string& info) {
     }
   }
 
-  tmp_stream << "used_memory:" << (memtable_usage + table_reader_usage) << "\r\n";
-  tmp_stream << "used_memory_human:" << ((memtable_usage + table_reader_usage) >> 20) << "M\r\n";
-  tmp_stream << "db_memtable_usage:" << memtable_usage << "\r\n";
-  tmp_stream << "db_tablereader_usage:" << table_reader_usage << "\r\n";
+  tmp_stream << "used_memory:" << (total_memtable_usage + total_table_reader_usage) << "\r\n";
+  tmp_stream << "used_memory_human:" << ((total_memtable_usage + total_table_reader_usage) >> 20) << "M\r\n";
+  tmp_stream << "db_memtable_usage:" << total_memtable_usage << "\r\n";
+  tmp_stream << "db_tablereader_usage:" << total_table_reader_usage << "\r\n";
 
   info.append(tmp_stream.str());
   return;
