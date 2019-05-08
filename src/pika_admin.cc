@@ -674,9 +674,14 @@ void InfoCmd::InfoKeyspace(std::string& info) {
       return;
     }
     tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
-    if (duration != -2) {
-      tmp_stream << "# Duration: " << (duration == -1 ? "In Processing" : std::to_string(duration) + "s" )<< "\r\n";
+    if (duration == -2) {
+      tmp_stream << "# Duration: " << "In Waiting\r\n";
+    } else if (duration == -1) {
+      tmp_stream << "# Duration: " << "In Processing\r\n";
+    } else if (duration >= 0) {
+      tmp_stream << "# Duration: " << std::to_string(duration) + "s" << "\r\n";
     }
+
     tmp_stream << table_name << "_Strings: keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invaild_keys=" << key_infos[0].invaild_keys << "\r\n";
     tmp_stream << table_name << "_Hashes: keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invaild_keys=" << key_infos[1].invaild_keys << "\r\n";
     tmp_stream << table_name << "_Lists: keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invaild_keys=" << key_infos[2].invaild_keys << "\r\n";

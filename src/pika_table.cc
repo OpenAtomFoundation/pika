@@ -109,7 +109,8 @@ void Table::KeyScan() {
   }
 
   key_scan_info_.key_scaning_ = true;
-  InitKeyScan();
+  key_scan_info_.duration = -2;       // duration -2 mean the task in waiting status,
+                                      // has not been scheduled for exec
   BgTaskArg* bg_task_arg = new BgTaskArg();
   bg_task_arg->table = shared_from_this();
   g_pika_server->KeyScanTaskSchedule(&DoKeyScan, reinterpret_cast<void*>(bg_task_arg));
@@ -123,6 +124,8 @@ bool Table::IsKeyScaning() {
 void Table::RunKeyScan() {
   rocksdb::Status s;
   std::vector<blackwidow::KeyInfo> new_key_infos(5);
+
+  InitKeyScan();
   slash::RWLock rwl(&partitions_rw_, false);
   for (const auto& item : partitions_) {
     std::vector<blackwidow::KeyInfo> tmp_key_infos;
@@ -134,11 +137,11 @@ void Table::RunKeyScan() {
         new_key_infos[idx].avg_ttl += tmp_key_infos[idx].avg_ttl;
         new_key_infos[idx].invaild_keys += tmp_key_infos[idx].invaild_keys;
       }
-      key_scan_info_.duration = time(NULL) - key_scan_info_.start_time;
     } else {
       break;
     }
   }
+  key_scan_info_.duration = time(NULL) - key_scan_info_.start_time;
 
   slash::MutexLock lm(&key_scan_protector_);
   if (s.ok()) {
@@ -187,7 +190,7 @@ void Table::InitKeyScan() {
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
-  key_scan_info_.duration = -1;
+  key_scan_info_.duration = -1;       // duration -1 mean the task in processing
 }
 
 void Table::LeaveAllPartition() {
