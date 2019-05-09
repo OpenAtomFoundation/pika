@@ -400,7 +400,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
       Status s = g_pika_rm->GetPikaReplServer()->SendSlaveBinlogChips(slave_ptr->Ip(), slave_ptr->Port(), task);
       slave_ptr->SetLastSendTime(now);
       if (!s.ok()) {
-        return Status::Corruption("Send ping failed " + slave_ptr->Ip() + std::to_string(slave_ptr->Port()));
+        return Status::Corruption("Send ping failed: " + slave_ptr->Ip() + ":" + std::to_string(slave_ptr->Port()));
       }
     }
   }
