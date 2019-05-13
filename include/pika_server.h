@@ -162,6 +162,7 @@ class PikaServer {
    * Slave State Machine
    */
   bool ShouldMetaSync();
+  void ReceiveMetaSyncResponse();
   void MetaSyncDone();
   bool ShouldWaitMetaSyncResponse();
   void CheckWaitMetaSyncTimeout();
