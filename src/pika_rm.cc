@@ -852,10 +852,7 @@ Status PikaReplicaManager::RemoveSyncMasterPartition(const std::string& table_na
 Status PikaReplicaManager::AddSyncSlavePartition(const RmNode& node) {
   slash::RWLock l(&partitions_rw_, true);
   const PartitionInfo& partition_info = node.NodePartitionInfo();
-  auto slave_iter = sync_slave_partitions_.find(partition_info);
-  if (slave_iter != sync_slave_partitions_.end()) {
-    return Status::OK();
-  }
+  // if this slave partition it will destroy itself
   sync_slave_partitions_[partition_info] =
     std::make_shared<SyncSlavePartition>(node.TableName(), node.PartitionId(), node);
   LOG(INFO) << "Add Master Node, partition: " << partition_info.ToString() <<

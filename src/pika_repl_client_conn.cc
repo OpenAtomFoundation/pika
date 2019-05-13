@@ -142,14 +142,8 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
-  if (response->code() != InnerMessage::kOk) {
-    std::string reply = response->has_reply() ? response->reply() : "";
-    LOG(WARNING) << "DBSync Failed: " << reply;
-    delete task_arg;
-    return;
-  }
-
   const InnerMessage::InnerResponse_DBSync db_sync_response = response->db_sync();
+  int32_t session_id = db_sync_response.session_id();
   const InnerMessage::Partition partition_response = db_sync_response.partition();
   std::string table_name = partition_response.table_name();
   uint32_t partition_id  = partition_response.partition_id();
@@ -160,14 +154,20 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
     return;
   }
 
-  std::string partition_name = partition->GetPartitionName();
-  if (db_sync_response.reply_code() == InnerMessage::InnerResponse::DBSync::kWait) {
-    partition->SetReplState(ReplState::kWaitDBSync);
-    LOG(INFO)    << "Partition: " << partition_name << " Need Wait To Sync";
-  } else {
+  if (response->code() != InnerMessage::kOk) {
     partition->SetReplState(ReplState::kError);
-    LOG(WARNING) << "Partition: " << partition_name << " DBSync Error, Invaild Reply Code";
+    std::string reply = response->has_reply() ? response->reply() : "";
+    LOG(WARNING) << "DBSync Failed: " << reply;
+    delete task_arg;
+    return;
   }
+
+  g_pika_rm->AddSyncSlavePartition(RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), table_name, partition_id, session_id));
+
+
+  std::string partition_name = partition->GetPartitionName();
+  partition->SetReplState(ReplState::kWaitDBSync);
+  LOG(INFO) << "Partition: " << partition_name << " Need Wait To Sync";
   delete task_arg;
 }
 

@@ -100,11 +100,8 @@ message InnerResponse {
   }
 
   message DBSync {
-    enum ReplyCode {
-      kWait          = 1;
-    }
-    required ReplyCode reply_code = 1;
-    required Partition partition  = 2;
+    required Partition partition  = 1;
+    required int32     session_id = 2;
   }
 
   // master to slave
