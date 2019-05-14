@@ -736,8 +736,10 @@ void InfoCmd::InfoData(std::string& info) {
     slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
     for (const auto& patition_item : table_item.second->partitions_) {
       memtable_usage = table_reader_usage = 0;
+      patition_item.second->DbRWLockReader();
       patition_item.second->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
       patition_item.second->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+      patition_item.second->DbRWUnLock();
       total_memtable_usage += memtable_usage;
       total_table_reader_usage += table_reader_usage;
     }

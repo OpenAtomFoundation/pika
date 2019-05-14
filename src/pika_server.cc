@@ -444,8 +444,11 @@ bool PikaServer::IsCompacting() {
   slash::RWLock table_rwl(&tables_rw_, false);
   for (const auto& table_item : tables_) {
     slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
-    for (const auto& patition_item : table_item.second->partitions_) {
-      if (strcasecmp(patition_item.second->db()->GetCurrentTaskType().data(), "no")) {
+    for (const auto& partition_item : table_item.second->partitions_) {
+      partition_item.second->DbRWLockReader();
+      std::string task_type = partition_item.second->db()->GetCurrentTaskType();
+      partition_item.second->DbRWUnLock();
+      if (strcasecmp(task_type.data(), "no")) {
         return true;
       }
     }
@@ -533,7 +536,9 @@ void PikaServer::PartitionSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_
   slash::RWLock rwl(&tables_rw_, false);
   for (const auto& table_item : tables_) {
     for (const auto& partition_item : table_item.second->partitions_) {
+      partition_item.second->DbRWLockReader();
       partition_item.second->db()->SetMaxCacheStatisticKeys(max_cache_statistic_keys);
+      partition_item.second->DbRWUnLock();
     }
   }
 }
@@ -542,7 +547,9 @@ void PikaServer::PartitionSetSmallCompactionThreshold(uint32_t small_compaction_
   slash::RWLock rwl(&tables_rw_, false);
   for (const auto& table_item : tables_) {
     for (const auto& partition_item : table_item.second->partitions_) {
+      partition_item.second->DbRWLockReader();
       partition_item.second->db()->SetSmallCompactionThreshold(small_compaction_threshold);
+      partition_item.second->DbRWUnLock();
     }
   }
 }

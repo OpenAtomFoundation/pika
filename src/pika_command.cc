@@ -163,7 +163,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   Cmd* scanxptr = new ScanxCmd(kCmdNameScanx, -3, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameScanx, scanxptr));
   ////PKSetexAtCmd
-  Cmd* pksetexatptr = new PKSetexAtCmd(kCmdNamePKSetexAt, 4, kCmdFlagsWrite | kCmdFlagsKv);
+  Cmd* pksetexatptr = new PKSetexAtCmd(kCmdNamePKSetexAt, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKSetexAt, pksetexatptr));
   ////PKScanRange
   Cmd* pkscanrangeptr = new PKScanRangeCmd(kCmdNamePKScanRange, -4, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
@@ -472,6 +472,8 @@ void Cmd::Execute() {
     ProcessFlushDBCmd();
   } else if (name_ == kCmdNameFlushall) {
     ProcessFlushAllCmd();
+  } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
+    ProcessDoNotSpecifyPartitionCmd();
   } else if (is_single_partition() || g_pika_conf->classic_mode()) {
     ProcessSinglePartitionCmd();
   } else if (is_multi_partition()) {
