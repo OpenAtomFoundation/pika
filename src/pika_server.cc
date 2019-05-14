@@ -114,13 +114,12 @@ PikaServer::~PikaServer() {
   delete pika_auxiliary_thread_;
   delete pika_rsync_service_;
   delete pika_thread_pool_;
-
   delete pika_monitor_thread_;
-
-  tables_.clear();
 
   bgsave_thread_.StopThread();
   key_scan_thread_.StopThread();
+
+  tables_.clear();
 
   pthread_rwlock_destroy(&tables_rw_);
   pthread_rwlock_destroy(&state_protector_);
@@ -323,6 +322,8 @@ std::string PikaServer::repl_state_str() {
       return "should meta sync";
     case PIKA_REPL_WAIT_META_SYNC_RESPONSE:
       return "wait meta sync response";
+    case PIKA_REPL_RECEIVE_META_SYNC_RESPONSE:
+      return "receive meta sync response";
     case PIKA_REPL_SHOULD_MARK_TRY_CONNECT:
       return "should mark try connect";
     case PIKA_REPL_CONNECTING:
@@ -767,9 +768,15 @@ bool PikaServer::ShouldMetaSync() {
   return repl_state_ == PIKA_REPL_SHOULD_META_SYNC;
 }
 
+void PikaServer::ReceiveMetaSyncResponse() {
+  slash::RWLock l(&state_protector_, true);
+  assert(repl_state_ == PIKA_REPL_SHOULD_META_SYNC);
+  repl_state_ = PIKA_REPL_RECEIVE_META_SYNC_RESPONSE;
+}
+
 void PikaServer::MetaSyncDone() {
   slash::RWLock l(&state_protector_, true);
-  assert(repl_state_ == PIKA_REPL_WAIT_META_SYNC_RESPONSE);
+  assert(repl_state_ == PIKA_REPL_RECEIVE_META_SYNC_RESPONSE);
   repl_state_ = PIKA_REPL_SHOULD_MARK_TRY_CONNECT;
 }
 

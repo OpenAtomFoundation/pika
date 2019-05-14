@@ -79,6 +79,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
+  g_pika_server->ReceiveMetaSyncResponse();
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "Meta Sync Failed: " << reply;
@@ -162,8 +163,8 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
     return;
   }
 
-  g_pika_rm->AddSyncSlavePartition(RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), table_name, partition_id, session_id));
-
+  g_pika_rm->AddSyncSlavePartition(RmNode(g_pika_server->master_ip(),
+        g_pika_server->master_port(), table_name, partition_id, session_id));
 
   std::string partition_name = partition->GetPartitionName();
   partition->SetReplState(ReplState::kWaitDBSync);
