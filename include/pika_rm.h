@@ -122,6 +122,7 @@ class SyncMasterPartition : public SyncPartition {
   Status SyncBinlogToWq(const std::string& ip, int port);
   Status UpdateSlaveBinlogAckInfo(const std::string& ip, int port, const BinlogOffset& start, const BinlogOffset& end);
   Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset, BinlogOffset* acked_offset);
+  Status GetSlaveState(const std::string& ip, int port, SlaveState* const slave_state);
 
   Status SetLastSendTime(const std::string& ip, int port, uint64_t time);
   Status GetLastSendTime(const std::string& ip, int port, uint64_t* time);
@@ -237,6 +238,7 @@ class PikaReplicaManager {
   // Update binlog win and try to send next binlog
   Status UpdateSyncBinlogStatus(const RmNode& slave, const BinlogOffset& offset_start, const BinlogOffset& offset_end);
   Status GetSyncBinlogStatus(const RmNode& slave, BinlogOffset* sent_boffset, BinlogOffset* acked_boffset);
+  Status GetSyncMasterPartitionSlaveState(const RmNode& slave, SlaveState* const slave_state);
 
   Status WakeUpBinlogSync();
 
