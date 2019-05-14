@@ -173,7 +173,6 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   response.set_code(InnerMessage::kOk);
   response.set_type(InnerMessage::Type::kDBSync);
   InnerMessage::InnerResponse::DBSync* db_sync_response = response.mutable_db_sync();
-  db_sync_response->set_session_id(0);
   InnerMessage::Partition* partition_response = db_sync_response->mutable_partition();
   partition_response->set_table_name(table_name);
   partition_response->set_partition_id(partition_id);
@@ -191,12 +190,14 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
     db_sync_response->set_session_id(session_id);
     Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
     if (s.ok()) {
-      LOG(INFO) << "Partition: " << partition_name << " DBSync Success";
+      LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success";
     } else {
       response.set_code(InnerMessage::kError);
-      LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
+      LOG(WARNING) << "Partition: " << partition_name << " Handle DBSync Request Failed, " << s.ToString();
       prior_success = false;
     }
+  } else {
+    db_sync_response->set_session_id(-1);
   }
 
   g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync,

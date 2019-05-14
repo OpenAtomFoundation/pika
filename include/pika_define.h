@@ -14,7 +14,7 @@
 #define PIKA_SYNC_BUFFER_SIZE           10
 #define PIKA_MAX_WORKER_THREAD_NUM      24
 #define PIKA_REPL_SERVER_TP_SIZE        3
-#define PIKA_META_SYNC_MAX_WAIT_TIME    5
+#define PIKA_META_SYNC_MAX_WAIT_TIME    10
 
 class PikaServer;
 
@@ -292,13 +292,14 @@ const int SLAVE_ITEM_STAGE_ONE    = 1;
 const int SLAVE_ITEM_STAGE_TWO    = 2;
 
 //repl_state_
-const int PIKA_REPL_NO_CONNECT                = 0;
-const int PIKA_REPL_SHOULD_META_SYNC          = 1;
-const int PIKA_REPL_WAIT_META_SYNC_RESPONSE   = 2;
-const int PIKA_REPL_SHOULD_MARK_TRY_CONNECT   = 3;
-const int PIKA_REPL_CONNECTING                = 4;
-const int PIKA_REPL_ESTABLISH_SUCCESS         = 5;
-const int PIKA_REPL_ERROR                     = 6;
+const int PIKA_REPL_NO_CONNECT                  = 0;
+const int PIKA_REPL_SHOULD_META_SYNC            = 1;
+const int PIKA_REPL_WAIT_META_SYNC_RESPONSE     = 2;
+const int PIKA_REPL_RECEIVE_META_SYNC_RESPONSE  = 3;
+const int PIKA_REPL_SHOULD_MARK_TRY_CONNECT     = 4;
+const int PIKA_REPL_CONNECTING                  = 5;
+const int PIKA_REPL_ESTABLISH_SUCCESS           = 6;
+const int PIKA_REPL_ERROR                       = 7;
 
 //role
 const int PIKA_ROLE_SINGLE        = 0;
