@@ -648,21 +648,21 @@ int32_t PikaServer::CountSyncSlaves() {
 
 int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   size_t index = 0;
+  SlaveState slave_state;
   BinlogOffset master_boffset;
   BinlogOffset sent_slave_boffset;
   BinlogOffset acked_slave_boffset;
   std::stringstream tmp_stream;
   slash::MutexLock l(&slave_mutex_);
   for (const auto& slave : slaves_) {
-    std::stringstream sync_status_stream;
-    sync_status_stream << "  sync points:" << "\r\n";
     tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",conn_fd=" << slave.conn_fd << ",lag=";
     for (const auto& ts : slave.table_structs) {
       for (size_t idx = 0; idx < ts.partition_num; ++idx) {
         std::shared_ptr<Partition> partition = GetTablePartitionById(ts.table_name, idx);
         RmNode rm_node(slave.ip, slave.port, ts.table_name, idx);
-        Status s = g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
-        if (s.ok()) {
+        Status s = g_pika_rm->GetSyncMasterPartitionSlaveState(rm_node, &slave_state);
+        if (s.ok() && (slave_state == SlaveState::kSlaveBinlogSync)) {
+          g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
           if (!partition || !partition->GetBinlogOffset(&master_boffset)) {
             continue;
           } else {
@@ -670,8 +670,6 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
               (master_boffset.filenum - sent_slave_boffset.filenum) * g_pika_conf->binlog_file_size()
               + (master_boffset.offset - sent_slave_boffset.offset);
             tmp_stream << "(" << partition->GetPartitionName() << ":" << lag << ")";
-            sync_status_stream << "  (" << partition->GetPartitionName() << ":" << "sent " << sent_slave_boffset.filenum << " " << sent_slave_boffset.offset
-              << " acked " << acked_slave_boffset.filenum << " " << acked_slave_boffset.offset<< ")" << "\r\n";
           }
         } else {
           tmp_stream << "(" << partition->GetPartitionName() << ":not syncing)";
@@ -679,7 +677,6 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
       }
     }
     tmp_stream << "\r\n";
-    tmp_stream << sync_status_stream.str();
   }
   slave_list_str.assign(tmp_stream.str());
   return index;
