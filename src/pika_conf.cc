@@ -89,6 +89,7 @@ int PikaConf::Load()
   default_table_ = table_structs_[0].table_name;
 
   GetConfStr("dump-path", &bgsave_path_);
+  bgsave_path_ = bgsave_path_.empty() ? "./dump/" : bgsave_path_;
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
     bgsave_path_ += "/";
   }
@@ -116,10 +117,19 @@ int PikaConf::Load()
   //
   GetConfInt("port", &port_);
   GetConfStr("log-path", &log_path_);
-  GetConfStr("db-path", &db_path_);
-  GetConfStr("trash-path", &trash_path_);
+  log_path_ = log_path_.empty() ? "./log/" : log_path_;
   if (log_path_[log_path_.length() - 1] != '/') {
     log_path_ += "/";
+  }
+  GetConfStr("db-path", &db_path_);
+  db_path_ = db_path_.empty() ? "./db/" : db_path_;
+  if (db_path_[db_path_.length() - 1] != '/') {
+    db_path_ += "/";
+  }
+  GetConfStr("trash-path", &trash_path_);
+  trash_path_ = trash_path_.empty() ? "./trash/" : trash_path_;
+  if (trash_path_[trash_path_.length() - 1] != '/') {
+    trash_path_ += "/";
   }
   GetConfInt("thread-num", &thread_num_);
   if (thread_num_ <= 0) {
@@ -298,6 +308,7 @@ int PikaConf::Load()
 
   // db sync
   GetConfStr("db-sync-path", &db_sync_path_);
+  db_sync_path_ = db_sync_path_.empty() ? "./dbsync/" : db_sync_path_;
   if (db_sync_path_[db_sync_path_.length() - 1] != '/') {
     db_sync_path_ += "/";
   }
