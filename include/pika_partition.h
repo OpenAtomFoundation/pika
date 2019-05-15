@@ -103,7 +103,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool FlushSubDB(const std::string& db_name);
 
   // Purgelogs use
-  bool PurgeLogs();
+  bool PurgeLogs(uint32_t to = 0, bool manual = false);
   void ClearPurge();
 
  private:
@@ -146,7 +146,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
    * Purgelogs use
    */
   static void DoPurgeLogs(void* arg);
-  bool PurgeFiles();
+  bool PurgeFiles(uint32_t to, bool manual);
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   std::atomic<bool> purging_;
 
