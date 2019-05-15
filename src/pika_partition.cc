@@ -590,7 +590,7 @@ bool Partition::FlushSubDB(const std::string& db_name) {
   return true;
 }
 
-bool Partition::PurgeLogs() {
+bool Partition::PurgeLogs(uint32_t to, bool manual) {
   // Only one thread can go through
   bool expect = false;
   if (!purging_.compare_exchange_strong(expect, true)) {
@@ -598,6 +598,8 @@ bool Partition::PurgeLogs() {
     return false;
   }
   PurgeArg *arg = new PurgeArg();
+  arg->to = to;
+  arg->manual = manual;
   arg->partition = shared_from_this();
   g_pika_server->PurgelogsTaskSchedule(&DoPurgeLogs, static_cast<void*>(arg));
   return true;
@@ -609,12 +611,12 @@ void Partition::ClearPurge() {
 
 void Partition::DoPurgeLogs(void* arg) {
   PurgeArg* purge = static_cast<PurgeArg*>(arg);
-  purge->partition->PurgeFiles();
+  purge->partition->PurgeFiles(purge->to, purge->manual);
   purge->partition->ClearPurge();
   delete (PurgeArg*)arg;
 }
 
-bool Partition::PurgeFiles() {
+bool Partition::PurgeFiles(uint32_t to, bool manual) {
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(binlogs)) {
     LOG(WARNING) << partition_name_ << " Could not get binlog files!";
@@ -626,10 +628,11 @@ bool Partition::PurgeFiles() {
   int remain_expire_num = binlogs.size() - g_pika_conf->expire_logs_nums();
   std::map<uint32_t, std::string>::iterator it;
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
-    if (remain_expire_num > 0 ||                                                           // Expire num trigger
-        (binlogs.size() - delete_num > 10                                                  // At lease remain 10 files
-         && stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&
-         file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days() * 24 * 3600)) { // Expire time trigger
+    if ((manual && it->first <= to)                                                            // Manual purgelogsto
+      || (remain_expire_num > 0)                                                               // Expire num trigger
+      || (binlogs.size() - delete_num > 10                                                     // At lease remain 10 files
+          && stat(((log_path_ + it->second)).c_str(), &file_stat) == 0
+          && file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days() * 24 * 3600)) { // Expire time trigger
       // We check this every time to avoid lock when we do file deletion
       if (!g_pika_server->PartitionCouldPurge(table_name_, partition_id_, it->first)) {
         LOG(WARNING) << partition_name_ << " Could not purge "<< (it->first) << ", since it is already be used";
