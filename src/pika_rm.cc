@@ -517,6 +517,7 @@ Status SyncSlavePartition::CheckSyncTimeout(uint64_t now, bool* del) {
         m_info_.PartitionId() << " Not Found";
     }
     partition->SetReplState(ReplState::kTryConnect);
+    g_pika_server->MarkTryConnectDone();
     *del = true;
   }
   return Status::OK();
@@ -1008,7 +1009,8 @@ Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
   }
   for (auto& partition_info : to_del) {
     sync_slave_partitions_.erase(partition_info);
-    LOG(INFO) << "SyncTimeout Delete Master Node Success, partition: " << partition_info.ToString();
+    LOG(INFO) << "SyncTimeout Delete Master Node Success, partition: " << partition_info.ToString()
+      << " Reset state TryConnect";
   }
   return Status::OK();
 }
