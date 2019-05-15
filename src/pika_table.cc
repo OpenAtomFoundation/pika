@@ -25,8 +25,8 @@ Table::Table(const std::string& table_name,
   partition_num_(partition_num) {
 
   db_path_ = TablePath(db_path, table_name_);
-  log_path_ = TablePath(log_path, table_name_);
-  trash_path_ = TablePath(trash_path, table_name_);
+  log_path_ = TablePath(log_path, "log_" + table_name_);
+  trash_path_ = TablePath(trash_path, "trash_" + table_name_);
 
   slash::CreatePath(db_path_);
   slash::CreatePath(log_path_);

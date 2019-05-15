@@ -436,28 +436,31 @@ void InfoCmd::DoInitial() {
     }
     // info keyspace [ 0 | 1 | off ]
     // info keyspace 1 db0,db1
+    // info keyspace 0 db0,db1
+    // info keyspace off db0,db1
     if (argv_[2] == "1") {
       if (g_pika_server->IsCompacting()) {
         res_.SetRes(CmdRes::kErrOther, "The compact operation is executing, Try again later");
       } else {
-        if (argc == 4) {
-          std::vector<std::string> tables;
-          slash::StringSplit(argv_[3], COMMA, tables);
-          for (const auto& table : tables) {
-            if (!g_pika_server->IsTableExist(table)) {
-              res_.SetRes(CmdRes::kInvalidTable, table);
-              return;
-            } else {
-              keyspace_scan_tables.insert(table);
-            }
-          }
-        }
         rescan_ = true;
       }
     } else if (argv_[2] == "off") {
       off_ = true;
     } else if (argv_[2] != "0") {
       res_.SetRes(CmdRes::kSyntaxErr);
+    }
+
+    if (argc == 4) {
+      std::vector<std::string> tables;
+      slash::StringSplit(argv_[3], COMMA, tables);
+      for (const auto& table : tables) {
+        if (!g_pika_server->IsTableExist(table)) {
+          res_.SetRes(CmdRes::kInvalidTable, table);
+          return;
+        } else {
+          keyspace_scan_tables_.insert(table);
+        }
+      }
     }
     LogCommand();
     return;
@@ -535,10 +538,6 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
       break;
     case kInfoKeyspace:
       InfoKeyspace(info);
-      // off_ should return +OK
-      if (off_) {
-        res_.SetRes(CmdRes::kOk);
-      }
       break;
     case kInfoLog:
       InfoLog(info);
@@ -689,8 +688,8 @@ void InfoCmd::InfoReplication(std::string& info) {
 
 void InfoCmd::InfoKeyspace(std::string& info) {
   if (off_) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kStopKeyScan);
-    off_ = false;
+    g_pika_server->DoSameThingSpecificTable(TaskType::kStopKeyScan, keyspace_scan_tables_);
+    info.append("OK\r\n");
     return;
   }
 
@@ -702,33 +701,36 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   tmp_stream << "# Keyspace\r\n";
   slash::RWLock rwl(&g_pika_server->tables_rw_, false);
   for (const auto& table_item : g_pika_server->tables_) {
-    table_name = table_item.second->GetTableName();
-    key_scan_info = table_item.second->GetKeyScanInfo();
-    key_infos = key_scan_info.key_infos;
-    duration = key_scan_info.duration;
-    if (key_infos.size() != 5) {
-      info.append("info keyspace error\r\n");
-      return;
-    }
-    tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
-    if (duration == -2) {
-      tmp_stream << "# Duration: " << "In Waiting\r\n";
-    } else if (duration == -1) {
-      tmp_stream << "# Duration: " << "In Processing\r\n";
-    } else if (duration >= 0) {
-      tmp_stream << "# Duration: " << std::to_string(duration) + "s" << "\r\n";
-    }
+    if (keyspace_scan_tables_.empty()
+      || keyspace_scan_tables_.find(table_item.first) != keyspace_scan_tables_.end()) {
+      table_name = table_item.second->GetTableName();
+      key_scan_info = table_item.second->GetKeyScanInfo();
+      key_infos = key_scan_info.key_infos;
+      duration = key_scan_info.duration;
+      if (key_infos.size() != 5) {
+        info.append("info keyspace error\r\n");
+        return;
+      }
+      tmp_stream << "# Time:" << key_scan_info.s_start_time << "\r\n";
+      if (duration == -2) {
+        tmp_stream << "# Duration: " << "In Waiting\r\n";
+      } else if (duration == -1) {
+        tmp_stream << "# Duration: " << "In Processing\r\n";
+      } else if (duration >= 0) {
+        tmp_stream << "# Duration: " << std::to_string(duration) + "s" << "\r\n";
+      }
 
-    tmp_stream << table_name << "_Strings: keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invaild_keys=" << key_infos[0].invaild_keys << "\r\n";
-    tmp_stream << table_name << "_Hashes: keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invaild_keys=" << key_infos[1].invaild_keys << "\r\n";
-    tmp_stream << table_name << "_Lists: keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invaild_keys=" << key_infos[2].invaild_keys << "\r\n";
-    tmp_stream << table_name << "_Zsets: keys=" << key_infos[3].keys << ", expires=" << key_infos[3].expires << ", invaild_keys=" << key_infos[3].invaild_keys << "\r\n";
-    tmp_stream << table_name << "_Sets: keys=" << key_infos[4].keys << ", expires=" << key_infos[4].expires << ", invaild_keys=" << key_infos[4].invaild_keys << "\r\n\r\n";
+      tmp_stream << table_name << "_Strings: keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invaild_keys=" << key_infos[0].invaild_keys << "\r\n";
+      tmp_stream << table_name << "_Hashes: keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invaild_keys=" << key_infos[1].invaild_keys << "\r\n";
+      tmp_stream << table_name << "_Lists: keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invaild_keys=" << key_infos[2].invaild_keys << "\r\n";
+      tmp_stream << table_name << "_Zsets: keys=" << key_infos[3].keys << ", expires=" << key_infos[3].expires << ", invaild_keys=" << key_infos[3].invaild_keys << "\r\n";
+      tmp_stream << table_name << "_Sets: keys=" << key_infos[4].keys << ", expires=" << key_infos[4].expires << ", invaild_keys=" << key_infos[4].invaild_keys << "\r\n\r\n";
+    }
   }
   info.append(tmp_stream.str());
 
   if (rescan_) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kStartKeyScan, keyspace_scan_tables);
+    g_pika_server->DoSameThingSpecificTable(TaskType::kStartKeyScan, keyspace_scan_tables_);
   }
   return;
 }
@@ -947,12 +949,6 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&config_body, g_pika_conf->db_path());
   }
 
-  if (slash::stringmatch(pattern.data(), "trash-path", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "trash-path");
-    EncodeString(&config_body, g_pika_conf->trash_path());
-  }
-
   if (slash::stringmatch(pattern.data(), "maxmemory", 1)) {
     elements += 2;
     EncodeString(&config_body, "maxmemory");
@@ -999,6 +995,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     elements += 2;
     EncodeString(&config_body, "instance-mode");
     EncodeString(&config_body, (g_pika_conf->classic_mode() ? "classic" : "sharding"));
+  }
+
+  if (slash::stringmatch(pattern.data(), "databases", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "databases");
+    EncodeInt32(&config_body, g_pika_conf->databases());
   }
 
   if (slash::stringmatch(pattern.data(), "daemonize", 1)) {

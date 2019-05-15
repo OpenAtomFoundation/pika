@@ -178,7 +178,7 @@ class InfoCmd : public Cmd {
   InfoSection info_section_;
   bool rescan_; //whether to rescan the keyspace
   bool off_;
-  std::set<std::string> keyspace_scan_tables;
+  std::set<std::string> keyspace_scan_tables_;
 
   const static std::string kInfoSection;
   const static std::string kAllSection;
@@ -197,7 +197,7 @@ class InfoCmd : public Cmd {
   virtual void Clear() {
     rescan_ = false;
     off_ = false;
-    keyspace_scan_tables.clear();
+    keyspace_scan_tables_.clear();
   }
 
   void InfoServer(std::string& info);
