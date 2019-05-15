@@ -155,7 +155,6 @@ class PikaServer {
    */
   void SyncError();
   void RemoveMaster();
-  bool ShouldStartPingMaster();
   bool SetMaster(std::string& master_ip, int master_port);
 
   /*

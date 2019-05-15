@@ -754,15 +754,6 @@ void PikaServer::RemoveMaster() {
   }
 }
 
-bool PikaServer::ShouldStartPingMaster() {
-  slash::RWLock l(&state_protector_, false);
-  if ((repl_state_ == PIKA_REPL_SHOULD_MARK_TRY_CONNECT
-    || repl_state_ == PIKA_REPL_CONNECTING)) {
-    return true;
-  }
-  return false;
-}
-
 bool PikaServer::SetMaster(std::string& master_ip, int master_port) {
   if (master_ip == "127.0.0.1") {
     master_ip = host_;

@@ -5,6 +5,8 @@
 
 #include "include/pika_conf.h"
 
+#include <glog/logging.h>
+
 #include <algorithm>
 #include <strings.h>
 
@@ -63,7 +65,9 @@ int PikaConf::Load()
 
   if (classic_mode_) {
     GetConfInt("databases", &databases_);
-    databases_ = (databases_ < 1 || databases_ > 8) ? 1 : databases_;
+    if (databases_ < 1 || databases_ > 8) {
+      LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
+    }
     for (int idx = 0; idx < databases_; ++idx) {
       table_structs_.push_back({"db" + std::to_string(idx), 1});
     }
@@ -126,11 +130,8 @@ int PikaConf::Load()
   if (db_path_[db_path_.length() - 1] != '/') {
     db_path_ += "/";
   }
-  GetConfStr("trash-path", &trash_path_);
-  trash_path_ = trash_path_.empty() ? "./trash/" : trash_path_;
-  if (trash_path_[trash_path_.length() - 1] != '/') {
-    trash_path_ += "/";
-  }
+  trash_path_ = db_path_ + "trash/";
+
   GetConfInt("thread-num", &thread_num_);
   if (thread_num_ <= 0) {
     thread_num_ = 12;
