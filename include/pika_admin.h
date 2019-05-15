@@ -85,6 +85,7 @@ class PurgelogstoCmd : public Cmd {
 
  private:
   uint32_t num_;
+  std::string table_;
   virtual void DoInitial() override;
 };
 

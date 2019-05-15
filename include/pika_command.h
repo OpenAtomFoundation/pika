@@ -19,6 +19,7 @@ const std::string kCmdNameSlaveof = "slaveof";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameCompact = "compact";
+const std::string kCmdNamePurgelogsto = "purgelogsto";
 const std::string kCmdNamePing = "ping";
 const std::string kCmdNameSelect = "select";
 const std::string kCmdNameFlushall = "flushall";
