@@ -372,6 +372,7 @@ void PikaServer::InitTableStruct() {
   std::string log_path = g_pika_conf->log_path();
   std::string trash_path = g_pika_conf->trash_path();
   std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+  slash::RWLock rwl(&tables_rw_, true);
   for (const auto& table : table_structs) {
     std::string name = table.table_name;
     uint32_t num = table.partition_num;

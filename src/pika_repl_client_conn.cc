@@ -109,9 +109,9 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   bool force_full_sync = g_pika_server->force_full_sync();
   std::vector<TableStruct> self_table_structs = g_pika_conf->table_structs();
   if (!PikaReplClientConn::IsTableStructConsistent(self_table_structs, master_table_structs)) {
-    LOG(WARNING) << "Self table structs(db size: " << self_table_structs.size()
-      <<  ") inconsistent with master(db size: " << master_table_structs.size()
-      << ", failed to establish master-slave relationship";
+    LOG(WARNING) << "Self table structs(number of databases: " << self_table_structs.size()
+      << ") inconsistent with master(number of databases: " << master_table_structs.size()
+      << "), failed to establish master-slave relationship";
     g_pika_server->SyncError();
     conn->NotifyClose();
     delete task_arg;
