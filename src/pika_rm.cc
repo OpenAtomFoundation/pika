@@ -517,7 +517,7 @@ Status SyncSlavePartition::CheckSyncTimeout(uint64_t now, bool* del) {
         m_info_.PartitionId() << " Not Found";
     }
     partition->SetReplState(ReplState::kTryConnect);
-    g_pika_server->MarkTryConnectDone();
+    g_pika_server->SetAllPartitionConnectSuccess(false);
     *del = true;
   }
   return Status::OK();

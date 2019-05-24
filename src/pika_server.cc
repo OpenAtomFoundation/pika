@@ -50,7 +50,8 @@ PikaServer::PikaServer() :
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
-  last_meta_sync_timestamp_(-1),
+  last_meta_sync_timestamp_(0),
+  all_patition_connected_success_(false),
   force_full_sync_(false),
   slowlog_entry_id_(0) {
 
@@ -320,16 +321,8 @@ std::string PikaServer::repl_state_str() {
       return "no connect";
     case PIKA_REPL_SHOULD_META_SYNC:
       return "should meta sync";
-    case PIKA_REPL_WAIT_META_SYNC_RESPONSE:
-      return "wait meta sync response";
-    case PIKA_REPL_RECEIVE_META_SYNC_RESPONSE:
-      return "receive meta sync response";
-    case PIKA_REPL_SHOULD_MARK_TRY_CONNECT:
-      return "should mark try connect";
-    case PIKA_REPL_CONNECTING:
-      return "connecting";
-    case PIKA_REPL_ESTABLISH_SUCCESS:
-      return "establish success";
+    case PIKA_REPL_META_SYNC_DONE:
+      return "meta sync done";
     case PIKA_REPL_ERROR:
       return "error";
     default:
@@ -528,7 +521,6 @@ void PikaServer::PreparePartitionTrySync() {
       partition_item.second->SetReplState(ReplState::kTryConnect);
     }
   }
-  MarkTryConnectDone();
   force_full_sync_ = false;
   LOG(INFO) << "Mark try connect finish";
 }
@@ -746,6 +738,7 @@ void PikaServer::RemoveMaster() {
     if (master_ip_ != "" && master_port_ != -1) {
       g_pika_rm->GetPikaReplClient()->Close(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->LostConnection(master_ip_, master_port_);
+      all_patition_connected_success_ = false;
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
 
@@ -775,52 +768,15 @@ bool PikaServer::ShouldMetaSync() {
   return repl_state_ == PIKA_REPL_SHOULD_META_SYNC;
 }
 
-void PikaServer::ReceiveMetaSyncResponse() {
+void PikaServer::FinishMetaSync() {
   slash::RWLock l(&state_protector_, true);
   assert(repl_state_ == PIKA_REPL_SHOULD_META_SYNC);
-  repl_state_ = PIKA_REPL_RECEIVE_META_SYNC_RESPONSE;
+  repl_state_ = PIKA_REPL_META_SYNC_DONE;
 }
 
-void PikaServer::MetaSyncDone() {
-  slash::RWLock l(&state_protector_, true);
-  assert(repl_state_ == PIKA_REPL_RECEIVE_META_SYNC_RESPONSE);
-  repl_state_ = PIKA_REPL_SHOULD_MARK_TRY_CONNECT;
-}
-
-bool PikaServer::ShouldWaitMetaSyncResponse() {
+bool PikaServer::MetaSyncDone() {
   slash::RWLock l(&state_protector_, false);
-  return repl_state_ == PIKA_REPL_WAIT_META_SYNC_RESPONSE;
-}
-
-void PikaServer::CheckWaitMetaSyncTimeout() {
-  assert(last_meta_sync_timestamp_ != -1);
-  int now = time(NULL);
-  if (now - last_meta_sync_timestamp_ >= PIKA_META_SYNC_MAX_WAIT_TIME) {
-    ResetMetaSyncStatus();
-    LOG(INFO) << "Check Wait Meta Sync Timeout, And Reset";
-  }
-}
-
-bool PikaServer::ShouldMarkTryConnect() {
-  slash::RWLock l(&state_protector_, false);
-  return repl_state_ == PIKA_REPL_SHOULD_MARK_TRY_CONNECT;
-}
-
-void PikaServer::MarkTryConnectDone() {
-  slash::RWLock l(&state_protector_, true);
-  assert(repl_state_ == PIKA_REPL_SHOULD_MARK_TRY_CONNECT);
-  repl_state_ = PIKA_REPL_CONNECTING;
-}
-
-bool PikaServer::ShouldTrySyncPartition() {
-  slash::RWLock l(&state_protector_, false);
-  return repl_state_ == PIKA_REPL_CONNECTING;
-}
-
-void PikaServer::MarkEstablishSuccess() {
-  slash::RWLock l(&state_protector_, true);
-  assert(repl_state_ == PIKA_REPL_CONNECTING);
-  repl_state_ = PIKA_REPL_ESTABLISH_SUCCESS;
+  return repl_state_ == PIKA_REPL_META_SYNC_DONE;
 }
 
 void PikaServer::ResetMetaSyncStatus() {
@@ -829,8 +785,21 @@ void PikaServer::ResetMetaSyncStatus() {
     // not change by slaveof no one, so set repl_state = PIKA_REPL_SHOULD_META_SYNC,
     // continue to connect master
     repl_state_ = PIKA_REPL_SHOULD_META_SYNC;
+    last_meta_sync_timestamp_ = 0;
+    all_patition_connected_success_ = false;
     DoSameThingEveryPartition(TaskType::kResetReplState);
   }
+}
+
+bool PikaServer::AllPartitionConnectSuccess() {
+  slash::RWLock sp_l(&state_protector_, false);
+  return all_patition_connected_success_;
+}
+
+void PikaServer::SetAllPartitionConnectSuccess(bool success) {
+  slash::RWLock sp_l(&state_protector_, true);
+  assert(repl_state_ == PIKA_REPL_META_SYNC_DONE);
+  all_patition_connected_success_ = success;
 }
 
 void PikaServer::Schedule(pink::TaskFunc func, void* arg) {
@@ -1190,13 +1159,15 @@ Status PikaServer::TriggerSendBinlogSync() {
 }
 
 Status PikaServer::SendMetaSyncRequest() {
-  Status status = g_pika_rm->GetPikaReplClient()->SendMetaSync();
-  if (status.ok()) {
-    last_meta_sync_timestamp_ = time(NULL);
-    slash::RWLock l(&state_protector_, true);
-    repl_state_ = PIKA_REPL_WAIT_META_SYNC_RESPONSE;
+  Status s;
+  int now = time(NULL);
+  if (now - last_meta_sync_timestamp_ >= PIKA_META_SYNC_MAX_WAIT_TIME) {
+    s = g_pika_rm->GetPikaReplClient()->SendMetaSync();
+    if (s.ok()) {
+      last_meta_sync_timestamp_ = now;
+    }
   }
-  return status;
+  return s;
 }
 
 Status PikaServer::SendPartitionDBSyncRequest(std::shared_ptr<Partition> partition) {

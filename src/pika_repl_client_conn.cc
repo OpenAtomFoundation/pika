@@ -79,7 +79,6 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
-  g_pika_server->ReceiveMetaSyncResponse();
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "Meta Sync Failed: " << reply;
@@ -106,7 +105,6 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     master_table_structs.emplace_back(table_info.table_name(), table_info.partition_num());
   }
 
-  bool force_full_sync = g_pika_server->force_full_sync();
   std::vector<TableStruct> self_table_structs = g_pika_conf->table_structs();
   if (!PikaReplClientConn::IsTableStructConsistent(self_table_structs, master_table_structs)) {
     LOG(WARNING) << "Self table structs(number of databases: " << self_table_structs.size()
@@ -118,22 +116,9 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     return;
   }
 
-  if (force_full_sync) {
-    LOG(INFO) << "Force full sync, need to rebuild table struct first";
-    // Purge and rebuild Table Struct consistent with master
-    if (!g_pika_server->RebuildTableStruct(master_table_structs)) {
-      LOG(WARNING) << "Need force full sync but rebuild table struct error"
-        << ", failed to establish master-slave relationship";
-      g_pika_server->SyncError();
-      conn->NotifyClose();
-      delete task_arg;
-      return;
-    }
-    g_pika_server->PurgeDir(g_pika_conf->trash_path());
-  }
-
-  g_pika_server->MetaSyncDone();
   g_pika_conf->SetWriteBinlog("yes");
+  g_pika_server->PreparePartitionTrySync();
+  g_pika_server->FinishMetaSync();
   LOG(INFO) << "Finish to handle meta sync response";
   delete task_arg;
 }

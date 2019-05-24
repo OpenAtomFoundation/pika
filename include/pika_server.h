@@ -161,15 +161,11 @@ class PikaServer {
    * Slave State Machine
    */
   bool ShouldMetaSync();
-  void ReceiveMetaSyncResponse();
-  void MetaSyncDone();
-  bool ShouldWaitMetaSyncResponse();
-  void CheckWaitMetaSyncTimeout();
-  bool ShouldMarkTryConnect();
-  void MarkTryConnectDone();
-  bool ShouldTrySyncPartition();
-  void MarkEstablishSuccess();
+  void FinishMetaSync();
+  bool MetaSyncDone();
   void ResetMetaSyncStatus();
+  bool AllPartitionConnectSuccess();
+  void SetAllPartitionConnectSuccess(bool success);
 
   /*
    * ThreadPool Process Task
@@ -330,6 +326,7 @@ class PikaServer {
   int repl_state_;
   int role_;
   int last_meta_sync_timestamp_;
+  bool all_patition_connected_success_;
   bool force_full_sync_;
   pthread_rwlock_t state_protector_; //protect below, use for master-slave mode
 
