@@ -133,6 +133,9 @@ class SyncMasterPartition : public SyncPartition {
   Status WakeUpSlaveBinlogSync();
   Status CheckSyncTimeout(uint64_t now);
 
+  bool CheckSlaveNodeExist(const std::string& ip, int port);
+  Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
+
   std::string ToStringStatus();
 
   int32_t GenSessionId();
@@ -229,6 +232,8 @@ class PikaReplicaManager {
 
   Status AddPartitionSlave(const RmNode& slave);
   Status RemovePartitionSlave(const RmNode& slave);
+  bool CheckPartitionSlaveExist(const RmNode& slave);
+  Status GetPartitionSlaveSession(const RmNode& slave, int32_t* session);
 
   Status LostConnection(const std::string& ip, int port);
 
