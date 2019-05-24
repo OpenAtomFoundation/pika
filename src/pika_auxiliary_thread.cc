@@ -21,12 +21,10 @@ void* PikaAuxiliaryThread::ThreadMain() {
   while (!should_stop()) {
     if (g_pika_server->ShouldMetaSync()) {
       g_pika_server->SendMetaSyncRequest();
-    } else if (g_pika_server->ShouldWaitMetaSyncResponse()) {
-      g_pika_server->CheckWaitMetaSyncTimeout();
-    } else if (g_pika_server->ShouldMarkTryConnect()) {
-      g_pika_server->PreparePartitionTrySync();
-    } else if (g_pika_server->ShouldTrySyncPartition()) {
-      RunEveryPartitionStateMachine();
+    } else if (g_pika_server->MetaSyncDone()) {
+      if (!g_pika_server->AllPartitionConnectSuccess()) {
+        RunEveryPartitionStateMachine();
+      }
     }
 
     Status s = g_pika_rm->CheckSyncTimeout(slash::NowMicros());
@@ -87,6 +85,6 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
   }
 
   if (total == connected) {
-    g_pika_server->MarkEstablishSuccess();
+    g_pika_server->SetAllPartitionConnectSuccess(true);
   }
 }

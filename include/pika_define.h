@@ -294,12 +294,8 @@ const int SLAVE_ITEM_STAGE_TWO    = 2;
 //repl_state_
 const int PIKA_REPL_NO_CONNECT                  = 0;
 const int PIKA_REPL_SHOULD_META_SYNC            = 1;
-const int PIKA_REPL_WAIT_META_SYNC_RESPONSE     = 2;
-const int PIKA_REPL_RECEIVE_META_SYNC_RESPONSE  = 3;
-const int PIKA_REPL_SHOULD_MARK_TRY_CONNECT     = 4;
-const int PIKA_REPL_CONNECTING                  = 5;
-const int PIKA_REPL_ESTABLISH_SUCCESS           = 6;
-const int PIKA_REPL_ERROR                       = 7;
+const int PIKA_REPL_META_SYNC_DONE              = 2;
+const int PIKA_REPL_ERROR                       = 3;
 
 //role
 const int PIKA_ROLE_SINGLE        = 0;
