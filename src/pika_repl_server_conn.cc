@@ -124,20 +124,35 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
           LOG(INFO) << "Partition: " << partition_name << " binlog has been purged, may need full sync";
           try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
         } else {
-          int32_t session_id = g_pika_rm->GenPartitionSessionId(table_name, partition_id);
-          if (session_id != -1) {
-            try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
-            try_sync_response->set_session_id(session_id);
-            // incremental sync
-            Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
-            if (s.ok()) {
-              LOG(INFO) << "Partition: " << partition_name << " TrySync Success";
+          if (!g_pika_rm->CheckPartitionSlaveExist(RmNode(node.ip(), node.port(), table_name, partition_id))) {
+            int32_t session_id = g_pika_rm->GenPartitionSessionId(table_name, partition_id);
+            if (session_id != -1) {
+              try_sync_response->set_session_id(session_id);
+              // incremental sync
+              Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
+              if (s.ok()) {
+                try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
+                LOG(INFO) << "Partition: " << partition_name << " TrySync Success, Session: " << session_id;
+              } else {
+                try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+                LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
+              }
             } else {
-              LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
+              try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+              LOG(WARNING) << "Partition: " << partition_name << ", Gen Session id Failed";
             }
           } else {
-            try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-            LOG(WARNING) << "Partition: " << partition_name << ", Gen Session id Failed";
+            int32_t session_id;
+            Status s = g_pika_rm->GetPartitionSlaveSession(
+                RmNode(node.ip(), node.port(), table_name, partition_id), &session_id);
+            if (!s.ok()) {
+              try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+              LOG(WARNING) << "Partition: " << partition_name << ", Get Session id Failed" << s.ToString();
+            } else {
+              try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
+              try_sync_response->set_session_id(session_id);
+              LOG(INFO) << "Partition: " << partition_name << " TrySync Success, Session: " << session_id;
+            }
           }
         }
       }
@@ -179,25 +194,39 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
 
   LOG(INFO) << "Handle partition DBSync Request";
   bool prior_success = true;
-  int32_t session_id = g_pika_rm->GenPartitionSessionId(table_name, partition_id);
-  if (session_id == -1) {
-    response.set_code(InnerMessage::kError);
-    LOG(WARNING) << "Partition: " << partition_name << ", Gen Session id Failed";
-    prior_success = false;
-  }
-
-  if (prior_success) {
-    db_sync_response->set_session_id(session_id);
-    Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
-    if (s.ok()) {
-      LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success";
-    } else {
+  if (!g_pika_rm->CheckPartitionSlaveExist(RmNode(node.ip(), node.port(), table_name, partition_id))) {
+    int32_t session_id = g_pika_rm->GenPartitionSessionId(table_name, partition_id);
+    if (session_id == -1) {
       response.set_code(InnerMessage::kError);
-      LOG(WARNING) << "Partition: " << partition_name << " Handle DBSync Request Failed, " << s.ToString();
+      LOG(WARNING) << "Partition: " << partition_name << ", Gen Session id Failed";
       prior_success = false;
     }
+    if (prior_success) {
+      db_sync_response->set_session_id(session_id);
+      Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
+      if (s.ok()) {
+        LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success, Session: " << session_id;
+      } else {
+        response.set_code(InnerMessage::kError);
+        LOG(WARNING) << "Partition: " << partition_name << " Handle DBSync Request Failed, " << s.ToString();
+        prior_success = false;
+      }
+    } else {
+      db_sync_response->set_session_id(-1);
+    }
   } else {
-    db_sync_response->set_session_id(-1);
+    int32_t session_id;
+    Status s = g_pika_rm->GetPartitionSlaveSession(
+        RmNode(node.ip(), node.port(), table_name, partition_id), &session_id);
+    if (!s.ok()) {
+      response.set_code(InnerMessage::kError);
+      LOG(WARNING) << "Partition: " << partition_name << ", Get Session id Failed" << s.ToString();
+      prior_success = false;
+      db_sync_response->set_session_id(-1);
+    } else {
+      db_sync_response->set_session_id(session_id);
+      LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success, Session: " << session_id;
+    }
   }
 
   g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync,
