@@ -79,7 +79,7 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
       } else if (partition->State() == ReplState::kWaitDBSync) {
         partition->TryUpdateMasterOffset();
       } else if (partition->State() == ReplState::kConnected
-          || partition->State() == ReplState::kStopSync) {
+          || partition->State() == ReplState::kNoConnect) {
         count++;
       }
     }

@@ -349,6 +349,9 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   InnerMessage::Partition* partition_response = remove_slave_node_response->mutable_partition();
   partition_response->set_table_name(table_name);
   partition_response->set_partition_id(partition_id);
+  InnerMessage::Node* node_response = remove_slave_node_response->mutable_node();
+  node_response->set_ip(g_pika_server->host());
+  node_response->set_port(g_pika_server->port());
 
   std::string reply_str;
   if (!response.SerializeToString(&reply_str)

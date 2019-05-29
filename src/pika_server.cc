@@ -1199,7 +1199,7 @@ Status PikaServer::SendPartitionDBSyncRequest(std::shared_ptr<Partition> partiti
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
   Status status = g_pika_rm->GetPikaReplClient()->SendPartitionDBSync(table_name, partition_id, boffset);
-  partition->SetReplState(ReplState::kWaitDBSync);
+  partition->SetReplState(ReplState::kWaitReply);
   return status;
 }
 

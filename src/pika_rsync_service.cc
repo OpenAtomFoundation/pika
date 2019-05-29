@@ -51,6 +51,7 @@ int PikaRsyncService::StartRsync() {
   ret = CreateSecretFile();
   if (ret != 0) {
     LOG(WARNING) << "Failed to create secret file";
+    return -1;
   }
   // Make sure the listening addr of rsyncd is accessible, avoid the corner case
   // that rsync --daemon process is started but not finished listening on the socket
