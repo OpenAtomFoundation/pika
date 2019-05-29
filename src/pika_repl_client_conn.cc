@@ -158,6 +158,7 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
         g_pika_server->master_port(), table_name, partition_id, session_id));
 
   std::string partition_name = partition->GetPartitionName();
+  partition->SetReplState(ReplState::kWaitDBSync);
   LOG(INFO) << "Partition: " << partition_name << " Need Wait To Sync";
   delete task_arg;
 }
@@ -237,7 +238,8 @@ void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
   const InnerMessage::InnerResponse_RemoveSlaveNode remove_slave_node_response = response->remove_slave_node();
-  const InnerMessage::Partition partition_response = remove_slave_node_response.partition();
+  const InnerMessage::Partition partition_res = remove_slave_node_response.partition();
+  const InnerMessage::Node node_res = remove_slave_node_response.node();
 
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
@@ -245,9 +247,20 @@ void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
     delete task_arg;
     return;
   }
-  LOG(INFO) << "Master remove slave node success"
-    << ", table name:" << partition_response.table_name()
-    << ", partition id:" << partition_response.partition_id();
+  Status s = g_pika_rm->RemoveSyncSlavePartition(RmNode(node_res.ip(),
+        node_res.port(), partition_res.table_name(), partition_res.partition_id()));
+  if (s.ok()) {
+    LOG(INFO) << "Master remove slave node success"
+      << ", ip_port:" << node_res.ip() << ":" << node_res.port()
+      << ", table name:" << partition_res.table_name()
+      << ", partition id:" << partition_res.partition_id();
+  } else {
+    LOG(WARNING) << "Master remove slave node failed"
+      << ", ip_port:" << node_res.ip() << ":" << node_res.port()
+      << ", table name:" << partition_res.table_name()
+      << ", partition id:" << partition_res.partition_id()
+      << ", " << s.ToString();
+  }
   delete task_arg;
 }
 

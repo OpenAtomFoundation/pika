@@ -536,8 +536,7 @@ Status SyncSlavePartition::CheckSyncTimeout(uint64_t now, bool* del) {
     LOG(WARNING) << "Partition: " << m_info_.TableName()
       << ":" << m_info_.PartitionId() << " Not Found";
   } else {
-    if (partition->State() != ReplState::kStopSync
-      && m_info_.LastRecvTime() + kRecvKeepAliveTimeout < now) {
+    if (m_info_.LastRecvTime() + kRecvKeepAliveTimeout < now) {
       partition->SetReplState(ReplState::kTryConnect);
       g_pika_server->SetLoopPartitionStateMachine(true);
       *del = true;

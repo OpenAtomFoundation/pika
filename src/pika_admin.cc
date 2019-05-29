@@ -147,7 +147,7 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   Status s;
   if (is_noone_) {
     if (db_partition->State() == ReplState::kConnected) {
-      db_partition->SetReplState(ReplState::kStopSync);
+      db_partition->SetReplState(ReplState::kNoConnect);
       s = g_pika_server->SendRemoveSlaveNodeRequest(
               db_partition->GetTableName(), db_partition->GetPartitionId());
     }
@@ -731,8 +731,8 @@ void InfoCmd::InfoReplication(std::string& info) {
       if (patition_item.second->State() != ReplState::kConnected) {
         all_partition_sync = false;
         out_of_sync << "(" << patition_item.second->GetPartitionName() << ":";
-        if (patition_item.second->State() == ReplState::kStopSync) {
-          out_of_sync << "Stop)";
+        if (patition_item.second->State() == ReplState::kNoConnect) {
+          out_of_sync << "NoConnect)";
         } else if (patition_item.second->State() == ReplState::kWaitDBSync) {
           out_of_sync << "WaitDBSync)";
         } else if (patition_item.second->State() == ReplState::kError) {
