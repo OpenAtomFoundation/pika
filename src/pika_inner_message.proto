@@ -1,11 +1,12 @@
 package InnerMessage;
 
 enum Type {
-  kMetaSync    = 1;
-  kTrySync     = 2;
-  kDBSync      = 3;
-  kBinlogSync  = 4;
-  kHeatBeat    = 5;
+  kMetaSync        = 1;
+  kTrySync         = 2;
+  kDBSync          = 3;
+  kBinlogSync      = 4;
+  kHeatBeat        = 5;
+  kRemoveSlaveNode = 6;
 }
 
 enum StatusCode {
@@ -60,11 +61,17 @@ message InnerRequest {
     required bool         first_send      = 7;
   }
 
-  required Type        type         = 1;
-  optional MetaSync    meta_sync    = 2;
-  optional TrySync     try_sync     = 3;
-  optional DBSync      db_sync      = 4;
-  optional BinlogSync  binlog_sync  = 5;
+  message RemoveSlaveNode {
+    required Node         node            = 1;
+    required Partition    partition       = 2;
+  }
+
+  required Type            type              = 1;
+  optional MetaSync        meta_sync         = 2;
+  optional TrySync         try_sync          = 3;
+  optional DBSync          db_sync           = 4;
+  optional BinlogSync      binlog_sync       = 5;
+  optional RemoveSlaveNode remove_slave_node = 6;
 }
 
 message PartitionInfo {
@@ -93,15 +100,15 @@ message InnerResponse {
       kSyncPointLarger   = 3;
       kError             = 4;
     }
-    required ReplyCode    reply_code    = 1;
-    required Partition    partition     = 2;
-    optional BinlogOffset binlog_offset = 3;
-    optional int32        session_id    = 4;
+    required ReplyCode    reply_code      = 1;
+    required Partition    partition       = 2;
+    optional BinlogOffset binlog_offset   = 3;
+    optional int32        session_id      = 4;
   }
 
   message DBSync {
-    required Partition partition  = 1;
-    required int32     session_id = 2;
+    required Partition    partition       = 1;
+    required int32        session_id      = 2;
   }
 
   // master to slave
@@ -112,11 +119,16 @@ message InnerResponse {
     required int32          session_id    = 4;
   }
 
-  required Type       type         = 1;
-  required StatusCode code         = 2;
-  optional string     reply        = 3;
-  optional MetaSync   meta_sync    = 4;
-  optional DBSync     db_sync      = 5;
-  optional TrySync    try_sync     = 6;
-  repeated BinlogSync binlog_sync  = 7;
+  message RemoveSlaveNode {
+    required Partition    partition       = 1;
+  }
+
+  required Type            type              = 1;
+  required StatusCode      code              = 2;
+  optional string          reply             = 3;
+  optional MetaSync        meta_sync         = 4;
+  optional DBSync          db_sync           = 5;
+  optional TrySync         try_sync          = 6;
+  repeated BinlogSync      binlog_sync       = 7;
+  optional RemoveSlaveNode remove_slave_node = 8;
 }

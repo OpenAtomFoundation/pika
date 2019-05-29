@@ -16,6 +16,7 @@
 //Constant for command name
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";
+const std::string kCmdNameDbSlaveof = "dbslaveof";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameCompact = "compact";

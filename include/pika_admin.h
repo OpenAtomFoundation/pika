@@ -36,6 +36,24 @@ class SlaveofCmd : public Cmd {
   }
 };
 
+class DbSlaveofCmd : public Cmd {
+ public:
+  DbSlaveofCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+
+ private:
+  std::string db_name_;
+  bool is_noone_;
+  int64_t filenum_;
+  int64_t offset_;
+  virtual void DoInitial() override;
+  virtual void Clear() {
+    db_name_.clear();
+    is_noone_ = false;
+  }
+};
+
 class AuthCmd : public Cmd {
  public:
   AuthCmd(const std::string& name, int arity, uint16_t flag)

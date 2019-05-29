@@ -36,7 +36,8 @@ enum ReplState {
   kWaitDBSync = 3,
   kWaitReply  = 4,
   kConnected  = 5,
-  kError      = 6
+  kStopSync   = 6,
+  kError      = 7
 };
 
 // debug only

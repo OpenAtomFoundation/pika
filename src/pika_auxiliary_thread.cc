@@ -22,7 +22,7 @@ void* PikaAuxiliaryThread::ThreadMain() {
     if (g_pika_server->ShouldMetaSync()) {
       g_pika_server->SendMetaSyncRequest();
     } else if (g_pika_server->MetaSyncDone()) {
-      if (!g_pika_server->AllPartitionConnectSuccess()) {
+      if (g_pika_server->LoopPartitionStateMachine()) {
         RunEveryPartitionStateMachine();
       }
     }
@@ -52,7 +52,7 @@ void* PikaAuxiliaryThread::ThreadMain() {
 }
 
 void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
-  int total = 0, connected = 0;
+  int total = 0, count = 0;
   std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
   for (const auto& table : table_structs) {
     for (size_t idx = 0; idx < table.partition_num; ++idx) {
@@ -78,13 +78,14 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
         continue;
       } else if (partition->State() == ReplState::kWaitDBSync) {
         partition->TryUpdateMasterOffset();
-      } else if (partition->State() == ReplState::kConnected) {
-        connected++;
+      } else if (partition->State() == ReplState::kConnected
+          || partition->State() == ReplState::kStopSync) {
+        count++;
       }
     }
   }
 
-  if (total == connected) {
-    g_pika_server->SetAllPartitionConnectSuccess(true);
+  if (total == count) {
+    g_pika_server->SetLoopPartitionStateMachine(false);
   }
 }

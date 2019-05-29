@@ -21,6 +21,7 @@ class PikaReplClientConn: public pink::PbConn {
   static void HandleMetaSyncResponse(void* arg);
   static void HandleDBSyncResponse(void* arg);
   static void HandleTrySyncResponse(void* arg);
+  static void HandleRemoveSlaveNodeResponse(void* arg);
   static bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
                                       const std::vector<TableStruct>& expect_tables);
   int DealMessage() override;
