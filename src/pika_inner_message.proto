@@ -120,7 +120,8 @@ message InnerResponse {
   }
 
   message RemoveSlaveNode {
-    required Partition    partition       = 1;
+    required Node         node            = 1;
+    required Partition    partition       = 2;
   }
 
   required Type            type              = 1;
