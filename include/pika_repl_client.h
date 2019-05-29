@@ -97,6 +97,8 @@ class PikaReplClient {
                                  const BinlogOffset& ack_start,
                                  const BinlogOffset& ack_end,
                                  bool is_frist_send);
+  Status SendRemoveSlaveNode(const std::string& table_name,
+                             uint32_t partition_id);
  private:
   size_t GetHashIndex(std::string key, bool upper_half);
   void UpdateNextAvail() {
