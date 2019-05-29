@@ -129,6 +129,7 @@ class PikaServer {
   bool GetTablePartitionBinlogOffset(const std::string& table_name,
                                      uint32_t partition_id,
                                      BinlogOffset* const boffset);
+  std::shared_ptr<Partition> GetPartitionByDbName(const std::string& db_name);
   std::shared_ptr<Partition> GetTablePartitionById(
                                   const std::string& table_name,
                                   uint32_t partition_id);
@@ -165,7 +166,8 @@ class PikaServer {
   bool MetaSyncDone();
   void ResetMetaSyncStatus();
   bool AllPartitionConnectSuccess();
-  void SetAllPartitionConnectSuccess(bool success);
+  bool LoopPartitionStateMachine();
+  void SetLoopPartitionStateMachine(bool need_loop);
 
   /*
    * ThreadPool Process Task
@@ -256,6 +258,7 @@ class PikaServer {
   Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
                                            const BinlogOffset& ack_start, const BinlogOffset& ack_end,
                                            bool is_frist_send = false);
+  Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t partition_id);
 
   /*
    * PubSub used
@@ -326,7 +329,7 @@ class PikaServer {
   int repl_state_;
   int role_;
   int last_meta_sync_timestamp_;
-  bool all_patition_connected_success_;
+  bool loop_partition_state_machine_;
   bool force_full_sync_;
   pthread_rwlock_t state_protector_; //protect below, use for master-slave mode
 

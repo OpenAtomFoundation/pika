@@ -239,3 +239,28 @@ Status PikaReplClient::SendPartitionBinlogSync(const std::string& table_name,
   }
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
+
+Status PikaReplClient::SendRemoveSlaveNode(const std::string& table_name,
+                                           uint32_t partition_id) {
+  InnerMessage::InnerRequest request;
+  request.set_type(InnerMessage::kRemoveSlaveNode);
+  InnerMessage::InnerRequest::RemoveSlaveNode* remove_slave_node =
+      request.mutable_remove_slave_node();
+  InnerMessage::Node* node = remove_slave_node->mutable_node();
+  node->set_ip(local_ip_);
+  node->set_port(local_port_);
+
+  InnerMessage::Partition* partition = remove_slave_node->mutable_partition();
+  partition->set_table_name(table_name);
+  partition->set_partition_id(partition_id);
+
+  std::string to_send;
+  std::string master_ip = g_pika_server->master_ip();
+  int master_port = g_pika_server->master_port();
+  if (!request.SerializeToString(&to_send)) {
+    LOG(WARNING) << "Serialize Remove Slave Node Failed, to Master ("
+      << master_ip << ":" << master_port << "), " << table_name << "_" << partition_id;
+    return Status::Corruption("Serialize Failed");
+  }
+  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
+}

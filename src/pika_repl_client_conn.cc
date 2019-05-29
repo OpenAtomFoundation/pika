@@ -68,6 +68,12 @@ int PikaReplClientConn::DealMessage() {
       DispatchBinlogRes(response);
       break;
     }
+    case InnerMessage::kRemoveSlaveNode:
+    {
+      ReplClientTaskArg* task_arg = new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
+      g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleRemoveSlaveNodeResponse, static_cast<void*>(task_arg));
+      break;
+    }
     default:
       break;
   }
@@ -152,7 +158,6 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
         g_pika_server->master_port(), table_name, partition_id, session_id));
 
   std::string partition_name = partition->GetPartitionName();
-  partition->SetReplState(ReplState::kWaitDBSync);
   LOG(INFO) << "Partition: " << partition_name << " Need Wait To Sync";
   delete task_arg;
 }
@@ -225,5 +230,24 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
         std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),
         reinterpret_cast<void*>(binlog_nums.second));
   }
+}
+
+void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
+  ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
+  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
+  const InnerMessage::InnerResponse_RemoveSlaveNode remove_slave_node_response = response->remove_slave_node();
+  const InnerMessage::Partition partition_response = remove_slave_node_response.partition();
+
+  if (response->code() != InnerMessage::kOk) {
+    std::string reply = response->has_reply() ? response->reply() : "";
+    LOG(WARNING) << "Remove slave node Failed: " << reply;
+    delete task_arg;
+    return;
+  }
+  LOG(INFO) << "Master remove slave node success"
+    << ", table name:" << partition_response.table_name()
+    << ", partition id:" << partition_response.partition_id();
+  delete task_arg;
 }
 

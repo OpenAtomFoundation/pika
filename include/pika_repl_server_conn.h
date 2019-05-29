@@ -22,6 +22,7 @@ class PikaReplServerConn: public pink::PbConn {
   static void HandleTrySyncRequest(void* arg);
   static void HandleDBSyncRequest(void* arg);
   static void HandleBinlogSyncRequest(void* arg);
+  static void HandleRemoveSlaveNodeRequest(void* arg);
 
   int DealMessage();
 };

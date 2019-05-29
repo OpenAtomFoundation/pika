@@ -51,7 +51,7 @@ PikaServer::PikaServer() :
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
   last_meta_sync_timestamp_(0),
-  all_patition_connected_success_(false),
+  loop_partition_state_machine_(false),
   force_full_sync_(false),
   slowlog_entry_id_(0) {
 
@@ -522,6 +522,7 @@ void PikaServer::PreparePartitionTrySync() {
     }
   }
   force_full_sync_ = false;
+  loop_partition_state_machine_ = true;
   LOG(INFO) << "Mark try connect finish";
 }
 
@@ -569,9 +570,6 @@ bool PikaServer::PartitionCouldPurge(const std::string& table_name,
       if (index >= acked_slave_boffset.filenum) {
         return false;
       }
-    } else {
-      // One BinlogSyncCtl has not yet created, no purge
-      return false;
     }
   }
   return true;
@@ -586,6 +584,12 @@ bool PikaServer::GetTablePartitionBinlogOffset(const std::string& table_name,
   } else {
     return partition->GetBinlogOffset(boffset);
   }
+}
+
+// Only use in classic mode
+std::shared_ptr<Partition> PikaServer::GetPartitionByDbName(const std::string& db_name) {
+  std::shared_ptr<Table> table = GetTable(db_name);
+  return table ? table->GetPartitionById(0) : NULL;
 }
 
 std::shared_ptr<Partition> PikaServer::GetTablePartitionById(
@@ -738,7 +742,7 @@ void PikaServer::RemoveMaster() {
     if (master_ip_ != "" && master_port_ != -1) {
       g_pika_rm->GetPikaReplClient()->Close(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->LostConnection(master_ip_, master_port_);
-      all_patition_connected_success_ = false;
+      loop_partition_state_machine_ = false;
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
 
@@ -786,20 +790,34 @@ void PikaServer::ResetMetaSyncStatus() {
     // continue to connect master
     repl_state_ = PIKA_REPL_SHOULD_META_SYNC;
     last_meta_sync_timestamp_ = 0;
-    all_patition_connected_success_ = false;
+    loop_partition_state_machine_ = false;
     DoSameThingEveryPartition(TaskType::kResetReplState);
   }
 }
 
 bool PikaServer::AllPartitionConnectSuccess() {
-  slash::RWLock sp_l(&state_protector_, false);
-  return all_patition_connected_success_;
+  bool all_partition_connect_success = true;
+  slash::RWLock rwl(&tables_rw_, false);
+  for (const auto& table_item : tables_) {
+    for (const auto& partition_item : table_item.second->partitions_) {
+      if (partition_item.second->State() != ReplState::kConnected) {
+        all_partition_connect_success = false;
+        break;
+      }
+    }
+  }
+  return all_partition_connect_success;
 }
 
-void PikaServer::SetAllPartitionConnectSuccess(bool success) {
+bool PikaServer::LoopPartitionStateMachine() {
+  slash::RWLock sp_l(&state_protector_, false);
+  return loop_partition_state_machine_;
+}
+
+void PikaServer::SetLoopPartitionStateMachine(bool need_loop) {
   slash::RWLock sp_l(&state_protector_, true);
   assert(repl_state_ == PIKA_REPL_META_SYNC_DONE);
-  all_patition_connected_success_ = success;
+  loop_partition_state_machine_ = need_loop;
 }
 
 void PikaServer::Schedule(pink::TaskFunc func, void* arg) {
@@ -1181,7 +1199,7 @@ Status PikaServer::SendPartitionDBSyncRequest(std::shared_ptr<Partition> partiti
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
   Status status = g_pika_rm->GetPikaReplClient()->SendPartitionDBSync(table_name, partition_id, boffset);
-  partition->SetReplState(ReplState::kWaitReply);
+  partition->SetReplState(ReplState::kWaitDBSync);
   return status;
 }
 
@@ -1205,6 +1223,11 @@ Status PikaServer::SendPartitionBinlogSyncAckRequest(const std::string& table,
                                                      const BinlogOffset& ack_end,
                                                      bool is_first_send) {
   return g_pika_rm->GetPikaReplClient()->SendPartitionBinlogSync(table, partition_id, ack_start, ack_end, is_first_send);
+}
+
+Status PikaServer::SendRemoveSlaveNodeRequest(const std::string& table,
+                                              uint32_t partition_id) {
+  return g_pika_rm->GetPikaReplClient()->SendRemoveSlaveNode(table, partition_id);
 }
 
 int PikaServer::PubSubNumPat() {
