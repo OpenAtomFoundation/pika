@@ -518,7 +518,13 @@ void PikaServer::PreparePartitionTrySync() {
   for (const auto& table_item : tables_) {
     for (const auto& partition_item : table_item.second->partitions_) {
       partition_item.second->SetFullSync(force_full_sync_);
-      partition_item.second->SetReplState(ReplState::kTryConnect);
+      Status s = g_pika_rm->SetSlaveReplState(
+          RmNode(table_item.second->GetTableName(),
+            partition_item.second->GetPartitionId()),
+          ReplState::kTryConnect);
+      if (!s.ok()) {
+        LOG(WARNING) << s.ToString();
+      }
     }
   }
   force_full_sync_ = false;
@@ -612,8 +618,16 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
     for (const auto& partition_item : table_item.second->partitions_) {
       switch (type) {
         case TaskType::kResetReplState:
-          partition_item.second->SetReplState(ReplState::kNoConnect);
-          break;
+          {
+            Status s = g_pika_rm->SetSlaveReplState(
+                RmNode(table_item.second->GetTableName(),
+                  partition_item.second->GetPartitionId()),
+                ReplState::kNoConnect);
+            if (!s.ok()) {
+              LOG(WARNING) << s.ToString();
+            }
+            break;
+          }
         case TaskType::kPurgeLog:
           partition_item.second->PurgeLogs();
           break;
@@ -800,7 +814,14 @@ bool PikaServer::AllPartitionConnectSuccess() {
   slash::RWLock rwl(&tables_rw_, false);
   for (const auto& table_item : tables_) {
     for (const auto& partition_item : table_item.second->partitions_) {
-      if (partition_item.second->State() != ReplState::kConnected) {
+      ReplState repl_state;
+      Status s = g_pika_rm->GetSlaveReplState(
+          RmNode(table_item.second->GetTableName(), partition_item.second->GetPartitionId()),
+          &repl_state);
+      if (!s.ok()) {
+        return false;
+      }
+      if (repl_state != ReplState::kConnected) {
         all_partition_connect_success = false;
         break;
       }
@@ -1199,7 +1220,24 @@ Status PikaServer::SendPartitionDBSyncRequest(std::shared_ptr<Partition> partiti
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
   Status status = g_pika_rm->GetPikaReplClient()->SendPartitionDBSync(table_name, partition_id, boffset);
-  partition->SetReplState(ReplState::kWaitReply);
+  if (!status.ok()) {
+    LOG(WARNING) << "SendPartitionDbSync failed " << status.ToString();
+  }
+
+  ReplState state;
+  if (status.ok()) {
+    state = ReplState::kWaitReply;
+  } else {
+    state = ReplState::kError;
+  }
+
+  Status s = g_pika_rm->SetSlaveReplState(
+      RmNode(table_name, partition_id),
+      state);
+  if (!s.ok()) {
+    LOG(WARNING) << s.ToString();
+  }
+
   return status;
 }
 
@@ -1213,7 +1251,23 @@ Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partit
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
   Status status = g_pika_rm->GetPikaReplClient()->SendPartitionTrySync(table_name, partition_id, boffset);
-  partition->SetReplState(ReplState::kWaitReply);
+  if (!status.ok()) {
+    LOG(WARNING) << "SendPartitionTrySyncRequest failed " << status.ToString();
+  }
+
+  ReplState state;
+  if (status.ok()) {
+    state = ReplState::kWaitReply;
+  } else {
+    state = ReplState::kError;
+  }
+
+  Status s = g_pika_rm->SetSlaveReplState(
+      RmNode(table_name, partition_id),
+      state);
+  if (!s.ok()) {
+    LOG(WARNING) << s.ToString();
+  }
   return status;
 }
 
