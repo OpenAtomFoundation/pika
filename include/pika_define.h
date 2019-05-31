@@ -212,6 +212,12 @@ class RmNode : public Node {
         session_id_(0),
         last_send_time_(0),
         last_recv_time_(0) {}
+  RmNode()
+      : Node(),
+      partition_info_(),
+      session_id_(0),
+      last_send_time_(0),
+      last_recv_time_(0) {}
 
   virtual ~RmNode() = default;
   bool operator==(const RmNode& other) const {
