@@ -64,7 +64,14 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
           << table.table_name << " Partition Id: " << idx;
         continue;
       }
-      if (partition->State() == ReplState::kTryConnect) {
+      std::shared_ptr<SyncSlavePartition> slave_partition =
+        g_pika_rm->GetSyncSlavePartitionByName(RmNode(table.table_name, idx));
+      if (!slave_partition) {
+        LOG(WARNING) << "Slave Partition not found, Table Name: "
+          << table.table_name << " Partition Id: " << idx;
+        continue;
+      }
+      if (slave_partition->State() == ReplState::kTryConnect) {
         // If partition need to FullSync, we Send DBSync Request
         // directly, instead of TrySync first
         if (partition->FullSync()) {
@@ -72,14 +79,14 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
         } else {
           g_pika_server->SendPartitionTrySyncRequest(partition);
         }
-      } else if (partition->State() == ReplState::kTryDBSync) {
+      } else if (slave_partition->State() == ReplState::kTryDBSync) {
         g_pika_server->SendPartitionDBSyncRequest(partition);
-      } else if (partition->State() == ReplState::kWaitReply) {
+      } else if (slave_partition->State() == ReplState::kWaitReply) {
         continue;
-      } else if (partition->State() == ReplState::kWaitDBSync) {
+      } else if (slave_partition->State() == ReplState::kWaitDBSync) {
         partition->TryUpdateMasterOffset();
-      } else if (partition->State() == ReplState::kConnected
-          || partition->State() == ReplState::kNoConnect) {
+      } else if (slave_partition->State() == ReplState::kConnected
+          || slave_partition->State() == ReplState::kNoConnect) {
         count++;
       }
     }

@@ -165,12 +165,18 @@ class SyncMasterPartition : public SyncPartition {
 
 class SyncSlavePartition : public SyncPartition {
  public:
-  SyncSlavePartition(const std::string& table_name, uint32_t partition_id, const RmNode& master);
+  SyncSlavePartition(const std::string& table_name, uint32_t partition_id);
 
-  Status SetLastRecvTime(uint64_t time);
-  Status GetLastRecvTime(uint64_t* time);
+  void Activate(const RmNode& master);
+  void Deactivate();
 
-  Status CheckSyncTimeout(uint64_t now, bool* to_del);
+  void SetLastRecvTime(uint64_t time);
+  uint64_t LastRecvTime();
+
+  void SetReplState(const ReplState& repl_state);
+  ReplState State();
+
+  Status CheckSyncTimeout(uint64_t now);
 
   std::string ToStringStatus();
 
@@ -213,11 +219,11 @@ class PikaReplicaManager {
   PikaReplClient* GetPikaReplClient();
   PikaReplServer* GetPikaReplServer();
 
-  Status AddSyncMasterPartition(const std::string& table_name, uint32_t partition_id);
-  Status RemoveSyncMasterPartition(const std::string& table_name, uint32_t partition_id);
-
-  Status AddSyncSlavePartition(const RmNode& node);
-  Status RemoveSyncSlavePartition(const RmNode& node);
+  std::shared_ptr<SyncSlavePartition> GetSyncSlavePartitionByName(const RmNode& node);
+  Status ActivateSyncSlavePartition(const RmNode& node);
+  Status DeactivateSyncSlavePartition(const RmNode& node);
+  Status SetSlaveReplState(const RmNode& node, const ReplState& repl_state);
+  Status GetSlaveReplState(const RmNode& node, ReplState* repl_state);
 
   Status SetMasterLastRecvTime(const RmNode& slave, uint64_t time);
   Status SetSlaveLastRecvTime(const RmNode& slave, uint64_t time);
@@ -277,6 +283,12 @@ class PikaReplicaManager {
   BinlogReaderManager binlog_reader_mgr;
 
  private:
+  Status AddSyncMasterPartition(const std::string& table_name, uint32_t partition_id);
+  Status RemoveSyncMasterPartition(const std::string& table_name, uint32_t partition_id);
+
+  Status AddSyncSlavePartition(const std::string& table_name, uint32_t partition_id);
+  Status RemoveSyncSlavePartition(const std::string& table_name, uint32_t partition_id);
+
   void InitPartition();
 
   pthread_rwlock_t partitions_rw_;

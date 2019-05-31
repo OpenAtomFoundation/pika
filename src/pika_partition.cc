@@ -9,9 +9,11 @@
 
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
+#include "include/pika_rm.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 
 std::string PartitionPath(const std::string& table_path,
                           uint32_t partition_id) {
@@ -57,7 +59,6 @@ Partition::Partition(const std::string& table_name,
   table_name_(table_name),
   partition_id_(partition_id),
   binlog_io_error_(false),
-  repl_state_(ReplState::kNoConnect),
   full_sync_(false),
   bgsave_engine_(NULL),
   purging_(false) {
@@ -81,7 +82,6 @@ Partition::Partition(const std::string& table_name,
           PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
 
   pthread_rwlock_init(&db_rwlock_, &attr);
-  pthread_rwlock_init(&state_rwlock_, &attr);
 
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
@@ -99,7 +99,6 @@ Partition::~Partition() {
   Close();
   delete bgsave_engine_;
   pthread_rwlock_destroy(&db_rwlock_);
-  pthread_rwlock_destroy(&state_rwlock_);
 }
 
 void Partition::Leave() {
@@ -261,16 +260,6 @@ bool Partition::SetBinlogOffset(const BinlogOffset& boffset) {
   return false;
 }
 
-ReplState Partition::State() {
-  slash::RWLock rwl(&state_rwlock_, false);
-  return repl_state_;
-}
-
-void Partition::SetReplState(const ReplState& state) {
-  slash::RWLock rwl(&state_rwlock_, true);
-  repl_state_ = state;
-}
-
 bool Partition::FullSync() {
   return full_sync_;
 }
@@ -300,12 +289,19 @@ bool Partition::TryUpdateMasterOffset() {
     return false;
   }
 
+  std::shared_ptr<SyncSlavePartition> slave_partition =
+    g_pika_rm->GetSyncSlavePartitionByName(RmNode(table_name_, partition_id_));
+  if (!slave_partition) {
+    LOG(WARNING) << "Slave Partition: " << partition_name_ << " not exist";
+    return false;
+  }
+
   // Got new binlog offset
   std::ifstream is(info_path);
   if (!is) {
     LOG(WARNING) << "Partition: " << partition_name_
         << ", Failed to open info file after db sync";
-    SetReplState(ReplState::kError);
+    slave_partition->SetReplState(ReplState::kError);
     return false;
   }
   std::string line, master_ip;
@@ -320,7 +316,7 @@ bool Partition::TryUpdateMasterOffset() {
         LOG(WARNING) << "Partition: " << partition_name_
             << ", Format of info file after db sync error, line : " << line;
         is.close();
-        SetReplState(ReplState::kError);
+        slave_partition->SetReplState(ReplState::kError);
         return false;
       }
       if (lineno == 3) { master_port = tmp; }
@@ -331,7 +327,7 @@ bool Partition::TryUpdateMasterOffset() {
       LOG(WARNING) << "Partition: " << partition_name_
           << ", Format of info file after db sync error, line : " << line;
       is.close();
-      SetReplState(ReplState::kError);
+      slave_partition->SetReplState(ReplState::kError);
       return false;
     }
   }
@@ -348,7 +344,7 @@ bool Partition::TryUpdateMasterOffset() {
       master_port != g_pika_server->master_port()) {
     LOG(WARNING) << "Partition: " << partition_name_
         << " Error master ip port: " << master_ip << ":" << master_port;
-    SetReplState(ReplState::kError);
+    slave_partition->SetReplState(ReplState::kError);
     return false;
   }
 
@@ -356,14 +352,14 @@ bool Partition::TryUpdateMasterOffset() {
   if (!ChangeDb(dbsync_path_)) {
     LOG(WARNING) << "Partition: " << partition_name_
         << ", Failed to change db";
-    SetReplState(ReplState::kError);
+    slave_partition->SetReplState(ReplState::kError);
     return false;
   }
 
   // Update master offset
   logger_->SetProducerStatus(filenum, offset);
   full_sync_ = false;
-  SetReplState(ReplState::kTryConnect);
+  slave_partition->SetReplState(ReplState::kTryConnect);
   return true;
 }
 

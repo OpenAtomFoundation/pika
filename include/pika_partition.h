@@ -125,8 +125,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   slash::RecordMutex mutex_record_;
   std::shared_ptr<blackwidow::BlackWidow> db_;
 
-  pthread_rwlock_t state_rwlock_;  // protect partition status below
-  ReplState repl_state_;
   bool full_sync_;
 
   /*
