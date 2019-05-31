@@ -1220,20 +1220,14 @@ Status PikaServer::SendPartitionDBSyncRequest(std::shared_ptr<Partition> partiti
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
   Status status = g_pika_rm->GetPikaReplClient()->SendPartitionDBSync(table_name, partition_id, boffset);
-  if (!status.ok()) {
-    LOG(WARNING) << "SendPartitionDbSync failed " << status.ToString();
-  }
 
-  ReplState state;
+  Status s;
   if (status.ok()) {
-    state = ReplState::kWaitReply;
+    s = g_pika_rm->SetSlaveReplState(RmNode(table_name, partition_id), ReplState::kWaitReply);
   } else {
-    state = ReplState::kError;
+    LOG(WARNING) << "SendPartitionDbSync failed " << status.ToString();
+    s = g_pika_rm->SetSlaveReplState(RmNode(table_name, partition_id), ReplState::kError);
   }
-
-  Status s = g_pika_rm->SetSlaveReplState(
-      RmNode(table_name, partition_id),
-      state);
   if (!s.ok()) {
     LOG(WARNING) << s.ToString();
   }
@@ -1251,23 +1245,18 @@ Status PikaServer::SendPartitionTrySyncRequest(std::shared_ptr<Partition> partit
   std::string table_name = partition->GetTableName();
   uint32_t partition_id = partition->GetPartitionId();
   Status status = g_pika_rm->GetPikaReplClient()->SendPartitionTrySync(table_name, partition_id, boffset);
-  if (!status.ok()) {
-    LOG(WARNING) << "SendPartitionTrySyncRequest failed " << status.ToString();
-  }
 
-  ReplState state;
+  Status s;
   if (status.ok()) {
-    state = ReplState::kWaitReply;
+    s = g_pika_rm->SetSlaveReplState(RmNode(table_name, partition_id), ReplState::kWaitReply);
   } else {
-    state = ReplState::kError;
+    LOG(WARNING) << "SendPartitionTrySyncRequest failed " << status.ToString();
+    s = g_pika_rm->SetSlaveReplState(RmNode(table_name, partition_id), ReplState::kError);
   }
-
-  Status s = g_pika_rm->SetSlaveReplState(
-      RmNode(table_name, partition_id),
-      state);
   if (!s.ok()) {
     LOG(WARNING) << s.ToString();
   }
+
   return status;
 }
 
@@ -1354,7 +1343,7 @@ void PikaServer::AutoCompactRange() {
       now.tv_sec - last_check_compact_time_.tv_sec >= interval * 3600) {
       gettimeofday(&last_check_compact_time_, NULL);
       if (((double)free_size / total_size) * 100 >= usage) {
-        Status s = DoSameThingEveryPartition(TaskType::kCompactAll);
+        Status s = DoSameThingSpecificTable(TaskType::kCompactAll);
         if (s.ok()) {
           LOG(INFO) << "[Interval]schedule compactRange, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
         } else {
