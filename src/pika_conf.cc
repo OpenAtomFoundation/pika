@@ -204,7 +204,7 @@ int PikaConf::Load()
   // max_write_buffer_size
   GetConfInt64("max-write-buffer-size", &max_write_buffer_size_);
   if (max_write_buffer_size_ <= 0) {
-    max_write_buffer_size_ = 2147483648;  // 2Gb
+    max_write_buffer_size_ = 10737418240;  // 10Gb
   }
 
   // target_file_size_base
