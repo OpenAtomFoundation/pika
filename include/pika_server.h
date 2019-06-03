@@ -108,7 +108,6 @@ class PikaServer {
    * Table use
    */
   void InitTableStruct();
-  bool RebuildTableStruct(const std::vector<TableStruct>& table_structs);
   std::shared_ptr<Table> GetTable(const std::string& table_name);
   bool IsBgSaving();
   bool IsKeyScaning();
