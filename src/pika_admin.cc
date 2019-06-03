@@ -175,6 +175,106 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   }
 }
 
+void SlotParentCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kSyntaxErr);
+    return;
+  }
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "AddSlots/RemoveSlots only support on sharding mode");
+    return;
+  }
+
+  int64_t slot_idx, start_idx, end_idx;
+  std::string::size_type pos;
+  std::vector<std::string> elems;
+  slash::StringSplit(argv_[1], COMMA, elems);
+  for (const auto& elem :  elems) {
+    if ((pos = elem.find("-")) == std::string::npos) {
+      if (!slash::string2l(elem.data(), elem.size(), &slot_idx)
+        || slot_idx < 0) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;
+      } else {
+        slots_.insert(static_cast<uint32_t>(slot_idx));
+      }
+    } else {
+      if (pos == 0 || pos == (elem.size() - 1)) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;
+      } else {
+        std::string start_pos = elem.substr(0, pos);
+        std::string end_pos = elem.substr(pos + 1, elem.size() - pos);
+        if (!slash::string2l(start_pos.data(), start_pos.size(), &start_idx)
+          || !slash::string2l(end_pos.data(), end_pos.size(), &end_idx)
+          || start_idx < 0 || end_idx < 0 || start_idx > end_idx) {
+          res_.SetRes(CmdRes::kSyntaxErr);
+          return;
+        }
+        for (int64_t idx = start_idx; idx <= end_idx; ++idx) {
+          slots_.insert(static_cast<uint32_t>(idx));
+        }
+      }
+    }
+  }
+}
+
+/*
+ * addslots 0-3,8-11
+ * addslots 0-3,8,9,10,11
+ * addslots 0,2,4,6,8,10,12,14
+ */
+void AddSlotsCmd::DoInitial() {
+  SlotParentCmd::DoInitial();
+  if (!res_.ok()) {
+    return;
+  }
+}
+
+void AddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<Table> default_table =
+    g_pika_server->GetTable(g_pika_conf->default_table());
+  if (!default_table) {
+    res_.SetRes(CmdRes::kErrOther, "Internal error: default table not found!");
+    return;
+  }
+
+  Status s = default_table->AddPartitions(slots_);
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+/*
+ * removeslots 0-3,8-11
+ * removeslots 0-3,8,9,10,11
+ * removeslots 0,2,4,6,8,10,12,14
+ */
+void RemoveSlotsCmd::DoInitial() {
+  SlotParentCmd::DoInitial();
+  if (!res_.ok()) {
+    return;
+  }
+}
+
+void RemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<Table> default_table =
+    g_pika_server->GetTable(g_pika_conf->default_table());
+  if (!default_table) {
+    res_.SetRes(CmdRes::kErrOther, "Internal error: default table not found!");
+    return;
+  }
+
+  Status s = default_table->RemovePartitions(slots_);
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
 void AuthCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameAuth);
@@ -1108,10 +1208,18 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeString(&config_body, (g_pika_conf->classic_mode() ? "classic" : "sharding"));
   }
 
-  if (slash::stringmatch(pattern.data(), "databases", 1)) {
+  if (g_pika_conf->classic_mode()
+    && slash::stringmatch(pattern.data(), "databases", 1)) {
     elements += 2;
     EncodeString(&config_body, "databases");
     EncodeInt32(&config_body, g_pika_conf->databases());
+  }
+
+  if (!g_pika_conf->classic_mode()
+    && slash::stringmatch(pattern.data(), "default-partition-num", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "default-partition-num");
+    EncodeInt32(&config_body, g_pika_conf->default_partition_num());
   }
 
   if (slash::stringmatch(pattern.data(), "daemonize", 1)) {

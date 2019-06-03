@@ -54,8 +54,7 @@ std::string DbSyncPath(const std::string& sync_path,
 Partition::Partition(const std::string& table_name,
                      uint32_t partition_id,
                      const std::string& table_db_path,
-                     const std::string& table_log_path,
-                     const std::string& table_trash_path) :
+                     const std::string& table_log_path) :
   table_name_(table_name),
   partition_id_(partition_id),
   binlog_io_error_(false),
@@ -67,8 +66,6 @@ Partition::Partition(const std::string& table_name,
       table_db_path : PartitionPath(table_db_path, partition_id_);
   log_path_ = g_pika_conf->classic_mode() ?
       table_log_path : PartitionPath(table_log_path, partition_id_);
-  trash_path_ = g_pika_conf->classic_mode() ?
-      table_trash_path : PartitionPath(table_trash_path, partition_id_);
   bgsave_sub_path_ = g_pika_conf->classic_mode() ?
       table_name : BgsaveSubPath(table_name_, partition_id_);
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_,
@@ -123,19 +120,29 @@ void Partition::MoveToTrash() {
     return;
   }
 
-  // Move data and log to Trash
-  slash::CreatePath(trash_path_);
-  std::string db_trash(trash_path_ + "db/");
-  std::string log_trash(trash_path_ + "log/");
-
-  slash::DeleteDirIfExist(db_trash);
-  if (slash::RenameFile(db_path_.data(), db_trash.data())) {
+  std::string dbpath = db_path_;
+  if (dbpath[dbpath.length() - 1] == '/') {
+    dbpath.erase(dbpath.length() - 1);
+  }
+  dbpath.append("_deleting/");
+  if (slash::RenameFile(db_path_, dbpath.c_str())) {
     LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
+    return;
   }
-  slash::DeleteDirIfExist(log_trash);
-  if (slash::RenameFile(log_path_.data(), log_trash.data())) {
+  g_pika_server->PurgeDir(dbpath);
+
+  std::string logpath = log_path_;
+  if (logpath[logpath.length() - 1] == '/') {
+    logpath.erase(logpath.length() - 1);
+  }
+  logpath.append("_deleting/");
+  if (slash::RenameFile(log_path_, logpath.c_str())) {
     LOG(WARNING) << "Failed to move log to trash, error: " << strerror(errno);
+    return;
   }
+  g_pika_server->PurgeDir(logpath);
+
+  LOG(WARNING) << "Partition: " << partition_name_ << " move to trash success";
 }
 
 std::string Partition::GetTableName() const {
@@ -514,7 +521,7 @@ bool Partition::InitBgsaveEngine() {
       logger_->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
     }
     s = bgsave_engine_->SetBackupContent();
-    if (!s.ok()){
+    if (!s.ok()) {
       LOG(WARNING) << partition_name_ << " set backup content failed " << s.ToString();
       return false;
     }

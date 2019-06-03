@@ -669,18 +669,6 @@ void PikaReplicaManager::InitPartition() {
   }
 }
 
-Status PikaReplicaManager::RebuildPartition() {
-  slash::RWLock l(&partitions_rw_, true);
-  if (!sync_slave_partitions_.empty()) {
-    return Status::Corruption("Slave partition is NOT empty");
-  }
-  sync_master_partitions_.clear();
-  InitPartition();
-  LOG(INFO) << "Rebuild Sync Partition Success! " <<
-    "Rebuilded partition size " << sync_master_partitions_.size();
-  return Status::OK();
-}
-
 void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks) {
   slash::MutexLock l(&write_queue_mu_);
   std::string index = ip + ":" + std::to_string(port);

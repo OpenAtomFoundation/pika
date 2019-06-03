@@ -117,7 +117,9 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
         table_name = "db" + argv[1];
       }
     } else {
-      table_name = argv[1];
+      // only pika codis use sharding mode currently, but pika
+      // codis only support single db, so in sharding mode we
+      // do no thing in select command
     }
     if (g_pika_server->IsTableExist(table_name)) {
       current_table_ = table_name;
