@@ -34,8 +34,7 @@ class Table : public std::enable_shared_from_this<Table>{
   Table(const std::string& table_name,
         uint32_t partition_num,
         const std::string& db_path,
-        const std::string& log_path,
-        const std::string& trash_path);
+        const std::string& log_path);
   virtual ~Table();
 
   friend class Cmd;
@@ -49,6 +48,10 @@ class Table : public std::enable_shared_from_this<Table>{
   bool FlushPartitionSubDB(const std::string& db_name);
   bool IsBinlogIoError();
   uint32_t PartitionNum();
+
+  // Dynamic change partition
+  Status AddPartitions(const std::set<uint32_t>& partition_ids);
+  Status RemovePartitions(const std::set<uint32_t>& partition_ids);
 
   // KeyScan use;
   void KeyScan();
@@ -70,7 +73,6 @@ class Table : public std::enable_shared_from_this<Table>{
   uint32_t partition_num_;
   std::string db_path_;
   std::string log_path_;
-  std::string trash_path_;
 
   pthread_rwlock_t partitions_rw_;
   std::map<int32_t, std::shared_ptr<Partition>> partitions_;

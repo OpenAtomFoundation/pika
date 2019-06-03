@@ -19,25 +19,17 @@ std::string TablePath(const std::string& path,
 Table::Table(const std::string& table_name,
              uint32_t partition_num,
              const std::string& db_path,
-             const std::string& log_path,
-             const std::string& trash_path) :
+             const std::string& log_path) :
   table_name_(table_name),
   partition_num_(partition_num) {
 
   db_path_ = TablePath(db_path, table_name_);
   log_path_ = TablePath(log_path, "log_" + table_name_);
-  trash_path_ = TablePath(trash_path, "trash_" + table_name_);
 
   slash::CreatePath(db_path_);
   slash::CreatePath(log_path_);
 
   pthread_rwlock_init(&partitions_rw_, NULL);
-
-  for (uint32_t idx = 0; idx < partition_num_; ++idx) {
-    partitions_.emplace(idx, std::shared_ptr<Partition>(
-                new Partition(table_name_, idx, db_path_, log_path_, trash_path_)));
-  }
-
 }
 
 Table::~Table() {
@@ -100,6 +92,40 @@ bool Table::IsBinlogIoError() {
 
 uint32_t Table::PartitionNum() {
   return partition_num_;
+}
+
+Status Table::AddPartitions(const std::set<uint32_t>& partition_ids) {
+  slash::RWLock l(&partitions_rw_, true);
+  for (const uint32_t& id : partition_ids) {
+    if (id >= partition_num_) {
+      return Status::Corruption("partition index out of range[0, "
+              + std::to_string(partition_num_ - 1) + "]");
+    } else if (partitions_.find(id) != partitions_.end()) {
+      return Status::Corruption("partition "
+              + std::to_string(id) + " already exist");
+    }
+  }
+
+  for (const uint32_t& id : partition_ids) {
+    partitions_.emplace(id, std::shared_ptr<Partition>(
+        new Partition(table_name_, id, db_path_, log_path_)));
+  }
+  return Status::OK();
+}
+
+Status Table::RemovePartitions(const std::set<uint32_t>& partition_ids) {
+  slash::RWLock l(&partitions_rw_, true);
+  for (const uint32_t& id : partition_ids) {
+    if (partitions_.find(id) == partitions_.end()) {
+      return Status::Corruption("partition " + std::to_string(id) + " not found");
+    }
+  }
+
+  for (const uint32_t& id : partition_ids) {
+    partitions_[id]->Leave();
+    partitions_.erase(id);
+  }
+  return Status::OK();
 }
 
 void Table::KeyScan() {

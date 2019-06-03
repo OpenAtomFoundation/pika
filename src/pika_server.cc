@@ -363,46 +363,27 @@ blackwidow::BlackwidowOptions PikaServer::bw_options() {
 void PikaServer::InitTableStruct() {
   std::string db_path = g_pika_conf->db_path();
   std::string log_path = g_pika_conf->log_path();
-  std::string trash_path = g_pika_conf->trash_path();
   std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
   slash::RWLock rwl(&tables_rw_, true);
   for (const auto& table : table_structs) {
     std::string name = table.table_name;
     uint32_t num = table.partition_num;
-    tables_.emplace(name, std::shared_ptr<Table>(
-                new Table(name, num, db_path, log_path, trash_path)));
-  }
-}
+    std::shared_ptr<Table> table_ptr = std::shared_ptr<Table>(
+        new Table(name, num, db_path, log_path));
 
-bool PikaServer::RebuildTableStruct(const std::vector<TableStruct>& table_structs) {
-  if (IsKeyScaning()) {
-    LOG(WARNING) << "Some table in key scaning, rebuild table struct failed";
-    return false;
-  }
-
-  if (IsBgSaving()) {
-    LOG(WARNING) << "Some table in bgsaving, rebuild table struct failed";
-    return false;
-  }
-
-  {
-    slash::RWLock rwl(&tables_rw_, true);
-    for (const auto& table_item : tables_) {
-      table_item.second->LeaveAllPartition();
+    Status s;
+    if (g_pika_conf->classic_mode()) {
+      // in classic mode one db default to one partition
+      s = table_ptr->AddPartitions({0});
+    } else {
     }
-    tables_.clear();
-  }
 
-  // TODO(Axlgrep): The new table structure needs to be written back
-  // to the pika.conf file
-  g_pika_conf->SetTableStructs(table_structs);
-  InitTableStruct();
-  Status s = g_pika_rm->RebuildPartition();
-  if (!s.ok()) {
-    LOG(WARNING) << s.ToString();
-    return false;
+    if (s.ok()) {
+      tables_.emplace(name, table_ptr);
+    } else {
+      LOG(FATAL) << "Init " << name << " " << s.ToString();
+    }
   }
-  return true;
 }
 
 std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {

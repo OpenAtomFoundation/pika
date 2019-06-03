@@ -17,6 +17,8 @@
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";
 const std::string kCmdNameDbSlaveof = "dbslaveof";
+const std::string kCmdNameAddSlots = "addslots";
+const std::string kCmdNameRemoveSlots = "removeslots";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameCompact = "compact";

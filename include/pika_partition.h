@@ -55,8 +55,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   Partition(const std::string& table_name,
             uint32_t partition_id,
             const std::string& table_db_path,
-            const std::string& table_log_path,
-            const std::string& table_trash_path);
+            const std::string& table_log_path);
   virtual ~Partition();
 
   std::string GetTableName() const;
@@ -109,7 +108,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
 
   std::string db_path_;
   std::string log_path_;
-  std::string trash_path_;
   std::string bgsave_sub_path_;
   std::string dbsync_path_;
   std::string partition_name_;
