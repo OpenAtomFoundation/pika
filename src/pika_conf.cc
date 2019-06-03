@@ -61,34 +61,27 @@ int PikaConf::Load()
 
   std::string instance_mode;
   GetConfStr("instance-mode", &instance_mode);
-  classic_mode_ = (instance_mode.empty() || !strcasecmp(instance_mode.data(), "classic"));
+  classic_mode_ = (instance_mode.empty()
+          || !strcasecmp(instance_mode.data(), "classic"));
 
   if (classic_mode_) {
     GetConfInt("databases", &databases_);
     if (databases_ < 1 || databases_ > 8) {
-      LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
+      LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: "
+          << databases_;
     }
     for (int idx = 0; idx < databases_; ++idx) {
       table_structs_.push_back({"db" + std::to_string(idx), 1});
     }
   } else {
-    int32_t partition_num;
-    std::vector<std::string> elems;
-    std::vector<std::string> table_strs;
-    std::unordered_set<std::string> unique;
-    GetConfStrVec("table-list", &table_strs);
-    for (const auto& item : table_strs) {
-      slash::StringSplit(item, ':', elems);
-      if (elems.size() == 2 && !unique.count(elems[0])) {
-        partition_num = atoi(elems[1].data());
-        table_structs_.push_back({elems[0], partition_num > 0
-                ? static_cast<uint32_t>(partition_num) : 1});
-        unique.insert(elems[0]);
-      }
+    GetConfInt("default-partition-num", &default_partition_num_);
+    if (default_partition_num_ <= 0) {
+      LOG(FATAL) << "config default-partition-num error,"
+          << " it should greater than zero, the actual is: "
+          << default_partition_num_;
     }
-  }
-  if (table_structs_.empty()) {
-    table_structs_.push_back({"default", 1});
+    table_structs_.push_back({"db0",
+            static_cast<uint32_t>(default_partition_num_)});
   }
   default_table_ = table_structs_[0].table_name;
 
@@ -130,7 +123,6 @@ int PikaConf::Load()
   if (db_path_[db_path_.length() - 1] != '/') {
     db_path_ += "/";
   }
-  trash_path_ = db_path_ + "trash/";
 
   GetConfInt("thread-num", &thread_num_);
   if (thread_num_ <= 0) {
@@ -343,7 +335,6 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("sync-thread-num", sync_thread_num_);
   SetConfStr("log-path", log_path_);
   SetConfStr("db-path", db_path_);
-  SetConfStr("trash-path", trash_path_);
   SetConfStr("db-sync-path", db_sync_path_);
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfInt64("write-buffer-size", write_buffer_size_);

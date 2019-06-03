@@ -228,8 +228,6 @@ class PikaReplicaManager {
   Status SetMasterLastRecvTime(const RmNode& slave, uint64_t time);
   Status SetSlaveLastRecvTime(const RmNode& slave, uint64_t time);
 
-  Status RebuildPartition();
-
   Status CheckSyncTimeout(uint64_t now);
 
   void RmStatus(std::string* debug_info);
