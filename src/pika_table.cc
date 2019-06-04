@@ -6,8 +6,10 @@
 #include "include/pika_table.h"
 
 #include "include/pika_server.h"
+#include "include/pika_cmd_table_manager.h"
 
 extern PikaServer* g_pika_server;
+extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 std::string TablePath(const std::string& path,
                       const std::string& table_name) {
@@ -209,7 +211,8 @@ std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
 
 std::shared_ptr<Partition> Table::GetPartitionByKey(const std::string& key) {
   assert(partition_num_ != 0);
+  uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, partition_num_);
   slash::RWLock rwl(&partitions_rw_, false);
-  auto iter = partitions_.find(std::hash<std::string>()(key) % partition_num_);
+  auto iter = partitions_.find(index);
   return (iter == partitions_.end()) ? NULL : iter->second;
 }
