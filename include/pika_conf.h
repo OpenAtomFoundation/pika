@@ -185,11 +185,6 @@ class PikaConf : public slash::BaseConf {
     RWLock l(&rwlock_, true);
     table_structs_ = table_structs;
   }
-  void SetSlaveReadOnly(const bool value) {
-    RWLock l(&rwlock_, true);
-    TryPushDiffCommands("slave-read-only", value == true ? "yes" : "no");
-    slave_read_only_ = value;
-  }
   void SetExpireLogsNums(const int value){
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("expire-logs-nums", std::to_string(value));

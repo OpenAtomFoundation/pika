@@ -112,8 +112,8 @@ int PikaConf::Load()
       expire_logs_days_ = 1;
   }
   GetConfStr("compression", &compression_);
+  // set slave read only true as default
   slave_read_only_ = true;
-  GetConfBool("slave-read-only", &slave_read_only_);
   GetConfInt("slave-priority", &slave_priority_);
 
   //
@@ -366,7 +366,6 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("slowlog-write-errorlog", slowlog_write_errorlog_ ? "yes" : "no");
   SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
   SetConfInt("slowlog-max-len", slowlog_max_len_);
-  SetConfStr("slave-read-only", slave_read_only_ ? "yes" : "no");
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);
   SetConfStr("network-interface", network_interface_);

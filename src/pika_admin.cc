@@ -670,7 +670,6 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_link_status:" << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE)
               && g_pika_server->AllPartitionConnectSuccess()) ? "up" : "down") << "\r\n";
       tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
-      tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       tmp_stream << "repl_state: " << (g_pika_server->repl_state_str()) << "\r\n";
       break;
     case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE :
@@ -678,7 +677,6 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:" << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE)
               && g_pika_server->AllPartitionConnectSuccess()) ? "up" : "down") << "\r\n";
-      tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       tmp_stream << "repl_state: " << (g_pika_server->repl_state_str()) << "\r\n";
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER :
@@ -1155,12 +1153,6 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->slowlog_max_len());
   }
 
-  if (slash::stringmatch(pattern.data(), "slave-read-only", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "slave-read-only");
-    EncodeString(&config_body, g_pika_conf->slave_read_only() ? "yes" : "no");
-  }
-
   if (slash::stringmatch(pattern.data(), "write-binlog", 1)) {
     elements += 2;
     EncodeString(&config_body, "write-binlog");
@@ -1247,7 +1239,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*22\r\n";
+    ret = "*21\r\n";
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
@@ -1262,7 +1254,6 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "slowlog-write-errorlog");
     EncodeString(&ret, "slowlog-log-slower-than");
     EncodeString(&ret, "slowlog-max-len");
-    EncodeString(&ret, "slave-read-only");
     EncodeString(&ret, "write-binlog");
     EncodeString(&ret, "max-cache-statistic-keys");
     EncodeString(&ret, "small-compaction-threshold");
@@ -1365,19 +1356,6 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetSlowlogMaxLen(ival);
     g_pika_server->SlowlogTrim();
-    ret = "+OK\r\n";
-  } else if (set_item == "slave-read-only") {
-    slash::StringToLower(value);
-    bool is_readonly;
-    if (value == "1" || value == "yes") {
-      is_readonly = true;
-    } else if (value == "0" || value == "no") {
-      is_readonly = false;
-    } else {
-      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'slave-read-only'\r\n";
-      return;
-    }
-    g_pika_conf->SetSlaveReadOnly(is_readonly);
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-statistic-keys") {
     if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
