@@ -54,36 +54,6 @@ class DbSlaveofCmd : public Cmd {
   }
 };
 
-class SlotParentCmd : public Cmd {
- public:
-  SlotParentCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
- protected:
-  std::set<uint32_t> slots_;
-  virtual void DoInitial();
-  virtual void Clear() {
-    slots_.clear();
-  }
-};
-
-class AddSlotsCmd : public SlotParentCmd {
- public:
-  AddSlotsCmd(const std::string& name, int arity, uint16_t flag)
-      : SlotParentCmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
- private:
-  virtual void DoInitial() override;
-};
-
-class RemoveSlotsCmd : public SlotParentCmd {
- public:
-  RemoveSlotsCmd(const std::string& name, int32_t arity, uint16_t flag)
-      : SlotParentCmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
- private:
-  virtual void DoInitial() override;
-};
-
 class AuthCmd : public Cmd {
  public:
   AuthCmd(const std::string& name, int arity, uint16_t flag)

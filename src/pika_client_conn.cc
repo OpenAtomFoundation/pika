@@ -117,6 +117,11 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
         table_name = "db" + argv[1];
       }
     } else {
+      int index = atoi(argv[1].data());
+      if (std::to_string(index) != argv[1]) {
+        return "-ERR invalid DB index\r\n";
+      }
+      table_name = g_pika_conf->default_table();
       // only pika codis use sharding mode currently, but pika
       // codis only support single db, so in sharding mode we
       // do no thing in select command

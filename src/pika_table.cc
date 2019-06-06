@@ -59,11 +59,11 @@ void Table::CompactTable(const blackwidow::DataType& type) {
 }
 
 bool Table::FlushPartitionDB() {
+  slash::RWLock rwl(&partitions_rw_, false);
   slash::MutexLock ml(&key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return false;
   }
-  slash::RWLock rwl(&partitions_rw_, false);
   for (const auto& item : partitions_) {
     item.second->FlushDB();
   }
@@ -71,11 +71,11 @@ bool Table::FlushPartitionDB() {
 }
 
 bool Table::FlushPartitionSubDB(const std::string& db_name) {
+  slash::RWLock rwl(&partitions_rw_, false);
   slash::MutexLock ml(&key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return false;
   }
-  slash::RWLock rwl(&partitions_rw_, false);
   for (const auto& item : partitions_) {
     item.second->FlushSubDB(db_name);
   }
@@ -150,14 +150,14 @@ bool Table::IsKeyScaning() {
 }
 
 void Table::RunKeyScan() {
-  rocksdb::Status s;
+  Status s;
   std::vector<blackwidow::KeyInfo> new_key_infos(5);
 
   InitKeyScan();
   slash::RWLock rwl(&partitions_rw_, false);
   for (const auto& item : partitions_) {
     std::vector<blackwidow::KeyInfo> tmp_key_infos;
-    s = item.second->db()->GetKeyNum(&tmp_key_infos);
+    s = item.second->GetKeyNum(&tmp_key_infos);
     if (s.ok()) {
       for (size_t idx = 0; idx < tmp_key_infos.size(); ++idx) {
         new_key_infos[idx].keys += tmp_key_infos[idx].keys;
@@ -193,6 +193,15 @@ void Table::ScanDatabase(const blackwidow::DataType& type) {
     printf("\n\npartition name : %s\n", item.second->GetPartitionName().c_str());
     item.second->db()->ScanDatabase(type);
   }
+}
+
+Status Table::GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos) {
+  slash::RWLock rwl(&partitions_rw_, false);
+  LOG(INFO) << "Partition size:" << partitions_.size();
+  for (const auto& item : partitions_) {
+    (*infos)[item.first] = item.second->GetKeyScanInfo();
+  }
+  return Status::OK();
 }
 
 KeyScanInfo Table::GetKeyScanInfo() {
