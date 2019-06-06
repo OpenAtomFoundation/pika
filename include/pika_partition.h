@@ -13,6 +13,25 @@
 
 class Cmd;
 
+/*
+ *Keyscan used
+ */
+struct KeyScanInfo {
+  time_t start_time;
+  std::string s_start_time;
+  int32_t duration;
+  std::vector<blackwidow::KeyInfo> key_infos; //the order is strings, hashes, lists, zsets, sets
+  bool key_scaning_;
+  KeyScanInfo() :
+      start_time(0),
+      s_start_time("1970-01-01 08:00:00"),
+      duration(-3),
+      key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}),
+      key_scaning_(false) {
+  }
+};
+
+
 struct BgSaveInfo {
   bool bgsaving;
   time_t start_time;
@@ -102,6 +121,10 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool PurgeLogs(uint32_t to = 0, bool manual = false);
   void ClearPurge();
 
+  // key scan info use
+  Status GetKeyNum(std::vector<blackwidow::KeyInfo>* key_info);
+  KeyScanInfo GetKeyScanInfo();
+
  private:
   std::string table_name_;
   uint32_t partition_id_;
@@ -119,6 +142,11 @@ class Partition : public std::enable_shared_from_this<Partition> {
   pthread_rwlock_t db_rwlock_;
   slash::RecordMutex mutex_record_;
   std::shared_ptr<blackwidow::BlackWidow> db_;
+
+  bool full_sync_;
+
+  slash::Mutex key_info_protector_;
+  KeyScanInfo key_scan_info_;
 
   /*
    * BgSave use
@@ -140,6 +168,9 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool PurgeFiles(uint32_t to, bool manual);
   bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
   std::atomic<bool> purging_;
+
+  // key scan info use
+  void InitKeyScan();
 
   /*
    * No allowed copy and copy assign

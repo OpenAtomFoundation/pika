@@ -675,3 +675,35 @@ bool Partition::GetBinlogFiles(std::map<uint32_t, std::string>& binlogs) {
   return true;
 }
 
+void Partition::InitKeyScan() {
+  key_scan_info_.start_time = time(NULL);
+  char s_time[32];
+  int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
+  key_scan_info_.s_start_time.assign(s_time, len);
+  key_scan_info_.duration = -1;       // duration -1 mean the task in processing
+}
+
+KeyScanInfo Partition::GetKeyScanInfo() {
+  slash::MutexLock l(&key_info_protector_);
+  return key_scan_info_;
+}
+
+Status Partition::GetKeyNum(std::vector<blackwidow::KeyInfo>* key_info) {
+  slash::MutexLock l(&key_info_protector_);
+  if (key_scan_info_.key_scaning_) {
+    *key_info = key_scan_info_.key_infos;
+    return Status::OK();
+  }
+  InitKeyScan();
+  key_scan_info_.key_scaning_ = true;
+  key_scan_info_.duration = -2;   // duration -2 mean the task in waiting status,
+                                  // has not been scheduled for exec
+  rocksdb::Status s = db_->GetKeyNum(key_info);
+  if (!s.ok()) {
+    return Status::Corruption(s.ToString());
+  }
+  key_scan_info_.key_infos = *key_info;
+  key_scan_info_.duration = time(NULL) - key_scan_info_.start_time;
+  key_scan_info_.key_scaning_ = false;
+  return Status::OK();
+}
