@@ -11,24 +11,6 @@
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
-/*
- *Keyscan used
- */
-struct KeyScanInfo {
-  time_t start_time;
-  std::string s_start_time;
-  int32_t duration;
-  std::vector<blackwidow::KeyInfo> key_infos; //the order is strings, hashes, lists, zsets, sets
-  bool key_scaning_;
-  KeyScanInfo() :
-      start_time(0),
-      s_start_time("1970-01-01 08:00:00"),
-      duration(-3),
-      key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}),
-      key_scaning_(false) {
-  }
-};
-
 class Table : public std::enable_shared_from_this<Table>{
  public:
   Table(const std::string& table_name,
@@ -60,6 +42,7 @@ class Table : public std::enable_shared_from_this<Table>{
   void StopKeyScan();
   void ScanDatabase(const blackwidow::DataType& type);
   KeyScanInfo GetKeyScanInfo();
+  Status GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos);
 
   // Compact use;
   void Compact(const blackwidow::DataType& type);
@@ -73,6 +56,9 @@ class Table : public std::enable_shared_from_this<Table>{
   uint32_t partition_num_;
   std::string db_path_;
   std::string log_path_;
+
+  // lock order
+  // partitions_rw_ > key_scan_protector_
 
   pthread_rwlock_t partitions_rw_;
   std::map<int32_t, std::shared_ptr<Partition>> partitions_;

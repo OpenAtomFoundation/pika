@@ -17,8 +17,6 @@
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";
 const std::string kCmdNameDbSlaveof = "dbslaveof";
-const std::string kCmdNameAddSlots = "addslots";
-const std::string kCmdNameRemoveSlots = "removeslots";
 const std::string kCmdNameAuth = "auth";
 const std::string kCmdNameBgsave = "bgsave";
 const std::string kCmdNameCompact = "compact";
@@ -182,6 +180,14 @@ const std::string kCmdNameUnSubscribe = "unsubscribe";
 const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
+
+//Codis Slots
+const std::string kCmdNameSlotsInfo = "slotsinfo";
+const std::string kCmdNameSlotsHashKey = "slotshashkey";
+const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
+const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
+const std::string kCmdNameAddSlots = "addslots";
+const std::string kCmdNameRemoveSlots = "removeslots";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
