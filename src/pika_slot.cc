@@ -35,10 +35,6 @@ void SlotsInfoCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsInfo);
     return;
   }
-  if (infos.size() == 0) {
-    res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsInfo);
-    return;
-  }
   res_.AppendArrayLen(infos.size());
   for (auto& key_info : infos) {
     uint64_t total_key_size = 0;
@@ -60,7 +56,6 @@ void SlotsHashKeyCmd::DoInitial() {
 }
 
 void SlotsHashKeyCmd::Do(std::shared_ptr<Partition> partition) {
-  LOG(INFO) << "argv size: "<< argv_.size();
   res_.AppendArrayLen(argv_.size() - 1);
   std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
   uint32_t partition_num = table_ptr->PartitionNum();
@@ -71,7 +66,6 @@ void SlotsHashKeyCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string>::const_iterator iter = argv_.begin() + 1;
   for (; iter != argv_.end(); iter++) {
     res_.AppendInteger(g_pika_cmd_table_manager->DistributeKey(*iter, partition_num));
-    LOG(INFO) << "key: " << *iter << " partition: " << g_pika_cmd_table_manager->DistributeKey(*iter, partition_num);
   }
   return;
 }

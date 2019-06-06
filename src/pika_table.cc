@@ -197,7 +197,6 @@ void Table::ScanDatabase(const blackwidow::DataType& type) {
 
 Status Table::GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos) {
   slash::RWLock rwl(&partitions_rw_, false);
-  LOG(INFO) << "Partition size:" << partitions_.size();
   for (const auto& item : partitions_) {
     (*infos)[item.first] = item.second->GetKeyScanInfo();
   }
