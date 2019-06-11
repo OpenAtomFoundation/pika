@@ -7,31 +7,23 @@
 #define PIKA_CONF_H_
 
 #include <map>
+#include <set>
 #include <unordered_set>
 
 #include "slash/include/base_conf.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/slash_string.h"
 
+#include "include/pika_define.h"
+#include "include/pika_meta.h"
+
 typedef slash::RWLock RWLock;
-
-struct TableStruct {
-  TableStruct(const std::string& tn, const uint32_t pn)
-      : table_name(tn), partition_num(pn) {}
-
-  bool operator == (const TableStruct& table_struct) const {
-    return table_name == table_struct.table_name
-        && partition_num == table_struct.partition_num;
-  }
-  std::string table_name;
-  uint32_t partition_num;
-};
 
 // global class, class members well initialized
 class PikaConf : public slash::BaseConf {
  public:
   PikaConf(const std::string& path);
-  ~PikaConf()             { pthread_rwlock_destroy(&rwlock_); }
+  ~PikaConf();
 
   // Getter
   int port()                                        { RWLock l(&rwlock_, false); return port_; }
@@ -177,10 +169,6 @@ class PikaConf : public slash::BaseConf {
       slash::StringToLower(item);
     }
   }
-  void SetTableStructs(const std::vector<TableStruct>& table_structs) {
-    RWLock l(&rwlock_, true);
-    table_structs_ = table_structs;
-  }
   void SetExpireLogsNums(const int value){
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("expire-logs-nums", std::to_string(value));
@@ -231,6 +219,15 @@ class PikaConf : public slash::BaseConf {
     TryPushDiffCommands("compact-interval", value);
     compact_interval_ = value;
   }
+
+  Status GetTargetTableAndSanityCheck(const std::string& table_name,
+                                      const std::set<uint32_t>& partition_ids,
+                                      bool is_add,
+                                      uint32_t* const target);
+  Status AddTablePartitions(const std::string& table_name,
+                            const std::set<uint32_t>& partition_ids);
+  Status RemoveTablePartitions(const std::string& table_name,
+                               const std::set<uint32_t>& partition_ids);
 
   int Load();
   int ConfigRewrite();
@@ -302,6 +299,8 @@ class PikaConf : public slash::BaseConf {
   bool write_binlog_;
   int target_file_size_base_;
   int binlog_file_size_;
+
+  PikaMeta* local_meta_;
 
   pthread_rwlock_t rwlock_;
 };

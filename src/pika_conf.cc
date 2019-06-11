@@ -10,10 +10,76 @@
 #include <algorithm>
 #include <strings.h>
 
-PikaConf::PikaConf(const std::string& path):
-  slash::BaseConf(path), conf_path_(path)
-{
+#include "slash/include/env.h"
+
+#include "include/pika_define.h"
+
+PikaConf::PikaConf(const std::string& path)
+    : slash::BaseConf(path), conf_path_(path) {
   pthread_rwlock_init(&rwlock_, NULL);
+  local_meta_ = new PikaMeta();
+}
+
+PikaConf::~PikaConf() {
+  pthread_rwlock_destroy(&rwlock_);
+  delete local_meta_;
+}
+
+Status PikaConf::GetTargetTableAndSanityCheck(const std::string& table_name,
+                                              const std::set<uint32_t>& partition_ids,
+                                              bool is_add,
+                                              uint32_t* const target) {
+  int32_t table_index = -1;
+  for (size_t idx = 0; table_structs_.size(); ++idx) {
+    if (table_structs_[idx].table_name == table_name) {
+      table_index = idx;
+      break;
+    }
+  }
+  if (table_index == -1) {
+    return Status::NotFound("table : " + table_name + " not found");
+  } else {
+    // Sanity Check
+    for (const auto& id : partition_ids) {
+      if (id >= table_structs_[table_index].partition_num) {
+        return Status::Corruption("partition index out of range");
+      } else if (is_add && table_structs_[table_index].partition_ids.count(id) != 0) {
+        return Status::Corruption("partition : " + std::to_string(id) + " exist");
+      } else if (!is_add && table_structs_[table_index].partition_ids.count(id) == 0) {
+        return Status::Corruption("partition : " + std::to_string(id) + " not exist");
+      }
+    }
+    *target  = table_index;
+  }
+  return Status::OK();
+}
+
+Status PikaConf::AddTablePartitions(const std::string& table_name,
+                                    const std::set<uint32_t>& partition_ids) {
+  RWLock l(&rwlock_, true);
+  uint32_t index = 0;
+  Status s = GetTargetTableAndSanityCheck(table_name, partition_ids, true, &index);
+  if (s.ok()) {
+    for (const auto& id : partition_ids) {
+      table_structs_[index].partition_ids.insert(id);
+    }
+    s = local_meta_->StableSave(table_structs_);
+  }
+  return s;
+}
+
+Status PikaConf::RemoveTablePartitions(const std::string& table_name,
+                                       const std::set<uint32_t>& partition_ids) {
+  RWLock l(&rwlock_, true);
+  uint32_t index = 0;
+  Status s = GetTargetTableAndSanityCheck(table_name, partition_ids, false, &index);
+  if (s.ok()) {
+    for (const auto& id : partition_ids) {
+      table_structs_[index].partition_ids.erase(id);
+    }
+    s = local_meta_->StableSave(table_structs_);
+  }
+  return s;
 }
 
 int PikaConf::Load()
@@ -59,32 +125,6 @@ int PikaConf::Load()
     slash::StringToLower(item);
   }
 
-  std::string instance_mode;
-  GetConfStr("instance-mode", &instance_mode);
-  classic_mode_ = (instance_mode.empty()
-          || !strcasecmp(instance_mode.data(), "classic"));
-
-  if (classic_mode_) {
-    GetConfInt("databases", &databases_);
-    if (databases_ < 1 || databases_ > 8) {
-      LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: "
-          << databases_;
-    }
-    for (int idx = 0; idx < databases_; ++idx) {
-      table_structs_.push_back({"db" + std::to_string(idx), 1});
-    }
-  } else {
-    GetConfInt("default-partition-num", &default_partition_num_);
-    if (default_partition_num_ <= 0) {
-      LOG(FATAL) << "config default-partition-num error,"
-          << " it should greater than zero, the actual is: "
-          << default_partition_num_;
-    }
-    table_structs_.push_back({"db0",
-            static_cast<uint32_t>(default_partition_num_)});
-  }
-  default_table_ = table_structs_[0].table_name;
-
   GetConfStr("dump-path", &bgsave_path_);
   bgsave_path_ = bgsave_path_.empty() ? "./dump/" : bgsave_path_;
   if (bgsave_path_[bgsave_path_.length() - 1] != '/') {
@@ -123,6 +163,7 @@ int PikaConf::Load()
   if (db_path_[db_path_.length() - 1] != '/') {
     db_path_ += "/";
   }
+  local_meta_->SetPath(db_path_);
 
   GetConfInt("thread-num", &thread_num_);
   if (thread_num_ <= 0) {
@@ -145,6 +186,38 @@ int PikaConf::Load()
   if (sync_thread_num_ > 24) {
     sync_thread_num_ = 24;
   }
+
+  std::string instance_mode;
+  GetConfStr("instance-mode", &instance_mode);
+  classic_mode_ = (instance_mode.empty()
+          || !strcasecmp(instance_mode.data(), "classic"));
+
+  if (classic_mode_) {
+    GetConfInt("databases", &databases_);
+    if (databases_ < 1 || databases_ > 8) {
+      LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: "
+          << databases_;
+    }
+    for (int idx = 0; idx < databases_; ++idx) {
+      table_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
+    }
+  } else {
+    GetConfInt("default-partition-num", &default_partition_num_);
+    if (default_partition_num_ <= 0) {
+      LOG(FATAL) << "config default-partition-num error,"
+          << " it should greater than zero, the actual is: "
+          << default_partition_num_;
+    }
+    std::string pika_meta_path = db_path_ + kPikaMeta;
+    if (!slash::FileExists(pika_meta_path)) {
+      local_meta_->StableSave({{"db0", static_cast<uint32_t>(default_partition_num_), {}}});
+    }
+    Status s = local_meta_->ParseMeta(&table_structs_);
+    if (!s.ok()) {
+      LOG(FATAL) << "parse meta file error";
+    }
+  }
+  default_table_ = table_structs_[0].table_name;
 
   compact_cron_ = "";
   GetConfStr("compact-cron", &compact_cron_);

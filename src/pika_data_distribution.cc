@@ -34,6 +34,7 @@ void Crc32::Crc32TableInit(uint32_t poly) {
 uint32_t Crc32::Distribute(const std::string &str, uint32_t partition_num) {
   uint32_t crc = Crc32Update(0, str.data(), (int)str.size());
   // partition_num need to minus 1 
+  assert(partition_num > 1);
   return (int)(crc & (partition_num == 0 ? 0 : (partition_num - 1)));
 }
 

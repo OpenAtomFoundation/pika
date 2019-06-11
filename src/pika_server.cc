@@ -44,6 +44,7 @@ void DoDBSync(void* arg) {
 
 PikaServer::PikaServer() :
   exit_(false),
+  slot_state_(INFREE),
   have_scheduled_crontask_(false),
   last_check_compact_time_({0, 0}),
   master_ip_(""),
@@ -368,21 +369,10 @@ void PikaServer::InitTableStruct() {
   for (const auto& table : table_structs) {
     std::string name = table.table_name;
     uint32_t num = table.partition_num;
-    std::shared_ptr<Table> table_ptr = std::shared_ptr<Table>(
-        new Table(name, num, db_path, log_path));
-
-    Status s;
-    if (g_pika_conf->classic_mode()) {
-      // in classic mode one db default to one partition
-      s = table_ptr->AddPartitions({0});
-    } else {
-    }
-
-    if (s.ok()) {
-      tables_.emplace(name, table_ptr);
-    } else {
-      LOG(FATAL) << "Init " << name << " " << s.ToString();
-    }
+    std::shared_ptr<Table> table_ptr = std::make_shared<Table>(
+        name, num, db_path, log_path);
+    table_ptr->AddPartitions(table.partition_ids);
+    tables_.emplace(name, table_ptr);
   }
 }
 

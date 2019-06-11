@@ -541,10 +541,12 @@ void Cmd::ProcessFlushAllCmd() {
 
 void Cmd::ProcessSinglePartitionCmd() {
   std::shared_ptr<Partition> partition;
-  if (is_single_partition()) {
-    partition = g_pika_server->GetTablePartitionByKey(table_name_, current_key());
+  if (g_pika_conf->classic_mode()) {
+    // in classic mode a table has only one partition
+    partition = g_pika_server->GetPartitionByDbName(table_name_);
   } else {
-    partition = g_pika_server->GetTablePartitionById(table_name_, 0);
+    // in sharding mode we select partition by key
+    partition = g_pika_server->GetTablePartitionByKey(table_name_, current_key());
   }
 
   if (!partition) {
