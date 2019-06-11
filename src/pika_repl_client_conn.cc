@@ -108,7 +108,8 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   std::vector<TableStruct> master_table_structs;
   for (int idx = 0; idx < meta_sync.tables_info_size(); ++idx) {
     InnerMessage::InnerResponse_MetaSync_TableInfo table_info = meta_sync.tables_info(idx);
-    master_table_structs.emplace_back(table_info.table_name(), table_info.partition_num());
+    master_table_structs.push_back({table_info.table_name(),
+            static_cast<uint32_t>(table_info.partition_num()), {0}});
   }
 
   std::vector<TableStruct> self_table_structs = g_pika_conf->table_structs();
