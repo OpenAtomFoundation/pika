@@ -157,19 +157,30 @@ void AddSlotsCmd::DoInitial() {
 }
 
 void AddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<Table> default_table =
-    g_pika_server->GetTable(g_pika_conf->default_table());
-  if (!default_table) {
-    res_.SetRes(CmdRes::kErrOther, "Internal error: default table not found!");
+  std::string table_name = g_pika_conf->default_table();
+  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(table_name);
+  if (!table_ptr) {
+    res_.SetRes(CmdRes::kErrOther, "Internal error: table not found!");
     return;
   }
 
-  Status s = default_table->AddPartitions(slots_);
+  SlotState expected = INFREE;
+  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
+              &expected, INADDSLOTS)) {
+    res_.SetRes(CmdRes::kErrOther,
+            "Slot in syncing or a change operation is under way, retry later");
+    return;
+  }
+
+  Status s = g_pika_conf->AddTablePartitions(table_name, slots_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+    table_ptr->AddPartitions(slots_);
+    LOG(INFO) << "Pika meta file overwrite success";
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+  g_pika_server->slot_state_.store(INFREE);
 }
 
 /*
@@ -185,18 +196,29 @@ void RemoveSlotsCmd::DoInitial() {
 }
 
 void RemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<Table> default_table =
-    g_pika_server->GetTable(g_pika_conf->default_table());
-  if (!default_table) {
+  std::string table_name = g_pika_conf->default_table();
+  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(table_name);
+  if (!table_ptr) {
     res_.SetRes(CmdRes::kErrOther, "Internal error: default table not found!");
     return;
   }
 
-  Status s = default_table->RemovePartitions(slots_);
+  SlotState expected = INFREE;
+  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
+              &expected, INREMOVESLOTS)) {
+    res_.SetRes(CmdRes::kErrOther,
+            "Slot in syncing or a change operation is under way, retry later");
+    return;
+  }
+
+  Status s = g_pika_conf->RemoveTablePartitions(table_name, slots_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
+    table_ptr->RemovePartitions(slots_);
+    LOG(INFO) << "Pika meta file overwrite success";
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+  g_pika_server->slot_state_.store(INFREE);
 }
 

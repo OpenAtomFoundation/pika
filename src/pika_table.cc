@@ -109,8 +109,8 @@ Status Table::AddPartitions(const std::set<uint32_t>& partition_ids) {
   }
 
   for (const uint32_t& id : partition_ids) {
-    partitions_.emplace(id, std::shared_ptr<Partition>(
-        new Partition(table_name_, id, db_path_, log_path_)));
+    partitions_.emplace(id, std::make_shared<Partition>(
+          table_name_, id, db_path_, log_path_));
   }
   return Status::OK();
 }

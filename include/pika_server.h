@@ -279,6 +279,8 @@ class PikaServer {
 
   friend class Cmd;
   friend class InfoCmd;
+  friend class AddSlotsCmd;
+  friend class RemoveSlotsCmd;
   friend class PikaReplClientConn;
 
  private:
@@ -303,6 +305,7 @@ class PikaServer {
   /*
    * Table used
    */
+  std::atomic<SlotState> slot_state_;
   pthread_rwlock_t tables_rw_;
   std::map<std::string, std::shared_ptr<Table>> tables_;
 
