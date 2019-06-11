@@ -6,10 +6,10 @@
 #ifndef PIKA_DEFINE_H_
 #define PIKA_DEFINE_H_
 
-#include "pink/include/redis_cli.h"
+#include <set>
 #include <glog/logging.h>
 
-#include "include/pika_conf.h"
+#include "pink/include/redis_cli.h"
 
 #define PIKA_SYNC_BUFFER_SIZE           10
 #define PIKA_MAX_WORKER_THREAD_NUM      24
@@ -25,6 +25,22 @@ const int kPortShiftReplServer = 2000;
 const std::string kPikaPidFile = "pika.pid";
 const std::string kPikaSecretFile = "rsync.secret";
 const std::string kDefaultRsyncAuth = "default";
+
+struct TableStruct {
+  TableStruct(const std::string& tn,
+              const uint32_t pn,
+              const std::set<uint32_t>& pi)
+      : table_name(tn), partition_num(pn), partition_ids(pi) {}
+
+  bool operator == (const TableStruct& table_struct) const {
+    return table_name == table_struct.table_name
+        && partition_num == table_struct.partition_num
+        && partition_ids == table_struct.partition_ids;
+  }
+  std::string table_name;
+  uint32_t partition_num;
+  std::set<uint32_t> partition_ids;
+};
 
 struct WorkerCronTask {
   int task;
@@ -44,6 +60,13 @@ struct SlaveItem {
   int stage;
   std::vector<TableStruct> table_structs;
   struct timeval create_time;
+};
+
+enum SlotState {
+  INFREE = 0,
+  INADDSLOTS = 1,
+  INREMOVESLOTS = 2,
+  INSYNCING = 3,
 };
 
 struct BinlogOffset {
@@ -345,6 +368,7 @@ const int64_t kPoolSize = 1073741824;
 const std::string kBinlogPrefix = "write2file";
 const size_t kBinlogPrefixLen = 10;
 
+const std::string kPikaMeta = "meta";
 const std::string kManifest = "manifest";
 
 /*
