@@ -5,6 +5,17 @@ language: cpp
 os:
   - linux
 
+env:
+  global:
+    - PROTOBUF_VERSION=2.5.0
+    - PROCESSOR_NUMS=(cat /proc/cpuinfo | grep processor | wc -l)
+
+install:
+  - wget https://github.com/protocolbuffers/protobuf/releases/download/v$PROTOBUF_VERSION/protobuf-$PROTOBUF_VERSION.tar.bz2
+  - tar xvf protobuf-$PROTOBUF_VERSION.tar.bz2
+  - echo $PROCESSOR_NUMS
+  - ( cd protobuf-$PROTOBUF_VERSION && ./configure --prefix=/usr && make && sudo make install )
+
 addons:
   apt:
     packages: ['libsnappy-dev', 'libprotobuf-dev', 'libgoogle-glog-dev']
@@ -14,4 +25,4 @@ compiler:
 
 language: cpp
 
-script: make
+script: make -j $PROCESSOR_NUMS
