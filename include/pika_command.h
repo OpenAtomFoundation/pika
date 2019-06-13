@@ -188,6 +188,8 @@ const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
 const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
 const std::string kCmdNameAddSlots = "addslots";
 const std::string kCmdNameRemoveSlots = "removeslots";
+const std::string kCmdNameSlotsDel = "slotsdel";
+const std::string kCmdNameSlotsScan = "slotsscan";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024; 

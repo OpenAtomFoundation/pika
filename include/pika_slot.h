@@ -74,5 +74,34 @@ class RemoveSlotsCmd : public SlotParentCmd {
   virtual void DoInitial() override;
 };
 
+class SlotsScanCmd : public Cmd {
+ public:
+  SlotsScanCmd(const std::string& name, int arity, uint16_t flag)
+    : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  int64_t cursor_;
+  uint32_t slotnum_;
+  std::string pattern_;
+  int64_t count_;
+  virtual void DoInitial() override;
+  virtual void Clear() {
+    pattern_ = "*";
+    count_ = 10;
+  }
+};
+
+class SlotsDelCmd : public Cmd {
+ public:
+  SlotsDelCmd(const std::string& name, int arity, uint16_t flag)
+    : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  std::vector<uint32_t> slots_;
+  virtual void DoInitial() override;
+  virtual void Clear() {
+    slots_.clear();
+  }
+};
 
 #endif  // PIKA_SLOT_H_
