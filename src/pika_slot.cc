@@ -12,6 +12,7 @@ extern PikaCmdTableManager* g_pika_cmd_table_manager;
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
+// SLOTSINFO
 void SlotsInfoCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsInfo);
@@ -48,6 +49,7 @@ void SlotsInfoCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
+// SLOTSHASHKEY key1 [key2 …]
 void SlotsHashKeyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsHashKey);
@@ -77,6 +79,7 @@ void SlotsMgrtSlotAsyncCmd::DoInitial() {
   return;
 }
 
+// SLOTSMGRTTAGSLOT-ASYNC host port timeout maxbulks maxbytes slot numkeys
 void SlotsMgrtSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t moved = 0;
   int64_t remained = 0;
@@ -222,3 +225,120 @@ void RemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   g_pika_server->slot_state_.store(INFREE);
 }
 
+// SLOTSSCAN slotnum cursor [COUNT count]
+void SlotsScanCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsScan);
+    return;
+  }
+  int64_t slotnum;
+  if (!slash::string2l(argv_[1].data(), argv_[1].size(), &slotnum)) {
+    res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsScan);
+    return;
+  }
+  slotnum_ = static_cast<uint32_t>(slotnum);
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
+    res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsScan);
+    return;
+  }
+  size_t argc = argv_.size(), index = 3;
+
+  while (index < argc) {
+    std::string opt = argv_[index];
+    if (!strcasecmp(opt.data(), "match")
+      || !strcasecmp(opt.data(), "count")) {
+      index++;
+      if (index >= argc) {
+        res_.SetRes(CmdRes::kSyntaxErr);
+        return;
+      }
+      if (!strcasecmp(opt.data(), "match")) {
+        pattern_ = argv_[index];
+      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
+        res_.SetRes(CmdRes::kInvalidInt);
+        return;
+      }
+    } else {
+      res_.SetRes(CmdRes::kSyntaxErr);
+      return;
+    }
+    index++;
+  }
+  return;
+}
+
+void SlotsScanCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
+  if (!table_ptr) {
+    res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsScan);
+    return;
+  }
+  std::shared_ptr<Partition> cur_partition = table_ptr->GetPartitionById(slotnum_);
+  if (!cur_partition) {
+    res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsScan);
+    return;
+  }
+  std::vector<std::string> keys;
+  int64_t cursor_ret = cur_partition->db()->Scan(cursor_, pattern_, count_, &keys);
+
+  res_.AppendArrayLen(2);
+
+  char buf[32];
+  int len = slash::ll2string(buf, sizeof(buf), cursor_ret);
+  res_.AppendStringLen(len);
+  res_.AppendContent(buf);
+
+  res_.AppendArrayLen(keys.size());
+  std::vector<std::string>::iterator iter;
+  for (iter = keys.begin(); iter != keys.end(); iter++) {
+    res_.AppendStringLen(iter->size());
+    res_.AppendContent(*iter);
+  }
+  return;
+}
+
+// SLOTSDEL slot1 [slot2 …]
+void SlotsDelCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsDel);
+  }
+  // iter starts from real key, first item in argv_ is command name
+  std::vector<std::string>::const_iterator iter = argv_.begin() + 1;
+  for (; iter != argv_.end(); iter++) {
+    int64_t slotnum;
+    if (!slash::string2l(iter->data(), iter->size(), &slotnum)) {
+      res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsDel);
+      return;
+    }
+    slots_.push_back(static_cast<uint32_t>(slotnum));
+  }
+  return;
+}
+
+void SlotsDelCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
+  if (!table_ptr) {
+    res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsDel);
+    return;
+  }
+  if (table_ptr->IsKeyScaning()) {
+    res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
+    return;
+  }
+  std::vector<uint32_t> successed_slots;
+  for (auto& slotnum : slots_) {
+    std::shared_ptr<Partition> cur_partition = table_ptr->GetPartitionById(slotnum);
+    if (!cur_partition) {
+      continue;
+    }
+    cur_partition->FlushDB();
+    successed_slots.push_back(slotnum);
+  }
+  res_.AppendArrayLen(successed_slots.size());
+  for (auto& slotnum : successed_slots) {
+    res_.AppendArrayLen(2);
+    res_.AppendInteger(slotnum);
+    res_.AppendInteger(0);
+  }
+  return;
+}
