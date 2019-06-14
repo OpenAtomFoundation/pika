@@ -342,3 +342,91 @@ void SlotsDelCmd::Do(std::shared_ptr<Partition> partition) {
   }
   return;
 }
+
+// SLOTSMGRT-EXEC-WRAPPER $hashkey $command [$arg1 ...]
+void SlotsMgrtExecWrapperCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+   res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtExecWrapper);
+  }
+  PikaCmdArgsType::const_iterator it = argv_.begin() + 1;
+  key_ = *it++;
+  //slash::StringToLower(key_);
+  return;
+}
+
+void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
+  uint32_t partition_num = table_ptr->PartitionNum();
+  if (!table_ptr) {
+    res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsMgrtExecWrapper);
+  }
+  uint32_t slotnum = g_pika_cmd_table_manager->DistributeKey(key_, partition_num);
+  std::shared_ptr<Partition> cur_partition = table_ptr->GetPartitionById(slotnum);
+  if (!cur_partition) {
+    res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsMgrtExecWrapper);
+    return;
+  }
+
+  res_.AppendArrayLen(2);
+  std::string type_str;
+  rocksdb::Status s = cur_partition->db()->Type(key_, &type_str);
+  if (!s.ok()) {
+    LOG(WARNING) << "Check key exist failed"<< key_ << " error: " << s.ToString();
+    res_.AppendInteger(-1);
+    res_.AppendInteger(-1);
+    return;
+  }
+  if (type_str == "none") {
+    res_.AppendInteger(0);
+    res_.AppendInteger(0);
+    return;
+  }
+  res_.AppendInteger(1);
+  res_.AppendInteger(1);
+  return;
+}
+
+// slotsmgrt-async-status
+void SlotsMgrtAsyncStatusCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncStatus);
+  }
+  return;
+}
+
+void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Partition> partition) {
+  std::string status;
+  std::string ip = "none";
+  int64_t port = -1, slot = -1, moved = -1, remained = -1;
+  std::string mstatus = "no";
+  res_.AppendArrayLen(5);
+  status = "dest server: " + ip + ":" + std::to_string(port);
+  res_.AppendStringLen(status.size());
+  res_.AppendContent(status);
+  status = "slot number: " + std::to_string(slot);
+  res_.AppendStringLen(status.size());
+  res_.AppendContent(status);
+  status = "migrating  : " + mstatus;
+  res_.AppendStringLen(status.size());
+  res_.AppendContent(status);
+  status = "moved keys : " + std::to_string(moved);
+  res_.AppendStringLen(status.size());
+  res_.AppendContent(status);
+  status = "remain keys: " + std::to_string(remained);
+  res_.AppendStringLen(status.size());
+  res_.AppendContent(status);
+  return;
+}
+
+// slotsmgrt-async-cancel
+void SlotsMgrtAsyncCancelCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncCancel);
+  }
+  return;
+}
+
+void SlotsMgrtAsyncCancelCmd::Do(std::shared_ptr<Partition> partition) {
+  res_.SetRes(CmdRes::kOk);
+  return;
+}
