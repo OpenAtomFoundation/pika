@@ -104,4 +104,34 @@ class SlotsDelCmd : public Cmd {
   }
 };
 
+class SlotsMgrtExecWrapperCmd : public Cmd {
+ public:
+  SlotsMgrtExecWrapperCmd(const std::string& name, int arity, uint16_t flag)
+    : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  std::string key_;
+  virtual void DoInitial() override;
+  virtual void Clear() {
+    key_.clear();
+  }
+};
+
+class SlotsMgrtAsyncStatusCmd : public Cmd {
+ public:
+  SlotsMgrtAsyncStatusCmd(const std::string& name, int arity, uint16_t flag)
+    : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  virtual void DoInitial() override;
+};
+
+class SlotsMgrtAsyncCancelCmd : public Cmd {
+ public:
+  SlotsMgrtAsyncCancelCmd(const std::string& name, int arity, uint16_t flag)
+    : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  virtual void DoInitial() override;
+};
 #endif  // PIKA_SLOT_H_
