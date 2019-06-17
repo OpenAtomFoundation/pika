@@ -430,3 +430,43 @@ void SlotsMgrtAsyncCancelCmd::Do(std::shared_ptr<Partition> partition) {
   res_.SetRes(CmdRes::kOk);
   return;
 }
+
+// slotsmgrtslot host port timeout slot
+void SlotsMgrtSlotCmd::DoInitial() {
+  res_.SetRes(CmdRes::kErrOther, kCmdNameSlotsMgrtSlot + " NOT supported");
+  return;
+}
+
+void SlotsMgrtSlotCmd::Do(std::shared_ptr<Partition> partition) {
+  return;
+}
+
+// slotsmgrttagslot host port timeout slot
+void SlotsMgrtTagSlotCmd::DoInitial() {
+  res_.SetRes(CmdRes::kErrOther, kCmdNameSlotsMgrtTagSlot + " NOT supported");
+  return;
+}
+
+void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Partition> partition) {
+  return;
+}
+
+// slotsmgrtone host port timeout key
+void SlotsMgrtOneCmd::DoInitial() {
+  res_.SetRes(CmdRes::kErrOther, kCmdNameSlotsMgrtOne + " NOT supported");
+  return;
+}
+
+void SlotsMgrtOneCmd::Do(std::shared_ptr<Partition> partition) {
+  return;
+}
+
+// slotsmgrttagone host port timeout key
+void SlotsMgrtTagOneCmd::DoInitial() {
+  res_.SetRes(CmdRes::kErrOther, kCmdNameSlotsMgrtTagOne + " NOT supported");
+  return;
+}
+
+void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Partition> partition) {
+  return;
+}

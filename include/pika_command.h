@@ -194,6 +194,10 @@ const std::string kCmdNameSlotsScan = "slotsscan";
 const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
 const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
 const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
+const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
+const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
+const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
+const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
 
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024; 

@@ -90,6 +90,14 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtAsyncStatus, slotmgrtasyncstatus));
   Cmd* slotmgrtasynccancel = new SlotsMgrtAsyncCancelCmd(kCmdNameSlotsMgrtAsyncCancel, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtAsyncCancel, slotmgrtasynccancel));
+  Cmd* slotmgrtslotptr = new SlotsMgrtSlotCmd(kCmdNameSlotsMgrtSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtSlot, slotmgrtslotptr));
+  Cmd* slotmgrttagslotptr = new SlotsMgrtTagSlotCmd(kCmdNameSlotsMgrtTagSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagSlot, slotmgrttagslotptr));
+  Cmd* slotmgrtoneptr = new SlotsMgrtOneCmd(kCmdNameSlotsMgrtOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtOne, slotmgrtoneptr));
+  Cmd* slotmgrttagoneptr = new SlotsMgrtTagOneCmd(kCmdNameSlotsMgrtTagOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagOne, slotmgrttagoneptr));
 
 #ifdef TCMALLOC_EXTENSION
   Cmd* tcmallocptr = new TcmallocCmd(kCmdNameTcmalloc, -2, kCmdFlagsRead | kCmdFlagsAdmin);

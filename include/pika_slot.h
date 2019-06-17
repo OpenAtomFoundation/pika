@@ -134,4 +134,41 @@ class SlotsMgrtAsyncCancelCmd : public Cmd {
  private:
   virtual void DoInitial() override;
 };
+
+class SlotsMgrtSlotCmd : public Cmd {
+ public:
+  SlotsMgrtSlotCmd(const std::string& name, int arity, uint16_t flag)
+    : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  virtual void DoInitial() override;
+};
+
+class SlotsMgrtTagSlotCmd : public Cmd {
+ public:
+  SlotsMgrtTagSlotCmd(const std::string& name, int arity, uint16_t flag)
+    : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  virtual void DoInitial() override;
+};
+
+class SlotsMgrtOneCmd : public Cmd {
+ public:
+  SlotsMgrtOneCmd(const std::string& name, int arity, uint16_t flag)
+    : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  virtual void DoInitial() override;
+};
+
+class SlotsMgrtTagOneCmd : public Cmd {
+ public:
+  SlotsMgrtTagOneCmd(const std::string& name, int arity, uint16_t flag)
+    : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  virtual void DoInitial() override;
+};
+
 #endif  // PIKA_SLOT_H_
