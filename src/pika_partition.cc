@@ -59,7 +59,6 @@ Partition::Partition(const std::string& table_name,
   table_name_(table_name),
   partition_id_(partition_id),
   binlog_io_error_(false),
-  full_sync_(false),
   bgsave_engine_(NULL),
   purging_(false) {
 
@@ -260,14 +259,6 @@ bool Partition::SetBinlogOffset(const BinlogOffset& boffset) {
   return false;
 }
 
-bool Partition::FullSync() {
-  return full_sync_;
-}
-
-void Partition::SetFullSync(bool full_sync) {
-  full_sync_ = full_sync;
-}
-
 void Partition::PrepareRsync() {
   slash::DeleteDirIfExist(dbsync_path_);
   slash::CreatePath(dbsync_path_ + "strings");
@@ -358,7 +349,6 @@ bool Partition::TryUpdateMasterOffset() {
 
   // Update master offset
   logger_->SetProducerStatus(filenum, offset);
-  full_sync_ = false;
   slave_partition->SetReplState(ReplState::kTryConnect);
   return true;
 }

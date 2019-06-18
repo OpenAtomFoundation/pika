@@ -515,13 +515,13 @@ Status PikaServer::DoSameThingSpecificTable(const TaskType& type, const std::set
 
 void PikaServer::PreparePartitionTrySync() {
   slash::RWLock rwl(&tables_rw_, false);
+  ReplState state = force_full_sync_ ?
+      ReplState::kTryDBSync : ReplState::kTryConnect;
   for (const auto& table_item : tables_) {
     for (const auto& partition_item : table_item.second->partitions_) {
-      partition_item.second->SetFullSync(force_full_sync_);
       Status s = g_pika_rm->SetSlaveReplState(
-          RmNode(table_item.second->GetTableName(),
-            partition_item.second->GetPartitionId()),
-          ReplState::kTryConnect);
+              RmNode(table_item.second->GetTableName(),
+                  partition_item.second->GetPartitionId()), state);
       if (!s.ok()) {
         LOG(WARNING) << s.ToString();
       }

@@ -82,9 +82,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   ReplState State();
   void SetReplState(const ReplState& state);
 
-  bool FullSync();
-  void SetFullSync(bool full_sync);
-
   void PrepareRsync();
   bool TryUpdateMasterOffset();
   bool ChangeDb(const std::string& new_path);
@@ -124,8 +121,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   pthread_rwlock_t db_rwlock_;
   slash::RecordMutex mutex_record_;
   std::shared_ptr<blackwidow::BlackWidow> db_;
-
-  bool full_sync_;
 
   /*
    * BgSave use

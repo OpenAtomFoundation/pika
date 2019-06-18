@@ -72,13 +72,7 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
         continue;
       }
       if (slave_partition->State() == ReplState::kTryConnect) {
-        // If partition need to FullSync, we Send DBSync Request
-        // directly, instead of TrySync first
-        if (partition->FullSync()) {
-          g_pika_server->SendPartitionDBSyncRequest(partition);
-        } else {
-          g_pika_server->SendPartitionTrySyncRequest(partition);
-        }
+        g_pika_server->SendPartitionTrySyncRequest(partition);
       } else if (slave_partition->State() == ReplState::kTryDBSync) {
         g_pika_server->SendPartitionDBSyncRequest(partition);
       } else if (slave_partition->State() == ReplState::kWaitReply) {
