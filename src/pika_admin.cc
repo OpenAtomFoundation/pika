@@ -97,6 +97,8 @@ void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 /*
+ * dbslaveof db[0 ~ 7]
+ * dbslaveof db[0 ~ 7] force
  * dbslaveof db[0 ~ 7] no one
  * dbslaveof db[0 ~ 7] filenum offset
  */
@@ -121,19 +123,28 @@ void DbSlaveofCmd::DoInitial() {
     return;
   }
 
-  if (!strcasecmp(argv_[2].data(), "no")
-    && !strcasecmp(argv_[3].data(), "one")) {
-    is_noone_ = true;
+  if (argv_.size() == 3
+    && !strcasecmp(argv_[2].data(), "force")) {
+    force_sync_ = true;
     return;
   }
 
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &filenum_) || filenum_ < 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
-  }
-  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &offset_) || offset_ < 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
+  if (argv_.size() == 4) {
+    if (!strcasecmp(argv_[2].data(), "no")
+      && !strcasecmp(argv_[3].data(), "one")) {
+      is_noone_ = true;
+      return;
+    }
+
+    if (!slash::string2l(argv_[2].data(), argv_[2].size(), &filenum_) || filenum_ < 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+      return;
+    }
+    if (!slash::string2l(argv_[3].data(), argv_[3].size(), &offset_) || offset_ < 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+      return;
+    }
+    have_offset_ = true;
   }
 }
 
@@ -161,9 +172,15 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
     }
   } else {
     if (slave_partition->State() == ReplState::kNoConnect
-        || slave_partition->State() == ReplState::kError) {
-      db_partition->logger()->SetProducerStatus(filenum_, offset_);
-      slave_partition->SetReplState(ReplState::kTryConnect);
+      || slave_partition->State() == ReplState::kError) {
+      if (force_sync_) {
+        slave_partition->SetReplState(ReplState::kTryDBSync);
+      } else {
+        if (have_offset_) {
+          db_partition->logger()->SetProducerStatus(filenum_, offset_);
+        }
+        slave_partition->SetReplState(ReplState::kTryConnect);
+      }
       g_pika_server->SetLoopPartitionStateMachine(true);
     }
   }

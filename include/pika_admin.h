@@ -44,13 +44,17 @@ class DbSlaveofCmd : public Cmd {
 
  private:
   std::string db_name_;
+  bool force_sync_;
   bool is_noone_;
+  bool have_offset_;
   int64_t filenum_;
   int64_t offset_;
   virtual void DoInitial() override;
   virtual void Clear() {
     db_name_.clear();
+    force_sync_ = false;
     is_noone_ = false;
+    have_offset_ = false;
   }
 };
 
