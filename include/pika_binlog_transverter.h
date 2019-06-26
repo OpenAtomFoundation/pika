@@ -9,6 +9,8 @@
 #include <vector>
 #include <stdint.h>
 #include <iostream>
+#include <glog/logging.h>
+
 
 /*
  * ***********************************************Type First Binlog Item Format***********************************************
@@ -22,6 +24,10 @@ enum BinlogType {
   TypeFirst = 1,
 };
 
+
+const int BINLOG_ITEM_HEADER_SIZE = 34;
+const int PADDING_BINLOG_PROTOCOL_SIZE = 22;
+const int SPACE_STROE_PARAMETER_LENGTH = 5;
 
 class BinlogItem {
   public:
@@ -74,6 +80,8 @@ class PikaBinlogTransverter{
     static bool BinlogDecode(BinlogType type,
                              const std::string& binlog,
                              BinlogItem* binlog_item);
+
+    static std::string ConstructPaddingBinlog(BinlogType type, uint32_t size);
 
     static bool BinlogItemWithoutContentDecode(BinlogType type,
                                                const std::string& binlog,

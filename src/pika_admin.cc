@@ -1804,6 +1804,28 @@ void SlowlogCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
+void PaddingCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePadding);
+    return;
+  }
+}
+
+void PaddingCmd::Do(std::shared_ptr<Partition> partition) {
+  res_.SetRes(CmdRes::kOk);
+}
+
+std::string PaddingCmd::ToBinlog(
+        uint32_t exec_time,
+        const std::string& server_id,
+        uint64_t logic_id,
+        uint32_t filenum,
+        uint64_t offset) {
+  return PikaBinlogTransverter::ConstructPaddingBinlog(
+          BinlogType::TypeFirst, argv_[1].size() + BINLOG_ITEM_HEADER_SIZE
+          + PADDING_BINLOG_PROTOCOL_SIZE + SPACE_STROE_PARAMETER_LENGTH);
+}
+
 #ifdef TCMALLOC_EXTENSION
 void TcmallocCmd::DoInitial() {
   if (argv_.size() != 2 && argv_.size() != 3) {

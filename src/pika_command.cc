@@ -64,6 +64,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameScandb, scandbptr));
   Cmd* slowlogptr = new SlowlogCmd(kCmdNameSlowlog, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlowlog, slowlogptr));
+  Cmd* paddingptr = new PaddingCmd(kCmdNamePadding, 2, kCmdFlagsWrite | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePadding, paddingptr));
 #ifdef TCMALLOC_EXTENSION
   Cmd* tcmallocptr = new TcmallocCmd(kCmdNameTcmalloc, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTcmalloc, tcmallocptr));
