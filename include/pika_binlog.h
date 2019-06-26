@@ -64,7 +64,7 @@ class Binlog {
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
 
-  static Status AppendBlank(slash::WritableFile *file, uint64_t len);
+  static Status AppendPadding(slash::WritableFile* file, uint64_t* len);
 
   slash::WritableFile *queue() { return queue_; }
 

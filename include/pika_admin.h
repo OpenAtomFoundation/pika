@@ -340,6 +340,22 @@ class SlowlogCmd : public Cmd {
   }
 };
 
+class PaddingCmd : public Cmd {
+ public:
+  PaddingCmd(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+
+ private:
+  virtual void DoInitial();
+  virtual std::string ToBinlog(
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
+};
+
 #ifdef TCMALLOC_EXTENSION
 class TcmallocCmd : public Cmd {
  public:
