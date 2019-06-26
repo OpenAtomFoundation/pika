@@ -20,6 +20,7 @@
  */
 #define HEADER_LEN 6
 
+
 enum TransferOperate{
   kTypeAuth = 1,
   kTypeBinlog = 2
@@ -45,6 +46,10 @@ struct BinlogHeader {
     item_length_ = 0;
   }
 };
+
+const int BINLOG_ITEM_HEADER_SIZE = 34;
+const int PADDING_BINLOG_PROTOCOL_SIZE = 22;
+const int SPACE_STROE_PARAMETER_LENGTH = 5;
 
 class BinlogItem {
   public:
@@ -97,6 +102,8 @@ class PikaBinlogTransverter{
     static bool BinlogDecode(BinlogType type,
                              const std::string& binlog,
                              BinlogItem* binlog_item);
+
+    static std::string ConstructPaddingBinlog(BinlogType type, uint32_t size);
 
     static bool BinlogHeaderDecode(BinlogType type,
                                    const std::string& binlog,
