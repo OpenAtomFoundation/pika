@@ -65,6 +65,8 @@ void InitCmdInfoTable() {
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameScandb, scandbptr));
   CmdInfo* slowlogptr = new CmdInfo(kCmdNameSlowlog, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameSlowlog, slowlogptr));
+  CmdInfo* paddingptr = new CmdInfo(kCmdNamePadding, 2 , kCmdFlagsWrite | kCmdFlagsAdmin);
+  cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNamePadding, paddingptr));
 #ifdef TCMALLOC_EXTENSION
   CmdInfo* tcmallocptr = new CmdInfo(kCmdNameTcmalloc, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_infos.insert(std::pair<std::string, CmdInfo*>(kCmdNameTcmalloc, tcmallocptr));
@@ -509,6 +511,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameScandb, scandbptr));
   Cmd* slowlogptr = new SlowlogCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlowlog, slowlogptr));
+  Cmd* paddingptr = new PaddingCmd();
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePadding, paddingptr));
 #ifdef TCMALLOC_EXTENSION
   Cmd* tcmallocptr = new TcmallocCmd();
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTcmalloc, tcmallocptr));

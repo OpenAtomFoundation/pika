@@ -315,6 +315,22 @@ class SlowlogCmd : public Cmd {
   }
 };
 
+class PaddingCmd : public Cmd {
+ public:
+  PaddingCmd() {}
+  virtual void Do();
+
+ private:
+  virtual void DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
+  virtual std::string ToBinlog(
+      const PikaCmdArgsType& argv,
+      uint32_t exec_time,
+      const std::string& server_id,
+      uint64_t logic_id,
+      uint32_t filenum,
+      uint64_t offset) override;
+};
+
 #ifdef TCMALLOC_EXTENSION
 class TcmallocCmd : public Cmd {
  public:

@@ -5,6 +5,12 @@
 
 #include "include/pika_binlog_transverter.h"
 
+#include <sstream>
+#include <assert.h>
+
+#include "include/pika_command.h"
+
+
 uint32_t BinlogItem::exec_time() const {
   return exec_time_;
 }
@@ -115,6 +121,62 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type,
     return false;
   }
   return true;
+}
+
+/*
+ * *************************************************Type First Binlog Item Format**************************************************
+ * |  <Type>  | <Create Time> | <Server Id> | <Binlog Logic Id> | <File Num> | <Offset> | <Content Length> |       <Content>      |
+ * | 2 Bytes  |    4 Bytes    |   4 Bytes   |      8 Bytes      |   4 Bytes  |  8 Bytes |     4 Bytes      | content length Bytes |
+ * |---------------------------------------------- 34 Bytes -----------------------------------------------|
+ *
+ * content: *2\r\n$7\r\npadding\r\n$00001\r\n***\r\n
+ *          length of *** -> total_len - PADDING_BINLOG_PROTOCOL_SIZE - SPACE_STROE_PARAMETER_LENGTH;
+ *
+ * We allocate five bytes to store the length of the parameter
+ */
+std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type,
+                                                          uint32_t size) {
+  assert(size <= kBlockSize - kHeaderSize);
+  assert(BINLOG_ITEM_HEADER_SIZE + PADDING_BINLOG_PROTOCOL_SIZE
+          + SPACE_STROE_PARAMETER_LENGTH <= size);
+
+  std::string binlog;
+  slash::PutFixed16(&binlog, type);
+  slash::PutFixed32(&binlog, 0);
+  slash::PutFixed32(&binlog, 0);
+  slash::PutFixed64(&binlog, 0);
+  slash::PutFixed32(&binlog, 0);
+  slash::PutFixed64(&binlog, 0);
+  int32_t content_len = size - BINLOG_ITEM_HEADER_SIZE;
+  int32_t parameter_len = content_len - PADDING_BINLOG_PROTOCOL_SIZE
+      - SPACE_STROE_PARAMETER_LENGTH;
+  if (parameter_len < 0) {
+    return std::string();
+  }
+
+  std::string content;
+  RedisAppendLen(content, 2, "*");
+  RedisAppendLen(content, 7, "$");
+  RedisAppendContent(content, "padding");
+
+  std::string parameter_len_str;
+  std::ostringstream os;
+  os << parameter_len;
+  std::istringstream is(os.str());
+  is >> parameter_len_str;
+  if (parameter_len_str.size() > SPACE_STROE_PARAMETER_LENGTH) {
+    return std::string();
+  }
+
+  content.append("$");
+  content.append(SPACE_STROE_PARAMETER_LENGTH - parameter_len_str.size(), '0');
+  content.append(parameter_len_str);
+  content.append(kNewLine);
+  RedisAppendContent(content, std::string(parameter_len, '*'));
+
+  slash::PutFixed32(&binlog, content_len);
+  binlog.append(content);
+  return binlog;
 }
 
 bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(BinlogType type,
