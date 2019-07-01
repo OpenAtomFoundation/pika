@@ -38,10 +38,18 @@ class SlotsMgrtSlotAsyncCmd : public Cmd {
 class SlotsMgrtTagSlotAsyncCmd : public Cmd {
  public:
   SlotsMgrtTagSlotAsyncCmd(const std::string& name, int arity, uint16_t flag)
-    : Cmd(name, arity, flag) {}
+    : Cmd(name, arity, flag), dest_port_(0), slot_num_(-1) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   virtual void DoInitial() override;
+  std::string dest_ip_;
+  int64_t dest_port_;
+  int64_t slot_num_;
+  virtual void Clear() {
+    dest_ip_.clear();
+    dest_port_ = 0;
+    slot_num_ = -1;
+  }
 };
 
 class SlotParentCmd : public Cmd {
