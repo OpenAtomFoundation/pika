@@ -113,6 +113,7 @@ class PikaServer {
   bool IsKeyScaning();
   bool IsCompacting();
   bool IsTableExist(const std::string& table_name);
+  bool IsTablePartitionExist(const std::string& table_name, uint32_t partition_id);
   bool IsCommandSupport(const std::string& command);
   bool IsTableBinlogIoError(const std::string& table_name);
   Status DoSameThingSpecificTable(const TaskType& type, const std::set<std::string>& tables = {});
@@ -251,13 +252,6 @@ class PikaServer {
   int SendToPeer();
   void SignalAuxiliary();
   Status TriggerSendBinlogSync();
-  Status SendMetaSyncRequest();
-  Status SendPartitionDBSyncRequest(std::shared_ptr<Partition> partition);
-  Status SendPartitionTrySyncRequest(std::shared_ptr<Partition> partition);
-  Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
-                                           const BinlogOffset& ack_start, const BinlogOffset& ack_end,
-                                           bool is_frist_send = false);
-  Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t partition_id);
 
   /*
    * PubSub used
@@ -330,7 +324,6 @@ class PikaServer {
   int master_port_;
   int repl_state_;
   int role_;
-  int last_meta_sync_timestamp_;
   bool loop_partition_state_machine_;
   bool force_full_sync_;
   pthread_rwlock_t state_protector_; //protect below, use for master-slave mode

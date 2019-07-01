@@ -14,7 +14,6 @@
 
 #include "slash/include/slash_status.h"
 
-#include "include/pika_partition.h"
 #include "include/pika_binlog_reader.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
@@ -167,7 +166,7 @@ class SyncSlavePartition : public SyncPartition {
  public:
   SyncSlavePartition(const std::string& table_name, uint32_t partition_id);
 
-  void Activate(const RmNode& master);
+  void Activate(const RmNode& master, const ReplState& repl_state);
   void Deactivate();
 
   void SetLastRecvTime(uint64_t time);
@@ -185,6 +184,9 @@ class SyncSlavePartition : public SyncPartition {
   }
   int MasterPort() {
     return m_info_.Port();
+  }
+  void SetMasterSessionId(int32_t session_id) {
+    m_info_.SetSessionId(session_id);
   }
   int32_t MasterSessionId() {
     return m_info_.SessionId();
@@ -216,14 +218,25 @@ class PikaReplicaManager {
   void Start();
   void Stop();
 
-  PikaReplClient* GetPikaReplClient();
-  PikaReplServer* GetPikaReplServer();
-
   std::shared_ptr<SyncSlavePartition> GetSyncSlavePartitionByName(const RmNode& node);
-  Status ActivateSyncSlavePartition(const RmNode& node);
+  Status ActivateSyncSlavePartition(const RmNode& node, const ReplState& repl_state);
+  Status UpdateSyncSlavePartitionSessionId(const RmNode& node, int32_t session_id);
   Status DeactivateSyncSlavePartition(const RmNode& node);
   Status SetSlaveReplState(const RmNode& node, const ReplState& repl_state);
   Status GetSlaveReplState(const RmNode& node, ReplState* repl_state);
+
+  // For Pika Repl Client Thread
+  Status SendMetaSyncRequest();
+  Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t partition_id);
+  Status SendPartitionTrySyncRequest(const std::string& table_name, size_t partition_id);
+  Status SendPartitionDBSyncRequest(const std::string& table_name, size_t partition_id);
+  Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
+                                           const BinlogOffset& ack_start, const BinlogOffset& ack_end,
+                                           bool is_first_send = false);
+  Status CloseReplClientConn(const std::string& ip, int32_t port);
+
+  // For Pika Repl Server Thread
+  Status SendSlaveBinlogChipsRequest(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
 
   Status SetMasterLastRecvTime(const RmNode& slave, uint64_t time);
   Status SetSlaveLastRecvTime(const RmNode& slave, uint64_t time);
@@ -299,6 +312,7 @@ class PikaReplicaManager {
 
   PikaReplClient* pika_repl_client_;
   PikaReplServer* pika_repl_server_;
+  int last_meta_sync_timestamp_;
 };
 
 #endif  //  PIKA_RM_H

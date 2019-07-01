@@ -82,6 +82,27 @@ class RemoveSlotsCmd : public SlotParentCmd {
   virtual void DoInitial() override;
 };
 
+class SlotSyncCmd : public Cmd {
+ public:
+  SlotSyncCmd(const std::string& name , int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  std::string ip_;
+  int64_t port_;
+  int64_t slot_id_;
+  bool force_sync_;
+  bool is_noone_;
+  virtual void DoInitial() override;
+  virtual void Clear() {
+    ip_.clear();
+    port_ = 0;
+    slot_id_ = 0;
+    force_sync_ = false;
+    is_noone_ = false;
+  }
+};
+
 class SlotsScanCmd : public Cmd {
  public:
   SlotsScanCmd(const std::string& name, int arity, uint16_t flag)

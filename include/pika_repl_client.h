@@ -78,18 +78,22 @@ class PikaReplClient {
 
   void Schedule(pink::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(std::string table_partition,
-                              const std::shared_ptr<InnerMessage::InnerResponse> res,
-                              std::shared_ptr<pink::PbConn> conn,
-                              void* req_private_data);
+                               const std::shared_ptr<InnerMessage::InnerResponse> res,
+                               std::shared_ptr<pink::PbConn> conn,
+                               void* req_private_data);
   void ScheduleWriteDBTask(const std::string& dispatch_key,
                            PikaCmdArgsType* argv, BinlogItem* binlog_item,
                            const std::string& table_name, uint32_t partition_id);
 
   Status SendMetaSync();
-  Status SendPartitionDBSync(const std::string& table_name,
+  Status SendPartitionDBSync(const std::string& ip,
+                             uint32_t port,
+                             const std::string& table_name,
                              uint32_t partition_id,
                              const BinlogOffset& boffset);
-  Status SendPartitionTrySync(const std::string& table_name,
+  Status SendPartitionTrySync(const std::string& ip,
+                              uint32_t port,
+                              const std::string& table_name,
                               uint32_t partition_id,
                               const BinlogOffset& boffset);
   Status SendPartitionBinlogSync(const std::string& table_name,

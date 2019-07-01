@@ -446,7 +446,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
       RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->TableName(), slave_ptr->PartitionId(), slave_ptr->SessionId());
       WriteTask empty_task(rm_node, BinlogChip(BinlogOffset(0, 0), ""));
       task.push_back(empty_task);
-      Status s = g_pika_rm->GetPikaReplServer()->SendSlaveBinlogChips(slave_ptr->Ip(), slave_ptr->Port(), task);
+      Status s = g_pika_rm->SendSlaveBinlogChipsRequest(slave_ptr->Ip(), slave_ptr->Port(), task);
       slave_ptr->SetLastSendTime(now);
       if (!s.ok()) {
         return Status::Corruption("Send ping failed: " + slave_ptr->Ip() + ":" + std::to_string(slave_ptr->Port()));
@@ -553,10 +553,10 @@ Status SyncSlavePartition::CheckSyncTimeout(uint64_t now) {
   return Status::OK();
 }
 
-void SyncSlavePartition::Activate(const RmNode& master) {
+void SyncSlavePartition::Activate(const RmNode& master, const ReplState& repl_state) {
   slash::MutexLock l(&partition_mu_);
   m_info_ = master;
-  repl_state_ = ReplState::kNoConnect;
+  repl_state_ = repl_state;
   m_info_.SetLastRecvTime(slash::NowMicros());
 }
 
@@ -613,7 +613,8 @@ int SyncWindow::Remainings() {
 
 /* PikaReplicaManger */
 
-PikaReplicaManager::PikaReplicaManager() {
+PikaReplicaManager::PikaReplicaManager()
+    : last_meta_sync_timestamp_(0){
   std::set<std::string> ips;
   ips.insert("0.0.0.0");
   int port = g_pika_conf->port() + kPortShiftReplServer;
@@ -645,14 +646,6 @@ void PikaReplicaManager::Start() {
 void PikaReplicaManager::Stop() {
   pika_repl_client_->Stop();
   pika_repl_server_->Stop();
-}
-
-PikaReplClient* PikaReplicaManager::GetPikaReplClient() {
-  return pika_repl_client_;
-}
-
-PikaReplServer* PikaReplicaManager::GetPikaReplServer() {
-  return pika_repl_server_;
 }
 
 void PikaReplicaManager::InitPartition() {
@@ -1050,15 +1043,29 @@ Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
   return Status::OK();
 }
 
-Status PikaReplicaManager::ActivateSyncSlavePartition(const RmNode& node) {
+Status PikaReplicaManager::ActivateSyncSlavePartition(const RmNode& node,
+                                                      const ReplState& repl_state) {
   slash::RWLock l(&partitions_rw_, false);
-
   const PartitionInfo& partition_info = node.NodePartitionInfo();
+  if (sync_slave_partitions_.find(partition_info) == sync_slave_partitions_.end()) {
+    return Status::NotFound("Sync Slave partition " + node.ToString() + " not found");
+  }
+  ReplState ssp_state  = sync_slave_partitions_[partition_info]->State();
+  if (ssp_state != ReplState::kNoConnect) {
+    return Status::Corruption("Sync Slave partition in " + ReplStateMsg[ssp_state]);
+  }
+  sync_slave_partitions_[partition_info]->Activate(node, repl_state);
+  return Status::OK();
+}
 
+Status PikaReplicaManager::UpdateSyncSlavePartitionSessionId(const RmNode& node,
+                                                             int32_t session_id) {
+  slash::RWLock l(&partitions_rw_, false);
+  const PartitionInfo& partition_info = node.NodePartitionInfo();
   if (sync_slave_partitions_.find(partition_info) == sync_slave_partitions_.end()) {
     return Status::NotFound("Sync Slave partition " + node.ToString());
   }
-  sync_slave_partitions_[partition_info]->Activate(node);
+  sync_slave_partitions_[partition_info]->SetMasterSessionId(session_id);
   return Status::OK();
 }
 
@@ -1096,6 +1103,119 @@ Status PikaReplicaManager::GetSlaveReplState(const RmNode& node, ReplState* repl
   }
   *repl_state = sync_slave_partitions_[partition_info]->State();
   return Status::OK();
+}
+
+Status PikaReplicaManager::SendMetaSyncRequest() {
+  Status s;
+  int now = time(NULL);
+  if (now - last_meta_sync_timestamp_ >= PIKA_META_SYNC_MAX_WAIT_TIME) {
+    s = pika_repl_client_->SendMetaSync();
+    if (s.ok()) {
+      last_meta_sync_timestamp_ = now;
+    }
+  }
+  return s;
+}
+
+Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& table,
+                                                      uint32_t partition_id) {
+  return pika_repl_client_->SendRemoveSlaveNode(table, partition_id);
+}
+
+Status PikaReplicaManager::SendPartitionTrySyncRequest(
+        const std::string& table_name, size_t partition_id) {
+  BinlogOffset boffset;
+  if (!g_pika_server->GetTablePartitionBinlogOffset(
+              table_name, partition_id, &boffset)) {
+    LOG(WARNING) << "Partition: " << table_name << ":" << partition_id
+        << ",  Get partition binlog offset failed";
+    return Status::Corruption("Partition get binlog offset error");
+  }
+
+  std::shared_ptr<SyncSlavePartition> slave_partition =
+      GetSyncSlavePartitionByName(RmNode(table_name, partition_id));
+  if (!slave_partition) {
+    LOG(WARNING) << "Slave Partition: " << table_name << ":" << partition_id
+        << ", NotFound";
+    return Status::Corruption("Slave Partition not found");
+  }
+
+  Status status = pika_repl_client_->SendPartitionTrySync(slave_partition->MasterIp(),
+                                                          slave_partition->MasterPort(),
+                                                          table_name, partition_id, boffset);
+
+  Status s;
+  if (status.ok()) {
+    s = g_pika_rm->SetSlaveReplState(RmNode(table_name, partition_id), ReplState::kWaitReply);
+  } else {
+    s = g_pika_rm->SetSlaveReplState(RmNode(table_name, partition_id), ReplState::kError);
+    LOG(WARNING) << "SendPartitionTrySyncRequest failed " << status.ToString();
+  }
+  if (!s.ok()) {
+    LOG(WARNING) << s.ToString();
+  }
+  return status;
+}
+
+Status PikaReplicaManager::SendPartitionDBSyncRequest(
+        const std::string& table_name, size_t partition_id) {
+  BinlogOffset boffset;
+  if (!g_pika_server->GetTablePartitionBinlogOffset(
+              table_name, partition_id, &boffset)) {
+    LOG(WARNING) << "Partition: " << table_name << ":" << partition_id
+        << ",  Get partition binlog offset failed";
+    return Status::Corruption("Partition get binlog offset error");
+  }
+
+  std::shared_ptr<Partition> partition =
+    g_pika_server->GetTablePartitionById(table_name, partition_id);
+  if (!partition) {
+    LOG(WARNING) << "Partition: " << table_name << ":" << partition_id
+        << ", NotFound";
+    return Status::Corruption("Partition not found");
+  }
+  partition->PrepareRsync();
+
+  std::shared_ptr<SyncSlavePartition> slave_partition =
+      GetSyncSlavePartitionByName(RmNode(table_name, partition_id));
+  if (!slave_partition) {
+    LOG(WARNING) << "Slave Partition: " << table_name << ":" << partition_id
+        << ", NotFound";
+    return Status::Corruption("Slave Partition not found");
+  }
+
+  Status status = pika_repl_client_->SendPartitionDBSync(slave_partition->MasterIp(),
+                                                         slave_partition->MasterPort(),
+                                                         table_name, partition_id, boffset);
+
+  Status s;
+  if (status.ok()) {
+    s = g_pika_rm->SetSlaveReplState(RmNode(table_name, partition_id), ReplState::kWaitReply);
+  } else {
+    LOG(WARNING) << "SendPartitionDbSync failed " << status.ToString();
+    s = g_pika_rm->SetSlaveReplState(RmNode(table_name, partition_id), ReplState::kError);
+  }
+  if (!s.ok()) {
+    LOG(WARNING) << s.ToString();
+  }
+  return status;
+}
+
+Status PikaReplicaManager::SendPartitionBinlogSyncAckRequest(
+        const std::string& table, uint32_t partition_id,
+        const BinlogOffset& ack_start, const BinlogOffset& ack_end,
+        bool is_first_send) {
+  return pika_repl_client_->SendPartitionBinlogSync(table, partition_id, ack_start, ack_end, is_first_send);
+}
+
+Status PikaReplicaManager::CloseReplClientConn(const std::string& ip, int32_t port) {
+  return pika_repl_client_->Close(ip, port);
+}
+
+Status PikaReplicaManager::SendSlaveBinlogChipsRequest(const std::string& ip,
+                                                       int port,
+                                                       const std::vector<WriteTask>& tasks) {
+  return pika_repl_server_->SendSlaveBinlogChips(ip, port, tasks);
 }
 
 std::shared_ptr<SyncSlavePartition>

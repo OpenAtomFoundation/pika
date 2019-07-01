@@ -62,6 +62,27 @@ struct SlaveItem {
   struct timeval create_time;
 };
 
+enum ReplState {
+  kNoConnect  = 0,
+  kTryConnect = 1,
+  kTryDBSync  = 2,
+  kWaitDBSync = 3,
+  kWaitReply  = 4,
+  kConnected  = 5,
+  kError      = 6
+};
+
+// debug only
+const std::string ReplStateMsg[] = {
+  "kNoConnect",
+  "kTryConnect",
+  "kTryDBSync",
+  "kWaitDBSync",
+  "kWaitReply",
+  "kConnected",
+  "kError"
+};
+
 enum SlotState {
   INFREE = 0,
   INADDSLOTS = 1,

@@ -148,7 +148,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     // set ack_end as 0
     ack_end = ack_start;
   }
-  g_pika_server->SendPartitionBinlogSyncAckRequest(table_name, partition_id, ack_start, ack_end);
+  g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, ack_start, ack_end);
 }
 
 int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {

@@ -146,7 +146,9 @@ Status PikaReplClient::SendMetaSync() {
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
 
-Status PikaReplClient::SendPartitionDBSync(const std::string& table_name,
+Status PikaReplClient::SendPartitionDBSync(const std::string& ip,
+                                           uint32_t port,
+                                           const std::string& table_name,
                                            uint32_t partition_id,
                                            const BinlogOffset& boffset) {
   InnerMessage::InnerRequest request;
@@ -164,18 +166,18 @@ Status PikaReplClient::SendPartitionDBSync(const std::string& table_name,
   binlog_offset->set_offset(boffset.offset);
 
   std::string to_send;
-  std::string master_ip = g_pika_server->master_ip();
-  int master_port = g_pika_server->master_port();
   if (!request.SerializeToString(&to_send)) {
     LOG(WARNING) << "Serialize Partition DBSync Request Failed, to Master ("
-      << master_ip << ":" << master_port << ")";
+      << ip << ":" << port << ")";
     return Status::Corruption("Serialize Failed");
   }
-  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
+  return client_thread_->Write(ip, port + kPortShiftReplServer, to_send);
 }
 
 
-Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
+Status PikaReplClient::SendPartitionTrySync(const std::string& ip,
+                                            uint32_t port,
+                                            const std::string& table_name,
                                             uint32_t partition_id,
                                             const BinlogOffset& boffset) {
   InnerMessage::InnerRequest request;
@@ -193,14 +195,12 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
   binlog_offset->set_offset(boffset.offset);
 
   std::string to_send;
-  std::string master_ip = g_pika_server->master_ip();
-  int master_port = g_pika_server->master_port();
   if (!request.SerializeToString(&to_send)) {
     LOG(WARNING) << "Serialize Partition TrySync Request Failed, to Master ("
-      << master_ip << ":" << master_port << ")";
+      << ip << ":" << port << ")";
     return Status::Corruption("Serialize Failed");
   }
-  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
+  return client_thread_->Write(ip, port + kPortShiftReplServer, to_send);
 }
 
 Status PikaReplClient::SendPartitionBinlogSync(const std::string& table_name,

@@ -167,7 +167,7 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   if (is_noone_) {
     if (slave_partition->State() == ReplState::kConnected) {
       slave_partition->SetReplState(ReplState::kNoConnect);
-      s = g_pika_server->SendRemoveSlaveNodeRequest(
+      s = g_pika_rm->SendRemoveSlaveNodeRequest(
               db_partition->GetTableName(), db_partition->GetPartitionId());
     }
   } else {

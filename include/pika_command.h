@@ -189,6 +189,7 @@ const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
 const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
 const std::string kCmdNameAddSlots = "addslots";
 const std::string kCmdNameRemoveSlots = "removeslots";
+const std::string kCmdNameSlotSync = "slotsync";
 const std::string kCmdNameSlotsDel = "slotsdel";
 const std::string kCmdNameSlotsScan = "slotsscan";
 const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";

@@ -156,8 +156,7 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
     return;
   }
 
-  g_pika_rm->ActivateSyncSlavePartition(RmNode(g_pika_server->master_ip(),
-        g_pika_server->master_port(), table_name, partition_id, session_id));
+  g_pika_rm->UpdateSyncSlavePartitionSessionId(RmNode(table_name, partition_id), session_id);
 
   std::string partition_name = slave_partition->SyncPartitionInfo().ToString();
   slave_partition->SetReplState(ReplState::kWaitDBSync);
@@ -200,9 +199,9 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     BinlogOffset boffset;
     int32_t session_id = try_sync_response.session_id();
     partition->logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
-    g_pika_rm->ActivateSyncSlavePartition(RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), table_name, partition_id, session_id));
+    g_pika_rm->UpdateSyncSlavePartitionSessionId(RmNode(table_name, partition_id), session_id);
+    g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, boffset, boffset, true);
     slave_partition->SetReplState(ReplState::kConnected);
-    g_pika_server->SendPartitionBinlogSyncAckRequest(table_name, partition_id, boffset, boffset, true);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {
     slave_partition->SetReplState(ReplState::kTryDBSync);
@@ -234,7 +233,7 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
   for (auto& binlog_nums : par_binlog) {
     RmNode node(binlog_nums.first.table_name_, binlog_nums.first.partition_id_);
     g_pika_rm->SetSlaveLastRecvTime(node, slash::NowMicros());
-    g_pika_rm->GetPikaReplClient()->ScheduleWriteBinlogTask(
+    g_pika_rm->ScheduleWriteBinlogTask(
         binlog_nums.first.table_name_ + std::to_string(binlog_nums.first.partition_id_),
         res,
         std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()),

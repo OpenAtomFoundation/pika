@@ -20,7 +20,7 @@ PikaAuxiliaryThread::~PikaAuxiliaryThread() {
 void* PikaAuxiliaryThread::ThreadMain() {
   while (!should_stop()) {
     if (g_pika_server->ShouldMetaSync()) {
-      g_pika_server->SendMetaSyncRequest();
+      g_pika_rm->SendMetaSyncRequest();
     } else if (g_pika_server->MetaSyncDone()) {
       if (g_pika_server->LoopPartitionStateMachine()) {
         RunEveryPartitionStateMachine();
@@ -72,9 +72,9 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
         continue;
       }
       if (slave_partition->State() == ReplState::kTryConnect) {
-        g_pika_server->SendPartitionTrySyncRequest(partition);
+        g_pika_rm->SendPartitionTrySyncRequest(table.table_name, idx);
       } else if (slave_partition->State() == ReplState::kTryDBSync) {
-        g_pika_server->SendPartitionDBSyncRequest(partition);
+        g_pika_rm->SendPartitionDBSyncRequest(table.table_name, idx);
       } else if (slave_partition->State() == ReplState::kWaitReply) {
         continue;
       } else if (slave_partition->State() == ReplState::kWaitDBSync) {
