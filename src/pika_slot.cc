@@ -7,10 +7,12 @@
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_table.h"
 #include "include/pika_server.h"
+#include "include/pika_rm.h"
 
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
+extern PikaReplicaManager* g_pika_rm;
 
 // SLOTSINFO
 void SlotsInfoCmd::DoInitial() {
@@ -72,14 +74,14 @@ void SlotsHashKeyCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
+// SLOTSMGRTTAGSLOT host port timeout maxbulks maxbytes slot numkeys
 void SlotsMgrtSlotAsyncCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsHashKey);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtSlotAsync);
   }
   return;
 }
 
-// SLOTSMGRTTAGSLOT-ASYNC host port timeout maxbulks maxbytes slot numkeys
 void SlotsMgrtSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t moved = 0;
   int64_t remained = 0;
@@ -88,16 +90,60 @@ void SlotsMgrtSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendInteger(remained);
 }
 
+// SLOTSMGRTTAGSLOT-ASYNC host port timeout maxbulks maxbytes slot numkeys
 void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsHashKey);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtTagSlotAsync);
   }
+
+  PikaCmdArgsType::const_iterator it = argv_.begin() + 1; //Remember the first args is the opt name
+  dest_ip_ = *it++;
+  slash::StringToLower(dest_ip_);
+
+  std::string str_dest_port = *it++;
+  if (!slash::string2l(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
+    res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsMgrtTagSlotAsync);
+    return;
+  }
+
+  if ((dest_ip_ == "127.0.0.1" || dest_ip_ == g_pika_server->host()) && dest_port_ == g_pika_server->port()) {
+    res_.SetRes(CmdRes::kErrOther, "destination address error");
+    return;
+  }
+
+  std::string str_timeout_ms = *it++;
+
+  std::string str_max_bulks = *it++;
+
+  std::string str_max_bytes_ = *it++;
+
+  std::string str_slot_num = *it++;
+  if (!slash::string2l(str_slot_num.data(), str_slot_num.size(), &slot_num_)
+      || slot_num_ < 0 || slot_num_ >= g_pika_conf->default_partition_num()) {
+    res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsMgrtTagSlotAsync);
+    return;
+  }
+
+  std::string str_keys_num = *it++;
   return;
 }
 
 void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t moved = 0;
   int64_t remained = 0;
+  // check if this slave node exist.
+  // if exist, dont mark migrate done
+  // cache coming request in codis proxy and keep retrying
+  // Until sync done, new node slaveof no one.
+  // mark this migrate done
+  // proxy retry cached request in new node
+  bool is_exist = g_pika_rm->CheckPartitionSlaveExist(
+      RmNode(dest_ip_, dest_port_, g_pika_conf->default_table(), slot_num_));
+  if (is_exist) {
+    remained = 1;
+  } else {
+    remained = 0;
+  }
   res_.AppendArrayLen(2);
   res_.AppendInteger(moved);
   res_.AppendInteger(remained);
@@ -355,32 +401,10 @@ void SlotsMgrtExecWrapperCmd::DoInitial() {
 }
 
 void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
-  uint32_t partition_num = table_ptr->PartitionNum();
-  if (!table_ptr) {
-    res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsMgrtExecWrapper);
-  }
-  uint32_t slotnum = g_pika_cmd_table_manager->DistributeKey(key_, partition_num);
-  std::shared_ptr<Partition> cur_partition = table_ptr->GetPartitionById(slotnum);
-  if (!cur_partition) {
-    res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsMgrtExecWrapper);
-    return;
-  }
-
+  // return 0 means proxy will request to new slot server
+  // return 1 means proxy will keey trying
+  // return 2 means return this key directly
   res_.AppendArrayLen(2);
-  std::string type_str;
-  rocksdb::Status s = cur_partition->db()->Type(key_, &type_str);
-  if (!s.ok()) {
-    LOG(WARNING) << "Check key exist failed"<< key_ << " error: " << s.ToString();
-    res_.AppendInteger(-1);
-    res_.AppendInteger(-1);
-    return;
-  }
-  if (type_str == "none") {
-    res_.AppendInteger(0);
-    res_.AppendInteger(0);
-    return;
-  }
   res_.AppendInteger(1);
   res_.AppendInteger(1);
   return;
