@@ -288,7 +288,8 @@ bool Partition::TryUpdateMasterOffset() {
   }
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
-    g_pika_rm->GetSyncSlavePartitionByName(RmNode(table_name_, partition_id_));
+    g_pika_rm->GetSyncSlavePartitionByName(
+        PartitionInfo(table_name_, partition_id_));
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition: " << partition_name_ << " not exist";
     return false;

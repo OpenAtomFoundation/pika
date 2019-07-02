@@ -65,7 +65,8 @@ void PikaAuxiliaryThread::RunEveryPartitionStateMachine() {
         continue;
       }
       std::shared_ptr<SyncSlavePartition> slave_partition =
-        g_pika_rm->GetSyncSlavePartitionByName(RmNode(table.table_name, idx));
+        g_pika_rm->GetSyncSlavePartitionByName(
+            PartitionInfo(table.table_name, idx));
       if (!slave_partition) {
         LOG(WARNING) << "Slave Partition not found, Table Name: "
           << table.table_name << " Partition Id: " << idx;

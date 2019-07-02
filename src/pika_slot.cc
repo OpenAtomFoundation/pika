@@ -191,6 +191,11 @@ void SlotParentCmd::DoInitial() {
       }
     }
   }
+
+  std::string table_name = g_pika_conf->default_table();
+  for (const auto& slot_id : slots_) {
+    p_infos_.insert(PartitionInfo(table_name, slot_id));
+  }
 }
 
 /*
@@ -225,6 +230,7 @@ void AddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
     table_ptr->AddPartitions(slots_);
+    g_pika_rm->AddSyncPartition(p_infos_);
     LOG(INFO) << "Pika meta file overwrite success";
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -263,6 +269,7 @@ void RemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
     table_ptr->RemovePartitions(slots_);
+    g_pika_rm->RemoveSyncPartition(p_infos_);
     LOG(INFO) << "Pika meta file overwrite success";
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());

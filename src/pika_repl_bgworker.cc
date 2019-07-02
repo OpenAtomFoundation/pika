@@ -80,7 +80,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   }
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
-    g_pika_rm->GetSyncSlavePartitionByName(RmNode(table_name, partition_id));
+    g_pika_rm->GetSyncSlavePartitionByName(
+        PartitionInfo(table_name, partition_id));
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition " << table_name << "_" << partition_id << " Not Found";
     delete index;

@@ -58,9 +58,11 @@ class SlotParentCmd : public Cmd {
       : Cmd(name, arity, flag) {}
  protected:
   std::set<uint32_t> slots_;
+  std::set<PartitionInfo> p_infos_;
   virtual void DoInitial();
   virtual void Clear() {
     slots_.clear();
+    p_infos_.clear();
   }
 };
 

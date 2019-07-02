@@ -141,7 +141,9 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   std::string table_name = partition_response.table_name();
   uint32_t partition_id  = partition_response.partition_id();
 
-  std::shared_ptr<SyncSlavePartition> slave_partition = g_pika_rm->GetSyncSlavePartitionByName(RmNode(table_name, partition_id));
+  std::shared_ptr<SyncSlavePartition> slave_partition =
+      g_pika_rm->GetSyncSlavePartitionByName(
+              PartitionInfo(table_name, partition_id));
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition: " << table_name << ":" << partition_id << " Not Found";
     delete task_arg;
@@ -187,7 +189,9 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     return;
   }
 
-  std::shared_ptr<SyncSlavePartition> slave_partition = g_pika_rm->GetSyncSlavePartitionByName(RmNode(table_name, partition_id));
+  std::shared_ptr<SyncSlavePartition> slave_partition =
+      g_pika_rm->GetSyncSlavePartitionByName(
+              PartitionInfo(table_name, partition_id));
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition: " << table_name << ":" << partition_id << " Not Found";
     delete task_arg;
