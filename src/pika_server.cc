@@ -604,9 +604,9 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
         case TaskType::kResetReplState:
           {
             Status s = g_pika_rm->SetSlaveReplState(
-                RmNode(table_item.second->GetTableName(),
-                  partition_item.second->GetPartitionId()),
-                ReplState::kNoConnect);
+                    PartitionInfo(table_item.second->GetTableName(),
+                        partition_item.second->GetPartitionId()),
+                    ReplState::kNoConnect);
             if (!s.ok()) {
               LOG(WARNING) << s.ToString();
             }
@@ -799,8 +799,8 @@ bool PikaServer::AllPartitionConnectSuccess() {
     for (const auto& partition_item : table_item.second->partitions_) {
       ReplState repl_state;
       Status s = g_pika_rm->GetSlaveReplState(
-          RmNode(table_item.second->GetTableName(), partition_item.second->GetPartitionId()),
-          &repl_state);
+              PartitionInfo(table_item.second->GetTableName(),
+                  partition_item.second->GetPartitionId()), &repl_state);
       if (!s.ok()) {
         return false;
       }

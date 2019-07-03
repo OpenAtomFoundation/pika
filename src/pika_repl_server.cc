@@ -81,10 +81,10 @@ slash::Status PikaReplServer::Write(const std::string& ip,
                                     const std::string& msg) {
   slash::RWLock l(&client_conn_rwlock_, false);
   const std::string ip_port = slash::IpPortString(ip, port);
-  if (client_conn_map.find(ip_port) == client_conn_map.end()) {
+  if (client_conn_map_.find(ip_port) == client_conn_map_.end()) {
     return Status::NotFound("The " + ip_port + " fd cannot be found");
   }
-  int fd = client_conn_map[ip_port];
+  int fd = client_conn_map_[ip_port];
   std::shared_ptr<pink::PbConn> conn =
       std::dynamic_pointer_cast<pink::PbConn>(pika_repl_server_thread_->get_conn(fd));
   if (conn == nullptr) {
@@ -105,15 +105,15 @@ void PikaReplServer::Schedule(pink::TaskFunc func, void* arg){
 
 void PikaReplServer::UpdateClientConnMap(const std::string& ip_port, int fd) {
   slash::RWLock l(&client_conn_rwlock_, true);
-  client_conn_map[ip_port] = fd;
+  client_conn_map_[ip_port] = fd;
 }
 
 void PikaReplServer::RemoveClientConn(int fd) {
   slash::RWLock l(&client_conn_rwlock_, true);
-  std::map<std::string, int>::const_iterator iter = client_conn_map.begin();
-  while (iter != client_conn_map.end()) {
+  std::map<std::string, int>::const_iterator iter = client_conn_map_.begin();
+  while (iter != client_conn_map_.end()) {
     if (iter->second == fd) {
-      iter = client_conn_map.erase(iter);
+      iter = client_conn_map_.erase(iter);
       break;
     }
     iter++;

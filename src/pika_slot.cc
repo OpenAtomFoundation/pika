@@ -324,18 +324,27 @@ void SlotSyncCmd::DoInitial() {
 
 void SlotSyncCmd::Do(std::shared_ptr<Partition> partition) {
   std::string table_name = g_pika_conf->default_table();
-  if (!g_pika_server->IsTablePartitionExist(table_name, slot_id_)) {
+  std::shared_ptr<SyncSlavePartition> slave_partition =
+      g_pika_rm->GetSyncSlavePartitionByName(
+          PartitionInfo(table_name, slot_id_));
+  if (!slave_partition) {
     res_.SetRes(CmdRes::kErrOther, "Slot Not Found!");
     return;
   }
 
   Status s;
   if (is_noone_) {
+    if (slave_partition->State() == ReplState::kConnected) {
+      s = g_pika_rm->SendRemoveSlaveNodeRequest(table_name, slot_id_);
+    }
   } else {
-    ReplState state = force_sync_
-        ? ReplState::kTryDBSync : ReplState::kTryConnect;
-    s = g_pika_rm->ActivateSyncSlavePartition(
-            RmNode(ip_, port_, table_name, slot_id_), state);
+    if (slave_partition->State() == ReplState::kNoConnect
+      || slave_partition->State() ==ReplState::kError) {
+      ReplState state = force_sync_
+          ? ReplState::kTryDBSync : ReplState::kTryConnect;
+      s = g_pika_rm->ActivateSyncSlavePartition(
+          RmNode(ip_, port_, table_name, slot_id_), state);
+    }
   }
 
   if (s.ok()) {

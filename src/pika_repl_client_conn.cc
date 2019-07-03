@@ -158,7 +158,8 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
     return;
   }
 
-  g_pika_rm->UpdateSyncSlavePartitionSessionId(RmNode(table_name, partition_id), session_id);
+  g_pika_rm->UpdateSyncSlavePartitionSessionId(
+          PartitionInfo(table_name, partition_id), session_id);
 
   std::string partition_name = slave_partition->SyncPartitionInfo().ToString();
   slave_partition->SetReplState(ReplState::kWaitDBSync);
@@ -203,7 +204,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     BinlogOffset boffset;
     int32_t session_id = try_sync_response.session_id();
     partition->logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
-    g_pika_rm->UpdateSyncSlavePartitionSessionId(RmNode(table_name, partition_id), session_id);
+    g_pika_rm->UpdateSyncSlavePartitionSessionId(PartitionInfo(table_name, partition_id), session_id);
     g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, boffset, boffset, true);
     slave_partition->SetReplState(ReplState::kConnected);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
@@ -259,7 +260,8 @@ void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
     delete task_arg;
     return;
   }
-  Status s = g_pika_rm->SetSlaveReplState(RmNode(partition_res.table_name(), partition_res.partition_id()), ReplState::kNoConnect);
+  Status s = g_pika_rm->DeactivateSyncSlavePartition(
+          PartitionInfo(partition_res.table_name(), partition_res.partition_id()));
   if (s.ok()) {
     LOG(INFO) << "Master remove slave node success"
       << ", ip_port:" << node_res.ip() << ":" << node_res.port()

@@ -11,17 +11,15 @@
 #include "slash/include/slash_mutex.h"
 
 class PikaAuxiliaryThread : public pink::Thread {
-  public:
-    PikaAuxiliaryThread() :
+ public:
+  PikaAuxiliaryThread() :
       mu_(),
-      cv_(&mu_) {
-      }
-    virtual ~PikaAuxiliaryThread();
-    slash::Mutex mu_;
-    slash::CondVar cv_;
-  private:
-    virtual void* ThreadMain();
-    void RunEveryPartitionStateMachine();
+      cv_(&mu_) {}
+  virtual ~PikaAuxiliaryThread();
+  slash::Mutex mu_;
+  slash::CondVar cv_;
+ private:
+  virtual void* ThreadMain();
 };
 
 #endif
