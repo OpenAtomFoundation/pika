@@ -14,7 +14,6 @@
 
 #include "slash/include/slash_status.h"
 
-#include "include/pika_partition.h"
 #include "include/pika_binlog_reader.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
@@ -133,6 +132,7 @@ class SyncMasterPartition : public SyncPartition {
   Status WakeUpSlaveBinlogSync();
   Status CheckSyncTimeout(uint64_t now);
 
+  int GetNumberOfSlaveNode();
   bool CheckSlaveNodeExist(const std::string& ip, int port);
   Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
 
@@ -167,7 +167,7 @@ class SyncSlavePartition : public SyncPartition {
  public:
   SyncSlavePartition(const std::string& table_name, uint32_t partition_id);
 
-  void Activate(const RmNode& master);
+  void Activate(const RmNode& master, const ReplState& repl_state);
   void Deactivate();
 
   void SetLastRecvTime(uint64_t time);
@@ -186,15 +186,24 @@ class SyncSlavePartition : public SyncPartition {
   int MasterPort() {
     return m_info_.Port();
   }
+  void SetMasterSessionId(int32_t session_id) {
+    m_info_.SetSessionId(session_id);
+  }
   int32_t MasterSessionId() {
     return m_info_.SessionId();
+  }
+  void SetLocalIp(const std::string& local_ip) {
+    local_ip_ = local_ip;
+  }
+  std::string LocalIp() {
+    return local_ip_;
   }
 
  private:
   slash::Mutex partition_mu_;
-
   RmNode m_info_;
   ReplState repl_state_;
+  std::string local_ip_;
 };
 
 class BinlogReaderManager {
@@ -216,14 +225,32 @@ class PikaReplicaManager {
   void Start();
   void Stop();
 
-  PikaReplClient* GetPikaReplClient();
-  PikaReplServer* GetPikaReplServer();
+  std::shared_ptr<SyncSlavePartition> GetSyncSlavePartitionByName(const PartitionInfo& p_info);
+  Status AddSyncPartition(const std::set<PartitionInfo>& p_infos);
+  Status RemoveSyncPartition(const std::set<PartitionInfo>& p_infos);
+  Status SelectLocalIp(const std::string& remote_ip,
+                       const int remote_port,
+                       std::string* const local_ip);
+  Status ActivateSyncSlavePartition(const RmNode& node, const ReplState& repl_state);
+  Status UpdateSyncSlavePartitionSessionId(const PartitionInfo& p_info, int32_t session_id);
+  Status DeactivateSyncSlavePartition(const PartitionInfo& p_info);
+  Status SetSlaveReplState(const PartitionInfo& p_info, const ReplState& repl_state);
+  Status GetSlaveReplState(const PartitionInfo& p_info, ReplState* repl_state);
 
-  std::shared_ptr<SyncSlavePartition> GetSyncSlavePartitionByName(const RmNode& node);
-  Status ActivateSyncSlavePartition(const RmNode& node);
-  Status DeactivateSyncSlavePartition(const RmNode& node);
-  Status SetSlaveReplState(const RmNode& node, const ReplState& repl_state);
-  Status GetSlaveReplState(const RmNode& node, ReplState* repl_state);
+  // For Pika Repl Client Thread
+  Status SendMetaSyncRequest();
+  Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t partition_id);
+  Status SendPartitionTrySyncRequest(const std::string& table_name, size_t partition_id);
+  Status SendPartitionDBSyncRequest(const std::string& table_name, size_t partition_id);
+  Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
+                                           const BinlogOffset& ack_start, const BinlogOffset& ack_end,
+                                           bool is_first_send = false);
+  Status CloseReplClientConn(const std::string& ip, int32_t port);
+
+  // For Pika Repl Server Thread
+  Status SendSlaveBinlogChipsRequest(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
+
+  Status RunSyncSlavePartitionStateMachine();
 
   Status SetMasterLastRecvTime(const RmNode& slave, uint64_t time);
   Status SetSlaveLastRecvTime(const RmNode& slave, uint64_t time);
@@ -281,12 +308,6 @@ class PikaReplicaManager {
   BinlogReaderManager binlog_reader_mgr;
 
  private:
-  Status AddSyncMasterPartition(const std::string& table_name, uint32_t partition_id);
-  Status RemoveSyncMasterPartition(const std::string& table_name, uint32_t partition_id);
-
-  Status AddSyncSlavePartition(const std::string& table_name, uint32_t partition_id);
-  Status RemoveSyncSlavePartition(const std::string& table_name, uint32_t partition_id);
-
   void InitPartition();
 
   pthread_rwlock_t partitions_rw_;
@@ -299,6 +320,7 @@ class PikaReplicaManager {
 
   PikaReplClient* pika_repl_client_;
   PikaReplServer* pika_repl_server_;
+  int last_meta_sync_timestamp_;
 };
 
 #endif  //  PIKA_RM_H

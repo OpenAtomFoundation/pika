@@ -42,7 +42,7 @@ class PikaReplServer {
   PikaReplServerThread* pika_repl_server_thread_;
 
   pthread_rwlock_t client_conn_rwlock_;
-  std::map<std::string, int> client_conn_map;
+  std::map<std::string, int> client_conn_map_;
 };
 
 #endif

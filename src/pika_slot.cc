@@ -3,16 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "include/pika_rm.h"
 #include "include/pika_slot.h"
-#include "include/pika_cmd_table_manager.h"
 #include "include/pika_table.h"
 #include "include/pika_server.h"
-#include "include/pika_rm.h"
+#include "include/pika_cmd_table_manager.h"
 
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
+extern PikaReplicaManager* g_pika_rm;
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
-extern PikaReplicaManager* g_pika_rm;
 
 // SLOTSINFO
 void SlotsInfoCmd::DoInitial() {
@@ -191,6 +191,11 @@ void SlotParentCmd::DoInitial() {
       }
     }
   }
+
+  std::string table_name = g_pika_conf->default_table();
+  for (const auto& slot_id : slots_) {
+    p_infos_.insert(PartitionInfo(table_name, slot_id));
+  }
 }
 
 /*
@@ -225,6 +230,7 @@ void AddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
     table_ptr->AddPartitions(slots_);
+    g_pika_rm->AddSyncPartition(p_infos_);
     LOG(INFO) << "Pika meta file overwrite success";
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -232,8 +238,7 @@ void AddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   g_pika_server->slot_state_.store(INFREE);
 }
 
-/*
- * removeslots 0-3,8-11
+/* removeslots 0-3,8-11
  * removeslots 0-3,8,9,10,11
  * removeslots 0,2,4,6,8,10,12,14
  */
@@ -264,11 +269,89 @@ void RemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
     table_ptr->RemovePartitions(slots_);
+    g_pika_rm->RemoveSyncPartition(p_infos_);
     LOG(INFO) << "Pika meta file overwrite success";
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   g_pika_server->slot_state_.store(INFREE);
+}
+
+/* slotsync ip port slot_id
+ * slotsync ip port slot_id force
+ * slotsync ip port slot_id no one
+ */
+void SlotSyncCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotSync);
+    return;
+  }
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SlotSync only support on sharding mode");
+    return;
+  }
+
+  ip_ = argv_[1];
+  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &port_) || port_ <= 0) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+
+  if ((ip_ == "127.0.0.1" || ip_ == g_pika_server->host())
+    && port_ == g_pika_server->port()) {
+    res_.SetRes(CmdRes::kErrOther, "you fucked up");
+    return;
+  }
+
+  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &slot_id_) || slot_id_ < 0) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+
+  if (argv_.size() == 4) {
+    // do nothing
+  } else if (argv_.size() == 5
+    && !strcasecmp(argv_[4].data(), "force")) {
+    force_sync_ = true;
+  } else if (argv_.size() == 6
+    && !strcasecmp(argv_[4].data(), "no")
+    && !strcasecmp(argv_[5].data(), "one")) {
+    is_noone_ = true;
+  } else {
+    res_.SetRes(CmdRes::kSyntaxErr);
+  }
+}
+
+void SlotSyncCmd::Do(std::shared_ptr<Partition> partition) {
+  std::string table_name = g_pika_conf->default_table();
+  std::shared_ptr<SyncSlavePartition> slave_partition =
+      g_pika_rm->GetSyncSlavePartitionByName(
+          PartitionInfo(table_name, slot_id_));
+  if (!slave_partition) {
+    res_.SetRes(CmdRes::kErrOther, "Slot Not Found!");
+    return;
+  }
+
+  Status s;
+  if (is_noone_) {
+    if (slave_partition->State() == ReplState::kConnected) {
+      s = g_pika_rm->SendRemoveSlaveNodeRequest(table_name, slot_id_);
+    }
+  } else {
+    if (slave_partition->State() == ReplState::kNoConnect
+      || slave_partition->State() ==ReplState::kError) {
+      ReplState state = force_sync_
+          ? ReplState::kTryDBSync : ReplState::kTryConnect;
+      s = g_pika_rm->ActivateSyncSlavePartition(
+          RmNode(ip_, port_, table_name, slot_id_), state);
+    }
+  }
+
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
 }
 
 // SLOTSSCAN slotnum cursor [COUNT count]

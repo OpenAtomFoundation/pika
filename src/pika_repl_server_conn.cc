@@ -131,6 +131,8 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
               // incremental sync
               Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
               if (s.ok()) {
+                const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+                g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
                 try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
                 LOG(INFO) << "Partition: " << partition_name << " TrySync Success, Session: " << session_id;
               } else {
@@ -205,6 +207,8 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
       db_sync_response->set_session_id(session_id);
       Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
       if (s.ok()) {
+        const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+        g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
         LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success, Session: " << session_id;
       } else {
         response.set_code(InnerMessage::kError);
@@ -250,7 +254,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
   if (!req->has_binlog_sync()) {
     LOG(WARNING) << "Pb parse error";
-    conn->NotifyClose();
+    //conn->NotifyClose();
     delete task_arg;
     return;
   }
@@ -270,7 +274,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
               node.port(), table_name, partition_id, session_id)) {
     LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port()
         << ", " << table_name << "_" << partition_id;
-    conn->NotifyClose();
+    //conn->NotifyClose();
     delete task_arg;
     return;
   }

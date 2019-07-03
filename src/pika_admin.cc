@@ -149,15 +149,8 @@ void DbSlaveofCmd::DoInitial() {
 }
 
 void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<Partition> db_partition = g_pika_server->GetPartitionByDbName(db_name_);
-
-  if (!db_partition) {
-    res_.SetRes(CmdRes::kErrOther, "Db not found");
-    return;
-  }
-
   std::shared_ptr<SyncSlavePartition> slave_partition =
-    g_pika_rm->GetSyncSlavePartitionByName(RmNode(db_partition->GetTableName(), db_partition->GetPartitionId()));
+      g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(db_name_,0));
   if (!slave_partition) {
     res_.SetRes(CmdRes::kErrOther, "Db not found");
     return;
@@ -166,22 +159,22 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   Status s;
   if (is_noone_) {
     if (slave_partition->State() == ReplState::kConnected) {
-      slave_partition->SetReplState(ReplState::kNoConnect);
-      s = g_pika_server->SendRemoveSlaveNodeRequest(
-              db_partition->GetTableName(), db_partition->GetPartitionId());
+      // In classic mode a table has only one partition
+      s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_, 0);
     }
   } else {
     if (slave_partition->State() == ReplState::kNoConnect
       || slave_partition->State() == ReplState::kError) {
-      if (force_sync_) {
-        slave_partition->SetReplState(ReplState::kTryDBSync);
-      } else {
-        if (have_offset_) {
-          db_partition->logger()->SetProducerStatus(filenum_, offset_);
-        }
-        slave_partition->SetReplState(ReplState::kTryConnect);
+      if (have_offset_) {
+        std::shared_ptr<Partition> db_partition =
+          g_pika_server->GetPartitionByDbName(db_name_);
+        db_partition->logger()->SetProducerStatus(filenum_, offset_);
       }
-      g_pika_server->SetLoopPartitionStateMachine(true);
+      ReplState state = force_sync_
+          ? ReplState::kTryDBSync : ReplState::kTryConnect;
+      s = g_pika_rm->ActivateSyncSlavePartition(
+          RmNode(g_pika_server->master_ip(), g_pika_server->master_port(),
+            db_name_, 0), state);
     }
   }
 
@@ -755,10 +748,10 @@ void InfoCmd::InfoReplication(std::string& info) {
   for (const auto& table_item : g_pika_server->tables_) {
     slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
     for (const auto& partition_item : table_item.second->partitions_) {
-      std::shared_ptr<SyncSlavePartition> slave_partition
-        = g_pika_rm->GetSyncSlavePartitionByName(
-          RmNode(table_item.second->GetTableName(),
-            partition_item.second->GetPartitionId()));
+      std::shared_ptr<SyncSlavePartition> slave_partition =
+          g_pika_rm->GetSyncSlavePartitionByName(
+                  PartitionInfo(table_item.second->GetTableName(),
+                      partition_item.second->GetPartitionId()));
       if (!slave_partition) {
         out_of_sync << "(" << partition_item.second->GetPartitionName() << ": InternalError)";
         continue;

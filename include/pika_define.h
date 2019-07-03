@@ -62,6 +62,27 @@ struct SlaveItem {
   struct timeval create_time;
 };
 
+enum ReplState {
+  kNoConnect  = 0,
+  kTryConnect = 1,
+  kTryDBSync  = 2,
+  kWaitDBSync = 3,
+  kWaitReply  = 4,
+  kConnected  = 5,
+  kError      = 6
+};
+
+// debug only
+const std::string ReplStateMsg[] = {
+  "kNoConnect",
+  "kTryConnect",
+  "kTryDBSync",
+  "kWaitDBSync",
+  "kWaitReply",
+  "kConnected",
+  "kError"
+};
+
 enum SlotState {
   INFREE = 0,
   INADDSLOTS = 1,
@@ -150,18 +171,27 @@ struct PartitionInfo {
   PartitionInfo(const std::string& table_name, uint32_t partition_id)
     : table_name_(table_name), partition_id_(partition_id) {
   }
-  PartitionInfo(const PartitionInfo& other) {
-    table_name_ = other.table_name_;
-    partition_id_ = other.partition_id_;
-  }
   PartitionInfo() : partition_id_(0) {
   }
   bool operator==(const PartitionInfo& other) const {
     if (table_name_ == other.table_name_
-        && partition_id_ == other.partition_id_) {
+      && partition_id_ == other.partition_id_) {
       return true;
     }
     return false;
+  }
+  int operator<(const PartitionInfo& other) const {
+    int ret = strcmp(table_name_.data(), other.table_name_.data());
+    if (!ret) {
+      if (partition_id_ < other.partition_id_) {
+        ret = -1;
+      } else if (partition_id_ > other.partition_id_) {
+        ret = 1;
+      } else {
+        ret = 0;
+      }
+    }
+    return ret;
   }
   std::string ToString() const {
     return table_name_ + "_" + std::to_string(partition_id_);

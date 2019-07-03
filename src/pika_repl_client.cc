@@ -97,16 +97,17 @@ Status PikaReplClient::Close(const std::string& ip, const int port) {
   return client_thread_->Close(ip, port);
 }
 
+
 Status PikaReplClient::SendMetaSync() {
+  std::string local_ip;
   pink::PinkCli* cli = pink::NewRedisCli();
   cli->set_connect_timeout(1500);
   if ((cli->Connect(g_pika_server->master_ip(), g_pika_server->master_port(), "")).ok()) {
     struct sockaddr_in laddr;
     socklen_t llen = sizeof(laddr);
     getsockname(cli->fd(), (struct sockaddr*) &laddr, &llen);
-    std::string local_ip(inet_ntoa(laddr.sin_addr));
-    local_ip_ = local_ip;
-    local_port_ = g_pika_server->port();
+    std::string tmp_local_ip(inet_ntoa(laddr.sin_addr));
+    local_ip = tmp_local_ip;
     cli->Close();
     delete cli;
   } else {
@@ -124,8 +125,8 @@ Status PikaReplClient::SendMetaSync() {
   request.set_type(InnerMessage::kMetaSync);
   InnerMessage::InnerRequest::MetaSync* meta_sync = request.mutable_meta_sync();
   InnerMessage::Node* node = meta_sync->mutable_node();
-  node->set_ip(local_ip_);
-  node->set_port(local_port_);
+  node->set_ip(local_ip);
+  node->set_port(g_pika_server->port());
 
   std::string masterauth = g_pika_conf->masterauth();
   if (!masterauth.empty()) {
@@ -146,15 +147,18 @@ Status PikaReplClient::SendMetaSync() {
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
 
-Status PikaReplClient::SendPartitionDBSync(const std::string& table_name,
+Status PikaReplClient::SendPartitionDBSync(const std::string& ip,
+                                           uint32_t port,
+                                           const std::string& table_name,
                                            uint32_t partition_id,
-                                           const BinlogOffset& boffset) {
+                                           const BinlogOffset& boffset,
+                                           const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kDBSync);
   InnerMessage::InnerRequest::DBSync* db_sync = request.mutable_db_sync();
   InnerMessage::Node* node = db_sync->mutable_node();
-  node->set_ip(local_ip_);
-  node->set_port(local_port_);
+  node->set_ip(local_ip);
+  node->set_port(g_pika_server->port());
   InnerMessage::Partition* partition = db_sync->mutable_partition();
   partition->set_table_name(table_name);
   partition->set_partition_id(partition_id);
@@ -164,26 +168,27 @@ Status PikaReplClient::SendPartitionDBSync(const std::string& table_name,
   binlog_offset->set_offset(boffset.offset);
 
   std::string to_send;
-  std::string master_ip = g_pika_server->master_ip();
-  int master_port = g_pika_server->master_port();
   if (!request.SerializeToString(&to_send)) {
     LOG(WARNING) << "Serialize Partition DBSync Request Failed, to Master ("
-      << master_ip << ":" << master_port << ")";
+      << ip << ":" << port << ")";
     return Status::Corruption("Serialize Failed");
   }
-  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
+  return client_thread_->Write(ip, port + kPortShiftReplServer, to_send);
 }
 
 
-Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
+Status PikaReplClient::SendPartitionTrySync(const std::string& ip,
+                                            uint32_t port,
+                                            const std::string& table_name,
                                             uint32_t partition_id,
-                                            const BinlogOffset& boffset) {
+                                            const BinlogOffset& boffset,
+                                            const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kTrySync);
   InnerMessage::InnerRequest::TrySync* try_sync = request.mutable_try_sync();
   InnerMessage::Node* node = try_sync->mutable_node();
-  node->set_ip(local_ip_);
-  node->set_port(local_port_);
+  node->set_ip(local_ip);
+  node->set_port(g_pika_server->port());
   InnerMessage::Partition* partition = try_sync->mutable_partition();
   partition->set_table_name(table_name);
   partition->set_partition_id(partition_id);
@@ -193,27 +198,28 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& table_name,
   binlog_offset->set_offset(boffset.offset);
 
   std::string to_send;
-  std::string master_ip = g_pika_server->master_ip();
-  int master_port = g_pika_server->master_port();
   if (!request.SerializeToString(&to_send)) {
     LOG(WARNING) << "Serialize Partition TrySync Request Failed, to Master ("
-      << master_ip << ":" << master_port << ")";
+      << ip << ":" << port << ")";
     return Status::Corruption("Serialize Failed");
   }
-  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
+  return client_thread_->Write(ip, port + kPortShiftReplServer, to_send);
 }
 
-Status PikaReplClient::SendPartitionBinlogSync(const std::string& table_name,
+Status PikaReplClient::SendPartitionBinlogSync(const std::string& ip,
+                                               uint32_t port,
+                                               const std::string& table_name,
                                                uint32_t partition_id,
                                                const BinlogOffset& ack_start,
                                                const BinlogOffset& ack_end,
+                                               const std::string& local_ip,
                                                bool is_first_send) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kBinlogSync);
   InnerMessage::InnerRequest::BinlogSync* binlog_sync = request.mutable_binlog_sync();
   InnerMessage::Node* node = binlog_sync->mutable_node();
-  node->set_ip(local_ip_);
-  node->set_port(local_port_);
+  node->set_ip(local_ip);
+  node->set_port(g_pika_server->port());
   binlog_sync->set_table_name(table_name);
   binlog_sync->set_partition_id(partition_id);
   binlog_sync->set_first_send(is_first_send);
@@ -230,37 +236,36 @@ Status PikaReplClient::SendPartitionBinlogSync(const std::string& table_name,
   binlog_sync->set_session_id(session_id);
 
   std::string to_send;
-  std::string master_ip = g_pika_server->master_ip();
-  int master_port = g_pika_server->master_port();
   if (!request.SerializeToString(&to_send)) {
     LOG(WARNING) << "Serialize Partition BinlogSync Request Failed, to Master ("
-      << master_ip << ":" << master_port << ")";
+      << ip << ":" << port << ")";
     return Status::Corruption("Serialize Failed");
   }
-  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
+  return client_thread_->Write(ip, port + kPortShiftReplServer, to_send);
 }
 
-Status PikaReplClient::SendRemoveSlaveNode(const std::string& table_name,
-                                           uint32_t partition_id) {
+Status PikaReplClient::SendRemoveSlaveNode(const std::string& ip,
+                                           uint32_t port,
+                                           const std::string& table_name,
+                                           uint32_t partition_id,
+                                           const std::string& local_ip) {
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kRemoveSlaveNode);
   InnerMessage::InnerRequest::RemoveSlaveNode* remove_slave_node =
       request.mutable_remove_slave_node();
   InnerMessage::Node* node = remove_slave_node->mutable_node();
-  node->set_ip(local_ip_);
-  node->set_port(local_port_);
+  node->set_ip(local_ip);
+  node->set_port(g_pika_server->port());
 
   InnerMessage::Partition* partition = remove_slave_node->mutable_partition();
   partition->set_table_name(table_name);
   partition->set_partition_id(partition_id);
 
   std::string to_send;
-  std::string master_ip = g_pika_server->master_ip();
-  int master_port = g_pika_server->master_port();
   if (!request.SerializeToString(&to_send)) {
     LOG(WARNING) << "Serialize Remove Slave Node Failed, to Master ("
-      << master_ip << ":" << master_port << "), " << table_name << "_" << partition_id;
+      << ip << ":" << port << "), " << table_name << "_" << partition_id;
     return Status::Corruption("Serialize Failed");
   }
-  return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
+  return client_thread_->Write(ip, port + kPortShiftReplServer, to_send);
 }

@@ -48,27 +48,6 @@ struct BgSaveInfo {
   }
 };
 
-enum ReplState {
-  kNoConnect  = 0,
-  kTryConnect = 1,
-  kTryDBSync  = 2,
-  kWaitDBSync = 3,
-  kWaitReply  = 4,
-  kConnected  = 5,
-  kError      = 6
-};
-
-// debug only
-const std::string ReplStateMsg[] = {
-  "kNoConnect",
-  "kTryConnect",
-  "kTryDBSync",
-  "kWaitDBSync",
-  "kWaitReply",
-  "kConnected",
-  "kError"
-};
-
 class Partition : public std::enable_shared_from_this<Partition> {
  public:
   Partition(const std::string& table_name,
@@ -96,9 +75,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool IsBinlogIoError();
   bool GetBinlogOffset(BinlogOffset* const boffset);
   bool SetBinlogOffset(const BinlogOffset& boffset);
-
-  ReplState State();
-  void SetReplState(const ReplState& state);
 
   void PrepareRsync();
   bool TryUpdateMasterOffset();

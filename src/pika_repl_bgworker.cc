@@ -80,7 +80,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   }
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
-    g_pika_rm->GetSyncSlavePartitionByName(RmNode(table_name, partition_id));
+    g_pika_rm->GetSyncSlavePartitionByName(
+        PartitionInfo(table_name, partition_id));
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition " << table_name << "_" << partition_id << " Not Found";
     delete index;
@@ -92,7 +93,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     // if pika are not current a slave or partition not in
     // BinlogSync state, we drop remain write binlog task
-    if ((g_pika_server->role() ^ PIKA_ROLE_SLAVE)
+    if ((g_pika_conf->classic_mode() && g_pika_server->role() ^ PIKA_ROLE_SLAVE)
       || ((slave_partition->State() != ReplState::kConnected)
          && (slave_partition->State() != ReplState::kWaitDBSync))) {
       delete index;
@@ -148,7 +149,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     // set ack_end as 0
     ack_end = ack_start;
   }
-  g_pika_server->SendPartitionBinlogSyncAckRequest(table_name, partition_id, ack_start, ack_end);
+  g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, ack_start, ack_end);
 }
 
 int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {

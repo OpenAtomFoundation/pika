@@ -288,7 +288,8 @@ bool Partition::TryUpdateMasterOffset() {
   }
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
-    g_pika_rm->GetSyncSlavePartitionByName(RmNode(table_name_, partition_id_));
+    g_pika_rm->GetSyncSlavePartitionByName(
+        PartitionInfo(table_name_, partition_id_));
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition: " << partition_name_ << " not exist";
     return false;
@@ -338,10 +339,10 @@ bool Partition::TryUpdateMasterOffset() {
       << ", offset: " << offset;
 
   // Sanity check
-  if (master_ip != g_pika_server->master_ip() ||
-      master_port != g_pika_server->master_port()) {
+  if (master_ip != slave_partition->MasterIp()
+    || master_port != slave_partition->MasterPort()) {
     LOG(WARNING) << "Partition: " << partition_name_
-        << " Error master ip port: " << master_ip << ":" << master_port;
+      << " Error master node ip port: " << master_ip << ":" << master_port;
     slave_partition->SetReplState(ReplState::kError);
     return false;
   }

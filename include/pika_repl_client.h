@@ -78,27 +78,39 @@ class PikaReplClient {
 
   void Schedule(pink::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(std::string table_partition,
-                              const std::shared_ptr<InnerMessage::InnerResponse> res,
-                              std::shared_ptr<pink::PbConn> conn,
-                              void* req_private_data);
+                               const std::shared_ptr<InnerMessage::InnerResponse> res,
+                               std::shared_ptr<pink::PbConn> conn,
+                               void* req_private_data);
   void ScheduleWriteDBTask(const std::string& dispatch_key,
                            PikaCmdArgsType* argv, BinlogItem* binlog_item,
                            const std::string& table_name, uint32_t partition_id);
 
   Status SendMetaSync();
-  Status SendPartitionDBSync(const std::string& table_name,
+  Status SendPartitionDBSync(const std::string& ip,
+                             uint32_t port,
+                             const std::string& table_name,
                              uint32_t partition_id,
-                             const BinlogOffset& boffset);
-  Status SendPartitionTrySync(const std::string& table_name,
+                             const BinlogOffset& boffset,
+                             const std::string& local_ip);
+  Status SendPartitionTrySync(const std::string& ip,
+                              uint32_t port,
+                              const std::string& table_name,
                               uint32_t partition_id,
-                              const BinlogOffset& boffset);
-  Status SendPartitionBinlogSync(const std::string& table_name,
+                              const BinlogOffset& boffset,
+                              const std::string& local_ip);
+  Status SendPartitionBinlogSync(const std::string& ip,
+                                 uint32_t port,
+                                 const std::string& table_name,
                                  uint32_t partition_id,
                                  const BinlogOffset& ack_start,
                                  const BinlogOffset& ack_end,
+                                 const std::string& local_ip,
                                  bool is_frist_send);
-  Status SendRemoveSlaveNode(const std::string& table_name,
-                             uint32_t partition_id);
+  Status SendRemoveSlaveNode(const std::string& ip,
+                             uint32_t port,
+                             const std::string& table_name,
+                             uint32_t partition_id,
+                             const std::string& local_ip);
  private:
   size_t GetHashIndex(std::string key, bool upper_half);
   void UpdateNextAvail() {
@@ -109,9 +121,6 @@ class PikaReplClient {
   int next_avail_;
   std::hash<std::string> str_hash;
   std::vector<PikaReplBgWorker*> bg_workers_;
-
-  std::string local_ip_;
-  int local_port_;
 };
 
 #endif
