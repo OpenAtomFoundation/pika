@@ -1035,19 +1035,19 @@ Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip,
 Status PikaReplicaManager::ActivateSyncSlavePartition(const RmNode& node,
                                                       const ReplState& repl_state) {
   slash::RWLock l(&partitions_rw_, false);
-  const PartitionInfo& partition_info = node.NodePartitionInfo();
-  if (sync_slave_partitions_.find(partition_info) == sync_slave_partitions_.end()) {
+  const PartitionInfo& p_info = node.NodePartitionInfo();
+  if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
     return Status::NotFound("Sync Slave partition " + node.ToString() + " not found");
   }
-  ReplState ssp_state  = sync_slave_partitions_[partition_info]->State();
+  ReplState ssp_state  = sync_slave_partitions_[p_info]->State();
   if (ssp_state != ReplState::kNoConnect) {
     return Status::Corruption("Sync Slave partition in " + ReplStateMsg[ssp_state]);
   }
   std::string local_ip;
   Status s = SelectLocalIp(node.Ip(), node.Port(), &local_ip);
   if (s.ok()) {
-    sync_slave_partitions_[partition_info]->SetLocalIp(local_ip);
-    sync_slave_partitions_[partition_info]->Activate(node, repl_state);
+    sync_slave_partitions_[p_info]->SetLocalIp(local_ip);
+    sync_slave_partitions_[p_info]->Activate(node, repl_state);
   }
   return s;
 }

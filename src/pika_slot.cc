@@ -277,9 +277,9 @@ void RemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   g_pika_server->slot_state_.store(INFREE);
 }
 
-/* slotsync ip port slot_id
+/* slotsync no one  slot_id
+ * slotsync ip port slot_id
  * slotsync ip port slot_id force
- * slotsync ip port slot_id no one
  */
 void SlotSyncCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -291,19 +291,26 @@ void SlotSyncCmd::DoInitial() {
     return;
   }
 
-  ip_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &port_) || port_ <= 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
+  if (!strcasecmp(argv_[1].data(), "no")
+    && !strcasecmp(argv_[2].data(), "one")) {
+    is_noone_ = true;
+  } else {
+    ip_ = argv_[1];
+    if (!slash::string2l(argv_[2].data(), argv_[2].size(), &port_)
+      || port_ <= 0) {
+      res_.SetRes(CmdRes::kInvalidInt);
+      return;
+    }
+
+    if ((ip_ == "127.0.0.1" || ip_ == g_pika_server->host())
+      && port_ == g_pika_server->port()) {
+      res_.SetRes(CmdRes::kErrOther, "you fucked up");
+      return;
+    }
   }
 
-  if ((ip_ == "127.0.0.1" || ip_ == g_pika_server->host())
-    && port_ == g_pika_server->port()) {
-    res_.SetRes(CmdRes::kErrOther, "you fucked up");
-    return;
-  }
-
-  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &slot_id_) || slot_id_ < 0) {
+  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &slot_id_)
+    || slot_id_ < 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -313,10 +320,6 @@ void SlotSyncCmd::DoInitial() {
   } else if (argv_.size() == 5
     && !strcasecmp(argv_[4].data(), "force")) {
     force_sync_ = true;
-  } else if (argv_.size() == 6
-    && !strcasecmp(argv_[4].data(), "no")
-    && !strcasecmp(argv_[5].data(), "one")) {
-    is_noone_ = true;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr);
   }
