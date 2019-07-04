@@ -252,7 +252,7 @@ Status PikaReplClient::SendRemoveSlaveNode(const std::string& ip,
   InnerMessage::InnerRequest request;
   request.set_type(InnerMessage::kRemoveSlaveNode);
   InnerMessage::InnerRequest::RemoveSlaveNode* remove_slave_node =
-      request.mutable_remove_slave_node();
+      request.add_remove_slave_node();
   InnerMessage::Node* node = remove_slave_node->mutable_node();
   node->set_ip(local_ip);
   node->set_port(g_pika_server->port());

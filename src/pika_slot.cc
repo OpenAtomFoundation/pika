@@ -149,6 +149,42 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendInteger(remained);
 }
 
+Status ParseSlotGroup(const std::string& slot_group,
+                      std::set<uint32_t>* slots) {
+  std::set<uint32_t> tmp_slots;
+  int64_t slot_idx, start_idx, end_idx;
+  std::string::size_type pos;
+  std::vector<std::string> elems;
+  slash::StringSplit(slot_group, COMMA, elems);
+  for (const auto& elem :  elems) {
+    if ((pos = elem.find("-")) == std::string::npos) {
+      if (!slash::string2l(elem.data(), elem.size(), &slot_idx)
+        || slot_idx < 0) {
+        return Status::Corruption("syntax error");
+      } else {
+        tmp_slots.insert(static_cast<uint32_t>(slot_idx));
+      }
+    } else {
+      if (pos == 0 || pos == (elem.size() - 1)) {
+        return Status::Corruption("syntax error");
+      } else {
+        std::string start_pos = elem.substr(0, pos);
+        std::string end_pos = elem.substr(pos + 1, elem.size() - pos);
+        if (!slash::string2l(start_pos.data(), start_pos.size(), &start_idx)
+          || !slash::string2l(end_pos.data(), end_pos.size(), &end_idx)
+          || start_idx < 0 || end_idx < 0 || start_idx > end_idx) {
+          return Status::Corruption("syntax error");
+        }
+        for (int64_t idx = start_idx; idx <= end_idx; ++idx) {
+          tmp_slots.insert(static_cast<uint32_t>(idx));
+        }
+      }
+    }
+  }
+  slots->swap(tmp_slots);
+  return Status::OK();
+}
+
 void SlotParentCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kSyntaxErr);
@@ -159,37 +195,9 @@ void SlotParentCmd::DoInitial() {
     return;
   }
 
-  int64_t slot_idx, start_idx, end_idx;
-  std::string::size_type pos;
-  std::vector<std::string> elems;
-  slash::StringSplit(argv_[1], COMMA, elems);
-  for (const auto& elem :  elems) {
-    if ((pos = elem.find("-")) == std::string::npos) {
-      if (!slash::string2l(elem.data(), elem.size(), &slot_idx)
-        || slot_idx < 0) {
-        res_.SetRes(CmdRes::kSyntaxErr);
-        return;
-      } else {
-        slots_.insert(static_cast<uint32_t>(slot_idx));
-      }
-    } else {
-      if (pos == 0 || pos == (elem.size() - 1)) {
-        res_.SetRes(CmdRes::kSyntaxErr);
-        return;
-      } else {
-        std::string start_pos = elem.substr(0, pos);
-        std::string end_pos = elem.substr(pos + 1, elem.size() - pos);
-        if (!slash::string2l(start_pos.data(), start_pos.size(), &start_idx)
-          || !slash::string2l(end_pos.data(), end_pos.size(), &end_idx)
-          || start_idx < 0 || end_idx < 0 || start_idx > end_idx) {
-          res_.SetRes(CmdRes::kSyntaxErr);
-          return;
-        }
-        for (int64_t idx = start_idx; idx <= end_idx; ++idx) {
-          slots_.insert(static_cast<uint32_t>(idx));
-        }
-      }
-    }
+  Status s = ParseSlotGroup(argv_[1], &slots_);
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 
   std::string table_name = g_pika_conf->default_table();
@@ -277,13 +285,13 @@ void RemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   g_pika_server->slot_state_.store(INFREE);
 }
 
-/* slotsync no one  slot_id
- * slotsync ip port slot_id
- * slotsync ip port slot_id force
+/* slotslaveof no one  0-3,8-11
+ * slotslaveof ip port 0-3,8,9,10,11
+ * slotslaveof ip port 0,2,4,6 force
  */
-void SlotSyncCmd::DoInitial() {
+void SlotSlaveofCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotSync);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotSlaveof);
     return;
   }
   if (g_pika_conf->classic_mode()) {
@@ -309,10 +317,9 @@ void SlotSyncCmd::DoInitial() {
     }
   }
 
-  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &slot_id_)
-    || slot_id_ < 0) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
+  Status s = ParseSlotGroup(argv_[3], &slots_);
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 
   if (argv_.size() == 4) {
@@ -325,28 +332,40 @@ void SlotSyncCmd::DoInitial() {
   }
 }
 
-void SlotSyncCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   std::string table_name = g_pika_conf->default_table();
-  std::shared_ptr<SyncSlavePartition> slave_partition =
-      g_pika_rm->GetSyncSlavePartitionByName(
-          PartitionInfo(table_name, slot_id_));
-  if (!slave_partition) {
-    res_.SetRes(CmdRes::kErrOther, "Slot Not Found!");
-    return;
+  for (const auto& slot : slots_) {
+    std::shared_ptr<SyncSlavePartition> slave_partition =
+        g_pika_rm->GetSyncSlavePartitionByName(
+                PartitionInfo(table_name, slot));
+    if (!slave_partition) {
+      res_.SetRes(CmdRes::kErrOther, "slot " + std::to_string(slot) + " not found!");
+      return;
+    }
+    if (is_noone_) {
+      if (slave_partition->State() != ReplState::kConnected) {
+        res_.SetRes(CmdRes::kErrOther, "slot " + std::to_string(slot) + " not syncing");
+        return;
+      }
+    } else if (slave_partition->State() != ReplState::kNoConnect
+      && slave_partition->State() != ReplState::kError) {
+      res_.SetRes(CmdRes::kErrOther, "slot " + std::to_string(slot) + " in syncing");
+      return;
+    }
   }
 
   Status s;
-  if (is_noone_) {
-    if (slave_partition->State() == ReplState::kConnected) {
-      s = g_pika_rm->SendRemoveSlaveNodeRequest(table_name, slot_id_);
-    }
-  } else {
-    if (slave_partition->State() == ReplState::kNoConnect
-      || slave_partition->State() ==ReplState::kError) {
-      ReplState state = force_sync_
-          ? ReplState::kTryDBSync : ReplState::kTryConnect;
+  ReplState state = force_sync_
+    ? ReplState::kTryDBSync : ReplState::kTryConnect;
+  for (const auto& slot : slots_) {
+    if (is_noone_) {
+      s = g_pika_rm->SendRemoveSlaveNodeRequest(table_name, slot);
+    } else {
       s = g_pika_rm->ActivateSyncSlavePartition(
-          RmNode(ip_, port_, table_name, slot_id_), state);
+          RmNode(ip_, port_, table_name, slot), state);
+    }
+    if (!s.ok()) {
+      break;
     }
   }
 

@@ -250,7 +250,7 @@ void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
   ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
-  const InnerMessage::InnerResponse_RemoveSlaveNode remove_slave_node_response = response->remove_slave_node();
+  const InnerMessage::InnerResponse_RemoveSlaveNode remove_slave_node_response = response->remove_slave_node(0);
   const InnerMessage::Partition partition_res = remove_slave_node_response.partition();
   const InnerMessage::Node node_res = remove_slave_node_response.node();
 
