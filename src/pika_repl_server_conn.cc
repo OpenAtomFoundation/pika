@@ -331,13 +331,13 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
-  if (!req->has_remove_slave_node()) {
+  if (!req->remove_slave_node_size()) {
     LOG(WARNING) << "Pb parse error";
     conn->NotifyClose();
     delete task_arg;
     return;
   }
-  const InnerMessage::InnerRequest::RemoveSlaveNode& remove_slave_node_req = req->remove_slave_node();
+  const InnerMessage::InnerRequest::RemoveSlaveNode& remove_slave_node_req = req->remove_slave_node(0);
   const InnerMessage::Node& node = remove_slave_node_req.node();
   const InnerMessage::Partition& partition = remove_slave_node_req.partition();
 
@@ -349,7 +349,7 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   InnerMessage::InnerResponse response;
   response.set_code(InnerMessage::kOk);
   response.set_type(InnerMessage::Type::kRemoveSlaveNode);
-  InnerMessage::InnerResponse::RemoveSlaveNode* remove_slave_node_response = response.mutable_remove_slave_node();
+  InnerMessage::InnerResponse::RemoveSlaveNode* remove_slave_node_response = response.add_remove_slave_node();
   InnerMessage::Partition* partition_response = remove_slave_node_response->mutable_partition();
   partition_response->set_table_name(table_name);
   partition_response->set_partition_id(partition_id);

@@ -158,10 +158,8 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
 
   Status s;
   if (is_noone_) {
-    if (slave_partition->State() == ReplState::kConnected) {
-      // In classic mode a table has only one partition
-      s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_, 0);
-    }
+    // In classic mode a table has only one partition
+    s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_, 0);
   } else {
     if (slave_partition->State() == ReplState::kNoConnect
       || slave_partition->State() == ReplState::kError) {

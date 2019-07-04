@@ -1027,7 +1027,7 @@ Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip,
     LOG(WARNING) << "Failed to connect remote node("
       << remote_ip << ":" << remote_port << ")";
     delete cli;
-    return Status::Corruption("Connect remote node error");
+    return Status::Corruption("connect remote node error");
   }
   return Status::OK();
 }

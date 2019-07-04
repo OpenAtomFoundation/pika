@@ -81,7 +81,7 @@ message InnerRequest {
   optional TrySync         try_sync          = 3;
   optional DBSync          db_sync           = 4;
   optional BinlogSync      binlog_sync       = 5;
-  optional RemoveSlaveNode remove_slave_node = 6;
+  repeated RemoveSlaveNode remove_slave_node = 6;
 }
 
 message PartitionInfo {
@@ -141,5 +141,5 @@ message InnerResponse {
   optional DBSync          db_sync           = 5;
   optional TrySync         try_sync          = 6;
   repeated BinlogSync      binlog_sync       = 7;
-  optional RemoveSlaveNode remove_slave_node = 8;
+  repeated RemoveSlaveNode remove_slave_node = 8;
 }

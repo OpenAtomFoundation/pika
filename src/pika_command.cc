@@ -81,8 +81,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAddSlots, addslotsptr));
   Cmd* removeslotsptr = new RemoveSlotsCmd(kCmdNameRemoveSlots, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRemoveSlots, removeslotsptr));
-  Cmd* slotsyncptr = new SlotSyncCmd(kCmdNameSlotSync, -4, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotSync, slotsyncptr));
+  Cmd* slotslaveofptr = new SlotSlaveofCmd(kCmdNameSlotSlaveof, -4, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotSlaveof, slotslaveofptr));
   Cmd* slotsdelptr = new SlotsDelCmd(kCmdNameSlotsDel, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsDel, slotsdelptr));
   Cmd* slotsscanptr = new SlotsScanCmd(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
