@@ -1010,6 +1010,27 @@ Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
   return Status::OK();
 }
 
+Status PikaReplicaManager::CheckPartitionRole(
+    const std::string& table, uint32_t partition_id, int* role) {
+  slash::RWLock l(&partitions_rw_, false);
+  *role = 0;
+  PartitionInfo p_info(table, partition_id);
+  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
+    return Status::NotFound(table + std::to_string(partition_id) + " not found");
+  }
+  if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
+    return Status::NotFound(table + std::to_string(partition_id) + " not found");
+  }
+  if (sync_master_partitions_[p_info]->GetNumberOfSlaveNode() != 0) {
+    *role |= PIKA_ROLE_MASTER;
+  }
+  if (sync_slave_partitions_[p_info]->State() == ReplState::kConnected) {
+    *role |= PIKA_ROLE_SLAVE;
+  }
+  // if role is not master or slave, the rest situations are all single
+  return Status::OK();
+}
+
 Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip,
                                          const int remote_port,
                                          std::string* const local_ip) {

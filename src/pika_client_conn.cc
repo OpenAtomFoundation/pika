@@ -190,7 +190,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     if (g_pika_server->IsTableBinlogIoError(current_table_)) {
       return "-ERR Writing binlog failed, maybe no space left on device\r\n";
     }
-    if (g_pika_server->readonly()) {
+    if (g_pika_server->readonly(current_table_, c_ptr->current_key())) {
       return "-ERR Server in read-only\r\n";
     }
   }

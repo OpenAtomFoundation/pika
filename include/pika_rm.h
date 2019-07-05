@@ -256,6 +256,8 @@ class PikaReplicaManager {
   Status SetSlaveLastRecvTime(const RmNode& slave, uint64_t time);
 
   Status CheckSyncTimeout(uint64_t now);
+  Status CheckPartitionRole(
+      const std::string& table, uint32_t partition_id, int* role);
 
   void RmStatus(std::string* debug_info);
 

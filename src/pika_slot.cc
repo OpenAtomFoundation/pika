@@ -343,10 +343,7 @@ void SlotSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
       return;
     }
     if (is_noone_) {
-      if (slave_partition->State() != ReplState::kConnected) {
-        res_.SetRes(CmdRes::kErrOther, "slot " + std::to_string(slot) + " not syncing");
-        return;
-      }
+      // check okay
     } else if (slave_partition->State() != ReplState::kNoConnect
       && slave_partition->State() != ReplState::kError) {
       res_.SetRes(CmdRes::kErrOther, "slot " + std::to_string(slot) + " in syncing");
@@ -359,7 +356,16 @@ void SlotSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
     ? ReplState::kTryDBSync : ReplState::kTryConnect;
   for (const auto& slot : slots_) {
     if (is_noone_) {
-      s = g_pika_rm->SendRemoveSlaveNodeRequest(table_name, slot);
+      std::shared_ptr<SyncSlavePartition> slave_partition =
+        g_pika_rm->GetSyncSlavePartitionByName(
+                PartitionInfo(table_name, slot));
+      if (slave_partition->State() == ReplState::kConnected) {
+        s = g_pika_rm->SendRemoveSlaveNodeRequest(table_name, slot);
+      } else {
+        // reset state
+        s = g_pika_rm->SetSlaveReplState(
+            PartitionInfo(table_name, slot), ReplState::kNoConnect);
+      }
     } else {
       s = g_pika_rm->ActivateSyncSlavePartition(
           RmNode(ip_, port_, table_name, slot), state);
