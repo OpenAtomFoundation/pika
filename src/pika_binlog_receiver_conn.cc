@@ -189,6 +189,10 @@ bool PikaBinlogReceiverConn::ProcessBinlogData(const pink::RedisCmdArgsType& arg
     }
     std::string opt = argv[0];
     Cmd* c_ptr = binlog_receiver_->GetCmd(slash::StringToLower(opt));
+    if (!c_ptr) {
+      LOG(WARNING) << "Command " << opt << " not in the command table";
+      return false;
+    }
 
     g_pika_server->logger_->Lock();
     g_pika_server->logger_->Put(c_ptr->ToBinlog(argv,
