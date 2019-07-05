@@ -172,6 +172,10 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
 
   std::string opt = argv[0];
   Cmd* c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
+  if (!c_ptr) {
+    LOG(WARNING) << "Command " << opt << " not in the command table";
+    return -1;
+  }
   // Initial
   c_ptr->Initial(argv, worker->table_name_);
   if (!c_ptr->res().ok()) {
