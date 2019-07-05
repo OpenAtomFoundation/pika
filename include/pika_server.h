@@ -96,7 +96,7 @@ class PikaServer {
   std::string master_ip();
   int master_port();
   int role();
-  bool readonly();
+  bool readonly(const std::string& table, const std::string& key);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();

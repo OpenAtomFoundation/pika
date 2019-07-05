@@ -24,9 +24,11 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_dispatch_thread.h"
+#include "include/pika_cmd_table_manager.h"
 
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
+extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 void DoPurgeDir(void* arg) {
   std::string path = *(static_cast<std::string*>(arg));
@@ -302,11 +304,29 @@ int PikaServer::role() {
   return role_;
 }
 
-bool PikaServer::readonly() {
+bool PikaServer::readonly(const std::string& table_name, const std::string& key) {
   slash::RWLock(&state_protector_, false);
   if ((role_ & PIKA_ROLE_SLAVE)
     && g_pika_conf->slave_read_only()) {
     return true;
+  }
+  if (!g_pika_conf->classic_mode()) {
+    std::shared_ptr<Table> table = GetTable(table_name);
+    if (table == nullptr) {
+      // swallow this error will process later
+      return false;
+    }
+    uint32_t index = g_pika_cmd_table_manager->DistributeKey(
+        key, table->PartitionNum());
+    int role = 0;
+    Status s = g_pika_rm->CheckPartitionRole(table_name, index, &role);
+    if (!s.ok()) {
+      // swallow this error will process later
+      return false;
+    }
+    if (role & PIKA_ROLE_SLAVE) {
+      return true;
+    }
   }
   return false;
 }
