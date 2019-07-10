@@ -18,6 +18,7 @@ extern PikaConf* g_pika_conf;
 void SlotsInfoCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsInfo);
+    return;
   }
   return;
 }
@@ -55,6 +56,7 @@ void SlotsInfoCmd::Do(std::shared_ptr<Partition> partition) {
 void SlotsHashKeyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsHashKey);
+    return;
   }
   return;
 }
@@ -78,6 +80,7 @@ void SlotsHashKeyCmd::Do(std::shared_ptr<Partition> partition) {
 void SlotsMgrtSlotAsyncCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtSlotAsync);
+    return;
   }
   return;
 }
@@ -94,6 +97,7 @@ void SlotsMgrtSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
 void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtTagSlotAsync);
+    return;
   }
 
   PikaCmdArgsType::const_iterator it = argv_.begin() + 1; //Remember the first args is the opt name
@@ -458,6 +462,7 @@ void SlotsScanCmd::Do(std::shared_ptr<Partition> partition) {
 void SlotsDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsDel);
+    return;
   }
   // iter starts from real key, first item in argv_ is command name
   std::vector<std::string>::const_iterator iter = argv_.begin() + 1;
@@ -503,7 +508,8 @@ void SlotsDelCmd::Do(std::shared_ptr<Partition> partition) {
 // SLOTSMGRT-EXEC-WRAPPER $hashkey $command [$arg1 ...]
 void SlotsMgrtExecWrapperCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-   res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtExecWrapper);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtExecWrapper);
+    return;
   }
   PikaCmdArgsType::const_iterator it = argv_.begin() + 1;
   key_ = *it++;
@@ -525,6 +531,7 @@ void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Partition> partition) {
 void SlotsMgrtAsyncStatusCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncStatus);
+    return;
   }
   return;
 }
@@ -557,6 +564,7 @@ void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Partition> partition) {
 void SlotsMgrtAsyncCancelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncCancel);
+    return;
   }
   return;
 }
@@ -613,7 +621,8 @@ const std::string PkClusterInfoCmd::kSlotSection = "slot";
 // pkcluster info cluster
 void PkClusterInfoCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-   res_.SetRes(CmdRes::kWrongNum, kCmdNamePkClusterInfo);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePkClusterInfo);
+    return;
   }
   if (!strcasecmp(argv_[2].data(), kSlotSection.data())) {
     info_section_ = kInfoSlot;
