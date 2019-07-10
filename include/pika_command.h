@@ -200,6 +200,9 @@ const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
 const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
 const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
 
+const std::string kCmdNamePkClusterInfo = "pkclusterinfo";
+
+const std::string kClusterPrefix = "pkcluster";
 typedef pink::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 

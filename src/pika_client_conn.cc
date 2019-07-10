@@ -253,6 +253,12 @@ int PikaClientConn::DealMessage(const PikaCmdArgsType& argv, std::string* respon
 
   if (argv.empty()) return -2;
   std::string opt = argv[0];
+  if (opt == kClusterPrefix) {
+    if (argv.size() < 2) {
+      return -2;
+    }
+    opt = kClusterPrefix + argv[1];
+  }
   slash::StringToLower(opt);
 
   if (response->empty()) {

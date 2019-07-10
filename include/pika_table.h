@@ -21,6 +21,7 @@ class Table : public std::enable_shared_from_this<Table>{
 
   friend class Cmd;
   friend class InfoCmd;
+  friend class PkClusterInfoCmd;
   friend class PikaServer;
 
   std::string GetTableName();
