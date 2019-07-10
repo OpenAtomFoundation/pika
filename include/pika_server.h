@@ -276,6 +276,7 @@ class PikaServer {
   friend class AddSlotsCmd;
   friend class RemoveSlotsCmd;
   friend class PikaReplClientConn;
+  friend class PkClusterInfoCmd;
 
  private:
   /*

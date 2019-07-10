@@ -136,6 +136,9 @@ class SyncMasterPartition : public SyncPartition {
   bool CheckSlaveNodeExist(const std::string& ip, int port);
   Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
 
+  // display use
+  Status GetInfo(std::string* info);
+  // debug use
   std::string ToStringStatus();
 
   int32_t GenSessionId();
@@ -178,6 +181,9 @@ class SyncSlavePartition : public SyncPartition {
 
   Status CheckSyncTimeout(uint64_t now);
 
+  // For display
+  Status GetInfo(std::string* info);
+  // For debug
   std::string ToStringStatus();
 
   const std::string& MasterIp() {
@@ -256,6 +262,12 @@ class PikaReplicaManager {
   Status SetSlaveLastRecvTime(const RmNode& slave, uint64_t time);
 
   Status CheckSyncTimeout(uint64_t now);
+
+  // To check partition info
+  // For pkcluster info command
+  Status GetPartitionInfo(
+      const std::string& table, uint32_t partition_id, std::string* info);
+
   Status CheckPartitionRole(
       const std::string& table, uint32_t partition_id, int* role);
 

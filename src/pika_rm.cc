@@ -492,6 +492,33 @@ std::string SyncMasterPartition::ToStringStatus() {
   return tmp_stream.str();
 }
 
+Status SyncMasterPartition::GetInfo(std::string* info) {
+  std::stringstream tmp_stream;
+  slash::MutexLock l(&partition_mu_);
+  tmp_stream << "  Role: Master" << "\r\n";
+  tmp_stream << "  connected_slaves: " << slaves_.size() << "\r\n";
+  for (size_t i = 0; i < slaves_.size(); ++i) {
+    std::shared_ptr<SlaveNode> slave_ptr = slaves_[i];
+    slash::MutexLock l(&slave_ptr->slave_mu);
+    tmp_stream << "  slave[" << i << "]: "
+      << slave_ptr->Ip()  << ":" << std::to_string(slave_ptr->Port()) << "\r\n";
+    tmp_stream << "  replication_status: " << SlaveStateMsg[slave_ptr->slave_state] << "\r\n";
+    if (slave_ptr->slave_state == kSlaveBinlogSync) {
+      std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(slave_ptr->TableName(), slave_ptr->PartitionId());
+      BinlogOffset binlog_offset;
+      if (!partition || !partition->GetBinlogOffset(&binlog_offset)) {
+        return Status::Corruption("Get Info failed.");
+      }
+      uint64_t lag = (binlog_offset.filenum - slave_ptr->acked_offset.filenum) *
+        g_pika_conf->binlog_file_size()
+        + (binlog_offset.offset - slave_ptr->acked_offset.offset);
+      tmp_stream << "  lag: " << lag << "\r\n";
+    }
+  }
+  info->append(tmp_stream.str());
+  return Status::OK();
+}
+
 int32_t SyncMasterPartition::GenSessionId() {
   slash::MutexLock ml(&session_mu_);
   return session_id_++;
@@ -564,6 +591,13 @@ Status SyncSlavePartition::CheckSyncTimeout(uint64_t now) {
     repl_state_ = ReplState::kTryConnect;
     g_pika_server->SetLoopPartitionStateMachine(true);
   }
+  return Status::OK();
+}
+
+Status SyncSlavePartition::GetInfo(std::string* info) {
+  std::string tmp_str = "  Role: Slave\r\n";
+  tmp_str += "  master: " + MasterIp() + ":" + std::to_string(MasterPort()) + "\r\n";
+  info->append(tmp_str);
   return Status::OK();
 }
 
@@ -1028,6 +1062,39 @@ Status PikaReplicaManager::CheckPartitionRole(
     *role |= PIKA_ROLE_SLAVE;
   }
   // if role is not master or slave, the rest situations are all single
+  return Status::OK();
+}
+
+Status PikaReplicaManager::GetPartitionInfo(
+    const std::string& table, uint32_t partition_id, std::string* info) {
+  int role = 0;
+  std::string tmp_res;
+  Status s = CheckPartitionRole(table, partition_id, &role);
+  if (!s.ok()) {
+    return s;
+  }
+
+  slash::RWLock l(&partitions_rw_, false);
+  PartitionInfo p_info(table, partition_id);
+  if (role & PIKA_ROLE_MASTER) {
+    if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
+     return Status::NotFound(table + std::to_string(partition_id) + " not found");
+    }
+    Status s = sync_master_partitions_[p_info]->GetInfo(info);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+  if (role & PIKA_ROLE_SLAVE) {
+    if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
+      return Status::NotFound(table + std::to_string(partition_id) + " not found");
+    }
+    Status s = sync_slave_partitions_[p_info]->GetInfo(info);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+  info->append("\r\n");
   return Status::OK();
 }
 

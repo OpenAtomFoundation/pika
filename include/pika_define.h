@@ -138,9 +138,9 @@ enum SlaveState {
 
 // debug only
 const std::string SlaveStateMsg[] = {
-  "kSlaveNotSync",
-  "kSlaveDbSync",
-  "kSlaveBinlogSync"
+  "SlaveNotSync",
+  "SlaveDbSync",
+  "SlaveBinlogSync"
 };
 
 enum BinlogSyncState {
@@ -151,9 +151,9 @@ enum BinlogSyncState {
 
 // debug only
 const std::string BinlogSyncStateMsg[] = {
-  "kNotSync",
-  "kReadFromCache",
-  "kReadFromFile"
+  "NotSync",
+  "ReadFromCache",
+  "ReadFromFile"
 };
 
 struct BinlogChip {
