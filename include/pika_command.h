@@ -187,9 +187,6 @@ const std::string kCmdNameSlotsInfo = "slotsinfo";
 const std::string kCmdNameSlotsHashKey = "slotshashkey";
 const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
 const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
-const std::string kCmdNameAddSlots = "addslots";
-const std::string kCmdNameRemoveSlots = "removeslots";
-const std::string kCmdNameSlotSlaveof = "slotslaveof";
 const std::string kCmdNameSlotsDel = "slotsdel";
 const std::string kCmdNameSlotsScan = "slotsscan";
 const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
@@ -200,7 +197,12 @@ const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
 const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
 const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
 
+
+//Cluster
 const std::string kCmdNamePkClusterInfo = "pkclusterinfo";
+const std::string kCmdNamePkClusterAddSlots = "pkclusteraddslots";
+const std::string kCmdNamePkClusterRemoveSlots = "pkclusterremoveslots";
+const std::string kCmdNamePkClusterSlotSlaveof = "pkclusterslotslaveof";
 
 const std::string kClusterPrefix = "pkcluster";
 typedef pink::RedisCmdArgsType PikaCmdArgsType;

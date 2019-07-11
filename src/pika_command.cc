@@ -17,6 +17,7 @@
 #include "include/pika_server.h"
 #include "include/pika_hyperloglog.h"
 #include "include/pika_slot.h"
+#include "include/pika_cluster.h"
 
 extern PikaServer* g_pika_server;
 
@@ -77,12 +78,6 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtSlotAsync, slotmgrtslotasyncptr));
   Cmd* slotmgrttagslotasyncptr = new SlotsMgrtTagSlotAsyncCmd(kCmdNameSlotsMgrtTagSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagSlotAsync, slotmgrttagslotasyncptr));
-  Cmd* addslotsptr = new AddSlotsCmd(kCmdNameAddSlots, 2, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameAddSlots, addslotsptr));
-  Cmd* removeslotsptr = new RemoveSlotsCmd(kCmdNameRemoveSlots, 2, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRemoveSlots, removeslotsptr));
-  Cmd* slotslaveofptr = new SlotSlaveofCmd(kCmdNameSlotSlaveof, -4, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotSlaveof, slotslaveofptr));
   Cmd* slotsdelptr = new SlotsDelCmd(kCmdNameSlotsDel, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsDel, slotsdelptr));
   Cmd* slotsscanptr = new SlotsScanCmd(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
@@ -105,6 +100,12 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   // Cluster related
   Cmd* pkclusterinfoptr = new PkClusterInfoCmd(kCmdNamePkClusterInfo, -3, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterInfo, pkclusterinfoptr));
+  Cmd* pkclusteraddslotsptr = new PkClusterAddSlotsCmd(kCmdNamePkClusterAddSlots, 3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterAddSlots, pkclusteraddslotsptr));
+  Cmd* pkclusterremoveslotsptr = new PkClusterRemoveSlotsCmd(kCmdNamePkClusterRemoveSlots, 3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterRemoveSlots, pkclusterremoveslotsptr));
+  Cmd* pkclusterslotslaveofptr = new PkClusterSlotSlaveofCmd(kCmdNamePkClusterSlotSlaveof, -5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterSlotSlaveof, pkclusterslotslaveofptr));
 
 #ifdef TCMALLOC_EXTENSION
   Cmd* tcmallocptr = new TcmallocCmd(kCmdNameTcmalloc, -2, kCmdFlagsRead | kCmdFlagsAdmin);
