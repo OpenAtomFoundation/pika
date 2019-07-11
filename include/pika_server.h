@@ -273,8 +273,8 @@ class PikaServer {
 
   friend class Cmd;
   friend class InfoCmd;
-  friend class AddSlotsCmd;
-  friend class RemoveSlotsCmd;
+  friend class PkClusterAddSlotsCmd;
+  friend class PkClusterRemoveSlotsCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
 
