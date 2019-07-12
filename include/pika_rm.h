@@ -104,7 +104,7 @@ class SyncPartition {
   PartitionInfo& SyncPartitionInfo() {
     return partition_info_;
   }
- private:
+ protected:
   // std::shared_ptr<Binlog> binlog_;
   PartitionInfo partition_info_;
 };
@@ -128,6 +128,9 @@ class SyncMasterPartition : public SyncPartition {
 
   Status SetLastRecvTime(const std::string& ip, int port, uint64_t time);
   Status GetLastRecvTime(const std::string& ip, int port, uint64_t* time);
+
+  Status GetSafetyPurgeBinlog(std::string* safety_purge);
+  bool BinlogCloudPurge(uint32_t index);
 
   Status WakeUpSlaveBinlogSync();
   Status CheckSyncTimeout(uint64_t now);
@@ -231,7 +234,6 @@ class PikaReplicaManager {
   void Start();
   void Stop();
 
-  std::shared_ptr<SyncSlavePartition> GetSyncSlavePartitionByName(const PartitionInfo& p_info);
   Status AddSyncPartition(const std::set<PartitionInfo>& p_infos);
   Status RemoveSyncPartition(const std::set<PartitionInfo>& p_infos);
   Status SelectLocalIp(const std::string& remote_ip,
@@ -255,6 +257,18 @@ class PikaReplicaManager {
 
   // For Pika Repl Server Thread
   Status SendSlaveBinlogChipsRequest(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
+
+  // For SyncMasterPartition
+  std::shared_ptr<SyncMasterPartition> GetSyncMasterPartitionByName(const PartitionInfo& p_info);
+  Status GetSafetyPurgeBinlogFromSMP(const std::string& table_name,
+                                     uint32_t partition_id, std::string* safety_purge);
+  bool BinlogCloudPurgeFromSMP(const std::string& table_name,
+                               uint32_t partition_id, uint32_t index);
+
+  // For SyncSlavePartition
+  std::shared_ptr<SyncSlavePartition> GetSyncSlavePartitionByName(const PartitionInfo& p_info);
+
+
 
   Status RunSyncSlavePartitionStateMachine();
 

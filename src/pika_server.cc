@@ -558,33 +558,6 @@ void PikaServer::PartitionSetSmallCompactionThreshold(uint32_t small_compaction_
   }
 }
 
-bool PikaServer::PartitionCouldPurge(const std::string& table_name,
-                                     uint32_t partition_id, uint32_t index) {
-  BinlogOffset boffset;
-  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
-  if (!partition || !partition->GetBinlogOffset(&boffset)) {
-    return false;
-  } else {
-    if (index > boffset.filenum - 10) {   //remain some more
-      return false;
-    }
-  }
-
-  BinlogOffset sent_slave_boffset;
-  BinlogOffset acked_slave_boffset;
-  slash::MutexLock l(&slave_mutex_);
-  for (const auto& slave : slaves_) {
-    RmNode rm_node(slave.ip, slave.port, table_name, partition_id);
-    Status s = g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset);
-    if (s.ok()) {
-      if (index >= acked_slave_boffset.filenum) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
 bool PikaServer::GetTablePartitionBinlogOffset(const std::string& table_name,
                                                uint32_t partition_id,
                                                BinlogOffset* const boffset) {

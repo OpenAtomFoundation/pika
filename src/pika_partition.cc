@@ -628,7 +628,7 @@ bool Partition::PurgeFiles(uint32_t to, bool manual) {
           && stat(((log_path_ + it->second)).c_str(), &file_stat) == 0
           && file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days() * 24 * 3600)) { // Expire time trigger
       // We check this every time to avoid lock when we do file deletion
-      if (!g_pika_server->PartitionCouldPurge(table_name_, partition_id_, it->first)) {
+      if (!g_pika_rm->BinlogCloudPurgeFromSMP(table_name_, partition_id_, it->first)) {
         LOG(WARNING) << partition_name_ << " Could not purge "<< (it->first) << ", since it is already be used";
         return false;
       }
