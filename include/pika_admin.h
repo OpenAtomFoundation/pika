@@ -211,7 +211,6 @@ class InfoCmd : public Cmd {
   const static std::string kCPUSection;
   const static std::string kReplicationSection;
   const static std::string kKeyspaceSection;
-  const static std::string kLogSection;
   const static std::string kDataSection;
   const static std::string kDebugSection;
 
@@ -229,7 +228,6 @@ class InfoCmd : public Cmd {
   void InfoCPU(std::string& info);
   void InfoReplication(std::string& info);
   void InfoKeyspace(std::string& info);
-  void InfoLog(std::string& info);
   void InfoData(std::string& info);
   void InfoDebug(std::string& info);
 };

@@ -443,6 +443,63 @@ Status SyncMasterPartition::GetLastRecvTime(const std::string& ip, int port, uin
   return Status::OK();
 }
 
+Status SyncMasterPartition::GetSafetyPurgeBinlog(std::string* safety_purge) {
+  BinlogOffset boffset;
+  std::string table_name = partition_info_.table_name_;
+  uint32_t partition_id = partition_info_.partition_id_;
+  std::shared_ptr<Partition> partition =
+      g_pika_server->GetTablePartitionById(table_name, partition_id);
+  if (!partition || !partition->GetBinlogOffset(&boffset)) {
+    return Status::NotFound("Partition NotFound");
+  } else {
+    bool success = false;
+    uint32_t purge_max = boffset.filenum;
+    if (purge_max >= 10) {
+      success = true;
+      purge_max -= 10;
+      slash::MutexLock l(&partition_mu_);
+      for (const auto& slave : slaves_) {
+        if (slave->slave_state == SlaveState::kSlaveBinlogSync
+          && slave->acked_offset.filenum > 0) {
+          purge_max = std::min(slave->acked_offset.filenum - 1, purge_max);
+        } else {
+          success = false;
+          break;
+        }
+      }
+    }
+    *safety_purge = (success ? kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none");
+  }
+  return Status::OK();
+}
+
+bool SyncMasterPartition::BinlogCloudPurge(uint32_t index) {
+  BinlogOffset boffset;
+  std::string table_name = partition_info_.table_name_;
+  uint32_t partition_id = partition_info_.partition_id_;
+  std::shared_ptr<Partition> partition =
+      g_pika_server->GetTablePartitionById(table_name, partition_id);
+  if (!partition || !partition->GetBinlogOffset(&boffset)) {
+    return false;
+  } else {
+    if (index > boffset.filenum - 10) {  // remain some more
+      return false;
+    } else {
+      slash::MutexLock l(&partition_mu_);
+      for (const auto& slave : slaves_) {
+        if (slave->slave_state == SlaveState::kSlaveDbSync) {
+          return false;
+        } else if (slave->slave_state == SlaveState::kSlaveBinlogSync) {
+          if (index >= slave->acked_offset.filenum) {
+            return false;
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
+
 Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
   slash::MutexLock l(&partition_mu_);
 
@@ -471,7 +528,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
       LOG(INFO)<< SyncPartitionInfo().ToString() << " slave " << slaves_[i]->ToString();
       if (node.Ip() == slaves_[i]->Ip() && node.Port() == slaves_[i]->Port()) {
         slaves_.erase(slaves_.begin() + i);
-        LOG(INFO) << SyncPartitionInfo().ToString() << " Master del slave success " << node.ToString();
+        LOG(WARNING) << SyncPartitionInfo().ToString() << " Master del Recv Timeout slave success " << node.ToString();
         break;
       }
     }
@@ -1313,6 +1370,51 @@ Status PikaReplicaManager::SendSlaveBinlogChipsRequest(const std::string& ip,
   return pika_repl_server_->SendSlaveBinlogChips(ip, port, tasks);
 }
 
+std::shared_ptr<SyncMasterPartition>
+PikaReplicaManager::GetSyncMasterPartitionByName(const PartitionInfo& p_info) {
+  slash::RWLock l(&partitions_rw_, false);
+  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
+    return nullptr;
+  }
+  return sync_master_partitions_[p_info];
+}
+
+Status PikaReplicaManager::GetSafetyPurgeBinlogFromSMP(const std::string& table_name,
+                                                       uint32_t partition_id,
+                                                       std::string* safety_purge) {
+  std::shared_ptr<SyncMasterPartition> master_partition =
+      GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  if (!master_partition) {
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
+        << ", NotFound";
+    return Status::NotFound("SyncMasterPartition NotFound");
+  } else {
+    return master_partition->GetSafetyPurgeBinlog(safety_purge);
+  }
+}
+
+bool PikaReplicaManager::BinlogCloudPurgeFromSMP(const std::string& table_name,
+                                                 uint32_t partition_id, uint32_t index) {
+  std::shared_ptr<SyncMasterPartition> master_partition =
+      GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  if (!master_partition) {
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
+        << ", NotFound";
+    return false;
+  } else {
+    return master_partition->BinlogCloudPurge(index);
+  }
+}
+
+std::shared_ptr<SyncSlavePartition>
+PikaReplicaManager::GetSyncSlavePartitionByName(const PartitionInfo& p_info) {
+  slash::RWLock l(&partitions_rw_, false);
+  if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
+    return nullptr;
+  }
+  return sync_slave_partitions_[p_info];
+}
+
 Status PikaReplicaManager::RunSyncSlavePartitionStateMachine() {
   slash::RWLock l(&partitions_rw_, false);
   for (const auto& item : sync_slave_partitions_) {
@@ -1340,15 +1442,6 @@ Status PikaReplicaManager::RunSyncSlavePartitionStateMachine() {
     }
   }
   return Status::OK();
-}
-
-std::shared_ptr<SyncSlavePartition>
-PikaReplicaManager::GetSyncSlavePartitionByName(const PartitionInfo& p_info) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
-    return nullptr;
-  }
-  return sync_slave_partitions_[p_info];
 }
 
 Status PikaReplicaManager::AddSyncPartition(

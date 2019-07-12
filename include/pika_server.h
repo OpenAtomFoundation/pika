@@ -124,8 +124,6 @@ class PikaServer {
   void PreparePartitionTrySync();
   void PartitionSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   void PartitionSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
-  bool PartitionCouldPurge(const std::string& table_name,
-                           uint32_t partition_id, uint32_t index);
   bool GetTablePartitionBinlogOffset(const std::string& table_name,
                                      uint32_t partition_id,
                                      BinlogOffset* const boffset);

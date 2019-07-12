@@ -129,7 +129,6 @@ struct DBSyncArg {
 };
 
 // rm define
-
 enum SlaveState {
   kSlaveNotSync    = 0,
   kSlaveDbSync     = 1,

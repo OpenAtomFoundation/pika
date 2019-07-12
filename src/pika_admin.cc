@@ -486,7 +486,6 @@ const std::string InfoCmd::kExecCountSection= "command_exec_count";
 const std::string InfoCmd::kCPUSection = "cpu";
 const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
-const std::string InfoCmd::kLogSection = "log";
 const std::string InfoCmd::kDataSection = "data";
 const std::string InfoCmd::kDebugSection = "debug";
 
@@ -551,8 +550,6 @@ void InfoCmd::DoInitial() {
     }
     LogCommand();
     return;
-  } else if (!strcasecmp(argv_[1].data(), kLogSection.data())) {
-    info_section_ = kInfoLog;
   } else if (!strcasecmp(argv_[1].data(), kDataSection.data())) {
     info_section_ = kInfoData;
   } else if (!strcasecmp(argv_[1].data(), kDebugSection.data())) {
@@ -573,8 +570,6 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
       info.append("\r\n");
       InfoData(info);
       info.append("\r\n");
-      InfoLog(info);
-      info.append("\r\n");
       InfoClients(info);
       info.append("\r\n");
       InfoStats(info);
@@ -589,8 +584,6 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
       InfoServer(info);
       info.append("\r\n");
       InfoData(info);
-      info.append("\r\n");
-      InfoLog(info);
       info.append("\r\n");
       InfoClients(info);
       info.append("\r\n");
@@ -624,9 +617,6 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
       break;
     case kInfoKeyspace:
       InfoKeyspace(info);
-      break;
-    case kInfoLog:
-      InfoLog(info);
       break;
     case kInfoData:
       InfoData(info);
@@ -737,6 +727,11 @@ void InfoCmd::InfoCPU(std::string& info) {
 }
 
 void InfoCmd::InfoReplication(std::string& info) {
+  if (!g_pika_conf->classic_mode()) {
+    // In Sharding mode, we don`t show this item
+    return;
+  }
+
   int host_role = g_pika_server->role();
   std::stringstream tmp_stream;
   std::stringstream out_of_sync;
@@ -804,6 +799,21 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "connected_slaves:" << g_pika_server->GetSlaveListString(slaves_list_str) << "\r\n" << slaves_list_str;
   }
 
+
+  Status s;
+  uint32_t filenum = 0;
+  uint64_t offset = 0;
+  std::string safety_purge;
+  for (const auto& t_item : g_pika_server->tables_) {
+    slash::RWLock partition_rwl(&t_item.second->partitions_rw_, false);
+    for (const auto& p_item : t_item.second->partitions_) {
+      p_item.second->logger()->GetProducerStatus(&filenum, &offset);
+      tmp_stream << p_item.second->GetPartitionName() << " binlog_offset=" << filenum << " " << offset;
+      s = g_pika_rm->GetSafetyPurgeBinlogFromSMP(p_item.second->GetTableName(), p_item.second->GetPartitionId(), &safety_purge);
+      tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
+    }
+  }
+
   info.append(tmp_stream.str());
 }
 
@@ -856,55 +866,6 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   return;
 }
 
-void InfoCmd::InfoLog(std::string& info) {
-  std::stringstream  tmp_stream;
-  tmp_stream << "# Log" << "\r\n";
-  int64_t log_size = slash::Du(g_pika_conf->log_path());
-  tmp_stream << "log_size:" << log_size << "\r\n";
-  tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
-  tmp_stream << "expire_logs_days:" << g_pika_conf->expire_logs_days() << "\r\n";
-  tmp_stream << "expire_logs_nums:" << g_pika_conf->expire_logs_nums() << "\r\n";
-
-  uint32_t filenum;
-  uint64_t offset;
-  SlaveState slave_state;
-  BinlogOffset sent_slave_boffset;
-  BinlogOffset acked_slave_boffset;
-  slash::RWLock table_rwl(&g_pika_server->tables_rw_, false);
-  for (const auto& table_item : g_pika_server->tables_) {
-    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
-    for (const auto& patition_item : table_item.second->partitions_) {
-      patition_item.second->logger()->GetProducerStatus(&filenum, &offset);
-      tmp_stream << patition_item.second->GetPartitionName() << " binlog_offset=" << filenum << " " << offset;
-
-      bool success = true;
-      uint32_t purge_max = filenum;
-      if (purge_max >= 10) {
-        purge_max -= 10;   //remain some more
-        slash::MutexLock l(&g_pika_server->slave_mutex_);
-        for (const auto& slave : g_pika_server->slaves_) {
-          RmNode rm_node(slave.ip, slave.port,
-                  patition_item.second->GetTableName(),
-                  patition_item.second->GetPartitionId());
-          Status s = g_pika_rm->GetSyncMasterPartitionSlaveState(rm_node, &slave_state);
-          if (s.ok()
-            && slave_state == SlaveState::kSlaveBinlogSync
-            && g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset).ok()
-            && sent_slave_boffset.filenum > 0) {
-            purge_max = (sent_slave_boffset.filenum - 1 < purge_max)
-                ? sent_slave_boffset.filenum - 1 : purge_max;
-          }
-        }
-      } else {
-        success = false;
-      }
-      tmp_stream << ",safety_purge=" << (success ? kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none") << "\r\n";
-    }
-  }
-  info.append(tmp_stream.str());
-  return;
-}
-
 void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
 
@@ -912,6 +873,9 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "# Data" << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";
   tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
+  int64_t log_size = slash::Du(g_pika_conf->log_path());
+  tmp_stream << "log_size:" << log_size << "\r\n";
+  tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
