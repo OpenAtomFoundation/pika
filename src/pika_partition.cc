@@ -25,7 +25,7 @@ std::string PartitionPath(const std::string& table_path,
 std::string PartitionName(const std::string& table_name,
                           uint32_t partition_id) {
   char buf[256];
-  snprintf(buf, sizeof(buf), "(%s|%u)", table_name.data(), partition_id);
+  snprintf(buf, sizeof(buf), "(%s:%u)", table_name.data(), partition_id);
   return std::string(buf);
 }
 
