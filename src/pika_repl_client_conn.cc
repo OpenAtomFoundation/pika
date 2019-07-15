@@ -250,29 +250,11 @@ void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
   ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
-  const InnerMessage::InnerResponse_RemoveSlaveNode remove_slave_node_response = response->remove_slave_node(0);
-  const InnerMessage::Partition partition_res = remove_slave_node_response.partition();
-  const InnerMessage::Node node_res = remove_slave_node_response.node();
-
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "Remove slave node Failed: " << reply;
     delete task_arg;
     return;
-  }
-  Status s = g_pika_rm->DeactivateSyncSlavePartition(
-          PartitionInfo(partition_res.table_name(), partition_res.partition_id()));
-  if (s.ok()) {
-    LOG(INFO) << "Master remove slave node success"
-      << ", ip_port:" << node_res.ip() << ":" << node_res.port()
-      << ", table name:" << partition_res.table_name()
-      << ", partition id:" << partition_res.partition_id();
-  } else {
-    LOG(WARNING) << "Master remove slave node failed"
-      << ", ip_port:" << node_res.ip() << ":" << node_res.port()
-      << ", table name:" << partition_res.table_name()
-      << ", partition id:" << partition_res.partition_id()
-      << ", " << s.ToString();
   }
   delete task_arg;
 }
