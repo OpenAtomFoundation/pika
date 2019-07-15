@@ -866,8 +866,10 @@ void InfoCmd::InfoData(std::string &info) {
 
   // rocksdb related memory usage
   uint64_t memtable_usage = 0, table_reader_usage = 0;
+  g_pika_server->RWLockReader();
   g_pika_server->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
   g_pika_server->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+  g_pika_server->RWUnlock();
 
   tmp_stream << "used_memory:" << (memtable_usage + table_reader_usage) << "\r\n";
   tmp_stream << "used_memory_human:" << ((memtable_usage + table_reader_usage) >> 20) << "M\r\n";
