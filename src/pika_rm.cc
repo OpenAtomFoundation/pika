@@ -1131,6 +1131,7 @@ Status PikaReplicaManager::GetPartitionInfo(
     return s;
   }
 
+  bool add_divider_line = ((role & PIKA_ROLE_MASTER) && (role & PIKA_ROLE_SLAVE));
   slash::RWLock l(&partitions_rw_, false);
   PartitionInfo p_info(table, partition_id);
   if (role & PIKA_ROLE_MASTER) {
@@ -1141,6 +1142,9 @@ Status PikaReplicaManager::GetPartitionInfo(
     if (!s.ok()) {
       return s;
     }
+  }
+  if (add_divider_line) {
+    info->append("  -----------\r\n");
   }
   if (role & PIKA_ROLE_SLAVE) {
     if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
