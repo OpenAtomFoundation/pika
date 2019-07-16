@@ -105,20 +105,31 @@ void PkClusterInfoCmd::ClusterInfoSlotAll(std::string* info) {
 }
 
 Status PkClusterInfoCmd::GetSlotInfo(const std::string table_name,
-    uint32_t partition_id, std::string* info) {
+                                     uint32_t partition_id,
+                                     std::string* info) {
   std::shared_ptr<Partition> partition =
     g_pika_server->GetTablePartitionById(table_name, partition_id);
   if (!partition) {
     return Status::NotFound("not found");
   }
+  Status s;
+  std::stringstream tmp_stream;
+
+  // binlog offset section
   uint32_t filenum = 0;
   uint64_t offset = 0;
-  std::stringstream tmp_stream;
   partition->logger()->GetProducerStatus(&filenum, &offset);
   tmp_stream << partition->GetPartitionName() << " binlog_offset="
-    << filenum << " " << offset << "\r\n";
+    << filenum << " " << offset;
+
+  // safety purge section
+  std::string safety_purge;
+  s = g_pika_rm->GetSafetyPurgeBinlogFromSMP(table_name, partition_id, &safety_purge);
+  tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
+
+  // partition info section
   std::string p_info;
-  Status s = g_pika_rm->GetPartitionInfo(table_name, partition_id, &p_info);
+  s = g_pika_rm->GetPartitionInfo(table_name, partition_id, &p_info);
   if (!s.ok()) {
     return s;
   }
@@ -356,9 +367,9 @@ Status PkClusterRemoveSlotsCmd::RemoveSlotsSanityCheck(const std::string& table_
   return Status::OK();
 }
 
-/* pkcluster slotslaveof no one  0-3,8-11
- * pkcluster slotslaveof ip port 0-3,8,9,10,11
- * pkcluster slotslaveof ip port 0,2,4,6 force
+/* pkcluster slotslaveof no one  [0-3,8-11 | all]
+ * pkcluster slotslaveof ip port [0-3,8,9,10,11 | all]
+ * pkcluster slotslaveof ip port [0,2,4,6 force | all]
  */
 void PkClusterSlotSlaveofCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -383,14 +394,24 @@ void PkClusterSlotSlaveofCmd::DoInitial() {
 
     if ((ip_ == "127.0.0.1" || ip_ == g_pika_server->host())
       && port_ == g_pika_server->port()) {
-      res_.SetRes(CmdRes::kErrOther, "you fucked up");
+      res_.SetRes(CmdRes::kErrOther, "You fucked up");
       return;
     }
   }
 
-  Status s = ParseSlotGroup(argv_[4], &slots_);
-  if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  if (!strcasecmp(argv_[4].data(), "all")) {
+    std::string table_name = g_pika_conf->default_table();
+    slots_ = g_pika_server->GetTablePartitionIds(table_name);
+  } else {
+    Status s = ParseSlotGroup(argv_[4], &slots_);
+    if (!s.ok()) {
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+  }
+
+  if (slots_.empty()) {
+    res_.SetRes(CmdRes::kErrOther, "Slots set empty");
   }
 
   if (argv_.size() == 5) {
@@ -410,14 +431,14 @@ void PkClusterSlotSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
         g_pika_rm->GetSyncSlavePartitionByName(
                 PartitionInfo(table_name, slot));
     if (!slave_partition) {
-      res_.SetRes(CmdRes::kErrOther, "slot " + std::to_string(slot) + " not found!");
+      res_.SetRes(CmdRes::kErrOther, "Slot " + std::to_string(slot) + " not found!");
       return;
     }
     if (is_noone_) {
       // check okay
     } else if (slave_partition->State() != ReplState::kNoConnect
       && slave_partition->State() != ReplState::kError) {
-      res_.SetRes(CmdRes::kErrOther, "slot " + std::to_string(slot) + " in syncing");
+      res_.SetRes(CmdRes::kErrOther, "Slot " + std::to_string(slot) + " in syncing");
       return;
     }
   }

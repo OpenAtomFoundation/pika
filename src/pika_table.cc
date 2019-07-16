@@ -237,6 +237,15 @@ void Table::LeaveAllPartition() {
   partitions_.clear();
 }
 
+std::set<uint32_t> Table::GetPartitionIds() {
+  std::set<uint32_t> ids;
+  slash::RWLock l(&partitions_rw_, false);
+  for (const auto& item : partitions_) {
+    ids.insert(item.first);
+  }
+  return ids;
+}
+
 std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
   slash::RWLock rwl(&partitions_rw_, false);
   auto iter = partitions_.find(partition_id);

@@ -403,6 +403,13 @@ std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {
   return (iter == tables_.end()) ? NULL : iter->second;
 }
 
+std::set<uint32_t> PikaServer::GetTablePartitionIds(const std::string& table_name) {
+  std::set<uint32_t> empty;
+  slash::RWLock l(&tables_rw_, false);
+  auto iter = tables_.find(table_name);
+  return (iter == tables_.end()) ? empty : iter->second->GetPartitionIds();
+}
+
 bool PikaServer::IsBgSaving() {
   slash::RWLock table_rwl(&tables_rw_, false);
   for (const auto& table_item : tables_) {
