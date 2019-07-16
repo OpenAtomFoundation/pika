@@ -64,11 +64,14 @@ Status PikaConf::TablePartitionsSanityCheck(const std::string& table_name,
 
 Status PikaConf::AddTablePartitions(const std::string& table_name,
                                     const std::set<uint32_t>& partition_ids) {
-  TablePartitionsSanityCheck(table_name, partition_ids, true);
+  Status s = TablePartitionsSanityCheck(table_name, partition_ids, true);
+  if (!s.ok()) {
+    return s;
+  }
 
   RWLock l(&rwlock_, true);
   uint32_t index = 0;
-  Status s = InternalGetTargetTable(table_name, &index);
+  s = InternalGetTargetTable(table_name, &index);
   if (s.ok()) {
     for (const auto& id : partition_ids) {
       table_structs_[index].partition_ids.insert(id);
@@ -80,11 +83,14 @@ Status PikaConf::AddTablePartitions(const std::string& table_name,
 
 Status PikaConf::RemoveTablePartitions(const std::string& table_name,
                                        const std::set<uint32_t>& partition_ids) {
-  TablePartitionsSanityCheck(table_name, partition_ids, false);
+  Status s = TablePartitionsSanityCheck(table_name, partition_ids, false);
+  if (!s.ok()) {
+    return s;
+  }
 
   RWLock l(&rwlock_, true);
   uint32_t index = 0;
-  Status s = InternalGetTargetTable(table_name, &index);
+  s = InternalGetTargetTable(table_name, &index);
   if (s.ok()) {
     for (const auto& id : partition_ids) {
       table_structs_[index].partition_ids.erase(id);
