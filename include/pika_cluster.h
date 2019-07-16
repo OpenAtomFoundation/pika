@@ -64,6 +64,7 @@ class PkClusterAddSlotsCmd : public SlotParentCmd {
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   virtual void DoInitial() override;
+  Status AddSlotsSanityCheck(const std::string& table_name);
 };
 
 class PkClusterRemoveSlotsCmd : public SlotParentCmd {
@@ -73,6 +74,7 @@ class PkClusterRemoveSlotsCmd : public SlotParentCmd {
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   virtual void DoInitial() override;
+  Status RemoveSlotsSanityCheck(const std::string& table_name);
 };
 
 class PkClusterSlotSlaveofCmd : public Cmd {

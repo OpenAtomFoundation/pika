@@ -204,24 +204,71 @@ void PkClusterAddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
 
+  Status s = AddSlotsSanityCheck(table_name);
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+
   SlotState expected = INFREE;
   if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
-              &expected, INADDSLOTS)) {
+              &expected, INBUSY)) {
     res_.SetRes(CmdRes::kErrOther,
             "Slot in syncing or a change operation is under way, retry later");
     return;
   }
 
-  Status s = g_pika_conf->AddTablePartitions(table_name, slots_);
-  if (s.ok()) {
-    res_.SetRes(CmdRes::kOk);
-    table_ptr->AddPartitions(slots_);
-    g_pika_rm->AddSyncPartition(p_infos_);
-    LOG(INFO) << "Pika meta file overwrite success";
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  bool pre_success = true;
+  s = g_pika_conf->AddTablePartitions(table_name, slots_);
+  if (!s.ok()) {
+    pre_success = false;
   }
+  if (pre_success) {
+    s = table_ptr->AddPartitions(slots_);
+    if (!s.ok()) {
+      pre_success = false;
+    }
+  }
+  if (pre_success) {
+    s = g_pika_rm->AddSyncPartition(p_infos_);
+    if (!s.ok()) {
+      pre_success = false;
+    }
+  }
+
   g_pika_server->slot_state_.store(INFREE);
+
+  if (!pre_success) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+
+  res_.SetRes(CmdRes::kOk);
+  LOG(INFO) << "Pika meta file overwrite success";
+}
+
+Status PkClusterAddSlotsCmd::AddSlotsSanityCheck(const std::string& table_name) {
+  Status s = g_pika_conf->TablePartitionsSanityCheck(table_name, slots_, true);
+  if (!s.ok()) {
+    return s;
+  }
+
+  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(table_name);
+  if (!table_ptr) {
+    return Status::NotFound("table not found!");
+  }
+
+  for (uint32_t id : slots_) {
+    std::shared_ptr<Partition> partition_ptr = table_ptr->GetPartitionById(id);
+    if (partition_ptr != nullptr) {
+      return Status::Corruption("partition " + std::to_string(id) + " already exist");
+    }
+  }
+  s = g_pika_rm->AddSyncPartitionSanityCheck(p_infos_);
+  if (!s.ok()) {
+    return s;
+  }
+  return Status::OK();
 }
 
 /* pkcluster removeslots 0-3,8-11
@@ -243,24 +290,70 @@ void PkClusterRemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
 
+  Status s = RemoveSlotsSanityCheck(table_name);
+  if (!s.ok()) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+
   SlotState expected = INFREE;
   if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
-              &expected, INREMOVESLOTS)) {
+              &expected, INBUSY)) {
     res_.SetRes(CmdRes::kErrOther,
             "Slot in syncing or a change operation is under way, retry later");
     return;
   }
 
-  Status s = g_pika_conf->RemoveTablePartitions(table_name, slots_);
-  if (s.ok()) {
-    res_.SetRes(CmdRes::kOk);
-    table_ptr->RemovePartitions(slots_);
-    g_pika_rm->RemoveSyncPartition(p_infos_);
-    LOG(INFO) << "Pika meta file overwrite success";
-  } else {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  bool pre_success = true;
+  s = g_pika_conf->RemoveTablePartitions(table_name, slots_);
+  if (!s.ok()) {
+    pre_success = false;
   }
+  if (pre_success) {
+    s = table_ptr->RemovePartitions(slots_);
+    if (!s.ok()) {
+      pre_success = false;
+    }
+  }
+  if (pre_success) {
+    s = g_pika_rm->RemoveSyncPartition(p_infos_);
+    if (!s.ok()) {
+      pre_success = false;
+    }
+  }
+
   g_pika_server->slot_state_.store(INFREE);
+
+  if (!pre_success) {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+  res_.SetRes(CmdRes::kOk);
+  LOG(INFO) << "Pika meta file overwrite success";
+}
+
+Status PkClusterRemoveSlotsCmd::RemoveSlotsSanityCheck(const std::string& table_name) {
+  Status s = g_pika_conf->TablePartitionsSanityCheck(table_name, slots_, false);
+  if (!s.ok()) {
+    return s;
+  }
+
+  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(table_name);
+  if (!table_ptr) {
+    return Status::NotFound("table not found");
+  }
+
+  for (uint32_t id : slots_) {
+    std::shared_ptr<Partition> partition_ptr = table_ptr->GetPartitionById(id);
+    if (partition_ptr == nullptr) {
+      return Status::Corruption("partition " + std::to_string(id) + " not found");
+    }
+  }
+  s = g_pika_rm->RemoveSyncPartitionSanityCheck(p_infos_);
+  if (!s.ok()) {
+    return s;
+  }
+  return Status::OK();
 }
 
 /* pkcluster slotslaveof no one  0-3,8-11

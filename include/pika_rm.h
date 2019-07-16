@@ -234,7 +234,9 @@ class PikaReplicaManager {
   void Start();
   void Stop();
 
+  Status AddSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos);
   Status AddSyncPartition(const std::set<PartitionInfo>& p_infos);
+  Status RemoveSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos);
   Status RemoveSyncPartition(const std::set<PartitionInfo>& p_infos);
   Status SelectLocalIp(const std::string& remote_ip,
                        const int remote_port,
