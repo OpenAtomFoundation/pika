@@ -25,10 +25,7 @@ PikaConf::~PikaConf() {
   delete local_meta_;
 }
 
-Status PikaConf::GetTargetTableAndSanityCheck(const std::string& table_name,
-                                              const std::set<uint32_t>& partition_ids,
-                                              bool is_add,
-                                              uint32_t* const target) {
+Status PikaConf::InternalGetTargetTable(const std::string& table_name, uint32_t* const target) {
   int32_t table_index = -1;
   for (size_t idx = 0; table_structs_.size(); ++idx) {
     if (table_structs_[idx].table_name == table_name) {
@@ -38,27 +35,40 @@ Status PikaConf::GetTargetTableAndSanityCheck(const std::string& table_name,
   }
   if (table_index == -1) {
     return Status::NotFound("table : " + table_name + " not found");
-  } else {
-    // Sanity Check
-    for (const auto& id : partition_ids) {
-      if (id >= table_structs_[table_index].partition_num) {
-        return Status::Corruption("partition index out of range");
-      } else if (is_add && table_structs_[table_index].partition_ids.count(id) != 0) {
-        return Status::Corruption("partition : " + std::to_string(id) + " exist");
-      } else if (!is_add && table_structs_[table_index].partition_ids.count(id) == 0) {
-        return Status::Corruption("partition : " + std::to_string(id) + " not exist");
-      }
+  }
+  *target = table_index;
+  return Status::OK();
+}
+
+Status PikaConf::TablePartitionsSanityCheck(const std::string& table_name,
+                                            const std::set<uint32_t>& partition_ids,
+                                            bool is_add) {
+  RWLock l(&rwlock_, false);
+  uint32_t table_index = 0;
+  Status s = InternalGetTargetTable(table_name, &table_index);
+  if (!s.ok()) {
+    return s;
+  }
+  // Sanity Check
+  for (const auto& id : partition_ids) {
+    if (id >= table_structs_[table_index].partition_num) {
+      return Status::Corruption("partition index out of range");
+    } else if (is_add && table_structs_[table_index].partition_ids.count(id) != 0) {
+      return Status::Corruption("partition : " + std::to_string(id) + " exist");
+    } else if (!is_add && table_structs_[table_index].partition_ids.count(id) == 0) {
+      return Status::Corruption("partition : " + std::to_string(id) + " not exist");
     }
-    *target  = table_index;
   }
   return Status::OK();
 }
 
 Status PikaConf::AddTablePartitions(const std::string& table_name,
                                     const std::set<uint32_t>& partition_ids) {
+  TablePartitionsSanityCheck(table_name, partition_ids, true);
+
   RWLock l(&rwlock_, true);
   uint32_t index = 0;
-  Status s = GetTargetTableAndSanityCheck(table_name, partition_ids, true, &index);
+  Status s = InternalGetTargetTable(table_name, &index);
   if (s.ok()) {
     for (const auto& id : partition_ids) {
       table_structs_[index].partition_ids.insert(id);
@@ -70,9 +80,11 @@ Status PikaConf::AddTablePartitions(const std::string& table_name,
 
 Status PikaConf::RemoveTablePartitions(const std::string& table_name,
                                        const std::set<uint32_t>& partition_ids) {
+  TablePartitionsSanityCheck(table_name, partition_ids, false);
+
   RWLock l(&rwlock_, true);
   uint32_t index = 0;
-  Status s = GetTargetTableAndSanityCheck(table_name, partition_ids, false, &index);
+  Status s = InternalGetTargetTable(table_name, &index);
   if (s.ok()) {
     for (const auto& id : partition_ids) {
       table_structs_[index].partition_ids.erase(id);

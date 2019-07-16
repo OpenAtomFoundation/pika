@@ -85,9 +85,7 @@ const std::string ReplStateMsg[] = {
 
 enum SlotState {
   INFREE = 0,
-  INADDSLOTS = 1,
-  INREMOVESLOTS = 2,
-  INSYNCING = 3,
+  INBUSY = 1,
 };
 
 struct BinlogOffset {

@@ -220,10 +220,9 @@ class PikaConf : public slash::BaseConf {
     compact_interval_ = value;
   }
 
-  Status GetTargetTableAndSanityCheck(const std::string& table_name,
-                                      const std::set<uint32_t>& partition_ids,
-                                      bool is_add,
-                                      uint32_t* const target);
+  Status TablePartitionsSanityCheck(const std::string& table_name,
+                                    const std::set<uint32_t>& partition_ids,
+                                    bool is_add);
   Status AddTablePartitions(const std::string& table_name,
                             const std::set<uint32_t>& partition_ids);
   Status RemoveTablePartitions(const std::string& table_name,
@@ -233,6 +232,9 @@ class PikaConf : public slash::BaseConf {
   int ConfigRewrite();
 
  private:
+  Status InternalGetTargetTable(const std::string& table_name,
+                                uint32_t* const target);
+
   int port_;
   std::string slaveof_;
   int slave_priority_;

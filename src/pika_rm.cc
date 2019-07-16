@@ -1444,9 +1444,8 @@ Status PikaReplicaManager::RunSyncSlavePartitionStateMachine() {
   return Status::OK();
 }
 
-Status PikaReplicaManager::AddSyncPartition(
-        const std::set<PartitionInfo>& p_infos) {
-  slash::RWLock l(&partitions_rw_, true);
+Status PikaReplicaManager::AddSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos) {
+  slash::RWLock l(&partitions_rw_, false);
   for (const auto& p_info : p_infos) {
     if (sync_master_partitions_.find(p_info) != sync_master_partitions_.end()
       || sync_slave_partitions_.find(p_info) != sync_slave_partitions_.end()) {
@@ -1455,7 +1454,17 @@ Status PikaReplicaManager::AddSyncPartition(
           + " exist");
     }
   }
+  return Status::OK();
+}
 
+Status PikaReplicaManager::AddSyncPartition(
+        const std::set<PartitionInfo>& p_infos) {
+  Status s = AddSyncPartitionSanityCheck(p_infos);
+  if (!s.ok()) {
+    return s;
+  }
+
+  slash::RWLock l(&partitions_rw_, true);
   for (const auto& p_info : p_infos) {
     sync_master_partitions_[p_info] =
       std::make_shared<SyncMasterPartition>(p_info.table_name_,
@@ -1467,9 +1476,9 @@ Status PikaReplicaManager::AddSyncPartition(
   return Status::OK();
 }
 
-Status PikaReplicaManager::RemoveSyncPartition(
-        const std::set<PartitionInfo>& p_infos) {
-  slash::RWLock l(&partitions_rw_, true);
+Status PikaReplicaManager::RemoveSyncPartitionSanityCheck(
+    const std::set<PartitionInfo>& p_infos) {
+  slash::RWLock l(&partitions_rw_, false);
   for (const auto& p_info : p_infos) {
     if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()
       || sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
@@ -1493,7 +1502,17 @@ Status PikaReplicaManager::RemoveSyncPartition(
               + " in " + ReplStateMsg[state] + " state");
     }
   }
+  return Status::OK();
+}
 
+Status PikaReplicaManager::RemoveSyncPartition(
+        const std::set<PartitionInfo>& p_infos) {
+  Status s = RemoveSyncPartitionSanityCheck(p_infos);
+  if (!s.ok()) {
+    return s;
+  }
+
+  slash::RWLock l(&partitions_rw_, true);
   for (const auto& p_info : p_infos) {
     sync_master_partitions_.erase(p_info);
     sync_slave_partitions_.erase(p_info);
