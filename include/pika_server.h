@@ -109,6 +109,7 @@ class PikaServer {
    */
   void InitTableStruct();
   std::shared_ptr<Table> GetTable(const std::string& table_name);
+  std::set<uint32_t> GetTablePartitionIds(const std::string& table_name);
   bool IsBgSaving();
   bool IsKeyScaning();
   bool IsCompacting();

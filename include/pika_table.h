@@ -49,6 +49,7 @@ class Table : public std::enable_shared_from_this<Table>{
   void Compact(const blackwidow::DataType& type);
 
   void LeaveAllPartition();
+  std::set<uint32_t> GetPartitionIds();
   std::shared_ptr<Partition> GetPartitionById(uint32_t partition_id);
   std::shared_ptr<Partition> GetPartitionByKey(const std::string& key);
 
@@ -62,7 +63,7 @@ class Table : public std::enable_shared_from_this<Table>{
   // partitions_rw_ > key_scan_protector_
 
   pthread_rwlock_t partitions_rw_;
-  std::map<int32_t, std::shared_ptr<Partition>> partitions_;
+  std::map<uint32_t, std::shared_ptr<Partition>> partitions_;
 
   /*
    * KeyScan use
