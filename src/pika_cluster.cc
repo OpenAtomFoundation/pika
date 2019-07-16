@@ -215,12 +215,6 @@ void PkClusterAddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
 
-  Status s = AddSlotsSanityCheck(table_name);
-  if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-    return;
-  }
-
   SlotState expected = INFREE;
   if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
               &expected, INBUSY)) {
@@ -230,19 +224,29 @@ void PkClusterAddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   bool pre_success = true;
-  s = g_pika_conf->AddTablePartitions(table_name, slots_);
+  Status s = AddSlotsSanityCheck(table_name);
   if (!s.ok()) {
+    LOG(WARNING) << "Addslots sanity check failed";
     pre_success = false;
+  }
+  if (pre_success) {
+    s = g_pika_conf->AddTablePartitions(table_name, slots_);
+    if (!s.ok()) {
+      LOG(WARNING) << "Addslots add to pika conf failed";
+      pre_success = false;
+    }
   }
   if (pre_success) {
     s = table_ptr->AddPartitions(slots_);
     if (!s.ok()) {
+      LOG(WARNING) << "Addslots add to table partition failed";
       pre_success = false;
     }
   }
   if (pre_success) {
     s = g_pika_rm->AddSyncPartition(p_infos_);
     if (!s.ok()) {
+      LOG(WARNING) << "Addslots add to sync partition failed";
       pre_success = false;
     }
   }
@@ -301,12 +305,6 @@ void PkClusterRemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
 
-  Status s = RemoveSlotsSanityCheck(table_name);
-  if (!s.ok()) {
-    res_.SetRes(CmdRes::kErrOther, s.ToString());
-    return;
-  }
-
   SlotState expected = INFREE;
   if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
               &expected, INBUSY)) {
@@ -316,19 +314,29 @@ void PkClusterRemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   bool pre_success = true;
-  s = g_pika_conf->RemoveTablePartitions(table_name, slots_);
+  Status s = RemoveSlotsSanityCheck(table_name);
   if (!s.ok()) {
+    LOG(WARNING) << "Removeslots sanity check failed";
     pre_success = false;
+  }
+  if (pre_success) {
+    s = g_pika_conf->RemoveTablePartitions(table_name, slots_);
+    if (!s.ok()) {
+      LOG(WARNING) << "Removeslots remove from pika conf failed";
+      pre_success = false;
+    }
   }
   if (pre_success) {
     s = table_ptr->RemovePartitions(slots_);
     if (!s.ok()) {
+      LOG(WARNING) << "Removeslots remove from table partition failed";
       pre_success = false;
     }
   }
   if (pre_success) {
     s = g_pika_rm->RemoveSyncPartition(p_infos_);
     if (!s.ok()) {
+      LOG(WARNING) << "Remvoeslots remove from sync partition failed";
       pre_success = false;
     }
   }
