@@ -102,10 +102,10 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterInfo, pkclusterinfoptr));
   Cmd* pkclusteraddslotsptr = new PkClusterAddSlotsCmd(kCmdNamePkClusterAddSlots, 3, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterAddSlots, pkclusteraddslotsptr));
-  Cmd* pkclusterremoveslotsptr = new PkClusterRemoveSlotsCmd(kCmdNamePkClusterRemoveSlots, 3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterRemoveSlots, pkclusterremoveslotsptr));
-  Cmd* pkclusterslotslaveofptr = new PkClusterSlotSlaveofCmd(kCmdNamePkClusterSlotSlaveof, -5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterSlotSlaveof, pkclusterslotslaveofptr));
+  Cmd* pkclusterdelslotsptr = new PkClusterDelSlotsCmd(kCmdNamePkClusterDelSlots, 3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterDelSlots, pkclusterdelslotsptr));
+  Cmd* pkclusterslotsslaveofptr = new PkClusterSlotsSlaveofCmd(kCmdNamePkClusterSlotsSlaveof, -5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterSlotsSlaveof, pkclusterslotsslaveofptr));
 
 #ifdef TCMALLOC_EXTENSION
   Cmd* tcmallocptr = new TcmallocCmd(kCmdNameTcmalloc, -2, kCmdFlagsRead | kCmdFlagsAdmin);

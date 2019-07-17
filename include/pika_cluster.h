@@ -67,9 +67,9 @@ class PkClusterAddSlotsCmd : public SlotParentCmd {
   Status AddSlotsSanityCheck(const std::string& table_name);
 };
 
-class PkClusterRemoveSlotsCmd : public SlotParentCmd {
+class PkClusterDelSlotsCmd : public SlotParentCmd {
  public:
-  PkClusterRemoveSlotsCmd(const std::string& name, int32_t arity, uint16_t flag)
+  PkClusterDelSlotsCmd(const std::string& name, int32_t arity, uint16_t flag)
       : SlotParentCmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
@@ -77,9 +77,9 @@ class PkClusterRemoveSlotsCmd : public SlotParentCmd {
   Status RemoveSlotsSanityCheck(const std::string& table_name);
 };
 
-class PkClusterSlotSlaveofCmd : public Cmd {
+class PkClusterSlotsSlaveofCmd : public Cmd {
  public:
-  PkClusterSlotSlaveofCmd(const std::string& name , int arity, uint16_t flag)
+  PkClusterSlotsSlaveofCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:

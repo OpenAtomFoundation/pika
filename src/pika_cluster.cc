@@ -180,7 +180,7 @@ void SlotParentCmd::DoInitial() {
     return;
   }
   if (g_pika_conf->classic_mode()) {
-    res_.SetRes(CmdRes::kErrOther, "PkClusterAddSlots/PkClusterRemoveSlots only support on sharding mode");
+    res_.SetRes(CmdRes::kErrOther, "PkClusterAddSlots/PkClusterDelSlots only support on sharding mode");
     return;
   }
 
@@ -286,18 +286,18 @@ Status PkClusterAddSlotsCmd::AddSlotsSanityCheck(const std::string& table_name) 
   return Status::OK();
 }
 
-/* pkcluster removeslots 0-3,8-11
- * pkcluster removeslots 0-3,8,9,10,11
- * pkcluster removeslots 0,2,4,6,8,10,12,14
+/* pkcluster delslots 0-3,8-11
+ * pkcluster delslots 0-3,8,9,10,11
+ * pkcluster delslots 0,2,4,6,8,10,12,14
  */
-void PkClusterRemoveSlotsCmd::DoInitial() {
+void PkClusterDelSlotsCmd::DoInitial() {
   SlotParentCmd::DoInitial();
   if (!res_.ok()) {
     return;
   }
 }
 
-void PkClusterRemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
+void PkClusterDelSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   std::string table_name = g_pika_conf->default_table();
   std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(table_name);
   if (!table_ptr) {
@@ -351,7 +351,7 @@ void PkClusterRemoveSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   LOG(INFO) << "Pika meta file overwrite success";
 }
 
-Status PkClusterRemoveSlotsCmd::RemoveSlotsSanityCheck(const std::string& table_name) {
+Status PkClusterDelSlotsCmd::RemoveSlotsSanityCheck(const std::string& table_name) {
   Status s = g_pika_conf->TablePartitionsSanityCheck(table_name, slots_, false);
   if (!s.ok()) {
     return s;
@@ -375,13 +375,13 @@ Status PkClusterRemoveSlotsCmd::RemoveSlotsSanityCheck(const std::string& table_
   return Status::OK();
 }
 
-/* pkcluster slotslaveof no one  [0-3,8-11 | all]
- * pkcluster slotslaveof ip port [0-3,8,9,10,11 | all]
- * pkcluster slotslaveof ip port [0,2,4,6 force | all]
+/* pkcluster slotsslaveof no one  [0-3,8-11 | all]
+ * pkcluster slotsslaveof ip port [0-3,8,9,10,11 | all]
+ * pkcluster slotsslaveof ip port [0,2,4,6 force | all]
  */
-void PkClusterSlotSlaveofCmd::DoInitial() {
+void PkClusterSlotsSlaveofCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNamePkClusterSlotSlaveof);
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePkClusterSlotsSlaveof);
     return;
   }
   if (g_pika_conf->classic_mode()) {
@@ -432,7 +432,7 @@ void PkClusterSlotSlaveofCmd::DoInitial() {
   }
 }
 
-void PkClusterSlotSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
+void PkClusterSlotsSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   std::string table_name = g_pika_conf->default_table();
   for (const auto& slot : slots_) {
     std::shared_ptr<SyncSlavePartition> slave_partition =
