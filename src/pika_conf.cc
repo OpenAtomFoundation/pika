@@ -220,15 +220,15 @@ int PikaConf::Load()
       table_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
     }
   } else {
-    GetConfInt("default-partition-num", &default_partition_num_);
-    if (default_partition_num_ <= 0) {
-      LOG(FATAL) << "config default-partition-num error,"
+    GetConfInt("default-slot-num", &default_slot_num_);
+    if (default_slot_num_ <= 0) {
+      LOG(FATAL) << "config default-slot-num error,"
           << " it should greater than zero, the actual is: "
-          << default_partition_num_;
+          << default_slot_num_;
     }
     std::string pika_meta_path = db_path_ + kPikaMeta;
     if (!slash::FileExists(pika_meta_path)) {
-      local_meta_->StableSave({{"db0", static_cast<uint32_t>(default_partition_num_), {}}});
+      local_meta_->StableSave({{"db0", static_cast<uint32_t>(default_slot_num_), {}}});
     }
     Status s = local_meta_->ParseMeta(&table_structs_);
     if (!s.ok()) {
