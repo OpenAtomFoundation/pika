@@ -1087,10 +1087,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
   }
 
   if (!g_pika_conf->classic_mode()
-    && slash::stringmatch(pattern.data(), "default-partition-num", 1)) {
+    && slash::stringmatch(pattern.data(), "default-slot-num", 1)) {
     elements += 2;
-    EncodeString(&config_body, "default-partition-num");
-    EncodeInt32(&config_body, g_pika_conf->default_partition_num());
+    EncodeString(&config_body, "default-slot-num");
+    EncodeInt32(&config_body, g_pika_conf->default_slot_num());
   }
 
   if (slash::stringmatch(pattern.data(), "daemonize", 1)) {

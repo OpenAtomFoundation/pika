@@ -123,7 +123,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
 
   std::string str_slot_num = *it++;
   if (!slash::string2l(str_slot_num.data(), str_slot_num.size(), &slot_num_)
-      || slot_num_ < 0 || slot_num_ >= g_pika_conf->default_partition_num()) {
+      || slot_num_ < 0 || slot_num_ >= g_pika_conf->default_slot_num()) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }

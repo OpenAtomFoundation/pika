@@ -377,7 +377,7 @@ Status PkClusterDelSlotsCmd::RemoveSlotsSanityCheck(const std::string& table_nam
 
 /* pkcluster slotsslaveof no one  [0-3,8-11 | all]
  * pkcluster slotsslaveof ip port [0-3,8,9,10,11 | all]
- * pkcluster slotsslaveof ip port [0,2,4,6 force | all]
+ * pkcluster slotsslaveof ip port [0,2,4,6,7,8,9 | all] force
  */
 void PkClusterSlotsSlaveofCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
