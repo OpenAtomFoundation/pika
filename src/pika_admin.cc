@@ -1326,6 +1326,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
   ret = resp.str();
 }
 
+// Remember to sync change PikaConf::ConfigRewrite();
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {

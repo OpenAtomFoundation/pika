@@ -417,59 +417,33 @@ void PikaConf::TryPushDiffCommands(const std::string& command, const std::string
 }
 
 int PikaConf::ConfigRewrite() {
-  {
-  RWLock l(&rwlock_, false);
+  std::string userblacklist = suser_blacklist();
 
-  SetConfInt("port", port_);
-  SetConfInt("thread-num", thread_num_);
-  SetConfInt("thread-pool-size", thread_pool_size_);
-  SetConfInt("sync-thread-num", sync_thread_num_);
-  SetConfStr("log-path", log_path_);
-  SetConfStr("db-path", db_path_);
-  SetConfStr("db-sync-path", db_sync_path_);
-  SetConfInt("db-sync-speed", db_sync_speed_);
-  SetConfInt64("write-buffer-size", write_buffer_size_);
+  RWLock l(&rwlock_, true);
+  // Only set value for config item that can be config set.
   SetConfInt("timeout", timeout_);
-  SetConfStr("server-id", server_id_);
   SetConfStr("requirepass", requirepass_);
   SetConfStr("masterauth", masterauth_);
   SetConfStr("userpass", userpass_);
-  SetConfStr("userblacklist", suser_blacklist());
+  SetConfStr("userblacklist", userblacklist);
   SetConfStr("dump-prefix", bgsave_prefix_);
-  SetConfStr("daemonize", daemonize_ ? "yes" : "no");
-  SetConfStr("dump-path", bgsave_path_);
-  SetConfInt("dump-expire", expire_dump_days_);
-  SetConfStr("pidfile", pidfile_);
   SetConfInt("maxclients", maxclients_);
-  SetConfInt("target-file-size-base", target_file_size_base_);
+  SetConfInt("dump-expire", expire_dump_days_);
   SetConfInt("expire-logs-days", expire_logs_days_);
   SetConfInt("expire-logs-nums", expire_logs_nums_);
   SetConfInt("root-connection-num", root_connection_num_);
   SetConfStr("slowlog-write-errorlog", slowlog_write_errorlog_ ? "yes" : "no");
   SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
   SetConfInt("slowlog-max-len", slowlog_max_len_);
-  SetConfStr("compact-cron", compact_cron_);
-  SetConfStr("compact-interval", compact_interval_);
-  SetConfStr("network-interface", network_interface_);
-  SetConfStr("slaveof", slaveof_);
-  SetConfInt("slave-priority", slave_priority_);
-
   SetConfStr("write-binlog", write_binlog_ ? "yes" : "no");
-  SetConfInt("binlog-file-size", binlog_file_size_);
-  SetConfStr("compression", compression_);
   SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
   SetConfInt("small-compaction-threshold", small_compaction_threshold_);
-  SetConfInt("max-background-flushes", max_background_flushes_);
-  SetConfInt("max-background-compactions", max_background_compactions_);
-  SetConfInt("max-cache-files", max_cache_files_);
-  SetConfInt("max-bytes-for-level-multiplier", max_bytes_for_level_multiplier_);
-  SetConfInt64("block-size", block_size_);
-  SetConfInt64("block-cache", block_cache_);
-  SetConfStr("share-block-cache", share_block_cache_ ? "yes" : "no");
-  SetConfStr("cache-index-and-filter-blocks", cache_index_and_filter_blocks_ ? "yes" : "no");
-  SetConfStr("optimize-filters-for-hits", optimize_filters_for_hits_ ? "yes" : "no");
-  SetConfStr("level-compaction-dynamic-level-bytes", level_compaction_dynamic_level_bytes_ ? "yes" : "no");
-  }
+  SetConfInt("db-sync-speed", db_sync_speed_);
+  SetConfStr("compact-cron", compact_cron_);
+  SetConfStr("compact-interval", compact_interval_);
+  SetConfInt("slave-priority", slave_priority_);
+  // slaveof config item is special
+  SetConfStr("slaveof", slaveof_);
 
   if (!diff_commands_.empty()) {
     std::vector<slash::BaseConf::Rep::ConfItem> filtered_items;
@@ -486,7 +460,6 @@ int PikaConf::ConfigRewrite() {
         PushConfItem(item);
       }
     }
-    RWLock l(&rwlock_, true);
     diff_commands_.clear();
   }
   return WriteBack();
