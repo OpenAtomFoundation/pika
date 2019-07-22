@@ -20,6 +20,12 @@ void SlotsInfoCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsInfo);
     return;
   }
+
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SLOTSINFO only support on sharding mode");
+    return;
+  }
+
   return;
 }
 
@@ -58,6 +64,12 @@ void SlotsHashKeyCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsHashKey);
     return;
   }
+
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SLOTSHASHKEY only support on sharding mode");
+    return;
+  }
+
   return;
 }
 
@@ -76,12 +88,18 @@ void SlotsHashKeyCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
-// SLOTSMGRTTAGSLOT host port timeout maxbulks maxbytes slot numkeys
+// slotsmgrtslot-async host port timeout maxbulks maxbytes slot numkeys
 void SlotsMgrtSlotAsyncCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtSlotAsync);
     return;
   }
+
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SLOTSMGRTTAGSLOT-ASYNC only support on sharding mode");
+    return;
+  }
+
   return;
 }
 
@@ -97,6 +115,11 @@ void SlotsMgrtSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
 void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtTagSlotAsync);
+    return;
+  }
+
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SLOTSMGRTTAGSLOT-ASYNC  only support on sharding mode");
     return;
   }
 
@@ -159,6 +182,12 @@ void SlotsScanCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsScan);
     return;
   }
+
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SLOTSSCAN only support on sharding mode");
+    return;
+  }
+
   int64_t slotnum;
   if (!slash::string2l(argv_[1].data(), argv_[1].size(), &slotnum)) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsScan);
@@ -231,6 +260,12 @@ void SlotsDelCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsDel);
     return;
   }
+
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SLOTSDEL only support on sharding mode");
+    return;
+  }
+
   // iter starts from real key, first item in argv_ is command name
   std::vector<std::string>::const_iterator iter = argv_.begin() + 1;
   for (; iter != argv_.end(); iter++) {
@@ -278,6 +313,12 @@ void SlotsMgrtExecWrapperCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtExecWrapper);
     return;
   }
+
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SLOTSMGRT-EXEC-WRAPPER only support on sharding mode");
+    return;
+  }
+
   PikaCmdArgsType::const_iterator it = argv_.begin() + 1;
   key_ = *it++;
   //slash::StringToLower(key_);
@@ -300,6 +341,12 @@ void SlotsMgrtAsyncStatusCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncStatus);
     return;
   }
+
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SLOTSMGRT-ASYNC-STATUS only support on sharding mode");
+    return;
+  }
+
   return;
 }
 
@@ -333,6 +380,12 @@ void SlotsMgrtAsyncCancelCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncCancel);
     return;
   }
+
+  if (g_pika_conf->classic_mode()) {
+    res_.SetRes(CmdRes::kErrOther, "SLOTSMGRT-ASYNC-CANCEL only support on sharding mode");
+    return;
+  }
+
   return;
 }
 
