@@ -226,17 +226,25 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     if (duration > g_pika_conf->slowlog_slower_than()) {
       g_pika_server->SlowlogPushEntry(argv, start_time, duration);
       if (g_pika_conf->slowlog_write_errorlog()) {
+        bool trim = false;
         std::string slow_log;
+        uint32_t cmd_size = 0;
         for (unsigned int i = 0; i < argv.size(); i++) {
-          slow_log.append(" ");
-          slow_log.append(slash::ToRead(argv[i]));
-          if (slow_log.size() >= 1000) {
-            slow_log.resize(1000);
-            slow_log.append("...\"");
-            break;
+          cmd_size += 1 + argv[i].size(); // blank space and argument length
+          if (!trim) {
+            slow_log.append(" ");
+            slow_log.append(slash::ToRead(argv[i]));
+            if (slow_log.size() >= 1000) {
+              trim = true;
+              slow_log.resize(1000);
+              slow_log.append("...\"");
+            }
           }
         }
-        LOG(ERROR) << "ip_port: "<< ip_port() << ", command:" << slow_log << ", start_time(s): " << start_time << ", duration(us): " << duration;
+        LOG(ERROR) << "ip_port: " << ip_port() << ", table_name: "
+          << current_table_ << ", command:" << slow_log << ", command_size: "
+          << cmd_size - 1 << ", arguments: " << argv.size() << ", start_time(s): "
+          << start_time << ", duration(us): " << duration;
       }
     }
   }
