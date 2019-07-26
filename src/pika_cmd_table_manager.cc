@@ -40,11 +40,21 @@ Cmd* PikaCmdTableManager::GetCmd(const std::string& opt) {
 
   slash::RWLock l(&map_protector_, false);
   cmd_table = thread_table_map_[tid];
-  CmdTable::const_iterator iter = cmd_table->find(opt);
+  std::string internal_opt = opt;
+  if (!g_pika_conf->classic_mode()) {
+    TryChangeToAlias(&internal_opt);
+  }
+  CmdTable::const_iterator iter = cmd_table->find(internal_opt);
   if (iter != cmd_table->end()) {
     return iter->second;
   }
   return NULL;
+}
+
+void PikaCmdTableManager::TryChangeToAlias(std::string *internal_opt) {
+  if (!strcasecmp(internal_opt->c_str(), kCmdNameSlaveof.c_str())) {
+    *internal_opt = kCmdNamePkClusterSlotsSlaveof;
+  }
 }
 
 bool PikaCmdTableManager::CheckCurrentThreadCmdTableExist(const pid_t& tid) {
