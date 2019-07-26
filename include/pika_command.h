@@ -465,4 +465,6 @@ void RedisAppendLen(std::string& str, int64_t ori, const std::string &prefix) {
   str.append(kNewLine);
 }
 
+void TryAliasChange(std::vector<std::string>* argv);
+
 #endif

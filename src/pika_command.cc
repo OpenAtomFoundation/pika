@@ -501,9 +501,28 @@ void DestoryCmdTable(CmdTable* cmd_table) {
   }
 }
 
+void TryAliasChange(std::vector<std::string>* argv) {
+  if (argv->empty()) {
+    return;
+  }
+  if (!strcasecmp(argv->front().c_str(), kCmdNameSlaveof.c_str())) {
+    argv->front() = "slotsslaveof";
+    argv->insert(argv->begin(), kClusterPrefix);
+    if (!strcasecmp(argv->back().c_str(), "force")) {
+      argv->back() = "all";
+      argv->push_back("force");
+    } else {
+      argv->push_back("all");
+    }
+  }
+}
+
 void Cmd::Initial(const PikaCmdArgsType& argv,
                   const std::string& table_name) {
   argv_ = argv;
+  if (!g_pika_conf->classic_mode()) {
+    TryAliasChange(&argv_);
+  }
   table_name_ = table_name;
   res_.clear(); // Clear res content
   Clear();      // Clear cmd, Derived class can has own implement
