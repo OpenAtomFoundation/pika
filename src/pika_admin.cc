@@ -726,9 +726,55 @@ void InfoCmd::InfoCPU(std::string& info) {
   info.append(tmp_stream.str());
 }
 
+void InfoCmd::InfoShardingReplication(std::string& info) {
+  int role = 0;
+  std::string slave_list_string;
+  uint32_t slave_num =  g_pika_server->GetShardingSlaveListString(slave_list_string);
+  if (slave_num) {
+    role |=  PIKA_ROLE_MASTER;
+  }
+  std::string common_master;
+  std::string master_ip;
+  int master_port = 0;
+  g_pika_rm->FindCommonMaster(&common_master);
+  if (!common_master.empty()) {
+    role |=  PIKA_ROLE_SLAVE;
+    if(!slash::ParseIpPortString(common_master, master_ip, master_port)) {
+      return;
+    }
+  }
+
+  std::stringstream tmp_stream;
+  tmp_stream << "# Replication(";
+  switch (role) {
+    case PIKA_ROLE_SINGLE :
+    case PIKA_ROLE_MASTER : tmp_stream << "MASTER)\r\nrole:master\r\n"; break;
+    case PIKA_ROLE_SLAVE : tmp_stream << "SLAVE)\r\nrole:slave\r\n"; break;
+    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE : tmp_stream << "Master && SLAVE)\r\nrole:master&&slave\r\n"; break;
+    default: info.append("ERR: server role is error\r\n"); return;
+  }
+  switch (role) {
+    case PIKA_ROLE_SLAVE :
+      tmp_stream << "master_host:" << master_ip << "\r\n";
+      tmp_stream << "master_port:" << master_port << "\r\n";
+      tmp_stream << "master_link_status:up"<< "\r\n";
+      tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
+      break;
+    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE :
+      tmp_stream << "master_host:" << master_ip << "\r\n";
+      tmp_stream << "master_port:" << master_port << "\r\n";
+      tmp_stream << "master_link_status:up"<< "\r\n";
+    case PIKA_ROLE_SINGLE :
+    case PIKA_ROLE_MASTER :
+      tmp_stream << "connected_slaves:" << slave_num << "\r\n" << slave_list_string;
+  }
+  info.append(tmp_stream.str());
+}
+
 void InfoCmd::InfoReplication(std::string& info) {
   if (!g_pika_conf->classic_mode()) {
-    // In Sharding mode, we don`t show this item
+    // In Sharding mode, show different replication info
+    InfoShardingReplication(info);
     return;
   }
 

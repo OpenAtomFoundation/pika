@@ -226,6 +226,7 @@ class InfoCmd : public Cmd {
   void InfoStats(std::string& info);
   void InfoExecCount(std::string& info);
   void InfoCPU(std::string& info);
+  void InfoShardingReplication(std::string& info);
   void InfoReplication(std::string& info);
   void InfoKeyspace(std::string& info);
   void InfoData(std::string& info);

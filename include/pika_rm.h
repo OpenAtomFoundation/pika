@@ -139,6 +139,7 @@ class SyncMasterPartition : public SyncPartition {
   bool CheckSlaveNodeExist(const std::string& ip, int port);
   Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
 
+  void GetValidSlaveNames(std::vector<std::string>* slavenames);
   // display use
   Status GetInfo(std::string* info);
   // debug use
@@ -283,6 +284,9 @@ class PikaReplicaManager {
   // For pkcluster info command
   Status GetPartitionInfo(
       const std::string& table, uint32_t partition_id, std::string* info);
+
+  void FindCompleteReplica(std::vector<std::string>* replica);
+  void FindCommonMaster(std::string* master);
 
   Status CheckPartitionRole(
       const std::string& table, uint32_t partition_id, int* role);
