@@ -549,6 +549,17 @@ std::string SyncMasterPartition::ToStringStatus() {
   return tmp_stream.str();
 }
 
+void SyncMasterPartition::GetValidSlaveNames(std::vector<std::string>* slavenames) {
+  slash::MutexLock l(&partition_mu_);
+  for (auto ptr : slaves_) {
+    if (ptr->slave_state != kSlaveBinlogSync) {
+      continue;
+    }
+    std::string name = ptr->Ip() + ":" + std::to_string(ptr->Port());
+    slavenames->push_back(name);
+  }
+}
+
 Status SyncMasterPartition::GetInfo(std::string* info) {
   std::stringstream tmp_stream;
   slash::MutexLock l(&partition_mu_);
@@ -1534,6 +1545,49 @@ Status PikaReplicaManager::RemoveSyncPartition(
     sync_slave_partitions_.erase(p_info);
   }
   return Status::OK();
+}
+
+void PikaReplicaManager::FindCompleteReplica(std::vector<std::string>* replica) {
+  std::unordered_map<std::string, size_t> replica_slotnum;
+  slash::RWLock l(&partitions_rw_, false);
+  for (auto& iter : sync_master_partitions_) {
+    std::vector<std::string> names;
+    iter.second->GetValidSlaveNames(&names);
+    for (auto& name : names) {
+      if (replica_slotnum.find(name) == replica_slotnum.end()) {
+        replica_slotnum[name] = 0;
+      }
+      replica_slotnum[name]++;
+    }
+  }
+  for (auto item : replica_slotnum) {
+    if (item.second == sync_master_partitions_.size()) {
+      replica->push_back(item.first);
+    }
+  }
+}
+
+void PikaReplicaManager::FindCommonMaster(std::string* master) {
+  slash::RWLock l(&partitions_rw_, false);
+  std::string common_master_ip;
+  int common_master_port = 0;
+  for (auto& iter : sync_slave_partitions_) {
+    if (iter.second->State() != kConnected) {
+      return;
+    }
+    std::string tmp_ip = iter.second->MasterIp();
+    int tmp_port = iter.second->MasterPort();
+    if (common_master_ip.empty() && common_master_port == 0) {
+      common_master_ip = tmp_ip;
+      common_master_port = tmp_port;
+    }
+    if (tmp_ip != common_master_ip || tmp_port != common_master_port) {
+      return;
+    }
+  }
+  if (!common_master_ip.empty() && common_master_port != 0) {
+    *master = common_master_ip + ":" + std::to_string(common_master_port);
+  }
 }
 
 void PikaReplicaManager::RmStatus(std::string* info) {
