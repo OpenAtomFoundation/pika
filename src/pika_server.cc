@@ -658,6 +658,23 @@ int32_t PikaServer::CountSyncSlaves() {
   return db_sync_slaves_.size();
 }
 
+int32_t PikaServer::GetShardingSlaveListString(std::string& slave_list_str) {
+  std::vector<std::string> complete_replica;
+  g_pika_rm->FindCompleteReplica(&complete_replica);
+  std::stringstream tmp_stream;
+  size_t index = 0;
+  for (auto replica : complete_replica) {
+    std::string ip;
+    int port;
+    if(!slash::ParseIpPortString(replica, ip, port)) {
+      continue;
+    }
+    tmp_stream << "slave" << index++ << ":ip=" << ip << ",port=" << port << "\r\n";
+  }
+  slave_list_str.assign(tmp_stream.str());
+  return index;
+}
+
 int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   size_t index = 0;
   SlaveState slave_state;

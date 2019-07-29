@@ -144,6 +144,7 @@ class PikaServer {
   void DeleteSlave(int fd);   //conn fd
   int32_t CountSyncSlaves();
   int32_t GetSlaveListString(std::string& slave_list_str);
+  int32_t GetShardingSlaveListString(std::string& slave_list_str);
   bool TryAddSlave(const std::string& ip, int64_t port, int fd,
                    const std::vector<TableStruct>& table_structs);
   slash::Mutex slave_mutex_; // protect slaves_;
