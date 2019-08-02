@@ -11,6 +11,8 @@
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
 
+#include "slash/include/mutex_impl.h"
+
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
@@ -82,6 +84,8 @@ Partition::Partition(const std::string& table_name,
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
 
+  lock_mgr_ = new slash::lock::LockMgr(1000, 0, std::make_shared<slash::lock::MutexFactoryImpl>());
+
   opened_ = s.ok() ? true : false;
   assert(db_);
   assert(s.ok());
@@ -95,6 +99,7 @@ Partition::~Partition() {
   Close();
   delete bgsave_engine_;
   pthread_rwlock_destroy(&db_rwlock_);
+  delete lock_mgr_;
 }
 
 void Partition::Leave() {
@@ -170,12 +175,12 @@ void Partition::DoCommand(Cmd* const cmd) {
     cmd->res().SetRes(CmdRes::kErrOther, "Partition Not Opened");
     return;
   }
-
+  slash::lock::MultiRecordLock record_lock(lock_mgr_);
   if (!cmd->is_suspend()) {
     DbRWLockReader();
   }
   if (cmd->is_write()) {
-    RecordLock(cmd->current_key());
+    record_lock.Lock(cmd->current_key());
   }
 
   uint32_t exec_time = time(nullptr);
@@ -210,7 +215,7 @@ void Partition::DoCommand(Cmd* const cmd) {
   }
 
   if (cmd->is_write()) {
-    RecordUnLock(cmd->current_key());
+    record_lock.Unlock(cmd->current_key());
   }
   if (!cmd->is_suspend()) {
     DbRWUnLock();
@@ -232,14 +237,6 @@ void Partition::DbRWLockReader() {
 
 void Partition::DbRWUnLock() {
   pthread_rwlock_unlock(&db_rwlock_);
-}
-
-void Partition::RecordLock(const std::string& key) {
-  mutex_record_.Lock(key);
-}
-
-void Partition::RecordUnLock(const std::string& key) {
-  mutex_record_.Unlock(key);
 }
 
 void Partition::SetBinlogIoError(bool error) {

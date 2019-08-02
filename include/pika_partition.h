@@ -8,6 +8,7 @@
 
 #include "blackwidow/blackwidow.h"
 #include "blackwidow/backupable.h"
+#include "slash/include/scope_record_lock.h"
 
 #include "include/pika_binlog.h"
 
@@ -68,8 +69,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void DbRWLockWriter();
   void DbRWLockReader();
   void DbRWUnLock();
-  void RecordLock(const std::string& key);
-  void RecordUnLock(const std::string& key);
 
   void SetBinlogIoError(bool error);
   bool IsBinlogIoError();
@@ -116,7 +115,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   std::atomic<bool> binlog_io_error_;
 
   pthread_rwlock_t db_rwlock_;
-  slash::RecordMutex mutex_record_;
+  slash::lock::LockMgr* lock_mgr_;
   std::shared_ptr<blackwidow::BlackWidow> db_;
 
   bool full_sync_;

@@ -16,7 +16,11 @@ class PfAddCmd : public Cmd {
  public:
   PfAddCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
