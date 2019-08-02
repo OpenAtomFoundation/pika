@@ -397,7 +397,7 @@ class Cmd {
     : name_(name), arity_(arity), flag_(flag) {}
   virtual ~Cmd() {}
 
-  virtual std::string current_key() const;
+  virtual std::vector<std::string> current_key() const;
   virtual void Execute();
   virtual void ProcessFlushDBCmd();
   virtual void ProcessFlushAllCmd();

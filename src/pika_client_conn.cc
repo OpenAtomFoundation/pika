@@ -212,7 +212,11 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     if (g_pika_server->IsTableBinlogIoError(current_table_)) {
       return "-ERR Writing binlog failed, maybe no space left on device\r\n";
     }
-    if (g_pika_server->readonly(current_table_, c_ptr->current_key())) {
+    std::vector<std::string> cur_key = c_ptr->current_key();
+    if (cur_key.empty()) {
+      return "-ERR Internal ERROR\r\n";
+    }
+    if (g_pika_server->readonly(current_table_, cur_key.front())) {
       return "-ERR Server in read-only\r\n";
     }
   }

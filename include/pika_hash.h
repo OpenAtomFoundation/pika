@@ -18,7 +18,11 @@ class HDelCmd : public Cmd {
  public:
   HDelCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -30,7 +34,11 @@ class HGetCmd : public Cmd {
  public:
   HGetCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, field_;
@@ -41,7 +49,11 @@ class HGetallCmd : public Cmd {
  public:
   HGetallCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -52,7 +64,11 @@ class HSetCmd : public Cmd {
  public:
   HSetCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, field_, value_;
@@ -63,7 +79,11 @@ class HExistsCmd : public Cmd {
  public:
   HExistsCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, field_;
@@ -74,7 +94,11 @@ class HIncrbyCmd : public Cmd {
  public:
   HIncrbyCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, field_;
@@ -86,7 +110,11 @@ class HIncrbyfloatCmd : public Cmd {
  public:
   HIncrbyfloatCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, field_, by_;
@@ -97,7 +125,11 @@ class HKeysCmd : public Cmd {
  public:
   HKeysCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -108,7 +140,11 @@ class HLenCmd : public Cmd {
  public:
   HLenCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -119,7 +155,11 @@ class HMgetCmd : public Cmd {
  public:
   HMgetCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -131,7 +171,11 @@ class HMsetCmd : public Cmd {
  public:
   HMsetCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -143,7 +187,11 @@ class HSetnxCmd : public Cmd {
  public:
   HSetnxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, field_, value_;
@@ -154,7 +202,11 @@ class HStrlenCmd : public Cmd {
  public:
   HStrlenCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, field_;
@@ -165,7 +217,11 @@ class HValsCmd : public Cmd {
  public:
   HValsCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, field_;
@@ -176,7 +232,11 @@ class HScanCmd : public Cmd {
  public:
   HScanCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, pattern_;
@@ -192,7 +252,11 @@ class HScanxCmd : public Cmd {
  public:
   HScanxCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_, start_field_, pattern_;
@@ -208,7 +272,11 @@ class PKHScanRangeCmd : public Cmd {
  public:
   PKHScanRangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), limit_(10) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
@@ -227,7 +295,11 @@ class PKHRScanRangeCmd : public Cmd {
  public:
   PKHRScanRangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), limit_(10) {}
-  virtual std::string current_key() const { return key_; }
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string key_;
