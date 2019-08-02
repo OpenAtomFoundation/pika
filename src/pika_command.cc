@@ -529,8 +529,10 @@ void Cmd::Initial(const PikaCmdArgsType& argv,
   DoInitial();
 };
 
-std::string Cmd::current_key() const {
-  return "";
+std::vector<std::string> Cmd::current_key() const {
+  std::vector<std::string> res;
+  res.push_back("");
+  return res;
 }
 
 void Cmd::Execute() {
@@ -590,8 +592,13 @@ void Cmd::ProcessSinglePartitionCmd() {
     // in classic mode a table has only one partition
     partition = g_pika_server->GetPartitionByDbName(table_name_);
   } else {
+    std::vector<std::string> cur_key = current_key();
+    if (cur_key.empty()) {
+      res_.SetRes(CmdRes::kErrOther, "Internal Error");
+      return;
+    }
     // in sharding mode we select partition by key
-    partition = g_pika_server->GetTablePartitionByKey(table_name_, current_key());
+    partition = g_pika_server->GetTablePartitionByKey(table_name_, cur_key.front());
   }
 
   if (!partition) {
