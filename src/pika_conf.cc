@@ -192,7 +192,7 @@ int PikaConf::Load()
   }
   GetConfInt("thread-pool-size", &thread_pool_size_);
   if (thread_pool_size_ <= 0) {
-    thread_pool_size_ = 8;
+    thread_pool_size_ = 12;
   }
   if (thread_pool_size_ > 24) {
     thread_pool_size_ = 24;
