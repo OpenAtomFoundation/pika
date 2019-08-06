@@ -828,6 +828,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_link_status:" << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE)
               && all_partition_sync) ? "up" : "down") << "\r\n";
       tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
+      tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       if (!all_partition_sync) {
         tmp_stream <<"db_repl_error_state:" << out_of_sync.str() << "\r\n";
       }
@@ -837,6 +838,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:" << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE)
               && all_partition_sync) ? "up" : "down") << "\r\n";
+      tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       if (!all_partition_sync) {
         tmp_stream <<"db_repl_error_state:" << out_of_sync.str() << "\r\n";
       }
