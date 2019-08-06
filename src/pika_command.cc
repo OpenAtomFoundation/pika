@@ -369,6 +369,12 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////ZRemrangebylexCmd
   Cmd* zremrangebylexptr = new ZRemrangebylexCmd(kCmdNameZRemrangebylex, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRemrangebylex, zremrangebylexptr));
+  ////ZPopmax
+  Cmd* zpopmax = new ZPopmaxCmd(kCmdNameZPopmax, -2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZPopmax, zpopmax));
+  ////ZPopmin
+  Cmd* zpopmin = new ZPopminCmd(kCmdNameZPopmin, -2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZPopmin, zpopmin));
 
   //Set
   ////SAddCmd

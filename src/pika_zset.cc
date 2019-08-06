@@ -874,3 +874,73 @@ void ZRemrangebylexCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendInteger(count);
   return;
 }
+
+
+void ZPopmaxCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmax);
+    return;
+  }
+  key_ = argv_[1];
+  if (argv_.size() == 2) {
+    count_ = 1;
+    return;
+  }  
+  if (!slash::string2ll(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+}
+
+void ZPopmaxCmd::Do(std::shared_ptr<Partition> partition) {
+  std::vector<blackwidow::ScoreMember> score_members;
+  rocksdb::Status s = partition->db()->ZPopMax(key_, count_, &score_members);
+  if (s.ok()) {
+      char buf[32];
+      int64_t len;
+      res_.AppendArrayLen(score_members.size() * 2);
+      for (const auto& sm : score_members) {
+        res_.AppendString(sm.member);
+        len = slash::d2string(buf, sizeof(buf), sm.score);
+        res_.AppendStringLen(len);
+        res_.AppendContent(buf);
+      }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
+
+
+void ZPopminCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmin);
+    return;
+  }
+  key_ = argv_[1];
+  if (argv_.size() == 2) {
+    count_ = 1;
+    return;
+  }  
+  if (!slash::string2ll(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+}
+
+void ZPopminCmd::Do(std::shared_ptr<Partition> partition) {
+  std::vector<blackwidow::ScoreMember> score_members;
+  rocksdb::Status s = partition->db()->ZPopMin(key_, count_, &score_members);
+  if (s.ok()) {
+      char buf[32];
+      int64_t len;
+      res_.AppendArrayLen(score_members.size() * 2);
+      for (const auto& sm : score_members) {
+        res_.AppendString(sm.member);
+        len = slash::d2string(buf, sizeof(buf), sm.score);
+        res_.AppendStringLen(len);
+        res_.AppendContent(buf);
+      }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
