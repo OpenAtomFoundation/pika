@@ -411,4 +411,37 @@ class ZRemrangebylexCmd : public Cmd {
     left_close_ =  right_close_ = true;
   }
 };
+
+class ZPopmaxCmd : public Cmd {
+ public:
+  ZPopmaxCmd(const std::string& name, int arity, uint16_t flag)
+       : Cmd(name, arity, flag) {}
+  virtual std::vector<std::string> current_key() const { 
+    std::vector<std::string> res;
+    res.emplace_back(key_);
+    return res; 
+  }
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  virtual void DoInitial() override;
+  std::string key_;
+  int64_t count_;
+};
+
+class ZPopminCmd : public Cmd {
+ public:
+  ZPopminCmd(const std::string& name, int arity, uint16_t flag)
+       : Cmd(name, arity, flag) {}
+  virtual std::vector<std::string> current_key() const { 
+    std::vector<std::string> res;
+    res.push_back(key_);
+    return res; 
+  }
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+ private:
+  virtual void DoInitial() override;
+  std::string key_;
+  int64_t count_;
+};
+
 #endif
