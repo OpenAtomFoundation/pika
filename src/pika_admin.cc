@@ -916,6 +916,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
 
 void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
+  std::stringstream db_fatal_msg_stream;
 
   int64_t db_size = slash::Du(g_pika_conf->db_path());
   tmp_stream << "# Data" << "\r\n";
@@ -927,19 +928,31 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
+  std::string db_fatal_msg;
+  std::map<std::string, uint64_t> type_result;
+  uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0, memtable_usage = 0;
   uint64_t total_table_reader_usage = 0, table_reader_usage = 0;
   slash::RWLock table_rwl(&g_pika_server->tables_rw_, false);
   for (const auto& table_item : g_pika_server->tables_) {
     slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
     for (const auto& patition_item : table_item.second->partitions_) {
+      type_result.clear();
       memtable_usage = table_reader_usage = 0;
       patition_item.second->DbRWLockReader();
-      patition_item.second->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
-      patition_item.second->db()->GetUsage(blackwidow::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+      patition_item.second->db()->GetUsage(blackwidow::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
+      patition_item.second->db()->GetUsage(blackwidow::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+      patition_item.second->db()->GetUsage(blackwidow::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
       patition_item.second->DbRWUnLock();
       total_memtable_usage += memtable_usage;
       total_table_reader_usage += table_reader_usage;
+      for (const auto& item : type_result) {
+        if (item.second != 0) {
+          db_fatal_msg_stream << (total_background_errors != 0 ? "," : "");
+          db_fatal_msg_stream << patition_item.second->GetPartitionName() << "/" << item.first;
+          total_background_errors += item.second;
+        }
+      }
     }
   }
 
@@ -947,6 +960,8 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "used_memory_human:" << ((total_memtable_usage + total_table_reader_usage) >> 20) << "M\r\n";
   tmp_stream << "db_memtable_usage:" << total_memtable_usage << "\r\n";
   tmp_stream << "db_tablereader_usage:" << total_table_reader_usage << "\r\n";
+  tmp_stream << "db_fatal:" << (total_background_errors != 0 ? "1" : "0") << "\r\n";
+  tmp_stream << "db_fatal_msg:" << (total_background_errors != 0 ? db_fatal_msg_stream.str() : "NULL") << "\r\n";
 
   info.append(tmp_stream.str());
   return;
