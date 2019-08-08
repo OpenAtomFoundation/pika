@@ -897,6 +897,7 @@ void InfoCmd::InfoLog(std::string &info) {
 
 void InfoCmd::InfoData(std::string &info) {
   std::stringstream tmp_stream;
+  std::stringstream db_fatal_msg_stream;
 
   int64_t db_size = slash::Du(g_pika_conf->db_path());
   tmp_stream << "# Data" << "\r\n";
@@ -906,13 +907,27 @@ void InfoCmd::InfoData(std::string &info) {
 
   // rocksdb related memory usage
   uint64_t memtable_usage, table_reader_usage;
-  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
-  g_pika_server->db()->GetUsage(nemo::USAGE_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+  g_pika_server->db()->GetUsage(nemo::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
+  g_pika_server->db()->GetUsage(nemo::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+
+  // rocksdb background error
+  uint64_t total_background_errors = 0;
+  std::map<std::string, uint64_t> result_map;
+  g_pika_server->db()->GetUsage(nemo::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &result_map);
+  for (const auto& item : result_map) {
+    if (item.second != 0) {
+      db_fatal_msg_stream << (total_background_errors != 0 ? "," : "");
+      db_fatal_msg_stream << "db0/" << item.first;
+      total_background_errors += item.second;
+    }
+  }
 
   tmp_stream << "used_memory:" << (memtable_usage + table_reader_usage) << "\r\n";
   tmp_stream << "used_memory_human:" << ((memtable_usage + table_reader_usage) >> 20) << "M\r\n";
   tmp_stream << "db_memtable_usage:" << memtable_usage << "\r\n";
   tmp_stream << "db_tablereader_usage:" << table_reader_usage << "\r\n";
+  tmp_stream << "db_fatal:" << (total_background_errors != 0 ? "1" : "0") << "\r\n";
+  tmp_stream << "db_fatal_msg:" << (total_background_errors != 0 ? db_fatal_msg_stream.str() : "NULL") << "\r\n";
 
   info.append(tmp_stream.str());
   return;
