@@ -928,7 +928,6 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
 
   // rocksdb related memory usage
-  std::string db_fatal_msg;
   std::map<std::string, uint64_t> type_result;
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0, memtable_usage = 0;
