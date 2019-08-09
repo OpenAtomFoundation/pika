@@ -28,6 +28,7 @@ int PikaMasterConn::DealMessage(
   //eq set_is_reply(false);
   g_pika_server->PlusThreadQuerynum();
   if (argv.empty()) {
+    LOG(WARNING) << "PikaMasterConn DealMessage error, because argv empty";
     return -2;
   }
 
@@ -39,8 +40,9 @@ int PikaMasterConn::DealMessage(
         LOG(INFO) << "BinlogReceiverThread AccessHandle succeeded, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
         return 0;
       }
-      LOG(INFO) << "BinlogReceiverThread AccessHandle failed, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
+      LOG(WARNING) << "BinlogReceiverThread AccessHandle failed, My server id: " << g_pika_server->sid() << " Master auth server id: " << argv[1];
     }
+    LOG(WARNING) << "BinlogReceiverThread AccessHandle failed, auth error, argv size:" << argv.size();
     return -2;
   }
 
@@ -78,6 +80,7 @@ int PikaMasterConn::DealMessage(
   uint64_t serial = binlog_receiver_->GetnPlusSerial();
   if (is_readonly) {
     if (!g_pika_server->WaitTillBinlogBGSerial(serial)) {
+      LOG(WARNING) << "PikaMasterConn DealMessage error, because of serial";
       return -2;
     }
     std::string opt = slash::StringToLower(argv[0]);
