@@ -1008,6 +1008,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->thread_num());
   }
 
+  if (slash::stringmatch(pattern.data(), "thread-pool-size", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "thread-pool-size");
+    EncodeInt32(&config_body, g_pika_conf->thread_pool_size());
+  }
+
   if (slash::stringmatch(pattern.data(), "sync-thread-num", 1)) {
     elements += 2;
     EncodeString(&config_body, "sync-thread-num");
