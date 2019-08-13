@@ -1259,6 +1259,9 @@ void PikaServer::AutoCompactRange() {
           LOG(INFO) << "[Interval]schedule compactRange Failed, freesize: " << free_size/1048576 << "MB, disksize: " << total_size/1048576
             << "MB, error: " << s.ToString();
         }
+      } else {
+        LOG(WARNING) << "compact-interval failed, because there is not enough disk space left, freesize"
+          << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
       }
     }
     return;
@@ -1306,6 +1309,9 @@ void PikaServer::AutoCompactRange() {
             << "MB, error: " << s.ToString();
         }
         have_scheduled_crontask_ = true;
+      } else {
+        LOG(WARNING) << "compact-cron failed, because there is not enough disk space left, freesize"
+          << free_size/1048576 << "MB, disksize: " << total_size/1048576 << "MB";
       }
     }
   }
