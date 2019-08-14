@@ -129,9 +129,11 @@ int PikaConf::Load()
 
   std::string swe;
   GetConfStr("slowlog-write-errorlog", &swe);
-  slowlog_write_errorlog_ = swe == "yes" ? true : false;
+  slowlog_write_errorlog_.store(swe == "yes" ? true : false);
 
-  GetConfInt("slowlog-log-slower-than", &slowlog_log_slower_than_);
+  int tmp_slowlog_log_slower_than;
+  GetConfInt("slowlog-log-slower-than", &tmp_slowlog_log_slower_than);
+  slowlog_log_slower_than_.store(tmp_slowlog_log_slower_than);
   GetConfInt("slowlog-max-len", &slowlog_max_len_);
   if (slowlog_max_len_ == 0) {
     slowlog_max_len_ = 128;
@@ -207,10 +209,10 @@ int PikaConf::Load()
 
   std::string instance_mode;
   GetConfStr("instance-mode", &instance_mode);
-  classic_mode_ = (instance_mode.empty()
+  classic_mode_.store(instance_mode.empty()
           || !strcasecmp(instance_mode.data(), "classic"));
 
-  if (classic_mode_) {
+  if (classic_mode_.load()) {
     GetConfInt("databases", &databases_);
     if (databases_ < 1 || databases_ > 8) {
       LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: "
@@ -432,8 +434,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("expire-logs-days", expire_logs_days_);
   SetConfInt("expire-logs-nums", expire_logs_nums_);
   SetConfInt("root-connection-num", root_connection_num_);
-  SetConfStr("slowlog-write-errorlog", slowlog_write_errorlog_ ? "yes" : "no");
-  SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
+  SetConfStr("slowlog-write-errorlog", slowlog_write_errorlog_.load() ? "yes" : "no");
+  SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_.load());
   SetConfInt("slowlog-max-len", slowlog_max_len_);
   SetConfStr("write-binlog", write_binlog_ ? "yes" : "no");
   SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
