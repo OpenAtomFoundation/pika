@@ -9,6 +9,7 @@
 #include <map>
 #include <set>
 #include <unordered_set>
+#include <atomic>
 
 #include "slash/include/base_conf.h"
 #include "slash/include/slash_mutex.h"
@@ -51,7 +52,7 @@ class PikaConf : public slash::BaseConf {
   std::string userpass()                            { RWLock l(&rwlock_, false); return userpass_; }
   const std::string suser_blacklist()               { RWLock l(&rwlock_, false); return slash::StringConcat(user_blacklist_, COMMA); }
   const std::vector<std::string>& vuser_blacklist() { RWLock l(&rwlock_, false); return user_blacklist_;}
-  bool classic_mode()                               { RWLock l(&rwlock_, false); return classic_mode_;}
+  bool classic_mode()                               { return classic_mode_.load();}
   int databases()                                   { RWLock l(&rwlock_, false); return databases_;}
   int default_slot_num()                            { RWLock l(&rwlock_, false); return default_slot_num_;}
   const std::vector<TableStruct>& table_structs()   { RWLock l(&rwlock_, false); return table_structs_; }
@@ -76,8 +77,8 @@ class PikaConf : public slash::BaseConf {
   bool slave_read_only()                            { RWLock l(&rwlock_, false); return slave_read_only_; }
   int maxclients()                                  { RWLock l(&rwlock_, false); return maxclients_; }
   int root_connection_num()                         { RWLock l(&rwlock_, false); return root_connection_num_; }
-  bool slowlog_write_errorlog()                     { RWLock l(&rwlock_, false); return slowlog_write_errorlog_;}
-  int slowlog_slower_than()                         { RWLock l(&rwlock_, false); return slowlog_log_slower_than_; }
+  bool slowlog_write_errorlog()                     { return slowlog_write_errorlog_.load();}
+  int slowlog_slower_than()                         { return slowlog_log_slower_than_.load(); }
   int slowlog_max_len()                             { RWLock L(&rwlock_, false); return slowlog_max_len_; }
   std::string network_interface()                   { RWLock l(&rwlock_, false); return network_interface_; }
 
@@ -192,12 +193,12 @@ class PikaConf : public slash::BaseConf {
   void SetSlowlogWriteErrorlog(const bool value) {
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("slowlog-write-errorlog", value == true ? "yes" : "no");
-    slowlog_write_errorlog_ = value;
+    slowlog_write_errorlog_.store(value);
   }
   void SetSlowlogSlowerThan(const int value) {
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("slowlog-log-slower-than", std::to_string(value));
-    slowlog_log_slower_than_ = value;
+    slowlog_log_slower_than_.store(value);
   }
   void SetSlowlogMaxLen(const int value) {
     RWLock l(&rwlock_, true);
@@ -257,7 +258,7 @@ class PikaConf : public slash::BaseConf {
   std::string masterauth_;
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
-  bool classic_mode_;
+  std::atomic<bool> classic_mode_;
   int databases_;
   int default_slot_num_;
   std::vector<TableStruct> table_structs_;
@@ -269,8 +270,8 @@ class PikaConf : public slash::BaseConf {
   std::string compression_;
   int maxclients_;
   int root_connection_num_;
-  bool slowlog_write_errorlog_;
-  int slowlog_log_slower_than_;
+  std::atomic<bool> slowlog_write_errorlog_;
+  std::atomic<int> slowlog_log_slower_than_;
   int slowlog_max_len_;
   int expire_logs_days_;
   int expire_logs_nums_;
