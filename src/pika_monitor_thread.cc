@@ -19,6 +19,7 @@ PikaMonitorThread::PikaMonitorThread()
   : pink::Thread(),
     monitor_cond_(&monitor_mutex_protector_) {
   set_thread_name("MonitorThread");
+  has_monitor_clients_.store(false);
 }
 
 PikaMonitorThread::~PikaMonitorThread() {
@@ -39,6 +40,7 @@ void PikaMonitorThread::AddMonitorClient(std::shared_ptr<PikaClientConn> client_
   StartThread();
   slash::MutexLock lm(&monitor_mutex_protector_);
   monitor_clients_.push_back(ClientInfo{client_ptr->fd(), client_ptr->ip_port(), 0, client_ptr});
+  has_monitor_clients_.store(true);
 }
 
 void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
@@ -58,6 +60,7 @@ void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
   } else if (iter != monitor_clients_.end()) {
     monitor_clients_.erase(iter);
   }
+  has_monitor_clients_.store(!monitor_clients_.empty());
 }
 
 void PikaMonitorThread::AddMonitorMessage(const std::string &monitor_message) {
@@ -117,8 +120,7 @@ bool PikaMonitorThread::ThreadClientKill(const std::string& ip_port) {
 }
 
 bool PikaMonitorThread::HasMonitorClients() {
-  slash::MutexLock lm(&monitor_mutex_protector_);
-  return !monitor_clients_.empty();
+  return has_monitor_clients_.load();
 }
 
 pink::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message) {
