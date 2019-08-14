@@ -9,6 +9,7 @@
 #include <list>
 #include <deque>
 #include <queue>
+#include <atomic>
 
 #include "pink/include/pink_thread.h"
 #include "slash/include/slash_mutex.h"
@@ -33,6 +34,7 @@ class PikaMonitorThread : public pink::Thread {
   pink::WriteStatus SendMessage(int32_t fd, std::string& message);
   void RemoveMonitorClient(const std::string& ip_port);
 
+  std::atomic<bool> has_monitor_clients_;
   slash::Mutex monitor_mutex_protector_;
   slash::CondVar monitor_cond_;
 
