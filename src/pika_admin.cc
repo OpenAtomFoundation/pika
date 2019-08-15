@@ -696,6 +696,9 @@ void InfoCmd::InfoExecCount(std::string& info) {
 
   std::unordered_map<std::string, uint64_t> command_exec_count_table = g_pika_server->ServerExecCountTable();
   for (const auto& item : command_exec_count_table) {
+    if (item.second == 0) {
+      continue;
+    }
     tmp_stream << item.first << ":" << item.second << "\r\n";
   }
   info.append(tmp_stream.str());
