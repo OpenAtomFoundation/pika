@@ -615,7 +615,12 @@ void Cmd::ProcessSinglePartitionCmd() {
 }
 
 void Cmd::ProcessMultiPartitionCmd() {
-  LOG(INFO) << "Process Multi partition Cmd? -> " << name_;
+  if (argv_.size() == static_cast<size_t>(arity_ < 0 ? -arity_ : arity_)) {
+    ProcessSinglePartitionCmd();
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "This command usage only support in classic mode\r\n");
+    return;
+  }
 }
 
 void Cmd::ProcessDoNotSpecifyPartitionCmd() {

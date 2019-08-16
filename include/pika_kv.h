@@ -68,6 +68,10 @@ class DelCmd : public Cmd {
   DelCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual std::vector<std::string> current_key() const {
+    return keys_;
+  }
+
  private:
   std::vector<std::string> keys_;
   virtual void DoInitial() override;
@@ -220,6 +224,10 @@ class MgetCmd : public Cmd {
   MgetCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual std::vector<std::string> current_key() const {
+    return keys_;
+  }
+
  private:
   std::vector<std::string> keys_;
   virtual void DoInitial() override;
@@ -407,6 +415,10 @@ class ExistsCmd : public Cmd {
   ExistsCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual std::vector<std::string> current_key() const {
+    return keys_;
+  }
+
  private:
   std::vector<std::string> keys_;
   virtual void DoInitial() override;
