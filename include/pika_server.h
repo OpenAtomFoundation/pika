@@ -48,8 +48,8 @@ struct StatisticData {
   uint64_t last_sec_thread_querynum;
   uint64_t last_time_us;
 };
-
-static std::set<std::string> ShardingModeNotSupportCommands {kCmdNameDel,
+/*
+static std::set<std::string> MultiKvCommands {kCmdNameDel,
              kCmdNameMget,        kCmdNameKeys,              kCmdNameMset,
              kCmdNameMsetnx,      kCmdNameExists,            kCmdNameScan,
              kCmdNameScanx,       kCmdNamePKScanRange,       kCmdNamePKRScanRange,
@@ -60,6 +60,19 @@ static std::set<std::string> ShardingModeNotSupportCommands {kCmdNameDel,
              kCmdNamePfCount,     kCmdNamePfMerge,           kCmdNameGeoAdd,
              kCmdNameGeoPos,      kCmdNameGeoDist,           kCmdNameGeoHash,
              kCmdNameGeoRadius,   kCmdNameGeoRadiusByMember};
+*/
+
+static std::set<std::string> ShardingModeNotSupportCommands {
+             kCmdNameMsetnx,      kCmdNameScan,              kCmdNameKeys,
+             kCmdNameScanx,       kCmdNamePKScanRange,       kCmdNamePKRScanRange,
+             kCmdNameRPopLPush,   kCmdNameZUnionstore,       kCmdNameZInterstore,
+             kCmdNameSUnion,      kCmdNameSUnionstore,       kCmdNameSInter,
+             kCmdNameSInterstore, kCmdNameSDiff,             kCmdNameSDiffstore,
+             kCmdNameSMove,       kCmdNameBitOp,             kCmdNamePfAdd,
+             kCmdNamePfCount,     kCmdNamePfMerge,           kCmdNameGeoAdd,
+             kCmdNameGeoPos,      kCmdNameGeoDist,           kCmdNameGeoHash,
+             kCmdNameGeoRadius,   kCmdNameGeoRadiusByMember};
+
 
 extern PikaConf *g_pika_conf;
 
