@@ -69,8 +69,7 @@ class DelCmd : public Cmd {
       : Cmd(name, arity, flag) {};
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual std::vector<std::string> current_key() const {
-    std::vector<std::string> res(keys_);
-    return res;
+    return keys_;
   }
 
  private:
@@ -226,8 +225,7 @@ class MgetCmd : public Cmd {
       : Cmd(name, arity, flag) {};
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual std::vector<std::string> current_key() const {
-    std::vector<std::string> res(keys_);
-    return res;
+    return keys_;
   }
 
  private:
@@ -418,8 +416,7 @@ class ExistsCmd : public Cmd {
       : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual std::vector<std::string> current_key() const {
-    std::vector<std::string> res(keys_);
-    return res;
+    return keys_;
   }
 
  private:
