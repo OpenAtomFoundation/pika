@@ -236,7 +236,8 @@ void SlotsScanCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::vector<std::string> keys;
-  int64_t cursor_ret = cur_partition->db()->Scan(cursor_, pattern_, count_, &keys);
+  int64_t cursor_ret = cur_partition->db()->Scan(blackwidow::DataType::kAll,
+          cursor_, pattern_, count_, &keys);
 
   res_.AppendArrayLen(2);
 

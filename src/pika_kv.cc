@@ -7,7 +7,10 @@
 
 #include "slash/include/slash_string.h"
 
+#include "include/pika_conf.h"
 #include "include/pika_binlog_transverter.h"
+
+extern PikaConf *g_pika_conf;
 
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
 void SetCmd::DoInitial() {
@@ -554,12 +557,16 @@ void KeysCmd::DoInitial() {
   pattern_ = argv_[1];
   if (argv_.size() == 3) {
     std::string opt = argv_[2];
-    if (!strcasecmp(opt.data(), "string")
-      || !strcasecmp(opt.data(), "zset")
-      || !strcasecmp(opt.data(), "set")
-      || !strcasecmp(opt.data(), "list")
-      || !strcasecmp(opt.data(),"hash")) {
-      type_ = slash::StringToLower(opt);
+    if (!strcasecmp(opt.data(), "string")) {
+      type_ = blackwidow::DataType::kStrings;
+    } else if (!strcasecmp(opt.data(), "zset")) {
+      type_ = blackwidow::DataType::kZSets;
+    } else if (!strcasecmp(opt.data(), "set")) {
+      type_ = blackwidow::DataType::kSets;
+    } else if (!strcasecmp(opt.data(), "list")) {
+      type_ = blackwidow::DataType::kLists;
+    } else if (!strcasecmp(opt.data(), "hash")) {
+      type_ = blackwidow::DataType::kHashes;
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
@@ -570,12 +577,27 @@ void KeysCmd::DoInitial() {
 }
 
 void KeysCmd::Do(std::shared_ptr<Partition> partition) {
+  int64_t total_key = 0;
+  int64_t cursor = 0;
+  size_t raw_limit = g_pika_conf->max_client_response_size();
+  std::string raw;
   std::vector<std::string> keys;
-  rocksdb::Status s = partition->db()->Keys(type_, pattern_, &keys);
-  res_.AppendArrayLen(keys.size());
-  for (const auto& key : keys) {
-    res_.AppendString(key);
-  }
+  do {
+    keys.clear();
+    cursor = partition->db()->Scan(type_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &keys);
+    for (const auto& key : keys) {
+      RedisAppendLen(raw, key.size(), "$");
+      RedisAppendContent(raw, key);
+    }
+    if (raw.size() >= raw_limit) {
+      res_.SetRes(CmdRes::kErrOther, "Response exceeds the max-client-response-size limit");
+      return;
+    }
+    total_key += keys.size();
+  } while (cursor != 0);
+
+  res_.AppendArrayLen(total_key);
+  res_.AppendStringRaw(raw);
   return;
 }
 
@@ -1292,9 +1314,31 @@ void ScanCmd::DoInitial() {
 }
 
 void ScanCmd::Do(std::shared_ptr<Partition> partition) {
+  int64_t total_key = 0;
+  int64_t batch_count = 0;
+  int64_t left = count_;
+  int64_t cursor_ret = cursor_;
+  size_t raw_limit = g_pika_conf->max_client_response_size();
+  std::string raw;
   std::vector<std::string> keys;
-  int64_t cursor_ret = partition->db()->Scan(cursor_, pattern_, count_, &keys);
-  
+  // To avoid memory overflow, we call the Scan method in batches
+  do {
+    keys.clear();
+    batch_count = left < PIKA_SCAN_STEP_LENGTH ? left : PIKA_SCAN_STEP_LENGTH;
+    left = left > PIKA_SCAN_STEP_LENGTH ? left - PIKA_SCAN_STEP_LENGTH : 0;
+    cursor_ret = partition->db()->Scan(blackwidow::DataType::kAll, cursor_ret,
+            pattern_, batch_count, &keys);
+    for (const auto& key : keys) {
+      RedisAppendLen(raw, key.size(), "$");
+      RedisAppendContent(raw, key);
+    }
+    if (raw.size() >= raw_limit) {
+      res_.SetRes(CmdRes::kErrOther, "Response exceeds the max-client-response-size limit");
+      return;
+    }
+    total_key += keys.size();
+  } while (cursor_ret != 0 && left);
+
   res_.AppendArrayLen(2);
 
   char buf[32];
@@ -1302,12 +1346,8 @@ void ScanCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendStringLen(len);
   res_.AppendContent(buf);
 
-  res_.AppendArrayLen(keys.size());
-  std::vector<std::string>::iterator iter;
-  for (iter = keys.begin(); iter != keys.end(); iter++) {
-    res_.AppendStringLen(iter->size());
-    res_.AppendContent(*iter);
-  }
+  res_.AppendArrayLen(total_key);
+  res_.AppendStringRaw(raw);
   return;
 }
 
