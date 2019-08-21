@@ -371,14 +371,14 @@ public:
   void AppendInteger(int64_t ori) {
     RedisAppendLen(message_, ori, ":");
   }
-  void AppendContent(const std::string &value) {
+  void AppendContent(const std::string& value) {
     RedisAppendContent(message_, value);
   }
-  void AppendString(const std::string &value) {
+  void AppendString(const std::string& value) {
     AppendStringLen(value.size());
     AppendContent(value);
   }
-  void AppendStringRaw(std::string &value) {
+  void AppendStringRaw(const std::string& value) {
     message_.append(value);
   }
   void SetRes(CmdRet _ret, const std::string content = "") {

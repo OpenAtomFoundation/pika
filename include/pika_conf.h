@@ -42,6 +42,7 @@ class PikaConf : public slash::BaseConf {
   std::string compact_interval()                    { RWLock l(&rwlock_, false); return compact_interval_; }
   int64_t write_buffer_size()                       { RWLock l(&rwlock_, false); return write_buffer_size_; }
   int64_t max_write_buffer_size()                   { RWLock l(&rwlock_, false); return max_write_buffer_size_; }
+  int64_t max_client_response_size()                { RWLock L(&rwlock_, false); return max_client_response_size_;}
   int timeout()                                     { RWLock l(&rwlock_, false); return timeout_; }
   std::string server_id()                           { RWLock l(&rwlock_, false); return server_id_; }
   std::string requirepass()                         { RWLock l(&rwlock_, false); return requirepass_; }
@@ -129,6 +130,11 @@ class PikaConf : public slash::BaseConf {
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("small-compaction-threshold", std::to_string(value));
     small_compaction_threshold_ = value;
+  }
+  void SetMaxClientResponseSize(const int value) {
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("max-client-response-size", std::to_string(value));
+    max_client_response_size_ = value;
   }
   void SetBgsavePath(const std::string &value) {
     RWLock l(&rwlock_, true);
@@ -251,6 +257,7 @@ class PikaConf : public slash::BaseConf {
   std::string compact_interval_;
   int64_t write_buffer_size_;
   int64_t max_write_buffer_size_;
+  int64_t max_client_response_size_;
   bool daemonize_;
   int timeout_;
   std::string server_id_;

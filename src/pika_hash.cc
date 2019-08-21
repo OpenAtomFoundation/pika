@@ -7,6 +7,10 @@
 
 #include "slash/include/slash_string.h"
 
+#include "include/pika_conf.h"
+
+extern PikaConf *g_pika_conf;
+
 void HDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameHDel);
@@ -86,16 +90,39 @@ void HGetallCmd::DoInitial() {
 }
 
 void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
+  int64_t total_fv = 0;
+  int64_t cursor = 0, next_cursor = 0;
+  size_t raw_limit = g_pika_conf->max_client_response_size();
+  std::string raw;
+  rocksdb::Status s;
   std::vector<blackwidow::FieldValue> fvs;
-  rocksdb::Status s = partition->db()->HGetall(key_, &fvs);
-  if (s.ok() || s.IsNotFound()) {
-    res_.AppendArrayLen(fvs.size() * 2);
-    for (const auto& fv : fvs) {
-      res_.AppendStringLen(fv.field.size());
-      res_.AppendContent(fv.field);
-      res_.AppendStringLen(fv.value.size());
-      res_.AppendContent(fv.value);
+
+  do {
+    fvs.clear();
+    s = partition->db()->HScan(key_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &fvs, &next_cursor);
+    if (!s.ok()) {
+      raw.clear();
+      total_fv = 0;
+      break;
+    } else {
+      for (const auto& fv : fvs) {
+        RedisAppendLen(raw, fv.field.size(), "$");
+        RedisAppendContent(raw, fv.field);
+        RedisAppendLen(raw, fv.value.size(), "$");
+        RedisAppendContent(raw, fv.value);
+      }
+      if (raw.size() >= raw_limit) {
+        res_.SetRes(CmdRes::kErrOther, "Response exceeds the max-client-response-size limit");
+        return;
+      }
+      total_fv += fvs.size();
+      cursor = next_cursor;
     }
+  } while (cursor != 0);
+
+  if (s.ok() || s.IsNotFound()) {
+    res_.AppendArrayLen(total_fv * 2);
+    res_.AppendStringRaw(raw);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }

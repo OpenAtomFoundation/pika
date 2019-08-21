@@ -228,14 +228,14 @@ class MgetCmd : public Cmd {
 class KeysCmd : public Cmd {
  public:
   KeysCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag), type_("all") {}
+      : Cmd(name, arity, flag), type_(blackwidow::DataType::kAll) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   std::string pattern_;
-  std::string type_;
+  blackwidow::DataType type_;
   virtual void DoInitial() override;
   virtual void Clear() {
-    type_ = "all";
+    type_ = blackwidow::DataType::kAll;
   }
 };
 

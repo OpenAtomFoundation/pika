@@ -300,6 +300,12 @@ int PikaConf::Load()
     max_write_buffer_size_ = 10737418240;  // 10Gb
   }
 
+  // max_client_response_size
+  GetConfInt64("max-client-response-size", &max_client_response_size_);
+  if (max_client_response_size_ <= 0) {
+    max_client_response_size_ = 1073741824; // 1Gb
+  }
+
   // target_file_size_base
   GetConfInt("target-file-size-base", &target_file_size_base_);
   if (target_file_size_base_ <= 0) {
@@ -440,6 +446,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("write-binlog", write_binlog_ ? "yes" : "no");
   SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
   SetConfInt("small-compaction-threshold", small_compaction_threshold_);
+  SetConfInt("max-client-response-size", max_client_response_size_);
   SetConfInt("db-sync-speed", db_sync_speed_);
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);
