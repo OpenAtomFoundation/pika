@@ -895,16 +895,16 @@ void ZPopmaxCmd::DoInitial() {
 void ZPopmaxCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = partition->db()->ZPopMax(key_, count_, &score_members);
-  if (s.ok()) {
-      char buf[32];
-      int64_t len;
-      res_.AppendArrayLen(score_members.size() * 2);
-      for (const auto& sm : score_members) {
-        res_.AppendString(sm.member);
-        len = slash::d2string(buf, sizeof(buf), sm.score);
-        res_.AppendStringLen(len);
-        res_.AppendContent(buf);
-      }
+  if (s.ok() || s.IsNotFound()) {
+    char buf[32];
+    int64_t len;
+    res_.AppendArrayLen(score_members.size() * 2);
+    for (const auto& sm : score_members) {
+      res_.AppendString(sm.member);
+      len = slash::d2string(buf, sizeof(buf), sm.score);
+      res_.AppendStringLen(len);
+      res_.AppendContent(buf);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
@@ -930,16 +930,16 @@ void ZPopminCmd::DoInitial() {
 void ZPopminCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<blackwidow::ScoreMember> score_members;
   rocksdb::Status s = partition->db()->ZPopMin(key_, count_, &score_members);
-  if (s.ok()) {
-      char buf[32];
-      int64_t len;
-      res_.AppendArrayLen(score_members.size() * 2);
-      for (const auto& sm : score_members) {
-        res_.AppendString(sm.member);
-        len = slash::d2string(buf, sizeof(buf), sm.score);
-        res_.AppendStringLen(len);
-        res_.AppendContent(buf);
-      }
+  if (s.ok() || s.IsNotFound()) {
+    char buf[32];
+    int64_t len;
+    res_.AppendArrayLen(score_members.size() * 2);
+    for (const auto& sm : score_members) {
+      res_.AppendString(sm.member);
+      len = slash::d2string(buf, sizeof(buf), sm.score);
+      res_.AppendStringLen(len);
+      res_.AppendContent(buf);
+    }
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
