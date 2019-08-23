@@ -344,11 +344,7 @@ void SMoveCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t res = 0;
   rocksdb::Status s = partition->db()->SMove(src_key_, dest_key_, member_, &res);
   if (s.ok() || s.IsNotFound()) {
-    if (s.IsNotFound()){
-      res_.AppendInteger(res);
-    } else {
-      res_.AppendInteger(res);
-    }
+    res_.AppendInteger(res);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
