@@ -40,7 +40,8 @@ void PikaReplClientThread::ReplClientHandle::FdTimeoutHandle(int fd, const std::
     return;
   }
   if (ip == g_pika_server->master_ip()
-    && port == g_pika_server->master_port() + kPortShiftReplServer) {
+    && port == g_pika_server->master_port() + kPortShiftReplServer
+    && PIKA_REPL_ERROR != g_pika_server->repl_state()) {  // if state machine in error state, no retry
     LOG(WARNING) << "Master conn timeout : " << ip_port << " try reconnect";
     g_pika_server->ResetMetaSyncStatus();
   }

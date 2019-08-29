@@ -78,10 +78,18 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
 
   InnerMessage::InnerRequest::TrySync try_sync_request = req->try_sync();
   InnerMessage::Partition partition_request = try_sync_request.partition();
+  InnerMessage::BinlogOffset slave_boffset = try_sync_request.binlog_offset();
+  InnerMessage::Node node = try_sync_request.node();
+
+  InnerMessage::InnerResponse response;
+  InnerMessage::InnerResponse::TrySync* try_sync_response = response.mutable_try_sync();
+  InnerMessage::Partition* partition_response = try_sync_response->mutable_partition();
+  InnerMessage::BinlogOffset* master_partition_boffset = try_sync_response->mutable_binlog_offset();
+
   std::string table_name = partition_request.table_name();
   uint32_t partition_id = partition_request.partition_id();
 
-  InnerMessage::InnerResponse response;
+  bool pre_success = true;
   response.set_type(InnerMessage::Type::kTrySync);
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   if (!partition) {
@@ -89,74 +97,99 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
     response.set_reply("Partition not found");
     LOG(WARNING) << "Table Name: " << table_name << " Partition ID: "
       << partition_id << " Not Found, TrySync Error";
-  } else {
-    std::string partition_name = partition->GetPartitionName();
-    InnerMessage::BinlogOffset slave_boffset = try_sync_request.binlog_offset();
-    InnerMessage::Node node = try_sync_request.node();
+    pre_success = false;
+  }
+
+  BinlogOffset boffset;
+  std::string partition_name;
+  if (pre_success) {
+    partition_name = partition->GetPartitionName();
     LOG(INFO) << "Receive Trysync, Slave ip: " << node.ip() << ", Slave port:"
       << node.port() << ", Partition: " << partition_name << ", filenum: "
       << slave_boffset.filenum() << ", pro_offset: " << slave_boffset.offset();
 
     response.set_code(InnerMessage::kOk);
-    InnerMessage::InnerResponse::TrySync* try_sync_response = response.mutable_try_sync();
-    InnerMessage::Partition* partition_response = try_sync_response->mutable_partition();
-    InnerMessage::BinlogOffset* master_partition_boffset = try_sync_response->mutable_binlog_offset();
     partition_response->set_table_name(table_name);
     partition_response->set_partition_id(partition_id);
-    BinlogOffset boffset;
     if (!partition->GetBinlogOffset(&boffset)) {
       try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
       LOG(WARNING) << "Handle TrySync, Partition: "
         << partition_name << " Get binlog offset error, TrySync failed";
-    } else {
-      master_partition_boffset->set_filenum(boffset.filenum);
-      master_partition_boffset->set_offset(boffset.offset);
-      if (boffset.filenum < slave_boffset.filenum()
-        || (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
-        try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointLarger);
-        LOG(WARNING) << "Slave offset is larger than mine, Slave ip: "
+      pre_success = false;
+    }
+  }
+
+  if (pre_success) {
+    master_partition_boffset->set_filenum(boffset.filenum);
+    master_partition_boffset->set_offset(boffset.offset);
+    if (boffset.filenum < slave_boffset.filenum()
+      || (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
+      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointLarger);
+      LOG(WARNING) << "Slave offset is larger than mine, Slave ip: "
+        << node.ip() << ", Slave port: " << node.port() << ", Partition: "
+        << partition_name << ", filenum: " << slave_boffset.filenum()
+        << ", pro_offset_: " << slave_boffset.offset();
+      pre_success = false;
+    }
+    if (pre_success) {
+      PikaBinlogReader reader;
+      reader.Seek(partition->logger(), slave_boffset.filenum(), slave_boffset.offset());
+      BinlogOffset seeked_offset;
+      reader.GetReaderStatus(&(seeked_offset.filenum), &(seeked_offset.offset));
+      if (seeked_offset.filenum != slave_boffset.filenum() || seeked_offset.offset != slave_boffset.offset()) {
+        try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+        LOG(WARNING) << "Slave offset is not a start point of cur log, Slave ip: "
           << node.ip() << ", Slave port: " << node.port() << ", Partition: "
-          << partition_name << ", filenum: " << slave_boffset.filenum()
-          << ", pro_offset_: " << slave_boffset.offset();
-      } else {
-        std::string confile = NewFileName(partition->logger()->filename, slave_boffset.filenum());
-        if (!slash::FileExists(confile)) {
-          LOG(INFO) << "Partition: " << partition_name << " binlog has been purged, may need full sync";
-          try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
+          << partition_name << ", cloest start point, filenum: " << seeked_offset.filenum
+          << ", offset: " << seeked_offset.offset;
+        pre_success = false;
+      }
+    }
+  }
+
+  if (pre_success) {
+    std::string confile = NewFileName(partition->logger()->filename, slave_boffset.filenum());
+    if (!slash::FileExists(confile)) {
+      LOG(INFO) << "Partition: " << partition_name << " binlog has been purged, may need full sync";
+      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
+      pre_success = false;
+    }
+  }
+
+  if (pre_success) {
+    if (!g_pika_rm->CheckPartitionSlaveExist(RmNode(node.ip(), node.port(), table_name, partition_id))) {
+      int32_t session_id = g_pika_rm->GenPartitionSessionId(table_name, partition_id);
+      if (session_id != -1) {
+        try_sync_response->set_session_id(session_id);
+        // incremental sync
+        Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
+        if (!s.ok()) {
+          try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+          LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
+          pre_success = false;
         } else {
-          if (!g_pika_rm->CheckPartitionSlaveExist(RmNode(node.ip(), node.port(), table_name, partition_id))) {
-            int32_t session_id = g_pika_rm->GenPartitionSessionId(table_name, partition_id);
-            if (session_id != -1) {
-              try_sync_response->set_session_id(session_id);
-              // incremental sync
-              Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
-              if (s.ok()) {
-                const std::string ip_port = slash::IpPortString(node.ip(), node.port());
-                g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
-                try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
-                LOG(INFO) << "Partition: " << partition_name << " TrySync Success, Session: " << session_id;
-              } else {
-                try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-                LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
-              }
-            } else {
-              try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-              LOG(WARNING) << "Partition: " << partition_name << ", Gen Session id Failed";
-            }
-          } else {
-            int32_t session_id;
-            Status s = g_pika_rm->GetPartitionSlaveSession(
-                RmNode(node.ip(), node.port(), table_name, partition_id), &session_id);
-            if (!s.ok()) {
-              try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-              LOG(WARNING) << "Partition: " << partition_name << ", Get Session id Failed" << s.ToString();
-            } else {
-              try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
-              try_sync_response->set_session_id(session_id);
-              LOG(INFO) << "Partition: " << partition_name << " TrySync Success, Session: " << session_id;
-            }
-          }
+          const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+          g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
+          try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
+          LOG(INFO) << "Partition: " << partition_name << " TrySync Success, Session: " << session_id;
         }
+      } else {
+        try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+        LOG(WARNING) << "Partition: " << partition_name << ", Gen Session id Failed";
+        pre_success = false;
+      }
+    } else {
+      int32_t session_id;
+      Status s = g_pika_rm->GetPartitionSlaveSession(
+          RmNode(node.ip(), node.port(), table_name, partition_id), &session_id);
+      if (!s.ok()) {
+        try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+        LOG(WARNING) << "Partition: " << partition_name << ", Get Session id Failed" << s.ToString();
+        pre_success = false;
+      } else {
+        try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
+        try_sync_response->set_session_id(session_id);
+        LOG(INFO) << "Partition: " << partition_name << " TrySync Success, Session: " << session_id;
       }
     }
   }
@@ -172,6 +205,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   conn->NotifyWrite();
   delete task_arg;
 }
+
 
 void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
