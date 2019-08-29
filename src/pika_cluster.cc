@@ -226,27 +226,27 @@ void PkClusterAddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   bool pre_success = true;
   Status s = AddSlotsSanityCheck(table_name);
   if (!s.ok()) {
-    LOG(WARNING) << "Addslots sanity check failed";
+    LOG(WARNING) << "Addslots sanity check failed: " << s.ToString();
     pre_success = false;
   }
   if (pre_success) {
     s = g_pika_conf->AddTablePartitions(table_name, slots_);
     if (!s.ok()) {
-      LOG(WARNING) << "Addslots add to pika conf failed";
+      LOG(WARNING) << "Addslots add to pika conf failed: " << s.ToString();
       pre_success = false;
     }
   }
   if (pre_success) {
     s = table_ptr->AddPartitions(slots_);
     if (!s.ok()) {
-      LOG(WARNING) << "Addslots add to table partition failed";
+      LOG(WARNING) << "Addslots add to table partition failed: " << s.ToString();
       pre_success = false;
     }
   }
   if (pre_success) {
     s = g_pika_rm->AddSyncPartition(p_infos_);
     if (!s.ok()) {
-      LOG(WARNING) << "Addslots add to sync partition failed";
+      LOG(WARNING) << "Addslots add to sync partition failed: " << s.ToString();
       pre_success = false;
     }
   }
@@ -316,27 +316,27 @@ void PkClusterDelSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   bool pre_success = true;
   Status s = RemoveSlotsSanityCheck(table_name);
   if (!s.ok()) {
-    LOG(WARNING) << "Removeslots sanity check failed";
+    LOG(WARNING) << "Removeslots sanity check failed: " << s.ToString();
     pre_success = false;
   }
   if (pre_success) {
     s = g_pika_conf->RemoveTablePartitions(table_name, slots_);
     if (!s.ok()) {
-      LOG(WARNING) << "Removeslots remove from pika conf failed";
+      LOG(WARNING) << "Removeslots remove from pika conf failed: " << s.ToString();
       pre_success = false;
     }
   }
   if (pre_success) {
     s = table_ptr->RemovePartitions(slots_);
     if (!s.ok()) {
-      LOG(WARNING) << "Removeslots remove from table partition failed";
+      LOG(WARNING) << "Removeslots remove from table partition failed: " << s.ToString();
       pre_success = false;
     }
   }
   if (pre_success) {
     s = g_pika_rm->RemoveSyncPartition(p_infos_);
     if (!s.ok()) {
-      LOG(WARNING) << "Remvoeslots remove from sync partition failed";
+      LOG(WARNING) << "Remvoeslots remove from sync partition failed: " << s.ToString();
       pre_success = false;
     }
   }
