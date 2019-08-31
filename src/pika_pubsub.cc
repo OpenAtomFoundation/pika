@@ -81,7 +81,7 @@ void PubSubCmd::DoInitial() {
 }
 
 void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
-  if (subcommand_ == "channels") {
+  if (!strcasecmp(subcommand_.data(), "channels")) {
     std::string pattern = "";
     std::vector<std::string > result;
     if (arguments_.size() == 1) {
@@ -97,7 +97,7 @@ void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
       res_.AppendStringLen((*it).length());
       res_.AppendContent(*it);
     }
-  } else if (subcommand_ == "numsub") {
+  } else if (!strcasecmp(subcommand_.data(), "numsub")) {
     std::vector<std::pair<std::string, int>> result;
     g_pika_server->PubSubNumSub(arguments_, &result);
     res_.AppendArrayLen(result.size() * 2);
@@ -107,7 +107,7 @@ void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
       res_.AppendInteger(it->second);
     }
     return;
-  } else if (subcommand_ == "numpat") {
+  } else if (!strcasecmp(subcommand_.data(), "numpat")) {
     int subscribed = g_pika_server->PubSubNumPat();
     res_.AppendInteger(subscribed);
   }
