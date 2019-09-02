@@ -696,6 +696,9 @@ void InfoCmd::InfoExecCount(std::string& info) {
 
   std::unordered_map<std::string, uint64_t> command_exec_count_table = g_pika_server->ServerExecCountTable();
   for (const auto& item : command_exec_count_table) {
+    if (item.second == 0) {
+      continue;
+    }
     tmp_stream << item.first << ":" << item.second << "\r\n";
   }
   info.append(tmp_stream.str());
@@ -1335,6 +1338,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt64(&config_body, g_pika_conf->max_write_buffer_size());
   }
 
+  if (slash::stringmatch(pattern.data(), "max-client-response-size", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "max-client-response-size");
+    EncodeInt64(&config_body, g_pika_conf->max_client_response_size());
+  }
+
   if (slash::stringmatch(pattern.data(), "compression", 1)) {
     elements += 2;
     EncodeString(&config_body, "compression");
@@ -1392,7 +1401,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*21\r\n";
+    ret = "*22\r\n";
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
@@ -1410,6 +1419,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "write-binlog");
     EncodeString(&ret, "max-cache-statistic-keys");
     EncodeString(&ret, "small-compaction-threshold");
+    EncodeString(&ret, "max-client-response-size");
     EncodeString(&ret, "db-sync-speed");
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
@@ -1525,6 +1535,13 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetSmallCompactionThreshold(ival);
     g_pika_server->PartitionSetSmallCompactionThreshold(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "max-client-response-size") {
+    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-client-response-size'\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxClientResponseSize(ival);
     ret = "+OK\r\n";
   } else if (set_item == "write-binlog") {
     int role = g_pika_server->role();
