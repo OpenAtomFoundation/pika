@@ -368,4 +368,16 @@ class TcmallocCmd : public Cmd {
   virtual void DoInitial() override;
 };
 #endif
+
+class PKPatternMatchDel : public Cmd {
+ public:
+  PKPatternMatchDel(const std::string& name, int arity, uint16_t flag)
+      : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> patition = nullptr);
+
+ private:
+  virtual void DoInitial() override;
+  std::string pattern_;
+  blackwidow::DataType type_;
+};
 #endif  // PIKA_ADMIN_H_
