@@ -1928,3 +1928,35 @@ void TcmallocCmd::Do(std::shared_ptr<Partition> partition) {
   }
 }
 #endif
+
+void PKPatternMatchDelCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePKPatternMatchDel); 
+    return;
+  } 
+  pattern_ = argv_[1];
+  if (!strcasecmp(argv_[2].data(), "set")) {
+    type_ = blackwidow::kSets;
+  } else if (!strcasecmp(argv_[2].data(), "list")) {
+    type_ = blackwidow::kLists;
+  } else if (!strcasecmp(argv_[2].data(), "string")) {
+    type_ = blackwidow::kStrings;
+  } else if (!strcasecmp(argv_[2].data(), "zset")) {
+    type_ = blackwidow::kZSets;
+  } else if (!strcasecmp(argv_[2].data(), "hash")) {
+    type_ = blackwidow::kHashes;
+  } else {
+    res_.SetRes(CmdRes::kInvalidDbType, kCmdNamePKPatternMatchDel);
+    return;
+  }
+}
+
+void PKPatternMatchDelCmd::Do(std::shared_ptr<Partition> partition) {
+  int ret = 0;
+  rocksdb::Status s = partition->db()->PKPatternMatchDel(type_, pattern_, &ret);
+  if (s.ok()) {
+    res_.AppendInteger(ret);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+}
