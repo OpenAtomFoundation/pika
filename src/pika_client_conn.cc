@@ -66,7 +66,7 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
 std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
                                   const std::string& opt) {
   // Get command info
-  Cmd* c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
   if (!c_ptr) {
       return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
   }
@@ -322,7 +322,7 @@ void PikaClientConn::AuthStat::Init() {
 }
 
 // Check permission for current command
-bool PikaClientConn::AuthStat::IsAuthed(const Cmd* const cmd_ptr) {
+bool PikaClientConn::AuthStat::IsAuthed(const std::shared_ptr<Cmd> cmd_ptr) {
   std::string opt = cmd_ptr->name();
   if (opt == kCmdNameAuth) {
     return true;

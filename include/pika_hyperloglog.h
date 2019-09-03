@@ -22,6 +22,9 @@ class PfAddCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new PfAddCmd(*this);
+  }
  private:
   std::string key_;
   std::vector<std::string> values_;
@@ -36,6 +39,9 @@ class PfCountCmd : public Cmd {
   PfCountCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new PfCountCmd(*this);
+  }
  private:
   std::vector<std::string> keys_;
   virtual void DoInitial() override;
@@ -49,6 +55,9 @@ class PfMergeCmd : public Cmd {
   PfMergeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name,  arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new PfMergeCmd(*this);
+  }
  private:
   std::vector<std::string> keys_;
   virtual void DoInitial() override;

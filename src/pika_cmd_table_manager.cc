@@ -11,67 +11,47 @@
 #include "include/pika_conf.h"
 #include "slash/include/slash_mutex.h"
 
+
 #define gettid() syscall(__NR_gettid)
 
 extern PikaConf* g_pika_conf;
 
 PikaCmdTableManager::PikaCmdTableManager() {
   pthread_rwlock_init(&map_protector_, NULL);
+  cmds_ = new CmdTable();
+  cmds_->reserve(300);
+  InitCmdTable(cmds_);
 }
 
 PikaCmdTableManager::~PikaCmdTableManager() {
   pthread_rwlock_destroy(&map_protector_);
-  for (const auto& item : thread_table_map_) {
-    CmdTable* cmd_table = item.second;
-    CmdTable::const_iterator it = cmd_table->begin();
-    for (; it != cmd_table->end(); ++it) {
-      delete it->second;
-    }
-    delete cmd_table;
+  for (const auto&item : thread_distribution_map_) {
+    delete item.second;
   }
+  DestoryCmdTable(cmds_);
+  delete cmds_;
 }
 
-Cmd* PikaCmdTableManager::GetCmd(const std::string& opt) {
-  pid_t tid = gettid();
-  CmdTable* cmd_table = nullptr;
-  if (!CheckCurrentThreadCmdTableExist(tid)) {
-    InsertCurrentThreadCmdTable();
-  }
-
-  slash::RWLock l(&map_protector_, false);
-  cmd_table = thread_table_map_[tid];
+std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {
   std::string internal_opt = opt;
   if (!g_pika_conf->classic_mode()) {
     TryChangeToAlias(&internal_opt);
   }
-  CmdTable::const_iterator iter = cmd_table->find(internal_opt);
-  if (iter != cmd_table->end()) {
-    return iter->second;
+  return NewCommand(internal_opt);
+}
+
+std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
+  Cmd* cmd = GetCmdFromTable(opt, *cmds_);
+  if (cmd) {
+    return std::shared_ptr<Cmd>(cmd->Clone());
   }
-  return NULL;
+  return nullptr;
 }
 
 void PikaCmdTableManager::TryChangeToAlias(std::string *internal_opt) {
   if (!strcasecmp(internal_opt->c_str(), kCmdNameSlaveof.c_str())) {
     *internal_opt = kCmdNamePkClusterSlotsSlaveof;
   }
-}
-
-bool PikaCmdTableManager::CheckCurrentThreadCmdTableExist(const pid_t& tid) {
-  slash::RWLock l(&map_protector_, false);
-  if (thread_table_map_.find(tid) == thread_table_map_.end()) {
-    return false;
-  }
-  return true;
-}
-
-void PikaCmdTableManager::InsertCurrentThreadCmdTable() {
-  pid_t tid = gettid();
-  CmdTable* cmds = new CmdTable();
-  cmds->reserve(300);
-  InitCmdTable(cmds);
-  slash::RWLock l(&map_protector_, true);
-  thread_table_map_.insert(std::make_pair(tid, cmds));
 }
 
 bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const pid_t& tid) {

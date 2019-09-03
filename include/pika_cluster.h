@@ -22,6 +22,9 @@ class PkClusterInfoCmd : public Cmd {
     : Cmd(name, arity, flag),
       info_section_(kInfoErr), info_range_(kAll), partition_id_(0) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new PkClusterInfoCmd(*this);
+  }
 
  private:
   InfoSection info_section_;
@@ -47,6 +50,7 @@ class SlotParentCmd : public Cmd {
  public:
   SlotParentCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
+
  protected:
   std::set<uint32_t> slots_;
   std::set<PartitionInfo> p_infos_;
@@ -61,6 +65,9 @@ class PkClusterAddSlotsCmd : public SlotParentCmd {
  public:
   PkClusterAddSlotsCmd(const std::string& name, int arity, uint16_t flag)
       : SlotParentCmd(name, arity, flag) {}
+  virtual Cmd* Clone() override {
+    return new PkClusterAddSlotsCmd(*this);
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
   virtual void DoInitial() override;
@@ -72,6 +79,9 @@ class PkClusterDelSlotsCmd : public SlotParentCmd {
   PkClusterDelSlotsCmd(const std::string& name, int32_t arity, uint16_t flag)
       : SlotParentCmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new PkClusterDelSlotsCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
   Status RemoveSlotsSanityCheck(const std::string& table_name);
@@ -82,6 +92,9 @@ class PkClusterSlotsSlaveofCmd : public Cmd {
   PkClusterSlotsSlaveofCmd(const std::string& name , int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new PkClusterSlotsSlaveofCmd(*this);
+  }
  private:
   std::string ip_;
   int64_t port_;
