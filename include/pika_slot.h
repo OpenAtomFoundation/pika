@@ -13,6 +13,9 @@ class SlotsInfoCmd : public Cmd {
   SlotsInfoCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsInfoCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
 };
@@ -22,6 +25,9 @@ class SlotsHashKeyCmd : public Cmd {
   SlotsHashKeyCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsHashKeyCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
 };
@@ -31,6 +37,9 @@ class SlotsMgrtSlotAsyncCmd : public Cmd {
   SlotsMgrtSlotAsyncCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsMgrtSlotAsyncCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
 };
@@ -40,6 +49,9 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
   SlotsMgrtTagSlotAsyncCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag), dest_port_(0), slot_num_(-1) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsMgrtTagSlotAsyncCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
   std::string dest_ip_;
@@ -57,6 +69,9 @@ class SlotsScanCmd : public Cmd {
   SlotsScanCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsScanCmd(*this);
+  }
  private:
   int64_t cursor_;
   uint32_t slotnum_;
@@ -74,6 +89,9 @@ class SlotsDelCmd : public Cmd {
   SlotsDelCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsDelCmd(*this);
+  }
  private:
   std::vector<uint32_t> slots_;
   virtual void DoInitial() override;
@@ -87,6 +105,9 @@ class SlotsMgrtExecWrapperCmd : public Cmd {
   SlotsMgrtExecWrapperCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsMgrtExecWrapperCmd(*this);
+  }
  private:
   std::string key_;
   virtual void DoInitial() override;
@@ -100,6 +121,9 @@ class SlotsMgrtAsyncStatusCmd : public Cmd {
   SlotsMgrtAsyncStatusCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsMgrtAsyncStatusCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
 };
@@ -109,6 +133,9 @@ class SlotsMgrtAsyncCancelCmd : public Cmd {
   SlotsMgrtAsyncCancelCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsMgrtAsyncCancelCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
 };
@@ -118,6 +145,9 @@ class SlotsMgrtSlotCmd : public Cmd {
   SlotsMgrtSlotCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsMgrtSlotCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
 };
@@ -127,6 +157,9 @@ class SlotsMgrtTagSlotCmd : public Cmd {
   SlotsMgrtTagSlotCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsMgrtTagSlotCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
 };
@@ -136,6 +169,9 @@ class SlotsMgrtOneCmd : public Cmd {
   SlotsMgrtOneCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsMgrtOneCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
 };
@@ -145,6 +181,9 @@ class SlotsMgrtTagOneCmd : public Cmd {
   SlotsMgrtTagOneCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new SlotsMgrtTagOneCmd(*this);
+  }
  private:
   virtual void DoInitial() override;
 };

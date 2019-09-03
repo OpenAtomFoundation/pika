@@ -407,6 +407,7 @@ class Cmd {
   virtual void ProcessMultiPartitionCmd();
   virtual void ProcessDoNotSpecifyPartitionCmd();
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) = 0;
+  virtual Cmd* Clone() = 0;
 
   void Initial(const PikaCmdArgsType& argv,
                const std::string& table_name);
@@ -428,6 +429,8 @@ class Cmd {
                                uint64_t offset);
 
  protected:
+  // enable copy, used default copy
+  //Cmd(const Cmd&);
   bool CheckArg(int num) const;
   void LogCommand() const;
 
@@ -443,7 +446,6 @@ class Cmd {
   virtual void DoInitial() = 0;
   virtual void Clear() {};
 
-  Cmd(const Cmd&);
   Cmd& operator=(const Cmd&);
 };
 

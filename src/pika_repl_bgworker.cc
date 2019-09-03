@@ -171,7 +171,7 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
   }
 
   std::string opt = argv[0];
-  Cmd* c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Command " << opt << " not in the command table";
     return -1;
@@ -214,7 +214,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   slash::StringToLower(opt);
 
   // Get command
-  Cmd* c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Error operation from binlog: " << opt;
     delete task_arg;
