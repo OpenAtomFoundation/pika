@@ -68,6 +68,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlowlog, slowlogptr));
   Cmd* paddingptr = new PaddingCmd(kCmdNamePadding, 2, kCmdFlagsWrite | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePadding, paddingptr));
+  Cmd* pkpatternmatchdelptr = new PKPatternMatchDelCmd(kCmdNamePKPatternMatchDel, 3, kCmdFlagsWrite | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKPatternMatchDel, pkpatternmatchdelptr));
 
   // Slots related
   Cmd* slotsinfoptr = new SlotsInfoCmd(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
@@ -370,11 +372,11 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   Cmd* zremrangebylexptr = new ZRemrangebylexCmd(kCmdNameZRemrangebylex, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZRemrangebylex, zremrangebylexptr));
   ////ZPopmax
-  Cmd* zpopmax = new ZPopmaxCmd(kCmdNameZPopmax, -2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZPopmax, zpopmax));
+  Cmd* zpopmaxptr = new ZPopmaxCmd(kCmdNameZPopmax, -2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZPopmax, zpopmaxptr));
   ////ZPopmin
-  Cmd* zpopmin = new ZPopminCmd(kCmdNameZPopmin, -2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZPopmin, zpopmin));
+  Cmd* zpopminptr = new ZPopminCmd(kCmdNameZPopmin, -2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsZset);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameZPopmin, zpopminptr));
 
   //Set
   ////SAddCmd

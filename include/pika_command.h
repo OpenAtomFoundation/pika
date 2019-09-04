@@ -40,6 +40,7 @@ const std::string kCmdNamePadding = "padding";
 #ifdef TCMALLOC_EXTENSION
 const std::string kCmdNameTcmalloc = "tcmalloc";
 #endif
+const std::string kCmdNamePKPatternMatchDel = "pkpatternmatchdel";
 
 //Kv
 const std::string kCmdNameSet = "set";
