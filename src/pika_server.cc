@@ -212,10 +212,18 @@ bool PikaServer::ServerInit() {
 }
 
 void PikaServer::Start() {
+  int ret = 0;
+  // start rsync first, rocksdb opened fd will not appear in this fork
+  ret = pika_rsync_service_->StartRsync();
+  if (0 != ret) {
+    tables_.clear();
+    LOG(FATAL) << "Start Rsync Error: bind port " +std::to_string(pika_rsync_service_->ListenPort()) + " conflict"
+      <<  ", Listen on this port to receive Master FullSync Data";
+  }
+
   // We Init Table Struct Before Start The following thread
   InitTableStruct();
 
-  int ret = 0;
   ret = pika_thread_pool_->start_thread_pool();
   if (ret != pink::kSuccess) {
     tables_.clear();
@@ -237,13 +245,6 @@ void PikaServer::Start() {
   if (ret != pink::kSuccess) {
     tables_.clear();
     LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
-  }
-
-  ret = pika_rsync_service_->StartRsync();
-  if (0 != ret) {
-    tables_.clear();
-    LOG(FATAL) << "Start Rsync Error: bind port " +std::to_string(pika_rsync_service_->ListenPort()) + " conflict"
-      <<  ", Listen on this port to receive Master FullSync Data";
   }
 
   time(&start_time_s_);
