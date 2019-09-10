@@ -629,11 +629,18 @@ void PikaServer::BecomeMaster() {
 }
 
 void PikaServer::DeleteSlave(int fd) {
+  std::string ip;
+  int port = -1;
+  bool is_find = false;
+  int slave_num = -1;
   {
     slash::MutexLock l(&slave_mutex_);
     std::vector<SlaveItem>::iterator iter = slaves_.begin();
     while (iter != slaves_.end()) {
       if (iter->conn_fd == fd) {
+        ip = iter->ip;
+        port = iter->port;
+        is_find = true;
         g_pika_rm->LostConnection(iter->ip, iter->port);
         g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
         LOG(INFO) << "Delete Slave Success, ip_port: " << iter->ip << ":" << iter->port;
@@ -642,14 +649,17 @@ void PikaServer::DeleteSlave(int fd) {
       }
       iter++;
     }
+    slave_num = slaves_.size();
   }
 
-  int slave_num = slaves_.size();
-  {
+  if (is_find) {
+    g_pika_rm->LostConnection(ip, port);
+    g_pika_rm->DropItemInWriteQueue(ip, port);
+  }
+
+  if (slave_num == 0) {
     slash::RWLock l(&state_protector_, true);
-    if (slave_num == 0) {
-      role_ &= ~PIKA_ROLE_MASTER;
-    }
+    role_ &= ~PIKA_ROLE_MASTER;
   }
 }
 
