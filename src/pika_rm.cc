@@ -525,7 +525,6 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
   }
   for (auto& node : to_del) {
     for (size_t i = 0; i < slaves_.size(); ++i) {
-      LOG(INFO)<< SyncPartitionInfo().ToString() << " slave " << slaves_[i]->ToString();
       if (node.Ip() == slaves_[i]->Ip() && node.Port() == slaves_[i]->Port()) {
         slaves_.erase(slaves_.begin() + i);
         LOG(WARNING) << SyncPartitionInfo().ToString() << " Master del Recv Timeout slave success " << node.ToString();
@@ -706,7 +705,9 @@ bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_it
     }
   }
   if (start_pos == kBinlogReadWinSize || end_pos == kBinlogReadWinSize) {
-    LOG(WARNING) << " ack offset not found in binlog controller window";
+    LOG(WARNING) << "Ack offset Start: " << start_item.ToString() << "End: " << end_item.ToString() <<
+      " not found in binlog controller window." <<
+      std::endl << "window status "<< std::endl << ToStringStatus();
     return false;
   }
   for (size_t i = start_pos; i <= end_pos; ++i) {
@@ -786,38 +787,54 @@ void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, cons
 }
 
 int PikaReplicaManager::ConsumeWriteQueue() {
-  int counter = 0;
-  slash::MutexLock l(&write_queue_mu_);
   std::vector<std::string> to_delete;
-  for (auto& iter : write_queues_) {
-    std::queue<WriteTask>& queue = iter.second;
-    for (int i = 0; i < kBinlogSendPacketNum; ++i) {
-      if (queue.empty()) {
-        break;
+  std::unordered_map<std::string, std::vector<std::vector<WriteTask>>> to_send_map;
+  int counter = 0;
+  {
+    slash::MutexLock l(&write_queue_mu_);
+    std::vector<std::string> to_delete;
+    for (auto& iter : write_queues_) {
+      std::queue<WriteTask>& queue = iter.second;
+      for (int i = 0; i < kBinlogSendPacketNum; ++i) {
+        if (queue.empty()) {
+          break;
+        }
+        size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
+        std::vector<WriteTask> to_send;
+        for (size_t i = 0; i < batch_index; ++i) {
+          to_send.push_back(queue.front());
+          queue.pop();
+          counter++;
+        }
+        to_send_map[iter.first].push_back(std::move(to_send));
       }
-      size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
-      std::string ip;
-      int port = 0;
-      if (!slash::ParseIpPortString(iter.first, ip, port)) {
-        LOG(WARNING) << "Parse ip_port error " << iter.first;
-        continue;
-      }
-      std::vector<WriteTask> to_send;
-      for (size_t i = 0; i < batch_index; ++i) {
-        to_send.push_back(queue.front());
-        queue.pop();
-        counter++;
-      }
+    }
+  }
+
+  for (auto& iter : to_send_map) {
+    std::string ip;
+    int port = 0;
+    if (!slash::ParseIpPortString(iter.first, ip, port)) {
+      LOG(WARNING) << "Parse ip_port error " << iter.first;
+      continue;
+    }
+    for (auto& to_send : iter.second) {
       Status s = pika_repl_server_->SendSlaveBinlogChips(ip, port, to_send);
       if (!s.ok()) {
         LOG(WARNING) << "send binlog to " << ip << ":" << port << " failed, " << s.ToString();
         to_delete.push_back(iter.first);
-        break;
+        continue;
       }
     }
   }
-  for (auto& del_queue : to_delete) {
-    write_queues_.erase(del_queue);
+
+  if (!to_delete.empty()) {
+    {
+      slash::MutexLock l(&write_queue_mu_);
+      for (auto& del_queue : to_delete) {
+        write_queues_.erase(del_queue);
+      }
+    }
   }
   return counter;
 }
