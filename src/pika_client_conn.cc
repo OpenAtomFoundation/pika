@@ -37,12 +37,12 @@ static std::string ConstructPubSubResp(
 }
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
-                               pink::ServerThread* server_thread,
+                               pink::Thread* server_thread,
                                void* worker_specific_data,
                                pink::PinkEpoll* pink_epoll,
                                const pink::HandleType& handle_type)
       : RedisConn(fd, ip_port, server_thread, pink_epoll, handle_type),
-        server_thread_(server_thread),
+        server_thread_(dynamic_cast<pink::ServerThread*>(server_thread)),
         cmds_table_(reinterpret_cast<CmdTable*>(worker_specific_data)),
         is_pubsub_(false) {
   auth_stat_.Init();

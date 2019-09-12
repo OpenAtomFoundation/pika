@@ -46,7 +46,7 @@ class PikaBinlogReceiverThread {
     virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
         int connfd,
         const std::string &ip_port,
-        pink::ServerThread *thread,
+        pink::Thread *thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const override {
         LOG(INFO) << "Master conn factory creat pika binlog conn ip_port" << ip_port;
