@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include "pink/include/redis_conn.h"
+#include "pink/include/pink_conn.h"
 #include "slash/include/slash_string.h"
 
 #include "include/pika_partition.h"
@@ -429,6 +430,9 @@ class Cmd {
                                uint32_t filenum,
                                uint64_t offset);
 
+  void SetConn(const std::shared_ptr<pink::PinkConn> conn);
+  std::shared_ptr<pink::PinkConn> GetConn();
+
  protected:
   // enable copy, used default copy
   //Cmd(const Cmd&);
@@ -442,6 +446,8 @@ class Cmd {
   CmdRes res_;
   PikaCmdArgsType argv_;
   std::string table_name_;
+
+  std::weak_ptr<pink::PinkConn> conn_;
 
  private:
   virtual void DoInitial() = 0;
