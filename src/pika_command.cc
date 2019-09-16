@@ -697,3 +697,11 @@ void Cmd::LogCommand() const {
   }
   LOG(INFO) << "command:" << command;
 }
+
+void Cmd::SetConn(const std::shared_ptr<pink::PinkConn> conn) {
+  conn_ = conn;
+}
+
+std::shared_ptr<pink::PinkConn> Cmd::GetConn() {
+  return conn_.lock();
+}

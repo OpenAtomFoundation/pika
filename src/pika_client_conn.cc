@@ -70,6 +70,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   if (!c_ptr) {
       return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
   }
+  c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
 
   // Check authed
   if (!auth_stat_.IsAuthed(c_ptr)) {
@@ -79,15 +80,6 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = slash::NowMicros();
-  }
-
-  // For now, only shutdown need check local
-  if (c_ptr->is_local()) {
-    if (ip_port().find("127.0.0.1") == std::string::npos
-        && ip_port().find(g_pika_server->host()) == std::string::npos) {
-      LOG(WARNING) << "\'shutdown\' should be localhost";
-      return "-ERR \'shutdown\' should be localhost\r\n";
-    }
   }
 
   std::string monitor_message;

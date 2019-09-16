@@ -469,6 +469,22 @@ void ShutdownCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameShutdown);
     return;
   }
+
+  // For now, only shutdown need check local
+  if (is_local()) {
+    std::shared_ptr<pink::PinkConn> conn = GetConn();
+    if (conn) {
+      if (conn->ip_port().find("127.0.0.1") == std::string::npos
+          && conn->ip_port().find(g_pika_server->host()) == std::string::npos) {
+        LOG(WARNING) << "\'shutdown\' should be localhost" << " command from " << conn->ip_port();
+        res_.SetRes(CmdRes::kErrOther, kCmdNameShutdown + " should be localhost");
+      }
+    } else {
+      LOG(WARNING) << name_  << " weak ptr is empty";
+      res_.SetRes(CmdRes::kErrOther, kCmdNameShutdown);
+      return;
+    }
+  }
 }
 // no return
 void ShutdownCmd::Do(std::shared_ptr<Partition> partition) {
