@@ -43,6 +43,9 @@ class PikaClientConn: public pink::RedisConn {
 
   std::string DoCmd(const PikaCmdArgsType& argv, const std::string& opt);
 
+  void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us);
+  void ProcessMonitor(const PikaCmdArgsType& argv);
+
   // Auth related
   class AuthStat {
    public:
