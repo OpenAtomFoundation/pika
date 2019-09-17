@@ -114,36 +114,6 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     }
   }
 
-  // Select
-  if (opt == kCmdNameSelect) {
-    std::string table_name;
-    if (g_pika_conf->classic_mode()) {
-      int index = atoi(argv[1].data());
-      if (std::to_string(index) != argv[1]) {
-        return "-ERR invalid DB index\r\n";
-      } else if (index < 0 || index >= g_pika_conf->databases()) {
-        return "-ERR DB index is out of range\r\n";
-      } else {
-        table_name = "db" + argv[1];
-      }
-    } else {
-      int index = atoi(argv[1].data());
-      if (std::to_string(index) != argv[1]) {
-        return "-ERR invalid DB index\r\n";
-      }
-      table_name = g_pika_conf->default_table();
-      // only pika codis use sharding mode currently, but pika
-      // codis only support single db, so in sharding mode we
-      // do no thing in select command
-    }
-    if (g_pika_server->IsTableExist(table_name)) {
-      current_table_ = table_name;
-      return "+OK\r\n";
-    } else {
-      return "-ERR invalid Table Name\r\n";
-    }
-  }
-
   // Monitor
   if (opt == kCmdNameMonitor) {
     std::shared_ptr<PinkConn> conn = server_thread_->MoveConnOut(fd());

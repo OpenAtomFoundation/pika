@@ -340,7 +340,9 @@ public:
       result.append("' command\r\n");
       break;
     case kInvalidIndex:
-      result = "-ERR invalid DB index\r\n";
+      result = "-ERR invalid DB index for '";
+      result.append(message_);
+      result.append("'\r\n");
       break;
     case kInvalidDbType:
       result = "-ERR invalid DB for '";

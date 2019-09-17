@@ -153,6 +153,10 @@ class SelectCmd : public Cmd {
 
  private:
   virtual void DoInitial() override;
+  virtual void Clear() {
+    table_name_.clear();
+  }
+  std::string table_name_;
 };
 
 class FlushallCmd : public Cmd {
