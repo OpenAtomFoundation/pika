@@ -1695,6 +1695,18 @@ void MonitorCmd::DoInitial() {
 }
 
 void MonitorCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<pink::PinkConn> conn_repl = GetConn();
+  if (!conn_repl) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNameMonitor);
+    LOG(WARNING) << name_  << " weak ptr is empty";
+    return;
+  }
+  std::shared_ptr<pink::PinkConn> conn =
+    std::dynamic_pointer_cast<PikaClientConn>(conn_repl)->server_thread()->MoveConnOut(conn_repl->fd());
+  assert(conn.get() == conn_repl.get());
+  g_pika_server->AddMonitorClient(std::dynamic_pointer_cast<PikaClientConn>(conn));
+  g_pika_server->AddMonitorMessage("OK");
+  return; // Monitor thread will return "OK"
 }
 
 void DbsizeCmd::DoInitial() {
