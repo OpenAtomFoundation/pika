@@ -48,17 +48,9 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     start_us = slash::NowMicros();
   }
 
-  std::string monitor_message;
   bool is_monitoring = g_pika_server->HasMonitorClients();
   if (is_monitoring) {
-    std::string table_name = g_pika_conf->classic_mode()
-      ? current_table_.substr(2) : current_table_;
-    monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) +
-      " [" + table_name + " " + this->ip_port() + "]";
-    for (PikaCmdArgsType::const_iterator iter = argv.begin(); iter != argv.end(); iter++) {
-      monitor_message += " " + slash::ToRead(*iter);
-    }
-    g_pika_server->AddMonitorMessage(monitor_message);
+    ProcessMonitor(argv);
   }
 
   // Initial
@@ -106,32 +98,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   c_ptr->Execute();
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    int32_t start_time = start_us / 1000000;
-    int64_t duration = slash::NowMicros() - start_us;
-    if (duration > g_pika_conf->slowlog_slower_than()) {
-      g_pika_server->SlowlogPushEntry(argv, start_time, duration);
-      if (g_pika_conf->slowlog_write_errorlog()) {
-        bool trim = false;
-        std::string slow_log;
-        uint32_t cmd_size = 0;
-        for (unsigned int i = 0; i < argv.size(); i++) {
-          cmd_size += 1 + argv[i].size(); // blank space and argument length
-          if (!trim) {
-            slow_log.append(" ");
-            slow_log.append(slash::ToRead(argv[i]));
-            if (slow_log.size() >= 1000) {
-              trim = true;
-              slow_log.resize(1000);
-              slow_log.append("...\"");
-            }
-          }
-        }
-        LOG(ERROR) << "ip_port: " << ip_port() << ", table: " << current_table_
-          << ", command:" << slow_log << ", command_size: " << cmd_size - 1
-          << ", arguments: " << argv.size() << ", start_time(s): " << start_time
-          << ", duration(us): " << duration;
-      }
-    }
+    ProcessSlowlog(argv, start_us);
   }
 
   if (opt == kCmdNameAuth) {
@@ -140,6 +107,47 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     }
   }
   return c_ptr->res().message();
+}
+
+void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us) {
+  int32_t start_time = start_us / 1000000;
+  int64_t duration = slash::NowMicros() - start_us;
+  if (duration > g_pika_conf->slowlog_slower_than()) {
+    g_pika_server->SlowlogPushEntry(argv, start_time, duration);
+    if (g_pika_conf->slowlog_write_errorlog()) {
+      bool trim = false;
+      std::string slow_log;
+      uint32_t cmd_size = 0;
+      for (unsigned int i = 0; i < argv.size(); i++) {
+        cmd_size += 1 + argv[i].size(); // blank space and argument length
+        if (!trim) {
+          slow_log.append(" ");
+          slow_log.append(slash::ToRead(argv[i]));
+          if (slow_log.size() >= 1000) {
+            trim = true;
+            slow_log.resize(1000);
+            slow_log.append("...\"");
+          }
+        }
+      }
+      LOG(ERROR) << "ip_port: " << ip_port() << ", table: " << current_table_
+        << ", command:" << slow_log << ", command_size: " << cmd_size - 1
+        << ", arguments: " << argv.size() << ", start_time(s): " << start_time
+        << ", duration(us): " << duration;
+    }
+  }
+}
+
+void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
+  std::string monitor_message;
+  std::string table_name = g_pika_conf->classic_mode()
+    ? current_table_.substr(2) : current_table_;
+  monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) +
+    " [" + table_name + " " + this->ip_port() + "]";
+  for (PikaCmdArgsType::const_iterator iter = argv.begin(); iter != argv.end(); iter++) {
+    monitor_message += " " + slash::ToRead(*iter);
+  }
+  g_pika_server->AddMonitorMessage(monitor_message);
 }
 
 void PikaClientConn::AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) {
