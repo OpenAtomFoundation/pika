@@ -32,6 +32,10 @@ class PikaClientConn: public pink::RedisConn {
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
   void SetCurrentTable(const std::string& table_name) {current_table_ = table_name;}
 
+  pink::ServerThread* server_thread() {
+    return server_thread_;
+  }
+
  private:
   pink::ServerThread* const server_thread_;
   std::string current_table_;

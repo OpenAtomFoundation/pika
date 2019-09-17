@@ -114,15 +114,6 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     }
   }
 
-  // Monitor
-  if (opt == kCmdNameMonitor) {
-    std::shared_ptr<PinkConn> conn = server_thread_->MoveConnOut(fd());
-    assert(conn.get() == this);
-    g_pika_server->AddMonitorClient(std::dynamic_pointer_cast<PikaClientConn>(conn));
-    g_pika_server->AddMonitorMessage("OK");
-    return ""; // Monitor thread will return "OK"
-  }
-
   //PubSub
   if (opt == kCmdNamePSubscribe || opt == kCmdNameSubscribe) {             // PSubscribe or Subscribe
     std::shared_ptr<PinkConn> conn = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
