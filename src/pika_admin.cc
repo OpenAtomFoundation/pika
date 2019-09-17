@@ -25,6 +25,24 @@ extern PikaServer *g_pika_server;
 extern PikaConf *g_pika_conf;
 extern PikaReplicaManager *g_pika_rm;
 
+static std::string ConstructPinginPubSubResp(const PikaCmdArgsType &argv) {
+  if (argv.size() > 2) {
+    return "-ERR wrong number of arguments for " + kCmdNamePing +
+           " command\r\n";
+  }
+  std::stringstream resp;
+
+  resp << "*2\r\n"
+       << "$4\r\n"
+       << "pong\r\n";
+  if (argv.size() == 2) {
+    resp << "$" << argv[1].size() << "\r\n" << argv[1] << "\r\n";
+  } else {
+    resp << "$0\r\n\r\n";
+  }
+  return resp.str();
+}
+
 /*
  * slaveof no one
  * slaveof ip port
@@ -332,6 +350,17 @@ void PingCmd::DoInitial() {
 }
 
 void PingCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
+    LOG(WARNING) << name_  << " weak ptr is empty";
+    return;
+  }
+  std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+
+  if (cli_conn->IsPubSub()) {
+    return res_.SetRes(CmdRes::kNone, ConstructPinginPubSubResp(argv_));
+  }
   res_.SetRes(CmdRes::kPong);
 }
 

@@ -9,6 +9,24 @@
 
 extern PikaServer *g_pika_server;
 
+
+static std::string ConstructPubSubResp(
+                                const std::string& cmd,
+                                const std::vector<std::pair<std::string, int>>& result) {
+  std::stringstream resp;
+  if (result.size() == 0) {
+    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd << "\r\n" <<
+                        "$" << -1           << "\r\n" << ":" << 0      << "\r\n";
+  }
+  for (auto it = result.begin(); it != result.end(); it++) {
+    resp << "*3\r\n" << "$" << cmd.length()       << "\r\n" << cmd       << "\r\n" <<
+                        "$" << it->first.length() << "\r\n" << it->first << "\r\n" <<
+                        ":" << it->second         << "\r\n";
+  }
+  return resp.str();
+}
+
+
 void PublishCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePublish);
@@ -32,6 +50,26 @@ void SubscribeCmd::DoInitial() {
 }
 
 void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNameSubscribe);
+    LOG(WARNING) << name_  << " weak ptr is empty";
+    return;
+  }
+  std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+
+  if (!cli_conn->IsPubSub()) {
+    cli_conn->server_thread()->MoveConnOut(conn->fd());
+  }
+  std::vector<std::string > channels;
+  for (size_t i = 1; i < argv_.size(); i++) {
+    channels.push_back(argv_[i]);
+  }
+  std::vector<std::pair<std::string, int>> result;
+  cli_conn->SetIsPubSub(true);
+  cli_conn->SetHandleType(pink::HandleType::kSynchronous);
+  g_pika_server->Subscribe(conn, channels, name_ == kCmdNamePSubscribe, &result);
+  return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
 }
 
 void UnSubscribeCmd::DoInitial() {
@@ -42,6 +80,30 @@ void UnSubscribeCmd::DoInitial() {
 }
 
 void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+  std::vector<std::string > channels;
+  for (size_t i = 1; i < argv_.size(); i++) {
+    channels.push_back(argv_[i]);
+  }
+
+  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNameUnSubscribe);
+    LOG(WARNING) << name_  << " weak ptr is empty";
+    return;
+  }
+  std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+
+  std::vector<std::pair<std::string, int>> result;
+  int subscribed = g_pika_server->UnSubscribe(conn, channels, name_ == kCmdNamePUnSubscribe, &result);
+  if (subscribed == 0 && cli_conn->IsPubSub()) {
+    /*
+     * if the number of client subscribed is zero,
+     * the client will exit the Pub/Sub state
+     */
+    cli_conn->server_thread()->HandleNewConn(conn->fd(), conn->ip_port());
+    cli_conn->SetIsPubSub(false);
+  }
+  return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
 }
 
 void PSubscribeCmd::DoInitial() {
@@ -52,6 +114,26 @@ void PSubscribeCmd::DoInitial() {
 }
 
 void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNamePSubscribe);
+    LOG(WARNING) << name_  << " weak ptr is empty";
+    return;
+  }
+  std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+
+  if (!cli_conn->IsPubSub()) {
+    cli_conn->server_thread()->MoveConnOut(conn->fd());
+  }
+  std::vector<std::string > channels;
+  for (size_t i = 1; i < argv_.size(); i++) {
+    channels.push_back(argv_[i]);
+  }
+  std::vector<std::pair<std::string, int>> result;
+  cli_conn->SetIsPubSub(true);
+  cli_conn->SetHandleType(pink::HandleType::kSynchronous);
+  g_pika_server->Subscribe(conn, channels, name_ == kCmdNamePSubscribe, &result);
+  return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
 }
 
 void PUnSubscribeCmd::DoInitial() {
@@ -62,6 +144,30 @@ void PUnSubscribeCmd::DoInitial() {
 }
 
 void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
+  std::vector<std::string > channels;
+  for (size_t i = 1; i < argv_.size(); i++) {
+    channels.push_back(argv_[i]);
+  }
+
+  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNamePUnSubscribe);
+    LOG(WARNING) << name_  << " weak ptr is empty";
+    return;
+  }
+  std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+
+  std::vector<std::pair<std::string, int>> result;
+  int subscribed = g_pika_server->UnSubscribe(conn, channels, name_ == kCmdNamePUnSubscribe, &result);
+  if (subscribed == 0 && cli_conn->IsPubSub()) {
+    /*
+     * if the number of client subscribed is zero,
+     * the client will exit the Pub/Sub state
+     */
+    cli_conn->server_thread()->HandleNewConn(conn->fd(), conn->ip_port());
+    cli_conn->SetIsPubSub(false);
+  }
+  return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
 }
 
 void PubSubCmd::DoInitial() {

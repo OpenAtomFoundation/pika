@@ -18,40 +18,6 @@ extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
-static std::string ConstructPubSubResp(
-                                const std::string& cmd,
-                                const std::vector<std::pair<std::string, int>>& result) {
-  std::stringstream resp;
-  if (result.size() == 0) {
-    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd << "\r\n" <<
-                        "$" << -1           << "\r\n" << ":" << 0      << "\r\n";
-  }
-  for (auto it = result.begin(); it != result.end(); it++) {
-    resp << "*3\r\n" << "$" << cmd.length()       << "\r\n" << cmd       << "\r\n" <<
-                        "$" << it->first.length() << "\r\n" << it->first << "\r\n" <<
-                        ":" << it->second         << "\r\n";
-  }
-  return resp.str();
-}
-
-static std::string ConstructPinginPubSubResp(const PikaCmdArgsType &argv) {
-  if (argv.size() > 2) {
-    return "-ERR wrong number of arguments for " + kCmdNamePing +
-           " command\r\n";
-  }
-  std::stringstream resp;
-
-  resp << "*2\r\n"
-       << "$4\r\n"
-       << "pong\r\n";
-  if (argv.size() == 2) {
-    resp << "$" << argv[1].size() << "\r\n" << argv[1] << "\r\n";
-  } else {
-    resp << "$0\r\n\r\n";
-  }
-  return resp.str();
-}
-
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                pink::Thread* thread,
                                pink::PinkEpoll* pink_epoll,
@@ -112,44 +78,6 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
         opt != kCmdNamePUnSubscribe) {
       return "-ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context\r\n";
     }
-  }
-
-  //PubSub
-  if (opt == kCmdNamePSubscribe || opt == kCmdNameSubscribe) {             // PSubscribe or Subscribe
-    std::shared_ptr<PinkConn> conn = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
-    if (!this->IsPubSub()) {
-      server_thread_->MoveConnOut(fd());
-    }
-    std::vector<std::string > channels;
-    for (size_t i = 1; i < argv.size(); i++) {
-      channels.push_back(argv[i]);
-    }
-    std::vector<std::pair<std::string, int>> result;
-    this->SetIsPubSub(true);
-    this->SetHandleType(pink::HandleType::kSynchronous);
-    g_pika_server->Subscribe(conn, channels, opt == kCmdNamePSubscribe, &result);
-    return ConstructPubSubResp(opt, result);
-  } else if (opt == kCmdNamePUnSubscribe || opt == kCmdNameUnSubscribe) {  // PUnSubscribe or UnSubscribe
-    std::vector<std::string > channels;
-    for (size_t i = 1; i < argv.size(); i++) {
-      channels.push_back(argv[i]);
-    }
-    std::vector<std::pair<std::string, int>> result;
-    std::shared_ptr<PinkConn> conn = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
-    int subscribed = g_pika_server->UnSubscribe(conn, channels, opt == kCmdNamePUnSubscribe, &result);
-    if (subscribed == 0 && this->IsPubSub()) {
-      /*
-       * if the number of client subscribed is zero,
-       * the client will exit the Pub/Sub state
-       */
-      server_thread_->HandleNewConn(fd(), ip_port());
-      this->SetIsPubSub(false);
-    }
-    return ConstructPubSubResp(opt, result);
-  }
-
-  if (this->IsPubSub() && opt == kCmdNamePing) {
-    return ConstructPinginPubSubResp(argv);
   }
 
   if (!g_pika_server->IsCommandSupport(opt)) {
