@@ -39,6 +39,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
 
   // Check authed
+  // AuthCmd will set stat_
   if (!auth_stat_.IsAuthed(c_ptr)) {
     return "-ERR NOAUTH Authentication required.\r\n";
   }
@@ -62,6 +63,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   g_pika_server->UpdateQueryNumAndExecCountTable(opt);
  
   // PubSub connection
+  // (P)SubscribeCmd will set is_pubsub_
   if (this->IsPubSub()) {
     if (opt != kCmdNameSubscribe &&
         opt != kCmdNameUnSubscribe &&
@@ -101,11 +103,6 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
     ProcessSlowlog(argv, start_us);
   }
 
-  if (opt == kCmdNameAuth) {
-    if (!auth_stat_.ChecknUpdate(c_ptr->res().raw_message())) {
-//      LOG(WARNING) << "(" << ip_port() << ")Wrong Password";
-    }
-  }
   return c_ptr->res().message();
 }
 

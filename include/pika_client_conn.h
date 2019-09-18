@@ -16,6 +16,21 @@ class PikaClientConn: public pink::RedisConn {
     std::string* response;
   };
 
+  // Auth related
+  class AuthStat {
+   public:
+    void Init();
+    bool IsAuthed(const std::shared_ptr<Cmd> cmd_ptr);
+    bool ChecknUpdate(const std::string& arg);
+   private:
+    enum StatType {
+      kNoAuthed = 0,
+      kAdminAuthed,
+      kLimitAuthed,
+    };
+    StatType stat_;
+  };
+
   PikaClientConn(int fd, std::string ip_port,
                  pink::Thread *server_thread,
                  pink::PinkEpoll* pink_epoll,
@@ -36,6 +51,10 @@ class PikaClientConn: public pink::RedisConn {
     return server_thread_;
   }
 
+  AuthStat& auth_stat() {
+    return auth_stat_;
+  }
+
  private:
   pink::ServerThread* const server_thread_;
   std::string current_table_;
@@ -46,20 +65,6 @@ class PikaClientConn: public pink::RedisConn {
   void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us);
   void ProcessMonitor(const PikaCmdArgsType& argv);
 
-  // Auth related
-  class AuthStat {
-   public:
-    void Init();
-    bool IsAuthed(const std::shared_ptr<Cmd> cmd_ptr);
-    bool ChecknUpdate(const std::string& arg);
-   private:
-    enum StatType {
-      kNoAuthed = 0,
-      kAdminAuthed,
-      kLimitAuthed,
-    };
-    StatType stat_;
-  };
   AuthStat auth_stat_;
 };
 
