@@ -225,7 +225,17 @@ void AuthCmd::Do(std::shared_ptr<Partition> partition) {
   }
   if (res_.none()) {
     res_.SetRes(CmdRes::kInvalidPwd);
+    return;
   }
+
+  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
+    LOG(WARNING) << name_  << " weak ptr is empty";
+    return;
+  }
+  std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
+  cli_conn->auth_stat().ChecknUpdate(res().raw_message());
 }
 
 void BgsaveCmd::DoInitial() {
