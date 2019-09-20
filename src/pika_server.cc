@@ -20,7 +20,6 @@
 
 #include "slash/include/env.h"
 #include "slash/include/rsync.h"
-#include "slash/include/slash_string.h"
 #include "pink/include/bg_thread.h"
 #include "include/pika_server.h"
 #include "include/pika_conf.h"
@@ -1719,22 +1718,18 @@ void PikaServer::RWUnlock() {
 
 void PikaServer::UpdateQueryNumAndExecCountTable(const std::string& command) {
   std::string cmd(command);
-  statistic_data_.statistic_lock.WriteLock();
   statistic_data_.thread_querynum++;
   statistic_data_.exec_count_table[slash::StringToUpper(cmd)]++;
-  statistic_data_.statistic_lock.WriteUnlock();
 }
 
 uint64_t PikaServer::ServerQueryNum() {
-  slash::ReadLock l(&statistic_data_.statistic_lock);
-  return statistic_data_.thread_querynum;
+  return statistic_data_.thread_querynum.load();
 }
 
 void PikaServer::ResetStat() {
   statistic_data_.accumulative_connections.store(0);
-  slash::WriteLock l(&statistic_data_.statistic_lock);
-  statistic_data_.thread_querynum = 0;
-  statistic_data_.last_thread_querynum = 0;
+  statistic_data_.thread_querynum.store(0);
+  statistic_data_.last_thread_querynum.store(0);
 }
 
 void PikaServer::SetDispatchQueueLimit(int queue_limit) {
@@ -1757,23 +1752,34 @@ void PikaServer::SetDispatchQueueLimit(int queue_limit) {
 }
 
 uint64_t PikaServer::ServerCurrentQps() {
-  slash::ReadLock l(&statistic_data_.statistic_lock);
-  return statistic_data_.last_sec_thread_querynum;
+  return statistic_data_.last_sec_thread_querynum.load();
 }
 
 std::unordered_map<std::string, uint64_t> PikaServer::ServerExecCountTable() {
-  slash::ReadLock l(&statistic_data_.statistic_lock);
-  return statistic_data_.exec_count_table;
+  std::unordered_map<std::string, uint64_t> res;
+  for (auto& cmd : statistic_data_.exec_count_table) {
+    res[cmd.first] = cmd.second.load();
+  }
+  return res;
 }
 
 void PikaServer::ResetLastSecQuerynum() {
- slash::WriteLock l(&statistic_data_.statistic_lock);
- uint64_t cur_time_us = slash::NowMicros();
- statistic_data_.last_sec_thread_querynum = (
-      (statistic_data_.thread_querynum - statistic_data_.last_thread_querynum)
-      * 1000000 / (cur_time_us - statistic_data_.last_time_us + 1));
- statistic_data_.last_thread_querynum = statistic_data_.thread_querynum;
- statistic_data_.last_time_us = cur_time_us;
+  uint64_t last_query = statistic_data_.last_thread_querynum.load();
+  uint64_t cur_query = statistic_data_.thread_querynum.load();
+  uint64_t last_time_us = statistic_data_.last_time_us.load();
+  if (cur_query < last_query) {
+    cur_query = last_query;
+  }
+  uint64_t delta_query = cur_query - last_query;
+  uint64_t cur_time_us = slash::NowMicros();
+  if (cur_time_us <= last_time_us) {
+    cur_time_us = last_time_us + 1;
+  }
+  uint64_t delta_time_us = cur_time_us - last_time_us;
+  statistic_data_.last_sec_thread_querynum.store(delta_query
+      * 1000000 / (delta_time_us));
+  statistic_data_.last_thread_querynum.store(cur_query);
+  statistic_data_.last_time_us.store(cur_time_us);
 }
 
 void PikaServer::DoTimingTask() {

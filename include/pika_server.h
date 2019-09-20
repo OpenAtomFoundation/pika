@@ -25,6 +25,7 @@
 
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_mutex.h"
+#include "slash/include/slash_string.h"
 #include "pink/include/bg_thread.h"
 #include "pink/include/pink_pubsub.h"
 #include "pink/include/thread_pool.h"
@@ -395,7 +396,7 @@ class PikaServer {
   void ResetLastSecQuerynum(); /* Invoked in PikaDispatchThread's CronHandle */
   void UpdateQueryNumAndExecCountTable(const std::string& command);
   uint64_t accumulative_connections() {
-    return statistic_data_.accumulative_connections;
+    return statistic_data_.accumulative_connections.load();
   }
   void incr_accumulative_connections() {
     ++statistic_data_.accumulative_connections;  
@@ -533,15 +534,24 @@ class PikaServer {
           last_thread_querynum(0),
           last_sec_thread_querynum(0),
           last_time_us(0) {
+      CmdTable* cmds = new CmdTable();
+      cmds->reserve(300);
+      InitCmdTable(cmds);
+      CmdTable::const_iterator it = cmds->begin();
+      for (; it != cmds->end(); ++it) {
+        std::string tmp = it->first;
+        exec_count_table[slash::StringToUpper(tmp)].store(0);
+      }
+      DestoryCmdTable(cmds);
+      delete cmds;
     }
 
-    slash::RWMutex statistic_lock;
     std::atomic<uint64_t> accumulative_connections;
-    std::unordered_map<std::string, uint64_t> exec_count_table;
-    uint64_t thread_querynum;
-    uint64_t last_thread_querynum;
-    uint64_t last_sec_thread_querynum;
-    uint64_t last_time_us;
+    std::unordered_map<std::string, std::atomic<uint64_t>> exec_count_table;
+    std::atomic<uint64_t> thread_querynum;
+    std::atomic<uint64_t> last_thread_querynum;
+    std::atomic<uint64_t> last_sec_thread_querynum;
+    std::atomic<uint64_t> last_time_us;
   };
   StatisticData statistic_data_;
 
