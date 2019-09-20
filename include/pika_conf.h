@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include <atomic>
 
 #include "slash/include/base_conf.h"
 #include "slash/include/slash_mutex.h"
@@ -81,8 +82,8 @@ class PikaConf : public slash::BaseConf {
   bool slave_read_only()        { RWLock l(&rwlock_, false); return slave_read_only_; }
   int maxclients()           { RWLock l(&rwlock_, false); return maxclients_; }
   int root_connection_num()     { RWLock l(&rwlock_, false); return root_connection_num_; }
-  bool slowlog_write_errorlog() { RWLock l(&rwlock_, false); return slowlog_write_errorlog_;}
-  int slowlog_slower_than()     { RWLock l(&rwlock_, false); return slowlog_log_slower_than_; }
+  bool slowlog_write_errorlog() { return slowlog_write_errorlog_.load();}
+  int slowlog_slower_than()     { return slowlog_log_slower_than_.load(); }
   int slowlog_max_len()         { RWLock L(&rwlock_, false); return slowlog_max_len_; }
   std::string network_interface() { RWLock l(&rwlock_, false); return network_interface_; }
 
@@ -202,12 +203,12 @@ class PikaConf : public slash::BaseConf {
   void SetSlowlogWriteErrorlog(const bool value) {
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("slowlog-write-errorlog", value == true ? "yes" : "no");
-    slowlog_write_errorlog_ = value;
+    slowlog_write_errorlog_.store(value);
   }
   void SetSlowlogSlowerThan(const int value) {
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("slowlog-log-slower-than", std::to_string(value));
-    slowlog_log_slower_than_ = value;
+    slowlog_log_slower_than_.store(value);
   }
   void SetSlowlogMaxLen(const int value) {
     RWLock l(&rwlock_, true);
@@ -269,8 +270,8 @@ private:
   std::string compression_;
   int maxclients_;
   int root_connection_num_;
-  bool slowlog_write_errorlog_;
-  int slowlog_log_slower_than_;
+  std::atomic<bool> slowlog_write_errorlog_;
+  std::atomic<int> slowlog_log_slower_than_;
   int slowlog_max_len_;
   int expire_logs_days_;
   int expire_logs_nums_;

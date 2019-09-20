@@ -60,9 +60,11 @@ int PikaConf::Load()
 
   std::string swe;
   GetConfStr("slowlog-write-errorlog", &swe);
-  slowlog_write_errorlog_ = swe == "yes" ? true : false;
+  slowlog_write_errorlog_.store(swe == "yes" ? true : false);
 
-  GetConfInt("slowlog-log-slower-than", &slowlog_log_slower_than_);
+  int tmp_slowlog_log_slower_than;
+  GetConfInt("slowlog-log-slower-than", &tmp_slowlog_log_slower_than);
+  slowlog_log_slower_than_.store(tmp_slowlog_log_slower_than);
   GetConfInt("slowlog-max-len", &slowlog_max_len_);
   if (slowlog_max_len_ == 0) {
     slowlog_max_len_ = 128;
@@ -348,8 +350,8 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("expire-logs-days", expire_logs_days_);
   SetConfInt("expire-logs-nums", expire_logs_nums_);
   SetConfInt("root-connection-num", root_connection_num_);
-  SetConfStr("slowlog-write-errorlog", slowlog_write_errorlog_ ? "yes" : "no");
-  SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_);
+  SetConfStr("slowlog-write-errorlog", slowlog_write_errorlog_.load() ? "yes" : "no");
+  SetConfInt("slowlog-log-slower-than", slowlog_log_slower_than_.load());
   SetConfInt("slowlog-max-len", slowlog_max_len_);
   SetConfStr("slave-read-only", slave_read_only_ ? "yes" : "no");
   SetConfStr("compact-cron", compact_cron_);
