@@ -1,8 +1,17 @@
 FROM centos:latest
-MAINTAINER left2right <yqzhang@easemob.com>
+
+LABEL maintainer="SvenDowideit@home.org.au, zhangshaomin_1990@126.com"
+
+ENV PIKA  /pika
+ENV PIKA_BUILD_DIR /tmp/pika
+ENV PATH ${PIKA}/bin:${PATH}
+
+COPY . ${PIKA_BUILD_DIR}
+
+WORKDIR ${PIKA_BUILD_DIR}
 
 RUN rpm -ivh https://mirrors.ustc.edu.cn/epel/epel-release-latest-7.noarch.rpm && \
-    yum -y update && \
+    yum -y makecache && \
     yum -y install snappy-devel && \
     yum -y install protobuf-devel && \
     yum -y install gflags-devel && \
@@ -10,12 +19,23 @@ RUN rpm -ivh https://mirrors.ustc.edu.cn/epel/epel-release-latest-7.noarch.rpm &
     yum -y install gcc-c++ && \
     yum -y install make && \
     yum -y install which && \
-    yum -y install git
+    yum -y install git && \
+    make && \
+    cp -r ${PIKA_BUILD_DIR}/output ${PIKA} && \
+    # yum -y remove snappy-devel && \
+    # yum -y remove protobuf-devel && \
+    # yum -y remove gflags-devel && \
+    yum -y remove gcc-c++ && \
+    yum -y remove make && \
+    yum -y remove which && \
+    yum -y remove git && \
+    yum -y clean all && \
+    rm -rf ${PIKA_BUILD_DIR} && \
+    rm -rf /var/cache/yum
 
-ENV PIKA  /pika
-COPY . ${PIKA}
+
 WORKDIR ${PIKA}
-RUN make
-ENV PATH ${PIKA}/output/bin:${PATH}
 
-WORKDIR ${PIKA}/output
+EXPOSE 9221
+
+CMD ["sh", "-c", "${PIKA}/bin/pika -c ${PIKA}/conf/pika.conf"]
