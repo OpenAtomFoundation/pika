@@ -87,12 +87,6 @@ class IncrCmd : public Cmd {
   std::string key_;
   int64_t new_value_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
 };
 
 class IncrbyCmd : public Cmd {
@@ -109,12 +103,6 @@ class IncrbyCmd : public Cmd {
   std::string key_;
   int64_t by_, new_value_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
 };
 
 class IncrbyfloatCmd : public Cmd {
@@ -131,12 +119,6 @@ class IncrbyfloatCmd : public Cmd {
   std::string key_, value_, new_value_;
   double by_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
 };
 
 class DecrCmd : public Cmd {
@@ -153,12 +135,6 @@ class DecrCmd : public Cmd {
   std::string key_;
   int64_t new_value_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
 };
 
 class DecrbyCmd : public Cmd {
@@ -175,12 +151,6 @@ class DecrbyCmd : public Cmd {
   std::string key_;
   int64_t by_, new_value_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
 };
 
 class GetsetCmd : public Cmd {
