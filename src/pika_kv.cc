@@ -206,39 +206,6 @@ void IncrCmd::Do() {
   return;
 }
 
-std::string IncrCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  std::string value = std::to_string(new_value_);
-  RedisAppendLen(content, value.size(), "$");
-  RedisAppendContent(content, value);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
-}
-
 void IncrbyCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncrby);
@@ -264,39 +231,6 @@ void IncrbyCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
-}
-
-std::string IncrbyCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  std::string value = std::to_string(new_value_);
-  RedisAppendLen(content, value.size(), "$");
-  RedisAppendContent(content, value);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
 }
 
 void IncrbyfloatCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
@@ -328,38 +262,6 @@ void IncrbyfloatCmd::Do() {
   return;
 }
 
-std::string IncrbyfloatCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  RedisAppendLen(content, new_value_.size(), "$");
-  RedisAppendContent(content, new_value_);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
-}
-
 void DecrCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDecr);
@@ -381,39 +283,6 @@ void DecrCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
-}
-
-std::string DecrCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  std::string value = std::to_string(new_value_);
-  RedisAppendLen(content, value.size(), "$");
-  RedisAppendContent(content, value);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
 }
 
 void DecrbyCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
@@ -441,39 +310,6 @@ void DecrbyCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
-}
-
-std::string DecrbyCmd::ToBinlog(
-      const PikaCmdArgsType& argv,
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  std::string value = std::to_string(new_value_);
-  RedisAppendLen(content, value.size(), "$");
-  RedisAppendContent(content, value);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
 }
 
 void GetsetCmd::DoInitial(const PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
