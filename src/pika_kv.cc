@@ -147,30 +147,6 @@ void IncrCmd::Do() {
   return;
 }
 
-std::string IncrCmd::ToBinlog(
-    const PikaCmdArgsType& argv,
-    const std::string& server_id,
-    const std::string& binlog_info,
-    bool need_send_to_hub) {
-  std::string res;
-  res.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(res, 3 + 4, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(res, set_cmd.size(), "$");
-  RedisAppendContent(res, set_cmd);
-  // key
-  RedisAppendLen(res, key_.size(), "$");
-  RedisAppendContent(res, key_);
-  // value
-  RedisAppendLen(res, new_value_.size(), "$");
-  RedisAppendContent(res, new_value_);
-
-  AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
-  return res;
-}
-
 void IncrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncrby);
@@ -197,30 +173,6 @@ void IncrbyCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
-}
-
-std::string IncrbyCmd::ToBinlog(
-    const PikaCmdArgsType& argv,
-    const std::string& server_id,
-    const std::string& binlog_info,
-    bool need_send_to_hub) {
-  std::string res;
-  res.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(res, 3 + 4, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(res, set_cmd.size(), "$");
-  RedisAppendContent(res, set_cmd);
-  // key
-  RedisAppendLen(res, key_.size(), "$");
-  RedisAppendContent(res, key_);
-  // value
-  RedisAppendLen(res, new_value_.size(), "$");
-  RedisAppendContent(res, new_value_);
-
-  AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
-  return res;
 }
 
 void IncrbyfloatCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
@@ -252,30 +204,6 @@ void IncrbyfloatCmd::Do() {
   return;
 }
 
-std::string IncrbyfloatCmd::ToBinlog(
-    const PikaCmdArgsType& argv,
-    const std::string& server_id,
-    const std::string& binlog_info,
-    bool need_send_to_hub) {
-  std::string res;
-  res.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(res, 3 + 4, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(res, set_cmd.size(), "$");
-  RedisAppendContent(res, set_cmd);
-  // key
-  RedisAppendLen(res, key_.size(), "$");
-  RedisAppendContent(res, key_);
-  // value
-  RedisAppendLen(res, new_value_.size(), "$");
-  RedisAppendContent(res, new_value_);
-
-  AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
-  return res;
-}
-
 void DecrCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
   if (!ptr_info->CheckArg(argv.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDecr);
@@ -297,30 +225,6 @@ void DecrCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
-}
-
-std::string DecrCmd::ToBinlog(
-    const PikaCmdArgsType& argv,
-    const std::string& server_id,
-    const std::string& binlog_info,
-    bool need_send_to_hub) {
-  std::string res;
-  res.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(res, 3 + 4, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(res, set_cmd.size(), "$");
-  RedisAppendContent(res, set_cmd);
-  // key
-  RedisAppendLen(res, key_.size(), "$");
-  RedisAppendContent(res, key_);
-  // value
-  RedisAppendLen(res, new_value_.size(), "$");
-  RedisAppendContent(res, new_value_);
-
-  AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
-  return res;
 }
 
 void DecrbyCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {
@@ -348,30 +252,6 @@ void DecrbyCmd::Do() {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
-}
-
-std::string DecrbyCmd::ToBinlog(
-    const PikaCmdArgsType& argv,
-    const std::string& server_id,
-    const std::string& binlog_info,
-    bool need_send_to_hub) {
-  std::string res;
-  res.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(res, 3 + 4, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(res, set_cmd.size(), "$");
-  RedisAppendContent(res, set_cmd);
-  // key
-  RedisAppendLen(res, key_.size(), "$");
-  RedisAppendContent(res, key_);
-  // value
-  RedisAppendLen(res, new_value_.size(), "$");
-  RedisAppendContent(res, new_value_);
-
-  AppendAffiliatedInfo(res, server_id, binlog_info, need_send_to_hub);
-  return res;
 }
 
 void GetsetCmd::DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info) {

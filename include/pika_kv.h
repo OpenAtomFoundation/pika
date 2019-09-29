@@ -55,11 +55,6 @@ class IncrCmd : public Cmd {
  private:
   std::string key_, new_value_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
-  virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
-      const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
 };
 
 class IncrbyCmd : public Cmd {
@@ -70,11 +65,6 @@ class IncrbyCmd : public Cmd {
   std::string key_, new_value_;
   int64_t by_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
-  virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
-      const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
 };
 
 class IncrbyfloatCmd : public Cmd {
@@ -85,11 +75,6 @@ class IncrbyfloatCmd : public Cmd {
   std::string key_, new_value_;
   double by_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
-  virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
-      const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
 };
 
 class DecrCmd : public Cmd {
@@ -99,11 +84,6 @@ class DecrCmd : public Cmd {
  private:
   std::string key_, new_value_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
-  virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
-      const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
 };
 
 class DecrbyCmd : public Cmd {
@@ -114,11 +94,6 @@ class DecrbyCmd : public Cmd {
   std::string key_, new_value_;
   int64_t by_;
   virtual void DoInitial(PikaCmdArgsType &argv, const CmdInfo* const ptr_info);
-  virtual std::string ToBinlog(
-      const PikaCmdArgsType& argv,
-      const std::string& server_id,
-      const std::string& binlog_info,
-      bool need_send_to_hub) override;
 };
 
 class GetsetCmd : public Cmd {
