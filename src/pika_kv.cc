@@ -208,38 +208,6 @@ void IncrCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
-std::string IncrCmd::ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  std::string value = std::to_string(new_value_);
-  RedisAppendLen(content, value.size(), "$");
-  RedisAppendContent(content, value);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
-}
-
 void IncrbyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncrby);
@@ -265,38 +233,6 @@ void IncrbyCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
-}
-
-std::string IncrbyCmd::ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  std::string value = std::to_string(new_value_);
-  RedisAppendLen(content, value.size(), "$");
-  RedisAppendContent(content, value);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
 }
 
 void IncrbyfloatCmd::DoInitial() {
@@ -328,37 +264,6 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
-std::string IncrbyfloatCmd::ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  RedisAppendLen(content, new_value_.size(), "$");
-  RedisAppendContent(content, new_value_);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
-}
-
 void DecrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDecr);
@@ -380,38 +285,6 @@ void DecrCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
-}
-
-std::string DecrCmd::ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  std::string value = std::to_string(new_value_);
-  RedisAppendLen(content, value.size(), "$");
-  RedisAppendContent(content, value);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
 }
 
 void DecrbyCmd::DoInitial() {
@@ -439,38 +312,6 @@ void DecrbyCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
-}
-
-std::string DecrbyCmd::ToBinlog(
-      uint32_t exec_time,
-      const std::string& server_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-  std::string content;
-  content.reserve(RAW_ARGS_LEN);
-  RedisAppendLen(content, 3, "*");
-
-  // to set cmd
-  std::string set_cmd("set");
-  RedisAppendLen(content, set_cmd.size(), "$");
-  RedisAppendContent(content, set_cmd);
-  // key
-  RedisAppendLen(content, key_.size(), "$");
-  RedisAppendContent(content, key_);
-  // value
-  std::string value = std::to_string(new_value_);
-  RedisAppendLen(content, value.size(), "$");
-  RedisAppendContent(content, value);
-
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             std::stoi(server_id),
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
 }
 
 void GetsetCmd::DoInitial() {
