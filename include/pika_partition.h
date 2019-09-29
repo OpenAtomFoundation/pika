@@ -63,12 +63,15 @@ class Partition : public std::enable_shared_from_this<Partition> {
   std::shared_ptr<Binlog> logger() const;
   std::shared_ptr<blackwidow::BlackWidow> db() const;
 
-  void DoCommand(Cmd* const cmd);
   void Compact(const blackwidow::DataType& type);
+  // needd to hold logger_->Lock()
+  Status WriteBinlog(const std::string& binlog);
 
   void DbRWLockWriter();
   void DbRWLockReader();
   void DbRWUnLock();
+
+  slash::lock::LockMgr* LockMgr();
 
   void SetBinlogIoError(bool error);
   bool IsBinlogIoError();

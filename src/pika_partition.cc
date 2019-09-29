@@ -169,57 +169,22 @@ std::shared_ptr<blackwidow::BlackWidow> Partition::db() const {
   return db_;
 }
 
-void Partition::DoCommand(Cmd* const cmd) {
+Status Partition::WriteBinlog(const std::string& binlog) {
   if (!opened_) {
     LOG(WARNING) << partition_name_ << " not opened, failed to exec command";
-    cmd->res().SetRes(CmdRes::kErrOther, "Partition Not Opened");
-    return;
+    return Status::Corruption("Partition Not Opened");
   }
-  slash::lock::MultiRecordLock record_lock(lock_mgr_);
-  if (!cmd->is_suspend()) {
-    DbRWLockReader();
-  }
-  if (cmd->is_write()) {
-    record_lock.Lock(cmd->current_key());
+  slash::Status s;
+  if (!binlog.empty()) {
+    s = logger_->Put(binlog);
   }
 
-  uint32_t exec_time = time(nullptr);
-  cmd->Do(shared_from_this());
-
-  if (cmd->res().ok()
-    && cmd->is_write()
-    && g_pika_conf->write_binlog()) {
-
-    logger_->Lock();
-    uint32_t filenum = 0;
-    uint64_t offset = 0;
-    uint64_t logic_id = 0;
-    logger_->GetProducerStatus(&filenum, &offset, &logic_id);
-
-    std::string binlog = cmd->ToBinlog(exec_time,
-                                       g_pika_conf->server_id(),
-                                       logic_id,
-                                       filenum,
-                                       offset);
-    slash::Status s;
-    if (!binlog.empty()) {
-      s = logger_->Put(binlog);
-    }
-
-    logger_->Unlock();
-    if (!s.ok()) {
-      LOG(WARNING) << partition_name_ << " Writing binlog failed, maybe no space left on device";
-      SetBinlogIoError(true);
-      cmd->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
-    }
+  if (!s.ok()) {
+    LOG(WARNING) << partition_name_ << " Writing binlog failed, maybe no space left on device";
+    SetBinlogIoError(true);
+    return Status::Corruption("Writing binlog failed, maybe no space left on device");
   }
-
-  if (cmd->is_write()) {
-    record_lock.Unlock(cmd->current_key());
-  }
-  if (!cmd->is_suspend()) {
-    DbRWUnLock();
-  }
+  return Status::OK();
 }
 
 void Partition::Compact(const blackwidow::DataType& type) {
@@ -237,6 +202,10 @@ void Partition::DbRWLockReader() {
 
 void Partition::DbRWUnLock() {
   pthread_rwlock_unlock(&db_rwlock_);
+}
+
+slash::lock::LockMgr* Partition::LockMgr() {
+  return lock_mgr_;
 }
 
 void Partition::SetBinlogIoError(bool error) {

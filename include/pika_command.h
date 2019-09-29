@@ -438,6 +438,9 @@ class Cmd {
  protected:
   // enable copy, used default copy
   //Cmd(const Cmd&);
+  void ProcessCommand(std::shared_ptr<Partition> partition);
+  void DoCommand(std::shared_ptr<Partition> partition);
+  void DoBinlog(std::shared_ptr<Partition> partition);
   bool CheckArg(int num) const;
   void LogCommand() const;
 

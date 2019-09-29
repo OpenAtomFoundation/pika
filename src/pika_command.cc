@@ -569,7 +569,7 @@ void Cmd::ProcessFlushDBCmd() {
     } else {
       slash::RWLock l_prw(&table->partitions_rw_, true);
       for (const auto& partition_item : table->partitions_) {
-        partition_item.second->DoCommand(this);
+        ProcessCommand(partition_item.second);
       }
       res_.SetRes(CmdRes::kOk);
     }
@@ -588,7 +588,7 @@ void Cmd::ProcessFlushAllCmd() {
   for (const auto& table_item : g_pika_server->tables_) {
     slash::RWLock l_prw(&table_item.second->partitions_rw_, true);
     for (const auto& partition_item : table_item.second->partitions_) {
-      partition_item.second->DoCommand(this);
+      ProcessCommand(partition_item.second);
     }
   }
   res_.SetRes(CmdRes::kOk);
@@ -613,7 +613,63 @@ void Cmd::ProcessSinglePartitionCmd() {
     res_.SetRes(CmdRes::kErrOther, "Partition not found");
     return;
   }
-  partition->DoCommand(this);
+  ProcessCommand(partition);
+}
+
+void Cmd::ProcessCommand(std::shared_ptr<Partition> partition) {
+  slash::lock::MultiRecordLock record_lock(partition->LockMgr());
+  if (is_write()) {
+    record_lock.Lock(current_key());
+  }
+
+  DoCommand(partition);
+
+  DoBinlog(partition);
+
+  if (is_write()) {
+    record_lock.Unlock(current_key());
+  }
+
+}
+
+void Cmd::DoCommand(std::shared_ptr<Partition> partition) {
+  if (!is_suspend()) {
+    partition->DbRWLockReader();
+  }
+
+  Do(partition);
+
+  if (!is_suspend()) {
+    partition->DbRWUnLock();
+  }
+
+}
+
+void Cmd::DoBinlog(std::shared_ptr<Partition> partition) {
+  if (res().ok()
+    && is_write()
+    && g_pika_conf->write_binlog()) {
+
+    uint32_t filenum = 0;
+    uint64_t offset = 0;
+    uint64_t logic_id = 0;
+
+    partition->logger()->Lock();
+    partition->logger()->GetProducerStatus(&filenum, &offset, &logic_id);
+    uint32_t exec_time = time(nullptr);
+    std::string binlog = ToBinlog(exec_time,
+                                  g_pika_conf->server_id(),
+                                  logic_id,
+                                  filenum,
+                                  offset);
+
+    Status s = partition->WriteBinlog(binlog);
+    partition->logger()->Unlock();
+
+    if (!s.ok()) {
+      res().SetRes(CmdRes::kErrOther, s.ToString());
+    }
+  }
 }
 
 void Cmd::ProcessMultiPartitionCmd() {
