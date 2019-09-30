@@ -425,7 +425,7 @@ void KeysCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> keys;
   do {
     keys.clear();
-    cursor = partition->db()->Scan(type_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &keys);
+    cursor = partition->db()->Scan(type_, cursor, pattern_, PIKA_SCAN_STEP_LENGTH, &keys);
     for (const auto& key : keys) {
       RedisAppendLen(raw, key.size(), "$");
       RedisAppendContent(raw, key);
