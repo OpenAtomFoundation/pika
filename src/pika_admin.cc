@@ -101,6 +101,7 @@ void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
 
   if (is_noone_) {
     res_.SetRes(CmdRes::kOk);
+    g_pika_conf->SetSlaveof(std::string());
     return;
   }
 
