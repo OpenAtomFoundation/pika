@@ -9,7 +9,7 @@
 	url = https://github.com/facebook/rocksdb.git
 [submodule "third/blackwidow"]
 	path = third/blackwidow
-	url = https://github.com/Axlgrep/blackwidow.git
+	url = https://github.com/Qihoo360/blackwidow.git
 [submodule "third/pink"]
 	path = third/pink
 	url = https://github.com/Qihoo360/pink.git
