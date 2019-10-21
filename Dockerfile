@@ -21,7 +21,7 @@ ENV PATH ${PIKA}/output/bin:${PATH}
 WORKDIR ${PIKA}/output
 
 # Define default command.
-# CMD ["pika", "-c", "conf/pika.conf"]
+CMD ["pika", "-c", "conf/pika.conf"]
 
 # Expose ports.
-# EXPOSE 6379
+EXPOSE 9221
