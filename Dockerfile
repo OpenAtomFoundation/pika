@@ -1,5 +1,5 @@
-FROM centos:7.7.1908
-MAINTAINER left2right <yqzhang@easemob.com>
+FROM centos:7
+MAINTAINER realwrtoff <fmj_912@163.com>
 
 RUN rpm -ivh https://mirrors.ustc.edu.cn/epel/epel-release-latest-7.noarch.rpm && \
     yum -y update && \
