@@ -499,9 +499,16 @@ void ClientCmd::DoInitial() {
   if (!strcasecmp(argv_[1].data(), "list") && argv_.size() == 2) {
     // nothing
   } else if (!strcasecmp(argv_[1].data(), "list") && argv_.size() == 5) {
-    ip_port_ = argv_[4];
+    if (!strcasecmp(argv_[2].data(), "order") &&
+        !strcasecmp(argv_[3].data(), "by")) {
+      info_ = argv_[4];
+    } else {
+      res_.SetRes(CmdRes::kErrOther,
+          "Syntax error, try CLIENT (LIST [order by [addr|idle])");
+      return;
+    }
   } else if (!strcasecmp(argv_[1].data(), "kill") && argv_.size() == 3) {
-    ip_port_ = argv_[2];
+    info_ = argv_[2];
   } else {
     res_.SetRes(CmdRes::kErrOther,
         "Syntax error, try CLIENT (LIST [order by [addr|idle]| KILL ip:port)");
@@ -520,9 +527,9 @@ void ClientCmd::Do(std::shared_ptr<Partition> partition) {
     std::vector<ClientInfo>::iterator iter = clients.begin();
     std::string reply = "";
     char buf[128];
-    if (!strcasecmp(ip_port_.data(), "addr")) {
+    if (!strcasecmp(info_.data(), "addr")) {
       std::sort(clients.begin(), clients.end(), AddrCompare);
-    } else if (!strcasecmp(ip_port_.data(), "idle")) {
+    } else if (!strcasecmp(info_.data(), "idle")) {
       std::sort(clients.begin(), clients.end(), IdleCompare);
     }
     while (iter != clients.end()) {
@@ -534,10 +541,10 @@ void ClientCmd::Do(std::shared_ptr<Partition> partition) {
     }
     res_.AppendString(reply);
   } else if (!strcasecmp(operation_.data(), "kill") &&
-      !strcasecmp(ip_port_.data(), "all")) {
+      !strcasecmp(info_.data(), "all")) {
     g_pika_server->ClientKillAll();
     res_.SetRes(CmdRes::kOk);
-  } else if (g_pika_server->ClientKill(ip_port_) == 1) {
+  } else if (g_pika_server->ClientKill(info_) == 1) {
     res_.SetRes(CmdRes::kOk);
   } else {
     res_.SetRes(CmdRes::kErrOther, "No such client");
