@@ -75,4 +75,7 @@ struct ClientInfo {
   std::shared_ptr<PikaClientConn> conn;
 };
 
+extern bool AddrCompare(const ClientInfo& lhs, const ClientInfo& rhs);
+extern bool IdleCompare(const ClientInfo& lhs, const ClientInfo& rhs);
+
 #endif

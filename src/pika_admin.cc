@@ -497,11 +497,14 @@ void ClientCmd::DoInitial() {
     return;
   }
   if (!strcasecmp(argv_[1].data(), "list") && argv_.size() == 2) {
-    //nothing
+    // nothing
+  } else if (!strcasecmp(argv_[1].data(), "list") && argv_.size() == 5) {
+    ip_port_ = argv_[4];
   } else if (!strcasecmp(argv_[1].data(), "kill") && argv_.size() == 3) {
     ip_port_ = argv_[2];
   } else {
-    res_.SetRes(CmdRes::kErrOther, "Syntax error, try CLIENT (LIST | KILL ip:port)");
+    res_.SetRes(CmdRes::kErrOther,
+        "Syntax error, try CLIENT (LIST [order by [addr|idle]| KILL ip:port)");
     return;
   }
   operation_ = argv_[1];
@@ -514,16 +517,24 @@ void ClientCmd::Do(std::shared_ptr<Partition> partition) {
     gettimeofday(&now, NULL);
     std::vector<ClientInfo> clients;
     g_pika_server->ClientList(&clients);
-    std::vector<ClientInfo>::iterator iter= clients.begin();
+    std::vector<ClientInfo>::iterator iter = clients.begin();
     std::string reply = "";
     char buf[128];
+    if (!strcasecmp(ip_port_.data(), "addr")) {
+      std::sort(clients.begin(), clients.end(), AddrCompare);
+    } else if (!strcasecmp(ip_port_.data(), "idle")) {
+      std::sort(clients.begin(), clients.end(), IdleCompare);
+    }
     while (iter != clients.end()) {
-      snprintf(buf, sizeof(buf), "addr=%s fd=%d idle=%ld\n", iter->ip_port.c_str(), iter->fd, iter->last_interaction == 0 ? 0 : now.tv_sec - iter->last_interaction);
+      snprintf(buf, sizeof(buf), "addr=%s fd=%d idle=%ld\n",
+         iter->ip_port.c_str(), iter->fd,
+         iter->last_interaction == 0 ? 0 : now.tv_sec - iter->last_interaction);
       reply.append(buf);
       iter++;
     }
     res_.AppendString(reply);
-  } else if (!strcasecmp(operation_.data(), "kill") && !strcasecmp(ip_port_.data(), "all")) {
+  } else if (!strcasecmp(operation_.data(), "kill") &&
+      !strcasecmp(ip_port_.data(), "all")) {
     g_pika_server->ClientKillAll();
     res_.SetRes(CmdRes::kOk);
   } else if (g_pika_server->ClientKill(ip_port_) == 1) {
