@@ -207,7 +207,7 @@ class ClientCmd : public Cmd {
   }
 
  private:
-  std::string operation_, ip_port_;
+  std::string operation_, info_;
   virtual void DoInitial() override;
 };
 

@@ -244,3 +244,13 @@ bool PikaClientConn::AuthStat::ChecknUpdate(const std::string& message) {
   }
   return true;
 }
+
+// compare addr in ClientInfo
+bool AddrCompare(const ClientInfo& lhs, const ClientInfo& rhs) {
+  return rhs.ip_port < lhs.ip_port;
+}
+
+bool IdleCompare(const ClientInfo& lhs, const ClientInfo& rhs) {
+  return lhs.last_interaction < rhs.last_interaction;
+}
+
