@@ -54,6 +54,11 @@ void SlaveofCmd::DoInitial() {
     return;
   }
 
+  if (argv_.size() > 4) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameSlaveof);
+    return;
+  }
+
   if (argv_.size() == 3
     && !strcasecmp(argv_[1].data(), "no")
     && !strcasecmp(argv_[2].data(), "one")) {
@@ -133,6 +138,11 @@ void DbSlaveofCmd::DoInitial() {
   if (g_pika_server->role() ^ PIKA_ROLE_SLAVE
     || !g_pika_server->MetaSyncDone()) {
     res_.SetRes(CmdRes::kErrOther, "Not currently a slave");
+    return;
+  }
+
+  if (argv_.size() > 4) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameDbSlaveof);
     return;
   }
 
