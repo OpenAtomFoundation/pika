@@ -1512,6 +1512,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->sync_window_size());
   }
 
+  if (slash::stringmatch(pattern.data(), "consistency-level", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "consistency-level");
+    EncodeInt32(&config_body, g_pika_conf->consistency_level());
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
