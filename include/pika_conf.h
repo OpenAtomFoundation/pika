@@ -82,6 +82,7 @@ class PikaConf : public slash::BaseConf {
   int slowlog_slower_than()                         { return slowlog_log_slower_than_.load(); }
   int slowlog_max_len()                             { RWLock L(&rwlock_, false); return slowlog_max_len_; }
   std::string network_interface()                   { RWLock l(&rwlock_, false); return network_interface_; }
+  int consistency_level()                           { return consistency_level_.load();}
 
   // Immutable config items, we don't use lock.
   bool daemonize()                                  { return daemonize_; }
@@ -296,6 +297,7 @@ class PikaConf : public slash::BaseConf {
   bool cache_index_and_filter_blocks_;
   bool optimize_filters_for_hits_;
   bool level_compaction_dynamic_level_bytes_;
+  std::atomic<int> consistency_level_;
 
   std::string network_interface_;
 
