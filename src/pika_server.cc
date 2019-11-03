@@ -92,7 +92,8 @@ PikaServer::PikaServer() :
                                              g_pika_conf->port() + kPortShiftRSync);
   pika_pubsub_thread_ = new pink::PubSubThread();
   pika_auxiliary_thread_ = new PikaAuxiliaryThread();
-  pika_thread_pool_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
+
+  pika_client_processor_ = new PikaClientProcessor(g_pika_conf->thread_pool_size(), 100000);
 
   pthread_rwlock_init(&state_protector_, NULL);
   pthread_rwlock_init(&slowlog_protector_, NULL);
@@ -102,7 +103,7 @@ PikaServer::~PikaServer() {
 
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
-  pika_thread_pool_->stop_thread_pool();
+  pika_client_processor_->Stop();
   delete pika_dispatch_thread_;
 
   {
@@ -117,7 +118,7 @@ PikaServer::~PikaServer() {
   delete pika_pubsub_thread_;
   delete pika_auxiliary_thread_;
   delete pika_rsync_service_;
-  delete pika_thread_pool_;
+  delete pika_client_processor_;
   delete pika_monitor_thread_;
 
   bgsave_thread_.StopThread();
@@ -224,10 +225,10 @@ void PikaServer::Start() {
   // We Init Table Struct Before Start The following thread
   InitTableStruct();
 
-  ret = pika_thread_pool_->start_thread_pool();
+  ret = pika_client_processor_->Start();
   if (ret != pink::kSuccess) {
     tables_.clear();
-    LOG(FATAL) << "Start ThreadPool Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+    LOG(FATAL) << "Start PikaClientProcessor Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
   ret = pika_dispatch_thread_->StartThread();
   if (ret != pink::kSuccess) {
@@ -851,8 +852,13 @@ void PikaServer::SetLoopPartitionStateMachine(bool need_loop) {
   loop_partition_state_machine_ = need_loop;
 }
 
-void PikaServer::Schedule(pink::TaskFunc func, void* arg) {
-  pika_thread_pool_->Schedule(func, arg);
+void PikaServer::ScheduleClientPool(pink::TaskFunc func, void* arg) {
+  pika_client_processor_->SchedulePool(func, arg);
+}
+
+void PikaServer::ScheduleClientBgThreads(
+    pink::TaskFunc func, void* arg, const std::string& hash_str) {
+  pika_client_processor_->ScheduleBgThreads(func, arg, hash_str);
 }
 
 void PikaServer::BGSaveTaskSchedule(pink::TaskFunc func, void* arg) {

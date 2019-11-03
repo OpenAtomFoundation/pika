@@ -152,7 +152,7 @@ void PikaClientConn::AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsTy
   arg->redis_cmds = argvs;
   arg->response = response;
   arg->pcc = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
-  g_pika_server->Schedule(&DoBackgroundTask, arg);
+  g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
 }
 
 void PikaClientConn::BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) {
