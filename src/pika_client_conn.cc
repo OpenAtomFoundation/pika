@@ -39,7 +39,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   if (!c_ptr) {
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
     tmp_ptr->res().SetRes(CmdRes::kErrOther,
-        "-Err unknown or unsupported command \'" + opt + "\"");
+        "unknown or unsupported command \'" + opt + "\"");
     return tmp_ptr;
   }
 
@@ -48,7 +48,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   // Check authed
   // AuthCmd will set stat_
   if (!auth_stat_.IsAuthed(c_ptr)) {
-    c_ptr->res().SetRes(CmdRes::kErrOther, "-ERR NOAUTH Authentication required.");
+    c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
     return c_ptr;
   }
 
@@ -79,7 +79,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
         opt != kCmdNamePSubscribe &&
         opt != kCmdNamePUnSubscribe) {
       c_ptr->res().SetRes(CmdRes::kErrOther,
-          "-ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context");
+          "only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context");
       return c_ptr;
     }
   }
@@ -90,32 +90,32 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
 
   if (!g_pika_server->IsCommandSupport(opt)) {
     c_ptr->res().SetRes(CmdRes::kErrOther,
-        "-ERR This command only support in classic mode");
+        "This command is not supported in current configuration");
     return c_ptr;
   }
 
   if (!g_pika_server->IsTableExist(current_table_)) {
-    c_ptr->res().SetRes(CmdRes::kErrOther, "-ERR Table not found");
+    c_ptr->res().SetRes(CmdRes::kErrOther, "Table not found");
     return c_ptr;
   }
 
   // TODO: Consider special commands, like flushall, flushdb?
   if (c_ptr->is_write()) {
     if (g_pika_server->IsTableBinlogIoError(current_table_)) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "-ERR Writing binlog failed, maybe no space left on device");
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
       return c_ptr;
     }
     std::vector<std::string> cur_key = c_ptr->current_key();
     if (cur_key.empty()) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "-ERR Internal ERROR");
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
       return c_ptr;
     }
     if (g_pika_server->readonly(current_table_, cur_key.front())) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "-ERR Server in read-only");
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
       return c_ptr;
     }
     if (!g_pika_server->ConsistencyCheck(current_table_, cur_key.front())) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "-ERR consistency level not match");
+      c_ptr->res().SetRes(CmdRes::kErrOther, "consistency level not match");
     }
   }
 
@@ -241,6 +241,7 @@ void PikaClientConn::TryWriteResp() {
     for (auto& resp : resp_array) {
       WriteResp(std::move(*resp));
     }
+    resp_array.clear();
     NotifyEpoll(true);
   }
 }
