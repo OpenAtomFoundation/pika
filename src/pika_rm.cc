@@ -18,7 +18,6 @@
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 
-
 extern PikaConf *g_pika_conf;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaServer *g_pika_server;
@@ -160,6 +159,9 @@ Status SyncMasterPartition::AddSlaveNode(const std::string& ip, int port, int se
   slave_ptr->SetLastSendTime(slash::NowMicros());
   slave_ptr->SetLastRecvTime(slash::NowMicros());
   slaves_.push_back(slave_ptr);
+
+  coordinator_.AddFollower(ip, port);
+
   LOG(INFO) << "Add Slave Node, partition: " << SyncPartitionInfo().ToString() << ", ip_port: "<< ip << ":" << port;
   return Status::OK();
 }
@@ -170,6 +172,7 @@ Status SyncMasterPartition::RemoveSlaveNode(const std::string& ip, int port) {
     std::shared_ptr<SlaveNode> slave = slaves_[i];
     if (ip == slave->Ip() && port == slave->Port()) {
       slaves_.erase(slaves_.begin() + i);
+      coordinator_.RemoveFollower(ip, port);
       LOG(INFO) << "Remove Slave Node, Partition: " << SyncPartitionInfo().ToString()
         << ", ip_port: "<< ip << ":" << port;
       return Status::OK();
@@ -309,16 +312,20 @@ Status SyncMasterPartition::UpdateSlaveBinlogAckInfo(const std::string& ip, int 
     return s;
   }
 
+  BinlogOffset acked_offset;
   {
-  slash::MutexLock l(&slave_ptr->slave_mu);
-  if (slave_ptr->slave_state != kSlaveBinlogSync) {
-    return Status::Corruption(ip + std::to_string(port) + "state not BinlogSync");
+    slash::MutexLock l(&slave_ptr->slave_mu);
+    if (slave_ptr->slave_state != kSlaveBinlogSync) {
+      return Status::Corruption(ip + std::to_string(port) + "state not BinlogSync");
+    }
+    bool res = slave_ptr->sync_win.Update(SyncWinItem(start), SyncWinItem(end), &acked_offset);
+    if (!res) {
+      return Status::Corruption("UpdateAckedInfo failed");
+    }
+    slave_ptr->acked_offset = acked_offset;
   }
-  bool res = slave_ptr->sync_win.Update(SyncWinItem(start), SyncWinItem(end), &(slave_ptr->acked_offset));
-  if (!res) {
-    return Status::Corruption("UpdateAckedInfo failed");
-  }
-  }
+
+  coordinator_.UpdateMatchIndex(ip, port, acked_offset);
   return Status::OK();
 }
 
@@ -611,6 +618,21 @@ bool SyncMasterPartition::CheckSessionId(const std::string& ip, int port,
   return true;
 }
 
+Status SyncMasterPartition::ConsistencyProposeLog(
+    const BinlogOffset& offset,
+    std::shared_ptr<Cmd> cmd_ptr,
+    std::shared_ptr<PikaClientConn> conn_ptr,
+    std::shared_ptr<std::string> resp_ptr) {
+  return coordinator_.ProposeLog(offset, cmd_ptr, conn_ptr, resp_ptr);
+}
+
+Status SyncMasterPartition::ConsistencySanityCheck() {
+  return coordinator_.CheckEnoughFollower();
+}
+
+Status SyncMasterPartition::ConsistencyScheduleApplyLog() {
+  return coordinator_.ScheduleApplyLog();
+}
 
 /* SyncSlavePartition */
 SyncSlavePartition::SyncSlavePartition(const std::string& table_name,
@@ -1624,4 +1646,44 @@ void PikaReplicaManager::RmStatus(std::string* info) {
       << "\r\n" << iter.second->ToStringStatus() << "\r\n";
   }
   info->append(tmp_stream.str());
+}
+
+Status PikaReplicaManager::ConsistencyProposeLog(
+      const std::string& table_name, uint32_t partition_id,
+      const BinlogOffset& offset,
+      std::shared_ptr<Cmd> cmd_ptr,
+      std::shared_ptr<PikaClientConn> conn_ptr,
+      std::shared_ptr<std::string> resp_ptr) {
+  slash::RWLock l(&partitions_rw_, false);
+  PartitionInfo p_info(table_name, partition_id);
+  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
+    return Status::NotFound("SyncMasterPartition NotFound");
+  } else {
+    std::shared_ptr<SyncMasterPartition> sync_master_partition = sync_master_partitions_[p_info];
+    return sync_master_partition->ConsistencyProposeLog(offset, cmd_ptr, conn_ptr, resp_ptr);
+  }
+}
+
+Status PikaReplicaManager::ConsistencySanityCheck(
+      const std::string& table_name, uint32_t partition_id) {
+  slash::RWLock l(&partitions_rw_, false);
+  PartitionInfo p_info(table_name, partition_id);
+  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
+    return Status::NotFound("SyncMasterPartition NotFound");
+  } else {
+    std::shared_ptr<SyncMasterPartition> sync_master_partition = sync_master_partitions_[p_info];
+    return sync_master_partition->ConsistencySanityCheck();
+  }
+}
+
+Status PikaReplicaManager::ConsistencyScheduleApplyLog(
+      const std::string& table_name, uint32_t partition_id) {
+  slash::RWLock l(&partitions_rw_, false);
+  PartitionInfo p_info(table_name, partition_id);
+  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
+    return Status::NotFound("SyncMasterPartition NotFound");
+  } else {
+    std::shared_ptr<SyncMasterPartition> sync_master_partition = sync_master_partitions_[p_info];
+    return sync_master_partition->ConsistencyScheduleApplyLog();
+  }
 }

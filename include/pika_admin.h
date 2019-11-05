@@ -456,4 +456,17 @@ class PKPatternMatchDelCmd : public Cmd {
   std::string pattern_; 
   virtual void DoInitial() override;
 };
+
+class DummyCmd : public Cmd {
+ public:
+  DummyCmd() : Cmd("DummyCmd", 0, 0) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual Cmd* Clone() override {
+    return new DummyCmd(*this);
+  }
+
+ private:
+  virtual void DoInitial() override;
+};
+
 #endif  // PIKA_ADMIN_H_

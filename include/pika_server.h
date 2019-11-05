@@ -121,6 +121,7 @@ class PikaServer {
   int master_port();
   int role();
   bool readonly(const std::string& table, const std::string& key);
+  bool ConsistencyCheck(const std::string& table_name, const std::string& key);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();

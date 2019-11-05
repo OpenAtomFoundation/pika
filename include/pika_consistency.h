@@ -31,7 +31,7 @@ class ConsistencyCoordinator {
       std::shared_ptr<PikaClientConn> conn_ptr,
       std::shared_ptr<std::string> resp_ptr);
   Status ScheduleApplyLog();
-  Status MatchConsistencyLevel();
+  Status CheckEnoughFollower();
   Status UpdateMatchIndex(const std::string& ip, int port, const BinlogOffset& offset);
   Status AddFollower(const std::string& ip, int port);
   Status RemoveFollower(const std::string& ip, int port);
@@ -46,6 +46,8 @@ class ConsistencyCoordinator {
   int InternalFindLogIndex();
   void InternalUpdateCommittedIndex();
   bool InternalMatchConsistencyLevel();
+  int InternalPurdgeLog(std::vector<LogItem>* logs);
   void InternalApply(const LogItem& log);
+  void InternalApplyStale(const LogItem& log);
 };
 #endif  // INCLUDE_PIKA_CONSISTENCY_H_

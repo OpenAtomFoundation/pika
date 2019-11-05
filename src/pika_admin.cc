@@ -2110,3 +2110,9 @@ void PKPatternMatchDelCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 }
+
+void DummyCmd::DoInitial() {
+}
+
+void DummyCmd::Do(std::shared_ptr<Partition> partition) {
+}

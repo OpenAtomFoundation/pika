@@ -332,6 +332,24 @@ bool PikaServer::readonly(const std::string& table_name, const std::string& key)
   return false;
 }
 
+bool PikaServer::ConsistencyCheck(const std::string& table_name, const std::string& key) {
+  if (g_pika_conf->consistency_level() != 0) {
+    std::shared_ptr<Table> table = GetTable(table_name);
+    if (table == nullptr) {
+      return false;
+    }
+    uint32_t index = g_pika_cmd_table_manager->DistributeKey(
+        key, table->PartitionNum());
+    Status s = g_pika_rm->ConsistencySanityCheck(table_name, index);
+    if (!s.ok()) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+  return true;
+}
+
 int PikaServer::repl_state() {
   slash::RWLock(&state_protector_, false);
   return repl_state_;
@@ -465,6 +483,15 @@ bool PikaServer::IsTablePartitionExist(const std::string& table_name,
 }
 
 bool PikaServer::IsCommandSupport(const std::string& command) {
+  if (g_pika_conf->consistency_level() != 0) {
+    // dont support multi key command
+    // used the same list as sharding mode use
+    bool res = ShardingModeNotSupportCommands.count(command);
+    if (!res) {
+      return res;
+    }
+  }
+
   if (g_pika_conf->classic_mode()) {
     return true;
   } else {
