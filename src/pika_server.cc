@@ -486,7 +486,7 @@ bool PikaServer::IsCommandSupport(const std::string& command) {
   if (g_pika_conf->consistency_level() != 0) {
     // dont support multi key command
     // used the same list as sharding mode use
-    bool res = ShardingModeNotSupportCommands.count(command);
+    bool res = !ShardingModeNotSupportCommands.count(command);
     if (!res) {
       return res;
     }
