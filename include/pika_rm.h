@@ -17,6 +17,7 @@
 #include "include/pika_binlog_reader.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
+#include "include/pika_consistency.h"
 
 #define kBinlogSendPacketNum 30
 #define kBinlogSendBatchNum 100
@@ -150,6 +151,15 @@ class SyncMasterPartition : public SyncPartition {
                          const std::string& table_name,
                          uint64_t partition_id, int session_id);
 
+  // consistency use
+  Status ConsistencyProposeLog(
+      const BinlogOffset& offset,
+      std::shared_ptr<Cmd> cmd_ptr,
+      std::shared_ptr<PikaClientConn> conn_ptr,
+      std::shared_ptr<std::string> resp_ptr);
+  Status ConsistencySanityCheck();
+  Status ConsistencyScheduleApplyLog();
+
  private:
   bool CheckReadBinlogFromCache();
   // inovker need to hold partition_mu_
@@ -167,6 +177,7 @@ class SyncMasterPartition : public SyncPartition {
   slash::Mutex session_mu_;
   int32_t session_id_;
 
+  ConsistencyCoordinator coordinator_;
   // BinlogCacheWindow win_;
 };
 
@@ -338,6 +349,17 @@ class PikaReplicaManager {
 
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
+
+  // Consistency use
+  Status ConsistencyProposeLog(
+      const std::string& table_name, uint32_t partition_id,
+      const BinlogOffset& offset,
+      std::shared_ptr<Cmd> cmd_ptr,
+      std::shared_ptr<PikaClientConn> conn_ptr,
+      std::shared_ptr<std::string> resp_ptr);
+  Status ConsistencySanityCheck(
+      const std::string& table_name, uint32_t partition_id);
+  Status ConsistencyScheduleApplyLog(const std::string& table_name, uint32_t partition_id);
 
   BinlogReaderManager binlog_reader_mgr;
 
