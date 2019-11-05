@@ -125,7 +125,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, start_us);
   }
-  if (g_pika_conf->consistency_level() != 0) {
+  if (g_pika_conf->consistency_level() != 0 && c_ptr->is_write()) {
     c_ptr->SetStage(Cmd::kExecuteStage);
   }
 
@@ -258,8 +258,8 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<s
   slash::StringToLower(opt);
 
   std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt);
-  // level == 0 or (cmd error or is_read)
-  if (g_pika_conf->consistency_level() == 0 || !cmd_ptr->res().message().empty()){
+  // level == 0 or (cmd error) or (is_read)
+  if (g_pika_conf->consistency_level() == 0 || !cmd_ptr->res().ok() || !cmd_ptr->is_write()) {
     resp_num--;
     *resp_ptr = std::move(cmd_ptr->res().message());
   } else {
