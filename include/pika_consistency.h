@@ -36,6 +36,8 @@ class ConsistencyCoordinator {
   Status AddFollower(const std::string& ip, int port);
   Status RemoveFollower(const std::string& ip, int port);
 
+  size_t LogsSize();
+
  private:
   slash::Mutex logs_mu_;
   std::vector<LogItem> logs_;
