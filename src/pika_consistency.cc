@@ -66,7 +66,8 @@ Status ConsistencyCoordinator::UpdateMatchIndex(
 
 // if this added follower just match enough follower condition
 // need to purdge previews stale logs
-// (slave wrote binlog local not send ack back)
+// (slave wrote binlog local not send ack back
+// or slave did not recevie this binlog yet)
 Status ConsistencyCoordinator::AddFollower(const std::string& ip, int port) {
   bool before = true;
   bool after = false;
@@ -81,11 +82,10 @@ Status ConsistencyCoordinator::AddFollower(const std::string& ip, int port) {
     after = true;
   }
   if (!before && after) {
-    std::vector<LogItem> logs;
-    InternalPurdgeLog(&logs);
-    for (auto log : logs) {
+    for (auto log : logs_) {
       InternalApplyStale(log);
     }
+    committed_index_ = BinlogOffset();
   }
   return Status::OK();
 }
@@ -95,6 +95,11 @@ Status ConsistencyCoordinator::RemoveFollower(const std::string& ip, int port) {
   std::string ip_port = ip + std::to_string(port);
   match_index_.erase(ip_port);
   return Status::OK();
+}
+
+size_t ConsistencyCoordinator::LogsSize() {
+  slash::MutexLock l(&logs_mu_);
+  return logs_.size();
 }
 
 int ConsistencyCoordinator::InternalFindLogIndex() {

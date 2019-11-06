@@ -545,6 +545,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
 std::string SyncMasterPartition::ToStringStatus() {
   std::stringstream tmp_stream;
   tmp_stream << " Current Master Session: " << session_id_ << "\r\n";
+  tmp_stream << " ConsistencyLogs size: " << coordinator_.LogsSize() << "\r\n";
   slash::MutexLock l(&partition_mu_);
   for (size_t i = 0; i < slaves_.size(); ++i) {
     std::shared_ptr<SlaveNode> slave_ptr = slaves_[i];

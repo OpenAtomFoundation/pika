@@ -268,6 +268,7 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<s
       resp_num--;
       *resp_ptr = std::move(cmd_ptr->res().message());
     }
+    g_pika_server->SignalAuxiliary();
   }
 }
 
