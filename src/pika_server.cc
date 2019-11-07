@@ -217,7 +217,7 @@ void PikaServer::Start() {
   ret = pika_rsync_service_->StartRsync();
   if (0 != ret) {
     tables_.clear();
-    LOG(FATAL) << "Start Rsync Error: bind port " +std::to_string(pika_rsync_service_->ListenPort()) + " conflict"
+    LOG(FATAL) << "Start Rsync Error: bind port " +std::to_string(pika_rsync_service_->ListenPort()) + " failed"
       <<  ", Listen on this port to receive Master FullSync Data";
   }
 
