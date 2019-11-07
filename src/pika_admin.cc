@@ -1724,6 +1724,10 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'sync-window-size'\r\n";
       return;
     }
+    if (ival <= 0 || ival > kBinlogReadWinMaxSize) {
+      ret = "-ERR Argument exceed range \'" + value + "\' for CONFIG SET 'sync-window-size'\r\n";
+      return;
+    }
     g_pika_conf->SetSyncWindowSize(ival);
     ret = "+OK\r\n";
   } else {

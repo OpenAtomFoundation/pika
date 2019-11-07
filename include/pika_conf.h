@@ -231,7 +231,6 @@ class PikaConf : public slash::BaseConf {
     compact_interval_ = value;
   }
   void SetSyncWindowSize(const int &value) {
-    RWLock l(&rwlock_, true);
     TryPushDiffCommands("sync-window-size", std::to_string(value));
     sync_window_size_.store(value);
   }
