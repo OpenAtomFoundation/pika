@@ -1478,6 +1478,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->slave_priority());
   }
 
+  if (slash::stringmatch(pattern.data(), "sync-window-size", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "sync-window-size");
+    EncodeInt32(&config_body, g_pika_conf->sync_window_size());
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
@@ -1487,7 +1493,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*22\r\n";
+    ret = "*23\r\n";
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
@@ -1510,6 +1516,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "compact-cron");
     EncodeString(&ret, "compact-interval");
     EncodeString(&ret, "slave-priority");
+    EncodeString(&ret, "sync-window-size");
     return;
   }
   long int ival;
@@ -1712,6 +1719,13 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       g_pika_conf->SetCompactInterval(value);
       ret = "+OK\r\n";
     }
+  } else if (set_item == "sync-window-size") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'sync-window-size'\r\n";
+      return;
+    }
+    g_pika_conf->SetSyncWindowSize(ival);
+    ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
   }

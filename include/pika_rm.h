@@ -18,9 +18,8 @@
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 
-#define kBinlogSendPacketNum 30
+#define kBinlogSendPacketNum 40
 #define kBinlogSendBatchNum 100
-#define kBinlogReadWinSize 3000
 
 // unit seconds
 #define kSendKeepAliveTimeout (10 * 1000000)
@@ -66,7 +65,7 @@ class SyncWindow {
   }
  private:
   // TODO(whoiami) ring buffer maybe
-  std::vector<SyncWinItem> win_;
+  std::deque<SyncWinItem> win_;
 };
 
 // role master use
