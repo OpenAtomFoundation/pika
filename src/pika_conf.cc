@@ -417,9 +417,14 @@ int PikaConf::Load()
   GetConfStr("slaveof", &slaveof_);
 
   // sync window size
-  GetConfInt("sync-window-size", &sync_window_size_);
-  if (sync_window_size_ <= 0) {
-    sync_window_size_ = 9000;
+  int tmp_sync_window_size;
+  GetConfInt("sync-window-size", &tmp_sync_window_size);
+  if (tmp_sync_window_size <= 0) {
+    sync_window_size_.store(kBinlogReadWinDefaultSize);
+  } else if (tmp_sync_window_size > kBinlogReadWinMaxSize) {
+    sync_window_size_.store(kBinlogReadWinMaxSize);
+  } else {
+    sync_window_size_.store(tmp_sync_window_size);
   }
   return ret;
 }
@@ -457,7 +462,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("compact-cron", compact_cron_);
   SetConfStr("compact-interval", compact_interval_);
   SetConfInt("slave-priority", slave_priority_);
-  SetConfInt("sync-window-size", sync_window_size_);
+  SetConfInt("sync-window-size", sync_window_size_.load());
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
 

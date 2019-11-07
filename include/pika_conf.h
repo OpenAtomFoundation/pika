@@ -18,6 +18,9 @@
 #include "include/pika_define.h"
 #include "include/pika_meta.h"
 
+#define kBinlogReadWinDefaultSize 9000
+#define kBinlogReadWinMaxSize 90000
+
 typedef slash::RWLock RWLock;
 
 // global class, class members well initialized
@@ -82,7 +85,7 @@ class PikaConf : public slash::BaseConf {
   int slowlog_slower_than()                         { return slowlog_log_slower_than_.load(); }
   int slowlog_max_len()                             { RWLock L(&rwlock_, false); return slowlog_max_len_; }
   std::string network_interface()                   { RWLock l(&rwlock_, false); return network_interface_; }
-  int sync_window_size()                            { RWLock l(&rwlock_, false); return sync_window_size_; }
+  int sync_window_size()                            { return sync_window_size_.load(); }
 
   // Immutable config items, we don't use lock.
   bool daemonize()                                  { return daemonize_; }
@@ -230,7 +233,7 @@ class PikaConf : public slash::BaseConf {
   void SetSyncWindowSize(const int &value) {
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("sync-window-size", std::to_string(value));
-    sync_window_size_ = value;
+    sync_window_size_.store(value);
   }
 
   Status TablePartitionsSanityCheck(const std::string& table_name,
@@ -302,7 +305,7 @@ class PikaConf : public slash::BaseConf {
   bool cache_index_and_filter_blocks_;
   bool optimize_filters_for_hits_;
   bool level_compaction_dynamic_level_bytes_;
-  int sync_window_size_;
+  std::atomic<int> sync_window_size_;
 
   std::string network_interface_;
 
