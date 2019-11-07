@@ -693,8 +693,9 @@ void SyncWindow::Push(const SyncWinItem& item) {
   win_.push_back(item);
 }
 
-bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_item, BinlogOffset* acked_offset) {
-  size_t start_pos = kBinlogReadWinSize, end_pos = kBinlogReadWinSize;
+bool SyncWindow::Update(const SyncWinItem& start_item,
+    const SyncWinItem& end_item, BinlogOffset* acked_offset) {
+  size_t start_pos = win_.size(), end_pos = win_.size();
   for (size_t i = 0; i < win_.size(); ++i) {
     if (win_[i] == start_item) {
       start_pos = i;
@@ -704,8 +705,9 @@ bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_it
       break;
     }
   }
-  if (start_pos == kBinlogReadWinSize || end_pos == kBinlogReadWinSize) {
-    LOG(WARNING) << "Ack offset Start: " << start_item.ToString() << "End: " << end_item.ToString() <<
+  if (start_pos == win_.size() || end_pos == win_.size()) {
+    LOG(WARNING) << "Ack offset Start: " <<
+      start_item.ToString() << "End: " << end_item.ToString() <<
       " not found in binlog controller window." <<
       std::endl << "window status "<< std::endl << ToStringStatus();
     return false;
@@ -716,7 +718,7 @@ bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_it
   while (!win_.empty()) {
     if (win_[0].acked_) {
       *acked_offset = win_[0].offset_;
-      win_.erase(win_.begin());
+      win_.pop_front();
     } else {
       break;
     }
@@ -725,13 +727,14 @@ bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_it
 }
 
 int SyncWindow::Remainings() {
-  return kBinlogReadWinSize - win_.size();
+  std::size_t remaining_size = g_pika_conf->sync_window_size() - win_.size();
+  return remaining_size > 0? remaining_size:0 ;
 }
 
 /* PikaReplicaManger */
 
 PikaReplicaManager::PikaReplicaManager()
-    : last_meta_sync_timestamp_(0){
+    : last_meta_sync_timestamp_(0) {
   std::set<std::string> ips;
   ips.insert("0.0.0.0");
   int port = g_pika_conf->port() + kPortShiftReplServer;
