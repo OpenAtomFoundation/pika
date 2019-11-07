@@ -417,7 +417,7 @@ int PikaConf::Load()
   GetConfStr("slaveof", &slaveof_);
 
   // sync window size
-  int tmp_sync_window_size;
+  int tmp_sync_window_size = kBinlogReadWinDefaultSize;
   GetConfInt("sync-window-size", &tmp_sync_window_size);
   if (tmp_sync_window_size <= 0) {
     sync_window_size_.store(kBinlogReadWinDefaultSize);
