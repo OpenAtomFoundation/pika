@@ -870,11 +870,10 @@ void InfoCmd::InfoData(std::string &info) {
   uint64_t total_background_errors = 0;
   std::map<std::string, uint64_t> type_result;
   uint64_t memtable_usage = 0, table_reader_usage = 0;
-  g_pika_server->RWLockReader();
+  // Do NOT invoke RWLockReader here DoCmd process lock INFO command already
   g_pika_server->db()->GetUsage(blackwidow::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
   g_pika_server->db()->GetUsage(blackwidow::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
   g_pika_server->db()->GetUsage(blackwidow::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
-  g_pika_server->RWUnlock();
 
   for (const auto& item : type_result) {
     if (item.second != 0) {
