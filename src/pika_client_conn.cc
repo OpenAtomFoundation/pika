@@ -13,9 +13,12 @@
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_admin.h"
+#include "include/pika_rm.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
@@ -29,19 +32,24 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
   auth_stat_.Init();
 }
 
-std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
+std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
                                   const std::string& opt) {
   // Get command info
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
   if (!c_ptr) {
-      return "-Err unknown or unsupported command \'" + opt + "\'\r\n";
+    std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
+    tmp_ptr->res().SetRes(CmdRes::kErrOther,
+        "unknown or unsupported command \'" + opt + "\"");
+    return tmp_ptr;
   }
+
   c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
 
   // Check authed
   // AuthCmd will set stat_
   if (!auth_stat_.IsAuthed(c_ptr)) {
-    return "-ERR NOAUTH Authentication required.\r\n";
+    c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
+    return c_ptr;
   }
 
   uint64_t start_us = 0;
@@ -57,7 +65,7 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   // Initial
   c_ptr->Initial(argv, current_table_);
   if (!c_ptr->res().ok()) {
-    return c_ptr->res().message();
+    return c_ptr;
   }
 
   g_pika_server->UpdateQueryNumAndExecCountTable(opt);
@@ -70,29 +78,44 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
         opt != kCmdNamePing &&
         opt != kCmdNamePSubscribe &&
         opt != kCmdNamePUnSubscribe) {
-      return "-ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context\r\n";
+      c_ptr->res().SetRes(CmdRes::kErrOther,
+          "only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context");
+      return c_ptr;
     }
   }
 
+  if (g_pika_conf->consistency_level() != 0 && c_ptr->is_write()) {
+    c_ptr->SetStage(Cmd::kBinlogStage);
+  }
+
   if (!g_pika_server->IsCommandSupport(opt)) {
-    return "-ERR This command only support in classic mode\r\n";
+    c_ptr->res().SetRes(CmdRes::kErrOther,
+        "This command is not supported in current configuration");
+    return c_ptr;
   }
 
   if (!g_pika_server->IsTableExist(current_table_)) {
-    return "-ERR Table not found\r\n";
+    c_ptr->res().SetRes(CmdRes::kErrOther, "Table not found");
+    return c_ptr;
   }
 
   // TODO: Consider special commands, like flushall, flushdb?
   if (c_ptr->is_write()) {
     if (g_pika_server->IsTableBinlogIoError(current_table_)) {
-      return "-ERR Writing binlog failed, maybe no space left on device\r\n";
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
+      return c_ptr;
     }
     std::vector<std::string> cur_key = c_ptr->current_key();
     if (cur_key.empty()) {
-      return "-ERR Internal ERROR\r\n";
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
+      return c_ptr;
     }
     if (g_pika_server->readonly(current_table_, cur_key.front())) {
-      return "-ERR Server in read-only\r\n";
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
+      return c_ptr;
+    }
+    if (!g_pika_server->ConsistencyCheck(current_table_, cur_key.front())) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "consistency level not match");
     }
   }
 
@@ -102,8 +125,11 @@ std::string PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, start_us);
   }
+  if (g_pika_conf->consistency_level() != 0 && c_ptr->is_write()) {
+    c_ptr->SetStage(Cmd::kExecuteStage);
+  }
 
-  return c_ptr->res().message();
+  return c_ptr;
 }
 
 void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us) {
@@ -150,28 +176,79 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
 void PikaClientConn::AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) {
   BgTaskArg* arg = new BgTaskArg();
   arg->redis_cmds = argvs;
-  arg->response = response;
-  arg->pcc = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
-  g_pika_server->Schedule(&DoBackgroundTask, arg);
+  arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
+  g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
 }
 
-void PikaClientConn::BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) {
-  bool success = true;
-  for (const auto& argv : argvs) {
-    if (DealMessage(argv, response) != 0) {
-      success = false;
-      break;
+void PikaClientConn::DoBackgroundTask(void* arg) {
+  BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
+  std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
+  if (bg_arg->redis_cmds.size() == 0) {
+    delete bg_arg;
+    conn_ptr->NotifyEpoll(false);
+    return;
+  }
+  for (auto argv : bg_arg->redis_cmds) {
+    if (argv.size() == 0) {
+      delete bg_arg;
+      conn_ptr->NotifyEpoll(false);
+      return;
     }
   }
-  if (!response->empty()) {
-    set_is_reply(true);
-    NotifyEpoll(success);
+  conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds);
+  delete bg_arg;
+}
+
+void PikaClientConn::DoExecTask(void* arg) {
+  BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
+  std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;;
+  std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
+  std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
+
+  cmd_ptr->Execute();
+  conn_ptr->resp_num--;
+  *resp_ptr = std::move(cmd_ptr->res().message());
+  conn_ptr->TryWriteResp();
+}
+
+// do the same thing as DoExecTask for now
+// maybe not write response
+void PikaClientConn::DoStaleTask(void* arg) {
+  BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
+  std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;;
+  std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
+  std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
+
+  cmd_ptr->Execute();
+  conn_ptr->resp_num--;
+  *resp_ptr = std::move(cmd_ptr->res().message());
+  conn_ptr->TryWriteResp();
+}
+
+void PikaClientConn::BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs) {
+  resp_num.store(argvs.size());
+  for (size_t i = 0;i < argvs.size(); ++i) {
+    std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
+    resp_array.push_back(resp_ptr);
+    ExecRedisCmd(argvs[i], resp_ptr);
+  }
+  TryWriteResp();
+}
+
+void PikaClientConn::TryWriteResp() {
+  int expected = 0;
+  if (resp_num.compare_exchange_strong(expected, -1)) {
+    for (auto& resp : resp_array) {
+      WriteResp(std::move(*resp));
+    }
+    resp_array.clear();
+    NotifyEpoll(true);
   }
 }
 
-int PikaClientConn::DealMessage(const PikaCmdArgsType& argv, std::string* response) {
 
-  if (argv.empty()) return -2;
+void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string> resp_ptr) {
+  // get opt
   std::string opt = argv[0];
   if (opt == kClusterPrefix) {
     if (argv.size() >=2 ) {
@@ -180,20 +257,42 @@ int PikaClientConn::DealMessage(const PikaCmdArgsType& argv, std::string* respon
   }
   slash::StringToLower(opt);
 
-  if (response->empty()) {
-    // Avoid memory copy
-    *response = std::move(DoCmd(argv, opt));
+  std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt);
+  // level == 0 or (cmd error) or (is_read)
+  if (g_pika_conf->consistency_level() == 0 || !cmd_ptr->res().ok() || !cmd_ptr->is_write()) {
+    resp_num--;
+    *resp_ptr = std::move(cmd_ptr->res().message());
   } else {
-    // Maybe pipeline
-    response->append(DoCmd(argv, opt));
+    ConsistencyProposeLog(cmd_ptr, resp_ptr);
+    if (!cmd_ptr->res().ok()) {
+      resp_num--;
+      *resp_ptr = std::move(cmd_ptr->res().message());
+    }
+    g_pika_server->SignalAuxiliary();
   }
-  return 0;
 }
 
-void PikaClientConn::DoBackgroundTask(void* arg) {
-  BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
-  bg_arg->pcc->BatchExecRedisCmd(bg_arg->redis_cmds, bg_arg->response);
-  delete bg_arg;
+void PikaClientConn::ConsistencyProposeLog(std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<std::string> resp_ptr) {
+  BinlogOffset binlog_offset = cmd_ptr->binlog_offset();
+  std::string table_name = cmd_ptr->table_name();
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name);
+  if (table == nullptr) {
+    cmd_ptr->res().SetRes(CmdRes::kErrOther, "-ERR Internal Error");
+    return;
+  }
+  uint32_t index = g_pika_cmd_table_manager->DistributeKey(
+      cmd_ptr->current_key().front(), table->PartitionNum());
+
+  Status s = g_pika_rm->ConsistencyProposeLog(
+      cmd_ptr->table_name(),
+      index,
+      binlog_offset,
+      cmd_ptr,
+      std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()),
+      resp_ptr);
+  if (!s.ok()) {
+    cmd_ptr->res().SetRes(CmdRes::kErrOther, "-ERR consistency level not match");
+  }
 }
 
 // Initial permission status

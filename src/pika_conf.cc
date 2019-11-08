@@ -134,6 +134,11 @@ int PikaConf::Load()
   int tmp_slowlog_log_slower_than;
   GetConfInt("slowlog-log-slower-than", &tmp_slowlog_log_slower_than);
   slowlog_log_slower_than_.store(tmp_slowlog_log_slower_than);
+
+  int tmp_consistency_level = 0;
+  GetConfInt("consistency-level", &tmp_consistency_level);
+  consistency_level_.store(tmp_consistency_level);
+
   GetConfInt("slowlog-max-len", &slowlog_max_len_);
   if (slowlog_max_len_ == 0) {
     slowlog_max_len_ = 128;
@@ -463,6 +468,7 @@ int PikaConf::ConfigRewrite() {
   SetConfStr("compact-interval", compact_interval_);
   SetConfInt("slave-priority", slave_priority_);
   SetConfInt("sync-window-size", sync_window_size_.load());
+  SetConfInt("consistency-level", consistency_level_.load());
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
 

@@ -28,6 +28,7 @@
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_auxiliary_thread.h"
+#include "include/pika_client_processor.h"
 
 using slash::Status;
 using slash::Slice;
@@ -120,6 +121,7 @@ class PikaServer {
   int master_port();
   int role();
   bool readonly(const std::string& table, const std::string& key);
+  bool ConsistencyCheck(const std::string& table_name, const std::string& key);
   int repl_state();
   std::string repl_state_str();
   bool force_full_sync();
@@ -193,9 +195,10 @@ class PikaServer {
   void SetLoopPartitionStateMachine(bool need_loop);
 
   /*
-   * ThreadPool Process Task
+   * PikaClientProcessor Process Task
    */
-  void Schedule(pink::TaskFunc func, void* arg);
+  void ScheduleClientPool(pink::TaskFunc func, void* arg);
+  void ScheduleClientBgThreads(pink::TaskFunc func, void* arg, const std::string& hash_str);
 
   /*
    * BGSave used
@@ -337,7 +340,7 @@ class PikaServer {
    * Communicate with the client used
    */
   int worker_num_;
-  pink::ThreadPool* pika_thread_pool_;
+  PikaClientProcessor* pika_client_processor_;
   PikaDispatchThread* pika_dispatch_thread_;
 
 
