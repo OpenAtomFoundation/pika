@@ -278,7 +278,7 @@ public:
     kInvalidIndex,
     kInvalidDbType,
     kInvalidTable,
-    kErrOther,
+    kErrOther
   };
 
   CmdRes():ret_(kNone) {}
@@ -399,8 +399,13 @@ private:
 
 class Cmd {
  public:
+  enum CmdStage {
+    kNone,
+    kBinlogStage,
+    kExecuteStage
+  };
   Cmd(const std::string& name, int arity, uint16_t flag)
-    : name_(name), arity_(arity), flag_(flag) {}
+    : name_(name), arity_(arity), flag_(flag), stage_(kNone) {}
   virtual ~Cmd() {}
 
   virtual std::vector<std::string> current_key() const;
@@ -425,6 +430,8 @@ class Cmd {
 
   std::string name() const;
   CmdRes& res();
+  std::string table_name() const;
+  BinlogOffset binlog_offset() const;
 
   virtual std::string ToBinlog(uint32_t exec_time,
                                const std::string& server_id,
@@ -435,10 +442,12 @@ class Cmd {
   void SetConn(const std::shared_ptr<pink::PinkConn> conn);
   std::shared_ptr<pink::PinkConn> GetConn();
 
+  void SetStage(CmdStage stage);
  protected:
   // enable copy, used default copy
   //Cmd(const Cmd&);
   void ProcessCommand(std::shared_ptr<Partition> partition);
+  void InternalProcessCommand(std::shared_ptr<Partition> partition);
   void DoCommand(std::shared_ptr<Partition> partition);
   void DoBinlog(std::shared_ptr<Partition> partition);
   bool CheckArg(int num) const;
@@ -453,6 +462,8 @@ class Cmd {
   std::string table_name_;
 
   std::weak_ptr<pink::PinkConn> conn_;
+  BinlogOffset binlog_offset_;
+  CmdStage stage_;
 
  private:
   virtual void DoInitial() = 0;

@@ -617,6 +617,18 @@ void Cmd::ProcessSinglePartitionCmd() {
 }
 
 void Cmd::ProcessCommand(std::shared_ptr<Partition> partition) {
+  if (stage_ == kNone) {
+    InternalProcessCommand(partition);
+  } else {
+    if (stage_ == kBinlogStage) {
+      DoBinlog(partition);
+    } else if (stage_ == kExecuteStage) {
+      DoCommand(partition);
+    }
+  }
+}
+
+void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition) {
   slash::lock::MultiRecordLock record_lock(partition->LockMgr());
   if (is_write()) {
     record_lock.Lock(current_key());
@@ -664,6 +676,8 @@ void Cmd::DoBinlog(std::shared_ptr<Partition> partition) {
                                   offset);
 
     Status s = partition->WriteBinlog(binlog);
+    partition->logger()->GetProducerStatus(&filenum, &offset);
+    binlog_offset_ = BinlogOffset(filenum, offset);
     partition->logger()->Unlock();
 
     if (!s.ok()) {
@@ -713,6 +727,14 @@ CmdRes& Cmd::res() {
   return res_;
 }
 
+std::string Cmd::table_name() const {
+  return table_name_;
+}
+
+BinlogOffset Cmd::binlog_offset() const {
+  return binlog_offset_;
+}
+
 std::string Cmd::ToBinlog(uint32_t exec_time,
                           const std::string& server_id,
                           uint64_t logic_id,
@@ -760,4 +782,8 @@ void Cmd::SetConn(const std::shared_ptr<pink::PinkConn> conn) {
 
 std::shared_ptr<pink::PinkConn> Cmd::GetConn() {
   return conn_.lock();
+}
+
+void Cmd::SetStage(CmdStage stage) {
+  stage_ = stage;
 }
