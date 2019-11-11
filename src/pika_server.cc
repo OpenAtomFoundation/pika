@@ -264,6 +264,10 @@ void PikaServer::RocksdbOptionInit(blackwidow::BlackwidowOptions* bw_option) {
     bw_option->options.compression = rocksdb::CompressionType::kSnappyCompression;
   } else if (g_pika_conf->compression() == "zlib") {
     bw_option->options.compression = rocksdb::CompressionType::kZlibCompression;
+  } else if (g_pika_conf->compression() == "lz4") {
+    bw_option->options.compression = rocksdb::CompressionType::kLZ4Compression;
+  } else if (g_pika_conf->compression() == "zstd") {
+    bw_option->options.compression = rocksdb::CompressionType::kZSTD;
   }
 
   bw_option->table_options.block_size = g_pika_conf->block_size();
