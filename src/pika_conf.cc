@@ -114,6 +114,8 @@ int PikaConf::Load()
   GetConfStr("server-id", &server_id_);
   if (server_id_.empty()) {
     server_id_ = "1";
+  } else if (PIKA_SERVER_ID_MAX < std::stoull(server_id_)) {
+    server_id_ = "PIKA_SERVER_ID_MAX";
   }
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
