@@ -16,6 +16,7 @@
 #define PIKA_REPL_SERVER_TP_SIZE        3
 #define PIKA_META_SYNC_MAX_WAIT_TIME    10
 #define PIKA_SCAN_STEP_LENGTH           1000
+#define PIKA_SERVER_ID_MAX              65535
 
 class PikaServer;
 
