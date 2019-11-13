@@ -14,7 +14,9 @@ class PikaAuxiliaryThread : public pink::Thread {
  public:
   PikaAuxiliaryThread() :
       mu_(),
-      cv_(&mu_) {}
+      cv_(&mu_) {
+      set_thread_name("AuxiliaryThread");
+  }
   virtual ~PikaAuxiliaryThread();
   slash::Mutex mu_;
   slash::CondVar cv_;
