@@ -28,11 +28,6 @@ Status ConsistencyCoordinator::ProposeLog(
 }
 
 Status ConsistencyCoordinator::ScheduleApplyLog() {
-  {
-    slash::MutexLock l(&index_mu_);
-    InternalUpdateCommittedIndex();
-  }
-
   std::vector<LogItem> logs;
   int res = 0;
   {
@@ -61,6 +56,7 @@ Status ConsistencyCoordinator::UpdateMatchIndex(
   slash::MutexLock l(&index_mu_);
   std::string ip_port = ip + std::to_string(port);
   match_index_[ip_port] = offset;
+  InternalUpdateCommittedIndex();
   return Status::OK();
 }
 
@@ -116,12 +112,15 @@ int ConsistencyCoordinator::InternalFindLogIndex() {
 
 void ConsistencyCoordinator::InternalUpdateCommittedIndex() {
   int consistency_level = g_pika_conf->consistency_level();
+  if (!InternalMatchConsistencyLevel()) {
+    return;
+  }
   std::vector<BinlogOffset> offsets;
   for (auto index : match_index_) {
     offsets.push_back(index.second);
   }
   std::sort(offsets.begin(), offsets.end());
-  BinlogOffset offset = offsets[consistency_level - 1];
+  BinlogOffset offset = offsets[offsets.size() - consistency_level];
   if (offset > committed_index_) {
     committed_index_ = offset;
   }
