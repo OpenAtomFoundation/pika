@@ -132,7 +132,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
       pre_success = false;
     }
     if (pre_success) {
-      std::string confile = NewFileName(partition->logger()->filename, slave_boffset.filenum());
+      std::string confile = NewFileName(partition->logger()->filename(), slave_boffset.filenum());
       if (!slash::FileExists(confile)) {
         LOG(INFO) << "Partition: " << partition_name << " binlog has been purged, may need full sync";
         try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
