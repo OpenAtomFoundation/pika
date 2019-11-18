@@ -72,7 +72,8 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
     pool_(NULL),
     exit_all_consume_(false),
     binlog_path_(binlog_path),
-    file_size_(file_size) {
+    file_size_(file_size),
+    binlog_io_error(false) {
 
   // To intergrate with old version, we don't set mmap file size to 100M;
   //slash::SetMmapBoundSize(file_size);
@@ -178,7 +179,11 @@ Status Binlog::Put(const std::string &item) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");
   }
-  return Put(item.c_str(), item.size());
+  Status s = Put(item.c_str(), item.size());
+  if (!s.ok()) {
+    binlog_io_error_.load(true);
+  }
+  return s;
 }
 
 // Note: mutex lock should be held
