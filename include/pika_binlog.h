@@ -6,6 +6,8 @@
 #ifndef PIKA_BINLOG_H_
 #define PIKA_BINLOG_H_
 
+#include <atomic>
+
 #include "slash/include/env.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/slash_status.h"
@@ -56,7 +58,6 @@ class Binlog {
   void Unlock()       { mutex_.Unlock(); }
 
   Status Put(const std::string &item);
-  Status Put(const char* item, int len);
 
   Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id = NULL);
   /*
@@ -64,17 +65,19 @@ class Binlog {
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
 
-  static Status AppendPadding(slash::WritableFile* file, uint64_t* len);
-
-  slash::WritableFile *queue() { return queue_; }
-
   uint64_t file_size() {
     return file_size_;
   }
 
-  std::string filename;
+  std::string filename() {
+    return filename_;
+  }
 
  private:
+  void Close();
+  Status Put(const char* item, int len);
+  static Status AppendPadding(slash::WritableFile* file, uint64_t* len);
+  //slash::WritableFile *queue() { return queue_; }
 
   void InitLogFile();
   Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset);
@@ -84,6 +87,8 @@ class Binlog {
    * Produce
    */
   Status Produce(const Slice &item, int *pro_offset);
+
+  std::atomic<bool> opened_;
 
   uint32_t consumer_num_;
   uint64_t item_num_;
@@ -104,6 +109,7 @@ class Binlog {
 
   uint64_t file_size_;
 
+  std::string filename_;
   // Not use
   //int32_t retry_;
 
