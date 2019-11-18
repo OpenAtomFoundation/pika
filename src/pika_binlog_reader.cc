@@ -52,7 +52,7 @@ bool PikaBinlogReader::ReadToTheEnd() {
 }
 
 int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
-  std::string confile = NewFileName(logger->filename, filenum);
+  std::string confile = NewFileName(logger->filename(), filenum);
   if (!slash::FileExists(confile)) {
     return -1;
   }
@@ -235,7 +235,7 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
     }
     s = Consume(scratch, filenum, offset);
     if (s.IsEndFile()) {
-      std::string confile = NewFileName(logger_->filename, cur_filenum_ + 1);
+      std::string confile = NewFileName(logger_->filename(), cur_filenum_ + 1);
 
       // sleep 10ms wait produce thread generate the new binlog
       usleep(10000);

@@ -940,7 +940,7 @@ void PikaServer::TryDBSync(const std::string& ip, int port,
       << " Not Found, TryDBSync Failed";
   } else {
     BgSaveInfo bgsave_info = partition->bgsave_info();
-    std::string logger_filename = partition->logger()->filename;
+    std::string logger_filename = partition->logger()->filename();
     if (slash::IsDir(bgsave_info.path) != 0
       || !slash::FileExists(NewFileName(logger_filename, bgsave_info.filenum))
       || top - bgsave_info.filenum > kDBSyncMaxGap) {
