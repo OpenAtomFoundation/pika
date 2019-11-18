@@ -63,6 +63,7 @@ Status Version::Init() {
  * Binlog
  */
 Binlog::Binlog(const std::string& binlog_path, const int file_size) :
+    opened_(false),
     consumer_num_(0),
     version_(NULL),
     queue_(NULL),
@@ -81,17 +82,17 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
 
   slash::CreateDir(binlog_path_);
 
-  filename = binlog_path_ + kBinlogPrefix;
+  filename_ = binlog_path_ + kBinlogPrefix;
   const std::string manifest = binlog_path_ + kManifest;
   std::string profile;
 
   if (!slash::FileExists(manifest)) {
     LOG(INFO) << "Binlog: Manifest file not exist, we create a new one.";
 
-    profile = NewFileName(filename, pro_num_);
+    profile = NewFileName(filename_, pro_num_);
     s = slash::NewWritableFile(profile, &queue_);
     if (!s.ok()) {
-      LOG(FATAL) << "Binlog: new " << filename << " " << s.ToString();
+      LOG(FATAL) << "Binlog: new " << filename_ << " " << s.ToString();
     }
 
 
@@ -117,7 +118,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
       LOG(FATAL) << "Binlog: open versionfile error";
     }
 
-    profile = NewFileName(filename, pro_num_);
+    profile = NewFileName(filename_, pro_num_);
     DLOG(INFO) << "Binlog: open profile " << profile;
     s = slash::AppendWritableFile(profile, &queue_, version_->pro_offset_);
     if (!s.ok()) {
@@ -132,10 +133,19 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
 }
 
 Binlog::~Binlog() {
+  slash::MutexLock l(&mutex_);
+  Close();
   delete version_;
   delete versionfile_;
 
   delete queue_;
+}
+
+void Binlog::Close() {
+  if (!opened_.load()) {
+    return;
+  }
+  opened_.store(false);
 }
 
 void Binlog::InitLogFile() {
@@ -143,9 +153,15 @@ void Binlog::InitLogFile() {
 
   uint64_t filesize = queue_->Filesize();
   block_offset_ = filesize % kBlockSize;
+
+  opened_.store(true);
 }
 
 Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id) {
+  if (!opened_.load()) {
+    return Status::Busy("Binlog is not open yet");
+  }
+
   slash::RWLock(&(version_->rwlock_), false);
 
   *filenum = version_->pro_num_;
@@ -159,6 +175,9 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64
 
 // Note: mutex lock should be held
 Status Binlog::Put(const std::string &item) {
+  if (!opened_.load()) {
+    return Status::Busy("Binlog is not open yet");
+  }
   return Put(item.c_str(), item.size());
 }
 
@@ -173,7 +192,7 @@ Status Binlog::Put(const char* item, int len) {
     queue_ = NULL;
 
     pro_num_++;
-    std::string profile = NewFileName(filename, pro_num_);
+    std::string profile = NewFileName(filename_, pro_num_);
     slash::NewWritableFile(profile, &queue_);
 
     {
@@ -321,6 +340,10 @@ Status Binlog::AppendPadding(slash::WritableFile* file, uint64_t* len) {
 }
 
 Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
+  if (!opened_.load()) {
+    return Status::Busy("Binlog is not open yet");
+  }
+
   slash::MutexLock l(&mutex_);
 
   // offset smaller than the first header
@@ -330,12 +353,12 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
 
   delete queue_;
 
-  std::string init_profile = NewFileName(filename, 0);
+  std::string init_profile = NewFileName(filename_, 0);
   if (slash::FileExists(init_profile)) {
     slash::DeleteFile(init_profile);
   }
 
-  std::string profile = NewFileName(filename, pro_num);
+  std::string profile = NewFileName(filename_, pro_num);
   if (slash::FileExists(profile)) {
     slash::DeleteFile(profile);
   }
