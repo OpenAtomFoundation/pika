@@ -73,6 +73,10 @@ class Binlog {
     return filename_;
   }
 
+  bool IsBinlogError() {
+    return binlog_io_error_;
+  }
+
  private:
   void Close();
   Status Put(const char* item, int len);
@@ -110,6 +114,8 @@ class Binlog {
   uint64_t file_size_;
 
   std::string filename_;
+
+  std::atomic<bool> binlog_io_error_;
   // Not use
   //int32_t retry_;
 
