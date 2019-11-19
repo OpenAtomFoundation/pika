@@ -73,7 +73,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
     exit_all_consume_(false),
     binlog_path_(binlog_path),
     file_size_(file_size),
-    binlog_io_error(false) {
+    binlog_io_error_(false) {
 
   // To intergrate with old version, we don't set mmap file size to 100M;
   //slash::SetMmapBoundSize(file_size);
@@ -181,7 +181,7 @@ Status Binlog::Put(const std::string &item) {
   }
   Status s = Put(item.c_str(), item.size());
   if (!s.ok()) {
-    binlog_io_error_.load(true);
+    binlog_io_error_.store(true);
   }
   return s;
 }
