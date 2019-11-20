@@ -1,6 +1,6 @@
 # Pika
 
-[![Build Status](https://travis-ci.org/Qihoo360/pika.svg?branch=master)](https://travis-ci.org/Qihoo360/pika)
+[![Build Status](https://travis-ci.org/Qihoo360/pika.svg?branch=master)](https://travis-ci.org/Qihoo360/pika) ![Downloads](https://img.shields.io/github/downloads/Qihoo360/pika/total)
 
 ## Introduction[中文](https://github.com/Qihoo360/pika/blob/master/README_CN.md)
 
