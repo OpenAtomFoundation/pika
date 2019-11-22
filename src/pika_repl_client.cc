@@ -232,7 +232,14 @@ Status PikaReplClient::SendPartitionBinlogSync(const std::string& ip,
   ack_range_end->set_filenum(ack_end.filenum);
   ack_range_end->set_offset(ack_end.offset);
 
-  int32_t session_id = g_pika_rm->GetSlavePartitionSessionId(table_name, partition_id);
+  std::shared_ptr<SyncSlavePartition> slave_partition =
+    g_pika_rm->GetSyncSlavePartitionByName(
+        PartitionInfo(table_name, partition_id));
+  if (!slave_partition) {
+    LOG(WARNING) << "Slave Partition: " << table_name << "_" << partition_id << " not exist";
+    return Status::NotFound("SyncSlavePartition NotFound");
+  }
+  int32_t session_id = slave_partition->MasterSessionId();
   binlog_sync->set_session_id(session_id);
 
   std::string to_send;

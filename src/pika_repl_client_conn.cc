@@ -158,8 +158,7 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
     return;
   }
 
-  g_pika_rm->UpdateSyncSlavePartitionSessionId(
-          PartitionInfo(table_name, partition_id), session_id);
+  slave_partition->SetMasterSessionId(session_id);
 
   std::string partition_name = slave_partition->PartitionName();
   slave_partition->SetReplState(ReplState::kWaitDBSync);
@@ -205,7 +204,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     BinlogOffset boffset;
     int32_t session_id = try_sync_response.session_id();
     partition->Logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
-    g_pika_rm->UpdateSyncSlavePartitionSessionId(PartitionInfo(table_name, partition_id), session_id);
+    slave_partition->SetMasterSessionId(session_id);
     g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, boffset, boffset, true);
     slave_partition->SetReplState(ReplState::kConnected);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
@@ -236,9 +235,17 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
     par_binlog[p_info]->push_back(i);
   }
 
+  std::shared_ptr<SyncSlavePartition> slave_partition = nullptr;
   for (auto& binlog_nums : par_binlog) {
     RmNode node(binlog_nums.first.table_name_, binlog_nums.first.partition_id_);
-    g_pika_rm->SetSlaveLastRecvTime(node, slash::NowMicros());
+    slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
+        PartitionInfo(binlog_nums.first.table_name_, binlog_nums.first.partition_id_));
+    if (!slave_partition) {
+      LOG(WARNING) << "Slave Partition: " << binlog_nums.first.table_name_ << "_"
+        << binlog_nums.first.partition_id_ << " not exist";
+      break;
+    }
+    slave_partition->SetLastRecvTime(slash::NowMicros());
     g_pika_rm->ScheduleWriteBinlogTask(
         binlog_nums.first.table_name_ + std::to_string(binlog_nums.first.partition_id_),
         res,

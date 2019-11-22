@@ -164,8 +164,15 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
   // Until sync done, new node slaveof no one.
   // mark this migrate done
   // proxy retry cached request in new node
-  bool is_exist = g_pika_rm->CheckPartitionSlaveExist(
-      RmNode(dest_ip_, dest_port_, g_pika_conf->default_table(), slot_num_));
+  bool is_exist = true;
+  std::shared_ptr<SyncMasterPartition> master_partition =
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(g_pika_conf->default_table(), slot_num_));
+  if (!master_partition) {
+    LOG(WARNING) << "Sync Master Partition: " << g_pika_conf->default_table() << ":" << slot_num_
+        << ", NotFound";
+    is_exist = false;
+  }
+  is_exist = master_partition->CheckSlaveNodeExist(dest_ip_, dest_port_);
   if (is_exist) {
     remained = 1;
   } else {

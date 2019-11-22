@@ -92,6 +92,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
   int delete_num = 0;
   struct stat file_stat;
   int remain_expire_num = binlogs.size() - g_pika_conf->expire_logs_nums();
+  std::shared_ptr<SyncMasterPartition> master_partition = nullptr;
   std::map<uint32_t, std::string>::iterator it;
   for (it = binlogs.begin(); it != binlogs.end(); ++it) {
     if ((manual && it->first <= to)                                                             // Manual purgelogsto
@@ -100,7 +101,13 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
           && stat(((log_path_ + it->second)).c_str(), &file_stat) == 0
           && file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days() * 24 * 3600)) {  // Expire time trigger
       // We check this every time to avoid lock when we do file deletion
-      if (!g_pika_rm->BinlogCloudPurgeFromSMP(table_name_, partition_id_, it->first)) {
+      master_partition = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, partition_id_));
+      if (!master_partition) {
+        LOG(WARNING) << "Partition: " << table_name_ << ":" << partition_id_ << " Not Found";
+        return false;
+      }
+
+      if (!master_partition->BinlogCloudPurge(it->first)) {
         LOG(WARNING) << log_path_ << " Could not purge "<< (it->first) << ", since it is already be used";
         return false;
       }
