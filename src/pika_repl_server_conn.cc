@@ -91,7 +91,8 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
 
   bool pre_success = true;
   response.set_type(InnerMessage::Type::kTrySync);
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
+  std::shared_ptr<SyncMasterPartition> partition =
+    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!partition) {
     response.set_code(InnerMessage::kError);
     response.set_reply("Partition not found");
@@ -103,7 +104,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   BinlogOffset boffset;
   std::string partition_name;
   if (pre_success) {
-    partition_name = partition->GetPartitionName();
+    partition_name = partition->PartitionName();
     LOG(INFO) << "Receive Trysync, Slave ip: " << node.ip() << ", Slave port:"
       << node.port() << ", Partition: " << partition_name << ", filenum: "
       << slave_boffset.filenum() << ", pro_offset: " << slave_boffset.offset();
@@ -111,7 +112,8 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
     response.set_code(InnerMessage::kOk);
     partition_response->set_table_name(table_name);
     partition_response->set_partition_id(partition_id);
-    if (!partition->GetBinlogOffset(&boffset)) {
+    Status s = partition->Logger()->GetProducerStatus(&(boffset.filenum), &(boffset.offset));
+    if (!s.ok()) {
       try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
       LOG(WARNING) << "Handle TrySync, Partition: "
         << partition_name << " Get binlog offset error, TrySync failed";
@@ -132,7 +134,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
       pre_success = false;
     }
     if (pre_success) {
-      std::string confile = NewFileName(partition->logger()->filename(), slave_boffset.filenum());
+      std::string confile = NewFileName(partition->Logger()->filename(), slave_boffset.filenum());
       if (!slash::FileExists(confile)) {
         LOG(INFO) << "Partition: " << partition_name << " binlog has been purged, may need full sync";
         try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
@@ -141,7 +143,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
     }
     if (pre_success) {
       PikaBinlogReader reader;
-      reader.Seek(partition->logger(), slave_boffset.filenum(), slave_boffset.offset());
+      reader.Seek(partition->Logger(), slave_boffset.filenum(), slave_boffset.offset());
       BinlogOffset seeked_offset;
       reader.GetReaderStatus(&(seeked_offset.filenum), &(seeked_offset.offset));
       if (seeked_offset.filenum != slave_boffset.filenum() || seeked_offset.offset != slave_boffset.offset()) {

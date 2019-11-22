@@ -107,8 +107,8 @@ void PkClusterInfoCmd::ClusterInfoSlotAll(std::string* info) {
 Status PkClusterInfoCmd::GetSlotInfo(const std::string table_name,
                                      uint32_t partition_id,
                                      std::string* info) {
-  std::shared_ptr<Partition> partition =
-    g_pika_server->GetTablePartitionById(table_name, partition_id);
+  std::shared_ptr<SyncMasterPartition> partition =
+    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!partition) {
     return Status::NotFound("not found");
   }
@@ -118,8 +118,8 @@ Status PkClusterInfoCmd::GetSlotInfo(const std::string table_name,
   // binlog offset section
   uint32_t filenum = 0;
   uint64_t offset = 0;
-  partition->logger()->GetProducerStatus(&filenum, &offset);
-  tmp_stream << partition->GetPartitionName() << " binlog_offset="
+  partition->Logger()->GetProducerStatus(&filenum, &offset);
+  tmp_stream << partition->PartitionName() << " binlog_offset="
     << filenum << " " << offset;
 
   // safety purge section
@@ -319,6 +319,7 @@ void PkClusterDelSlotsCmd::Do(std::shared_ptr<Partition> partition) {
     LOG(WARNING) << "Removeslots sanity check failed: " << s.ToString();
     pre_success = false;
   }
+  // remove order maters
   if (pre_success) {
     s = g_pika_conf->RemoveTablePartitions(table_name, slots_);
     if (!s.ok()) {
@@ -327,16 +328,16 @@ void PkClusterDelSlotsCmd::Do(std::shared_ptr<Partition> partition) {
     }
   }
   if (pre_success) {
-    s = table_ptr->RemovePartitions(slots_);
+    s = g_pika_rm->RemoveSyncPartition(p_infos_);
     if (!s.ok()) {
-      LOG(WARNING) << "Removeslots remove from table partition failed: " << s.ToString();
+      LOG(WARNING) << "Remvoeslots remove from sync partition failed: " << s.ToString();
       pre_success = false;
     }
   }
   if (pre_success) {
-    s = g_pika_rm->RemoveSyncPartition(p_infos_);
+    s = table_ptr->RemovePartitions(slots_);
     if (!s.ok()) {
-      LOG(WARNING) << "Remvoeslots remove from sync partition failed: " << s.ToString();
+      LOG(WARNING) << "Removeslots remove from table partition failed: " << s.ToString();
       pre_success = false;
     }
   }

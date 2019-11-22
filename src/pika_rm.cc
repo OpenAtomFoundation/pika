@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "set"
+#include "include/pika_rm.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -12,11 +12,8 @@
 
 #include "pink/include/pink_cli.h"
 
-#include "include/pika_rm.h"
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
-#include "include/pika_repl_client.h"
-#include "include/pika_repl_server.h"
 
 extern PikaConf *g_pika_conf;
 extern PikaReplicaManager* g_pika_rm;
@@ -109,11 +106,24 @@ SyncPartition::SyncPartition(const std::string& table_name, uint32_t partition_i
   : partition_info_(table_name, partition_id) {
 }
 
+std::string SyncPartition::PartitionName() {
+  if (g_pika_conf->classic_mode()) {
+    return partition_info_.table_name_;
+  } else {
+    return partition_info_.ToString();
+  }
+}
+
 /* SyncMasterPartition*/
 
 SyncMasterPartition::SyncMasterPartition(const std::string& table_name, uint32_t partition_id)
     : SyncPartition(table_name, partition_id),
-      session_id_(0) {}
+      session_id_(0) {
+  std::string table_log_path = g_pika_conf->log_path() + "log_" + table_name + "/";
+  std::string log_path = g_pika_conf->classic_mode() ?
+    table_log_path : table_log_path + std::to_string(partition_id) + "/";
+  stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
+}
 
 bool SyncMasterPartition::CheckReadBinlogFromCache() {
   return false;
@@ -183,7 +193,6 @@ Status SyncMasterPartition::RemoveSlaveNode(const std::string& ip, int port) {
 
 Status SyncMasterPartition::ActivateSlaveBinlogSync(const std::string& ip,
                                                     int port,
-                                                    const std::shared_ptr<Binlog> binlog,
                                                     const BinlogOffset& offset) {
   {
   slash::MutexLock l(&partition_mu_);
@@ -205,7 +214,7 @@ Status SyncMasterPartition::ActivateSlaveBinlogSync(const std::string& ip,
     slave_ptr->b_state = kReadFromCache;
   } else {
     // read binlog file from file
-    s = slave_ptr->InitBinlogFileReader(binlog, offset);
+    s = slave_ptr->InitBinlogFileReader(Logger(), offset);
     if (!s.ok()) {
       slave_ptr->Unlock();
       return Status::Corruption("Init binlog file reader failed" + s.ToString());
@@ -452,54 +461,46 @@ Status SyncMasterPartition::GetLastRecvTime(const std::string& ip, int port, uin
 
 Status SyncMasterPartition::GetSafetyPurgeBinlog(std::string* safety_purge) {
   BinlogOffset boffset;
-  std::string table_name = partition_info_.table_name_;
-  uint32_t partition_id = partition_info_.partition_id_;
-  std::shared_ptr<Partition> partition =
-      g_pika_server->GetTablePartitionById(table_name, partition_id);
-  if (!partition || !partition->GetBinlogOffset(&boffset)) {
-    return Status::NotFound("Partition NotFound");
-  } else {
-    bool success = false;
-    uint32_t purge_max = boffset.filenum;
-    if (purge_max >= 10) {
-      success = true;
-      purge_max -= 10;
-      slash::MutexLock l(&partition_mu_);
-      for (const auto& slave : slaves_) {
-        if (slave->slave_state == SlaveState::kSlaveBinlogSync
-          && slave->acked_offset.filenum > 0) {
-          purge_max = std::min(slave->acked_offset.filenum - 1, purge_max);
-        } else {
-          success = false;
-          break;
-        }
+  Status s = Logger()->GetProducerStatus(&(boffset.filenum), &(boffset.offset));
+  if (!s.ok()) {
+    return s;
+  }
+  bool success = false;
+  uint32_t purge_max = boffset.filenum;
+  if (purge_max >= 10) {
+    success = true;
+    purge_max -= 10;
+    slash::MutexLock l(&partition_mu_);
+    for (const auto& slave : slaves_) {
+      if (slave->slave_state == SlaveState::kSlaveBinlogSync
+        && slave->acked_offset.filenum > 0) {
+        purge_max = std::min(slave->acked_offset.filenum - 1, purge_max);
+      } else {
+        success = false;
+        break;
       }
     }
-    *safety_purge = (success ? kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none");
   }
+  *safety_purge = (success ? kBinlogPrefix + std::to_string(static_cast<int32_t>(purge_max)) : "none");
   return Status::OK();
 }
 
 bool SyncMasterPartition::BinlogCloudPurge(uint32_t index) {
   BinlogOffset boffset;
-  std::string table_name = partition_info_.table_name_;
-  uint32_t partition_id = partition_info_.partition_id_;
-  std::shared_ptr<Partition> partition =
-      g_pika_server->GetTablePartitionById(table_name, partition_id);
-  if (!partition || !partition->GetBinlogOffset(&boffset)) {
+  Status s = Logger()->GetProducerStatus(&(boffset.filenum), &(boffset.offset));
+  if (!s.ok()) {
+    return false;
+  }
+  if (index > boffset.filenum - 10) {  // remain some more
     return false;
   } else {
-    if (index > boffset.filenum - 10) {  // remain some more
-      return false;
-    } else {
-      slash::MutexLock l(&partition_mu_);
-      for (const auto& slave : slaves_) {
-        if (slave->slave_state == SlaveState::kSlaveDbSync) {
+    slash::MutexLock l(&partition_mu_);
+    for (const auto& slave : slaves_) {
+      if (slave->slave_state == SlaveState::kSlaveDbSync) {
+        return false;
+      } else if (slave->slave_state == SlaveState::kSlaveBinlogSync) {
+        if (index >= slave->acked_offset.filenum) {
           return false;
-        } else if (slave->slave_state == SlaveState::kSlaveBinlogSync) {
-          if (index >= slave->acked_offset.filenum) {
-            return false;
-          }
         }
       }
     }
@@ -579,10 +580,10 @@ Status SyncMasterPartition::GetInfo(std::string* info) {
       << slave_ptr->Ip()  << ":" << std::to_string(slave_ptr->Port()) << "\r\n";
     tmp_stream << "  replication_status: " << SlaveStateMsg[slave_ptr->slave_state] << "\r\n";
     if (slave_ptr->slave_state == kSlaveBinlogSync) {
-      std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(slave_ptr->TableName(), slave_ptr->PartitionId());
       BinlogOffset binlog_offset;
-      if (!partition || !partition->GetBinlogOffset(&binlog_offset)) {
-        return Status::Corruption("Get Info failed.");
+      Status s = Logger()->GetProducerStatus(&(binlog_offset.filenum), &(binlog_offset.offset));
+      if (!s.ok()) {
+        return s;
       }
       uint64_t lag = (binlog_offset.filenum - slave_ptr->acked_offset.filenum) *
         g_pika_conf->binlog_file_size()
@@ -1019,12 +1020,7 @@ Status PikaReplicaManager::ActivateBinlogSync(const RmNode& slave, const BinlogO
   }
   std::shared_ptr<SyncMasterPartition> sync_partition = sync_master_partitions_[slave.NodePartitionInfo()];
 
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(slave.TableName(), slave.PartitionId());
-  if (!partition) {
-    return Status::Corruption("Found Binlog faile");
-  }
-
-  Status s = sync_partition->ActivateSlaveBinlogSync(slave.Ip(), slave.Port(), partition->logger(), offset);
+  Status s = sync_partition->ActivateSlaveBinlogSync(slave.Ip(), slave.Port(), offset);
   if (!s.ok()) {
     return s;
   }
@@ -1584,6 +1580,9 @@ Status PikaReplicaManager::RemoveSyncPartition(
 
   slash::RWLock l(&partitions_rw_, true);
   for (const auto& p_info : p_infos) {
+    if (sync_master_partitions_.find(p_info) != sync_master_partitions_.end()) {
+      sync_master_partitions_[p_info]->StableLogger()->Leave();
+    }
     sync_master_partitions_.erase(p_info);
     sync_slave_partitions_.erase(p_info);
   }

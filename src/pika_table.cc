@@ -7,8 +7,10 @@
 
 #include "include/pika_server.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_rm.h"
 
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 std::string TablePath(const std::string& path,
@@ -85,7 +87,10 @@ bool Table::FlushPartitionSubDB(const std::string& db_name) {
 bool Table::IsBinlogIoError() {
   slash::RWLock l(&partitions_rw_, false);
   for (const auto& item : partitions_) {
-    if (item.second->IsBinlogIoError()) {
+    std::shared_ptr<SyncMasterPartition> partition =
+      g_pika_rm->GetSyncMasterPartitionByName(
+          PartitionInfo(table_name_, item.second->GetPartitionId()));
+    if (partition->Logger()->IsBinlogIoError()) {
       return true;
     }
   }
@@ -110,7 +115,7 @@ Status Table::AddPartitions(const std::set<uint32_t>& partition_ids) {
 
   for (const uint32_t& id : partition_ids) {
     partitions_.emplace(id, std::make_shared<Partition>(
-          table_name_, id, db_path_, log_path_));
+          table_name_, id, db_path_));
   }
   return Status::OK();
 }

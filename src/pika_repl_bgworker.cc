@@ -71,7 +71,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   worker->table_name_ = table_name;
   worker->partition_id_ = partition_id;
 
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
+  std::shared_ptr<SyncMasterPartition> partition = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!partition) {
     LOG(WARNING) << "Partition " << table_name << "_" << partition_id << " Not Found";
     delete index;
@@ -142,7 +142,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   delete task_arg;
 
   // Reply Ack to master immediately
-  std::shared_ptr<Binlog> logger = partition->logger();
+  std::shared_ptr<Binlog> logger = partition->Logger();
   logger->GetProducerStatus(&ack_end.filenum, &ack_end.offset);
   // keepalive case
   if (ack_start == BinlogOffset()) {
@@ -183,8 +183,13 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
     return -1;
   }
 
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(worker->table_name_, worker->partition_id_);
-  std::shared_ptr<Binlog> logger = partition->logger();
+
+  std::shared_ptr<SyncMasterPartition> partition
+    = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(worker->table_name_, worker->partition_id_));
+  if (!partition) {
+    LOG(WARNING) << worker->table_name_ << worker->partition_id_ << "Not found.";
+  }
+  std::shared_ptr<Binlog> logger = partition->Logger();
 
   logger->Lock();
   logger->Put(c_ptr->ToBinlog(binlog_item.exec_time(),

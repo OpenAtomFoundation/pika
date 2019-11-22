@@ -17,6 +17,7 @@
 #include "include/pika_binlog_reader.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
+#include "include/pika_stable_log.h"
 #include "include/pika_consistency.h"
 
 #define kBinlogSendPacketNum 40
@@ -104,8 +105,10 @@ class SyncPartition {
   PartitionInfo& SyncPartitionInfo() {
     return partition_info_;
   }
+
+  std::string PartitionName();
+
  protected:
-  // std::shared_ptr<Binlog> binlog_;
   PartitionInfo partition_info_;
 };
 
@@ -115,7 +118,7 @@ class SyncMasterPartition : public SyncPartition {
   Status AddSlaveNode(const std::string& ip, int port, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
 
-  Status ActivateSlaveBinlogSync(const std::string& ip, int port, const std::shared_ptr<Binlog> binlog, const BinlogOffset& offset);
+  Status ActivateSlaveBinlogSync(const std::string& ip, int port, const BinlogOffset& offset);
   Status ActivateSlaveDbSync(const std::string& ip, int port);
 
   Status SyncBinlogToWq(const std::string& ip, int port);
@@ -159,6 +162,16 @@ class SyncMasterPartition : public SyncPartition {
   Status ConsistencySanityCheck();
   Status ConsistencyScheduleApplyLog();
 
+  std::shared_ptr<Binlog> Logger() {
+    if (!stable_logger_) {
+      return nullptr;
+    }
+    return stable_logger_->Logger();
+  }
+  std::shared_ptr<StableLog> StableLogger() {
+    return stable_logger_;
+  }
+
  private:
   bool CheckReadBinlogFromCache();
   // inovker need to hold partition_mu_
@@ -177,6 +190,8 @@ class SyncMasterPartition : public SyncPartition {
   int32_t session_id_;
 
   ConsistencyCoordinator coordinator_;
+
+  std::shared_ptr<StableLog> stable_logger_;
   // BinlogCacheWindow win_;
 };
 
@@ -241,6 +256,8 @@ class PikaReplicaManager {
  public:
   PikaReplicaManager();
   ~PikaReplicaManager();
+
+  friend Cmd;
 
   void Start();
   void Stop();

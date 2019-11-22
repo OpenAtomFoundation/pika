@@ -193,9 +193,9 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
     if (slave_partition->State() == ReplState::kNoConnect
       || slave_partition->State() == ReplState::kError) {
       if (have_offset_) {
-        std::shared_ptr<Partition> db_partition =
-          g_pika_server->GetPartitionByDbName(db_name_);
-        db_partition->logger()->SetProducerStatus(filenum_, offset_);
+        std::shared_ptr<SyncMasterPartition> db_partition =
+          g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(db_name_, 0));
+        db_partition->Logger()->SetProducerStatus(filenum_, offset_);
       }
       ReplState state = force_sync_
           ? ReplState::kTryDBSync : ReplState::kTryConnect;
@@ -354,11 +354,11 @@ void PurgelogstoCmd::DoInitial() {
 }
 
 void PurgelogstoCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<Partition> table_partition = g_pika_server->GetTablePartitionById(table_, 0);
-  if (!table_partition) {
+  std::shared_ptr<SyncMasterPartition> sync_partition = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_, 0));
+  if (!sync_partition) {
     res_.SetRes(CmdRes::kErrOther, "Partition not found");
   } else {
-    table_partition->PurgeLogs(num_, true);
+    sync_partition->StableLogger()->PurgeStableLogs(num_, true);
     res_.SetRes(CmdRes::kOk);
   }
 }
@@ -972,9 +972,13 @@ void InfoCmd::InfoReplication(std::string& info) {
   for (const auto& t_item : g_pika_server->tables_) {
     slash::RWLock partition_rwl(&t_item.second->partitions_rw_, false);
     for (const auto& p_item : t_item.second->partitions_) {
-      p_item.second->logger()->GetProducerStatus(&filenum, &offset);
-      tmp_stream << p_item.second->GetPartitionName() << " binlog_offset=" << filenum << " " << offset;
-      s = g_pika_rm->GetSafetyPurgeBinlogFromSMP(p_item.second->GetTableName(), p_item.second->GetPartitionId(), &safety_purge);
+      std::string table_name = p_item.second->GetTableName();
+      uint32_t partition_id = p_item.second->GetPartitionId();
+      std::shared_ptr<SyncMasterPartition> sync_partition
+        = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+      sync_partition->Logger()->GetProducerStatus(&filenum, &offset);
+      tmp_stream << table_name << " binlog_offset=" << filenum << " " << offset;
+      s = g_pika_rm->GetSafetyPurgeBinlogFromSMP(table_name, partition_id, &safety_purge);
       tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
     }
   }
