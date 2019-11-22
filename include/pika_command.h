@@ -14,6 +14,9 @@
 
 #include "include/pika_partition.h"
 
+class SyncMasterPartition;
+class SyncSlavePartition;
+
 //Constant for command name
 //Admin
 const std::string kCmdNameSlaveof = "slaveof";
@@ -446,10 +449,12 @@ class Cmd {
  protected:
   // enable copy, used default copy
   //Cmd(const Cmd&);
-  void ProcessCommand(std::shared_ptr<Partition> partition);
-  void InternalProcessCommand(std::shared_ptr<Partition> partition);
+  void ProcessCommand(std::shared_ptr<Partition> partition,
+      std::shared_ptr<SyncMasterPartition> sync_partition);
+  void InternalProcessCommand(std::shared_ptr<Partition> partition,
+      std::shared_ptr<SyncMasterPartition> sync_partition);
   void DoCommand(std::shared_ptr<Partition> partition);
-  void DoBinlog(std::shared_ptr<Partition> partition);
+  void DoBinlog(std::shared_ptr<SyncMasterPartition> partition);
   bool CheckArg(int num) const;
   void LogCommand() const;
 

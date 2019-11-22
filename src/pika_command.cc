@@ -14,12 +14,14 @@
 #include "include/pika_hash.h"
 #include "include/pika_admin.h"
 #include "include/pika_pubsub.h"
-#include "include/pika_server.h"
 #include "include/pika_hyperloglog.h"
 #include "include/pika_slot.h"
 #include "include/pika_cluster.h"
+#include "include/pika_server.h"
+#include "include/pika_rm.h"
 
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 
 void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   //Admin
@@ -568,8 +570,16 @@ void Cmd::ProcessFlushDBCmd() {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
       slash::RWLock l_prw(&table->partitions_rw_, true);
+      slash::RWLock s_prw(&g_pika_rm->partitions_rw_, true);
       for (const auto& partition_item : table->partitions_) {
-        ProcessCommand(partition_item.second);
+        std::shared_ptr<Partition> partition = partition_item.second;
+        PartitionInfo p_info(partition->GetTableName(), partition->GetPartitionId());
+        if (g_pika_rm->sync_master_partitions_.find(p_info)
+            == g_pika_rm->sync_master_partitions_.end()) {
+          res_.SetRes(CmdRes::kErrOther, "Partition not found");
+          return;
+        }
+        ProcessCommand(partition, g_pika_rm->sync_master_partitions_[p_info]);
       }
       res_.SetRes(CmdRes::kOk);
     }
@@ -587,8 +597,16 @@ void Cmd::ProcessFlushAllCmd() {
 
   for (const auto& table_item : g_pika_server->tables_) {
     slash::RWLock l_prw(&table_item.second->partitions_rw_, true);
+    slash::RWLock s_prw(&g_pika_rm->partitions_rw_, true);
     for (const auto& partition_item : table_item.second->partitions_) {
-      ProcessCommand(partition_item.second);
+      std::shared_ptr<Partition> partition = partition_item.second;
+      PartitionInfo p_info(partition->GetTableName(), partition->GetPartitionId());
+      if (g_pika_rm->sync_master_partitions_.find(p_info)
+          == g_pika_rm->sync_master_partitions_.end()) {
+        res_.SetRes(CmdRes::kErrOther, "Partition not found");
+        return;
+      }
+      ProcessCommand(partition, g_pika_rm->sync_master_partitions_[p_info]);
     }
   }
   res_.SetRes(CmdRes::kOk);
@@ -613,22 +631,32 @@ void Cmd::ProcessSinglePartitionCmd() {
     res_.SetRes(CmdRes::kErrOther, "Partition not found");
     return;
   }
-  ProcessCommand(partition);
+
+  std::shared_ptr<SyncMasterPartition> sync_partition =
+    g_pika_rm->GetSyncMasterPartitionByName(
+        PartitionInfo(partition->GetTableName(), partition->GetPartitionId()));
+  if (!sync_partition) {
+    res_.SetRes(CmdRes::kErrOther, "Partition not found");
+    return;
+  }
+  ProcessCommand(partition, sync_partition);
 }
 
-void Cmd::ProcessCommand(std::shared_ptr<Partition> partition) {
+void Cmd::ProcessCommand(std::shared_ptr<Partition> partition,
+    std::shared_ptr<SyncMasterPartition> sync_partition) {
   if (stage_ == kNone) {
-    InternalProcessCommand(partition);
+    InternalProcessCommand(partition, sync_partition);
   } else {
     if (stage_ == kBinlogStage) {
-      DoBinlog(partition);
+      DoBinlog(sync_partition);
     } else if (stage_ == kExecuteStage) {
       DoCommand(partition);
     }
   }
 }
 
-void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition) {
+void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
+    std::shared_ptr<SyncMasterPartition> sync_partition) {
   slash::lock::MultiRecordLock record_lock(partition->LockMgr());
   if (is_write()) {
     record_lock.Lock(current_key());
@@ -636,7 +664,7 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition) {
 
   DoCommand(partition);
 
-  DoBinlog(partition);
+  DoBinlog(sync_partition);
 
   if (is_write()) {
     record_lock.Unlock(current_key());
@@ -657,7 +685,7 @@ void Cmd::DoCommand(std::shared_ptr<Partition> partition) {
 
 }
 
-void Cmd::DoBinlog(std::shared_ptr<Partition> partition) {
+void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
   if (res().ok()
     && is_write()
     && g_pika_conf->write_binlog()) {
@@ -666,8 +694,8 @@ void Cmd::DoBinlog(std::shared_ptr<Partition> partition) {
     uint64_t offset = 0;
     uint64_t logic_id = 0;
 
-    partition->logger()->Lock();
-    partition->logger()->GetProducerStatus(&filenum, &offset, &logic_id);
+    partition->Logger()->Lock();
+    partition->Logger()->GetProducerStatus(&filenum, &offset, &logic_id);
     uint32_t exec_time = time(nullptr);
     std::string binlog = ToBinlog(exec_time,
                                   g_pika_conf->server_id(),
@@ -675,12 +703,14 @@ void Cmd::DoBinlog(std::shared_ptr<Partition> partition) {
                                   filenum,
                                   offset);
 
-    Status s = partition->WriteBinlog(binlog);
-    partition->logger()->GetProducerStatus(&filenum, &offset);
+    Status s = partition->Logger()->Put(binlog);
+    partition->Logger()->GetProducerStatus(&filenum, &offset);
     binlog_offset_ = BinlogOffset(filenum, offset);
-    partition->logger()->Unlock();
+    partition->Logger()->Unlock();
 
     if (!s.ok()) {
+      LOG(WARNING) << partition->SyncPartitionInfo().ToString()
+      << " Writing binlog failed, maybe no space left on device " << s.ToString();
       res().SetRes(CmdRes::kErrOther, s.ToString());
     }
   }
