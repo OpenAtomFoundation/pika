@@ -596,12 +596,16 @@ void PikaServer::PartitionSetSmallCompactionThreshold(uint32_t small_compaction_
 bool PikaServer::GetTablePartitionBinlogOffset(const std::string& table_name,
                                                uint32_t partition_id,
                                                BinlogOffset* const boffset) {
-  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
+  std::shared_ptr<SyncMasterPartition> partition =
+    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!partition) {
     return false;
-  } else {
-    return partition->GetBinlogOffset(boffset);
   }
+  Status s = partition->Logger()->GetProducerStatus(&(boffset->filenum), &(boffset->offset));
+  if (!s.ok()) {
+    return false;
+  }
+  return true;
 }
 
 // Only use in classic mode
@@ -641,8 +645,19 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
             break;
           }
         case TaskType::kPurgeLog:
-          partition_item.second->PurgeLogs();
-          break;
+         {
+            std::shared_ptr<SyncMasterPartition> partition =
+              g_pika_rm->GetSyncMasterPartitionByName(
+                  PartitionInfo(table_item.second->GetTableName(),
+                    partition_item.second->GetPartitionId()));
+            if (!partition) {
+              LOG(WARNING) << table_item.second->GetTableName()
+                << partition_item.second->GetPartitionId() << " Not Found.";
+              break;
+            }
+            partition->StableLogger()->PurgeStableLogs();
+            break;
+          }
         case TaskType::kCompactAll:
           partition_item.second->Compact(blackwidow::kAll);
           break;
@@ -728,22 +743,27 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
     tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",conn_fd=" << slave.conn_fd << ",lag=";
     for (const auto& ts : slave.table_structs) {
       for (size_t idx = 0; idx < ts.partition_num; ++idx) {
-        std::shared_ptr<Partition> partition = GetTablePartitionById(ts.table_name, idx);
+        std::shared_ptr<SyncMasterPartition> partition =
+          g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(ts.table_name, idx));
+        if (!partition) {
+          continue;
+        }
         RmNode rm_node(slave.ip, slave.port, ts.table_name, idx);
         Status s = g_pika_rm->GetSyncMasterPartitionSlaveState(rm_node, &slave_state);
         if (s.ok()
           && slave_state == SlaveState::kSlaveBinlogSync
           && g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset).ok()) {
-          if (!partition || !partition->GetBinlogOffset(&master_boffset)) {
+          Status s = partition->Logger()->GetProducerStatus(&(master_boffset.filenum), &(master_boffset.offset));
+          if (!s.ok()) {
             continue;
           } else {
             uint64_t lag =
               (master_boffset.filenum - sent_slave_boffset.filenum) * g_pika_conf->binlog_file_size()
               + (master_boffset.offset - sent_slave_boffset.offset);
-            tmp_stream << "(" << partition->GetPartitionName() << ":" << lag << ")";
+            tmp_stream << "(" << partition->PartitionName() << ":" << lag << ")";
           }
         } else {
-          tmp_stream << "(" << partition->GetPartitionName() << ":not syncing)";
+          tmp_stream << "(" << partition->PartitionName() << ":not syncing)";
         }
       }
     }
@@ -938,17 +958,24 @@ void PikaServer::TryDBSync(const std::string& ip, int port,
   if (!partition) {
     LOG(WARNING) << "Partition: " << partition->GetPartitionName()
       << " Not Found, TryDBSync Failed";
-  } else {
-    BgSaveInfo bgsave_info = partition->bgsave_info();
-    std::string logger_filename = partition->logger()->filename();
-    if (slash::IsDir(bgsave_info.path) != 0
-      || !slash::FileExists(NewFileName(logger_filename, bgsave_info.filenum))
-      || top - bgsave_info.filenum > kDBSyncMaxGap) {
-      // Need Bgsave first
-      partition->BgSavePartition();
-    }
-    DBSync(ip, port, table_name, partition_id);
+    return;
   }
+  std::shared_ptr<SyncMasterPartition> sync_partition
+    = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  if (!sync_partition) {
+    LOG(WARNING) << "Partition: " << sync_partition->SyncPartitionInfo().ToString()
+      << " Not Found, TryDBSync Failed";
+    return;
+  }
+  BgSaveInfo bgsave_info = partition->bgsave_info();
+  std::string logger_filename = sync_partition->Logger()->filename();
+  if (slash::IsDir(bgsave_info.path) != 0
+    || !slash::FileExists(NewFileName(logger_filename, bgsave_info.filenum))
+    || top - bgsave_info.filenum > kDBSyncMaxGap) {
+    // Need Bgsave first
+    partition->BgSavePartition();
+  }
+  DBSync(ip, port, table_name, partition_id);
 }
 
 void PikaServer::DbSyncSendFile(const std::string& ip, int port,
