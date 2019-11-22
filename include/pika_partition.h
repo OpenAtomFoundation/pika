@@ -53,30 +53,21 @@ class Partition : public std::enable_shared_from_this<Partition> {
  public:
   Partition(const std::string& table_name,
             uint32_t partition_id,
-            const std::string& table_db_path,
-            const std::string& table_log_path);
+            const std::string& table_db_path);
   virtual ~Partition();
 
   std::string GetTableName() const;
   uint32_t GetPartitionId() const;
   std::string GetPartitionName() const;
-  std::shared_ptr<Binlog> logger() const;
   std::shared_ptr<blackwidow::BlackWidow> db() const;
 
   void Compact(const blackwidow::DataType& type);
-  // needd to hold logger_->Lock()
-  Status WriteBinlog(const std::string& binlog);
 
   void DbRWLockWriter();
   void DbRWLockReader();
   void DbRWUnLock();
 
   slash::lock::LockMgr* LockMgr();
-
-  void SetBinlogIoError(bool error);
-  bool IsBinlogIoError();
-  bool GetBinlogOffset(BinlogOffset* const boffset);
-  bool SetBinlogOffset(const BinlogOffset& boffset);
 
   void PrepareRsync();
   bool TryUpdateMasterOffset();
@@ -95,10 +86,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool FlushDB();
   bool FlushSubDB(const std::string& db_name);
 
-  // Purgelogs use
-  bool PurgeLogs(uint32_t to = 0, bool manual = false);
-  void ClearPurge();
-
   // key scan info use
   Status GetKeyNum(std::vector<blackwidow::KeyInfo>* key_info);
   KeyScanInfo GetKeyScanInfo();
@@ -108,14 +95,11 @@ class Partition : public std::enable_shared_from_this<Partition> {
   uint32_t partition_id_;
 
   std::string db_path_;
-  std::string log_path_;
   std::string bgsave_sub_path_;
   std::string dbsync_path_;
   std::string partition_name_;
 
   bool opened_;
-  std::shared_ptr<Binlog> logger_;
-  std::atomic<bool> binlog_io_error_;
 
   pthread_rwlock_t db_rwlock_;
   slash::lock::LockMgr* lock_mgr_;
@@ -139,14 +123,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   slash::Mutex bgsave_protector_;
   blackwidow::BackupEngine* bgsave_engine_;
 
-  /*
-   * Purgelogs use
-   */
-  static void DoPurgeLogs(void* arg);
-  bool PurgeFiles(uint32_t to, bool manual);
-  bool GetBinlogFiles(std::map<uint32_t, std::string>& binlogs);
-  std::atomic<bool> purging_;
-
   // key scan info use
   void InitKeyScan();
 
@@ -157,13 +133,5 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void operator=(const Partition&);
 
 };
-
-struct PurgeArg {
-  std::shared_ptr<Partition> partition;
-  uint32_t to;
-  bool manual;
-  bool force; // Ignore the delete window
-};
-
 
 #endif

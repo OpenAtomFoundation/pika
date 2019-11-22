@@ -161,7 +161,7 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   g_pika_rm->UpdateSyncSlavePartitionSessionId(
           PartitionInfo(table_name, partition_id), session_id);
 
-  std::string partition_name = slave_partition->SyncPartitionInfo().ToString();
+  std::string partition_name = slave_partition->PartitionName();
   slave_partition->SetReplState(ReplState::kWaitDBSync);
   LOG(INFO) << "Partition: " << partition_name << " Need Wait To Sync";
   delete task_arg;
@@ -183,7 +183,8 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   const InnerMessage::Partition& partition_response = try_sync_response.partition();
   std::string table_name = partition_response.table_name();
   uint32_t partition_id  = partition_response.partition_id();
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
+  std::shared_ptr<SyncMasterPartition> partition =
+    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!partition) {
     LOG(WARNING) << "Partition: " << table_name << ":" << partition_id << " Not Found";
     delete task_arg;
@@ -199,11 +200,11 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     return;
   }
 
-  std::string partition_name = partition->GetPartitionName();
+  std::string partition_name = partition->PartitionName();
   if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kOk) {
     BinlogOffset boffset;
     int32_t session_id = try_sync_response.session_id();
-    partition->logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
+    partition->Logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
     g_pika_rm->UpdateSyncSlavePartitionSessionId(PartitionInfo(table_name, partition_id), session_id);
     g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, boffset, boffset, true);
     slave_partition->SetReplState(ReplState::kConnected);

@@ -73,12 +73,13 @@ class Binlog {
     return filename_;
   }
 
-  bool IsBinlogError() {
+  bool IsBinlogIoError() {
     return binlog_io_error_;
   }
 
- private:
   void Close();
+
+ private:
   Status Put(const char* item, int len);
   static Status AppendPadding(slash::WritableFile* file, uint64_t* len);
   //slash::WritableFile *queue() { return queue_; }
