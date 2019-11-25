@@ -14,6 +14,7 @@
 #include "slash/include/env.h"
 #include "include/pika_define.h"
 #include "include/pika_binlog_receiver_conn.h"
+#include "include/pika_master_conn.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
 
@@ -49,8 +50,13 @@ class PikaBinlogReceiverThread {
         pink::Thread *thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const override {
-        LOG(INFO) << "Master conn factory creat pika binlog conn ip_port" << ip_port;
-        return std::make_shared<PikaBinlogReceiverConn>(connfd, ip_port, binlog_receiver_);
+        if (g_pika_conf->identify_binlog_type() == "old") {
+          LOG(INFO) << "Master conn factory create pika master conn";
+          return std::make_shared<PikaMasterConn>(connfd, ip_port, binlog_receiver_);
+        } else {
+          LOG(INFO) << "Master conn factory creat pika binlog conn ip_port" << ip_port;
+          return std::make_shared<PikaBinlogReceiverConn>(connfd, ip_port, binlog_receiver_);
+        }
     }
 
    private:

@@ -279,6 +279,10 @@ int PikaConf::Load()
   std::string wb;
   GetConfStr("write-binlog", &wb);
   write_binlog_ = (wb == "no") ? false : true;
+  GetConfStr("identify-binlog-type", &identify_binlog_type_);
+  if (identify_binlog_type_ != "new" && identify_binlog_type_ != "old") {
+    identify_binlog_type_ = "new";
+  }
   GetConfInt("binlog-file-size", &binlog_file_size_);
   if (binlog_file_size_ < 1024
     || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024)) {
@@ -360,6 +364,7 @@ int PikaConf::ConfigRewrite() {
 
   SetConfStr("write-binlog", write_binlog_ ? "yes" : "no");
   SetConfInt("binlog-file-size", binlog_file_size_);
+  SetConfStr("identify-binlog-type", identify_binlog_type_);
   SetConfStr("compression", compression_);
   SetConfInt("max-cache-statistic-keys", max_cache_statistic_keys_);
   SetConfInt("small-compaction-threshold", small_compaction_threshold_);
