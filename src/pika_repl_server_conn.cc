@@ -160,12 +160,12 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   }
 
   if (pre_success) {
-    if (!g_pika_rm->CheckPartitionSlaveExist(RmNode(node.ip(), node.port(), table_name, partition_id))) {
-      int32_t session_id = g_pika_rm->GenPartitionSessionId(table_name, partition_id);
+    if (!partition->CheckSlaveNodeExist(node.ip(), node.port())) {
+      int32_t session_id = partition->GenSessionId();
       if (session_id != -1) {
         try_sync_response->set_session_id(session_id);
         // incremental sync
-        Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
+        Status s = partition->AddSlaveNode(node.ip(), node.port(), session_id);
         if (!s.ok()) {
           try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
           LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
@@ -183,8 +183,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
       }
     } else {
       int32_t session_id;
-      Status s = g_pika_rm->GetPartitionSlaveSession(
-          RmNode(node.ip(), node.port(), table_name, partition_id), &session_id);
+      Status s = partition->GetSlaveNodeSession(node.ip(), node.port(), &session_id);
       if (!s.ok()) {
         try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
         LOG(WARNING) << "Partition: " << partition_name << ", Get Session id Failed" << s.ToString();
@@ -233,40 +232,48 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
 
   LOG(INFO) << "Handle partition DBSync Request";
   bool prior_success = true;
-  if (!g_pika_rm->CheckPartitionSlaveExist(RmNode(node.ip(), node.port(), table_name, partition_id))) {
-    int32_t session_id = g_pika_rm->GenPartitionSessionId(table_name, partition_id);
-    if (session_id == -1) {
-      response.set_code(InnerMessage::kError);
-      LOG(WARNING) << "Partition: " << partition_name << ", Gen Session id Failed";
-      prior_success = false;
-    }
-    if (prior_success) {
-      db_sync_response->set_session_id(session_id);
-      Status s = g_pika_rm->AddPartitionSlave(RmNode(node.ip(), node.port(), table_name, partition_id, session_id));
-      if (s.ok()) {
-        const std::string ip_port = slash::IpPortString(node.ip(), node.port());
-        g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
-        LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success, Session: " << session_id;
-      } else {
+  std::shared_ptr<SyncMasterPartition> master_partition =
+    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  if (!master_partition) {
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
+      << ", NotFound";
+    prior_success = false;
+  }
+  if (prior_success) {
+    if (!master_partition->CheckSlaveNodeExist(node.ip(), node.port())) {
+      int32_t session_id = master_partition->GenSessionId();
+      if (session_id == -1) {
         response.set_code(InnerMessage::kError);
-        LOG(WARNING) << "Partition: " << partition_name << " Handle DBSync Request Failed, " << s.ToString();
+        LOG(WARNING) << "Partition: " << partition_name << ", Gen Session id Failed";
         prior_success = false;
       }
+      if (prior_success) {
+        db_sync_response->set_session_id(session_id);
+        Status s = master_partition->AddSlaveNode(node.ip(), node.port(), session_id);
+        if (s.ok()) {
+          const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+          g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
+          LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success, Session: " << session_id;
+        } else {
+          response.set_code(InnerMessage::kError);
+          LOG(WARNING) << "Partition: " << partition_name << " Handle DBSync Request Failed, " << s.ToString();
+          prior_success = false;
+        }
+      } else {
+        db_sync_response->set_session_id(-1);
+      }
     } else {
-      db_sync_response->set_session_id(-1);
-    }
-  } else {
-    int32_t session_id;
-    Status s = g_pika_rm->GetPartitionSlaveSession(
-        RmNode(node.ip(), node.port(), table_name, partition_id), &session_id);
-    if (!s.ok()) {
-      response.set_code(InnerMessage::kError);
-      LOG(WARNING) << "Partition: " << partition_name << ", Get Session id Failed" << s.ToString();
-      prior_success = false;
-      db_sync_response->set_session_id(-1);
-    } else {
-      db_sync_response->set_session_id(session_id);
-      LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success, Session: " << session_id;
+      int32_t session_id;
+      Status s = master_partition->GetSlaveNodeSession(node.ip(), node.port(), &session_id);
+      if (!s.ok()) {
+        response.set_code(InnerMessage::kError);
+        LOG(WARNING) << "Partition: " << partition_name << ", Get Session id Failed" << s.ToString();
+        prior_success = false;
+        db_sync_response->set_session_id(-1);
+      } else {
+        db_sync_response->set_session_id(session_id);
+        LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success, Session: " << session_id;
+      }
     }
   }
 
@@ -307,8 +314,17 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   BinlogOffset range_start(ack_range_start.filenum(), ack_range_start.offset());
   BinlogOffset range_end(ack_range_end.filenum(), ack_range_end.offset());
 
-  if (!g_pika_rm->CheckMasterPartitionSessionId(node.ip(),
-              node.port(), table_name, partition_id, session_id)) {
+  std::shared_ptr<SyncMasterPartition> master_partition
+    = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  if (!master_partition) {
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
+      << ", NotFound";
+    delete task_arg;
+    return;
+  }
+
+  if (!master_partition->CheckSessionId(node.ip(), node.port(),
+        table_name, partition_id, session_id)) {
     LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port()
         << ", " << table_name << "_" << partition_id;
     //conn->NotifyClose();
@@ -319,7 +335,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   // Set ack info from slave
   RmNode slave_node = RmNode(node.ip(), node.port(), table_name, partition_id);
 
-  Status s = g_pika_rm->SetMasterLastRecvTime(slave_node, slash::NowMicros());
+  Status s = master_partition->SetLastRecvTime(node.ip(), node.port(), slash::NowMicros());
   if (!s.ok()) {
     LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port()
         << ", " << table_name << "_" << partition_id << " " << s.ToString();
@@ -335,7 +351,8 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
       delete task_arg;
       return;
     }
-    Status s = g_pika_rm->ActivateBinlogSync(slave_node, range_start);
+
+    Status s = master_partition->ActivateSlaveBinlogSync(node.ip(), node.port(), range_start);
     if (!s.ok()) {
       LOG(WARNING) << "Activate Binlog Sync failed " << slave_node.ToString() << " " << s.ToString();
       conn->NotifyClose();
@@ -360,7 +377,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
     return;
   }
 
-  g_pika_rm->ConsistencyScheduleApplyLog(table_name, partition_id);
+  master_partition->ConsistencyScheduleApplyLog();
 
   delete task_arg;
   g_pika_server->SignalAuxiliary();
@@ -383,8 +400,13 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
 
   std::string table_name = partition.table_name();
   uint32_t partition_id = partition.partition_id();
-  Status s = g_pika_rm->RemovePartitionSlave(RmNode(node.ip(),
-        node.port(), table_name, partition_id));
+  std::shared_ptr<SyncMasterPartition> master_partition =
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  if (!master_partition) {
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
+        << ", NotFound";
+  }
+  Status s = master_partition->RemoveSlaveNode(node.ip(), node.port());
 
   InnerMessage::InnerResponse response;
   response.set_code(InnerMessage::kOk);

@@ -340,7 +340,15 @@ bool PikaServer::ConsistencyCheck(const std::string& table_name, const std::stri
     }
     uint32_t index = g_pika_cmd_table_manager->DistributeKey(
         key, table->PartitionNum());
-    Status s = g_pika_rm->ConsistencySanityCheck(table_name, index);
+
+    std::shared_ptr<SyncMasterPartition> master_partition =
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, index));
+    if (!master_partition) {
+      LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << index
+        << ", NotFound";
+      return false;
+    }
+    Status s = master_partition->ConsistencySanityCheck();
     if (!s.ok()) {
       return false;
     } else {
@@ -630,18 +638,21 @@ std::shared_ptr<Partition> PikaServer::GetTablePartitionByKey(
 
 Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
   slash::RWLock rwl(&tables_rw_, false);
+  std::shared_ptr<SyncSlavePartition> slave_partition = nullptr;
   for (const auto& table_item : tables_) {
     for (const auto& partition_item : table_item.second->partitions_) {
       switch (type) {
         case TaskType::kResetReplState:
           {
-            Status s = g_pika_rm->SetSlaveReplState(
-                    PartitionInfo(table_item.second->GetTableName(),
-                        partition_item.second->GetPartitionId()),
-                    ReplState::kNoConnect);
-            if (!s.ok()) {
-              LOG(WARNING) << s.ToString();
+            slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
+                PartitionInfo(table_item.second->GetTableName(),
+                  partition_item.second->GetPartitionId()));
+            if (slave_partition == nullptr) {
+              LOG(WARNING) << "Slave Partition: " <<
+                table_item.second->GetTableName() << ":" <<
+                partition_item.second->GetPartitionId() << " Not Found";
             }
+            slave_partition->SetReplState(ReplState::kNoConnect);
             break;
           }
         case TaskType::kPurgeLog:
@@ -722,7 +733,7 @@ int32_t PikaServer::GetShardingSlaveListString(std::string& slave_list_str) {
   for (auto replica : complete_replica) {
     std::string ip;
     int port;
-    if(!slash::ParseIpPortString(replica, ip, port)) {
+    if (!slash::ParseIpPortString(replica, ip, port)) {
       continue;
     }
     tmp_stream << "slave" << index++ << ":ip=" << ip << ",port=" << port << "\r\n";
@@ -739,6 +750,7 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
   BinlogOffset acked_slave_boffset;
   std::stringstream tmp_stream;
   slash::MutexLock l(&slave_mutex_);
+  std::shared_ptr<SyncMasterPartition> master_partition = nullptr;
   for (const auto& slave : slaves_) {
     tmp_stream << "slave" << index++ << ":ip=" << slave.ip << ",port=" << slave.port << ",conn_fd=" << slave.conn_fd << ",lag=";
     for (const auto& ts : slave.table_structs) {
@@ -746,13 +758,14 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
         std::shared_ptr<SyncMasterPartition> partition =
           g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(ts.table_name, idx));
         if (!partition) {
+          LOG(WARNING) << "Sync Master Partition: " << ts.table_name << ":" << idx
+            << ", NotFound";
           continue;
         }
-        RmNode rm_node(slave.ip, slave.port, ts.table_name, idx);
-        Status s = g_pika_rm->GetSyncMasterPartitionSlaveState(rm_node, &slave_state);
+        Status s = partition->GetSlaveState(slave.ip, slave.port, &slave_state);
         if (s.ok()
           && slave_state == SlaveState::kSlaveBinlogSync
-          && g_pika_rm->GetSyncBinlogStatus(rm_node, &sent_slave_boffset, &acked_slave_boffset).ok()) {
+          && partition->GetSlaveSyncBinlogInfo(slave.ip, slave.port, &sent_slave_boffset, &acked_slave_boffset).ok()) {
           Status s = partition->Logger()->GetProducerStatus(&(master_boffset.filenum), &(master_boffset.offset));
           if (!s.ok()) {
             continue;
@@ -873,15 +886,21 @@ void PikaServer::ResetMetaSyncStatus() {
 bool PikaServer::AllPartitionConnectSuccess() {
   bool all_partition_connect_success = true;
   slash::RWLock rwl(&tables_rw_, false);
+  std::shared_ptr<SyncSlavePartition> slave_partition = nullptr;
   for (const auto& table_item : tables_) {
     for (const auto& partition_item : table_item.second->partitions_) {
-      ReplState repl_state;
-      Status s = g_pika_rm->GetSlaveReplState(
-              PartitionInfo(table_item.second->GetTableName(),
-                  partition_item.second->GetPartitionId()), &repl_state);
-      if (!s.ok()) {
+      slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
+          PartitionInfo(table_item.second->GetTableName(),
+            partition_item.second->GetPartitionId()));
+      if (slave_partition == nullptr) {
+        LOG(WARNING) << "Slave Partition: " <<
+          table_item.second->GetTableName() << ":" <<
+          partition_item.second->GetPartitionId() <<
+          ", NotFound";
         return false;
       }
+
+      ReplState repl_state = slave_partition->State();
       if (repl_state != ReplState::kConnected) {
         all_partition_connect_success = false;
         break;

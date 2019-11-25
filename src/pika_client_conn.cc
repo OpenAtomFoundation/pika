@@ -70,7 +70,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   }
 
   g_pika_server->UpdateQueryNumAndExecCountTable(opt);
- 
+
   // PubSub connection
   // (P)SubscribeCmd will set is_pubsub_
   if (this->IsPubSub()) {
@@ -228,7 +228,7 @@ void PikaClientConn::DoStaleTask(void* arg) {
 
 void PikaClientConn::BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs) {
   resp_num.store(argvs.size());
-  for (size_t i = 0;i < argvs.size(); ++i) {
+  for (size_t i = 0; i < argvs.size(); ++i) {
     std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();
     resp_array.push_back(resp_ptr);
     ExecRedisCmd(argvs[i], resp_ptr);
@@ -252,7 +252,7 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<s
   // get opt
   std::string opt = argv[0];
   if (opt == kClusterPrefix) {
-    if (argv.size() >=2 ) {
+    if (argv.size() >= 2 ) {
       opt += argv[1];
     }
   }
@@ -283,10 +283,15 @@ void PikaClientConn::ConsistencyProposeLog(std::shared_ptr<Cmd> cmd_ptr, std::sh
   }
   uint32_t index = g_pika_cmd_table_manager->DistributeKey(
       cmd_ptr->current_key().front(), table->PartitionNum());
-
-  Status s = g_pika_rm->ConsistencyProposeLog(
-      cmd_ptr->table_name(),
-      index,
+  std::shared_ptr<SyncMasterPartition> master_partition =
+    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, index));
+  if (!master_partition) {
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << index
+      << ", NotFound";
+    cmd_ptr->res().SetRes(CmdRes::kErrOther, "-ERR Internal Error");
+    return;
+  }
+  Status s = master_partition->ConsistencyProposeLog(
       binlog_offset,
       cmd_ptr,
       std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()),
@@ -301,7 +306,7 @@ void PikaClientConn::AuthStat::Init() {
   // Check auth required
   stat_ = g_pika_conf->userpass() == "" ?
     kLimitAuthed : kNoAuthed;
-  if (stat_ == kLimitAuthed 
+  if (stat_ == kLimitAuthed
       && g_pika_conf->requirepass() == "") {
     stat_ = kAdminAuthed;
   }

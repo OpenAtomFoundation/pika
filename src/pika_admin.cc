@@ -111,7 +111,7 @@ void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   bool sm_ret = g_pika_server->SetMaster(master_ip_, master_port_);
-  
+
   if (sm_ret) {
     res_.SetRes(CmdRes::kOk);
     g_pika_conf->SetSlaveof(master_ip_ + ":" + std::to_string(master_port_));
@@ -179,7 +179,7 @@ void DbSlaveofCmd::DoInitial() {
 
 void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<SyncSlavePartition> slave_partition =
-      g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(db_name_,0));
+      g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(db_name_, 0));
   if (!slave_partition) {
     res_.SetRes(CmdRes::kErrOther, "Db not found");
     return;
@@ -597,7 +597,7 @@ const std::string InfoCmd::kAllSection = "all";
 const std::string InfoCmd::kServerSection = "server";
 const std::string InfoCmd::kClientsSection = "clients";
 const std::string InfoCmd::kStatsSection = "stats";
-const std::string InfoCmd::kExecCountSection= "command_exec_count";
+const std::string InfoCmd::kExecCountSection = "command_exec_count";
 const std::string InfoCmd::kCPUSection = "cpu";
 const std::string InfoCmd::kReplicationSection = "replication";
 const std::string InfoCmd::kKeyspaceSection = "keyspace";
@@ -613,7 +613,7 @@ void InfoCmd::DoInitial() {
   if (argc == 1) {
     info_section_ = kInfo;
     return;
-  } //then the agc is 2 or 3
+  } // then the agc is 2 or 3
 
   if (!strcasecmp(argv_[1].data(), kAllSection.data())) {
     info_section_ = kInfoAll;
@@ -857,7 +857,7 @@ void InfoCmd::InfoShardingReplication(std::string& info) {
   g_pika_rm->FindCommonMaster(&common_master);
   if (!common_master.empty()) {
     role |=  PIKA_ROLE_SLAVE;
-    if(!slash::ParseIpPortString(common_master, master_ip, master_port)) {
+    if (!slash::ParseIpPortString(common_master, master_ip, master_port)) {
       return;
     }
   }
@@ -978,16 +978,21 @@ void InfoCmd::InfoReplication(std::string& info) {
   uint32_t filenum = 0;
   uint64_t offset = 0;
   std::string safety_purge;
+  std::shared_ptr<SyncMasterPartition> master_partition = nullptr;
   for (const auto& t_item : g_pika_server->tables_) {
     slash::RWLock partition_rwl(&t_item.second->partitions_rw_, false);
     for (const auto& p_item : t_item.second->partitions_) {
       std::string table_name = p_item.second->GetTableName();
       uint32_t partition_id = p_item.second->GetPartitionId();
-      std::shared_ptr<SyncMasterPartition> sync_partition
-        = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-      sync_partition->Logger()->GetProducerStatus(&filenum, &offset);
+      master_partition = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+      if (!master_partition) {
+        LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
+          << ", NotFound";
+        continue;
+      }
+      master_partition->Logger()->GetProducerStatus(&filenum, &offset);
       tmp_stream << table_name << " binlog_offset=" << filenum << " " << offset;
-      s = g_pika_rm->GetSafetyPurgeBinlogFromSMP(table_name, partition_id, &safety_purge);
+      s = master_partition->GetSafetyPurgeBinlog(&safety_purge);
       tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
     }
   }
