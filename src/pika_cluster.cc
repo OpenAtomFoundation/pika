@@ -124,7 +124,15 @@ Status PkClusterInfoCmd::GetSlotInfo(const std::string table_name,
 
   // safety purge section
   std::string safety_purge;
-  s = g_pika_rm->GetSafetyPurgeBinlogFromSMP(table_name, partition_id, &safety_purge);
+  std::shared_ptr<SyncMasterPartition> master_partition =
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  if (!master_partition) {
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
+        << ", NotFound";
+    s = Status::NotFound("SyncMasterPartition NotFound");
+  } else {
+    master_partition->GetSafetyPurgeBinlog(&safety_purge);
+  }
   tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
 
   // partition info section
@@ -471,11 +479,7 @@ void PkClusterSlotsSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
     }
     if (slave_partition->State() != ReplState::kNoConnect) {
       // reset state
-      s = g_pika_rm->SetSlaveReplState(
-          PartitionInfo(table_name, slot), ReplState::kNoConnect);
-      if (!s.ok()) {
-        break;
-      }
+      slave_partition->SetReplState(ReplState::kNoConnect);
     }
     if (is_noone_) {
     } else {

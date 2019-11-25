@@ -215,24 +215,17 @@ class SyncSlavePartition : public SyncPartition {
   // For debug
   std::string ToStringStatus();
 
-  const std::string& MasterIp() {
-    return m_info_.Ip();
-  }
-  int MasterPort() {
-    return m_info_.Port();
-  }
-  void SetMasterSessionId(int32_t session_id) {
-    m_info_.SetSessionId(session_id);
-  }
-  int32_t MasterSessionId() {
-    return m_info_.SessionId();
-  }
-  void SetLocalIp(const std::string& local_ip) {
-    local_ip_ = local_ip;
-  }
-  std::string LocalIp() {
-    return local_ip_;
-  }
+  const std::string& MasterIp();
+
+  int MasterPort();
+
+  void SetMasterSessionId(int32_t session_id);
+
+  int32_t MasterSessionId();
+
+  void SetLocalIp(const std::string& local_ip);
+
+  std::string LocalIp();
 
  private:
   slash::Mutex partition_mu_;
@@ -266,14 +259,8 @@ class PikaReplicaManager {
   Status AddSyncPartition(const std::set<PartitionInfo>& p_infos);
   Status RemoveSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos);
   Status RemoveSyncPartition(const std::set<PartitionInfo>& p_infos);
-  Status SelectLocalIp(const std::string& remote_ip,
-                       const int remote_port,
-                       std::string* const local_ip);
   Status ActivateSyncSlavePartition(const RmNode& node, const ReplState& repl_state);
-  Status UpdateSyncSlavePartitionSessionId(const PartitionInfo& p_info, int32_t session_id);
   Status DeactivateSyncSlavePartition(const PartitionInfo& p_info);
-  Status SetSlaveReplState(const PartitionInfo& p_info, const ReplState& repl_state);
-  Status GetSlaveReplState(const PartitionInfo& p_info, ReplState* repl_state);
 
   // For Pika Repl Client Thread
   Status SendMetaSyncRequest();
@@ -290,20 +277,11 @@ class PikaReplicaManager {
 
   // For SyncMasterPartition
   std::shared_ptr<SyncMasterPartition> GetSyncMasterPartitionByName(const PartitionInfo& p_info);
-  Status GetSafetyPurgeBinlogFromSMP(const std::string& table_name,
-                                     uint32_t partition_id, std::string* safety_purge);
-  bool BinlogCloudPurgeFromSMP(const std::string& table_name,
-                               uint32_t partition_id, uint32_t index);
 
   // For SyncSlavePartition
   std::shared_ptr<SyncSlavePartition> GetSyncSlavePartitionByName(const PartitionInfo& p_info);
 
-
-
   Status RunSyncSlavePartitionStateMachine();
-
-  Status SetMasterLastRecvTime(const RmNode& slave, uint64_t time);
-  Status SetSlaveLastRecvTime(const RmNode& slave, uint64_t time);
 
   Status CheckSyncTimeout(uint64_t now);
 
@@ -314,39 +292,17 @@ class PikaReplicaManager {
 
   void FindCompleteReplica(std::vector<std::string>* replica);
   void FindCommonMaster(std::string* master);
-
   Status CheckPartitionRole(
       const std::string& table, uint32_t partition_id, int* role);
 
   void RmStatus(std::string* debug_info);
 
-  // following funcs invoked by master partition only
-
-  Status AddPartitionSlave(const RmNode& slave);
-  Status RemovePartitionSlave(const RmNode& slave);
-  bool CheckPartitionSlaveExist(const RmNode& slave);
-  Status GetPartitionSlaveSession(const RmNode& slave, int32_t* session);
-
   Status LostConnection(const std::string& ip, int port);
-
-  Status ActivateBinlogSync(const RmNode& slave, const BinlogOffset& offset);
-  Status ActivateDbSync(const RmNode& slave);
 
   // Update binlog win and try to send next binlog
   Status UpdateSyncBinlogStatus(const RmNode& slave, const BinlogOffset& offset_start, const BinlogOffset& offset_end);
-  Status GetSyncBinlogStatus(const RmNode& slave, BinlogOffset* sent_boffset, BinlogOffset* acked_boffset);
-  Status GetSyncMasterPartitionSlaveState(const RmNode& slave, SlaveState* const slave_state);
 
   Status WakeUpBinlogSync();
-
-  // Session Id
-  int32_t GenPartitionSessionId(const std::string& table_name, uint32_t partition_id);
-  int32_t GetSlavePartitionSessionId(const std::string& table_name, uint32_t partition_id);
-  bool CheckSlavePartitionSessionId(const std::string& table_name, uint32_t partition_id,
-                                    int session_id);
-  bool CheckMasterPartitionSessionId(const std::string& ip, int port,
-                                     const std::string& table_name,
-                                     uint32_t partition_id, int session_id);
 
   // write_queue related
   void ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
@@ -366,21 +322,13 @@ class PikaReplicaManager {
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
 
-  // Consistency use
-  Status ConsistencyProposeLog(
-      const std::string& table_name, uint32_t partition_id,
-      const BinlogOffset& offset,
-      std::shared_ptr<Cmd> cmd_ptr,
-      std::shared_ptr<PikaClientConn> conn_ptr,
-      std::shared_ptr<std::string> resp_ptr);
-  Status ConsistencySanityCheck(
-      const std::string& table_name, uint32_t partition_id);
-  Status ConsistencyScheduleApplyLog(const std::string& table_name, uint32_t partition_id);
-
   BinlogReaderManager binlog_reader_mgr;
 
  private:
   void InitPartition();
+  Status SelectLocalIp(const std::string& remote_ip,
+                       const int remote_port,
+                       std::string* const local_ip);
 
   pthread_rwlock_t partitions_rw_;
   std::unordered_map<PartitionInfo, std::shared_ptr<SyncMasterPartition>, hash_partition_info> sync_master_partitions_;

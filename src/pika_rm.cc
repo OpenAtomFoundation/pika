@@ -711,6 +711,36 @@ std::string SyncSlavePartition::ToStringStatus() {
     "  SyncStatus " + ReplStateMsg[repl_state_] + "\r\n";
 }
 
+const std::string& SyncSlavePartition::MasterIp() {
+  slash::MutexLock l(&partition_mu_);
+  return m_info_.Ip();
+}
+
+int SyncSlavePartition::MasterPort() {
+  slash::MutexLock l(&partition_mu_);
+  return m_info_.Port();
+}
+
+void SyncSlavePartition::SetMasterSessionId(int32_t session_id) {
+  slash::MutexLock l(&partition_mu_);
+  m_info_.SetSessionId(session_id);
+}
+
+int32_t SyncSlavePartition::MasterSessionId() {
+  slash::MutexLock l(&partition_mu_);
+  return m_info_.SessionId();
+}
+
+void SyncSlavePartition::SetLocalIp(const std::string& local_ip) {
+  slash::MutexLock l(&partition_mu_);
+  local_ip_ = local_ip;
+}
+
+std::string SyncSlavePartition::LocalIp() {
+  slash::MutexLock l(&partition_mu_);
+  return local_ip_;
+}
+
 /* SyncWindow */
 
 void SyncWindow::Push(const SyncWinItem& item) {
@@ -919,81 +949,6 @@ Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const Bin
   return Status::OK();
 }
 
-Status PikaReplicaManager::GetSyncBinlogStatus(const RmNode& slave, BinlogOffset*  sent_offset, BinlogOffset* acked_offset) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
-    return Status::NotFound(slave.ToString() + " not found");
-  }
-  std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  Status s = partition->GetSlaveSyncBinlogInfo(slave.Ip(), slave.Port(), sent_offset, acked_offset);
-  if (!s.ok()) {
-    return s;
-  }
-  return Status::OK();
-}
-
-Status PikaReplicaManager::GetSyncMasterPartitionSlaveState(const RmNode& slave,
-                                                            SlaveState* const slave_state) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
-    return Status::NotFound(slave.ToString() + " not found");
-  }
-  std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  Status s = partition->GetSlaveState(slave.Ip(), slave.Port(), slave_state);
-  if (!s.ok()) {
-    return s;
-  }
-  return Status::OK();
-}
-
-bool PikaReplicaManager::CheckPartitionSlaveExist(const RmNode& slave) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
-    return false;
-  }
-  std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  return partition->CheckSlaveNodeExist(slave.Ip(), slave.Port());
-}
-
-Status PikaReplicaManager::GetPartitionSlaveSession(const RmNode& slave, int32_t* session) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
-    return Status::NotFound(slave.ToString(), + "not found");
-  }
-  std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  return partition->GetSlaveNodeSession(slave.Ip(), slave.Port(), session);
-}
-
-Status PikaReplicaManager::AddPartitionSlave(const RmNode& slave) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
-    return Status::NotFound(slave.ToString() + " not found");
-  }
-  std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  Status s= partition->RemoveSlaveNode(slave.Ip(), slave.Port());
-  if (!s.ok() && !s.IsNotFound()) {
-    return s;
-  }
-  s = partition->AddSlaveNode(slave.Ip(), slave.Port(), slave.SessionId());
-  if (!s.ok()) {
-    return s;
-  }
-  return Status::OK();
-}
-
-Status PikaReplicaManager::RemovePartitionSlave(const RmNode& slave) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
-    return Status::NotFound(slave.ToString() + " not found");
-  }
-  std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  Status s = partition->RemoveSlaveNode(slave.Ip(), slave.Port());
-  if (!s.ok()) {
-    return s;
-  }
-  return Status::OK();
-}
-
 Status PikaReplicaManager::LostConnection(const std::string& ip, int port) {
   slash::RWLock l(&partitions_rw_, false);
   for (auto& iter : sync_master_partitions_) {
@@ -1013,53 +968,6 @@ Status PikaReplicaManager::LostConnection(const std::string& ip, int port) {
   return Status::OK();
 }
 
-Status PikaReplicaManager::ActivateBinlogSync(const RmNode& slave, const BinlogOffset& offset) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
-    return Status::NotFound(slave.ToString() + " not found");
-  }
-  std::shared_ptr<SyncMasterPartition> sync_partition = sync_master_partitions_[slave.NodePartitionInfo()];
-
-  Status s = sync_partition->ActivateSlaveBinlogSync(slave.Ip(), slave.Port(), offset);
-  if (!s.ok()) {
-    return s;
-  }
-  return Status::OK();
-}
-
-Status PikaReplicaManager::ActivateDbSync(const RmNode& slave) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
-    return Status::NotFound(slave.ToString() + " not found");
-  }
-  std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  Status s = partition->ActivateSlaveDbSync(slave.Ip(), slave.Port());
-  if (!s.ok()) {
-    return s;
-  }
-  return Status::OK();
-}
-
-Status PikaReplicaManager::SetMasterLastRecvTime(const RmNode& node, uint64_t time) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_master_partitions_.find(node.NodePartitionInfo()) == sync_master_partitions_.end()) {
-    return Status::NotFound(node.ToString() + " not found");
-  }
-  std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[node.NodePartitionInfo()];
-  partition->SetLastRecvTime(node.Ip(), node.Port(), time);
-  return Status::OK();
-}
-
-Status PikaReplicaManager::SetSlaveLastRecvTime(const RmNode& node, uint64_t time) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_slave_partitions_.find(node.NodePartitionInfo()) == sync_slave_partitions_.end()) {
-    return Status::NotFound(node.ToString() + " not found");
-  }
-  std::shared_ptr<SyncSlavePartition> partition = sync_slave_partitions_[node.NodePartitionInfo()];
-  partition->SetLastRecvTime(time);
-  return Status::OK();
-}
-
 Status PikaReplicaManager::WakeUpBinlogSync() {
   slash::RWLock l(&partitions_rw_, false);
   for (auto& iter : sync_master_partitions_) {
@@ -1070,65 +978,6 @@ Status PikaReplicaManager::WakeUpBinlogSync() {
     }
   }
   return Status::OK();
-}
-
-int32_t PikaReplicaManager::GenPartitionSessionId(const std::string& table_name,
-                                                  uint32_t partition_id) {
-  slash::RWLock l(&partitions_rw_, false);
-  PartitionInfo p_info(table_name, partition_id);
-  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
-    return -1;
-  } else {
-    std::shared_ptr<SyncMasterPartition> sync_master_partition = sync_master_partitions_[p_info];
-    return sync_master_partition->GenSessionId();
-  }
-}
-
-int32_t PikaReplicaManager::GetSlavePartitionSessionId(const std::string& table_name,
-                                                       uint32_t partition_id) {
-  slash::RWLock l(&partitions_rw_, false);
-  PartitionInfo p_info(table_name, partition_id);
-  if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
-    return -1;
-  } else {
-    std::shared_ptr<SyncSlavePartition> sync_slave_partition = sync_slave_partitions_[p_info];
-    return sync_slave_partition->MasterSessionId();
-  }
-}
-
-bool PikaReplicaManager::CheckSlavePartitionSessionId(const std::string& table_name,
-                                                      uint32_t partition_id,
-                                                      int session_id) {
-  slash::RWLock l(&partitions_rw_, false);
-  PartitionInfo p_info(table_name, partition_id);
-  if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
-    LOG(WARNING)<< "Slave Partition Not Found: " << p_info.ToString().data();
-    return false;
-  } else {
-    std::shared_ptr<SyncSlavePartition> sync_slave_partition = sync_slave_partitions_[p_info];
-    if (sync_slave_partition->MasterSessionId() != session_id) {
-      LOG(WARNING)<< "Check SessionId Mismatch: " << sync_slave_partition->MasterIp()
-        << ":" << sync_slave_partition->MasterPort() << ", "
-        << sync_slave_partition->SyncPartitionInfo().ToString()
-        << " expected_session: " << session_id << ", actual_session:"
-        << sync_slave_partition->MasterSessionId();
-      return false;
-    }
-  }
-  return true;
-}
-
-bool PikaReplicaManager::CheckMasterPartitionSessionId(const std::string& ip, int port,
-                                                       const std::string& table_name,
-                                                       uint32_t partition_id, int session_id) {
-  slash::RWLock l(&partitions_rw_, false);
-  PartitionInfo p_info(table_name, partition_id);
-  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
-    return false;
-  } else {
-    std::shared_ptr<SyncMasterPartition> sync_master_partition = sync_master_partitions_[p_info];
-    return sync_master_partition->CheckSessionId(ip, port, table_name, partition_id, session_id);
-  }
 }
 
 Status PikaReplicaManager::CheckSyncTimeout(uint64_t now) {
@@ -1251,42 +1100,12 @@ Status PikaReplicaManager::ActivateSyncSlavePartition(const RmNode& node,
   return s;
 }
 
-Status PikaReplicaManager::UpdateSyncSlavePartitionSessionId(const PartitionInfo& p_info,
-                                                             int32_t session_id) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
-    return Status::NotFound("Sync Slave partition " + p_info.ToString());
-  }
-  sync_slave_partitions_[p_info]->SetMasterSessionId(session_id);
-  return Status::OK();
-}
-
 Status PikaReplicaManager::DeactivateSyncSlavePartition(const PartitionInfo& p_info) {
   slash::RWLock l(&partitions_rw_, false);
   if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
     return Status::NotFound("Sync Slave partition " + p_info.ToString());
   }
   sync_slave_partitions_[p_info]->Deactivate();
-  return Status::OK();
-}
-
-Status PikaReplicaManager::SetSlaveReplState(const PartitionInfo& p_info,
-                                             const ReplState& repl_state) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
-    return Status::NotFound("Sync Slave partition " + p_info.ToString());
-  }
-  sync_slave_partitions_[p_info]->SetReplState(repl_state);
-  return Status::OK();
-}
-
-Status PikaReplicaManager::GetSlaveReplState(const PartitionInfo& p_info,
-                                             ReplState* repl_state) {
-  slash::RWLock l(&partitions_rw_, false);
-  if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
-    return Status::NotFound("Sync Slave partition " + p_info.ToString());
-  }
-  *repl_state = sync_slave_partitions_[p_info]->State();
   return Status::OK();
 }
 
@@ -1353,9 +1172,9 @@ Status PikaReplicaManager::SendPartitionTrySyncRequest(
 
   Status s;
   if (status.ok()) {
-    s = g_pika_rm->SetSlaveReplState(PartitionInfo(table_name, partition_id), ReplState::kWaitReply);
+    slave_partition->SetReplState(ReplState::kWaitReply);
   } else {
-    s = g_pika_rm->SetSlaveReplState(PartitionInfo(table_name, partition_id), ReplState::kError);
+    slave_partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "SendPartitionTrySyncRequest failed " << status.ToString();
   }
   if (!s.ok()) {
@@ -1398,10 +1217,10 @@ Status PikaReplicaManager::SendPartitionDBSyncRequest(
 
   Status s;
   if (status.ok()) {
-    s = g_pika_rm->SetSlaveReplState(PartitionInfo(table_name, partition_id), ReplState::kWaitReply);
+    slave_partition->SetReplState(ReplState::kWaitReply);
   } else {
+    slave_partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "SendPartitionDbSync failed " << status.ToString();
-    s = g_pika_rm->SetSlaveReplState(PartitionInfo(table_name, partition_id), ReplState::kError);
   }
   if (!s.ok()) {
     LOG(WARNING) << s.ToString();
@@ -1443,33 +1262,6 @@ PikaReplicaManager::GetSyncMasterPartitionByName(const PartitionInfo& p_info) {
     return nullptr;
   }
   return sync_master_partitions_[p_info];
-}
-
-Status PikaReplicaManager::GetSafetyPurgeBinlogFromSMP(const std::string& table_name,
-                                                       uint32_t partition_id,
-                                                       std::string* safety_purge) {
-  std::shared_ptr<SyncMasterPartition> master_partition =
-      GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-  if (!master_partition) {
-    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
-        << ", NotFound";
-    return Status::NotFound("SyncMasterPartition NotFound");
-  } else {
-    return master_partition->GetSafetyPurgeBinlog(safety_purge);
-  }
-}
-
-bool PikaReplicaManager::BinlogCloudPurgeFromSMP(const std::string& table_name,
-                                                 uint32_t partition_id, uint32_t index) {
-  std::shared_ptr<SyncMasterPartition> master_partition =
-      GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-  if (!master_partition) {
-    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
-        << ", NotFound";
-    return false;
-  } else {
-    return master_partition->BinlogCloudPurge(index);
-  }
 }
 
 std::shared_ptr<SyncSlavePartition>
@@ -1646,44 +1438,4 @@ void PikaReplicaManager::RmStatus(std::string* info) {
       << "\r\n" << iter.second->ToStringStatus() << "\r\n";
   }
   info->append(tmp_stream.str());
-}
-
-Status PikaReplicaManager::ConsistencyProposeLog(
-      const std::string& table_name, uint32_t partition_id,
-      const BinlogOffset& offset,
-      std::shared_ptr<Cmd> cmd_ptr,
-      std::shared_ptr<PikaClientConn> conn_ptr,
-      std::shared_ptr<std::string> resp_ptr) {
-  slash::RWLock l(&partitions_rw_, false);
-  PartitionInfo p_info(table_name, partition_id);
-  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
-    return Status::NotFound("SyncMasterPartition NotFound");
-  } else {
-    std::shared_ptr<SyncMasterPartition> sync_master_partition = sync_master_partitions_[p_info];
-    return sync_master_partition->ConsistencyProposeLog(offset, cmd_ptr, conn_ptr, resp_ptr);
-  }
-}
-
-Status PikaReplicaManager::ConsistencySanityCheck(
-      const std::string& table_name, uint32_t partition_id) {
-  slash::RWLock l(&partitions_rw_, false);
-  PartitionInfo p_info(table_name, partition_id);
-  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
-    return Status::NotFound("SyncMasterPartition NotFound");
-  } else {
-    std::shared_ptr<SyncMasterPartition> sync_master_partition = sync_master_partitions_[p_info];
-    return sync_master_partition->ConsistencySanityCheck();
-  }
-}
-
-Status PikaReplicaManager::ConsistencyScheduleApplyLog(
-      const std::string& table_name, uint32_t partition_id) {
-  slash::RWLock l(&partitions_rw_, false);
-  PartitionInfo p_info(table_name, partition_id);
-  if (sync_master_partitions_.find(p_info) == sync_master_partitions_.end()) {
-    return Status::NotFound("SyncMasterPartition NotFound");
-  } else {
-    std::shared_ptr<SyncMasterPartition> sync_master_partition = sync_master_partitions_[p_info];
-    return sync_master_partition->ConsistencyScheduleApplyLog();
-  }
 }

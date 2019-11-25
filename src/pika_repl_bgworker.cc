@@ -68,6 +68,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       break;
     }
   }
+  // table_name and partition_id in the vector are same in the bgworker,
+  // because DispatchBinlogRes() have been order them. 
   worker->table_name_ = table_name;
   worker->partition_id_ = partition_id;
 
@@ -101,13 +103,15 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       return;
     }
 
-    if (!g_pika_rm->CheckSlavePartitionSessionId(
-                binlog_res.partition().table_name(),
-                binlog_res.partition().partition_id(),
-                binlog_res.session_id())) {
+    if (slave_partition->MasterSessionId() != binlog_res.session_id()) {
+      LOG(WARNING)<< "Check SessionId Mismatch: " << slave_partition->MasterIp()
+        << ":" << slave_partition->MasterPort() << ", "
+        << slave_partition->SyncPartitionInfo().ToString()
+        << " expected_session: " << binlog_res.session_id() << ", actual_session:"
+        << slave_partition->MasterSessionId();
       LOG(WARNING) << "Check Session failed "
-          << binlog_res.partition().table_name()
-          << "_" << binlog_res.partition().partition_id();
+        << binlog_res.partition().table_name()
+        << "_" << binlog_res.partition().partition_id();
       slave_partition->SetReplState(ReplState::kTryConnect);
       delete index;
       delete task_arg;
