@@ -68,7 +68,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       break;
     }
   }
-  // table_name and partition_id are  same in the bgworker. 
+  // table_name and partition_id in the vector are same in the bgworker,
+  // because DispatchBinlogRes() have been order them. 
   worker->table_name_ = table_name;
   worker->partition_id_ = partition_id;
 
