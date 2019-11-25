@@ -350,13 +350,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
       return;
     }
 
-    std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
-    if (!partition) {
-      LOG(WARNING) << "Activate Binlog Sync ,found Binlog faile . " << table_name << "_" << partition_id;
-      delete task_arg;
-      return;
-    }
-
     Status s = master_partition->ActivateSlaveBinlogSync(node.ip(), node.port(), range_start);
     if (!s.ok()) {
       LOG(WARNING) << "Activate Binlog Sync failed " << slave_node.ToString() << " " << s.ToString();

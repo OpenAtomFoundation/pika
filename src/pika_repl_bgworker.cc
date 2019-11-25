@@ -68,6 +68,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       break;
     }
   }
+  // table_name and partition_id are  same in the bgworker. 
   worker->table_name_ = table_name;
   worker->partition_id_ = partition_id;
 
@@ -89,7 +90,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     return;
   }
 
-  std::shared_ptr<SyncSlavePartition> slave_partition_tmp = nullptr;
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     // if pika are not current a slave or partition not in
@@ -102,21 +102,12 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       return;
     }
 
-    slave_partition_tmp = g_pika_rm->GetSyncSlavePartitionByName(
-        PartitionInfo(binlog_res.partition().table_name(),
-          binlog_res.partition().partition_id()));
-    if (!slave_partition_tmp) {
-      LOG(WARNING) << "Slave Partition " << table_name << "_" << partition_id << " Not Found";
-      delete index;
-      delete task_arg;
-      return;
-    }
-    if (slave_partition_tmp->MasterSessionId() != binlog_res.session_id()) {
-      LOG(WARNING)<< "Check SessionId Mismatch: " << slave_partition_tmp->MasterIp()
-        << ":" << slave_partition_tmp->MasterPort() << ", "
-        << slave_partition_tmp->SyncPartitionInfo().ToString()
+    if (slave_partition->MasterSessionId() != binlog_res.session_id()) {
+      LOG(WARNING)<< "Check SessionId Mismatch: " << slave_partition->MasterIp()
+        << ":" << slave_partition->MasterPort() << ", "
+        << slave_partition->SyncPartitionInfo().ToString()
         << " expected_session: " << binlog_res.session_id() << ", actual_session:"
-        << slave_partition_tmp->MasterSessionId();
+        << slave_partition->MasterSessionId();
       LOG(WARNING) << "Check Session failed "
         << binlog_res.partition().table_name()
         << "_" << binlog_res.partition().partition_id();
