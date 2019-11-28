@@ -19,6 +19,7 @@
 #include "include/pika_repl_server.h"
 #include "include/pika_stable_log.h"
 #include "include/pika_consistency.h"
+#include "include/pika_slave_node.h"
 
 #define kBinlogSendPacketNum 40
 #define kBinlogSendBatchNum 100
@@ -28,74 +29,6 @@
 #define kRecvKeepAliveTimeout (20 * 1000000)
 
 using slash::Status;
-
-struct SyncWinItem {
-  BinlogOffset offset_;
-  bool acked_;
-  bool operator==(const SyncWinItem& other) const {
-    if (offset_.filenum == other.offset_.filenum && offset_.offset == other.offset_.offset) {
-      return true;
-    }
-    return false;
-  }
-  explicit SyncWinItem(const BinlogOffset& offset) : offset_(offset), acked_(false) {
-  }
-  SyncWinItem(uint32_t filenum, uint64_t offset) : offset_(filenum, offset), acked_(false) {
-  }
-  std::string ToString() const {
-    return offset_.ToString() + " acked: " + std::to_string(acked_);
-  }
-};
-
-class SyncWindow {
- public:
-  SyncWindow() {
-  }
-  void Push(const SyncWinItem& item);
-  bool Update(const SyncWinItem& start_item, const SyncWinItem& end_item, BinlogOffset* acked_offset);
-  int Remainings();
-  std::string ToStringStatus() const {
-    if (win_.empty()) {
-      return "      Size: " + std::to_string(win_.size()) + "\r\n";
-    } else {
-      std::string res;
-      res += "      Size: " + std::to_string(win_.size()) + "\r\n";
-      res += ("      Begin_item: " + win_.begin()->ToString() + "\r\n");
-      res += ("      End_item: " + win_.rbegin()->ToString() + "\r\n");
-      return res;
-    }
-  }
- private:
-  // TODO(whoiami) ring buffer maybe
-  std::deque<SyncWinItem> win_;
-};
-
-// role master use
-class SlaveNode : public RmNode {
- public:
-  SlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int session_id);
-  ~SlaveNode();
-  void Lock() {
-    slave_mu.Lock();
-  }
-  void Unlock() {
-    slave_mu.Unlock();
-  }
-  SlaveState slave_state;
-
-  BinlogSyncState b_state;
-  SyncWindow sync_win;
-  BinlogOffset sent_offset;
-  BinlogOffset acked_offset;
-
-  std::string ToStringStatus();
-
-  std::shared_ptr<PikaBinlogReader> binlog_reader;
-  Status InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, const BinlogOffset& offset);
-  void ReleaseBinlogFileReader();
-
-  slash::Mutex slave_mu;
-};
 
 class SyncPartition {
  public:
@@ -174,11 +107,7 @@ class SyncMasterPartition : public SyncPartition {
 
  private:
   bool CheckReadBinlogFromCache();
-  // inovker need to hold partition_mu_
-  void CleanMasterNode();
-  void CleanSlaveNode();
   // invoker need to hold slave_mu_
-  Status ReadCachedBinlogToWq(const std::shared_ptr<SlaveNode>& slave_ptr);
   Status ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr);
   // inovker need to hold partition_mu_
   Status GetSlaveNode(const std::string& ip, int port, std::shared_ptr<SlaveNode>* slave_node);
@@ -232,18 +161,6 @@ class SyncSlavePartition : public SyncPartition {
   RmNode m_info_;
   ReplState repl_state_;
   std::string local_ip_;
-};
-
-class BinlogReaderManager {
- public:
-  ~BinlogReaderManager();
-  Status FetchBinlogReader(const RmNode& rm_node, std::shared_ptr<PikaBinlogReader>* reader);
-  Status ReleaseBinlogReader(const RmNode& rm_node);
-  std::string ToStringStatus();
- private:
-  slash::Mutex reader_mu_;
-  std::unordered_map<RmNode, std::shared_ptr<PikaBinlogReader>, hash_rm_node> occupied_;
-  std::vector<std::shared_ptr<PikaBinlogReader>> vacant_;
 };
 
 class PikaReplicaManager {
@@ -324,8 +241,6 @@ class PikaReplicaManager {
 
   void ReplServerRemoveClientConn(int fd);
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
-
-  BinlogReaderManager binlog_reader_mgr;
 
  private:
   void InitPartition();
