@@ -8,6 +8,17 @@
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
 
+//class SyncProgress {
+//  GetSlaveNode();
+//  GetAllSlaveNodes();
+//  AddSlaveNode();
+//  RemoveSlaveNode();
+//  SlaveSize();
+// private:
+//  pthread_rwlock_t rwlock_;
+//  std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves_;
+//};
+
 class ConsistencyCoordinator {
  public:
   struct LogItem {

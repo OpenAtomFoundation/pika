@@ -19,87 +19,6 @@ extern PikaConf *g_pika_conf;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaServer *g_pika_server;
 
-/* BinlogReaderManager */
-
-BinlogReaderManager::~BinlogReaderManager() {
-}
-
-Status BinlogReaderManager::FetchBinlogReader(const RmNode& rm_node, std::shared_ptr<PikaBinlogReader>* reader) {
-  slash::MutexLock l(&reader_mu_);
-  if (occupied_.find(rm_node) != occupied_.end()) {
-    return Status::Corruption(rm_node.ToString() + " exist");
-  }
-  if (vacant_.empty()) {
-    *reader = std::make_shared<PikaBinlogReader>();
-  } else {
-    *reader = *(vacant_.begin());
-    vacant_.erase(vacant_.begin());
-  }
-  occupied_[rm_node] = *reader;
-  return Status::OK();
-}
-
-Status BinlogReaderManager::ReleaseBinlogReader(const RmNode& rm_node) {
-  slash::MutexLock l(&reader_mu_);
-  if (occupied_.find(rm_node) == occupied_.end()) {
-    return Status::NotFound(rm_node.ToString());
-  }
-  std::shared_ptr<PikaBinlogReader> reader = occupied_[rm_node];
-  occupied_.erase(rm_node);
-  vacant_.push_back(reader);
-  return Status::OK();
-}
-
-/* SlaveNode */
-
-SlaveNode::SlaveNode(const std::string& ip, int port,
-                     const std::string& table_name,
-                     uint32_t partition_id, int session_id)
-  : RmNode(ip, port, table_name, partition_id, session_id),
-  slave_state(kSlaveNotSync),
-  b_state(kNotSync), sent_offset(), acked_offset() {
-}
-
-SlaveNode::~SlaveNode() {
-  if (b_state == kReadFromFile && binlog_reader != nullptr) {
-    RmNode rm_node(Ip(), Port(), TableName(), PartitionId());
-    ReleaseBinlogFileReader();
-  }
-}
-
-Status SlaveNode::InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog,
-                                       const BinlogOffset& offset) {
-  Status s = g_pika_rm->binlog_reader_mgr.FetchBinlogReader(
-      RmNode(Ip(), Port(), NodePartitionInfo()), &binlog_reader);
-  if (!s.ok()) {
-    return s;
-  }
-  int res = binlog_reader->Seek(binlog, offset.filenum, offset.offset);
-  if (res) {
-    g_pika_rm->binlog_reader_mgr.ReleaseBinlogReader(
-        RmNode(Ip(), Port(), NodePartitionInfo()));
-    return Status::Corruption(ToString() + "  binlog reader init failed");
-  }
-  return Status::OK();
-}
-
-void SlaveNode::ReleaseBinlogFileReader() {
-  g_pika_rm->binlog_reader_mgr.ReleaseBinlogReader(
-      RmNode(Ip(), Port(), NodePartitionInfo()));
-  binlog_reader = nullptr;
-}
-
-std::string SlaveNode::ToStringStatus() {
-  std::stringstream tmp_stream;
-  tmp_stream << "    Slave_state: " << SlaveStateMsg[slave_state] << "\r\n";
-  tmp_stream << "    Binlog_sync_state: " << BinlogSyncStateMsg[b_state] << "\r\n";
-  tmp_stream << "    Sync_window: " << "\r\n" << sync_win.ToStringStatus();
-  tmp_stream << "    Sent_offset: " << sent_offset.ToString() << "\r\n";
-  tmp_stream << "    Acked_offset: " << acked_offset.ToString() << "\r\n";
-  tmp_stream << "    Binlog_reader activated: " << (binlog_reader != nullptr) << "\r\n";
-  return tmp_stream.str();
-}
-
 /* SyncPartition */
 
 SyncPartition::SyncPartition(const std::string& table_name, uint32_t partition_id)
@@ -123,10 +42,6 @@ SyncMasterPartition::SyncMasterPartition(const std::string& table_name, uint32_t
   std::string log_path = g_pika_conf->classic_mode() ?
     table_log_path : table_log_path + std::to_string(partition_id) + "/";
   stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
-}
-
-bool SyncMasterPartition::CheckReadBinlogFromCache() {
-  return false;
 }
 
 int SyncMasterPartition::GetNumberOfSlaveNode() {
@@ -201,26 +116,18 @@ Status SyncMasterPartition::ActivateSlaveBinlogSync(const std::string& ip,
   if (!s.ok()) {
     return s;
   }
-  bool read_cache = CheckReadBinlogFromCache();
 
   slave_ptr->Lock();
   slave_ptr->slave_state = kSlaveBinlogSync;
   slave_ptr->sent_offset = offset;
   slave_ptr->acked_offset = offset;
-  if (read_cache) {
+  // read binlog file from file
+  s = slave_ptr->InitBinlogFileReader(Logger(), offset);
+  if (!s.ok()) {
     slave_ptr->Unlock();
-    // RegistToBinlogCacheWindow(ip, port, offset);
-    slave_ptr->Lock();
-    slave_ptr->b_state = kReadFromCache;
-  } else {
-    // read binlog file from file
-    s = slave_ptr->InitBinlogFileReader(Logger(), offset);
-    if (!s.ok()) {
-      slave_ptr->Unlock();
-      return Status::Corruption("Init binlog file reader failed" + s.ToString());
-    }
-    slave_ptr->b_state = kReadFromFile;
+    return Status::Corruption("Init binlog file reader failed" + s.ToString());
   }
+  slave_ptr->b_state = kReadFromFile;
   slave_ptr->Unlock();
   }
 
@@ -241,11 +148,7 @@ Status SyncMasterPartition::SyncBinlogToWq(const std::string& ip, int port) {
 
   {
   slash::MutexLock l(&slave_ptr->slave_mu);
-  if (slave_ptr->b_state == kReadFromFile) {
-    ReadBinlogFileToWq(slave_ptr);
-  } else if (slave_ptr->b_state == kReadFromCache) {
-    ReadCachedBinlogToWq(slave_ptr);
-  }
+  ReadBinlogFileToWq(slave_ptr);
   }
   return Status::OK();
 }
@@ -263,10 +166,6 @@ Status SyncMasterPartition::ActivateSlaveDbSync(const std::string& ip, int port)
   slave_ptr->slave_state = kSlaveDbSync;
   // invoke db sync
   }
-  return Status::OK();
-}
-
-Status SyncMasterPartition::ReadCachedBinlogToWq(const std::shared_ptr<SlaveNode>& slave_ptr) {
   return Status::OK();
 }
 
@@ -380,11 +279,7 @@ Status SyncMasterPartition::WakeUpSlaveBinlogSync() {
     {
     slash::MutexLock l(&slave_ptr->slave_mu);
     if (slave_ptr->sent_offset == slave_ptr->acked_offset) {
-      if (slave_ptr->b_state == kReadFromFile) {
-        ReadBinlogFileToWq(slave_ptr);
-      } else if (slave_ptr->b_state == kReadFromCache) {
-        ReadCachedBinlogToWq(slave_ptr);
-      }
+      ReadBinlogFileToWq(slave_ptr);
     }
     }
   }
