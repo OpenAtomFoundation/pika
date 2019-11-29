@@ -12,7 +12,69 @@
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
-ConsistencyCoordinator::ConsistencyCoordinator() {
+/* SyncProgress */
+
+SyncProgress::SyncProgress() {
+  pthread_rwlock_init(&rwlock_, NULL);
+}
+
+SyncProgress::~SyncProgress() {
+  pthread_rwlock_destroy(&rwlock_);
+}
+
+std::shared_ptr<SlaveNode> SyncProgress::GetSlaveNode(const std::string& ip, int port) {
+  std::string slave_key = ip + std::to_string(port);
+  slash::RWLock l(&rwlock_, false);
+  if (slaves_.find(slave_key) == slaves_.end()) {
+    return nullptr;
+  }
+  return slaves_[slave_key];
+}
+
+
+std::unordered_map<std::string, std::shared_ptr<SlaveNode>> SyncProgress::GetAllSlaveNodes() {
+  slash::RWLock l(&rwlock_, false);
+  return slaves_;
+}
+
+Status SyncProgress::AddSlaveNode(const std::string& ip, int port,
+    const std::string& table_name, uint32_t partition_id, int session_id) {
+  std::string slave_key = ip + std::to_string(port);
+  std::shared_ptr<SlaveNode> exist_ptr = GetSlaveNode(ip, port);
+  if (exist_ptr) {
+    LOG(WARNING) << "SlaveNode " << exist_ptr->ToString() <<
+      " already exist, set new session " << session_id;
+    exist_ptr->SetSessionId(session_id);
+    return Status::OK();
+  }
+  slash::RWLock l(&rwlock_, true);
+  std::shared_ptr<SlaveNode> slave_ptr =
+    std::make_shared<SlaveNode>(ip, port, table_name, partition_id, session_id);
+  slave_ptr->SetLastSendTime(slash::NowMicros());
+  slave_ptr->SetLastRecvTime(slash::NowMicros());
+  slaves_[slave_key] = slave_ptr;
+  return Status::OK();
+}
+
+Status SyncProgress::RemoveSlaveNode(const std::string& ip, int port) {
+  std::string slave_key = ip + std::to_string(port);
+  slash::RWLock l(&rwlock_, true);
+  slaves_.erase(slave_key);
+  return Status::OK();
+}
+
+int SyncProgress::SlaveSize() {
+  slash::RWLock l(&rwlock_, false);
+  return slaves_.size();
+}
+
+/* ConsistencyCoordinator */
+
+ConsistencyCoordinator::ConsistencyCoordinator(const std::string& table_name, uint32_t partition_id) : table_name_(table_name), partition_id_(partition_id) {
+  std::string table_log_path = g_pika_conf->log_path() + "log_" + table_name + "/";
+  std::string log_path = g_pika_conf->classic_mode() ?
+    table_log_path : table_log_path + std::to_string(partition_id) + "/";
+  stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
 }
 
 // if client request CheckEnoughFollower pass
@@ -57,6 +119,30 @@ Status ConsistencyCoordinator::UpdateMatchIndex(
   std::string ip_port = ip + std::to_string(port);
   match_index_[ip_port] = offset;
   InternalUpdateCommittedIndex();
+  return Status::OK();
+}
+
+Status ConsistencyCoordinator::AddSlaveNode(const std::string& ip, int port, int session_id) {
+  Status s = sync_pros_.AddSlaveNode(ip, port, table_name_, partition_id_, session_id);
+  if (!s.ok()) {
+    return s;
+  }
+  s = AddFollower(ip, port);
+  if (!s.ok()) {
+    return s;
+  }
+  return Status::OK();
+}
+
+Status ConsistencyCoordinator::RemoveSlaveNode(const std::string& ip, int port) {
+  Status s = sync_pros_.RemoveSlaveNode(ip, port);
+  if (!s.ok()) {
+    return s;
+  }
+  s = RemoveFollower(ip, port);
+  if (!s.ok()) {
+    return s;
+  }
   return Status::OK();
 }
 

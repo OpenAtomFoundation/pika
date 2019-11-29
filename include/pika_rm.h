@@ -95,33 +95,29 @@ class SyncMasterPartition : public SyncPartition {
   Status ConsistencySanityCheck();
   Status ConsistencyScheduleApplyLog();
 
+  std::shared_ptr<StableLog> StableLogger() {
+    return coordinator_.StableLogger();
+  }
+
   std::shared_ptr<Binlog> Logger() {
-    if (!stable_logger_) {
+    if (!coordinator_.StableLogger()) {
       return nullptr;
     }
-    return stable_logger_->Logger();
-  }
-  std::shared_ptr<StableLog> StableLogger() {
-    return stable_logger_;
+    return coordinator_.StableLogger()->Logger();
   }
 
  private:
   bool CheckReadBinlogFromCache();
   // invoker need to hold slave_mu_
   Status ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr);
-  // inovker need to hold partition_mu_
-  Status GetSlaveNode(const std::string& ip, int port, std::shared_ptr<SlaveNode>* slave_node);
 
-  slash::Mutex partition_mu_;
-  std::vector<std::shared_ptr<SlaveNode>> slaves_;
+  std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
+  std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
 
   slash::Mutex session_mu_;
   int32_t session_id_;
 
   ConsistencyCoordinator coordinator_;
-
-  std::shared_ptr<StableLog> stable_logger_;
-  // BinlogCacheWindow win_;
 };
 
 class SyncSlavePartition : public SyncPartition {
