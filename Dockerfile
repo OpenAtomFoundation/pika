@@ -1,4 +1,4 @@
-FROM centos:latest
+FROM centos:centos7
 MAINTAINER left2right <yqzhang@easemob.com>
 
 RUN rpm -ivh https://mirrors.ustc.edu.cn/epel/epel-release-latest-7.noarch.rpm && \
