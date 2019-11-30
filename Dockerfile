@@ -1,14 +1,5 @@
-FROM centos:7
-
-LABEL maintainer="SvenDowideit@home.org.au, zhangshaomin_1990@126.com"
-
-ENV PIKA  /pika
-ENV PIKA_BUILD_DIR /tmp/pika
-ENV PATH ${PIKA}/bin:${PATH}
-
-COPY . ${PIKA_BUILD_DIR}
-
-WORKDIR ${PIKA_BUILD_DIR}
+FROM centos:centos7
+MAINTAINER left2right <yqzhang@easemob.com>
 
 RUN rpm -ivh https://mirrors.ustc.edu.cn/epel/epel-release-latest-7.noarch.rpm && \
     yum -y makecache && \
