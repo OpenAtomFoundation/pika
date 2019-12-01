@@ -1,4 +1,4 @@
-FROM centos:latest
+FROM centos:7
 
 LABEL maintainer="SvenDowideit@home.org.au, zhangshaomin_1990@126.com"
 
@@ -22,20 +22,16 @@ RUN rpm -ivh https://mirrors.ustc.edu.cn/epel/epel-release-latest-7.noarch.rpm &
     yum -y install git && \
     make && \
     cp -r ${PIKA_BUILD_DIR}/output ${PIKA} && \
-    # yum -y remove snappy-devel && \
-    # yum -y remove protobuf-devel && \
-    # yum -y remove gflags-devel && \
     yum -y remove gcc-c++ && \
     yum -y remove make && \
     yum -y remove which && \
     yum -y remove git && \
     yum -y clean all && \
-    rm -rf ${PIKA_BUILD_DIR} && \
-    rm -rf /var/cache/yum
-
+    rm -rf /var/cache/yum && \
+    rm -rf .git && \
+    find . -name "*.o" -exec rm -f {} \; && \
+    rm -rf ${PIKA_BUILD_DIR}/output
 
 WORKDIR ${PIKA}
-
-EXPOSE 9221
 
 CMD ["sh", "-c", "${PIKA}/bin/pika -c ${PIKA}/conf/pika.conf"]
