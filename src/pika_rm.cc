@@ -176,26 +176,12 @@ Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>&
   return Status::OK();
 }
 
-Status SyncMasterPartition::UpdateSlaveBinlogAckInfo(const std::string& ip, int port, const BinlogOffset& start, const BinlogOffset& end) {
-  std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
-  if (!slave_ptr) {
-    return Status::NotFound("ip " + ip  + " port " + std::to_string(port));
+Status SyncMasterPartition::ConsistencyUpdateSlave(const std::string& ip, int port, const BinlogOffset& start, const BinlogOffset& end) {
+  Status s = coordinator_.UpdateSlave(ip, port, start, end);
+  if (!s.ok()) {
+    LOG(WARNING) << SyncPartitionInfo().ToString() << s.ToString();
+    return s;
   }
-
-  BinlogOffset acked_offset;
-  {
-    slash::MutexLock l(&slave_ptr->slave_mu);
-    if (slave_ptr->slave_state != kSlaveBinlogSync) {
-      return Status::Corruption(ip + std::to_string(port) + "state not BinlogSync");
-    }
-    bool res = slave_ptr->sync_win.Update(SyncWinItem(start), SyncWinItem(end), &acked_offset);
-    if (!res) {
-      return Status::Corruption("UpdateAckedInfo failed");
-    }
-    slave_ptr->acked_offset = acked_offset;
-  }
-
-  coordinator_.UpdateMatchIndex(ip, port, acked_offset);
   return Status::OK();
 }
 
@@ -463,25 +449,19 @@ bool SyncMasterPartition::CheckSessionId(const std::string& ip, int port,
 }
 
 Status SyncMasterPartition::ConsistencyProposeLog(
-    const BinlogOffset& offset,
     std::shared_ptr<Cmd> cmd_ptr,
     std::shared_ptr<PikaClientConn> conn_ptr,
     std::shared_ptr<std::string> resp_ptr) {
-  return coordinator_.ProposeLog(offset, cmd_ptr, conn_ptr, resp_ptr);
+  return coordinator_.ProposeLog(cmd_ptr, conn_ptr, resp_ptr);
 }
 
 Status SyncMasterPartition::ConsistencySanityCheck() {
   return coordinator_.CheckEnoughFollower();
 }
 
-Status SyncMasterPartition::ConsistencyScheduleApplyLog() {
-  return coordinator_.ScheduleApplyLog();
-}
-
 std::shared_ptr<SlaveNode> SyncMasterPartition::GetSlaveNode(const std::string& ip, int port) {
   return coordinator_.SyncPros().GetSlaveNode(ip, port);
 }
-
 
 std::unordered_map<std::string, std::shared_ptr<SlaveNode>>
 SyncMasterPartition::GetAllSlaveNodes() {
@@ -790,7 +770,7 @@ Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const Bin
     return Status::NotFound(slave.ToString() + " not found");
   }
   std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  Status s = partition->UpdateSlaveBinlogAckInfo(slave.Ip(), slave.Port(), range_start, range_end);
+  Status s = partition->ConsistencyUpdateSlave(slave.Ip(), slave.Port(), range_start, range_end);
   if (!s.ok()) {
     return s;
   }

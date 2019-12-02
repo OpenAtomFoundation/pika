@@ -77,15 +77,91 @@ ConsistencyCoordinator::ConsistencyCoordinator(const std::string& table_name, ui
   stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
 }
 
-// if client request CheckEnoughFollower pass
-// this log will push to logs_ anyway, or it will cause log and db dismatch
 Status ConsistencyCoordinator::ProposeLog(
-    const BinlogOffset& offset,
     std::shared_ptr<Cmd> cmd_ptr,
     std::shared_ptr<PikaClientConn> conn_ptr,
     std::shared_ptr<std::string> resp_ptr) {
-  slash::MutexLock l_logs(&logs_mu_);
-  logs_.push_back(LogItem(offset, cmd_ptr, conn_ptr, resp_ptr));
+  BinlogOffset binlog_offset;
+  stable_logger_->Logger()->Lock();
+  Status s = InternalPutBinlog(cmd_ptr, &binlog_offset);
+  stable_logger_->Logger()->Unlock();
+  if (!s.ok()) {
+    return s;
+  }
+
+  if (g_pika_conf->consistency_level() == 0) {
+    return Status::OK();
+  }
+
+  {
+    slash::MutexLock l_logs(&logs_mu_);
+    logs_.push_back(LogItem(binlog_offset, cmd_ptr, conn_ptr, resp_ptr));
+  }
+
+  g_pika_server->SignalAuxiliary();
+  return Status::OK();
+}
+
+Status ConsistencyCoordinator::UpdateSlave(const std::string& ip, int port,
+      const BinlogOffset& start, const BinlogOffset& end) {
+  std::shared_ptr<SlaveNode> slave_ptr = sync_pros_.GetSlaveNode(ip, port);
+  if (!slave_ptr) {
+    return Status::NotFound("ip " + ip  + " port " + std::to_string(port));
+  }
+
+  BinlogOffset acked_offset;
+  {
+    slash::MutexLock l(&slave_ptr->slave_mu);
+    Status s = slave_ptr->Update(start, end);
+    if (!s.ok()) {
+      return s;
+    }
+    acked_offset = slave_ptr->acked_offset;
+  }
+
+  if (g_pika_conf->consistency_level() == 0) {
+    return Status::OK();
+  }
+
+  Status s = UpdateMatchIndex(ip, port, acked_offset);
+  if (!s.ok()) {
+    return s;
+  }
+  s = ScheduleApplyLog();
+  if (!s.ok()) {
+    return s;
+  }
+  return Status::OK();
+}
+
+Status ConsistencyCoordinator::UpdateMatchIndex(
+    const std::string& ip, int port, const BinlogOffset& offset) {
+  slash::MutexLock l(&index_mu_);
+  std::string ip_port = ip + std::to_string(port);
+  match_index_[ip_port] = offset;
+  InternalUpdateCommittedIndex();
+  return Status::OK();
+}
+
+Status ConsistencyCoordinator::InternalPutBinlog(
+    std::shared_ptr<Cmd> cmd_ptr, BinlogOffset* binlog_offset) {
+  uint32_t filenum = 0;
+  uint64_t offset = 0;
+  uint64_t logic_id = 0;
+
+  stable_logger_->Logger()->GetProducerStatus(&filenum, &offset, &logic_id);
+  uint32_t exec_time = time(nullptr);
+  std::string binlog = cmd_ptr->ToBinlog(exec_time,
+                                    g_pika_conf->server_id(),
+                                    logic_id,
+                                    filenum,
+                                    offset);
+  Status s = stable_logger_->Logger()->Put(binlog);
+  if (!s.ok()) {
+    return s;
+  }
+  stable_logger_->Logger()->GetProducerStatus(&filenum, &offset);
+  *binlog_offset = BinlogOffset(filenum, offset);
   return Status::OK();
 }
 
@@ -110,15 +186,6 @@ Status ConsistencyCoordinator::CheckEnoughFollower() {
   if (!InternalMatchConsistencyLevel()) {
     return Status::Incomplete("Not enough follower");
   }
-  return Status::OK();
-}
-
-Status ConsistencyCoordinator::UpdateMatchIndex(
-    const std::string& ip, int port, const BinlogOffset& offset) {
-  slash::MutexLock l(&index_mu_);
-  std::string ip_port = ip + std::to_string(port);
-  match_index_[ip_port] = offset;
-  InternalUpdateCommittedIndex();
   return Status::OK();
 }
 

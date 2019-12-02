@@ -689,29 +689,26 @@ void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
   if (res().ok()
     && is_write()
     && g_pika_conf->write_binlog()) {
+    std::shared_ptr<pink::PinkConn> conn_ptr = GetConn();
+    std::shared_ptr<std::string> resp_ptr = GetResp();
+    if (!conn_ptr || !resp_ptr) {
+      if (!conn_ptr) {
+        LOG(WARNING) << partition->SyncPartitionInfo().ToString() << " conn empty.";
+      }
+      if (!resp_ptr) {
+        LOG(WARNING) << partition->SyncPartitionInfo().ToString() << " resp empty.";
+      }
+      res().SetRes(CmdRes::kErrOther);
+      return;
+    }
 
-    uint32_t filenum = 0;
-    uint64_t offset = 0;
-    uint64_t logic_id = 0;
-
-    partition->Logger()->Lock();
-    partition->Logger()->GetProducerStatus(&filenum, &offset, &logic_id);
-    uint32_t exec_time = time(nullptr);
-    std::string binlog = ToBinlog(exec_time,
-                                  g_pika_conf->server_id(),
-                                  logic_id,
-                                  filenum,
-                                  offset);
-
-    Status s = partition->Logger()->Put(binlog);
-    partition->Logger()->GetProducerStatus(&filenum, &offset);
-    binlog_offset_ = BinlogOffset(filenum, offset);
-    partition->Logger()->Unlock();
-
+    Status s = partition->ConsistencyProposeLog(shared_from_this(),
+        std::dynamic_pointer_cast<PikaClientConn>(conn_ptr), resp_ptr);
     if (!s.ok()) {
       LOG(WARNING) << partition->SyncPartitionInfo().ToString()
       << " Writing binlog failed, maybe no space left on device " << s.ToString();
       res().SetRes(CmdRes::kErrOther, s.ToString());
+      return;
     }
   }
 }
@@ -761,10 +758,6 @@ std::string Cmd::table_name() const {
   return table_name_;
 }
 
-BinlogOffset Cmd::binlog_offset() const {
-  return binlog_offset_;
-}
-
 std::string Cmd::ToBinlog(uint32_t exec_time,
                           const std::string& server_id,
                           uint64_t logic_id,
@@ -812,6 +805,14 @@ void Cmd::SetConn(const std::shared_ptr<pink::PinkConn> conn) {
 
 std::shared_ptr<pink::PinkConn> Cmd::GetConn() {
   return conn_.lock();
+}
+
+void Cmd::SetResp(const std::shared_ptr<std::string> resp) {
+  resp_ = resp;
+}
+
+std::shared_ptr<std::string> Cmd::GetResp() {
+  return resp_.lock();
 }
 
 void Cmd::SetStage(CmdStage stage) {

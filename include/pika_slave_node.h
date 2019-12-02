@@ -76,6 +76,7 @@ class SlaveNode : public RmNode {
 
   std::shared_ptr<PikaBinlogReader> binlog_reader;
   Status InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, const BinlogOffset& offset);
+  Status Update(const BinlogOffset& start, const BinlogOffset& end);
 
   slash::Mutex slave_mu;
 };

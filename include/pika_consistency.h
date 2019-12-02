@@ -43,21 +43,17 @@ class ConsistencyCoordinator {
   };
 
   ConsistencyCoordinator(const std::string& table_name, uint32_t partition_id);
+
   Status ProposeLog(
-      const BinlogOffset& offset,
       std::shared_ptr<Cmd> cmd_ptr,
       std::shared_ptr<PikaClientConn> conn_ptr,
       std::shared_ptr<std::string> resp_ptr);
-  Status ScheduleApplyLog();
-  Status CheckEnoughFollower();
-  Status UpdateMatchIndex(const std::string& ip, int port, const BinlogOffset& offset);
-
+  Status UpdateSlave(const std::string& ip, int port,
+      const BinlogOffset& start, const BinlogOffset& end);
   Status AddSlaveNode(const std::string& ip, int port, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
 
-  Status AddFollower(const std::string& ip, int port);
-  Status RemoveFollower(const std::string& ip, int port);
-
+  Status CheckEnoughFollower();
   SyncProgress& SyncPros() {
     return sync_pros_;
   }
@@ -68,6 +64,13 @@ class ConsistencyCoordinator {
   size_t LogsSize();
 
  private:
+  Status AddFollower(const std::string& ip, int port);
+  Status RemoveFollower(const std::string& ip, int port);
+  Status ScheduleApplyLog();
+  Status UpdateMatchIndex(const std::string& ip, int port, const BinlogOffset& offset);
+
+  Status InternalPutBinlog(std::shared_ptr<Cmd> cmd_ptr,
+      BinlogOffset* binlog_offset);
   int InternalFindLogIndex();
   void InternalUpdateCommittedIndex();
   bool InternalMatchConsistencyLevel();

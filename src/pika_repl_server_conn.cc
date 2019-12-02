@@ -375,8 +375,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
     return;
   }
 
-  master_partition->ConsistencyScheduleApplyLog();
-
   delete task_arg;
   g_pika_server->SignalAuxiliary();
   return;

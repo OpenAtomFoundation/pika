@@ -39,4 +39,13 @@ std::string SlaveNode::ToStringStatus() {
   return tmp_stream.str();
 }
 
-
+Status SlaveNode::Update(const BinlogOffset& start, const BinlogOffset& end) {
+  if (slave_state != kSlaveBinlogSync) {
+    return Status::Corruption(ToString() + "state not BinlogSync");
+  }
+  bool res = sync_win.Update(SyncWinItem(start), SyncWinItem(end), &acked_offset);
+  if (!res) {
+    return Status::Corruption("UpdateAckedInfo failed");
+  }
+  return Status::OK();
+}
