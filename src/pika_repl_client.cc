@@ -24,13 +24,16 @@ extern PikaReplicaManager* g_pika_rm;
 PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) : next_avail_(0) {
   client_thread_ = new PikaReplClientThread(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
-  for (int i = 0; i < 2 * g_pika_conf->sync_thread_num(); ++i) {
+  pool_ = new pink::ThreadPool(
+      g_pika_conf->sync_thread_num(), 100000, "ReplDbPool");
+  for (int i = 0; i < g_pika_conf->sync_thread_num(); ++i) {
     bg_workers_.push_back(new PikaReplBgWorker(PIKA_SYNC_BUFFER_SIZE));
   }
 }
 
 PikaReplClient::~PikaReplClient() {
   client_thread_->StopThread();
+  delete pool_;
   delete client_thread_;
   for (size_t i = 0; i < bg_workers_.size(); ++i) {
     delete bg_workers_[i];
@@ -43,17 +46,24 @@ int PikaReplClient::Start() {
   if (res != pink::kSuccess) {
     LOG(FATAL) << "Start ReplClient ClientThread Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
   }
+  res = pool_->start_thread_pool();
+  if (res != pink::kSuccess) {
+    LOG(FATAL) << "Start Pika Repl Db Threadpool Error: " << res
+      << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+    return res;
+  }
   for (size_t i = 0; i < bg_workers_.size(); ++i) {
     res = bg_workers_[i]->StartThread();
     if (res != pink::kSuccess) {
       LOG(FATAL) << "Start Pika Repl Worker Thread Error: " << res
-          << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+        << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
     }
   }
   return res;
 }
 
 int PikaReplClient::Stop() {
+  pool_->stop_thread_pool();
   client_thread_->StopThread();
   for (size_t i = 0; i < bg_workers_.size(); ++i) {
     bg_workers_[i]->StopThread();
@@ -78,10 +88,9 @@ void PikaReplClient::ScheduleWriteBinlogTask(std::string table_partition,
 void PikaReplClient::ScheduleWriteDBTask(const std::string& dispatch_key,
     PikaCmdArgsType* argv, BinlogItem* binlog_item,
     const std::string& table_name, uint32_t partition_id) {
-  size_t index = GetHashIndex(dispatch_key, false);
   ReplClientWriteDBTaskArg* task_arg =
     new ReplClientWriteDBTaskArg(argv, binlog_item, table_name, partition_id);
-  bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
+  pool_->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
 }
 
 size_t PikaReplClient::GetHashIndex(std::string key, bool upper_half) {

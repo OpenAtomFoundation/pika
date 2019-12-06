@@ -220,6 +220,7 @@ class BinlogReaderManager {
   ~BinlogReaderManager();
   Status FetchBinlogReader(const RmNode& rm_node, std::shared_ptr<PikaBinlogReader>* reader);
   Status ReleaseBinlogReader(const RmNode& rm_node);
+  std::string ToStringStatus();
  private:
   slash::Mutex reader_mu_;
   std::unordered_map<RmNode, std::shared_ptr<PikaBinlogReader>, hash_rm_node> occupied_;
