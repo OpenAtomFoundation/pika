@@ -30,6 +30,7 @@ class PikaReplServer {
   int Stop();
 
   slash::Status SendSlaveBinlogChips(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
+  void BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, InnerMessage::InnerResponse* resp);
   slash::Status Write(const std::string& ip, const int port, const std::string& msg);
 
   void Schedule(pink::TaskFunc func, void* arg);

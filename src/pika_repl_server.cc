@@ -55,10 +55,39 @@ slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
                                                    int port,
                                                    const std::vector<WriteTask>& tasks) {
   InnerMessage::InnerResponse response;
-  response.set_code(InnerMessage::kOk);
-  response.set_type(InnerMessage::Type::kBinlogSync);
-  for (const auto task :tasks) {
-    InnerMessage::InnerResponse::BinlogSync* binlog_sync = response.add_binlog_sync();
+  BuildBinlogSyncResp(tasks, &response);
+
+  std::string binlog_chip_pb;
+  if (!response.SerializeToString(&binlog_chip_pb)) {
+    return Status::Corruption("Serialized Failed");
+  }
+
+  if (binlog_chip_pb.size() > PIKA_PB_MAX_MESSAGE) {
+    for (const auto& task : tasks) {
+      InnerMessage::InnerResponse response;
+      std::vector<WriteTask> tmp_tasks;
+      tmp_tasks.push_back(task);
+      BuildBinlogSyncResp(tmp_tasks, &response);
+      if (!response.SerializeToString(&binlog_chip_pb)) {
+        return Status::Corruption("Serialized Failed");
+      }
+      slash::Status s = Write(ip, port, binlog_chip_pb);
+      if (!s.ok()) {
+        return s;
+      }
+    }
+    return slash::Status::OK();
+  }
+
+  return Write(ip, port, binlog_chip_pb);
+}
+
+void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks,
+    InnerMessage::InnerResponse* response) {
+  response->set_code(InnerMessage::kOk);
+  response->set_type(InnerMessage::Type::kBinlogSync);
+  for (const auto& task :tasks) {
+    InnerMessage::InnerResponse::BinlogSync* binlog_sync = response->add_binlog_sync();
     binlog_sync->set_session_id(task.rm_node_.SessionId());
     InnerMessage::Partition* partition = binlog_sync->mutable_partition();
     partition->set_table_name(task.rm_node_.TableName());
@@ -68,12 +97,6 @@ slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
     boffset->set_offset(task.binlog_chip_.offset_.offset);
     binlog_sync->set_binlog(task.binlog_chip_.binlog_);
   }
-
-  std::string binlog_chip_pb;
-  if (!response.SerializeToString(&binlog_chip_pb)) {
-    return Status::Corruption("Serialized Failed");
-  }
-  return Write(ip, port, binlog_chip_pb);
 }
 
 slash::Status PikaReplServer::Write(const std::string& ip,

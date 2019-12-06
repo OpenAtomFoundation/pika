@@ -39,6 +39,8 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
     response.set_code(InnerMessage::kError);
     response.set_reply("Auth with master error, Invalid masterauth");
   } else {
+    LOG(INFO) << "Receive MetaSync, Slave ip: " << node.ip() << ", Slave port:"
+      << node.port();
     std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
     bool success = g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), table_structs);
     const std::string ip_port = slash::IpPortString(node.ip(), node.port());
@@ -409,7 +411,6 @@ int PikaReplServerConn::DealMessage() {
     LOG(WARNING) << "Pika repl server connection pb parse error.";
     return -1;
   }
-  int res = 0;
   switch (req->type()) {
     case InnerMessage::kMetaSync:
     {
@@ -444,5 +445,5 @@ int PikaReplServerConn::DealMessage() {
     default:
       break;
   }
-  return res;
+  return 0;
 }

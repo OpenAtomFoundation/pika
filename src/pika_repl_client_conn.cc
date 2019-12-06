@@ -6,6 +6,8 @@
 #include "include/pika_repl_client_conn.h"
 
 #include <sys/time.h>
+#include <google/protobuf/io/zero_copy_stream_impl_lite.h>
+#include <google/protobuf/io//coded_stream.h>
 
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
@@ -43,7 +45,15 @@ bool PikaReplClientConn::IsTableStructConsistent(
 
 int PikaReplClientConn::DealMessage() {
   std::shared_ptr<InnerMessage::InnerResponse> response =  std::make_shared<InnerMessage::InnerResponse>();
-  response->ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
+  ::google::protobuf::io::ArrayInputStream input(rbuf_ + cur_pos_ - header_len_, header_len_);
+  ::google::protobuf::io::CodedInputStream decoder(&input);
+  decoder.SetTotalBytesLimit(PIKA_PB_MAX_MESSAGE, PIKA_PB_MAX_MESSAGE);
+  bool success = response->ParseFromCodedStream(&decoder);
+  if (!success) {
+    LOG(WARNING) << "ParseFromArray FAILED! rbuf_len: " << rbuf_len_ << " header_len: " << header_len_;
+    g_pika_server->SyncError();
+    return -1;
+  }
   switch (response->type()) {
     case InnerMessage::kMetaSync:
     {

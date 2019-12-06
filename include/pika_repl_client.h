@@ -121,6 +121,7 @@ class PikaReplClient {
   int next_avail_;
   std::hash<std::string> str_hash;
   std::vector<PikaReplBgWorker*> bg_workers_;
+  pink::ThreadPool* pool_;
 };
 
 #endif
