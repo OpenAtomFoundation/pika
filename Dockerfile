@@ -29,8 +29,7 @@ RUN rpm -ivh https://mirrors.ustc.edu.cn/epel/epel-release-latest-7.noarch.rpm &
     yum -y clean all && \
     rm -rf /var/cache/yum && \
     rm -rf .git && \
-    find . -name "*.o" -exec rm -f {} \; && \
-    rm -rf ${PIKA_BUILD_DIR}/output
+    rm -rf ${PIKA_BUILD_DIR}
 
 WORKDIR ${PIKA}
 
