@@ -64,13 +64,14 @@ struct SlaveItem {
 };
 
 enum ReplState {
-  kNoConnect  = 0,
-  kTryConnect = 1,
-  kTryDBSync  = 2,
-  kWaitDBSync = 3,
-  kWaitReply  = 4,
-  kConnected  = 5,
-  kError      = 6
+  kNoConnect   = 0,
+  kTryConnect  = 1,
+  kTryDBSync   = 2,
+  kWaitDBSync  = 3,
+  kWaitReply   = 4,
+  kConnected   = 5,
+  kError       = 6,
+  kDBNoConnect = 7
 };
 
 // debug only
@@ -81,7 +82,8 @@ const std::string ReplStateMsg[] = {
   "kWaitDBSync",
   "kWaitReply",
   "kConnected",
-  "kError"
+  "kError",
+  "kDBNoConnect"
 };
 
 enum SlotState {

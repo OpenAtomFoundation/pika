@@ -931,6 +931,19 @@ bool PikaReplicaManager::CheckPartitionSlaveExist(const RmNode& slave) {
   return partition->CheckSlaveNodeExist(slave.Ip(), slave.Port());
 }
 
+bool PikaReplicaManager::CheckSlavePartitionConnect(void){
+  std::shared_ptr<SyncSlavePartition> partition = nullptr;
+  for (auto iter : g_pika_rm->sync_slave_partitions_){
+    partition = iter.second;
+    if (partition->State() == ReplState::kDBNoConnect) { 
+      LOG(INFO) << "DB: " << partition->SyncPartitionInfo().ToString() << " has been dbslaveof no one"
+        << " then will not try reconnect.";
+      return false;
+    }
+  }
+  return true;
+}
+
 Status PikaReplicaManager::GetPartitionSlaveSession(const RmNode& slave, int32_t* session) {
   slash::RWLock l(&partitions_rw_, false);
   if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
@@ -1220,7 +1233,7 @@ Status PikaReplicaManager::ActivateSyncSlavePartition(const RmNode& node,
     return Status::NotFound("Sync Slave partition " + node.ToString() + " not found");
   }
   ReplState ssp_state  = sync_slave_partitions_[p_info]->State();
-  if (ssp_state != ReplState::kNoConnect) {
+  if (ssp_state != ReplState::kNoConnect && ssp_state != ReplState::kDBNoConnect) {
     return Status::Corruption("Sync Slave partition in " + ReplStateMsg[ssp_state]);
   }
   std::string local_ip;
@@ -1295,7 +1308,7 @@ Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& table,
     s = pika_repl_client_->SendRemoveSlaveNode(s_partition->MasterIp(),
         s_partition->MasterPort(), table, partition_id, s_partition->LocalIp());
     if (s.ok()) {
-      s_partition->Deactivate();
+      s_partition->SetReplState(ReplState::kDBNoConnect);
     }
   }
 
@@ -1484,7 +1497,8 @@ Status PikaReplicaManager::RunSyncSlavePartitionStateMachine() {
           << p_info.table_name_ << " Partition Id: " << p_info.partition_id_;
       }
     } else if (s_partition->State() == ReplState::kConnected
-      || s_partition->State() == ReplState::kNoConnect) {
+      || s_partition->State() == ReplState::kNoConnect
+      || s_partition->State() == ReplState::kDBNoConnect) {
       continue;
     }
   }
