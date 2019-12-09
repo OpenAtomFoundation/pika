@@ -931,13 +931,13 @@ bool PikaReplicaManager::CheckPartitionSlaveExist(const RmNode& slave) {
   return partition->CheckSlaveNodeExist(slave.Ip(), slave.Port());
 }
 
-bool PikaReplicaManager::CheckSlavePartitionConnect(void){
+bool PikaReplicaManager::CheckSlaveDBConnect() {
   std::shared_ptr<SyncSlavePartition> partition = nullptr;
-  for (auto iter : g_pika_rm->sync_slave_partitions_){
+  for (auto iter : g_pika_rm->sync_slave_partitions_) {
     partition = iter.second;
     if (partition->State() == ReplState::kDBNoConnect) { 
-      LOG(INFO) << "DB: " << partition->SyncPartitionInfo().ToString() << " has been dbslaveof no one"
-        << " then will not try reconnect.";
+      LOG(INFO) << "DB: " << partition->SyncPartitionInfo().ToString()
+        << " has been dbslaveof no one, then will not try reconnect.";
       return false;
     }
   }

@@ -71,6 +71,7 @@ enum ReplState {
   kWaitReply   = 4,
   kConnected   = 5,
   kError       = 6,
+// set to kDBNoConnect if execute cmd 'dbslaveof db no one'
   kDBNoConnect = 7
 };
 

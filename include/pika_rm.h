@@ -297,7 +297,7 @@ class PikaReplicaManager {
   Status AddPartitionSlave(const RmNode& slave);
   Status RemovePartitionSlave(const RmNode& slave);
   bool CheckPartitionSlaveExist(const RmNode& slave);
-  bool CheckSlavePartitionConnect(void);
+  bool CheckSlaveDBConnect();
   Status GetPartitionSlaveSession(const RmNode& slave, int32_t* session);
 
   Status LostConnection(const std::string& ip, int port);
