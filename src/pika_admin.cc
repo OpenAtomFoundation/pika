@@ -1521,6 +1521,12 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->sync_window_size());
   }
 
+  if (slash::stringmatch(pattern.data(), "max-conn-rbuf-size", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "max-conn-rbuf-size");
+    EncodeInt32(&config_body, g_pika_conf->max_conn_rbuf_size());
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();

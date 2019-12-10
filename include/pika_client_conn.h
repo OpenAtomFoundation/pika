@@ -34,7 +34,8 @@ class PikaClientConn: public pink::RedisConn {
   PikaClientConn(int fd, std::string ip_port,
                  pink::Thread *server_thread,
                  pink::PinkEpoll* pink_epoll,
-                 const pink::HandleType& handle_type);
+                 const pink::HandleType& handle_type,
+                 int max_conn_rubf_size);
   virtual ~PikaClientConn() {}
 
   void AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) override;

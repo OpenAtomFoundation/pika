@@ -16,7 +16,9 @@
 #define PIKA_REPL_SERVER_TP_SIZE        3
 #define PIKA_META_SYNC_MAX_WAIT_TIME    10
 #define PIKA_SCAN_STEP_LENGTH           1000
-#define PIKA_PB_MAX_MESSAGE             (1 << 28) // 256MB
+#define PIKA_MAX_CONN_RBUF              (1 << 28) // 256MB
+#define PIKA_MAX_CONN_RBUF_LB           (1 << 26) // 64MB
+#define PIKA_MAX_CONN_RBUF_HB           (1 << 29) // 512MB
 
 class PikaServer;
 
