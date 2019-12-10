@@ -191,7 +191,8 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
     s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_, 0);
   } else {
     if (slave_partition->State() == ReplState::kNoConnect
-      || slave_partition->State() == ReplState::kError) {
+      || slave_partition->State() == ReplState::kError
+      || slave_partition->State() == ReplState::kDBNoConnect) {
       if (have_offset_) {
         std::shared_ptr<Partition> db_partition =
           g_pika_server->GetPartitionByDbName(db_name_);
@@ -921,6 +922,14 @@ void InfoCmd::InfoReplication(std::string& info) {
           out_of_sync << "WaitDBSync)";
         } else if (slave_partition->State() == ReplState::kError) {
           out_of_sync << "Error)";
+        } else if (slave_partition->State() == ReplState::kWaitReply) {
+          out_of_sync << "kWaitReply)";
+        } else if (slave_partition->State() == ReplState::kTryConnect) {
+          out_of_sync << "kTryConnect)";
+        } else if (slave_partition->State() == ReplState::kTryDBSync) {
+          out_of_sync << "kTryDBSync)";
+        } else if (slave_partition->State() == ReplState::kDBNoConnect) {
+          out_of_sync << "kDBNoConnect)";
         } else {
           out_of_sync << "Other)";
         }
@@ -947,7 +956,7 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       if (!all_partition_sync) {
-        tmp_stream <<"db_repl_error_state:" << out_of_sync.str() << "\r\n";
+        tmp_stream <<"db_repl_state:" << out_of_sync.str() << "\r\n";
       }
       break;
     case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE :
@@ -957,7 +966,7 @@ void InfoCmd::InfoReplication(std::string& info) {
               && all_partition_sync) ? "up" : "down") << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
       if (!all_partition_sync) {
-        tmp_stream <<"db_repl_error_state:" << out_of_sync.str() << "\r\n";
+        tmp_stream <<"db_repl_state:" << out_of_sync.str() << "\r\n";
       }
     case PIKA_ROLE_SINGLE :
     case PIKA_ROLE_MASTER :

@@ -6,10 +6,12 @@
 #include "include/pika_repl_client_thread.h"
 
 #include "include/pika_server.h"
+#include "include/pika_rm.h"
 
 #include "slash/include/slash_string.h"
 
 extern PikaServer* g_pika_server;
+extern PikaReplicaManager* g_pika_rm;
 
 PikaReplClientThread::PikaReplClientThread(int cron_interval, int keepalive_timeout) :
   ClientThread(&conn_factory_, cron_interval, keepalive_timeout, &handle_, NULL) {
@@ -41,7 +43,8 @@ void PikaReplClientThread::ReplClientHandle::FdTimeoutHandle(int fd, const std::
   }
   if (ip == g_pika_server->master_ip()
     && port == g_pika_server->master_port() + kPortShiftReplServer
-    && PIKA_REPL_ERROR != g_pika_server->repl_state()) {  // if state machine in error state, no retry
+    && PIKA_REPL_ERROR != g_pika_server->repl_state()
+    && g_pika_rm->CheckSlaveDBConnect()) {  // if state machine in error state, no retry
     LOG(WARNING) << "Master conn timeout : " << ip_port << " try reconnect";
     g_pika_server->ResetMetaSyncStatus();
   }
