@@ -62,7 +62,7 @@ slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
     return Status::Corruption("Serialized Failed");
   }
 
-  if (binlog_chip_pb.size() > PIKA_PB_MAX_MESSAGE) {
+  if (binlog_chip_pb.size() > static_cast<size_t>(g_pika_conf->max_conn_rbuf_size())) {
     for (const auto& task : tasks) {
       InnerMessage::InnerResponse response;
       std::vector<WriteTask> tmp_tasks;

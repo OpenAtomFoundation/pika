@@ -11,7 +11,7 @@
 class PikaDispatchThread {
  public:
   PikaDispatchThread(std::set<std::string> &ips, int port, int work_num,
-                     int cron_interval, int queue_limit);
+                     int cron_interval, int queue_limit, int max_conn_rbuf_size);
   ~PikaDispatchThread();
   int StartThread();
 
@@ -27,14 +27,19 @@ class PikaDispatchThread {
  private:
   class ClientConnFactory : public pink::ConnFactory {
    public:
-    virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
+     explicit ClientConnFactory(int max_conn_rbuf_size)
+         : max_conn_rbuf_size_(max_conn_rbuf_size) {
+     }
+     virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
         int connfd,
         const std::string &ip_port,
         pink::Thread* server_thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const {
-      return std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, pink_epoll, pink::HandleType::kAsynchronous);
-    }
+       return std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, pink_epoll, pink::HandleType::kAsynchronous, max_conn_rbuf_size_);
+     }
+   private:
+     int max_conn_rbuf_size_;
   };
 
   class Handles : public pink::ServerHandle {

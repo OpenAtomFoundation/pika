@@ -426,6 +426,17 @@ int PikaConf::Load()
   } else {
     sync_window_size_.store(tmp_sync_window_size);
   }
+
+  // max conn rbuf size
+  int tmp_max_conn_rbuf_size = PIKA_MAX_CONN_RBUF;
+  GetConfInt("max-conn-rbuf-size", &tmp_max_conn_rbuf_size);
+  if (tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_LB
+      || tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_HB) {
+    max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
+  } else {
+    max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF);
+  }
+
   return ret;
 }
 
