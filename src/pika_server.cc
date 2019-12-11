@@ -615,6 +615,9 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
         case TaskType::kPurgeLog:
           partition_item.second->PurgeLogs();
           break;
+        case TaskType::kCompactAll:
+          partition_item.second->Compact(blackwidow::kAll);
+          break;
         default:
           break;
       }
