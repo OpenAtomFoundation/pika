@@ -804,12 +804,21 @@ int PikaReplicaManager::ConsumeWriteQueue() {
         }
         size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
         std::vector<WriteTask> to_send;
+        int batch_size = 0;
         for (size_t i = 0; i < batch_index; ++i) {
+          WriteTask& task = queue.front();
+          batch_size +=  task.binlog_chip_.binlog_.size();
+          // make sure SerializeToString will not over 2G
+          if (batch_size > PIKA_MAX_CONN_RBUF_HB) {
+            break;
+          }
           to_send.push_back(queue.front());
           queue.pop();
           counter++;
         }
-        to_send_map[iter.first].push_back(std::move(to_send));
+        if (!to_send.empty()) {
+          to_send_map[iter.first].push_back(std::move(to_send));
+        }
       }
     }
   }
