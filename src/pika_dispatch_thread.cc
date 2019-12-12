@@ -17,7 +17,6 @@ PikaDispatchThread::PikaDispatchThread(std::set<std::string> &ips, int port, int
                                        int cron_interval, int queue_limit, int max_conn_rbuf_size)
     : conn_factory_(max_conn_rbuf_size),
       handles_(this) {
-  LOG(INFO) << "max conn rbuf size: " << max_conn_rbuf_size;
   thread_rep_ = pink::NewDispatchThread(ips, port, work_num, &conn_factory_,
                                         cron_interval, queue_limit, &handles_);
   thread_rep_->set_thread_name("Dispatcher");
