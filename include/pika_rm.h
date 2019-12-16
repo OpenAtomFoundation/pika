@@ -55,7 +55,7 @@ class SyncMasterPartition : public SyncPartition {
   Status ActivateSlaveDbSync(const std::string& ip, int port);
 
   Status SyncBinlogToWq(const std::string& ip, int port);
-  Status UpdateSlaveBinlogAckInfo(const std::string& ip, int port, const BinlogOffset& start, const BinlogOffset& end);
+
   Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset, BinlogOffset* acked_offset);
   Status GetSlaveState(const std::string& ip, int port, SlaveState* const slave_state);
 
@@ -87,41 +87,39 @@ class SyncMasterPartition : public SyncPartition {
                          uint64_t partition_id, int session_id);
 
   // consistency use
+  Status ConsistencyUpdateSlave(
+      const std::string& ip, int port,
+      const BinlogOffset& start,
+      const BinlogOffset& end);
   Status ConsistencyProposeLog(
-      const BinlogOffset& offset,
       std::shared_ptr<Cmd> cmd_ptr,
       std::shared_ptr<PikaClientConn> conn_ptr,
       std::shared_ptr<std::string> resp_ptr);
   Status ConsistencySanityCheck();
-  Status ConsistencyScheduleApplyLog();
+
+  std::shared_ptr<StableLog> StableLogger() {
+    return coordinator_.StableLogger();
+  }
 
   std::shared_ptr<Binlog> Logger() {
-    if (!stable_logger_) {
+    if (!coordinator_.StableLogger()) {
       return nullptr;
     }
-    return stable_logger_->Logger();
-  }
-  std::shared_ptr<StableLog> StableLogger() {
-    return stable_logger_;
+    return coordinator_.StableLogger()->Logger();
   }
 
  private:
   bool CheckReadBinlogFromCache();
   // invoker need to hold slave_mu_
   Status ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr);
-  // inovker need to hold partition_mu_
-  Status GetSlaveNode(const std::string& ip, int port, std::shared_ptr<SlaveNode>* slave_node);
 
-  slash::Mutex partition_mu_;
-  std::vector<std::shared_ptr<SlaveNode>> slaves_;
+  std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
+  std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
 
   slash::Mutex session_mu_;
   int32_t session_id_;
 
   ConsistencyCoordinator coordinator_;
-
-  std::shared_ptr<StableLog> stable_logger_;
-  // BinlogCacheWindow win_;
 };
 
 class SyncSlavePartition : public SyncPartition {

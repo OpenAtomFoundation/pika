@@ -400,7 +400,7 @@ private:
   CmdRet ret_;
 };
 
-class Cmd {
+class Cmd: public std::enable_shared_from_this<Cmd> {
  public:
   enum CmdStage {
     kNone,
@@ -445,6 +445,9 @@ class Cmd {
   void SetConn(const std::shared_ptr<pink::PinkConn> conn);
   std::shared_ptr<pink::PinkConn> GetConn();
 
+  void SetResp(const std::shared_ptr<std::string> resp);
+  std::shared_ptr<std::string> GetResp();
+
   void SetStage(CmdStage stage);
  protected:
   // enable copy, used default copy
@@ -467,7 +470,7 @@ class Cmd {
   std::string table_name_;
 
   std::weak_ptr<pink::PinkConn> conn_;
-  BinlogOffset binlog_offset_;
+  std::weak_ptr<std::string> resp_;
   CmdStage stage_;
 
  private:

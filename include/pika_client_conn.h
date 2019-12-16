@@ -68,14 +68,13 @@ class PikaClientConn: public pink::RedisConn {
   std::string current_table_;
   bool is_pubsub_;
 
-  std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt);
+  std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
+      std::shared_ptr<std::string> resp_ptr);
 
   void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us);
   void ProcessMonitor(const PikaCmdArgsType& argv);
 
   void ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string> resp_ptr);
-  void ConsistencyProposeLog(
-      std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<std::string> resp_ptr);
   void TryWriteResp();
 
   AuthStat auth_stat_;
