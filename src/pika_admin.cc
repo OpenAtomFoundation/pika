@@ -917,19 +917,19 @@ void InfoCmd::InfoReplication(std::string& info) {
         all_partition_sync = false;
         out_of_sync << "(" << partition_item.second->GetPartitionName() << ":";
         if (slave_partition->State() == ReplState::kNoConnect) {
-          out_of_sync << "NoConnect)";
+          out_of_sync << "No connect)";
         } else if (slave_partition->State() == ReplState::kWaitDBSync) {
-          out_of_sync << "WaitDBSync)";
+          out_of_sync << "Wait DBsync)";
         } else if (slave_partition->State() == ReplState::kError) {
           out_of_sync << "Error)";
         } else if (slave_partition->State() == ReplState::kWaitReply) {
-          out_of_sync << "kWaitReply)";
+          out_of_sync << "Wait reply)";
         } else if (slave_partition->State() == ReplState::kTryConnect) {
-          out_of_sync << "kTryConnect)";
+          out_of_sync << "Try connect)";
         } else if (slave_partition->State() == ReplState::kTryDBSync) {
-          out_of_sync << "kTryDBSync)";
+          out_of_sync << "Try DBsync)";
         } else if (slave_partition->State() == ReplState::kDBNoConnect) {
-          out_of_sync << "kDBNoConnect)";
+          out_of_sync << "DB no connect)";
         } else {
           out_of_sync << "Other)";
         }

@@ -16,6 +16,10 @@ RUN rpm -ivh https://mirrors.ustc.edu.cn/epel/epel-release-latest-7.noarch.rpm &
     yum -y install protobuf-devel && \
     yum -y install gflags-devel && \
     yum -y install glog-devel && \
+    yum -y install bzip2-devel && \
+    yum -y install zlib-devel && \
+    yum -y install lz4-devel && \
+    yum -y install libzstd-devel && \
     yum -y install gcc-c++ && \
     yum -y install make && \
     yum -y install which && \
