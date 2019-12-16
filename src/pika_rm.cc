@@ -367,7 +367,8 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
 std::string SyncMasterPartition::ToStringStatus() {
   std::stringstream tmp_stream;
   tmp_stream << " Current Master Session: " << session_id_ << "\r\n";
-  tmp_stream << " ConsistencyLogs size: " << coordinator_.LogsSize() << "\r\n";
+  tmp_stream << " ConsistencyLogs size: " <<
+    (coordinator_.MemLogger() == nullptr ? 0 : coordinator_.MemLogger()->Size()) << "\r\n";
 
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves = GetAllSlaveNodes();
   int i = 0;

@@ -32,7 +32,7 @@ class SyncProgress {
   std::unordered_map<std::string, BinlogOffset> match_index_;
 };
 
-class ConsistencyCoordinator {
+class MemLog {
  public:
   struct LogItem {
     LogItem(
@@ -48,6 +48,23 @@ class ConsistencyCoordinator {
     std::shared_ptr<std::string> resp_ptr;
   };
 
+  MemLog();
+  int Size();
+  void PushLog(const LogItem& item) {
+    slash::MutexLock l_logs(&logs_mu_);
+    logs_.push_back(item);
+  }
+  Status PurdgeLogs(BinlogOffset offset, std::vector<LogItem>* logs);
+  Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
+
+ private:
+  int InternalFindLogIndex(BinlogOffset offset);
+  slash::Mutex logs_mu_;
+  std::vector<LogItem> logs_;
+};
+
+class ConsistencyCoordinator {
+ public:
   ConsistencyCoordinator(const std::string& table_name, uint32_t partition_id);
 
   Status ProposeLog(
@@ -66,10 +83,12 @@ class ConsistencyCoordinator {
   std::shared_ptr<StableLog> StableLogger() {
     return stable_logger_;
   }
-
-  size_t LogsSize();
+  std::shared_ptr<MemLog> MemLogger() {
+    return mem_logger_;
+  }
 
  private:
+  // Could del if impl raft
   Status AddFollower(const std::string& ip, int port);
   // not implement
   Status RemoveFollower(const std::string& ip, int port);
@@ -78,14 +97,9 @@ class ConsistencyCoordinator {
 
   Status InternalPutBinlog(std::shared_ptr<Cmd> cmd_ptr,
       BinlogOffset* binlog_offset);
-  int InternalFindLogIndex();
-  int InternalPurdgeLog(std::vector<LogItem>* logs);
-  void InternalApply(const LogItem& log);
-  void InternalApplyStale(const LogItem& log);
+  void InternalApply(const MemLog::LogItem& log);
+  void InternalApplyStale(const MemLog::LogItem& log);
   bool InternalUpdateCommittedIndex(const BinlogOffset& slaves_committed_index);
-
-  slash::Mutex logs_mu_;
-  std::vector<LogItem> logs_;
 
   slash::Mutex index_mu_;
   BinlogOffset committed_index_;
@@ -95,5 +109,6 @@ class ConsistencyCoordinator {
 
   SyncProgress sync_pros_;
   std::shared_ptr<StableLog> stable_logger_;
+  std::shared_ptr<MemLog> mem_logger_;
 };
 #endif  // INCLUDE_PIKA_CONSISTENCY_H_
