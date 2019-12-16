@@ -33,8 +33,10 @@ PikaClientConn::PikaClientConn(int fd, std::string ip_port,
   auth_stat_.Init();
 }
 
-std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
-                                  const std::string& opt) {
+std::shared_ptr<Cmd> PikaClientConn::DoCmd(
+    const PikaCmdArgsType& argv,
+    const std::string& opt,
+    std::shared_ptr<std::string> resp_ptr) {
   // Get command info
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
   if (!c_ptr) {
@@ -45,6 +47,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv,
   }
 
   c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
+  c_ptr->SetResp(resp_ptr);
 
   // Check authed
   // AuthCmd will set stat_
@@ -258,46 +261,11 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<s
   }
   slash::StringToLower(opt);
 
-  std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt);
+  std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
   // level == 0 or (cmd error) or (is_read)
   if (g_pika_conf->consistency_level() == 0 || !cmd_ptr->res().ok() || !cmd_ptr->is_write()) {
     resp_num--;
     *resp_ptr = std::move(cmd_ptr->res().message());
-  } else {
-    ConsistencyProposeLog(cmd_ptr, resp_ptr);
-    if (!cmd_ptr->res().ok()) {
-      resp_num--;
-      *resp_ptr = std::move(cmd_ptr->res().message());
-    }
-    g_pika_server->SignalAuxiliary();
-  }
-}
-
-void PikaClientConn::ConsistencyProposeLog(std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<std::string> resp_ptr) {
-  BinlogOffset binlog_offset = cmd_ptr->binlog_offset();
-  std::string table_name = cmd_ptr->table_name();
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name);
-  if (table == nullptr) {
-    cmd_ptr->res().SetRes(CmdRes::kErrOther, "-ERR Internal Error");
-    return;
-  }
-  uint32_t index = g_pika_cmd_table_manager->DistributeKey(
-      cmd_ptr->current_key().front(), table->PartitionNum());
-  std::shared_ptr<SyncMasterPartition> master_partition =
-    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, index));
-  if (!master_partition) {
-    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << index
-      << ", NotFound";
-    cmd_ptr->res().SetRes(CmdRes::kErrOther, "-ERR Internal Error");
-    return;
-  }
-  Status s = master_partition->ConsistencyProposeLog(
-      binlog_offset,
-      cmd_ptr,
-      std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()),
-      resp_ptr);
-  if (!s.ok()) {
-    cmd_ptr->res().SetRes(CmdRes::kErrOther, "-ERR consistency level not match");
   }
 }
 
