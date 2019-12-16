@@ -19,11 +19,17 @@ class SyncProgress {
   Status AddSlaveNode(const std::string& ip, int port,
       const std::string& table_name, uint32_t partition_id, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
+  Status Update(const std::string& ip, int port, const BinlogOffset& start,
+      const BinlogOffset& end, BinlogOffset* committed_index);
   int SlaveSize();
 
  private:
+  BinlogOffset InternalCalCommittedIndex();
+
   pthread_rwlock_t rwlock_;
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves_;
+  slash::Mutex match_mu_;
+  std::unordered_map<std::string, BinlogOffset> match_index_;
 };
 
 class ConsistencyCoordinator {
@@ -65,23 +71,23 @@ class ConsistencyCoordinator {
 
  private:
   Status AddFollower(const std::string& ip, int port);
+  // not implement
   Status RemoveFollower(const std::string& ip, int port);
   Status ScheduleApplyLog();
-  Status UpdateMatchIndex(const std::string& ip, int port, const BinlogOffset& offset);
+  bool MatchConsistencyLevel();
 
   Status InternalPutBinlog(std::shared_ptr<Cmd> cmd_ptr,
       BinlogOffset* binlog_offset);
   int InternalFindLogIndex();
-  void InternalUpdateCommittedIndex();
-  bool InternalMatchConsistencyLevel();
   int InternalPurdgeLog(std::vector<LogItem>* logs);
   void InternalApply(const LogItem& log);
   void InternalApplyStale(const LogItem& log);
+  bool InternalUpdateCommittedIndex(const BinlogOffset& slaves_committed_index);
 
   slash::Mutex logs_mu_;
   std::vector<LogItem> logs_;
+
   slash::Mutex index_mu_;
-  std::unordered_map<std::string, BinlogOffset> match_index_;
   BinlogOffset committed_index_;
 
   std::string table_name_;

@@ -31,7 +31,6 @@ std::shared_ptr<SlaveNode> SyncProgress::GetSlaveNode(const std::string& ip, int
   return slaves_[slave_key];
 }
 
-
 std::unordered_map<std::string, std::shared_ptr<SlaveNode>> SyncProgress::GetAllSlaveNodes() {
   slash::RWLock l(&rwlock_, false);
   return slaves_;
@@ -47,25 +46,78 @@ Status SyncProgress::AddSlaveNode(const std::string& ip, int port,
     exist_ptr->SetSessionId(session_id);
     return Status::OK();
   }
-  slash::RWLock l(&rwlock_, true);
   std::shared_ptr<SlaveNode> slave_ptr =
     std::make_shared<SlaveNode>(ip, port, table_name, partition_id, session_id);
   slave_ptr->SetLastSendTime(slash::NowMicros());
   slave_ptr->SetLastRecvTime(slash::NowMicros());
-  slaves_[slave_key] = slave_ptr;
+
+  {
+    slash::RWLock l(&rwlock_, true);
+    slaves_[slave_key] = slave_ptr;
+  }
+  {
+    // add slave to match_index
+    slash::MutexLock l_match(&match_mu_);
+    match_index_[slave_key] = BinlogOffset();
+  }
   return Status::OK();
 }
 
 Status SyncProgress::RemoveSlaveNode(const std::string& ip, int port) {
   std::string slave_key = ip + std::to_string(port);
-  slash::RWLock l(&rwlock_, true);
-  slaves_.erase(slave_key);
+  {
+    slash::RWLock l(&rwlock_, true);
+    slaves_.erase(slave_key);
+  }
+  {
+    // remove slave to match_index
+    slash::MutexLock l_match(&match_mu_);
+    match_index_.erase(slave_key);
+  }
+  return Status::OK();
+}
+
+Status SyncProgress::Update(const std::string& ip, int port, const BinlogOffset& start,
+      const BinlogOffset& end, BinlogOffset* committed_index) {
+  std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
+  if (!slave_ptr) {
+    return Status::NotFound("ip " + ip  + " port " + std::to_string(port));
+  }
+
+  // update slave_ptr
+  BinlogOffset acked_offset;
+  {
+    slash::MutexLock l(&slave_ptr->slave_mu);
+    Status s = slave_ptr->Update(start, end);
+    if (!s.ok()) {
+      return s;
+    }
+    acked_offset = slave_ptr->acked_offset;
+  }
+
+  // update match_index_
+  {
+    slash::MutexLock l(&match_mu_);
+    match_index_[ip+std::to_string(port)] = acked_offset;
+    *committed_index = InternalCalCommittedIndex();
+  }
   return Status::OK();
 }
 
 int SyncProgress::SlaveSize() {
   slash::RWLock l(&rwlock_, false);
   return slaves_.size();
+}
+
+BinlogOffset SyncProgress::InternalCalCommittedIndex() {
+  int consistency_level = g_pika_conf->consistency_level();
+  std::vector<BinlogOffset> offsets;
+  for (auto index : match_index_) {
+    offsets.push_back(index.second);
+  }
+  std::sort(offsets.begin(), offsets.end());
+  BinlogOffset offset = offsets[offsets.size() - consistency_level];
+  return offset;
 }
 
 /* ConsistencyCoordinator */
@@ -104,43 +156,34 @@ Status ConsistencyCoordinator::ProposeLog(
 
 Status ConsistencyCoordinator::UpdateSlave(const std::string& ip, int port,
       const BinlogOffset& start, const BinlogOffset& end) {
-  std::shared_ptr<SlaveNode> slave_ptr = sync_pros_.GetSlaveNode(ip, port);
-  if (!slave_ptr) {
-    return Status::NotFound("ip " + ip  + " port " + std::to_string(port));
-  }
-
-  BinlogOffset acked_offset;
-  {
-    slash::MutexLock l(&slave_ptr->slave_mu);
-    Status s = slave_ptr->Update(start, end);
-    if (!s.ok()) {
-      return s;
-    }
-    acked_offset = slave_ptr->acked_offset;
+  BinlogOffset committed_index;
+  Status s = sync_pros_.Update(ip, port, start, end, &committed_index);
+  if (!s.ok()) {
+    return s;
   }
 
   if (g_pika_conf->consistency_level() == 0) {
     return Status::OK();
   }
 
-  Status s = UpdateMatchIndex(ip, port, acked_offset);
-  if (!s.ok()) {
-    return s;
+  bool need_update = InternalUpdateCommittedIndex(committed_index);
+  if (need_update) {
+    s = ScheduleApplyLog();
+    if (!s.ok()) {
+      return s;
+    }
   }
-  s = ScheduleApplyLog();
-  if (!s.ok()) {
-    return s;
-  }
+
   return Status::OK();
 }
 
-Status ConsistencyCoordinator::UpdateMatchIndex(
-    const std::string& ip, int port, const BinlogOffset& offset) {
-  slash::MutexLock l(&index_mu_);
-  std::string ip_port = ip + std::to_string(port);
-  match_index_[ip_port] = offset;
-  InternalUpdateCommittedIndex();
-  return Status::OK();
+bool ConsistencyCoordinator::InternalUpdateCommittedIndex(const BinlogOffset& slave_committed_index) {
+  if (slave_committed_index < committed_index_ ||
+      slave_committed_index == committed_index_) {
+    return false;
+  }
+  committed_index_ = slave_committed_index;
+  return true;
 }
 
 Status ConsistencyCoordinator::InternalPutBinlog(
@@ -182,8 +225,7 @@ Status ConsistencyCoordinator::ScheduleApplyLog() {
 }
 
 Status ConsistencyCoordinator::CheckEnoughFollower() {
-  slash::MutexLock l(&index_mu_);
-  if (!InternalMatchConsistencyLevel()) {
+  if (!MatchConsistencyLevel()) {
     return Status::Incomplete("Not enough follower");
   }
   return Status::OK();
@@ -206,10 +248,6 @@ Status ConsistencyCoordinator::RemoveSlaveNode(const std::string& ip, int port) 
   if (!s.ok()) {
     return s;
   }
-  s = RemoveFollower(ip, port);
-  if (!s.ok()) {
-    return s;
-  }
   return Status::OK();
 }
 
@@ -220,29 +258,20 @@ Status ConsistencyCoordinator::RemoveSlaveNode(const std::string& ip, int port) 
 Status ConsistencyCoordinator::AddFollower(const std::string& ip, int port) {
   bool before = true;
   bool after = false;
-  slash::MutexLock l_logs(&logs_mu_);
-  slash::MutexLock l_index(&index_mu_);
-  if (!InternalMatchConsistencyLevel()) {
+  if (!MatchConsistencyLevel()) {
     before = false;
   }
-  std::string ip_port = ip + std::to_string(port);
-  match_index_[ip_port] = BinlogOffset();
-  if (InternalMatchConsistencyLevel()) {
+  if (MatchConsistencyLevel()) {
     after = true;
   }
+  slash::MutexLock l_logs(&logs_mu_);
+  slash::MutexLock l_index(&index_mu_);
   if (!before && after) {
     for (auto log : logs_) {
       InternalApplyStale(log);
     }
     committed_index_ = BinlogOffset();
   }
-  return Status::OK();
-}
-
-Status ConsistencyCoordinator::RemoveFollower(const std::string& ip, int port) {
-  slash::MutexLock l(&index_mu_);
-  std::string ip_port = ip + std::to_string(port);
-  match_index_.erase(ip_port);
   return Status::OK();
 }
 
@@ -263,24 +292,8 @@ int ConsistencyCoordinator::InternalFindLogIndex() {
   return -1;
 }
 
-void ConsistencyCoordinator::InternalUpdateCommittedIndex() {
-  int consistency_level = g_pika_conf->consistency_level();
-  if (!InternalMatchConsistencyLevel()) {
-    return;
-  }
-  std::vector<BinlogOffset> offsets;
-  for (auto index : match_index_) {
-    offsets.push_back(index.second);
-  }
-  std::sort(offsets.begin(), offsets.end());
-  BinlogOffset offset = offsets[offsets.size() - consistency_level];
-  if (offset > committed_index_) {
-    committed_index_ = offset;
-  }
-}
-
-bool ConsistencyCoordinator::InternalMatchConsistencyLevel() {
-  return match_index_.size() >= static_cast<size_t>(g_pika_conf->consistency_level());
+bool ConsistencyCoordinator::MatchConsistencyLevel() {
+  return sync_pros_.SlaveSize() >= static_cast<int>(g_pika_conf->consistency_level());
 }
 
 int ConsistencyCoordinator::InternalPurdgeLog(std::vector<LogItem>* logs) {
