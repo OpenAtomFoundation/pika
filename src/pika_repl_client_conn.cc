@@ -48,9 +48,9 @@ int PikaReplClientConn::DealMessage() {
   ::google::protobuf::io::ArrayInputStream input(rbuf_ + cur_pos_ - header_len_, header_len_);
   ::google::protobuf::io::CodedInputStream decoder(&input);
   decoder.SetTotalBytesLimit(g_pika_conf->max_conn_rbuf_size(), g_pika_conf->max_conn_rbuf_size());
-  bool success = response->ParseFromCodedStream(&decoder);
+  bool success = response->ParseFromCodedStream(&decoder) && decoder.ConsumedEntireMessage();
   if (!success) {
-    LOG(WARNING) << "ParseFromArray FAILED! rbuf_len: " << rbuf_len_ << " header_len: " << header_len_;
+    LOG(WARNING) << "ParseFromArray FAILED! " << " msg_len: " << header_len_;
     g_pika_server->SyncError();
     return -1;
   }
