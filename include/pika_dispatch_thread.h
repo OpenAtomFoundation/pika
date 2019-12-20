@@ -36,7 +36,8 @@ class PikaDispatchThread {
         pink::Thread* server_thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const {
-       return std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, pink_epoll, pink::HandleType::kAsynchronous, max_conn_rbuf_size_);
+       return std::static_pointer_cast<pink::PinkConn>
+         (std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, pink_epoll, pink::HandleType::kAsynchronous, max_conn_rbuf_size_));
      }
    private:
      int max_conn_rbuf_size_;

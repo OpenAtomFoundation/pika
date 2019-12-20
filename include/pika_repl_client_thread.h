@@ -29,7 +29,8 @@ class PikaReplClientThread : public pink::ClientThread {
         pink::Thread *thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const override {
-      return std::make_shared<PikaReplClientConn>(connfd, ip_port, thread, worker_specific_data, pink_epoll);
+      return std::static_pointer_cast<pink::PinkConn>
+        (std::make_shared<PikaReplClientConn>(connfd, ip_port, thread, worker_specific_data, pink_epoll));
     }
   };
   class ReplClientHandle : public pink::ClientHandle {
