@@ -35,7 +35,8 @@ class PikaReplServerThread : public pink::HolyThread {
         pink::Thread* thread,
         void* worker_specific_data,
         pink::PinkEpoll* pink_epoll) const override {
-      return std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, pink_epoll);
+      return std::static_pointer_cast<pink::PinkConn>
+        (std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, pink_epoll));
     }
     private:
      PikaReplServerThread* binlog_receiver_;
