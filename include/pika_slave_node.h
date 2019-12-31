@@ -14,26 +14,27 @@
 
 struct SyncWinItem {
   BinlogOffset offset_;
+  std::size_t binlog_size_;
   bool acked_;
   bool operator==(const SyncWinItem& other) const {
-    if (offset_.filenum == other.offset_.filenum && offset_.offset == other.offset_.offset) {
-      return true;
-    }
-    return false;
+    return offset_.filenum == other.offset_.filenum && offset_.offset == other.offset_.offset;
   }
-  explicit SyncWinItem(const BinlogOffset& offset) : offset_(offset), acked_(false) {
+  explicit SyncWinItem(const BinlogOffset& offset)
+    : offset_(offset), binlog_size_(0), acked_(false) {
   }
-  SyncWinItem(uint32_t filenum, uint64_t offset) : offset_(filenum, offset), acked_(false) {
+  SyncWinItem(uint32_t filenum, uint64_t offset, std::size_t binglog_size)
+    : offset_(filenum, offset), binlog_size_(binglog_size), acked_(false) {
   }
   std::string ToString() const {
-    return offset_.ToString() + " acked: " + std::to_string(acked_);
+    return offset_.ToString() + " binglog size: " + std::to_string(binlog_size_) +
+      " acked: " + std::to_string(acked_);
   }
 };
 
 
 class SyncWindow {
  public:
-  SyncWindow() {
+  SyncWindow() :total_size_(0) {
   }
   void Push(const SyncWinItem& item);
   bool Update(const SyncWinItem& start_item, const SyncWinItem& end_item, BinlogOffset* acked_offset);
@@ -49,9 +50,13 @@ class SyncWindow {
       return res;
     }
   }
+  std::size_t GetTotalBinglogSize() {
+    return total_size_;
+  }
  private:
   // TODO(whoiami) ring buffer maybe
   std::deque<SyncWinItem> win_;
+  std::size_t total_size_;
 };
 
 // role master use
