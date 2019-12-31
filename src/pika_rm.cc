@@ -152,6 +152,11 @@ Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>&
     std::string msg;
     uint32_t filenum;
     uint64_t offset;
+    if (slave_ptr->sync_win.GetTotalBinglogSize() > PIKA_MAX_CONN_RBUF_HB * 2) {
+      LOG(INFO) << slave_ptr->ToString() << " total binlog size in sync window is :"
+                << slave_ptr->sync_win.GetTotalBinglogSize();
+      break;
+    }
     Status s = reader->Get(&msg, &filenum, &offset);
     if (s.IsEndFile()) {
       break;
@@ -159,11 +164,6 @@ Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>&
       LOG(WARNING) << SyncPartitionInfo().ToString()
         << " Read Binlog error : " << s.ToString();
       return s;
-    }
-    if (slave_ptr->sync_win.GetTotalBinglogSize() > PIKA_MAX_CONN_RBUF_HB * 2) {
-      LOG(INFO) << slave_ptr->ToString() << " total binlog size in sync window is :"
-        << slave_ptr->sync_win.GetTotalBinglogSize();
-      break;
     }
     slave_ptr->sync_win.Push(SyncWinItem(filenum, offset, msg.size()));
 

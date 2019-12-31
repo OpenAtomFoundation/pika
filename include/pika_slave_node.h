@@ -17,8 +17,7 @@ struct SyncWinItem {
   std::size_t binlog_size_;
   bool acked_;
   bool operator==(const SyncWinItem& other) const {
-    return offset_.filenum == other.offset_.filenum && offset_.offset == other.offset_.offset &&
-      binlog_size_ == other.binlog_size_;
+    return offset_.filenum == other.offset_.filenum && offset_.offset == other.offset_.offset;
   }
   explicit SyncWinItem(const BinlogOffset& offset)
     : offset_(offset), binlog_size_(0), acked_(false) {
