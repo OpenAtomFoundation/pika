@@ -54,6 +54,7 @@ PikaServer::PikaServer() :
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
+  last_meta_sync_timestamp_(0),
   loop_partition_state_machine_(false),
   force_full_sync_(false),
   slowlog_entry_id_(0) {
@@ -832,6 +833,7 @@ void PikaServer::RemoveMaster() {
       g_pika_rm->CloseReplClientConn(master_ip_, master_port_ + kPortShiftReplServer);
       g_pika_rm->LostConnection(master_ip_, master_port_);
       loop_partition_state_machine_ = false;
+      UpdateMetaSyncTimestamp();
       LOG(INFO) << "Remove Master Success, ip_port: " << master_ip_ << ":" << master_port_;
     }
 
@@ -919,6 +921,17 @@ void PikaServer::SetLoopPartitionStateMachine(bool need_loop) {
   slash::RWLock sp_l(&state_protector_, true);
   assert(repl_state_ == PIKA_REPL_META_SYNC_DONE);
   loop_partition_state_machine_ = need_loop;
+}
+
+int PikaServer::GetMetaSyncTimestamp() {
+  slash::RWLock sp_l(&state_protector_, false);
+  return last_meta_sync_timestamp_;
+
+}
+
+void PikaServer::UpdateMetaSyncTimestamp() {
+  slash::RWLock sp_l(&state_protector_, true);
+  last_meta_sync_timestamp_ = time(NULL);
 }
 
 void PikaServer::ScheduleClientPool(pink::TaskFunc func, void* arg) {

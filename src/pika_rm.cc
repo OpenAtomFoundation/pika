@@ -627,8 +627,7 @@ int SyncWindow::Remainings() {
 
 /* PikaReplicaManger */
 
-PikaReplicaManager::PikaReplicaManager()
-    : last_meta_sync_timestamp_(0) {
+PikaReplicaManager::PikaReplicaManager() {
   std::set<std::string> ips;
   ips.insert("0.0.0.0");
   int port = g_pika_conf->port() + kPortShiftReplServer;
@@ -973,11 +972,10 @@ Status PikaReplicaManager::DeactivateSyncSlavePartition(const PartitionInfo& p_i
 
 Status PikaReplicaManager::SendMetaSyncRequest() {
   Status s;
-  int now = time(NULL);
-  if (now - last_meta_sync_timestamp_ >= PIKA_META_SYNC_MAX_WAIT_TIME) {
+  if (time(NULL) - g_pika_server->GetMetaSyncTimestamp() >= PIKA_META_SYNC_MAX_WAIT_TIME) {
     s = pika_repl_client_->SendMetaSync();
     if (s.ok()) {
-      last_meta_sync_timestamp_ = now;
+      g_pika_server->UpdateMetaSyncTimestamp();
     }
   }
   return s;
