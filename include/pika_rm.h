@@ -213,7 +213,7 @@ class PikaReplicaManager {
 
   void RmStatus(std::string* debug_info);
 
-  bool CheckSlaveDBConnect();
+  static bool CheckSlavePartitionState(const std::string& ip, const int port);
 
   Status LostConnection(const std::string& ip, int port);
 

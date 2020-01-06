@@ -798,11 +798,12 @@ Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const Bin
   return Status::OK();
 }
 
-bool PikaReplicaManager::CheckSlaveDBConnect() {
+bool PikaReplicaManager::CheckSlavePartitionState(const std::string& ip, const int port) {
   std::shared_ptr<SyncSlavePartition> partition = nullptr;
   for (auto iter : g_pika_rm->sync_slave_partitions_) {
     partition = iter.second;
-    if (partition->State() == ReplState::kDBNoConnect) { 
+    if (partition->State() == ReplState::kDBNoConnect &&
+      partition->MasterIp() == ip && partition->MasterPort() + kPortShiftReplServer == port) {
       LOG(INFO) << "DB: " << partition->SyncPartitionInfo().ToString()
         << " has been dbslaveof no one, then will not try reconnect.";
       return false;
