@@ -32,6 +32,7 @@ class Version {
   uint32_t pro_num_;
   uint64_t pro_offset_;
   uint64_t logic_id_;
+  uint32_t term_;
 
   pthread_rwlock_t rwlock_;
 
@@ -59,7 +60,7 @@ class Binlog {
 
   Status Put(const std::string &item);
 
-  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id = NULL);
+  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id = NULL, uint32_t* term = NULL);
   /*
    * Set Producer pro_num and pro_offset with lock
    */
@@ -75,6 +76,13 @@ class Binlog {
 
   bool IsBinlogIoError() {
     return binlog_io_error_;
+  }
+
+  void SetTerm(uint32_t term) {
+    slash::MutexLock l(&mutex_);
+    slash::RWLock(&(version_->rwlock_), true);
+    version_->term_ = term;
+    version_->StableSave();
   }
 
   void Close();

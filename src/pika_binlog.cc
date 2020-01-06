@@ -44,6 +44,7 @@ Status Version::StableSave() {
   p += 8;
   memcpy(p, &logic_id_, sizeof(uint64_t));
   p += 8;
+  memcpy(p, &term_, sizeof(uint32_t));
   return Status::OK();
 }
 
@@ -53,6 +54,7 @@ Status Version::Init() {
     memcpy((char*)(&pro_num_), save_->GetData(), sizeof(uint32_t));
     memcpy((char*)(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
     memcpy((char*)(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
+    memcpy((char*)(&term_), save_->GetData() + 20, sizeof(uint32_t));
     return Status::OK();
   } else {
     return Status::Corruption("version init error");
@@ -158,7 +160,8 @@ void Binlog::InitLogFile() {
   opened_.store(true);
 }
 
-Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id) {
+Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset,
+    uint64_t* logic_id, uint32_t* term) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");
   }
@@ -169,6 +172,9 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64
   *pro_offset = version_->pro_offset_;
   if (logic_id != NULL) {
     *logic_id = version_->logic_id_;
+  }
+  if (term != NULL) {
+    *term = version_->term_;
   }
 
   return Status::OK();

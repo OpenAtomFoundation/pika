@@ -172,7 +172,7 @@ class FlushallCmd : public Cmd {
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) override;
@@ -419,7 +419,7 @@ class PaddingCmd : public Cmd {
   virtual void DoInitial();
   virtual std::string ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) override;

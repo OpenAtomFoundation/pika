@@ -210,8 +210,8 @@ Status PikaReplClient::SendPartitionBinlogSync(const std::string& ip,
                                                uint32_t port,
                                                const std::string& table_name,
                                                uint32_t partition_id,
-                                               const BinlogOffset& ack_start,
-                                               const BinlogOffset& ack_end,
+                                               const LogOffset& ack_start,
+                                               const LogOffset& ack_end,
                                                const std::string& local_ip,
                                                bool is_first_send) {
   InnerMessage::InnerRequest request;
@@ -225,12 +225,16 @@ Status PikaReplClient::SendPartitionBinlogSync(const std::string& ip,
   binlog_sync->set_first_send(is_first_send);
 
   InnerMessage::BinlogOffset* ack_range_start = binlog_sync->mutable_ack_range_start();
-  ack_range_start->set_filenum(ack_start.filenum);
-  ack_range_start->set_offset(ack_start.offset);
+  ack_range_start->set_filenum(ack_start.b_offset.filenum);
+  ack_range_start->set_offset(ack_start.b_offset.offset);
+  ack_range_start->set_term(ack_start.l_offset.term);
+  ack_range_start->set_index(ack_start.l_offset.index);
 
   InnerMessage::BinlogOffset* ack_range_end = binlog_sync->mutable_ack_range_end();
-  ack_range_end->set_filenum(ack_end.filenum);
-  ack_range_end->set_offset(ack_end.offset);
+  ack_range_end->set_filenum(ack_end.b_offset.filenum);
+  ack_range_end->set_offset(ack_end.b_offset.offset);
+  ack_range_end->set_term(ack_end.l_offset.term);
+  ack_range_end->set_index(ack_end.l_offset.index);
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
     g_pika_rm->GetSyncSlavePartitionByName(

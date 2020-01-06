@@ -443,7 +443,7 @@ void FlushallCmd::Do(std::shared_ptr<Partition> partition) {
 // flushall convert flushdb writes to every partition binlog
 std::string FlushallCmd::ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) {
@@ -457,7 +457,7 @@ std::string FlushallCmd::ToBinlog(
   RedisAppendContent(content, flushdb_cmd);
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
                                              exec_time,
-                                             std::stoi(server_id),
+                                             term_id,
                                              logic_id,
                                              filenum,
                                              offset,
@@ -2033,7 +2033,7 @@ void PaddingCmd::Do(std::shared_ptr<Partition> partition) {
 
 std::string PaddingCmd::ToBinlog(
         uint32_t exec_time,
-        const std::string& server_id,
+        uint32_t term_id,
         uint64_t logic_id,
         uint32_t filenum,
         uint64_t offset) {

@@ -13,17 +13,15 @@
 #include "include/pika_binlog_reader.h"
 
 struct SyncWinItem {
-  BinlogOffset offset_;
+  LogOffset offset_;
   std::size_t binlog_size_;
   bool acked_;
   bool operator==(const SyncWinItem& other) const {
-    return offset_.filenum == other.offset_.filenum && offset_.offset == other.offset_.offset;
+    return offset_.b_offset.filenum == other.offset_.b_offset.filenum
+      && offset_.b_offset.offset == other.offset_.b_offset.offset;
   }
-  explicit SyncWinItem(const BinlogOffset& offset)
-    : offset_(offset), binlog_size_(0), acked_(false) {
-  }
-  SyncWinItem(uint32_t filenum, uint64_t offset, std::size_t binglog_size)
-    : offset_(filenum, offset), binlog_size_(binglog_size), acked_(false) {
+  explicit SyncWinItem(const LogOffset& offset, std::size_t binlog_size = 0)
+    : offset_(offset), binlog_size_(binlog_size), acked_(false) {
   }
   std::string ToString() const {
     return offset_.ToString() + " binglog size: " + std::to_string(binlog_size_) +
@@ -37,7 +35,7 @@ class SyncWindow {
   SyncWindow() :total_size_(0) {
   }
   void Push(const SyncWinItem& item);
-  bool Update(const SyncWinItem& start_item, const SyncWinItem& end_item, BinlogOffset* acked_offset);
+  bool Update(const SyncWinItem& start_item, const SyncWinItem& end_item, LogOffset* acked_offset);
   int Remainings();
   std::string ToStringStatus() const {
     if (win_.empty()) {
@@ -81,7 +79,7 @@ class SlaveNode : public RmNode {
 
   std::shared_ptr<PikaBinlogReader> binlog_reader;
   Status InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, const BinlogOffset& offset);
-  Status Update(const BinlogOffset& start, const BinlogOffset& end);
+  Status Update(const LogOffset& start, const LogOffset& end, LogOffset* updated_offset);
 
   slash::Mutex slave_mu;
 };

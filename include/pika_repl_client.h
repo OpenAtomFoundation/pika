@@ -102,8 +102,8 @@ class PikaReplClient {
                                  uint32_t port,
                                  const std::string& table_name,
                                  uint32_t partition_id,
-                                 const BinlogOffset& ack_start,
-                                 const BinlogOffset& ack_end,
+                                 const LogOffset& ack_start,
+                                 const LogOffset& ack_end,
                                  const std::string& local_ip,
                                  bool is_frist_send);
   Status SendRemoveSlaveNode(const std::string& ip,
