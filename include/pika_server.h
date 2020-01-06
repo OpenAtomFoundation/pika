@@ -193,6 +193,8 @@ class PikaServer {
   bool AllPartitionConnectSuccess();
   bool LoopPartitionStateMachine();
   void SetLoopPartitionStateMachine(bool need_loop);
+  int GetMetaSyncTimestamp();
+  void UpdateMetaSyncTimestamp();
 
   /*
    * PikaClientProcessor Process Task
@@ -351,6 +353,7 @@ class PikaServer {
   int master_port_;
   int repl_state_;
   int role_;
+  int last_meta_sync_timestamp_;
   bool loop_partition_state_machine_;
   bool force_full_sync_;
   pthread_rwlock_t state_protector_; //protect below, use for master-slave mode

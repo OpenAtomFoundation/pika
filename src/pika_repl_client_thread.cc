@@ -31,6 +31,7 @@ void PikaReplClientThread::ReplClientHandle::FdClosedHandle(int fd, const std::s
     LOG(WARNING) << "Master conn disconnect : " << ip_port << " try reconnect";
     g_pika_server->ResetMetaSyncStatus();
   }
+  g_pika_server->UpdateMetaSyncTimestamp();
 };
 
 void PikaReplClientThread::ReplClientHandle::FdTimeoutHandle(int fd, const std::string& ip_port) const {
@@ -47,5 +48,6 @@ void PikaReplClientThread::ReplClientHandle::FdTimeoutHandle(int fd, const std::
     && g_pika_rm->CheckSlaveDBConnect()) {  // if state machine in error state, no retry
     LOG(WARNING) << "Master conn timeout : " << ip_port << " try reconnect";
     g_pika_server->ResetMetaSyncStatus();
+    g_pika_server->UpdateMetaSyncTimestamp();
   }
 };

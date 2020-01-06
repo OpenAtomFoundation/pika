@@ -256,7 +256,6 @@ class PikaReplicaManager {
 
   PikaReplClient* pika_repl_client_;
   PikaReplServer* pika_repl_server_;
-  int last_meta_sync_timestamp_;
 };
 
 #endif  //  PIKA_RM_H
