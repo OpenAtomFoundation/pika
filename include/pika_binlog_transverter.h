@@ -14,8 +14,8 @@
 
 /*
  * ***********************************************Type First Binlog Item Format***********************************************
- * | <Type> | <Create Time> | <Server Id> | <Binlog Logic Id> | <File Num> | <Offset> | <Content Length> |      <Content>     |
- *  2 Bytes      4 Bytes        4 Bytes          8 Bytes         4 Bytes     8 Bytes         4 Bytes      content length Bytes
+ * | <Type> | <Create Time> | <Term Id> | <Binlog Logic Id> | <File Num> | <Offset> | <Content Length> |      <Content>     |
+ *  2 Bytes      4 Bytes      4 Bytes       8 Bytes            4 Bytes     8 Bytes        4 Bytes       content length Bytes
  *
  */
 #define BINLOG_ENCODE_LEN 34
@@ -33,7 +33,7 @@ class BinlogItem {
   public:
     BinlogItem() :
         exec_time_(0),
-        server_id_(0),
+        term_id_(0),
         logic_id_(0),
         filenum_(0),
         offset_(0),
@@ -42,7 +42,7 @@ class BinlogItem {
     friend class PikaBinlogTransverter;
 
     uint32_t exec_time()   const;
-    uint32_t server_id()   const;
+    uint32_t term_id()   const;
     uint64_t logic_id()    const;
     uint32_t filenum()     const;
     uint64_t offset()      const;
@@ -50,14 +50,14 @@ class BinlogItem {
     std::string ToString() const;
 
     void set_exec_time(uint32_t exec_time);
-    void set_server_id(uint32_t server_id);
+    void set_term_id(uint32_t term_id);
     void set_logic_id(uint64_t logic_id);
     void set_filenum(uint32_t filenum);
     void set_offset(uint64_t offset);
 
   private:
     uint32_t exec_time_;
-    uint32_t server_id_;
+    uint32_t term_id_;
     uint64_t logic_id_;
     uint32_t filenum_;
     uint64_t offset_;
@@ -70,7 +70,7 @@ class PikaBinlogTransverter{
     PikaBinlogTransverter() {};
     static std::string BinlogEncode(BinlogType type,
                                     uint32_t exec_time,
-                                    uint32_t server_id,
+                                    uint32_t term_id,
                                     uint64_t logic_id,
                                     uint32_t filenum,
                                     uint64_t offset,

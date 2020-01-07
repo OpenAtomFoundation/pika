@@ -311,8 +311,12 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   int32_t session_id = binlog_req.session_id();
   const InnerMessage::BinlogOffset& ack_range_start = binlog_req.ack_range_start();
   const InnerMessage::BinlogOffset& ack_range_end = binlog_req.ack_range_end();
-  BinlogOffset range_start(ack_range_start.filenum(), ack_range_start.offset());
-  BinlogOffset range_end(ack_range_end.filenum(), ack_range_end.offset());
+  BinlogOffset b_range_start(ack_range_start.filenum(), ack_range_start.offset());
+  BinlogOffset b_range_end(ack_range_end.filenum(), ack_range_end.offset());
+  LogicOffset l_range_start(ack_range_start.term(), ack_range_start.index());
+  LogicOffset l_range_end(ack_range_end.term(), ack_range_end.index());
+  LogOffset range_start(b_range_start, l_range_start);
+  LogOffset range_end(b_range_end, l_range_end);
 
   std::shared_ptr<SyncMasterPartition> master_partition
     = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
@@ -345,14 +349,14 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   }
 
   if (is_first_send) {
-    if (!(range_start == range_end)) {
+    if (!(range_start.b_offset == range_end.b_offset)) {
       LOG(WARNING) << "first binlogsync request pb argument invalid";
       conn->NotifyClose();
       delete task_arg;
       return;
     }
 
-    Status s = master_partition->ActivateSlaveBinlogSync(node.ip(), node.port(), range_start);
+    Status s = master_partition->ActivateSlaveBinlogSync(node.ip(), node.port(), range_start.b_offset);
     if (!s.ok()) {
       LOG(WARNING) << "Activate Binlog Sync failed " << slave_node.ToString() << " " << s.ToString();
       conn->NotifyClose();
@@ -365,7 +369,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
 
   // not the first_send the range_ack cant be 0
   // set this case as ping
-  if (range_start == BinlogOffset() && range_end == BinlogOffset()) {
+  if (range_start.b_offset == BinlogOffset() && range_end.b_offset == BinlogOffset()) {
     delete task_arg;
     return;
   }

@@ -165,10 +165,18 @@ Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>&
         << " Read Binlog error : " << s.ToString();
       return s;
     }
-    slave_ptr->sync_win.Push(SyncWinItem(filenum, offset, msg.size()));
+    BinlogItem item;
+    if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(
+          TypeFirst, msg, &item)) {
+      LOG(WARNING) << "Binlog item decode failed";
+      return Status::Corruption("Binlog item decode failed");
+    }
+    BinlogOffset sent_b_offset = BinlogOffset(filenum, offset);
+    LogicOffset sent_l_offset = LogicOffset(item.term_id(), item.logic_id());
+    LogOffset sent_offset(sent_b_offset, sent_l_offset);
 
-    BinlogOffset sent_offset = BinlogOffset(filenum, offset);
-    slave_ptr->sent_offset = sent_offset;
+    slave_ptr->sync_win.Push(SyncWinItem(sent_offset, msg.size()));
+    slave_ptr->sent_offset = sent_b_offset;
     slave_ptr->SetLastSendTime(slash::NowMicros());
     RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->TableName(), slave_ptr->PartitionId(), slave_ptr->SessionId());
     WriteTask task(rm_node, BinlogChip(sent_offset, msg));
@@ -181,7 +189,7 @@ Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>&
   return Status::OK();
 }
 
-Status SyncMasterPartition::ConsistencyUpdateSlave(const std::string& ip, int port, const BinlogOffset& start, const BinlogOffset& end) {
+Status SyncMasterPartition::ConsistencyUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end) {
   Status s = coordinator_.UpdateSlave(ip, port, start, end);
   if (!s.ok()) {
     LOG(WARNING) << SyncPartitionInfo().ToString() << s.ToString();
@@ -351,7 +359,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
     } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now) {
       std::vector<WriteTask> task;
       RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->TableName(), slave_ptr->PartitionId(), slave_ptr->SessionId());
-      WriteTask empty_task(rm_node, BinlogChip(BinlogOffset(0, 0), ""));
+      WriteTask empty_task(rm_node, BinlogChip(LogOffset(), ""));
       task.push_back(empty_task);
       Status s = g_pika_rm->SendSlaveBinlogChipsRequest(slave_ptr->Ip(), slave_ptr->Port(), task);
       slave_ptr->SetLastSendTime(now);
@@ -579,52 +587,6 @@ std::string SyncSlavePartition::LocalIp() {
   return local_ip_;
 }
 
-/* SyncWindow */
-
-void SyncWindow::Push(const SyncWinItem& item) {
-  win_.push_back(item);
-  total_size_ += item.binlog_size_;
-}
-
-bool SyncWindow::Update(const SyncWinItem& start_item,
-    const SyncWinItem& end_item, BinlogOffset* acked_offset) {
-  size_t start_pos = win_.size(), end_pos = win_.size();
-  for (size_t i = 0; i < win_.size(); ++i) {
-    if (win_[i] == start_item) {
-      start_pos = i;
-    }
-    if (win_[i] == end_item) {
-      end_pos = i;
-      break;
-    }
-  }
-  if (start_pos == win_.size() || end_pos == win_.size()) {
-    LOG(WARNING) << "Ack offset Start: " <<
-      start_item.ToString() << "End: " << end_item.ToString() <<
-      " not found in binlog controller window." <<
-      std::endl << "window status "<< std::endl << ToStringStatus();
-    return false;
-  }
-  for (size_t i = start_pos; i <= end_pos; ++i) {
-    win_[i].acked_ = true;
-    total_size_ -= win_[i].binlog_size_;
-  }
-  while (!win_.empty()) {
-    if (win_[0].acked_) {
-      *acked_offset = win_[0].offset_;
-      win_.pop_front();
-    } else {
-      break;
-    }
-  }
-  return true;
-}
-
-int SyncWindow::Remainings() {
-  std::size_t remaining_size = g_pika_conf->sync_window_size() - win_.size();
-  return remaining_size > 0? remaining_size:0 ;
-}
-
 /* PikaReplicaManger */
 
 PikaReplicaManager::PikaReplicaManager() {
@@ -780,7 +742,7 @@ void PikaReplicaManager::ReplServerUpdateClientConnMap(const std::string& ip_por
   pika_repl_server_->UpdateClientConnMap(ip_port, fd);
 }
 
-Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const BinlogOffset& range_start, const BinlogOffset& range_end) {
+Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& range_start, const LogOffset& range_end) {
   slash::RWLock l(&partitions_rw_, false);
   if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
     return Status::NotFound(slave.ToString() + " not found");
@@ -1091,7 +1053,7 @@ Status PikaReplicaManager::SendPartitionDBSyncRequest(
 
 Status PikaReplicaManager::SendPartitionBinlogSyncAckRequest(
         const std::string& table, uint32_t partition_id,
-        const BinlogOffset& ack_start, const BinlogOffset& ack_end,
+        const LogOffset& ack_start, const LogOffset& ack_end,
         bool is_first_send) {
   std::shared_ptr<SyncSlavePartition> slave_partition =
       GetSyncSlavePartitionByName(PartitionInfo(table, partition_id));

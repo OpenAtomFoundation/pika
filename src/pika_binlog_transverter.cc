@@ -17,8 +17,8 @@ uint32_t BinlogItem::exec_time() const {
   return exec_time_;
 }
 
-uint32_t BinlogItem::server_id() const {
-  return server_id_;
+uint32_t BinlogItem::term_id() const {
+  return term_id_;
 }
 
 uint64_t BinlogItem::logic_id() const {
@@ -41,8 +41,8 @@ void BinlogItem::set_exec_time(uint32_t exec_time) {
   exec_time_ = exec_time;
 }
 
-void BinlogItem::set_server_id(uint32_t server_id) {
-  server_id_ = server_id;
+void BinlogItem::set_term_id(uint32_t term_id) {
+  term_id_ = term_id;
 }
 
 void BinlogItem::set_logic_id(uint64_t logic_id) {
@@ -60,7 +60,7 @@ void BinlogItem::set_offset(uint64_t offset) {
 std::string BinlogItem::ToString() const {
   std::string str;
   str.append("exec_time: "  + std::to_string(exec_time_));
-  str.append(",server_id: " + std::to_string(server_id_));
+  str.append(",term_id: " + std::to_string(term_id_));
   str.append(",logic_id: "  + std::to_string(logic_id_));
   str.append(",filenum: "   + std::to_string(filenum_));
   str.append(",offset: "    + std::to_string(offset_));
@@ -80,7 +80,7 @@ std::string BinlogItem::ToString() const {
 
 std::string PikaBinlogTransverter::BinlogEncode(BinlogType type,
                                                 uint32_t exec_time,
-                                                uint32_t server_id,
+                                                uint32_t term_id,
                                                 uint64_t logic_id,
                                                 uint32_t filenum,
                                                 uint64_t offset,
@@ -89,7 +89,7 @@ std::string PikaBinlogTransverter::BinlogEncode(BinlogType type,
   std::string binlog;
   slash::PutFixed16(&binlog, type);
   slash::PutFixed32(&binlog, exec_time);
-  slash::PutFixed32(&binlog, server_id);
+  slash::PutFixed32(&binlog, term_id);
   slash::PutFixed64(&binlog, logic_id);
   slash::PutFixed32(&binlog, filenum);
   slash::PutFixed64(&binlog, offset);
@@ -111,7 +111,7 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type,
     return false;
   }
   slash::GetFixed32(&binlog_str, &binlog_item->exec_time_);
-  slash::GetFixed32(&binlog_str, &binlog_item->server_id_);
+  slash::GetFixed32(&binlog_str, &binlog_item->term_id_);
   slash::GetFixed64(&binlog_str, &binlog_item->logic_id_);
   slash::GetFixed32(&binlog_str, &binlog_item->filenum_);
   slash::GetFixed64(&binlog_str, &binlog_item->offset_);
@@ -127,7 +127,7 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type,
 
 /*
  * *************************************************Type First Binlog Item Format**************************************************
- * |  <Type>  | <Create Time> | <Server Id> | <Binlog Logic Id> | <File Num> | <Offset> | <Content Length> |       <Content>      |
+ * |  <Type>  | <Create Time> |  <Term Id>  | <Binlog Logic Id> | <File Num> | <Offset> | <Content Length> |       <Content>      |
  * | 2 Bytes  |    4 Bytes    |   4 Bytes   |      8 Bytes      |   4 Bytes  |  8 Bytes |     4 Bytes      | content length Bytes |
  * |---------------------------------------------- 34 Bytes -----------------------------------------------|
  *
@@ -192,7 +192,7 @@ bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(BinlogType type,
     return false;
   }
   slash::GetFixed32(&binlog_str, &binlog_item->exec_time_);
-  slash::GetFixed32(&binlog_str, &binlog_item->server_id_);
+  slash::GetFixed32(&binlog_str, &binlog_item->term_id_);
   slash::GetFixed64(&binlog_str, &binlog_item->logic_id_);
   slash::GetFixed32(&binlog_str, &binlog_item->filenum_);
   slash::GetFixed64(&binlog_str, &binlog_item->offset_);

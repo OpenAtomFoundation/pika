@@ -96,6 +96,22 @@ enum SlotState {
   INBUSY = 1,
 };
 
+struct LogicOffset {
+  uint32_t term;
+  uint64_t index;
+  LogicOffset()
+    : term(0), index(0) {}
+  LogicOffset(uint32_t _term, uint64_t _index)
+    : term(_term), index(_index) {}
+  LogicOffset(const LogicOffset& other) {
+    term = other.term;
+    index = other.index;
+  }
+  std::string ToString() const {
+    return "term: " + std::to_string(term) + " index: " + std::to_string(index);
+  }
+};
+
 struct BinlogOffset {
   uint32_t filenum;
   uint64_t offset;
@@ -130,6 +146,32 @@ struct BinlogOffset {
     }
     return false;
   }
+};
+
+struct LogOffset {
+  LogOffset(const LogOffset& _log_offset) {
+    b_offset = _log_offset.b_offset;
+    l_offset = _log_offset.l_offset;
+  }
+  LogOffset() : b_offset(), l_offset() {
+  }
+  LogOffset(BinlogOffset _b_offset, LogicOffset _l_offset)
+    : b_offset(_b_offset), l_offset(_l_offset) {
+  }
+  bool operator<(const LogOffset& other) const {
+    return b_offset < other.b_offset;
+  }
+  bool operator==(const LogOffset& other) const {
+    return b_offset == other.b_offset;
+  }
+  bool operator>(const LogOffset& other) const {
+    return b_offset > other.b_offset;
+  }
+  std::string ToString() const  {
+    return b_offset.ToString() + " " + l_offset.ToString();
+  }
+  BinlogOffset b_offset;
+  LogicOffset  l_offset;
 };
 
 //dbsync arg
@@ -176,9 +218,9 @@ const std::string BinlogSyncStateMsg[] = {
 };
 
 struct BinlogChip {
-  BinlogOffset offset_;
+  LogOffset offset_;
   std::string binlog_;
-  BinlogChip(BinlogOffset offset, std::string binlog) : offset_(offset), binlog_(binlog) {
+  BinlogChip(LogOffset offset, std::string binlog) : offset_(offset), binlog_(binlog) {
   }
   BinlogChip(const BinlogChip& binlog_chip) {
     offset_ = binlog_chip.offset_;

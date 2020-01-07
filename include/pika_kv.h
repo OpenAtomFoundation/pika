@@ -45,7 +45,7 @@ class SetCmd : public Cmd {
   }
   virtual std::string ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) override;
@@ -273,7 +273,7 @@ class SetnxCmd : public Cmd {
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) override;
@@ -299,7 +299,7 @@ class SetexCmd : public Cmd {
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) override;
@@ -325,7 +325,7 @@ class PsetexCmd : public Cmd {
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) override;
@@ -479,7 +479,7 @@ class ExpireCmd : public Cmd {
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) override;
@@ -504,7 +504,7 @@ class PexpireCmd : public Cmd {
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) override;
@@ -548,7 +548,7 @@ class PexpireatCmd : public Cmd {
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) override;
