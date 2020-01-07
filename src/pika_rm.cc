@@ -935,10 +935,12 @@ Status PikaReplicaManager::DeactivateSyncSlavePartition(const PartitionInfo& p_i
 
 Status PikaReplicaManager::SendMetaSyncRequest() {
   Status s;
-  if (time(NULL) - g_pika_server->GetMetaSyncTimestamp() >= PIKA_META_SYNC_MAX_WAIT_TIME) {
+  if (time(NULL) - g_pika_server->GetMetaSyncTimestamp() >= PIKA_META_SYNC_MAX_WAIT_TIME ||
+    g_pika_server->IsFirstMetaSync() == true) {
     s = pika_repl_client_->SendMetaSync();
     if (s.ok()) {
       g_pika_server->UpdateMetaSyncTimestamp();
+      g_pika_server->SetFirstMetaSync(false);
     }
   }
   return s;
