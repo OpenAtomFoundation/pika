@@ -103,7 +103,7 @@ void SetCmd::Do(std::shared_ptr<Partition> partition) {
 
 std::string SetCmd::ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) {
@@ -131,14 +131,14 @@ std::string SetCmd::ToBinlog(
     RedisAppendContent(content, value_);
     return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
                                                exec_time,
-                                               std::stoi(server_id),
+                                               term_id,
                                                logic_id,
                                                filenum,
                                                offset,
                                                content,
                                                {});
   } else {
-    return Cmd::ToBinlog(exec_time, server_id, logic_id, filenum, offset);
+    return Cmd::ToBinlog(exec_time, term_id, logic_id, filenum, offset);
   }
 }
 
@@ -465,7 +465,7 @@ void SetnxCmd::Do(std::shared_ptr<Partition> partition) {
 
 std::string SetnxCmd::ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) {
@@ -487,7 +487,7 @@ std::string SetnxCmd::ToBinlog(
 
     return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
                                                exec_time,
-                                               std::stoi(server_id),
+                                               term_id,
                                                logic_id,
                                                filenum,
                                                offset,
@@ -522,7 +522,7 @@ void SetexCmd::Do(std::shared_ptr<Partition> partition) {
 
 std::string SetexCmd::ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) {
@@ -550,7 +550,7 @@ std::string SetexCmd::ToBinlog(
   RedisAppendContent(content, value_);
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
                                              exec_time,
-                                             std::stoi(server_id),
+                                             term_id,
                                              logic_id,
                                              filenum,
                                              offset,
@@ -583,7 +583,7 @@ void PsetexCmd::Do(std::shared_ptr<Partition> partition) {
 
 std::string PsetexCmd::ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) {
@@ -611,7 +611,7 @@ std::string PsetexCmd::ToBinlog(
   RedisAppendContent(content, value_);
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
                                              exec_time,
-                                             std::stoi(server_id),
+                                             term_id,
                                              logic_id,
                                              filenum,
                                              offset,
@@ -811,7 +811,7 @@ void ExpireCmd::Do(std::shared_ptr<Partition> partition) {
 
 std::string ExpireCmd::ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) {
@@ -836,7 +836,7 @@ std::string ExpireCmd::ToBinlog(
 
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
                                              exec_time,
-                                             std::stoi(server_id),
+                                             term_id,
                                              logic_id,
                                              filenum,
                                              offset,
@@ -870,7 +870,7 @@ void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
 
 std::string PexpireCmd::ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) {
@@ -895,7 +895,7 @@ std::string PexpireCmd::ToBinlog(
 
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
                                              exec_time,
-                                             std::stoi(server_id),
+                                             term_id,
                                              logic_id,
                                              filenum,
                                              offset,
@@ -941,7 +941,7 @@ void PexpireatCmd::DoInitial() {
 
 std::string PexpireatCmd::ToBinlog(
       uint32_t exec_time,
-      const std::string& server_id,
+      uint32_t term_id,
       uint64_t logic_id,
       uint32_t filenum,
       uint64_t offset) {
@@ -966,7 +966,7 @@ std::string PexpireatCmd::ToBinlog(
 
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
                                              exec_time,
-                                             std::stoi(server_id),
+                                             term_id,
                                              logic_id,
                                              filenum,
                                              offset,

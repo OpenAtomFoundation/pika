@@ -16,33 +16,34 @@ class SyncProgress {
   ~SyncProgress();
   std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
+  std::unordered_map<std::string, LogOffset> GetAllMatchIndex();
   Status AddSlaveNode(const std::string& ip, int port,
       const std::string& table_name, uint32_t partition_id, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
-  Status Update(const std::string& ip, int port, const BinlogOffset& start,
-      const BinlogOffset& end, BinlogOffset* committed_index);
+  Status Update(const std::string& ip, int port, const LogOffset& start,
+      const LogOffset& end, LogOffset* committed_index);
   int SlaveSize();
 
  private:
-  BinlogOffset InternalCalCommittedIndex();
+  LogOffset InternalCalCommittedIndex(
+      std::unordered_map<std::string, LogOffset> match_index);
 
   pthread_rwlock_t rwlock_;
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves_;
-  slash::Mutex match_mu_;
-  std::unordered_map<std::string, BinlogOffset> match_index_;
+  std::unordered_map<std::string, LogOffset> match_index_;
 };
 
 class MemLog {
  public:
   struct LogItem {
     LogItem(
-        BinlogOffset _offset,
+        LogOffset _offset,
         std::shared_ptr<Cmd> _cmd_ptr,
         std::shared_ptr<PikaClientConn> _conn_ptr,
         std::shared_ptr<std::string> _resp_ptr)
       : offset(_offset), cmd_ptr(_cmd_ptr), conn_ptr(_conn_ptr), resp_ptr(_resp_ptr) {
     }
-    BinlogOffset offset;
+    LogOffset offset;
     std::shared_ptr<Cmd> cmd_ptr;
     std::shared_ptr<PikaClientConn> conn_ptr;
     std::shared_ptr<std::string> resp_ptr;
@@ -54,11 +55,11 @@ class MemLog {
     slash::MutexLock l_logs(&logs_mu_);
     logs_.push_back(item);
   }
-  Status PurdgeLogs(BinlogOffset offset, std::vector<LogItem>* logs);
+  Status PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
 
  private:
-  int InternalFindLogIndex(BinlogOffset offset);
+  int InternalFindLogIndex(const LogOffset& offset);
   slash::Mutex logs_mu_;
   std::vector<LogItem> logs_;
 };
@@ -66,15 +67,17 @@ class MemLog {
 class ConsistencyCoordinator {
  public:
   ConsistencyCoordinator(const std::string& table_name, uint32_t partition_id);
+  ~ConsistencyCoordinator();
 
   Status ProposeLog(
       std::shared_ptr<Cmd> cmd_ptr,
       std::shared_ptr<PikaClientConn> conn_ptr,
       std::shared_ptr<std::string> resp_ptr);
   Status UpdateSlave(const std::string& ip, int port,
-      const BinlogOffset& start, const BinlogOffset& end);
+      const LogOffset& start, const LogOffset& end);
   Status AddSlaveNode(const std::string& ip, int port, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
+  void UpdateTerm(uint32_t term);
 
   Status CheckEnoughFollower();
   SyncProgress& SyncPros() {
@@ -88,21 +91,22 @@ class ConsistencyCoordinator {
   }
 
  private:
-  // Could del if impl raft
-  Status AddFollower(const std::string& ip, int port);
-  // not implement
-  Status RemoveFollower(const std::string& ip, int port);
-  Status ScheduleApplyLog();
+  Status ScheduleApplyLog(const LogOffset& committed_index);
   bool MatchConsistencyLevel();
 
-  Status InternalPutBinlog(std::shared_ptr<Cmd> cmd_ptr,
-      BinlogOffset* binlog_offset);
+  Status InternalAppendLog(std::shared_ptr<Cmd> cmd_ptr,
+      LogOffset* log_offset);
   void InternalApply(const MemLog::LogItem& log);
   void InternalApplyStale(const MemLog::LogItem& log);
-  bool InternalUpdateCommittedIndex(const BinlogOffset& slaves_committed_index);
+  bool InternalUpdateCommittedIndex(const LogOffset& slaves_committed_index,
+      LogOffset* updated_committed_index);
 
   slash::Mutex index_mu_;
-  BinlogOffset committed_index_;
+  LogOffset committed_index_;
+  // LogOffset applied_index_;
+
+  pthread_rwlock_t term_rwlock_;
+  uint32_t term_;
 
   std::string table_name_;
   uint32_t partition_id_;

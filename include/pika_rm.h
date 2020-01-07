@@ -89,8 +89,8 @@ class SyncMasterPartition : public SyncPartition {
   // consistency use
   Status ConsistencyUpdateSlave(
       const std::string& ip, int port,
-      const BinlogOffset& start,
-      const BinlogOffset& end);
+      const LogOffset& start,
+      const LogOffset& end);
   Status ConsistencyProposeLog(
       std::shared_ptr<Cmd> cmd_ptr,
       std::shared_ptr<PikaClientConn> conn_ptr,
@@ -184,7 +184,7 @@ class PikaReplicaManager {
   Status SendPartitionTrySyncRequest(const std::string& table_name, size_t partition_id);
   Status SendPartitionDBSyncRequest(const std::string& table_name, size_t partition_id);
   Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id,
-                                           const BinlogOffset& ack_start, const BinlogOffset& ack_end,
+                                           const LogOffset& ack_start, const LogOffset& ack_end,
                                            bool is_first_send = false);
   Status CloseReplClientConn(const std::string& ip, int32_t port);
 
@@ -218,7 +218,7 @@ class PikaReplicaManager {
   Status LostConnection(const std::string& ip, int port);
 
   // Update binlog win and try to send next binlog
-  Status UpdateSyncBinlogStatus(const RmNode& slave, const BinlogOffset& offset_start, const BinlogOffset& offset_end);
+  Status UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start, const LogOffset& offset_end);
 
   Status WakeUpBinlogSync();
 

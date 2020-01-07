@@ -759,7 +759,7 @@ std::string Cmd::table_name() const {
 }
 
 std::string Cmd::ToBinlog(uint32_t exec_time,
-                          const std::string& server_id,
+                          uint32_t term_id,
                           uint64_t logic_id,
                           uint32_t filenum,
                           uint64_t offset) {
@@ -774,7 +774,7 @@ std::string Cmd::ToBinlog(uint32_t exec_time,
 
   return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
                                              exec_time,
-                                             std::stoi(server_id),
+                                             term_id,
                                              logic_id,
                                              filenum,
                                              offset,

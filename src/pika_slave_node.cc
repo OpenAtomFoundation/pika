@@ -5,6 +5,56 @@
 
 #include "include/pika_slave_node.h"
 
+#include "include/pika_conf.h"
+
+extern PikaConf *g_pika_conf;
+
+/* SyncWindow */
+
+void SyncWindow::Push(const SyncWinItem& item) {
+  win_.push_back(item);
+  total_size_ += item.binlog_size_;
+}
+
+bool SyncWindow::Update(const SyncWinItem& start_item,
+    const SyncWinItem& end_item,  LogOffset* acked_offset) {
+  size_t start_pos = win_.size(), end_pos = win_.size();
+  for (size_t i = 0; i < win_.size(); ++i) {
+    if (win_[i] == start_item) {
+      start_pos = i;
+    }
+    if (win_[i] == end_item) {
+      end_pos = i;
+      break;
+    }
+  }
+  if (start_pos == win_.size() || end_pos == win_.size()) {
+    LOG(WARNING) << "Ack offset Start: " <<
+      start_item.ToString() << "End: " << end_item.ToString() <<
+      " not found in binlog controller window." <<
+      std::endl << "window status "<< std::endl << ToStringStatus();
+    return false;
+  }
+  for (size_t i = start_pos; i <= end_pos; ++i) {
+    win_[i].acked_ = true;
+    total_size_ -= win_[i].binlog_size_;
+  }
+  while (!win_.empty()) {
+    if (win_[0].acked_) {
+      *acked_offset = win_[0].offset_;
+      win_.pop_front();
+    } else {
+      break;
+    }
+  }
+  return true;
+}
+
+int SyncWindow::Remainings() {
+  std::size_t remaining_size = g_pika_conf->sync_window_size() - win_.size();
+  return remaining_size > 0? remaining_size:0 ;
+}
+
 /* SlaveNode */
 
 SlaveNode::SlaveNode(const std::string& ip, int port,
@@ -39,13 +89,14 @@ std::string SlaveNode::ToStringStatus() {
   return tmp_stream.str();
 }
 
-Status SlaveNode::Update(const BinlogOffset& start, const BinlogOffset& end) {
+Status SlaveNode::Update(const LogOffset& start, const LogOffset& end, LogOffset* updated_offset) {
   if (slave_state != kSlaveBinlogSync) {
     return Status::Corruption(ToString() + "state not BinlogSync");
   }
-  bool res = sync_win.Update(SyncWinItem(start), SyncWinItem(end), &acked_offset);
+  bool res = sync_win.Update(SyncWinItem(start), SyncWinItem(end), updated_offset);
   if (!res) {
     return Status::Corruption("UpdateAckedInfo failed");
   }
+  acked_offset = updated_offset->b_offset;
   return Status::OK();
 }

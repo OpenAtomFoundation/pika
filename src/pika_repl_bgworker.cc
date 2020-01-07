@@ -54,7 +54,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
   std::string table_name;
   uint32_t partition_id = 0;
-  BinlogOffset ack_start, ack_end;
+  LogOffset ack_start, ack_end;
   // find the first not keepalive binlogsync
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
@@ -63,8 +63,10 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       partition_id = binlog_res.partition().partition_id();
     }
     if (!binlog_res.binlog().empty()) {
-      ack_start.filenum = binlog_res.binlog_offset().filenum();
-      ack_start.offset = binlog_res.binlog_offset().offset();
+      ack_start.b_offset.filenum = binlog_res.binlog_offset().filenum();
+      ack_start.b_offset.offset = binlog_res.binlog_offset().offset();
+      ack_start.l_offset.term = binlog_res.binlog_offset().term();
+      ack_start.l_offset.index = binlog_res.binlog_offset().index();
       break;
     }
   }
@@ -147,9 +149,10 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
   // Reply Ack to master immediately
   std::shared_ptr<Binlog> logger = partition->Logger();
-  logger->GetProducerStatus(&ack_end.filenum, &ack_end.offset);
+  logger->GetProducerStatus(&ack_end.b_offset.filenum, &ack_end.b_offset.offset,
+      &ack_end.l_offset.index, &ack_end.l_offset.term);
   // keepalive case
-  if (ack_start == BinlogOffset()) {
+  if (ack_start.b_offset == BinlogOffset()) {
     // set ack_end as 0
     ack_end = ack_start;
   }
@@ -197,13 +200,10 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
 
   logger->Lock();
   logger->Put(c_ptr->ToBinlog(binlog_item.exec_time(),
-                              std::to_string(binlog_item.server_id()),
+                              binlog_item.term_id(),
                               binlog_item.logic_id(),
                               binlog_item.filenum(),
                               binlog_item.offset()));
-  uint32_t filenum;
-  uint64_t offset;
-  logger->GetProducerStatus(&filenum, &offset);
   logger->Unlock();
 
   PikaCmdArgsType *v = new PikaCmdArgsType(argv);

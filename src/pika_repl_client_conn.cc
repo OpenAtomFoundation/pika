@@ -215,7 +215,8 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     int32_t session_id = try_sync_response.session_id();
     partition->Logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
     slave_partition->SetMasterSessionId(session_id);
-    g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, boffset, boffset, true);
+    LogOffset offset(boffset, LogicOffset());
+    g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, offset, offset, true);
     slave_partition->SetReplState(ReplState::kConnected);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {

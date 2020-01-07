@@ -93,8 +93,10 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks,
     partition->set_table_name(task.rm_node_.TableName());
     partition->set_partition_id(task.rm_node_.PartitionId());
     InnerMessage::BinlogOffset* boffset = binlog_sync->mutable_binlog_offset();
-    boffset->set_filenum(task.binlog_chip_.offset_.filenum);
-    boffset->set_offset(task.binlog_chip_.offset_.offset);
+    boffset->set_filenum(task.binlog_chip_.offset_.b_offset.filenum);
+    boffset->set_offset(task.binlog_chip_.offset_.b_offset.offset);
+    boffset->set_term(task.binlog_chip_.offset_.l_offset.term);
+    boffset->set_index(task.binlog_chip_.offset_.l_offset.index);
     binlog_sync->set_binlog(task.binlog_chip_.binlog_);
   }
 }
