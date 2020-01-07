@@ -128,7 +128,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
     }
   }
   if (delete_num) {
-    LOG(INFO) << log_path_ << " Success purge "<< delete_num << "binlog file";
+    LOG(INFO) << log_path_ << " Success purge "<< delete_num << " binlog file";
   }
   return true;
 }
