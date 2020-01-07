@@ -48,6 +48,6 @@ void PikaReplClientThread::ReplClientHandle::FdTimeoutHandle(int fd, const std::
     && g_pika_rm->CheckSlavePartitionState(ip, port)) {  // if state machine in error state, no retry
     LOG(WARNING) << "Master conn timeout : " << ip_port << " try reconnect";
     g_pika_server->ResetMetaSyncStatus();
-    g_pika_server->UpdateMetaSyncTimestamp();
   }
+  g_pika_server->UpdateMetaSyncTimestamp();
 };

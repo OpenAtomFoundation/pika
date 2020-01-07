@@ -55,6 +55,7 @@ PikaServer::PikaServer() :
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
   last_meta_sync_timestamp_(0),
+  first_meta_sync_(false),
   loop_partition_state_machine_(false),
   force_full_sync_(false),
   slowlog_entry_id_(0) {
@@ -926,12 +927,21 @@ void PikaServer::SetLoopPartitionStateMachine(bool need_loop) {
 int PikaServer::GetMetaSyncTimestamp() {
   slash::RWLock sp_l(&state_protector_, false);
   return last_meta_sync_timestamp_;
-
 }
 
 void PikaServer::UpdateMetaSyncTimestamp() {
   slash::RWLock sp_l(&state_protector_, true);
   last_meta_sync_timestamp_ = time(NULL);
+}
+
+bool PikaServer::IsFirstMetaSync() {
+  slash::RWLock sp_l(&state_protector_, true);
+  return first_meta_sync_;
+}
+
+void PikaServer::SetFirstMetaSync(bool v) {
+  slash::RWLock sp_l(&state_protector_, true);
+  first_meta_sync_ = v;
 }
 
 void PikaServer::ScheduleClientPool(pink::TaskFunc func, void* arg) {
