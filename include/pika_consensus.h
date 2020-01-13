@@ -2,13 +2,14 @@
 // This source code is licensed under the BSD-style license found in the
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
-#ifndef PIKA_CONSISTENCY_H_
-#define PIKA_CONSISTENCY_H_
+#ifndef PIKA_CONSENSUS_H_
+#define PIKA_CONSENSUS_H_
 
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
 #include "include/pika_slave_node.h"
 #include "include/pika_stable_log.h"
+#include "include/pika_binlog_transverter.h"
 
 class SyncProgress {
  public:
@@ -51,23 +52,29 @@ class MemLog {
 
   MemLog();
   int Size();
-  void PushLog(const LogItem& item) {
+  void AppendLog(const LogItem& item) {
     slash::MutexLock l_logs(&logs_mu_);
     logs_.push_back(item);
+    last_offset_ = item.offset;
   }
   Status PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
+  LogOffset LastOffset() {
+    slash::MutexLock l_logs(&logs_mu_);
+    return last_offset_;
+  }
 
  private:
   int InternalFindLogIndex(const LogOffset& offset);
   slash::Mutex logs_mu_;
   std::vector<LogItem> logs_;
+  LogOffset last_offset_;
 };
 
-class ConsistencyCoordinator {
+class ConsensusCoordinator {
  public:
-  ConsistencyCoordinator(const std::string& table_name, uint32_t partition_id);
-  ~ConsistencyCoordinator();
+  ConsensusCoordinator(const std::string& table_name, uint32_t partition_id);
+  ~ConsensusCoordinator();
 
   Status ProposeLog(
       std::shared_ptr<Cmd> cmd_ptr,
@@ -78,8 +85,12 @@ class ConsistencyCoordinator {
   Status AddSlaveNode(const std::string& ip, int port, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
   void UpdateTerm(uint32_t term);
-
   Status CheckEnoughFollower();
+
+  Status ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr,
+      const BinlogItem& attribute);
+  Status ProcessLocalUpdate(const LogOffset& leader_commit);
+
   SyncProgress& SyncPros() {
     return sync_pros_;
   }
@@ -90,14 +101,25 @@ class ConsistencyCoordinator {
     return mem_logger_;
   }
 
+  LogOffset committed_index() {
+    slash::MutexLock l(&index_mu_);
+    return committed_index_;
+  }
+
  private:
   Status ScheduleApplyLog(const LogOffset& committed_index);
-  bool MatchConsistencyLevel();
+  Status ScheduleApplyFollowerLog(const LogOffset& committed_index);
+  bool MatchConsensusLevel();
 
-  Status InternalAppendLog(std::shared_ptr<Cmd> cmd_ptr,
+  Status InternalAppendLog(const BinlogItem& item,
+      std::shared_ptr<Cmd> cmd_ptr,
+      std::shared_ptr<PikaClientConn> conn_ptr,
+      std::shared_ptr<std::string> resp_ptr);
+  Status InternalAppendBinlog(const BinlogItem& item,
+      std::shared_ptr<Cmd> cmd_ptr,
       LogOffset* log_offset);
   void InternalApply(const MemLog::LogItem& log);
-  void InternalApplyStale(const MemLog::LogItem& log);
+  void InternalApplyFollower(const MemLog::LogItem& log);
   bool InternalUpdateCommittedIndex(const LogOffset& slaves_committed_index,
       LogOffset* updated_committed_index);
 
@@ -115,4 +137,4 @@ class ConsistencyCoordinator {
   std::shared_ptr<StableLog> stable_logger_;
   std::shared_ptr<MemLog> mem_logger_;
 };
-#endif  // INCLUDE_PIKA_CONSISTENCY_H_
+#endif  // INCLUDE_PIKA_CONSENSUS_H_

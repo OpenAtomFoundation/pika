@@ -78,8 +78,8 @@ class Binlog {
     return binlog_io_error_;
   }
 
+  // need to hold mutex_
   void SetTerm(uint32_t term) {
-    slash::MutexLock l(&mutex_);
     slash::RWLock(&(version_->rwlock_), true);
     version_->term_ = term;
     version_->StableSave();

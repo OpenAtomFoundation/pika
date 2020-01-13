@@ -356,7 +356,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
       return;
     }
 
-    Status s = master_partition->ActivateSlaveBinlogSync(node.ip(), node.port(), range_start.b_offset);
+    Status s = master_partition->ActivateSlaveBinlogSync(node.ip(), node.port(), range_start);
     if (!s.ok()) {
       LOG(WARNING) << "Activate Binlog Sync failed " << slave_node.ToString() << " " << s.ToString();
       conn->NotifyClose();

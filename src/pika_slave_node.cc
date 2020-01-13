@@ -97,6 +97,6 @@ Status SlaveNode::Update(const LogOffset& start, const LogOffset& end, LogOffset
   if (!res) {
     return Status::Corruption("UpdateAckedInfo failed");
   }
-  acked_offset = updated_offset->b_offset;
+  acked_offset = *updated_offset;
   return Status::OK();
 }

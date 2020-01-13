@@ -18,7 +18,7 @@
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_stable_log.h"
-#include "include/pika_consistency.h"
+#include "include/pika_consensus.h"
 #include "include/pika_slave_node.h"
 
 #define kBinlogSendPacketNum 40
@@ -51,7 +51,7 @@ class SyncMasterPartition : public SyncPartition {
   Status AddSlaveNode(const std::string& ip, int port, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
 
-  Status ActivateSlaveBinlogSync(const std::string& ip, int port, const BinlogOffset& offset);
+  Status ActivateSlaveBinlogSync(const std::string& ip, int port, const LogOffset& offset);
   Status ActivateSlaveDbSync(const std::string& ip, int port);
 
   Status SyncBinlogToWq(const std::string& ip, int port);
@@ -86,16 +86,19 @@ class SyncMasterPartition : public SyncPartition {
                          const std::string& table_name,
                          uint64_t partition_id, int session_id);
 
-  // consistency use
-  Status ConsistencyUpdateSlave(
+  // consensus use
+  Status ConsensusUpdateSlave(
       const std::string& ip, int port,
       const LogOffset& start,
       const LogOffset& end);
-  Status ConsistencyProposeLog(
+  Status ConsensusProposeLog(
       std::shared_ptr<Cmd> cmd_ptr,
       std::shared_ptr<PikaClientConn> conn_ptr,
       std::shared_ptr<std::string> resp_ptr);
-  Status ConsistencySanityCheck();
+  Status ConsensusSanityCheck();
+  Status ConsensusProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute);
+  Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
+  LogOffset ConsensusCommittedIndex();
 
   std::shared_ptr<StableLog> StableLogger() {
     return coordinator_.StableLogger();
@@ -119,7 +122,7 @@ class SyncMasterPartition : public SyncPartition {
   slash::Mutex session_mu_;
   int32_t session_id_;
 
-  ConsistencyCoordinator coordinator_;
+  ConsensusCoordinator coordinator_;
 };
 
 class SyncSlavePartition : public SyncPartition {
@@ -223,7 +226,7 @@ class PikaReplicaManager {
   Status WakeUpBinlogSync();
 
   // write_queue related
-  void ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
+  void ProduceWriteQueue(const std::string& ip, int port, uint32_t partition_id, const std::vector<WriteTask>& tasks);
   int ConsumeWriteQueue();
   void DropItemInWriteQueue(const std::string& ip, int port);
 
@@ -233,8 +236,7 @@ class PikaReplicaManager {
   void ScheduleWriteBinlogTask(const std::string& table_partition,
                                const std::shared_ptr<InnerMessage::InnerResponse> res,
                                std::shared_ptr<pink::PbConn> conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::string& dispatch_key,
-                           PikaCmdArgsType* argv, BinlogItem* binlog_item,
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr,
                            const std::string& table_name, uint32_t partition_id);
 
   void ReplServerRemoveClientConn(int fd);
@@ -252,7 +254,7 @@ class PikaReplicaManager {
 
   slash::Mutex  write_queue_mu_;
   // every host owns a queue
-  std::unordered_map<std::string, std::queue<WriteTask>> write_queues_;  // ip+port, queue<WriteTask>
+  std::unordered_map<std::string, std::unordered_map<uint32_t, std::queue<WriteTask>>> write_queues_;  // map<ip+port, map<partition_id, queue<WriteTask>>>
 
   PikaReplClient* pika_repl_client_;
   PikaReplServer* pika_repl_server_;

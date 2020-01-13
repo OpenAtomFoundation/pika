@@ -82,6 +82,14 @@ slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
   return Write(ip, port, binlog_chip_pb);
 }
 
+void PikaReplServer::BuildBinlogOffset(const LogOffset& offset,
+    InnerMessage::BinlogOffset* boffset) {
+  boffset->set_filenum(offset.b_offset.filenum);
+  boffset->set_offset(offset.b_offset.offset);
+  boffset->set_term(offset.l_offset.term);
+  boffset->set_index(offset.l_offset.index);
+}
+
 void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks,
     InnerMessage::InnerResponse* response) {
   response->set_code(InnerMessage::kOk);
@@ -93,11 +101,34 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks,
     partition->set_table_name(task.rm_node_.TableName());
     partition->set_partition_id(task.rm_node_.PartitionId());
     InnerMessage::BinlogOffset* boffset = binlog_sync->mutable_binlog_offset();
-    boffset->set_filenum(task.binlog_chip_.offset_.b_offset.filenum);
-    boffset->set_offset(task.binlog_chip_.offset_.b_offset.offset);
-    boffset->set_term(task.binlog_chip_.offset_.l_offset.term);
-    boffset->set_index(task.binlog_chip_.offset_.l_offset.index);
+    BuildBinlogOffset(task.binlog_chip_.offset_, boffset);
     binlog_sync->set_binlog(task.binlog_chip_.binlog_);
+  }
+  if (g_pika_conf->consensus_level() > 0) {
+    LogOffset prev_offset;
+    PartitionInfo p_info;
+    if (!tasks.empty()) {
+      prev_offset = tasks[0].prev_offset_;
+      p_info = tasks[0].rm_node_.NodePartitionInfo();
+    } else {
+      return;
+    }
+    // write consensus_meta
+    InnerMessage::ConsensusMeta* consensus_meta
+      = response->mutable_consensus_meta();
+    InnerMessage::BinlogOffset* last_log = consensus_meta->mutable_log_offset();
+    BuildBinlogOffset(prev_offset, last_log);
+    // commit
+    LogOffset committed_index;
+    std::shared_ptr<SyncMasterPartition> partition =
+      g_pika_rm->GetSyncMasterPartitionByName(p_info);
+    if (!partition) {
+      LOG(WARNING) << "SyncPartition " << p_info.ToString() << " Not Found.";
+      return;
+    }
+    committed_index = partition->ConsensusCommittedIndex();
+    InnerMessage::BinlogOffset* committed = consensus_meta->mutable_commit();
+    BuildBinlogOffset(committed_index, committed);
   }
 }
 
