@@ -88,7 +88,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
     }
   }
 
-  if (g_pika_conf->consistency_level() != 0 && c_ptr->is_write()) {
+  if (g_pika_conf->consensus_level() != 0 && c_ptr->is_write()) {
     c_ptr->SetStage(Cmd::kBinlogStage);
   }
 
@@ -118,8 +118,8 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
       c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
       return c_ptr;
     }
-    if (!g_pika_server->ConsistencyCheck(current_table_, cur_key.front())) {
-      c_ptr->res().SetRes(CmdRes::kErrOther, "consistency level not match");
+    if (!g_pika_server->ConsensusCheck(current_table_, cur_key.front())) {
+      c_ptr->res().SetRes(CmdRes::kErrOther, "Consensus level not match");
     }
   }
 
@@ -129,7 +129,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, start_us);
   }
-  if (g_pika_conf->consistency_level() != 0 && c_ptr->is_write()) {
+  if (g_pika_conf->consensus_level() != 0 && c_ptr->is_write()) {
     c_ptr->SetStage(Cmd::kExecuteStage);
   }
 
@@ -263,7 +263,7 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<s
 
   std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
   // level == 0 or (cmd error) or (is_read)
-  if (g_pika_conf->consistency_level() == 0 || !cmd_ptr->res().ok() || !cmd_ptr->is_write()) {
+  if (g_pika_conf->consensus_level() == 0 || !cmd_ptr->res().ok() || !cmd_ptr->is_write()) {
     resp_num--;
     *resp_ptr = std::move(cmd_ptr->res().message());
   }

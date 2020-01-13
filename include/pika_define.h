@@ -390,7 +390,9 @@ struct hash_rm_node {
 struct WriteTask {
   struct RmNode rm_node_;
   struct BinlogChip binlog_chip_;
-  WriteTask(RmNode rm_node, BinlogChip binlog_chip) : rm_node_(rm_node), binlog_chip_(binlog_chip) {
+  LogOffset prev_offset_;
+  WriteTask(RmNode rm_node, BinlogChip binlog_chip, LogOffset prev_offset) :
+    rm_node_(rm_node), binlog_chip_(binlog_chip), prev_offset_(prev_offset) {
   }
 };
 
