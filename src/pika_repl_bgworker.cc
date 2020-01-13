@@ -44,6 +44,15 @@ void PikaReplBgWorker::QueueClear() {
   bg_thread_.QueueClear();
 }
 
+void PikaReplBgWorker::ParseBinlogOffset(
+    const InnerMessage::BinlogOffset pb_offset,
+    LogOffset* offset) {
+  offset->b_offset.filenum = pb_offset.filenum();
+  offset->b_offset.offset = pb_offset.offset();
+  offset->l_offset.term = pb_offset.term();
+  offset->l_offset.index = pb_offset.index();
+}
+
 void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   ReplClientWriteBinlogTaskArg* task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerResponse> res = task_arg->res;
@@ -53,10 +62,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   worker->ip_port_ = conn->ip_port();
 
   if (res->has_consensus_meta()) {
-    worker->offset_.b_offset.filenum = res->consensus_meta().commit().filenum();
-    worker->offset_.b_offset.offset = res->consensus_meta().commit().offset();
-    worker->offset_.l_offset.term = res->consensus_meta().commit().term();
-    worker->offset_.l_offset.index = res->consensus_meta().commit().index();
+    ParseBinlogOffset(res->consensus_meta().commit(), &worker->offset_);
   } else {
     worker->offset_ = LogOffset();
   }
@@ -72,10 +78,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       partition_id = binlog_res.partition().partition_id();
     }
     if (!binlog_res.binlog().empty()) {
-      ack_start.b_offset.filenum = binlog_res.binlog_offset().filenum();
-      ack_start.b_offset.offset = binlog_res.binlog_offset().offset();
-      ack_start.l_offset.term = binlog_res.binlog_offset().term();
-      ack_start.l_offset.index = binlog_res.binlog_offset().index();
+      ParseBinlogOffset(binlog_res.binlog_offset(), &ack_start);
       break;
     }
   }
@@ -156,6 +159,9 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   delete index;
   delete task_arg;
 
+  // Update follower commit && apply
+  partition->ConsensusProcessLocalUpdate(worker->offset_);
+
   // Reply Ack to master immediately
   std::shared_ptr<Binlog> logger = partition->Logger();
   logger->GetProducerStatus(&ack_end.b_offset.filenum, &ack_end.b_offset.offset,
@@ -204,7 +210,7 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
     LOG(WARNING) << worker->table_name_ << worker->partition_id_ << "Not found.";
   }
 
-  partition->ConsensusProcessLeaderLog(c_ptr, worker->binlog_item_, worker->offset_);
+  partition->ConsensusProcessLeaderLog(c_ptr, worker->binlog_item_);
   return 0;
 }
 

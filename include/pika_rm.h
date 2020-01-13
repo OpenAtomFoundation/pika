@@ -96,7 +96,8 @@ class SyncMasterPartition : public SyncPartition {
       std::shared_ptr<PikaClientConn> conn_ptr,
       std::shared_ptr<std::string> resp_ptr);
   Status ConsensusSanityCheck();
-  Status ConsensusProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute, const LogOffset& commit);
+  Status ConsensusProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute);
+  Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
   LogOffset ConsensusCommittedIndex();
 
   std::shared_ptr<StableLog> StableLogger() {

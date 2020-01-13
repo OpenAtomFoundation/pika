@@ -475,9 +475,12 @@ Status SyncMasterPartition::ConsensusSanityCheck() {
 
 Status SyncMasterPartition::ConsensusProcessLeaderLog(
     std::shared_ptr<Cmd> cmd_ptr,
-    const BinlogItem& attribute,
-    const LogOffset& commit) {
-  return coordinator_.ProcessLeaderLog(cmd_ptr, attribute, commit);
+    const BinlogItem& attribute) {
+  return coordinator_.ProcessLeaderLog(cmd_ptr, attribute);
+}
+
+Status SyncMasterPartition::ConsensusProcessLocalUpdate(const LogOffset& leader_commit) {
+  return coordinator_.ProcessLocalUpdate(leader_commit);
 }
 
 LogOffset SyncMasterPartition::ConsensusCommittedIndex() {

@@ -38,6 +38,7 @@ class PikaReplBgWorker {
  private:
   pink::BGThread bg_thread_;
   static int HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
+  static void ParseBinlogOffset(const InnerMessage::BinlogOffset pb_offset, LogOffset* offset);
 };
 
 #endif  // PIKA_REPL_BGWROKER_H_

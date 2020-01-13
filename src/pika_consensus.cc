@@ -120,7 +120,7 @@ LogOffset SyncProgress::InternalCalCommittedIndex(std::unordered_map<std::string
 
 /* MemLog */
 
-MemLog::MemLog() {
+MemLog::MemLog() : last_offset_() {
 }
 
 int MemLog::Size() {
@@ -223,7 +223,7 @@ Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item,
   return Status::OK();
 }
 
-Status ConsensusCoordinator::ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute, const LogOffset& l_commit) {
+Status ConsensusCoordinator::ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute) {
   stable_logger_->Logger()->Lock();
   Status s = InternalAppendLog(attribute, cmd_ptr, nullptr, nullptr);
   stable_logger_->Logger()->Unlock();
@@ -233,8 +233,14 @@ Status ConsensusCoordinator::ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, cons
     return Status::OK();
   }
 
-  LogOffset last_index = mem_logger_->LastOffset();;
-  LogOffset committed_index = last_index < l_commit ? last_index : l_commit;
+  return Status::OK();
+}
+
+Status ConsensusCoordinator::ProcessLocalUpdate(const LogOffset& leader_commit) {
+  LogOffset last_index = mem_logger_->LastOffset();
+  LogOffset committed_index = last_index < leader_commit ? last_index : leader_commit;
+
+  LOG(WARNING) << "last_index " << last_index.ToString() << " leader_commit " << leader_commit.ToString() << " committed_index " << committed_index.ToString();
 
   LogOffset updated_committed_index;
   bool need_update = false;
@@ -242,8 +248,9 @@ Status ConsensusCoordinator::ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, cons
     slash::MutexLock l(&index_mu_);
     need_update = InternalUpdateCommittedIndex(committed_index, &updated_committed_index);
   }
+  LOG(WARNING) << "need update " << need_update << " updated_committed_index " << updated_committed_index.ToString();
   if (need_update) {
-    s = ScheduleApplyFollowerLog(updated_committed_index);
+    Status s = ScheduleApplyFollowerLog(updated_committed_index);
     if (!s.ok()) {
       return s;
     }

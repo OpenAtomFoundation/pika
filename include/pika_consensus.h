@@ -55,21 +55,20 @@ class MemLog {
   void AppendLog(const LogItem& item) {
     slash::MutexLock l_logs(&logs_mu_);
     logs_.push_back(item);
+    last_offset_ = item.offset;
   }
   Status PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
   LogOffset LastOffset() {
     slash::MutexLock l_logs(&logs_mu_);
-    if (logs_.empty()) {
-      return LogOffset();
-    }
-    return logs_[logs_.size() -1].offset;
+    return last_offset_;
   }
 
  private:
   int InternalFindLogIndex(const LogOffset& offset);
   slash::Mutex logs_mu_;
   std::vector<LogItem> logs_;
+  LogOffset last_offset_;
 };
 
 class ConsensusCoordinator {
@@ -89,7 +88,8 @@ class ConsensusCoordinator {
   Status CheckEnoughFollower();
 
   Status ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr,
-      const BinlogItem& attribute, const LogOffset& l_commit);
+      const BinlogItem& attribute);
+  Status ProcessLocalUpdate(const LogOffset& leader_commit);
 
   SyncProgress& SyncPros() {
     return sync_pros_;
