@@ -91,7 +91,7 @@ Status SyncMasterPartition::RemoveSlaveNode(const std::string& ip, int port) {
 
 Status SyncMasterPartition::ActivateSlaveBinlogSync(const std::string& ip,
                                                     int port,
-                                                    const BinlogOffset& offset) {
+                                                    const LogOffset& offset) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip  + " port " + std::to_string(port));
@@ -103,7 +103,7 @@ Status SyncMasterPartition::ActivateSlaveBinlogSync(const std::string& ip,
     slave_ptr->sent_offset = offset;
     slave_ptr->acked_offset = offset;
     // read binlog file from file
-    Status s = slave_ptr->InitBinlogFileReader(Logger(), offset);
+    Status s = slave_ptr->InitBinlogFileReader(Logger(), offset.b_offset);
     if (!s.ok()) {
       return Status::Corruption("Init binlog file reader failed" + s.ToString());
     }
@@ -176,20 +176,20 @@ Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>&
     LogOffset sent_offset(sent_b_offset, sent_l_offset);
 
     slave_ptr->sync_win.Push(SyncWinItem(sent_offset, msg.size()));
-    slave_ptr->sent_offset = sent_b_offset;
     slave_ptr->SetLastSendTime(slash::NowMicros());
     RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->TableName(), slave_ptr->PartitionId(), slave_ptr->SessionId());
-    WriteTask task(rm_node, BinlogChip(sent_offset, msg));
+    WriteTask task(rm_node, BinlogChip(sent_offset, msg), slave_ptr->sent_offset);
     tasks.push_back(task);
+    slave_ptr->sent_offset = sent_offset;
   }
 
   if (!tasks.empty()) {
-    g_pika_rm->ProduceWriteQueue(slave_ptr->Ip(), slave_ptr->Port(), tasks);
+    g_pika_rm->ProduceWriteQueue(slave_ptr->Ip(), slave_ptr->Port(), partition_info_.partition_id_, tasks);
   }
   return Status::OK();
 }
 
-Status SyncMasterPartition::ConsistencyUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end) {
+Status SyncMasterPartition::ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end) {
   Status s = coordinator_.UpdateSlave(ip, port, start, end);
   if (!s.ok()) {
     LOG(WARNING) << SyncPartitionInfo().ToString() << s.ToString();
@@ -208,8 +208,8 @@ Status SyncMasterPartition::GetSlaveSyncBinlogInfo(const std::string& ip,
   }
 
   slave_ptr->Lock();
-  *sent_offset = slave_ptr->sent_offset;
-  *acked_offset = slave_ptr->acked_offset;
+  *sent_offset = slave_ptr->sent_offset.b_offset;
+  *acked_offset = slave_ptr->acked_offset.b_offset;
   slave_ptr->Unlock();
 
   return Status::OK();
@@ -310,8 +310,8 @@ Status SyncMasterPartition::GetSafetyPurgeBinlog(std::string* safety_purge) {
       std::shared_ptr<SlaveNode> slave_ptr = slave_iter.second;
       slash::MutexLock l(&slave_ptr->slave_mu);
       if (slave_ptr->slave_state == SlaveState::kSlaveBinlogSync
-        && slave_ptr->acked_offset.filenum > 0) {
-        purge_max = std::min(slave_ptr->acked_offset.filenum - 1, purge_max);
+        && slave_ptr->acked_offset.b_offset.filenum > 0) {
+        purge_max = std::min(slave_ptr->acked_offset.b_offset.filenum - 1, purge_max);
       } else {
         success = false;
         break;
@@ -338,7 +338,7 @@ bool SyncMasterPartition::BinlogCloudPurge(uint32_t index) {
       if (slave_ptr->slave_state == SlaveState::kSlaveDbSync) {
         return false;
       } else if (slave_ptr->slave_state == SlaveState::kSlaveBinlogSync) {
-        if (index >= slave_ptr->acked_offset.filenum) {
+        if (index >= slave_ptr->acked_offset.b_offset.filenum) {
           return false;
         }
       }
@@ -359,7 +359,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
     } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now) {
       std::vector<WriteTask> task;
       RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->TableName(), slave_ptr->PartitionId(), slave_ptr->SessionId());
-      WriteTask empty_task(rm_node, BinlogChip(LogOffset(), ""));
+      WriteTask empty_task(rm_node, BinlogChip(LogOffset(), ""), LogOffset());
       task.push_back(empty_task);
       Status s = g_pika_rm->SendSlaveBinlogChipsRequest(slave_ptr->Ip(), slave_ptr->Port(), task);
       slave_ptr->SetLastSendTime(now);
@@ -380,7 +380,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
 std::string SyncMasterPartition::ToStringStatus() {
   std::stringstream tmp_stream;
   tmp_stream << " Current Master Session: " << session_id_ << "\r\n";
-  tmp_stream << " ConsistencyLogs size: " <<
+  tmp_stream << " ConsensusLogs size: " <<
     (coordinator_.MemLogger() == nullptr ? 0 : coordinator_.MemLogger()->Size()) << "\r\n";
 
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves = GetAllSlaveNodes();
@@ -427,9 +427,9 @@ Status SyncMasterPartition::GetInfo(std::string* info) {
       if (!s.ok()) {
         return s;
       }
-      uint64_t lag = (binlog_offset.filenum - slave_ptr->acked_offset.filenum) *
+      uint64_t lag = (binlog_offset.filenum - slave_ptr->acked_offset.b_offset.filenum) *
         g_pika_conf->binlog_file_size()
-        + (binlog_offset.offset - slave_ptr->acked_offset.offset);
+        + (binlog_offset.offset - slave_ptr->acked_offset.b_offset.offset);
       tmp_stream << "  lag: " << lag << "\r\n";
     }
   }
@@ -462,15 +462,26 @@ bool SyncMasterPartition::CheckSessionId(const std::string& ip, int port,
   return true;
 }
 
-Status SyncMasterPartition::ConsistencyProposeLog(
+Status SyncMasterPartition::ConsensusProposeLog(
     std::shared_ptr<Cmd> cmd_ptr,
     std::shared_ptr<PikaClientConn> conn_ptr,
     std::shared_ptr<std::string> resp_ptr) {
   return coordinator_.ProposeLog(cmd_ptr, conn_ptr, resp_ptr);
 }
 
-Status SyncMasterPartition::ConsistencySanityCheck() {
+Status SyncMasterPartition::ConsensusSanityCheck() {
   return coordinator_.CheckEnoughFollower();
+}
+
+Status SyncMasterPartition::ConsensusProcessLeaderLog(
+    std::shared_ptr<Cmd> cmd_ptr,
+    const BinlogItem& attribute,
+    const LogOffset& commit) {
+  return coordinator_.ProcessLeaderLog(cmd_ptr, attribute, commit);
+}
+
+LogOffset SyncMasterPartition::ConsensusCommittedIndex() {
+  return coordinator_.committed_index();
 }
 
 std::shared_ptr<SlaveNode> SyncMasterPartition::GetSlaveNode(const std::string& ip, int port) {
@@ -636,11 +647,11 @@ void PikaReplicaManager::InitPartition() {
   }
 }
 
-void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, const std::vector<WriteTask>& tasks) {
+void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, uint32_t partition_id, const std::vector<WriteTask>& tasks) {
   slash::MutexLock l(&write_queue_mu_);
   std::string index = ip + ":" + std::to_string(port);
   for (auto& task : tasks) {
-    write_queues_[index].push(task);
+    write_queues_[index][partition_id].push(task);
   }
 }
 
@@ -652,27 +663,30 @@ int PikaReplicaManager::ConsumeWriteQueue() {
     slash::MutexLock l(&write_queue_mu_);
     std::vector<std::string> to_delete;
     for (auto& iter : write_queues_) {
-      std::queue<WriteTask>& queue = iter.second;
-      for (int i = 0; i < kBinlogSendPacketNum; ++i) {
-        if (queue.empty()) {
-          break;
-        }
-        size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
-        std::vector<WriteTask> to_send;
-        int batch_size = 0;
-        for (size_t i = 0; i < batch_index; ++i) {
-          WriteTask& task = queue.front();
-          batch_size +=  task.binlog_chip_.binlog_.size();
-          // make sure SerializeToString will not over 2G
-          if (batch_size > PIKA_MAX_CONN_RBUF_HB) {
+      std::unordered_map<uint32_t, std::queue<WriteTask>>& p_map = iter.second;
+      for (auto& partition_queue : p_map) {
+        std::queue<WriteTask>& queue = partition_queue.second;
+        for (int i = 0; i < kBinlogSendPacketNum; ++i) {
+          if (queue.empty()) {
             break;
           }
-          to_send.push_back(queue.front());
-          queue.pop();
-          counter++;
-        }
-        if (!to_send.empty()) {
-          to_send_map[iter.first].push_back(std::move(to_send));
+          size_t batch_index = queue.size() > kBinlogSendBatchNum ? kBinlogSendBatchNum : queue.size();
+          std::vector<WriteTask> to_send;
+          int batch_size = 0;
+          for (size_t i = 0; i < batch_index; ++i) {
+            WriteTask& task = queue.front();
+            batch_size +=  task.binlog_chip_.binlog_.size();
+            // make sure SerializeToString will not over 2G
+            if (batch_size > PIKA_MAX_CONN_RBUF_HB) {
+              break;
+            }
+            to_send.push_back(queue.front());
+            queue.pop();
+            counter++;
+          }
+          if (!to_send.empty()) {
+            to_send_map[iter.first].push_back(std::move(to_send));
+          }
         }
       }
     }
@@ -727,10 +741,9 @@ void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& table_partit
   pika_repl_client_->ScheduleWriteBinlogTask(table_partition, res, conn, res_private_data);
 }
 
-void PikaReplicaManager::ScheduleWriteDBTask(const std::string& dispatch_key,
-        PikaCmdArgsType* argv, BinlogItem* binlog_item,
+void PikaReplicaManager::ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr,
         const std::string& table_name, uint32_t partition_id) {
-  pika_repl_client_->ScheduleWriteDBTask(dispatch_key, argv, binlog_item, table_name, partition_id);
+  pika_repl_client_->ScheduleWriteDBTask(cmd_ptr, table_name, partition_id);
 }
 
 void PikaReplicaManager::ReplServerRemoveClientConn(int fd) {
@@ -748,7 +761,7 @@ Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const Log
     return Status::NotFound(slave.ToString() + " not found");
   }
   std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  Status s = partition->ConsistencyUpdateSlave(slave.Ip(), slave.Port(), range_start, range_end);
+  Status s = partition->ConsensusUpdateSlave(slave.Ip(), slave.Port(), range_start, range_end);
   if (!s.ok()) {
     return s;
   }

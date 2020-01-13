@@ -18,7 +18,7 @@ extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 PikaReplBgWorker::PikaReplBgWorker(int queue_size)
-    : bg_thread_(queue_size) {
+    : offset_(), bg_thread_(queue_size) {
   bg_thread_.set_thread_name("ReplBgWorker");
   pink::RedisParserSettings settings;
   settings.DealMessage = &(PikaReplBgWorker::HandleWriteBinlog);
@@ -51,6 +51,15 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   std::vector<int>* index = static_cast<std::vector<int>* >(task_arg->res_private_data);
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
+
+  if (res->has_consensus_meta()) {
+    worker->offset_.b_offset.filenum = res->consensus_meta().commit().filenum();
+    worker->offset_.b_offset.offset = res->consensus_meta().commit().offset();
+    worker->offset_.l_offset.term = res->consensus_meta().commit().term();
+    worker->offset_.l_offset.index = res->consensus_meta().commit().index();
+  } else {
+    worker->offset_ = LogOffset();
+  }
 
   std::string table_name;
   uint32_t partition_id = 0;
@@ -161,7 +170,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
 int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
   PikaReplBgWorker* worker = static_cast<PikaReplBgWorker*>(parser->data);
-  const BinlogItem& binlog_item = worker->binlog_item_;
   g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
 
   // Monitor related
@@ -190,53 +198,22 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
     return -1;
   }
 
-
   std::shared_ptr<SyncMasterPartition> partition
     = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(worker->table_name_, worker->partition_id_));
   if (!partition) {
     LOG(WARNING) << worker->table_name_ << worker->partition_id_ << "Not found.";
   }
-  std::shared_ptr<Binlog> logger = partition->Logger();
 
-  logger->Lock();
-  logger->Put(c_ptr->ToBinlog(binlog_item.exec_time(),
-                              binlog_item.term_id(),
-                              binlog_item.logic_id(),
-                              binlog_item.filenum(),
-                              binlog_item.offset()));
-  logger->Unlock();
-
-  PikaCmdArgsType *v = new PikaCmdArgsType(argv);
-  BinlogItem *b = new BinlogItem(binlog_item);
-  std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
-  g_pika_rm->ScheduleWriteDBTask(dispatch_key, v, b, worker->table_name_, worker->partition_id_);
+  partition->ConsensusProcessLeaderLog(c_ptr, worker->binlog_item_, worker->offset_);
   return 0;
 }
 
 void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   ReplClientWriteDBTaskArg* task_arg = static_cast<ReplClientWriteDBTaskArg*>(arg);
-  PikaCmdArgsType* argv = task_arg->argv;
-  BinlogItem binlog_item = *(task_arg->binlog_item);
+  const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;
+  const PikaCmdArgsType& argv = c_ptr->argv();
   std::string table_name = task_arg->table_name;
   uint32_t partition_id = task_arg->partition_id;
-  std::string opt = (*argv)[0];
-  slash::StringToLower(opt);
-
-  // Get command
-  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
-  if (!c_ptr) {
-    LOG(WARNING) << "Error operation from binlog: " << opt;
-    delete task_arg;
-    return;
-  }
-
-  // Initial
-  c_ptr->Initial(*argv, table_name);
-  if (!c_ptr->res().ok()) {
-    LOG(WARNING) << "Fail to initial command from binlog: " << opt;
-    delete task_arg;
-    return;
-  }
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
@@ -258,9 +235,9 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     int32_t start_time = start_us / 1000000;
     int64_t duration = slash::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
-      g_pika_server->SlowlogPushEntry(*argv, start_time, duration);
+      g_pika_server->SlowlogPushEntry(argv, start_time, duration);
       if (g_pika_conf->slowlog_write_errorlog()) {
-        LOG(ERROR) << "command: " << opt << ", start_time(s): " << start_time << ", duration(us): " << duration;
+        LOG(ERROR) << "command: " << argv[0] << ", start_time(s): " << start_time << ", duration(us): " << duration;
       }
     }
   }

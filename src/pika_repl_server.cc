@@ -99,6 +99,39 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks,
     boffset->set_index(task.binlog_chip_.offset_.l_offset.index);
     binlog_sync->set_binlog(task.binlog_chip_.binlog_);
   }
+  if (g_pika_conf->consensus_level() > 0) {
+    LogOffset prev_offset;
+    PartitionInfo p_info;
+    if (!tasks.empty()) {
+      prev_offset = tasks[0].prev_offset_;
+      p_info = tasks[0].rm_node_.NodePartitionInfo();
+    } else {
+      return;
+    }
+    // write consensus_meta
+    InnerMessage::ConsensusMeta* consensus_meta
+      = response->mutable_consensus_meta();
+    InnerMessage::BinlogOffset* last_log = consensus_meta->mutable_log_offset();
+    last_log->set_filenum(prev_offset.b_offset.filenum);
+    last_log->set_offset(prev_offset.b_offset.offset);
+    last_log->set_term(prev_offset.l_offset.term);
+    last_log->set_index(prev_offset.l_offset.index);
+    // commit
+    LogOffset committed_index;
+    std::shared_ptr<SyncMasterPartition> partition =
+      g_pika_rm->GetSyncMasterPartitionByName(p_info);
+    if (!partition) {
+      committed_index = partition->ConsensusCommittedIndex();
+    } else {
+      LOG(WARNING) << "SyncPartition " << p_info.ToString() << " Not Found.";
+      return;
+    }
+    InnerMessage::BinlogOffset* committed = consensus_meta->mutable_commit();
+    committed->set_filenum(committed_index.b_offset.filenum);
+    committed->set_offset(committed_index.b_offset.offset);
+    committed->set_term(committed_index.l_offset.term);
+    committed->set_index(committed_index.l_offset.index);
+  }
 }
 
 slash::Status PikaReplServer::Write(const std::string& ip,

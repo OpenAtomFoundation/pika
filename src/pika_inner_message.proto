@@ -17,6 +17,7 @@ enum StatusCode {
 message BinlogOffset {
   required uint32  filenum = 1;
   required uint64  offset  = 2;
+  // consensus use
   optional uint32  term    = 3;
   optional uint64  index   = 4;
 }
@@ -39,6 +40,16 @@ message TableInfo {
 
 message PikaMeta {
   repeated TableInfo table_infos = 1;
+}
+
+message ConsensusMeta {
+  optional uint32       term        = 1;
+  // Leader -> Follower prev_log_offset
+  // Follower <- Leader last_log_offset
+  optional BinlogOffset log_offset  = 2;
+  optional BinlogOffset commit      = 3;
+  optional bool         reject      = 4;
+  repeated BinlogOffset hint        = 5;
 }
 
 // Request message
@@ -84,6 +95,8 @@ message InnerRequest {
   optional DBSync          db_sync           = 4;
   optional BinlogSync      binlog_sync       = 5;
   repeated RemoveSlaveNode remove_slave_node = 6;
+  //
+  optional ConsensusMeta   consensus_meta    = 7;
 }
 
 message PartitionInfo {
@@ -144,4 +157,6 @@ message InnerResponse {
   optional TrySync         try_sync          = 6;
   repeated BinlogSync      binlog_sync       = 7;
   repeated RemoveSlaveNode remove_slave_node = 8;
+  // consensus use
+  optional ConsensusMeta   consensus_meta    = 9;
 }

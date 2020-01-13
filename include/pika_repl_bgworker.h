@@ -30,6 +30,7 @@ class PikaReplBgWorker {
 
   BinlogItem binlog_item_;
   pink::RedisParser redis_parser_;
+  LogOffset offset_;
   std::string ip_port_;
   std::string table_name_;
   uint32_t partition_id_;

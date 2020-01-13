@@ -1536,10 +1536,10 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->max_conn_rbuf_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "consistency-level", 1)) {
+  if (slash::stringmatch(pattern.data(), "consensus-level", 1)) {
     elements += 2;
-    EncodeString(&config_body, "consistency-level");
-    EncodeInt32(&config_body, g_pika_conf->consistency_level());
+    EncodeString(&config_body, "consensus-level");
+    EncodeInt32(&config_body, g_pika_conf->consensus_level());
   }
 
   std::stringstream resp;

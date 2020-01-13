@@ -702,7 +702,7 @@ void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
       return;
     }
 
-    Status s = partition->ConsistencyProposeLog(shared_from_this(),
+    Status s = partition->ConsensusProposeLog(shared_from_this(),
         std::dynamic_pointer_cast<PikaClientConn>(conn_ptr), resp_ptr);
     if (!s.ok()) {
       LOG(WARNING) << partition->SyncPartitionInfo().ToString()
@@ -756,6 +756,10 @@ CmdRes& Cmd::res() {
 
 std::string Cmd::table_name() const {
   return table_name_;
+}
+
+const PikaCmdArgsType& Cmd::argv() const {
+  return argv_;
 }
 
 std::string Cmd::ToBinlog(uint32_t exec_time,
