@@ -10,6 +10,38 @@
 #include "include/pika_slave_node.h"
 #include "include/pika_stable_log.h"
 #include "include/pika_binlog_transverter.h"
+#include "slash/include/env.h"
+
+class Context {
+ public:
+  Context(const std::string path);
+  ~Context();
+
+  Status Init();
+  // RWLock should be held when access members.
+  Status StableSave();
+  void PrepareUpdateAppliedIndex(const LogOffset& offset);
+  void UpdateAppliedIndex(const LogOffset& offset);
+
+  pthread_rwlock_t rwlock_;
+  LogOffset applied_index_;
+  SyncWindow applied_win_;
+
+  std::string ToString() {
+    std::stringstream tmp_stream;
+    slash::RWLock l(&rwlock_, false);
+    tmp_stream << "  Applied_index " << applied_index_.ToString() << "\r\n";
+    tmp_stream << "  Applied window " << applied_win_.ToStringStatus();
+    return tmp_stream.str();
+  }
+
+ private:
+  std::string path_;
+  slash::RWFile *save_;
+  // No copying allowed;
+  Context(const Context&);
+  void operator=(const Context&);
+};
 
 class SyncProgress {
  public:
@@ -59,9 +91,14 @@ class MemLog {
   }
   Status PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
-  LogOffset LastOffset() {
+
+  LogOffset last_offset() {
     slash::MutexLock l_logs(&logs_mu_);
     return last_offset_;
+  }
+  void SetLastOffset(const LogOffset& offset) {
+    slash::MutexLock l_logs(&logs_mu_);
+    last_offset_ = offset;
   }
 
  private:
@@ -75,6 +112,8 @@ class ConsensusCoordinator {
  public:
   ConsensusCoordinator(const std::string& table_name, uint32_t partition_id);
   ~ConsensusCoordinator();
+  // since it is invoked in constructor all locks not hold
+  void Init();
 
   Status ProposeLog(
       std::shared_ptr<Cmd> cmd_ptr,
@@ -106,6 +145,34 @@ class ConsensusCoordinator {
     return committed_index_;
   }
 
+  std::shared_ptr<Context> context() {
+    return context_;
+  }
+
+  // redis parser cb
+  struct CmdPtrArg {
+    CmdPtrArg(std::shared_ptr<Cmd> ptr) : cmd_ptr(ptr) {
+    }
+    std::shared_ptr<Cmd> cmd_ptr;
+  };
+  static int InitCmd(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
+
+  std::string ToStringStatus() {
+    std::stringstream tmp_stream;
+    {
+      slash::MutexLock l(&index_mu_);
+      tmp_stream << "  Committed_index: " << committed_index_.ToString() << "\r\n";
+    }
+    tmp_stream << "  Contex: " << "\r\n" << context_->ToString();
+    {
+      slash::RWLock l(&term_rwlock_, false);
+      tmp_stream << "  Term: " << term_ << "\r\n";
+    }
+    tmp_stream << "  Mem_logger size: " << mem_logger_->Size() <<
+      " last offset " << mem_logger_->last_offset().ToString() << "\r\n";
+    return tmp_stream.str();
+  }
+
  private:
   Status ScheduleApplyLog(const LogOffset& committed_index);
   Status ScheduleApplyFollowerLog(const LogOffset& committed_index);
@@ -125,7 +192,8 @@ class ConsensusCoordinator {
 
   slash::Mutex index_mu_;
   LogOffset committed_index_;
-  // LogOffset applied_index_;
+
+  std::shared_ptr<Context> context_;
 
   pthread_rwlock_t term_rwlock_;
   uint32_t term_;

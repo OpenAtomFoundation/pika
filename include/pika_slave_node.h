@@ -29,7 +29,6 @@ struct SyncWinItem {
   }
 };
 
-
 class SyncWindow {
  public:
   SyncWindow() :total_size_(0) {

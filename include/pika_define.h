@@ -463,6 +463,7 @@ const size_t kBinlogPrefixLen = 10;
 
 const std::string kPikaMeta = "meta";
 const std::string kManifest = "manifest";
+const std::string kContext  = "context";
 
 /*
  * define common character

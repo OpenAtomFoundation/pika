@@ -9,10 +9,74 @@
 #include "include/pika_server.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_rm.h"
+#include "include/pika_cmd_table_manager.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 extern PikaReplicaManager* g_pika_rm;
+extern PikaCmdTableManager* g_pika_cmd_table_manager;
+
+/* Context */
+
+Context::Context(const std::string path) : applied_index_(), path_(path), save_(NULL) {
+  pthread_rwlock_init(&rwlock_, NULL);
+}
+
+Context::~Context() {
+  pthread_rwlock_destroy(&rwlock_);
+  delete save_;
+}
+
+Status Context::StableSave() {
+  char *p = save_->GetData();
+  memcpy(p, &(applied_index_.b_offset.filenum), sizeof(uint32_t));
+  p += 4;
+  memcpy(p, &(applied_index_.b_offset.offset), sizeof(uint64_t));
+  p += 8;
+  memcpy(p, &(applied_index_.l_offset.term), sizeof(uint32_t));
+  p += 4;
+  memcpy(p, &(applied_index_.l_offset.index), sizeof(uint64_t));
+  return Status::OK();
+}
+
+Status Context::Init() {
+  if (!slash::FileExists(path_)) {
+    Status s = slash::NewRWFile(path_, &save_);
+    if (!s.ok()) {
+      LOG(FATAL) << "Context new file failed " << s.ToString();
+    }
+    StableSave();
+  } else {
+    Status s = slash::NewRWFile(path_, &save_);
+    if (!s.ok()) {
+      LOG(FATAL) << "Context new file failed " << s.ToString();
+    }
+  }
+  if (save_->GetData() != NULL) {
+    memcpy((char*)(&(applied_index_.b_offset.filenum)), save_->GetData(), sizeof(uint32_t));
+    memcpy((char*)(&(applied_index_.b_offset.offset)), save_->GetData() + 4, sizeof(uint64_t));
+    memcpy((char*)(&(applied_index_.l_offset.term)), save_->GetData() + 12, sizeof(uint32_t));
+    memcpy((char*)(&(applied_index_.l_offset.index)), save_->GetData() + 16, sizeof(uint64_t));
+    return Status::OK();
+  } else {
+    return Status::Corruption("Context init error");
+  }
+}
+
+void Context::PrepareUpdateAppliedIndex(const LogOffset& offset) {
+  slash::RWLock l(&rwlock_, true);
+  applied_win_.Push(SyncWinItem(offset));
+}
+
+void Context::UpdateAppliedIndex(const LogOffset& offset) {
+  slash::RWLock l(&rwlock_, true);
+  LogOffset cur_offset;
+  applied_win_.Update(SyncWinItem(offset), SyncWinItem(offset), &cur_offset);
+  if (cur_offset > applied_index_) {
+    applied_index_ = cur_offset;
+    StableSave();
+  }
+}
 
 /* SyncProgress */
 
@@ -166,13 +230,75 @@ ConsensusCoordinator::ConsensusCoordinator(const std::string& table_name, uint32
   std::string table_log_path = g_pika_conf->log_path() + "log_" + table_name + "/";
   std::string log_path = g_pika_conf->classic_mode() ?
     table_log_path : table_log_path + std::to_string(partition_id) + "/";
+  context_ = std::make_shared<Context>(table_log_path + kContext);
   stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
   mem_logger_ = std::make_shared<MemLog>();
   pthread_rwlock_init(&term_rwlock_, NULL);
+  if (g_pika_conf->consensus_level() != 0) {
+    Init();
+  }
 }
 
 ConsensusCoordinator::~ConsensusCoordinator() {
   pthread_rwlock_destroy(&term_rwlock_);
+}
+
+// since it is invoked in constructor all locks not hold
+void ConsensusCoordinator::Init() {
+  // load committed_index_ & applied_index
+  context_->Init();
+  committed_index_ = context_->applied_index_;
+
+  LOG(INFO) << "Restore applied index " << context_->applied_index_.ToString();
+  if (committed_index_ == LogOffset()) {
+    return;
+  }
+  // load mem_logger_
+  mem_logger_->SetLastOffset(committed_index_);
+  pink::RedisParserSettings settings;
+  settings.DealMessage = &(ConsensusCoordinator::InitCmd);
+  pink::RedisParser redis_parser;
+  redis_parser.RedisParserInit(REDIS_PARSER_REQUEST, settings);
+  std::shared_ptr<PikaBinlogReader> binlog_reader = std::make_shared<PikaBinlogReader>();
+  int res = binlog_reader->Seek(stable_logger_->Logger(),
+      committed_index_.b_offset.filenum, committed_index_.b_offset.offset);
+  if (res) {
+    LOG(FATAL) << "Binlog reader init failed";
+  }
+
+  while(1) {
+    LogOffset offset;
+    std::string binlog;
+    Status s = binlog_reader->Get(&binlog, &(offset.b_offset.filenum), &(offset.b_offset.offset));
+    if (s.IsEndFile()) {
+      break;
+    } else if (s.IsCorruption() || s.IsIOError()) {
+      LOG(FATAL) << "Read Binlog error";
+    }
+    BinlogItem item;
+    if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog, &item)) {
+      LOG(FATAL) << "Binlog item decode failed";
+    }
+    offset.l_offset.term = item.term_id();
+    offset.l_offset.index = item.logic_id();
+
+    redis_parser.data = static_cast<void*>(&table_name_);
+    const char* redis_parser_start = binlog.data() + BINLOG_ENCODE_LEN;
+    int redis_parser_len = static_cast<int>(binlog.size()) - BINLOG_ENCODE_LEN;
+    int processed_len = 0;
+    pink::RedisParserStatus ret = redis_parser.ProcessInputBuffer(
+        redis_parser_start, redis_parser_len, &processed_len);
+    if (ret != pink::kRedisParserDone) {
+      LOG(FATAL) << "Redis parser parse failed";
+      return;
+    }
+    CmdPtrArg* arg = static_cast<CmdPtrArg*>(redis_parser.data);
+    std::shared_ptr<Cmd> cmd_ptr = arg->cmd_ptr;
+    delete arg;
+    redis_parser.data = NULL;
+
+    mem_logger_->AppendLog(MemLog::LogItem(offset, cmd_ptr, nullptr, nullptr));
+  }
 }
 
 Status ConsensusCoordinator::ProposeLog(
@@ -223,7 +349,14 @@ Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item,
   return Status::OK();
 }
 
+// precheck if prev_offset match && drop this log if this log exist
 Status ConsensusCoordinator::ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute) {
+  LogOffset last_index = mem_logger_->last_offset();
+  if (attribute.logic_id() < last_index.l_offset.index) {
+    LOG(WARNING) << "Drop log from leader logic_id " << attribute.logic_id() << " cur last index " << last_index.l_offset.index;
+    return Status::OK();
+  }
+
   stable_logger_->Logger()->Lock();
   Status s = InternalAppendLog(attribute, cmd_ptr, nullptr, nullptr);
   stable_logger_->Logger()->Unlock();
@@ -237,10 +370,12 @@ Status ConsensusCoordinator::ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, cons
 }
 
 Status ConsensusCoordinator::ProcessLocalUpdate(const LogOffset& leader_commit) {
-  LogOffset last_index = mem_logger_->LastOffset();
-  LogOffset committed_index = last_index < leader_commit ? last_index : leader_commit;
+  if (g_pika_conf->consensus_level() == 0) {
+    return Status::OK();
+  }
 
-  LOG(WARNING) << "last_index " << last_index.ToString() << " leader_commit " << leader_commit.ToString() << " committed_index " << committed_index.ToString();
+  LogOffset last_index = mem_logger_->last_offset();
+  LogOffset committed_index = last_index < leader_commit ? last_index : leader_commit;
 
   LogOffset updated_committed_index;
   bool need_update = false;
@@ -248,7 +383,6 @@ Status ConsensusCoordinator::ProcessLocalUpdate(const LogOffset& leader_commit) 
     slash::MutexLock l(&index_mu_);
     need_update = InternalUpdateCommittedIndex(committed_index, &updated_committed_index);
   }
-  LOG(WARNING) << "need update " << need_update << " updated_committed_index " << updated_committed_index.ToString();
   if (need_update) {
     Status s = ScheduleApplyFollowerLog(updated_committed_index);
     if (!s.ok()) {
@@ -319,9 +453,10 @@ Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) 
   std::vector<MemLog::LogItem> logs;
   Status s = mem_logger_->PurdgeLogs(committed_index, &logs);
   if (!s.ok()) {
-    return Status::NotFound("committed index not found in log");
+    return Status::NotFound("committed index not found " + committed_index.ToString());
   }
   for (auto log : logs) {
+    context_->PrepareUpdateAppliedIndex(log.offset);
     InternalApply(log);
   }
   return Status::OK();
@@ -331,9 +466,10 @@ Status ConsensusCoordinator::ScheduleApplyFollowerLog(const LogOffset& committed
   std::vector<MemLog::LogItem> logs;
   Status s = mem_logger_->PurdgeLogs(committed_index, &logs);
   if (!s.ok()) {
-    return Status::NotFound("committed index not found in log");
+    return Status::NotFound("committed index not found " + committed_index.ToString());
   }
   for (auto log : logs) {
+    context_->PrepareUpdateAppliedIndex(log.offset);
     InternalApplyFollower(log);
   }
   return Status::OK();
@@ -379,10 +515,31 @@ void ConsensusCoordinator::InternalApply(const MemLog::LogItem& log) {
   arg->cmd_ptr = log.cmd_ptr;
   arg->conn_ptr = log.conn_ptr;
   arg->resp_ptr = log.resp_ptr;
+  arg->offset = log.offset;
+  arg->table_name = table_name_;
+  arg->partition_id = partition_id_;
   g_pika_server->ScheduleClientBgThreads(
       PikaClientConn::DoExecTask, arg, log.cmd_ptr->current_key().front());
 }
 
 void ConsensusCoordinator::InternalApplyFollower(const MemLog::LogItem& log) {
-  g_pika_rm->ScheduleWriteDBTask(log.cmd_ptr, table_name_, partition_id_);
+  g_pika_rm->ScheduleWriteDBTask(log.cmd_ptr, log.offset, table_name_, partition_id_);
+}
+
+int ConsensusCoordinator::InitCmd(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
+  std::string* table_name = static_cast<std::string*>(parser->data);
+  std::string opt = argv[0];
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
+  if (!c_ptr) {
+    LOG(WARNING) << "Command " << opt << " not in the command table";
+    return -1;
+  }
+  // Initial
+  c_ptr->Initial(argv, *table_name);
+  if (!c_ptr->res().ok()) {
+    LOG(WARNING) << "Fail to initial command from binlog: " << opt;
+    return -1;
+  }
+  parser->data = static_cast<void*>(new CmdPtrArg(c_ptr));
+  return 0;
 }

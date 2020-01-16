@@ -218,6 +218,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   ReplClientWriteDBTaskArg* task_arg = static_cast<ReplClientWriteDBTaskArg*>(arg);
   const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;
   const PikaCmdArgsType& argv = c_ptr->argv();
+  LogOffset offset = task_arg->offset;
   std::string table_name = task_arg->table_name;
   uint32_t partition_id = task_arg->partition_id;
 
@@ -247,6 +248,16 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
       }
     }
   }
-  delete task_arg;
-}
 
+  delete task_arg;
+
+  if (g_pika_conf->consensus_level() != 0) {
+    std::shared_ptr<SyncMasterPartition> partition =
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+    if (partition == nullptr) {
+      LOG(WARNING) << "Sync Master Partition not exist " << table_name << partition_id;
+      return;
+    }
+    partition->ConsensusUpdateAppliedIndex(offset);
+  }
+}

@@ -76,12 +76,12 @@ void PikaReplClient::ScheduleWriteBinlogTask(std::string table_partition,
 }
 
 void PikaReplClient::ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr,
-    const std::string& table_name, uint32_t partition_id) {
+    const LogOffset& offset, const std::string& table_name, uint32_t partition_id) {
   const PikaCmdArgsType& argv = cmd_ptr->argv();
   std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
   size_t index = GetHashIndex(dispatch_key, false);
   ReplClientWriteDBTaskArg* task_arg =
-    new ReplClientWriteDBTaskArg(cmd_ptr, table_name, partition_id);
+    new ReplClientWriteDBTaskArg(cmd_ptr, offset, table_name, partition_id);
   bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
 }
 
