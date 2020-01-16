@@ -147,6 +147,9 @@ Status SyncMasterPartition::ActivateSlaveDbSync(const std::string& ip, int port)
 Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr) {
   int cnt = slave_ptr->sync_win.Remainings();
   std::shared_ptr<PikaBinlogReader> reader = slave_ptr->binlog_reader;
+  if (reader == nullptr) {
+    return Status::OK();
+  }
   std::vector<WriteTask> tasks;
   for (int i = 0; i < cnt; ++i) {
     std::string msg;
@@ -195,6 +198,16 @@ Status SyncMasterPartition::ConsensusUpdateSlave(const std::string& ip, int port
     LOG(WARNING) << SyncPartitionInfo().ToString() << s.ToString();
     return s;
   }
+  return Status::OK();
+}
+
+Status SyncMasterPartition::ConsensusUpdateAppliedIndex(const LogOffset& offset) {
+  std::shared_ptr<Context> context = coordinator_.context();
+  if (context == nullptr) {
+    LOG(WARNING) << "Coordinator context empty.";
+    return Status::NotFound("context");
+  }
+  context->UpdateAppliedIndex(offset);
   return Status::OK();
 }
 
@@ -380,9 +393,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
 std::string SyncMasterPartition::ToStringStatus() {
   std::stringstream tmp_stream;
   tmp_stream << " Current Master Session: " << session_id_ << "\r\n";
-  tmp_stream << " ConsensusLogs size: " <<
-    (coordinator_.MemLogger() == nullptr ? 0 : coordinator_.MemLogger()->Size()) << "\r\n";
-
+  tmp_stream << "  Consensus: " << "\r\n" << coordinator_.ToStringStatus();
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves = GetAllSlaveNodes();
   int i = 0;
   for (auto slave_iter : slaves) {
@@ -745,8 +756,8 @@ void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& table_partit
 }
 
 void PikaReplicaManager::ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr,
-        const std::string& table_name, uint32_t partition_id) {
-  pika_repl_client_->ScheduleWriteDBTask(cmd_ptr, table_name, partition_id);
+        const LogOffset& offset, const std::string& table_name, uint32_t partition_id) {
+  pika_repl_client_->ScheduleWriteDBTask(cmd_ptr, offset, table_name, partition_id);
 }
 
 void PikaReplicaManager::ReplServerRemoveClientConn(int fd) {

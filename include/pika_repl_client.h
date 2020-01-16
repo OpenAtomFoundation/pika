@@ -49,12 +49,15 @@ struct ReplClientWriteBinlogTaskArg {
 
 struct ReplClientWriteDBTaskArg {
   const std::shared_ptr<Cmd> cmd_ptr;
+  LogOffset offset;
   std::string table_name;
   uint32_t partition_id;
   ReplClientWriteDBTaskArg(const std::shared_ptr<Cmd> _cmd_ptr,
+                           const LogOffset _offset,
                            const std::string _table_name,
                            uint32_t _partition_id)
       : cmd_ptr(_cmd_ptr),
+        offset(_offset),
         table_name(_table_name), partition_id(_partition_id) {}
   ~ReplClientWriteDBTaskArg() {
   }
@@ -77,7 +80,7 @@ class PikaReplClient {
                                const std::shared_ptr<InnerMessage::InnerResponse> res,
                                std::shared_ptr<pink::PbConn> conn,
                                void* req_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr,
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr, const LogOffset& offset,
                            const std::string& table_name, uint32_t partition_id);
 
   Status SendMetaSync();

@@ -205,25 +205,34 @@ void PikaClientConn::DoBackgroundTask(void* arg) {
 
 void PikaClientConn::DoExecTask(void* arg) {
   BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
-  std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;;
+  std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;
   std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
   std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
+  LogOffset offset = bg_arg->offset;
+  std::string table_name = bg_arg->table_name;
+  uint32_t partition_id = bg_arg->partition_id;
 
+  uint64_t start_us = 0;
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    start_us = slash::NowMicros();
+  }
+  cmd_ptr->SetStage(Cmd::kExecuteStage);
   cmd_ptr->Execute();
-  conn_ptr->resp_num--;
-  *resp_ptr = std::move(cmd_ptr->res().message());
-  conn_ptr->TryWriteResp();
-}
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us);
+  }
 
-// do the same thing as DoExecTask for now
-// maybe not write response
-void PikaClientConn::DoStaleTask(void* arg) {
-  BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
-  std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;;
-  std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
-  std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
+  std::shared_ptr<SyncMasterPartition> partition =
+    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  if (partition == nullptr) {
+    LOG(WARNING) << "Sync Master Partition not exist " << table_name << partition_id;
+    return;
+  }
+  partition->ConsensusUpdateAppliedIndex(offset);
 
-  cmd_ptr->Execute();
+  if (conn_ptr == nullptr || resp_ptr == nullptr) {
+    return;
+  }
   conn_ptr->resp_num--;
   *resp_ptr = std::move(cmd_ptr->res().message());
   conn_ptr->TryWriteResp();
