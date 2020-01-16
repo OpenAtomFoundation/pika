@@ -54,10 +54,12 @@ bool PikaBinlogReader::ReadToTheEnd() {
 int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
   std::string confile = NewFileName(logger->filename(), filenum);
   if (!slash::FileExists(confile)) {
+    LOG(WARNING) << confile << " not exits";
     return -1;
   }
   slash::SequentialFile* readfile;
   if (!slash::NewSequentialFile(confile, &readfile).ok()) {
+    LOG(WARNING) << "New swquential " << confile << " failed";
     return -1;
   }
   if (queue_) {

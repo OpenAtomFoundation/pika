@@ -15,6 +15,9 @@ class PikaClientConn: public pink::RedisConn {
     std::shared_ptr<PikaClientConn> conn_ptr;
     std::vector<pink::RedisCmdArgsType> redis_cmds;
     std::shared_ptr<std::string> resp_ptr;
+    LogOffset offset;
+    std::string table_name;
+    uint32_t partition_id;
   };
 
   // Auth related
@@ -47,7 +50,6 @@ class PikaClientConn: public pink::RedisConn {
   }
   static void DoBackgroundTask(void* arg);
   static void DoExecTask(void* arg);
-  static void DoStaleTask(void* arg);
 
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }

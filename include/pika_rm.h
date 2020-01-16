@@ -99,6 +99,7 @@ class SyncMasterPartition : public SyncPartition {
   Status ConsensusProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute);
   Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
   LogOffset ConsensusCommittedIndex();
+  Status ConsensusUpdateAppliedIndex(const LogOffset& offset);
 
   std::shared_ptr<StableLog> StableLogger() {
     return coordinator_.StableLogger();
@@ -236,7 +237,7 @@ class PikaReplicaManager {
   void ScheduleWriteBinlogTask(const std::string& table_partition,
                                const std::shared_ptr<InnerMessage::InnerResponse> res,
                                std::shared_ptr<pink::PbConn> conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr,
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr, const LogOffset& offset,
                            const std::string& table_name, uint32_t partition_id);
 
   void ReplServerRemoveClientConn(int fd);
