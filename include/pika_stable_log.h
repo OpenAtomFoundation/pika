@@ -20,26 +20,34 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
     return stable_logger_;
   }
   void Leave();
+  LogOffset first_offset() {
+    slash::RWLock l(&offset_rwlock_, false);
+    return first_offset_;
+  }
 
   // Purgelogs use
   bool PurgeStableLogs(uint32_t to = 0, bool manual = false);
   void ClearPurge();
+  bool GetBinlogFiles(std::map<uint32_t, std::string>* binlogs);
 
  private:
   void Close();
   void RemoveStableLogDir();
+  void UpdateFirstOffset(uint32_t filenum);
   /*
    * Purgelogs use
    */
   static void DoPurgeStableLogs(void* arg);
   bool PurgeFiles(uint32_t to, bool manual);
-  bool GetBinlogFiles(std::map<uint32_t, std::string>* binlogs);
   std::atomic<bool> purging_;
 
   std::string table_name_;
   uint32_t partition_id_;
   std::string log_path_;
   std::shared_ptr<Binlog> stable_logger_;
+
+  pthread_rwlock_t offset_rwlock_;
+  LogOffset first_offset_;
 };
 
 struct PurgeStableLogArg {
