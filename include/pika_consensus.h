@@ -100,6 +100,7 @@ class MemLog {
     slash::MutexLock l_logs(&logs_mu_);
     last_offset_ = offset;
   }
+  bool FindLogItem(const LogOffset& offset, LogOffset* found_offset);
 
  private:
   int InternalFindLogIndex(const LogOffset& offset);
@@ -134,6 +135,7 @@ class ConsensusCoordinator {
   // Negotiate
   Status LeaderNegotiate(
       const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);
+  Status FollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset);
 
   SyncProgress& SyncPros() {
     return sync_pros_;

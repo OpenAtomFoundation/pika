@@ -212,6 +212,16 @@ Status MemLog::GetRangeLogs(int start, int end, std::vector<LogItem>* logs) {
   return Status::OK();
 }
 
+bool MemLog::FindLogItem(const LogOffset& offset, LogOffset* found_offset) {
+  slash::MutexLock l_logs(&logs_mu_);
+  int index = InternalFindLogIndex(offset);
+  if (index < 0) {
+    return false;
+  }
+  *found_offset = logs_[index].offset;
+  return true;
+}
+
 int MemLog::InternalFindLogIndex(const LogOffset& offset) {
   for (size_t i = 0; i < logs_.size(); ++i) {
     if (logs_[i].offset > offset) {
@@ -759,4 +769,34 @@ Status ConsensusCoordinator::LeaderNegotiate(
 
   *reject = false;
   return Status::OK();
+}
+
+Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset) {
+  if (hints.empty()) {
+    return Status::Corruption("hints empty");
+  }
+  if (mem_logger_->last_offset().l_offset.index < hints[0].l_offset.index) {
+    *reply_offset = mem_logger_->last_offset();
+    return Status::OK();
+  }
+  if (mem_logger_->last_offset().l_offset.index >  hints[hints.size() - 1].l_offset.index) {
+    BinlogOffset truncate_offset = hints[hints.size() -1].b_offset;
+    // trunck to hints end
+    stable_logger_->Logger()->Truncate(truncate_offset.filenum, truncate_offset.offset);
+  }
+  for (int i = hints.size() - 1; i >= 0; i--)  {
+    LogOffset found_offset;
+    bool res = mem_logger_->FindLogItem(hints[i], &found_offset);
+    if (!res) {
+      return Status::Corruption("hints not found");
+    }
+    if (found_offset.l_offset.term == hints[i].l_offset.term) {
+      // trunk to found_offsett
+      stable_logger_->Logger()->Truncate(
+          found_offset.b_offset.filenum, found_offset.b_offset.offset);
+      *reply_offset = mem_logger_->last_offset();
+      return Status::OK();
+    }
+  }
+  return Status::Corruption("hints not found");
 }
