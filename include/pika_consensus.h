@@ -100,6 +100,7 @@ class MemLog {
     slash::MutexLock l_logs(&logs_mu_);
     last_offset_ = offset;
   }
+  bool FindLogItem(const LogOffset& offset, LogOffset* found_offset);
 
  private:
   int InternalFindLogIndex(const LogOffset& offset);
@@ -126,9 +127,15 @@ class ConsensusCoordinator {
   void UpdateTerm(uint32_t term);
   Status CheckEnoughFollower();
 
+  // invoked by follower
   Status ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr,
       const BinlogItem& attribute);
   Status ProcessLocalUpdate(const LogOffset& leader_commit);
+
+  // Negotiate
+  Status LeaderNegotiate(
+      const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);
+  Status FollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset);
 
   SyncProgress& SyncPros() {
     return sync_pros_;
@@ -189,6 +196,20 @@ class ConsensusCoordinator {
   void InternalApplyFollower(const MemLog::LogItem& log);
   bool InternalUpdateCommittedIndex(const LogOffset& slaves_committed_index,
       LogOffset* updated_committed_index);
+
+  Status TryGetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);
+  Status GetBinlogOffset(
+      const BinlogOffset& start_offset,
+      const BinlogOffset& end_offset, std::vector<LogOffset>* log_offset);
+  Status FindBinlogFileNum(
+      const std::map<uint32_t, std::string> binlogs,
+      uint64_t target_index, uint32_t start_filenum,
+      uint32_t* founded_filenum);
+  Status FindLogicOffsetBySearchingBinlog(
+      const BinlogOffset& hint_offset, uint64_t target_index, LogOffset* found_offset);
+  Status FindLogicOffset(
+      const BinlogOffset& start_offset, uint64_t target_index, LogOffset* found_offset);
+  Status GetLogsBefore(const BinlogOffset& start_offset, std::vector<LogOffset>* hints);
 
   slash::Mutex index_mu_;
   LogOffset committed_index_;

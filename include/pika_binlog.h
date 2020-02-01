@@ -66,6 +66,8 @@ class Binlog {
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
 
+  Status Truncate(uint32_t pro_num, uint64_t pro_offset);
+
   uint64_t file_size() {
     return file_size_;
   }
@@ -102,9 +104,6 @@ class Binlog {
   Status Produce(const Slice &item, int *pro_offset);
 
   std::atomic<bool> opened_;
-
-  uint32_t consumer_num_;
-  uint64_t item_num_;
 
   Version* version_;
   slash::WritableFile *queue_;

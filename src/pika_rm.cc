@@ -498,6 +498,10 @@ LogOffset SyncMasterPartition::ConsensusCommittedIndex() {
   return coordinator_.committed_index();
 }
 
+LogOffset SyncMasterPartition::ConsensusLastIndex() {
+  return coordinator_.MemLogger()->last_offset();
+}
+
 std::shared_ptr<SlaveNode> SyncMasterPartition::GetSlaveNode(const std::string& ip, int port) {
   return coordinator_.SyncPros().GetSlaveNode(ip, port);
 }
@@ -505,6 +509,16 @@ std::shared_ptr<SlaveNode> SyncMasterPartition::GetSlaveNode(const std::string& 
 std::unordered_map<std::string, std::shared_ptr<SlaveNode>>
 SyncMasterPartition::GetAllSlaveNodes() {
   return coordinator_.SyncPros().GetAllSlaveNodes();
+}
+
+Status SyncMasterPartition::ConsensusLeaderNegotiate(
+    const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints) {
+  return coordinator_.LeaderNegotiate(f_last_offset, reject, hints);
+}
+
+Status SyncMasterPartition::ConsensusFollowerNegotiate(
+  const std::vector<LogOffset>& hints, LogOffset* reply_offset) {
+  return coordinator_.FollowerNegotiate(hints, reply_offset);
 }
 
 /* SyncSlavePartition */
@@ -1022,15 +1036,11 @@ Status PikaReplicaManager::SendPartitionTrySyncRequest(
                                                           table_name, partition_id, boffset,
                                                           slave_partition->LocalIp());
 
-  Status s;
   if (status.ok()) {
     slave_partition->SetReplState(ReplState::kWaitReply);
   } else {
     slave_partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "SendPartitionTrySyncRequest failed " << status.ToString();
-  }
-  if (!s.ok()) {
-    LOG(WARNING) << s.ToString();
   }
   return status;
 }

@@ -7,6 +7,8 @@
 
 #include <sys/time.h>
 #include <glog/logging.h>
+#include <fcntl.h>
+
 
 #include "include/pika_binlog_transverter.h"
 
@@ -66,7 +68,6 @@ Status Version::Init() {
  */
 Binlog::Binlog(const std::string& binlog_path, const int file_size) :
     opened_(false),
-    consumer_num_(0),
     version_(NULL),
     queue_(NULL),
     versionfile_(NULL),
@@ -387,5 +388,36 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
   }
 
   InitLogFile();
+  return Status::OK();
+}
+
+Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset) {
+  slash::MutexLock l(&mutex_);
+
+  delete  queue_;
+  std::string profile = NewFileName(filename_, pro_num);
+  const int fd = open(profile.c_str(), O_RDWR | O_CLOEXEC, 0644);
+  if (fd < 0) {
+    return Status::IOError("fd open failed");
+  }
+  if (ftruncate(fd, pro_offset)) {
+    return Status::IOError("ftruncate failed");
+  }
+
+  Status s = slash::NewWritableFile(profile, &queue_);
+  if (!s.ok()) {
+    return s;
+  }
+
+  pro_num_ = pro_num;
+  {
+    slash::RWLock(&(version_->rwlock_), true);
+    version_->pro_num_ = pro_num;
+    version_->pro_offset_ = pro_offset;
+    version_->StableSave();
+  }
+
+  InitLogFile();
+
   return Status::OK();
 }

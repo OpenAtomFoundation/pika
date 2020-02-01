@@ -112,7 +112,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   }
 
   if (pre_success && req->has_consensus_meta()) {
-    pre_success = TrySyncConsensusOffsetCheck(partition, try_sync_request, try_sync_response);
+    pre_success = TrySyncConsensusOffsetCheck(partition, req->consensus_meta(), &response, try_sync_response);
   } else if (pre_success) {
     pre_success = TrySyncOffsetCheck(partition, try_sync_request, try_sync_response);
   }
@@ -177,8 +177,33 @@ bool PikaReplServerConn::TrySyncUpdateSlaveNode(
 
 bool PikaReplServerConn::TrySyncConsensusOffsetCheck(
     const std::shared_ptr<SyncMasterPartition>& partition,
-    const InnerMessage::InnerRequest::TrySync& try_sync_request,
+    const InnerMessage::ConsensusMeta& meta,
+    InnerMessage::InnerResponse* response,
     InnerMessage::InnerResponse::TrySync* try_sync_response) {
+  LogOffset last_log_offset;
+  last_log_offset.b_offset.filenum = meta.log_offset().filenum();
+  last_log_offset.b_offset.offset = meta.log_offset().offset();
+  last_log_offset.l_offset.term = meta.log_offset().term();
+  last_log_offset.l_offset.index = meta.log_offset().index();
+  std::string partition_name = partition->PartitionName();
+  bool reject = false;
+  std::vector<LogOffset> hints;
+  Status s = partition->ConsensusLeaderNegotiate(last_log_offset, &reject, &hints);
+  if (!s.ok()) {
+    if (s.IsNotFound()) {
+      LOG(INFO) << "Partition: " << partition_name << " need full sync";
+      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
+      return false;
+    } else {
+      try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
+      return false;
+    }
+  }
+  try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
+  BuildConsensusMeta(reject, hints, response);
+  if (reject) {
+    return false;
+  }
   return true;
 }
 
@@ -232,6 +257,24 @@ bool PikaReplServerConn::TrySyncOffsetCheck(
     return false;
   }
   return true;
+}
+
+void PikaReplServerConn::BuildConsensusMeta(
+    const bool& reject,
+    const std::vector<LogOffset>& hints,
+    InnerMessage::InnerResponse* response) {
+  InnerMessage::ConsensusMeta* consensus_meta = response->mutable_consensus_meta();
+  consensus_meta->set_reject(reject);
+  if (reject) {
+    return;
+  }
+  for (auto hint : hints) {
+    InnerMessage::BinlogOffset* offset = consensus_meta->add_hint();
+    offset->set_filenum(hint.b_offset.filenum);
+    offset->set_offset(hint.b_offset.offset);
+    offset->set_term(hint.l_offset.term);
+    offset->set_index(hint.l_offset.index);
+  }
 }
 
 void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
