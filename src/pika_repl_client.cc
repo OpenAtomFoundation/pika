@@ -198,6 +198,21 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& ip,
   binlog_offset->set_filenum(boffset.filenum);
   binlog_offset->set_offset(boffset.offset);
 
+  if (g_pika_conf->consensus_level() != 0) {
+    std::shared_ptr<SyncMasterPartition> partition =
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+    if (!partition) {
+      return Status::Corruption("partition not found");
+    }
+    LogOffset last_index = partition->ConsensusLastIndex();
+    InnerMessage::ConsensusMeta* consensus_meta = request.mutable_consensus_meta();
+    InnerMessage::BinlogOffset* pb_offset = consensus_meta->mutable_log_offset();
+    pb_offset->set_filenum(last_index.b_offset.filenum);
+    pb_offset->set_offset(last_index.b_offset.offset);
+    pb_offset->set_term(last_index.l_offset.term);
+    pb_offset->set_index(last_index.l_offset.index);
+  }
+
   std::string to_send;
   if (!request.SerializeToString(&to_send)) {
     LOG(WARNING) << "Serialize Partition TrySync Request Failed, to Master ("
