@@ -25,9 +25,18 @@ StableLog::StableLog(const std::string table_name,
   log_path_(log_path) {
   stable_logger_ = std::shared_ptr<Binlog>(
       new Binlog(log_path_, g_pika_conf->binlog_file_size()));
+  pthread_rwlock_init(&offset_rwlock_, NULL);
+  std::map<uint32_t, std::string> binlogs;
+  if (!GetBinlogFiles(&binlogs)) {
+    LOG(FATAL) << log_path_ << " Could not get binlog files!";
+  }
+  if (!binlogs.empty()) {
+    UpdateFirstOffset(binlogs.begin()->first);
+  }
 }
 
 StableLog::~StableLog() {
+  pthread_rwlock_destroy(&offset_rwlock_);
 }
 
 void StableLog::Leave() {
@@ -127,6 +136,14 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       break;
     }
   }
+  if (!binlogs.empty()) {
+    if (it != binlogs.end()) {
+      UpdateFirstOffset(it->first);
+    } else {
+      std::map<uint32_t, std::string>::reverse_iterator it = binlogs.rbegin();
+      UpdateFirstOffset(it->first);
+    }
+  }
   if (delete_num) {
     LOG(INFO) << log_path_ << " Success purge "<< delete_num << " binlog file";
   }
@@ -157,4 +174,39 @@ bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
   return true;
 }
 
+void StableLog::UpdateFirstOffset(uint32_t filenum) {
+  PikaBinlogReader binlog_reader;
+  int res = binlog_reader.Seek(stable_logger_, filenum, 0);
+  if (res) {
+    LOG(WARNING) << "Binlog reader init failed";
+    return;
+  }
 
+  BinlogItem item;
+  while (1) {
+    BinlogOffset offset;
+    std::string binlog;
+    Status s = binlog_reader.Get(&binlog, &(offset.filenum), &(offset.offset));
+    if (s.IsEndFile()) {
+      break;
+    }
+    if (!s.ok()) {
+      LOG(WARNING) << "Binlog reader get failed";
+      return;
+    }
+    BinlogItem item;
+    if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog, &item)) {
+      LOG(WARNING) << "Binlog item decode failed";
+      return;
+    }
+    if (item.exec_time() != 0) {
+      break;
+    }
+  }
+
+  slash::RWLock l(&offset_rwlock_, true);
+  first_offset_.b_offset.filenum = item.filenum();
+  first_offset_.b_offset.offset = item.offset();
+  first_offset_.l_offset.term = item.term_id();
+  first_offset_.l_offset.index = item.logic_id();
+}

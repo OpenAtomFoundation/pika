@@ -99,7 +99,12 @@ class SyncMasterPartition : public SyncPartition {
   Status ConsensusProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute);
   Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
   LogOffset ConsensusCommittedIndex();
+  LogOffset ConsensusLastIndex();
   Status ConsensusUpdateAppliedIndex(const LogOffset& offset);
+  Status ConsensusLeaderNegotiate(const LogOffset& f_last_offset,
+      bool* reject, std::vector<LogOffset>* hints);
+  Status ConsensusFollowerNegotiate(
+      const std::vector<LogOffset>& hints, LogOffset* reply_offset);
 
   std::shared_ptr<StableLog> StableLogger() {
     return coordinator_.StableLogger();

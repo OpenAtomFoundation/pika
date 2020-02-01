@@ -11,9 +11,11 @@
 #include "pink/include/pb_conn.h"
 #include "pink/include/pink_thread.h"
 
+#include "include/pika_define.h"
 #include "src/pika_inner_message.pb.h"
 
 class SyncMasterPartition;
+
 class PikaReplServerConn: public pink::PbConn {
  public:
   PikaReplServerConn(int fd, std::string ip_port, pink::Thread* thread, void* worker_specific_data, pink::PinkEpoll* epoll);
@@ -28,13 +30,18 @@ class PikaReplServerConn: public pink::PbConn {
     InnerMessage::InnerResponse::TrySync* try_sync_response);
   static bool TrySyncConsensusOffsetCheck(
     const std::shared_ptr<SyncMasterPartition>& partition,
-    const InnerMessage::InnerRequest::TrySync& try_sync_request,
+    const InnerMessage::ConsensusMeta& meta,
+    InnerMessage::InnerResponse* response,
     InnerMessage::InnerResponse::TrySync* try_sync_response);
   static bool TrySyncUpdateSlaveNode(
     const std::shared_ptr<SyncMasterPartition>& partition,
     const InnerMessage::InnerRequest::TrySync& try_sync_request,
     const std::shared_ptr<pink::PbConn>& conn,
     InnerMessage::InnerResponse::TrySync* try_sync_response);
+  static void BuildConsensusMeta(
+    const bool& reject,
+    const std::vector<LogOffset>& hints,
+    InnerMessage::InnerResponse* response);
 
   static void HandleDBSyncRequest(void* arg);
   static void HandleBinlogSyncRequest(void* arg);
