@@ -129,6 +129,7 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks,
     committed_index = partition->ConsensusCommittedIndex();
     InnerMessage::BinlogOffset* committed = consensus_meta->mutable_commit();
     BuildBinlogOffset(committed_index, committed);
+    consensus_meta->set_term(partition->ConsensusTerm());
   }
 }
 

@@ -112,6 +112,17 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   }
 
   if (pre_success && req->has_consensus_meta()) {
+    const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
+    if (meta.term() > partition->ConsensusTerm()) {
+      LOG(INFO) << "Update " << partition_name
+        << " term from " << partition->ConsensusTerm() << " to " << meta.term();
+      partition->ConsensusUpdateTerm(meta.term());
+    } else if (meta.term() < partition->ConsensusTerm()) /*outdated pb*/{
+      LOG(WARNING) << "Drop outdated trysync req " << " partition: " << partition_name
+        << " recv term: " << meta.term()  << " local term: " << partition->ConsensusTerm();
+      delete task_arg;
+      return;
+    }
     pre_success = TrySyncConsensusOffsetCheck(partition, req->consensus_meta(), &response, try_sync_response);
   } else if (pre_success) {
     pre_success = TrySyncOffsetCheck(partition, try_sync_request, try_sync_response);
@@ -393,6 +404,20 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
       << ", NotFound";
     delete task_arg;
     return;
+  }
+
+  if (req->has_consensus_meta()){
+    const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
+    if (meta.term() > master_partition->ConsensusTerm()) {
+      LOG(INFO) << "Update " << table_name << ":" << partition_id
+        << " term from " << master_partition->ConsensusTerm() << " to " << meta.term();
+      master_partition->ConsensusUpdateTerm(meta.term());
+    } else if (meta.term() < master_partition->ConsensusTerm()) /*outdated pb*/{
+      LOG(WARNING) << "Drop outdated binlog sync req " << table_name << ":" << partition_id
+        << " recv term: " << meta.term()  << " local term: " << master_partition->ConsensusTerm();
+      delete task_arg;
+      return;
+    }
   }
 
   if (!master_partition->CheckSessionId(node.ip(), node.port(),

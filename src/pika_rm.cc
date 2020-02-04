@@ -502,6 +502,14 @@ LogOffset SyncMasterPartition::ConsensusLastIndex() {
   return coordinator_.MemLogger()->last_offset();
 }
 
+uint32_t SyncMasterPartition::ConsensusTerm() {
+  return coordinator_.term();
+}
+
+void SyncMasterPartition::ConsensusUpdateTerm(uint32_t term) {
+  coordinator_.UpdateTerm(term);
+}
+
 std::shared_ptr<SlaveNode> SyncMasterPartition::GetSlaveNode(const std::string& ip, int port) {
   return coordinator_.SyncPros().GetSlaveNode(ip, port);
 }

@@ -414,6 +414,11 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port,
     return Status::OK();
   }
 
+  // do not commit log which is not current term log
+  if (committed_index.l_offset.term != term()) {
+    return Status::OK();
+  }
+
   LogOffset updated_committed_index;
   bool need_update = false;
   {
@@ -514,6 +519,11 @@ void ConsensusCoordinator::UpdateTerm(uint32_t term) {
   term_ = term;
   stable_logger_->Logger()->SetTerm(term);
   stable_logger_->Logger()->Unlock();
+}
+
+uint32_t ConsensusCoordinator::term() {
+  slash::RWLock l(&term_rwlock_, false);
+  return term_;
 }
 
 bool ConsensusCoordinator::MatchConsensusLevel() {
