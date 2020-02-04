@@ -125,6 +125,7 @@ class ConsensusCoordinator {
   Status AddSlaveNode(const std::string& ip, int port, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
   void UpdateTerm(uint32_t term);
+  uint32_t term();
   Status CheckEnoughFollower();
 
   // invoked by follower

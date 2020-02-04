@@ -18,7 +18,7 @@ extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 PikaReplBgWorker::PikaReplBgWorker(int queue_size)
-    : offset_(), bg_thread_(queue_size) {
+    : bg_thread_(queue_size) {
   bg_thread_.set_thread_name("ReplBgWorker");
   pink::RedisParserSettings settings;
   settings.DealMessage = &(PikaReplBgWorker::HandleWriteBinlog);
@@ -61,12 +61,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
-  if (res->has_consensus_meta()) {
-    ParseBinlogOffset(res->consensus_meta().commit(), &worker->offset_);
-  } else {
-    worker->offset_ = LogOffset();
-  }
-
   std::string table_name;
   uint32_t partition_id = 0;
   LogOffset ack_start, ack_end;
@@ -93,6 +87,21 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     delete index;
     delete task_arg;
     return;
+  }
+
+  if (res->has_consensus_meta()) {
+    const InnerMessage::ConsensusMeta& meta = res->consensus_meta();
+    if (meta.term() > partition->ConsensusTerm()) {
+      LOG(INFO) << "Update " << table_name << "_" << partition_id << " term from "
+        << partition->ConsensusTerm() << " to " << meta.term();
+      partition->ConsensusUpdateTerm(meta.term());
+    } else if (meta.term() < partition->ConsensusTerm()) /*outdated pb*/{
+      LOG(WARNING) << "Drop outdated binlog sync response " << table_name << "_" << partition_id
+        << " recv term: " << meta.term()  << " local term: " << partition->ConsensusTerm();
+      delete index;
+      delete task_arg;
+      return;
+    }
   }
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
@@ -159,8 +168,12 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   delete index;
   delete task_arg;
 
-  // Update follower commit && apply
-  partition->ConsensusProcessLocalUpdate(worker->offset_);
+  if (res->has_consensus_meta()) {
+    LogOffset leader_commit;
+    ParseBinlogOffset(res->consensus_meta().commit(), &leader_commit);
+    // Update follower commit && apply
+    partition->ConsensusProcessLocalUpdate(leader_commit);
+  }
 
   // Reply Ack to master immediately
   std::shared_ptr<Binlog> logger = partition->Logger();

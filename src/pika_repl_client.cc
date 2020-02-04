@@ -205,7 +205,11 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& ip,
       return Status::Corruption("partition not found");
     }
     LogOffset last_index = partition->ConsensusLastIndex();
+    uint32_t term = partition->ConsensusTerm();
+    term++;
+    partition->ConsensusUpdateTerm(term);
     InnerMessage::ConsensusMeta* consensus_meta = request.mutable_consensus_meta();
+    consensus_meta->set_term(term);
     InnerMessage::BinlogOffset* pb_offset = consensus_meta->mutable_log_offset();
     pb_offset->set_filenum(last_index.b_offset.filenum);
     pb_offset->set_offset(last_index.b_offset.offset);
