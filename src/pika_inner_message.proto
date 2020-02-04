@@ -45,7 +45,7 @@ message PikaMeta {
 message ConsensusMeta {
   optional uint32       term        = 1;
   // Leader -> Follower prev_log_offset
-  // Follower <- Leader last_log_offset
+  // Follower -> Leader last_log_offset
   optional BinlogOffset log_offset  = 2;
   optional BinlogOffset commit      = 3;
   optional bool         reject      = 4;
@@ -95,7 +95,6 @@ message InnerRequest {
   optional DBSync          db_sync           = 4;
   optional BinlogSync      binlog_sync       = 5;
   repeated RemoveSlaveNode remove_slave_node = 6;
-  //
   optional ConsensusMeta   consensus_meta    = 7;
 }
 

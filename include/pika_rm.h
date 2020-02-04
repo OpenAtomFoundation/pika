@@ -100,6 +100,8 @@ class SyncMasterPartition : public SyncPartition {
   Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
   LogOffset ConsensusCommittedIndex();
   LogOffset ConsensusLastIndex();
+  uint32_t ConsensusTerm();
+  void ConsensusUpdateTerm(uint32_t term);
   Status ConsensusUpdateAppliedIndex(const LogOffset& offset);
   Status ConsensusLeaderNegotiate(const LogOffset& f_last_offset,
       bool* reject, std::vector<LogOffset>* hints);

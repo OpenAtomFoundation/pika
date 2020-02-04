@@ -210,6 +210,18 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   }
 
   if (response->has_consensus_meta()) {
+    const InnerMessage::ConsensusMeta& meta = response->consensus_meta();
+    if (meta.term() > partition->ConsensusTerm()) {
+      LOG(INFO) << "Update " << table_name << ":" << partition_id
+        << " term from " << partition->ConsensusTerm() << " to " << meta.term();
+      partition->ConsensusUpdateTerm(meta.term());
+    } else if (meta.term() < partition->ConsensusTerm()) /*outdated pb*/{
+      LOG(WARNING) << "Drop outdated trysync response " << table_name << ":" << partition_id
+        << " recv term: " << meta.term()  << " local term: " << partition->ConsensusTerm();
+      delete task_arg;
+      return;
+    }
+
     bool success = TrySyncConsensusCheck(response->consensus_meta(), partition, slave_partition);
     if (!success) {
       delete task_arg;
