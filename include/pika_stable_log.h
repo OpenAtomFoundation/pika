@@ -24,6 +24,8 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
     slash::RWLock l(&offset_rwlock_, false);
     return first_offset_;
   }
+  // Need to hold binlog lock
+  Status TruncateTo(uint32_t filenum, uint64_t offset);
 
   // Purgelogs use
   bool PurgeStableLogs(uint32_t to = 0, bool manual = false);

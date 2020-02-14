@@ -392,8 +392,6 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
 }
 
 Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset) {
-  slash::MutexLock l(&mutex_);
-
   delete  queue_;
   std::string profile = NewFileName(filename_, pro_num);
   const int fd = open(profile.c_str(), O_RDWR | O_CLOEXEC, 0644);

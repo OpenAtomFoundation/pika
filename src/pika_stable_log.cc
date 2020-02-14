@@ -210,3 +210,8 @@ void StableLog::UpdateFirstOffset(uint32_t filenum) {
   first_offset_.l_offset.term = item.term_id();
   first_offset_.l_offset.index = item.logic_id();
 }
+
+Status  StableLog::TruncateTo(uint32_t filenum, uint64_t offset) {
+  PurgeFiles(filenum + 1, true);
+  return stable_logger_->Truncate(filenum, offset);
+}

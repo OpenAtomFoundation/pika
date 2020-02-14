@@ -222,8 +222,12 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
       return;
     }
 
-    bool success = TrySyncConsensusCheck(response->consensus_meta(), partition, slave_partition);
-    if (!success) {
+    if (response->consensus_meta().reject()) {
+      Status s = TrySyncConsensusCheck(response->consensus_meta(), partition, slave_partition);
+      if (!s.ok()) {
+        slave_partition->SetReplState(ReplState::kError);
+        LOG(WARNING) << "Consensus Check failed " << s.ToString();
+      }
       delete task_arg;
       return;
     }
@@ -252,13 +256,10 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   delete task_arg;
 }
 
-bool PikaReplClientConn::TrySyncConsensusCheck(
+Status PikaReplClientConn::TrySyncConsensusCheck(
     const InnerMessage::ConsensusMeta& consensus_meta,
     const std::shared_ptr<SyncMasterPartition>& partition,
     const std::shared_ptr<SyncSlavePartition>& slave_partition) {
-  if (consensus_meta.reject() == false) {
-    return true;
-  }
   std::vector<LogOffset> hints;
   for (int i = 0; i < consensus_meta.hint_size(); ++i) {
     InnerMessage::BinlogOffset pb_offset = consensus_meta.hint(i);
@@ -267,14 +268,15 @@ bool PikaReplClientConn::TrySyncConsensusCheck(
     offset.b_offset.offset = pb_offset.offset();
     offset.l_offset.term = pb_offset.term();
     offset.l_offset.index = pb_offset.index();
+    hints.push_back(offset);
   }
   LogOffset reply_offset;
   Status s = partition->ConsensusFollowerNegotiate(hints, &reply_offset);
   if (!s.ok()) {
-    return false;
+    return s;
   }
   slave_partition->SetReplState(ReplState::kTryConnect);
-  return false;
+  return s;
 }
 
 

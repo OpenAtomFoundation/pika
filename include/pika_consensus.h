@@ -91,6 +91,9 @@ class MemLog {
   }
   Status PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
+  Status TruncateTo(const LogOffset& offset);
+
+  void Reset(const LogOffset& offset);
 
   LogOffset last_offset() {
     slash::MutexLock l_logs(&logs_mu_);
@@ -185,6 +188,7 @@ class ConsensusCoordinator {
   Status ScheduleApplyLog(const LogOffset& committed_index);
   Status ScheduleApplyFollowerLog(const LogOffset& committed_index);
   bool MatchConsensusLevel();
+  Status TruncateTo(const LogOffset& offset);
 
   Status InternalAppendLog(const BinlogItem& item,
       std::shared_ptr<Cmd> cmd_ptr,

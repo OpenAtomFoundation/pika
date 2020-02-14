@@ -65,7 +65,7 @@ class Binlog {
    * Set Producer pro_num and pro_offset with lock
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
-
+  // Need to hold Lock();
   Status Truncate(uint32_t pro_num, uint64_t pro_offset);
 
   uint64_t file_size() {
@@ -85,6 +85,11 @@ class Binlog {
     slash::RWLock(&(version_->rwlock_), true);
     version_->term_ = term;
     version_->StableSave();
+  }
+
+  uint32_t term() {
+    slash::RWLock(&(version_->rwlock_), true);
+    return version_->term_;
   }
 
   void Close();

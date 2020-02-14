@@ -41,6 +41,7 @@ class PikaReplServerConn: public pink::PbConn {
   static void BuildConsensusMeta(
     const bool& reject,
     const std::vector<LogOffset>& hints,
+    const uint32_t& term,
     InnerMessage::InnerResponse* response);
 
   static void HandleDBSyncRequest(void* arg);

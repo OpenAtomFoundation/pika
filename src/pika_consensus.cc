@@ -191,6 +191,7 @@ int MemLog::Size() {
   return static_cast<int>(logs_.size());
 }
 
+// purdge [begin, offset]
 Status MemLog::PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
   slash::MutexLock l_logs(&logs_mu_);
   int index = InternalFindLogIndex(offset);
@@ -200,6 +201,23 @@ Status MemLog::PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
   logs->assign(logs_.begin(), logs_.begin() + index + 1);
   logs_.erase(logs_.begin(), logs_.begin() + index + 1);
   return Status::OK();
+}
+
+// keep mem_log [mem_log.begin, offset]
+Status MemLog::TruncateTo(const LogOffset& offset) {
+  slash::MutexLock l_logs(&logs_mu_);
+  int index = InternalFindLogIndex(offset);
+  if (index < 0) {
+    return Status::Corruption("Cant find correct index");
+  }
+  logs_.erase(logs_.begin() + index + 1, logs_.end());
+  return Status::OK();
+}
+
+void MemLog::Reset(const LogOffset& offset) {
+  slash::MutexLock l_logs(&logs_mu_);
+  logs_.erase(logs_.begin(), logs_.end());
+  last_offset_ = offset;
 }
 
 Status MemLog::GetRangeLogs(int start, int end, std::vector<LogItem>* logs) {
@@ -259,7 +277,10 @@ void ConsensusCoordinator::Init() {
   context_->Init();
   committed_index_ = context_->applied_index_;
 
-  LOG(INFO) << "Restore applied index " << context_->applied_index_.ToString();
+  //load term_
+  term_ = stable_logger_->Logger()->term();
+
+  LOG(INFO) << "Restore applied index " << context_->applied_index_.ToString() << " current term " << term_;
   if (committed_index_ == LogOffset()) {
     return;
   }
@@ -564,6 +585,28 @@ int ConsensusCoordinator::InitCmd(pink::RedisParser* parser, const pink::RedisCm
   return 0;
 }
 
+Status ConsensusCoordinator::TruncateTo(const LogOffset& offset) {
+  LOG(INFO) << "Truncate to " << offset.ToString();
+  LogOffset committed = committed_index();
+  stable_logger_->Logger()->Lock();
+  if (offset.l_offset.index == committed.l_offset.index) {
+    mem_logger_->Reset(committed);
+  } else {
+    Status s  = mem_logger_->TruncateTo(offset);
+    if (!s.ok()) {
+      stable_logger_->Logger()->Unlock();
+      return s;
+    }
+  }
+  Status s = stable_logger_->TruncateTo(offset.b_offset.filenum, offset.b_offset.offset);
+  if (!s.ok()) {
+    stable_logger_->Logger()->Unlock();
+    return s;
+  }
+  stable_logger_->Logger()->Unlock();
+  return Status::OK();
+}
+
 Status ConsensusCoordinator::TryGetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset) {
   PikaBinlogReader binlog_reader;
   int res = binlog_reader.Seek(stable_logger_->Logger(),
@@ -581,13 +624,13 @@ Status ConsensusCoordinator::TryGetBinlogOffset(const BinlogOffset& start_offset
   if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog, &item)) {
     return Status::Corruption("Binlog item decode failed");
   }
-  log_offset->b_offset.filenum = item.filenum();
-  log_offset->b_offset.offset = item.offset();
+  log_offset->b_offset = offset;
   log_offset->l_offset.term = item.term_id();
   log_offset->l_offset.index = item.logic_id();
   return Status::OK();
 }
 
+// get binlog offset range [start_offset, end_offset]
 Status ConsensusCoordinator::GetBinlogOffset(
     const BinlogOffset& start_offset,
     const BinlogOffset& end_offset,
@@ -612,8 +655,7 @@ Status ConsensusCoordinator::GetBinlogOffset(
       return Status::Corruption("Binlog item decode failed");
     }
     LogOffset offset;
-    offset.b_offset.filenum = item.filenum();
-    offset.b_offset.offset = item.offset();
+    offset.b_offset = b_offset;
     offset.l_offset.term = item.term_id();
     offset.l_offset.index = item.logic_id();
     if (offset.b_offset > end_offset) {
@@ -644,17 +686,17 @@ Status ConsensusCoordinator::FindBinlogFileNum(
     if (!offsets.empty()) {
       first_offset = offsets[0];
     }
-    if (target_index <= first_offset.l_offset.index) {
+    if (target_index < first_offset.l_offset.index) {
       if (first_time_right) {
         break;
       }
       // move left
       first_time_left = true;
-      if (filenum  - 1 < lb_binlogs) {
+      if (filenum == 0 || filenum  - 1 < lb_binlogs) {
         return Status::NotFound(std::to_string(target_index) + " hit low boundary");
       }
       filenum = filenum - 1;
-    } else if (target_index >= first_offset.l_offset.index) {
+    } else if (target_index > first_offset.l_offset.index) {
       if (first_time_left) {
         break;
       }
@@ -664,6 +706,8 @@ Status ConsensusCoordinator::FindBinlogFileNum(
         break;
       }
       filenum = filenum + 1;
+    } else {
+      break;
     }
   }
   *founded_filenum = filenum;
@@ -672,6 +716,8 @@ Status ConsensusCoordinator::FindBinlogFileNum(
 
 Status ConsensusCoordinator::FindLogicOffsetBySearchingBinlog(
     const BinlogOffset& hint_offset, uint64_t target_index, LogOffset* found_offset) {
+  LOG(INFO) << "FindLogicOffsetBySearchingBinlog hint offset " << hint_offset.ToString()
+    << " target_index " << target_index;
   BinlogOffset start_offset;
   std::map<uint32_t, std::string> binlogs;
   if (!stable_logger_->GetBinlogFiles(&binlogs)) {
@@ -692,6 +738,7 @@ Status ConsensusCoordinator::FindLogicOffsetBySearchingBinlog(
     return s;
   }
 
+  LOG(INFO) << "FindBinlogFilenum res " << found_filenum;
   BinlogOffset traversal_start(found_filenum, 0);
   BinlogOffset traversal_end(found_filenum + 1, 0);
   std::vector<LogOffset> offsets;
@@ -701,6 +748,7 @@ Status ConsensusCoordinator::FindLogicOffsetBySearchingBinlog(
   }
   for (auto& offset : offsets) {
     if (offset.l_offset.index == target_index) {
+      LOG(INFO) << "Founded " << target_index << " " << offset.ToString();
       *found_offset = offset;
       return Status::OK();
     }
@@ -712,6 +760,12 @@ Status ConsensusCoordinator::FindLogicOffset(const BinlogOffset& start_offset, u
   LogOffset possible_offset;
   Status s = TryGetBinlogOffset(start_offset, &possible_offset);
   if (!s.ok() || possible_offset.l_offset.index != target_index) {
+    if (!s.ok()) {
+      LOG(INFO) << "TryGetBinlogOffset res: " << s.ToString();
+    } else {
+      LOG(INFO) << "TryGetBInlogOffset res: " << s.ToString() <<
+        " possible_offset " << possible_offset.ToString() << " target_index " << target_index;
+    }
     return FindLogicOffsetBySearchingBinlog(start_offset, target_index, found_offset);
   }
   *found_offset = possible_offset;
@@ -720,7 +774,9 @@ Status ConsensusCoordinator::FindLogicOffset(const BinlogOffset& start_offset, u
 
 Status ConsensusCoordinator::GetLogsBefore(const BinlogOffset& start_offset, std::vector<LogOffset>* hints) {
   BinlogOffset traversal_end = start_offset;
-  BinlogOffset traversal_start(traversal_start.filenum - 1, 0);
+  BinlogOffset traversal_start(traversal_end.filenum, 0);
+  traversal_start.filenum =
+    traversal_start.filenum == 0 ? 0 : traversal_start.filenum - 1;
   std::map<uint32_t, std::string> binlogs;
   if (!stable_logger_->GetBinlogFiles(&binlogs)) {
     return Status::Corruption("Get binlog files failed");
@@ -730,6 +786,7 @@ Status ConsensusCoordinator::GetLogsBefore(const BinlogOffset& start_offset, std
   }
   std::vector<LogOffset> res;
   GetBinlogOffset(traversal_start, traversal_end, &res);
+  LOG(INFO) << "GetLogOffset res size " << res.size();
   if (res.size() > 100) {
     res.assign(res.end() - 100, res.end());
   }
@@ -739,7 +796,14 @@ Status ConsensusCoordinator::GetLogsBefore(const BinlogOffset& start_offset, std
 
 Status ConsensusCoordinator::LeaderNegotiate(
     const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints) {
+  if (f_last_offset.l_offset.index == 0) {
+    return Status::OK();
+  }
   uint64_t f_index = f_last_offset.l_offset.index;
+  LOG(INFO) << "LeaderNeotiate follower last offset "
+    << f_last_offset.ToString()
+    << " last_offset " << mem_logger_->last_offset().ToString()
+    << " first_offsert " << stable_logger_->first_offset().ToString();
   *reject = true;
   if (f_index > mem_logger_->last_offset().l_offset.index) {
     // hints starts from last_offset() - 100;
@@ -748,10 +812,11 @@ Status ConsensusCoordinator::LeaderNegotiate(
       LOG(WARNING) << f_index << " is larger than last index " << mem_logger_->last_offset().ToString() << " get logs before last index failed " << s.ToString();
       return s;
     }
+    LOG(INFO) << "follower index larger then last_offset index";
     return Status::OK();
-  } else if (f_index < stable_logger_->first_offset().l_offset.index)  {
+  } else if (f_index < stable_logger_->first_offset().l_offset.index) {
     // need full sync
-    LOG(WARNING) << f_index << " not found current first index" << stable_logger_->first_offset().ToString();
+    LOG(INFO) << f_index << " not found current first index" << stable_logger_->first_offset().ToString();
     return Status::NotFound("logic index");
   }
 
@@ -777,24 +842,48 @@ Status ConsensusCoordinator::LeaderNegotiate(
     return Status::OK();
   }
 
+  LOG(INFO) << "Found equal offset " << found_offset.ToString();
   *reject = false;
   return Status::OK();
 }
 
+// memlog order: committed_index , [committed_index + 1, memlogger.end()]
 Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset) {
   if (hints.empty()) {
     return Status::Corruption("hints empty");
   }
+  LOG(INFO) << "FollowerNegotiate from " << hints[0] << " to " << hints[hints.size() - 1];
   if (mem_logger_->last_offset().l_offset.index < hints[0].l_offset.index) {
     *reply_offset = mem_logger_->last_offset();
     return Status::OK();
   }
-  if (mem_logger_->last_offset().l_offset.index >  hints[hints.size() - 1].l_offset.index) {
-    BinlogOffset truncate_offset = hints[hints.size() -1].b_offset;
-    // trunck to hints end
-    stable_logger_->Logger()->Truncate(truncate_offset.filenum, truncate_offset.offset);
+  if (committed_index().l_offset.index > hints[hints.size() - 1].l_offset.index) {
+    return Status::Corruption("invalid hints all smaller than committed_index");
   }
-  for (int i = hints.size() - 1; i >= 0; i--)  {
+  if (mem_logger_->last_offset().l_offset.index >  hints[hints.size() - 1].l_offset.index) {
+    LogOffset truncate_offset = hints[hints.size() - 1];
+    // trunck to hints end
+    Status s = TruncateTo(truncate_offset);
+    if (!s.ok()) {
+      return s;
+    }
+  }
+
+  LogOffset committed = committed_index();
+  for (int i = hints.size() - 1; i >= 0; i--) {
+    if (hints[i].l_offset.index < committed.l_offset.index) {
+      return Status::Corruption("hints not found");
+    }
+    if (hints[i].l_offset.index == committed.l_offset.index) {
+      if (hints[i].l_offset.term == committed.l_offset.term) {
+        Status s = TruncateTo(hints[i]);
+        if (!s.ok()) {
+          return s;
+        }
+        *reply_offset = mem_logger_->last_offset();
+        return Status::OK();
+      }
+    }
     LogOffset found_offset;
     bool res = mem_logger_->FindLogItem(hints[i], &found_offset);
     if (!res) {
@@ -802,11 +891,19 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
     }
     if (found_offset.l_offset.term == hints[i].l_offset.term) {
       // trunk to found_offsett
-      stable_logger_->Logger()->Truncate(
-          found_offset.b_offset.filenum, found_offset.b_offset.offset);
+      Status s = TruncateTo(found_offset);
+      if (!s.ok()) {
+        return s;
+      }
       *reply_offset = mem_logger_->last_offset();
       return Status::OK();
     }
   }
-  return Status::Corruption("hints not found");
+
+  Status s = TruncateTo(hints[0]);
+  if (!s.ok()) {
+    return s;
+  }
+  *reply_offset = mem_logger_->last_offset();
+  return Status::OK();
 }
