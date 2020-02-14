@@ -852,7 +852,7 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
   if (hints.empty()) {
     return Status::Corruption("hints empty");
   }
-  LOG(INFO) << "FollowerNegotiate from " << hints[0] << " to " << hints[hints.size() - 1];
+  LOG(INFO) << "FollowerNegotiate from " << hints[0].ToString() << " to " << hints[hints.size() - 1].ToString();
   if (mem_logger_->last_offset().l_offset.index < hints[0].l_offset.index) {
     *reply_offset = mem_logger_->last_offset();
     return Status::OK();
