@@ -136,11 +136,14 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       break;
     }
   }
-  if (!binlogs.empty()) {
+  if (delete_num) {
+    std::map<uint32_t, std::string> binlogs;
+    if (!GetBinlogFiles(&binlogs)) {
+      LOG(WARNING) << log_path_ << " Could not get binlog files!";
+      return false;
+    }
+    auto it = binlogs.begin();
     if (it != binlogs.end()) {
-      UpdateFirstOffset(it->first);
-    } else {
-      std::map<uint32_t, std::string>::reverse_iterator it = binlogs.rbegin();
       UpdateFirstOffset(it->first);
     }
   }
@@ -183,35 +186,56 @@ void StableLog::UpdateFirstOffset(uint32_t filenum) {
   }
 
   BinlogItem item;
+  BinlogOffset offset;
   while (1) {
-    BinlogOffset offset;
     std::string binlog;
     Status s = binlog_reader.Get(&binlog, &(offset.filenum), &(offset.offset));
     if (s.IsEndFile()) {
-      break;
+      LOG(WARNING) << "UpdateFirstOffset hit end of file" << s.ToString();
+      return;
     }
     if (!s.ok()) {
       LOG(WARNING) << "Binlog reader get failed";
       return;
     }
-    BinlogItem item;
     if (!PikaBinlogTransverter::BinlogItemWithoutContentDecode(TypeFirst, binlog, &item)) {
       LOG(WARNING) << "Binlog item decode failed";
       return;
     }
+    // exec_time == 0, could be padding binlog
     if (item.exec_time() != 0) {
       break;
     }
   }
 
   slash::RWLock l(&offset_rwlock_, true);
-  first_offset_.b_offset.filenum = item.filenum();
-  first_offset_.b_offset.offset = item.offset();
+  first_offset_.b_offset = offset;
   first_offset_.l_offset.term = item.term_id();
   first_offset_.l_offset.index = item.logic_id();
 }
 
-Status  StableLog::TruncateTo(uint32_t filenum, uint64_t offset) {
-  PurgeFiles(filenum + 1, true);
+Status StableLog::PurgeFileAfter(uint32_t filenum) {
+  std::map<uint32_t, std::string> binlogs;
+  bool res = GetBinlogFiles(&binlogs);
+  if (!res) {
+    return Status::Corruption("GetBinlogFiles failed");
+  }
+  for (auto& it : binlogs) {
+    if (it.first > filenum) {
+      // Do delete
+      Status s = slash::DeleteFile(log_path_ + it.second);
+      if (!s.ok()) {
+        return s;
+      }
+    }
+  }
+  return Status::OK();
+}
+
+Status StableLog::TruncateTo(uint32_t filenum, uint64_t offset) {
+  Status s = PurgeFileAfter(filenum);
+  if (!s.ok()) {
+    return s;
+  }
   return stable_logger_->Truncate(filenum, offset);
 }

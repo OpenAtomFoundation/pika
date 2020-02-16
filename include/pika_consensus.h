@@ -181,6 +181,7 @@ class ConsensusCoordinator {
     }
     tmp_stream << "  Mem_logger size: " << mem_logger_->Size() <<
       " last offset " << mem_logger_->last_offset().ToString() << "\r\n";
+    tmp_stream << "  Stable_logger first offset " << stable_logger_->first_offset().ToString() << "\r\n";
     return tmp_stream.str();
   }
 

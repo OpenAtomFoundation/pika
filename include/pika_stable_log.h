@@ -31,6 +31,7 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
   bool PurgeStableLogs(uint32_t to = 0, bool manual = false);
   void ClearPurge();
   bool GetBinlogFiles(std::map<uint32_t, std::string>* binlogs);
+  Status PurgeFileAfter(uint32_t filenum);
 
  private:
   void Close();

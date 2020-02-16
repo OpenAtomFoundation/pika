@@ -802,8 +802,8 @@ Status ConsensusCoordinator::LeaderNegotiate(
   uint64_t f_index = f_last_offset.l_offset.index;
   LOG(INFO) << "LeaderNeotiate follower last offset "
     << f_last_offset.ToString()
-    << " last_offset " << mem_logger_->last_offset().ToString()
-    << " first_offsert " << stable_logger_->first_offset().ToString();
+    << " first_offsert " << stable_logger_->first_offset().ToString()
+    << " last_offset " << mem_logger_->last_offset().ToString();
   *reject = true;
   if (f_index > mem_logger_->last_offset().l_offset.index) {
     // hints starts from last_offset() - 100;
