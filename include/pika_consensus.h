@@ -203,7 +203,7 @@ class ConsensusCoordinator {
   bool InternalUpdateCommittedIndex(const LogOffset& slaves_committed_index,
       LogOffset* updated_committed_index);
 
-  Status TryGetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);
+  Status GetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);
   Status GetBinlogOffset(
       const BinlogOffset& start_offset,
       const BinlogOffset& end_offset, std::vector<LogOffset>* log_offset);

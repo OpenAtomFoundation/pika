@@ -607,7 +607,7 @@ Status ConsensusCoordinator::TruncateTo(const LogOffset& offset) {
   return Status::OK();
 }
 
-Status ConsensusCoordinator::TryGetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset) {
+Status ConsensusCoordinator::GetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset) {
   PikaBinlogReader binlog_reader;
   int res = binlog_reader.Seek(stable_logger_->Logger(),
       start_offset.filenum, start_offset.offset);
@@ -631,6 +631,9 @@ Status ConsensusCoordinator::TryGetBinlogOffset(const BinlogOffset& start_offset
 }
 
 // get binlog offset range [start_offset, end_offset]
+// start_offset 0,0 end_offset 1,129, result will include binlog (1,129)
+// start_offset 0,0 end_offset 1,0, result will NOT include binlog (1,xxx)
+// start_offset 0,0 end_offset 0,0, resulet will NOT include binlog(0,xxx)
 Status ConsensusCoordinator::GetBinlogOffset(
     const BinlogOffset& start_offset,
     const BinlogOffset& end_offset,
@@ -678,16 +681,14 @@ Status ConsensusCoordinator::FindBinlogFileNum(
   uint32_t filenum = start_filenum;
   while(1) {
     LogOffset first_offset;
-    std::vector<LogOffset> offsets;
-    Status s = GetBinlogOffset(BinlogOffset(filenum, 0), BinlogOffset(filenum, 0), &offsets);
+    Status s = GetBinlogOffset(BinlogOffset(filenum, 0), &first_offset);
     if (!s.ok()) {
       return s;
     }
-    if (!offsets.empty()) {
-      first_offset = offsets[0];
-    }
     if (target_index < first_offset.l_offset.index) {
       if (first_time_right) {
+        // last filenum
+        filenum = filenum -1;
         break;
       }
       // move left
@@ -758,12 +759,12 @@ Status ConsensusCoordinator::FindLogicOffsetBySearchingBinlog(
 
 Status ConsensusCoordinator::FindLogicOffset(const BinlogOffset& start_offset, uint64_t target_index, LogOffset* found_offset) {
   LogOffset possible_offset;
-  Status s = TryGetBinlogOffset(start_offset, &possible_offset);
+  Status s = GetBinlogOffset(start_offset, &possible_offset);
   if (!s.ok() || possible_offset.l_offset.index != target_index) {
     if (!s.ok()) {
-      LOG(INFO) << "TryGetBinlogOffset res: " << s.ToString();
+      LOG(INFO) << "GetBinlogOffset res: " << s.ToString();
     } else {
-      LOG(INFO) << "TryGetBInlogOffset res: " << s.ToString() <<
+      LOG(INFO) << "GetBInlogOffset res: " << s.ToString() <<
         " possible_offset " << possible_offset.ToString() << " target_index " << target_index;
     }
     return FindLogicOffsetBySearchingBinlog(start_offset, target_index, found_offset);
@@ -785,8 +786,10 @@ Status ConsensusCoordinator::GetLogsBefore(const BinlogOffset& start_offset, std
     traversal_start.filenum = traversal_end.filenum;
   }
   std::vector<LogOffset> res;
-  GetBinlogOffset(traversal_start, traversal_end, &res);
-  LOG(INFO) << "GetLogOffset res size " << res.size();
+  Status s = GetBinlogOffset(traversal_start, traversal_end, &res);
+  if (!s.ok()) {
+    return s;
+  }
   if (res.size() > 100) {
     res.assign(res.end() - 100, res.end());
   }
@@ -812,7 +815,7 @@ Status ConsensusCoordinator::LeaderNegotiate(
       LOG(WARNING) << f_index << " is larger than last index " << mem_logger_->last_offset().ToString() << " get logs before last index failed " << s.ToString();
       return s;
     }
-    LOG(INFO) << "follower index larger then last_offset index";
+    LOG(INFO) << "follower index larger then last_offset index, get logs before " << mem_logger_->last_offset().ToString();
     return Status::OK();
   } else if (f_index < stable_logger_->first_offset().l_offset.index) {
     // need full sync
