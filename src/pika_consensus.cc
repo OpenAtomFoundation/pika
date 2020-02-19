@@ -78,6 +78,13 @@ void Context::UpdateAppliedIndex(const LogOffset& offset) {
   }
 }
 
+void Context::Reset(const LogOffset& offset) {
+  slash::RWLock l(&rwlock_, true);
+  applied_index_ = offset;
+  applied_win_.Reset();
+  StableSave();
+}
+
 /* SyncProgress */
 
 SyncProgress::SyncProgress() {
@@ -332,6 +339,29 @@ void ConsensusCoordinator::Init() {
   }
 }
 
+Status ConsensusCoordinator::Reset(const LogOffset& offset) {
+  context_->Reset(offset);
+  {
+    slash::MutexLock l(&index_mu_);
+    committed_index_ = offset;
+  }
+
+  UpdateTerm(offset.l_offset.term);
+  Status s = stable_logger_->Logger()->SetProducerStatus(
+      offset.b_offset.filenum, offset.b_offset.offset);
+  if (!s.ok()) {
+    LOG(WARNING) << "Consensus reset status failed " << s.ToString();
+    return s;
+  }
+
+  stable_logger_->SetFirstOffset(offset);
+
+  stable_logger_->Logger()->Lock();
+  mem_logger_->Reset(offset);
+  stable_logger_->Logger()->Unlock();
+  return Status::OK();
+}
+
 Status ConsensusCoordinator::ProposeLog(
     std::shared_ptr<Cmd> cmd_ptr,
     std::shared_ptr<PikaClientConn> conn_ptr,
@@ -437,6 +467,7 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port,
 
   // do not commit log which is not current term log
   if (committed_index.l_offset.term != term()) {
+    LOG(WARNING) << "Will not commit log term which is not equals to current term";
     return Status::OK();
   }
 
@@ -799,9 +830,6 @@ Status ConsensusCoordinator::GetLogsBefore(const BinlogOffset& start_offset, std
 
 Status ConsensusCoordinator::LeaderNegotiate(
     const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints) {
-  if (f_last_offset.l_offset.index == 0) {
-    return Status::OK();
-  }
   uint64_t f_index = f_last_offset.l_offset.index;
   LOG(INFO) << "LeaderNeotiate follower last offset "
     << f_last_offset.ToString()
@@ -817,10 +845,14 @@ Status ConsensusCoordinator::LeaderNegotiate(
     }
     LOG(INFO) << "follower index larger then last_offset index, get logs before " << mem_logger_->last_offset().ToString();
     return Status::OK();
-  } else if (f_index < stable_logger_->first_offset().l_offset.index) {
+  }
+  if (f_index < stable_logger_->first_offset().l_offset.index) {
     // need full sync
     LOG(INFO) << f_index << " not found current first index" << stable_logger_->first_offset().ToString();
     return Status::NotFound("logic index");
+  }
+  if (f_last_offset.l_offset.index == 0) {
+    return Status::OK();
   }
 
   LogOffset found_offset;

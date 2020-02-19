@@ -211,6 +211,10 @@ Status SyncMasterPartition::ConsensusUpdateAppliedIndex(const LogOffset& offset)
   return Status::OK();
 }
 
+LogOffset SyncMasterPartition::ConsensusAppliedIndex() {
+  return coordinator_.applied_index();
+}
+
 Status SyncMasterPartition::GetSlaveSyncBinlogInfo(const std::string& ip,
                                                    int port,
                                                    BinlogOffset* sent_offset,
@@ -527,6 +531,10 @@ Status SyncMasterPartition::ConsensusLeaderNegotiate(
 Status SyncMasterPartition::ConsensusFollowerNegotiate(
   const std::vector<LogOffset>& hints, LogOffset* reply_offset) {
   return coordinator_.FollowerNegotiate(hints, reply_offset);
+}
+
+Status SyncMasterPartition::ConsensusReset(LogOffset applied_offset) {
+  return coordinator_.Reset(applied_offset);
 }
 
 /* SyncSlavePartition */

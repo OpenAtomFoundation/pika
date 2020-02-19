@@ -103,10 +103,12 @@ class SyncMasterPartition : public SyncPartition {
   uint32_t ConsensusTerm();
   void ConsensusUpdateTerm(uint32_t term);
   Status ConsensusUpdateAppliedIndex(const LogOffset& offset);
+  LogOffset ConsensusAppliedIndex();
   Status ConsensusLeaderNegotiate(const LogOffset& f_last_offset,
       bool* reject, std::vector<LogOffset>* hints);
   Status ConsensusFollowerNegotiate(
       const std::vector<LogOffset>& hints, LogOffset* reply_offset);
+  Status ConsensusReset(LogOffset applied_offset);
 
   std::shared_ptr<StableLog> StableLogger() {
     return coordinator_.StableLogger();

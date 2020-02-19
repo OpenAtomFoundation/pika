@@ -20,6 +20,10 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
     return stable_logger_;
   }
   void Leave();
+  void SetFirstOffset(const LogOffset& offset) {
+    slash::RWLock l(&offset_rwlock_, true);
+    first_offset_ = offset;
+  }
   LogOffset first_offset() {
     slash::RWLock l(&offset_rwlock_, false);
     return first_offset_;

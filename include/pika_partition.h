@@ -38,14 +38,12 @@ struct BgSaveInfo {
   time_t start_time;
   std::string s_start_time;
   std::string path;
-  uint32_t filenum;
-  uint64_t offset;
-  BgSaveInfo() : bgsaving(false), filenum(0), offset(0) {}
+  LogOffset offset;
+  BgSaveInfo() : bgsaving(false), offset() {}
   void Clear() {
     bgsaving = false;
     path.clear();
-    filenum = 0;
-    offset = 0;
+    offset = LogOffset();
   }
 };
 

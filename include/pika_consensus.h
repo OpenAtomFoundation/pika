@@ -22,6 +22,7 @@ class Context {
   Status StableSave();
   void PrepareUpdateAppliedIndex(const LogOffset& offset);
   void UpdateAppliedIndex(const LogOffset& offset);
+  void Reset(const LogOffset& applied_index);
 
   pthread_rwlock_t rwlock_;
   LogOffset applied_index_;
@@ -93,7 +94,7 @@ class MemLog {
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
   Status TruncateTo(const LogOffset& offset);
 
-  void Reset(const LogOffset& offset);
+  void  Reset(const LogOffset& offset);
 
   LogOffset last_offset() {
     slash::MutexLock l_logs(&logs_mu_);
@@ -118,6 +119,8 @@ class ConsensusCoordinator {
   ~ConsensusCoordinator();
   // since it is invoked in constructor all locks not hold
   void Init();
+  // invoked by dbsync process
+  Status Reset(const LogOffset& offset);
 
   Status ProposeLog(
       std::shared_ptr<Cmd> cmd_ptr,
@@ -154,6 +157,11 @@ class ConsensusCoordinator {
   LogOffset committed_index() {
     slash::MutexLock l(&index_mu_);
     return committed_index_;
+  }
+
+  LogOffset applied_index() {
+    slash::RWLock l(&context_->rwlock_, false);
+    return context_->applied_index_;
   }
 
   std::shared_ptr<Context> context() {
