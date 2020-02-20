@@ -178,7 +178,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   // Reply Ack to master immediately
   std::shared_ptr<Binlog> logger = partition->Logger();
   logger->GetProducerStatus(&ack_end.b_offset.filenum, &ack_end.b_offset.offset,
-      &ack_end.l_offset.index, &ack_end.l_offset.term);
+      &ack_end.l_offset.term, &ack_end.l_offset.index);
   // keepalive case
   if (ack_start.b_offset == BinlogOffset()) {
     // set ack_end as 0

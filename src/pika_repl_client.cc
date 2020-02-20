@@ -206,6 +206,7 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& ip,
     }
     LogOffset last_index = partition->ConsensusLastIndex();
     uint32_t term = partition->ConsensusTerm();
+    LOG(INFO) << " TrySync Increase self term from " << term << " to " << term + 1;
     term++;
     partition->ConsensusUpdateTerm(term);
     InnerMessage::ConsensusMeta* consensus_meta = request.mutable_consensus_meta();

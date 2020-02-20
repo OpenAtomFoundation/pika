@@ -348,7 +348,8 @@ Status ConsensusCoordinator::Reset(const LogOffset& offset) {
 
   UpdateTerm(offset.l_offset.term);
   Status s = stable_logger_->Logger()->SetProducerStatus(
-      offset.b_offset.filenum, offset.b_offset.offset);
+      offset.b_offset.filenum, offset.b_offset.offset,
+      offset.l_offset.term, offset.l_offset.index);
   if (!s.ok()) {
     LOG(WARNING) << "Consensus reset status failed " << s.ToString();
     return s;
@@ -372,7 +373,7 @@ Status ConsensusCoordinator::ProposeLog(
   // build BinlogItem
   uint32_t filenum = 0, term = 0;
   uint64_t offset = 0, logic_id = 0;
-  Status s = stable_logger_->Logger()->GetProducerStatus(&filenum, &offset, &logic_id, &term);
+  Status s = stable_logger_->Logger()->GetProducerStatus(&filenum, &offset, &term, &logic_id);
   if (!s.ok()) {
     stable_logger_->Logger()->Unlock();
     return s;
@@ -380,7 +381,7 @@ Status ConsensusCoordinator::ProposeLog(
   BinlogItem item;
   item.set_exec_time(time(nullptr));
   item.set_term_id(term);
-  item.set_logic_id(logic_id);
+  item.set_logic_id(logic_id + 1);
   item.set_filenum(filenum);
   item.set_offset(offset);
   // make sure stable log and mem log consistent
@@ -467,7 +468,9 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port,
 
   // do not commit log which is not current term log
   if (committed_index.l_offset.term != term()) {
-    LOG(WARNING) << "Will not commit log term which is not equals to current term";
+    LOG_EVERY_N(INFO, 1000) << "Will not commit log term which is not equals to current term"
+      << " To updated committed_index" << committed_index.ToString() << " current term " << term()
+      << " from " << ip << " " <<  port << " start " << start.ToString() << " end " << end.ToString();
     return Status::OK();
   }
 
@@ -852,6 +855,7 @@ Status ConsensusCoordinator::LeaderNegotiate(
     return Status::NotFound("logic index");
   }
   if (f_last_offset.l_offset.index == 0) {
+    *reject = false;
     return Status::OK();
   }
 

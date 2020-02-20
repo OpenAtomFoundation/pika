@@ -190,6 +190,11 @@ class ConsensusCoordinator {
     tmp_stream << "  Mem_logger size: " << mem_logger_->Size() <<
       " last offset " << mem_logger_->last_offset().ToString() << "\r\n";
     tmp_stream << "  Stable_logger first offset " << stable_logger_->first_offset().ToString() << "\r\n";
+    LogOffset log_status;
+    stable_logger_->Logger()->GetProducerStatus(
+        &(log_status.b_offset.filenum), &(log_status.b_offset.offset),
+        &(log_status.l_offset.term), &(log_status.l_offset.index));
+    tmp_stream << "  Physical Binlog Status: " << log_status.ToString();
     return tmp_stream.str();
   }
 

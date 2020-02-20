@@ -191,7 +191,6 @@ void StableLog::UpdateFirstOffset(uint32_t filenum) {
     std::string binlog;
     Status s = binlog_reader.Get(&binlog, &(offset.filenum), &(offset.offset));
     if (s.IsEndFile()) {
-      LOG(WARNING) << "UpdateFirstOffset hit end of file" << s.ToString();
       return;
     }
     if (!s.ok()) {

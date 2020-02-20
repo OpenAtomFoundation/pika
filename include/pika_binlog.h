@@ -60,11 +60,11 @@ class Binlog {
 
   Status Put(const std::string &item);
 
-  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id = NULL, uint32_t* term = NULL);
+  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term = NULL, uint64_t* logic_id = NULL);
   /*
    * Set Producer pro_num and pro_offset with lock
    */
-  Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
+  Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset, uint32_t term = 0, uint64_t index = 0);
   // Need to hold Lock();
   Status Truncate(uint32_t pro_num, uint64_t pro_offset);
 

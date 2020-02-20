@@ -93,10 +93,17 @@ Status SlaveNode::Update(const LogOffset& start, const LogOffset& end, LogOffset
   if (slave_state != kSlaveBinlogSync) {
     return Status::Corruption(ToString() + "state not BinlogSync");
   }
+  *updated_offset = LogOffset();
   bool res = sync_win.Update(SyncWinItem(start), SyncWinItem(end), updated_offset);
   if (!res) {
     return Status::Corruption("UpdateAckedInfo failed");
   }
+  if (*updated_offset == LogOffset()) {
+    // nothing to update return current acked_offset
+    *updated_offset = acked_offset;
+    return Status::OK();
+  }
+  // update acked_offset
   acked_offset = *updated_offset;
   return Status::OK();
 }
