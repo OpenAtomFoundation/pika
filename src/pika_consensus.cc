@@ -203,7 +203,7 @@ Status MemLog::PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
   slash::MutexLock l_logs(&logs_mu_);
   int index = InternalFindLogIndex(offset);
   if (index < 0) {
-    return Status::Corruption("Cant find correct index");
+    return Status::NotFound("Cant find correct index");
   }
   logs->assign(logs_.begin(), logs_.begin() + index + 1);
   logs_.erase(logs_.begin(), logs_.begin() + index + 1);
@@ -482,7 +482,10 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port,
   }
   if (need_update) {
     s = ScheduleApplyLog(updated_committed_index);
-    if (!s.ok()) {
+    // updateslave could be invoked by many thread
+    // not found means a late offset pass in ScheduleApplyLog
+    // an early offset is not found
+    if (!s.ok() && !s.IsNotFound()) {
       return s;
     }
   }
@@ -520,6 +523,8 @@ Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item,
 }
 
 Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) {
+  // logs from PurdgeLogs goes to InternalApply in order
+  slash::MutexLock l(&order_mu_);
   std::vector<MemLog::LogItem> logs;
   Status s = mem_logger_->PurdgeLogs(committed_index, &logs);
   if (!s.ok()) {
@@ -533,6 +538,8 @@ Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) 
 }
 
 Status ConsensusCoordinator::ScheduleApplyFollowerLog(const LogOffset& committed_index) {
+  // logs from PurdgeLogs goes to InternalApply in order
+  slash::MutexLock l(&order_mu_);
   std::vector<MemLog::LogItem> logs;
   Status s = mem_logger_->PurdgeLogs(committed_index, &logs);
   if (!s.ok()) {

@@ -230,6 +230,9 @@ class ConsensusCoordinator {
       const BinlogOffset& start_offset, uint64_t target_index, LogOffset* found_offset);
   Status GetLogsBefore(const BinlogOffset& start_offset, std::vector<LogOffset>* hints);
 
+  // keep members in this class works in order
+  slash::Mutex order_mu_;
+
   slash::Mutex index_mu_;
   LogOffset committed_index_;
 
