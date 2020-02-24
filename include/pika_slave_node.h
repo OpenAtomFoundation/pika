@@ -50,6 +50,11 @@ class SyncWindow {
   std::size_t GetTotalBinglogSize() {
     return total_size_;
   }
+  void Reset() {
+    win_.clear();
+    total_size_ = 0;
+  }
+
  private:
   // TODO(whoiami) ring buffer maybe
   std::deque<SyncWinItem> win_;

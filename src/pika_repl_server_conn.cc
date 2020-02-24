@@ -113,15 +113,11 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
 
   if (pre_success && req->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
+    // need to response to outdated pb, new follower count on this response to update term
     if (meta.term() > partition->ConsensusTerm()) {
       LOG(INFO) << "Update " << partition_name
         << " term from " << partition->ConsensusTerm() << " to " << meta.term();
       partition->ConsensusUpdateTerm(meta.term());
-    } else if (meta.term() < partition->ConsensusTerm()) /*outdated pb*/{
-      LOG(WARNING) << "Drop outdated trysync req " << " partition: " << partition_name
-        << " recv term: " << meta.term()  << " local term: " << partition->ConsensusTerm();
-      delete task_arg;
-      return;
     }
     pre_success = TrySyncConsensusOffsetCheck(partition, req->consensus_meta(), &response, try_sync_response);
   } else if (pre_success) {
@@ -206,12 +202,14 @@ bool PikaReplServerConn::TrySyncConsensusOffsetCheck(
       try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
       return false;
     } else {
+      LOG(WARNING) << "Partition:" << partition_name << " error " << s.ToString();
       try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
       return false;
     }
   }
   try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
-  BuildConsensusMeta(reject, hints, response);
+  uint32_t term = partition->ConsensusTerm();
+  BuildConsensusMeta(reject, hints, term, response);
   if (reject) {
     return false;
   }
@@ -273,10 +271,12 @@ bool PikaReplServerConn::TrySyncOffsetCheck(
 void PikaReplServerConn::BuildConsensusMeta(
     const bool& reject,
     const std::vector<LogOffset>& hints,
+    const uint32_t& term,
     InnerMessage::InnerResponse* response) {
   InnerMessage::ConsensusMeta* consensus_meta = response->mutable_consensus_meta();
+  consensus_meta->set_term(term);
   consensus_meta->set_reject(reject);
-  if (reject) {
+  if (!reject) {
     return;
   }
   for (auto hint : hints) {

@@ -205,12 +205,12 @@ bool Partition::TryUpdateMasterOffset() {
   }
   std::string line, master_ip;
   int lineno = 0;
-  int64_t filenum = 0, offset = 0, tmp = 0, master_port = 0;
+  int64_t filenum = 0, offset = 0, term = 0, index = 0, tmp = 0, master_port = 0;
   while (std::getline(is, line)) {
     lineno++;
     if (lineno == 2) {
       master_ip = line;
-    } else if (lineno > 2 && lineno < 6) {
+    } else if (lineno > 2 && lineno < 8) {
       if (!slash::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
         LOG(WARNING) << "Partition: " << partition_name_
             << ", Format of info file after db sync error, line : " << line;
@@ -220,9 +220,10 @@ bool Partition::TryUpdateMasterOffset() {
       }
       if (lineno == 3) { master_port = tmp; }
       else if (lineno == 4) { filenum = tmp; }
-      else { offset = tmp; }
-
-    } else if (lineno > 5) {
+      else if (lineno == 5) { offset = tmp; }
+      else if (lineno == 6) { term = tmp; }
+      else if (lineno == 7) { index = tmp; }
+    } else if (lineno > 8) {
       LOG(WARNING) << "Partition: " << partition_name_
           << ", Format of info file after db sync error, line : " << line;
       is.close();
@@ -236,7 +237,9 @@ bool Partition::TryUpdateMasterOffset() {
       << ",  master_ip: " << master_ip
       << ", master_port: " << master_port
       << ", filenum: " << filenum
-      << ", offset: " << offset;
+      << ", offset: " << offset
+      << ", term: " << term
+      << ", index: " << index;
 
   // Sanity check
   if (master_ip != slave_partition->MasterIp()
@@ -262,7 +265,12 @@ bool Partition::TryUpdateMasterOffset() {
     LOG(WARNING) << "Master Partition: " << partition_name_ << " not exist";
     return false;
   }
-  master_partition->Logger()->SetProducerStatus(filenum, offset);
+  if (g_pika_conf->consensus_level() != 0) {
+    master_partition->ConsensusReset(
+        LogOffset(BinlogOffset(filenum, offset), LogicOffset(term, index)));
+  } else {
+    master_partition->Logger()->SetProducerStatus(filenum, offset);
+  }
   slave_partition->SetReplState(ReplState::kTryConnect);
   return true;
 }
@@ -342,8 +350,12 @@ void Partition::DoBgSave(void* arg) {
     out << (time(NULL) - info.start_time) << "s\n"
       << g_pika_server->host() << "\n"
       << g_pika_server->port() << "\n"
-      << info.filenum << "\n"
-      << info.offset << "\n";
+      << info.offset.b_offset.filenum << "\n"
+      << info.offset.b_offset.offset << "\n";
+    if (g_pika_conf->consensus_level() != 0) {
+      out << info.offset.l_offset.term << "\n"
+          << info.offset.l_offset.index << "\n";
+    }
     out.close();
   }
   if (!success) {
@@ -365,8 +377,8 @@ bool Partition::RunBgsaveEngine() {
 
   BgSaveInfo info = bgsave_info();
   LOG(INFO) << partition_name_ << " bgsave_info: path=" << info.path
-    << ",  filenum=" << info.filenum
-    << ", offset=" << info.offset;
+    << ",  filenum=" << info.offset.b_offset.filenum
+    << ", offset=" << info.offset.b_offset.offset;
 
   // Backup to tmp dir
   rocksdb::Status s = bgsave_engine_->CreateNewBackup(info.path);
@@ -419,9 +431,16 @@ bool Partition::InitBgsaveEngine() {
 
   {
     RWLock l(&db_rwlock_, true);
+    LogOffset bgsave_offset;
+    if (g_pika_conf->consensus_level() != 0) {
+      bgsave_offset = partition->ConsensusAppliedIndex();
+    } else {
+      // term, index are 0
+      partition->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum), &(bgsave_offset.b_offset.offset));
+    }
     {
       slash::MutexLock l(&bgsave_protector_);
-      partition->Logger()->GetProducerStatus(&bgsave_info_.filenum, &bgsave_info_.offset);
+      bgsave_info_.offset = bgsave_offset;
     }
     s = bgsave_engine_->SetBackupContent();
     if (!s.ok()) {

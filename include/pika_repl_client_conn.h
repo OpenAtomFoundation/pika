@@ -26,7 +26,7 @@ class PikaReplClientConn: public pink::PbConn {
   static void HandleTrySyncResponse(void* arg);
   static void HandleRemoveSlaveNodeResponse(void* arg);
 
-  static bool TrySyncConsensusCheck(
+  static Status TrySyncConsensusCheck(
       const InnerMessage::ConsensusMeta& consensus_meta,
       const std::shared_ptr<SyncMasterPartition>& partition,
       const std::shared_ptr<SyncSlavePartition>& slave_partition);

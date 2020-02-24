@@ -22,6 +22,7 @@ class Context {
   Status StableSave();
   void PrepareUpdateAppliedIndex(const LogOffset& offset);
   void UpdateAppliedIndex(const LogOffset& offset);
+  void Reset(const LogOffset& applied_index);
 
   pthread_rwlock_t rwlock_;
   LogOffset applied_index_;
@@ -91,6 +92,9 @@ class MemLog {
   }
   Status PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
+  Status TruncateTo(const LogOffset& offset);
+
+  void  Reset(const LogOffset& offset);
 
   LogOffset last_offset() {
     slash::MutexLock l_logs(&logs_mu_);
@@ -115,6 +119,8 @@ class ConsensusCoordinator {
   ~ConsensusCoordinator();
   // since it is invoked in constructor all locks not hold
   void Init();
+  // invoked by dbsync process
+  Status Reset(const LogOffset& offset);
 
   Status ProposeLog(
       std::shared_ptr<Cmd> cmd_ptr,
@@ -153,6 +159,11 @@ class ConsensusCoordinator {
     return committed_index_;
   }
 
+  LogOffset applied_index() {
+    slash::RWLock l(&context_->rwlock_, false);
+    return context_->applied_index_;
+  }
+
   std::shared_ptr<Context> context() {
     return context_;
   }
@@ -178,6 +189,12 @@ class ConsensusCoordinator {
     }
     tmp_stream << "  Mem_logger size: " << mem_logger_->Size() <<
       " last offset " << mem_logger_->last_offset().ToString() << "\r\n";
+    tmp_stream << "  Stable_logger first offset " << stable_logger_->first_offset().ToString() << "\r\n";
+    LogOffset log_status;
+    stable_logger_->Logger()->GetProducerStatus(
+        &(log_status.b_offset.filenum), &(log_status.b_offset.offset),
+        &(log_status.l_offset.term), &(log_status.l_offset.index));
+    tmp_stream << "  Physical Binlog Status: " << log_status.ToString();
     return tmp_stream.str();
   }
 
@@ -185,6 +202,7 @@ class ConsensusCoordinator {
   Status ScheduleApplyLog(const LogOffset& committed_index);
   Status ScheduleApplyFollowerLog(const LogOffset& committed_index);
   bool MatchConsensusLevel();
+  Status TruncateTo(const LogOffset& offset);
 
   Status InternalAppendLog(const BinlogItem& item,
       std::shared_ptr<Cmd> cmd_ptr,
@@ -198,7 +216,7 @@ class ConsensusCoordinator {
   bool InternalUpdateCommittedIndex(const LogOffset& slaves_committed_index,
       LogOffset* updated_committed_index);
 
-  Status TryGetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);
+  Status GetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);
   Status GetBinlogOffset(
       const BinlogOffset& start_offset,
       const BinlogOffset& end_offset, std::vector<LogOffset>* log_offset);
@@ -211,6 +229,9 @@ class ConsensusCoordinator {
   Status FindLogicOffset(
       const BinlogOffset& start_offset, uint64_t target_index, LogOffset* found_offset);
   Status GetLogsBefore(const BinlogOffset& start_offset, std::vector<LogOffset>* hints);
+
+  // keep members in this class works in order
+  slash::Mutex order_mu_;
 
   slash::Mutex index_mu_;
   LogOffset committed_index_;
