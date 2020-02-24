@@ -700,8 +700,6 @@ void PikaServer::DeleteSlave(int fd) {
         ip = iter->ip;
         port = iter->port;
         is_find = true;
-        g_pika_rm->LostConnection(iter->ip, iter->port);
-        g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
         LOG(INFO) << "Delete Slave Success, ip_port: " << iter->ip << ":" << iter->port;
         slaves_.erase(iter);
         break;
