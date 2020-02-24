@@ -552,7 +552,8 @@ void Cmd::Execute() {
     ProcessFlushAllCmd();
   } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
     ProcessDoNotSpecifyPartitionCmd();
-  } else if (is_single_partition() || g_pika_conf->classic_mode()) {
+  } else if (is_single_partition() ||
+      (g_pika_conf->classic_mode() && g_pika_conf->consensus_level() == 0)) {
     ProcessSinglePartitionCmd();
   } else if (is_multi_partition()) {
     ProcessMultiPartitionCmd();
