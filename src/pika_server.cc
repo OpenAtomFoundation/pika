@@ -700,8 +700,6 @@ void PikaServer::DeleteSlave(int fd) {
         ip = iter->ip;
         port = iter->port;
         is_find = true;
-        g_pika_rm->LostConnection(iter->ip, iter->port);
-        g_pika_rm->DropItemInWriteQueue(iter->ip, iter->port);
         LOG(INFO) << "Delete Slave Success, ip_port: " << iter->ip << ":" << iter->port;
         slaves_.erase(iter);
         break;
@@ -1012,8 +1010,8 @@ void PikaServer::TryDBSync(const std::string& ip, int port,
   BgSaveInfo bgsave_info = partition->bgsave_info();
   std::string logger_filename = sync_partition->Logger()->filename();
   if (slash::IsDir(bgsave_info.path) != 0
-    || !slash::FileExists(NewFileName(logger_filename, bgsave_info.filenum))
-    || top - bgsave_info.filenum > kDBSyncMaxGap) {
+    || !slash::FileExists(NewFileName(logger_filename, bgsave_info.offset.b_offset.filenum))
+    || top - bgsave_info.offset.b_offset.filenum > kDBSyncMaxGap) {
     // Need Bgsave first
     partition->BgSavePartition();
   }
@@ -1032,8 +1030,10 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
 
   BgSaveInfo bgsave_info = partition->bgsave_info();
   std::string bg_path = bgsave_info.path;
-  uint32_t binlog_filenum = bgsave_info.filenum;
-  uint64_t binlog_offset = bgsave_info.offset;
+  uint32_t binlog_filenum = bgsave_info.offset.b_offset.filenum;
+  uint64_t binlog_offset = bgsave_info.offset.b_offset.offset;
+  uint32_t term = bgsave_info.offset.l_offset.term;
+  uint64_t index = bgsave_info.offset.l_offset.index;
 
   // Get all files need to send
   std::vector<std::string> descendant;
@@ -1116,6 +1116,9 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
       fix.open(fn, std::ios::in | std::ios::trunc);
       if (fix.is_open()) {
         fix << "0s\n" << lip << "\n" << port_ << "\n" << binlog_filenum << "\n" << binlog_offset << "\n";
+        if (g_pika_conf->consensus_level() != 0) {
+          fix << term << "\n" << index << "\n";
+        }
         fix.close();
       }
       ret = slash::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);

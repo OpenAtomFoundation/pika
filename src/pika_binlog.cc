@@ -162,7 +162,7 @@ void Binlog::InitLogFile() {
 }
 
 Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset,
-    uint64_t* logic_id, uint32_t* term) {
+    uint32_t* term, uint64_t* logic_id) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");
   }
@@ -351,7 +351,7 @@ Status Binlog::AppendPadding(slash::WritableFile* file, uint64_t* len) {
   return s;
 }
 
-Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
+Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset, uint32_t term, uint64_t index) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");
   }
@@ -384,6 +384,8 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
     slash::RWLock(&(version_->rwlock_), true);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
+    version_->term_ = term;
+    version_->logic_id_ = index;
     version_->StableSave();
   }
 
@@ -392,8 +394,6 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
 }
 
 Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset) {
-  slash::MutexLock l(&mutex_);
-
   delete  queue_;
   std::string profile = NewFileName(filename_, pro_num);
   const int fd = open(profile.c_str(), O_RDWR | O_CLOEXEC, 0644);
