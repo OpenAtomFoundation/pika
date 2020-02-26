@@ -226,15 +226,16 @@ Status StableLog::PurgeFileAfter(uint32_t filenum) {
       if (!s.ok()) {
         return s;
       }
+      LOG(WARNING) << "Delete file " << log_path_ + it.second;
     }
   }
   return Status::OK();
 }
 
-Status StableLog::TruncateTo(uint32_t filenum, uint64_t offset) {
-  Status s = PurgeFileAfter(filenum);
+Status StableLog::TruncateTo(const LogOffset& offset) {
+  Status s = PurgeFileAfter(offset.b_offset.filenum);
   if (!s.ok()) {
     return s;
   }
-  return stable_logger_->Truncate(filenum, offset);
+  return stable_logger_->Truncate(offset.b_offset.filenum, offset.b_offset.offset, offset.l_offset.index);
 }

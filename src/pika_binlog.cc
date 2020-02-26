@@ -393,8 +393,8 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset, uint32_t
   return Status::OK();
 }
 
-Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset) {
-  delete  queue_;
+Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index) {
+  delete queue_;
   std::string profile = NewFileName(filename_, pro_num);
   const int fd = open(profile.c_str(), O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
@@ -403,18 +403,20 @@ Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset) {
   if (ftruncate(fd, pro_offset)) {
     return Status::IOError("ftruncate failed");
   }
-
-  Status s = slash::NewWritableFile(profile, &queue_);
-  if (!s.ok()) {
-    return s;
-  }
+  close(fd);
 
   pro_num_ = pro_num;
   {
     slash::RWLock(&(version_->rwlock_), true);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
+    version_->logic_id_ = index;
     version_->StableSave();
+  }
+
+  Status s = slash::AppendWritableFile(profile, &queue_, version_->pro_offset_);
+  if (!s.ok()) {
+    return s;
   }
 
   InitLogFile();
