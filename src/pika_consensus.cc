@@ -217,6 +217,7 @@ Status MemLog::TruncateTo(const LogOffset& offset) {
   if (index < 0) {
     return Status::Corruption("Cant find correct index");
   }
+  last_offset_ = logs_[index].offset;
   logs_.erase(logs_.begin() + index + 1, logs_.end());
   return Status::OK();
 }
@@ -630,18 +631,24 @@ int ConsensusCoordinator::InitCmd(pink::RedisParser* parser, const pink::RedisCm
 
 Status ConsensusCoordinator::TruncateTo(const LogOffset& offset) {
   LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "Truncate to " << offset.ToString();
+  LogOffset founded_offset;
+  Status s = FindLogicOffset(offset.b_offset, offset.l_offset.index, &founded_offset);
+  if (!s.ok()) {
+    return s;
+  }
+  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << " Founded truncate pos " << founded_offset.ToString();
   LogOffset committed = committed_index();
   stable_logger_->Logger()->Lock();
-  if (offset.l_offset.index == committed.l_offset.index) {
+  if (founded_offset.l_offset.index == committed.l_offset.index) {
     mem_logger_->Reset(committed);
   } else {
-    Status s  = mem_logger_->TruncateTo(offset);
+    Status s  = mem_logger_->TruncateTo(founded_offset);
     if (!s.ok()) {
       stable_logger_->Logger()->Unlock();
       return s;
     }
   }
-  Status s = stable_logger_->TruncateTo(offset.b_offset.filenum, offset.b_offset.offset);
+  s = stable_logger_->TruncateTo(founded_offset);
   if (!s.ok()) {
     stable_logger_->Logger()->Unlock();
     return s;
@@ -929,7 +936,7 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
   LogOffset committed = committed_index();
   for (int i = hints.size() - 1; i >= 0; i--) {
     if (hints[i].l_offset.index < committed.l_offset.index) {
-      return Status::Corruption("hints not found");
+      return Status::Corruption("hints less than committed index");
     }
     if (hints[i].l_offset.index == committed.l_offset.index) {
       if (hints[i].l_offset.term == committed.l_offset.term) {
