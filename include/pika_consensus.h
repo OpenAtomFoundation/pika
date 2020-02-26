@@ -194,7 +194,7 @@ class ConsensusCoordinator {
     stable_logger_->Logger()->GetProducerStatus(
         &(log_status.b_offset.filenum), &(log_status.b_offset.offset),
         &(log_status.l_offset.term), &(log_status.l_offset.index));
-    tmp_stream << "  Physical Binlog Status: " << log_status.ToString();
+    tmp_stream << "  Physical Binlog Status: " << log_status.ToString() << "\r\n";
     return tmp_stream.str();
   }
 

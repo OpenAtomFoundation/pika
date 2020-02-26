@@ -66,7 +66,7 @@ class Binlog {
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset, uint32_t term = 0, uint64_t index = 0);
   // Need to hold Lock();
-  Status Truncate(uint32_t pro_num, uint64_t pro_offset);
+  Status Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index);
 
   uint64_t file_size() {
     return file_size_;
