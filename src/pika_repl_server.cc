@@ -78,7 +78,6 @@ slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
     }
     return slash::Status::OK();
   }
-
   return Write(ip, port, binlog_chip_pb);
 }
 
@@ -94,7 +93,14 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks,
     InnerMessage::InnerResponse* response) {
   response->set_code(InnerMessage::kOk);
   response->set_type(InnerMessage::Type::kBinlogSync);
+  LogOffset prev_offset;
+  bool founded = false;
   for (const auto& task :tasks) {
+    if (!task.binlog_chip_.binlog_.empty() && !founded) {
+      // find the first not keepalive prev_offset
+      prev_offset = task.prev_offset_;
+      founded = true;
+    }
     InnerMessage::InnerResponse::BinlogSync* binlog_sync = response->add_binlog_sync();
     binlog_sync->set_session_id(task.rm_node_.SessionId());
     InnerMessage::Partition* partition = binlog_sync->mutable_partition();
@@ -105,14 +111,14 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks,
     binlog_sync->set_binlog(task.binlog_chip_.binlog_);
   }
   if (g_pika_conf->consensus_level() > 0) {
-    LogOffset prev_offset;
     PartitionInfo p_info;
     if (!tasks.empty()) {
-      prev_offset = tasks[0].prev_offset_;
       p_info = tasks[0].rm_node_.NodePartitionInfo();
     } else {
+      LOG(WARNING) << "Task size is zero";
       return;
     }
+
     // write consensus_meta
     InnerMessage::ConsensusMeta* consensus_meta
       = response->mutable_consensus_meta();

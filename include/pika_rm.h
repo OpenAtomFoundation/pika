@@ -25,7 +25,7 @@
 #define kBinlogSendBatchNum 100
 
 // unit seconds
-#define kSendKeepAliveTimeout (10 * 1000000)
+#define kSendKeepAliveTimeout (2 * 1000000)
 #define kRecvKeepAliveTimeout (20 * 1000000)
 
 using slash::Status;
