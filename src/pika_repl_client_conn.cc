@@ -209,6 +209,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     return;
   }
 
+  LogicOffset logic_last_offset;
   if (response->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = response->consensus_meta();
     if (meta.term() > partition->ConsensusTerm()) {
@@ -231,6 +232,8 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
       delete task_arg;
       return;
     }
+
+    logic_last_offset = partition->ConsensusLastIndex().l_offset;
   }
 
   std::string partition_name = partition->PartitionName();
@@ -239,7 +242,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     int32_t session_id = try_sync_response.session_id();
     partition->Logger()->GetProducerStatus(&boffset.filenum, &boffset.offset);
     slave_partition->SetMasterSessionId(session_id);
-    LogOffset offset(boffset, LogicOffset());
+    LogOffset offset(boffset, logic_last_offset);
     g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, offset, offset, true);
     slave_partition->SetReplState(ReplState::kConnected);
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";

@@ -107,6 +107,14 @@ struct LogicOffset {
     term = other.term;
     index = other.index;
   }
+  bool operator==(const LogicOffset& other) const {
+    return term == other.term && index == other.index;
+  }
+  bool operator!=(const LogicOffset& other) const {
+    return term != other.term || index != other.index;
+  }
+
+
   std::string ToString() const {
     return "term: " + std::to_string(term) + " index: " + std::to_string(index);
   }
@@ -132,6 +140,13 @@ struct BinlogOffset {
     }
     return false;
   }
+  bool operator!=(const BinlogOffset& other) const {
+    if (filenum != other.filenum || offset != other.offset) {
+      return true;
+    }
+    return false;
+  }
+
   bool operator>(const BinlogOffset& other) const {
     if (filenum > other.filenum
         || (filenum == other.filenum && offset > other.offset)) {
