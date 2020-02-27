@@ -63,7 +63,9 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
   std::string table_name;
   uint32_t partition_id = 0;
-  LogOffset ack_start, ack_end;
+  LogOffset pb_begin, pb_end;
+  bool only_keepalive = false;
+
   // find the first not keepalive binlogsync
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
@@ -72,18 +74,51 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       partition_id = binlog_res.partition().partition_id();
     }
     if (!binlog_res.binlog().empty()) {
-      ParseBinlogOffset(binlog_res.binlog_offset(), &ack_start);
+      ParseBinlogOffset(binlog_res.binlog_offset(), &pb_begin);
       break;
     }
   }
+
+  // find the last not keepalive binlogsync
+  for (int i = index->size() - 1; i >= 0; i--) {
+    const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
+    if (!binlog_res.binlog().empty()) {
+      ParseBinlogOffset(binlog_res.binlog_offset(), &pb_end);
+      break;
+    }
+  }
+
+  if (pb_begin == LogOffset()) {
+    only_keepalive = true;
+  }
+
+  LogOffset ack_start;
+  if (only_keepalive) {
+    ack_start = LogOffset();
+  } else {
+    ack_start = pb_begin;
+  }
+
   // table_name and partition_id in the vector are same in the bgworker,
   // because DispatchBinlogRes() have been order them. 
   worker->table_name_ = table_name;
   worker->partition_id_ = partition_id;
 
-  std::shared_ptr<SyncMasterPartition> partition = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  std::shared_ptr<SyncMasterPartition> partition =
+    g_pika_rm->GetSyncMasterPartitionByName(
+        PartitionInfo(table_name, partition_id));
   if (!partition) {
     LOG(WARNING) << "Partition " << table_name << "_" << partition_id << " Not Found";
+    delete index;
+    delete task_arg;
+    return;
+  }
+
+  std::shared_ptr<SyncSlavePartition> slave_partition =
+    g_pika_rm->GetSyncSlavePartitionByName(
+        PartitionInfo(table_name, partition_id));
+  if (!slave_partition) {
+    LOG(WARNING) << "Slave Partition " << table_name << "_" << partition_id << " Not Found";
     delete index;
     delete task_arg;
     return;
@@ -102,16 +137,21 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       delete task_arg;
       return;
     }
-  }
-
-  std::shared_ptr<SyncSlavePartition> slave_partition =
-    g_pika_rm->GetSyncSlavePartitionByName(
-        PartitionInfo(table_name, partition_id));
-  if (!slave_partition) {
-    LOG(WARNING) << "Slave Partition " << table_name << "_" << partition_id << " Not Found";
-    delete index;
-    delete task_arg;
-    return;
+    if (!only_keepalive) {
+      LogOffset last_offset = partition->ConsensusLastIndex();
+      LogOffset prev_offset;
+      ParseBinlogOffset(res->consensus_meta().log_offset(), &prev_offset);
+      if (last_offset.l_offset.index != 0 &&
+          (last_offset.l_offset != prev_offset.l_offset
+          || last_offset.b_offset != prev_offset.b_offset)) {
+        LOG(WARNING) << "last_offset " << last_offset.ToString() <<
+          " NOT equal to pb prev_offset " << prev_offset.ToString();
+        slave_partition->SetReplState(ReplState::kTryConnect);
+        delete index;
+        delete task_arg;
+        return;
+      }
+    }
   }
 
   for (size_t i = 0; i < index->size(); ++i) {
@@ -175,15 +215,19 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     partition->ConsensusProcessLocalUpdate(leader_commit);
   }
 
-  // Reply Ack to master immediately
-  std::shared_ptr<Binlog> logger = partition->Logger();
-  logger->GetProducerStatus(&ack_end.b_offset.filenum, &ack_end.b_offset.offset,
-      &ack_end.l_offset.term, &ack_end.l_offset.index);
-  // keepalive case
-  if (ack_start.b_offset == BinlogOffset()) {
-    // set ack_end as 0
-    ack_end = ack_start;
+  LogOffset ack_end;
+  if (only_keepalive) {
+    ack_end = LogOffset();
+  } else {
+    LogOffset productor_status;
+    // Reply Ack to master immediately
+    std::shared_ptr<Binlog> logger = partition->Logger();
+    logger->GetProducerStatus(&productor_status.b_offset.filenum, &productor_status.b_offset.offset,
+      &productor_status.l_offset.term, &productor_status.l_offset.index);
+    ack_end = productor_status;
+    ack_end.l_offset.term = pb_end.l_offset.term;
   }
+
   g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, ack_start, ack_end);
 }
 
