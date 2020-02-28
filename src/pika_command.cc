@@ -72,6 +72,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePadding, paddingptr));
   Cmd* pkpatternmatchdelptr = new PKPatternMatchDelCmd(kCmdNamePKPatternMatchDel, 3, kCmdFlagsWrite | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKPatternMatchDel, pkpatternmatchdelptr));
+  Cmd* dummyptr = new DummyCmd(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSinglePartition);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdDummy, dummyptr));
 
   // Slots related
   Cmd* slotsinfoptr = new SlotsInfoCmd(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
@@ -692,7 +694,8 @@ void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
     && g_pika_conf->write_binlog()) {
     std::shared_ptr<pink::PinkConn> conn_ptr = GetConn();
     std::shared_ptr<std::string> resp_ptr = GetResp();
-    if (!conn_ptr || !resp_ptr) {
+    // Consider that dummy cmd appended by system, both conn and resp are null.
+    /* if (!conn_ptr || !resp_ptr) {
       if (!conn_ptr) {
         LOG(WARNING) << partition->SyncPartitionInfo().ToString() << " conn empty.";
       }
@@ -701,7 +704,7 @@ void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
       }
       res().SetRes(CmdRes::kErrOther);
       return;
-    }
+    } */
 
     Status s = partition->ConsensusProposeLog(shared_from_this(),
         std::dynamic_pointer_cast<PikaClientConn>(conn_ptr), resp_ptr);

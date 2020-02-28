@@ -35,7 +35,7 @@ class SyncWindow {
   }
   void Push(const SyncWinItem& item);
   bool Update(const SyncWinItem& start_item, const SyncWinItem& end_item, LogOffset* acked_offset);
-  int Remainings();
+  int Remaining();
   std::string ToStringStatus() const {
     if (win_.empty()) {
       return "      Size: " + std::to_string(win_.size()) + "\r\n";
@@ -47,7 +47,7 @@ class SyncWindow {
       return res;
     }
   }
-  std::size_t GetTotalBinglogSize() {
+  std::size_t GetTotalBinlogSize() {
     return total_size_;
   }
   void Reset() {

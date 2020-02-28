@@ -406,7 +406,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
     return;
   }
 
-  if (req->has_consensus_meta()){
+  if (req->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
     if (meta.term() > master_partition->ConsensusTerm()) {
       LOG(INFO) << "Update " << table_name << ":" << partition_id

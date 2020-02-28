@@ -459,7 +459,9 @@ class PKPatternMatchDelCmd : public Cmd {
 
 class DummyCmd : public Cmd {
  public:
-  DummyCmd() : Cmd("DummyCmd", 0, 0) {}
+  DummyCmd() : Cmd("", 0, 0) {}
+  DummyCmd(const std::string& name, int arity, uint16_t flag)
+     : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual Cmd* Clone() override {
     return new DummyCmd(*this);

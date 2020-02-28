@@ -90,7 +90,7 @@ class MemLog {
     logs_.push_back(item);
     last_offset_ = item.offset;
   }
-  Status PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
+  Status PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
   Status TruncateTo(const LogOffset& offset);
 
