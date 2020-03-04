@@ -182,7 +182,7 @@ class ConsensusCoordinator {
       slash::MutexLock l(&index_mu_);
       tmp_stream << "  Committed_index: " << committed_index_.ToString() << "\r\n";
     }
-    tmp_stream << "  Contex: " << "\r\n" << context_->ToString();
+    tmp_stream << "  Context: " << "\r\n" << context_->ToString();
     {
       slash::RWLock l(&term_rwlock_, false);
       tmp_stream << "  Term: " << term_ << "\r\n";

@@ -198,7 +198,7 @@ int MemLog::Size() {
   return static_cast<int>(logs_.size());
 }
 
-// purdge [begin, offset]
+// purge [begin, offset]
 Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
   slash::MutexLock l_logs(&logs_mu_);
   int index = InternalFindLogIndex(offset);
@@ -217,6 +217,7 @@ Status MemLog::TruncateTo(const LogOffset& offset) {
   if (index < 0) {
     return Status::Corruption("Cant find correct index");
   }
+  last_offset_ = logs_[index].offset;
   logs_.erase(logs_.begin() + index + 1, logs_.end());
   return Status::OK();
 }
@@ -934,7 +935,7 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
   LogOffset committed = committed_index();
   for (int i = hints.size() - 1; i >= 0; i--) {
     if (hints[i].l_offset.index < committed.l_offset.index) {
-      return Status::Corruption("hints not found");
+      return Status::Corruption("hints less than committed index");
     }
     if (hints[i].l_offset.index == committed.l_offset.index) {
       if (hints[i].l_offset.term == committed.l_offset.term) {
@@ -949,7 +950,7 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
     LogOffset found_offset;
     bool res = mem_logger_->FindLogItem(hints[i], &found_offset);
     if (!res) {
-      return Status::Corruption("hints less than committed index");
+      return Status::Corruption("hints not found");
     }
     if (found_offset.l_offset.term == hints[i].l_offset.term) {
       // trunk to found_offsett

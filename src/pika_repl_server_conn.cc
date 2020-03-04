@@ -442,7 +442,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   }
 
   if (is_first_send) {
-    if (!(range_start.b_offset == range_end.b_offset)) {
+    if (range_start.b_offset != range_end.b_offset) {
       LOG(WARNING) << "first binlogsync request pb argument invalid";
       conn->NotifyClose();
       delete task_arg;

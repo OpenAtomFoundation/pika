@@ -110,8 +110,6 @@ class SyncMasterPartition : public SyncPartition {
       const std::vector<LogOffset>& hints, LogOffset* reply_offset);
   Status ConsensusReset(LogOffset applied_offset);
   void CommitPreviousLogs(const uint32_t& term);
-  bool HasUncommittedLogs(const uint32_t& term);
-  void AppendDummyLog();
 
   std::shared_ptr<StableLog> StableLogger() {
     return coordinator_.StableLogger();

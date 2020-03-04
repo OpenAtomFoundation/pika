@@ -515,39 +515,19 @@ uint32_t SyncMasterPartition::ConsensusTerm() {
 
 void SyncMasterPartition::ConsensusUpdateTerm(uint32_t term) {
   coordinator_.UpdateTerm(term);
-  CommitPreviousLogs(term);
+  if (g_pika_server->role() & PIKA_ROLE_MASTER) {
+    CommitPreviousLogs(term);
+  }
 }
 
 void SyncMasterPartition::CommitPreviousLogs(const uint32_t& term) {
-  if (HasUncommittedLogs(term)) {
-    AppendDummyLog();
-  }
-}
-
-bool SyncMasterPartition::HasUncommittedLogs(const uint32_t& current_term) {
-  //Get current logic_id
-  uint32_t filenum = 0, term = 0;
-  uint64_t offset = 0, logic_id = 0;
-  std::shared_ptr<StableLog> stable_log = StableLogger();
-  stable_log->Logger()->Lock();
-  Status s = stable_log->Logger()->GetProducerStatus(&filenum, &offset, &term, &logic_id);
-  if (!s.ok()) {
-    stable_log->Logger()->Unlock();
-    return true;
-  }
-  LogOffset current_index = LogOffset(BinlogOffset(filenum, offset), LogicOffset(term, logic_id));
-
-  //Get commit index
-  LogOffset committed_index = ConsensusCommittedIndex();
-  return committed_index < current_index;
-}
-
-void SyncMasterPartition::AppendDummyLog() {
+  // Append dummy cmd
   std::shared_ptr<Cmd> dummy = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite);
   PikaCmdArgsType args;
   dummy->Initial(args, SyncPartitionInfo().table_name_);
   dummy->SetStage(Cmd::kBinlogStage);
   dummy->Execute();
+  dummy->SetStage(Cmd::kExecuteStage);
 }
 
 std::shared_ptr<SlaveNode> SyncMasterPartition::GetSlaveNode(const std::string& ip, int port) {
