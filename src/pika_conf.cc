@@ -139,6 +139,12 @@ int PikaConf::Load()
 
   int tmp_consensus_level = 0;
   GetConfInt("consensus-level", &tmp_consensus_level);
+  if (tmp_consensus_level != 0 &&
+      tmp_consensus_level != 1 &&
+      tmp_consensus_level != 2) {
+    LOG(FATAL) << "consensus-level " << tmp_consensus_level <<
+      " is invalid, please pick one of [0, 1, 2]";
+  }
   consensus_level_.store(tmp_consensus_level);
 
   GetConfInt("slowlog-max-len", &slowlog_max_len_);
