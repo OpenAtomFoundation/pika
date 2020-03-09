@@ -264,3 +264,31 @@ std::shared_ptr<Partition> Table::GetPartitionByKey(const std::string& key) {
   auto iter = partitions_.find(index);
   return (iter == partitions_.end()) ? NULL : iter->second;
 }
+
+bool Table::TableIsEmpty() {
+  slash::RWLock rwl(&partitions_rw_, false);
+  return partitions_.empty();
+}
+
+Status Table::Leave() {
+  if (!TableIsEmpty()) {
+    return Status::Corruption("Table have partitions!");
+  }
+  return MovetoToTrash(db_path_);
+}
+
+Status Table::MovetoToTrash(const std::string& path) {
+
+  std::string path_tmp = path;
+  if (path_tmp[path_tmp.length() - 1] == '/') {
+    path_tmp.erase(path_tmp.length() - 1);
+  }
+  path_tmp += "_deleting/";
+  if (slash::RenameFile(path, path_tmp)) {
+    LOG(WARNING) << "Failed to move " << path  <<" to trash, error: " << strerror(errno);
+    return Status::Corruption("Failed to move %s to trash", path);
+  }
+  g_pika_server->PurgeDir(path_tmp);
+  LOG(WARNING) << path << " move to trash success";
+  return Status::OK();
+}

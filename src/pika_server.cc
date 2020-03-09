@@ -426,6 +426,36 @@ void PikaServer::InitTableStruct() {
   }
 }
 
+Status PikaServer::AddTableStruct(std::string table_name, uint32_t num) {
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name);
+  if (table) {
+    return Status::Corruption("table already exist");
+  }
+  std::string db_path = g_pika_conf->db_path();
+  std::string log_path = g_pika_conf->log_path();
+  std::shared_ptr<Table> table_ptr = std::make_shared<Table>(
+      table_name, num, db_path, log_path);
+  slash::RWLock rwl(&tables_rw_, true);
+  tables_.emplace(table_name, table_ptr);
+  return  Status::OK();
+}
+
+Status PikaServer::DelTableStruct(std::string table_name) {
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name);
+  if (!table) {
+    return Status::Corruption("table not found");
+  }
+  if (!table->TableIsEmpty()) {
+    return Status::Corruption("table have partitions");
+  }
+  Status s = table->Leave();
+  if (!s.ok()) {
+    return s;
+  }
+  tables_.erase(table_name);
+  return  Status::OK();
+}
+
 std::shared_ptr<Table> PikaServer::GetTable(const std::string &table_name) {
   slash::RWLock l(&tables_rw_, false);
   auto iter = tables_.find(table_name);

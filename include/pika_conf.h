@@ -93,6 +93,7 @@ class PikaConf : public slash::BaseConf {
   bool daemonize()                                  { return daemonize_; }
   std::string pidfile()                             { return pidfile_; }
   int binlog_file_size()                            { return binlog_file_size_; }
+  PikaMeta * local_meta()                           { return local_meta_; }
 
   // Setter
   void SetPort(const int value) {
@@ -248,6 +249,10 @@ class PikaConf : public slash::BaseConf {
                             const std::set<uint32_t>& partition_ids);
   Status RemoveTablePartitions(const std::string& table_name,
                                const std::set<uint32_t>& partition_ids);
+  Status AddTable(const std::string &table_name, uint32_t slot_num);
+  Status AddTableSanityCheck(const std::string &table_name);
+  Status DelTable(const std::string &table_name);
+  Status DelTableSanityCheck(const std::string &table_name);
 
   int Load();
   int ConfigRewrite();

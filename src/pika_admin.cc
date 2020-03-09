@@ -392,23 +392,23 @@ void SelectCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSelect);
     return;
   }
+  int index = atoi(argv_[1].data());
+  if (std::to_string(index) != argv_[1]) {
+    res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect);
+    return;
+  }
   if (g_pika_conf->classic_mode()) {
-    int index = atoi(argv_[1].data());
-    if (std::to_string(index) != argv_[1]) {
-      res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect);
-      return;
-    } else if (index < 0 || index >= g_pika_conf->databases()) {
+    if (index < 0 || index >= g_pika_conf->databases()) {
       res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
       return;
-    } else {
-      table_name_ = "db" + argv_[1];
     }
   } else {
     // only pika codis use sharding mode currently, but pika
     // codis only support single db, so in sharding mode we
     // do no thing in select command
-    table_name_ = g_pika_conf->default_table();
+  //  table_name_ = g_pika_conf->default_table();
   }
+  table_name_ = "db" + argv_[1];
   if (!g_pika_server->IsTableExist(table_name_)) {
     res_.SetRes(CmdRes::kInvalidTable, kCmdNameSelect);
     return;

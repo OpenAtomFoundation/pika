@@ -1260,6 +1260,41 @@ Status PikaReplicaManager::RemoveSyncPartition(
   return Status::OK();
 }
 
+Status PikaReplicaManager::SyncTableSanityCheck(const std::string& table_name) {
+  slash::RWLock l(&partitions_rw_, false);
+  for (const auto& master_partition : sync_master_partitions_) {
+    if (master_partition.first.table_name_ == table_name) {
+      LOG(WARNING) << "sync partition: " << master_partition.first.ToString() << " exist";
+      return Status::Corruption("sync partition " + master_partition.first.ToString()
+                                + " exist");
+    }
+  }
+  for (const auto& slave_partition : sync_slave_partitions_) {
+    if (slave_partition.first.table_name_ == table_name) {
+      LOG(WARNING) << "sync partition: " << slave_partition.first.ToString() << " exist";
+      return Status::Corruption("sync partition " + slave_partition.first.ToString()
+                                + " exist");
+    }
+  }
+  return Status::OK();
+}
+
+Status PikaReplicaManager::DelSyncTable(const std::string& table_name) {
+  Status s = SyncTableSanityCheck(table_name);
+  if (!s.ok()) {
+    return s;
+  }
+  std::string table_log_path = g_pika_conf->log_path() + "log_" + table_name ;
+  std::string table_log_path_tmp = table_log_path + "_deleting/";
+  if (slash::RenameFile(table_log_path, table_log_path_tmp)) {
+    LOG(WARNING) << "Failed to move log to trash, error: " << strerror(errno);
+    return Status::Corruption("Failed to move log to trash");
+  }
+  g_pika_server->PurgeDir(table_log_path_tmp);
+  LOG(WARNING) << "Partition StableLog: " << table_name << " move to trash success";
+  return Status::OK();
+}
+
 void PikaReplicaManager::FindCompleteReplica(std::vector<std::string>* replica) {
   std::unordered_map<std::string, size_t> replica_slotnum;
   slash::RWLock l(&partitions_rw_, false);
