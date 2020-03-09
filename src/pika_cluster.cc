@@ -633,20 +633,29 @@ void PkClusterDelTableCmd::DoInitial() {
     res_.SetRes(CmdRes::kErrOther, "PkClusterTable Cmd only support on sharding mode");
     return;
   }
-  if (!slash::string2ul(argv_[2].data(), argv_[2].size(), &table_id_)) {
+  uint64_t table_id;
+  if (!slash::string2ul(argv_[2].data(), argv_[2].size(), &table_id)) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
   }
+  table_name_ = "db";
+  table_name_ +=  std::to_string(table_id);
 }
 
 
 void PkClusterDelTableCmd::Do(std::shared_ptr<Partition> partition) {
-  std::string table_name = "db";
-  table_name +=  std::to_string(table_id_);
-  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(table_name);
+  std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(table_name_);
   if (!table_ptr) {
     res_.SetRes(CmdRes::kErrOther, "Internal error: table not found!");
     return;
+  }
+
+  if (!table_ptr->TableIsEmpty()) {
+    table_ptr->GetAllPartitions(slots_);
+    for (const auto& slot_id : slots_) {
+      p_infos_.insert(PartitionInfo(table_name_, slot_id));
+    }
+    PkClusterDelSlotsCmd::Do();
   }
 
   SlotState expected = INFREE;
@@ -658,28 +667,28 @@ void PkClusterDelTableCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   bool pre_success = true;
-  Status s = DelTableSanityCheck(table_name);
+  Status s = DelTableSanityCheck(table_name_);
   if (!s.ok()) {
-    LOG(WARNING) << "Removeslots sanity check failed: " << s.ToString();
+    LOG(WARNING) << "DelTable sanity check failed: " << s.ToString();
     pre_success = false;
   }
   // remove order maters
   if (pre_success) {
-    s = g_pika_conf->DelTable(table_name);
+    s = g_pika_conf->DelTable(table_name_);
     if (!s.ok()) {
       LOG(WARNING) << "DelTable remove from pika conf failed: " << s.ToString();
       pre_success = false;
     }
   }
   if (pre_success) {
-    s = g_pika_rm->DelSyncTable(table_name);
+    s = g_pika_rm->DelSyncTable(table_name_);
     if (!s.ok()) {
       LOG(WARNING) << "DelTable remove from pika rm failed: " << s.ToString();
       pre_success = false;
     }
   }
   if (pre_success) {
-    s = g_pika_server->DelTableStruct(table_name);
+    s = g_pika_server->DelTableStruct(table_name_);
     if (!s.ok()) {
       LOG(WARNING) << "DelTable remove from pika server failed: " << s.ToString();
       pre_success = false;

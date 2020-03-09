@@ -402,11 +402,6 @@ void SelectCmd::DoInitial() {
       res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
       return;
     }
-  } else {
-    // only pika codis use sharding mode currently, but pika
-    // codis only support single db, so in sharding mode we
-    // do no thing in select command
-  //  table_name_ = g_pika_conf->default_table();
   }
   table_name_ = "db" + argv_[1];
   if (!g_pika_server->IsTableExist(table_name_)) {

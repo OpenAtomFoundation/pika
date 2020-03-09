@@ -49,12 +49,11 @@ class PkClusterInfoCmd : public Cmd {
 class SlotParentCmd : public Cmd {
  public:
   SlotParentCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), table_name_("") {}
+      : Cmd(name, arity, flag)  {}
 
  protected:
   std::set<uint32_t> slots_;
   std::set<PartitionInfo> p_infos_;
-  std::string table_name_;
   virtual void DoInitial();
   virtual void Clear() {
     slots_.clear();
@@ -103,7 +102,6 @@ class PkClusterSlotsSlaveofCmd : public Cmd {
   std::set<uint32_t> slots_;
   bool force_sync_;
   bool is_noone_;
-  std::string table_name;
   virtual void DoInitial() override;
   virtual void Clear() {
     ip_.clear();
@@ -119,13 +117,12 @@ class PkClusterSlotsSlaveofCmd : public Cmd {
 class PkClusterAddTableCmd : public Cmd {
  public:
   PkClusterAddTableCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), table_name_(""), slot_num_(0) {}
+      : Cmd(name, arity, flag), slot_num_(0) {}
   Cmd* Clone() override {
     return new PkClusterAddTableCmd(*this);
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
-  std::string table_name_;
   uint64_t  slot_num_;
   void DoInitial() override;
   Status AddTableSanityCheck();
@@ -135,21 +132,17 @@ class PkClusterAddTableCmd : public Cmd {
   }
 };
 
-class PkClusterDelTableCmd : public Cmd {
+class PkClusterDelTableCmd : public PkClusterDelSlotsCmd {
  public:
   PkClusterDelTableCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), table_id_(0) {}
+      : PkClusterDelSlotsCmd(name, arity, flag) {}
   Cmd* Clone() override {
     return new PkClusterDelTableCmd(*this);
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
-  uint64_t  table_id_;
   void DoInitial() override;
   Status DelTableSanityCheck(const std::string& table_name);
-  void Clear() override  {
-    table_id_ = 0;
-  }
 };
 
 #endif  // PIKA_CLUSTER_H_

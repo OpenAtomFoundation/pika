@@ -135,6 +135,13 @@ Status Table::RemovePartitions(const std::set<uint32_t>& partition_ids) {
   return Status::OK();
 }
 
+void Table::GetAllPartitions(std::set<uint32_t>& partition_ids) {
+  slash::RWLock l(&partitions_rw_, false);
+  for (const auto& iter : partitions_) {
+    partition_ids.insert(iter.first);
+  }
+}
+
 void Table::KeyScan() {
   slash::MutexLock ml(&key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
