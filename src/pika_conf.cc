@@ -27,7 +27,7 @@ PikaConf::~PikaConf() {
 
 Status PikaConf::InternalGetTargetTable(const std::string& table_name, uint32_t* const target) {
   int32_t table_index = -1;
-  for (size_t idx = 0; table_structs_.size(); ++idx) {
+  for (size_t idx = 0; idx < table_structs_.size(); ++idx) {
     if (table_structs_[idx].table_name == table_name) {
       table_index = idx;
       break;
@@ -98,6 +98,48 @@ Status PikaConf::RemoveTablePartitions(const std::string& table_name,
     s = local_meta_->StableSave(table_structs_);
   }
   return s;
+}
+
+Status PikaConf::AddTable(const std::string &table_name, const uint32_t slot_num) {
+  Status s = AddTableSanityCheck(table_name);
+  if (!s.ok()) {
+    return  s;
+  }
+  RWLock l(&rwlock_, true);
+  table_structs_.push_back({table_name,slot_num,{}});
+  s = local_meta_->StableSave(table_structs_);
+  return s;
+}
+
+Status PikaConf::DelTable(const std::string &table_name) {
+  Status s = DelTableSanityCheck(table_name);
+  if (!s.ok()) {
+    return  s;
+  }
+  RWLock l(&rwlock_, true);
+  for (auto iter = table_structs_.begin();iter != table_structs_.end();iter++) {
+    if (iter->table_name == table_name) {
+      table_structs_.erase(iter);
+      break;
+    }
+  }
+  return local_meta_->StableSave(table_structs_);
+}
+
+Status PikaConf::AddTableSanityCheck(const std::string &table_name) {
+  RWLock l(&rwlock_, false);
+  uint32_t table_index = 0;
+  Status s = InternalGetTargetTable(table_name, &table_index);
+  if (!s.IsNotFound()) {
+    return Status::Corruption("table: " + table_name + " already exist");
+  }
+  return Status::OK();
+}
+
+Status PikaConf::DelTableSanityCheck(const std::string &table_name) {
+  RWLock l(&rwlock_, false);
+  uint32_t table_index = 0;
+  return InternalGetTargetTable(table_name, &table_index);
 }
 
 int PikaConf::Load()

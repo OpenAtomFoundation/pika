@@ -190,6 +190,8 @@ class PikaReplicaManager {
   Status RemoveSyncPartition(const std::set<PartitionInfo>& p_infos);
   Status ActivateSyncSlavePartition(const RmNode& node, const ReplState& repl_state);
   Status DeactivateSyncSlavePartition(const PartitionInfo& p_info);
+  Status SyncTableSanityCheck(const std::string& table_name);
+  Status DelSyncTable(const std::string& table_name);
 
   // For Pika Repl Client Thread
   Status SendMetaSyncRequest();

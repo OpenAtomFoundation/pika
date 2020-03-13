@@ -133,6 +133,8 @@ class PikaServer {
    * Table use
    */
   void InitTableStruct();
+  Status AddTableStruct(std::string table_name, uint32_t num);
+  Status DelTableStruct(std::string table_name);
   std::shared_ptr<Table> GetTable(const std::string& table_name);
   std::set<uint32_t> GetTablePartitionIds(const std::string& table_name);
   bool IsBgSaving();
@@ -305,6 +307,8 @@ class PikaServer {
   friend class InfoCmd;
   friend class PkClusterAddSlotsCmd;
   friend class PkClusterDelSlotsCmd;
+  friend class PkClusterAddTableCmd;
+  friend class PkClusterDelTableCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
 

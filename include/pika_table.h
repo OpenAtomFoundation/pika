@@ -31,6 +31,7 @@ class Table : public std::enable_shared_from_this<Table>{
   bool FlushPartitionSubDB(const std::string& db_name);
   bool IsBinlogIoError();
   uint32_t PartitionNum();
+  void GetAllPartitions(std::set<uint32_t>& partition_ids);
 
   // Dynamic change partition
   Status AddPartitions(const std::set<uint32_t>& partition_ids);
@@ -52,6 +53,9 @@ class Table : public std::enable_shared_from_this<Table>{
   std::set<uint32_t> GetPartitionIds();
   std::shared_ptr<Partition> GetPartitionById(uint32_t partition_id);
   std::shared_ptr<Partition> GetPartitionByKey(const std::string& key);
+  bool TableIsEmpty();
+  Status MovetoToTrash(const std::string& path);
+  Status Leave();
 
  private:
   std::string table_name_;
