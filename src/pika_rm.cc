@@ -522,12 +522,14 @@ void SyncMasterPartition::ConsensusUpdateTerm(uint32_t term) {
 
 void SyncMasterPartition::CommitPreviousLogs(const uint32_t& term) {
   // Append dummy cmd
-  std::shared_ptr<Cmd> dummy = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite);
+  std::shared_ptr<Cmd> dummy_ptr =
+    std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSinglePartition);
   PikaCmdArgsType args;
-  dummy->Initial(args, SyncPartitionInfo().table_name_);
-  dummy->SetStage(Cmd::kBinlogStage);
-  dummy->Execute();
-  dummy->SetStage(Cmd::kExecuteStage);
+  args.push_back(kCmdDummy);
+  dummy_ptr->Initial(args, SyncPartitionInfo().table_name_);
+  dummy_ptr->SetStage(Cmd::kBinlogStage);
+  dummy_ptr->Execute();
+  dummy_ptr->SetStage(Cmd::kExecuteStage);
 }
 
 std::shared_ptr<SlaveNode> SyncMasterPartition::GetSlaveNode(const std::string& ip, int port) {
