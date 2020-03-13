@@ -109,6 +109,7 @@ class SyncMasterPartition : public SyncPartition {
   Status ConsensusFollowerNegotiate(
       const std::vector<LogOffset>& hints, LogOffset* reply_offset);
   Status ConsensusReset(LogOffset applied_offset);
+  void CommitPreviousLogs(const uint32_t& term);
 
   std::shared_ptr<StableLog> StableLogger() {
     return coordinator_.StableLogger();

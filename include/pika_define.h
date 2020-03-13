@@ -161,6 +161,20 @@ struct BinlogOffset {
     }
     return false;
   }
+  bool operator<=(const BinlogOffset& other) const {
+    if (filenum < other.filenum
+        || (filenum == other.filenum && offset <= other.offset)) {
+      return true;
+    }
+    return false;
+  }
+  bool operator>=(const BinlogOffset& other) const {
+    if (filenum > other.filenum
+        || (filenum == other.filenum && offset >= other.offset)) {
+      return true;
+    }
+    return false;
+  }
 };
 
 struct LogOffset {
@@ -178,6 +192,12 @@ struct LogOffset {
   }
   bool operator==(const LogOffset& other) const {
     return b_offset == other.b_offset;
+  }
+  bool operator<=(const LogOffset& other) const {
+    return b_offset <= other.b_offset;
+  }
+  bool operator>=(const LogOffset& other) const {
+    return b_offset >= other.b_offset;
   }
   bool operator>(const LogOffset& other) const {
     return b_offset > other.b_offset;

@@ -90,7 +90,7 @@ class MemLog {
     logs_.push_back(item);
     last_offset_ = item.offset;
   }
-  Status PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
+  Status PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs);
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
   Status TruncateTo(const LogOffset& offset);
 
@@ -182,7 +182,7 @@ class ConsensusCoordinator {
       slash::MutexLock l(&index_mu_);
       tmp_stream << "  Committed_index: " << committed_index_.ToString() << "\r\n";
     }
-    tmp_stream << "  Contex: " << "\r\n" << context_->ToString();
+    tmp_stream << "  Context: " << "\r\n" << context_->ToString();
     {
       slash::RWLock l(&term_rwlock_, false);
       tmp_stream << "  Term: " << term_ << "\r\n";

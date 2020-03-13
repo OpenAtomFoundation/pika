@@ -198,8 +198,8 @@ int MemLog::Size() {
   return static_cast<int>(logs_.size());
 }
 
-// purdge [begin, offset]
-Status MemLog::PurdgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
+// purge [begin, offset]
+Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
   slash::MutexLock l_logs(&logs_mu_);
   int index = InternalFindLogIndex(offset);
   if (index < 0) {
@@ -497,8 +497,7 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port,
 }
 
 bool ConsensusCoordinator::InternalUpdateCommittedIndex(const LogOffset& slave_committed_index, LogOffset* updated_committed_index) {
-  if (slave_committed_index < committed_index_ ||
-      slave_committed_index == committed_index_) {
+  if (slave_committed_index <= committed_index_) {
     return false;
   }
   committed_index_ = slave_committed_index;
@@ -526,10 +525,10 @@ Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item,
 }
 
 Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) {
-  // logs from PurdgeLogs goes to InternalApply in order
+  // logs from PurgeLogs goes to InternalApply in order
   slash::MutexLock l(&order_mu_);
   std::vector<MemLog::LogItem> logs;
-  Status s = mem_logger_->PurdgeLogs(committed_index, &logs);
+  Status s = mem_logger_->PurgeLogs(committed_index, &logs);
   if (!s.ok()) {
     return Status::NotFound("committed index not found " + committed_index.ToString());
   }
@@ -541,10 +540,10 @@ Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) 
 }
 
 Status ConsensusCoordinator::ScheduleApplyFollowerLog(const LogOffset& committed_index) {
-  // logs from PurdgeLogs goes to InternalApply in order
+  // logs from PurgeLogs goes to InternalApply in order
   slash::MutexLock l(&order_mu_);
   std::vector<MemLog::LogItem> logs;
-  Status s = mem_logger_->PurdgeLogs(committed_index, &logs);
+  Status s = mem_logger_->PurgeLogs(committed_index, &logs);
   if (!s.ok()) {
     return Status::NotFound("committed index not found " + committed_index.ToString());
   }

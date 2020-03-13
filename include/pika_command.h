@@ -45,6 +45,7 @@ const std::string kCmdNamePadding = "padding";
 const std::string kCmdNameTcmalloc = "tcmalloc";
 #endif
 const std::string kCmdNamePKPatternMatchDel = "pkpatternmatchdel";
+const std::string kCmdDummy = "dummy";
 
 //Kv
 const std::string kCmdNameSet = "set";
