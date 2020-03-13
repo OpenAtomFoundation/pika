@@ -232,8 +232,9 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 }
 
 int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
+  std::string opt = argv[0];
   PikaReplBgWorker* worker = static_cast<PikaReplBgWorker*>(parser->data);
-  g_pika_server->UpdateQueryNumAndExecCountTable(argv[0]);
+  g_pika_server->UpdateQueryNumAndExecCountTable(opt);
 
   // Monitor related
   std::string monitor_message;
@@ -248,7 +249,6 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
-  std::string opt = argv[0];
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Command " << opt << " not in the command table";

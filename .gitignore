@@ -44,6 +44,9 @@ dump/
 gdb.txt
 tags
 
+# IDE
+.vscode
+
 make_config.mk
 src/*.d
 src/build_version.cc

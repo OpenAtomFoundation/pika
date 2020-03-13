@@ -15,6 +15,9 @@
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
 
+#include "include/pika_command.h"
+#include "include/pika_admin.h"
+
 extern PikaConf *g_pika_conf;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaServer *g_pika_server;
@@ -145,7 +148,7 @@ Status SyncMasterPartition::ActivateSlaveDbSync(const std::string& ip, int port)
 }
 
 Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr) {
-  int cnt = slave_ptr->sync_win.Remainings();
+  int cnt = slave_ptr->sync_win.Remaining();
   std::shared_ptr<PikaBinlogReader> reader = slave_ptr->binlog_reader;
   if (reader == nullptr) {
     return Status::OK();
@@ -155,9 +158,9 @@ Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>&
     std::string msg;
     uint32_t filenum;
     uint64_t offset;
-    if (slave_ptr->sync_win.GetTotalBinglogSize() > PIKA_MAX_CONN_RBUF_HB * 2) {
+    if (slave_ptr->sync_win.GetTotalBinlogSize() > PIKA_MAX_CONN_RBUF_HB * 2) {
       LOG(INFO) << slave_ptr->ToString() << " total binlog size in sync window is :"
-                << slave_ptr->sync_win.GetTotalBinglogSize();
+                << slave_ptr->sync_win.GetTotalBinlogSize();
       break;
     }
     Status s = reader->Get(&msg, &filenum, &offset);
@@ -512,6 +515,19 @@ uint32_t SyncMasterPartition::ConsensusTerm() {
 
 void SyncMasterPartition::ConsensusUpdateTerm(uint32_t term) {
   coordinator_.UpdateTerm(term);
+  if (g_pika_server->role() & PIKA_ROLE_MASTER) {
+    CommitPreviousLogs(term);
+  }
+}
+
+void SyncMasterPartition::CommitPreviousLogs(const uint32_t& term) {
+  // Append dummy cmd
+  std::shared_ptr<Cmd> dummy = std::make_shared<DummyCmd>(kCmdDummy, 0, kCmdFlagsWrite);
+  PikaCmdArgsType args;
+  dummy->Initial(args, SyncPartitionInfo().table_name_);
+  dummy->SetStage(Cmd::kBinlogStage);
+  dummy->Execute();
+  dummy->SetStage(Cmd::kExecuteStage);
 }
 
 std::shared_ptr<SlaveNode> SyncMasterPartition::GetSlaveNode(const std::string& ip, int port) {
@@ -700,13 +716,12 @@ void PikaReplicaManager::ProduceWriteQueue(const std::string& ip, int port, uint
 }
 
 int PikaReplicaManager::ConsumeWriteQueue() {
-  std::vector<std::string> to_delete;
   std::unordered_map<std::string, std::vector<std::vector<WriteTask>>> to_send_map;
   int counter = 0;
   {
     slash::MutexLock l(&write_queue_mu_);
-    std::vector<std::string> to_delete;
     for (auto& iter : write_queues_) {
+      const std::string& ip_port = iter.first;
       std::unordered_map<uint32_t, std::queue<WriteTask>>& p_map = iter.second;
       for (auto& partition_queue : p_map) {
         std::queue<WriteTask>& queue = partition_queue.second;
@@ -724,18 +739,19 @@ int PikaReplicaManager::ConsumeWriteQueue() {
             if (batch_size > PIKA_MAX_CONN_RBUF_HB) {
               break;
             }
-            to_send.push_back(queue.front());
+            to_send.push_back(task);
             queue.pop();
             counter++;
           }
           if (!to_send.empty()) {
-            to_send_map[iter.first].push_back(std::move(to_send));
+            to_send_map[ip_port].push_back(std::move(to_send));
           }
         }
       }
     }
   }
 
+  std::vector<std::string> to_delete;
   for (auto& iter : to_send_map) {
     std::string ip;
     int port = 0;
