@@ -990,6 +990,10 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << table_name << " binlog_offset=" << filenum << " " << offset;
       s = master_partition->GetSafetyPurgeBinlog(&safety_purge);
       tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
+      if (g_pika_conf->consensus_level()) {
+        LogOffset last_log = master_partition->ConsensusLastIndex();
+        tmp_stream << table_name << " consensus last_log=" << last_log.ToString() << "\r\n";
+      }
     }
   }
 
