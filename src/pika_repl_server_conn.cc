@@ -112,14 +112,25 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   }
 
   if (pre_success && req->has_consensus_meta()) {
-    const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
-    // need to response to outdated pb, new follower count on this response to update term
-    if (meta.term() > partition->ConsensusTerm()) {
-      LOG(INFO) << "Update " << partition_name
-        << " term from " << partition->ConsensusTerm() << " to " << meta.term();
-      partition->ConsensusUpdateTerm(meta.term());
+    if (partition->GetNumberOfSlaveNode() >= g_pika_conf->replication_num()) {
+      LOG(WARNING) << "Current replication num: "
+        << partition->GetNumberOfSlaveNode()
+        << " hits configuration replication-num "
+        << g_pika_conf->replication_num() << " stop trysync.";
+      pre_success = false;
     }
-    pre_success = TrySyncConsensusOffsetCheck(partition, req->consensus_meta(), &response, try_sync_response);
+    if (pre_success) {
+      const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
+      // need to response to outdated pb, new follower count on this response to update term
+      if (meta.term() > partition->ConsensusTerm()) {
+        LOG(INFO) << "Update " << partition_name
+          << " term from " << partition->ConsensusTerm() << " to " << meta.term();
+        partition->ConsensusUpdateTerm(meta.term());
+      }
+    }
+    if (pre_success) {
+      pre_success = TrySyncConsensusOffsetCheck(partition, req->consensus_meta(), &response, try_sync_response);
+    }
   } else if (pre_success) {
     pre_success = TrySyncOffsetCheck(partition, try_sync_request, try_sync_response);
   }

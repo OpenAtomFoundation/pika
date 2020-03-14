@@ -1532,6 +1532,11 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->max_conn_rbuf_size());
   }
 
+  if (slash::stringmatch(pattern.data(), "replication-num", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "replication-num");
+    EncodeInt32(&config_body, g_pika_conf->replication_num());
+  }
   if (slash::stringmatch(pattern.data(), "consensus-level", 1)) {
     elements += 2;
     EncodeString(&config_body, "consensus-level");
