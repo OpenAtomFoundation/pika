@@ -107,7 +107,8 @@ class MemLog {
   bool FindLogItem(const LogOffset& offset, LogOffset* found_offset);
 
  private:
-  int InternalFindLogIndex(const LogOffset& offset);
+  int InternalFindLogByBinlogOffset(const LogOffset& offset);
+  int InternalFindLogByLogicIndex(const LogOffset& offset);
   slash::Mutex logs_mu_;
   std::vector<LogItem> logs_;
   LogOffset last_offset_;
