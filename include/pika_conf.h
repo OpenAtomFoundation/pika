@@ -88,6 +88,7 @@ class PikaConf : public slash::BaseConf {
   int sync_window_size()                            { return sync_window_size_.load(); }
   int max_conn_rbuf_size()                          { return max_conn_rbuf_size_.load(); }
   int consensus_level()                             { return consensus_level_.load(); }
+  int replication_num()                             { return replication_num_.load(); }
 
   // Immutable config items, we don't use lock.
   bool daemonize()                                  { return daemonize_; }
@@ -318,6 +319,7 @@ class PikaConf : public slash::BaseConf {
   std::atomic<int> sync_window_size_;
   std::atomic<int> max_conn_rbuf_size_;
   std::atomic<int> consensus_level_;
+  std::atomic<int> replication_num_;
 
   std::string network_interface_;
 
