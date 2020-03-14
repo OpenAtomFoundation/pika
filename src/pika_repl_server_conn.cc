@@ -112,7 +112,8 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   }
 
   if (pre_success && req->has_consensus_meta()) {
-    if (partition->GetNumberOfSlaveNode() >= g_pika_conf->replication_num()) {
+    if (partition->GetNumberOfSlaveNode() >= g_pika_conf->replication_num()
+        && !partition->CheckSlaveNodeExist(node.ip(), node.port())) {
       LOG(WARNING) << "Current replication num: "
         << partition->GetNumberOfSlaveNode()
         << " hits configuration replication-num "

@@ -180,6 +180,9 @@ int SyncProgress::SlaveSize() {
 
 LogOffset SyncProgress::InternalCalCommittedIndex(std::unordered_map<std::string, LogOffset> match_index) {
   int consensus_level = g_pika_conf->consensus_level();
+  if (static_cast<int>(match_index.size()) < consensus_level) {
+    return LogOffset();
+  }
   std::vector<LogOffset> offsets;
   for (auto index : match_index) {
     offsets.push_back(index.second);
@@ -201,7 +204,7 @@ int MemLog::Size() {
 // purge [begin, offset]
 Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
   slash::MutexLock l_logs(&logs_mu_);
-  int index = InternalFindLogIndex(offset);
+  int index = InternalFindLogByBinlogOffset(offset);
   if (index < 0) {
     return Status::NotFound("Cant find correct index");
   }
@@ -213,7 +216,7 @@ Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
 // keep mem_log [mem_log.begin, offset]
 Status MemLog::TruncateTo(const LogOffset& offset) {
   slash::MutexLock l_logs(&logs_mu_);
-  int index = InternalFindLogIndex(offset);
+  int index = InternalFindLogByBinlogOffset(offset);
   if (index < 0) {
     return Status::Corruption("Cant find correct index");
   }
@@ -240,7 +243,7 @@ Status MemLog::GetRangeLogs(int start, int end, std::vector<LogItem>* logs) {
 
 bool MemLog::FindLogItem(const LogOffset& offset, LogOffset* found_offset) {
   slash::MutexLock l_logs(&logs_mu_);
-  int index = InternalFindLogIndex(offset);
+  int index = InternalFindLogByLogicIndex(offset);
   if (index < 0) {
     return false;
   }
@@ -248,7 +251,19 @@ bool MemLog::FindLogItem(const LogOffset& offset, LogOffset* found_offset) {
   return true;
 }
 
-int MemLog::InternalFindLogIndex(const LogOffset& offset) {
+int MemLog::InternalFindLogByLogicIndex(const LogOffset& offset) {
+  for (size_t i = 0; i < logs_.size(); ++i) {
+    if (logs_[i].offset.l_offset.index > offset.l_offset.index) {
+      return -1;
+    }
+    if (logs_[i].offset.l_offset.index == offset.l_offset.index) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+int MemLog::InternalFindLogByBinlogOffset(const LogOffset& offset) {
   for (size_t i = 0; i < logs_.size(); ++i) {
     if (logs_[i].offset > offset) {
       return -1;
@@ -882,7 +897,7 @@ Status ConsensusCoordinator::LeaderNegotiate(
   Status s = FindLogicOffset(f_last_offset.b_offset, f_index, &found_offset);
   if (!s.ok()) {
     if (s.IsNotFound()) {
-      LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString()
+      LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString()
         << f_last_offset.ToString() << " not found " << s.ToString();
       return s;
     } else {
@@ -950,7 +965,7 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
     LogOffset found_offset;
     bool res = mem_logger_->FindLogItem(hints[i], &found_offset);
     if (!res) {
-      return Status::Corruption("hints not found");
+      return Status::Corruption("hints not found " + hints[i].ToString());
     }
     if (found_offset.l_offset.term == hints[i].l_offset.term) {
       // trunk to found_offsett
