@@ -193,7 +193,9 @@ int PikaConf::Load()
   if (tmp_consensus_level < 0 ||
       tmp_consensus_level > replication_num_.load()) {
     LOG(FATAL) << "consensus-level " << tmp_consensus_level
-      << " is invalid, please pick from [0..." << replication_num_ << "]";
+      << " is invalid, current replication-num: " << replication_num_.load()
+      << ", please pick from 0 to replication-num"
+      << " [0..." << replication_num_.load() << "]";
   }
   consensus_level_.store(tmp_consensus_level);
 
