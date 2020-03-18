@@ -135,6 +135,11 @@ Status PkClusterInfoCmd::GetSlotInfo(const std::string table_name,
   }
   tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
 
+  if (g_pika_conf->consensus_level()) {
+    LogOffset last_log = master_partition->ConsensusLastIndex();
+    tmp_stream << "  consensus_last_log=" << last_log.ToString() << "\r\n";
+  }
+
   // partition info section
   std::string p_info;
   s = g_pika_rm->GetPartitionInfo(table_name, partition_id, &p_info);
