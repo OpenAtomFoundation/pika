@@ -281,7 +281,7 @@ ConsensusCoordinator::ConsensusCoordinator(const std::string& table_name, uint32
   std::string table_log_path = g_pika_conf->log_path() + "log_" + table_name + "/";
   std::string log_path = g_pika_conf->classic_mode() ?
     table_log_path : table_log_path + std::to_string(partition_id) + "/";
-  context_ = std::make_shared<Context>(table_log_path + kContext);
+  context_ = std::make_shared<Context>(log_path + kContext);
   stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
   mem_logger_ = std::make_shared<MemLog>();
   pthread_rwlock_init(&term_rwlock_, NULL);
