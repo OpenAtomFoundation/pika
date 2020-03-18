@@ -607,6 +607,7 @@ Status SyncSlavePartition::CheckSyncTimeout(uint64_t now) {
 Status SyncSlavePartition::GetInfo(std::string* info) {
   std::string tmp_str = "  Role: Slave\r\n";
   tmp_str += "  master: " + MasterIp() + ":" + std::to_string(MasterPort()) + "\r\n";
+  tmp_str += "  slave status: "+ ReplStateMsg[repl_state_] + "\r\n";
   info->append(tmp_str);
   return Status::OK();
 }
@@ -910,10 +911,12 @@ Status PikaReplicaManager::CheckPartitionRole(
   if (sync_slave_partitions_.find(p_info) == sync_slave_partitions_.end()) {
     return Status::NotFound(table + std::to_string(partition_id) + " not found");
   }
-  if (sync_master_partitions_[p_info]->GetNumberOfSlaveNode() != 0) {
+  if (sync_master_partitions_[p_info]->GetNumberOfSlaveNode() != 0
+      || (sync_master_partitions_[p_info]->GetNumberOfSlaveNode() == 0
+        && sync_slave_partitions_[p_info]->State() == kNoConnect)) {
     *role |= PIKA_ROLE_MASTER;
   }
-  if (sync_slave_partitions_[p_info]->State() == ReplState::kConnected) {
+  if (sync_slave_partitions_[p_info]->State() != ReplState::kNoConnect) {
     *role |= PIKA_ROLE_SLAVE;
   }
   // if role is not master or slave, the rest situations are all single
