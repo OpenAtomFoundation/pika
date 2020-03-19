@@ -45,7 +45,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
         "unknown or unsupported command \'" + opt + "\"");
     return tmp_ptr;
   }
-
   c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
   c_ptr->SetResp(resp_ptr);
 
@@ -91,7 +90,6 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
   if (g_pika_conf->consensus_level() != 0 && c_ptr->is_write()) {
     c_ptr->SetStage(Cmd::kBinlogStage);
   }
-
   if (!g_pika_server->IsCommandSupport(opt)) {
     c_ptr->res().SetRes(CmdRes::kErrOther,
         "This command is not supported in current configuration");

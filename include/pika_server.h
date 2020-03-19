@@ -82,7 +82,8 @@ static std::set<std::string> ShardingModeNotSupportCommands {
              kCmdNameSMove,       kCmdNameBitOp,             kCmdNamePfAdd,
              kCmdNamePfCount,     kCmdNamePfMerge,           kCmdNameGeoAdd,
              kCmdNameGeoPos,      kCmdNameGeoDist,           kCmdNameGeoHash,
-             kCmdNameGeoRadius,   kCmdNameGeoRadiusByMember, kCmdNamePKPatternMatchDel};
+             kCmdNameGeoRadius,   kCmdNameGeoRadiusByMember, kCmdNamePKPatternMatchDel,
+             kCmdNameSlaveof,     kCmdNameDbSlaveof};
 
 
 extern PikaConf *g_pika_conf;
