@@ -34,9 +34,6 @@ PikaCmdTableManager::~PikaCmdTableManager() {
 
 std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {
   std::string internal_opt = opt;
-  if (!g_pika_conf->classic_mode()) {
-    TryChangeToAlias(&internal_opt);
-  }
   return NewCommand(internal_opt);
 }
 
@@ -46,12 +43,6 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
     return std::shared_ptr<Cmd>(cmd->Clone());
   }
   return nullptr;
-}
-
-void PikaCmdTableManager::TryChangeToAlias(std::string *internal_opt) {
-  if (!strcasecmp(internal_opt->c_str(), kCmdNameSlaveof.c_str())) {
-    *internal_opt = kCmdNamePkClusterSlotsSlaveof;
-  }
 }
 
 bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const pid_t& tid) {
