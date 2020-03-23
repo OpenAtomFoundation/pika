@@ -12,7 +12,8 @@ class PkClusterInfoCmd : public Cmd {
  public:
   enum InfoSection {
     kInfoErr = 0x0,
-    kInfoSlot
+    kInfoSlot,
+    kInfoTable
   };
   enum InfoRange {
     kSingle = 0x0,
@@ -41,9 +42,13 @@ class PkClusterInfoCmd : public Cmd {
     partition_id_ = 0;
   }
   const static std::string kSlotSection;
+  const static std::string kTableSection;
+  void ClusterInfoTableAll(std::string* info);
+  void ClusterInfoTable(std::string* info);
   void ClusterInfoSlotAll(std::string* info);
   Status GetSlotInfo(const std::string table_name, uint32_t partition_id, std::string* info);
   bool ParseInfoSlotSubCmd();
+  bool ParseInfoTableSubCmd();
 };
 
 class SlotParentCmd : public Cmd {

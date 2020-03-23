@@ -14,6 +14,7 @@ extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 
 const std::string PkClusterInfoCmd::kSlotSection = "slot";
+const std::string PkClusterInfoCmd::kTableSection = "table";
 
 // pkcluster info slot table:slot
 // pkcluster info table
@@ -33,6 +34,11 @@ void PkClusterInfoCmd::DoInitial() {
     if (!ParseInfoSlotSubCmd()) {
       return;
     }
+  } else if (!strcasecmp(argv_[2].data(), kTableSection.data())) {
+    info_section_ = kInfoTable;
+    if (!ParseInfoTableSubCmd()) {
+      return;
+    }
   } else {
     info_section_ = kInfoErr;
   }
@@ -50,12 +56,43 @@ void PkClusterInfoCmd::Do(std::shared_ptr<Partition> partition) {
         GetSlotInfo(table_name_, partition_id_, &info);
       }
       break;
+    case kInfoTable:
+      if (info_range_ == kAll) {
+        ClusterInfoTableAll(&info);
+      } else if (info_range_ == kSingle) {
+        ClusterInfoTable(&info);
+      }
     default:
       break;
   }
   res_.AppendStringLen(info.size());
   res_.AppendContent(info);
   return;
+}
+
+void PkClusterInfoCmd::ClusterInfoTableAll(std::string* info) {
+  std::stringstream tmp_stream;
+  std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+  for (const auto& table_struct : table_structs) {
+    std::string table_id = table_struct.table_name.substr(2);
+    tmp_stream << "table_id: " << table_id << "\r\n";
+    tmp_stream << "  partition_num: " << table_struct.partition_num << "\r\n";
+  }
+  info->append(tmp_stream.str());
+}
+
+void PkClusterInfoCmd::ClusterInfoTable(std::string* info) {
+  std::stringstream tmp_stream;
+  std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+  for (const auto& table_struct : table_structs) {
+    if (table_struct.table_name == table_name_) {
+      std::string table_id = table_struct.table_name.substr(2);
+      tmp_stream << "table_id: " << table_id << "\r\n";
+      tmp_stream << "  partition_num: " << table_struct.partition_num << "\r\n";
+      break;
+    }
+  }
+  info->append(tmp_stream.str());
 }
 
 bool PkClusterInfoCmd::ParseInfoSlotSubCmd() {
@@ -85,6 +122,26 @@ bool PkClusterInfoCmd::ParseInfoSlotSubCmd() {
   }
   return true;
 }
+
+bool PkClusterInfoCmd::ParseInfoTableSubCmd() {
+  if (argv_.size() == 3) {
+    info_range_ = kAll;
+  } else if (argv_.size() == 4) {
+    std::string tmp(argv_[3]);
+    uint64_t table_id;
+    if (!slash::string2ul(tmp.c_str(), tmp.size(), &table_id)) {
+      res_.SetRes(CmdRes::kInvalidParameter, kCmdNamePkClusterInfo);
+      return false;
+    }
+    table_name_ = "db" + tmp;
+    info_range_ = kSingle;
+  } else if (argv_.size() > 4) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNamePkClusterInfo);
+    return false;
+  }
+  return true;
+}
+
 
 void PkClusterInfoCmd::ClusterInfoSlotAll(std::string* info) {
   std::stringstream tmp_stream;
