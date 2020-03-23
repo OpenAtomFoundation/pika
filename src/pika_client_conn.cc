@@ -209,6 +209,7 @@ void PikaClientConn::DoExecTask(void* arg) {
   LogOffset offset = bg_arg->offset;
   std::string table_name = bg_arg->table_name;
   uint32_t partition_id = bg_arg->partition_id;
+  delete bg_arg;
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
@@ -231,6 +232,7 @@ void PikaClientConn::DoExecTask(void* arg) {
   if (conn_ptr == nullptr || resp_ptr == nullptr) {
     return;
   }
+
   conn_ptr->resp_num--;
   *resp_ptr = std::move(cmd_ptr->res().message());
   conn_ptr->TryWriteResp();
