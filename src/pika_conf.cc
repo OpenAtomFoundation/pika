@@ -179,26 +179,6 @@ int PikaConf::Load()
   GetConfInt("slowlog-log-slower-than", &tmp_slowlog_log_slower_than);
   slowlog_log_slower_than_.store(tmp_slowlog_log_slower_than);
 
-  int tmp_replication_num = 0;
-  GetConfInt("replication-num", &tmp_replication_num);
-  if (tmp_replication_num > 4 || tmp_replication_num < 0) {
-    LOG(FATAL) << "replication-num " << tmp_replication_num <<
-      "is invalid, please pick from [0...4]";
-  }
-  replication_num_.store(tmp_replication_num);
-
-
-  int tmp_consensus_level = 0;
-  GetConfInt("consensus-level", &tmp_consensus_level);
-  if (tmp_consensus_level < 0 ||
-      tmp_consensus_level > replication_num_.load()) {
-    LOG(FATAL) << "consensus-level " << tmp_consensus_level
-      << " is invalid, current replication-num: " << replication_num_.load()
-      << ", please pick from 0 to replication-num"
-      << " [0..." << replication_num_.load() << "]";
-  }
-  consensus_level_.store(tmp_consensus_level);
-
   GetConfInt("slowlog-max-len", &slowlog_max_len_);
   if (slowlog_max_len_ == 0) {
     slowlog_max_len_ = 128;
@@ -303,6 +283,30 @@ int PikaConf::Load()
     }
   }
   default_table_ = table_structs_[0].table_name;
+
+  int tmp_replication_num = 0;
+  GetConfInt("replication-num", &tmp_replication_num);
+  if (tmp_replication_num > 4 || tmp_replication_num < 0) {
+    LOG(FATAL) << "replication-num " << tmp_replication_num <<
+      "is invalid, please pick from [0...4]";
+  }
+  replication_num_.store(tmp_replication_num);
+
+  int tmp_consensus_level = 0;
+  GetConfInt("consensus-level", &tmp_consensus_level);
+  if (tmp_consensus_level < 0 ||
+      tmp_consensus_level > replication_num_.load()) {
+    LOG(FATAL) << "consensus-level " << tmp_consensus_level
+      << " is invalid, current replication-num: " << replication_num_.load()
+      << ", please pick from 0 to replication-num"
+      << " [0..." << replication_num_.load() << "]";
+  }
+  consensus_level_.store(tmp_consensus_level);
+  if (classic_mode_.load() &&
+      (consensus_level_.load() != 0 || replication_num_.load() != 0)) {
+    LOG(FATAL) << "consensus-level & replication-num only configurable under sharding mode,"
+      << " set it to be 0 if you are using classic mode";
+  }
 
   compact_cron_ = "";
   GetConfStr("compact-cron", &compact_cron_);
