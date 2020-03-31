@@ -529,6 +529,12 @@ Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item,
                                     item.offset());
   Status s = stable_logger_->Logger()->Put(binlog);
   if (!s.ok()) {
+    std::string table_name = cmd_ptr->table_name().empty()
+      ? g_pika_conf->default_table() : cmd_ptr->table_name();
+    std::shared_ptr<Table> table = g_pika_server->GetTable(table_name);
+    if (table) {
+      table->SetBinlogIoError();
+    }
     return s;
   }
   uint32_t filenum;

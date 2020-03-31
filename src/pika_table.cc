@@ -33,6 +33,8 @@ Table::Table(const std::string& table_name,
   slash::CreatePath(db_path_);
   slash::CreatePath(log_path_);
 
+  binlog_io_error_.store(false);
+
   pthread_rwlock_init(&partitions_rw_, NULL);
 }
 
@@ -84,17 +86,12 @@ bool Table::FlushPartitionSubDB(const std::string& db_name) {
   return true;
 }
 
+void Table::SetBinlogIoError() {
+  return binlog_io_error_.store(true);
+}
+
 bool Table::IsBinlogIoError() {
-  slash::RWLock l(&partitions_rw_, false);
-  for (const auto& item : partitions_) {
-    std::shared_ptr<SyncMasterPartition> partition =
-      g_pika_rm->GetSyncMasterPartitionByName(
-          PartitionInfo(table_name_, item.second->GetPartitionId()));
-    if (partition->Logger()->IsBinlogIoError()) {
-      return true;
-    }
-  }
-  return false;
+  return binlog_io_error_.load();
 }
 
 uint32_t Table::PartitionNum() {
