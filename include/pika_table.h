@@ -29,6 +29,7 @@ class Table : public std::enable_shared_from_this<Table>{
   void CompactTable(const blackwidow::DataType& type);
   bool FlushPartitionDB();
   bool FlushPartitionSubDB(const std::string& db_name);
+  void SetBinlogIoError();
   bool IsBinlogIoError();
   uint32_t PartitionNum();
   void GetAllPartitions(std::set<uint32_t>& partition_ids);
@@ -63,6 +64,7 @@ class Table : public std::enable_shared_from_this<Table>{
   std::string db_path_;
   std::string log_path_;
 
+  std::atomic<bool> binlog_io_error_;
   // lock order
   // partitions_rw_ > key_scan_protector_
 
