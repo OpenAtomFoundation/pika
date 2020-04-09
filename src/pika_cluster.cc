@@ -511,6 +511,8 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
       break;
     case 6:
       if (!strcasecmp(argv_[5].data(), "force")) {
+        force_sync_ = true;
+        table_name_ = g_pika_conf->default_table();
       } else if (slash::string2ul(argv_[5].data(), argv_[5].size(), &table_id)) {
         table_name_ = "db";
         table_name_ += std::to_string(table_id);
@@ -520,8 +522,8 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
       }
       break;
     case 7:
-      if (strcasecmp(argv_[5].data(), "force") != 0
-          && slash::string2ul(argv_[6].data(), argv_[6].size(), &table_id)) {
+      if ((!strcasecmp(argv_[5].data(), "force"))
+          && (slash::string2ul(argv_[6].data(), argv_[6].size(), &table_id))) {
         force_sync_ = true;
         table_name_ = "db";
         table_name_ += std::to_string(table_id);
