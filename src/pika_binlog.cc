@@ -324,11 +324,7 @@ Status Binlog::AppendPadding(slash::WritableFile* file, uint64_t* len) {
       break;
     } else {
       uint32_t bsize = size - kHeaderSize;
-      std::string binlog = PikaBinlogTransverter::ConstructPaddingBinlog(
-              BinlogType::TypeFirst, bsize);
-      if (binlog.empty()) {
-        break;
-      }
+      std::string binlog(bsize, '*');
       buf[0] = static_cast<char>(bsize & 0xff);
       buf[1] = static_cast<char>((bsize & 0xff00) >> 8);
       buf[2] = static_cast<char>(bsize >> 16);
@@ -336,7 +332,8 @@ Status Binlog::AppendPadding(slash::WritableFile* file, uint64_t* len) {
       buf[4] = static_cast<char>((now & 0xff00) >> 8);
       buf[5] = static_cast<char>((now & 0xff0000) >> 16);
       buf[6] = static_cast<char>((now & 0xff000000) >> 24);
-      buf[7] = static_cast<char>(kFullType);
+      // kBadRecord here
+      buf[7] = static_cast<char>(kBadRecord);
       s = file->Append(Slice(buf, kHeaderSize));
       if (s.ok()) {
         s = file->Append(Slice(binlog.data(), binlog.size()));
@@ -348,6 +345,9 @@ Status Binlog::AppendPadding(slash::WritableFile* file, uint64_t* len) {
     }
   }
   *len -= left;
+  if (left != 0) {
+    LOG(WARNING) << "AppendPadding left bytes: " << left  << " is less then kHeaderSize";
+  }
   return s;
 }
 

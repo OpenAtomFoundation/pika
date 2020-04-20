@@ -125,11 +125,13 @@ Status SyncMasterPartition::SyncBinlogToWq(const std::string& ip, int port) {
   if (!slave_ptr) {
     return Status::NotFound("ip " + ip  + " port " + std::to_string(port));
   }
-
+  Status s;
   slave_ptr->Lock();
-  ReadBinlogFileToWq(slave_ptr);
+  s = ReadBinlogFileToWq(slave_ptr);
   slave_ptr->Unlock();
-
+  if (!s.ok()) {
+    return s;
+  }
   return Status::OK();
 }
 
@@ -256,7 +258,11 @@ Status SyncMasterPartition::WakeUpSlaveBinlogSync() {
     std::shared_ptr<SlaveNode> slave_ptr = slave_iter.second;
     slash::MutexLock l(&slave_ptr->slave_mu);
     if (slave_ptr->sent_offset == slave_ptr->acked_offset) {
-      ReadBinlogFileToWq(slave_ptr);
+      Status s = ReadBinlogFileToWq(slave_ptr);
+      if (!s.ok()) {
+        LOG(WARNING) << "WakeUpSlaveBinlogSync falied, slave: " <<
+          slave_ptr->ToStringStatus() << " " << s.ToString();
+      }
     }
   }
   return Status::OK();
