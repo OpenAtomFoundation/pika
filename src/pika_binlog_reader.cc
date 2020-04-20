@@ -131,6 +131,10 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
       s = queue_->Read(length, &buffer_, backing_store_);
       offset += kHeaderSize + length;
       break;
+    } else if (type == kBadRecord) {
+      s = queue_->Read(length, &buffer_, backing_store_);
+      offset += kHeaderSize + length;
+      break;
     } else {
       is_error = true;
       break;
@@ -207,6 +211,7 @@ Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64
       case kEof:
         return Status::EndFile("Eof");
       case kBadRecord:
+        LOG(WARNING) << "Read BadRecord record, will decode failed, this record may dbsync padded record, not processed here";
         return Status::IOError("Data Corruption");
       case kOldRecord:
         return Status::EndFile("Eof");
