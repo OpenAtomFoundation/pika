@@ -166,7 +166,7 @@ void GetCmd::Do(std::shared_ptr<Partition> partition) {
 
 void DelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameDel);
+    res_.SetRes(CmdRes::kWrongNum, name());
     return;
   }
   std::vector<std::string>::iterator iter = argv_.begin();
@@ -180,7 +180,7 @@ void DelCmd::Do(std::shared_ptr<Partition> partition) {
   if (count >= 0) {
     res_.AppendInteger(count);
   } else {
-    res_.SetRes(CmdRes::kErrOther, "delete error");
+    res_.SetRes(CmdRes::kErrOther, name() + " error");
   }
   return;
 }

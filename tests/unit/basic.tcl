@@ -26,6 +26,40 @@ start_server {tags {"basic"}} {
         list [r del foo1 foo2 foo3 foo4] [r mget foo1 foo2 foo3]
     } {3 {{} {} {}}}
 
+    test {UNLINK against a single item} {
+        r set x foobar
+        r unlink x
+        r get x
+    } {}
+
+    test {Vararg UNLINK} {
+        r set foo1 bar1
+        r set foo2 bar2
+        r set foo3 bar3
+        list [r unlink foo1 foo2 foo3] [r mget foo1 foo2 foo3]
+    } {3 {{} {} {}}}
+
+    test {Return value of UNLINK} {
+        r set x foobar
+        assert_equal 1 [r unlink x]
+        assert_equal 0 [r unlink x]
+        r set foo1 bar1
+        r set foo2 bar2
+        assert_equal 2 [r unlink foo1 foo2]
+        assert_equal 0 [r unlink foo1]
+        assert_equal 0 [r unlink foo1 foo2]
+    }
+
+    test {Wrong arg number of DEL} {
+        catch {r del} err
+        format $err
+    } {ERR*del*}
+
+    test {Wrong arg number of UNLINK} {
+        catch {r unlink} err
+        format $err
+    } {ERR*unlink*}
+
     test {KEYS with pattern} {
         foreach key {key_x key_y key_z foo_a foo_b foo_c} {
             r set $key hello
