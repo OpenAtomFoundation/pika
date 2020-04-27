@@ -254,16 +254,21 @@ Status SyncMasterPartition::GetSlaveState(const std::string& ip,
 
 Status SyncMasterPartition::WakeUpSlaveBinlogSync() {
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves = GetAllSlaveNodes();
+  std::vector<std::shared_ptr<SlaveNode>> to_del;
   for (auto& slave_iter : slaves) {
     std::shared_ptr<SlaveNode> slave_ptr = slave_iter.second;
     slash::MutexLock l(&slave_ptr->slave_mu);
     if (slave_ptr->sent_offset == slave_ptr->acked_offset) {
       Status s = ReadBinlogFileToWq(slave_ptr);
       if (!s.ok()) {
-        LOG(WARNING) << "WakeUpSlaveBinlogSync falied, slave: " <<
+        to_del.push_back(slave_ptr);
+        LOG(WARNING) << "WakeUpSlaveBinlogSync falied, Delete from RM, slave: " <<
           slave_ptr->ToStringStatus() << " " << s.ToString();
       }
     }
+  }
+  for (auto& to_del_slave : to_del) {
+    RemoveSlaveNode(to_del_slave->Ip(), to_del_slave->Port());
   }
   return Status::OK();
 }
