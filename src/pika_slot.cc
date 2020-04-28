@@ -170,7 +170,8 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
   if (!master_partition) {
     LOG(WARNING) << "Sync Master Partition: " << g_pika_conf->default_table() << ":" << slot_num_
         << ", NotFound";
-    is_exist = false;
+    res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsMgrtTagSlotAsync);
+    return;
   }
   is_exist = master_partition->CheckSlaveNodeExist(dest_ip_, dest_port_);
   if (is_exist) {
