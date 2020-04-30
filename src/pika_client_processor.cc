@@ -50,9 +50,18 @@ void PikaClientProcessor::Stop() {
 void PikaClientProcessor::SchedulePool(pink::TaskFunc func, void* arg) {
   pool_->Schedule(func, arg);
 }
+
 void PikaClientProcessor::ScheduleBgThreads(
     pink::TaskFunc func, void* arg, const std::string& hash_str) {
   std::size_t index = std::hash<std::string>{}(hash_str) % bg_threads_.size();
   bg_threads_[index]->Schedule(func, arg);
+}
+
+size_t PikaClientProcessor::ThreadPoolCurQueueSize() {
+  size_t cur_size = 0;
+  if (pool_) {
+    pool_->cur_queue_size(&cur_size);
+  }
+  return cur_size;
 }
 

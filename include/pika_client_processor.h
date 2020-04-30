@@ -24,6 +24,8 @@ class PikaClientProcessor {
   void SchedulePool(pink::TaskFunc func, void* arg);
   void ScheduleBgThreads(
       pink::TaskFunc func, void* arg, const std::string& hash_str);
+  size_t ThreadPoolCurQueueSize();
+
  private:
   pink::ThreadPool* pool_;
   std::vector<pink::BGThread*> bg_threads_;

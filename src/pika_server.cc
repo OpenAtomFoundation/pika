@@ -981,6 +981,13 @@ void PikaServer::ScheduleClientBgThreads(
   pika_client_processor_->ScheduleBgThreads(func, arg, hash_str);
 }
 
+size_t PikaServer::ClientProcessorThreadPoolCurQueueSize() {
+  if (!pika_client_processor_) {
+    return 0;
+  }
+  return pika_client_processor_->ThreadPoolCurQueueSize();
+}
+
 void PikaServer::BGSaveTaskSchedule(pink::TaskFunc func, void* arg) {
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(func, arg);
@@ -1639,4 +1646,11 @@ void PikaServer::InitBlackwidowOptions() {
   bw_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
   bw_options_.small_compaction_threshold =
       g_pika_conf->small_compaction_threshold();
+}
+
+void PikaServer::ServerStatus(std::string* info) {
+  std::stringstream tmp_stream;
+  size_t q_size = ClientProcessorThreadPoolCurQueueSize();
+  tmp_stream << "Client Processor thread-pool queue size: " << q_size << "\r\n";
+  info->append(tmp_stream.str());
 }

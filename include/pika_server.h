@@ -206,6 +206,8 @@ class PikaServer {
    */
   void ScheduleClientPool(pink::TaskFunc func, void* arg);
   void ScheduleClientBgThreads(pink::TaskFunc func, void* arg, const std::string& hash_str);
+  // for info debug
+  size_t ClientProcessorThreadPoolCurQueueSize();
 
   /*
    * BGSave used
@@ -303,6 +305,9 @@ class PikaServer {
                       std::vector<std::string>* result);
   void PubSubNumSub(const std::vector<std::string>& channels,
                     std::vector<std::pair<std::string, int>>* result);
+
+  // info debug use
+  void ServerStatus(std::string* info);
 
   friend class Cmd;
   friend class InfoCmd;
