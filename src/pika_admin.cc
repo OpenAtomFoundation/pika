@@ -1106,6 +1106,11 @@ void InfoCmd::InfoDebug(std::string& info) {
   tmp_stream << "# Synchronization Status" << "\r\n";
   info.append(tmp_stream.str());
   g_pika_rm->RmStatus(&info);
+
+  tmp_stream.str(std::string());
+  tmp_stream << "# Running Status " << "\r\n";
+  info.append(tmp_stream.str());
+  g_pika_server->ServerStatus(&info);
   return;
 }
 
