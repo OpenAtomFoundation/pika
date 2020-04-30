@@ -241,8 +241,8 @@ int PikaConf::Load()
   if (thread_pool_size_ <= 0) {
     thread_pool_size_ = 12;
   }
-  if (thread_pool_size_ > 24) {
-    thread_pool_size_ = 24;
+  if (thread_pool_size_ > 100) {
+    thread_pool_size_ = 100;
   }
   GetConfInt("sync-thread-num", &sync_thread_num_);
   if (sync_thread_num_ <= 0) {
