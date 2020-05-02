@@ -108,3 +108,8 @@ Venus平台已经上线pika+QConf，其他系统在陆续上线中
 <img src="https://imgur.com/vQW5qr3.png" height = "50" width = "60" alt="LK">
 
 已上线，存储路况信息
+
+## 20.斗鱼TV
+<img src="https://s1.ax1x.com/2020/05/02/JjyV5q.th.png" height = "50" width = "60" alt="DY">
+
+已上线
