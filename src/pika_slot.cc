@@ -145,8 +145,15 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   std::string str_max_bytes_ = *it++;
 
   std::string str_slot_num = *it++;
+
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (table == NULL) {
+    res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsMgrtTagSlotAsync);
+    return;
+  }
+
   if (!slash::string2l(str_slot_num.data(), str_slot_num.size(), &slot_num_)
-      || slot_num_ < 0 ) {
+      || slot_num_ < 0 || slot_num_ >= table->PartitionNum()) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }
