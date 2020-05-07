@@ -269,7 +269,7 @@ void PikaServer::Start() {
     DoTimingTask();
     // wake up every 10 second
     int try_num = 0;
-    while (!exit_ && try_num++ < 10) {
+    while (!exit_ && try_num++ < 5) {
       sleep(1);
     }
   }
@@ -1291,60 +1291,57 @@ void PikaServer::SlowlogPushEntry(const PikaCmdArgsType& argv, int32_t time, int
 }
 
 void PikaServer::ResetStat() {
-  statistic_data_.accumulative_connections.store(0);
-  statistic_data_.thread_querynum.store(0);
-  statistic_data_.last_thread_querynum.store(0);
+  statistic_.server_stat.accumulative_connections.store(0);
+  statistic_.server_stat.qps.querynum.store(0);
+  statistic_.server_stat.qps.last_querynum.store(0);
 }
 
 uint64_t PikaServer::ServerQueryNum() {
-  return statistic_data_.thread_querynum.load();
+  return statistic_.server_stat.qps.querynum.load();
 }
 
 uint64_t PikaServer::ServerCurrentQps() {
-  return statistic_data_.last_sec_thread_querynum.load();
+  return statistic_.server_stat.qps.last_sec_querynum.load();
 }
 
 uint64_t PikaServer::accumulative_connections() {
-  return statistic_data_.accumulative_connections.load();
+  return statistic_.server_stat.accumulative_connections.load();
 }
 
 void PikaServer::incr_accumulative_connections() {
-  ++statistic_data_.accumulative_connections;
+  ++(statistic_.server_stat.accumulative_connections);
 }
 
 // only one thread invoke this right now
 void PikaServer::ResetLastSecQuerynum() {
-  uint64_t last_query = statistic_data_.last_thread_querynum.load();
-  uint64_t cur_query = statistic_data_.thread_querynum.load();
-  uint64_t last_time_us = statistic_data_.last_time_us.load();
-  if (cur_query < last_query) {
-    cur_query = last_query;
-  }
-  uint64_t delta_query = cur_query - last_query;
-  uint64_t cur_time_us = slash::NowMicros();
-  if (cur_time_us <= last_time_us) {
-    cur_time_us = last_time_us + 1;
-  }
-  uint64_t delta_time_us = cur_time_us - last_time_us;
-  statistic_data_.last_sec_thread_querynum.store(delta_query
-       * 1000000 / (delta_time_us));
-  statistic_data_.last_thread_querynum.store(cur_query);
-  statistic_data_.last_time_us.store(cur_time_us);
+  statistic_.server_stat.qps.ResetLastSecQuerynum();
+  statistic_.ResetTableLastSecQuerynum();
 }
 
-void PikaServer::UpdateQueryNumAndExecCountTable(const std::string& command) {
+void PikaServer::UpdateQueryNumAndExecCountTable(const std::string& table_name,
+    const std::string& command, bool is_write) {
   std::string cmd(command);
-  statistic_data_.thread_querynum++;
-  statistic_data_.exec_count_table[slash::StringToUpper(cmd)]++;
+  statistic_.server_stat.qps.querynum++;
+  statistic_.server_stat.exec_count_table[slash::StringToUpper(cmd)]++;
+  statistic_.UpdateTableQps(table_name, command, is_write);
 }
 
 std::unordered_map<std::string, uint64_t> PikaServer::ServerExecCountTable() {
   std::unordered_map<std::string, uint64_t> res;
-  for (auto& cmd : statistic_data_.exec_count_table) {
+  for (auto& cmd : statistic_.server_stat.exec_count_table) {
     res[cmd.first] = cmd.second.load();
   }
   return res;
 }
+
+QpsStatistic PikaServer::ServerTableStat(const std::string& table_name) {
+  return statistic_.TableStat(table_name);
+}
+
+std::unordered_map<std::string, QpsStatistic> PikaServer::ServerAllTableStat() {
+  return statistic_.AllTableStat();
+}
+
 
 int PikaServer::SendToPeer() {
   return g_pika_rm->ConsumeWriteQueue();
@@ -1405,6 +1402,8 @@ void PikaServer::DoTimingTask() {
   AutoDeleteExpiredDump();
   // Cheek Rsync Status
   AutoKeepAliveRSync();
+  // Reset server qps
+  ResetLastSecQuerynum();
 }
 
 void PikaServer::AutoCompactRange() {
