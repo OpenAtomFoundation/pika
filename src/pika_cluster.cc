@@ -73,10 +73,15 @@ void PkClusterInfoCmd::Do(std::shared_ptr<Partition> partition) {
 void PkClusterInfoCmd::ClusterInfoTableAll(std::string* info) {
   std::stringstream tmp_stream;
   std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
+  std::unordered_map<std::string, QpsStatistic> table_stat = g_pika_server->ServerAllTableStat();
   for (const auto& table_struct : table_structs) {
     std::string table_id = table_struct.table_name.substr(2);
     tmp_stream << "table_id: " << table_id << "\r\n";
     tmp_stream << "  partition_num: " << table_struct.partition_num << "\r\n";
+    QpsStatistic qps = table_stat[table_struct.table_name];
+    tmp_stream << "  qps: " << qps.last_sec_querynum << "\r\n";
+    tmp_stream << "  write_qps: " << qps.last_sec_write_querynum << "\r\n";
+    tmp_stream << "  read_qps: " << qps.last_sec_querynum - qps.last_sec_write_querynum << "\r\n";
   }
   info->append(tmp_stream.str());
 }
@@ -89,6 +94,10 @@ void PkClusterInfoCmd::ClusterInfoTable(std::string* info) {
       std::string table_id = table_struct.table_name.substr(2);
       tmp_stream << "table_id: " << table_id << "\r\n";
       tmp_stream << "  partition_num: " << table_struct.partition_num << "\r\n";
+      QpsStatistic qps = g_pika_server->ServerTableStat(table_name_);
+      tmp_stream << "  qps: " << qps.last_sec_querynum << "\r\n";
+      tmp_stream << "  write_qps: " << qps.last_sec_write_querynum << "\r\n";
+      tmp_stream << "  read_qps: " << qps.last_sec_querynum - qps.last_sec_write_querynum << "\r\n";
       break;
     }
   }

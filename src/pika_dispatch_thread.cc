@@ -75,5 +75,4 @@ bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
 
 void PikaDispatchThread::Handles::CronHandle() const {
   pika_disptcher_->thread_rep_->set_keepalive_timeout(g_pika_conf->timeout());
-  g_pika_server->ResetLastSecQuerynum();
 }

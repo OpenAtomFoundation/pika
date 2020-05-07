@@ -29,36 +29,11 @@
 #include "include/pika_repl_server.h"
 #include "include/pika_auxiliary_thread.h"
 #include "include/pika_client_processor.h"
+#include "include/pika_statistic.h"
 
 using slash::Status;
 using slash::Slice;
 
-struct StatisticData {
-  StatisticData()
-      : accumulative_connections(0),
-        thread_querynum(0),
-        last_thread_querynum(0),
-        last_sec_thread_querynum(0),
-        last_time_us(0) {
-    CmdTable* cmds = new CmdTable();
-    cmds->reserve(300);
-    InitCmdTable(cmds);
-    CmdTable::const_iterator it = cmds->begin();
-    for (; it != cmds->end(); ++it) {
-      std::string tmp = it->first;
-      exec_count_table[slash::StringToUpper(tmp)].store(0);
-    }
-    DestoryCmdTable(cmds);
-    delete cmds;
-  }
-
-  std::atomic<uint64_t> accumulative_connections;
-  std::unordered_map<std::string, std::atomic<uint64_t>> exec_count_table;
-  std::atomic<uint64_t> thread_querynum;
-  std::atomic<uint64_t> last_thread_querynum;
-  std::atomic<uint64_t> last_sec_thread_querynum;
-  std::atomic<uint64_t> last_time_us;
-};
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
              kCmdNameMget,        kCmdNameKeys,              kCmdNameMset,
@@ -278,9 +253,12 @@ class PikaServer {
   uint64_t accumulative_connections();
   void incr_accumulative_connections();
   void ResetLastSecQuerynum();
-  void UpdateQueryNumAndExecCountTable(const std::string& command);
+  void UpdateQueryNumAndExecCountTable(
+      const std::string& table_name,
+      const std::string& command, bool is_write);
   std::unordered_map<std::string, uint64_t> ServerExecCountTable();
-
+  QpsStatistic ServerTableStat(const std::string& table_name);
+  std::unordered_map<std::string, QpsStatistic> ServerAllTableStat();
   /*
    * Slave to Master communication used
    */
@@ -422,7 +400,7 @@ class PikaServer {
   /*
    * Statistic used
    */
-  StatisticData statistic_data_;
+  Statistic statistic_;
 
   PikaServer(PikaServer &ps);
   void operator =(const PikaServer &ps);
