@@ -234,7 +234,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
   PikaReplBgWorker* worker = static_cast<PikaReplBgWorker*>(parser->data);
-  g_pika_server->UpdateQueryNumAndExecCountTable(opt);
 
   // Monitor related
   std::string monitor_message;
@@ -260,6 +259,8 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
     LOG(WARNING) << "Fail to initial command from binlog: " << opt;
     return -1;
   }
+
+  g_pika_server->UpdateQueryNumAndExecCountTable(worker->table_name_, opt, c_ptr->is_write());
 
   std::shared_ptr<SyncMasterPartition> partition
     = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(worker->table_name_, worker->partition_id_));
