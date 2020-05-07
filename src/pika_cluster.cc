@@ -498,19 +498,16 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
     }
   }
 
+  bool all_slots = false;
   if (!strcasecmp(argv_[4].data(), "all")) {
-    std::string table_name = g_pika_conf->default_table();
-    slots_ = g_pika_server->GetTablePartitionIds(table_name);
+    // not know which table yet
+    all_slots = true;
   } else {
     Status s = ParseSlotGroup(argv_[4], &slots_);
     if (!s.ok()) {
       res_.SetRes(CmdRes::kErrOther, s.ToString());
       return;
     }
-  }
-
-  if (slots_.empty()) {
-    res_.SetRes(CmdRes::kErrOther, "Slots set empty");
   }
 
   uint64_t table_id;
@@ -545,11 +542,19 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
       res_.SetRes(CmdRes::kErrOther, "syntax error");
       return;
   }
+
   if (!g_pika_server->IsTableExist(table_name_)) {
     res_.SetRes(CmdRes::kInvalidTable);
     return;
   }
 
+  if (all_slots) {
+    slots_ = g_pika_server->GetTablePartitionIds(table_name_);
+  }
+
+  if (slots_.empty()) {
+    res_.SetRes(CmdRes::kErrOther, "Slots set empty");
+  }
 }
 
 void PkClusterSlotsSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
