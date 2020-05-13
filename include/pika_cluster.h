@@ -8,6 +8,10 @@
 
 #include "include/pika_command.h"
 
+
+Status ParseSlotGroup(const std::string& slot_group,
+    std::set<uint32_t>* slots);
+
 class PkClusterInfoCmd : public Cmd {
  public:
   enum InfoSection {
@@ -17,11 +21,12 @@ class PkClusterInfoCmd : public Cmd {
   };
   enum InfoRange {
     kSingle = 0x0,
-    kAll
+    kAll,
+    kRange
   };
   PkClusterInfoCmd(const std::string& name, int arity, uint16_t flag)
     : Cmd(name, arity, flag),
-      info_section_(kInfoErr), info_range_(kAll), partition_id_(0) {}
+      info_section_(kInfoErr), info_range_(kAll) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual Cmd* Clone() override {
     return new PkClusterInfoCmd(*this);
@@ -32,19 +37,21 @@ class PkClusterInfoCmd : public Cmd {
   InfoRange info_range_;
 
   std::string table_name_;
-  uint32_t partition_id_;
+  std::set<uint32_t> slots_;
 
   virtual void DoInitial() override;
   virtual void Clear() {
     info_section_ = kInfoErr;
     info_range_ = kAll;
     table_name_.clear();
-    partition_id_ = 0;
+    slots_.clear();
   }
   const static std::string kSlotSection;
   const static std::string kTableSection;
   void ClusterInfoTableAll(std::string* info);
   void ClusterInfoTable(std::string* info);
+  void ClusterInfoSlotRange(const std::string& table_name, const std::set<uint32_t> slots,
+      std::string* info);
   void ClusterInfoSlotAll(std::string* info);
   Status GetSlotInfo(const std::string table_name, uint32_t partition_id, std::string* info);
   bool ParseInfoSlotSubCmd();

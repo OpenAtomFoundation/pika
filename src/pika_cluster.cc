@@ -51,9 +51,9 @@ void PkClusterInfoCmd::Do(std::shared_ptr<Partition> partition) {
     case kInfoSlot:
       if (info_range_ == kAll) {
         ClusterInfoSlotAll(&info);
-      } else if (info_range_ == kSingle) {
+      } else if (info_range_ == kRange) {
         // doesn't process error, if error return nothing
-        GetSlotInfo(table_name_, partition_id_, &info);
+        ClusterInfoSlotRange(table_name_, slots_, &info);
       }
       break;
     case kInfoTable:
@@ -107,7 +107,7 @@ void PkClusterInfoCmd::ClusterInfoTable(std::string* info) {
 bool PkClusterInfoCmd::ParseInfoSlotSubCmd() {
   if (argv_.size() > 3) {
     if (argv_.size() == 4) {
-      info_range_ = kSingle;
+      info_range_ = kRange;
       std::string tmp(argv_[3]);
       size_t pos = tmp.find(':');
       std::string slot_num_str;
@@ -118,12 +118,10 @@ bool PkClusterInfoCmd::ParseInfoSlotSubCmd() {
         table_name_ = tmp.substr(0, pos);
         slot_num_str = tmp.substr(pos + 1);
       }
-      unsigned long partition_id;
-      if (!slash::string2ul(slot_num_str.c_str(), slot_num_str.size(), &partition_id)) {
+      if (!ParseSlotGroup(slot_num_str, &slots_).ok()) {
         res_.SetRes(CmdRes::kInvalidParameter, kCmdNamePkClusterInfo);
         return false;
       }
-      partition_id_ = partition_id;
     } else {
       res_.SetRes(CmdRes::kWrongNum, kCmdNamePkClusterInfo);
       return false;
@@ -151,6 +149,19 @@ bool PkClusterInfoCmd::ParseInfoTableSubCmd() {
   return true;
 }
 
+void PkClusterInfoCmd::ClusterInfoSlotRange(const std::string& table_name,
+    const std::set<uint32_t> slots, std::string* info) {
+  std::stringstream tmp_stream;
+  for (auto partition_id : slots) {
+    std::string p_info;
+    Status s = GetSlotInfo(table_name, partition_id, &p_info);
+    if (!s.ok()) {
+      continue;
+    }
+    tmp_stream << p_info;
+  }
+  info->append(tmp_stream.str());
+}
 
 void PkClusterInfoCmd::ClusterInfoSlotAll(std::string* info) {
   std::stringstream tmp_stream;
