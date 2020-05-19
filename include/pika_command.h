@@ -410,6 +410,28 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
     kBinlogStage,
     kExecuteStage
   };
+  struct HintKeys {
+    HintKeys() {}
+    void Push(const std::string& key, int hint) {
+      keys.push_back(key);
+      hints.push_back(hint);
+    }
+    bool empty() const {
+      return keys.empty() && hints.empty();
+    }
+    std::vector<std::string> keys;
+    std::vector<int> hints;
+  };
+  struct ProcessArg {
+    ProcessArg() {}
+    ProcessArg(std::shared_ptr<Partition> _partition,
+        std::shared_ptr<SyncMasterPartition> _sync_partition,
+        HintKeys _hint_keys) : partition(_partition),
+        sync_partition(_sync_partition), hint_keys(_hint_keys) {}
+    std::shared_ptr<Partition> partition;
+    std::shared_ptr<SyncMasterPartition> sync_partition;
+    HintKeys hint_keys;
+  };
   Cmd(const std::string& name, int arity, uint16_t flag)
     : name_(name), arity_(arity), flag_(flag), stage_(kNone) {}
   virtual ~Cmd() {}
@@ -423,6 +445,9 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
   virtual void ProcessDoNotSpecifyPartitionCmd();
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) = 0;
   virtual Cmd* Clone() = 0;
+  // used for execute multikey command into different slots
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) = 0;
+  virtual void Merge() = 0;
 
   void Initial(const PikaCmdArgsType& argv,
                const std::string& table_name);
@@ -456,10 +481,10 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
   // enable copy, used default copy
   //Cmd(const Cmd&);
   void ProcessCommand(std::shared_ptr<Partition> partition,
-      std::shared_ptr<SyncMasterPartition> sync_partition);
+      std::shared_ptr<SyncMasterPartition> sync_partition, const HintKeys& hint_key = HintKeys());
   void InternalProcessCommand(std::shared_ptr<Partition> partition,
-      std::shared_ptr<SyncMasterPartition> sync_partition);
-  void DoCommand(std::shared_ptr<Partition> partition);
+      std::shared_ptr<SyncMasterPartition> sync_partition, const HintKeys& hint_key);
+  void DoCommand(std::shared_ptr<Partition> partition, const HintKeys& hint_key);
   void DoBinlog(std::shared_ptr<SyncMasterPartition> partition);
   bool CheckArg(int num) const;
   void LogCommand() const;

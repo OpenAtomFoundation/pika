@@ -368,6 +368,7 @@ void MgetCmd::DoInitial() {
   }
   keys_ = argv_;
   keys_.erase(keys_.begin());
+  split_res_.resize(keys_.size());
   return;
 }
 
@@ -388,6 +389,36 @@ void MgetCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
   return;
+}
+
+void MgetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
+  std::vector<blackwidow::ValueStatus> vss;
+  const std::vector<std::string>& keys = hint_keys.keys;
+  rocksdb::Status s = partition->db()->MGet(keys, &vss);
+  if (s.ok()) {
+    if (hint_keys.hints.size() != vss.size()) {
+      res_.SetRes(CmdRes::kErrOther, "internal Mget return size invalid");
+    }
+    const std::vector<int>& hints = hint_keys.hints;
+    for (size_t i = 0; i < vss.size(); ++i) {
+      split_res_[hints[i]] = vss[i];
+    }
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
+  return;
+}
+
+void MgetCmd::Merge() {
+  res_.AppendArrayLen(split_res_.size());
+  for (const auto& vs : split_res_) {
+    if (vs.status.ok()) {
+      res_.AppendStringLen(vs.value.size());
+      res_.AppendContent(vs.value);
+    } else {
+      res_.AppendContent("$-1");
+    }
+  }
 }
 
 void KeysCmd::DoInitial() {
@@ -662,6 +693,33 @@ void MsetCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
+}
+
+void MsetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
+  std::vector<blackwidow::KeyValue> kvs;
+  const std::vector<std::string>& keys = hint_keys.keys;
+  const std::vector<int>& hints = hint_keys.hints;
+  if (keys.size() != hints.size()) {
+    res_.SetRes(CmdRes::kErrOther, "SplitError hint_keys size not match");
+  }
+  for (size_t i = 0; i < keys.size(); i++) {
+    if (kvs_[hints[i]].key == keys[i]) {
+      kvs.push_back(kvs_[hints[i]]);
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "SplitError hint key: " + keys[i]);
+      return;
+    }
+  }
+  blackwidow::Status s = partition->db()->MSet(kvs);
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+    return;
+  }
+}
+
+void MsetCmd::Merge() {
 }
 
 void MsetnxCmd::DoInitial() {

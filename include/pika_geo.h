@@ -58,6 +58,8 @@ class GeoAddCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
+  virtual void Merge() {};
   virtual Cmd* Clone() override {
     return new GeoAddCmd(*this);
   }
@@ -77,6 +79,8 @@ class GeoPosCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
+  virtual void Merge() {};
   virtual Cmd* Clone() override {
     return new GeoPosCmd(*this);
   }
@@ -96,6 +100,8 @@ class GeoDistCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
+  virtual void Merge() {};
   virtual Cmd* Clone() override {
     return new GeoDistCmd(*this);
   }
@@ -114,6 +120,8 @@ class GeoHashCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
+  virtual void Merge() {};
   virtual Cmd* Clone() override {
     return new GeoHashCmd(*this);
   }
@@ -128,6 +136,8 @@ class GeoRadiusCmd : public Cmd {
   GeoRadiusCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
+  virtual void Merge() {};
   virtual Cmd* Clone() override {
     return new GeoRadiusCmd(*this);
   }
@@ -153,6 +163,8 @@ class GeoRadiusByMemberCmd : public Cmd {
   GeoRadiusByMemberCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
+  virtual void Merge() {};
   virtual Cmd* Clone() override {
     return new GeoRadiusByMemberCmd(*this);
   }
