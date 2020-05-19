@@ -185,6 +185,22 @@ void DelCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
+void DelCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
+  std::map<blackwidow::DataType, blackwidow::Status> type_status;
+  int64_t count = partition->db()->Del(hint_keys.keys, &type_status);
+  if (count >= 0) {
+    split_res_ += count;
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "delete error");
+  }
+  return;
+}
+
+void DelCmd::Merge() {
+  res_.AppendInteger(split_res_);
+  return;
+}
+
 void IncrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameIncr);
@@ -840,6 +856,21 @@ void ExistsCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "exists internal error");
   }
+  return;
+}
+
+void ExistsCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
+  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  int64_t res = partition->db()->Exists(hint_keys.keys, &type_status);
+  if (res != -1) {
+    split_res_ += res;
+  } else {
+    res_.SetRes(CmdRes::kErrOther, "exists internal error");
+  }
+}
+
+void ExistsCmd::Merge() {
+  res_.AppendInteger(split_res_);
   return;
 }
 

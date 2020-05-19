@@ -760,6 +760,9 @@ void Cmd::ProcessMultiPartitionCmd() {
   for (auto& iter : process_map) {
     ProcessArg& arg = iter.second;
     ProcessCommand(arg.partition, arg.sync_partition, arg.hint_keys);
+    if (!res_.ok()) {
+      return;
+    }
   }
   Merge();
 }
