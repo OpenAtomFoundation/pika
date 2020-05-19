@@ -79,6 +79,8 @@ void PkClusterInfoCmd::ClusterInfoTableAll(std::string* info) {
     tmp_stream << "table_id: " << table_id << "\r\n";
     tmp_stream << "  partition_num: " << table_struct.partition_num << "\r\n";
     QpsStatistic qps = table_stat[table_struct.table_name];
+    tmp_stream << "  total_commands_processed:" << qps.querynum.load() << "\r\n";
+    tmp_stream << "  total_write_commands_processed:" << qps.write_querynum.load() << "\r\n";
     tmp_stream << "  qps: " << qps.last_sec_querynum << "\r\n";
     tmp_stream << "  write_qps: " << qps.last_sec_write_querynum << "\r\n";
     tmp_stream << "  read_qps: " << qps.last_sec_querynum - qps.last_sec_write_querynum << "\r\n";
