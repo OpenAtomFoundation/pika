@@ -76,19 +76,20 @@ class GetCmd : public Cmd {
 class DelCmd : public Cmd {
  public:
   DelCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+      : Cmd(name, arity, flag), split_res_(0) {};
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual std::vector<std::string> current_key() const {
     return keys_;
   }
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys);
+  virtual void Merge();
   virtual Cmd* Clone() override {
     return new DelCmd(*this);
   }
 
  private:
   std::vector<std::string> keys_;
+  int64_t split_res_;
   virtual void DoInitial() override;
 };
 
@@ -489,19 +490,20 @@ class StrlenCmd : public Cmd {
 class ExistsCmd : public Cmd {
  public:
   ExistsCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+      : Cmd(name, arity, flag), split_res_(0) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual std::vector<std::string> current_key() const {
     return keys_;
   }
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys);
+  virtual void Merge();
   virtual Cmd* Clone() override {
     return new ExistsCmd(*this);
   }
 
  private:
   std::vector<std::string> keys_;
+  int64_t split_res_;
   virtual void DoInitial() override;
 };
 
