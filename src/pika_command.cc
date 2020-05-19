@@ -19,9 +19,11 @@
 #include "include/pika_cluster.h"
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
+#include "include/pika_cmd_table_manager.h"
 
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
+extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   //Admin
@@ -630,46 +632,60 @@ void Cmd::ProcessSinglePartitionCmd() {
 }
 
 void Cmd::ProcessCommand(std::shared_ptr<Partition> partition,
-    std::shared_ptr<SyncMasterPartition> sync_partition) {
+    std::shared_ptr<SyncMasterPartition> sync_partition,
+    const HintKeys& hint_keys) {
   if (stage_ == kNone) {
-    InternalProcessCommand(partition, sync_partition);
+    InternalProcessCommand(partition, sync_partition, hint_keys);
   } else {
     if (stage_ == kBinlogStage) {
       DoBinlog(sync_partition);
     } else if (stage_ == kExecuteStage) {
-      DoCommand(partition);
+      DoCommand(partition, hint_keys);
     }
   }
 }
 
 void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
-    std::shared_ptr<SyncMasterPartition> sync_partition) {
+    std::shared_ptr<SyncMasterPartition> sync_partition, const HintKeys& hint_keys) {
   slash::lock::MultiRecordLock record_lock(partition->LockMgr());
   if (is_write()) {
-    record_lock.Lock(current_key());
+    if (!hint_keys.empty() && is_multi_partition() &&
+     !g_pika_conf->classic_mode() && g_pika_conf->consensus_level() == 0) {
+      record_lock.Lock(hint_keys.keys);
+    } else {
+      record_lock.Lock(current_key());
+    }
   }
 
-  DoCommand(partition);
+  DoCommand(partition, hint_keys);
 
   DoBinlog(sync_partition);
 
   if (is_write()) {
-    record_lock.Unlock(current_key());
+    if (!hint_keys.empty() && is_multi_partition() &&
+     !g_pika_conf->classic_mode() && g_pika_conf->consensus_level() == 0) {
+      record_lock.Unlock(hint_keys.keys);
+    } else {
+      record_lock.Unlock(current_key());
+    }
   }
-
 }
 
-void Cmd::DoCommand(std::shared_ptr<Partition> partition) {
+void Cmd::DoCommand(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
   if (!is_suspend()) {
     partition->DbRWLockReader();
   }
 
-  Do(partition);
+  if (!hint_keys.empty() && is_multi_partition() &&
+     !g_pika_conf->classic_mode() && g_pika_conf->consensus_level() == 0) {
+    Split(partition, hint_keys);
+  } else {
+    Do(partition);
+  }
 
   if (!is_suspend()) {
     partition->DbRWUnLock();
   }
-
 }
 
 void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
@@ -702,12 +718,50 @@ void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
 }
 
 void Cmd::ProcessMultiPartitionCmd() {
-  if (argv_.size() == static_cast<size_t>(arity_ < 0 ? -arity_ : arity_)) {
-    ProcessSinglePartitionCmd();
-  } else {
-    res_.SetRes(CmdRes::kErrOther, "This command usage only support in classic mode\r\n");
+  std::shared_ptr<Partition> partition;
+  std::vector<std::string> cur_key = current_key();
+  if (cur_key.empty()) {
+    res_.SetRes(CmdRes::kErrOther, "Internal Error");
     return;
   }
+
+  int hint = 0;
+  std::unordered_map<uint32_t, ProcessArg> process_map;
+  // split cur_key into partitions
+  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
+  if (!table) {
+    res_.SetRes(CmdRes::kErrOther, "Table not found");
+  }
+  for (auto& key : cur_key) {
+    // in sharding mode we select partition by key
+    uint32_t partition_id =  g_pika_cmd_table_manager->DistributeKey(key, table->PartitionNum());
+    std::unordered_map<uint32_t, ProcessArg>::iterator iter = process_map.find(partition_id);
+    if (iter == process_map.end()) {
+      std::shared_ptr<Partition> partition =  table->GetPartitionById(partition_id);
+      if (!partition) {
+        res_.SetRes(CmdRes::kErrOther, "Partition not found");
+        return;
+      }
+      std::shared_ptr<SyncMasterPartition> sync_partition =
+      g_pika_rm->GetSyncMasterPartitionByName(
+          PartitionInfo(partition->GetTableName(), partition->GetPartitionId()));
+      if (!sync_partition) {
+        res_.SetRes(CmdRes::kErrOther, "Partition not found");
+        return;
+      }
+      HintKeys hint_keys;
+      hint_keys.Push(key, hint);
+      process_map[partition_id] = ProcessArg(partition, sync_partition, hint_keys);
+    } else {
+      iter->second.hint_keys.Push(key, hint);
+    }
+    hint++;
+  }
+  for (auto& iter : process_map) {
+    ProcessArg& arg = iter.second;
+    ProcessCommand(arg.partition, arg.sync_partition, arg.hint_keys);
+  }
+  Merge();
 }
 
 void Cmd::ProcessDoNotSpecifyPartitionCmd() {
