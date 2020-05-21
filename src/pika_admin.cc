@@ -1034,11 +1034,11 @@ void InfoCmd::InfoKeyspace(std::string& info) {
         tmp_stream << "# Duration: " << std::to_string(duration) + "s" << "\r\n";
       }
 
-      tmp_stream << table_name << " Strings_keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invaild_keys=" << key_infos[0].invaild_keys << "\r\n";
-      tmp_stream << table_name << " Hashes_keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invaild_keys=" << key_infos[1].invaild_keys << "\r\n";
-      tmp_stream << table_name << " Lists_keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invaild_keys=" << key_infos[2].invaild_keys << "\r\n";
-      tmp_stream << table_name << " Zsets_keys=" << key_infos[3].keys << ", expires=" << key_infos[3].expires << ", invaild_keys=" << key_infos[3].invaild_keys << "\r\n";
-      tmp_stream << table_name << " Sets_keys=" << key_infos[4].keys << ", expires=" << key_infos[4].expires << ", invaild_keys=" << key_infos[4].invaild_keys << "\r\n\r\n";
+      tmp_stream << table_name << " Strings_keys=" << key_infos[0].keys << ", expires=" << key_infos[0].expires << ", invalid_keys=" << key_infos[0].invaild_keys << "\r\n";
+      tmp_stream << table_name << " Hashes_keys=" << key_infos[1].keys << ", expires=" << key_infos[1].expires << ", invalid_keys=" << key_infos[1].invaild_keys << "\r\n";
+      tmp_stream << table_name << " Lists_keys=" << key_infos[2].keys << ", expires=" << key_infos[2].expires << ", invalid_keys=" << key_infos[2].invaild_keys << "\r\n";
+      tmp_stream << table_name << " Zsets_keys=" << key_infos[3].keys << ", expires=" << key_infos[3].expires << ", invalid_keys=" << key_infos[3].invaild_keys << "\r\n";
+      tmp_stream << table_name << " Sets_keys=" << key_infos[4].keys << ", expires=" << key_infos[4].expires << ", invalid_keys=" << key_infos[4].invaild_keys << "\r\n\r\n";
     }
   }
   info.append(tmp_stream.str());
