@@ -169,6 +169,7 @@ Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& st
     match_index_[ip+std::to_string(port)] = acked_offset;
   }
 
+  // if consensus_level == 0 LogOffset() return
   *committed_index = InternalCalCommittedIndex(GetAllMatchIndex());
   return Status::OK();
 }
@@ -180,6 +181,9 @@ int SyncProgress::SlaveSize() {
 
 LogOffset SyncProgress::InternalCalCommittedIndex(std::unordered_map<std::string, LogOffset> match_index) {
   int consensus_level = g_pika_conf->consensus_level();
+  if (consensus_level == 0) {
+    return LogOffset();
+  }
   if (static_cast<int>(match_index.size()) < consensus_level) {
     return LogOffset();
   }
