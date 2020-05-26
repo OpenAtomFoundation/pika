@@ -801,8 +801,8 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
             continue;
           } else {
             uint64_t lag =
-              (master_boffset.filenum - sent_slave_boffset.filenum) * g_pika_conf->binlog_file_size()
-              + (master_boffset.offset - sent_slave_boffset.offset);
+              (uint64_t)(master_boffset.filenum - sent_slave_boffset.filenum) * g_pika_conf->binlog_file_size()
+              + master_boffset.offset - sent_slave_boffset.offset;
             tmp_stream << "(" << partition->PartitionName() << ":" << lag << ")";
           }
         } else {
