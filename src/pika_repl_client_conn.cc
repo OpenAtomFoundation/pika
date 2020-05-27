@@ -95,6 +95,13 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   std::shared_ptr<pink::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
+  if (response->code() == InnerMessage::kOther) {
+    std::string reply = response->has_reply() ? response->reply() : "";
+    // keep sending MetaSync
+    LOG(WARNING) << "Meta Sync Failed: " << reply << " will keep sending MetaSync msg";
+    return;
+  }
+
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "Meta Sync Failed: " << reply;
@@ -279,6 +286,7 @@ Status PikaReplClientConn::TrySyncConsensusCheck(
     return s;
   }
   slave_partition->SetReplState(ReplState::kTryConnect);
+
   return s;
 }
 

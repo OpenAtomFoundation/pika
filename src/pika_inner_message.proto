@@ -12,6 +12,7 @@ enum Type {
 enum StatusCode {
   kOk       = 1;
   kError    = 2;
+  kOther    = 3;
 }
 
 message BinlogOffset {
