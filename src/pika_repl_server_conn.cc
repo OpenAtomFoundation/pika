@@ -46,7 +46,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
     const std::string ip_port = slash::IpPortString(node.ip(), node.port());
     g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
     if (!success) {
-      response.set_code(InnerMessage::kError);
+      response.set_code(InnerMessage::kOther);
       response.set_reply("Slave AlreadyExist");
     } else {
       g_pika_server->BecomeMaster();
