@@ -265,12 +265,13 @@ void PikaClientConn::TryWriteResp() {
 void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string> resp_ptr) {
   // get opt
   std::string opt = argv[0];
+  slash::StringToLower(opt);
   if (opt == kClusterPrefix) {
     if (argv.size() >= 2 ) {
       opt += argv[1];
+      slash::StringToLower(opt);
     }
   }
-  slash::StringToLower(opt);
 
   std::shared_ptr<Cmd> cmd_ptr = DoCmd(argv, opt, resp_ptr);
   // level == 0 or (cmd error) or (is_read)
