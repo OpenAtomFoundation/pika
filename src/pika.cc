@@ -9,6 +9,7 @@
 
 #include "slash/include/env.h"
 #include "include/pika_rm.h"
+#include "include/pika_proxy.h"
 #include "include/pika_server.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
@@ -23,6 +24,7 @@
 PikaConf* g_pika_conf;
 PikaServer* g_pika_server;
 PikaReplicaManager* g_pika_rm;
+PikaProxy* g_pika_proxy;
 
 PikaCmdTableManager* g_pika_cmd_table_manager;
 
@@ -188,11 +190,13 @@ int main(int argc, char *argv[]) {
   g_pika_cmd_table_manager = new PikaCmdTableManager();
   g_pika_server = new PikaServer();
   g_pika_rm = new PikaReplicaManager();
+  g_pika_proxy = new PikaProxy();
 
   if (g_pika_conf->daemonize()) {
     close_std();
   }
 
+  g_pika_proxy->Start();
   g_pika_rm->Start();
   g_pika_server->Start();
   
@@ -204,8 +208,11 @@ int main(int argc, char *argv[]) {
   // may references to dead PikaServer
   g_pika_rm->Stop();
 
+  g_pika_proxy->Stop();
+
   delete g_pika_server;
   delete g_pika_rm;
+  delete g_pika_proxy;
   delete g_pika_cmd_table_manager;
   ::google::ShutdownGoogleLogging();
   delete g_pika_conf;

@@ -15,11 +15,13 @@
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_admin.h"
 #include "include/pika_rm.h"
+#include "include/pika_proxy.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
+extern PikaProxy* g_pika_proxy;
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                pink::Thread* thread,
@@ -197,7 +199,20 @@ void PikaClientConn::DoBackgroundTask(void* arg) {
       return;
     }
   }
-  conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds);
+  std::vector<Node> dst;
+  bool all_local = true;
+  Status s = g_pika_server->GetCmdRouting(
+      bg_arg->redis_cmds, &dst, &all_local);
+  if (!s.ok()) {
+    delete bg_arg;
+    conn_ptr->NotifyEpoll(false);
+    return;
+  }
+  if (!all_local) {
+    g_pika_proxy->ScheduleForwardToBackend(conn_ptr, bg_arg->redis_cmds, dst);
+  } else {
+    conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds);
+  }
   delete bg_arg;
 }
 
