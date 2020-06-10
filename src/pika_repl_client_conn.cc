@@ -252,6 +252,9 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     LogOffset offset(boffset, logic_last_offset);
     g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, offset, offset, true);
     slave_partition->SetReplState(ReplState::kConnected);
+    // after connected, update receive time first to avoid connection timeout
+    slave_partition->SetLastRecvTime(slash::NowMicros());
+
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {
     slave_partition->SetReplState(ReplState::kTryDBSync);
