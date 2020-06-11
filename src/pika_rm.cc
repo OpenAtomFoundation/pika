@@ -387,7 +387,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
     slash::MutexLock l(&slave_ptr->slave_mu);
     if (slave_ptr->LastRecvTime() + kRecvKeepAliveTimeout < now) {
       to_del.push_back(Node(slave_ptr->Ip(), slave_ptr->Port()));
-    } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now) {
+    } else if (slave_ptr->LastSendTime() + kSendKeepAliveTimeout < now && slave_ptr->sent_offset == slave_ptr->acked_offset) {
       std::vector<WriteTask> task;
       RmNode rm_node(slave_ptr->Ip(), slave_ptr->Port(), slave_ptr->TableName(), slave_ptr->PartitionId(), slave_ptr->SessionId());
       WriteTask empty_task(rm_node, BinlogChip(LogOffset(), ""), LogOffset());
@@ -608,7 +608,7 @@ Status SyncSlavePartition::CheckSyncTimeout(uint64_t now) {
     return Status::OK();
   }
   if (m_info_.LastRecvTime() + kRecvKeepAliveTimeout < now) {
-    m_info_ = RmNode();
+    // update slave state to kTryConnect, and try reconnect to master node
     repl_state_ = ReplState::kTryConnect;
     g_pika_server->SetLoopPartitionStateMachine(true);
   }
