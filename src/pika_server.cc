@@ -1647,6 +1647,13 @@ void PikaServer::InitBlackwidowOptions() {
       g_pika_conf->small_compaction_threshold();
 }
 
+Status PikaServer::GetCmdRouting(std::vector<pink::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local) {
+  UNUSED(redis_cmds);
+  UNUSED(dst);
+  *all_local = true;
+  return Status::OK();
+}
+
 void PikaServer::ServerStatus(std::string* info) {
   std::stringstream tmp_stream;
   size_t q_size = ClientProcessorThreadPoolCurQueueSize();

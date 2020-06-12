@@ -297,6 +297,9 @@ class PikaServer {
   void PubSubNumSub(const std::vector<std::string>& channels,
                     std::vector<std::pair<std::string, int>>* result);
 
+  Status GetCmdRouting(std::vector<pink::RedisCmdArgsType>& redis_cmds,
+      std::vector<Node>* dst, bool* all_local);
+
   // info debug use
   void ServerStatus(std::string* info);
 
