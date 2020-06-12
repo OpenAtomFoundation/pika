@@ -105,7 +105,7 @@ More details on [Performance](https://github.com/Qihoo360/pika/wiki/3.2.x-Perfor
 
 ## Contact Us
 
-Mail: g-infra@360.cn
+Developers Mail Group: pika_developers@groups.163.com Join In(http://163.fm/Q70Qbg3v)
 
 QQ group: 294254078
 
