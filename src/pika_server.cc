@@ -1680,6 +1680,13 @@ blackwidow::Status PikaServer::RewriteBlackwidowOptions(const blackwidow::Option
   return s;
 }
 
+Status PikaServer::GetCmdRouting(std::vector<pink::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local) {
+  UNUSED(redis_cmds);
+  UNUSED(dst);
+  *all_local = true;
+  return Status::OK();
+}
+
 void PikaServer::ServerStatus(std::string* info) {
   std::stringstream tmp_stream;
   size_t q_size = ClientProcessorThreadPoolCurQueueSize();
