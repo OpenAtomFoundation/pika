@@ -24,7 +24,7 @@ RUN rpm -ivh https://mirrors.aliyun.com/epel/epel-release-latest-7.noarch.rpm &&
     yum -y install make && \
     yum -y install which && \
     yum -y install git && \
-    make -j24 && \
+    make && \
     cp -r ${PIKA_BUILD_DIR}/output ${PIKA} && \
     cp -r ${PIKA_BUILD_DIR}/entrypoint.sh ${PIKA} && \
     yum -y remove gcc-c++ && \
