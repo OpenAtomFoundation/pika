@@ -522,7 +522,7 @@ std::string SetnxCmd::ToBinlog(
     RedisAppendLen(content, 3, "*");
 
     // to set cmd
-    std::string set_cmd("set");
+    std::string set_cmd("setnx");
     RedisAppendLen(content, set_cmd.size(), "$");
     RedisAppendContent(content, set_cmd);
     // key

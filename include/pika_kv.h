@@ -297,7 +297,8 @@ class SetnxCmd : public Cmd {
  private:
   std::string key_;
   std::string value_;
-  int32_t success_;
+  // slave write binlog first, then exec Do function. so this success_ should be true by default.
+  int32_t success_ = 1;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(
       uint32_t exec_time,

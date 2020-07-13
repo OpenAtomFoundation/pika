@@ -208,10 +208,10 @@ class ConsensusCoordinator {
   Status InternalAppendLog(const BinlogItem& item,
       std::shared_ptr<Cmd> cmd_ptr,
       std::shared_ptr<PikaClientConn> conn_ptr,
-      std::shared_ptr<std::string> resp_ptr);
+      std::shared_ptr<std::string> resp_ptr, bool* saved);
   Status InternalAppendBinlog(const BinlogItem& item,
       std::shared_ptr<Cmd> cmd_ptr,
-      LogOffset* log_offset);
+      LogOffset* log_offset, bool* saved);
   void InternalApply(const MemLog::LogItem& log);
   void InternalApplyFollower(const MemLog::LogItem& log);
   bool InternalUpdateCommittedIndex(const LogOffset& slaves_committed_index,

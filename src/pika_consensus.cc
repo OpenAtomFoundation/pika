@@ -389,6 +389,7 @@ Status ConsensusCoordinator::ProposeLog(
     std::shared_ptr<PikaClientConn> conn_ptr,
     std::shared_ptr<std::string> resp_ptr) {
   LogOffset log_offset;
+  bool saved = false;
 
   stable_logger_->Logger()->Lock();
   // build BinlogItem
@@ -406,26 +407,29 @@ Status ConsensusCoordinator::ProposeLog(
   item.set_filenum(filenum);
   item.set_offset(offset);
   // make sure stable log and mem log consistent
-  s = InternalAppendLog(item, cmd_ptr, conn_ptr, resp_ptr);
+  s = InternalAppendLog(item, cmd_ptr, conn_ptr, resp_ptr, &saved);
   if (!s.ok()) {
     stable_logger_->Logger()->Unlock();
     return s;
   }
   stable_logger_->Logger()->Unlock();
 
-  g_pika_server->SignalAuxiliary();
+  if (saved) {
+    g_pika_server->SignalAuxiliary();
+  }
   return Status::OK();
 }
 
 Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item,
     std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
-    std::shared_ptr<std::string> resp_ptr) {
+    std::shared_ptr<std::string> resp_ptr, bool* saved) {
   LogOffset log_offset;
-  Status s = InternalAppendBinlog(item, cmd_ptr, &log_offset);
+  Status s = InternalAppendBinlog(item, cmd_ptr, &log_offset, saved);
   if (!s.ok()) {
     return s;
   }
-  if (g_pika_conf->consensus_level() == 0) {
+  // if cmd was not been writen into binlog file, this should return OK
+  if (g_pika_conf->consensus_level() == 0 || !*saved) {
     return Status::OK();
   }
   mem_logger_->AppendLog(MemLog::LogItem(log_offset, cmd_ptr, conn_ptr, resp_ptr));
@@ -434,6 +438,7 @@ Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item,
 
 // precheck if prev_offset match && drop this log if this log exist
 Status ConsensusCoordinator::ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute) {
+  bool saved = false;
   LogOffset last_index = mem_logger_->last_offset();
   if (attribute.logic_id() < last_index.l_offset.index) {
     LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString()
@@ -442,10 +447,10 @@ Status ConsensusCoordinator::ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, cons
   }
 
   stable_logger_->Logger()->Lock();
-  Status s = InternalAppendLog(attribute, cmd_ptr, nullptr, nullptr);
+  Status s = InternalAppendLog(attribute, cmd_ptr, nullptr, nullptr, &saved);
   stable_logger_->Logger()->Unlock();
 
-  if (g_pika_conf->consensus_level() == 0) {
+  if (g_pika_conf->consensus_level() == 0 && saved) {
     InternalApplyFollower(MemLog::LogItem(LogOffset(), cmd_ptr, nullptr, nullptr));
     return Status::OK();
   }
@@ -524,13 +529,23 @@ bool ConsensusCoordinator::InternalUpdateCommittedIndex(const LogOffset& slave_c
   return true;
 }
 
+/*
+ * return OK() and saved was true, means: this cmd was writen into binlog file.
+ */
 Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item,
-    std::shared_ptr<Cmd> cmd_ptr, LogOffset* log_offset) {
+    std::shared_ptr<Cmd> cmd_ptr, LogOffset* log_offset, bool* saved) {
   std::string binlog = cmd_ptr->ToBinlog(item.exec_time(),
                                     item.term_id(),
                                     item.logic_id(),
                                     item.filenum(),
                                     item.offset());
+  // if binlog was  empty, no need write this cmd to binlog
+  if (binlog.size() == 0) {
+    *saved = false;
+    return Status::OK();
+  } else {
+    *saved = true;
+  }
   Status s = stable_logger_->Logger()->Put(binlog);
   if (!s.ok()) {
     std::string table_name = cmd_ptr->table_name().empty()
