@@ -517,31 +517,29 @@ std::string SetnxCmd::ToBinlog(
       uint32_t filenum,
       uint64_t offset) {
   std::string content;
-  if (success_) {
-    content.reserve(RAW_ARGS_LEN);
-    RedisAppendLen(content, 3, "*");
+  content.reserve(RAW_ARGS_LEN);
+  RedisAppendLen(content, 3, "*");
 
-    // to set cmd
-    std::string set_cmd("set");
-    RedisAppendLen(content, set_cmd.size(), "$");
-    RedisAppendContent(content, set_cmd);
-    // key
-    RedisAppendLen(content, key_.size(), "$");
-    RedisAppendContent(content, key_);
-    // value
-    RedisAppendLen(content, value_.size(), "$");
-    RedisAppendContent(content, value_);
+  // don't check variable 'success_', because if 'success_' was false, an empty binlog will be saved into file.
+  // to setnx cmd
+  std::string set_cmd("setnx");
+  RedisAppendLen(content, set_cmd.size(), "$");
+  RedisAppendContent(content, set_cmd);
+  // key
+  RedisAppendLen(content, key_.size(), "$");
+  RedisAppendContent(content, key_);
+  // value
+  RedisAppendLen(content, value_.size(), "$");
+  RedisAppendContent(content, value_);
 
-    return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                               exec_time,
-                                               term_id,
-                                               logic_id,
-                                               filenum,
-                                               offset,
-                                               content,
-                                               {});
-  }
-  return content;
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
+                                             exec_time,
+                                             term_id,
+                                             logic_id,
+                                             filenum,
+                                             offset,
+                                             content,
+                                             {});
 }
 
 void SetexCmd::DoInitial() {
