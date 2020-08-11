@@ -403,6 +403,7 @@ Status SyncMasterPartition::CheckSyncTimeout(uint64_t now) {
 
   for (auto& node : to_del) {
     coordinator_.SyncPros().RemoveSlaveNode(node.Ip(), node.Port());
+    g_pika_rm->DropItemInWriteQueue(node.Ip(), node.Port());
     LOG(WARNING) << SyncPartitionInfo().ToString() << " Master del Recv Timeout slave success " << node.ToString();
   }
   return Status::OK();
