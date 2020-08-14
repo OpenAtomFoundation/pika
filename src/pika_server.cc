@@ -94,6 +94,15 @@ PikaServer::PikaServer() :
   pika_auxiliary_thread_ = new PikaAuxiliaryThread();
   pika_thread_pool_ = new pink::ThreadPool(g_pika_conf->thread_pool_size(), 100000);
 
+  // Create redis sender
+  for (int i = 0; i < g_pika_conf->redis_sender_num(); i++) {
+    redis_senders_.emplace_back(
+            new RedisSender(int(i),
+                            g_pika_conf->target_redis_host(),
+                            g_pika_conf->target_redis_port(),
+                            g_pika_conf->target_redis_pwd()));
+  }
+
   pthread_rwlock_init(&state_protector_, NULL);
   pthread_rwlock_init(&slowlog_protector_, NULL);
 }
@@ -119,6 +128,16 @@ PikaServer::~PikaServer() {
   delete pika_rsync_service_;
   delete pika_thread_pool_;
   delete pika_monitor_thread_;
+
+  for (size_t i = 0; i < redis_senders_.size(); i++) {
+    redis_senders_[i]->Stop();
+  }
+  // wait thread exit
+  sleep(1);
+  for (size_t i = 0; i < redis_senders_.size(); i++) {
+    delete redis_senders_[i];
+  }
+  redis_senders_.clear();
 
   bgsave_thread_.StopThread();
   key_scan_thread_.StopThread();
@@ -245,6 +264,12 @@ void PikaServer::Start() {
   if (ret != pink::kSuccess) {
     tables_.clear();
     LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  }
+  for (size_t i = 0; i < redis_senders_.size(); i++) {
+    ret = redis_senders_[i]->StartThread();
+    if (ret != pink::kSuccess) {
+      LOG(FATAL) << "Start Redis Sender Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+    }
   }
 
   time(&start_time_s_);
@@ -1247,6 +1272,13 @@ void PikaServer::PubSubChannels(const std::string& pattern,
 void PikaServer::PubSubNumSub(const std::vector<std::string>& channels,
                     std::vector<std::pair<std::string, int>>* result) {
   pika_pubsub_thread_->PubSubNumSub(channels, result);
+}
+
+int PikaServer::SendRedisCommand(const std::string& command, const std::string& key) {
+  // Send command
+  size_t idx = std::hash<std::string>()(key) % redis_senders_.size();
+  redis_senders_[idx]->SendRedisCommand(command);
+  return 0;
 }
 
 /******************************* PRIVATE *******************************/

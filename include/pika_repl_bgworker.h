@@ -21,6 +21,7 @@
 class PikaReplBgWorker {
  public:
   explicit PikaReplBgWorker(int queue_size);
+  ~PikaReplBgWorker();
   int StartThread();
   int StopThread();
   void Schedule(pink::TaskFunc func, void* arg);

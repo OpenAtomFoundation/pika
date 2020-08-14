@@ -18,6 +18,7 @@
 #include "blackwidow/blackwidow.h"
 #include "blackwidow/backupable.h"
 
+#include "include/redis_sender.h"
 #include "include/pika_conf.h"
 #include "include/pika_table.h"
 #include "include/pika_binlog.h"
@@ -294,6 +295,11 @@ class PikaServer {
   void PubSubNumSub(const std::vector<std::string>& channels,
                     std::vector<std::pair<std::string, int>>* result);
 
+  /*
+   * migrate used
+   */
+  int SendRedisCommand(const std::string& command, const std::string& key);
+
   friend class Cmd;
   friend class InfoCmd;
   friend class PkClusterAddSlotsCmd;
@@ -392,6 +398,11 @@ class PikaServer {
    * Communication used
    */
   PikaAuxiliaryThread* pika_auxiliary_thread_;
+
+  /*
+   *
+   */
+  std::vector<RedisSender*> redis_senders_;
 
   /*
    * Slowlog used

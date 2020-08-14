@@ -7,6 +7,8 @@
 
 #include <glog/logging.h>
 
+#include "pink/include/redis_cli.h"
+
 #include "include/pika_rm.h"
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
@@ -26,6 +28,10 @@ PikaReplBgWorker::PikaReplBgWorker(int queue_size)
   redis_parser_.data = this;
   table_name_ = g_pika_conf->default_table();
   partition_id_ = 0;
+
+}
+
+PikaReplBgWorker::~PikaReplBgWorker() {
 }
 
 int PikaReplBgWorker::StartThread() {
@@ -234,6 +240,13 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     start_us = slash::NowMicros();
   }
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
+
+  // TODO write target redis
+  std::string key = argv->size() > 1 ? (*argv)[1] : "";
+  std::string command;
+  pink::SerializeRedisCommand(*argv, &command);
+  g_pika_server->SendRedisCommand(command, key);
+
   // Add read lock for no suspend command
   if (!c_ptr->is_suspend()) {
     partition->DbRWLockReader();

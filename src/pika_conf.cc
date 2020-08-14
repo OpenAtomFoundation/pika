@@ -426,6 +426,18 @@ int PikaConf::Load()
   } else {
     sync_window_size_.store(tmp_sync_window_size);
   }
+
+  target_redis_host_ = "127.0.0.1";
+  GetConfStr("target-redis-host", &target_redis_host_);
+
+  target_redis_port_ = 6379;
+  GetConfInt("target-redis-port", &target_redis_port_);
+
+  target_redis_pwd_ = "";
+  GetConfStr("target-redis-pwd" , &target_redis_pwd_);
+
+  redis_sender_num_ = 8;
+  GetConfInt("redis-sender-num", &redis_sender_num_);
   return ret;
 }
 
