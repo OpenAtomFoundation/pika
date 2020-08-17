@@ -89,7 +89,8 @@ class PikaConf : public slash::BaseConf {
 
   std::string target_redis_host()                   { return target_redis_host_; }
   int target_redis_port()                           { return target_redis_port_; }
-  std::string target_redis_pwd()                    { return target_redis_pwd_; }
+  std::string target_redis_pwd()                    { return target_redis_pwd_;  }
+  int sync_batch_num()                              { return sync_batch_num_;    }
   int redis_sender_num()                            { return redis_sender_num_;  }
 
   // Immutable config items, we don't use lock.
@@ -321,6 +322,7 @@ class PikaConf : public slash::BaseConf {
   std::string target_redis_host_;
   int target_redis_port_;
   std::string target_redis_pwd_;
+  int sync_batch_num_;
   int redis_sender_num_;
 
   //

@@ -90,6 +90,7 @@ INCLUDE_PATH = -I. \
 							 -I$(SLASH_PATH) \
 							 -I$(PINK_PATH) \
 							 -I$(BLACKWIDOW_PATH)/include \
+							 -I$(BLACKWIDOW_PATH)\
 							 -I$(ROCKSDB_PATH) \
 							 -I$(ROCKSDB_PATH)/include \
 							 -I$(GLOG_PATH)/src \

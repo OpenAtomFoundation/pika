@@ -22,6 +22,8 @@
 
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "include/pika_sender.h"
+#include "include/migrator_thread.h"
 #include "include/pika_dispatch_thread.h"
 #include "include/pika_cmd_table_manager.h"
 
@@ -1279,6 +1281,71 @@ int PikaServer::SendRedisCommand(const std::string& command, const std::string& 
   size_t idx = std::hash<std::string>()(key) % redis_senders_.size();
   redis_senders_[idx]->SendRedisCommand(command);
   return 0;
+}
+
+void PikaServer::RetransmitData(const std::string& path) {
+
+  blackwidow::BlackWidow *db = new blackwidow::BlackWidow();
+  rocksdb::Status s = db->Open(g_pika_server->bw_options(), path);
+
+  if (!s.ok()) {
+    LOG(FATAL) << "open received database error: " << s.ToString();
+    return;
+  }
+
+  // Init SenderThread
+  int thread_num = g_pika_conf->redis_sender_num();
+  std::string target_host = g_pika_conf->target_redis_host();
+  int target_port = g_pika_conf->target_redis_port();
+  std::string target_pwd = g_pika_conf->target_redis_pwd();
+
+  LOG(INFO) << "open received database success, start retransmit data to redis("
+    << target_host << ":" << target_port << ")";
+
+  std::vector<PikaSender*> pika_senders;
+  std::vector<MigratorThread*> migrators;
+
+  for (int i = 0; i < thread_num; i++) {
+    pika_senders.emplace_back(new PikaSender(target_host, target_port, target_pwd));
+  }
+  migrators.emplace_back(new MigratorThread(db, &pika_senders, blackwidow::kStrings, thread_num));
+  migrators.emplace_back(new MigratorThread(db, &pika_senders, blackwidow::kLists, thread_num));
+  migrators.emplace_back(new MigratorThread(db, &pika_senders, blackwidow::kHashes, thread_num));
+  migrators.emplace_back(new MigratorThread(db, &pika_senders, blackwidow::kSets, thread_num));
+  migrators.emplace_back(new MigratorThread(db, &pika_senders, blackwidow::kZSets, thread_num));
+
+  for (size_t i = 0; i < pika_senders.size(); i++) {
+    pika_senders[i]->StartThread();
+  }
+  for (size_t i = 0; i < migrators.size(); i++) {
+    migrators[i]->StartThread();
+  }
+
+  for (size_t i = 0; i < migrators.size(); i++) {
+    migrators[i]->JoinThread();
+  }
+  for (size_t i = 0; i < pika_senders.size(); i++) {
+    pika_senders[i]->Stop();
+  }
+  for (size_t i = 0; i < pika_senders.size(); i++) {
+    pika_senders[i]->JoinThread();
+  }
+
+  int64_t replies = 0, records = 0;
+  for (size_t i = 0; i < migrators.size(); i++) {
+    records += migrators[i]->num();
+    delete migrators[i];
+  }
+  migrators.clear();
+  for (size_t i = 0; i < pika_senders.size(); i++) {
+    replies += pika_senders[i]->elements();
+    delete pika_senders[i];
+  }
+  pika_senders.clear();
+
+  LOG(INFO) << "=============== Retransmit Finish =====================";
+  LOG(INFO) << "Total records : " << records << " have been Scaned";
+  LOG(INFO) << "Total replies : " << replies << " received from redis server";
 }
 
 /******************************* PRIVATE *******************************/

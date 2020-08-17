@@ -436,6 +436,9 @@ int PikaConf::Load()
   target_redis_pwd_ = "";
   GetConfStr("target-redis-pwd" , &target_redis_pwd_);
 
+  sync_batch_num_ = 100;
+  GetConfInt("sync-batch-num", &sync_batch_num_);
+
   redis_sender_num_ = 8;
   GetConfInt("redis-sender-num", &redis_sender_num_);
   return ret;

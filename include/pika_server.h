@@ -299,6 +299,8 @@ class PikaServer {
    * migrate used
    */
   int SendRedisCommand(const std::string& command, const std::string& key);
+  void RetransmitData(const std::string& path);
+
 
   friend class Cmd;
   friend class InfoCmd;
