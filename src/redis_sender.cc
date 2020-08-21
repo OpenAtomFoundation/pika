@@ -65,7 +65,7 @@ void RedisSender::ConnectRedis() {
           s = cli_->Recv(&resp);
           if (resp[0] == "OK") {
           } else {
-            LOG(WARNING) << "Invalid password";
+            LOG(FATAL) << "Connect to redis(" << ip_ << ":" << port_ << ") Invalid password";
             cli_->Close();
             delete cli_;
             cli_ = NULL;
@@ -73,7 +73,7 @@ void RedisSender::ConnectRedis() {
             return;
           }
         } else {
-          LOG(INFO) << s.ToString();
+          LOG(WARNING) << "send auth failed: " << s.ToString();
           cli_->Close();
           delete cli_;
           cli_ = NULL;
@@ -92,7 +92,7 @@ void RedisSender::ConnectRedis() {
           s = cli_->Recv(&resp);
           if (s.ok()) {
             if (resp[0] == "NOAUTH Authentication required.") {
-              LOG(WARNING) << "Authentication required";
+              LOG(FATAL) << "Ping redis(" << ip_ << ":" << port_ << ") NOAUTH Authentication required";
               cli_->Close();
               delete cli_;
               cli_ = NULL;

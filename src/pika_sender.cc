@@ -5,6 +5,8 @@
 
 #include "include/pika_sender.h"
 
+#include <glog/logging.h>
+
 #include "slash/include/xdebug.h"
 
 PikaSender::PikaSender(std::string ip, int64_t port, std::string password):
@@ -42,11 +44,11 @@ void PikaSender::ConnectRedis() {
     if (!s.ok()) {
       delete cli_;
       cli_ = NULL;
-      log_info("Can not connect to %s:%d: %s", ip_.data(), port_, s.ToString().data());
+      LOG(WARNING) << "Can not connect to " << ip_ << ":" << port_ << ", status: " << s.ToString();
       continue;
     } else {
       // Connect success
-      log_info("Connect to %s:%d:%s", ip_.data(), port_, s.ToString().data());
+      LOG(INFO) << "Connect to " << ip_ << ":" << port_ << ", status: " << s.ToString();
 
       // Authentication
       if (!password_.empty()) {
@@ -61,17 +63,19 @@ void PikaSender::ConnectRedis() {
         if (s.ok()) {
           s = cli_->Recv(&resp);
           if (resp[0] == "OK") {
-            log_info("Authentic success");
+            LOG(INFO) << "Authentic success";
           } else {
+            LOG(FATAL) << "Connect to redis(" << ip_ << ":" << port_ << ") Invalid password";
             cli_->Close();
-            log_warn("Invalid password");
+            delete cli_;
             cli_ = NULL;
             should_exit_ = true;
             return;
           }
         } else {
+          LOG(WARNING) << "send auth failed: " << s.ToString();
           cli_->Close();
-          log_info("%s", s.ToString().data());
+          delete cli_;
           cli_ = NULL;
           continue;
         }
@@ -88,15 +92,17 @@ void PikaSender::ConnectRedis() {
           s = cli_->Recv(&resp);
           if (s.ok()) {
             if (resp[0] == "NOAUTH Authentication required.") {
+              LOG(FATAL) << "Ping redis(" << ip_ << ":" << port_ << ") NOAUTH Authentication required";
               cli_->Close();
-              log_warn("Authentication required");
+              delete cli_;
               cli_ = NULL;
               should_exit_ = true;
               return;
             }
           } else {
+            LOG(WARNING) << "Recv failed: " << s.ToString();
             cli_->Close();
-            log_info("%s", s.ToString().data());
+            delete cli_;
             cli_ = NULL;
           }
         }
@@ -174,9 +180,11 @@ void *PikaSender::ThreadMain() {
     cli_->Recv(NULL);
   }
 
-  cli_->Close();
-  delete cli_;
-  cli_ = NULL;
+  if (cli_) {
+    cli_->Close();
+    delete cli_;
+    cli_ = NULL;
+  }
   log_info("PikaSender thread complete");
   return NULL;
 }
