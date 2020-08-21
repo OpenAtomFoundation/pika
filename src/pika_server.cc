@@ -1346,6 +1346,7 @@ void PikaServer::RetransmitData(const std::string& path) {
   LOG(INFO) << "=============== Retransmit Finish =====================";
   LOG(INFO) << "Total records : " << records << " have been Scaned";
   LOG(INFO) << "Total replies : " << replies << " received from redis server";
+  LOG(INFO) << "=======================================================";
 }
 
 /******************************* PRIVATE *******************************/

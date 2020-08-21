@@ -166,7 +166,7 @@ int RedisSender::SendCommand(std::string &command) {
 }
 
 void *RedisSender::ThreadMain() {
-  LOG(INFO) << "Start sender " << id_ << " thread...";
+  LOG(INFO) << "Start redis sender " << id_ << " thread...";
   // sleep(15);
   int ret = 0;
 

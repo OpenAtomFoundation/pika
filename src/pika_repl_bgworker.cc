@@ -241,11 +241,39 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   }
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
 
-  // TODO write target redis
-  std::string key = argv->size() > 1 ? (*argv)[1] : "";
-  std::string command;
-  pink::SerializeRedisCommand(*argv, &command);
-  g_pika_server->SendRedisCommand(command, key);
+  if (strcmp(table_name.data(), "db0") || partition_id != 0) {
+    LOG(FATAL) << "table_name: " << table_name <<  ", partition_id: "
+      << std::to_string(partition_id) << ", but only single DB data is support transfer";
+    return;
+  }
+
+  /* convert Pika custom command to Redis standard command */
+  if (!strcasecmp((*argv)[0].data(), "pksetexat")) {
+    if (argv->size() != 4) {
+      LOG(WARNING) << "find invaild command, command size: " << argv->size();
+      return;
+    } else {
+      std::string key = (*argv)[1];
+      int timestamp = std::atoi((*argv)[2].data());
+      std::string value = (*argv)[3];
+
+      int seconds = timestamp - time(NULL);
+      PikaCmdArgsType tmp_argv;
+      tmp_argv.push_back("setex");
+      tmp_argv.push_back(key);
+      tmp_argv.push_back(std::to_string(seconds));
+      tmp_argv.push_back(value);
+
+      std::string command;
+      pink::SerializeRedisCommand(tmp_argv, &command);
+      g_pika_server->SendRedisCommand(command, key);
+    }
+  } else {
+    std::string key = argv->size() > 1 ? (*argv)[1] : "";
+    std::string command;
+    pink::SerializeRedisCommand(*argv, &command);
+    g_pika_server->SendRedisCommand(command, key);
+  }
 
   // Add read lock for no suspend command
   if (!c_ptr->is_suspend()) {

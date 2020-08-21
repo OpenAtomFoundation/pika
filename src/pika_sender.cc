@@ -48,7 +48,6 @@ void PikaSender::ConnectRedis() {
       continue;
     } else {
       // Connect success
-      LOG(INFO) << "Connect to " << ip_ << ":" << port_ << ", status: " << s.ToString();
 
       // Authentication
       if (!password_.empty()) {
@@ -63,7 +62,6 @@ void PikaSender::ConnectRedis() {
         if (s.ok()) {
           s = cli_->Recv(&resp);
           if (resp[0] == "OK") {
-            LOG(INFO) << "Authentic success";
           } else {
             LOG(FATAL) << "Connect to redis(" << ip_ << ":" << port_ << ") Invalid password";
             cli_->Close();

@@ -160,7 +160,7 @@ void MigratorThread::MigrateListsDB() {
 
         pink::SerializeRedisCommand(argv, &cmd);
         PlusNum();
-        DispatchKey(cmd);
+        DispatchKey(cmd, key);
       }
     }
 
@@ -216,7 +216,7 @@ void MigratorThread::MigrateHashesDB() {
 
         pink::SerializeRedisCommand(argv, &cmd);
         PlusNum();
-        DispatchKey(cmd);
+        DispatchKey(cmd, key);
       }
 
       ttl = -1;
@@ -236,7 +236,7 @@ void MigratorThread::MigrateHashesDB() {
 
         pink::SerializeRedisCommand(argv, &cmd);
         PlusNum();
-        DispatchKey(cmd);
+        DispatchKey(cmd, key);
       }
     }
 
@@ -290,7 +290,7 @@ void MigratorThread::MigrateSetsDB() {
 
         pink::SerializeRedisCommand(argv, &cmd);
         PlusNum();
-        DispatchKey(cmd);
+        DispatchKey(cmd, key);
       }
 
       ttl = -1;
@@ -310,7 +310,7 @@ void MigratorThread::MigrateSetsDB() {
 
         pink::SerializeRedisCommand(argv, &cmd);
         PlusNum();
-        DispatchKey(cmd);
+        DispatchKey(cmd, key);
       }
     }
 
@@ -365,7 +365,7 @@ void MigratorThread::MigrateZsetsDB() {
 
         pink::SerializeRedisCommand(argv, &cmd);
         PlusNum();
-        DispatchKey(cmd);
+        DispatchKey(cmd, key);
       }
 
       ttl = -1;
@@ -385,7 +385,7 @@ void MigratorThread::MigrateZsetsDB() {
 
         pink::SerializeRedisCommand(argv, &cmd);
         PlusNum();
-        DispatchKey(cmd);
+        DispatchKey(cmd, key);
       }
     }
 
