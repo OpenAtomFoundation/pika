@@ -8,8 +8,11 @@
 
 #include "include/pika_command.h"
 
+
 class PikaClientConn: public pink::RedisConn {
  public:
+  using WriteCompleteCallback = std::function<void()>;
+
   struct BgTaskArg {
     std::shared_ptr<Cmd> cmd_ptr;
     std::shared_ptr<PikaClientConn> conn_ptr;
@@ -42,7 +45,7 @@ class PikaClientConn: public pink::RedisConn {
                  int max_conn_rubf_size);
   virtual ~PikaClientConn() {}
 
-  void AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) override;
+  virtual void ProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, bool async, std::string* response) override;
 
   void BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs);
   int DealMessage(const pink::RedisCmdArgsType& argv, std::string* response) {
@@ -53,7 +56,8 @@ class PikaClientConn: public pink::RedisConn {
 
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
-  void SetCurrentTable(const std::string& table_name) {current_table_ = table_name;}
+  void SetCurrentTable(const std::string& table_name) { current_table_ = table_name; }
+  void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = cb; }
 
   pink::ServerThread* server_thread() {
     return server_thread_;
@@ -68,6 +72,7 @@ class PikaClientConn: public pink::RedisConn {
  private:
   pink::ServerThread* const server_thread_;
   std::string current_table_;
+  WriteCompleteCallback write_completed_cb_;
   bool is_pubsub_;
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,

@@ -175,11 +175,15 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   g_pika_server->AddMonitorMessage(monitor_message);
 }
 
-void PikaClientConn::AsynProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, std::string* response) {
-  BgTaskArg* arg = new BgTaskArg();
-  arg->redis_cmds = argvs;
-  arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
-  g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
+void PikaClientConn::ProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, bool async, std::string* response) {
+  if (async) {
+    BgTaskArg* arg = new BgTaskArg();
+    arg->redis_cmds = argvs;
+    arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
+    g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
+    return;
+  }
+  BatchExecRedisCmd(argvs);
 }
 
 void PikaClientConn::DoBackgroundTask(void* arg) {
@@ -255,6 +259,10 @@ void PikaClientConn::TryWriteResp() {
   if (resp_num.compare_exchange_strong(expected, -1)) {
     for (auto& resp : resp_array) {
       WriteResp(std::move(*resp));
+    }
+    if (write_completed_cb_ != nullptr) {
+      write_completed_cb_();
+      write_completed_cb_ = nullptr;
     }
     resp_array.clear();
     NotifyEpoll(true);

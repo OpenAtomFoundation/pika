@@ -284,6 +284,7 @@ class PikaServer {
    */
   int PubSubNumPat();
   int Publish(const std::string& channel, const std::string& msg);
+  void EnablePublish(int fd);
   int UnSubscribe(std::shared_ptr<pink::PinkConn> conn,
                   const std::vector<std::string>& channels,
                   const bool pattern,
