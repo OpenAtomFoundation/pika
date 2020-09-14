@@ -761,6 +761,7 @@ void InfoCmd::InfoServer(std::string& info) {
       PIKA_MINOR, PIKA_PATCH);
   tmp_stream << "# Server\r\n";
   tmp_stream << "pika_version:" << version << "\r\n";
+  tmp_stream << "redis_version:" << "3.2.0" << "\r\n";
   tmp_stream << pika_build_git_sha << "\r\n";
   tmp_stream << "pika_build_compile_date: " <<
     pika_build_compile_date << "\r\n";
