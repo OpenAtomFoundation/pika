@@ -117,7 +117,6 @@ const std::string kInnerReplOk = "ok";
 const std::string kInnerReplWait = "wait";
 
 const unsigned int kMaxBitOpInputKey = 12800;
-const int kMaxBitOpInputBit = 21;
 /*
  * db sync
  */
