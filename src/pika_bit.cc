@@ -23,12 +23,8 @@ void BitSetCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidBitInt);
     return;
   }
-  if (bit_offset_ < 0) {
-    res_.SetRes(CmdRes::kInvalidBitOffsetInt);
-    return;
-  }
-  // value no bigger than 2^18
-  if ( (bit_offset_ >> kMaxBitOpInputBit) > 0) {
+  /* Limit offset to 512MB in bytes */
+  if ((bit_offset_ < 0) || ((unsigned long long)bit_offset_ >> 3) >= (512*1024*1024)) {
     res_.SetRes(CmdRes::kInvalidBitOffsetInt);
     return;
   }
