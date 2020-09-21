@@ -44,7 +44,9 @@ class PikaConf : public slash::BaseConf {
   std::string compact_cron()                        { RWLock l(&rwlock_, false); return compact_cron_; }
   std::string compact_interval()                    { RWLock l(&rwlock_, false); return compact_interval_; }
   int64_t write_buffer_size()                       { RWLock l(&rwlock_, false); return write_buffer_size_; }
+  int64_t arena_block_size()                        { RWLock l(&rwlock_, false); return arena_block_size_; }
   int64_t max_write_buffer_size()                   { RWLock l(&rwlock_, false); return max_write_buffer_size_; }
+  int max_write_buffer_number()                     { RWLock l(&rwlock_, false); return max_write_buffer_num_; }
   int64_t max_client_response_size()                { RWLock L(&rwlock_, false); return max_client_response_size_;}
   int timeout()                                     { RWLock l(&rwlock_, false); return timeout_; }
   std::string server_id()                           { RWLock l(&rwlock_, false); return server_id_; }
@@ -276,7 +278,9 @@ class PikaConf : public slash::BaseConf {
   std::string compact_cron_;
   std::string compact_interval_;
   int64_t write_buffer_size_;
+  int64_t arena_block_size_;
   int64_t max_write_buffer_size_;
+  int max_write_buffer_num_;
   int64_t max_client_response_size_;
   bool daemonize_;
   int timeout_;
