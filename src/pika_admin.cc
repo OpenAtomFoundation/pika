@@ -1573,7 +1573,7 @@ void ConfigCmd::ConfigGet(std::string &ret) {
 void ConfigCmd::ConfigSet(std::string& ret) {
   std::string set_item = config_args_v_[1];
   if (set_item == "*") {
-    ret = "*23\r\n";
+    ret = "*28\r\n";
     EncodeString(&ret, "timeout");
     EncodeString(&ret, "requirepass");
     EncodeString(&ret, "masterauth");
@@ -1597,6 +1597,14 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "compact-interval");
     EncodeString(&ret, "slave-priority");
     EncodeString(&ret, "sync-window-size");
+    // Options for storage engine
+    // MutableDBOptions
+    EncodeString(&ret, "max-cache-files");
+    EncodeString(&ret, "max-background-compactions");
+    // MutableColumnFamilyOptions
+    EncodeString(&ret, "write-buffer-size");
+    EncodeString(&ret, "max-write-buffer-number");
+    EncodeString(&ret, "arena-block-size");
     return;
   }
   long int ival;
@@ -1809,6 +1817,71 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetSyncWindowSize(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "max-cache-files") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-cache-files'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"max_open_files", value}};
+    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(blackwidow::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set max-cache-files wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxCacheFiles(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "max-background-compactions") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-background-compactions'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"max_background_compactions", value}};
+    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(blackwidow::OptionType::kDB, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set max-background-compactions wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxBackgroudCompactions(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "write-buffer-size") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'write-buffer-size'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"write_buffer_size", value}};
+    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(blackwidow::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set write-buffer-size wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetWriteBufferSize(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "max-write-buffer-number") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-write-buffer-number'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"max_write_buffer_number", value}};
+    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(blackwidow::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set max-write-buffer-number wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetMaxWriteBufferNumber(ival);
+    ret = "+OK\r\n";
+  } else if (set_item == "arena-block-size") {
+    if (!slash::string2l(value.data(), value.size(), &ival)) {
+      ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'arena-block-size'\r\n";
+      return;
+    }
+    std::unordered_map<std::string, std::string> options_map{{"arena_block_size", value}};
+    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(blackwidow::OptionType::kColumnFamily, options_map);
+    if (!s.ok()) {
+      ret = "-ERR Set arena-block-size wrong: " + s.ToString() + "\r\n";
+      return;
+    }
+    g_pika_conf->SetArenaBlockSize(ival);
     ret = "+OK\r\n";
   } else {
     ret = "-ERR Unsupported CONFIG parameter: " + set_item + "\r\n";
