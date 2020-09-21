@@ -1245,6 +1245,18 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt64(&config_body, g_pika_conf->write_buffer_size());
   }
 
+  if (slash::stringmatch(pattern.data(), "arena-block-size", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "arena-block-size");
+    EncodeInt64(&config_body, g_pika_conf->arena_block_size());
+  }
+
+  if (slash::stringmatch(pattern.data(), "max-write-buffer-number", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "max-write-buffer-number");
+    EncodeInt32(&config_body, g_pika_conf->max_write_buffer_number());
+  }
+
   if (slash::stringmatch(pattern.data(), "timeout", 1)) {
     elements += 2;
     EncodeString(&config_body, "timeout");

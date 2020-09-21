@@ -1596,8 +1596,12 @@ void PikaServer::InitBlackwidowOptions() {
 
   bw_options_.options.write_buffer_size =
       g_pika_conf->write_buffer_size();
+  bw_options_.options.arena_block_size =
+      g_pika_conf->arena_block_size();
   bw_options_.options.write_buffer_manager.reset(
           new rocksdb::WriteBufferManager(g_pika_conf->max_write_buffer_size()));
+  bw_options_.options.max_write_buffer_number =
+      g_pika_conf->max_write_buffer_number();
   bw_options_.options.target_file_size_base =
       g_pika_conf->target_file_size_base();
   bw_options_.options.max_background_flushes =
