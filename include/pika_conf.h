@@ -244,6 +244,31 @@ class PikaConf : public slash::BaseConf {
     TryPushDiffCommands("max-conn-rbuf-size", std::to_string(value));
     max_conn_rbuf_size_.store(value);
   }
+  void SetMaxCacheFiles(const int& value) {
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("max-cache-files", std::to_string(value));
+    max_cache_files_ = value;
+  }
+  void SetMaxBackgroudCompactions(const int& value) {
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("max-background-compactions", std::to_string(value));
+    max_background_compactions_ = value;
+  }
+  void SetWriteBufferSize(const int& value) {
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("write-buffer-size", std::to_string(value));
+    write_buffer_size_ = value;
+  }
+  void SetMaxWriteBufferNumber(const int& value) {
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("max-write-buffer-number", std::to_string(value));
+    max_write_buffer_num_ = value;
+  }
+  void SetArenaBlockSize(const int& value) {
+    RWLock l(&rwlock_, true);
+    TryPushDiffCommands("arena-block-size", std::to_string(value));
+    arena_block_size_ = value;
+  }
 
   Status TablePartitionsSanityCheck(const std::string& table_name,
                                     const std::set<uint32_t>& partition_ids,
