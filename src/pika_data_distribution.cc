@@ -5,6 +5,9 @@
 
 #include "include/pika_data_distribution.h"
 
+const std::string kTagBegin = "{";
+const std::string kTagEnd = "}";
+
 void HashModulo::Init() {
 }
 
@@ -32,7 +35,8 @@ void Crc32::Crc32TableInit(uint32_t poly) {
 }
 
 uint32_t Crc32::Distribute(const std::string &str, uint32_t partition_num) {
-  uint32_t crc = Crc32Update(0, str.data(), (int)str.size());
+  std::string key = GetHashkey(str);
+  uint32_t crc = Crc32Update(0, key.data(), (int)key.size());
   assert(partition_num != 0);
   return crc % partition_num;
 }
@@ -44,4 +48,17 @@ uint32_t Crc32::Crc32Update(uint32_t crc, const char* buf, int len) {
     crc = crc32tab[(uint8_t)((char)crc ^ buf[i])] ^ (crc >> 8);
   }
   return ~crc;
+}
+
+std::string GetHashkey(const std::string& key) {
+  auto beg = key.find_first_of(kTagBegin); 
+  if (beg == std::string::npos) {
+    return key;
+  }
+  auto end = key.find_first_of(kTagEnd, beg + 1);
+  if (end == std::string::npos) {
+    return key;
+  } else {
+    return key.substr(beg + 1, end - beg - 1);
+  }
 }
