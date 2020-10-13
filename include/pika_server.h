@@ -62,14 +62,14 @@ static std::set<std::string> ConsensusNotSupportCommands {
 
 static std::set<std::string> ShardingModeNotSupportCommands {
              kCmdNameMsetnx,      kCmdNameScan,              kCmdNameKeys,
-             kCmdNameRPopLPush,   kCmdNameZUnionstore,       kCmdNameZInterstore,
+             kCmdNameScanx,   kCmdNameZUnionstore,       kCmdNameZInterstore,
              kCmdNameSUnion,      kCmdNameSUnionstore,       kCmdNameSInter,
              kCmdNameSInterstore, kCmdNameSDiff,             kCmdNameSDiffstore,
              kCmdNameSMove,       kCmdNameBitOp,             kCmdNamePfAdd,
              kCmdNamePfCount,     kCmdNamePfMerge,           kCmdNameGeoAdd,
              kCmdNameGeoPos,      kCmdNameGeoDist,           kCmdNameGeoHash,
              kCmdNameGeoRadius,   kCmdNameGeoRadiusByMember, kCmdNamePKPatternMatchDel,
-             kCmdNameSlaveof,     kCmdNameDbSlaveof,         kCmdNameScanx};
+             kCmdNameSlaveof,     kCmdNameDbSlaveof};
 
 
 extern PikaConf *g_pika_conf;

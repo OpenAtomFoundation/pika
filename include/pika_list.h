@@ -258,6 +258,11 @@ class RPopLPushCmd : public Cmd {
  public:
   RPopLPushCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag) {};
+  std::vector<std::string> current_key() const override{
+    std::vector<std::string> res;
+    res.push_back(source_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
   virtual void Merge() {};

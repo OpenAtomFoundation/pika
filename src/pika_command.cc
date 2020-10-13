@@ -309,7 +309,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLTrim, ltrimptr));
   Cmd* rpopptr = new RPopCmd(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPop, rpopptr));
-  Cmd* rpoplpushptr = new RPopLPushCmd(kCmdNameRPopLPush, 3, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsList);
+  Cmd* rpoplpushptr = new RPopLPushCmd(kCmdNameRPopLPush, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPopLPush, rpoplpushptr));
   Cmd* rpushptr = new RPushCmd(kCmdNameRPush, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPush, rpushptr));
@@ -796,6 +796,16 @@ bool Cmd::is_multi_partition() const {
 bool Cmd::is_classic_mode() const {
   return g_pika_conf->classic_mode();
 }
+
+bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const {
+  if (is_classic_mode() == false) {
+    if (GetHashkey(lhs) != GetHashkey(rhs)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 
 std::string Cmd::name() const {
   return name_;

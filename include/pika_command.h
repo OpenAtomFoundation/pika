@@ -462,6 +462,7 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
   bool is_single_partition() const;
   bool is_multi_partition()  const;
   bool is_classic_mode()     const;
+  bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
 
   std::string name() const;
   CmdRes& res();

@@ -6,6 +6,7 @@
 #include "include/pika_list.h"
 
 #include "slash/include/slash_string.h"
+#include "include/pika_data_distribution.h"
 
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -268,6 +269,9 @@ void RPopLPushCmd::DoInitial() {
   }
   source_ = argv_[1];
   receiver_ = argv_[2];
+  if (!HashtagIsConsistent(source_, receiver_)) {
+    res_.SetRes(CmdRes::kInconsistentHashTag);
+  }
 }
 void RPopLPushCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
