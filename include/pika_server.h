@@ -62,7 +62,7 @@ static std::set<std::string> ConsensusNotSupportCommands {
 
 static std::set<std::string> ShardingModeNotSupportCommands {
              kCmdNameMsetnx,      kCmdNameScan,              kCmdNameKeys,
-             kCmdNameScanx,   kCmdNameZUnionstore,       kCmdNameZInterstore,
+             kCmdNameScanx,       kCmdNameZUnionstore,       kCmdNameZInterstore,
              kCmdNameSUnion,      kCmdNameSUnionstore,       kCmdNameSInter,
              kCmdNameSInterstore, kCmdNameSDiff,             kCmdNameSDiffstore,
              kCmdNameSMove,       kCmdNameBitOp,             kCmdNamePfAdd,
