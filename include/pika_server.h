@@ -299,6 +299,12 @@ class PikaServer {
   // info debug use
   void ServerStatus(std::string* info);
 
+  /*
+   * BlackwidowOptions used
+   */
+  blackwidow::Status RewriteBlackwidowOptions(const blackwidow::OptionType& option_type,
+                                  const std::unordered_map<std::string, std::string>& options);
+
   friend class Cmd;
   friend class InfoCmd;
   friend class PkClusterAddSlotsCmd;
@@ -322,6 +328,7 @@ class PikaServer {
   int port_;
   time_t start_time_s_;
 
+  pthread_rwlock_t bw_options_rw_;
   blackwidow::BlackwidowOptions bw_options_;
   void InitBlackwidowOptions();
 

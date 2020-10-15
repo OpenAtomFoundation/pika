@@ -65,6 +65,12 @@ PikaServer::PikaServer() :
     LOG(FATAL) << "ServerInit iotcl error";
   }
 
+  pthread_rwlockattr_t bw_options_rw_attr;
+  pthread_rwlockattr_init(&bw_options_rw_attr);
+  pthread_rwlockattr_setkind_np(&bw_options_rw_attr,
+          PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  pthread_rwlock_init(&bw_options_rw_, &bw_options_rw_attr);
+
   InitBlackwidowOptions();
 
   pthread_rwlockattr_t tables_rw_attr;
@@ -408,6 +414,7 @@ void PikaServer::SetDispatchQueueLimit(int queue_limit) {
 }
 
 blackwidow::BlackwidowOptions PikaServer::bw_options() {
+  slash::RWLock rwl(&bw_options_rw_, false);
   return bw_options_;
 }
 
@@ -1587,6 +1594,7 @@ void PikaServer::AutoKeepAliveRSync() {
 }
 
 void PikaServer::InitBlackwidowOptions() {
+  slash::RWLock rwl(&bw_options_rw_, true);
 
   // For rocksdb::Options
   bw_options_.options.create_if_missing = true;
@@ -1596,8 +1604,12 @@ void PikaServer::InitBlackwidowOptions() {
 
   bw_options_.options.write_buffer_size =
       g_pika_conf->write_buffer_size();
+  bw_options_.options.arena_block_size =
+      g_pika_conf->arena_block_size();
   bw_options_.options.write_buffer_manager.reset(
           new rocksdb::WriteBufferManager(g_pika_conf->max_write_buffer_size()));
+  bw_options_.options.max_write_buffer_number =
+      g_pika_conf->max_write_buffer_number();
   bw_options_.options.target_file_size_base =
       g_pika_conf->target_file_size_base();
   bw_options_.options.max_background_flushes =
@@ -1649,6 +1661,23 @@ void PikaServer::InitBlackwidowOptions() {
   bw_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
   bw_options_.small_compaction_threshold =
       g_pika_conf->small_compaction_threshold();
+}
+
+blackwidow::Status PikaServer::RewriteBlackwidowOptions(const blackwidow::OptionType& option_type,
+    const std::unordered_map<std::string, std::string>& options_map) {
+  blackwidow::Status s;
+  for (const auto& table_item : tables_) {
+    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, true);
+    for (const auto& partition_item: table_item.second->partitions_) {
+      partition_item.second->DbRWLockWriter();
+      s = partition_item.second->db()->SetOptions(option_type, blackwidow::ALL_DB, options_map);
+      partition_item.second->DbRWUnLock();
+      if (!s.ok()) return s;
+    }
+  }
+  slash::RWLock rwl(&bw_options_rw_, true);
+  s = bw_options_.ResetOptions(option_type, options_map);
+  return s;
 }
 
 void PikaServer::ServerStatus(std::string* info) {

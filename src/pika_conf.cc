@@ -363,10 +363,23 @@ int PikaConf::Load()
     write_buffer_size_ = 268435456;       // 256Mb
   }
 
+  // arena_block_size
+  GetConfInt64("arena-block-size", &arena_block_size_);
+  if (arena_block_size_ <= 0) {
+    arena_block_size_ = write_buffer_size_ >> 3;  // 1/8 of the write_buffer_size_
+  }
+
   // max_write_buffer_size
   GetConfInt64("max-write-buffer-size", &max_write_buffer_size_);
   if (max_write_buffer_size_ <= 0) {
     max_write_buffer_size_ = 10737418240;  // 10Gb
+  }
+
+  // max_write_buffer_num
+  max_write_buffer_num_ = 2;
+  GetConfInt("max-write-buffer-num", &max_write_buffer_num_);
+  if (max_write_buffer_num_ <= 0) {
+    max_write_buffer_num_ = 2;  // 1 for immutable memtable, 1 for mutable memtable
   }
 
   // max_client_response_size
@@ -545,6 +558,12 @@ int PikaConf::ConfigRewrite() {
   SetConfInt("sync-window-size", sync_window_size_.load());
   SetConfInt("consensus-level", consensus_level_.load());
   SetConfInt("replication-num", replication_num_.load());
+  // options for storage engine
+  SetConfInt("max-cache-files", max_cache_files_);
+  SetConfInt("max-background-compactions", max_background_compactions_);
+  SetConfInt("max-write-buffer-number", max_write_buffer_num_);
+  SetConfInt64("write-buffer-size", write_buffer_size_);
+  SetConfInt64("arena-block-size", arena_block_size_);
   // slaveof config item is special
   SetConfStr("slaveof", slaveof_);
 
