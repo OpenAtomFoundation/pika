@@ -1366,6 +1366,10 @@ int PikaServer::Publish(const std::string& channel, const std::string& msg) {
   return receivers;
 }
 
+void PikaServer::EnablePublish(int fd) {
+  pika_pubsub_thread_->UpdateConnReadyState(fd, pink::PubSubThread::ReadyState::kReady);
+}
+
 int PikaServer::UnSubscribe(std::shared_ptr<pink::PinkConn> conn,
                             const std::vector<std::string>& channels,
                             bool pattern,

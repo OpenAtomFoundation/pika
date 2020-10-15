@@ -57,17 +57,23 @@ void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-
-  if (!cli_conn->IsPubSub()) {
-    cli_conn->server_thread()->MoveConnOut(conn->fd());
-  }
   std::vector<std::string > channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
   }
+  if (!cli_conn->IsPubSub()) {
+    cli_conn->server_thread()->MoveConnOut(conn->fd());
+    cli_conn->SetIsPubSub(true);
+    cli_conn->SetHandleType(pink::HandleType::kSynchronous);
+    cli_conn->SetWriteCompleteCallback([cli_conn](){
+        if (!cli_conn->IsPubSub()) {
+          return;
+        }
+        cli_conn->set_is_writable(true);
+        g_pika_server->EnablePublish(cli_conn->fd());
+    });
+  }
   std::vector<std::pair<std::string, int>> result;
-  cli_conn->SetIsPubSub(true);
-  cli_conn->SetHandleType(pink::HandleType::kSynchronous);
   g_pika_server->Subscribe(conn, channels, name_ == kCmdNamePSubscribe, &result);
   return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
 }
@@ -100,8 +106,15 @@ void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
      * if the number of client subscribed is zero,
      * the client will exit the Pub/Sub state
      */
-    cli_conn->server_thread()->HandleNewConn(conn->fd(), conn->ip_port());
     cli_conn->SetIsPubSub(false);
+    cli_conn->SetWriteCompleteCallback([cli_conn, conn](){
+        if (cli_conn->IsPubSub()) {
+          return;
+        }
+        cli_conn->set_is_writable(false);
+        cli_conn->SetHandleType(pink::HandleType::kAsynchronous);
+        cli_conn->server_thread()->MoveConnIn(conn, pink::NotifyType::kNotiWait);
+    });
   }
   return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
 }
@@ -121,17 +134,23 @@ void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-
   if (!cli_conn->IsPubSub()) {
     cli_conn->server_thread()->MoveConnOut(conn->fd());
+    cli_conn->SetIsPubSub(true);
+    cli_conn->SetHandleType(pink::HandleType::kSynchronous);
+    cli_conn->SetWriteCompleteCallback([cli_conn](){
+        if (!cli_conn->IsPubSub()) {
+          return;
+        }
+        cli_conn->set_is_writable(true);
+        g_pika_server->EnablePublish(cli_conn->fd());
+    });
   }
   std::vector<std::string > channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
   }
   std::vector<std::pair<std::string, int>> result;
-  cli_conn->SetIsPubSub(true);
-  cli_conn->SetHandleType(pink::HandleType::kSynchronous);
   g_pika_server->Subscribe(conn, channels, name_ == kCmdNamePSubscribe, &result);
   return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
 }
@@ -164,8 +183,15 @@ void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
      * if the number of client subscribed is zero,
      * the client will exit the Pub/Sub state
      */
-    cli_conn->server_thread()->HandleNewConn(conn->fd(), conn->ip_port());
     cli_conn->SetIsPubSub(false);
+    cli_conn->SetWriteCompleteCallback([cli_conn, conn](){
+        if (cli_conn->IsPubSub()) {
+          return;
+        }
+        cli_conn->set_is_writable(false);
+        cli_conn->SetHandleType(pink::HandleType::kAsynchronous);
+        cli_conn->server_thread()->MoveConnIn(conn, pink::NotifyType::kNotiWait);
+    });
   }
   return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
 }
