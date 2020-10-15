@@ -8,6 +8,7 @@
 #include "slash/include/slash_string.h"
 
 #include "include/pika_conf.h"
+#include "include/pika_data_distribution.h"
 #include "include/pika_binlog_transverter.h"
 
 extern PikaConf *g_pika_conf;
@@ -1396,6 +1397,11 @@ void PKScanRangeCmd::DoInitial() {
 
   key_start_ = argv_[2];
   key_end_ = argv_[3];
+  // start key and end key hash tag have to be same in non classic mode
+  if (!HashtagIsConsistent(key_start_, key_start_)) {
+      res_.SetRes(CmdRes::kInconsistentHashTag);
+      return;
+  }
   size_t index = 4, argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
@@ -1477,6 +1483,11 @@ void PKRScanRangeCmd::DoInitial() {
 
   key_start_ = argv_[2];
   key_end_ = argv_[3];
+  // start key and end key hash tag have to be same in non classic mode
+  if (!HashtagIsConsistent(key_start_, key_start_)) {
+      res_.SetRes(CmdRes::kInconsistentHashTag);
+      return;
+  }
   size_t index = 4, argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];

@@ -50,7 +50,6 @@ static std::set<std::string> MultiKvCommands {kCmdNameDel,
 
 static std::set<std::string> ConsensusNotSupportCommands {
              kCmdNameMsetnx,      kCmdNameScan,              kCmdNameKeys,
-             kCmdNameScanx,       kCmdNamePKScanRange,       kCmdNamePKRScanRange,
              kCmdNameRPopLPush,   kCmdNameZUnionstore,       kCmdNameZInterstore,
              kCmdNameSUnion,      kCmdNameSUnionstore,       kCmdNameSInter,
              kCmdNameSInterstore, kCmdNameSDiff,             kCmdNameSDiffstore,
@@ -59,12 +58,11 @@ static std::set<std::string> ConsensusNotSupportCommands {
              kCmdNameGeoPos,      kCmdNameGeoDist,           kCmdNameGeoHash,
              kCmdNameGeoRadius,   kCmdNameGeoRadiusByMember, kCmdNamePKPatternMatchDel,
              kCmdNameSlaveof,     kCmdNameDbSlaveof,         kCmdNameMset,
-             kCmdNameMget};
+             kCmdNameMget,        kCmdNameScanx};
 
 static std::set<std::string> ShardingModeNotSupportCommands {
              kCmdNameMsetnx,      kCmdNameScan,              kCmdNameKeys,
-             kCmdNameScanx,       kCmdNamePKScanRange,       kCmdNamePKRScanRange,
-             kCmdNameRPopLPush,   kCmdNameZUnionstore,       kCmdNameZInterstore,
+             kCmdNameScanx,       kCmdNameZUnionstore,       kCmdNameZInterstore,
              kCmdNameSUnion,      kCmdNameSUnionstore,       kCmdNameSInter,
              kCmdNameSInterstore, kCmdNameSDiff,             kCmdNameSDiffstore,
              kCmdNameSMove,       kCmdNameBitOp,             kCmdNamePfAdd,

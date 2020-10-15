@@ -284,6 +284,7 @@ public:
     kInvalidIndex,
     kInvalidDbType,
     kInvalidTable,
+    kInconsistentHashTag,
     kErrOther
   };
 
@@ -355,6 +356,8 @@ public:
       result.append(message_);
       result.append("'\r\n");
       break;
+    case kInconsistentHashTag:
+      return "-ERR parameters hashtag is inconsistent\r\n";
     case kInvalidTable:
       result = "-ERR invalid Table for '";
       result.append(message_);
@@ -458,6 +461,8 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
   bool is_admin_require()    const;
   bool is_single_partition() const;
   bool is_multi_partition()  const;
+  bool is_classic_mode()     const;
+  bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
 
   std::string name() const;
   CmdRes& res();

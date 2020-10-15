@@ -761,6 +761,11 @@ class PKScanRangeCmd : public Cmd {
  public:
   PKScanRangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), limit_(10), string_with_value(false) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_start_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
   virtual void Merge() {};
@@ -786,6 +791,11 @@ class PKRScanRangeCmd : public Cmd {
  public:
   PKRScanRangeCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), pattern_("*"), limit_(10), string_with_value(false) {}
+  std::vector<std::string> current_key() const override {
+    std::vector<std::string> res;
+    res.push_back(key_start_);
+    return res;
+  }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
   virtual void Merge() {};
@@ -799,7 +809,7 @@ class PKRScanRangeCmd : public Cmd {
   std::string pattern_;
   int64_t limit_;
   bool string_with_value;
-  virtual void DoInitial() override;
+  void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
     limit_ = 10;

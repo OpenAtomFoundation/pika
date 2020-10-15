@@ -224,10 +224,10 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   Cmd* pksetexatptr = new PKSetexAtCmd(kCmdNamePKSetexAt, 4, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKSetexAt, pksetexatptr));
   ////PKScanRange
-  Cmd* pkscanrangeptr = new PKScanRangeCmd(kCmdNamePKScanRange, -4, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
+  Cmd* pkscanrangeptr = new PKScanRangeCmd(kCmdNamePKScanRange, -4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKScanRange, pkscanrangeptr));
   ////PKRScanRange
-  Cmd* pkrscanrangeptr = new PKRScanRangeCmd(kCmdNamePKRScanRange, -4, kCmdFlagsRead | kCmdFlagsMultiPartition | kCmdFlagsKv);
+  Cmd* pkrscanrangeptr = new PKRScanRangeCmd(kCmdNamePKRScanRange, -4, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKRScanRange, pkrscanrangeptr));
 
   //Hash
@@ -309,7 +309,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLTrim, ltrimptr));
   Cmd* rpopptr = new RPopCmd(kCmdNameRPop, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPop, rpopptr));
-  Cmd* rpoplpushptr = new RPopLPushCmd(kCmdNameRPopLPush, 3, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsList);
+  Cmd* rpoplpushptr = new RPopLPushCmd(kCmdNameRPopLPush, 3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPopLPush, rpoplpushptr));
   Cmd* rpushptr = new RPushCmd(kCmdNameRPush, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameRPush, rpushptr));
@@ -733,6 +733,7 @@ void Cmd::ProcessMultiPartitionCmd() {
     res_.SetRes(CmdRes::kErrOther, "Table not found");
   }
   for (auto& key : cur_key) {
+    LOG(INFO) << "process key: "<< key;
     // in sharding mode we select partition by key
     uint32_t partition_id =  g_pika_cmd_table_manager->DistributeKey(key, table->PartitionNum());
     std::unordered_map<uint32_t, ProcessArg>::iterator iter = process_map.find(partition_id);
@@ -791,6 +792,20 @@ bool Cmd::is_single_partition() const {
 bool Cmd::is_multi_partition() const {
   return ((flag_ & kCmdFlagsMaskPartition) == kCmdFlagsMultiPartition);
 }
+
+bool Cmd::is_classic_mode() const {
+  return g_pika_conf->classic_mode();
+}
+
+bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const {
+  if (is_classic_mode() == false) {
+    if (GetHashkey(lhs) != GetHashkey(rhs)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 
 std::string Cmd::name() const {
   return name_;

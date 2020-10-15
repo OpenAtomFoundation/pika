@@ -37,4 +37,6 @@ class Crc32 : public PikaDataDistribution {
   uint32_t crc32tab[256];
 };
 
+std::string GetHashkey(const std::string& key);
+
 #endif
