@@ -68,7 +68,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
     yum install gcc-c++
 ```
 
-3.把gcc版本临时切换到4.8(若已是，则忽略), 在CentOs上执行如下命令：
+3.把gcc版本临时切换到4.8(若已是，则忽略), 在CentOS上执行如下命令：
 
 ```
 	a. sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo -O /etc/yum.repos.d/devtools-2.repo
