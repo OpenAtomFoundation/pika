@@ -15,6 +15,7 @@
 #include "include/pika_define.h"
 #include "include/pika_version.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/build_version.h"
 
 #ifdef TCMALLOC_EXTENSION
 #include <gperftools/malloc_extension.h>
@@ -30,7 +31,10 @@ static void version() {
     char version[32];
     snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR,
         PIKA_MINOR, PIKA_PATCH);
-    printf("-----------Pika server %s ----------\n", version);
+    std::cout << "-----------Pika server----------" << std::endl;
+    std::cout << "pika_version: " << version << std::endl;
+    std::cout << pika_build_git_sha << std::endl;
+    std::cout << "pika_build_compile_date: " << pika_build_compile_date << std::endl;
 }
 
 static void PikaConfInit(const std::string& path) {
