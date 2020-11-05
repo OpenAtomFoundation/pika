@@ -126,6 +126,7 @@ Status ProxyCli::ForwardToBackend(ProxyTask* task) {
     std::string ip_port = node.Ip() + ":" + std::to_string(node.Port());
     backend_task_queue_[ip_port].push_back(cli_task);
   }
+  //TODO to be pipline
   std::string ip_port = conn_ptr->ip_port();
   if (task_queue_.find(ip_port) != task_queue_.end()) {
     ProxyTask* tmp_task = task_queue_[ip_port];
