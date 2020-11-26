@@ -117,6 +117,9 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
     const unsigned int type = header[7];
     const uint32_t length = a | (b << 8) | (c << 16);
 
+    if (length > (kBlockSize - kHeaderSize))
+      return true;
+
     if (type == kFullType) {
       s = queue_->Read(length, &buffer_, backing_store_);
       offset += kHeaderSize + length;
@@ -166,6 +169,10 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(slash::Slice *result, uint32_t
   const uint32_t c = static_cast<uint32_t>(header[2]) & 0xff;
   const unsigned int type = header[7];
   const uint32_t length = a | (b << 8) | (c << 16);
+
+  if (length > (kBlockSize - kHeaderSize))
+    return kBadRecord;
+
   if (type == kZeroType || length == 0) {
     buffer_.clear();
     return kOldRecord;
