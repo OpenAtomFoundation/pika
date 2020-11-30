@@ -125,7 +125,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
   c_ptr->Execute();
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    ProcessSlowlog(argv, start_us);
+    ProcessSlowlog(argv, start_us, c_ptr->GetDoDuration());
   }
   if (g_pika_conf->consensus_level() != 0 && c_ptr->is_write()) {
     c_ptr->SetStage(Cmd::kExecuteStage);
@@ -134,7 +134,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
   return c_ptr;
 }
 
-void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us) {
+void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration) {
   int32_t start_time = start_us / 1000000;
   int64_t duration = slash::NowMicros() - start_us;
   if (duration > g_pika_conf->slowlog_slower_than()) {
@@ -158,7 +158,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
       LOG(ERROR) << "ip_port: " << ip_port() << ", table: " << current_table_
         << ", command:" << slow_log << ", command_size: " << cmd_size - 1
         << ", arguments: " << argv.size() << ", start_time(s): " << start_time
-        << ", duration(us): " << duration;
+        << ", duration(us): " << duration << ", do_duration_(us): " << do_duration;
     }
   }
 }
@@ -222,7 +222,7 @@ void PikaClientConn::DoExecTask(void* arg) {
   cmd_ptr->SetStage(Cmd::kExecuteStage);
   cmd_ptr->Execute();
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us);
+    conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us, cmd_ptr->GetDoDuration());
   }
 
   std::shared_ptr<SyncMasterPartition> partition =

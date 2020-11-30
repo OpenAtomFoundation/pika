@@ -436,7 +436,7 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
     HintKeys hint_keys;
   };
   Cmd(const std::string& name, int arity, uint16_t flag)
-    : name_(name), arity_(arity), flag_(flag), stage_(kNone) {}
+    : name_(name), arity_(arity), flag_(flag), stage_(kNone), do_duration_(0) {}
   virtual ~Cmd() {}
 
   virtual std::vector<std::string> current_key() const;
@@ -463,6 +463,7 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
   bool is_multi_partition()  const;
   bool is_classic_mode()     const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
+  uint64_t GetDoDuration() const { return do_duration_; };
 
   std::string name() const;
   CmdRes& res();
@@ -505,6 +506,8 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
   std::weak_ptr<pink::PinkConn> conn_;
   std::weak_ptr<std::string> resp_;
   CmdStage stage_;
+
+  uint64_t do_duration_;
 
  private:
   virtual void DoInitial() = 0;

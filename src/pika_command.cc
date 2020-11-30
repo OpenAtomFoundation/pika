@@ -657,7 +657,18 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
     }
   }
 
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+
+  }
+  
+  uint64_t start_us = 0;
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    start_us = slash::NowMicros();
+  }
   DoCommand(partition, hint_keys);
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    do_duration_  += slash::NowMicros() - start_us;
+  }
 
   DoBinlog(sync_partition);
 
