@@ -657,8 +657,14 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
     }
   }
 
+  uint64_t start_us = 0;
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    start_us = slash::NowMicros();
+  }
   DoCommand(partition, hint_keys);
-
+  if (g_pika_conf->slowlog_slower_than() >= 0) {
+    do_duration_  += slash::NowMicros() - start_us;
+  }
   DoBinlog(sync_partition);
 
   if (is_write()) {
@@ -733,7 +739,6 @@ void Cmd::ProcessMultiPartitionCmd() {
     res_.SetRes(CmdRes::kErrOther, "Table not found");
   }
   for (auto& key : cur_key) {
-    LOG(INFO) << "process key: "<< key;
     // in sharding mode we select partition by key
     uint32_t partition_id =  g_pika_cmd_table_manager->DistributeKey(key, table->PartitionNum());
     std::unordered_map<uint32_t, ProcessArg>::iterator iter = process_map.find(partition_id);
