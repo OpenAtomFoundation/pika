@@ -161,6 +161,7 @@ class PikaServer {
   int32_t GetShardingSlaveListString(std::string& slave_list_str);
   bool TryAddSlave(const std::string& ip, int64_t port, int fd,
                    const std::vector<TableStruct>& table_structs);
+  void SetSlaveRsyncState(const std::string& ip, int64_t port, RsyncState state);
   slash::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
 

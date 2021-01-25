@@ -56,6 +56,12 @@ typedef WorkerCronTask MonitorCronTask;
 #define TASK_KILL 0
 #define TASK_KILLALL 1
 
+
+enum RsyncState {
+  kOk      = 0,
+  kIOError = 1,
+};
+
 //slave item
 struct SlaveItem {
   std::string ip_port;
@@ -63,6 +69,7 @@ struct SlaveItem {
   int port;
   int conn_fd;
   int stage;
+  RsyncState rsync_state = kOk;
   std::vector<TableStruct> table_structs;
   struct timeval create_time;
 };

@@ -817,6 +817,12 @@ int32_t PikaServer::GetSlaveListString(std::string& slave_list_str) {
         }
       }
     }
+    // output rsync state
+    if (slave.rsync_state == kOk) {
+      tmp_stream << ",rsync_state=ok";
+    } else {
+      tmp_stream << ",rsync_state=error";
+    }
     tmp_stream << "\r\n";
   }
   slave_list_str.assign(tmp_stream.str());
@@ -851,6 +857,17 @@ bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
   gettimeofday(&s.create_time, NULL);
   slaves_.push_back(s);
   return true;
+}
+
+void PikaServer::SetSlaveRsyncState(const std::string& ip, int64_t port, RsyncState state) {
+  std::string ip_port = slash::IpPortString(ip, port);
+  slash::MutexLock l(&slave_mutex_);
+  for (auto& item : slaves_) {
+    if (item.ip_port != ip_port) {
+      continue;
+    }
+    item.rsync_state = state;
+  }
 }
 
 void PikaServer::SyncError() {
@@ -1121,6 +1138,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
     // We need specify the speed limit for every single file
     ret = slash::RsyncSendFile(local_path, target_path, secret_file_path, remote);
     if (0 != ret) {
+      SetSlaveRsyncState(ip, port - kPortShiftRSync, kIOError);
       LOG(WARNING) << "Partition: " << partition->GetPartitionName()
         << " RSync send file failed! From: " << *iter
         << ", To: " << target_path
@@ -1168,9 +1186,11 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
       ret = slash::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);
       slash::DeleteFile(fn);
       if (ret != 0) {
+        SetSlaveRsyncState(ip, port - kPortShiftRSync, kIOError);
         LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Modified Info File Failed";
       }
     } else if (0 != (ret = slash::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote))) {
+      SetSlaveRsyncState(ip, port - kPortShiftRSync, kIOError);
       LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Info File Failed";
     }
   }
@@ -1183,6 +1203,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
   }
 
   if (0 == ret) {
+    SetSlaveRsyncState(ip, port - kPortShiftRSync, kOk);
     LOG(INFO) << "Partition: " << partition->GetPartitionName() << " RSync Send Files Success";
   }
 }
@@ -1587,9 +1608,14 @@ void PikaServer::AutoDeleteExpiredDump() {
 }
 
 void PikaServer::AutoKeepAliveRSync() {
-  if (!pika_rsync_service_->CheckRsyncAlive()) {
-    LOG(WARNING) << "The Rsync service is down, Try to restart";
-    pika_rsync_service_->StartRsync();
+  if (pika_rsync_service_->CheckRsyncAlive()) {
+    return;
+  }
+  LOG(WARNING) << "The Rsync service is down, Try to restart";
+  auto ret = pika_rsync_service_->StartRsync();
+  if (0 != ret) {
+    LOG(WARNING) << "Restart Rsync Error: bind port " +std::to_string(pika_rsync_service_->ListenPort()) + " failed."
+      <<  " Please check rsync log!";
   }
 }
 
