@@ -11,6 +11,7 @@ COPY . ${PIKA_BUILD_DIR}
 WORKDIR ${PIKA_BUILD_DIR}
 
 RUN rpm -ivh https://mirrors.aliyun.com/epel/epel-release-latest-7.noarch.rpm && \
+    yum clean all && \
     yum -y makecache && \
     yum -y install snappy-devel && \
     yum -y install protobuf-devel && \
@@ -24,7 +25,7 @@ RUN rpm -ivh https://mirrors.aliyun.com/epel/epel-release-latest-7.noarch.rpm &&
     yum -y install make && \
     yum -y install which && \
     yum -y install git && \
-    make && \
+    make -j$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null) && \
     cp -r ${PIKA_BUILD_DIR}/output ${PIKA} && \
     cp -r ${PIKA_BUILD_DIR}/entrypoint.sh ${PIKA} && \
     yum -y remove gcc-c++ && \
