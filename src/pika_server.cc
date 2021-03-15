@@ -299,22 +299,22 @@ time_t PikaServer::start_time_s() {
 }
 
 std::string PikaServer::master_ip() {
-  slash::RWLock(&state_protector_, false);
+  slash::RWLock l(&state_protector_, false);
   return master_ip_;
 }
 
 int PikaServer::master_port() {
-  slash::RWLock(&state_protector_, false);
+  slash::RWLock l(&state_protector_, false);
   return master_port_;
 }
 
 int PikaServer::role() {
-  slash::RWLock(&state_protector_, false);
+  slash::RWLock l(&state_protector_, false);
   return role_;
 }
 
 bool PikaServer::readonly(const std::string& table_name, const std::string& key) {
-  slash::RWLock(&state_protector_, false);
+  slash::RWLock l(&state_protector_, false);
   if ((role_ & PIKA_ROLE_SLAVE)
     && g_pika_conf->slave_read_only()) {
     return true;
@@ -367,12 +367,12 @@ bool PikaServer::ConsensusCheck(const std::string& table_name, const std::string
 }
 
 int PikaServer::repl_state() {
-  slash::RWLock(&state_protector_, false);
+  slash::RWLock l(&state_protector_, false);
   return repl_state_;
 }
 
 std::string PikaServer::repl_state_str() {
-  slash::RWLock(&state_protector_, false);
+  slash::RWLock l(&state_protector_, false);
   switch (repl_state_) {
     case PIKA_REPL_NO_CONNECT:
       return "no connect";

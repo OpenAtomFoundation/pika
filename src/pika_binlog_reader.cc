@@ -38,7 +38,7 @@ PikaBinlogReader::~PikaBinlogReader() {
 }
 
 void PikaBinlogReader::GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset) {
-  slash::RWLock(&(rwlock_), false);
+  slash::RWLock l(&(rwlock_), false);
   *cur_filenum = cur_filenum_;
   *cur_offset = cur_offset_;
 }
@@ -47,7 +47,7 @@ bool PikaBinlogReader::ReadToTheEnd() {
   uint32_t pro_num;
   uint64_t pro_offset;
   logger_->GetProducerStatus(&pro_num, &pro_offset);
-  slash::RWLock(&(rwlock_), false);
+  slash::RWLock l(&(rwlock_), false);
   return (pro_num == cur_filenum_ && pro_offset == cur_offset_);
 }
 
@@ -68,7 +68,7 @@ int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uin
   queue_ = readfile;
   logger_ = logger;
 
-  slash::RWLock(&(rwlock_), true);
+  slash::RWLock l(&(rwlock_), true);
   cur_filenum_ = filenum;
   cur_offset_ = offset;
   last_record_offset_ = cur_filenum_ % kBlockSize;
@@ -151,7 +151,7 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(slash::Slice *result, uint32_t
   slash::Status s;
   if (kBlockSize - last_record_offset_ <= kHeaderSize) {
     queue_->Skip(kBlockSize - last_record_offset_);
-    slash::RWLock(&(rwlock_), true);
+    slash::RWLock l(&(rwlock_), true);
     cur_offset_ += (kBlockSize - last_record_offset_);
     last_record_offset_ = 0;
   }
@@ -183,7 +183,7 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(slash::Slice *result, uint32_t
   *result = slash::Slice(buffer_.data(), buffer_.size());
   last_record_offset_ += kHeaderSize + length;
   if (s.ok()) {
-    slash::RWLock(&(rwlock_), true);
+    slash::RWLock l(&(rwlock_), true);
     *filenum = cur_filenum_;
     cur_offset_ += (kHeaderSize + length);
     *offset = cur_offset_;
@@ -262,7 +262,7 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
 
         slash::NewSequentialFile(confile, &(queue_));
         {
-          slash::RWLock(&(rwlock_), true);
+          slash::RWLock l(&(rwlock_), true);
           cur_filenum_++;
           cur_offset_ = 0;
         }
