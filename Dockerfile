@@ -1,4 +1,4 @@
- FROM centos:7
+ FROM centos:7 as builder
 
 LABEL maintainer="SvenDowideit@home.org.au, zhangshaomin_1990@126.com"
 
@@ -34,7 +34,16 @@ RUN rpm -ivh https://mirrors.aliyun.com/epel/epel-release-latest-7.noarch.rpm &&
     yum -y remove git && \
     yum -y clean all 
 
+FROM centos:7
+ENV PIKA  /pika
+ENV PATH ${PIKA}:${PIKA}/bin:${PATH}
+
+RUN set -eux; yum install -y epel-release; \
+ yum install -y snappy protobuf gflags glog bzip2 zlib lz4 libzstd rsync; \
+ yum clean all;
+
 WORKDIR ${PIKA}
+COPY --from=builder $PIKA ./
 
 ENTRYPOINT ["/pika/entrypoint.sh"]
 CMD ["/pika/bin/pika", "-c", "/pika/conf/pika.conf"]
