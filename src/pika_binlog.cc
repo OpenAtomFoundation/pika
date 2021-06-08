@@ -167,7 +167,7 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset,
     return Status::Busy("Binlog is not open yet");
   }
 
-  slash::RWLock(&(version_->rwlock_), false);
+  slash::RWLock l(&(version_->rwlock_), false);
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
@@ -208,7 +208,7 @@ Status Binlog::Put(const char* item, int len) {
     slash::NewWritableFile(profile, &queue_);
 
     {
-      slash::RWLock(&(version_->rwlock_), true);
+      slash::RWLock l(&(version_->rwlock_), true);
       version_->pro_offset_ = 0;
       version_->pro_num_ = pro_num_;
       version_->StableSave();
@@ -219,7 +219,7 @@ Status Binlog::Put(const char* item, int len) {
   int pro_offset;
   s = Produce(Slice(item, len), &pro_offset);
   if (s.ok()) {
-    slash::RWLock(&(version_->rwlock_), true);
+    slash::RWLock l(&(version_->rwlock_), true);
     version_->pro_offset_ = pro_offset;
     version_->logic_id_++;
     version_->StableSave();
@@ -381,7 +381,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset, uint32_t
   pro_num_ = pro_num;
 
   {
-    slash::RWLock(&(version_->rwlock_), true);
+    slash::RWLock l(&(version_->rwlock_), true);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
     version_->term_ = term;
@@ -407,7 +407,7 @@ Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index) {
 
   pro_num_ = pro_num;
   {
-    slash::RWLock(&(version_->rwlock_), true);
+    slash::RWLock l(&(version_->rwlock_), true);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
     version_->logic_id_ = index;

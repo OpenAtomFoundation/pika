@@ -100,12 +100,12 @@ Statistic::Statistic() {
 }
 
 QpsStatistic Statistic::TableStat(const std::string& table_name) {
-  slash::RWLock(&table_stat_rw, false);
+  slash::RWLock l(&table_stat_rw, false);
   return table_stat[table_name];
 }
 
 std::unordered_map<std::string, QpsStatistic> Statistic::AllTableStat() {
-  slash::RWLock(&table_stat_rw, false);
+  slash::RWLock l(&table_stat_rw, false);
   return table_stat;
 }
 
@@ -114,7 +114,7 @@ void Statistic::UpdateTableQps(
   bool table_exist = true;
   std::unordered_map<std::string, QpsStatistic>::iterator iter;
   {
-    slash::RWLock(&table_stat_rw, false);
+    slash::RWLock l(&table_stat_rw, false);
     auto search = table_stat.find(table_name);
     if (search == table_stat.end()) {
       table_exist = false;
@@ -126,14 +126,14 @@ void Statistic::UpdateTableQps(
     iter->second.IncreaseQueryNum(is_write);
   } else {
     {
-      slash::RWLock(&table_stat_rw, true);
+      slash::RWLock l(&table_stat_rw, true);
       table_stat[table_name].IncreaseQueryNum(is_write);
     }
   }
 }
 
 void Statistic::ResetTableLastSecQuerynum() {
-  slash::RWLock(&table_stat_rw, false);
+  slash::RWLock l(&table_stat_rw, false);
   for (auto& stat : table_stat) {
     stat.second.ResetLastSecQuerynum();
   }
