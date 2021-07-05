@@ -382,12 +382,13 @@ bool Partition::RunBgsaveEngine() {
 
   // Backup to tmp dir
   rocksdb::Status s = bgsave_engine_->CreateNewBackup(info.path);
-  LOG(INFO) << partition_name_ << " create new backup finished.";
 
   if (!s.ok()) {
     LOG(WARNING) << partition_name_ << " create new backup failed :" << s.ToString();
     return false;
   }
+  LOG(INFO) << partition_name_ << " create new backup finished.";
+
   return true;
 }
 
