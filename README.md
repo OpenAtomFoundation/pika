@@ -79,6 +79,9 @@ Get the source code
 
 ```
 git clone https://github.com/Qihoo360/pika.git
+
+git submodule init
+git submodule update
 ```
 
 
