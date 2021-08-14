@@ -106,14 +106,9 @@ More details on [Performance](https://github.com/Qihoo360/pika/wiki/3.2.x-Perfor
 
 1. [Wiki](https://github.com/Qihoo360/pika/wiki)
 
+
 ## Contact Us
 
-Users Mail Group: [join in pika_users@groups.163.com](http://163.fm/7VSsSWUJ)
-
-Developers Mail Group: [join in pika_developers@groups.163.com](http://163.fm/Q70Qbg3v)
 
 QQ group: 294254078
 
-For more information about Pika, Atlas and some other technology please pay attention to our Hulk platform official account
-
-<img src="http://i.imgur.com/pL4ni57.png" height = "50%" width = "50%" alt="2">
