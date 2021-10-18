@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
   }
 
   bool path_opt = false;
-  char c;
+  signed char c;
   char path[1024];
   while (-1 != (c = getopt(argc, argv, "c:hv"))) {
     switch (c) {
