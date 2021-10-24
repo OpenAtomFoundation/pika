@@ -190,6 +190,9 @@ void Table::RunKeyScan() {
 void Table::StopKeyScan() {
   slash::RWLock rwl(&partitions_rw_, false);
   slash::MutexLock ml(&key_scan_protector_);
+  if (!key_scan_info_.key_scaning_) {
+    return;
+  }
   for (const auto& item : partitions_) {
     item.second->db()->StopScanKeyNum();
   }

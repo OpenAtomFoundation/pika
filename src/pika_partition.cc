@@ -540,11 +540,11 @@ Status Partition::GetKeyNum(std::vector<blackwidow::KeyInfo>* key_info) {
   key_scan_info_.duration = -2;   // duration -2 mean the task in waiting status,
                                   // has not been scheduled for exec
   rocksdb::Status s = db_->GetKeyNum(key_info);
+  key_scan_info_.key_scaning_ = false;
   if (!s.ok()) {
     return Status::Corruption(s.ToString());
   }
   key_scan_info_.key_infos = *key_info;
   key_scan_info_.duration = time(NULL) - key_scan_info_.start_time;
-  key_scan_info_.key_scaning_ = false;
   return Status::OK();
 }
