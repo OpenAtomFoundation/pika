@@ -691,6 +691,7 @@ void InfoCmd::Do(std::shared_ptr<Partition> partition) {
       info.append("\r\n");
       InfoKeyspace(info);
       break;
+    // TODO EXPORTER监控调用info all 命令慢问题待解决
     case kInfoAll:
       InfoServer(info);
       info.append("\r\n");
