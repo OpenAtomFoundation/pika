@@ -2,7 +2,11 @@ CLEAN_FILES = # deliberately empty, so we can append below.
 CXX=g++
 PLATFORM_LDFLAGS= -lpthread -lrt
 PLATFORM_CXXFLAGS= -std=c++11 -fno-builtin-memcmp -msse -msse4.2 
-ROCKSDB_CXXFLAGS= -Wno-error=deprecated-copy -Wno-error=pessimizing-move -Wno-error=class-memaccess -Wno-error=array-bounds
+ROCKSDB_CXXFLAGS=
+CC_VERSION_MAJOR := $(shell $(CXX) -dumpversion | cut -d '.' -f1)
+ifeq (1,$(shell expr $(CC_VERSION_MAJOR) \> 7))
+ROCKSDB_CXXFLAGS += -Wno-error=deprecated-copy -Wno-error=pessimizing-move -Wno-error=class-memaccess -Wno-error=array-bounds
+endif
 PROFILING_FLAGS=-pg
 OPT=
 LDFLAGS += -Wl,-rpath=$(RPATH)
