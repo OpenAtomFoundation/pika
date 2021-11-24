@@ -65,7 +65,7 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 
 ### Supported platforms
 
-* linux - CentOS 5&6
+* linux - CentOS 6&7
 
 * linux - Ubuntu
 
