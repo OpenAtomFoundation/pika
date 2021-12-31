@@ -561,7 +561,7 @@ int PikaConf::ConfigRewrite() {
   // options for storage engine
   SetConfInt("max-cache-files", max_cache_files_);
   SetConfInt("max-background-compactions", max_background_compactions_);
-  SetConfInt("max-write-buffer-number", max_write_buffer_num_);
+  SetConfInt("max-write-buffer-num", max_write_buffer_num_);
   SetConfInt64("write-buffer-size", write_buffer_size_);
   SetConfInt64("arena-block-size", arena_block_size_);
   // slaveof config item is special
