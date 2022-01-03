@@ -261,7 +261,7 @@ class PikaConf : public slash::BaseConf {
   }
   void SetMaxWriteBufferNumber(const int& value) {
     RWLock l(&rwlock_, true);
-    TryPushDiffCommands("max-write-buffer-number", std::to_string(value));
+    TryPushDiffCommands("max-write-buffer-num", std::to_string(value));
     max_write_buffer_num_ = value;
   }
   void SetArenaBlockSize(const int& value) {

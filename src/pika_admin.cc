@@ -1251,9 +1251,9 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt64(&config_body, g_pika_conf->arena_block_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-write-buffer-number", 1)) {
+  if (slash::stringmatch(pattern.data(), "max-write-buffer-num", 1)) {
     elements += 2;
-    EncodeString(&config_body, "max-write-buffer-number");
+    EncodeString(&config_body, "max-write-buffer-num");
     EncodeInt32(&config_body, g_pika_conf->max_write_buffer_number());
   }
 
@@ -1603,7 +1603,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     EncodeString(&ret, "max-background-compactions");
     // MutableColumnFamilyOptions
     EncodeString(&ret, "write-buffer-size");
-    EncodeString(&ret, "max-write-buffer-number");
+    EncodeString(&ret, "max-write-buffer-num");
     EncodeString(&ret, "arena-block-size");
     return;
   }
@@ -1857,7 +1857,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     g_pika_conf->SetWriteBufferSize(ival);
     ret = "+OK\r\n";
-  } else if (set_item == "max-write-buffer-number") {
+  } else if (set_item == "max-write-buffer-num") {
     if (!slash::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value + "\' for CONFIG SET 'max-write-buffer-number'\r\n";
       return;
