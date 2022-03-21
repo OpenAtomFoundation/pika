@@ -47,8 +47,6 @@ int ProxyCli::Start() {
 
 int ProxyCli::Stop() {
   client_ptr_->StopThread();
-  delete proxy_factory_;
-  delete proxy_handle_;
   return pink::kSuccess;
 }
 
@@ -153,4 +151,8 @@ void ProxyCli::LostConn(const std::string& ip_port) {
     task_queue_.erase(iter);
     delete proxy_task;
   }
+}
+ProxyCli::~ProxyCli() {
+  delete proxy_factory_;
+  delete proxy_handle_;
 }

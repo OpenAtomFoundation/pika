@@ -73,6 +73,7 @@ class ProxyCli : public std::enable_shared_from_this<ProxyCli> {
     std::shared_ptr<std::string> resp_ptr;
   };
   void LostConn(const std::string& ip_port);
+  ~ProxyCli();
 
  private:
   int cron_interval_;
