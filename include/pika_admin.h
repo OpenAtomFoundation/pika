@@ -521,4 +521,19 @@ class DummyCmd : public Cmd {
   virtual void DoInitial() override;
 };
 
+class QuitCmd : public Cmd {
+ public:
+  QuitCmd(const std::string& name, int arity, uint16_t flag)
+     : Cmd(name, arity, flag) {}
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
+  virtual void Merge() {};
+  virtual Cmd* Clone() override {
+    return new QuitCmd(*this);
+  }
+
+ private:
+  virtual void DoInitial() override;
+};
+
 #endif  // PIKA_ADMIN_H_
