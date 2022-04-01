@@ -1469,18 +1469,6 @@ void ConfigCmd::ConfigGet(std::string &ret) {
     EncodeInt32(&config_body, g_pika_conf->binlog_file_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-cache-statistic-keys", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "max-cache-statistic-keys");
-    EncodeInt32(&config_body, g_pika_conf->max_cache_statistic_keys());
-  }
-
-  if (slash::stringmatch(pattern.data(), "small-compaction-threshold", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "small-compaction-threshold");
-    EncodeInt32(&config_body, g_pika_conf->small_compaction_threshold());
-  }
-
   if (slash::stringmatch(pattern.data(), "max-write-buffer-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-write-buffer-size");
