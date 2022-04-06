@@ -76,6 +76,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePKPatternMatchDel, pkpatternmatchdelptr));
   Cmd* dummyptr = new DummyCmd(kCmdDummy, 0, kCmdFlagsWrite | kCmdFlagsSinglePartition);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdDummy, dummyptr));
+  Cmd* quitptr = new QuitCmd(kCmdNameQuit, 1, kCmdFlagsRead);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameQuit, quitptr));
 
   // Slots related
   Cmd* slotsinfoptr = new SlotsInfoCmd(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
