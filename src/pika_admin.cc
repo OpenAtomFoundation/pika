@@ -2395,4 +2395,5 @@ void QuitCmd::DoInitial() {
 
 void QuitCmd::Do(std::shared_ptr<Partition> partition) {
   res_.SetRes(CmdRes::kOk);
+  GetConn()->SetClose(true);
 }
