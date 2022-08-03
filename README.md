@@ -104,7 +104,7 @@ More details on [Performance](https://github.com/Qihoo360/pika/wiki/3.2.x-Perfor
 
 ## Documents
 
-1. [Wiki](https://github.com/Qihoo360/pika/wiki)
+1. [Wiki](docs/images/../catalogue.md)
 
 
 ## Contact Us
