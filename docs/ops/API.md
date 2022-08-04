@@ -153,7 +153,7 @@ pika支持redis五种类型（分别为string、hash、list、set、zset）的�
 
 * 重名问题：由于pika每个类型独立运作， 所以允许重名。例如在key abc在string中存在的时候也同样允许在hash中存在，一个key最多重名5次（5大类型），但在同一接口中是无法重名的。所以建议在使用的时候对于不同类型不要使用完全相同的key;    
 
-* 分库问题：pika自3.1.0版起支持多库，相关命令、参数的变化请参考[Pika3.1.0多库版命令、参数变化参考文档](https://github.com/Qihoo360/pika/wiki/pika3.1.0%E5%A4%9A%E5%BA%93%E7%89%88%E5%91%BD%E4%BB%A4%E3%80%81%E5%8F%82%E6%95%B0%E5%8F%98%E5%8C%96%E5%8F%82%E8%80%83)
+* 分库问题：pika自3.1.0版起支持多库，相关命令、参数的变化请参考[Pika3.1.0多库版命令、参数变化参考文档](multiDB.md)
 
 * 数据展示：pika对于keyspace的展示选择了分类型展示而非redis的分库展示（因为pika没有分库概念），pika对于keyspace的统计是被动的，需要手动触发并不会立即输出，命令为：info keyspace [ 0|1 ]，默认为0不触发，pika的keyspace统计是精确的。
   
