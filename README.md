@@ -42,7 +42,7 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 </tr>
 </table>
 
-[More](https://github.com/Qihoo360/pika/blob/master/USERS.md)
+[More](docs/USERS.md)
 
 ## Feature
 
@@ -99,12 +99,12 @@ make
 
 ## Performance
 
-More details on [Performance](https://github.com/Qihoo360/pika/wiki/3.2.x-Performance).
+More details on [Performance](docs/benchmark/performance.md).
 
 
 ## Documents
 
-1. [Wiki](docs/images/../catalogue.md)
+1. [doc](docs/catalogue.md)
 
 
 ## Contact Us
