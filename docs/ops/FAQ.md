@@ -4,7 +4,7 @@
 A1： 目前只支持Linux环境，包括Centos，Ubuntu； **不支持Windows, Mac**
 
 #### Q2: 怎么编译安装？
-A2： 参考[编译安装wiki](https://github.com/Qihoo360/pika/wiki/%E5%AE%89%E8%A3%85%E4%BD%BF%E7%94%A8)
+A2： 参考[编译安装wiki](install.md)
 
 #### Q3： Ubuntu编译偶尔报错`isnan isinf was not declared`？
 A3： 一些旧版本的pika对Ubuntu环境兼容不好，某些情况下会出现；可以先修改代码，用`std::isnan`和`std::isinf`替代`isnan`，`isinf`, 并包含头文件`cmath`。 我们会在新版兼容这个。
