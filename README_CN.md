@@ -340,7 +340,7 @@ Pika与Redis的极限QPS对比。
 <img src="https://deep011.github.io/public/images/pika_benchmark/pika_vs_redis_qps.png" height = "60%" width = "60%" alt="1"/>
 
 ## 文档
-1. [Wiki] (https://github.com/Qihoo360/pika/wiki)
+1. [doc](docs/catalogue.md)
 
 ## 联系方式
 邮箱：g-infra@360.cn

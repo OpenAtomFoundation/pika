@@ -186,6 +186,7 @@ small-compaction-threshold : 5000
 
 
 ```
+# 数据目录说明
 
 #### db目录
 用于存放pika的所有数据文件，包含5个子目录（5大数据类型）它们是：kv，set，zset，hash，list，从pika3.0.0开始，这些数据结构目录为：hashes，lists，sets，strings，zsets
