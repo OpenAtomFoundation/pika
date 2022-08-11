@@ -1,5 +1,5 @@
 #### config [get | set | rewrite]
-在服务器配置中，支持参数的get、set、rewrite，支持的参数如下：
+config get、set、rewrite args：
 
 -|GET| SET
 ---|---|---
@@ -65,61 +65,61 @@ sync-window-size        |o|	o
 
 
 ### purgelogsto [write2file-name]
-purgelogsto为pika原创命令, 功能为手动清理日志, 类似mysql的purge master logs to命令, 该命令有多重检测机制以确保日志一定为安全清理
+It was created by Pika, used to safely purge log manually. 
 
 ### client list
-与redis相比, 展示的信息少于redis
+Similar to Redis, list all clients information 
 
 ### client list order by [addr|idle]
-pika原创命令，功能为按照ip address 或者 connection idle时间排序
+It was created by Pika, list all clients order by ip or connection idle time. 
 
 ### client kill all
-pika原创命令, 功能为杀死当前所有链接（不包括同步进程但包含自己）
+It was created by Pika, used to kill all connections(include self).
 
-### 慢日志(slowlog)
-与redis不同, pika的慢日志不仅存放内存中允许通过slow log命令查看，同时也允许存放在error log中并无条数限制方便接分析，但需要打开slowlog-write-errorlog参数
+### slowlog
+Different from Redis, not only store in memory but also print in error log, should config slowlog-write-errorlog first.
 
 ### bgsave
-类似redis的bgsave, 先生成一个快照, 然后再将快照数据进行备份, 备份文件存放在dump目录下
+Similiar to Redis bgsave, dump snapshot.
 
 ### dumpoff
-强行终止正在执行的dump进程(bgsave), 执行该命令后备份会立即停止然后在dump目录下生成一个dump-failed文件夹(Deprecated from v2.0)
+Force kill the dump(bgsave) job and create a dump-failed forder in dump directory(Deprecated from v2.0)
 
 ### delbackup
-删除dump目录下除正在使用（全同步中）的db快照外的其他快照
+Delete other snapshots except the running one
 
 ### compact
-立即触发引擎层(rocksdb)所有数据结构执行全量compact操作, 全量compact能够通过sst文件的合并消除已删除或过期但未即时清理的数据, 能够在一定程度上降低数据体积, 需要注意的是, 全量compact会消耗一定io资源
+Trigger compact all data structure on rocksdb immediately
 
 ### compact [string | hash | set | zset | list ]
-立即触发引擎层(rocksdb)对指定数据结构执行全量compact操作, 指定数据结构的全量compact能够通过sst文件的合并消除已删除或过期但未即时清理的数据, 能够在一定程度上降低该结构数据的数据体积, 需要注意的是, 全量compact会消耗一定io资源
+Trigger compact in one type of data structure immediately
 
 ### compact $db [string | hash | set | zset | list ]
-对指定的db进行全量compact。例如 compact db0 all会对db0上所有数据结构进行全量compact。
+Trigger compact in some db one type of data structure immediately
 
 ### flushdb [string | hash | set | zset | list ]
-flushdb命令允许只清除指定数据结构的所有数据, 如需删除所有数据请使用flushall
+Clear data in one type of data structure
 
 ### keys pattern [string | hash | set | zset | list ]
-keys命令允许只输出指定数据结构的所有key, 如需输出所有结构的key请不要使用参数
+Output keys/pattern in one or some type of data structure, no args means all types
 
 ### slaveof ip port [write2file-name] [write2file-pos] [force]
-slaveof命令允许通过指定write2file(binlog)的文件名称及同步位置来实现增量同步, force参数用于触发强行全量同步(适用于主库write2file被清理无法为从库提供增量同步的场景), 全量同步后pika会自动切换至增量同步
+Partial sync from binlog name and offset in master node, force can trigger full sync from master
 
 ### pkscanrange type key_start key_end [MATCH pattern] [LIMIT limit]
-对指定数据结构进行正向scan, 列出处于区间 [key_start, key_end] 的Key列表(如果type为string_with_value，则列出的是key-value列表) ("", ""] 表示整个区间。
-* type： 指定需要scan数据结构的类型，{string_with_value | string | hash| list | zset | set}  
-* key_start： 返回的起始Key, 空字符串表示 -inf(无限小)  
-* key_end：返回的结束Key, 空字符串表示 +inf(无限大)  
+Scan forward and output keys range in [key_start, key_end]
+* type: data structure type，{string_with_value | string | hash| list | zset | set}  
+* key_start: start key, empty string is -inf
+* key_end: end key, empty string is +inf
 
 ### pkrscanrange type key_start key_end [MATCH pattern] [LIMIT limit]
-类似于pkscanrange, 逆序
+Similar to pkscanrange, reverse scan
 
 ### pkhscanrange key field_start field_end  [MATCH pattern] [LIMIT limit]
-列出指定hash table中处于区间 [field_start, field_end] 的 field-value 列表.
-* key：hash table对应的key
-* field_start： 返回的起始Field, 空字符串表示 -inf(无限小)
-* field_end：返回的结束Field, 空字符串表示 +inf(无限大)
+Scan and list key/value pairs in hash table [field_start, field_end]
+* key：hash table key
+* field_start： start Field, empty string is -inf
+* field_end：end Field, empty string is +inf
 
 ### pkhrscanrange key field_start field_end  [MATCH pattern] [LIMIT limit]  
-类似于pkhscanrange, 逆序
+Similar to pkhscanrange, reverse scan
