@@ -456,6 +456,10 @@ int PikaConf::Load()
   GetConfStr("cache-index-and-filter-blocks", &ciafb);
   cache_index_and_filter_blocks_ = (ciafb == "yes") ? true : false;
 
+  std::string plfaibic;
+  GetConfStr("pin_l0_filter_and_index_blocks_in_cache", &plfaibic);
+  pin_l0_filter_and_index_blocks_in_cache_ = (plfaibic == "yes") ? true : false;
+
   std::string offh;
   GetConfStr("optimize-filters-for-hits", &offh);
   optimize_filters_for_hits_ = (offh == "yes") ? true : false;

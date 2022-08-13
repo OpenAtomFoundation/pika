@@ -75,6 +75,7 @@ class PikaConf : public slash::BaseConf {
   int64_t block_cache()                             { RWLock l(&rwlock_, false); return block_cache_; }
   bool share_block_cache()                          { RWLock l(&rwlock_, false); return share_block_cache_; }
   bool cache_index_and_filter_blocks()              { RWLock l(&rwlock_, false); return cache_index_and_filter_blocks_; }
+  bool pin_l0_filter_and_index_blocks_in_cache()    { RWLock l(&rwlock_, false); return pin_l0_filter_and_index_blocks_in_cache_; }
   bool optimize_filters_for_hits()                  { RWLock l(&rwlock_, false); return optimize_filters_for_hits_; }
   bool level_compaction_dynamic_level_bytes()       { RWLock l(&rwlock_, false); return level_compaction_dynamic_level_bytes_; }
   int expire_logs_nums()                            { RWLock l(&rwlock_, false); return expire_logs_nums_; }
@@ -343,6 +344,7 @@ class PikaConf : public slash::BaseConf {
   int64_t block_cache_;
   bool share_block_cache_;
   bool cache_index_and_filter_blocks_;
+  bool pin_l0_filter_and_index_blocks_in_cache_;
   bool optimize_filters_for_hits_;
   bool level_compaction_dynamic_level_bytes_;
   std::atomic<int> sync_window_size_;
