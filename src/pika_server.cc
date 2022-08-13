@@ -1650,6 +1650,9 @@ void PikaServer::InitBlackwidowOptions() {
   bw_options_.block_cache_size = g_pika_conf->block_cache();
   bw_options_.share_block_cache = g_pika_conf->share_block_cache();
 
+  bw_options_.table_options.pin_l0_filter_and_index_blocks_in_cache =
+      g_pika_conf->pin_l0_filter_and_index_blocks_in_cache();
+
   if (bw_options_.block_cache_size == 0) {
     bw_options_.table_options.no_block_cache = true;
   } else if (bw_options_.share_block_cache) {
