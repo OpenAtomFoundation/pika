@@ -73,6 +73,7 @@ class PikaConf : public slash::BaseConf {
   int max_bytes_for_level_multiplier()              { RWLock l(&rwlock_, false); return max_bytes_for_level_multiplier_; }
   int64_t block_size()                              { RWLock l(&rwlock_, false); return block_size_; }
   int64_t block_cache()                             { RWLock l(&rwlock_, false); return block_cache_; }
+  int64_t num_shard_bits()                          { RWLock l(&rwlock_, false); return num_shard_bits_; }
   bool share_block_cache()                          { RWLock l(&rwlock_, false); return share_block_cache_; }
   bool cache_index_and_filter_blocks()              { RWLock l(&rwlock_, false); return cache_index_and_filter_blocks_; }
   bool pin_l0_filter_and_index_blocks_in_cache()    { RWLock l(&rwlock_, false); return pin_l0_filter_and_index_blocks_in_cache_; }
@@ -342,6 +343,7 @@ class PikaConf : public slash::BaseConf {
   int max_bytes_for_level_multiplier_;
   int64_t block_size_;
   int64_t block_cache_;
+  int64_t num_shard_bits_;
   bool share_block_cache_;
   bool cache_index_and_filter_blocks_;
   bool pin_l0_filter_and_index_blocks_in_cache_;

@@ -1657,7 +1657,7 @@ void PikaServer::InitBlackwidowOptions() {
     bw_options_.table_options.no_block_cache = true;
   } else if (bw_options_.share_block_cache) {
     bw_options_.table_options.block_cache =
-      rocksdb::NewLRUCache(bw_options_.block_cache_size);
+      rocksdb::NewLRUCache(bw_options_.block_cache_size, g_pika_conf->num_shard_bits());
   }
 
   // For Blackwidow small compaction

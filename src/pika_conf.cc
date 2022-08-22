@@ -448,6 +448,9 @@ int PikaConf::Load()
     block_cache_ = 8 * 1024 * 1024;
   }
 
+  num_shard_bits_ = -1;
+  GetConfInt64("num-shard-bits", &num_shard_bits_);
+
   std::string sbc;
   GetConfStr("share-block-cache", &sbc);
   share_block_cache_ = (sbc == "yes") ? true : false;
