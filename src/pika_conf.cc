@@ -358,19 +358,19 @@ int PikaConf::Load()
   }
 
   // write_buffer_size
-  GetConfInt64("write-buffer-size", &write_buffer_size_);
+  GetConfInt64Human("write-buffer-size", &write_buffer_size_);
   if (write_buffer_size_ <= 0 ) {
     write_buffer_size_ = 268435456;       // 256Mb
   }
 
   // arena_block_size
-  GetConfInt64("arena-block-size", &arena_block_size_);
+  GetConfInt64Human("arena-block-size", &arena_block_size_);
   if (arena_block_size_ <= 0) {
     arena_block_size_ = write_buffer_size_ >> 3;  // 1/8 of the write_buffer_size_
   }
 
   // max_write_buffer_size
-  GetConfInt64("max-write-buffer-size", &max_write_buffer_size_);
+  GetConfInt64Human("max-write-buffer-size", &max_write_buffer_size_);
   if (max_write_buffer_size_ <= 0) {
     max_write_buffer_size_ = 10737418240;  // 10Gb
   }
@@ -383,13 +383,13 @@ int PikaConf::Load()
   }
 
   // max_client_response_size
-  GetConfInt64("max-client-response-size", &max_client_response_size_);
+  GetConfInt64Human("max-client-response-size", &max_client_response_size_);
   if (max_client_response_size_ <= 0) {
     max_client_response_size_ = 1073741824; // 1Gb
   }
 
   // target_file_size_base
-  GetConfInt("target-file-size-base", &target_file_size_base_);
+  GetConfIntHuman("target-file-size-base", &target_file_size_base_);
   if (target_file_size_base_ <= 0) {
     target_file_size_base_ = 1048576;     // 10Mb
   }
@@ -437,13 +437,13 @@ int PikaConf::Load()
   }
 
   block_size_ = 4 * 1024;
-  GetConfInt64("block-size", &block_size_);
+  GetConfInt64Human("block-size", &block_size_);
   if (block_size_ <= 0) {
     block_size_ = 4 * 1024;
   }
 
   block_cache_ = 8 * 1024 * 1024;
-  GetConfInt64("block-cache", &block_cache_);
+  GetConfInt64Human("block-cache", &block_cache_);
   if (block_cache_ < 0) {
     block_cache_ = 8 * 1024 * 1024;
   }
@@ -473,7 +473,7 @@ int PikaConf::Load()
   std::string wb;
   GetConfStr("write-binlog", &wb);
   write_binlog_ = (wb == "no") ? false : true;
-  GetConfInt("binlog-file-size", &binlog_file_size_);
+  GetConfIntHuman("binlog-file-size", &binlog_file_size_);
   if (binlog_file_size_ < 1024
     || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024)) {
     binlog_file_size_ = 100 * 1024 * 1024;    // 100M
@@ -511,7 +511,7 @@ int PikaConf::Load()
 
   // max conn rbuf size
   int tmp_max_conn_rbuf_size = PIKA_MAX_CONN_RBUF;
-  GetConfInt("max-conn-rbuf-size", &tmp_max_conn_rbuf_size);
+  GetConfIntHuman("max-conn-rbuf-size", &tmp_max_conn_rbuf_size);
   if (tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_LB
       || tmp_max_conn_rbuf_size == PIKA_MAX_CONN_RBUF_HB) {
     max_conn_rbuf_size_.store(tmp_max_conn_rbuf_size);
