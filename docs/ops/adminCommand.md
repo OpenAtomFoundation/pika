@@ -8,23 +8,23 @@ xxx.qihoo.net:8221>
 ```
 
 ## bgsave
-Same as Redis, but in asynchronized way, data dump to 'dump_path', include prefix information
+Command same as in Redis, but in asynchronized way, data will dump to 'dump-path', the path include prefix information
 
 ```
 xxx.qihoo.net:8221> BGSAVE
 20160422134755 : 2213: 32582292
 ```
-Response information, include binlog file number and offset
+Response information which include binlog file number and offset
     
 ```
 xxx.qihoo.net # ll /data3/pika_test/dump/
 zize 0
 drwxr-xr-x 1 root root 42 4月  22 13:47 pika8221-20160422
 ```
-"/data3/pika_test/dump/" is dump_path，"pika9221-" is dump_prefix，20160422 is the date of this dump
+"/data3/pika_test/dump/" is dump-path，"pika9221-" is dump_prefix，20160422 is the date of this dump
 
 ## delbackup
-delete other database snapshot except current running in the dump path
+delete other database snapshot except current running
 
 ```
 xxx.qihoo.net:8221> DELBACKUP
@@ -32,9 +32,9 @@ OK
 ```
 
 ## info keyspace
-Can type “info keyspace 1”,“info keyspace 0” and ”info keyspace“. “info keyspace” is same as “info keyspace 0”  
-info keyspace 1： start a keyspace scan asynchronize 
-info keyspace 0: return last keyspace scan relust immediately
+You can run “info keyspace 1”,“info keyspace 0” and ”info keyspace“. The “info keyspace” is same as “info keyspace 0”  
+info keyspace 1: start a keyspace scan asynchronize 
+info keyspace 0: return last keyspace scan result immediately
 
 ```
 xxx.qihoo.net:8221> info keyspace 1
