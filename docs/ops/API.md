@@ -1,4 +1,4 @@
-Pika support 5 types of Redis data structure: string,hash,list,set,zset  
+Pika support 5 types of data structure in Redis: string,hash,list,set,zset  
 
 #### label
 
@@ -6,7 +6,7 @@ Pika support 5 types of Redis data structure: string,hash,list,set,zset
 | :--------:  | :--------:                           | 
 | o           | full support   |
 | ！          |	partial support|
-|×            | not support                                |
+| ×           | not support                                |
 
 ---
 

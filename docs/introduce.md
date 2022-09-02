@@ -1,6 +1,5 @@
 ## What is Pika
-<<<<<<< HEAD
-Pika is Nosql(key-value) databases, well known as persistency storage Redis. Pika support the Redis protocol, users can use any Redis clients send Redis commands to Pika. User can also migrate business data from Redis to Pika and use Pika instead of Redis without change any code. Pika can provide high volume and persistency storate service with most data struecture/commands in Redis(ops/API.md). Pika also have master-slave replications mode for high available. Migration tools from Redis to Pika is supported by Pika team at the same time, smooth and seamless.
+Pika is Nosql(Key/Value) databases, well known as persistency KV storage(presistency Redis). Pika support Redis protocol, users can use any Redis clients send Redis commands to Pika. User can also migrate business data from Redis to Pika and use Pika instead of Redis without change any code. Pika can provide high volume and persistency storate service with most data struecture/commands in Redis(ops/API.md). Pika also have master/slave replication mode for high available. Migration tools from Redis to Pika is supported by Pika team at the same time, smooth and seamless.
 ## Compare with Redis
 Compare with Redis, the outstanding achievement is persistency storage
 

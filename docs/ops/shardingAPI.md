@@ -1,109 +1,109 @@
-## Pika自版本3.1.2起开始对分片做了一系列支持，为此我们为分片模式添加了一系列的命令.
+## Since Pika v3.1.2, we support sharding and add some commands.
 
-在Pika分片版本我们引入了Table的概念，一个Table下面可以有若干个slot(slot的数量受配置文件中default-slot-num限制)客户端过来的读写请求会根据Key进行映射，如果该pika负责这个slot，该key会打到对应的slot上执行.
+At this version, we have a new object named 'table' which contains several slots(max count depend on default-slot-num). Every key in request will map to one slot in one table. 
 
-用分片模式启动，Pika会为我们创建一个默认的Table(名称为db0)，用户可以执行addslots命令向这个Table上增加slot，Pika会将Table对应的slot信息记录到db-path目录下的meta文件里.
+If running in sharding mode, Pika will create a table named db0 as default and create meta files in db-path.
 
-不同Pika实例之间的slot是可以同步数据的，slot的身份可以是主可以是从，也可以既是主也是从，一旦slot有从的身份那么就是不可写的.
+Data sync between slots in different instance. Slave slot is readonly.
 
-### 1.`pkcluster info`命令：
-作用:用于展示slot的同步信息(包括Binlog偏移量，主从身份等)
+### 1.`pkcluster info`：
+Usage: print slots sync information
 
-`pkcluster info slot`: 查看默认table中所有slot的同步信息
+`pkcluster info slot`: print slot information in default table
 
-`pkcluster info slot db0:0-6,7,8`: 查看table0下ID为0-6,7,8对应slot的同步信息
+`pkcluster info slot db0:0-6,7,8`: print slot 0-6,7,8 in table0
 
-`pkcluster info table 1`: 查看table1的信息，包括QPS，table分片个数等信息。
-
-
-### 2.`pkcluster addslots`命令：
-
-作用:在默认table中添加指定ID的slot，ID的区间为[0，default-slot-num - 1]，支持以下三种指定ID的语法
-
-`pkcluster addslots 0-2`: 在默认的table中添加id为0,1,2的三个slot
-
-`pkcluster addslots 0-2,3`: 在默认的table中添加id为0,1,2,3的四个slot
-
-`pkcluster addslots 0,1,2,3,4`: 在默认的table中添加id为0,1,2,3,4的五个slot
+`pkcluster info table 1`: print information in table1 include QPS, sharding.
 
 
-### 3.`pkcluster delslots`命令：
+### 2.`pkcluster addslots`：
 
-作用:在默认table中删除指定ID的slot，ID的区间为[0，default-slot-num - 1]，支持以下三种指定ID的语法
+Usage: add alot in default table, range [0，default-slot-num - 1]
 
-`pkcluster delslots 0-2`: 在默认的table中删除id为0,1,2的三个slot
+`pkcluster addslots 0-2`: add slot 0,1,2 in default table
 
-`pkcluster delslots 0-2,3`: 在默认的table中删除id为0,1,2,3的四个slot
+`pkcluster addslots 0-2,3`: add slot 0,1,2,3 in default table
 
-`pkcluster delslots 0,1,2,3,4`: 在默认的table中删除id为0,1,2,3,4的五个slot
+`pkcluster addslots 0,1,2,3,4`: add slot 0,1,2,3,4 in default table
 
 
-### 4.`pkcluster slotsslaveof`命令：
+### 3.`pkcluster delslots`：
 
-作用:用于默认table下某些slot向其他Pika实例对应slot发起同步数据请求或者取消同步请求，指定slot的语法和上面addslots/delslots类似，但是这个命令中还支持使用all，表示默认table下的所有slot
+Usage :delete alot in default table, range [0，default-slot-num - 1]
 
-`pkcluster slotsslaveof no one  [0-3,8-11 | all]` 指定的slot断开主从同步
+`pkcluster delslots 0-2`: delete slot 0,1,2 in default table
 
-`pkcluster slotsslaveof ip port [0-3,8,9,10,11 | all]` 指定的slot建立主从同步
+`pkcluster delslots 0-2,3`: add slot 0,1,2,3 in default table
 
-`pkcluster slotsslaveof ip port [0,2,4,6,7,8,9 | all] force` 指定的slot进行全同步
+`pkcluster delslots 0,1,2,3,4`: add slot 0,1,2,3,4 in default table
 
-### 5.`slaveof` 命令
 
-等价于 `pkcluster slotsslave ip port all` 命令
+### 4.`pkcluster slotsslaveof`：
 
-## 自pika3.3开始，分片模式支持动态创建table的功能。为了保持与原命令的兼容性和减少对多table不使用者的学习成本，pika默认会自动创建table 0，slot num为配置文件中的配置。使用其他table时，需要手动创建。
-### 1. `pkcluster addtable` 命令：
+Usage:trigger data sync from master slot to slave slot in different Pika instances.
 
-作用：用于创建table，创建时需指定table-id,max-slot-num。默认table-id为0。
+`pkcluster slotsslaveof no one  [0-3,8-11 | all]` disconnect data sync in slots 
 
-`pkcluster addtable 1 64`:创建table-id为1，max-slot-num为64的表。
+`pkcluster slotsslaveof ip port [0-3,8,9,10,11 | all]` connect data sync in slots 
 
-### 2. `pkcluster deltalbe` 命令：
+`pkcluster slotsslaveof ip port [0,2,4,6,7,8,9 | all] force` trigger full sync in slots 
 
-作用：用于删除table-id的表，并删除表中所有slot
+### 5.`slaveof` 
 
-` pkcluster deltable 1` :删除table-id 为1的表，并删除表中所有slot。
+same as `pkcluster slotsslave ip port all` 
 
-### 3.`pkcluster addslots`命令：
+## From v3.3, Pika can create table dynamicly. It will create table 0, slot num can be config. If need other tables should create manually.
+### 1. `pkcluster addtable` ：
 
-作用:在table-id的表中中添加指定ID的slot，ID的区间为[0，max-slot-num - 1]，支持以下三种指定ID的语法.不指定table-id时在默认表中添加。
+Usage: create table, need set table-id and max-slot-num, a as default.
 
-`pkcluster addslots 0-2 1`: 在table-id为1的表中添加id为0,1,2的三个slot
+`pkcluster addtable 1 64`:create table, table-id is 1 and max-slot-num is 64.
 
-`pkcluster addslots 0-2,3 1`: 在table-id为1的表中添加id为0,1,2,3的四个slot
+### 2. `pkcluster deltalbe` ：
 
-`pkcluster addslots 0,1,2,3,4 1`: 在table-id为1的表中添加id为0,1,2,3,4的五个slot
+Usage: delete table and it's slots 
 
-### 4.`pkcluster delslots`命令：
+` pkcluster deltable 1` : delete table 1 and all it's slots
 
-作用:在table-id的表中删除指定ID的slot，ID的区间为[0，max-slot-num - 1]，支持以下三种指定ID的语法
+### 3.`pkcluster addslots`：
 
-`pkcluster delslots 0-2 1`: 在table-id为1的表中删除id为0,1,2的三个slot
+Usage:add slot in table, slots range [0，max-slot-num - 1]
 
-`pkcluster delslots 0-2,3 1`: 在table-id为1的表中删除id为0,1,2,3的四个slot
+`pkcluster addslots 0-2 1`: add slot 0,1,2 in table 1 
 
-`pkcluster delslots 0,1,2,3,4 1`: 在table-id为1的表中删除id为0,1,2,3,4的五个slot
+`pkcluster addslots 0-2,3 1`: add slot 0,1,2,3 in table 1
 
-### 5.`pkcluster slotsslaveof`命令：
+`pkcluster addslots 0,1,2,3,4 1`: add slot 0,1,2,3,4 in table 1
 
-作用:用于table-id的表下某些slot向其他Pika实例对应slot发起同步数据请求或者取消同步请求，指定slot的语法和上面addslots/delslots类似，但是这个命令中还支持使用all，表示table-id下的所有slot
+### 4.`pkcluster delslots`：
 
-`pkcluster slotsslaveof no one  [0-3,8-11 | all] 1 ` 指定table-id为1的表中slot断开主从同步
+Usage:delete slot in table, range [0，max-slot-num - 1]
 
-`pkcluster slotsslaveof ip port [0-3,8,9,10,11 | all] 1` 指定table-id为1的表中slot建立主从同步
+`pkcluster delslots 0-2 1`: delete slot 0,1,2 in table 1 
 
-`pkcluster slotsslaveof ip port [0,2,4,6,7,8,9 | all] force 1` 指定table-id为1的表中slot进行全同步
+`pkcluster delslots 0-2,3 1`: delete slot 0,1,2,3 in table 1 
+
+`pkcluster delslots 0,1,2,3,4 1`: delete slot 0,1,2,3,4 in table 1 
+
+### 5.`pkcluster slotsslaveof`：
+
+Usage:trigger data sync from master slot to slave slot in different Pika instances.
+
+`pkcluster slotsslaveof no one  [0-3,8-11 | all] 1 ` disconnect data sync in slots
+
+`pkcluster slotsslaveof ip port [0-3,8,9,10,11 | all] 1` connect data sync in slots 
+
+`pkcluster slotsslaveof ip port [0,2,4,6,7,8,9 | all] force 1` trigger full sync in slots 
 
 
 <br/>
 
-## 注意：
-### 在分片模式下，pika全面支持输入参数为单个key的命令。
-### 但对于输入参数可以是多个key的命令，在分片模式下进行了部分支持
+## Notice：
+### In sharding mode, single key command is all supported. 
+### Multiple keys command are partially supported
 <br/>
 
-#### 目前分片模式不支持的命令
+#### Not supported
 
 | —           | —                 | —            |
 | ----------- | ----------------- | ------------ |
@@ -117,9 +117,6 @@
 | GeoPos      | GeoDist           | GeoHash      |
 | GeoRadius   | GeoRadiusByMember |              |
 
-#### 分片模式命令支持计划
-基础设施：支持[hash tags](https://redis.io/topics/cluster-spec)数据分片。用户可以针对具体的使用场景，一定程度上控制数据在集群中的分布。
+#### Command Support Plan in Sharding Mode
 
-基本方针：针对涉及多个Key的命令，Keys需要位于同一分片上，即只支持分片内的操作。而全局空间的命令将暂不支持。
-
-例如：支持'RPOPLPUSH src dst'，需要src和dst列表位于同一分片上，而用户可以通过加入hash tag的方式达到该目的。
+For multiple keys commands, if all keys in one slot will be supported. Globle distribution command will not be supported. 

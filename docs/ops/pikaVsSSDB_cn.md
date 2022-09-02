@@ -1,27 +1,26 @@
-#Performance pika vs ssdb
+#pika与ssdb性能对比
 
-## Environment
+## 测试环境
 
-Server：
+相同配置服务端、客户机各1台：
 
     CPU: 24 Cores, Intel(R) Xeon(R) CPU E5-2630 v2 @ 2.60GHz
     MEM: 198319652 kB
     OS: CentOS release 6.2 (Final)
     NETWORK CARD: Intel Corporation I350 Gigabit Network Connection
  
-## Command
-set and get
+## 测试接口
+set和get
 
-## Solution
+## 测试方法
 
-16 worker thread in Pika
-./redis-benchmark -h ... -p ... -n 1000000000 -t set,get -r 10000000000 -c 120 -d 200
+使用ssdb和pika默认配置(pika配16个worker)，客户机执行 ./redis-benchmark -h ... -p ... -n 1000000000 -t set,get -r 10000000000 -c 120 -d 200，通过set和get接口分别对ssdb和pika进行10亿次写入+10亿次读取
 
-## Diagram
+## 结果图表
 <img src="images/benchmarkVsSSDB01.png" height = "400" width = "480" alt="1">
 <img src="images/benchmarkVsSSDB02.png" height = "400" width = "480" alt="10">
 
-## Details
+## 详细测试结果（10亿）
 
 ### Set：
 
@@ -95,14 +94,19 @@ set and get
 		
 		110338.10 requests per second
 		
-## Conclusion
+## 测试结论
 
-Pika has 2.1 times write throughtput than ssdb（qps：84098 vs 39842）and 1.4 read throughput than ssdb（qps：110338 vs 78465）
+由于pika的设计支持多线程的读写（ssdb仅支持1个线程写，多个线程读），在本测试环境中，pika写性能是ssdb的2.1倍（qps：84098 vs 39842），读性能是ssdb的1.4倍（qps：110338 vs 78465）
 
-Write latency in Pika is better than ssdb
+ssdb 写延迟分布 0.52%在1ms以内, 97.10%在3ms以内, 而pika 的写延迟分布18.32%在1ms以内, 99.71%在3ms以内. 说明 pika 的写延迟在写入量相同的情况下（10亿）下明显优于ssdb
 
-Read latency in Pika is better than ssdb
+ssdb 读延迟分布7.32%在1ms以内, 99.49%在3ms以内, 而pika 的84.97%在1ms以内, 99.99%在3ms以内. 说明 pika 的读延迟在读取量相同的情况（10亿）下优于ssdb
 
-Pika is better than ssdb
+所以在本测试环境中，pika 各个方面的性能都优于ssdb
+
+## 注
+
+1. ssdb的写性能开始还不错（8w\~9w)，随着写入的持续，速度逐渐降到3w左右，然后一直持续到写入结束；pika的写入速度则相对稳定，全程维持在8w\~9w
+2. 本测试结果仅供参考，大家在使用pika前最好根据自己的实际使用场景来进行针对性的性能测试
 
 		
