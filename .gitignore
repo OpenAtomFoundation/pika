@@ -7,6 +7,7 @@
 *.obj
 *pb.cc
 *pb.h
+build
 
 # Precompiled Headers
 *.gch
@@ -21,8 +22,7 @@
 *.mod
 
 # Compiled Static libraries
-*.lai
-*.la
+*.lai *.la
 *.a
 *.lib
 
@@ -49,6 +49,7 @@ tags
 # IDE
 .vscode
 
+# generate
 make_config.mk
 src/*.d
 src/build_version.cc
