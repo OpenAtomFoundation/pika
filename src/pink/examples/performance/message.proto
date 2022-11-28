@@ -1,0 +1,7 @@
+message Ping {
+  required string ping = 1;
+}
+
+message Pong {
+  required string pong = 1;
+}
