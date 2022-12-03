@@ -1,0 +1,61 @@
+//  Copyright (c) 2017-present, Qihoo, Inc.  All rights reserved.
+//  This source code is licensed under the BSD-style license found in the
+//  LICENSE file in the root directory of this source tree. An additional grant
+//  of patent rights can be found in the PATENTS file in the same directory.
+
+#ifndef SRC_STRINGS_FILTER_H_
+#define SRC_STRINGS_FILTER_H_
+
+#include <string>
+#include <memory>
+
+#include "src/strings_value_format.h"
+#include "rocksdb/compaction_filter.h"
+#include "src/debug.h"
+
+namespace blackwidow {
+
+class StringsFilter : public rocksdb::CompactionFilter {
+ public:
+  StringsFilter() = default;
+  bool Filter(int level, const rocksdb::Slice& key,
+              const rocksdb::Slice& value,
+              std::string* new_value, bool* value_changed) const override {
+    int64_t unix_time;
+    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    int32_t cur_time = static_cast<int32_t>(unix_time);
+    ParsedStringsValue parsed_strings_value(value);
+    Trace("==========================START==========================");
+    Trace("[StringsFilter], key: %s, value = %s, timestamp: %d, cur_time: %d",
+          key.ToString().c_str(),
+          parsed_strings_value.value().ToString().c_str(),
+          parsed_strings_value.timestamp(),
+          cur_time);
+
+    if (parsed_strings_value.timestamp() != 0
+      && parsed_strings_value.timestamp() < cur_time) {
+      Trace("Drop[Stale]");
+      return true;
+    } else {
+      Trace("Reserve");
+      return false;
+    }
+  }
+
+  const char* Name() const override { return "StringsFilter"; }
+};
+
+class StringsFilterFactory : public rocksdb::CompactionFilterFactory {
+ public:
+  StringsFilterFactory() = default;
+  std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
+    const rocksdb::CompactionFilter::Context& context) override {
+    return std::unique_ptr<rocksdb::CompactionFilter>(new StringsFilter());
+  }
+  const char* Name() const override {
+    return "StringsFilterFactory";
+  }
+};
+
+}  //  namespace blackwidow
+#endif  // SRC_STRINGS_FILTER_H_
