@@ -176,9 +176,10 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
                    full_private_path + src_fname,
                    (type == kDescriptorFile) ? manifest_file_size : 0);
 #else
-      s = CopyFile(db_->GetEnv(), db_->GetName() + src_fname,
+      s = CopyFile(db_->GetFileSystem(), db_->GetName() + src_fname,
                    full_private_path + src_fname,
-                   (type == kDescriptorFile) ? manifest_file_size : 0, false);
+                   (type == kDescriptorFile) ? manifest_file_size : 0,
+                   false, nullptr, Temperature::kUnknown);
 #endif
     }
   }
@@ -188,7 +189,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
     s = CreateFile(db_->GetEnv(), full_private_path + current_fname,
                    manifest_fname.substr(1) + "\n");
 #else
-    s = CreateFile(db_->GetEnv(), full_private_path + current_fname,
+    s = CreateFile(db_->GetFileSystem(), full_private_path + current_fname,
                    manifest_fname.substr(1) + "\n", false);
 #endif
   }
@@ -209,10 +210,11 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
                      full_private_path + live_wal_files[i]->PathName(),
                      live_wal_files[i]->SizeFileBytes());
 #else
-        s = CopyFile(db_->GetEnv(),
+        s = CopyFile(db_->GetFileSystem(),
                      db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(),
-                     live_wal_files[i]->SizeFileBytes(), false);
+                     live_wal_files[i]->SizeFileBytes(), false,
+                     nullptr, Temperature::kUnknown);
 #endif
         break;
       }
@@ -236,10 +238,10 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
                      db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(), 0);
 #else
-        s = CopyFile(db_->GetEnv(),
+        s = CopyFile(db_->GetFileSystem(),
                      db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(),
-                     0, false);
+                     0, false, nullptr, Temperature::kUnknown);
 #endif
       }
     }
@@ -253,7 +255,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
     s = db_->GetEnv()->RenameFile(full_private_path, checkpoint_dir);
   }
   if (s.ok()) {
-    unique_ptr<Directory> checkpoint_directory;
+    std::unique_ptr<Directory> checkpoint_directory;
     db_->GetEnv()->NewDirectory(checkpoint_dir, &checkpoint_directory);
     if (checkpoint_directory != nullptr) {
       s = checkpoint_directory->Fsync();
