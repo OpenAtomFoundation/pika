@@ -7,6 +7,7 @@
 #define PIKA_STATISTIC_H_
 
 #include <atomic>
+#include <string>
 #include <unordered_map>
 
 class QpsStatistic {

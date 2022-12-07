@@ -13,7 +13,7 @@
 #include "pink/include/bg_thread.h"
 #include "pink/include/thread_pool.h"
 
-#include "src/pika_inner_message.pb.h"
+#include "pika_inner_message.pb.h"
 
 #include "include/pika_command.h"
 #include "include/pika_binlog_transverter.h"

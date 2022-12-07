@@ -12,7 +12,7 @@
 #include "pink/include/pink_thread.h"
 
 #include "include/pika_define.h"
-#include "src/pika_inner_message.pb.h"
+#include "pika_inner_message.pb.h"
 
 class SyncMasterPartition;
 

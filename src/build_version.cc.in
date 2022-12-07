@@ -5,6 +5,6 @@
 
 #include "include/build_version.h"
 const char* pika_build_git_sha =
-              "pika_git_sha:@@GIT_SHA@@";
-const char* pika_build_git_date = "pika_build_git_date:@@GIT_DATE_TIME@@";
-const char* pika_build_compile_date = __DATE__;
+              "pika_git_sha:@PIKA_GIT_SHA@";
+const char* pika_build_git_date = "pika_build_git_date:@PIKA_GIT_DATE@";
+const char* pika_build_compile_date = "pika_build_date:@PIKA_BUILD_DATE@";
