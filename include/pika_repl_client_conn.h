@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "include/pika_conf.h"
-#include "src/pika_inner_message.pb.h"
+#include "pika_inner_message.pb.h"
 
 class SyncMasterPartition;
 class SyncSlavePartition;

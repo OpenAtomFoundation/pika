@@ -18,6 +18,6 @@ target_include_directories(blackwidow
     PUBLIC ${PROJECT_SOURCE_DIR}/../../third/rocksdb
     )
 target_link_libraries(blackwidow
-    PUBLIC RocksDB
+    PUBLIC rocksdb
     PUBLIC slash
     )
