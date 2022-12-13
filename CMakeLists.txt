@@ -1,9 +1,13 @@
 cmake_minimum_required (VERSION 3.10)
 
-set (CMAKE_CXX_STANDARD 17)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized" CACHE STRING "Set C++ Compiler Flags" FORCE)
-
 project (pika)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized" CACHE STRING "Set C++ Compiler Flags" FORCE)
+
+find_package(Snappy REQUIRED)
+
+# rocksdb option
+set(WITH_SNAPPY ON)
 
 add_subdirectory(third/rocksdb)
 add_subdirectory(src/slash)
@@ -49,6 +53,7 @@ set(PROTO_FILES
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 message("pika PROTO_SRCS = ${PROTO_SRCS}")
 message("pika PROTO_HDRS = ${PROTO_HDRS}")
+
 add_executable(${PROJECT_NAME}
                ${DIR_SRCS}
                ${PROTO_SRCS}
