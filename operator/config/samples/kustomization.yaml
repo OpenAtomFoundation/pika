@@ -1,0 +1,4 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- pika_v1alpha1_pika.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples
