@@ -134,7 +134,7 @@ spec:
               pikaConfig:
                 description: PikaConfig defines the external configuration of Pika
                 properties:
-                  additionalRedisConfig:
+                  additionalPikaConfig:
                     type: string
                 type: object
             required:

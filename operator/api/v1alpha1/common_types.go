@@ -39,5 +39,5 @@ type ServiceConfig struct {
 
 // PikaConfig defines the external configuration of Pika
 type PikaConfig struct {
-	AdditionalPikaConfig *string `json:"additionalRedisConfig,omitempty"`
+	AdditionalPikaConfig *string `json:"additionalPikaConfig,omitempty"`
 }
