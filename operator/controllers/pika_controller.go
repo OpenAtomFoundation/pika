@@ -18,13 +18,15 @@ package controllers
 
 import (
 	"context"
-
+	pikav1alpha1 "github.com/OpenAtomFoundation/pika/operator/api/v1alpha1"
+	"github.com/OpenAtomFoundation/pika/operator/controllers/factory"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	pikav1alpha1 "github.com/OpenAtomFoundation/pika/operator/api/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 // PikaReconciler reconciles a Pika object
@@ -50,9 +52,25 @@ type PikaReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *PikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := ctrl.Log.WithValues("namespace", req.Namespace, "name", req.Name)
 
-	// TODO(user): your logic here
+	logger.Info("Reconciling Pika")
+	// get pika instance
+	instance := &pikav1alpha1.Pika{}
+	err := r.Get(ctx, req.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		logger.Error(err, "unable to fetch Pika")
+		return ctrl.Result{}, err
+	}
+
+	// create statefulset
+	_, err = factory.CreateOrUpdatePikaStandalone(ctx, r.Client, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -61,5 +79,7 @@ func (r *PikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 func (r *PikaReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&pikav1alpha1.Pika{}).
+		Owns(&appsv1.StatefulSet{}).Owns(&v1.Event{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 2}).
 		Complete(r)
 }
