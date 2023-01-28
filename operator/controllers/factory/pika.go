@@ -8,6 +8,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -24,6 +25,20 @@ func CreateOrUpdatePikaStandalone(ctx context.Context, rclient client.Client, in
 	}
 
 	return stsObj, nil
+}
+
+// CreateOrUpdatePikaStandaloneService creates or updates pika standalone service
+func CreateOrUpdatePikaStandaloneService(ctx context.Context, rclient client.Client, instance *pikav1alpha1.Pika) (*v1.Service, error) {
+	svcObj, err := newServiceForPikaStandalone(instance)
+	if err != nil {
+		return nil, fmt.Errorf("cannot generate new service for pika standalone: %w", err)
+	}
+
+	if err := k8stools.HandleServiceUpdate(ctx, rclient, svcObj); err != nil {
+		return nil, err
+	}
+
+	return svcObj, nil
 }
 
 func newSTSForPikaStandalone(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
@@ -72,4 +87,30 @@ func newSTSForPikaStandalone(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, 
 	}
 
 	return stsObj, nil
+}
+
+func newServiceForPikaStandalone(instance *pikav1alpha1.Pika) (*v1.Service, error) {
+	svcObj := &v1.Service{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:      "pika-standalone",
+			Namespace: instance.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
+			},
+		},
+		Spec: v1.ServiceSpec{
+			Ports: []v1.ServicePort{
+				{
+					Name:       "tcp",
+					Port:       9221,
+					TargetPort: intstr.FromString("tcp"),
+				},
+			},
+			Selector: map[string]string{
+				"app": "pika-standalone",
+			},
+			Type: "ClusterIP",
+		},
+	}
+	return svcObj, nil
 }

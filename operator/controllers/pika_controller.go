@@ -66,8 +66,14 @@ func (r *PikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	// create statefulset
+	// create pika standalone instance
 	_, err = factory.CreateOrUpdatePikaStandalone(ctx, r.Client, instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// create pika standalone service
+	_, err = factory.CreateOrUpdatePikaStandaloneService(ctx, r.Client, instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
