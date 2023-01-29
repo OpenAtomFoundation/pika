@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	pikav1alpha1 "github.com/OpenAtomFoundation/pika/operator/api/v1alpha1"
+	"github.com/OpenAtomFoundation/pika/operator/controllers/factory/finalize"
 	"github.com/OpenAtomFoundation/pika/operator/controllers/factory/k8stools"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -41,6 +42,25 @@ func CreateOrUpdatePikaStandaloneService(ctx context.Context, rclient client.Cli
 	return svcObj, nil
 }
 
+// OnPikaStandaloneDelete clear finalizer on pika standalone
+func OnPikaStandaloneDelete(ctx context.Context, rclient client.Client, instance *pikav1alpha1.Pika) error {
+	// remove sts finalizer
+
+	if err := finalize.RemoveFinalizeObjByName(ctx, rclient, &appsv1.StatefulSet{},
+		newSTSNameForPikaStandalone(instance), instance.Namespace); err != nil {
+		return err
+	}
+
+	// remove svc finalizer
+	if err := finalize.RemoveFinalizeObjByName(ctx, rclient, &v1.Service{},
+		newServiceNameForPikaStandalone(instance), instance.Namespace); err != nil {
+		return err
+	}
+
+	return finalize.RemoveFinalizeObjByName(ctx, rclient, instance, instance.Name, instance.Namespace)
+
+}
+
 func newSTSForPikaStandalone(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
 	// TODO: need replace hardcode statefulset template
 
@@ -48,15 +68,19 @@ func newSTSForPikaStandalone(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, 
 
 	stsObj := &appsv1.StatefulSet{
 		ObjectMeta: ctrl.ObjectMeta{
-			Name:      instance.Name,
+			Name:      newSTSNameForPikaStandalone(instance),
 			Namespace: instance.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
 			},
+
+			Finalizers: []string{
+				pikav1alpha1.FinalizerName,
+			},
 		},
 		Spec: appsv1.StatefulSetSpec{
 			Replicas:    &replica,
-			ServiceName: "pika-standalone",
+			ServiceName: newServiceNameForPikaStandalone(instance),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "pika-standalone",
@@ -92,10 +116,13 @@ func newSTSForPikaStandalone(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, 
 func newServiceForPikaStandalone(instance *pikav1alpha1.Pika) (*v1.Service, error) {
 	svcObj := &v1.Service{
 		ObjectMeta: ctrl.ObjectMeta{
-			Name:      "pika-standalone",
+			Name:      newServiceNameForPikaStandalone(instance),
 			Namespace: instance.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
+			},
+			Finalizers: []string{
+				pikav1alpha1.FinalizerName,
 			},
 		},
 		Spec: v1.ServiceSpec{
@@ -113,4 +140,12 @@ func newServiceForPikaStandalone(instance *pikav1alpha1.Pika) (*v1.Service, erro
 		},
 	}
 	return svcObj, nil
+}
+
+func newSTSNameForPikaStandalone(instance *pikav1alpha1.Pika) string {
+	return "pika-standalone"
+}
+
+func newServiceNameForPikaStandalone(instance *pikav1alpha1.Pika) string {
+	return "pika-standalone"
 }

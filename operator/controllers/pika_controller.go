@@ -20,6 +20,7 @@ import (
 	"context"
 	pikav1alpha1 "github.com/OpenAtomFoundation/pika/operator/api/v1alpha1"
 	"github.com/OpenAtomFoundation/pika/operator/controllers/factory"
+	"github.com/OpenAtomFoundation/pika/operator/controllers/factory/finalize"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -66,15 +67,31 @@ func (r *PikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
+	if !instance.DeletionTimestamp.IsZero() {
+		if err := factory.OnPikaStandaloneDelete(ctx, r.Client, instance); err != nil {
+			logger.Error(err, "unable to delete Pika")
+			return ctrl.Result{}, err
+		}
+		logger.Info("delete Pika success")
+		return ctrl.Result{}, nil
+	}
+
+	if err := finalize.AddFinalizer(ctx, r.Client, instance); err != nil {
+		logger.Error(err, "unable to add finalizer")
+		return ctrl.Result{}, err
+	}
+
 	// create pika standalone instance
 	_, err = factory.CreateOrUpdatePikaStandalone(ctx, r.Client, instance)
 	if err != nil {
+		logger.Error(err, "unable to create Pika")
 		return ctrl.Result{}, err
 	}
 
 	// create pika standalone service
 	_, err = factory.CreateOrUpdatePikaStandaloneService(ctx, r.Client, instance)
 	if err != nil {
+		logger.Error(err, "unable to create Pika service")
 		return ctrl.Result{}, err
 	}
 
