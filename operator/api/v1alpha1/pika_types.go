@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,8 +29,38 @@ type PikaSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	KubernetesConfig KubernetesConfig `json:"kubernetesConfig"`
-	PikaConfig       *PikaConfig      `json:"pikaConfig,omitempty"`
+	// +optional
+	Image string `json:"image,omitempty"`
+	// +optional
+	ImagePullPolicy v1.PullPolicy `json:"imagePullPolicy,omitempty"`
+
+	// StorageType is the type of storage used by the cluster. The default is emptyDir.
+	// +optional
+	StorageType string `json:"storageType,omitempty"`
+	// +optional
+	StorageClassName string `json:"storageClassName,omitempty"`
+	// +optional
+	StorageSize string `json:"storageSize,omitempty"`
+	// +optional
+	StorageAnnotations map[string]string `json:"storageAnnotations,omitempty"`
+
+	// +optional
+	ServiceType string `json:"serviceType,omitempty"`
+	// +optional
+	ServicePort int32 `json:"servicePort,omitempty"`
+	// +optional
+	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
+
+	// +optional
+	Resources v1.ResourceRequirements `json:"resources,omitempty"`
+	// +optional
+	Tolerations []v1.Toleration `json:"tolerations,omitempty"`
+	// +optional
+	Affinity *v1.Affinity `json:"affinity,omitempty"`
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	PikaExternConfig *string `json:"additionalPikaConfig,omitempty"`
 }
 
 // PikaStatus defines the observed state of Pika

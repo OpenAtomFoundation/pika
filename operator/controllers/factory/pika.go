@@ -8,6 +8,7 @@ import (
 	"github.com/OpenAtomFoundation/pika/operator/controllers/factory/k8stools"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -16,7 +17,9 @@ import (
 
 // CreateOrUpdatePikaStandalone creates or updates pika standalone instance
 func CreateOrUpdatePikaStandalone(ctx context.Context, rclient client.Client, instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
-	stsObj, err := newSTSForPikaStandalone(instance)
+	instance = instance.DeepCopy()
+	fillDefaultPikaStandalone(instance)
+	stsObj, err := makePikaSTS(instance)
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate new sts for pika standalone: %w", err)
 	}
@@ -30,7 +33,9 @@ func CreateOrUpdatePikaStandalone(ctx context.Context, rclient client.Client, in
 
 // CreateOrUpdatePikaStandaloneService creates or updates pika standalone service
 func CreateOrUpdatePikaStandaloneService(ctx context.Context, rclient client.Client, instance *pikav1alpha1.Pika) (*v1.Service, error) {
-	svcObj, err := newServiceForPikaStandalone(instance)
+	instance = instance.DeepCopy()
+	fillDefaultPikaStandalone(instance)
+	svcObj, err := makePikaSvc(instance)
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate new service for pika standalone: %w", err)
 	}
@@ -45,15 +50,14 @@ func CreateOrUpdatePikaStandaloneService(ctx context.Context, rclient client.Cli
 // OnPikaStandaloneDelete clear finalizer on pika standalone
 func OnPikaStandaloneDelete(ctx context.Context, rclient client.Client, instance *pikav1alpha1.Pika) error {
 	// remove sts finalizer
-
 	if err := finalize.RemoveFinalizeObjByName(ctx, rclient, &appsv1.StatefulSet{},
-		newSTSNameForPikaStandalone(instance), instance.Namespace); err != nil {
+		pikaSTSName(instance), instance.Namespace); err != nil {
 		return err
 	}
 
 	// remove svc finalizer
 	if err := finalize.RemoveFinalizeObjByName(ctx, rclient, &v1.Service{},
-		newServiceNameForPikaStandalone(instance), instance.Namespace); err != nil {
+		pikaSvcName(instance), instance.Namespace); err != nil {
 		return err
 	}
 
@@ -61,91 +65,201 @@ func OnPikaStandaloneDelete(ctx context.Context, rclient client.Client, instance
 
 }
 
-func newSTSForPikaStandalone(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
-	// TODO: need replace hardcode statefulset template
+func fillDefaultPikaStandalone(instance *pikav1alpha1.Pika) {
+	if instance.Spec.Image == "" {
+		instance.Spec.Image = DefaultPikaKubernetesImage
+	}
 
+	if instance.Spec.ImagePullPolicy == "" {
+		instance.Spec.ImagePullPolicy = DefaultPikaKubernetesImagePullPolicy
+	}
+
+	if instance.Spec.StorageType == "" {
+		instance.Spec.StorageType = DefaultPikaStorageType
+	}
+
+	if instance.Spec.ServiceType == "" {
+		instance.Spec.ServiceType = string(DefaultPikaServiceType)
+	}
+
+	if instance.Spec.ServicePort == 0 {
+		instance.Spec.ServicePort = DefaultPikaServicePort
+	}
+
+}
+
+func makePikaSTS(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
 	var replica int32 = 1
+	labels := makePikaLabels(instance)
+	annotations := instance.Spec.ServiceAnnotations
+	annotations = k8stools.MergeAnnotations(instance.Annotations, annotations)
+
+	meta := ctrl.ObjectMeta{
+		Name:        pikaSTSName(instance),
+		Namespace:   instance.Namespace,
+		Annotations: annotations,
+		OwnerReferences: []metav1.OwnerReference{
+			*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
+		},
+		Finalizers: []string{
+			pikav1alpha1.FinalizerName,
+		},
+	}
+
+	podSpec := makePikaPodSpec(instance)
+
+	pvcs, err := makePikaPVCs(instance)
+	if err != nil {
+		return nil, err
+	}
 
 	stsObj := &appsv1.StatefulSet{
-		ObjectMeta: ctrl.ObjectMeta{
-			Name:      newSTSNameForPikaStandalone(instance),
-			Namespace: instance.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
-			},
-
-			Finalizers: []string{
-				pikav1alpha1.FinalizerName,
-			},
-		},
+		ObjectMeta: meta,
 		Spec: appsv1.StatefulSetSpec{
 			Replicas:    &replica,
-			ServiceName: newServiceNameForPikaStandalone(instance),
+			ServiceName: pikaHeadlessSvcName(instance),
 			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "pika-standalone",
-				},
+				MatchLabels: labels,
 			},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: ctrl.ObjectMeta{
-					Labels: map[string]string{
-						"app": "pika-standalone",
-					},
+					Labels: labels,
 				},
-				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Name:  "pika-standalone",
-							Image: instance.Spec.KubernetesConfig.Image,
-							Ports: []v1.ContainerPort{
-								{
-									Name:          "tcp",
-									ContainerPort: 9221,
-								},
-							},
-						},
-					},
-				},
+				Spec: podSpec,
 			},
+			VolumeClaimTemplates: pvcs,
 		},
 	}
 
 	return stsObj, nil
 }
 
-func newServiceForPikaStandalone(instance *pikav1alpha1.Pika) (*v1.Service, error) {
-	svcObj := &v1.Service{
-		ObjectMeta: ctrl.ObjectMeta{
-			Name:      newServiceNameForPikaStandalone(instance),
-			Namespace: instance.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
-			},
-			Finalizers: []string{
-				pikav1alpha1.FinalizerName,
-			},
+func makePikaSvc(instance *pikav1alpha1.Pika) (*v1.Service, error) {
+	labels := makePikaLabels(instance)
+	annotations := instance.Annotations
+
+	meta := ctrl.ObjectMeta{
+		Name:        pikaSTSName(instance),
+		Namespace:   instance.Namespace,
+		Annotations: annotations,
+		OwnerReferences: []metav1.OwnerReference{
+			*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
 		},
+		Finalizers: []string{
+			pikav1alpha1.FinalizerName,
+		},
+	}
+
+	svcObj := &v1.Service{
+		ObjectMeta: meta,
 		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{
 				{
 					Name:       "tcp",
-					Port:       9221,
+					Port:       instance.Spec.ServicePort,
 					TargetPort: intstr.FromString("tcp"),
 				},
 			},
-			Selector: map[string]string{
-				"app": "pika-standalone",
-			},
-			Type: "ClusterIP",
+			Selector: labels,
+			Type:     v1.ServiceType(instance.Spec.ServiceType),
 		},
 	}
 	return svcObj, nil
 }
 
-func newSTSNameForPikaStandalone(instance *pikav1alpha1.Pika) string {
-	return "pika-standalone"
+func makePikaLabels(instance *pikav1alpha1.Pika) map[string]string {
+	return instance.Labels
 }
 
-func newServiceNameForPikaStandalone(instance *pikav1alpha1.Pika) string {
-	return "pika-standalone"
+func makePikaPodSpec(instance *pikav1alpha1.Pika) v1.PodSpec {
+	var Volumes []v1.Volume
+
+	switch instance.Spec.StorageType {
+	case "emptyDir":
+		Volumes = append(Volumes, v1.Volume{
+			Name: "pika-data",
+			VolumeSource: v1.VolumeSource{
+				EmptyDir: &v1.EmptyDirVolumeSource{},
+			},
+		})
+	case "pvc":
+		// pvc template will auto create volume
+
+	}
+
+	VolumeMount := []v1.VolumeMount{
+		{
+			Name:      "pika-data",
+			MountPath: "/data",
+		},
+	}
+
+	return v1.PodSpec{
+		Containers: []v1.Container{
+			{
+				Name:            "pika",
+				Image:           instance.Spec.Image,
+				ImagePullPolicy: instance.Spec.ImagePullPolicy,
+				Ports: []v1.ContainerPort{
+					{
+						Name:          "tcp",
+						ContainerPort: 9221,
+					},
+				},
+				Resources:    instance.Spec.Resources,
+				VolumeMounts: VolumeMount,
+			},
+		},
+		Volumes:      Volumes,
+		Affinity:     instance.Spec.Affinity,
+		Tolerations:  instance.Spec.Tolerations,
+		NodeSelector: instance.Spec.NodeSelector,
+	}
+}
+
+func makePikaPVCs(instance *pikav1alpha1.Pika) ([]v1.PersistentVolumeClaim, error) {
+	if instance.Spec.StorageType == "emptyDir" {
+		return nil, nil
+	}
+
+	volumeSize, err := resource.ParseQuantity(instance.Spec.StorageSize)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse storage size: %w", err)
+	}
+	var storageClassName *string
+	if instance.Spec.StorageClassName == "" {
+		storageClassName = nil
+	} else {
+		storageClassName = &instance.Spec.StorageClassName
+	}
+
+	return []v1.PersistentVolumeClaim{{
+		ObjectMeta: ctrl.ObjectMeta{
+			Name:        "pika-data",
+			Annotations: instance.Spec.StorageAnnotations,
+		},
+		Spec: v1.PersistentVolumeClaimSpec{
+			StorageClassName: storageClassName,
+			AccessModes: []v1.PersistentVolumeAccessMode{
+				v1.ReadWriteOnce,
+			},
+			Resources: v1.ResourceRequirements{
+				Requests: v1.ResourceList{
+					v1.ResourceStorage: volumeSize,
+				},
+			},
+		},
+	}}, nil
+}
+
+func pikaSTSName(instance *pikav1alpha1.Pika) string {
+	return instance.Name
+}
+
+func pikaSvcName(instance *pikav1alpha1.Pika) string {
+	return instance.Name
+}
+
+func pikaHeadlessSvcName(instance *pikav1alpha1.Pika) string {
+	return instance.Name + "-headless"
 }
