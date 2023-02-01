@@ -35,10 +35,9 @@ spec:
           spec:
             description: PikaSpec defines the desired state of Pika
             properties:
-              additionalPikaConfig:
-                type: string
               affinity:
-                description: Affinity is a group of affinity scheduling rules.
+                description: Affinity is the affinity used by the pika pods. see https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+                  for more details
                 properties:
                   nodeAffinity:
                     description: Describes node affinity scheduling rules for the
@@ -865,18 +864,47 @@ spec:
                         type: array
                     type: object
                 type: object
+              hostPath:
+                description: HostPath is the path to the host directory used for the
+                  hostPath storage type.
+                type: string
+              hostPathType:
+                description: HostPathType is the type of the hostPath. The default
+                  is DirectoryOrCreate. see https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
+                  for more details
+                enum:
+                - DirectoryOrCreate
+                - Directory
+                - FileOrCreate
+                - File
+                - Socket
+                - CharDevice
+                - BlockDevice
+                type: string
               image:
+                description: Image - the image to use for the pika
                 type: string
               imagePullPolicy:
-                description: PullPolicy describes a policy for if/when to pull a container
-                  image
+                description: ImagePullPolicy is the policy to use when pulling images
+                  see https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
+                  for more details
                 type: string
               nodeSelector:
                 additionalProperties:
                   type: string
+                description: NodeSelector is the nodeSelector used by the pika pods.
+                  see https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+                  for more details
                 type: object
+              pikaExternalConfig:
+                description: PikaExternalConfig is configmap name of the pika extern
+                  config. The config will be mounted to /pika/conf/ , default is config
+                  file item is pika.conf.
+                type: string
               resources:
-                description: ResourceRequirements describes the compute resource requirements.
+                description: Resources is the resource requests and limits for the
+                  pika container. see https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+                  for more details
                 properties:
                   limits:
                     additionalProperties:
@@ -904,25 +932,57 @@ spec:
               serviceAnnotations:
                 additionalProperties:
                   type: string
+                description: 'ServiceAnnotations is the annotations used by the service.
+                  use this to add annotations like service.beta.kubernetes.io/aws-load-balancer-internal:'
                 type: object
               servicePort:
+                description: ServicePort is the port of the service used by the cluster.
+                  The default is 9221. this will only change the service port, not
+                  the pika port. change it to 6379 if you want to use pika as a redis
+                  service.
                 format: int32
                 type: integer
               serviceType:
+                description: ServiceType is the type of the service used by the cluster.
+                  The default is ClusterIP. see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+                  for more details
+                enum:
+                - ClusterIP
+                - NodePort
+                - LoadBalancer
+                - ExternalName
                 type: string
               storageAnnotations:
                 additionalProperties:
                   type: string
+                description: StorageAnnotations is the annotations used by the persistentVolumeClaim
+                  storage type. see https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
+                  for more details
                 type: object
               storageClassName:
+                description: StorageClassName is the name of the storage class used
+                  by the persistentVolumeClaim storage type. if not set, the default
+                  storage class is used. see https://kubernetes.io/docs/concepts/storage/storage-classes/
+                  for more details
                 type: string
               storageSize:
+                description: StorageSize is the size of the persistentVolumeClaim
+                  storage type. see https://kubernetes.io/docs/concepts/storage/persistent-volumes/#capacity
+                  for more details
+                pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                 type: string
               storageType:
                 description: StorageType is the type of storage used by the cluster.
                   The default is emptyDir.
+                enum:
+                - emptyDir
+                - hostPath
+                - pvc
                 type: string
               tolerations:
+                description: Tolerations is the tolerations used by the pika pods.
+                  see https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+                  for more details
                 items:
                   description: The pod this Toleration is attached to tolerates any
                     taint that matches the triple <key,value,effect> using the matching

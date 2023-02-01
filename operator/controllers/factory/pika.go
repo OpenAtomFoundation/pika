@@ -106,7 +106,10 @@ func makePikaSTS(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
 		},
 	}
 
-	podSpec := makePikaPodSpec(instance)
+	podSpec, err := makePikaPodSpec(instance)
+	if err != nil {
+		return nil, err
+	}
 
 	pvcs, err := makePikaPVCs(instance)
 	if err != nil {
@@ -168,10 +171,16 @@ func makePikaSvc(instance *pikav1alpha1.Pika) (*v1.Service, error) {
 }
 
 func makePikaLabels(instance *pikav1alpha1.Pika) map[string]string {
-	return instance.Labels
+	labels := map[string]string{
+		"app": instance.Name,
+	}
+	for k, v := range instance.Labels {
+		labels[k] = v
+	}
+	return labels
 }
 
-func makePikaPodSpec(instance *pikav1alpha1.Pika) v1.PodSpec {
+func makePikaPodSpec(instance *pikav1alpha1.Pika) (v1.PodSpec, error) {
 	var Volumes []v1.Volume
 
 	switch instance.Spec.StorageType {
@@ -182,9 +191,20 @@ func makePikaPodSpec(instance *pikav1alpha1.Pika) v1.PodSpec {
 				EmptyDir: &v1.EmptyDirVolumeSource{},
 			},
 		})
+	case "hostPath":
+		Volumes = append(Volumes, v1.Volume{
+			Name: "pika-data",
+			VolumeSource: v1.VolumeSource{
+				HostPath: &v1.HostPathVolumeSource{
+					Path: instance.Spec.HostPath,
+					Type: instance.Spec.HostPathType,
+				},
+			},
+		})
 	case "pvc":
-		// pvc template will auto create volume
-
+	// pvc template will auto create volume
+	default:
+		return v1.PodSpec{}, fmt.Errorf("storage type %s not support", instance.Spec.StorageType)
 	}
 
 	VolumeMount := []v1.VolumeMount{
@@ -192,6 +212,25 @@ func makePikaPodSpec(instance *pikav1alpha1.Pika) v1.PodSpec {
 			Name:      "pika-data",
 			MountPath: "/data",
 		},
+	}
+
+	// use external config if set
+	if instance.Spec.PikaExternalConfig != nil {
+		Volumes = append(Volumes, v1.Volume{
+			Name: "pika-config",
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: *instance.Spec.PikaExternalConfig,
+					},
+				},
+			},
+		})
+
+		VolumeMount = append(VolumeMount, v1.VolumeMount{
+			Name:      "pika-config",
+			MountPath: "/pika/conf/",
+		})
 	}
 
 	return v1.PodSpec{
@@ -214,7 +253,7 @@ func makePikaPodSpec(instance *pikav1alpha1.Pika) v1.PodSpec {
 		Affinity:     instance.Spec.Affinity,
 		Tolerations:  instance.Spec.Tolerations,
 		NodeSelector: instance.Spec.NodeSelector,
-	}
+	}, nil
 }
 
 func makePikaPVCs(instance *pikav1alpha1.Pika) ([]v1.PersistentVolumeClaim, error) {
@@ -226,6 +265,7 @@ func makePikaPVCs(instance *pikav1alpha1.Pika) ([]v1.PersistentVolumeClaim, erro
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse storage size: %w", err)
 	}
+
 	var storageClassName *string
 	if instance.Spec.StorageClassName == "" {
 		storageClassName = nil
