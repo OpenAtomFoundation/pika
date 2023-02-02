@@ -47,6 +47,7 @@ const std::string kCmdNameTcmalloc = "tcmalloc";
 const std::string kCmdNamePKPatternMatchDel = "pkpatternmatchdel";
 const std::string kCmdDummy = "dummy";
 const std::string kCmdNameQuit = "quit";
+const std::string kCmdNameHello = "hello";
 
 //Kv
 const std::string kCmdNameSet = "set";

@@ -80,6 +80,9 @@ class PinkConn : public std::enable_shared_from_this<PinkConn> {
     return is_reply_;
   }
 
+  std::string get_name() { return name_; }
+  void set_name(std::string name) { name_ = std::move(name); }
+
   bool IsClose() { return close_; }
   void SetClose(bool close) { close_ = close; }
 
@@ -121,6 +124,7 @@ class PinkConn : public std::enable_shared_from_this<PinkConn> {
   bool close_;
   struct timeval last_interaction_;
   int flags_;
+  std::string name_;
 
 #ifdef __ENABLE_SSL
   SSL* ssl_;

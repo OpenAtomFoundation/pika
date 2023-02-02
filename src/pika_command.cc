@@ -42,6 +42,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePurgelogsto, purgelogsto));
   Cmd* pingptr = new PingCmd(kCmdNamePing, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePing, pingptr));
+  Cmd* helloptr = new HelloCmd(kCmdNameHello, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHello, helloptr));
   Cmd* selectptr = new SelectCmd(kCmdNameSelect, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSelect, selectptr));
   Cmd* flushallptr = new FlushallCmd(kCmdNameFlushall, 1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin);
