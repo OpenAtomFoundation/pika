@@ -43,6 +43,43 @@ static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   return resp.str();
 }
 
+enum AuthResult {
+  OK,
+  INVALID_PASSWORD,
+  NO_REQUIRE_PASS,
+  INVALID_CONN,
+};
+
+static AuthResult AuthenticateUser(const std::string& pwd,
+                                   const std::shared_ptr<pink::PinkConn>& conn,
+                                   std::string& msg_role) {
+  std::string root_password(g_pika_conf->requirepass());
+  std::string user_password(g_pika_conf->userpass());
+  if (user_password.empty() && root_password.empty()) {
+    return AuthResult::NO_REQUIRE_PASS;
+  }
+
+  if (pwd == user_password) {
+    msg_role = "USER";
+  }
+  if (pwd == root_password) {
+    msg_role = "ROOT";
+  }
+  if (msg_role.empty()) {
+    return AuthResult::INVALID_PASSWORD;
+  }
+
+  if (!conn) {
+    LOG(WARNING) << " weak ptr is empty";
+    return AuthResult::INVALID_CONN;
+  }
+  std::shared_ptr<PikaClientConn> cli_conn =
+      std::dynamic_pointer_cast<PikaClientConn>(conn);
+  cli_conn->auth_stat().ChecknUpdate(msg_role);
+
+  return AuthResult::OK;
+}
+
 /*
  * slaveof no one
  * slaveof ip port
@@ -508,6 +545,23 @@ void ClientCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameClient);
     return;
   }
+
+  if (!strcasecmp(argv_[1].data(), "getname") && argv_.size() == 2) {
+    operation_ = argv_[1];
+    return;
+  }
+
+  if (!strcasecmp(argv_[1].data(), "setname") && argv_.size() == 2) {
+    res_.SetRes(CmdRes::kErrOther,
+                "Unknown subcommand or wrong number of arguments for "
+                "'SETNAME'., try CLIENT SETNAME <name>");
+    return;
+  }
+  if (!strcasecmp(argv_[1].data(), "setname") && argv_.size() == 3) {
+    operation_ = argv_[1];
+    return;
+  }
+
   if (!strcasecmp(argv_[1].data(), "list") && argv_.size() == 2) {
     // nothing
   } else if (!strcasecmp(argv_[1].data(), "list") && argv_.size() == 5) {
@@ -532,6 +586,24 @@ void ClientCmd::DoInitial() {
 }
 
 void ClientCmd::Do(std::shared_ptr<Partition> partition) {
+  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNameClient);
+    return;
+  }
+
+  if (!strcasecmp(operation_.data(), "getname") && argv_.size() == 2) {
+    res_.AppendString(conn->get_name());
+    return;
+  }
+
+  if (!strcasecmp(operation_.data(), "setname") && argv_.size() == 3) {
+    std::string name = argv_[2];
+    conn->set_name(name);
+    res_.SetRes(CmdRes::kOk);
+    return;
+  }
+
   if (!strcasecmp(operation_.data(), "list")) {
     struct timeval now;
     gettimeofday(&now, NULL);
@@ -564,6 +636,7 @@ void ClientCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "No such client");
   }
+
   return;
 }
 
@@ -2384,4 +2457,113 @@ void QuitCmd::DoInitial() {
 void QuitCmd::Do(std::shared_ptr<Partition> partition) {
   res_.SetRes(CmdRes::kOk);
   GetConn()->SetClose(true);
+}
+
+/*
+ * HELLO [<protocol-version> [AUTH <password>] [SETNAME <name>] ]
+ */
+void HelloCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameHello);
+    return;
+  }
+}
+
+void HelloCmd::Do(std::shared_ptr<Partition> partition) {
+  size_t next_arg = 1;
+  long ver = 0;
+  if (argv_.size() >= 2) {
+    if (!slash::string2l(argv_[next_arg].data(), argv_[next_arg].size(),
+                         &ver)) {
+      res_.SetRes(CmdRes::kErrOther,
+                  "Protocol version is not an integer or out of range");
+      return;
+    }
+    next_arg++;
+
+    if (ver < 2 || ver > 3) {
+      res_.SetRes(CmdRes::kErrOther, "-NOPROTO unsupported protocol version");
+      return;
+    }
+  }
+
+  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  if (!conn) {
+    res_.SetRes(CmdRes::kErrOther, kCmdNameHello);
+    return;
+  }
+
+  for (; next_arg < argv_.size(); ++next_arg) {
+    size_t more_args = argv_.size() - next_arg - 1;
+    const std::string opt = argv_[next_arg];
+    if (!strcasecmp(opt.data(), "AUTH") && more_args) {
+      const std::string pwd = argv_[next_arg + 1];
+      std::string msg_role = "";
+      auto authResult = AuthenticateUser(pwd, conn, msg_role);
+      switch (authResult) {
+        case AuthResult::INVALID_CONN:
+          res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
+          return;
+        case AuthResult::INVALID_PASSWORD:
+          res_.SetRes(CmdRes::kInvalidPwd);
+          return;
+        case AuthResult::NO_REQUIRE_PASS:
+          res_.SetRes(CmdRes::kErrOther,
+                      "Client sent AUTH, but no password is set");
+          return;
+        case AuthResult::OK:
+          break;
+      }
+      next_arg++;
+    } else if (!strcasecmp(opt.data(), "SETNAME") && more_args) {
+      const std::string name = argv_[next_arg + 1];
+      conn->set_name(name);
+      next_arg++;
+    } else {
+      res_.SetRes(CmdRes::kErrOther, "Syntax error in HELLO option " + opt);
+      return;
+    }
+  }
+
+  std::string raw;
+  std::vector<blackwidow::FieldValue> fvs{
+      {"server", "redis"},
+  };
+  // just for redis resp2 protocol
+  fvs.push_back({"proto", "2"});
+  if (g_pika_conf->classic_mode()) {
+    fvs.push_back({"mode", "classic"});
+  }
+  int host_role = g_pika_server->role();
+  switch (host_role) {
+    case PIKA_ROLE_SINGLE:
+    case PIKA_ROLE_MASTER:
+      fvs.push_back({"role", "master"});
+      break;
+    case PIKA_ROLE_SLAVE:
+      fvs.push_back({"role", "slave"});
+      break;
+    case PIKA_ROLE_MASTER | PIKA_ROLE_SLAVE:
+      fvs.push_back({"role", "master&&slave"});
+      break;
+    default:
+      LOG(WARNING) << "unknown role" << host_role;
+      return;
+  }
+
+  for (const auto& fv : fvs) {
+    RedisAppendLen(raw, fv.field.size(), "$");
+    RedisAppendContent(raw, fv.field);
+    if (fv.field == "proto") {
+      slash::string2l(fv.value.data(), fv.value.size(), &ver);
+      RedisAppendLen(raw, static_cast<int64_t>(ver), ":");
+      continue;
+    }
+    RedisAppendLen(raw, fv.value.size(), "$");
+    RedisAppendContent(raw, fv.value);
+  }
+  res_.AppendArrayLen(fvs.size() * 2);
+  res_.AppendStringRaw(raw);
+
+  return;
 }
