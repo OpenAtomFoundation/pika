@@ -80,7 +80,7 @@ class PinkConn : public std::enable_shared_from_this<PinkConn> {
     return is_reply_;
   }
 
-  std::string get_name() { return name_; }
+  std::string name() { return name_; }
   void set_name(std::string name) { name_ = std::move(name); }
 
   bool IsClose() { return close_; }
