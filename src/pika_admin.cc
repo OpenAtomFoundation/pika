@@ -551,7 +551,7 @@ void ClientCmd::DoInitial() {
     return;
   }
 
-  if (!strcasecmp(argv_[1].data(), "setname") && argv_.size() == 2) {
+  if (!strcasecmp(argv_[1].data(), "setname") && argv_.size() != 3) {
     res_.SetRes(CmdRes::kErrOther,
                 "Unknown subcommand or wrong number of arguments for "
                 "'SETNAME'., try CLIENT SETNAME <name>");
@@ -593,7 +593,7 @@ void ClientCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   if (!strcasecmp(operation_.data(), "getname") && argv_.size() == 2) {
-    res_.AppendString(conn->get_name());
+    res_.AppendString(conn->name());
     return;
   }
 
@@ -2547,7 +2547,8 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
       fvs.push_back({"role", "master&&slave"});
       break;
     default:
-      LOG(WARNING) << "unknown role" << host_role;
+      LOG(INFO) << "unknown role" << host_role
+                << " client ip:port " << conn->ip_port();
       return;
   }
 
