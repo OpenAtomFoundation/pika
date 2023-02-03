@@ -44,7 +44,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
   if (!c_ptr) {
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
     tmp_ptr->res().SetRes(CmdRes::kErrOther,
-        "unknown or unsupported command \"" + opt + "\"");
+        "unknown command \"" + opt + "\"");
     return tmp_ptr;
   }
   c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
