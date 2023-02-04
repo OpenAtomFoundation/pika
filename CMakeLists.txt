@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized" CACHE STRING "Set C++ Compiler Flags" FORCE)
 
 find_package(Snappy REQUIRED)
+find_package(GTest REQUIRED)
 
 # rocksdb option
 set(WITH_SNAPPY ON)
