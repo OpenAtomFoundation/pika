@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 3.10)
+
+include(GoogleTest)
+
+file(GLOB_RECURSE BLACKWINDOW_TEST_SOURCE "${PROJECT_SOURCE_DIR}/tests/*.cc")
+
+aux_source_directory(../stc TEST_SRCS)
+
+foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
+  get_filename_component(blackwidow_test_filename ${blackwindow_test_source} NAME)
+  message(${blackwidow_test_filename})
+  string(REPLACE ".cc" "" blackwindow_test_name ${blackwidow_test_filename})
+
+  # Add the test target
+  add_executable(${blackwindow_test_name} ${blackwindow_test_source})
+  target_include_directories(${blackwindow_test_name}
+      PUBLIC ${PROJECT_SOURCE_DIR}/include
+      PUBLIC ${PROJECT_SOURCE_DIR}/../../third/rocksdb/include
+      PUBLIC ${PROJECT_SOURCE_DIR}/../../third/rocksdb
+      PUBLIC ${PROJECT_SOURCE_DIR}/..
+      )
+  target_link_libraries(${blackwindow_test_name}
+      PUBLIC gtest
+      PUBLIC slash
+      PUBLIC rocksdb
+      PUBLIC blackwidow
+      )
+endforeach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
