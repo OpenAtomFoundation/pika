@@ -120,7 +120,8 @@ int StopRsync(const std::string& raw_path) {
     return 0;
   }
 
-  std::string rsync_stop_cmd = "kill -- -$(ps -o pgid= " + std::to_string(pid) + ")";
+  // 目前在ubuntu系统上能正常退出，避免需要手动kill rsync，去除rsync已经有计划在开发
+  std::string rsync_stop_cmd = "kill $(ps -o pgid=" + std::to_string(pid) + ")";
   int ret = system(rsync_stop_cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     log_info("Stop rsync success!");
