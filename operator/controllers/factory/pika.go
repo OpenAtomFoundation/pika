@@ -91,9 +91,9 @@ func fillDefaultPikaStandalone(instance *pikav1alpha1.Pika) {
 func makePikaSTS(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
 	var replica int32 = 1
 	labels := makePikaLabels(instance)
-	annotations := instance.Spec.ServiceAnnotations
-	annotations = k8stools.MergeAnnotations(instance.Annotations, annotations)
+	annotations := instance.Annotations
 
+	// metadata
 	meta := ctrl.ObjectMeta{
 		Name:        pikaSTSName(instance),
 		Namespace:   instance.Namespace,
@@ -106,14 +106,19 @@ func makePikaSTS(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
 		},
 	}
 
+	// pod spec
 	podSpec, err := makePikaPodSpec(instance)
 	if err != nil {
 		return nil, err
 	}
 
-	pvcs, err := makePikaPVCs(instance)
-	if err != nil {
-		return nil, err
+	// volume claim templates
+	var volumeClaimTemplates []v1.PersistentVolumeClaim
+	if instance.Spec.StorageType == "pvc" {
+		volumeClaimTemplates, err = makePikaPVCs(instance)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	stsObj := &appsv1.StatefulSet{
@@ -130,7 +135,7 @@ func makePikaSTS(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
 				},
 				Spec: podSpec,
 			},
-			VolumeClaimTemplates: pvcs,
+			VolumeClaimTemplates: volumeClaimTemplates,
 		},
 	}
 
@@ -140,6 +145,7 @@ func makePikaSTS(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
 func makePikaSvc(instance *pikav1alpha1.Pika) (*v1.Service, error) {
 	labels := makePikaLabels(instance)
 	annotations := instance.Annotations
+	annotations = k8stools.MergeAnnotations(annotations, instance.Spec.ServiceAnnotations)
 
 	meta := ctrl.ObjectMeta{
 		Name:        pikaSTSName(instance),
@@ -192,19 +198,26 @@ func makePikaPodSpec(instance *pikav1alpha1.Pika) (v1.PodSpec, error) {
 			},
 		})
 	case "hostPath":
+		hostPathType := v1.HostPathDirectoryOrCreate
+		if instance.Spec.HostPathType != nil {
+			hostPathType = *instance.Spec.HostPathType
+		}
 		Volumes = append(Volumes, v1.Volume{
 			Name: "pika-data",
 			VolumeSource: v1.VolumeSource{
 				HostPath: &v1.HostPathVolumeSource{
 					Path: instance.Spec.HostPath,
-					Type: instance.Spec.HostPathType,
+					Type: &hostPathType,
 				},
 			},
 		})
 	case "pvc":
-	// pvc template will auto create volume
+	// When use pvc, the volume should be empty ,
+	// because the pvc will be created by volumeClaimTemplates in statefulSet,
+	// and the volume will be added automatically
+	// For more details, see https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-template
 	default:
-		return v1.PodSpec{}, fmt.Errorf("storage type %s not support", instance.Spec.StorageType)
+		return v1.PodSpec{}, fmt.Errorf("storageType %s not support", instance.Spec.StorageType)
 	}
 
 	VolumeMount := []v1.VolumeMount{
@@ -257,13 +270,12 @@ func makePikaPodSpec(instance *pikav1alpha1.Pika) (v1.PodSpec, error) {
 }
 
 func makePikaPVCs(instance *pikav1alpha1.Pika) ([]v1.PersistentVolumeClaim, error) {
-	if instance.Spec.StorageType == "emptyDir" {
-		return nil, nil
+	if instance.Spec.StorageType != "pvc" {
+		return nil, fmt.Errorf("storage type %s not support", instance.Spec.StorageType)
 	}
-
 	volumeSize, err := resource.ParseQuantity(instance.Spec.StorageSize)
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse storage size: %w", err)
+		return nil, fmt.Errorf("cannot parse storage size: %s, err: %w", instance.Spec.StorageSize, err)
 	}
 
 	var storageClassName *string

@@ -12,5 +12,5 @@ const (
 	// DefaultPikaServiceType is the default service type for pika-instance
 	DefaultPikaServiceType = v1.ServiceTypeClusterIP
 	// DefaultPikaServicePort is the default service port for pika-instance
-	DefaultPikaServicePort = 9221
+	DefaultPikaServicePort int32 = 9221
 )
