@@ -1,0 +1,16 @@
+*.log
+*.swp
+*.out
+*.dump
+*.log.*
+*.tmp
+*.rdb
+
+.DS_Store
+.htaccess
+
+/bin
+/tmp
+/pkg/utils/version.go
+
+makefile
