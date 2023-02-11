@@ -14,3 +14,7 @@
 /pkg/utils/version.go
 
 makefile
+
+!go.mod
+pkg/mod/
+
