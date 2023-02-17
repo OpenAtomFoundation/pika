@@ -47,7 +47,7 @@ int PikaReplClientConn::DealMessage() {
   std::shared_ptr<InnerMessage::InnerResponse> response =  std::make_shared<InnerMessage::InnerResponse>();
   ::google::protobuf::io::ArrayInputStream input(rbuf_ + cur_pos_ - header_len_, header_len_);
   ::google::protobuf::io::CodedInputStream decoder(&input);
-  decoder.SetTotalBytesLimit(g_pika_conf->max_conn_rbuf_size(), g_pika_conf->max_conn_rbuf_size());
+  decoder.SetTotalBytesLimit(g_pika_conf->max_conn_rbuf_size());
   bool success = response->ParseFromCodedStream(&decoder) && decoder.ConsumedEntireMessage();
   if (!success) {
     LOG(WARNING) << "ParseFromArray FAILED! " << " msg_len: " << header_len_;
