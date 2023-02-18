@@ -1660,6 +1660,9 @@ void PikaServer::InitBlackwidowOptions() {
       rocksdb::NewLRUCache(bw_options_.block_cache_size, g_pika_conf->num_shard_bits());
   }
 
+  bw_options_.options.rate_limiter = 
+    std::shared_ptr<rocksdb::RateLimiter>(rocksdb::NewGenericRateLimiter(g_pika_conf->rate_limiter_bandwidth()));
+
   // For Blackwidow small compaction
   bw_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
   bw_options_.small_compaction_threshold =
