@@ -167,7 +167,7 @@ void GetCmd::Do(std::shared_ptr<Partition> partition) {
 
 void DelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameDel);
+    res_.SetRes(CmdRes::kWrongNum, name());
     return;
   }
   std::vector<std::string>::iterator iter = argv_.begin();
