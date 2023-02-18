@@ -375,6 +375,12 @@ int PikaConf::Load()
     max_write_buffer_size_ = 10737418240;  // 10Gb
   }
 
+  // rate-limiter-bandwidth
+  GetConfInt64("rate-limiter-bandwidth", &rate_limiter_bandwidth_);
+  if (rate_limiter_bandwidth_ <= 0 ) {
+    rate_limiter_bandwidth_ = 200 * 1024 * 1024;       // 200MB
+  }
+
   // max_write_buffer_num
   max_write_buffer_num_ = 2;
   GetConfInt("max-write-buffer-num", &max_write_buffer_num_);

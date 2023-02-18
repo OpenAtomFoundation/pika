@@ -1739,6 +1739,12 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeInt32(&config_body, g_pika_conf->consensus_level());
   }
 
+  if (slash::stringmatch(pattern.data(), "rate-limiter-bandwidth", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "rate-limiter-bandwidth");
+    EncodeInt64(&config_body, g_pika_conf->rate_limiter_bandwidth());
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
