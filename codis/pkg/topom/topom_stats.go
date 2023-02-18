@@ -6,12 +6,12 @@ package topom
 import (
 	"time"
 
-	"github.com/CodisLabs/codis/pkg/models"
-	"github.com/CodisLabs/codis/pkg/proxy"
-	"github.com/CodisLabs/codis/pkg/utils/log"
-	"github.com/CodisLabs/codis/pkg/utils/redis"
-	"github.com/CodisLabs/codis/pkg/utils/rpc"
-	"github.com/CodisLabs/codis/pkg/utils/sync2"
+	"pika/codis/v2/pkg/models"
+	"pika/codis/v2/pkg/proxy"
+	"pika/codis/v2/pkg/utils/log"
+	"pika/codis/v2/pkg/utils/redis"
+	"pika/codis/v2/pkg/utils/rpc"
+	"pika/codis/v2/pkg/utils/sync2"
 )
 
 type RedisStats struct {

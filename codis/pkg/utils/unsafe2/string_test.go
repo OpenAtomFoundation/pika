@@ -6,7 +6,7 @@ package unsafe2
 import (
 	"testing"
 
-	"github.com/CodisLabs/codis/pkg/utils/assert"
+	"pika/codis/v2/pkg/utils/assert"
 )
 
 func TestCastString(t *testing.T) {

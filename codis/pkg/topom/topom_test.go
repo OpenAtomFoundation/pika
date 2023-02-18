@@ -8,11 +8,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/CodisLabs/codis/pkg/models"
-	"github.com/CodisLabs/codis/pkg/models/fs"
-	"github.com/CodisLabs/codis/pkg/proxy"
-	"github.com/CodisLabs/codis/pkg/utils/assert"
-	"github.com/CodisLabs/codis/pkg/utils/log"
+	"pika/codis/v2/pkg/models"
+	"pika/codis/v2/pkg/models/fs"
+	"pika/codis/v2/pkg/proxy"
+	"pika/codis/v2/pkg/utils/assert"
+	"pika/codis/v2/pkg/utils/log"
 )
 
 var config = NewDefaultConfig()

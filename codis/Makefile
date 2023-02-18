@@ -1,12 +1,13 @@
 .DEFAULT_GOAL := build-all
 
-export GO15VENDOREXPERIMENT=1
+#export GO15VENDOREXPERIMENT=1
+export GO111MODULE=on
 
 build-all: codis-dashboard codis-proxy codis-admin codis-ha codis-fe clean-gotest
 
 codis-deps:
 	@mkdir -p bin config && bash version
-	@make --no-print-directory -C vendor/github.com/spinlock/jemalloc-go/
+	@#make --no-print-directory -C vendor/github.com/spinlock/jemalloc-go/
 
 codis-dashboard: codis-deps
 	go build -i -o bin/codis-dashboard ./cmd/dashboard
@@ -27,7 +28,8 @@ codis-fe: codis-deps
 	@rm -rf bin/assets; cp -rf cmd/fe/assets bin/
 
 # todo pika server
-#codis-server:
+# codis-server:
+# instead of redis server to pika server when build codis
 
 clean-gotest:
 	@rm -rf ./pkg/topom/gotest.tmp

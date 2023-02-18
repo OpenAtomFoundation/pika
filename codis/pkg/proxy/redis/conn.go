@@ -7,9 +7,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/CodisLabs/codis/pkg/utils/bufio2"
-	"github.com/CodisLabs/codis/pkg/utils/errors"
-	"github.com/CodisLabs/codis/pkg/utils/unsafe2"
+	"pika/codis/v2/pkg/utils/bufio2"
+	"pika/codis/v2/pkg/utils/errors"
+	"pika/codis/v2/pkg/utils/unsafe2"
 )
 
 type Conn struct {

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/CodisLabs/codis/pkg/utils/trace"
+	"pika/codis/v2/pkg/utils/trace"
 )
 
 var TraceEnabled = true

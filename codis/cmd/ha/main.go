@@ -10,11 +10,11 @@ import (
 
 	"github.com/docopt/docopt-go"
 
-	"github.com/CodisLabs/codis/pkg/topom"
-	"github.com/CodisLabs/codis/pkg/utils"
-	"github.com/CodisLabs/codis/pkg/utils/log"
-	"github.com/CodisLabs/codis/pkg/utils/math2"
-	"github.com/CodisLabs/codis/pkg/utils/redis"
+	"pika/codis/v2/pkg/topom"
+	"pika/codis/v2/pkg/utils"
+	"pika/codis/v2/pkg/utils/log"
+	"pika/codis/v2/pkg/utils/math2"
+	"pika/codis/v2/pkg/utils/redis"
 )
 
 func main() {

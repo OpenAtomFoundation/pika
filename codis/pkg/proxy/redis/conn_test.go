@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CodisLabs/codis/pkg/utils/assert"
-	"github.com/CodisLabs/codis/pkg/utils/unsafe2"
+	"pika/codis/v2/pkg/utils/assert"
+	"pika/codis/v2/pkg/utils/unsafe2"
 )
 
 func newConnPair() (*Conn, *Conn) {

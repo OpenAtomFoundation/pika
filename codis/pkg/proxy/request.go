@@ -7,8 +7,8 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/CodisLabs/codis/pkg/proxy/redis"
-	"github.com/CodisLabs/codis/pkg/utils/sync2/atomic2"
+	"pika/codis/v2/pkg/proxy/redis"
+	"pika/codis/v2/pkg/utils/sync2/atomic2"
 )
 
 type Request struct {

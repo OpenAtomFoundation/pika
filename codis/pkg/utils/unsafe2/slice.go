@@ -3,7 +3,7 @@
 
 package unsafe2
 
-import "github.com/CodisLabs/codis/pkg/utils/sync2/atomic2"
+import "pika/codis/v2/pkg/utils/sync2/atomic2"
 
 type Slice interface {
 	Type() string

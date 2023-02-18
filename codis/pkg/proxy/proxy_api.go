@@ -16,10 +16,10 @@ import (
 	"github.com/martini-contrib/gzip"
 	"github.com/martini-contrib/render"
 
-	"github.com/CodisLabs/codis/pkg/models"
-	"github.com/CodisLabs/codis/pkg/utils/errors"
-	"github.com/CodisLabs/codis/pkg/utils/log"
-	"github.com/CodisLabs/codis/pkg/utils/rpc"
+	"pika/codis/v2/pkg/models"
+	"pika/codis/v2/pkg/utils/errors"
+	"pika/codis/v2/pkg/utils/log"
+	"pika/codis/v2/pkg/utils/rpc"
 )
 
 type apiServer struct {

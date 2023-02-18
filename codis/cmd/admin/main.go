@@ -6,7 +6,7 @@ package main
 import (
 	"github.com/docopt/docopt-go"
 
-	"github.com/CodisLabs/codis/pkg/utils/log"
+	"pika/codis/v2/pkg/utils/log"
 )
 
 func main() {

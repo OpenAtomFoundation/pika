@@ -8,8 +8,8 @@ import (
 	"hash/crc32"
 	"strings"
 
-	"github.com/CodisLabs/codis/pkg/proxy/redis"
-	"github.com/CodisLabs/codis/pkg/utils/errors"
+	"pika/codis/v2/pkg/proxy/redis"
+	"pika/codis/v2/pkg/utils/errors"
 )
 
 var charmap [256]byte

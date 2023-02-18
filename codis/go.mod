@@ -1,12 +1,14 @@
 module pika/codis/v2
 
-go 1.13
+go 1.18
 
 replace github.com/coreos/bbolt => go.etcd.io/bbolt v1.3.4
 
+replace google.golang.org/grpc => google.golang.org/grpc v1.29.0
+
 require (
-	github.com/BurntSushi/toml v1.2.1
-	github.com/CodisLabs/codis v0.0.0-20181104082235-de1ad026e329
+	github.com/BurntSushi/toml v0.3.1
+	github.com/CodisLabs/codis v0.0.0-20181104082235-de1ad026e329 // indirect
 	github.com/codegangsta/inject v0.0.0-20150114235600-33e0aa1cb7c0 // indirect
 	github.com/coreos/bbolt v0.0.0-00010101000000-000000000000 // indirect
 	github.com/coreos/etcd v3.3.27+incompatible

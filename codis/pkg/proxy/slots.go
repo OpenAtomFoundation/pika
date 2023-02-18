@@ -6,7 +6,7 @@ package proxy
 import (
 	"sync"
 
-	"github.com/CodisLabs/codis/pkg/models"
+	"pika/codis/v2/pkg/models"
 )
 
 type Slot struct {

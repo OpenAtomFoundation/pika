@@ -6,9 +6,9 @@ package topom
 import (
 	"testing"
 
-	"github.com/CodisLabs/codis/pkg/models"
-	"github.com/CodisLabs/codis/pkg/proxy"
-	"github.com/CodisLabs/codis/pkg/utils/assert"
+	"pika/codis/v2/pkg/models"
+	"pika/codis/v2/pkg/proxy"
+	"pika/codis/v2/pkg/utils/assert"
 )
 
 func getSlotMapping(t *Topom, sid int) *models.SlotMapping {

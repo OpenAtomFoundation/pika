@@ -20,12 +20,12 @@ import (
 
 	"github.com/docopt/docopt-go"
 
-	"github.com/CodisLabs/codis/pkg/models"
-	"github.com/CodisLabs/codis/pkg/proxy"
-	"github.com/CodisLabs/codis/pkg/topom"
-	"github.com/CodisLabs/codis/pkg/utils"
-	"github.com/CodisLabs/codis/pkg/utils/log"
-	"github.com/CodisLabs/codis/pkg/utils/math2"
+	"pika/codis/v2/pkg/models"
+	"pika/codis/v2/pkg/proxy"
+	"pika/codis/v2/pkg/topom"
+	"pika/codis/v2/pkg/utils"
+	"pika/codis/v2/pkg/utils/log"
+	"pika/codis/v2/pkg/utils/math2"
 )
 
 func main() {

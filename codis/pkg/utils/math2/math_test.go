@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CodisLabs/codis/pkg/utils/assert"
+	"pika/codis/v2/pkg/utils/assert"
 )
 
 func TestMinMaxInt(t *testing.T) {

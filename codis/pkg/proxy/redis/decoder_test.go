@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/CodisLabs/codis/pkg/utils/assert"
+	"pika/codis/v2/pkg/utils/assert"
 )
 
 func TestBtoi64(t *testing.T) {
