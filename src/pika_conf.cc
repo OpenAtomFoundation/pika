@@ -443,7 +443,7 @@ int PikaConf::Load()
   block_cache_ = 8 * 1024 * 1024;
   GetConfInt64("block-cache", &block_cache_);
   if (block_cache_ < 0) {
-    block_cache_ = 8 * 1024 * 1024;
+    block_cache_ = 32 * 1024 * 1024;
   }
 
   num_shard_bits_ = -1;

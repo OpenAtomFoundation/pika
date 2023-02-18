@@ -294,21 +294,21 @@ class PikaConf : public slash::BaseConf {
   int port_;
   std::string slaveof_;
   int slave_priority_;
-  int thread_num_;
-  int thread_pool_size_;
-  int sync_thread_num_;
+  int thread_num_ = 12;
+  int thread_pool_size_ = 12;
+  int sync_thread_num_ = 3;
   std::string log_path_;
   std::string db_path_;
   std::string db_sync_path_;
   int expire_dump_days_;
-  int db_sync_speed_;
+  int db_sync_speed_ = 1024;
   std::string compact_cron_;
   std::string compact_interval_;
-  int64_t write_buffer_size_;
-  int64_t arena_block_size_;
-  int64_t max_write_buffer_size_;
-  int max_write_buffer_num_;
-  int64_t max_client_response_size_;
+  int64_t write_buffer_size_ = 10 * 1024 * 1024 * 1024;     // 10GB
+  int64_t arena_block_size_ = 1 * 1024 * 1024 * 1024;       // 1GB
+  int64_t max_write_buffer_size_ = 10 * 1024 * 1024 * 1024; // 10GB
+  int max_write_buffer_num_ = 2;
+  int64_t max_client_response_size_; 1 * 1024 * 1024 * 1024; // 1GB
   bool daemonize_;
   int timeout_;
   std::string server_id_;
@@ -326,29 +326,29 @@ class PikaConf : public slash::BaseConf {
   std::string pidfile_;
 
   std::string compression_;
-  int maxclients_;
-  int root_connection_num_;
+  int maxclients_ = 2000;
+  int root_connection_num_ = 2;
   std::atomic<bool> slowlog_write_errorlog_;
   std::atomic<int> slowlog_log_slower_than_;
-  int slowlog_max_len_;
+  int slowlog_max_len_ = 128;
   int expire_logs_days_;
   int expire_logs_nums_;
   bool slave_read_only_;
   std::string conf_path_;
   int max_cache_statistic_keys_;
   int small_compaction_threshold_;
-  int max_background_flushes_;
-  int max_background_compactions_;
-  int max_cache_files_;
+  int max_background_flushes_ = 1;
+  int max_background_compactions_ = 2;
+  int max_cache_files_ = 5000;
   int max_bytes_for_level_multiplier_;
-  int64_t block_size_;
-  int64_t block_cache_;
-  int64_t num_shard_bits_;
-  bool share_block_cache_;
-  bool cache_index_and_filter_blocks_;
-  bool pin_l0_filter_and_index_blocks_in_cache_;
-  bool optimize_filters_for_hits_;
-  bool level_compaction_dynamic_level_bytes_;
+  int64_t block_size_ = 4 * 1024; //4K
+  int64_t block_cache_ = 8 * 1024 * 1024; // 8MB
+  int64_t num_shard_bits_ = -1;
+  bool share_block_cache_ = true;
+  bool cache_index_and_filter_blocks_ = true;
+  bool pin_l0_filter_and_index_blocks_in_cache_ = true;
+  bool optimize_filters_for_hits_ = true;
+  bool level_compaction_dynamic_level_bytes_ = true;
   std::atomic<int> sync_window_size_;
   std::atomic<int> max_conn_rbuf_size_;
   std::atomic<int> consensus_level_;
