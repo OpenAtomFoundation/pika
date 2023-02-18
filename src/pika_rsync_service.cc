@@ -74,10 +74,11 @@ int PikaRsyncService::CreateSecretFile() {
   secret_file_path += kPikaSecretFile;
 
   std::string auth;
-  if (g_pika_conf->requirepass().empty()) {
+  // unify rsync auth with masterauth
+  if (g_pika_conf->masterauth().empty()) {
     auth = kDefaultRsyncAuth;
   } else {
-    auth = g_pika_conf->requirepass();
+    auth = g_pika_conf->masterauth();
   }
 
   std::ofstream secret_stream(secret_file_path.c_str());
