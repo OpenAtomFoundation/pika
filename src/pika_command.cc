@@ -137,6 +137,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////DelCmd
   Cmd* delptr = new DelCmd(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDel, delptr));
+  Cmd* Unlinkptr = new DelCmd(kCmdNameUnlink, -2, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsKv);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameUnlink, Unlinkptr));
   ////IncrCmd
   Cmd* incrptr = new IncrCmd(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameIncr, incrptr));
