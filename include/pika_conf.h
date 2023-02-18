@@ -304,11 +304,11 @@ class PikaConf : public slash::BaseConf {
   int db_sync_speed_ = 1024;
   std::string compact_cron_;
   std::string compact_interval_;
-  int64_t write_buffer_size_ = 10 * 1024 * 1024 * 1024;     // 10GB
-  int64_t arena_block_size_ = 1 * 1024 * 1024 * 1024;       // 1GB
-  int64_t max_write_buffer_size_ = 10 * 1024 * 1024 * 1024; // 10GB
+  int64_t write_buffer_size_ = 1024 * 1024 * 1024 * 10;     // 10GB
+  int64_t arena_block_size_ = 1024 * 1024 * 1024;       // 1GB
+  int64_t max_write_buffer_size_ = 1024 * 1024 * 1024 * 10; // 10GB
   int max_write_buffer_num_ = 2;
-  int64_t max_client_response_size_; 1 * 1024 * 1024 * 1024; // 1GB
+  int64_t max_client_response_size_ =  1024 * 1024 * 1024; // 1GB
   bool daemonize_;
   int timeout_;
   std::string server_id_;

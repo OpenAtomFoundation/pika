@@ -37,6 +37,8 @@ static void version() {
     std::cout << "pika_version: " << version << std::endl;
     std::cout << pika_build_git_sha << std::endl;
     std::cout << "pika_build_compile_date: " << pika_build_compile_date << std::endl;
+    // fake version for client SDK
+    std::cout << "redis_version: " << version << std::endl;
 }
 
 static void PikaConfInit(const std::string& path) {
