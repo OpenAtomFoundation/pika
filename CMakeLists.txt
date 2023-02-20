@@ -33,7 +33,6 @@ ExternalProject_Add(gtest
   BUILD_ALWAYS
     1
 )
-
 set(GTEST_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(GTEST_LIBRARY ${INSTALL_LIBDIR}/libgtest.a)
 
