@@ -49,6 +49,8 @@ ExternalProject_Add(gflags
     1
   LOG_INSTALL
     1
+  BUILD_ALWAYS
+    0
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
     -DGFLAGS_NAMESPACE=gflags
@@ -76,6 +78,8 @@ ExternalProject_Add(glog
     1
   LOG_INSTALL
     1
+  BUILD_ALWAYS
+    0
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
     -DWITH_GFLAGS=ON
@@ -242,9 +246,8 @@ set(JEMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(rocksdb
   DEPENDS
-    gtest
-    glog
     gflags
+    gtest
     snappy
     zstd
     lz4
@@ -265,6 +268,8 @@ ExternalProject_Add(rocksdb
     1
   LOG_INSTALL
     1
+  BUILD_ALWAYS
+    0
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
     -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
@@ -285,6 +290,7 @@ ExternalProject_Add(rocksdb
 )
 set(ROCKSDB_LIBRARIE ${INSTALL_LIBDIR}/librocksdb.a)
 set(ROCKSDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/buildtrees/Source/rocksdb)
 
 add_subdirectory(src/slash)
 add_subdirectory(src/pink)
@@ -334,17 +340,20 @@ add_executable(${PROJECT_NAME}
                ${PROTO_SRCS}
                ${PROTO_HDRS}
                ${PIKA_BUILD_VERSION_CC})
+
 target_include_directories(${PROJECT_NAME} 
                            PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
-                           PUBLIC ${PROJECT_SOURCE_DIR})
+                           PUBLIC ${PROJECT_SOURCE_DIR}
+                           ${INSTALL_INCLUDEDIR}
+                           )
 
 target_link_libraries(${PROJECT_NAME}
   blackwidow
   pink
   slash
+  ${GLOG_LIBRARIE}
   ${Protobuf_LIBRARIES}
   ${GFLAGS_LIBRARIE}
-  ${GLOG_LIBRARIE}
   ${SNAPPY_LIBRARIE}
   ${ZSTD_LIBRARIE}
   ${LZ4_LIBRARIE}
