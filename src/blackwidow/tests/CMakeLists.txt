@@ -15,14 +15,15 @@ foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
   add_executable(${blackwindow_test_name} ${blackwindow_test_source})
   target_include_directories(${blackwindow_test_name}
       PUBLIC ${PROJECT_SOURCE_DIR}/include
-      PUBLIC ${PROJECT_SOURCE_DIR}/../../third/rocksdb/include
-      PUBLIC ${PROJECT_SOURCE_DIR}/../../third/rocksdb
       PUBLIC ${PROJECT_SOURCE_DIR}/..
+             ${ROCKSDB_INCLUDE_DIR}
+             ${ROCKSDB_SOURCE_DIR}
       )
+  add_dependencies(${blackwindow_test_name} gtest)     
   target_link_libraries(${blackwindow_test_name}
-      PUBLIC gtest
+      PUBLIC ${GTEST_LIBRARY}
       PUBLIC slash
-      PUBLIC rocksdb
+      PUBLIC ${ROCKSDB_LIBRARIE}
       PUBLIC blackwidow
       )
 endforeach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})

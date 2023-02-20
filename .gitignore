@@ -56,3 +56,12 @@ src/build_version.cc
 
 #cache
 .cache
+
+#build
+build/
+buildtrees
+deps
+
+#develop container
+.devcontainer
+
