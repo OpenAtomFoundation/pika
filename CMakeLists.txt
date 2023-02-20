@@ -3,9 +3,10 @@ cmake_minimum_required (VERSION 3.10)
 set(CMAKE_CXX_STANDARD 17)
 project (pika)
 
-set_property(DIRECTORY PROPERTY EP_BASE ${CMAKE_CURRENT_SOURCE_DIR}/buildtrees)
+set(EP_BASE_SUFFIX "buildtrees")
+set_property(DIRECTORY PROPERTY EP_BASE ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX})
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/")
-set(STAGED_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/installed)
+set(STAGED_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/deps)
 set(INSTALL_INCLUDEDIR ${STAGED_INSTALL_PREFIX}/include)
 set(INSTALL_LIBDIR ${STAGED_INSTALL_PREFIX}/lib)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${STAGED_INSTALL_PREFIX})
@@ -29,6 +30,8 @@ ExternalProject_Add(gtest
     1
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  BUILD_ALWAYS
+    1
 )
 
 set(GTEST_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -50,7 +53,7 @@ ExternalProject_Add(gflags
   LOG_INSTALL
     1
   BUILD_ALWAYS
-    0
+    1
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
     -DGFLAGS_NAMESPACE=gflags
@@ -64,6 +67,7 @@ set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 ExternalProject_Add(glog
   DEPENDS
     gflags
+    gtest
   URL
     https://github.com/google/glog/archive/refs/tags/v0.6.0.tar.gz
   URL_HASH
@@ -79,7 +83,7 @@ ExternalProject_Add(glog
   LOG_INSTALL
     1
   BUILD_ALWAYS
-    0
+    1
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
     -DWITH_GFLAGS=ON
@@ -112,6 +116,8 @@ ExternalProject_Add(snappy
     -DSNAPPY_BUILD_TESTS=OFF
     -DBUILD_STATIC_LIBS=ON
     -DBUILD_SHARED_LIBS=OFF
+  BUILD_ALWAYS
+    1
 )
 set(SNAPPY_LIBRARIE ${INSTALL_LIBDIR}/libsnappy.a)
 set(SNAPPY_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -139,6 +145,8 @@ ExternalProject_Add(zstd
     -DBUILD_TESTING=OFF
     -DZSTD_BUILD_STATIC=ON
     -DZSTD_BUILD_SHARED=OFF
+  BUILD_ALWAYS
+    1
 )
 set(ZSTD_LIBRARIE ${INSTALL_LIBDIR}/libzstd.a)
 set(ZSTD_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -166,6 +174,8 @@ ExternalProject_Add(lz4
     -DBUILD_TESTING=OFF
     -DBUILD_STATIC_LIBS=ON
     -DBUILD_SHARED_LIBS=OFF
+  BUILD_ALWAYS
+    1
 )
 set(LZ4_LIBRARIE ${INSTALL_LIBDIR}/liblz4.a)
 set(LZ4_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -188,6 +198,8 @@ ExternalProject_Add(zlib
     1
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  BUILD_ALWAYS
+    1
 )
 set(ZLIB_LIBRARIE ${INSTALL_LIBDIR}/libz.a)
 set(ZLIB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -238,6 +250,8 @@ ExternalProject_Add(jemalloc
     1
   BUILD_COMMAND
     make -j8
+  BUILD_ALWAYS
+    1
   INSTALL_COMMAND
     make install
 )
@@ -269,7 +283,7 @@ ExternalProject_Add(rocksdb
   LOG_INSTALL
     1
   BUILD_ALWAYS
-    0
+    1
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
     -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
@@ -290,7 +304,7 @@ ExternalProject_Add(rocksdb
 )
 set(ROCKSDB_LIBRARIE ${INSTALL_LIBDIR}/librocksdb.a)
 set(ROCKSDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
-set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/buildtrees/Source/rocksdb)
+set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rocksdb)
 
 add_subdirectory(src/slash)
 add_subdirectory(src/pink)
@@ -325,7 +339,6 @@ message("pika BUILD_DATE = ${PIKA_BUILD_DATE}")
 
 set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/build_version.cc.in ${PIKA_BUILD_VERSION_CC} @ONLY)
-
 
 find_package(Protobuf REQUIRED)
 set(PROTO_FILES
