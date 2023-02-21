@@ -353,6 +353,20 @@ add_executable(${PROJECT_NAME}
                ${PROTO_HDRS}
                ${PIKA_BUILD_VERSION_CC})
 
+add_dependencies(${PROJECT_NAME}
+                 gflags
+                 gtest
+                 glog
+                 snappy
+                 zstd
+                 lz4
+                 zlib
+                 gperftools
+                 jemalloc
+                 rocksdb
+                 slash
+                 pink
+                 blackwidow)
 target_include_directories(${PROJECT_NAME} 
                            PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
                            PUBLIC ${PROJECT_SOURCE_DIR}
