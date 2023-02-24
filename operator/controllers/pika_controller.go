@@ -82,16 +82,24 @@ func (r *PikaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	}
 
 	// create pika standalone instance
-	_, err = factory.CreateOrUpdatePikaStandalone(ctx, r.Client, instance)
+	sts, err := factory.CreateOrUpdatePikaStandalone(ctx, r.Client, instance)
 	if err != nil {
 		logger.Error(err, "unable to create Pika")
 		return ctrl.Result{}, err
 	}
+	err = ctrl.SetControllerReference(instance, sts, r.Scheme)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// create pika standalone service
-	_, err = factory.CreateOrUpdatePikaStandaloneService(ctx, r.Client, instance)
+	svc, err := factory.CreateOrUpdatePikaStandaloneService(ctx, r.Client, instance)
 	if err != nil {
 		logger.Error(err, "unable to create Pika service")
+		return ctrl.Result{}, err
+	}
+	err = ctrl.SetControllerReference(instance, svc, r.Scheme)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 

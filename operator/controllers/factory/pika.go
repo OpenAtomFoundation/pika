@@ -98,9 +98,6 @@ func makePikaSTS(instance *pikav1alpha1.Pika) (*appsv1.StatefulSet, error) {
 		Name:        pikaSTSName(instance),
 		Namespace:   instance.Namespace,
 		Annotations: annotations,
-		OwnerReferences: []metav1.OwnerReference{
-			*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
-		},
 		Finalizers: []string{
 			pikav1alpha1.FinalizerName,
 		},
@@ -151,9 +148,6 @@ func makePikaSvc(instance *pikav1alpha1.Pika) (*v1.Service, error) {
 		Name:        pikaSTSName(instance),
 		Namespace:   instance.Namespace,
 		Annotations: annotations,
-		OwnerReferences: []metav1.OwnerReference{
-			*metav1.NewControllerRef(instance, instance.GroupVersionKind()),
-		},
 		Finalizers: []string{
 			pikav1alpha1.FinalizerName,
 		},
@@ -173,6 +167,7 @@ func makePikaSvc(instance *pikav1alpha1.Pika) (*v1.Service, error) {
 			Type:     v1.ServiceType(instance.Spec.ServiceType),
 		},
 	}
+
 	return svcObj, nil
 }
 

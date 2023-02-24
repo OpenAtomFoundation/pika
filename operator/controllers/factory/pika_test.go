@@ -47,16 +47,6 @@ var (
 	baseSTS = appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pika",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         "pika.openatom.org/v1alpha1",
-					Kind:               "Pika",
-					Name:               "pika",
-					UID:                "",
-					Controller:         &[]bool{true}[0],
-					BlockOwnerDeletion: &[]bool{true}[0],
-				},
-			},
 			Finalizers: []string{
 				"pika.pika.openatom.org/finalizer",
 			},
@@ -83,16 +73,6 @@ var (
 	baseSvc = v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "pika",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion:         "pika.openatom.org/v1alpha1",
-					Kind:               "Pika",
-					Name:               "pika",
-					UID:                "",
-					Controller:         &[]bool{true}[0],
-					BlockOwnerDeletion: &[]bool{true}[0],
-				},
-			},
 			Finalizers: []string{
 				"pika.pika.openatom.org/finalizer",
 			},
