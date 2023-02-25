@@ -11,7 +11,7 @@
 
 /bin
 /tmp
-/pkg/utils/version.go
+!/pkg/utils/version.go
 
 makefile
 
