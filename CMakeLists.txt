@@ -2,18 +2,24 @@ cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 17)
 project(pika)
-set(CMAKE_EXE_LINKER_FLAGS "-ldl -lm -Wl,--no-as-needed")
+set(CMAKE_EXE_LINKER_FLAGS " -static-libgcc -static-libstdc++ -Wl,--no-as-needed -ldl -Wall")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(EP_BASE_SUFFIX "buildtrees")
 set_property(DIRECTORY PROPERTY EP_BASE ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX})
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/")
 set(STAGED_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/deps)
+set(CMAKE_UTILS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/utils)
 set(INSTALL_INCLUDEDIR ${STAGED_INSTALL_PREFIX}/include)
 set(INSTALL_LIBDIR ${STAGED_INSTALL_PREFIX}/lib)
 set(INSTALL_LIBDIR_64 ${STAGED_INSTALL_PREFIX}/lib64)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${STAGED_INSTALL_PREFIX})
-link_directories(${INSTALL_LIBDIR} ${INSTALL_LIBDIR_64})
+
+execute_process(COMMAND sh ${CMAKE_UTILS_DIR}/Get_OS_Version.sh
+                OUTPUT_VARIABLE OS_VERSION)
+
 message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
+message(STATUS "current platform: ${OS_VERSION} ")
 include(ExternalProject)
 
 ExternalProject_Add(gtest
@@ -36,8 +42,12 @@ ExternalProject_Add(gtest
   BUILD_ALWAYS
   1
 )
+if (${OS_VERSION} MATCHES "CentOS")
+  set(GTEST_LIBRARY ${INSTALL_LIBDIR_64}/libgtest.a)
+else ()
+  set(GTEST_LIBRARY ${INSTALL_LIBDIR}/libgtest.a)
+endif ()
 set(GTEST_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
-set(GTEST_LIBRARY ${INSTALL_LIBDIR}/libgtest.a)
 
 ExternalProject_Add(gflags
   URL
@@ -62,6 +72,7 @@ ExternalProject_Add(gflags
   -DBUILD_STATIC_LIBS=ON
   -DBUILD_SHARED_LIBS=OFF
 )
+
 set(GFLAGS_LIBRARIE ${INSTALL_LIBDIR}/libgflags.a)
 set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -93,8 +104,6 @@ ExternalProject_Add(glog
   -DBUILD_SHARED_LIBS=OFF
   -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
 )
-set(GLOG_LIBRARIE ${INSTALL_LIBDIR}/libglog.a)
-set(GLOG_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(snappy
   DEPENDS
@@ -120,7 +129,12 @@ ExternalProject_Add(snappy
   BUILD_ALWAYS
   1
 )
-set(SNAPPY_LIBRARIE ${INSTALL_LIBDIR}/libsnappy.a)
+
+if (${OS_VERSION} MATCHES "CentOS")
+  set(SNAPPY_LIBRARIE ${INSTALL_LIBDIR_64}/libsnappy.a)
+else ()
+  set(SNAPPY_LIBRARIE ${INSTALL_LIBDIR}/libsnappy.a)
+endif ()
 set(SNAPPY_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(zstd
@@ -149,7 +163,12 @@ ExternalProject_Add(zstd
   BUILD_ALWAYS
   1
 )
-set(ZSTD_LIBRARIE ${INSTALL_LIBDIR}/libzstd.a)
+
+if (${OS_VERSION} MATCHES "CentOS")
+  set(ZSTD_LIBRARIE ${INSTALL_LIBDIR_64}/libzstd.a)
+else ()
+  set(ZSTD_LIBRARIE ${INSTALL_LIBDIR}/libzstd.a)
+endif ()
 set(ZSTD_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(lz4
@@ -178,7 +197,12 @@ ExternalProject_Add(lz4
   BUILD_ALWAYS
   1
 )
-set(LZ4_LIBRARIE ${INSTALL_LIBDIR}/liblz4.a)
+
+if (${OS_VERSION} MATCHES "CentOS")
+  set(LZ4_LIBRARIE ${INSTALL_LIBDIR_64}/liblz4.a)
+else ()
+  set(LZ4_LIBRARIE ${INSTALL_LIBDIR}/liblz4.a)
+endif ()
 set(LZ4_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(zlib
@@ -202,6 +226,7 @@ ExternalProject_Add(zlib
   BUILD_ALWAYS
   1
 )
+
 set(ZLIB_LIBRARIE ${INSTALL_LIBDIR}/libz.a)
 set(ZLIB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -226,7 +251,12 @@ ExternalProject_Add(gperftools
   -DGPERFTOOLS_BUILD_STATIC=ON
   -DEFAULT_BUILD_MINIMAL=ON
 )
-set(TCMALLOC_LIBRARIE ${INSTALL_LIBDIR}/libtcmalloc.a)
+
+if (${OS_VERSION} MATCHES "CentOS")
+  set(TCMALLOC_LIBRARIE ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
+else ()
+  set(TCMALLOC_LIBRARIE ${INSTALL_LIBDIR}/libtcmalloc.a)
+endif ()
 set(TCMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(jemalloc
@@ -256,6 +286,7 @@ ExternalProject_Add(jemalloc
   INSTALL_COMMAND
   make install
 )
+
 set(JEMALLOC_LIBRARIE ${INSTALL_LIBDIR}/libjemalloc.a)
 set(JEMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -304,7 +335,13 @@ ExternalProject_Add(rocksdb
   -DWITH_ZSTD=ON
   -DWITH_GFLAGS=ON
 )
-set(ROCKSDB_LIBRARIE ${INSTALL_LIBDIR}/librocksdb.a)
+
+if (${OS_VERSION} MATCHES "CentOS")
+  set(ROCKSDB_LIBRARIE ${INSTALL_LIBDIR_64}/librocksdb.a)
+else ()
+  set(ROCKSDB_LIBRARIE ${INSTALL_LIBDIR}/librocksdb.a)
+endif ()
+
 set(ROCKSDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rocksdb)
 
@@ -359,6 +396,10 @@ add_executable(${PROJECT_NAME}
   ${PROTO_HDRS}
   ${PIKA_BUILD_VERSION_CC})
 
+target_link_directories(${PROJECT_NAME}
+  PUBLIC ${INSTALL_LIBDIR_64}
+  PUBLIC ${INSTALL_LIBDIR})
+
 add_dependencies(${PROJECT_NAME}
   gflags
   gtest
@@ -373,6 +414,7 @@ add_dependencies(${PROJECT_NAME}
   slash
   pink
   blackwidow)
+
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
   PUBLIC ${PROJECT_SOURCE_DIR}
@@ -384,6 +426,7 @@ target_link_libraries(${PROJECT_NAME}
   pink
   slash
   libglog.a
+  librocksdb.a
   ${Protobuf_LIBRARIES}
   libgflags.a
   libsnappy.a
