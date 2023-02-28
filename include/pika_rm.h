@@ -185,6 +185,8 @@ class PikaReplicaManager {
   void Start();
   void Stop();
 
+  bool CheckMasterSyncFinished();
+
   Status AddSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos);
   Status AddSyncPartition(const std::set<PartitionInfo>& p_infos);
   Status RemoveSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos);

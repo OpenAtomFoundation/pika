@@ -93,6 +93,7 @@ class PikaConf : public slash::BaseConf {
   int max_conn_rbuf_size()                          { return max_conn_rbuf_size_.load(); }
   int consensus_level()                             { return consensus_level_.load(); }
   int replication_num()                             { return replication_num_.load(); }
+  int64_t rate_limiter_bandwidth()                  { RWLock l(&rwlock_, false); return rate_limiter_bandwidth_; }
 
   // Immutable config items, we don't use lock.
   bool daemonize()                                  { return daemonize_; }
@@ -349,6 +350,7 @@ class PikaConf : public slash::BaseConf {
   bool pin_l0_filter_and_index_blocks_in_cache_;
   bool optimize_filters_for_hits_;
   bool level_compaction_dynamic_level_bytes_;
+  int64_t rate_limiter_bandwidth_ = 200 * 1024 * 1024; // 200M
   std::atomic<int> sync_window_size_;
   std::atomic<int> max_conn_rbuf_size_;
   std::atomic<int> consensus_level_;

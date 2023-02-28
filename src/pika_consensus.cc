@@ -188,7 +188,7 @@ LogOffset SyncProgress::InternalCalCommittedIndex(std::unordered_map<std::string
     return LogOffset();
   }
   std::vector<LogOffset> offsets;
-  for (auto index : match_index) {
+  for (const auto& index : match_index) {
     offsets.push_back(index.second);
   }
   std::sort(offsets.begin(), offsets.end());
@@ -557,7 +557,7 @@ Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) 
   if (!s.ok()) {
     return Status::NotFound("committed index not found " + committed_index.ToString());
   }
-  for (auto log : logs) {
+  for (const auto& log : logs) {
     context_->PrepareUpdateAppliedIndex(log.offset);
     InternalApply(log);
   }
@@ -572,7 +572,7 @@ Status ConsensusCoordinator::ScheduleApplyFollowerLog(const LogOffset& committed
   if (!s.ok()) {
     return Status::NotFound("committed index not found " + committed_index.ToString());
   }
-  for (auto log : logs) {
+  for (const auto& log : logs) {
     context_->PrepareUpdateAppliedIndex(log.offset);
     InternalApplyFollower(log);
   }
