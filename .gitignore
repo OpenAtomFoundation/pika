@@ -57,6 +57,9 @@ src/build_version.cc
 #cache
 .cache
 
+.idea/
+
+
 #build
 build/
 buildtrees
