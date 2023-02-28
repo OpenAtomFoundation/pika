@@ -1,54 +1,38 @@
 .DEFAULT_GOAL := build-all
 
-#export GO15VENDOREXPERIMENT=1
 export GO111MODULE=on
 
-build-all: codis-dashboard codis-proxy codis-admin codis-ha codis-fe clean-gotest
+build-all: codis-dashboard codis-proxy codis-admin codis-ha codis-fe
+
+PRJ_ROOT=${CURDIR}
+
 
 codis-deps:
-	@mkdir -p bin config && bash version
-	@#make --no-print-directory -C vendor/github.com/spinlock/jemalloc-go/
+	@mkdir -p ./bin && go version
 
 codis-dashboard: codis-deps
-	go build -i -o bin/codis-dashboard ./cmd/dashboard
-	@./bin/codis-dashboard --default-config > config/dashboard.toml
+	$(info build codis-dashboard)
+	@cd ${PRJ_ROOT}/cmd/dashboard && go mod tidy && go build -o ${PRJ_ROOT}/bin/codis-dashboard .
+	@${PRJ_ROOT}/bin/codis-dashboard --default-config > ${PRJ_ROOT}/config/dashboard.toml
 
 codis-proxy: codis-deps
-	go build -i -tags "cgo_jemalloc" -o bin/codis-proxy ./cmd/proxy
-	@./bin/codis-proxy --default-config > config/proxy.toml
+	$(info build codis-proxy)
+	@cd ${PRJ_ROOT}/cmd/proxy && go mod tidy && go build -o ${PRJ_ROOT}/bin/codis-proxy .
+	@${PRJ_ROOT}/bin/codis-proxy --default-config > ${PRJ_ROOT}/config/proxy.toml
 
 codis-admin: codis-deps
-	go build -i -o bin/codis-admin ./cmd/admin
+	$(info build codis-admin)
+	@cd ${PRJ_ROOT}/cmd/admin && go mod tidy && go build -o ${PRJ_ROOT}/bin/codis-admin .
 
 codis-ha: codis-deps
-	go build -i -o bin/codis-ha ./cmd/ha
+	$(info build codis-ha)
+	@cd ${PRJ_ROOT}/cmd/ha && go mod tidy && go build -o ${PRJ_ROOT}/bin/codis-ha .
 
 codis-fe: codis-deps
-	go build -i -o bin/codis-fe ./cmd/fe
-	@rm -rf bin/assets; cp -rf cmd/fe/assets bin/
+	$(info build codis-fe)
+	@cd ${PRJ_ROOT}/cmd/fe && go mod tidy && go build -o ${PRJ_ROOT}/bin/codis-fe .
+	@rm -rf ${PRJ_ROOT}/bin/assets && cp -rf ${PRJ_ROOT}/cmd/fe/assets ./bin/
 
-# todo pika server
-# codis-server:
-# instead of redis server to pika server when build codis
-
-clean-gotest:
-	@rm -rf ./pkg/topom/gotest.tmp
-
-clean: clean-gotest
+clean:
+	$(info ...Clean Start!)
 	@rm -rf bin
-	@rm -rf scripts/tmp
-
-distclean: clean
-	@make --no-print-directory --quiet -C vendor/github.com/spinlock/jemalloc-go/ distclean
-
-gotest: codis-deps
-	go test ./cmd/... ./pkg/...
-
-gobench: codis-deps
-	go test -gcflags -l -bench=. -v ./pkg/...
-
-docker:
-	docker build --force-rm -t codis-image .
-
-demo:
-	pushd example && make
