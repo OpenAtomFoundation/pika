@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.10)
 
 set(CMAKE_CXX_STANDARD 17)
 project(pika)
-set(CMAKE_EXE_LINKER_FLAGS " -static-libgcc -static-libstdc++ -Wl,--no-as-needed -ldl -Wall")
+set(CMAKE_CXX_FLAGS  "-pthread -Wl,--no-as-needed -ldl")
+set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(EP_BASE_SUFFIX "buildtrees")
@@ -20,6 +21,10 @@ execute_process(COMMAND sh ${CMAKE_UTILS_DIR}/Get_OS_Version.sh
 
 message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
 message(STATUS "current platform: ${OS_VERSION} ")
+cmake_host_system_information(RESULT CPU_CORE QUERY NUMBER_OF_LOGICAL_CORES)
+message("cpu core ${CPU_CORE}")
+
+include(protogen.cmake)
 include(ExternalProject)
 
 ExternalProject_Add(gtest
@@ -41,6 +46,8 @@ ExternalProject_Add(gtest
   -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
   BUILD_ALWAYS
   1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
 )
 if (${OS_VERSION} MATCHES "CentOS")
   set(GTEST_LIBRARY ${INSTALL_LIBDIR_64}/libgtest.a)
@@ -71,6 +78,8 @@ ExternalProject_Add(gflags
   -DGFLAGS_NAMESPACE=gflags
   -DBUILD_STATIC_LIBS=ON
   -DBUILD_SHARED_LIBS=OFF
+  BUILD_COMMAND
+  make -j${CPU_CORE}
 )
 
 set(GFLAGS_LIBRARIE ${INSTALL_LIBDIR}/libgflags.a)
@@ -103,6 +112,8 @@ ExternalProject_Add(glog
   -DBUILD_STATIC_LIBS=ON
   -DBUILD_SHARED_LIBS=OFF
   -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
+  BUILD_COMMAND
+  make -j${CPU_CORE}
 )
 
 ExternalProject_Add(snappy
@@ -128,6 +139,8 @@ ExternalProject_Add(snappy
   -DBUILD_SHARED_LIBS=OFF
   BUILD_ALWAYS
   1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
@@ -162,6 +175,8 @@ ExternalProject_Add(zstd
   -DZSTD_BUILD_SHARED=OFF
   BUILD_ALWAYS
   1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
@@ -196,6 +211,8 @@ ExternalProject_Add(lz4
   -DBUILD_SHARED_LIBS=OFF
   BUILD_ALWAYS
   1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
@@ -225,6 +242,8 @@ ExternalProject_Add(zlib
   -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
   BUILD_ALWAYS
   1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
 )
 
 set(ZLIB_LIBRARIE ${INSTALL_LIBDIR}/libz.a)
@@ -250,6 +269,8 @@ ExternalProject_Add(gperftools
   -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
   -DGPERFTOOLS_BUILD_STATIC=ON
   -DEFAULT_BUILD_MINIMAL=ON
+  BUILD_COMMAND
+  make -j${CPU_CORE}
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
@@ -280,7 +301,7 @@ ExternalProject_Add(jemalloc
   BUILD_IN_SOURCE
   1
   BUILD_COMMAND
-  make -j8
+  make -j${CPU_CORE}
   BUILD_ALWAYS
   1
   INSTALL_COMMAND
@@ -289,6 +310,38 @@ ExternalProject_Add(jemalloc
 
 set(JEMALLOC_LIBRARIE ${INSTALL_LIBDIR}/libjemalloc.a)
 set(JEMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
+ExternalProject_Add(protobuf
+  DEPENDS
+  URL
+  https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protobuf-cpp-3.17.3.tar.gz
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_CONFIGURE
+  1
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  SOURCE_SUBDIR
+  cmake
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DBUILD_SHARED_LIBS=FALSE
+  -Dprotobuf_BUILD_TESTS=FALSE
+  BUILD_IN_SOURCE
+  1
+  BUILD_ALWAYS
+  1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+)
+
+set(PROTOBUF_DIR ${STAGED_INSTALL_PREFIX})
+set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/libprotobuf.a)
+set(PROTOBUF_PROTOC ${STAGED_INSTALL_PREFIX}/bin/protoc)
 
 ExternalProject_Add(rocksdb
   DEPENDS
@@ -334,6 +387,8 @@ ExternalProject_Add(rocksdb
   -DWITH_ZLIB=ON
   -DWITH_ZSTD=ON
   -DWITH_GFLAGS=ON
+  BUILD_COMMAND
+  make -j${CPU_CORE}
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
@@ -382,11 +437,8 @@ message("pika BUILD_DATE = ${PIKA_BUILD_DATE}")
 set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/build_version.cc.in ${PIKA_BUILD_VERSION_CC} @ONLY)
 
-find_package(Protobuf REQUIRED)
-set(PROTO_FILES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/pika_inner_message.proto
-)
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
+set(PROTO_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/pika_inner_message.proto)
+custom_protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 message("pika PROTO_SRCS = ${PROTO_SRCS}")
 message("pika PROTO_HDRS = ${PROTO_HDRS}")
 
@@ -427,7 +479,7 @@ target_link_libraries(${PROJECT_NAME}
   slash
   libglog.a
   librocksdb.a
-  ${Protobuf_LIBRARIES}
+  ${PROTOBUF_LIBRARY}
   libgflags.a
   libsnappy.a
   libzstd.a
