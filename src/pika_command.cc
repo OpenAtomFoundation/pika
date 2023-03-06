@@ -42,6 +42,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePurgelogsto, purgelogsto));
   Cmd* pingptr = new PingCmd(kCmdNamePing, 1, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePing, pingptr));
+  Cmd* helloptr = new HelloCmd(kCmdNameHello, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameHello, helloptr));
   Cmd* selectptr = new SelectCmd(kCmdNameSelect, 2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSelect, selectptr));
   Cmd* flushallptr = new FlushallCmd(kCmdNameFlushall, 1, kCmdFlagsWrite | kCmdFlagsSuspend | kCmdFlagsAdmin);
@@ -135,6 +137,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*> *cmd_table) {
   ////DelCmd
   Cmd* delptr = new DelCmd(kCmdNameDel, -2, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameDel, delptr));
+  Cmd* Unlinkptr = new DelCmd(kCmdNameUnlink, -2, kCmdFlagsWrite | kCmdFlagsMultiPartition | kCmdFlagsKv);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameUnlink, Unlinkptr));
   ////IncrCmd
   Cmd* incrptr = new IncrCmd(kCmdNameIncr, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsKv);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameIncr, incrptr));
@@ -542,8 +546,7 @@ void Cmd::Execute() {
     ProcessFlushAllCmd();
   } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
     ProcessDoNotSpecifyPartitionCmd();
-  } else if (is_single_partition() ||
-      (g_pika_conf->classic_mode() && g_pika_conf->consensus_level() == 0)) {
+  } else if (is_single_partition() || g_pika_conf->classic_mode()) {
     ProcessSinglePartitionCmd();
   } else if (is_multi_partition()) {
     ProcessMultiPartitionCmd();
@@ -651,8 +654,7 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
     std::shared_ptr<SyncMasterPartition> sync_partition, const HintKeys& hint_keys) {
   slash::lock::MultiRecordLock record_lock(partition->LockMgr());
   if (is_write()) {
-    if (!hint_keys.empty() && is_multi_partition() &&
-     !g_pika_conf->classic_mode() && g_pika_conf->consensus_level() == 0) {
+    if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
       record_lock.Lock(hint_keys.keys);
     } else {
       record_lock.Lock(current_key());
@@ -670,8 +672,7 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
   DoBinlog(sync_partition);
 
   if (is_write()) {
-    if (!hint_keys.empty() && is_multi_partition() &&
-     !g_pika_conf->classic_mode() && g_pika_conf->consensus_level() == 0) {
+    if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
       record_lock.Unlock(hint_keys.keys);
     } else {
       record_lock.Unlock(current_key());
@@ -684,8 +685,7 @@ void Cmd::DoCommand(std::shared_ptr<Partition> partition, const HintKeys& hint_k
     partition->DbRWLockReader();
   }
 
-  if (!hint_keys.empty() && is_multi_partition() &&
-     !g_pika_conf->classic_mode() && g_pika_conf->consensus_level() == 0) {
+  if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
     Split(partition, hint_keys);
   } else {
     Do(partition);
@@ -739,7 +739,10 @@ void Cmd::ProcessMultiPartitionCmd() {
   std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
   if (!table) {
     res_.SetRes(CmdRes::kErrOther, "Table not found");
+    return;
   }
+
+  CmdStage current_stage = stage_;
   for (auto& key : cur_key) {
     // in sharding mode we select partition by key
     uint32_t partition_id =  g_pika_cmd_table_manager->DistributeKey(key, table->PartitionNum());
@@ -772,7 +775,9 @@ void Cmd::ProcessMultiPartitionCmd() {
       return;
     }
   }
-  Merge();
+  if (current_stage == kNone || current_stage == kExecuteStage) {
+    Merge();
+  }
 }
 
 void Cmd::ProcessDoNotSpecifyPartitionCmd() {

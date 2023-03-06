@@ -34,6 +34,8 @@ void* PikaAuxiliaryThread::ThreadMain() {
       LOG(WARNING) << s.ToString();
     }
 
+    g_pika_server->CheckLeaderProtectedMode();
+
     // TODO(whoiami) timeout
     s = g_pika_server->TriggerSendBinlogSync();
     if (!s.ok()) {

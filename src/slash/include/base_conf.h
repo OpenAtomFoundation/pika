@@ -58,7 +58,9 @@ class BaseConf {
 
   // return false if the item dosen't exist
   bool GetConfInt(const std::string &name, int* value) const;
+  bool GetConfIntHuman(const std::string &name, int *value) const;
   bool GetConfInt64(const std::string &name, int64_t* value) const;
+  bool GetConfInt64Human(const std::string &name, int64_t *value) const;
 
   bool GetConfStr(const std::string &name, std::string *value) const;
   bool GetConfBool(const std::string &name, bool* value) const;

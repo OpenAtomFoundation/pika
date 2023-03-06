@@ -709,6 +709,22 @@ void PikaReplicaManager::Stop() {
   pika_repl_server_->Stop();
 }
 
+bool PikaReplicaManager::CheckMasterSyncFinished() {
+  for (auto& iter : sync_master_partitions_) {
+    std::shared_ptr<SyncMasterPartition> partition = iter.second;
+    LogOffset commit = partition->ConsensusCommittedIndex();
+    BinlogOffset binlog;
+    Status s = partition->StableLogger()->Logger()->GetProducerStatus(&binlog.filenum, &binlog.offset);
+    if (!s.ok()) {
+      return false;
+    }
+    if (commit.b_offset < binlog) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void PikaReplicaManager::InitPartition() {
   std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
   for (const auto& table : table_structs) {

@@ -108,6 +108,50 @@ bool BaseConf::GetConfInt(const std::string &name, int* value) const {
   return false;
 }
 
+bool BaseConf::GetConfIntHuman(const std::string &name, int* value) const {
+  for (size_t i = 0; i < rep_->item.size(); i++) {
+    if (rep_->item[i].type == Rep::kComment) {
+      continue;
+    }
+    if (name == rep_->item[i].name) {
+      auto c_str = rep_->item[i].value.c_str();
+      (*value) = strtoll(c_str, NULL, 10);
+      char last = c_str[rep_->item[i].value.size() - 1];
+      if (last == 'K' || last == 'k') {
+        (*value) *= (1 << 10);
+      } else if (last == 'M' || last == 'm') {
+        (*value) *= (1 << 20);
+      } else if (last == 'G' || last == 'g') {
+        (*value) *= (1 << 30);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+bool BaseConf::GetConfInt64Human(const std::string &name, int64_t* value) const {
+  for (size_t i = 0; i < rep_->item.size(); i++) {
+    if (rep_->item[i].type == Rep::kComment) {
+      continue;
+    }
+    if (name == rep_->item[i].name) {
+      auto c_str = rep_->item[i].value.c_str();
+      (*value) = strtoll(c_str, NULL, 10);
+      char last = c_str[rep_->item[i].value.size() - 1];
+      if (last == 'K' || last == 'k') {
+        (*value) *= (1 << 10);
+      } else if (last == 'M' || last == 'm') {
+        (*value) *= (1 << 20);
+      } else if (last == 'G' || last == 'g') {
+        (*value) *= (1 << 30);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 bool BaseConf::GetConfInt64(const std::string &name, int64_t* value) const {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {

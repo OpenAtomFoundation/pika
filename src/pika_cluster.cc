@@ -154,7 +154,7 @@ bool PkClusterInfoCmd::ParseInfoTableSubCmd() {
 void PkClusterInfoCmd::ClusterInfoSlotRange(const std::string& table_name,
     const std::set<uint32_t> slots, std::string* info) {
   std::stringstream tmp_stream;
-  for (auto partition_id : slots) {
+  for (const auto& partition_id : slots) {
     std::string p_info;
     Status s = GetSlotInfo(table_name, partition_id, &p_info);
     if (!s.ok()) {
@@ -588,7 +588,7 @@ void PkClusterSlotsSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
     }
   }
 
-  for (auto to_del : to_del_slots) {
+  for (const auto& to_del : to_del_slots) {
     slots_.erase(to_del);
   }
 

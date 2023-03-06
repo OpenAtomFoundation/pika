@@ -47,11 +47,13 @@ const std::string kCmdNameTcmalloc = "tcmalloc";
 const std::string kCmdNamePKPatternMatchDel = "pkpatternmatchdel";
 const std::string kCmdDummy = "dummy";
 const std::string kCmdNameQuit = "quit";
+const std::string kCmdNameHello = "hello";
 
 //Kv
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";
 const std::string kCmdNameDel = "del";
+const std::string kCmdNameUnlink = "unlink";
 const std::string kCmdNameIncr = "incr";
 const std::string kCmdNameIncrby = "incrby";
 const std::string kCmdNameIncrbyfloat = "incrbyfloat";

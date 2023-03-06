@@ -54,6 +54,7 @@ PikaServer::PikaServer() :
   master_port_(0),
   repl_state_(PIKA_REPL_NO_CONNECT),
   role_(PIKA_ROLE_SINGLE),
+  leader_protected_mode_(false),
   last_meta_sync_timestamp_(0),
   first_meta_sync_(false),
   loop_partition_state_machine_(false),
@@ -311,6 +312,23 @@ int PikaServer::master_port() {
 int PikaServer::role() {
   slash::RWLock l(&state_protector_, false);
   return role_;
+}
+
+bool PikaServer::leader_protected_mode() {
+  slash::RWLock(&state_protector_, false);
+  return leader_protected_mode_;
+}
+
+void PikaServer::CheckLeaderProtectedMode() {
+  if (!leader_protected_mode()) {
+    return;
+  }
+  if (g_pika_rm->CheckMasterSyncFinished()) {
+    LOG(INFO) << "Master finish sync and commit binlog";
+
+    slash::RWLock(&state_protector_, true);
+    leader_protected_mode_ = false;
+  }
 }
 
 bool PikaServer::readonly(const std::string& table_name, const std::string& key) {
@@ -721,6 +739,12 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
 
 void PikaServer::BecomeMaster() {
   slash::RWLock l(&state_protector_, true);
+  if ((role_ & PIKA_ROLE_MASTER) == 0
+      && g_pika_conf->write_binlog()
+      && g_pika_conf->consensus_level() > 0) {
+    LOG(INFO) << "Become new master, start protect mode to waiting binlog sync and commit";
+    leader_protected_mode_ = true;
+  }
   role_ |= PIKA_ROLE_MASTER;
 }
 
@@ -754,6 +778,7 @@ void PikaServer::DeleteSlave(int fd) {
   if (slave_num == 0) {
     slash::RWLock l(&state_protector_, true);
     role_ &= ~PIKA_ROLE_MASTER;
+    leader_protected_mode_ = false;     // explicitly cancel protected mode
   }
 }
 
@@ -1659,6 +1684,9 @@ void PikaServer::InitBlackwidowOptions() {
     bw_options_.table_options.block_cache =
       rocksdb::NewLRUCache(bw_options_.block_cache_size, g_pika_conf->num_shard_bits());
   }
+
+  bw_options_.options.rate_limiter = 
+    std::shared_ptr<rocksdb::RateLimiter>(rocksdb::NewGenericRateLimiter(g_pika_conf->rate_limiter_bandwidth()));
 
   // For Blackwidow small compaction
   bw_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();

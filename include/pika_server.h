@@ -107,6 +107,8 @@ class PikaServer {
   std::string master_ip();
   int master_port();
   int role();
+  bool leader_protected_mode();
+  void CheckLeaderProtectedMode();
   bool readonly(const std::string& table, const std::string& key);
   bool ConsensusCheck(const std::string& table_name, const std::string& key);
   int repl_state();
@@ -369,6 +371,7 @@ class PikaServer {
   bool first_meta_sync_;
   bool loop_partition_state_machine_;
   bool force_full_sync_;
+  bool leader_protected_mode_;       // reject request after master slave sync done
   pthread_rwlock_t state_protector_; //protect below, use for master-slave mode
 
   /*
