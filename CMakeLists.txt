@@ -85,10 +85,39 @@ ExternalProject_Add(gflags
 set(GFLAGS_LIBRARIE ${INSTALL_LIBDIR}/libgflags.a)
 set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
+ExternalProject_Add(libunwind
+  DEPENDS
+  URL
+  http://download.savannah.nongnu.org/releases/libunwind/libunwind-1.6.2.tar.gz
+  URL_HASH
+  MD5=f625b6a98ac1976116c71708a73dc44a 
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_CONFIGURE
+  1
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  CONFIGURE_COMMAND
+  <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX}
+  BUILD_IN_SOURCE
+  1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+  INSTALL_COMMAND
+  make install
+)
+set(LIBUNWIND_LIBRARIE ${INSTALL_LIBDIR}/libunwind.a)
+set(LIBUNWIND_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
 ExternalProject_Add(glog
   DEPENDS
   gflags
   gtest
+  libunwind
   URL
   https://github.com/google/glog/archive/refs/tags/v0.6.0.tar.gz
   URL_HASH
@@ -456,6 +485,7 @@ target_link_directories(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}
   gflags
   gtest
+  libunwind
   glog
   snappy
   zstd
@@ -479,6 +509,7 @@ target_link_libraries(${PROJECT_NAME}
   blackwidow
   pink
   slash
+  libunwind.a
   libglog.a
   librocksdb.a
   libprotobuf.a
