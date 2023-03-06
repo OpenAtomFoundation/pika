@@ -1,0 +1,27 @@
+# permissions for end users to view pikas.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: pika-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: pika-operator
+    app.kubernetes.io/part-of: pika-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: pika-viewer-role
+rules:
+- apiGroups:
+  - pika.openatom.org
+  resources:
+  - pikas
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - pika.openatom.org
+  resources:
+  - pikas/status
+  verbs:
+  - get
