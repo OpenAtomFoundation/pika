@@ -1,7 +1,7 @@
 # This workflow will build a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: Go
+name: Operator
 
 on:
   push:
@@ -23,8 +23,8 @@ jobs:
 
     - name: Build
       run: |
-        cd codis && make -j
+        cd operator && make 
 
-    - name: Test
+    - name: Unit Test
       run: |
-        cd codis && make -j
+        cd operator && make test

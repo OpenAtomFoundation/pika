@@ -1,4 +1,4 @@
-name: CMake
+name: Pika
 
 on:
   push:
