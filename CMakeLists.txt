@@ -315,6 +315,8 @@ ExternalProject_Add(protobuf
   DEPENDS
   URL
   https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protobuf-cpp-3.17.3.tar.gz
+  URL_HASH
+  MD5=3fe4c2647e0991c014a386a896d0a116
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -339,7 +341,7 @@ ExternalProject_Add(protobuf
   make -j${CPU_CORE}
 )
 
-set(PROTOBUF_DIR ${STAGED_INSTALL_PREFIX})
+set(PROTOBUF_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/libprotobuf.a)
 set(PROTOBUF_PROTOC ${STAGED_INSTALL_PREFIX}/bin/protoc)
 
@@ -356,8 +358,7 @@ ExternalProject_Add(rocksdb
   URL
   https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
   URL_HASH
-
-  # MD5=594dd8e0a1e8c1ef8a1b210a1a5aff5b
+  MD5=3c5d371a8bd8340b1975ad016151709d
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -463,6 +464,7 @@ add_dependencies(${PROJECT_NAME}
   gperftools
   jemalloc
   rocksdb
+  protobuf
   slash
   pink
   blackwidow)
@@ -479,7 +481,7 @@ target_link_libraries(${PROJECT_NAME}
   slash
   libglog.a
   librocksdb.a
-  ${PROTOBUF_LIBRARY}
+  libprotobuf.a
   libgflags.a
   libsnappy.a
   libzstd.a
