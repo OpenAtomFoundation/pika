@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/coreos/etcd/client"
+	"go.etcd.io/etcd/client/v2"
 
 	"pika/codis/v2/pkg/utils/errors"
 	"pika/codis/v2/pkg/utils/log"
