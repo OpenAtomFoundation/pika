@@ -51,7 +51,7 @@ Status PbCli::Send(void *msg) {
   google::protobuf::Message *req =
     reinterpret_cast<google::protobuf::Message *>(msg);
 
-  int wbuf_len = req->ByteSize();
+  int wbuf_len = req->ByteSizeLong();
   req->SerializeToArray(wbuf_ + kCommandHeaderLength, wbuf_len);
   uint32_t len = htonl(wbuf_len);
   memcpy(wbuf_, &len, sizeof(uint32_t));
