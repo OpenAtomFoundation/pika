@@ -22,7 +22,7 @@ execute_process(COMMAND sh ${CMAKE_UTILS_DIR}/Get_OS_Version.sh
 message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
 message(STATUS "current platform: ${OS_VERSION} ")
 cmake_host_system_information(RESULT CPU_CORE QUERY NUMBER_OF_LOGICAL_CORES)
-message("cpu core ${CPU_CORE}")
+message(STATUS "cpu core ${CPU_CORE}")
 
 include(protogen.cmake)
 include(ExternalProject)
@@ -85,7 +85,7 @@ ExternalProject_Add(gflags
 set(GFLAGS_LIBRARIE ${INSTALL_LIBDIR}/libgflags.a)
 set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
-ExternalProject_Add(libunwind
+ExternalProject_Add(unwind
   DEPENDS
   URL
   http://download.savannah.nongnu.org/releases/libunwind/libunwind-1.6.2.tar.gz
@@ -117,7 +117,7 @@ ExternalProject_Add(glog
   DEPENDS
   gflags
   gtest
-  libunwind
+  unwind
   URL
   https://github.com/google/glog/archive/refs/tags/v0.6.0.tar.gz
   URL_HASH
@@ -138,12 +138,14 @@ ExternalProject_Add(glog
   -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
   -DWITH_GFLAGS=ON
   -DBUILD_TESTING=OFF
-  -DBUILD_STATIC_LIBS=ON
   -DBUILD_SHARED_LIBS=OFF
+  -DWITH_UNWIND=ON
   -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
+set(GLOG_LIBRARIE ${INSTALL_LIBDIR}/libglog.a)
+set(GLOG_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(snappy
   DEPENDS
@@ -280,6 +282,7 @@ set(ZLIB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(gperftools
   DEPENDS
+  unwind
   URL
   https://github.com/gperftools/gperftools/releases/download/gperftools-2.10/gperftools-2.10.tar.gz
   URL_HASH
@@ -342,6 +345,7 @@ set(JEMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(protobuf
   DEPENDS
+  zlib
   URL
   https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protobuf-cpp-3.17.3.tar.gz
   URL_HASH
@@ -485,7 +489,7 @@ target_link_directories(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}
   gflags
   gtest
-  libunwind
+  unwind
   glog
   snappy
   zstd
@@ -505,11 +509,11 @@ target_include_directories(${PROJECT_NAME}
   ${INSTALL_INCLUDEDIR}
 )
 
+message(STATUS "libunwind = ${LIBUNWIND_LIBRARIE}")
 target_link_libraries(${PROJECT_NAME}
   blackwidow
   pink
   slash
-  libunwind.a
   libglog.a
   librocksdb.a
   libprotobuf.a
@@ -518,4 +522,5 @@ target_link_libraries(${PROJECT_NAME}
   libzstd.a
   liblz4.a
   libz.a
+  libunwind.a
   libjemalloc.a)
