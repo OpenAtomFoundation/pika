@@ -13,10 +13,38 @@ It is responsible for creating and managing the following resources:
 
 ## Getting Started
 
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for
-testing, or run against a remote cluster.
+You’ll need a Kubernetes cluster to run against. You can use [MiniKube](https://minikube.sigs.k8s.io) 
+or [KIND](https://kind.sigs.k8s.io) to get a local cluster for testing, or run against a remote cluster.
+
 **Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever
 cluster `kubectl cluster-info` shows).
+
+### Running locally with MiniKube
+
+1. Install [MiniKube](https://minikube.sigs.k8s.io/docs/start/)
+ 
+2. Start a local cluster:
+
+```sh
+make minikube-up # run this if you don't have a minikube cluster
+make local-deploy
+```
+
+Or if you want to use a development pika image:
+
+```sh
+make local-deploy PIKA_IMAGE=<your-pika-image>
+```
+
+If you see some message like the following, it means that the pika-operator is running successfully:
+
+```sh
+************  TEST PIKA ************
+kubectl run pika-minikub-test ...
+pika_version:3.4.0
+pika_git_sha:bd30511bf82038c2c6531b3d84872c9825fe836a
+pika_build_compile_date: Dec  1 2020
+````
 
 ### Running on the cluster
 

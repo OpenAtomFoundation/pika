@@ -39,7 +39,8 @@ type PikaReconciler struct {
 //+kubebuilder:rbac:groups=pika.openatom.org,resources=pikas,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=pika.openatom.org,resources=pikas/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=pika.openatom.org,resources=pikas/finalizers,verbs=update
-//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+//+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=core,resources=pods,verbs=get;list;watch
 
