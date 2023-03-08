@@ -23,7 +23,7 @@ foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
   target_link_libraries(${blackwindow_test_name}
       PUBLIC ${GTEST_LIBRARY}
       PUBLIC slash
-      PUBLIC ${ROCKSDB_LIBRARIE}
+      PUBLIC ${ROCKSDB_LIBRARY}
       PUBLIC blackwidow
       )
 endforeach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})

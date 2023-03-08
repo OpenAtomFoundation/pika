@@ -82,7 +82,7 @@ ExternalProject_Add(gflags
   make -j${CPU_CORE}
 )
 
-set(GFLAGS_LIBRARIE ${INSTALL_LIBDIR}/libgflags.a)
+set(GFLAGS_LIBRARY ${INSTALL_LIBDIR}/libgflags.a)
 set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(unwind
@@ -110,7 +110,7 @@ ExternalProject_Add(unwind
   INSTALL_COMMAND
   make install
 )
-set(LIBUNWIND_LIBRARIE ${INSTALL_LIBDIR}/libunwind.a)
+set(LIBUNWIND_LIBRARY ${INSTALL_LIBDIR}/libunwind.a)
 set(LIBUNWIND_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(glog
@@ -144,7 +144,7 @@ ExternalProject_Add(glog
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
-set(GLOG_LIBRARIE ${INSTALL_LIBDIR}/libglog.a)
+set(GLOG_LIBRARY ${INSTALL_LIBDIR}/libglog.a)
 set(GLOG_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(snappy
@@ -175,9 +175,9 @@ ExternalProject_Add(snappy
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(SNAPPY_LIBRARIE ${INSTALL_LIBDIR_64}/libsnappy.a)
+  set(SNAPPY_LIBRARY ${INSTALL_LIBDIR_64}/libsnappy.a)
 else ()
-  set(SNAPPY_LIBRARIE ${INSTALL_LIBDIR}/libsnappy.a)
+  set(SNAPPY_LIBRARY ${INSTALL_LIBDIR}/libsnappy.a)
 endif ()
 set(SNAPPY_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -211,9 +211,9 @@ ExternalProject_Add(zstd
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(ZSTD_LIBRARIE ${INSTALL_LIBDIR_64}/libzstd.a)
+  set(ZSTD_LIBRARY ${INSTALL_LIBDIR_64}/libzstd.a)
 else ()
-  set(ZSTD_LIBRARIE ${INSTALL_LIBDIR}/libzstd.a)
+  set(ZSTD_LIBRARY ${INSTALL_LIBDIR}/libzstd.a)
 endif ()
 set(ZSTD_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -247,9 +247,9 @@ ExternalProject_Add(lz4
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(LZ4_LIBRARIE ${INSTALL_LIBDIR_64}/liblz4.a)
+  set(LZ4_LIBRARY ${INSTALL_LIBDIR_64}/liblz4.a)
 else ()
-  set(LZ4_LIBRARIE ${INSTALL_LIBDIR}/liblz4.a)
+  set(LZ4_LIBRARY ${INSTALL_LIBDIR}/liblz4.a)
 endif ()
 set(LZ4_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -277,7 +277,7 @@ ExternalProject_Add(zlib
   make -j${CPU_CORE}
 )
 
-set(ZLIB_LIBRARIE ${INSTALL_LIBDIR}/libz.a)
+set(ZLIB_LIBRARY ${INSTALL_LIBDIR}/libz.a)
 set(ZLIB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(gperftools
@@ -306,9 +306,9 @@ ExternalProject_Add(gperftools
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(TCMALLOC_LIBRARIE ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
+  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
 else ()
-  set(TCMALLOC_LIBRARIE ${INSTALL_LIBDIR}/libtcmalloc.a)
+  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR}/libtcmalloc.a)
 endif ()
 set(TCMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -340,7 +340,7 @@ ExternalProject_Add(jemalloc
   make install
 )
 
-set(JEMALLOC_LIBRARIE ${INSTALL_LIBDIR}/libjemalloc.a)
+set(JEMALLOC_LIBRARY ${INSTALL_LIBDIR}/libjemalloc.a)
 set(JEMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(protobuf
@@ -426,9 +426,9 @@ ExternalProject_Add(rocksdb
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(ROCKSDB_LIBRARIE ${INSTALL_LIBDIR_64}/librocksdb.a)
+  set(ROCKSDB_LIBRARY ${INSTALL_LIBDIR_64}/librocksdb.a)
 else ()
-  set(ROCKSDB_LIBRARIE ${INSTALL_LIBDIR}/librocksdb.a)
+  set(ROCKSDB_LIBRARY ${INSTALL_LIBDIR}/librocksdb.a)
 endif ()
 
 set(ROCKSDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -509,7 +509,6 @@ target_include_directories(${PROJECT_NAME}
   ${INSTALL_INCLUDEDIR}
 )
 
-message(STATUS "libunwind = ${LIBUNWIND_LIBRARIE}")
 target_link_libraries(${PROJECT_NAME}
   blackwidow
   pink

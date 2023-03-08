@@ -22,10 +22,10 @@ target_include_directories(blackwidow
 )
 
 target_link_libraries(blackwidow
-    PUBLIC ${ROCKSDB_LIBRARIE}
-           ${SNAPPY_LIBRARIE}
-           ${ZSTD_LIBRARIE}
-           ${LZ4_LIBRARIE}
-           ${ZLIB_LIBRARIE}
-           ${JEMALLOC_LIBRARIE}
+    PUBLIC ${ROCKSDB_LIBRARY}
+           ${SNAPPY_LIBRARY}
+           ${ZSTD_LIBRARY}
+           ${LZ4_LIBRARY}
+           ${ZLIB_LIBRARY}
+           ${JEMALLOC_LIBRARY}
     PUBLIC slash)
