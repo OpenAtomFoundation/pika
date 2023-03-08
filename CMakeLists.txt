@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 
+# Avoid warning about DOWNLOAD_EXTRACT_TIMESTAMP in CMake 3.24:
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+	cmake_policy(SET CMP0135 NEW)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 project(pika)
 set(CMAKE_CXX_FLAGS  "-pthread -Wl,--no-as-needed -ldl")
@@ -20,9 +25,9 @@ execute_process(COMMAND sh ${CMAKE_UTILS_DIR}/Get_OS_Version.sh
                 OUTPUT_VARIABLE OS_VERSION)
 
 message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
-message(STATUS "current platform: ${OS_VERSION} ")
+message(STATUS "Current platform: ${OS_VERSION} ")
 cmake_host_system_information(RESULT CPU_CORE QUERY NUMBER_OF_LOGICAL_CORES)
-message("cpu core ${CPU_CORE}")
+message(STATUS "Cpu core ${CPU_CORE}")
 
 include(protogen.cmake)
 include(ExternalProject)
@@ -82,13 +87,42 @@ ExternalProject_Add(gflags
   make -j${CPU_CORE}
 )
 
-set(GFLAGS_LIBRARIE ${INSTALL_LIBDIR}/libgflags.a)
+set(GFLAGS_LIBRARY ${INSTALL_LIBDIR}/libgflags.a)
 set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
+ExternalProject_Add(unwind
+  DEPENDS
+  URL
+  http://download.savannah.nongnu.org/releases/libunwind/libunwind-1.6.2.tar.gz
+  URL_HASH
+  MD5=f625b6a98ac1976116c71708a73dc44a 
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_CONFIGURE
+  1
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  CONFIGURE_COMMAND
+  <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no
+  BUILD_IN_SOURCE
+  1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+  INSTALL_COMMAND
+  make install
+)
+set(LIBUNWIND_LIBRARY ${INSTALL_LIBDIR}/libunwind.a)
+set(LIBUNWIND_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(glog
   DEPENDS
   gflags
   gtest
+  unwind
   URL
   https://github.com/google/glog/archive/refs/tags/v0.6.0.tar.gz
   URL_HASH
@@ -109,12 +143,14 @@ ExternalProject_Add(glog
   -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
   -DWITH_GFLAGS=ON
   -DBUILD_TESTING=OFF
-  -DBUILD_STATIC_LIBS=ON
   -DBUILD_SHARED_LIBS=OFF
+  -DWITH_UNWIND=ON
   -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
+set(GLOG_LIBRARY ${INSTALL_LIBDIR}/libglog.a)
+set(GLOG_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(snappy
   DEPENDS
@@ -144,9 +180,9 @@ ExternalProject_Add(snappy
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(SNAPPY_LIBRARIE ${INSTALL_LIBDIR_64}/libsnappy.a)
+  set(SNAPPY_LIBRARY ${INSTALL_LIBDIR_64}/libsnappy.a)
 else ()
-  set(SNAPPY_LIBRARIE ${INSTALL_LIBDIR}/libsnappy.a)
+  set(SNAPPY_LIBRARY ${INSTALL_LIBDIR}/libsnappy.a)
 endif ()
 set(SNAPPY_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -180,9 +216,9 @@ ExternalProject_Add(zstd
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(ZSTD_LIBRARIE ${INSTALL_LIBDIR_64}/libzstd.a)
+  set(ZSTD_LIBRARY ${INSTALL_LIBDIR_64}/libzstd.a)
 else ()
-  set(ZSTD_LIBRARIE ${INSTALL_LIBDIR}/libzstd.a)
+  set(ZSTD_LIBRARY ${INSTALL_LIBDIR}/libzstd.a)
 endif ()
 set(ZSTD_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -216,9 +252,9 @@ ExternalProject_Add(lz4
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(LZ4_LIBRARIE ${INSTALL_LIBDIR_64}/liblz4.a)
+  set(LZ4_LIBRARY ${INSTALL_LIBDIR_64}/liblz4.a)
 else ()
-  set(LZ4_LIBRARIE ${INSTALL_LIBDIR}/liblz4.a)
+  set(LZ4_LIBRARY ${INSTALL_LIBDIR}/liblz4.a)
 endif ()
 set(LZ4_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -246,11 +282,12 @@ ExternalProject_Add(zlib
   make -j${CPU_CORE}
 )
 
-set(ZLIB_LIBRARIE ${INSTALL_LIBDIR}/libz.a)
+set(ZLIB_LIBRARY ${INSTALL_LIBDIR}/libz.a)
 set(ZLIB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(gperftools
   DEPENDS
+  unwind
   URL
   https://github.com/gperftools/gperftools/releases/download/gperftools-2.10/gperftools-2.10.tar.gz
   URL_HASH
@@ -274,9 +311,9 @@ ExternalProject_Add(gperftools
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(TCMALLOC_LIBRARIE ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
+  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
 else ()
-  set(TCMALLOC_LIBRARIE ${INSTALL_LIBDIR}/libtcmalloc.a)
+  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR}/libtcmalloc.a)
 endif ()
 set(TCMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
@@ -308,13 +345,16 @@ ExternalProject_Add(jemalloc
   make install
 )
 
-set(JEMALLOC_LIBRARIE ${INSTALL_LIBDIR}/libjemalloc.a)
+set(JEMALLOC_LIBRARY ${INSTALL_LIBDIR}/libjemalloc.a)
 set(JEMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(protobuf
   DEPENDS
+  zlib
   URL
   https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protobuf-cpp-3.17.3.tar.gz
+  URL_HASH
+  MD5=3fe4c2647e0991c014a386a896d0a116
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -339,7 +379,7 @@ ExternalProject_Add(protobuf
   make -j${CPU_CORE}
 )
 
-set(PROTOBUF_DIR ${STAGED_INSTALL_PREFIX})
+set(PROTOBUF_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/libprotobuf.a)
 set(PROTOBUF_PROTOC ${STAGED_INSTALL_PREFIX}/bin/protoc)
 
@@ -356,8 +396,7 @@ ExternalProject_Add(rocksdb
   URL
   https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
   URL_HASH
-
-  # MD5=594dd8e0a1e8c1ef8a1b210a1a5aff5b
+  MD5=3c5d371a8bd8340b1975ad016151709d
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -392,9 +431,9 @@ ExternalProject_Add(rocksdb
 )
 
 if (${OS_VERSION} MATCHES "CentOS")
-  set(ROCKSDB_LIBRARIE ${INSTALL_LIBDIR_64}/librocksdb.a)
+  set(ROCKSDB_LIBRARY ${INSTALL_LIBDIR_64}/librocksdb.a)
 else ()
-  set(ROCKSDB_LIBRARIE ${INSTALL_LIBDIR}/librocksdb.a)
+  set(ROCKSDB_LIBRARY ${INSTALL_LIBDIR}/librocksdb.a)
 endif ()
 
 set(ROCKSDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -455,6 +494,7 @@ target_link_directories(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}
   gflags
   gtest
+  unwind
   glog
   snappy
   zstd
@@ -463,6 +503,7 @@ add_dependencies(${PROJECT_NAME}
   gperftools
   jemalloc
   rocksdb
+  protobuf
   slash
   pink
   blackwidow)
@@ -479,10 +520,11 @@ target_link_libraries(${PROJECT_NAME}
   slash
   libglog.a
   librocksdb.a
-  ${PROTOBUF_LIBRARY}
+  libprotobuf.a
   libgflags.a
   libsnappy.a
   libzstd.a
   liblz4.a
   libz.a
+  libunwind.a
   libjemalloc.a)
