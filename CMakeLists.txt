@@ -107,7 +107,7 @@ ExternalProject_Add(unwind
   LOG_INSTALL
   1
   CONFIGURE_COMMAND
-  <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX}
+  <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no
   BUILD_IN_SOURCE
   1
   BUILD_COMMAND
