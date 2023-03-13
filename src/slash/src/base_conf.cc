@@ -305,6 +305,9 @@ bool BaseConf::WriteBack() {
   std::string tmp_path = rep_->path + ".tmp";
   Status ret = NewWritableFile(tmp_path, &write_file);
   log_info("ret %s", ret.ToString().c_str());
+  if (!write_file) {
+    return false;
+  }
   std::string tmp;
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kConf) {
