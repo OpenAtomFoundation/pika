@@ -2101,9 +2101,12 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   }
 }
 
-void ConfigCmd::ConfigRewrite(std::string& ret) {
-  g_pika_conf->ConfigRewrite();
-  ret = "+OK\r\n";
+void ConfigCmd::ConfigRewrite(std::string &ret) {
+  if (g_pika_conf->ConfigRewrite()) {
+    ret = "+OK\r\n";
+  } else {
+    ret = "-ERR Rewire CONFIG fail\r\n";
+  }
 }
 
 void ConfigCmd::ConfigResetstat(std::string& ret) {
