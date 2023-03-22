@@ -94,7 +94,7 @@ void SetCmd::Do(std::shared_ptr<Partition> partition) {
       if (res == 1) {
         res_.SetRes(CmdRes::kOk);
       } else {
-        res_.AppendArrayLen(-1);;
+        res_.AppendStringLen(-1);
       }
     }
   } else {
