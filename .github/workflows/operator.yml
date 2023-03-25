@@ -24,6 +24,8 @@ jobs:
     - name: start minikube
       id: minikube
       uses: medyagh/setup-minikube@master
+      options:
+        - "v1.25.3"
 
     - name: Build
       run: |
@@ -35,4 +37,4 @@ jobs:
 
     - name: E2E Test
       run: |
-        cd operator && make minikube-up e2e-test-local
+        cd operator && make e2e-test-local
