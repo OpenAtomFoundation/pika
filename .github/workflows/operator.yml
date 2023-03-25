@@ -24,8 +24,8 @@ jobs:
     - name: start minikube
       id: minikube
       uses: medyagh/setup-minikube@master
-      options:
-        - "v1.25.3"
+      with:
+        kubernetes-version: v1.25.3
 
     - name: Build
       run: |
