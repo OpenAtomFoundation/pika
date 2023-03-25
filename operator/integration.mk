@@ -40,9 +40,12 @@ deploy-pika-sample: ## Deploy pika-sample.
 uninstall-pika-sample: ## Uninstall pika-sample.
 	kubectl delete -f examples/pika-minikube/
 
+##@ Local EnvSetup
+local-env-setup: set-local-env docker-build minikube-image-load install deploy
+
 ##@ Local Deploy
 .PHONY: local-deploy
-local-deploy: set-local-env docker-build minikube-image-load install deploy deploy-pika-sample
+local-deploy: local-env-setup deploy-pika-sample
 
 ##@ Local Clean
 .PHONY: local-clean
@@ -53,6 +56,6 @@ local-clean: uninstall-pika-sample uninstall
 e2e-test:
 	go test --tags=integration ./test/e2e/ -v -ginkgo.v
 
-##@ test-e2e-local:       Run e2e test cases (minikube is required)
+##@ e2e-test-local:       Run e2e test cases (minikube is required)
 .PHONY: e2e-test-local
-e2e-test-local: local-deploy e2e-test
+e2e-test-local: local-env-setup e2e-test
