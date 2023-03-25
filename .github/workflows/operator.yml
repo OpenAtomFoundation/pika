@@ -21,6 +21,10 @@ jobs:
       with:
         go-version: 1.19
 
+    - name: start minikube
+      id: minikube
+      uses: medyagh/setup-minikube@master
+
     - name: Build
       run: |
         cd operator && make 
@@ -28,3 +32,7 @@ jobs:
     - name: Unit Test
       run: |
         cd operator && make test
+
+    - name: E2E Test
+      run: |
+        cd operator && make minikube-up e2e-test-local
