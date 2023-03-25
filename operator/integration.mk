@@ -21,7 +21,7 @@ export IMG=$(PIKA_OPERATOR_IMAGE)
 
 .PHONY: minikube-image-load
 minikube-image-load: ## Load image to minikube.
-ifeq ($(shell docker images -q $(PIKA_IMAGE) 2> /dev/null), "")
+ifeq ($(shell docker images -q $(PIKA_IMAGE) 2> /dev/null),)
 	docker pull $(PIKA_IMAGE)
 endif
 	docker tag $(PIKA_IMAGE) pika:dev
