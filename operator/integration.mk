@@ -47,3 +47,12 @@ local-deploy: set-local-env docker-build minikube-image-load install deploy depl
 ##@ Local Clean
 .PHONY: local-clean
 local-clean: uninstall-pika-sample uninstall
+
+##@ e2e test
+.PHONY: e2e-test # You will need to have a k8s cluster up in running to run this target
+e2e-test:
+	go test --tags=integration ./test/e2e/ -v -ginkgo.v
+
+##@ test-e2e-local:       Run e2e test cases (minikube is required)
+.PHONY: e2e-test-local
+e2e-test-local: local-deploy e2e-test
