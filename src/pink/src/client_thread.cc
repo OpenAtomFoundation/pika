@@ -13,15 +13,15 @@
 #include <netdb.h>
 #include <netinet/tcp.h>
 
-#include "slash/include/xdebug.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/xdebug.h"
+#include "pstd/include/pstd_string.h"
 #include "pink/src/pink_epoll.h"
 #include "pink/src/server_socket.h"
 #include "pink/include/pink_conn.h"
 
 namespace pink {
 
-using slash::Status;
+using pstd::Status;
 
 ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle, void* private_data)
     : keepalive_timeout_(keepalive_timeout),
@@ -71,7 +71,7 @@ Status ClientThread::Write(const std::string& ip, const int port, const std::str
     return Status::Corruption(ip_port + " is baned by user!");
   }
   {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   size_t size = 0;
   for (auto& str : to_send_[ip_port]) {
     size += str.size();
@@ -87,7 +87,7 @@ Status ClientThread::Write(const std::string& ip, const int port, const std::str
 
 Status ClientThread::Close(const std::string& ip, const int port) {
   {
-  slash::MutexLock l(&to_del_mu_);
+  pstd::MutexLock l(&to_del_mu_);
   to_del_.push_back(ip + ":" + std::to_string(port));
   }
   return Status::OK();
@@ -209,7 +209,7 @@ void ClientThread::CloseFd(int fd, const std::string& ip_port) {
 }
 
 void ClientThread::CleanUpConnRemaining(const std::string& ip_port) {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   to_send_.erase(ip_port);
 }
 
@@ -247,7 +247,7 @@ void ClientThread::DoCronTask() {
 
   std::vector<std::string> to_del;
   {
-    slash::MutexLock l(&to_del_mu_);
+    pstd::MutexLock l(&to_del_mu_);
     to_del = std::move(to_del_);
     to_del_.clear();
   }
@@ -269,7 +269,7 @@ void ClientThread::DoCronTask() {
 void ClientThread::InternalDebugPrint() {
   log_info("___________________________________\n");
   {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   log_info("To send map: \n");
   for (const auto& to_send : to_send_) {
     UNUSED(to_send);
@@ -321,7 +321,7 @@ void ClientThread::ProcessNotifyEvents(const PinkFiredEvent* pfe) {
           if (ipport_conns_.find(ip_port) == ipport_conns_.end()) {
             std::string ip;
             int port = 0;
-            if (!slash::ParseIpPortString(ip_port, ip, port)) {
+            if (!pstd::ParseIpPortString(ip_port, ip, port)) {
               continue;
             }
             Status s = ScheduleConnect(ip, port);
@@ -336,7 +336,7 @@ void ClientThread::ProcessNotifyEvents(const PinkFiredEvent* pfe) {
             pink_epoll_->PinkModEvent(ipport_conns_[ip_port]->fd(), 0, EPOLLOUT | EPOLLIN);
           }
           {
-          slash::MutexLock l(&mu_);
+          pstd::MutexLock l(&mu_);
           auto iter = to_send_.find(ip_port);
           if (iter == to_send_.end()) {
             continue;

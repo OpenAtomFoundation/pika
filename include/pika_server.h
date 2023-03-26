@@ -9,9 +9,9 @@
 #include <sys/statfs.h>
 #include <memory>
 
-#include "slash/include/slash_mutex.h"
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_string.h"
 #include "pink/include/bg_thread.h"
 #include "pink/include/thread_pool.h"
 #include "pink/include/pink_pubsub.h"
@@ -31,8 +31,8 @@
 #include "include/pika_client_processor.h"
 #include "include/pika_statistic.h"
 
-using slash::Status;
-using slash::Slice;
+using pstd::Status;
+using pstd::Slice;
 
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
@@ -163,7 +163,7 @@ class PikaServer {
   int32_t GetShardingSlaveListString(std::string& slave_list_str);
   bool TryAddSlave(const std::string& ip, int64_t port, int fd,
                    const std::vector<TableStruct>& table_structs);
-  slash::Mutex slave_mutex_; // protect slaves_;
+  pstd::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
 
 
@@ -387,7 +387,7 @@ class PikaServer {
   /*
    * DBSync used
    */
-  slash::Mutex db_sync_protector_;
+  pstd::Mutex db_sync_protector_;
   std::unordered_set<std::string> db_sync_slaves_;
 
   /*

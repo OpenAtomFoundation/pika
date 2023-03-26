@@ -21,7 +21,7 @@
 #include "rocksdb/filter_policy.h"
 #include "rocksdb/convenience.h"
 
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 
 namespace blackwidow {
 
@@ -1226,8 +1226,8 @@ class BlackWidow {
 
   // Blackwidow start the background thread for compaction task
   pthread_t bg_tasks_thread_id_;
-  slash::Mutex bg_tasks_mutex_;
-  slash::CondVar bg_tasks_cond_var_;
+  pstd::Mutex bg_tasks_mutex_;
+  pstd::CondVar bg_tasks_cond_var_;
   std::queue<BGTask> bg_tasks_queue_;
 
   std::atomic<int> current_task_type_;

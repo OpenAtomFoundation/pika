@@ -8,7 +8,7 @@
 
 #include "blackwidow/blackwidow.h"
 #include "blackwidow/backupable.h"
-#include "slash/include/scope_record_lock.h"
+#include "pstd/include/scope_record_lock.h"
 
 #include "include/pika_binlog.h"
 
@@ -65,7 +65,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void DbRWLockReader();
   void DbRWUnLock();
 
-  slash::lock::LockMgr* LockMgr();
+  pstd::lock::LockMgr* LockMgr();
 
   void PrepareRsync();
   bool TryUpdateMasterOffset();
@@ -100,12 +100,12 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool opened_;
 
   pthread_rwlock_t db_rwlock_;
-  slash::lock::LockMgr* lock_mgr_;
+  pstd::lock::LockMgr* lock_mgr_;
   std::shared_ptr<blackwidow::BlackWidow> db_;
 
   bool full_sync_;
 
-  slash::Mutex key_info_protector_;
+  pstd::Mutex key_info_protector_;
   KeyScanInfo key_scan_info_;
 
   /*
@@ -118,7 +118,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void ClearBgsave();
   void FinishBgsave();
   BgSaveInfo bgsave_info_;
-  slash::Mutex bgsave_protector_;
+  pstd::Mutex bgsave_protector_;
   blackwidow::BackupEngine* bgsave_engine_;
 
   // key scan info use

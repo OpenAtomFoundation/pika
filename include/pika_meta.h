@@ -6,12 +6,12 @@
 #ifndef PIKA_META
 #define PIKA_META
 
-#include "slash/include/env.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_mutex.h"
 
 #include "include/pika_define.h"
 
-using slash::Status;
+using pstd::Status;
 
 class PikaMeta {
  public:

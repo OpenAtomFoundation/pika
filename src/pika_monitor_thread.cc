@@ -30,7 +30,7 @@ PikaMonitorThread::~PikaMonitorThread() {
 
 void PikaMonitorThread::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
   StartThread();
-  slash::MutexLock lm(&monitor_mutex_protector_);
+  pstd::MutexLock lm(&monitor_mutex_protector_);
   monitor_clients_.push_back(ClientInfo{client_ptr->fd(), client_ptr->ip_port(), 0, client_ptr});
   has_monitor_clients_.store(true);
 }
@@ -56,7 +56,7 @@ void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
 }
 
 void PikaMonitorThread::AddMonitorMessage(const std::string &monitor_message) {
-    slash::MutexLock lm(&monitor_mutex_protector_);
+    pstd::MutexLock lm(&monitor_mutex_protector_);
     if (monitor_messages_.empty() && cron_tasks_.empty()) {
       monitor_messages_.push_back(monitor_message);
       monitor_cond_.Signal();
@@ -77,7 +77,7 @@ int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr
 }
 
 void PikaMonitorThread::AddCronTask(MonitorCronTask task) {
-  slash::MutexLock lm(&monitor_mutex_protector_);
+  pstd::MutexLock lm(&monitor_mutex_protector_);
   if (monitor_messages_.empty() && cron_tasks_.empty()) {
     cron_tasks_.push(task);
     monitor_cond_.Signal();
@@ -87,7 +87,7 @@ void PikaMonitorThread::AddCronTask(MonitorCronTask task) {
 }
 
 bool PikaMonitorThread::FindClient(const std::string &ip_port) {
-  slash::MutexLock lm(&monitor_mutex_protector_);
+  pstd::MutexLock lm(&monitor_mutex_protector_);
   for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
       iter != monitor_clients_.end();
       ++iter) {
@@ -148,7 +148,7 @@ void* PikaMonitorThread::ThreadMain() {
   pink::WriteStatus write_status;
   while (!should_stop()) {
     {
-      slash::MutexLock lm(&monitor_mutex_protector_);
+      pstd::MutexLock lm(&monitor_mutex_protector_);
       while (monitor_messages_.empty() && cron_tasks_.empty() && !should_stop()) {
         monitor_cond_.Wait();
       }
@@ -157,7 +157,7 @@ void* PikaMonitorThread::ThreadMain() {
       break;
     } 
     {
-      slash::MutexLock lm(&monitor_mutex_protector_);
+      pstd::MutexLock lm(&monitor_mutex_protector_);
       while (!cron_tasks_.empty()) {
         task = cron_tasks_.front();
         cron_tasks_.pop();
@@ -171,7 +171,7 @@ void* PikaMonitorThread::ThreadMain() {
 
     messages_deque.clear();
     {
-      slash::MutexLock lm(&monitor_mutex_protector_);
+      pstd::MutexLock lm(&monitor_mutex_protector_);
       messages_deque.swap(monitor_messages_);
       if (monitor_clients_.empty() || messages_deque.empty()) {
         continue;

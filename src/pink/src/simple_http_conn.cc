@@ -11,8 +11,8 @@
 #include <string>
 #include <algorithm>
 
-#include "slash/include/xdebug.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/xdebug.h"
+#include "pstd/include/pstd_string.h"
 #include "pink/include/pink_define.h"
 
 namespace pink {
@@ -114,7 +114,7 @@ bool Request::ParseHeadLine(const char* data, int line_start,
         if (data[i] != '\r' && data[i] != '\n') {
           param_value.push_back(data[i]);
         } else if (data[i] == '\r') {
-          headers[slash::StringToLower(param_key)] = param_value;
+          headers[pstd::StringToLower(param_key)] = param_value;
           *parseStatus = kHeaderParamKey;
         }
         break;
@@ -329,7 +329,7 @@ bool SimpleHTTPConn::BuildRequestHeader() {
     remain_packet_len_ = 0;
   } else {
     long tmp = 0;
-    if (slash::string2l(iter->second.data(), iter->second.size(), &tmp)) {
+    if (pstd::string2l(iter->second.data(), iter->second.size(), &tmp)) {
       remain_packet_len_ = tmp;
     } else {
       remain_packet_len_ = 0;

@@ -14,8 +14,8 @@
 #include <memory>
 #include <vector>
 
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_mutex.h"
 #include "pink/include/pink_thread.h"
 
 // remove 'unused parameter' warning
@@ -110,11 +110,11 @@ class BackendThread : public Thread {
    */
   virtual int StartThread() override;
   virtual int StopThread() override;
-  slash::Status Write(const int fd, const std::string& msg);
-  slash::Status Close(const int fd);
+  pstd::Status Write(const int fd, const std::string& msg);
+  pstd::Status Close(const int fd);
   // Try to connect fd noblock, if return EINPROGRESS or EAGAIN or EWOULDBLOCK
   // put this fd in epoll (SetWaitConnectOnEpoll), process in ProcessConnectStatus
-  slash::Status Connect(const std::string& dst_ip, const int dst_port, int *fd);
+  pstd::Status Connect(const std::string& dst_ip, const int dst_port, int *fd);
   std::shared_ptr<PinkConn> GetConn(int fd);
 
  private:
@@ -123,7 +123,7 @@ class BackendThread : public Thread {
   void InternalDebugPrint();
   // Set connect fd into epoll
   // connect condition: no EPOLLERR EPOLLHUP events,  no error in socket opt
-  slash::Status ProcessConnectStatus(PinkFiredEvent* pfe, int* should_close);
+  pstd::Status ProcessConnectStatus(PinkFiredEvent* pfe, int* should_close);
   void SetWaitConnectOnEpoll(int sockfd);
 
   void AddConnection(const std::string& peer_ip, int peer_port, int sockfd);
@@ -149,7 +149,7 @@ class BackendThread : public Thread {
 
   ConnFactory *conn_factory_;
 
-  slash::Mutex mu_;
+  pstd::Mutex mu_;
   std::map<int, std::vector<std::string>> to_send_;  // ip+":"+port, to_send_msg
 
   std::map<int, std::shared_ptr<PinkConn>> conns_;

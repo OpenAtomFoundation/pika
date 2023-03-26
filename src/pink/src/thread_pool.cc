@@ -137,12 +137,12 @@ size_t ThreadPool::max_queue_size() {
 }
 
 void ThreadPool::cur_queue_size(size_t* qsize) {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   *qsize = queue_.size();
 }
 
 void ThreadPool::cur_time_queue_size(size_t* qsize) {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   *qsize = time_queue_.size();
 }
 

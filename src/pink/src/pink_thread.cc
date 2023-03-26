@@ -5,7 +5,7 @@
 
 #include "pink/include/pink_thread.h"
 #include "pink/src/pink_thread_name.h"
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 #include "pink/include/pink_define.h"
 
 namespace pink {
@@ -29,7 +29,7 @@ void* Thread::RunThread(void *arg) {
 }
 
 int Thread::StartThread() {
-  slash::MutexLock l(&running_mu_);
+  pstd::MutexLock l(&running_mu_);
   should_stop_ = false;
   if (!running_) {
     running_ = true;
@@ -39,7 +39,7 @@ int Thread::StartThread() {
 }
 
 int Thread::StopThread() {
-  slash::MutexLock l(&running_mu_);
+  pstd::MutexLock l(&running_mu_);
   should_stop_ = true;
   if (running_) {
     running_ = false;

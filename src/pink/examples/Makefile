@@ -15,16 +15,16 @@ endif
 PINK_INCLUDE_DIR=$(PINK_PATH)
 PINK_LIBRARY=$(PINK_PATH)/pink/lib/libpink.a
 
-ifndef SLASH_PATH
-  $(warning Warning: missing slash path, using default)
-	SLASH_PATH=$(CURDIR)/../third/slash
+ifndef PSTD_PATH
+  $(warning Warning: missing pstd path, using default)
+	PSTD_PATH=$(CURDIR)/../third/pstd
 endif
-SLASH_INCLUDE_DIR=$(SLASH_PATH)
-SLASH_LIBRARY=$(SLASH_PATH)/slash/lib/libslash.a
+PSTD_INCLUDE_DIR=$(PSTD_PATH)
+PSTD_LIBRARY=$(PSTD_PATH)/pstd/lib/libpstd.a
 
-CXXFLAGS+= -I$(PINK_INCLUDE_DIR) -I$(SLASH_INCLUDE_DIR)
+CXXFLAGS+= -I$(PINK_INCLUDE_DIR) -I$(PSTD_INCLUDE_DIR)
 
-DEP_LIBS = $(PINK_LIBRARY) $(SLASH_LIBRARY)
+DEP_LIBS = $(PINK_LIBRARY) $(PSTD_LIBRARY)
 LDFLAGS := $(DEP_LIBS) $(LDFLAGS)
 
 bg_thread: bg_thread.cc

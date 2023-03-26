@@ -27,7 +27,7 @@ void PikaMeta::SetPath(const std::string& path) {
  *      4 Bytes          4 Bytes        meta size Bytes
  */
 Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
-  slash::RWLock l(&rwlock_, true);
+  pstd::RWLock l(&rwlock_, true);
   if (local_meta_path_.empty()) {
     LOG(WARNING) << "Local meta file path empty";
     return Status::Corruption("local meta file path empty");
@@ -36,9 +36,9 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
   std::string tmp_file = local_meta_file;
   tmp_file.append("_tmp");
 
-  slash::RWFile* saver = NULL;
-  slash::CreatePath(local_meta_path_);
-  Status s = slash::NewRWFile(tmp_file, &saver);
+  pstd::RWFile* saver = NULL;
+  pstd::CreatePath(local_meta_path_);
+  Status s = pstd::NewRWFile(tmp_file, &saver);
   if (!s.ok()) {
     delete saver;
     LOG(WARNING) << "Open local meta file failed";
@@ -71,8 +71,8 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
   memcpy(p, meta_str.data(), meta_str.size());
   delete saver;
 
-  slash::DeleteFile(local_meta_file);
-  if (slash::RenameFile(tmp_file, local_meta_file)) {
+  pstd::DeleteFile(local_meta_file);
+  if (pstd::RenameFile(tmp_file, local_meta_file)) {
     LOG(WARNING) << "Failed to rename file, error: " << strerror(errno);
     return Status::Corruption("faild to rename file");
   }
@@ -80,15 +80,15 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
 }
 
 Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
-  slash::RWLock l(&rwlock_, false);
+  pstd::RWLock l(&rwlock_, false);
   std::string local_meta_file = local_meta_path_ + kPikaMeta;
-  if (!slash::FileExists(local_meta_file)) {
+  if (!pstd::FileExists(local_meta_file)) {
     LOG(WARNING) << "Local meta file not found, path: " << local_meta_file;
     return Status::Corruption("meta file not found");
   }
 
-  slash::RWFile* reader = NULL;
-  Status s = slash::NewRWFile(local_meta_file, &reader);
+  pstd::RWFile* reader = NULL;
+  Status s = pstd::NewRWFile(local_meta_file, &reader);
   if (!s.ok()) {
     delete reader;
     LOG(WARNING) << "Open local meta file failed";

@@ -9,7 +9,7 @@
 #include <sys/syscall.h>
 
 #include "include/pika_conf.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 
 
 #define gettid() syscall(__NR_gettid)
@@ -46,7 +46,7 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
 }
 
 bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const pid_t& tid) {
-  slash::RWLock l(&map_protector_, false);
+  pstd::RWLock l(&map_protector_, false);
   if (thread_distribution_map_.find(tid) == thread_distribution_map_.end()) {
     return false;
   }
@@ -62,7 +62,7 @@ void PikaCmdTableManager::InsertCurrentThreadDistributionMap() {
     distribution = new Crc32();
   }
   distribution->Init();
-  slash::RWLock l(&map_protector_, true);
+  pstd::RWLock l(&map_protector_, true);
   thread_distribution_map_.insert(std::make_pair(tid, distribution));
 }
 
@@ -73,7 +73,7 @@ uint32_t PikaCmdTableManager::DistributeKey(const std::string& key, uint32_t par
     InsertCurrentThreadDistributionMap();
   }
 
-  slash::RWLock l(&map_protector_, false);
+  pstd::RWLock l(&map_protector_, false);
   data_dist = thread_distribution_map_[tid];
   return data_dist->Distribute(key, partition_num);
 }

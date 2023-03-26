@@ -10,8 +10,8 @@
 #include <string>
 #include <algorithm>
 
-#include "slash/include/xdebug.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/xdebug.h"
+#include "pstd/include/pstd_string.h"
 #include "pink/include/pink_define.h"
 
 namespace pink {
@@ -108,7 +108,7 @@ bool HTTPRequest::ParseHeadLine(
         if (data[i] != '\r' && data[i] != '\n') {
           param_value.push_back(data[i]);
         } else if (data[i] == '\r') {
-          headers_[slash::StringToLower(param_key)] = param_value;
+          headers_[pstd::StringToLower(param_key)] = param_value;
           parse_status_ = kHeaderParamKey;
         }
         break;

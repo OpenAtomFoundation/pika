@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <errno.h>
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 #include "pink/include/pink_cli.h"
 #include "pink/include/redis_cli.h"
-#include "slash/include/slash_coding.h"
+#include "pstd/include/pstd_coding.h"
 
 using namespace pink;
 
@@ -31,19 +31,19 @@ int main(int argc, char* argv[]) {
   std::string one_command = "*3\r\n$3\r\nSET\r\n$1\r\na\r\n$2\r\nab\r\n";
 
   std::string binlog_body;
-  slash::PutFixed16(&binlog_body, 1); // type
-  slash::PutFixed32(&binlog_body, 0); //exec_time
-  slash::PutFixed32(&binlog_body, 10); // server_id
-  slash::PutFixed64(&binlog_body, 0); // logic_id
-  slash::PutFixed32(&binlog_body, 0); // filenum
-  slash::PutFixed64(&binlog_body, 0); // offset
+  pstd::PutFixed16(&binlog_body, 1); // type
+  pstd::PutFixed32(&binlog_body, 0); //exec_time
+  pstd::PutFixed32(&binlog_body, 10); // server_id
+  pstd::PutFixed64(&binlog_body, 0); // logic_id
+  pstd::PutFixed32(&binlog_body, 0); // filenum
+  pstd::PutFixed64(&binlog_body, 0); // offset
   uint32_t content_length = one_command.size();
-  slash::PutFixed32(&binlog_body, content_length);
+  pstd::PutFixed32(&binlog_body, content_length);
   binlog_body.append(one_command);
 
   std::string header;
-  slash::PutFixed16(&header, 2);
-  slash::PutFixed32(&header, binlog_body.size());
+  pstd::PutFixed16(&header, 2);
+  pstd::PutFixed32(&header, binlog_body.size());
 
   std::string command = header + binlog_body;
   {

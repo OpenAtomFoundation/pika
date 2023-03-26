@@ -1,5 +1,5 @@
 ifndef SLASH_PATH
-SLASH_PATH=../../third/slash
+SLASH_PATH=../../third/pstd
 endif
 
 ifndef PINK_PATH
@@ -7,7 +7,7 @@ PINK_PATH=../../../
 endif
 
 CXXFLAGS= -O2 -I$(PINK_PATH) -I$(SLASH_PATH) -std=c++11
-LDFLAGS= -L$(SLASH_PATH)/slash/lib -L$(PINK_PATH)/pink/lib -lprotobuf -lpink -lslash -lpthread
+LDFLAGS= -L$(SLASH_PATH)/pstd/lib -L$(PINK_PATH)/pink/lib -lprotobuf -lpink -lpstd -lpthread
 
 .PHONY: all
 

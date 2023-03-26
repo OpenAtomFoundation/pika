@@ -8,8 +8,8 @@
 #include <atomic>
 #include <signal.h>
 
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_hash.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_hash.h"
 #include "pink/include/pink_thread.h"
 #include "pink/include/server_thread.h"
 #include "pink/include/http_conn.h"
@@ -42,7 +42,7 @@ class MyHTTPHandles : public pink::HTTPHandles {
 
   // Response handles
   virtual void PrepareResponse(HTTPResponse* resp) {
-    body_md5.assign(slash::md5(body_data));
+    body_md5.assign(pstd::md5(body_data));
 
     resp->SetStatusCode(200);
     resp->SetContentLength(body_md5.size());

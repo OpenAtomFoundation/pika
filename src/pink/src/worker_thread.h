@@ -15,8 +15,8 @@
 #include <vector>
 #include <set>
 
-#include "slash/include/xdebug.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/xdebug.h"
+#include "pstd/include/pstd_mutex.h"
 
 #include "pink/include/server_thread.h"
 #include "pink/src/pink_epoll.h"
@@ -57,7 +57,7 @@ class WorkerThread : public Thread {
   }
   bool TryKillConn(const std::string& ip_port);
 
-  mutable slash::RWMutex rwlock_; /* For external statistics */
+  mutable pstd::RWMutex rwlock_; /* For external statistics */
   std::map<int, std::shared_ptr<PinkConn>> conns_;
 
   void* private_data_;
@@ -78,7 +78,7 @@ class WorkerThread : public Thread {
   virtual void *ThreadMain() override;
   void DoCronTask();
 
-  slash::Mutex killer_mutex_;
+  pstd::Mutex killer_mutex_;
   std::set<std::string> deleting_conn_ipport_;
 
   // clean conns

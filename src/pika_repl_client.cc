@@ -11,9 +11,9 @@
 
 #include "pink/include/pink_cli.h"
 #include "pink/include/redis_cli.h"
-#include "slash/include/slash_coding.h"
-#include "slash/include/env.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_coding.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_rm.h"
 #include "include/pika_server.h"

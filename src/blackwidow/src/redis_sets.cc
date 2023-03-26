@@ -836,7 +836,7 @@ Status RedisSets::SPop(const Slice& key,
   rocksdb::WriteBatch batch;
   ScopeRecordLock l(lock_mgr_, key);
 
-  uint64_t start_us = slash::NowMicros();
+  uint64_t start_us = pstd::NowMicros();
   Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
   if (s.ok()) {
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
@@ -872,7 +872,7 @@ Status RedisSets::SPop(const Slice& key,
     return s;
   }
   uint64_t count = 0;
-  uint64_t duration = slash::NowMicros() - start_us;
+  uint64_t duration = pstd::NowMicros() - start_us;
   AddAndGetSpopCount(key.ToString(), &count);
   if (duration >= SPOP_COMPACT_THRESHOLD_DURATION
     || count >= SPOP_COMPACT_THRESHOLD_COUNT) {

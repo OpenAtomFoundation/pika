@@ -13,15 +13,15 @@
 #include <netdb.h>
 #include <netinet/tcp.h>
 
-#include "slash/include/xdebug.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/xdebug.h"
+#include "pstd/include/pstd_string.h"
 #include "pink/src/pink_epoll.h"
 #include "pink/src/server_socket.h"
 #include "pink/include/pink_conn.h"
 
 namespace pink {
 
-using slash::Status;
+using pstd::Status;
 
 BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, BackendHandle* handle, void* private_data)
     : keepalive_timeout_(keepalive_timeout),
@@ -67,7 +67,7 @@ int BackendThread::StopThread() {
 
 Status BackendThread::Write(const int fd, const std::string& msg) {
   {
-    slash::MutexLock l(&mu_);
+    pstd::MutexLock l(&mu_);
     if (conns_.find(fd) == conns_.end()) {
       return Status::Corruption(std::to_string(fd) + " cannot find !");
     }  
@@ -90,7 +90,7 @@ Status BackendThread::Write(const int fd, const std::string& msg) {
 
 Status BackendThread::Close(const int fd) {
   {
-    slash::MutexLock l(&mu_);
+    pstd::MutexLock l(&mu_);
     if (conns_.find(fd) == conns_.end()) {
       return Status::OK();
     }
@@ -131,7 +131,7 @@ void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
 
   {
-    slash::MutexLock l(&mu_);
+    pstd::MutexLock l(&mu_);
     conns_.insert(std::make_pair(sockfd, tc));
   }  
 }
@@ -209,7 +209,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
 }
 
 std::shared_ptr<PinkConn> BackendThread::GetConn(int fd) {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   auto iter = conns_.find(fd);
   if(iter == conns_.end()) {
     return nullptr;
@@ -232,14 +232,14 @@ void BackendThread::CloseFd(const int fd) {
 }
 
 void BackendThread::CleanUpConnRemaining(const int fd) {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   to_send_.erase(fd);
 }
 
 void BackendThread::DoCronTask() {
   struct timeval now;
   gettimeofday(&now, NULL);
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   std::map<int, std::shared_ptr<PinkConn>>::iterator iter = conns_.begin();
   while (iter != conns_.end()) {
     std::shared_ptr<PinkConn> conn = iter->second;
@@ -272,7 +272,7 @@ void BackendThread::DoCronTask() {
 void BackendThread::InternalDebugPrint() {
   log_info("___________________________________\n");
   {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   log_info("To send map: \n");
   for (const auto& to_send : to_send_) {
     UNUSED(to_send);
@@ -284,7 +284,7 @@ void BackendThread::InternalDebugPrint() {
   }
   }
   log_info("Connected fd map: \n");
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   for (const auto& fd_conn : conns_) {
     UNUSED(fd_conn);
     log_info("fd %d", fd_conn.first);
@@ -325,7 +325,7 @@ void BackendThread::ProcessNotifyEvents(const PinkFiredEvent* pfe) {
         PinkItem ti = pink_epoll_->notify_queue_pop();
         int fd = ti.fd();
         std::string ip_port = ti.ip_port();
-        slash::MutexLock l(&mu_);
+        pstd::MutexLock l(&mu_);
         if (ti.notify_type() == kNotiWrite) {
           if (conns_.find(fd) == conns_.end()) {
            //TODO: need clean and notify?

@@ -1,0 +1,4 @@
+#include "pstd/include/version.h"
+const char* pstd_build_git_sha = "pstd_build_git_sha:@@GIT_SHA@@";
+const char* pstd_build_git_date = "pstd_build_git_date:@@GIT_DATE_TIME@@";
+const char* pstd_build_compile_date = __DATE__;

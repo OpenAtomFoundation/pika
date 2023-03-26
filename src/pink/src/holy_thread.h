@@ -12,8 +12,8 @@
 #include <atomic>
 #include <vector>
 
-#include "slash/include/xdebug.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/xdebug.h"
+#include "pstd/include/pstd_mutex.h"
 #include "pink/include/server_thread.h"
 #include "pink/include/pink_conn.h"
 
@@ -58,7 +58,7 @@ class HolyThread: public ServerThread {
   void ProcessNotifyEvents(const pink::PinkFiredEvent* pfe) override;
 
  private:
-  mutable slash::RWMutex rwlock_; /* For external statistics */
+  mutable pstd::RWMutex rwlock_; /* For external statistics */
   std::map<int, std::shared_ptr<PinkConn>> conns_;
 
   ConnFactory *conn_factory_;
@@ -69,7 +69,7 @@ class HolyThread: public ServerThread {
 
   void DoCronTask() override;
 
-  slash::Mutex killer_mutex_;
+  pstd::Mutex killer_mutex_;
   std::set<std::string> deleting_conn_ipport_;
 
   void HandleNewConn(int connfd, const std::string &ip_port) override;

@@ -10,8 +10,8 @@
 #include <vector>
 #include <string>
 
-#include "slash/include/slash_status.h"
-#include "slash/include/xdebug.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/xdebug.h"
 
 #include "pink/include/pink_conn.h"
 #include "pink/include/pink_define.h"

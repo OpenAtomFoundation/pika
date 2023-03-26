@@ -11,7 +11,7 @@
 #include <sys/time.h>
 
 #include "pink/include/thread_pool.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 
 using namespace std;
 
@@ -21,11 +21,11 @@ uint64_t NowMicros() {
   return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 
-static slash::Mutex print_lock;
+static pstd::Mutex print_lock;
 
 void task(void *arg) {
   {
-  slash::MutexLock l(&print_lock);
+  pstd::MutexLock l(&print_lock);
   std::cout << " task : " << *((int *)arg) << " time(micros) " << NowMicros() << "   thread id: "<< pthread_self() << std::endl;
   }
   sleep(1);
@@ -46,7 +46,7 @@ int main() {
     t.Schedule(task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
-    slash::MutexLock l(&print_lock);
+    pstd::MutexLock l(&print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
 
@@ -66,7 +66,7 @@ int main() {
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
-    slash::MutexLock l(&print_lock);
+    pstd::MutexLock l(&print_lock);
     std::cout << "Schedule task " << i << " time(micros) " << NowMicros() << " for " << i * 1000 * 1000  << " micros "<< std::endl;
   }
   while (pqsize > 0) {
@@ -84,7 +84,7 @@ int main() {
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
-    slash::MutexLock l(&print_lock);
+    pstd::MutexLock l(&print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
   sleep(3);

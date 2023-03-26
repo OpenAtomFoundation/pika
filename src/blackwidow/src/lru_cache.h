@@ -10,7 +10,7 @@
 #include <assert.h>
 #include <unordered_map>
 
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 
 namespace blackwidow {
 
@@ -115,7 +115,7 @@ class LRUCache {
   size_t usage_;
   size_t size_;
 
-  slash::Mutex mutex_;
+  pstd::Mutex mutex_;
 
   // Dummy head of LRU list.
   // lru.prev is newest entry, lru.next is oldest entry.
@@ -141,32 +141,32 @@ LRUCache<T1, T2>::~LRUCache() {
 
 template <typename T1, typename T2>
 size_t LRUCache<T1, T2>::Size() {
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   return size_;
 }
 
 template <typename T1, typename T2>
 size_t LRUCache<T1, T2>::TotalCharge() {
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   return usage_;
 }
 
 template <typename T1, typename T2>
 size_t LRUCache<T1, T2>::Capacity() {
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   return capacity_;
 }
 
 template <typename T1, typename T2>
 void LRUCache<T1, T2>::SetCapacity(size_t capacity) {
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   capacity_ = capacity;
   LRU_Trim();
 }
 
 template <typename T1, typename T2>
 Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   LRUHandle<T1, T2>* handle = handle_table_.Lookup(key);
   if (handle != NULL) {
     LRU_MoveToHead(handle);
@@ -177,7 +177,7 @@ Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
 
 template <typename T1, typename T2>
 Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t charge) {
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   if (capacity_ == 0) {
     return Status::Corruption("capacity is empty");
   } else {
@@ -196,14 +196,14 @@ Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t charge) {
 
 template <typename T1, typename T2>
 Status LRUCache<T1, T2>::Remove(const T1& key) {
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   bool erased = FinishErase(handle_table_.Remove(key));
   return erased ? Status::OK() : Status::NotFound();
 }
 
 template <typename T1, typename T2>
 Status LRUCache<T1, T2>::Clear() {
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   LRUHandle<T1, T2>* old = NULL;
   while (lru_.next != &lru_) {
     old = lru_.next;
@@ -218,7 +218,7 @@ Status LRUCache<T1, T2>::Clear() {
 template <typename T1, typename T2>
 bool LRUCache<T1, T2>::LRUAndHandleTableConsistent() {
   size_t count = 0;
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   LRUHandle<T1, T2>* handle = NULL;
   LRUHandle<T1, T2>* current = lru_.prev;
   while (current != &lru_) {

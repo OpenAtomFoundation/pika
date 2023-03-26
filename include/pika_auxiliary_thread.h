@@ -8,7 +8,7 @@
 
 #include "pink/include/pink_thread.h"
 
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 
 class PikaAuxiliaryThread : public pink::Thread {
  public:
@@ -18,8 +18,8 @@ class PikaAuxiliaryThread : public pink::Thread {
       set_thread_name("AuxiliaryThread");
   }
   virtual ~PikaAuxiliaryThread();
-  slash::Mutex mu_;
-  slash::CondVar cv_;
+  pstd::Mutex mu_;
+  pstd::CondVar cv_;
  private:
   virtual void* ThreadMain();
 };

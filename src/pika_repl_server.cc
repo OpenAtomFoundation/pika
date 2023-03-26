@@ -51,7 +51,7 @@ int PikaReplServer::Stop() {
   return 0;
 }
 
-slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
+pstd::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
                                                    int port,
                                                    const std::vector<WriteTask>& tasks) {
   InnerMessage::InnerResponse response;
@@ -71,12 +71,12 @@ slash::Status PikaReplServer::SendSlaveBinlogChips(const std::string& ip,
       if (!response.SerializeToString(&binlog_chip_pb)) {
         return Status::Corruption("Serialized Failed");
       }
-      slash::Status s = Write(ip, port, binlog_chip_pb);
+      pstd::Status s = Write(ip, port, binlog_chip_pb);
       if (!s.ok()) {
         return s;
       }
     }
-    return slash::Status::OK();
+    return pstd::Status::OK();
   }
   return Write(ip, port, binlog_chip_pb);
 }
@@ -139,11 +139,11 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks,
   }
 }
 
-slash::Status PikaReplServer::Write(const std::string& ip,
+pstd::Status PikaReplServer::Write(const std::string& ip,
                                     const int port,
                                     const std::string& msg) {
-  slash::RWLock l(&client_conn_rwlock_, false);
-  const std::string ip_port = slash::IpPortString(ip, port);
+  pstd::RWLock l(&client_conn_rwlock_, false);
+  const std::string ip_port = pstd::IpPortString(ip, port);
   if (client_conn_map_.find(ip_port) == client_conn_map_.end()) {
     return Status::NotFound("The " + ip_port + " fd cannot be found");
   }
@@ -167,12 +167,12 @@ void PikaReplServer::Schedule(pink::TaskFunc func, void* arg){
 }
 
 void PikaReplServer::UpdateClientConnMap(const std::string& ip_port, int fd) {
-  slash::RWLock l(&client_conn_rwlock_, true);
+  pstd::RWLock l(&client_conn_rwlock_, true);
   client_conn_map_[ip_port] = fd;
 }
 
 void PikaReplServer::RemoveClientConn(int fd) {
-  slash::RWLock l(&client_conn_rwlock_, true);
+  pstd::RWLock l(&client_conn_rwlock_, true);
   std::map<std::string, int>::const_iterator iter = client_conn_map_.begin();
   while (iter != client_conn_map_.end()) {
     if (iter->second == fd) {

@@ -2,19 +2,20 @@
 
 PINK_PATH=$PWD
 
-# We depend on slash
-SLASH_PATH=$1
-if test -z $SLASH_PATH; then
-  SLASH_PATH=$PINK_PATH/third/slash
+# We depend on pstd
+PSTD_PATH=$1
+if test -z $PSTD_PATH; then
+  PSTD_PATH=$PINK_PATH/third/pstd
 fi
 
-if [[ ! -d $SLASH_PATH ]]; then
-  mkdir -p $SLASH_PATH
-  git clone https://github.com/Qihoo360/slash.git $SLASH_PATH
+if [[ ! -d $PSTD_PATH ]]; then
+  mkdir -p $PSTD_PATH
+  git clone https://github.com/Qihoo360/slash.git $PSTD_PATH
 fi
-cd $SLASH_PATH/slash && make
+cd $PSTD_PATH/pstd && make
 
 # Compile pink
 cd $PINK_PATH
-make SLASH_PATH=$SLASH_PATH
-cd examples && make SLASH_PATH=$SLASH_PATH
+make PSTD_PATH=$PSTD_PATH
+cd examples && make PSTD_PATH=$PSTD_PATH
+

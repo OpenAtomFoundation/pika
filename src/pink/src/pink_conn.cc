@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 #include "pink/include/pink_conn.h"
 #include "pink/include/pink_thread.h"
 #include "pink/src/pink_util.h"

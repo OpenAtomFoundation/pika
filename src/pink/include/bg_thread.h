@@ -11,7 +11,7 @@
 
 #include "pink/include/pink_thread.h"
 
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 
 namespace pink {
 
@@ -73,9 +73,9 @@ class BGThread : public Thread {
   std::priority_queue<TimerItem> timer_queue_;
 
   size_t full_;
-  slash::Mutex mu_;
-  slash::CondVar rsignal_;
-  slash::CondVar wsignal_;
+  pstd::Mutex mu_;
+  pstd::CondVar rsignal_;
+  pstd::CondVar wsignal_;
   virtual void *ThreadMain() override;
 };
 
