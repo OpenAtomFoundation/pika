@@ -13,7 +13,7 @@
  */
 #define HEADER_LEN 6
 
-#include "pink/include/pink_conn.h"
+#include "net/include/net_conn.h"
 #include "pika_command.h"
 
 #include "binlog_transverter.h"
@@ -25,26 +25,26 @@ enum PortTransferOperate{
   kTypePortBinlog = 2
 };
 
-class MasterConn: public pink::PinkConn {
+class MasterConn: public net::PinkConn {
  public:
   MasterConn(int fd, std::string ip_port, void* worker_specific_data);
   virtual ~MasterConn();
 
-  virtual pink::ReadStatus GetRequest();
-  virtual pink::WriteStatus SendReply();
+  virtual net::ReadStatus GetRequest();
+  virtual net::WriteStatus SendReply();
   virtual void TryResizeBuffer();
 
-  pink::ReadStatus ReadRaw(uint32_t count);
-  pink::ReadStatus ReadHeader();
-  pink::ReadStatus ReadBody(uint32_t body_lenth);
+  net::ReadStatus ReadRaw(uint32_t count);
+  net::ReadStatus ReadHeader();
+  net::ReadStatus ReadBody(uint32_t body_lenth);
   void ResetStatus();
 
   int32_t FindNextSeparators(const std::string& content, int32_t next_parse_pos);
   int32_t GetNextNum(const std::string& content, int32_t next_parse_pos, int32_t pos, long* value);
-  pink::ReadStatus ParseRedisRESPArray(const std::string& content, pink::RedisCmdArgsType* argv);
+  net::ReadStatus ParseRedisRESPArray(const std::string& content, net::RedisCmdArgsType* argv);
 
-  bool ProcessAuth(const pink::RedisCmdArgsType& argv);
-  bool ProcessBinlogData(const pink::RedisCmdArgsType& argv, const PortBinlogItem& binlog_item);
+  bool ProcessAuth(const net::RedisCmdArgsType& argv);
+  bool ProcessBinlogData(const net::RedisCmdArgsType& argv, const PortBinlogItem& binlog_item);
 
  private:
   char* rbuf_;

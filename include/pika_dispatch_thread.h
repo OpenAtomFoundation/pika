@@ -25,30 +25,30 @@ class PikaDispatchThread {
   }
 
  private:
-  class ClientConnFactory : public pink::ConnFactory {
+  class ClientConnFactory : public net::ConnFactory {
    public:
      explicit ClientConnFactory(int max_conn_rbuf_size)
          : max_conn_rbuf_size_(max_conn_rbuf_size) {
      }
-     virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
+     virtual std::shared_ptr<net::NetConn> NewNetConn(
         int connfd,
         const std::string &ip_port,
-        pink::Thread* server_thread,
+        net::Thread* server_thread,
         void* worker_specific_data,
-        pink::PinkEpoll* pink_epoll) const {
-       return std::static_pointer_cast<pink::PinkConn>
-         (std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, pink_epoll, pink::HandleType::kAsynchronous, max_conn_rbuf_size_));
+        net::NetEpoll* net_epoll) const {
+       return std::static_pointer_cast<net::NetConn>
+         (std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, net_epoll, net::HandleType::kAsynchronous, max_conn_rbuf_size_));
      }
    private:
      int max_conn_rbuf_size_;
   };
 
-  class Handles : public pink::ServerHandle {
+  class Handles : public net::ServerHandle {
    public:
     explicit Handles(PikaDispatchThread* pika_disptcher)
         : pika_disptcher_(pika_disptcher) {
     }
-    using pink::ServerHandle::AccessHandle;
+    using net::ServerHandle::AccessHandle;
     bool AccessHandle(std::string& ip) const override;
     void CronHandle() const override;
 
@@ -58,6 +58,6 @@ class PikaDispatchThread {
 
   ClientConnFactory conn_factory_;
   Handles handles_;
-  pink::ServerThread* thread_rep_;
+  net::ServerThread* thread_rep_;
 };
 #endif

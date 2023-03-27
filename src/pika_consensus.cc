@@ -314,9 +314,9 @@ void ConsensusCoordinator::Init() {
   }
   // load mem_logger_
   mem_logger_->SetLastOffset(committed_index_);
-  pink::RedisParserSettings settings;
+  net::RedisParserSettings settings;
   settings.DealMessage = &(ConsensusCoordinator::InitCmd);
-  pink::RedisParser redis_parser;
+  net::RedisParser redis_parser;
   redis_parser.RedisParserInit(REDIS_PARSER_REQUEST, settings);
   PikaBinlogReader binlog_reader;
   int res = binlog_reader.Seek(stable_logger_->Logger(),
@@ -345,9 +345,9 @@ void ConsensusCoordinator::Init() {
     const char* redis_parser_start = binlog.data() + BINLOG_ENCODE_LEN;
     int redis_parser_len = static_cast<int>(binlog.size()) - BINLOG_ENCODE_LEN;
     int processed_len = 0;
-    pink::RedisParserStatus ret = redis_parser.ProcessInputBuffer(
+    net::RedisParserStatus ret = redis_parser.ProcessInputBuffer(
         redis_parser_start, redis_parser_len, &processed_len);
-    if (ret != pink::kRedisParserDone) {
+    if (ret != net::kRedisParserDone) {
       LOG(FATAL) << PartitionInfo(table_name_, partition_id_).ToString() << "Redis parser parse failed";
       return;
     }
@@ -635,7 +635,7 @@ void ConsensusCoordinator::InternalApplyFollower(const MemLog::LogItem& log) {
   g_pika_rm->ScheduleWriteDBTask(log.cmd_ptr, log.offset, table_name_, partition_id_);
 }
 
-int ConsensusCoordinator::InitCmd(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
+int ConsensusCoordinator::InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string* table_name = static_cast<std::string*>(parser->data);
   std::string opt = argv[0];
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));

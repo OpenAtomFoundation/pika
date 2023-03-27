@@ -12,11 +12,11 @@
 #include "iostream"
 
 #include "blackwidow/blackwidow.h"
-#include "pink/include/pink_thread.h"
+#include "net/include/net_thread.h"
 
 extern slash::Mutex mutex;
 
-class Migrator: public pink::Thread {
+class Migrator: public net::Thread {
   public:
     Migrator(int32_t migrator_id, nemo::Nemo* nemo_db, blackwidow::BlackWidow* blackwidow_db)
         : nemo_db_(nemo_db),

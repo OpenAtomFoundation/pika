@@ -1,7 +1,7 @@
 CLEAN_FILES = # deliberately empty, so we can append below.
 CXX=g++
 PLATFORM_LDFLAGS= -lpthread -lrt
-PLATFORM_CXXFLAGS= -std=c++11 -fno-builtin-memcmp -msse -msse4.2 
+PLATFORM_CXXFLAGS= -std=c++11 -fno-builtin-memcmp -msse -msse4.2
 ROCKSDB_CXXFLAGS=
 CC_VERSION_MAJOR := $(shell $(CXX) -dumpversion | cut -d '.' -f1)
 ifeq (1,$(shell expr $(CC_VERSION_MAJOR) \> 7))
@@ -63,14 +63,14 @@ SRC_PATH = $(CURDIR)/src
 # ----------------Dependences-------------------
 
 ifndef SLASH_PATH
-SLASH_PATH = $(THIRD_PATH)/slash
+SLASH_PATH = $(THIRD_PATH)/pstd
 endif
-SLASH = $(SLASH_PATH)/slash/lib/libslash$(DEBUG_SUFFIX).a
+SLASH = $(SLASH_PATH)/pstd/lib/libpstd$(DEBUG_SUFFIX).a
 
 ifndef PINK_PATH
-PINK_PATH = $(THIRD_PATH)/pink
+PINK_PATH = $(THIRD_PATH)/net
 endif
-PINK = $(PINK_PATH)/pink/lib/libpink$(DEBUG_SUFFIX).a
+PINK = $(PINK_PATH)/net/lib/libnet$(DEBUG_SUFFIX).a
 
 ifndef ROCKSDB_PATH
 ROCKSDB_PATH = $(THIRD_PATH)/rocksdb
@@ -103,8 +103,8 @@ INCLUDE_PATH += -I$(GLOG_PATH)/src
 endif
 
 LIB_PATH = -L./ \
-					 -L$(SLASH_PATH)/slash/lib \
-					 -L$(PINK_PATH)/pink/lib \
+					 -L$(SLASH_PATH)/pstd/lib \
+					 -L$(PINK_PATH)/net/lib \
 					 -L$(BLACKWIDOW_PATH)/lib \
 					 -L$(ROCKSDB_PATH)        \
 
@@ -113,8 +113,8 @@ LIB_PATH += -L$(GLOG_PATH)/.libs
 endif
 
 LDFLAGS += $(LIB_PATH) \
-			 		 -lpink$(DEBUG_SUFFIX) \
-			 		 -lslash$(DEBUG_SUFFIX) \
+			 		 -lnet$(DEBUG_SUFFIX) \
+			 		 -lpstd$(DEBUG_SUFFIX) \
 					 -lblackwidow$(DEBUG_SUFFIX) \
 					 -lrocksdb$(DEBUG_SUFFIX) \
 					 -lglog \
@@ -189,7 +189,7 @@ $(SRC_PATH)/build_version.cc: FORCE
 	$(AM_V_at)if test -f $@; then         \
 	  cmp -s $@-t $@ && rm -f $@-t || mv -f $@-t $@;    \
 	else mv -f $@-t $@; fi
-FORCE: 
+FORCE:
 
 LIBOBJECTS = $(LIB_SOURCES:.cc=.o)
 PROTOOBJECTS = $(PIKA_PROTO:.proto=.pb.o)
@@ -222,16 +222,16 @@ $(BINARY): $(SLASH) $(PINK) $(ROCKSDB) $(BLACKWIDOW) $(GLOG) $(PROTOOBJECTS) $(L
 	$(AM_V_at)mkdir -p $(OUTPUT)/bin
 	$(AM_V_at)mv $@ $(OUTPUT)/bin
 	$(AM_V_at)cp -r $(CURDIR)/conf $(OUTPUT)
-	
+
 
 $(SLASH):
-	$(AM_V_at)make -C $(SLASH_PATH)/slash/ DEBUG_LEVEL=$(DEBUG_LEVEL)
+	$(AM_V_at)make -C $(SLASH_PATH)/pstd/ DEBUG_LEVEL=$(DEBUG_LEVEL)
 
 $(PINK):
-	$(AM_V_at)make -C $(PINK_PATH)/pink/ DEBUG_LEVEL=$(DEBUG_LEVEL) NO_PB=0 SLASH_PATH=$(SLASH_PATH)
+	$(AM_V_at)make -C $(PINK_PATH)/net/ DEBUG_LEVEL=$(DEBUG_LEVEL) NO_PB=0 SLASH_PATH=$(SLASH_PATH)
 
 $(ROCKSDB):
-	$(AM_V_at) CXXFLAGS='$(ROCKSDB_CXXFLAGS)' make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ static_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL) 
+	$(AM_V_at) CXXFLAGS='$(ROCKSDB_CXXFLAGS)' make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ static_lib DISABLE_JEMALLOC=1 DEBUG_LEVEL=$(DEBUG_LEVEL)
 
 $(BLACKWIDOW):
 	$(AM_V_at)make -C $(BLACKWIDOW_PATH) ROCKSDB_PATH=$(ROCKSDB_PATH) SLASH_PATH=$(SLASH_PATH) DEBUG_LEVEL=$(DEBUG_LEVEL)
@@ -247,8 +247,8 @@ clean:
 	find $(SRC_PATH) -type f -regex ".*\.\(\(gcda\)\|\(gcno\)\)" -exec rm {} \;
 
 distclean: clean
-	make -C $(PINK_PATH)/pink/ SLASH_PATH=$(SLASH_PATH) clean
-	make -C $(SLASH_PATH)/slash/ clean
+	make -C $(PINK_PATH)/net/ SLASH_PATH=$(SLASH_PATH) clean
+	make -C $(SLASH_PATH)/pstd/ clean
 	make -C $(BLACKWIDOW_PATH)/ clean
 	make -C $(ROCKSDB_PATH)/ clean
 #	make -C $(GLOG_PATH)/ clean

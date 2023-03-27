@@ -22,12 +22,12 @@ extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
-                               pink::Thread* thread,
-                               pink::PinkEpoll* pink_epoll,
-                               const pink::HandleType& handle_type,
+                               net::Thread* thread,
+                               net::NetEpoll* net_epoll,
+                               const net::HandleType& handle_type,
                                int max_conn_rbuf_size)
-      : RedisConn(fd, ip_port, thread, pink_epoll, handle_type, max_conn_rbuf_size),
-        server_thread_(reinterpret_cast<pink::ServerThread*>(thread)),
+      : RedisConn(fd, ip_port, thread, net_epoll, handle_type, max_conn_rbuf_size),
+        server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
         current_table_(g_pika_conf->default_table()),
         is_pubsub_(false) {
   auth_stat_.Init();
@@ -181,7 +181,7 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   g_pika_server->AddMonitorMessage(monitor_message);
 }
 
-void PikaClientConn::ProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, bool async, std::string* response) {
+void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* response) {
   if (async) {
     BgTaskArg* arg = new BgTaskArg();
     arg->redis_cmds = argvs;
@@ -251,7 +251,7 @@ void PikaClientConn::DoExecTask(void* arg) {
   conn_ptr->TryWriteResp();
 }
 
-void PikaClientConn::BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs) {
+void PikaClientConn::BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs) {
   resp_num.store(argvs.size());
   for (size_t i = 0; i < argvs.size(); ++i) {
     std::shared_ptr<std::string> resp_ptr = std::make_shared<std::string>();

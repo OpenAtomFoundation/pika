@@ -9,14 +9,14 @@
 #include "include/pika_command.h"
 
 
-class PikaClientConn: public pink::RedisConn {
+class PikaClientConn: public net::RedisConn {
  public:
   using WriteCompleteCallback = std::function<void()>;
 
   struct BgTaskArg {
     std::shared_ptr<Cmd> cmd_ptr;
     std::shared_ptr<PikaClientConn> conn_ptr;
-    std::vector<pink::RedisCmdArgsType> redis_cmds;
+    std::vector<net::RedisCmdArgsType> redis_cmds;
     std::shared_ptr<std::string> resp_ptr;
     LogOffset offset;
     std::string table_name;
@@ -39,16 +39,16 @@ class PikaClientConn: public pink::RedisConn {
   };
 
   PikaClientConn(int fd, std::string ip_port,
-                 pink::Thread *server_thread,
-                 pink::PinkEpoll* pink_epoll,
-                 const pink::HandleType& handle_type,
+                 net::Thread *server_thread,
+                 net::NetEpoll* net_epoll,
+                 const net::HandleType& handle_type,
                  int max_conn_rubf_size);
   virtual ~PikaClientConn() {}
 
-  virtual void ProcessRedisCmds(const std::vector<pink::RedisCmdArgsType>& argvs, bool async, std::string* response) override;
+  virtual void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* response) override;
 
-  void BatchExecRedisCmd(const std::vector<pink::RedisCmdArgsType>& argvs);
-  int DealMessage(const pink::RedisCmdArgsType& argv, std::string* response) {
+  void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
+  int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) {
     return 0;
   }
   static void DoBackgroundTask(void* arg);
@@ -59,7 +59,7 @@ class PikaClientConn: public pink::RedisConn {
   void SetCurrentTable(const std::string& table_name) { current_table_ = table_name; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = cb; }
 
-  pink::ServerThread* server_thread() {
+  net::ServerThread* server_thread() {
     return server_thread_;
   }
 
@@ -70,7 +70,7 @@ class PikaClientConn: public pink::RedisConn {
   std::atomic<int> resp_num;
   std::vector<std::shared_ptr<std::string>> resp_array;
  private:
-  pink::ServerThread* const server_thread_;
+  net::ServerThread* const server_thread_;
   std::string current_table_;
   WriteCompleteCallback write_completed_cb_;
   bool is_pubsub_;

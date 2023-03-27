@@ -6,14 +6,14 @@
 #ifndef TRYSYNC_THREAD_H_
 #define TRYSYNC_THREAD_H_
 
-#include "pink/include/pink_thread.h"
-#include "pink/include/redis_cli.h"
+#include "net/include/net_thread.h"
+#include "net/include/redis_cli.h"
 
 
-class TrysyncThread : public pink::Thread {
+class TrysyncThread : public net::Thread {
 public:
   TrysyncThread() {
-    cli_ = pink::NewRedisCli();
+    cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1500);
   };
   virtual ~TrysyncThread();
@@ -21,7 +21,7 @@ public:
 private:
   int sockfd_;
   int64_t sid_;
-  pink::PinkCli *cli_;
+  net::PinkCli *cli_;
 
   bool Send();
   bool RecvProc();

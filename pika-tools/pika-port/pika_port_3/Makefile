@@ -18,15 +18,15 @@ ROCKSDB=$(ROCKSDB_PATH)/librocksdb.a
 SLASH_PATH=$(THIRD_PATH)/slash
 SLASH=$(SLASH_PATH)/slash/lib/libslash.a
 
-PINK_PATH=$(THIRD_PATH)/pink
-PINK=$(PINK_PATH)/pink/lib/libpink.a
+PINK_PATH=$(THIRD_PATH)/net
+PINK=$(PINK_PATH)/net/lib/libnet.a
 
 BLACKWIDOW_PATH=$(THIRD_PATH)/blackwidow
 BLACKWIDOW=$(BLACKWIDOW_PATH)/lib/libblackwidow.a
 
 INCLUDE_PATH = -I./ \
 			   -I$(THIRD_PATH)/slash/ \
-			   -I$(THIRD_PATH)/pink \
+			   -I$(THIRD_PATH)/net \
 			   -I$(THIRD_PATH)/blackwidow/include/ \
 			   -I$(THIRD_PATH)/blackwidow/ \
 			   -I$(THIRD_PATH)/rocksdb/include/
@@ -34,10 +34,10 @@ INCLUDE_PATH = -I./ \
 LIB_PATH = -L./ \
   -L$(THIRD_PATH)/rocksdb/ \
   -L$(THIRD_PATH)/slash/slash/lib \
-  -L$(THIRD_PATH)/pink/pink/lib \
+  -L$(THIRD_PATH)/net/net/lib \
   -L$(THIRD_PATH)/blackwidow/lib
 
-LIBS = -Wl,-Bstatic -lrocksdb -Wl,-Bdynamic -lpthread -lrt -lpink -lslash -lblackwidow -lrocksdb -lglog -lgflags -lsnappy -lz -lbz2 -llz4 -lzstd
+LIBS = -Wl,-Bstatic -lrocksdb -Wl,-Bdynamic -lpthread -lrt -lnet -lslash -lblackwidow -lrocksdb -lglog -lgflags -lsnappy -lz -lbz2 -llz4 -lzstd
 
 LIBS += $(ROCKSDB_LDFLAGS)
 
@@ -70,7 +70,7 @@ $(SLASH) :
 	make -C $(SLASH_PATH)/slash
 
 $(PINK) :
-	make -C $(PINK_PATH)/pink NO_PB=1 SLASH_PATH=../../slash
+	make -C $(PINK_PATH)/net NO_PB=1 SLASH_PATH=../../slash
 
 $(BLACKWIDOW) :
 	make -C $(BLACKWIDOW_PATH)  ROCKSDB_PATH=../rocksdb SLASH_PATH=../slash

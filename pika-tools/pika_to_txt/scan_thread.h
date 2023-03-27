@@ -10,12 +10,12 @@
 #include "vector"
 
 #include "slash/include/slash_coding.h"
-#include "pink/include/pink_thread.h"
+#include "net/include/net_thread.h"
 #include "blackwidow/blackwidow.h"
 
 #include "write_thread.h"
 
-class ScanThread : public pink::Thread {
+class ScanThread : public net::Thread {
  public:
   ScanThread(WriteThread* write_thread, blackwidow::BlackWidow* blackwidow_db) :
       is_finish_(false),

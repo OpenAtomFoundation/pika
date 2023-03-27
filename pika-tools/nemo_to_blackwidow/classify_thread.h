@@ -12,7 +12,7 @@
 #include <glog/logging.h>
 
 #include "nemo.h"
-#include "pink/include/pink_thread.h"
+#include "net/include/net_thread.h"
 #include "slash/include/slash_mutex.h"
 
 #include "utils.h"
@@ -20,7 +20,7 @@
 
 extern slash::Mutex mutex;
 
-class ClassifyThread : public pink::Thread {
+class ClassifyThread : public net::Thread {
   public:
     ClassifyThread(nemo::Nemo* nemo_db, std::vector<Migrator*> migrators, const std::string& type);
     virtual ~ClassifyThread();

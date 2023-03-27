@@ -422,7 +422,7 @@ int string2ul(const char *s, size_t slen, unsigned long *lval) {
     if (!string2ll(s,slen,&llval))
         return 0;
 
-    if (llval > ULONG_MAX)
+    if (llval > (long long)(ULONG_MAX))
         return 0;
 
     *lval = (unsigned long)llval;

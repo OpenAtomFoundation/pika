@@ -13,8 +13,8 @@ THIRD_PATH=$(CURDIR)/../third
 
 SLASH_PATH=$(THIRD_PATH)/slash
 SLASH_LIBRARY=$(SLASH_PATH)/slash/lib/libslash.a
-PINK_PATH=$(THIRD_PATH)/pink
-PINK_LIBRARY=$(PINK_PATH)/pink/lib/libpink.a
+PINK_PATH=$(THIRD_PATH)/net
+PINK_LIBRARY=$(PINK_PATH)/net/lib/libnet.a
 
 
 INCLUDE_PATH = -I./                        \
@@ -24,7 +24,7 @@ INCLUDE_PATH = -I./                        \
 OBJECT : SLASH PINK manifest_generator
 
 PINK : $(SLASH)
-	make -C $(PINK_PATH)/pink NO_PB=0 SLASH_PATH=$(SLASH_PATH)
+	make -C $(PINK_PATH)/net NO_PB=0 SLASH_PATH=$(SLASH_PATH)
 
 SLASH :
 	make -C $(SLASH_PATH)/slash
@@ -45,7 +45,7 @@ clean:
 
 distclean:
 	make -C $(SLASH_PATH)/slash clean
-	make -C $(PINK_PATH)/pink clean
+	make -C $(PINK_PATH)/net clean
 	rm -rf manifest_generator
 	rm -rf pika_binlog.o
 	rm -rf manifest_generator.o

@@ -57,7 +57,7 @@ void MigratorThread::MigrateStringsDB() {
     //   ttl);
     // sleep(3);
 
-    pink::RedisCmdArgsType argv;
+    net::RedisCmdArgsType argv;
     std::string cmd;
 
     argv.push_back("SET");
@@ -68,7 +68,7 @@ void MigratorThread::MigrateStringsDB() {
       argv.push_back(std::to_string(ttl));
     }
 
-    pink::SerializeRedisCommand(argv, &cmd);
+    net::SerializeRedisCommand(argv, &cmd);
     PlusNum();
     // DispatchKey(cmd, iter->key().ToString());
     DispatchKey(cmd);
@@ -117,7 +117,7 @@ void MigratorThread::MigrateListsDB() {
       }
 
       while (s.ok() && !should_exit_ && !list.empty()) {
-        pink::RedisCmdArgsType argv;
+        net::RedisCmdArgsType argv;
         std::string cmd;
 
         argv.push_back("RPUSH");
@@ -127,7 +127,7 @@ void MigratorThread::MigrateListsDB() {
           argv.push_back(e);
         }
 
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
 
         PlusNum();
         DispatchKey(cmd, k);
@@ -144,13 +144,13 @@ void MigratorThread::MigrateListsDB() {
       int64_t ttl = -1;
       s = db->TTL(k, &ttl);
       if (s.ok() && ttl > 0) {
-        pink::RedisCmdArgsType argv;
+        net::RedisCmdArgsType argv;
         std::string cmd;
 
         argv.push_back("EXPIRE");
         argv.push_back(k);
         argv.push_back(std::to_string(ttl));
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         PlusNum();
         DispatchKey(cmd);
       }
@@ -195,7 +195,7 @@ void MigratorThread::MigrateHashesDB() {
 
       auto it = fvs.begin();
       while (!should_exit_ && it != fvs.end()) {
-        pink::RedisCmdArgsType argv;
+        net::RedisCmdArgsType argv;
         std::string cmd;
 
         argv.push_back("HMSET");
@@ -208,7 +208,7 @@ void MigratorThread::MigrateHashesDB() {
           // PlusNum();
         }
 
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         PlusNum();
         // DispatchKey(cmd, k);
         DispatchKey(cmd);
@@ -217,13 +217,13 @@ void MigratorThread::MigrateHashesDB() {
       int64_t ttl = -1;
       s = db->TTL(k, &ttl);
       if (s.ok() && ttl > 0) {
-        pink::RedisCmdArgsType argv;
+        net::RedisCmdArgsType argv;
         std::string cmd;
 
         argv.push_back("EXPIRE");
         argv.push_back(k);
         argv.push_back(std::to_string(ttl));
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         PlusNum();
         DispatchKey(cmd);
       }
@@ -268,7 +268,7 @@ void MigratorThread::MigrateSetsDB() {
       auto it = members.begin();
       while (!should_exit_ && it != members.end()) {
         std::string cmd;
-        pink::RedisCmdArgsType argv;
+        net::RedisCmdArgsType argv;
 
         argv.push_back("SADD");
         argv.push_back(k);
@@ -278,7 +278,7 @@ void MigratorThread::MigrateSetsDB() {
           argv.push_back(*it);
         }
 
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         PlusNum();
         // DispatchKey(cmd, k);
         DispatchKey(cmd);
@@ -287,13 +287,13 @@ void MigratorThread::MigrateSetsDB() {
       int64_t ttl = -1;
       s = db->TTL(k, &ttl);
       if (s.ok() && ttl > 0) {
-        pink::RedisCmdArgsType argv;
+        net::RedisCmdArgsType argv;
         std::string cmd;
 
         argv.push_back("EXPIRE");
         argv.push_back(k);
         argv.push_back(std::to_string(ttl));
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         PlusNum();
         DispatchKey(cmd);
       }
@@ -337,7 +337,7 @@ void MigratorThread::MigrateZsetsDB() {
       }
       auto it = score_members.begin();
       while (!should_exit_ && it != score_members.end()) {
-        pink::RedisCmdArgsType argv;
+        net::RedisCmdArgsType argv;
         std::string cmd;
 
         argv.push_back("ZADD");
@@ -350,7 +350,7 @@ void MigratorThread::MigrateZsetsDB() {
           argv.push_back(it->member);
         }
 
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         PlusNum();
         // DispatchKey(cmd, k);
         DispatchKey(cmd);
@@ -359,13 +359,13 @@ void MigratorThread::MigrateZsetsDB() {
       int64_t ttl = -1;
       s = db->TTL(k, &ttl);
       if (s.ok() && ttl > 0) {
-        pink::RedisCmdArgsType argv;
+        net::RedisCmdArgsType argv;
         std::string cmd;
 
         argv.push_back("EXPIRE");
         argv.push_back(k);
         argv.push_back(std::to_string(ttl));
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         PlusNum();
         DispatchKey(cmd);
       }

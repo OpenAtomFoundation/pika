@@ -6,11 +6,11 @@
 #include <iostream>
 #include <queue>
 #include "slash/include/xdebug.h"
-#include "pink/include/bg_thread.h"
-#include "pink/include/pink_cli.h"
-#include "pink/include/redis_cli.h"
+#include "net/include/bg_thread.h"
+#include "net/include/net_cli.h"
+#include "net/include/redis_cli.h"
 
-class SenderThread : public pink::Thread {
+class SenderThread : public net::Thread {
 public:
 	SenderThread(std::string ip, int64_t port, std::string password);
 	virtual ~SenderThread();
@@ -34,7 +34,7 @@ public:
   }
 	void ConnectPika();
 private:
-	pink::PinkCli *cli_;
+	net::PinkCli *cli_;
 	slash::CondVar rsignal_;
 	slash::CondVar wsignal_;
 	slash::Mutex cmd_mutex_;
