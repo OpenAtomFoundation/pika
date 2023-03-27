@@ -49,10 +49,10 @@ Status Version::StableSave() {
 Status Version::Init() {
   Status s;
   if (save_->GetData() != NULL) {
-    memcpy((char *)(&pro_num_), save_->GetData(), sizeof(uint32_t));
-    memcpy((char *)(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
-    memcpy((char *)(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
-    memcpy((char *)(&term_), save_->GetData() + 20, sizeof(uint32_t));
+    memcpy((char*)(&pro_num_), save_->GetData(), sizeof(uint32_t));
+    memcpy((char*)(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
+    memcpy((char*)(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
+    memcpy((char*)(&term_), save_->GetData() + 20, sizeof(uint32_t));
     return Status::OK();
   } else {
     return Status::Corruption("version init error");
