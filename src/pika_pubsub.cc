@@ -50,7 +50,7 @@ void SubscribeCmd::DoInitial() {
 }
 
 void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameSubscribe);
     LOG(WARNING) << name_  << " weak ptr is empty";
@@ -64,7 +64,7 @@ void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
   if (!cli_conn->IsPubSub()) {
     cli_conn->server_thread()->MoveConnOut(conn->fd());
     cli_conn->SetIsPubSub(true);
-    cli_conn->SetHandleType(pink::HandleType::kSynchronous);
+    cli_conn->SetHandleType(net::HandleType::kSynchronous);
     cli_conn->SetWriteCompleteCallback([cli_conn](){
         if (!cli_conn->IsPubSub()) {
           return;
@@ -91,7 +91,7 @@ void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
     channels.push_back(argv_[i]);
   }
 
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameUnSubscribe);
     LOG(WARNING) << name_  << " weak ptr is empty";
@@ -112,8 +112,8 @@ void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
           return;
         }
         cli_conn->set_is_writable(false);
-        cli_conn->SetHandleType(pink::HandleType::kAsynchronous);
-        cli_conn->server_thread()->MoveConnIn(conn, pink::NotifyType::kNotiWait);
+        cli_conn->SetHandleType(net::HandleType::kAsynchronous);
+        cli_conn->server_thread()->MoveConnIn(conn, net::NotifyType::kNotiWait);
     });
   }
   return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
@@ -127,7 +127,7 @@ void PSubscribeCmd::DoInitial() {
 }
 
 void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePSubscribe);
     LOG(WARNING) << name_  << " weak ptr is empty";
@@ -137,7 +137,7 @@ void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
   if (!cli_conn->IsPubSub()) {
     cli_conn->server_thread()->MoveConnOut(conn->fd());
     cli_conn->SetIsPubSub(true);
-    cli_conn->SetHandleType(pink::HandleType::kSynchronous);
+    cli_conn->SetHandleType(net::HandleType::kSynchronous);
     cli_conn->SetWriteCompleteCallback([cli_conn](){
         if (!cli_conn->IsPubSub()) {
           return;
@@ -168,7 +168,7 @@ void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
     channels.push_back(argv_[i]);
   }
 
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePUnSubscribe);
     LOG(WARNING) << name_  << " weak ptr is empty";
@@ -189,8 +189,8 @@ void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
           return;
         }
         cli_conn->set_is_writable(false);
-        cli_conn->SetHandleType(pink::HandleType::kAsynchronous);
-        cli_conn->server_thread()->MoveConnIn(conn, pink::NotifyType::kNotiWait);
+        cli_conn->SetHandleType(net::HandleType::kAsynchronous);
+        cli_conn->server_thread()->MoveConnIn(conn, net::NotifyType::kNotiWait);
     });
   }
   return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));

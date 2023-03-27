@@ -15,8 +15,8 @@ extern PikaReplicaManager* g_pika_rm;
 
 PikaReplServerConn::PikaReplServerConn(int fd,
                                        std::string ip_port,
-                                       pink::Thread* thread,
-                                       void* worker_specific_data, pink::PinkEpoll* epoll)
+                                       net::Thread* thread,
+                                       void* worker_specific_data, net::NetEpoll* epoll)
     : PbConn(fd, ip_port, thread, epoll) {
 }
 
@@ -26,7 +26,7 @@ PikaReplServerConn::~PikaReplServerConn() {
 void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::MetaSync meta_sync_request = req->meta_sync();
   InnerMessage::Node node = meta_sync_request.node();
@@ -76,7 +76,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
 void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::TrySync try_sync_request = req->try_sync();
   InnerMessage::Partition partition_request = try_sync_request.partition();
@@ -155,7 +155,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
 bool PikaReplServerConn::TrySyncUpdateSlaveNode(
     const std::shared_ptr<SyncMasterPartition>& partition,
     const InnerMessage::InnerRequest::TrySync& try_sync_request,
-    const std::shared_ptr<pink::PbConn>& conn,
+    const std::shared_ptr<net::PbConn>& conn,
     InnerMessage::InnerResponse::TrySync* try_sync_response) {
   InnerMessage::Node node = try_sync_request.node();
   std::string partition_name = partition->PartitionName();
@@ -303,7 +303,7 @@ void PikaReplServerConn::BuildConsensusMeta(
 void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::DBSync db_sync_request = req->db_sync();
   InnerMessage::Partition partition_request = db_sync_request.partition();
@@ -386,7 +386,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
 void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (!req->has_binlog_sync()) {
     LOG(WARNING) << "Pb parse error";
     //conn->NotifyClose();
@@ -494,7 +494,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
 void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (!req->remove_slave_node_size()) {
     LOG(WARNING) << "Pb parse error";
     conn->NotifyClose();

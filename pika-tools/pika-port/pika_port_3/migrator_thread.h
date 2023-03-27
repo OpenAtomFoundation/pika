@@ -3,12 +3,12 @@
 
 #include <iostream>
 
-#include "pink/include/redis_cli.h"
+#include "net/include/redis_cli.h"
 
 #include "conf.h"
 #include "pika_sender.h"
 
-class MigratorThread : public pink::Thread {
+class MigratorThread : public net::Thread {
  public:
   MigratorThread(void *db, std::vector<PikaSender *> *senders, int type, int thread_num) :
       db_(db),

@@ -34,7 +34,7 @@ PIKA_PATH=./pika2.3.6
 INCLUDE_PATH = -I$(PIKA_PATH)/ \
 	   -I$(PIKA_PATH)/include \
 	   -I$(THIRD_PATH)/slash \
-	   -I$(THIRD_PATH)/pink \
+	   -I$(THIRD_PATH)/net \
 	   -I$(THIRD_PATH)/nemo/include/ \
 	   -I$(THIRD_PATH)/nemo-rocksdb/include/ \
 	   -I$(THIRD_PATH)/rocksdb/include/
@@ -45,13 +45,13 @@ LIB_PATH = -L./ \
 	   -L$(THIRD_PATH)/nemo-rocksdb/lib \
 	   -L$(THIRD_PATH)/rocksdb/ \
 	   -L$(THIRD_PATH)/slash/slash/lib \
-	   -L$(THIRD_PATH)/pink/pink/lib \
+	   -L$(THIRD_PATH)/net/net/lib \
      -L$(THIRD_PATH)/nemo/lib/
 
 LIBS = -Wl,-Bstatic -lnemo -lrocksdb\
        -Wl,-Bdynamic -lpthread\
        -lrt \
-       -lpink \
+       -lnet \
        -lslash \
        -lnemodb \
        -lrocksdb \
@@ -59,7 +59,7 @@ LIBS = -Wl,-Bstatic -lnemo -lrocksdb\
 
 LIBS += $(ROCKSDB_LDFLAGS)
 
-PINK = $(THIRD_PATH)/pink/pink/lib/libpink.a
+PINK = $(THIRD_PATH)/net/net/lib/libnet.a
 SLASH = $(THIRD_PATH)/slash/slash/lib/libslash.a
 
 .PHONY: all clean
@@ -89,7 +89,7 @@ $(NEMO_ROCKSDB) :
 	make -C $(NEMO_ROCKSDB_PATH) ROCKSDB_PATH=../rocksdb
 
 $(PINK) :
-	make -C $(PINK_PATH)/pink SLASH_PATH=../../slash
+	make -C $(PINK_PATH)/net SLASH_PATH=../../slash
 
 $(SLASH) :
 	make -C $(SLASH_PATH)/slash
@@ -103,6 +103,6 @@ clean:
 	make -C $(NEMO_PATH) clean
 	make -C $(NEMO_ROCKSDB_PATH) clean
 	make -C $(BLACKWIDOW_PATH) clean
-	make -C $(PINK_PATH)/pink clean
+	make -C $(PINK_PATH)/net clean
 	make -C $(SLASH_PATH)/slash clean
 	make -C $(ROCKSDB_PATH) clean

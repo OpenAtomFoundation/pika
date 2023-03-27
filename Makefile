@@ -36,7 +36,6 @@ pika:
 	cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$(INSTALL_LOCATION)
 	cmake --build build --config Release
 
-
 codis:
 	cd codis && make -j && cd -
 

@@ -9,9 +9,9 @@
 #include <string>
 #include <memory>
 
-#include "pink/include/pink_conn.h"
-#include "pink/include/client_thread.h"
-#include "pink/include/thread_pool.h"
+#include "net/include/net_conn.h"
+#include "net/include/client_thread.h"
+#include "net/include/thread_pool.h"
 #include "pstd/include/pstd_status.h"
 
 #include "include/pika_define.h"
@@ -20,27 +20,27 @@
 #include "include/pika_repl_bgworker.h"
 #include "include/pika_repl_client_thread.h"
 
-#include "pink/include/thread_pool.h"
+#include "net/include/thread_pool.h"
 #include "pika_inner_message.pb.h"
 
 using pstd::Status;
 
 struct ReplClientTaskArg {
   std::shared_ptr<InnerMessage::InnerResponse> res;
-  std::shared_ptr<pink::PbConn> conn;
+  std::shared_ptr<net::PbConn> conn;
   ReplClientTaskArg(std::shared_ptr<InnerMessage::InnerResponse> _res,
-                    std::shared_ptr<pink::PbConn> _conn)
+                    std::shared_ptr<net::PbConn> _conn)
       : res(_res), conn(_conn) {}
 };
 
 struct ReplClientWriteBinlogTaskArg {
   std::shared_ptr<InnerMessage::InnerResponse> res;
-  std::shared_ptr<pink::PbConn> conn;
+  std::shared_ptr<net::PbConn> conn;
   void* res_private_data;
   PikaReplBgWorker* worker;
   ReplClientWriteBinlogTaskArg(
           const std::shared_ptr<InnerMessage::InnerResponse> _res,
-          std::shared_ptr<pink::PbConn> _conn,
+          std::shared_ptr<net::PbConn> _conn,
           void* _res_private_data,
           PikaReplBgWorker* _worker) :
       res(_res), conn(_conn),
@@ -75,10 +75,10 @@ class PikaReplClient {
   pstd::Status Write(const std::string& ip, const int port, const std::string& msg);
   pstd::Status Close(const std::string& ip, const int port);
 
-  void Schedule(pink::TaskFunc func, void* arg);
+  void Schedule(net::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(std::string table_partition,
                                const std::shared_ptr<InnerMessage::InnerResponse> res,
-                               std::shared_ptr<pink::PbConn> conn,
+                               std::shared_ptr<net::PbConn> conn,
                                void* req_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr, const LogOffset& offset,
                            const std::string& table_name, uint32_t partition_id);

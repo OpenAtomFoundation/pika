@@ -11,7 +11,7 @@ void MigratorThread::MigrateDB(const char type) {
       while (it->Valid()) {
         key = it->key();
         value = it->value();
-        pink::RedisCmdArgsType argv;
+        net::RedisCmdArgsType argv;
         std::string cmd;
 
         int64_t ttl;
@@ -26,7 +26,7 @@ void MigratorThread::MigrateDB(const char type) {
         }
         
         it->Next();
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         PlusNum();
         cmd = 'k' + cmd;
         DispatchKey(cmd);

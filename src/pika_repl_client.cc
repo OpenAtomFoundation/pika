@@ -9,8 +9,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "pink/include/pink_cli.h"
-#include "pink/include/redis_cli.h"
+#include "net/include/net_cli.h"
+#include "net/include/redis_cli.h"
 #include "pstd/include/pstd_coding.h"
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_string.h"
@@ -40,14 +40,14 @@ PikaReplClient::~PikaReplClient() {
 
 int PikaReplClient::Start() {
   int res = client_thread_->StartThread();
-  if (res != pink::kSuccess) {
-    LOG(FATAL) << "Start ReplClient ClientThread Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  if (res != net::kSuccess) {
+    LOG(FATAL) << "Start ReplClient ClientThread Error: " << res << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
   for (size_t i = 0; i < bg_workers_.size(); ++i) {
     res = bg_workers_[i]->StartThread();
-    if (res != pink::kSuccess) {
+    if (res != net::kSuccess) {
       LOG(FATAL) << "Start Pika Repl Worker Thread Error: " << res
-        << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+        << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
     }
   }
   return res;
@@ -61,14 +61,14 @@ int PikaReplClient::Stop() {
   return 0;
 }
 
-void PikaReplClient::Schedule(pink::TaskFunc func, void* arg) {
+void PikaReplClient::Schedule(net::TaskFunc func, void* arg) {
   bg_workers_[next_avail_]->Schedule(func, arg);
   UpdateNextAvail();
 }
 
 void PikaReplClient::ScheduleWriteBinlogTask(std::string table_partition,
     const std::shared_ptr<InnerMessage::InnerResponse> res,
-    std::shared_ptr<pink::PbConn> conn, void* res_private_data) {
+    std::shared_ptr<net::PbConn> conn, void* res_private_data) {
   size_t index = GetHashIndex(table_partition, true);
   ReplClientWriteBinlogTaskArg* task_arg =
     new ReplClientWriteBinlogTaskArg(res, conn, res_private_data, bg_workers_[index]);
@@ -101,7 +101,7 @@ Status PikaReplClient::Close(const std::string& ip, const int port) {
 
 Status PikaReplClient::SendMetaSync() {
   std::string local_ip;
-  pink::PinkCli* cli = pink::NewRedisCli();
+  net::NetCli* cli = net::NewRedisCli();
   cli->set_connect_timeout(1500);
   if ((cli->Connect(g_pika_server->master_ip(), g_pika_server->master_port(), "")).ok()) {
     struct sockaddr_in laddr;

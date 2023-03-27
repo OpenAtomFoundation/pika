@@ -12,7 +12,7 @@
 #include <unordered_map>
 
 #include "slash/include/slash_string.h"
-#include "pink/include/redis_conn.h"
+#include "net/include/redis_conn.h"
 
 #include "binlog_transverter.h"
 
@@ -203,7 +203,7 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
-typedef pink::RedisCmdArgsType PikaCmdArgsType;
+typedef net::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 
 enum CmdFlagsMask {

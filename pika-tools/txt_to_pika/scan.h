@@ -4,11 +4,11 @@
 #include <vector>
 
 #include "sender.h"
-#include "pink/include/bg_thread.h"
+#include "net/include/bg_thread.h"
 
 #include <iostream>
 
-class ScanThread : public pink::Thread {
+class ScanThread : public net::Thread {
   public:
     ScanThread(std::string filename, std::vector<SenderThread *> senders, int ttl) :
       filename_(filename),

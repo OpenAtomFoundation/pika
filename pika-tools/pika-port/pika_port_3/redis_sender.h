@@ -7,11 +7,11 @@
 #include <iostream>
 #include <queue>
 
-#include "pink/include/bg_thread.h"
-#include "pink/include/pink_cli.h"
-#include "pink/include/redis_cli.h"
+#include "net/include/bg_thread.h"
+#include "net/include/net_cli.h"
+#include "net/include/redis_cli.h"
 
-class RedisSender : public pink::Thread {
+class RedisSender : public net::Thread {
  public:
   RedisSender(int id, std::string ip, int64_t port, std::string password);
   virtual ~RedisSender();
@@ -28,7 +28,7 @@ class RedisSender : public pink::Thread {
 
  private:
   int id_;
-  pink::PinkCli *cli_;
+  net::PinkCli *cli_;
   slash::CondVar rsignal_;
   slash::CondVar wsignal_;
   slash::Mutex commands_mutex_;

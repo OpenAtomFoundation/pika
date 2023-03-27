@@ -1,4 +1,0 @@
-#include "pink/include/build_version.h"
-const char* pink_build_git_sha = "pink_build_git_sha:@@GIT_SHA@@";
-const char* pink_build_git_date = "pink_build_git_date:@@GIT_DATE_TIME@@";
-const char* pink_build_compile_date = __DATE__;

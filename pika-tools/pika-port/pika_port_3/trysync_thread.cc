@@ -65,13 +65,13 @@ void TrysyncThread::PrepareRsync() {
 }
 
 bool TrysyncThread::Send(std::string lip) {
-  pink::RedisCmdArgsType argv;
+  net::RedisCmdArgsType argv;
   std::string wbuf_str;
   std::string requirepass = g_pika_port->requirepass();
   if (requirepass != "") {
     argv.push_back("auth");
     argv.push_back(requirepass);
-    pink::SerializeRedisCommand(argv, &wbuf_str);
+    net::SerializeRedisCommand(argv, &wbuf_str);
   }
 
   argv.clear();
@@ -86,7 +86,7 @@ bool TrysyncThread::Send(std::string lip) {
 
   argv.push_back(std::to_string(filenum));
   argv.push_back(std::to_string(pro_offset));
-  pink::SerializeRedisCommand(argv, &tbuf_str);
+  net::SerializeRedisCommand(argv, &tbuf_str);
 
   wbuf_str.append(tbuf_str);
   LOG(INFO) << "redis command: trysync " << g_conf.local_ip.c_str() << " "
@@ -111,7 +111,7 @@ bool TrysyncThread::RecvProc() {
   slash::Status s;
   std::string reply;
 
-  pink::RedisCmdArgsType argv;
+  net::RedisCmdArgsType argv;
   while (1) {
     s = cli_->Recv(&argv);
     if (!s.ok()) {
@@ -444,7 +444,7 @@ void* TrysyncThread::ThreadMain() {
     // Make sure the listening addr of rsyncd is accessible, to avoid the corner case
     // that "rsync --daemon" process has started but can not bind its port which is
     // used by other process.
-    pink::PinkCli *rsync = pink::NewRedisCli();
+    net::PinkCli *rsync = net::NewRedisCli();
     int retry_times;
     for (retry_times = 0; retry_times < 5; retry_times++) {
       if (rsync->Connect(lip, rsync_port, "").ok()) {

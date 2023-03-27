@@ -13,12 +13,12 @@ extern PikaPort* g_pika_port;
 Status SlavepingThread::Send() {
   std::string wbuf_str;
   if (!is_first_send_) {
-    pink::SerializeRedisCommand(&wbuf_str, "ping"); // reply == pong
+    net::SerializeRedisCommand(&wbuf_str, "ping"); // reply == pong
   } else {
-    pink::RedisCmdArgsType argv;
+    net::RedisCmdArgsType argv;
     argv.push_back("spci"); // reply == pong
     argv.push_back(std::to_string(sid_));
-    pink::SerializeRedisCommand(argv, &wbuf_str);
+    net::SerializeRedisCommand(argv, &wbuf_str);
     is_first_send_ = false;
     LOG(INFO) << wbuf_str;
   }
@@ -27,7 +27,7 @@ Status SlavepingThread::Send() {
 }
 
 Status SlavepingThread::RecvProc() {
-  pink::RedisCmdArgsType argv;
+  net::RedisCmdArgsType argv;
   Status s = cli_->Recv(&argv);
   if (s.ok()) {
     slash::StringToLower(argv[0]);

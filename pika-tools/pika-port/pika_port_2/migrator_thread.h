@@ -3,10 +3,10 @@
 
 #include <iostream>
 #include "nemo.h"
-#include "pink/include/redis_cli.h"
+#include "net/include/redis_cli.h"
 #include "pika_sender.h"
 
-class MigratorThread : public pink::Thread {
+class MigratorThread : public net::Thread {
  public:
   MigratorThread(nemo::Nemo *db, std::vector<PikaSender *> *senders, char type, int thread_num) :
       db_(db),

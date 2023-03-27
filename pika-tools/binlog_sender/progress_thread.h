@@ -9,13 +9,13 @@
 #include "iostream"
 #include "vector"
 
-#include "pink/include/pink_thread.h"
+#include "net/include/net_thread.h"
 
 #include "binlog_consumer.h"
 
 extern slash::Mutex mutex;
 
-class ProgressThread : public pink::Thread {
+class ProgressThread : public net::Thread {
   public:
     ProgressThread(BinlogConsumer* binlog_consumer);
   private:
