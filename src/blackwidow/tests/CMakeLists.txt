@@ -22,7 +22,7 @@ foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
   add_dependencies(${blackwindow_test_name} gtest)     
   target_link_libraries(${blackwindow_test_name}
       PUBLIC ${GTEST_LIBRARY}
-      PUBLIC slash
+      PUBLIC pstd
       PUBLIC ${ROCKSDB_LIBRARY}
       PUBLIC blackwidow
       )

@@ -11,7 +11,7 @@
 
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
@@ -253,7 +253,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, offset, offset, true);
     slave_partition->SetReplState(ReplState::kConnected);
     // after connected, update receive time first to avoid connection timeout
-    slave_partition->SetLastRecvTime(slash::NowMicros());
+    slave_partition->SetLastRecvTime(pstd::NowMicros());
 
     LOG(INFO)    << "Partition: " << partition_name << " TrySync Ok";
   } else if (try_sync_response.reply_code() == InnerMessage::InnerResponse::TrySync::kSyncPointBePurged) {
@@ -318,7 +318,7 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
         << binlog_nums.first.partition_id_ << " not exist";
       break;
     }
-    slave_partition->SetLastRecvTime(slash::NowMicros());
+    slave_partition->SetLastRecvTime(pstd::NowMicros());
     g_pika_rm->ScheduleWriteBinlogTask(
         binlog_nums.first.table_name_ + std::to_string(binlog_nums.first.partition_id_),
         res,

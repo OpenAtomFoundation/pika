@@ -12,7 +12,7 @@
 #include "pink/include/pink_conn.h"
 #include "pink/include/client_thread.h"
 #include "pink/include/thread_pool.h"
-#include "slash/include/slash_status.h"
+#include "pstd/include/pstd_status.h"
 
 #include "include/pika_define.h"
 #include "include/pika_partition.h"
@@ -23,7 +23,7 @@
 #include "pink/include/thread_pool.h"
 #include "pika_inner_message.pb.h"
 
-using slash::Status;
+using pstd::Status;
 
 struct ReplClientTaskArg {
   std::shared_ptr<InnerMessage::InnerResponse> res;
@@ -72,8 +72,8 @@ class PikaReplClient {
   int Start();
   int Stop();
 
-  slash::Status Write(const std::string& ip, const int port, const std::string& msg);
-  slash::Status Close(const std::string& ip, const int port);
+  pstd::Status Write(const std::string& ip, const int port, const std::string& msg);
+  pstd::Status Close(const std::string& ip, const int port);
 
   void Schedule(pink::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(std::string table_partition,

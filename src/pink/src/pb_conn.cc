@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <string>
 
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 #include "pink/include/pink_define.h"
 
 namespace pink {
@@ -117,7 +117,7 @@ ReadStatus PbConn::GetRequest() {
 WriteStatus PbConn::SendReply() {
   ssize_t nwritten = 0;
   size_t item_len;
-  slash::MutexLock l(&resp_mu_);
+  pstd::MutexLock l(&resp_mu_);
   while (!write_buf_.queue_.empty()) {
     std::string item = write_buf_.queue_.front();
     item_len = item.size();
@@ -149,7 +149,7 @@ WriteStatus PbConn::SendReply() {
 }
 
 void PbConn::set_is_reply(const bool is_reply) {
-  slash::MutexLock l(&is_reply_mu_);
+  pstd::MutexLock l(&is_reply_mu_);
   if (is_reply) {
     is_reply_++;
   } else {
@@ -161,7 +161,7 @@ void PbConn::set_is_reply(const bool is_reply) {
 }
 
 bool PbConn::is_reply() {
-  slash::MutexLock l(&is_reply_mu_);
+  pstd::MutexLock l(&is_reply_mu_);
   return is_reply_ > 0;
 }
 
@@ -169,7 +169,7 @@ int PbConn::WriteResp(const std::string& resp) {
 
   std::string tag;
   BuildInternalTag(resp, &tag);
-  slash::MutexLock l(&resp_mu_);
+  pstd::MutexLock l(&resp_mu_);
   write_buf_.queue_.push(tag);
   write_buf_.queue_.push(resp);
   set_is_reply(true);

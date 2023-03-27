@@ -29,12 +29,12 @@ PINK_INCLUDE_DIR=$(PINK_PATH)
 PINK_LIBRARY=$(PINK_PATH)/pink/lib/libpink.a
 
 ifndef SLASH_PATH
-  $(warning Warning: missing slash path, using default)
-  SLASH_PATH=$(CURDIR)/../third/slash
+  $(warning Warning: missing pstd path, using default)
+  SLASH_PATH=$(CURDIR)/../third/pstd
 endif
 
 SLASH_INCLUDE_DIR=$(SLASH_PATH)
-SLASH_LIBRARY=$(SLASH_PATH)/slash/lib/libslash.a
+SLASH_LIBRARY=$(SLASH_PATH)/pstd/lib/libpstd.a
 
 PINK_DIR = ../..
 PINK_TESTS_SRC = $(PINK_DIR)/pink/src/test

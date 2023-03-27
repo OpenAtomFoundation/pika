@@ -11,13 +11,13 @@
 #include <queue>
 
 #include "google/protobuf/message.h"
-#include "slash/include/slash_status.h"
+#include "pstd/include/pstd_status.h"
 #include "pink/include/pink_conn.h"
 #include "pink/include/pink_define.h"
 
 namespace pink {
 
-using slash::Status;
+using pstd::Status;
 
 class PbConn: public PinkConn {
  public:
@@ -80,9 +80,9 @@ class PbConn: public PinkConn {
   virtual int DealMessage() = 0;
 
  private:
-  slash::Mutex resp_mu_;
+  pstd::Mutex resp_mu_;
   WriteBuf write_buf_;
-  slash::Mutex is_reply_mu_;
+  pstd::Mutex is_reply_mu_;
   int64_t is_reply_;
   virtual void BuildInternalTag(const std::string& resp, std::string* tag);
 };

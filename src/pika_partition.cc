@@ -11,7 +11,7 @@
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
 
-#include "slash/include/mutex_impl.h"
+#include "pstd/include/mutex_impl.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
@@ -79,7 +79,7 @@ Partition::Partition(const std::string& table_name,
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
 
-  lock_mgr_ = new slash::lock::LockMgr(1000, 0, std::make_shared<slash::lock::MutexFactoryImpl>());
+  lock_mgr_ = new pstd::lock::LockMgr(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
 
   opened_ = s.ok() ? true : false;
   assert(db_);
@@ -103,7 +103,7 @@ void Partition::Close() {
   if (!opened_) {
     return;
   }
-  slash::RWLock rwl(&db_rwlock_, true);
+  pstd::RWLock rwl(&db_rwlock_, true);
   db_.reset();
   opened_ = false;
 }
@@ -120,7 +120,7 @@ void Partition::MoveToTrash() {
     dbpath.erase(dbpath.length() - 1);
   }
   dbpath.append("_deleting/");
-  if (slash::RenameFile(db_path_, dbpath.c_str())) {
+  if (pstd::RenameFile(db_path_, dbpath.c_str())) {
     LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
     return;
   }
@@ -162,17 +162,17 @@ void Partition::DbRWUnLock() {
   pthread_rwlock_unlock(&db_rwlock_);
 }
 
-slash::lock::LockMgr* Partition::LockMgr() {
+pstd::lock::LockMgr* Partition::LockMgr() {
   return lock_mgr_;
 }
 
 void Partition::PrepareRsync() {
-  slash::DeleteDirIfExist(dbsync_path_);
-  slash::CreatePath(dbsync_path_ + "strings");
-  slash::CreatePath(dbsync_path_ + "hashes");
-  slash::CreatePath(dbsync_path_ + "lists");
-  slash::CreatePath(dbsync_path_ + "sets");
-  slash::CreatePath(dbsync_path_ + "zsets");
+  pstd::DeleteDirIfExist(dbsync_path_);
+  pstd::CreatePath(dbsync_path_ + "strings");
+  pstd::CreatePath(dbsync_path_ + "hashes");
+  pstd::CreatePath(dbsync_path_ + "lists");
+  pstd::CreatePath(dbsync_path_ + "sets");
+  pstd::CreatePath(dbsync_path_ + "zsets");
 }
 
 // Try to update master offset
@@ -183,7 +183,7 @@ void Partition::PrepareRsync() {
 // 3, Update master offset, and the PikaAuxiliaryThread cron will connect and do slaveof task with master
 bool Partition::TryUpdateMasterOffset() {
   std::string info_path = dbsync_path_ + kBgsaveInfoFile;
-  if (!slash::FileExists(info_path)) {
+  if (!pstd::FileExists(info_path)) {
     return false;
   }
 
@@ -211,7 +211,7 @@ bool Partition::TryUpdateMasterOffset() {
     if (lineno == 2) {
       master_ip = line;
     } else if (lineno > 2 && lineno < 8) {
-      if (!slash::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
+      if (!pstd::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
         LOG(WARNING) << "Partition: " << partition_name_
             << ", Format of info file after db sync error, line : " << line;
         is.close();
@@ -250,7 +250,7 @@ bool Partition::TryUpdateMasterOffset() {
     return false;
   }
 
-  slash::DeleteFile(info_path);
+  pstd::DeleteFile(info_path);
   if (!ChangeDb(dbsync_path_)) {
     LOG(WARNING) << "Partition: " << partition_name_
         << ", Failed to change db";
@@ -287,20 +287,20 @@ bool Partition::ChangeDb(const std::string& new_path) {
     tmp_path.resize(tmp_path.size() - 1);
   }
   tmp_path += "_bak";
-  slash::DeleteDirIfExist(tmp_path);
+  pstd::DeleteDirIfExist(tmp_path);
 
   RWLock l(&db_rwlock_, true);
   LOG(INFO) << "Partition: "<< partition_name_
       << ", Prepare change db from: " << tmp_path;
   db_.reset();
 
-  if (0 != slash::RenameFile(db_path_.c_str(), tmp_path)) {
+  if (0 != pstd::RenameFile(db_path_.c_str(), tmp_path)) {
     LOG(WARNING) << "Partition: " << partition_name_
         << ", Failed to rename db path when change db, error: " << strerror(errno);
     return false;
   }
 
-  if (0 != slash::RenameFile(new_path.c_str(), db_path_.c_str())) {
+  if (0 != pstd::RenameFile(new_path.c_str(), db_path_.c_str())) {
     LOG(WARNING) << "Partition: " << partition_name_
         << ", Failed to rename new db path when change db, error: " << strerror(errno);
     return false;
@@ -310,18 +310,18 @@ bool Partition::ChangeDb(const std::string& new_path) {
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
   assert(db_);
   assert(s.ok());
-  slash::DeleteDirIfExist(tmp_path);
+  pstd::DeleteDirIfExist(tmp_path);
   LOG(INFO) << "Partition: " << partition_name_ << ", Change db success";
   return true;
 }
 
 bool Partition::IsBgSaving() {
-  slash::MutexLock ml(&bgsave_protector_);
+  pstd::MutexLock ml(&bgsave_protector_);
   return bgsave_info_.bgsaving;
 }
 
 void Partition::BgSavePartition() {
-  slash::MutexLock l(&bgsave_protector_);
+  pstd::MutexLock l(&bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return;
   }
@@ -332,7 +332,7 @@ void Partition::BgSavePartition() {
 }
 
 BgSaveInfo Partition::bgsave_info() {
-  slash::MutexLock l(&bgsave_protector_);
+  pstd::MutexLock l(&bgsave_protector_);
   return bgsave_info_;
 }
 
@@ -360,7 +360,7 @@ void Partition::DoBgSave(void* arg) {
   }
   if (!success) {
     std::string fail_path = info.path + "_FAILED";
-    slash::RenameFile(info.path.c_str(), fail_path.c_str());
+    pstd::RenameFile(info.path.c_str(), fail_path.c_str());
   }
   bg_task_arg->partition->FinishBgsave();
 
@@ -394,7 +394,7 @@ bool Partition::RunBgsaveEngine() {
 
 // Prepare engine, need bgsave_protector protect
 bool Partition::InitBgsaveEnv() {
-  slash::MutexLock l(&bgsave_protector_);
+  pstd::MutexLock l(&bgsave_protector_);
   // Prepare for bgsave dir
   bgsave_info_.start_time = time(NULL);
   char s_time[32];
@@ -402,13 +402,13 @@ bool Partition::InitBgsaveEnv() {
   bgsave_info_.s_start_time.assign(s_time, len);
   std::string time_sub_path = g_pika_conf->bgsave_prefix() + std::string(s_time, 8);
   bgsave_info_.path = g_pika_conf->bgsave_path() + time_sub_path + "/" + bgsave_sub_path_;
-  if (!slash::DeleteDirIfExist(bgsave_info_.path)) {
+  if (!pstd::DeleteDirIfExist(bgsave_info_.path)) {
     LOG(WARNING) << partition_name_ << " remove exist bgsave dir failed";
     return false;
   }
-  slash::CreatePath(bgsave_info_.path, 0755);
+  pstd::CreatePath(bgsave_info_.path, 0755);
   // Prepare for failed dir
-  if (!slash::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
+  if (!pstd::DeleteDirIfExist(bgsave_info_.path + "_FAILED")) {
     LOG(WARNING) << partition_name_ << " remove exist fail bgsave dir failed :";
     return false;
   }
@@ -440,7 +440,7 @@ bool Partition::InitBgsaveEngine() {
       partition->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum), &(bgsave_offset.b_offset.offset));
     }
     {
-      slash::MutexLock l(&bgsave_protector_);
+      pstd::MutexLock l(&bgsave_protector_);
       bgsave_info_.offset = bgsave_offset;
     }
     s = bgsave_engine_->SetBackupContent();
@@ -453,18 +453,18 @@ bool Partition::InitBgsaveEngine() {
 }
 
 void Partition::ClearBgsave() {
-  slash::MutexLock l(&bgsave_protector_);
+  pstd::MutexLock l(&bgsave_protector_);
   bgsave_info_.Clear();
 }
 
 void Partition::FinishBgsave() {
-  slash::MutexLock l(&bgsave_protector_);
+  pstd::MutexLock l(&bgsave_protector_);
   bgsave_info_.bgsaving = false;
 }
 
 bool Partition::FlushDB() {
-  slash::RWLock rwl(&db_rwlock_, true);
-  slash::MutexLock ml(&bgsave_protector_);
+  pstd::RWLock rwl(&db_rwlock_, true);
+  pstd::MutexLock ml(&bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return false;
   }
@@ -477,7 +477,7 @@ bool Partition::FlushDB() {
     dbpath.erase(dbpath.length() - 1);
   }
   dbpath.append("_deleting/");
-  slash::RenameFile(db_path_, dbpath.c_str());
+  pstd::RenameFile(db_path_, dbpath.c_str());
 
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
@@ -489,8 +489,8 @@ bool Partition::FlushDB() {
 }
 
 bool Partition::FlushSubDB(const std::string& db_name) {
-  slash::RWLock rwl(&db_rwlock_, true);
-  slash::MutexLock ml(&bgsave_protector_);
+  pstd::RWLock rwl(&db_rwlock_, true);
+  pstd::MutexLock ml(&bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return false;
   }
@@ -505,7 +505,7 @@ bool Partition::FlushSubDB(const std::string& db_name) {
 
   std::string sub_dbpath = dbpath + db_name;
   std::string del_dbpath = dbpath + db_name + "_deleting";
-  slash::RenameFile(sub_dbpath, del_dbpath);
+  pstd::RenameFile(sub_dbpath, del_dbpath);
 
   db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
@@ -525,12 +525,12 @@ void Partition::InitKeyScan() {
 }
 
 KeyScanInfo Partition::GetKeyScanInfo() {
-  slash::MutexLock l(&key_info_protector_);
+  pstd::MutexLock l(&key_info_protector_);
   return key_scan_info_;
 }
 
 Status Partition::GetKeyNum(std::vector<blackwidow::KeyInfo>* key_info) {
-  slash::MutexLock l(&key_info_protector_);
+  pstd::MutexLock l(&key_info_protector_);
   if (key_scan_info_.key_scaning_) {
     *key_info = key_scan_info_.key_infos;
     return Status::OK();

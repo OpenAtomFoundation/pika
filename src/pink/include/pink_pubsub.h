@@ -18,9 +18,9 @@
 #include <set>
 #include <fcntl.h>
 
-#include "slash/include/xdebug.h"
-#include "slash/include/slash_mutex.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/xdebug.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_string.h"
 
 #include "pink/src/pink_epoll.h"
 #include "pink/include/pink_thread.h"
@@ -91,17 +91,17 @@ class PubSubThread : public Thread {
   int msg_pfd_[2];
   bool should_exit_;
 
-  mutable slash::RWMutex rwlock_; /* For external statistics */
+  mutable pstd::RWMutex rwlock_; /* For external statistics */
   std::map<int, std::shared_ptr<ConnHandle> > conns_;
 
-  slash::Mutex pub_mutex_;
-  slash::CondVar receiver_rsignal_;
-  slash::Mutex receiver_mutex_;
+  pstd::Mutex pub_mutex_;
+  pstd::CondVar receiver_rsignal_;
+  pstd::Mutex receiver_mutex_;
 
   /*
    * receive fd from worker thread
    */
-  slash::Mutex mutex_;
+  pstd::Mutex mutex_;
   std::queue<PinkItem> queue_;
 
   std::string channel_;
@@ -119,8 +119,8 @@ class PubSubThread : public Thread {
   void Cleanup();
 
   // PubSub
-  slash::Mutex channel_mutex_;
-  slash::Mutex pattern_mutex_;
+  pstd::Mutex channel_mutex_;
+  pstd::Mutex pattern_mutex_;
 
   std::map<std::string, std::vector<std::shared_ptr<PinkConn> >> pubsub_channel_;    // channel <---> conns
   std::map<std::string, std::vector<std::shared_ptr<PinkConn> >> pubsub_pattern_;    // channel <---> conns

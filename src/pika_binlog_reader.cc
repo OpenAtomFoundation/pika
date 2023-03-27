@@ -38,7 +38,7 @@ PikaBinlogReader::~PikaBinlogReader() {
 }
 
 void PikaBinlogReader::GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset) {
-  slash::RWLock l(&(rwlock_), false);
+  pstd::RWLock l(&(rwlock_), false);
   *cur_filenum = cur_filenum_;
   *cur_offset = cur_offset_;
 }
@@ -47,18 +47,18 @@ bool PikaBinlogReader::ReadToTheEnd() {
   uint32_t pro_num;
   uint64_t pro_offset;
   logger_->GetProducerStatus(&pro_num, &pro_offset);
-  slash::RWLock l(&(rwlock_), false);
+  pstd::RWLock l(&(rwlock_), false);
   return (pro_num == cur_filenum_ && pro_offset == cur_offset_);
 }
 
 int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
   std::string confile = NewFileName(logger->filename(), filenum);
-  if (!slash::FileExists(confile)) {
+  if (!pstd::FileExists(confile)) {
     LOG(WARNING) << confile << " not exits";
     return -1;
   }
-  slash::SequentialFile* readfile;
-  if (!slash::NewSequentialFile(confile, &readfile).ok()) {
+  pstd::SequentialFile* readfile;
+  if (!pstd::NewSequentialFile(confile, &readfile).ok()) {
     LOG(WARNING) << "New swquential " << confile << " failed";
     return -1;
   }
@@ -68,12 +68,12 @@ int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uin
   queue_ = readfile;
   logger_ = logger;
 
-  slash::RWLock l(&(rwlock_), true);
+  pstd::RWLock l(&(rwlock_), true);
   cur_filenum_ = filenum;
   cur_offset_ = offset;
   last_record_offset_ = cur_filenum_ % kBlockSize;
 
-  slash::Status s;
+  pstd::Status s;
   uint64_t start_block = (cur_offset_ / kBlockSize) * kBlockSize;
   s = queue_->Skip((cur_offset_ / kBlockSize) * kBlockSize);
   uint64_t block_offset = cur_offset_ % kBlockSize;
@@ -99,7 +99,7 @@ int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uin
 
 bool PikaBinlogReader::GetNext(uint64_t* size) {
   uint64_t offset = 0;
-  slash::Status s;
+  pstd::Status s;
   bool is_error = false;
 
   while (true) {
@@ -147,11 +147,11 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
   return is_error;
 }
 
-unsigned int PikaBinlogReader::ReadPhysicalRecord(slash::Slice *result, uint32_t* filenum, uint64_t* offset) {
-  slash::Status s;
+unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice *result, uint32_t* filenum, uint64_t* offset) {
+  pstd::Status s;
   if (kBlockSize - last_record_offset_ <= kHeaderSize) {
     queue_->Skip(kBlockSize - last_record_offset_);
-    slash::RWLock l(&(rwlock_), true);
+    pstd::RWLock l(&(rwlock_), true);
     cur_offset_ += (kBlockSize - last_record_offset_);
     last_record_offset_ = 0;
   }
@@ -180,10 +180,10 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(slash::Slice *result, uint32_t
 
   buffer_.clear();
   s = queue_->Read(length, &buffer_, backing_store_);
-  *result = slash::Slice(buffer_.data(), buffer_.size());
+  *result = pstd::Slice(buffer_.data(), buffer_.size());
   last_record_offset_ += kHeaderSize + length;
   if (s.ok()) {
-    slash::RWLock l(&(rwlock_), true);
+    pstd::RWLock l(&(rwlock_), true);
     *filenum = cur_filenum_;
     cur_offset_ += (kHeaderSize + length);
     *offset = cur_offset_;
@@ -194,7 +194,7 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(slash::Slice *result, uint32_t
 Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64_t* offset) {
   Status s;
 
-  slash::Slice fragment;
+  pstd::Slice fragment;
   while (true) {
     const unsigned int record_type = ReadPhysicalRecord(&fragment, filenum, offset);
 
@@ -255,14 +255,14 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
       usleep(10000);
 
       // Roll to next file need retry;
-      if (slash::FileExists(confile)) {
+      if (pstd::FileExists(confile)) {
         DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
         delete queue_;
         queue_ = NULL;
 
-        slash::NewSequentialFile(confile, &(queue_));
+        pstd::NewSequentialFile(confile, &(queue_));
         {
-          slash::RWLock l(&(rwlock_), true);
+          pstd::RWLock l(&(rwlock_), true);
           cur_filenum_++;
           cur_offset_ = 0;
         }

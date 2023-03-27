@@ -43,7 +43,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       << node.port();
     std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
     bool success = g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), table_structs);
-    const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+    const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
     g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
     if (!success) {
       response.set_code(InnerMessage::kOther);
@@ -175,7 +175,7 @@ bool PikaReplServerConn::TrySyncUpdateSlaveNode(
       LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
       return false;
     }
-    const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+    const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
     g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
     LOG(INFO) << "Partition: " << partition_name << " TrySync Success, Session: " << session_id;
@@ -259,7 +259,7 @@ bool PikaReplServerConn::TrySyncOffsetCheck(
   }
 
   std::string confile = NewFileName(partition->Logger()->filename(), slave_boffset.filenum());
-  if (!slash::FileExists(confile)) {
+  if (!pstd::FileExists(confile)) {
     LOG(INFO) << "Partition: " << partition_name << " binlog has been purged, may need full sync";
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
     return false;
@@ -342,7 +342,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
         db_sync_response->set_session_id(session_id);
         Status s = master_partition->AddSlaveNode(node.ip(), node.port(), session_id);
         if (s.ok()) {
-          const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+          const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
           g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
           LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success, Session: " << session_id;
         } else {
@@ -444,7 +444,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   // Set ack info from slave
   RmNode slave_node = RmNode(node.ip(), node.port(), table_name, partition_id);
 
-  Status s = master_partition->SetLastRecvTime(node.ip(), node.port(), slash::NowMicros());
+  Status s = master_partition->SetLastRecvTime(node.ip(), node.port(), pstd::NowMicros());
   if (!s.ok()) {
     LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port()
         << ", " << table_name << "_" << partition_id << " " << s.ToString();

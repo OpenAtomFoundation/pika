@@ -29,7 +29,7 @@ void* PikaAuxiliaryThread::ThreadMain() {
       g_pika_rm->RunSyncSlavePartitionStateMachine();
     }
 
-    Status s = g_pika_rm->CheckSyncTimeout(slash::NowMicros());
+    Status s = g_pika_rm->CheckSyncTimeout(pstd::NowMicros());
     if (!s.ok()) {
       LOG(WARNING) << s.ToString();
     }

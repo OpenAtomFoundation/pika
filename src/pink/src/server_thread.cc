@@ -13,13 +13,13 @@
 #include <netinet/tcp.h>
 
 
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 #include "pink/src/pink_epoll.h"
 #include "pink/src/server_socket.h"
 
 namespace pink {
 
-using slash::Status;
+using pstd::Status;
 
 class DefaultServerHandle : public ServerHandle {
  public:
@@ -284,7 +284,7 @@ void *ServerThread::ThreadMain() {
 }
 
 #ifdef __ENABLE_SSL
-static std::vector<std::unique_ptr<slash::Mutex>> ssl_mutex_;
+static std::vector<std::unique_ptr<pstd::Mutex>> ssl_mutex_;
 
 static void SSLLockingCallback(int mode, int type, const char* file, int line) {
   if (mode & CRYPTO_LOCK) {
@@ -307,7 +307,7 @@ int ServerThread::EnableSecurity(const std::string& cert_file,
   // 1. Create multithread mutex used by openssl
   ssl_mutex_.resize(CRYPTO_num_locks());
   for (auto& sm : ssl_mutex_) {
-    sm.reset(new slash::Mutex());
+    sm.reset(new pstd::Mutex());
   }
   CRYPTO_set_locking_callback(SSLLockingCallback);
   CRYPTO_set_id_callback(SSLIdCallback);

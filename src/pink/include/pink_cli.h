@@ -8,9 +8,9 @@
 
 #include <string>
 
-#include "slash/include/slash_status.h"
+#include "pstd/include/pstd_status.h"
 
-using slash::Status;
+using pstd::Status;
 
 namespace pink {
 

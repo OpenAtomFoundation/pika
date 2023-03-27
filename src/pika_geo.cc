@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_geohash_helper.h"
 
@@ -26,11 +26,11 @@ void GeoAddCmd::DoInitial() {
   struct GeoPoint point;
   double longitude, latitude;
   for (size_t index = 2; index < argc; index += 3) {
-    if (!slash::string2d(argv_[index].data(), argv_[index].size(), &longitude)) {
+    if (!pstd::string2d(argv_[index].data(), argv_[index].size(), &longitude)) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
-    if (!slash::string2d(argv_[index + 1].data(), argv_[index + 1].size(), &latitude)) {
+    if (!pstd::string2d(argv_[index + 1].data(), argv_[index + 1].size(), &latitude)) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
@@ -52,7 +52,7 @@ void GeoAddCmd::Do(std::shared_ptr<Partition> partition) {
     // Convert uint64 to double
     double score;
     std::string str_bits = std::to_string(bits);
-    slash::string2d(str_bits.data(), str_bits.size(), &score);
+    pstd::string2d(str_bits.data(), str_bits.size(), &score);
     score_members.push_back({score, geo_point.member});
   }
   int32_t count = 0;
@@ -90,12 +90,12 @@ void GeoPosCmd::Do(std::shared_ptr<Partition> partition) {
 
       res_.AppendArrayLen(2);
       char longitude[32];
-      int64_t len = slash::d2string(longitude, sizeof(longitude), xy[0]);
+      int64_t len = pstd::d2string(longitude, sizeof(longitude), xy[0]);
       res_.AppendStringLen(len);
       res_.AppendContent(longitude);
 
       char latitude[32];
-      len = slash::d2string(latitude, sizeof(latitude), xy[1]);
+      len = pstd::d2string(latitude, sizeof(latitude), xy[1]);
       res_.AppendStringLen(len);
       res_.AppendContent(latitude);
     
@@ -383,12 +383,12 @@ static void GetAllNeighbors(std::shared_ptr<Partition> partition, std::string & 
         geohashDecodeToLongLatWGS84(hash, xy);
 
         char longitude[32];
-        int64_t len = slash::d2string(longitude, sizeof(longitude), xy[0]);
+        int64_t len = pstd::d2string(longitude, sizeof(longitude), xy[0]);
         res.AppendStringLen(len);
         res.AppendContent(longitude);
 
         char latitude[32];
-        len = slash::d2string(latitude, sizeof(latitude), xy[1]);
+        len = pstd::d2string(latitude, sizeof(latitude), xy[1]);
         res.AppendStringLen(len);
         res.AppendContent(latitude);
       }
@@ -402,9 +402,9 @@ void GeoRadiusCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  slash::string2d(argv_[2].data(), argv_[2].size(), &range_.longitude);
-  slash::string2d(argv_[3].data(), argv_[3].size(), &range_.latitude);
-  slash::string2d(argv_[4].data(), argv_[4].size(), &range_.distance);
+  pstd::string2d(argv_[2].data(), argv_[2].size(), &range_.longitude);
+  pstd::string2d(argv_[3].data(), argv_[3].size(), &range_.latitude);
+  pstd::string2d(argv_[4].data(), argv_[4].size(), &range_.distance);
   range_.unit = argv_[5];
   if (!check_unit(range_.unit)) {
     res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");
@@ -476,7 +476,7 @@ void GeoRadiusByMemberCmd::DoInitial() {
   }
   key_ = argv_[1];
   range_.member = argv_[2];
-  slash::string2d(argv_[3].data(), argv_[3].size(), &range_.distance);
+  pstd::string2d(argv_[3].data(), argv_[3].size(), &range_.distance);
   range_.unit = argv_[4];
   if (!check_unit(range_.unit)) {
     res_.SetRes(CmdRes::kErrOther, "unsupported unit provided. please use m, km, ft, mi");

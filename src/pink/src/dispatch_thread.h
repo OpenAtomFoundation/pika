@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 #include "pink/include/server_thread.h"
 #include "pink/include/pink_conn.h"
 

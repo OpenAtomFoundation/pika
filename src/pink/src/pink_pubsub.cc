@@ -72,7 +72,7 @@ void PubSubThread::MoveConnOut(std::shared_ptr<PinkConn> conn) {
 
   pink_epoll_->PinkDelEvent(conn->fd());
   {
-    slash::WriteLock l(&rwlock_);
+    pstd::WriteLock l(&rwlock_);
     conns_.erase(conn->fd());
   }
 }
@@ -81,14 +81,14 @@ void PubSubThread::MoveConnIn(std::shared_ptr<PinkConn> conn, const NotifyType& 
   PinkItem it(conn->fd(), conn->ip_port(), notify_type);
   pink_epoll_->Register(it, true);
   {
-    slash::WriteLock l(&rwlock_);
+    pstd::WriteLock l(&rwlock_);
     conns_[conn->fd()] = std::make_shared<ConnHandle>(conn);
   }
   conn->set_pink_epoll(pink_epoll_);
 }
 
 void PubSubThread::UpdateConnReadyState(int fd, const ReadyState& state) {
-  slash::WriteLock l(&rwlock_);
+  pstd::WriteLock l(&rwlock_);
   const auto& it = conns_.find(fd);
   if (it == conns_.end()) {
     return;
@@ -97,7 +97,7 @@ void PubSubThread::UpdateConnReadyState(int fd, const ReadyState& state) {
 }
 
 bool PubSubThread::IsReady(int fd) {
-  slash::ReadLock l(&rwlock_);
+  pstd::ReadLock l(&rwlock_);
   const auto& it = conns_.find(fd);
   if (it != conns_.end()) {
     return it->second->IsReady();
@@ -197,7 +197,7 @@ void PubSubThread::Subscribe(std::shared_ptr<PinkConn> conn,
 
   for (size_t i = 0; i < channels.size(); i++) {
     if (pattern) {  // if pattern mode, register channel to map
-      slash::MutexLock channel_lock(&pattern_mutex_);
+      pstd::MutexLock channel_lock(&pattern_mutex_);
       if (pubsub_pattern_.find(channels[i]) != pubsub_pattern_.end()) {
         auto conn_ptr = std::find(pubsub_pattern_[channels[i]].begin(),
                                   pubsub_pattern_[channels[i]].end(),
@@ -213,7 +213,7 @@ void PubSubThread::Subscribe(std::shared_ptr<PinkConn> conn,
       }
       result->push_back(std::make_pair(channels[i], subscribed));
     } else {    // if general mode, reigster channel to map
-      slash::MutexLock channel_lock(&channel_mutex_);
+      pstd::MutexLock channel_lock(&channel_mutex_);
       if (pubsub_channel_.find(channels[i]) != pubsub_channel_.end()) {
         auto conn_ptr = std::find(pubsub_channel_[channels[i]].begin(),
                                   pubsub_channel_[channels[i]].end(),
@@ -247,7 +247,7 @@ int PubSubThread::UnSubscribe(std::shared_ptr<PinkConn> conn,
   }
   if (channels.size() == 0) {       // if client want to unsubscribe all of channels
     if (pattern) {                  // all of pattern channels
-      slash::MutexLock l(&pattern_mutex_);
+      pstd::MutexLock l(&pattern_mutex_);
       for (auto& channel : pubsub_pattern_) {
         auto conn_ptr = std::find(channel.second.begin(),
                                 channel.second.end(),
@@ -257,7 +257,7 @@ int PubSubThread::UnSubscribe(std::shared_ptr<PinkConn> conn,
         }
       }
     } else {
-      slash::MutexLock l(&channel_mutex_);
+      pstd::MutexLock l(&channel_mutex_);
       for (auto& channel : pubsub_channel_) {
         auto conn_ptr = std::find(channel.second.begin(),
                                 channel.second.end(),
@@ -275,7 +275,7 @@ int PubSubThread::UnSubscribe(std::shared_ptr<PinkConn> conn,
 
   for (size_t i = 0; i < channels.size(); i++) {
     if (pattern) {      // if pattern mode, unsubscribe the channels of specified
-      slash::MutexLock l(&pattern_mutex_);
+      pstd::MutexLock l(&pattern_mutex_);
       auto channel_ptr = pubsub_pattern_.find(channels[i]);
       if (channel_ptr != pubsub_pattern_.end()) {
         auto it = std::find(channel_ptr->second.begin(),
@@ -295,7 +295,7 @@ int PubSubThread::UnSubscribe(std::shared_ptr<PinkConn> conn,
         result->push_back(std::make_pair(channels[i], 0));
       }
     } else {            // if general mode, unsubscribe the channels of specified
-      slash::MutexLock l(&channel_mutex_);
+      pstd::MutexLock l(&channel_mutex_);
       auto channel_ptr = pubsub_channel_.find(channels[i]);
       if (channel_ptr != pubsub_channel_.end()) {
         auto it = std::find(channel_ptr->second.begin(),
@@ -328,16 +328,16 @@ int PubSubThread::UnSubscribe(std::shared_ptr<PinkConn> conn,
 void PubSubThread::PubSubChannels(const std::string& pattern,
                     std::vector<std::string >* result) {
   if (pattern == "") {
-    slash::MutexLock l(&channel_mutex_);
+    pstd::MutexLock l(&channel_mutex_);
     for (auto& channel : pubsub_channel_) {
       if (channel.second.size() != 0) {
         result->push_back(channel.first);
       }
     }
   } else {
-    slash::MutexLock l(&channel_mutex_);
+    pstd::MutexLock l(&channel_mutex_);
     for (auto& channel : pubsub_channel_) {
-      if (slash::stringmatchlen(channel.first.c_str(), channel.first.size(),
+      if (pstd::stringmatchlen(channel.first.c_str(), channel.first.size(),
                                 pattern.c_str(), pattern.size(), 0)) {
         if (channel.second.size() != 0) {
           result->push_back(channel.first);
@@ -350,7 +350,7 @@ void PubSubThread::PubSubChannels(const std::string& pattern,
 void PubSubThread::PubSubNumSub(const std::vector<std::string> & channels,
                                 std::vector<std::pair<std::string, int>>* result) {
   int subscribed;
-  slash::MutexLock l(&channel_mutex_);
+  pstd::MutexLock l(&channel_mutex_);
   for (size_t i = 0; i < channels.size(); i++) {
     subscribed = 0;
     for (auto& channel : pubsub_channel_) {
@@ -364,7 +364,7 @@ void PubSubThread::PubSubNumSub(const std::vector<std::string> & channels,
 
 int PubSubThread::PubSubNumPat() {
   int subscribed = 0;
-  slash::MutexLock l(&pattern_mutex_);
+  pstd::MutexLock l(&pattern_mutex_);
   for (auto& channel : pubsub_pattern_) {
     subscribed += channel.second.size();
   }
@@ -374,7 +374,7 @@ int PubSubThread::PubSubNumPat() {
 void *PubSubThread::ThreadMain() {
   int nfds;
   PinkFiredEvent *pfe;
-  slash::Status s;
+  pstd::Status s;
   std::shared_ptr<PinkConn> in_conn = nullptr;
   char triger[1];
 
@@ -444,7 +444,7 @@ void *PubSubThread::ThreadMain() {
           // Send message to clients
           pattern_mutex_.Lock();
           for (auto it = pubsub_pattern_.begin(); it != pubsub_pattern_.end(); it++) {
-            if (slash::stringmatchlen(it->first.c_str(), it->first.size(),
+            if (pstd::stringmatchlen(it->first.c_str(), it->first.size(),
                                       channel.c_str(), channel.size(), 0)) {
               for (size_t i = 0; i < it->second.size(); i++) {
                 if (!IsReady(it->second[i]->fd())) {
@@ -483,7 +483,7 @@ void *PubSubThread::ThreadMain() {
         bool should_close = false;
 
         {
-          slash::ReadLock l(&rwlock_);
+          pstd::ReadLock l(&rwlock_);
           std::map<int, std::shared_ptr<ConnHandle> >::iterator iter = conns_.find(pfe->fd);
           if (iter == conns_.end()) {
             pink_epoll_->PinkDelEvent(pfe->fd);
@@ -541,7 +541,7 @@ void *PubSubThread::ThreadMain() {
 }
 
 void PubSubThread::Cleanup() {
-  slash::WriteLock l(&rwlock_);
+  pstd::WriteLock l(&rwlock_);
   for (auto& iter : conns_) {
     CloseFd(iter.second->conn);
   }

@@ -10,7 +10,7 @@
 
 #include "pink/include/redis_conn.h"
 #include "pink/include/pink_conn.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_partition.h"
 
@@ -532,7 +532,7 @@ void RedisAppendContent(std::string& str, const std::string& value) {
 
 void RedisAppendLen(std::string& str, int64_t ori, const std::string &prefix) {
   char buf[32];
-  slash::ll2string(buf, 32, static_cast<long long>(ori));
+  pstd::ll2string(buf, 32, static_cast<long long>(ori));
   str.append(prefix);
   str.append(buf);
   str.append(kNewLine);

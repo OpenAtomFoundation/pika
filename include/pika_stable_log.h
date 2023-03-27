@@ -21,11 +21,11 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
   }
   void Leave();
   void SetFirstOffset(const LogOffset& offset) {
-    slash::RWLock l(&offset_rwlock_, true);
+    pstd::RWLock l(&offset_rwlock_, true);
     first_offset_ = offset;
   }
   LogOffset first_offset() {
-    slash::RWLock l(&offset_rwlock_, false);
+    pstd::RWLock l(&offset_rwlock_, false);
     return first_offset_;
   }
   // Need to hold binlog lock

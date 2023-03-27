@@ -240,15 +240,15 @@ int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::R
   if (g_pika_server->HasMonitorClients()) {
     std::string table_name = g_pika_conf->classic_mode()
       ? worker->table_name_.substr(2) : worker->table_name_;
-    std::string monitor_message = std::to_string(1.0 * slash::NowMicros() / 1000000)
+    std::string monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000)
       + " [" + table_name + " " + worker->ip_port_ + "]";
     for (const auto& item : argv) {
-      monitor_message += " " + slash::ToRead(item);
+      monitor_message += " " + pstd::ToRead(item);
     }
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
-  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Command " << opt << " not in the command table";
     return -1;
@@ -282,7 +282,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    start_us = slash::NowMicros();
+    start_us = pstd::NowMicros();
   }
   std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
   // Add read lock for no suspend command
@@ -298,7 +298,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     int32_t start_time = start_us / 1000000;
-    int64_t duration = slash::NowMicros() - start_us;
+    int64_t duration = pstd::NowMicros() - start_us;
     if (duration > g_pika_conf->slowlog_slower_than()) {
       g_pika_server->SlowlogPushEntry(argv, start_time, duration);
       if (g_pika_conf->slowlog_write_errorlog()) {

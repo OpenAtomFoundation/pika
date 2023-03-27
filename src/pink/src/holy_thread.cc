@@ -10,7 +10,7 @@
 #include "pink/src/pink_epoll.h"
 #include "pink/src/pink_item.h"
 #include "pink/include/pink_conn.h"
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 
 namespace pink {
 
@@ -45,13 +45,13 @@ HolyThread::~HolyThread() {
 }
 
 int HolyThread::conn_num() const {
-  slash::ReadLock l(&rwlock_);
+  pstd::ReadLock l(&rwlock_);
   return conns_.size();
 }
 
 std::vector<ServerThread::ConnInfo> HolyThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
-  slash::ReadLock l(&rwlock_);
+  pstd::ReadLock l(&rwlock_);
   for (auto& conn : conns_) {
     result.push_back({
                       conn.first,
@@ -63,7 +63,7 @@ std::vector<ServerThread::ConnInfo> HolyThread::conns_info() const {
 }
 
 std::shared_ptr<PinkConn> HolyThread::MoveConnOut(int fd) {
-  slash::WriteLock l(&rwlock_);
+  pstd::WriteLock l(&rwlock_);
   std::shared_ptr<PinkConn> conn = nullptr;
   auto iter = conns_.find(fd);
   if (iter != conns_.end()) {
@@ -76,7 +76,7 @@ std::shared_ptr<PinkConn> HolyThread::MoveConnOut(int fd) {
 }
 
 std::shared_ptr<PinkConn> HolyThread::get_conn(int fd) {
-  slash::ReadLock l(&rwlock_);
+  pstd::ReadLock l(&rwlock_);
   auto iter = conns_.find(fd);
   if (iter != conns_.end()) {
     return iter->second;
@@ -109,7 +109,7 @@ void HolyThread::HandleNewConn(const int connfd, const std::string &ip_port) {
       connfd, ip_port, this, private_data_, pink_epoll_);
   tc->SetNonblock();
   {
-    slash::WriteLock l(&rwlock_);
+    pstd::WriteLock l(&rwlock_);
     conns_[connfd] = tc;
   }
 
@@ -124,7 +124,7 @@ void HolyThread::HandleConnEvent(PinkFiredEvent *pfe) {
   int should_close = 0;
   std::map<int, std::shared_ptr<PinkConn>>::iterator iter;
   {
-    slash::ReadLock l(&rwlock_);
+    pstd::ReadLock l(&rwlock_);
     if ((iter = conns_.find(pfe->fd)) == conns_.end()) {
       pink_epoll_->PinkDelEvent(pfe->fd);
       return;
@@ -190,7 +190,7 @@ void HolyThread::HandleConnEvent(PinkFiredEvent *pfe) {
     in_conn = nullptr;
 
     {
-      slash::WriteLock l(&rwlock_);
+      pstd::WriteLock l(&rwlock_);
       conns_.erase(pfe->fd);
     }
   }
@@ -202,10 +202,10 @@ void HolyThread::DoCronTask() {
   std::vector<std::shared_ptr<PinkConn>> to_close;
   std::vector<std::shared_ptr<PinkConn>> to_timeout;
   {
-    slash::WriteLock l(&rwlock_);
+    pstd::WriteLock l(&rwlock_);
 
     // Check whether close all connection
-    slash::MutexLock kl(&killer_mutex_);
+    pstd::MutexLock kl(&killer_mutex_);
     if (deleting_conn_ipport_.count(kKillAllConnsTask)) {
       for (auto& conn : conns_) {
         to_close.push_back(conn.second);
@@ -259,7 +259,7 @@ void HolyThread::CloseFd(std::shared_ptr<PinkConn> conn) {
 void HolyThread::Cleanup() {
   std::map<int, std::shared_ptr<PinkConn>> to_close;
   {
-    slash::WriteLock l(&rwlock_);
+    pstd::WriteLock l(&rwlock_);
     to_close = std::move(conns_);
     conns_.clear();
   }
@@ -275,7 +275,7 @@ void HolyThread::KillAllConns() {
 bool HolyThread::KillConn(const std::string& ip_port) {
   bool find = false;
   if (ip_port != kKillAllConnsTask) {
-    slash::ReadLock l(&rwlock_);
+    pstd::ReadLock l(&rwlock_);
     for (auto& iter : conns_) {
       if (iter.second->ip_port() == ip_port) {
         find = true;
@@ -284,7 +284,7 @@ bool HolyThread::KillConn(const std::string& ip_port) {
     }
   }
   if (find || ip_port == kKillAllConnsTask) {
-    slash::MutexLock l(&killer_mutex_);
+    pstd::MutexLock l(&killer_mutex_);
     deleting_conn_ipport_.insert(ip_port);
     return true;
   }
@@ -314,7 +314,7 @@ void HolyThread::ProcessNotifyEvents(const pink::PinkFiredEvent* pfe) {
           CloseFd(conn);
           conn = nullptr;
           {
-            slash::WriteLock l(&rwlock_);
+            pstd::WriteLock l(&rwlock_);
             conns_.erase(fd);
           }
         }

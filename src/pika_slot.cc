@@ -125,10 +125,10 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
 
   PikaCmdArgsType::const_iterator it = argv_.begin() + 1; //Remember the first args is the opt name
   dest_ip_ = *it++;
-  slash::StringToLower(dest_ip_);
+  pstd::StringToLower(dest_ip_);
 
   std::string str_dest_port = *it++;
-  if (!slash::string2l(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
+  if (!pstd::string2l(str_dest_port.data(), str_dest_port.size(), &dest_port_) || dest_port_ <= 0) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }
@@ -152,7 +152,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
     return;
   }
 
-  if (!slash::string2l(str_slot_num.data(), str_slot_num.size(), &slot_num_)
+  if (!pstd::string2l(str_slot_num.data(), str_slot_num.size(), &slot_num_)
       || slot_num_ < 0 || slot_num_ >= table->PartitionNum()) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsMgrtTagSlotAsync);
     return;
@@ -204,12 +204,12 @@ void SlotsScanCmd::DoInitial() {
   }
 
   int64_t slotnum;
-  if (!slash::string2l(argv_[1].data(), argv_[1].size(), &slotnum)) {
+  if (!pstd::string2l(argv_[1].data(), argv_[1].size(), &slotnum)) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsScan);
     return;
   }
   slotnum_ = static_cast<uint32_t>(slotnum);
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsScan);
     return;
   }
@@ -226,7 +226,7 @@ void SlotsScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -257,7 +257,7 @@ void SlotsScanCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendArrayLen(2);
 
   char buf[32];
-  int len = slash::ll2string(buf, sizeof(buf), cursor_ret);
+  int len = pstd::ll2string(buf, sizeof(buf), cursor_ret);
   res_.AppendStringLen(len);
   res_.AppendContent(buf);
 
@@ -286,7 +286,7 @@ void SlotsDelCmd::DoInitial() {
   std::vector<std::string>::const_iterator iter = argv_.begin() + 1;
   for (; iter != argv_.end(); iter++) {
     int64_t slotnum;
-    if (!slash::string2l(iter->data(), iter->size(), &slotnum)) {
+    if (!pstd::string2l(iter->data(), iter->size(), &slotnum)) {
       res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsDel);
       return;
     }
@@ -337,7 +337,7 @@ void SlotsMgrtExecWrapperCmd::DoInitial() {
 
   PikaCmdArgsType::const_iterator it = argv_.begin() + 1;
   key_ = *it++;
-  //slash::StringToLower(key_);
+  //pstd::StringToLower(key_);
   return;
 }
 

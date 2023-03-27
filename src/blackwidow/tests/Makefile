@@ -44,11 +44,11 @@ ROCKSDB_INCLUDE_DIR=$(ROCKSDB_PATH)/include
 ROCKSDB_LIBRARY=$(ROCKSDB_PATH)/librocksdb.a
 
 ifndef SLASH_PATH
-  $(warning Warning: missing slash path, using default)
-	SLASH_PATH=../deps/slash
+  $(warning Warning: missing pstd path, using default)
+	SLASH_PATH=../deps/pstd
 endif
 SLASH_INCLUDE_DIR=$(SLASH_PATH)
-SLASH_LIBRARY=$(SLASH_PATH)/slash/lib/libslash.a
+SLASH_LIBRARY=$(SLASH_PATH)/pstd/lib/libpstd.a
 
 ifndef GOOGLETEST_PATH
   $(warning Warning: missing googletest path, using default)
@@ -93,7 +93,7 @@ ROCKSDB:
 	$(AM_V_at)make -j $(PROCESSOR_NUMS) -C $(ROCKSDB_PATH)/ static_lib
 
 SLASH:
-	$(AM_V_at)make -C $(SLASH_PATH)/slash
+	$(AM_V_at)make -C $(SLASH_PATH)/pstd
 
 main: main.cc
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)

@@ -138,7 +138,7 @@ bool PkClusterInfoCmd::ParseInfoTableSubCmd() {
   } else if (argv_.size() == 4) {
     std::string tmp(argv_[3]);
     uint64_t table_id;
-    if (!slash::string2ul(tmp.c_str(), tmp.size(), &table_id)) {
+    if (!pstd::string2ul(tmp.c_str(), tmp.size(), &table_id)) {
       res_.SetRes(CmdRes::kInvalidParameter, kCmdNamePkClusterInfo);
       return false;
     }
@@ -168,7 +168,7 @@ void PkClusterInfoCmd::ClusterInfoSlotRange(const std::string& table_name,
 void PkClusterInfoCmd::ClusterInfoSlotAll(std::string* info) {
   std::stringstream tmp_stream;
   for (const auto& table_item : g_pika_server->tables_) {
-    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    pstd::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
     for (const auto& partition_item : table_item.second->partitions_) {
       std::string table_name = table_item.second->GetTableName();
       uint32_t partition_id = partition_item.second->GetPartitionId();
@@ -236,10 +236,10 @@ Status ParseSlotGroup(const std::string& slot_group,
   int64_t slot_idx, start_idx, end_idx;
   std::string::size_type pos;
   std::vector<std::string> elems;
-  slash::StringSplit(slot_group, COMMA, elems);
+  pstd::StringSplit(slot_group, COMMA, elems);
   for (const auto& elem :  elems) {
     if ((pos = elem.find("-")) == std::string::npos) {
-      if (!slash::string2l(elem.data(), elem.size(), &slot_idx)
+      if (!pstd::string2l(elem.data(), elem.size(), &slot_idx)
         || slot_idx < 0) {
         return Status::Corruption("syntax error");
       } else {
@@ -251,8 +251,8 @@ Status ParseSlotGroup(const std::string& slot_group,
       } else {
         std::string start_pos = elem.substr(0, pos);
         std::string end_pos = elem.substr(pos + 1, elem.size() - pos);
-        if (!slash::string2l(start_pos.data(), start_pos.size(), &start_idx)
-          || !slash::string2l(end_pos.data(), end_pos.size(), &end_idx)
+        if (!pstd::string2l(start_pos.data(), start_pos.size(), &start_idx)
+          || !pstd::string2l(end_pos.data(), end_pos.size(), &end_idx)
           || start_idx < 0 || end_idx < 0 || start_idx > end_idx) {
           return Status::Corruption("syntax error");
         }
@@ -284,7 +284,7 @@ void SlotParentCmd::DoInitial() {
     table_name_ = g_pika_conf->default_table();
   } else if (argv_.size() == 4) {
     uint64_t table_id;
-    if (!slash::string2ul(argv_[3].data(), argv_[3].size(), &table_id)) {
+    if (!pstd::string2ul(argv_[3].data(), argv_[3].size(), &table_id)) {
       res_.SetRes(CmdRes::kErrOther, "syntax error");
       return;
     }
@@ -498,7 +498,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
     is_noone_ = true;
   } else {
     ip_ = argv_[2];
-    if (!slash::string2l(argv_[3].data(), argv_[3].size(), &port_)
+    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &port_)
       || port_ <= 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
@@ -532,7 +532,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
       if (!strcasecmp(argv_[5].data(), "force")) {
         force_sync_ = true;
         table_name_ = g_pika_conf->default_table();
-      } else if (slash::string2ul(argv_[5].data(), argv_[5].size(), &table_id)) {
+      } else if (pstd::string2ul(argv_[5].data(), argv_[5].size(), &table_id)) {
         table_name_ = "db";
         table_name_ += std::to_string(table_id);
       } else {
@@ -542,7 +542,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
       break;
     case 7:
       if ((!strcasecmp(argv_[5].data(), "force"))
-          && (slash::string2ul(argv_[6].data(), argv_[6].size(), &table_id))) {
+          && (pstd::string2ul(argv_[6].data(), argv_[6].size(), &table_id))) {
         force_sync_ = true;
         table_name_ = "db";
         table_name_ += std::to_string(table_id);
@@ -640,13 +640,13 @@ void PkClusterAddTableCmd::DoInitial() {
     return;
   }
   uint64_t table_id;
-  if (!slash::string2ul(argv_[2].data(), argv_[2].size(), &table_id)) {
+  if (!pstd::string2ul(argv_[2].data(), argv_[2].size(), &table_id)) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
   }
   table_name_ = "db";
   table_name_ += std::to_string(table_id);
-  if (!slash::string2ul(argv_[3].data(), argv_[3].size(), &slot_num_)
+  if (!pstd::string2ul(argv_[3].data(), argv_[3].size(), &slot_num_)
       || slot_num_ == 0) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
@@ -725,7 +725,7 @@ void PkClusterDelTableCmd::DoInitial() {
     return;
   }
   uint64_t table_id;
-  if (!slash::string2ul(argv_[2].data(), argv_[2].size(), &table_id)) {
+  if (!pstd::string2ul(argv_[2].data(), argv_[2].size(), &table_id)) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
   }

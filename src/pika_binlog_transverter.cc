@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <glog/logging.h>
 
-#include "slash/include/slash_coding.h"
+#include "pstd/include/pstd_coding.h"
 
 #include "include/pika_command.h"
 
@@ -87,14 +87,14 @@ std::string PikaBinlogTransverter::BinlogEncode(BinlogType type,
                                                 const std::string& content,
                                                 const std::vector<std::string>& extends) {
   std::string binlog;
-  slash::PutFixed16(&binlog, type);
-  slash::PutFixed32(&binlog, exec_time);
-  slash::PutFixed32(&binlog, term_id);
-  slash::PutFixed64(&binlog, logic_id);
-  slash::PutFixed32(&binlog, filenum);
-  slash::PutFixed64(&binlog, offset);
+  pstd::PutFixed16(&binlog, type);
+  pstd::PutFixed32(&binlog, exec_time);
+  pstd::PutFixed32(&binlog, term_id);
+  pstd::PutFixed64(&binlog, logic_id);
+  pstd::PutFixed32(&binlog, filenum);
+  pstd::PutFixed64(&binlog, offset);
   uint32_t content_length = content.size();
-  slash::PutFixed32(&binlog, content_length);
+  pstd::PutFixed32(&binlog, content_length);
   binlog.append(content);
   return binlog;
 }
@@ -105,17 +105,17 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type,
   uint16_t binlog_type = 0;
   uint32_t content_length = 0;
   std::string binlog_str = binlog;
-  slash::GetFixed16(&binlog_str, &binlog_type);
+  pstd::GetFixed16(&binlog_str, &binlog_type);
   if (binlog_type != type) {
     LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
     return false;
   }
-  slash::GetFixed32(&binlog_str, &binlog_item->exec_time_);
-  slash::GetFixed32(&binlog_str, &binlog_item->term_id_);
-  slash::GetFixed64(&binlog_str, &binlog_item->logic_id_);
-  slash::GetFixed32(&binlog_str, &binlog_item->filenum_);
-  slash::GetFixed64(&binlog_str, &binlog_item->offset_);
-  slash::GetFixed32(&binlog_str, &content_length);
+  pstd::GetFixed32(&binlog_str, &binlog_item->exec_time_);
+  pstd::GetFixed32(&binlog_str, &binlog_item->term_id_);
+  pstd::GetFixed64(&binlog_str, &binlog_item->logic_id_);
+  pstd::GetFixed32(&binlog_str, &binlog_item->filenum_);
+  pstd::GetFixed64(&binlog_str, &binlog_item->offset_);
+  pstd::GetFixed32(&binlog_str, &content_length);
   if (binlog_str.size() == content_length) {
     binlog_item->content_.assign(binlog_str.data(), content_length);
   } else {
@@ -143,12 +143,12 @@ std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type,
           + SPACE_STROE_PARAMETER_LENGTH <= size);
 
   std::string binlog;
-  slash::PutFixed16(&binlog, type);
-  slash::PutFixed32(&binlog, 0);
-  slash::PutFixed32(&binlog, 0);
-  slash::PutFixed64(&binlog, 0);
-  slash::PutFixed32(&binlog, 0);
-  slash::PutFixed64(&binlog, 0);
+  pstd::PutFixed16(&binlog, type);
+  pstd::PutFixed32(&binlog, 0);
+  pstd::PutFixed32(&binlog, 0);
+  pstd::PutFixed64(&binlog, 0);
+  pstd::PutFixed32(&binlog, 0);
+  pstd::PutFixed64(&binlog, 0);
   int32_t content_len = size - BINLOG_ITEM_HEADER_SIZE;
   int32_t parameter_len = content_len - PADDING_BINLOG_PROTOCOL_SIZE
       - SPACE_STROE_PARAMETER_LENGTH;
@@ -176,7 +176,7 @@ std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type,
   content.append(kNewLine);
   RedisAppendContent(content, std::string(parameter_len, '*'));
 
-  slash::PutFixed32(&binlog, content_len);
+  pstd::PutFixed32(&binlog, content_len);
   binlog.append(content);
   return binlog;
 }
@@ -186,15 +186,15 @@ bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(BinlogType type,
                                          BinlogItem* binlog_item) {
   uint16_t binlog_type = 0;
   std::string binlog_str = binlog;
-  slash::GetFixed16(&binlog_str, &binlog_type);
+  pstd::GetFixed16(&binlog_str, &binlog_type);
   if (binlog_type != type) {
     LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
     return false;
   }
-  slash::GetFixed32(&binlog_str, &binlog_item->exec_time_);
-  slash::GetFixed32(&binlog_str, &binlog_item->term_id_);
-  slash::GetFixed64(&binlog_str, &binlog_item->logic_id_);
-  slash::GetFixed32(&binlog_str, &binlog_item->filenum_);
-  slash::GetFixed64(&binlog_str, &binlog_item->offset_);
+  pstd::GetFixed32(&binlog_str, &binlog_item->exec_time_);
+  pstd::GetFixed32(&binlog_str, &binlog_item->term_id_);
+  pstd::GetFixed64(&binlog_str, &binlog_item->logic_id_);
+  pstd::GetFixed32(&binlog_str, &binlog_item->filenum_);
+  pstd::GetFixed64(&binlog_str, &binlog_item->offset_);
   return true;
 }

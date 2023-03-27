@@ -5,7 +5,7 @@
 
 #include "include/pika_bit.h"
 
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_define.h"
 
@@ -15,11 +15,11 @@ void BitSetCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
     res_.SetRes(CmdRes::kInvalidBitOffsetInt);
     return;
   }
-  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &on_)) {
+  if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &on_)) {
     res_.SetRes(CmdRes::kInvalidBitInt);
     return;
   }
@@ -56,7 +56,7 @@ void BitGetCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
     res_.SetRes(CmdRes::kInvalidBitOffsetInt);
     return;
   }
@@ -85,11 +85,11 @@ void BitCountCmd::DoInitial() {
   key_ = argv_[1];
   if (argv_.size() == 4) {
     count_all_ = false;
-    if (!slash::string2l(argv_[2].data(), argv_[2].size(), &start_offset_)) {
+    if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &start_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
-    if (!slash::string2l(argv_[3].data(), argv_[3].size(), &end_offset_)) {
+    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &end_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -123,7 +123,7 @@ void BitPosCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &bit_val_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &bit_val_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -137,18 +137,18 @@ void BitPosCmd::DoInitial() {
   } else if (argv_.size() == 4) {
     pos_all_ = false;
     endoffset_set_ = false;
-    if (!slash::string2l(argv_[3].data(), argv_[3].size(), &start_offset_)) {
+    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &start_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     } 
   } else if (argv_.size() == 5) {
     pos_all_ = false;
     endoffset_set_ = true;
-    if (!slash::string2l(argv_[3].data(), argv_[3].size(), &start_offset_)) {
+    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &start_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     } 
-    if (!slash::string2l(argv_[4].data(), argv_[4].size(), &end_offset_)) {
+    if (!pstd::string2l(argv_[4].data(), argv_[4].size(), &end_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }

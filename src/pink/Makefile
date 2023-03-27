@@ -47,11 +47,11 @@ endif
 
 
 ifndef SLASH_PATH
-  $(warning Warning: missing slash path, using default)
-  SLASH_PATH=$(CURDIR)/third/slash
+  $(warning Warning: missing pstd path, using default)
+  SLASH_PATH=$(CURDIR)/third/pstd
 endif
 SLASH_INCLUDE_DIR=$(SLASH_PATH)
-SLASH_LIBRARY=$(SLASH_PATH)/slash/lib/libslash.a
+SLASH_LIBRARY=$(SLASH_PATH)/pstd/lib/libpstd.a
 
 AM_DEFAULT_VERBOSITY = 0
 

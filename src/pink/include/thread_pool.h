@@ -11,7 +11,7 @@
 #include <atomic>
 #include <pthread.h>
 
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 #include "pink/include/pink_define.h"
 
 namespace pink {
@@ -90,9 +90,9 @@ class ThreadPool {
   std::atomic<bool> running_;
   std::atomic<bool> should_stop_;
 
-  slash::Mutex mu_;
-  slash::CondVar rsignal_;
-  slash::CondVar wsignal_;
+  pstd::Mutex mu_;
+  pstd::CondVar rsignal_;
+  pstd::CondVar wsignal_;
 
   /*
    * No allowed copy and copy assign

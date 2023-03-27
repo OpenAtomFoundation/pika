@@ -8,20 +8,20 @@
 
 #include <atomic>
 
-#include "slash/include/env.h"
-#include "slash/include/slash_mutex.h"
-#include "slash/include/slash_status.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_status.h"
 
 #include "include/pika_define.h"
 
-using slash::Status;
-using slash::Slice;
+using pstd::Status;
+using pstd::Slice;
 
 std::string NewFileName(const std::string name, const uint32_t current);
 
 class Version {
  public:
-  Version(slash::RWFile *save);
+  Version(pstd::RWFile *save);
   ~Version();
 
   Status Init();
@@ -37,13 +37,13 @@ class Version {
   pthread_rwlock_t rwlock_;
 
   void debug() {
-    slash::RWLock(&rwlock_, false);
+    pstd::RWLock(&rwlock_, false);
     printf ("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
   }
 
  private:
 
-  slash::RWFile *save_;
+  pstd::RWFile *save_;
 
   // No copying allowed;
   Version(const Version&);
@@ -82,13 +82,13 @@ class Binlog {
 
   // need to hold mutex_
   void SetTerm(uint32_t term) {
-    slash::RWLock(&(version_->rwlock_), true);
+    pstd::RWLock(&(version_->rwlock_), true);
     version_->term_ = term;
     version_->StableSave();
   }
 
   uint32_t term() {
-    slash::RWLock(&(version_->rwlock_), true);
+    pstd::RWLock(&(version_->rwlock_), true);
     return version_->term_;
   }
 
@@ -96,8 +96,8 @@ class Binlog {
 
  private:
   Status Put(const char* item, int len);
-  static Status AppendPadding(slash::WritableFile* file, uint64_t* len);
-  //slash::WritableFile *queue() { return queue_; }
+  static Status AppendPadding(pstd::WritableFile* file, uint64_t* len);
+  //pstd::WritableFile *queue() { return queue_; }
 
   void InitLogFile();
   Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset);
@@ -111,10 +111,10 @@ class Binlog {
   std::atomic<bool> opened_;
 
   Version* version_;
-  slash::WritableFile *queue_;
-  slash::RWFile *versionfile_;
+  pstd::WritableFile *queue_;
+  pstd::RWFile *versionfile_;
 
-  slash::Mutex mutex_;
+  pstd::Mutex mutex_;
 
   uint32_t pro_num_;
 

@@ -14,8 +14,8 @@
 #include <memory>
 #include <vector>
 
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_mutex.h"
 #include "pink/include/pink_thread.h"
 
 // remove 'unused parameter' warning
@@ -110,8 +110,8 @@ class ClientThread : public Thread {
    */
   virtual int StartThread() override;
   virtual int StopThread() override;
-  slash::Status Write(const std::string& ip, const int port, const std::string& msg);
-  slash::Status Close(const std::string& ip, const int port);
+  pstd::Status Write(const std::string& ip, const int port, const std::string& msg);
+  pstd::Status Close(const std::string& ip, const int port);
 
  private:
   virtual void *ThreadMain() override;
@@ -119,13 +119,13 @@ class ClientThread : public Thread {
   void InternalDebugPrint();
   // Set connect fd into epoll
   // connect condition: no EPOLLERR EPOLLHUP events,  no error in socket opt
-  slash::Status ProcessConnectStatus(PinkFiredEvent* pfe, int* should_close);
+  pstd::Status ProcessConnectStatus(PinkFiredEvent* pfe, int* should_close);
   void SetWaitConnectOnEpoll(int sockfd);
 
   void NewConnection(const std::string& peer_ip, int peer_port, int sockfd);
   // Try to connect fd noblock, if return EINPROGRESS or EAGAIN or EWOULDBLOCK
   // put this fd in epoll (SetWaitConnectOnEpoll), process in ProcessConnectStatus
-  slash::Status ScheduleConnect(const std::string& dst_ip, int dst_port);
+  pstd::Status ScheduleConnect(const std::string& dst_ip, int dst_port);
   void CloseFd(std::shared_ptr<PinkConn> conn);
   void CloseFd(int fd, const std::string& ip_port);
   void CleanUpConnRemaining(const std::string& ip_port);
@@ -146,14 +146,14 @@ class ClientThread : public Thread {
 
   ConnFactory *conn_factory_;
 
-  slash::Mutex mu_;
+  pstd::Mutex mu_;
   std::map<std::string, std::vector<std::string>> to_send_;  // ip+":"+port, to_send_msg
 
   std::map<int, std::shared_ptr<PinkConn>> fd_conns_;
   std::map<std::string, std::shared_ptr<PinkConn>> ipport_conns_;
   std::set<int> connecting_fds_;
 
-  slash::Mutex to_del_mu_;
+  pstd::Mutex to_del_mu_;
   std::vector<std::string> to_del_;
 };
 

@@ -5,7 +5,7 @@
 
 #include "include/pika_zset.h"
 
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 void ZAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -22,7 +22,7 @@ void ZAddCmd::DoInitial() {
   double score;
   size_t index = 2;
   for (; index < argc; index += 2) {
-    if (!slash::string2d(argv_[index].data(), argv_[index].size(), &score)) {
+    if (!pstd::string2d(argv_[index].data(), argv_[index].size(), &score)) {
       res_.SetRes(CmdRes::kInvalidFloat);
       return;
     }
@@ -68,7 +68,7 @@ void ZScanCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZScan);
     return;
   }
@@ -84,7 +84,7 @@ void ZScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -108,7 +108,7 @@ void ZScanCmd::Do(std::shared_ptr<Partition> partition) {
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
-    int64_t len = slash::ll2string(buf, sizeof(buf), next_cursor);
+    int64_t len = pstd::ll2string(buf, sizeof(buf), next_cursor);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
 
@@ -116,7 +116,7 @@ void ZScanCmd::Do(std::shared_ptr<Partition> partition) {
     for (const auto& score_member : score_members) {
       res_.AppendString(score_member.member);
 
-      len = slash::d2string(buf, sizeof(buf), score_member.score);
+      len = pstd::d2string(buf, sizeof(buf), score_member.score);
       res_.AppendStringLen(len);
       res_.AppendContent(buf);
     }
@@ -132,7 +132,7 @@ void ZIncrbyCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2d(argv_[2].data(), argv_[2].size(), &by_)) {
+  if (!pstd::string2d(argv_[2].data(), argv_[2].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidFloat);
     return;
   }
@@ -145,7 +145,7 @@ void ZIncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->ZIncrby(key_, member_, by_, &score);
   if (s.ok()) {
     char buf[32];
-    int64_t len = slash::d2string(buf, sizeof(buf), score);
+    int64_t len = pstd::d2string(buf, sizeof(buf), score);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
   } else {
@@ -162,11 +162,11 @@ void ZsetRangeParentCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &start_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &start_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &stop_)) {
+  if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &stop_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -192,7 +192,7 @@ void ZRangeCmd::Do(std::shared_ptr<Partition> partition) {
       for (const auto& sm : score_members) {
         res_.AppendStringLen(sm.member.size());
         res_.AppendContent(sm.member);
-        len = slash::d2string(buf, sizeof(buf), sm.score);
+        len = pstd::d2string(buf, sizeof(buf), sm.score);
         res_.AppendStringLen(len);
         res_.AppendContent(buf);
       }
@@ -228,7 +228,7 @@ void ZRevrangeCmd::Do(std::shared_ptr<Partition> partition) {
       for (const auto& sm : score_members) {
         res_.AppendStringLen(sm.member.size());
         res_.AppendContent(sm.member);
-        len = slash::d2string(buf, sizeof(buf), sm.score);
+        len = pstd::d2string(buf, sizeof(buf), sm.score);
         res_.AppendStringLen(len);
         res_.AppendContent(buf);
       }
@@ -254,7 +254,7 @@ int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool *le
     *min_score = blackwidow::ZSET_SCORE_MIN;
   } else if (begin_score == "inf" || begin_score == "+inf") {
     *min_score = blackwidow::ZSET_SCORE_MAX;
-  } else if (!slash::string2d(begin_score.data(), begin_score.size(), min_score)) {
+  } else if (!pstd::string2d(begin_score.data(), begin_score.size(), min_score)) {
     return -1;
   } 
   
@@ -266,7 +266,7 @@ int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool *le
     *max_score = blackwidow::ZSET_SCORE_MAX;
   } else if (end_score == "-inf") {
     *max_score = blackwidow::ZSET_SCORE_MIN;
-  } else if (!slash::string2d(end_score.data(), end_score.size(), max_score)) {
+  } else if (!pstd::string2d(end_score.data(), end_score.size(), max_score)) {
     return -1;
   }
   return 0;
@@ -299,12 +299,12 @@ void ZsetRangebyscoreParentCmd::DoInitial() {
         return;
       }
       index++;
-      if (!slash::string2l(argv_[index].data(), argv_[index].size(), &offset_)) {
+      if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &offset_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
       index++;
-      if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       } 
@@ -344,7 +344,7 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
     for (; index < end; index++) {
       res_.AppendStringLen(score_members[index].member.size());
       res_.AppendContent(score_members[index].member);
-      len = slash::d2string(buf, sizeof(buf), score_members[index].score);
+      len = pstd::d2string(buf, sizeof(buf), score_members[index].score);
       res_.AppendStringLen(len);
       res_.AppendContent(buf);
     }
@@ -395,7 +395,7 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
     for (; index < end; index++) {
       res_.AppendStringLen(score_members[index].member.size());
       res_.AppendContent(score_members[index].member);
-      len = slash::d2string(buf, sizeof(buf), score_members[index].score);
+      len = pstd::d2string(buf, sizeof(buf), score_members[index].score);
       res_.AppendStringLen(len);
       res_.AppendContent(buf);
     }
@@ -463,7 +463,7 @@ void ZRemCmd::Do(std::shared_ptr<Partition> partition) {
 
 void ZsetUIstoreParentCmd::DoInitial() {
   dest_key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &num_keys_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &num_keys_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -489,7 +489,7 @@ void ZsetUIstoreParentCmd::DoInitial() {
       double weight;
       int base = index;
       for (; index < base + num_keys_; index++) {
-        if (!slash::string2d(argv_[index].data(), argv_[index].size(), &weight)) {
+        if (!pstd::string2d(argv_[index].data(), argv_[index].size(), &weight)) {
           res_.SetRes(CmdRes::kErrOther, "weight value is not a float");
           return;
         }
@@ -619,7 +619,7 @@ void ZScoreCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->ZScore(key_, member_, &score);
   if (s.ok()) {
     char buf[32];
-    int64_t len = slash::d2string(buf, sizeof(buf), score);
+    int64_t len = pstd::d2string(buf, sizeof(buf), score);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
   } else if (s.IsNotFound()) {
@@ -682,11 +682,11 @@ void ZsetRangebylexParentCmd::DoInitial() {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  if (!slash::string2l(argv_[5].data(), argv_[5].size(), &offset_)) {
+  if (!pstd::string2l(argv_[5].data(), argv_[5].size(), &offset_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!slash::string2l(argv_[6].data(), argv_[6].size(), &count_)) {
+  if (!pstd::string2l(argv_[6].data(), argv_[6].size(), &count_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -796,11 +796,11 @@ void ZRemrangebyrankCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &start_rank_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &start_rank_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &stop_rank_)) {
+  if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &stop_rank_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -886,7 +886,7 @@ void ZPopmaxCmd::DoInitial() {
     count_ = 1;
     return;
   }  
-  if (!slash::string2ll(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
+  if (!pstd::string2ll(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -901,7 +901,7 @@ void ZPopmaxCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendArrayLen(score_members.size() * 2);
     for (const auto& sm : score_members) {
       res_.AppendString(sm.member);
-      len = slash::d2string(buf, sizeof(buf), sm.score);
+      len = pstd::d2string(buf, sizeof(buf), sm.score);
       res_.AppendStringLen(len);
       res_.AppendContent(buf);
     }
@@ -921,7 +921,7 @@ void ZPopminCmd::DoInitial() {
     count_ = 1;
     return;
   }  
-  if (!slash::string2ll(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
+  if (!pstd::string2ll(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -936,7 +936,7 @@ void ZPopminCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendArrayLen(score_members.size() * 2);
     for (const auto& sm : score_members) {
       res_.AppendString(sm.member);
-      len = slash::d2string(buf, sizeof(buf), sm.score);
+      len = pstd::d2string(buf, sizeof(buf), sm.score);
       res_.AppendStringLen(len);
       res_.AppendContent(buf);
     }

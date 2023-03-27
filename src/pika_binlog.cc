@@ -11,7 +11,7 @@
 
 #include "include/pika_binlog_transverter.h"
 
-using slash::RWLock;
+using pstd::RWLock;
 
 std::string NewFileName(const std::string name, const uint32_t current) {
   char buf[256];
@@ -22,7 +22,7 @@ std::string NewFileName(const std::string name, const uint32_t current) {
 /*
  * Version
  */
-Version::Version(slash::RWFile *save)
+Version::Version(pstd::RWFile *save)
     : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
   assert(save_ != NULL);
 
@@ -69,27 +69,27 @@ Binlog::Binlog(const std::string &binlog_path, const int file_size)
       binlog_io_error_(false) {
 
   // To intergrate with old version, we don't set mmap file size to 100M;
-  // slash::SetMmapBoundSize(file_size);
-  // slash::kMmapBoundSize = 1024 * 1024 * 100;
+  // pstd::SetMmapBoundSize(file_size);
+  // pstd::kMmapBoundSize = 1024 * 1024 * 100;
 
   Status s;
 
-  slash::CreateDir(binlog_path_);
+  pstd::CreateDir(binlog_path_);
 
   filename_ = binlog_path_ + kBinlogPrefix;
   const std::string manifest = binlog_path_ + kManifest;
   std::string profile;
 
-  if (!slash::FileExists(manifest)) {
+  if (!pstd::FileExists(manifest)) {
     LOG(INFO) << "Binlog: Manifest file not exist, we create a new one.";
 
     profile = NewFileName(filename_, pro_num_);
-    s = slash::NewWritableFile(profile, &queue_);
+    s = pstd::NewWritableFile(profile, &queue_);
     if (!s.ok()) {
       LOG(FATAL) << "Binlog: new " << filename_ << " " << s.ToString();
     }
 
-    s = slash::NewRWFile(manifest, &versionfile_);
+    s = pstd::NewRWFile(manifest, &versionfile_);
     if (!s.ok()) {
       LOG(FATAL) << "Binlog: new versionfile error " << s.ToString();
     }
@@ -99,7 +99,7 @@ Binlog::Binlog(const std::string &binlog_path, const int file_size)
   } else {
     LOG(INFO) << "Binlog: Find the exist file.";
 
-    s = slash::NewRWFile(manifest, &versionfile_);
+    s = pstd::NewRWFile(manifest, &versionfile_);
     if (s.ok()) {
       version_ = new Version(versionfile_);
       version_->Init();
@@ -113,7 +113,7 @@ Binlog::Binlog(const std::string &binlog_path, const int file_size)
 
     profile = NewFileName(filename_, pro_num_);
     DLOG(INFO) << "Binlog: open profile " << profile;
-    s = slash::AppendWritableFile(profile, &queue_, version_->pro_offset_);
+    s = pstd::AppendWritableFile(profile, &queue_, version_->pro_offset_);
     if (!s.ok()) {
       LOG(FATAL) << "Binlog: Open file " << profile << " error "
                  << s.ToString();
@@ -127,7 +127,7 @@ Binlog::Binlog(const std::string &binlog_path, const int file_size)
 }
 
 Binlog::~Binlog() {
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
   Close();
   delete version_;
   delete versionfile_;
@@ -157,7 +157,7 @@ Status Binlog::GetProducerStatus(uint32_t *filenum, uint64_t *pro_offset,
     return Status::Busy("Binlog is not open yet");
   }
 
-  slash::RWLock l(&(version_->rwlock_), false);
+  pstd::RWLock l(&(version_->rwlock_), false);
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
@@ -190,9 +190,9 @@ Status Binlog::Put(const char *item, int len) {
   /* Check to roll log file */
   uint64_t filesize = queue_->Filesize();
   if (filesize > file_size_) {
-    slash::WritableFile * queue = nullptr;
+    pstd::WritableFile * queue = nullptr;
     std::string profile = NewFileName(filename_, pro_num_ + 1);
-    s = slash::NewWritableFile(profile, &queue);
+    s = pstd::NewWritableFile(profile, &queue);
     if (!s.ok()) {
       LOG(ERROR) << "Binlog: new " << filename_ << " " << s.ToString();
       return s;
@@ -200,8 +200,9 @@ Status Binlog::Put(const char *item, int len) {
     delete queue_;
     queue_ = queue;
     pro_num_++;
+
     {
-      slash::RWLock l(&(version_->rwlock_), true);
+      pstd::RWLock l(&(version_->rwlock_), true);
       version_->pro_offset_ = 0;
       version_->pro_num_ = pro_num_;
       version_->StableSave();
@@ -212,7 +213,7 @@ Status Binlog::Put(const char *item, int len) {
   int pro_offset;
   s = Produce(Slice(item, len), &pro_offset);
   if (s.ok()) {
-    slash::RWLock l(&(version_->rwlock_), true);
+    pstd::RWLock l(&(version_->rwlock_), true);
     version_->pro_offset_ = pro_offset;
     version_->logic_id_++;
     version_->StableSave();
@@ -299,7 +300,7 @@ Status Binlog::Produce(const Slice &item, int *temp_pro_offset) {
   return s;
 }
 
-Status Binlog::AppendPadding(slash::WritableFile *file, uint64_t *len) {
+Status Binlog::AppendPadding(pstd::WritableFile* file, uint64_t* len) {
   if (*len < kHeaderSize) {
     return Status::OK();
   }
@@ -352,7 +353,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
     return Status::Busy("Binlog is not open yet");
   }
 
-  slash::MutexLock l(&mutex_);
+  pstd::MutexLock l(&mutex_);
 
   // offset smaller than the first header
   if (pro_offset < 4) {
@@ -362,22 +363,22 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
   delete queue_;
 
   std::string init_profile = NewFileName(filename_, 0);
-  if (slash::FileExists(init_profile)) {
-    slash::DeleteFile(init_profile);
+  if (pstd::FileExists(init_profile)) {
+    pstd::DeleteFile(init_profile);
   }
 
   std::string profile = NewFileName(filename_, pro_num);
-  if (slash::FileExists(profile)) {
-    slash::DeleteFile(profile);
+  if (pstd::FileExists(profile)) {
+    pstd::DeleteFile(profile);
   }
 
-  slash::NewWritableFile(profile, &queue_);
+  pstd::NewWritableFile(profile, &queue_);
   Binlog::AppendPadding(queue_, &pro_offset);
 
   pro_num_ = pro_num;
 
   {
-    slash::RWLock l(&(version_->rwlock_), true);
+    pstd::RWLock l(&(version_->rwlock_), true);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
     version_->term_ = term;
@@ -403,14 +404,14 @@ Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index) {
 
   pro_num_ = pro_num;
   {
-    slash::RWLock l(&(version_->rwlock_), true);
+    pstd::RWLock l(&(version_->rwlock_), true);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
     version_->logic_id_ = index;
     version_->StableSave();
   }
 
-  Status s = slash::AppendWritableFile(profile, &queue_, version_->pro_offset_);
+  Status s = pstd::AppendWritableFile(profile, &queue_, version_->pro_offset_);
   if (!s.ok()) {
     return s;
   }

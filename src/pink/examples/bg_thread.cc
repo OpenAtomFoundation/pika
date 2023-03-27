@@ -7,15 +7,15 @@
 #include <string>
 #include <iostream>
 #include "pink/include/bg_thread.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 
 using namespace std;
 
-static slash::Mutex print_lock;
+static pstd::Mutex print_lock;
 
 void task(void *arg) {
   {
-  slash::MutexLock l(&print_lock);
+  pstd::MutexLock l(&print_lock);
   std::cout << " task : " << *((int *)arg) << std::endl;
   }
   sleep(1);
@@ -46,7 +46,7 @@ int main() {
     int *pi = new int(i);
     t.Schedule(task, (void*)pi);
     t.QueueSize(&pqsize, &qsize);
-    slash::MutexLock l(&print_lock);
+    pstd::MutexLock l(&print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
   std::cout << std::endl << std::endl;
@@ -63,7 +63,7 @@ int main() {
     int *pi = new int(i);
     t2.Schedule(task, (void*)pi);
     t2.QueueSize(&pqsize, &qsize);
-    slash::MutexLock l(&print_lock);
+    pstd::MutexLock l(&print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
   std::cout << std::endl << std::endl;
@@ -95,7 +95,7 @@ int main() {
     int *pi = new int(i);
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.QueueSize(&pqsize, &qsize);
-    slash::MutexLock l(&print_lock);
+    pstd::MutexLock l(&print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
   sleep(3);

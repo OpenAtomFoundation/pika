@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <google/protobuf/message.h>
 
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 #include "pink/include/pink_cli.h"
 #include "pink/include/pink_define.h"
 

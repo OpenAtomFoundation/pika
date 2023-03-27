@@ -19,8 +19,8 @@
 #include <openssl/err.h>
 #endif
 
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_mutex.h"
 #include "pink/include/pink_define.h"
 #include "pink/include/pink_thread.h"
 

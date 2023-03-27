@@ -7,8 +7,8 @@
 
 #include <assert.h>     /* assert */
 
-#include "slash/include/slash_string.h"
-#include "slash/include/xdebug.h"
+#include "pstd/include/pstd_string.h"
+#include "pstd/include/xdebug.h"
 
 namespace pink {
 
@@ -149,7 +149,7 @@ int RedisParser::GetNextNum(int pos, long* value) {
   //      |    |
   //      *3\r\n
   // [cur_pos_ + 1, pos - cur_pos_ - 2]
-  if (slash::string2l(input_buf_ + cur_pos_ + 1,
+  if (pstd::string2l(input_buf_ + cur_pos_ + 1,
                             pos - cur_pos_ - 2,
                             value)) {
     return 0; // Success

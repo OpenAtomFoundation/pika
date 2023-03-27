@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <errno.h>
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 #include "pink/include/pink_cli.h"
 #include "pink/include/redis_cli.h"
 

@@ -5,7 +5,7 @@
 
 #include "include/pika_hash.h"
 
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_conf.h"
 
@@ -158,7 +158,7 @@ void HIncrbyCmd::DoInitial() {
   }
   key_ = argv_[1];
   field_ = argv_[2];
-  if (argv_[3].find(" ") != std::string::npos || !slash::string2l(argv_[3].data(), argv_[3].size(), &by_)) {
+  if (argv_[3].find(" ") != std::string::npos || !pstd::string2l(argv_[3].data(), argv_[3].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -383,7 +383,7 @@ void HScanCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -400,7 +400,7 @@ void HScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -425,7 +425,7 @@ void HScanCmd::Do(std::shared_ptr<Partition> partition) {
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
-    int32_t len = slash::ll2string(buf, sizeof(buf), next_cursor);
+    int32_t len = pstd::ll2string(buf, sizeof(buf), next_cursor);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
 
@@ -460,7 +460,7 @@ void HScanxCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -519,7 +519,7 @@ void PKHScanRangeCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -574,7 +574,7 @@ void PKHRScanRangeCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }

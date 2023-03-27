@@ -57,7 +57,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    start_us = slash::NowMicros();
+    start_us = pstd::NowMicros();
   }
 
   bool is_monitoring = g_pika_server->HasMonitorClients();
@@ -142,7 +142,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
 
 void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration) {
   int32_t start_time = start_us / 1000000;
-  int64_t duration = slash::NowMicros() - start_us;
+  int64_t duration = pstd::NowMicros() - start_us;
   if (duration > g_pika_conf->slowlog_slower_than()) {
     g_pika_server->SlowlogPushEntry(argv, start_time, duration);
     if (g_pika_conf->slowlog_write_errorlog()) {
@@ -153,7 +153,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
         cmd_size += 1 + argv[i].size(); // blank space and argument length
         if (!trim) {
           slow_log.append(" ");
-          slow_log.append(slash::ToRead(argv[i]));
+          slow_log.append(pstd::ToRead(argv[i]));
           if (slow_log.size() >= 1000) {
             trim = true;
             slow_log.resize(1000);
@@ -173,10 +173,10 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
   std::string table_name = g_pika_conf->classic_mode()
     ? current_table_.substr(2) : current_table_;
-  monitor_message = std::to_string(1.0*slash::NowMicros()/1000000) +
+  monitor_message = std::to_string(1.0*pstd::NowMicros()/1000000) +
     " [" + table_name + " " + this->ip_port() + "]";
   for (PikaCmdArgsType::const_iterator iter = argv.begin(); iter != argv.end(); iter++) {
-    monitor_message += " " + slash::ToRead(*iter);
+    monitor_message += " " + pstd::ToRead(*iter);
   }
   g_pika_server->AddMonitorMessage(monitor_message);
 }
@@ -224,7 +224,7 @@ void PikaClientConn::DoExecTask(void* arg) {
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    start_us = slash::NowMicros();
+    start_us = pstd::NowMicros();
   }
   cmd_ptr->SetStage(Cmd::kExecuteStage);
   cmd_ptr->Execute();
@@ -280,11 +280,11 @@ void PikaClientConn::TryWriteResp() {
 void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string> resp_ptr) {
   // get opt
   std::string opt = argv[0];
-  slash::StringToLower(opt);
+  pstd::StringToLower(opt);
   if (opt == kClusterPrefix) {
     if (argv.size() >= 2 ) {
       opt += argv[1];
-      slash::StringToLower(opt);
+      pstd::StringToLower(opt);
     }
   }
 

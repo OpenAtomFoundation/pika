@@ -12,7 +12,7 @@ aux_source_directory(./src  DIR_SRCS)
 
 add_library(blackwidow STATIC ${DIR_SRCS} )
 
-add_dependencies(blackwidow rocksdb gtest slash)
+add_dependencies(blackwidow rocksdb gtest pstd)
 # TODO fix rocksdb include path
 target_include_directories(blackwidow
     PUBLIC ${PROJECT_SOURCE_DIR}
@@ -28,4 +28,4 @@ target_link_libraries(blackwidow
            ${LZ4_LIBRARY}
            ${ZLIB_LIBRARY}
            ${JEMALLOC_LIBRARY}
-    PUBLIC slash)
+    PUBLIC pstd)

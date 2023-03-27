@@ -76,7 +76,7 @@ class Table : public std::enable_shared_from_this<Table>{
    */
   static void DoKeyScan(void *arg);
   void InitKeyScan();
-  slash::Mutex key_scan_protector_;
+  pstd::Mutex key_scan_protector_;
   KeyScanInfo key_scan_info_;
 
   /*

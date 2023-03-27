@@ -6,8 +6,8 @@
 #include "pink/include/bg_thread.h"
 #include <sys/time.h>
 
-#include "slash/include/slash_mutex.h"
-#include "slash/include/xdebug.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/xdebug.h"
 
 namespace pink {
 
@@ -24,13 +24,13 @@ void BGThread::Schedule(void (*function)(void*), void* arg) {
 }
 
 void BGThread::QueueSize(int* pri_size, int* qu_size) {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   *pri_size = timer_queue_.size();
   *qu_size = queue_.size();
 }
 
 void BGThread::QueueClear() {
-  slash::MutexLock l(&mu_);
+  pstd::MutexLock l(&mu_);
   std::queue<BGItem>().swap(queue_);
   std::priority_queue<TimerItem>().swap(timer_queue_);
   wsignal_.Signal();

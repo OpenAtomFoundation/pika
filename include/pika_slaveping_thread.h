@@ -8,11 +8,11 @@
 
 #include <glog/logging.h>
 
-#include "slash/include/slash_status.h"
+#include "pstd/include/pstd_status.h"
 #include "pink/include/pink_cli.h"
 #include "pink/include/pink_thread.h"
 
-using slash::Status;
+using pstd::Status;
 
 class PikaSlavepingThread : public pink::Thread {
  public:
