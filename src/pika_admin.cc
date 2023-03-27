@@ -1153,7 +1153,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   std::string table_name;
   KeyScanInfo key_scan_info;
   int32_t duration;
-  std::vector<blackwidow::KeyInfo> key_infos;
+  std::vector<storage::KeyInfo> key_infos;
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
   pstd::RWLock rwl(&g_pika_server->tables_rw_, false);
@@ -1235,11 +1235,11 @@ void InfoCmd::InfoData(std::string& info) {
       memtable_usage = table_reader_usage = 0;
       patition_item.second->DbRWLockReader();
       patition_item.second->db()->GetUsage(
-          blackwidow::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
+          storage::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
       patition_item.second->db()->GetUsage(
-          blackwidow::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+          storage::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
       patition_item.second->db()->GetUsage(
-          blackwidow::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
+          storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
       patition_item.second->DbRWUnLock();
       total_memtable_usage += memtable_usage;
       total_table_reader_usage += table_reader_usage;
@@ -2023,8 +2023,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"max_open_files", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kDB, options_map);
+    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+        storage::OptionType::kDB, options_map);
     if (!s.ok()) {
       ret = "-ERR Set max-cache-files wrong: " + s.ToString() + "\r\n";
       return;
@@ -2039,8 +2039,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"max_background_compactions", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kDB, options_map);
+    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+        storage::OptionType::kDB, options_map);
     if (!s.ok()) {
       ret =
           "-ERR Set max-background-compactions wrong: " + s.ToString() + "\r\n";
@@ -2056,8 +2056,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"write_buffer_size", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kColumnFamily, options_map);
+    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+        storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set write-buffer-size wrong: " + s.ToString() + "\r\n";
       return;
@@ -2072,8 +2072,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"max_write_buffer_number", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kColumnFamily, options_map);
+    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+        storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set max-write-buffer-number wrong: " + s.ToString() + "\r\n";
       return;
@@ -2088,8 +2088,8 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"arena_block_size", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kColumnFamily, options_map);
+    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+        storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set arena-block-size wrong: " + s.ToString() + "\r\n";
       return;
@@ -2152,7 +2152,7 @@ void DbsizeCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kInvalidTable);
   } else {
     KeyScanInfo key_scan_info = table->GetKeyScanInfo();
-    std::vector<blackwidow::KeyInfo> key_infos = key_scan_info.key_infos;
+    std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
     if (key_infos.size() != 5) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
       return;
@@ -2259,18 +2259,18 @@ void ScandbCmd::DoInitial() {
     return;
   }
   if (argv_.size() == 1) {
-    type_ = blackwidow::kAll;
+    type_ = storage::kAll;
   } else {
     if (!strcasecmp(argv_[1].data(), "string")) {
-      type_ = blackwidow::kStrings;
+      type_ = storage::kStrings;
     } else if (!strcasecmp(argv_[1].data(), "hash")) {
-      type_ = blackwidow::kHashes;
+      type_ = storage::kHashes;
     } else if (!strcasecmp(argv_[1].data(), "set")) {
-      type_ = blackwidow::kSets;
+      type_ = storage::kSets;
     } else if (!strcasecmp(argv_[1].data(), "zset")) {
-      type_ = blackwidow::kZSets;
+      type_ = storage::kZSets;
     } else if (!strcasecmp(argv_[1].data(), "list")) {
-      type_ = blackwidow::kLists;
+      type_ = storage::kLists;
     } else {
       res_.SetRes(CmdRes::kInvalidDbType);
     }
@@ -2428,15 +2428,15 @@ void PKPatternMatchDelCmd::DoInitial() {
   }
   pattern_ = argv_[1];
   if (!strcasecmp(argv_[2].data(), "set")) {
-    type_ = blackwidow::kSets;
+    type_ = storage::kSets;
   } else if (!strcasecmp(argv_[2].data(), "list")) {
-    type_ = blackwidow::kLists;
+    type_ = storage::kLists;
   } else if (!strcasecmp(argv_[2].data(), "string")) {
-    type_ = blackwidow::kStrings;
+    type_ = storage::kStrings;
   } else if (!strcasecmp(argv_[2].data(), "zset")) {
-    type_ = blackwidow::kZSets;
+    type_ = storage::kZSets;
   } else if (!strcasecmp(argv_[2].data(), "hash")) {
-    type_ = blackwidow::kHashes;
+    type_ = storage::kHashes;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType, kCmdNamePKPatternMatchDel);
     return;
@@ -2535,7 +2535,7 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   std::string raw;
-  std::vector<blackwidow::FieldValue> fvs{
+  std::vector<storage::FieldValue> fvs{
       {"server", "redis"},
   };
   // just for redis resp2 protocol

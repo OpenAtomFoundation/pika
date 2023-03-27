@@ -6,7 +6,7 @@
 #ifndef PIKA_ZSET_H_
 #define PIKA_ZSET_H_
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
@@ -31,7 +31,7 @@ class ZAddCmd : public Cmd {
   }
  private:
   std::string key_;
-  std::vector<blackwidow::ScoreMember> score_members;
+  std::vector<storage::ScoreMember> score_members;
   virtual void DoInitial() override;
 };
 
@@ -259,16 +259,16 @@ class ZRemCmd : public Cmd {
 class ZsetUIstoreParentCmd : public Cmd {
  public:
   ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), aggregate_(blackwidow::SUM) {}
+      : Cmd(name, arity, flag), aggregate_(storage::SUM) {}
  protected:
   std::string dest_key_;
   int64_t num_keys_;
-  blackwidow::AGGREGATE aggregate_;
+  storage::AGGREGATE aggregate_;
   std::vector<std::string> keys_;
   std::vector<double> weights_;
   virtual void DoInitial() override;
   virtual void Clear() {
-    aggregate_ = blackwidow::SUM;
+    aggregate_ = storage::SUM;
   }
 };
 

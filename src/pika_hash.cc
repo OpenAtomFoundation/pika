@@ -95,7 +95,7 @@ void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
   size_t raw_limit = g_pika_conf->max_client_response_size();
   std::string raw;
   rocksdb::Status s;
-  std::vector<blackwidow::FieldValue> fvs;
+  std::vector<storage::FieldValue> fvs;
 
   do {
     fvs.clear();
@@ -264,7 +264,7 @@ void HMgetCmd::DoInitial() {
 }
 
 void HMgetCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<blackwidow::ValueStatus> vss;
+  std::vector<storage::ValueStatus> vss;
   rocksdb::Status s = partition->db()->HMGet(key_, fields_, &vss);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(vss.size());
@@ -419,7 +419,7 @@ void HScanCmd::DoInitial() {
 
 void HScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t next_cursor = 0;
-  std::vector<blackwidow::FieldValue> field_values;
+  std::vector<storage::FieldValue> field_values;
   rocksdb::Status s = partition->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
@@ -479,7 +479,7 @@ void HScanxCmd::DoInitial() {
 
 void HScanxCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
-  std::vector<blackwidow::FieldValue> field_values;
+  std::vector<storage::FieldValue> field_values;
   rocksdb::Status s = partition->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
@@ -534,7 +534,7 @@ void PKHScanRangeCmd::DoInitial() {
 
 void PKHScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
-  std::vector<blackwidow::FieldValue> field_values;
+  std::vector<storage::FieldValue> field_values;
   rocksdb::Status s = partition->db()->PKHScanRange(key_, field_start_, field_end_,
           pattern_, limit_, &field_values, &next_field);
 
@@ -589,7 +589,7 @@ void PKHRScanRangeCmd::DoInitial() {
 
 void PKHRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
-  std::vector<blackwidow::FieldValue> field_values;
+  std::vector<storage::FieldValue> field_values;
   rocksdb::Status s = partition->db()->PKHRScanRange(key_, field_start_, field_end_,
           pattern_, limit_, &field_values, &next_field);
 

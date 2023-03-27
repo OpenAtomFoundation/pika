@@ -103,7 +103,7 @@ void ZScanCmd::DoInitial() {
 
 void ZScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t next_cursor = 0;
-  std::vector<blackwidow::ScoreMember> score_members;
+  std::vector<storage::ScoreMember> score_members;
   rocksdb::Status s = partition->db()->ZScan(key_, cursor_, pattern_, count_, &score_members, &next_cursor);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
@@ -182,7 +182,7 @@ void ZRangeCmd::DoInitial() {
 }
 
 void ZRangeCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<blackwidow::ScoreMember> score_members;
+  std::vector<storage::ScoreMember> score_members;
   rocksdb::Status s = partition->db()->ZRange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
@@ -218,7 +218,7 @@ void ZRevrangeCmd::DoInitial() {
 }
 
 void ZRevrangeCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<blackwidow::ScoreMember> score_members;
+  std::vector<storage::ScoreMember> score_members;
   rocksdb::Status s = partition->db()->ZRevrange(key_, start_, stop_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     if (is_ws_) {
@@ -251,9 +251,9 @@ int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool *le
     begin_score.erase(begin_score.begin());
   }
   if (begin_score == "-inf") {
-    *min_score = blackwidow::ZSET_SCORE_MIN;
+    *min_score = storage::ZSET_SCORE_MIN;
   } else if (begin_score == "inf" || begin_score == "+inf") {
-    *min_score = blackwidow::ZSET_SCORE_MAX;
+    *min_score = storage::ZSET_SCORE_MAX;
   } else if (!pstd::string2d(begin_score.data(), begin_score.size(), min_score)) {
     return -1;
   } 
@@ -263,9 +263,9 @@ int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool *le
     end_score.erase(end_score.begin());
   }
   if (end_score == "+inf" || end_score == "inf") {
-    *max_score = blackwidow::ZSET_SCORE_MAX;
+    *max_score = storage::ZSET_SCORE_MAX;
   } else if (end_score == "-inf") {
-    *max_score = blackwidow::ZSET_SCORE_MIN;
+    *max_score = storage::ZSET_SCORE_MIN;
   } else if (!pstd::string2d(end_score.data(), end_score.size(), max_score)) {
     return -1;
   }
@@ -325,11 +325,11 @@ void ZRangebyscoreCmd::DoInitial() {
 }
 
 void ZRangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
-  if (min_score_ == blackwidow::ZSET_SCORE_MAX || max_score_ == blackwidow::ZSET_SCORE_MIN) {
+  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
-  std::vector<blackwidow::ScoreMember> score_members;
+  std::vector<storage::ScoreMember> score_members;
   rocksdb::Status s = partition->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -376,11 +376,11 @@ void ZRevrangebyscoreCmd::DoInitial() {
 }
 
 void ZRevrangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
-  if (min_score_ == blackwidow::ZSET_SCORE_MAX || max_score_ == blackwidow::ZSET_SCORE_MIN) {
+  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
-  std::vector<blackwidow::ScoreMember> score_members;
+  std::vector<storage::ScoreMember> score_members;
   rocksdb::Status s = partition->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -424,7 +424,7 @@ void ZCountCmd::DoInitial() {
 }
 
 void ZCountCmd::Do(std::shared_ptr<Partition> partition) {
-  if (min_score_ == blackwidow::ZSET_SCORE_MAX || max_score_ == blackwidow::ZSET_SCORE_MIN) {
+  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent("*0");
     return;
   }
@@ -502,11 +502,11 @@ void ZsetUIstoreParentCmd::DoInitial() {
         return;
       }
       if (!strcasecmp(argv_[index].data(), "sum")) {
-        aggregate_ = blackwidow::SUM;
+        aggregate_ = storage::SUM;
       } else if (!strcasecmp(argv_[index].data(), "min")) {
-        aggregate_ = blackwidow::MIN;
+        aggregate_ = storage::MIN;
       } else if (!strcasecmp(argv_[index].data(), "max")) {
-        aggregate_ = blackwidow::MAX;
+        aggregate_ = storage::MAX;
       } else {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
@@ -832,7 +832,7 @@ void ZRemrangebyscoreCmd::DoInitial() {
 }
 
 void ZRemrangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
-  if (min_score_ == blackwidow::ZSET_SCORE_MAX || max_score_ == blackwidow::ZSET_SCORE_MIN) {
+  if (min_score_ == storage::ZSET_SCORE_MAX || max_score_ == storage::ZSET_SCORE_MIN) {
     res_.AppendContent(":0");
     return;
   }
@@ -893,7 +893,7 @@ void ZPopmaxCmd::DoInitial() {
 }
 
 void ZPopmaxCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<blackwidow::ScoreMember> score_members;
+  std::vector<storage::ScoreMember> score_members;
   rocksdb::Status s = partition->db()->ZPopMax(key_, count_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     char buf[32];
@@ -928,7 +928,7 @@ void ZPopminCmd::DoInitial() {
 }
 
 void ZPopminCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<blackwidow::ScoreMember> score_members;
+  std::vector<storage::ScoreMember> score_members;
   rocksdb::Status s = partition->db()->ZPopMin(key_, count_, &score_members);
   if (s.ok() || s.IsNotFound()) {
     char buf[32];

@@ -55,7 +55,7 @@ void Table::BgSaveTable() {
   }
 }
 
-void Table::CompactTable(const blackwidow::DataType& type) {
+void Table::CompactTable(const storage::DataType& type) {
   pstd::RWLock l(&partitions_rw_, false);
   for (const auto& item : partitions_) {
     item.second->Compact(type);
@@ -160,12 +160,12 @@ bool Table::IsKeyScaning() {
 
 void Table::RunKeyScan() {
   Status s;
-  std::vector<blackwidow::KeyInfo> new_key_infos(5);
+  std::vector<storage::KeyInfo> new_key_infos(5);
 
   InitKeyScan();
   pstd::RWLock rwl(&partitions_rw_, false);
   for (const auto& item : partitions_) {
-    std::vector<blackwidow::KeyInfo> tmp_key_infos;
+    std::vector<storage::KeyInfo> tmp_key_infos;
     s = item.second->GetKeyNum(&tmp_key_infos);
     if (s.ok()) {
       for (size_t idx = 0; idx < tmp_key_infos.size(); ++idx) {
@@ -199,7 +199,7 @@ void Table::StopKeyScan() {
   key_scan_info_.key_scaning_ = false;
 }
 
-void Table::ScanDatabase(const blackwidow::DataType& type) {
+void Table::ScanDatabase(const storage::DataType& type) {
   pstd::RWLock rwl(&partitions_rw_, false);
   for (const auto& item : partitions_) {
     printf("\n\npartition name : %s\n", item.second->GetPartitionName().c_str());
@@ -220,7 +220,7 @@ KeyScanInfo Table::GetKeyScanInfo() {
   return key_scan_info_;
 }
 
-void Table::Compact(const blackwidow::DataType& type) {
+void Table::Compact(const storage::DataType& type) {
   pstd::RWLock rwl(&partitions_rw_, true);
   for (const auto& item : partitions_) {
     item.second->Compact(type);

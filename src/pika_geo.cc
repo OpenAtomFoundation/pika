@@ -43,7 +43,7 @@ void GeoAddCmd::DoInitial() {
 }
 
 void GeoAddCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<blackwidow::ScoreMember> score_members;
+  std::vector<storage::ScoreMember> score_members;
   for (const auto& geo_point : pos_) {
     // Convert coordinates to geohash
     GeoHashBits hash;
@@ -295,7 +295,7 @@ static void GetAllNeighbors(std::shared_ptr<Partition> partition, std::string & 
     if(last_processed && neighbors[i].bits == neighbors[last_processed].bits && neighbors[i].step == neighbors[last_processed].step) {
 	continue;
     }
-    std::vector<blackwidow::ScoreMember> score_members;
+    std::vector<storage::ScoreMember> score_members;
     s = partition->db()->ZRangebyscore(key, (double)min, (double)max, true, true, &score_members);
     if (!s.ok() && !s.IsNotFound()) {
       res.SetRes(CmdRes::kErrOther, s.ToString());
@@ -332,7 +332,7 @@ static void GetAllNeighbors(std::shared_ptr<Partition> partition, std::string & 
   
   if (range.store || range.storedist) {
     // Target key, create a sorted set with the results.
-    std::vector<blackwidow::ScoreMember> score_members;
+    std::vector<storage::ScoreMember> score_members;
     for (int i = 0; i < count_limit; ++i) {
       double distance = length_converter(result[i].distance, range.unit);
       double score = range.store ? result[i].score : distance;

@@ -40,9 +40,9 @@ void LInsertCmd::DoInitial() {
   key_ = argv_[1];
   std::string dir = argv_[2];
   if (!strcasecmp(dir.data(), "before")) {
-    dir_ = blackwidow::Before;
+    dir_ = storage::Before;
   } else if (!strcasecmp(dir.data(), "after")) {
-    dir_ = blackwidow::After;
+    dir_ = storage::After;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;

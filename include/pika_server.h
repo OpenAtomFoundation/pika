@@ -15,8 +15,8 @@
 #include "net/include/bg_thread.h"
 #include "net/include/thread_pool.h"
 #include "net/include/net_pubsub.h"
-#include "blackwidow/blackwidow.h"
-#include "blackwidow/backupable.h"
+#include "storage/storage.h"
+#include "storage/backupable.h"
 
 #include "include/pika_conf.h"
 #include "include/pika_table.h"
@@ -116,7 +116,7 @@ class PikaServer {
   bool force_full_sync();
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
-  blackwidow::BlackwidowOptions bw_options();
+  storage::BlackwidowOptions bw_options();
 
   /*
    * Table use
@@ -307,7 +307,7 @@ class PikaServer {
   /*
    * BlackwidowOptions used
    */
-  blackwidow::Status RewriteBlackwidowOptions(const blackwidow::OptionType& option_type,
+  storage::Status RewriteBlackwidowOptions(const storage::OptionType& option_type,
                                   const std::unordered_map<std::string, std::string>& options);
 
   friend class Cmd;
@@ -334,7 +334,7 @@ class PikaServer {
   time_t start_time_s_;
 
   pthread_rwlock_t bw_options_rw_;
-  blackwidow::BlackwidowOptions bw_options_;
+  storage::BlackwidowOptions bw_options_;
   void InitBlackwidowOptions();
 
   std::atomic<bool> exit_;
