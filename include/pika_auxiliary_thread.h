@@ -6,11 +6,11 @@
 #ifndef PIKA_AUXILIARY_THREAD_H_
 #define PIKA_AUXILIARY_THREAD_H_
 
-#include "pink/include/pink_thread.h"
+#include "net/include/net_thread.h"
 
 #include "pstd/include/pstd_mutex.h"
 
-class PikaAuxiliaryThread : public pink::Thread {
+class PikaAuxiliaryThread : public net::Thread {
  public:
   PikaAuxiliaryThread() :
       mu_(),

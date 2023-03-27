@@ -15,8 +15,8 @@ THIRD_PATH=../third
 SLASH_PATH=$(THIRD_PATH)/slash
 SLASH=$(SLASH_PATH)/slash/lib/libslash.a
 
-PINK_PATH=$(THIRD_PATH)/pink
-PINK=$(PINK_PATH)/pink/lib/libpink.a
+PINK_PATH=$(THIRD_PATH)/net
+PINK=$(PINK_PATH)/net/lib/libnet.a
 
 
 INCLUDE_PATH = -I./                             \
@@ -24,9 +24,9 @@ INCLUDE_PATH = -I./                             \
                -I$(PINK_PATH)                   \
 
 LIB_PATH     = -L$(SLASH_PATH)/slash/lib        \
-               -L$(PINK_PATH)/pink/lib          \
+               -L$(PINK_PATH)/net/lib          \
 
-LIBS         = -lpink                           \
+LIBS         = -lnet                           \
                -lslash                          \
                -lpthread                        \
 
@@ -41,7 +41,7 @@ $(OBJS): %.o : %.cc
 
 
 $(PINK) :
-	make -C $(PINK_PATH)/pink SLASH_PATH=../../slash
+	make -C $(PINK_PATH)/net SLASH_PATH=../../slash
 
 $(SLASH) :
 	make -C $(SLASH_PATH)/slash
@@ -56,5 +56,5 @@ clean:
 distclean:
 	rm -rf $(OBJS)
 	rm -rf $(TARGET)
-	make -C $(PINK_PATH)/pink clean
+	make -C $(PINK_PATH)/net clean
 	make -C $(SLASH_PATH)/slash clean

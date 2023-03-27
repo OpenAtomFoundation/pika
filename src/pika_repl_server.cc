@@ -18,7 +18,7 @@ extern PikaReplicaManager* g_pika_rm;
 PikaReplServer::PikaReplServer(const std::set<std::string>& ips,
                                int port,
                                int cron_interval) {
-  server_tp_ = new pink::ThreadPool(PIKA_REPL_SERVER_TP_SIZE, 100000);
+  server_tp_ = new net::ThreadPool(PIKA_REPL_SERVER_TP_SIZE, 100000);
   pika_repl_server_thread_ = new PikaReplServerThread(ips, port, cron_interval);
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
   pthread_rwlock_init(&client_conn_rwlock_, NULL);
@@ -33,14 +33,14 @@ PikaReplServer::~PikaReplServer() {
 
 int PikaReplServer::Start() {
   int res = pika_repl_server_thread_->StartThread();
-  if (res != pink::kSuccess) {
+  if (res != net::kSuccess) {
     LOG(FATAL) << "Start Pika Repl Server Thread Error: " << res
-        << (res == pink::kBindError ? ": bind port " + std::to_string(pika_repl_server_thread_->ListenPort()) + " conflict" : ": create thread error ")
+        << (res == net::kBindError ? ": bind port " + std::to_string(pika_repl_server_thread_->ListenPort()) + " conflict" : ": create thread error ")
         << ", Listen on this port to handle the request sent by the Slave";
   }
   res = server_tp_->start_thread_pool();
-  if (res != pink::kSuccess) {
-    LOG(FATAL) << "Start ThreadPool Error: " << res << (res == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  if (res != net::kSuccess) {
+    LOG(FATAL) << "Start ThreadPool Error: " << res << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
   return res;
 }
@@ -148,8 +148,8 @@ pstd::Status PikaReplServer::Write(const std::string& ip,
     return Status::NotFound("The " + ip_port + " fd cannot be found");
   }
   int fd = client_conn_map_[ip_port];
-  std::shared_ptr<pink::PbConn> conn =
-      std::dynamic_pointer_cast<pink::PbConn>(pika_repl_server_thread_->get_conn(fd));
+  std::shared_ptr<net::PbConn> conn =
+      std::dynamic_pointer_cast<net::PbConn>(pika_repl_server_thread_->get_conn(fd));
   if (conn == nullptr) {
     return Status::NotFound("The" + ip_port + " conn cannot be found");
   }
@@ -162,7 +162,7 @@ pstd::Status PikaReplServer::Write(const std::string& ip,
   return Status::OK();
 }
 
-void PikaReplServer::Schedule(pink::TaskFunc func, void* arg){
+void PikaReplServer::Schedule(net::TaskFunc func, void* arg){
   server_tp_->Schedule(func, arg);
 }
 

@@ -246,11 +246,11 @@ class PikaReplicaManager {
   void DropItemInWriteQueue(const std::string& ip, int port);
 
   // Schedule Task
-  void ScheduleReplServerBGTask(pink::TaskFunc func, void* arg);
-  void ScheduleReplClientBGTask(pink::TaskFunc func, void* arg);
+  void ScheduleReplServerBGTask(net::TaskFunc func, void* arg);
+  void ScheduleReplClientBGTask(net::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(const std::string& table_partition,
                                const std::shared_ptr<InnerMessage::InnerResponse> res,
-                               std::shared_ptr<pink::PbConn> conn, void* res_private_data);
+                               std::shared_ptr<net::PbConn> conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr, const LogOffset& offset,
                            const std::string& table_name, uint32_t partition_id);
 

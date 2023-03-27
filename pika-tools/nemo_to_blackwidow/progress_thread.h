@@ -9,13 +9,13 @@
 #include "iostream"
 #include "vector"
 
-#include "pink/include/pink_thread.h"
+#include "net/include/net_thread.h"
 
 #include "classify_thread.h"
 
 extern slash::Mutex mutex;
 
-class ProgressThread : public pink::Thread {
+class ProgressThread : public net::Thread {
   public:
     ProgressThread(std::vector<ClassifyThread*>* classify_threads);
   private:

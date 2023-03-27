@@ -700,7 +700,7 @@ void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
   if (res().ok()
     && is_write()
     && g_pika_conf->write_binlog()) {
-    std::shared_ptr<pink::PinkConn> conn_ptr = GetConn();
+    std::shared_ptr<net::NetConn> conn_ptr = GetConn();
     std::shared_ptr<std::string> resp_ptr = GetResp();
     // Consider that dummy cmd appended by system, both conn and resp are null.
     if ((!conn_ptr || !resp_ptr) && (name_ != kCmdDummy)) {
@@ -875,11 +875,11 @@ void Cmd::LogCommand() const {
   LOG(INFO) << "command:" << command;
 }
 
-void Cmd::SetConn(const std::shared_ptr<pink::PinkConn> conn) {
+void Cmd::SetConn(const std::shared_ptr<net::NetConn> conn) {
   conn_ = conn;
 }
 
-std::shared_ptr<pink::PinkConn> Cmd::GetConn() {
+std::shared_ptr<net::NetConn> Cmd::GetConn() {
   return conn_.lock();
 }
 

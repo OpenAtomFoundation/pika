@@ -8,8 +8,8 @@
 
 #include <unordered_map>
 
-#include "pink/include/redis_conn.h"
-#include "pink/include/pink_conn.h"
+#include "net/include/redis_conn.h"
+#include "net/include/net_conn.h"
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_partition.h"
@@ -218,7 +218,7 @@ const std::string kCmdNamePkClusterAddTable = "pkclusteraddtable";
 const std::string kCmdNamePkClusterDelTable = "pkclusterdeltable";
 
 const std::string kClusterPrefix = "pkcluster";
-typedef pink::RedisCmdArgsType PikaCmdArgsType;
+typedef net::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024; 
 
 enum CmdFlagsMask {
@@ -479,8 +479,8 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
                                uint32_t filenum,
                                uint64_t offset);
 
-  void SetConn(const std::shared_ptr<pink::PinkConn> conn);
-  std::shared_ptr<pink::PinkConn> GetConn();
+  void SetConn(const std::shared_ptr<net::NetConn> conn);
+  std::shared_ptr<net::NetConn> GetConn();
 
   void SetResp(const std::shared_ptr<std::string> resp);
   std::shared_ptr<std::string> GetResp();
@@ -506,7 +506,7 @@ class Cmd: public std::enable_shared_from_this<Cmd> {
   PikaCmdArgsType argv_;
   std::string table_name_;
 
-  std::weak_ptr<pink::PinkConn> conn_;
+  std::weak_ptr<net::NetConn> conn_;
   std::weak_ptr<std::string> resp_;
   CmdStage stage_;
   uint64_t do_duration_;

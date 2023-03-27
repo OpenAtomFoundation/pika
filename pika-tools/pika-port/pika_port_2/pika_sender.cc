@@ -21,7 +21,7 @@ PikaSender::~PikaSender() {
 void PikaSender::ConnectRedis() {
   while (cli_ == NULL) {
     // Connect to redis
-    cli_ = pink::NewRedisCli();
+    cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1000);
     slash::Status s = cli_->Connect(ip_, port_);
     if (!s.ok()) {
@@ -35,12 +35,12 @@ void PikaSender::ConnectRedis() {
 
       // Authentication
       if (!password_.empty()) {
-        pink::RedisCmdArgsType argv, resp;
+        net::RedisCmdArgsType argv, resp;
         std::string cmd;
 
         argv.push_back("AUTH");
         argv.push_back(password_);
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         slash::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {
@@ -62,11 +62,11 @@ void PikaSender::ConnectRedis() {
         }
       } else {
         // If forget to input password
-        pink::RedisCmdArgsType argv, resp;
+        net::RedisCmdArgsType argv, resp;
         std::string cmd;
 
         argv.push_back("PING");
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         slash::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {
@@ -175,14 +175,14 @@ void *PikaSender::ThreadMain() {
         std::string h_key = key.substr(1);
         nemo::HIterator *iter = db_->HScan(h_key, "", "", -1, false);
         for (; iter->Valid(); iter->Next()) {
-          pink::RedisCmdArgsType argv;
+          net::RedisCmdArgsType argv;
 
           argv.push_back("HSET");
           argv.push_back(iter->key());
           argv.push_back(iter->field());
           argv.push_back(iter->value());
 
-          pink::SerializeRedisCommand(argv, &command);
+          net::SerializeRedisCommand(argv, &command);
           SendCommand(command, key);
           cnt++;
         }
@@ -195,13 +195,13 @@ void *PikaSender::ThreadMain() {
 
         nemo::SIterator *iter = db_->SScan(s_key, -1, false);
         for (; iter->Valid(); iter->Next()) {
-          pink::RedisCmdArgsType argv;
+          net::RedisCmdArgsType argv;
 
           argv.push_back("SADD");
           argv.push_back(iter->key());
           argv.push_back(iter->member());
 
-          pink::SerializeRedisCommand(argv, &command);
+          net::SerializeRedisCommand(argv, &command);
           SendCommand(command, key);
           cnt++;
         }
@@ -216,7 +216,7 @@ void *PikaSender::ThreadMain() {
         db_->LRange(l_key, pos, pos+len-1, ivs);
 
         while (!ivs.empty()) {
-          pink::RedisCmdArgsType argv;
+          net::RedisCmdArgsType argv;
           std::string cmd;
 
           argv.push_back("RPUSH");
@@ -225,7 +225,7 @@ void *PikaSender::ThreadMain() {
           for (it = ivs.begin(); it != ivs.end(); ++it) {
             argv.push_back(it->val);
           }
-          pink::SerializeRedisCommand(argv, &command);
+          net::SerializeRedisCommand(argv, &command);
           SendCommand(command, key);
           cnt++;
 
@@ -238,7 +238,7 @@ void *PikaSender::ThreadMain() {
         nemo::ZIterator *iter = db_->ZScan(z_key, nemo::ZSET_SCORE_MIN,
                                      nemo::ZSET_SCORE_MAX, -1, false);
         for (; iter->Valid(); iter->Next()) {
-          pink::RedisCmdArgsType argv;
+          net::RedisCmdArgsType argv;
 
           std::string score = std::to_string(iter->score());
 
@@ -247,7 +247,7 @@ void *PikaSender::ThreadMain() {
           argv.push_back(score);
           argv.push_back(iter->member());
 
-          pink::SerializeRedisCommand(argv, &command);
+          net::SerializeRedisCommand(argv, &command);
           SendCommand(command, key);
           cnt++;
         }
@@ -274,13 +274,13 @@ void *PikaSender::ThreadMain() {
         db_->TTL(key, &ttl);
 
         if (ttl >= 0) {
-          pink::RedisCmdArgsType argv;
+          net::RedisCmdArgsType argv;
 
           argv.push_back("EXPIRE");
           argv.push_back(e_key);
           argv.push_back(std::to_string(ttl));
 
-          pink::SerializeRedisCommand(argv, &expire_command_);
+          net::SerializeRedisCommand(argv, &expire_command_);
           slash::Status s = cli_->Send(&expire_command_);
           if (!s.ok()) {
             cli_->Close();

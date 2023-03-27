@@ -20,7 +20,7 @@ extern PikaCmdTableManager* g_pika_cmd_table_manager;
 PikaReplBgWorker::PikaReplBgWorker(int queue_size)
     : bg_thread_(queue_size) {
   bg_thread_.set_thread_name("ReplBgWorker");
-  pink::RedisParserSettings settings;
+  net::RedisParserSettings settings;
   settings.DealMessage = &(PikaReplBgWorker::HandleWriteBinlog);
   redis_parser_.RedisParserInit(REDIS_PARSER_REQUEST, settings);
   redis_parser_.data = this;
@@ -36,7 +36,7 @@ int PikaReplBgWorker::StopThread() {
   return bg_thread_.StopThread();
 }
 
-void PikaReplBgWorker::Schedule(pink::TaskFunc func, void* arg) {
+void PikaReplBgWorker::Schedule(net::TaskFunc func, void* arg) {
   bg_thread_.Schedule(func, arg);
 }
 
@@ -56,7 +56,7 @@ void PikaReplBgWorker::ParseBinlogOffset(
 void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   ReplClientWriteBinlogTaskArg* task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerResponse> res = task_arg->res;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::vector<int>* index = static_cast<std::vector<int>* >(task_arg->res_private_data);
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
@@ -195,9 +195,9 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     const char* redis_parser_start = binlog_res.binlog().data() + BINLOG_ENCODE_LEN;
     int redis_parser_len = static_cast<int>(binlog_res.binlog().size()) - BINLOG_ENCODE_LEN;
     int processed_len = 0;
-    pink::RedisParserStatus ret = worker->redis_parser_.ProcessInputBuffer(
+    net::RedisParserStatus ret = worker->redis_parser_.ProcessInputBuffer(
       redis_parser_start, redis_parser_len, &processed_len);
-    if (ret != pink::kRedisParserDone) {
+    if (ret != net::kRedisParserDone) {
       LOG(WARNING) << "Redis parser failed";
       slave_partition->SetReplState(ReplState::kTryConnect);
       delete index;
@@ -231,7 +231,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   g_pika_rm->SendPartitionBinlogSyncAckRequest(table_name, partition_id, ack_start, ack_end);
 }
 
-int PikaReplBgWorker::HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
+int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
   PikaReplBgWorker* worker = static_cast<PikaReplBgWorker*>(parser->data);
 

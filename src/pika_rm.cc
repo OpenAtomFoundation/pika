@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 #include <glog/logging.h>
 
-#include "pink/include/pink_cli.h"
+#include "net/include/net_cli.h"
 
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
@@ -694,13 +694,13 @@ PikaReplicaManager::~PikaReplicaManager() {
 void PikaReplicaManager::Start() {
   int ret = 0;
   ret = pika_repl_client_->Start();
-  if (ret != pink::kSuccess) {
-    LOG(FATAL) << "Start Repl Client Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  if (ret != net::kSuccess) {
+    LOG(FATAL) << "Start Repl Client Error: " << ret << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
 
   ret = pika_repl_server_->Start();
-  if (ret != pink::kSuccess) {
-    LOG(FATAL) << "Start Repl Server Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+  if (ret != net::kSuccess) {
+    LOG(FATAL) << "Start Repl Server Error: " << ret << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
 }
 
@@ -817,17 +817,17 @@ void PikaReplicaManager::DropItemInWriteQueue(const std::string& ip, int port) {
   write_queues_.erase(index);
 }
 
-void PikaReplicaManager::ScheduleReplServerBGTask(pink::TaskFunc func, void* arg) {
+void PikaReplicaManager::ScheduleReplServerBGTask(net::TaskFunc func, void* arg) {
   pika_repl_server_->Schedule(func, arg);
 }
 
-void PikaReplicaManager::ScheduleReplClientBGTask(pink::TaskFunc func, void* arg) {
+void PikaReplicaManager::ScheduleReplClientBGTask(net::TaskFunc func, void* arg) {
   pika_repl_client_->Schedule(func, arg);
 }
 
 void PikaReplicaManager::ScheduleWriteBinlogTask(const std::string& table_partition,
         const std::shared_ptr<InnerMessage::InnerResponse> res,
-        std::shared_ptr<pink::PbConn> conn,
+        std::shared_ptr<net::PbConn> conn,
         void* res_private_data) {
   pika_repl_client_->ScheduleWriteBinlogTask(table_partition, res, conn, res_private_data);
 }
@@ -991,7 +991,7 @@ Status PikaReplicaManager::GetPartitionInfo(
 Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip,
                                          const int remote_port,
                                          std::string* const local_ip) {
-  pink::PinkCli* cli = pink::NewRedisCli();
+  net::NetCli* cli = net::NewRedisCli();
   cli->set_connect_timeout(1500);
   if ((cli->Connect(remote_ip, remote_port, "")).ok()) {
     struct sockaddr_in laddr;

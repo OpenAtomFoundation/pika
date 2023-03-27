@@ -9,15 +9,15 @@
 #include <glog/logging.h>
 #include <atomic>
 
-#include "pink/include/redis_conn.h"
-#include "pink/include/pink_thread.h"
+#include "net/include/redis_conn.h"
+#include "net/include/net_thread.h"
 #include "include/pika_command.h"
 
 class PikaWorkerSpecificData;
 
-class PikaClientConn: public pink::RedisConn {
+class PikaClientConn: public net::RedisConn {
  public:
-  PikaClientConn(int fd, std::string ip_port, pink::ServerThread *server_thread,
+  PikaClientConn(int fd, std::string ip_port, net::ServerThread *server_thread,
                  void* worker_specific_data);
   virtual ~PikaClientConn() {}
   int DealMessage(PikaCmdArgsType& argv, std::string* response) override;
@@ -26,7 +26,7 @@ class PikaClientConn: public pink::RedisConn {
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
 
  private:
-  pink::ServerThread* const server_thread_;
+  net::ServerThread* const server_thread_;
   CmdTable* const cmds_table_;
   bool is_pubsub_;
 

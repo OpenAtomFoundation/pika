@@ -6,7 +6,7 @@
 #ifndef PIKA_REPL_CLIENT_CONN_H_
 #define PIKA_REPL_CLIENT_CONN_H_
 
-#include "pink/include/pb_conn.h"
+#include "net/include/pb_conn.h"
 
 #include <memory>
 
@@ -16,9 +16,9 @@
 class SyncMasterPartition;
 class SyncSlavePartition;
 
-class PikaReplClientConn: public pink::PbConn {
+class PikaReplClientConn: public net::PbConn {
  public:
-  PikaReplClientConn(int fd, const std::string& ip_port, pink::Thread *thread, void* worker_specific_data, pink::PinkEpoll* epoll);
+  PikaReplClientConn(int fd, const std::string& ip_port, net::Thread *thread, void* worker_specific_data, net::NetEpoll* epoll);
   virtual ~PikaReplClientConn() = default;
 
   static void HandleMetaSyncResponse(void* arg);
@@ -41,8 +41,8 @@ class PikaReplClientConn: public pink::PbConn {
 
   struct ReplRespArg {
     std::shared_ptr<InnerMessage::InnerResponse> resp;
-    std::shared_ptr<pink::PbConn> conn;
-    ReplRespArg(std::shared_ptr<InnerMessage::InnerResponse> _resp, std::shared_ptr<pink::PbConn> _conn) : resp(_resp), conn(_conn) {
+    std::shared_ptr<net::PbConn> conn;
+    ReplRespArg(std::shared_ptr<InnerMessage::InnerResponse> _resp, std::shared_ptr<net::PbConn> _conn) : resp(_resp), conn(_conn) {
     }
   };
 };

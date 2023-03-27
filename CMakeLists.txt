@@ -486,7 +486,7 @@ set(ROCKSDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rocksdb)
 
 add_subdirectory(src/pstd)
-add_subdirectory(src/pink)
+add_subdirectory(src/net)
 add_subdirectory(src/blackwidow)
 aux_source_directory(src DIR_SRCS)
 
@@ -551,7 +551,7 @@ add_dependencies(${PROJECT_NAME}
   rocksdb
   protobuf
   pstd
-  pink
+  net
   blackwidow)
 
 target_include_directories(${PROJECT_NAME}
@@ -562,7 +562,7 @@ target_include_directories(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
   blackwidow
-  pink
+  net
   pstd
   ${LIB_GLOG}
   librocksdb.a

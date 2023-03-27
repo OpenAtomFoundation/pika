@@ -9,11 +9,11 @@
 #include "iostream"
 #include "vector"
 
-#include "pink/include/pink_thread.h"
+#include "net/include/net_thread.h"
 
 #include "scan_thread.h"
 
-class ProgressThread : public pink::Thread {
+class ProgressThread : public net::Thread {
  public:
   ProgressThread(ScanThread* scan_thread);
  private:

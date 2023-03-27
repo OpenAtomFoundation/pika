@@ -12,8 +12,8 @@
 #include "stdint.h"
 #include "string.h"
 
-#include "pink/include/pink_cli.h"
-#include "pink/include/redis_cli.h"
+#include "net/include/net_cli.h"
+#include "net/include/redis_cli.h"
 
 #include "utils.h"
 #include "progress_thread.h"
@@ -31,7 +31,7 @@ std::string end_time_str = "2100-01-01 00:00:01";
 bool need_auth = false;
 std::string pass_wd;
 
-pink::PinkCli* cli = nullptr;
+net::PinkCli* cli = nullptr;
 BinlogConsumer* binlog_consumer = nullptr;
 ProgressThread* progress_thread = nullptr;
 
@@ -66,26 +66,26 @@ void Usage() {
 
 void TryToCommunicate() {
 
-  cli = pink::NewRedisCli();
+  cli = net::NewRedisCli();
   cli->set_connect_timeout(3000);
-  Status pink_s = cli->Connect(ip, port, "");
-  if (!pink_s.ok()) {
-    std::cout << "Connect failed " << pink_s.ToString().c_str() << ", exit..." << std::endl;
+  Status net_s = cli->Connect(ip, port, "");
+  if (!net_s.ok()) {
+    std::cout << "Connect failed " << net_s.ToString().c_str() << ", exit..." << std::endl;
     exit(-1);
   }
   std::cout << "Connect success..." << std::endl;
 
-  pink::RedisCmdArgsType argv;
+  net::RedisCmdArgsType argv;
   if (need_auth) {
     std::string ok = "ok";
     std::string auth_cmd;
     argv.clear();
     argv.push_back("auth");
     argv.push_back(pass_wd);
-    pink::SerializeRedisCommand(argv, &auth_cmd);
+    net::SerializeRedisCommand(argv, &auth_cmd);
 
-    pink_s = cli->Send(&auth_cmd);
-    pink_s = cli->Recv(&argv);
+    net_s = cli->Send(&auth_cmd);
+    net_s = cli->Recv(&argv);
     if (argv.size() == 1 && !strcasecmp(argv[0].c_str(), ok.c_str())) {
       std::cout << "Try communicate success..." << std::endl;
     } else {
@@ -101,10 +101,10 @@ void TryToCommunicate() {
     std::string ping_cmd;
     argv.clear();
     argv.push_back("ping");
-    pink::SerializeRedisCommand(argv, &ping_cmd);
+    net::SerializeRedisCommand(argv, &ping_cmd);
 
-    pink_s = cli->Send(&ping_cmd);
-    pink_s = cli->Recv(&argv);
+    net_s = cli->Send(&ping_cmd);
+    net_s = cli->Recv(&argv);
     if (argv.size() == 1 && !strcasecmp(argv[0].c_str(), pong.c_str())) {
       std::cout << "Try communicate success..." << std::endl;
     } else {
@@ -208,13 +208,13 @@ int main(int argc, char *argv[]) {
       if (PikaBinlogTransverter::BinlogDecode(TypeFirst, scratch, &binlog_item)) {
         std::string redis_cmd = binlog_item.content();
         if (tv_start <= binlog_item.exec_time() && binlog_item.exec_time() <= tv_end) {
-          Status pink_s = cli->Send(&redis_cmd);
-          if (pink_s.ok()) {
-            pink_s = cli->Recv(NULL);
-            if (pink_s.ok()) {
+          Status net_s = cli->Send(&redis_cmd);
+          if (net_s.ok()) {
+            net_s = cli->Recv(NULL);
+            if (net_s.ok()) {
               success_num++;
             } else {
-              std::cout << "No." << fail_num << "send data failed, " << pink_s.ToString().c_str() << std::endl;
+              std::cout << "No." << fail_num << "send data failed, " << net_s.ToString().c_str() << std::endl;
               std::cout << "data: " << scratch << std::endl;
               fail_num++;
             }

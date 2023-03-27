@@ -22,10 +22,10 @@ extern PikaReplicaManager* g_pika_rm;
 
 PikaReplClientConn::PikaReplClientConn(int fd,
                                const std::string& ip_port,
-                               pink::Thread* thread,
+                               net::Thread* thread,
                                void* worker_specific_data,
-                               pink::PinkEpoll* epoll)
-      : pink::PbConn(fd, ip_port, thread, epoll) {
+                               net::NetEpoll* epoll)
+      : net::PbConn(fd, ip_port, thread, epoll) {
 }
 
 bool PikaReplClientConn::IsTableStructConsistent(
@@ -92,7 +92,7 @@ int PikaReplClientConn::DealMessage() {
 
 void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
   if (response->code() == InnerMessage::kOther) {
@@ -149,7 +149,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
 
 void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
   const InnerMessage::InnerResponse_DBSync db_sync_response = response->db_sync();
@@ -185,7 +185,7 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
 
 void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
   if (response->code() != InnerMessage::kOk) {
@@ -329,7 +329,7 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
 
 void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
   ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";

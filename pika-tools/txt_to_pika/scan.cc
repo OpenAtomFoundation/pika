@@ -28,7 +28,7 @@ void ScanThread::ScanFile() {
     fout.read(value, value_len);
     str_value.append(value, value_len);
 
-    pink::RedisCmdArgsType argv;
+    net::RedisCmdArgsType argv;
     if (ttl_ > 0) {
       argv.push_back("SETEX");
       argv.push_back(str_key);
@@ -40,7 +40,7 @@ void ScanThread::ScanFile() {
       argv.push_back(str_value);
     }
     
-    pink::SerializeRedisCommand(argv, &cmd);
+    net::SerializeRedisCommand(argv, &cmd);
     
     DispatchCmd(cmd);
     num_++;

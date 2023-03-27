@@ -11,29 +11,29 @@
 
 #include "include/pika_repl_client_conn.h"
 
-#include "pink/include/pink_conn.h"
-#include "pink/include/client_thread.h"
+#include "net/include/net_conn.h"
+#include "net/include/client_thread.h"
 
-class PikaReplClientThread : public pink::ClientThread {
+class PikaReplClientThread : public net::ClientThread {
  public:
   PikaReplClientThread(int cron_interval, int keepalive_timeout);
   virtual ~PikaReplClientThread() = default;
   int Start();
 
  private:
-  class ReplClientConnFactory : public pink::ConnFactory {
+  class ReplClientConnFactory : public net::ConnFactory {
    public:
-    virtual std::shared_ptr<pink::PinkConn> NewPinkConn(
+    virtual std::shared_ptr<net::NetConn> NewNetConn(
         int connfd,
         const std::string &ip_port,
-        pink::Thread *thread,
+        net::Thread *thread,
         void* worker_specific_data,
-        pink::PinkEpoll* pink_epoll) const override {
-      return std::static_pointer_cast<pink::PinkConn>
-        (std::make_shared<PikaReplClientConn>(connfd, ip_port, thread, worker_specific_data, pink_epoll));
+        net::NetEpoll* net_epoll) const override {
+      return std::static_pointer_cast<net::NetConn>
+        (std::make_shared<PikaReplClientConn>(connfd, ip_port, thread, worker_specific_data, net_epoll));
     }
   };
-  class ReplClientHandle : public pink::ClientHandle {
+  class ReplClientHandle : public net::ClientHandle {
    public:
     void CronHandle() const override {
     }

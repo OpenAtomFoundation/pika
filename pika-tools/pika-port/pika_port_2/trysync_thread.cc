@@ -41,13 +41,13 @@ void TrysyncThread::PrepareRsync() {
 }
 
 bool TrysyncThread::Send() {
-  pink::RedisCmdArgsType argv;
+  net::RedisCmdArgsType argv;
   std::string wbuf_str;
   std::string requirepass = g_pika_port->requirepass();
   if (requirepass != "") {
     argv.push_back("auth");
     argv.push_back(requirepass);
-    pink::SerializeRedisCommand(argv, &wbuf_str);
+    net::SerializeRedisCommand(argv, &wbuf_str);
   }
 
   argv.clear();
@@ -65,7 +65,7 @@ bool TrysyncThread::Send() {
   argv.push_back(std::to_string(filenum));
   argv.push_back(std::to_string(pro_offset));
 
-  pink::SerializeRedisCommand(argv, &tbuf_str);
+  net::SerializeRedisCommand(argv, &tbuf_str);
 
   wbuf_str.append(tbuf_str);
   DLOG(INFO) << "redis command: trysync " << g_port_conf.local_ip << " "
@@ -89,7 +89,7 @@ bool TrysyncThread::RecvProc() {
   slash::Status s;
   std::string reply;
 
-  pink::RedisCmdArgsType argv;
+  net::RedisCmdArgsType argv;
   while (1) {
     s = cli_->Recv(&argv);
     if (!s.ok()) {

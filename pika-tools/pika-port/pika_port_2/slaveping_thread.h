@@ -6,19 +6,19 @@
 #ifndef SLAVEPING_THREAD_H_
 #define SLAVEPING_THREAD_H_
 
-#include "pink/include/pink_thread.h"
-#include "pink/include/pink_cli.h"
-#include "pink/include/redis_cli.h"
+#include "net/include/net_thread.h"
+#include "net/include/net_cli.h"
+#include "net/include/redis_cli.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/slash_status.h"
 
 using slash::Status;
 
-class SlavepingThread : public pink::Thread {
+class SlavepingThread : public net::Thread {
 public:
   SlavepingThread(int64_t sid) : sid_(sid),
   is_first_send_(true) {
-    cli_ = pink::NewRedisCli();
+    cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1500);
 	};
   virtual ~SlavepingThread() {
@@ -35,7 +35,7 @@ private:
   bool is_first_send_;
 
   int sockfd_;
-  pink::PinkCli *cli_;
+  net::PinkCli *cli_;
 
   virtual void* ThreadMain();
 

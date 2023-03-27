@@ -14,6 +14,6 @@ g++ \
   -L./ \
   -L../../third/rocksdb/ \
   -L../../third/slash/slash/lib \
-  -L../../third/pink/pink/lib \
+  -L../../third/net/net/lib \
   -L../../third/blackwidow/lib \
-  -L./deps_source -lrocksdb -lpthread -lrt -lpink -lslash -lblackwidow -lrocksdb -lz -lbz2 -lsnappy -lglog -lgflags -lunwind -static-libstdc++ -llz4 -lzstd
+  -L./deps_source -lrocksdb -lpthread -lrt -lnet -lslash -lblackwidow -lrocksdb -lz -lbz2 -lsnappy -lglog -lgflags -lunwind -static-libstdc++ -llz4 -lzstd

@@ -17,7 +17,7 @@ PikaDispatchThread::PikaDispatchThread(std::set<std::string> &ips, int port, int
                                        int cron_interval, int queue_limit, int max_conn_rbuf_size)
     : conn_factory_(max_conn_rbuf_size),
       handles_(this) {
-  thread_rep_ = pink::NewDispatchThread(ips, port, work_num, &conn_factory_,
+  thread_rep_ = net::NewDispatchThread(ips, port, work_num, &conn_factory_,
                                         cron_interval, queue_limit, &handles_);
   thread_rep_->set_thread_name("Dispatcher");
 }
@@ -33,7 +33,7 @@ int PikaDispatchThread::StartThread() {
 }
 
 int64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo> *clients) {
-  std::vector<pink::ServerThread::ConnInfo> conns_info =
+  std::vector<net::ServerThread::ConnInfo> conns_info =
     thread_rep_->conns_info();
   if (clients != nullptr) {
     for (auto& info : conns_info) {
@@ -41,7 +41,7 @@ int64_t PikaDispatchThread::ThreadClientList(std::vector<ClientInfo> *clients) {
                           info.fd,
                           info.ip_port,
                           info.last_interaction.tv_sec,
-                          nullptr /* PinkConn pointer, doesn't need here */
+                          nullptr /* NetConn pointer, doesn't need here */
                          });
     }
   }

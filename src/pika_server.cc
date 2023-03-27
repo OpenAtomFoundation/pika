@@ -16,9 +16,9 @@
 
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
-#include "pink/include/pink_cli.h"
-#include "pink/include/redis_cli.h"
-#include "pink/include/bg_thread.h"
+#include "net/include/net_cli.h"
+#include "net/include/redis_cli.h"
+#include "net/include/bg_thread.h"
 
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
@@ -99,7 +99,7 @@ PikaServer::PikaServer() :
   pika_monitor_thread_ = new PikaMonitorThread();
   pika_rsync_service_ = new PikaRsyncService(g_pika_conf->db_sync_path(),
                                              g_pika_conf->port() + kPortShiftRSync);
-  pika_pubsub_thread_ = new pink::PubSubThread();
+  pika_pubsub_thread_ = new net::PubSubThread();
   pika_auxiliary_thread_ = new PikaAuxiliaryThread();
 
   pika_client_processor_ = new PikaClientProcessor(g_pika_conf->thread_pool_size(), 100000);
@@ -235,26 +235,26 @@ void PikaServer::Start() {
   InitTableStruct();
 
   ret = pika_client_processor_->Start();
-  if (ret != pink::kSuccess) {
+  if (ret != net::kSuccess) {
     tables_.clear();
-    LOG(FATAL) << "Start PikaClientProcessor Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+    LOG(FATAL) << "Start PikaClientProcessor Error: " << ret << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
   ret = pika_dispatch_thread_->StartThread();
-  if (ret != pink::kSuccess) {
+  if (ret != net::kSuccess) {
     tables_.clear();
-    LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == pink::kBindError ? ": bind port " + std::to_string(port_) + " conflict"
+    LOG(FATAL) << "Start Dispatch Error: " << ret << (ret == net::kBindError ? ": bind port " + std::to_string(port_) + " conflict"
             : ": other error") << ", Listen on this port to handle the connected redis client";
   }
   ret = pika_pubsub_thread_->StartThread();
-  if (ret != pink::kSuccess) {
+  if (ret != net::kSuccess) {
     tables_.clear();
-    LOG(FATAL) << "Start Pubsub Error: " << ret << (ret == pink::kBindError ? ": bind port conflict" : ": other error");
+    LOG(FATAL) << "Start Pubsub Error: " << ret << (ret == net::kBindError ? ": bind port conflict" : ": other error");
   }
 
   ret = pika_auxiliary_thread_->StartThread();
-  if (ret != pink::kSuccess) {
+  if (ret != net::kSuccess) {
     tables_.clear();
-    LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == pink::kCreateThreadError ? ": create thread error " : ": other error");
+    LOG(FATAL) << "Start Auxiliary Thread Error: " << ret << (ret == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
 
   time(&start_time_s_);
@@ -1004,12 +1004,12 @@ void PikaServer::SetFirstMetaSync(bool v) {
   first_meta_sync_ = v;
 }
 
-void PikaServer::ScheduleClientPool(pink::TaskFunc func, void* arg) {
+void PikaServer::ScheduleClientPool(net::TaskFunc func, void* arg) {
   pika_client_processor_->SchedulePool(func, arg);
 }
 
 void PikaServer::ScheduleClientBgThreads(
-    pink::TaskFunc func, void* arg, const std::string& hash_str) {
+    net::TaskFunc func, void* arg, const std::string& hash_str) {
   pika_client_processor_->ScheduleBgThreads(func, arg, hash_str);
 }
 
@@ -1020,12 +1020,12 @@ size_t PikaServer::ClientProcessorThreadPoolCurQueueSize() {
   return pika_client_processor_->ThreadPoolCurQueueSize();
 }
 
-void PikaServer::BGSaveTaskSchedule(pink::TaskFunc func, void* arg) {
+void PikaServer::BGSaveTaskSchedule(net::TaskFunc func, void* arg) {
   bgsave_thread_.StartThread();
   bgsave_thread_.Schedule(func, arg);
 }
 
-void PikaServer::PurgelogsTaskSchedule(pink::TaskFunc func, void* arg) {
+void PikaServer::PurgelogsTaskSchedule(net::TaskFunc func, void* arg) {
   purge_thread_.StartThread();
   purge_thread_.Schedule(func, arg);
 }
@@ -1161,7 +1161,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port,
   pstd::RsyncSendClearTarget(bg_path + "/sets", remote_path + "/sets", secret_file_path, remote);
   pstd::RsyncSendClearTarget(bg_path + "/zsets", remote_path + "/zsets", secret_file_path, remote);
 
-  pink::PinkCli* cli = pink::NewRedisCli();
+  net::NetCli* cli = net::NewRedisCli();
   std::string lip(host_);
   if (cli->Connect(ip, port, "").ok()) {
     struct sockaddr_in laddr;
@@ -1222,7 +1222,7 @@ std::string PikaServer::DbSyncTaskIndex(const std::string& ip,
   return buf;
 }
 
-void PikaServer::KeyScanTaskSchedule(pink::TaskFunc func, void* arg) {
+void PikaServer::KeyScanTaskSchedule(net::TaskFunc func, void* arg) {
   key_scan_thread_.StartThread();
   key_scan_thread_.Schedule(func, arg);
 }
@@ -1399,10 +1399,10 @@ int PikaServer::Publish(const std::string& channel, const std::string& msg) {
 }
 
 void PikaServer::EnablePublish(int fd) {
-  pika_pubsub_thread_->UpdateConnReadyState(fd, pink::PubSubThread::ReadyState::kReady);
+  pika_pubsub_thread_->UpdateConnReadyState(fd, net::PubSubThread::ReadyState::kReady);
 }
 
-int PikaServer::UnSubscribe(std::shared_ptr<pink::PinkConn> conn,
+int PikaServer::UnSubscribe(std::shared_ptr<net::NetConn> conn,
                             const std::vector<std::string>& channels,
                             bool pattern,
                             std::vector<std::pair<std::string, int>>* result) {
@@ -1410,7 +1410,7 @@ int PikaServer::UnSubscribe(std::shared_ptr<pink::PinkConn> conn,
   return subscribed;
 }
 
-void PikaServer::Subscribe(std::shared_ptr<pink::PinkConn> conn,
+void PikaServer::Subscribe(std::shared_ptr<net::NetConn> conn,
                            const std::vector<std::string>& channels,
                            bool pattern,
                            std::vector<std::pair<std::string, int>>* result) {
@@ -1711,7 +1711,7 @@ blackwidow::Status PikaServer::RewriteBlackwidowOptions(const blackwidow::Option
   return s;
 }
 
-Status PikaServer::GetCmdRouting(std::vector<pink::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local) {
+Status PikaServer::GetCmdRouting(std::vector<net::RedisCmdArgsType>& redis_cmds, std::vector<Node>* dst, bool* all_local) {
   UNUSED(redis_cmds);
   UNUSED(dst);
   *all_local = true;

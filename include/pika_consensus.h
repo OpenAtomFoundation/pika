@@ -175,7 +175,7 @@ class ConsensusCoordinator {
     }
     std::shared_ptr<Cmd> cmd_ptr;
   };
-  static int InitCmd(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
+  static int InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv);
 
   std::string ToStringStatus() {
     std::stringstream tmp_stream;

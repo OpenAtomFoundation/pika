@@ -51,7 +51,7 @@ enum AuthResult {
 };
 
 static AuthResult AuthenticateUser(const std::string& pwd,
-                                   const std::shared_ptr<pink::PinkConn>& conn,
+                                   const std::shared_ptr<net::NetConn>& conn,
                                    std::string& msg_role) {
   std::string root_password(g_pika_conf->requirepass());
   std::string user_password(g_pika_conf->userpass());
@@ -282,7 +282,7 @@ void AuthCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
 
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
     LOG(WARNING) << name_ << " weak ptr is empty";
@@ -421,7 +421,7 @@ void PingCmd::DoInitial() {
 }
 
 void PingCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
     LOG(WARNING) << name_ << " weak ptr is empty";
@@ -586,7 +586,7 @@ void ClientCmd::DoInitial() {
 }
 
 void ClientCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameClient);
     return;
@@ -648,7 +648,7 @@ void ShutdownCmd::DoInitial() {
 
   // For now, only shutdown need check local
   if (is_local()) {
-    std::shared_ptr<pink::PinkConn> conn = GetConn();
+    std::shared_ptr<net::NetConn> conn = GetConn();
     if (conn) {
       if (conn->ip_port().find("127.0.0.1") == std::string::npos &&
           conn->ip_port().find(g_pika_server->host()) == std::string::npos) {
@@ -2122,13 +2122,13 @@ void MonitorCmd::DoInitial() {
 }
 
 void MonitorCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<pink::PinkConn> conn_repl = GetConn();
+  std::shared_ptr<net::NetConn> conn_repl = GetConn();
   if (!conn_repl) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameMonitor);
     LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
-  std::shared_ptr<pink::PinkConn> conn =
+  std::shared_ptr<net::NetConn> conn =
       std::dynamic_pointer_cast<PikaClientConn>(conn_repl)
           ->server_thread()
           ->MoveConnOut(conn_repl->fd());
@@ -2496,7 +2496,7 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
     }
   }
 
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameHello);
     return;
