@@ -43,7 +43,7 @@ namespace storage {
   class BackupEngine {
     public:
       ~BackupEngine();
-      static Status Open(BlackWidow *db, BackupEngine** backup_engine_ptr);
+      static Status Open(Storage *db, BackupEngine** backup_engine_ptr);
   
       Status SetBackupContent();
   

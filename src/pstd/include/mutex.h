@@ -21,7 +21,7 @@ class Mutex {
   virtual ~Mutex() {}
 
   // Attempt to acquire lock.  Return OK on success, or other Status on failure.
-  // If returned status is OK, BlackWidow will eventually call UnLock().
+  // If returned status is OK, Storage will eventually call UnLock().
   virtual Status Lock() = 0;
 
   // Attempt to acquire lock.  If timeout is non-negative, operation may be
@@ -29,7 +29,7 @@ class Mutex {
   // Returns OK on success,
   //         TimedOut if timed out,
   //         or other Status on failure.
-  // If returned status is OK, BlackWidow will eventually call UnLock().
+  // If returned status is OK, Storage will eventually call UnLock().
   virtual Status TryLockFor(int64_t timeout_time) = 0;
 
   // Unlock Mutex that was successfully locked by Lock() or TryLockUntil()
@@ -43,7 +43,7 @@ class CondVar {
   // Block current thread until condition variable is notified by a call to
   // Notify() or NotifyAll().  Wait() will be called with mutex locked.
   // Returns OK if notified.
-  // Returns non-OK if BlackWidow should stop waiting and fail the operation.
+  // Returns non-OK if Storage should stop waiting and fail the operation.
   // May return OK spuriously even if not notified.
   virtual Status Wait(std::shared_ptr<Mutex> mutex) = 0;
 
@@ -58,7 +58,7 @@ class CondVar {
   //
   // Returns OK if notified.
   // Returns TimedOut if timeout is reached.
-  // Returns other status if BlackWidow should otherwis stop waiting and
+  // Returns other status if Storage should otherwis stop waiting and
   //  fail the operation.
   // May return OK spuriously even if not notified.
   virtual Status WaitFor(std::shared_ptr<Mutex> mutex,

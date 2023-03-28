@@ -57,7 +57,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   std::string GetTableName() const;
   uint32_t GetPartitionId() const;
   std::string GetPartitionName() const;
-  std::shared_ptr<storage::BlackWidow> db() const;
+  std::shared_ptr<storage::Storage> db() const;
 
   void Compact(const storage::DataType& type);
 
@@ -101,7 +101,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
 
   pthread_rwlock_t db_rwlock_;
   pstd::lock::LockMgr* lock_mgr_;
-  std::shared_ptr<storage::BlackWidow> db_;
+  std::shared_ptr<storage::Storage> db_;
 
   bool full_sync_;
 

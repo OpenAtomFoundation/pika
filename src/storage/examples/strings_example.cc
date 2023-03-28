@@ -10,10 +10,10 @@
 using namespace storage;
 
 int main() {
-  storage::BlackWidow db;
-  BlackwidowOptions bw_options;
-  bw_options.options.create_if_missing = true;
-  storage::Status s = db.Open(bw_options, "./db");
+  storage::Storage db;
+  StorageOptions storage_options;
+  storage_options.options.create_if_missing = true;
+  storage::Status s = db.Open(storage_options, "./db");
   if (s.ok()) {
     printf("Open success\n");
   } else {
@@ -106,7 +106,7 @@ int main() {
   int64_t bitop_ret;
   s = db.Set("BITOP_KEY1", "FOOBAR");
   s = db.Set("BITOP_KEY2", "ABCDEF");
-  s = db.Set("BITOP_KEY3", "BLACKWIDOW");
+  s = db.Set("BITOP_KEY3", "STORAGE");
   std::vector<std::string> src_keys {"BITOP_KEY1", "BITOP_KEY2", "BITOP_KEY3"};
   // and
   s = db.BitOp(storage::BitOpType::kBitOpAnd,

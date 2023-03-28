@@ -3,8 +3,8 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef INCLUDE_BLACKWIDOW_BLACKWIDOW_H_
-#define INCLUDE_BLACKWIDOW_BLACKWIDOW_H_
+#ifndef INCLUDE_STORAGE_STORAGE_H_
+#define INCLUDE_STORAGE_STORAGE_H_
 
 #include <string>
 #include <map>
@@ -60,7 +60,7 @@ enum class OptionType;
 template <typename T1, typename T2>
 class LRUCache;
 
-struct BlackwidowOptions {
+struct StorageOptions {
   rocksdb::Options options;
   rocksdb::BlockBasedTableOptions table_options;
   size_t block_cache_size = 0;
@@ -185,12 +185,12 @@ struct BGTask {
          const std::string& _argv = "") : type(_type), operation(_opeation), argv(_argv) {}
 };
 
-class BlackWidow {
+class Storage {
  public:
-  BlackWidow();
-  ~BlackWidow();
+  Storage();
+  ~Storage();
 
-  Status Open(const BlackwidowOptions& bw_options, const std::string& db_path);
+  Status Open(const StorageOptions& storage_options, const std::string& db_path);
 
   Status GetStartKey(const DataType& dtype, int64_t cursor, std::string* start_key);
 
@@ -1224,7 +1224,7 @@ class BlackWidow {
 
   LRUCache<std::string, std::string>* cursors_store_;
 
-  // Blackwidow start the background thread for compaction task
+  // Storage start the background thread for compaction task
   pthread_t bg_tasks_thread_id_;
   pstd::Mutex bg_tasks_mutex_;
   pstd::CondVar bg_tasks_cond_var_;
@@ -1239,4 +1239,4 @@ class BlackWidow {
 };
 
 }  //  namespace storage
-#endif  //  INCLUDE_BLACKWIDOW_BLACKWIDOW_H_
+#endif  //  INCLUDE_STORAGE_STORAGE_H_

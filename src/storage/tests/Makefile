@@ -29,12 +29,12 @@ dummy := $(shell ("$(CURDIR)/../detect_environment" "$(CURDIR)/make_config.mk"))
 include make_config.mk
 LDFLAGS = -lpthread -lrt $(ROCKSDB_LDFLAGS)
 
-ifndef BLACKWIDOW_PATH
+ifndef STORAGE_PATH
   $(warning Warning: missing storage path, using default)
-  BLACKWIDOW_PATH=..
+  STORAGE_PATH=..
 endif
-BLACKWIDOW_INCLUDE_DIR=$(BLACKWIDOW_PATH)/include
-BLACKWIDOW_LIBRARY=$(BLACKWIDOW_PATH)/lib/libstorage.a
+STORAGE_INCLUDE_DIR=$(STORAGE_PATH)/include
+STORAGE_LIBRARY=$(STORAGE_PATH)/lib/libstorage.a
 
 ifndef ROCKSDB_PATH
   $(warning Warning: missing rocksdb path, using default)
@@ -57,9 +57,9 @@ endif
 GOOGLETEST_INCLUDE_DIR=$(GOOGLETEST_PATH)/include
 GOOGLETEST_LIBRARY=$(GOOGLETEST_PATH)/libgtest.a
 
-CXXFLAGS+= -I$(BLACKWIDOW_PATH) -I$(BLACKWIDOW_INCLUDE_DIR) -I$(ROCKSDB_INCLUDE_DIR) -I$(SLASH_INCLUDE_DIR) -I$(GOOGLETEST_INCLUDE_DIR) $(OPT)
+CXXFLAGS+= -I$(STORAGE_PATH) -I$(STORAGE_INCLUDE_DIR) -I$(ROCKSDB_INCLUDE_DIR) -I$(SLASH_INCLUDE_DIR) -I$(GOOGLETEST_INCLUDE_DIR) $(OPT)
 
-DEP_LIBS = $(BLACKWIDOW_LIBRARY) $(ROCKSDB_LIBRARY) $(SLASH_LIBRARY) $(GOOGLETEST_LIBRARY)
+DEP_LIBS = $(STORAGE_LIBRARY) $(ROCKSDB_LIBRARY) $(SLASH_LIBRARY) $(GOOGLETEST_LIBRARY)
 LDFLAGS := $(DEP_LIBS) $(LDFLAGS)
 
 OBJECTS= GOOGLETEST ROCKSDB SLASH main lock_mgr gtest_keys gtest_strings gtest_hashes gtest_lists gtest_sets gtest_zsets gtest_strings_filter gtest_hashes_filter gtest_hyperloglog gtest_lists_filter gtest_custom_comparator gtest_lru_cache gtest_options

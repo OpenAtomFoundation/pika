@@ -11,7 +11,7 @@
 
 using namespace storage;
 
-static bool elements_match(storage::BlackWidow *const db,
+static bool elements_match(storage::Storage *const db,
                            const Slice& key,
                            const std::vector<std::string>& expect_elements) {
   std::vector<std::string> elements_out;
@@ -46,7 +46,7 @@ static bool elements_match(const std::vector<std::string>& elements_out,
   return true;
 }
 
-static bool len_match(storage::BlackWidow *const db,
+static bool len_match(storage::Storage *const db,
                       const Slice& key,
                       uint64_t expect_len) {
   uint64_t len = 0;
@@ -60,7 +60,7 @@ static bool len_match(storage::BlackWidow *const db,
   return len == expect_len;
 }
 
-static bool make_expired(storage::BlackWidow *const db,
+static bool make_expired(storage::Storage *const db,
                          const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
@@ -78,8 +78,8 @@ class ListsTest : public ::testing::Test {
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
     }
-    bw_options.options.create_if_missing = true;
-    s = db.Open(bw_options, path);
+    storage_options.options.create_if_missing = true;
+    s = db.Open(storage_options, path);
     if (!s.ok()) {
       printf("Open db failed, exit...\n");
       exit(1);
@@ -90,8 +90,8 @@ class ListsTest : public ::testing::Test {
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }
 
-  BlackwidowOptions bw_options;
-  storage::BlackWidow db;
+  StorageOptions storage_options;
+  storage::Storage db;
   storage::Status s;
 };
 

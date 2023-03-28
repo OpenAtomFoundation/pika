@@ -7,8 +7,8 @@
 
 namespace storage {
 
-Redis::Redis(BlackWidow* const bw, const DataType& type)
-    : bw_(bw),
+Redis::Redis(Storage* const s, const DataType& type)
+    : storage_(s),
       type_(type),
       lock_mgr_(new LockMgr(1000, 0, std::make_shared<MutexFactoryImpl>())),
       db_(nullptr),
@@ -77,7 +77,7 @@ Status Redis::AddCompactKeyTaskIfNeeded(const std::string& key,
   if (total < small_compaction_threshold_) {
     return Status::OK();
   } else {
-    bw_->AddBGTask({type_, kCompactKey, key});
+    storage_->AddBGTask({type_, kCompactKey, key});
     statistics_store_->Remove(key);
   }
   return Status::OK();

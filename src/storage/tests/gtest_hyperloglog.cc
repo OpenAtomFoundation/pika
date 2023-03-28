@@ -18,16 +18,16 @@ class HyperLogLogTest : public ::testing::Test {
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
     }
-    bw_options.options.create_if_missing = true;
-    s = db.Open(bw_options, path);
+    storage_options.options.create_if_missing = true;
+    s = db.Open(storage_options, path);
   }
   virtual ~HyperLogLogTest() { }
 
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }
 
-  BlackwidowOptions bw_options;
-  storage::BlackWidow db;
+  StorageOptions storage_options;
+  storage::Storage db;
   storage::Status s;
 };
 

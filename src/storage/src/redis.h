@@ -25,7 +25,7 @@ using Slice = rocksdb::Slice;
 
 class Redis {
  public:
-  Redis(BlackWidow* const bw, const DataType& type);
+  Redis(Storage* const storage, const DataType& type);
   virtual ~Redis();
 
   rocksdb::DB* GetDB() {
@@ -35,7 +35,7 @@ class Redis {
   Status SetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options);
 
   // Common Commands
-  virtual Status Open(const BlackwidowOptions& bw_options,
+  virtual Status Open(const StorageOptions& storage_options,
                       const std::string& db_path) = 0;
   virtual Status CompactRange(const rocksdb::Slice* begin,
                               const rocksdb::Slice* end,
@@ -68,7 +68,7 @@ class Redis {
   Status SetSmallCompactionThreshold(size_t small_compaction_threshold);
 
  protected:
-  BlackWidow* const bw_;
+  Storage* const storage_;
   DataType type_;
   LockMgr* lock_mgr_;
   rocksdb::DB* db_;
@@ -95,3 +95,4 @@ class Redis {
 
 }  //  namespace storage
 #endif  //  SRC_REDIS_H_
+

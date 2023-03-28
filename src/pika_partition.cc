@@ -76,8 +76,8 @@ Partition::Partition(const std::string& table_name,
 
   pthread_rwlock_init(&db_rwlock_, &attr);
 
-  db_ = std::shared_ptr<storage::BlackWidow>(new storage::BlackWidow());
-  rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
+  db_ = std::shared_ptr<storage::Storage>(new storage::Storage());
+  rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
 
   lock_mgr_ = new pstd::lock::LockMgr(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
 
@@ -141,7 +141,7 @@ std::string Partition::GetPartitionName() const {
   return partition_name_;
 }
 
-std::shared_ptr<storage::BlackWidow> Partition::db() const {
+std::shared_ptr<storage::Storage> Partition::db() const {
   return db_;
 }
 
@@ -306,8 +306,8 @@ bool Partition::ChangeDb(const std::string& new_path) {
     return false;
   }
 
-  db_.reset(new storage::BlackWidow());
-  rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
+  db_.reset(new storage::Storage());
+  rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
   assert(db_);
   assert(s.ok());
   pstd::DeleteDirIfExist(tmp_path);
@@ -479,8 +479,8 @@ bool Partition::FlushDB() {
   dbpath.append("_deleting/");
   pstd::RenameFile(db_path_, dbpath.c_str());
 
-  db_ = std::shared_ptr<storage::BlackWidow>(new storage::BlackWidow());
-  rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
+  db_ = std::shared_ptr<storage::Storage>(new storage::Storage());
+  rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
   assert(db_);
   assert(s.ok());
   LOG(INFO) << partition_name_ << " Open new db success";
@@ -507,8 +507,8 @@ bool Partition::FlushSubDB(const std::string& db_name) {
   std::string del_dbpath = dbpath + db_name + "_deleting";
   pstd::RenameFile(sub_dbpath, del_dbpath);
 
-  db_ = std::shared_ptr<storage::BlackWidow>(new storage::BlackWidow());
-  rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
+  db_ = std::shared_ptr<storage::Storage>(new storage::Storage());
+  rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
   assert(db_);
   assert(s.ok());
   LOG(INFO) << partition_name_ << " open new " + db_name + " db success";

@@ -16,11 +16,11 @@ namespace storage {
 
 class RedisHashes : public Redis {
  public:
-  RedisHashes(BlackWidow* const bw, const DataType& type);
+  RedisHashes(Storage* const s, const DataType& type);
   ~RedisHashes() = default;
 
   // Common Commands
-  Status Open(const BlackwidowOptions& bw_options,
+  Status Open(const StorageOptions& storage_options,
               const std::string& db_path) override;
   Status CompactRange(const rocksdb::Slice* begin,
                       const rocksdb::Slice* end,

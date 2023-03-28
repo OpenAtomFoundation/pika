@@ -18,20 +18,20 @@ class KeysTest : public ::testing::Test {
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
     }
-    bw_options.options.create_if_missing = true;
-    s = db.Open(bw_options, path);
+    storage_options.options.create_if_missing = true;
+    s = db.Open(storage_options, path);
   }
   virtual ~KeysTest() { }
 
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }
 
-  BlackwidowOptions bw_options;
-  storage::BlackWidow db;
+  StorageOptions storage_options;
+  storage::Storage db;
   storage::Status s;
 };
 
-static bool make_expired(storage::BlackWidow *const db,
+static bool make_expired(storage::Storage *const db,
                          const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
@@ -42,7 +42,7 @@ static bool make_expired(storage::BlackWidow *const db,
   return true;
 }
 
-static bool set_timeout(storage::BlackWidow *const db,
+static bool set_timeout(storage::Storage *const db,
                         const Slice& key, int32_t ttl) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, ttl, &type_status);

@@ -17,11 +17,11 @@ namespace storage {
 
 class RedisZSets : public Redis {
  public:
-  RedisZSets(BlackWidow* const bw, const DataType& type);
+  RedisZSets(Storage* const s, const DataType& type);
   ~RedisZSets() = default;
 
   // Common Commands
-  Status Open(const BlackwidowOptions& bw_options,
+  Status Open(const StorageOptions& storage_options,
               const std::string& db_path) override;
   Status CompactRange(const rocksdb::Slice* begin,
                       const rocksdb::Slice* end,
