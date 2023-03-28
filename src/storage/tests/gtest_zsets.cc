@@ -18,8 +18,8 @@ class ZSetsTest : public ::testing::Test {
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
     }
-    bw_options.options.create_if_missing = true;
-    s = db.Open(bw_options, path);
+    storage_options.options.create_if_missing = true;
+    s = db.Open(storage_options, path);
     if (!s.ok()) {
       printf("Open db failed, exit...\n");
       exit(1);
@@ -30,8 +30,8 @@ class ZSetsTest : public ::testing::Test {
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }
 
-  BlackwidowOptions bw_options;
-  storage::BlackWidow db;
+  StorageOptions storage_options;
+  storage::Storage db;
   storage::Status s;
 };
 
@@ -48,7 +48,7 @@ static bool members_match(const std::vector<std::string>& mm_out,
   return true;
 }
 
-static bool score_members_match(storage::BlackWidow *const db,
+static bool score_members_match(storage::Storage *const db,
                                 const Slice& key,
                                 const std::vector<storage::ScoreMember>& expect_sm) {
   std::vector<storage::ScoreMember> sm_out;
@@ -85,7 +85,7 @@ static bool score_members_match(const std::vector<storage::ScoreMember>& sm_out,
   return true;
 }
 
-static bool size_match(storage::BlackWidow *const db,
+static bool size_match(storage::Storage *const db,
                        const Slice& key,
                        int32_t expect_size) {
   int32_t size = 0;
@@ -99,7 +99,7 @@ static bool size_match(storage::BlackWidow *const db,
   return size == expect_size;
 }
 
-static bool make_expired(storage::BlackWidow *const db,
+static bool make_expired(storage::Storage *const db,
                          const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
@@ -110,7 +110,7 @@ static bool make_expired(storage::BlackWidow *const db,
   return true;
 }
 
-static bool delete_key(storage::BlackWidow *const db,
+static bool delete_key(storage::Storage *const db,
                        const Slice& key) {
   std::vector<std::string> del_keys = {key.ToString()};
   std::map<storage::DataType, storage::Status> type_status;

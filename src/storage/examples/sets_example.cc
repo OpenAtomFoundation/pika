@@ -10,10 +10,10 @@
 using namespace storage;
 
 int main() {
-  storage::BlackWidow db;
-  BlackwidowOptions bw_options;
-  bw_options.options.create_if_missing = true;
-  storage::Status s = db.Open(bw_options, "./db");
+  storage::Storage db;
+  StorageOptions storage_options;
+  storage_options.options.create_if_missing = true;
+  storage::Status s = db.Open(storage_options, "./db");
   if (s.ok()) {
     printf("Open success\n");
   } else {

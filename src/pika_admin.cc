@@ -2023,7 +2023,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"max_open_files", value}};
-    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+    storage::Status s = g_pika_server->RewriteStorageOptions(
         storage::OptionType::kDB, options_map);
     if (!s.ok()) {
       ret = "-ERR Set max-cache-files wrong: " + s.ToString() + "\r\n";
@@ -2039,7 +2039,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"max_background_compactions", value}};
-    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+    storage::Status s = g_pika_server->RewriteStorageOptions(
         storage::OptionType::kDB, options_map);
     if (!s.ok()) {
       ret =
@@ -2056,7 +2056,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"write_buffer_size", value}};
-    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+    storage::Status s = g_pika_server->RewriteStorageOptions(
         storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set write-buffer-size wrong: " + s.ToString() + "\r\n";
@@ -2072,7 +2072,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"max_write_buffer_number", value}};
-    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+    storage::Status s = g_pika_server->RewriteStorageOptions(
         storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set max-write-buffer-number wrong: " + s.ToString() + "\r\n";
@@ -2088,7 +2088,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     }
     std::unordered_map<std::string, std::string> options_map{
         {"arena_block_size", value}};
-    storage::Status s = g_pika_server->RewriteBlackwidowOptions(
+    storage::Status s = g_pika_server->RewriteStorageOptions(
         storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set arena-block-size wrong: " + s.ToString() + "\r\n";

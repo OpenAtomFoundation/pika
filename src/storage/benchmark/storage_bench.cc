@@ -25,7 +25,7 @@ void BenchSet() {
   printf("====== Set ======\n");
   storage::Options options;
   options.create_if_missing = true;
-  storage::BlackWidow db;
+  storage::Storage db;
   storage::Status s = db.Open(options, "./db");
 
   if (!s.ok()) {
@@ -79,7 +79,7 @@ void BenchHGetall() {
   printf("====== HGetall ======\n");
   storage::Options options;
   options.create_if_missing = true;
-  storage::BlackWidow db;
+  storage::Storage db;
   storage::Status s = db.Open(options, "./db");
 
   if (!s.ok()) {
@@ -88,10 +88,10 @@ void BenchHGetall() {
   }
 
   int32_t ret = 0;
-  BlackWidow::FieldValue fv;
+  Storage::FieldValue fv;
   std::vector<std::string> fields;
-  std::vector<BlackWidow::FieldValue> fvs_in;
-  std::vector<BlackWidow::FieldValue> fvs_out;
+  std::vector<Storage::FieldValue> fvs_in;
+  std::vector<Storage::FieldValue> fvs_out;
 
   // 1. Create the hash table then insert hash table 10000 field
   // 2. HGetall the hash table 10000 field (statistics cost time)
@@ -125,7 +125,7 @@ void BenchHGetall() {
   }
   db.HMSet("HGETALL_KEY2", fvs_in);
   std::vector<Slice> del_keys({"HGETALL_KEY2"});
-  std::map<BlackWidow::DataType, Status> type_status;
+  std::map<Storage::DataType, Status> type_status;
   db.Del(del_keys, &type_status);
   fvs_in.clear();
   for (size_t i = 0; i < 10000; ++i) {
@@ -174,7 +174,7 @@ void BenchScan() {
   printf("====== Scan ======\n");
   storage::Options options;
   options.create_if_missing = true;
-  storage::BlackWidow db;
+  storage::Storage db;
   storage::Status s = db.Open(options, "./db");
 
   if (!s.ok()) {

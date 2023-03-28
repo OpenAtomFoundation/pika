@@ -33,7 +33,7 @@ Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db,
   return s;
 }
 
-Status BackupEngine::Open(storage::BlackWidow *storage,
+Status BackupEngine::Open(storage::Storage *storage,
                           BackupEngine** backup_engine_ptr) {
   *backup_engine_ptr = new BackupEngine();
   if (!*backup_engine_ptr) {

@@ -116,7 +116,7 @@ class PikaServer {
   bool force_full_sync();
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
-  storage::BlackwidowOptions bw_options();
+  storage::StorageOptions storage_options();
 
   /*
    * Table use
@@ -305,9 +305,9 @@ class PikaServer {
   void ServerStatus(std::string* info);
 
   /*
-   * BlackwidowOptions used
+   * StorageOptions used
    */
-  storage::Status RewriteBlackwidowOptions(const storage::OptionType& option_type,
+  storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                   const std::unordered_map<std::string, std::string>& options);
 
   friend class Cmd;
@@ -333,9 +333,9 @@ class PikaServer {
   int port_;
   time_t start_time_s_;
 
-  pthread_rwlock_t bw_options_rw_;
-  storage::BlackwidowOptions bw_options_;
-  void InitBlackwidowOptions();
+  pthread_rwlock_t storage_options_rw_;
+  storage::StorageOptions storage_options_;
+  void InitStorageOptions();
 
   std::atomic<bool> exit_;
 

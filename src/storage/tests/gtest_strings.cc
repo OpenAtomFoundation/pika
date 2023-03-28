@@ -18,20 +18,20 @@ class StringsTest : public ::testing::Test {
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
     }
-    bw_options.options.create_if_missing = true;
-    s = db.Open(bw_options, path);
+    storage_options.options.create_if_missing = true;
+    s = db.Open(storage_options, path);
   }
   virtual ~StringsTest() { }
 
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }
 
-  BlackwidowOptions bw_options;
-  storage::BlackWidow db;
+  StorageOptions storage_options;
+  storage::Storage db;
   storage::Status s;
 };
 
-static bool make_expired(storage::BlackWidow *const db,
+static bool make_expired(storage::Storage *const db,
                          const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
@@ -42,7 +42,7 @@ static bool make_expired(storage::BlackWidow *const db,
   return true;
 }
 
-static bool string_ttl(storage::BlackWidow *const db,
+static bool string_ttl(storage::Storage *const db,
                        const Slice& key, int32_t* ttl) {
   std::map<storage::DataType, int64_t> type_ttl;
   std::map<storage::DataType, Status> type_status;
@@ -149,7 +149,7 @@ TEST_F(StringsTest, BitOpTest) {
   ASSERT_TRUE(s.ok());
   s = db.Set("BITOP_KEY2", "ABCDEF");
   ASSERT_TRUE(s.ok());
-  s = db.Set("BITOP_KEY3", "BLACKWIDOW");
+  s = db.Set("BITOP_KEY3", "STORAGE");
   ASSERT_TRUE(s.ok());
   std::vector<std::string> src_keys {"BITOP_KEY1", "BITOP_KEY2", "BITOP_KEY3"};
 

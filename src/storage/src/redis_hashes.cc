@@ -14,16 +14,16 @@
 
 namespace storage {
 
-RedisHashes::RedisHashes(BlackWidow* const bw, const DataType& type)
-    : Redis(bw, type) {
+RedisHashes::RedisHashes(Storage* const s, const DataType& type)
+    : Redis(s, type) {
 }
 
-Status RedisHashes::Open(const BlackwidowOptions& bw_options,
+Status RedisHashes::Open(const StorageOptions& storage_options,
                          const std::string& db_path) {
-  statistics_store_->SetCapacity(bw_options.statistics_max_size);
-  small_compaction_threshold_ = bw_options.small_compaction_threshold;
+  statistics_store_->SetCapacity(storage_options.statistics_max_size);
+  small_compaction_threshold_ = storage_options.small_compaction_threshold;
 
-  rocksdb::Options ops(bw_options.options);
+  rocksdb::Options ops(storage_options.options);
   Status s = rocksdb::DB::Open(ops, db_path, &db_);
   if (s.ok()) {
     // create column family
@@ -39,24 +39,24 @@ Status RedisHashes::Open(const BlackwidowOptions& bw_options,
   }
 
   // Open
-  rocksdb::DBOptions db_ops(bw_options.options);
-  rocksdb::ColumnFamilyOptions meta_cf_ops(bw_options.options);
-  rocksdb::ColumnFamilyOptions data_cf_ops(bw_options.options);
+  rocksdb::DBOptions db_ops(storage_options.options);
+  rocksdb::ColumnFamilyOptions meta_cf_ops(storage_options.options);
+  rocksdb::ColumnFamilyOptions data_cf_ops(storage_options.options);
   meta_cf_ops.compaction_filter_factory =
     std::make_shared<HashesMetaFilterFactory>();
   data_cf_ops.compaction_filter_factory =
     std::make_shared<HashesDataFilterFactory>(&db_, &handles_);
 
   // use the bloom filter policy to reduce disk reads
-  rocksdb::BlockBasedTableOptions table_ops(bw_options.table_options);
+  rocksdb::BlockBasedTableOptions table_ops(storage_options.table_options);
   table_ops.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, true));
   rocksdb::BlockBasedTableOptions meta_cf_table_ops(table_ops);
   rocksdb::BlockBasedTableOptions data_cf_table_ops(table_ops);
-  if (!bw_options.share_block_cache && bw_options.block_cache_size > 0) {
+  if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
     meta_cf_table_ops.block_cache =
-      rocksdb::NewLRUCache(bw_options.block_cache_size);
+      rocksdb::NewLRUCache(storage_options.block_cache_size);
     data_cf_table_ops.block_cache =
-      rocksdb::NewLRUCache(bw_options.block_cache_size);
+      rocksdb::NewLRUCache(storage_options.block_cache_size);
   }
   meta_cf_ops.table_factory.reset(
       rocksdb::NewBlockBasedTableFactory(meta_cf_table_ops));

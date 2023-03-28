@@ -66,13 +66,13 @@ PikaServer::PikaServer() :
     LOG(FATAL) << "ServerInit iotcl error";
   }
 
-  pthread_rwlockattr_t bw_options_rw_attr;
-  pthread_rwlockattr_init(&bw_options_rw_attr);
-  pthread_rwlockattr_setkind_np(&bw_options_rw_attr,
+  pthread_rwlockattr_t storage_options_rw_attr;
+  pthread_rwlockattr_init(&storage_options_rw_attr);
+  pthread_rwlockattr_setkind_np(&storage_options_rw_attr,
           PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-  pthread_rwlock_init(&bw_options_rw_, &bw_options_rw_attr);
+  pthread_rwlock_init(&storage_options_rw_, &storage_options_rw_attr);
 
-  InitBlackwidowOptions();
+  InitStorageOptions();
 
   pthread_rwlockattr_t tables_rw_attr;
   pthread_rwlockattr_init(&tables_rw_attr);
@@ -431,9 +431,9 @@ void PikaServer::SetDispatchQueueLimit(int queue_limit) {
   pika_dispatch_thread_->SetQueueLimit(queue_limit);
 }
 
-storage::BlackwidowOptions PikaServer::bw_options() {
-  pstd::RWLock rwl(&bw_options_rw_, false);
-  return bw_options_;
+storage::StorageOptions PikaServer::storage_options() {
+  pstd::RWLock rwl(&storage_options_rw_, false);
+  return storage_options_;
 }
 
 void PikaServer::InitTableStruct() {
@@ -1618,83 +1618,83 @@ void PikaServer::AutoKeepAliveRSync() {
   }
 }
 
-void PikaServer::InitBlackwidowOptions() {
-  pstd::RWLock rwl(&bw_options_rw_, true);
+void PikaServer::InitStorageOptions() {
+  pstd::RWLock rwl(&storage_options_rw_, true);
 
   // For rocksdb::Options
-  bw_options_.options.create_if_missing = true;
-  bw_options_.options.keep_log_file_num = 10;
-  bw_options_.options.max_manifest_file_size = 64 * 1024 * 1024;
-  bw_options_.options.max_log_file_size = 512 * 1024 * 1024;
+  storage_options_.options.create_if_missing = true;
+  storage_options_.options.keep_log_file_num = 10;
+  storage_options_.options.max_manifest_file_size = 64 * 1024 * 1024;
+  storage_options_.options.max_log_file_size = 512 * 1024 * 1024;
 
-  bw_options_.options.write_buffer_size =
+  storage_options_.options.write_buffer_size =
       g_pika_conf->write_buffer_size();
-  bw_options_.options.arena_block_size =
+  storage_options_.options.arena_block_size =
       g_pika_conf->arena_block_size();
-  bw_options_.options.write_buffer_manager.reset(
+  storage_options_.options.write_buffer_manager.reset(
           new rocksdb::WriteBufferManager(g_pika_conf->max_write_buffer_size()));
-  bw_options_.options.max_write_buffer_number =
+  storage_options_.options.max_write_buffer_number =
       g_pika_conf->max_write_buffer_number();
-  bw_options_.options.target_file_size_base =
+  storage_options_.options.target_file_size_base =
       g_pika_conf->target_file_size_base();
-  bw_options_.options.max_background_flushes =
+  storage_options_.options.max_background_flushes =
       g_pika_conf->max_background_flushes();
-  bw_options_.options.max_background_compactions =
+  storage_options_.options.max_background_compactions =
       g_pika_conf->max_background_compactions();
-  bw_options_.options.max_open_files =
+  storage_options_.options.max_open_files =
       g_pika_conf->max_cache_files();
-  bw_options_.options.max_bytes_for_level_multiplier =
+  storage_options_.options.max_bytes_for_level_multiplier =
       g_pika_conf->max_bytes_for_level_multiplier();
-  bw_options_.options.optimize_filters_for_hits =
+  storage_options_.options.optimize_filters_for_hits =
       g_pika_conf->optimize_filters_for_hits();
-  bw_options_.options.level_compaction_dynamic_level_bytes =
+  storage_options_.options.level_compaction_dynamic_level_bytes =
       g_pika_conf->level_compaction_dynamic_level_bytes();
 
 
   if (g_pika_conf->compression() == "none") {
-    bw_options_.options.compression =
+    storage_options_.options.compression =
         rocksdb::CompressionType::kNoCompression;
   } else if (g_pika_conf->compression() == "snappy") {
-    bw_options_.options.compression =
+    storage_options_.options.compression =
         rocksdb::CompressionType::kSnappyCompression;
   } else if (g_pika_conf->compression() == "zlib") {
-    bw_options_.options.compression =
+    storage_options_.options.compression =
         rocksdb::CompressionType::kZlibCompression;
   } else if (g_pika_conf->compression() == "lz4") {
-    bw_options_.options.compression =
+    storage_options_.options.compression =
         rocksdb::CompressionType::kLZ4Compression;
   } else if (g_pika_conf->compression() == "zstd") {
-    bw_options_.options.compression =
+    storage_options_.options.compression =
         rocksdb::CompressionType::kZSTD;
   }
 
   // For rocksdb::BlockBasedTableOptions
-  bw_options_.table_options.block_size = g_pika_conf->block_size();
-  bw_options_.table_options.cache_index_and_filter_blocks =
+  storage_options_.table_options.block_size = g_pika_conf->block_size();
+  storage_options_.table_options.cache_index_and_filter_blocks =
       g_pika_conf->cache_index_and_filter_blocks();
-  bw_options_.block_cache_size = g_pika_conf->block_cache();
-  bw_options_.share_block_cache = g_pika_conf->share_block_cache();
+  storage_options_.block_cache_size = g_pika_conf->block_cache();
+  storage_options_.share_block_cache = g_pika_conf->share_block_cache();
 
-  bw_options_.table_options.pin_l0_filter_and_index_blocks_in_cache =
+  storage_options_.table_options.pin_l0_filter_and_index_blocks_in_cache =
       g_pika_conf->pin_l0_filter_and_index_blocks_in_cache();
 
-  if (bw_options_.block_cache_size == 0) {
-    bw_options_.table_options.no_block_cache = true;
-  } else if (bw_options_.share_block_cache) {
-    bw_options_.table_options.block_cache =
-      rocksdb::NewLRUCache(bw_options_.block_cache_size, g_pika_conf->num_shard_bits());
+  if (storage_options_.block_cache_size == 0) {
+    storage_options_.table_options.no_block_cache = true;
+  } else if (storage_options_.share_block_cache) {
+    storage_options_.table_options.block_cache =
+      rocksdb::NewLRUCache(storage_options_.block_cache_size, g_pika_conf->num_shard_bits());
   }
 
-  bw_options_.options.rate_limiter =
+  storage_options_.options.rate_limiter =
     std::shared_ptr<rocksdb::RateLimiter>(rocksdb::NewGenericRateLimiter(g_pika_conf->rate_limiter_bandwidth()));
 
-  // For Blackwidow small compaction
-  bw_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
-  bw_options_.small_compaction_threshold =
+  // For Storage small compaction
+  storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
+  storage_options_.small_compaction_threshold =
       g_pika_conf->small_compaction_threshold();
 }
 
-storage::Status PikaServer::RewriteBlackwidowOptions(const storage::OptionType& option_type,
+storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,
     const std::unordered_map<std::string, std::string>& options_map) {
   storage::Status s;
   for (const auto& table_item : tables_) {
@@ -1706,8 +1706,8 @@ storage::Status PikaServer::RewriteBlackwidowOptions(const storage::OptionType& 
       if (!s.ok()) return s;
     }
   }
-  pstd::RWLock rwl(&bw_options_rw_, true);
-  s = bw_options_.ResetOptions(option_type, options_map);
+  pstd::RWLock rwl(&storage_options_rw_, true);
+  s = storage_options_.ResetOptions(option_type, options_map);
   return s;
 }
 
