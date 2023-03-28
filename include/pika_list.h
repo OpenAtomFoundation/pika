@@ -6,7 +6,7 @@
 #ifndef PIKA_LIST_H_
 #define PIKA_LIST_H_
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
@@ -41,7 +41,7 @@ class LIndexCmd : public Cmd {
 class LInsertCmd : public Cmd {
  public:
   LInsertCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), dir_(blackwidow::After) {};
+      : Cmd(name, arity, flag), dir_(storage::After) {};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -55,7 +55,7 @@ class LInsertCmd : public Cmd {
   }
  private:
   std::string key_;
-  blackwidow::BeforeOrAfter dir_;
+  storage::BeforeOrAfter dir_;
   std::string pivot_;
   std::string value_;
   virtual void DoInitial() override;

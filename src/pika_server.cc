@@ -431,7 +431,7 @@ void PikaServer::SetDispatchQueueLimit(int queue_limit) {
   pika_dispatch_thread_->SetQueueLimit(queue_limit);
 }
 
-blackwidow::BlackwidowOptions PikaServer::bw_options() {
+storage::BlackwidowOptions PikaServer::bw_options() {
   pstd::RWLock rwl(&bw_options_rw_, false);
   return bw_options_;
 }
@@ -581,22 +581,22 @@ Status PikaServer::DoSameThingSpecificTable(const TaskType& type, const std::set
     } else {
       switch (type) {
         case TaskType::kCompactAll:
-          table_item.second->Compact(blackwidow::DataType::kAll);
+          table_item.second->Compact(storage::DataType::kAll);
           break;
         case TaskType::kCompactStrings:
-          table_item.second->Compact(blackwidow::DataType::kStrings);
+          table_item.second->Compact(storage::DataType::kStrings);
           break;
         case TaskType::kCompactHashes:
-          table_item.second->Compact(blackwidow::DataType::kHashes);
+          table_item.second->Compact(storage::DataType::kHashes);
           break;
         case TaskType::kCompactSets:
-          table_item.second->Compact(blackwidow::DataType::kSets);
+          table_item.second->Compact(storage::DataType::kSets);
           break;
         case TaskType::kCompactZSets:
-          table_item.second->Compact(blackwidow::DataType::kZSets);
+          table_item.second->Compact(storage::DataType::kZSets);
           break;
         case TaskType::kCompactList:
-          table_item.second->Compact(blackwidow::DataType::kLists);
+          table_item.second->Compact(storage::DataType::kLists);
           break;
         case TaskType::kStartKeyScan:
           table_item.second->KeyScan();
@@ -727,7 +727,7 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
             break;
           }
         case TaskType::kCompactAll:
-          partition_item.second->Compact(blackwidow::kAll);
+          partition_item.second->Compact(storage::kAll);
           break;
         default:
           break;
@@ -1694,14 +1694,14 @@ void PikaServer::InitBlackwidowOptions() {
       g_pika_conf->small_compaction_threshold();
 }
 
-blackwidow::Status PikaServer::RewriteBlackwidowOptions(const blackwidow::OptionType& option_type,
+storage::Status PikaServer::RewriteBlackwidowOptions(const storage::OptionType& option_type,
     const std::unordered_map<std::string, std::string>& options_map) {
-  blackwidow::Status s;
+  storage::Status s;
   for (const auto& table_item : tables_) {
     pstd::RWLock partition_rwl(&table_item.second->partitions_rw_, true);
     for (const auto& partition_item: table_item.second->partitions_) {
       partition_item.second->DbRWLockWriter();
-      s = partition_item.second->db()->SetOptions(option_type, blackwidow::ALL_DB, options_map);
+      s = partition_item.second->db()->SetOptions(option_type, storage::ALL_DB, options_map);
       partition_item.second->DbRWUnLock();
       if (!s.ok()) return s;
     }

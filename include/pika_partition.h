@@ -6,8 +6,8 @@
 #ifndef PIKA_PARTITION_H_
 #define PIKA_PARTITION_H_
 
-#include "blackwidow/blackwidow.h"
-#include "blackwidow/backupable.h"
+#include "storage/storage.h"
+#include "storage/backupable.h"
 #include "pstd/include/scope_record_lock.h"
 
 #include "include/pika_binlog.h"
@@ -21,7 +21,7 @@ struct KeyScanInfo {
   time_t start_time;
   std::string s_start_time;
   int32_t duration;
-  std::vector<blackwidow::KeyInfo> key_infos; //the order is strings, hashes, lists, zsets, sets
+  std::vector<storage::KeyInfo> key_infos; //the order is strings, hashes, lists, zsets, sets
   bool key_scaning_;
   KeyScanInfo() :
       start_time(0),
@@ -57,9 +57,9 @@ class Partition : public std::enable_shared_from_this<Partition> {
   std::string GetTableName() const;
   uint32_t GetPartitionId() const;
   std::string GetPartitionName() const;
-  std::shared_ptr<blackwidow::BlackWidow> db() const;
+  std::shared_ptr<storage::BlackWidow> db() const;
 
-  void Compact(const blackwidow::DataType& type);
+  void Compact(const storage::DataType& type);
 
   void DbRWLockWriter();
   void DbRWLockReader();
@@ -85,7 +85,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool FlushSubDB(const std::string& db_name);
 
   // key scan info use
-  Status GetKeyNum(std::vector<blackwidow::KeyInfo>* key_info);
+  Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
   KeyScanInfo GetKeyScanInfo();
 
  private:
@@ -101,7 +101,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
 
   pthread_rwlock_t db_rwlock_;
   pstd::lock::LockMgr* lock_mgr_;
-  std::shared_ptr<blackwidow::BlackWidow> db_;
+  std::shared_ptr<storage::BlackWidow> db_;
 
   bool full_sync_;
 
@@ -119,7 +119,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void FinishBgsave();
   BgSaveInfo bgsave_info_;
   pstd::Mutex bgsave_protector_;
-  blackwidow::BackupEngine* bgsave_engine_;
+  storage::BackupEngine* bgsave_engine_;
 
   // key scan info use
   void InitKeyScan();

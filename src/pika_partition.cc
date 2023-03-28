@@ -76,7 +76,7 @@ Partition::Partition(const std::string& table_name,
 
   pthread_rwlock_init(&db_rwlock_, &attr);
 
-  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  db_ = std::shared_ptr<storage::BlackWidow>(new storage::BlackWidow());
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
 
   lock_mgr_ = new pstd::lock::LockMgr(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
@@ -141,11 +141,11 @@ std::string Partition::GetPartitionName() const {
   return partition_name_;
 }
 
-std::shared_ptr<blackwidow::BlackWidow> Partition::db() const {
+std::shared_ptr<storage::BlackWidow> Partition::db() const {
   return db_;
 }
 
-void Partition::Compact(const blackwidow::DataType& type) {
+void Partition::Compact(const storage::DataType& type) {
   if (!opened_) return;
   db_->Compact(type);
 }
@@ -306,7 +306,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
     return false;
   }
 
-  db_.reset(new blackwidow::BlackWidow());
+  db_.reset(new storage::BlackWidow());
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
   assert(db_);
   assert(s.ok());
@@ -418,7 +418,7 @@ bool Partition::InitBgsaveEnv() {
 // Prepare bgsave env, need bgsave_protector protect
 bool Partition::InitBgsaveEngine() {
   delete bgsave_engine_;
-  rocksdb::Status s = blackwidow::BackupEngine::Open(db().get(), &bgsave_engine_);
+  rocksdb::Status s = storage::BackupEngine::Open(db().get(), &bgsave_engine_);
   if (!s.ok()) {
     LOG(WARNING) << partition_name_ << " open backup engine failed " << s.ToString();
     return false;
@@ -479,7 +479,7 @@ bool Partition::FlushDB() {
   dbpath.append("_deleting/");
   pstd::RenameFile(db_path_, dbpath.c_str());
 
-  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  db_ = std::shared_ptr<storage::BlackWidow>(new storage::BlackWidow());
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
   assert(db_);
   assert(s.ok());
@@ -507,7 +507,7 @@ bool Partition::FlushSubDB(const std::string& db_name) {
   std::string del_dbpath = dbpath + db_name + "_deleting";
   pstd::RenameFile(sub_dbpath, del_dbpath);
 
-  db_ = std::shared_ptr<blackwidow::BlackWidow>(new blackwidow::BlackWidow());
+  db_ = std::shared_ptr<storage::BlackWidow>(new storage::BlackWidow());
   rocksdb::Status s = db_->Open(g_pika_server->bw_options(), db_path_);
   assert(db_);
   assert(s.ok());
@@ -529,7 +529,7 @@ KeyScanInfo Partition::GetKeyScanInfo() {
   return key_scan_info_;
 }
 
-Status Partition::GetKeyNum(std::vector<blackwidow::KeyInfo>* key_info) {
+Status Partition::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
   pstd::MutexLock l(&key_info_protector_);
   if (key_scan_info_.key_scaning_) {
     *key_info = key_scan_info_.key_infos;

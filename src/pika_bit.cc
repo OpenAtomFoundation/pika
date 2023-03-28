@@ -181,21 +181,21 @@ void BitOpCmd::DoInitial() {
   }
   std::string op_str = argv_[1];
   if (!strcasecmp(op_str.data(), "not")) {
-    op_ = blackwidow::kBitOpNot;
+    op_ = storage::kBitOpNot;
   } else if (!strcasecmp(op_str.data(), "and")) {
-    op_ = blackwidow::kBitOpAnd;
+    op_ = storage::kBitOpAnd;
   } else if (!strcasecmp(op_str.data(), "or")) {
-    op_ = blackwidow::kBitOpOr;
+    op_ = storage::kBitOpOr;
   } else if (!strcasecmp(op_str.data(), "xor")) {
-    op_ = blackwidow::kBitOpXor;
+    op_ = storage::kBitOpXor;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr, kCmdNameBitOp);
     return;
   }
-  if (op_ == blackwidow::kBitOpNot && argv_.size() != 4) {
+  if (op_ == storage::kBitOpNot && argv_.size() != 4) {
       res_.SetRes(CmdRes::kWrongBitOpNotNum, kCmdNameBitOp);
       return;
-  } else if (op_ != blackwidow::kBitOpNot && argv_.size() < 4) {
+  } else if (op_ != storage::kBitOpNot && argv_.size() < 4) {
       res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
       return;
   } else if (argv_.size() >= kMaxBitOpInputKey) {
