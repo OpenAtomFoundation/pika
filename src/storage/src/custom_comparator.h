@@ -15,8 +15,9 @@ class ListsDataKeyComparatorImpl : public rocksdb::Comparator {
  public:
   ListsDataKeyComparatorImpl() { }
 
+  // keep compatible with blackwidow
   const char* Name() const override {
-    return "storage.ListsDataKeyComparator";
+    return "blackwidow.ListsDataKeyComparator";
   }
 
   int Compare(const Slice& a, const Slice& b) const override {
@@ -91,10 +92,10 @@ class ListsDataKeyComparatorImpl : public rocksdb::Comparator {
  */
 class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
  public:
+  // keep compatible with blackwidow
   const char* Name() const override {
-    return "storage.ZSetsScoreKeyComparator";
+    return "blackwidow.ZSetsScoreKeyComparator";
   }
-
   int Compare(const Slice& a, const Slice& b) const override {
     assert(a.size() > sizeof(int32_t));
     assert(a.size() >= DecodeFixed32(a.data())
