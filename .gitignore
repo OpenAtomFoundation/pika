@@ -8,6 +8,8 @@
 *pb.cc
 *pb.h
 build
+cmake-build-debug
+cmake-build-release
 
 # Precompiled Headers
 *.gch
