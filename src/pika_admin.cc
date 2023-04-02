@@ -15,7 +15,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_version.h"
-#include "slash/include/rsync.h"
+#include "pstd/include/rsync.h"
 
 #ifdef TCMALLOC_EXTENSION
 #include <gperftools/malloc_extension.h>
@@ -51,7 +51,7 @@ enum AuthResult {
 };
 
 static AuthResult AuthenticateUser(const std::string& pwd,
-                                   const std::shared_ptr<pink::PinkConn>& conn,
+                                   const std::shared_ptr<net::NetConn>& conn,
                                    std::string& msg_role) {
   std::string root_password(g_pika_conf->requirepass());
   std::string user_password(g_pika_conf->userpass());
@@ -110,7 +110,7 @@ void SlaveofCmd::DoInitial() {
 
   master_ip_ = argv_[1];
   std::string str_master_port = argv_[2];
-  if (!slash::string2l(str_master_port.data(), str_master_port.size(),
+  if (!pstd::string2l(str_master_port.data(), str_master_port.size(),
                        &master_port_) ||
       master_port_ <= 0) {
     res_.SetRes(CmdRes::kInvalidInt);
@@ -204,12 +204,12 @@ void DbSlaveofCmd::DoInitial() {
       return;
     }
 
-    if (!slash::string2l(argv_[2].data(), argv_[2].size(), &filenum_) ||
+    if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &filenum_) ||
         filenum_ < 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
-    if (!slash::string2l(argv_[3].data(), argv_[3].size(), &offset_) ||
+    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &offset_) ||
         offset_ < 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
@@ -282,7 +282,7 @@ void AuthCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
 
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
     LOG(WARNING) << name_ << " weak ptr is empty";
@@ -300,7 +300,7 @@ void BgsaveCmd::DoInitial() {
   }
   if (argv_.size() == 2) {
     std::vector<std::string> tables;
-    slash::StringSplit(argv_[1], COMMA, tables);
+    pstd::StringSplit(argv_[1], COMMA, tables);
     for (const auto& table : tables) {
       if (!g_pika_server->IsTableExist(table)) {
         res_.SetRes(CmdRes::kInvalidTable, table);
@@ -336,7 +336,7 @@ void CompactCmd::DoInitial() {
     struct_type_ = argv_[1];
   } else if (argv_.size() == 3) {
     std::vector<std::string> tables;
-    slash::StringSplit(argv_[1], COMMA, tables);
+    pstd::StringSplit(argv_[1], COMMA, tables);
     for (const auto& table : tables) {
       if (!g_pika_server->IsTableExist(table)) {
         res_.SetRes(CmdRes::kInvalidTable, table);
@@ -389,7 +389,7 @@ void PurgelogstoCmd::DoInitial() {
   }
   std::string str_num = filename.substr(kBinlogPrefixLen);
   int64_t num = 0;
-  if (!slash::string2l(str_num.data(), str_num.size(), &num) || num < 0) {
+  if (!pstd::string2l(str_num.data(), str_num.size(), &num) || num < 0) {
     res_.SetRes(CmdRes::kInvalidParameter);
     return;
   }
@@ -421,7 +421,7 @@ void PingCmd::DoInitial() {
 }
 
 void PingCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePing);
     LOG(WARNING) << name_ << " weak ptr is empty";
@@ -586,7 +586,7 @@ void ClientCmd::DoInitial() {
 }
 
 void ClientCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameClient);
     return;
@@ -648,7 +648,7 @@ void ShutdownCmd::DoInitial() {
 
   // For now, only shutdown need check local
   if (is_local()) {
-    std::shared_ptr<pink::PinkConn> conn = GetConn();
+    std::shared_ptr<net::NetConn> conn = GetConn();
     if (conn) {
       if (conn->ip_port().find("127.0.0.1") == std::string::npos &&
           conn->ip_port().find(g_pika_server->host()) == std::string::npos) {
@@ -733,7 +733,7 @@ void InfoCmd::DoInitial() {
 
     if (argc == 4) {
       std::vector<std::string> tables;
-      slash::StringSplit(argv_[3], COMMA, tables);
+      pstd::StringSplit(argv_[3], COMMA, tables);
       for (const auto& table : tables) {
         if (!g_pika_server->IsTableExist(table)) {
           res_.SetRes(CmdRes::kInvalidTable, table);
@@ -957,7 +957,7 @@ void InfoCmd::InfoShardingReplication(std::string& info) {
   g_pika_rm->FindCommonMaster(&common_master);
   if (!common_master.empty()) {
     role |= PIKA_ROLE_SLAVE;
-    if (!slash::ParseIpPortString(common_master, master_ip, master_port)) {
+    if (!pstd::ParseIpPortString(common_master, master_ip, master_port)) {
       return;
     }
   }
@@ -1013,9 +1013,9 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::stringstream out_of_sync;
 
   bool all_partition_sync = true;
-  slash::RWLock table_rwl(&g_pika_server->tables_rw_, false);
+  pstd::RWLock table_rwl(&g_pika_server->tables_rw_, false);
   for (const auto& table_item : g_pika_server->tables_) {
-    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    pstd::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
     for (const auto& partition_item : table_item.second->partitions_) {
       std::shared_ptr<SyncSlavePartition> slave_partition =
           g_pika_rm->GetSyncSlavePartitionByName(
@@ -1115,7 +1115,7 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::string safety_purge;
   std::shared_ptr<SyncMasterPartition> master_partition = nullptr;
   for (const auto& t_item : g_pika_server->tables_) {
-    slash::RWLock partition_rwl(&t_item.second->partitions_rw_, false);
+    pstd::RWLock partition_rwl(&t_item.second->partitions_rw_, false);
     for (const auto& p_item : t_item.second->partitions_) {
       std::string table_name = p_item.second->GetTableName();
       uint32_t partition_id = p_item.second->GetPartitionId();
@@ -1153,10 +1153,10 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   std::string table_name;
   KeyScanInfo key_scan_info;
   int32_t duration;
-  std::vector<blackwidow::KeyInfo> key_infos;
+  std::vector<storage::KeyInfo> key_infos;
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
-  slash::RWLock rwl(&g_pika_server->tables_rw_, false);
+  pstd::RWLock rwl(&g_pika_server->tables_rw_, false);
   for (const auto& table_item : g_pika_server->tables_) {
     if (keyspace_scan_tables_.empty() ||
         keyspace_scan_tables_.find(table_item.first) !=
@@ -1212,12 +1212,12 @@ void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream db_fatal_msg_stream;
 
-  int64_t db_size = slash::Du(g_pika_conf->db_path());
+  int64_t db_size = pstd::Du(g_pika_conf->db_path());
   tmp_stream << "# Data"
              << "\r\n";
   tmp_stream << "db_size:" << db_size << "\r\n";
   tmp_stream << "db_size_human:" << (db_size >> 20) << "M\r\n";
-  int64_t log_size = slash::Du(g_pika_conf->log_path());
+  int64_t log_size = pstd::Du(g_pika_conf->log_path());
   tmp_stream << "log_size:" << log_size << "\r\n";
   tmp_stream << "log_size_human:" << (log_size >> 20) << "M\r\n";
   tmp_stream << "compression:" << g_pika_conf->compression() << "\r\n";
@@ -1227,19 +1227,19 @@ void InfoCmd::InfoData(std::string& info) {
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0, memtable_usage = 0;
   uint64_t total_table_reader_usage = 0, table_reader_usage = 0;
-  slash::RWLock table_rwl(&g_pika_server->tables_rw_, false);
+  pstd::RWLock table_rwl(&g_pika_server->tables_rw_, false);
   for (const auto& table_item : g_pika_server->tables_) {
-    slash::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    pstd::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
     for (const auto& patition_item : table_item.second->partitions_) {
       type_result.clear();
       memtable_usage = table_reader_usage = 0;
       patition_item.second->DbRWLockReader();
       patition_item.second->db()->GetUsage(
-          blackwidow::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
+          storage::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
       patition_item.second->db()->GetUsage(
-          blackwidow::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+          storage::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
       patition_item.second->db()->GetUsage(
-          blackwidow::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
+          storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
       patition_item.second->DbRWUnLock();
       total_memtable_usage += memtable_usage;
       total_table_reader_usage += table_reader_usage;
@@ -1377,97 +1377,97 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   std::string config_body;
   std::string pattern = config_args_v_[1];
 
-  if (slash::stringmatch(pattern.data(), "port", 1)) {
+  if (pstd::stringmatch(pattern.data(), "port", 1)) {
     elements += 2;
     EncodeString(&config_body, "port");
     EncodeInt32(&config_body, g_pika_conf->port());
   }
 
-  if (slash::stringmatch(pattern.data(), "thread-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "thread-num", 1)) {
     elements += 2;
     EncodeString(&config_body, "thread-num");
     EncodeInt32(&config_body, g_pika_conf->thread_num());
   }
 
-  if (slash::stringmatch(pattern.data(), "thread-pool-size", 1)) {
+  if (pstd::stringmatch(pattern.data(), "thread-pool-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "thread-pool-size");
     EncodeInt32(&config_body, g_pika_conf->thread_pool_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "sync-thread-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "sync-thread-num", 1)) {
     elements += 2;
     EncodeString(&config_body, "sync-thread-num");
     EncodeInt32(&config_body, g_pika_conf->sync_thread_num());
   }
 
-  if (slash::stringmatch(pattern.data(), "log-path", 1)) {
+  if (pstd::stringmatch(pattern.data(), "log-path", 1)) {
     elements += 2;
     EncodeString(&config_body, "log-path");
     EncodeString(&config_body, g_pika_conf->log_path());
   }
 
-  if (slash::stringmatch(pattern.data(), "db-path", 1)) {
+  if (pstd::stringmatch(pattern.data(), "db-path", 1)) {
     elements += 2;
     EncodeString(&config_body, "db-path");
     EncodeString(&config_body, g_pika_conf->db_path());
   }
 
-  if (slash::stringmatch(pattern.data(), "maxmemory", 1)) {
+  if (pstd::stringmatch(pattern.data(), "maxmemory", 1)) {
     elements += 2;
     EncodeString(&config_body, "maxmemory");
     EncodeInt64(&config_body, g_pika_conf->write_buffer_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "write-buffer-size", 1)) {
+  if (pstd::stringmatch(pattern.data(), "write-buffer-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "write-buffer-size");
     EncodeInt64(&config_body, g_pika_conf->write_buffer_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "arena-block-size", 1)) {
+  if (pstd::stringmatch(pattern.data(), "arena-block-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "arena-block-size");
     EncodeInt64(&config_body, g_pika_conf->arena_block_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-write-buffer-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "max-write-buffer-num", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-write-buffer-num");
     EncodeInt32(&config_body, g_pika_conf->max_write_buffer_number());
   }
 
-  if (slash::stringmatch(pattern.data(), "timeout", 1)) {
+  if (pstd::stringmatch(pattern.data(), "timeout", 1)) {
     elements += 2;
     EncodeString(&config_body, "timeout");
     EncodeInt32(&config_body, g_pika_conf->timeout());
   }
 
-  if (slash::stringmatch(pattern.data(), "requirepass", 1)) {
+  if (pstd::stringmatch(pattern.data(), "requirepass", 1)) {
     elements += 2;
     EncodeString(&config_body, "requirepass");
     EncodeString(&config_body, g_pika_conf->requirepass());
   }
 
-  if (slash::stringmatch(pattern.data(), "masterauth", 1)) {
+  if (pstd::stringmatch(pattern.data(), "masterauth", 1)) {
     elements += 2;
     EncodeString(&config_body, "masterauth");
     EncodeString(&config_body, g_pika_conf->masterauth());
   }
 
-  if (slash::stringmatch(pattern.data(), "userpass", 1)) {
+  if (pstd::stringmatch(pattern.data(), "userpass", 1)) {
     elements += 2;
     EncodeString(&config_body, "userpass");
     EncodeString(&config_body, g_pika_conf->userpass());
   }
 
-  if (slash::stringmatch(pattern.data(), "userblacklist", 1)) {
+  if (pstd::stringmatch(pattern.data(), "userblacklist", 1)) {
     elements += 2;
     EncodeString(&config_body, "userblacklist");
     EncodeString(&config_body, (g_pika_conf->suser_blacklist()).c_str());
   }
 
-  if (slash::stringmatch(pattern.data(), "instance-mode", 1)) {
+  if (pstd::stringmatch(pattern.data(), "instance-mode", 1)) {
     elements += 2;
     EncodeString(&config_body, "instance-mode");
     EncodeString(&config_body,
@@ -1475,130 +1475,130 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   }
 
   if (g_pika_conf->classic_mode() &&
-      slash::stringmatch(pattern.data(), "databases", 1)) {
+      pstd::stringmatch(pattern.data(), "databases", 1)) {
     elements += 2;
     EncodeString(&config_body, "databases");
     EncodeInt32(&config_body, g_pika_conf->databases());
   }
 
   if (!g_pika_conf->classic_mode() &&
-      slash::stringmatch(pattern.data(), "default-slot-num", 1)) {
+      pstd::stringmatch(pattern.data(), "default-slot-num", 1)) {
     elements += 2;
     EncodeString(&config_body, "default-slot-num");
     EncodeInt32(&config_body, g_pika_conf->default_slot_num());
   }
 
-  if (slash::stringmatch(pattern.data(), "daemonize", 1)) {
+  if (pstd::stringmatch(pattern.data(), "daemonize", 1)) {
     elements += 2;
     EncodeString(&config_body, "daemonize");
     EncodeString(&config_body, g_pika_conf->daemonize() ? "yes" : "no");
   }
 
-  if (slash::stringmatch(pattern.data(), "dump-path", 1)) {
+  if (pstd::stringmatch(pattern.data(), "dump-path", 1)) {
     elements += 2;
     EncodeString(&config_body, "dump-path");
     EncodeString(&config_body, g_pika_conf->bgsave_path());
   }
 
-  if (slash::stringmatch(pattern.data(), "dump-expire", 1)) {
+  if (pstd::stringmatch(pattern.data(), "dump-expire", 1)) {
     elements += 2;
     EncodeString(&config_body, "dump-expire");
     EncodeInt32(&config_body, g_pika_conf->expire_dump_days());
   }
 
-  if (slash::stringmatch(pattern.data(), "dump-prefix", 1)) {
+  if (pstd::stringmatch(pattern.data(), "dump-prefix", 1)) {
     elements += 2;
     EncodeString(&config_body, "dump-prefix");
     EncodeString(&config_body, g_pika_conf->bgsave_prefix());
   }
 
-  if (slash::stringmatch(pattern.data(), "pidfile", 1)) {
+  if (pstd::stringmatch(pattern.data(), "pidfile", 1)) {
     elements += 2;
     EncodeString(&config_body, "pidfile");
     EncodeString(&config_body, g_pika_conf->pidfile());
   }
 
-  if (slash::stringmatch(pattern.data(), "maxclients", 1)) {
+  if (pstd::stringmatch(pattern.data(), "maxclients", 1)) {
     elements += 2;
     EncodeString(&config_body, "maxclients");
     EncodeInt32(&config_body, g_pika_conf->maxclients());
   }
 
-  if (slash::stringmatch(pattern.data(), "target-file-size-base", 1)) {
+  if (pstd::stringmatch(pattern.data(), "target-file-size-base", 1)) {
     elements += 2;
     EncodeString(&config_body, "target-file-size-base");
     EncodeInt32(&config_body, g_pika_conf->target_file_size_base());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-cache-statistic-keys", 1)) {
+  if (pstd::stringmatch(pattern.data(), "max-cache-statistic-keys", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-cache-statistic-keys");
     EncodeInt32(&config_body, g_pika_conf->max_cache_statistic_keys());
   }
 
-  if (slash::stringmatch(pattern.data(), "small-compaction-threshold", 1)) {
+  if (pstd::stringmatch(pattern.data(), "small-compaction-threshold", 1)) {
     elements += 2;
     EncodeString(&config_body, "small-compaction-threshold");
     EncodeInt32(&config_body, g_pika_conf->small_compaction_threshold());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-background-flushes", 1)) {
+  if (pstd::stringmatch(pattern.data(), "max-background-flushes", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-background-flushes");
     EncodeInt32(&config_body, g_pika_conf->max_background_flushes());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-background-compactions", 1)) {
+  if (pstd::stringmatch(pattern.data(), "max-background-compactions", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-background-compactions");
     EncodeInt32(&config_body, g_pika_conf->max_background_compactions());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-cache-files", 1)) {
+  if (pstd::stringmatch(pattern.data(), "max-cache-files", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-cache-files");
     EncodeInt32(&config_body, g_pika_conf->max_cache_files());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-bytes-for-level-multiplier", 1)) {
+  if (pstd::stringmatch(pattern.data(), "max-bytes-for-level-multiplier", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-bytes-for-level-multiplier");
     EncodeInt32(&config_body, g_pika_conf->max_bytes_for_level_multiplier());
   }
 
-  if (slash::stringmatch(pattern.data(), "block-size", 1)) {
+  if (pstd::stringmatch(pattern.data(), "block-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "block-size");
     EncodeInt64(&config_body, g_pika_conf->block_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "block-cache", 1)) {
+  if (pstd::stringmatch(pattern.data(), "block-cache", 1)) {
     elements += 2;
     EncodeString(&config_body, "block-cache");
     EncodeInt64(&config_body, g_pika_conf->block_cache());
   }
 
-  if (slash::stringmatch(pattern.data(), "share-block-cache", 1)) {
+  if (pstd::stringmatch(pattern.data(), "share-block-cache", 1)) {
     elements += 2;
     EncodeString(&config_body, "share-block-cache");
     EncodeString(&config_body, g_pika_conf->share_block_cache() ? "yes" : "no");
   }
 
-  if (slash::stringmatch(pattern.data(), "cache-index-and-filter-blocks", 1)) {
+  if (pstd::stringmatch(pattern.data(), "cache-index-and-filter-blocks", 1)) {
     elements += 2;
     EncodeString(&config_body, "cache-index-and-filter-blocks");
     EncodeString(&config_body,
                  g_pika_conf->cache_index_and_filter_blocks() ? "yes" : "no");
   }
 
-  if (slash::stringmatch(pattern.data(), "optimize-filters-for-hits", 1)) {
+  if (pstd::stringmatch(pattern.data(), "optimize-filters-for-hits", 1)) {
     elements += 2;
     EncodeString(&config_body, "optimize-filters-for-hits");
     EncodeString(&config_body,
                  g_pika_conf->optimize_filters_for_hits() ? "yes" : "no");
   }
 
-  if (slash::stringmatch(pattern.data(), "level-compaction-dynamic-level-bytes",
+  if (pstd::stringmatch(pattern.data(), "level-compaction-dynamic-level-bytes",
                          1)) {
     elements += 2;
     EncodeString(&config_body, "level-compaction-dynamic-level-bytes");
@@ -1607,139 +1607,139 @@ void ConfigCmd::ConfigGet(std::string& ret) {
         g_pika_conf->level_compaction_dynamic_level_bytes() ? "yes" : "no");
   }
 
-  if (slash::stringmatch(pattern.data(), "expire-logs-days", 1)) {
+  if (pstd::stringmatch(pattern.data(), "expire-logs-days", 1)) {
     elements += 2;
     EncodeString(&config_body, "expire-logs-days");
     EncodeInt32(&config_body, g_pika_conf->expire_logs_days());
   }
 
-  if (slash::stringmatch(pattern.data(), "expire-logs-nums", 1)) {
+  if (pstd::stringmatch(pattern.data(), "expire-logs-nums", 1)) {
     elements += 2;
     EncodeString(&config_body, "expire-logs-nums");
     EncodeInt32(&config_body, g_pika_conf->expire_logs_nums());
   }
 
-  if (slash::stringmatch(pattern.data(), "root-connection-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "root-connection-num", 1)) {
     elements += 2;
     EncodeString(&config_body, "root-connection-num");
     EncodeInt32(&config_body, g_pika_conf->root_connection_num());
   }
 
-  if (slash::stringmatch(pattern.data(), "slowlog-write-errorlog", 1)) {
+  if (pstd::stringmatch(pattern.data(), "slowlog-write-errorlog", 1)) {
     elements += 2;
     EncodeString(&config_body, "slowlog-write-errorlog");
     EncodeString(&config_body,
                  g_pika_conf->slowlog_write_errorlog() ? "yes" : "no");
   }
 
-  if (slash::stringmatch(pattern.data(), "slowlog-log-slower-than", 1)) {
+  if (pstd::stringmatch(pattern.data(), "slowlog-log-slower-than", 1)) {
     elements += 2;
     EncodeString(&config_body, "slowlog-log-slower-than");
     EncodeInt32(&config_body, g_pika_conf->slowlog_slower_than());
   }
 
-  if (slash::stringmatch(pattern.data(), "slowlog-max-len", 1)) {
+  if (pstd::stringmatch(pattern.data(), "slowlog-max-len", 1)) {
     elements += 2;
     EncodeString(&config_body, "slowlog-max-len");
     EncodeInt32(&config_body, g_pika_conf->slowlog_max_len());
   }
 
-  if (slash::stringmatch(pattern.data(), "write-binlog", 1)) {
+  if (pstd::stringmatch(pattern.data(), "write-binlog", 1)) {
     elements += 2;
     EncodeString(&config_body, "write-binlog");
     EncodeString(&config_body, g_pika_conf->write_binlog() ? "yes" : "no");
   }
 
-  if (slash::stringmatch(pattern.data(), "binlog-file-size", 1)) {
+  if (pstd::stringmatch(pattern.data(), "binlog-file-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "binlog-file-size");
     EncodeInt32(&config_body, g_pika_conf->binlog_file_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-write-buffer-size", 1)) {
+  if (pstd::stringmatch(pattern.data(), "max-write-buffer-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-write-buffer-size");
     EncodeInt64(&config_body, g_pika_conf->max_write_buffer_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-client-response-size", 1)) {
+  if (pstd::stringmatch(pattern.data(), "max-client-response-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-client-response-size");
     EncodeInt64(&config_body, g_pika_conf->max_client_response_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "compression", 1)) {
+  if (pstd::stringmatch(pattern.data(), "compression", 1)) {
     elements += 2;
     EncodeString(&config_body, "compression");
     EncodeString(&config_body, g_pika_conf->compression());
   }
 
-  if (slash::stringmatch(pattern.data(), "db-sync-path", 1)) {
+  if (pstd::stringmatch(pattern.data(), "db-sync-path", 1)) {
     elements += 2;
     EncodeString(&config_body, "db-sync-path");
     EncodeString(&config_body, g_pika_conf->db_sync_path());
   }
 
-  if (slash::stringmatch(pattern.data(), "db-sync-speed", 1)) {
+  if (pstd::stringmatch(pattern.data(), "db-sync-speed", 1)) {
     elements += 2;
     EncodeString(&config_body, "db-sync-speed");
     EncodeInt32(&config_body, g_pika_conf->db_sync_speed());
   }
 
-  if (slash::stringmatch(pattern.data(), "compact-cron", 1)) {
+  if (pstd::stringmatch(pattern.data(), "compact-cron", 1)) {
     elements += 2;
     EncodeString(&config_body, "compact-cron");
     EncodeString(&config_body, g_pika_conf->compact_cron());
   }
 
-  if (slash::stringmatch(pattern.data(), "compact-interval", 1)) {
+  if (pstd::stringmatch(pattern.data(), "compact-interval", 1)) {
     elements += 2;
     EncodeString(&config_body, "compact-interval");
     EncodeString(&config_body, g_pika_conf->compact_interval());
   }
 
-  if (slash::stringmatch(pattern.data(), "network-interface", 1)) {
+  if (pstd::stringmatch(pattern.data(), "network-interface", 1)) {
     elements += 2;
     EncodeString(&config_body, "network-interface");
     EncodeString(&config_body, g_pika_conf->network_interface());
   }
 
-  if (slash::stringmatch(pattern.data(), "slaveof", 1)) {
+  if (pstd::stringmatch(pattern.data(), "slaveof", 1)) {
     elements += 2;
     EncodeString(&config_body, "slaveof");
     EncodeString(&config_body, g_pika_conf->slaveof());
   }
 
-  if (slash::stringmatch(pattern.data(), "slave-priority", 1)) {
+  if (pstd::stringmatch(pattern.data(), "slave-priority", 1)) {
     elements += 2;
     EncodeString(&config_body, "slave-priority");
     EncodeInt32(&config_body, g_pika_conf->slave_priority());
   }
 
-  if (slash::stringmatch(pattern.data(), "sync-window-size", 1)) {
+  if (pstd::stringmatch(pattern.data(), "sync-window-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "sync-window-size");
     EncodeInt32(&config_body, g_pika_conf->sync_window_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "max-conn-rbuf-size", 1)) {
+  if (pstd::stringmatch(pattern.data(), "max-conn-rbuf-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "max-conn-rbuf-size");
     EncodeInt32(&config_body, g_pika_conf->max_conn_rbuf_size());
   }
 
-  if (slash::stringmatch(pattern.data(), "replication-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "replication-num", 1)) {
     elements += 2;
     EncodeString(&config_body, "replication-num");
     EncodeInt32(&config_body, g_pika_conf->replication_num());
   }
-  if (slash::stringmatch(pattern.data(), "consensus-level", 1)) {
+  if (pstd::stringmatch(pattern.data(), "consensus-level", 1)) {
     elements += 2;
     EncodeString(&config_body, "consensus-level");
     EncodeInt32(&config_body, g_pika_conf->consensus_level());
   }
 
-  if (slash::stringmatch(pattern.data(), "rate-limiter-bandwidth", 1)) {
+  if (pstd::stringmatch(pattern.data(), "rate-limiter-bandwidth", 1)) {
     elements += 2;
     EncodeString(&config_body, "rate-limiter-bandwidth");
     EncodeInt64(&config_body, g_pika_conf->rate_limiter_bandwidth());
@@ -1791,7 +1791,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   long int ival;
   std::string value = config_args_v_[2];
   if (set_item == "timeout") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'timeout'\r\n";
       return;
     }
@@ -1813,7 +1813,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetBgsavePrefix(value);
     ret = "+OK\r\n";
   } else if (set_item == "maxclients") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival <= 0) {
+    if (!pstd::string2l(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'maxclients'\r\n";
       return;
@@ -1822,7 +1822,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_server->SetDispatchQueueLimit(ival);
     ret = "+OK\r\n";
   } else if (set_item == "dump-expire") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'dump-expire'\r\n";
       return;
@@ -1830,7 +1830,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetExpireDumpDays(ival);
     ret = "+OK\r\n";
   } else if (set_item == "slave-priority") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'slave-priority'\r\n";
       return;
@@ -1838,7 +1838,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSlavePriority(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-days") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival <= 0) {
+    if (!pstd::string2l(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'expire-logs-days'\r\n";
       return;
@@ -1846,7 +1846,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetExpireLogsDays(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-nums") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival <= 0) {
+    if (!pstd::string2l(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'expire-logs-nums'\r\n";
       return;
@@ -1854,7 +1854,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetExpireLogsNums(ival);
     ret = "+OK\r\n";
   } else if (set_item == "root-connection-num") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival <= 0) {
+    if (!pstd::string2l(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'root-connection-num'\r\n";
       return;
@@ -1875,7 +1875,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSlowlogWriteErrorlog(is_write_errorlog);
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-log-slower-than") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'slowlog-log-slower-than'\r\n";
       return;
@@ -1883,7 +1883,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSlowlogSlowerThan(ival);
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-max-len") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'slowlog-max-len'\r\n";
       return;
@@ -1892,7 +1892,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_server->SlowlogTrim();
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-statistic-keys") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-cache-statistic-keys'\r\n";
       return;
@@ -1901,7 +1901,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_server->PartitionSetMaxCacheStatisticKeys(ival);
     ret = "+OK\r\n";
   } else if (set_item == "small-compaction-threshold") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'small-compaction-threshold'\r\n";
       return;
@@ -1910,7 +1910,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_server->PartitionSetSmallCompactionThreshold(ival);
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
-    if (!slash::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-client-response-size'\r\n";
       return;
@@ -1930,7 +1930,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "+OK\r\n";
     }
   } else if (set_item == "db-sync-speed") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'db-sync-speed(MB)'\r\n";
       return;
@@ -2003,7 +2003,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "+OK\r\n";
     }
   } else if (set_item == "sync-window-size") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'sync-window-size'\r\n";
       return;
@@ -2016,15 +2016,15 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSyncWindowSize(ival);
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-files") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-cache-files'\r\n";
       return;
     }
     std::unordered_map<std::string, std::string> options_map{
         {"max_open_files", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kDB, options_map);
+    storage::Status s = g_pika_server->RewriteStorageOptions(
+        storage::OptionType::kDB, options_map);
     if (!s.ok()) {
       ret = "-ERR Set max-cache-files wrong: " + s.ToString() + "\r\n";
       return;
@@ -2032,15 +2032,15 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetMaxCacheFiles(ival);
     ret = "+OK\r\n";
   } else if (set_item == "max-background-compactions") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-background-compactions'\r\n";
       return;
     }
     std::unordered_map<std::string, std::string> options_map{
         {"max_background_compactions", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kDB, options_map);
+    storage::Status s = g_pika_server->RewriteStorageOptions(
+        storage::OptionType::kDB, options_map);
     if (!s.ok()) {
       ret =
           "-ERR Set max-background-compactions wrong: " + s.ToString() + "\r\n";
@@ -2049,15 +2049,15 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetMaxBackgroudCompactions(ival);
     ret = "+OK\r\n";
   } else if (set_item == "write-buffer-size") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'write-buffer-size'\r\n";
       return;
     }
     std::unordered_map<std::string, std::string> options_map{
         {"write_buffer_size", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kColumnFamily, options_map);
+    storage::Status s = g_pika_server->RewriteStorageOptions(
+        storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set write-buffer-size wrong: " + s.ToString() + "\r\n";
       return;
@@ -2065,15 +2065,15 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetWriteBufferSize(ival);
     ret = "+OK\r\n";
   } else if (set_item == "max-write-buffer-num") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-write-buffer-number'\r\n";
       return;
     }
     std::unordered_map<std::string, std::string> options_map{
         {"max_write_buffer_number", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kColumnFamily, options_map);
+    storage::Status s = g_pika_server->RewriteStorageOptions(
+        storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set max-write-buffer-number wrong: " + s.ToString() + "\r\n";
       return;
@@ -2081,15 +2081,15 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetMaxWriteBufferNumber(ival);
     ret = "+OK\r\n";
   } else if (set_item == "arena-block-size") {
-    if (!slash::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2l(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'arena-block-size'\r\n";
       return;
     }
     std::unordered_map<std::string, std::string> options_map{
         {"arena_block_size", value}};
-    blackwidow::Status s = g_pika_server->RewriteBlackwidowOptions(
-        blackwidow::OptionType::kColumnFamily, options_map);
+    storage::Status s = g_pika_server->RewriteStorageOptions(
+        storage::OptionType::kColumnFamily, options_map);
     if (!s.ok()) {
       ret = "-ERR Set arena-block-size wrong: " + s.ToString() + "\r\n";
       return;
@@ -2122,13 +2122,13 @@ void MonitorCmd::DoInitial() {
 }
 
 void MonitorCmd::Do(std::shared_ptr<Partition> partition) {
-  std::shared_ptr<pink::PinkConn> conn_repl = GetConn();
+  std::shared_ptr<net::NetConn> conn_repl = GetConn();
   if (!conn_repl) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameMonitor);
     LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
-  std::shared_ptr<pink::PinkConn> conn =
+  std::shared_ptr<net::NetConn> conn =
       std::dynamic_pointer_cast<PikaClientConn>(conn_repl)
           ->server_thread()
           ->MoveConnOut(conn_repl->fd());
@@ -2152,7 +2152,7 @@ void DbsizeCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kInvalidTable);
   } else {
     KeyScanInfo key_scan_info = table->GetKeyScanInfo();
-    std::vector<blackwidow::KeyInfo> key_infos = key_scan_info.key_infos;
+    std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
     if (key_infos.size() != 5) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
       return;
@@ -2175,11 +2175,11 @@ void TimeCmd::Do(std::shared_ptr<Partition> partition) {
   if (gettimeofday(&tv, NULL) == 0) {
     res_.AppendArrayLen(2);
     char buf[32];
-    int32_t len = slash::ll2string(buf, sizeof(buf), tv.tv_sec);
+    int32_t len = pstd::ll2string(buf, sizeof(buf), tv.tv_sec);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
 
-    len = slash::ll2string(buf, sizeof(buf), tv.tv_usec);
+    len = pstd::ll2string(buf, sizeof(buf), tv.tv_usec);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
   } else {
@@ -2200,12 +2200,12 @@ void DelbackupCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> dump_dir;
 
   // Dump file is not exist
-  if (!slash::FileExists(db_sync_path)) {
+  if (!pstd::FileExists(db_sync_path)) {
     res_.SetRes(CmdRes::kOk);
     return;
   }
   // Directory traversal
-  if (slash::GetChildren(db_sync_path, dump_dir) != 0) {
+  if (pstd::GetChildren(db_sync_path, dump_dir) != 0) {
     res_.SetRes(CmdRes::kOk);
     return;
   }
@@ -2228,7 +2228,7 @@ void DelbackupCmd::Do(std::shared_ptr<Partition> partition) {
     std::string dump_dir_name = db_sync_path + dump_dir[i] + "/" + table_name_;
     if (g_pika_server->CountSyncSlaves() == 0) {
       LOG(INFO) << "Not syncing, delete dump file: " << dump_dir_name;
-      slash::DeleteDirIfExist(dump_dir_name);
+      pstd::DeleteDirIfExist(dump_dir_name);
       len--;
     } else {
       LOG(INFO) << "Syncing, can not delete " << dump_dir_name << " dump file"
@@ -2259,18 +2259,18 @@ void ScandbCmd::DoInitial() {
     return;
   }
   if (argv_.size() == 1) {
-    type_ = blackwidow::kAll;
+    type_ = storage::kAll;
   } else {
     if (!strcasecmp(argv_[1].data(), "string")) {
-      type_ = blackwidow::kStrings;
+      type_ = storage::kStrings;
     } else if (!strcasecmp(argv_[1].data(), "hash")) {
-      type_ = blackwidow::kHashes;
+      type_ = storage::kHashes;
     } else if (!strcasecmp(argv_[1].data(), "set")) {
-      type_ = blackwidow::kSets;
+      type_ = storage::kSets;
     } else if (!strcasecmp(argv_[1].data(), "zset")) {
-      type_ = blackwidow::kZSets;
+      type_ = storage::kZSets;
     } else if (!strcasecmp(argv_[1].data(), "list")) {
-      type_ = blackwidow::kLists;
+      type_ = storage::kLists;
     } else {
       res_.SetRes(CmdRes::kInvalidDbType);
     }
@@ -2302,7 +2302,7 @@ void SlowlogCmd::DoInitial() {
              !strcasecmp(argv_[1].data(), "get")) {
     condition_ = SlowlogCmd::kGET;
     if (argv_.size() == 3 &&
-        !slash::string2l(argv_[2].data(), argv_[2].size(), &number_)) {
+        !pstd::string2l(argv_[2].data(), argv_[2].size(), &number_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -2371,7 +2371,7 @@ void TcmallocCmd::DoInitial() {
   } else if (!strcasecmp(type.data(), "rate")) {
     type_ = 1;
     if (argv_.size() == 3) {
-      if (!slash::string2l(argv_[2].data(), argv_[2].size(), &rate_)) {
+      if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &rate_)) {
         res_.SetRes(CmdRes::kSyntaxErr, kCmdNameTcmalloc);
       }
     }
@@ -2392,7 +2392,7 @@ void TcmallocCmd::Do(std::shared_ptr<Partition> partition) {
     case 0:
       char stats[1024];
       MallocExtension::instance()->GetStats(stats, 1024);
-      slash::StringSplit(stats, '\n', elems);
+      pstd::StringSplit(stats, '\n', elems);
       res_.AppendArrayLen(elems.size());
       for (auto& i : elems) {
         res_.AppendString(i);
@@ -2428,15 +2428,15 @@ void PKPatternMatchDelCmd::DoInitial() {
   }
   pattern_ = argv_[1];
   if (!strcasecmp(argv_[2].data(), "set")) {
-    type_ = blackwidow::kSets;
+    type_ = storage::kSets;
   } else if (!strcasecmp(argv_[2].data(), "list")) {
-    type_ = blackwidow::kLists;
+    type_ = storage::kLists;
   } else if (!strcasecmp(argv_[2].data(), "string")) {
-    type_ = blackwidow::kStrings;
+    type_ = storage::kStrings;
   } else if (!strcasecmp(argv_[2].data(), "zset")) {
-    type_ = blackwidow::kZSets;
+    type_ = storage::kZSets;
   } else if (!strcasecmp(argv_[2].data(), "hash")) {
-    type_ = blackwidow::kHashes;
+    type_ = storage::kHashes;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType, kCmdNamePKPatternMatchDel);
     return;
@@ -2482,7 +2482,7 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
   size_t next_arg = 1;
   long ver = 0;
   if (argv_.size() >= 2) {
-    if (!slash::string2l(argv_[next_arg].data(), argv_[next_arg].size(),
+    if (!pstd::string2l(argv_[next_arg].data(), argv_[next_arg].size(),
                          &ver)) {
       res_.SetRes(CmdRes::kErrOther,
                   "Protocol version is not an integer or out of range");
@@ -2496,7 +2496,7 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
     }
   }
 
-  std::shared_ptr<pink::PinkConn> conn = GetConn();
+  std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameHello);
     return;
@@ -2535,7 +2535,7 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   std::string raw;
-  std::vector<blackwidow::FieldValue> fvs{
+  std::vector<storage::FieldValue> fvs{
       {"server", "redis"},
   };
   // just for redis resp2 protocol
@@ -2565,7 +2565,7 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
     RedisAppendLen(raw, fv.field.size(), "$");
     RedisAppendContent(raw, fv.field);
     if (fv.field == "proto") {
-      slash::string2l(fv.value.data(), fv.value.size(), &ver);
+      pstd::string2l(fv.value.data(), fv.value.size(), &ver);
       RedisAppendLen(raw, static_cast<int64_t>(ver), ":");
       continue;
     }

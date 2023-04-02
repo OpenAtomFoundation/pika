@@ -11,7 +11,7 @@
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
 
-#include "slash/include/env.h"
+#include "pstd/include/env.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
@@ -54,7 +54,7 @@ void StableLog::RemoveStableLogDir() {
     logpath.erase(logpath.length() - 1);
   }
   logpath.append("_deleting/");
-  if (slash::RenameFile(log_path_, logpath.c_str())) {
+  if (pstd::RenameFile(log_path_, logpath.c_str())) {
     LOG(WARNING) << "Failed to move log to trash, error: " << strerror(errno);
     return;
   }
@@ -122,7 +122,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       }
 
       // Do delete
-      slash::Status s = slash::DeleteFile(log_path_ + it->second);
+      pstd::Status s = pstd::DeleteFile(log_path_ + it->second);
       if (s.ok()) {
         ++delete_num;
         --remain_expire_num;
@@ -155,7 +155,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
 
 bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
   std::vector<std::string> children;
-  int ret = slash::GetChildren(log_path_, children);
+  int ret = pstd::GetChildren(log_path_, children);
   if (ret != 0) {
     LOG(WARNING) << log_path_ << " Get all files in log path failed! error:"
       << ret;
@@ -170,7 +170,7 @@ bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
       continue;
     }
     sindex = (*it).substr(kBinlogPrefixLen);
-    if (slash::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
+    if (pstd::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
       binlogs->insert(std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it));
     }
   }
@@ -207,7 +207,7 @@ void StableLog::UpdateFirstOffset(uint32_t filenum) {
     }
   }
 
-  slash::RWLock l(&offset_rwlock_, true);
+  pstd::RWLock l(&offset_rwlock_, true);
   first_offset_.b_offset = offset;
   first_offset_.l_offset.term = item.term_id();
   first_offset_.l_offset.index = item.logic_id();
@@ -222,7 +222,7 @@ Status StableLog::PurgeFileAfter(uint32_t filenum) {
   for (auto& it : binlogs) {
     if (it.first > filenum) {
       // Do delete
-      Status s = slash::DeleteFile(log_path_ + it.second);
+      Status s = pstd::DeleteFile(log_path_ + it.second);
       if (!s.ok()) {
         return s;
       }

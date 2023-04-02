@@ -27,7 +27,7 @@ RedisSender::~RedisSender() {
 void RedisSender::ConnectRedis() {
   while (cli_ == NULL) {
     // Connect to redis
-    cli_ = pink::NewRedisCli();
+    cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1000);
     slash::Status s = cli_->Connect(ip_, port_);
     if (!s.ok()) {
@@ -41,12 +41,12 @@ void RedisSender::ConnectRedis() {
 
       // Authentication
       if (!password_.empty()) {
-        pink::RedisCmdArgsType argv, resp;
+        net::RedisCmdArgsType argv, resp;
         std::string cmd;
 
         argv.push_back("AUTH");
         argv.push_back(password_);
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         slash::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {
@@ -68,11 +68,11 @@ void RedisSender::ConnectRedis() {
         }
       } else {
         // If forget to input password
-        pink::RedisCmdArgsType argv, resp;
+        net::RedisCmdArgsType argv, resp;
         std::string cmd;
 
         argv.push_back("PING");
-        pink::SerializeRedisCommand(argv, &cmd);
+        net::SerializeRedisCommand(argv, &cmd);
         slash::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {

@@ -120,7 +120,7 @@ ExternalProject_Add(unwind
   URL
   http://download.savannah.nongnu.org/releases/libunwind/libunwind-1.6.2.tar.gz
   URL_HASH
-  MD5=f625b6a98ac1976116c71708a73dc44a 
+  MD5=f625b6a98ac1976116c71708a73dc44a
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -485,9 +485,9 @@ endif ()
 set(ROCKSDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rocksdb)
 
-add_subdirectory(src/slash)
-add_subdirectory(src/pink)
-add_subdirectory(src/blackwidow)
+add_subdirectory(src/pstd)
+add_subdirectory(src/net)
+add_subdirectory(src/storage)
 aux_source_directory(src DIR_SRCS)
 
 # # generate version
@@ -550,9 +550,9 @@ add_dependencies(${PROJECT_NAME}
   jemalloc
   rocksdb
   protobuf
-  slash
-  pink
-  blackwidow)
+  pstd
+  net
+  storage)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
@@ -561,9 +561,9 @@ target_include_directories(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-  blackwidow
-  pink
-  slash
+  storage
+  net
+  pstd
   ${LIB_GLOG}
   librocksdb.a
   ${LIB_PROTOBUF}
@@ -574,3 +574,4 @@ target_link_libraries(${PROJECT_NAME}
   libz.a
   libunwind.a
   libjemalloc.a)
+

@@ -8,7 +8,7 @@
 #include "include/pika_server.h"
 #include "include/pika_rm.h"
 
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
@@ -21,7 +21,7 @@ void PikaReplClientThread::ReplClientHandle::FdClosedHandle(int fd, const std::s
   LOG(INFO) << "ReplClient Close conn, fd=" << fd << ", ip_port=" << ip_port;
   std::string ip;
   int port = 0;
-  if (!slash::ParseIpPortString(ip_port, ip, port)) {
+  if (!pstd::ParseIpPortString(ip_port, ip, port)) {
     LOG(WARNING) << "Parse ip_port error " << ip_port;
     return;
   }
@@ -38,7 +38,7 @@ void PikaReplClientThread::ReplClientHandle::FdTimeoutHandle(int fd, const std::
   LOG(INFO) << "ReplClient Timeout conn, fd=" << fd << ", ip_port=" << ip_port;
   std::string ip;
   int port = 0;
-  if (!slash::ParseIpPortString(ip_port, ip, port)) {
+  if (!pstd::ParseIpPortString(ip_port, ip, port)) {
     LOG(WARNING) << "Parse ip_port error " << ip_port;
     return;
   }

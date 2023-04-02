@@ -9,9 +9,9 @@
 #include <memory>
 #include <string>
 
-#include "pink/include/pb_conn.h"
-#include "pink/include/bg_thread.h"
-#include "pink/include/thread_pool.h"
+#include "net/include/pb_conn.h"
+#include "net/include/bg_thread.h"
+#include "net/include/thread_pool.h"
 
 #include "pika_inner_message.pb.h"
 
@@ -23,20 +23,20 @@ class PikaReplBgWorker {
   explicit PikaReplBgWorker(int queue_size);
   int StartThread();
   int StopThread();
-  void Schedule(pink::TaskFunc func, void* arg);
+  void Schedule(net::TaskFunc func, void* arg);
   void QueueClear();
   static void HandleBGWorkerWriteBinlog(void* arg);
   static void HandleBGWorkerWriteDB(void* arg);
 
   BinlogItem binlog_item_;
-  pink::RedisParser redis_parser_;
+  net::RedisParser redis_parser_;
   std::string ip_port_;
   std::string table_name_;
   uint32_t partition_id_;
 
  private:
-  pink::BGThread bg_thread_;
-  static int HandleWriteBinlog(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
+  net::BGThread bg_thread_;
+  static int HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv);
   static void ParseBinlogOffset(const InnerMessage::BinlogOffset pb_offset, LogOffset* offset);
 };
 

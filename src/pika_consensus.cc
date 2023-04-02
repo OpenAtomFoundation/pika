@@ -40,14 +40,14 @@ Status Context::StableSave() {
 }
 
 Status Context::Init() {
-  if (!slash::FileExists(path_)) {
-    Status s = slash::NewRWFile(path_, &save_);
+  if (!pstd::FileExists(path_)) {
+    Status s = pstd::NewRWFile(path_, &save_);
     if (!s.ok()) {
       LOG(FATAL) << "Context new file failed " << s.ToString();
     }
     StableSave();
   } else {
-    Status s = slash::NewRWFile(path_, &save_);
+    Status s = pstd::NewRWFile(path_, &save_);
     if (!s.ok()) {
       LOG(FATAL) << "Context new file failed " << s.ToString();
     }
@@ -64,12 +64,12 @@ Status Context::Init() {
 }
 
 void Context::PrepareUpdateAppliedIndex(const LogOffset& offset) {
-  slash::RWLock l(&rwlock_, true);
+  pstd::RWLock l(&rwlock_, true);
   applied_win_.Push(SyncWinItem(offset));
 }
 
 void Context::UpdateAppliedIndex(const LogOffset& offset) {
-  slash::RWLock l(&rwlock_, true);
+  pstd::RWLock l(&rwlock_, true);
   LogOffset cur_offset;
   applied_win_.Update(SyncWinItem(offset), SyncWinItem(offset), &cur_offset);
   if (cur_offset > applied_index_) {
@@ -79,7 +79,7 @@ void Context::UpdateAppliedIndex(const LogOffset& offset) {
 }
 
 void Context::Reset(const LogOffset& offset) {
-  slash::RWLock l(&rwlock_, true);
+  pstd::RWLock l(&rwlock_, true);
   applied_index_ = offset;
   applied_win_.Reset();
   StableSave();
@@ -97,7 +97,7 @@ SyncProgress::~SyncProgress() {
 
 std::shared_ptr<SlaveNode> SyncProgress::GetSlaveNode(const std::string& ip, int port) {
   std::string slave_key = ip + std::to_string(port);
-  slash::RWLock l(&rwlock_, false);
+  pstd::RWLock l(&rwlock_, false);
   if (slaves_.find(slave_key) == slaves_.end()) {
     return nullptr;
   }
@@ -105,12 +105,12 @@ std::shared_ptr<SlaveNode> SyncProgress::GetSlaveNode(const std::string& ip, int
 }
 
 std::unordered_map<std::string, std::shared_ptr<SlaveNode>> SyncProgress::GetAllSlaveNodes() {
-  slash::RWLock l(&rwlock_, false);
+  pstd::RWLock l(&rwlock_, false);
   return slaves_;
 }
 
 std::unordered_map<std::string, LogOffset> SyncProgress::GetAllMatchIndex() {
-  slash::RWLock l(&rwlock_, false);
+  pstd::RWLock l(&rwlock_, false);
   return match_index_;
 }
 
@@ -126,11 +126,11 @@ Status SyncProgress::AddSlaveNode(const std::string& ip, int port,
   }
   std::shared_ptr<SlaveNode> slave_ptr =
     std::make_shared<SlaveNode>(ip, port, table_name, partition_id, session_id);
-  slave_ptr->SetLastSendTime(slash::NowMicros());
-  slave_ptr->SetLastRecvTime(slash::NowMicros());
+  slave_ptr->SetLastSendTime(pstd::NowMicros());
+  slave_ptr->SetLastRecvTime(pstd::NowMicros());
 
   {
-    slash::RWLock l(&rwlock_, true);
+    pstd::RWLock l(&rwlock_, true);
     slaves_[slave_key] = slave_ptr;
     // add slave to match_index
     match_index_[slave_key] = LogOffset();
@@ -141,7 +141,7 @@ Status SyncProgress::AddSlaveNode(const std::string& ip, int port,
 Status SyncProgress::RemoveSlaveNode(const std::string& ip, int port) {
   std::string slave_key = ip + std::to_string(port);
   {
-    slash::RWLock l(&rwlock_, true);
+    pstd::RWLock l(&rwlock_, true);
     slaves_.erase(slave_key);
     // remove slave to match_index
     match_index_.erase(slave_key);
@@ -159,7 +159,7 @@ Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& st
   LogOffset acked_offset;
   {
     // update slave_ptr
-    slash::MutexLock l(&slave_ptr->slave_mu);
+    pstd::MutexLock l(&slave_ptr->slave_mu);
     Status s = slave_ptr->Update(start, end, &acked_offset);
     if (!s.ok()) {
       return s;
@@ -175,7 +175,7 @@ Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& st
 }
 
 int SyncProgress::SlaveSize() {
-  slash::RWLock l(&rwlock_, false);
+  pstd::RWLock l(&rwlock_, false);
   return slaves_.size();
 }
 
@@ -207,7 +207,7 @@ int MemLog::Size() {
 
 // purge [begin, offset]
 Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
-  slash::MutexLock l_logs(&logs_mu_);
+  pstd::MutexLock l_logs(&logs_mu_);
   int index = InternalFindLogByBinlogOffset(offset);
   if (index < 0) {
     return Status::NotFound("Cant find correct index");
@@ -219,7 +219,7 @@ Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
 
 // keep mem_log [mem_log.begin, offset]
 Status MemLog::TruncateTo(const LogOffset& offset) {
-  slash::MutexLock l_logs(&logs_mu_);
+  pstd::MutexLock l_logs(&logs_mu_);
   int index = InternalFindLogByBinlogOffset(offset);
   if (index < 0) {
     return Status::Corruption("Cant find correct index");
@@ -230,13 +230,13 @@ Status MemLog::TruncateTo(const LogOffset& offset) {
 }
 
 void MemLog::Reset(const LogOffset& offset) {
-  slash::MutexLock l_logs(&logs_mu_);
+  pstd::MutexLock l_logs(&logs_mu_);
   logs_.erase(logs_.begin(), logs_.end());
   last_offset_ = offset;
 }
 
 Status MemLog::GetRangeLogs(int start, int end, std::vector<LogItem>* logs) {
-  slash::MutexLock l_logs(&logs_mu_);
+  pstd::MutexLock l_logs(&logs_mu_);
   int log_size = static_cast<int>(logs_.size());
   if (start > end || start >= log_size || end >= log_size) {
     return Status::Corruption("Invalid index");
@@ -246,7 +246,7 @@ Status MemLog::GetRangeLogs(int start, int end, std::vector<LogItem>* logs) {
 }
 
 bool MemLog::FindLogItem(const LogOffset& offset, LogOffset* found_offset) {
-  slash::MutexLock l_logs(&logs_mu_);
+  pstd::MutexLock l_logs(&logs_mu_);
   int index = InternalFindLogByLogicIndex(offset);
   if (index < 0) {
     return false;
@@ -314,9 +314,9 @@ void ConsensusCoordinator::Init() {
   }
   // load mem_logger_
   mem_logger_->SetLastOffset(committed_index_);
-  pink::RedisParserSettings settings;
+  net::RedisParserSettings settings;
   settings.DealMessage = &(ConsensusCoordinator::InitCmd);
-  pink::RedisParser redis_parser;
+  net::RedisParser redis_parser;
   redis_parser.RedisParserInit(REDIS_PARSER_REQUEST, settings);
   PikaBinlogReader binlog_reader;
   int res = binlog_reader.Seek(stable_logger_->Logger(),
@@ -345,9 +345,9 @@ void ConsensusCoordinator::Init() {
     const char* redis_parser_start = binlog.data() + BINLOG_ENCODE_LEN;
     int redis_parser_len = static_cast<int>(binlog.size()) - BINLOG_ENCODE_LEN;
     int processed_len = 0;
-    pink::RedisParserStatus ret = redis_parser.ProcessInputBuffer(
+    net::RedisParserStatus ret = redis_parser.ProcessInputBuffer(
         redis_parser_start, redis_parser_len, &processed_len);
-    if (ret != pink::kRedisParserDone) {
+    if (ret != net::kRedisParserDone) {
       LOG(FATAL) << PartitionInfo(table_name_, partition_id_).ToString() << "Redis parser parse failed";
       return;
     }
@@ -363,7 +363,7 @@ void ConsensusCoordinator::Init() {
 Status ConsensusCoordinator::Reset(const LogOffset& offset) {
   context_->Reset(offset);
   {
-    slash::MutexLock l(&index_mu_);
+    pstd::MutexLock l(&index_mu_);
     committed_index_ = offset;
   }
 
@@ -464,7 +464,7 @@ Status ConsensusCoordinator::ProcessLocalUpdate(const LogOffset& leader_commit) 
   LogOffset updated_committed_index;
   bool need_update = false;
   {
-    slash::MutexLock l(&index_mu_);
+    pstd::MutexLock l(&index_mu_);
     need_update = InternalUpdateCommittedIndex(committed_index, &updated_committed_index);
   }
   if (need_update) {
@@ -499,7 +499,7 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port,
   LogOffset updated_committed_index;
   bool need_update = false;
   {
-    slash::MutexLock l(&index_mu_);
+    pstd::MutexLock l(&index_mu_);
     need_update = InternalUpdateCommittedIndex(committed_index, &updated_committed_index);
   }
   if (need_update) {
@@ -551,7 +551,7 @@ Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item,
 
 Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) {
   // logs from PurgeLogs goes to InternalApply in order
-  slash::MutexLock l(&order_mu_);
+  pstd::MutexLock l(&order_mu_);
   std::vector<MemLog::LogItem> logs;
   Status s = mem_logger_->PurgeLogs(committed_index, &logs);
   if (!s.ok()) {
@@ -566,7 +566,7 @@ Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) 
 
 Status ConsensusCoordinator::ScheduleApplyFollowerLog(const LogOffset& committed_index) {
   // logs from PurgeLogs goes to InternalApply in order
-  slash::MutexLock l(&order_mu_);
+  pstd::MutexLock l(&order_mu_);
   std::vector<MemLog::LogItem> logs;
   Status s = mem_logger_->PurgeLogs(committed_index, &logs);
   if (!s.ok()) {
@@ -604,14 +604,14 @@ Status ConsensusCoordinator::RemoveSlaveNode(const std::string& ip, int port) {
 
 void ConsensusCoordinator::UpdateTerm(uint32_t term) {
   stable_logger_->Logger()->Lock();
-  slash::RWLock l(&term_rwlock_, true);
+  pstd::RWLock l(&term_rwlock_, true);
   term_ = term;
   stable_logger_->Logger()->SetTerm(term);
   stable_logger_->Logger()->Unlock();
 }
 
 uint32_t ConsensusCoordinator::term() {
-  slash::RWLock l(&term_rwlock_, false);
+  pstd::RWLock l(&term_rwlock_, false);
   return term_;
 }
 
@@ -635,10 +635,10 @@ void ConsensusCoordinator::InternalApplyFollower(const MemLog::LogItem& log) {
   g_pika_rm->ScheduleWriteDBTask(log.cmd_ptr, log.offset, table_name_, partition_id_);
 }
 
-int ConsensusCoordinator::InitCmd(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv) {
+int ConsensusCoordinator::InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string* table_name = static_cast<std::string*>(parser->data);
   std::string opt = argv[0];
-  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(slash::StringToLower(opt));
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Command " << opt << " not in the command table";
     return -1;

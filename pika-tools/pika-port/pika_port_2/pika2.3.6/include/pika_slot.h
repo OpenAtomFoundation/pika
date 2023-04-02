@@ -1,8 +1,8 @@
 #ifndef PIKA_SLOT_H_
 #define PIKA_SLOT_H_
 
-#include "pink/include/pink_thread.h"
-#include "pink/include/pink_cli.h"
+#include "net/include/net_thread.h"
+#include "net/include/net_cli.h"
 #include "include/pika_command.h"
 #include "include/pika_client_conn.h"
 #include "strings.h"
@@ -177,7 +177,7 @@ private:
     virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info);
 };
 
-class SlotsMgrtSenderThread: public pink::Thread {
+class SlotsMgrtSenderThread: public net::Thread {
 public:
     SlotsMgrtSenderThread();
     virtual ~SlotsMgrtSenderThread();
@@ -197,7 +197,7 @@ private:
     int64_t remained_keys_num_;
     std::vector<std::pair<const char, std::string>> migrating_batch_;
     std::vector<std::pair<const char, std::string>> migrating_ones_;
-    pink::PinkCli *cli_;
+    net::PinkCli *cli_;
     pthread_rwlock_t rwlock_db_;
     pthread_rwlock_t rwlock_batch_;
     pthread_rwlock_t rwlock_ones_;

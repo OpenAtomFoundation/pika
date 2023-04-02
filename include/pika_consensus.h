@@ -10,7 +10,7 @@
 #include "include/pika_slave_node.h"
 #include "include/pika_stable_log.h"
 #include "include/pika_binlog_transverter.h"
-#include "slash/include/env.h"
+#include "pstd/include/env.h"
 
 class Context {
  public:
@@ -30,7 +30,7 @@ class Context {
 
   std::string ToString() {
     std::stringstream tmp_stream;
-    slash::RWLock l(&rwlock_, false);
+    pstd::RWLock l(&rwlock_, false);
     tmp_stream << "  Applied_index " << applied_index_.ToString() << "\r\n";
     tmp_stream << "  Applied window " << applied_win_.ToStringStatus();
     return tmp_stream.str();
@@ -38,7 +38,7 @@ class Context {
 
  private:
   std::string path_;
-  slash::RWFile *save_;
+  pstd::RWFile *save_;
   // No copying allowed;
   Context(const Context&);
   void operator=(const Context&);
@@ -86,7 +86,7 @@ class MemLog {
   MemLog();
   int Size();
   void AppendLog(const LogItem& item) {
-    slash::MutexLock l_logs(&logs_mu_);
+    pstd::MutexLock l_logs(&logs_mu_);
     logs_.push_back(item);
     last_offset_ = item.offset;
   }
@@ -97,11 +97,11 @@ class MemLog {
   void  Reset(const LogOffset& offset);
 
   LogOffset last_offset() {
-    slash::MutexLock l_logs(&logs_mu_);
+    pstd::MutexLock l_logs(&logs_mu_);
     return last_offset_;
   }
   void SetLastOffset(const LogOffset& offset) {
-    slash::MutexLock l_logs(&logs_mu_);
+    pstd::MutexLock l_logs(&logs_mu_);
     last_offset_ = offset;
   }
   bool FindLogItem(const LogOffset& offset, LogOffset* found_offset);
@@ -109,7 +109,7 @@ class MemLog {
  private:
   int InternalFindLogByBinlogOffset(const LogOffset& offset);
   int InternalFindLogByLogicIndex(const LogOffset& offset);
-  slash::Mutex logs_mu_;
+  pstd::Mutex logs_mu_;
   std::vector<LogItem> logs_;
   LogOffset last_offset_;
 };
@@ -156,12 +156,12 @@ class ConsensusCoordinator {
   }
 
   LogOffset committed_index() {
-    slash::MutexLock l(&index_mu_);
+    pstd::MutexLock l(&index_mu_);
     return committed_index_;
   }
 
   LogOffset applied_index() {
-    slash::RWLock l(&context_->rwlock_, false);
+    pstd::RWLock l(&context_->rwlock_, false);
     return context_->applied_index_;
   }
 
@@ -175,17 +175,17 @@ class ConsensusCoordinator {
     }
     std::shared_ptr<Cmd> cmd_ptr;
   };
-  static int InitCmd(pink::RedisParser* parser, const pink::RedisCmdArgsType& argv);
+  static int InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv);
 
   std::string ToStringStatus() {
     std::stringstream tmp_stream;
     {
-      slash::MutexLock l(&index_mu_);
+      pstd::MutexLock l(&index_mu_);
       tmp_stream << "  Committed_index: " << committed_index_.ToString() << "\r\n";
     }
     tmp_stream << "  Context: " << "\r\n" << context_->ToString();
     {
-      slash::RWLock l(&term_rwlock_, false);
+      pstd::RWLock l(&term_rwlock_, false);
       tmp_stream << "  Term: " << term_ << "\r\n";
     }
     tmp_stream << "  Mem_logger size: " << mem_logger_->Size() <<
@@ -232,9 +232,9 @@ class ConsensusCoordinator {
   Status GetLogsBefore(const BinlogOffset& start_offset, std::vector<LogOffset>* hints);
 
   // keep members in this class works in order
-  slash::Mutex order_mu_;
+  pstd::Mutex order_mu_;
 
-  slash::Mutex index_mu_;
+  pstd::Mutex index_mu_;
   LogOffset committed_index_;
 
   std::shared_ptr<Context> context_;

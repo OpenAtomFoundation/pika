@@ -9,7 +9,7 @@
 #include <string>
 #include <queue>
 
-#include "pink/include/server_thread.h"
+#include "net/include/server_thread.h"
 #include "slash/include/slash_mutex.h"
 #include "pika_define.h"
 #include "master_conn.h"
@@ -32,16 +32,16 @@ public:
 
 
  private:
-  class MasterConnFactory : public pink::ConnFactory {
+  class MasterConnFactory : public net::ConnFactory {
    public:
     explicit MasterConnFactory(BinlogReceiverThread* binlog_receiver)
         : binlog_receiver_(binlog_receiver) {
     }
 
-    virtual pink::PinkConn *NewPinkConn(
+    virtual net::PinkConn *NewPinkConn(
 	    int connfd,
         const std::string &ip_port,
-        pink::ServerThread *thread,
+        net::ServerThread *thread,
         void* worker_specific_data) const override {
       return new MasterConn(connfd, ip_port, binlog_receiver_);
     }
@@ -50,7 +50,7 @@ public:
     BinlogReceiverThread* binlog_receiver_;
   };
 
-  class Handles : public pink::ServerHandle {
+  class Handles : public net::ServerHandle {
   public:
     explicit Handles(BinlogReceiverThread* binlog_receiver)
         : binlog_receiver_(binlog_receiver) {
@@ -64,7 +64,7 @@ public:
 
   MasterConnFactory conn_factory_;
   Handles handles_;
-  pink::ServerThread* thread_rep_;
+  net::ServerThread* thread_rep_;
 
   // CmdTable cmds_;
   // uint64_t serial_;

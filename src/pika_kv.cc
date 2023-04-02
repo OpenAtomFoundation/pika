@@ -5,7 +5,7 @@
 
 #include "include/pika_kv.h"
 
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_conf.h"
 #include "include/pika_data_distribution.h"
@@ -46,7 +46,7 @@ void SetCmd::DoInitial() {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!slash::string2l(argv_[index].data(), argv_[index].size(), &sec_)) {
+      if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &sec_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       } else if (sec_ <= 0) {
@@ -94,7 +94,7 @@ void SetCmd::Do(std::shared_ptr<Partition> partition) {
       if (res == 1) {
         res_.SetRes(CmdRes::kOk);
       } else {
-        res_.AppendArrayLen(-1);;
+        res_.AppendStringLen(-1);
       }
     }
   } else {
@@ -123,7 +123,7 @@ std::string SetCmd::ToBinlog(
     // time_stamp
     char buf[100];
     int32_t time_stamp = time(nullptr) + sec_;
-    slash::ll2string(buf, 100, time_stamp);
+    pstd::ll2string(buf, 100, time_stamp);
     std::string at(buf);
     RedisAppendLen(content, at.size(), "$");
     RedisAppendContent(content, at);
@@ -176,7 +176,7 @@ void DelCmd::DoInitial() {
 }
 
 void DelCmd::Do(std::shared_ptr<Partition> partition) {
-  std::map<blackwidow::DataType, blackwidow::Status> type_status;
+  std::map<storage::DataType, storage::Status> type_status;
   int64_t count = partition->db()->Del(keys_, &type_status);
   if (count >= 0) {
     res_.AppendInteger(count);
@@ -187,7 +187,7 @@ void DelCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 void DelCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
-  std::map<blackwidow::DataType, blackwidow::Status> type_status;
+  std::map<storage::DataType, storage::Status> type_status;
   int64_t count = partition->db()->Del(hint_keys.keys, &type_status);
   if (count >= 0) {
     split_res_ += count;
@@ -231,7 +231,7 @@ void IncrbyCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &by_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameIncrby);
     return;
   }
@@ -259,7 +259,7 @@ void IncrbyfloatCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[2];
-  if (!slash::string2d(argv_[2].data(), argv_[2].size(), &by_)) {
+  if (!pstd::string2d(argv_[2].data(), argv_[2].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidFloat);
     return;
   }
@@ -310,7 +310,7 @@ void DecrbyCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &by_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -390,7 +390,7 @@ void MgetCmd::DoInitial() {
 }
 
 void MgetCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<blackwidow::ValueStatus> vss;
+  std::vector<storage::ValueStatus> vss;
   rocksdb::Status s = partition->db()->MGet(keys_, &vss);
   if (s.ok()) {
     res_.AppendArrayLen(vss.size());
@@ -409,7 +409,7 @@ void MgetCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 void MgetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
-  std::vector<blackwidow::ValueStatus> vss;
+  std::vector<storage::ValueStatus> vss;
   const std::vector<std::string>& keys = hint_keys.keys;
   rocksdb::Status s = partition->db()->MGet(keys, &vss);
   if (s.ok()) {
@@ -447,15 +447,15 @@ void KeysCmd::DoInitial() {
   if (argv_.size() == 3) {
     std::string opt = argv_[2];
     if (!strcasecmp(opt.data(), "string")) {
-      type_ = blackwidow::DataType::kStrings;
+      type_ = storage::DataType::kStrings;
     } else if (!strcasecmp(opt.data(), "zset")) {
-      type_ = blackwidow::DataType::kZSets;
+      type_ = storage::DataType::kZSets;
     } else if (!strcasecmp(opt.data(), "set")) {
-      type_ = blackwidow::DataType::kSets;
+      type_ = storage::DataType::kSets;
     } else if (!strcasecmp(opt.data(), "list")) {
-      type_ = blackwidow::DataType::kLists;
+      type_ = storage::DataType::kLists;
     } else if (!strcasecmp(opt.data(), "hash")) {
-      type_ = blackwidow::DataType::kHashes;
+      type_ = storage::DataType::kHashes;
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
     }
@@ -549,7 +549,7 @@ void SetexCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &sec_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &sec_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -587,7 +587,7 @@ std::string SetexCmd::ToBinlog(
   // time_stamp
   char buf[100];
   int32_t time_stamp = time(nullptr) + sec_;
-  slash::ll2string(buf, 100, time_stamp);
+  pstd::ll2string(buf, 100, time_stamp);
   std::string at(buf);
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
@@ -610,7 +610,7 @@ void PsetexCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &usec_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &usec_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -648,7 +648,7 @@ std::string PsetexCmd::ToBinlog(
   // time_stamp
   char buf[100];
   int32_t time_stamp = time(nullptr) + usec_ / 1000;
-  slash::ll2string(buf, 100, time_stamp);
+  pstd::ll2string(buf, 100, time_stamp);
   std::string at(buf);
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
@@ -702,7 +702,7 @@ void MsetCmd::DoInitial() {
 }
 
 void MsetCmd::Do(std::shared_ptr<Partition> partition) {
-  blackwidow::Status s = partition->db()->MSet(kvs_);
+  storage::Status s = partition->db()->MSet(kvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -711,7 +711,7 @@ void MsetCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 void MsetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
-  std::vector<blackwidow::KeyValue> kvs;
+  std::vector<storage::KeyValue> kvs;
   const std::vector<std::string>& keys = hint_keys.keys;
   const std::vector<int>& hints = hint_keys.hints;
   if (keys.size() != hints.size()) {
@@ -725,7 +725,7 @@ void MsetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_k
       return;
     }
   }
-  blackwidow::Status s = partition->db()->MSet(kvs);
+  storage::Status s = partition->db()->MSet(kvs);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -770,11 +770,11 @@ void GetrangeCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &start_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &start_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!slash::string2l(argv_[3].data(), argv_[3].size(), &end_)) {
+  if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &end_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -798,7 +798,7 @@ void SetrangeCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &offset_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &offset_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -848,7 +848,7 @@ void ExistsCmd::DoInitial() {
 }
 
 void ExistsCmd::Do(std::shared_ptr<Partition> partition) {
-  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  std::map<storage::DataType, rocksdb::Status> type_status;
   int64_t res = partition->db()->Exists(keys_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
@@ -859,7 +859,7 @@ void ExistsCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 void ExistsCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
-  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  std::map<storage::DataType, rocksdb::Status> type_status;
   int64_t res = partition->db()->Exists(hint_keys.keys, &type_status);
   if (res != -1) {
     split_res_ += res;
@@ -879,7 +879,7 @@ void ExpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &sec_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &sec_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -887,7 +887,7 @@ void ExpireCmd::DoInitial() {
 }
 
 void ExpireCmd::Do(std::shared_ptr<Partition> partition) {
-  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  std::map<storage::DataType, rocksdb::Status> type_status;
   int64_t res = partition->db()->Expire(key_, sec_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
@@ -917,7 +917,7 @@ std::string ExpireCmd::ToBinlog(
   // sec
   char buf[100];
   int64_t expireat = time(nullptr) + sec_;
-  slash::ll2string(buf, 100, expireat);
+  pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
@@ -938,7 +938,7 @@ void PexpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &msec_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &msec_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -946,7 +946,7 @@ void PexpireCmd::DoInitial() {
 }
 
 void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
-  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  std::map<storage::DataType, rocksdb::Status> type_status;
   int64_t res = partition->db()->Expire(key_, msec_/1000, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
@@ -976,7 +976,7 @@ std::string PexpireCmd::ToBinlog(
   // sec
   char buf[100];
   int64_t expireat = time(nullptr) + msec_ / 1000;
-  slash::ll2string(buf, 100, expireat);
+  pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
@@ -997,7 +997,7 @@ void ExpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &time_stamp_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &time_stamp_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1005,7 +1005,7 @@ void ExpireatCmd::DoInitial() {
 }
 
 void ExpireatCmd::Do(std::shared_ptr<Partition> partition) {
-  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  std::map<storage::DataType, rocksdb::Status> type_status;
   int32_t res = partition->db()->Expireat(key_, time_stamp_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
@@ -1020,7 +1020,7 @@ void PexpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &time_stamp_ms_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &time_stamp_ms_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1047,7 +1047,7 @@ std::string PexpireatCmd::ToBinlog(
   // sec
   char buf[100];
   int64_t expireat = time_stamp_ms_ / 1000;
-  slash::ll2string(buf, 100, expireat);
+  pstd::ll2string(buf, 100, expireat);
   std::string at(buf);
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
@@ -1063,7 +1063,7 @@ std::string PexpireatCmd::ToBinlog(
 }
 
 void PexpireatCmd::Do(std::shared_ptr<Partition> partition) {
-  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  std::map<storage::DataType, rocksdb::Status> type_status;
   int32_t res = partition->db()->Expireat(key_, time_stamp_ms_/1000, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
@@ -1083,8 +1083,8 @@ void TtlCmd::DoInitial() {
 }
 
 void TtlCmd::Do(std::shared_ptr<Partition> partition) {
-  std::map<blackwidow::DataType, int64_t> type_timestamp;
-  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  std::map<storage::DataType, int64_t> type_timestamp;
+  std::map<storage::DataType, rocksdb::Status> type_status;
   type_timestamp = partition->db()->TTL(key_, &type_status);
   for (const auto& item : type_timestamp) {
      // mean operation exception errors happen in database
@@ -1093,16 +1093,16 @@ void TtlCmd::Do(std::shared_ptr<Partition> partition) {
        return;
      }
   }
-  if (type_timestamp[blackwidow::kStrings] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kStrings]);
-  } else if (type_timestamp[blackwidow::kHashes] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kHashes]);
-  } else if (type_timestamp[blackwidow::kLists] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kLists]);
-  } else if (type_timestamp[blackwidow::kZSets] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kZSets]);
-  } else if (type_timestamp[blackwidow::kSets] != -2) {
-    res_.AppendInteger(type_timestamp[blackwidow::kSets]);
+  if (type_timestamp[storage::kStrings] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kStrings]);
+  } else if (type_timestamp[storage::kHashes] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kHashes]);
+  } else if (type_timestamp[storage::kLists] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kLists]);
+  } else if (type_timestamp[storage::kZSets] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kZSets]);
+  } else if (type_timestamp[storage::kSets] != -2) {
+    res_.AppendInteger(type_timestamp[storage::kSets]);
   } else {
     // mean this key not exist
     res_.AppendInteger(-2);
@@ -1120,8 +1120,8 @@ void PttlCmd::DoInitial() {
 }
 
 void PttlCmd::Do(std::shared_ptr<Partition> partition) {
-  std::map<blackwidow::DataType, int64_t> type_timestamp;
-  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  std::map<storage::DataType, int64_t> type_timestamp;
+  std::map<storage::DataType, rocksdb::Status> type_status;
   type_timestamp = partition->db()->TTL(key_, &type_status);
   for (const auto& item : type_timestamp) {
      // mean operation exception errors happen in database
@@ -1130,35 +1130,35 @@ void PttlCmd::Do(std::shared_ptr<Partition> partition) {
        return;
      }
   }
-  if (type_timestamp[blackwidow::kStrings] != -2) {
-    if (type_timestamp[blackwidow::kStrings] == -1) {
+  if (type_timestamp[storage::kStrings] != -2) {
+    if (type_timestamp[storage::kStrings] == -1) {
       res_.AppendInteger(-1);
     } else {
-      res_.AppendInteger(type_timestamp[blackwidow::kStrings] * 1000);
+      res_.AppendInteger(type_timestamp[storage::kStrings] * 1000);
     }
-  } else if (type_timestamp[blackwidow::kHashes] != -2) {
-    if (type_timestamp[blackwidow::kHashes] == -1) {
+  } else if (type_timestamp[storage::kHashes] != -2) {
+    if (type_timestamp[storage::kHashes] == -1) {
       res_.AppendInteger(-1);
     } else {
-      res_.AppendInteger(type_timestamp[blackwidow::kHashes] * 1000);
+      res_.AppendInteger(type_timestamp[storage::kHashes] * 1000);
     }
-  } else if (type_timestamp[blackwidow::kLists] != -2) {
-    if (type_timestamp[blackwidow::kLists] == -1) {
+  } else if (type_timestamp[storage::kLists] != -2) {
+    if (type_timestamp[storage::kLists] == -1) {
       res_.AppendInteger(-1);
     } else {
-      res_.AppendInteger(type_timestamp[blackwidow::kLists] * 1000);
+      res_.AppendInteger(type_timestamp[storage::kLists] * 1000);
     }
-  } else if (type_timestamp[blackwidow::kSets] != -2) {
-    if (type_timestamp[blackwidow::kSets] == -1) {
+  } else if (type_timestamp[storage::kSets] != -2) {
+    if (type_timestamp[storage::kSets] == -1) {
       res_.AppendInteger(-1);
     } else {
-      res_.AppendInteger(type_timestamp[blackwidow::kSets] * 1000);
+      res_.AppendInteger(type_timestamp[storage::kSets] * 1000);
     }
-  } else if (type_timestamp[blackwidow::kZSets] != -2) {
-    if (type_timestamp[blackwidow::kZSets] == -1) {
+  } else if (type_timestamp[storage::kZSets] != -2) {
+    if (type_timestamp[storage::kZSets] == -1) {
       res_.AppendInteger(-1);
     } else {
-      res_.AppendInteger(type_timestamp[blackwidow::kZSets] * 1000);
+      res_.AppendInteger(type_timestamp[storage::kZSets] * 1000);
     }
   } else {
     // mean this key not exist
@@ -1177,7 +1177,7 @@ void PersistCmd::DoInitial() {
 }
 
 void PersistCmd::Do(std::shared_ptr<Partition> partition) {
-  std::map<blackwidow::DataType, rocksdb::Status> type_status;
+  std::map<storage::DataType, rocksdb::Status> type_status;
   int32_t res = partition->db()->Persist(key_, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
@@ -1212,7 +1212,7 @@ void ScanCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameScan);
     return;
   }
-  if (!slash::string2l(argv_[1].data(), argv_[1].size(), &cursor_)) {
+  if (!pstd::string2l(argv_[1].data(), argv_[1].size(), &cursor_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1229,7 +1229,7 @@ void ScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1255,7 +1255,7 @@ void ScanCmd::Do(std::shared_ptr<Partition> partition) {
     keys.clear();
     batch_count = left < PIKA_SCAN_STEP_LENGTH ? left : PIKA_SCAN_STEP_LENGTH;
     left = left > PIKA_SCAN_STEP_LENGTH ? left - PIKA_SCAN_STEP_LENGTH : 0;
-    cursor_ret = partition->db()->Scan(blackwidow::DataType::kAll, cursor_ret,
+    cursor_ret = partition->db()->Scan(storage::DataType::kAll, cursor_ret,
             pattern_, batch_count, &keys);
     for (const auto& key : keys) {
       RedisAppendLen(raw, key.size(), "$");
@@ -1271,7 +1271,7 @@ void ScanCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendArrayLen(2);
 
   char buf[32];
-  int len = slash::ll2string(buf, sizeof(buf), cursor_ret);
+  int len = pstd::ll2string(buf, sizeof(buf), cursor_ret);
   res_.AppendStringLen(len);
   res_.AppendContent(buf);
 
@@ -1286,15 +1286,15 @@ void ScanxCmd::DoInitial() {
     return;
   }
   if (!strcasecmp(argv_[1].data(), "string")) {
-    type_ = blackwidow::kStrings;
+    type_ = storage::kStrings;
   } else if (!strcasecmp(argv_[1].data(), "hash")) {
-    type_ = blackwidow::kHashes;
+    type_ = storage::kHashes;
   } else if (!strcasecmp(argv_[1].data(), "set")) {
-    type_ = blackwidow::kSets;
+    type_ = storage::kSets;
   } else if (!strcasecmp(argv_[1].data(), "zset")) {
-    type_ = blackwidow::kZSets;
+    type_ = storage::kZSets;
   } else if (!strcasecmp(argv_[1].data(), "list")) {
-    type_ = blackwidow::kLists;
+    type_ = storage::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
@@ -1313,7 +1313,7 @@ void ScanxCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1354,7 +1354,7 @@ void PKSetexAtCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[3];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &time_stamp_)
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &time_stamp_)
     || time_stamp_ >= INT32_MAX) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
@@ -1378,18 +1378,18 @@ void PKScanRangeCmd::DoInitial() {
     return;
   }
   if (!strcasecmp(argv_[1].data(), "string_with_value")) {
-    type_ = blackwidow::kStrings;
+    type_ = storage::kStrings;
     string_with_value = true;
   } else if (!strcasecmp(argv_[1].data(), "string")) {
-    type_ = blackwidow::kStrings;
+    type_ = storage::kStrings;
   } else if (!strcasecmp(argv_[1].data(), "hash")) {
-    type_ = blackwidow::kHashes;
+    type_ = storage::kHashes;
   } else if (!strcasecmp(argv_[1].data(), "set")) {
-    type_ = blackwidow::kSets;
+    type_ = storage::kSets;
   } else if (!strcasecmp(argv_[1].data(), "zset")) {
-    type_ = blackwidow::kZSets;
+    type_ = storage::kZSets;
   } else if (!strcasecmp(argv_[1].data(), "list")) {
-    type_ = blackwidow::kLists;
+    type_ = storage::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
@@ -1414,7 +1414,7 @@ void PKScanRangeCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1430,7 +1430,7 @@ void PKScanRangeCmd::DoInitial() {
 void PKScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
   std::vector<std::string> keys;
-  std::vector<blackwidow::KeyValue> kvs;
+  std::vector<storage::KeyValue> kvs;
   rocksdb::Status s = partition->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
@@ -1438,7 +1438,7 @@ void PKScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendStringLen(next_key.size());
     res_.AppendContent(next_key);
 
-    if (type_ == blackwidow::kStrings) {
+    if (type_ == storage::kStrings) {
       res_.AppendArrayLen(string_with_value ? 2 * kvs.size() : kvs.size());
       for (const auto& kv : kvs) {
         res_.AppendString(kv.key);
@@ -1464,18 +1464,18 @@ void PKRScanRangeCmd::DoInitial() {
     return;
   }
   if (!strcasecmp(argv_[1].data(), "string_with_value")) {
-    type_ = blackwidow::kStrings;
+    type_ = storage::kStrings;
     string_with_value = true;
   } else if (!strcasecmp(argv_[1].data(), "string")) {
-    type_ = blackwidow::kStrings;
+    type_ = storage::kStrings;
   } else if (!strcasecmp(argv_[1].data(), "hash")) {
-    type_ = blackwidow::kHashes;
+    type_ = storage::kHashes;
   } else if (!strcasecmp(argv_[1].data(), "set")) {
-    type_ = blackwidow::kSets;
+    type_ = storage::kSets;
   } else if (!strcasecmp(argv_[1].data(), "zset")) {
-    type_ = blackwidow::kZSets;
+    type_ = storage::kZSets;
   } else if (!strcasecmp(argv_[1].data(), "list")) {
-    type_ = blackwidow::kLists;
+    type_ = storage::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
     return;
@@ -1500,7 +1500,7 @@ void PKRScanRangeCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1516,7 +1516,7 @@ void PKRScanRangeCmd::DoInitial() {
 void PKRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
   std::vector<std::string> keys;
-  std::vector<blackwidow::KeyValue> kvs;
+  std::vector<storage::KeyValue> kvs;
   rocksdb::Status s = partition->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
@@ -1524,7 +1524,7 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendStringLen(next_key.size());
     res_.AppendContent(next_key);
 
-    if (type_ == blackwidow::kStrings) {
+    if (type_ == storage::kStrings) {
       res_.AppendArrayLen(string_with_value ? 2 * kvs.size() : kvs.size());
       for (const auto& kv : kvs) {
         res_.AppendString(kv.key);

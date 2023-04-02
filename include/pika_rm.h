@@ -12,7 +12,7 @@
 #include <queue>
 #include <vector>
 
-#include "slash/include/slash_status.h"
+#include "pstd/include/pstd_status.h"
 
 #include "include/pika_binlog_reader.h"
 #include "include/pika_repl_client.h"
@@ -28,7 +28,7 @@
 #define kSendKeepAliveTimeout (2 * 1000000)
 #define kRecvKeepAliveTimeout (20 * 1000000)
 
-using slash::Status;
+using pstd::Status;
 
 class SyncPartition {
  public:
@@ -130,7 +130,7 @@ class SyncMasterPartition : public SyncPartition {
   std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
 
-  slash::Mutex session_mu_;
+  pstd::Mutex session_mu_;
   int32_t session_id_;
 
   ConsensusCoordinator coordinator_;
@@ -169,7 +169,7 @@ class SyncSlavePartition : public SyncPartition {
   std::string LocalIp();
 
  private:
-  slash::Mutex partition_mu_;
+  pstd::Mutex partition_mu_;
   RmNode m_info_;
   ReplState repl_state_;
   std::string local_ip_;
@@ -246,11 +246,11 @@ class PikaReplicaManager {
   void DropItemInWriteQueue(const std::string& ip, int port);
 
   // Schedule Task
-  void ScheduleReplServerBGTask(pink::TaskFunc func, void* arg);
-  void ScheduleReplClientBGTask(pink::TaskFunc func, void* arg);
+  void ScheduleReplServerBGTask(net::TaskFunc func, void* arg);
+  void ScheduleReplClientBGTask(net::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(const std::string& table_partition,
                                const std::shared_ptr<InnerMessage::InnerResponse> res,
-                               std::shared_ptr<pink::PbConn> conn, void* res_private_data);
+                               std::shared_ptr<net::PbConn> conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr, const LogOffset& offset,
                            const std::string& table_name, uint32_t partition_id);
 
@@ -267,7 +267,7 @@ class PikaReplicaManager {
   std::unordered_map<PartitionInfo, std::shared_ptr<SyncMasterPartition>, hash_partition_info> sync_master_partitions_;
   std::unordered_map<PartitionInfo, std::shared_ptr<SyncSlavePartition>, hash_partition_info> sync_slave_partitions_;
 
-  slash::Mutex  write_queue_mu_;
+  pstd::Mutex  write_queue_mu_;
   // every host owns a queue
   std::unordered_map<std::string, std::unordered_map<uint32_t, std::queue<WriteTask>>> write_queues_;  // map<ip+port, map<partition_id, queue<WriteTask>>>
 

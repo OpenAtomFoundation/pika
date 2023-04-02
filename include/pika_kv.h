@@ -6,7 +6,7 @@
 #ifndef PIKA_KV_H_
 #define PIKA_KV_H_
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
@@ -256,14 +256,14 @@ class MgetCmd : public Cmd {
 
  private:
   std::vector<std::string> keys_;
-  std::vector<blackwidow::ValueStatus> split_res_;
+  std::vector<storage::ValueStatus> split_res_;
   virtual void DoInitial() override;
 };
 
 class KeysCmd : public Cmd {
  public:
   KeysCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag), type_(blackwidow::DataType::kAll) {}
+      : Cmd(name, arity, flag), type_(storage::DataType::kAll) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
   virtual void Merge() {};
@@ -272,10 +272,10 @@ class KeysCmd : public Cmd {
   }
  private:
   std::string pattern_;
-  blackwidow::DataType type_;
+  storage::DataType type_;
   virtual void DoInitial() override;
   virtual void Clear() {
-    type_ = blackwidow::DataType::kAll;
+    type_ = storage::DataType::kAll;
   }
 };
 
@@ -403,7 +403,7 @@ class MsetCmd : public Cmd {
     return new MsetCmd(*this);
   }
  private:
-  std::vector<blackwidow::KeyValue> kvs_;
+  std::vector<storage::KeyValue> kvs_;
   virtual void DoInitial() override;
 };
 
@@ -418,7 +418,7 @@ class MsetnxCmd : public Cmd {
     return new MsetnxCmd(*this);
   }
  private:
-  std::vector<blackwidow::KeyValue> kvs_;
+  std::vector<storage::KeyValue> kvs_;
   int32_t success_;
   virtual void DoInitial() override;
 };
@@ -721,7 +721,7 @@ class ScanxCmd : public Cmd {
     return new ScanxCmd(*this);
   }
  private:
-  blackwidow::DataType type_;
+  storage::DataType type_;
   std::string start_key_;
   std::string pattern_;
   int64_t count_;
@@ -773,7 +773,7 @@ class PKScanRangeCmd : public Cmd {
     return new PKScanRangeCmd(*this);
   }
  private:
-  blackwidow::DataType type_;
+  storage::DataType type_;
   std::string key_start_;
   std::string key_end_;
   std::string pattern_;
@@ -803,7 +803,7 @@ class PKRScanRangeCmd : public Cmd {
     return new PKRScanRangeCmd(*this);
   }
  private:
-  blackwidow::DataType type_;
+  storage::DataType type_;
   std::string key_start_;
   std::string key_end_;
   std::string pattern_;

@@ -103,7 +103,7 @@ private:
   slash::Mutex mutex_; // double lock to block main thread
 
   // redis client
-  // pink::PinkCli *cli_;
+  // net::PinkCli *cli_;
   // RedisSender *sender_;
   std::vector<RedisSender*> senders_;
 

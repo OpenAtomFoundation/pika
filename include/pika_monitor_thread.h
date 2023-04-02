@@ -11,13 +11,13 @@
 #include <queue>
 #include <atomic>
 
-#include "pink/include/pink_thread.h"
-#include "slash/include/slash_mutex.h"
+#include "net/include/net_thread.h"
+#include "pstd/include/pstd_mutex.h"
 
 #include "include/pika_define.h"
 #include "include/pika_client_conn.h"
 
-class PikaMonitorThread : public pink::Thread {
+class PikaMonitorThread : public net::Thread {
  public:
   PikaMonitorThread();
   virtual ~PikaMonitorThread();
@@ -31,12 +31,12 @@ class PikaMonitorThread : public pink::Thread {
  private:
   void AddCronTask(MonitorCronTask task);
   bool FindClient(const std::string& ip_port);
-  pink::WriteStatus SendMessage(int32_t fd, std::string& message);
+  net::WriteStatus SendMessage(int32_t fd, std::string& message);
   void RemoveMonitorClient(const std::string& ip_port);
 
   std::atomic<bool> has_monitor_clients_;
-  slash::Mutex monitor_mutex_protector_;
-  slash::CondVar monitor_cond_;
+  pstd::Mutex monitor_mutex_protector_;
+  pstd::CondVar monitor_cond_;
 
   std::list<ClientInfo> monitor_clients_;
   std::deque<std::string> monitor_messages_;

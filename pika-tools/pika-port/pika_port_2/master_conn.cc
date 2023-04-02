@@ -19,7 +19,7 @@ MasterConn::MasterConn(int fd, std::string ip_port,
         self_thread_(binlog_receiver) {
 }
 
-void MasterConn::RestoreArgs(pink::RedisCmdArgsType& argv) {
+void MasterConn::RestoreArgs(net::RedisCmdArgsType& argv) {
   raw_args_.clear();
   size_t num = argv.size();
   if (argv.size() > 4 && *(argv.end() - 4) == kPikaBinlogMagic) {
@@ -36,7 +36,7 @@ void MasterConn::RestoreArgs(pink::RedisCmdArgsType& argv) {
   }
 }
 
-int MasterConn::DealMessage(pink::RedisCmdArgsType& argv, std::string* response) {
+int MasterConn::DealMessage(net::RedisCmdArgsType& argv, std::string* response) {
   //no reply
   //eq set_is_reply(false);
 

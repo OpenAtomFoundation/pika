@@ -15,8 +15,8 @@ extern PikaReplicaManager* g_pika_rm;
 
 PikaReplServerConn::PikaReplServerConn(int fd,
                                        std::string ip_port,
-                                       pink::Thread* thread,
-                                       void* worker_specific_data, pink::PinkEpoll* epoll)
+                                       net::Thread* thread,
+                                       void* worker_specific_data, net::NetEpoll* epoll)
     : PbConn(fd, ip_port, thread, epoll) {
 }
 
@@ -26,7 +26,7 @@ PikaReplServerConn::~PikaReplServerConn() {
 void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::MetaSync meta_sync_request = req->meta_sync();
   InnerMessage::Node node = meta_sync_request.node();
@@ -43,7 +43,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       << node.port();
     std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
     bool success = g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), table_structs);
-    const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+    const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
     g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
     if (!success) {
       response.set_code(InnerMessage::kOther);
@@ -76,7 +76,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
 void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::TrySync try_sync_request = req->try_sync();
   InnerMessage::Partition partition_request = try_sync_request.partition();
@@ -155,7 +155,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
 bool PikaReplServerConn::TrySyncUpdateSlaveNode(
     const std::shared_ptr<SyncMasterPartition>& partition,
     const InnerMessage::InnerRequest::TrySync& try_sync_request,
-    const std::shared_ptr<pink::PbConn>& conn,
+    const std::shared_ptr<net::PbConn>& conn,
     InnerMessage::InnerResponse::TrySync* try_sync_response) {
   InnerMessage::Node node = try_sync_request.node();
   std::string partition_name = partition->PartitionName();
@@ -175,7 +175,7 @@ bool PikaReplServerConn::TrySyncUpdateSlaveNode(
       LOG(WARNING) << "Partition: " << partition_name << " TrySync Failed, " << s.ToString();
       return false;
     }
-    const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+    const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
     g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kOk);
     LOG(INFO) << "Partition: " << partition_name << " TrySync Success, Session: " << session_id;
@@ -259,7 +259,7 @@ bool PikaReplServerConn::TrySyncOffsetCheck(
   }
 
   std::string confile = NewFileName(partition->Logger()->filename(), slave_boffset.filenum());
-  if (!slash::FileExists(confile)) {
+  if (!pstd::FileExists(confile)) {
     LOG(INFO) << "Partition: " << partition_name << " binlog has been purged, may need full sync";
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
     return false;
@@ -303,7 +303,7 @@ void PikaReplServerConn::BuildConsensusMeta(
 void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::DBSync db_sync_request = req->db_sync();
   InnerMessage::Partition partition_request = db_sync_request.partition();
@@ -342,7 +342,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
         db_sync_response->set_session_id(session_id);
         Status s = master_partition->AddSlaveNode(node.ip(), node.port(), session_id);
         if (s.ok()) {
-          const std::string ip_port = slash::IpPortString(node.ip(), node.port());
+          const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
           g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
           LOG(INFO) << "Partition: " << partition_name << " Handle DBSync Request Success, Session: " << session_id;
         } else {
@@ -386,7 +386,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
 void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (!req->has_binlog_sync()) {
     LOG(WARNING) << "Pb parse error";
     //conn->NotifyClose();
@@ -444,7 +444,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   // Set ack info from slave
   RmNode slave_node = RmNode(node.ip(), node.port(), table_name, partition_id);
 
-  Status s = master_partition->SetLastRecvTime(node.ip(), node.port(), slash::NowMicros());
+  Status s = master_partition->SetLastRecvTime(node.ip(), node.port(), pstd::NowMicros());
   if (!s.ok()) {
     LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port()
         << ", " << table_name << "_" << partition_id << " " << s.ToString();
@@ -494,7 +494,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
 void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
-  std::shared_ptr<pink::PbConn> conn = task_arg->conn;
+  std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (!req->remove_slave_node_size()) {
     LOG(WARNING) << "Pb parse error";
     conn->NotifyClose();

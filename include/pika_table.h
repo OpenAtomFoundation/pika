@@ -6,7 +6,7 @@
 #ifndef PIKA_TABLE_H_
 #define PIKA_TABLE_H_
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
@@ -26,7 +26,7 @@ class Table : public std::enable_shared_from_this<Table>{
 
   std::string GetTableName();
   void BgSaveTable();
-  void CompactTable(const blackwidow::DataType& type);
+  void CompactTable(const storage::DataType& type);
   bool FlushPartitionDB();
   bool FlushPartitionSubDB(const std::string& db_name);
   void SetBinlogIoError();
@@ -43,12 +43,12 @@ class Table : public std::enable_shared_from_this<Table>{
   bool IsKeyScaning();
   void RunKeyScan();
   void StopKeyScan();
-  void ScanDatabase(const blackwidow::DataType& type);
+  void ScanDatabase(const storage::DataType& type);
   KeyScanInfo GetKeyScanInfo();
   Status GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos);
 
   // Compact use;
-  void Compact(const blackwidow::DataType& type);
+  void Compact(const storage::DataType& type);
 
   void LeaveAllPartition();
   std::set<uint32_t> GetPartitionIds();
@@ -76,7 +76,7 @@ class Table : public std::enable_shared_from_this<Table>{
    */
   static void DoKeyScan(void *arg);
   void InitKeyScan();
-  slash::Mutex key_scan_protector_;
+  pstd::Mutex key_scan_protector_;
   KeyScanInfo key_scan_info_;
 
   /*

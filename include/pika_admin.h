@@ -11,7 +11,7 @@
 #include <sys/resource.h>
 #include <iomanip>
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 
 #include "include/pika_command.h"
 
@@ -411,7 +411,7 @@ class EchoCmd : public Cmd {
 class ScandbCmd : public Cmd {
  public:
   ScandbCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), type_(blackwidow::kAll) {}
+      : Cmd(name, arity, flag), type_(storage::kAll) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
   virtual void Merge() {};
@@ -420,10 +420,10 @@ class ScandbCmd : public Cmd {
   }
 
  private:
-  blackwidow::DataType type_;
+  storage::DataType type_;
   virtual void DoInitial() override;
   virtual void Clear() {
-    type_ = blackwidow::kAll;
+    type_ = storage::kAll;
   }
 };
 
@@ -500,7 +500,7 @@ class PKPatternMatchDelCmd : public Cmd {
   } 
 
  private:
-  blackwidow::DataType type_;
+  storage::DataType type_;
   std::string pattern_; 
   virtual void DoInitial() override;
 };

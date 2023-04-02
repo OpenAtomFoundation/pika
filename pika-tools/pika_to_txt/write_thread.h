@@ -8,10 +8,10 @@
 
 #include <queue>
 
-#include "pink/include/pink_thread.h"
+#include "net/include/net_thread.h"
 #include "slash/include/slash_mutex.h"
 
-class WriteThread : public pink::Thread {
+class WriteThread : public net::Thread {
  public:
   WriteThread(const std::string& file_name);
   void Load(const std::string& data);

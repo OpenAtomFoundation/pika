@@ -5,7 +5,7 @@
 
 #include "include/pika_statistic.h"
 
-#include "slash/include/env.h"
+#include "pstd/include/env.h"
 
 #include "include/pika_command.h"
 
@@ -55,7 +55,7 @@ void QpsStatistic::ResetLastSecQuerynum() {
   }
   uint64_t delta_query = cur_query - last_query;
   uint64_t delta_write_query = cur_write_query - last_write_query;
-  uint64_t cur_time_us = slash::NowMicros();
+  uint64_t cur_time_us = pstd::NowMicros();
   if (cur_time_us <= last_time) {
     cur_time_us = last_time + 1;
   }
@@ -80,7 +80,7 @@ ServerStatistic::ServerStatistic()
   CmdTable::const_iterator it = cmds->begin();
   for (; it != cmds->end(); ++it) {
     std::string tmp = it->first;
-    exec_count_table[slash::StringToUpper(tmp)].store(0);
+    exec_count_table[pstd::StringToUpper(tmp)].store(0);
   }
   DestoryCmdTable(cmds);
   delete cmds;
@@ -100,12 +100,12 @@ Statistic::Statistic() {
 }
 
 QpsStatistic Statistic::TableStat(const std::string& table_name) {
-  slash::RWLock l(&table_stat_rw, false);
+  pstd::RWLock l(&table_stat_rw, false);
   return table_stat[table_name];
 }
 
 std::unordered_map<std::string, QpsStatistic> Statistic::AllTableStat() {
-  slash::RWLock l(&table_stat_rw, false);
+  pstd::RWLock l(&table_stat_rw, false);
   return table_stat;
 }
 
@@ -114,7 +114,7 @@ void Statistic::UpdateTableQps(
   bool table_exist = true;
   std::unordered_map<std::string, QpsStatistic>::iterator iter;
   {
-    slash::RWLock l(&table_stat_rw, false);
+    pstd::RWLock l(&table_stat_rw, false);
     auto search = table_stat.find(table_name);
     if (search == table_stat.end()) {
       table_exist = false;
@@ -126,14 +126,14 @@ void Statistic::UpdateTableQps(
     iter->second.IncreaseQueryNum(is_write);
   } else {
     {
-      slash::RWLock l(&table_stat_rw, true);
+      pstd::RWLock l(&table_stat_rw, true);
       table_stat[table_name].IncreaseQueryNum(is_write);
     }
   }
 }
 
 void Statistic::ResetTableLastSecQuerynum() {
-  slash::RWLock l(&table_stat_rw, false);
+  pstd::RWLock l(&table_stat_rw, false);
   for (auto& stat : table_stat) {
     stat.second.ResetLastSecQuerynum();
   }

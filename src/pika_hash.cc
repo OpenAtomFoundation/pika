@@ -5,7 +5,7 @@
 
 #include "include/pika_hash.h"
 
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_conf.h"
 
@@ -95,7 +95,7 @@ void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
   size_t raw_limit = g_pika_conf->max_client_response_size();
   std::string raw;
   rocksdb::Status s;
-  std::vector<blackwidow::FieldValue> fvs;
+  std::vector<storage::FieldValue> fvs;
 
   do {
     fvs.clear();
@@ -158,7 +158,7 @@ void HIncrbyCmd::DoInitial() {
   }
   key_ = argv_[1];
   field_ = argv_[2];
-  if (argv_[3].find(" ") != std::string::npos || !slash::string2l(argv_[3].data(), argv_[3].size(), &by_)) {
+  if (argv_[3].find(" ") != std::string::npos || !pstd::string2l(argv_[3].data(), argv_[3].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -264,7 +264,7 @@ void HMgetCmd::DoInitial() {
 }
 
 void HMgetCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<blackwidow::ValueStatus> vss;
+  std::vector<storage::ValueStatus> vss;
   rocksdb::Status s = partition->db()->HMGet(key_, fields_, &vss);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(vss.size());
@@ -383,7 +383,7 @@ void HScanCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -400,7 +400,7 @@ void HScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -419,13 +419,13 @@ void HScanCmd::DoInitial() {
 
 void HScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t next_cursor = 0;
-  std::vector<blackwidow::FieldValue> field_values;
+  std::vector<storage::FieldValue> field_values;
   rocksdb::Status s = partition->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
-    int32_t len = slash::ll2string(buf, sizeof(buf), next_cursor);
+    int32_t len = pstd::ll2string(buf, sizeof(buf), next_cursor);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
 
@@ -460,7 +460,7 @@ void HScanxCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -479,7 +479,7 @@ void HScanxCmd::DoInitial() {
 
 void HScanxCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
-  std::vector<blackwidow::FieldValue> field_values;
+  std::vector<storage::FieldValue> field_values;
   rocksdb::Status s = partition->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
@@ -519,7 +519,7 @@ void PKHScanRangeCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -534,7 +534,7 @@ void PKHScanRangeCmd::DoInitial() {
 
 void PKHScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
-  std::vector<blackwidow::FieldValue> field_values;
+  std::vector<storage::FieldValue> field_values;
   rocksdb::Status s = partition->db()->PKHScanRange(key_, field_start_, field_end_,
           pattern_, limit_, &field_values, &next_field);
 
@@ -574,7 +574,7 @@ void PKHRScanRangeCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -589,7 +589,7 @@ void PKHRScanRangeCmd::DoInitial() {
 
 void PKHRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
-  std::vector<blackwidow::FieldValue> field_values;
+  std::vector<storage::FieldValue> field_values;
   rocksdb::Status s = partition->db()->PKHRScanRange(key_, field_start_, field_end_,
           pattern_, limit_, &field_values, &next_field);
 

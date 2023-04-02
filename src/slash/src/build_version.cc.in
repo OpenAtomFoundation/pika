@@ -1,4 +1,0 @@
-#include "slash/include/version.h"
-const char* slash_build_git_sha = "slash_build_git_sha:@@GIT_SHA@@";
-const char* slash_build_git_date = "slash_build_git_date:@@GIT_DATE_TIME@@";
-const char* slash_build_compile_date = __DATE__;

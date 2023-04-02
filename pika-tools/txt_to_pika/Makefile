@@ -18,8 +18,8 @@ ROCKSDB=$(ROCKSDB_PATH)/librocksdb.a
 SLASH_PATH=$(THIRD_PATH)/slash
 SLASH=$(SLASH_PATH)/slash/lib/libslash.a
 
-PINK_PATH=$(THIRD_PATH)/pink
-PINK=$(PINK_PATH)/pink/lib/libpink.a
+PINK_PATH=$(THIRD_PATH)/net
+PINK=$(PINK_PATH)/net/lib/libnet.a
 
 BLACKWIDOW_PATH=$(THIRD_PATH)/blackwidow
 BLACKWIDOW=$(BLACKWIDOW_PATH)/lib/libblackwidow.a
@@ -31,12 +31,12 @@ INCLUDE_PATH = -I./                             \
                -I$(ROCKSDB_PATH)/include        \
 
 LIB_PATH     = -L$(BLACKWIDOW_PATH)/lib         \
-               -L$(PINK_PATH)/pink/lib          \
+               -L$(PINK_PATH)/net/lib          \
                -L$(SLASH_PATH)/slash/lib        \
                -L$(ROCKSDB_PATH)/               \
 
 LIBS         = -lblackwidow                     \
-               -lpink                           \
+               -lnet                           \
                -lslash                          \
                -lrocksdb                        \
                -lpthread                        \
@@ -61,7 +61,7 @@ $(BLACKWIDOW) :
 	make -C $(BLACKWIDOW_PATH) ROCKSDB_PATH=../rocksdb SLASH_PATH=../slash
 
 $(PINK) :
-	make -C $(PINK_PATH)/pink SLASH_PATH=../../slash
+	make -C $(PINK_PATH)/net SLASH_PATH=../../slash
 
 $(SLASH) :
 	make -C $(SLASH_PATH)/slash
@@ -80,6 +80,6 @@ distclean:
 	rm -rf $(OBJS)
 	rm -rf $(TARGET)
 	make -C $(BLACKWIDOW_PATH) clean
-	make -C $(PINK_PATH)/pink clean
+	make -C $(PINK_PATH)/net clean
 	make -C $(SLASH_PATH)/slash clean
 	make -C $(ROCKSDB_PATH) clean

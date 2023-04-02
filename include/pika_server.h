@@ -9,14 +9,14 @@
 #include <sys/statfs.h>
 #include <memory>
 
-#include "slash/include/slash_mutex.h"
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_string.h"
-#include "pink/include/bg_thread.h"
-#include "pink/include/thread_pool.h"
-#include "pink/include/pink_pubsub.h"
-#include "blackwidow/blackwidow.h"
-#include "blackwidow/backupable.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_string.h"
+#include "net/include/bg_thread.h"
+#include "net/include/thread_pool.h"
+#include "net/include/net_pubsub.h"
+#include "storage/storage.h"
+#include "storage/backupable.h"
 
 #include "include/pika_conf.h"
 #include "include/pika_table.h"
@@ -31,8 +31,8 @@
 #include "include/pika_client_processor.h"
 #include "include/pika_statistic.h"
 
-using slash::Status;
-using slash::Slice;
+using pstd::Status;
+using pstd::Slice;
 
 /*
 static std::set<std::string> MultiKvCommands {kCmdNameDel,
@@ -116,7 +116,7 @@ class PikaServer {
   bool force_full_sync();
   void SetForceFullSync(bool v);
   void SetDispatchQueueLimit(int queue_limit);
-  blackwidow::BlackwidowOptions bw_options();
+  storage::StorageOptions storage_options();
 
   /*
    * Table use
@@ -163,7 +163,7 @@ class PikaServer {
   int32_t GetShardingSlaveListString(std::string& slave_list_str);
   bool TryAddSlave(const std::string& ip, int64_t port, int fd,
                    const std::vector<TableStruct>& table_structs);
-  slash::Mutex slave_mutex_; // protect slaves_;
+  pstd::Mutex slave_mutex_; // protect slaves_;
   std::vector<SlaveItem> slaves_;
 
 
@@ -192,20 +192,20 @@ class PikaServer {
   /*
    * PikaClientProcessor Process Task
    */
-  void ScheduleClientPool(pink::TaskFunc func, void* arg);
-  void ScheduleClientBgThreads(pink::TaskFunc func, void* arg, const std::string& hash_str);
+  void ScheduleClientPool(net::TaskFunc func, void* arg);
+  void ScheduleClientBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str);
   // for info debug
   size_t ClientProcessorThreadPoolCurQueueSize();
 
   /*
    * BGSave used
    */
-  void BGSaveTaskSchedule(pink::TaskFunc func, void* arg);
+  void BGSaveTaskSchedule(net::TaskFunc func, void* arg);
 
   /*
    * PurgeLog used
    */
-  void PurgelogsTaskSchedule(pink::TaskFunc func, void* arg);
+  void PurgelogsTaskSchedule(net::TaskFunc func, void* arg);
 
   /*
    * Flushall & Flushdb used
@@ -232,7 +232,7 @@ class PikaServer {
   /*
    * Keyscan used
    */
-  void KeyScanTaskSchedule(pink::TaskFunc func, void* arg);
+  void KeyScanTaskSchedule(net::TaskFunc func, void* arg);
 
   /*
    * Client used
@@ -285,11 +285,11 @@ class PikaServer {
   int PubSubNumPat();
   int Publish(const std::string& channel, const std::string& msg);
   void EnablePublish(int fd);
-  int UnSubscribe(std::shared_ptr<pink::PinkConn> conn,
+  int UnSubscribe(std::shared_ptr<net::NetConn> conn,
                   const std::vector<std::string>& channels,
                   const bool pattern,
                   std::vector<std::pair<std::string, int>>* result);
-  void Subscribe(std::shared_ptr<pink::PinkConn> conn,
+  void Subscribe(std::shared_ptr<net::NetConn> conn,
                  const std::vector<std::string>& channels,
                  const bool pattern,
                  std::vector<std::pair<std::string, int>>* result);
@@ -298,16 +298,16 @@ class PikaServer {
   void PubSubNumSub(const std::vector<std::string>& channels,
                     std::vector<std::pair<std::string, int>>* result);
 
-  Status GetCmdRouting(std::vector<pink::RedisCmdArgsType>& redis_cmds,
+  Status GetCmdRouting(std::vector<net::RedisCmdArgsType>& redis_cmds,
       std::vector<Node>* dst, bool* all_local);
 
   // info debug use
   void ServerStatus(std::string* info);
 
   /*
-   * BlackwidowOptions used
+   * StorageOptions used
    */
-  blackwidow::Status RewriteBlackwidowOptions(const blackwidow::OptionType& option_type,
+  storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                   const std::unordered_map<std::string, std::string>& options);
 
   friend class Cmd;
@@ -333,9 +333,9 @@ class PikaServer {
   int port_;
   time_t start_time_s_;
 
-  pthread_rwlock_t bw_options_rw_;
-  blackwidow::BlackwidowOptions bw_options_;
-  void InitBlackwidowOptions();
+  pthread_rwlock_t storage_options_rw_;
+  storage::StorageOptions storage_options_;
+  void InitStorageOptions();
 
   std::atomic<bool> exit_;
 
@@ -377,23 +377,23 @@ class PikaServer {
   /*
    * Bgsave used
    */
-  pink::BGThread bgsave_thread_;
+  net::BGThread bgsave_thread_;
 
   /*
    * Purgelogs use
    */
-  pink::BGThread purge_thread_;
+  net::BGThread purge_thread_;
 
   /*
    * DBSync used
    */
-  slash::Mutex db_sync_protector_;
+  pstd::Mutex db_sync_protector_;
   std::unordered_set<std::string> db_sync_slaves_;
 
   /*
    * Keyscan used
    */
-  pink::BGThread key_scan_thread_;
+  net::BGThread key_scan_thread_;
 
   /*
    * Monitor used
@@ -408,7 +408,7 @@ class PikaServer {
   /*
    * Pubsub used
    */
-  pink::PubSubThread* pika_pubsub_thread_;
+  net::PubSubThread* pika_pubsub_thread_;
 
   /*
    * Communication used

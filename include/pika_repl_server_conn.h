@@ -8,17 +8,17 @@
 
 #include <string>
 
-#include "pink/include/pb_conn.h"
-#include "pink/include/pink_thread.h"
+#include "net/include/pb_conn.h"
+#include "net/include/net_thread.h"
 
 #include "include/pika_define.h"
 #include "pika_inner_message.pb.h"
 
 class SyncMasterPartition;
 
-class PikaReplServerConn: public pink::PbConn {
+class PikaReplServerConn: public net::PbConn {
  public:
-  PikaReplServerConn(int fd, std::string ip_port, pink::Thread* thread, void* worker_specific_data, pink::PinkEpoll* epoll);
+  PikaReplServerConn(int fd, std::string ip_port, net::Thread* thread, void* worker_specific_data, net::NetEpoll* epoll);
   virtual ~PikaReplServerConn();
 
   static void HandleMetaSyncRequest(void* arg);
@@ -36,7 +36,7 @@ class PikaReplServerConn: public pink::PbConn {
   static bool TrySyncUpdateSlaveNode(
     const std::shared_ptr<SyncMasterPartition>& partition,
     const InnerMessage::InnerRequest::TrySync& try_sync_request,
-    const std::shared_ptr<pink::PbConn>& conn,
+    const std::shared_ptr<net::PbConn>& conn,
     InnerMessage::InnerResponse::TrySync* try_sync_response);
   static void BuildConsensusMeta(
     const bool& reject,

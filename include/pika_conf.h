@@ -11,9 +11,9 @@
 #include <unordered_set>
 #include <atomic>
 
-#include "slash/include/base_conf.h"
-#include "slash/include/slash_mutex.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/base_conf.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_string.h"
 
 #include "include/pika_define.h"
 #include "include/pika_meta.h"
@@ -21,10 +21,10 @@
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
 
-typedef slash::RWLock RWLock;
+typedef pstd::RWLock RWLock;
 
 // global class, class members well initialized
-class PikaConf : public slash::BaseConf {
+class PikaConf : public pstd::BaseConf {
  public:
   PikaConf(const std::string& path);
   ~PikaConf();
@@ -56,7 +56,7 @@ class PikaConf : public slash::BaseConf {
   int expire_dump_days()                            { RWLock l(&rwlock_, false); return expire_dump_days_; }
   std::string bgsave_prefix()                       { RWLock l(&rwlock_, false); return bgsave_prefix_; }
   std::string userpass()                            { RWLock l(&rwlock_, false); return userpass_; }
-  const std::string suser_blacklist()               { RWLock l(&rwlock_, false); return slash::StringConcat(user_blacklist_, COMMA); }
+  const std::string suser_blacklist()               { RWLock l(&rwlock_, false); return pstd::StringConcat(user_blacklist_, COMMA); }
   const std::vector<std::string>& vuser_blacklist() { RWLock l(&rwlock_, false); return user_blacklist_;}
   bool classic_mode()                               { return classic_mode_.load();}
   int databases()                                   { RWLock l(&rwlock_, false); return databases_;}
@@ -184,9 +184,9 @@ class PikaConf : public slash::BaseConf {
   void SetUserBlackList(const std::string &value) {
     RWLock l(&rwlock_, true);
     TryPushDiffCommands("userblacklist", value);
-    slash::StringSplit(value, COMMA, user_blacklist_);
+    pstd::StringSplit(value, COMMA, user_blacklist_);
     for (auto& item : user_blacklist_) {
-      slash::StringToLower(item);
+      pstd::StringToLower(item);
     }
   }
   void SetExpireLogsNums(const int value) {

@@ -6,7 +6,7 @@
 #ifndef PIKA_REPL_SERVER_H_
 #define PIKA_REPL_SERVER_H_
 
-#include "pink/include/thread_pool.h"
+#include "net/include/thread_pool.h"
 
 #include <vector>
 
@@ -16,8 +16,8 @@
 
 struct ReplServerTaskArg {
   std::shared_ptr<InnerMessage::InnerRequest> req;
-  std::shared_ptr<pink::PbConn> conn;
-  ReplServerTaskArg(std::shared_ptr<InnerMessage::InnerRequest> _req, std::shared_ptr<pink::PbConn> _conn)
+  std::shared_ptr<net::PbConn> conn;
+  ReplServerTaskArg(std::shared_ptr<InnerMessage::InnerRequest> _req, std::shared_ptr<net::PbConn> _conn)
       : req(_req), conn(_conn) {}
 };
 
@@ -29,18 +29,18 @@ class PikaReplServer {
   int Start();
   int Stop();
 
-  slash::Status SendSlaveBinlogChips(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
+  pstd::Status SendSlaveBinlogChips(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
   void BuildBinlogOffset(const LogOffset& offset, InnerMessage::BinlogOffset* boffset);
   void BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, InnerMessage::InnerResponse* resp);
-  slash::Status Write(const std::string& ip, const int port, const std::string& msg);
+  pstd::Status Write(const std::string& ip, const int port, const std::string& msg);
 
-  void Schedule(pink::TaskFunc func, void* arg);
+  void Schedule(net::TaskFunc func, void* arg);
   void UpdateClientConnMap(const std::string& ip_port, int fd);
   void RemoveClientConn(int fd);
   void KillAllConns();
 
  private:
-  pink::ThreadPool* server_tp_;
+  net::ThreadPool* server_tp_;
   PikaReplServerThread* pika_repl_server_thread_;
 
   pthread_rwlock_t client_conn_rwlock_;

@@ -6,7 +6,7 @@
 #ifndef PIKA_BIT_H_
 #define PIKA_BIT_H_
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
@@ -141,11 +141,11 @@ class BitOpCmd : public Cmd {
  private:
   std::string dest_key_;
   std::vector<std::string> src_keys_;
-  blackwidow::BitOpType op_;
+  storage::BitOpType op_;
   virtual void Clear() {
     dest_key_ = "";
     src_keys_.clear();
-    op_ = blackwidow::kBitOpDefault;
+    op_ = storage::kBitOpDefault;
   }
   virtual void DoInitial() override;
 };

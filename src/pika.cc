@@ -7,7 +7,7 @@
 #include <glog/logging.h>
 #include <sys/resource.h>
 
-#include "slash/include/env.h"
+#include "pstd/include/env.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_command.h"
@@ -50,8 +50,8 @@ static void PikaConfInit(const std::string& path) {
 }
 
 static void PikaGlogInit() {
-  if (!slash::FileExists(g_pika_conf->log_path())) {
-    slash::CreatePath(g_pika_conf->log_path()); 
+  if (!pstd::FileExists(g_pika_conf->log_path())) {
+    pstd::CreatePath(g_pika_conf->log_path()); 
   }
 
   if (!g_pika_conf->daemonize()) {
@@ -86,7 +86,7 @@ static void create_pid_file(void) {
   size_t pos = path.find_last_of('/');
   if (pos != std::string::npos) {
     // mkpath(path.substr(0, pos).c_str(), 0755);
-    slash::CreateDir(path.substr(0, pos));
+    pstd::CreateDir(path.substr(0, pos));
   } else {
     path = kPikaPidFile;
   }

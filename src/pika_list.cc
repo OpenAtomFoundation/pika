@@ -5,7 +5,7 @@
 
 #include "include/pika_list.h"
 
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 #include "include/pika_data_distribution.h"
 
 void LIndexCmd::DoInitial() {
@@ -15,7 +15,7 @@ void LIndexCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string index = argv_[2];
-  if (!slash::string2l(index.data(), index.size(), &index_)) {
+  if (!pstd::string2l(index.data(), index.size(), &index_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;
@@ -40,9 +40,9 @@ void LInsertCmd::DoInitial() {
   key_ = argv_[1];
   std::string dir = argv_[2];
   if (!strcasecmp(dir.data(), "before")) {
-    dir_ = blackwidow::Before;
+    dir_ = storage::Before;
   } else if (!strcasecmp(dir.data(), "after")) {
-    dir_ = blackwidow::After;
+    dir_ = storage::After;
   } else {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
@@ -142,12 +142,12 @@ void LRangeCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string left = argv_[2];
-  if (!slash::string2l(left.data(), left.size(), &left_)) {
+  if (!pstd::string2l(left.data(), left.size(), &left_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   std::string right = argv_[3];
-  if (!slash::string2l(right.data(), right.size(), &right_)) {
+  if (!pstd::string2l(right.data(), right.size(), &right_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;
@@ -174,7 +174,7 @@ void LRemCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string count = argv_[2];
-  if (!slash::string2l(count.data(), count.size(), &count_)) {
+  if (!pstd::string2l(count.data(), count.size(), &count_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -197,7 +197,7 @@ void LSetCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string index = argv_[2];
-  if (!slash::string2l(index.data(), index.size(), &index_)) {
+  if (!pstd::string2l(index.data(), index.size(), &index_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -224,12 +224,12 @@ void LTrimCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string start = argv_[2];
-  if (!slash::string2l(start.data(), start.size(), &start_)) {
+  if (!pstd::string2l(start.data(), start.size(), &start_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   std::string stop = argv_[3];
-  if (!slash::string2l(stop.data(), stop.size(), &stop_)) {
+  if (!pstd::string2l(stop.data(), stop.size(), &stop_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;

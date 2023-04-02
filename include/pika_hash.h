@@ -6,7 +6,7 @@
 #ifndef PIKA_HASH_H_
 #define PIKA_HASH_H_
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
@@ -234,7 +234,7 @@ class HMsetCmd : public Cmd {
   }
  private:
   std::string key_;
-  std::vector<blackwidow::FieldValue> fvs_;
+  std::vector<storage::FieldValue> fvs_;
   virtual void DoInitial() override;
 };
 

@@ -9,8 +9,8 @@
 #include <vector>
 #include <string>
 
-#include "pink/include/thread_pool.h"
-#include "pink/include/bg_thread.h"
+#include "net/include/thread_pool.h"
+#include "net/include/bg_thread.h"
 
 class PikaClientProcessor {
  public:
@@ -21,13 +21,13 @@ class PikaClientProcessor {
   ~PikaClientProcessor();
   int Start();
   void Stop();
-  void SchedulePool(pink::TaskFunc func, void* arg);
+  void SchedulePool(net::TaskFunc func, void* arg);
   void ScheduleBgThreads(
-      pink::TaskFunc func, void* arg, const std::string& hash_str);
+      net::TaskFunc func, void* arg, const std::string& hash_str);
   size_t ThreadPoolCurQueueSize();
 
  private:
-  pink::ThreadPool* pool_;
-  std::vector<pink::BGThread*> bg_threads_;
+  net::ThreadPool* pool_;
+  std::vector<net::BGThread*> bg_threads_;
 };
 #endif  // PIKA_CLIENT_PROCESSOR_H_

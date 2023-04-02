@@ -8,17 +8,17 @@
 
 #include <vector>
 
-#include "pink/include/pink_thread.h"
-#include "pink/include/redis_cli.h"
-#include "pink/include/pink_cli.h"
+#include "net/include/net_thread.h"
+#include "net/include/redis_cli.h"
+#include "net/include/net_cli.h"
 
 #include "pika_sender.h"
 #include "migrator_thread.h"
 
-class TrysyncThread : public pink::Thread {
+class TrysyncThread : public net::Thread {
  public:
   TrysyncThread() {
-    cli_ = pink::NewRedisCli();
+    cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1500);
 	set_thread_name("TrysyncThread");
     retransmit_flag_ = false;
@@ -41,7 +41,7 @@ class TrysyncThread : public pink::Thread {
  private:
   long sid_;
   int sockfd_;
-  pink::PinkCli *cli_;
+  net::PinkCli *cli_;
 
   slash::Mutex retransmit_mutex_;
   bool retransmit_flag_;

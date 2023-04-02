@@ -5,7 +5,7 @@
 
 #include "include/pika_set.h"
 
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_string.h"
 
 void SAddCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -104,7 +104,7 @@ void SScanCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!slash::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
+  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSScan);
     return;
   }
@@ -120,7 +120,7 @@ void SScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!slash::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -145,7 +145,7 @@ void SScanCmd::Do(std::shared_ptr<Partition> partition) {
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
     char buf[32];
-    int64_t len = slash::ll2string(buf, sizeof(buf), next_cursor);
+    int64_t len = pstd::ll2string(buf, sizeof(buf), next_cursor);
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
 
@@ -361,7 +361,7 @@ void SRandmemberCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSRandmember);
     return;
   } else if (argv_.size() == 3) {
-    if (!slash::string2l(argv_[2].data(), argv_[2].size(), &count_)) {
+    if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &count_)) {
       res_.SetRes(CmdRes::kInvalidInt);
     } else {
       reply_arr = true;;

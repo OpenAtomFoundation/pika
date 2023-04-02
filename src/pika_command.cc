@@ -563,8 +563,8 @@ void Cmd::ProcessFlushDBCmd() {
     if (table->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      slash::RWLock l_prw(&table->partitions_rw_, true);
-      slash::RWLock s_prw(&g_pika_rm->partitions_rw_, true);
+      pstd::RWLock l_prw(&table->partitions_rw_, true);
+      pstd::RWLock s_prw(&g_pika_rm->partitions_rw_, true);
       for (const auto& partition_item : table->partitions_) {
         std::shared_ptr<Partition> partition = partition_item.second;
         PartitionInfo p_info(partition->GetTableName(), partition->GetPartitionId());
@@ -581,7 +581,7 @@ void Cmd::ProcessFlushDBCmd() {
 }
 
 void Cmd::ProcessFlushAllCmd() {
-  slash::RWLock l_trw(&g_pika_server->tables_rw_, true);
+  pstd::RWLock l_trw(&g_pika_server->tables_rw_, true);
   for (const auto& table_item : g_pika_server->tables_) {
     if (table_item.second->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
@@ -590,8 +590,8 @@ void Cmd::ProcessFlushAllCmd() {
   }
 
   for (const auto& table_item : g_pika_server->tables_) {
-    slash::RWLock l_prw(&table_item.second->partitions_rw_, true);
-    slash::RWLock s_prw(&g_pika_rm->partitions_rw_, true);
+    pstd::RWLock l_prw(&table_item.second->partitions_rw_, true);
+    pstd::RWLock s_prw(&g_pika_rm->partitions_rw_, true);
     for (const auto& partition_item : table_item.second->partitions_) {
       std::shared_ptr<Partition> partition = partition_item.second;
       PartitionInfo p_info(partition->GetTableName(), partition->GetPartitionId());
@@ -652,7 +652,7 @@ void Cmd::ProcessCommand(std::shared_ptr<Partition> partition,
 
 void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
     std::shared_ptr<SyncMasterPartition> sync_partition, const HintKeys& hint_keys) {
-  slash::lock::MultiRecordLock record_lock(partition->LockMgr());
+  pstd::lock::MultiRecordLock record_lock(partition->LockMgr());
   if (is_write()) {
     if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
       record_lock.Lock(hint_keys.keys);
@@ -663,11 +663,11 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    start_us = slash::NowMicros();
+    start_us = pstd::NowMicros();
   }
   DoCommand(partition, hint_keys);
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-    do_duration_  += slash::NowMicros() - start_us;
+    do_duration_  += pstd::NowMicros() - start_us;
   }
   DoBinlog(sync_partition);
 
@@ -700,7 +700,7 @@ void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
   if (res().ok()
     && is_write()
     && g_pika_conf->write_binlog()) {
-    std::shared_ptr<pink::PinkConn> conn_ptr = GetConn();
+    std::shared_ptr<net::NetConn> conn_ptr = GetConn();
     std::shared_ptr<std::string> resp_ptr = GetResp();
     // Consider that dummy cmd appended by system, both conn and resp are null.
     if ((!conn_ptr || !resp_ptr) && (name_ != kCmdDummy)) {
@@ -875,11 +875,11 @@ void Cmd::LogCommand() const {
   LOG(INFO) << "command:" << command;
 }
 
-void Cmd::SetConn(const std::shared_ptr<pink::PinkConn> conn) {
+void Cmd::SetConn(const std::shared_ptr<net::NetConn> conn) {
   conn_ = conn;
 }
 
-std::shared_ptr<pink::PinkConn> Cmd::GetConn() {
+std::shared_ptr<net::NetConn> Cmd::GetConn() {
   return conn_.lock();
 }
 

@@ -9,14 +9,14 @@
 #include <string>
 #include <memory>
 
-#include "slash/include/slash_status.h"
-#include "slash/include/env.h"
-#include "slash/include/slash_slice.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_slice.h"
 
 #include "include/pika_binlog.h"
 
-using slash::Status;
-using slash::Slice;
+using pstd::Status;
+using pstd::Slice;
 
 class PikaBinlogReader {
  public:
@@ -29,7 +29,7 @@ class PikaBinlogReader {
   void GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset);
  private:
   bool GetNext(uint64_t* size);
-  unsigned int ReadPhysicalRecord(slash::Slice *redult, uint32_t* filenum, uint64_t* offset);
+  unsigned int ReadPhysicalRecord(pstd::Slice *redult, uint32_t* filenum, uint64_t* offset);
   // Returns scratch binflog and corresponding offset
   Status Consume(std::string* scratch, uint32_t* filenum, uint64_t* offset);
 
@@ -39,7 +39,7 @@ class PikaBinlogReader {
   uint64_t last_record_offset_;
 
   std::shared_ptr<Binlog> logger_;
-  slash::SequentialFile *queue_;
+  pstd::SequentialFile *queue_;
 
   char* const backing_store_;
   Slice buffer_;

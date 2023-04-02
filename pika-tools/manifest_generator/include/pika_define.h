@@ -6,7 +6,7 @@
 #ifndef PIKA_DEFINE_H_
 #define PIKA_DEFINE_H_
 
-#include "pink/include/redis_cli.h"
+#include "net/include/redis_cli.h"
 #include <glog/logging.h>
 
 #define PIKA_SYNC_BUFFER_SIZE           10
@@ -281,7 +281,7 @@ struct SlowlogEntry {
   int64_t id;
   int64_t start_time;
   int64_t duration;
-  pink::RedisCmdArgsType argv;
+  net::RedisCmdArgsType argv;
 };
 
 #define PIKA_MIN_RESERVED_FDS 5000

@@ -9,7 +9,7 @@
 #include <set>
 #include <glog/logging.h>
 
-#include "pink/include/redis_cli.h"
+#include "net/include/redis_cli.h"
 
 #define PIKA_SYNC_BUFFER_SIZE           1000
 #define PIKA_MAX_WORKER_THREAD_NUM      24
@@ -440,7 +440,7 @@ struct SlowlogEntry {
   int64_t id;
   int64_t start_time;
   int64_t duration;
-  pink::RedisCmdArgsType argv;
+  net::RedisCmdArgsType argv;
 };
 
 #define PIKA_MIN_RESERVED_FDS 5000
