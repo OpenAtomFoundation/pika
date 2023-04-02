@@ -8,12 +8,16 @@
 #include <iostream>
 
 #include "storage/storage.h"
+#include "storage/util.h"
 
 using namespace storage;
 
 class ZSetsTest : public ::testing::Test {
  public:
-  ZSetsTest() {
+  ZSetsTest() { }
+  virtual ~ZSetsTest() { }
+
+  void SetUp() override {
     std::string path = "./db/zsets";
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
@@ -25,7 +29,11 @@ class ZSetsTest : public ::testing::Test {
       exit(1);
     }
   }
-  virtual ~ZSetsTest() { }
+
+  void TearDown() override {
+    std::string path = "./db/zsets";
+    DeleteFiles(path.c_str());
+  }
 
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }

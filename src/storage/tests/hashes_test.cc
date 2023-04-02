@@ -3,17 +3,24 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include <dirent.h>
 #include <gtest/gtest.h>
+#include <iterator>
 #include <thread>
 #include <iostream>
+#include <unistd.h>
 
 #include "storage/storage.h"
+#include "storage/util.h"
 
 using namespace storage;
 
 class HashesTest : public ::testing::Test {
  public:
-  HashesTest() {
+  HashesTest() {}
+  virtual ~HashesTest() {}
+
+  void SetUp() {
     std::string path = "./db/hashes";
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
@@ -21,7 +28,11 @@ class HashesTest : public ::testing::Test {
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
   }
-  virtual ~HashesTest() { }
+
+  void TearDown() {
+    std::string path = "./db/hashes";
+    DeleteFiles(path.c_str());
+}
 
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }

@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "storage/storage.h"
+#include "storage/util.h"
 
 using namespace storage;
 
@@ -73,7 +74,10 @@ static bool make_expired(storage::Storage *const db,
 
 class ListsTest : public ::testing::Test {
  public:
-  ListsTest() {
+  ListsTest() { }
+  virtual ~ListsTest() { }
+
+  void SetUp() {
     std::string path = "./db/lists";
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
@@ -85,7 +89,11 @@ class ListsTest : public ::testing::Test {
       exit(1);
     }
   }
-  virtual ~ListsTest() { }
+
+  void TearDown() {
+    std::string path = "./db/lists";
+    DeleteFiles(path.c_str());
+  }
 
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }

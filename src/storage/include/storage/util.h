@@ -29,6 +29,8 @@ namespace storage {
   int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_key, std::string* meta_end_key);
   int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_key, std::string* data_end_key);
   bool isTailWildcard(const std::string& pattern);
+  void GetFilepath(const char *path, const char *filename,  char *filepath);
+  bool DeleteFiles(const char* path);
 }
 
 #endif  //  SRC_UTIL_H_

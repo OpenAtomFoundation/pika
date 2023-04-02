@@ -8,12 +8,16 @@
 #include <iostream>
 
 #include "storage/storage.h"
+#include "storage/util.h"
 
 using namespace storage;
 
 class SetsTest : public ::testing::Test {
  public:
-  SetsTest() {
+  SetsTest() { }
+  virtual ~SetsTest() { }
+
+  void SetUp() override {
     std::string path = "./db/sets";
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
@@ -21,7 +25,11 @@ class SetsTest : public ::testing::Test {
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
   }
-  virtual ~SetsTest() { }
+
+  void TearDown() override {
+    std::string path = "./db/sets";
+    DeleteFiles(path.c_str());
+  }
 
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }
