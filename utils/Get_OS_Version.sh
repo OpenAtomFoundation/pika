@@ -24,6 +24,7 @@ Get_Dist_Name()
         PM='apt'
     else
         DISTRO='unknow'
+        PM='unknow'
     fi
     echo $DISTRO;
 }
