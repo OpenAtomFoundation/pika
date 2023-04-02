@@ -49,6 +49,10 @@ message(STATUS "Cpu core ${CPU_CORE}")
 include(protogen.cmake)
 include(ExternalProject)
 
+if (${OS_VERSION} MATCHES "Ubuntu")
+    execute_process(COMMAND "sudo apt install autoconf" RESULT_VARIABLE RESULT OUTPUT_VARIABLE OUTPUT)
+endif()
+
 ExternalProject_Add(gtest
   URL
   https://github.com/google/googletest/archive/refs/tags/release-1.12.1.tar.gz
