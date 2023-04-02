@@ -41,6 +41,7 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${STAGED_INSTALL_PREFIX})
 execute_process(COMMAND sh ${CMAKE_UTILS_DIR}/Get_OS_Version.sh
                 OUTPUT_VARIABLE OS_VERSION)
 
+
 message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
 message(STATUS "Current platform: ${OS_VERSION} ")
 cmake_host_system_information(RESULT CPU_CORE QUERY NUMBER_OF_LOGICAL_CORES)
@@ -50,7 +51,7 @@ include(protogen.cmake)
 include(ExternalProject)
 
 if (${OS_VERSION} MATCHES "Ubuntu")
-    execute_process(COMMAND "sudo apt install autoconf" RESULT_VARIABLE RESULT OUTPUT_VARIABLE OUTPUT)
+  execute_process(COMMAND sudo apt -y --force-yes install autoconf)
 endif()
 
 ExternalProject_Add(gtest
