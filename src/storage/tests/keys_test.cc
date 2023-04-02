@@ -2195,546 +2195,546 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   db.Compact(DataType::kAll, true);
 }
 
-TEST_F(KeysTest, PKPatternMatchDel) {
-  int32_t ret;
-  uint64_t ret64;
-  int32_t delete_count;
-  std::vector<std::string> keys;
-  std::map<DataType, Status> type_status;
-
-  //=============================== Strings ===============================
-
-  // ***************** Group 1 Test *****************
-  db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY1", "VALUE");
-  db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY2", "VALUE");
-  db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY3", "VALUE");
-  db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY4", "VALUE");
-  db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY5", "VALUE");
-  db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY6", "VALUE");
-  s = db.PKPatternMatchDel(DataType::kStrings, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 6);
-  keys.clear();
-  db.Keys(DataType::kStrings, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 2 Test *****************
-  db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY1", "VALUE");
-  db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY2", "VALUE");
-  db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY3", "VALUE");
-  db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY4", "VALUE");
-  db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY5", "VALUE");
-  db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY6", "VALUE");
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_STRING_KEY1"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_STRING_KEY3"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_STRING_KEY5"));
-  s = db.PKPatternMatchDel(DataType::kStrings, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kStrings, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 3 Test *****************
-  db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY1_0xxx0", "VALUE");
-  db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY2_0ooo0", "VALUE");
-  db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY3_0xxx0", "VALUE");
-  db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY4_0ooo0", "VALUE");
-  db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY5_0xxx0", "VALUE");
-  db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY6_0ooo0", "VALUE");
-  s = db.PKPatternMatchDel(DataType::kStrings, "*0xxx0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kStrings, "*", &keys);
-  ASSERT_EQ(keys.size(), 3);
-  ASSERT_EQ(keys[0], "GP3_PKPATTERNMATCHDEL_STRING_KEY2_0ooo0");
-  ASSERT_EQ(keys[1], "GP3_PKPATTERNMATCHDEL_STRING_KEY4_0ooo0");
-  ASSERT_EQ(keys[2], "GP3_PKPATTERNMATCHDEL_STRING_KEY6_0ooo0");
-  type_status.clear();
-  db.Del(keys, &type_status);
-
-
-  // ***************** Group 4 Test *****************
-  db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY1", "VALUE");
-  db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY2_0ooo0", "VALUE");
-  db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY3", "VALUE");
-  db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY4_0ooo0", "VALUE");
-  db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY5", "VALUE");
-  db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY6_0ooo0", "VALUE");
-  ASSERT_TRUE(make_expired(&db, "GP4_PKPATTERNMATCHDEL_STRING_KEY1"));
-  ASSERT_TRUE(make_expired(&db, "GP4_PKPATTERNMATCHDEL_STRING_KEY3"));
-  ASSERT_TRUE(make_expired(&db, "GP4_PKPATTERNMATCHDEL_STRING_KEY5"));
-  s = db.PKPatternMatchDel(DataType::kStrings, "*0ooo0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kStrings, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 5 Test *****************
-  size_t gp5_total_kv = 23333;
-  for (size_t idx = 0; idx < gp5_total_kv; ++idx) {
-    db.Set("GP5_PKPATTERNMATCHDEL_STRING_KEY" + std::to_string(idx), "VALUE");
-  }
-  s = db.PKPatternMatchDel(DataType::kStrings, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, gp5_total_kv);
-  keys.clear();
-  db.Keys(DataType::kStrings, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  //=============================== Set ===============================
-
-  // ***************** Group 1 Test *****************
-  db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
-  db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY2", {"M1"}, &ret);
-  db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY3", {"M1"}, &ret);
-  db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY4", {"M1"}, &ret);
-  db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY5", {"M1"}, &ret);
-  db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY6", {"M1"}, &ret);
-  s = db.PKPatternMatchDel(DataType::kSets, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 6);
-  keys.clear();
-  db.Keys(DataType::kSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 2 Test *****************
-  db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
-  db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY2", {"M1"}, &ret);
-  db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY3", {"M1"}, &ret);
-  db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY4", {"M1"}, &ret);
-  db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY5", {"M1"}, &ret);
-  db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY6", {"M1"}, &ret);
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_SET_KEY1"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_SET_KEY3"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_SET_KEY5"));
-  s = db.PKPatternMatchDel(DataType::kSets, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 3 Test *****************
-  db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY1_0xxx0", {"M1"}, &ret);
-  db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY2_0ooo0", {"M1"}, &ret);
-  db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY3_0xxx0", {"M1"}, &ret);
-  db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY4_0ooo0", {"M1"}, &ret);
-  db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY5_0xxx0", {"M1"}, &ret);
-  db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY6_0ooo0", {"M1"}, &ret);
-  s = db.PKPatternMatchDel(DataType::kSets, "*0ooo0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 3);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_SET_KEY1_0xxx0", keys[0]);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_SET_KEY3_0xxx0", keys[1]);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_SET_KEY5_0xxx0", keys[2]);
-  type_status.clear();
-  db.Del(keys, &type_status);
-
-
-  // ***************** Group 4 Test *****************
-  db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
-  db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY2", {"M1"}, &ret);
-  db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY3", {"M1"}, &ret);
-  db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY4", {"M1"}, &ret);
-  db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY5", {"M1"}, &ret);
-  db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY6", {"M1"}, &ret);
-  db.SRem("GP4_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
-  db.SRem("GP4_PKPATTERNMATCHDEL_SET_KEY3", {"M1"}, &ret);
-  db.SRem("GP4_PKPATTERNMATCHDEL_SET_KEY5", {"M1"}, &ret);
-  s = db.PKPatternMatchDel(DataType::kSets, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 5 Test *****************
-  db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY1_0ooo0", {"M1"}, &ret);
-  db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY2_0xxx0", {"M1"}, &ret);
-  db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY3_0ooo0", {"M1"}, &ret);
-  db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY4_0xxx0", {"M1"}, &ret);
-  db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY5_0ooo0", {"M1"}, &ret);
-  db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY6_0xxx0", {"M1"}, &ret);
-  db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY7_0ooo0", {"M1"}, &ret);
-  db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY8_0xxx0", {"M1"}, &ret);
-  ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_SET_KEY1_0ooo0"));
-  ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_SET_KEY2_0xxx0"));
-  db.SRem("GP5_PKPATTERNMATCHDEL_SET_KEY3_0ooo0", {"M1"}, &ret);
-  db.SRem("GP5_PKPATTERNMATCHDEL_SET_KEY4_0xxx0", {"M1"}, &ret);
-  s = db.PKPatternMatchDel(DataType::kSets, "*0ooo0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 2);
-  keys.clear();
-  db.Keys(DataType::kSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 2);
-  ASSERT_EQ(keys[0], "GP5_PKPATTERNMATCHDEL_SET_KEY6_0xxx0");
-  ASSERT_EQ(keys[1], "GP5_PKPATTERNMATCHDEL_SET_KEY8_0xxx0");
-  type_status.clear();
-  db.Del(keys, &type_status);
-
-
-  // ***************** Group 6 Test *****************
-  size_t gp6_total_set = 23333;
-  for (size_t idx = 0; idx < gp6_total_set; ++idx) {
-    db.SAdd("GP6_PKPATTERNMATCHDEL_SET_KEY" + std::to_string(idx), {"M1"}, &ret);
-  }
-  s = db.PKPatternMatchDel(DataType::kSets, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, gp6_total_set);
-  keys.clear();
-  db.Keys(DataType::kSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  //=============================== Hashes ===============================
-
-  // ***************** Group 1 Test *****************
-  db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY1", "FIELD", "VALUE", &ret);
-  db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY2", "FIELD", "VALUE", &ret);
-  db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY3", "FIELD", "VALUE", &ret);
-  db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY4", "FIELD", "VALUE", &ret);
-  db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY5", "FIELD", "VALUE", &ret);
-  db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY6", "FIELD", "VALUE", &ret);
-  s = db.PKPatternMatchDel(DataType::kHashes, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 6);
-  keys.clear();
-  db.Keys(DataType::kHashes, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 2 Test *****************
-  db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY1", "FIELD", "VALUE", &ret);
-  db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY2", "FIELD", "VALUE", &ret);
-  db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY3", "FIELD", "VALUE", &ret);
-  db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY4", "FIELD", "VALUE", &ret);
-  db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY5", "FIELD", "VALUE", &ret);
-  db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY6", "FIELD", "VALUE", &ret);
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_HASH_KEY1"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_HASH_KEY3"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_HASH_KEY5"));
-  s = db.PKPatternMatchDel(DataType::kHashes, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kHashes, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 3 Test *****************
-  db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY1_0xxx0", "FIELD", "VALUE", &ret);
-  db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY2_0ooo0", "FIELD", "VALUE", &ret);
-  db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY3_0xxx0", "FIELD", "VALUE", &ret);
-  db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY4_0ooo0", "FIELD", "VALUE", &ret);
-  db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY5_0xxx0", "FIELD", "VALUE", &ret);
-  db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY6_0ooo0", "FIELD", "VALUE", &ret);
-  s = db.PKPatternMatchDel(DataType::kHashes, "*0ooo0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kHashes, "*", &keys);
-  ASSERT_EQ(keys.size(), 3);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_HASH_KEY1_0xxx0", keys[0]);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_HASH_KEY3_0xxx0", keys[1]);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_HASH_KEY5_0xxx0", keys[2]);
-  type_status.clear();
-  db.Del(keys, &type_status);
-
-
-  // ***************** Group 4 Test *****************
-  db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY1", "FIELD", "VALUE", &ret);
-  db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY2", "FIELD", "VALUE", &ret);
-  db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY3", "FIELD", "VALUE", &ret);
-  db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY4", "FIELD", "VALUE", &ret);
-  db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY5", "FIELD", "VALUE", &ret);
-  db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY6", "FIELD", "VALUE", &ret);
-  db.HDel("GP4_PKPATTERNMATCHDEL_HASH_KEY1", {"FIELD"}, &ret);
-  db.HDel("GP4_PKPATTERNMATCHDEL_HASH_KEY3", {"FIELD"}, &ret);
-  db.HDel("GP4_PKPATTERNMATCHDEL_HASH_KEY5", {"FIELD"}, &ret);
-  s = db.PKPatternMatchDel(DataType::kHashes, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kHashes, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 5 Test *****************
-  db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY1_0ooo0", "FIELD", "VALUE", &ret);
-  db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY2_0xxx0", "FIELD", "VALUE", &ret);
-  db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY3_0ooo0", "FIELD", "VALUE", &ret);
-  db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY4_0xxx0", "FIELD", "VALUE", &ret);
-  db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY5_0ooo0", "FIELD", "VALUE", &ret);
-  db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY6_0xxx0", "FIELD", "VALUE", &ret);
-  db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY7_0ooo0", "FIELD", "VALUE", &ret);
-  db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY8_0xxx0", "FIELD", "VALUE", &ret);
-  ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_HASH_KEY1_0ooo0"));
-  ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_HASH_KEY2_0xxx0"));
-  db.HDel("GP5_PKPATTERNMATCHDEL_HASH_KEY3_0ooo0", {"FIELD"}, &ret);
-  db.HDel("GP5_PKPATTERNMATCHDEL_HASH_KEY4_0xxx0", {"FIELD"}, &ret);
-  s = db.PKPatternMatchDel(DataType::kHashes, "*0ooo0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 2);
-  keys.clear();
-  db.Keys(DataType::kHashes, "*", &keys);
-  ASSERT_EQ(keys.size(), 2);
-  ASSERT_EQ(keys[0], "GP5_PKPATTERNMATCHDEL_HASH_KEY6_0xxx0");
-  ASSERT_EQ(keys[1], "GP5_PKPATTERNMATCHDEL_HASH_KEY8_0xxx0");
-  type_status.clear();
-  db.Del(keys, &type_status);
-
-
-  // ***************** Group 6 Test *****************
-  size_t gp6_total_hash = 23333;
-  for (size_t idx = 0; idx < gp6_total_hash; ++idx) {
-    db.HSet("GP6_PKPATTERNMATCHDEL_HASH_KEY" + std::to_string(idx), "FIELD", "VALUE", &ret);
-  }
-  s = db.PKPatternMatchDel(DataType::kHashes, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, gp6_total_hash);
-  keys.clear();
-  db.Keys(DataType::kHashes, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  //=============================== ZSets ===============================
-
-  // ***************** Group 1 Test *****************
-  db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY1", {{1, "M"}}, &ret);
-  db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY2", {{1, "M"}}, &ret);
-  db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY3", {{1, "M"}}, &ret);
-  db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY4", {{1, "M"}}, &ret);
-  db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY5", {{1, "M"}}, &ret);
-  db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY6", {{1, "M"}}, &ret);
-  s = db.PKPatternMatchDel(DataType::kZSets, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 6);
-  keys.clear();
-  db.Keys(DataType::kZSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 2 Test *****************
-  db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY1", {{1, "M"}}, &ret);
-  db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY2", {{1, "M"}}, &ret);
-  db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY3", {{1, "M"}}, &ret);
-  db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY4", {{1, "M"}}, &ret);
-  db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY5", {{1, "M"}}, &ret);
-  db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY6", {{1, "M"}}, &ret);
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_ZSET_KEY1"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_ZSET_KEY3"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_ZSET_KEY5"));
-  s = db.PKPatternMatchDel(DataType::kZSets, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kZSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 3 Test *****************
-  db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY1_0xxx0", {{1, "M"}}, &ret);
-  db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY2_0ooo0", {{1, "M"}}, &ret);
-  db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY3_0xxx0", {{1, "M"}}, &ret);
-  db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY4_0ooo0", {{1, "M"}}, &ret);
-  db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY5_0xxx0", {{1, "M"}}, &ret);
-  db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY6_0ooo0", {{1, "M"}}, &ret);
-  s = db.PKPatternMatchDel(DataType::kZSets, "*0ooo0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kZSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 3);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_ZSET_KEY1_0xxx0", keys[0]);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_ZSET_KEY3_0xxx0", keys[1]);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_ZSET_KEY5_0xxx0", keys[2]);
-  type_status.clear();
-  db.Del(keys, &type_status);
-
-
-  // ***************** Group 4 Test *****************
-  db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY1", {{1, "M"}}, &ret);
-  db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY2", {{1, "M"}}, &ret);
-  db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY3", {{1, "M"}}, &ret);
-  db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY4", {{1, "M"}}, &ret);
-  db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY5", {{1, "M"}}, &ret);
-  db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY6", {{1, "M"}}, &ret);
-  db.ZRem("GP4_PKPATTERNMATCHDEL_ZSET_KEY1", {"M"}, &ret);
-  db.ZRem("GP4_PKPATTERNMATCHDEL_ZSET_KEY3", {"M"}, &ret);
-  db.ZRem("GP4_PKPATTERNMATCHDEL_ZSET_KEY5", {"M"}, &ret);
-  s = db.PKPatternMatchDel(DataType::kZSets, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kZSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 5 Test *****************
-  db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY1_0ooo0", {{1, "M"}}, &ret);
-  db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY2_0xxx0", {{1, "M"}}, &ret);
-  db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY3_0ooo0", {{1, "M"}}, &ret);
-  db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY4_0xxx0", {{1, "M"}}, &ret);
-  db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY5_0ooo0", {{1, "M"}}, &ret);
-  db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY6_0xxx0", {{1, "M"}}, &ret);
-  db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY7_0ooo0", {{1, "M"}}, &ret);
-  db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY8_0xxx0", {{1, "M"}}, &ret);
-  ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_ZSET_KEY1_0ooo0"));
-  ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_ZSET_KEY2_0xxx0"));
-  db.ZRem("GP5_PKPATTERNMATCHDEL_ZSET_KEY3_0ooo0", {"M"}, &ret);
-  db.ZRem("GP5_PKPATTERNMATCHDEL_ZSET_KEY4_0xxx0", {"M"}, &ret);
-  s = db.PKPatternMatchDel(DataType::kZSets, "*0ooo0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 2);
-  keys.clear();
-  db.Keys(DataType::kZSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 2);
-  ASSERT_EQ(keys[0], "GP5_PKPATTERNMATCHDEL_ZSET_KEY6_0xxx0");
-  ASSERT_EQ(keys[1], "GP5_PKPATTERNMATCHDEL_ZSET_KEY8_0xxx0");
-  type_status.clear();
-  db.Del(keys, &type_status);
-
-
-  // ***************** Group 6 Test *****************
-  size_t gp6_total_zset = 23333;
-  for (size_t idx = 0; idx < gp6_total_zset; ++idx) {
-    db.ZAdd("GP6_PKPATTERNMATCHDEL_ZSET_KEY" + std::to_string(idx), {{1, "M"}}, &ret);
-  }
-  s = db.PKPatternMatchDel(DataType::kZSets, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, gp6_total_zset);
-  keys.clear();
-  db.Keys(DataType::kZSets, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-
-  //=============================== List ===============================
-
-  // ***************** Group 1 Test *****************
-  db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY1", {"VALUE"}, &ret64);
-  db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY2", {"VALUE"}, &ret64);
-  db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY3", {"VALUE"}, &ret64);
-  db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY4", {"VALUE"}, &ret64);
-  db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY5", {"VALUE"}, &ret64);
-  db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY6", {"VALUE"}, &ret64);
-  s = db.PKPatternMatchDel(DataType::kLists, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 6);
-  keys.clear();
-  db.Keys(DataType::kLists, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 2 Test *****************
-  db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY1", {"VALUE"}, &ret64);
-  db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY2", {"VALUE"}, &ret64);
-  db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY3", {"VALUE"}, &ret64);
-  db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY4", {"VALUE"}, &ret64);
-  db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY5", {"VALUE"}, &ret64);
-  db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY6", {"VALUE"}, &ret64);
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_LIST_KEY1"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_LIST_KEY3"));
-  ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_LIST_KEY5"));
-  s = db.PKPatternMatchDel(DataType::kLists, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kLists, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 3 Test *****************
-  db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY1_0xxx0", {"VALUE"}, &ret64);
-  db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY2_0ooo0", {"VALUE"}, &ret64);
-  db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY3_0xxx0", {"VALUE"}, &ret64);
-  db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY4_0ooo0", {"VALUE"}, &ret64);
-  db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY5_0xxx0", {"VALUE"}, &ret64);
-  db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY6_0ooo0", {"VALUE"}, &ret64);
-  s = db.PKPatternMatchDel(DataType::kLists, "*0ooo0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kLists, "*", &keys);
-  ASSERT_EQ(keys.size(), 3);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_LIST_KEY1_0xxx0", keys[0]);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_LIST_KEY3_0xxx0", keys[1]);
-  ASSERT_EQ("GP3_PKPATTERNMATCHDEL_LIST_KEY5_0xxx0", keys[2]);
-  type_status.clear();
-  db.Del(keys, &type_status);
-
-
-  // ***************** Group 4 Test *****************
-  db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY1", {"VALUE"}, &ret64);
-  db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY2", {"VALUE"}, &ret64);
-  db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY3", {"VALUE"}, &ret64);
-  db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY4", {"VALUE"}, &ret64);
-  db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY5", {"VALUE"}, &ret64);
-  db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY6", {"VALUE"}, &ret64);
-  db.LRem("GP4_PKPATTERNMATCHDEL_LIST_KEY1", 1, "VALUE", &ret64);
-  db.LRem("GP4_PKPATTERNMATCHDEL_LIST_KEY3", 1, "VALUE", &ret64);
-  db.LRem("GP4_PKPATTERNMATCHDEL_LIST_KEY5", 1, "VALUE", &ret64);
-  s = db.PKPatternMatchDel(DataType::kLists, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 3);
-  keys.clear();
-  db.Keys(DataType::kLists, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-
-  // ***************** Group 5 Test *****************
-  db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY1_0ooo0", {"VALUE"}, &ret64);
-  db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY2_0xxx0", {"VALUE"}, &ret64);
-  db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY3_0ooo0", {"VALUE"}, &ret64);
-  db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY4_0xxx0", {"VALUE"}, &ret64);
-  db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY5_0ooo0", {"VALUE"}, &ret64);
-  db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY6_0xxx0", {"VALUE"}, &ret64);
-  db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY7_0ooo0", {"VALUE"}, &ret64);
-  db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY8_0xxx0", {"VALUE"}, &ret64);
-  ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_LIST_KEY1_0ooo0"));
-  ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_LIST_KEY2_0xxx0"));
-  db.LRem("GP5_PKPATTERNMATCHDEL_LIST_KEY3_0ooo0", 1, "VALUE", &ret64);
-  db.LRem("GP5_PKPATTERNMATCHDEL_LIST_KEY4_0xxx0", 1, "VALUE", &ret64);
-  s = db.PKPatternMatchDel(DataType::kLists, "*0ooo0", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, 2);
-  keys.clear();
-  db.Keys(DataType::kLists, "*", &keys);
-  ASSERT_EQ(keys.size(), 2);
-  ASSERT_EQ(keys[0], "GP5_PKPATTERNMATCHDEL_LIST_KEY6_0xxx0");
-  ASSERT_EQ(keys[1], "GP5_PKPATTERNMATCHDEL_LIST_KEY8_0xxx0");
-  type_status.clear();
-  db.Del(keys, &type_status);
-
-
-  // ***************** Group 6 Test *****************
-  size_t gp6_total_list = 23333;
-  for (size_t idx = 0; idx < gp6_total_list; ++idx) {
-    db.LPush("GP6_PKPATTERNMATCHDEL_LIST_KEY" + std::to_string(idx), {"VALUE"}, &ret64);
-  }
-  s = db.PKPatternMatchDel(DataType::kLists, "*", &delete_count);
-  ASSERT_TRUE(s.ok());
-  ASSERT_EQ(delete_count, gp6_total_hash);
-  keys.clear();
-  db.Keys(DataType::kLists, "*", &keys);
-  ASSERT_EQ(keys.size(), 0);
-
-  sleep(2);
-  db.Compact(DataType::kAll, true);
-}
+// TEST_F(KeysTest, PKPatternMatchDel) {
+//   int32_t ret;
+//   uint64_t ret64;
+//   int32_t delete_count;
+//   std::vector<std::string> keys;
+//   std::map<DataType, Status> type_status;
+
+//   //=============================== Strings ===============================
+
+//   // ***************** Group 1 Test *****************
+//   db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY1", "VALUE");
+//   db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY2", "VALUE");
+//   db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY3", "VALUE");
+//   db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY4", "VALUE");
+//   db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY5", "VALUE");
+//   db.Set("GP1_PKPATTERNMATCHDEL_STRING_KEY6", "VALUE");
+//   s = db.PKPatternMatchDel(DataType::kStrings, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 6);
+//   keys.clear();
+//   db.Keys(DataType::kStrings, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 2 Test *****************
+//   db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY1", "VALUE");
+//   db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY2", "VALUE");
+//   db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY3", "VALUE");
+//   db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY4", "VALUE");
+//   db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY5", "VALUE");
+//   db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY6", "VALUE");
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_STRING_KEY1"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_STRING_KEY3"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_STRING_KEY5"));
+//   s = db.PKPatternMatchDel(DataType::kStrings, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kStrings, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 3 Test *****************
+//   db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY1_0xxx0", "VALUE");
+//   db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY2_0ooo0", "VALUE");
+//   db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY3_0xxx0", "VALUE");
+//   db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY4_0ooo0", "VALUE");
+//   db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY5_0xxx0", "VALUE");
+//   db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY6_0ooo0", "VALUE");
+//   s = db.PKPatternMatchDel(DataType::kStrings, "*0xxx0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kStrings, "*", &keys);
+//   ASSERT_EQ(keys.size(), 3);
+//   ASSERT_EQ(keys[0], "GP3_PKPATTERNMATCHDEL_STRING_KEY2_0ooo0");
+//   ASSERT_EQ(keys[1], "GP3_PKPATTERNMATCHDEL_STRING_KEY4_0ooo0");
+//   ASSERT_EQ(keys[2], "GP3_PKPATTERNMATCHDEL_STRING_KEY6_0ooo0");
+//   type_status.clear();
+//   db.Del(keys, &type_status);
+
+
+//   // ***************** Group 4 Test *****************
+//   db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY1", "VALUE");
+//   db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY2_0ooo0", "VALUE");
+//   db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY3", "VALUE");
+//   db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY4_0ooo0", "VALUE");
+//   db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY5", "VALUE");
+//   db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY6_0ooo0", "VALUE");
+//   ASSERT_TRUE(make_expired(&db, "GP4_PKPATTERNMATCHDEL_STRING_KEY1"));
+//   ASSERT_TRUE(make_expired(&db, "GP4_PKPATTERNMATCHDEL_STRING_KEY3"));
+//   ASSERT_TRUE(make_expired(&db, "GP4_PKPATTERNMATCHDEL_STRING_KEY5"));
+//   s = db.PKPatternMatchDel(DataType::kStrings, "*0ooo0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kStrings, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 5 Test *****************
+//   size_t gp5_total_kv = 23333;
+//   for (size_t idx = 0; idx < gp5_total_kv; ++idx) {
+//     db.Set("GP5_PKPATTERNMATCHDEL_STRING_KEY" + std::to_string(idx), "VALUE");
+//   }
+//   s = db.PKPatternMatchDel(DataType::kStrings, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, gp5_total_kv);
+//   keys.clear();
+//   db.Keys(DataType::kStrings, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   //=============================== Set ===============================
+
+//   // ***************** Group 1 Test *****************
+//   db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
+//   db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY2", {"M1"}, &ret);
+//   db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY3", {"M1"}, &ret);
+//   db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY4", {"M1"}, &ret);
+//   db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY5", {"M1"}, &ret);
+//   db.SAdd("GP1_PKPATTERNMATCHDEL_SET_KEY6", {"M1"}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kSets, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 6);
+//   keys.clear();
+//   db.Keys(DataType::kSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 2 Test *****************
+//   db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
+//   db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY2", {"M1"}, &ret);
+//   db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY3", {"M1"}, &ret);
+//   db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY4", {"M1"}, &ret);
+//   db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY5", {"M1"}, &ret);
+//   db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY6", {"M1"}, &ret);
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_SET_KEY1"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_SET_KEY3"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_SET_KEY5"));
+//   s = db.PKPatternMatchDel(DataType::kSets, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 3 Test *****************
+//   db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY1_0xxx0", {"M1"}, &ret);
+//   db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY2_0ooo0", {"M1"}, &ret);
+//   db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY3_0xxx0", {"M1"}, &ret);
+//   db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY4_0ooo0", {"M1"}, &ret);
+//   db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY5_0xxx0", {"M1"}, &ret);
+//   db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY6_0ooo0", {"M1"}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kSets, "*0ooo0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 3);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_SET_KEY1_0xxx0", keys[0]);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_SET_KEY3_0xxx0", keys[1]);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_SET_KEY5_0xxx0", keys[2]);
+//   type_status.clear();
+//   db.Del(keys, &type_status);
+
+
+//   // ***************** Group 4 Test *****************
+//   db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
+//   db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY2", {"M1"}, &ret);
+//   db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY3", {"M1"}, &ret);
+//   db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY4", {"M1"}, &ret);
+//   db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY5", {"M1"}, &ret);
+//   db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY6", {"M1"}, &ret);
+//   db.SRem("GP4_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
+//   db.SRem("GP4_PKPATTERNMATCHDEL_SET_KEY3", {"M1"}, &ret);
+//   db.SRem("GP4_PKPATTERNMATCHDEL_SET_KEY5", {"M1"}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kSets, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 5 Test *****************
+//   db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY1_0ooo0", {"M1"}, &ret);
+//   db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY2_0xxx0", {"M1"}, &ret);
+//   db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY3_0ooo0", {"M1"}, &ret);
+//   db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY4_0xxx0", {"M1"}, &ret);
+//   db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY5_0ooo0", {"M1"}, &ret);
+//   db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY6_0xxx0", {"M1"}, &ret);
+//   db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY7_0ooo0", {"M1"}, &ret);
+//   db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY8_0xxx0", {"M1"}, &ret);
+//   ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_SET_KEY1_0ooo0"));
+//   ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_SET_KEY2_0xxx0"));
+//   db.SRem("GP5_PKPATTERNMATCHDEL_SET_KEY3_0ooo0", {"M1"}, &ret);
+//   db.SRem("GP5_PKPATTERNMATCHDEL_SET_KEY4_0xxx0", {"M1"}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kSets, "*0ooo0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 2);
+//   keys.clear();
+//   db.Keys(DataType::kSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 2);
+//   ASSERT_EQ(keys[0], "GP5_PKPATTERNMATCHDEL_SET_KEY6_0xxx0");
+//   ASSERT_EQ(keys[1], "GP5_PKPATTERNMATCHDEL_SET_KEY8_0xxx0");
+//   type_status.clear();
+//   db.Del(keys, &type_status);
+
+
+//   // ***************** Group 6 Test *****************
+//   size_t gp6_total_set = 23333;
+//   for (size_t idx = 0; idx < gp6_total_set; ++idx) {
+//     db.SAdd("GP6_PKPATTERNMATCHDEL_SET_KEY" + std::to_string(idx), {"M1"}, &ret);
+//   }
+//   s = db.PKPatternMatchDel(DataType::kSets, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, gp6_total_set);
+//   keys.clear();
+//   db.Keys(DataType::kSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   //=============================== Hashes ===============================
+
+//   // ***************** Group 1 Test *****************
+//   db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY1", "FIELD", "VALUE", &ret);
+//   db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY2", "FIELD", "VALUE", &ret);
+//   db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY3", "FIELD", "VALUE", &ret);
+//   db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY4", "FIELD", "VALUE", &ret);
+//   db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY5", "FIELD", "VALUE", &ret);
+//   db.HSet("GP1_PKPATTERNMATCHDEL_HASH_KEY6", "FIELD", "VALUE", &ret);
+//   s = db.PKPatternMatchDel(DataType::kHashes, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 6);
+//   keys.clear();
+//   db.Keys(DataType::kHashes, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 2 Test *****************
+//   db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY1", "FIELD", "VALUE", &ret);
+//   db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY2", "FIELD", "VALUE", &ret);
+//   db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY3", "FIELD", "VALUE", &ret);
+//   db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY4", "FIELD", "VALUE", &ret);
+//   db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY5", "FIELD", "VALUE", &ret);
+//   db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY6", "FIELD", "VALUE", &ret);
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_HASH_KEY1"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_HASH_KEY3"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_HASH_KEY5"));
+//   s = db.PKPatternMatchDel(DataType::kHashes, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kHashes, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 3 Test *****************
+//   db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY1_0xxx0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY2_0ooo0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY3_0xxx0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY4_0ooo0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY5_0xxx0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY6_0ooo0", "FIELD", "VALUE", &ret);
+//   s = db.PKPatternMatchDel(DataType::kHashes, "*0ooo0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kHashes, "*", &keys);
+//   ASSERT_EQ(keys.size(), 3);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_HASH_KEY1_0xxx0", keys[0]);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_HASH_KEY3_0xxx0", keys[1]);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_HASH_KEY5_0xxx0", keys[2]);
+//   type_status.clear();
+//   db.Del(keys, &type_status);
+
+
+//   // ***************** Group 4 Test *****************
+//   db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY1", "FIELD", "VALUE", &ret);
+//   db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY2", "FIELD", "VALUE", &ret);
+//   db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY3", "FIELD", "VALUE", &ret);
+//   db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY4", "FIELD", "VALUE", &ret);
+//   db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY5", "FIELD", "VALUE", &ret);
+//   db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY6", "FIELD", "VALUE", &ret);
+//   db.HDel("GP4_PKPATTERNMATCHDEL_HASH_KEY1", {"FIELD"}, &ret);
+//   db.HDel("GP4_PKPATTERNMATCHDEL_HASH_KEY3", {"FIELD"}, &ret);
+//   db.HDel("GP4_PKPATTERNMATCHDEL_HASH_KEY5", {"FIELD"}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kHashes, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kHashes, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 5 Test *****************
+//   db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY1_0ooo0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY2_0xxx0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY3_0ooo0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY4_0xxx0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY5_0ooo0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY6_0xxx0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY7_0ooo0", "FIELD", "VALUE", &ret);
+//   db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY8_0xxx0", "FIELD", "VALUE", &ret);
+//   ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_HASH_KEY1_0ooo0"));
+//   ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_HASH_KEY2_0xxx0"));
+//   db.HDel("GP5_PKPATTERNMATCHDEL_HASH_KEY3_0ooo0", {"FIELD"}, &ret);
+//   db.HDel("GP5_PKPATTERNMATCHDEL_HASH_KEY4_0xxx0", {"FIELD"}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kHashes, "*0ooo0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 2);
+//   keys.clear();
+//   db.Keys(DataType::kHashes, "*", &keys);
+//   ASSERT_EQ(keys.size(), 2);
+//   ASSERT_EQ(keys[0], "GP5_PKPATTERNMATCHDEL_HASH_KEY6_0xxx0");
+//   ASSERT_EQ(keys[1], "GP5_PKPATTERNMATCHDEL_HASH_KEY8_0xxx0");
+//   type_status.clear();
+//   db.Del(keys, &type_status);
+
+
+//   // ***************** Group 6 Test *****************
+//   size_t gp6_total_hash = 23333;
+//   for (size_t idx = 0; idx < gp6_total_hash; ++idx) {
+//     db.HSet("GP6_PKPATTERNMATCHDEL_HASH_KEY" + std::to_string(idx), "FIELD", "VALUE", &ret);
+//   }
+//   s = db.PKPatternMatchDel(DataType::kHashes, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, gp6_total_hash);
+//   keys.clear();
+//   db.Keys(DataType::kHashes, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   //=============================== ZSets ===============================
+
+//   // ***************** Group 1 Test *****************
+//   db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY1", {{1, "M"}}, &ret);
+//   db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY2", {{1, "M"}}, &ret);
+//   db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY3", {{1, "M"}}, &ret);
+//   db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY4", {{1, "M"}}, &ret);
+//   db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY5", {{1, "M"}}, &ret);
+//   db.ZAdd("GP1_PKPATTERNMATCHDEL_ZSET_KEY6", {{1, "M"}}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kZSets, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 6);
+//   keys.clear();
+//   db.Keys(DataType::kZSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 2 Test *****************
+//   db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY1", {{1, "M"}}, &ret);
+//   db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY2", {{1, "M"}}, &ret);
+//   db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY3", {{1, "M"}}, &ret);
+//   db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY4", {{1, "M"}}, &ret);
+//   db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY5", {{1, "M"}}, &ret);
+//   db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY6", {{1, "M"}}, &ret);
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_ZSET_KEY1"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_ZSET_KEY3"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_ZSET_KEY5"));
+//   s = db.PKPatternMatchDel(DataType::kZSets, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kZSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 3 Test *****************
+//   db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY1_0xxx0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY2_0ooo0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY3_0xxx0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY4_0ooo0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY5_0xxx0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY6_0ooo0", {{1, "M"}}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kZSets, "*0ooo0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kZSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 3);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_ZSET_KEY1_0xxx0", keys[0]);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_ZSET_KEY3_0xxx0", keys[1]);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_ZSET_KEY5_0xxx0", keys[2]);
+//   type_status.clear();
+//   db.Del(keys, &type_status);
+
+
+//   // ***************** Group 4 Test *****************
+//   db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY1", {{1, "M"}}, &ret);
+//   db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY2", {{1, "M"}}, &ret);
+//   db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY3", {{1, "M"}}, &ret);
+//   db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY4", {{1, "M"}}, &ret);
+//   db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY5", {{1, "M"}}, &ret);
+//   db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY6", {{1, "M"}}, &ret);
+//   db.ZRem("GP4_PKPATTERNMATCHDEL_ZSET_KEY1", {"M"}, &ret);
+//   db.ZRem("GP4_PKPATTERNMATCHDEL_ZSET_KEY3", {"M"}, &ret);
+//   db.ZRem("GP4_PKPATTERNMATCHDEL_ZSET_KEY5", {"M"}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kZSets, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kZSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 5 Test *****************
+//   db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY1_0ooo0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY2_0xxx0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY3_0ooo0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY4_0xxx0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY5_0ooo0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY6_0xxx0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY7_0ooo0", {{1, "M"}}, &ret);
+//   db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY8_0xxx0", {{1, "M"}}, &ret);
+//   ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_ZSET_KEY1_0ooo0"));
+//   ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_ZSET_KEY2_0xxx0"));
+//   db.ZRem("GP5_PKPATTERNMATCHDEL_ZSET_KEY3_0ooo0", {"M"}, &ret);
+//   db.ZRem("GP5_PKPATTERNMATCHDEL_ZSET_KEY4_0xxx0", {"M"}, &ret);
+//   s = db.PKPatternMatchDel(DataType::kZSets, "*0ooo0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 2);
+//   keys.clear();
+//   db.Keys(DataType::kZSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 2);
+//   ASSERT_EQ(keys[0], "GP5_PKPATTERNMATCHDEL_ZSET_KEY6_0xxx0");
+//   ASSERT_EQ(keys[1], "GP5_PKPATTERNMATCHDEL_ZSET_KEY8_0xxx0");
+//   type_status.clear();
+//   db.Del(keys, &type_status);
+
+
+//   // ***************** Group 6 Test *****************
+//   size_t gp6_total_zset = 23333;
+//   for (size_t idx = 0; idx < gp6_total_zset; ++idx) {
+//     db.ZAdd("GP6_PKPATTERNMATCHDEL_ZSET_KEY" + std::to_string(idx), {{1, "M"}}, &ret);
+//   }
+//   s = db.PKPatternMatchDel(DataType::kZSets, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, gp6_total_zset);
+//   keys.clear();
+//   db.Keys(DataType::kZSets, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+
+//   //=============================== List ===============================
+
+//   // ***************** Group 1 Test *****************
+//   db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY1", {"VALUE"}, &ret64);
+//   db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY2", {"VALUE"}, &ret64);
+//   db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY3", {"VALUE"}, &ret64);
+//   db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY4", {"VALUE"}, &ret64);
+//   db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY5", {"VALUE"}, &ret64);
+//   db.LPush("GP1_PKPATTERNMATCHDEL_LIST_KEY6", {"VALUE"}, &ret64);
+//   s = db.PKPatternMatchDel(DataType::kLists, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 6);
+//   keys.clear();
+//   db.Keys(DataType::kLists, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 2 Test *****************
+//   db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY1", {"VALUE"}, &ret64);
+//   db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY2", {"VALUE"}, &ret64);
+//   db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY3", {"VALUE"}, &ret64);
+//   db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY4", {"VALUE"}, &ret64);
+//   db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY5", {"VALUE"}, &ret64);
+//   db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY6", {"VALUE"}, &ret64);
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_LIST_KEY1"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_LIST_KEY3"));
+//   ASSERT_TRUE(make_expired(&db, "GP2_PKPATTERNMATCHDEL_LIST_KEY5"));
+//   s = db.PKPatternMatchDel(DataType::kLists, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kLists, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 3 Test *****************
+//   db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY1_0xxx0", {"VALUE"}, &ret64);
+//   db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY2_0ooo0", {"VALUE"}, &ret64);
+//   db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY3_0xxx0", {"VALUE"}, &ret64);
+//   db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY4_0ooo0", {"VALUE"}, &ret64);
+//   db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY5_0xxx0", {"VALUE"}, &ret64);
+//   db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY6_0ooo0", {"VALUE"}, &ret64);
+//   s = db.PKPatternMatchDel(DataType::kLists, "*0ooo0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kLists, "*", &keys);
+//   ASSERT_EQ(keys.size(), 3);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_LIST_KEY1_0xxx0", keys[0]);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_LIST_KEY3_0xxx0", keys[1]);
+//   ASSERT_EQ("GP3_PKPATTERNMATCHDEL_LIST_KEY5_0xxx0", keys[2]);
+//   type_status.clear();
+//   db.Del(keys, &type_status);
+
+
+//   // ***************** Group 4 Test *****************
+//   db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY1", {"VALUE"}, &ret64);
+//   db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY2", {"VALUE"}, &ret64);
+//   db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY3", {"VALUE"}, &ret64);
+//   db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY4", {"VALUE"}, &ret64);
+//   db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY5", {"VALUE"}, &ret64);
+//   db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY6", {"VALUE"}, &ret64);
+//   db.LRem("GP4_PKPATTERNMATCHDEL_LIST_KEY1", 1, "VALUE", &ret64);
+//   db.LRem("GP4_PKPATTERNMATCHDEL_LIST_KEY3", 1, "VALUE", &ret64);
+//   db.LRem("GP4_PKPATTERNMATCHDEL_LIST_KEY5", 1, "VALUE", &ret64);
+//   s = db.PKPatternMatchDel(DataType::kLists, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 3);
+//   keys.clear();
+//   db.Keys(DataType::kLists, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+
+//   // ***************** Group 5 Test *****************
+//   db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY1_0ooo0", {"VALUE"}, &ret64);
+//   db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY2_0xxx0", {"VALUE"}, &ret64);
+//   db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY3_0ooo0", {"VALUE"}, &ret64);
+//   db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY4_0xxx0", {"VALUE"}, &ret64);
+//   db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY5_0ooo0", {"VALUE"}, &ret64);
+//   db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY6_0xxx0", {"VALUE"}, &ret64);
+//   db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY7_0ooo0", {"VALUE"}, &ret64);
+//   db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY8_0xxx0", {"VALUE"}, &ret64);
+//   ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_LIST_KEY1_0ooo0"));
+//   ASSERT_TRUE(make_expired(&db, "GP5_PKPATTERNMATCHDEL_LIST_KEY2_0xxx0"));
+//   db.LRem("GP5_PKPATTERNMATCHDEL_LIST_KEY3_0ooo0", 1, "VALUE", &ret64);
+//   db.LRem("GP5_PKPATTERNMATCHDEL_LIST_KEY4_0xxx0", 1, "VALUE", &ret64);
+//   s = db.PKPatternMatchDel(DataType::kLists, "*0ooo0", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, 2);
+//   keys.clear();
+//   db.Keys(DataType::kLists, "*", &keys);
+//   ASSERT_EQ(keys.size(), 2);
+//   ASSERT_EQ(keys[0], "GP5_PKPATTERNMATCHDEL_LIST_KEY6_0xxx0");
+//   ASSERT_EQ(keys[1], "GP5_PKPATTERNMATCHDEL_LIST_KEY8_0xxx0");
+//   type_status.clear();
+//   db.Del(keys, &type_status);
+
+
+//   // ***************** Group 6 Test *****************
+//   size_t gp6_total_list = 23333;
+//   for (size_t idx = 0; idx < gp6_total_list; ++idx) {
+//     db.LPush("GP6_PKPATTERNMATCHDEL_LIST_KEY" + std::to_string(idx), {"VALUE"}, &ret64);
+//   }
+//   s = db.PKPatternMatchDel(DataType::kLists, "*", &delete_count);
+//   ASSERT_TRUE(s.ok());
+//   ASSERT_EQ(delete_count, gp6_total_hash);
+//   keys.clear();
+//   db.Keys(DataType::kLists, "*", &keys);
+//   ASSERT_EQ(keys.size(), 0);
+
+//   sleep(2);
+//   db.Compact(DataType::kAll, true);
+// }
 
 // Scan
 // Note: This test needs to execute at first because all of the data is

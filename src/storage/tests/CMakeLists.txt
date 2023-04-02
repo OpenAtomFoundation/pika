@@ -5,6 +5,7 @@ include(GoogleTest)
 file(GLOB_RECURSE BLACKWINDOW_TEST_SOURCE "${PROJECT_SOURCE_DIR}/tests/*.cc")
 
 aux_source_directory(../stc TEST_SRCS)
+enable_testing()
 
 foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
   get_filename_component(storage_test_filename ${blackwindow_test_source} NAME)
@@ -19,11 +20,12 @@ foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
              ${ROCKSDB_INCLUDE_DIR}
              ${ROCKSDB_SOURCE_DIR}
       )
-  add_dependencies(${blackwindow_test_name} gtest)     
+  add_dependencies(${blackwindow_test_name} gtest)
   target_link_libraries(${blackwindow_test_name}
       PUBLIC ${GTEST_LIBRARY}
       PUBLIC pstd
       PUBLIC ${ROCKSDB_LIBRARY}
       PUBLIC storage
       )
+    add_test(NAME ${blackwindow_test_name} COMMAND ${blackwindow_test_name})
 endforeach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
