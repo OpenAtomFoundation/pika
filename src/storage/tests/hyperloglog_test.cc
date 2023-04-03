@@ -8,12 +8,16 @@
 #include <iostream>
 
 #include "storage/storage.h"
+#include "storage/util.h"
 
 using namespace storage;
 
 class HyperLogLogTest : public ::testing::Test {
  public:
-  HyperLogLogTest() {
+  HyperLogLogTest() { }
+  virtual ~HyperLogLogTest() { }
+
+  void SetUp() {
     std::string path = "./db/hyperloglog";
     if (access(path.c_str(), F_OK)) {
       mkdir(path.c_str(), 0755);
@@ -21,7 +25,11 @@ class HyperLogLogTest : public ::testing::Test {
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
   }
-  virtual ~HyperLogLogTest() { }
+
+  void TearDown() {
+    std::string path = "./db/hyperloglog";
+    DeleteFiles(path.c_str());
+  }
 
   static void SetUpTestCase() { }
   static void TearDownTestCase() { }
