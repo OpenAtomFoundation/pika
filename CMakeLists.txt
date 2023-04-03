@@ -1,32 +1,33 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Avoid warning about DOWNLOAD_EXTRACT_TIMESTAMP in CMake 3.24:
-if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
-	cmake_policy(SET CMP0135 NEW)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
+  cmake_policy(SET CMP0135 NEW)
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
 project(pika)
-set(CMAKE_CXX_FLAGS  "-pthread -Wl,--no-as-needed -ldl")
+set(CMAKE_CXX_FLAGS "-pthread -Wl,--no-as-needed -ldl")
 set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+enable_testing()
 
-if (NOT CMAKE_BUILD_TYPE)
+if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RElEASE)
-endif ()
+endif()
 
 string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
 
-if (${BUILD_TYPE} STREQUAL DEBUG)
+if(${BUILD_TYPE} STREQUAL DEBUG)
   set(LIB_BUILD_TYPE DEBUG)
-elseif (${BUILD_TYPE} STREQUAL MINSIZEREL)
+elseif(${BUILD_TYPE} STREQUAL MINSIZEREL)
   set(LIB_BUILD_TYPE MINSIZEREL)
-elseif (${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
+elseif(${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
   set(LIB_BUILD_TYPE RELWITHDEBINFO)
-else ()
+else()
   set(LIB_BUILD_TYPE RElEASE)
   set(CMAKE_CXX_FLAGS_RELEASE "-O2")
-endif ()
+endif()
 
 set(EP_BASE_SUFFIX "buildtrees")
 set_property(DIRECTORY PROPERTY EP_BASE ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX})
@@ -39,7 +40,7 @@ set(INSTALL_LIBDIR_64 ${STAGED_INSTALL_PREFIX}/lib64)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${STAGED_INSTALL_PREFIX})
 
 execute_process(COMMAND sh ${CMAKE_UTILS_DIR}/Get_OS_Version.sh
-                OUTPUT_VARIABLE OS_VERSION)
+  OUTPUT_VARIABLE OS_VERSION)
 
 message(STATUS "${PROJECT_NAME} staged install: ${STAGED_INSTALL_PREFIX}")
 message(STATUS "Current platform: ${OS_VERSION} ")
@@ -72,11 +73,13 @@ ExternalProject_Add(gtest
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
-if (${OS_VERSION} MATCHES "CentOS")
+
+if(${OS_VERSION} MATCHES "CentOS")
   set(GTEST_LIBRARY ${INSTALL_LIBDIR_64}/libgtest.a)
-else ()
+else()
   set(GTEST_LIBRARY ${INSTALL_LIBDIR}/libgtest.a)
-endif ()
+endif()
+
 set(GTEST_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(gflags
@@ -106,11 +109,11 @@ ExternalProject_Add(gflags
   make -j${CPU_CORE}
 )
 
-if (${LIB_BUILD_TYPE} STREQUAL DEBUG)
+if(${LIB_BUILD_TYPE} STREQUAL DEBUG)
   set(LIB_GFLAGS libgflags_debug.a)
-else ()
+else()
   set(LIB_GFLAGS libgflags.a)
-endif ()
+endif()
 
 set(GFLAGS_LIBRARY ${INSTALL_LIBDIR}/LIB_GFLAGS)
 set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -176,11 +179,11 @@ ExternalProject_Add(glog
   make -j${CPU_CORE}
 )
 
-if (${LIB_BUILD_TYPE} STREQUAL DEBUG)
+if(${LIB_BUILD_TYPE} STREQUAL DEBUG)
   set(LIB_GLOG libglogd.a)
-else ()
+else()
   set(LIB_GLOG libglog.a)
-endif ()
+endif()
 
 set(GLOG_LIBRARY ${INSTALL_LIBDIR}/${LIB_GLOG})
 set(GLOG_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -213,11 +216,12 @@ ExternalProject_Add(snappy
   make -j${CPU_CORE}
 )
 
-if (${OS_VERSION} MATCHES "CentOS")
+if(${OS_VERSION} MATCHES "CentOS")
   set(SNAPPY_LIBRARY ${INSTALL_LIBDIR_64}/libsnappy.a)
-else ()
+else()
   set(SNAPPY_LIBRARY ${INSTALL_LIBDIR}/libsnappy.a)
-endif ()
+endif()
+
 set(SNAPPY_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(zstd
@@ -250,11 +254,12 @@ ExternalProject_Add(zstd
   make -j${CPU_CORE}
 )
 
-if (${OS_VERSION} MATCHES "CentOS")
+if(${OS_VERSION} MATCHES "CentOS")
   set(ZSTD_LIBRARY ${INSTALL_LIBDIR_64}/libzstd.a)
-else ()
+else()
   set(ZSTD_LIBRARY ${INSTALL_LIBDIR}/libzstd.a)
-endif ()
+endif()
+
 set(ZSTD_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(lz4
@@ -287,11 +292,12 @@ ExternalProject_Add(lz4
   make -j${CPU_CORE}
 )
 
-if (${OS_VERSION} MATCHES "CentOS")
+if(${OS_VERSION} MATCHES "CentOS")
   set(LZ4_LIBRARY ${INSTALL_LIBDIR_64}/liblz4.a)
-else ()
+else()
   set(LZ4_LIBRARY ${INSTALL_LIBDIR}/liblz4.a)
-endif ()
+endif()
+
 set(LZ4_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(zlib
@@ -348,11 +354,12 @@ ExternalProject_Add(gperftools
   make -j${CPU_CORE}
 )
 
-if (${OS_VERSION} MATCHES "CentOS")
+if(${OS_VERSION} MATCHES "CentOS")
   set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
-else ()
+else()
   set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR}/libtcmalloc.a)
-endif ()
+endif()
+
 set(TCMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(jemalloc
@@ -418,11 +425,12 @@ ExternalProject_Add(protobuf
   make -j${CPU_CORE}
 )
 
-if (${LIB_BUILD_TYPE} STREQUAL DEBUG)
+if(${LIB_BUILD_TYPE} STREQUAL DEBUG)
   set(LIB_PROTOBUF libprotobufd.a)
-else ()
+else()
   set(LIB_PROTOBUF libprotobuf.a)
-endif ()
+endif()
+
 set(PROTOBUF_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/LIB_PROTOBUF)
 set(PROTOBUF_PROTOC ${STAGED_INSTALL_PREFIX}/bin/protoc)
@@ -476,11 +484,11 @@ ExternalProject_Add(rocksdb
   make -j${CPU_CORE}
 )
 
-if (${OS_VERSION} MATCHES "CentOS")
+if(${OS_VERSION} MATCHES "CentOS")
   set(ROCKSDB_LIBRARY ${INSTALL_LIBDIR_64}/librocksdb.a)
-else ()
+else()
   set(ROCKSDB_LIBRARY ${INSTALL_LIBDIR}/librocksdb.a)
-endif ()
+endif()
 
 set(ROCKSDB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rocksdb)
@@ -574,4 +582,3 @@ target_link_libraries(${PROJECT_NAME}
   libz.a
   libunwind.a
   libjemalloc.a)
-
