@@ -5,8 +5,8 @@ include(GoogleTest)
 file(GLOB_RECURSE BLACKWINDOW_TEST_SOURCE "${PROJECT_SOURCE_DIR}/tests/*.cc")
 
 aux_source_directory(../stc TEST_SRCS)
-enable_testing()
 
+# set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build)
 foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
   get_filename_component(storage_test_filename ${blackwindow_test_source} NAME)
   message(${storage_test_filename})
@@ -15,17 +15,19 @@ foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
   # Add the test target
   add_executable(${blackwindow_test_name} ${blackwindow_test_source})
   target_include_directories(${blackwindow_test_name}
-      PUBLIC ${PROJECT_SOURCE_DIR}/include
-      PUBLIC ${PROJECT_SOURCE_DIR}/..
-             ${ROCKSDB_INCLUDE_DIR}
-             ${ROCKSDB_SOURCE_DIR}
-      )
+    PUBLIC ${PROJECT_SOURCE_DIR}/include
+    PUBLIC ${PROJECT_SOURCE_DIR}/..
+    ${ROCKSDB_INCLUDE_DIR}
+    ${ROCKSDB_SOURCE_DIR}
+  )
   add_dependencies(${blackwindow_test_name} gtest)
   target_link_libraries(${blackwindow_test_name}
-      PUBLIC ${GTEST_LIBRARY}
-      PUBLIC pstd
-      PUBLIC ${ROCKSDB_LIBRARY}
-      PUBLIC storage
-      )
-    add_test(NAME ${blackwindow_test_name} COMMAND ${blackwindow_test_name})
+    PUBLIC ${GTEST_LIBRARY}
+    PUBLIC pstd
+    PUBLIC ${ROCKSDB_LIBRARY}
+    PUBLIC storage
+  )
+  add_test(NAME ${blackwindow_test_name}
+    COMMAND ${blackwindow_test_name}
+    WORKING_DIRECTORY .)
 endforeach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
