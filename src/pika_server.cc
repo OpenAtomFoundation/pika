@@ -1650,23 +1650,10 @@ void PikaServer::InitStorageOptions() {
   storage_options_.options.level_compaction_dynamic_level_bytes =
       g_pika_conf->level_compaction_dynamic_level_bytes();
 
-
-  if (g_pika_conf->compression() == "none") {
-    storage_options_.options.compression =
-        rocksdb::CompressionType::kNoCompression;
-  } else if (g_pika_conf->compression() == "snappy") {
-    storage_options_.options.compression =
-        rocksdb::CompressionType::kSnappyCompression;
-  } else if (g_pika_conf->compression() == "zlib") {
-    storage_options_.options.compression =
-        rocksdb::CompressionType::kZlibCompression;
-  } else if (g_pika_conf->compression() == "lz4") {
-    storage_options_.options.compression =
-        rocksdb::CompressionType::kLZ4Compression;
-  } else if (g_pika_conf->compression() == "zstd") {
-    storage_options_.options.compression =
-        rocksdb::CompressionType::kZSTD;
-  }
+  storage_options_.options.compression =
+      PikaConf::GetCompression(g_pika_conf->compression());
+  storage_options_.options.compression_per_level =
+      g_pika_conf->compression_per_level();
 
   // For rocksdb::BlockBasedTableOptions
   storage_options_.table_options.block_size = g_pika_conf->block_size();
