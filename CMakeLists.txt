@@ -129,7 +129,7 @@ set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 ExternalProject_Add(unwind
   DEPENDS
   URL
-  http://download.savannah.nongnu.org/releases/libunwind/libunwind-1.6.2.tar.gz
+  https://github.com/libunwind/libunwind/releases/download/v1.6.2/libunwind-1.6.2.tar.gz
   URL_HASH
   MD5=f625b6a98ac1976116c71708a73dc44a
   DOWNLOAD_NO_PROGRESS
