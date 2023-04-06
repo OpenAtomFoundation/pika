@@ -78,7 +78,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 4.获取源代码
 
 ```
-	git clone https://github.com/Qihoo360/pika.git && cd pika
+	git clone https://github.com/OpenAtomFoundation/pika.git
 ```
 5.切换到最新release版本
 
@@ -90,7 +90,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 6.编译
 
 ```
-	make
+	./build.sh
 ```
 
 若编译过程中，提示有依赖的库没有安装，则有提示安装后再重新编译

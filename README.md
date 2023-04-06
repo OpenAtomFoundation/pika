@@ -78,17 +78,14 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 Get the source code
 
 ```
-git clone https://github.com/Qihoo360/pika.git
-
-git submodule init
-git submodule update
+git clone https://github.com/OpenAtomFoundation/pika.git
 ```
 
 
-Then compile pika, all submodules will be updated automatically.
+Then compile pika.
 
 ```
-make
+./build.sh
 ```
 
 ## Usage

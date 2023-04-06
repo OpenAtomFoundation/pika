@@ -47,6 +47,14 @@ message(STATUS "Current platform: ${OS_VERSION} ")
 cmake_host_system_information(RESULT CPU_CORE QUERY NUMBER_OF_LOGICAL_CORES)
 message(STATUS "Cpu core ${CPU_CORE}")
 
+find_program(AUTOCONF
+        autoconf
+        PATHS /usr/bin /usr/local/bin)
+
+if (${AUTOCONF} MATCHES AUTOCONF-NOTFOUND)
+  message(FATAL_ERROR "not find autoconf on localhost")
+endif()
+
 include(protogen.cmake)
 include(ExternalProject)
 
