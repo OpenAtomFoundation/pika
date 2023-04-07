@@ -32,6 +32,7 @@ ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int kee
       net_epoll_(NULL),
       conn_factory_(conn_factory) {
   net_epoll_ = new NetEpoll();
+  net_epoll_->Initialize();
 }
 
 ClientThread::~ClientThread() {
@@ -224,7 +225,7 @@ void ClientThread::DoCronTask() {
     if (keepalive_timeout_ > 0 &&
         (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
       log_info("Do cron task del fd %d\n", conn->fd());
-      net_epoll_->NetDelEvent(conn->fd());
+      net_epoll_->NetDelEvent(conn->fd(), 0);
       // did not clean up content in to_send queue
       // will try to send remaining by reconnecting
       close(conn->fd());
@@ -258,7 +259,7 @@ void ClientThread::DoCronTask() {
       continue;
     }
     std::shared_ptr<NetConn> conn = iter->second;
-    net_epoll_->NetDelEvent(conn->fd());
+    net_epoll_->NetDelEvent(conn->fd(), 0);
     CloseFd(conn);
     fd_conns_.erase(conn->fd());
     ipport_conns_.erase(conn->ip_port());
@@ -309,12 +310,12 @@ void ClientThread::NotifyWrite(const std::string ip_port) {
 void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
   if (pfe->mask & EPOLLIN) {
     char bb[2048];
-    int32_t nread = read(net_epoll_->notify_receive_fd(), bb, 2048);
+    int32_t nread = read(net_epoll_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {
       return;
     } else {
       for (int32_t idx = 0; idx < nread; ++idx) {
-        NetItem ti = net_epoll_->notify_queue_pop();
+        NetItem ti = net_epoll_->NotifyQueuePop();
         std::string ip_port = ti.ip_port();
         int fd = ti.fd();
         if (ti.notify_type() == kNotiWrite) {
@@ -353,7 +354,7 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
           }
         } else if (ti.notify_type() == kNotiClose) {
           log_info("received kNotiClose\n");
-          net_epoll_->NetDelEvent(fd);
+          net_epoll_->NetDelEvent(fd, 0);
           CloseFd(fd, ip_port);
           fd_conns_.erase(fd);
           ipport_conns_.erase(ip_port);
@@ -403,12 +404,12 @@ void *ClientThread::ThreadMain() {
     //}
     nfds = net_epoll_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->firedevent()) + i;
+      pfe = (net_epoll_->FiredEvents()) + i;
       if (pfe == NULL) {
         continue;
       }
 
-      if (pfe->fd == net_epoll_->notify_receive_fd()) {
+      if (pfe->fd == net_epoll_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;
       }
@@ -417,7 +418,7 @@ void *ClientThread::ThreadMain() {
       std::map<int, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.find(pfe->fd);
       if (iter == fd_conns_.end()) {
         log_info("fd %d not found in fd_conns\n", pfe->fd);
-        net_epoll_->NetDelEvent(pfe->fd);
+        net_epoll_->NetDelEvent(pfe->fd, 0);
         continue;
       }
 
@@ -461,7 +462,7 @@ void *ClientThread::ThreadMain() {
       if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP) || should_close) {
         {
           log_info("close connection %d reason %d %d\n", pfe->fd, pfe->mask, should_close);
-          net_epoll_->NetDelEvent(pfe->fd);
+          net_epoll_->NetDelEvent(pfe->fd, 0);
           CloseFd(conn);
           fd_conns_.erase(pfe->fd);
           if (ipport_conns_.count(conn->ip_port())) {

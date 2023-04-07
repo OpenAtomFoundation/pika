@@ -6,8 +6,6 @@
 #ifndef NET_INCLUDE_BACKEND_THREAD_H_
 #define NET_INCLUDE_BACKEND_THREAD_H_
 
-#include <sys/epoll.h>
-
 #include <set>
 #include <string>
 #include <map>

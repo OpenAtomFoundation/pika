@@ -70,7 +70,7 @@ PubSubThread::~PubSubThread() {
 void PubSubThread::MoveConnOut(std::shared_ptr<NetConn> conn) {
   RemoveConn(conn);
 
-  net_epoll_->NetDelEvent(conn->fd());
+  net_epoll_->NetDelEvent(conn->fd(), 0);
   {
     pstd::WriteLock l(&rwlock_);
     conns_.erase(conn->fd());
@@ -381,12 +381,12 @@ void *PubSubThread::ThreadMain() {
   while (!should_stop()) {
     nfds = net_epoll_->NetPoll(NET_CRON_INTERVAL);
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->firedevent()) + i;
-      if (pfe->fd == net_epoll_->notify_receive_fd()) {        // New connection comming
+      pfe = (net_epoll_->FiredEvents()) + i;
+      if (pfe->fd == net_epoll_->NotifyReceiveFd()) {        // New connection comming
         if (pfe->mask & EPOLLIN) {
-          read(net_epoll_->notify_receive_fd(), triger, 1);
+          read(net_epoll_->NotifyReceiveFd(), triger, 1);
           {
-            NetItem ti = net_epoll_->notify_queue_pop();
+            NetItem ti = net_epoll_->NotifyQueuePop();
             if (ti.notify_type() == kNotiClose) {
             } else if (ti.notify_type() == kNotiEpollout) {
               net_epoll_->NetModEvent(ti.fd(), 0, EPOLLOUT);
@@ -486,7 +486,7 @@ void *PubSubThread::ThreadMain() {
           pstd::ReadLock l(&rwlock_);
           std::map<int, std::shared_ptr<ConnHandle> >::iterator iter = conns_.find(pfe->fd);
           if (iter == conns_.end()) {
-            net_epoll_->NetDelEvent(pfe->fd);
+            net_epoll_->NetDelEvent(pfe->fd, 0);
             continue;
           }
           in_conn = iter->second->conn;

@@ -46,8 +46,9 @@ enum NotifyType {
 
 enum EventStatus {
   kNone = 0,
-  kReadable = 1,
-  kWriteable = 2,
+  kReadable = 0x1,
+  kWritable = 0x1 << 1,
+  kErrorEvent = 0x1 << 2,
 };
 
 enum ConnStatus {

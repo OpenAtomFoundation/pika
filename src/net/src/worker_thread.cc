@@ -27,6 +27,7 @@ WorkerThread::WorkerThread(ConnFactory *conn_factory,
    * install the protobuf handler here
    */
   net_epoll_ = new NetEpoll(queue_limit_);
+  net_epoll_->Initialize();
 }
 
 WorkerThread::~WorkerThread() {
@@ -58,7 +59,7 @@ std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
   if (iter != conns_.end()) {
     int fd = iter->first;
     conn = iter->second;
-    net_epoll_->NetDelEvent(fd);
+    net_epoll_->NetDelEvent(fd, 0);
     conns_.erase(iter);
   }
   return conn;
@@ -114,15 +115,15 @@ void *WorkerThread::ThreadMain() {
     nfds = net_epoll_->NetPoll(timeout);
 
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->firedevent()) + i;
-      if (pfe->fd == net_epoll_->notify_receive_fd()) {
+      pfe = (net_epoll_->FiredEvents()) + i;
+      if (pfe->fd == net_epoll_->NotifyReceiveFd()) {
         if (pfe->mask & EPOLLIN) {
-          int32_t nread = read(net_epoll_->notify_receive_fd(), bb, 2048);
+          int32_t nread = read(net_epoll_->NotifyReceiveFd(), bb, 2048);
           if (nread == 0) {
             continue;
           } else {
             for (int32_t idx = 0; idx < nread; ++idx) {
-              NetItem ti = net_epoll_->notify_queue_pop();
+              NetItem ti = net_epoll_->NotifyQueuePop();
               if (ti.notify_type() == kNotiConnect) {
                 std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(
                     ti.fd(), ti.ip_port(),
@@ -173,7 +174,7 @@ void *WorkerThread::ThreadMain() {
           pstd::ReadLock l(&rwlock_);
           std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->fd);
           if (iter == conns_.end()) {
-            net_epoll_->NetDelEvent(pfe->fd);
+            net_epoll_->NetDelEvent(pfe->fd, 0);
             continue;
           }
           in_conn = iter->second;
@@ -210,7 +211,7 @@ void *WorkerThread::ThreadMain() {
         }
 
         if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP) || should_close) {
-          net_epoll_->NetDelEvent(pfe->fd);
+          net_epoll_->NetDelEvent(pfe->fd, 0);
           CloseFd(in_conn);
           in_conn = NULL;
           {

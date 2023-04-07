@@ -69,7 +69,7 @@ std::shared_ptr<NetConn> HolyThread::MoveConnOut(int fd) {
   if (iter != conns_.end()) {
     int fd = iter->first;
     conn = iter->second;
-    net_epoll_->NetDelEvent(fd);
+    net_epoll_->NetDelEvent(fd, 0);
     conns_.erase(iter);
   }
   return conn;
@@ -126,7 +126,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent *pfe) {
   {
     pstd::ReadLock l(&rwlock_);
     if ((iter = conns_.find(pfe->fd)) == conns_.end()) {
-      net_epoll_->NetDelEvent(pfe->fd);
+      net_epoll_->NetDelEvent(pfe->fd, 0);
       return;
     }
   }
@@ -185,7 +185,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent *pfe) {
     }
   }
   if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP) || should_close) {
-    net_epoll_->NetDelEvent(pfe->fd);
+    net_epoll_->NetDelEvent(pfe->fd, 0);
     CloseFd(in_conn);
     in_conn = nullptr;
 
@@ -294,13 +294,13 @@ bool HolyThread::KillConn(const std::string& ip_port) {
 void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
   if (pfe->mask & EPOLLIN) {
     char bb[2048];
-    int32_t nread = read(net_epoll_->notify_receive_fd(), bb, 2048);
+    int32_t nread = read(net_epoll_->NotifyReceiveFd(), bb, 2048);
     //  log_info("notify_received bytes %d\n", nread);
     if (nread == 0) {
       return;
     } else {
       for (int32_t idx = 0; idx < nread; ++idx) {
-        net::NetItem ti = net_epoll_->notify_queue_pop();
+        net::NetItem ti = net_epoll_->NotifyQueuePop();
         std::string ip_port = ti.ip_port();
         int fd = ti.fd();
         if (ti.notify_type() == net::kNotiWrite) {

@@ -32,6 +32,7 @@ BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int k
       net_epoll_(NULL),
       conn_factory_(conn_factory) {
   net_epoll_ = new NetEpoll();
+  net_epoll_->Initialize();
 }
 
 BackendThread::~BackendThread() {
@@ -248,7 +249,7 @@ void BackendThread::DoCronTask() {
     if (keepalive_timeout_ > 0 &&
         (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
       log_info("Do cron task del fd %d\n", conn->fd());
-      net_epoll_->NetDelEvent(conn->fd());
+      net_epoll_->NetDelEvent(conn->fd(), 0);
       close(conn->fd());
       handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
       if (conns_.count(conn->fd())) {
@@ -317,12 +318,12 @@ void BackendThread::NotifyClose(const int fd) {
 void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
   if (pfe->mask & EPOLLIN) {
     char bb[2048];
-    int32_t nread = read(net_epoll_->notify_receive_fd(), bb, 2048);
+    int32_t nread = read(net_epoll_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {
       return;
     } else {
       for (int32_t idx = 0; idx < nread; ++idx) {
-        NetItem ti = net_epoll_->notify_queue_pop();
+        NetItem ti = net_epoll_->NotifyQueuePop();
         int fd = ti.fd();
         std::string ip_port = ti.ip_port();
         pstd::MutexLock l(&mu_);
@@ -348,7 +349,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
           }
         } else if (ti.notify_type() == kNotiClose) {
           log_info("received kNotiClose\n");
-          net_epoll_->NetDelEvent(fd);
+          net_epoll_->NetDelEvent(fd, 0);
           CloseFd(fd);
           conns_.erase(fd);
           connecting_fds_.erase(fd);
@@ -397,12 +398,12 @@ void *BackendThread::ThreadMain() {
     //}
     nfds = net_epoll_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->firedevent()) + i;
+      pfe = (net_epoll_->FiredEvents()) + i;
       if (pfe == NULL) {
         continue;
       }
 
-      if (pfe->fd == net_epoll_->notify_receive_fd()) {
+      if (pfe->fd == net_epoll_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;
       }
@@ -413,7 +414,7 @@ void *BackendThread::ThreadMain() {
       if (iter == conns_.end()) {
         mu_.Unlock();
         log_info("fd %d not found in fd_conns\n", pfe->fd);
-        net_epoll_->NetDelEvent(pfe->fd);
+        net_epoll_->NetDelEvent(pfe->fd, 0);
         continue;
       }
       mu_.Unlock();
@@ -458,7 +459,7 @@ void *BackendThread::ThreadMain() {
       if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP) || should_close) {
         {
           log_info("close connection %d reason %d %d\n", pfe->fd, pfe->mask, should_close);
-          net_epoll_->NetDelEvent(pfe->fd);
+          net_epoll_->NetDelEvent(pfe->fd, 0);
           CloseFd(conn);
           mu_.Lock();
           conns_.erase(pfe->fd);

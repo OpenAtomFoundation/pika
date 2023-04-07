@@ -71,6 +71,7 @@ ServerThread::ServerThread(int port,
 #endif
       port_(port) {
   net_epoll_ = new NetEpoll();
+  net_epoll_->Initialize();
   ips_.insert("0.0.0.0");
 }
 
@@ -84,6 +85,7 @@ ServerThread::ServerThread(const std::string& bind_ip, int port,
 #endif
       port_(port) {
   net_epoll_ = new NetEpoll();
+  net_epoll_->Initialize();
   ips_.insert(bind_ip);
 }
 
@@ -97,6 +99,7 @@ ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port,
 #endif
       port_(port) {
   net_epoll_ = new NetEpoll();
+  net_epoll_->Initialize();
   ips_ = bind_ips;
 }
 
@@ -207,10 +210,10 @@ void *ServerThread::ThreadMain() {
 
     nfds = net_epoll_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->firedevent()) + i;
+      pfe = (net_epoll_->FiredEvents()) + i;
       fd = pfe->fd;
 
-      if (pfe->fd == net_epoll_->notify_receive_fd()) {
+      if (pfe->fd == net_epoll_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;
       }
