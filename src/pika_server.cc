@@ -1655,6 +1655,14 @@ void PikaServer::InitStorageOptions() {
   storage_options_.options.compression_per_level =
       g_pika_conf->compression_per_level();
 
+  //defeat l0 l1 noCompression l2 and more use `compression` option
+  if (storage_options_.options.compression_per_level.empty()
+      && storage_options_.options.compression != rocksdb::kNoCompression) {
+    storage_options_.options.compression_per_level.push_back(rocksdb::kNoCompression);
+    storage_options_.options.compression_per_level.push_back(rocksdb::kNoCompression);
+    storage_options_.options.compression_per_level.push_back(storage_options_.options.compression);
+  }
+
   // For rocksdb::BlockBasedTableOptions
   storage_options_.table_options.block_size = g_pika_conf->block_size();
   storage_options_.table_options.cache_index_and_filter_blocks =
