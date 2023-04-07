@@ -91,7 +91,7 @@ Then compile pika.
 ## Usage
 
 ```
-./output/bin/pika -c ./conf/pika.conf
+./output/pika -c ./conf/pika.conf
 ```
 
 ## Performance
