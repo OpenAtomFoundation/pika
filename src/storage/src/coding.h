@@ -8,6 +8,8 @@
 
 #if defined(__APPLE__)
 #include <machine/endian.h>  // __BYTE_ORDER
+#define __BYTE_ORDER __DARWIN_BYTE_ORDER
+#define __LITTLE_ENDIAN   __DARWIN_LITTLE_ENDIAN
 #elif defined(__FreeBSD__)
 #include <sys/endian.h>  // __BYTE_ORDER
 #else

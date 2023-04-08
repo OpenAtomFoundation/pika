@@ -12,8 +12,6 @@
 #include "pstd/include/pstd_mutex.h"
 
 
-#define gettid() syscall(__NR_gettid)
-
 extern PikaConf* g_pika_conf;
 
 PikaCmdTableManager::PikaCmdTableManager() {
@@ -45,7 +43,7 @@ std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
   return nullptr;
 }
 
-bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const pid_t& tid) {
+bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const std::thread::id& tid) {
   pstd::RWLock l(&map_protector_, false);
   if (thread_distribution_map_.find(tid) == thread_distribution_map_.end()) {
     return false;
@@ -54,7 +52,7 @@ bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const pid_t& ti
 }
 
 void PikaCmdTableManager::InsertCurrentThreadDistributionMap() {
-  pid_t tid = gettid();
+  auto tid = std::this_thread::get_id();
   PikaDataDistribution* distribution = nullptr;
   if (g_pika_conf->classic_mode()) {
     distribution = new HashModulo();
@@ -67,7 +65,7 @@ void PikaCmdTableManager::InsertCurrentThreadDistributionMap() {
 }
 
 uint32_t PikaCmdTableManager::DistributeKey(const std::string& key, uint32_t partition_num) {
-  pid_t tid = gettid();
+  auto tid = std::this_thread::get_id();
   PikaDataDistribution* data_dist = nullptr;
   if (!CheckCurrentThreadDistributionMapExist(tid)) {
     InsertCurrentThreadDistributionMap();

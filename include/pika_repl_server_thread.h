@@ -34,9 +34,9 @@ class PikaReplServerThread : public net::HolyThread {
         const std::string& ip_port,
         net::Thread* thread,
         void* worker_specific_data,
-        net::NetEpoll* net_epoll) const override {
+        net::NetMultiplexer* net) const override {
       return std::static_pointer_cast<net::NetConn>
-        (std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, net_epoll));
+        (std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, net));
     }
     private:
      PikaReplServerThread* binlog_receiver_;

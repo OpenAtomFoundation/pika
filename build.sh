@@ -26,6 +26,8 @@ if ! type autoconf >/dev/null 2>&1; then
     fi
     if [ ${PM} == "apt" ]; then
       sudo ${PM} -y install autoconf
+    elif [ ${PM} == "brew" ]; then
+      ${PM} install -d autoconf
     else
       sudo ${PM} install -y autoconf
     fi
@@ -64,6 +66,9 @@ if [ $? -ne 0 ]; then
 fi
 
 CPU_CORE=`cat /proc/cpuinfo| grep "processor"| wc -l`
+if [ ${CPU_CORE} -eq 0 ]; then
+  CPU_CORE=1
+fi
 
 echo "cpu core ${CPU_CORE}"
 

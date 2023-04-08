@@ -957,7 +957,8 @@ Status RedisSets::SRandmember(const Slice& key, int32_t count,
           members->push_back(parsed_sets_member_key.member().ToString());
         }
       }
-      random_shuffle(members->begin(), members->end());
+
+      std::shuffle(members->begin(), members->end(), engine);
       delete iter;
     }
   }

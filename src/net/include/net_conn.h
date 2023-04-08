@@ -16,7 +16,7 @@
 
 #include "net/include/net_define.h"
 #include "net/include/server_thread.h"
-#include "net/src/net_epoll.h"
+#include "net/src/net_multiplexer.h"
 
 namespace net {
 
@@ -24,7 +24,7 @@ class Thread;
 
 class NetConn : public std::enable_shared_from_this<NetConn> {
  public:
-  NetConn(const int fd, const std::string &ip_port, Thread *thread, NetEpoll* net_epoll = nullptr);
+  NetConn(const int fd, const std::string &ip_port, Thread *thread, NetMultiplexer* mpx = nullptr);
   virtual ~NetConn();
 
   /*
@@ -98,12 +98,12 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
     return thread_;
   }
 
-  void set_net_epoll(NetEpoll* ep) {
-    net_epoll_ = ep;
+  void set_net_multiplexer(NetMultiplexer* ep) {
+    net_multiplexer_ = ep;
   }
 
-  NetEpoll* net_epoll() const {
-    return net_epoll_;
+  NetMultiplexer* net_multiplexer() const {
+    return net_multiplexer_;
   }
 
 #ifdef __ENABLE_SSL
@@ -133,7 +133,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   // thread this conn belong to
   Thread *thread_;
   // the net epoll this conn belong to
-  NetEpoll *net_epoll_;
+  NetMultiplexer *net_multiplexer_;
 
   /*
    * No allowed copy and copy assign operator
@@ -154,7 +154,7 @@ class ConnFactory {
     const std::string &ip_port,
     Thread *thread,
     void* worker_private_data, /* Has set in ThreadEnvHandle */
-    NetEpoll* net_epoll = nullptr) const = 0;
+    NetMultiplexer* net_mpx = nullptr) const = 0;
 };
 
 }  // namespace net

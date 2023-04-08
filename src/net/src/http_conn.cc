@@ -610,7 +610,7 @@ bool HTTPResponse::Flush() {
     }
     if (buf_len_ == 0) {
       size_t remain_buf = static_cast<uint64_t>(kHTTPMaxMessage) - wbuf_pos_;
-      size_t needed_size = std::min(remain_buf, remain_send_len_);
+      size_t needed_size = std::min<uint64_t>(remain_buf, remain_send_len_);
       buf_len_ = conn_->handles_->WriteResponseBody(
           wbuf_ + wbuf_pos_, needed_size);
     }

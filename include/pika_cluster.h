@@ -145,7 +145,7 @@ class PkClusterAddTableCmd : public Cmd {
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
  private:
-  uint64_t  slot_num_;
+  int64_t  slot_num_;
   void DoInitial() override;
   Status AddTableSanityCheck();
   void Clear() override {

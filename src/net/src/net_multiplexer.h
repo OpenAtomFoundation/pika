@@ -64,5 +64,7 @@ class NetMultiplexer {
   bool init_ = false;
 };
 
+NetMultiplexer* CreateNetMultiplexer(int queue_limit = NetMultiplexer::kUnlimitedQueue);
+
 }  // namespace net
 #endif  // NET_SRC_NET_EPOLL_H_

@@ -104,7 +104,7 @@ void SScanCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSScan);
     return;
   }
@@ -120,7 +120,7 @@ void SScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -361,7 +361,7 @@ void SRandmemberCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSRandmember);
     return;
   } else if (argv_.size() == 3) {
-    if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &count_)) {
+    if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &count_)) {
       res_.SetRes(CmdRes::kInvalidInt);
     } else {
       reply_arr = true;;

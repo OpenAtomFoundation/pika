@@ -7,7 +7,6 @@
 
 #include <ctime>
 #include <fstream>
-#include <iterator>
 #include <algorithm>
 #include <ifaddrs.h>
 #include <netinet/in.h>
@@ -17,6 +16,7 @@
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
 #include "net/include/net_cli.h"
+#include "net/include/net_interfaces.h"
 #include "net/include/redis_cli.h"
 #include "net/include/bg_thread.h"
 
@@ -68,16 +68,20 @@ PikaServer::PikaServer() :
 
   pthread_rwlockattr_t storage_options_rw_attr;
   pthread_rwlockattr_init(&storage_options_rw_attr);
+#if !defined(__APPLE__)
   pthread_rwlockattr_setkind_np(&storage_options_rw_attr,
           PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+#endif
   pthread_rwlock_init(&storage_options_rw_, &storage_options_rw_attr);
 
   InitStorageOptions();
 
   pthread_rwlockattr_t tables_rw_attr;
   pthread_rwlockattr_init(&tables_rw_attr);
+#if !defined(__APPLE__)
   pthread_rwlockattr_setkind_np(&tables_rw_attr,
           PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+#endif
   pthread_rwlock_init(&tables_rw_, &tables_rw_attr);
 
   // Create thread
@@ -144,76 +148,19 @@ PikaServer::~PikaServer() {
 
 bool PikaServer::ServerInit() {
   std::string network_interface = g_pika_conf->network_interface();
-
-  if (network_interface == "") {
-
-    std::ifstream routeFile("/proc/net/route", std::ios_base::in);
-    if (!routeFile.good())
-    {
-      return false;
-    }
-
-    std::string line;
-    std::vector<std::string> tokens;
-    while(std::getline(routeFile, line))
-    {
-      std::istringstream stream(line);
-      std::copy(std::istream_iterator<std::string>(stream),
-          std::istream_iterator<std::string>(),
-          std::back_inserter<std::vector<std::string> >(tokens));
-
-      // the default interface is the one having the second
-      // field, Destination, set to "00000000"
-      if ((tokens.size() >= 2) && (tokens[1] == std::string("00000000")))
-      {
-        network_interface = tokens[0];
-        break;
-      }
-
-      tokens.clear();
-    }
-    routeFile.close();
-  }
-  LOG(INFO) << "Using Networker Interface: " << network_interface;
-
-  struct ifaddrs * ifAddrStruct = NULL;
-  struct ifaddrs * ifa = NULL;
-  void * tmpAddrPtr = NULL;
-
-  if (getifaddrs(&ifAddrStruct) == -1) {
-    LOG(FATAL) << "getifaddrs failed: " << strerror(errno);
+  if (network_interface.empty()) {
+    network_interface = GetDefaultInterface();
   }
 
-  for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr == NULL) {
-      continue;
-    }
-    if (ifa ->ifa_addr->sa_family==AF_INET) { // Check it is
-      // a valid IPv4 address
-      tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
-      char addressBuffer[INET_ADDRSTRLEN];
-      inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
-      if (std::string(ifa->ifa_name) == network_interface) {
-        host_ = addressBuffer;
-        break;
-      }
-    } else if (ifa->ifa_addr->sa_family==AF_INET6) { // Check it is
-      // a valid IPv6 address
-      tmpAddrPtr = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
-      char addressBuffer[INET6_ADDRSTRLEN];
-      inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
-      if (std::string(ifa->ifa_name) == network_interface) {
-        host_ = addressBuffer;
-        break;
-      }
-    }
+  if (network_interface.empty()) {
+    LOG(FATAL) << "Can't get Networker Interface";
+    return false;
   }
 
-  if (ifAddrStruct != NULL) {
-    freeifaddrs(ifAddrStruct);
-  }
-  if (ifa == NULL) {
-    LOG(FATAL) << "error network interface: " << network_interface << ", please check!";
+  host_ = GetIpByInterface(network_interface);
+  if (host_.empty()) {
+    LOG(FATAL) << "can't get host ip for " << network_interface;
+    return false;
   }
 
   port_ = g_pika_conf->port();

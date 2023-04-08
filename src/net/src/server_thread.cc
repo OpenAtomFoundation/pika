@@ -14,7 +14,6 @@
 
 
 #include "pstd/include/xdebug.h"
-#include "net/src/net_epoll.h"
 #include "net/src/server_socket.h"
 
 namespace net {
@@ -62,16 +61,15 @@ static const ServerHandle* SanitizeHandle(const ServerHandle* raw_handle) {
 
 ServerThread::ServerThread(int port,
                            int cron_interval, const ServerHandle* handle)
-    : net_epoll_(NULL),
-      cron_interval_(cron_interval),
+    : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
       port_(port) {
-  net_epoll_ = new NetEpoll();
-  net_epoll_->Initialize();
+  net_multiplexer_.reset(CreateNetMultiplexer());
+  net_multiplexer_->Initialize();
   ips_.insert("0.0.0.0");
 }
 
@@ -84,8 +82,8 @@ ServerThread::ServerThread(const std::string& bind_ip, int port,
       security_(false),
 #endif
       port_(port) {
-  net_epoll_ = new NetEpoll();
-  net_epoll_->Initialize();
+  net_multiplexer_.reset(CreateNetMultiplexer());
+  net_multiplexer_->Initialize();
   ips_.insert(bind_ip);
 }
 
@@ -98,8 +96,8 @@ ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port,
       security_(false),
 #endif
       port_(port) {
-  net_epoll_ = new NetEpoll();
-  net_epoll_->Initialize();
+  net_multiplexer_.reset(CreateNetMultiplexer());
+  net_multiplexer_->Initialize();
   ips_ = bind_ips;
 }
 
@@ -110,8 +108,6 @@ ServerThread::~ServerThread() {
     EVP_cleanup();
   }
 #endif
-  delete(net_epoll_);
-  net_epoll_ = nullptr;
   for (std::vector<ServerSocket*>::iterator iter = server_sockets_.begin();
        iter != server_sockets_.end();
        ++iter) {
@@ -153,8 +149,8 @@ int ServerThread::InitHandle() {
     }
 
     // init pool
-    net_epoll_->NetAddEvent(
-        socket_p->sockfd(), EPOLLIN | EPOLLERR | EPOLLHUP);
+    net_multiplexer_->NetAddEvent(
+        socket_p->sockfd(), kReadable | kWritable);
     server_fds_.insert(socket_p->sockfd());
   }
   return kSuccess;
@@ -208,12 +204,12 @@ void *ServerThread::ThreadMain() {
       }
     }
 
-    nfds = net_epoll_->NetPoll(timeout);
+    nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->FiredEvents()) + i;
+      pfe = (net_multiplexer_->FiredEvents()) + i;
       fd = pfe->fd;
 
-      if (pfe->fd == net_epoll_->NotifyReceiveFd()) {
+      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;
       }
@@ -222,7 +218,7 @@ void *ServerThread::ThreadMain() {
        * Handle server event
        */
       if (server_fds_.find(fd) != server_fds_.end()) {
-        if (pfe->mask & EPOLLIN) {
+        if (pfe->mask & kReadable) {
           connfd = accept(fd, (struct sockaddr *) &cliaddr, &clilen);
           if (connfd == -1) {
             log_warn("accept error, errno numberis %d, error reason %s",
@@ -259,7 +255,7 @@ void *ServerThread::ThreadMain() {
            */
           HandleNewConn(connfd, ip_port);
 
-        } else if (pfe->mask & (EPOLLHUP | EPOLLERR)) {
+        } else if (pfe->mask & kErrorEvent) {
           /*
            * this branch means there is error on the listen fd
            */

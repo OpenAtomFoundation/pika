@@ -36,49 +36,49 @@ TEST(StringTest, test_string2ll) {
 
   /* May not start with +. */
   strcpy(buf,"+1");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 0);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 0);
 
   /* Leading space. */
   strcpy(buf," 1");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 0);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 0);
 
   /* Trailing space. */
   strcpy(buf,"1 ");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 0);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 0);
 
   strcpy(buf,"-1");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, -1);
 
   strcpy(buf,"0");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, 0);
 
   strcpy(buf,"1");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, 1);
 
   strcpy(buf,"99");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, 99);
 
   strcpy(buf,"-99");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, -99);
 
   strcpy(buf,"-9223372036854775808");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, LLONG_MIN);
 
   strcpy(buf,"-9223372036854775809"); /* overflow */
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 0);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 0);
 
   strcpy(buf,"9223372036854775807");
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, LLONG_MAX);
 
   strcpy(buf,"9223372036854775808"); /* overflow */
-  ASSERT_EQ(string2ll(buf,strlen(buf),&v), 0);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 0);
 }
 
 TEST(StringTest, test_string2l) {
@@ -87,42 +87,42 @@ TEST(StringTest, test_string2l) {
 
   /* May not start with +. */
   strcpy(buf,"+1");
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 0);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 0);
 
   strcpy(buf,"-1");
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, -1);
 
   strcpy(buf,"0");
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, 0);
 
   strcpy(buf,"1");
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, 1);
 
   strcpy(buf,"99");
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, 99);
 
   strcpy(buf,"-99");
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, -99);
 
 #if LONG_MAX != LLONG_MAX
   strcpy(buf,"-2147483648");
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, LONG_MIN);
 
   strcpy(buf,"-2147483649"); /* overflow */
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 0);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 0);
 
   strcpy(buf,"2147483647");
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 1);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 1);
   ASSERT_EQ(v, LONG_MAX);
 
   strcpy(buf,"2147483648"); /* overflow */
-  ASSERT_EQ(string2l(buf,strlen(buf),&v), 0);
+  ASSERT_EQ(string2int(buf,strlen(buf),&v), 0);
 #endif
 }
 

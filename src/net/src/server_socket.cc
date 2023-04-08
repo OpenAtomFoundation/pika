@@ -4,7 +4,6 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <stdio.h>
-#include <sys/epoll.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <netinet/in.h>

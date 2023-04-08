@@ -40,7 +40,7 @@ class PikaClientConn: public net::RedisConn {
 
   PikaClientConn(int fd, std::string ip_port,
                  net::Thread *server_thread,
-                 net::NetEpoll* net_epoll,
+                 net::NetMultiplexer* mpx,
                  const net::HandleType& handle_type,
                  int max_conn_rubf_size);
   virtual ~PikaClientConn() {}

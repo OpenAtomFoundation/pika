@@ -68,7 +68,7 @@ void ZScanCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZScan);
     return;
   }
@@ -84,7 +84,7 @@ void ZScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -162,11 +162,11 @@ void ZsetRangeParentCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &start_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &start_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &stop_)) {
+  if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &stop_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -299,12 +299,12 @@ void ZsetRangebyscoreParentCmd::DoInitial() {
         return;
       }
       index++;
-      if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &offset_)) {
+      if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &offset_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
       index++;
-      if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       } 
@@ -463,7 +463,7 @@ void ZRemCmd::Do(std::shared_ptr<Partition> partition) {
 
 void ZsetUIstoreParentCmd::DoInitial() {
   dest_key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &num_keys_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &num_keys_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -682,11 +682,11 @@ void ZsetRangebylexParentCmd::DoInitial() {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  if (!pstd::string2l(argv_[5].data(), argv_[5].size(), &offset_)) {
+  if (!pstd::string2int(argv_[5].data(), argv_[5].size(), &offset_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!pstd::string2l(argv_[6].data(), argv_[6].size(), &count_)) {
+  if (!pstd::string2int(argv_[6].data(), argv_[6].size(), &count_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -796,11 +796,11 @@ void ZRemrangebyrankCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &start_rank_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &start_rank_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &stop_rank_)) {
+  if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &stop_rank_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -886,7 +886,7 @@ void ZPopmaxCmd::DoInitial() {
     count_ = 1;
     return;
   }  
-  if (!pstd::string2ll(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -921,7 +921,7 @@ void ZPopminCmd::DoInitial() {
     count_ = 1;
     return;
   }  
-  if (!pstd::string2ll(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }

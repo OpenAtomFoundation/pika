@@ -15,7 +15,7 @@ void LIndexCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string index = argv_[2];
-  if (!pstd::string2l(index.data(), index.size(), &index_)) {
+  if (!pstd::string2int(index.data(), index.size(), &index_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;
@@ -142,12 +142,12 @@ void LRangeCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string left = argv_[2];
-  if (!pstd::string2l(left.data(), left.size(), &left_)) {
+  if (!pstd::string2int(left.data(), left.size(), &left_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   std::string right = argv_[3];
-  if (!pstd::string2l(right.data(), right.size(), &right_)) {
+  if (!pstd::string2int(right.data(), right.size(), &right_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;
@@ -174,7 +174,7 @@ void LRemCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string count = argv_[2];
-  if (!pstd::string2l(count.data(), count.size(), &count_)) {
+  if (!pstd::string2int(count.data(), count.size(), &count_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -197,7 +197,7 @@ void LSetCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string index = argv_[2];
-  if (!pstd::string2l(index.data(), index.size(), &index_)) {
+  if (!pstd::string2int(index.data(), index.size(), &index_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -224,12 +224,12 @@ void LTrimCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string start = argv_[2];
-  if (!pstd::string2l(start.data(), start.size(), &start_)) {
+  if (!pstd::string2int(start.data(), start.size(), &start_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   std::string stop = argv_[3];
-  if (!pstd::string2l(stop.data(), stop.size(), &stop_)) {
+  if (!pstd::string2int(stop.data(), stop.size(), &stop_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;

@@ -6,8 +6,6 @@
 #ifndef NET_INCLUDE_CLIENT_THREAD_H_
 #define NET_INCLUDE_CLIENT_THREAD_H_
 
-#include <sys/epoll.h>
-
 #include <set>
 #include <string>
 #include <map>
@@ -17,6 +15,7 @@
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_mutex.h"
 #include "net/include/net_thread.h"
+#include "net/src/net_multiplexer.h"
 
 // remove 'unused parameter' warning
 #define UNUSED(expr) do { (void)(expr); } while (0)
@@ -25,7 +24,6 @@
 
 namespace net {
 
-class NetEpoll;
 struct NetFiredEvent;
 class ConnFactory;
 class NetConn;
@@ -140,9 +138,9 @@ class ClientThread : public Thread {
   void* private_data_;
 
   /*
-   * The Epoll event handler
+   * The event handler
    */
-  NetEpoll *net_epoll_;
+  std::unique_ptr<NetMultiplexer> net_multiplexer_;
 
   ConnFactory *conn_factory_;
 

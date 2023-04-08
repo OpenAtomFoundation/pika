@@ -6,8 +6,6 @@
 #ifndef NET_SRC_WORKER_THREAD_H_
 #define NET_SRC_WORKER_THREAD_H_
 
-#include <sys/epoll.h>
-
 #include <string>
 #include <functional>
 #include <map>
@@ -19,14 +17,13 @@
 #include "pstd/include/pstd_mutex.h"
 
 #include "net/include/server_thread.h"
-#include "net/src/net_epoll.h"
+#include "net/src/net_multiplexer.h"
 #include "net/include/net_thread.h"
 #include "net/include/net_define.h"
 
 namespace net {
 
 class NetItem;
-class NetEpoll;
 class NetFiredEvent;
 class NetConn;
 class ConnFactory;
@@ -34,7 +31,7 @@ class ConnFactory;
 class WorkerThread : public Thread {
  public:
   explicit WorkerThread(ConnFactory *conn_factory, ServerThread* server_thread,
-                        int queue_limit_, int cron_interval = 0);
+                        int queue_limit, int cron_interval = 0);
 
   virtual ~WorkerThread();
 
@@ -52,8 +49,8 @@ class WorkerThread : public Thread {
 
   bool MoveConnIn(const NetItem& it, bool force);
 
-  NetEpoll* net_epoll() {
-    return net_epoll_;
+  NetMultiplexer* net_multiplexer() {
+    return net_multiplexer_.get();
   }
   bool TryKillConn(const std::string& ip_port);
 
@@ -71,7 +68,7 @@ class WorkerThread : public Thread {
   /*
    * The epoll handler
    */
-  NetEpoll *net_epoll_;
+  std::unique_ptr<NetMultiplexer> net_multiplexer_;
 
   std::atomic<int> keepalive_timeout_;  // keepalive second
 

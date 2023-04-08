@@ -26,7 +26,7 @@ class PbConn: public NetConn {
         std::queue<std::string> queue_;
         size_t item_pos_;
     };
-  PbConn(const int fd, const std::string &ip_port, Thread *thread, NetEpoll* epoll = NULL);
+  PbConn(const int fd, const std::string &ip_port, Thread *thread, NetMultiplexer* net_mpx = nullptr);
   virtual ~PbConn();
 
   ReadStatus GetRequest() override;

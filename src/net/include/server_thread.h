@@ -6,8 +6,6 @@
 #ifndef NET_INCLUDE_SERVER_THREAD_H_
 #define NET_INCLUDE_SERVER_THREAD_H_
 
-#include <sys/epoll.h>
-
 #include <set>
 #include <vector>
 #include <memory>
@@ -23,6 +21,7 @@
 #include "pstd/include/pstd_mutex.h"
 #include "net/include/net_define.h"
 #include "net/include/net_thread.h"
+#include "net/src/net_multiplexer.h"
 
 // remove 'unused parameter' warning
 #define UNUSED(expr) do { (void)(expr); } while (0)
@@ -30,7 +29,7 @@
 namespace net {
 
 class ServerSocket;
-class NetEpoll;
+
 class NetConn;
 struct NetFiredEvent;
 class ConnFactory;
@@ -160,9 +159,9 @@ class ServerThread : public Thread {
 
  protected:
   /*
-   * The Epoll event handler
+   * The event handler
    */
-  NetEpoll *net_epoll_;
+  std::unique_ptr<NetMultiplexer> net_multiplexer_;
 
  private:
   friend class HolyThread;
@@ -172,7 +171,7 @@ class ServerThread : public Thread {
   int cron_interval_;
   virtual void DoCronTask();
 
-  // process events in epoll notify_queue
+  // process events in notify_queue
   virtual void ProcessNotifyEvents(const NetFiredEvent* pfe);
 
   const ServerHandle *handle_;

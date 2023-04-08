@@ -137,8 +137,8 @@ bool PkClusterInfoCmd::ParseInfoTableSubCmd() {
     info_range_ = kAll;
   } else if (argv_.size() == 4) {
     std::string tmp(argv_[3]);
-    uint64_t table_id;
-    if (!pstd::string2ul(tmp.c_str(), tmp.size(), &table_id)) {
+    int64_t table_id;
+    if (!pstd::string2int(tmp.c_str(), tmp.size(), &table_id)) {
       res_.SetRes(CmdRes::kInvalidParameter, kCmdNamePkClusterInfo);
       return false;
     }
@@ -239,7 +239,7 @@ Status ParseSlotGroup(const std::string& slot_group,
   pstd::StringSplit(slot_group, COMMA, elems);
   for (const auto& elem :  elems) {
     if ((pos = elem.find("-")) == std::string::npos) {
-      if (!pstd::string2l(elem.data(), elem.size(), &slot_idx)
+      if (!pstd::string2int(elem.data(), elem.size(), &slot_idx)
         || slot_idx < 0) {
         return Status::Corruption("syntax error");
       } else {
@@ -251,8 +251,8 @@ Status ParseSlotGroup(const std::string& slot_group,
       } else {
         std::string start_pos = elem.substr(0, pos);
         std::string end_pos = elem.substr(pos + 1, elem.size() - pos);
-        if (!pstd::string2l(start_pos.data(), start_pos.size(), &start_idx)
-          || !pstd::string2l(end_pos.data(), end_pos.size(), &end_idx)
+        if (!pstd::string2int(start_pos.data(), start_pos.size(), &start_idx)
+          || !pstd::string2int(end_pos.data(), end_pos.size(), &end_idx)
           || start_idx < 0 || end_idx < 0 || start_idx > end_idx) {
           return Status::Corruption("syntax error");
         }
@@ -283,8 +283,8 @@ void SlotParentCmd::DoInitial() {
   if (argv_.size() == 3) {
     table_name_ = g_pika_conf->default_table();
   } else if (argv_.size() == 4) {
-    uint64_t table_id;
-    if (!pstd::string2ul(argv_[3].data(), argv_[3].size(), &table_id)) {
+    int64_t table_id;
+    if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &table_id)) {
       res_.SetRes(CmdRes::kErrOther, "syntax error");
       return;
     }
@@ -498,7 +498,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
     is_noone_ = true;
   } else {
     ip_ = argv_[2];
-    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &port_)
+    if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &port_)
       || port_ <= 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
@@ -523,7 +523,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
     }
   }
 
-  uint64_t table_id;
+  int64_t table_id;
   switch (argv_.size()) {
     case 5:
       table_name_ = g_pika_conf->default_table();
@@ -532,7 +532,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
       if (!strcasecmp(argv_[5].data(), "force")) {
         force_sync_ = true;
         table_name_ = g_pika_conf->default_table();
-      } else if (pstd::string2ul(argv_[5].data(), argv_[5].size(), &table_id)) {
+      } else if (pstd::string2int(argv_[5].data(), argv_[5].size(), &table_id)) {
         table_name_ = "db";
         table_name_ += std::to_string(table_id);
       } else {
@@ -542,7 +542,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
       break;
     case 7:
       if ((!strcasecmp(argv_[5].data(), "force"))
-          && (pstd::string2ul(argv_[6].data(), argv_[6].size(), &table_id))) {
+          && (pstd::string2int(argv_[6].data(), argv_[6].size(), &table_id))) {
         force_sync_ = true;
         table_name_ = "db";
         table_name_ += std::to_string(table_id);
@@ -639,14 +639,14 @@ void PkClusterAddTableCmd::DoInitial() {
     res_.SetRes(CmdRes::kErrOther, "PkClusterTable Cmd only support on sharding mode");
     return;
   }
-  uint64_t table_id;
-  if (!pstd::string2ul(argv_[2].data(), argv_[2].size(), &table_id)) {
+  int64_t table_id;
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &table_id)) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
   }
   table_name_ = "db";
   table_name_ += std::to_string(table_id);
-  if (!pstd::string2ul(argv_[3].data(), argv_[3].size(), &slot_num_)
+  if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &slot_num_)
       || slot_num_ == 0) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
@@ -724,8 +724,8 @@ void PkClusterDelTableCmd::DoInitial() {
     res_.SetRes(CmdRes::kErrOther, "PkClusterTable Cmd only support on sharding mode");
     return;
   }
-  uint64_t table_id;
-  if (!pstd::string2ul(argv_[2].data(), argv_[2].size(), &table_id)) {
+  int64_t table_id;
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &table_id)) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
   }

@@ -71,8 +71,10 @@ Partition::Partition(const std::string& table_name,
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
+#if !defined(__APPLE__)
   pthread_rwlockattr_setkind_np(&attr,
           PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+#endif
 
   pthread_rwlock_init(&db_rwlock_, &attr);
 
@@ -211,7 +213,7 @@ bool Partition::TryUpdateMasterOffset() {
     if (lineno == 2) {
       master_ip = line;
     } else if (lineno > 2 && lineno < 8) {
-      if (!pstd::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
+      if (!pstd::string2int(line.data(), line.size(), &tmp) || tmp < 0) {
         LOG(WARNING) << "Partition: " << partition_name_
             << ", Format of info file after db sync error, line : " << line;
         is.close();

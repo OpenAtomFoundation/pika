@@ -15,7 +15,6 @@
 
 #include "pstd/include/xdebug.h"
 #include "pstd/include/pstd_string.h"
-#include "net/src/net_epoll.h"
 #include "net/src/server_socket.h"
 #include "net/include/net_conn.h"
 
@@ -29,14 +28,12 @@ BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int k
       handle_(handle),
       own_handle_(false),
       private_data_(private_data),
-      net_epoll_(NULL),
       conn_factory_(conn_factory) {
-  net_epoll_ = new NetEpoll();
-  net_epoll_->Initialize();
+  net_multiplexer_.reset(CreateNetMultiplexer());
+  net_multiplexer_->Initialize();
 }
 
 BackendThread::~BackendThread() {
-  delete(net_epoll_);
 }
 
 int BackendThread::StartThread() {
@@ -101,9 +98,9 @@ Status BackendThread::Close(const int fd) {
 }
 
 Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close) {
-  if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP)) {
+  if (pfe->mask & kErrorEvent) {
     *should_close = 1;
-    return Status::Corruption("EPOLLERR or EPOLLHUP");
+    return Status::Corruption("POLLERR or POLLHUP");
   }
   int val = 0;
   socklen_t lon = sizeof(int);
@@ -120,13 +117,13 @@ Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close
 }
 
 void BackendThread::SetWaitConnectOnEpoll(int sockfd) {
-  net_epoll_->NetAddEvent(sockfd, EPOLLIN | EPOLLOUT);
+  net_multiplexer_->NetAddEvent(sockfd, kReadable | kWritable);
   connecting_fds_.insert(sockfd);
 }
 
 void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, NULL, net_epoll_);
+  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, NULL, net_multiplexer_.get());
   tc->SetNonblock();
   // This flag specifies that the file descriptor should be closed when an exec function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
@@ -184,7 +181,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
     }
 
     AddConnection(dst_ip, dst_port, sockfd);
-    net_epoll_->NetAddEvent(sockfd, EPOLLIN | EPOLLOUT);
+    net_multiplexer_->NetAddEvent(sockfd, kReadable | kWritable);
     struct sockaddr_in laddr;
     socklen_t llen = sizeof(laddr);
     getsockname(sockfd, (struct sockaddr*) &laddr, &llen);
@@ -249,7 +246,7 @@ void BackendThread::DoCronTask() {
     if (keepalive_timeout_ > 0 &&
         (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
       log_info("Do cron task del fd %d\n", conn->fd());
-      net_epoll_->NetDelEvent(conn->fd(), 0);
+      net_multiplexer_->NetDelEvent(conn->fd(), 0);
       close(conn->fd());
       handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
       if (conns_.count(conn->fd())) {
@@ -302,28 +299,28 @@ void BackendThread::NotifyWrite(const std::string ip_port) {
   // put fd = 0, cause this lib user doesnt need to know which fd to write to
   // we will check fd by checking ipport_conns_
   NetItem ti(0, ip_port, kNotiWrite);
-  net_epoll_->Register(ti, true);
+  net_multiplexer_->Register(ti, true);
 }
 
 void BackendThread::NotifyWrite(const int fd) {
   NetItem ti(fd, "", kNotiWrite);
-  net_epoll_->Register(ti, true);
+  net_multiplexer_->Register(ti, true);
 }
 
 void BackendThread::NotifyClose(const int fd) {
   NetItem ti(fd, "", kNotiClose);
-  net_epoll_->Register(ti, true);
+  net_multiplexer_->Register(ti, true);
 }
 
 void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
-  if (pfe->mask & EPOLLIN) {
+  if (pfe->mask & kReadable) {
     char bb[2048];
-    int32_t nread = read(net_epoll_->NotifyReceiveFd(), bb, 2048);
+    int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {
       return;
     } else {
       for (int32_t idx = 0; idx < nread; ++idx) {
-        NetItem ti = net_epoll_->NotifyQueuePop();
+        NetItem ti = net_multiplexer_->NotifyQueuePop();
         int fd = ti.fd();
         std::string ip_port = ti.ip_port();
         pstd::MutexLock l(&mu_);
@@ -333,7 +330,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
             continue;
           } else {
             // connection exist
-            net_epoll_->NetModEvent(fd, 0, EPOLLOUT | EPOLLIN);
+            net_multiplexer_->NetModEvent(fd, 0, kReadable | kWritable);
           }
           {
           auto iter = to_send_.find(fd);
@@ -349,7 +346,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
           }
         } else if (ti.notify_type() == kNotiClose) {
           log_info("received kNotiClose\n");
-          net_epoll_->NetDelEvent(fd, 0);
+          net_multiplexer_->NetDelEvent(fd, 0);
           CloseFd(fd);
           conns_.erase(fd);
           connecting_fds_.erase(fd);
@@ -396,14 +393,14 @@ void *BackendThread::ThreadMain() {
     //{
     //InternalDebugPrint();
     //}
-    nfds = net_epoll_->NetPoll(timeout);
+    nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->FiredEvents()) + i;
+      pfe = (net_multiplexer_->FiredEvents()) + i;
       if (pfe == NULL) {
         continue;
       }
 
-      if (pfe->fd == net_epoll_->NotifyReceiveFd()) {
+      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;
       }
@@ -414,7 +411,7 @@ void *BackendThread::ThreadMain() {
       if (iter == conns_.end()) {
         mu_.Unlock();
         log_info("fd %d not found in fd_conns\n", pfe->fd);
-        net_epoll_->NetDelEvent(pfe->fd, 0);
+        net_multiplexer_->NetDelEvent(pfe->fd, 0);
         continue;
       }
       mu_.Unlock();
@@ -429,11 +426,11 @@ void *BackendThread::ThreadMain() {
         connecting_fds_.erase(pfe->fd);
       }
 
-      if (!should_close && (pfe->mask & EPOLLOUT) && conn->is_reply()) {
+      if (!should_close && (pfe->mask & kWritable) && conn->is_reply()) {
         WriteStatus write_status = conn->SendReply();
         conn->set_last_interaction(now);
         if (write_status == kWriteAll) {
-          net_epoll_->NetModEvent(pfe->fd, 0, EPOLLIN);
+          net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);
           conn->set_is_reply(false);
         } else if (write_status == kWriteHalf) {
           continue;
@@ -443,11 +440,10 @@ void *BackendThread::ThreadMain() {
         }
       }
 
-      if (!should_close && (pfe->mask & EPOLLIN)) {
+      if (!should_close && (pfe->mask & kReadable)) {
         ReadStatus read_status = conn->GetRequest();
         conn->set_last_interaction(now);
         if (read_status == kReadAll) {
-          // net_epoll_->NetModEvent(pfe->fd, 0, EPOLLOUT);
         } else if (read_status == kReadHalf) {
           continue;
         } else {
@@ -456,10 +452,10 @@ void *BackendThread::ThreadMain() {
         }
       }
 
-      if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP) || should_close) {
+      if ((pfe->mask & kErrorEvent) ||  should_close) {
         {
           log_info("close connection %d reason %d %d\n", pfe->fd, pfe->mask, should_close);
-          net_epoll_->NetDelEvent(pfe->fd, 0);
+          net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(conn);
           mu_.Lock();
           conns_.erase(pfe->fd);

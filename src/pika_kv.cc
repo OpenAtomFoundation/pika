@@ -46,7 +46,7 @@ void SetCmd::DoInitial() {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &sec_)) {
+      if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &sec_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       } else if (sec_ <= 0) {
@@ -231,7 +231,7 @@ void IncrbyCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &by_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameIncrby);
     return;
   }
@@ -310,7 +310,7 @@ void DecrbyCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &by_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &by_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -549,7 +549,7 @@ void SetexCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &sec_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &sec_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -610,7 +610,7 @@ void PsetexCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &usec_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &usec_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -770,11 +770,11 @@ void GetrangeCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &start_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &start_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &end_)) {
+  if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &end_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -798,7 +798,7 @@ void SetrangeCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &offset_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &offset_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -879,7 +879,7 @@ void ExpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &sec_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &sec_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -938,7 +938,7 @@ void PexpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &msec_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &msec_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -997,7 +997,7 @@ void ExpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &time_stamp_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1020,7 +1020,7 @@ void PexpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &time_stamp_ms_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_ms_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1212,7 +1212,7 @@ void ScanCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameScan);
     return;
   }
-  if (!pstd::string2l(argv_[1].data(), argv_[1].size(), &cursor_)) {
+  if (!pstd::string2int(argv_[1].data(), argv_[1].size(), &cursor_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1229,7 +1229,7 @@ void ScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
+      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1313,7 +1313,7 @@ void ScanxCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
+      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1354,7 +1354,7 @@ void PKSetexAtCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[3];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &time_stamp_)
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_)
     || time_stamp_ >= INT32_MAX) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
@@ -1414,7 +1414,7 @@ void PKScanRangeCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1500,7 +1500,7 @@ void PKRScanRangeCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }

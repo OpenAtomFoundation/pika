@@ -170,7 +170,7 @@ bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
       continue;
     }
     sindex = (*it).substr(kBinlogPrefixLen);
-    if (pstd::string2l(sindex.c_str(), sindex.size(), &index) == 1) {
+    if (pstd::string2int(sindex.c_str(), sindex.size(), &index) == 1) {
       binlogs->insert(std::pair<uint32_t, std::string>(static_cast<uint32_t>(index), *it));
     }
   }

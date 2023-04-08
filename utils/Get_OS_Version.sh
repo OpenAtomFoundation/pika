@@ -22,6 +22,9 @@ Get_Dist_Name()
     elif grep -Eqi "Raspbian" /etc/issue || grep -Eq "Raspbian" /etc/*-release; then
         DISTRO='Raspbian'
         PM='apt'
+    elif grep -Eqi "macOS" /System/Library/CoreServices/SystemVersion.plist; then
+        DISTRO='APPLE'
+        PM='brew'
     else
         DISTRO='unknow'
         PM='unknow'

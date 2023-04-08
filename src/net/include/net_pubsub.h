@@ -6,8 +6,6 @@
 #ifndef NET_INCLUDE_PUBSUB_H_
 #define NET_INCLUDE_PUBSUB_H_
 
-#include <sys/epoll.h>
-
 #include <string>
 #include <functional>
 #include <queue>
@@ -22,13 +20,12 @@
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_string.h"
 
-#include "net/src/net_epoll.h"
+#include "net/src/net_multiplexer.h"
 #include "net/include/net_thread.h"
 #include "net/include/net_define.h"
 
 namespace net {
 
-class NetEpoll;
 class NetFiredEvent;
 class NetConn;
 
@@ -111,7 +108,7 @@ class PubSubThread : public Thread {
   /*
    * The epoll handler
    */
-  NetEpoll *net_epoll_;
+  std::unique_ptr<NetMultiplexer> net_multiplexer_;
 
   virtual void *ThreadMain();
 

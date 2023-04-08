@@ -14,6 +14,10 @@
 
 namespace net {
 
+NetMultiplexer* CreateNetMultiplexer(int limit) {
+  return new NetEpoll(limit);
+}
+
 NetEpoll::NetEpoll(int queue_limit) : NetMultiplexer(queue_limit) {
 #if defined(EPOLL_CLOEXEC)
     multiplexer_ = epoll_create1(EPOLL_CLOEXEC);

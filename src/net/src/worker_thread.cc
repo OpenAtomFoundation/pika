@@ -9,14 +9,13 @@
 
 #include "net/include/net_conn.h"
 #include "net/src/net_item.h"
-#include "net/src/net_epoll.h"
 
 namespace net {
 
 
 WorkerThread::WorkerThread(ConnFactory *conn_factory,
                            ServerThread* server_thread,
-                           int queue_limit_,
+                           int queue_limit,
                            int cron_interval)
       : private_data_(nullptr),
         server_thread_(server_thread),
@@ -26,12 +25,11 @@ WorkerThread::WorkerThread(ConnFactory *conn_factory,
   /*
    * install the protobuf handler here
    */
-  net_epoll_ = new NetEpoll(queue_limit_);
-  net_epoll_->Initialize();
+  net_multiplexer_.reset(CreateNetMultiplexer(queue_limit));
+  net_multiplexer_->Initialize();
 }
 
 WorkerThread::~WorkerThread() {
-  delete(net_epoll_);
 }
 
 int WorkerThread::conn_num() const {
@@ -59,7 +57,7 @@ std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
   if (iter != conns_.end()) {
     int fd = iter->first;
     conn = iter->second;
-    net_epoll_->NetDelEvent(fd, 0);
+    net_multiplexer_->NetDelEvent(fd, 0);
     conns_.erase(iter);
   }
   return conn;
@@ -76,7 +74,7 @@ bool WorkerThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& n
 }
 
 bool WorkerThread::MoveConnIn(const NetItem& it, bool force) {
-  return net_epoll_->Register(it, force);
+  return net_multiplexer_->Register(it, force);
 }
 
 void *WorkerThread::ThreadMain() {
@@ -112,22 +110,22 @@ void *WorkerThread::ThreadMain() {
       }
     }
 
-    nfds = net_epoll_->NetPoll(timeout);
+    nfds = net_multiplexer_->NetPoll(timeout);
 
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->FiredEvents()) + i;
-      if (pfe->fd == net_epoll_->NotifyReceiveFd()) {
-        if (pfe->mask & EPOLLIN) {
-          int32_t nread = read(net_epoll_->NotifyReceiveFd(), bb, 2048);
+      pfe = (net_multiplexer_->FiredEvents()) + i;
+      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
+        if (pfe->mask & kReadable) {
+          int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
           if (nread == 0) {
             continue;
           } else {
             for (int32_t idx = 0; idx < nread; ++idx) {
-              NetItem ti = net_epoll_->NotifyQueuePop();
+              NetItem ti = net_multiplexer_->NotifyQueuePop();
               if (ti.notify_type() == kNotiConnect) {
                 std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(
                     ti.fd(), ti.ip_port(),
-                    server_thread_, private_data_, net_epoll_);
+                    server_thread_, private_data_, net_multiplexer_.get());
                 if (!tc || !tc->SetNonblock()) {
                   continue;
                 }
@@ -145,18 +143,18 @@ void *WorkerThread::ThreadMain() {
                   pstd::WriteLock l(&rwlock_);
                   conns_[ti.fd()] = tc;
                 }
-                net_epoll_->NetAddEvent(ti.fd(), EPOLLIN);
+                net_multiplexer_->NetAddEvent(ti.fd(), kReadable);
               } else if (ti.notify_type() == kNotiClose) {
                 // should close?
               } else if (ti.notify_type() == kNotiEpollout) {
-                net_epoll_->NetModEvent(ti.fd(), 0, EPOLLOUT);
+                net_multiplexer_->NetModEvent(ti.fd(), 0, kWritable);
               } else if (ti.notify_type() == kNotiEpollin) {
-                net_epoll_->NetModEvent(ti.fd(), 0, EPOLLIN);
+                net_multiplexer_->NetModEvent(ti.fd(), 0, kReadable);
               } else if (ti.notify_type() == kNotiEpolloutAndEpollin) {
-                net_epoll_->NetModEvent(ti.fd(), 0, EPOLLOUT | EPOLLIN);
+                net_multiplexer_->NetModEvent(ti.fd(), 0, kReadable | kWritable);
               } else if (ti.notify_type() == kNotiWait) {
                 // do not register events
-                net_epoll_->NetAddEvent(ti.fd(), 0);
+                net_multiplexer_->NetAddEvent(ti.fd(), 0);
               }
             }
           }
@@ -174,17 +172,17 @@ void *WorkerThread::ThreadMain() {
           pstd::ReadLock l(&rwlock_);
           std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->fd);
           if (iter == conns_.end()) {
-            net_epoll_->NetDelEvent(pfe->fd, 0);
+            net_multiplexer_->NetDelEvent(pfe->fd, 0);
             continue;
           }
           in_conn = iter->second;
         }
 
-        if ((pfe->mask & EPOLLOUT) && in_conn->is_reply()) {
+        if ((pfe->mask & kWritable) && in_conn->is_reply()) {
           WriteStatus write_status = in_conn->SendReply();
           in_conn->set_last_interaction(now);
           if (write_status == kWriteAll) {
-            net_epoll_->NetModEvent(pfe->fd, 0, EPOLLIN);
+            net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);
             in_conn->set_is_reply(false);
             if (in_conn->IsClose()) {
                  should_close = 1;
@@ -196,13 +194,13 @@ void *WorkerThread::ThreadMain() {
           }
         }
 
-        if (!should_close && (pfe->mask & EPOLLIN)) {
+        if (!should_close && (pfe->mask & kReadable)) {
           ReadStatus read_status = in_conn->GetRequest();
           in_conn->set_last_interaction(now);
           if (read_status == kReadAll) {
-            net_epoll_->NetModEvent(pfe->fd, 0, 0);
+            net_multiplexer_->NetModEvent(pfe->fd, 0, 0);
             // Wait for the conn complete asynchronous task and
-            // Mod Event to EPOLLOUT
+            // Mod Event to kWritable
           } else if (read_status == kReadHalf) {
             continue;
           } else {
@@ -210,8 +208,8 @@ void *WorkerThread::ThreadMain() {
           }
         }
 
-        if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP) || should_close) {
-          net_epoll_->NetDelEvent(pfe->fd, 0);
+        if ((pfe->mask & kErrorEvent) || should_close) {
+          net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(in_conn);
           in_conn = NULL;
           {
