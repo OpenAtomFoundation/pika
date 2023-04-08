@@ -95,6 +95,10 @@ class PikaConf : public pstd::BaseConf {
   int consensus_level()                             { return consensus_level_.load(); }
   int replication_num()                             { return replication_num_.load(); }
   int64_t rate_limiter_bandwidth()                  { RWLock l(&rwlock_, false); return rate_limiter_bandwidth_; }
+  int64_t rate_limiter_refill_period_us()           { RWLock l(&rwlock_, false); return rate_limiter_refill_period_us_; }
+  int64_t rate_limiter_fairness()                   { RWLock l(&rwlock_, false); return rate_limiter_fairness_; }
+  bool rate_limiter_auto_tuned()                    { RWLock l(&rwlock_, false); return rate_limiter_auto_tuned_; }
+
 
   // Immutable config items, we don't use lock.
   bool daemonize()                                  { return daemonize_; }
@@ -355,6 +359,10 @@ class PikaConf : public pstd::BaseConf {
   bool optimize_filters_for_hits_;
   bool level_compaction_dynamic_level_bytes_;
   int64_t rate_limiter_bandwidth_ = 200 * 1024 * 1024; // 200M
+  int64_t rate_limiter_refill_period_us_ = 100 * 1000;
+  int64_t rate_limiter_fairness_ = 10;
+  bool rate_limiter_auto_tuned_ = true;
+
   std::atomic<int> sync_window_size_;
   std::atomic<int> max_conn_rbuf_size_;
   std::atomic<int> consensus_level_;

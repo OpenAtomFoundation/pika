@@ -382,6 +382,22 @@ int PikaConf::Load()
     rate_limiter_bandwidth_ = 200 * 1024 * 1024;       // 200MB
   }
 
+  // rate-limiter-refill-period-us
+  GetConfInt64("rate-limiter-refill-period-us", &rate_limiter_refill_period_us_);
+  if (rate_limiter_refill_period_us_ <= 0 ) {
+    rate_limiter_refill_period_us_ = 100 * 1000;
+  }
+
+  // rate-limiter-fairness
+  GetConfInt64("rate-limiter-fairness", &rate_limiter_fairness_);
+  if (rate_limiter_fairness_ <= 0 ) {
+    rate_limiter_fairness_ = 10;
+  }
+
+  std::string at;
+  GetConfStr("rate-limiter-auto-tuned", &at);
+  rate_limiter_auto_tuned_ = (at == "yes" || at.empty()) ? true : false;
+
   // max_write_buffer_num
   max_write_buffer_num_ = 2;
   GetConfInt("max-write-buffer-num", &max_write_buffer_num_);
