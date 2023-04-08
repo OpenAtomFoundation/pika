@@ -17,6 +17,7 @@
 
 #include "include/pika_define.h"
 #include "include/pika_meta.h"
+#include "rocksdb/compression_type.h"
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
@@ -100,6 +101,8 @@ class PikaConf : public pstd::BaseConf {
   std::string pidfile()                             { return pidfile_; }
   int binlog_file_size()                            { return binlog_file_size_; }
   PikaMeta * local_meta()                           { return local_meta_; }
+  std::vector<rocksdb::CompressionType> compression_per_level();
+  static rocksdb::CompressionType GetCompression(const std::string &value);
 
   // Setter
   void SetPort(const int value) {
@@ -327,6 +330,7 @@ class PikaConf : public pstd::BaseConf {
   std::string pidfile_;
 
   std::string compression_;
+  std::string compression_per_level_;
   int maxclients_;
   int root_connection_num_;
   std::atomic<bool> slowlog_write_errorlog_;

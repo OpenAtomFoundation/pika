@@ -210,6 +210,7 @@ int PikaConf::Load()
       expire_logs_days_ = 1;
   }
   GetConfStr("compression", &compression_);
+  GetConfStr("compression_per_level", &compression_per_level_);
   // set slave read only true as default
   slave_read_only_ = true;
   GetConfInt("slave-priority", &slave_priority_);
@@ -598,4 +599,37 @@ int PikaConf::ConfigRewrite() {
     diff_commands_.clear();
   }
   return WriteBack();
+}
+
+rocksdb::CompressionType PikaConf::GetCompression(const std::string &value) {
+  if (value == "snappy") {
+    return rocksdb::CompressionType::kSnappyCompression;
+  } else if (value == "zlib") {
+    return rocksdb::CompressionType::kZlibCompression;
+  } else if (value == "lz4") {
+    return rocksdb::CompressionType::kLZ4Compression;
+  } else if (value == "zstd") {
+    return rocksdb::CompressionType::kZSTD;
+  }
+  return rocksdb::CompressionType::kNoCompression;
+}
+
+std::vector<rocksdb::CompressionType> PikaConf::compression_per_level() {
+  RWLock l(&rwlock_, false);
+  std::vector<rocksdb::CompressionType> types;
+  if (compression_per_level_.empty()) {
+    return types;
+  }
+  auto left = compression_per_level_.find_first_of('[');
+  auto right = compression_per_level_.find_first_of(']');
+
+  if (left == std::string::npos || right == std::string::npos || right <= left + 1) {
+    return types;
+  }
+  std::vector<std::string> strings;
+  pstd::StringSplit(compression_per_level_.substr(left + 1, right - left - 1), ':', strings);
+  for (const auto &item: strings) {
+    types.push_back(GetCompression(pstd::StringTrim(item)));
+  }
+  return types;
 }
