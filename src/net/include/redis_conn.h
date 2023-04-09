@@ -29,14 +29,14 @@ class RedisConn: public NetConn {
   RedisConn(const int fd,
             const std::string& ip_port,
             Thread* thread,
-            NetEpoll* net_epoll = nullptr,
+            NetMultiplexer* net_mpx = nullptr,
             const HandleType& handle_type = kSynchronous,
             const int rbuf_max_len = REDIS_MAX_MESSAGE);
   virtual ~RedisConn();
 
-  virtual ReadStatus GetRequest();
-  virtual WriteStatus SendReply();
-  virtual int WriteResp(const std::string& resp);
+  ReadStatus GetRequest() override;
+  WriteStatus SendReply() override;
+  int WriteResp(const std::string& resp) override;
 
   void TryResizeBuffer() override;
   void SetHandleType(const HandleType& handle_type);

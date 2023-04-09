@@ -11,7 +11,6 @@
 
 #include "net/include/net_conn.h"
 #include "net/src/net_item.h"
-#include "net/src/net_epoll.h"
 #include "net/include/net_pubsub.h"
 
 namespace net {
@@ -52,25 +51,25 @@ PubSubThread::PubSubThread()
       : receiver_rsignal_(&receiver_mutex_),
         receivers_(-1)  {
   set_thread_name("PubSubThread");
-  net_epoll_ = new NetEpoll();
+  net_multiplexer_.reset(CreateNetMultiplexer());
+  net_multiplexer_->Initialize();
   if (pipe(msg_pfd_)) {
     exit(-1);
   }
   fcntl(msg_pfd_[0], F_SETFD, fcntl(msg_pfd_[0], F_GETFD) | FD_CLOEXEC);
   fcntl(msg_pfd_[1], F_SETFD, fcntl(msg_pfd_[1], F_GETFD) | FD_CLOEXEC);
 
-  net_epoll_->NetAddEvent(msg_pfd_[0], EPOLLIN | EPOLLERR | EPOLLHUP);
+  net_multiplexer_->NetAddEvent(msg_pfd_[0], kReadable);
 }
 
 PubSubThread::~PubSubThread() {
   StopThread();
-  delete(net_epoll_);
 }
 
 void PubSubThread::MoveConnOut(std::shared_ptr<NetConn> conn) {
   RemoveConn(conn);
 
-  net_epoll_->NetDelEvent(conn->fd());
+  net_multiplexer_->NetDelEvent(conn->fd(), 0);
   {
     pstd::WriteLock l(&rwlock_);
     conns_.erase(conn->fd());
@@ -79,12 +78,12 @@ void PubSubThread::MoveConnOut(std::shared_ptr<NetConn> conn) {
 
 void PubSubThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& notify_type) {
   NetItem it(conn->fd(), conn->ip_port(), notify_type);
-  net_epoll_->Register(it, true);
+  net_multiplexer_->Register(it, true);
   {
     pstd::WriteLock l(&rwlock_);
     conns_[conn->fd()] = std::make_shared<ConnHandle>(conn);
   }
-  conn->set_net_epoll(net_epoll_);
+  conn->set_net_multiplexer(net_multiplexer_.get());
 }
 
 void PubSubThread::UpdateConnReadyState(int fd, const ReadyState& state) {
@@ -379,31 +378,31 @@ void *PubSubThread::ThreadMain() {
   char triger[1];
 
   while (!should_stop()) {
-    nfds = net_epoll_->NetPoll(NET_CRON_INTERVAL);
+    nfds = net_multiplexer_->NetPoll(NET_CRON_INTERVAL);
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->firedevent()) + i;
-      if (pfe->fd == net_epoll_->notify_receive_fd()) {        // New connection comming
-        if (pfe->mask & EPOLLIN) {
-          read(net_epoll_->notify_receive_fd(), triger, 1);
+      pfe = (net_multiplexer_->FiredEvents()) + i;
+      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {        // New connection comming
+        if (pfe->mask & kReadable) {
+          read(net_multiplexer_->NotifyReceiveFd(), triger, 1);
           {
-            NetItem ti = net_epoll_->notify_queue_pop();
+            NetItem ti = net_multiplexer_->NotifyQueuePop();
             if (ti.notify_type() == kNotiClose) {
             } else if (ti.notify_type() == kNotiEpollout) {
-              net_epoll_->NetModEvent(ti.fd(), 0, EPOLLOUT);
+              net_multiplexer_->NetModEvent(ti.fd(), 0, kWritable);
             } else if (ti.notify_type() == kNotiEpollin) {
-              net_epoll_->NetModEvent(ti.fd(), 0, EPOLLIN);
+              net_multiplexer_->NetModEvent(ti.fd(), 0, kReadable);
             } else if (ti.notify_type() == kNotiEpolloutAndEpollin) {
-              net_epoll_->NetModEvent(ti.fd(), 0, EPOLLOUT | EPOLLIN);
+              net_multiplexer_->NetModEvent(ti.fd(), 0, kWritable | kReadable);
             } else if (ti.notify_type() == kNotiWait) {
               // do not register events
-              net_epoll_->NetAddEvent(ti.fd(), 0);
+              net_multiplexer_->NetAddEvent(ti.fd(), 0);
             }
           }
           continue;
         }
       }
       if (pfe->fd == msg_pfd_[0]) {           // Publish message
-        if (pfe->mask & EPOLLIN) {
+        if (pfe->mask & kReadable) {
           read(msg_pfd_[0], triger, 1);
           std::string channel, msg;
           int32_t receivers = 0;
@@ -424,8 +423,8 @@ void *PubSubThread::ThreadMain() {
                 it->second[i]->WriteResp(resp);
                 WriteStatus write_status = it->second[i]->SendReply();
                 if (write_status == kWriteHalf) {
-                  net_epoll_->NetModEvent(it->second[i]->fd(),
-                                            EPOLLIN, EPOLLOUT);
+                  net_multiplexer_->NetModEvent(it->second[i]->fd(),
+                                            kReadable, kWritable);
                 } else if (write_status == kWriteError) {
                   channel_mutex_.Unlock();
 
@@ -454,8 +453,8 @@ void *PubSubThread::ThreadMain() {
                 it->second[i]->WriteResp(resp);
                 WriteStatus write_status = it->second[i]->SendReply();
                 if (write_status == kWriteHalf) {
-                  net_epoll_->NetModEvent(it->second[i]->fd(),
-                                            EPOLLIN, EPOLLOUT);
+                  net_multiplexer_->NetModEvent(it->second[i]->fd(),
+                                            kReadable, kWritable);
                 } else if (write_status == kWriteError) {
                   pattern_mutex_.Unlock();
 
@@ -486,18 +485,18 @@ void *PubSubThread::ThreadMain() {
           pstd::ReadLock l(&rwlock_);
           std::map<int, std::shared_ptr<ConnHandle> >::iterator iter = conns_.find(pfe->fd);
           if (iter == conns_.end()) {
-            net_epoll_->NetDelEvent(pfe->fd);
+            net_multiplexer_->NetDelEvent(pfe->fd, 0);
             continue;
           }
           in_conn = iter->second->conn;
         }
 
         // Send reply
-        if (pfe->mask & EPOLLOUT && in_conn->is_ready_to_reply()) {
+        if (pfe->mask & kWritable && in_conn->is_ready_to_reply()) {
           WriteStatus write_status = in_conn->SendReply();
           if (write_status == kWriteAll) {
             in_conn->set_is_reply(false);
-            net_epoll_->NetModEvent(pfe->fd, 0, EPOLLIN);  // Remove EPOLLOUT
+            net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);  // Remove kWritable
           } else if (write_status == kWriteHalf) {
             continue;  //  send all write buffer,
                        //  in case of next GetRequest()
@@ -508,7 +507,7 @@ void *PubSubThread::ThreadMain() {
         }
 
         // Client request again
-        if (!should_close && pfe->mask & EPOLLIN) {
+        if (!should_close && pfe->mask & kReadable) {
           ReadStatus getRes = in_conn->GetRequest();
           // Do not response to client when we leave the pub/sub status here
           if (getRes != kReadAll && getRes != kReadHalf) {
@@ -519,7 +518,7 @@ void *PubSubThread::ThreadMain() {
             if (write_status == kWriteAll) {
               in_conn->set_is_reply(false);
             } else if (write_status == kWriteHalf) {
-              net_epoll_->NetModEvent(pfe->fd, EPOLLIN, EPOLLOUT);
+              net_multiplexer_->NetModEvent(pfe->fd, kReadable, kWritable);
             } else if (write_status == kWriteError) {
               should_close = true;
             }
@@ -528,7 +527,7 @@ void *PubSubThread::ThreadMain() {
           }
         }
         // Error
-        if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP) || should_close) {
+        if ((pfe->mask & kErrorEvent) || should_close) {
           MoveConnOut(in_conn);
           CloseFd(in_conn);
           in_conn = nullptr;

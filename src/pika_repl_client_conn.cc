@@ -24,8 +24,8 @@ PikaReplClientConn::PikaReplClientConn(int fd,
                                const std::string& ip_port,
                                net::Thread* thread,
                                void* worker_specific_data,
-                               net::NetEpoll* epoll)
-      : net::PbConn(fd, ip_port, thread, epoll) {
+                               net::NetMultiplexer* mpx)
+      : net::PbConn(fd, ip_port, thread, mpx) {
 }
 
 bool PikaReplClientConn::IsTableStructConsistent(

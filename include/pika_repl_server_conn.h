@@ -18,7 +18,7 @@ class SyncMasterPartition;
 
 class PikaReplServerConn: public net::PbConn {
  public:
-  PikaReplServerConn(int fd, std::string ip_port, net::Thread* thread, void* worker_specific_data, net::NetEpoll* epoll);
+  PikaReplServerConn(int fd, std::string ip_port, net::Thread* thread, void* worker_specific_data, net::NetMultiplexer* mpx);
   virtual ~PikaReplServerConn();
 
   static void HandleMetaSyncRequest(void* arg);

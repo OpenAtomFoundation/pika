@@ -35,9 +35,9 @@ class PikaDispatchThread {
         const std::string &ip_port,
         net::Thread* server_thread,
         void* worker_specific_data,
-        net::NetEpoll* net_epoll) const {
+        net::NetMultiplexer* net) const {
        return std::static_pointer_cast<net::NetConn>
-         (std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, net_epoll, net::HandleType::kAsynchronous, max_conn_rbuf_size_));
+         (std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, net, net::HandleType::kAsynchronous, max_conn_rbuf_size_));
      }
    private:
      int max_conn_rbuf_size_;

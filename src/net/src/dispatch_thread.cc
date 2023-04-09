@@ -8,7 +8,7 @@
 #include "net/src/dispatch_thread.h"
 
 #include "net/src/net_item.h"
-#include "net/src/net_epoll.h"
+#include "net/src/net_multiplexer.h"
 #include "net/src/worker_thread.h"
 
 namespace net {
@@ -142,7 +142,7 @@ void DispatchThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType&
   bool success = worker_thread->MoveConnIn(conn, type, true);
   if (success) {
     last_thread_ = (last_thread_ + 1) % work_num_;
-    conn->set_net_epoll(worker_thread->net_epoll());
+    conn->set_net_multiplexer(worker_thread->net_multiplexer());
   }
 }
 

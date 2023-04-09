@@ -3,29 +3,29 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef NET_SRC_NET_EPOLL_H_
-#define NET_SRC_NET_EPOLL_H_
+#ifndef NET_SRC_NET_KQUEUE_H_
+#define NET_SRC_NET_KQUEUE_H_
 #include <vector>
 
-#include <sys/epoll.h>
+#include <sys/event.h>
 
 #include "net/src/net_multiplexer.h"
 
 namespace net {
 
-class NetEpoll final : public NetMultiplexer {
+class NetKqueue final : public NetMultiplexer {
  public:
-  NetEpoll(int queue_limit = kUnlimitedQueue);
-  ~NetEpoll() = default;
+  NetKqueue(int queue_limit = kUnlimitedQueue);
+  ~NetKqueue() = default;
 
   int NetAddEvent(int fd, int mask) override;
-  int NetDelEvent(int fd, int) override;
+  int NetDelEvent(int fd, int mask) override;
   int NetModEvent(int fd, int old_mask, int mask) override;
 
   int NetPoll(int timeout) override;
 
  private:
-  std::vector<struct epoll_event> events_;
+  std::vector<struct kevent> events_;
 };
 
 }  // namespace net

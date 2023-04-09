@@ -16,8 +16,8 @@ extern PikaReplicaManager* g_pika_rm;
 PikaReplServerConn::PikaReplServerConn(int fd,
                                        std::string ip_port,
                                        net::Thread* thread,
-                                       void* worker_specific_data, net::NetEpoll* epoll)
-    : PbConn(fd, ip_port, thread, epoll) {
+                                       void* worker_specific_data, net::NetMultiplexer* mpx)
+    : PbConn(fd, ip_port, thread, mpx) {
 }
 
 PikaReplServerConn::~PikaReplServerConn() {

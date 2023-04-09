@@ -23,10 +23,10 @@ extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 PikaClientConn::PikaClientConn(int fd, std::string ip_port,
                                net::Thread* thread,
-                               net::NetEpoll* net_epoll,
+                               net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type,
                                int max_conn_rbuf_size)
-      : RedisConn(fd, ip_port, thread, net_epoll, handle_type, max_conn_rbuf_size),
+      : RedisConn(fd, ip_port, thread, mpx, handle_type, max_conn_rbuf_size),
         server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
         current_table_(g_pika_conf->default_table()),
         is_pubsub_(false) {

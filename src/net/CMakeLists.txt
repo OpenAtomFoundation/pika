@@ -6,6 +6,12 @@ project (net)
 
 aux_source_directory(./src  DIR_SRCS)
 
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  list(FILTER DIR_SRCS EXCLUDE REGEX ".net_kqueue.*")
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  list(FILTER DIR_SRCS EXCLUDE REGEX ".net_epoll.*")
+endif()
+
 add_library(net STATIC ${DIR_SRCS} )
 
 add_dependencies(net 

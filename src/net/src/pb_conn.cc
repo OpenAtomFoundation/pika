@@ -13,8 +13,8 @@
 
 namespace net {
 
-PbConn::PbConn(const int fd, const std::string &ip_port, Thread *thread, NetEpoll* epoll) :
-  NetConn(fd, ip_port, thread, epoll),
+PbConn::PbConn(const int fd, const std::string &ip_port, Thread *thread, NetMultiplexer* mpx) :
+  NetConn(fd, ip_port, thread, mpx),
   header_len_(-1),
   cur_pos_(0),
   rbuf_len_(0),
@@ -201,12 +201,12 @@ void PbConn::TryResizeBuffer() {
 
 void PbConn::NotifyWrite() {
   net::NetItem ti(fd(), ip_port(), net::kNotiWrite);
-  net_epoll()->Register(ti, true);
+  net_multiplexer()->Register(ti, true);
 }
 
 void PbConn::NotifyClose() {
   net::NetItem ti(fd(), ip_port(), net::kNotiClose);
-  net_epoll()->Register(ti, true);
+  net_multiplexer()->Register(ti, true);
 }
 
 }  // namespace net

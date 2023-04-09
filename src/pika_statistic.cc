@@ -94,8 +94,10 @@ ServerStatistic::~ServerStatistic() {
 Statistic::Statistic() {
   pthread_rwlockattr_t table_stat_rw_attr;
   pthread_rwlockattr_init(&table_stat_rw_attr);
+#if !defined(__APPLE__)
   pthread_rwlockattr_setkind_np(&table_stat_rw_attr,
       PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+#endif
   pthread_rwlock_init(&table_stat_rw, &table_stat_rw_attr);
 }
 

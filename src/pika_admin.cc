@@ -110,7 +110,7 @@ void SlaveofCmd::DoInitial() {
 
   master_ip_ = argv_[1];
   std::string str_master_port = argv_[2];
-  if (!pstd::string2l(str_master_port.data(), str_master_port.size(),
+  if (!pstd::string2int(str_master_port.data(), str_master_port.size(),
                        &master_port_) ||
       master_port_ <= 0) {
     res_.SetRes(CmdRes::kInvalidInt);
@@ -204,12 +204,12 @@ void DbSlaveofCmd::DoInitial() {
       return;
     }
 
-    if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &filenum_) ||
+    if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &filenum_) ||
         filenum_ < 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
-    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &offset_) ||
+    if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &offset_) ||
         offset_ < 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
@@ -389,7 +389,7 @@ void PurgelogstoCmd::DoInitial() {
   }
   std::string str_num = filename.substr(kBinlogPrefixLen);
   int64_t num = 0;
-  if (!pstd::string2l(str_num.data(), str_num.size(), &num) || num < 0) {
+  if (!pstd::string2int(str_num.data(), str_num.size(), &num) || num < 0) {
     res_.SetRes(CmdRes::kInvalidParameter);
     return;
   }
@@ -920,22 +920,22 @@ void InfoCmd::InfoCPU(std::string& info) {
   getrusage(RUSAGE_CHILDREN, &c_ru);
   std::stringstream tmp_stream;
   tmp_stream << "# CPU\r\n";
-  tmp_stream << "used_cpu_sys:" << setiosflags(std::ios::fixed)
+  tmp_stream << "used_cpu_sys:" << std::setiosflags(std::ios::fixed)
              << std::setprecision(2)
              << (float)self_ru.ru_stime.tv_sec +
                     (float)self_ru.ru_stime.tv_usec / 1000000
              << "\r\n";
-  tmp_stream << "used_cpu_user:" << setiosflags(std::ios::fixed)
+  tmp_stream << "used_cpu_user:" << std::setiosflags(std::ios::fixed)
              << std::setprecision(2)
              << (float)self_ru.ru_utime.tv_sec +
                     (float)self_ru.ru_utime.tv_usec / 1000000
              << "\r\n";
-  tmp_stream << "used_cpu_sys_children:" << setiosflags(std::ios::fixed)
+  tmp_stream << "used_cpu_sys_children:" << std::setiosflags(std::ios::fixed)
              << std::setprecision(2)
              << (float)c_ru.ru_stime.tv_sec +
                     (float)c_ru.ru_stime.tv_usec / 1000000
              << "\r\n";
-  tmp_stream << "used_cpu_user_children:" << setiosflags(std::ios::fixed)
+  tmp_stream << "used_cpu_user_children:" << std::setiosflags(std::ios::fixed)
              << std::setprecision(2)
              << (float)c_ru.ru_utime.tv_sec +
                     (float)c_ru.ru_utime.tv_usec / 1000000
@@ -1791,7 +1791,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
   long int ival;
   std::string value = config_args_v_[2];
   if (set_item == "timeout") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument " + value + " for CONFIG SET 'timeout'\r\n";
       return;
     }
@@ -1813,7 +1813,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetBgsavePrefix(value);
     ret = "+OK\r\n";
   } else if (set_item == "maxclients") {
-    if (!pstd::string2l(value.data(), value.size(), &ival) || ival <= 0) {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'maxclients'\r\n";
       return;
@@ -1822,7 +1822,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_server->SetDispatchQueueLimit(ival);
     ret = "+OK\r\n";
   } else if (set_item == "dump-expire") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'dump-expire'\r\n";
       return;
@@ -1830,7 +1830,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetExpireDumpDays(ival);
     ret = "+OK\r\n";
   } else if (set_item == "slave-priority") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'slave-priority'\r\n";
       return;
@@ -1838,7 +1838,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSlavePriority(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-days") {
-    if (!pstd::string2l(value.data(), value.size(), &ival) || ival <= 0) {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'expire-logs-days'\r\n";
       return;
@@ -1846,7 +1846,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetExpireLogsDays(ival);
     ret = "+OK\r\n";
   } else if (set_item == "expire-logs-nums") {
-    if (!pstd::string2l(value.data(), value.size(), &ival) || ival <= 0) {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'expire-logs-nums'\r\n";
       return;
@@ -1854,7 +1854,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetExpireLogsNums(ival);
     ret = "+OK\r\n";
   } else if (set_item == "root-connection-num") {
-    if (!pstd::string2l(value.data(), value.size(), &ival) || ival <= 0) {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival <= 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'root-connection-num'\r\n";
       return;
@@ -1875,7 +1875,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSlowlogWriteErrorlog(is_write_errorlog);
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-log-slower-than") {
-    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'slowlog-log-slower-than'\r\n";
       return;
@@ -1883,7 +1883,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSlowlogSlowerThan(ival);
     ret = "+OK\r\n";
   } else if (set_item == "slowlog-max-len") {
-    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'slowlog-max-len'\r\n";
       return;
@@ -1892,7 +1892,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_server->SlowlogTrim();
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-statistic-keys") {
-    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-cache-statistic-keys'\r\n";
       return;
@@ -1901,7 +1901,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_server->PartitionSetMaxCacheStatisticKeys(ival);
     ret = "+OK\r\n";
   } else if (set_item == "small-compaction-threshold") {
-    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'small-compaction-threshold'\r\n";
       return;
@@ -1910,7 +1910,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_server->PartitionSetSmallCompactionThreshold(ival);
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
-    if (!pstd::string2l(value.data(), value.size(), &ival) || ival < 0) {
+    if (!pstd::string2int(value.data(), value.size(), &ival) || ival < 0) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-client-response-size'\r\n";
       return;
@@ -1930,7 +1930,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "+OK\r\n";
     }
   } else if (set_item == "db-sync-speed") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'db-sync-speed(MB)'\r\n";
       return;
@@ -2003,7 +2003,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       ret = "+OK\r\n";
     }
   } else if (set_item == "sync-window-size") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'sync-window-size'\r\n";
       return;
@@ -2016,7 +2016,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetSyncWindowSize(ival);
     ret = "+OK\r\n";
   } else if (set_item == "max-cache-files") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-cache-files'\r\n";
       return;
@@ -2032,7 +2032,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetMaxCacheFiles(ival);
     ret = "+OK\r\n";
   } else if (set_item == "max-background-compactions") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-background-compactions'\r\n";
       return;
@@ -2049,7 +2049,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetMaxBackgroudCompactions(ival);
     ret = "+OK\r\n";
   } else if (set_item == "write-buffer-size") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'write-buffer-size'\r\n";
       return;
@@ -2065,7 +2065,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetWriteBufferSize(ival);
     ret = "+OK\r\n";
   } else if (set_item == "max-write-buffer-num") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'max-write-buffer-number'\r\n";
       return;
@@ -2081,7 +2081,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
     g_pika_conf->SetMaxWriteBufferNumber(ival);
     ret = "+OK\r\n";
   } else if (set_item == "arena-block-size") {
-    if (!pstd::string2l(value.data(), value.size(), &ival)) {
+    if (!pstd::string2int(value.data(), value.size(), &ival)) {
       ret = "-ERR Invalid argument \'" + value +
             "\' for CONFIG SET 'arena-block-size'\r\n";
       return;
@@ -2302,7 +2302,7 @@ void SlowlogCmd::DoInitial() {
              !strcasecmp(argv_[1].data(), "get")) {
     condition_ = SlowlogCmd::kGET;
     if (argv_.size() == 3 &&
-        !pstd::string2l(argv_[2].data(), argv_[2].size(), &number_)) {
+        !pstd::string2int(argv_[2].data(), argv_[2].size(), &number_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -2371,7 +2371,7 @@ void TcmallocCmd::DoInitial() {
   } else if (!strcasecmp(type.data(), "rate")) {
     type_ = 1;
     if (argv_.size() == 3) {
-      if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &rate_)) {
+      if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &rate_)) {
         res_.SetRes(CmdRes::kSyntaxErr, kCmdNameTcmalloc);
       }
     }
@@ -2482,7 +2482,7 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
   size_t next_arg = 1;
   long ver = 0;
   if (argv_.size() >= 2) {
-    if (!pstd::string2l(argv_[next_arg].data(), argv_[next_arg].size(),
+    if (!pstd::string2int(argv_[next_arg].data(), argv_[next_arg].size(),
                          &ver)) {
       res_.SetRes(CmdRes::kErrOther,
                   "Protocol version is not an integer or out of range");
@@ -2565,7 +2565,7 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
     RedisAppendLen(raw, fv.field.size(), "$");
     RedisAppendContent(raw, fv.field);
     if (fv.field == "proto") {
-      pstd::string2l(fv.value.data(), fv.value.size(), &ver);
+      pstd::string2int(fv.value.data(), fv.value.size(), &ver);
       RedisAppendLen(raw, static_cast<int64_t>(ver), ":");
       continue;
     }

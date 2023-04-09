@@ -19,10 +19,10 @@ namespace net {
 RedisConn::RedisConn(const int fd,
                      const std::string& ip_port,
                      Thread* thread,
-                     NetEpoll* net_epoll,
+                     NetMultiplexer* net_mpx,
                      const HandleType& handle_type,
                      const int rbuf_max_len)
-    : NetConn(fd, ip_port, thread, net_epoll),
+    : NetConn(fd, ip_port, thread, net_mpx),
       handle_type_(handle_type),
       rbuf_(nullptr),
       rbuf_len_(0),
@@ -208,7 +208,7 @@ void RedisConn::ProcessRedisCmds(const std::vector<RedisCmdArgsType>& argvs, boo
 
 void RedisConn::NotifyEpoll(bool success) {
   NetItem ti(fd(), ip_port(), success ? kNotiEpolloutAndEpollin : kNotiClose);
-  net_epoll()->Register(ti, true);
+  net_multiplexer()->Register(ti, true);
 }
 
 int RedisConn::ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& argv) {

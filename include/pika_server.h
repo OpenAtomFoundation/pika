@@ -6,7 +6,12 @@
 #ifndef PIKA_SERVER_H_
 #define PIKA_SERVER_H_
 
+#if defined(__APPLE__)
+#include <sys/param.h>
+#include <sys/mount.h>
+#else
 #include <sys/statfs.h>
+#endif
 #include <memory>
 
 #include "pstd/include/pstd_mutex.h"

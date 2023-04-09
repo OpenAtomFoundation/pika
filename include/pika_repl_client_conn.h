@@ -18,7 +18,7 @@ class SyncSlavePartition;
 
 class PikaReplClientConn: public net::PbConn {
  public:
-  PikaReplClientConn(int fd, const std::string& ip_port, net::Thread *thread, void* worker_specific_data, net::NetEpoll* epoll);
+  PikaReplClientConn(int fd, const std::string& ip_port, net::Thread *thread, void* worker_specific_data, net::NetMultiplexer* mpx);
   virtual ~PikaReplClientConn() = default;
 
   static void HandleMetaSyncResponse(void* arg);

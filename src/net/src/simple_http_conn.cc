@@ -329,7 +329,7 @@ bool SimpleHTTPConn::BuildRequestHeader() {
     remain_packet_len_ = 0;
   } else {
     long tmp = 0;
-    if (pstd::string2l(iter->second.data(), iter->second.size(), &tmp)) {
+    if (pstd::string2int(iter->second.data(), iter->second.size(), &tmp)) {
       remain_packet_len_ = tmp;
     } else {
       remain_packet_len_ = 0;

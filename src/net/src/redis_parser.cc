@@ -149,7 +149,7 @@ int RedisParser::GetNextNum(int pos, long* value) {
   //      |    |
   //      *3\r\n
   // [cur_pos_ + 1, pos - cur_pos_ - 2]
-  if (pstd::string2l(input_buf_ + cur_pos_ + 1,
+  if (pstd::string2int(input_buf_ + cur_pos_ + 1,
                             pos - cur_pos_ - 2,
                             value)) {
     return 0; // Success
