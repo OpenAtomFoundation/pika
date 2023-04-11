@@ -3,9 +3,9 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "slaveping_thread.h"
 #include <glog/logging.h>
 #include <poll.h>
-#include "slaveping_thread.h"
 #include "pika_port.h"
 
 extern PikaPort* g_pika_port;
@@ -13,10 +13,10 @@ extern PikaPort* g_pika_port;
 Status SlavepingThread::Send() {
   std::string wbuf_str;
   if (!is_first_send_) {
-    net::SerializeRedisCommand(&wbuf_str, "ping"); // reply == pong
+    net::SerializeRedisCommand(&wbuf_str, "ping");  // reply == pong
   } else {
     net::RedisCmdArgsType argv;
-    argv.push_back("spci"); // reply == pong
+    argv.push_back("spci");  // reply == pong
     argv.push_back(std::to_string(sid_));
     net::SerializeRedisCommand(argv, &wbuf_str);
     is_first_send_ = false;
@@ -50,12 +50,12 @@ void* SlavepingThread::ThreadMain() {
   Status s;
   int connect_retry_times = 0;
   while (!should_stop() && g_pika_port->ShouldStartPingMaster()) {
-    if (!should_stop()
-         && (cli_->Connect(g_pika_port->master_ip(),
-             g_pika_port->master_port() + 2000,
+    if (!should_stop() &&
+        (cli_->Connect(
+             g_pika_port->master_ip(), g_pika_port->master_port() + 2000,
              // Bug Fix By AS on 20190413 12:49pm: ping thread should bind the same network ip as trysync thread
-             g_conf.local_ip)).ok()) {
-
+             g_conf.local_ip))
+            .ok()) {
       cli_->set_send_timeout(1000);
       cli_->set_recv_timeout(1000);
       connect_retry_times = 0;
@@ -78,7 +78,7 @@ void* SlavepingThread::ThreadMain() {
           LOG(WARNING) << "Slaveping timeout once";
           gettimeofday(&now, NULL);
           if (now.tv_sec - last_interaction.tv_sec > 30) {
-            //timeout;
+            // timeout;
             LOG(INFO) << "Ping master timeout";
             close(cli_->fd());
             g_pika_port->binlog_receiver_thread()->KillBinlogSender();

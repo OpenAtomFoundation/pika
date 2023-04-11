@@ -3,28 +3,26 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <string>
-#include <atomic>
 #include <signal.h>
+#include <atomic>
+#include <string>
 
-#include "pstd/include/pstd_status.h"
 #include "net/include/net_thread.h"
 #include "net/include/server_thread.h"
 #include "net/include/simple_http_conn.h"
+#include "pstd/include/pstd_status.h"
 
 using namespace net;
 
 class MyHTTPConn : public net::SimpleHTTPConn {
  public:
-  MyHTTPConn(const int fd, const std::string& ip_port, Thread* worker) :
-    SimpleHTTPConn(fd, ip_port, worker) {
-  }
+  MyHTTPConn(const int fd, const std::string& ip_port, Thread* worker) : SimpleHTTPConn(fd, ip_port, worker) {}
   virtual void DealMessage(const net::Request* req, net::Response* res) {
-    std::cout << "handle get"<< std::endl;
+    std::cout << "handle get" << std::endl;
     std::cout << " + method: " << req->method << std::endl;
     std::cout << " + path: " << req->path << std::endl;
     std::cout << " + version: " << req->version << std::endl;
-    std::cout << " + content: " << req->content<< std::endl;
+    std::cout << " + content: " << req->content << std::endl;
     std::cout << " + headers: " << std::endl;
     for (auto& h : req->headers) {
       std::cout << "   + " << h.first << ":" << h.second << std::endl;
@@ -45,10 +43,8 @@ class MyHTTPConn : public net::SimpleHTTPConn {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port,
-                                                Thread* thread,
-                                                void* worker_specific_data,
-                                                NetEpoll* net_epoll) const {
+  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+                                              void* worker_specific_data, NetEpoll* net_epoll) const {
     return std::make_shared<MyHTTPConn>(connfd, ip_port, thread);
   }
 };
@@ -80,7 +76,7 @@ int main(int argc, char* argv[]) {
   SignalSetup();
 
   ConnFactory* my_conn_factory = new MyConnFactory();
-  ServerThread *st = NewDispatchThread(port, 4, my_conn_factory, 1000);
+  ServerThread* st = NewDispatchThread(port, 4, my_conn_factory, 1000);
 
   if (st->StartThread() != 0) {
     printf("StartThread error happened!\n");

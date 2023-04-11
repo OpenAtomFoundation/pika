@@ -11,12 +11,9 @@
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
-class Table : public std::enable_shared_from_this<Table>{
+class Table : public std::enable_shared_from_this<Table> {
  public:
-  Table(const std::string& table_name,
-        uint32_t partition_num,
-        const std::string& db_path,
-        const std::string& log_path);
+  Table(const std::string& table_name, uint32_t partition_num, const std::string& db_path, const std::string& log_path);
   virtual ~Table();
 
   friend class Cmd;
@@ -74,7 +71,7 @@ class Table : public std::enable_shared_from_this<Table>{
   /*
    * KeyScan use
    */
-  static void DoKeyScan(void *arg);
+  static void DoKeyScan(void* arg);
   void InitKeyScan();
   pstd::Mutex key_scan_protector_;
   KeyScanInfo key_scan_info_;
@@ -90,6 +87,5 @@ struct BgTaskArg {
   std::shared_ptr<Table> table;
   std::shared_ptr<Partition> partition;
 };
-
 
 #endif

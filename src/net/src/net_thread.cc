@@ -4,22 +4,17 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "net/include/net_thread.h"
+#include "net/include/net_define.h"
 #include "net/src/net_thread_name.h"
 #include "pstd/include/xdebug.h"
-#include "net/include/net_define.h"
 
 namespace net {
 
-Thread::Thread()
-  : should_stop_(false),
-    running_(false),
-    thread_id_(0) {
-}
+Thread::Thread() : should_stop_(false), running_(false), thread_id_(0) {}
 
-Thread::~Thread() {
-}
+Thread::~Thread() {}
 
-void* Thread::RunThread(void *arg) {
+void* Thread::RunThread(void* arg) {
   Thread* thread = reinterpret_cast<Thread*>(arg);
   if (!(thread->thread_name().empty())) {
     SetThreadName(pthread_self(), thread->thread_name());
@@ -33,7 +28,7 @@ int Thread::StartThread() {
   should_stop_ = false;
   if (!running_) {
     running_ = true;
-    return pthread_create(&thread_id_, nullptr, RunThread, (void *)this);
+    return pthread_create(&thread_id_, nullptr, RunThread, (void*)this);
   }
   return 0;
 }
@@ -48,8 +43,6 @@ int Thread::StopThread() {
   return 0;
 }
 
-int Thread::JoinThread() {
-  return pthread_join(thread_id_, nullptr);
-}
+int Thread::JoinThread() { return pthread_join(thread_id_, nullptr); }
 
 }  // namespace net

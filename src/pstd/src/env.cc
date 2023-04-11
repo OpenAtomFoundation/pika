@@ -3,14 +3,14 @@
 #include <assert.h>
 #include <dirent.h>
 #include <fcntl.h>
-#include <sys/stat.h>
 #include <sys/mman.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/time.h>
 
-#include <vector>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 #include "pstd/include/xdebug.h"
 
@@ -29,13 +29,13 @@ const size_t kPageSize = getpagesize();
 
 int SetMaxFileDescriptorNum(int64_t max_file_descriptor_num) {
   // Try to Set the number of file descriptor
-  struct  rlimit limit;
+  struct rlimit limit;
   if (getrlimit(RLIMIT_NOFILE, &limit) != -1) {
     if (limit.rlim_cur < (rlim_t)max_file_descriptor_num) {
       // rlim_cur could be set by any user while rlim_max are
       // changeable only by root.
       limit.rlim_cur = max_file_descriptor_num;
-      if(limit.rlim_cur > limit.rlim_max) {
+      if (limit.rlim_cur > limit.rlim_max) {
         limit.rlim_max = max_file_descriptor_num;
       }
       if (setrlimit(RLIMIT_NOFILE, &limit) != -1) {
@@ -51,15 +51,12 @@ int SetMaxFileDescriptorNum(int64_t max_file_descriptor_num) {
   }
 }
 
-
 /*
  * size of initial mmap size
  */
 size_t kMmapBoundSize = 1024 * 1024 * 4;
 
-void SetMmapBoundSize(size_t size) {
-  kMmapBoundSize = size;
-}
+void SetMmapBoundSize(size_t size) { kMmapBoundSize = size; }
 
 static Status IOError(const std::string& context, int err_number) {
   return Status::IOError(context, strerror(err_number));
@@ -74,9 +71,7 @@ int CreateDir(const std::string& path) {
   return res;
 }
 
-bool FileExists(const std::string& path) {
-  return access(path.c_str(), F_OK) == 0;
-}
+bool FileExists(const std::string& path) { return access(path.c_str(), F_OK) == 0; }
 
 Status DeleteFile(const std::string& fname) {
   Status result;
@@ -86,15 +81,14 @@ Status DeleteFile(const std::string& fname) {
   return result;
 }
 
-int DoCreatePath(const char *path, mode_t mode) {
+int DoCreatePath(const char* path, mode_t mode) {
   struct stat st;
   int status = 0;
 
   if (stat(path, &st) != 0) {
     /* Directory does not exist. EEXIST for race
      * condition */
-    if (mkdir(path, mode) != 0 && errno != EEXIST)
-      status = -1;
+    if (mkdir(path, mode) != 0 && errno != EEXIST) status = -1;
   } else if (!S_ISDIR(st.st_mode)) {
     errno = ENOTDIR;
     status = -1;
@@ -109,11 +103,11 @@ int DoCreatePath(const char *path, mode_t mode) {
  ** each directory in path exists, rather than optimistically creating
  ** the last element and working backwards.
  */
-int CreatePath(const std::string &path, mode_t mode) {
-  char           *pp;
-  char           *sp;
-  int             status;
-  char           *copypath = strdup(path.c_str());
+int CreatePath(const std::string& path, mode_t mode) {
+  char* pp;
+  char* sp;
+  int status;
+  char* copypath = strdup(path.c_str());
 
   status = 0;
   pp = copypath;
@@ -126,8 +120,7 @@ int CreatePath(const std::string &path, mode_t mode) {
     }
     pp = sp + 1;
   }
-  if (status == 0)
-    status = DoCreatePath(path.c_str(), mode);
+  if (status == 0) status = DoCreatePath(path.c_str(), mode);
   free(copypath);
   return (status);
 }
@@ -139,7 +132,7 @@ static int LockOrUnlock(int fd, bool lock) {
   f.l_type = (lock ? F_WRLCK : F_UNLCK);
   f.l_whence = SEEK_SET;
   f.l_start = 0;
-  f.l_len = 0;        // Lock/unlock entire file
+  f.l_len = 0;  // Lock/unlock entire file
   return fcntl(fd, F_SETLK, &f);
 }
 
@@ -222,27 +215,26 @@ int IsDir(const std::string& path) {
   int ret = stat(path.c_str(), &buf);
   if (0 == ret) {
     if (buf.st_mode & S_IFDIR) {
-      //folder
+      // folder
       return 0;
     } else {
-      //file
+      // file
       return 1;
     }
   }
   return -1;
 }
 
-int DeleteDir(const std::string& path)
-{
+int DeleteDir(const std::string& path) {
   char chBuf[256];
-  DIR * dir = NULL;
-  struct dirent *ptr;
+  DIR* dir = NULL;
+  struct dirent* ptr;
   int ret = 0;
   dir = opendir(path.c_str());
   if (NULL == dir) {
     return -1;
   }
-  while((ptr = readdir(dir)) != NULL) {
+  while ((ptr = readdir(dir)) != NULL) {
     ret = strcmp(ptr->d_name, ".");
     if (0 == ret) {
       continue;
@@ -254,16 +246,15 @@ int DeleteDir(const std::string& path)
     snprintf(chBuf, 256, "%s/%s", path.c_str(), ptr->d_name);
     ret = IsDir(chBuf);
     if (0 == ret) {
-      //is dir
+      // is dir
       ret = DeleteDir(chBuf);
       if (0 != ret) {
         return -1;
       }
-    }
-    else if (1 == ret) {
-      //is file
+    } else if (1 == ret) {
+      // is file
       ret = remove(chBuf);
-      if(0 != ret) {
+      if (0 != ret) {
         return -1;
       }
     }
@@ -294,8 +285,8 @@ uint64_t Du(const std::string& filename) {
   }
   sum = statbuf.st_size;
   if (S_ISDIR(statbuf.st_mode)) {
-    DIR *dir = NULL;
-    struct dirent *entry;
+    DIR* dir = NULL;
+    struct dirent* entry;
     std::string newfile;
 
     dir = opendir(filename.c_str());
@@ -320,25 +311,19 @@ uint64_t NowMicros() {
   return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 
-void SleepForMicroseconds(int micros) {
-  usleep(micros);
-}
+void SleepForMicroseconds(int micros) { usleep(micros); }
 
-SequentialFile::~SequentialFile() {
-}
+SequentialFile::~SequentialFile() {}
 
-class PosixSequentialFile: public SequentialFile {
+class PosixSequentialFile : public SequentialFile {
  private:
   std::string filename_;
   FILE* file_;
 
  public:
-  virtual void setUnBuffer() {
-    setbuf(file_, NULL);
-  }
+  virtual void setUnBuffer() { setbuf(file_, NULL); }
 
-  PosixSequentialFile(const std::string& fname, FILE* f)
-      : filename_(fname), file_(f) { setbuf(file_, NULL); }
+  PosixSequentialFile(const std::string& fname, FILE* f) : filename_(fname), file_(f) { setbuf(file_, NULL); }
 
   virtual ~PosixSequentialFile() {
     if (file_) {
@@ -371,9 +356,7 @@ class PosixSequentialFile: public SequentialFile {
     return Status::OK();
   }
 
-  virtual char *ReadLine(char* buf, int n) override {
-    return fgets(buf, n, file_);
-  }
+  virtual char* ReadLine(char* buf, int n) override { return fgets(buf, n, file_); }
 
   virtual Status Close() {
     if (fclose(file_) != 0) {
@@ -384,15 +367,13 @@ class PosixSequentialFile: public SequentialFile {
   }
 };
 
-WritableFile::~WritableFile() {
-}
+WritableFile::~WritableFile() {}
 
 // We preallocate up to an extra megabyte and use memcpy to append new
 // data to the file.  This is safe since we either properly close the
 // file before reading from it, or for log files, the reading code
 // knows enough to skip zero suffixes.
-class PosixMmapFile : public WritableFile
-{
+class PosixMmapFile : public WritableFile {
  private:
   std::string filename_;
   int fd_;
@@ -405,18 +386,13 @@ class PosixMmapFile : public WritableFile
   uint64_t file_offset_;  // Offset of base_ in file
   uint64_t write_len_;    // The data that written in the file
 
-
   // Have we done an munmap of unsynced data?
   bool pending_sync_;
 
   // Roundup x to a multiple of y
-  static size_t Roundup(size_t x, size_t y) {
-    return ((x + y - 1) / y) * y;
-  }
+  static size_t Roundup(size_t x, size_t y) { return ((x + y - 1) / y) * y; }
 
-  static size_t TrimDown(size_t x, size_t y) {
-    return (x / y) * y;
-  }
+  static size_t TrimDown(size_t x, size_t y) { return (x / y) * y; }
   size_t TruncateToPageBoundary(size_t s) {
     s -= (s & (page_size_ - 1));
     assert((s % page_size_) == 0);
@@ -440,7 +416,7 @@ class PosixMmapFile : public WritableFile
       dst_ = NULL;
 
       // Increase the amount we map the next time, but capped at 1MB
-      if (map_size_ < (1<<20)) {
+      if (map_size_ < (1 << 20)) {
         map_size_ *= 2;
       }
     }
@@ -457,9 +433,8 @@ class PosixMmapFile : public WritableFile
       log_warn("ftruncate error");
       return false;
     }
-    //log_info("map_size %d fileoffset %llu", map_size_, file_offset_);
-    void* ptr = mmap(NULL, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED,
-                     fd_, file_offset_);
+    // log_info("map_size %d fileoffset %llu", map_size_, file_offset_);
+    void* ptr = mmap(NULL, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, file_offset_);
     if (ptr == MAP_FAILED) {
       log_warn("mmap failed");
       return false;
@@ -475,24 +450,23 @@ class PosixMmapFile : public WritableFile
  public:
   PosixMmapFile(const std::string& fname, int fd, size_t page_size, uint64_t write_len = 0)
       : filename_(fname),
-      fd_(fd),
-      page_size_(page_size),
-      map_size_(Roundup(kMmapBoundSize, page_size)),
-      base_(NULL),
-      limit_(NULL),
-      dst_(NULL),
-      last_sync_(NULL),
-      file_offset_(0),
-      write_len_(write_len),
-      pending_sync_(false) {
-        if (write_len_ != 0) {
-          while (map_size_ < write_len_) {
-            map_size_ += (1024 * 1024);
-          }
-        }
-        assert((page_size & (page_size - 1)) == 0);
+        fd_(fd),
+        page_size_(page_size),
+        map_size_(Roundup(kMmapBoundSize, page_size)),
+        base_(NULL),
+        limit_(NULL),
+        dst_(NULL),
+        last_sync_(NULL),
+        file_offset_(0),
+        write_len_(write_len),
+        pending_sync_(false) {
+    if (write_len_ != 0) {
+      while (map_size_ < write_len_) {
+        map_size_ += (1024 * 1024);
       }
-
+    }
+    assert((page_size & (page_size - 1)) == 0);
+  }
 
   ~PosixMmapFile() {
     if (fd_ >= 0) {
@@ -545,9 +519,7 @@ class PosixMmapFile : public WritableFile
     return s;
   }
 
-  virtual Status Flush() {
-    return Status::OK();
-  }
+  virtual Status Flush() { return Status::OK(); }
 
   virtual Status Sync() {
     Status s;
@@ -591,175 +563,160 @@ class PosixMmapFile : public WritableFile
     return Status::OK();
   }
 
-  virtual uint64_t Filesize() {
-    return write_len_ + file_offset_ + (dst_ - base_);
-  }
+  virtual uint64_t Filesize() { return write_len_ + file_offset_ + (dst_ - base_); }
 };
 
+RWFile::~RWFile() {}
 
-RWFile::~RWFile() {
-}
-
-class MmapRWFile : public RWFile
-{
+class MmapRWFile : public RWFile {
  public:
-   MmapRWFile(const std::string& fname, int fd, size_t page_size)
-     : filename_(fname),
-     fd_(fd),
-     page_size_(page_size),
-     map_size_(Roundup(65536, page_size)),
-     base_(NULL) {
-       DoMapRegion();
-     }
+  MmapRWFile(const std::string& fname, int fd, size_t page_size)
+      : filename_(fname), fd_(fd), page_size_(page_size), map_size_(Roundup(65536, page_size)), base_(NULL) {
+    DoMapRegion();
+  }
 
-   ~MmapRWFile() {
-     if (fd_ >= 0) {
-       munmap(base_, map_size_);
-     }
-   }
+  ~MmapRWFile() {
+    if (fd_ >= 0) {
+      munmap(base_, map_size_);
+    }
+  }
 
-   bool DoMapRegion() {
+  bool DoMapRegion() {
 #if defined(__APPLE__)
-     if (ftruncate(fd_, map_size_) != 0) {
+    if (ftruncate(fd_, map_size_) != 0) {
 #else
-     if (posix_fallocate(fd_, 0, map_size_) != 0) {
+    if (posix_fallocate(fd_, 0, map_size_) != 0) {
 #endif
-       return false;
-     }
-     void* ptr = mmap(NULL, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
-     if (ptr == MAP_FAILED) {
-       return false;
-     }
-     base_ = reinterpret_cast<char*>(ptr);
-     return true;
-   }
+      return false;
+    }
+    void* ptr = mmap(NULL, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
+    if (ptr == MAP_FAILED) {
+      return false;
+    }
+    base_ = reinterpret_cast<char*>(ptr);
+    return true;
+  }
 
-   char* GetData() { return base_; }
-   char* base() { return base_; }
+  char* GetData() { return base_; }
+  char* base() { return base_; }
 
  private:
-   static size_t Roundup(size_t x, size_t y) {
-     return ((x + y - 1) / y) * y;
-   }
-   std::string filename_;
-   int fd_;
-   size_t page_size_;
-   size_t map_size_;
-   char* base_;
+  static size_t Roundup(size_t x, size_t y) { return ((x + y - 1) / y) * y; }
+  std::string filename_;
+  int fd_;
+  size_t page_size_;
+  size_t map_size_;
+  char* base_;
 };
 
 class PosixRandomRWFile : public RandomRWFile {
  private:
-   const std::string filename_;
-   int fd_;
-   bool pending_sync_;
-   bool pending_fsync_;
-   //bool fallocate_with_keep_size_;
+  const std::string filename_;
+  int fd_;
+  bool pending_sync_;
+  bool pending_fsync_;
+  // bool fallocate_with_keep_size_;
 
  public:
-   PosixRandomRWFile(const std::string& fname, int fd)
-     : filename_(fname),
-     fd_(fd),
-     pending_sync_(false),
-     pending_fsync_(false) {
-       //fallocate_with_keep_size_ = options.fallocate_with_keep_size;
-     }
+  PosixRandomRWFile(const std::string& fname, int fd)
+      : filename_(fname), fd_(fd), pending_sync_(false), pending_fsync_(false) {
+    // fallocate_with_keep_size_ = options.fallocate_with_keep_size;
+  }
 
-   ~PosixRandomRWFile() {
-     if (fd_ >= 0) {
-       Close();
-     }
-   }
+  ~PosixRandomRWFile() {
+    if (fd_ >= 0) {
+      Close();
+    }
+  }
 
-   virtual Status Write(uint64_t offset, const Slice& data) override {
-     const char* src = data.data();
-     size_t left = data.size();
-     Status s;
-     pending_sync_ = true;
-     pending_fsync_ = true;
+  virtual Status Write(uint64_t offset, const Slice& data) override {
+    const char* src = data.data();
+    size_t left = data.size();
+    Status s;
+    pending_sync_ = true;
+    pending_fsync_ = true;
 
-     while (left != 0) {
-       ssize_t done = pwrite(fd_, src, left, offset);
-       if (done < 0) {
-         if (errno == EINTR) {
-         continue;
-       }
-       return IOError(filename_, errno);
-     }
+    while (left != 0) {
+      ssize_t done = pwrite(fd_, src, left, offset);
+      if (done < 0) {
+        if (errno == EINTR) {
+          continue;
+        }
+        return IOError(filename_, errno);
+      }
 
-     left -= done;
-     src += done;
-     offset += done;
-   }
+      left -= done;
+      src += done;
+      offset += done;
+    }
 
-   return Status::OK();
- }
+    return Status::OK();
+  }
 
- virtual Status Read(uint64_t offset, size_t n, Slice* result,
-                     char* scratch) const override {
-   Status s;
-   ssize_t r = -1;
-   size_t left = n;
-   char* ptr = scratch;
-   while (left > 0) {
-     r = pread(fd_, ptr, left, static_cast<off_t>(offset));
-     if (r <= 0) {
-       if (errno == EINTR) {
-         continue;
-       }
-       break;
-     }
-     ptr += r;
-     offset += r;
-     left -= r;
-   }
-   *result = Slice(scratch, (r < 0) ? 0 : n - left);
-   if (r < 0) {
-     s = IOError(filename_, errno);
-   }
-   return s;
- }
+  virtual Status Read(uint64_t offset, size_t n, Slice* result, char* scratch) const override {
+    Status s;
+    ssize_t r = -1;
+    size_t left = n;
+    char* ptr = scratch;
+    while (left > 0) {
+      r = pread(fd_, ptr, left, static_cast<off_t>(offset));
+      if (r <= 0) {
+        if (errno == EINTR) {
+          continue;
+        }
+        break;
+      }
+      ptr += r;
+      offset += r;
+      left -= r;
+    }
+    *result = Slice(scratch, (r < 0) ? 0 : n - left);
+    if (r < 0) {
+      s = IOError(filename_, errno);
+    }
+    return s;
+  }
 
- virtual Status Close() override {
-   Status s = Status::OK();
-   if (fd_ >= 0 && close(fd_) < 0) {
-     s = IOError(filename_, errno);
-   }
-   fd_ = -1;
-   return s;
- }
+  virtual Status Close() override {
+    Status s = Status::OK();
+    if (fd_ >= 0 && close(fd_) < 0) {
+      s = IOError(filename_, errno);
+    }
+    fd_ = -1;
+    return s;
+  }
 
- virtual Status Sync() override {
+  virtual Status Sync() override {
 #if defined(__APPLE__)
-   if (pending_sync_ && fsync(fd_) < 0) {
+    if (pending_sync_ && fsync(fd_) < 0) {
 #else
-   if (pending_sync_ && fdatasync(fd_) < 0) {
+    if (pending_sync_ && fdatasync(fd_) < 0) {
 #endif
-     return IOError(filename_, errno);
-   }
-   pending_sync_ = false;
-   return Status::OK();
- }
+      return IOError(filename_, errno);
+    }
+    pending_sync_ = false;
+    return Status::OK();
+  }
 
- virtual Status Fsync() override {
-   if (pending_fsync_ && fsync(fd_) < 0) {
-     return IOError(filename_, errno);
-   }
-   pending_fsync_ = false;
-   pending_sync_ = false;
-   return Status::OK();
- }
+  virtual Status Fsync() override {
+    if (pending_fsync_ && fsync(fd_) < 0) {
+      return IOError(filename_, errno);
+    }
+    pending_fsync_ = false;
+    pending_sync_ = false;
+    return Status::OK();
+  }
 
-//  virtual Status Allocate(off_t offset, off_t len) override {
-//    TEST_KILL_RANDOM(rocksdb_kill_odds);
-//    int alloc_status = fallocate(
-//        fd_, fallocate_with_keep_size_ ? FALLOC_FL_KEEP_SIZE : 0, offset, len);
-//    if (alloc_status == 0) {
-//      return Status::OK();
-//    } else {
-//      return IOError(filename_, errno);
-//    }
-//  }
+  //  virtual Status Allocate(off_t offset, off_t len) override {
+  //    TEST_KILL_RANDOM(rocksdb_kill_odds);
+  //    int alloc_status = fallocate(
+  //        fd_, fallocate_with_keep_size_ ? FALLOC_FL_KEEP_SIZE : 0, offset, len);
+  //    if (alloc_status == 0) {
+  //      return Status::OK();
+  //    } else {
+  //      return IOError(filename_, errno);
+  //    }
+  //  }
 };
 
 Status NewSequentialFile(const std::string& fname, SequentialFile** result) {
@@ -821,4 +778,4 @@ Status NewRandomRWFile(const std::string& fname, RandomRWFile** result) {
   return s;
 }
 
-}   // namespace pstd
+}  // namespace pstd

@@ -15,7 +15,7 @@ namespace net {
 class PeriodThread : public Thread {
  public:
   explicit PeriodThread(struct timeval period = (struct timeval){1, 0});
-  virtual void *ThreadMain();
+  virtual void* ThreadMain();
   virtual void PeriodMain() = 0;
 
  private:

@@ -1,49 +1,42 @@
-#include <stdio.h>
 #include <signal.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <atomic>
 
-#include "net/include/server_thread.h"
-#include "net/include/net_conn.h"
-#include "net/include/pb_conn.h"
-#include "net/include/net_thread.h"
 #include "myproto.pb.h"
+#include "net/include/net_conn.h"
+#include "net/include/net_thread.h"
+#include "net/include/pb_conn.h"
+#include "net/include/server_thread.h"
 
 using namespace net;
 
-class MyConn: public PbConn {
+class MyConn : public PbConn {
  public:
-  MyConn(int fd, std::string ip_port, Thread *thread, void* private_data);
+  MyConn(int fd, std::string ip_port, Thread* thread, void* private_data);
   virtual ~MyConn();
 
-  Thread* thread() {
-    return thread_;
-  }
+  Thread* thread() { return thread_; }
 
  protected:
   virtual int DealMessage();
 
  private:
-  Thread *thread_;
+  Thread* thread_;
   int* private_data_;
   myproto::Ping ping_;
   myproto::PingRes ping_res_;
 };
 
-MyConn::MyConn(int fd, ::std::string ip_port, Thread *thread,
-               void* worker_specific_data)
-    : PbConn(fd, ip_port, thread),
-      thread_(thread),
-      private_data_(static_cast<int*>(worker_specific_data)) {
-}
+MyConn::MyConn(int fd, ::std::string ip_port, Thread* thread, void* worker_specific_data)
+    : PbConn(fd, ip_port, thread), thread_(thread), private_data_(static_cast<int*>(worker_specific_data)) {}
 
-MyConn::~MyConn() {
-}
+MyConn::~MyConn() {}
 
 int MyConn::DealMessage() {
   printf("In the myconn DealMessage branch\n");
   ping_.ParseFromArray(rbuf_ + cur_pos_ - header_len_, header_len_);
-  printf ("DealMessage receive (%s) port %d \n", ping_.address().c_str(), ping_.port());
+  printf("DealMessage receive (%s) port %d \n", ping_.address().c_str(), ping_.port());
 
   int* data = static_cast<int*>(private_data_);
   printf("Worker's Env: %d\n", *data);
@@ -59,26 +52,22 @@ int MyConn::DealMessage() {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string &ip_port,
-                                                 Thread *thread,
-                                                 void* worker_specific_data,
-                                                 NetEpoll* net_epoll) const {
+  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+                                              void* worker_specific_data, NetEpoll* net_epoll) const {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
 };
 
 class MyServerHandle : public ServerHandle {
-public:
-  virtual void CronHandle() const override {
-    printf ("Cron operation\n");
-  }
+ public:
+  virtual void CronHandle() const override { printf("Cron operation\n"); }
   using ServerHandle::AccessHandle;
   virtual bool AccessHandle(std::string& ip) const override {
-    printf ("Access operation, receive:%s\n", ip.c_str());
+    printf("Access operation, receive:%s\n", ip.c_str());
     return true;
   }
   virtual int CreateWorkerSpecificData(void** data) const {
-    int *num = new int(1234);
+    int* num = new int(1234);
     *data = static_cast<void*>(num);
     return 0;
   }
@@ -106,7 +95,7 @@ static void SignalSetup() {
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
-    printf ("Usage: ./server port\n");
+    printf("Usage: ./server port\n");
     exit(0);
   }
 

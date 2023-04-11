@@ -45,57 +45,39 @@ namespace testing {
 
 // Constructs a matcher that matches a const string& whose value is
 // equal to s.
-Matcher<const internal::string&>::Matcher(const internal::string& s) {
-  *this = Eq(s);
-}
+Matcher<const internal::string&>::Matcher(const internal::string& s) { *this = Eq(s); }
 
 // Constructs a matcher that matches a const string& whose value is
 // equal to s.
-Matcher<const internal::string&>::Matcher(const char* s) {
-  *this = Eq(internal::string(s));
-}
+Matcher<const internal::string&>::Matcher(const char* s) { *this = Eq(internal::string(s)); }
 
 // Constructs a matcher that matches a string whose value is equal to s.
 Matcher<internal::string>::Matcher(const internal::string& s) { *this = Eq(s); }
 
 // Constructs a matcher that matches a string whose value is equal to s.
-Matcher<internal::string>::Matcher(const char* s) {
-  *this = Eq(internal::string(s));
-}
+Matcher<internal::string>::Matcher(const char* s) { *this = Eq(internal::string(s)); }
 
 #if GTEST_HAS_STRING_PIECE_
 // Constructs a matcher that matches a const StringPiece& whose value is
 // equal to s.
-Matcher<const StringPiece&>::Matcher(const internal::string& s) {
-  *this = Eq(s);
-}
+Matcher<const StringPiece&>::Matcher(const internal::string& s) { *this = Eq(s); }
 
 // Constructs a matcher that matches a const StringPiece& whose value is
 // equal to s.
-Matcher<const StringPiece&>::Matcher(const char* s) {
-  *this = Eq(internal::string(s));
-}
+Matcher<const StringPiece&>::Matcher(const char* s) { *this = Eq(internal::string(s)); }
 
 // Constructs a matcher that matches a const StringPiece& whose value is
 // equal to s.
-Matcher<const StringPiece&>::Matcher(StringPiece s) {
-  *this = Eq(s.ToString());
-}
+Matcher<const StringPiece&>::Matcher(StringPiece s) { *this = Eq(s.ToString()); }
 
 // Constructs a matcher that matches a StringPiece whose value is equal to s.
-Matcher<StringPiece>::Matcher(const internal::string& s) {
-  *this = Eq(s);
-}
+Matcher<StringPiece>::Matcher(const internal::string& s) { *this = Eq(s); }
 
 // Constructs a matcher that matches a StringPiece whose value is equal to s.
-Matcher<StringPiece>::Matcher(const char* s) {
-  *this = Eq(internal::string(s));
-}
+Matcher<StringPiece>::Matcher(const char* s) { *this = Eq(internal::string(s)); }
 
 // Constructs a matcher that matches a StringPiece whose value is equal to s.
-Matcher<StringPiece>::Matcher(StringPiece s) {
-  *this = Eq(s.ToString());
-}
+Matcher<StringPiece>::Matcher(StringPiece s) { *this = Eq(s.ToString()); }
 #endif  // GTEST_HAS_STRING_PIECE_
 
 namespace internal {
@@ -124,12 +106,9 @@ GTEST_API_ string JoinAsTuple(const Strings& fields) {
 // 'negation' is false; otherwise returns the description of the
 // negation of the matcher.  'param_values' contains a list of strings
 // that are the print-out of the matcher's parameters.
-GTEST_API_ string FormatMatcherDescription(bool negation,
-                                           const char* matcher_name,
-                                           const Strings& param_values) {
+GTEST_API_ string FormatMatcherDescription(bool negation, const char* matcher_name, const Strings& param_values) {
   string result = ConvertIdentifierNameToWords(matcher_name);
-  if (param_values.size() >= 1)
-    result += " " + JoinAsTuple(param_values);
+  if (param_values.size() >= 1) result += " " + JoinAsTuple(param_values);
   return negation ? "not (" + result + ")" : result;
 }
 
@@ -198,10 +177,7 @@ GTEST_API_ string FormatMatcherDescription(bool negation,
 class MaxBipartiteMatchState {
  public:
   explicit MaxBipartiteMatchState(const MatchMatrix& graph)
-      : graph_(&graph),
-        left_(graph_->LhsSize(), kUnused),
-        right_(graph_->RhsSize(), kUnused) {
-  }
+      : graph_(&graph), left_(graph_->LhsSize(), kUnused), right_(graph_->RhsSize(), kUnused) {}
 
   // Returns the edges of a maximal match, each in the form {left, right}.
   ElementMatcherPairs Compute() {
@@ -222,8 +198,7 @@ class MaxBipartiteMatchState {
     for (size_t ilhs = 0; ilhs < graph_->LhsSize(); ++ilhs) {
       // Reset the path-marking vector and try to find a path from
       // source to sink starting at the left_[ilhs] node.
-      GTEST_CHECK_(left_[ilhs] == kUnused)
-          << "ilhs: " << ilhs << ", left_[ilhs]: " << left_[ilhs];
+      GTEST_CHECK_(left_[ilhs] == kUnused) << "ilhs: " << ilhs << ", left_[ilhs]: " << left_[ilhs];
       // 'seen' initialized to 'graph_->RhsSize()' copies of 0.
       seen.assign(graph_->RhsSize(), 0);
       TryAugment(ilhs, &seen);
@@ -258,10 +233,8 @@ class MaxBipartiteMatchState {
   //
   bool TryAugment(size_t ilhs, ::std::vector<char>* seen) {
     for (size_t irhs = 0; irhs < graph_->RhsSize(); ++irhs) {
-      if ((*seen)[irhs])
-        continue;
-      if (!graph_->HasEdge(ilhs, irhs))
-        continue;
+      if ((*seen)[irhs]) continue;
+      if (!graph_->HasEdge(ilhs, irhs)) continue;
       // There's an available edge from ilhs to irhs.
       (*seen)[irhs] = 1;
       // Next a search is performed to determine whether
@@ -304,17 +277,15 @@ class MaxBipartiteMatchState {
 
 const size_t MaxBipartiteMatchState::kUnused;
 
-GTEST_API_ ElementMatcherPairs
-FindMaxBipartiteMatching(const MatchMatrix& g) {
+GTEST_API_ ElementMatcherPairs FindMaxBipartiteMatching(const MatchMatrix& g) {
   return MaxBipartiteMatchState(g).Compute();
 }
 
-static void LogElementMatcherPairVec(const ElementMatcherPairs& pairs,
-                                     ::std::ostream* stream) {
+static void LogElementMatcherPairVec(const ElementMatcherPairs& pairs, ::std::ostream* stream) {
   typedef ElementMatcherPairs::const_iterator Iter;
   ::std::ostream& os = *stream;
   os << "{";
-  const char *sep = "";
+  const char* sep = "";
   for (Iter it = pairs.begin(); it != pairs.end(); ++it) {
     os << sep << "\n  ("
        << "element #" << it->first << ", "
@@ -325,8 +296,7 @@ static void LogElementMatcherPairVec(const ElementMatcherPairs& pairs,
 }
 
 // Tries to find a pairing, and explains the result.
-GTEST_API_ bool FindPairing(const MatchMatrix& matrix,
-                            MatchResultListener* listener) {
+GTEST_API_ bool FindPairing(const MatchMatrix& matrix, MatchResultListener* listener) {
   ElementMatcherPairs matches = FindMaxBipartiteMatching(matrix);
 
   size_t max_flow = matches.size();
@@ -336,8 +306,7 @@ GTEST_API_ bool FindPairing(const MatchMatrix& matrix,
     if (listener->IsInterested()) {
       *listener << "where no permutation of the elements can "
                    "satisfy all matchers, and the closest match is "
-                << max_flow << " of " << matrix.RhsSize()
-                << " matchers with the pairings:\n";
+                << max_flow << " of " << matrix.RhsSize() << " matchers with the pairings:\n";
       LogElementMatcherPairVec(matches, listener->stream());
     }
     return false;
@@ -345,10 +314,9 @@ GTEST_API_ bool FindPairing(const MatchMatrix& matrix,
 
   if (matches.size() > 1) {
     if (listener->IsInterested()) {
-      const char *sep = "where:\n";
+      const char* sep = "where:\n";
       for (size_t mi = 0; mi < matches.size(); ++mi) {
-        *listener << sep << " - element #" << matches[mi].first
-                  << " is matched by matcher #" << matches[mi].second;
+        *listener << sep << " - element #" << matches[mi].first << " is matched by matcher #" << matches[mi].second;
         sep = ",\n";
       }
     }
@@ -381,7 +349,7 @@ void MatchMatrix::Randomize() {
 
 string MatchMatrix::DebugString() const {
   ::std::stringstream ss;
-  const char *sep = "";
+  const char* sep = "";
   for (size_t i = 0; i < LhsSize(); ++i) {
     ss << sep;
     for (size_t j = 0; j < RhsSize(); ++j) {
@@ -392,8 +360,7 @@ string MatchMatrix::DebugString() const {
   return ss.str();
 }
 
-void UnorderedElementsAreMatcherImplBase::DescribeToImpl(
-    ::std::ostream* os) const {
+void UnorderedElementsAreMatcherImplBase::DescribeToImpl(::std::ostream* os) const {
   if (matcher_describers_.empty()) {
     *os << "is empty";
     return;
@@ -413,15 +380,13 @@ void UnorderedElementsAreMatcherImplBase::DescribeToImpl(
   }
 }
 
-void UnorderedElementsAreMatcherImplBase::DescribeNegationToImpl(
-    ::std::ostream* os) const {
+void UnorderedElementsAreMatcherImplBase::DescribeNegationToImpl(::std::ostream* os) const {
   if (matcher_describers_.empty()) {
     *os << "isn't empty";
     return;
   }
   if (matcher_describers_.size() == 1) {
-    *os << "doesn't have " << Elements(1)
-        << ", or has " << Elements(1) << " that ";
+    *os << "doesn't have " << Elements(1) << ", or has " << Elements(1) << " that ";
     matcher_describers_[0]->DescribeNegationTo(os);
     return;
   }
@@ -440,11 +405,8 @@ void UnorderedElementsAreMatcherImplBase::DescribeNegationToImpl(
 // and better error reporting.
 // Returns false, writing an explanation to 'listener', if and only
 // if the success criteria are not met.
-bool UnorderedElementsAreMatcherImplBase::
-VerifyAllElementsAndMatchersAreMatched(
-    const ::std::vector<string>& element_printouts,
-    const MatchMatrix& matrix,
-    MatchResultListener* listener) const {
+bool UnorderedElementsAreMatcherImplBase::VerifyAllElementsAndMatchersAreMatched(
+    const ::std::vector<string>& element_printouts, const MatchMatrix& matrix, MatchResultListener* listener) const {
   bool result = true;
   ::std::vector<char> element_matched(matrix.LhsSize(), 0);
   ::std::vector<char> matcher_matched(matrix.RhsSize(), 0);
@@ -458,11 +420,9 @@ VerifyAllElementsAndMatchersAreMatched(
   }
 
   {
-    const char* sep =
-        "where the following matchers don't match any elements:\n";
+    const char* sep = "where the following matchers don't match any elements:\n";
     for (size_t mi = 0; mi < matcher_matched.size(); ++mi) {
-      if (matcher_matched[mi])
-        continue;
+      if (matcher_matched[mi]) continue;
       result = false;
       if (listener->IsInterested()) {
         *listener << sep << "matcher #" << mi << ": ";
@@ -473,19 +433,16 @@ VerifyAllElementsAndMatchersAreMatched(
   }
 
   {
-    const char* sep =
-        "where the following elements don't match any matchers:\n";
+    const char* sep = "where the following elements don't match any matchers:\n";
     const char* outer_sep = "";
     if (!result) {
       outer_sep = "\nand ";
     }
     for (size_t ei = 0; ei < element_matched.size(); ++ei) {
-      if (element_matched[ei])
-        continue;
+      if (element_matched[ei]) continue;
       result = false;
       if (listener->IsInterested()) {
-        *listener << outer_sep << sep << "element #" << ei << ": "
-                  << element_printouts[ei];
+        *listener << outer_sep << sep << "element #" << ei << ": " << element_printouts[ei];
         sep = ",\n";
         outer_sep = "";
       }

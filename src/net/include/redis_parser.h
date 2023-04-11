@@ -18,9 +18,9 @@ namespace net {
 class RedisParser;
 
 typedef std::vector<std::string> RedisCmdArgsType;
-typedef int (*RedisParserDataCb) (RedisParser*, const RedisCmdArgsType&);
-typedef int (*RedisParserMultiDataCb) (RedisParser*, const std::vector<RedisCmdArgsType>&);
-typedef int (*RedisParserCb) (RedisParser*);
+typedef int (*RedisParserDataCb)(RedisParser*, const RedisCmdArgsType&);
+typedef int (*RedisParserMultiDataCb)(RedisParser*, const std::vector<RedisCmdArgsType>&);
+typedef int (*RedisParserCb)(RedisParser*);
 typedef int RedisParserType;
 
 enum RedisParserStatus {
@@ -34,7 +34,7 @@ enum RedisParserStatus {
 enum RedisParserError {
   kRedisParserOk = 0,
   kRedisParserInitError = 1,
-  kRedisParserFullError = 2, // input overwhelm internal buffer
+  kRedisParserFullError = 2,  // input overwhelm internal buffer
   kRedisParserProtoError = 3,
   kRedisParserDealError = 4,
   kRedisParserCompleteError = 5,
@@ -54,13 +54,9 @@ class RedisParser {
   RedisParser();
   RedisParserStatus RedisParserInit(RedisParserType type, const RedisParserSettings& settings);
   RedisParserStatus ProcessInputBuffer(const char* input_buf, int length, int* parsed_len);
-  long get_bulk_len() {
-    return bulk_len_;
-  }
-  RedisParserError get_error_code() {
-    return error_code_;
-  }
-  void *data; /* A pointer to get hook to the "connection" or "socket" object */
+  long get_bulk_len() { return bulk_len_; }
+  RedisParserError get_error_code() { return error_code_; }
+  void* data; /* A pointer to get hook to the "connection" or "socket" object */
  private:
   // for DEBUG
   void PrintCurrentStatus();
@@ -80,13 +76,13 @@ class RedisParser {
   RedisParserStatus status_code_;
   RedisParserError error_code_;
 
-  int redis_type_; // REDIS_REQ_INLINE or REDIS_REQ_MULTIBULK
+  int redis_type_;  // REDIS_REQ_INLINE or REDIS_REQ_MULTIBULK
 
   long multibulk_len_;
   long bulk_len_;
   std::string half_argv_;
 
-  int redis_parser_type_; // REDIS_PARSER_REQUEST or REDIS_PARSER_RESPONSE
+  int redis_parser_type_;  // REDIS_PARSER_REQUEST or REDIS_PARSER_RESPONSE
 
   RedisCmdArgsType argv_;
   std::vector<RedisCmdArgsType> argvs_;
@@ -99,4 +95,3 @@ class RedisParser {
 
 }  // namespace net
 #endif  // NET_INCLUDE_REDIS_PARSER_H_
-

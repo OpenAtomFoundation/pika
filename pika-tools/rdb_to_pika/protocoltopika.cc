@@ -1,9 +1,9 @@
-#include"hiredis.h"
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<sstream>
-#include<cstdlib>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include "hiredis.h"
 
 void Usage() {
   std::cout << "Usage:" << std::endl;
@@ -12,7 +12,8 @@ void Usage() {
   std::cout << "      --i       pika ip address" << std::endl;
   std::cout << "      --p       pika port" << std::endl;
   std::cout << "      [--a]     password for pika db; default = NULL" << std::endl;
-  std::cout << "example " << "./redisConn protocol_file 127.0.0.1 9221  password" << std::endl;  
+  std::cout << "example "
+            << "./redisConn protocol_file 127.0.0.1 9221  password" << std::endl;
 }
 int main(int argc, char** argv) {
   if (argc < 4) {
@@ -20,41 +21,39 @@ int main(int argc, char** argv) {
     return -1;
   }
   const char* filename = argv[1];
-  const char* ip = argv[2]; 
+  const char* ip = argv[2];
   std::ifstream fin(filename, std::ios::in);
   std::string strport(argv[3]);
   std::stringstream ss;
   ss << strport;
   int port;
   ss >> port;
-  redisContext *c = redisConnect(ip, port); 
-  redisReply *reply;
+  redisContext* c = redisConnect(ip, port);
+  redisReply* reply;
   if (!c || c->err) {
     if (c) {
       redisFree(c);
       std::cout << "connection error" << std::endl;
-      return -1; 
-    }
-    else {
+      return -1;
+    } else {
       std::cout << "conneciont error : can't allocate redis context." << std::endl;
       return -1;
     }
   }
   std::cout << "connection successful" << std::endl;
-  redisReply *r;
+  redisReply* r;
   if (argc == 5) {
     const char* password = argv[4];
     r = (redisReply*)redisCommand(c, "AUTH %s", password);
     if (r->type == REDIS_REPLY_ERROR) {
-      std::cout << "authentication failed " << std::endl; 
+      std::cout << "authentication failed " << std::endl;
       freeReplyObject(r);
       redisFree(c);
-      return -1; 
-    }
-    else {
-      std::cout << "authentication success " << std::endl; 
+      return -1;
+    } else {
+      std::cout << "authentication success " << std::endl;
       freeReplyObject(r);
-    } 
+    }
   }
   char line[1000000];
   while (fin.getline(line, sizeof(line))) {
@@ -63,19 +62,19 @@ int main(int argc, char** argv) {
     for (int i = 1; i <= k; i++) {
       fin.getline(line, sizeof(line));
       fin.getline(line, sizeof(line), '\r');
-      //std::string tmp(line);
+      // std::string tmp(line);
       command.append(line);
-      command.append(" "); 
+      command.append(" ");
       fin.getline(line, sizeof(line));
     }
-    //std::cout << command << std::endl;
+    // std::cout << command << std::endl;
     r = (redisReply*)redisCommand(c, command.c_str());
     if (r) {
       freeReplyObject(r);
     }
   }
-  std::cout << "transport finished" << std::endl; 
+  std::cout << "transport finished" << std::endl;
   redisFree(c);
-  fin.close(); 
+  fin.close();
   return 0;
 }

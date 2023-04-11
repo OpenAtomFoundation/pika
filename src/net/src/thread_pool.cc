@@ -39,21 +39,17 @@ int ThreadPool::Worker::stop() {
   return 0;
 }
 
-ThreadPool::ThreadPool(size_t worker_num,
-                       size_t max_queue_size,
-                       const std::string& thread_pool_name) :
-  worker_num_(worker_num),
-  max_queue_size_(max_queue_size),
-  thread_pool_name_(thread_pool_name),
-  running_(false),
-  should_stop_(false),
-  mu_(),
-  rsignal_(&mu_),
-  wsignal_(&mu_) {}
+ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, const std::string& thread_pool_name)
+    : worker_num_(worker_num),
+      max_queue_size_(max_queue_size),
+      thread_pool_name_(thread_pool_name),
+      running_(false),
+      should_stop_(false),
+      mu_(),
+      rsignal_(&mu_),
+      wsignal_(&mu_) {}
 
-ThreadPool::~ThreadPool() {
-  stop_thread_pool();
-}
+ThreadPool::~ThreadPool() { stop_thread_pool(); }
 
 int ThreadPool::start_thread_pool() {
   if (!running_.load()) {
@@ -90,13 +86,9 @@ int ThreadPool::stop_thread_pool() {
   return res;
 }
 
-bool ThreadPool::should_stop() {
-  return should_stop_.load();
-}
+bool ThreadPool::should_stop() { return should_stop_.load(); }
 
-void ThreadPool::set_should_stop() {
-  should_stop_.store(true);
-}
+void ThreadPool::set_should_stop() { should_stop_.store(true); }
 
 void ThreadPool::Schedule(TaskFunc func, void* arg) {
   mu_.Lock();
@@ -113,8 +105,7 @@ void ThreadPool::Schedule(TaskFunc func, void* arg) {
 /*
  * timeout is in millisecond
  */
-void ThreadPool::DelaySchedule(
-    uint64_t timeout, TaskFunc func, void* arg) {
+void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
   /*
    * pthread_cond_timedwait api use absolute API
    * so we need gettimeofday + timeout
@@ -132,9 +123,7 @@ void ThreadPool::DelaySchedule(
   mu_.Unlock();
 }
 
-size_t ThreadPool::max_queue_size() {
-  return max_queue_size_;
-}
+size_t ThreadPool::max_queue_size() { return max_queue_size_; }
 
 void ThreadPool::cur_queue_size(size_t* qsize) {
   pstd::MutexLock l(&mu_);
@@ -146,9 +135,7 @@ void ThreadPool::cur_time_queue_size(size_t* qsize) {
   *qsize = time_queue_.size();
 }
 
-std::string ThreadPool::thread_pool_name() {
-  return thread_pool_name_;
-}
+std::string ThreadPool::thread_pool_name() { return thread_pool_name_; }
 
 void ThreadPool::runInThread() {
   while (!should_stop()) {
@@ -174,8 +161,7 @@ void ThreadPool::runInThread() {
         (*func)(arg);
         continue;
       } else if (queue_.empty() && !should_stop()) {
-        rsignal_.TimedWait(
-            static_cast<uint32_t>((time_task.exec_time - unow) / 1000));
+        rsignal_.TimedWait(static_cast<uint32_t>((time_task.exec_time - unow) / 1000));
         mu_.Unlock();
         continue;
       }

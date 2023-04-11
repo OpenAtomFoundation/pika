@@ -7,9 +7,7 @@
 
 #include <glog/logging.h>
 
-PikaMonitorThread::PikaMonitorThread()
-  : net::Thread(),
-    monitor_cond_(&monitor_mutex_protector_) {
+PikaMonitorThread::PikaMonitorThread() : net::Thread(), monitor_cond_(&monitor_mutex_protector_) {
   set_thread_name("MonitorThread");
   has_monitor_clients_.store(false);
 }
@@ -20,9 +18,7 @@ PikaMonitorThread::~PikaMonitorThread() {
     monitor_cond_.SignalAll();
     StopThread();
   }
-  for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
-      iter != monitor_clients_.end();
-      ++iter) {
+  for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
     close(iter->fd);
   }
   LOG(INFO) << "PikaMonitorThread " << pthread_self() << " exit!!!";
@@ -42,7 +38,7 @@ void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
       close(iter->fd);
       continue;
     }
-    if (iter->ip_port  == ip_port) {
+    if (iter->ip_port == ip_port) {
       close(iter->fd);
       break;
     }
@@ -55,21 +51,19 @@ void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
   has_monitor_clients_.store(!monitor_clients_.empty());
 }
 
-void PikaMonitorThread::AddMonitorMessage(const std::string &monitor_message) {
-    pstd::MutexLock lm(&monitor_mutex_protector_);
-    if (monitor_messages_.empty() && cron_tasks_.empty()) {
-      monitor_messages_.push_back(monitor_message);
-      monitor_cond_.Signal();
-    } else {
-      monitor_messages_.push_back(monitor_message);
-    }
+void PikaMonitorThread::AddMonitorMessage(const std::string& monitor_message) {
+  pstd::MutexLock lm(&monitor_mutex_protector_);
+  if (monitor_messages_.empty() && cron_tasks_.empty()) {
+    monitor_messages_.push_back(monitor_message);
+    monitor_cond_.Signal();
+  } else {
+    monitor_messages_.push_back(monitor_message);
+  }
 }
 
 int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr) {
   if (clients_ptr != NULL) {
-    for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
-        iter != monitor_clients_.end();
-        iter++) {
+    for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); iter++) {
       clients_ptr->push_back(*iter);
     }
   }
@@ -86,11 +80,9 @@ void PikaMonitorThread::AddCronTask(MonitorCronTask task) {
   }
 }
 
-bool PikaMonitorThread::FindClient(const std::string &ip_port) {
+bool PikaMonitorThread::FindClient(const std::string& ip_port) {
   pstd::MutexLock lm(&monitor_mutex_protector_);
-  for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
-      iter != monitor_clients_.end();
-      ++iter) {
+  for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
     if (iter->ip_port == ip_port) {
       return true;
     }
@@ -111,9 +103,7 @@ bool PikaMonitorThread::ThreadClientKill(const std::string& ip_port) {
   return true;
 }
 
-bool PikaMonitorThread::HasMonitorClients() {
-  return has_monitor_clients_.load();
-}
+bool PikaMonitorThread::HasMonitorClients() { return has_monitor_clients_.load(); }
 
 net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message) {
   size_t retry = 0;
@@ -155,7 +145,7 @@ void* PikaMonitorThread::ThreadMain() {
     }
     if (should_stop()) {
       break;
-    } 
+    }
     {
       pstd::MutexLock lm(&monitor_mutex_protector_);
       while (!cron_tasks_.empty()) {
@@ -178,20 +168,16 @@ void* PikaMonitorThread::ThreadMain() {
       }
     }
     messages_transfer = "+";
-    for (std::deque<std::string>::iterator iter = messages_deque.begin();
-        iter != messages_deque.end();
-        ++iter) {
+    for (std::deque<std::string>::iterator iter = messages_deque.begin(); iter != messages_deque.end(); ++iter) {
       messages_transfer.append(iter->data(), iter->size());
-      messages_transfer.append("\n"); 
+      messages_transfer.append("\n");
     }
     if (messages_transfer == "+") {
       continue;
     }
-    messages_transfer.replace(messages_transfer.size()-1, 1, "\r\n", 0, 2);
+    messages_transfer.replace(messages_transfer.size() - 1, 1, "\r\n", 0, 2);
     monitor_mutex_protector_.Lock();
-    for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
-        iter != monitor_clients_.end();
-        ++iter) {
+    for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
       write_status = SendMessage(iter->fd, messages_transfer);
       if (write_status == net::kWriteError) {
         cron_tasks_.push({TASK_KILL, iter->ip_port});

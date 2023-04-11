@@ -5,8 +5,8 @@
 
 #include <gtest/gtest.h>
 
-#include "storage/storage.h"
 #include "src/lru_cache.h"
+#include "storage/storage.h"
 
 using namespace storage;
 
@@ -120,7 +120,6 @@ TEST(LRUCacheTest, TestLookupCase1) {
   ASSERT_TRUE(lru_cache.LRUAsExpected({{"k5", "v5"}, {"k4", "v4"}, {"k1", "v1"}, {"k3", "v3"}, {"k2", "v2"}}));
 }
 
-
 TEST(LRUCacheTest, TestInsertCase1) {
   Status s;
   storage::LRUCache<std::string, std::string> lru_cache;
@@ -146,7 +145,7 @@ TEST(LRUCacheTest, TestInsertCase1) {
 
   // ***************** Step 3 *****************
   // (k3, v3) -> (k2, v2) -> (k1, v1)
-  s = lru_cache.Insert("k3","v3");
+  s = lru_cache.Insert("k3", "v3");
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(lru_cache.Size(), 3);
   ASSERT_EQ(lru_cache.TotalCharge(), 3);
@@ -304,7 +303,6 @@ TEST(LRUCacheTest, TestInsertCase3) {
   ASSERT_TRUE(lru_cache.LRUAndHandleTableConsistent());
   ASSERT_TRUE(lru_cache.LRUAsExpected({{"k6", "v6"}}));
 }
-
 
 TEST(LRUCacheTest, TestInsertCase4) {
   Status s;

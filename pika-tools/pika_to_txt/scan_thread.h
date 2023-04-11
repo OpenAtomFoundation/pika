@@ -9,23 +9,21 @@
 #include "iostream"
 #include "vector"
 
-#include "slash/include/slash_coding.h"
-#include "net/include/net_thread.h"
 #include "blackwidow/blackwidow.h"
+#include "net/include/net_thread.h"
+#include "slash/include/slash_coding.h"
 
 #include "write_thread.h"
 
 class ScanThread : public net::Thread {
  public:
-  ScanThread(WriteThread* write_thread, blackwidow::BlackWidow* blackwidow_db) :
-      is_finish_(false),
-      scan_number_(0),
-      write_thread_(write_thread),
-      blackwidow_db_(blackwidow_db) {}
+  ScanThread(WriteThread* write_thread, blackwidow::BlackWidow* blackwidow_db)
+      : is_finish_(false), scan_number_(0), write_thread_(write_thread), blackwidow_db_(blackwidow_db) {}
   bool is_finish();
   int32_t scan_number();
+
  private:
-  void *ThreadMain() override;
+  void* ThreadMain() override;
   bool is_finish_;
   int32_t scan_number_;
   WriteThread* write_thread_;

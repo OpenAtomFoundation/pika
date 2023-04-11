@@ -6,34 +6,29 @@
 #ifndef SRC_STRINGS_FILTER_H_
 #define SRC_STRINGS_FILTER_H_
 
-#include <string>
 #include <memory>
+#include <string>
 
-#include "src/strings_value_format.h"
 #include "rocksdb/compaction_filter.h"
 #include "src/debug.h"
+#include "src/strings_value_format.h"
 
 namespace storage {
 
 class StringsFilter : public rocksdb::CompactionFilter {
  public:
   StringsFilter() = default;
-  bool Filter(int level, const rocksdb::Slice& key,
-              const rocksdb::Slice& value,
-              std::string* new_value, bool* value_changed) const override {
+  bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
+              bool* value_changed) const override {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     int32_t cur_time = static_cast<int32_t>(unix_time);
     ParsedStringsValue parsed_strings_value(value);
     Trace("==========================START==========================");
-    Trace("[StringsFilter], key: %s, value = %s, timestamp: %d, cur_time: %d",
-          key.ToString().c_str(),
-          parsed_strings_value.value().ToString().c_str(),
-          parsed_strings_value.timestamp(),
-          cur_time);
+    Trace("[StringsFilter], key: %s, value = %s, timestamp: %d, cur_time: %d", key.ToString().c_str(),
+          parsed_strings_value.value().ToString().c_str(), parsed_strings_value.timestamp(), cur_time);
 
-    if (parsed_strings_value.timestamp() != 0
-      && parsed_strings_value.timestamp() < cur_time) {
+    if (parsed_strings_value.timestamp() != 0 && parsed_strings_value.timestamp() < cur_time) {
       Trace("Drop[Stale]");
       return true;
     } else {
@@ -49,12 +44,10 @@ class StringsFilterFactory : public rocksdb::CompactionFilterFactory {
  public:
   StringsFilterFactory() = default;
   std::unique_ptr<rocksdb::CompactionFilter> CreateCompactionFilter(
-    const rocksdb::CompactionFilter::Context& context) override {
+      const rocksdb::CompactionFilter::Context& context) override {
     return std::unique_ptr<rocksdb::CompactionFilter>(new StringsFilter());
   }
-  const char* Name() const override {
-    return "StringsFilterFactory";
-  }
+  const char* Name() const override { return "StringsFilterFactory"; }
 };
 
 }  //  namespace storage

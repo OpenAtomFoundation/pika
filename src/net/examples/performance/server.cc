@@ -1,15 +1,15 @@
+#include <signal.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <atomic>
-#include <sys/time.h>
-#include <stdint.h>
-#include <signal.h>
 
-#include "net/include/server_thread.h"
-#include "net/include/net_conn.h"
-#include "net/include/pb_conn.h"
-#include "net/include/net_thread.h"
 #include "message.pb.h"
+#include "net/include/net_conn.h"
+#include "net/include/net_thread.h"
+#include "net/include/pb_conn.h"
+#include "net/include/server_thread.h"
 
 using namespace net;
 using namespace std;
@@ -24,9 +24,7 @@ static atomic<int> num(0);
 
 class PingConn : public PbConn {
  public:
-  PingConn(int fd, std::string ip_port, net::ServerThread* pself_thread = NULL) : 
-    PbConn(fd, ip_port, pself_thread) {
-  }
+  PingConn(int fd, std::string ip_port, net::ServerThread* pself_thread = NULL) : PbConn(fd, ip_port, pself_thread) {}
   virtual ~PingConn() {}
 
   int DealMessage() {
@@ -43,7 +41,6 @@ class PingConn : public PbConn {
   }
 
  private:
-
   Ping request_;
   Pong response_;
 
@@ -51,23 +48,17 @@ class PingConn : public PbConn {
   PingConn& operator=(PingConn&);
 };
 
-
 class PingConnFactory : public ConnFactory {
  public:
-  virtual NetConn *NewNetConn(
-      int connfd,
-      const std::string &ip_port,
-      ServerThread *thread,
-      void* worker_specific_data) const {
+  virtual NetConn* NewNetConn(int connfd, const std::string& ip_port, ServerThread* thread,
+                              void* worker_specific_data) const {
     return new PingConn(connfd, ip_port, thread);
   }
 };
 
 std::atomic<bool> should_stop(false);
 
-static void IntSigHandle(const int sig) {
-  should_stop.store(true);
-}
+static void IntSigHandle(const int sig) { should_stop.store(true); }
 
 static void SignalSetup() {
   signal(SIGHUP, SIG_IGN);
@@ -79,7 +70,7 @@ static void SignalSetup() {
 
 int main(int argc, char* argv[]) {
   if (argc < 2) {
-    printf ("Usage: ./server ip port\n");
+    printf("Usage: ./server ip port\n");
     exit(0);
   }
 
@@ -90,7 +81,7 @@ int main(int argc, char* argv[]) {
 
   SignalSetup();
 
-  ServerThread *st_thread = NewDispatchThread(ip, port, 24, &conn_factory, 1000);
+  ServerThread* st_thread = NewDispatchThread(ip, port, 24, &conn_factory, 1000);
   st_thread->StartThread();
   uint64_t st, ed;
 

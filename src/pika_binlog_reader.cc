@@ -7,8 +7,7 @@
 
 #include <glog/logging.h>
 
-PikaBinlogReader::PikaBinlogReader(uint32_t cur_filenum,
-    uint64_t cur_offset)
+PikaBinlogReader::PikaBinlogReader(uint32_t cur_filenum, uint64_t cur_offset)
     : cur_filenum_(cur_filenum),
       cur_offset_(cur_offset),
       logger_(nullptr),
@@ -29,7 +28,6 @@ PikaBinlogReader::PikaBinlogReader()
   last_record_offset_ = 0 % kBlockSize;
   pthread_rwlock_init(&rwlock_, NULL);
 }
-
 
 PikaBinlogReader::~PikaBinlogReader() {
   delete[] backing_store_;
@@ -117,8 +115,7 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
     const unsigned int type = header[7];
     const uint32_t length = a | (b << 8) | (c << 16);
 
-    if (length > (kBlockSize - kHeaderSize))
-      return true;
+    if (length > (kBlockSize - kHeaderSize)) return true;
 
     if (type == kFullType) {
       s = queue_->Read(length, &buffer_, backing_store_);
@@ -147,7 +144,7 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
   return is_error;
 }
 
-unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice *result, uint32_t* filenum, uint64_t* offset) {
+unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t* filenum, uint64_t* offset) {
   pstd::Status s;
   if (kBlockSize - last_record_offset_ <= kHeaderSize) {
     queue_->Skip(kBlockSize - last_record_offset_);
@@ -170,8 +167,7 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice *result, uint32_t*
   const unsigned int type = header[7];
   const uint32_t length = a | (b << 8) | (c << 16);
 
-  if (length > (kBlockSize - kHeaderSize))
-    return kBadRecord;
+  if (length > (kBlockSize - kHeaderSize)) return kBadRecord;
 
   if (type == kZeroType || length == 0) {
     buffer_.clear();
@@ -218,7 +214,8 @@ Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64
       case kEof:
         return Status::EndFile("Eof");
       case kBadRecord:
-        LOG(WARNING) << "Read BadRecord record, will decode failed, this record may dbsync padded record, not processed here";
+        LOG(WARNING)
+            << "Read BadRecord record, will decode failed, this record may dbsync padded record, not processed here";
         return Status::IOError("Data Corruption");
       case kOldRecord:
         return Status::EndFile("Eof");
@@ -277,5 +274,3 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
 
   return Status::OK();
 }
-
-

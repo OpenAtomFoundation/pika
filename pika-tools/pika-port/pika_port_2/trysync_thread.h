@@ -9,25 +9,24 @@
 #include "net/include/net_thread.h"
 #include "net/include/redis_cli.h"
 
-
 class TrysyncThread : public net::Thread {
-public:
+ public:
   TrysyncThread() {
     cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1500);
   };
   virtual ~TrysyncThread();
 
-private:
+ private:
   int sockfd_;
   int64_t sid_;
-  net::PinkCli *cli_;
+  net::PinkCli* cli_;
 
   bool Send();
   bool RecvProc();
   void PrepareRsync();
   bool TryUpdateMasterOffset();
-  int  Retransmit();
+  int Retransmit();
 
   virtual void* ThreadMain();
 };

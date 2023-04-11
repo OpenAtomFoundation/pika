@@ -5,11 +5,11 @@
 
 #include "pstd/src/pstd_binlog_impl.h"
 
-#include <stddef.h>
-#include <string>
-#include <unistd.h>
-#include <sys/time.h>
 #include <assert.h>
+#include <stddef.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <string>
 
 namespace pstd {
 
@@ -20,20 +20,12 @@ std::string NewFileName(const std::string name, const uint32_t current) {
 }
 
 // Version
-Version::Version(RWFile *save)
-  : pro_offset_(0),
-    pro_num_(0),
-    item_num_(0),
-    save_(save) {
-  assert(save_ != NULL);
-}
+Version::Version(RWFile* save) : pro_offset_(0), pro_num_(0), item_num_(0), save_(save) { assert(save_ != NULL); }
 
-Version::~Version() {
-  StableSave();
-}
+Version::~Version() { StableSave(); }
 
 Status Version::StableSave() {
-  char *p = save_->GetData();
+  char* p = save_->GetData();
   memcpy(p, &pro_offset_, sizeof(uint64_t));
   p += 16;
   memcpy(p, &item_num_, sizeof(uint32_t));
@@ -58,7 +50,7 @@ Status Version::Init() {
 Status Binlog::Open(const std::string& path, Binlog** logptr) {
   *logptr = NULL;
 
-  BinlogImpl *impl = new BinlogImpl(path, kBinlogSize);
+  BinlogImpl* impl = new BinlogImpl(path, kBinlogSize);
   Status s = impl->Recover();
   if (s.ok()) {
     *logptr = impl;
@@ -69,12 +61,7 @@ Status Binlog::Open(const std::string& path, Binlog** logptr) {
 }
 
 BinlogImpl::BinlogImpl(const std::string& path, const int file_size)
-  : exit_all_consume_(false),
-    path_(path),
-    file_size_(file_size),
-    version_(NULL),
-    queue_(NULL),
-    versionfile_(NULL) {
+    : exit_all_consume_(false), path_(path), file_size_(file_size), version_(NULL), queue_(NULL), versionfile_(NULL) {
   if (path_.back() != '/') {
     path_.push_back('/');
   }
@@ -104,20 +91,20 @@ Status BinlogImpl::Recover() {
       return s;
     }
 
-    // recover memtable 
-    //MemTable *mem = new MemTable(file_size_);
-    //mem->Ref();
-    //mem->RecoverFromFile(profile);
-    //memtables_[pro_num_] = mem;
+    // recover memtable
+    // MemTable *mem = new MemTable(file_size_);
+    // mem->Ref();
+    // mem->RecoverFromFile(profile);
+    // memtables_[pro_num_] = mem;
   } else {
     s = NewWritableFile(profile, &queue_);
     if (!s.ok()) {
       return s;
     }
 
-    //MemTable *mem = new MemTable(file_size_);
-    //mem->Ref();
-    //memtables_[pro_num_] = mem;
+    // MemTable *mem = new MemTable(file_size_);
+    // mem->Ref();
+    // memtables_[pro_num_] = mem;
   }
 
   InitOffset();
@@ -144,7 +131,7 @@ Status BinlogImpl::GetProducerStatus(uint32_t* filenum, uint64_t* offset) {
 }
 
 // Note: mutex lock should be held
-Status BinlogImpl::Append(const std::string &item) {
+Status BinlogImpl::Append(const std::string& item) {
   Status s;
 
   // Check to roll log file
@@ -162,7 +149,7 @@ Status BinlogImpl::Append(const std::string &item) {
       version_->pro_offset_ = 0;
       version_->pro_num_ = pro_num_;
       version_->StableSave();
-      //version_->debug();
+      // version_->debug();
     }
   }
 
@@ -177,7 +164,7 @@ Status BinlogImpl::Append(const std::string &item) {
   return s;
 }
 
-Status BinlogImpl::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset) {
+Status BinlogImpl::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset) {
   Status s;
   assert(n <= 0xffffff);
   assert(block_offset_ + kHeaderSize + n <= kBlockSize);
@@ -210,9 +197,9 @@ Status BinlogImpl::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, i
   return s;
 }
 
-Status BinlogImpl::Produce(const Slice &item, int *temp_pro_offset) {
+Status BinlogImpl::Produce(const Slice& item, int* temp_pro_offset) {
   Status s;
-  const char *ptr = item.data();
+  const char* ptr = item.data();
   size_t left = item.size();
   bool begin = true;
 
@@ -224,7 +211,7 @@ Status BinlogImpl::Produce(const Slice &item, int *temp_pro_offset) {
       if (leftover > 0) {
         queue_->Append(Slice("\x00\x00\x00\x00\x00\x00\x00", leftover));
         *temp_pro_offset += leftover;
-        //version_->StableSave();
+        // version_->StableSave();
       }
       block_offset_ = 0;
     }
@@ -251,8 +238,8 @@ Status BinlogImpl::Produce(const Slice &item, int *temp_pro_offset) {
 
   return s;
 }
- 
-Status BinlogImpl::AppendBlank(WritableFile *file, uint64_t len) {
+
+Status BinlogImpl::AppendBlank(WritableFile* file, uint64_t len) {
   if (len < kHeaderSize) {
     return Status::OK();
   }
@@ -270,7 +257,7 @@ Status BinlogImpl::AppendBlank(WritableFile *file, uint64_t len) {
   if (len % kBlockSize < kHeaderSize) {
     n = 0;
   } else {
-    n = (uint32_t) ((len % kBlockSize) - kHeaderSize);
+    n = (uint32_t)((len % kBlockSize) - kHeaderSize);
   }
 
   char buf[kBlockSize];
@@ -348,7 +335,7 @@ BinlogReader* BinlogImpl::NewBinlogReader(uint32_t filenum, uint64_t offset) {
     return NULL;
   }
 
-  BinlogReaderImpl* reader = new BinlogReaderImpl(this, path_, filenum, offset); 
+  BinlogReaderImpl* reader = new BinlogReaderImpl(this, path_, filenum, offset);
   Status s = reader->Trim();
   if (!s.ok()) {
     log_info("Trim offset failed: %s", s.ToString().c_str());
@@ -358,17 +345,17 @@ BinlogReader* BinlogImpl::NewBinlogReader(uint32_t filenum, uint64_t offset) {
   return reader;
 }
 
-BinlogReaderImpl::BinlogReaderImpl(Binlog* log, const std::string &path, uint32_t filenum, uint64_t offset)
-  : log_(log),
-    path_(path),
-    filenum_(filenum),
-    offset_(offset),
-    should_exit_(false),
-    initial_offset_(0),
-    last_record_offset_(offset_ % kBlockSize),
-    end_of_buffer_offset_(kBlockSize),
-    queue_(NULL),
-    backing_store_(new char[kBlockSize]) {
+BinlogReaderImpl::BinlogReaderImpl(Binlog* log, const std::string& path, uint32_t filenum, uint64_t offset)
+    : log_(log),
+      path_(path),
+      filenum_(filenum),
+      offset_(offset),
+      should_exit_(false),
+      initial_offset_(0),
+      last_record_offset_(offset_ % kBlockSize),
+      end_of_buffer_offset_(kBlockSize),
+      queue_(NULL),
+      backing_store_(new char[kBlockSize]) {
   std::string confile = NewFileName(path_ + kBinlogPrefix, filenum_);
   if (!NewSequentialFile(confile, &queue_).ok()) {
     log_info("Reader new sequtialfile failed");
@@ -377,7 +364,7 @@ BinlogReaderImpl::BinlogReaderImpl(Binlog* log, const std::string &path, uint32_
 
 BinlogReaderImpl::~BinlogReaderImpl() {
   delete queue_;
-  delete [] backing_store_;
+  delete[] backing_store_;
 }
 
 Status BinlogReaderImpl::Trim() {
@@ -407,7 +394,7 @@ Status BinlogReaderImpl::Trim() {
   return Status::OK();
 }
 
-uint64_t BinlogReaderImpl::GetNext(Status &result) {
+uint64_t BinlogReaderImpl::GetNext(Status& result) {
   uint64_t offset = 0;
   Status s;
 
@@ -448,7 +435,7 @@ uint64_t BinlogReaderImpl::GetNext(Status &result) {
   return offset;
 }
 
-unsigned int BinlogReaderImpl::ReadPhysicalRecord(Slice *result) {
+unsigned int BinlogReaderImpl::ReadPhysicalRecord(Slice* result) {
   Status s;
   uint64_t zero_space = end_of_buffer_offset_ - last_record_offset_;
   if (zero_space <= kHeaderSize) {
@@ -476,7 +463,7 @@ unsigned int BinlogReaderImpl::ReadPhysicalRecord(Slice *result) {
   }
 
   buffer_.clear();
-  //std::cout<<"2 --> offset_: "<<offset_<<" last_record_offset_: "<<last_record_offset_<<std::endl;
+  // std::cout<<"2 --> offset_: "<<offset_<<" last_record_offset_: "<<last_record_offset_<<std::endl;
   s = queue_->Read(length, &buffer_, backing_store_);
   *result = Slice(buffer_.data(), buffer_.size());
   last_record_offset_ += kHeaderSize + length;
@@ -486,7 +473,7 @@ unsigned int BinlogReaderImpl::ReadPhysicalRecord(Slice *result) {
   return type;
 }
 
-Status BinlogReaderImpl::Consume(std::string &scratch) {
+Status BinlogReaderImpl::Consume(std::string& scratch) {
   Status s;
   if (last_record_offset_ < initial_offset_) {
     return Status::IOError("last_record_offset exceed");
@@ -527,13 +514,13 @@ Status BinlogReaderImpl::Consume(std::string &scratch) {
       break;
     }
   }
-  //DLOG(INFO) << "Binlog Sender consumer a msg: " << scratch;
+  // DLOG(INFO) << "Binlog Sender consumer a msg: " << scratch;
   return Status::OK();
 }
 
-// Get a whole message; 
+// Get a whole message;
 // the status will be OK, IOError or Corruption;
-Status BinlogReaderImpl::ReadRecord(std::string &scratch) {
+Status BinlogReaderImpl::ReadRecord(std::string& scratch) {
   scratch.clear();
   Status s;
   uint32_t pro_num;
@@ -568,11 +555,11 @@ Status BinlogReaderImpl::ReadRecord(std::string &scratch) {
       break;
     }
   }
-    
+
   if (should_exit_) {
     return Status::Corruption("should exit");
   }
   return s;
 }
 
-}   // namespace pstd
+}  // namespace pstd

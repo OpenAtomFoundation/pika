@@ -4,17 +4,17 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 // #include <glog/logging.h>
-#include <random>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
+#include <random>
 
 #include <glog/logging.h>
 
-#include "pika_port.h"
 #include "conf.h"
+#include "pika_port.h"
 
 Conf g_conf;
 PikaPort* g_pika_port;
@@ -48,7 +48,7 @@ static void createPidFile(const char* file) {
 
 static void daemonize() {
   if (fork() != 0) exit(0); /* parent exits */
-  setsid(); /* create a new session */
+  setsid();                 /* create a new session */
 }
 
 static void close_std() {
@@ -87,7 +87,7 @@ static void GlogInit(const std::string& log_path, bool is_daemon) {
   }
 
   FLAGS_log_dir = log_path;
-  FLAGS_max_log_size = 2048;   // log file 2GB
+  FLAGS_max_log_size = 2048;  // log file 2GB
   ::google::InitGoogleLogging("pika_port_3");
 }
 
@@ -103,7 +103,8 @@ void Usage() {
   std::cout << "\t-n     -- forward port(REQUIRED)" << std::endl;
   std::cout << "\t-x     -- forward thread num(OPTIONAL default: 1)" << std::endl;
   std::cout << "\t-y     -- forward password(OPTIONAL)" << std::endl;
-  std::cout << "\t-z     -- max timeout duration for waiting pika master bgsave data (OPTIONAL default 1800s)" << std::endl;
+  std::cout << "\t-z     -- max timeout duration for waiting pika master bgsave data (OPTIONAL default 1800s)"
+            << std::endl;
   std::cout << "\t-f     -- binlog filenum(OPTIONAL default: local offset)" << std::endl;
   std::cout << "\t-s     -- binlog offset(OPTIONAL default: local offset)" << std::endl;
   std::cout << "\t-w     -- password for master(OPTIONAL)" << std::endl;
@@ -112,32 +113,33 @@ void Usage() {
   std::cout << "\t-b     -- max batch number when port rsync dump data (OPTIONAL default: 512)" << std::endl;
   std::cout << "\t-d     -- daemonize(OPTIONAL)" << std::endl;
   std::cout << "\t-e     -- exit(return -1) if dbsync start(OPTIONAL)" << std::endl;
-  std::cout << "\texample: ./pika_port -t 127.0.0.1 -p 12345 -i 127.0.0.1 -o 9221 -m 127.0.0.1 -n 6379 -x 7 -f 0 -s 0 -w abc -l ./log -r ./rsync_dump -b 512 -d -e" << std::endl;
+  std::cout << "\texample: ./pika_port -t 127.0.0.1 -p 12345 -i 127.0.0.1 -o 9221 -m 127.0.0.1 -n 6379 -x 7 -f 0 -s 0 "
+               "-w abc -l ./log -r ./rsync_dump -b 512 -d -e"
+            << std::endl;
 }
 
 void PrintInfo(const std::time_t& now) {
   std::cout << "================== Pika Port 3 ==================" << std::endl;
   std::cout << "local_ip:" << g_conf.local_ip << std::endl;
   std::cout << "Local_port:" << g_conf.local_port << std::endl;
-  std::cout << "Master_ip:"  << g_conf.master_ip << std::endl;
-  std::cout << "Master_port:"  << g_conf.master_port << std::endl;
-  std::cout << "Forward_ip:"  << g_conf.forward_ip << std::endl;
-  std::cout << "Forward_port:"  << g_conf.forward_port << std::endl;
-  std::cout << "Forward_passwd:"  << g_conf.forward_passwd << std::endl;
+  std::cout << "Master_ip:" << g_conf.master_ip << std::endl;
+  std::cout << "Master_port:" << g_conf.master_port << std::endl;
+  std::cout << "Forward_ip:" << g_conf.forward_ip << std::endl;
+  std::cout << "Forward_port:" << g_conf.forward_port << std::endl;
+  std::cout << "Forward_passwd:" << g_conf.forward_passwd << std::endl;
   std::cout << "Forward_thread_num:" << g_conf.forward_thread_num << std::endl;
-  std::cout << "Wait_bgsave_timeout:"  << g_conf.wait_bgsave_timeout << std::endl;
-  std::cout << "Log_path:"   << g_conf.log_path << std::endl;
-  std::cout << "Dump_path:"  << g_conf.dump_path << std::endl;
-  std::cout << "Filenum:"    << g_conf.filenum << std::endl;
-  std::cout << "Offset:"     << g_conf.offset << std::endl;
-  std::cout << "Passwd:"     << g_conf.passwd << std::endl;
-  std::cout << "Sync_batch_num:"  << g_conf.sync_batch_num << std::endl;
+  std::cout << "Wait_bgsave_timeout:" << g_conf.wait_bgsave_timeout << std::endl;
+  std::cout << "Log_path:" << g_conf.log_path << std::endl;
+  std::cout << "Dump_path:" << g_conf.dump_path << std::endl;
+  std::cout << "Filenum:" << g_conf.filenum << std::endl;
+  std::cout << "Offset:" << g_conf.offset << std::endl;
+  std::cout << "Passwd:" << g_conf.passwd << std::endl;
+  std::cout << "Sync_batch_num:" << g_conf.sync_batch_num << std::endl;
   std::cout << "Startup Time : " << asctime(localtime(&now));
   std::cout << "========================================================" << std::endl;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char* argv[]) {
   if (argc < 2) {
     Usage();
     exit(-1);
@@ -209,14 +211,14 @@ int main(int argc, char *argv[])
       case 'r':
         snprintf(buf, 1024, "%s", optarg);
         g_conf.dump_path = std::string(buf);
-        if (g_conf.dump_path[g_conf.dump_path.length() - 1] != '/' ) {
+        if (g_conf.dump_path[g_conf.dump_path.length() - 1] != '/') {
           g_conf.dump_path.append("/");
         }
         break;
       case 'l':
         snprintf(buf, 1024, "%s", optarg);
         g_conf.log_path = std::string(buf);
-        if (g_conf.log_path[g_conf.log_path.length() - 1] != '/' ) {
+        if (g_conf.log_path[g_conf.log_path.length() - 1] != '/') {
           g_conf.log_path.append("/");
         }
         break;
@@ -255,9 +257,9 @@ int main(int argc, char *argv[])
   std::time_t now = std::chrono::system_clock::to_time_t(start_time);
   PrintInfo(now);
 
-  if (g_conf.master_port == 0 || g_conf.forward_port == 0
-     || g_conf.sync_batch_num == 0 || g_conf.wait_bgsave_timeout <= 0) {
-    fprintf (stderr, "Invalid Arguments\n" );
+  if (g_conf.master_port == 0 || g_conf.forward_port == 0 || g_conf.sync_batch_num == 0 ||
+      g_conf.wait_bgsave_timeout <= 0) {
+    fprintf(stderr, "Invalid Arguments\n");
     Usage();
     exit(-1);
   }
@@ -281,4 +283,3 @@ int main(int argc, char *argv[])
 
   return 0;
 }
-

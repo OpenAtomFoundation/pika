@@ -5,9 +5,9 @@
 
 #include <glog/logging.h>
 
-#include "net/include/net_conn.h"
 #include "binlog_receiver_thread.h"
 #include "master_conn.h"
+#include "net/include/net_conn.h"
 #include "pika_port.h"
 
 #include "port_conf.h"
@@ -15,11 +15,10 @@
 extern PikaPort* g_pika_port;
 
 BinlogReceiverThread::BinlogReceiverThread(std::string host, int port, int cron_interval)
-      : conn_factory_(this), handles_(this) {
+    : conn_factory_(this), handles_(this) {
   // thread_rep_ = net::NewHolyThread(port, &conn_factory_,
   //                                  cron_interval, &handles_);
-  thread_rep_ = net::NewHolyThread(host, port, &conn_factory_,
-                                    cron_interval, &handles_);
+  thread_rep_ = net::NewHolyThread(host, port, &conn_factory_, cron_interval, &handles_);
   // to prevent HolyThread::DoCronTask close the pika sender connection
   thread_rep_->set_keepalive_timeout(0);
 }
@@ -27,19 +26,16 @@ BinlogReceiverThread::BinlogReceiverThread(std::string host, int port, int cron_
 BinlogReceiverThread::~BinlogReceiverThread() {
   thread_rep_->StopThread();
   DLOG(INFO) << "BinlogReceiver thread " << thread_rep_->thread_id() << " exit!!!";
-	delete thread_rep_;
+  delete thread_rep_;
 }
 
-int BinlogReceiverThread::StartThread() {
-  return thread_rep_->StartThread();
-}
+int BinlogReceiverThread::StartThread() { return thread_rep_->StartThread(); }
 
 bool BinlogReceiverThread::Handles::AccessHandle(std::string& ip) const {
   if (ip == "127.0.0.1") {
     ip = g_port_conf.local_ip;
   }
-  if (binlog_receiver_->thread_rep_->conn_num() != 0 ||
-      !g_pika_port->ShouldAccessConnAsMaster(ip)) {
+  if (binlog_receiver_->thread_rep_->conn_num() != 0 || !g_pika_port->ShouldAccessConnAsMaster(ip)) {
     DLOG(INFO) << "BinlogReceiverThread AccessHandle failed";
     return false;
   }
@@ -47,6 +43,4 @@ bool BinlogReceiverThread::Handles::AccessHandle(std::string& ip) const {
   return true;
 }
 
-void BinlogReceiverThread::KillBinlogSender() {
-  thread_rep_->KillAllConns();
-}
+void BinlogReceiverThread::KillBinlogSender() { thread_rep_->KillAllConns(); }

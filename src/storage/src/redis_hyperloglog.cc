@@ -3,10 +3,10 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include "src/redis_hyperloglog.h"
+#include <algorithm>
 #include <cmath>
 #include <string>
-#include <algorithm>
-#include "src/redis_hyperloglog.h"
 #include "src/storage_murmur3.h"
 
 namespace storage {
@@ -28,18 +28,14 @@ HyperLogLog::HyperLogLog(uint8_t precision, std::string origin_register) {
   }
 }
 
-HyperLogLog::~HyperLogLog() {
-  delete [] register_;
-}
+HyperLogLog::~HyperLogLog() { delete[] register_; }
 
 std::string HyperLogLog::Add(const char* value, uint32_t len) {
   uint32_t hash_value;
-  MurmurHash3_x86_32(value, len, HLL_HASH_SEED,
-                     static_cast<void *>(&hash_value));
+  MurmurHash3_x86_32(value, len, HLL_HASH_SEED, static_cast<void*>(&hash_value));
   int32_t index = hash_value & ((1 << b_) - 1);
   uint8_t rank = Nctz((hash_value >> b_), 32 - b_);
-  if (rank > register_[index])
-    register_[index] = rank;
+  if (rank > register_[index]) register_[index] = rank;
   std::string result(m_, 0);
   for (uint32_t i = 0; i < m_; ++i) {
     result[i] = register_[i];
@@ -80,7 +76,7 @@ double HyperLogLog::Alpha() const {
       return 0.709;
     default:
       return 0.7213 / (1 + 1.079 / m_);
-    }
+  }
 }
 
 uint32_t HyperLogLog::CountZero() const {
@@ -93,7 +89,7 @@ uint32_t HyperLogLog::CountZero() const {
   return count;
 }
 
-std::string HyperLogLog::Merge(const HyperLogLog & hll) {
+std::string HyperLogLog::Merge(const HyperLogLog& hll) {
   if (m_ != hll.m_) {
     // TODO(shq) the number of registers doesn't match
   }
@@ -111,8 +107,6 @@ std::string HyperLogLog::Merge(const HyperLogLog & hll) {
 }
 
 // ::__builtin_ctz(x): 返回右起第一个‘1’之后的0的个数
-uint8_t HyperLogLog::Nctz(uint32_t x, int b) {
-  return (uint8_t)std::min(b, ::__builtin_ctz(x)) + 1;
-}
+uint8_t HyperLogLog::Nctz(uint32_t x, int b) { return (uint8_t)std::min(b, ::__builtin_ctz(x)) + 1; }
 
 }  // namespace storage

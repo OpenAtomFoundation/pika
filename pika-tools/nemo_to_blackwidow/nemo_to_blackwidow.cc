@@ -5,13 +5,13 @@
 
 #include <glog/logging.h>
 
+#include "blackwidow/blackwidow.h"
 #include "nemo.h"
 #include "slash/include/env.h"
-#include "blackwidow/blackwidow.h"
 
+#include "classify_thread.h"
 #include "migrator.h"
 #include "progress_thread.h"
-#include "classify_thread.h"
 
 int32_t thread_num = 6;
 int32_t need_write_log = 0;
@@ -40,7 +40,7 @@ void Usage() {
   std::cout << "\tNemo_to_Blackwidow reads data from Nemo DB and send to Blackwidow DB" << std::endl;
   std::cout << "\t-h    -- displays this help information and exits" << std::endl;
   std::cout << "\t-n    -- numbers of migrator, default = 6" << std::endl;
-  std::cout << "\t-l    -- whether write log, default = 0"<< std::endl;
+  std::cout << "\t-l    -- whether write log, default = 0" << std::endl;
   std::cout << "\t-b    -- number of members in multiple data structures per migration, default = 512" << std::endl;
   std::cout << "\texample: ./nemo_to_blackwidow ./nemo_db ./blackwidow_db -n 10 -l 0 -b 512" << std::endl;
 }
@@ -51,15 +51,12 @@ static void GlogInit() {
   }
 
   FLAGS_log_dir = "./log";
-  FLAGS_max_log_size = 2048;   // log file 2GB
+  FLAGS_max_log_size = 2048;  // log file 2GB
   ::google::InitGoogleLogging("nemo_to_blackwidow");
 }
 
-int main(int argc, char **argv) {
-  if (argc != 3
-    && argc != 5
-    && argc != 7
-    && argc != 9) {
+int main(int argc, char** argv) {
+  if (argc != 3 && argc != 5 && argc != 7 && argc != 9) {
     Usage();
     exit(-1);
   }
@@ -103,8 +100,8 @@ int main(int argc, char **argv) {
   // Init nemo db
   nemo::Options nemo_option;
   nemo_option.create_if_missing = false;
-  nemo_option.write_buffer_size = 256 * 1024 * 1024;           // 256M
-  nemo_option.target_file_size_base = 20 * 1024 * 1024;        // 20M
+  nemo_option.write_buffer_size = 256 * 1024 * 1024;     // 256M
+  nemo_option.target_file_size_base = 20 * 1024 * 1024;  // 20M
   nemo::Nemo* nemo_db = new nemo::Nemo(nemo_db_path, nemo_option);
   if (nemo_db != NULL) {
     std::cout << "Open Nemo db success..." << std::endl;
@@ -120,14 +117,12 @@ int main(int argc, char **argv) {
   bw_option.options.write_buffer_size = 256 * 1024 * 1024;     // 256M
   bw_option.options.target_file_size_base = 20 * 1024 * 1024;  // 20M
   blackwidow::BlackWidow* blackwidow_db = new blackwidow::BlackWidow();
-  if (blackwidow_db != NULL
-    && (status = blackwidow_db->Open(bw_option, blackwidow_db_path)).ok()) {
+  if (blackwidow_db != NULL && (status = blackwidow_db->Open(bw_option, blackwidow_db_path)).ok()) {
     std::cout << "Open BlackWidow db success..." << std::endl;
   } else {
     std::cout << "Open BlackWidow db failed..." << std::endl;
     return -1;
   }
-
 
   for (size_t idx = 0; idx < static_cast<size_t>(thread_num); ++idx) {
     migrators.push_back(new Migrator(idx, nemo_db, blackwidow_db));
@@ -179,10 +174,7 @@ int main(int argc, char **argv) {
   auto minutes = std::chrono::duration_cast<std::chrono::minutes>(end_time - start_time).count();
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
 
-  std::cout << "Total Time Cost : "
-            << hours << " hours "
-            << minutes % 60 << " minutes "
-            << seconds % 60 << " seconds "
+  std::cout << "Total Time Cost : " << hours << " hours " << minutes % 60 << " minutes " << seconds % 60 << " seconds "
             << std::endl;
   return 0;
 }

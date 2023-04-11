@@ -6,15 +6,15 @@
 #ifndef __PSTD_BINLOG_IMPL_H__
 #define __PSTD_BINLOG_IMPL_H__
 
-#include <atomic>
-#include <stddef.h>
-#include <string>
 #include <assert.h>
+#include <stddef.h>
+#include <atomic>
+#include <string>
 
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_binlog.h"
-#include "pstd/include/pstd_status.h"
 #include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_status.h"
 
 namespace pstd {
 
@@ -26,7 +26,7 @@ class BinlogReader;
 const std::string kBinlogPrefix = "binlog";
 const std::string kManifest = "manifest";
 const int kBinlogSize = 128;
-//const int kBinlogSize = (100 << 20);
+// const int kBinlogSize = (100 << 20);
 const int kBlockSize = (64 << 10);
 // Header is Type(1 byte), length (3 bytes), time (4 bytes)
 const size_t kHeaderSize = 1 + 3 + 4;
@@ -50,8 +50,8 @@ class BinlogImpl : public Binlog {
   //
   // Basic API
   //
-  virtual Status Append(const std::string &item);
-  //Status Append(const char* item, int len);
+  virtual Status Append(const std::string& item);
+  // Status Append(const char* item, int len);
   virtual BinlogReader* NewBinlogReader(uint32_t filenum, uint64_t offset);
 
   virtual Status GetProducerStatus(uint32_t* filenum, uint64_t* offset);
@@ -64,20 +64,18 @@ class BinlogImpl : public Binlog {
   // More specify API, used by Pika
   //
   Status Recover();
-  static Status AppendBlank(WritableFile *file, uint64_t len);
-  WritableFile *queue() { return queue_; }
-  uint64_t file_size() {
-    return file_size_;
-  }
+  static Status AppendBlank(WritableFile* file, uint64_t len);
+  WritableFile* queue() { return queue_; }
+  uint64_t file_size() { return file_size_; }
 
-  void Lock()         { mutex_.Lock(); }
-  void Unlock()       { mutex_.Unlock(); }
+  void Lock() { mutex_.Lock(); }
+  void Unlock() { mutex_.Unlock(); }
 
   void InitOffset();
-  Status EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset);
+  Status EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset);
 
   // Produce
-  Status Produce(const Slice &item, int *pro_offset);
+  Status Produce(const Slice& item, int* pro_offset);
 
  private:
   Mutex mutex_;
@@ -88,18 +86,18 @@ class BinlogImpl : public Binlog {
   uint64_t record_num_;
 
   Version* version_;
-  WritableFile *queue_;
-  RWFile *versionfile_;
+  WritableFile* queue_;
+  RWFile* versionfile_;
 
   int block_offset_;
   char* pool_;
 
-  //std::unordered_map<uint32_t, MemTable*> memtables_;
+  // std::unordered_map<uint32_t, MemTable*> memtables_;
 
   // Not use
-  //std::string filename;
-  //int32_t retry_;
-  //uint32_t consumer_num_;
+  // std::string filename;
+  // int32_t retry_;
+  // uint32_t consumer_num_;
 
   // No copying allowed
   BinlogImpl(const BinlogImpl&);
@@ -108,7 +106,7 @@ class BinlogImpl : public Binlog {
 
 class Version {
  public:
-  Version(RWFile *save);
+  Version(RWFile* save);
   ~Version();
 
   Status Init();
@@ -123,16 +121,15 @@ class Version {
 
   void debug() {
     ReadLock(&this->rwlock_);
-    printf ("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
+    printf("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
   }
 
  private:
-
-  RWFile *save_;
+  RWFile* save_;
 
   // Not used
-  //uint64_t con_offset_;
-  //uint32_t con_num_;
+  // uint64_t con_offset_;
+  // uint32_t con_num_;
 
   // No copying allowed;
   Version(const Version&);
@@ -144,20 +141,20 @@ class BinlogReaderImpl : public BinlogReader {
   BinlogReaderImpl(Binlog* log, const std::string& path, uint32_t filenum, uint64_t offset);
   ~BinlogReaderImpl();
 
-  //bool ReadRecord(Slice* record, std::string* scratch);
-  virtual Status ReadRecord(std::string &record);
+  // bool ReadRecord(Slice* record, std::string* scratch);
+  virtual Status ReadRecord(std::string& record);
 
  private:
   friend class BinlogImpl;
 
-  //Status Parse(std::string &scratch);
-  Status Consume(std::string &scratch);
-  unsigned int ReadPhysicalRecord(Slice *fragment);
+  // Status Parse(std::string &scratch);
+  Status Consume(std::string& scratch);
+  unsigned int ReadPhysicalRecord(Slice* fragment);
 
   // Tirm offset to first record behind offered offset.
   Status Trim();
   // Return next record end offset in a block, store in result if error encounted.
-  uint64_t GetNext(Status &result);
+  uint64_t GetNext(Status& result);
 
   Binlog* log_;
   std::string path_;
@@ -179,7 +176,6 @@ class BinlogReaderImpl : public BinlogReader {
   void operator=(const BinlogReaderImpl&);
 };
 
-}   // namespace pstd
-
+}  // namespace pstd
 
 #endif  // __PSTD_BINLOG_IMPL_H__

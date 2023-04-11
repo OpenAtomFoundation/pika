@@ -9,8 +9,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
-#include <string>
 #include <iostream>
+#include <string>
 
 namespace net {
 
@@ -24,50 +24,30 @@ class ServerSocket {
    * Listen to a specific ip addr on a multi eth machine
    * Return 0 if Listen success, <0 other wise
    */
-  int Listen(const std::string &bind_ip = std::string());
+  int Listen(const std::string& bind_ip = std::string());
 
   void Close();
 
   /*
    * The get and set functions
    */
-  void set_port(int port) {
-    port_ = port;
-  }
+  void set_port(int port) { port_ = port; }
 
-  int port() {
-    return port_;
-  }
+  int port() { return port_; }
 
-  void set_keep_alive(bool keep_alive) {
-    keep_alive_ = keep_alive;
-  }
-  bool keep_alive() const {
-    return keep_alive_;
-  }
+  void set_keep_alive(bool keep_alive) { keep_alive_ = keep_alive; }
+  bool keep_alive() const { return keep_alive_; }
 
-  void set_send_timeout(int send_timeout) {
-    send_timeout_ = send_timeout;
-  }
-  int send_timeout() const {
-    return send_timeout_;
-  }
+  void set_send_timeout(int send_timeout) { send_timeout_ = send_timeout; }
+  int send_timeout() const { return send_timeout_; }
 
-  void set_recv_timeout(int recv_timeout) {
-    recv_timeout_ = recv_timeout;
-  }
+  void set_recv_timeout(int recv_timeout) { recv_timeout_ = recv_timeout; }
 
-  int recv_timeout() const {
-    return recv_timeout_;
-  }
+  int recv_timeout() const { return recv_timeout_; }
 
-  int sockfd() const {
-    return sockfd_;
-  }
+  int sockfd() const { return sockfd_; }
 
-  void set_sockfd(int sockfd) {
-    sockfd_ = sockfd;
-  }
+  void set_sockfd(int sockfd) { sockfd_ = sockfd; }
 
  private:
   int SetNonBlock();

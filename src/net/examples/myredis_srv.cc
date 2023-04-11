@@ -1,24 +1,22 @@
-#include <stdio.h>
 #include <signal.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <atomic>
 #include <map>
 
-#include "net/include/server_thread.h"
 #include "net/include/net_conn.h"
-#include "net/include/redis_conn.h"
 #include "net/include/net_thread.h"
+#include "net/include/redis_conn.h"
+#include "net/include/server_thread.h"
 #include "net/src/holy_thread.h"
 
 using namespace net;
 
 std::map<std::string, std::string> db;
 
-
-class MyConn: public RedisConn {
+class MyConn : public RedisConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread *thread,
-         void* worker_specific_data);
+  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
   virtual ~MyConn() = default;
 
  protected:
@@ -27,8 +25,7 @@ class MyConn: public RedisConn {
  private:
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port,
-               Thread *thread, void* worker_specific_data)
+MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
     : RedisConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
@@ -66,9 +63,8 @@ int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string &ip_port,
-                                Thread *thread,
-                                void* worker_specific_data, net::NetEpoll* net_epoll=nullptr) const {
+  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+                                              void* worker_specific_data, net::NetEpoll* net_epoll = nullptr) const {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
 };
@@ -99,7 +95,7 @@ int main(int argc, char* argv[]) {
 
   SignalSetup();
 
-  ConnFactory *conn_factory = new MyConnFactory();
+  ConnFactory* conn_factory = new MyConnFactory();
 
   ServerThread* my_thread = new HolyThread(my_port, conn_factory, 1000, NULL, false);
   if (my_thread->StartThread() != 0) {

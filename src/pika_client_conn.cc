@@ -5,44 +5,38 @@
 
 #include "include/pika_client_conn.h"
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 #include <glog/logging.h>
 
-#include "include/pika_conf.h"
-#include "include/pika_server.h"
-#include "include/pika_cmd_table_manager.h"
 #include "include/pika_admin.h"
+#include "include/pika_cmd_table_manager.h"
+#include "include/pika_conf.h"
 #include "include/pika_rm.h"
+#include "include/pika_server.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
-PikaClientConn::PikaClientConn(int fd, std::string ip_port,
-                               net::Thread* thread,
-                               net::NetMultiplexer* mpx,
-                               const net::HandleType& handle_type,
-                               int max_conn_rbuf_size)
-      : RedisConn(fd, ip_port, thread, mpx, handle_type, max_conn_rbuf_size),
-        server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
-        current_table_(g_pika_conf->default_table()),
-        is_pubsub_(false) {
+PikaClientConn::PikaClientConn(int fd, std::string ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
+                               const net::HandleType& handle_type, int max_conn_rbuf_size)
+    : RedisConn(fd, ip_port, thread, mpx, handle_type, max_conn_rbuf_size),
+      server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
+      current_table_(g_pika_conf->default_table()),
+      is_pubsub_(false) {
   auth_stat_.Init();
 }
 
-std::shared_ptr<Cmd> PikaClientConn::DoCmd(
-    const PikaCmdArgsType& argv,
-    const std::string& opt,
-    std::shared_ptr<std::string> resp_ptr) {
+std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
+                                           std::shared_ptr<std::string> resp_ptr) {
   // Get command info
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
   if (!c_ptr) {
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
-    tmp_ptr->res().SetRes(CmdRes::kErrOther,
-        "unknown command \"" + opt + "\"");
+    tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
     return tmp_ptr;
   }
   c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
@@ -76,13 +70,10 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
   // PubSub connection
   // (P)SubscribeCmd will set is_pubsub_
   if (this->IsPubSub()) {
-    if (opt != kCmdNameSubscribe &&
-        opt != kCmdNameUnSubscribe &&
-        opt != kCmdNamePing &&
-        opt != kCmdNamePSubscribe &&
+    if (opt != kCmdNameSubscribe && opt != kCmdNameUnSubscribe && opt != kCmdNamePing && opt != kCmdNamePSubscribe &&
         opt != kCmdNamePUnSubscribe) {
       c_ptr->res().SetRes(CmdRes::kErrOther,
-          "only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context");
+                          "only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context");
       return c_ptr;
     }
   }
@@ -91,8 +82,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(
     c_ptr->SetStage(Cmd::kBinlogStage);
   }
   if (!g_pika_server->IsCommandSupport(opt)) {
-    c_ptr->res().SetRes(CmdRes::kErrOther,
-        "This command is not supported in current configuration");
+    c_ptr->res().SetRes(CmdRes::kErrOther, "This command is not supported in current configuration");
     return c_ptr;
   }
 
@@ -150,7 +140,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
       std::string slow_log;
       uint32_t cmd_size = 0;
       for (unsigned int i = 0; i < argv.size(); i++) {
-        cmd_size += 1 + argv[i].size(); // blank space and argument length
+        cmd_size += 1 + argv[i].size();  // blank space and argument length
         if (!trim) {
           slow_log.append(" ");
           slow_log.append(pstd::ToRead(argv[i]));
@@ -161,27 +151,26 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
           }
         }
       }
-      LOG(ERROR) << "ip_port: " << ip_port() << ", table: " << current_table_
-        << ", command:" << slow_log << ", command_size: " << cmd_size - 1
-        << ", arguments: " << argv.size() << ", start_time(s): " << start_time
-        << ", duration(us): " << duration << ", do_duration_(us): " << do_duration;
+      LOG(ERROR) << "ip_port: " << ip_port() << ", table: " << current_table_ << ", command:" << slow_log
+                 << ", command_size: " << cmd_size - 1 << ", arguments: " << argv.size()
+                 << ", start_time(s): " << start_time << ", duration(us): " << duration
+                 << ", do_duration_(us): " << do_duration;
     }
   }
 }
 
 void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
-  std::string table_name = g_pika_conf->classic_mode()
-    ? current_table_.substr(2) : current_table_;
-  monitor_message = std::to_string(1.0*pstd::NowMicros()/1000000) +
-    " [" + table_name + " " + this->ip_port() + "]";
+  std::string table_name = g_pika_conf->classic_mode() ? current_table_.substr(2) : current_table_;
+  monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + table_name + " " + this->ip_port() + "]";
   for (PikaCmdArgsType::const_iterator iter = argv.begin(); iter != argv.end(); iter++) {
     monitor_message += " " + pstd::ToRead(*iter);
   }
   g_pika_server->AddMonitorMessage(monitor_message);
 }
 
-void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* response) {
+void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
+                                      std::string* response) {
   if (async) {
     BgTaskArg* arg = new BgTaskArg();
     arg->redis_cmds = argvs;
@@ -229,11 +218,11 @@ void PikaClientConn::DoExecTask(void* arg) {
   cmd_ptr->SetStage(Cmd::kExecuteStage);
   cmd_ptr->Execute();
   if (g_pika_conf->slowlog_slower_than() >= 0) {
-     conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us, cmd_ptr->GetDoDuration());
+    conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us, cmd_ptr->GetDoDuration());
   }
 
   std::shared_ptr<SyncMasterPartition> partition =
-    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (partition == nullptr) {
     LOG(WARNING) << "Sync Master Partition not exist " << table_name << partition_id;
     return;
@@ -276,13 +265,12 @@ void PikaClientConn::TryWriteResp() {
   }
 }
 
-
 void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<std::string> resp_ptr) {
   // get opt
   std::string opt = argv[0];
   pstd::StringToLower(opt);
   if (opt == kClusterPrefix) {
-    if (argv.size() >= 2 ) {
+    if (argv.size() >= 2) {
       opt += argv[1];
       pstd::StringToLower(opt);
     }
@@ -299,10 +287,8 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, std::shared_ptr<s
 // Initial permission status
 void PikaClientConn::AuthStat::Init() {
   // Check auth required
-  stat_ = g_pika_conf->userpass() == "" ?
-    kLimitAuthed : kNoAuthed;
-  if (stat_ == kLimitAuthed
-      && g_pika_conf->requirepass() == "") {
+  stat_ = g_pika_conf->userpass() == "" ? kLimitAuthed : kNoAuthed;
+  if (stat_ == kLimitAuthed && g_pika_conf->requirepass() == "") {
     stat_ = kAdminAuthed;
   }
 }
@@ -320,9 +306,8 @@ bool PikaClientConn::AuthStat::IsAuthed(const std::shared_ptr<Cmd> cmd_ptr) {
     case kAdminAuthed:
       break;
     case kLimitAuthed:
-      if (cmd_ptr->is_admin_require()
-        || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
-      return false;
+      if (cmd_ptr->is_admin_require() || find(blacklist.begin(), blacklist.end(), opt) != blacklist.end()) {
+        return false;
       }
       break;
     default:
@@ -346,11 +331,6 @@ bool PikaClientConn::AuthStat::ChecknUpdate(const std::string& message) {
 }
 
 // compare addr in ClientInfo
-bool AddrCompare(const ClientInfo& lhs, const ClientInfo& rhs) {
-  return rhs.ip_port < lhs.ip_port;
-}
+bool AddrCompare(const ClientInfo& lhs, const ClientInfo& rhs) { return rhs.ip_port < lhs.ip_port; }
 
-bool IdleCompare(const ClientInfo& lhs, const ClientInfo& rhs) {
-  return lhs.last_interaction < rhs.last_interaction;
-}
-
+bool IdleCompare(const ClientInfo& lhs, const ClientInfo& rhs) { return lhs.last_interaction < rhs.last_interaction; }

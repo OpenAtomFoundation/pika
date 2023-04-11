@@ -6,9 +6,11 @@
 #ifndef SRC_LRU_CACHE_H_
 #define SRC_LRU_CACHE_H_
 
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
 #include <unordered_map>
+
+#include "rocksdb/status.h"
 
 #include "pstd/include/pstd_mutex.h"
 
@@ -39,12 +41,10 @@ class HandleTable {
 };
 
 template <typename T1, typename T2>
-HandleTable<T1, T2>::HandleTable() {
-}
+HandleTable<T1, T2>::HandleTable() {}
 
 template <typename T1, typename T2>
-HandleTable<T1, T2>::~HandleTable() {
-}
+HandleTable<T1, T2>::~HandleTable() {}
 
 template <typename T1, typename T2>
 size_t HandleTable<T1, T2>::TableSize() {
@@ -71,8 +71,7 @@ LRUHandle<T1, T2>* HandleTable<T1, T2>::Remove(const T1& key) {
 }
 
 template <typename T1, typename T2>
-LRUHandle<T1, T2>* HandleTable<T1, T2>::Insert(const T1& key,
-                                               LRUHandle<T1, T2>* const handle) {
+LRUHandle<T1, T2>* HandleTable<T1, T2>::Insert(const T1& key, LRUHandle<T1, T2>* const handle) {
   LRUHandle<T1, T2>* old = NULL;
   if (table_.find(key) != table_.end()) {
     old = table_[key];
@@ -81,7 +80,6 @@ LRUHandle<T1, T2>* HandleTable<T1, T2>::Insert(const T1& key,
   table_.insert({key, handle});
   return old;
 }
-
 
 template <typename T1, typename T2>
 class LRUCache {
@@ -94,10 +92,10 @@ class LRUCache {
   size_t Capacity();
   void SetCapacity(size_t capacity);
 
-  Status Lookup(const T1& key, T2* value);
-  Status Insert(const T1& key, const T2& value, size_t charge = 1);
-  Status Remove(const T1& key);
-  Status Clear();
+  rocksdb::Status Lookup(const T1& key, T2* value);
+  rocksdb::Status Insert(const T1& key, const T2& value, size_t charge = 1);
+  rocksdb::Status Remove(const T1& key);
+  rocksdb::Status Clear();
 
   // Just for test
   bool LRUAndHandleTableConsistent();
@@ -125,10 +123,7 @@ class LRUCache {
 };
 
 template <typename T1, typename T2>
-LRUCache<T1, T2>::LRUCache()
-    : capacity_(0),
-      usage_(0),
-      size_(0) {
+LRUCache<T1, T2>::LRUCache() : capacity_(0), usage_(0), size_(0) {
   // Make empty circular linked lists.
   lru_.next = &lru_;
   lru_.prev = &lru_;
@@ -165,21 +160,21 @@ void LRUCache<T1, T2>::SetCapacity(size_t capacity) {
 }
 
 template <typename T1, typename T2>
-Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
+rocksdb::Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
   pstd::MutexLock l(&mutex_);
   LRUHandle<T1, T2>* handle = handle_table_.Lookup(key);
   if (handle != NULL) {
     LRU_MoveToHead(handle);
     *value = handle->value;
   }
-  return (handle == NULL) ? Status::NotFound() : Status::OK();
+  return (handle == NULL) ? rocksdb::Status::NotFound() : rocksdb::Status::OK();
 }
 
 template <typename T1, typename T2>
-Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t charge) {
+rocksdb::Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t charge) {
   pstd::MutexLock l(&mutex_);
   if (capacity_ == 0) {
-    return Status::Corruption("capacity is empty");
+    return rocksdb::Status::Corruption("capacity is empty");
   } else {
     LRUHandle<T1, T2>* handle = new LRUHandle<T1, T2>();
     handle->key = key;
@@ -191,28 +186,28 @@ Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t charge) {
     FinishErase(handle_table_.Insert(key, handle));
     LRU_Trim();
   }
-  return Status::OK();
+  return rocksdb::Status::OK();
 }
 
 template <typename T1, typename T2>
-Status LRUCache<T1, T2>::Remove(const T1& key) {
+rocksdb::Status LRUCache<T1, T2>::Remove(const T1& key) {
   pstd::MutexLock l(&mutex_);
   bool erased = FinishErase(handle_table_.Remove(key));
-  return erased ? Status::OK() : Status::NotFound();
+  return erased ? rocksdb::Status::OK() : rocksdb::Status::NotFound();
 }
 
 template <typename T1, typename T2>
-Status LRUCache<T1, T2>::Clear() {
+rocksdb::Status LRUCache<T1, T2>::Clear() {
   pstd::MutexLock l(&mutex_);
   LRUHandle<T1, T2>* old = NULL;
   while (lru_.next != &lru_) {
     old = lru_.next;
-    bool erased =  FinishErase(handle_table_.Remove(old->key));
-    if (!erased) {   // to avoid unused variable when compiled NDEBUG
+    bool erased = FinishErase(handle_table_.Remove(old->key));
+    if (!erased) {  // to avoid unused variable when compiled NDEBUG
       assert(erased);
     }
   }
-  return Status::OK();
+  return rocksdb::Status::OK();
 }
 
 template <typename T1, typename T2>
@@ -234,16 +229,14 @@ bool LRUCache<T1, T2>::LRUAndHandleTableConsistent() {
 }
 
 template <typename T1, typename T2>
-bool LRUCache<T1, T2>::LRUAsExpected(
-        const std::vector<std::pair<T1, T2>>& expect) {
+bool LRUCache<T1, T2>::LRUAsExpected(const std::vector<std::pair<T1, T2>>& expect) {
   if (Size() != expect.size()) {
     return false;
   } else {
     size_t idx = 0;
     LRUHandle<T1, T2>* current = lru_.prev;
     while (current != &lru_) {
-      if (current->key != expect[idx].first
-        || current->value != expect[idx].second) {
+      if (current->key != expect[idx].first || current->value != expect[idx].second) {
         return false;
       } else {
         idx++;
@@ -259,8 +252,8 @@ void LRUCache<T1, T2>::LRU_Trim() {
   LRUHandle<T1, T2>* old = NULL;
   while (usage_ > capacity_ && lru_.next != &lru_) {
     old = lru_.next;
-    bool erased =  FinishErase(handle_table_.Remove(old->key));
-    if (!erased) {   // to avoid unused variable when compiled NDEBUG
+    bool erased = FinishErase(handle_table_.Remove(old->key));
+    if (!erased) {  // to avoid unused variable when compiled NDEBUG
       assert(erased);
     }
   }
@@ -302,4 +295,3 @@ bool LRUCache<T1, T2>::FinishErase(LRUHandle<T1, T2>* const e) {
 
 }  //  namespace storage
 #endif  // SRC_LRU_CACHE_H_
-

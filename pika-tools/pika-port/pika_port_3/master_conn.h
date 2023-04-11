@@ -20,12 +20,9 @@
 
 class BinlogReceiverThread;
 
-enum PortTransferOperate{
-  kTypePortAuth = 1,
-  kTypePortBinlog = 2
-};
+enum PortTransferOperate { kTypePortAuth = 1, kTypePortBinlog = 2 };
 
-class MasterConn: public net::PinkConn {
+class MasterConn : public net::PinkConn {
  public:
   MasterConn(int fd, std::string ip_port, void* worker_specific_data);
   virtual ~MasterConn();

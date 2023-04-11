@@ -32,7 +32,6 @@ int main() {
   printf("sleep 999 millisecond\n");
 
   mu.Unlock();
-  
+
   return 0;
 }
-

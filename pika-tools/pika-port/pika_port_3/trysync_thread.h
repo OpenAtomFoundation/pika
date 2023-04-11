@@ -8,22 +8,22 @@
 
 #include <vector>
 
+#include "net/include/net_cli.h"
 #include "net/include/net_thread.h"
 #include "net/include/redis_cli.h"
-#include "net/include/net_cli.h"
 
-#include "pika_sender.h"
 #include "migrator_thread.h"
+#include "pika_sender.h"
 
 class TrysyncThread : public net::Thread {
  public:
   TrysyncThread() {
     cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1500);
-	set_thread_name("TrysyncThread");
+    set_thread_name("TrysyncThread");
     retransmit_flag_ = false;
-	senders_.resize(0);
-	migrators_.resize(0);
+    senders_.resize(0);
+    migrators_.resize(0);
   };
   virtual ~TrysyncThread();
 
@@ -34,21 +34,20 @@ class TrysyncThread : public net::Thread {
   bool RecvProc();
   void PrepareRsync();
   bool TryUpdateMasterOffset();
-  int  Retransmit();
+  int Retransmit();
 
   virtual void* ThreadMain();
 
  private:
   long sid_;
   int sockfd_;
-  net::PinkCli *cli_;
+  net::PinkCli* cli_;
 
   slash::Mutex retransmit_mutex_;
   bool retransmit_flag_;
 
-  std::vector<PikaSender *> senders_;
-  std::vector<MigratorThread *> migrators_;
+  std::vector<PikaSender*> senders_;
+  std::vector<MigratorThread*> migrators_;
 };
 
 #endif
-

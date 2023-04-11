@@ -6,11 +6,10 @@
 #ifndef NET_INCLUDE_REDIS_CLI_H_
 #define NET_INCLUDE_REDIS_CLI_H_
 
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace net {
-
 
 typedef std::vector<std::string> RedisCmdArgsType;
 // We can serialize redis command by 2 ways:
@@ -20,9 +19,9 @@ typedef std::vector<std::string> RedisCmdArgsType;
 // 2. by a string vector;
 //    eg.  RedisCli::Serialize(argv, cmd);
 //        also cmd will be set as the result string.
-extern int SerializeRedisCommand(std::string *cmd, const char *format, ...);
-extern int SerializeRedisCommand(RedisCmdArgsType argv, std::string *cmd);
+extern int SerializeRedisCommand(std::string* cmd, const char* format, ...);
+extern int SerializeRedisCommand(RedisCmdArgsType argv, std::string* cmd);
 
-}   // namespace net
+}  // namespace net
 
 #endif  // NET_INCLUDE_REDIS_CLI_H_

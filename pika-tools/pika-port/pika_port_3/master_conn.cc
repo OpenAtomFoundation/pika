@@ -3,19 +3,18 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-
 #include <glog/logging.h>
 
-#include "slash/include/slash_string.h"
 #include "slash/include/slash_coding.h"
+#include "slash/include/slash_string.h"
 
+#include "binlog_receiver_thread.h"
 #include "binlog_transverter.h"
 #include "const.h"
 #include "master_conn.h"
-#include "binlog_receiver_thread.h"
 #include "pika_port.h"
 
-extern PikaPort *g_pika_port;
+extern PikaPort* g_pika_port;
 
 MasterConn::MasterConn(int fd, std::string ip_port, void* worker_specific_data)
     : PinkConn(fd, ip_port, NULL),
@@ -28,9 +27,7 @@ MasterConn::MasterConn(int fd, std::string ip_port, void* worker_specific_data)
   rbuf_ = static_cast<char*>(realloc(rbuf_, REDIS_IOBUF_LEN));
 }
 
-MasterConn::~MasterConn() {
-  free(rbuf_);
-}
+MasterConn::~MasterConn() { free(rbuf_); }
 
 net::ReadStatus MasterConn::ReadRaw(uint32_t count) {
   if (rbuf_cur_pos_ + count > rbuf_size_) {
@@ -72,7 +69,7 @@ net::ReadStatus MasterConn::ReadBody(uint32_t body_length) {
     return net::kReadAll;
   } else if (rbuf_len_ > HEADER_LEN + body_length) {
     LOG(INFO) << "rbuf_len_ larger than sum of header length (6 Byte)"
-      <<  " and body_length, rbuf_len_: " << rbuf_len_ << ", body_length: " << body_length;
+              << " and body_length, rbuf_len_: " << rbuf_len_ << ", body_length: " << body_length;
   }
 
   net::ReadStatus status = ReadRaw(body_length);
@@ -105,7 +102,7 @@ int32_t MasterConn::GetNextNum(const std::string& content, int32_t left_pos, int
   //            012 3
   // num range [left_pos + 1, right_pos - 2]
   assert(left_pos < right_pos);
-  if (slash::string2l(content.data() + left_pos + 1,  right_pos - left_pos - 2, value)) {
+  if (slash::string2l(content.data() + left_pos + 1, right_pos - left_pos - 2, value)) {
     return 0;
   }
   return -1;
@@ -170,7 +167,6 @@ void MasterConn::ResetStatus() {
   rbuf_len_ = 0;
   rbuf_cur_pos_ = 0;
 }
-
 
 net::ReadStatus MasterConn::GetRequest() {
   // Read Header
@@ -240,12 +236,9 @@ net::ReadStatus MasterConn::GetRequest() {
   return net::kReadAll;
 }
 
-net::WriteStatus MasterConn::SendReply() {
-  return net::kWriteAll;
-}
+net::WriteStatus MasterConn::SendReply() { return net::kWriteAll; }
 
-void MasterConn::TryResizeBuffer() {
-}
+void MasterConn::TryResizeBuffer() {}
 
 bool MasterConn::ProcessAuth(const net::RedisCmdArgsType& argv) {
   if (argv.empty() || argv.size() != 2) {
@@ -255,14 +248,14 @@ bool MasterConn::ProcessAuth(const net::RedisCmdArgsType& argv) {
   if (argv[0] == "auth") {
     if (argv[1] == std::to_string(g_pika_port->sid())) {
       is_authed_ = true;
-      LOG(INFO) << "BinlogReceiverThread AccessHandle succeeded, My server id: "
-        << g_pika_port->sid() << ", Master auth server id: " << argv[1];
+      LOG(INFO) << "BinlogReceiverThread AccessHandle succeeded, My server id: " << g_pika_port->sid()
+                << ", Master auth server id: " << argv[1];
       return true;
     }
   }
 
-  LOG(INFO) << "BinlogReceiverThread AccessHandle failed, My server id: "
-    << g_pika_port->sid() << ", Master auth server id: " << argv[1];
+  LOG(INFO) << "BinlogReceiverThread AccessHandle failed, My server id: " << g_pika_port->sid()
+            << ", Master auth server id: " << argv[1];
 
   return false;
 }
@@ -286,4 +279,3 @@ bool MasterConn::ProcessBinlogData(const net::RedisCmdArgsType& argv, const Port
 
   return true;
 }
-

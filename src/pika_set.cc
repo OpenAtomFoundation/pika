@@ -14,7 +14,7 @@ void SAddCmd::DoInitial() {
   }
   key_ = argv_[1];
   PikaCmdArgsType::iterator iter = argv_.begin();
-  iter++; 
+  iter++;
   iter++;
   members_.assign(iter, argv_.end());
   return;
@@ -111,8 +111,7 @@ void SScanCmd::DoInitial() {
   size_t argc = argv_.size(), index = 3;
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "count")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -364,7 +363,8 @@ void SRandmemberCmd::DoInitial() {
     if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &count_)) {
       res_.SetRes(CmdRes::kInvalidInt);
     } else {
-      reply_arr = true;;
+      reply_arr = true;
+      ;
     }
   }
   return;

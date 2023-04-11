@@ -2,21 +2,18 @@
 
 #include "include/pika_slot.h"
 
-PikaSender::PikaSender(nemo::Nemo *db, std::string ip, int64_t port, std::string password):
-  cli_(NULL),
-  rsignal_(&keys_mutex_),
-  wsignal_(&keys_mutex_),
-  db_(db),
-  ip_(ip),
-  port_(port),
-  password_(password),
-  should_exit_(false),
-  elements_(0)
-  {
-  }
+PikaSender::PikaSender(nemo::Nemo* db, std::string ip, int64_t port, std::string password)
+    : cli_(NULL),
+      rsignal_(&keys_mutex_),
+      wsignal_(&keys_mutex_),
+      db_(db),
+      ip_(ip),
+      port_(port),
+      password_(password),
+      should_exit_(false),
+      elements_(0) {}
 
-PikaSender::~PikaSender() {
-}
+PikaSender::~PikaSender() {}
 
 void PikaSender::ConnectRedis() {
   while (cli_ == NULL) {
@@ -90,7 +87,7 @@ void PikaSender::ConnectRedis() {
   }
 }
 
-void PikaSender::LoadKey(const std::string &key) {
+void PikaSender::LoadKey(const std::string& key) {
   keys_mutex_.Lock();
   if (keys_queue_.size() < 100000) {
     keys_queue_.push(key);
@@ -106,7 +103,7 @@ void PikaSender::LoadKey(const std::string &key) {
   }
 }
 
-void PikaSender::SendCommand(std::string &command, const std::string &key) {
+void PikaSender::SendCommand(std::string& command, const std::string& key) {
   // Send command
   slash::Status s = cli_->Send(&command);
   if (!s.ok()) {
@@ -119,7 +116,7 @@ void PikaSender::SendCommand(std::string &command, const std::string &key) {
   }
 }
 
-void *PikaSender::ThreadMain() {
+void* PikaSender::ThreadMain() {
   log_info("Start sender thread...");
   expire_command_.clear();
   int cnt = 0;
@@ -171,9 +168,9 @@ void *PikaSender::ThreadMain() {
       keys_mutex_.Unlock();
 
       char type = key[0];
-      if (type == nemo::DataType::kHSize) {   // Hash
+      if (type == nemo::DataType::kHSize) {  // Hash
         std::string h_key = key.substr(1);
-        nemo::HIterator *iter = db_->HScan(h_key, "", "", -1, false);
+        nemo::HIterator* iter = db_->HScan(h_key, "", "", -1, false);
         for (; iter->Valid(); iter->Next()) {
           net::RedisCmdArgsType argv;
 
@@ -193,7 +190,7 @@ void *PikaSender::ThreadMain() {
           continue;
         }
 
-        nemo::SIterator *iter = db_->SScan(s_key, -1, false);
+        nemo::SIterator* iter = db_->SScan(s_key, -1, false);
         for (; iter->Valid(); iter->Next()) {
           net::RedisCmdArgsType argv;
 
@@ -213,7 +210,7 @@ void *PikaSender::ThreadMain() {
         int64_t pos = 0;
         int64_t len = 512;
 
-        db_->LRange(l_key, pos, pos+len-1, ivs);
+        db_->LRange(l_key, pos, pos + len - 1, ivs);
 
         while (!ivs.empty()) {
           net::RedisCmdArgsType argv;
@@ -231,12 +228,11 @@ void *PikaSender::ThreadMain() {
 
           pos += len;
           ivs.clear();
-          db_->LRange(l_key, pos, pos+len-1, ivs);
+          db_->LRange(l_key, pos, pos + len - 1, ivs);
         }
       } else if (type == nemo::DataType::kZSize) {  // Zset
         std::string z_key = key.substr(1);
-        nemo::ZIterator *iter = db_->ZScan(z_key, nemo::ZSET_SCORE_MIN,
-                                     nemo::ZSET_SCORE_MAX, -1, false);
+        nemo::ZIterator* iter = db_->ZScan(z_key, nemo::ZSET_SCORE_MIN, nemo::ZSET_SCORE_MAX, -1, false);
         for (; iter->Valid(); iter->Next()) {
           net::RedisCmdArgsType argv;
 
@@ -252,7 +248,7 @@ void *PikaSender::ThreadMain() {
           cnt++;
         }
         delete iter;
-      } else if (type == nemo::DataType::kKv) {   // Kv
+      } else if (type == nemo::DataType::kKv) {  // Kv
         std::string k_key = key.substr(1);
         command = k_key;
         SendCommand(command, key);
@@ -260,7 +256,7 @@ void *PikaSender::ThreadMain() {
       }
 
       if (cnt >= 200) {
-        for(; cnt > 0; cnt--) {
+        for (; cnt > 0; cnt--) {
           cli_->Recv(NULL);
         }
       }
@@ -294,7 +290,7 @@ void *PikaSender::ThreadMain() {
       }
     }
   }
-  for(; cnt > 0; cnt--) {
+  for (; cnt > 0; cnt--) {
     cli_->Recv(NULL);
   }
 
@@ -303,4 +299,3 @@ void *PikaSender::ThreadMain() {
   log_info("PikaSender thread complete");
   return NULL;
 }
-

@@ -3,23 +3,23 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <fstream>
 #include <glog/logging.h>
 #include <poll.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <signal.h>
+#include <fstream>
 
-#include "slash/include/slash_status.h"
 #include "slash/include/rsync.h"
+#include "slash/include/slash_status.h"
 #include "slaveping_thread.h"
 
 #include "include/pika_define.h"
 
-#include "trysync_thread.h"
+#include "binlog_const.h"
 #include "pika_port.h"
 #include "port_conf.h"
-#include "binlog_const.h"
+#include "trysync_thread.h"
 
 extern PikaPort* g_pika_port;
 
@@ -68,13 +68,13 @@ bool TrysyncThread::Send() {
   net::SerializeRedisCommand(argv, &tbuf_str);
 
   wbuf_str.append(tbuf_str);
-  DLOG(INFO) << "redis command: trysync " << g_port_conf.local_ip << " "
-             << g_port_conf.local_port << " " << filenum << " " << pro_offset;
+  DLOG(INFO) << "redis command: trysync " << g_port_conf.local_ip << " " << g_port_conf.local_port << " " << filenum
+             << " " << pro_offset;
 
   slash::Status s;
   s = cli_->Send(&wbuf_str);
   if (!s.ok()) {
-    LOG(WARNING) << "Connect master, Send, error: " <<strerror(errno);
+    LOG(WARNING) << "Connect master, Send, error: " << strerror(errno);
     return false;
   }
   return true;
@@ -93,7 +93,7 @@ bool TrysyncThread::RecvProc() {
   while (1) {
     s = cli_->Recv(&argv);
     if (!s.ok()) {
-      LOG(WARNING) << "Connect master, Recv, error: " <<strerror(errno);
+      LOG(WARNING) << "Connect master, Recv, error: " << strerror(errno);
       return false;
     }
 
@@ -107,8 +107,7 @@ bool TrysyncThread::RecvProc() {
       is_authed = true;
     } else {
       // pinfo("xxxxxx argv size %zu, reply %s", argv.size(), reply.data());
-      if (argv.size() == 1 &&
-          slash::string2l(reply.data(), reply.size(), &sid_)) {
+      if (argv.size() == 1 && slash::string2l(reply.data(), reply.size(), &sid_)) {
         // Luckly, I got your point, the sync is comming
         DLOG(INFO) << "Recv sid from master: " << sid_;
         g_pika_port->SetSid(sid_);
@@ -170,24 +169,25 @@ bool TrysyncThread::TryUpdateMasterOffset() {
         is.close();
         return false;
       }
-      if (lineno == 3) { master_port = tmp; }
-      else if (lineno == 4) { filenum = tmp; }
-      else { offset = tmp; }
-   } else if (lineno > 5) {
+      if (lineno == 3) {
+        master_port = tmp;
+      } else if (lineno == 4) {
+        filenum = tmp;
+      } else {
+        offset = tmp;
+      }
+    } else if (lineno > 5) {
       LOG(WARNING) << "Format of info file after db sync error, line : " << line;
       is.close();
       return false;
     }
   }
   is.close();
-  LOG(INFO) << "Information from dbsync info. master_ip: " << master_ip
-    << ", master_port: " << master_port
-    << ", filenum: " << filenum
-    << ", offset: " << offset;
+  LOG(INFO) << "Information from dbsync info. master_ip: " << master_ip << ", master_port: " << master_port
+            << ", filenum: " << filenum << ", offset: " << offset;
 
   // Sanity check
-  if (master_ip != g_port_conf.master_ip ||
-      master_port != g_port_conf.master_port) {
+  if (master_ip != g_port_conf.master_ip || master_port != g_port_conf.master_port) {
     LOG(WARNING) << "Error master ip port: " << master_ip << ":" << master_port;
     return false;
   }
@@ -206,13 +206,13 @@ bool TrysyncThread::TryUpdateMasterOffset() {
 }
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <vector>
-#include <memory>
 
+#include "migrator_thread.h"
 #include "nemo.h"
 #include "pika_sender.h"
-#include "migrator_thread.h"
 
 using std::chrono::high_resolution_clock;
 using std::chrono::milliseconds;
@@ -235,8 +235,8 @@ int TrysyncThread::Retransmit() {
 
   // Init db
   nemo::Options option;
-  option.write_buffer_size = 512 * 1024 * 1024; // 512M
-  option.target_file_size_base = 40 * 1024 * 1024; // 40M
+  option.write_buffer_size = 512 * 1024 * 1024;     // 512M
+  option.target_file_size_base = 40 * 1024 * 1024;  // 40M
   db = std::unique_ptr<nemo::Nemo>(new nemo::Nemo(db_path, option));
 
   // Init SenderThread
@@ -258,10 +258,10 @@ int TrysyncThread::Retransmit() {
     senders[i]->StartThread();
   }
 
-  for(size_t i = 0; i < kDataSetNum; i++) {
+  for (size_t i = 0; i < kDataSetNum; i++) {
     migrators[i]->JoinThread();
   }
-  for(size_t i = 0; i < thread_num; i++) {
+  for (size_t i = 0; i < thread_num; i++) {
     senders[i]->Stop();
   }
   for (size_t i = 0; i < thread_num; i++) {
@@ -279,13 +279,14 @@ int TrysyncThread::Retransmit() {
   }
 
   high_resolution_clock::time_point end = high_resolution_clock::now();
-  std::chrono::hours  h = std::chrono::duration_cast<std::chrono::hours>(end - start);
-  std::chrono::minutes  m = std::chrono::duration_cast<std::chrono::minutes>(end - start);
-  std::chrono::seconds  s = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+  std::chrono::hours h = std::chrono::duration_cast<std::chrono::hours>(end - start);
+  std::chrono::minutes m = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(end - start);
 
   DLOG(INFO) << "=============== Retransmitting =====================" << std::endl;
   DLOG(INFO) << "Running time  :";
-  DLOG(INFO) << h.count() << " hour " << m.count() - h.count() * 60 << " min " << s.count() - h.count() * 60 * 60 << " s";
+  DLOG(INFO) << h.count() << " hour " << m.count() - h.count() * 60 << " min " << s.count() - h.count() * 60 * 60
+             << " s";
   DLOG(INFO) << "Total records : " << records << " have been Scaned";
   DLOG(INFO) << "Total replies : " << replies << " received from redis server";
   // delete db
@@ -299,7 +300,7 @@ void* TrysyncThread::ThreadMain() {
 
     if (g_pika_port->IsWaitingDBSync()) {
       LOG(INFO) << "Waiting db sync";
-      //Try to update offset by db sync
+      // Try to update offset by db sync
       if (TryUpdateMasterOffset()) {
         LOG(INFO) << "Success Update Master Offset";
       }
@@ -318,8 +319,8 @@ void* TrysyncThread::ThreadMain() {
     // Start rsync service
     PrepareRsync();
     std::string ip_port = slash::IpPortString(g_port_conf.master_ip, g_port_conf.master_port);
-    int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port,
-                    g_port_conf.local_ip, g_port_conf.local_port + 3000);
+    int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, g_port_conf.local_ip,
+                                g_port_conf.local_port + 3000);
     if (0 != ret) {
       LOG(WARNING) << "Failed to start rsync, path:" << dbsync_path << " error : " << ret;
       return false;

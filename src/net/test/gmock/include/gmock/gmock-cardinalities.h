@@ -95,28 +95,22 @@ class GTEST_API_ Cardinality {
   int ConservativeUpperBound() const { return impl_->ConservativeUpperBound(); }
 
   // Returns true iff call_count calls will satisfy this cardinality.
-  bool IsSatisfiedByCallCount(int call_count) const {
-    return impl_->IsSatisfiedByCallCount(call_count);
-  }
+  bool IsSatisfiedByCallCount(int call_count) const { return impl_->IsSatisfiedByCallCount(call_count); }
 
   // Returns true iff call_count calls will saturate this cardinality.
-  bool IsSaturatedByCallCount(int call_count) const {
-    return impl_->IsSaturatedByCallCount(call_count);
-  }
+  bool IsSaturatedByCallCount(int call_count) const { return impl_->IsSaturatedByCallCount(call_count); }
 
   // Returns true iff call_count calls will over-saturate this
   // cardinality, i.e. exceed the maximum number of allowed calls.
   bool IsOverSaturatedByCallCount(int call_count) const {
-    return impl_->IsSaturatedByCallCount(call_count) &&
-        !impl_->IsSatisfiedByCallCount(call_count);
+    return impl_->IsSaturatedByCallCount(call_count) && !impl_->IsSatisfiedByCallCount(call_count);
   }
 
   // Describes self to an ostream
   void DescribeTo(::std::ostream* os) const { impl_->DescribeTo(os); }
 
   // Describes the given actual call count to an ostream.
-  static void DescribeActualCallCountTo(int actual_call_count,
-                                        ::std::ostream* os);
+  static void DescribeActualCallCountTo(int actual_call_count, ::std::ostream* os);
 
  private:
   internal::linked_ptr<const CardinalityInterface> impl_;
@@ -138,9 +132,7 @@ GTEST_API_ Cardinality Between(int min, int max);
 GTEST_API_ Cardinality Exactly(int n);
 
 // Creates a cardinality from its implementation.
-inline Cardinality MakeCardinality(const CardinalityInterface* c) {
-  return Cardinality(c);
-}
+inline Cardinality MakeCardinality(const CardinalityInterface* c) { return Cardinality(c); }
 
 }  // namespace testing
 

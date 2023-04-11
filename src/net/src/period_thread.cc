@@ -9,11 +9,9 @@
 
 namespace net {
 
-PeriodThread::PeriodThread(struct timeval period) :
-  period_(period) {
-}
+PeriodThread::PeriodThread(struct timeval period) : period_(period) {}
 
-void *PeriodThread::ThreadMain() {
+void* PeriodThread::ThreadMain() {
   PeriodMain();
   select(0, NULL, NULL, NULL, &period_);
   return NULL;

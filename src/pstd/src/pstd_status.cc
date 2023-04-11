@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include <stdio.h>
 #include "pstd/include/pstd_status.h"
+#include <stdio.h>
 
 namespace pstd {
 
@@ -39,46 +39,46 @@ std::string Status::ToString() const {
     char tmp[30];
     const char* type;
     switch (code()) {
-    case kOk:
-      type = "OK";
-      break;
-    case kNotFound:
-      type = "NotFound: ";
-      break;
-    case kCorruption:
-      type = "Corruption: ";
-      break;
-    case kNotSupported:
-      type = "Not implemented: ";
-      break;
-    case kInvalidArgument:
-      type = "Invalid argument: ";
-      break;
-    case kIOError:
-      type = "IO error: ";
-      break;
-    case kEndFile:
-      type = "End file: ";
-      break;
-    case kIncomplete:
-      type = "InComplete: ";
-      break;
-    case kComplete:
-      type = "Complete: ";
-      break;
-    case kTimeout:
-      type = "Timeout: ";
-      break;
-    case kAuthFailed:
-      type = "AuthFailed: ";
-      break;
-    case kBusy:
-      type = "Busy:";
-      break;
-    default:
-      snprintf(tmp, sizeof(tmp), "Unknown code(%d): ", static_cast<int>(code()));
-      type = tmp;
-      break;
+      case kOk:
+        type = "OK";
+        break;
+      case kNotFound:
+        type = "NotFound: ";
+        break;
+      case kCorruption:
+        type = "Corruption: ";
+        break;
+      case kNotSupported:
+        type = "Not implemented: ";
+        break;
+      case kInvalidArgument:
+        type = "Invalid argument: ";
+        break;
+      case kIOError:
+        type = "IO error: ";
+        break;
+      case kEndFile:
+        type = "End file: ";
+        break;
+      case kIncomplete:
+        type = "InComplete: ";
+        break;
+      case kComplete:
+        type = "Complete: ";
+        break;
+      case kTimeout:
+        type = "Timeout: ";
+        break;
+      case kAuthFailed:
+        type = "AuthFailed: ";
+        break;
+      case kBusy:
+        type = "Busy:";
+        break;
+      default:
+        snprintf(tmp, sizeof(tmp), "Unknown code(%d): ", static_cast<int>(code()));
+        type = tmp;
+        break;
     }
     std::string result(type);
     uint32_t length;
@@ -88,5 +88,4 @@ std::string Status::ToString() const {
   }
 }
 
-
-} // namespace pstd
+}  // namespace pstd

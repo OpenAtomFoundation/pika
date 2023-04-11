@@ -19,25 +19,15 @@ static void PthreadCall(const char* label, int result) {
   }
 }
 
-CondLock::CondLock() {
-  PthreadCall("init condlock", pthread_mutex_init(&mutex_, NULL));
-}
+CondLock::CondLock() { PthreadCall("init condlock", pthread_mutex_init(&mutex_, NULL)); }
 
-CondLock::~CondLock() {
-  PthreadCall("destroy condlock", pthread_mutex_unlock(&mutex_));
-}
+CondLock::~CondLock() { PthreadCall("destroy condlock", pthread_mutex_unlock(&mutex_)); }
 
-void CondLock::Lock() {
-  PthreadCall("mutex lock", pthread_mutex_lock(&mutex_));
-}
+void CondLock::Lock() { PthreadCall("mutex lock", pthread_mutex_lock(&mutex_)); }
 
-void CondLock::Unlock() {
-  PthreadCall("mutex unlock", pthread_mutex_unlock(&mutex_));
-}
+void CondLock::Unlock() { PthreadCall("mutex unlock", pthread_mutex_unlock(&mutex_)); }
 
-void CondLock::Wait() {
-  PthreadCall("condlock wait", pthread_cond_wait(&cond_, &mutex_));
-}
+void CondLock::Wait() { PthreadCall("condlock wait", pthread_cond_wait(&cond_, &mutex_)); }
 
 void CondLock::TimedWait(uint32_t timeout) {
   /*
@@ -55,12 +45,8 @@ void CondLock::TimedWait(uint32_t timeout) {
   pthread_cond_timedwait(&cond_, &mutex_, &tsp);
 }
 
-void CondLock::Signal() {
-  PthreadCall("condlock signal", pthread_cond_signal(&cond_));
-}
+void CondLock::Signal() { PthreadCall("condlock signal", pthread_cond_signal(&cond_)); }
 
-void CondLock::Broadcast() {
-  PthreadCall("condlock broadcast", pthread_cond_broadcast(&cond_));
-}
+void CondLock::Broadcast() { PthreadCall("condlock broadcast", pthread_cond_broadcast(&cond_)); }
 
 }  // namespace pstd

@@ -9,9 +9,9 @@
 #include <fstream>
 #include <iostream>
 
+#include "include/pika_binlog.h"
 #include "slash/include/slash_status.h"
 #include "slash/include/slash_string.h"
-#include "include/pika_binlog.h"
 
 std::string db_dump_path;
 int32_t db_dump_filenum;
@@ -44,9 +44,13 @@ void ParseInfoFile(const std::string& path) {
         is.close();
         exit(-1);
       }
-      if (lineno == 3) { master_port = tmp; }
-      else if (lineno == 4) { filenum = tmp; }
-      else { offset = tmp; }
+      if (lineno == 3) {
+        master_port = tmp;
+      } else if (lineno == 4) {
+        filenum = tmp;
+      } else {
+        offset = tmp;
+      }
 
     } else if (lineno > 5) {
       std::cout << "Format of info file " << info_file << " error, line : " << line;
@@ -59,10 +63,10 @@ void ParseInfoFile(const std::string& path) {
   db_dump_filenum = filenum;
   db_dump_offset = offset;
   std::cout << "Information from info_file " << info_file << std::endl
-      << "  db_dump_ip: " << master_ip << std::endl
-      << "  db_dump_port: " << master_port << std::endl
-      << "  filenum: " << filenum << std::endl
-      << "  offset: " << offset << std::endl;
+            << "  db_dump_ip: " << master_ip << std::endl
+            << "  db_dump_port: " << master_port << std::endl
+            << "  filenum: " << filenum << std::endl
+            << "  offset: " << offset << std::endl;
 }
 
 void PrintInfo() {
@@ -78,20 +82,21 @@ void Usage() {
   std::cout << "Usage: " << std::endl;
   std::cout << "  -d   -- db dump path (required)" << std::endl;
   std::cout << "  -l   -- new pika log_path (required)" << std::endl;
-  std::cout << "  example: ./manifest_generator -d /data1/pika_old/dump/20190508/ -l /data01/pika_new/log/db0" << std::endl;
+  std::cout << "  example: ./manifest_generator -d /data1/pika_old/dump/20190508/ -l /data01/pika_new/log/db0"
+            << std::endl;
 }
 
 int main(int argc, char* argv[]) {
   int opt;
   while ((opt = getopt(argc, argv, "d:l:")) != -1) {
     switch (opt) {
-      case 'd' :
+      case 'd':
         db_dump_path = std::string(optarg);
         break;
-      case 'l' :
+      case 'l':
         new_pika_log_path = std::string(optarg);
         break;
-      default :
+      default:
         Usage();
         exit(-1);
     }
@@ -101,7 +106,7 @@ int main(int argc, char* argv[]) {
     exit(-1);
   }
   if (db_dump_path.back() != '/') {
-     db_dump_path.push_back('/');
+    db_dump_path.push_back('/');
   }
   if (new_pika_log_path.back() != '/') {
     new_pika_log_path.push_back('/');

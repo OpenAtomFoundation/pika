@@ -54,7 +54,7 @@ void BGThread::SwallowReadyTasks() {
   gettimeofday(&now, NULL);
   uint64_t unow = now.tv_sec * 1000000 + now.tv_usec;
   mu_.Lock();
-  while(!timer_queue_.empty()) {
+  while (!timer_queue_.empty()) {
     TimerItem top_item = timer_queue_.top();
     if (unow / 1000 < top_item.exec_time / 1000) {
       break;
@@ -70,7 +70,7 @@ void BGThread::SwallowReadyTasks() {
   mu_.Unlock();
 }
 
-void *BGThread::ThreadMain() {
+void* BGThread::ThreadMain() {
   while (!should_stop()) {
     mu_.Lock();
     while (queue_.empty() && timer_queue_.empty() && !should_stop()) {
@@ -94,8 +94,7 @@ void *BGThread::ThreadMain() {
         (*function)(arg);
         continue;
       } else if (queue_.empty() && !should_stop()) {
-        rsignal_.TimedWait(
-            static_cast<uint32_t>((timer_item.exec_time - unow) / 1000));
+        rsignal_.TimedWait(static_cast<uint32_t>((timer_item.exec_time - unow) / 1000));
         mu_.Unlock();
         continue;
       }
@@ -117,8 +116,7 @@ void *BGThread::ThreadMain() {
 /*
  * timeout is in millisecond
  */
-void BGThread::DelaySchedule(
-    uint64_t timeout, void (*function)(void *), void* arg) {
+void BGThread::DelaySchedule(uint64_t timeout, void (*function)(void*), void* arg) {
   /*
    * pthread_cond_timedwait api use absolute API
    * so we need gettimeofday + timeout

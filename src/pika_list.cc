@@ -5,8 +5,8 @@
 
 #include "include/pika_list.h"
 
-#include "pstd/include/pstd_string.h"
 #include "include/pika_data_distribution.h"
+#include "pstd/include/pstd_string.h"
 
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -70,7 +70,7 @@ void LLenCmd::DoInitial() {
 void LLenCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
   rocksdb::Status s = partition->db()->LLen(key_, &llen);
-  if (s.ok() || s.IsNotFound()){
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -204,17 +204,17 @@ void LSetCmd::DoInitial() {
   value_ = argv_[3];
 }
 void LSetCmd::Do(std::shared_ptr<Partition> partition) {
-    rocksdb::Status s = partition->db()->LSet(key_, index_, value_);
-    if (s.ok()) {
-      res_.SetRes(CmdRes::kOk);
-    } else if (s.IsNotFound()) {
-      res_.SetRes(CmdRes::kNotFound);
-    } else if (s.IsCorruption() && s.ToString() == "Corruption: index out of range") {
-      //TODO refine return value
-      res_.SetRes(CmdRes::kOutOfRange);
-    } else {
-      res_.SetRes(CmdRes::kErrOther, s.ToString());
-    }
+  rocksdb::Status s = partition->db()->LSet(key_, index_, value_);
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kNotFound);
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: index out of range") {
+    // TODO refine return value
+    res_.SetRes(CmdRes::kOutOfRange);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
 }
 
 void LTrimCmd::DoInitial() {

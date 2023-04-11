@@ -16,9 +16,10 @@
 class ProgressThread : public net::Thread {
  public:
   ProgressThread(ScanThread* scan_thread);
+
  private:
   bool AllClassifyTreadFinish();
-  virtual void *ThreadMain();
+  virtual void* ThreadMain();
   ScanThread* scan_thread_;
 };
 

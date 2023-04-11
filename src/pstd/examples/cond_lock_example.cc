@@ -6,8 +6,7 @@
 
 pstd::CondLock cl;
 
-int main()
-{
+int main() {
   cl.Lock();
   cl.Unlock();
   uint32_t a = 2000;

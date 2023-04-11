@@ -12,16 +12,12 @@
 
 namespace net {
 
-
-WorkerThread::WorkerThread(ConnFactory *conn_factory,
-                           ServerThread* server_thread,
-                           int queue_limit,
-                           int cron_interval)
-      : private_data_(nullptr),
-        server_thread_(server_thread),
-        conn_factory_(conn_factory),
-        cron_interval_(cron_interval),
-        keepalive_timeout_(kDefaultKeepAliveTime) {
+WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval)
+    : private_data_(nullptr),
+      server_thread_(server_thread),
+      conn_factory_(conn_factory),
+      cron_interval_(cron_interval),
+      keepalive_timeout_(kDefaultKeepAliveTime) {
   /*
    * install the protobuf handler here
    */
@@ -29,8 +25,7 @@ WorkerThread::WorkerThread(ConnFactory *conn_factory,
   net_multiplexer_->Initialize();
 }
 
-WorkerThread::~WorkerThread() {
-}
+WorkerThread::~WorkerThread() {}
 
 int WorkerThread::conn_num() const {
   pstd::ReadLock l(&rwlock_);
@@ -41,11 +36,7 @@ std::vector<ServerThread::ConnInfo> WorkerThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
   pstd::ReadLock l(&rwlock_);
   for (auto& conn : conns_) {
-    result.push_back({
-                      conn.first,
-                      conn.second->ip_port(),
-                      conn.second->last_interaction()
-                     });
+    result.push_back({conn.first, conn.second->ip_port(), conn.second->last_interaction()});
   }
   return result;
 }
@@ -73,13 +64,11 @@ bool WorkerThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& n
   return success;
 }
 
-bool WorkerThread::MoveConnIn(const NetItem& it, bool force) {
-  return net_multiplexer_->Register(it, force);
-}
+bool WorkerThread::MoveConnIn(const NetItem& it, bool force) { return net_multiplexer_->Register(it, force); }
 
-void *WorkerThread::ThreadMain() {
+void* WorkerThread::ThreadMain() {
   int nfds;
-  NetFiredEvent *pfe = NULL;
+  NetFiredEvent* pfe = NULL;
   char bb[2048];
   NetItem ti;
   std::shared_ptr<NetConn> in_conn = nullptr;
@@ -98,10 +87,8 @@ void *WorkerThread::ThreadMain() {
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, NULL);
-      if (when.tv_sec > now.tv_sec ||
-          (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 +
-          (when.tv_usec - now.tv_usec) / 1000;
+      if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
+        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
       } else {
         DoCronTask();
         when.tv_sec = now.tv_sec + (cron_interval_ / 1000);
@@ -123,17 +110,15 @@ void *WorkerThread::ThreadMain() {
             for (int32_t idx = 0; idx < nread; ++idx) {
               NetItem ti = net_multiplexer_->NotifyQueuePop();
               if (ti.notify_type() == kNotiConnect) {
-                std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(
-                    ti.fd(), ti.ip_port(),
-                    server_thread_, private_data_, net_multiplexer_.get());
+                std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(ti.fd(), ti.ip_port(), server_thread_,
+                                                                        private_data_, net_multiplexer_.get());
                 if (!tc || !tc->SetNonblock()) {
                   continue;
                 }
 
 #ifdef __ENABLE_SSL
                 // Create SSL failed
-                if (server_thread_->security() &&
-                  !tc->CreateSSL(server_thread_->ssl_ctx())) {
+                if (server_thread_->security() && !tc->CreateSSL(server_thread_->ssl_ctx())) {
                   CloseFd(tc);
                   continue;
                 }
@@ -185,7 +170,7 @@ void *WorkerThread::ThreadMain() {
             net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);
             in_conn->set_is_reply(false);
             if (in_conn->IsClose()) {
-                 should_close = 1;
+              should_close = 1;
             }
           } else if (write_status == kWriteHalf) {
             continue;
@@ -219,8 +204,8 @@ void *WorkerThread::ThreadMain() {
           should_close = 0;
         }
       }  // connection event
-    }  // for (int i = 0; i < nfds; i++)
-  }  // while (!should_stop())
+    }    // for (int i = 0; i < nfds; i++)
+  }      // while (!should_stop())
 
   Cleanup();
   return NULL;
@@ -257,8 +242,7 @@ void WorkerThread::DoCronTask() {
       }
 
       // Check keepalive timeout connection
-      if (keepalive_timeout_ > 0 &&
-          (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
+      if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         to_timeout.push_back(conn);
         iter = conns_.erase(iter);
         continue;
@@ -313,7 +297,6 @@ void WorkerThread::Cleanup() {
   for (const auto& iter : to_close) {
     CloseFd(iter.second);
   }
-
 }
 
 };  // namespace net

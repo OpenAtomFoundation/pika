@@ -3,19 +3,19 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef  PIKA_MONITOR_THREAD_H_
-#define  PIKA_MONITOR_THREAD_H_
+#ifndef PIKA_MONITOR_THREAD_H_
+#define PIKA_MONITOR_THREAD_H_
 
-#include <list>
-#include <deque>
-#include <queue>
 #include <atomic>
+#include <deque>
+#include <list>
+#include <queue>
 
 #include "net/include/net_thread.h"
 #include "pstd/include/pstd_mutex.h"
 
-#include "include/pika_define.h"
 #include "include/pika_client_conn.h"
+#include "include/pika_define.h"
 
 class PikaMonitorThread : public net::Thread {
  public:
@@ -23,7 +23,7 @@ class PikaMonitorThread : public net::Thread {
   virtual ~PikaMonitorThread();
 
   void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
-  void AddMonitorMessage(const std::string &monitor_message);
+  void AddMonitorMessage(const std::string& monitor_message);
   int32_t ThreadClientList(std::vector<ClientInfo>* client = NULL);
   bool ThreadClientKill(const std::string& ip_port = "all");
   bool HasMonitorClients();

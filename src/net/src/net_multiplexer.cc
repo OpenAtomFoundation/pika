@@ -5,9 +5,9 @@
 
 #include "net/src/net_multiplexer.h"
 
-#include <cstdlib>
-#include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <cstdlib>
 
 #include "pstd/include/xdebug.h"
 
@@ -58,9 +58,7 @@ bool NetMultiplexer::Register(const NetItem& it, bool force) {
 
   bool success = false;
   notify_queue_protector_.Lock();
-  if (force ||
-      queue_limit_ == kUnlimitedQueue ||
-      notify_queue_.size() < static_cast<size_t>(queue_limit_)) {
+  if (force || queue_limit_ == kUnlimitedQueue || notify_queue_.size() < static_cast<size_t>(queue_limit_)) {
     notify_queue_.push(it);
     success = true;
   }

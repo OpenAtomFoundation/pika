@@ -4,16 +4,16 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
+#  define __STDC_FORMAT_MACROS
 #endif
 
 #include "pstd/include/lock_mgr.h"
 
-#include <vector>
-#include <unordered_set>
 #include <atomic>
-#include <memory>
 #include <functional>
+#include <memory>
+#include <unordered_set>
+#include <vector>
 
 #include "pstd/include/mutex.h"
 
@@ -41,9 +41,7 @@ struct LockMapStripe {
 
 // Map of #num_stripes LockMapStripes
 struct LockMap {
-  explicit LockMap(size_t num_stripes,
-                   std::shared_ptr<MutexFactory> factory)
-      : num_stripes_(num_stripes) {
+  explicit LockMap(size_t num_stripes, std::shared_ptr<MutexFactory> factory) : num_stripes_(num_stripes) {
     lock_map_stripes_.reserve(num_stripes);
     for (size_t i = 0; i < num_stripes; i++) {
       LockMapStripe* stripe = new LockMapStripe(factory);
@@ -75,14 +73,11 @@ size_t LockMap::GetStripe(const std::string& key) const {
   return stripe;
 }
 
-LockMgr::LockMgr(size_t default_num_stripes,
-                 int64_t max_num_locks,
-                 std::shared_ptr<MutexFactory> mutex_factory)
+LockMgr::LockMgr(size_t default_num_stripes, int64_t max_num_locks, std::shared_ptr<MutexFactory> mutex_factory)
     : default_num_stripes_(default_num_stripes),
       max_num_locks_(max_num_locks),
       mutex_factory_(mutex_factory),
-      lock_map_(std::shared_ptr<LockMap>(
-            new LockMap(default_num_stripes, mutex_factory))) {}
+      lock_map_(std::shared_ptr<LockMap>(new LockMap(default_num_stripes, mutex_factory))) {}
 
 LockMgr::~LockMgr() {}
 
@@ -99,8 +94,7 @@ Status LockMgr::TryLock(const std::string& key) {
 }
 
 // Helper function for TryLock().
-Status LockMgr::Acquire(LockMapStripe* stripe,
-                        const std::string& key) {
+Status LockMgr::Acquire(LockMapStripe* stripe, const std::string& key) {
   Status result;
 
   // we wait indefinitely to acquire the lock
@@ -131,17 +125,15 @@ Status LockMgr::Acquire(LockMapStripe* stripe,
 
 // Try to lock this key after we have acquired the mutex.
 // REQUIRED:  Stripe mutex must be held.
-Status LockMgr::AcquireLocked(LockMapStripe* stripe,
-                              const std::string& key) {
+Status LockMgr::AcquireLocked(LockMapStripe* stripe, const std::string& key) {
   Status result;
   // Check if this key is already locked
   if (stripe->keys.find(key) != stripe->keys.end()) {
     // Lock already held
-      result = Status::Busy("LockTimeout");
+    result = Status::Busy("LockTimeout");
   } else {  // Lock not held.
     // Check lock limit
-    if (max_num_locks_ > 0 &&
-        lock_map_->lock_cnt.load(std::memory_order_acquire) >= max_num_locks_) {
+    if (max_num_locks_ > 0 && lock_map_->lock_cnt.load(std::memory_order_acquire) >= max_num_locks_) {
       result = Status::Busy("LockLimit");
     } else {
       // acquire lock

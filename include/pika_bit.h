@@ -16,22 +16,20 @@
  */
 class BitGetCmd : public Cmd {
  public:
-  BitGetCmd(const std::string& name, int arity, uint16_t flag)
-        : Cmd(name, arity, flag) {};
+  BitGetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new BitGetCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new BitGetCmd(*this); }
+
  private:
   std::string key_;
-  int64_t  bit_offset_;
+  int64_t bit_offset_;
   virtual void Clear() {
     key_ = "";
     bit_offset_ = -1;
@@ -41,23 +39,21 @@ class BitGetCmd : public Cmd {
 
 class BitSetCmd : public Cmd {
  public:
-  BitSetCmd(const std::string& name, int arity, uint16_t flag)
-        : Cmd(name, arity, flag) {};
+  BitSetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new BitSetCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new BitSetCmd(*this); }
+
  private:
   std::string key_;
-  int64_t  bit_offset_;
-  int64_t  on_;
+  int64_t bit_offset_;
+  int64_t on_;
   virtual void Clear() {
     key_ = "";
     bit_offset_ = -1;
@@ -68,24 +64,22 @@ class BitSetCmd : public Cmd {
 
 class BitCountCmd : public Cmd {
  public:
-  BitCountCmd(const std::string& name, int arity, uint16_t flag)
-        : Cmd(name, arity, flag) {};
+  BitCountCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new BitCountCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new BitCountCmd(*this); }
+
  private:
   std::string key_;
-  bool  count_all_;
-  int64_t  start_offset_;
-  int64_t  end_offset_;
+  bool count_all_;
+  int64_t start_offset_;
+  int64_t end_offset_;
   virtual void Clear() {
     key_ = "";
     count_all_ = false;
@@ -97,26 +91,24 @@ class BitCountCmd : public Cmd {
 
 class BitPosCmd : public Cmd {
  public:
-  BitPosCmd(const std::string& name, int arity, uint16_t flag)
-        : Cmd(name, arity, flag) {};
+  BitPosCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new BitPosCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new BitPosCmd(*this); }
+
  private:
   std::string key_;
-  bool  pos_all_;
-  bool  endoffset_set_;
+  bool pos_all_;
+  bool endoffset_set_;
   int64_t bit_val_;
-  int64_t  start_offset_;
-  int64_t  end_offset_;
+  int64_t start_offset_;
+  int64_t end_offset_;
   virtual void Clear() {
     key_ = "";
     pos_all_ = false;
@@ -130,14 +122,12 @@ class BitPosCmd : public Cmd {
 
 class BitOpCmd : public Cmd {
  public:
-  BitOpCmd(const std::string& name, int arity, uint16_t flag)
-        : Cmd(name, arity, flag) {};
+  BitOpCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new BitOpCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new BitOpCmd(*this); }
+
  private:
   std::string dest_key_;
   std::vector<std::string> src_keys_;

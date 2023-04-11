@@ -9,26 +9,22 @@
 #include <algorithm>
 
 #include "pstd/include/env.h"
-#include "pstd/include/xdebug.h"
 #include "pstd/include/pstd_string.h"
+#include "pstd/include/xdebug.h"
 
 namespace pstd {
 
-static const int kConfItemLen = 1024*1024;
+static const int kConfItemLen = 1024 * 1024;
 
-BaseConf::BaseConf(const std::string &path)
-  : rep_(new Rep(path)) {
-}
+BaseConf::BaseConf(const std::string& path) : rep_(new Rep(path)) {}
 
-BaseConf::~BaseConf() {
-  delete rep_;
-}
+BaseConf::~BaseConf() { delete rep_; }
 
 int BaseConf::LoadConf() {
   if (!FileExists(rep_->path)) {
     return -1;
   }
-  SequentialFile *sequential_file;
+  SequentialFile* sequential_file;
   NewSequentialFile(rep_->path, &sequential_file);
 
   // read conf items
@@ -52,22 +48,22 @@ int BaseConf::LoadConf() {
         break;
       }
       switch (line[i]) {
-      case SPACE:
-      case '\r':
-      case '\n':
-        break;
-      case COLON:
-        if (!sep_sign) {
-          type = Rep::kConf;
-          sep_sign = 1;
+        case SPACE:
+        case '\r':
+        case '\n':
           break;
-        }
-      default:
-        if (sep_sign == 0) {
-          name[name_len++] = line[i];
-        } else {
-          value[value_len++] = line[i];
-        }
+        case COLON:
+          if (!sep_sign) {
+            type = Rep::kConf;
+            sep_sign = 1;
+            break;
+          }
+        default:
+          if (sep_sign == 0) {
+            name[name_len++] = line[i];
+          } else {
+            value[value_len++] = line[i];
+          }
       }
     }
 
@@ -95,7 +91,7 @@ int BaseConf::ReloadConf() {
   return 0;
 }
 
-bool BaseConf::GetConfInt(const std::string &name, int* value) const {
+bool BaseConf::GetConfInt(const std::string& name, int* value) const {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -108,7 +104,7 @@ bool BaseConf::GetConfInt(const std::string &name, int* value) const {
   return false;
 }
 
-bool BaseConf::GetConfIntHuman(const std::string &name, int* value) const {
+bool BaseConf::GetConfIntHuman(const std::string& name, int* value) const {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -130,7 +126,7 @@ bool BaseConf::GetConfIntHuman(const std::string &name, int* value) const {
   return false;
 }
 
-bool BaseConf::GetConfInt64Human(const std::string &name, int64_t* value) const {
+bool BaseConf::GetConfInt64Human(const std::string& name, int64_t* value) const {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -152,7 +148,7 @@ bool BaseConf::GetConfInt64Human(const std::string &name, int64_t* value) const 
   return false;
 }
 
-bool BaseConf::GetConfInt64(const std::string &name, int64_t* value) const {
+bool BaseConf::GetConfInt64(const std::string& name, int64_t* value) const {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -165,7 +161,7 @@ bool BaseConf::GetConfInt64(const std::string &name, int64_t* value) const {
   return false;
 }
 
-bool BaseConf::GetConfStr(const std::string &name, std::string *val) const {
+bool BaseConf::GetConfStr(const std::string& name, std::string* val) const {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == 1) {
       continue;
@@ -178,7 +174,7 @@ bool BaseConf::GetConfStr(const std::string &name, std::string *val) const {
   return false;
 }
 
-bool BaseConf::GetConfStrVec(const std::string &name, std::vector<std::string> *value) const {
+bool BaseConf::GetConfStrVec(const std::string& name, std::vector<std::string>* value) const {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -193,7 +189,7 @@ bool BaseConf::GetConfStrVec(const std::string &name, std::vector<std::string> *
           break;
         }
         value->push_back(StringTrim(val_str.substr(0, pos)));
-        val_str = val_str.substr(pos+1);
+        val_str = val_str.substr(pos + 1);
       }
       return true;
     }
@@ -201,7 +197,7 @@ bool BaseConf::GetConfStrVec(const std::string &name, std::vector<std::string> *
   return false;
 }
 
-bool BaseConf::GetConfBool(const std::string &name, bool* value) const {
+bool BaseConf::GetConfBool(const std::string& name, bool* value) const {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -218,7 +214,7 @@ bool BaseConf::GetConfBool(const std::string &name, bool* value) const {
   return false;
 }
 
-bool BaseConf::SetConfInt(const std::string &name, const int value) {
+bool BaseConf::SetConfInt(const std::string& name, const int value) {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -231,7 +227,7 @@ bool BaseConf::SetConfInt(const std::string &name, const int value) {
   return false;
 }
 
-bool BaseConf::SetConfInt64(const std::string &name, const int64_t value) {
+bool BaseConf::SetConfInt64(const std::string& name, const int64_t value) {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -244,7 +240,7 @@ bool BaseConf::SetConfInt64(const std::string &name, const int64_t value) {
   return false;
 }
 
-bool BaseConf::SetConfStr(const std::string &name, const std::string &value) {
+bool BaseConf::SetConfStr(const std::string& name, const std::string& value) {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -257,7 +253,7 @@ bool BaseConf::SetConfStr(const std::string &name, const std::string &value) {
   return false;
 }
 
-bool BaseConf::SetConfBool(const std::string &name, const bool value) {
+bool BaseConf::SetConfBool(const std::string& name, const bool value) {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
       continue;
@@ -274,7 +270,7 @@ bool BaseConf::SetConfBool(const std::string &name, const bool value) {
   return false;
 }
 
-bool BaseConf::SetConfStrVec(const std::string& name, const std::vector<std::string> &value) {
+bool BaseConf::SetConfStrVec(const std::string& name, const std::vector<std::string>& value) {
   std::string value_str = StringConcat(value, COMMA);
   return SetConfStr(name, value_str);
 }
@@ -301,7 +297,7 @@ void BaseConf::DumpConf() const {
 }
 
 bool BaseConf::WriteBack() {
-  WritableFile *write_file;
+  WritableFile* write_file;
   std::string tmp_path = rep_->path + ".tmp";
   Status ret = NewWritableFile(tmp_path, &write_file);
   log_info("ret %s", ret.ToString().c_str());
@@ -324,7 +320,7 @@ bool BaseConf::WriteBack() {
 }
 
 void BaseConf::WriteSampleConf() const {
-  WritableFile *write_file;
+  WritableFile* write_file;
   std::string sample_path = rep_->path + ".sample";
   Status ret = NewWritableFile(sample_path, &write_file);
   std::string tmp;
@@ -340,8 +336,6 @@ void BaseConf::WriteSampleConf() const {
   return;
 }
 
-void BaseConf::PushConfItem(const Rep::ConfItem& item) {
-  rep_->item.push_back(item);
-}
+void BaseConf::PushConfItem(const Rep::ConfItem& item) { rep_->item.push_back(item); }
 
-}   // namespace pstd
+}  // namespace pstd

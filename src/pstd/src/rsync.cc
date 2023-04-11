@@ -8,16 +8,11 @@
 
 namespace pstd {
 // Clean files for rsync info, such as the lock, log, pid, conf file
-static bool CleanRsyncInfo(const std::string& path) {
-  return pstd::DeleteDirIfExist(path + kRsyncSubDir);
-}
+static bool CleanRsyncInfo(const std::string& path) { return pstd::DeleteDirIfExist(path + kRsyncSubDir); }
 
-int StartRsync(const std::string& raw_path,
-               const std::string& module,
-               const std::string& ip,
-               const int port,
+int StartRsync(const std::string& raw_path, const std::string& module, const std::string& ip, const int port,
                const std::string& passwd) {
-  // Sanity check  
+  // Sanity check
   if (raw_path.empty() || module.empty() || passwd.empty()) {
     return -1;
   }
@@ -81,7 +76,7 @@ int StartRsync(const std::string& raw_path,
 }
 
 int StopRsync(const std::string& raw_path) {
-  // Sanity check  
+  // Sanity check
   if (raw_path.empty()) {
     log_warn("empty rsync path!");
     return -1;
@@ -94,11 +89,11 @@ int StopRsync(const std::string& raw_path) {
   std::string pid_file(path + kRsyncSubDir + "/" + kRsyncPidFile);
   if (!FileExists(pid_file)) {
     log_warn("no rsync pid file found");
-    return 0; // Rsync deamon is not exist
+    return 0;  // Rsync deamon is not exist
   }
 
   // Kill Rsync
-  SequentialFile *sequential_file;
+  SequentialFile* sequential_file;
   if (!NewSequentialFile(pid_file, &sequential_file).ok()) {
     log_warn("no rsync pid file found");
     return 0;
@@ -112,7 +107,7 @@ int StopRsync(const std::string& raw_path) {
   };
 
   delete sequential_file;
-  
+
   pid_t pid = atoi(line);
 
   if (pid <= 1) {
@@ -131,17 +126,13 @@ int StopRsync(const std::string& raw_path) {
   return ret;
 }
 
-int RsyncSendFile(const std::string& local_file_path,
-                  const std::string& remote_file_path,
-                  const std::string& secret_file_path,
-                  const RsyncRemote& remote) {
+int RsyncSendFile(const std::string& local_file_path, const std::string& remote_file_path,
+                  const std::string& secret_file_path, const RsyncRemote& remote) {
   std::stringstream ss;
-  ss << """rsync -avP --bwlimit=" << remote.kbps
-    << " --password-file=" << secret_file_path
-    << " --port=" << remote.port
-    << " " << local_file_path
-    << " " << kRsyncUser << "@" << remote.host
-    << "::" << remote.module << "/" << remote_file_path;
+  ss << ""
+        "rsync -avP --bwlimit="
+     << remote.kbps << " --password-file=" << secret_file_path << " --port=" << remote.port << " " << local_file_path
+     << " " << kRsyncUser << "@" << remote.host << "::" << remote.module << "/" << remote_file_path;
   std::string rsync_cmd = ss.str();
   int ret = system(rsync_cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
@@ -151,10 +142,8 @@ int RsyncSendFile(const std::string& local_file_path,
   return ret;
 }
 
-int RsyncSendClearTarget(const std::string& local_dir_path,
-                         const std::string& remote_dir_path,
-                         const std::string& secret_file_path,
-                         const RsyncRemote& remote) {
+int RsyncSendClearTarget(const std::string& local_dir_path, const std::string& remote_dir_path,
+                         const std::string& secret_file_path, const RsyncRemote& remote) {
   if (local_dir_path.empty() || remote_dir_path.empty()) {
     return -2;
   }
@@ -166,11 +155,8 @@ int RsyncSendClearTarget(const std::string& local_dir_path,
     remote_dir.append("/");
   }
   std::stringstream ss;
-  ss << "rsync -avP --delete --port=" << remote.port
-    << " --password-file=" << secret_file_path
-    << " " << local_dir
-    << " " << kRsyncUser << "@" << remote.host
-    << "::" << remote.module << "/" << remote_dir;
+  ss << "rsync -avP --delete --port=" << remote.port << " --password-file=" << secret_file_path << " " << local_dir
+     << " " << kRsyncUser << "@" << remote.host << "::" << remote.module << "/" << remote_dir;
   std::string rsync_cmd = ss.str();
   int ret = system(rsync_cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {

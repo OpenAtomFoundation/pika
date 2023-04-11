@@ -3,11 +3,11 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_rm.h"
 #include "include/pika_slot.h"
-#include "include/pika_table.h"
-#include "include/pika_server.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_rm.h"
+#include "include/pika_server.h"
+#include "include/pika_table.h"
 
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 extern PikaReplicaManager* g_pika_rm;
@@ -123,7 +123,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
     return;
   }
 
-  PikaCmdArgsType::const_iterator it = argv_.begin() + 1; //Remember the first args is the opt name
+  PikaCmdArgsType::const_iterator it = argv_.begin() + 1;  // Remember the first args is the opt name
   dest_ip_ = *it++;
   pstd::StringToLower(dest_ip_);
 
@@ -152,8 +152,8 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
     return;
   }
 
-  if (!pstd::string2int(str_slot_num.data(), str_slot_num.size(), &slot_num_)
-      || slot_num_ < 0 || slot_num_ >= table->PartitionNum()) {
+  if (!pstd::string2int(str_slot_num.data(), str_slot_num.size(), &slot_num_) || slot_num_ < 0 ||
+      slot_num_ >= table->PartitionNum()) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }
@@ -175,8 +175,7 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<SyncMasterPartition> master_partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, slot_num_));
   if (!master_partition) {
-    LOG(WARNING) << "Sync Master Partition: " << table_name_ << ":" << slot_num_
-        << ", NotFound";
+    LOG(WARNING) << "Sync Master Partition: " << table_name_ << ":" << slot_num_ << ", NotFound";
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }
@@ -217,8 +216,7 @@ void SlotsScanCmd::DoInitial() {
 
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "count")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -251,8 +249,7 @@ void SlotsScanCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::vector<std::string> keys;
-  int64_t cursor_ret = cur_partition->db()->Scan(storage::DataType::kAll,
-          cursor_, pattern_, count_, &keys);
+  int64_t cursor_ret = cur_partition->db()->Scan(storage::DataType::kAll, cursor_, pattern_, count_, &keys);
 
   res_.AppendArrayLen(2);
 
@@ -337,7 +334,7 @@ void SlotsMgrtExecWrapperCmd::DoInitial() {
 
   PikaCmdArgsType::const_iterator it = argv_.begin() + 1;
   key_ = *it++;
-  //pstd::StringToLower(key_);
+  // pstd::StringToLower(key_);
   return;
 }
 
@@ -416,9 +413,7 @@ void SlotsMgrtSlotCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtSlotCmd::Do(std::shared_ptr<Partition> partition) {
-  return;
-}
+void SlotsMgrtSlotCmd::Do(std::shared_ptr<Partition> partition) { return; }
 
 // slotsmgrttagslot host port timeout slot
 void SlotsMgrtTagSlotCmd::DoInitial() {
@@ -426,9 +421,7 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Partition> partition) {
-  return;
-}
+void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Partition> partition) { return; }
 
 // slotsmgrtone host port timeout key
 void SlotsMgrtOneCmd::DoInitial() {
@@ -436,9 +429,7 @@ void SlotsMgrtOneCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtOneCmd::Do(std::shared_ptr<Partition> partition) {
-  return;
-}
+void SlotsMgrtOneCmd::Do(std::shared_ptr<Partition> partition) { return; }
 
 // slotsmgrttagone host port timeout key
 void SlotsMgrtTagOneCmd::DoInitial() {
@@ -446,6 +437,4 @@ void SlotsMgrtTagOneCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Partition> partition) {
-  return;
-}
+void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Partition> partition) { return; }

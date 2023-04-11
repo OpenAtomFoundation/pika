@@ -6,23 +6,24 @@
 #include "net/include/client_thread.h"
 
 #include <arpa/inet.h>
-#include <sys/time.h>
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
-#include "pstd/include/xdebug.h"
-#include "pstd/include/pstd_string.h"
-#include "net/src/server_socket.h"
 #include "net/include/net_conn.h"
+#include "net/src/server_socket.h"
+#include "pstd/include/pstd_string.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
 using pstd::Status;
 
-ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle, void* private_data)
+ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle,
+                           void* private_data)
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
       handle_(handle),
@@ -33,8 +34,7 @@ ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int kee
   net_multiplexer_->Initialize();
 }
 
-ClientThread::~ClientThread() {
-}
+ClientThread::~ClientThread() {}
 
 int ClientThread::StartThread() {
   if (!handle_) {
@@ -69,15 +69,15 @@ Status ClientThread::Write(const std::string& ip, const int port, const std::str
     return Status::Corruption(ip_port + " is baned by user!");
   }
   {
-  pstd::MutexLock l(&mu_);
-  size_t size = 0;
-  for (auto& str : to_send_[ip_port]) {
-    size += str.size();
-  }
-  if (size > kConnWriteBuf) {
-    return Status::Corruption("Connection buffer over maximum size");
-  }
-  to_send_[ip_port].push_back(msg);
+    pstd::MutexLock l(&mu_);
+    size_t size = 0;
+    for (auto& str : to_send_[ip_port]) {
+      size += str.size();
+    }
+    if (size > kConnWriteBuf) {
+      return Status::Corruption("Connection buffer over maximum size");
+    }
+    to_send_[ip_port].push_back(msg);
   }
   NotifyWrite(ip_port);
   return Status::OK();
@@ -85,8 +85,8 @@ Status ClientThread::Write(const std::string& ip, const int port, const std::str
 
 Status ClientThread::Close(const std::string& ip, const int port) {
   {
-  pstd::MutexLock l(&to_del_mu_);
-  to_del_.push_back(ip + ":" + std::to_string(port));
+    pstd::MutexLock l(&to_del_mu_);
+    to_del_.push_back(ip + ":" + std::to_string(port));
   }
   return Status::OK();
 }
@@ -142,8 +142,7 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
     return Status::IOError("connect getaddrinfo error for ", dst_ip);
   }
   for (p = servinfo; p != NULL; p = p->ai_next) {
-    if ((sockfd = socket(
-            p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+    if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
       continue;
     }
     int flags = fcntl(sockfd, F_GETFL, 0);
@@ -153,9 +152,7 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
       if (errno == EHOSTUNREACH) {
         CloseFd(sockfd, dst_ip + ":" + std::to_string(dst_port));
         continue;
-      } else if (errno == EINPROGRESS ||
-                 errno == EAGAIN ||
-                 errno == EWOULDBLOCK) {
+      } else if (errno == EINPROGRESS || errno == EAGAIN || errno == EWOULDBLOCK) {
         NewConnection(dst_ip, dst_port, sockfd);
         SetWaitConnectOnEpoll(sockfd);
         freeaddrinfo(servinfo);
@@ -163,8 +160,7 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
       } else {
         CloseFd(sockfd, dst_ip + ":" + std::to_string(dst_port));
         freeaddrinfo(servinfo);
-        return Status::IOError("EHOSTUNREACH",
-                               "The target host cannot be reached");
+        return Status::IOError("EHOSTUNREACH", "The target host cannot be reached");
       }
     }
 
@@ -172,7 +168,7 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
     net_multiplexer_->NetAddEvent(sockfd, kReadable | kWritable);
     struct sockaddr_in laddr;
     socklen_t llen = sizeof(laddr);
-    getsockname(sockfd, (struct sockaddr*) &laddr, &llen);
+    getsockname(sockfd, (struct sockaddr*)&laddr, &llen);
     std::string lip(inet_ntoa(laddr.sin_addr));
     int lport = ntohs(laddr.sin_port);
     if (dst_ip == lip && dst_port == lport) {
@@ -219,8 +215,7 @@ void ClientThread::DoCronTask() {
     std::shared_ptr<NetConn> conn = iter->second;
 
     // Check keepalive timeout connection
-    if (keepalive_timeout_ > 0 &&
-        (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
+    if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
       log_info("Do cron task del fd %d\n", conn->fd());
       net_multiplexer_->NetDelEvent(conn->fd(), 0);
       // did not clean up content in to_send queue
@@ -267,16 +262,16 @@ void ClientThread::DoCronTask() {
 void ClientThread::InternalDebugPrint() {
   log_info("___________________________________\n");
   {
-  pstd::MutexLock l(&mu_);
-  log_info("To send map: \n");
-  for (const auto& to_send : to_send_) {
-    UNUSED(to_send);
-    const std::vector<std::string>& tmp = to_send.second;
-    for (const auto& tmp_to_send : tmp) {
-      UNUSED(tmp_to_send);
-      log_info("%s %s\n", to_send.first.c_str(), tmp_to_send.c_str());
+    pstd::MutexLock l(&mu_);
+    log_info("To send map: \n");
+    for (const auto& to_send : to_send_) {
+      UNUSED(to_send);
+      const std::vector<std::string>& tmp = to_send.second;
+      for (const auto& tmp_to_send : tmp) {
+        UNUSED(tmp_to_send);
+        log_info("%s %s\n", to_send.first.c_str(), tmp_to_send.c_str());
+      }
     }
-  }
   }
   log_info("Ipport conn map: \n");
   for (const auto& ipport_conn : ipport_conns_) {
@@ -302,7 +297,6 @@ void ClientThread::NotifyWrite(const std::string ip_port) {
   NetItem ti(0, ip_port, kNotiWrite);
   net_multiplexer_->Register(ti, true);
 }
-
 
 void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
   if (pfe->mask & kReadable) {
@@ -334,20 +328,20 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
             net_multiplexer_->NetModEvent(ipport_conns_[ip_port]->fd(), 0, kReadable | kWritable);
           }
           {
-          pstd::MutexLock l(&mu_);
-          auto iter = to_send_.find(ip_port);
-          if (iter == to_send_.end()) {
-            continue;
-          }
-          // get msg from to_send_
-          std::vector<std::string>& msgs = iter->second;
-          for (auto& msg : msgs) {
-            if (ipport_conns_[ip_port]->WriteResp(msg)) {
-              to_send_[ip_port].push_back(msg);
-              NotifyWrite(ip_port);
+            pstd::MutexLock l(&mu_);
+            auto iter = to_send_.find(ip_port);
+            if (iter == to_send_.end()) {
+              continue;
             }
-          }
-          to_send_.erase(iter);
+            // get msg from to_send_
+            std::vector<std::string>& msgs = iter->second;
+            for (auto& msg : msgs) {
+              if (ipport_conns_[ip_port]->WriteResp(msg)) {
+                to_send_[ip_port].push_back(msg);
+                NotifyWrite(ip_port);
+              }
+            }
+            to_send_.erase(iter);
           }
         } else if (ti.notify_type() == kNotiClose) {
           log_info("received kNotiClose\n");
@@ -362,9 +356,9 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
   }
 }
 
-void *ClientThread::ThreadMain() {
+void* ClientThread::ThreadMain() {
   int nfds = 0;
-  NetFiredEvent *pfe = NULL;
+  NetFiredEvent* pfe = NULL;
 
   struct timeval when;
   gettimeofday(&when, NULL);
@@ -382,10 +376,8 @@ void *ClientThread::ThreadMain() {
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
-      if (when.tv_sec > now.tv_sec ||
-          (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 +
-          (when.tv_usec - now.tv_usec) / 1000;
+      if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
+        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
       } else {
         // do user defined cron
         handle_->CronHandle();
@@ -397,7 +389,7 @@ void *ClientThread::ThreadMain() {
       }
     }
     //{
-    //InternalDebugPrint();
+    // InternalDebugPrint();
     //}
     nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {

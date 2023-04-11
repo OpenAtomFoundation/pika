@@ -6,24 +6,20 @@
 #ifndef PIKA_CLIENT_PROCESSOR_H_
 #define PIKA_CLIENT_PROCESSOR_H_
 
-#include <vector>
 #include <string>
+#include <vector>
 
-#include "net/include/thread_pool.h"
 #include "net/include/bg_thread.h"
+#include "net/include/thread_pool.h"
 
 class PikaClientProcessor {
  public:
-  PikaClientProcessor(
-      size_t worker_num,
-      size_t max_queue_size,
-      const std::string& name_prefix = "CliProcessor");
+  PikaClientProcessor(size_t worker_num, size_t max_queue_size, const std::string& name_prefix = "CliProcessor");
   ~PikaClientProcessor();
   int Start();
   void Stop();
   void SchedulePool(net::TaskFunc func, void* arg);
-  void ScheduleBgThreads(
-      net::TaskFunc func, void* arg, const std::string& hash_str);
+  void ScheduleBgThreads(net::TaskFunc func, void* arg, const std::string& hash_str);
   size_t ThreadPoolCurQueueSize();
 
  private:

@@ -11,7 +11,7 @@
 
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/xdebug.h"
-//#include "pstd_mutex.h"
+// #include "pstd_mutex.h"
 
 namespace pstd {
 
@@ -23,16 +23,16 @@ class Binlog {
  public:
   static Status Open(const std::string& path, Binlog** logptr);
 
-  Binlog() { }
-  virtual ~Binlog() { }
+  Binlog() {}
+  virtual ~Binlog() {}
 
-  // TODO (aa) 
+  // TODO (aa)
   //   1. maybe add Options
-  
+
   //
   // Basic API
   //
-  virtual Status Append(const std::string &item) = 0;
+  virtual Status Append(const std::string& item) = 0;
   virtual BinlogReader* NewBinlogReader(uint32_t filenum, uint64_t offset) = 0;
 
   // Set/Get Producer filenum and offset with lock
@@ -40,7 +40,6 @@ class Binlog {
   virtual Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset) = 0;
 
  private:
-
   // No copying allowed
   Binlog(const Binlog&);
   void operator=(const Binlog&);
@@ -48,20 +47,18 @@ class Binlog {
 
 class BinlogReader {
  public:
-  BinlogReader() { }
-  virtual ~BinlogReader() { }
+  BinlogReader() {}
+  virtual ~BinlogReader() {}
 
-  virtual Status ReadRecord(std::string &record) = 0;
-  //bool ReadRecord(Slice* record, std::string* scratch) = 0;
+  virtual Status ReadRecord(std::string& record) = 0;
+  // bool ReadRecord(Slice* record, std::string* scratch) = 0;
 
  private:
-
   // No copying allowed;
   BinlogReader(const BinlogReader&);
   void operator=(const BinlogReader&);
 };
 
-}   // namespace pstd
-
+}  // namespace pstd
 
 #endif  // __PSTD_BINLOG_H__

@@ -6,16 +6,16 @@
 #ifndef BINLOG_RECEIVER_THREAD_H_
 #define BINLOG_RECEIVER_THREAD_H_
 
-#include <string>
 #include <queue>
+#include <string>
 
-#include "net/include/server_thread.h"
-#include "slash/include/slash_mutex.h"
 #include "include/pika_define.h"
 #include "master_conn.h"
+#include "net/include/server_thread.h"
+#include "slash/include/slash_mutex.h"
 
 class BinlogReceiverThread {
-public:
+ public:
   BinlogReceiverThread(std::string host, int port, int cron_interval = 0);
   virtual ~BinlogReceiverThread();
   int StartThread();
@@ -25,15 +25,10 @@ public:
  private:
   class MasterConnFactory : public net::ConnFactory {
    public:
-    explicit MasterConnFactory(BinlogReceiverThread* binlog_receiver)
-        : binlog_receiver_(binlog_receiver) {
-    }
+    explicit MasterConnFactory(BinlogReceiverThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
 
-    virtual net::PinkConn *NewPinkConn(
-	    int connfd,
-        const std::string &ip_port,
-        net::ServerThread *thread,
-        void* worker_specific_data) const override {
+    virtual net::PinkConn* NewPinkConn(int connfd, const std::string& ip_port, net::ServerThread* thread,
+                                       void* worker_specific_data) const override {
       return new MasterConn(connfd, ip_port, binlog_receiver_);
     }
 
@@ -42,14 +37,12 @@ public:
   };
 
   class Handles : public net::ServerHandle {
-  public:
-    explicit Handles(BinlogReceiverThread* binlog_receiver)
-        : binlog_receiver_(binlog_receiver) {
-    }
+   public:
+    explicit Handles(BinlogReceiverThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
 
     bool AccessHandle(std::string& ip) const override;
 
-  private:
+   private:
     BinlogReceiverThread* binlog_receiver_;
   };
 

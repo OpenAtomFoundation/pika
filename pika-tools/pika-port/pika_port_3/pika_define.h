@@ -17,11 +17,11 @@ struct WorkerCronTask {
   std::string ip_port;
 };
 typedef WorkerCronTask MonitorCronTask;
-//task define
+// task define
 #define TASK_KILL 0
 #define TASK_KILLALL 1
 
-//slave item
+// slave item
 struct SlaveItem {
   int64_t sid;
   std::string ip_port;
@@ -33,11 +33,11 @@ struct SlaveItem {
   struct timeval create_time;
 };
 
-//slowlog define
+// slowlog define
 #define SLOWLOG_ENTRY_MAX_ARGC 32
 #define SLOWLOG_ENTRY_MAX_STRING 128
 
-//slowlog entry
+// slowlog entry
 struct SlowlogEntry {
   int64_t id;
   int64_t start_time;
@@ -47,28 +47,28 @@ struct SlowlogEntry {
 
 #define PIKA_MIN_RESERVED_FDS 5000
 
-const int SLAVE_ITEM_STAGE_ONE    = 1;
-const int SLAVE_ITEM_STAGE_TWO    = 2;
+const int SLAVE_ITEM_STAGE_ONE = 1;
+const int SLAVE_ITEM_STAGE_TWO = 2;
 
-//repl_state_
-const int PIKA_REPL_NO_CONNECT    = 0;
-const int PIKA_REPL_CONNECT       = 1;
-const int PIKA_REPL_CONNECTING    = 2;
-const int PIKA_REPL_CONNECTED     = 3;
-const int PIKA_REPL_WAIT_DBSYNC   = 4;
-const int PIKA_REPL_ERROR         = 5;
+// repl_state_
+const int PIKA_REPL_NO_CONNECT = 0;
+const int PIKA_REPL_CONNECT = 1;
+const int PIKA_REPL_CONNECTING = 2;
+const int PIKA_REPL_CONNECTED = 3;
+const int PIKA_REPL_WAIT_DBSYNC = 4;
+const int PIKA_REPL_ERROR = 5;
 
-//role
-const int PIKA_ROLE_SINGLE        = 0;
-const int PIKA_ROLE_SLAVE         = 1;
-const int PIKA_ROLE_MASTER        = 2;
+// role
+const int PIKA_ROLE_SINGLE = 0;
+const int PIKA_ROLE_SLAVE = 1;
+const int PIKA_ROLE_MASTER = 2;
 const int PIKA_ROLE_DOUBLE_MASTER = 3;
 
 /*
  * The size of Binlogfile
  */
-//static uint64_t kBinlogSize = 128;
-//static const uint64_t kBinlogSize = 1024 * 1024 * 100;
+// static uint64_t kBinlogSize = 128;
+// static const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 enum RecordType {
   kZeroType = 0,

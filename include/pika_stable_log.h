@@ -6,19 +6,16 @@
 #ifndef PIKA_STABLE_LOG_H_
 #define PIKA_STABLE_LOG_H_
 
-#include <memory>
 #include <map>
+#include <memory>
 
 #include "include/pika_binlog.h"
 
 class StableLog : public std::enable_shared_from_this<StableLog> {
  public:
-  StableLog(const std::string table_name,
-      uint32_t partition_id, const std::string& log_path);
+  StableLog(const std::string table_name, uint32_t partition_id, const std::string& log_path);
   ~StableLog();
-  std::shared_ptr<Binlog> Logger() {
-    return stable_logger_;
-  }
+  std::shared_ptr<Binlog> Logger() { return stable_logger_; }
   void Leave();
   void SetFirstOffset(const LogOffset& offset) {
     pstd::RWLock l(&offset_rwlock_, true);

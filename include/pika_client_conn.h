@@ -8,8 +8,7 @@
 
 #include "include/pika_command.h"
 
-
-class PikaClientConn: public net::RedisConn {
+class PikaClientConn : public net::RedisConn {
  public:
   using WriteCompleteCallback = std::function<void()>;
 
@@ -29,6 +28,7 @@ class PikaClientConn: public net::RedisConn {
     void Init();
     bool IsAuthed(const std::shared_ptr<Cmd> cmd_ptr);
     bool ChecknUpdate(const std::string& arg);
+
    private:
     enum StatType {
       kNoAuthed = 0,
@@ -38,19 +38,15 @@ class PikaClientConn: public net::RedisConn {
     StatType stat_;
   };
 
-  PikaClientConn(int fd, std::string ip_port,
-                 net::Thread *server_thread,
-                 net::NetMultiplexer* mpx,
-                 const net::HandleType& handle_type,
-                 int max_conn_rubf_size);
+  PikaClientConn(int fd, std::string ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
+                 const net::HandleType& handle_type, int max_conn_rubf_size);
   virtual ~PikaClientConn() {}
 
-  virtual void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async, std::string* response) override;
+  virtual void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
+                                std::string* response) override;
 
   void BatchExecRedisCmd(const std::vector<net::RedisCmdArgsType>& argvs);
-  int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) {
-    return 0;
-  }
+  int DealMessage(const net::RedisCmdArgsType& argv, std::string* response) { return 0; }
   static void DoBackgroundTask(void* arg);
   static void DoExecTask(void* arg);
 
@@ -59,16 +55,13 @@ class PikaClientConn: public net::RedisConn {
   void SetCurrentTable(const std::string& table_name) { current_table_ = table_name; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = cb; }
 
-  net::ServerThread* server_thread() {
-    return server_thread_;
-  }
+  net::ServerThread* server_thread() { return server_thread_; }
 
-  AuthStat& auth_stat() {
-    return auth_stat_;
-  }
+  AuthStat& auth_stat() { return auth_stat_; }
 
   std::atomic<int> resp_num;
   std::vector<std::shared_ptr<std::string>> resp_array;
+
  private:
   net::ServerThread* const server_thread_;
   std::string current_table_;
@@ -76,7 +69,7 @@ class PikaClientConn: public net::RedisConn {
   bool is_pubsub_;
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
-      std::shared_ptr<std::string> resp_ptr);
+                             std::shared_ptr<std::string> resp_ptr);
 
   void ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_us, uint64_t do_duration);
   void ProcessMonitor(const PikaCmdArgsType& argv);

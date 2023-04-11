@@ -3,23 +3,22 @@
 
 #include <unistd.h>
 
-#include <vector>
-#include <functional>
 #include <glog/logging.h>
+#include <functional>
+#include <vector>
 
 #include "blackwidow/blackwidow.h"
-#include "src/redis_strings.h"
-#include "src/redis_lists.h"
 #include "src/redis_hashes.h"
+#include "src/redis_lists.h"
 #include "src/redis_sets.h"
+#include "src/redis_strings.h"
 #include "src/redis_zsets.h"
 #include "src/scope_snapshot.h"
 #include "src/strings_value_format.h"
 
 const int64_t MAX_BATCH_NUM = 30000;
 
-MigratorThread::~MigratorThread() {
-}
+MigratorThread::~MigratorThread() {}
 
 void MigratorThread::MigrateStringsDB() {
   blackwidow::RedisStrings* db = (blackwidow::RedisStrings*)(db_);
@@ -96,7 +95,8 @@ void MigratorThread::MigrateListsDB() {
     int64_t count = batch_count;
     std::vector<std::string> keys;
     fin = db->Scan(start_key, pattern, &keys, &count, &next_key);
-    //LOG(INFO) << "batch count: " << count << ", fin: " << fin << ", keys.size(): " << keys.size() << ", next_key: " << next_key;
+    // LOG(INFO) << "batch count: " << count << ", fin: " << fin << ", keys.size(): " << keys.size() << ", next_key: "
+    // << next_key;
     if (fin && keys.size() == 0) {
       break;
     }
@@ -111,8 +111,8 @@ void MigratorThread::MigrateListsDB() {
       std::vector<std::string> list;
       blackwidow::Status s = db->LRange(k, pos, pos + g_conf.sync_batch_num - 1, &list);
       if (!s.ok()) {
-        LOG(WARNING) << "db->LRange(key:" << k << ", pos:" << pos
-          << ", batch size: " << g_conf.sync_batch_num << ") = " << s.ToString();
+        LOG(WARNING) << "db->LRange(key:" << k << ", pos:" << pos << ", batch size: " << g_conf.sync_batch_num
+                     << ") = " << s.ToString();
         continue;
       }
 
@@ -136,8 +136,8 @@ void MigratorThread::MigrateListsDB() {
         list.clear();
         s = db->LRange(k, pos, pos + g_conf.sync_batch_num - 1, &list);
         if (!s.ok()) {
-          LOG(WARNING) << "db->LRange(key:" << k << ", pos:" << pos
-            << ", batch size:" << g_conf.sync_batch_num << ") = " << s.ToString();
+          LOG(WARNING) << "db->LRange(key:" << k << ", pos:" << pos << ", batch size:" << g_conf.sync_batch_num
+                       << ") = " << s.ToString();
         }
       }
 
@@ -154,8 +154,8 @@ void MigratorThread::MigrateListsDB() {
         PlusNum();
         DispatchKey(cmd);
       }
-    } // for
-  } // while
+    }  // for
+  }    // while
 }
 
 void MigratorThread::MigrateHashesDB() {
@@ -200,9 +200,7 @@ void MigratorThread::MigrateHashesDB() {
 
         argv.push_back("HMSET");
         argv.push_back(k);
-        for (size_t idx = 0;
-             idx < g_conf.sync_batch_num && !should_exit_ && it != fvs.end();
-             idx ++, it ++) {
+        for (size_t idx = 0; idx < g_conf.sync_batch_num && !should_exit_ && it != fvs.end(); idx++, it++) {
           argv.push_back(it->field);
           argv.push_back(it->value);
           // PlusNum();
@@ -227,8 +225,8 @@ void MigratorThread::MigrateHashesDB() {
         PlusNum();
         DispatchKey(cmd);
       }
-    } // for
-  } // while
+    }  // for
+  }    // while
 }
 
 void MigratorThread::MigrateSetsDB() {
@@ -272,9 +270,7 @@ void MigratorThread::MigrateSetsDB() {
 
         argv.push_back("SADD");
         argv.push_back(k);
-        for (size_t idx = 0;
-             idx < g_conf.sync_batch_num && !should_exit_ && it != members.end();
-             idx ++, it ++) {
+        for (size_t idx = 0; idx < g_conf.sync_batch_num && !should_exit_ && it != members.end(); idx++, it++) {
           argv.push_back(*it);
         }
 
@@ -297,8 +293,8 @@ void MigratorThread::MigrateSetsDB() {
         PlusNum();
         DispatchKey(cmd);
       }
-    } // for
-  } // while
+    }  // for
+  }    // while
 }
 
 void MigratorThread::MigrateZsetsDB() {
@@ -343,9 +339,7 @@ void MigratorThread::MigrateZsetsDB() {
         argv.push_back("ZADD");
         argv.push_back(k);
 
-        for (size_t idx = 0;
-             idx < g_conf.sync_batch_num && !should_exit_ && it != score_members.end();
-             idx ++, it ++) {
+        for (size_t idx = 0; idx < g_conf.sync_batch_num && !should_exit_ && it != score_members.end(); idx++, it++) {
           argv.push_back(std::to_string(it->score));
           argv.push_back(it->member);
         }
@@ -369,33 +363,33 @@ void MigratorThread::MigrateZsetsDB() {
         PlusNum();
         DispatchKey(cmd);
       }
-    } // for
-  } // while
+    }  // for
+  }    // while
 }
 
 void MigratorThread::MigrateDB() {
   switch (int(type_)) {
-    case int(blackwidow::kStrings) : {
+    case int(blackwidow::kStrings): {
       MigrateStringsDB();
       break;
     }
 
-    case int(blackwidow::kLists) : {
+    case int(blackwidow::kLists): {
       MigrateListsDB();
       break;
     }
 
-    case int(blackwidow::kHashes) : {
+    case int(blackwidow::kHashes): {
       MigrateHashesDB();
       break;
     }
 
-    case int(blackwidow::kSets) : {
+    case int(blackwidow::kSets): {
       MigrateSetsDB();
       break;
     }
 
-    case int(blackwidow::kZSets) : {
+    case int(blackwidow::kZSets): {
       MigrateZsetsDB();
       break;
     }
@@ -407,19 +401,18 @@ void MigratorThread::MigrateDB() {
   }
 }
 
-void MigratorThread::DispatchKey(const std::string &command, const std::string& key) {
+void MigratorThread::DispatchKey(const std::string& command, const std::string& key) {
   thread_index_ = (thread_index_ + 1) % thread_num_;
   size_t idx = thread_index_;
-  if (key.size()) { // no empty
+  if (key.size()) {  // no empty
     idx = std::hash<std::string>()(key) % thread_num_;
   }
   (*senders_)[idx]->LoadKey(command);
 }
 
-void *MigratorThread::ThreadMain() {
+void* MigratorThread::ThreadMain() {
   MigrateDB();
   should_exit_ = true;
   LOG(INFO) << GetDBTypeString(type_) << " keys have been dispatched completly";
   return NULL;
 }
-

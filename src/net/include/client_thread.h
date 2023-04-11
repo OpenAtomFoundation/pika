@@ -6,21 +6,24 @@
 #ifndef NET_INCLUDE_CLIENT_THREAD_H_
 #define NET_INCLUDE_CLIENT_THREAD_H_
 
-#include <set>
-#include <string>
 #include <map>
 #include <memory>
+#include <set>
+#include <string>
 #include <vector>
 
-#include "pstd/include/pstd_status.h"
-#include "pstd/include/pstd_mutex.h"
 #include "net/include/net_thread.h"
 #include "net/src/net_multiplexer.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_status.h"
 
 // remove 'unused parameter' warning
-#define UNUSED(expr) do { (void)(expr); } while (0)
+#define UNUSED(expr) \
+  do {               \
+    (void)(expr);    \
+  } while (0)
 
-#define kConnWriteBuf (1024*1024*100)  // cache 100 MB data per connection
+#define kConnWriteBuf (1024 * 1024 * 100)  // cache 100 MB data per connection
 
 namespace net {
 
@@ -67,7 +70,6 @@ class ClientHandle {
     return true;
   }
 
-
   /*
    *  CreateWorkerSpecificData(...) will be invoked in StartThread() routine.
    *  'data' pointer should be assigned.
@@ -97,10 +99,10 @@ class ClientHandle {
   }
 };
 
-
 class ClientThread : public Thread {
  public:
-  ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle, void* private_data);
+  ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle,
+               void* private_data);
   virtual ~ClientThread();
   /*
    * StartThread will return the error code as pthread_create return
@@ -112,7 +114,7 @@ class ClientThread : public Thread {
   pstd::Status Close(const std::string& ip, const int port);
 
  private:
-  virtual void *ThreadMain() override;
+  virtual void* ThreadMain() override;
 
   void InternalDebugPrint();
   // Set connect fd into epoll
@@ -142,7 +144,7 @@ class ClientThread : public Thread {
    */
   std::unique_ptr<NetMultiplexer> net_multiplexer_;
 
-  ConnFactory *conn_factory_;
+  ConnFactory* conn_factory_;
 
   pstd::Mutex mu_;
   std::map<std::string, std::vector<std::string>> to_send_;  // ip+":"+port, to_send_msg

@@ -16,12 +16,13 @@
 extern slash::Mutex mutex;
 
 class ProgressThread : public net::Thread {
-  public:
-    ProgressThread(std::vector<ClassifyThread*>* classify_threads);
-  private:
-    bool AllClassifyTreadFinish();
-    virtual void *ThreadMain();
-    std::vector<ClassifyThread*>* classify_threads_;
+ public:
+  ProgressThread(std::vector<ClassifyThread*>* classify_threads);
+
+ private:
+  bool AllClassifyTreadFinish();
+  virtual void* ThreadMain();
+  std::vector<ClassifyThread*>* classify_threads_;
 };
 
 #endif  //  INCLUDE_PROGRESS_THREAD_H_
