@@ -17,30 +17,18 @@ namespace net {
 
 struct TimerItem {
   uint64_t exec_time;
-  void (*function)(void *);
+  void (*function)(void*);
   void* arg;
-  TimerItem(uint64_t _exec_time, void (*_function)(void*), void* _arg) :
-    exec_time(_exec_time),
-    function(_function),
-    arg(_arg) {}
-  bool operator < (const TimerItem& item) const {
-    return exec_time > item.exec_time;
-  }
+  TimerItem(uint64_t _exec_time, void (*_function)(void*), void* _arg)
+      : exec_time(_exec_time), function(_function), arg(_arg) {}
+  bool operator<(const TimerItem& item) const { return exec_time > item.exec_time; }
 };
 
 class BGThread : public Thread {
  public:
-  explicit BGThread(int full = 100000) :
-    Thread::Thread(),
-    full_(full),
-    mu_(),
-    rsignal_(&mu_),
-    wsignal_(&mu_) {
-    }
+  explicit BGThread(int full = 100000) : Thread::Thread(), full_(full), mu_(), rsignal_(&mu_), wsignal_(&mu_) {}
 
-  virtual ~BGThread() {
-    StopThread();
-  }
+  virtual ~BGThread() { StopThread(); }
 
   virtual int StopThread() override {
     should_stop_ = true;
@@ -54,19 +42,17 @@ class BGThread : public Thread {
   /*
    * timeout is in millionsecond
    */
-  void DelaySchedule(uint64_t timeout, void (*function)(void *), void* arg);
+  void DelaySchedule(uint64_t timeout, void (*function)(void*), void* arg);
 
   void QueueSize(int* pri_size, int* qu_size);
   void QueueClear();
   void SwallowReadyTasks();
 
  private:
-
   struct BGItem {
     void (*function)(void*);
     void* arg;
-    BGItem(void (*_function)(void*), void* _arg)
-      : function(_function), arg(_arg) {}
+    BGItem(void (*_function)(void*), void* _arg) : function(_function), arg(_arg) {}
   };
 
   std::queue<BGItem> queue_;
@@ -76,7 +62,7 @@ class BGThread : public Thread {
   pstd::Mutex mu_;
   pstd::CondVar rsignal_;
   pstd::CondVar wsignal_;
-  virtual void *ThreadMain() override;
+  virtual void* ThreadMain() override;
 };
 
 }  // namespace net

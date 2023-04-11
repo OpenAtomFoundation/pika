@@ -15,13 +15,12 @@ namespace net {
 
 struct NetFiredEvent {
   int fd = -1;
-  int mask = 0; // EventStatus
+  int mask = 0;  // EventStatus
 };
 
 class NetMultiplexer {
  public:
-  explicit
-  NetMultiplexer(int queue_limit);
+  explicit NetMultiplexer(int queue_limit);
   virtual ~NetMultiplexer();
 
   virtual int NetAddEvent(int fd, int mask) = 0;
@@ -33,12 +32,8 @@ class NetMultiplexer {
 
   NetFiredEvent* FiredEvents() { return &fired_events_[0]; }
 
-  int NotifyReceiveFd() const {
-    return notify_receive_fd_;
-  }
-  int NotifySendFd() const {
-    return notify_send_fd_;
-  }
+  int NotifyReceiveFd() const { return notify_receive_fd_; }
+  int NotifySendFd() const { return notify_send_fd_; }
   NetItem NotifyQueuePop();
 
   bool Register(const NetItem& it, bool force);

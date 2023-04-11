@@ -31,34 +31,34 @@
 #define ___PSTD_FMACRO_H
 
 #ifndef _BSD_SOURCE
-#define _BSD_SOURCE
+#  define _BSD_SOURCE
 #endif
 
 #if defined(__linux__)
-#define _GNU_SOURCE_REDIS
-#define _DEFAULT_SOURCE
+#  define _GNU_SOURCE_REDIS
+#  define _DEFAULT_SOURCE
 #endif
 
 #if defined(_AIX)
-#define _ALL_SOURCE
+#  define _ALL_SOURCE
 #endif
 
 #if defined(__linux__) || defined(__OpenBSD__)
-#define _XOPEN_SOURCE 700
+#  define _XOPEN_SOURCE 700
 /*
  * On NetBSD, _XOPEN_SOURCE undefines _NETBSD_SOURCE and
  * thus hides inet_aton etc.
  */
 #elif !defined(__NetBSD__)
-#define _XOPEN_SOURCE
+#  define _XOPEN_SOURCE
 #endif
 
 #if defined(__sun)
-#define _POSIX_C_SOURCE 199506L
+#  define _POSIX_C_SOURCE 199506L
 #endif
 
 #ifndef _LARGEFILE_SOURCE
-#define _LARGEFILE_SOURCE
+#  define _LARGEFILE_SOURCE
 #endif
 
 #define _FILE_OFFSET_BITS 64

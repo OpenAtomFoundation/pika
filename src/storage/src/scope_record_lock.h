@@ -6,22 +6,19 @@
 #ifndef SRC_SCOPE_RECORD_LOCK_H_
 #define SRC_SCOPE_RECORD_LOCK_H_
 
-#include <vector>
-#include <string>
 #include <algorithm>
+#include <string>
+#include <vector>
 
 #include "src/lock_mgr.h"
 
 namespace storage {
 class ScopeRecordLock {
  public:
-  ScopeRecordLock(LockMgr* lock_mgr, const Slice& key) :
-    lock_mgr_(lock_mgr), key_(key) {
+  ScopeRecordLock(LockMgr* lock_mgr, const Slice& key) : lock_mgr_(lock_mgr), key_(key) {
     lock_mgr_->TryLock(key_.ToString());
   }
-  ~ScopeRecordLock() {
-    lock_mgr_->UnLock(key_.ToString());
-  }
+  ~ScopeRecordLock() { lock_mgr_->UnLock(key_.ToString()); }
 
  private:
   LockMgr* const lock_mgr_;
@@ -32,14 +29,10 @@ class ScopeRecordLock {
 
 class MultiScopeRecordLock {
  public:
-  MultiScopeRecordLock(LockMgr* lock_mgr,
-                       const std::vector<std::string>& keys) :
-      lock_mgr_(lock_mgr),
-      keys_(keys) {
+  MultiScopeRecordLock(LockMgr* lock_mgr, const std::vector<std::string>& keys) : lock_mgr_(lock_mgr), keys_(keys) {
     std::string pre_key;
     std::sort(keys_.begin(), keys_.end());
-    if (!keys_.empty() &&
-      keys_[0].empty()) {
+    if (!keys_.empty() && keys_[0].empty()) {
       lock_mgr_->TryLock(pre_key);
     }
 
@@ -52,8 +45,7 @@ class MultiScopeRecordLock {
   }
   ~MultiScopeRecordLock() {
     std::string pre_key;
-    if (!keys_.empty() &&
-      keys_[0].empty()) {
+    if (!keys_.empty() && keys_[0].empty()) {
       lock_mgr_->UnLock(pre_key);
     }
 

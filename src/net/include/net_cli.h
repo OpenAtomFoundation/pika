@@ -20,15 +20,14 @@ class NetCli {
   virtual ~NetCli();
 
   Status Connect(const std::string& bind_ip = "");
-  Status Connect(const std::string &peer_ip, const int peer_port,
-      const std::string& bind_ip = "");
+  Status Connect(const std::string& peer_ip, const int peer_port, const std::string& bind_ip = "");
   // Check whether the connection got fin from peer or not
   virtual int CheckAliveness(void);
   // Compress and write the message
-  virtual Status Send(void *msg) = 0;
+  virtual Status Send(void* msg) = 0;
 
   // Read, parse and store the reply
-  virtual Status Recv(void *result = NULL) = 0;
+  virtual Status Recv(void* result = NULL) = 0;
 
   void Close();
 
@@ -55,11 +54,9 @@ class NetCli {
   void operator=(const NetCli&);
 };
 
-extern NetCli *NewPbCli(
-    const std::string& peer_ip = "",
-    const int peer_port = 0);
+extern NetCli* NewPbCli(const std::string& peer_ip = "", const int peer_port = 0);
 
-extern NetCli *NewRedisCli();
+extern NetCli* NewRedisCli();
 
 }  // namespace net
 #endif  // NET_INCLUDE_NET_CLI_H_

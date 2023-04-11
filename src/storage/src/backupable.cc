@@ -21,8 +21,7 @@ BackupEngine::~BackupEngine() {
   engines_.clear();
 }
 
-Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db,
-                                   const std::string& type) {
+Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& type) {
   rocksdb::DBCheckpoint* checkpoint;
   Status s = rocksdb::DBCheckpoint::Create(rocksdb_db, &checkpoint);
   if (!s.ok()) {
@@ -33,8 +32,7 @@ Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db,
   return s;
 }
 
-Status BackupEngine::Open(storage::Storage *storage,
-                          BackupEngine** backup_engine_ptr) {
+Status BackupEngine::Open(storage::Storage* storage, BackupEngine** backup_engine_ptr) {
   *backup_engine_ptr = new BackupEngine();
   if (!*backup_engine_ptr) {
     return Status::Corruption("New BackupEngine failed!");
@@ -42,7 +40,7 @@ Status BackupEngine::Open(storage::Storage *storage,
 
   // Create BackupEngine for each db type
   rocksdb::Status s;
-  rocksdb::DB *rocksdb_db;
+  rocksdb::DB* rocksdb_db;
   std::string types[] = {STRINGS_DB, HASHES_DB, LISTS_DB, ZSETS_DB, SETS_DB};
   for (const auto& type : types) {
     if ((rocksdb_db = storage->GetDBByType(type)) == NULL) {
@@ -66,9 +64,8 @@ Status BackupEngine::SetBackupContent() {
   for (const auto& engine : engines_) {
     // Get backup content
     BackupContent bcontent;
-    s = engine.second->GetCheckpointFiles(bcontent.live_files,
-        bcontent.live_wal_files,
-        bcontent.manifest_file_size, bcontent.sequence_number);
+    s = engine.second->GetCheckpointFiles(bcontent.live_files, bcontent.live_wal_files, bcontent.manifest_file_size,
+                                          bcontent.sequence_number);
     if (!s.ok()) {
       // log_warn("get backup files faild for type: %s", engine.first.c_str());
       return s;
@@ -78,22 +75,15 @@ Status BackupEngine::SetBackupContent() {
   return s;
 }
 
-Status BackupEngine::CreateNewBackupSpecify(const std::string &backup_dir,
-                                            const std::string &type) {
-  std::map<std::string, rocksdb::DBCheckpoint*>::iterator it_engine =
-    engines_.find(type);
-  std::map<std::string, BackupContent>::iterator it_content =
-    backup_content_.find(type);
+Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const std::string& type) {
+  std::map<std::string, rocksdb::DBCheckpoint*>::iterator it_engine = engines_.find(type);
+  std::map<std::string, BackupContent>::iterator it_content = backup_content_.find(type);
   std::string dir = GetSaveDirByType(backup_dir, type);
   delete_dir(dir.c_str());
 
-  if (it_content != backup_content_.end() &&
-      it_engine != engines_.end()) {
+  if (it_content != backup_content_.end() && it_engine != engines_.end()) {
     Status s = it_engine->second->CreateCheckpointWithFiles(
-        dir,
-        it_content->second.live_files,
-        it_content->second.live_wal_files,
-        it_content->second.manifest_file_size,
+        dir, it_content->second.live_files, it_content->second.live_wal_files, it_content->second.manifest_file_size,
         it_content->second.sequence_number);
     if (!s.ok()) {
       // log_warn("backup engine create new failed, type: %s, error %s",
@@ -108,11 +98,10 @@ Status BackupEngine::CreateNewBackupSpecify(const std::string &backup_dir,
   return Status::OK();
 }
 
-void* ThreadFuncSaveSpecify(void *arg) {
+void* ThreadFuncSaveSpecify(void* arg) {
   BackupSaveArgs* arg_ptr = static_cast<BackupSaveArgs*>(arg);
   BackupEngine* p = static_cast<BackupEngine*>(arg_ptr->p_engine);
-  arg_ptr->res = p->CreateNewBackupSpecify(arg_ptr->backup_dir,
-      arg_ptr->key_type);
+  arg_ptr->res = p->CreateNewBackupSpecify(arg_ptr->backup_dir, arg_ptr->key_type);
   pthread_exit(&(arg_ptr->res));
 }
 
@@ -120,7 +109,7 @@ Status BackupEngine::WaitBackupPthread() {
   int ret;
   Status s = Status::OK();
   for (auto& pthread : backup_pthread_ts_) {
-    void *res;
+    void* res;
     if ((ret = pthread_join(pthread.second, &res)) != 0) {
       // log_warn("pthread_join failed with backup thread for key_type:
       //    %s, error %d", pthread.first.c_str(), ret);
@@ -137,21 +126,18 @@ Status BackupEngine::WaitBackupPthread() {
   return s;
 }
 
-
-Status BackupEngine::CreateNewBackup(const std::string &dir) {
+Status BackupEngine::CreateNewBackup(const std::string& dir) {
   Status s = Status::OK();
   std::vector<BackupSaveArgs*> args;
   for (const auto& engine : engines_) {
     pthread_t tid;
-    BackupSaveArgs *arg = new BackupSaveArgs(
-        reinterpret_cast<void*>(this), dir, engine.first);
+    BackupSaveArgs* arg = new BackupSaveArgs(reinterpret_cast<void*>(this), dir, engine.first);
     args.push_back(arg);
     if (pthread_create(&tid, NULL, &ThreadFuncSaveSpecify, arg) != 0) {
       s = Status::Corruption("pthead_create failed.");
       break;
     }
-    if (!(backup_pthread_ts_.insert(
-            std::make_pair(engine.first, tid)).second)) {
+    if (!(backup_pthread_ts_.insert(std::make_pair(engine.first, tid)).second)) {
       // log_warn("thread open dupilicated, type: %s", engine.first.c_str());
       backup_pthread_ts_[engine.first] = tid;
     }

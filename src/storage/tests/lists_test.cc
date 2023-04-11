@@ -4,16 +4,15 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include <gtest/gtest.h>
-#include <thread>
 #include <iostream>
+#include <thread>
 
 #include "storage/storage.h"
 #include "storage/util.h"
 
 using namespace storage;
 
-static bool elements_match(storage::Storage *const db,
-                           const Slice& key,
+static bool elements_match(storage::Storage* const db, const Slice& key,
                            const std::vector<std::string>& expect_elements) {
   std::vector<std::string> elements_out;
   Status s = db->LRange(key, 0, -1, &elements_out);
@@ -47,9 +46,7 @@ static bool elements_match(const std::vector<std::string>& elements_out,
   return true;
 }
 
-static bool len_match(storage::Storage *const db,
-                      const Slice& key,
-                      uint64_t expect_len) {
+static bool len_match(storage::Storage* const db, const Slice& key, uint64_t expect_len) {
   uint64_t len = 0;
   Status s = db->LLen(key, &len);
   if (!s.ok() && !s.IsNotFound()) {
@@ -61,8 +58,7 @@ static bool len_match(storage::Storage *const db,
   return len == expect_len;
 }
 
-static bool make_expired(storage::Storage *const db,
-                         const Slice& key) {
+static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
   if (!ret || !type_status[storage::DataType::kLists].ok()) {
@@ -74,8 +70,8 @@ static bool make_expired(storage::Storage *const db,
 
 class ListsTest : public ::testing::Test {
  public:
-  ListsTest() { }
-  virtual ~ListsTest() { }
+  ListsTest() {}
+  virtual ~ListsTest() {}
 
   void SetUp() {
     std::string path = "./db/lists";
@@ -95,8 +91,8 @@ class ListsTest : public ::testing::Test {
     DeleteFiles(path.c_str());
   }
 
-  static void SetUpTestCase() { }
-  static void TearDownTestCase() { }
+  static void SetUpTestCase() {}
+  static void TearDownTestCase() {}
 
   StorageOptions storage_options;
   storage::Storage db;
@@ -112,7 +108,7 @@ TEST_F(ListsTest, LIndexTest) {
   //  "z" -> "e" -> "p" -> "p" -> "l" -> "i" -> "n"
   //   0      1      2      3      4      5      6
   //  -7     -6     -5     -4     -3     -2     -1
-  std::vector<std::string> gp1_nodes {"n", "i", "l", "p", "p", "e", "z"};
+  std::vector<std::string> gp1_nodes{"n", "i", "l", "p", "p", "e", "z"};
   s = db.LPush("GP1_LINDEX_KEY", gp1_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes.size(), num);
@@ -149,13 +145,12 @@ TEST_F(ListsTest, LIndexTest) {
   s = db.LIndex("GP1_LINDEX_KEY", -10000, &element);
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 2 Test *****************
   //  "b" -> "a" -> "t" -> "t" -> "l" -> "e"
   //   0      1      2      3      4      5
   //  -6     -5     -4     -3     -2     -1
   //  LIndex time out list
-  std::vector<std::string> gp2_nodes {"b", "a", "t", "t", "l", "e"};
+  std::vector<std::string> gp2_nodes{"b", "a", "t", "t", "l", "e"};
   s = db.RPush("GP2_LINDEX_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -168,13 +163,12 @@ TEST_F(ListsTest, LIndexTest) {
   s = db.LIndex("GP2_LINDEX_KEY", 0, &element);
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 3 Test *****************
   //  "m" -> "i" -> "s" -> "t" -> "y"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
   //  LIndex the key that has been deleted
-  std::vector<std::string> gp3_nodes {"m", "i", "s", "t", "y"};
+  std::vector<std::string> gp3_nodes{"m", "i", "s", "t", "y"};
   s = db.RPush("GP3_LINDEX_KEY", gp3_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes.size(), num);
@@ -191,12 +185,10 @@ TEST_F(ListsTest, LIndexTest) {
   s = db.LIndex("GP3_LINDEX_KEY", 0, &element);
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 4 Test *****************
   //  LIndex not exist key
   s = db.LIndex("GP4_LINDEX_KEY", 0, &element);
   ASSERT_TRUE(s.IsNotFound());
-
 
   // ***************** Group 5 Test *****************
   //  "m" -> "i" -> "s" -> "t" -> "y"
@@ -207,7 +199,7 @@ TEST_F(ListsTest, LIndexTest) {
   //  "i" -> "s" -> "t" -> "y"
   //   0      1      2      3
   //  -4     -3     -2     -1
-  std::vector<std::string> gp5_nodes {"m", "i", "s", "t", "y"};
+  std::vector<std::string> gp5_nodes{"m", "i", "s", "t", "y"};
   s = db.RPush("GP5_LINDEX_KEY", gp5_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp5_nodes.size(), num);
@@ -221,7 +213,6 @@ TEST_F(ListsTest, LIndexTest) {
   s = db.LIndex("GP5_LINDEX_KEY", -5, &element);
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 6 Test *****************
   //  "m" -> "i" -> "s" -> "t" -> "y"
   //   0      1      2      3      4
@@ -231,7 +222,7 @@ TEST_F(ListsTest, LIndexTest) {
   //  "m" -> "i" -> "s" -> "t"
   //   0      1      2      3
   //  -4     -3     -2     -1
-  std::vector<std::string> gp6_nodes {"m", "i", "s", "t", "y"};
+  std::vector<std::string> gp6_nodes{"m", "i", "s", "t", "y"};
   s = db.RPush("GP6_LINDEX_KEY", gp6_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp6_nodes.size(), num);
@@ -245,7 +236,6 @@ TEST_F(ListsTest, LIndexTest) {
   s = db.LIndex("GP6_LINDEX_KEY", 4, &element);
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 7 Test *****************
   //  "m" -> "i" -> "s" -> "t" -> "y"
   //   0      1      2      3      4
@@ -255,7 +245,7 @@ TEST_F(ListsTest, LIndexTest) {
   //  "i" -> "s" -> "t"
   //   0      1      2
   //  -3     -2     -1
-  std::vector<std::string> gp7_nodes {"m", "i", "s", "t", "y"};
+  std::vector<std::string> gp7_nodes{"m", "i", "s", "t", "y"};
   s = db.RPush("GP7_LINDEX_KEY", gp7_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp7_nodes.size(), num);
@@ -283,11 +273,10 @@ TEST_F(ListsTest, LInsertTest) {
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(ret, 0);
 
-
   // ***************** Group 2 Test *****************
   //  "w" -> "e" -> "r" -> "u" -> "n"
   // LInsert not exist pivot value
-  std::vector<std::string> gp2_nodes {"w", "e", "r", "u", "n"};
+  std::vector<std::string> gp2_nodes{"w", "e", "r", "u", "n"};
   s = db.RPush("GP2_LINSERT_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -298,11 +287,10 @@ TEST_F(ListsTest, LInsertTest) {
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(ret, -1);
 
-
   // ***************** Group 3 Test *****************
   //  "a" -> "p" -> "p" -> "l" -> "e"
   // LInsert expire list
-  std::vector<std::string> gp3_nodes {"a", "p", "p", "l", "e"};
+  std::vector<std::string> gp3_nodes{"a", "p", "p", "l", "e"};
   s = db.RPush("GP3_LINSERT_KEY", gp3_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes.size(), num);
@@ -318,10 +306,9 @@ TEST_F(ListsTest, LInsertTest) {
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_EQ(ret, 0);
 
-
   // ***************** Group 4 Test *****************
   //  "a"
-  std::vector<std::string> gp4_nodes {"a"};
+  std::vector<std::string> gp4_nodes{"a"};
   s = db.RPush("GP4_LINSERT_KEY", gp4_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes.size(), num);
@@ -335,10 +322,9 @@ TEST_F(ListsTest, LInsertTest) {
   ASSERT_TRUE(len_match(&db, "GP4_LINSERT_KEY", 2));
   ASSERT_TRUE(elements_match(&db, "GP4_LINSERT_KEY", {"x", "a"}));
 
-
   // ***************** Group 5 Test *****************
   //  "a"
-  std::vector<std::string> gp5_nodes {"a"};
+  std::vector<std::string> gp5_nodes{"a"};
   s = db.RPush("GP5_LINSERT_KEY", gp5_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp5_nodes.size(), num);
@@ -352,10 +338,9 @@ TEST_F(ListsTest, LInsertTest) {
   ASSERT_TRUE(len_match(&db, "GP5_LINSERT_KEY", 2));
   ASSERT_TRUE(elements_match(&db, "GP5_LINSERT_KEY", {"a", "x"}));
 
-
   // ***************** Group 6 Test *****************
   //  "a" -> "b"
-  std::vector<std::string> gp6_nodes {"a", "b"};
+  std::vector<std::string> gp6_nodes{"a", "b"};
   s = db.RPush("GP6_LINSERT_KEY", gp6_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp6_nodes.size(), num);
@@ -369,10 +354,9 @@ TEST_F(ListsTest, LInsertTest) {
   ASSERT_TRUE(len_match(&db, "GP6_LINSERT_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP6_LINSERT_KEY", {"x", "a", "b"}));
 
-
   // ***************** Group 7 Test *****************
   //  "a" -> "b"
-  std::vector<std::string> gp7_nodes {"a", "b"};
+  std::vector<std::string> gp7_nodes{"a", "b"};
   s = db.RPush("GP7_LINSERT_KEY", gp7_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp7_nodes.size(), num);
@@ -386,10 +370,9 @@ TEST_F(ListsTest, LInsertTest) {
   ASSERT_TRUE(len_match(&db, "GP7_LINSERT_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP7_LINSERT_KEY", {"a", "x", "b"}));
 
-
   // ***************** Group 8 Test *****************
   //  "a" -> "b"
-  std::vector<std::string> gp8_nodes {"a", "b"};
+  std::vector<std::string> gp8_nodes{"a", "b"};
   s = db.RPush("GP8_LINSERT_KEY", gp8_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp8_nodes.size(), num);
@@ -403,10 +386,9 @@ TEST_F(ListsTest, LInsertTest) {
   ASSERT_TRUE(len_match(&db, "GP8_LINSERT_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP8_LINSERT_KEY", {"a", "x", "b"}));
 
-
   // ***************** Group 9 Test *****************
   //  "a" -> "b"
-  std::vector<std::string> gp9_nodes {"a", "b"};
+  std::vector<std::string> gp9_nodes{"a", "b"};
   s = db.RPush("GP9_LINSERT_KEY", gp9_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp9_nodes.size(), num);
@@ -420,10 +402,9 @@ TEST_F(ListsTest, LInsertTest) {
   ASSERT_TRUE(len_match(&db, "GP9_LINSERT_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP9_LINSERT_KEY", {"a", "b", "x"}));
 
-
   // ***************** Group 10 Test *****************
   //  "1" -> "2" -> "3"
-  std::vector<std::string> gp10_nodes {"1", "2", "3"};
+  std::vector<std::string> gp10_nodes{"1", "2", "3"};
   s = db.RPush("GP10_LINSERT_KEY", gp10_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp10_nodes.size(), num);
@@ -479,7 +460,7 @@ TEST_F(ListsTest, LLenTest) {
 
   // ***************** Group 1 Test *****************
   // "l" -> "x" -> "a"
-  std::vector<std::string> gp1_nodes {"a", "x", "l"};
+  std::vector<std::string> gp1_nodes{"a", "x", "l"};
   s = db.LPush("GP1_LLEN_KEY", gp1_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes.size(), num);
@@ -489,10 +470,9 @@ TEST_F(ListsTest, LLenTest) {
   ASSERT_TRUE(make_expired(&db, "GP1_LLEN_KEY"));
   ASSERT_TRUE(len_match(&db, "GP1_LLEN_KEY", 0));
 
-
   // ***************** Group 1 Test *****************
   // "p" -> "e" -> "r" -> "g"
-  std::vector<std::string> gp2_nodes {"g", "r", "e", "p"};
+  std::vector<std::string> gp2_nodes{"g", "r", "e", "p"};
   s = db.LPush("GP2_LLEN_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -515,7 +495,7 @@ TEST_F(ListsTest, LPopTest) {
 
   // ***************** Group 1 Test *****************
   //  "l" -> "x" -> "a"
-  std::vector<std::string> gp1_nodes {"a", "x", "l"};
+  std::vector<std::string> gp1_nodes{"a", "x", "l"};
   s = db.LPush("GP1_LPOP_KEY", gp1_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes.size(), num);
@@ -543,10 +523,9 @@ TEST_F(ListsTest, LPopTest) {
   s = db.LPop("GP1_LPOP_KEY", &element);
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 2 Test *****************
   //  "p" -> "e" -> "r" -> "g"
-  std::vector<std::string> gp2_nodes {"g", "r", "e", "p"};
+  std::vector<std::string> gp2_nodes{"g", "r", "e", "p"};
   s = db.LPush("GP2_LPOP_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -559,10 +538,9 @@ TEST_F(ListsTest, LPopTest) {
   ASSERT_TRUE(len_match(&db, "GP2_LPOP_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP2_LPOP_KEY", {}));
 
-
   // ***************** Group 3 Test *****************
   // "p" -> "o" -> "m" -> "e" -> "i" -> "i"
-  std::vector<std::string> gp3_nodes {"i", "i", "e", "m", "o", "p"};
+  std::vector<std::string> gp3_nodes{"i", "i", "e", "m", "o", "p"};
   s = db.LPush("GP3_LPOP_KEY", gp3_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes.size(), num);
@@ -591,17 +569,16 @@ TEST_F(ListsTest, LPushTest) {
 
   // ***************** Group 1 Test *****************
   //  "s" -> "l" -> "a" -> "s" -> "h"
-  std::vector<std::string> gp1_nodes {"h", "s", "a", "l", "s"};
+  std::vector<std::string> gp1_nodes{"h", "s", "a", "l", "s"};
   s = db.LPush("GP1_LPUSH_KEY", gp1_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes.size(), num);
   ASSERT_TRUE(len_match(&db, "GP1_LPUSH_KEY", gp1_nodes.size()));
   ASSERT_TRUE(elements_match(&db, "GP1_LPUSH_KEY", {"s", "l", "a", "s", "h"}));
 
-
   // ***************** Group 2 Test *****************
   //  "a" -> "x" -> "l"
-  std::vector<std::string> gp2_nodes1 {"l", "x", "a"};
+  std::vector<std::string> gp2_nodes1{"l", "x", "a"};
   s = db.LPush("GP2_LPUSH_KEY", gp2_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes1.size(), num);
@@ -609,7 +586,7 @@ TEST_F(ListsTest, LPushTest) {
   ASSERT_TRUE(elements_match(&db, "GP2_LPUSH_KEY", {"a", "x", "l"}));
 
   // "r" -> "o" -> "s" -> "e"
-  std::vector<std::string> gp2_nodes2 {"e", "s", "o", "r"};
+  std::vector<std::string> gp2_nodes2{"e", "s", "o", "r"};
   ASSERT_TRUE(make_expired(&db, "GP2_LPUSH_KEY"));
   s = db.LPush("GP2_LPUSH_KEY", gp2_nodes2, &num);
   ASSERT_TRUE(s.ok());
@@ -617,10 +594,9 @@ TEST_F(ListsTest, LPushTest) {
   ASSERT_TRUE(len_match(&db, "GP2_LPUSH_KEY", gp2_nodes2.size()));
   ASSERT_TRUE(elements_match(&db, "GP2_LPUSH_KEY", {"r", "o", "s", "e"}));
 
-
   // ***************** Group 3 Test *****************
   //  "d" -> "a" -> "v" -> "i" -> "d"
-  std::vector<std::string> gp3_nodes1 {"d", "i", "v", "a", "d"};
+  std::vector<std::string> gp3_nodes1{"d", "i", "v", "a", "d"};
   s = db.LPush("GP3_LPUSH_KEY", gp3_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes1.size(), num);
@@ -634,17 +610,16 @@ TEST_F(ListsTest, LPushTest) {
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
   // "g" -> "i" -> "l" -> "m" -> "o" -> "u" -> "r"
-  std::vector<std::string> gp3_nodes2 {"r", "u", "o", "m", "l", "i", "g"};
+  std::vector<std::string> gp3_nodes2{"r", "u", "o", "m", "l", "i", "g"};
   s = db.LPush("GP3_LPUSH_KEY", gp3_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes2.size(), num);
   ASSERT_TRUE(len_match(&db, "GP3_LPUSH_KEY", gp3_nodes2.size()));
   ASSERT_TRUE(elements_match(&db, "GP3_LPUSH_KEY", {"g", "i", "l", "m", "o", "u", "r"}));
 
-
   // ***************** Group 4 Test *****************
   //  "b" -> "l" -> "u" -> "e"
-  std::vector<std::string> gp4_nodes1 {"e", "u", "l", "b"};
+  std::vector<std::string> gp4_nodes1{"e", "u", "l", "b"};
   s = db.LPush("GP4_LPUSH_KEY", gp4_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes1.size(), num);
@@ -652,17 +627,16 @@ TEST_F(ListsTest, LPushTest) {
   ASSERT_TRUE(elements_match(&db, "GP4_LPUSH_KEY", {"b", "l", "u", "e"}));
 
   // "t" -> "h" -> "e" -> " " -> "b" -> "l" -> "u" -> "e"
-  std::vector<std::string> gp4_nodes2 {" ", "e", "h", "t"};
+  std::vector<std::string> gp4_nodes2{" ", "e", "h", "t"};
   s = db.LPush("GP4_LPUSH_KEY", gp4_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(8, num);
   ASSERT_TRUE(len_match(&db, "GP4_LPUSH_KEY", 8));
   ASSERT_TRUE(elements_match(&db, "GP4_LPUSH_KEY", {"t", "h", "e", " ", "b", "l", "u", "e"}));
 
-
   // ***************** Group 5 Test *****************
   //  "b" -> "l" -> "u" -> "e"
-  std::vector<std::string> gp5_nodes1 {"e", "u", "l", "b"};
+  std::vector<std::string> gp5_nodes1{"e", "u", "l", "b"};
   s = db.LPush("GP5_LPUSH_KEY", gp5_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp5_nodes1.size(), num);
@@ -672,17 +646,16 @@ TEST_F(ListsTest, LPushTest) {
   ASSERT_TRUE(make_expired(&db, "GP5_LPUSH_KEY"));
 
   // "t" -> "h" -> "e" -> " ";
-  std::vector<std::string> gp5_nodes2 {" ", "e", "h", "t"};
+  std::vector<std::string> gp5_nodes2{" ", "e", "h", "t"};
   s = db.LPush("GP5_LPUSH_KEY", gp5_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(4, num);
   ASSERT_TRUE(len_match(&db, "GP5_LPUSH_KEY", 4));
   ASSERT_TRUE(elements_match(&db, "GP5_LPUSH_KEY", {"t", "h", "e", " "}));
 
-
   // ***************** Group 6 Test *****************
   //  "b" -> "l" -> "u" -> "e"
-  std::vector<std::string> gp6_nodes1 {"e", "u", "l", "b"};
+  std::vector<std::string> gp6_nodes1{"e", "u", "l", "b"};
   s = db.LPush("GP6_LPUSH_KEY", gp6_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp6_nodes1.size(), num);
@@ -711,7 +684,7 @@ TEST_F(ListsTest, LPushTest) {
   ASSERT_TRUE(elements_match(&db, "GP6_LPUSH_KEY", {}));
 
   // "t" -> "h" -> "e" -> " ";
-  std::vector<std::string> gp6_nodes2 {" ", "e", "h", "t"};
+  std::vector<std::string> gp6_nodes2{" ", "e", "h", "t"};
   s = db.LPush("GP6_LPUSH_KEY", gp6_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(4, num);
@@ -730,7 +703,7 @@ TEST_F(ListsTest, LPushxTest) {
 
   // ***************** Group 1 Test *****************
   //  "o" -> "o" -> "o"
-  std::vector<std::string> gp1_nodes1 {"o", "o", "o"};
+  std::vector<std::string> gp1_nodes1{"o", "o", "o"};
   s = db.RPush("GP1_LPUSHX_KEY", gp1_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes1.size(), num);
@@ -745,7 +718,7 @@ TEST_F(ListsTest, LPushxTest) {
   ASSERT_TRUE(elements_match(&db, "GP1_LPUSHX_KEY", {"x", "o", "o", "o"}));
 
   // "o" -> "o" -> "x" -> "o" -> "o" -> "o"
-  std::vector<std::string> gp1_nodes2 {"o", "o"};
+  std::vector<std::string> gp1_nodes2{"o", "o"};
   s = db.LPush("GP1_LPUSHX_KEY", gp1_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(num, 6);
@@ -759,7 +732,6 @@ TEST_F(ListsTest, LPushxTest) {
   ASSERT_TRUE(len_match(&db, "GP1_LPUSHX_KEY", 7));
   ASSERT_TRUE(elements_match(&db, "GP1_LPUSHX_KEY", {"x", "o", "o", "x", "o", "o", "o"}));
 
-
   // ***************** Group 2 Test *****************
   // LPushx not exist key
   s = db.LPushx("GP2_LPUSHX_KEY", "x", &num);
@@ -767,11 +739,10 @@ TEST_F(ListsTest, LPushxTest) {
   ASSERT_TRUE(len_match(&db, "GP2_LPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP2_LPUSHX_KEY", {}));
 
-
   // ***************** Group 3 Test *****************
   //  "o" -> "o" -> "o"
   //  LPushx timeout key
-  std::vector<std::string> gp3_nodes {"o", "o", "o"};
+  std::vector<std::string> gp3_nodes{"o", "o", "o"};
   s = db.RPush("GP3_LPUSHX_KEY", gp3_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes.size(), num);
@@ -784,10 +755,9 @@ TEST_F(ListsTest, LPushxTest) {
   ASSERT_TRUE(len_match(&db, "GP3_LPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP3_LPUSHX_KEY", {}));
 
-
   // ***************** Group 4 Test *****************
   // LPushx has been deleted key
-  std::vector<std::string> gp4_nodes {"o", "o", "o"};
+  std::vector<std::string> gp4_nodes{"o", "o", "o"};
   s = db.RPush("GP4_LPUSHX_KEY", gp4_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes.size(), num);
@@ -812,7 +782,7 @@ TEST_F(ListsTest, LRangeTest) {
 
   // ***************** Group 1 Test *****************
   //  " " -> "a" -> "t" -> " "
-  std::vector<std::string> gp1_nodes1 {" ", "a", "t", " "};
+  std::vector<std::string> gp1_nodes1{" ", "a", "t", " "};
   s = db.RPush("GP1_LRANGE_KEY", gp1_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes1.size(), num);
@@ -820,7 +790,7 @@ TEST_F(ListsTest, LRangeTest) {
   ASSERT_TRUE(elements_match(&db, "GP1_LRANGE_KEY", {" ", "a", "t", " "}));
 
   //  "l" -> "i" -> "v" -> "e" -> " " -> "a" -> "t" -> " "
-  std::vector<std::string> gp1_nodes2 {"e", "v", "i", "l"};
+  std::vector<std::string> gp1_nodes2{"e", "v", "i", "l"};
   s = db.LPush("GP1_LRANGE_KEY", gp1_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes1.size() + gp1_nodes2.size(), num);
@@ -830,37 +800,43 @@ TEST_F(ListsTest, LRangeTest) {
   //  "l" -> "i" -> "v" -> "e" -> " " -> "a" -> "t" -> " " -> "p" -> "o" -> "m" -> "p" -> "e" -> "i" -> "i"
   //   0      1      2      3      4      5      6      7      8      9      10     11     12     13     14
   //  -15    -14    -13    -12    -11    -10    -9     -8     -7     -6      -5     -4     -3     -2     -1
-  std::vector<std::string> gp1_nodes3 {"p", "o", "m", "p", "e", "i", "i"};
+  std::vector<std::string> gp1_nodes3{"p", "o", "m", "p", "e", "i", "i"};
   s = db.RPush("GP1_LRANGE_KEY", gp1_nodes3, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes1.size() + gp1_nodes2.size() + gp1_nodes3.size(), num);
   ASSERT_TRUE(len_match(&db, "GP1_LRANGE_KEY", gp1_nodes1.size() + gp1_nodes2.size() + gp1_nodes3.size()));
-  ASSERT_TRUE(elements_match(&db, "GP1_LRANGE_KEY", {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
+  ASSERT_TRUE(elements_match(&db, "GP1_LRANGE_KEY",
+                             {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
 
   std::vector<std::string> gp1_range_nodes;
   s = db.LRange("GP1_LRANGE_KEY", 0, -1, &gp1_range_nodes);
   ASSERT_TRUE(s.ok());
-  ASSERT_TRUE(elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
+  ASSERT_TRUE(
+      elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
 
   gp1_range_nodes.clear();
   s = db.LRange("GP1_LRANGE_KEY", 0, 14, &gp1_range_nodes);
   ASSERT_TRUE(s.ok());
-  ASSERT_TRUE(elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
+  ASSERT_TRUE(
+      elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
 
   gp1_range_nodes.clear();
   s = db.LRange("GP1_LRANGE_KEY", -15, -1, &gp1_range_nodes);
   ASSERT_TRUE(s.ok());
-  ASSERT_TRUE(elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
+  ASSERT_TRUE(
+      elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
 
   gp1_range_nodes.clear();
   s = db.LRange("GP1_LRANGE_KEY", 0, 100, &gp1_range_nodes);
   ASSERT_TRUE(s.ok());
-  ASSERT_TRUE(elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
+  ASSERT_TRUE(
+      elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
 
   gp1_range_nodes.clear();
   s = db.LRange("GP1_LRANGE_KEY", -100, -1, &gp1_range_nodes);
   ASSERT_TRUE(s.ok());
-  ASSERT_TRUE(elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
+  ASSERT_TRUE(
+      elements_match(gp1_range_nodes, {"l", "i", "v", "e", " ", "a", "t", " ", "p", "o", "m", "p", "e", "i", "i"}));
 
   gp1_range_nodes.clear();
   s = db.LRange("GP1_LRANGE_KEY", 5, 6, &gp1_range_nodes);
@@ -942,12 +918,11 @@ TEST_F(ListsTest, LRangeTest) {
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(elements_match(gp1_range_nodes, {"i"}));
 
-
   // ***************** Group 2 Test *****************
   //  "a"
   //   0
   //  -1
-  std::vector<std::string> gp2_nodes {"a"};
+  std::vector<std::string> gp2_nodes{"a"};
   s = db.RPush("GP2_LRANGE_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -1004,7 +979,6 @@ TEST_F(ListsTest, LRangeTest) {
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(elements_match(gp2_range_nodes, {}));
 
-
   // ***************** Group 3 Test *****************
   // LRange not exist key
   std::vector<std::string> gp3_range_nodes;
@@ -1012,13 +986,12 @@ TEST_F(ListsTest, LRangeTest) {
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_TRUE(elements_match(gp3_range_nodes, {}));
 
-
   // ***************** Group 4 Test *****************
   //  "n" -> "o" -> "w"
   //   0      1      2
   //  -3     -2     -1
   // LRange timeout key
-  std::vector<std::string> gp4_nodes {"n", "o", "w"};
+  std::vector<std::string> gp4_nodes{"n", "o", "w"};
   s = db.RPush("GP4_LRANGE_KEY", gp4_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes.size(), num);
@@ -1031,13 +1004,12 @@ TEST_F(ListsTest, LRangeTest) {
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_TRUE(elements_match(gp4_range_nodes, {}));
 
-
   // ***************** Group 5 Test *****************
   //  "t" -> "o" -> "u" -> "r"
   //   0      1      2     3
   //  -4     -3     -2    -1
   // LRange has been deleted key
-  std::vector<std::string> gp5_nodes {"t", "o", "u", "r"};
+  std::vector<std::string> gp5_nodes{"t", "o", "u", "r"};
   s = db.RPush("GP5_LRANGE_KEY", gp5_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp5_nodes.size(), num);
@@ -1066,7 +1038,7 @@ TEST_F(ListsTest, LRemTest) {
   //  "o"
   //   0
   //  -1
-  std::vector<std::string> gp1_nodes {"o"};
+  std::vector<std::string> gp1_nodes{"o"};
   s = db.RPush("GP1_LREM_KEY", gp1_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes.size(), num);
@@ -1097,12 +1069,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP1_LREM_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP1_LREM_KEY", {}));
 
-
   // ***************** Group 2 Test *****************
   //  "o"
   //   0
   //  -1
-  std::vector<std::string> gp2_nodes {"o"};
+  std::vector<std::string> gp2_nodes{"o"};
   s = db.RPush("GP2_LREM_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -1115,12 +1086,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP2_LREM_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP2_LREM_KEY", {}));
 
-
   // ***************** Group 3 Test *****************
   //  "o"
   //   0
   //  -1
-  std::vector<std::string> gp3_nodes {"o"};
+  std::vector<std::string> gp3_nodes{"o"};
   s = db.RPush("GP3_LREM_KEY", gp3_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes.size(), num);
@@ -1133,12 +1103,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP3_LREM_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP3_LREM_KEY", {}));
 
-
   // ***************** Group 4 Test *****************
   //  "o" -> "x"
   //   0      1
   //  -2     -1
-  std::vector<std::string> gp4_nodes {"o", "x"};
+  std::vector<std::string> gp4_nodes{"o", "x"};
   s = db.RPush("GP4_LREM_KEY", gp4_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes.size(), num);
@@ -1151,12 +1120,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP4_LREM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP4_LREM_KEY", {"o"}));
 
-
   // ***************** Group 5 Test *****************
   //  "o" -> "x"
   //   0      1
   //  -2     -1
-  std::vector<std::string> gp5_nodes {"o", "x"};
+  std::vector<std::string> gp5_nodes{"o", "x"};
   s = db.RPush("GP5_LREM_KEY", gp5_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp5_nodes.size(), num);
@@ -1169,12 +1137,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP5_LREM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP5_LREM_KEY", {"o"}));
 
-
   // ***************** Group 6 Test *****************
   //  "o" -> "x"
   //   0      1
   //  -2     -1
-  std::vector<std::string> gp6_nodes {"o", "x"};
+  std::vector<std::string> gp6_nodes{"o", "x"};
   s = db.RPush("GP6_LREM_KEY", gp6_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp6_nodes.size(), num);
@@ -1187,12 +1154,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP6_LREM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP6_LREM_KEY", {"o"}));
 
-
   // ***************** Group 7 Test *****************
   //  "o" -> "x" -> "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o" -> "x"
   //   0      1      2      3      4      5      6      7      8      9
   //  -1     -2     -3     -4     -5     -6     -7     -8     -9     -10
-  std::vector<std::string> gp7_nodes {"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
+  std::vector<std::string> gp7_nodes{"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
   s = db.RPush("GP7_LREM_KEY", gp7_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp7_nodes.size(), num);
@@ -1205,12 +1171,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP7_LREM_KEY", 6));
   ASSERT_TRUE(elements_match(&db, "GP7_LREM_KEY", {"o", "o", "o", "o", "o", "o"}));
 
-
   // ***************** Group 8 Test *****************
   //  "o" -> "x" -> "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o" -> "x"
   //   0      1      2      3      4      5      6      7      8      9
   //  -1     -2     -3     -4     -5     -6     -7     -8     -9     -10
-  std::vector<std::string> gp8_nodes {"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
+  std::vector<std::string> gp8_nodes{"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
   s = db.RPush("GP8_LREM_KEY", gp8_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp8_nodes.size(), num);
@@ -1223,12 +1188,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP8_LREM_KEY", 6));
   ASSERT_TRUE(elements_match(&db, "GP8_LREM_KEY", {"o", "o", "o", "o", "o", "o"}));
 
-
   // ***************** Group 9 Test *****************
   //  "o" -> "x" -> "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o" -> "x"
   //   0      1      2      3      4      5      6      7      8      9
   //  -1     -2     -3     -4     -5     -6     -7     -8     -9     -10
-  std::vector<std::string> gp9_nodes {"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
+  std::vector<std::string> gp9_nodes{"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
   s = db.RPush("GP9_LREM_KEY", gp9_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp9_nodes.size(), num);
@@ -1241,12 +1205,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP9_LREM_KEY", 6));
   ASSERT_TRUE(elements_match(&db, "GP9_LREM_KEY", {"o", "o", "o", "o", "o", "o"}));
 
-
   // ***************** Group 10 Test *****************
   //  "o" -> "x" -> "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o" -> "x"
   //   0      1      2      3      4      5      6      7      8      9
   //  -1     -2     -3     -4     -5     -6     -7     -8     -9     -10
-  std::vector<std::string> gp10_nodes {"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
+  std::vector<std::string> gp10_nodes{"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
   s = db.RPush("GP10_LREM_KEY", gp10_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp10_nodes.size(), num);
@@ -1259,12 +1222,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP10_LREM_KEY", 9));
   ASSERT_TRUE(elements_match(&db, "GP10_LREM_KEY", {"o", "o", "o", "x", "o", "x", "o", "o", "x"}));
 
-
   // ***************** Group 11 Test *****************
   //  "o" -> "x" -> "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o" -> "x"
   //   0      1      2      3      4      5      6      7      8      9
   //  -1     -2     -3     -4     -5     -6     -7     -8     -9     -10
-  std::vector<std::string> gp11_nodes {"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
+  std::vector<std::string> gp11_nodes{"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
   s = db.RPush("GP11_LREM_KEY", gp11_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp11_nodes.size(), num);
@@ -1277,12 +1239,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP11_LREM_KEY", 7));
   ASSERT_TRUE(elements_match(&db, "GP11_LREM_KEY", {"o", "o", "o", "o", "o", "o", "x"}));
 
-
   // ***************** Group 12 Test *****************
   //  "o" -> "x" -> "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o" -> "x"
   //   0      1      2      3      4      5      6      7      8      9
   //  -1     -2     -3     -4     -5     -6     -7     -8     -9     -10
-  std::vector<std::string> gp12_nodes {"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
+  std::vector<std::string> gp12_nodes{"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
   s = db.RPush("GP12_LREM_KEY", gp12_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp12_nodes.size(), num);
@@ -1295,12 +1256,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP12_LREM_KEY", 6));
   ASSERT_TRUE(elements_match(&db, "GP12_LREM_KEY", {"o", "o", "o", "o", "o", "o"}));
 
-
   // ***************** Group 13 Test *****************
   //  "o" -> "x" -> "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o" -> "x"
   //   0      1      2      3      4      5      6      7      8      9
   //  -1     -2     -3     -4     -5     -6     -7     -8     -9     -10
-  std::vector<std::string> gp13_nodes {"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
+  std::vector<std::string> gp13_nodes{"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
   s = db.RPush("GP13_LREM_KEY", gp13_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp13_nodes.size(), num);
@@ -1313,12 +1273,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP13_LREM_KEY", 9));
   ASSERT_TRUE(elements_match(&db, "GP13_LREM_KEY", {"o", "x", "o", "o", "x", "o", "x", "o", "o"}));
 
-
   // ***************** Group 14 Test *****************
   //  "o" -> "x" -> "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o" -> "x"
   //   0      1      2      3      4      5      6      7      8      9
   //  -1     -2     -3     -4     -5     -6     -7     -8     -9     -10
-  std::vector<std::string> gp14_nodes {"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
+  std::vector<std::string> gp14_nodes{"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
   s = db.RPush("GP14_LREM_KEY", gp14_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp14_nodes.size(), num);
@@ -1331,12 +1290,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP14_LREM_KEY", 8));
   ASSERT_TRUE(elements_match(&db, "GP14_LREM_KEY", {"o", "x", "o", "o", "x", "o", "o", "o"}));
 
-
   // ***************** Group 15 Test *****************
   //  "o" -> "x" -> "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o" -> "x"
   //   0      1      2      3      4      5      6      7      8      9
   //  -1     -2     -3     -4     -5     -6     -7     -8     -9     -10
-  std::vector<std::string> gp15_nodes {"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
+  std::vector<std::string> gp15_nodes{"o", "x", "o", "o", "x", "o", "x", "o", "o", "x"};
   s = db.RPush("GP15_LREM_KEY", gp15_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp15_nodes.size(), num);
@@ -1349,12 +1307,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP15_LREM_KEY", 7));
   ASSERT_TRUE(elements_match(&db, "GP15_LREM_KEY", {"o", "x", "o", "o", "o", "o", "o"}));
 
-
   // ***************** Group 16 Test *****************
   //  "o" -> "x" -> "x" -> "x" -> "x" -> "o"
   //   0      1      2      3      4      5
   //  -6     -5     -4     -3     -2     -1
-  std::vector<std::string> gp16_nodes {"o", "x", "x", "x", "x", "o"};
+  std::vector<std::string> gp16_nodes{"o", "x", "x", "x", "x", "o"};
   s = db.RPush("GP16_LREM_KEY", gp16_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp16_nodes.size(), num);
@@ -1367,12 +1324,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP16_LREM_KEY", 4));
   ASSERT_TRUE(elements_match(&db, "GP16_LREM_KEY", {"o", "x", "x", "o"}));
 
-
   // ***************** Group 17 Test *****************
   //  "o" -> "x" -> "x" -> "x" -> "x" -> "o"
   //   0      1      2      3      4      5
   //  -6     -5     -4     -3     -2     -1
-  std::vector<std::string> gp17_nodes {"o", "x", "x", "x", "x", "o"};
+  std::vector<std::string> gp17_nodes{"o", "x", "x", "x", "x", "o"};
   s = db.RPush("GP17_LREM_KEY", gp17_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp17_nodes.size(), num);
@@ -1385,12 +1341,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP17_LREM_KEY", 4));
   ASSERT_TRUE(elements_match(&db, "GP17_LREM_KEY", {"o", "x", "x", "o"}));
 
-
   // ***************** Group 18 Test *****************
   //  "o" -> "x" -> "x" -> "x" -> "x" -> "o"
   //   0      1      2      3      4      5
   //  -6     -5     -4     -3     -2     -1
-  std::vector<std::string> gp18_nodes {"o", "x", "x", "x", "x", "o"};
+  std::vector<std::string> gp18_nodes{"o", "x", "x", "x", "x", "o"};
   s = db.RPush("GP18_LREM_KEY", gp18_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp18_nodes.size(), num);
@@ -1403,12 +1358,11 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP18_LREM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP18_LREM_KEY", {"o", "x", "o"}));
 
-
   // ***************** Group 19 Test *****************
   //  "o" -> "x" -> "x" -> "x" -> "x" -> "o"
   //   0      1      2      3      4      5
   //  -6     -5     -4     -3     -2     -1
-  std::vector<std::string> gp19_nodes {"o", "x", "x", "x", "x", "o"};
+  std::vector<std::string> gp19_nodes{"o", "x", "x", "x", "x", "o"};
   s = db.RPush("GP19_LREM_KEY", gp19_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp19_nodes.size(), num);
@@ -1421,11 +1375,10 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_TRUE(len_match(&db, "GP19_LREM_KEY", 2));
   ASSERT_TRUE(elements_match(&db, "GP19_LREM_KEY", {"o", "o"}));
 
-
   // ***************** Group 20 Test *****************
   //  "o" -> "x" -> "o"
   //  LRem timeout key
-  std::vector<std::string> gp20_nodes {"o", "o", "o"};
+  std::vector<std::string> gp20_nodes{"o", "o", "o"};
   s = db.RPush("GP20_LREM_KEY", gp20_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp20_nodes.size(), num);
@@ -1438,7 +1391,6 @@ TEST_F(ListsTest, LRemTest) {
   ASSERT_EQ(0, num);
   ASSERT_TRUE(len_match(&db, "GP20_LREM_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP20_LREM_KEY", {}));
-
 
   // ***************** Group 21 Test *****************
   //  LRem not exist key
@@ -1458,7 +1410,7 @@ TEST_F(ListsTest, LSetTest) {
   //  "o" -> "o" -> "o" -> "o" -> "o"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp1_nodes1 {"o", "o", "o", "o", "o"};
+  std::vector<std::string> gp1_nodes1{"o", "o", "o", "o", "o"};
   s = db.LPush("GP1_LSET_KEY", gp1_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes1.size(), num);
@@ -1489,11 +1441,10 @@ TEST_F(ListsTest, LSetTest) {
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(elements_match(&db, "GP1_LSET_KEY", {"o", "o", "x", "o", "x"}));
 
-
   //  "o" -> "o" -> "x" -> "o" -> "x" -> "o" -> "o"
   //   0      1      2      3      4      5      6
   //   -7    -6     -5     -4     -3     -2     -1
-  std::vector<std::string> gp1_nodes2 {"o", "o"};
+  std::vector<std::string> gp1_nodes2{"o", "o"};
   s = db.RPush("GP1_LSET_KEY", gp1_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes1.size() + gp1_nodes2.size(), num);
@@ -1508,10 +1459,9 @@ TEST_F(ListsTest, LSetTest) {
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(elements_match(&db, "GP1_LSET_KEY", {"x", "o", "x", "o", "x", "x", "o"}));
 
-
   // ***************** Group 2 Test *****************
   // LSet expire key
-  std::vector<std::string> gp2_nodes {"o", "o", "o"};
+  std::vector<std::string> gp2_nodes{"o", "o", "o"};
   s = db.LPush("GP2_LSET_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -1522,15 +1472,13 @@ TEST_F(ListsTest, LSetTest) {
   s = db.LSet("GP2_LSET_KEY", 0, "x");
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 3 Test *****************
   // LSet not exist key
   s = db.LSet("GP3_LSET_KEY", 0, "x");
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 4 Test *****************
-  std::vector<std::string> gp4_nodes {"o"};
+  std::vector<std::string> gp4_nodes{"o"};
   s = db.LPush("GP4_LSET_KEY", gp4_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes.size(), num);
@@ -1552,13 +1500,12 @@ TEST_F(ListsTest, LSetTest) {
 
 // LTrim
 TEST_F(ListsTest, LTrimTest) {
-
   uint64_t num;
   // ***************** Group 1 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp1_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp1_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP1_LTRIM_KEY", gp1_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes.size(), num);
@@ -1585,12 +1532,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP1_LTRIM_KEY", gp1_nodes.size()));
   ASSERT_TRUE(elements_match(&db, "GP1_LTRIM_KEY", {"a", "b", "c", "d", "e"}));
 
-
   // ***************** Group 2 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp2_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp2_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP2_LTRIM_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -1602,12 +1548,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP2_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP2_LTRIM_KEY", {"a", "b", "c"}));
 
-
   // ***************** Group 3 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp3_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp3_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP3_LTRIM_KEY", gp3_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes.size(), num);
@@ -1619,12 +1564,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP3_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP3_LTRIM_KEY", {"a", "b", "c"}));
 
-
   // ***************** Group 4 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp4_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp4_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP4_LTRIM_KEY", gp4_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes.size(), num);
@@ -1636,12 +1580,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP4_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP4_LTRIM_KEY", {"a", "b", "c"}));
 
-
   // ***************** Group 5 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp5_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp5_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP5_LTRIM_KEY", gp5_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp5_nodes.size(), num);
@@ -1653,12 +1596,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP5_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP5_LTRIM_KEY", {"a", "b", "c"}));
 
-
   // ***************** Group 6 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp6_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp6_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP6_LTRIM_KEY", gp6_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp6_nodes.size(), num);
@@ -1670,12 +1612,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP6_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP6_LTRIM_KEY", {"a", "b", "c"}));
 
-
   // ***************** Group 7 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp7_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp7_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP7_LTRIM_KEY", gp7_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp7_nodes.size(), num);
@@ -1687,12 +1628,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP7_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP7_LTRIM_KEY", {"a", "b", "c"}));
 
-
   // ***************** Group 8 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp8_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp8_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP8_LTRIM_KEY", gp8_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp8_nodes.size(), num);
@@ -1704,12 +1644,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP8_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP8_LTRIM_KEY", {"b", "c", "d"}));
 
-
   // ***************** Group 9 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp9_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp9_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP9_LTRIM_KEY", gp9_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp9_nodes.size(), num);
@@ -1721,12 +1660,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP9_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP9_LTRIM_KEY", {"b", "c", "d"}));
 
-
   // ***************** Group 10 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp10_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp10_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP10_LTRIM_KEY", gp10_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp10_nodes.size(), num);
@@ -1738,12 +1676,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP10_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP10_LTRIM_KEY", {"b", "c", "d"}));
 
-
   // ***************** Group 11 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp11_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp11_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP11_LTRIM_KEY", gp11_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp11_nodes.size(), num);
@@ -1755,12 +1692,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP11_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP11_LTRIM_KEY", {"b", "c", "d"}));
 
-
   // ***************** Group 12 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp12_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp12_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP12_LTRIM_KEY", gp12_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp12_nodes.size(), num);
@@ -1772,12 +1708,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP12_LTRIM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP12_LTRIM_KEY", {"c"}));
 
-
   // ***************** Group 13 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp13_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp13_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP13_LTRIM_KEY", gp13_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp13_nodes.size(), num);
@@ -1789,12 +1724,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP13_LTRIM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP13_LTRIM_KEY", {"c"}));
 
-
   // ***************** Group 14 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp14_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp14_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP14_LTRIM_KEY", gp14_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp14_nodes.size(), num);
@@ -1806,12 +1740,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP14_LTRIM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP14_LTRIM_KEY", {"c"}));
 
-
   // ***************** Group 15 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp15_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp15_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP15_LTRIM_KEY", gp15_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp15_nodes.size(), num);
@@ -1823,12 +1756,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP15_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP15_LTRIM_KEY", {"c", "d", "e"}));
 
-
   // ***************** Group 16 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp16_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp16_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP16_LTRIM_KEY", gp16_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp16_nodes.size(), num);
@@ -1840,12 +1772,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP16_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP16_LTRIM_KEY", {"c", "d", "e"}));
 
-
   // ***************** Group 17 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp17_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp17_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP17_LTRIM_KEY", gp17_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp17_nodes.size(), num);
@@ -1857,12 +1788,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP17_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP17_LTRIM_KEY", {"c", "d", "e"}));
 
-
   // ***************** Group 18 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp18_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp18_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP18_LTRIM_KEY", gp18_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp18_nodes.size(), num);
@@ -1874,12 +1804,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP18_LTRIM_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP18_LTRIM_KEY", {"c", "d", "e"}));
 
-
   // ***************** Group 19 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp19_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp19_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP19_LTRIM_KEY", gp19_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp19_nodes.size(), num);
@@ -1891,12 +1820,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP19_LTRIM_KEY", 5));
   ASSERT_TRUE(elements_match(&db, "GP19_LTRIM_KEY", {"a", "b", "c", "d", "e"}));
 
-
   // ***************** Group 20 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp20_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp20_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP20_LTRIM_KEY", gp20_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp20_nodes.size(), num);
@@ -1908,12 +1836,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP20_LTRIM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP20_LTRIM_KEY", {"a"}));
 
-
   // ***************** Group 21 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp21_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp21_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP21_LTRIM_KEY", gp21_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp21_nodes.size(), num);
@@ -1925,12 +1852,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP21_LTRIM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP21_LTRIM_KEY", {"a"}));
 
-
   // ***************** Group 22 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp22_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp22_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP22_LTRIM_KEY", gp22_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp22_nodes.size(), num);
@@ -1942,12 +1868,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP22_LTRIM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP22_LTRIM_KEY", {"a"}));
 
-
   // ***************** Group 23 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp23_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp23_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP23_LTRIM_KEY", gp23_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp23_nodes.size(), num);
@@ -1959,12 +1884,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP23_LTRIM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP23_LTRIM_KEY", {"a"}));
 
-
   // ***************** Group 24 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp24_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp24_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP24_LTRIM_KEY", gp24_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp24_nodes.size(), num);
@@ -1976,12 +1900,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP24_LTRIM_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP24_LTRIM_KEY", {}));
 
-
   // ***************** Group 25 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp25_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp25_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP25_LTRIM_KEY", gp25_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp25_nodes.size(), num);
@@ -1993,12 +1916,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP25_LTRIM_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP25_LTRIM_KEY", {}));
 
-
   // ***************** Group 26 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
   //   0      1      2      3      4
   //  -5     -4     -3     -2     -1
-  std::vector<std::string> gp26_nodes {"a", "b", "c", "d", "e"};
+  std::vector<std::string> gp26_nodes{"a", "b", "c", "d", "e"};
   s = db.RPush("GP26_LTRIM_KEY", gp26_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp26_nodes.size(), num);
@@ -2010,12 +1932,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP26_LTRIM_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP26_LTRIM_KEY", {}));
 
-
   // ***************** Group 27 Test *****************
   //  "a" -> "b"
   //   0      1
   //  -2     -1
-  std::vector<std::string> gp27_nodes {"a", "b"};
+  std::vector<std::string> gp27_nodes{"a", "b"};
   s = db.RPush("GP27_LTRIM_KEY", gp27_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp27_nodes.size(), num);
@@ -2027,12 +1948,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP27_LTRIM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP27_LTRIM_KEY", {"a"}));
 
-
   // ***************** Group 28 Test *****************
   //  "a" -> "b"
   //   0      1
   //  -2     -1
-  std::vector<std::string> gp28_nodes {"a", "b"};
+  std::vector<std::string> gp28_nodes{"a", "b"};
   s = db.RPush("GP28_LTRIM_KEY", gp28_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp28_nodes.size(), num);
@@ -2044,12 +1964,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP28_LTRIM_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP28_LTRIM_KEY", {"b"}));
 
-
   // ***************** Group 29 Test *****************
   //  "a" -> "b"
   //   0      1
   //  -2     -1
-  std::vector<std::string> gp29_nodes {"a", "b"};
+  std::vector<std::string> gp29_nodes{"a", "b"};
   s = db.RPush("GP29_LTRIM_KEY", gp29_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp29_nodes.size(), num);
@@ -2061,12 +1980,11 @@ TEST_F(ListsTest, LTrimTest) {
   ASSERT_TRUE(len_match(&db, "GP29_LTRIM_KEY", 2));
   ASSERT_TRUE(elements_match(&db, "GP29_LTRIM_KEY", {"a", "b"}));
 
-
   // ***************** Group 30 Test *****************
   //  "a" -> "b"
   //   0      1
   //  -2     -1
-  std::vector<std::string> gp30_nodes {"a", "b"};
+  std::vector<std::string> gp30_nodes{"a", "b"};
   s = db.RPush("GP30_LTRIM_KEY", gp30_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp30_nodes.size(), num);
@@ -2085,7 +2003,7 @@ TEST_F(ListsTest, RPopTest) {
 
   // ***************** Group 1 Test *****************
   //  "a" -> "x" -> "l"
-  std::vector<std::string> gp1_nodes {"l", "x", "a"};
+  std::vector<std::string> gp1_nodes{"l", "x", "a"};
   s = db.LPush("GP1_RPOP_KEY", gp1_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes.size(), num);
@@ -2113,10 +2031,9 @@ TEST_F(ListsTest, RPopTest) {
   s = db.LPop("GP1_RPOP_KEY", &element);
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 2 Test *****************
   //  "g" -> "r" -> "e" -> "p"
-  std::vector<std::string> gp2_nodes {"p", "e", "r", "g"};
+  std::vector<std::string> gp2_nodes{"p", "e", "r", "g"};
   s = db.LPush("GP2_RPOP_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -2129,10 +2046,9 @@ TEST_F(ListsTest, RPopTest) {
   ASSERT_TRUE(len_match(&db, "GP2_RPOP_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP2_RPOP_KEY", {}));
 
-
   // ***************** Group 3 Test *****************
   // "p" -> "o" -> "m" -> "e" -> "i" -> "i"
-  std::vector<std::string> gp3_nodes {"i", "i", "e", "m", "o", "p"};
+  std::vector<std::string> gp3_nodes{"i", "i", "e", "m", "o", "p"};
   s = db.LPush("GP3_RPOP_KEY", gp3_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes.size(), num);
@@ -2166,7 +2082,7 @@ TEST_F(ListsTest, RPoplpushTest) {
   // source
   // destination   "o"
   //
-  std::vector<std::string> gp1_nodes {"o"};
+  std::vector<std::string> gp1_nodes{"o"};
   s = db.RPush("GP1_RPOPLPUSH_SOURCE_KEY", gp1_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes.size(), num);
@@ -2181,7 +2097,6 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(len_match(&db, "GP1_RPOPLPUSH_DESTINATION_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP1_RPOPLPUSH_DESTINATION_KEY", {"o"}));
 
-
   // ***************** Group 2 Test *****************
   // source
   // destination   "o"
@@ -2189,7 +2104,7 @@ TEST_F(ListsTest, RPoplpushTest) {
   // source
   // destination   "o"
   //
-  std::vector<std::string> gp2_nodes {"o"};
+  std::vector<std::string> gp2_nodes{"o"};
   s = db.RPush("GP2_RPOPLPUSH_DESTINATION_KEY", gp2_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes.size(), num);
@@ -2203,7 +2118,6 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(elements_match(&db, "GP2_RPOPLPUSH_SOURCE_KEY", {}));
   ASSERT_TRUE(len_match(&db, "GP2_RPOPLPUSH_DESTINATION_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP2_RPOPLPUSH_DESTINATION_KEY", {"o"}));
-
 
   // ***************** Group 3 Test *****************
   // source        "a" -> "b" -> "c" -> "o"
@@ -2221,13 +2135,13 @@ TEST_F(ListsTest, RPoplpushTest) {
   // source
   // destination   "a" -> "b" -> "c" -> "o" -> "a" -> "b" -> "c"
   //
-  std::vector<std::string> gp3_nodes1 {"a", "b", "c", "o"};
-  std::vector<std::string> gp3_nodes2 {"a", "b", "c"};
+  std::vector<std::string> gp3_nodes1{"a", "b", "c", "o"};
+  std::vector<std::string> gp3_nodes2{"a", "b", "c"};
   s = db.RPush("GP3_RPOPLPUSH_SOURCE_KEY", gp3_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes1.size(), num);
   ASSERT_TRUE(len_match(&db, "GP3_RPOPLPUSH_SOURCE_KEY", gp3_nodes1.size()));
-  ASSERT_TRUE(elements_match(&db, "GP3_RPOPLPUSH_SOURCE_KEY", {"a", "b","c", "o"}));
+  ASSERT_TRUE(elements_match(&db, "GP3_RPOPLPUSH_SOURCE_KEY", {"a", "b", "c", "o"}));
 
   s = db.RPush("GP3_RPOPLPUSH_DESTINATION_KEY", gp3_nodes2, &num);
   ASSERT_TRUE(s.ok());
@@ -2270,7 +2184,6 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(len_match(&db, "GP3_RPOPLPUSH_DESTINATION_KEY", 7));
   ASSERT_TRUE(elements_match(&db, "GP3_RPOPLPUSH_DESTINATION_KEY", {"a", "b", "c", "o", "a", "b", "c"}));
 
-
   // ***************** Group 4 Test *****************
   // source                            (empty list);
   // destination   "a" -> "b" -> "c"
@@ -2278,8 +2191,8 @@ TEST_F(ListsTest, RPoplpushTest) {
   // source                            (empty list);
   // destination   "a" -> "b" -> "c"
   //
-  std::vector<std::string> gp4_nodes1 {"o"};
-  std::vector<std::string> gp4_nodes2 {"a", "b", "c"};
+  std::vector<std::string> gp4_nodes1{"o"};
+  std::vector<std::string> gp4_nodes2{"a", "b", "c"};
   s = db.RPush("GP4_RPOPLPUSH_SOURCE_KEY", gp4_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes1.size(), num);
@@ -2305,7 +2218,6 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(len_match(&db, "GP4_RPOPLPUSH_DESTINATION_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP4_RPOPLPUSH_DESTINATION_KEY", {"a", "b", "c"}));
 
-
   // ***************** Group 5 Test *****************
   // source        "a" -> "b" -> "c"
   // destination                       (empty list);
@@ -2313,8 +2225,8 @@ TEST_F(ListsTest, RPoplpushTest) {
   // source        "a" -> "b"
   // destination   "c"
   //
-  std::vector<std::string> gp5_nodes1 {"a", "b", "c"};
-  std::vector<std::string> gp5_nodes2 {"o"};
+  std::vector<std::string> gp5_nodes1{"a", "b", "c"};
+  std::vector<std::string> gp5_nodes2{"o"};
   s = db.RPush("GP5_RPOPLPUSH_SOURCE_KEY", gp5_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp5_nodes1.size(), num);
@@ -2340,7 +2252,6 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(len_match(&db, "GP5_RPOPLPUSH_DESTINATION_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP5_RPOPLPUSH_DESTINATION_KEY", {"c"}));
 
-
   // ***************** Group 6 Test *****************
   // source        "a" -> "b" -> "c"   (timeout list);
   // destination   "x" -> "y" -> "z"
@@ -2348,8 +2259,8 @@ TEST_F(ListsTest, RPoplpushTest) {
   // source        "a" -> "b" -> "c"   (timeout list);
   // destination   "x" -> "y" -> "z"
   //
-  std::vector<std::string> gp6_nodes1 {"a", "b", "c"};
-  std::vector<std::string> gp6_nodes2 {"x", "y", "z"};
+  std::vector<std::string> gp6_nodes1{"a", "b", "c"};
+  std::vector<std::string> gp6_nodes2{"x", "y", "z"};
   s = db.RPush("GP6_RPOPLPUSH_SOURCE_KEY", gp6_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp6_nodes1.size(), num);
@@ -2371,7 +2282,6 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(len_match(&db, "GP6_RPOPLPUSH_DESTINATION_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP6_RPOPLPUSH_DESTINATION_KEY", {"x", "y", "z"}));
 
-
   // ***************** Group 7 Test *****************
   // source        "a" -> "b" -> "c"
   // destination   "x" -> "y" -> "z"   (timeout list);
@@ -2379,8 +2289,8 @@ TEST_F(ListsTest, RPoplpushTest) {
   // source        "a" -> "b"
   // destination   "c"
   //
-  std::vector<std::string> gp7_nodes1 {"a", "b", "c"};
-  std::vector<std::string> gp7_nodes2 {"x", "y", "z"};
+  std::vector<std::string> gp7_nodes1{"a", "b", "c"};
+  std::vector<std::string> gp7_nodes2{"x", "y", "z"};
   s = db.RPush("GP7_RPOPLPUSH_SOURCE_KEY", gp7_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp7_nodes1.size(), num);
@@ -2402,13 +2312,12 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(len_match(&db, "GP7_RPOPLPUSH_DESTINATION_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP7_RPOPLPUSH_DESTINATION_KEY", {"c"}));
 
-
   // ***************** Group 8 Test *****************
   // source        "a" -> "b" -> "c"
   // ----------------after rpoplpush-----------------
   // source        "c" -> "a" -> "b"
   //
-  std::vector<std::string> gp8_nodes {"a", "b", "c"};
+  std::vector<std::string> gp8_nodes{"a", "b", "c"};
   s = db.RPush("GP8_RPOPLPUSH_SOURCE_KEY", gp8_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp8_nodes.size(), num);
@@ -2421,13 +2330,12 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(len_match(&db, "GP8_RPOPLPUSH_SOURCE_KEY", 3));
   ASSERT_TRUE(elements_match(&db, "GP8_RPOPLPUSH_SOURCE_KEY", {"c", "a", "b"}));
 
-
   // ***************** Group 9 Test *****************
   // source        "a" -> "b" -> "c"    (timeout list)
   // ----------------after rpoplpush-----------------
   // source        "a" -> "b" -> "c"    (timeout list)
   //
-  std::vector<std::string> gp9_nodes {"a", "b", "c"};
+  std::vector<std::string> gp9_nodes{"a", "b", "c"};
   s = db.RPush("GP9_RPOPLPUSH_SOURCE_KEY", gp9_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp9_nodes.size(), num);
@@ -2443,13 +2351,12 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(len_match(&db, "GP9_RPOPLPUSH_SOURCE_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP9_RPOPLPUSH_SOURCE_KEY", {}));
 
-
   // ***************** Group 10 Test *****************
   // source        "o"
   // ----------------after rpoplpush-----------------
   // source        "o"
   //
-  std::vector<std::string> gp10_nodes {"o"};
+  std::vector<std::string> gp10_nodes{"o"};
   s = db.RPush("GP10_RPOPLPUSH_SOURCE_KEY", gp10_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp10_nodes.size(), num);
@@ -2462,7 +2369,6 @@ TEST_F(ListsTest, RPoplpushTest) {
   ASSERT_TRUE(len_match(&db, "GP10_RPOPLPUSH_SOURCE_KEY", 1));
   ASSERT_TRUE(elements_match(&db, "GP10_RPOPLPUSH_SOURCE_KEY", {"o"}));
 
-
   // ***************** Group 11 Test *****************
   // source        "a" -> "b" -> "c"
   // destination   "x" -> "y" -> "z"   (TTL 100);
@@ -2472,8 +2378,8 @@ TEST_F(ListsTest, RPoplpushTest) {
   // source        "a" -> "b"
   // destination   "c"                 (TTL -1)
   //
-  std::vector<std::string> gp11_nodes1 {"a", "b", "c"};
-  std::vector<std::string> gp11_nodes2 {"x", "y", "z"};
+  std::vector<std::string> gp11_nodes1{"a", "b", "c"};
+  std::vector<std::string> gp11_nodes2{"x", "y", "z"};
   s = db.RPush("GP11_RPOPLPUSH_SOURCE_KEY", gp11_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp11_nodes1.size(), num);
@@ -2523,17 +2429,16 @@ TEST_F(ListsTest, RPushTest) {
 
   // ***************** Group 1 Test *****************
   //  "s" -> "l" -> "a" -> "s" -> "h"
-  std::vector<std::string> gp1_nodes {"s", "l", "a", "s", "h"};
+  std::vector<std::string> gp1_nodes{"s", "l", "a", "s", "h"};
   s = db.RPush("GP1_RPUSH_KEY", gp1_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes.size(), num);
   ASSERT_TRUE(len_match(&db, "GP1_RPUSH_KEY", gp1_nodes.size()));
   ASSERT_TRUE(elements_match(&db, "GP1_RPUSH_KEY", {"s", "l", "a", "s", "h"}));
 
-
   // ***************** Group 2 Test *****************
   //  "a" -> "x" -> "l"
-  std::vector<std::string> gp2_nodes1 {"a", "x", "l"};
+  std::vector<std::string> gp2_nodes1{"a", "x", "l"};
   s = db.RPush("GP2_RPUSH_KEY", gp2_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp2_nodes1.size(), num);
@@ -2541,7 +2446,7 @@ TEST_F(ListsTest, RPushTest) {
   ASSERT_TRUE(elements_match(&db, "GP2_RPUSH_KEY", {"a", "x", "l"}));
 
   // "r" -> "o" -> "s" -> "e"
-  std::vector<std::string> gp2_nodes2 {"r", "o", "s", "e"};
+  std::vector<std::string> gp2_nodes2{"r", "o", "s", "e"};
   ASSERT_TRUE(make_expired(&db, "GP2_RPUSH_KEY"));
   s = db.RPush("GP2_RPUSH_KEY", gp2_nodes2, &num);
   ASSERT_TRUE(s.ok());
@@ -2549,10 +2454,9 @@ TEST_F(ListsTest, RPushTest) {
   ASSERT_TRUE(len_match(&db, "GP2_RPUSH_KEY", gp2_nodes2.size()));
   ASSERT_TRUE(elements_match(&db, "GP2_RPUSH_KEY", {"r", "o", "s", "e"}));
 
-
   // ***************** Group 3 Test *****************
   //  "d" -> "a" -> "v" -> "i" -> "d"
-  std::vector<std::string> gp3_nodes1 {"d", "a", "v", "i", "d"};
+  std::vector<std::string> gp3_nodes1{"d", "a", "v", "i", "d"};
   s = db.RPush("GP3_RPUSH_KEY", gp3_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes1.size(), num);
@@ -2566,17 +2470,16 @@ TEST_F(ListsTest, RPushTest) {
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
   // "g" -> "i" -> "l" -> "m" -> "o" -> "u" -> "r"
-  std::vector<std::string> gp3_nodes2 {"g", "i", "l", "m", "o", "u", "r"};
+  std::vector<std::string> gp3_nodes2{"g", "i", "l", "m", "o", "u", "r"};
   s = db.RPush("GP3_RPUSH_KEY", gp3_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes2.size(), num);
   ASSERT_TRUE(len_match(&db, "GP3_RPUSH_KEY", gp3_nodes2.size()));
   ASSERT_TRUE(elements_match(&db, "GP3_RPUSH_KEY", {"g", "i", "l", "m", "o", "u", "r"}));
 
-
   // ***************** Group 4 Test *****************
   //  "t" -> "h" -> "e" -> " "
-  std::vector<std::string> gp4_nodes1 {"t", "h", "e", " "};
+  std::vector<std::string> gp4_nodes1{"t", "h", "e", " "};
   s = db.RPush("GP4_RPUSH_KEY", gp4_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes1.size(), num);
@@ -2584,17 +2487,16 @@ TEST_F(ListsTest, RPushTest) {
   ASSERT_TRUE(elements_match(&db, "GP4_RPUSH_KEY", {"t", "h", "e", " "}));
 
   // "t" -> "h" -> "e" -> " " -> "b" -> "l" -> "u" -> "e"
-  std::vector<std::string> gp4_nodes2 {"b", "l", "u", "e"};
+  std::vector<std::string> gp4_nodes2{"b", "l", "u", "e"};
   s = db.RPush("GP4_RPUSH_KEY", gp4_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(8, num);
   ASSERT_TRUE(len_match(&db, "GP4_RPUSH_KEY", 8));
   ASSERT_TRUE(elements_match(&db, "GP4_RPUSH_KEY", {"t", "h", "e", " ", "b", "l", "u", "e"}));
 
-
   // ***************** Group 5 Test *****************
   //  "t" -> "h" -> "e"
-  std::vector<std::string> gp5_nodes1 {"t", "h", "e"};
+  std::vector<std::string> gp5_nodes1{"t", "h", "e"};
   s = db.RPush("GP5_RPUSH_KEY", gp5_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp5_nodes1.size(), num);
@@ -2604,17 +2506,16 @@ TEST_F(ListsTest, RPushTest) {
   ASSERT_TRUE(make_expired(&db, "GP5_RPUSH_KEY"));
 
   // "b" -> "l" -> "u" -> "e"
-  std::vector<std::string> gp5_nodes2 {"b", "l", "u", "e"};
+  std::vector<std::string> gp5_nodes2{"b", "l", "u", "e"};
   s = db.RPush("GP5_RPUSH_KEY", gp5_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(4, num);
   ASSERT_TRUE(len_match(&db, "GP5_RPUSH_KEY", 4));
   ASSERT_TRUE(elements_match(&db, "GP5_RPUSH_KEY", {"b", "l", "u", "e"}));
 
-
   // ***************** Group 6 Test *****************
   //  "b" -> "l" -> "u" -> "e"
-  std::vector<std::string> gp6_nodes1 {"b", "l", "u", "e"};
+  std::vector<std::string> gp6_nodes1{"b", "l", "u", "e"};
   s = db.RPush("GP6_RPUSH_KEY", gp6_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp6_nodes1.size(), num);
@@ -2643,7 +2544,7 @@ TEST_F(ListsTest, RPushTest) {
   ASSERT_TRUE(elements_match(&db, "GP6_RPUSH_KEY", {}));
 
   // "t" -> "h" -> "e"
-  std::vector<std::string> gp6_nodes2 {"t", "h", "e"};
+  std::vector<std::string> gp6_nodes2{"t", "h", "e"};
   s = db.RPush("GP6_RPUSH_KEY", gp6_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(3, num);
@@ -2662,7 +2563,7 @@ TEST_F(ListsTest, RPushxTest) {
 
   // ***************** Group 1 Test *****************
   //  "o" -> "o" -> "o"
-  std::vector<std::string> gp1_nodes1 {"o", "o", "o"};
+  std::vector<std::string> gp1_nodes1{"o", "o", "o"};
   s = db.LPush("GP1_RPUSHX_KEY", gp1_nodes1, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp1_nodes1.size(), num);
@@ -2677,7 +2578,7 @@ TEST_F(ListsTest, RPushxTest) {
   ASSERT_TRUE(elements_match(&db, "GP1_RPUSHX_KEY", {"o", "o", "o", "x"}));
 
   // "o" -> "o" -> "o" -> "x" -> "o" -> "o"
-  std::vector<std::string> gp1_nodes2 {"o", "o"};
+  std::vector<std::string> gp1_nodes2{"o", "o"};
   s = db.RPush("GP1_RPUSHX_KEY", gp1_nodes2, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(num, 6);
@@ -2690,7 +2591,6 @@ TEST_F(ListsTest, RPushxTest) {
   ASSERT_TRUE(len_match(&db, "GP1_RPUSHX_KEY", 7));
   ASSERT_TRUE(elements_match(&db, "GP1_RPUSHX_KEY", {"o", "o", "o", "x", "o", "o", "x"}));
 
-
   // ***************** Group 2 Test *****************
   // RPushx not exist key
   s = db.RPushx("GP2_RPUSHX_KEY", "x", &num);
@@ -2698,11 +2598,10 @@ TEST_F(ListsTest, RPushxTest) {
   ASSERT_TRUE(len_match(&db, "GP2_RPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP2_RPUSHX_KEY", {}));
 
-
   // ***************** Group 3 Test *****************
   //  "o" -> "o" -> "o"
   //  RPushx timeout key
-  std::vector<std::string> gp3_nodes {"o", "o", "o"};
+  std::vector<std::string> gp3_nodes{"o", "o", "o"};
   s = db.RPush("GP3_RPUSHX_KEY", gp3_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp3_nodes.size(), num);
@@ -2715,10 +2614,9 @@ TEST_F(ListsTest, RPushxTest) {
   ASSERT_TRUE(len_match(&db, "GP3_RPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP3_RPUSHX_KEY", {}));
 
-
   // ***************** Group 4 Test *****************
   // RPushx has been deleted key
-  std::vector<std::string> gp4_nodes {"o", "o", "o"};
+  std::vector<std::string> gp4_nodes{"o", "o", "o"};
   s = db.RPush("GP4_RPUSHX_KEY", gp4_nodes, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(gp4_nodes.size(), num);

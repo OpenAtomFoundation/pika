@@ -16,8 +16,9 @@ class WriteThread : public net::Thread {
   WriteThread(const std::string& file_name);
   void Load(const std::string& data);
   void Stop();
+
  private:
-  void *ThreadMain() override;
+  void* ThreadMain() override;
   bool should_stop_;
   std::string file_name_;
   slash::CondVar rsignal_;
@@ -26,4 +27,4 @@ class WriteThread : public net::Thread {
   std::queue<std::string> data_queue_;
 };
 
-#endif // INCLUDE_WRITE_THREAD_H_
+#endif  // INCLUDE_WRITE_THREAD_H_

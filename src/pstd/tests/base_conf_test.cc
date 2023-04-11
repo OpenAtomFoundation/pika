@@ -6,11 +6,10 @@
 #include <string>
 #include <vector>
 
-#include "pstd/include/env.h"
 #include "pstd/include/base_conf.h"
-#include "pstd/include/testutil.h"
+#include "pstd/include/env.h"
 #include "pstd/include/pstd_testharness.h"
-
+#include "pstd/include/testutil.h"
 
 namespace pstd {
 
@@ -25,17 +24,16 @@ class BaseConfTest {
 
   Status CreateSampleConf() {
     std::vector<std::string> sample_conf = {
-      "test_int : 1\n",
-      "test_str : abkxk\n",
-      "test_vec : four, five, six\n",
-      "test_bool : yes\n",
+        "test_int : 1\n",
+        "test_str : abkxk\n",
+        "test_vec : four, five, six\n",
+        "test_bool : yes\n",
     };
 
-    WritableFile *write_file;
+    WritableFile* write_file;
     Status ret = NewWritableFile(test_conf_, &write_file);
-    if (!ret.ok())
-      return ret;
-    for (std::string &item : sample_conf) {
+    if (!ret.ok()) return ret;
+    for (std::string& item : sample_conf) {
       write_file->Append(item);
     }
     delete write_file;
@@ -50,7 +48,7 @@ class BaseConfTest {
 
 TEST(BaseConfTest, WriteReadConf) {
   ASSERT_OK(CreateSampleConf());
-  BaseConf *conf = new BaseConf(test_conf_);
+  BaseConf* conf = new BaseConf(test_conf_);
   ASSERT_EQ(conf->LoadConf(), 0);
 
   // Write configuration

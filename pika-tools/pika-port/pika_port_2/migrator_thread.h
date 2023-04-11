@@ -8,32 +8,26 @@
 
 class MigratorThread : public net::Thread {
  public:
-  MigratorThread(nemo::Nemo *db, std::vector<PikaSender *> *senders, char type, int thread_num) :
-      db_(db),
-      senders_(senders),
-      type_(type),
-      thread_num_(thread_num),
-      thread_index_(0),
-      num_(0)
-      {
-      }
+  MigratorThread(nemo::Nemo* db, std::vector<PikaSender*>* senders, char type, int thread_num)
+      : db_(db), senders_(senders), type_(type), thread_num_(thread_num), thread_index_(0), num_(0) {}
 
   int64_t num() {
     slash::MutexLock l(&num_mutex_);
     return num_;
   }
-  
-  virtual ~ MigratorThread();
+
+  virtual ~MigratorThread();
   bool should_exit_;
+
  private:
-  nemo::Nemo *db_;
-  std::vector<PikaSender *> *senders_;
+  nemo::Nemo* db_;
+  std::vector<PikaSender*>* senders_;
   char type_;
   int thread_num_;
   int thread_index_;
 
   void MigrateDB(const char type);
-  void DispatchKey(const std::string &key);
+  void DispatchKey(const std::string& key);
 
   int64_t num_;
   slash::Mutex num_mutex_;
@@ -42,6 +36,6 @@ class MigratorThread : public net::Thread {
     slash::MutexLock l(&num_mutex_);
     ++num_;
   }
-  virtual void *ThreadMain();
+  virtual void* ThreadMain();
 };
 #endif

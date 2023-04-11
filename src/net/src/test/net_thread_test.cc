@@ -27,11 +27,9 @@ class MockThread : public net::Thread {
 
 TEST(NetThreadTest, ThreadOps) {
   MockThread t;
-  EXPECT_CALL(t, ThreadMain())
-    .Times(AtLeast(1));
+  EXPECT_CALL(t, ThreadMain()).Times(AtLeast(1));
 
-  ON_CALL(t, ThreadMain())
-    .WillByDefault(Invoke(&t, &MockThread::thread_loop));
+  ON_CALL(t, ThreadMain()).WillByDefault(Invoke(&t, &MockThread::thread_loop));
 
   EXPECT_EQ(0, t.StartThread());
 

@@ -6,63 +6,55 @@
 #ifndef NET_INCLUDE_THREAD_POOL_H_
 #define NET_INCLUDE_THREAD_POOL_H_
 
-#include <string>
-#include <queue>
-#include <atomic>
 #include <pthread.h>
+#include <atomic>
+#include <queue>
+#include <string>
 
-#include "pstd/include/pstd_mutex.h"
 #include "net/include/net_define.h"
+#include "pstd/include/pstd_mutex.h"
 
 namespace net {
 
 typedef void (*TaskFunc)(void*);
 
 struct Task {
- TaskFunc func;
- void* arg;
- Task (TaskFunc _func, void* _arg)
-     : func(_func), arg(_arg) {}
+  TaskFunc func;
+  void* arg;
+  Task(TaskFunc _func, void* _arg) : func(_func), arg(_arg) {}
 };
 
 struct TimeTask {
   uint64_t exec_time;
   TaskFunc func;
   void* arg;
-  TimeTask(uint64_t _exec_time, TaskFunc _func, void* _arg) :
-    exec_time(_exec_time),
-    func(_func),
-    arg(_arg) {}
-  bool operator < (const TimeTask& task) const {
-    return exec_time > task.exec_time;
-  }
+  TimeTask(uint64_t _exec_time, TaskFunc _func, void* _arg) : exec_time(_exec_time), func(_func), arg(_arg) {}
+  bool operator<(const TimeTask& task) const { return exec_time > task.exec_time; }
 };
 
 class ThreadPool {
-
  public:
   class Worker {
-    public:
-      explicit Worker(ThreadPool* tp) : start_(false), thread_pool_(tp) {};
-      static void* WorkerMain(void* arg);
+   public:
+    explicit Worker(ThreadPool* tp) : start_(false), thread_pool_(tp){};
+    static void* WorkerMain(void* arg);
 
-      int start();
-      int stop();
-    private:
-      pthread_t thread_id_;
-      std::atomic<bool> start_;
-      ThreadPool* const thread_pool_;
-      std::string worker_name_;
-      /*
-       * No allowed copy and copy assign
-       */
-      Worker(const Worker&);
-      void operator=(const Worker&);
+    int start();
+    int stop();
+
+   private:
+    pthread_t thread_id_;
+    std::atomic<bool> start_;
+    ThreadPool* const thread_pool_;
+    std::string worker_name_;
+    /*
+     * No allowed copy and copy assign
+     */
+    Worker(const Worker&);
+    void operator=(const Worker&);
   };
 
-  explicit ThreadPool(size_t worker_num,
-                      size_t max_queue_size,
-                      const std::string& thread_pool_name = "ThreadPool");
+  explicit ThreadPool(size_t worker_num, size_t max_queue_size, const std::string& thread_pool_name = "ThreadPool");
   virtual ~ThreadPool();
 
   int start_thread_pool();

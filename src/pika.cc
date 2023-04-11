@@ -3,22 +3,22 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <signal.h>
 #include <glog/logging.h>
+#include <signal.h>
 #include <sys/resource.h>
 
-#include "pstd/include/env.h"
-#include "include/pika_rm.h"
-#include "include/pika_server.h"
+#include "include/build_version.h"
+#include "include/pika_cmd_table_manager.h"
 #include "include/pika_command.h"
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
+#include "include/pika_rm.h"
+#include "include/pika_server.h"
 #include "include/pika_version.h"
-#include "include/pika_cmd_table_manager.h"
-#include "include/build_version.h"
+#include "pstd/include/env.h"
 
 #ifdef TCMALLOC_EXTENSION
-#include <gperftools/malloc_extension.h>
+#  include <gperftools/malloc_extension.h>
 #endif
 
 PikaConf* g_pika_conf;
@@ -28,13 +28,12 @@ PikaReplicaManager* g_pika_rm;
 PikaCmdTableManager* g_pika_cmd_table_manager;
 
 static void version() {
-    char version[32];
-    snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR,
-        PIKA_MINOR, PIKA_PATCH);
-    std::cout << "-----------Pika server----------" << std::endl;
-    std::cout << "pika_version: " << version << std::endl;
-    std::cout << pika_build_git_sha << std::endl;
-    std::cout << "pika_build_compile_date: " << pika_build_compile_date << std::endl;
+  char version[32];
+  snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR, PIKA_MINOR, PIKA_PATCH);
+  std::cout << "-----------Pika server----------" << std::endl;
+  std::cout << "pika_version: " << version << std::endl;
+  std::cout << pika_build_git_sha << std::endl;
+  std::cout << "pika_build_compile_date: " << pika_build_compile_date << std::endl;
 }
 
 static void PikaConfInit(const std::string& path) {
@@ -51,7 +50,7 @@ static void PikaConfInit(const std::string& path) {
 
 static void PikaGlogInit() {
   if (!pstd::FileExists(g_pika_conf->log_path())) {
-    pstd::CreatePath(g_pika_conf->log_path()); 
+    pstd::CreatePath(g_pika_conf->log_path());
   }
 
   if (!g_pika_conf->daemonize()) {
@@ -66,7 +65,7 @@ static void PikaGlogInit() {
 
 static void daemonize() {
   if (fork() != 0) exit(0); /* parent exits */
-  setsid(); /* create a new session */
+  setsid();                 /* create a new session */
 }
 
 static void close_std() {
@@ -91,9 +90,9 @@ static void create_pid_file(void) {
     path = kPikaPidFile;
   }
 
-  FILE *fp = fopen(path.c_str(), "w");
+  FILE* fp = fopen(path.c_str(), "w");
   if (fp) {
-    fprintf(fp,"%d\n",(int)getpid());
+    fprintf(fp, "%d\n", (int)getpid());
     fclose(fp);
   }
 }
@@ -111,22 +110,19 @@ static void PikaSignalSetup() {
   signal(SIGTERM, &IntSigHandle);
 }
 
-static void usage()
-{
-    char version[32];
-    snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR,
-        PIKA_MINOR, PIKA_PATCH);
-    fprintf(stderr,
-            "Pika module %s\n"
-            "usage: pika [-hv] [-c conf/file]\n"
-            "\t-h               -- show this help\n"
-            "\t-c conf/file     -- config file \n"
-            "  example: ./output/bin/pika -c ./conf/pika.conf\n",
-            version
-           );
+static void usage() {
+  char version[32];
+  snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR, PIKA_MINOR, PIKA_PATCH);
+  fprintf(stderr,
+          "Pika module %s\n"
+          "usage: pika [-hv] [-c conf/file]\n"
+          "\t-h               -- show this help\n"
+          "\t-c conf/file     -- config file \n"
+          "  example: ./output/bin/pika -c ./conf/pika.conf\n",
+          version);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc != 2 && argc != 3) {
     usage();
     exit(-1);
@@ -154,7 +150,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (path_opt == false) {
-    fprintf (stderr, "Please specify the conf file path\n" );
+    fprintf(stderr, "Please specify the conf file path\n");
     usage();
     exit(-1);
   }
@@ -172,9 +168,12 @@ int main(int argc, char *argv[]) {
     limit.rlim_cur = maxfiles;
     limit.rlim_max = maxfiles;
     if (setrlimit(RLIMIT_NOFILE, &limit) != -1) {
-      LOG(WARNING) << "your 'limit -n ' of " << old_limit << " is not enough for Redis to start. pika have successfully reconfig it to " << limit.rlim_cur;
+      LOG(WARNING) << "your 'limit -n ' of " << old_limit
+                   << " is not enough for Redis to start. pika have successfully reconfig it to " << limit.rlim_cur;
     } else {
-      LOG(FATAL) << "your 'limit -n ' of " << old_limit << " is not enough for Redis to start. pika can not reconfig it(" << strerror(errno) << "), do it by yourself";
+      LOG(FATAL) << "your 'limit -n ' of " << old_limit
+                 << " is not enough for Redis to start. pika can not reconfig it(" << strerror(errno)
+                 << "), do it by yourself";
     }
   }
 
@@ -183,7 +182,6 @@ int main(int argc, char *argv[]) {
     daemonize();
     create_pid_file();
   }
-
 
   PikaGlogInit();
   PikaSignalSetup();
@@ -199,7 +197,7 @@ int main(int argc, char *argv[]) {
 
   g_pika_rm->Start();
   g_pika_server->Start();
-  
+
   if (g_pika_conf->daemonize()) {
     unlink(g_pika_conf->pidfile().c_str());
   }
@@ -208,12 +206,11 @@ int main(int argc, char *argv[]) {
   // may references to dead PikaServer
   g_pika_rm->Stop();
 
-
   delete g_pika_server;
   delete g_pika_rm;
   delete g_pika_cmd_table_manager;
   ::google::ShutdownGoogleLogging();
   delete g_pika_conf;
-  
+
   return 0;
 }

@@ -5,12 +5,11 @@
 
 #include "include/pika_cmd_table_manager.h"
 
-#include <unistd.h>
 #include <sys/syscall.h>
+#include <unistd.h>
 
 #include "include/pika_conf.h"
 #include "pstd/include/pstd_mutex.h"
-
 
 extern PikaConf* g_pika_conf;
 
@@ -23,7 +22,7 @@ PikaCmdTableManager::PikaCmdTableManager() {
 
 PikaCmdTableManager::~PikaCmdTableManager() {
   pthread_rwlock_destroy(&map_protector_);
-  for (const auto&item : thread_distribution_map_) {
+  for (const auto& item : thread_distribution_map_) {
     delete item.second;
   }
   DestoryCmdTable(cmds_);

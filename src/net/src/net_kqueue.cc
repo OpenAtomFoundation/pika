@@ -14,9 +14,7 @@
 
 namespace net {
 
-NetMultiplexer* CreateNetMultiplexer(int limit) {
-  return new NetKqueue(limit);
-}
+NetMultiplexer* CreateNetMultiplexer(int limit) { return new NetKqueue(limit); }
 
 NetKqueue::NetKqueue(int queue_limit) : NetMultiplexer(queue_limit) {
   multiplexer_ = ::kqueue();
@@ -38,23 +36,22 @@ int NetKqueue::NetAddEvent(int fd, int mask) {
 
   if (mask & kReadable) {
     EV_SET(change + cnt, fd, EVFILT_READ, EV_ADD, 0, 0, nullptr);
-    ++ cnt;
+    ++cnt;
   }
 
   if (mask & kWritable) {
     EV_SET(change + cnt, fd, EVFILT_WRITE, EV_ADD, 0, 0, nullptr);
-    ++ cnt;
+    ++cnt;
   }
 
   return kevent(multiplexer_, change, cnt, nullptr, 0, nullptr);
 }
 
 int NetKqueue::NetModEvent(int fd, int, int mask) {
-   int ret = NetDelEvent(fd, kReadable | kWritable);
-   if (mask == 0)
-     return ret;
+  int ret = NetDelEvent(fd, kReadable | kWritable);
+  if (mask == 0) return ret;
 
-   return NetAddEvent(fd, mask);
+  return NetAddEvent(fd, mask);
 }
 
 int NetKqueue::NetDelEvent(int fd, int mask) {
@@ -63,32 +60,30 @@ int NetKqueue::NetDelEvent(int fd, int mask) {
 
   if (mask & kReadable) {
     EV_SET(change + cnt, fd, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
-    ++ cnt;
+    ++cnt;
   }
 
   if (mask & kWritable) {
     EV_SET(change + cnt, fd, EVFILT_WRITE, EV_DELETE, 0, 0, nullptr);
-    ++ cnt;
+    ++cnt;
   }
 
-  if (cnt == 0)
-    return -1;
+  if (cnt == 0) return -1;
 
   return kevent(multiplexer_, change, cnt, nullptr, 0, nullptr);
 }
 
 int NetKqueue::NetPoll(int timeout) {
   struct timespec* p_timeout = nullptr;
-  struct timespec  s_timeout;
+  struct timespec s_timeout;
   if (timeout >= 0) {
     p_timeout = &s_timeout;
-    s_timeout.tv_sec  = timeout / 1000;
+    s_timeout.tv_sec = timeout / 1000;
     s_timeout.tv_nsec = timeout % 1000 * 1000000;
   }
 
   int num_events = ::kevent(multiplexer_, nullptr, 0, &events_[0], NET_MAX_CLIENTS, p_timeout);
-  if (num_events <= 0)
-    return 0;
+  if (num_events <= 0) return 0;
 
   for (int i = 0; i < num_events; i++) {
     NetFiredEvent& ev = fired_events_[i];

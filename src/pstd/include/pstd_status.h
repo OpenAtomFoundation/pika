@@ -9,7 +9,7 @@ namespace pstd {
 class Status {
  public:
   // Create a success status.
-  Status() : state_(NULL) { }
+  Status() : state_(NULL) {}
   ~Status() { delete[] state_; }
 
   // Copy the specified status.
@@ -20,44 +20,24 @@ class Status {
   static Status OK() { return Status(); }
 
   // Return error status of an appropriate type.
-  static Status NotFound(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kNotFound, msg, msg2);
-  }
-  static Status Corruption(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kCorruption, msg, msg2);
-  }
-  static Status NotSupported(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kNotSupported, msg, msg2);
-  }
+  static Status NotFound(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotFound, msg, msg2); }
+  static Status Corruption(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kCorruption, msg, msg2); }
+  static Status NotSupported(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotSupported, msg, msg2); }
   static Status InvalidArgument(const Slice& msg, const Slice& msg2 = Slice()) {
     return Status(kInvalidArgument, msg, msg2);
   }
-  static Status IOError(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kIOError, msg, msg2);
-  }
-  static Status EndFile(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kEndFile, msg, msg2);
-  }
+  static Status IOError(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kIOError, msg, msg2); }
+  static Status EndFile(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kEndFile, msg, msg2); }
 
-  static Status Incomplete(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kIncomplete, msg, msg2);
-  }
+  static Status Incomplete(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kIncomplete, msg, msg2); }
 
-  static Status Complete(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kComplete, msg, msg2);
-  }
+  static Status Complete(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kComplete, msg, msg2); }
 
-  static Status Timeout(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kTimeout, msg, msg2);
-  }
+  static Status Timeout(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kTimeout, msg, msg2); }
 
-  static Status AuthFailed(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kAuthFailed, msg, msg2);
-  }
+  static Status AuthFailed(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kAuthFailed, msg, msg2); }
 
-  static Status Busy(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kBusy, msg, msg2);
-  }
+  static Status Busy(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kBusy, msg, msg2); }
 
   // Returns true if the status indicates success.
   bool ok() const { return (state_ == NULL); }
@@ -76,16 +56,16 @@ class Status {
 
   // Returns true if the status indicates an EOF.
   bool IsEndFile() const { return code() == kEndFile; }
-  
+
   // Returns true if the status is complete.
   bool IsComplete() const { return code() == kComplete; }
 
-  // Returns true if the status is Incomplete 
+  // Returns true if the status is Incomplete
   bool IsIncomplete() const { return code() == kIncomplete; }
 
-  // Returns true if the status is InvalidArgument 
+  // Returns true if the status is InvalidArgument
   bool IsInvalidArgument() const { return code() == kInvalidArgument; }
-  
+
   // Returns true if the status is Timeout
   bool IsTimeout() const { return code() == kTimeout; }
 
@@ -122,17 +102,13 @@ class Status {
     kBusy = 11
   };
 
-  Code code() const {
-    return (state_ == NULL) ? kOk : static_cast<Code>(state_[4]);
-  }
+  Code code() const { return (state_ == NULL) ? kOk : static_cast<Code>(state_[4]); }
 
   Status(Code code, const Slice& msg, const Slice& msg2);
   static const char* CopyState(const char* s);
 };
 
-inline Status::Status(const Status& s) {
-  state_ = (s.state_ == NULL) ? NULL : CopyState(s.state_);
-}
+inline Status::Status(const Status& s) { state_ = (s.state_ == NULL) ? NULL : CopyState(s.state_); }
 inline void Status::operator=(const Status& s) {
   // The following condition catches both aliasing (when this == &s),
   // and the common case where both s and *this are ok.
@@ -142,7 +118,6 @@ inline void Status::operator=(const Status& s) {
   }
 }
 
-}   // namespace pstd
-
+}  // namespace pstd
 
 #endif  // __PSTD_STATUS_H__

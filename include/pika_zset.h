@@ -16,19 +16,17 @@
  */
 class ZAddCmd : public Cmd {
  public:
-  ZAddCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  ZAddCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZAddCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZAddCmd(*this); }
+
  private:
   std::string key_;
   std::vector<storage::ScoreMember> score_members;
@@ -37,19 +35,17 @@ class ZAddCmd : public Cmd {
 
 class ZCardCmd : public Cmd {
  public:
-  ZCardCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  ZCardCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZCardCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZCardCmd(*this); }
+
  private:
   std::string key_;
   virtual void DoInitial() override;
@@ -57,19 +53,17 @@ class ZCardCmd : public Cmd {
 
 class ZScanCmd : public Cmd {
  public:
-  ZScanCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
+  ZScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZScanCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZScanCmd(*this); }
+
  private:
   std::string key_, pattern_;
   int64_t cursor_, count_;
@@ -82,19 +76,17 @@ class ZScanCmd : public Cmd {
 
 class ZIncrbyCmd : public Cmd {
  public:
-  ZIncrbyCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  ZIncrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZIncrbyCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZIncrbyCmd(*this); }
+
  private:
   std::string key_, member_;
   double by_;
@@ -103,52 +95,46 @@ class ZIncrbyCmd : public Cmd {
 
 class ZsetRangeParentCmd : public Cmd {
  public:
-  ZsetRangeParentCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), is_ws_(false) {}
+  ZsetRangeParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), is_ws_(false) {}
+
  protected:
   std::string key_;
   int64_t start_, stop_;
   bool is_ws_;
   virtual void DoInitial() override;
-  virtual void Clear() {
-    is_ws_ = false;
-  }
+  virtual void Clear() { is_ws_ = false; }
 };
 
 class ZRangeCmd : public ZsetRangeParentCmd {
  public:
-  ZRangeCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetRangeParentCmd(name, arity, flag) {}
+  ZRangeCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangeParentCmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRangeCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRangeCmd(*this); }
+
  private:
   virtual void DoInitial() override;
 };
 
 class ZRevrangeCmd : public ZsetRangeParentCmd {
  public:
-  ZRevrangeCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetRangeParentCmd(name, arity, flag) {}
+  ZRevrangeCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangeParentCmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRevrangeCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRevrangeCmd(*this); }
+
  private:
   virtual void DoInitial() override;
 };
@@ -157,6 +143,7 @@ class ZsetRangebyscoreParentCmd : public Cmd {
  public:
   ZsetRangebyscoreParentCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), left_close_(true), right_close_(true), with_scores_(false), offset_(0), count_(-1) {}
+
  protected:
   std::string key_;
   double min_score_, max_score_;
@@ -173,19 +160,17 @@ class ZsetRangebyscoreParentCmd : public Cmd {
 
 class ZRangebyscoreCmd : public ZsetRangebyscoreParentCmd {
  public:
-  ZRangebyscoreCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetRangebyscoreParentCmd(name, arity, flag) {}
+  ZRangebyscoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangebyscoreParentCmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRangebyscoreCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRangebyscoreCmd(*this); }
+
  private:
   virtual void DoInitial() override;
 };
@@ -200,11 +185,10 @@ class ZRevrangebyscoreCmd : public ZsetRangebyscoreParentCmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRevrangebyscoreCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRevrangebyscoreCmd(*this); }
+
  private:
   virtual void DoInitial() override;
 };
@@ -219,11 +203,10 @@ class ZCountCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZCountCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZCountCmd(*this); }
+
  private:
   std::string key_;
   double min_score_, max_score_;
@@ -237,19 +220,17 @@ class ZCountCmd : public Cmd {
 
 class ZRemCmd : public Cmd {
  public:
-  ZRemCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  ZRemCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRemCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRemCmd(*this); }
+
  private:
   std::string key_;
   std::vector<std::string> members_;
@@ -260,6 +241,7 @@ class ZsetUIstoreParentCmd : public Cmd {
  public:
   ZsetUIstoreParentCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), aggregate_(storage::SUM) {}
+
  protected:
   std::string dest_key_;
   int64_t num_keys_;
@@ -267,43 +249,37 @@ class ZsetUIstoreParentCmd : public Cmd {
   std::vector<std::string> keys_;
   std::vector<double> weights_;
   virtual void DoInitial() override;
-  virtual void Clear() {
-    aggregate_ = storage::SUM;
-  }
+  virtual void Clear() { aggregate_ = storage::SUM; }
 };
 
 class ZUnionstoreCmd : public ZsetUIstoreParentCmd {
  public:
-  ZUnionstoreCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetUIstoreParentCmd(name, arity, flag) {}
+  ZUnionstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZUnionstoreCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZUnionstoreCmd(*this); }
+
  private:
   virtual void DoInitial() override;
 };
 
 class ZInterstoreCmd : public ZsetUIstoreParentCmd {
  public:
-  ZInterstoreCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetUIstoreParentCmd(name, arity, flag) {}
+  ZInterstoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetUIstoreParentCmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZInterstoreCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZInterstoreCmd(*this); }
+
  private:
   virtual void DoInitial() override;
 };
 
 class ZsetRankParentCmd : public Cmd {
  public:
-  ZsetRankParentCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  ZsetRankParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+
  protected:
   std::string key_, member_;
   virtual void DoInitial() override;
@@ -311,67 +287,61 @@ class ZsetRankParentCmd : public Cmd {
 
 class ZRankCmd : public ZsetRankParentCmd {
  public:
-  ZRankCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetRankParentCmd(name, arity, flag) {}
+  ZRankCmd(const std::string& name, int arity, uint16_t flag) : ZsetRankParentCmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRankCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRankCmd(*this); }
+
  private:
   virtual void DoInitial() override;
 };
 
 class ZRevrankCmd : public ZsetRankParentCmd {
  public:
-  ZRevrankCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetRankParentCmd(name, arity, flag) {}
+  ZRevrankCmd(const std::string& name, int arity, uint16_t flag) : ZsetRankParentCmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRevrankCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRevrankCmd(*this); }
+
  private:
   virtual void DoInitial() override;
 };
 
 class ZScoreCmd : public ZsetRankParentCmd {
  public:
-  ZScoreCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetRankParentCmd(name, arity, flag) {}
+  ZScoreCmd(const std::string& name, int arity, uint16_t flag) : ZsetRankParentCmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZScoreCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZScoreCmd(*this); }
+
  private:
   std::string key_, member_;
   virtual void DoInitial() override;
 };
 
-
 class ZsetRangebylexParentCmd : public Cmd {
  public:
   ZsetRangebylexParentCmd(const std::string& name, int arity, uint16_t flag)
       : Cmd(name, arity, flag), left_close_(true), right_close_(true), offset_(0), count_(-1) {}
+
  protected:
   std::string key_, min_member_, max_member_;
   bool left_close_, right_close_;
@@ -386,39 +356,35 @@ class ZsetRangebylexParentCmd : public Cmd {
 
 class ZRangebylexCmd : public ZsetRangebylexParentCmd {
  public:
-  ZRangebylexCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetRangebylexParentCmd(name, arity, flag) {}
+  ZRangebylexCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangebylexParentCmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRangebylexCmd(*this);
-  }
- private: 
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRangebylexCmd(*this); }
+
+ private:
   virtual void DoInitial() override;
 };
 
 class ZRevrangebylexCmd : public ZsetRangebylexParentCmd {
  public:
-  ZRevrangebylexCmd(const std::string& name, int arity, uint16_t flag)
-      : ZsetRangebylexParentCmd(name, arity, flag) {}
+  ZRevrangebylexCmd(const std::string& name, int arity, uint16_t flag) : ZsetRangebylexParentCmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRevrangebylexCmd(*this);
-  }
- private: 
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRevrangebylexCmd(*this); }
+
+ private:
   virtual void DoInitial() override;
 };
 
@@ -432,35 +398,30 @@ class ZLexcountCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZLexcountCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZLexcountCmd(*this); }
+
  private:
   std::string key_, min_member_, max_member_;
   bool left_close_, right_close_;
   virtual void DoInitial() override;
-  virtual void Clear() {
-    left_close_ = right_close_ = true;
-  }
+  virtual void Clear() { left_close_ = right_close_ = true; }
 };
 
 class ZRemrangebyrankCmd : public Cmd {
  public:
-  ZRemrangebyrankCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  ZRemrangebyrankCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRemrangebyrankCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRemrangebyrankCmd(*this); }
+
  private:
   std::string key_;
   int64_t start_rank_, stop_rank_;
@@ -477,19 +438,16 @@ class ZRemrangebyscoreCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRemrangebyscoreCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRemrangebyscoreCmd(*this); }
+
  private:
   std::string key_;
   double min_score_, max_score_;
   bool left_close_, right_close_;
   virtual void DoInitial() override;
-  virtual void Clear() {
-    left_close_ =  right_close_ = true;
-  }
+  virtual void Clear() { left_close_ = right_close_ = true; }
 };
 
 class ZRemrangebylexCmd : public Cmd {
@@ -502,36 +460,31 @@ class ZRemrangebylexCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZRemrangebylexCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZRemrangebylexCmd(*this); }
+
  private:
   std::string key_;
   std::string min_member_, max_member_;
   bool left_close_, right_close_;
   virtual void DoInitial() override;
-  virtual void Clear() {
-    left_close_ =  right_close_ = true;
-  }
+  virtual void Clear() { left_close_ = right_close_ = true; }
 };
 
 class ZPopmaxCmd : public Cmd {
  public:
-  ZPopmaxCmd(const std::string& name, int arity, uint16_t flag)
-       : Cmd(name, arity, flag) {}
-  virtual std::vector<std::string> current_key() const { 
+  ZPopmaxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.emplace_back(key_);
-    return res; 
+    return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZPopmaxCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZPopmaxCmd(*this); }
+
  private:
   virtual void DoInitial() override;
   std::string key_;
@@ -540,19 +493,17 @@ class ZPopmaxCmd : public Cmd {
 
 class ZPopminCmd : public Cmd {
  public:
-  ZPopminCmd(const std::string& name, int arity, uint16_t flag)
-       : Cmd(name, arity, flag) {}
-  virtual std::vector<std::string> current_key() const { 
+  ZPopminCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
-    return res; 
+    return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ZPopminCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ZPopminCmd(*this); }
+
  private:
   virtual void DoInitial() override;
   std::string key_;

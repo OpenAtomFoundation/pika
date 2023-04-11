@@ -6,33 +6,33 @@
 #ifndef NET_INCLUDE_PB_CONN_H_
 #define NET_INCLUDE_PB_CONN_H_
 
-#include <string>
 #include <map>
 #include <queue>
+#include <string>
 
 #include "google/protobuf/message.h"
-#include "pstd/include/pstd_status.h"
 #include "net/include/net_conn.h"
 #include "net/include/net_define.h"
+#include "pstd/include/pstd_status.h"
 
 namespace net {
 
 using pstd::Status;
 
-class PbConn: public NetConn {
+class PbConn : public NetConn {
  public:
-    struct WriteBuf{
-        WriteBuf(const size_t item_pos = 0) : item_pos_(item_pos) {}
-        std::queue<std::string> queue_;
-        size_t item_pos_;
-    };
-  PbConn(const int fd, const std::string &ip_port, Thread *thread, NetMultiplexer* net_mpx = nullptr);
+  struct WriteBuf {
+    WriteBuf(const size_t item_pos = 0) : item_pos_(item_pos) {}
+    std::queue<std::string> queue_;
+    size_t item_pos_;
+  };
+  PbConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr);
   virtual ~PbConn();
 
   ReadStatus GetRequest() override;
   WriteStatus SendReply() override;
   void TryResizeBuffer() override;
-  int WriteResp(const std::string& resp) override ;
+  int WriteResp(const std::string& resp) override;
   void NotifyWrite();
   void NotifyClose();
   void set_is_reply(const bool reply) override;
@@ -57,23 +57,22 @@ class PbConn: public NetConn {
   // 1. protocol parsing error
   // 2. service logic error
   //
-  // protocol parsing error means that we receive a message that is not 
+  // protocol parsing error means that we receive a message that is not
   // a protobuf message that we know,
   // in this situation we should close this connection.
   // why we should close connection?
-  // beacause if we parse protocol error, it means that the content in this 
+  // beacause if we parse protocol error, it means that the content in this
   // connection can't not be parse, we can't recognize the next message.
   // The only thing we can do is close this connection.
   // in this condition the DealMessage should return -1;
   //
   //
-  // the logic error means that we have receive the message, and the 
+  // the logic error means that we have receive the message, and the
   // message is protobuf message that we define in proto file.
   // After receiving this message, we start execute our service logic.
   // the service logic error we should put it in res_, and return 0
   // since this is the service logic error, not the network error.
   // this connection we can use again.
-
 
   // If you want to send response back, build your pb version response yourself,
   // serializeToString and invoke WriteResp and NotifyWrite if necessary.

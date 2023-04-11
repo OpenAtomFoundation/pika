@@ -5,11 +5,11 @@
 
 #include "include/pika_consensus.h"
 
-#include "include/pika_conf.h"
-#include "include/pika_server.h"
 #include "include/pika_client_conn.h"
-#include "include/pika_rm.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_conf.h"
+#include "include/pika_rm.h"
+#include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
@@ -28,7 +28,7 @@ Context::~Context() {
 }
 
 Status Context::StableSave() {
-  char *p = save_->GetData();
+  char* p = save_->GetData();
   memcpy(p, &(applied_index_.b_offset.filenum), sizeof(uint32_t));
   p += 4;
   memcpy(p, &(applied_index_.b_offset.offset), sizeof(uint64_t));
@@ -87,13 +87,9 @@ void Context::Reset(const LogOffset& offset) {
 
 /* SyncProgress */
 
-SyncProgress::SyncProgress() {
-  pthread_rwlock_init(&rwlock_, NULL);
-}
+SyncProgress::SyncProgress() { pthread_rwlock_init(&rwlock_, NULL); }
 
-SyncProgress::~SyncProgress() {
-  pthread_rwlock_destroy(&rwlock_);
-}
+SyncProgress::~SyncProgress() { pthread_rwlock_destroy(&rwlock_); }
 
 std::shared_ptr<SlaveNode> SyncProgress::GetSlaveNode(const std::string& ip, int port) {
   std::string slave_key = ip + std::to_string(port);
@@ -114,18 +110,16 @@ std::unordered_map<std::string, LogOffset> SyncProgress::GetAllMatchIndex() {
   return match_index_;
 }
 
-Status SyncProgress::AddSlaveNode(const std::string& ip, int port,
-    const std::string& table_name, uint32_t partition_id, int session_id) {
+Status SyncProgress::AddSlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id,
+                                  int session_id) {
   std::string slave_key = ip + std::to_string(port);
   std::shared_ptr<SlaveNode> exist_ptr = GetSlaveNode(ip, port);
   if (exist_ptr) {
-    LOG(WARNING) << "SlaveNode " << exist_ptr->ToString() <<
-      " already exist, set new session " << session_id;
+    LOG(WARNING) << "SlaveNode " << exist_ptr->ToString() << " already exist, set new session " << session_id;
     exist_ptr->SetSessionId(session_id);
     return Status::OK();
   }
-  std::shared_ptr<SlaveNode> slave_ptr =
-    std::make_shared<SlaveNode>(ip, port, table_name, partition_id, session_id);
+  std::shared_ptr<SlaveNode> slave_ptr = std::make_shared<SlaveNode>(ip, port, table_name, partition_id, session_id);
   slave_ptr->SetLastSendTime(pstd::NowMicros());
   slave_ptr->SetLastRecvTime(pstd::NowMicros());
 
@@ -149,11 +143,11 @@ Status SyncProgress::RemoveSlaveNode(const std::string& ip, int port) {
   return Status::OK();
 }
 
-Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& start,
-      const LogOffset& end, LogOffset* committed_index) {
+Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& start, const LogOffset& end,
+                            LogOffset* committed_index) {
   std::shared_ptr<SlaveNode> slave_ptr = GetSlaveNode(ip, port);
   if (!slave_ptr) {
-    return Status::NotFound("ip " + ip  + " port " + std::to_string(port));
+    return Status::NotFound("ip " + ip + " port " + std::to_string(port));
   }
 
   LogOffset acked_offset;
@@ -166,7 +160,7 @@ Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& st
     }
     // update match_index_
     // shared slave_ptr->slave_mu
-    match_index_[ip+std::to_string(port)] = acked_offset;
+    match_index_[ip + std::to_string(port)] = acked_offset;
   }
 
   // if consensus_level == 0 LogOffset() return
@@ -198,12 +192,9 @@ LogOffset SyncProgress::InternalCalCommittedIndex(std::unordered_map<std::string
 
 /* MemLog */
 
-MemLog::MemLog() : last_offset_() {
-}
+MemLog::MemLog() : last_offset_() {}
 
-int MemLog::Size() {
-  return static_cast<int>(logs_.size());
-}
+int MemLog::Size() { return static_cast<int>(logs_.size()); }
 
 // purge [begin, offset]
 Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
@@ -281,10 +272,11 @@ int MemLog::InternalFindLogByBinlogOffset(const LogOffset& offset) {
 
 /* ConsensusCoordinator */
 
-ConsensusCoordinator::ConsensusCoordinator(const std::string& table_name, uint32_t partition_id) : table_name_(table_name), partition_id_(partition_id) {
+ConsensusCoordinator::ConsensusCoordinator(const std::string& table_name, uint32_t partition_id)
+    : table_name_(table_name), partition_id_(partition_id) {
   std::string table_log_path = g_pika_conf->log_path() + "log_" + table_name + "/";
-  std::string log_path = g_pika_conf->classic_mode() ?
-    table_log_path : table_log_path + std::to_string(partition_id) + "/";
+  std::string log_path =
+      g_pika_conf->classic_mode() ? table_log_path : table_log_path + std::to_string(partition_id) + "/";
   context_ = std::make_shared<Context>(log_path + kContext);
   stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
   mem_logger_ = std::make_shared<MemLog>();
@@ -294,9 +286,7 @@ ConsensusCoordinator::ConsensusCoordinator(const std::string& table_name, uint32
   }
 }
 
-ConsensusCoordinator::~ConsensusCoordinator() {
-  pthread_rwlock_destroy(&term_rwlock_);
-}
+ConsensusCoordinator::~ConsensusCoordinator() { pthread_rwlock_destroy(&term_rwlock_); }
 
 // since it is invoked in constructor all locks not hold
 void ConsensusCoordinator::Init() {
@@ -304,11 +294,11 @@ void ConsensusCoordinator::Init() {
   context_->Init();
   committed_index_ = context_->applied_index_;
 
-  //load term_
+  // load term_
   term_ = stable_logger_->Logger()->term();
 
-  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString()
-    << "Restore applied index " << context_->applied_index_.ToString() << " current term " << term_;
+  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "Restore applied index "
+            << context_->applied_index_.ToString() << " current term " << term_;
   if (committed_index_ == LogOffset()) {
     return;
   }
@@ -319,13 +309,13 @@ void ConsensusCoordinator::Init() {
   net::RedisParser redis_parser;
   redis_parser.RedisParserInit(REDIS_PARSER_REQUEST, settings);
   PikaBinlogReader binlog_reader;
-  int res = binlog_reader.Seek(stable_logger_->Logger(),
-      committed_index_.b_offset.filenum, committed_index_.b_offset.offset);
+  int res =
+      binlog_reader.Seek(stable_logger_->Logger(), committed_index_.b_offset.filenum, committed_index_.b_offset.offset);
   if (res) {
     LOG(FATAL) << PartitionInfo(table_name_, partition_id_).ToString() << "Binlog reader init failed";
   }
 
-  while(1) {
+  while (1) {
     LogOffset offset;
     std::string binlog;
     Status s = binlog_reader.Get(&binlog, &(offset.b_offset.filenum), &(offset.b_offset.offset));
@@ -345,8 +335,7 @@ void ConsensusCoordinator::Init() {
     const char* redis_parser_start = binlog.data() + BINLOG_ENCODE_LEN;
     int redis_parser_len = static_cast<int>(binlog.size()) - BINLOG_ENCODE_LEN;
     int processed_len = 0;
-    net::RedisParserStatus ret = redis_parser.ProcessInputBuffer(
-        redis_parser_start, redis_parser_len, &processed_len);
+    net::RedisParserStatus ret = redis_parser.ProcessInputBuffer(redis_parser_start, redis_parser_len, &processed_len);
     if (ret != net::kRedisParserDone) {
       LOG(FATAL) << PartitionInfo(table_name_, partition_id_).ToString() << "Redis parser parse failed";
       return;
@@ -368,11 +357,11 @@ Status ConsensusCoordinator::Reset(const LogOffset& offset) {
   }
 
   UpdateTerm(offset.l_offset.term);
-  Status s = stable_logger_->Logger()->SetProducerStatus(
-      offset.b_offset.filenum, offset.b_offset.offset,
-      offset.l_offset.term, offset.l_offset.index);
+  Status s = stable_logger_->Logger()->SetProducerStatus(offset.b_offset.filenum, offset.b_offset.offset,
+                                                         offset.l_offset.term, offset.l_offset.index);
   if (!s.ok()) {
-    LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString() << "Consensus reset status failed " << s.ToString();
+    LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString() << "Consensus reset status failed "
+                 << s.ToString();
     return s;
   }
 
@@ -384,10 +373,8 @@ Status ConsensusCoordinator::Reset(const LogOffset& offset) {
   return Status::OK();
 }
 
-Status ConsensusCoordinator::ProposeLog(
-    std::shared_ptr<Cmd> cmd_ptr,
-    std::shared_ptr<PikaClientConn> conn_ptr,
-    std::shared_ptr<std::string> resp_ptr) {
+Status ConsensusCoordinator::ProposeLog(std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
+                                        std::shared_ptr<std::string> resp_ptr) {
   LogOffset log_offset;
 
   stable_logger_->Logger()->Lock();
@@ -417,9 +404,9 @@ Status ConsensusCoordinator::ProposeLog(
   return Status::OK();
 }
 
-Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item,
-    std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
-    std::shared_ptr<std::string> resp_ptr) {
+Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item, std::shared_ptr<Cmd> cmd_ptr,
+                                               std::shared_ptr<PikaClientConn> conn_ptr,
+                                               std::shared_ptr<std::string> resp_ptr) {
   LogOffset log_offset;
   Status s = InternalAppendBinlog(item, cmd_ptr, &log_offset);
   if (!s.ok()) {
@@ -436,8 +423,8 @@ Status ConsensusCoordinator::InternalAppendLog(const BinlogItem& item,
 Status ConsensusCoordinator::ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute) {
   LogOffset last_index = mem_logger_->last_offset();
   if (attribute.logic_id() < last_index.l_offset.index) {
-    LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString()
-      << "Drop log from leader logic_id " << attribute.logic_id() << " cur last index " << last_index.l_offset.index;
+    LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString() << "Drop log from leader logic_id "
+                 << attribute.logic_id() << " cur last index " << last_index.l_offset.index;
     return Status::OK();
   }
 
@@ -476,8 +463,8 @@ Status ConsensusCoordinator::ProcessLocalUpdate(const LogOffset& leader_commit) 
   return Status::OK();
 }
 
-Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port,
-      const LogOffset& start, const LogOffset& end) {
+Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port, const LogOffset& start,
+                                         const LogOffset& end) {
   LogOffset committed_index;
   Status s = sync_pros_.Update(ip, port, start, end, &committed_index);
   if (!s.ok()) {
@@ -491,8 +478,9 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port,
   // do not commit log which is not current term log
   if (committed_index.l_offset.term != term()) {
     LOG_EVERY_N(INFO, 1000) << "Will not commit log term which is not equals to current term"
-      << " To updated committed_index" << committed_index.ToString() << " current term " << term()
-      << " from " << ip << " " <<  port << " start " << start.ToString() << " end " << end.ToString();
+                            << " To updated committed_index" << committed_index.ToString() << " current term " << term()
+                            << " from " << ip << " " << port << " start " << start.ToString() << " end "
+                            << end.ToString();
     return Status::OK();
   }
 
@@ -515,7 +503,8 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port,
   return Status::OK();
 }
 
-bool ConsensusCoordinator::InternalUpdateCommittedIndex(const LogOffset& slave_committed_index, LogOffset* updated_committed_index) {
+bool ConsensusCoordinator::InternalUpdateCommittedIndex(const LogOffset& slave_committed_index,
+                                                        LogOffset* updated_committed_index) {
   if (slave_committed_index <= committed_index_) {
     return false;
   }
@@ -524,17 +513,13 @@ bool ConsensusCoordinator::InternalUpdateCommittedIndex(const LogOffset& slave_c
   return true;
 }
 
-Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item,
-    std::shared_ptr<Cmd> cmd_ptr, LogOffset* log_offset) {
-  std::string binlog = cmd_ptr->ToBinlog(item.exec_time(),
-                                    item.term_id(),
-                                    item.logic_id(),
-                                    item.filenum(),
-                                    item.offset());
+Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item, std::shared_ptr<Cmd> cmd_ptr,
+                                                  LogOffset* log_offset) {
+  std::string binlog =
+      cmd_ptr->ToBinlog(item.exec_time(), item.term_id(), item.logic_id(), item.filenum(), item.offset());
   Status s = stable_logger_->Logger()->Put(binlog);
   if (!s.ok()) {
-    std::string table_name = cmd_ptr->table_name().empty()
-      ? g_pika_conf->default_table() : cmd_ptr->table_name();
+    std::string table_name = cmd_ptr->table_name().empty() ? g_pika_conf->default_table() : cmd_ptr->table_name();
     std::shared_ptr<Table> table = g_pika_server->GetTable(table_name);
     if (table) {
       table->SetBinlogIoError();
@@ -544,8 +529,7 @@ Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item,
   uint32_t filenum;
   uint64_t offset;
   stable_logger_->Logger()->GetProducerStatus(&filenum, &offset);
-  *log_offset = LogOffset(BinlogOffset(filenum, offset),
-      LogicOffset(item.term_id(), item.logic_id()));
+  *log_offset = LogOffset(BinlogOffset(filenum, offset), LogicOffset(item.term_id(), item.logic_id()));
   return Status::OK();
 }
 
@@ -627,8 +611,7 @@ void ConsensusCoordinator::InternalApply(const MemLog::LogItem& log) {
   arg->offset = log.offset;
   arg->table_name = table_name_;
   arg->partition_id = partition_id_;
-  g_pika_server->ScheduleClientBgThreads(
-      PikaClientConn::DoExecTask, arg, log.cmd_ptr->current_key().front());
+  g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoExecTask, arg, log.cmd_ptr->current_key().front());
 }
 
 void ConsensusCoordinator::InternalApplyFollower(const MemLog::LogItem& log) {
@@ -660,13 +643,14 @@ Status ConsensusCoordinator::TruncateTo(const LogOffset& offset) {
   if (!s.ok()) {
     return s;
   }
-  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << " Founded truncate pos " << founded_offset.ToString();
+  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << " Founded truncate pos "
+            << founded_offset.ToString();
   LogOffset committed = committed_index();
   stable_logger_->Logger()->Lock();
   if (founded_offset.l_offset.index == committed.l_offset.index) {
     mem_logger_->Reset(committed);
   } else {
-    Status s  = mem_logger_->TruncateTo(founded_offset);
+    Status s = mem_logger_->TruncateTo(founded_offset);
     if (!s.ok()) {
       stable_logger_->Logger()->Unlock();
       return s;
@@ -683,8 +667,7 @@ Status ConsensusCoordinator::TruncateTo(const LogOffset& offset) {
 
 Status ConsensusCoordinator::GetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset) {
   PikaBinlogReader binlog_reader;
-  int res = binlog_reader.Seek(stable_logger_->Logger(),
-      start_offset.filenum, start_offset.offset);
+  int res = binlog_reader.Seek(stable_logger_->Logger(), start_offset.filenum, start_offset.offset);
   if (res) {
     return Status::Corruption("Binlog reader init failed");
   }
@@ -708,17 +691,14 @@ Status ConsensusCoordinator::GetBinlogOffset(const BinlogOffset& start_offset, L
 // start_offset 0,0 end_offset 1,129, result will include binlog (1,129)
 // start_offset 0,0 end_offset 1,0, result will NOT include binlog (1,xxx)
 // start_offset 0,0 end_offset 0,0, resulet will NOT include binlog(0,xxx)
-Status ConsensusCoordinator::GetBinlogOffset(
-    const BinlogOffset& start_offset,
-    const BinlogOffset& end_offset,
-    std::vector<LogOffset>* log_offset) {
+Status ConsensusCoordinator::GetBinlogOffset(const BinlogOffset& start_offset, const BinlogOffset& end_offset,
+                                             std::vector<LogOffset>* log_offset) {
   PikaBinlogReader binlog_reader;
-  int res = binlog_reader.Seek(stable_logger_->Logger(),
-      start_offset.filenum, start_offset.offset);
+  int res = binlog_reader.Seek(stable_logger_->Logger(), start_offset.filenum, start_offset.offset);
   if (res) {
     return Status::Corruption("Binlog reader init failed");
   }
-  while(1) {
+  while (1) {
     BinlogOffset b_offset;
     std::string binlog;
     Status s = binlog_reader.Get(&binlog, &(b_offset.filenum), &(b_offset.offset));
@@ -743,17 +723,15 @@ Status ConsensusCoordinator::GetBinlogOffset(
   return Status::OK();
 }
 
-Status ConsensusCoordinator::FindBinlogFileNum(
-    const std::map<uint32_t, std::string> binlogs,
-    uint64_t target_index, uint32_t start_filenum,
-    uint32_t* founded_filenum) {
+Status ConsensusCoordinator::FindBinlogFileNum(const std::map<uint32_t, std::string> binlogs, uint64_t target_index,
+                                               uint32_t start_filenum, uint32_t* founded_filenum) {
   // low boundary & high boundary
   uint32_t lb_binlogs = binlogs.begin()->first;
   uint32_t hb_binlogs = binlogs.rbegin()->first;
   bool first_time_left = false;
   bool first_time_right = false;
   uint32_t filenum = start_filenum;
-  while(1) {
+  while (1) {
     LogOffset first_offset;
     Status s = GetBinlogOffset(BinlogOffset(filenum, 0), &first_offset);
     if (!s.ok()) {
@@ -762,12 +740,12 @@ Status ConsensusCoordinator::FindBinlogFileNum(
     if (target_index < first_offset.l_offset.index) {
       if (first_time_right) {
         // last filenum
-        filenum = filenum -1;
+        filenum = filenum - 1;
         break;
       }
       // move left
       first_time_left = true;
-      if (filenum == 0 || filenum  - 1 < lb_binlogs) {
+      if (filenum == 0 || filenum - 1 < lb_binlogs) {
         return Status::NotFound(std::to_string(target_index) + " hit low boundary");
       }
       filenum = filenum - 1;
@@ -789,11 +767,10 @@ Status ConsensusCoordinator::FindBinlogFileNum(
   return Status::OK();
 }
 
-Status ConsensusCoordinator::FindLogicOffsetBySearchingBinlog(
-    const BinlogOffset& hint_offset, uint64_t target_index, LogOffset* found_offset) {
-  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString()
-    << "FindLogicOffsetBySearchingBinlog hint offset " << hint_offset.ToString()
-    << " target_index " << target_index;
+Status ConsensusCoordinator::FindLogicOffsetBySearchingBinlog(const BinlogOffset& hint_offset, uint64_t target_index,
+                                                              LogOffset* found_offset) {
+  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "FindLogicOffsetBySearchingBinlog hint offset "
+            << hint_offset.ToString() << " target_index " << target_index;
   BinlogOffset start_offset;
   std::map<uint32_t, std::string> binlogs;
   if (!stable_logger_->GetBinlogFiles(&binlogs)) {
@@ -824,7 +801,8 @@ Status ConsensusCoordinator::FindLogicOffsetBySearchingBinlog(
   }
   for (auto& offset : offsets) {
     if (offset.l_offset.index == target_index) {
-      LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "Founded " << target_index << " " << offset.ToString();
+      LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "Founded " << target_index << " "
+                << offset.ToString();
       *found_offset = offset;
       return Status::OK();
     }
@@ -832,15 +810,16 @@ Status ConsensusCoordinator::FindLogicOffsetBySearchingBinlog(
   return Status::NotFound("Logic index not found");
 }
 
-Status ConsensusCoordinator::FindLogicOffset(const BinlogOffset& start_offset, uint64_t target_index, LogOffset* found_offset) {
+Status ConsensusCoordinator::FindLogicOffset(const BinlogOffset& start_offset, uint64_t target_index,
+                                             LogOffset* found_offset) {
   LogOffset possible_offset;
   Status s = GetBinlogOffset(start_offset, &possible_offset);
   if (!s.ok() || possible_offset.l_offset.index != target_index) {
     if (!s.ok()) {
       LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "GetBinlogOffset res: " << s.ToString();
     } else {
-      LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "GetBInlogOffset res: " << s.ToString() <<
-        " possible_offset " << possible_offset.ToString() << " target_index " << target_index;
+      LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "GetBInlogOffset res: " << s.ToString()
+                << " possible_offset " << possible_offset.ToString() << " target_index " << target_index;
     }
     return FindLogicOffsetBySearchingBinlog(start_offset, target_index, found_offset);
   }
@@ -851,8 +830,7 @@ Status ConsensusCoordinator::FindLogicOffset(const BinlogOffset& start_offset, u
 Status ConsensusCoordinator::GetLogsBefore(const BinlogOffset& start_offset, std::vector<LogOffset>* hints) {
   BinlogOffset traversal_end = start_offset;
   BinlogOffset traversal_start(traversal_end.filenum, 0);
-  traversal_start.filenum =
-    traversal_start.filenum == 0 ? 0 : traversal_start.filenum - 1;
+  traversal_start.filenum = traversal_start.filenum == 0 ? 0 : traversal_start.filenum - 1;
   std::map<uint32_t, std::string> binlogs;
   if (!stable_logger_->GetBinlogFiles(&binlogs)) {
     return Status::Corruption("Get binlog files failed");
@@ -872,30 +850,30 @@ Status ConsensusCoordinator::GetLogsBefore(const BinlogOffset& start_offset, std
   return Status::OK();
 }
 
-Status ConsensusCoordinator::LeaderNegotiate(
-    const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints) {
+Status ConsensusCoordinator::LeaderNegotiate(const LogOffset& f_last_offset, bool* reject,
+                                             std::vector<LogOffset>* hints) {
   uint64_t f_index = f_last_offset.l_offset.index;
-  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString()
-    << "LeaderNeotiate follower last offset "
-    << f_last_offset.ToString()
-    << " first_offsert " << stable_logger_->first_offset().ToString()
-    << " last_offset " << mem_logger_->last_offset().ToString();
+  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "LeaderNeotiate follower last offset "
+            << f_last_offset.ToString() << " first_offsert " << stable_logger_->first_offset().ToString()
+            << " last_offset " << mem_logger_->last_offset().ToString();
   *reject = true;
   if (f_index > mem_logger_->last_offset().l_offset.index) {
     // hints starts from last_offset() - 100;
     Status s = GetLogsBefore(mem_logger_->last_offset().b_offset, hints);
     if (!s.ok()) {
-      LOG(WARNING) << f_index << " is larger than last index " << mem_logger_->last_offset().ToString() << " get logs before last index failed " << s.ToString();
+      LOG(WARNING) << f_index << " is larger than last index " << mem_logger_->last_offset().ToString()
+                   << " get logs before last index failed " << s.ToString();
       return s;
     }
     LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString()
-      << "follower index larger then last_offset index, get logs before " << mem_logger_->last_offset().ToString();
+              << "follower index larger then last_offset index, get logs before "
+              << mem_logger_->last_offset().ToString();
     return Status::OK();
   }
   if (f_index < stable_logger_->first_offset().l_offset.index) {
     // need full sync
-    LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString()
-      << f_index << " not found current first index" << stable_logger_->first_offset().ToString();
+    LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << f_index << " not found current first index"
+              << stable_logger_->first_offset().ToString();
     return Status::NotFound("logic index");
   }
   if (f_last_offset.l_offset.index == 0) {
@@ -907,29 +885,27 @@ Status ConsensusCoordinator::LeaderNegotiate(
   Status s = FindLogicOffset(f_last_offset.b_offset, f_index, &found_offset);
   if (!s.ok()) {
     if (s.IsNotFound()) {
-      LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString()
-        << f_last_offset.ToString() << " not found " << s.ToString();
+      LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << f_last_offset.ToString() << " not found "
+                << s.ToString();
       return s;
     } else {
-      LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString()
-        << "find logic offset failed" << s.ToString();
+      LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString() << "find logic offset failed"
+                   << s.ToString();
       return s;
     }
   }
 
-  if (found_offset.l_offset.term != f_last_offset.l_offset.term
-      || !(f_last_offset.b_offset == found_offset.b_offset)) {
+  if (found_offset.l_offset.term != f_last_offset.l_offset.term || !(f_last_offset.b_offset == found_offset.b_offset)) {
     Status s = GetLogsBefore(found_offset.b_offset, hints);
     if (!s.ok()) {
-      LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString()
-        << "Try to get logs before " << found_offset.ToString() << " failed";
+      LOG(WARNING) << PartitionInfo(table_name_, partition_id_).ToString() << "Try to get logs before "
+                   << found_offset.ToString() << " failed";
       return s;
     }
     return Status::OK();
   }
 
-  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString()
-    << "Found equal offset " << found_offset.ToString();
+  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "Found equal offset " << found_offset.ToString();
   *reject = false;
   return Status::OK();
 }
@@ -939,8 +915,8 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
   if (hints.empty()) {
     return Status::Corruption("hints empty");
   }
-  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString()
-    << "FollowerNegotiate from " << hints[0].ToString() << " to " << hints[hints.size() - 1].ToString();
+  LOG(INFO) << PartitionInfo(table_name_, partition_id_).ToString() << "FollowerNegotiate from " << hints[0].ToString()
+            << " to " << hints[hints.size() - 1].ToString();
   if (mem_logger_->last_offset().l_offset.index < hints[0].l_offset.index) {
     *reply_offset = mem_logger_->last_offset();
     return Status::OK();
@@ -948,7 +924,7 @@ Status ConsensusCoordinator::FollowerNegotiate(const std::vector<LogOffset>& hin
   if (committed_index().l_offset.index > hints[hints.size() - 1].l_offset.index) {
     return Status::Corruption("invalid hints all smaller than committed_index");
   }
-  if (mem_logger_->last_offset().l_offset.index >  hints[hints.size() - 1].l_offset.index) {
+  if (mem_logger_->last_offset().l_offset.index > hints[hints.size() - 1].l_offset.index) {
     LogOffset truncate_offset = hints[hints.size() - 1];
     // trunck to hints end
     Status s = TruncateTo(truncate_offset);

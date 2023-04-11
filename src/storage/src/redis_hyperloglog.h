@@ -35,4 +35,3 @@ class HyperLogLog {
 }  // namespace storage
 
 #endif  // SRC_REDIS_HYPERLOGLOG_H_
-

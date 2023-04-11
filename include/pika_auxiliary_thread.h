@@ -12,14 +12,11 @@
 
 class PikaAuxiliaryThread : public net::Thread {
  public:
-  PikaAuxiliaryThread() :
-      mu_(),
-      cv_(&mu_) {
-      set_thread_name("AuxiliaryThread");
-  }
+  PikaAuxiliaryThread() : mu_(), cv_(&mu_) { set_thread_name("AuxiliaryThread"); }
   virtual ~PikaAuxiliaryThread();
   pstd::Mutex mu_;
   pstd::CondVar cv_;
+
  private:
   virtual void* ThreadMain();
 };

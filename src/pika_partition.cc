@@ -8,8 +8,8 @@
 #include <fstream>
 
 #include "include/pika_conf.h"
-#include "include/pika_server.h"
 #include "include/pika_rm.h"
+#include "include/pika_server.h"
 
 #include "pstd/include/mutex_impl.h"
 
@@ -17,31 +17,26 @@ extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
-std::string PartitionPath(const std::string& table_path,
-                          uint32_t partition_id) {
+std::string PartitionPath(const std::string& table_path, uint32_t partition_id) {
   char buf[100];
   snprintf(buf, sizeof(buf), "%u/", partition_id);
   return table_path + buf;
 }
 
-std::string PartitionName(const std::string& table_name,
-                          uint32_t partition_id) {
+std::string PartitionName(const std::string& table_name, uint32_t partition_id) {
   char buf[256];
   snprintf(buf, sizeof(buf), "(%s:%u)", table_name.data(), partition_id);
   return std::string(buf);
 }
 
-std::string BgsaveSubPath(const std::string& table_name,
-                          uint32_t partition_id) {
+std::string BgsaveSubPath(const std::string& table_name, uint32_t partition_id) {
   char buf[256];
   std::string partition_id_str = std::to_string(partition_id);
   snprintf(buf, sizeof(buf), "%s/%s", table_name.data(), partition_id_str.data());
   return std::string(buf);
 }
 
-std::string DbSyncPath(const std::string& sync_path,
-                       const std::string& table_name,
-                       const uint32_t partition_id,
+std::string DbSyncPath(const std::string& sync_path, const std::string& table_name, const uint32_t partition_id,
                        bool classic_mode) {
   char buf[256];
   std::string partition_id_str = std::to_string(partition_id);
@@ -53,27 +48,17 @@ std::string DbSyncPath(const std::string& sync_path,
   return sync_path + buf;
 }
 
-Partition::Partition(const std::string& table_name,
-                     uint32_t partition_id,
-                     const std::string& table_db_path) :
-  table_name_(table_name),
-  partition_id_(partition_id),
-  bgsave_engine_(NULL) {
-
-  db_path_ = g_pika_conf->classic_mode() ?
-      table_db_path : PartitionPath(table_db_path, partition_id_);
-  bgsave_sub_path_ = g_pika_conf->classic_mode() ?
-      table_name : BgsaveSubPath(table_name_, partition_id_);
-  dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_,
-          partition_id_,  g_pika_conf->classic_mode());
-  partition_name_ = g_pika_conf->classic_mode() ?
-      table_name : PartitionName(table_name_, partition_id_);
+Partition::Partition(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path)
+    : table_name_(table_name), partition_id_(partition_id), bgsave_engine_(NULL) {
+  db_path_ = g_pika_conf->classic_mode() ? table_db_path : PartitionPath(table_db_path, partition_id_);
+  bgsave_sub_path_ = g_pika_conf->classic_mode() ? table_name : BgsaveSubPath(table_name_, partition_id_);
+  dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, partition_id_, g_pika_conf->classic_mode());
+  partition_name_ = g_pika_conf->classic_mode() ? table_name : PartitionName(table_name_, partition_id_);
 
   pthread_rwlockattr_t attr;
   pthread_rwlockattr_init(&attr);
 #if !defined(__APPLE__)
-  pthread_rwlockattr_setkind_np(&attr,
-          PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
 #endif
 
   pthread_rwlock_init(&db_rwlock_, &attr);
@@ -131,42 +116,26 @@ void Partition::MoveToTrash() {
   LOG(WARNING) << "Partition DB: " << partition_name_ << " move to trash success";
 }
 
-std::string Partition::GetTableName() const {
-  return table_name_;
-}
+std::string Partition::GetTableName() const { return table_name_; }
 
-uint32_t Partition::GetPartitionId() const {
-  return partition_id_;
-}
+uint32_t Partition::GetPartitionId() const { return partition_id_; }
 
-std::string Partition::GetPartitionName() const {
-  return partition_name_;
-}
+std::string Partition::GetPartitionName() const { return partition_name_; }
 
-std::shared_ptr<storage::Storage> Partition::db() const {
-  return db_;
-}
+std::shared_ptr<storage::Storage> Partition::db() const { return db_; }
 
 void Partition::Compact(const storage::DataType& type) {
   if (!opened_) return;
   db_->Compact(type);
 }
 
-void Partition::DbRWLockWriter() {
-  pthread_rwlock_wrlock(&db_rwlock_);
-}
+void Partition::DbRWLockWriter() { pthread_rwlock_wrlock(&db_rwlock_); }
 
-void Partition::DbRWLockReader() {
-  pthread_rwlock_rdlock(&db_rwlock_);
-}
+void Partition::DbRWLockReader() { pthread_rwlock_rdlock(&db_rwlock_); }
 
-void Partition::DbRWUnLock() {
-  pthread_rwlock_unlock(&db_rwlock_);
-}
+void Partition::DbRWUnLock() { pthread_rwlock_unlock(&db_rwlock_); }
 
-pstd::lock::LockMgr* Partition::LockMgr() {
-  return lock_mgr_;
-}
+pstd::lock::LockMgr* Partition::LockMgr() { return lock_mgr_; }
 
 void Partition::PrepareRsync() {
   pstd::DeleteDirIfExist(dbsync_path_);
@@ -190,8 +159,7 @@ bool Partition::TryUpdateMasterOffset() {
   }
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
-    g_pika_rm->GetSyncSlavePartitionByName(
-        PartitionInfo(table_name_, partition_id_));
+      g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(table_name_, partition_id_));
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition: " << partition_name_ << " not exist";
     return false;
@@ -200,8 +168,7 @@ bool Partition::TryUpdateMasterOffset() {
   // Got new binlog offset
   std::ifstream is(info_path);
   if (!is) {
-    LOG(WARNING) << "Partition: " << partition_name_
-        << ", Failed to open info file after db sync";
+    LOG(WARNING) << "Partition: " << partition_name_ << ", Failed to open info file after db sync";
     slave_partition->SetReplState(ReplState::kError);
     return false;
   }
@@ -215,19 +182,24 @@ bool Partition::TryUpdateMasterOffset() {
     } else if (lineno > 2 && lineno < 8) {
       if (!pstd::string2int(line.data(), line.size(), &tmp) || tmp < 0) {
         LOG(WARNING) << "Partition: " << partition_name_
-            << ", Format of info file after db sync error, line : " << line;
+                     << ", Format of info file after db sync error, line : " << line;
         is.close();
         slave_partition->SetReplState(ReplState::kError);
         return false;
       }
-      if (lineno == 3) { master_port = tmp; }
-      else if (lineno == 4) { filenum = tmp; }
-      else if (lineno == 5) { offset = tmp; }
-      else if (lineno == 6) { term = tmp; }
-      else if (lineno == 7) { index = tmp; }
+      if (lineno == 3) {
+        master_port = tmp;
+      } else if (lineno == 4) {
+        filenum = tmp;
+      } else if (lineno == 5) {
+        offset = tmp;
+      } else if (lineno == 6) {
+        term = tmp;
+      } else if (lineno == 7) {
+        index = tmp;
+      }
     } else if (lineno > 8) {
-      LOG(WARNING) << "Partition: " << partition_name_
-          << ", Format of info file after db sync error, line : " << line;
+      LOG(WARNING) << "Partition: " << partition_name_ << ", Format of info file after db sync error, line : " << line;
       is.close();
       slave_partition->SetReplState(ReplState::kError);
       return false;
@@ -236,40 +208,33 @@ bool Partition::TryUpdateMasterOffset() {
   is.close();
 
   LOG(INFO) << "Partition: " << partition_name_ << " Information from dbsync info"
-      << ",  master_ip: " << master_ip
-      << ", master_port: " << master_port
-      << ", filenum: " << filenum
-      << ", offset: " << offset
-      << ", term: " << term
-      << ", index: " << index;
+            << ",  master_ip: " << master_ip << ", master_port: " << master_port << ", filenum: " << filenum
+            << ", offset: " << offset << ", term: " << term << ", index: " << index;
 
   // Sanity check
-  if (master_ip != slave_partition->MasterIp()
-    || master_port != slave_partition->MasterPort()) {
-    LOG(WARNING) << "Partition: " << partition_name_
-      << " Error master node ip port: " << master_ip << ":" << master_port;
+  if (master_ip != slave_partition->MasterIp() || master_port != slave_partition->MasterPort()) {
+    LOG(WARNING) << "Partition: " << partition_name_ << " Error master node ip port: " << master_ip << ":"
+                 << master_port;
     slave_partition->SetReplState(ReplState::kError);
     return false;
   }
 
   pstd::DeleteFile(info_path);
   if (!ChangeDb(dbsync_path_)) {
-    LOG(WARNING) << "Partition: " << partition_name_
-        << ", Failed to change db";
+    LOG(WARNING) << "Partition: " << partition_name_ << ", Failed to change db";
     slave_partition->SetReplState(ReplState::kError);
     return false;
   }
 
   // Update master offset
   std::shared_ptr<SyncMasterPartition> master_partition =
-    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, partition_id_));
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, partition_id_));
   if (!master_partition) {
     LOG(WARNING) << "Master Partition: " << partition_name_ << " not exist";
     return false;
   }
   if (g_pika_conf->consensus_level() != 0) {
-    master_partition->ConsensusReset(
-        LogOffset(BinlogOffset(filenum, offset), LogicOffset(term, index)));
+    master_partition->ConsensusReset(LogOffset(BinlogOffset(filenum, offset), LogicOffset(term, index)));
   } else {
     master_partition->Logger()->SetProducerStatus(filenum, offset);
   }
@@ -283,7 +248,6 @@ bool Partition::TryUpdateMasterOffset() {
  * db remain the old one if return false
  */
 bool Partition::ChangeDb(const std::string& new_path) {
-
   std::string tmp_path(db_path_);
   if (tmp_path.back() == '/') {
     tmp_path.resize(tmp_path.size() - 1);
@@ -292,19 +256,18 @@ bool Partition::ChangeDb(const std::string& new_path) {
   pstd::DeleteDirIfExist(tmp_path);
 
   RWLock l(&db_rwlock_, true);
-  LOG(INFO) << "Partition: "<< partition_name_
-      << ", Prepare change db from: " << tmp_path;
+  LOG(INFO) << "Partition: " << partition_name_ << ", Prepare change db from: " << tmp_path;
   db_.reset();
 
   if (0 != pstd::RenameFile(db_path_.c_str(), tmp_path)) {
     LOG(WARNING) << "Partition: " << partition_name_
-        << ", Failed to rename db path when change db, error: " << strerror(errno);
+                 << ", Failed to rename db path when change db, error: " << strerror(errno);
     return false;
   }
 
   if (0 != pstd::RenameFile(new_path.c_str(), db_path_.c_str())) {
     LOG(WARNING) << "Partition: " << partition_name_
-        << ", Failed to rename new db path when change db, error: " << strerror(errno);
+                 << ", Failed to rename new db path when change db, error: " << strerror(errno);
     return false;
   }
 
@@ -350,13 +313,12 @@ void Partition::DoBgSave(void* arg) {
   out.open(info.path + "/" + kBgsaveInfoFile, std::ios::in | std::ios::trunc);
   if (out.is_open()) {
     out << (time(NULL) - info.start_time) << "s\n"
-      << g_pika_server->host() << "\n"
-      << g_pika_server->port() << "\n"
-      << info.offset.b_offset.filenum << "\n"
-      << info.offset.b_offset.offset << "\n";
+        << g_pika_server->host() << "\n"
+        << g_pika_server->port() << "\n"
+        << info.offset.b_offset.filenum << "\n"
+        << info.offset.b_offset.offset << "\n";
     if (g_pika_conf->consensus_level() != 0) {
-      out << info.offset.l_offset.term << "\n"
-          << info.offset.l_offset.index << "\n";
+      out << info.offset.l_offset.term << "\n" << info.offset.l_offset.index << "\n";
     }
     out.close();
   }
@@ -378,9 +340,8 @@ bool Partition::RunBgsaveEngine() {
   LOG(INFO) << partition_name_ << " after prepare bgsave";
 
   BgSaveInfo info = bgsave_info();
-  LOG(INFO) << partition_name_ << " bgsave_info: path=" << info.path
-    << ",  filenum=" << info.offset.b_offset.filenum
-    << ", offset=" << info.offset.b_offset.offset;
+  LOG(INFO) << partition_name_ << " bgsave_info: path=" << info.path << ",  filenum=" << info.offset.b_offset.filenum
+            << ", offset=" << info.offset.b_offset.offset;
 
   // Backup to tmp dir
   rocksdb::Status s = bgsave_engine_->CreateNewBackup(info.path);
@@ -426,7 +387,8 @@ bool Partition::InitBgsaveEngine() {
     return false;
   }
 
-  std::shared_ptr<SyncMasterPartition> partition = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, partition_id_));
+  std::shared_ptr<SyncMasterPartition> partition =
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, partition_id_));
   if (!partition) {
     LOG(WARNING) << partition_name_ << " not found";
     return false;
@@ -523,7 +485,7 @@ void Partition::InitKeyScan() {
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
-  key_scan_info_.duration = -1;       // duration -1 mean the task in processing
+  key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
 
 KeyScanInfo Partition::GetKeyScanInfo() {
@@ -539,8 +501,8 @@ Status Partition::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
   }
   InitKeyScan();
   key_scan_info_.key_scaning_ = true;
-  key_scan_info_.duration = -2;   // duration -2 mean the task in waiting status,
-                                  // has not been scheduled for exec
+  key_scan_info_.duration = -2;  // duration -2 mean the task in waiting status,
+                                 // has not been scheduled for exec
   rocksdb::Status s = db_->GetKeyNum(key_info);
   key_scan_info_.key_scaning_ = false;
   if (!s.ok()) {

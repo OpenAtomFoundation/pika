@@ -17,7 +17,6 @@ const int64_t kDataSetNum = 5;
 
 #include <string>
 std::string PikaState(int state);
-std::string PikaRole(int role) ;
+std::string PikaRole(int role);
 
 #endif
-

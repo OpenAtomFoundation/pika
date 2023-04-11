@@ -29,33 +29,33 @@
 //
 // Authors: keith.ray@gmail.com (Keith Ray)
 
-#include "gtest/gtest-message.h"
 #include "gtest/internal/gtest-filepath.h"
+#include "gtest/gtest-message.h"
 #include "gtest/internal/gtest-port.h"
 
 #include <stdlib.h>
 
 #if GTEST_OS_WINDOWS_MOBILE
-# include <windows.h>
+#  include <windows.h>
 #elif GTEST_OS_WINDOWS
-# include <direct.h>
-# include <io.h>
+#  include <direct.h>
+#  include <io.h>
 #elif GTEST_OS_SYMBIAN
 // Symbian OpenC has PATH_MAX in sys/syslimits.h
-# include <sys/syslimits.h>
+#  include <sys/syslimits.h>
 #else
-# include <limits.h>
-# include <climits>  // Some Linux distributions define PATH_MAX here.
-#endif  // GTEST_OS_WINDOWS_MOBILE
+#  include <limits.h>
+#  include <climits>  // Some Linux distributions define PATH_MAX here.
+#endif                // GTEST_OS_WINDOWS_MOBILE
 
 #if GTEST_OS_WINDOWS
-# define GTEST_PATH_MAX_ _MAX_PATH
+#  define GTEST_PATH_MAX_ _MAX_PATH
 #elif defined(PATH_MAX)
-# define GTEST_PATH_MAX_ PATH_MAX
+#  define GTEST_PATH_MAX_ PATH_MAX
 #elif defined(_XOPEN_PATH_MAX)
-# define GTEST_PATH_MAX_ _XOPEN_PATH_MAX
+#  define GTEST_PATH_MAX_ _XOPEN_PATH_MAX
 #else
-# define GTEST_PATH_MAX_ _POSIX_PATH_MAX
+#  define GTEST_PATH_MAX_ _POSIX_PATH_MAX
 #endif  // GTEST_OS_WINDOWS
 
 #include "gtest/internal/gtest-string.h"
@@ -71,16 +71,16 @@ namespace internal {
 const char kPathSeparator = '\\';
 const char kAlternatePathSeparator = '/';
 const char kAlternatePathSeparatorString[] = "/";
-# if GTEST_OS_WINDOWS_MOBILE
+#  if GTEST_OS_WINDOWS_MOBILE
 // Windows CE doesn't have a current directory. You should not use
 // the current directory in tests on Windows CE, but this at least
 // provides a reasonable fallback.
 const char kCurrentDirectoryString[] = "\\";
 // Windows CE doesn't define INVALID_FILE_ATTRIBUTES
 const DWORD kInvalidFileAttributes = 0xffffffff;
-# else
+#  else
 const char kCurrentDirectoryString[] = ".\\";
-# endif  // GTEST_OS_WINDOWS_MOBILE
+#  endif  // GTEST_OS_WINDOWS_MOBILE
 #else
 const char kPathSeparator = '/';
 const char kCurrentDirectoryString[] = "./";
@@ -102,19 +102,19 @@ FilePath FilePath::GetCurrentDir() {
   // something reasonable.
   return FilePath(kCurrentDirectoryString);
 #elif GTEST_OS_WINDOWS
-  char cwd[GTEST_PATH_MAX_ + 1] = { '\0' };
+  char cwd[GTEST_PATH_MAX_ + 1] = {'\0'};
   return FilePath(_getcwd(cwd, sizeof(cwd)) == NULL ? "" : cwd);
 #else
-  char cwd[GTEST_PATH_MAX_ + 1] = { '\0' };
+  char cwd[GTEST_PATH_MAX_ + 1] = {'\0'};
   char* result = getcwd(cwd, sizeof(cwd));
-# if GTEST_OS_NACL
+#  if GTEST_OS_NACL
   // getcwd will likely fail in NaCl due to the sandbox, so return something
   // reasonable. The user may have provided a shim implementation for getcwd,
   // however, so fallback only when failure is detected.
   return FilePath(result == NULL ? kCurrentDirectoryString : cwd);
-# endif  // GTEST_OS_NACL
+#  endif  // GTEST_OS_NACL
   return FilePath(result == NULL ? "" : cwd);
-#endif  // GTEST_OS_WINDOWS_MOBILE
+#endif    // GTEST_OS_WINDOWS_MOBILE
 }
 
 // Returns a copy of the FilePath with the case-insensitive extension removed.
@@ -124,8 +124,7 @@ FilePath FilePath::GetCurrentDir() {
 FilePath FilePath::RemoveExtension(const char* extension) const {
   const std::string dot_extension = std::string(".") + extension;
   if (String::EndsWithCaseInsensitive(pathname_, dot_extension)) {
-    return FilePath(pathname_.substr(
-        0, pathname_.length() - dot_extension.length()));
+    return FilePath(pathname_.substr(0, pathname_.length() - dot_extension.length()));
   }
   return *this;
 }
@@ -138,8 +137,7 @@ const char* FilePath::FindLastPathSeparator() const {
 #if GTEST_HAS_ALT_PATH_SEP_
   const char* const last_alt_sep = strrchr(c_str(), kAlternatePathSeparator);
   // Comparing two pointers of which only one is NULL is undefined.
-  if (last_alt_sep != NULL &&
-      (last_sep == NULL || last_alt_sep > last_sep)) {
+  if (last_alt_sep != NULL && (last_sep == NULL || last_alt_sep > last_sep)) {
     return last_alt_sep;
   }
 #endif
@@ -180,26 +178,21 @@ FilePath FilePath::RemoveFileName() const {
 // extension = "xml", returns "dir/test.xml". If number is greater
 // than zero (e.g., 12), returns "dir/test_12.xml".
 // On Windows platform, uses \ as the separator rather than /.
-FilePath FilePath::MakeFileName(const FilePath& directory,
-                                const FilePath& base_name,
-                                int number,
+FilePath FilePath::MakeFileName(const FilePath& directory, const FilePath& base_name, int number,
                                 const char* extension) {
   std::string file;
   if (number == 0) {
     file = base_name.string() + "." + extension;
   } else {
-    file = base_name.string() + "_" + StreamableToString(number)
-        + "." + extension;
+    file = base_name.string() + "_" + StreamableToString(number) + "." + extension;
   }
   return ConcatPaths(directory, FilePath(file));
 }
 
 // Given directory = "dir", relative_path = "test.xml", returns "dir/test.xml".
 // On Windows, uses \ as the separator rather than /.
-FilePath FilePath::ConcatPaths(const FilePath& directory,
-                               const FilePath& relative_path) {
-  if (directory.IsEmpty())
-    return relative_path;
+FilePath FilePath::ConcatPaths(const FilePath& directory, const FilePath& relative_path) {
+  if (directory.IsEmpty()) return relative_path;
   const FilePath dir(directory.RemoveTrailingPathSeparator());
   return FilePath(dir.string() + kPathSeparator + relative_path.string());
 }
@@ -210,7 +203,7 @@ bool FilePath::FileOrDirectoryExists() const {
 #if GTEST_OS_WINDOWS_MOBILE
   LPCWSTR unicode = String::AnsiToUtf16(pathname_.c_str());
   const DWORD attributes = GetFileAttributes(unicode);
-  delete [] unicode;
+  delete[] unicode;
   return attributes != kInvalidFileAttributes;
 #else
   posix::StatStruct file_stat;
@@ -225,8 +218,7 @@ bool FilePath::DirectoryExists() const {
 #if GTEST_OS_WINDOWS
   // Don't strip off trailing separator if path is a root directory on
   // Windows (like "C:\\").
-  const FilePath& path(IsRootDirectory() ? *this :
-                                           RemoveTrailingPathSeparator());
+  const FilePath& path(IsRootDirectory() ? *this : RemoveTrailingPathSeparator());
 #else
   const FilePath& path(*this);
 #endif
@@ -234,15 +226,13 @@ bool FilePath::DirectoryExists() const {
 #if GTEST_OS_WINDOWS_MOBILE
   LPCWSTR unicode = String::AnsiToUtf16(path.c_str());
   const DWORD attributes = GetFileAttributes(unicode);
-  delete [] unicode;
-  if ((attributes != kInvalidFileAttributes) &&
-      (attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+  delete[] unicode;
+  if ((attributes != kInvalidFileAttributes) && (attributes & FILE_ATTRIBUTE_DIRECTORY)) {
     result = true;
   }
 #else
   posix::StatStruct file_stat;
-  result = posix::Stat(path.c_str(), &file_stat) == 0 &&
-      posix::IsDir(file_stat);
+  result = posix::Stat(path.c_str(), &file_stat) == 0 && posix::IsDir(file_stat);
 #endif  // GTEST_OS_WINDOWS_MOBILE
 
   return result;
@@ -265,11 +255,8 @@ bool FilePath::IsRootDirectory() const {
 bool FilePath::IsAbsolutePath() const {
   const char* const name = pathname_.c_str();
 #if GTEST_OS_WINDOWS
-  return pathname_.length() >= 3 &&
-     ((name[0] >= 'a' && name[0] <= 'z') ||
-      (name[0] >= 'A' && name[0] <= 'Z')) &&
-     name[1] == ':' &&
-     IsPathSeparator(name[2]);
+  return pathname_.length() >= 3 && ((name[0] >= 'a' && name[0] <= 'z') || (name[0] >= 'A' && name[0] <= 'Z')) &&
+         name[1] == ':' && IsPathSeparator(name[2]);
 #else
   return IsPathSeparator(name[0]);
 #endif
@@ -283,9 +270,7 @@ bool FilePath::IsAbsolutePath() const {
 // Examples: 'dir/foo_test.xml' or 'dir/foo_test_1.xml'.
 // There could be a race condition if two or more processes are calling this
 // function at the same time -- they could both pick the same filename.
-FilePath FilePath::GenerateUniqueFileName(const FilePath& directory,
-                                          const FilePath& base_name,
-                                          const char* extension) {
+FilePath FilePath::GenerateUniqueFileName(const FilePath& directory, const FilePath& base_name, const char* extension) {
   FilePath full_pathname;
   int number = 0;
   do {
@@ -298,8 +283,7 @@ FilePath FilePath::GenerateUniqueFileName(const FilePath& directory,
 // it is intended to represent a directory. Returns false otherwise.
 // This does NOT check that a directory (or file) actually exists.
 bool FilePath::IsDirectory() const {
-  return !pathname_.empty() &&
-         IsPathSeparator(pathname_.c_str()[pathname_.length() - 1]);
+  return !pathname_.empty() && IsPathSeparator(pathname_.c_str()[pathname_.length() - 1]);
 }
 
 // Create directories so that path exists. Returns true if successful or if
@@ -327,7 +311,7 @@ bool FilePath::CreateFolder() const {
   FilePath removed_sep(this->RemoveTrailingPathSeparator());
   LPCWSTR unicode = String::AnsiToUtf16(removed_sep.c_str());
   int result = CreateDirectory(unicode, NULL) ? 0 : -1;
-  delete [] unicode;
+  delete[] unicode;
 #elif GTEST_OS_WINDOWS
   int result = _mkdir(pathname_.c_str());
 #else
@@ -344,9 +328,7 @@ bool FilePath::CreateFolder() const {
 // name, otherwise return the name string unmodified.
 // On Windows platform, uses \ as the separator, other platforms use /.
 FilePath FilePath::RemoveTrailingPathSeparator() const {
-  return IsDirectory()
-      ? FilePath(pathname_.substr(0, pathname_.length() - 1))
-      : *this;
+  return IsDirectory() ? FilePath(pathname_.substr(0, pathname_.length() - 1)) : *this;
 }
 
 // Removes any redundant separators that might be in the pathname.
@@ -373,8 +355,7 @@ void FilePath::Normalize() {
         *dest_ptr = kPathSeparator;
       }
 #endif
-      while (IsPathSeparator(*src))
-        src++;
+      while (IsPathSeparator(*src)) src++;
     }
     dest_ptr++;
   }

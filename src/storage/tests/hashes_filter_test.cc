@@ -97,7 +97,6 @@
 //   ASSERT_EQ(filter_result, true);
 //   delete hashes_meta_filter;
 
-
 //   /*************** TEST DATA FILTER ***************/
 
 //   // No timeout is set, version not outmoded.

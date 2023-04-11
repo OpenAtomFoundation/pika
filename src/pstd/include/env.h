@@ -1,9 +1,9 @@
 #ifndef __PSTD_ENV_H__
 #define __PSTD_ENV_H__
 
+#include <unistd.h>
 #include <string>
 #include <vector>
-#include <unistd.h>
 
 #include "pstd/include/pstd_status.h"
 
@@ -26,7 +26,6 @@ void SetMmapBoundSize(size_t size);
 
 extern const size_t kPageSize;
 
-
 /*
  * File Operations
  */
@@ -48,18 +47,17 @@ Status DeleteFile(const std::string& fname);
 int RenameFile(const std::string& oldname, const std::string& newname);
 
 class FileLock {
-  public:
-    FileLock() { }
-    virtual ~FileLock() {};
+ public:
+  FileLock() {}
+  virtual ~FileLock(){};
 
-    int fd_;
-    std::string name_;
+  int fd_;
+  std::string name_;
 
-  private:
-
-    // No copying allowed
-    FileLock(const FileLock&);
-    void operator=(const FileLock&);
+ private:
+  // No copying allowed
+  FileLock(const FileLock&);
+  void operator=(const FileLock&);
 };
 
 Status LockFile(const std::string& f, FileLock** l);
@@ -67,7 +65,6 @@ Status UnlockFile(FileLock* l);
 
 int GetChildren(const std::string& dir, std::vector<std::string>& result);
 bool GetDescendant(const std::string& dir, std::vector<std::string>& result);
-
 
 uint64_t NowMicros();
 void SleepForMicroseconds(int micros);
@@ -89,7 +86,7 @@ Status NewRandomRWFile(const std::string& fname, RandomRWFile** result);
 // at a time to the file.
 class WritableFile {
  public:
-  WritableFile() { }
+  WritableFile() {}
   virtual ~WritableFile();
 
   virtual Status Append(const Slice& data) = 0;
@@ -108,22 +105,22 @@ class WritableFile {
 // A abstract for the sequential readable file
 class SequentialFile {
  public:
-  SequentialFile() {};
+  SequentialFile(){};
   virtual ~SequentialFile();
-  //virtual Status Read(size_t n, char *&result, char *scratch) = 0;
+  // virtual Status Read(size_t n, char *&result, char *scratch) = 0;
   virtual Status Read(size_t n, Slice* result, char* scratch) = 0;
   virtual Status Skip(uint64_t n) = 0;
-  //virtual Status Close() = 0;
-  virtual char *ReadLine(char *buf, int n) = 0;
+  // virtual Status Close() = 0;
+  virtual char* ReadLine(char* buf, int n) = 0;
 };
 
 class RWFile {
-public:
-  RWFile() { }
+ public:
+  RWFile() {}
   virtual ~RWFile();
   virtual char* GetData() = 0;
 
-private:
+ private:
   // No copying allowed
   RWFile(const RWFile&);
   void operator=(const RWFile&);
@@ -150,10 +147,9 @@ class RandomRWFile {
   // status.
   //
   // Safe for concurrent use by multiple threads.
-  virtual Status Read(uint64_t offset, size_t n, Slice* result,
-                      char* scratch) const = 0;
-  virtual Status Close() = 0; // closes the file
-  virtual Status Sync() = 0; // sync data
+  virtual Status Read(uint64_t offset, size_t n, Slice* result, char* scratch) const = 0;
+  virtual Status Close() = 0;  // closes the file
+  virtual Status Sync() = 0;   // sync data
 
   /*
    * Sync data and/or metadata as well.
@@ -161,9 +157,7 @@ class RandomRWFile {
    * Override this method for environments where we need to sync
    * metadata as well.
    */
-  virtual Status Fsync() {
-    return Sync();
-  }
+  virtual Status Fsync() { return Sync(); }
 
   /*
    * Pre-allocate space for a file.
@@ -180,6 +174,5 @@ class RandomRWFile {
   void operator=(const RandomRWFile&);
 };
 
-
-}   // namespace pstd
+}  // namespace pstd
 #endif  // __PSTD_ENV_H__

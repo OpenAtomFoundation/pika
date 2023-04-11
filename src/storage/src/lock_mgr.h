@@ -6,8 +6,8 @@
 #ifndef SRC_LOCK_MGR_H_
 #define SRC_LOCK_MGR_H_
 
-#include <string>
 #include <memory>
+#include <string>
 
 #include "src/mutex.h"
 
@@ -18,8 +18,7 @@ struct LockMapStripe;
 
 class LockMgr {
  public:
-  LockMgr(size_t default_num_stripes, int64_t max_num_locks,
-          std::shared_ptr<MutexFactory> factory);
+  LockMgr(size_t default_num_stripes, int64_t max_num_locks, std::shared_ptr<MutexFactory> factory);
 
   ~LockMgr();
 

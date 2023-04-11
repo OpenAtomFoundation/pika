@@ -6,23 +6,23 @@
 #ifndef NET_INCLUDE_PUBSUB_H_
 #define NET_INCLUDE_PUBSUB_H_
 
-#include <string>
-#include <functional>
-#include <queue>
-#include <map>
-#include <utility>
-#include <atomic>
-#include <vector>
-#include <set>
 #include <fcntl.h>
+#include <atomic>
+#include <functional>
+#include <map>
+#include <queue>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
-#include "pstd/include/xdebug.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_string.h"
+#include "pstd/include/xdebug.h"
 
-#include "net/src/net_multiplexer.h"
-#include "net/include/net_thread.h"
 #include "net/include/net_define.h"
+#include "net/include/net_thread.h"
+#include "net/src/net_multiplexer.h"
 
 namespace net {
 
@@ -39,21 +39,15 @@ class PubSubThread : public Thread {
 
   int Publish(const std::string& channel, const std::string& msg);
 
-  void Subscribe(std::shared_ptr<NetConn> conn,
-                 const std::vector<std::string>& channels,
-                 const bool pattern,
+  void Subscribe(std::shared_ptr<NetConn> conn, const std::vector<std::string>& channels, const bool pattern,
                  std::vector<std::pair<std::string, int>>* result);
 
-  int UnSubscribe(std::shared_ptr<NetConn> conn,
-                  const std::vector<std::string>& channels,
-                  const bool pattern,
+  int UnSubscribe(std::shared_ptr<NetConn> conn, const std::vector<std::string>& channels, const bool pattern,
                   std::vector<std::pair<std::string, int>>* result);
 
-  void PubSubChannels(const std::string& pattern,
-                      std::vector<std::string >* result);
+  void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
 
-  void PubSubNumSub(const std::vector<std::string>& channels,
-                    std::vector<std::pair<std::string, int>>* result);
+  void PubSubNumSub(const std::vector<std::string>& channels, std::vector<std::pair<std::string, int>>* result);
 
   int PubSubNumPat();
 
@@ -68,8 +62,7 @@ class PubSubThread : public Thread {
   };
 
   struct ConnHandle {
-    ConnHandle(std::shared_ptr<NetConn> pc, ReadyState state = kNotReady)
-      : conn(pc), ready_state(state) { }
+    ConnHandle(std::shared_ptr<NetConn> pc, ReadyState state = kNotReady) : conn(pc), ready_state(state) {}
     void UpdateReadyState(const ReadyState& state);
     bool IsReady();
     std::shared_ptr<NetConn> conn;
@@ -89,7 +82,7 @@ class PubSubThread : public Thread {
   bool should_exit_;
 
   mutable pstd::RWMutex rwlock_; /* For external statistics */
-  std::map<int, std::shared_ptr<ConnHandle> > conns_;
+  std::map<int, std::shared_ptr<ConnHandle>> conns_;
 
   pstd::Mutex pub_mutex_;
   pstd::CondVar receiver_rsignal_;
@@ -110,7 +103,7 @@ class PubSubThread : public Thread {
    */
   std::unique_ptr<NetMultiplexer> net_multiplexer_;
 
-  virtual void *ThreadMain();
+  virtual void* ThreadMain();
 
   // clean conns
   void Cleanup();
@@ -119,8 +112,8 @@ class PubSubThread : public Thread {
   pstd::Mutex channel_mutex_;
   pstd::Mutex pattern_mutex_;
 
-  std::map<std::string, std::vector<std::shared_ptr<NetConn> >> pubsub_channel_;    // channel <---> conns
-  std::map<std::string, std::vector<std::shared_ptr<NetConn> >> pubsub_pattern_;    // channel <---> conns
+  std::map<std::string, std::vector<std::shared_ptr<NetConn>>> pubsub_channel_;  // channel <---> conns
+  std::map<std::string, std::vector<std::shared_ptr<NetConn>>> pubsub_pattern_;  // channel <---> conns
 
   // No copying allowed
   PubSubThread(const PubSubThread&);

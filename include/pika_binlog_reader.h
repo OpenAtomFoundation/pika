@@ -6,17 +6,17 @@
 #ifndef PIKA_BINLOG_READER_H_
 #define PIKA_BINLOG_READER_H_
 
-#include <string>
 #include <memory>
+#include <string>
 
-#include "pstd/include/pstd_status.h"
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_slice.h"
+#include "pstd/include/pstd_status.h"
 
 #include "include/pika_binlog.h"
 
-using pstd::Status;
 using pstd::Slice;
+using pstd::Status;
 
 class PikaBinlogReader {
  public:
@@ -27,9 +27,10 @@ class PikaBinlogReader {
   int Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
   bool ReadToTheEnd();
   void GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset);
+
  private:
   bool GetNext(uint64_t* size);
-  unsigned int ReadPhysicalRecord(pstd::Slice *redult, uint32_t* filenum, uint64_t* offset);
+  unsigned int ReadPhysicalRecord(pstd::Slice* redult, uint32_t* filenum, uint64_t* offset);
   // Returns scratch binflog and corresponding offset
   Status Consume(std::string* scratch, uint32_t* filenum, uint64_t* offset);
 
@@ -39,7 +40,7 @@ class PikaBinlogReader {
   uint64_t last_record_offset_;
 
   std::shared_ptr<Binlog> logger_;
-  pstd::SequentialFile *queue_;
+  pstd::SequentialFile* queue_;
 
   char* const backing_store_;
   Slice buffer_;

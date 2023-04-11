@@ -20,11 +20,7 @@ std::string NewFileName(const std::string name, const uint32_t current) {
 /*
  * Version
  */
-Version::Version(slash::RWFile *save)
-  : pro_num_(0),
-    pro_offset_(0),
-    logic_id_(0),
-    save_(save) {
+Version::Version(slash::RWFile* save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
   assert(save_ != NULL);
 
   pthread_rwlock_init(&rwlock_, NULL);
@@ -36,7 +32,7 @@ Version::~Version() {
 }
 
 Status Version::StableSave() {
-  char *p = save_->GetData();
+  char* p = save_->GetData();
   memcpy(p, &pro_num_, sizeof(uint32_t));
   p += 4;
   memcpy(p, &pro_offset_, sizeof(uint64_t));
@@ -61,20 +57,19 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(const std::string& binlog_path, const int file_size) :
-    consumer_num_(0),
-    version_(NULL),
-    queue_(NULL),
-    versionfile_(NULL),
-    pro_num_(0),
-    pool_(NULL),
-    exit_all_consume_(false),
-    binlog_path_(binlog_path),
-    file_size_(file_size) {
-
+Binlog::Binlog(const std::string& binlog_path, const int file_size)
+    : consumer_num_(0),
+      version_(NULL),
+      queue_(NULL),
+      versionfile_(NULL),
+      pro_num_(0),
+      pool_(NULL),
+      exit_all_consume_(false),
+      binlog_path_(binlog_path),
+      file_size_(file_size) {
   // To intergrate with old version, we don't set mmap file size to 100M;
-  //slash::SetMmapBoundSize(file_size);
-  //slash::kMmapBoundSize = 1024 * 1024 * 100;
+  // slash::SetMmapBoundSize(file_size);
+  // slash::kMmapBoundSize = 1024 * 1024 * 100;
 
   Status s;
 
@@ -90,10 +85,9 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
     profile = NewFileName(filename, pro_num_);
     s = slash::NewWritableFile(profile, &queue_);
     if (!s.ok()) {
-      std::cout  << "Binlog: new " << filename << " " << s.ToString();
+      std::cout << "Binlog: new " << filename << " " << s.ToString();
       exit(-1);
     }
-
 
     s = slash::NewRWFile(manifest, &versionfile_);
     if (!s.ok()) {
@@ -113,7 +107,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size) :
       pro_num_ = version_->pro_num_;
 
       // Debug
-      //version_->debug();
+      // version_->debug();
     } else {
       std::cout << "Binlog: open versionfile error";
       exit(-1);
@@ -157,9 +151,7 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64
 }
 
 // Note: mutex lock should be held
-Status Binlog::Put(const std::string &item) {
-  return Put(item.c_str(), item.size());
-}
+Status Binlog::Put(const std::string& item) { return Put(item.c_str(), item.size()); }
 
 // Note: mutex lock should be held
 Status Binlog::Put(const char* item, int len) {
@@ -195,43 +187,43 @@ Status Binlog::Put(const char* item, int len) {
 
   return s;
 }
- 
-Status Binlog::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n, int *temp_pro_offset) {
-    Status s;
-    assert(n <= 0xffffff);
-    assert(block_offset_ + kHeaderSize + n <= kBlockSize);
 
-    char buf[kHeaderSize];
+Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset) {
+  Status s;
+  assert(n <= 0xffffff);
+  assert(block_offset_ + kHeaderSize + n <= kBlockSize);
 
-    uint64_t now;
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    now = tv.tv_sec;
-    buf[0] = static_cast<char>(n & 0xff);
-    buf[1] = static_cast<char>((n & 0xff00) >> 8);
-    buf[2] = static_cast<char>(n >> 16);
-    buf[3] = static_cast<char>(now & 0xff);
-    buf[4] = static_cast<char>((now & 0xff00) >> 8);
-    buf[5] = static_cast<char>((now & 0xff0000) >> 16);
-    buf[6] = static_cast<char>((now & 0xff000000) >> 24);
-    buf[7] = static_cast<char>(t);
+  char buf[kHeaderSize];
 
-    s = queue_->Append(Slice(buf, kHeaderSize));
+  uint64_t now;
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  now = tv.tv_sec;
+  buf[0] = static_cast<char>(n & 0xff);
+  buf[1] = static_cast<char>((n & 0xff00) >> 8);
+  buf[2] = static_cast<char>(n >> 16);
+  buf[3] = static_cast<char>(now & 0xff);
+  buf[4] = static_cast<char>((now & 0xff00) >> 8);
+  buf[5] = static_cast<char>((now & 0xff0000) >> 16);
+  buf[6] = static_cast<char>((now & 0xff000000) >> 24);
+  buf[7] = static_cast<char>(t);
+
+  s = queue_->Append(Slice(buf, kHeaderSize));
+  if (s.ok()) {
+    s = queue_->Append(Slice(ptr, n));
     if (s.ok()) {
-        s = queue_->Append(Slice(ptr, n));
-        if (s.ok()) {
-            s = queue_->Flush();
-        }
+      s = queue_->Flush();
     }
-    block_offset_ += static_cast<int>(kHeaderSize + n);
+  }
+  block_offset_ += static_cast<int>(kHeaderSize + n);
 
-    *temp_pro_offset += kHeaderSize + n;
-    return s;
+  *temp_pro_offset += kHeaderSize + n;
+  return s;
 }
 
-Status Binlog::Produce(const Slice &item, int *temp_pro_offset) {
+Status Binlog::Produce(const Slice& item, int* temp_pro_offset) {
   Status s;
-  const char *ptr = item.data();
+  const char* ptr = item.data();
   size_t left = item.size();
   bool begin = true;
 
@@ -272,8 +264,8 @@ Status Binlog::Produce(const Slice &item, int *temp_pro_offset) {
 
   return s;
 }
- 
-Status Binlog::AppendBlank(slash::WritableFile *file, uint64_t len) {
+
+Status Binlog::AppendBlank(slash::WritableFile* file, uint64_t len) {
   if (len < kHeaderSize) {
     return Status::OK();
   }
@@ -291,7 +283,7 @@ Status Binlog::AppendBlank(slash::WritableFile *file, uint64_t len) {
   if (len % kBlockSize < kHeaderSize) {
     n = 0;
   } else {
-    n = (uint32_t) ((len % kBlockSize) - kHeaderSize);
+    n = (uint32_t)((len % kBlockSize) - kHeaderSize);
   }
 
   char buf[kBlockSize];

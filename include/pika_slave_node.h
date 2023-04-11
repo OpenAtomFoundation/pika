@@ -9,30 +9,27 @@
 #include <deque>
 #include <memory>
 
-#include "include/pika_define.h"
 #include "include/pika_binlog_reader.h"
+#include "include/pika_define.h"
 
 struct SyncWinItem {
   LogOffset offset_;
   std::size_t binlog_size_;
   bool acked_;
   bool operator==(const SyncWinItem& other) const {
-    return offset_.b_offset.filenum == other.offset_.b_offset.filenum
-      && offset_.b_offset.offset == other.offset_.b_offset.offset;
+    return offset_.b_offset.filenum == other.offset_.b_offset.filenum &&
+           offset_.b_offset.offset == other.offset_.b_offset.offset;
   }
   explicit SyncWinItem(const LogOffset& offset, std::size_t binlog_size = 0)
-    : offset_(offset), binlog_size_(binlog_size), acked_(false) {
-  }
+      : offset_(offset), binlog_size_(binlog_size), acked_(false) {}
   std::string ToString() const {
-    return offset_.ToString() + " binglog size: " + std::to_string(binlog_size_) +
-      " acked: " + std::to_string(acked_);
+    return offset_.ToString() + " binglog size: " + std::to_string(binlog_size_) + " acked: " + std::to_string(acked_);
   }
 };
 
 class SyncWindow {
  public:
-  SyncWindow() :total_size_(0) {
-  }
+  SyncWindow() : total_size_(0) {}
   void Push(const SyncWinItem& item);
   bool Update(const SyncWinItem& start_item, const SyncWinItem& end_item, LogOffset* acked_offset);
   int Remaining();
@@ -47,9 +44,7 @@ class SyncWindow {
       return res;
     }
   }
-  std::size_t GetTotalBinlogSize() {
-    return total_size_;
-  }
+  std::size_t GetTotalBinlogSize() { return total_size_; }
   void Reset() {
     win_.clear();
     total_size_ = 0;
@@ -66,12 +61,8 @@ class SlaveNode : public RmNode {
  public:
   SlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int session_id);
   ~SlaveNode();
-  void Lock() {
-    slave_mu.Lock();
-  }
-  void Unlock() {
-    slave_mu.Unlock();
-  }
+  void Lock() { slave_mu.Lock(); }
+  void Unlock() { slave_mu.Unlock(); }
   SlaveState slave_state;
 
   BinlogSyncState b_state;

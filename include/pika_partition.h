@@ -6,9 +6,9 @@
 #ifndef PIKA_PARTITION_H_
 #define PIKA_PARTITION_H_
 
-#include "storage/storage.h"
-#include "storage/backupable.h"
 #include "pstd/include/scope_record_lock.h"
+#include "storage/backupable.h"
+#include "storage/storage.h"
 
 #include "include/pika_binlog.h"
 
@@ -21,17 +21,15 @@ struct KeyScanInfo {
   time_t start_time;
   std::string s_start_time;
   int32_t duration;
-  std::vector<storage::KeyInfo> key_infos; //the order is strings, hashes, lists, zsets, sets
+  std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets
   bool key_scaning_;
-  KeyScanInfo() :
-      start_time(0),
-      s_start_time("1970-01-01 08:00:00"),
-      duration(-3),
-      key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}),
-      key_scaning_(false) {
-  }
+  KeyScanInfo()
+      : start_time(0),
+        s_start_time("1970-01-01 08:00:00"),
+        duration(-3),
+        key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}),
+        key_scaning_(false) {}
 };
-
 
 struct BgSaveInfo {
   bool bgsaving;
@@ -49,9 +47,7 @@ struct BgSaveInfo {
 
 class Partition : public std::enable_shared_from_this<Partition> {
  public:
-  Partition(const std::string& table_name,
-            uint32_t partition_id,
-            const std::string& table_db_path);
+  Partition(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path);
   virtual ~Partition();
 
   std::string GetTableName() const;
@@ -129,7 +125,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
    */
   Partition(const Partition&);
   void operator=(const Partition&);
-
 };
 
 #endif

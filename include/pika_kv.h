@@ -11,26 +11,22 @@
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
-
 /*
  * kv
  */
 class SetCmd : public Cmd {
  public:
-  enum SetCondition {kNONE, kNX, kXX, kVX, kEXORPX};
-  SetCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag), sec_(0), condition_(kNONE) {};
+  enum SetCondition { kNONE, kNX, kXX, kVX, kEXORPX };
+  SetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), sec_(0), condition_(kNONE){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new SetCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new SetCmd(*this); }
 
  private:
   std::string key_;
@@ -45,29 +41,23 @@ class SetCmd : public Cmd {
     success_ = 0;
     condition_ = kNONE;
   }
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
+  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                               uint64_t offset) override;
 };
 
 class GetCmd : public Cmd {
  public:
-  GetCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+  GetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new GetCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new GetCmd(*this); }
+
  private:
   std::string key_;
   virtual void DoInitial() override;
@@ -75,17 +65,12 @@ class GetCmd : public Cmd {
 
 class DelCmd : public Cmd {
  public:
-  DelCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag), split_res_(0) {};
+  DelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), split_res_(0){};
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual std::vector<std::string> current_key() const {
-    return keys_;
-  }
+  virtual std::vector<std::string> current_key() const { return keys_; }
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys);
   virtual void Merge();
-  virtual Cmd* Clone() override {
-    return new DelCmd(*this);
-  }
+  virtual Cmd* Clone() override { return new DelCmd(*this); }
 
  private:
   std::vector<std::string> keys_;
@@ -95,19 +80,17 @@ class DelCmd : public Cmd {
 
 class IncrCmd : public Cmd {
  public:
-  IncrCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+  IncrCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new IncrCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new IncrCmd(*this); }
+
  private:
   std::string key_;
   int64_t new_value_;
@@ -116,19 +99,17 @@ class IncrCmd : public Cmd {
 
 class IncrbyCmd : public Cmd {
  public:
-  IncrbyCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+  IncrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new IncrbyCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new IncrbyCmd(*this); }
+
  private:
   std::string key_;
   int64_t by_, new_value_;
@@ -137,19 +118,17 @@ class IncrbyCmd : public Cmd {
 
 class IncrbyfloatCmd : public Cmd {
  public:
-  IncrbyfloatCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+  IncrbyfloatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new IncrbyfloatCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new IncrbyfloatCmd(*this); }
+
  private:
   std::string key_, value_, new_value_;
   double by_;
@@ -158,19 +137,17 @@ class IncrbyfloatCmd : public Cmd {
 
 class DecrCmd : public Cmd {
  public:
-  DecrCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+  DecrCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new DecrCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new DecrCmd(*this); }
+
  private:
   std::string key_;
   int64_t new_value_;
@@ -179,19 +156,17 @@ class DecrCmd : public Cmd {
 
 class DecrbyCmd : public Cmd {
  public:
-  DecrbyCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+  DecrbyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new DecrbyCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new DecrbyCmd(*this); }
+
  private:
   std::string key_;
   int64_t by_, new_value_;
@@ -200,19 +175,17 @@ class DecrbyCmd : public Cmd {
 
 class GetsetCmd : public Cmd {
  public:
-  GetsetCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+  GetsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new GetsetCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new GetsetCmd(*this); }
+
  private:
   std::string key_;
   std::string new_value_;
@@ -221,19 +194,17 @@ class GetsetCmd : public Cmd {
 
 class AppendCmd : public Cmd {
  public:
-  AppendCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+  AppendCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new AppendCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new AppendCmd(*this); }
+
  private:
   std::string key_;
   std::string value_;
@@ -242,17 +213,12 @@ class AppendCmd : public Cmd {
 
 class MgetCmd : public Cmd {
  public:
-  MgetCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {};
+  MgetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual std::vector<std::string> current_key() const {
-    return keys_;
-  }
+  virtual std::vector<std::string> current_key() const { return keys_; }
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys);
   virtual void Merge();
-  virtual Cmd* Clone() override {
-    return new MgetCmd(*this);
-  }
+  virtual Cmd* Clone() override { return new MgetCmd(*this); }
 
  private:
   std::vector<std::string> keys_;
@@ -262,122 +228,98 @@ class MgetCmd : public Cmd {
 
 class KeysCmd : public Cmd {
  public:
-  KeysCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag), type_(storage::DataType::kAll) {}
+  KeysCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), type_(storage::DataType::kAll) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new KeysCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new KeysCmd(*this); }
+
  private:
   std::string pattern_;
   storage::DataType type_;
   virtual void DoInitial() override;
-  virtual void Clear() {
-    type_ = storage::DataType::kAll;
-  }
+  virtual void Clear() { type_ = storage::DataType::kAll; }
 };
 
 class SetnxCmd : public Cmd {
  public:
-  SetnxCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  SetnxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new SetnxCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new SetnxCmd(*this); }
+
  private:
   std::string key_;
   std::string value_;
   int32_t success_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
+  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                               uint64_t offset) override;
 };
 
 class SetexCmd : public Cmd {
  public:
-  SetexCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  SetexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new SetexCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new SetexCmd(*this); }
+
  private:
   std::string key_;
   int64_t sec_;
   std::string value_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
+  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                               uint64_t offset) override;
 };
 
 class PsetexCmd : public Cmd {
  public:
-  PsetexCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  PsetexCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PsetexCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PsetexCmd(*this); }
+
  private:
   std::string key_;
   int64_t usec_;
   std::string value_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
+  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                               uint64_t offset) override;
 };
 
 class DelvxCmd : public Cmd {
  public:
-  DelvxCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  DelvxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new DelvxCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new DelvxCmd(*this); }
+
  private:
   std::string key_;
   std::string value_;
@@ -387,8 +329,7 @@ class DelvxCmd : public Cmd {
 
 class MsetCmd : public Cmd {
  public:
-  MsetCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  MsetCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
@@ -399,9 +340,8 @@ class MsetCmd : public Cmd {
   }
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys);
   virtual void Merge();
-  virtual Cmd* Clone() override {
-    return new MsetCmd(*this);
-  }
+  virtual Cmd* Clone() override { return new MsetCmd(*this); }
+
  private:
   std::vector<storage::KeyValue> kvs_;
   virtual void DoInitial() override;
@@ -409,14 +349,12 @@ class MsetCmd : public Cmd {
 
 class MsetnxCmd : public Cmd {
  public:
-  MsetnxCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  MsetnxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new MsetnxCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new MsetnxCmd(*this); }
+
  private:
   std::vector<storage::KeyValue> kvs_;
   int32_t success_;
@@ -425,19 +363,17 @@ class MsetnxCmd : public Cmd {
 
 class GetrangeCmd : public Cmd {
  public:
-  GetrangeCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  GetrangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new GetrangeCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new GetrangeCmd(*this); }
+
  private:
   std::string key_;
   int64_t start_;
@@ -447,19 +383,17 @@ class GetrangeCmd : public Cmd {
 
 class SetrangeCmd : public Cmd {
  public:
-  SetrangeCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  SetrangeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new SetrangeCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new SetrangeCmd(*this); }
+
  private:
   std::string key_;
   int64_t offset_;
@@ -469,19 +403,17 @@ class SetrangeCmd : public Cmd {
 
 class StrlenCmd : public Cmd {
  public:
-  StrlenCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  StrlenCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new StrlenCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new StrlenCmd(*this); }
+
  private:
   std::string key_;
   virtual void DoInitial() override;
@@ -489,17 +421,12 @@ class StrlenCmd : public Cmd {
 
 class ExistsCmd : public Cmd {
  public:
-  ExistsCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), split_res_(0) {}
+  ExistsCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), split_res_(0) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual std::vector<std::string> current_key() const {
-    return keys_;
-  }
+  virtual std::vector<std::string> current_key() const { return keys_; }
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys);
   virtual void Merge();
-  virtual Cmd* Clone() override {
-    return new ExistsCmd(*this);
-  }
+  virtual Cmd* Clone() override { return new ExistsCmd(*this); }
 
  private:
   std::vector<std::string> keys_;
@@ -509,73 +436,59 @@ class ExistsCmd : public Cmd {
 
 class ExpireCmd : public Cmd {
  public:
-  ExpireCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  ExpireCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ExpireCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ExpireCmd(*this); }
+
  private:
   std::string key_;
   int64_t sec_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
+  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                               uint64_t offset) override;
 };
 
 class PexpireCmd : public Cmd {
  public:
-  PexpireCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  PexpireCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PexpireCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PexpireCmd(*this); }
+
  private:
   std::string key_;
   int64_t msec_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
+  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                               uint64_t offset) override;
 };
 
 class ExpireatCmd : public Cmd {
  public:
-  ExpireatCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  ExpireatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ExpireatCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ExpireatCmd(*this); }
+
  private:
   std::string key_;
   int64_t time_stamp_;
@@ -584,46 +497,38 @@ class ExpireatCmd : public Cmd {
 
 class PexpireatCmd : public Cmd {
  public:
-  PexpireatCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  PexpireatCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PexpireatCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PexpireatCmd(*this); }
+
  private:
   std::string key_;
   int64_t time_stamp_ms_;
   virtual void DoInitial() override;
-  virtual std::string ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) override;
+  virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                               uint64_t offset) override;
 };
 
 class TtlCmd : public Cmd {
  public:
-  TtlCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  TtlCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new TtlCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new TtlCmd(*this); }
+
  private:
   std::string key_;
   virtual void DoInitial() override;
@@ -631,19 +536,17 @@ class TtlCmd : public Cmd {
 
 class PttlCmd : public Cmd {
  public:
-  PttlCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  PttlCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PttlCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PttlCmd(*this); }
+
  private:
   std::string key_;
   virtual void DoInitial() override;
@@ -651,19 +554,17 @@ class PttlCmd : public Cmd {
 
 class PersistCmd : public Cmd {
  public:
-  PersistCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  PersistCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PersistCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PersistCmd(*this); }
+
  private:
   std::string key_;
   virtual void DoInitial() override;
@@ -671,19 +572,17 @@ class PersistCmd : public Cmd {
 
 class TypeCmd : public Cmd {
  public:
-  TypeCmd(const std::string& name, int arity, uint16_t flag)
-     : Cmd(name, arity, flag) {}
+  TypeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new TypeCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new TypeCmd(*this); }
+
  private:
   std::string key_;
   virtual void DoInitial() override;
@@ -691,14 +590,12 @@ class TypeCmd : public Cmd {
 
 class ScanCmd : public Cmd {
  public:
-  ScanCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
+  ScanCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ScanCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ScanCmd(*this); }
+
  private:
   int64_t cursor_;
   std::string pattern_;
@@ -712,14 +609,12 @@ class ScanCmd : public Cmd {
 
 class ScanxCmd : public Cmd {
  public:
-  ScanxCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
+  ScanxCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), pattern_("*"), count_(10) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new ScanxCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new ScanxCmd(*this); }
+
  private:
   storage::DataType type_;
   std::string start_key_;
@@ -733,28 +628,24 @@ class ScanxCmd : public Cmd {
 };
 
 class PKSetexAtCmd : public Cmd {
-public:
-  PKSetexAtCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), time_stamp_(0) {}
+ public:
+  PKSetexAtCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), time_stamp_(0) {}
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PKSetexAtCmd(*this);
-  }
-private:
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PKSetexAtCmd(*this); }
+
+ private:
   std::string key_;
   std::string value_;
   int64_t time_stamp_;
   virtual void DoInitial() override;
-  virtual void Clear() {
-    time_stamp_ = 0;
-  }
+  virtual void Clear() { time_stamp_ = 0; }
 };
 
 class PKScanRangeCmd : public Cmd {
@@ -767,11 +658,10 @@ class PKScanRangeCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PKScanRangeCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PKScanRangeCmd(*this); }
+
  private:
   storage::DataType type_;
   std::string key_start_;
@@ -797,11 +687,10 @@ class PKRScanRangeCmd : public Cmd {
     return res;
   }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PKRScanRangeCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PKRScanRangeCmd(*this); }
+
  private:
   storage::DataType type_;
   std::string key_start_;

@@ -7,7 +7,7 @@
 
 #include "include/pika_conf.h"
 
-extern PikaConf *g_pika_conf;
+extern PikaConf* g_pika_conf;
 
 /* SyncWindow */
 
@@ -16,8 +16,7 @@ void SyncWindow::Push(const SyncWinItem& item) {
   total_size_ += item.binlog_size_;
 }
 
-bool SyncWindow::Update(const SyncWinItem& start_item,
-    const SyncWinItem& end_item,  LogOffset* acked_offset) {
+bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_item, LogOffset* acked_offset) {
   size_t start_pos = win_.size(), end_pos = win_.size();
   for (size_t i = 0; i < win_.size(); ++i) {
     if (win_[i] == start_item) {
@@ -29,10 +28,10 @@ bool SyncWindow::Update(const SyncWinItem& start_item,
     }
   }
   if (start_pos == win_.size() || end_pos == win_.size()) {
-    LOG(WARNING) << "Ack offset Start: " <<
-      start_item.ToString() << "End: " << end_item.ToString() <<
-      " not found in binlog controller window." <<
-      std::endl << "window status "<< std::endl << ToStringStatus();
+    LOG(WARNING) << "Ack offset Start: " << start_item.ToString() << "End: " << end_item.ToString()
+                 << " not found in binlog controller window." << std::endl
+                 << "window status " << std::endl
+                 << ToStringStatus();
     return false;
   }
   for (size_t i = start_pos; i <= end_pos; ++i) {
@@ -52,24 +51,22 @@ bool SyncWindow::Update(const SyncWinItem& start_item,
 
 int SyncWindow::Remaining() {
   std::size_t remaining_size = g_pika_conf->sync_window_size() - win_.size();
-  return remaining_size > 0? remaining_size:0 ;
+  return remaining_size > 0 ? remaining_size : 0;
 }
 
 /* SlaveNode */
 
-SlaveNode::SlaveNode(const std::string& ip, int port,
-                     const std::string& table_name,
-                     uint32_t partition_id, int session_id)
-  : RmNode(ip, port, table_name, partition_id, session_id),
-  slave_state(kSlaveNotSync),
-  b_state(kNotSync), sent_offset(), acked_offset() {
-}
+SlaveNode::SlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id,
+                     int session_id)
+    : RmNode(ip, port, table_name, partition_id, session_id),
+      slave_state(kSlaveNotSync),
+      b_state(kNotSync),
+      sent_offset(),
+      acked_offset() {}
 
-SlaveNode::~SlaveNode() {
-}
+SlaveNode::~SlaveNode() {}
 
-Status SlaveNode::InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog,
-                                       const BinlogOffset& offset) {
+Status SlaveNode::InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, const BinlogOffset& offset) {
   binlog_reader = std::make_shared<PikaBinlogReader>();
   int res = binlog_reader->Seek(binlog, offset.filenum, offset.offset);
   if (res) {
@@ -82,7 +79,9 @@ std::string SlaveNode::ToStringStatus() {
   std::stringstream tmp_stream;
   tmp_stream << "    Slave_state: " << SlaveStateMsg[slave_state] << "\r\n";
   tmp_stream << "    Binlog_sync_state: " << BinlogSyncStateMsg[b_state] << "\r\n";
-  tmp_stream << "    Sync_window: " << "\r\n" << sync_win.ToStringStatus();
+  tmp_stream << "    Sync_window: "
+             << "\r\n"
+             << sync_win.ToStringStatus();
   tmp_stream << "    Sent_offset: " << sent_offset.ToString() << "\r\n";
   tmp_stream << "    Acked_offset: " << acked_offset.ToString() << "\r\n";
   tmp_stream << "    Binlog_reader activated: " << (binlog_reader != nullptr) << "\r\n";

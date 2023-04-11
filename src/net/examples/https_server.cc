@@ -3,16 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <string>
-#include <chrono>
-#include <atomic>
 #include <signal.h>
+#include <atomic>
+#include <chrono>
+#include <string>
 
-#include "pstd/include/pstd_status.h"
-#include "pstd/include/pstd_hash.h"
+#include "net/include/http_conn.h"
 #include "net/include/net_thread.h"
 #include "net/include/server_thread.h"
-#include "net/include/http_conn.h"
+#include "pstd/include/pstd_hash.h"
+#include "pstd/include/pstd_status.h"
 
 using namespace net;
 
@@ -62,12 +62,10 @@ class MyHTTPHandles : public net::HTTPHandles {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port,
-                                ServerThread* thread,
-                                void* worker_specific_data) const {
+  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, ServerThread* thread,
+                                              void* worker_specific_data) const {
     auto my_handles = std::make_shared<MyHTTPHandles>();
-    return make_shared<net::HTTPConn>(connfd, ip_port, thread, my_handles,
-                                       worker_specific_data);
+    return make_shared<net::HTTPConn>(connfd, ip_port, thread, my_handles, worker_specific_data);
   }
 };
 
@@ -98,10 +96,9 @@ int main(int argc, char* argv[]) {
   SignalSetup();
 
   ConnFactory* my_conn_factory = new MyConnFactory();
-  ServerThread *st = NewDispatchThread(port, 4, my_conn_factory, 1000);
+  ServerThread* st = NewDispatchThread(port, 4, my_conn_factory, 1000);
 
-  if (st->EnableSecurity("/complete_path_to/host.crt",
-                         "/complete_path_to/host.key") != 0) {
+  if (st->EnableSecurity("/complete_path_to/host.crt", "/complete_path_to/host.key") != 0) {
     printf("EnableSecurity error happened!\n");
     exit(-1);
   }

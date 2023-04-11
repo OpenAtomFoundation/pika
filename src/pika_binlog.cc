@@ -22,8 +22,7 @@ std::string NewFileName(const std::string name, const uint32_t current) {
 /*
  * Version
  */
-Version::Version(pstd::RWFile *save)
-    : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
+Version::Version(pstd::RWFile* save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
   assert(save_ != NULL);
 
   pthread_rwlock_init(&rwlock_, NULL);
@@ -35,7 +34,7 @@ Version::~Version() {
 }
 
 Status Version::StableSave() {
-  char *p = save_->GetData();
+  char* p = save_->GetData();
   memcpy(p, &pro_num_, sizeof(uint32_t));
   p += 4;
   memcpy(p, &pro_offset_, sizeof(uint64_t));
@@ -62,12 +61,17 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(const std::string &binlog_path, const int file_size)
-    : opened_(false), version_(NULL), queue_(NULL), versionfile_(NULL),
-      pro_num_(0), pool_(NULL), exit_all_consume_(false),
-      binlog_path_(binlog_path), file_size_(file_size),
+Binlog::Binlog(const std::string& binlog_path, const int file_size)
+    : opened_(false),
+      version_(NULL),
+      queue_(NULL),
+      versionfile_(NULL),
+      pro_num_(0),
+      pool_(NULL),
+      exit_all_consume_(false),
+      binlog_path_(binlog_path),
+      file_size_(file_size),
       binlog_io_error_(false) {
-
   // To intergrate with old version, we don't set mmap file size to 100M;
   // pstd::SetMmapBoundSize(file_size);
   // pstd::kMmapBoundSize = 1024 * 1024 * 100;
@@ -115,8 +119,7 @@ Binlog::Binlog(const std::string &binlog_path, const int file_size)
     DLOG(INFO) << "Binlog: open profile " << profile;
     s = pstd::AppendWritableFile(profile, &queue_, version_->pro_offset_);
     if (!s.ok()) {
-      LOG(FATAL) << "Binlog: Open file " << profile << " error "
-                 << s.ToString();
+      LOG(FATAL) << "Binlog: Open file " << profile << " error " << s.ToString();
     }
 
     uint64_t filesize = queue_->Filesize();
@@ -151,8 +154,7 @@ void Binlog::InitLogFile() {
   opened_.store(true);
 }
 
-Status Binlog::GetProducerStatus(uint32_t *filenum, uint64_t *pro_offset,
-                                 uint32_t *term, uint64_t *logic_id) {
+Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term, uint64_t* logic_id) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");
   }
@@ -172,7 +174,7 @@ Status Binlog::GetProducerStatus(uint32_t *filenum, uint64_t *pro_offset,
 }
 
 // Note: mutex lock should be held
-Status Binlog::Put(const std::string &item) {
+Status Binlog::Put(const std::string& item) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");
   }
@@ -184,13 +186,13 @@ Status Binlog::Put(const std::string &item) {
 }
 
 // Note: mutex lock should be held
-Status Binlog::Put(const char *item, int len) {
+Status Binlog::Put(const char* item, int len) {
   Status s;
 
   /* Check to roll log file */
   uint64_t filesize = queue_->Filesize();
   if (filesize > file_size_) {
-    pstd::WritableFile * queue = nullptr;
+    pstd::WritableFile* queue = nullptr;
     std::string profile = NewFileName(filename_, pro_num_ + 1);
     s = pstd::NewWritableFile(profile, &queue);
     if (!s.ok()) {
@@ -222,8 +224,7 @@ Status Binlog::Put(const char *item, int len) {
   return s;
 }
 
-Status Binlog::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n,
-                                  int *temp_pro_offset) {
+Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset) {
   Status s;
   assert(n <= 0xffffff);
   assert(block_offset_ + kHeaderSize + n <= kBlockSize);
@@ -256,9 +257,9 @@ Status Binlog::EmitPhysicalRecord(RecordType t, const char *ptr, size_t n,
   return s;
 }
 
-Status Binlog::Produce(const Slice &item, int *temp_pro_offset) {
+Status Binlog::Produce(const Slice& item, int* temp_pro_offset) {
   Status s;
-  const char *ptr = item.data();
+  const char* ptr = item.data();
   size_t left = item.size();
   bool begin = true;
 
@@ -341,14 +342,12 @@ Status Binlog::AppendPadding(pstd::WritableFile* file, uint64_t* len) {
   }
   *len -= left;
   if (left != 0) {
-    LOG(WARNING) << "AppendPadding left bytes: " << left
-                 << " is less then kHeaderSize";
+    LOG(WARNING) << "AppendPadding left bytes: " << left << " is less then kHeaderSize";
   }
   return s;
 }
 
-Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset,
-                                 uint32_t term, uint64_t index) {
+Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset, uint32_t term, uint64_t index) {
   if (!opened_.load()) {
     return Status::Busy("Binlog is not open yet");
   }

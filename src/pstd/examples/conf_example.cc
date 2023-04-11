@@ -3,8 +3,7 @@
 
 using namespace pstd;
 
-int main()
-{
+int main() {
   BaseConf b("./conf/pika.conf");
 
   if (b.LoadConf() == 0) {

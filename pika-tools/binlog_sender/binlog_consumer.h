@@ -9,10 +9,10 @@
 #include "stddef.h"
 #include "stdint.h"
 
-#include "slash/include/slash_slice.h"
-#include "slash/include/slash_status.h"
 #include "slash/include/env.h"
 #include "slash/include/slash_mutex.h"
+#include "slash/include/slash_slice.h"
+#include "slash/include/slash_status.h"
 
 enum RecordType {
   kZeroType = 0,
@@ -33,37 +33,32 @@ static const size_t kBlockSize = 64 * 1024;
 static const std::string kBinlogPrefix = "write2file";
 
 class BinlogConsumer {
-  public:
-    BinlogConsumer(const std::string& binlog_path,
-                   uint32_t first_filenum,
-                   uint32_t last_filenum,
-                   uint64_t offset);
-    virtual ~BinlogConsumer();
+ public:
+  BinlogConsumer(const std::string& binlog_path, uint32_t first_filenum, uint32_t last_filenum, uint64_t offset);
+  virtual ~BinlogConsumer();
 
-    std::string NewFileName(const std::string& name,
-                            const uint32_t current);
-    bool Init();
-    bool trim();
-    uint32_t current_filenum();
-    uint64_t current_offset();
-    slash::Status Parse(std::string* scratch);
+  std::string NewFileName(const std::string& name, const uint32_t current);
+  bool Init();
+  bool trim();
+  uint32_t current_filenum();
+  uint64_t current_offset();
+  slash::Status Parse(std::string* scratch);
 
-  private:
-    uint64_t get_next(bool* is_error);
-    uint32_t ReadPhysicalRecord(slash::Slice* result);
-    slash::Status Consume(std::string* scratch);
-    std::string filename_;
-    uint32_t first_filenum_;
-    uint32_t last_filenum_;
+ private:
+  uint64_t get_next(bool* is_error);
+  uint32_t ReadPhysicalRecord(slash::Slice* result);
+  slash::Status Consume(std::string* scratch);
+  std::string filename_;
+  uint32_t first_filenum_;
+  uint32_t last_filenum_;
 
-    uint32_t current_filenum_; 
-    uint64_t current_offset_;
-    uint64_t last_record_offset_;
+  uint32_t current_filenum_;
+  uint64_t current_offset_;
+  uint64_t last_record_offset_;
 
-
-    slash::Slice buffer_;
-    char* const backing_store_;
-    slash::SequentialFile* queue_;
+  slash::Slice buffer_;
+  char* const backing_store_;
+  slash::SequentialFile* queue_;
 };
 
-#endif  //  INCLUDE_BINLOG_Consumber_H_ 
+#endif  //  INCLUDE_BINLOG_Consumber_H_

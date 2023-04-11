@@ -11,13 +11,13 @@
 #include "include/pika_command.h"
 #include "include/pika_data_distribution.h"
 
-
 class PikaCmdTableManager {
  public:
   PikaCmdTableManager();
   virtual ~PikaCmdTableManager();
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   uint32_t DistributeKey(const std::string& key, uint32_t partition_num);
+
  private:
   std::shared_ptr<Cmd> NewCommand(const std::string& opt);
 

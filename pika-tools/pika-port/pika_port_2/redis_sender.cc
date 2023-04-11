@@ -1,28 +1,25 @@
+#include "redis_sender.h"
+#include <glog/logging.h>
 #include <time.h>
 #include <unistd.h>
-#include <glog/logging.h>
-#include "redis_sender.h"
 // #include "binlog_log.h"
 
 static time_t kCheckDiff = 1;
 
-RedisSender::RedisSender(int id, std::string ip, int64_t port, std::string password):
-  id_(id),
-  cli_(NULL),
-  rsignal_(&commands_mutex_),
-  wsignal_(&commands_mutex_),
-  ip_(ip),
-  port_(port),
-  password_(password),
-  should_exit_(false),
-  elements_(0) {
-
+RedisSender::RedisSender(int id, std::string ip, int64_t port, std::string password)
+    : id_(id),
+      cli_(NULL),
+      rsignal_(&commands_mutex_),
+      wsignal_(&commands_mutex_),
+      ip_(ip),
+      port_(port),
+      password_(password),
+      should_exit_(false),
+      elements_(0) {
   last_write_time_ = ::time(NULL);
 }
 
-RedisSender::~RedisSender() {
-  DLOG(INFO) << "RedisSender thread " << id_ << " exit!!!";
-}
+RedisSender::~RedisSender() { DLOG(INFO) << "RedisSender thread " << id_ << " exit!!!"; }
 
 void RedisSender::ConnectRedis() {
   while (cli_ == NULL) {
@@ -103,7 +100,7 @@ void RedisSender::Stop() {
   commands_mutex_.Unlock();
 }
 
-void RedisSender::SendRedisCommand(const std::string &command) {
+void RedisSender::SendRedisCommand(const std::string& command) {
   commands_mutex_.Lock();
   if (commands_queue_.size() < 100000) {
     commands_queue_.push(command);
@@ -121,7 +118,7 @@ void RedisSender::SendRedisCommand(const std::string &command) {
   commands_mutex_.Unlock();
 }
 
-int RedisSender::SendCommand(std::string &command) {
+int RedisSender::SendCommand(std::string& command) {
   time_t now = ::time(NULL);
   if (kCheckDiff < now - last_write_time_) {
     int ret = cli_->CheckAliveness();
@@ -139,17 +136,17 @@ int RedisSender::SendCommand(std::string &command) {
       return 0;
     }
 
-    DLOG(WARNING) << "RedisSender " << id_ << " fails to send redis command " << command << ", times:" << (idx+1);
+    DLOG(WARNING) << "RedisSender " << id_ << " fails to send redis command " << command << ", times:" << (idx + 1);
     cli_->Close();
     log_info("%s", s.ToString().data());
     cli_ = NULL;
     ConnectRedis();
-  } while(++idx < 3);
+  } while (++idx < 3);
 
   return -1;
 }
 
-void *RedisSender::ThreadMain() {
+void* RedisSender::ThreadMain() {
   DLOG(INFO) << "Start sender " << id_ << " thread...";
   // sleep(15);
   int cnt = 0;
@@ -189,12 +186,12 @@ void *RedisSender::ThreadMain() {
     }
 
     if (cnt >= 200) {
-      for(; cnt > 0; cnt--) {
+      for (; cnt > 0; cnt--) {
         cli_->Recv(NULL);
       }
     }
   }
-  for(; cnt > 0; cnt--) {
+  for (; cnt > 0; cnt--) {
     cli_->Recv(NULL);
   }
 
@@ -203,4 +200,3 @@ void *RedisSender::ThreadMain() {
   DLOG(INFO) << "RedisSender thread " << id_ << " complete";
   return NULL;
 }
-

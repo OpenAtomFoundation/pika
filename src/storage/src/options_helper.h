@@ -37,7 +37,8 @@ inline int offset_of(T1 T2::*member) {
 static std::unordered_map<std::string, MemberTypeInfo> mutable_db_options_member_type_info = {
     {"max_background_jobs", {offsetof(struct rocksdb::DBOptions, max_background_jobs), MemberType::kInt}},
     {"max_background_compactions", {offsetof(struct rocksdb::DBOptions, max_background_compactions), MemberType::kInt}},
-    // {"base_background_compactions", {offsetof(struct rocksdb::DBOptions, base_background_compactions), MemberType::kInt}},
+    // {"base_background_compactions", {offsetof(struct rocksdb::DBOptions, base_background_compactions),
+    // MemberType::kInt}},
     {"max_open_files", {offsetof(struct rocksdb::DBOptions, max_open_files), MemberType::kInt}},
     {"bytes_per_sync", {offsetof(struct rocksdb::DBOptions, bytes_per_sync), MemberType::kUint64T}},
     {"delayed_write_rate", {offsetof(struct rocksdb::DBOptions, delayed_write_rate), MemberType::kUint64T}},
@@ -50,19 +51,23 @@ static std::unordered_map<std::string, MemberTypeInfo> mutable_cf_options_member
     {"max_write_buffer_number", {offset_of(&rocksdb::ColumnFamilyOptions::max_write_buffer_number), MemberType::kInt}},
     {"write_buffer_size", {offset_of(&rocksdb::ColumnFamilyOptions::write_buffer_size), MemberType::kSizeT}},
     {"target_file_size_base", {offset_of(&rocksdb::ColumnFamilyOptions::target_file_size_base), MemberType::kUint64T}},
-    {"target_file_size_multiplier", {offset_of(&rocksdb::ColumnFamilyOptions::target_file_size_multiplier), MemberType::kInt}},
+    {"target_file_size_multiplier",
+     {offset_of(&rocksdb::ColumnFamilyOptions::target_file_size_multiplier), MemberType::kInt}},
     {"arena_block_size", {offset_of(&rocksdb::ColumnFamilyOptions::arena_block_size), MemberType::kSizeT}},
-    {"level0_file_num_compaction_trigger", {offset_of(&rocksdb::ColumnFamilyOptions::level0_file_num_compaction_trigger), MemberType::kInt}},
-    {"level0_slowdown_writes_trigger", {offset_of(&rocksdb::ColumnFamilyOptions::level0_slowdown_writes_trigger), MemberType::kInt}},
-    {"level0_stop_writes_trigger", {offset_of(&rocksdb::ColumnFamilyOptions::level0_stop_writes_trigger), MemberType::kInt}},
+    {"level0_file_num_compaction_trigger",
+     {offset_of(&rocksdb::ColumnFamilyOptions::level0_file_num_compaction_trigger), MemberType::kInt}},
+    {"level0_slowdown_writes_trigger",
+     {offset_of(&rocksdb::ColumnFamilyOptions::level0_slowdown_writes_trigger), MemberType::kInt}},
+    {"level0_stop_writes_trigger",
+     {offset_of(&rocksdb::ColumnFamilyOptions::level0_stop_writes_trigger), MemberType::kInt}},
     {"max_compaction_bytes", {offset_of(&rocksdb::ColumnFamilyOptions::max_compaction_bytes), MemberType::kUint64T}},
-    {"soft_pending_compaction_bytes_limit", {offset_of(&rocksdb::ColumnFamilyOptions::soft_pending_compaction_bytes_limit), MemberType::kUint64T}},
-    {"hard_pending_compaction_bytes_limit", {offset_of(&rocksdb::ColumnFamilyOptions::hard_pending_compaction_bytes_limit), MemberType::kUint64T}},
+    {"soft_pending_compaction_bytes_limit",
+     {offset_of(&rocksdb::ColumnFamilyOptions::soft_pending_compaction_bytes_limit), MemberType::kUint64T}},
+    {"hard_pending_compaction_bytes_limit",
+     {offset_of(&rocksdb::ColumnFamilyOptions::hard_pending_compaction_bytes_limit), MemberType::kUint64T}},
 };
 
-extern bool ParseOptionMember(const MemberType& member_type,
-                              const std::string& value,
-                              char* member_address);
+extern bool ParseOptionMember(const MemberType& member_type, const std::string& value, char* member_address);
 
 }  //  namespace storage
 #endif  //  SRC_OPTIONS_HELPER_H

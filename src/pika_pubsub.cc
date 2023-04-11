@@ -7,25 +7,27 @@
 
 #include "include/pika_server.h"
 
-extern PikaServer *g_pika_server;
+extern PikaServer* g_pika_server;
 
-
-static std::string ConstructPubSubResp(
-                                const std::string& cmd,
-                                const std::vector<std::pair<std::string, int>>& result) {
+static std::string ConstructPubSubResp(const std::string& cmd, const std::vector<std::pair<std::string, int>>& result) {
   std::stringstream resp;
   if (result.size() == 0) {
-    resp << "*3\r\n" << "$" << cmd.length() << "\r\n" << cmd << "\r\n" <<
-                        "$" << -1           << "\r\n" << ":" << 0      << "\r\n";
+    resp << "*3\r\n"
+         << "$" << cmd.length() << "\r\n"
+         << cmd << "\r\n"
+         << "$" << -1 << "\r\n"
+         << ":" << 0 << "\r\n";
   }
   for (auto it = result.begin(); it != result.end(); it++) {
-    resp << "*3\r\n" << "$" << cmd.length()       << "\r\n" << cmd       << "\r\n" <<
-                        "$" << it->first.length() << "\r\n" << it->first << "\r\n" <<
-                        ":" << it->second         << "\r\n";
+    resp << "*3\r\n"
+         << "$" << cmd.length() << "\r\n"
+         << cmd << "\r\n"
+         << "$" << it->first.length() << "\r\n"
+         << it->first << "\r\n"
+         << ":" << it->second << "\r\n";
   }
   return resp.str();
 }
-
 
 void PublishCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -53,11 +55,11 @@ void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameSubscribe);
-    LOG(WARNING) << name_  << " weak ptr is empty";
+    LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
-  std::vector<std::string > channels;
+  std::vector<std::string> channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
   }
@@ -65,12 +67,12 @@ void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
     cli_conn->server_thread()->MoveConnOut(conn->fd());
     cli_conn->SetIsPubSub(true);
     cli_conn->SetHandleType(net::HandleType::kSynchronous);
-    cli_conn->SetWriteCompleteCallback([cli_conn](){
-        if (!cli_conn->IsPubSub()) {
-          return;
-        }
-        cli_conn->set_is_writable(true);
-        g_pika_server->EnablePublish(cli_conn->fd());
+    cli_conn->SetWriteCompleteCallback([cli_conn]() {
+      if (!cli_conn->IsPubSub()) {
+        return;
+      }
+      cli_conn->set_is_writable(true);
+      g_pika_server->EnablePublish(cli_conn->fd());
     });
   }
   std::vector<std::pair<std::string, int>> result;
@@ -86,7 +88,7 @@ void UnSubscribeCmd::DoInitial() {
 }
 
 void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<std::string > channels;
+  std::vector<std::string> channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
   }
@@ -94,7 +96,7 @@ void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNameUnSubscribe);
-    LOG(WARNING) << name_  << " weak ptr is empty";
+    LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
@@ -107,13 +109,13 @@ void UnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
      * the client will exit the Pub/Sub state
      */
     cli_conn->SetIsPubSub(false);
-    cli_conn->SetWriteCompleteCallback([cli_conn, conn](){
-        if (cli_conn->IsPubSub()) {
-          return;
-        }
-        cli_conn->set_is_writable(false);
-        cli_conn->SetHandleType(net::HandleType::kAsynchronous);
-        cli_conn->server_thread()->MoveConnIn(conn, net::NotifyType::kNotiWait);
+    cli_conn->SetWriteCompleteCallback([cli_conn, conn]() {
+      if (cli_conn->IsPubSub()) {
+        return;
+      }
+      cli_conn->set_is_writable(false);
+      cli_conn->SetHandleType(net::HandleType::kAsynchronous);
+      cli_conn->server_thread()->MoveConnIn(conn, net::NotifyType::kNotiWait);
     });
   }
   return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
@@ -130,7 +132,7 @@ void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePSubscribe);
-    LOG(WARNING) << name_  << " weak ptr is empty";
+    LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
@@ -138,15 +140,15 @@ void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
     cli_conn->server_thread()->MoveConnOut(conn->fd());
     cli_conn->SetIsPubSub(true);
     cli_conn->SetHandleType(net::HandleType::kSynchronous);
-    cli_conn->SetWriteCompleteCallback([cli_conn](){
-        if (!cli_conn->IsPubSub()) {
-          return;
-        }
-        cli_conn->set_is_writable(true);
-        g_pika_server->EnablePublish(cli_conn->fd());
+    cli_conn->SetWriteCompleteCallback([cli_conn]() {
+      if (!cli_conn->IsPubSub()) {
+        return;
+      }
+      cli_conn->set_is_writable(true);
+      g_pika_server->EnablePublish(cli_conn->fd());
     });
   }
-  std::vector<std::string > channels;
+  std::vector<std::string> channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
   }
@@ -163,7 +165,7 @@ void PUnSubscribeCmd::DoInitial() {
 }
 
 void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<std::string > channels;
+  std::vector<std::string> channels;
   for (size_t i = 1; i < argv_.size(); i++) {
     channels.push_back(argv_[i]);
   }
@@ -171,7 +173,7 @@ void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<net::NetConn> conn = GetConn();
   if (!conn) {
     res_.SetRes(CmdRes::kErrOther, kCmdNamePUnSubscribe);
-    LOG(WARNING) << name_  << " weak ptr is empty";
+    LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
@@ -184,13 +186,13 @@ void PUnSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
      * the client will exit the Pub/Sub state
      */
     cli_conn->SetIsPubSub(false);
-    cli_conn->SetWriteCompleteCallback([cli_conn, conn](){
-        if (cli_conn->IsPubSub()) {
-          return;
-        }
-        cli_conn->set_is_writable(false);
-        cli_conn->SetHandleType(net::HandleType::kAsynchronous);
-        cli_conn->server_thread()->MoveConnIn(conn, net::NotifyType::kNotiWait);
+    cli_conn->SetWriteCompleteCallback([cli_conn, conn]() {
+      if (cli_conn->IsPubSub()) {
+        return;
+      }
+      cli_conn->set_is_writable(false);
+      cli_conn->SetHandleType(net::HandleType::kAsynchronous);
+      cli_conn->server_thread()->MoveConnIn(conn, net::NotifyType::kNotiWait);
     });
   }
   return res_.SetRes(CmdRes::kNone, ConstructPubSubResp(name_, result));
@@ -202,24 +204,24 @@ void PubSubCmd::DoInitial() {
     return;
   }
   subcommand_ = argv_[1];
-  if (strcasecmp(subcommand_.data(), "channels")
-    && strcasecmp(subcommand_.data(), "numsub")
-    && strcasecmp(subcommand_.data(), "numpat")) {
+  if (strcasecmp(subcommand_.data(), "channels") && strcasecmp(subcommand_.data(), "numsub") &&
+      strcasecmp(subcommand_.data(), "numpat")) {
     res_.SetRes(CmdRes::kErrOther, "Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
   }
   for (size_t i = 2; i < argv_.size(); i++) {
-    arguments_.push_back(argv_[i]); 
+    arguments_.push_back(argv_[i]);
   }
 }
 
 void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
   if (!strcasecmp(subcommand_.data(), "channels")) {
     std::string pattern = "";
-    std::vector<std::string > result;
+    std::vector<std::string> result;
     if (arguments_.size() == 1) {
       pattern = arguments_[0];
     } else if (arguments_.size() > 1) {
-      res_.SetRes(CmdRes::kErrOther, "Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
+      res_.SetRes(CmdRes::kErrOther,
+                  "Unknown PUBSUB subcommand or wrong number of arguments for '" + subcommand_ + "'");
       return;
     }
     g_pika_server->PubSubChannels(pattern, &result);
@@ -235,7 +237,7 @@ void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendArrayLen(result.size() * 2);
     for (auto it = result.begin(); it != result.end(); ++it) {
       res_.AppendStringLen(it->first.length());
-      res_.AppendContent(it->first); 
+      res_.AppendContent(it->first);
       res_.AppendInteger(it->second);
     }
     return;
@@ -245,4 +247,3 @@ void PubSubCmd::Do(std::shared_ptr<Partition> partition) {
   }
   return;
 }
-

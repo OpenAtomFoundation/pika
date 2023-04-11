@@ -9,7 +9,7 @@
 
 #include "include/pika_conf.h"
 
-extern PikaConf *g_pika_conf;
+extern PikaConf* g_pika_conf;
 
 void HDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -18,7 +18,7 @@ void HDelCmd::DoInitial() {
   }
   key_ = argv_[1];
   PikaCmdArgsType::iterator iter = argv_.begin();
-  iter++; 
+  iter++;
   iter++;
   fields_.assign(iter, argv_.end());
   return;
@@ -128,7 +128,6 @@ void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
   }
   return;
 }
-
 
 void HExistsCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -259,7 +258,7 @@ void HMgetCmd::DoInitial() {
   PikaCmdArgsType::iterator iter = argv_.begin();
   iter++;
   iter++;
-  fields_.assign(iter, argv_.end()); 
+  fields_.assign(iter, argv_.end());
   return;
 }
 
@@ -391,8 +390,7 @@ void HScanCmd::DoInitial() {
 
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "count")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -429,7 +427,7 @@ void HScanCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendStringLen(len);
     res_.AppendContent(buf);
 
-    res_.AppendArrayLen(field_values.size()*2);
+    res_.AppendArrayLen(field_values.size() * 2);
     for (const auto& field_value : field_values) {
       res_.AppendString(field_value.field);
       res_.AppendString(field_value.value);
@@ -451,8 +449,7 @@ void HScanxCmd::DoInitial() {
   size_t index = 3, argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "count")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -510,8 +507,7 @@ void PKHScanRangeCmd::DoInitial() {
   size_t index = 4, argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "limit")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "limit")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -535,8 +531,8 @@ void PKHScanRangeCmd::DoInitial() {
 void PKHScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s = partition->db()->PKHScanRange(key_, field_start_, field_end_,
-          pattern_, limit_, &field_values, &next_field);
+  rocksdb::Status s =
+      partition->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -565,8 +561,7 @@ void PKHRScanRangeCmd::DoInitial() {
   size_t index = 4, argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "limit")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "limit")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -590,8 +585,8 @@ void PKHRScanRangeCmd::DoInitial() {
 void PKHRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s = partition->db()->PKHRScanRange(key_, field_start_, field_end_,
-          pattern_, limit_, &field_values, &next_field);
+  rocksdb::Status s =
+      partition->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);

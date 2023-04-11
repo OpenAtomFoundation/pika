@@ -18,8 +18,7 @@ QpsStatistic::QpsStatistic()
       last_write_querynum(0),
       last_sec_querynum(0),
       last_sec_write_querynum(0),
-      last_time_us(0) {
-}
+      last_time_us(0) {}
 
 QpsStatistic::QpsStatistic(const QpsStatistic& other) {
   querynum = other.querynum.load();
@@ -31,8 +30,7 @@ QpsStatistic::QpsStatistic(const QpsStatistic& other) {
   last_time_us = other.last_time_us.load();
 }
 
-QpsStatistic::~QpsStatistic() {
-}
+QpsStatistic::~QpsStatistic() {}
 
 void QpsStatistic::IncreaseQueryNum(bool is_write) {
   querynum++;
@@ -60,10 +58,8 @@ void QpsStatistic::ResetLastSecQuerynum() {
     cur_time_us = last_time + 1;
   }
   uint64_t delta_time_us = cur_time_us - last_time;
-  last_sec_querynum.store(delta_query
-       * 1000000 / (delta_time_us));
-  last_sec_write_querynum.store(delta_write_query
-       * 1000000 / (delta_time_us));
+  last_sec_querynum.store(delta_query * 1000000 / (delta_time_us));
+  last_sec_write_querynum.store(delta_write_query * 1000000 / (delta_time_us));
   last_querynum.store(cur_query);
   last_write_querynum.store(cur_write_query);
 
@@ -72,8 +68,7 @@ void QpsStatistic::ResetLastSecQuerynum() {
 
 /* ServerStatistic */
 
-ServerStatistic::ServerStatistic()
-    : accumulative_connections(0) {
+ServerStatistic::ServerStatistic() : accumulative_connections(0) {
   CmdTable* cmds = new CmdTable();
   cmds->reserve(300);
   InitCmdTable(cmds);
@@ -86,8 +81,7 @@ ServerStatistic::ServerStatistic()
   delete cmds;
 }
 
-ServerStatistic::~ServerStatistic() {
-}
+ServerStatistic::~ServerStatistic() {}
 
 /* Statistic */
 
@@ -95,8 +89,7 @@ Statistic::Statistic() {
   pthread_rwlockattr_t table_stat_rw_attr;
   pthread_rwlockattr_init(&table_stat_rw_attr);
 #if !defined(__APPLE__)
-  pthread_rwlockattr_setkind_np(&table_stat_rw_attr,
-      PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
+  pthread_rwlockattr_setkind_np(&table_stat_rw_attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
 #endif
   pthread_rwlock_init(&table_stat_rw, &table_stat_rw_attr);
 }
@@ -111,8 +104,7 @@ std::unordered_map<std::string, QpsStatistic> Statistic::AllTableStat() {
   return table_stat;
 }
 
-void Statistic::UpdateTableQps(
-    const std::string& table_name, const std::string& command, bool is_write) {
+void Statistic::UpdateTableQps(const std::string& table_name, const std::string& command, bool is_write) {
   bool table_exist = true;
   std::unordered_map<std::string, QpsStatistic>::iterator iter;
   {
@@ -140,9 +132,3 @@ void Statistic::ResetTableLastSecQuerynum() {
     stat.second.ResetLastSecQuerynum();
   }
 }
-
-
-
-
-
-

@@ -5,28 +5,23 @@
 
 #include "include/pika_table.h"
 
-#include "include/pika_server.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
+#include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
-std::string TablePath(const std::string& path,
-                      const std::string& table_name) {
+std::string TablePath(const std::string& path, const std::string& table_name) {
   char buf[100];
   snprintf(buf, sizeof(buf), "%s/", table_name.data());
   return path + buf;
 }
 
-Table::Table(const std::string& table_name,
-             uint32_t partition_num,
-             const std::string& db_path,
-             const std::string& log_path) :
-  table_name_(table_name),
-  partition_num_(partition_num) {
-
+Table::Table(const std::string& table_name, uint32_t partition_num, const std::string& db_path,
+             const std::string& log_path)
+    : table_name_(table_name), partition_num_(partition_num) {
   db_path_ = TablePath(db_path, table_name_);
   log_path_ = TablePath(log_path, "log_" + table_name_);
 
@@ -44,9 +39,7 @@ Table::~Table() {
   partitions_.clear();
 }
 
-std::string Table::GetTableName() {
-  return table_name_;
-}
+std::string Table::GetTableName() { return table_name_; }
 
 void Table::BgSaveTable() {
   pstd::RWLock l(&partitions_rw_, false);
@@ -86,33 +79,24 @@ bool Table::FlushPartitionSubDB(const std::string& db_name) {
   return true;
 }
 
-void Table::SetBinlogIoError() {
-  return binlog_io_error_.store(true);
-}
+void Table::SetBinlogIoError() { return binlog_io_error_.store(true); }
 
-bool Table::IsBinlogIoError() {
-  return binlog_io_error_.load();
-}
+bool Table::IsBinlogIoError() { return binlog_io_error_.load(); }
 
-uint32_t Table::PartitionNum() {
-  return partition_num_;
-}
+uint32_t Table::PartitionNum() { return partition_num_; }
 
 Status Table::AddPartitions(const std::set<uint32_t>& partition_ids) {
   pstd::RWLock l(&partitions_rw_, true);
   for (const uint32_t& id : partition_ids) {
     if (id >= partition_num_) {
-      return Status::Corruption("partition index out of range[0, "
-              + std::to_string(partition_num_ - 1) + "]");
+      return Status::Corruption("partition index out of range[0, " + std::to_string(partition_num_ - 1) + "]");
     } else if (partitions_.find(id) != partitions_.end()) {
-      return Status::Corruption("partition "
-              + std::to_string(id) + " already exist");
+      return Status::Corruption("partition " + std::to_string(id) + " already exist");
     }
   }
 
   for (const uint32_t& id : partition_ids) {
-    partitions_.emplace(id, std::make_shared<Partition>(
-          table_name_, id, db_path_));
+    partitions_.emplace(id, std::make_shared<Partition>(table_name_, id, db_path_));
   }
   return Status::OK();
 }
@@ -146,8 +130,8 @@ void Table::KeyScan() {
   }
 
   key_scan_info_.key_scaning_ = true;
-  key_scan_info_.duration = -2;       // duration -2 mean the task in waiting status,
-                                      // has not been scheduled for exec
+  key_scan_info_.duration = -2;  // duration -2 mean the task in waiting status,
+                                 // has not been scheduled for exec
   BgTaskArg* bg_task_arg = new BgTaskArg();
   bg_task_arg->table = shared_from_this();
   g_pika_server->KeyScanTaskSchedule(&DoKeyScan, reinterpret_cast<void*>(bg_task_arg));
@@ -227,7 +211,7 @@ void Table::Compact(const storage::DataType& type) {
   }
 }
 
-void Table::DoKeyScan(void *arg) {
+void Table::DoKeyScan(void* arg) {
   BgTaskArg* bg_task_arg = reinterpret_cast<BgTaskArg*>(arg);
   bg_task_arg->table->RunKeyScan();
   delete bg_task_arg;
@@ -238,7 +222,7 @@ void Table::InitKeyScan() {
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
-  key_scan_info_.duration = -1;       // duration -1 mean the task in processing
+  key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
 
 void Table::LeaveAllPartition() {
@@ -285,14 +269,13 @@ Status Table::Leave() {
 }
 
 Status Table::MovetoToTrash(const std::string& path) {
-
   std::string path_tmp = path;
   if (path_tmp[path_tmp.length() - 1] == '/') {
     path_tmp.erase(path_tmp.length() - 1);
   }
   path_tmp += "_deleting/";
   if (pstd::RenameFile(path, path_tmp)) {
-    LOG(WARNING) << "Failed to move " << path  <<" to trash, error: " << strerror(errno);
+    LOG(WARNING) << "Failed to move " << path << " to trash, error: " << strerror(errno);
     return Status::Corruption("Failed to move %s to trash", path);
   }
   g_pika_server->PurgeDir(path_tmp);

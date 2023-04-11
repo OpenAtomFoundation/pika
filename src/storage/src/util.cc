@@ -4,8 +4,8 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include <ctype.h>
-#include <stdint.h>
 #include <limits.h>
+#include <stdint.h>
 #include <unistd.h>
 
 #include "src/coding.h"
@@ -22,8 +22,7 @@ uint32_t Digits10(uint64_t v) {
   if (v < 1000000000000UL) {
     if (v < 100000000UL) {
       if (v < 1000000) {
-        if (v < 10000)
-          return 4;
+        if (v < 10000) return 4;
         return 5 + (v >= 100000);
       }
       return 7 + (v >= 10000000UL);
@@ -48,137 +47,137 @@ uint32_t Digits10(uint64_t v) {
  * Modified in order to handle signed integers since the original code was
  * designed for unsigned integers. */
 int Int64ToStr(char* dst, size_t dstlen, int64_t svalue) {
-    static const char digits[201] =
-        "0001020304050607080910111213141516171819"
-        "2021222324252627282930313233343536373839"
-        "4041424344454647484950515253545556575859"
-        "6061626364656667686970717273747576777879"
-        "8081828384858687888990919293949596979899";
-    int negative;
-    uint64_t value;
+  static const char digits[201] =
+      "0001020304050607080910111213141516171819"
+      "2021222324252627282930313233343536373839"
+      "4041424344454647484950515253545556575859"
+      "6061626364656667686970717273747576777879"
+      "8081828384858687888990919293949596979899";
+  int negative;
+  uint64_t value;
 
-    /* The main loop works with 64bit unsigned integers for simplicity, so
-     * we convert the number here and remember if it is negative. */
-    if (svalue < 0) {
-        if (svalue != LLONG_MIN) {
-            value = -svalue;
-        } else {
-            value = ((uint64_t) LLONG_MAX)+1;
-        }
-        negative = 1;
+  /* The main loop works with 64bit unsigned integers for simplicity, so
+   * we convert the number here and remember if it is negative. */
+  if (svalue < 0) {
+    if (svalue != LLONG_MIN) {
+      value = -svalue;
     } else {
-        value = svalue;
-        negative = 0;
+      value = ((uint64_t)LLONG_MAX) + 1;
     }
+    negative = 1;
+  } else {
+    value = svalue;
+    negative = 0;
+  }
 
-    /* Check length. */
-    uint32_t const length = Digits10(value)+negative;
-    if (length >= dstlen) return 0;
+  /* Check length. */
+  uint32_t const length = Digits10(value) + negative;
+  if (length >= dstlen) return 0;
 
-    /* Null term. */
-    uint32_t next = length;
-    dst[next] = '\0';
-    next--;
-    while (value >= 100) {
-        int const i = (value % 100) * 2;
-        value /= 100;
-        dst[next] = digits[i + 1];
-        dst[next - 1] = digits[i];
-        next -= 2;
-    }
+  /* Null term. */
+  uint32_t next = length;
+  dst[next] = '\0';
+  next--;
+  while (value >= 100) {
+    int const i = (value % 100) * 2;
+    value /= 100;
+    dst[next] = digits[i + 1];
+    dst[next - 1] = digits[i];
+    next -= 2;
+  }
 
-    /* Handle last 1-2 digits. */
-    if (value < 10) {
-        dst[next] = '0' + (uint32_t) value;
-    } else {
-        int i = (uint32_t) value * 2;
-        dst[next] = digits[i + 1];
-        dst[next - 1] = digits[i];
-    }
+  /* Handle last 1-2 digits. */
+  if (value < 10) {
+    dst[next] = '0' + (uint32_t)value;
+  } else {
+    int i = (uint32_t)value * 2;
+    dst[next] = digits[i + 1];
+    dst[next - 1] = digits[i];
+  }
 
-    /* Add sign. */
-    if (negative) dst[0] = '-';
-    return length;
+  /* Add sign. */
+  if (negative) dst[0] = '-';
+  return length;
 }
 
 /* Convert a string into a long long. Returns 1 if the string could be parsed
  * into a (non-overflowing) long long, 0 otherwise. The value will be set to
  * the parsed value when appropriate. */
-int StrToInt64(const char *s, size_t slen, int64_t *value) {
-    const char *p = s;
-    size_t plen = 0;
-    int negative = 0;
-    uint64_t v;
+int StrToInt64(const char* s, size_t slen, int64_t* value) {
+  const char* p = s;
+  size_t plen = 0;
+  int negative = 0;
+  uint64_t v;
 
-    if (plen == slen)
-        return 0;
+  if (plen == slen) return 0;
 
-    /* Special case: first and only digit is 0. */
-    if (slen == 1 && p[0] == '0') {
-        if (value != NULL) *value = 0;
-        return 1;
-    }
-
-    if (p[0] == '-') {
-        negative = 1;
-        p++; plen++;
-
-        /* Abort on only a negative sign. */
-        if (plen == slen)
-            return 0;
-    }
-
-    while (plen < slen && p[0] == '0') {
-        p++; plen++;
-    }
-
-    if (plen == slen) {
-        if (value != NULL) *value = 0;
-        return 1;
-    }
-
-    /* First digit should be 1-9, otherwise the string should just be 0. */
-    if (p[0] >= '1' && p[0] <= '9') {
-        v = p[0]-'0';
-        p++; plen++;
-    } else if (p[0] == '0' && slen == 1) {
-        *value = 0;
-        return 1;
-    } else {
-        return 0;
-    }
-
-    while (plen < slen && p[0] >= '0' && p[0] <= '9') {
-        if (v > (ULLONG_MAX / 10)) /* Overflow. */
-            return 0;
-        v *= 10;
-
-        if (v > (ULLONG_MAX - (p[0]-'0'))) /* Overflow. */
-            return 0;
-        v += p[0]-'0';
-
-        p++; plen++;
-    }
-
-    /* Return if not all bytes were used. */
-    if (plen < slen)
-        return 0;
-
-    if (negative) {
-        if (v > ((uint64_t)(-(LLONG_MIN+1))+1)) /* Overflow. */
-            return 0;
-        if (value != NULL) *value = -v;
-    } else {
-        if (v > LLONG_MAX) /* Overflow. */
-            return 0;
-        if (value != NULL) *value = v;
-    }
+  /* Special case: first and only digit is 0. */
+  if (slen == 1 && p[0] == '0') {
+    if (value != NULL) *value = 0;
     return 1;
+  }
+
+  if (p[0] == '-') {
+    negative = 1;
+    p++;
+    plen++;
+
+    /* Abort on only a negative sign. */
+    if (plen == slen) return 0;
+  }
+
+  while (plen < slen && p[0] == '0') {
+    p++;
+    plen++;
+  }
+
+  if (plen == slen) {
+    if (value != NULL) *value = 0;
+    return 1;
+  }
+
+  /* First digit should be 1-9, otherwise the string should just be 0. */
+  if (p[0] >= '1' && p[0] <= '9') {
+    v = p[0] - '0';
+    p++;
+    plen++;
+  } else if (p[0] == '0' && slen == 1) {
+    *value = 0;
+    return 1;
+  } else {
+    return 0;
+  }
+
+  while (plen < slen && p[0] >= '0' && p[0] <= '9') {
+    if (v > (ULLONG_MAX / 10)) /* Overflow. */
+      return 0;
+    v *= 10;
+
+    if (v > (ULLONG_MAX - (p[0] - '0'))) /* Overflow. */
+      return 0;
+    v += p[0] - '0';
+
+    p++;
+    plen++;
+  }
+
+  /* Return if not all bytes were used. */
+  if (plen < slen) return 0;
+
+  if (negative) {
+    if (v > ((uint64_t)(-(LLONG_MIN + 1)) + 1)) /* Overflow. */
+      return 0;
+    if (value != NULL) *value = -v;
+  } else {
+    if (v > LLONG_MAX) /* Overflow. */
+      return 0;
+    if (value != NULL) *value = v;
+  }
+  return 1;
 }
 
 /* Glob-style pattern matching. */
-int StringMatch(const char *pattern, int pattern_len, const char* str,
-                int string_len, int nocase) {
+int StringMatch(const char* pattern, int pattern_len, const char* str, int string_len, int nocase) {
   while (pattern_len) {
     switch (pattern[0]) {
       case '*':
@@ -186,25 +185,20 @@ int StringMatch(const char *pattern, int pattern_len, const char* str,
           pattern++;
           pattern_len--;
         }
-        if (pattern_len == 1)
-          return 1; /* match */
+        if (pattern_len == 1) return 1; /* match */
         while (string_len) {
-          if (StringMatch(pattern+1, pattern_len-1,
-                          str, string_len, nocase))
-            return 1; /* match */
+          if (StringMatch(pattern + 1, pattern_len - 1, str, string_len, nocase)) return 1; /* match */
           str++;
           string_len--;
         }
         return 0; /* no match */
         break;
       case '?':
-        if (string_len == 0)
-          return 0; /* no match */
+        if (string_len == 0) return 0; /* no match */
         str++;
         string_len--;
         break;
-      case '[':
-        {
+      case '[': {
         int not_flag, match;
         pattern++;
         pattern_len--;
@@ -218,53 +212,46 @@ int StringMatch(const char *pattern, int pattern_len, const char* str,
           if (pattern[0] == '\\') {
             pattern++;
             pattern_len--;
-            if (pattern[0] == str[0])
-              match = 1;
-            } else if (pattern[0] == ']') {
-              break;
-            } else if (pattern_len == 0) {
-              pattern--;
-              pattern_len++;
-              break;
-            } else if (pattern[1] == '-' && pattern_len >= 3) {
-              int start = pattern[0];
-              int end = pattern[2];
-              int c = str[0];
-              if (start > end) {
-                int t = start;
-                start = end;
-                end = t;
-              }
-              if (nocase) {
-                start = tolower(start);
-                end = tolower(end);
-                c = tolower(c);
-              }
-              pattern += 2;
-              pattern_len -= 2;
-              if (c >= start && c <= end)
-                match = 1;
-              } else {
-                if (!nocase) {
-                  if (pattern[0] == str[0])
-                    match = 1;
-                } else {
-                  if (tolower(static_cast<int>(pattern[0])) ==
-                      tolower(static_cast<int>(str[0])))
-                    match = 1;
-                }
-              }
-              pattern++;
-              pattern_len--;
-            }
-            if (not_flag)
-                match = !match;
-            if (!match)
-                return 0; /* no match */
-            str++;
-            string_len--;
+            if (pattern[0] == str[0]) match = 1;
+          } else if (pattern[0] == ']') {
             break;
+          } else if (pattern_len == 0) {
+            pattern--;
+            pattern_len++;
+            break;
+          } else if (pattern[1] == '-' && pattern_len >= 3) {
+            int start = pattern[0];
+            int end = pattern[2];
+            int c = str[0];
+            if (start > end) {
+              int t = start;
+              start = end;
+              end = t;
+            }
+            if (nocase) {
+              start = tolower(start);
+              end = tolower(end);
+              c = tolower(c);
+            }
+            pattern += 2;
+            pattern_len -= 2;
+            if (c >= start && c <= end) match = 1;
+          } else {
+            if (!nocase) {
+              if (pattern[0] == str[0]) match = 1;
+            } else {
+              if (tolower(static_cast<int>(pattern[0])) == tolower(static_cast<int>(str[0]))) match = 1;
+            }
+          }
+          pattern++;
+          pattern_len--;
         }
+        if (not_flag) match = !match;
+        if (!match) return 0; /* no match */
+        str++;
+        string_len--;
+        break;
+      }
       case '\\':
         if (pattern_len >= 2) {
           pattern++;
@@ -273,92 +260,86 @@ int StringMatch(const char *pattern, int pattern_len, const char* str,
         /* fall through */
       default:
         if (!nocase) {
-          if (pattern[0] != str[0])
-            return 0; /* no match */
+          if (pattern[0] != str[0]) return 0; /* no match */
         } else {
-          if (tolower(static_cast<int>(pattern[0])) !=
-              tolower(static_cast<int>(str[0])))
-            return 0; /* no match */
+          if (tolower(static_cast<int>(pattern[0])) != tolower(static_cast<int>(str[0]))) return 0; /* no match */
         }
         str++;
         string_len--;
         break;
-      }
-      pattern++;
-      pattern_len--;
-      if (string_len == 0) {
-        while (*pattern == '*') {
-          pattern++;
-          pattern_len--;
-        }
-        break;
-      }
     }
-    if (pattern_len == 0 && string_len == 0)
-      return 1;
-    return 0;
+    pattern++;
+    pattern_len--;
+    if (string_len == 0) {
+      while (*pattern == '*') {
+        pattern++;
+        pattern_len--;
+      }
+      break;
+    }
+  }
+  if (pattern_len == 0 && string_len == 0) return 1;
+  return 0;
 }
 
 int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
-    char *pEnd;
-    std::string t(s, slen);
-    if (t.find(" ") != std::string::npos) {
-      return -1;
-    }
-    long double d = strtold(s, &pEnd);
-    if (pEnd != s + slen)
-        return -1;
+  char* pEnd;
+  std::string t(s, slen);
+  if (t.find(" ") != std::string::npos) {
+    return -1;
+  }
+  long double d = strtold(s, &pEnd);
+  if (pEnd != s + slen) return -1;
 
-    if (ldval != NULL) *ldval = d;
-    return 0;
+  if (ldval != NULL) *ldval = d;
+  return 0;
 }
 
 int LongDoubleToStr(long double ldval, std::string* value) {
-    char buf[256];
-    int len;
-    if (std::isnan(ldval)) {
-      return -1;
-    } else if (std::isinf(ldval)) {
-      /* Libc in odd systems (Hi Solaris!) will format infinite in a
-      * different way, so better to handle it in an explicit way. */
-      if (ldval > 0) {
-        memcpy(buf, "inf", 3);
-        len = 3;
-      } else {
-        memcpy(buf, "-inf", 4);
-        len = 4;
-      }
-      return -1;
+  char buf[256];
+  int len;
+  if (std::isnan(ldval)) {
+    return -1;
+  } else if (std::isinf(ldval)) {
+    /* Libc in odd systems (Hi Solaris!) will format infinite in a
+     * different way, so better to handle it in an explicit way. */
+    if (ldval > 0) {
+      memcpy(buf, "inf", 3);
+      len = 3;
     } else {
-      /* We use 17 digits precision since with 128 bit floats that precision
-       * after rounding is able to represent most small decimal numbers in a
-       * way that is "non surprising" for the user (that is, most small
-       * decimal numbers will be represented in a way that when converted
-       * back into a string are exactly the same as what the user typed.) */
-      len = snprintf(buf, sizeof(buf), "%.17Lf", ldval);
-      /* Now remove trailing zeroes after the '.' */
-      if (strchr(buf, '.') != NULL) {
-          char *p = buf+len-1;
-          while (*p == '0') {
-              p--;
-              len--;
-          }
-          if (*p == '.') len--;
-      }
-      value->assign(buf, len);
-      return 0;
+      memcpy(buf, "-inf", 4);
+      len = 4;
     }
+    return -1;
+  } else {
+    /* We use 17 digits precision since with 128 bit floats that precision
+     * after rounding is able to represent most small decimal numbers in a
+     * way that is "non surprising" for the user (that is, most small
+     * decimal numbers will be represented in a way that when converted
+     * back into a string are exactly the same as what the user typed.) */
+    len = snprintf(buf, sizeof(buf), "%.17Lf", ldval);
+    /* Now remove trailing zeroes after the '.' */
+    if (strchr(buf, '.') != NULL) {
+      char* p = buf + len - 1;
+      while (*p == '0') {
+        p--;
+        len--;
+      }
+      if (*p == '.') len--;
+    }
+    value->assign(buf, len);
+    return 0;
+  }
 }
 
-int do_mkdir(const char *path, mode_t mode) {
+int do_mkdir(const char* path, mode_t mode) {
   struct stat st;
   int status = 0;
 
   if (stat(path, &st) != 0) {
     /* Directory does not exist. EEXIST for race
      * condition */
-    if (mkdir(path, mode) != 0 && errno != EEXIST)
-      status = -1;
+    if (mkdir(path, mode) != 0 && errno != EEXIST) status = -1;
   } else if (!S_ISDIR(st.st_mode)) {
     errno = ENOTDIR;
     status = -1;
@@ -373,11 +354,11 @@ int do_mkdir(const char *path, mode_t mode) {
 ** each directory in path exists, rather than optimistically creating
 ** the last element and working backwards.
 */
-int mkpath(const char *path, mode_t mode) {
-  char           *pp;
-  char           *sp;
-  int             status;
-  char           *copypath = strdup(path);
+int mkpath(const char* path, mode_t mode) {
+  char* pp;
+  char* sp;
+  int status;
+  char* copypath = strdup(path);
 
   status = 0;
   pp = copypath;
@@ -390,72 +371,69 @@ int mkpath(const char *path, mode_t mode) {
     }
     pp = sp + 1;
   }
-  if (status == 0)
-    status = do_mkdir(path, mode);
+  if (status == 0) status = do_mkdir(path, mode);
   free(copypath);
   return (status);
 }
 
 int delete_dir(const char* dirname) {
-    char chBuf[256];
-    DIR * dir = NULL;
-    struct dirent *ptr;
-    int ret = 0;
-    dir = opendir(dirname);
-    if (NULL == dir) {
+  char chBuf[256];
+  DIR* dir = NULL;
+  struct dirent* ptr;
+  int ret = 0;
+  dir = opendir(dirname);
+  if (NULL == dir) {
+    return -1;
+  }
+  while ((ptr = readdir(dir)) != NULL) {
+    ret = strcmp(ptr->d_name, ".");
+    if (0 == ret) {
+      continue;
+    }
+    ret = strcmp(ptr->d_name, "..");
+    if (0 == ret) {
+      continue;
+    }
+    snprintf(chBuf, sizeof(256), "%s/%s", dirname, ptr->d_name);
+    ret = is_dir(chBuf);
+    if (0 == ret) {
+      // is dir
+      ret = delete_dir(chBuf);
+      if (0 != ret) {
         return -1;
-    }
-    while ((ptr = readdir(dir)) != NULL) {
-        ret = strcmp(ptr->d_name, ".");
-        if (0 == ret) {
-            continue;
-        }
-        ret = strcmp(ptr->d_name, "..");
-        if (0 == ret) {
-            continue;
-        }
-        snprintf(chBuf, sizeof(256), "%s/%s", dirname, ptr->d_name);
-        ret = is_dir(chBuf);
-        if (0 == ret) {
-            // is dir
-            ret = delete_dir(chBuf);
-            if (0 != ret) {
-                return -1;
-            }
-        } else if (1 == ret) {
-            // is file
-            ret = remove(chBuf);
-            if (0 != ret) {
-                return -1;
-            }
-        }
-    }
-    (void)closedir(dir);
-    ret = remove(dirname);
-    if (0 != ret) {
+      }
+    } else if (1 == ret) {
+      // is file
+      ret = remove(chBuf);
+      if (0 != ret) {
         return -1;
+      }
     }
-    return 0;
+  }
+  (void)closedir(dir);
+  ret = remove(dirname);
+  if (0 != ret) {
+    return -1;
+  }
+  return 0;
 }
 
 int is_dir(const char* filename) {
-    struct stat buf;
-    int ret = stat(filename, &buf);
-    if (0 == ret) {
-        if (buf.st_mode & S_IFDIR) {
-            // folder
-            return 0;
-        } else {
-            // file
-            return 1;
-        }
+  struct stat buf;
+  int ret = stat(filename, &buf);
+  if (0 == ret) {
+    if (buf.st_mode & S_IFDIR) {
+      // folder
+      return 0;
+    } else {
+      // file
+      return 1;
     }
-    return -1;
+  }
+  return -1;
 }
 
-int CalculateMetaStartAndEndKey(const std::string& key,
-                                std::string* meta_start_key,
-                                std::string* meta_end_key) {
+int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_key, std::string* meta_end_key) {
   size_t needed = key.size() + 1;
   char* dst = new char[needed];
   const char* start = dst;
@@ -468,9 +446,7 @@ int CalculateMetaStartAndEndKey(const std::string& key,
   return 0;
 }
 
-int CalculateDataStartAndEndKey(const std::string& key,
-                                std::string* data_start_key,
-                                std::string* data_end_key) {
+int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_key, std::string* data_end_key) {
   size_t needed = sizeof(int32_t) + key.size() + 1;
   char* dst = new char[needed];
   const char* start = dst;
@@ -493,8 +469,7 @@ bool isTailWildcard(const std::string& pattern) {
       return false;
     } else {
       for (uint32_t idx = 0; idx < pattern.size() - 1; ++idx) {
-        if (pattern[idx] == '*' || pattern[idx] == '?'
-          || pattern[idx] == '[' || pattern[idx] == ']') {
+        if (pattern[idx] == '*' || pattern[idx] == '?' || pattern[idx] == '[' || pattern[idx] == ']') {
           return false;
         }
       }
@@ -503,41 +478,35 @@ bool isTailWildcard(const std::string& pattern) {
   return true;
 }
 
-void GetFilepath(const char *path, const char *filename,  char *filepath)
-{
-    strcpy(filepath, path);
-    if(filepath[strlen(path) - 1] != '/')
-        strcat(filepath, "/");
-    strcat(filepath, filename);
+void GetFilepath(const char* path, const char* filename, char* filepath) {
+  strcpy(filepath, path);
+  if (filepath[strlen(path) - 1] != '/') strcat(filepath, "/");
+  strcat(filepath, filename);
 }
 
-bool DeleteFiles(const char* path)
-{
-    DIR *dir;
-    struct dirent *dirinfo;
-    struct stat statbuf;
-    char filepath[256] = {0};
-    lstat(path, &statbuf);
+bool DeleteFiles(const char* path) {
+  DIR* dir;
+  struct dirent* dirinfo;
+  struct stat statbuf;
+  char filepath[256] = {0};
+  lstat(path, &statbuf);
 
-    if (S_ISREG(statbuf.st_mode))//判断是否是常规文件
-    {
-        remove(path);
+  if (S_ISREG(statbuf.st_mode))  // 判断是否是常规文件
+  {
+    remove(path);
+  } else if (S_ISDIR(statbuf.st_mode))  // 判断是否是目录
+  {
+    if ((dir = opendir(path)) == NULL) return 1;
+    while ((dirinfo = readdir(dir)) != NULL) {
+      GetFilepath(path, dirinfo->d_name, filepath);
+      if (strcmp(dirinfo->d_name, ".") == 0 || strcmp(dirinfo->d_name, "..") == 0)  // 判断是否是特殊目录
+        continue;
+      DeleteFiles(filepath);
+      rmdir(filepath);
     }
-    else if (S_ISDIR(statbuf.st_mode))//判断是否是目录
-    {
-        if ((dir = opendir(path)) == NULL)
-            return 1;
-        while ((dirinfo = readdir(dir)) != NULL)
-        {
-            GetFilepath(path, dirinfo->d_name, filepath);
-            if (strcmp(dirinfo->d_name, ".") == 0 || strcmp(dirinfo->d_name, "..") == 0)//判断是否是特殊目录
-              continue;
-            DeleteFiles(filepath);
-            rmdir(filepath);
-        }
-        closedir(dir);
-    }
-    return 0;
+    closedir(dir);
+  }
+  return 0;
 }
 
 }  //  namespace storage

@@ -9,14 +9,11 @@ namespace pstd {
 
 namespace lock {
 
-MultiScopeRecordLock::MultiScopeRecordLock(LockMgr* lock_mgr,
-    const std::vector<std::string>& keys) :
-    lock_mgr_(lock_mgr),
-    keys_(keys) {
+MultiScopeRecordLock::MultiScopeRecordLock(LockMgr* lock_mgr, const std::vector<std::string>& keys)
+    : lock_mgr_(lock_mgr), keys_(keys) {
   std::string pre_key;
   std::sort(keys_.begin(), keys_.end());
-  if (!keys_.empty() &&
-    keys_[0].empty()) {
+  if (!keys_.empty() && keys_[0].empty()) {
     lock_mgr_->TryLock(pre_key);
   }
 
@@ -29,8 +26,7 @@ MultiScopeRecordLock::MultiScopeRecordLock(LockMgr* lock_mgr,
 }
 MultiScopeRecordLock::~MultiScopeRecordLock() {
   std::string pre_key;
-  if (!keys_.empty() &&
-    keys_[0].empty()) {
+  if (!keys_.empty() && keys_[0].empty()) {
     lock_mgr_->UnLock(pre_key);
   }
 
@@ -60,7 +56,6 @@ void MultiRecordLock::Lock(const std::vector<std::string>& keys) {
     }
   }
 }
-
 
 void MultiRecordLock::Unlock(const std::vector<std::string>& keys) {
   std::vector<std::string> internal_keys = keys;

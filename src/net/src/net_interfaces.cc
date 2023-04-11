@@ -7,22 +7,22 @@
 
 #include <unistd.h>
 
-#include <ifaddrs.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
 
 #if defined(__APPLE__)
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <net/if.h>
+#  include <net/if.h>
+#  include <sys/ioctl.h>
+#  include <sys/socket.h>
+#  include <unistd.h>
 
-#include "pstd/include/pstd_defer.h"
+#  include "pstd/include/pstd_defer.h"
 
 #else
-#include <vector>
-#include <fstream>
-#include <sstream>
-#include <iterator>
+#  include <fstream>
+#  include <iterator>
+#  include <sstream>
+#  include <vector>
 
 #endif
 
@@ -39,7 +39,7 @@ std::string GetDefaultInterface() {
 
   DEFER { close(fd); };
 
-  struct ifreq *ifreq;
+  struct ifreq* ifreq;
   struct ifconf ifconf;
   char buf[16384];
 
@@ -61,7 +61,7 @@ std::string GetDefaultInterface() {
       break;
     }
 
-    ifreq = (struct ifreq*)((char*)ifreq+len);
+    ifreq = (struct ifreq*)((char*)ifreq + len);
     i += len;
   }
 
@@ -69,16 +69,14 @@ std::string GetDefaultInterface() {
 #else
   std::string name("eth0");
   std::ifstream routeFile("/proc/net/route", std::ios_base::in);
-  if (!routeFile.good())
-    return name;
+  if (!routeFile.good()) return name;
 
   std::string line;
   std::vector<std::string> tokens;
-  while(std::getline(routeFile, line)) {
+  while (std::getline(routeFile, line)) {
     std::istringstream stream(line);
-    std::copy(std::istream_iterator<std::string>(stream),
-        std::istream_iterator<std::string>(),
-        std::back_inserter<std::vector<std::string> >(tokens));
+    std::copy(std::istream_iterator<std::string>(stream), std::istream_iterator<std::string>(),
+              std::back_inserter<std::vector<std::string> >(tokens));
 
     // the default interface is the one having the second
     // field, Destination, set to "00000000"
@@ -101,9 +99,9 @@ std::string GetIpByInterface(const std::string& network_interface) {
 
   log_info("Using Networker Interface: %s", network_interface.c_str());
 
-  struct ifaddrs * ifAddrStruct = NULL;
-  struct ifaddrs * ifa = NULL;
-  void * tmpAddrPtr = NULL;
+  struct ifaddrs* ifAddrStruct = NULL;
+  struct ifaddrs* ifa = NULL;
+  void* tmpAddrPtr = NULL;
 
   if (getifaddrs(&ifAddrStruct) == -1) {
     log_err("getifaddrs failed");
@@ -116,16 +114,16 @@ std::string GetIpByInterface(const std::string& network_interface) {
       continue;
     }
 
-    if (ifa ->ifa_addr->sa_family==AF_INET) { // Check it is a valid IPv4 address
-      tmpAddrPtr = &((struct sockaddr_in *)ifa->ifa_addr)->sin_addr;
+    if (ifa->ifa_addr->sa_family == AF_INET) {  // Check it is a valid IPv4 address
+      tmpAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
       char addressBuffer[INET_ADDRSTRLEN];
       inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
       if (std::string(ifa->ifa_name) == network_interface) {
         host = addressBuffer;
         break;
       }
-    } else if (ifa->ifa_addr->sa_family==AF_INET6) { // Check it is a valid IPv6 address
-      tmpAddrPtr = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
+    } else if (ifa->ifa_addr->sa_family == AF_INET6) {  // Check it is a valid IPv6 address
+      tmpAddrPtr = &((struct sockaddr_in6*)ifa->ifa_addr)->sin6_addr;
       char addressBuffer[INET6_ADDRSTRLEN];
       inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
       if (std::string(ifa->ifa_name) == network_interface) {
@@ -135,7 +133,7 @@ std::string GetIpByInterface(const std::string& network_interface) {
     }
   }
 
-  if (ifAddrStruct ) {
+  if (ifAddrStruct) {
     freeifaddrs(ifAddrStruct);
   }
 
@@ -146,4 +144,3 @@ std::string GetIpByInterface(const std::string& network_interface) {
   log_info("got ip %s", host.c_str());
   return host;
 }
-

@@ -6,9 +6,9 @@
 #ifndef NET_INCLUDE_HTTP_CONN_H_
 #define NET_INCLUDE_HTTP_CONN_H_
 #include <map>
-#include <vector>
-#include <string>
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/xdebug.h"
@@ -159,13 +159,10 @@ class HTTPHandles {
   virtual int WriteResponseBody(char* buf, size_t max_size) = 0;
 
   // Close handle
-  virtual void HandleConnClosed() {
-  }
+  virtual void HandleConnClosed() {}
 
-  HTTPHandles() {
-  }
-  virtual ~HTTPHandles() {
-  }
+  HTTPHandles() {}
+  virtual ~HTTPHandles() {}
 
  protected:
   /*
@@ -184,10 +181,9 @@ class HTTPHandles {
   void operator=(const HTTPHandles&);
 };
 
-class HTTPConn: public NetConn {
+class HTTPConn : public NetConn {
  public:
-  HTTPConn(const int fd, const std::string &ip_port,
-           Thread *sthread, std::shared_ptr<HTTPHandles> handles_,
+  HTTPConn(const int fd, const std::string& ip_port, Thread* sthread, std::shared_ptr<HTTPHandles> handles_,
            void* worker_specific_data);
   ~HTTPConn();
 

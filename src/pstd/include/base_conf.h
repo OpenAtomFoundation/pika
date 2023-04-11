@@ -6,8 +6,8 @@
 #ifndef __PSTD_INCLUDE_BASE_CONF_H__
 #define __PSTD_INCLUDE_BASE_CONF_H__
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <string>
 #include <vector>
@@ -17,7 +17,6 @@
 namespace pstd {
 
 class BaseConf;
-
 
 class BaseConf {
  public:
@@ -29,51 +28,41 @@ class BaseConf {
     };
 
     struct ConfItem {
-      ConfType type; // 0 means conf, 1 means comment
+      ConfType type;  // 0 means conf, 1 means comment
       std::string name;
       std::string value;
-      ConfItem(ConfType t, const std::string &v) :
-        type(t),
-        name(""),
-        value(v)
-      {}
-      ConfItem(ConfType t, const std::string &n, const std::string &v) :
-        type(t),
-        name(n),
-        value(v)
-      {}
+      ConfItem(ConfType t, const std::string& v) : type(t), name(""), value(v) {}
+      ConfItem(ConfType t, const std::string& n, const std::string& v) : type(t), name(n), value(v) {}
     };
 
-    explicit Rep(const std::string &p)
-      : path(p) {
-    }
+    explicit Rep(const std::string& p) : path(p) {}
     std::vector<ConfItem> item;
   };
 
-  explicit BaseConf(const std::string &path);
+  explicit BaseConf(const std::string& path);
   virtual ~BaseConf();
 
   int LoadConf();
   int32_t ReloadConf();
 
   // return false if the item dosen't exist
-  bool GetConfInt(const std::string &name, int* value) const;
-  bool GetConfIntHuman(const std::string &name, int *value) const;
-  bool GetConfInt64(const std::string &name, int64_t* value) const;
-  bool GetConfInt64Human(const std::string &name, int64_t *value) const;
+  bool GetConfInt(const std::string& name, int* value) const;
+  bool GetConfIntHuman(const std::string& name, int* value) const;
+  bool GetConfInt64(const std::string& name, int64_t* value) const;
+  bool GetConfInt64Human(const std::string& name, int64_t* value) const;
 
-  bool GetConfStr(const std::string &name, std::string *value) const;
-  bool GetConfBool(const std::string &name, bool* value) const;
-  bool GetConfStrVec(const std::string &name, std::vector<std::string> *value) const;
+  bool GetConfStr(const std::string& name, std::string* value) const;
+  bool GetConfBool(const std::string& name, bool* value) const;
+  bool GetConfStrVec(const std::string& name, std::vector<std::string>* value) const;
 
-  bool SetConfInt(const std::string &name, const int value);
-  bool SetConfInt64(const std::string &name, const int64_t value);
+  bool SetConfInt(const std::string& name, const int value);
+  bool SetConfInt64(const std::string& name, const int64_t value);
 
-  bool SetConfStr(const std::string &name, const std::string &value);
-  bool SetConfBool(const std::string &name, const bool value);
-  bool SetConfStrVec(const std::string &name, const std::vector<std::string> &value);
+  bool SetConfStr(const std::string& name, const std::string& value);
+  bool SetConfBool(const std::string& name, const bool value);
+  bool SetConfStrVec(const std::string& name, const std::vector<std::string>& value);
 
-  bool CheckConfExist(const std::string &name) const;
+  bool CheckConfExist(const std::string& name) const;
 
   void DumpConf() const;
   bool WriteBack();

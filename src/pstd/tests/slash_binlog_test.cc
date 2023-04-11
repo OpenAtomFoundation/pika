@@ -5,18 +5,16 @@
 #include <iostream>
 
 #include "pstd/include/env.h"
-#include "pstd/include/testutil.h"
-#include "pstd/include/pstd_testharness.h"
 #include "pstd/include/pstd_binlog.h"
+#include "pstd/include/pstd_testharness.h"
+#include "pstd/include/testutil.h"
 #include "pstd/src/pstd_binlog_impl.h"
 
 namespace pstd {
 
 class BinlogTest {
  public:
-  BinlogTest()
-    : log_(NULL),
-      reader_(NULL) {
+  BinlogTest() : log_(NULL), reader_(NULL) {
     GetTestDirectory(&tmpdir_);
     DeleteDirIfExist(tmpdir_);
     ASSERT_OK(Binlog::Open(tmpdir_, &log_));
@@ -26,9 +24,10 @@ class BinlogTest {
     delete log_;
     DeleteDirIfExist(tmpdir_);
   }
+
  protected:
-  Binlog *log_;
-  BinlogReader *reader_;
+  Binlog* log_;
+  BinlogReader* reader_;
   const std::string test_item_ = "pstd_item";
   std::string tmpdir_;
 };

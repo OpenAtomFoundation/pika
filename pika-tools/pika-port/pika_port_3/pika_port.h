@@ -6,43 +6,34 @@
 #ifndef BINLOG_SYNC_H_
 #define BINLOG_SYNC_H_
 
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_mutex.h"
+#include "binlog_receiver_thread.h"
 #include "pika_binlog.h"
 #include "pika_define.h"
-#include "binlog_receiver_thread.h"
+#include "redis_sender.h"
+#include "slash/include/slash_mutex.h"
+#include "slash/include/slash_status.h"
 #include "slaveping_thread.h"
 #include "trysync_thread.h"
-#include "redis_sender.h"
 
 #include <vector>
 
-using slash::Status;
 using slash::Slice;
+using slash::Status;
 
-class PikaPort
-{
-public:
+class PikaPort {
+ public:
   PikaPort(std::string& master_ip, int master_port, std::string& passwd);
   ~PikaPort();
 
   /*
-   * Get & Set 
+   * Get & Set
    */
-  std::string& master_ip() {
-    return master_ip_;
-  }
-  int master_port() {
-    return master_port_;
-  }
+  std::string& master_ip() { return master_ip_; }
+  int master_port() { return master_port_; }
 
-  int64_t sid() {
-    return sid_;
-  }
+  int64_t sid() { return sid_; }
 
-  void SetSid(int64_t sid) {
-    sid_ = sid;
-  }
+  void SetSid(int64_t sid) { sid_ = sid; }
 
   int role() {
     slash::RWLock(&state_protector_, false);
@@ -52,23 +43,13 @@ public:
     slash::RWLock(&state_protector_, false);
     return repl_state_;
   }
-  std::string requirepass() {
-    return requirepass_;
-  }
-  pthread_rwlock_t* rwlock() {
-      return &rwlock_;
-  }
-  BinlogReceiverThread* binlog_receiver_thread() {
-    return binlog_receiver_thread_;
-  }
-  TrysyncThread* trysync_thread() {
-    return trysync_thread_;
-  }
-  Binlog* logger() {
-    return logger_;
-  }
+  std::string requirepass() { return requirepass_; }
+  pthread_rwlock_t* rwlock() { return &rwlock_; }
+  BinlogReceiverThread* binlog_receiver_thread() { return binlog_receiver_thread_; }
+  TrysyncThread* trysync_thread() { return trysync_thread_; }
+  Binlog* logger() { return logger_; }
 
-  int SendRedisCommand(const std::string &command, const std::string &key);
+  int SendRedisCommand(const std::string& command, const std::string& key);
 
   bool SetMaster(std::string& master_ip, int master_port);
   bool ShouldConnectMaster();
@@ -89,7 +70,7 @@ public:
   bool Init();
   SlavepingThread* ping_thread_;
 
-private:
+ private:
   std::string master_ip_;
   int master_port_;
   int master_connection_;
@@ -100,7 +81,7 @@ private:
   std::string dump_path_;
   pthread_rwlock_t rwlock_;
 
-  slash::Mutex mutex_; // double lock to block main thread
+  slash::Mutex mutex_;  // double lock to block main thread
 
   // redis client
   // net::PinkCli *cli_;
@@ -115,12 +96,12 @@ private:
   BinlogReceiverThread* binlog_receiver_thread_;
   TrysyncThread* trysync_thread_;
 
-  Binlog *logger_;
+  Binlog* logger_;
 
-  pthread_rwlock_t state_protector_; //protect below, use for master-slave mode
+  pthread_rwlock_t state_protector_;  // protect below, use for master-slave mode
 
-  PikaPort(PikaPort &bs);
-  void operator =(const PikaPort &bs);
+  PikaPort(PikaPort& bs);
+  void operator=(const PikaPort& bs);
   void ConnectRedis();
 };
 

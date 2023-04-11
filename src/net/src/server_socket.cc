@@ -3,18 +3,18 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <fcntl.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
-#include "net/src/server_socket.h"
-#include "net/src/net_util.h"
 #include "net/include/net_define.h"
+#include "net/src/net_util.h"
+#include "net/src/server_socket.h"
 
 namespace net {
 
@@ -28,18 +28,15 @@ ServerSocket::ServerSocket(int port, bool is_block)
       tcp_recv_buffer_(0),
       keep_alive_(false),
       listening_(false),
-  is_block_(is_block) {
-}
+      is_block_(is_block) {}
 
-ServerSocket::~ServerSocket() {
-  Close();
-}
+ServerSocket::~ServerSocket() { Close(); }
 
 /*
  * Listen to a specific ip addr on a multi eth machine
  * Return 0 if Listen success, other wise
  */
-int ServerSocket::Listen(const std::string &bind_ip) {
+int ServerSocket::Listen(const std::string& bind_ip) {
   int ret = 0;
   sockfd_ = socket(AF_INET, SOCK_STREAM, 0);
   memset(&servaddr_, 0, sizeof(servaddr_));
@@ -60,7 +57,7 @@ int ServerSocket::Listen(const std::string &bind_ip) {
 
   fcntl(sockfd_, F_SETFD, fcntl(sockfd_, F_GETFD) | FD_CLOEXEC);
 
-  ret = bind(sockfd_, (struct sockaddr *) &servaddr_, sizeof(servaddr_));
+  ret = bind(sockfd_, (struct sockaddr*)&servaddr_, sizeof(servaddr_));
   if (ret < 0) {
     return kBindError;
   }
@@ -84,8 +81,6 @@ int ServerSocket::SetNonBlock() {
   return 0;
 }
 
-void ServerSocket::Close() {
-  close(sockfd_);
-}
+void ServerSocket::Close() { close(sockfd_); }
 
 }  // namespace net

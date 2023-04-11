@@ -1,26 +1,26 @@
-#include <stdio.h>
 #include <signal.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <atomic>
 
-#include "pstd/include/xdebug.h"
 #include "net/include/net_thread.h"
 #include "net/include/server_thread.h"
+#include "pstd/include/xdebug.h"
 
 #include "myproto.pb.h"
 #include "net/include/pb_conn.h"
 
-#include <google/protobuf/message.h>
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <google/protobuf/message.h>
 
 using namespace net;
 
-class MyConn: public PbConn {
+class MyConn : public PbConn {
  public:
-  MyConn(int fd, const std::string& ip_port, Thread *thread,
-         void* worker_specific_data);
+  MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data);
   virtual ~MyConn();
+
  protected:
   virtual int DealMessage();
 
@@ -29,14 +29,12 @@ class MyConn: public PbConn {
   myproto::PingRes ping_res_;
 };
 
-MyConn::MyConn(int fd, const std::string& ip_port, Thread *thread,
-               void* worker_specific_data)
+MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_specific_data)
     : PbConn(fd, ip_port, thread) {
   // Handle worker_specific_data ...
 }
 
-MyConn::~MyConn() {
-}
+MyConn::~MyConn() {}
 
 int MyConn::DealMessage() {
   printf("In the myconn DealMessage branch\n");
@@ -44,7 +42,7 @@ int MyConn::DealMessage() {
   ping_res_.Clear();
   ping_res_.set_res(11234);
   ping_res_.set_mess("heiheidfdfdf");
-  printf ("DealMessage receive (%s)\n", ping_res_.mess().c_str());
+  printf("DealMessage receive (%s)\n", ping_res_.mess().c_str());
   std::string res;
   ping_res_.SerializeToString(&res);
   WriteResp(res);
@@ -53,10 +51,8 @@ int MyConn::DealMessage() {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string &ip_port,
-                                                Thread *thread,
-                                                void* worker_specific_data,
-                                                NetEpoll* net_epoll) const {
+  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+                                              void* worker_specific_data, NetEpoll* net_epoll) const {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
 };
@@ -79,8 +75,8 @@ static void SignalSetup() {
 
 int main() {
   SignalSetup();
-  ConnFactory *my_conn_factory = new MyConnFactory();
-  ServerThread *st = NewDispatchThread(9211, 10, my_conn_factory, 1000);
+  ConnFactory* my_conn_factory = new MyConnFactory();
+  ServerThread* st = NewDispatchThread(9211, 10, my_conn_factory, 1000);
 
   if (st->StartThread() != 0) {
     printf("StartThread error happened!\n");

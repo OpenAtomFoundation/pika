@@ -6,15 +6,15 @@
 #ifndef NET_SRC_DISPATCH_THREAD_H_
 #define NET_SRC_DISPATCH_THREAD_H_
 
-#include <set>
 #include <map>
 #include <queue>
+#include <set>
 #include <string>
 #include <vector>
 
-#include "pstd/include/xdebug.h"
-#include "net/include/server_thread.h"
 #include "net/include/net_conn.h"
+#include "net/include/server_thread.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -24,21 +24,12 @@ class WorkerThread;
 
 class DispatchThread : public ServerThread {
  public:
-  DispatchThread(int port,
-                 int work_num, ConnFactory* conn_factory,
-                 int cron_interval,
-                 int queue_limit,
+  DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
                  const ServerHandle* handle);
-  DispatchThread(const std::string &ip, int port,
-                 int work_num, ConnFactory* conn_factory,
-                 int cron_interval,
-                 int queue_limit,
-                 const ServerHandle* handle);
-  DispatchThread(const std::set<std::string>& ips, int port,
-                 int work_num, ConnFactory* conn_factory,
-                 int cron_interval,
-                 int queue_limit,
-                 const ServerHandle* handle);
+  DispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory, int cron_interval,
+                 int queue_limit, const ServerHandle* handle);
+  DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory, int cron_interval,
+                 int queue_limit, const ServerHandle* handle);
 
   virtual ~DispatchThread();
 
@@ -63,6 +54,7 @@ class DispatchThread : public ServerThread {
   void HandleNewConn(const int connfd, const std::string& ip_port) override;
 
   void SetQueueLimit(int queue_limit) override;
+
  private:
   /*
    * Here we used auto poll to find the next work thread,
@@ -77,9 +69,7 @@ class DispatchThread : public ServerThread {
   int queue_limit_;
   std::map<WorkerThread*, void*> localdata_;
 
-  void HandleConnEvent(NetFiredEvent *pfe) override {
-    UNUSED(pfe);
-  }
+  void HandleConnEvent(NetFiredEvent* pfe) override { UNUSED(pfe); }
 
   // No copying allowed
   DispatchThread(const DispatchThread&);

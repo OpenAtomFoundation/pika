@@ -10,34 +10,31 @@
 
 class MigratorThread : public net::Thread {
  public:
-  MigratorThread(void *db, std::vector<PikaSender *> *senders, int type, int thread_num) :
-      db_(db),
-      should_exit_(false),
-      senders_(senders),
-      type_(type),
-      thread_num_(thread_num),
-      thread_index_(0),
-      num_(0) {
-  }
+  MigratorThread(void* db, std::vector<PikaSender*>* senders, int type, int thread_num)
+      : db_(db),
+        should_exit_(false),
+        senders_(senders),
+        type_(type),
+        thread_num_(thread_num),
+        thread_index_(0),
+        num_(0) {}
 
-  virtual ~ MigratorThread();
+  virtual ~MigratorThread();
 
   int64_t num() {
     slash::MutexLock l(&num_mutex_);
     return num_;
   }
 
-  void Stop() {
-	should_exit_ = true;
-  }
-  
+  void Stop() { should_exit_ = true; }
+
  private:
   void PlusNum() {
     slash::MutexLock l(&num_mutex_);
     ++num_;
   }
 
-  void DispatchKey(const std::string &command, const std::string& key = "");
+  void DispatchKey(const std::string& command, const std::string& key = "");
 
   void MigrateDB();
   void MigrateStringsDB();
@@ -46,13 +43,13 @@ class MigratorThread : public net::Thread {
   void MigrateSetsDB();
   void MigrateZsetsDB();
 
-  virtual void *ThreadMain();
+  virtual void* ThreadMain();
 
  private:
   void* db_;
   bool should_exit_;
 
-  std::vector<PikaSender *> *senders_;
+  std::vector<PikaSender*>* senders_;
   int type_;
   int thread_num_;
   int thread_index_;
@@ -62,4 +59,3 @@ class MigratorThread : public net::Thread {
 };
 
 #endif
-

@@ -8,12 +8,12 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "pstd/include/env.h"
-#include "pstd/include/testutil.h"
 #include "pstd/include/pstd_testharness.h"
+#include "pstd/include/testutil.h"
 
 namespace pstd {
 
-class EnvTest { };
+class EnvTest {};
 
 TEST(EnvTest, SetMaxFileDescriptorNum) {
   ASSERT_EQ(0, SetMaxFileDescriptorNum(10));

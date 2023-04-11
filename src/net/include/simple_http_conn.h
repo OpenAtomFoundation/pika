@@ -7,8 +7,8 @@
 #define NET_INCLUDE_SIMPLE_HTTP_CONN_H_
 
 #include <map>
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/xdebug.h"
@@ -42,50 +42,28 @@ class Request {
   bool ParseBodyFromArray(const char* data, const int size);
 
  private:
-  enum ParseStatus {
-    kHeaderMethod,
-    kHeaderPath,
-    kHeaderVersion,
-    kHeaderParamKey,
-    kHeaderParamValue,
-    kBody
-  };
+  enum ParseStatus { kHeaderMethod, kHeaderPath, kHeaderVersion, kHeaderParamKey, kHeaderParamValue, kBody };
 
   bool ParseGetUrl();
-  bool ParseHeadLine(
-      const char* data, int line_start,
-      int line_end, ParseStatus* parseStatus);
-  bool ParseParameters(
-      const std::string data,
-      size_t line_start = 0,
-      bool from_url = true);
+  bool ParseHeadLine(const char* data, int line_start, int line_end, ParseStatus* parseStatus);
+  bool ParseParameters(const std::string data, size_t line_start = 0, bool from_url = true);
 };
 
 class Response {
  public:
-  Response():
-    status_code_(0) {
-  }
+  Response() : status_code_(0) {}
   void Clear();
   int SerializeHeaderToArray(char* data, size_t size);
-  int SerializeBodyToArray(char* data, size_t size, int *pos);
-  bool HasMoreBody(size_t pos) {
-    return pos < body_.size();
-  }
+  int SerializeBodyToArray(char* data, size_t size, int* pos);
+  bool HasMoreBody(size_t pos) { return pos < body_.size(); }
 
   void SetStatusCode(int code);
 
-  void SetHeaders(const std::string &key, const std::string &value) {
-    headers_[key] = value;
-  }
+  void SetHeaders(const std::string& key, const std::string& value) { headers_[key] = value; }
 
-  void SetHeaders(const std::string &key, const int value) {
-    headers_[key] = std::to_string(value);
-  }
+  void SetHeaders(const std::string& key, const int value) { headers_[key] = std::to_string(value); }
 
-  void SetBody(const std::string &body) {
-    body_.assign(body);
-  }
+  void SetBody(const std::string& body) { body_.assign(body); }
 
  private:
   int status_code_;
@@ -94,12 +72,9 @@ class Response {
   std::string body_;
 };
 
-class SimpleHTTPConn: public NetConn {
+class SimpleHTTPConn : public NetConn {
  public:
-  SimpleHTTPConn(
-      const int fd,
-      const std::string &ip_port,
-      Thread *thread);
+  SimpleHTTPConn(const int fd, const std::string& ip_port, Thread* thread);
   virtual ~SimpleHTTPConn();
 
   virtual ReadStatus GetRequest() override;

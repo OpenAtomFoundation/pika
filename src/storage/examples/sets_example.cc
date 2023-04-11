@@ -22,7 +22,7 @@ int main() {
   }
   // SAdd
   int32_t ret = 0;
-  std::vector<std::string> members {"MM1", "MM2", "MM3", "MM2"};
+  std::vector<std::string> members{"MM1", "MM2", "MM3", "MM2"};
   s = db.SAdd("SADD_KEY", members, &ret);
   printf("SAdd return: %s, ret = %d\n", s.ToString().c_str(), ret);
 

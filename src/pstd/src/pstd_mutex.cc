@@ -1,9 +1,9 @@
 #include "pstd/include/pstd_mutex.h"
 
-#include <cstdlib>
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
+#include <cstdlib>
 
 #include <algorithm>
 
@@ -28,58 +28,31 @@ static bool PthreadTimeoutCall(const char* label, int result) {
   return true;
 }
 
-Mutex::Mutex() { 
-  PthreadCall("init mutex", pthread_mutex_init(&mu_, NULL)); 
-}
+Mutex::Mutex() { PthreadCall("init mutex", pthread_mutex_init(&mu_, NULL)); }
 
-Mutex::~Mutex() { 
-  PthreadCall("destroy mutex", pthread_mutex_destroy(&mu_)); 
-}
+Mutex::~Mutex() { PthreadCall("destroy mutex", pthread_mutex_destroy(&mu_)); }
 
-void Mutex::Lock() { 
-  PthreadCall("lock", pthread_mutex_lock(&mu_)); 
-}
+void Mutex::Lock() { PthreadCall("lock", pthread_mutex_lock(&mu_)); }
 
-void Mutex::Unlock() { 
-  PthreadCall("unlock", pthread_mutex_unlock(&mu_)); 
-}
+void Mutex::Unlock() { PthreadCall("unlock", pthread_mutex_unlock(&mu_)); }
 
-RWMutex::RWMutex() {
-  PthreadCall("init rw mutex", pthread_rwlock_init(&rw_mu_, NULL));
-}
+RWMutex::RWMutex() { PthreadCall("init rw mutex", pthread_rwlock_init(&rw_mu_, NULL)); }
 
-RWMutex::~RWMutex() {
-  PthreadCall("destroy rw mutex", pthread_rwlock_destroy(&rw_mu_));
-}
+RWMutex::~RWMutex() { PthreadCall("destroy rw mutex", pthread_rwlock_destroy(&rw_mu_)); }
 
-void RWMutex::ReadLock() {
-  PthreadCall("rw readlock", pthread_rwlock_rdlock(&rw_mu_));
-}
+void RWMutex::ReadLock() { PthreadCall("rw readlock", pthread_rwlock_rdlock(&rw_mu_)); }
 
-void RWMutex::WriteLock() {
-  PthreadCall("rw writelock", pthread_rwlock_wrlock(&rw_mu_));
-}
+void RWMutex::WriteLock() { PthreadCall("rw writelock", pthread_rwlock_wrlock(&rw_mu_)); }
 
-void RWMutex::WriteUnlock() {
-  PthreadCall("rw write unlock", pthread_rwlock_unlock(&rw_mu_));
-}
+void RWMutex::WriteUnlock() { PthreadCall("rw write unlock", pthread_rwlock_unlock(&rw_mu_)); }
 
-void RWMutex::ReadUnlock() {
-  PthreadCall("rw read unlock", pthread_rwlock_unlock(&rw_mu_));
-}
+void RWMutex::ReadUnlock() { PthreadCall("rw read unlock", pthread_rwlock_unlock(&rw_mu_)); }
 
-CondVar::CondVar(Mutex* mu)
-  : mu_(mu) {
-    PthreadCall("init cv", pthread_cond_init(&cv_, NULL));
-  }
+CondVar::CondVar(Mutex* mu) : mu_(mu) { PthreadCall("init cv", pthread_cond_init(&cv_, NULL)); }
 
-CondVar::~CondVar() { 
-  PthreadCall("destroy cv", pthread_cond_destroy(&cv_)); 
-}
+CondVar::~CondVar() { PthreadCall("destroy cv", pthread_cond_destroy(&cv_)); }
 
-void CondVar::Wait() {
-  PthreadCall("wait", pthread_cond_wait(&cv_, &mu_->mu_));
-}
+void CondVar::Wait() { PthreadCall("wait", pthread_cond_wait(&cv_, &mu_->mu_)); }
 
 // return false if timeout
 bool CondVar::TimedWait(uint32_t timeout) {
@@ -95,34 +68,23 @@ bool CondVar::TimedWait(uint32_t timeout) {
   tsp.tv_sec = now.tv_sec + usec / 1000000;
   tsp.tv_nsec = (usec % 1000000) * 1000;
 
-  return PthreadTimeoutCall("timewait",
-      pthread_cond_timedwait(&cv_, &mu_->mu_, &tsp));
+  return PthreadTimeoutCall("timewait", pthread_cond_timedwait(&cv_, &mu_->mu_, &tsp));
 }
 
-void CondVar::Signal() {
-  PthreadCall("signal", pthread_cond_signal(&cv_));
-}
+void CondVar::Signal() { PthreadCall("signal", pthread_cond_signal(&cv_)); }
 
-void CondVar::SignalAll() {
-  PthreadCall("broadcast", pthread_cond_broadcast(&cv_));
-}
+void CondVar::SignalAll() { PthreadCall("broadcast", pthread_cond_broadcast(&cv_)); }
 
-void InitOnce(OnceType* once, void (*initializer)()) {
-  PthreadCall("once", pthread_once(once, initializer));
-}
+void InitOnce(OnceType* once, void (*initializer)()) { PthreadCall("once", pthread_once(once, initializer)); }
 
 RefMutex::RefMutex() {
   refs_ = 0;
   PthreadCall("init mutex", pthread_mutex_init(&mu_, nullptr));
 }
 
-RefMutex::~RefMutex() {
-  PthreadCall("destroy mutex", pthread_mutex_destroy(&mu_));
-}
+RefMutex::~RefMutex() { PthreadCall("destroy mutex", pthread_mutex_destroy(&mu_)); }
 
-void RefMutex::Ref() {
-  refs_++;
-}
+void RefMutex::Ref() { refs_++; }
 void RefMutex::Unref() {
   --refs_;
   if (refs_ == 0) {
@@ -130,36 +92,32 @@ void RefMutex::Unref() {
   }
 }
 
-void RefMutex::Lock() {
-  PthreadCall("lock", pthread_mutex_lock(&mu_));
-}
+void RefMutex::Lock() { PthreadCall("lock", pthread_mutex_lock(&mu_)); }
 
-void RefMutex::Unlock() {
-  PthreadCall("unlock", pthread_mutex_unlock(&mu_));
-}
+void RefMutex::Unlock() { PthreadCall("unlock", pthread_mutex_unlock(&mu_)); }
 
 RecordMutex::~RecordMutex() {
   mutex_.Lock();
-  
-  std::unordered_map<std::string, RefMutex *>::const_iterator it = records_.begin();
+
+  std::unordered_map<std::string, RefMutex*>::const_iterator it = records_.begin();
   for (; it != records_.end(); it++) {
     delete it->second;
   }
   mutex_.Unlock();
 }
 
-void RecordMutex::Lock(const std::string &key) {
+void RecordMutex::Lock(const std::string& key) {
   mutex_.Lock();
-  std::unordered_map<std::string, RefMutex *>::const_iterator it = records_.find(key);
+  std::unordered_map<std::string, RefMutex*>::const_iterator it = records_.find(key);
 
   if (it != records_.end()) {
-    RefMutex *ref_mutex = it->second;
+    RefMutex* ref_mutex = it->second;
     ref_mutex->Ref();
     mutex_.Unlock();
 
     ref_mutex->Lock();
   } else {
-    RefMutex *ref_mutex = new RefMutex();
+    RefMutex* ref_mutex = new RefMutex();
 
     records_.insert(std::make_pair(key, ref_mutex));
     ref_mutex->Ref();
@@ -169,12 +127,12 @@ void RecordMutex::Lock(const std::string &key) {
   }
 }
 
-void RecordMutex::Unlock(const std::string &key) {
+void RecordMutex::Unlock(const std::string& key) {
   mutex_.Lock();
-  std::unordered_map<std::string, RefMutex *>::const_iterator it = records_.find(key);
-  
+  std::unordered_map<std::string, RefMutex*>::const_iterator it = records_.find(key);
+
   if (it != records_.end()) {
-    RefMutex *ref_mutex = it->second;
+    RefMutex* ref_mutex = it->second;
 
     if (ref_mutex->IsLastRef()) {
       records_.erase(it);
@@ -186,5 +144,4 @@ void RecordMutex::Unlock(const std::string &key) {
   mutex_.Unlock();
 }
 
-}
-
+}  // namespace pstd

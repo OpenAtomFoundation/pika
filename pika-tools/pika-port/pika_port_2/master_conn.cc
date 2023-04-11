@@ -3,45 +3,42 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <glog/logging.h>
 #include "master_conn.h"
+#include <glog/logging.h>
 #include "binlog_receiver_thread.h"
 #include "include/pika_command.h"
 #include "include/pika_slot.h"
 
 #include "pika_port.h"
 
-extern PikaPort *g_pika_port;
+extern PikaPort* g_pika_port;
 
-MasterConn::MasterConn(int fd, std::string ip_port,
-                       BinlogReceiverThread* binlog_receiver)
-      : RedisConn(fd, ip_port, NULL),
-        self_thread_(binlog_receiver) {
-}
+MasterConn::MasterConn(int fd, std::string ip_port, BinlogReceiverThread* binlog_receiver)
+    : RedisConn(fd, ip_port, NULL), self_thread_(binlog_receiver) {}
 
 void MasterConn::RestoreArgs(net::RedisCmdArgsType& argv) {
   raw_args_.clear();
   size_t num = argv.size();
   if (argv.size() > 4 && *(argv.end() - 4) == kPikaBinlogMagic) {
-    num = argv.size()- 4;
+    num = argv.size() - 4;
   }
   if (argv[1].find(SlotKeyPrefix) != std::string::npos) {
-	  return;
+    return;
   }
   RedisAppendLen(raw_args_, num, "*");
   PikaCmdArgsType::const_iterator it = argv.begin();
-  for (size_t idx = 0; idx < num && it != argv.end(); ++ it, ++ idx) {
+  for (size_t idx = 0; idx < num && it != argv.end(); ++it, ++idx) {
     RedisAppendLen(raw_args_, (*it).size(), "$");
     RedisAppendContent(raw_args_, *it);
   }
 }
 
 int MasterConn::DealMessage(net::RedisCmdArgsType& argv, std::string* response) {
-  //no reply
-  //eq set_is_reply(false);
+  // no reply
+  // eq set_is_reply(false);
 
   // if (argv.empty()) {
-  if (argv.size() < 5) { // special chars: __PIKA_X#$SKGI\r\n1\r\n[\r\n
+  if (argv.size() < 5) {  // special chars: __PIKA_X#$SKGI\r\n1\r\n[\r\n
     // return -2;
     return 0;
   }

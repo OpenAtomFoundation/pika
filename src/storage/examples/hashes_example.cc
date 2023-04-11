@@ -60,8 +60,7 @@ int main() {
   s = db.HMGet("TEST_HASH", fields, &vss);
   printf("HMget return: %s\n", s.ToString().c_str());
   for (uint32_t idx = 0; idx != fields.size(); idx++) {
-    printf("idx = %d, field = %s, value = %s\n",
-        idx, fields[idx].c_str(), vss[idx].value.c_str());
+    printf("idx = %d, field = %s, value = %s\n", idx, fields[idx].c_str(), vss[idx].value.c_str());
   }
 
   // HLEN

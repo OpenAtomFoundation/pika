@@ -18,4 +18,3 @@ extern const char* net_build_git_sha;
 extern const char* net_build_compile_date;
 
 #endif  // NET_INCLUDE_BUILD_VERSION_H_
-

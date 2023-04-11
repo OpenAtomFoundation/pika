@@ -7,11 +7,11 @@
 
 #include "pstd/include/pstd_string.h"
 
+#include "include/pika_binlog_transverter.h"
 #include "include/pika_conf.h"
 #include "include/pika_data_distribution.h"
-#include "include/pika_binlog_transverter.h"
 
-extern PikaConf *g_pika_conf;
+extern PikaConf* g_pika_conf;
 
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
 void SetCmd::DoInitial() {
@@ -102,12 +102,8 @@ void SetCmd::Do(std::shared_ptr<Partition> partition) {
   }
 }
 
-std::string SetCmd::ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
+std::string SetCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                             uint64_t offset) {
   if (condition_ == SetCmd::kEXORPX) {
     std::string content;
     content.reserve(RAW_ARGS_LEN);
@@ -130,14 +126,8 @@ std::string SetCmd::ToBinlog(
     // value
     RedisAppendLen(content, value_.size(), "$");
     RedisAppendContent(content, value_);
-    return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                               exec_time,
-                                               term_id,
-                                               logic_id,
-                                               filenum,
-                                               offset,
-                                               content,
-                                               {});
+    return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+                                               content, {});
   } else {
     return Cmd::ToBinlog(exec_time, term_id, logic_id, filenum, offset);
   }
@@ -214,7 +204,7 @@ void IncrCmd::DoInitial() {
 void IncrCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->Incrby(key_, 1, &new_value_);
   if (s.ok()) {
-   res_.AppendContent(":" + std::to_string(new_value_));
+    res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -271,7 +261,7 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
   if (s.ok()) {
     res_.AppendStringLen(new_value_.size());
     res_.AppendContent(new_value_);
-  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a vaild float"){
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a vaild float") {
     res_.SetRes(CmdRes::kInvalidFloat);
   } else if (s.IsInvalidArgument()) {
     res_.SetRes(CmdRes::kOverFlow);
@@ -293,7 +283,7 @@ void DecrCmd::DoInitial() {
 void DecrCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->Decrby(key_, 1, &new_value_);
   if (s.ok()) {
-   res_.AppendContent(":" + std::to_string(new_value_));
+    res_.AppendContent(":" + std::to_string(new_value_));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: Value is not a integer") {
     res_.SetRes(CmdRes::kInvalidInt);
   } else if (s.IsInvalidArgument()) {
@@ -511,12 +501,8 @@ void SetnxCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
-std::string SetnxCmd::ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
+std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                               uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 3, "*");
@@ -533,14 +519,8 @@ std::string SetnxCmd::ToBinlog(
   RedisAppendLen(content, value_.size(), "$");
   RedisAppendContent(content, value_);
 
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             term_id,
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+                                             content, {});
 }
 
 void SetexCmd::DoInitial() {
@@ -566,13 +546,8 @@ void SetexCmd::Do(std::shared_ptr<Partition> partition) {
   }
 }
 
-std::string SetexCmd::ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-
+std::string SetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                               uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 4, "*");
@@ -594,14 +569,8 @@ std::string SetexCmd::ToBinlog(
   // value
   RedisAppendLen(content, value_.size(), "$");
   RedisAppendContent(content, value_);
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             term_id,
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+                                             content, {});
 }
 
 void PsetexCmd::DoInitial() {
@@ -627,13 +596,8 @@ void PsetexCmd::Do(std::shared_ptr<Partition> partition) {
   }
 }
 
-std::string PsetexCmd::ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
-
+std::string PsetexCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                                uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 4, "*");
@@ -655,14 +619,8 @@ std::string PsetexCmd::ToBinlog(
   // value
   RedisAppendLen(content, value_.size(), "$");
   RedisAppendContent(content, value_);
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             term_id,
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+                                             content, {});
 }
 
 void DelvxCmd::DoInitial() {
@@ -734,8 +692,7 @@ void MsetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_k
   }
 }
 
-void MsetCmd::Merge() {
-}
+void MsetCmd::Merge() {}
 
 void MsetnxCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -897,12 +854,8 @@ void ExpireCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
-std::string ExpireCmd::ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
+std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                                uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, 3, "*");
@@ -922,14 +875,8 @@ std::string ExpireCmd::ToBinlog(
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
 
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             term_id,
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+                                             content, {});
 }
 
 void PexpireCmd::DoInitial() {
@@ -947,7 +894,7 @@ void PexpireCmd::DoInitial() {
 
 void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int64_t res = partition->db()->Expire(key_, msec_/1000, &type_status);
+  int64_t res = partition->db()->Expire(key_, msec_ / 1000, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -956,12 +903,8 @@ void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
-std::string PexpireCmd::ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
+std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                                 uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, argv_.size(), "*");
@@ -981,14 +924,8 @@ std::string PexpireCmd::ToBinlog(
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
 
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             term_id,
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+                                             content, {});
 }
 
 void ExpireatCmd::DoInitial() {
@@ -1027,12 +964,8 @@ void PexpireatCmd::DoInitial() {
   return;
 }
 
-std::string PexpireatCmd::ToBinlog(
-      uint32_t exec_time,
-      uint32_t term_id,
-      uint64_t logic_id,
-      uint32_t filenum,
-      uint64_t offset) {
+std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
+                                   uint64_t offset) {
   std::string content;
   content.reserve(RAW_ARGS_LEN);
   RedisAppendLen(content, argv_.size(), "*");
@@ -1052,19 +985,13 @@ std::string PexpireatCmd::ToBinlog(
   RedisAppendLen(content, at.size(), "$");
   RedisAppendContent(content, at);
 
-  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst,
-                                             exec_time,
-                                             term_id,
-                                             logic_id,
-                                             filenum,
-                                             offset,
-                                             content,
-                                             {});
+  return PikaBinlogTransverter::BinlogEncode(BinlogType::TypeFirst, exec_time, term_id, logic_id, filenum, offset,
+                                             content, {});
 }
 
 void PexpireatCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
-  int32_t res = partition->db()->Expireat(key_, time_stamp_ms_/1000, &type_status);
+  int32_t res = partition->db()->Expireat(key_, time_stamp_ms_ / 1000, &type_status);
   if (res != -1) {
     res_.AppendInteger(res);
   } else {
@@ -1087,11 +1014,11 @@ void TtlCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   type_timestamp = partition->db()->TTL(key_, &type_status);
   for (const auto& item : type_timestamp) {
-     // mean operation exception errors happen in database
-     if (item.second == -3) {
-       res_.SetRes(CmdRes::kErrOther, "ttl internal error");
-       return;
-     }
+    // mean operation exception errors happen in database
+    if (item.second == -3) {
+      res_.SetRes(CmdRes::kErrOther, "ttl internal error");
+      return;
+    }
   }
   if (type_timestamp[storage::kStrings] != -2) {
     res_.AppendInteger(type_timestamp[storage::kStrings]);
@@ -1124,11 +1051,11 @@ void PttlCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   type_timestamp = partition->db()->TTL(key_, &type_status);
   for (const auto& item : type_timestamp) {
-     // mean operation exception errors happen in database
-     if (item.second == -3) {
-       res_.SetRes(CmdRes::kErrOther, "ttl internal error");
-       return;
-     }
+    // mean operation exception errors happen in database
+    if (item.second == -3) {
+      res_.SetRes(CmdRes::kErrOther, "ttl internal error");
+      return;
+    }
   }
   if (type_timestamp[storage::kStrings] != -2) {
     if (type_timestamp[storage::kStrings] == -1) {
@@ -1220,8 +1147,7 @@ void ScanCmd::DoInitial() {
 
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "count")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -1255,8 +1181,7 @@ void ScanCmd::Do(std::shared_ptr<Partition> partition) {
     keys.clear();
     batch_count = left < PIKA_SCAN_STEP_LENGTH ? left : PIKA_SCAN_STEP_LENGTH;
     left = left > PIKA_SCAN_STEP_LENGTH ? left - PIKA_SCAN_STEP_LENGTH : 0;
-    cursor_ret = partition->db()->Scan(storage::DataType::kAll, cursor_ret,
-            pattern_, batch_count, &keys);
+    cursor_ret = partition->db()->Scan(storage::DataType::kAll, cursor_ret, pattern_, batch_count, &keys);
     for (const auto& key : keys) {
       RedisAppendLen(raw, key.size(), "$");
       RedisAppendContent(raw, key);
@@ -1304,8 +1229,7 @@ void ScanxCmd::DoInitial() {
   size_t index = 3, argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "count")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -1338,7 +1262,7 @@ void ScanxCmd::Do(std::shared_ptr<Partition> partition) {
 
     res_.AppendArrayLen(keys.size());
     std::vector<std::string>::iterator iter;
-    for (const auto& key : keys){
+    for (const auto& key : keys) {
       res_.AppendString(key);
     }
   } else {
@@ -1354,8 +1278,7 @@ void PKSetexAtCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[3];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_)
-    || time_stamp_ >= INT32_MAX) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_) || time_stamp_ >= INT32_MAX) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -1399,14 +1322,13 @@ void PKScanRangeCmd::DoInitial() {
   key_end_ = argv_[3];
   // start key and end key hash tag have to be same in non classic mode
   if (!HashtagIsConsistent(key_start_, key_start_)) {
-      res_.SetRes(CmdRes::kInconsistentHashTag);
-      return;
+    res_.SetRes(CmdRes::kInconsistentHashTag);
+    return;
   }
   size_t index = 4, argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "limit")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "limit")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -1431,7 +1353,8 @@ void PKScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s = partition->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s =
+      partition->db()->PKScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
@@ -1448,7 +1371,7 @@ void PKScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
       }
     } else {
       res_.AppendArrayLen(keys.size());
-      for (const auto& key : keys){
+      for (const auto& key : keys) {
         res_.AppendString(key);
       }
     }
@@ -1485,14 +1408,13 @@ void PKRScanRangeCmd::DoInitial() {
   key_end_ = argv_[3];
   // start key and end key hash tag have to be same in non classic mode
   if (!HashtagIsConsistent(key_start_, key_start_)) {
-      res_.SetRes(CmdRes::kInconsistentHashTag);
-      return;
+    res_.SetRes(CmdRes::kInconsistentHashTag);
+    return;
   }
   size_t index = 4, argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "limit")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "limit")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -1517,7 +1439,8 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
   std::vector<std::string> keys;
   std::vector<storage::KeyValue> kvs;
-  rocksdb::Status s = partition->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
+  rocksdb::Status s =
+      partition->db()->PKRScanRange(type_, key_start_, key_end_, pattern_, limit_, &keys, &kvs, &next_key);
 
   if (s.ok()) {
     res_.AppendArrayLen(2);
@@ -1534,7 +1457,7 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
       }
     } else {
       res_.AppendArrayLen(keys.size());
-      for (const auto& key : keys){
+      for (const auto& key : keys) {
         res_.AppendString(key);
       }
     }

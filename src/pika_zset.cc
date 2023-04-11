@@ -75,8 +75,7 @@ void ZScanCmd::DoInitial() {
   size_t argc = argv_.size(), index = 3;
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "count")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -245,7 +244,8 @@ void ZRevrangeCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
-int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool *left_close, bool *right_close, double *min_score, double *max_score) {
+int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool* left_close, bool* right_close,
+                        double* min_score, double* max_score) {
   if (begin_score.size() > 0 && begin_score.at(0) == '(') {
     *left_close = false;
     begin_score.erase(begin_score.begin());
@@ -256,8 +256,8 @@ int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool *le
     *min_score = storage::ZSET_SCORE_MAX;
   } else if (!pstd::string2d(begin_score.data(), begin_score.size(), min_score)) {
     return -1;
-  } 
-  
+  }
+
   if (end_score.size() > 0 && end_score.at(0) == '(') {
     *right_close = false;
     end_score.erase(end_score.begin());
@@ -272,7 +272,7 @@ int32_t DoScoreStrRange(std::string begin_score, std::string end_score, bool *le
   return 0;
 }
 
-static void FitLimit(int64_t &count, int64_t &offset, const int64_t size) {
+static void FitLimit(int64_t& count, int64_t& offset, const int64_t size) {
   count = count >= 0 ? count : size;
   offset = (offset >= 0 && offset < size) ? offset : size;
   count = (offset + count < size) ? count : size - offset;
@@ -307,7 +307,7 @@ void ZsetRangebyscoreParentCmd::DoInitial() {
       if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
-      } 
+      }
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
       return;
@@ -330,7 +330,8 @@ void ZRangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = partition->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  rocksdb::Status s =
+      partition->db()->ZRangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -381,7 +382,8 @@ void ZRevrangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::vector<storage::ScoreMember> score_members;
-  rocksdb::Status s = partition->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
+  rocksdb::Status s =
+      partition->db()->ZRevrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &score_members);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -493,7 +495,7 @@ void ZsetUIstoreParentCmd::DoInitial() {
           res_.SetRes(CmdRes::kErrOther, "weight value is not a float");
           return;
         }
-        weights_[index-base] = weight;
+        weights_[index - base] = weight;
       }
     } else if (!strcasecmp(argv_[index].data(), "aggregate")) {
       index++;
@@ -578,7 +580,7 @@ void ZRankCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->ZRank(key_, member_, &rank);
   if (s.ok()) {
     res_.AppendInteger(rank);
-  } else if (s.IsNotFound()){
+  } else if (s.IsNotFound()) {
     res_.AppendContent("$-1");
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -598,7 +600,7 @@ void ZRevrankCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->ZRevrank(key_, member_, &revrank);
   if (s.ok()) {
     res_.AppendInteger(revrank);
-  } else if (s.IsNotFound()){
+  } else if (s.IsNotFound()) {
     res_.AppendContent("$-1");
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -630,12 +632,8 @@ void ZScoreCmd::Do(std::shared_ptr<Partition> partition) {
   return;
 }
 
-static int32_t DoMemberRange(const std::string &raw_min_member,
-                             const std::string &raw_max_member,
-                             bool *left_close,
-                             bool *right_close,
-                             std::string* min_member,
-                             std::string* max_member) {
+static int32_t DoMemberRange(const std::string& raw_min_member, const std::string& raw_max_member, bool* left_close,
+                             bool* right_close, std::string* min_member, std::string* max_member) {
   if (raw_min_member == "-") {
     *min_member = "-";
   } else if (raw_min_member == "+") {
@@ -752,7 +750,7 @@ void ZRevrangebylexCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   FitLimit(count_, offset_, members.size());
-  
+
   res_.AppendArrayLen(count_);
   int64_t index = members.size() - 1 - offset_, end = index - count_;
   for (; index > end; index--) {
@@ -837,7 +835,8 @@ void ZRemrangebyscoreCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = partition->db()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
+  rocksdb::Status s =
+      partition->db()->ZRemrangebyscore(key_, min_score_, max_score_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -866,7 +865,8 @@ void ZRemrangebylexCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   int32_t count = 0;
-  rocksdb::Status s = partition->db()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
+  rocksdb::Status s =
+      partition->db()->ZRemrangebylex(key_, min_member_, max_member_, left_close_, right_close_, &count);
   if (!s.ok() && !s.IsNotFound()) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
     return;
@@ -874,7 +874,6 @@ void ZRemrangebylexCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendInteger(count);
   return;
 }
-
 
 void ZPopmaxCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -885,7 +884,7 @@ void ZPopmaxCmd::DoInitial() {
   if (argv_.size() == 2) {
     count_ = 1;
     return;
-  }  
+  }
   if (!pstd::string2int(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
@@ -910,7 +909,6 @@ void ZPopmaxCmd::Do(std::shared_ptr<Partition> partition) {
   }
 }
 
-
 void ZPopminCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameZPopmin);
@@ -920,7 +918,7 @@ void ZPopminCmd::DoInitial() {
   if (argv_.size() == 2) {
     count_ = 1;
     return;
-  }  
+  }
   if (!pstd::string2int(argv_[2].data(), argv_[2].size(), (long long*)(&count_))) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;

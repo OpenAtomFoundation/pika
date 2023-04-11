@@ -15,7 +15,7 @@ std::string RandomString(const int len) {
   return std::string(buf, len);
 }
 
-int GetTestDirectory(std::string *result) {
+int GetTestDirectory(std::string* result) {
   const char* env = getenv("TEST_TMPDIR");
   if (env && env[0] != '\0') {
     *result = env;

@@ -11,12 +11,12 @@
 
 #include "slash/include/env.h"
 
-#define COMMA_STR            ","
-#define COLON_STR            ":"
-#define NEG_STR              "-"
-#define NEG_CHAR             '-'
-#define SPACE_STR            " "
-#define WRITE2FILE           "write2file"
+#define COMMA_STR ","
+#define COLON_STR ":"
+#define NEG_STR "-"
+#define NEG_CHAR '-'
+#define SPACE_STR " "
+#define WRITE2FILE "write2file"
 
 bool Exists(const std::string& base, const std::string& pattern);
 bool CheckFilesStr(const std::string& files_str);
