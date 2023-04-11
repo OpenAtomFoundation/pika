@@ -69,6 +69,8 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 
 * linux - Ubuntu
 
+* macOS(Darwin) on M1
+
 If it comes to some missing libs, install them according to the prompts and retry it.
 
 ### Compile
