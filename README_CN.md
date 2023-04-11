@@ -54,52 +54,58 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 
 用户可以直接从[releases](https://github.com/Qihoo360/pika/releases)下载最新的二进制版本包直接使用.
 
-### 编译使用
+### 编译
 
-1.在编译机上安装snappy，glog，CentOS系统可以用yum安装，Ubuntu可以用apt-get安装。如是CentOS系统，执行如下命令：
+#### 支持的平台
 
-```
-    yum install snappy-devel glog-devel
-```
+* linux - CentOS 6&7
 
-2.安装g++(若没有安装), 在CentOS上执行如下命令：
+* linux - Ubuntu
 
-```
-    yum install gcc-c++
-```
+* macOS(Darwin) on M1
 
-3.把gcc版本临时切换到4.8(若已是，则忽略), 在CentOS上执行如下命令：
+#### 依赖软件
+* gcc g++ 支持C++11 （version>=4.8）
+* make
+* cmake（version>=3.18）
+* autoconf
+* tar
 
-```
-	a. sudo wget http://people.centos.org/tru/devtools-2/devtools-2.repo -O /etc/yum.repos.d/devtools-2.repo
-	b. sudo yum install -y devtoolset-2-gcc devtoolset-2-binutils devtoolset-2-gcc-c++
-	c. scl enable devtoolset-2 bash
-```
-4.获取源代码
+#### 编译
+
+1. 获取源代码
 
 ```
-	git clone https://github.com/OpenAtomFoundation/pika.git
-```
-5.切换到最新release版本
-
-```
-	a. 执行 git tag 查看最新的release tag，（如 v2.2.5）
-	b. 执行 git checkout TAG切换到最新版本，（如 git checkout v2.2.5）
+  git clone https://github.com/OpenAtomFoundation/pika.git
 ```
 
-6.编译
+2. 切换到最新release版本
 
 ```
-	./build.sh
+  a. 执行 `git tag` 查看最新的release tag，（如 v3.4.1）
+  b. 执行 `git checkout TAG` 切换到最新版本，（如 git checkout v3.4.1）
 ```
 
-若编译过程中，提示有依赖的库没有安装，则有提示安装后再重新编译
+3. 编译
 
-**注：我们推荐使用TCMalloc来进行内存管理**
+第一次编译时，建议使用构建脚本`build.sh` 该脚本会检查本机上，是否有编译所需的软件
+```
+  ./build.sh
+```
+
+编译后的文件在`output`目录下
+
+pika 默认使用`release`模式编译，不能调试，如果需要调试，需要使用`debug`模式来编译
+
+```
+  rm -fr output
+  cmake -B output -DCMAKE_BUILD_TYPE=Debug
+  cd ouput && make
+```
 
 ## 使用
 ```
-	./output/bin/pika -c ./conf/pika.conf
+  ./output/pika -c ./conf/pika.conf
 ```
 
 ## 清空编译
@@ -107,8 +113,8 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 ```
   如果需要清空编译内容，视不同情况使用以下两种方法其一：
 
-  1. 执行make clean来清空pika的编译内容
-  2. 执行make distclean来清空pika及所有依赖的编译内容（一般用于彻底重新编译）
+  1. 执行 cd output && make clean来清空pika的编译内容
+  2. 执行 rm -fr output 重新生成cmkae（一般用于彻底重新编译）
 ```
 
 ## 性能 (感谢[deep011](https://github.com/deep011)提供性能测试结果)
