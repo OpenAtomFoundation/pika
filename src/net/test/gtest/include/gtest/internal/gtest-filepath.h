@@ -58,21 +58,17 @@ namespace internal {
 
 class GTEST_API_ FilePath {
  public:
-  FilePath() : pathname_("") { }
-  FilePath(const FilePath& rhs) : pathname_(rhs.pathname_) { }
+  FilePath() : pathname_("") {}
+  FilePath(const FilePath& rhs) : pathname_(rhs.pathname_) {}
 
-  explicit FilePath(const std::string& pathname) : pathname_(pathname) {
-    Normalize();
-  }
+  explicit FilePath(const std::string& pathname) : pathname_(pathname) { Normalize(); }
 
   FilePath& operator=(const FilePath& rhs) {
     Set(rhs);
     return *this;
   }
 
-  void Set(const FilePath& rhs) {
-    pathname_ = rhs.pathname_;
-  }
+  void Set(const FilePath& rhs) { pathname_ = rhs.pathname_; }
 
   const std::string& string() const { return pathname_; }
   const char* c_str() const { return pathname_.c_str(); }
@@ -84,16 +80,12 @@ class GTEST_API_ FilePath {
   // extension = "xml", returns "dir/test.xml". If number is greater
   // than zero (e.g., 12), returns "dir/test_12.xml".
   // On Windows platform, uses \ as the separator rather than /.
-  static FilePath MakeFileName(const FilePath& directory,
-                               const FilePath& base_name,
-                               int number,
-                               const char* extension);
+  static FilePath MakeFileName(const FilePath& directory, const FilePath& base_name, int number, const char* extension);
 
   // Given directory = "dir", relative_path = "test.xml",
   // returns "dir/test.xml".
   // On Windows, uses \ as the separator rather than /.
-  static FilePath ConcatPaths(const FilePath& directory,
-                              const FilePath& relative_path);
+  static FilePath ConcatPaths(const FilePath& directory, const FilePath& relative_path);
 
   // Returns a pathname for a file that does not currently exist. The pathname
   // will be directory/base_name.extension or
@@ -103,9 +95,7 @@ class GTEST_API_ FilePath {
   // Examples: 'dir/foo_test.xml' or 'dir/foo_test_1.xml'.
   // There could be a race condition if two or more processes are calling this
   // function at the same time -- they could both pick the same filename.
-  static FilePath GenerateUniqueFileName(const FilePath& directory,
-                                         const FilePath& base_name,
-                                         const char* extension);
+  static FilePath GenerateUniqueFileName(const FilePath& directory, const FilePath& base_name, const char* extension);
 
   // Returns true iff the path is "".
   bool IsEmpty() const { return pathname_.empty(); }

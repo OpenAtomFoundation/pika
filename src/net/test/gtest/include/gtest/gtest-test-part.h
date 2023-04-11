@@ -57,25 +57,19 @@ class GTEST_API_ TestPartResult {
   // C'tor.  TestPartResult does NOT have a default constructor.
   // Always use this constructor (with parameters) to create a
   // TestPartResult object.
-  TestPartResult(Type a_type,
-                 const char* a_file_name,
-                 int a_line_number,
-                 const char* a_message)
+  TestPartResult(Type a_type, const char* a_file_name, int a_line_number, const char* a_message)
       : type_(a_type),
         file_name_(a_file_name == NULL ? "" : a_file_name),
         line_number_(a_line_number),
         summary_(ExtractSummary(a_message)),
-        message_(a_message) {
-  }
+        message_(a_message) {}
 
   // Gets the outcome of the test part.
   Type type() const { return type_; }
 
   // Gets the name of the source file where the test part took place, or
   // NULL if it's unknown.
-  const char* file_name() const {
-    return file_name_.empty() ? NULL : file_name_.c_str();
-  }
+  const char* file_name() const { return file_name_.empty() ? NULL : file_name_.c_str(); }
 
   // Gets the line in the source file where the test part took place,
   // or -1 if it's unknown.
@@ -158,13 +152,13 @@ namespace internal {
 // reported, it only delegates the reporting to the former result reporter.
 // The original result reporter is restored in the destructor.
 // INTERNAL IMPLEMENTATION - DO NOT USE IN A USER PROGRAM.
-class GTEST_API_ HasNewFatalFailureHelper
-    : public TestPartResultReporterInterface {
+class GTEST_API_ HasNewFatalFailureHelper : public TestPartResultReporterInterface {
  public:
   HasNewFatalFailureHelper();
   virtual ~HasNewFatalFailureHelper();
   virtual void ReportTestPartResult(const TestPartResult& result);
   bool has_new_fatal_failure() const { return has_new_fatal_failure_; }
+
  private:
   bool has_new_fatal_failure_;
   TestPartResultReporterInterface* original_reporter_;

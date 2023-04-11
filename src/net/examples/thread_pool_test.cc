@@ -5,10 +5,10 @@
 
 #include "unistd.h"
 
-#include <string>
-#include <iostream>
 #include <pthread.h>
 #include <sys/time.h>
+#include <iostream>
+#include <string>
 
 #include "net/include/thread_pool.h"
 #include "pstd/include/pstd_mutex.h"
@@ -23,15 +23,15 @@ uint64_t NowMicros() {
 
 static pstd::Mutex print_lock;
 
-void task(void *arg) {
+void task(void* arg) {
   {
-  pstd::MutexLock l(&print_lock);
-  std::cout << " task : " << *((int *)arg) << " time(micros) " << NowMicros() << "   thread id: "<< pthread_self() << std::endl;
+    pstd::MutexLock l(&print_lock);
+    std::cout << " task : " << *((int*)arg) << " time(micros) " << NowMicros() << "   thread id: " << pthread_self()
+              << std::endl;
   }
   sleep(1);
   delete (int*)arg;
 }
-
 
 int main() {
   // 10 threads
@@ -42,7 +42,7 @@ int main() {
 
   std::cout << "Test Normal Task... " << std::endl;
   for (int i = 0; i < 10; i++) {
-    int *pi = new int(i);
+    int* pi = new int(i);
     t.Schedule(task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
@@ -62,12 +62,13 @@ int main() {
   t.stop_thread_pool();
   t.start_thread_pool();
   for (int i = 0; i < 10; i++) {
-    int *pi = new int(i);
+    int* pi = new int(i);
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
     pstd::MutexLock l(&print_lock);
-    std::cout << "Schedule task " << i << " time(micros) " << NowMicros() << " for " << i * 1000 * 1000  << " micros "<< std::endl;
+    std::cout << "Schedule task " << i << " time(micros) " << NowMicros() << " for " << i * 1000 * 1000 << " micros "
+              << std::endl;
   }
   while (pqsize > 0) {
     t.cur_time_queue_size(&pqsize);
@@ -80,7 +81,7 @@ int main() {
   t.start_thread_pool();
   std::cout << "Test Drop Task... " << std::endl;
   for (int i = 0; i < 10; i++) {
-    int *pi = new int(i);
+    int* pi = new int(i);
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);

@@ -6,8 +6,8 @@
 #ifndef SLAVEPING_THREAD_H_
 #define SLAVEPING_THREAD_H_
 
-#include "net/include/net_thread.h"
 #include "net/include/net_cli.h"
+#include "net/include/net_thread.h"
 #include "net/include/redis_cli.h"
 #include "slash/include/slash_mutex.h"
 #include "slash/include/slash_status.h"
@@ -17,12 +17,11 @@
 using slash::Status;
 
 class SlavepingThread : public net::Thread {
-public:
-  SlavepingThread(int64_t sid) : sid_(sid),
-  is_first_send_(true) {
+ public:
+  SlavepingThread(int64_t sid) : sid_(sid), is_first_send_(true) {
     cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1500);
-	};
+  };
   virtual ~SlavepingThread() {
     StopThread();
     delete cli_;
@@ -32,15 +31,14 @@ public:
   Status Send();
   Status RecvProc();
 
-private:
+ private:
   int64_t sid_;
   bool is_first_send_;
 
   int sockfd_;
-  net::PinkCli *cli_;
+  net::PinkCli* cli_;
 
   virtual void* ThreadMain();
-
 };
 
 #endif

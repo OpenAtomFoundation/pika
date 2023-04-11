@@ -6,17 +6,14 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "pstd/include/xdebug.h"
 #include "net/include/net_conn.h"
 #include "net/include/net_thread.h"
 #include "net/src/net_util.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
-NetConn::NetConn(const int fd,
-                   const std::string &ip_port,
-                   Thread *thread,
-                   NetEpoll* net_epoll)
+NetConn::NetConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx)
     : fd_(fd),
       ip_port_(ip_port),
       is_reply_(false),
@@ -24,7 +21,7 @@ NetConn::NetConn(const int fd,
       ssl_(nullptr),
 #endif
       thread_(thread),
-      net_epoll_(net_epoll) {
+      net_multiplexer_(net_mpx) {
   gettimeofday(&last_interaction_, nullptr);
 }
 

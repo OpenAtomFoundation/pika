@@ -3,9 +3,9 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include "migrator.h"
 #include "nemo.h"
 #include "utils.h"
-#include "migrator.h"
 
 extern int32_t need_write_log;
 extern int32_t max_batch_limit;
@@ -14,9 +14,7 @@ int32_t Migrator::queue_size() {
   return items_queue_.size();
 }
 
-void Migrator::PlusMigrateKey() {
-  migrate_key_num_++;
-}
+void Migrator::PlusMigrateKey() { migrate_key_num_++; }
 
 void Migrator::SetShouldExit() {
   queue_mutex_.Lock();
@@ -39,7 +37,6 @@ bool Migrator::LoadItem(const std::string& item) {
 }
 
 void* Migrator::ThreadMain() {
-
   char prefix;
   int32_t int32_ret;
   uint64_t uint64_ret;
@@ -48,7 +45,6 @@ void* Migrator::ThreadMain() {
   rocksdb::Status s;
   std::map<blackwidow::DataType, rocksdb::Status> type_status;
   while (items_queue_.size() || !should_exit_) {
-
     queue_mutex_.Lock();
     while (items_queue_.empty() && !should_exit_) {
       queue_cond_.Wait();
@@ -73,19 +69,18 @@ void* Migrator::ThreadMain() {
     }
 
     if (need_write_log) {
-      LOG(INFO) << "migrator id: " << migrator_id_ << "  queue size: " << queue_size() << "  type : " << prefix << "  key: " << key;
+      LOG(INFO) << "migrator id: " << migrator_id_ << "  queue size: " << queue_size() << "  type : " << prefix
+                << "  key: " << key;
     }
 
     if (prefix == nemo::DataType::kKv) {
       blackwidow_db_->Set(key, value);
     } else if (prefix == nemo::DataType::kHSize) {
       std::vector<blackwidow::FieldValue> field_values;
-      nemo::HIterator *iter = nemo_db_->HScan(key, "", "", -1, false);
+      nemo::HIterator* iter = nemo_db_->HScan(key, "", "", -1, false);
       while (iter->Valid()) {
         field_values.clear();
-        for (int32_t idx = 0;
-             idx < max_batch_limit && iter->Valid();
-             idx++, iter->Next()) {
+        for (int32_t idx = 0; idx < max_batch_limit && iter->Valid(); idx++, iter->Next()) {
           field_values.push_back({iter->field(), iter->value()});
         }
         blackwidow_db_->HMSet(iter->key(), field_values);
@@ -109,13 +104,10 @@ void* Migrator::ThreadMain() {
       }
     } else if (prefix == nemo::DataType::kZSize) {
       std::vector<blackwidow::ScoreMember> score_members;
-      nemo::ZIterator *iter = nemo_db_->ZScan(key, nemo::ZSET_SCORE_MIN,
-              nemo::ZSET_SCORE_MAX, -1, false);
+      nemo::ZIterator* iter = nemo_db_->ZScan(key, nemo::ZSET_SCORE_MIN, nemo::ZSET_SCORE_MAX, -1, false);
       while (iter->Valid()) {
         score_members.clear();
-        for (int32_t idx = 0;
-             idx < max_batch_limit && iter->Valid();
-             idx++, iter->Next()) {
+        for (int32_t idx = 0; idx < max_batch_limit && iter->Valid(); idx++, iter->Next()) {
           score_members.push_back({iter->score(), iter->member()});
         }
         blackwidow_db_->ZAdd(iter->key(), score_members, &int32_ret);
@@ -124,12 +116,10 @@ void* Migrator::ThreadMain() {
 
     } else if (prefix == nemo::DataType::kSSize) {
       std::vector<std::string> members;
-      nemo::SIterator *iter = nemo_db_->SScan(key, -1, false);
+      nemo::SIterator* iter = nemo_db_->SScan(key, -1, false);
       while (iter->Valid()) {
         members.clear();
-        for (int32_t idx = 0;
-             idx < max_batch_limit && iter->Valid();
-             idx++, iter->Next()) {
+        for (int32_t idx = 0; idx < max_batch_limit && iter->Valid(); idx++, iter->Next()) {
           members.push_back(iter->member());
         }
         blackwidow_db_->SAdd(iter->key(), members, &int32_ret);

@@ -6,37 +6,35 @@
 #include "net/include/client_thread.h"
 
 #include <arpa/inet.h>
-#include <sys/time.h>
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <sys/time.h>
+#include <sys/types.h>
 
-#include "pstd/include/xdebug.h"
-#include "pstd/include/pstd_string.h"
-#include "net/src/net_epoll.h"
-#include "net/src/server_socket.h"
 #include "net/include/net_conn.h"
+#include "net/src/server_socket.h"
+#include "pstd/include/pstd_string.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
 using pstd::Status;
 
-ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle, void* private_data)
+ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle,
+                           void* private_data)
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
       handle_(handle),
       own_handle_(false),
       private_data_(private_data),
-      net_epoll_(NULL),
       conn_factory_(conn_factory) {
-  net_epoll_ = new NetEpoll();
+  net_multiplexer_.reset(CreateNetMultiplexer());
+  net_multiplexer_->Initialize();
 }
 
-ClientThread::~ClientThread() {
-  delete(net_epoll_);
-}
+ClientThread::~ClientThread() {}
 
 int ClientThread::StartThread() {
   if (!handle_) {
@@ -71,15 +69,15 @@ Status ClientThread::Write(const std::string& ip, const int port, const std::str
     return Status::Corruption(ip_port + " is baned by user!");
   }
   {
-  pstd::MutexLock l(&mu_);
-  size_t size = 0;
-  for (auto& str : to_send_[ip_port]) {
-    size += str.size();
-  }
-  if (size > kConnWriteBuf) {
-    return Status::Corruption("Connection buffer over maximum size");
-  }
-  to_send_[ip_port].push_back(msg);
+    pstd::MutexLock l(&mu_);
+    size_t size = 0;
+    for (auto& str : to_send_[ip_port]) {
+      size += str.size();
+    }
+    if (size > kConnWriteBuf) {
+      return Status::Corruption("Connection buffer over maximum size");
+    }
+    to_send_[ip_port].push_back(msg);
   }
   NotifyWrite(ip_port);
   return Status::OK();
@@ -87,16 +85,16 @@ Status ClientThread::Write(const std::string& ip, const int port, const std::str
 
 Status ClientThread::Close(const std::string& ip, const int port) {
   {
-  pstd::MutexLock l(&to_del_mu_);
-  to_del_.push_back(ip + ":" + std::to_string(port));
+    pstd::MutexLock l(&to_del_mu_);
+    to_del_.push_back(ip + ":" + std::to_string(port));
   }
   return Status::OK();
 }
 
 Status ClientThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close) {
-  if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP)) {
+  if (pfe->mask & kErrorEvent) {
     *should_close = 1;
-    return Status::Corruption("EPOLLERR or EPOLLHUP");
+    return Status::Corruption("POLLERR or POLLHUP");
   }
   int val = 0;
   socklen_t lon = sizeof(int);
@@ -113,13 +111,13 @@ Status ClientThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close)
 }
 
 void ClientThread::SetWaitConnectOnEpoll(int sockfd) {
-  net_epoll_->NetAddEvent(sockfd, EPOLLIN | EPOLLOUT);
+  net_multiplexer_->NetAddEvent(sockfd, kReadable | kWritable);
   connecting_fds_.insert(sockfd);
 }
 
 void ClientThread::NewConnection(const std::string& peer_ip, int peer_port, int sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, NULL, net_epoll_);
+  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, NULL, net_multiplexer_.get());
   tc->SetNonblock();
   // This flag specifies that the file descriptor should be closed when an exec function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
@@ -144,8 +142,7 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
     return Status::IOError("connect getaddrinfo error for ", dst_ip);
   }
   for (p = servinfo; p != NULL; p = p->ai_next) {
-    if ((sockfd = socket(
-            p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+    if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
       continue;
     }
     int flags = fcntl(sockfd, F_GETFL, 0);
@@ -155,9 +152,7 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
       if (errno == EHOSTUNREACH) {
         CloseFd(sockfd, dst_ip + ":" + std::to_string(dst_port));
         continue;
-      } else if (errno == EINPROGRESS ||
-                 errno == EAGAIN ||
-                 errno == EWOULDBLOCK) {
+      } else if (errno == EINPROGRESS || errno == EAGAIN || errno == EWOULDBLOCK) {
         NewConnection(dst_ip, dst_port, sockfd);
         SetWaitConnectOnEpoll(sockfd);
         freeaddrinfo(servinfo);
@@ -165,16 +160,15 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
       } else {
         CloseFd(sockfd, dst_ip + ":" + std::to_string(dst_port));
         freeaddrinfo(servinfo);
-        return Status::IOError("EHOSTUNREACH",
-                               "The target host cannot be reached");
+        return Status::IOError("EHOSTUNREACH", "The target host cannot be reached");
       }
     }
 
     NewConnection(dst_ip, dst_port, sockfd);
-    net_epoll_->NetAddEvent(sockfd, EPOLLIN | EPOLLOUT);
+    net_multiplexer_->NetAddEvent(sockfd, kReadable | kWritable);
     struct sockaddr_in laddr;
     socklen_t llen = sizeof(laddr);
-    getsockname(sockfd, (struct sockaddr*) &laddr, &llen);
+    getsockname(sockfd, (struct sockaddr*)&laddr, &llen);
     std::string lip(inet_ntoa(laddr.sin_addr));
     int lport = ntohs(laddr.sin_port);
     if (dst_ip == lip && dst_port == lport) {
@@ -221,10 +215,9 @@ void ClientThread::DoCronTask() {
     std::shared_ptr<NetConn> conn = iter->second;
 
     // Check keepalive timeout connection
-    if (keepalive_timeout_ > 0 &&
-        (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
+    if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
       log_info("Do cron task del fd %d\n", conn->fd());
-      net_epoll_->NetDelEvent(conn->fd());
+      net_multiplexer_->NetDelEvent(conn->fd(), 0);
       // did not clean up content in to_send queue
       // will try to send remaining by reconnecting
       close(conn->fd());
@@ -258,7 +251,7 @@ void ClientThread::DoCronTask() {
       continue;
     }
     std::shared_ptr<NetConn> conn = iter->second;
-    net_epoll_->NetDelEvent(conn->fd());
+    net_multiplexer_->NetDelEvent(conn->fd(), 0);
     CloseFd(conn);
     fd_conns_.erase(conn->fd());
     ipport_conns_.erase(conn->ip_port());
@@ -269,16 +262,16 @@ void ClientThread::DoCronTask() {
 void ClientThread::InternalDebugPrint() {
   log_info("___________________________________\n");
   {
-  pstd::MutexLock l(&mu_);
-  log_info("To send map: \n");
-  for (const auto& to_send : to_send_) {
-    UNUSED(to_send);
-    const std::vector<std::string>& tmp = to_send.second;
-    for (const auto& tmp_to_send : tmp) {
-      UNUSED(tmp_to_send);
-      log_info("%s %s\n", to_send.first.c_str(), tmp_to_send.c_str());
+    pstd::MutexLock l(&mu_);
+    log_info("To send map: \n");
+    for (const auto& to_send : to_send_) {
+      UNUSED(to_send);
+      const std::vector<std::string>& tmp = to_send.second;
+      for (const auto& tmp_to_send : tmp) {
+        UNUSED(tmp_to_send);
+        log_info("%s %s\n", to_send.first.c_str(), tmp_to_send.c_str());
+      }
     }
-  }
   }
   log_info("Ipport conn map: \n");
   for (const auto& ipport_conn : ipport_conns_) {
@@ -302,19 +295,18 @@ void ClientThread::NotifyWrite(const std::string ip_port) {
   // put fd = 0, cause this lib user doesnt need to know which fd to write to
   // we will check fd by checking ipport_conns_
   NetItem ti(0, ip_port, kNotiWrite);
-  net_epoll_->Register(ti, true);
+  net_multiplexer_->Register(ti, true);
 }
 
-
 void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
-  if (pfe->mask & EPOLLIN) {
+  if (pfe->mask & kReadable) {
     char bb[2048];
-    int32_t nread = read(net_epoll_->notify_receive_fd(), bb, 2048);
+    int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {
       return;
     } else {
       for (int32_t idx = 0; idx < nread; ++idx) {
-        NetItem ti = net_epoll_->notify_queue_pop();
+        NetItem ti = net_multiplexer_->NotifyQueuePop();
         std::string ip_port = ti.ip_port();
         int fd = ti.fd();
         if (ti.notify_type() == kNotiWrite) {
@@ -333,27 +325,27 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
             }
           } else {
             // connection exist
-            net_epoll_->NetModEvent(ipport_conns_[ip_port]->fd(), 0, EPOLLOUT | EPOLLIN);
+            net_multiplexer_->NetModEvent(ipport_conns_[ip_port]->fd(), 0, kReadable | kWritable);
           }
           {
-          pstd::MutexLock l(&mu_);
-          auto iter = to_send_.find(ip_port);
-          if (iter == to_send_.end()) {
-            continue;
-          }
-          // get msg from to_send_
-          std::vector<std::string>& msgs = iter->second;
-          for (auto& msg : msgs) {
-            if (ipport_conns_[ip_port]->WriteResp(msg)) {
-              to_send_[ip_port].push_back(msg);
-              NotifyWrite(ip_port);
+            pstd::MutexLock l(&mu_);
+            auto iter = to_send_.find(ip_port);
+            if (iter == to_send_.end()) {
+              continue;
             }
-          }
-          to_send_.erase(iter);
+            // get msg from to_send_
+            std::vector<std::string>& msgs = iter->second;
+            for (auto& msg : msgs) {
+              if (ipport_conns_[ip_port]->WriteResp(msg)) {
+                to_send_[ip_port].push_back(msg);
+                NotifyWrite(ip_port);
+              }
+            }
+            to_send_.erase(iter);
           }
         } else if (ti.notify_type() == kNotiClose) {
           log_info("received kNotiClose\n");
-          net_epoll_->NetDelEvent(fd);
+          net_multiplexer_->NetDelEvent(fd, 0);
           CloseFd(fd, ip_port);
           fd_conns_.erase(fd);
           ipport_conns_.erase(ip_port);
@@ -364,9 +356,9 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
   }
 }
 
-void *ClientThread::ThreadMain() {
+void* ClientThread::ThreadMain() {
   int nfds = 0;
-  NetFiredEvent *pfe = NULL;
+  NetFiredEvent* pfe = NULL;
 
   struct timeval when;
   gettimeofday(&when, NULL);
@@ -384,10 +376,8 @@ void *ClientThread::ThreadMain() {
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
-      if (when.tv_sec > now.tv_sec ||
-          (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 +
-          (when.tv_usec - now.tv_usec) / 1000;
+      if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
+        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
       } else {
         // do user defined cron
         handle_->CronHandle();
@@ -399,16 +389,16 @@ void *ClientThread::ThreadMain() {
       }
     }
     //{
-    //InternalDebugPrint();
+    // InternalDebugPrint();
     //}
-    nfds = net_epoll_->NetPoll(timeout);
+    nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->firedevent()) + i;
+      pfe = (net_multiplexer_->FiredEvents()) + i;
       if (pfe == NULL) {
         continue;
       }
 
-      if (pfe->fd == net_epoll_->notify_receive_fd()) {
+      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;
       }
@@ -417,7 +407,7 @@ void *ClientThread::ThreadMain() {
       std::map<int, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.find(pfe->fd);
       if (iter == fd_conns_.end()) {
         log_info("fd %d not found in fd_conns\n", pfe->fd);
-        net_epoll_->NetDelEvent(pfe->fd);
+        net_multiplexer_->NetDelEvent(pfe->fd, 0);
         continue;
       }
 
@@ -431,11 +421,11 @@ void *ClientThread::ThreadMain() {
         connecting_fds_.erase(pfe->fd);
       }
 
-      if (!should_close && (pfe->mask & EPOLLOUT) && conn->is_reply()) {
+      if (!should_close && (pfe->mask & kWritable) && conn->is_reply()) {
         WriteStatus write_status = conn->SendReply();
         conn->set_last_interaction(now);
         if (write_status == kWriteAll) {
-          net_epoll_->NetModEvent(pfe->fd, 0, EPOLLIN);
+          net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);
           conn->set_is_reply(false);
         } else if (write_status == kWriteHalf) {
           continue;
@@ -445,11 +435,11 @@ void *ClientThread::ThreadMain() {
         }
       }
 
-      if (!should_close && (pfe->mask & EPOLLIN)) {
+      if (!should_close && (pfe->mask & kReadable)) {
         ReadStatus read_status = conn->GetRequest();
         conn->set_last_interaction(now);
         if (read_status == kReadAll) {
-          // net_epoll_->NetModEvent(pfe->fd, 0, EPOLLOUT);
+          // net_multiplexer_->NetModEvent(pfe->fd, 0, EPOLLOUT);
         } else if (read_status == kReadHalf) {
           continue;
         } else {
@@ -458,10 +448,10 @@ void *ClientThread::ThreadMain() {
         }
       }
 
-      if ((pfe->mask & EPOLLERR) || (pfe->mask & EPOLLHUP) || should_close) {
+      if ((pfe->mask & kErrorEvent) || should_close) {
         {
           log_info("close connection %d reason %d %d\n", pfe->fd, pfe->mask, should_close);
-          net_epoll_->NetDelEvent(pfe->fd);
+          net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(conn);
           fd_conns_.erase(pfe->fd);
           if (ipport_conns_.count(conn->ip_port())) {

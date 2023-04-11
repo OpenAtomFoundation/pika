@@ -9,14 +9,14 @@
 #include <memory>
 #include <string>
 
-#include "net/include/pb_conn.h"
 #include "net/include/bg_thread.h"
+#include "net/include/pb_conn.h"
 #include "net/include/thread_pool.h"
 
 #include "pika_inner_message.pb.h"
 
-#include "include/pika_command.h"
 #include "include/pika_binlog_transverter.h"
+#include "include/pika_command.h"
 
 class PikaReplBgWorker {
  public:

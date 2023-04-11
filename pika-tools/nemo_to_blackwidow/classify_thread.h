@@ -15,31 +15,32 @@
 #include "net/include/net_thread.h"
 #include "slash/include/slash_mutex.h"
 
-#include "utils.h"
 #include "migrator.h"
+#include "utils.h"
 
 extern slash::Mutex mutex;
 
 class ClassifyThread : public net::Thread {
-  public:
-    ClassifyThread(nemo::Nemo* nemo_db, std::vector<Migrator*> migrators, const std::string& type);
-    virtual ~ClassifyThread();
-    int64_t key_num();
-    bool is_finish() { return is_finish_;}
-    std::string type() { return type_;}
-    int64_t consume_index() { return consume_index_;}
-  private:
-    void PlusProcessKeyNum();
-    void DispatchItem(const std::string& item);
-    virtual void *ThreadMain();
+ public:
+  ClassifyThread(nemo::Nemo* nemo_db, std::vector<Migrator*> migrators, const std::string& type);
+  virtual ~ClassifyThread();
+  int64_t key_num();
+  bool is_finish() { return is_finish_; }
+  std::string type() { return type_; }
+  int64_t consume_index() { return consume_index_; }
 
-    bool is_finish_;
-    int64_t key_num_;
-    int64_t consume_index_;
-    pthread_rwlock_t rwlock_;
-    nemo::Nemo* nemo_db_;
-    std::vector<Migrator*> migrators_;
-    std::string type_;
+ private:
+  void PlusProcessKeyNum();
+  void DispatchItem(const std::string& item);
+  virtual void* ThreadMain();
+
+  bool is_finish_;
+  int64_t key_num_;
+  int64_t consume_index_;
+  pthread_rwlock_t rwlock_;
+  nemo::Nemo* nemo_db_;
+  std::vector<Migrator*> migrators_;
+  std::string type_;
 };
 
 #endif  //  INCLUDE_CLASSIFY_THREAD_H_

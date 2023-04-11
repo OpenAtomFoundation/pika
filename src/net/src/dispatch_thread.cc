@@ -8,47 +8,41 @@
 #include "net/src/dispatch_thread.h"
 
 #include "net/src/net_item.h"
-#include "net/src/net_epoll.h"
+#include "net/src/net_multiplexer.h"
 #include "net/src/worker_thread.h"
 
 namespace net {
 
-DispatchThread::DispatchThread(int port,
-                               int work_num, ConnFactory* conn_factory,
-                               int cron_interval, int queue_limit,
+DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
                                const ServerHandle* handle)
-      : ServerThread::ServerThread(port, cron_interval, handle),
-        last_thread_(0),
-        work_num_(work_num),
-        queue_limit_(queue_limit) {
+    : ServerThread::ServerThread(port, cron_interval, handle),
+      last_thread_(0),
+      work_num_(work_num),
+      queue_limit_(queue_limit) {
   worker_thread_ = new WorkerThread*[work_num_];
   for (int i = 0; i < work_num_; i++) {
     worker_thread_[i] = new WorkerThread(conn_factory, this, queue_limit, cron_interval);
   }
 }
 
-DispatchThread::DispatchThread(const std::string &ip, int port,
-                               int work_num, ConnFactory* conn_factory,
-                               int cron_interval, int queue_limit,
-                               const ServerHandle* handle)
-      : ServerThread::ServerThread(ip, port, cron_interval, handle),
-        last_thread_(0),
-        work_num_(work_num),
-        queue_limit_(queue_limit) {
+DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
+                               int cron_interval, int queue_limit, const ServerHandle* handle)
+    : ServerThread::ServerThread(ip, port, cron_interval, handle),
+      last_thread_(0),
+      work_num_(work_num),
+      queue_limit_(queue_limit) {
   worker_thread_ = new WorkerThread*[work_num_];
   for (int i = 0; i < work_num_; i++) {
     worker_thread_[i] = new WorkerThread(conn_factory, this, queue_limit, cron_interval);
   }
 }
 
-DispatchThread::DispatchThread(const std::set<std::string>& ips, int port,
-                               int work_num, ConnFactory* conn_factory,
-                               int cron_interval, int queue_limit,
-                               const ServerHandle* handle)
-      : ServerThread::ServerThread(ips, port, cron_interval, handle),
-        last_thread_(0),
-        work_num_(work_num),
-        queue_limit_(queue_limit) {
+DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory,
+                               int cron_interval, int queue_limit, const ServerHandle* handle)
+    : ServerThread::ServerThread(ips, port, cron_interval, handle),
+      last_thread_(0),
+      work_num_(work_num),
+      queue_limit_(queue_limit) {
   worker_thread_ = new WorkerThread*[work_num_];
   for (int i = 0; i < work_num_; i++) {
     worker_thread_[i] = new WorkerThread(conn_factory, this, queue_limit, cron_interval);
@@ -64,8 +58,7 @@ DispatchThread::~DispatchThread() {
 
 int DispatchThread::StartThread() {
   for (int i = 0; i < work_num_; i++) {
-    int ret = handle_->CreateWorkerSpecificData(
-        &(worker_thread_[i]->private_data_));
+    int ret = handle_->CreateWorkerSpecificData(&(worker_thread_[i]->private_data_));
     if (ret != 0) {
       return ret;
     }
@@ -119,10 +112,7 @@ std::vector<ServerThread::ConnInfo> DispatchThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
   for (int i = 0; i < work_num_; ++i) {
     const auto worker_conns_info = worker_thread_[i]->conns_info();
-    result.insert(
-      result.end(),
-      worker_conns_info.begin(),
-      worker_conns_info.end());
+    result.insert(result.end(), worker_conns_info.begin(), worker_conns_info.end());
   }
   return result;
 }
@@ -142,7 +132,7 @@ void DispatchThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType&
   bool success = worker_thread->MoveConnIn(conn, type, true);
   if (success) {
     last_thread_ = (last_thread_ + 1) % work_num_;
-    conn->set_net_epoll(worker_thread->net_epoll());
+    conn->set_net_multiplexer(worker_thread->net_multiplexer());
   }
 }
 
@@ -154,12 +144,9 @@ bool DispatchThread::KillConn(const std::string& ip_port) {
   return result;
 }
 
-void DispatchThread::KillAllConns() {
-  KillConn(kKillAllConnsTask);
-}
+void DispatchThread::KillAllConns() { KillConn(kKillAllConnsTask); }
 
-void DispatchThread::HandleNewConn(
-    const int connfd, const std::string& ip_port) {
+void DispatchThread::HandleNewConn(const int connfd, const std::string& ip_port) {
   // Slow workers may consume many fds.
   // We simply loop to find next legal worker.
   NetItem ti(connfd, ip_port);
@@ -170,8 +157,7 @@ void DispatchThread::HandleNewConn(
     find = worker_thread->MoveConnIn(ti, false);
     if (find) {
       last_thread_ = (next_thread + 1) % work_num_;
-      log_info("find worker(%d), refresh the last_thread_ to %d",
-          next_thread, last_thread_);
+      log_info("find worker(%d), refresh the last_thread_ to %d", next_thread, last_thread_);
       break;
     }
     next_thread = (next_thread + 1) % work_num_;
@@ -185,33 +171,20 @@ void DispatchThread::HandleNewConn(
   }
 }
 
-void DispatchThread::SetQueueLimit(int queue_limit) {
-  queue_limit_ = queue_limit;
-}
+void DispatchThread::SetQueueLimit(int queue_limit) { queue_limit_ = queue_limit; }
 
-extern ServerThread *NewDispatchThread(
-    int port,
-    int work_num, ConnFactory* conn_factory,
-    int cron_interval, int queue_limit,
-    const ServerHandle* handle) {
-  return new DispatchThread(port, work_num, conn_factory,
-                            cron_interval, queue_limit, handle);
+extern ServerThread* NewDispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval,
+                                       int queue_limit, const ServerHandle* handle) {
+  return new DispatchThread(port, work_num, conn_factory, cron_interval, queue_limit, handle);
 }
-extern ServerThread *NewDispatchThread(
-    const std::string &ip, int port,
-    int work_num, ConnFactory* conn_factory,
-    int cron_interval, int queue_limit,
-    const ServerHandle* handle) {
-  return new DispatchThread(ip, port, work_num, conn_factory,
-                            cron_interval, queue_limit, handle);
+extern ServerThread* NewDispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
+                                       int cron_interval, int queue_limit, const ServerHandle* handle) {
+  return new DispatchThread(ip, port, work_num, conn_factory, cron_interval, queue_limit, handle);
 }
-extern ServerThread *NewDispatchThread(
-    const std::set<std::string>& ips, int port,
-    int work_num, ConnFactory* conn_factory,
-    int cron_interval, int queue_limit,
-    const ServerHandle* handle) {
-  return new DispatchThread(ips, port, work_num, conn_factory,
-                            cron_interval, queue_limit, handle);
+extern ServerThread* NewDispatchThread(const std::set<std::string>& ips, int port, int work_num,
+                                       ConnFactory* conn_factory, int cron_interval, int queue_limit,
+                                       const ServerHandle* handle) {
+  return new DispatchThread(ips, port, work_num, conn_factory, cron_interval, queue_limit, handle);
 }
 
 };  // namespace net

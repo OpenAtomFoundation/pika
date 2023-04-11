@@ -8,18 +8,11 @@
 
 const uint32_t VERSION = 1;
 
-PikaMeta::PikaMeta()
-    : local_meta_path_("") {
-  pthread_rwlock_init(&rwlock_, NULL);
-}
+PikaMeta::PikaMeta() : local_meta_path_("") { pthread_rwlock_init(&rwlock_, NULL); }
 
-PikaMeta::~PikaMeta() {
-  pthread_rwlock_destroy(&rwlock_);
-}
+PikaMeta::~PikaMeta() { pthread_rwlock_destroy(&rwlock_); }
 
-void PikaMeta::SetPath(const std::string& path) {
-  local_meta_path_ = path;
-}
+void PikaMeta::SetPath(const std::string& path) { local_meta_path_ = path; }
 
 /*
  * ******************* Meta File Format ******************
@@ -63,7 +56,7 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
   }
   uint32_t meta_str_size = meta_str.size();
 
-  char *p = saver->GetData();
+  char* p = saver->GetData();
   memcpy(p, &VERSION, sizeof(uint32_t));
   p += sizeof(uint32_t);
   memcpy(p, &meta_str_size, sizeof(uint32_t));

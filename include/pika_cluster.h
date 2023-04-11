@@ -8,31 +8,18 @@
 
 #include "include/pika_command.h"
 
-
-Status ParseSlotGroup(const std::string& slot_group,
-    std::set<uint32_t>* slots);
+Status ParseSlotGroup(const std::string& slot_group, std::set<uint32_t>* slots);
 
 class PkClusterInfoCmd : public Cmd {
  public:
-  enum InfoSection {
-    kInfoErr = 0x0,
-    kInfoSlot,
-    kInfoTable
-  };
-  enum InfoRange {
-    kSingle = 0x0,
-    kAll,
-    kRange
-  };
+  enum InfoSection { kInfoErr = 0x0, kInfoSlot, kInfoTable };
+  enum InfoRange { kSingle = 0x0, kAll, kRange };
   PkClusterInfoCmd(const std::string& name, int arity, uint16_t flag)
-    : Cmd(name, arity, flag),
-      info_section_(kInfoErr), info_range_(kAll) {}
+      : Cmd(name, arity, flag), info_section_(kInfoErr), info_range_(kAll) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PkClusterInfoCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PkClusterInfoCmd(*this); }
 
  private:
   InfoSection info_section_;
@@ -52,8 +39,7 @@ class PkClusterInfoCmd : public Cmd {
   const static std::string kTableSection;
   void ClusterInfoTableAll(std::string* info);
   void ClusterInfoTable(std::string* info);
-  void ClusterInfoSlotRange(const std::string& table_name, const std::set<uint32_t> slots,
-      std::string* info);
+  void ClusterInfoSlotRange(const std::string& table_name, const std::set<uint32_t> slots, std::string* info);
   void ClusterInfoSlotAll(std::string* info);
   Status GetSlotInfo(const std::string table_name, uint32_t partition_id, std::string* info);
   bool ParseInfoSlotSubCmd();
@@ -62,8 +48,7 @@ class PkClusterInfoCmd : public Cmd {
 
 class SlotParentCmd : public Cmd {
  public:
-  SlotParentCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag)  {}
+  SlotParentCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
 
  protected:
   std::set<uint32_t> slots_;
@@ -78,14 +63,12 @@ class SlotParentCmd : public Cmd {
 
 class PkClusterAddSlotsCmd : public SlotParentCmd {
  public:
-  PkClusterAddSlotsCmd(const std::string& name, int arity, uint16_t flag)
-      : SlotParentCmd(name, arity, flag) {}
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PkClusterAddSlotsCmd(*this);
-  }
+  PkClusterAddSlotsCmd(const std::string& name, int arity, uint16_t flag) : SlotParentCmd(name, arity, flag) {}
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PkClusterAddSlotsCmd(*this); }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+
  private:
   virtual void DoInitial() override;
   Status AddSlotsSanityCheck();
@@ -93,14 +76,12 @@ class PkClusterAddSlotsCmd : public SlotParentCmd {
 
 class PkClusterDelSlotsCmd : public SlotParentCmd {
  public:
-  PkClusterDelSlotsCmd(const std::string& name, int32_t arity, uint16_t flag)
-      : SlotParentCmd(name, arity, flag) {}
+  PkClusterDelSlotsCmd(const std::string& name, int32_t arity, uint16_t flag) : SlotParentCmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PkClusterDelSlotsCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PkClusterDelSlotsCmd(*this); }
+
  private:
   virtual void DoInitial() override;
   Status RemoveSlotsSanityCheck();
@@ -108,14 +89,12 @@ class PkClusterDelSlotsCmd : public SlotParentCmd {
 
 class PkClusterSlotsSlaveofCmd : public Cmd {
  public:
-  PkClusterSlotsSlaveofCmd(const std::string& name , int arity, uint16_t flag)
-      : Cmd(name, arity, flag) {}
+  PkClusterSlotsSlaveofCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  virtual Cmd* Clone() override {
-    return new PkClusterSlotsSlaveofCmd(*this);
-  }
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new PkClusterSlotsSlaveofCmd(*this); }
+
  private:
   std::string ip_;
   int64_t port_;
@@ -133,19 +112,16 @@ class PkClusterSlotsSlaveofCmd : public Cmd {
   }
 };
 
-
 class PkClusterAddTableCmd : public Cmd {
  public:
-  PkClusterAddTableCmd(const std::string& name, int arity, uint16_t flag)
-      : Cmd(name, arity, flag), slot_num_(0) {}
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  Cmd* Clone() override {
-    return new PkClusterAddTableCmd(*this);
-  }
+  PkClusterAddTableCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), slot_num_(0) {}
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  Cmd* Clone() override { return new PkClusterAddTableCmd(*this); }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+
  private:
-  uint64_t  slot_num_;
+  int64_t slot_num_;
   void DoInitial() override;
   Status AddTableSanityCheck();
   void Clear() override {
@@ -156,14 +132,12 @@ class PkClusterAddTableCmd : public Cmd {
 
 class PkClusterDelTableCmd : public PkClusterDelSlotsCmd {
  public:
-  PkClusterDelTableCmd(const std::string& name, int arity, uint16_t flag)
-      : PkClusterDelSlotsCmd(name, arity, flag) {}
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {};
-  virtual void Merge() {};
-  Cmd* Clone() override {
-    return new PkClusterDelTableCmd(*this);
-  }
+  PkClusterDelTableCmd(const std::string& name, int arity, uint16_t flag) : PkClusterDelSlotsCmd(name, arity, flag) {}
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  Cmd* Clone() override { return new PkClusterDelTableCmd(*this); }
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+
  private:
   void DoInitial() override;
   Status DelTableSanityCheck(const std::string& table_name);

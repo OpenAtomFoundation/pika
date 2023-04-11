@@ -5,7 +5,7 @@
 
 #include "net/include/redis_parser.h"
 
-#include <assert.h>     /* assert */
+#include <assert.h> /* assert */
 
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/xdebug.h"
@@ -13,23 +13,23 @@
 namespace net {
 
 static bool IsHexDigit(char ch) {
-  return (ch>='0' && ch<='9') || (ch>='a' && ch<='f') || (ch>='A' && ch<='F');
+  return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
 }
 
 static int HexDigitToInt32(char ch) {
   if (ch <= '9' && ch >= '0') {
-    return ch-'0';
+    return ch - '0';
   } else if (ch <= 'F' && ch >= 'A') {
-    return ch-'A';
+    return ch - 'A';
   } else if (ch <= 'f' && ch >= 'a') {
-    return ch-'a';
+    return ch - 'a';
   } else {
     return 0;
   }
 }
 
 static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
-  const char *p = req_buf.data();
+  const char* p = req_buf.data();
   std::string arg;
 
   while (1) {
@@ -37,17 +37,15 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
     while (*p && isspace(*p)) p++;
     if (*p) {
       // get a token
-      int inq = 0;  // set to 1 if we are in "quotes"
+      int inq = 0;   // set to 1 if we are in "quotes"
       int insq = 0;  // set to 1 if we are in 'single quotes'
       int done = 0;
 
       arg.clear();
       while (!done) {
         if (inq) {
-          if (*p == '\\' && *(p+1) == 'x' &&
-              IsHexDigit(*(p+2)) &&
-              IsHexDigit(*(p+3))) {
-            unsigned char byte = HexDigitToInt32(*(p+2))*16 + HexDigitToInt32(*(p+3));
+          if (*p == '\\' && *(p + 1) == 'x' && IsHexDigit(*(p + 2)) && IsHexDigit(*(p + 3))) {
+            unsigned char byte = HexDigitToInt32(*(p + 2)) * 16 + HexDigitToInt32(*(p + 3));
             arg.append(1, byte);
             p += 3;
           } else if (*p == '\\' && *(p + 1)) {
@@ -55,18 +53,30 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
 
             p++;
             switch (*p) {
-              case 'n': c = '\n'; break;
-              case 'r': c = '\r'; break;
-              case 't': c = '\t'; break;
-              case 'b': c = '\b'; break;
-              case 'a': c = '\a'; break;
-              default: c = *p; break;
+              case 'n':
+                c = '\n';
+                break;
+              case 'r':
+                c = '\r';
+                break;
+              case 't':
+                c = '\t';
+                break;
+              case 'b':
+                c = '\b';
+                break;
+              case 'a':
+                c = '\a';
+                break;
+              default:
+                c = *p;
+                break;
             }
             arg.append(1, c);
           } else if (*p == '"') {
             /* closing quote must be followed by a space or
-            * nothing at all. */
-            if (*(p+1) && !isspace(*(p+1))) {
+             * nothing at all. */
+            if (*(p + 1) && !isspace(*(p + 1))) {
               argv.clear();
               return -1;
             }
@@ -79,13 +89,13 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
             arg.append(1, *p);
           }
         } else if (insq) {
-          if (*p == '\\' && *(p+1) == '\'') {
+          if (*p == '\\' && *(p + 1) == '\'') {
             p++;
             arg.append(1, '\'');
           } else if (*p == '\'') {
             /* closing quote must be followed by a space or
-            * nothing at all. */
-            if (*(p+1) && !isspace(*(p+1))) {
+             * nothing at all. */
+            if (*(p + 1) && !isspace(*(p + 1))) {
               argv.clear();
               return -1;
             }
@@ -105,13 +115,13 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
             case '\t':
             case '\0':
               done = 1;
-            break;
+              break;
             case '"':
               inq = 1;
-            break;
+              break;
             case '\'':
               insq = 1;
-            break;
+              break;
             default:
               // current = sdscatlen(current,p,1);
               arg.append(1, *p);
@@ -126,7 +136,6 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
     }
   }
 }
-
 
 int RedisParser::FindNextSeparators() {
   if (cur_pos_ > length_ - 1) {
@@ -149,28 +158,24 @@ int RedisParser::GetNextNum(int pos, long* value) {
   //      |    |
   //      *3\r\n
   // [cur_pos_ + 1, pos - cur_pos_ - 2]
-  if (pstd::string2l(input_buf_ + cur_pos_ + 1,
-                            pos - cur_pos_ - 2,
-                            value)) {
-    return 0; // Success
+  if (pstd::string2int(input_buf_ + cur_pos_ + 1, pos - cur_pos_ - 2, value)) {
+    return 0;  // Success
   }
-  return -1; // Failed
+  return -1;  // Failed
 }
 
 RedisParser::RedisParser()
-  : status_code_(kRedisParserNone),
-    error_code_(kRedisParserOk),
-    redis_type_(0),
-    multibulk_len_(0),
-    bulk_len_(-1),
-    redis_parser_type_(REDIS_PARSER_REQUEST),
-    cur_pos_(0),
-    input_buf_(NULL),
-    length_(0) {
-}
+    : status_code_(kRedisParserNone),
+      error_code_(kRedisParserOk),
+      redis_type_(0),
+      multibulk_len_(0),
+      bulk_len_(-1),
+      redis_parser_type_(REDIS_PARSER_REQUEST),
+      cur_pos_(0),
+      input_buf_(NULL),
+      length_(0) {}
 
-void RedisParser::SetParserStatus(RedisParserStatus status,
-    RedisParserError error) {
+void RedisParser::SetParserStatus(RedisParserStatus status, RedisParserError error) {
   if (status == kRedisParserHalf) {
     CacheHalfArgv();
   }
@@ -184,8 +189,7 @@ void RedisParser::CacheHalfArgv() {
   cur_pos_ = length_;
 }
 
-RedisParserStatus RedisParser::RedisParserInit(
-    RedisParserType type, const RedisParserSettings& settings) {
+RedisParserStatus RedisParser::RedisParserInit(RedisParserType type, const RedisParserSettings& settings) {
   if (status_code_ != kRedisParserNone) {
     SetParserStatus(kRedisParserError, kRedisParserInitError);
     return status_code_;
@@ -260,7 +264,7 @@ RedisParserStatus RedisParser::ProcessMultibulkBuffer() {
         }
 
         if (GetNextNum(pos, &bulk_len_) != 0) {
-            // Protocol error: invalid bulk length
+          // Protocol error: invalid bulk length
           SetParserStatus(kRedisParserError, kRedisParserProtoError);
           return status_code_;
         }
@@ -293,11 +297,12 @@ RedisParserStatus RedisParser::ProcessMultibulkBuffer() {
 
 void RedisParser::PrintCurrentStatus() {
   log_info("status_code %d error_code %d", status_code_, error_code_);
-  log_info("multibulk_len_ %ld bulk_len %ld redis_type %d redis_parser_type %d", multibulk_len_, bulk_len_, redis_type_, redis_parser_type_);
-  //for (auto& i : argv_) {
-  //  UNUSED(i);
-  //  log_info("parsed arguments: %s", i.c_str());
-  //}
+  log_info("multibulk_len_ %ld bulk_len %ld redis_type %d redis_parser_type %d", multibulk_len_, bulk_len_, redis_type_,
+           redis_parser_type_);
+  // for (auto& i : argv_) {
+  //   UNUSED(i);
+  //   log_info("parsed arguments: %s", i.c_str());
+  // }
   log_info("cur_pos : %d", cur_pos_);
   log_info("input_buf_ is clean ? %d", input_buf_ == NULL);
   if (input_buf_ != NULL) {
@@ -307,11 +312,8 @@ void RedisParser::PrintCurrentStatus() {
   log_info("input_buf len %d", length_);
 }
 
-RedisParserStatus RedisParser::ProcessInputBuffer(
-    const char* input_buf, int length, int* parsed_len) {
-  if (status_code_ == kRedisParserInitDone ||
-      status_code_ == kRedisParserHalf ||
-      status_code_ == kRedisParserDone) {
+RedisParserStatus RedisParser::ProcessInputBuffer(const char* input_buf, int length, int* parsed_len) {
+  if (status_code_ == kRedisParserInitDone || status_code_ == kRedisParserHalf || status_code_ == kRedisParserDone) {
     // TODO AZ: avoid copy
     std::string tmp_str(input_buf, length);
     input_str_ = half_argv_ + tmp_str;
@@ -328,7 +330,7 @@ RedisParserStatus RedisParser::ProcessInputBuffer(
     // cur_pos_ starts from 0, val of cur_pos_ is the parsed_len
     *parsed_len = cur_pos_;
     ResetRedisParser();
-    //PrintCurrentStatus();
+    // PrintCurrentStatus();
     return status_code_;
   }
   SetParserStatus(kRedisParserError, kRedisParserInitError);
@@ -359,7 +361,7 @@ RedisParserStatus RedisParser::ProcessRequestBuffer() {
       }
     } else if (redis_type_ == REDIS_REQ_MULTIBULK) {
       ret = ProcessMultibulkBuffer();
-      if (ret != kRedisParserDone) { // FULL_ERROR || HALF || PARSE_ERROR
+      if (ret != kRedisParserDone) {  // FULL_ERROR || HALF || PARSE_ERROR
         return ret;
       }
     } else {
@@ -387,7 +389,7 @@ RedisParserStatus RedisParser::ProcessRequestBuffer() {
   }
   argvs_.clear();
   SetParserStatus(kRedisParserDone);
-  return status_code_; // OK
+  return status_code_;  // OK
 }
 
 void RedisParser::ResetCommandStatus() {

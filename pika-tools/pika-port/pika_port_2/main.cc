@@ -3,12 +3,12 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <glog/logging.h>
-#include <random>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <glog/logging.h>
+#include <signal.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <random>
 
 #include "pika_port.h"
 #include "port_conf.h"
@@ -19,7 +19,7 @@ PikaPort* g_pika_port;
 
 static void GlogInit(std::string& log_path, bool is_daemon) {
   if (!slash::FileExists(log_path)) {
-    slash::CreatePath(log_path); 
+    slash::CreatePath(log_path);
   }
 
   if (!is_daemon) {
@@ -34,7 +34,7 @@ static void GlogInit(std::string& log_path, bool is_daemon) {
 
 static void daemonize() {
   if (fork() != 0) exit(0); /* parent exits */
-  setsid(); /* create a new session */
+  setsid();                 /* create a new session */
 }
 
 static void close_std() {
@@ -62,33 +62,31 @@ static void SignalSetup() {
   signal(SIGTERM, &IntSigHandle);
 }
 
-static void Usage()
-{
-    fprintf(stderr,
-            "Usage: pika_port [-h] [-t local_ip -p local_port -i master_ip -o master_port "
-			"-m forward_ip -n forward_port -x forward_thread_num -y forward_passwd]\n"
-			"-f filenum -s offset -w password -r rsync_dump_path  -l log_path "
-            "\t-h               -- show this help\n"
-            "\t-t     -- local host ip(OPTIONAL default: 127.0.0.1) \n"
-            "\t-p     -- local port(OPTIONAL) \n"
-            "\t-i     -- master ip(OPTIONAL default: 127.0.0.1) \n"
-            "\t-o     -- master port(REQUIRED) \n"
-            "\t-m     -- forward ip(OPTIONAL default: 127.0.0.1) \n"
-            "\t-n     -- forward port(REQUIRED) \n"
-            "\t-x     -- forward thread num(OPTIONAL default: 1) \n"
-            "\t-y     -- forward password(OPTIONAL) \n"
-            "\t-f     -- binlog filenum(OPTIONAL default: local offset) \n"
-            "\t-s     -- binlog offset(OPTIONAL default: local offset) \n"
-            "\t-w     -- password for master(OPTIONAL) \n"
-            "\t-r     -- rsync dump data path(OPTIONAL default: ./rsync_dump) \n"
-            "\t-l     -- local log path(OPTIONAL default: ./log) \n"
-            "\t-d     -- daemonize(OPTIONAL) \n"
-            "  example: ./pika_port -t 127.0.0.1 -p 12345 -i 127.0.0.1 -o 9221 "
-			"-m 127.0.0.1 -n 6379 -x 7 -f 0 -s 0 -w abc -l ./log -r ./rsync_dump -d\n"
-           );
+static void Usage() {
+  fprintf(stderr,
+          "Usage: pika_port [-h] [-t local_ip -p local_port -i master_ip -o master_port "
+          "-m forward_ip -n forward_port -x forward_thread_num -y forward_passwd]\n"
+          "-f filenum -s offset -w password -r rsync_dump_path  -l log_path "
+          "\t-h               -- show this help\n"
+          "\t-t     -- local host ip(OPTIONAL default: 127.0.0.1) \n"
+          "\t-p     -- local port(OPTIONAL) \n"
+          "\t-i     -- master ip(OPTIONAL default: 127.0.0.1) \n"
+          "\t-o     -- master port(REQUIRED) \n"
+          "\t-m     -- forward ip(OPTIONAL default: 127.0.0.1) \n"
+          "\t-n     -- forward port(REQUIRED) \n"
+          "\t-x     -- forward thread num(OPTIONAL default: 1) \n"
+          "\t-y     -- forward password(OPTIONAL) \n"
+          "\t-f     -- binlog filenum(OPTIONAL default: local offset) \n"
+          "\t-s     -- binlog offset(OPTIONAL default: local offset) \n"
+          "\t-w     -- password for master(OPTIONAL) \n"
+          "\t-r     -- rsync dump data path(OPTIONAL default: ./rsync_dump) \n"
+          "\t-l     -- local log path(OPTIONAL default: ./log) \n"
+          "\t-d     -- daemonize(OPTIONAL) \n"
+          "  example: ./pika_port -t 127.0.0.1 -p 12345 -i 127.0.0.1 -o 9221 "
+          "-m 127.0.0.1 -n 6379 -x 7 -f 0 -s 0 -w abc -l ./log -r ./rsync_dump -d\n");
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   if (argc < 2) {
     Usage();
     exit(-1);
@@ -155,14 +153,14 @@ int main(int argc, char *argv[]) {
       case 'r':
         snprintf(buf, 1024, "%s", optarg);
         g_port_conf.dump_path = std::string(buf);
-        if (g_port_conf.dump_path[g_port_conf.dump_path.length() - 1] != '/' ) {
+        if (g_port_conf.dump_path[g_port_conf.dump_path.length() - 1] != '/') {
           g_port_conf.dump_path.append("/");
         }
         break;
       case 'l':
         snprintf(buf, 1024, "%s", optarg);
         g_port_conf.log_path = std::string(buf);
-        if (g_port_conf.log_path[g_port_conf.log_path.length() - 1] != '/' ) {
+        if (g_port_conf.log_path[g_port_conf.log_path.length() - 1] != '/') {
           g_port_conf.log_path.append("/");
         }
         break;
@@ -188,19 +186,19 @@ int main(int argc, char *argv[]) {
 
   std::cout << "local_ip:" << g_port_conf.local_ip << " "
             << "local_port:" << g_port_conf.local_port << " "
-            << "master_ip:"  << g_port_conf.master_ip << " "
-            << "master_port:"  << g_port_conf.master_port << " "
-            << "forward_ip:"  << g_port_conf.forward_ip << " "
-            << "forward_port:"  << g_port_conf.forward_port << " "
-            << "forward_passwd:"  << g_port_conf.forward_passwd << " "
+            << "master_ip:" << g_port_conf.master_ip << " "
+            << "master_port:" << g_port_conf.master_port << " "
+            << "forward_ip:" << g_port_conf.forward_ip << " "
+            << "forward_port:" << g_port_conf.forward_port << " "
+            << "forward_passwd:" << g_port_conf.forward_passwd << " "
             << "forward_thread_num:" << g_port_conf.forward_thread_num << " "
-            << "log_path:"   << g_port_conf.log_path << " "
-            << "dump_path:"  << g_port_conf.dump_path << " "
-            << "filenum:"    << g_port_conf.filenum << " "
-            << "offset:"     << g_port_conf.offset << " "
-            << "passwd:"     << g_port_conf.passwd << std::endl;
+            << "log_path:" << g_port_conf.log_path << " "
+            << "dump_path:" << g_port_conf.dump_path << " "
+            << "filenum:" << g_port_conf.filenum << " "
+            << "offset:" << g_port_conf.offset << " "
+            << "passwd:" << g_port_conf.passwd << std::endl;
   if (g_port_conf.master_port == 0 || g_port_conf.forward_port == 0) {
-    fprintf (stderr, "Invalid Arguments\n" );
+    fprintf(stderr, "Invalid Arguments\n");
     Usage();
     exit(-1);
   }

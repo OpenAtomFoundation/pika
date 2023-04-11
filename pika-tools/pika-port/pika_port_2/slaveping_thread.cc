@@ -3,9 +3,9 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include "slaveping_thread.h"
 #include <glog/logging.h>
 #include <poll.h>
-#include "slaveping_thread.h"
 #include "pika_port.h"
 
 extern PikaPort* g_pika_port;
@@ -13,10 +13,10 @@ extern PikaPort* g_pika_port;
 Status SlavepingThread::Send() {
   std::string wbuf_str;
   if (!is_first_send_) {
-    net::SerializeRedisCommand(&wbuf_str, "ping"); // reply == pong
+    net::SerializeRedisCommand(&wbuf_str, "ping");  // reply == pong
   } else {
     net::RedisCmdArgsType argv;
-    argv.push_back("spci"); // reply == pong
+    argv.push_back("spci");  // reply == pong
     argv.push_back(std::to_string(sid_));
     net::SerializeRedisCommand(argv, &wbuf_str);
     is_first_send_ = false;
@@ -74,7 +74,7 @@ void* SlavepingThread::ThreadMain() {
           DLOG(INFO) << "Slaveping timeout once";
           gettimeofday(&now, NULL);
           if (now.tv_sec - last_interaction.tv_sec > 30) {
-            //timeout;
+            // timeout;
             DLOG(INFO) << "Ping master timeout";
             close(cli_->fd());
             g_pika_port->binlog_receiver_thread()->KillBinlogSender();

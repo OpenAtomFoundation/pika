@@ -17,7 +17,7 @@ namespace net {
 #define NET_NAME_LEN 1024
 
 const int kProtoMaxMessage = 512 * 1024 * 1024;  // 512MB
-#define PB_IOBUF_LEN  67108864 // 64MB
+#define PB_IOBUF_LEN 67108864                    // 64MB
 /*
  * The pb head and code length
  */
@@ -46,8 +46,9 @@ enum NotifyType {
 
 enum EventStatus {
   kNone = 0,
-  kReadable = 1,
-  kWriteable = 2,
+  kReadable = 0x1,
+  kWritable = 0x1 << 1,
+  kErrorEvent = 0x1 << 2,
 };
 
 enum ConnStatus {
@@ -87,11 +88,11 @@ enum RetCode {
 /*
  * define the redis protocol
  */
-#define REDIS_MAX_MESSAGE (1 << 28) // 256MB
-#define REDIS_MBULK_BIG_ARG (1024 * 32) // 32KB
-#define DEFAULT_WBUF_SIZE 262144 // 256KB
-#define REDIS_INLINE_MAXLEN (1024 * 64) // 64KB
-#define REDIS_IOBUF_LEN 16384 // 16KB
+#define REDIS_MAX_MESSAGE (1 << 28)      // 256MB
+#define REDIS_MBULK_BIG_ARG (1024 * 32)  // 32KB
+#define DEFAULT_WBUF_SIZE 262144         // 256KB
+#define REDIS_INLINE_MAXLEN (1024 * 64)  // 64KB
+#define REDIS_IOBUF_LEN 16384            // 16KB
 #define REDIS_REQ_INLINE 1
 #define REDIS_REQ_MULTIBULK 2
 
@@ -107,7 +108,6 @@ enum RetCode {
 #define NET_WORD_SIZE 1024
 #define NET_LINE_SIZE 1024
 #define NET_CONF_MAX_NUM 1024
-
 
 /*
  * define common character

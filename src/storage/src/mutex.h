@@ -59,8 +59,7 @@ class CondVar {
   // Returns other status if Storage should otherwis stop waiting and
   //  fail the operation.
   // May return OK spuriously even if not notified.
-  virtual Status WaitFor(std::shared_ptr<Mutex> mutex,
-                         int64_t timeout_time) = 0;
+  virtual Status WaitFor(std::shared_ptr<Mutex> mutex, int64_t timeout_time) = 0;
 
   // If any threads are waiting on *this, unblock at least one of the
   // waiting threads.

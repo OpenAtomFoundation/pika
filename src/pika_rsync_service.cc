@@ -11,14 +11,12 @@
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
 
-#include "include/pika_define.h"
 #include "include/pika_conf.h"
+#include "include/pika_define.h"
 
-extern PikaConf *g_pika_conf;
+extern PikaConf* g_pika_conf;
 
-PikaRsyncService::PikaRsyncService(const std::string& raw_path,
-                                   const int port)
-    : raw_path_(raw_path), port_(port) {
+PikaRsyncService::PikaRsyncService(const std::string& raw_path, const int port) : raw_path_(raw_path), port_(port) {
   if (raw_path_.back() != '/') {
     raw_path_ += "/";
   }
@@ -97,10 +95,6 @@ int PikaRsyncService::CreateSecretFile() {
   return ret;
 }
 
-bool PikaRsyncService::CheckRsyncAlive() {
-  return pstd::FileExists(pid_path_);
-}
+bool PikaRsyncService::CheckRsyncAlive() { return pstd::FileExists(pid_path_); }
 
-int PikaRsyncService::ListenPort() {
-  return port_;
-}
+int PikaRsyncService::ListenPort() { return port_; }

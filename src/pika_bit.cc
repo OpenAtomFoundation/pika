@@ -15,11 +15,11 @@ void BitSetCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
     res_.SetRes(CmdRes::kInvalidBitOffsetInt);
     return;
   }
-  if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &on_)) {
+  if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &on_)) {
     res_.SetRes(CmdRes::kInvalidBitInt);
     return;
   }
@@ -28,7 +28,7 @@ void BitSetCmd::DoInitial() {
     return;
   }
   // value no bigger than 2^18
-  if ( (bit_offset_ >> kMaxBitOpInputBit) > 0) {
+  if ((bit_offset_ >> kMaxBitOpInputBit) > 0) {
     res_.SetRes(CmdRes::kInvalidBitOffsetInt);
     return;
   }
@@ -43,7 +43,7 @@ void BitSetCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
   int32_t bit_val = 0;
   rocksdb::Status s = partition->db()->SetBit(key_, bit_offset_, on_, &bit_val);
-  if (s.ok()){
+  if (s.ok()) {
     res_.AppendInteger((int)bit_val);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -56,7 +56,7 @@ void BitGetCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &bit_offset_)) {
     res_.SetRes(CmdRes::kInvalidBitOffsetInt);
     return;
   }
@@ -85,11 +85,11 @@ void BitCountCmd::DoInitial() {
   key_ = argv_[1];
   if (argv_.size() == 4) {
     count_all_ = false;
-    if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &start_offset_)) {
+    if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &start_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
-    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &end_offset_)) {
+    if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &end_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -123,7 +123,7 @@ void BitPosCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &bit_val_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &bit_val_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -137,18 +137,18 @@ void BitPosCmd::DoInitial() {
   } else if (argv_.size() == 4) {
     pos_all_ = false;
     endoffset_set_ = false;
-    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &start_offset_)) {
+    if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &start_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
-    } 
+    }
   } else if (argv_.size() == 5) {
     pos_all_ = false;
     endoffset_set_ = true;
-    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &start_offset_)) {
+    if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &start_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
-    } 
-    if (!pstd::string2l(argv_[4].data(), argv_[4].size(), &end_offset_)) {
+    }
+    if (!pstd::string2int(argv_[4].data(), argv_[4].size(), &end_offset_)) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
@@ -193,19 +193,19 @@ void BitOpCmd::DoInitial() {
     return;
   }
   if (op_ == storage::kBitOpNot && argv_.size() != 4) {
-      res_.SetRes(CmdRes::kWrongBitOpNotNum, kCmdNameBitOp);
-      return;
+    res_.SetRes(CmdRes::kWrongBitOpNotNum, kCmdNameBitOp);
+    return;
   } else if (op_ != storage::kBitOpNot && argv_.size() < 4) {
-      res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
-      return;
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
+    return;
   } else if (argv_.size() >= kMaxBitOpInputKey) {
-      res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
-      return;
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameBitOp);
+    return;
   }
 
   dest_key_ = argv_[2].data();
-  for(unsigned int i = 3; i <= argv_.size() - 1; i++) {
-      src_keys_.push_back(argv_[i].data());
+  for (unsigned int i = 3; i <= argv_.size() - 1; i++) {
+    src_keys_.push_back(argv_[i].data());
   }
   return;
 }

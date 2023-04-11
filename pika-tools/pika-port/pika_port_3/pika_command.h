@@ -7,19 +7,19 @@
 #define PIKA_COMMAND_H_
 
 #include <deque>
-#include <string>
 #include <memory>
+#include <string>
 #include <unordered_map>
 
-#include "slash/include/slash_string.h"
 #include "net/include/redis_conn.h"
+#include "slash/include/slash_string.h"
 
 #include "binlog_transverter.h"
 
 const std::string kPikaBinlogMagic = "__PIKA_X#$SKGI";
 
-//Constant for command name
-//Admin
+// Constant for command name
+// Admin
 const std::string kCmdNameSlaveof = "slaveof";
 const std::string kCmdNameTrysync = "trysync";
 const std::string kCmdNameAuth = "auth";
@@ -47,7 +47,7 @@ const std::string kCmdNameSlowlog = "slowlog";
 const std::string kCmdNameTcmalloc = "tcmalloc";
 #endif
 
-//Migrate slot
+// Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
 const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
 const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
@@ -66,7 +66,7 @@ const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
 const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
 const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
 
-//Kv
+// Kv
 const std::string kCmdNameSet = "set";
 const std::string kCmdNameGet = "get";
 const std::string kCmdNameDel = "del";
@@ -100,7 +100,7 @@ const std::string kCmdNameType = "type";
 const std::string kCmdNameScan = "scan";
 const std::string kCmdNameScanx = "scanx";
 
-//Hash
+// Hash
 const std::string kCmdNameHDel = "hdel";
 const std::string kCmdNameHSet = "hset";
 const std::string kCmdNameHGet = "hget";
@@ -118,7 +118,7 @@ const std::string kCmdNameHVals = "hvals";
 const std::string kCmdNameHScan = "hscan";
 const std::string kCmdNameHScanx = "hscanx";
 
-//List
+// List
 const std::string kCmdNameLIndex = "lindex";
 const std::string kCmdNameLInsert = "linsert";
 const std::string kCmdNameLLen = "llen";
@@ -134,14 +134,14 @@ const std::string kCmdNameRPopLPush = "rpoplpush";
 const std::string kCmdNameRPush = "rpush";
 const std::string kCmdNameRPushx = "rpushx";
 
-//BitMap
+// BitMap
 const std::string kCmdNameBitSet = "setbit";
 const std::string kCmdNameBitGet = "getbit";
 const std::string kCmdNameBitPos = "bitpos";
 const std::string kCmdNameBitOp = "bitop";
 const std::string kCmdNameBitCount = "bitcount";
 
-//Zset
+// Zset
 const std::string kCmdNameZAdd = "zadd";
 const std::string kCmdNameZCard = "zcard";
 const std::string kCmdNameZScan = "zscan";
@@ -165,7 +165,7 @@ const std::string kCmdNameZRemrangebyrank = "zremrangebyrank";
 const std::string kCmdNameZRemrangebylex = "zremrangebylex";
 const std::string kCmdNameZRemrangebyscore = "zremrangebyscore";
 
-//Set
+// Set
 const std::string kCmdNameSAdd = "sadd";
 const std::string kCmdNameSPop = "spop";
 const std::string kCmdNameSCard = "scard";
@@ -182,12 +182,12 @@ const std::string kCmdNameSDiffstore = "sdiffstore";
 const std::string kCmdNameSMove = "smove";
 const std::string kCmdNameSRandmember = "srandmember";
 
-//HyperLogLog
+// HyperLogLog
 const std::string kCmdNamePfAdd = "pfadd";
 const std::string kCmdNamePfCount = "pfcount";
 const std::string kCmdNamePfMerge = "pfmerge";
 
-//GEO
+// GEO
 const std::string kCmdNameGeoAdd = "geoadd";
 const std::string kCmdNameGeoPos = "geopos";
 const std::string kCmdNameGeoDist = "geodist";
@@ -195,7 +195,7 @@ const std::string kCmdNameGeoHash = "geohash";
 const std::string kCmdNameGeoRadius = "georadius";
 const std::string kCmdNameGeoRadiusByMember = "georadiusbymember";
 
-//Pub/Sub
+// Pub/Sub
 const std::string kCmdNamePublish = "publish";
 const std::string kCmdNameSubscribe = "subscribe";
 const std::string kCmdNameUnSubscribe = "unsubscribe";
@@ -204,75 +204,60 @@ const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
 typedef net::RedisCmdArgsType PikaCmdArgsType;
-static const int RAW_ARGS_LEN = 1024 * 1024; 
+static const int RAW_ARGS_LEN = 1024 * 1024;
 
 enum CmdFlagsMask {
-  kCmdFlagsMaskRW               = 1,
-  kCmdFlagsMaskType             = 30,
-  kCmdFlagsMaskLocal            = 32,
-  kCmdFlagsMaskSuspend          = 64,
-  kCmdFlagsMaskPrior            = 128,
-  kCmdFlagsMaskAdminRequire     = 256
+  kCmdFlagsMaskRW = 1,
+  kCmdFlagsMaskType = 30,
+  kCmdFlagsMaskLocal = 32,
+  kCmdFlagsMaskSuspend = 64,
+  kCmdFlagsMaskPrior = 128,
+  kCmdFlagsMaskAdminRequire = 256
 };
 
 enum CmdFlags {
-  kCmdFlagsRead           = 0, //default rw
-  kCmdFlagsWrite          = 1,
-  kCmdFlagsAdmin          = 0, //default type
-  kCmdFlagsKv             = 2,
-  kCmdFlagsHash           = 4,
-  kCmdFlagsList           = 6,
-  kCmdFlagsSet            = 8,
-  kCmdFlagsZset           = 10,
-  kCmdFlagsBit            = 12,
-  kCmdFlagsHyperLogLog    = 14,
-  kCmdFlagsGeo            = 16,
-  kCmdFlagsPubSub         = 18,
-  kCmdFlagsNoLocal        = 0, //default nolocal
-  kCmdFlagsLocal          = 32,
-  kCmdFlagsNoSuspend      = 0, //default nosuspend
-  kCmdFlagsSuspend        = 64,
-  kCmdFlagsNoPrior        = 0, //default noprior
-  kCmdFlagsPrior          = 128,
-  kCmdFlagsNoAdminRequire = 0, //default no need admin
-  kCmdFlagsAdminRequire   = 256
+  kCmdFlagsRead = 0,  // default rw
+  kCmdFlagsWrite = 1,
+  kCmdFlagsAdmin = 0,  // default type
+  kCmdFlagsKv = 2,
+  kCmdFlagsHash = 4,
+  kCmdFlagsList = 6,
+  kCmdFlagsSet = 8,
+  kCmdFlagsZset = 10,
+  kCmdFlagsBit = 12,
+  kCmdFlagsHyperLogLog = 14,
+  kCmdFlagsGeo = 16,
+  kCmdFlagsPubSub = 18,
+  kCmdFlagsNoLocal = 0,  // default nolocal
+  kCmdFlagsLocal = 32,
+  kCmdFlagsNoSuspend = 0,  // default nosuspend
+  kCmdFlagsSuspend = 64,
+  kCmdFlagsNoPrior = 0,  // default noprior
+  kCmdFlagsPrior = 128,
+  kCmdFlagsNoAdminRequire = 0,  // default no need admin
+  kCmdFlagsAdminRequire = 256
 };
 
-
 class CmdInfo {
-public:
-  CmdInfo(const std::string _name, int _num, uint16_t _flag)
-    : name_(_name), arity_(_num), flag_(_flag) {}
+ public:
+  CmdInfo(const std::string _name, int _num, uint16_t _flag) : name_(_name), arity_(_num), flag_(_flag) {}
   bool CheckArg(int num) const {
     if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
       return false;
     }
     return true;
   }
-  bool is_write() const {
-    return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite);
-  }
-  uint16_t flag_type() const {
-    return flag_ & kCmdFlagsMaskType;
-  }
-  bool is_local() const {
-    return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal);
-  }
+  bool is_write() const { return ((flag_ & kCmdFlagsMaskRW) == kCmdFlagsWrite); }
+  uint16_t flag_type() const { return flag_ & kCmdFlagsMaskType; }
+  bool is_local() const { return ((flag_ & kCmdFlagsMaskLocal) == kCmdFlagsLocal); }
   // Others need to be suspended when a suspend command run
-  bool is_suspend() const {
-    return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend);
-  }
-  bool is_prior() const {
-    return ((flag_ & kCmdFlagsMaskPrior) == kCmdFlagsPrior);
-  }
+  bool is_suspend() const { return ((flag_ & kCmdFlagsMaskSuspend) == kCmdFlagsSuspend); }
+  bool is_prior() const { return ((flag_ & kCmdFlagsMaskPrior) == kCmdFlagsPrior); }
   // Must with admin auth
-  bool is_admin_require() const {
-    return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire);
-  }
-  std::string name() const {
-    return name_;
-  }
-private:
+  bool is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire) == kCmdFlagsAdminRequire); }
+  std::string name() const { return name_; }
+
+ private:
   std::string name_;
   int arity_;
   uint16_t flag_;
@@ -282,12 +267,12 @@ private:
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
-void inline RedisAppendLen(std::string& str, int64_t ori, const std::string &prefix);
+void inline RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix);
 
 const std::string kNewLine = "\r\n";
 
 class CmdRes {
-public:
+ public:
   enum CmdRet {
     kNone = 0,
     kOk,
@@ -312,101 +297,85 @@ public:
     kErrOther,
   };
 
-  CmdRes():ret_(kNone) {}
+  CmdRes() : ret_(kNone) {}
 
-  bool none() const {
-    return ret_ == kNone && message_.empty();
-  }
-  bool ok() const {
-    return ret_ == kOk || ret_ == kNone;
-  }
+  bool none() const { return ret_ == kNone && message_.empty(); }
+  bool ok() const { return ret_ == kOk || ret_ == kNone; }
   void clear() {
     message_.clear();
     ret_ = kNone;
   }
-  std::string raw_message() const {
-    return message_;
-  }
+  std::string raw_message() const { return message_; }
   std::string message() const {
     std::string result;
     switch (ret_) {
-    case kNone:
-      return message_;
-    case kOk:
-      return "+OK\r\n";
-    case kPong:
-      return "+PONG\r\n";
-    case kSyntaxErr:
-      return "-ERR syntax error\r\n";
-    case kInvalidInt:
-      return "-ERR value is not an integer or out of range\r\n";
-    case kInvalidBitInt:
-      return "-ERR bit is not an integer or out of range\r\n";
-    case kInvalidBitOffsetInt:
-      return "-ERR bit offset is not an integer or out of range\r\n";
-    case kWrongBitOpNotNum:
-      return "-ERR BITOP NOT must be called with a single source key.\r\n";
+      case kNone:
+        return message_;
+      case kOk:
+        return "+OK\r\n";
+      case kPong:
+        return "+PONG\r\n";
+      case kSyntaxErr:
+        return "-ERR syntax error\r\n";
+      case kInvalidInt:
+        return "-ERR value is not an integer or out of range\r\n";
+      case kInvalidBitInt:
+        return "-ERR bit is not an integer or out of range\r\n";
+      case kInvalidBitOffsetInt:
+        return "-ERR bit offset is not an integer or out of range\r\n";
+      case kWrongBitOpNotNum:
+        return "-ERR BITOP NOT must be called with a single source key.\r\n";
 
-    case kInvalidBitPosArgument:
-      return "-ERR The bit argument must be 1 or 0.\r\n";
-    case kInvalidFloat:
-      return "-ERR value is not a valid float\r\n";
-    case kOverFlow:
-      return "-ERR increment or decrement would overflow\r\n";
-    case kNotFound:
-      return "-ERR no such key\r\n";
-    case kOutOfRange:
-      return "-ERR index out of range\r\n";
-    case kInvalidPwd:
-      return "-ERR invalid password\r\n";
-    case kNoneBgsave:
-      return "-ERR No BGSave Works now\r\n";
-    case kPurgeExist:
-      return "-ERR binlog already in purging...\r\n";
-    case kInvalidParameter:
-      return "-ERR Invalid Argument\r\n";
-    case kWrongNum:
-      result = "-ERR wrong number of arguments for '";
-      result.append(message_);
-      result.append("' command\r\n");
-      break;
-    case kInvalidIndex:
-      result = "-ERR invalid DB index\r\n";
-      break;
-    case kInvalidDbType:
-      result = "-ERR invalid DB type\r\n";
-      break;
-    case kErrOther:
-      result = "-ERR ";
-      result.append(message_);
-      result.append(kNewLine);
-      break;
-    default:
-      break;
+      case kInvalidBitPosArgument:
+        return "-ERR The bit argument must be 1 or 0.\r\n";
+      case kInvalidFloat:
+        return "-ERR value is not a valid float\r\n";
+      case kOverFlow:
+        return "-ERR increment or decrement would overflow\r\n";
+      case kNotFound:
+        return "-ERR no such key\r\n";
+      case kOutOfRange:
+        return "-ERR index out of range\r\n";
+      case kInvalidPwd:
+        return "-ERR invalid password\r\n";
+      case kNoneBgsave:
+        return "-ERR No BGSave Works now\r\n";
+      case kPurgeExist:
+        return "-ERR binlog already in purging...\r\n";
+      case kInvalidParameter:
+        return "-ERR Invalid Argument\r\n";
+      case kWrongNum:
+        result = "-ERR wrong number of arguments for '";
+        result.append(message_);
+        result.append("' command\r\n");
+        break;
+      case kInvalidIndex:
+        result = "-ERR invalid DB index\r\n";
+        break;
+      case kInvalidDbType:
+        result = "-ERR invalid DB type\r\n";
+        break;
+      case kErrOther:
+        result = "-ERR ";
+        result.append(message_);
+        result.append(kNewLine);
+        break;
+      default:
+        break;
     }
     return result;
   }
 
   // Inline functions for Create Redis protocol
-  void AppendStringLen(int64_t ori) {
-    RedisAppendLen(message_, ori, "$");
-  }
-  void AppendArrayLen(int64_t ori) {
-    RedisAppendLen(message_, ori, "*");
-  }
-  void AppendInteger(int64_t ori) {
-    RedisAppendLen(message_, ori, ":");
-  }
-  void AppendContent(const std::string &value) {
-    RedisAppendContent(message_, value);
-  }
-  void AppendString(const std::string &value) {
+  void AppendStringLen(int64_t ori) { RedisAppendLen(message_, ori, "$"); }
+  void AppendArrayLen(int64_t ori) { RedisAppendLen(message_, ori, "*"); }
+  void AppendInteger(int64_t ori) { RedisAppendLen(message_, ori, ":"); }
+  void AppendContent(const std::string& value) { RedisAppendContent(message_, value); }
+  void AppendString(const std::string& value) {
     AppendStringLen(value.size());
     AppendContent(value);
   }
-  void AppendStringRaw(std::string &value) {
-    message_.append(value);
-  }
+  void AppendStringRaw(std::string& value) { message_.append(value); }
   void SetRes(CmdRet _ret, const std::string content = "") {
     ret_ = _ret;
     if (!content.empty()) {
@@ -414,7 +383,7 @@ public:
     }
   }
 
-private:
+ private:
   std::string message_;
   CmdRet ret_;
 };
@@ -426,22 +395,16 @@ class Cmd {
 
   virtual void Do() = 0;
 
-  void Initial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) {
-    res_.clear(); // Clear res content
-    Clear();      // Clear cmd, Derived class can has own implement
+  void Initial(PikaCmdArgsType& argvs, const CmdInfo* const ptr_info) {
+    res_.clear();  // Clear res content
+    Clear();       // Clear cmd, Derived class can has own implement
     DoInitial(argvs, ptr_info);
   };
 
-  CmdRes& res() {
-    return res_;
-  }
+  CmdRes& res() { return res_; }
 
-  virtual std::string ToBinlog(const PikaCmdArgsType& argv,
-                               uint32_t exec_time,
-                               const std::string& server_id,
-                               uint64_t logic_id,
-                               uint32_t filenum,
-                               uint64_t offset) {
+  virtual std::string ToBinlog(const PikaCmdArgsType& argv, uint32_t exec_time, const std::string& server_id,
+                               uint64_t logic_id, uint32_t filenum, uint64_t offset) {
     std::string content;
     content.reserve(RAW_ARGS_LEN);
     RedisAppendLen(content, argv.size(), "*");
@@ -451,22 +414,16 @@ class Cmd {
       RedisAppendContent(content, v);
     }
 
-    return PortBinlogTransverter::PortBinlogEncode(PortBinlogType::PortTypeFirst,
-                                               exec_time,
-                                               std::stoi(server_id),
-                                               logic_id,
-                                               filenum,
-                                               offset,
-                                               content,
-                                               {});
+    return PortBinlogTransverter::PortBinlogEncode(PortBinlogType::PortTypeFirst, exec_time, std::stoi(server_id),
+                                                   logic_id, filenum, offset, content, {});
   }
 
  protected:
   CmdRes res_;
 
  private:
-  virtual void DoInitial(PikaCmdArgsType &argvs, const CmdInfo* const ptr_info) = 0;
-  virtual void Clear() {};
+  virtual void DoInitial(PikaCmdArgsType& argvs, const CmdInfo* const ptr_info) = 0;
+  virtual void Clear(){};
 
   Cmd(const Cmd&);
   Cmd& operator=(const Cmd&);
@@ -489,7 +446,7 @@ void RedisAppendContent(std::string& str, const std::string& value) {
   str.append(kNewLine);
 }
 
-void RedisAppendLen(std::string& str, int64_t ori, const std::string &prefix) {
+void RedisAppendLen(std::string& str, int64_t ori, const std::string& prefix) {
   char buf[32];
   slash::ll2string(buf, 32, static_cast<long long>(ori));
   str.append(prefix);

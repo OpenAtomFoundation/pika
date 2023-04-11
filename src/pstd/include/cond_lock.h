@@ -7,12 +7,12 @@
 #define __INCLUDE_COND_LOCK_H__
 /*
  * CondLock is a wrapper for condition variable.
- * It contain a mutex in it's class, so we don't need other to protect the 
+ * It contain a mutex in it's class, so we don't need other to protect the
  * condition variable.
  */
 #include <pthread.h>
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <stdint.h>
@@ -28,7 +28,7 @@ class CondLock {
   void Unlock();
 
   void Wait();
-  
+
   /*
    * timeout is millisecond
    */
@@ -40,8 +40,8 @@ class CondLock {
   pthread_mutex_t mutex_;
   pthread_cond_t cond_;
 
-  CondLock(const CondLock&) {};
-  void operator =(const CondLock&) {};
+  CondLock(const CondLock&){};
+  void operator=(const CondLock&){};
 };
 
 }  // namespace pstd

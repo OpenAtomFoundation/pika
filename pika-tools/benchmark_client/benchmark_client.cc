@@ -1,63 +1,56 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <pthread.h>
-#include <ctime>
+#include <unistd.h>
 #include <chrono>
-#include <vector>
+#include <ctime>
+#include <functional>
 #include <iostream>
 #include <random>
-#include <functional>
+#include <vector>
 
 #include "hiredis.h"
-#include "slash/include/slash_string.h"
 #include "slash/include/slash_status.h"
+#include "slash/include/slash_string.h"
 
-#define TIME_OF_LOOP          1000000
+#define TIME_OF_LOOP 1000000
 
-using std::default_random_engine;
 using slash::Status;
-
+using std::default_random_engine;
 
 Status RunSetCommand(redisContext* c);
 Status RunSetCommandPipeline(redisContext* c);
 Status RunZAddCommand(redisContext* c);
 
-struct ThreadArg{
+struct ThreadArg {
   pthread_t tid;
   std::string table_name;
   size_t idx;
 };
 
-enum TransmitMode {
-  kNormal = 0,
-  kPipeline =1
-};
+enum TransmitMode { kNormal = 0, kPipeline = 1 };
 
-static int32_t     last_seed = 0;
+static int32_t last_seed = 0;
 
 std::string tables_str = "0";
 std::vector<std::string> tables;
 
-std::string   hostname  = "127.0.0.1";
-int           port      =  9221;
-std::string   password  = "";
-uint32_t      payload_size = 50;
-uint32_t      number_of_request = 100000;
-uint32_t      thread_num_each_table = 1;
-TransmitMode  transmit_mode = kNormal;
-int           pipeline_num = 0;
+std::string hostname = "127.0.0.1";
+int port = 9221;
+std::string password = "";
+uint32_t payload_size = 50;
+uint32_t number_of_request = 100000;
+uint32_t thread_num_each_table = 1;
+TransmitMode transmit_mode = kNormal;
+int pipeline_num = 0;
 
 void GenerateRandomString(int32_t len, std::string* target) {
   target->clear();
-  char c_map[67] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'g',
-                    'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
-                    'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D',
-                    'E', 'F', 'G', 'H', 'I', 'G', 'K', 'L', 'M', 'N',
-                    'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
-                    'Y', 'Z', '~', '!', '@', '#', '$', '%', '^', '&',
-                    '*', '(', ')', '-', '=', '_', '+'};
+  char c_map[67] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'g', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+                    'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+                    'I', 'G', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
+                    'Z', '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '=', '_', '+'};
 
   default_random_engine e;
   for (int i = 0; i < len; i++) {
@@ -96,11 +89,11 @@ void Usage() {
 
 std::vector<ThreadArg> thread_args;
 
-void *ThreadMain(void* arg) {
+void* ThreadMain(void* arg) {
   ThreadArg* ta = reinterpret_cast<ThreadArg*>(arg);
-  redisContext *c;
-  redisReply *res = NULL;
-  struct timeval timeout = { 1, 500000 }; // 1.5 seconds
+  redisContext* c;
+  redisReply* res = NULL;
+  struct timeval timeout = {1, 500000};  // 1.5 seconds
   c = redisConnectWithTimeout(hostname.data(), port, timeout);
 
   if (c == NULL || c->err) {
@@ -116,9 +109,7 @@ void *ThreadMain(void* arg) {
   if (!password.empty()) {
     const char* auth_argv[2] = {"AUTH", password.data()};
     size_t auth_argv_len[2] = {4, password.size()};
-    res = reinterpret_cast<redisReply*>(redisCommandArgv(c,
-                                                         2,
-                                                         reinterpret_cast<const char**>(auth_argv),
+    res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 2, reinterpret_cast<const char**>(auth_argv),
                                                          reinterpret_cast<const size_t*>(auth_argv_len)));
     if (res == NULL) {
       printf("Thread %lu  Auth Failed, Get reply Error\n", ta->tid);
@@ -138,10 +129,8 @@ void *ThreadMain(void* arg) {
   }
 
   const char* select_argv[2] = {"SELECT", ta->table_name.data()};
-  size_t  select_argv_len[2] = {6, ta->table_name.size()};
-  res = reinterpret_cast<redisReply*>(redisCommandArgv(c,
-                                                       2,
-                                                       reinterpret_cast<const char**>(select_argv),
+  size_t select_argv_len[2] = {6, ta->table_name.size()};
+  res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 2, reinterpret_cast<const char**>(select_argv),
                                                        reinterpret_cast<const size_t*>(select_argv_len)));
   if (res == NULL) {
     printf("Thread %lu Select Table %s Failed, Get reply Error\n", ta->tid, ta->table_name.data());
@@ -183,7 +172,7 @@ void *ThreadMain(void* arg) {
 }
 
 Status RunSetCommandPipeline(redisContext* c) {
-  redisReply *res = NULL;
+  redisReply* res = NULL;
   for (size_t idx = 0; idx < number_of_request; (idx += pipeline_num)) {
     const char* argv[3] = {"SET", NULL, NULL};
     size_t argv_len[3] = {3, 0, 0};
@@ -198,12 +187,12 @@ Status RunSetCommandPipeline(redisContext* c) {
       GenerateRandomString(rand_num, &key);
       GenerateRandomString(payload_size, &value);
 
-      argv[1] = key.c_str(); argv_len[1] = key.size();
-      argv[2] = value.c_str(); argv_len[2] = value.size();
+      argv[1] = key.c_str();
+      argv_len[1] = key.size();
+      argv[2] = value.c_str();
+      argv_len[2] = value.size();
 
-      if (redisAppendCommandArgv(c,
-                                 3,
-                                 reinterpret_cast<const char**>(argv),
+      if (redisAppendCommandArgv(c, 3, reinterpret_cast<const char**>(argv),
                                  reinterpret_cast<const size_t*>(argv_len)) == REDIS_ERR) {
         return Status::Corruption("Redis Append Command Argv Error");
       }
@@ -226,7 +215,7 @@ Status RunSetCommandPipeline(redisContext* c) {
 }
 
 Status RunSetCommand(redisContext* c) {
-  redisReply *res = NULL;
+  redisReply* res = NULL;
   for (size_t idx = 0; idx < number_of_request; ++idx) {
     const char* set_argv[3];
     size_t set_argvlen[3];
@@ -240,14 +229,15 @@ Status RunSetCommand(redisContext* c) {
     GenerateRandomString(rand_num, &key);
     GenerateRandomString(payload_size, &value);
 
-    set_argv[0] = "set"; set_argvlen[0] = 3;
-    set_argv[1] = key.c_str(); set_argvlen[1] = key.size();
-    set_argv[2] = value.c_str(); set_argvlen[2] = value.size();
+    set_argv[0] = "set";
+    set_argvlen[0] = 3;
+    set_argv[1] = key.c_str();
+    set_argvlen[1] = key.size();
+    set_argv[2] = value.c_str();
+    set_argvlen[2] = value.size();
 
-    res = reinterpret_cast<redisReply*>(redisCommandArgv(c,
-                                                         3,
-                                                         reinterpret_cast<const char**>(set_argv),
-                                                         reinterpret_cast<const size_t*>(set_argvlen)));
+    res = reinterpret_cast<redisReply*>(
+        redisCommandArgv(c, 3, reinterpret_cast<const char**>(set_argv), reinterpret_cast<const size_t*>(set_argvlen)));
     if (res == NULL || strcasecmp(res->str, "OK")) {
       std::string res_str = "Exec command error: " + (res != NULL ? std::string(res->str) : "");
       freeReplyObject(res);
@@ -259,7 +249,7 @@ Status RunSetCommand(redisContext* c) {
 }
 
 Status RunZAddCommand(redisContext* c) {
-  redisReply *res = NULL;
+  redisReply* res = NULL;
   for (size_t idx = 0; idx < 1; ++idx) {
     const char* zadd_argv[4];
     size_t zadd_argvlen[4];
@@ -268,17 +258,19 @@ Status RunZAddCommand(redisContext* c) {
     std::string member;
     GenerateRandomString(10, &key);
 
-    zadd_argv[0] = "zadd"; zadd_argvlen[0] = 4;
-    zadd_argv[1] = key.c_str(); zadd_argvlen[1] = key.size();
+    zadd_argv[0] = "zadd";
+    zadd_argvlen[0] = 4;
+    zadd_argv[1] = key.c_str();
+    zadd_argvlen[1] = key.size();
     for (size_t sidx = 0; sidx < 10000; ++sidx) {
       score = std::to_string(sidx * 2);
       GenerateRandomString(payload_size, &member);
-      zadd_argv[2] = score.c_str(); zadd_argvlen[2] = score.size();
-      zadd_argv[3] = member.c_str(); zadd_argvlen[3] = member.size();
+      zadd_argv[2] = score.c_str();
+      zadd_argvlen[2] = score.size();
+      zadd_argv[3] = member.c_str();
+      zadd_argvlen[3] = member.size();
 
-      res = reinterpret_cast<redisReply*>(redisCommandArgv(c,
-                                                           4,
-                                                           reinterpret_cast<const char**>(zadd_argv),
+      res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 4, reinterpret_cast<const char**>(zadd_argv),
                                                            reinterpret_cast<const size_t*>(zadd_argvlen)));
       if (res == NULL || res->integer == 0) {
         std::string res_str = "Exec command error: " + (res != NULL ? std::string(res->str) : "");
@@ -291,41 +283,39 @@ Status RunZAddCommand(redisContext* c) {
   return Status::OK();
 }
 
-
-
 // ./benchmark_client
 // ./benchmark_client -h
 // ./benchmark_client -b db1:5:10000,db2:3:10000
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
   int opt;
   while ((opt = getopt(argc, argv, "P:h:p:a:t:c:d:n:")) != -1) {
     switch (opt) {
-      case 'h' :
+      case 'h':
         hostname = std::string(optarg);
         break;
-      case 'p' :
+      case 'p':
         port = atoi(optarg);
         break;
-      case 'P' :
+      case 'P':
         transmit_mode = kPipeline;
         pipeline_num = atoi(optarg);
         break;
-      case 'a' :
+      case 'a':
         password = std::string(optarg);
         break;
-      case 't' :
+      case 't':
         thread_num_each_table = atoi(optarg);
         break;
-      case 'c' :
+      case 'c':
         tables_str = std::string(optarg);
         break;
-      case 'd' :
+      case 'd':
         payload_size = atoi(optarg);
         break;
-      case 'n' :
+      case 'n':
         number_of_request = atoi(optarg);
         break;
-      default :
+      default:
         Usage();
         exit(-1);
     }
@@ -364,10 +354,7 @@ int main(int argc, char *argv[]) {
   auto minutes = std::chrono::duration_cast<std::chrono::minutes>(end_time - start_time).count();
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
 
-  std::cout << "Total Time Cost : "
-            << hours << " hours "
-            << minutes % 60 << " minutes "
-            << seconds % 60 << " seconds "
+  std::cout << "Total Time Cost : " << hours << " hours " << minutes % 60 << " minutes " << seconds % 60 << " seconds "
             << std::endl;
   return 0;
 }

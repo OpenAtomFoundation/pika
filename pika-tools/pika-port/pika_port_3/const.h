@@ -18,11 +18,10 @@ const int64_t kTestNum = LLONG_MAX;
 const int64_t kDataSetNum = 5;
 
 std::string PikaState(int state);
-std::string PikaRole(int role) ;
+std::string PikaRole(int role);
 
 const std::string SlotKeyPrefix = "_internal:slotkey:4migrate:";
 
 const char* GetDBTypeString(int type);
 
 #endif
-

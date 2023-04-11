@@ -18,28 +18,22 @@ class PikaReplServerThread : public net::HolyThread {
   int ListenPort();
 
   // for ProcessBinlogData use
-  uint64_t GetnPlusSerial() {
-    return serial_++;
-  }
+  uint64_t GetnPlusSerial() { return serial_++; }
 
  private:
   class ReplServerConnFactory : public net::ConnFactory {
    public:
-    explicit ReplServerConnFactory(PikaReplServerThread* binlog_receiver)
-        : binlog_receiver_(binlog_receiver) {
+    explicit ReplServerConnFactory(PikaReplServerThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
+
+    virtual std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
+                                                     void* worker_specific_data,
+                                                     net::NetMultiplexer* net) const override {
+      return std::static_pointer_cast<net::NetConn>(
+          std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, net));
     }
 
-    virtual std::shared_ptr<net::NetConn> NewNetConn(
-        int connfd,
-        const std::string& ip_port,
-        net::Thread* thread,
-        void* worker_specific_data,
-        net::NetEpoll* net_epoll) const override {
-      return std::static_pointer_cast<net::NetConn>
-        (std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, net_epoll));
-    }
-    private:
-     PikaReplServerThread* binlog_receiver_;
+   private:
+    PikaReplServerThread* binlog_receiver_;
   };
 
   class ReplServerHandle : public net::ServerHandle {

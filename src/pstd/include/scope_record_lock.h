@@ -6,9 +6,9 @@
 #ifndef __SRC_SCOPE_RECORD_LOCK_H__
 #define __SRC_SCOPE_RECORD_LOCK_H__
 
-#include <vector>
-#include <string>
 #include <algorithm>
+#include <string>
+#include <vector>
 
 #include "pstd/include/lock_mgr.h"
 
@@ -18,13 +18,10 @@ namespace lock {
 
 class ScopeRecordLock {
  public:
-  ScopeRecordLock(LockMgr* lock_mgr, const Slice& key) :
-    lock_mgr_(lock_mgr), key_(key) {
+  ScopeRecordLock(LockMgr* lock_mgr, const Slice& key) : lock_mgr_(lock_mgr), key_(key) {
     lock_mgr_->TryLock(key_.ToString());
   }
-  ~ScopeRecordLock() {
-    lock_mgr_->UnLock(key_.ToString());
-  }
+  ~ScopeRecordLock() { lock_mgr_->UnLock(key_.ToString()); }
 
  private:
   LockMgr* const lock_mgr_;
@@ -35,8 +32,7 @@ class ScopeRecordLock {
 
 class MultiScopeRecordLock {
  public:
-  MultiScopeRecordLock(LockMgr* lock_mgr,
-      const std::vector<std::string>& keys);
+  MultiScopeRecordLock(LockMgr* lock_mgr, const std::vector<std::string>& keys);
   ~MultiScopeRecordLock();
 
  private:
@@ -48,10 +44,8 @@ class MultiScopeRecordLock {
 
 class MultiRecordLock {
  public:
-  explicit MultiRecordLock(LockMgr* lock_mgr) : lock_mgr_(lock_mgr) {
-  }
-  ~MultiRecordLock() {
-  }
+  explicit MultiRecordLock(LockMgr* lock_mgr) : lock_mgr_(lock_mgr) {}
+  ~MultiRecordLock() {}
   void Lock(const std::vector<std::string>& keys);
   void Unlock(const std::vector<std::string>& keys);
 

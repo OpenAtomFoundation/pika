@@ -6,5 +6,4 @@
 #define COMMENT '#'
 #define COMMA ','
 
-
 #endif

@@ -3,14 +3,14 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <netinet/in.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <google/protobuf/message.h>
+#include <netinet/in.h>
+#include <unistd.h>
 
-#include "pstd/include/xdebug.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_define.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -21,25 +21,23 @@ class PbCli : public NetCli {
   virtual ~PbCli();
 
   // msg should have been parsed
-  virtual Status Send(void *msg_req) override;
+  virtual Status Send(void* msg_req) override;
 
   // Read, parse and store the reply
-  virtual Status Recv(void *msg_res) override;
-
+  virtual Status Recv(void* msg_res) override;
 
  private:
   // BuildWbuf need to access rbuf_, wbuf_;
-  char *rbuf_;
-  char *wbuf_;
+  char* rbuf_;
+  char* wbuf_;
 
   PbCli(const PbCli&);
-  void operator= (const PbCli&);
+  void operator=(const PbCli&);
 };
 
-PbCli::PbCli(const std::string& ip, const int port)
-  : NetCli(ip, port) {
-  rbuf_ = reinterpret_cast<char *>(malloc(sizeof(char) * kProtoMaxMessage));
-  wbuf_ = reinterpret_cast<char *>(malloc(sizeof(char) * kProtoMaxMessage));
+PbCli::PbCli(const std::string& ip, const int port) : NetCli(ip, port) {
+  rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * kProtoMaxMessage));
+  wbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * kProtoMaxMessage));
 }
 
 PbCli::~PbCli() {
@@ -47,9 +45,8 @@ PbCli::~PbCli() {
   free(rbuf_);
 }
 
-Status PbCli::Send(void *msg) {
-  google::protobuf::Message *req =
-    reinterpret_cast<google::protobuf::Message *>(msg);
+Status PbCli::Send(void* msg) {
+  google::protobuf::Message* req = reinterpret_cast<google::protobuf::Message*>(msg);
 
   int wbuf_len = req->ByteSizeLong();
   req->SerializeToArray(wbuf_ + kCommandHeaderLength, wbuf_len);
@@ -60,13 +57,12 @@ Status PbCli::Send(void *msg) {
   return NetCli::SendRaw(wbuf_, wbuf_len);
 }
 
-Status PbCli::Recv(void *msg_res) {
-  google::protobuf::Message *res =
-    reinterpret_cast<google::protobuf::Message *>(msg_res);
+Status PbCli::Recv(void* msg_res) {
+  google::protobuf::Message* res = reinterpret_cast<google::protobuf::Message*>(msg_res);
 
   // Read Header
   size_t read_len = kCommandHeaderLength;
-  Status s = RecvRaw(reinterpret_cast<void *>(rbuf_), &read_len);
+  Status s = RecvRaw(reinterpret_cast<void*>(rbuf_), &read_len);
   if (!s.ok()) {
     return s;
   }
@@ -81,14 +77,12 @@ Status PbCli::Recv(void *msg_res) {
     return s;
   }
 
-  if (!res->ParseFromArray(rbuf_ , packet_len)) {
+  if (!res->ParseFromArray(rbuf_, packet_len)) {
     return Status::Corruption("PbCli::Recv Protobuf ParseFromArray error");
   }
   return Status::OK();
 }
 
-NetCli *NewPbCli(const std::string& peer_ip, const int peer_port) {
-  return new PbCli(peer_ip, peer_port);
-}
+NetCli* NewPbCli(const std::string& peer_ip, const int peer_port) { return new PbCli(peer_ip, peer_port); }
 
 }  // namespace net

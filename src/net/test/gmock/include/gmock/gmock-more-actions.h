@@ -53,8 +53,7 @@ class InvokeAction {
  public:
   // The c'tor makes a copy of function_impl (either a function
   // pointer or a functor).
-  explicit InvokeAction(FunctionImpl function_impl)
-      : function_impl_(function_impl) {}
+  explicit InvokeAction(FunctionImpl function_impl) : function_impl_(function_impl) {}
 
   template <typename Result, typename ArgumentTuple>
   Result Perform(const ArgumentTuple& args) {
@@ -71,13 +70,11 @@ class InvokeAction {
 template <class Class, typename MethodPtr>
 class InvokeMethodAction {
  public:
-  InvokeMethodAction(Class* obj_ptr, MethodPtr method_ptr)
-      : method_ptr_(method_ptr), obj_ptr_(obj_ptr) {}
+  InvokeMethodAction(Class* obj_ptr, MethodPtr method_ptr) : method_ptr_(method_ptr), obj_ptr_(obj_ptr) {}
 
   template <typename Result, typename ArgumentTuple>
   Result Perform(const ArgumentTuple& args) const {
-    return InvokeHelper<Result, ArgumentTuple>::InvokeMethod(
-        obj_ptr_, method_ptr_, args);
+    return InvokeHelper<Result, ArgumentTuple>::InvokeMethod(obj_ptr_, method_ptr_, args);
   }
 
  private:
@@ -94,10 +91,8 @@ class InvokeMethodAction {
 // necessary because Visual Studio deprecates ::std::copy, issuing warning 4996.
 // However Visual Studio 2010 and later do not honor #pragmas which disable that
 // warning.
-template<typename InputIterator, typename OutputIterator>
-inline OutputIterator CopyElements(InputIterator first,
-                                   InputIterator last,
-                                   OutputIterator output) {
+template <typename InputIterator, typename OutputIterator>
+inline OutputIterator CopyElements(InputIterator first, InputIterator last, OutputIterator output) {
   for (; first != last; ++first, ++output) {
     *output = *first;
   }
@@ -111,19 +106,15 @@ inline OutputIterator CopyElements(InputIterator first,
 // Creates an action that invokes 'function_impl' with the mock
 // function's arguments.
 template <typename FunctionImpl>
-PolymorphicAction<internal::InvokeAction<FunctionImpl> > Invoke(
-    FunctionImpl function_impl) {
-  return MakePolymorphicAction(
-      internal::InvokeAction<FunctionImpl>(function_impl));
+PolymorphicAction<internal::InvokeAction<FunctionImpl> > Invoke(FunctionImpl function_impl) {
+  return MakePolymorphicAction(internal::InvokeAction<FunctionImpl>(function_impl));
 }
 
 // Creates an action that invokes the given method on the given object
 // with the mock function's arguments.
 template <class Class, typename MethodPtr>
-PolymorphicAction<internal::InvokeMethodAction<Class, MethodPtr> > Invoke(
-    Class* obj_ptr, MethodPtr method_ptr) {
-  return MakePolymorphicAction(
-      internal::InvokeMethodAction<Class, MethodPtr>(obj_ptr, method_ptr));
+PolymorphicAction<internal::InvokeMethodAction<Class, MethodPtr> > Invoke(Class* obj_ptr, MethodPtr method_ptr) {
+  return MakePolymorphicAction(internal::InvokeMethodAction<Class, MethodPtr>(obj_ptr, method_ptr));
 }
 
 // WithoutArgs(inner_action) can be used in a mock function with a
@@ -131,8 +122,7 @@ PolymorphicAction<internal::InvokeMethodAction<Class, MethodPtr> > Invoke(
 // argument.  In other words, it adapts an action accepting no
 // argument to one that accepts (and ignores) arguments.
 template <typename InnerAction>
-inline internal::WithArgsAction<InnerAction>
-WithoutArgs(const InnerAction& action) {
+inline internal::WithArgsAction<InnerAction> WithoutArgs(const InnerAction& action) {
   return internal::WithArgsAction<InnerAction>(action);
 }
 
@@ -142,8 +132,7 @@ WithoutArgs(const InnerAction& action) {
 // multiple arguments.  For convenience, we also provide
 // WithArgs<k>(an_action) (defined below) as a synonym.
 template <int k, typename InnerAction>
-inline internal::WithArgsAction<InnerAction, k>
-WithArg(const InnerAction& action) {
+inline internal::WithArgsAction<InnerAction, k> WithArg(const InnerAction& action) {
   return internal::WithArgsAction<InnerAction, k>(action);
 }
 
@@ -153,44 +142,33 @@ WithArg(const InnerAction& action) {
 // is expanded and macro expansion cannot contain #pragma.  Therefore
 // we suppress them here.
 #ifdef _MSC_VER
-# pragma warning(push)
-# pragma warning(disable:4100)
+#  pragma warning(push)
+#  pragma warning(disable : 4100)
 #endif
 
 // Action ReturnArg<k>() returns the k-th argument of the mock function.
-ACTION_TEMPLATE(ReturnArg,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_0_VALUE_PARAMS()) {
-  return ::testing::get<k>(args);
-}
+ACTION_TEMPLATE(ReturnArg, HAS_1_TEMPLATE_PARAMS(int, k), AND_0_VALUE_PARAMS()) { return ::testing::get<k>(args); }
 
 // Action SaveArg<k>(pointer) saves the k-th (0-based) argument of the
 // mock function to *pointer.
-ACTION_TEMPLATE(SaveArg,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_1_VALUE_PARAMS(pointer)) {
+ACTION_TEMPLATE(SaveArg, HAS_1_TEMPLATE_PARAMS(int, k), AND_1_VALUE_PARAMS(pointer)) {
   *pointer = ::testing::get<k>(args);
 }
 
 // Action SaveArgPointee<k>(pointer) saves the value pointed to
 // by the k-th (0-based) argument of the mock function to *pointer.
-ACTION_TEMPLATE(SaveArgPointee,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_1_VALUE_PARAMS(pointer)) {
+ACTION_TEMPLATE(SaveArgPointee, HAS_1_TEMPLATE_PARAMS(int, k), AND_1_VALUE_PARAMS(pointer)) {
   *pointer = *::testing::get<k>(args);
 }
 
 // Action SetArgReferee<k>(value) assigns 'value' to the variable
 // referenced by the k-th (0-based) argument of the mock function.
-ACTION_TEMPLATE(SetArgReferee,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_1_VALUE_PARAMS(value)) {
+ACTION_TEMPLATE(SetArgReferee, HAS_1_TEMPLATE_PARAMS(int, k), AND_1_VALUE_PARAMS(value)) {
   typedef typename ::testing::tuple_element<k, args_type>::type argk_type;
   // Ensures that argument #k is a reference.  If you get a compiler
   // error on the next line, you are using SetArgReferee<k>(value) in
   // a mock function whose k-th (0-based) argument is not a reference.
-  GTEST_COMPILE_ASSERT_(internal::is_reference<argk_type>::value,
-                        SetArgReferee_must_be_used_with_a_reference_argument);
+  GTEST_COMPILE_ASSERT_(internal::is_reference<argk_type>::value, SetArgReferee_must_be_used_with_a_reference_argument);
   ::testing::get<k>(args) = value;
 }
 
@@ -199,9 +177,7 @@ ACTION_TEMPLATE(SetArgReferee,
 // (0-based) argument, which can be either a pointer or an
 // iterator. The action does not take ownership of the elements in the
 // source range.
-ACTION_TEMPLATE(SetArrayArgument,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_2_VALUE_PARAMS(first, last)) {
+ACTION_TEMPLATE(SetArrayArgument, HAS_1_TEMPLATE_PARAMS(int, k), AND_2_VALUE_PARAMS(first, last)) {
   // Visual Studio deprecates ::std::copy, so we use our own copy in that case.
 #ifdef _MSC_VER
   internal::CopyElements(first, last, ::testing::get<k>(args));
@@ -212,11 +188,7 @@ ACTION_TEMPLATE(SetArrayArgument,
 
 // Action DeleteArg<k>() deletes the k-th (0-based) argument of the mock
 // function.
-ACTION_TEMPLATE(DeleteArg,
-                HAS_1_TEMPLATE_PARAMS(int, k),
-                AND_0_VALUE_PARAMS()) {
-  delete ::testing::get<k>(args);
-}
+ACTION_TEMPLATE(DeleteArg, HAS_1_TEMPLATE_PARAMS(int, k), AND_0_VALUE_PARAMS()) { delete ::testing::get<k>(args); }
 
 // This action returns the value pointed to by 'pointer'.
 ACTION_P(ReturnPointee, pointer) { return *pointer; }
@@ -226,19 +198,19 @@ ACTION_P(ReturnPointee, pointer) { return *pointer; }
 #if GTEST_HAS_EXCEPTIONS
 
 // Suppresses the 'unreachable code' warning that VC generates in opt modes.
-# ifdef _MSC_VER
-#  pragma warning(push)          // Saves the current warning state.
-#  pragma warning(disable:4702)  // Temporarily disables warning 4702.
-# endif
+#  ifdef _MSC_VER
+#    pragma warning(push)            // Saves the current warning state.
+#    pragma warning(disable : 4702)  // Temporarily disables warning 4702.
+#  endif
 ACTION_P(Throw, exception) { throw exception; }
-# ifdef _MSC_VER
-#  pragma warning(pop)           // Restores the warning state.
-# endif
+#  ifdef _MSC_VER
+#    pragma warning(pop)  // Restores the warning state.
+#  endif
 
 #endif  // GTEST_HAS_EXCEPTIONS
 
 #ifdef _MSC_VER
-# pragma warning(pop)
+#  pragma warning(pop)
 #endif
 
 }  // namespace testing

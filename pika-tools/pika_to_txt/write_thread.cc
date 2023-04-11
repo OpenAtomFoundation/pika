@@ -3,18 +3,15 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include "iostream"
-#include "fstream"
-#include "string"
 #include "write_thread.h"
+#include "fstream"
+#include "iostream"
+#include "string"
 
 #define MAX_QUEUE_SIZE 1024
 
 WriteThread::WriteThread(const std::string& file_name)
-    : should_stop_(false),
-      file_name_(file_name),
-      rsignal_(&data_queue_mutex_),
-      wsignal_(&data_queue_mutex_) {}
+    : should_stop_(false), file_name_(file_name), rsignal_(&data_queue_mutex_), wsignal_(&data_queue_mutex_) {}
 
 void WriteThread::Load(const std::string& data) {
   data_queue_mutex_.Lock();

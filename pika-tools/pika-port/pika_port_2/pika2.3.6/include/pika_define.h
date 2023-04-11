@@ -6,7 +6,6 @@
 #ifndef PIKA_DEFINE_H_
 #define PIKA_DEFINE_H_
 
-
 #define PIKA_MAX_WORKER_THREAD_NUM 24
 
 const std::string kPikaPidFile = "pika.pid";
@@ -16,11 +15,11 @@ struct WorkerCronTask {
   std::string ip_port;
 };
 typedef WorkerCronTask MonitorCronTask;
-//task define
+// task define
 #define TASK_KILL 0
 #define TASK_KILLALL 1
 
-//slave item
+// slave item
 struct SlaveItem {
   int64_t sid;
   std::string ip_port;
@@ -37,7 +36,7 @@ struct SlaveItem {
 #define SLAVE_ITEM_STAGE_ONE 1
 #define SLAVE_ITEM_STAGE_TWO 2
 
-//repl_state_
+// repl_state_
 #define PIKA_REPL_NO_CONNECT 0
 #define PIKA_REPL_CONNECT 1
 #define PIKA_REPL_CONNECTING 2
@@ -45,7 +44,7 @@ struct SlaveItem {
 #define PIKA_REPL_WAIT_DBSYNC 4
 #define PIKA_REPL_ERROR 5
 
-//role
+// role
 #define PIKA_ROLE_SINGLE 0
 #define PIKA_ROLE_SLAVE 1
 #define PIKA_ROLE_MASTER 2
@@ -54,8 +53,8 @@ struct SlaveItem {
 /*
  * The size of Binlogfile
  */
-//static uint64_t kBinlogSize = 128; 
-//static const uint64_t kBinlogSize = 1024 * 1024 * 100;
+// static uint64_t kBinlogSize = 128;
+// static const uint64_t kBinlogSize = 1024 * 1024 * 100;
 
 enum RecordType {
   kZeroType = 0,

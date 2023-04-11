@@ -5,11 +5,11 @@
 #ifndef PIKA_CONSENSUS_H_
 #define PIKA_CONSENSUS_H_
 
+#include "include/pika_binlog_transverter.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
 #include "include/pika_slave_node.h"
 #include "include/pika_stable_log.h"
-#include "include/pika_binlog_transverter.h"
 #include "pstd/include/env.h"
 
 class Context {
@@ -38,7 +38,7 @@ class Context {
 
  private:
   std::string path_;
-  pstd::RWFile *save_;
+  pstd::RWFile* save_;
   // No copying allowed;
   Context(const Context&);
   void operator=(const Context&);
@@ -51,16 +51,15 @@ class SyncProgress {
   std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
   std::unordered_map<std::string, LogOffset> GetAllMatchIndex();
-  Status AddSlaveNode(const std::string& ip, int port,
-      const std::string& table_name, uint32_t partition_id, int session_id);
+  Status AddSlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id,
+                      int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
-  Status Update(const std::string& ip, int port, const LogOffset& start,
-      const LogOffset& end, LogOffset* committed_index);
+  Status Update(const std::string& ip, int port, const LogOffset& start, const LogOffset& end,
+                LogOffset* committed_index);
   int SlaveSize();
 
  private:
-  LogOffset InternalCalCommittedIndex(
-      std::unordered_map<std::string, LogOffset> match_index);
+  LogOffset InternalCalCommittedIndex(std::unordered_map<std::string, LogOffset> match_index);
 
   pthread_rwlock_t rwlock_;
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves_;
@@ -70,13 +69,9 @@ class SyncProgress {
 class MemLog {
  public:
   struct LogItem {
-    LogItem(
-        LogOffset _offset,
-        std::shared_ptr<Cmd> _cmd_ptr,
-        std::shared_ptr<PikaClientConn> _conn_ptr,
-        std::shared_ptr<std::string> _resp_ptr)
-      : offset(_offset), cmd_ptr(_cmd_ptr), conn_ptr(_conn_ptr), resp_ptr(_resp_ptr) {
-    }
+    LogItem(LogOffset _offset, std::shared_ptr<Cmd> _cmd_ptr, std::shared_ptr<PikaClientConn> _conn_ptr,
+            std::shared_ptr<std::string> _resp_ptr)
+        : offset(_offset), cmd_ptr(_cmd_ptr), conn_ptr(_conn_ptr), resp_ptr(_resp_ptr) {}
     LogOffset offset;
     std::shared_ptr<Cmd> cmd_ptr;
     std::shared_ptr<PikaClientConn> conn_ptr;
@@ -94,7 +89,7 @@ class MemLog {
   Status GetRangeLogs(int start, int end, std::vector<LogItem>* logs);
   Status TruncateTo(const LogOffset& offset);
 
-  void  Reset(const LogOffset& offset);
+  void Reset(const LogOffset& offset);
 
   LogOffset last_offset() {
     pstd::MutexLock l_logs(&logs_mu_);
@@ -123,12 +118,9 @@ class ConsensusCoordinator {
   // invoked by dbsync process
   Status Reset(const LogOffset& offset);
 
-  Status ProposeLog(
-      std::shared_ptr<Cmd> cmd_ptr,
-      std::shared_ptr<PikaClientConn> conn_ptr,
-      std::shared_ptr<std::string> resp_ptr);
-  Status UpdateSlave(const std::string& ip, int port,
-      const LogOffset& start, const LogOffset& end);
+  Status ProposeLog(std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
+                    std::shared_ptr<std::string> resp_ptr);
+  Status UpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end);
   Status AddSlaveNode(const std::string& ip, int port, int session_id);
   Status RemoveSlaveNode(const std::string& ip, int port);
   void UpdateTerm(uint32_t term);
@@ -136,24 +128,16 @@ class ConsensusCoordinator {
   Status CheckEnoughFollower();
 
   // invoked by follower
-  Status ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr,
-      const BinlogItem& attribute);
+  Status ProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute);
   Status ProcessLocalUpdate(const LogOffset& leader_commit);
 
   // Negotiate
-  Status LeaderNegotiate(
-      const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);
+  Status LeaderNegotiate(const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);
   Status FollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset);
 
-  SyncProgress& SyncPros() {
-    return sync_pros_;
-  }
-  std::shared_ptr<StableLog> StableLogger() {
-    return stable_logger_;
-  }
-  std::shared_ptr<MemLog> MemLogger() {
-    return mem_logger_;
-  }
+  SyncProgress& SyncPros() { return sync_pros_; }
+  std::shared_ptr<StableLog> StableLogger() { return stable_logger_; }
+  std::shared_ptr<MemLog> MemLogger() { return mem_logger_; }
 
   LogOffset committed_index() {
     pstd::MutexLock l(&index_mu_);
@@ -165,14 +149,11 @@ class ConsensusCoordinator {
     return context_->applied_index_;
   }
 
-  std::shared_ptr<Context> context() {
-    return context_;
-  }
+  std::shared_ptr<Context> context() { return context_; }
 
   // redis parser cb
   struct CmdPtrArg {
-    CmdPtrArg(std::shared_ptr<Cmd> ptr) : cmd_ptr(ptr) {
-    }
+    CmdPtrArg(std::shared_ptr<Cmd> ptr) : cmd_ptr(ptr) {}
     std::shared_ptr<Cmd> cmd_ptr;
   };
   static int InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv);
@@ -183,18 +164,19 @@ class ConsensusCoordinator {
       pstd::MutexLock l(&index_mu_);
       tmp_stream << "  Committed_index: " << committed_index_.ToString() << "\r\n";
     }
-    tmp_stream << "  Context: " << "\r\n" << context_->ToString();
+    tmp_stream << "  Context: "
+               << "\r\n"
+               << context_->ToString();
     {
       pstd::RWLock l(&term_rwlock_, false);
       tmp_stream << "  Term: " << term_ << "\r\n";
     }
-    tmp_stream << "  Mem_logger size: " << mem_logger_->Size() <<
-      " last offset " << mem_logger_->last_offset().ToString() << "\r\n";
+    tmp_stream << "  Mem_logger size: " << mem_logger_->Size() << " last offset "
+               << mem_logger_->last_offset().ToString() << "\r\n";
     tmp_stream << "  Stable_logger first offset " << stable_logger_->first_offset().ToString() << "\r\n";
     LogOffset log_status;
-    stable_logger_->Logger()->GetProducerStatus(
-        &(log_status.b_offset.filenum), &(log_status.b_offset.offset),
-        &(log_status.l_offset.term), &(log_status.l_offset.index));
+    stable_logger_->Logger()->GetProducerStatus(&(log_status.b_offset.filenum), &(log_status.b_offset.offset),
+                                                &(log_status.l_offset.term), &(log_status.l_offset.index));
     tmp_stream << "  Physical Binlog Status: " << log_status.ToString() << "\r\n";
     return tmp_stream.str();
   }
@@ -205,30 +187,21 @@ class ConsensusCoordinator {
   bool MatchConsensusLevel();
   Status TruncateTo(const LogOffset& offset);
 
-  Status InternalAppendLog(const BinlogItem& item,
-      std::shared_ptr<Cmd> cmd_ptr,
-      std::shared_ptr<PikaClientConn> conn_ptr,
-      std::shared_ptr<std::string> resp_ptr);
-  Status InternalAppendBinlog(const BinlogItem& item,
-      std::shared_ptr<Cmd> cmd_ptr,
-      LogOffset* log_offset);
+  Status InternalAppendLog(const BinlogItem& item, std::shared_ptr<Cmd> cmd_ptr,
+                           std::shared_ptr<PikaClientConn> conn_ptr, std::shared_ptr<std::string> resp_ptr);
+  Status InternalAppendBinlog(const BinlogItem& item, std::shared_ptr<Cmd> cmd_ptr, LogOffset* log_offset);
   void InternalApply(const MemLog::LogItem& log);
   void InternalApplyFollower(const MemLog::LogItem& log);
-  bool InternalUpdateCommittedIndex(const LogOffset& slaves_committed_index,
-      LogOffset* updated_committed_index);
+  bool InternalUpdateCommittedIndex(const LogOffset& slaves_committed_index, LogOffset* updated_committed_index);
 
   Status GetBinlogOffset(const BinlogOffset& start_offset, LogOffset* log_offset);
-  Status GetBinlogOffset(
-      const BinlogOffset& start_offset,
-      const BinlogOffset& end_offset, std::vector<LogOffset>* log_offset);
-  Status FindBinlogFileNum(
-      const std::map<uint32_t, std::string> binlogs,
-      uint64_t target_index, uint32_t start_filenum,
-      uint32_t* founded_filenum);
-  Status FindLogicOffsetBySearchingBinlog(
-      const BinlogOffset& hint_offset, uint64_t target_index, LogOffset* found_offset);
-  Status FindLogicOffset(
-      const BinlogOffset& start_offset, uint64_t target_index, LogOffset* found_offset);
+  Status GetBinlogOffset(const BinlogOffset& start_offset, const BinlogOffset& end_offset,
+                         std::vector<LogOffset>* log_offset);
+  Status FindBinlogFileNum(const std::map<uint32_t, std::string> binlogs, uint64_t target_index, uint32_t start_filenum,
+                           uint32_t* founded_filenum);
+  Status FindLogicOffsetBySearchingBinlog(const BinlogOffset& hint_offset, uint64_t target_index,
+                                          LogOffset* found_offset);
+  Status FindLogicOffset(const BinlogOffset& start_offset, uint64_t target_index, LogOffset* found_offset);
   Status GetLogsBefore(const BinlogOffset& start_offset, std::vector<LogOffset>* hints);
 
   // keep members in this class works in order

@@ -4,8 +4,8 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include <gtest/gtest.h>
-#include <thread>
 #include <iostream>
+#include <thread>
 
 #include "storage/storage.h"
 #include "storage/util.h"
@@ -14,8 +14,8 @@ using namespace storage;
 
 class HyperLogLogTest : public ::testing::Test {
  public:
-  HyperLogLogTest() { }
-  virtual ~HyperLogLogTest() { }
+  HyperLogLogTest() {}
+  virtual ~HyperLogLogTest() {}
 
   void SetUp() {
     std::string path = "./db/hyperloglog";
@@ -31,8 +31,8 @@ class HyperLogLogTest : public ::testing::Test {
     DeleteFiles(path.c_str());
   }
 
-  static void SetUpTestCase() { }
-  static void TearDownTestCase() { }
+  static void SetUpTestCase() {}
+  static void TearDownTestCase() {}
 
   StorageOptions storage_options;
   storage::Storage db;
@@ -47,7 +47,7 @@ TEST_F(HyperLogLogTest, PfaddTest) {
   s = db.PfAdd("HLL", values, &update);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(update);
-  std::vector<std::string> keys {"HLL"};
+  std::vector<std::string> keys{"HLL"};
   int64_t nums = db.Exists(keys, &type_status);
   ASSERT_EQ(nums, 1);
 
@@ -105,7 +105,7 @@ TEST_F(HyperLogLogTest, PfCountTest) {
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(update);
 
-  std::vector<std::string> keys {"HLL"};
+  std::vector<std::string> keys{"HLL"};
   int64_t result;
   s = db.PfCount(keys, &result);
   ASSERT_TRUE(s.ok());
@@ -130,22 +130,22 @@ TEST_F(HyperLogLogTest, PfCountTest) {
 TEST_F(HyperLogLogTest, PfMergeTest) {
   // PFMERGE results on the cardinality of union of sets
   bool update;
-  std::vector<std::string> values1 {"A", "B", "C"};
+  std::vector<std::string> values1{"A", "B", "C"};
   s = db.PfAdd("HLL1", values1, &update);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(update);
 
-  std::vector<std::string> values2 {"B", "C", "D"};
+  std::vector<std::string> values2{"B", "C", "D"};
   s = db.PfAdd("HLL2", values2, &update);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(update);
 
-  std::vector<std::string> values3 {"C", "D", "E"};
+  std::vector<std::string> values3{"C", "D", "E"};
   s = db.PfAdd("HLL3", values3, &update);
   ASSERT_TRUE(s.ok());
   ASSERT_TRUE(update);
 
-  std::vector<std::string> keys {"HLL1", "HLL2", "HLL3"};
+  std::vector<std::string> keys{"HLL1", "HLL2", "HLL3"};
   s = db.PfMerge(keys);
   ASSERT_TRUE(s.ok());
   int64_t result;
@@ -161,9 +161,9 @@ TEST_F(HyperLogLogTest, MultipleKeysTest) {
   // PFCOUNT multiple-keys merge returns cardinality of union
   bool update;
   for (int32_t i = 1; i <= 10000; i++) {
-    std::vector<std::string> hll1_value {"FOO" + std::to_string(i)};
-    std::vector<std::string> hll2_value {"BAR" + std::to_string(i)};
-    std::vector<std::string> hll3_value {"ZAP" + std::to_string(i)};
+    std::vector<std::string> hll1_value{"FOO" + std::to_string(i)};
+    std::vector<std::string> hll2_value{"BAR" + std::to_string(i)};
+    std::vector<std::string> hll3_value{"ZAP" + std::to_string(i)};
     s = db.PfAdd("HLL1", hll1_value, &update);
     ASSERT_TRUE(s.ok());
 
@@ -173,16 +173,15 @@ TEST_F(HyperLogLogTest, MultipleKeysTest) {
     s = db.PfAdd("HLL3", hll3_value, &update);
     ASSERT_TRUE(s.ok());
   }
-  std::vector<std::string> keys {"HLL1", "HLL2", "HLL3"};
+  std::vector<std::string> keys{"HLL1", "HLL2", "HLL3"};
   int64_t result;
   s = db.PfCount(keys, &result);
   ASSERT_TRUE(s.ok());
   int32_t ratio_nums = abs(10000 * 3 - result);
-  ASSERT_LT(ratio_nums, static_cast<double>(result/100)*5);
+  ASSERT_LT(ratio_nums, static_cast<double>(result / 100) * 5);
 }
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

@@ -1,43 +1,71 @@
 #!/bin/bash
 
-MIN_VERSION="3.10"
+#color code
+C_RED="\033[31m"
+C_GREEN="\033[32m"
+
+C_END="\033[0m"
+
+CMAKE_MIN_VERSION="3.18"
+TAR_MIN_VERSION="1.34"
 
 BUILD_DIR=output
 
 source ./utils/Get_OS_Version.sh
 
 function version_compare() {
-    if [[ "${MIN_VERSION}" == "$1" ]]; then
+    if [[ "$1" == "$2" ]]; then
         return 0
     fi
 
-    if [[ "$(printf '%s\n' "${MIN_VERSION}" "$1" | sort -rV | head -n1)" == "${MIN_VERSION}" ]]; then
+    if [[ "$(printf '%s\n' "$1" "$2" | sort -rV | head -n1)" == "$1" ]]; then
         #local version less min version
-        echo -e "local cmake version \033[32m $1 \033[0m less min version \033[32m ${MIN_VERSION} \033[0m"
+        echo -e "local ${C_GREEN} $3 ${C_END} version ${C_GREEN} $2 ${C_END} less min version ${C_GREEN} $1 ${C_END}"
         exit 1
     fi
 }
 
-if ! type autoconf >/dev/null 2>&1; then
-    # not find autoconf,do install
-    echo -e "not find \033[32m autoconf \033[0m on localhost, now do install"
+function check_program() {
+    if ! type $1 >/dev/null 2>&1; then
+        # not find
+        echo -e "not find ${C_GREEN} $1 ${C_END} on localhost"
+        return 1
+    fi
+    return 0
+}
+
+function install_package() {
     if [ $PM == "unknow" ]; then
-        echo -e "\033[31m unknow package manager, please install autoconf \033[0m"
+        echo -e "${C_RED} unknow package manager, please install $1 ${C_END}"
+        exit 1
     fi
     if [ ${PM} == "apt" ]; then
-      sudo ${PM} -y install autoconf
+      sudo ${PM} -y install $1
+    elif [ ${PM} == "brew" ]; then
+      ${PM} install -d $1
     else
-      sudo ${PM} install -y autoconf
+      sudo ${PM} install -y $1
     fi
     if [ $? -ne 0 ]; then
-        echo -e "\033[31m install autoconf  fail, install autoconf before compiling \033[0m"
+        echo -e "${C_RED} install $1  fail, install autoconf before compiling ${C_END}"
         exit 1;
     fi
+}
+
+if ! check_program autoconf; then
+    # not find autoconf,do install
+    echo -e "not find ${C_GREEN} autoconf ${C_END} on localhost, now do install"
+    install_package autoconf
 fi
 
-if ! type cmake >/dev/null 2>&1; then
-    if ! type cmake >/dev/null 2>&1; then
-        echo "not find cmake, please install cmake and min version \033[32m ${MIN_VERSION} \033[0m"
+if ! check_program tar; then
+    echo -e "not find ${C_GREEN} tar ${C_END} on localhost, please install and min version ${C_GREEN} ${TAR_MIN_VERSION} ${C_END}"
+    exit 1;
+fi
+
+if ! check_program cmake; then
+    if ! check_program cmake3; then
+        echo -e "not find ${C_GREEN} cmake ${C_END}, please install cmake and min version ${C_GREEN} ${CMAKE_MIN_VERSION} ${C_END}"
         exit 1
     else
         CMAKE=cmake3
@@ -46,9 +74,15 @@ else
     CMAKE=cmake
 fi
 
-LOCAL_VERSION=`${CMAKE} --version |grep version |grep -o '[0-9.]\+'`
+# get local cmake version
+LOCAL_CMAKE_VERSION=`${CMAKE} --version |grep version |grep -o '[0-9.]\+'`
+#compare cmake version
+version_compare ${CMAKE_MIN_VERSION} ${LOCAL_CMAKE_VERSION} 'cmake'
 
-version_compare ${LOCAL_VERSION}
+# get local tar version
+LOCAL_TAR_VERSION=`tar --version |head -n 1 |grep -o '[0-9.]\+'`
+#compare tar version
+version_compare ${TAR_MIN_VERSION} ${LOCAL_TAR_VERSION} 'tar'
 
 if [ ! -d ${BUILD_DIR} ]; then
     mkdir ${BUILD_DIR}
@@ -59,16 +93,19 @@ cd ${BUILD_DIR}
 ${CMAKE} .. .
 
 if [ $? -ne 0 ]; then
-    echo -e "\033[31m cmake execution error \033[0m"
+    echo -e "${C_RED} cmake execution error ${C_END}"
     exit 1
 fi
 
 CPU_CORE=`cat /proc/cpuinfo| grep "processor"| wc -l`
+if [ ${CPU_CORE} -eq 0 ]; then
+  CPU_CORE=1
+fi
 
 echo "cpu core ${CPU_CORE}"
 
 make -j ${CPU_CORE}
 
 if [ $? -eq 0 ]; then
-    echo -e "pika compile complete, output file \033[32m ${BUILD_DIR}/pika \033[0m"
+    echo -e "pika compile complete, output file ${C_GREEN} ${BUILD_DIR}/pika ${C_END}"
 fi

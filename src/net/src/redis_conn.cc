@@ -5,24 +5,20 @@
 
 #include "net/include/redis_conn.h"
 
-#include <stdlib.h>
 #include <limits.h>
+#include <stdlib.h>
 
-#include <string>
 #include <sstream>
+#include <string>
 
-#include "pstd/include/xdebug.h"
 #include "pstd/include/pstd_string.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
-RedisConn::RedisConn(const int fd,
-                     const std::string& ip_port,
-                     Thread* thread,
-                     NetEpoll* net_epoll,
-                     const HandleType& handle_type,
-                     const int rbuf_max_len)
-    : NetConn(fd, ip_port, thread, net_epoll),
+RedisConn::RedisConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx,
+                     const HandleType& handle_type, const int rbuf_max_len)
+    : NetConn(fd, ip_port, thread, net_mpx),
       handle_type_(handle_type),
       rbuf_(nullptr),
       rbuf_len_(0),
@@ -39,9 +35,7 @@ RedisConn::RedisConn(const int fd,
   redis_parser_.data = this;
 }
 
-RedisConn::~RedisConn() {
-  free(rbuf_);
-}
+RedisConn::~RedisConn() { free(rbuf_); }
 
 ReadStatus RedisConn::ParseRedisParserStatus(RedisParserStatus status) {
   if (status == kRedisParserInitDone) {
@@ -53,17 +47,17 @@ ReadStatus RedisConn::ParseRedisParserStatus(RedisParserStatus status) {
   } else if (status == kRedisParserError) {
     RedisParserError error_code = redis_parser_.get_error_code();
     switch (error_code) {
-      case kRedisParserOk :
+      case kRedisParserOk:
         return kReadError;
-      case kRedisParserInitError :
+      case kRedisParserInitError:
         return kReadError;
-      case kRedisParserFullError :
+      case kRedisParserFullError:
         return kFullError;
-      case kRedisParserProtoError :
+      case kRedisParserProtoError:
         return kParseError;
-      case kRedisParserDealError :
+      case kRedisParserDealError:
         return kDealError;
-      default :
+      default:
         return kReadError;
     }
   } else {
@@ -99,7 +93,7 @@ ReadStatus RedisConn::GetRequest() {
   if (nread == -1) {
     if (errno == EAGAIN) {
       nread = 0;
-      return kReadHalf; // HALF
+      return kReadHalf;  // HALF
     } else {
       // error happened, close client
       return kReadError;
@@ -118,8 +112,7 @@ ReadStatus RedisConn::GetRequest() {
   }
 
   int processed_len = 0;
-  RedisParserStatus ret = redis_parser_.ProcessInputBuffer(
-      rbuf_ + next_read_pos, nread, &processed_len);
+  RedisParserStatus ret = redis_parser_.ProcessInputBuffer(rbuf_ + next_read_pos, nread, &processed_len);
   ReadStatus read_status = ParseRedisParserStatus(ret);
   if (read_status == kReadAll || read_status == kReadHalf) {
     if (read_status == kReadAll) {
@@ -131,7 +124,7 @@ ReadStatus RedisConn::GetRequest() {
   if (!response_.empty()) {
     set_is_reply(true);
   }
-  return read_status; // OK || HALF || FULL_ERROR || PARSE_ERROR
+  return read_status;  // OK || HALF || FULL_ERROR || PARSE_ERROR
 }
 
 WriteStatus RedisConn::SendReply() {
@@ -181,34 +174,26 @@ void RedisConn::TryResizeBuffer() {
   struct timeval now;
   gettimeofday(&now, nullptr);
   int idletime = now.tv_sec - last_interaction().tv_sec;
-  if (rbuf_len_ > REDIS_MBULK_BIG_ARG &&
-      ((rbuf_len_ / (msg_peak_ + 1)) > 2 || idletime > 2)) {
-    int new_size =
-      ((last_read_pos_ + REDIS_IOBUF_LEN) / REDIS_IOBUF_LEN) * REDIS_IOBUF_LEN;
+  if (rbuf_len_ > REDIS_MBULK_BIG_ARG && ((rbuf_len_ / (msg_peak_ + 1)) > 2 || idletime > 2)) {
+    int new_size = ((last_read_pos_ + REDIS_IOBUF_LEN) / REDIS_IOBUF_LEN) * REDIS_IOBUF_LEN;
     if (new_size < rbuf_len_) {
       rbuf_ = static_cast<char*>(realloc(rbuf_, new_size));
       rbuf_len_ = new_size;
-      log_info("Resize buffer to %d, last_read_pos_: %d\n",
-               rbuf_len_, last_read_pos_);
+      log_info("Resize buffer to %d, last_read_pos_: %d\n", rbuf_len_, last_read_pos_);
     }
     msg_peak_ = 0;
   }
 }
 
-void RedisConn::SetHandleType(const HandleType& handle_type) {
-  handle_type_ = handle_type;
-}
+void RedisConn::SetHandleType(const HandleType& handle_type) { handle_type_ = handle_type; }
 
-HandleType RedisConn::GetHandleType() {
-  return handle_type_;
-}
+HandleType RedisConn::GetHandleType() { return handle_type_; }
 
-void RedisConn::ProcessRedisCmds(const std::vector<RedisCmdArgsType>& argvs, bool async, std::string* response) {
-}
+void RedisConn::ProcessRedisCmds(const std::vector<RedisCmdArgsType>& argvs, bool async, std::string* response) {}
 
 void RedisConn::NotifyEpoll(bool success) {
   NetItem ti(fd(), ip_port(), success ? kNotiEpolloutAndEpollin : kNotiClose);
-  net_epoll()->Register(ti, true);
+  net_multiplexer()->Register(ti, true);
 }
 
 int RedisConn::ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& argv) {

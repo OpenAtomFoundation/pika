@@ -17,7 +17,7 @@ class Mutex {
 
   void Lock();
   void Unlock();
-  void AssertHeld() { }
+  void AssertHeld() {}
 
  private:
   friend class CondVar;
@@ -31,14 +31,13 @@ class Mutex {
 // DEPRECATED
 class RWLock {
  public:
-  RWLock(pthread_rwlock_t *mu, bool is_rwlock) :
-    mu_(mu) {
-      if (is_rwlock) {
-        res = pthread_rwlock_wrlock(this->mu_);
-      } else {
-        res = pthread_rwlock_rdlock(this->mu_);
-      }
+  RWLock(pthread_rwlock_t* mu, bool is_rwlock) : mu_(mu) {
+    if (is_rwlock) {
+      res = pthread_rwlock_wrlock(this->mu_);
+    } else {
+      res = pthread_rwlock_rdlock(this->mu_);
     }
+  }
   ~RWLock() {
     if (!res) {
       pthread_rwlock_unlock(this->mu_);
@@ -47,7 +46,7 @@ class RWLock {
 
  private:
   int res;
-  pthread_rwlock_t *const mu_;
+  pthread_rwlock_t* const mu_;
   // No copying allowed
   RWLock(const RWLock&);
   void operator=(const RWLock&);
@@ -73,14 +72,11 @@ class RWMutex {
 
 class ReadLock {
  public:
-  explicit ReadLock(RWMutex* rw_mu)
-      : rw_mu_(rw_mu) {
-    this->rw_mu_->ReadLock();
-  }
+  explicit ReadLock(RWMutex* rw_mu) : rw_mu_(rw_mu) { this->rw_mu_->ReadLock(); }
   ~ReadLock() { this->rw_mu_->ReadUnlock(); }
 
  private:
-  RWMutex *const rw_mu_;
+  RWMutex* const rw_mu_;
   // No copying
   ReadLock(const ReadLock&);
   void operator=(const ReadLock&);
@@ -88,14 +84,11 @@ class ReadLock {
 
 class WriteLock {
  public:
-  WriteLock(RWMutex* rw_mu)
-      : rw_mu_(rw_mu) {
-    this->rw_mu_->WriteLock();
-  }
+  WriteLock(RWMutex* rw_mu) : rw_mu_(rw_mu) { this->rw_mu_->WriteLock(); }
   ~WriteLock() { this->rw_mu_->WriteUnlock(); }
 
  private:
-  RWMutex *const rw_mu_;
+  RWMutex* const rw_mu_;
   // No copying allowed
   WriteLock(const WriteLock&);
   void operator=(const WriteLock&);
@@ -115,7 +108,7 @@ class CondVar {
   bool TimedWait(uint32_t timeout);
   void Signal();
   void SignalAll();
-  
+
  private:
   pthread_cond_t cv_;
   Mutex* mu_;
@@ -123,14 +116,11 @@ class CondVar {
 
 class MutexLock {
  public:
-  explicit MutexLock(Mutex *mu)
-    : mu_(mu)  {
-      this->mu_->Lock();
-    }
+  explicit MutexLock(Mutex* mu) : mu_(mu) { this->mu_->Lock(); }
   ~MutexLock() { this->mu_->Unlock(); }
 
  private:
-  Mutex *const mu_;
+  Mutex* const mu_;
   // No copying allowed
   MutexLock(const MutexLock&);
   void operator=(const MutexLock&);
@@ -151,9 +141,7 @@ class RefMutex {
 
   void Ref();
   void Unref();
-  bool IsLastRef() {
-    return refs_ == 1;
-  }
+  bool IsLastRef() { return refs_ == 1; }
 
  private:
   pthread_mutex_t mu_;
@@ -165,20 +153,19 @@ class RefMutex {
 };
 
 class RecordMutex {
-public:
-  RecordMutex() {};
+ public:
+  RecordMutex(){};
   ~RecordMutex();
 
   void MultiLock(const std::vector<std::string>& keys);
-  void Lock(const std::string &key);
+  void Lock(const std::string& key);
   void MultiUnlock(const std::vector<std::string>& keys);
-  void Unlock(const std::string &key);
+  void Unlock(const std::string& key);
 
-private:
-
+ private:
   Mutex mutex_;
 
-  std::unordered_map<std::string, RefMutex *> records_;
+  std::unordered_map<std::string, RefMutex*> records_;
 
   // No copying
   RecordMutex(const RecordMutex&);
@@ -187,14 +174,11 @@ private:
 
 class RecordLock {
  public:
-  RecordLock(RecordMutex *mu, const std::string &key)
-      : mu_(mu), key_(key) {
-        mu_->Lock(key_);
-      }
+  RecordLock(RecordMutex* mu, const std::string& key) : mu_(mu), key_(key) { mu_->Lock(key_); }
   ~RecordLock() { mu_->Unlock(key_); }
 
  private:
-  RecordMutex *const mu_;
+  RecordMutex* const mu_;
   std::string key_;
 
   // No copying allowed
@@ -202,6 +186,6 @@ class RecordLock {
   void operator=(const RecordLock&);
 };
 
-}
+}  // namespace pstd
 
 #endif

@@ -6,41 +6,35 @@
 #ifndef NET_SRC_WORKER_THREAD_H_
 #define NET_SRC_WORKER_THREAD_H_
 
-#include <sys/epoll.h>
-
-#include <string>
+#include <atomic>
 #include <functional>
 #include <map>
-#include <atomic>
-#include <vector>
 #include <set>
+#include <string>
+#include <vector>
 
-#include "pstd/include/xdebug.h"
 #include "pstd/include/pstd_mutex.h"
+#include "pstd/include/xdebug.h"
 
-#include "net/include/server_thread.h"
-#include "net/src/net_epoll.h"
-#include "net/include/net_thread.h"
 #include "net/include/net_define.h"
+#include "net/include/net_thread.h"
+#include "net/include/server_thread.h"
+#include "net/src/net_multiplexer.h"
 
 namespace net {
 
 class NetItem;
-class NetEpoll;
 class NetFiredEvent;
 class NetConn;
 class ConnFactory;
 
 class WorkerThread : public Thread {
  public:
-  explicit WorkerThread(ConnFactory *conn_factory, ServerThread* server_thread,
-                        int queue_limit_, int cron_interval = 0);
+  explicit WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval = 0);
 
   virtual ~WorkerThread();
 
-  void set_keepalive_timeout(int timeout) {
-    keepalive_timeout_ = timeout;
-  }
+  void set_keepalive_timeout(int timeout) { keepalive_timeout_ = timeout; }
 
   int conn_num() const;
 
@@ -52,9 +46,7 @@ class WorkerThread : public Thread {
 
   bool MoveConnIn(const NetItem& it, bool force);
 
-  NetEpoll* net_epoll() {
-    return net_epoll_;
-  }
+  NetMultiplexer* net_multiplexer() { return net_multiplexer_.get(); }
   bool TryKillConn(const std::string& ip_port);
 
   mutable pstd::RWMutex rwlock_; /* For external statistics */
@@ -64,18 +56,17 @@ class WorkerThread : public Thread {
 
  private:
   ServerThread* server_thread_;
-  ConnFactory *conn_factory_;
+  ConnFactory* conn_factory_;
   int cron_interval_;
-
 
   /*
    * The epoll handler
    */
-  NetEpoll *net_epoll_;
+  std::unique_ptr<NetMultiplexer> net_multiplexer_;
 
   std::atomic<int> keepalive_timeout_;  // keepalive second
 
-  virtual void *ThreadMain() override;
+  virtual void* ThreadMain() override;
   void DoCronTask();
 
   pstd::Mutex killer_mutex_;

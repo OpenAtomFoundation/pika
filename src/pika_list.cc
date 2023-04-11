@@ -5,8 +5,8 @@
 
 #include "include/pika_list.h"
 
-#include "pstd/include/pstd_string.h"
 #include "include/pika_data_distribution.h"
+#include "pstd/include/pstd_string.h"
 
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -15,7 +15,7 @@ void LIndexCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string index = argv_[2];
-  if (!pstd::string2l(index.data(), index.size(), &index_)) {
+  if (!pstd::string2int(index.data(), index.size(), &index_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;
@@ -70,7 +70,7 @@ void LLenCmd::DoInitial() {
 void LLenCmd::Do(std::shared_ptr<Partition> partition) {
   uint64_t llen = 0;
   rocksdb::Status s = partition->db()->LLen(key_, &llen);
-  if (s.ok() || s.IsNotFound()){
+  if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(llen);
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
@@ -142,12 +142,12 @@ void LRangeCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string left = argv_[2];
-  if (!pstd::string2l(left.data(), left.size(), &left_)) {
+  if (!pstd::string2int(left.data(), left.size(), &left_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   std::string right = argv_[3];
-  if (!pstd::string2l(right.data(), right.size(), &right_)) {
+  if (!pstd::string2int(right.data(), right.size(), &right_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;
@@ -174,7 +174,7 @@ void LRemCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string count = argv_[2];
-  if (!pstd::string2l(count.data(), count.size(), &count_)) {
+  if (!pstd::string2int(count.data(), count.size(), &count_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
@@ -197,24 +197,24 @@ void LSetCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string index = argv_[2];
-  if (!pstd::string2l(index.data(), index.size(), &index_)) {
+  if (!pstd::string2int(index.data(), index.size(), &index_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   value_ = argv_[3];
 }
 void LSetCmd::Do(std::shared_ptr<Partition> partition) {
-    rocksdb::Status s = partition->db()->LSet(key_, index_, value_);
-    if (s.ok()) {
-      res_.SetRes(CmdRes::kOk);
-    } else if (s.IsNotFound()) {
-      res_.SetRes(CmdRes::kNotFound);
-    } else if (s.IsCorruption() && s.ToString() == "Corruption: index out of range") {
-      //TODO refine return value
-      res_.SetRes(CmdRes::kOutOfRange);
-    } else {
-      res_.SetRes(CmdRes::kErrOther, s.ToString());
-    }
+  rocksdb::Status s = partition->db()->LSet(key_, index_, value_);
+  if (s.ok()) {
+    res_.SetRes(CmdRes::kOk);
+  } else if (s.IsNotFound()) {
+    res_.SetRes(CmdRes::kNotFound);
+  } else if (s.IsCorruption() && s.ToString() == "Corruption: index out of range") {
+    // TODO refine return value
+    res_.SetRes(CmdRes::kOutOfRange);
+  } else {
+    res_.SetRes(CmdRes::kErrOther, s.ToString());
+  }
 }
 
 void LTrimCmd::DoInitial() {
@@ -224,12 +224,12 @@ void LTrimCmd::DoInitial() {
   }
   key_ = argv_[1];
   std::string start = argv_[2];
-  if (!pstd::string2l(start.data(), start.size(), &start_)) {
+  if (!pstd::string2int(start.data(), start.size(), &start_)) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   std::string stop = argv_[3];
-  if (!pstd::string2l(stop.data(), stop.size(), &stop_)) {
+  if (!pstd::string2int(stop.data(), stop.size(), &stop_)) {
     res_.SetRes(CmdRes::kInvalidInt);
   }
   return;

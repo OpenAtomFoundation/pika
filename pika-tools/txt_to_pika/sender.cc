@@ -1,19 +1,16 @@
 #include "sender.h"
 
-SenderThread::SenderThread(std::string ip, int64_t port, std::string password):
-  cli_(NULL),
-  rsignal_(&cmd_mutex_),
-  wsignal_(&cmd_mutex_),
-  ip_(ip),
-  port_(port),
-  password_(password),
-  should_exit_(false),
-  elements_(0)
-  {
-  }
+SenderThread::SenderThread(std::string ip, int64_t port, std::string password)
+    : cli_(NULL),
+      rsignal_(&cmd_mutex_),
+      wsignal_(&cmd_mutex_),
+      ip_(ip),
+      port_(port),
+      password_(password),
+      should_exit_(false),
+      elements_(0) {}
 
-SenderThread::~SenderThread() {
-}
+SenderThread::~SenderThread() {}
 
 void SenderThread::ConnectPika() {
   while (cli_ == NULL) {
@@ -86,7 +83,7 @@ void SenderThread::ConnectPika() {
   }
 }
 
-void SenderThread::LoadCmd(const std::string &cmd) {
+void SenderThread::LoadCmd(const std::string& cmd) {
   cmd_mutex_.Lock();
   if (cmd_queue_.size() < 100000) {
     cmd_queue_.push(cmd);
@@ -102,7 +99,7 @@ void SenderThread::LoadCmd(const std::string &cmd) {
   }
 }
 
-void SenderThread::SendCommand(std::string &command) {
+void SenderThread::SendCommand(std::string& command) {
   // Send command
   slash::Status s = cli_->Send(&command);
   if (!s.ok()) {
@@ -115,12 +112,12 @@ void SenderThread::SendCommand(std::string &command) {
   } else {
     net::RedisCmdArgsType resp;
     s = cli_->Recv(&resp);
-    //std::cout << resp[0] << std::endl; 
-    elements_++; 
+    // std::cout << resp[0] << std::endl;
+    elements_++;
   }
 }
 
-void *SenderThread::ThreadMain() {
+void* SenderThread::ThreadMain() {
   log_info("Start sender thread...");
 
   while (!should_exit_ || QueueSize() != 0) {
@@ -131,7 +128,7 @@ void *SenderThread::ThreadMain() {
     cmd_mutex_.Unlock();
 
     if (cli_ == NULL) {
-      ConnectPika(); 
+      ConnectPika();
       continue;
     }
     if (QueueSize() != 0) {
@@ -148,4 +145,3 @@ void *SenderThread::ThreadMain() {
   log_info("Sender thread complete");
   return NULL;
 }
-

@@ -16,9 +16,10 @@
 class SyncMasterPartition;
 class SyncSlavePartition;
 
-class PikaReplClientConn: public net::PbConn {
+class PikaReplClientConn : public net::PbConn {
  public:
-  PikaReplClientConn(int fd, const std::string& ip_port, net::Thread *thread, void* worker_specific_data, net::NetEpoll* epoll);
+  PikaReplClientConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
+                     net::NetMultiplexer* mpx);
   virtual ~PikaReplClientConn() = default;
 
   static void HandleMetaSyncResponse(void* arg);
@@ -26,13 +27,11 @@ class PikaReplClientConn: public net::PbConn {
   static void HandleTrySyncResponse(void* arg);
   static void HandleRemoveSlaveNodeResponse(void* arg);
 
-  static Status TrySyncConsensusCheck(
-      const InnerMessage::ConsensusMeta& consensus_meta,
-      const std::shared_ptr<SyncMasterPartition>& partition,
-      const std::shared_ptr<SyncSlavePartition>& slave_partition);
-  static bool IsTableStructConsistent(
-      const std::vector<TableStruct>& current_tables,
-      const std::vector<TableStruct>& expect_tables);
+  static Status TrySyncConsensusCheck(const InnerMessage::ConsensusMeta& consensus_meta,
+                                      const std::shared_ptr<SyncMasterPartition>& partition,
+                                      const std::shared_ptr<SyncSlavePartition>& slave_partition);
+  static bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
+                                      const std::vector<TableStruct>& expect_tables);
   int DealMessage() override;
 
  private:
@@ -42,8 +41,8 @@ class PikaReplClientConn: public net::PbConn {
   struct ReplRespArg {
     std::shared_ptr<InnerMessage::InnerResponse> resp;
     std::shared_ptr<net::PbConn> conn;
-    ReplRespArg(std::shared_ptr<InnerMessage::InnerResponse> _resp, std::shared_ptr<net::PbConn> _conn) : resp(_resp), conn(_conn) {
-    }
+    ReplRespArg(std::shared_ptr<InnerMessage::InnerResponse> _resp, std::shared_ptr<net::PbConn> _conn)
+        : resp(_resp), conn(_conn) {}
   };
 };
 

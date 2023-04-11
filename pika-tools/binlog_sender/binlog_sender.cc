@@ -7,19 +7,18 @@
 #include "ctime"
 #include "iostream"
 
-#include "stdlib.h"
-#include "unistd.h"
 #include "stdint.h"
+#include "stdlib.h"
 #include "string.h"
+#include "unistd.h"
 
 #include "net/include/net_cli.h"
 #include "net/include/redis_cli.h"
 
-#include "utils.h"
-#include "progress_thread.h"
 #include "binlog_consumer.h"
 #include "binlog_transverter.h"
-
+#include "progress_thread.h"
+#include "utils.h"
 
 std::string binlog_path = "./log/";
 std::string ip = "127.0.0.1";
@@ -61,11 +60,12 @@ void Usage() {
   std::cout << "\t-e    -- end time , default: '2100-01-30 24:00:01'" << std::endl;
   std::cout << "\t-a    -- password of the pika server" << std::endl;
   std::cout << "\texample1: ./binlog_sender -n ./log -i 127.0.0.1 -p 9221 -f 526 -o 8749409" << std::endl;
-  std::cout << "\texample2: ./binlog_sender -n ./log -i 127.0.0.1 -p 9221 -f 526-530 -s '2001-10-11 11:11:11' -e '2020-12-11 11:11:11'" << std::endl;
+  std::cout << "\texample2: ./binlog_sender -n ./log -i 127.0.0.1 -p 9221 -f 526-530 -s '2001-10-11 11:11:11' -e "
+               "'2020-12-11 11:11:11'"
+            << std::endl;
 }
 
 void TryToCommunicate() {
-
   cli = net::NewRedisCli();
   cli->set_connect_timeout(3000);
   Status net_s = cli->Connect(ip, port, "");
@@ -118,39 +118,38 @@ void TryToCommunicate() {
   }
 }
 
-int main(int argc, char *argv[]) {
-
+int main(int argc, char* argv[]) {
   int32_t opt;
   while ((opt = getopt(argc, argv, "hi:p:n:f:s:e:o:a:")) != -1) {
     switch (opt) {
-      case 'h' :
+      case 'h':
         Usage();
         exit(0);
-      case 'i' :
+      case 'i':
         ip = optarg;
         break;
-      case 'p' :
+      case 'p':
         port = std::atoi(optarg);
         break;
-      case 'n' :
+      case 'n':
         binlog_path = optarg;
         if (!binlog_path.empty() && binlog_path.back() != '/') {
           binlog_path += "/";
         }
         break;
-      case 'f' :
+      case 'f':
         files_to_send = optarg;
         break;
-      case 's' :
+      case 's':
         start_time_str = optarg;
         break;
-      case 'e' :
+      case 'e':
         end_time_str = optarg;
         break;
-      case 'o' :
+      case 'o':
         file_offset = std::atoi(optarg);
         break;
-      case 'a' :
+      case 'a':
         need_auth = true;
         pass_wd = optarg;
         break;
@@ -163,13 +162,12 @@ int main(int argc, char *argv[]) {
   PrintInfo(now);
 
   std::vector<uint32_t> files;
-  if (!CheckFilesStr(files_to_send)
-    || !GetFileList(files_to_send, &files)) {
+  if (!CheckFilesStr(files_to_send) || !GetFileList(files_to_send, &files)) {
     std::cout << "input illlegal binlog scope of the sequence, exit..." << std::endl;
     exit(-1);
   }
 
-  uint32_t tv_start,tv_end;
+  uint32_t tv_start, tv_end;
   struct tm tm;
   time_t timet;
   strptime(start_time_str.c_str(), "%Y-%m-%d %H:%M:%S", &tm);
@@ -227,7 +225,7 @@ int main(int argc, char *argv[]) {
     } else if (s.IsComplete()) {
       break;
     } else {
-      fprintf (stderr, "Binlog Parse err: %s, exit...\n", s.ToString().c_str());
+      fprintf(stderr, "Binlog Parse err: %s, exit...\n", s.ToString().c_str());
       exit(-1);
     }
   }
@@ -247,12 +245,8 @@ int main(int argc, char *argv[]) {
   auto minutes = std::chrono::duration_cast<std::chrono::minutes>(end_time - start_time).count();
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
 
-  std::cout << "Total Time Cost : "
-            << hours << " hours "
-            << minutes % 60 << " minutes "
-            << seconds % 60 << " seconds "
+  std::cout << "Total Time Cost : " << hours << " hours " << minutes % 60 << " minutes " << seconds % 60 << " seconds "
             << std::endl;
 
   return 0;
 }
-

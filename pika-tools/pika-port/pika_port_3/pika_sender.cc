@@ -4,20 +4,17 @@
 #include "pika_sender.h"
 #include "slash/include/xdebug.h"
 
-PikaSender::PikaSender(std::string ip, int64_t port, std::string password):
-  cli_(NULL),
-  signal_(&keys_mutex_),
-  ip_(ip),
-  port_(port),
-  password_(password),
-  should_exit_(false),
-  cnt_(0),
-  elements_(0)
-  {
-  }
+PikaSender::PikaSender(std::string ip, int64_t port, std::string password)
+    : cli_(NULL),
+      signal_(&keys_mutex_),
+      ip_(ip),
+      port_(port),
+      password_(password),
+      should_exit_(false),
+      cnt_(0),
+      elements_(0) {}
 
-PikaSender::~PikaSender() {
-}
+PikaSender::~PikaSender() {}
 
 int PikaSender::QueueSize() {
   slash::MutexLock l(&keys_mutex_);
@@ -104,7 +101,7 @@ void PikaSender::ConnectRedis() {
   }
 }
 
-void PikaSender::LoadKey(const std::string &key) {
+void PikaSender::LoadKey(const std::string& key) {
   keys_mutex_.Lock();
   if (keys_queue_.size() < 100000) {
     keys_queue_.push(key);
@@ -120,7 +117,7 @@ void PikaSender::LoadKey(const std::string &key) {
   }
 }
 
-void PikaSender::SendCommand(std::string &command, const std::string &key) {
+void PikaSender::SendCommand(std::string& command, const std::string& key) {
   // Send command
   slash::Status s = cli_->Send(&command);
   if (!s.ok()) {
@@ -135,7 +132,7 @@ void PikaSender::SendCommand(std::string &command, const std::string &key) {
   }
 }
 
-void *PikaSender::ThreadMain() {
+void* PikaSender::ThreadMain() {
   LOG(INFO) << "Start sender thread...";
 
   if (cli_ == NULL) {
@@ -151,7 +148,7 @@ void *PikaSender::ThreadMain() {
     }
     keys_mutex_.Unlock();
     if (QueueSize() == 0 && should_exit_) {
-    // if (should_exit_) {
+      // if (should_exit_) {
       return NULL;
     }
 
@@ -164,12 +161,12 @@ void *PikaSender::ThreadMain() {
     SendCommand(key, key);
     cnt_++;
     if (cnt_ >= 200) {
-      for(; cnt_ > 0; cnt_--) {
+      for (; cnt_ > 0; cnt_--) {
         cli_->Recv(NULL);
       }
     }
   }
-  for(; cnt_ > 0; cnt_--) {
+  for (; cnt_ > 0; cnt_--) {
     cli_->Recv(NULL);
   }
 
@@ -179,4 +176,3 @@ void *PikaSender::ThreadMain() {
   LOG(INFO) << "PikaSender thread complete";
   return NULL;
 }
-

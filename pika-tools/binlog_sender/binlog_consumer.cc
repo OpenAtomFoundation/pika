@@ -5,25 +5,21 @@
 
 #include "binlog_consumer.h"
 
-BinlogConsumer::BinlogConsumer(const std::string& binlog_path,
-                               uint32_t first_filenum,
-                               uint32_t last_filenum,
+BinlogConsumer::BinlogConsumer(const std::string& binlog_path, uint32_t first_filenum, uint32_t last_filenum,
                                uint64_t offset)
     : filename_(binlog_path + kBinlogPrefix),
       first_filenum_(first_filenum),
       last_filenum_(last_filenum),
       current_offset_(offset),
       backing_store_(new char[kBlockSize]),
-      queue_(nullptr) {
-};
+      queue_(nullptr){};
 
 BinlogConsumer::~BinlogConsumer() {
   delete[] backing_store_;
   delete queue_;
 }
 
-std::string BinlogConsumer::NewFileName(const std::string& name,
-                                        const uint32_t current) {
+std::string BinlogConsumer::NewFileName(const std::string& name, const uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
   return std::string(buf);
@@ -77,13 +73,9 @@ bool BinlogConsumer::trim() {
   return true;
 }
 
-uint32_t BinlogConsumer::current_filenum() {
-  return current_filenum_;
-}
+uint32_t BinlogConsumer::current_filenum() { return current_filenum_; }
 
-uint64_t BinlogConsumer::current_offset() {
-  return current_offset_;
-}
+uint64_t BinlogConsumer::current_offset() { return current_offset_; }
 
 uint64_t BinlogConsumer::get_next(bool* is_error) {
   uint64_t offset = 0;
@@ -127,7 +119,7 @@ uint64_t BinlogConsumer::get_next(bool* is_error) {
   return offset;
 }
 
-uint32_t BinlogConsumer::ReadPhysicalRecord(slash::Slice *result) {
+uint32_t BinlogConsumer::ReadPhysicalRecord(slash::Slice* result) {
   slash::Status s;
   if (kBlockSize - last_record_offset_ <= kHeaderSize) {
     queue_->Skip(kBlockSize - last_record_offset_);
@@ -203,18 +195,15 @@ slash::Status BinlogConsumer::Consume(std::string* scratch) {
   return slash::Status::OK();
 }
 
-
-// Get a whole message; 
+// Get a whole message;
 // the status will be OK, IOError or Corruption;
 slash::Status BinlogConsumer::Parse(std::string* scratch) {
   slash::Status s;
   scratch->clear();
   while (true) {
-
     s = Consume(scratch);
 
     if (s.IsEndFile()) {
-
       if (current_filenum_ == last_filenum_) {
         return slash::Status::Complete("finish");
       } else {
@@ -222,7 +211,7 @@ slash::Status BinlogConsumer::Parse(std::string* scratch) {
 
         // Roll to next File
         if (slash::FileExists(confile)) {
-          //DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
+          // DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
           delete queue_;
           queue_ = NULL;
 
@@ -241,6 +230,3 @@ slash::Status BinlogConsumer::Parse(std::string* scratch) {
   }
   return s;
 }
-
-
-      

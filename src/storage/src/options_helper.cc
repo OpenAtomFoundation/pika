@@ -20,7 +20,7 @@ static bool strToInt(const std::string& value, int* num, int base = 10) {
 static bool strToUint64(const std::string& value, uint64_t* num, int base = 10) {
   size_t end;
   *num = std::stoull(value, &end, base);
-  return  end < value.size() ? false : true;
+  return end < value.size() ? false : true;
 }
 
 // strToUint32 may throw exception
@@ -37,9 +37,7 @@ static bool strToUint32(const std::string& value, uint32_t* num, int base = 10) 
   return true;
 }
 
-
-bool ParseOptionMember(const MemberType& member_type,
-    const std::string& value, char* member_address)  {
+bool ParseOptionMember(const MemberType& member_type, const std::string& value, char* member_address) {
   switch (member_type) {
     case MemberType::kInt: {
       int intVal;

@@ -3,20 +3,20 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "unistd.h"
-#include <string>
-#include <iostream>
 #include "net/include/bg_thread.h"
+#include <iostream>
+#include <string>
 #include "pstd/include/pstd_mutex.h"
+#include "unistd.h"
 
 using namespace std;
 
 static pstd::Mutex print_lock;
 
-void task(void *arg) {
+void task(void* arg) {
   {
-  pstd::MutexLock l(&print_lock);
-  std::cout << " task : " << *((int *)arg) << std::endl;
+    pstd::MutexLock l(&print_lock);
+    std::cout << " task : " << *((int*)arg) << std::endl;
   }
   sleep(1);
   delete (int*)arg;
@@ -24,15 +24,11 @@ void task(void *arg) {
 
 struct TimerItem {
   uint64_t exec_time;
-  void (*function)(void *);
+  void (*function)(void*);
   void* arg;
-  TimerItem(uint64_t _exec_time, void (*_function)(void*), void* _arg) :
-    exec_time(_exec_time),
-    function(_function),
-    arg(_arg) {}
-  bool operator < (const TimerItem& item) const {
-    return exec_time > item.exec_time;
-  }
+  TimerItem(uint64_t _exec_time, void (*_function)(void*), void* _arg)
+      : exec_time(_exec_time), function(_function), arg(_arg) {}
+  bool operator<(const TimerItem& item) const { return exec_time > item.exec_time; }
 };
 
 int main() {
@@ -43,7 +39,7 @@ int main() {
 
   std::cout << "Normal BGTask... " << std::endl;
   for (int i = 0; i < 10; i++) {
-    int *pi = new int(i);
+    int* pi = new int(i);
     t.Schedule(task, (void*)pi);
     t.QueueSize(&pqsize, &qsize);
     pstd::MutexLock l(&print_lock);
@@ -56,11 +52,10 @@ int main() {
     sleep(1);
   }
 
-
   qsize = pqsize = 0;
   std::cout << "Limit queue BGTask... " << std::endl;
   for (int i = 0; i < 10; i++) {
-    int *pi = new int(i);
+    int* pi = new int(i);
     t2.Schedule(task, (void*)pi);
     t2.QueueSize(&pqsize, &qsize);
     pstd::MutexLock l(&print_lock);
@@ -72,7 +67,7 @@ int main() {
     t2.QueueSize(&pqsize, &qsize);
     sleep(1);
   }
-  
+
   std::cout << "TimerItem Struct... " << std::endl;
   std::priority_queue<TimerItem> pq;
   pq.push(TimerItem(1, task, NULL));
@@ -92,7 +87,7 @@ int main() {
   t.StartThread();
   std::cout << "Time BGTask... " << std::endl;
   for (int i = 0; i < 10; i++) {
-    int *pi = new int(i);
+    int* pi = new int(i);
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.QueueSize(&pqsize, &qsize);
     pstd::MutexLock l(&print_lock);

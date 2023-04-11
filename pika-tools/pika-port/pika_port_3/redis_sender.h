@@ -2,10 +2,10 @@
 #define REDIS_SENDER_H_
 
 #include <atomic>
-#include <thread>
 #include <chrono>
 #include <iostream>
 #include <queue>
+#include <thread>
 
 #include "net/include/bg_thread.h"
 #include "net/include/net_cli.h"
@@ -16,19 +16,17 @@ class RedisSender : public net::Thread {
   RedisSender(int id, std::string ip, int64_t port, std::string password);
   virtual ~RedisSender();
   void Stop(void);
-  int64_t elements() {
-    return elements_;
-  }
+  int64_t elements() { return elements_; }
 
-  void SendRedisCommand(const std::string &command);
+  void SendRedisCommand(const std::string& command);
 
  private:
-  int SendCommand(std::string &command);
+  int SendCommand(std::string& command);
   void ConnectRedis();
 
  private:
   int id_;
-  net::PinkCli *cli_;
+  net::PinkCli* cli_;
   slash::CondVar rsignal_;
   slash::CondVar wsignal_;
   slash::Mutex commands_mutex_;
@@ -41,7 +39,7 @@ class RedisSender : public net::Thread {
   int64_t elements_;
   std::atomic<time_t> last_write_time_;
 
-  virtual void *ThreadMain();
+  virtual void* ThreadMain();
 };
 
 #endif

@@ -7,13 +7,9 @@
 
 extern int32_t scan_batch_limit;
 
-bool ScanThread::is_finish() {
-  return is_finish_;
-}
+bool ScanThread::is_finish() { return is_finish_; }
 
-int32_t ScanThread::scan_number() {
-  return scan_number_;
-}
+int32_t ScanThread::scan_number() { return scan_number_; }
 
 void* ScanThread::ThreadMain() {
   std::string key_start = "";
@@ -24,8 +20,8 @@ void* ScanThread::ThreadMain() {
   std::vector<blackwidow::KeyValue> kvs;
 
   do {
-    blackwidow_db_->PKScanRange(blackwidow::DataType::kStrings, key_start, key_end,
-            "*", scan_batch_limit, &keys, &kvs, &next_key);
+    blackwidow_db_->PKScanRange(blackwidow::DataType::kStrings, key_start, key_end, "*", scan_batch_limit, &keys, &kvs,
+                                &next_key);
     if (!kvs.empty()) {
       scan_number_ += kvs.size();
       std::string data;
@@ -43,4 +39,3 @@ void* ScanThread::ThreadMain() {
   is_finish_ = true;
   return NULL;
 }
-

@@ -6,9 +6,10 @@
 #ifndef PIKA_CMD_TABLE_MANAGER_H_
 #define PIKA_CMD_TABLE_MANAGER_H_
 
+#include <thread>
+
 #include "include/pika_command.h"
 #include "include/pika_data_distribution.h"
-
 
 class PikaCmdTableManager {
  public:
@@ -16,15 +17,16 @@ class PikaCmdTableManager {
   virtual ~PikaCmdTableManager();
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   uint32_t DistributeKey(const std::string& key, uint32_t partition_num);
+
  private:
   std::shared_ptr<Cmd> NewCommand(const std::string& opt);
 
   void InsertCurrentThreadDistributionMap();
-  bool CheckCurrentThreadDistributionMapExist(const pid_t& tid);
+  bool CheckCurrentThreadDistributionMapExist(const std::thread::id& tid);
 
   CmdTable* cmds_;
 
   pthread_rwlock_t map_protector_;
-  std::unordered_map<pid_t, PikaDataDistribution*> thread_distribution_map_;
+  std::unordered_map<std::thread::id, PikaDataDistribution*> thread_distribution_map_;
 };
 #endif

@@ -4,5 +4,3 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 // pstd, typically as ``pika standard'', the sdk for pika.
-
-

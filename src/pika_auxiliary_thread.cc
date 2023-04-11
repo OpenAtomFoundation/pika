@@ -5,9 +5,9 @@
 
 #include "include/pika_auxiliary_thread.h"
 
-#include "include/pika_server.h"
 #include "include/pika_define.h"
 #include "include/pika_rm.h"
+#include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
@@ -49,9 +49,8 @@ void* PikaAuxiliaryThread::ThreadMain() {
       cv_.TimedWait(100);
       mu_.Unlock();
     } else {
-      //LOG_EVERY_N(INFO, 1000) << "Consume binlog number " << res;
+      // LOG_EVERY_N(INFO, 1000) << "Consume binlog number " << res;
     }
   }
   return NULL;
 }
-

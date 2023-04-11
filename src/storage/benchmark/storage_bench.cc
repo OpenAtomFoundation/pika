@@ -3,10 +3,10 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include <iostream>
-#include <vector>
-#include <thread>
 #include <functional>
+#include <iostream>
+#include <thread>
+#include <vector>
 
 #include "storage/storage.h"
 
@@ -38,31 +38,35 @@ void BenchSet() {
   jobs.clear();
   auto start = std::chrono::system_clock::now();
   for (size_t i = 0; i < THREADNUM; ++i) {
-    jobs.emplace_back([&db](size_t kv_num) {
-      for (size_t j = 0; j < kv_num; ++j) {
-        db.Set(key, value);
-      }
-    }, kv_num);
+    jobs.emplace_back(
+        [&db](size_t kv_num) {
+          for (size_t j = 0; j < kv_num; ++j) {
+            db.Set(key, value);
+          }
+        },
+        kv_num);
   }
 
   for (auto& job : jobs) {
     job.join();
   }
   auto end = system_clock::now();
-  duration<double> elapsed_seconds = end-start;
+  duration<double> elapsed_seconds = end - start;
   auto cost = duration_cast<std::chrono::seconds>(elapsed_seconds).count();
-  std::cout << "Test case 1, Set " << THREADNUM * kv_num << " Cost: "
-    << cost << "s QPS: " << (THREADNUM * kv_num) / cost << std::endl;
+  std::cout << "Test case 1, Set " << THREADNUM * kv_num << " Cost: " << cost
+            << "s QPS: " << (THREADNUM * kv_num) / cost << std::endl;
 
   kv_num = 100000;
   jobs.clear();
   start = system_clock::now();
   for (size_t i = 0; i < THREADNUM; ++i) {
-    jobs.emplace_back([&db](size_t kv_num) {
-      for (size_t j = 0; j < kv_num; ++j) {
-        db.Set(key, value);
-      }
-    }, kv_num);
+    jobs.emplace_back(
+        [&db](size_t kv_num) {
+          for (size_t j = 0; j < kv_num; ++j) {
+            db.Set(key, value);
+          }
+        },
+        kv_num);
   }
 
   for (auto& job : jobs) {
@@ -71,8 +75,8 @@ void BenchSet() {
   end = system_clock::now();
   elapsed_seconds = end - start;
   cost = duration_cast<seconds>(elapsed_seconds).count();
-  std::cout << "Test case 2, Set " << THREADNUM * kv_num << " Cost: "
-    << cost << "s QPS: " << (THREADNUM * kv_num) / cost << std::endl;
+  std::cout << "Test case 2, Set " << THREADNUM * kv_num << " Cost: " << cost
+            << "s QPS: " << (THREADNUM * kv_num) / cost << std::endl;
 }
 
 void BenchHGetall() {
@@ -109,8 +113,7 @@ void BenchHGetall() {
   auto end = system_clock::now();
   duration<double> elapsed_seconds = end - start;
   auto cost = duration_cast<milliseconds>(elapsed_seconds).count();
-  std::cout << "Test case 1, HGetall " << fvs_out.size()
-    << " Field HashTable Cost: "<< cost << "ms" << std::endl;
+  std::cout << "Test case 1, HGetall " << fvs_out.size() << " Field HashTable Cost: " << cost << "ms" << std::endl;
 
   // 1. Create the hash table then insert hash table 10000000 field
   // 2. Delete the hash table
@@ -141,8 +144,7 @@ void BenchHGetall() {
   end = system_clock::now();
   elapsed_seconds = end - start;
   cost = duration_cast<milliseconds>(elapsed_seconds).count();
-  std::cout << "Test case 2, HGetall " << fvs_out.size()
-    << " Field HashTable Cost: "<< cost << "ms" << std::endl;
+  std::cout << "Test case 2, HGetall " << fvs_out.size() << " Field HashTable Cost: " << cost << "ms" << std::endl;
 
   // 1. Create the hash table then insert hash table 10000000 field
   // 2. Delete hash table 9990000 field, the hash table remain 10000 field
@@ -166,8 +168,7 @@ void BenchHGetall() {
   end = system_clock::now();
   elapsed_seconds = end - start;
   cost = duration_cast<milliseconds>(elapsed_seconds).count();
-  std::cout << "Test case 3, HGetall " << fvs_out.size()
-    << " Field HashTable Cost: "<< cost << "ms" << std::endl;
+  std::cout << "Test case 3, HGetall " << fvs_out.size() << " Field HashTable Cost: " << cost << "ms" << std::endl;
 }
 
 void BenchScan() {
@@ -187,22 +188,24 @@ void BenchScan() {
   jobs.clear();
   auto start = std::chrono::system_clock::now();
   for (size_t i = 0; i < THREADNUM; ++i) {
-    jobs.emplace_back([&db](size_t kv_num) {
-      for (size_t j = 0; j < kv_num; ++j) {
-        std::string key_prefix = key + std::to_string(j);
-        db.Set(key_prefix, value);
-      }
-    }, kv_num);
+    jobs.emplace_back(
+        [&db](size_t kv_num) {
+          for (size_t j = 0; j < kv_num; ++j) {
+            std::string key_prefix = key + std::to_string(j);
+            db.Set(key_prefix, value);
+          }
+        },
+        kv_num);
   }
 
   for (auto& job : jobs) {
     job.join();
   }
   auto end = system_clock::now();
-  duration<double> elapsed_seconds = end-start;
+  duration<double> elapsed_seconds = end - start;
   auto cost = duration_cast<std::chrono::seconds>(elapsed_seconds).count();
-  std::cout << "Test case 1, Set " << THREADNUM * kv_num << " Cost: "
-    << cost << "s QPS: " << (THREADNUM * kv_num) / cost << std::endl;
+  std::cout << "Test case 1, Set " << THREADNUM * kv_num << " Cost: " << cost
+            << "s QPS: " << (THREADNUM * kv_num) / cost << std::endl;
 
   // Scan 100000
   std::vector<std::string> keys;
@@ -211,8 +214,7 @@ void BenchScan() {
   end = system_clock::now();
   elapsed_seconds = end - start;
   cost = duration_cast<seconds>(elapsed_seconds).count();
-  std::cout << "Test case 2, Scan " << 100000 << " Cost: "
-    << cost << "s" << std::endl;
+  std::cout << "Test case 2, Scan " << 100000 << " Cost: " << cost << "s" << std::endl;
 
   // Scan 10000000
   keys.clear();
@@ -221,10 +223,8 @@ void BenchScan() {
   end = system_clock::now();
   elapsed_seconds = end - start;
   cost = duration_cast<seconds>(elapsed_seconds).count();
-  std::cout << "Test case 3, Scan " << kv_num << " Cost: "
-    << cost << "s" << std::endl;
+  std::cout << "Test case 3, Scan " << kv_num << " Cost: " << cost << "s" << std::endl;
 }
-
 
 int main(int argc, char** argv) {
   // keys

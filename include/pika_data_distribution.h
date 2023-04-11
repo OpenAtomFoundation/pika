@@ -13,7 +13,7 @@ const uint32_t IEEE_POLY = 0xedb88320;
 
 class PikaDataDistribution {
  public:
- virtual ~PikaDataDistribution() = default; 
+  virtual ~PikaDataDistribution() = default;
   // Initialization
   virtual void Init() = 0;
   // key map to partition id
@@ -31,6 +31,7 @@ class Crc32 : public PikaDataDistribution {
  public:
   virtual void Init();
   virtual uint32_t Distribute(const std::string& str, uint32_t partition_num);
+
  private:
   void Crc32TableInit(uint32_t poly);
   uint32_t Crc32Update(uint32_t crc, const char* buf, int len);

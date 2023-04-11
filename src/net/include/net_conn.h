@@ -10,13 +10,13 @@
 #include <string>
 
 #ifdef __ENABLE_SSL
-#include <openssl/err.h>
-#include <openssl/ssl.h>
+#  include <openssl/err.h>
+#  include <openssl/ssl.h>
 #endif
 
 #include "net/include/net_define.h"
 #include "net/include/server_thread.h"
-#include "net/src/net_epoll.h"
+#include "net/src/net_multiplexer.h"
 
 namespace net {
 
@@ -24,7 +24,7 @@ class Thread;
 
 class NetConn : public std::enable_shared_from_this<NetConn> {
  public:
-  NetConn(const int fd, const std::string &ip_port, Thread *thread, NetEpoll* net_epoll = nullptr);
+  NetConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
   virtual ~NetConn();
 
   /*
@@ -38,47 +38,27 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 
   virtual ReadStatus GetRequest() = 0;
   virtual WriteStatus SendReply() = 0;
-  virtual int WriteResp(const std::string& resp) {
-    return 0;
-  }
+  virtual int WriteResp(const std::string& resp) { return 0; }
 
   virtual void TryResizeBuffer() {}
 
-  int flags() const {
-    return flags_;
-  }
+  int flags() const { return flags_; }
 
-  void set_fd(const int fd) {
-    fd_ = fd;
-  }
+  void set_fd(const int fd) { fd_ = fd; }
 
-  int fd() const {
-    return fd_;
-  }
+  int fd() const { return fd_; }
 
-  std::string ip_port() const {
-    return ip_port_;
-  }
+  std::string ip_port() const { return ip_port_; }
 
-  bool is_ready_to_reply() {
-    return is_writable() && is_reply();
-  }
+  bool is_ready_to_reply() { return is_writable() && is_reply(); }
 
-  virtual void set_is_writable(const bool is_writable) {
-    is_writable_ = is_writable;
-  }
+  virtual void set_is_writable(const bool is_writable) { is_writable_ = is_writable; }
 
-  virtual bool is_writable() {
-    return is_writable_;
-  }
+  virtual bool is_writable() { return is_writable_; }
 
-  virtual void set_is_reply(const bool is_reply) {
-    is_reply_ = is_reply;
-  }
+  virtual void set_is_reply(const bool is_reply) { is_reply_ = is_reply; }
 
-  virtual bool is_reply() {
-    return is_reply_;
-  }
+  virtual bool is_reply() { return is_reply_; }
 
   std::string name() { return name_; }
   void set_name(std::string name) { name_ = std::move(name); }
@@ -86,34 +66,20 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   bool IsClose() { return close_; }
   void SetClose(bool close) { close_ = close; }
 
-  void set_last_interaction(const struct timeval &now) {
-    last_interaction_ = now;
-  }
+  void set_last_interaction(const struct timeval& now) { last_interaction_ = now; }
 
-  struct timeval last_interaction() const {
-    return last_interaction_;
-  }
+  struct timeval last_interaction() const { return last_interaction_; }
 
-  Thread *thread() const {
-    return thread_;
-  }
+  Thread* thread() const { return thread_; }
 
-  void set_net_epoll(NetEpoll* ep) {
-    net_epoll_ = ep;
-  }
+  void set_net_multiplexer(NetMultiplexer* ep) { net_multiplexer_ = ep; }
 
-  NetEpoll* net_epoll() const {
-    return net_epoll_;
-  }
+  NetMultiplexer* net_multiplexer() const { return net_multiplexer_; }
 
 #ifdef __ENABLE_SSL
-  SSL* ssl() {
-    return ssl_;
-  }
+  SSL* ssl() { return ssl_; }
 
-  bool security() {
-    return ssl_ != nullptr;
-  }
+  bool security() { return ssl_ != nullptr; }
 #endif
 
  private:
@@ -131,9 +97,9 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 #endif
 
   // thread this conn belong to
-  Thread *thread_;
+  Thread* thread_;
   // the net epoll this conn belong to
-  NetEpoll *net_epoll_;
+  NetMultiplexer* net_multiplexer_;
 
   /*
    * No allowed copy and copy assign operator
@@ -142,19 +108,15 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   void operator=(const NetConn&);
 };
 
-
 /*
  * for every conn, we need create a corresponding ConnFactory
  */
 class ConnFactory {
  public:
   virtual ~ConnFactory() {}
-  virtual std::shared_ptr<NetConn> NewNetConn(
-    int connfd,
-    const std::string &ip_port,
-    Thread *thread,
-    void* worker_private_data, /* Has set in ThreadEnvHandle */
-    NetEpoll* net_epoll = nullptr) const = 0;
+  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+                                              void* worker_private_data, /* Has set in ThreadEnvHandle */
+                                              NetMultiplexer* net_mpx = nullptr) const = 0;
 };
 
 }  // namespace net

@@ -3,15 +3,15 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include "iostream"
 #include "chrono"
+#include "iostream"
 #include "unistd.h"
 
 #include "blackwidow/blackwidow.h"
 
+#include "progress_thread.h"
 #include "scan_thread.h"
 #include "write_thread.h"
-#include "progress_thread.h"
 
 int32_t scan_batch_limit = 256;
 std::string blackwidow_db_path;
@@ -36,9 +36,8 @@ void Usage() {
   std::cout << "\texample: ./pika_to_txt ./blackwidow_db ./data.txt" << std::endl;
 }
 
-int main(int argc, char **argv) {
-  if (argc != 3
-    && argc != 5) {
+int main(int argc, char** argv) {
+  if (argc != 3 && argc != 5) {
     Usage();
     exit(-1);
   }
@@ -66,8 +65,7 @@ int main(int argc, char **argv) {
   bw_option.options.write_buffer_size = 256 * 1024 * 1024;     // 256M
   bw_option.options.target_file_size_base = 20 * 1024 * 1024;  // 20M
   blackwidow::BlackWidow* blackwidow_db = new blackwidow::BlackWidow();
-  if (blackwidow_db != NULL
-    && (status = blackwidow_db->Open(bw_option, blackwidow_db_path)).ok()) {
+  if (blackwidow_db != NULL && (status = blackwidow_db->Open(bw_option, blackwidow_db_path)).ok()) {
     std::cout << "Open BlackWidow db success..." << std::endl;
   } else {
     std::cout << "Open BlackWidow db failed..." << std::endl;
@@ -104,12 +102,8 @@ int main(int argc, char **argv) {
   auto minutes = std::chrono::duration_cast<std::chrono::minutes>(end_time - start_time).count();
   auto seconds = std::chrono::duration_cast<std::chrono::seconds>(end_time - start_time).count();
 
-  std::cout << "Total Time Cost : "
-            << hours << " hours "
-            << minutes % 60 << " minutes "
-            << seconds % 60 << " seconds "
+  std::cout << "Total Time Cost : " << hours << " hours " << minutes % 60 << " minutes " << seconds % 60 << " seconds "
             << std::endl;
 
-  return 0; 
+  return 0;
 }
-

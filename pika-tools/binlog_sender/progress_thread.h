@@ -16,11 +16,12 @@
 extern slash::Mutex mutex;
 
 class ProgressThread : public net::Thread {
-  public:
-    ProgressThread(BinlogConsumer* binlog_consumer);
-  private:
-    virtual void *ThreadMain();
-    BinlogConsumer* binlog_consumer_;
+ public:
+  ProgressThread(BinlogConsumer* binlog_consumer);
+
+ private:
+  virtual void* ThreadMain();
+  BinlogConsumer* binlog_consumer_;
 };
 
 #endif  //  INCLUDE_PROGRESS_THREAD_H_

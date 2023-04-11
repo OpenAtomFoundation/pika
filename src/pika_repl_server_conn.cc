@@ -13,15 +13,11 @@
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
-PikaReplServerConn::PikaReplServerConn(int fd,
-                                       std::string ip_port,
-                                       net::Thread* thread,
-                                       void* worker_specific_data, net::NetEpoll* epoll)
-    : PbConn(fd, ip_port, thread, epoll) {
-}
+PikaReplServerConn::PikaReplServerConn(int fd, std::string ip_port, net::Thread* thread, void* worker_specific_data,
+                                       net::NetMultiplexer* mpx)
+    : PbConn(fd, ip_port, thread, mpx) {}
 
-PikaReplServerConn::~PikaReplServerConn() {
-}
+PikaReplServerConn::~PikaReplServerConn() {}
 
 void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
   ReplServerTaskArg* task_arg = static_cast<ReplServerTaskArg*>(arg);
@@ -34,13 +30,11 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
 
   InnerMessage::InnerResponse response;
   response.set_type(InnerMessage::kMetaSync);
-  if (!g_pika_conf->requirepass().empty()
-    && g_pika_conf->requirepass() != masterauth) {
+  if (!g_pika_conf->requirepass().empty() && g_pika_conf->requirepass() != masterauth) {
     response.set_code(InnerMessage::kError);
     response.set_reply("Auth with master error, Invalid masterauth");
   } else {
-    LOG(INFO) << "Receive MetaSync, Slave ip: " << node.ip() << ", Slave port:"
-      << node.port();
+    LOG(INFO) << "Receive MetaSync, Slave ip: " << node.ip() << ", Slave port:" << node.port();
     std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
     bool success = g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), table_structs);
     const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
@@ -62,8 +56,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
   }
 
   std::string reply_str;
-  if (!response.SerializeToString(&reply_str)
-    || conn->WriteResp(reply_str)) {
+  if (!response.SerializeToString(&reply_str) || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Process MetaSync request serialization failed";
     conn->NotifyClose();
     delete task_arg;
@@ -96,36 +89,33 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   bool pre_success = true;
   response.set_type(InnerMessage::Type::kTrySync);
   std::shared_ptr<SyncMasterPartition> partition =
-    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!partition) {
     response.set_code(InnerMessage::kError);
     response.set_reply("Partition not found");
-    LOG(WARNING) << "Table Name: " << table_name << " Partition ID: "
-      << partition_id << " Not Found, TrySync Error";
+    LOG(WARNING) << "Table Name: " << table_name << " Partition ID: " << partition_id << " Not Found, TrySync Error";
     pre_success = false;
   } else {
     partition_name = partition->PartitionName();
-    LOG(INFO) << "Receive Trysync, Slave ip: " << node.ip() << ", Slave port:"
-      << node.port() << ", Partition: " << partition_name << ", filenum: "
-      << slave_boffset.filenum() << ", pro_offset: " << slave_boffset.offset();
+    LOG(INFO) << "Receive Trysync, Slave ip: " << node.ip() << ", Slave port:" << node.port()
+              << ", Partition: " << partition_name << ", filenum: " << slave_boffset.filenum()
+              << ", pro_offset: " << slave_boffset.offset();
     response.set_code(InnerMessage::kOk);
   }
 
   if (pre_success && req->has_consensus_meta()) {
-    if (partition->GetNumberOfSlaveNode() >= g_pika_conf->replication_num()
-        && !partition->CheckSlaveNodeExist(node.ip(), node.port())) {
-      LOG(WARNING) << "Current replication num: "
-        << partition->GetNumberOfSlaveNode()
-        << " hits configuration replication-num "
-        << g_pika_conf->replication_num() << " stop trysync.";
+    if (partition->GetNumberOfSlaveNode() >= g_pika_conf->replication_num() &&
+        !partition->CheckSlaveNodeExist(node.ip(), node.port())) {
+      LOG(WARNING) << "Current replication num: " << partition->GetNumberOfSlaveNode()
+                   << " hits configuration replication-num " << g_pika_conf->replication_num() << " stop trysync.";
       pre_success = false;
     }
     if (pre_success) {
       const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
       // need to response to outdated pb, new follower count on this response to update term
       if (meta.term() > partition->ConsensusTerm()) {
-        LOG(INFO) << "Update " << partition_name
-          << " term from " << partition->ConsensusTerm() << " to " << meta.term();
+        LOG(INFO) << "Update " << partition_name << " term from " << partition->ConsensusTerm() << " to "
+                  << meta.term();
         partition->ConsensusUpdateTerm(meta.term());
       }
     }
@@ -141,8 +131,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   }
 
   std::string reply_str;
-  if (!response.SerializeToString(&reply_str)
-    || conn->WriteResp(reply_str)) {
+  if (!response.SerializeToString(&reply_str) || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Handle Try Sync Failed";
     conn->NotifyClose();
     delete task_arg;
@@ -152,11 +141,10 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   delete task_arg;
 }
 
-bool PikaReplServerConn::TrySyncUpdateSlaveNode(
-    const std::shared_ptr<SyncMasterPartition>& partition,
-    const InnerMessage::InnerRequest::TrySync& try_sync_request,
-    const std::shared_ptr<net::PbConn>& conn,
-    InnerMessage::InnerResponse::TrySync* try_sync_response) {
+bool PikaReplServerConn::TrySyncUpdateSlaveNode(const std::shared_ptr<SyncMasterPartition>& partition,
+                                                const InnerMessage::InnerRequest::TrySync& try_sync_request,
+                                                const std::shared_ptr<net::PbConn>& conn,
+                                                InnerMessage::InnerResponse::TrySync* try_sync_response) {
   InnerMessage::Node node = try_sync_request.node();
   std::string partition_name = partition->PartitionName();
 
@@ -194,11 +182,10 @@ bool PikaReplServerConn::TrySyncUpdateSlaveNode(
   return true;
 }
 
-bool PikaReplServerConn::TrySyncConsensusOffsetCheck(
-    const std::shared_ptr<SyncMasterPartition>& partition,
-    const InnerMessage::ConsensusMeta& meta,
-    InnerMessage::InnerResponse* response,
-    InnerMessage::InnerResponse::TrySync* try_sync_response) {
+bool PikaReplServerConn::TrySyncConsensusOffsetCheck(const std::shared_ptr<SyncMasterPartition>& partition,
+                                                     const InnerMessage::ConsensusMeta& meta,
+                                                     InnerMessage::InnerResponse* response,
+                                                     InnerMessage::InnerResponse::TrySync* try_sync_response) {
   LogOffset last_log_offset;
   last_log_offset.b_offset.filenum = meta.log_offset().filenum();
   last_log_offset.b_offset.offset = meta.log_offset().offset();
@@ -228,10 +215,9 @@ bool PikaReplServerConn::TrySyncConsensusOffsetCheck(
   return true;
 }
 
-bool PikaReplServerConn::TrySyncOffsetCheck(
-    const std::shared_ptr<SyncMasterPartition>& partition,
-    const InnerMessage::InnerRequest::TrySync& try_sync_request,
-    InnerMessage::InnerResponse::TrySync* try_sync_response) {
+bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterPartition>& partition,
+                                            const InnerMessage::InnerRequest::TrySync& try_sync_request,
+                                            InnerMessage::InnerResponse::TrySync* try_sync_response) {
   InnerMessage::Node node = try_sync_request.node();
   InnerMessage::BinlogOffset slave_boffset = try_sync_request.binlog_offset();
   std::string partition_name = partition->PartitionName();
@@ -240,21 +226,19 @@ bool PikaReplServerConn::TrySyncOffsetCheck(
   Status s = partition->Logger()->GetProducerStatus(&(boffset.filenum), &(boffset.offset));
   if (!s.ok()) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-    LOG(WARNING) << "Handle TrySync, Partition: "
-      << partition_name << " Get binlog offset error, TrySync failed";
+    LOG(WARNING) << "Handle TrySync, Partition: " << partition_name << " Get binlog offset error, TrySync failed";
     return false;
   }
   InnerMessage::BinlogOffset* master_partition_boffset = try_sync_response->mutable_binlog_offset();
   master_partition_boffset->set_filenum(boffset.filenum);
   master_partition_boffset->set_offset(boffset.offset);
 
-  if (boffset.filenum < slave_boffset.filenum()
-    || (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
+  if (boffset.filenum < slave_boffset.filenum() ||
+      (boffset.filenum == slave_boffset.filenum() && boffset.offset < slave_boffset.offset())) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointLarger);
-    LOG(WARNING) << "Slave offset is larger than mine, Slave ip: "
-      << node.ip() << ", Slave port: " << node.port() << ", Partition: "
-      << partition_name << ", filenum: " << slave_boffset.filenum()
-      << ", pro_offset_: " << slave_boffset.offset();
+    LOG(WARNING) << "Slave offset is larger than mine, Slave ip: " << node.ip() << ", Slave port: " << node.port()
+                 << ", Partition: " << partition_name << ", filenum: " << slave_boffset.filenum()
+                 << ", pro_offset_: " << slave_boffset.offset();
     return false;
   }
 
@@ -271,20 +255,16 @@ bool PikaReplServerConn::TrySyncOffsetCheck(
   reader.GetReaderStatus(&(seeked_offset.filenum), &(seeked_offset.offset));
   if (seeked_offset.filenum != slave_boffset.filenum() || seeked_offset.offset != slave_boffset.offset()) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-    LOG(WARNING) << "Slave offset is not a start point of cur log, Slave ip: "
-      << node.ip() << ", Slave port: " << node.port() << ", Partition: "
-      << partition_name << ", cloest start point, filenum: " << seeked_offset.filenum
-      << ", offset: " << seeked_offset.offset;
+    LOG(WARNING) << "Slave offset is not a start point of cur log, Slave ip: " << node.ip()
+                 << ", Slave port: " << node.port() << ", Partition: " << partition_name
+                 << ", cloest start point, filenum: " << seeked_offset.filenum << ", offset: " << seeked_offset.offset;
     return false;
   }
   return true;
 }
 
-void PikaReplServerConn::BuildConsensusMeta(
-    const bool& reject,
-    const std::vector<LogOffset>& hints,
-    const uint32_t& term,
-    InnerMessage::InnerResponse* response) {
+void PikaReplServerConn::BuildConsensusMeta(const bool& reject, const std::vector<LogOffset>& hints,
+                                            const uint32_t& term, InnerMessage::InnerResponse* response) {
   InnerMessage::ConsensusMeta* consensus_meta = response->mutable_consensus_meta();
   consensus_meta->set_term(term);
   consensus_meta->set_reject(reject);
@@ -324,10 +304,9 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   LOG(INFO) << "Handle partition DBSync Request";
   bool prior_success = true;
   std::shared_ptr<SyncMasterPartition> master_partition =
-    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!master_partition) {
-    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
-      << ", NotFound";
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id << ", NotFound";
     prior_success = false;
   }
   if (prior_success) {
@@ -368,12 +347,10 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
     }
   }
 
-  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync,
-      table_name, partition_id, slave_boffset.filenum());
+  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, table_name, partition_id, slave_boffset.filenum());
 
   std::string reply_str;
-  if (!response.SerializeToString(&reply_str)
-    || conn->WriteResp(reply_str)) {
+  if (!response.SerializeToString(&reply_str) || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Handle DBSync Failed";
     conn->NotifyClose();
     delete task_arg;
@@ -389,7 +366,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (!req->has_binlog_sync()) {
     LOG(WARNING) << "Pb parse error";
-    //conn->NotifyClose();
+    // conn->NotifyClose();
     delete task_arg;
     return;
   }
@@ -409,11 +386,10 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   LogOffset range_start(b_range_start, l_range_start);
   LogOffset range_end(b_range_end, l_range_end);
 
-  std::shared_ptr<SyncMasterPartition> master_partition
-    = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+  std::shared_ptr<SyncMasterPartition> master_partition =
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!master_partition) {
-    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
-      << ", NotFound";
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id << ", NotFound";
     delete task_arg;
     return;
   }
@@ -421,22 +397,21 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   if (req->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
     if (meta.term() > master_partition->ConsensusTerm()) {
-      LOG(INFO) << "Update " << table_name << ":" << partition_id
-        << " term from " << master_partition->ConsensusTerm() << " to " << meta.term();
+      LOG(INFO) << "Update " << table_name << ":" << partition_id << " term from " << master_partition->ConsensusTerm()
+                << " to " << meta.term();
       master_partition->ConsensusUpdateTerm(meta.term());
-    } else if (meta.term() < master_partition->ConsensusTerm()) /*outdated pb*/{
+    } else if (meta.term() < master_partition->ConsensusTerm()) /*outdated pb*/ {
       LOG(WARNING) << "Drop outdated binlog sync req " << table_name << ":" << partition_id
-        << " recv term: " << meta.term()  << " local term: " << master_partition->ConsensusTerm();
+                   << " recv term: " << meta.term() << " local term: " << master_partition->ConsensusTerm();
       delete task_arg;
       return;
     }
   }
 
-  if (!master_partition->CheckSessionId(node.ip(), node.port(),
-        table_name, partition_id, session_id)) {
-    LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port()
-        << ", " << table_name << "_" << partition_id;
-    //conn->NotifyClose();
+  if (!master_partition->CheckSessionId(node.ip(), node.port(), table_name, partition_id, session_id)) {
+    LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port() << ", " << table_name << "_"
+                 << partition_id;
+    // conn->NotifyClose();
     delete task_arg;
     return;
   }
@@ -446,8 +421,8 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
 
   Status s = master_partition->SetLastRecvTime(node.ip(), node.port(), pstd::NowMicros());
   if (!s.ok()) {
-    LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port()
-        << ", " << table_name << "_" << partition_id << " " << s.ToString();
+    LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port() << ", " << table_name << "_"
+                 << partition_id << " " << s.ToString();
     conn->NotifyClose();
     delete task_arg;
     return;
@@ -510,8 +485,7 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   std::shared_ptr<SyncMasterPartition> master_partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!master_partition) {
-    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
-        << ", NotFound";
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id << ", NotFound";
   }
   Status s = master_partition->RemoveSlaveNode(node.ip(), node.port());
 
@@ -527,8 +501,7 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   node_response->set_port(g_pika_server->port());
 
   std::string reply_str;
-  if (!response.SerializeToString(&reply_str)
-    || conn->WriteResp(reply_str)) {
+  if (!response.SerializeToString(&reply_str) || conn->WriteResp(reply_str)) {
     LOG(WARNING) << "Remove Slave Node Failed";
     conn->NotifyClose();
     delete task_arg;
@@ -546,33 +519,33 @@ int PikaReplServerConn::DealMessage() {
     return -1;
   }
   switch (req->type()) {
-    case InnerMessage::kMetaSync:
-    {
-      ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+    case InnerMessage::kMetaSync: {
+      ReplServerTaskArg* task_arg =
+          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleMetaSyncRequest, task_arg);
       break;
     }
-    case InnerMessage::kTrySync:
-    {
-      ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+    case InnerMessage::kTrySync: {
+      ReplServerTaskArg* task_arg =
+          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleTrySyncRequest, task_arg);
       break;
     }
-    case InnerMessage::kDBSync:
-    {
-      ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+    case InnerMessage::kDBSync: {
+      ReplServerTaskArg* task_arg =
+          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleDBSyncRequest, task_arg);
       break;
     }
-    case InnerMessage::kBinlogSync:
-    {
-      ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+    case InnerMessage::kBinlogSync: {
+      ReplServerTaskArg* task_arg =
+          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleBinlogSyncRequest, task_arg);
       break;
     }
-    case InnerMessage::kRemoveSlaveNode:
-    {
-      ReplServerTaskArg* task_arg = new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
+    case InnerMessage::kRemoveSlaveNode: {
+      ReplServerTaskArg* task_arg =
+          new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleRemoveSlaveNodeRequest, task_arg);
       break;
     }

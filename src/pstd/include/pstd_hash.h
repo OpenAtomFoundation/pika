@@ -74,14 +74,14 @@ documentation and/or software.
 
 #ifndef __PSTD_HASH_H__
 #define __PSTD_HASH_H__
-#include <string>
 #include <cstring>
 #include <iostream>
+#include <string>
 
 namespace pstd {
 
-std::string md5(const std::string &str, bool raw = false);
-std::string sha256(const std::string &input, bool raw = false);
+std::string md5(const std::string& str, bool raw = false);
+std::string sha256(const std::string& input, bool raw = false);
 
 }  // namespace pstd
 

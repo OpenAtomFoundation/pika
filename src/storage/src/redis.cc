@@ -33,21 +33,14 @@ Redis::~Redis() {
   delete scan_cursors_store_;
 }
 
-Status Redis::GetScanStartPoint(const Slice& key,
-                                const Slice& pattern,
-                                int64_t cursor,
-                                std::string* start_point) {
-  std::string index_key = key.ToString() + "_"
-      + pattern.ToString() + "_" + std::to_string(cursor);
+Status Redis::GetScanStartPoint(const Slice& key, const Slice& pattern, int64_t cursor, std::string* start_point) {
+  std::string index_key = key.ToString() + "_" + pattern.ToString() + "_" + std::to_string(cursor);
   return scan_cursors_store_->Lookup(index_key, start_point);
 }
 
-Status Redis::StoreScanNextPoint(const Slice& key,
-                                 const Slice& pattern,
-                                 int64_t cursor,
+Status Redis::StoreScanNextPoint(const Slice& key, const Slice& pattern, int64_t cursor,
                                  const std::string& next_point) {
-  std::string index_key = key.ToString() + "_"
-      + pattern.ToString() +  "_" + std::to_string(cursor);
+  std::string index_key = key.ToString() + "_" + pattern.ToString() + "_" + std::to_string(cursor);
   return scan_cursors_store_->Insert(index_key, next_point);
 }
 
@@ -61,8 +54,7 @@ Status Redis::SetSmallCompactionThreshold(size_t small_compaction_threshold) {
   return Status::OK();
 }
 
-Status Redis::UpdateSpecificKeyStatistics(const std::string& key,
-                                          size_t count) {
+Status Redis::UpdateSpecificKeyStatistics(const std::string& key, size_t count) {
   if (statistics_store_->Capacity() && count) {
     size_t total = 0;
     statistics_store_->Lookup(key, &total);
@@ -72,8 +64,7 @@ Status Redis::UpdateSpecificKeyStatistics(const std::string& key,
   return Status::OK();
 }
 
-Status Redis::AddCompactKeyTaskIfNeeded(const std::string& key,
-                                        size_t total) {
+Status Redis::AddCompactKeyTaskIfNeeded(const std::string& key, size_t total) {
   if (total < small_compaction_threshold_) {
     return Status::OK();
   } else {
@@ -83,8 +74,7 @@ Status Redis::AddCompactKeyTaskIfNeeded(const std::string& key,
   return Status::OK();
 }
 
-Status Redis::SetOptions(const OptionType& option_type,
-    const std::unordered_map<std::string, std::string>& options) {
+Status Redis::SetOptions(const OptionType& option_type, const std::unordered_map<std::string, std::string>& options) {
   if (option_type == OptionType::kDB) {
     return db_->SetDBOptions(options);
   }
@@ -94,7 +84,7 @@ Status Redis::SetOptions(const OptionType& option_type,
   Status s;
   for (auto handle : handles_) {
     s = db_->SetOptions(handle, options);
-    if(!s.ok()) break;
+    if (!s.ok()) break;
   }
   return s;
 }

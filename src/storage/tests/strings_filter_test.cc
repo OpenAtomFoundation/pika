@@ -4,11 +4,11 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include <gtest/gtest.h>
-#include <thread>
 #include <iostream>
+#include <thread>
 
-#include "storage/storage.h"
 #include "src/strings_filter.h"
+#include "storage/storage.h"
 
 using namespace storage;
 
@@ -21,12 +21,10 @@ TEST(StringsFilterTest, FilterTest) {
   int32_t ttl = 1;
   StringsValue strings_value("FILTER_VALUE");
   strings_value.SetRelativeTimestamp(ttl);
-  is_stale = filter->Filter(0, "FILTER_KEY",
-          strings_value.Encode(), &new_value, &value_changed);
+  is_stale = filter->Filter(0, "FILTER_KEY", strings_value.Encode(), &new_value, &value_changed);
   ASSERT_FALSE(is_stale);
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-  is_stale = filter->Filter(0, "FILTER_KEY",
-          strings_value.Encode(), &new_value, &value_changed);
+  is_stale = filter->Filter(0, "FILTER_KEY", strings_value.Encode(), &new_value, &value_changed);
   ASSERT_TRUE(is_stale);
 
   delete filter;
@@ -36,4 +34,3 @@ int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

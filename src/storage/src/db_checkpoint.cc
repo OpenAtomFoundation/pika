@@ -9,16 +9,16 @@
 
 #ifndef ROCKSDB_LITE
 
-#include "storage/db_checkpoint.h"
+#  include "storage/db_checkpoint.h"
 
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
+#  ifndef __STDC_FORMAT_MACROS
+#    define __STDC_FORMAT_MACROS
+#  endif
 
-#include <inttypes.h>
+#  include <inttypes.h>
 
-#include "rocksdb/db.h"
-#include "file/file_util.h"
+#  include "file/file_util.h"
+#  include "rocksdb/db.h"
 // #include "file/filename.h"
 
 namespace rocksdb {
@@ -39,16 +39,12 @@ class DBCheckpointImpl : public DBCheckpoint {
   Status CreateCheckpoint(const std::string& checkpoint_dir) override;
 
   using DBCheckpoint::GetCheckpointFiles;
-  Status GetCheckpointFiles(std::vector<std::string> &live_files,
-                            VectorLogPtr &live_wal_files,
-                            uint64_t &manifest_file_size,
-                            uint64_t &sequence_number) override;
+  Status GetCheckpointFiles(std::vector<std::string>& live_files, VectorLogPtr& live_wal_files,
+                            uint64_t& manifest_file_size, uint64_t& sequence_number) override;
 
   using DBCheckpoint::CreateCheckpointWithFiles;
-  Status CreateCheckpointWithFiles(const std::string& checkpoint_dir,
-                                   std::vector<std::string> &live_files,
-                                   VectorLogPtr &live_wal_files,
-                                   uint64_t manifest_file_size,
+  Status CreateCheckpointWithFiles(const std::string& checkpoint_dir, std::vector<std::string>& live_files,
+                                   VectorLogPtr& live_wal_files, uint64_t manifest_file_size,
                                    uint64_t sequence_number) override;
 
  private:
@@ -60,30 +56,22 @@ Status DBCheckpoint::Create(DB* db, DBCheckpoint** checkpoint_ptr) {
   return Status::OK();
 }
 
-Status DBCheckpoint::CreateCheckpoint(const std::string& checkpoint_dir) {
-  return Status::NotSupported("");
-}
+Status DBCheckpoint::CreateCheckpoint(const std::string& checkpoint_dir) { return Status::NotSupported(""); }
 
 // Builds an openable snapshot of RocksDB
 Status DBCheckpointImpl::CreateCheckpoint(const std::string& checkpoint_dir) {
   std::vector<std::string> live_files;
   VectorLogPtr live_wal_files;
   uint64_t manifest_file_size, sequence_number;
-  Status s = GetCheckpointFiles(live_files,
-      live_wal_files, manifest_file_size, sequence_number);
+  Status s = GetCheckpointFiles(live_files, live_wal_files, manifest_file_size, sequence_number);
   if (s.ok()) {
-    s = CreateCheckpointWithFiles(checkpoint_dir,
-        live_files, live_wal_files, manifest_file_size, sequence_number);
+    s = CreateCheckpointWithFiles(checkpoint_dir, live_files, live_wal_files, manifest_file_size, sequence_number);
   }
   return s;
 }
 
-Status DBCheckpointImpl::GetCheckpointFiles(
-    std::vector<std::string> &live_files,
-    VectorLogPtr &live_wal_files,
-    uint64_t &manifest_file_size,
-    uint64_t &sequence_number) {
-
+Status DBCheckpointImpl::GetCheckpointFiles(std::vector<std::string>& live_files, VectorLogPtr& live_wal_files,
+                                            uint64_t& manifest_file_size, uint64_t& sequence_number) {
   Status s;
   sequence_number = db_->GetLatestSequenceNumber();
 
@@ -105,12 +93,9 @@ Status DBCheckpointImpl::GetCheckpointFiles(
   return s;
 }
 
-Status DBCheckpointImpl::CreateCheckpointWithFiles(
-    const std::string& checkpoint_dir,
-    std::vector<std::string> &live_files,
-    VectorLogPtr &live_wal_files,
-    uint64_t manifest_file_size,
-    uint64_t sequence_number) {
+Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint_dir,
+                                                   std::vector<std::string>& live_files, VectorLogPtr& live_wal_files,
+                                                   uint64_t manifest_file_size, uint64_t sequence_number) {
   bool same_fs = true;
 
   Status s = db_->GetEnv()->FileExists(checkpoint_dir);
@@ -122,8 +107,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
   }
 
   size_t wal_size = live_wal_files.size();
-  Log(db_->GetOptions().info_log,
-      "Started the snapshot process -- creating snapshot in directory %s",
+  Log(db_->GetOptions().info_log, "Started the snapshot process -- creating snapshot in directory %s",
       checkpoint_dir.c_str());
 
   std::string full_private_path = checkpoint_dir + ".tmp";
@@ -142,8 +126,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
       break;
     }
     // we should only get sst, options, manifest and current files here
-    assert(type == kTableFile || type == kDescriptorFile ||
-           type == kCurrentFile || type == kOptionsFile);
+    assert(type == kTableFile || type == kDescriptorFile || type == kCurrentFile || type == kOptionsFile);
     assert(live_files[i].size() > 0 && live_files[i][0] == '/');
     if (type == kCurrentFile) {
       // We will craft the current file manually to ensure it's consistent with
@@ -162,8 +145,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
     // * always copy if cross-device link
     if ((type == kTableFile) && same_fs) {
       Log(db_->GetOptions().info_log, "Hard Linking %s", src_fname.c_str());
-      s = db_->GetEnv()->LinkFile(db_->GetName() + src_fname,
-                                  full_private_path + src_fname);
+      s = db_->GetEnv()->LinkFile(db_->GetName() + src_fname, full_private_path + src_fname);
       if (s.IsNotSupported()) {
         same_fs = false;
         s = Status::OK();
@@ -171,27 +153,22 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
     }
     if ((type != kTableFile) || (!same_fs)) {
       Log(db_->GetOptions().info_log, "Copying %s", src_fname.c_str());
-#if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 3))
-      s = CopyFile(db_->GetEnv(), db_->GetName() + src_fname,
-                   full_private_path + src_fname,
+#  if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 3))
+      s = CopyFile(db_->GetEnv(), db_->GetName() + src_fname, full_private_path + src_fname,
                    (type == kDescriptorFile) ? manifest_file_size : 0);
-#else
-      s = CopyFile(db_->GetFileSystem(), db_->GetName() + src_fname,
-                   full_private_path + src_fname,
-                   (type == kDescriptorFile) ? manifest_file_size : 0,
-                   false, nullptr, Temperature::kUnknown);
-#endif
+#  else
+      s = CopyFile(db_->GetFileSystem(), db_->GetName() + src_fname, full_private_path + src_fname,
+                   (type == kDescriptorFile) ? manifest_file_size : 0, false, nullptr, Temperature::kUnknown);
+#  endif
     }
   }
   if (s.ok() && !current_fname.empty() && !manifest_fname.empty()) {
 // 5.17.2 Createfile with new argv use_fsync
-#if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 17))
-    s = CreateFile(db_->GetEnv(), full_private_path + current_fname,
-                   manifest_fname.substr(1) + "\n");
-#else
-    s = CreateFile(db_->GetFileSystem(), full_private_path + current_fname,
-                   manifest_fname.substr(1) + "\n", false);
-#endif
+#  if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 17))
+    s = CreateFile(db_->GetEnv(), full_private_path + current_fname, manifest_fname.substr(1) + "\n");
+#  else
+    s = CreateFile(db_->GetFileSystem(), full_private_path + current_fname, manifest_fname.substr(1) + "\n", false);
+#  endif
   }
   // Log(db_->GetOptions().info_log,
   //    "Number of log files %" ROCKSDB_PRIszt, live_wal_files.size());
@@ -199,50 +176,38 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
   // Link WAL files. Copy exact size of last one because it is the only one
   // that has changes after the last flush.
   for (size_t i = 0; s.ok() && i < wal_size; ++i) {
-    if ((live_wal_files[i]->Type() == kAliveLogFile) &&
-        (live_wal_files[i]->StartSequence() >= sequence_number)) {
+    if ((live_wal_files[i]->Type() == kAliveLogFile) && (live_wal_files[i]->StartSequence() >= sequence_number)) {
       if (i + 1 == wal_size) {
-        Log(db_->GetOptions().info_log, "Copying %s",
-            live_wal_files[i]->PathName().c_str());
-#if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 3))
-        s = CopyFile(db_->GetEnv(),
-                     db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
-                     full_private_path + live_wal_files[i]->PathName(),
-                     live_wal_files[i]->SizeFileBytes());
-#else
-        s = CopyFile(db_->GetFileSystem(),
-                     db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
-                     full_private_path + live_wal_files[i]->PathName(),
-                     live_wal_files[i]->SizeFileBytes(), false,
+        Log(db_->GetOptions().info_log, "Copying %s", live_wal_files[i]->PathName().c_str());
+#  if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 3))
+        s = CopyFile(db_->GetEnv(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+                     full_private_path + live_wal_files[i]->PathName(), live_wal_files[i]->SizeFileBytes());
+#  else
+        s = CopyFile(db_->GetFileSystem(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+                     full_private_path + live_wal_files[i]->PathName(), live_wal_files[i]->SizeFileBytes(), false,
                      nullptr, Temperature::kUnknown);
-#endif
+#  endif
         break;
       }
       if (same_fs) {
         // we only care about live log files
-        Log(db_->GetOptions().info_log, "Hard Linking %s",
-            live_wal_files[i]->PathName().c_str());
-        s = db_->GetEnv()->LinkFile(
-            db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
-            full_private_path + live_wal_files[i]->PathName());
+        Log(db_->GetOptions().info_log, "Hard Linking %s", live_wal_files[i]->PathName().c_str());
+        s = db_->GetEnv()->LinkFile(db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+                                    full_private_path + live_wal_files[i]->PathName());
         if (s.IsNotSupported()) {
           same_fs = false;
           s = Status::OK();
         }
       }
       if (!same_fs) {
-        Log(db_->GetOptions().info_log, "Copying %s",
-            live_wal_files[i]->PathName().c_str());
-#if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 3))
-        s = CopyFile(db_->GetEnv(),
-                     db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+        Log(db_->GetOptions().info_log, "Copying %s", live_wal_files[i]->PathName().c_str());
+#  if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 3))
+        s = CopyFile(db_->GetEnv(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(), 0);
-#else
-        s = CopyFile(db_->GetFileSystem(),
-                     db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
-                     full_private_path + live_wal_files[i]->PathName(),
-                     0, false, nullptr, Temperature::kUnknown);
-#endif
+#  else
+        s = CopyFile(db_->GetFileSystem(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+                     full_private_path + live_wal_files[i]->PathName(), 0, false, nullptr, Temperature::kUnknown);
+#  endif
       }
     }
   }
@@ -264,28 +229,24 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(
 
   if (!s.ok()) {
     // clean all the files we might have created
-    Log(db_->GetOptions().info_log, "Snapshot failed -- %s",
-        s.ToString().c_str());
+    Log(db_->GetOptions().info_log, "Snapshot failed -- %s", s.ToString().c_str());
     // we have to delete the dir and all its children
     std::vector<std::string> subchildren;
     db_->GetEnv()->GetChildren(full_private_path, &subchildren);
     for (auto& subchild : subchildren) {
       std::string subchild_path = full_private_path + "/" + subchild;
       Status s1 = db_->GetEnv()->DeleteFile(subchild_path);
-      Log(db_->GetOptions().info_log, "Delete file %s -- %s",
-          subchild_path.c_str(), s1.ToString().c_str());
+      Log(db_->GetOptions().info_log, "Delete file %s -- %s", subchild_path.c_str(), s1.ToString().c_str());
     }
     // finally delete the private dir
     Status s1 = db_->GetEnv()->DeleteDir(full_private_path);
-    Log(db_->GetOptions().info_log, "Delete dir %s -- %s",
-        full_private_path.c_str(), s1.ToString().c_str());
+    Log(db_->GetOptions().info_log, "Delete dir %s -- %s", full_private_path.c_str(), s1.ToString().c_str());
     return s;
   }
 
   // here we know that we succeeded and installed the new snapshot
   Log(db_->GetOptions().info_log, "Snapshot DONE. All is good");
-  Log(db_->GetOptions().info_log, "Snapshot sequence number: %" PRIu64,
-      sequence_number);
+  Log(db_->GetOptions().info_log, "Snapshot sequence number: %" PRIu64, sequence_number);
 
   return s;
 }

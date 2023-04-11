@@ -6,16 +6,14 @@
 #include "net/include/server_thread.h"
 
 #include <arpa/inet.h>
-#include <sys/time.h>
 #include <fcntl.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <sys/time.h>
 
-
-#include "pstd/include/xdebug.h"
-#include "net/src/net_epoll.h"
 #include "net/src/server_socket.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -24,13 +22,11 @@ using pstd::Status;
 class DefaultServerHandle : public ServerHandle {
  public:
   virtual void CronHandle() const override {}
-  virtual void FdTimeoutHandle(
-      int fd, const std::string& ip_port) const override {
+  virtual void FdTimeoutHandle(int fd, const std::string& ip_port) const override {
     UNUSED(fd);
     UNUSED(ip_port);
   }
-  virtual void FdClosedHandle(
-      int fd, const std::string& ip_port) const override {
+  virtual void FdClosedHandle(int fd, const std::string& ip_port) const override {
     UNUSED(fd);
     UNUSED(ip_port);
   }
@@ -60,22 +56,20 @@ static const ServerHandle* SanitizeHandle(const ServerHandle* raw_handle) {
   return raw_handle;
 }
 
-ServerThread::ServerThread(int port,
-                           int cron_interval, const ServerHandle* handle)
-    : net_epoll_(NULL),
-      cron_interval_(cron_interval),
+ServerThread::ServerThread(int port, int cron_interval, const ServerHandle* handle)
+    : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
 #ifdef __ENABLE_SSL
       security_(false),
 #endif
       port_(port) {
-  net_epoll_ = new NetEpoll();
+  net_multiplexer_.reset(CreateNetMultiplexer());
+  net_multiplexer_->Initialize();
   ips_.insert("0.0.0.0");
 }
 
-ServerThread::ServerThread(const std::string& bind_ip, int port,
-                           int cron_interval, const ServerHandle* handle)
+ServerThread::ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
@@ -83,12 +77,13 @@ ServerThread::ServerThread(const std::string& bind_ip, int port,
       security_(false),
 #endif
       port_(port) {
-  net_epoll_ = new NetEpoll();
+  net_multiplexer_.reset(CreateNetMultiplexer());
+  net_multiplexer_->Initialize();
   ips_.insert(bind_ip);
 }
 
-ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port,
-                           int cron_interval, const ServerHandle* handle)
+ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port, int cron_interval,
+                           const ServerHandle* handle)
     : cron_interval_(cron_interval),
       handle_(SanitizeHandle(handle)),
       own_handle_(handle_ != handle),
@@ -96,7 +91,8 @@ ServerThread::ServerThread(const std::set<std::string>& bind_ips, int port,
       security_(false),
 #endif
       port_(port) {
-  net_epoll_ = new NetEpoll();
+  net_multiplexer_.reset(CreateNetMultiplexer());
+  net_multiplexer_->Initialize();
   ips_ = bind_ips;
 }
 
@@ -107,11 +103,7 @@ ServerThread::~ServerThread() {
     EVP_cleanup();
   }
 #endif
-  delete(net_epoll_);
-  net_epoll_ = nullptr;
-  for (std::vector<ServerSocket*>::iterator iter = server_sockets_.begin();
-       iter != server_sockets_.end();
-       ++iter) {
+  for (std::vector<ServerSocket*>::iterator iter = server_sockets_.begin(); iter != server_sockets_.end(); ++iter) {
     delete *iter;
   }
   if (own_handle_) {
@@ -127,8 +119,7 @@ int ServerThread::SetTcpNoDelay(int connfd) {
 int ServerThread::StartThread() {
   int ret = 0;
   ret = InitHandle();
-  if (ret != kSuccess)
-    return ret;
+  if (ret != kSuccess) return ret;
   return Thread::StartThread();
 }
 
@@ -139,9 +130,7 @@ int ServerThread::InitHandle() {
     ips_.clear();
     ips_.insert("0.0.0.0");
   }
-  for (std::set<std::string>::iterator iter = ips_.begin();
-       iter != ips_.end();
-       ++iter) {
+  for (std::set<std::string>::iterator iter = ips_.begin(); iter != ips_.end(); ++iter) {
     socket_p = new ServerSocket(port_);
     server_sockets_.push_back(socket_p);
     ret = socket_p->Listen(*iter);
@@ -150,23 +139,19 @@ int ServerThread::InitHandle() {
     }
 
     // init pool
-    net_epoll_->NetAddEvent(
-        socket_p->sockfd(), EPOLLIN | EPOLLERR | EPOLLHUP);
+    net_multiplexer_->NetAddEvent(socket_p->sockfd(), kReadable | kWritable);
     server_fds_.insert(socket_p->sockfd());
   }
   return kSuccess;
 }
 
-void ServerThread::DoCronTask() {
-}
+void ServerThread::DoCronTask() {}
 
-void ServerThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
-  UNUSED(pfe);
-}
+void ServerThread::ProcessNotifyEvents(const NetFiredEvent* pfe) { UNUSED(pfe); }
 
-void *ServerThread::ThreadMain() {
+void* ServerThread::ThreadMain() {
   int nfds;
-  NetFiredEvent *pfe;
+  NetFiredEvent* pfe;
   Status s;
   struct sockaddr_in cliaddr;
   socklen_t clilen = sizeof(struct sockaddr);
@@ -190,10 +175,8 @@ void *ServerThread::ThreadMain() {
   while (!should_stop()) {
     if (cron_interval_ > 0) {
       gettimeofday(&now, nullptr);
-      if (when.tv_sec > now.tv_sec ||
-          (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
-        timeout = (when.tv_sec - now.tv_sec) * 1000 +
-          (when.tv_usec - now.tv_usec) / 1000;
+      if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
+        timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
       } else {
         // Do own cron task as well as user's
         DoCronTask();
@@ -205,12 +188,12 @@ void *ServerThread::ThreadMain() {
       }
     }
 
-    nfds = net_epoll_->NetPoll(timeout);
+    nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
-      pfe = (net_epoll_->firedevent()) + i;
+      pfe = (net_multiplexer_->FiredEvents()) + i;
       fd = pfe->fd;
 
-      if (pfe->fd == net_epoll_->notify_receive_fd()) {
+      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;
       }
@@ -219,29 +202,25 @@ void *ServerThread::ThreadMain() {
        * Handle server event
        */
       if (server_fds_.find(fd) != server_fds_.end()) {
-        if (pfe->mask & EPOLLIN) {
-          connfd = accept(fd, (struct sockaddr *) &cliaddr, &clilen);
+        if (pfe->mask & kReadable) {
+          connfd = accept(fd, (struct sockaddr*)&cliaddr, &clilen);
           if (connfd == -1) {
-            log_warn("accept error, errno numberis %d, error reason %s",
-                     errno, strerror(errno));
+            log_warn("accept error, errno numberis %d, error reason %s", errno, strerror(errno));
             continue;
           }
           fcntl(connfd, F_SETFD, fcntl(connfd, F_GETFD) | FD_CLOEXEC);
 
           // not use nagel to avoid tcp 40ms delay
           if (SetTcpNoDelay(connfd) == -1) {
-            log_warn("setsockopt error, errno numberis %d, error reason %s",
-                     errno, strerror(errno));
+            log_warn("setsockopt error, errno numberis %d, error reason %s", errno, strerror(errno));
             close(connfd);
             continue;
           }
 
           // Just ip
-          ip_port =
-            inet_ntop(AF_INET, &cliaddr.sin_addr, ip_addr, sizeof(ip_addr));
+          ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ip_addr, sizeof(ip_addr));
 
-          if (!handle_->AccessHandle(ip_port) ||
-              !handle_->AccessHandle(connfd, ip_port)) {
+          if (!handle_->AccessHandle(ip_port) || !handle_->AccessHandle(connfd, ip_port)) {
             close(connfd);
             continue;
           }
@@ -256,7 +235,7 @@ void *ServerThread::ThreadMain() {
            */
           HandleNewConn(connfd, ip_port);
 
-        } else if (pfe->mask & (EPOLLHUP | EPOLLERR)) {
+        } else if (pfe->mask & kErrorEvent) {
           /*
            * this branch means there is error on the listen fd
            */
@@ -273,8 +252,7 @@ void *ServerThread::ThreadMain() {
     }
   }
 
-  for (auto iter = server_sockets_.begin(); iter != server_sockets_.end();
-      iter++) {
+  for (auto iter = server_sockets_.begin(); iter != server_sockets_.end(); iter++) {
     delete *iter;
   }
   server_sockets_.clear();
@@ -294,12 +272,9 @@ static void SSLLockingCallback(int mode, int type, const char* file, int line) {
   }
 }
 
-static unsigned long SSLIdCallback() {
-  return (unsigned long)pthread_self();
-}
+static unsigned long SSLIdCallback() { return (unsigned long)pthread_self(); }
 
-int ServerThread::EnableSecurity(const std::string& cert_file,
-                                 const std::string& key_file) {
+int ServerThread::EnableSecurity(const std::string& cert_file, const std::string& key_file) {
   if (cert_file.empty() || key_file.empty()) {
     log_warn("cert_file and key_file can not be empty!");
   }
@@ -328,14 +303,12 @@ int ServerThread::EnableSecurity(const std::string& cert_file,
   }
 
   // 5. Set cert file and key file, then check key file
-  if (SSL_CTX_use_certificate_file(
-          ssl_ctx_, cert_file.c_str(), SSL_FILETYPE_PEM) != 1) {
+  if (SSL_CTX_use_certificate_file(ssl_ctx_, cert_file.c_str(), SSL_FILETYPE_PEM) != 1) {
     log_warn("SSL_CTX_use_certificate_file(%s) failed", cert_file.c_str());
     return -1;
   }
 
-  if (SSL_CTX_use_PrivateKey_file(
-          ssl_ctx_, key_file.c_str(), SSL_FILETYPE_PEM) != 1) {
+  if (SSL_CTX_use_PrivateKey_file(ssl_ctx_, key_file.c_str(), SSL_FILETYPE_PEM) != 1) {
     log_warn("SSL_CTX_use_PrivateKey_file(%s)", key_file.c_str());
     return -1;
   }
@@ -358,7 +331,7 @@ int ServerThread::EnableSecurity(const std::string& cert_file,
   // https://en.wikipedia.org/wiki/Elliptic_curve_Diffie%E2%80%93Hellman
   // https://wiki.openssl.org/index.php/Diffie_Hellman
   // https://wiki.openssl.org/index.php/Diffie-Hellman_parameters
-  EC_KEY *ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
+  EC_KEY* ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
   if (!ecdh) {
     log_warn("EC_KEY_new_by_curve_name(%d)", NID_X9_62_prime256v1);
     return -1;

@@ -5,18 +5,17 @@
 
 #include "net/include/redis_cli.h"
 
-#include <netinet/in.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <netinet/in.h>
 #include <stdarg.h>
+#include <unistd.h>
 
+#include <atomic>
 #include <string>
 #include <vector>
-#include <atomic>
 
-#include "net/include/net_define.h"
 #include "net/include/net_cli.h"
-
+#include "net/include/net_define.h"
 
 namespace net {
 
@@ -26,19 +25,19 @@ class RedisCli : public NetCli {
   virtual ~RedisCli();
 
   // msg should have been parsed
-  virtual Status Send(void *msg);
+  virtual Status Send(void* msg);
 
   // Read, parse and store the reply
-  virtual Status Recv(void *result = NULL);
+  virtual Status Recv(void* result = NULL);
 
  private:
-  RedisCmdArgsType argv_;   // The parsed result
+  RedisCmdArgsType argv_;  // The parsed result
 
-  char *rbuf_;
+  char* rbuf_;
   int32_t rbuf_size_;
   int32_t rbuf_pos_;
   int32_t rbuf_offset_;
-  int elements_;    // the elements number of this current reply
+  int elements_;  // the elements number of this current reply
   int err_;
 
   int GetReply();
@@ -50,7 +49,7 @@ class RedisCli : public NetCli {
 
   ssize_t BufferRead();
   char* ReadBytes(unsigned int bytes);
-  char* ReadLine(int *_len);
+  char* ReadLine(int* _len);
 
   // No copyable
   RedisCli(const RedisCli&);
@@ -60,7 +59,7 @@ class RedisCli : public NetCli {
 enum REDIS_STATUS {
   REDIS_ETIMEOUT = -5,
   REDIS_EREAD_NULL = -4,
-  REDIS_EREAD = -3,     // errno is set
+  REDIS_EREAD = -3,  // errno is set
   REDIS_EPARSE_TYPE = -2,
   REDIS_ERR = -1,
   REDIS_OK = 0,
@@ -73,26 +72,19 @@ enum REDIS_STATUS {
   REDIS_REPLY_ERROR
 };
 
-RedisCli::RedisCli()
-    : rbuf_size_(REDIS_IOBUF_LEN),
-      rbuf_pos_(0),
-      rbuf_offset_(0),
-      err_(REDIS_OK) {
+RedisCli::RedisCli() : rbuf_size_(REDIS_IOBUF_LEN), rbuf_pos_(0), rbuf_offset_(0), err_(REDIS_OK) {
   rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * rbuf_size_));
-
 }
 
-RedisCli::~RedisCli() {
-  free(rbuf_);
-}
+RedisCli::~RedisCli() { free(rbuf_); }
 
 // We use passed-in send buffer here
-Status RedisCli::Send(void *msg) {
+Status RedisCli::Send(void* msg) {
   Status s;
 
   // TODO(anan) use socket_->SendRaw instead
-  std::string* storage = reinterpret_cast<std::string *>(msg);
-  const char *wbuf = storage->data();
+  std::string* storage = reinterpret_cast<std::string*>(msg);
+  const char* wbuf = storage->data();
   size_t nleft = storage->size();
 
   int wbuf_pos = 0;
@@ -103,8 +95,8 @@ Status RedisCli::Send(void *msg) {
       if (errno == EINTR) {
         nwritten = 0;
         continue;
-      // blocking fd after setting setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,...)
-      // will return EAGAIN | EWOULDBLOCK for timeout
+        // blocking fd after setting setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO,...)
+        // will return EAGAIN | EWOULDBLOCK for timeout
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
         s = Status::Timeout("Send timeout");
       } else {
@@ -121,7 +113,7 @@ Status RedisCli::Send(void *msg) {
 }
 
 // The result is useless
-Status RedisCli::Recv(void *trival) {
+Status RedisCli::Recv(void* trival) {
   argv_.clear();
   int result = GetReply();
   switch (result) {
@@ -139,8 +131,7 @@ Status RedisCli::Recv(void *trival) {
     case REDIS_EPARSE_TYPE:
       return Status::IOError("invalid type");
     default:  // other error
-      return Status::IOError(
-          "other error, maybe " + std::string(strerror(errno)));
+      return Status::IOError("other error, maybe " + std::string(strerror(errno)));
   }
 }
 
@@ -161,14 +152,14 @@ ssize_t RedisCli::BufferRead() {
     if (nread == -1) {
       if (errno == EINTR) {
         continue;
-      // blocking fd after setting setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,...)
-      // will return EAGAIN for timeout
+        // blocking fd after setting setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO,...)
+        // will return EAGAIN for timeout
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
         return REDIS_ETIMEOUT;
       } else {
         return REDIS_EREAD;
       }
-    } else if (nread == 0) {    // we consider read null an error
+    } else if (nread == 0) {  // we consider read null an error
       return REDIS_EREAD_NULL;
     }
 
@@ -178,7 +169,7 @@ ssize_t RedisCli::BufferRead() {
 }
 
 /* Find pointer to \r\n. */
-static char *seekNewline(char *s, size_t len) {
+static char* seekNewline(char* s, size_t len) {
   int pos = 0;
   int _len = len - 1;
 
@@ -192,9 +183,9 @@ static char *seekNewline(char *s, size_t len) {
       /* Not found. */
       return NULL;
     } else {
-      if (s[pos+1] == '\n') {
+      if (s[pos + 1] == '\n') {
         /* Found. */
-        return s+pos;
+        return s + pos;
       } else {
         /* Continue searching. */
         pos++;
@@ -206,7 +197,7 @@ static char *seekNewline(char *s, size_t len) {
 
 /* Read a long long value starting at *s, under the assumption that it will be
  * terminated by \r\n. Ambiguously returns -1 for unexpected input. */
-static long long readLongLong(char *s) {
+static long long readLongLong(char* s) {
   long long v = 0;
   int dec, mult = 1;
   char c;
@@ -230,11 +221,11 @@ static long long readLongLong(char *s) {
     }
   }
 
-  return mult*v;
+  return mult * v;
 }
 
 int RedisCli::ProcessLineItem() {
-  char *p;
+  char* p;
   int len;
 
   if ((p = ReadLine(&len)) == NULL) {
@@ -269,7 +260,7 @@ int RedisCli::ProcessBulkItem() {
       argv_.push_back(std::string(p + bytelen, len));
       elements_--;
 
-      bytelen += len + 2;   /* include \r\n */
+      bytelen += len + 2; /* include \r\n */
       rbuf_pos_ += bytelen;
       rbuf_offset_ -= bytelen;
       return REDIS_OK;
@@ -280,7 +271,7 @@ int RedisCli::ProcessBulkItem() {
 }
 
 int RedisCli::ProcessMultiBulkItem() {
-  char *p;
+  char* p;
   int len;
 
   if ((p = ReadLine(&len)) != NULL) {
@@ -313,7 +304,7 @@ int RedisCli::GetReply() {
 }
 
 char* RedisCli::ReadBytes(unsigned int bytes) {
-  char *p = NULL;
+  char* p = NULL;
   if ((unsigned int)rbuf_offset_ >= bytes) {
     p = rbuf_ + rbuf_pos_;
     rbuf_pos_ += bytes;
@@ -322,7 +313,7 @@ char* RedisCli::ReadBytes(unsigned int bytes) {
   return p;
 }
 
-char *RedisCli::ReadLine(int *_len) {
+char* RedisCli::ReadLine(int* _len) {
   char *p, *s;
   int len;
 
@@ -347,7 +338,7 @@ int RedisCli::GetReplyFromReader() {
     return REDIS_HALF;
   }
 
-  char *p;
+  char* p;
   if ((p = ReadBytes(1)) == NULL) {
     return REDIS_HALF;
   }
@@ -392,9 +383,7 @@ int RedisCli::GetReplyFromReader() {
   }
 }
 
-NetCli *NewRedisCli() {
-  return new RedisCli();
-}
+NetCli* NewRedisCli() { return new RedisCli(); }
 //
 // Redis protocol related funcitons
 //
@@ -414,12 +403,10 @@ static int intlen(int i) {
 }
 
 // Helper that calculates the bulk length given a certain string length.
-static size_t bulklen(size_t len) {
-  return 1 + intlen(len) + 2 + len + 2;
-}
+static size_t bulklen(size_t len) { return 1 + intlen(len) + 2 + len + 2; }
 
-int redisvFormatCommand(std::string *cmd, const char *format, va_list ap) {
-  const char *c = format;
+int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
+  const char* c = format;
   std::string curarg;
   char buf[1048576];
   std::vector<std::string> args;
@@ -440,7 +427,7 @@ int redisvFormatCommand(std::string *cmd, const char *format, va_list ap) {
         touched = 1;
       }
     } else {
-      char *arg = nullptr;
+      char* arg = nullptr;
       size_t size = 0;
 
       switch (c[1]) {
@@ -466,7 +453,7 @@ int redisvFormatCommand(std::string *cmd, const char *format, va_list ap) {
           {
             static const char intfmts[] = "diouxX";
             char _format[16];
-            const char *_p = c+1;
+            const char* _p = c + 1;
             size_t _l = 0;
             va_list _cpy;
             bool fmt_valid = false;
@@ -498,13 +485,13 @@ int redisvFormatCommand(std::string *cmd, const char *format, va_list ap) {
               /* Double conversion (without modifiers) */
               va_arg(ap, double);
               fmt_valid = true;
-            } else if (_p[0] == 'h' && _p[1] == 'h') {  /* Size: char */
+            } else if (_p[0] == 'h' && _p[1] == 'h') { /* Size: char */
               _p += 2;
               if (*_p != '\0' && strchr(intfmts, *_p) != NULL) {
-                va_arg(ap, int);  /* char gets promoted to int */
+                va_arg(ap, int); /* char gets promoted to int */
                 fmt_valid = true;
               }
-            } else if (_p[0] == 'h') {  /* Size: short */
+            } else if (_p[0] == 'h') { /* Size: short */
               _p += 1;
               if (*_p != '\0' && strchr(intfmts, *_p) != NULL) {
                 va_arg(ap, int); /* short gets promoted to int */
@@ -516,7 +503,7 @@ int redisvFormatCommand(std::string *cmd, const char *format, va_list ap) {
                 va_arg(ap, long long);
                 fmt_valid = true;
               }
-            } else if (_p[0] == 'l') {           /* Size: long */
+            } else if (_p[0] == 'l') { /* Size: long */
               _p += 1;
               if (*_p != '\0' && strchr(intfmts, *_p) != NULL) {
                 va_arg(ap, long);
@@ -585,7 +572,7 @@ int redisvFormatCommand(std::string *cmd, const char *format, va_list ap) {
   return totlen;
 }
 
-int redisvAppendCommand(std::string *cmd, const char *format, va_list ap) {
+int redisvAppendCommand(std::string* cmd, const char* format, va_list ap) {
   int len = redisvFormatCommand(cmd, format, ap);
   if (len == -1) {
     return REDIS_ERR;
@@ -594,13 +581,12 @@ int redisvAppendCommand(std::string *cmd, const char *format, va_list ap) {
   return REDIS_OK;
 }
 
-
-int redisFormatCommandArgv(RedisCmdArgsType argv, std::string *cmd) {
+int redisFormatCommandArgv(RedisCmdArgsType argv, std::string* cmd) {
   size_t argc = argv.size();
 
   int totlen = 1 + intlen(argc) + 2;
   for (size_t i = 0; i < argc; i++) {
-    totlen +=  bulklen(argv[i].size());
+    totlen += bulklen(argv[i].size());
   }
 
   cmd->clear();
@@ -620,7 +606,7 @@ int redisFormatCommandArgv(RedisCmdArgsType argv, std::string *cmd) {
   return REDIS_OK;
 }
 
-int SerializeRedisCommand(std::string *cmd, const char *format, ...) {
+int SerializeRedisCommand(std::string* cmd, const char* format, ...) {
   va_list ap;
   va_start(ap, format);
   int result = redisvAppendCommand(cmd, format, ap);
@@ -628,8 +614,6 @@ int SerializeRedisCommand(std::string *cmd, const char *format, ...) {
   return result;
 }
 
-int SerializeRedisCommand(RedisCmdArgsType argv, std::string *cmd)  {
-  return redisFormatCommandArgv(argv, cmd);
-}
+int SerializeRedisCommand(RedisCmdArgsType argv, std::string* cmd) { return redisFormatCommandArgv(argv, cmd); }
 
 };  // namespace net

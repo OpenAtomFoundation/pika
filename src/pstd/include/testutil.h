@@ -7,9 +7,8 @@ namespace pstd {
 
 extern std::string RandomString(const int len);
 extern int RandomSeed();
-extern int GetTestDirectory(std::string *result);
+extern int GetTestDirectory(std::string* result);
 
 };  // namespace pstd
-
 
 #endif  // __PSTD_INCLUDE_TESTUTIL_H__

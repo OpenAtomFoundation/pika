@@ -3,12 +3,10 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include "iostream"
 #include "utils.h"
+#include "iostream"
 
-void EncodeKeyValue(const std::string& key,
-                    const std::string& value,
-                    std::string* dst) {
+void EncodeKeyValue(const std::string& key, const std::string& value, std::string* dst) {
   dst->clear();
   int32_t key_size = key.size();
   int32_t value_size = value.size();
@@ -19,9 +17,7 @@ void EncodeKeyValue(const std::string& key,
   return;
 }
 
-void DecodeKeyValue(const std::string& dst,
-                    std::string* key,
-                    std::string* value) {
+void DecodeKeyValue(const std::string& dst, std::string* key, std::string* value) {
   const char* p = dst.data();
   int32_t key_size = *(reinterpret_cast<const int32_t*>(p));
   p += sizeof(int32_t);
@@ -34,4 +30,3 @@ void DecodeKeyValue(const std::string& dst,
   p += value_size;
   return;
 }
-

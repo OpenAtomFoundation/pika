@@ -3,11 +3,11 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_rm.h"
-#include "include/pika_table.h"
-#include "include/pika_server.h"
 #include "include/pika_cluster.h"
 #include "include/pika_cmd_table_manager.h"
+#include "include/pika_rm.h"
+#include "include/pika_server.h"
+#include "include/pika_table.h"
 
 extern PikaReplicaManager* g_pika_rm;
 extern PikaServer* g_pika_server;
@@ -137,8 +137,8 @@ bool PkClusterInfoCmd::ParseInfoTableSubCmd() {
     info_range_ = kAll;
   } else if (argv_.size() == 4) {
     std::string tmp(argv_[3]);
-    uint64_t table_id;
-    if (!pstd::string2ul(tmp.c_str(), tmp.size(), &table_id)) {
+    int64_t table_id;
+    if (!pstd::string2int(tmp.c_str(), tmp.size(), &table_id)) {
       res_.SetRes(CmdRes::kInvalidParameter, kCmdNamePkClusterInfo);
       return false;
     }
@@ -151,8 +151,8 @@ bool PkClusterInfoCmd::ParseInfoTableSubCmd() {
   return true;
 }
 
-void PkClusterInfoCmd::ClusterInfoSlotRange(const std::string& table_name,
-    const std::set<uint32_t> slots, std::string* info) {
+void PkClusterInfoCmd::ClusterInfoSlotRange(const std::string& table_name, const std::set<uint32_t> slots,
+                                            std::string* info) {
   std::stringstream tmp_stream;
   for (const auto& partition_id : slots) {
     std::string p_info;
@@ -183,11 +183,9 @@ void PkClusterInfoCmd::ClusterInfoSlotAll(std::string* info) {
   info->append(tmp_stream.str());
 }
 
-Status PkClusterInfoCmd::GetSlotInfo(const std::string table_name,
-                                     uint32_t partition_id,
-                                     std::string* info) {
+Status PkClusterInfoCmd::GetSlotInfo(const std::string table_name, uint32_t partition_id, std::string* info) {
   std::shared_ptr<SyncMasterPartition> partition =
-    g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
+      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!partition) {
     return Status::NotFound("not found");
   }
@@ -198,16 +196,14 @@ Status PkClusterInfoCmd::GetSlotInfo(const std::string table_name,
   uint32_t filenum = 0;
   uint64_t offset = 0;
   partition->Logger()->GetProducerStatus(&filenum, &offset);
-  tmp_stream << partition->PartitionName() << " binlog_offset="
-    << filenum << " " << offset;
+  tmp_stream << partition->PartitionName() << " binlog_offset=" << filenum << " " << offset;
 
   // safety purge section
   std::string safety_purge;
   std::shared_ptr<SyncMasterPartition> master_partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!master_partition) {
-    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id
-        << ", NotFound";
+    LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id << ", NotFound";
     s = Status::NotFound("SyncMasterPartition NotFound");
   } else {
     master_partition->GetSafetyPurgeBinlog(&safety_purge);
@@ -230,17 +226,15 @@ Status PkClusterInfoCmd::GetSlotInfo(const std::string table_name,
   return Status::OK();
 }
 
-Status ParseSlotGroup(const std::string& slot_group,
-                      std::set<uint32_t>* slots) {
+Status ParseSlotGroup(const std::string& slot_group, std::set<uint32_t>* slots) {
   std::set<uint32_t> tmp_slots;
   int64_t slot_idx, start_idx, end_idx;
   std::string::size_type pos;
   std::vector<std::string> elems;
   pstd::StringSplit(slot_group, COMMA, elems);
-  for (const auto& elem :  elems) {
+  for (const auto& elem : elems) {
     if ((pos = elem.find("-")) == std::string::npos) {
-      if (!pstd::string2l(elem.data(), elem.size(), &slot_idx)
-        || slot_idx < 0) {
+      if (!pstd::string2int(elem.data(), elem.size(), &slot_idx) || slot_idx < 0) {
         return Status::Corruption("syntax error");
       } else {
         tmp_slots.insert(static_cast<uint32_t>(slot_idx));
@@ -251,9 +245,9 @@ Status ParseSlotGroup(const std::string& slot_group,
       } else {
         std::string start_pos = elem.substr(0, pos);
         std::string end_pos = elem.substr(pos + 1, elem.size() - pos);
-        if (!pstd::string2l(start_pos.data(), start_pos.size(), &start_idx)
-          || !pstd::string2l(end_pos.data(), end_pos.size(), &end_idx)
-          || start_idx < 0 || end_idx < 0 || start_idx > end_idx) {
+        if (!pstd::string2int(start_pos.data(), start_pos.size(), &start_idx) ||
+            !pstd::string2int(end_pos.data(), end_pos.size(), &end_idx) || start_idx < 0 || end_idx < 0 ||
+            start_idx > end_idx) {
           return Status::Corruption("syntax error");
         }
         for (int64_t idx = start_idx; idx <= end_idx; ++idx) {
@@ -283,8 +277,8 @@ void SlotParentCmd::DoInitial() {
   if (argv_.size() == 3) {
     table_name_ = g_pika_conf->default_table();
   } else if (argv_.size() == 4) {
-    uint64_t table_id;
-    if (!pstd::string2ul(argv_[3].data(), argv_[3].size(), &table_id)) {
+    int64_t table_id;
+    if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &table_id)) {
       res_.SetRes(CmdRes::kErrOther, "syntax error");
       return;
     }
@@ -319,10 +313,8 @@ void PkClusterAddSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   SlotState expected = INFREE;
-  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
-              &expected, INBUSY)) {
-    res_.SetRes(CmdRes::kErrOther,
-            "Slot in syncing or a change operation is under way, retry later");
+  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_, &expected, INBUSY)) {
+    res_.SetRes(CmdRes::kErrOther, "Slot in syncing or a change operation is under way, retry later");
     return;
   }
 
@@ -408,10 +400,8 @@ void PkClusterDelSlotsCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   SlotState expected = INFREE;
-  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
-              &expected, INBUSY)) {
-    res_.SetRes(CmdRes::kErrOther,
-            "Slot in syncing or a change operation is under way, retry later");
+  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_, &expected, INBUSY)) {
+    res_.SetRes(CmdRes::kErrOther, "Slot in syncing or a change operation is under way, retry later");
     return;
   }
 
@@ -493,19 +483,16 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
     return;
   }
 
-  if (!strcasecmp(argv_[2].data(), "no")
-    && !strcasecmp(argv_[3].data(), "one")) {
+  if (!strcasecmp(argv_[2].data(), "no") && !strcasecmp(argv_[3].data(), "one")) {
     is_noone_ = true;
   } else {
     ip_ = argv_[2];
-    if (!pstd::string2l(argv_[3].data(), argv_[3].size(), &port_)
-      || port_ <= 0) {
+    if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &port_) || port_ <= 0) {
       res_.SetRes(CmdRes::kInvalidInt);
       return;
     }
 
-    if ((ip_ == "127.0.0.1" || ip_ == g_pika_server->host())
-      && port_ == g_pika_server->port()) {
+    if ((ip_ == "127.0.0.1" || ip_ == g_pika_server->host()) && port_ == g_pika_server->port()) {
       res_.SetRes(CmdRes::kErrOther, "You fucked up");
       return;
     }
@@ -523,7 +510,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
     }
   }
 
-  uint64_t table_id;
+  int64_t table_id;
   switch (argv_.size()) {
     case 5:
       table_name_ = g_pika_conf->default_table();
@@ -532,7 +519,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
       if (!strcasecmp(argv_[5].data(), "force")) {
         force_sync_ = true;
         table_name_ = g_pika_conf->default_table();
-      } else if (pstd::string2ul(argv_[5].data(), argv_[5].size(), &table_id)) {
+      } else if (pstd::string2int(argv_[5].data(), argv_[5].size(), &table_id)) {
         table_name_ = "db";
         table_name_ += std::to_string(table_id);
       } else {
@@ -541,8 +528,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
       }
       break;
     case 7:
-      if ((!strcasecmp(argv_[5].data(), "force"))
-          && (pstd::string2ul(argv_[6].data(), argv_[6].size(), &table_id))) {
+      if ((!strcasecmp(argv_[5].data(), "force")) && (pstd::string2int(argv_[6].data(), argv_[6].size(), &table_id))) {
         force_sync_ = true;
         table_name_ = "db";
         table_name_ += std::to_string(table_id);
@@ -574,16 +560,15 @@ void PkClusterSlotsSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<uint32_t> to_del_slots;
   for (const auto& slot : slots_) {
     std::shared_ptr<SyncSlavePartition> slave_partition =
-        g_pika_rm->GetSyncSlavePartitionByName(
-                PartitionInfo(table_name_, slot));
+        g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(table_name_, slot));
     if (!slave_partition) {
       res_.SetRes(CmdRes::kErrOther, "Slot " + std::to_string(slot) + " not found!");
       return;
     }
     if (is_noone_) {
       // check okay
-    } else if (slave_partition->State() == ReplState::kConnected
-      && slave_partition->MasterIp() == ip_ && slave_partition->MasterPort() == port_) {
+    } else if (slave_partition->State() == ReplState::kConnected && slave_partition->MasterIp() == ip_ &&
+               slave_partition->MasterPort() == port_) {
       to_del_slots.push_back(slot);
     }
   }
@@ -593,12 +578,10 @@ void PkClusterSlotsSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   Status s = Status::OK();
-  ReplState state = force_sync_
-    ? ReplState::kTryDBSync : ReplState::kTryConnect;
+  ReplState state = force_sync_ ? ReplState::kTryDBSync : ReplState::kTryConnect;
   for (const auto& slot : slots_) {
     std::shared_ptr<SyncSlavePartition> slave_partition =
-        g_pika_rm->GetSyncSlavePartitionByName(
-                PartitionInfo(table_name_, slot));
+        g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(table_name_, slot));
     if (slave_partition->State() == ReplState::kConnected) {
       s = g_pika_rm->SendRemoveSlaveNodeRequest(table_name_, slot);
     }
@@ -611,8 +594,7 @@ void PkClusterSlotsSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
     }
     if (is_noone_) {
     } else {
-      s = g_pika_rm->ActivateSyncSlavePartition(
-          RmNode(ip_, port_, table_name_, slot), state);
+      s = g_pika_rm->ActivateSyncSlavePartition(RmNode(ip_, port_, table_name_, slot), state);
       if (!s.ok()) {
         break;
       }
@@ -639,15 +621,14 @@ void PkClusterAddTableCmd::DoInitial() {
     res_.SetRes(CmdRes::kErrOther, "PkClusterTable Cmd only support on sharding mode");
     return;
   }
-  uint64_t table_id;
-  if (!pstd::string2ul(argv_[2].data(), argv_[2].size(), &table_id)) {
+  int64_t table_id;
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &table_id)) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
   }
   table_name_ = "db";
   table_name_ += std::to_string(table_id);
-  if (!pstd::string2ul(argv_[3].data(), argv_[3].size(), &slot_num_)
-      || slot_num_ == 0) {
+  if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &slot_num_) || slot_num_ == 0) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
   }
@@ -661,10 +642,8 @@ void PkClusterAddTableCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   SlotState expected = INFREE;
-  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
-                                           &expected, INBUSY)) {
-    res_.SetRes(CmdRes::kErrOther,
-                "Table/Slot in syncing or a change operation is under way, retry later");
+  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_, &expected, INBUSY)) {
+    res_.SetRes(CmdRes::kErrOther, "Table/Slot in syncing or a change operation is under way, retry later");
     return;
   }
 
@@ -675,14 +654,14 @@ void PkClusterAddTableCmd::Do(std::shared_ptr<Partition> partition) {
     pre_success = false;
   }
   if (pre_success) {
-    s = g_pika_conf->AddTable(table_name_,slot_num_);
+    s = g_pika_conf->AddTable(table_name_, slot_num_);
     if (!s.ok()) {
       LOG(WARNING) << "Addslots add to pika conf failed: " << s.ToString();
       pre_success = false;
     }
   }
   if (pre_success) {
-    s = g_pika_server->AddTableStruct(table_name_,slot_num_);
+    s = g_pika_server->AddTableStruct(table_name_, slot_num_);
     if (!s.ok()) {
       LOG(WARNING) << "Addslots add to pika conf failed: " << s.ToString();
       pre_success = false;
@@ -700,7 +679,7 @@ void PkClusterAddTableCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 Status PkClusterAddTableCmd::AddTableSanityCheck() {
-  Status s  = g_pika_conf->AddTableSanityCheck(table_name_);
+  Status s = g_pika_conf->AddTableSanityCheck(table_name_);
   if (!s.ok()) {
     return s;
   }
@@ -724,15 +703,14 @@ void PkClusterDelTableCmd::DoInitial() {
     res_.SetRes(CmdRes::kErrOther, "PkClusterTable Cmd only support on sharding mode");
     return;
   }
-  uint64_t table_id;
-  if (!pstd::string2ul(argv_[2].data(), argv_[2].size(), &table_id)) {
+  int64_t table_id;
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &table_id)) {
     res_.SetRes(CmdRes::kErrOther, "syntax error");
     return;
   }
   table_name_ = "db";
-  table_name_ +=  std::to_string(table_id);
+  table_name_ += std::to_string(table_id);
 }
-
 
 void PkClusterDelTableCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(table_name_);
@@ -750,10 +728,8 @@ void PkClusterDelTableCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   SlotState expected = INFREE;
-  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_,
-                                           &expected, INBUSY)) {
-    res_.SetRes(CmdRes::kErrOther,
-                "Table/Slot in syncing or a change operation is under way, retry later");
+  if (!std::atomic_compare_exchange_strong(&g_pika_server->slot_state_, &expected, INBUSY)) {
+    res_.SetRes(CmdRes::kErrOther, "Table/Slot in syncing or a change operation is under way, retry later");
     return;
   }
 
@@ -796,8 +772,8 @@ void PkClusterDelTableCmd::Do(std::shared_ptr<Partition> partition) {
   LOG(INFO) << "Pika meta file overwrite success";
 }
 
-Status PkClusterDelTableCmd::DelTableSanityCheck(const std::string &table_name) {
-  Status s  = g_pika_conf->DelTableSanityCheck(table_name);
+Status PkClusterDelTableCmd::DelTableSanityCheck(const std::string& table_name) {
+  Status s = g_pika_conf->DelTableSanityCheck(table_name);
   if (!s.ok()) {
     return s;
   }
@@ -808,6 +784,6 @@ Status PkClusterDelTableCmd::DelTableSanityCheck(const std::string &table_name) 
   if (!table_ptr->TableIsEmpty()) {
     return Status::Corruption("table have slots!");
   }
-  s =  g_pika_rm->SyncTableSanityCheck(table_name);
+  s = g_pika_rm->SyncTableSanityCheck(table_name);
   return s;
 }

@@ -14,7 +14,7 @@ void SAddCmd::DoInitial() {
   }
   key_ = argv_[1];
   PikaCmdArgsType::iterator iter = argv_.begin();
-  iter++; 
+  iter++;
   iter++;
   members_.assign(iter, argv_.end());
   return;
@@ -104,15 +104,14 @@ void SScanCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &cursor_)) {
+  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &cursor_)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSScan);
     return;
   }
   size_t argc = argv_.size(), index = 3;
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match")
-      || !strcasecmp(opt.data(), "count")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -120,7 +119,7 @@ void SScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2l(argv_[index].data(), argv_[index].size(), &count_)) {
+      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_)) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -361,10 +360,11 @@ void SRandmemberCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSRandmember);
     return;
   } else if (argv_.size() == 3) {
-    if (!pstd::string2l(argv_[2].data(), argv_[2].size(), &count_)) {
+    if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &count_)) {
       res_.SetRes(CmdRes::kInvalidInt);
     } else {
-      reply_arr = true;;
+      reply_arr = true;
+      ;
     }
   }
   return;

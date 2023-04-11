@@ -7,36 +7,29 @@
 #define NET_INCLUDE_REDIS_CONN_H_
 
 #include <map>
-#include <vector>
 #include <string>
+#include <vector>
 
-#include "pstd/include/pstd_status.h"
-#include "net/include/net_define.h"
 #include "net/include/net_conn.h"
+#include "net/include/net_define.h"
 #include "net/include/redis_parser.h"
+#include "pstd/include/pstd_status.h"
 
 namespace net {
 
 typedef std::vector<std::string> RedisCmdArgsType;
 
-enum HandleType {
-  kSynchronous,
-  kAsynchronous
-};
+enum HandleType { kSynchronous, kAsynchronous };
 
-class RedisConn: public NetConn {
+class RedisConn : public NetConn {
  public:
-  RedisConn(const int fd,
-            const std::string& ip_port,
-            Thread* thread,
-            NetEpoll* net_epoll = nullptr,
-            const HandleType& handle_type = kSynchronous,
-            const int rbuf_max_len = REDIS_MAX_MESSAGE);
+  RedisConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr,
+            const HandleType& handle_type = kSynchronous, const int rbuf_max_len = REDIS_MAX_MESSAGE);
   virtual ~RedisConn();
 
-  virtual ReadStatus GetRequest();
-  virtual WriteStatus SendReply();
-  virtual int WriteResp(const std::string& resp);
+  ReadStatus GetRequest() override;
+  WriteStatus SendReply() override;
+  int WriteResp(const std::string& resp) override;
 
   void TryResizeBuffer() override;
   void SetHandleType(const HandleType& handle_type);

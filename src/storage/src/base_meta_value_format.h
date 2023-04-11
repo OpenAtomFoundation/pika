@@ -14,9 +14,7 @@ namespace storage {
 
 class BaseMetaValue : public InternalValue {
  public:
-  explicit BaseMetaValue(const Slice& user_value) :
-    InternalValue(user_value) {
-  }
+  explicit BaseMetaValue(const Slice& user_value) : InternalValue(user_value) {}
   size_t AppendTimestampAndVersion() override {
     size_t usize = user_value_.size();
     char* dst = start_;
@@ -43,52 +41,41 @@ class BaseMetaValue : public InternalValue {
 class ParsedBaseMetaValue : public ParsedInternalValue {
  public:
   // Use this constructor after rocksdb::DB::Get();
-  explicit ParsedBaseMetaValue(std::string* internal_value_str) :
-    ParsedInternalValue(internal_value_str) {
+  explicit ParsedBaseMetaValue(std::string* internal_value_str) : ParsedInternalValue(internal_value_str) {
     if (internal_value_str->size() >= kBaseMetaValueSuffixLength) {
-      user_value_ = Slice(internal_value_str->data(),
-          internal_value_str->size() - kBaseMetaValueSuffixLength);
-      version_ = DecodeFixed32(internal_value_str->data() +
-            internal_value_str->size() - sizeof(int32_t) * 2);
-      timestamp_ = DecodeFixed32(internal_value_str->data() +
-            internal_value_str->size() - sizeof(int32_t));
+      user_value_ = Slice(internal_value_str->data(), internal_value_str->size() - kBaseMetaValueSuffixLength);
+      version_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() - sizeof(int32_t) * 2);
+      timestamp_ = DecodeFixed32(internal_value_str->data() + internal_value_str->size() - sizeof(int32_t));
     }
     count_ = DecodeFixed32(internal_value_str->data());
   }
 
   // Use this constructor in rocksdb::CompactionFilter::Filter();
-  explicit ParsedBaseMetaValue(const Slice& internal_value_slice) :
-    ParsedInternalValue(internal_value_slice) {
+  explicit ParsedBaseMetaValue(const Slice& internal_value_slice) : ParsedInternalValue(internal_value_slice) {
     if (internal_value_slice.size() >= kBaseMetaValueSuffixLength) {
-      user_value_ = Slice(internal_value_slice.data(),
-          internal_value_slice.size() - kBaseMetaValueSuffixLength);
-      version_ = DecodeFixed32(internal_value_slice.data() +
-            internal_value_slice.size() - sizeof(int32_t) * 2);
-      timestamp_ = DecodeFixed32(internal_value_slice.data() +
-            internal_value_slice.size() - sizeof(int32_t));
+      user_value_ = Slice(internal_value_slice.data(), internal_value_slice.size() - kBaseMetaValueSuffixLength);
+      version_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - sizeof(int32_t) * 2);
+      timestamp_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - sizeof(int32_t));
     }
     count_ = DecodeFixed32(internal_value_slice.data());
   }
 
   void StripSuffix() override {
     if (value_ != nullptr) {
-      value_->erase(value_->size() - kBaseMetaValueSuffixLength,
-          kBaseMetaValueSuffixLength);
+      value_->erase(value_->size() - kBaseMetaValueSuffixLength, kBaseMetaValueSuffixLength);
     }
   }
 
   void SetVersionToValue() override {
     if (value_ != nullptr) {
-      char* dst = const_cast<char*>(value_->data()) + value_->size() -
-        kBaseMetaValueSuffixLength;
+      char* dst = const_cast<char*>(value_->data()) + value_->size() - kBaseMetaValueSuffixLength;
       EncodeFixed32(dst, version_);
     }
   }
 
   void SetTimestampToValue() override {
     if (value_ != nullptr) {
-      char* dst = const_cast<char*>(value_->data()) + value_->size() -
-        sizeof(int32_t);
+      char* dst = const_cast<char*>(value_->data()) + value_->size() - sizeof(int32_t);
       EncodeFixed32(dst, timestamp_);
     }
   }
@@ -100,9 +87,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
     return this->UpdateVersion();
   }
 
-  int32_t count() {
-    return count_;
-  }
+  int32_t count() { return count_; }
 
   void set_count(int32_t count) {
     count_ = count;

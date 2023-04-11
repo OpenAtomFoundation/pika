@@ -9,16 +9,15 @@
 #include <glog/logging.h>
 #include <atomic>
 
-#include "net/include/redis_conn.h"
-#include "net/include/net_thread.h"
 #include "include/pika_command.h"
+#include "net/include/net_thread.h"
+#include "net/include/redis_conn.h"
 
 class PikaWorkerSpecificData;
 
-class PikaClientConn: public net::RedisConn {
+class PikaClientConn : public net::RedisConn {
  public:
-  PikaClientConn(int fd, std::string ip_port, net::ServerThread *server_thread,
-                 void* worker_specific_data);
+  PikaClientConn(int fd, std::string ip_port, net::ServerThread* server_thread, void* worker_specific_data);
   virtual ~PikaClientConn() {}
   int DealMessage(PikaCmdArgsType& argv, std::string* response) override;
 
@@ -38,6 +37,7 @@ class PikaClientConn: public net::RedisConn {
     void Init();
     bool IsAuthed(const CmdInfo* const cinfo_ptr);
     bool ChecknUpdate(const std::string& arg);
+
    private:
     enum StatType {
       kNoAuthed = 0,

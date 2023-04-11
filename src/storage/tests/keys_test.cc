@@ -4,8 +4,8 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include <gtest/gtest.h>
-#include <thread>
 #include <iostream>
+#include <thread>
 
 #include "storage/storage.h"
 #include "storage/util.h"
@@ -14,8 +14,8 @@ using namespace storage;
 
 class KeysTest : public ::testing::Test {
  public:
-  KeysTest() { }
-  virtual ~KeysTest() { }
+  KeysTest() {}
+  virtual ~KeysTest() {}
 
   void SetUp() {
     std::string path = "./db/keys";
@@ -31,16 +31,15 @@ class KeysTest : public ::testing::Test {
     DeleteFiles(path.c_str());
   }
 
-  static void SetUpTestCase() { }
-  static void TearDownTestCase() { }
+  static void SetUpTestCase() {}
+  static void TearDownTestCase() {}
 
   StorageOptions storage_options;
   storage::Storage db;
   storage::Status s;
 };
 
-static bool make_expired(storage::Storage *const db,
-                         const Slice& key) {
+static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
   if (!ret || !type_status[storage::DataType::kStrings].ok()) {
@@ -50,32 +49,29 @@ static bool make_expired(storage::Storage *const db,
   return true;
 }
 
-static bool set_timeout(storage::Storage *const db,
-                        const Slice& key, int32_t ttl) {
+static bool set_timeout(storage::Storage* const db, const Slice& key, int32_t ttl) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, ttl, &type_status);
   if (!ret || !type_status[storage::DataType::kStrings].ok()) {
-   return false;
+    return false;
   }
   return true;
 }
 
-static bool key_value_match(const std::vector<KeyValue>& key_value_out,
-                            const std::vector<KeyValue>& expect_key_value) {
+static bool key_value_match(const std::vector<KeyValue>& key_value_out, const std::vector<KeyValue>& expect_key_value) {
   if (key_value_out.size() != expect_key_value.size()) {
     return false;
   }
   for (int32_t idx = 0; idx < key_value_out.size(); ++idx) {
-    if (key_value_out[idx].key != expect_key_value[idx].key
-      || key_value_out[idx].value != expect_key_value[idx].value) {
+    if (key_value_out[idx].key != expect_key_value[idx].key ||
+        key_value_out[idx].value != expect_key_value[idx].value) {
       return false;
     }
   }
   return true;
 }
 
-static bool key_match(const std::vector<std::string>& keys_out,
-                      const std::vector<std::string>& expect_keys) {
+static bool key_match(const std::vector<std::string>& keys_out, const std::vector<std::string>& expect_keys) {
   if (keys_out.size() != expect_keys.size()) {
     return false;
   }
@@ -100,16 +96,10 @@ TEST_F(KeysTest, PKScanRangeTest) {
   std::map<DataType, Status> type_status;
   std::vector<storage::KeyValue> kvs_out;
   std::vector<storage::KeyValue> expect_kvs;
-  std::vector<storage::KeyValue> kvs {{"PKSCANRANGE_A", "VALUE"},
-                                         {"PKSCANRANGE_C", "VALUE"},
-                                         {"PKSCANRANGE_E", "VALUE"},
-                                         {"PKSCANRANGE_G", "VALUE"},
-                                         {"PKSCANRANGE_I", "VALUE"},
-                                         {"PKSCANRANGE_K", "VALUE"},
-                                         {"PKSCANRANGE_M", "VALUE"},
-                                         {"PKSCANRANGE_O", "VALUE"},
-                                         {"PKSCANRANGE_Q", "VALUE"},
-                                         {"PKSCANRANGE_S", "VALUE"}};
+  std::vector<storage::KeyValue> kvs{{"PKSCANRANGE_A", "VALUE"}, {"PKSCANRANGE_C", "VALUE"}, {"PKSCANRANGE_E", "VALUE"},
+                                     {"PKSCANRANGE_G", "VALUE"}, {"PKSCANRANGE_I", "VALUE"}, {"PKSCANRANGE_K", "VALUE"},
+                                     {"PKSCANRANGE_M", "VALUE"}, {"PKSCANRANGE_O", "VALUE"}, {"PKSCANRANGE_Q", "VALUE"},
+                                     {"PKSCANRANGE_S", "VALUE"}};
   for (const auto& kv : kvs) {
     keys_del.push_back(kv.key);
   }
@@ -117,7 +107,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   //=============================== Strings ===============================
   s = db.MSet(kvs);
   ASSERT_TRUE(s.ok());
-
 
   // ************************** Group 1 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -134,7 +123,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 2 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -149,7 +137,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 3 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -166,7 +153,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -181,7 +167,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 5 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -198,7 +183,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -213,7 +197,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 7 Test **************************
   //      0     1     2     3     4        5     6     7     8     9
@@ -230,7 +213,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -242,7 +224,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -258,7 +239,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "PKSCANRANGE_M");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -278,7 +258,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "PKSCANRANGE_O");
 
-
   // ************************** Group 11 Test **************************
   //      0     1     2     3        4     5     6     7     8     9
   //      A     C     E     G        I     K     M     O     Q     S
@@ -294,13 +273,10 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "PKSCANRANGE_I");
 
-
-
   //=============================== Sets ===============================
   for (const auto& kv : kvs) {
     s = db.SAdd(kv.key, {"MEMBER"}, &ret);
   }
-
 
   // ************************** Group 1 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -317,7 +293,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 2 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -332,7 +307,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 3 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -349,7 +323,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -364,7 +337,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 5 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -381,7 +353,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -396,7 +367,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 7 Test **************************
   //      0     1     2     3     4        5     6     7     8     9
@@ -413,7 +383,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -425,7 +394,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -441,7 +409,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_M");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -461,7 +428,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_O");
 
-
   // ************************** Group 11 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -478,7 +444,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_I");
-
 
   // ************************** Group 12 Test **************************
   //      0     1     2     3      4        5     6     7     8     9
@@ -498,12 +463,10 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_K");
 
-
   //=============================== Hashes ===============================
   for (const auto& kv : kvs) {
     s = db.HMSet(kv.key, {{"FIELD", "VALUE"}});
   }
-
 
   // ************************** Group 1 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -520,7 +483,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 2 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -535,7 +497,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 3 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -552,7 +513,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -567,7 +527,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 5 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -584,7 +543,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -599,7 +557,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 7 Test **************************
   //      0     1     2     3     4        5     6     7     8     9
@@ -616,7 +573,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -628,7 +584,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -644,7 +599,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_M");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -664,7 +618,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_O");
 
-
   // ************************** Group 11 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -679,7 +632,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_I");
-
 
   // ************************** Group 12 Test **************************
   //      0     1     2     3      4        5     6     7     8     9
@@ -697,12 +649,10 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_K");
 
-
   //=============================== ZSets ===============================
   for (const auto& kv : kvs) {
     s = db.ZAdd(kv.key, {{1, "MEMBER"}}, &ret);
   }
-
 
   // ************************** Group 1 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -719,7 +669,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 2 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -734,7 +683,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 3 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -751,7 +699,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -766,7 +713,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 5 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -783,7 +729,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -798,7 +743,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 7 Test **************************
   //      0     1     2     3     4        5     6     7     8     9
@@ -815,7 +759,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -827,7 +770,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -843,7 +785,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_M");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -863,7 +804,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_O");
 
-
   // ************************** Group 11 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -878,7 +818,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_I");
-
 
   // ************************** Group 12 Test **************************
   //      0     1     2     3      4        5     6     7     8     9
@@ -898,12 +837,10 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_K");
 
-
   //=============================== Lists  ===============================
   for (const auto& kv : kvs) {
     s = db.LPush(kv.key, {"NODE"}, &ret_u64);
   }
-
 
   // ************************** Group 1 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -920,7 +857,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 2 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -935,7 +871,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 3 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -952,7 +887,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -967,7 +901,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 5 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -984,7 +917,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -999,7 +931,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 7 Test **************************
   //      0     1     2     3     4        5     6     7     8     9
@@ -1016,7 +947,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -1028,7 +958,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1044,7 +973,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_M");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1064,7 +992,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_O");
 
-
   // ************************** Group 11 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -1079,7 +1006,6 @@ TEST_F(KeysTest, PKScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKSCANRANGE_I");
-
 
   // ************************** Group 12 Test **************************
   //      0     1     2     3      4        5     6     7     8     9
@@ -1118,16 +1044,11 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   std::map<DataType, Status> type_status;
   std::vector<storage::KeyValue> kvs_out;
   std::vector<storage::KeyValue> expect_kvs;
-  std::vector<storage::KeyValue> kvs {{"PKRSCANRANGE_A", "VALUE"},
-                                         {"PKRSCANRANGE_C", "VALUE"},
-                                         {"PKRSCANRANGE_E", "VALUE"},
-                                         {"PKRSCANRANGE_G", "VALUE"},
-                                         {"PKRSCANRANGE_I", "VALUE"},
-                                         {"PKRSCANRANGE_K", "VALUE"},
-                                         {"PKRSCANRANGE_M", "VALUE"},
-                                         {"PKRSCANRANGE_O", "VALUE"},
-                                         {"PKRSCANRANGE_Q", "VALUE"},
-                                         {"PKRSCANRANGE_S", "VALUE"}};
+  std::vector<storage::KeyValue> kvs{{"PKRSCANRANGE_A", "VALUE"}, {"PKRSCANRANGE_C", "VALUE"},
+                                     {"PKRSCANRANGE_E", "VALUE"}, {"PKRSCANRANGE_G", "VALUE"},
+                                     {"PKRSCANRANGE_I", "VALUE"}, {"PKRSCANRANGE_K", "VALUE"},
+                                     {"PKRSCANRANGE_M", "VALUE"}, {"PKRSCANRANGE_O", "VALUE"},
+                                     {"PKRSCANRANGE_Q", "VALUE"}, {"PKRSCANRANGE_S", "VALUE"}};
   for (const auto& kv : kvs) {
     keys_del.push_back(kv.key);
   }
@@ -1136,12 +1057,11 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   s = db.MSet(kvs);
   ASSERT_TRUE(s.ok());
 
-
   // ************************** Group 1 Test **************************
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                         ^
-  //key_end/next_key                                             key_start
+  // key_end/next_key                                             key_start
   kvs_out.clear();
   expect_kvs.clear();
   s = db.PKRScanRange(DataType::kStrings, "", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -1151,7 +1071,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 2 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
@@ -1168,12 +1087,11 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 3 Test **************************
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                    ^
-  //key_end/next_key                                         key_start
+  // key_end/next_key                                         key_start
   kvs_out.clear();
   expect_kvs.clear();
   s = db.PKRScanRange(DataType::kStrings, "PKRSCANRANGE_R", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -1183,7 +1101,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1200,7 +1117,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 5 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
   //       A     C     E     G     I     K     M     O     Q     S
@@ -1215,7 +1131,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1232,7 +1147,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 7 Test **************************
   //      0     1     2     3       4     5     6     7     8     9
   //      A     C     E     G       I     K     M     O     Q     S
@@ -1248,7 +1162,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -1260,7 +1173,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1276,7 +1188,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "PKRSCANRANGE_G");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1296,7 +1207,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "PKRSCANRANGE_E");
 
-
   // ************************** Group 11 Test **************************
   //      0     1     2     3     4        5        6     7     8     9
   //      A     C     E     G     I        K        M     O     Q     S
@@ -1312,7 +1222,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_value_match(kvs_out, expect_kvs));
   ASSERT_EQ(next_key, "PKRSCANRANGE_K");
 
-
   //=============================== Sets ===============================
   for (const auto& kv : kvs) {
     s = db.SAdd(kv.key, {"MEMBER"}, &ret);
@@ -1322,7 +1231,7 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                         ^
-  //key_end/next_key                                             key_start
+  // key_end/next_key                                             key_start
   keys_out.clear();
   expect_keys.clear();
   s = db.PKRScanRange(DataType::kSets, "", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -1332,7 +1241,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 2 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
@@ -1349,12 +1257,11 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 3 Test **************************
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                    ^
-  //key_end/next_key                                         key_start
+  // key_end/next_key                                         key_start
   keys_out.clear();
   expect_keys.clear();
   s = db.PKRScanRange(DataType::kSets, "PKRSCANRANGE_R", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -1364,7 +1271,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1381,7 +1287,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 5 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
   //       A     C     E     G     I     K     M     O     Q     S
@@ -1396,7 +1301,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1413,7 +1317,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 7 Test **************************
   //      0     1     2     3       4     5     6     7     8     9
   //      A     C     E     G       I     K     M     O     Q     S
@@ -1429,7 +1332,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -1441,7 +1343,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1457,7 +1358,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_G");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1476,7 +1376,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_E");
-
 
   // ************************** Group 11 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1497,7 +1396,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_E");
 
-
   // ************************** Group 12 Test **************************
   //      0     1     2     3     4        5        6     7     8     9
   //      A     C     E     G     I        K        M     O     Q     S
@@ -1512,7 +1410,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_K");
-
 
   // ************************** Group 13 Test **************************
   //      0     1     2       3       4     5     6     7     8     9
@@ -1531,7 +1428,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_G");
 
-
   //=============================== Hashes ===============================
   for (const auto& kv : kvs) {
     s = db.HMSet(kv.key, {{"FIELD", "VALUE"}});
@@ -1541,7 +1437,7 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                         ^
-  //key_end/next_key                                             key_start
+  // key_end/next_key                                             key_start
   keys_out.clear();
   expect_keys.clear();
   s = db.PKRScanRange(DataType::kHashes, "", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -1551,7 +1447,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 2 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
@@ -1568,12 +1463,11 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 3 Test **************************
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                    ^
-  //key_end/next_key                                         key_start
+  // key_end/next_key                                         key_start
   keys_out.clear();
   expect_keys.clear();
   s = db.PKRScanRange(DataType::kHashes, "PKRSCANRANGE_R", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -1583,7 +1477,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1600,7 +1493,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 5 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
   //       A     C     E     G     I     K     M     O     Q     S
@@ -1615,7 +1507,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1632,7 +1523,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 7 Test **************************
   //      0     1     2     3       4     5     6     7     8     9
   //      A     C     E     G       I     K     M     O     Q     S
@@ -1648,7 +1538,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -1660,7 +1549,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1676,7 +1564,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_G");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1695,7 +1582,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_E");
-
 
   // ************************** Group 11 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1716,7 +1602,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_E");
 
-
   // ************************** Group 12 Test **************************
   //      0     1     2     3     4        5        6     7     8     9
   //      A     C     E     G     I        K        M     O     Q     S
@@ -1731,7 +1616,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_K");
-
 
   // ************************** Group 13 Test **************************
   //      0     1     2       3       4     5     6     7     8     9
@@ -1750,7 +1634,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_G");
 
-
   //=============================== ZSets ===============================
   for (const auto& kv : kvs) {
     s = db.ZAdd(kv.key, {{1, "MEMBER"}}, &ret);
@@ -1760,7 +1643,7 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                         ^
-  //key_end/next_key                                             key_start
+  // key_end/next_key                                             key_start
   keys_out.clear();
   expect_keys.clear();
   s = db.PKRScanRange(DataType::kZSets, "", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -1770,7 +1653,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 2 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
@@ -1787,12 +1669,11 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 3 Test **************************
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                    ^
-  //key_end/next_key                                         key_start
+  // key_end/next_key                                         key_start
   keys_out.clear();
   expect_keys.clear();
   s = db.PKRScanRange(DataType::kZSets, "PKRSCANRANGE_R", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -1802,7 +1683,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1819,7 +1699,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 5 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
   //       A     C     E     G     I     K     M     O     Q     S
@@ -1834,7 +1713,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1851,7 +1729,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 7 Test **************************
   //      0     1     2     3       4     5     6     7     8     9
   //      A     C     E     G       I     K     M     O     Q     S
@@ -1867,7 +1744,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -1879,7 +1755,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1895,7 +1770,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_G");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1914,7 +1788,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_E");
-
 
   // ************************** Group 11 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -1935,7 +1808,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_E");
 
-
   // ************************** Group 12 Test **************************
   //      0     1     2     3     4        5        6     7     8     9
   //      A     C     E     G     I        K        M     O     Q     S
@@ -1950,7 +1822,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_K");
-
 
   // ************************** Group 13 Test **************************
   //      0     1     2       3       4     5     6     7     8     9
@@ -1969,7 +1840,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_G");
 
-
   //=============================== Lists ===============================
   for (const auto& kv : kvs) {
     s = db.LPush(kv.key, {"NODE"}, &ret_u64);
@@ -1979,7 +1849,7 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                         ^
-  //key_end/next_key                                             key_start
+  // key_end/next_key                                             key_start
   keys_out.clear();
   expect_keys.clear();
   s = db.PKRScanRange(DataType::kLists, "", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -1989,7 +1859,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 2 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
@@ -2006,12 +1875,11 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 3 Test **************************
   //         0     1     2     3     4     5     6     7     8     9
   //         A     C     E     G     I     K     M     O     Q     S
   //       ^                                                    ^
-  //key_end/next_key                                         key_start
+  // key_end/next_key                                         key_start
   keys_out.clear();
   expect_keys.clear();
   s = db.PKRScanRange(DataType::kLists, "PKRSCANRANGE_R", "", "*", 10, &keys_out, &kvs_out, &next_key);
@@ -2021,7 +1889,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 4 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -2038,7 +1905,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 5 Test **************************
   //       0     1     2     3     4     5     6     7     8     9
   //       A     C     E     G     I     K     M     O     Q     S
@@ -2053,7 +1919,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 6 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -2070,7 +1935,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 7 Test **************************
   //      0     1     2     3       4     5     6     7     8     9
   //      A     C     E     G       I     K     M     O     Q     S
@@ -2086,7 +1950,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
 
-
   // ************************** Group 8 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -2098,7 +1961,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(s.IsInvalidArgument());
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "");
-
 
   // ************************** Group 9 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -2114,7 +1976,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_G");
-
 
   // ************************** Group 10 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
@@ -2134,7 +1995,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_E");
 
-
   // ************************** Group 11 Test **************************
   //      0     1     2     3     4     5     6     7     8     9
   //      A     C     E     G     I     K     M     O     Q     S
@@ -2143,7 +2003,7 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   keys_out.clear();
   expect_keys.clear();
   std::string element;
-  s = db.LPop("PKRSCANRANGE_I",&element);
+  s = db.LPop("PKRSCANRANGE_I", &element);
   ASSERT_TRUE(s.ok());
   s = db.PKRScanRange(DataType::kLists, "PKRSCANRANGE_Q", "PKRSCANRANGE_C", "*", 4, &keys_out, &kvs_out, &next_key);
   ASSERT_TRUE(s.ok());
@@ -2154,7 +2014,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_E");
-
 
   // ************************** Group 12 Test **************************
   //      0     1     2     3     4        5        6     7     8     9
@@ -2170,7 +2029,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
   }
   ASSERT_TRUE(key_match(keys_out, expect_keys));
   ASSERT_EQ(next_key, "PKRSCANRANGE_K");
-
 
   // ************************** Group 13 Test **************************
   //      0     1     2       3       4     5     6     7     8     9
@@ -2218,7 +2076,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   db.Keys(DataType::kStrings, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
 
-
 //   // ***************** Group 2 Test *****************
 //   db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY1", "VALUE");
 //   db.Set("GP2_PKPATTERNMATCHDEL_STRING_KEY2", "VALUE");
@@ -2235,7 +2092,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kStrings, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   // ***************** Group 3 Test *****************
 //   db.Set("GP3_PKPATTERNMATCHDEL_STRING_KEY1_0xxx0", "VALUE");
@@ -2256,7 +2112,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   type_status.clear();
 //   db.Del(keys, &type_status);
 
-
 //   // ***************** Group 4 Test *****************
 //   db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY1", "VALUE");
 //   db.Set("GP4_PKPATTERNMATCHDEL_STRING_KEY2_0ooo0", "VALUE");
@@ -2274,7 +2129,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   db.Keys(DataType::kStrings, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
 
-
 //   // ***************** Group 5 Test *****************
 //   size_t gp5_total_kv = 23333;
 //   for (size_t idx = 0; idx < gp5_total_kv; ++idx) {
@@ -2286,7 +2140,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kStrings, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   //=============================== Set ===============================
 
@@ -2304,7 +2157,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   db.Keys(DataType::kSets, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
 
-
 //   // ***************** Group 2 Test *****************
 //   db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
 //   db.SAdd("GP2_PKPATTERNMATCHDEL_SET_KEY2", {"M1"}, &ret);
@@ -2321,7 +2173,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kSets, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   // ***************** Group 3 Test *****************
 //   db.SAdd("GP3_PKPATTERNMATCHDEL_SET_KEY1_0xxx0", {"M1"}, &ret);
@@ -2342,7 +2193,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   type_status.clear();
 //   db.Del(keys, &type_status);
 
-
 //   // ***************** Group 4 Test *****************
 //   db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY1", {"M1"}, &ret);
 //   db.SAdd("GP4_PKPATTERNMATCHDEL_SET_KEY2", {"M1"}, &ret);
@@ -2359,7 +2209,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kSets, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   // ***************** Group 5 Test *****************
 //   db.SAdd("GP5_PKPATTERNMATCHDEL_SET_KEY1_0ooo0", {"M1"}, &ret);
@@ -2385,7 +2234,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   type_status.clear();
 //   db.Del(keys, &type_status);
 
-
 //   // ***************** Group 6 Test *****************
 //   size_t gp6_total_set = 23333;
 //   for (size_t idx = 0; idx < gp6_total_set; ++idx) {
@@ -2397,7 +2245,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kSets, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   //=============================== Hashes ===============================
 
@@ -2415,7 +2262,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   db.Keys(DataType::kHashes, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
 
-
 //   // ***************** Group 2 Test *****************
 //   db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY1", "FIELD", "VALUE", &ret);
 //   db.HSet("GP2_PKPATTERNMATCHDEL_HASH_KEY2", "FIELD", "VALUE", &ret);
@@ -2432,7 +2278,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kHashes, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   // ***************** Group 3 Test *****************
 //   db.HSet("GP3_PKPATTERNMATCHDEL_HASH_KEY1_0xxx0", "FIELD", "VALUE", &ret);
@@ -2453,7 +2298,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   type_status.clear();
 //   db.Del(keys, &type_status);
 
-
 //   // ***************** Group 4 Test *****************
 //   db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY1", "FIELD", "VALUE", &ret);
 //   db.HSet("GP4_PKPATTERNMATCHDEL_HASH_KEY2", "FIELD", "VALUE", &ret);
@@ -2470,7 +2314,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kHashes, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   // ***************** Group 5 Test *****************
 //   db.HSet("GP5_PKPATTERNMATCHDEL_HASH_KEY1_0ooo0", "FIELD", "VALUE", &ret);
@@ -2496,7 +2339,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   type_status.clear();
 //   db.Del(keys, &type_status);
 
-
 //   // ***************** Group 6 Test *****************
 //   size_t gp6_total_hash = 23333;
 //   for (size_t idx = 0; idx < gp6_total_hash; ++idx) {
@@ -2508,7 +2350,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kHashes, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   //=============================== ZSets ===============================
 
@@ -2526,7 +2367,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   db.Keys(DataType::kZSets, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
 
-
 //   // ***************** Group 2 Test *****************
 //   db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY1", {{1, "M"}}, &ret);
 //   db.ZAdd("GP2_PKPATTERNMATCHDEL_ZSET_KEY2", {{1, "M"}}, &ret);
@@ -2543,7 +2383,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kZSets, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   // ***************** Group 3 Test *****************
 //   db.ZAdd("GP3_PKPATTERNMATCHDEL_ZSET_KEY1_0xxx0", {{1, "M"}}, &ret);
@@ -2564,7 +2403,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   type_status.clear();
 //   db.Del(keys, &type_status);
 
-
 //   // ***************** Group 4 Test *****************
 //   db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY1", {{1, "M"}}, &ret);
 //   db.ZAdd("GP4_PKPATTERNMATCHDEL_ZSET_KEY2", {{1, "M"}}, &ret);
@@ -2581,7 +2419,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kZSets, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   // ***************** Group 5 Test *****************
 //   db.ZAdd("GP5_PKPATTERNMATCHDEL_ZSET_KEY1_0ooo0", {{1, "M"}}, &ret);
@@ -2607,7 +2444,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   type_status.clear();
 //   db.Del(keys, &type_status);
 
-
 //   // ***************** Group 6 Test *****************
 //   size_t gp6_total_zset = 23333;
 //   for (size_t idx = 0; idx < gp6_total_zset; ++idx) {
@@ -2619,8 +2455,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kZSets, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
-
 
 //   //=============================== List ===============================
 
@@ -2638,7 +2472,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   db.Keys(DataType::kLists, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
 
-
 //   // ***************** Group 2 Test *****************
 //   db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY1", {"VALUE"}, &ret64);
 //   db.LPush("GP2_PKPATTERNMATCHDEL_LIST_KEY2", {"VALUE"}, &ret64);
@@ -2655,7 +2488,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kLists, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   // ***************** Group 3 Test *****************
 //   db.LPush("GP3_PKPATTERNMATCHDEL_LIST_KEY1_0xxx0", {"VALUE"}, &ret64);
@@ -2676,7 +2508,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   type_status.clear();
 //   db.Del(keys, &type_status);
 
-
 //   // ***************** Group 4 Test *****************
 //   db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY1", {"VALUE"}, &ret64);
 //   db.LPush("GP4_PKPATTERNMATCHDEL_LIST_KEY2", {"VALUE"}, &ret64);
@@ -2693,7 +2524,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   keys.clear();
 //   db.Keys(DataType::kLists, "*", &keys);
 //   ASSERT_EQ(keys.size(), 0);
-
 
 //   // ***************** Group 5 Test *****************
 //   db.LPush("GP5_PKPATTERNMATCHDEL_LIST_KEY1_0ooo0", {"VALUE"}, &ret64);
@@ -2719,7 +2549,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 //   type_status.clear();
 //   db.Del(keys, &type_status);
 
-
 //   // ***************** Group 6 Test *****************
 //   size_t gp6_total_list = 23333;
 //   for (size_t idx = 0; idx < gp6_total_list; ++idx) {
@@ -2740,7 +2569,6 @@ TEST_F(KeysTest, PKRScanRangeTest) {
 // Note: This test needs to execute at first because all of the data is
 // predetermined.
 TEST_F(KeysTest, ScanCaseAllTest) {
-
   int64_t cursor;
   int64_t next_cursor;
   int64_t del_num;
@@ -2752,32 +2580,35 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   std::map<storage::DataType, Status> type_status;
 
   // ***************** Group 1 Test *****************
-  //String
+  // String
   s = db.Set("GP1_SCAN_CASE_ALL_STRING_KEY1", "GP1_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP1_SCAN_CASE_ALL_STRING_KEY2", "GP1_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP1_SCAN_CASE_ALL_STRING_KEY3", "GP1_SCAN_CASE_ALL_STRING_VALUE3");
 
-  //Hash
-  s = db.HSet("GP1_SCAN_CASE_ALL_HASH_KEY1", "GP1_SCAN_CASE_ALL_HASH_FIELD1", "GP1_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP1_SCAN_CASE_ALL_HASH_KEY2", "GP1_SCAN_CASE_ALL_HASH_FIELD2", "GP1_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP1_SCAN_CASE_ALL_HASH_KEY3", "GP1_SCAN_CASE_ALL_HASH_FIELD3", "GP1_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP1_SCAN_CASE_ALL_HASH_KEY1", "GP1_SCAN_CASE_ALL_HASH_FIELD1", "GP1_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP1_SCAN_CASE_ALL_HASH_KEY2", "GP1_SCAN_CASE_ALL_HASH_FIELD2", "GP1_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP1_SCAN_CASE_ALL_HASH_KEY3", "GP1_SCAN_CASE_ALL_HASH_FIELD3", "GP1_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
 
-  //Set
+  // Set
   s = db.SAdd("GP1_SCAN_CASE_ALL_SET_KEY1", {"GP1_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP1_SCAN_CASE_ALL_SET_KEY2", {"GP1_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP1_SCAN_CASE_ALL_SET_KEY3", {"GP1_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
 
-  //List
+  // List
   s = db.LPush("GP1_SCAN_CASE_ALL_LIST_KEY1", {"GP1_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP1_SCAN_CASE_ALL_LIST_KEY2", {"GP1_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP1_SCAN_CASE_ALL_LIST_KEY3", {"GP1_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP1_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP1_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP1_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP1_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP1_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP1_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
 
-  //Scan
+  // Scan
   delete_keys.clear();
   keys.clear();
   cursor = db.Scan(DataType::kAll, 0, "*", 3, &keys);
@@ -2829,34 +2660,36 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 2 Test *****************
-  //String
+  // String
   s = db.Set("GP2_SCAN_CASE_ALL_STRING_KEY1", "GP2_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP2_SCAN_CASE_ALL_STRING_KEY2", "GP2_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP2_SCAN_CASE_ALL_STRING_KEY3", "GP2_SCAN_CASE_ALL_STRING_VALUE3");
 
-  //Hash
-  s = db.HSet("GP2_SCAN_CASE_ALL_HASH_KEY1", "GP2_SCAN_CASE_ALL_HASH_FIELD1", "GP2_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP2_SCAN_CASE_ALL_HASH_KEY2", "GP2_SCAN_CASE_ALL_HASH_FIELD2", "GP2_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP2_SCAN_CASE_ALL_HASH_KEY3", "GP2_SCAN_CASE_ALL_HASH_FIELD3", "GP2_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP2_SCAN_CASE_ALL_HASH_KEY1", "GP2_SCAN_CASE_ALL_HASH_FIELD1", "GP2_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP2_SCAN_CASE_ALL_HASH_KEY2", "GP2_SCAN_CASE_ALL_HASH_FIELD2", "GP2_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP2_SCAN_CASE_ALL_HASH_KEY3", "GP2_SCAN_CASE_ALL_HASH_FIELD3", "GP2_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
 
-  //Set
+  // Set
   s = db.SAdd("GP2_SCAN_CASE_ALL_SET_KEY1", {"GP2_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP2_SCAN_CASE_ALL_SET_KEY2", {"GP2_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP2_SCAN_CASE_ALL_SET_KEY3", {"GP2_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
 
-  //List
+  // List
   s = db.LPush("GP2_SCAN_CASE_ALL_LIST_KEY1", {"GP2_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP2_SCAN_CASE_ALL_LIST_KEY2", {"GP2_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP2_SCAN_CASE_ALL_LIST_KEY3", {"GP2_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP2_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP2_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP2_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP2_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP2_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP2_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
 
-  //Scan
+  // Scan
   delete_keys.clear();
   keys.clear();
   cursor = db.Scan(DataType::kAll, 0, "*", 2, &keys);
@@ -2926,34 +2759,36 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 3 Test *****************
-  //String
+  // String
   s = db.Set("GP3_SCAN_CASE_ALL_STRING_KEY1", "GP3_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP3_SCAN_CASE_ALL_STRING_KEY2", "GP3_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP3_SCAN_CASE_ALL_STRING_KEY3", "GP3_SCAN_CASE_ALL_STRING_VALUE3");
 
-  //Hash
-  s = db.HSet("GP3_SCAN_CASE_ALL_HASH_KEY1", "GP3_SCAN_CASE_ALL_HASH_FIELD1", "GP3_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP3_SCAN_CASE_ALL_HASH_KEY2", "GP3_SCAN_CASE_ALL_HASH_FIELD2", "GP3_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP3_SCAN_CASE_ALL_HASH_KEY3", "GP3_SCAN_CASE_ALL_HASH_FIELD3", "GP3_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP3_SCAN_CASE_ALL_HASH_KEY1", "GP3_SCAN_CASE_ALL_HASH_FIELD1", "GP3_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP3_SCAN_CASE_ALL_HASH_KEY2", "GP3_SCAN_CASE_ALL_HASH_FIELD2", "GP3_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP3_SCAN_CASE_ALL_HASH_KEY3", "GP3_SCAN_CASE_ALL_HASH_FIELD3", "GP3_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
 
-  //Set
+  // Set
   s = db.SAdd("GP3_SCAN_CASE_ALL_SET_KEY1", {"GP3_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP3_SCAN_CASE_ALL_SET_KEY2", {"GP3_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP3_SCAN_CASE_ALL_SET_KEY3", {"GP3_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
 
-  //List
+  // List
   s = db.LPush("GP3_SCAN_CASE_ALL_LIST_KEY1", {"GP3_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP3_SCAN_CASE_ALL_LIST_KEY2", {"GP3_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP3_SCAN_CASE_ALL_LIST_KEY3", {"GP3_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP3_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP3_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP3_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP3_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP3_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP3_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
 
-  //Scan
+  // Scan
   delete_keys.clear();
   keys.clear();
   cursor = db.Scan(DataType::kAll, 0, "*", 5, &keys);
@@ -2993,29 +2828,31 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 4 Test *****************
-  //String
+  // String
   s = db.Set("GP4_SCAN_CASE_ALL_STRING_KEY1", "GP4_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP4_SCAN_CASE_ALL_STRING_KEY2", "GP4_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP4_SCAN_CASE_ALL_STRING_KEY3", "GP4_SCAN_CASE_ALL_STRING_VALUE3");
 
-  //Hash
-  s = db.HSet("GP4_SCAN_CASE_ALL_HASH_KEY1", "GP4_SCAN_CASE_ALL_HASH_FIELD1", "GP4_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP4_SCAN_CASE_ALL_HASH_KEY2", "GP4_SCAN_CASE_ALL_HASH_FIELD2", "GP4_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP4_SCAN_CASE_ALL_HASH_KEY3", "GP4_SCAN_CASE_ALL_HASH_FIELD3", "GP4_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP4_SCAN_CASE_ALL_HASH_KEY1", "GP4_SCAN_CASE_ALL_HASH_FIELD1", "GP4_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP4_SCAN_CASE_ALL_HASH_KEY2", "GP4_SCAN_CASE_ALL_HASH_FIELD2", "GP4_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP4_SCAN_CASE_ALL_HASH_KEY3", "GP4_SCAN_CASE_ALL_HASH_FIELD3", "GP4_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
 
-  //Set
+  // Set
   s = db.SAdd("GP4_SCAN_CASE_ALL_SET_KEY1", {"GP4_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP4_SCAN_CASE_ALL_SET_KEY2", {"GP4_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP4_SCAN_CASE_ALL_SET_KEY3", {"GP4_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
 
-  //List
+  // List
   s = db.LPush("GP4_SCAN_CASE_ALL_LIST_KEY1", {"GP4_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP4_SCAN_CASE_ALL_LIST_KEY2", {"GP4_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP4_SCAN_CASE_ALL_LIST_KEY3", {"GP4_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP4_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP4_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP4_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP4_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP4_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP4_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3047,10 +2884,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 5 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP5_SCAN_CASE_ALL_STRING_KEY1", "GP5_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP5_SCAN_CASE_ALL_STRING_KEY2", "GP5_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP5_SCAN_CASE_ALL_STRING_KEY3", "GP5_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3058,15 +2894,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP5_SCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP5_SCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP5_SCAN_CASE_ALL_HASH_KEY1", "GP5_SCAN_CASE_ALL_HASH_FIELD1", "GP5_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP5_SCAN_CASE_ALL_HASH_KEY2", "GP5_SCAN_CASE_ALL_HASH_FIELD2", "GP5_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP5_SCAN_CASE_ALL_HASH_KEY3", "GP5_SCAN_CASE_ALL_HASH_FIELD3", "GP5_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP5_SCAN_CASE_ALL_HASH_KEY1", "GP5_SCAN_CASE_ALL_HASH_FIELD1", "GP5_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP5_SCAN_CASE_ALL_HASH_KEY2", "GP5_SCAN_CASE_ALL_HASH_FIELD2", "GP5_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP5_SCAN_CASE_ALL_HASH_KEY3", "GP5_SCAN_CASE_ALL_HASH_FIELD3", "GP5_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP5_SCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP5_SCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP5_SCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP5_SCAN_CASE_ALL_SET_KEY1", {"GP5_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP5_SCAN_CASE_ALL_SET_KEY2", {"GP5_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP5_SCAN_CASE_ALL_SET_KEY3", {"GP5_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3074,7 +2913,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP5_SCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP5_SCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP5_SCAN_CASE_ALL_LIST_KEY1", {"GP5_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP5_SCAN_CASE_ALL_LIST_KEY2", {"GP5_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP5_SCAN_CASE_ALL_LIST_KEY3", {"GP5_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3082,7 +2921,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP5_SCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP5_SCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP5_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP5_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP5_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP5_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP5_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP5_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3108,10 +2947,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 6 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP6_SCAN_CASE_ALL_STRING_KEY1", "GP6_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP6_SCAN_CASE_ALL_STRING_KEY2", "GP6_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP6_SCAN_CASE_ALL_STRING_KEY3", "GP6_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3119,15 +2957,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP6_SCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP6_SCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP6_SCAN_CASE_ALL_HASH_KEY1", "GP6_SCAN_CASE_ALL_HASH_FIELD1", "GP6_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP6_SCAN_CASE_ALL_HASH_KEY2", "GP6_SCAN_CASE_ALL_HASH_FIELD2", "GP6_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP6_SCAN_CASE_ALL_HASH_KEY3", "GP6_SCAN_CASE_ALL_HASH_FIELD3", "GP6_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP6_SCAN_CASE_ALL_HASH_KEY1", "GP6_SCAN_CASE_ALL_HASH_FIELD1", "GP6_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP6_SCAN_CASE_ALL_HASH_KEY2", "GP6_SCAN_CASE_ALL_HASH_FIELD2", "GP6_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP6_SCAN_CASE_ALL_HASH_KEY3", "GP6_SCAN_CASE_ALL_HASH_FIELD3", "GP6_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP6_SCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP6_SCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP6_SCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP6_SCAN_CASE_ALL_SET_KEY1", {"GP6_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP6_SCAN_CASE_ALL_SET_KEY2", {"GP6_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP6_SCAN_CASE_ALL_SET_KEY3", {"GP6_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3135,7 +2976,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP6_SCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP6_SCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP6_SCAN_CASE_ALL_LIST_KEY1", {"GP6_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP6_SCAN_CASE_ALL_LIST_KEY2", {"GP6_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP6_SCAN_CASE_ALL_LIST_KEY3", {"GP6_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3143,7 +2984,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP6_SCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP6_SCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP6_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP6_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP6_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP6_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP6_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP6_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3171,10 +3012,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 7 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP7_SCAN_CASE_ALL_STRING_KEY1", "GP7_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP7_SCAN_CASE_ALL_STRING_KEY2", "GP7_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP7_SCAN_CASE_ALL_STRING_KEY3", "GP7_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3182,15 +3022,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP7_SCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP7_SCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP7_SCAN_CASE_ALL_HASH_KEY1", "GP7_SCAN_CASE_ALL_HASH_FIELD1", "GP7_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP7_SCAN_CASE_ALL_HASH_KEY2", "GP7_SCAN_CASE_ALL_HASH_FIELD2", "GP7_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP7_SCAN_CASE_ALL_HASH_KEY3", "GP7_SCAN_CASE_ALL_HASH_FIELD3", "GP7_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP7_SCAN_CASE_ALL_HASH_KEY1", "GP7_SCAN_CASE_ALL_HASH_FIELD1", "GP7_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP7_SCAN_CASE_ALL_HASH_KEY2", "GP7_SCAN_CASE_ALL_HASH_FIELD2", "GP7_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP7_SCAN_CASE_ALL_HASH_KEY3", "GP7_SCAN_CASE_ALL_HASH_FIELD3", "GP7_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP7_SCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP7_SCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP7_SCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP7_SCAN_CASE_ALL_SET_KEY1", {"GP7_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP7_SCAN_CASE_ALL_SET_KEY2", {"GP7_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP7_SCAN_CASE_ALL_SET_KEY3", {"GP7_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3198,7 +3041,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP7_SCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP7_SCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP7_SCAN_CASE_ALL_LIST_KEY1", {"GP7_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP7_SCAN_CASE_ALL_LIST_KEY2", {"GP7_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP7_SCAN_CASE_ALL_LIST_KEY3", {"GP7_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3206,7 +3049,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP7_SCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP7_SCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP7_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP7_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP7_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP7_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP7_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP7_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3234,10 +3077,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 8 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP8_SCAN_CASE_ALL_STRING_KEY1", "GP8_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP8_SCAN_CASE_ALL_STRING_KEY2", "GP8_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP8_SCAN_CASE_ALL_STRING_KEY3", "GP8_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3245,15 +3087,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP8_SCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP8_SCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP8_SCAN_CASE_ALL_HASH_KEY1", "GP8_SCAN_CASE_ALL_HASH_FIELD1", "GP8_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP8_SCAN_CASE_ALL_HASH_KEY2", "GP8_SCAN_CASE_ALL_HASH_FIELD2", "GP8_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP8_SCAN_CASE_ALL_HASH_KEY3", "GP8_SCAN_CASE_ALL_HASH_FIELD3", "GP8_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP8_SCAN_CASE_ALL_HASH_KEY1", "GP8_SCAN_CASE_ALL_HASH_FIELD1", "GP8_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP8_SCAN_CASE_ALL_HASH_KEY2", "GP8_SCAN_CASE_ALL_HASH_FIELD2", "GP8_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP8_SCAN_CASE_ALL_HASH_KEY3", "GP8_SCAN_CASE_ALL_HASH_FIELD3", "GP8_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP8_SCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP8_SCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP8_SCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP8_SCAN_CASE_ALL_SET_KEY1", {"GP8_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP8_SCAN_CASE_ALL_SET_KEY2", {"GP8_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP8_SCAN_CASE_ALL_SET_KEY3", {"GP8_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3261,7 +3106,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP8_SCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP8_SCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP8_SCAN_CASE_ALL_LIST_KEY1", {"GP8_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP8_SCAN_CASE_ALL_LIST_KEY2", {"GP8_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP8_SCAN_CASE_ALL_LIST_KEY3", {"GP8_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3269,7 +3114,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP8_SCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP8_SCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP8_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP8_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP8_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP8_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP8_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP8_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3297,10 +3142,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 9 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP9_SCAN_CASE_ALL_STRING_KEY1", "GP9_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP9_SCAN_CASE_ALL_STRING_KEY2", "GP9_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP9_SCAN_CASE_ALL_STRING_KEY3", "GP9_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3308,15 +3152,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP9_SCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP9_SCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP9_SCAN_CASE_ALL_HASH_KEY1", "GP9_SCAN_CASE_ALL_HASH_FIELD1", "GP9_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP9_SCAN_CASE_ALL_HASH_KEY2", "GP9_SCAN_CASE_ALL_HASH_FIELD2", "GP9_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP9_SCAN_CASE_ALL_HASH_KEY3", "GP9_SCAN_CASE_ALL_HASH_FIELD3", "GP9_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP9_SCAN_CASE_ALL_HASH_KEY1", "GP9_SCAN_CASE_ALL_HASH_FIELD1", "GP9_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP9_SCAN_CASE_ALL_HASH_KEY2", "GP9_SCAN_CASE_ALL_HASH_FIELD2", "GP9_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP9_SCAN_CASE_ALL_HASH_KEY3", "GP9_SCAN_CASE_ALL_HASH_FIELD3", "GP9_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP9_SCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP9_SCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP9_SCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP9_SCAN_CASE_ALL_SET_KEY1", {"GP9_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP9_SCAN_CASE_ALL_SET_KEY2", {"GP9_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP9_SCAN_CASE_ALL_SET_KEY3", {"GP9_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3324,7 +3171,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP9_SCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP9_SCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP9_SCAN_CASE_ALL_LIST_KEY1", {"GP9_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP9_SCAN_CASE_ALL_LIST_KEY2", {"GP9_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP9_SCAN_CASE_ALL_LIST_KEY3", {"GP9_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3332,7 +3179,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP9_SCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP9_SCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP9_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP9_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP9_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP9_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP9_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP9_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3370,10 +3217,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 10 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP10_SCAN_CASE_ALL_STRING_KEY1", "GP10_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP10_SCAN_CASE_ALL_STRING_KEY2", "GP10_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP10_SCAN_CASE_ALL_STRING_KEY3", "GP10_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3381,15 +3227,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP10_SCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP10_SCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP10_SCAN_CASE_ALL_HASH_KEY1", "GP10_SCAN_CASE_ALL_HASH_FIELD1", "GP10_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP10_SCAN_CASE_ALL_HASH_KEY2", "GP10_SCAN_CASE_ALL_HASH_FIELD2", "GP10_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP10_SCAN_CASE_ALL_HASH_KEY3", "GP10_SCAN_CASE_ALL_HASH_FIELD3", "GP10_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP10_SCAN_CASE_ALL_HASH_KEY1", "GP10_SCAN_CASE_ALL_HASH_FIELD1", "GP10_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP10_SCAN_CASE_ALL_HASH_KEY2", "GP10_SCAN_CASE_ALL_HASH_FIELD2", "GP10_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP10_SCAN_CASE_ALL_HASH_KEY3", "GP10_SCAN_CASE_ALL_HASH_FIELD3", "GP10_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP10_SCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP10_SCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP10_SCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP10_SCAN_CASE_ALL_SET_KEY1", {"GP10_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP10_SCAN_CASE_ALL_SET_KEY2", {"GP10_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP10_SCAN_CASE_ALL_SET_KEY3", {"GP10_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3397,7 +3246,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP10_SCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP10_SCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP10_SCAN_CASE_ALL_LIST_KEY1", {"GP10_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP10_SCAN_CASE_ALL_LIST_KEY2", {"GP10_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP10_SCAN_CASE_ALL_LIST_KEY3", {"GP10_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3405,7 +3254,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP10_SCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP10_SCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP10_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP10_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP10_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP10_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP10_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP10_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3431,10 +3280,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 11 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP11_SCAN_CASE_ALL_STRING_KEY1", "GP11_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP11_SCAN_CASE_ALL_STRING_KEY2", "GP11_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP11_SCAN_CASE_ALL_STRING_KEY3", "GP11_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3442,15 +3290,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP11_SCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP11_SCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP11_SCAN_CASE_ALL_HASH_KEY1", "GP11_SCAN_CASE_ALL_HASH_FIELD1", "GP11_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP11_SCAN_CASE_ALL_HASH_KEY2", "GP11_SCAN_CASE_ALL_HASH_FIELD2", "GP11_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP11_SCAN_CASE_ALL_HASH_KEY3", "GP11_SCAN_CASE_ALL_HASH_FIELD3", "GP11_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP11_SCAN_CASE_ALL_HASH_KEY1", "GP11_SCAN_CASE_ALL_HASH_FIELD1", "GP11_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP11_SCAN_CASE_ALL_HASH_KEY2", "GP11_SCAN_CASE_ALL_HASH_FIELD2", "GP11_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP11_SCAN_CASE_ALL_HASH_KEY3", "GP11_SCAN_CASE_ALL_HASH_FIELD3", "GP11_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP11_SCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP11_SCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP11_SCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP11_SCAN_CASE_ALL_SET_KEY1", {"GP11_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP11_SCAN_CASE_ALL_SET_KEY2", {"GP11_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP11_SCAN_CASE_ALL_SET_KEY3", {"GP11_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3458,7 +3309,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP11_SCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP11_SCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP11_SCAN_CASE_ALL_LIST_KEY1", {"GP11_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP11_SCAN_CASE_ALL_LIST_KEY2", {"GP11_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP11_SCAN_CASE_ALL_LIST_KEY3", {"GP11_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3466,7 +3317,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP11_SCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP11_SCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP11_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP11_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP11_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP11_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP11_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP11_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3492,10 +3343,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 12 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP12_SCAN_CASE_ALL_STRING_KEY1", "GP12_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP12_SCAN_CASE_ALL_STRING_KEY2", "GP12_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP12_SCAN_CASE_ALL_STRING_KEY3", "GP12_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3503,15 +3353,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP12_SCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP12_SCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP12_SCAN_CASE_ALL_HASH_KEY1", "GP12_SCAN_CASE_ALL_HASH_FIELD1", "GP12_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP12_SCAN_CASE_ALL_HASH_KEY2", "GP12_SCAN_CASE_ALL_HASH_FIELD2", "GP12_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP12_SCAN_CASE_ALL_HASH_KEY3", "GP12_SCAN_CASE_ALL_HASH_FIELD3", "GP12_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP12_SCAN_CASE_ALL_HASH_KEY1", "GP12_SCAN_CASE_ALL_HASH_FIELD1", "GP12_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP12_SCAN_CASE_ALL_HASH_KEY2", "GP12_SCAN_CASE_ALL_HASH_FIELD2", "GP12_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP12_SCAN_CASE_ALL_HASH_KEY3", "GP12_SCAN_CASE_ALL_HASH_FIELD3", "GP12_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP12_SCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP12_SCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP12_SCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP12_SCAN_CASE_ALL_SET_KEY1", {"GP12_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP12_SCAN_CASE_ALL_SET_KEY2", {"GP12_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP12_SCAN_CASE_ALL_SET_KEY3", {"GP12_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3519,7 +3372,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP12_SCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP12_SCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP12_SCAN_CASE_ALL_LIST_KEY1", {"GP12_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP12_SCAN_CASE_ALL_LIST_KEY2", {"GP12_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP12_SCAN_CASE_ALL_LIST_KEY3", {"GP12_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3527,7 +3380,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP12_SCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP12_SCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP12_SCAN_CASE_ALL_ZSET_KEY1", {{1, "GP12_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP12_SCAN_CASE_ALL_ZSET_KEY2", {{1, "GP12_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP12_SCAN_CASE_ALL_ZSET_KEY3", {{1, "GP12_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3553,10 +3406,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 13 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP13_KEY1_SCAN_CASE_ALL_STRING", "GP13_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP13_KEY2_SCAN_CASE_ALL_STRING", "GP13_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP13_KEY3_SCAN_CASE_ALL_STRING", "GP13_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3564,15 +3416,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP13_KEY2_SCAN_CASE_ALL_STRING");
   delete_keys.push_back("GP13_KEY3_SCAN_CASE_ALL_STRING");
 
-  //Hash
-  s = db.HSet("GP13_KEY1_SCAN_CASE_ALL_HASH", "GP13_SCAN_CASE_ALL_HASH_FIELD1", "GP13_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP13_KEY2_SCAN_CASE_ALL_HASH", "GP13_SCAN_CASE_ALL_HASH_FIELD2", "GP13_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP13_KEY3_SCAN_CASE_ALL_HASH", "GP13_SCAN_CASE_ALL_HASH_FIELD3", "GP13_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP13_KEY1_SCAN_CASE_ALL_HASH", "GP13_SCAN_CASE_ALL_HASH_FIELD1", "GP13_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP13_KEY2_SCAN_CASE_ALL_HASH", "GP13_SCAN_CASE_ALL_HASH_FIELD2", "GP13_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP13_KEY3_SCAN_CASE_ALL_HASH", "GP13_SCAN_CASE_ALL_HASH_FIELD3", "GP13_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP13_KEY1_SCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP13_KEY2_SCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP13_KEY3_SCAN_CASE_ALL_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP13_KEY1_SCAN_CASE_ALL_SET", {"GP13_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP13_KEY2_SCAN_CASE_ALL_SET", {"GP13_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP13_KEY3_SCAN_CASE_ALL_SET", {"GP13_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3580,7 +3435,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP13_KEY2_SCAN_CASE_ALL_SET");
   delete_keys.push_back("GP13_KEY3_SCAN_CASE_ALL_SET");
 
-  //List
+  // List
   s = db.LPush("GP13_KEY1_SCAN_CASE_ALL_LIST", {"GP13_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP13_KEY2_SCAN_CASE_ALL_LIST", {"GP13_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP13_KEY3_SCAN_CASE_ALL_LIST", {"GP13_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3588,7 +3443,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP13_KEY2_SCAN_CASE_ALL_LIST");
   delete_keys.push_back("GP13_KEY3_SCAN_CASE_ALL_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP13_KEY1_SCAN_CASE_ALL_ZSET", {{1, "GP13_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP13_KEY2_SCAN_CASE_ALL_ZSET", {{1, "GP13_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP13_KEY3_SCAN_CASE_ALL_ZSET", {{1, "GP13_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3616,10 +3471,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 14 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP14_KEY1_SCAN_CASE_ALL_STRING", "GP14_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP14_KEY2_SCAN_CASE_ALL_STRING", "GP14_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP14_KEY3_SCAN_CASE_ALL_STRING", "GP14_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3627,15 +3481,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP14_KEY2_SCAN_CASE_ALL_STRING");
   delete_keys.push_back("GP14_KEY3_SCAN_CASE_ALL_STRING");
 
-  //Hash
-  s = db.HSet("GP14_KEY1_SCAN_CASE_ALL_HASH", "GP14_SCAN_CASE_ALL_HASH_FIELD1", "GP14_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP14_KEY2_SCAN_CASE_ALL_HASH", "GP14_SCAN_CASE_ALL_HASH_FIELD2", "GP14_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP14_KEY3_SCAN_CASE_ALL_HASH", "GP14_SCAN_CASE_ALL_HASH_FIELD3", "GP14_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP14_KEY1_SCAN_CASE_ALL_HASH", "GP14_SCAN_CASE_ALL_HASH_FIELD1", "GP14_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP14_KEY2_SCAN_CASE_ALL_HASH", "GP14_SCAN_CASE_ALL_HASH_FIELD2", "GP14_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP14_KEY3_SCAN_CASE_ALL_HASH", "GP14_SCAN_CASE_ALL_HASH_FIELD3", "GP14_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP14_KEY1_SCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP14_KEY2_SCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP14_KEY3_SCAN_CASE_ALL_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP14_KEY1_SCAN_CASE_ALL_SET", {"GP14_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP14_KEY2_SCAN_CASE_ALL_SET", {"GP14_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP14_KEY3_SCAN_CASE_ALL_SET", {"GP14_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3643,7 +3500,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP14_KEY2_SCAN_CASE_ALL_SET");
   delete_keys.push_back("GP14_KEY3_SCAN_CASE_ALL_SET");
 
-  //List
+  // List
   s = db.LPush("GP14_KEY1_SCAN_CASE_ALL_LIST", {"GP14_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP14_KEY2_SCAN_CASE_ALL_LIST", {"GP14_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP14_KEY3_SCAN_CASE_ALL_LIST", {"GP14_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3651,7 +3508,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP14_KEY2_SCAN_CASE_ALL_LIST");
   delete_keys.push_back("GP14_KEY3_SCAN_CASE_ALL_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP14_KEY1_SCAN_CASE_ALL_ZSET", {{1, "GP14_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP14_KEY2_SCAN_CASE_ALL_ZSET", {{1, "GP14_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP14_KEY3_SCAN_CASE_ALL_ZSET", {{1, "GP14_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3679,10 +3536,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 15 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP15_KEY1_SCAN_CASE_ALL_STRING", "GP15_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP15_KEY2_SCAN_CASE_ALL_STRING", "GP15_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP15_KEY3_SCAN_CASE_ALL_STRING", "GP15_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3690,15 +3546,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP15_KEY2_SCAN_CASE_ALL_STRING");
   delete_keys.push_back("GP15_KEY3_SCAN_CASE_ALL_STRING");
 
-  //Hash
-  s = db.HSet("GP15_KEY1_SCAN_CASE_ALL_HASH", "GP15_SCAN_CASE_ALL_HASH_FIELD1", "GP15_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP15_KEY2_SCAN_CASE_ALL_HASH", "GP15_SCAN_CASE_ALL_HASH_FIELD2", "GP15_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP15_KEY3_SCAN_CASE_ALL_HASH", "GP15_SCAN_CASE_ALL_HASH_FIELD3", "GP15_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP15_KEY1_SCAN_CASE_ALL_HASH", "GP15_SCAN_CASE_ALL_HASH_FIELD1", "GP15_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP15_KEY2_SCAN_CASE_ALL_HASH", "GP15_SCAN_CASE_ALL_HASH_FIELD2", "GP15_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP15_KEY3_SCAN_CASE_ALL_HASH", "GP15_SCAN_CASE_ALL_HASH_FIELD3", "GP15_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP15_KEY1_SCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP15_KEY2_SCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP15_KEY3_SCAN_CASE_ALL_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP15_KEY1_SCAN_CASE_ALL_SET", {"GP15_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP15_KEY2_SCAN_CASE_ALL_SET", {"GP15_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP15_KEY3_SCAN_CASE_ALL_SET", {"GP15_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3706,7 +3565,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP15_KEY2_SCAN_CASE_ALL_SET");
   delete_keys.push_back("GP15_KEY3_SCAN_CASE_ALL_SET");
 
-  //List
+  // List
   s = db.LPush("GP15_KEY1_SCAN_CASE_ALL_LIST", {"GP15_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP15_KEY2_SCAN_CASE_ALL_LIST", {"GP15_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP15_KEY3_SCAN_CASE_ALL_LIST", {"GP15_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3714,7 +3573,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP15_KEY2_SCAN_CASE_ALL_LIST");
   delete_keys.push_back("GP15_KEY3_SCAN_CASE_ALL_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP15_KEY1_SCAN_CASE_ALL_ZSET", {{1, "GP15_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP15_KEY2_SCAN_CASE_ALL_ZSET", {{1, "GP15_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP15_KEY3_SCAN_CASE_ALL_ZSET", {{1, "GP15_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3742,10 +3601,9 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 16 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP16_KEY1_SCAN_CASE_ALL_STRING", "GP16_SCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP16_KEY2_SCAN_CASE_ALL_STRING", "GP16_SCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP16_KEY3_SCAN_CASE_ALL_STRING", "GP16_SCAN_CASE_ALL_STRING_VALUE3");
@@ -3753,15 +3611,18 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP16_KEY2_SCAN_CASE_ALL_STRING");
   delete_keys.push_back("GP16_KEY3_SCAN_CASE_ALL_STRING");
 
-  //Hash
-  s = db.HSet("GP16_KEY1_SCAN_CASE_ALL_HASH", "GP16_SCAN_CASE_ALL_HASH_FIELD1", "GP16_SCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP16_KEY2_SCAN_CASE_ALL_HASH", "GP16_SCAN_CASE_ALL_HASH_FIELD2", "GP16_SCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP16_KEY3_SCAN_CASE_ALL_HASH", "GP16_SCAN_CASE_ALL_HASH_FIELD3", "GP16_SCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP16_KEY1_SCAN_CASE_ALL_HASH", "GP16_SCAN_CASE_ALL_HASH_FIELD1", "GP16_SCAN_CASE_ALL_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP16_KEY2_SCAN_CASE_ALL_HASH", "GP16_SCAN_CASE_ALL_HASH_FIELD2", "GP16_SCAN_CASE_ALL_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP16_KEY3_SCAN_CASE_ALL_HASH", "GP16_SCAN_CASE_ALL_HASH_FIELD3", "GP16_SCAN_CASE_ALL_HASH_VALUE3",
+              &int32_ret);
   delete_keys.push_back("GP16_KEY1_SCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP16_KEY2_SCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP16_KEY3_SCAN_CASE_ALL_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP16_KEY1_SCAN_CASE_ALL_SET", {"GP16_SCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP16_KEY2_SCAN_CASE_ALL_SET", {"GP16_SCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP16_KEY3_SCAN_CASE_ALL_SET", {"GP16_SCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -3769,7 +3630,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP16_KEY2_SCAN_CASE_ALL_SET");
   delete_keys.push_back("GP16_KEY3_SCAN_CASE_ALL_SET");
 
-  //List
+  // List
   s = db.LPush("GP16_KEY1_SCAN_CASE_ALL_LIST", {"GP16_SCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP16_KEY2_SCAN_CASE_ALL_LIST", {"GP16_SCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP16_KEY3_SCAN_CASE_ALL_LIST", {"GP16_SCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -3777,7 +3638,7 @@ TEST_F(KeysTest, ScanCaseAllTest) {
   delete_keys.push_back("GP16_KEY2_SCAN_CASE_ALL_LIST");
   delete_keys.push_back("GP16_KEY3_SCAN_CASE_ALL_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP16_KEY1_SCAN_CASE_ALL_ZSET", {{1, "GP16_SCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP16_KEY2_SCAN_CASE_ALL_ZSET", {{1, "GP16_SCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP16_KEY3_SCAN_CASE_ALL_ZSET", {{1, "GP16_SCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -3810,7 +3671,6 @@ TEST_F(KeysTest, ScanCaseAllTest) {
 // Note: This test needs to execute at first because all of the data is
 // predetermined.
 TEST_F(KeysTest, ScanCaseSingleTest) {
-
   int64_t cursor;
   int64_t next_cursor;
   int64_t del_num;
@@ -3823,7 +3683,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
 
   // ***************** Group 1 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP1_KEY1_SCAN_CASE_SINGLE_STRING", "GP1_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP1_KEY2_SCAN_CASE_SINGLE_STRING", "GP1_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP1_KEY3_SCAN_CASE_SINGLE_STRING", "GP1_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -3837,13 +3697,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP1_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP1_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP1_KEY1_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD1", "GP1_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP1_KEY2_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD2", "GP1_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP1_KEY3_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD3", "GP1_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP1_KEY4_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD4", "GP1_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP1_KEY5_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD5", "GP1_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP1_KEY6_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD6", "GP1_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP1_KEY1_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD1", "GP1_SCAN_CASE_SINGLE_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP1_KEY2_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD2", "GP1_SCAN_CASE_SINGLE_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP1_KEY3_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD3", "GP1_SCAN_CASE_SINGLE_HASH_VALUE3",
+              &int32_ret);
+  s = db.HSet("GP1_KEY4_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD4", "GP1_SCAN_CASE_SINGLE_HASH_VALUE4",
+              &int32_ret);
+  s = db.HSet("GP1_KEY5_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD5", "GP1_SCAN_CASE_SINGLE_HASH_VALUE5",
+              &int32_ret);
+  s = db.HSet("GP1_KEY6_SCAN_CASE_SINGLE_HASH", "GP1_SCAN_CASE_SINGLE_HASH_FIELD6", "GP1_SCAN_CASE_SINGLE_HASH_VALUE6",
+              &int32_ret);
   delete_keys.push_back("GP1_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP1_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP1_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -3851,7 +3717,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP1_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP1_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP1_KEY1_SCAN_CASE_SINGLE_SET", {"GP1_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP1_KEY2_SCAN_CASE_SINGLE_SET", {"GP1_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP1_KEY3_SCAN_CASE_SINGLE_SET", {"GP1_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -3865,7 +3731,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP1_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP1_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP1_KEY1_SCAN_CASE_SINGLE_LIST", {"GP1_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP1_KEY2_SCAN_CASE_SINGLE_LIST", {"GP1_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP1_KEY3_SCAN_CASE_SINGLE_LIST", {"GP1_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -3879,7 +3745,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP1_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP1_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP1_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP1_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP1_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP1_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP1_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP1_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -3920,10 +3786,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 2 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP2_KEY1_SCAN_CASE_SINGLE_STRING", "GP2_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP2_KEY2_SCAN_CASE_SINGLE_STRING", "GP2_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP2_KEY3_SCAN_CASE_SINGLE_STRING", "GP2_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -3937,13 +3802,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP2_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP2_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP2_KEY1_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD1", "GP2_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP2_KEY2_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD2", "GP2_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP2_KEY3_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD3", "GP2_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP2_KEY4_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD4", "GP2_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP2_KEY5_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD5", "GP2_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP2_KEY6_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD6", "GP2_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP2_KEY1_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD1", "GP2_SCAN_CASE_SINGLE_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP2_KEY2_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD2", "GP2_SCAN_CASE_SINGLE_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP2_KEY3_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD3", "GP2_SCAN_CASE_SINGLE_HASH_VALUE3",
+              &int32_ret);
+  s = db.HSet("GP2_KEY4_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD4", "GP2_SCAN_CASE_SINGLE_HASH_VALUE4",
+              &int32_ret);
+  s = db.HSet("GP2_KEY5_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD5", "GP2_SCAN_CASE_SINGLE_HASH_VALUE5",
+              &int32_ret);
+  s = db.HSet("GP2_KEY6_SCAN_CASE_SINGLE_HASH", "GP2_SCAN_CASE_SINGLE_HASH_FIELD6", "GP2_SCAN_CASE_SINGLE_HASH_VALUE6",
+              &int32_ret);
   delete_keys.push_back("GP2_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP2_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP2_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -3951,7 +3822,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP2_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP2_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP2_KEY1_SCAN_CASE_SINGLE_SET", {"GP2_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP2_KEY2_SCAN_CASE_SINGLE_SET", {"GP2_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP2_KEY3_SCAN_CASE_SINGLE_SET", {"GP2_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -3965,7 +3836,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP2_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP2_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP2_KEY1_SCAN_CASE_SINGLE_LIST", {"GP2_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP2_KEY2_SCAN_CASE_SINGLE_LIST", {"GP2_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP2_KEY3_SCAN_CASE_SINGLE_LIST", {"GP2_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -3979,7 +3850,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP2_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP2_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP2_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP2_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP2_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP2_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP2_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP2_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4015,10 +3886,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 3 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP3_KEY1_SCAN_CASE_SINGLE_STRING", "GP3_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP3_KEY2_SCAN_CASE_SINGLE_STRING", "GP3_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP3_KEY3_SCAN_CASE_SINGLE_STRING", "GP3_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4032,13 +3902,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP3_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP3_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP3_KEY1_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD1", "GP3_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP3_KEY2_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD2", "GP3_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP3_KEY3_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD3", "GP3_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP3_KEY4_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD4", "GP3_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP3_KEY5_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD5", "GP3_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP3_KEY6_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD6", "GP3_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP3_KEY1_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD1", "GP3_SCAN_CASE_SINGLE_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP3_KEY2_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD2", "GP3_SCAN_CASE_SINGLE_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP3_KEY3_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD3", "GP3_SCAN_CASE_SINGLE_HASH_VALUE3",
+              &int32_ret);
+  s = db.HSet("GP3_KEY4_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD4", "GP3_SCAN_CASE_SINGLE_HASH_VALUE4",
+              &int32_ret);
+  s = db.HSet("GP3_KEY5_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD5", "GP3_SCAN_CASE_SINGLE_HASH_VALUE5",
+              &int32_ret);
+  s = db.HSet("GP3_KEY6_SCAN_CASE_SINGLE_HASH", "GP3_SCAN_CASE_SINGLE_HASH_FIELD6", "GP3_SCAN_CASE_SINGLE_HASH_VALUE6",
+              &int32_ret);
   delete_keys.push_back("GP3_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP3_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP3_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4046,7 +3922,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP3_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP3_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP3_KEY1_SCAN_CASE_SINGLE_SET", {"GP3_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP3_KEY2_SCAN_CASE_SINGLE_SET", {"GP3_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP3_KEY3_SCAN_CASE_SINGLE_SET", {"GP3_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4060,7 +3936,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP3_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP3_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP3_KEY1_SCAN_CASE_SINGLE_LIST", {"GP3_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP3_KEY2_SCAN_CASE_SINGLE_LIST", {"GP3_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP3_KEY3_SCAN_CASE_SINGLE_LIST", {"GP3_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4074,7 +3950,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP3_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP3_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP3_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP3_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP3_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP3_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP3_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP3_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4105,10 +3981,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 4 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP4_KEY1_SCAN_CASE_SINGLE_STRING", "GP4_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP4_KEY2_SCAN_CASE_SINGLE_STRING", "GP4_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP4_KEY3_SCAN_CASE_SINGLE_STRING", "GP4_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4122,13 +3997,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP4_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP4_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP4_KEY1_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD1", "GP4_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP4_KEY2_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD2", "GP4_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP4_KEY3_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD3", "GP4_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP4_KEY4_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD4", "GP4_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP4_KEY5_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD5", "GP4_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP4_KEY6_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD6", "GP4_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP4_KEY1_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD1", "GP4_SCAN_CASE_SINGLE_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP4_KEY2_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD2", "GP4_SCAN_CASE_SINGLE_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP4_KEY3_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD3", "GP4_SCAN_CASE_SINGLE_HASH_VALUE3",
+              &int32_ret);
+  s = db.HSet("GP4_KEY4_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD4", "GP4_SCAN_CASE_SINGLE_HASH_VALUE4",
+              &int32_ret);
+  s = db.HSet("GP4_KEY5_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD5", "GP4_SCAN_CASE_SINGLE_HASH_VALUE5",
+              &int32_ret);
+  s = db.HSet("GP4_KEY6_SCAN_CASE_SINGLE_HASH", "GP4_SCAN_CASE_SINGLE_HASH_FIELD6", "GP4_SCAN_CASE_SINGLE_HASH_VALUE6",
+              &int32_ret);
   delete_keys.push_back("GP4_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP4_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP4_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4136,7 +4017,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP4_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP4_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP4_KEY1_SCAN_CASE_SINGLE_SET", {"GP4_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP4_KEY2_SCAN_CASE_SINGLE_SET", {"GP4_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP4_KEY3_SCAN_CASE_SINGLE_SET", {"GP4_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4150,7 +4031,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP4_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP4_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP4_KEY1_SCAN_CASE_SINGLE_LIST", {"GP4_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP4_KEY2_SCAN_CASE_SINGLE_LIST", {"GP4_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP4_KEY3_SCAN_CASE_SINGLE_LIST", {"GP4_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4164,7 +4045,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP4_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP4_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP4_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP4_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP4_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP4_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP4_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP4_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4195,10 +4076,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 5 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP5_KEY1_SCAN_CASE_SINGLE_STRING", "GP5_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP5_KEY2_SCAN_CASE_SINGLE_STRING", "GP5_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP5_KEY3_SCAN_CASE_SINGLE_STRING", "GP5_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4212,13 +4092,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP5_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP5_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP5_KEY1_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD1", "GP5_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP5_KEY2_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD2", "GP5_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP5_KEY3_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD3", "GP5_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP5_KEY4_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD4", "GP5_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP5_KEY5_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD5", "GP5_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP5_KEY6_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD6", "GP5_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP5_KEY1_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD1", "GP5_SCAN_CASE_SINGLE_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP5_KEY2_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD2", "GP5_SCAN_CASE_SINGLE_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP5_KEY3_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD3", "GP5_SCAN_CASE_SINGLE_HASH_VALUE3",
+              &int32_ret);
+  s = db.HSet("GP5_KEY4_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD4", "GP5_SCAN_CASE_SINGLE_HASH_VALUE4",
+              &int32_ret);
+  s = db.HSet("GP5_KEY5_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD5", "GP5_SCAN_CASE_SINGLE_HASH_VALUE5",
+              &int32_ret);
+  s = db.HSet("GP5_KEY6_SCAN_CASE_SINGLE_HASH", "GP5_SCAN_CASE_SINGLE_HASH_FIELD6", "GP5_SCAN_CASE_SINGLE_HASH_VALUE6",
+              &int32_ret);
   delete_keys.push_back("GP5_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP5_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP5_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4226,7 +4112,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP5_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP5_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP5_KEY1_SCAN_CASE_SINGLE_SET", {"GP5_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP5_KEY2_SCAN_CASE_SINGLE_SET", {"GP5_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP5_KEY3_SCAN_CASE_SINGLE_SET", {"GP5_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4240,7 +4126,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP5_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP5_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP5_KEY1_SCAN_CASE_SINGLE_LIST", {"GP5_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP5_KEY2_SCAN_CASE_SINGLE_LIST", {"GP5_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP5_KEY3_SCAN_CASE_SINGLE_LIST", {"GP5_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4254,7 +4140,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP5_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP5_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP5_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP5_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP5_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP5_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP5_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP5_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4295,10 +4181,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 6 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP6_KEY1_SCAN_CASE_SINGLE_STRING", "GP6_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP6_KEY2_SCAN_CASE_SINGLE_STRING", "GP6_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP6_KEY3_SCAN_CASE_SINGLE_STRING", "GP6_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4312,13 +4197,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP6_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP6_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP6_KEY1_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD1", "GP6_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP6_KEY2_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD2", "GP6_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP6_KEY3_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD3", "GP6_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP6_KEY4_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD4", "GP6_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP6_KEY5_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD5", "GP6_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP6_KEY6_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD6", "GP6_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP6_KEY1_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD1", "GP6_SCAN_CASE_SINGLE_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP6_KEY2_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD2", "GP6_SCAN_CASE_SINGLE_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP6_KEY3_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD3", "GP6_SCAN_CASE_SINGLE_HASH_VALUE3",
+              &int32_ret);
+  s = db.HSet("GP6_KEY4_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD4", "GP6_SCAN_CASE_SINGLE_HASH_VALUE4",
+              &int32_ret);
+  s = db.HSet("GP6_KEY5_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD5", "GP6_SCAN_CASE_SINGLE_HASH_VALUE5",
+              &int32_ret);
+  s = db.HSet("GP6_KEY6_SCAN_CASE_SINGLE_HASH", "GP6_SCAN_CASE_SINGLE_HASH_FIELD6", "GP6_SCAN_CASE_SINGLE_HASH_VALUE6",
+              &int32_ret);
   delete_keys.push_back("GP6_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP6_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP6_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4326,7 +4217,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP6_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP6_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP6_KEY1_SCAN_CASE_SINGLE_SET", {"GP6_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP6_KEY2_SCAN_CASE_SINGLE_SET", {"GP6_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP6_KEY3_SCAN_CASE_SINGLE_SET", {"GP6_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4340,7 +4231,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP6_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP6_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP6_KEY1_SCAN_CASE_SINGLE_LIST", {"GP6_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP6_KEY2_SCAN_CASE_SINGLE_LIST", {"GP6_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP6_KEY3_SCAN_CASE_SINGLE_LIST", {"GP6_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4354,7 +4245,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP6_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP6_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP6_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP6_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP6_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP6_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP6_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP6_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4390,10 +4281,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 7 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP7_KEY1_SCAN_CASE_SINGLE_STRING", "GP7_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP7_KEY2_SCAN_CASE_SINGLE_STRING", "GP7_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP7_KEY3_SCAN_CASE_SINGLE_STRING", "GP7_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4407,13 +4297,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP7_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP7_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP7_KEY1_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD1", "GP7_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP7_KEY2_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD2", "GP7_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP7_KEY3_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD3", "GP7_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP7_KEY4_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD4", "GP7_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP7_KEY5_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD5", "GP7_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP7_KEY6_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD6", "GP7_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP7_KEY1_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD1", "GP7_SCAN_CASE_SINGLE_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP7_KEY2_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD2", "GP7_SCAN_CASE_SINGLE_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP7_KEY3_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD3", "GP7_SCAN_CASE_SINGLE_HASH_VALUE3",
+              &int32_ret);
+  s = db.HSet("GP7_KEY4_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD4", "GP7_SCAN_CASE_SINGLE_HASH_VALUE4",
+              &int32_ret);
+  s = db.HSet("GP7_KEY5_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD5", "GP7_SCAN_CASE_SINGLE_HASH_VALUE5",
+              &int32_ret);
+  s = db.HSet("GP7_KEY6_SCAN_CASE_SINGLE_HASH", "GP7_SCAN_CASE_SINGLE_HASH_FIELD6", "GP7_SCAN_CASE_SINGLE_HASH_VALUE6",
+              &int32_ret);
   delete_keys.push_back("GP7_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP7_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP7_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4421,7 +4317,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP7_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP7_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP7_KEY1_SCAN_CASE_SINGLE_SET", {"GP7_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP7_KEY2_SCAN_CASE_SINGLE_SET", {"GP7_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP7_KEY3_SCAN_CASE_SINGLE_SET", {"GP7_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4435,7 +4331,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP7_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP7_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP7_KEY1_SCAN_CASE_SINGLE_LIST", {"GP7_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP7_KEY2_SCAN_CASE_SINGLE_LIST", {"GP7_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP7_KEY3_SCAN_CASE_SINGLE_LIST", {"GP7_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4449,7 +4345,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP7_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP7_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP7_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP7_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP7_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP7_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP7_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP7_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4480,10 +4376,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 8 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP8_KEY1_SCAN_CASE_SINGLE_STRING", "GP8_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP8_KEY2_SCAN_CASE_SINGLE_STRING", "GP8_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP8_KEY3_SCAN_CASE_SINGLE_STRING", "GP8_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4497,13 +4392,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP8_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP8_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP8_KEY1_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD1", "GP8_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP8_KEY2_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD2", "GP8_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP8_KEY3_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD3", "GP8_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP8_KEY4_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD4", "GP8_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP8_KEY5_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD5", "GP8_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP8_KEY6_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD6", "GP8_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP8_KEY1_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD1", "GP8_SCAN_CASE_SINGLE_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP8_KEY2_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD2", "GP8_SCAN_CASE_SINGLE_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP8_KEY3_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD3", "GP8_SCAN_CASE_SINGLE_HASH_VALUE3",
+              &int32_ret);
+  s = db.HSet("GP8_KEY4_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD4", "GP8_SCAN_CASE_SINGLE_HASH_VALUE4",
+              &int32_ret);
+  s = db.HSet("GP8_KEY5_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD5", "GP8_SCAN_CASE_SINGLE_HASH_VALUE5",
+              &int32_ret);
+  s = db.HSet("GP8_KEY6_SCAN_CASE_SINGLE_HASH", "GP8_SCAN_CASE_SINGLE_HASH_FIELD6", "GP8_SCAN_CASE_SINGLE_HASH_VALUE6",
+              &int32_ret);
   delete_keys.push_back("GP8_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP8_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP8_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4511,7 +4412,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP8_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP8_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP8_KEY1_SCAN_CASE_SINGLE_SET", {"GP8_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP8_KEY2_SCAN_CASE_SINGLE_SET", {"GP8_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP8_KEY3_SCAN_CASE_SINGLE_SET", {"GP8_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4525,7 +4426,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP8_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP8_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP8_KEY1_SCAN_CASE_SINGLE_LIST", {"GP8_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP8_KEY2_SCAN_CASE_SINGLE_LIST", {"GP8_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP8_KEY3_SCAN_CASE_SINGLE_LIST", {"GP8_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4539,7 +4440,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP8_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP8_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP8_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP8_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP8_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP8_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP8_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP8_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4570,10 +4471,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 9 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP9_KEY1_SCAN_CASE_SINGLE_STRING", "GP9_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP9_KEY2_SCAN_CASE_SINGLE_STRING", "GP9_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP9_KEY3_SCAN_CASE_SINGLE_STRING", "GP9_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4587,13 +4487,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP9_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP9_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP9_KEY1_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD1", "GP9_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP9_KEY2_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD2", "GP9_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP9_KEY3_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD3", "GP9_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP9_KEY4_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD4", "GP9_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP9_KEY5_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD5", "GP9_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP9_KEY6_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD6", "GP9_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP9_KEY1_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD1", "GP9_SCAN_CASE_SINGLE_HASH_VALUE1",
+              &int32_ret);
+  s = db.HSet("GP9_KEY2_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD2", "GP9_SCAN_CASE_SINGLE_HASH_VALUE2",
+              &int32_ret);
+  s = db.HSet("GP9_KEY3_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD3", "GP9_SCAN_CASE_SINGLE_HASH_VALUE3",
+              &int32_ret);
+  s = db.HSet("GP9_KEY4_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD4", "GP9_SCAN_CASE_SINGLE_HASH_VALUE4",
+              &int32_ret);
+  s = db.HSet("GP9_KEY5_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD5", "GP9_SCAN_CASE_SINGLE_HASH_VALUE5",
+              &int32_ret);
+  s = db.HSet("GP9_KEY6_SCAN_CASE_SINGLE_HASH", "GP9_SCAN_CASE_SINGLE_HASH_FIELD6", "GP9_SCAN_CASE_SINGLE_HASH_VALUE6",
+              &int32_ret);
   delete_keys.push_back("GP9_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP9_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP9_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4601,7 +4507,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP9_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP9_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP9_KEY1_SCAN_CASE_SINGLE_SET", {"GP9_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP9_KEY2_SCAN_CASE_SINGLE_SET", {"GP9_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP9_KEY3_SCAN_CASE_SINGLE_SET", {"GP9_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4615,7 +4521,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP9_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP9_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP9_KEY1_SCAN_CASE_SINGLE_LIST", {"GP9_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP9_KEY2_SCAN_CASE_SINGLE_LIST", {"GP9_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP9_KEY3_SCAN_CASE_SINGLE_LIST", {"GP9_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4629,7 +4535,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP9_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP9_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP9_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP9_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP9_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP9_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP9_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP9_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4670,10 +4576,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 10 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP10_KEY1_SCAN_CASE_SINGLE_STRING", "GP10_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP10_KEY2_SCAN_CASE_SINGLE_STRING", "GP10_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP10_KEY3_SCAN_CASE_SINGLE_STRING", "GP10_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4687,13 +4592,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP10_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP10_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP10_KEY1_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD1", "GP10_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP10_KEY2_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD2", "GP10_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP10_KEY3_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD3", "GP10_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP10_KEY4_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD4", "GP10_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP10_KEY5_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD5", "GP10_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP10_KEY6_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD6", "GP10_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP10_KEY1_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP10_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP10_KEY2_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP10_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP10_KEY3_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP10_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP10_KEY4_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP10_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP10_KEY5_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP10_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP10_KEY6_SCAN_CASE_SINGLE_HASH", "GP10_SCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP10_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP10_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP10_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP10_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4701,7 +4612,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP10_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP10_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP10_KEY1_SCAN_CASE_SINGLE_SET", {"GP10_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP10_KEY2_SCAN_CASE_SINGLE_SET", {"GP10_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP10_KEY3_SCAN_CASE_SINGLE_SET", {"GP10_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4715,7 +4626,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP10_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP10_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP10_KEY1_SCAN_CASE_SINGLE_LIST", {"GP10_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP10_KEY2_SCAN_CASE_SINGLE_LIST", {"GP10_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP10_KEY3_SCAN_CASE_SINGLE_LIST", {"GP10_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4729,7 +4640,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP10_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP10_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP10_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP10_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP10_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP10_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP10_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP10_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4765,10 +4676,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 11 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP11_KEY1_SCAN_CASE_SINGLE_STRING", "GP11_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP11_KEY2_SCAN_CASE_SINGLE_STRING", "GP11_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP11_KEY3_SCAN_CASE_SINGLE_STRING", "GP11_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4782,13 +4692,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP11_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP11_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP11_KEY1_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD1", "GP11_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP11_KEY2_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD2", "GP11_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP11_KEY3_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD3", "GP11_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP11_KEY4_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD4", "GP11_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP11_KEY5_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD5", "GP11_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP11_KEY6_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD6", "GP11_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP11_KEY1_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP11_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP11_KEY2_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP11_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP11_KEY3_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP11_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP11_KEY4_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP11_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP11_KEY5_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP11_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP11_KEY6_SCAN_CASE_SINGLE_HASH", "GP11_SCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP11_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP11_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP11_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP11_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4796,7 +4712,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP11_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP11_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP11_KEY1_SCAN_CASE_SINGLE_SET", {"GP11_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP11_KEY2_SCAN_CASE_SINGLE_SET", {"GP11_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP11_KEY3_SCAN_CASE_SINGLE_SET", {"GP11_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4810,7 +4726,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP11_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP11_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP11_KEY1_SCAN_CASE_SINGLE_LIST", {"GP11_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP11_KEY2_SCAN_CASE_SINGLE_LIST", {"GP11_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP11_KEY3_SCAN_CASE_SINGLE_LIST", {"GP11_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4824,7 +4740,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP11_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP11_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP11_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP11_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP11_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP11_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP11_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP11_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4855,10 +4771,9 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 12 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP12_KEY1_SCAN_CASE_SINGLE_STRING", "GP12_SCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP12_KEY2_SCAN_CASE_SINGLE_STRING", "GP12_SCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP12_KEY3_SCAN_CASE_SINGLE_STRING", "GP12_SCAN_CASE_SINGLE_STRING_VALUE3");
@@ -4872,13 +4787,19 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP12_KEY5_SCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP12_KEY6_SCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP12_KEY1_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD1", "GP12_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP12_KEY2_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD2", "GP12_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP12_KEY3_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD3", "GP12_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP12_KEY4_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD4", "GP12_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP12_KEY5_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD5", "GP12_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP12_KEY6_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD6", "GP12_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP12_KEY1_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP12_SCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP12_KEY2_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP12_SCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP12_KEY3_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP12_SCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP12_KEY4_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP12_SCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP12_KEY5_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP12_SCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP12_KEY6_SCAN_CASE_SINGLE_HASH", "GP12_SCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP12_SCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP12_KEY1_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP12_KEY2_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP12_KEY3_SCAN_CASE_SINGLE_HASH");
@@ -4886,7 +4807,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP12_KEY5_SCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP12_KEY6_SCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP12_KEY1_SCAN_CASE_SINGLE_SET", {"GP12_SCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP12_KEY2_SCAN_CASE_SINGLE_SET", {"GP12_SCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP12_KEY3_SCAN_CASE_SINGLE_SET", {"GP12_SCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -4900,7 +4821,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP12_KEY5_SCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP12_KEY6_SCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP12_KEY1_SCAN_CASE_SINGLE_LIST", {"GP12_SCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP12_KEY2_SCAN_CASE_SINGLE_LIST", {"GP12_SCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP12_KEY3_SCAN_CASE_SINGLE_LIST", {"GP12_SCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -4914,7 +4835,7 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
   delete_keys.push_back("GP12_KEY5_SCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP12_KEY6_SCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP12_KEY1_SCAN_CASE_SINGLE_ZSET", {{1, "GP12_SCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP12_KEY2_SCAN_CASE_SINGLE_ZSET", {{1, "GP12_SCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP12_KEY3_SCAN_CASE_SINGLE_ZSET", {{1, "GP12_SCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -4947,7 +4868,6 @@ TEST_F(KeysTest, ScanCaseSingleTest) {
 }
 
 TEST_F(KeysTest, PKExpireScanCaseAllTest) {
-
   int64_t cursor;
   int64_t next_cursor;
   int64_t del_num;
@@ -4959,27 +4879,30 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   std::map<storage::DataType, Status> type_status;
 
   // ***************** Group 1 Test *****************
-  //String
+  // String
   s = db.Set("GP1_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP1_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP1_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP1_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP1_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP1_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
 
-  //Hash
-  s = db.HSet("GP1_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP1_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP1_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP1_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP1_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP1_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP1_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP1_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP1_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP1_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP1_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP1_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP1_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP1_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP1_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP1_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP1_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP1_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
 
-  //Set
+  // Set
   s = db.SAdd("GP1_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP1_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP1_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP1_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP1_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP1_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
 
-  //List
+  // List
   s = db.LPush("GP1_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP1_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP1_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP1_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP1_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP1_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP1_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP1_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP1_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP1_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP1_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP1_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5004,7 +4927,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   ASSERT_TRUE(set_timeout(&db, "GP1_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", 28));
   ASSERT_TRUE(set_timeout(&db, "GP1_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", 30));
 
-  //PKExpireScan
+  // PKExpireScan
   delete_keys.clear();
   keys.clear();
   cursor = db.PKExpireScan(DataType::kAll, 0, 0, 100, 3, &keys);
@@ -5056,29 +4979,31 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 2 Test *****************
-  //String
+  // String
   s = db.Set("GP2_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP2_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP2_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP2_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP2_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP2_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
 
-  //Hash
-  s = db.HSet("GP2_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP2_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP2_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP2_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP2_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP2_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP2_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP2_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP2_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP2_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP2_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP2_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP2_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP2_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP2_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP2_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP2_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP2_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
 
-  //Set
+  // Set
   s = db.SAdd("GP2_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP2_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP2_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP2_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP2_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP2_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
 
-  //List
+  // List
   s = db.LPush("GP2_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP2_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP2_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP2_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP2_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP2_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP2_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP2_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP2_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP2_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP2_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP2_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5103,7 +5028,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   ASSERT_TRUE(set_timeout(&db, "GP2_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", 28));
   ASSERT_TRUE(set_timeout(&db, "GP2_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", 30));
 
-  //PKExpireScan
+  // PKExpireScan
   delete_keys.clear();
   keys.clear();
   cursor = db.PKExpireScan(DataType::kAll, 0, 0, 100, 2, &keys);
@@ -5173,29 +5098,31 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 3 Test *****************
-  //String
+  // String
   s = db.Set("GP3_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP3_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP3_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP3_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP3_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP3_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
 
-  //Hash
-  s = db.HSet("GP3_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP3_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP3_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP3_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP3_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP3_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP3_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP3_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP3_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP3_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP3_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP3_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP3_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP3_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP3_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP3_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP3_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP3_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
 
-  //Set
+  // Set
   s = db.SAdd("GP3_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP3_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP3_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP3_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP3_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP3_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
 
-  //List
+  // List
   s = db.LPush("GP3_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP3_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP3_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP3_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP3_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP3_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP3_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP3_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP3_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP3_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP3_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP3_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5220,7 +5147,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   ASSERT_TRUE(set_timeout(&db, "GP3_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", 28));
   ASSERT_TRUE(set_timeout(&db, "GP3_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", 30));
 
-  //PKExpireScan
+  // PKExpireScan
   delete_keys.clear();
   keys.clear();
   cursor = db.PKExpireScan(DataType::kAll, 0, 0, 100, 5, &keys);
@@ -5260,29 +5187,31 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 4 Test *****************
-  //String
+  // String
   s = db.Set("GP4_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP4_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP4_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP4_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP4_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP4_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
 
-  //Hash
-  s = db.HSet("GP4_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP4_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP4_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP4_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP4_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP4_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP4_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP4_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP4_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP4_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP4_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP4_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP4_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP4_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP4_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP4_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP4_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP4_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
 
-  //Set
+  // Set
   s = db.SAdd("GP4_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP4_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP4_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP4_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP4_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP4_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
 
-  //List
+  // List
   s = db.LPush("GP4_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP4_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP4_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP4_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP4_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP4_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP4_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP4_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP4_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP4_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP4_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP4_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5334,10 +5263,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 5 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP5_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP5_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP5_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP5_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP5_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP5_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -5345,15 +5273,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP5_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP5_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP5_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP5_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP5_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP5_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP5_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP5_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP5_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP5_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP5_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP5_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP5_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP5_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP5_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP5_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP5_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP5_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP5_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP5_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP5_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP5_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP5_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP5_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP5_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP5_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP5_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP5_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP5_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -5361,7 +5292,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP5_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP5_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP5_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP5_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP5_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP5_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP5_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP5_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -5369,7 +5300,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP5_PKEXPIRESCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP5_PKEXPIRESCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP5_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP5_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP5_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP5_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP5_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP5_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5415,10 +5346,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 6 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP6_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP6_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP6_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP6_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP6_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP6_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -5426,15 +5356,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP6_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP6_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP6_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP6_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP6_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP6_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP6_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP6_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP6_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP6_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP6_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP6_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP6_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP6_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP6_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP6_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP6_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP6_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP6_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP6_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP6_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP6_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP6_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP6_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP6_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP6_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP6_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP6_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP6_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -5442,7 +5375,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP6_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP6_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP6_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP6_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP6_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP6_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP6_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP6_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -5450,7 +5383,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP6_PKEXPIRESCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP6_PKEXPIRESCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP6_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP6_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP6_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP6_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP6_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP6_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5498,10 +5431,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 7 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP7_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP7_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP7_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP7_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP7_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP7_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -5509,15 +5441,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP7_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP7_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP7_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP7_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP7_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP7_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP7_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP7_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP7_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP7_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP7_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP7_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP7_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP7_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP7_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP7_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP7_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP7_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP7_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP7_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP7_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP7_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP7_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP7_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP7_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP7_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP7_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP7_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP7_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -5525,7 +5460,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP7_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP7_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP7_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP7_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP7_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP7_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP7_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP7_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -5533,7 +5468,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP7_PKEXPIRESCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP7_PKEXPIRESCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP7_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP7_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP7_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP7_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP7_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP7_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5581,10 +5516,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 8 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP8_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP8_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP8_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP8_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP8_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP8_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -5592,15 +5526,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP8_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP8_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP8_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP8_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP8_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP8_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP8_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP8_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP8_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP8_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP8_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP8_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP8_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP8_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP8_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP8_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP8_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP8_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP8_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP8_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP8_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP8_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP8_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP8_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP8_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP8_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP8_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP8_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP8_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -5608,7 +5545,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP8_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP8_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP8_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP8_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP8_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP8_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP8_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP8_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -5616,7 +5553,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP8_PKEXPIRESCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP8_PKEXPIRESCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP8_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP8_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP8_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP8_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP8_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP8_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5664,10 +5601,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 9 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP9_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP9_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP9_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -5675,15 +5611,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP9_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP9_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP9_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP9_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP9_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP9_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP9_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP9_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP9_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP9_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP9_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP9_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP9_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP9_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP9_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -5691,7 +5630,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP9_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP9_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP9_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP9_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP9_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP9_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -5699,7 +5638,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP9_PKEXPIRESCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP9_PKEXPIRESCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP9_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP9_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP9_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP9_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP9_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP9_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5736,16 +5675,16 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
     cursor = next_cursor;
   } while (cursor);
   ASSERT_EQ(total_keys.size(), 15);
-  ASSERT_EQ(total_keys[0],  "GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY1");
-  ASSERT_EQ(total_keys[1],  "GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
-  ASSERT_EQ(total_keys[2],  "GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
-  ASSERT_EQ(total_keys[3],  "GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
-  ASSERT_EQ(total_keys[4],  "GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
-  ASSERT_EQ(total_keys[5],  "GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
-  ASSERT_EQ(total_keys[6],  "GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY1");
-  ASSERT_EQ(total_keys[7],  "GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
-  ASSERT_EQ(total_keys[8],  "GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
-  ASSERT_EQ(total_keys[9],  "GP9_PKEXPIRESCAN_CASE_ALL_LIST_KEY1");
+  ASSERT_EQ(total_keys[0], "GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY1");
+  ASSERT_EQ(total_keys[1], "GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
+  ASSERT_EQ(total_keys[2], "GP9_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
+  ASSERT_EQ(total_keys[3], "GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
+  ASSERT_EQ(total_keys[4], "GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
+  ASSERT_EQ(total_keys[5], "GP9_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
+  ASSERT_EQ(total_keys[6], "GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY1");
+  ASSERT_EQ(total_keys[7], "GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
+  ASSERT_EQ(total_keys[8], "GP9_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
+  ASSERT_EQ(total_keys[9], "GP9_PKEXPIRESCAN_CASE_ALL_LIST_KEY1");
   ASSERT_EQ(total_keys[10], "GP9_PKEXPIRESCAN_CASE_ALL_LIST_KEY2");
   ASSERT_EQ(total_keys[11], "GP9_PKEXPIRESCAN_CASE_ALL_LIST_KEY3");
   ASSERT_EQ(total_keys[12], "GP9_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1");
@@ -5757,10 +5696,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 10 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP10_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP10_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP10_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP10_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP10_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP10_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -5768,15 +5706,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP10_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP10_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP10_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP10_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP10_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP10_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP10_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP10_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP10_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP10_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP10_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP10_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP10_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP10_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP10_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP10_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP10_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP10_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP10_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP10_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP10_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP10_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP10_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP10_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP10_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP10_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP10_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP10_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP10_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -5784,7 +5725,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP10_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP10_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP10_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP10_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP10_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP10_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP10_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP10_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -5792,7 +5733,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP10_PKEXPIRESCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP10_PKEXPIRESCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP10_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP10_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP10_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP10_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP10_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP10_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5838,10 +5779,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 11 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP11_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP11_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP11_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP11_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP11_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP11_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -5849,15 +5789,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP11_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP11_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP11_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP11_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP11_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP11_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP11_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP11_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP11_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP11_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP11_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP11_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP11_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP11_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP11_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP11_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP11_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP11_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP11_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP11_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP11_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP11_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP11_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP11_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP11_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP11_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP11_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP11_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP11_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -5865,7 +5808,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP11_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP11_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP11_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP11_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP11_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP11_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP11_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP11_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -5873,7 +5816,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP11_PKEXPIRESCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP11_PKEXPIRESCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP11_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP11_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP11_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP11_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP11_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP11_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -5919,10 +5862,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 12 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP12_PKEXPIRESCAN_CASE_ALL_STRING_KEY1", "GP12_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP12_PKEXPIRESCAN_CASE_ALL_STRING_KEY2", "GP12_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP12_PKEXPIRESCAN_CASE_ALL_STRING_KEY3", "GP12_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -5930,15 +5872,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP12_PKEXPIRESCAN_CASE_ALL_STRING_KEY2");
   delete_keys.push_back("GP12_PKEXPIRESCAN_CASE_ALL_STRING_KEY3");
 
-  //Hash
-  s = db.HSet("GP12_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP12_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP12_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP12_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP12_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP12_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP12_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP12_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP12_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP12_PKEXPIRESCAN_CASE_ALL_HASH_KEY1", "GP12_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP12_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP12_PKEXPIRESCAN_CASE_ALL_HASH_KEY2", "GP12_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP12_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP12_PKEXPIRESCAN_CASE_ALL_HASH_KEY3", "GP12_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP12_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP12_PKEXPIRESCAN_CASE_ALL_HASH_KEY1");
   delete_keys.push_back("GP12_PKEXPIRESCAN_CASE_ALL_HASH_KEY2");
   delete_keys.push_back("GP12_PKEXPIRESCAN_CASE_ALL_HASH_KEY3");
 
-  //Set
+  // Set
   s = db.SAdd("GP12_PKEXPIRESCAN_CASE_ALL_SET_KEY1", {"GP12_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP12_PKEXPIRESCAN_CASE_ALL_SET_KEY2", {"GP12_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP12_PKEXPIRESCAN_CASE_ALL_SET_KEY3", {"GP12_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -5946,7 +5891,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP12_PKEXPIRESCAN_CASE_ALL_SET_KEY2");
   delete_keys.push_back("GP12_PKEXPIRESCAN_CASE_ALL_SET_KEY3");
 
-  //List
+  // List
   s = db.LPush("GP12_PKEXPIRESCAN_CASE_ALL_LIST_KEY1", {"GP12_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP12_PKEXPIRESCAN_CASE_ALL_LIST_KEY2", {"GP12_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP12_PKEXPIRESCAN_CASE_ALL_LIST_KEY3", {"GP12_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -5954,7 +5899,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP12_PKEXPIRESCAN_CASE_ALL_LIST_KEY2");
   delete_keys.push_back("GP12_PKEXPIRESCAN_CASE_ALL_LIST_KEY3");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP12_PKEXPIRESCAN_CASE_ALL_ZSET_KEY1", {{1, "GP12_PKEXPIRESCAN_CASE_ALL_ZSET_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP12_PKEXPIRESCAN_CASE_ALL_ZSET_KEY2", {{1, "GP12_PKEXPIRESCAN_CASE_ALL_ZSET_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP12_PKEXPIRESCAN_CASE_ALL_ZSET_KEY3", {{1, "GP12_PKEXPIRESCAN_CASE_ALL_ZSET_MEMBER3"}}, &int32_ret);
@@ -6000,10 +5945,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 13 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP13_KEY1_PKEXPIRESCAN_CASE_ALL_STRING", "GP13_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_STRING", "GP13_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_STRING", "GP13_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -6011,15 +5955,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_STRING");
   delete_keys.push_back("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_STRING");
 
-  //Hash
-  s = db.HSet("GP13_KEY1_PKEXPIRESCAN_CASE_ALL_HASH", "GP13_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP13_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_HASH", "GP13_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP13_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_HASH", "GP13_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP13_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP13_KEY1_PKEXPIRESCAN_CASE_ALL_HASH", "GP13_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP13_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_HASH", "GP13_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP13_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_HASH", "GP13_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP13_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP13_KEY1_PKEXPIRESCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP13_KEY1_PKEXPIRESCAN_CASE_ALL_SET", {"GP13_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_SET", {"GP13_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_SET", {"GP13_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -6027,7 +5974,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_SET");
   delete_keys.push_back("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_SET");
 
-  //List
+  // List
   s = db.LPush("GP13_KEY1_PKEXPIRESCAN_CASE_ALL_LIST", {"GP13_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_LIST", {"GP13_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_LIST", {"GP13_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -6035,7 +5982,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_LIST");
   delete_keys.push_back("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP13_KEY1_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP13_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP13_KEY2_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP13_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP13_KEY3_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP13_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -6083,10 +6030,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 14 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP14_KEY1_PKEXPIRESCAN_CASE_ALL_STRING", "GP14_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_STRING", "GP14_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_STRING", "GP14_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -6094,15 +6040,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_STRING");
   delete_keys.push_back("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_STRING");
 
-  //Hash
-  s = db.HSet("GP14_KEY1_PKEXPIRESCAN_CASE_ALL_HASH", "GP14_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP14_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_HASH", "GP14_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP14_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_HASH", "GP14_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP14_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP14_KEY1_PKEXPIRESCAN_CASE_ALL_HASH", "GP14_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP14_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_HASH", "GP14_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP14_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_HASH", "GP14_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP14_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP14_KEY1_PKEXPIRESCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP14_KEY1_PKEXPIRESCAN_CASE_ALL_SET", {"GP14_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_SET", {"GP14_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_SET", {"GP14_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -6110,7 +6059,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_SET");
   delete_keys.push_back("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_SET");
 
-  //List
+  // List
   s = db.LPush("GP14_KEY1_PKEXPIRESCAN_CASE_ALL_LIST", {"GP14_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_LIST", {"GP14_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_LIST", {"GP14_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -6118,7 +6067,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_LIST");
   delete_keys.push_back("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP14_KEY1_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP14_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP14_KEY2_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP14_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP14_KEY3_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP14_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -6166,10 +6115,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 15 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP15_KEY1_PKEXPIRESCAN_CASE_ALL_STRING", "GP15_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_STRING", "GP15_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_STRING", "GP15_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -6177,15 +6125,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_STRING");
   delete_keys.push_back("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_STRING");
 
-  //Hash
-  s = db.HSet("GP15_KEY1_PKEXPIRESCAN_CASE_ALL_HASH", "GP15_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP15_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_HASH", "GP15_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP15_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_HASH", "GP15_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP15_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP15_KEY1_PKEXPIRESCAN_CASE_ALL_HASH", "GP15_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP15_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_HASH", "GP15_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP15_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_HASH", "GP15_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP15_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP15_KEY1_PKEXPIRESCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP15_KEY1_PKEXPIRESCAN_CASE_ALL_SET", {"GP15_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_SET", {"GP15_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_SET", {"GP15_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -6193,7 +6144,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_SET");
   delete_keys.push_back("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_SET");
 
-  //List
+  // List
   s = db.LPush("GP15_KEY1_PKEXPIRESCAN_CASE_ALL_LIST", {"GP15_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_LIST", {"GP15_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_LIST", {"GP15_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -6201,7 +6152,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_LIST");
   delete_keys.push_back("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP15_KEY1_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP15_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP15_KEY2_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP15_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP15_KEY3_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP15_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -6249,10 +6200,9 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 16 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP16_KEY1_PKEXPIRESCAN_CASE_ALL_STRING", "GP16_PKEXPIRESCAN_CASE_ALL_STRING_VALUE1");
   s = db.Set("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_STRING", "GP16_PKEXPIRESCAN_CASE_ALL_STRING_VALUE2");
   s = db.Set("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_STRING", "GP16_PKEXPIRESCAN_CASE_ALL_STRING_VALUE3");
@@ -6260,15 +6210,18 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_STRING");
   delete_keys.push_back("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_STRING");
 
-  //Hash
-  s = db.HSet("GP16_KEY1_PKEXPIRESCAN_CASE_ALL_HASH", "GP16_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1", "GP16_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_HASH", "GP16_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2", "GP16_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_HASH", "GP16_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3", "GP16_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
+  // Hash
+  s = db.HSet("GP16_KEY1_PKEXPIRESCAN_CASE_ALL_HASH", "GP16_PKEXPIRESCAN_CASE_ALL_HASH_FIELD1",
+              "GP16_PKEXPIRESCAN_CASE_ALL_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_HASH", "GP16_PKEXPIRESCAN_CASE_ALL_HASH_FIELD2",
+              "GP16_PKEXPIRESCAN_CASE_ALL_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_HASH", "GP16_PKEXPIRESCAN_CASE_ALL_HASH_FIELD3",
+              "GP16_PKEXPIRESCAN_CASE_ALL_HASH_VALUE3", &int32_ret);
   delete_keys.push_back("GP16_KEY1_PKEXPIRESCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_HASH");
   delete_keys.push_back("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP16_KEY1_PKEXPIRESCAN_CASE_ALL_SET", {"GP16_PKEXPIRESCAN_CASE_ALL_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_SET", {"GP16_PKEXPIRESCAN_CASE_ALL_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_SET", {"GP16_PKEXPIRESCAN_CASE_ALL_SET_MEMBER3"}, &int32_ret);
@@ -6276,7 +6229,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_SET");
   delete_keys.push_back("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_SET");
 
-  //List
+  // List
   s = db.LPush("GP16_KEY1_PKEXPIRESCAN_CASE_ALL_LIST", {"GP16_PKEXPIRESCAN_CASE_ALL_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_LIST", {"GP16_PKEXPIRESCAN_CASE_ALL_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_LIST", {"GP16_PKEXPIRESCAN_CASE_ALL_LIST_NODE3"}, &uint64_ret);
@@ -6284,7 +6237,7 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
   delete_keys.push_back("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_LIST");
   delete_keys.push_back("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP16_KEY1_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP16_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP16_KEY2_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP16_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP16_KEY3_PKEXPIRESCAN_CASE_ALL_ZSET", {{1, "GP16_PKEXPIRESCAN_CASE_ALL_LIST_MEMBER3"}}, &int32_ret);
@@ -6334,7 +6287,6 @@ TEST_F(KeysTest, PKExpireScanCaseAllTest) {
 }
 
 TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
-
   int64_t cursor;
   int64_t next_cursor;
   int64_t del_num;
@@ -6347,7 +6299,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
 
   // ***************** Group 1 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP1_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP1_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP1_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP1_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP1_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP1_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -6361,13 +6313,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP1_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP1_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP1_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP1_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP1_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP1_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP1_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP1_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP1_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP1_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP1_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP1_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP1_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP1_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP1_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP1_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP1_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP1_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -6375,7 +6333,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP1_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP1_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP1_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP1_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP1_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP1_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP1_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP1_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -6389,7 +6347,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP1_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP1_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP1_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP1_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP1_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP1_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP1_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP1_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -6403,7 +6361,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP1_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP1_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP1_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP1_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP1_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP1_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP1_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP1_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -6451,10 +6409,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 2 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP2_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP2_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP2_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP2_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP2_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP2_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -6468,13 +6425,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP2_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP2_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP2_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP2_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP2_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP2_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP2_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP2_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP2_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP2_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP2_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP2_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP2_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP2_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP2_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP2_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP2_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP2_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -6482,7 +6445,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP2_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP2_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP2_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP2_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP2_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP2_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP2_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP2_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -6496,7 +6459,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP2_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP2_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP2_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP2_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP2_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP2_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP2_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP2_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -6510,7 +6473,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP2_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP2_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP2_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP2_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP2_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP2_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP2_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP2_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -6553,10 +6516,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 3 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP3_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP3_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP3_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP3_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP3_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP3_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -6570,13 +6532,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP3_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP3_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP3_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP3_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP3_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP3_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP3_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP3_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP3_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP3_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP3_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP3_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP3_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP3_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP3_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP3_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP3_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP3_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -6584,7 +6552,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP3_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP3_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP3_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP3_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP3_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP3_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP3_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP3_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -6598,7 +6566,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP3_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP3_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP3_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP3_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP3_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP3_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP3_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP3_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -6612,7 +6580,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP3_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP3_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP3_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP3_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP3_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP3_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP3_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP3_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -6650,10 +6618,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 4 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP4_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP4_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP4_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP4_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP4_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP4_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -6667,13 +6634,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP4_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP4_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP4_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP4_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP4_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP4_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP4_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP4_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP4_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP4_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP4_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP4_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP4_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP4_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP4_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP4_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP4_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP4_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -6681,7 +6654,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP4_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP4_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP4_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP4_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP4_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP4_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP4_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP4_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -6695,7 +6668,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP4_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP4_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP4_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP4_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP4_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP4_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP4_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP4_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -6709,7 +6682,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP4_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP4_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP4_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP4_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP4_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP4_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP4_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP4_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -6747,10 +6720,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 5 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP5_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP5_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP5_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP5_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP5_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP5_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -6764,13 +6736,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP5_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP5_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP5_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP5_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP5_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP5_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP5_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP5_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP5_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP5_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP5_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP5_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP5_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP5_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP5_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP5_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP5_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP5_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -6778,7 +6756,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP5_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP5_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP5_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP5_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP5_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP5_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP5_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP5_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -6792,7 +6770,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP5_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP5_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP5_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP5_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP5_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP5_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP5_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP5_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -6806,7 +6784,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP5_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP5_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP5_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP5_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP5_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP5_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP5_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP5_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -6854,10 +6832,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 6 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP6_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP6_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP6_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP6_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP6_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP6_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -6871,13 +6848,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP6_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP6_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP6_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP6_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP6_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP6_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP6_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP6_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP6_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP6_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP6_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP6_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP6_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP6_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP6_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP6_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP6_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP6_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -6885,7 +6868,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP6_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP6_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP6_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP6_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP6_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP6_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP6_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP6_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -6899,7 +6882,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP6_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP6_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP6_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP6_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP6_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP6_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP6_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP6_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -6913,7 +6896,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP6_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP6_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP6_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP6_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP6_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP6_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP6_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP6_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -6956,10 +6939,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 7 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP7_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP7_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP7_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP7_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP7_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP7_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -6973,13 +6955,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP7_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP7_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP7_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP7_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP7_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP7_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP7_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP7_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP7_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP7_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP7_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP7_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP7_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP7_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP7_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP7_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP7_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP7_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -6987,7 +6975,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP7_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP7_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP7_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP7_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP7_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP7_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP7_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP7_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -7001,7 +6989,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP7_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP7_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP7_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP7_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP7_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP7_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP7_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP7_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -7015,7 +7003,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP7_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP7_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP7_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP7_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP7_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP7_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP7_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP7_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -7053,10 +7041,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 8 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP8_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP8_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP8_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP8_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP8_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP8_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -7070,13 +7057,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP8_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP8_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP8_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP8_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP8_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP8_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP8_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP8_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP8_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP8_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP8_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP8_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP8_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP8_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP8_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP8_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP8_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP8_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -7084,7 +7077,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP8_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP8_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP8_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP8_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP8_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP8_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP8_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP8_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -7098,7 +7091,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP8_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP8_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP8_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP8_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP8_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP8_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP8_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP8_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -7112,7 +7105,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP8_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP8_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP8_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP8_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP8_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP8_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP8_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP8_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -7150,10 +7143,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 9 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP9_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP9_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP9_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP9_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP9_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP9_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -7167,13 +7159,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP9_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP9_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP9_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP9_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP9_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP9_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP9_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP9_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP9_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP9_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP9_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP9_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP9_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP9_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP9_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP9_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP9_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP9_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -7181,7 +7179,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP9_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP9_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP9_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP9_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP9_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP9_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP9_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP9_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -7195,7 +7193,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP9_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP9_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP9_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP9_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP9_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP9_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP9_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP9_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -7209,7 +7207,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP9_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP9_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
+  // ZSet
   s = db.ZAdd("GP9_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP9_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
   s = db.ZAdd("GP9_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP9_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
   s = db.ZAdd("GP9_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP9_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
@@ -7257,10 +7255,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 10 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP10_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP10_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP10_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP10_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP10_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP10_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -7274,13 +7271,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP10_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP10_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP10_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP10_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP10_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP10_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP10_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP10_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP10_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP10_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP10_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP10_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP10_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP10_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP10_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP10_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP10_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP10_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -7288,7 +7291,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP10_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP10_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP10_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP10_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP10_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP10_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP10_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP10_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -7302,7 +7305,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP10_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP10_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP10_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP10_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP10_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -7316,13 +7319,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP10_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP10_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
-  s = db.ZAdd("GP10_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
-  s = db.ZAdd("GP10_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
-  s = db.ZAdd("GP10_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
-  s = db.ZAdd("GP10_KEY4_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER4"}}, &int32_ret);
-  s = db.ZAdd("GP10_KEY5_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER5"}}, &int32_ret);
-  s = db.ZAdd("GP10_KEY6_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER6"}}, &int32_ret);
+  // ZSet
+  s = db.ZAdd("GP10_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}},
+              &int32_ret);
+  s = db.ZAdd("GP10_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}},
+              &int32_ret);
+  s = db.ZAdd("GP10_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}},
+              &int32_ret);
+  s = db.ZAdd("GP10_KEY4_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER4"}},
+              &int32_ret);
+  s = db.ZAdd("GP10_KEY5_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER5"}},
+              &int32_ret);
+  s = db.ZAdd("GP10_KEY6_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP10_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER6"}},
+              &int32_ret);
   delete_keys.push_back("GP10_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET");
   delete_keys.push_back("GP10_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET");
   delete_keys.push_back("GP10_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET");
@@ -7359,10 +7368,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 11 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP11_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP11_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP11_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP11_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP11_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP11_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -7376,13 +7384,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP11_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP11_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP11_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP11_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP11_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP11_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP11_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP11_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP11_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP11_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP11_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP11_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP11_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP11_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP11_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP11_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP11_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP11_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -7390,7 +7404,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP11_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP11_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP11_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP11_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP11_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP11_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP11_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP11_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -7404,7 +7418,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP11_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP11_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP11_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP11_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP11_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -7418,13 +7432,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP11_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP11_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
-  s = db.ZAdd("GP11_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
-  s = db.ZAdd("GP11_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
-  s = db.ZAdd("GP11_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
-  s = db.ZAdd("GP11_KEY4_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER4"}}, &int32_ret);
-  s = db.ZAdd("GP11_KEY5_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER5"}}, &int32_ret);
-  s = db.ZAdd("GP11_KEY6_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER6"}}, &int32_ret);
+  // ZSet
+  s = db.ZAdd("GP11_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}},
+              &int32_ret);
+  s = db.ZAdd("GP11_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}},
+              &int32_ret);
+  s = db.ZAdd("GP11_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}},
+              &int32_ret);
+  s = db.ZAdd("GP11_KEY4_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER4"}},
+              &int32_ret);
+  s = db.ZAdd("GP11_KEY5_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER5"}},
+              &int32_ret);
+  s = db.ZAdd("GP11_KEY6_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP11_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER6"}},
+              &int32_ret);
   delete_keys.push_back("GP11_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET");
   delete_keys.push_back("GP11_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET");
   delete_keys.push_back("GP11_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET");
@@ -7456,10 +7476,9 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   sleep(2);
   db.Compact(DataType::kAll, true);
 
-
   // ***************** Group 12 Test *****************
   delete_keys.clear();
-  //String
+  // String
   s = db.Set("GP12_KEY1_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP12_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE1");
   s = db.Set("GP12_KEY2_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP12_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE2");
   s = db.Set("GP12_KEY3_PKEXPIRESCAN_CASE_SINGLE_STRING", "GP12_PKEXPIRESCAN_CASE_SINGLE_STRING_VALUE3");
@@ -7473,13 +7492,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP12_KEY5_PKEXPIRESCAN_CASE_SINGLE_STRING");
   delete_keys.push_back("GP12_KEY6_PKEXPIRESCAN_CASE_SINGLE_STRING");
 
-  //Hash
-  s = db.HSet("GP12_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
-  s = db.HSet("GP12_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
-  s = db.HSet("GP12_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
-  s = db.HSet("GP12_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
-  s = db.HSet("GP12_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
-  s = db.HSet("GP12_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
+  // Hash
+  s = db.HSet("GP12_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD1",
+              "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE1", &int32_ret);
+  s = db.HSet("GP12_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD2",
+              "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE2", &int32_ret);
+  s = db.HSet("GP12_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD3",
+              "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE3", &int32_ret);
+  s = db.HSet("GP12_KEY4_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD4",
+              "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE4", &int32_ret);
+  s = db.HSet("GP12_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD5",
+              "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE5", &int32_ret);
+  s = db.HSet("GP12_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH", "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_FIELD6",
+              "GP12_PKEXPIRESCAN_CASE_SINGLE_HASH_VALUE6", &int32_ret);
   delete_keys.push_back("GP12_KEY1_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP12_KEY2_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP12_KEY3_PKEXPIRESCAN_CASE_SINGLE_HASH");
@@ -7487,7 +7512,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP12_KEY5_PKEXPIRESCAN_CASE_SINGLE_HASH");
   delete_keys.push_back("GP12_KEY6_PKEXPIRESCAN_CASE_SINGLE_HASH");
 
-  //Set
+  // Set
   s = db.SAdd("GP12_KEY1_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP12_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER1"}, &int32_ret);
   s = db.SAdd("GP12_KEY2_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP12_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER2"}, &int32_ret);
   s = db.SAdd("GP12_KEY3_PKEXPIRESCAN_CASE_SINGLE_SET", {"GP12_PKEXPIRESCAN_CASE_SINGLE_SET_MEMBER3"}, &int32_ret);
@@ -7501,7 +7526,7 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP12_KEY5_PKEXPIRESCAN_CASE_SINGLE_SET");
   delete_keys.push_back("GP12_KEY6_PKEXPIRESCAN_CASE_SINGLE_SET");
 
-  //List
+  // List
   s = db.LPush("GP12_KEY1_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE1"}, &uint64_ret);
   s = db.LPush("GP12_KEY2_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE2"}, &uint64_ret);
   s = db.LPush("GP12_KEY3_PKEXPIRESCAN_CASE_SINGLE_LIST", {"GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_NODE3"}, &uint64_ret);
@@ -7515,13 +7540,19 @@ TEST_F(KeysTest, PKExpireScanCaseSingleTest) {
   delete_keys.push_back("GP12_KEY5_PKEXPIRESCAN_CASE_SINGLE_LIST");
   delete_keys.push_back("GP12_KEY6_PKEXPIRESCAN_CASE_SINGLE_LIST");
 
-  //ZSet
-  s = db.ZAdd("GP12_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}}, &int32_ret);
-  s = db.ZAdd("GP12_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}}, &int32_ret);
-  s = db.ZAdd("GP12_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}}, &int32_ret);
-  s = db.ZAdd("GP12_KEY4_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER4"}}, &int32_ret);
-  s = db.ZAdd("GP12_KEY5_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER5"}}, &int32_ret);
-  s = db.ZAdd("GP12_KEY6_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER6"}}, &int32_ret);
+  // ZSet
+  s = db.ZAdd("GP12_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER1"}},
+              &int32_ret);
+  s = db.ZAdd("GP12_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER2"}},
+              &int32_ret);
+  s = db.ZAdd("GP12_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER3"}},
+              &int32_ret);
+  s = db.ZAdd("GP12_KEY4_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER4"}},
+              &int32_ret);
+  s = db.ZAdd("GP12_KEY5_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER5"}},
+              &int32_ret);
+  s = db.ZAdd("GP12_KEY6_PKEXPIRESCAN_CASE_SINGLE_ZSET", {{1, "GP12_PKEXPIRESCAN_CASE_SINGLE_LIST_MEMBER6"}},
+              &int32_ret);
   delete_keys.push_back("GP12_KEY1_PKEXPIRESCAN_CASE_SINGLE_ZSET");
   delete_keys.push_back("GP12_KEY2_PKEXPIRESCAN_CASE_SINGLE_ZSET");
   delete_keys.push_back("GP12_KEY3_PKEXPIRESCAN_CASE_SINGLE_ZSET");
@@ -7606,7 +7637,6 @@ TEST_F(KeysTest, ExpireTest) {
   s = db.ZCard("GP1_EXPIRE_KEY", &ret);
   ASSERT_TRUE(s.IsNotFound());
 
-
   // ***************** Group 2 Test *****************
   // Strings
   s = db.Set("GP2_EXPIRE_STRING_KEY", "VALUE");
@@ -7652,7 +7682,6 @@ TEST_F(KeysTest, ExpireTest) {
   type_status.clear();
   ret = db.Expire("GP2_EXPIRE_ZSETS_KEY", 1, &type_status);
   ASSERT_EQ(ret, 0);
-
 
   // ***************** Group 3 Test *****************
   // Strings
@@ -7712,7 +7741,7 @@ TEST_F(KeysTest, DelTest) {
   int32_t ret;
   std::string value;
   std::map<storage::DataType, Status> type_status;
-  std::vector<std::string> keys {"DEL_KEY"};
+  std::vector<std::string> keys{"DEL_KEY"};
 
   // Strings
   s = db.Set("DEL_KEY", "VALUE");
@@ -7764,7 +7793,7 @@ TEST_F(KeysTest, ExistsTest) {
   int32_t ret;
   uint64_t llen;
   std::map<storage::DataType, Status> type_status;
-  std::vector<std::string> keys {"EXISTS_KEY"};
+  std::vector<std::string> keys{"EXISTS_KEY"};
 
   // Strings
   s = db.Set("EXISTS_KEY", "VALUE");
@@ -7862,7 +7891,6 @@ TEST_F(KeysTest, ExpireatTest) {
   s = db.ZAdd("EXPIREAT_KEY", {{1, "MEMBER"}}, &ret);
   ASSERT_TRUE(s.ok());
 
-  
   ret = db.Expireat("EXPIREAT_KEY", 0, &type_status);
   ASSERT_EQ(ret, 5);
 
@@ -7990,4 +8018,3 @@ int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-

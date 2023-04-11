@@ -4,26 +4,26 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "trysync_thread.h"
-#include "pika_port.h"
 #include "conf.h"
 #include "const.h"
+#include "pika_port.h"
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#include <fstream>
 #include <glog/logging.h>
 #include <poll.h>
+#include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <signal.h>
+#include <fstream>
 
-#include "slash/include/slash_status.h"
 #include "slash/include/rsync.h"
+#include "slash/include/slash_status.h"
 #include "slaveping_thread.h"
 
-#include "pika_define.h"
 #include "blackwidow/blackwidow.h"
+#include "pika_define.h"
 
 extern Conf g_conf;
 extern PikaPort* g_pika_port;
@@ -89,8 +89,8 @@ bool TrysyncThread::Send(std::string lip) {
   net::SerializeRedisCommand(argv, &tbuf_str);
 
   wbuf_str.append(tbuf_str);
-  LOG(INFO) << "redis command: trysync " << g_conf.local_ip.c_str() << " "
-    << g_conf.local_port << " " << filenum << " " <<  pro_offset;
+  LOG(INFO) << "redis command: trysync " << g_conf.local_ip.c_str() << " " << g_conf.local_port << " " << filenum << " "
+            << pro_offset;
 
   slash::Status s;
   s = cli_->Send(&wbuf_str);
@@ -128,8 +128,7 @@ bool TrysyncThread::RecvProc() {
       }
       is_authed = true;
     } else {
-      if (argv.size() == 1 &&
-          slash::string2l(reply.data(), reply.size(), &sid_)) {
+      if (argv.size() == 1 && slash::string2l(reply.data(), reply.size(), &sid_)) {
         // Luckily, I got your point, the sync is comming
         LOG(INFO) << "Recv sid from master: " << sid_;
         g_pika_port->SetSid(sid_);
@@ -195,26 +194,28 @@ bool TrysyncThread::TryUpdateMasterOffset() {
         is.close();
         return false;
       }
-      if (lineno == 3) { master_port = tmp; }
-      else if (lineno == 4) { filenum = tmp; }
-      else { offset = tmp; }
-   } else if (lineno > 5) {
+      if (lineno == 3) {
+        master_port = tmp;
+      } else if (lineno == 4) {
+        filenum = tmp;
+      } else {
+        offset = tmp;
+      }
+    } else if (lineno > 5) {
       LOG(WARNING) << "Format of info file after db sync error, line: " << line;
       is.close();
       return false;
     }
   }
   is.close();
-  LOG(INFO) << "Information from dbsync info. master_ip: " << master_ip
-    << ", master_port: " << master_port
-    << ", filenum: " << filenum << ", offset: " << offset;
+  LOG(INFO) << "Information from dbsync info. master_ip: " << master_ip << ", master_port: " << master_port
+            << ", filenum: " << filenum << ", offset: " << offset;
 
   // Sanity check
-  if ( // master_ip != g_conf.master_ip ||
+  if (  // master_ip != g_conf.master_ip ||
       master_port != g_conf.master_port) {
-    LOG(WARNING) << "Error master{" << master_ip << ":" << master_port
-      << "} != g_config.master{" << "{" << g_conf.master_ip.c_str()
-      << ":" <<  g_conf.master_port << "}";
+    LOG(WARNING) << "Error master{" << master_ip << ":" << master_port << "} != g_config.master{"
+                 << "{" << g_conf.master_ip.c_str() << ":" << g_conf.master_port << "}";
     return false;
   }
 
@@ -234,13 +235,13 @@ bool TrysyncThread::TryUpdateMasterOffset() {
 #include <sstream>
 
 #include "rocksdb/db.h"
-#include "rocksdb/status.h"
 #include "rocksdb/slice.h"
+#include "rocksdb/status.h"
 
-#include "src/redis_strings.h"
-#include "src/redis_lists.h"
 #include "src/redis_hashes.h"
+#include "src/redis_lists.h"
 #include "src/redis_sets.h"
+#include "src/redis_strings.h"
 #include "src/redis_zsets.h"
 
 using std::chrono::high_resolution_clock;
@@ -271,8 +272,8 @@ int TrysyncThread::Retransmit() {
   options.keep_log_file_num = 10;
   options.max_manifest_file_size = 64 * 1024 * 1024;
   options.max_log_file_size = 512 * 1024 * 1024;
-  options.write_buffer_size = 512 * 1024 * 1024; // 512M
-  options.target_file_size_base = 40 * 1024 * 1024; // 40M
+  options.write_buffer_size = 512 * 1024 * 1024;     // 512M
+  options.target_file_size_base = 40 * 1024 * 1024;  // 40M
 
   blackwidow::BlackwidowOptions bwOptions;
   bwOptions.options = options;
@@ -364,14 +365,14 @@ int TrysyncThread::Retransmit() {
   }
 
   high_resolution_clock::time_point end = high_resolution_clock::now();
-  std::chrono::hours  hours = std::chrono::duration_cast<std::chrono::hours>(end - start);
-  std::chrono::minutes  minutes = std::chrono::duration_cast<std::chrono::minutes>(end - start);
-  std::chrono::seconds  seconds = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+  std::chrono::hours hours = std::chrono::duration_cast<std::chrono::hours>(end - start);
+  std::chrono::minutes minutes = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::chrono::seconds seconds = std::chrono::duration_cast<std::chrono::seconds>(end - start);
 
   LOG(INFO) << "=============== Retransmitting =====================";
   LOG(INFO) << "Running time  :";
-  LOG(INFO) << hours.count() << " hour " << minutes.count() - hours.count() * 60
-    << " min " << seconds.count() - hours.count() * 60 * 60 << " s";
+  LOG(INFO) << hours.count() << " hour " << minutes.count() - hours.count() * 60 << " min "
+            << seconds.count() - hours.count() * 60 * 60 << " s";
   LOG(INFO) << "Total records : " << records << " have been Scaned";
   LOG(INFO) << "Total replies : " << replies << " received from redis server";
   // delete db
@@ -389,7 +390,7 @@ void* TrysyncThread::ThreadMain() {
       if (wait_start == 0) {
         wait_start = cur_time;
       }
-      //Try to update offset by db sync
+      // Try to update offset by db sync
       if (TryUpdateMasterOffset()) {
         LOG(INFO) << "Success Update Master Offset";
       } else {
@@ -414,7 +415,8 @@ void* TrysyncThread::ThreadMain() {
     PrepareRsync();
     Status connectStatus = cli_->Connect(master_ip, master_port, g_conf.local_ip);
     if (!connectStatus.ok()) {
-      LOG(WARNING) << "Failed to connect to master " << master_ip << ":" << master_port << ", status: " << connectStatus.ToString();
+      LOG(WARNING) << "Failed to connect to master " << master_ip << ":" << master_port
+                   << ", status: " << connectStatus.ToString();
       continue;
     }
     LOG(INFO) << "Connect to master " << master_ip << ":" << master_port;
@@ -426,7 +428,7 @@ void* TrysyncThread::ThreadMain() {
     // the pika master module name rule is: document_${slave_ip}:master_port
     //
     // document_${slave_ip}:master_port
-    //std::string ip_port = slash::IpPortString(lip, master_port);
+    // std::string ip_port = slash::IpPortString(lip, master_port);
 
     // pika 3.0.0-3.0.15 uses document_${master_ip}:${master_port}
     // document_${master_ip}:${master_port}
@@ -438,13 +440,12 @@ void* TrysyncThread::ThreadMain() {
     if (0 != ret) {
       LOG(WARNING) << "Failed to start rsync, path: " << dbsync_path << ", error: " << ret;
     }
-    LOG(INFO) << "Finish to start rsync, path: " << dbsync_path
-      << ", local address: " << lip << ":" << rsync_port;
+    LOG(INFO) << "Finish to start rsync, path: " << dbsync_path << ", local address: " << lip << ":" << rsync_port;
 
     // Make sure the listening addr of rsyncd is accessible, to avoid the corner case
     // that "rsync --daemon" process has started but can not bind its port which is
     // used by other process.
-    net::PinkCli *rsync = net::NewRedisCli();
+    net::PinkCli* rsync = net::NewRedisCli();
     int retry_times;
     for (retry_times = 0; retry_times < 5; retry_times++) {
       if (rsync->Connect(lip, rsync_port, "").ok()) {

@@ -6,18 +6,11 @@
 #include "classify_thread.h"
 
 ClassifyThread::ClassifyThread(nemo::Nemo* nemo_db, std::vector<Migrator*> migrators, const std::string& type)
-        : is_finish_(false),
-          key_num_(0),
-          consume_index_(0),
-          nemo_db_(nemo_db),
-          migrators_(migrators),
-          type_(type) {
+    : is_finish_(false), key_num_(0), consume_index_(0), nemo_db_(nemo_db), migrators_(migrators), type_(type) {
   pthread_rwlock_init(&rwlock_, NULL);
 }
 
-ClassifyThread::~ClassifyThread() {
-  pthread_rwlock_destroy(&rwlock_);
-};
+ClassifyThread::~ClassifyThread() { pthread_rwlock_destroy(&rwlock_); };
 
 int64_t ClassifyThread::key_num() {
   slash::RWLock l(&rwlock_, false);

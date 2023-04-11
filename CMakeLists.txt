@@ -7,8 +7,6 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 project(pika)
-set(CMAKE_CXX_FLAGS "-pthread -Wl,--no-as-needed -ldl")
-set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 enable_testing()
 
@@ -27,6 +25,17 @@ elseif(${BUILD_TYPE} STREQUAL RELWITHDEBINFO)
 else()
   set(LIB_BUILD_TYPE RElEASE)
   set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+   set(CMAKE_CXX_FLAGS "-pthread")
+   add_definitions(-DOS_MACOSX)
+elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+   set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+   set(CMAKE_CXX_FLAGS "-pthread -Wl,--no-as-needed -ldl")
+   add_definitions(-DOS_LINUX)
+else()
+   message(FATAL_ERROR "only support linux or macOs")
 endif()
 
 set(EP_BASE_SUFFIX "buildtrees")
@@ -126,39 +135,45 @@ endif()
 set(GFLAGS_LIBRARY ${INSTALL_LIBDIR}/LIB_GFLAGS)
 set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
-ExternalProject_Add(unwind
-  DEPENDS
-  URL
-  https://github.com/libunwind/libunwind/releases/download/v1.6.2/libunwind-1.6.2.tar.gz
-  URL_HASH
-  MD5=f625b6a98ac1976116c71708a73dc44a
-  DOWNLOAD_NO_PROGRESS
-  1
-  UPDATE_COMMAND
-  ""
-  LOG_CONFIGURE
-  1
-  LOG_BUILD
-  1
-  LOG_INSTALL
-  1
-  CONFIGURE_COMMAND
-  <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no
-  BUILD_IN_SOURCE
-  1
-  BUILD_COMMAND
-  make -j${CPU_CORE}
-  INSTALL_COMMAND
-  make install
-)
-set(LIBUNWIND_LIBRARY ${INSTALL_LIBDIR}/libunwind.a)
-set(LIBUNWIND_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  ExternalProject_Add(unwind
+    DEPENDS
+    URL
+    https://github.com/libunwind/libunwind/releases/download/v1.6.2/libunwind-1.6.2.tar.gz
+    URL_HASH
+    MD5=f625b6a98ac1976116c71708a73dc44a
+    DOWNLOAD_NO_PROGRESS
+    1
+    UPDATE_COMMAND
+    ""
+    LOG_CONFIGURE
+    1
+    LOG_BUILD
+    1
+    LOG_INSTALL
+    1
+    CONFIGURE_COMMAND
+    <SOURCE_DIR>/configure --prefix=${STAGED_INSTALL_PREFIX} --enable-minidebuginfo=no --enable-zlibdebuginfo=no
+    BUILD_IN_SOURCE
+    1
+    BUILD_COMMAND
+    make -j${CPU_CORE}
+    INSTALL_COMMAND
+    make install
+  )
+  set(LIBUNWIND_LIBRARY ${INSTALL_LIBDIR}/libunwind.a)
+  set(LIBUNWIND_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+  set(LIBUNWIND_NAME unwind)
+  set(LIBUNWIND_ON ON)
+else()
+  set(LIBUNWIND_ON OFF)
+endif()
 
 ExternalProject_Add(glog
   DEPENDS
   gflags
   gtest
-  unwind
+  ${LIBUNWIND_NAME}
   URL
   https://github.com/google/glog/archive/refs/tags/v0.6.0.tar.gz
   URL_HASH
@@ -181,7 +196,7 @@ ExternalProject_Add(glog
   -DWITH_GFLAGS=ON
   -DBUILD_TESTING=OFF
   -DBUILD_SHARED_LIBS=OFF
-  -DWITH_UNWIND=ON
+  -DWITH_UNWIND=${LIBUNWIND_ON}
   -DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}
   BUILD_COMMAND
   make -j${CPU_CORE}
@@ -336,31 +351,34 @@ ExternalProject_Add(zlib
 set(ZLIB_LIBRARY ${INSTALL_LIBDIR}/libz.a)
 set(ZLIB_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
-ExternalProject_Add(gperftools
-  DEPENDS
-  unwind
-  URL
-  https://github.com/gperftools/gperftools/releases/download/gperftools-2.10/gperftools-2.10.tar.gz
-  URL_HASH
-  MD5=62bf6c76ba855ed580de5e139bd2a483
-  DOWNLOAD_NO_PROGRESS
-  1
-  UPDATE_COMMAND
-  ""
-  LOG_CONFIGURE
-  1
-  LOG_BUILD
-  1
-  LOG_INSTALL
-  1
-  CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
-  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
-  -DGPERFTOOLS_BUILD_STATIC=ON
-  -DEFAULT_BUILD_MINIMAL=ON
-  BUILD_COMMAND
-  make -j${CPU_CORE}
-)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  ExternalProject_Add(gperftools
+    DEPENDS
+    unwind
+    URL
+    https://github.com/gperftools/gperftools/releases/download/gperftools-2.10/gperftools-2.10.tar.gz
+    URL_HASH
+    MD5=62bf6c76ba855ed580de5e139bd2a483
+    DOWNLOAD_NO_PROGRESS
+    1
+    UPDATE_COMMAND
+    ""
+    LOG_CONFIGURE
+    1
+    LOG_BUILD
+    1
+    LOG_INSTALL
+    1
+    CMAKE_ARGS
+    -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+    -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+    -DGPERFTOOLS_BUILD_STATIC=ON
+    -DEFAULT_BUILD_MINIMAL=ON
+    BUILD_COMMAND
+    make -j${CPU_CORE}
+  )
+  set(LIBGPERF_NAME gperftools)
+endif()
 
 if(${OS_VERSION} MATCHES "CentOS")
   set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
@@ -370,36 +388,42 @@ endif()
 
 set(TCMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
-ExternalProject_Add(jemalloc
-  DEPENDS
-  URL
-  https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz
-  URL_HASH
-  MD5=594dd8e0a1e8c1ef8a1b210a1a5aff5b
-  DOWNLOAD_NO_PROGRESS
-  1
-  UPDATE_COMMAND
-  ""
-  LOG_CONFIGURE
-  1
-  LOG_BUILD
-  1
-  LOG_INSTALL
-  1
-  CONFIGURE_COMMAND
-  <SOURCE_DIR>/autogen.sh --prefix=${STAGED_INSTALL_PREFIX}
-  BUILD_IN_SOURCE
-  1
-  BUILD_COMMAND
-  make -j${CPU_CORE}
-  BUILD_ALWAYS
-  1
-  INSTALL_COMMAND
-  make install
-)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  ExternalProject_Add(jemalloc
+    DEPENDS
+    URL
+    https://github.com/jemalloc/jemalloc/archive/refs/tags/5.3.0.tar.gz
+    URL_HASH
+    MD5=594dd8e0a1e8c1ef8a1b210a1a5aff5b
+    DOWNLOAD_NO_PROGRESS
+    1
+    UPDATE_COMMAND
+    ""
+    LOG_CONFIGURE
+    1
+    LOG_BUILD
+    1
+    LOG_INSTALL
+    1
+    CONFIGURE_COMMAND
+    <SOURCE_DIR>/autogen.sh --prefix=${STAGED_INSTALL_PREFIX}
+    BUILD_IN_SOURCE
+    1
+    BUILD_COMMAND
+    make -j${CPU_CORE}
+    BUILD_ALWAYS
+    1
+    INSTALL_COMMAND
+    make install
+  )
 
-set(JEMALLOC_LIBRARY ${INSTALL_LIBDIR}/libjemalloc.a)
-set(JEMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+  set(JEMALLOC_LIBRARY ${INSTALL_LIBDIR}/libjemalloc.a)
+  set(JEMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+  set(LIBJEMALLOC_NAME jemalloc)
+  set(JEMALLOC_ON ON)
+else()
+  set(JEMALLOC_ON OFF)
+endif()
 
 ExternalProject_Add(protobuf
   DEPENDS
@@ -451,8 +475,8 @@ ExternalProject_Add(rocksdb
   zstd
   lz4
   zlib
-  gperftools
-  jemalloc
+  ${LIBGPERF_NAME}
+  ${LIBJEMALLOC_NAME}
   URL
   https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
   URL_HASH
@@ -482,7 +506,7 @@ ExternalProject_Add(rocksdb
   -DWITH_TRACE_TOOLS=OFF
   -DWITH_EXAMPLES=OFF
   -DROCKSDB_BUILD_SHARED=OFF
-  -DWITH_JEMALLOC=ON
+  -DWITH_JEMALLOC=${JEMALLOC_ON}
   -DWITH_LZ4=ON
   -DWITH_SNAPPY=ON
   -DWITH_ZLIB=ON
@@ -556,14 +580,14 @@ target_link_directories(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}
   gflags
   gtest
-  unwind
+  ${LIBUNWIND_NAME}
   glog
   snappy
   zstd
   lz4
   zlib
-  gperftools
-  jemalloc
+  ${LIBGPERF_NAME}
+  ${LIBJEMALLOC_NAME}
   rocksdb
   protobuf
   pstd
@@ -588,5 +612,5 @@ target_link_libraries(${PROJECT_NAME}
   libzstd.a
   liblz4.a
   libz.a
-  libunwind.a
-  libjemalloc.a)
+  ${LIBUNWIND_LIBRARY}
+  ${JEMALLOC_LIBRARY})

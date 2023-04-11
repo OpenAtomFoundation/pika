@@ -1,5 +1,5 @@
-#include <iostream>
 #include <chrono>
+#include <iostream>
 #include "scan.h"
 #include "sender.h"
 
@@ -11,7 +11,7 @@ void Usage() {
   std::cout << "    example: ./txt_to_pika data.txt 127.0.0.1 9921 -n 10 -t 10 -p 123456" << std::endl;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   if (argc < 4) {
     Usage();
     return 0;
@@ -25,28 +25,28 @@ int main(int argc, char **argv) {
   std::string ip = std::string(argv[2]);
   int port = std::stoi(std::string(argv[3]));
   int ttl = -1;
-  std::vector<SenderThread *> senders;
+  std::vector<SenderThread*> senders;
 
   int index = 4;
   if (argc > 4) {
-    while (index < (argc -1)) {
+    while (index < (argc - 1)) {
       int flag = index++;
       if (std::string(argv[flag]) == "-n") {
         thread_num = std::stoi(std::string(argv[index++]));
         if (index > (argc - 1)) {
-          break; 
+          break;
         }
       }
       if (std::string(argv[flag]) == "-t") {
         ttl = std::stoi(std::string(argv[index++]));
         if (index > (argc - 1)) {
-          break; 
+          break;
         }
       }
       if (std::string(argv[flag]) == "-p") {
         password = std::string(argv[index++]);
         if (index > (argc - 1)) {
-          break; 
+          break;
         }
       }
     }
@@ -66,43 +66,43 @@ int main(int argc, char **argv) {
   ScanThread* scan_thread = new ScanThread(filename, senders, ttl);
 
   for (int i = 0; i < thread_num; i++) {
-    senders[i]->StartThread(); 
+    senders[i]->StartThread();
   }
 
   scan_thread->StartThread();
   scan_thread->JoinThread();
 
   for (int i = 0; i < thread_num; i++) {
-    senders[i]->Stop(); 
+    senders[i]->Stop();
   }
 
   for (int i = 0; i < thread_num; i++) {
     senders[i]->JoinThread();
   }
 
-  
   int records = 0;
   for (int i = 0; i < thread_num; i++) {
     records += senders[i]->elements();
   }
 
   for (int i = 0; i < thread_num; i++) {
-    delete senders[i]; 
+    delete senders[i];
   }
-  
-  std::cout << std::endl << "Total " << scan_thread->Num()  << " records has been scaned"<< std::endl;
-  std::cout <<"Total " << records << " records hash been executed by pika" << std::endl;
+
+  std::cout << std::endl << "Total " << scan_thread->Num() << " records has been scaned" << std::endl;
+  std::cout << "Total " << records << " records hash been executed by pika" << std::endl;
 
   delete scan_thread;
-  
+
   high_resolution_clock::time_point end = high_resolution_clock::now();
-  std::chrono::hours  h = std::chrono::duration_cast<std::chrono::hours>(end - start);
-  std::chrono::minutes  m = std::chrono::duration_cast<std::chrono::minutes>(end - start);
-  std::chrono::seconds  s = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+  std::chrono::hours h = std::chrono::duration_cast<std::chrono::hours>(end - start);
+  std::chrono::minutes m = std::chrono::duration_cast<std::chrono::minutes>(end - start);
+  std::chrono::seconds s = std::chrono::duration_cast<std::chrono::seconds>(end - start);
 
   std::cout << "====================================" << std::endl;
   std::cout << "Running time  :";
-  std::cout << h.count() << " hour " << m.count() - h.count() * 60 << " min " << s.count() - h.count() * 60 * 60 << " s\n" << std::endl;
-  return 0; 
+  std::cout << h.count() << " hour " << m.count() - h.count() * 60 << " min " << s.count() - h.count() * 60 * 60
+            << " s\n"
+            << std::endl;
+  return 0;
 }
-

@@ -8,27 +8,25 @@
 #include <arpa/inet.h>
 #include <string>
 
-#include "pstd/include/xdebug.h"
 #include "net/include/net_define.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
-PbConn::PbConn(const int fd, const std::string &ip_port, Thread *thread, NetEpoll* epoll) :
-  NetConn(fd, ip_port, thread, epoll),
-  header_len_(-1),
-  cur_pos_(0),
-  rbuf_len_(0),
-  remain_packet_len_(0),
-  connStatus_(kHeader),
-  write_buf_(0),
-  is_reply_(0) {
-  rbuf_ = reinterpret_cast<char *>(malloc(sizeof(char) * PB_IOBUF_LEN));
+PbConn::PbConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx)
+    : NetConn(fd, ip_port, thread, mpx),
+      header_len_(-1),
+      cur_pos_(0),
+      rbuf_len_(0),
+      remain_packet_len_(0),
+      connStatus_(kHeader),
+      write_buf_(0),
+      is_reply_(0) {
+  rbuf_ = reinterpret_cast<char*>(malloc(sizeof(char) * PB_IOBUF_LEN));
   rbuf_len_ = PB_IOBUF_LEN;
 }
 
-PbConn::~PbConn() {
-  free(rbuf_);
-}
+PbConn::~PbConn() { free(rbuf_); }
 
 // Msg is [ length(COMMAND_HEADER_LENGTH) | body(length bytes) ]
 //   step 1. kHeader, we read COMMAND_HEADER_LENGTH bytes;
@@ -37,8 +35,7 @@ ReadStatus PbConn::GetRequest() {
   while (true) {
     switch (connStatus_) {
       case kHeader: {
-        ssize_t nread = read(
-            fd(), rbuf_ + cur_pos_, COMMAND_HEADER_LENGTH - cur_pos_);
+        ssize_t nread = read(fd(), rbuf_ + cur_pos_, COMMAND_HEADER_LENGTH - cur_pos_);
         if (nread == -1) {
           if (errno == EAGAIN) {
             return kReadHalf;
@@ -51,8 +48,7 @@ ReadStatus PbConn::GetRequest() {
           cur_pos_ += nread;
           if (cur_pos_ == COMMAND_HEADER_LENGTH) {
             uint32_t integer = 0;
-            memcpy(reinterpret_cast<char*>(&integer),
-                   rbuf_, sizeof(uint32_t));
+            memcpy(reinterpret_cast<char*>(&integer), rbuf_, sizeof(uint32_t));
             header_len_ = ntohl(integer);
             remain_packet_len_ = header_len_;
             connStatus_ = kPacket;
@@ -65,7 +61,7 @@ ReadStatus PbConn::GetRequest() {
         if (header_len_ > rbuf_len_ - COMMAND_HEADER_LENGTH) {
           uint32_t new_size = header_len_ + COMMAND_HEADER_LENGTH;
           if (new_size < kProtoMaxMessage) {
-            rbuf_ = reinterpret_cast<char *>(realloc(rbuf_, sizeof(char) * new_size));
+            rbuf_ = reinterpret_cast<char*>(realloc(rbuf_, sizeof(char) * new_size));
             if (rbuf_ == NULL) {
               return kFullError;
             }
@@ -166,7 +162,6 @@ bool PbConn::is_reply() {
 }
 
 int PbConn::WriteResp(const std::string& resp) {
-
   std::string tag;
   BuildInternalTag(resp, &tag);
   pstd::MutexLock l(&resp_mu_);
@@ -186,27 +181,24 @@ void PbConn::TryResizeBuffer() {
   struct timeval now;
   gettimeofday(&now, nullptr);
   int idletime = now.tv_sec - last_interaction().tv_sec;
-  if (rbuf_len_ > PB_IOBUF_LEN &&
-      ((rbuf_len_ / (cur_pos_ + 1)) > 2 || idletime > 2)) {
-    uint32_t new_size =
-      ((cur_pos_ + PB_IOBUF_LEN) / PB_IOBUF_LEN) * PB_IOBUF_LEN;
+  if (rbuf_len_ > PB_IOBUF_LEN && ((rbuf_len_ / (cur_pos_ + 1)) > 2 || idletime > 2)) {
+    uint32_t new_size = ((cur_pos_ + PB_IOBUF_LEN) / PB_IOBUF_LEN) * PB_IOBUF_LEN;
     if (new_size < rbuf_len_) {
       rbuf_ = static_cast<char*>(realloc(rbuf_, new_size));
       rbuf_len_ = new_size;
-      log_info("Thread_id %ld Shrink rbuf to %u, cur_pos_: %u\n",
-               pthread_self(), rbuf_len_, cur_pos_);
+      log_info("Thread_id %ld Shrink rbuf to %u, cur_pos_: %u\n", pthread_self(), rbuf_len_, cur_pos_);
     }
   }
 }
 
 void PbConn::NotifyWrite() {
   net::NetItem ti(fd(), ip_port(), net::kNotiWrite);
-  net_epoll()->Register(ti, true);
+  net_multiplexer()->Register(ti, true);
 }
 
 void PbConn::NotifyClose() {
   net::NetItem ti(fd(), ip_port(), net::kNotiClose);
-  net_epoll()->Register(ti, true);
+  net_multiplexer()->Register(ti, true);
 }
 
 }  // namespace net

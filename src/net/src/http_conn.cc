@@ -3,16 +3,16 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 #include "net/include/http_conn.h"
-#include <stdlib.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#include <string>
 #include <algorithm>
+#include <string>
 
-#include "pstd/include/xdebug.h"
-#include "pstd/include/pstd_string.h"
 #include "net/include/net_define.h"
+#include "pstd/include/pstd_string.h"
+#include "pstd/include/xdebug.h"
 
 namespace net {
 
@@ -20,41 +20,41 @@ static const uint32_t kHTTPMaxMessage = 1024 * 1024 * 8;
 static const uint32_t kHTTPMaxHeader = 1024 * 1024;
 
 static const std::map<int, std::string> http_status_map = {
-  {100, "Continue"},
-  {101, "Switching Protocols"},
-  {102, "Processing"},
+    {100, "Continue"},
+    {101, "Switching Protocols"},
+    {102, "Processing"},
 
-  {200, "OK"},
-  {201, "Created"},
-  {202, "Accepted"},
-  {203, "Non-Authoritative Information"},
-  {204, "No Content"},
-  {205, "Reset Content"},
-  {206, "Partial Content"},
-  {207, "Multi-Status"},
+    {200, "OK"},
+    {201, "Created"},
+    {202, "Accepted"},
+    {203, "Non-Authoritative Information"},
+    {204, "No Content"},
+    {205, "Reset Content"},
+    {206, "Partial Content"},
+    {207, "Multi-Status"},
 
-  {400, "Bad Request"},
-  {401, "Unauthorized"},
-  {402, ""},  // reserve
-  {403, "Forbidden"},
-  {404, "Not Found"},
-  {405, "Method Not Allowed"},
-  {406, "Not Acceptable"},
-  {407, "Proxy Authentication Required"},
-  {408, "Request Timeout"},
-  {409, "Conflict"},
-  {416, "Requested Range not satisfiable"},
+    {400, "Bad Request"},
+    {401, "Unauthorized"},
+    {402, ""},  // reserve
+    {403, "Forbidden"},
+    {404, "Not Found"},
+    {405, "Method Not Allowed"},
+    {406, "Not Acceptable"},
+    {407, "Proxy Authentication Required"},
+    {408, "Request Timeout"},
+    {409, "Conflict"},
+    {416, "Requested Range not satisfiable"},
 
-  {500, "Internal Server Error"},
-  {501, "Not Implemented"},
-  {502, "Bad Gateway"},
-  {503, "Service Unavailable"},
-  {504, "Gateway Timeout"},
-  {505, "HTTP Version Not Supported"},
-  {506, "Variant Also Negotiates"},
-  {507, "Insufficient Storage"},
-  {508, "Bandwidth Limit Exceeded"},
-  {509, "Not Extended"},
+    {500, "Internal Server Error"},
+    {501, "Not Implemented"},
+    {502, "Bad Gateway"},
+    {503, "Service Unavailable"},
+    {504, "Gateway Timeout"},
+    {505, "HTTP Version Not Supported"},
+    {506, "Variant Also Negotiates"},
+    {507, "Insufficient Storage"},
+    {508, "Bandwidth Limit Exceeded"},
+    {509, "Not Extended"},
 };
 
 inline int find_lf(const char* data, int size) {
@@ -70,8 +70,7 @@ inline int find_lf(const char* data, int size) {
   return count;
 }
 
-bool HTTPRequest::ParseHeadLine(
-    const char* data, int line_start, int line_end) {
+bool HTTPRequest::ParseHeadLine(const char* data, int line_start, int line_end) {
   std::string param_key;
   std::string param_value;
   for (int i = line_start; i <= line_end; i++) {
@@ -123,8 +122,7 @@ bool HTTPRequest::ParseHeadLine(
 bool HTTPRequest::ParseGetUrl() {
   path_ = url_;
   // Format path
-  if (headers_.count("host") &&
-      path_.find(headers_["host"]) != std::string::npos &&
+  if (headers_.count("host") && path_.find(headers_["host"]) != std::string::npos &&
       path_.size() > (7 + headers_["host"].size())) {
     // http://www.xxx.xxx/path_/to
     path_.assign(path_.substr(7 + headers_["host"].size()));
@@ -158,8 +156,7 @@ bool HTTPRequest::ParseParameters(const std::string data, size_t line_start) {
       query_params_[data.substr(pre, end - pre)] = std::string();
       pre = end + 1;
     } else {
-      query_params_[data.substr(pre, mid - pre)] =
-        data.substr(mid + 1, end - mid - 1);
+      query_params_[data.substr(pre, mid - pre)] = data.substr(mid + 1, end - mid - 1);
       pre = end + 1;
     }
   }
@@ -168,7 +165,7 @@ bool HTTPRequest::ParseParameters(const std::string data, size_t line_start) {
 
 int HTTPRequest::ParseHeader() {
   rbuf_[rbuf_pos_] = '\0';  // Avoid strstr() parsing expire char
-  char *sep_pos = strstr(rbuf_, "\r\n\r\n");
+  char* sep_pos = strstr(rbuf_, "\r\n\r\n");
   if (!sep_pos) {
     // Haven't find header
     return 0;
@@ -200,16 +197,14 @@ int HTTPRequest::ParseHeader() {
     return -1;
   }
 
-  remain_recv_len_ = headers_.count("content-length") ?
-    std::stoul(headers_.at("content-length")) : 0;
+  remain_recv_len_ = headers_.count("content-length") ? std::stoul(headers_.at("content-length")) : 0;
 
   if (headers_.count("content-type")) {
     content_type_.assign(headers_.at("content-type"));
   }
 
   if (headers_.count("expect") &&
-      (headers_.at("expect") == "100-Continue" ||
-      headers_.at("expect") == "100-continue")) {
+      (headers_.at("expect") == "100-Continue" || headers_.at("expect") == "100-continue")) {
     reply_100continue_ = true;
   }
 
@@ -223,8 +218,7 @@ void HTTPRequest::Dump() const {
   std::cout << "Version: " << version_ << std::endl;
   std::cout << "Headers: " << std::endl;
   for (auto& header : headers_) {
-    std::cout << "  ----- "
-      << header.first << ": " << header.second << std::endl;
+    std::cout << "  ----- " << header.first << ": " << header.second << std::endl;
   }
   std::cout << "Query params: " << std::endl;
   for (auto& item : query_params_) {
@@ -240,17 +234,15 @@ bool HTTPResponse::SerializeHeader() {
   std::string reason_phrase = http_status_map.at(status_code_);
 
   // Serialize statues line
-  ret = snprintf(wbuf_, kHTTPMaxHeader, "HTTP/1.1 %d %s\r\n",
-                 status_code_, reason_phrase.c_str());
+  ret = snprintf(wbuf_, kHTTPMaxHeader, "HTTP/1.1 %d %s\r\n", status_code_, reason_phrase.c_str());
   serial_size += ret;
   if (ret < 0 || ret == static_cast<int>(kHTTPMaxHeader)) {
     return false;
   }
 
-  for (auto &line : headers_) {
-    ret = snprintf(wbuf_ + serial_size, kHTTPMaxHeader - serial_size,
-                   "%s: %s\r\n",
-                   line.first.c_str(), line.second.c_str());
+  for (auto& line : headers_) {
+    ret = snprintf(wbuf_ + serial_size, kHTTPMaxHeader - serial_size, "%s: %s\r\n", line.first.c_str(),
+                   line.second.c_str());
     serial_size += ret;
     if (ret < 0 || serial_size == static_cast<int>(kHTTPMaxHeader)) {
       return false;
@@ -267,14 +259,13 @@ bool HTTPResponse::SerializeHeader() {
   return true;
 }
 
-HTTPConn::HTTPConn(const int fd, const std::string &ip_port,
-                   Thread *thread, std::shared_ptr<HTTPHandles> handles,
+HTTPConn::HTTPConn(const int fd, const std::string& ip_port, Thread* thread, std::shared_ptr<HTTPHandles> handles,
                    void* worker_specific_data)
-      : NetConn(fd, ip_port, thread),
+    : NetConn(fd, ip_port, thread),
 #ifdef __ENABLE_SSL
-        security_(thread->security()),
+      security_(thread->security()),
 #endif
-        handles_(handles) {
+      handles_(handles) {
   handles_->worker_specific_data_ = worker_specific_data;
   // this pointer is safe here
   request_ = new HTTPRequest(this);
@@ -296,17 +287,11 @@ HTTPRequest::HTTPRequest(HTTPConn* conn)
   rbuf_ = new char[kHTTPMaxMessage];
 }
 
-HTTPRequest::~HTTPRequest() {
-  delete[] rbuf_;
-}
+HTTPRequest::~HTTPRequest() { delete[] rbuf_; }
 
-const std::string HTTPRequest::url() const {
-  return url_;
-}
+const std::string HTTPRequest::url() const { return url_; }
 
-const std::string HTTPRequest::path() const {
-  return path_;
-}
+const std::string HTTPRequest::path() const { return path_; }
 
 const std::string HTTPRequest::query_value(const std::string& field) const {
   if (query_params_.count(field)) {
@@ -322,29 +307,17 @@ const std::string HTTPRequest::postform_value(const std::string& field) const {
   return "";
 }
 
-const std::string HTTPRequest::method() const {
-  return method_;
-}
+const std::string HTTPRequest::method() const { return method_; }
 
-const std::string HTTPRequest::content_type() const {
-  return content_type_;
-}
+const std::string HTTPRequest::content_type() const { return content_type_; }
 
-const std::map<std::string, std::string> HTTPRequest::query_params() const {
-  return query_params_;
-}
+const std::map<std::string, std::string> HTTPRequest::query_params() const { return query_params_; }
 
-const std::map<std::string, std::string> HTTPRequest::postform_params() const {
-  return postform_params_;
-}
+const std::map<std::string, std::string> HTTPRequest::postform_params() const { return postform_params_; }
 
-const std::map<std::string, std::string> HTTPRequest::headers() const {
-  return headers_;
-}
+const std::map<std::string, std::string> HTTPRequest::headers() const { return headers_; }
 
-const std::string HTTPRequest::client_ip_port() const {
-  return client_ip_port_;
-}
+const std::string HTTPRequest::client_ip_port() const { return client_ip_port_; }
 
 void HTTPRequest::Reset() {
   rbuf_pos_ = 0;
@@ -366,8 +339,7 @@ ReadStatus HTTPRequest::DoRead() {
   ssize_t nread;
 #ifdef __ENABLE_SSL
   if (conn_->security_) {
-    nread = SSL_read(conn_->ssl(), rbuf_ + rbuf_pos_,
-                     static_cast<int>(kHTTPMaxMessage));
+    nread = SSL_read(conn_->ssl(), rbuf_ + rbuf_pos_, static_cast<int>(kHTTPMaxMessage));
     if (nread <= 0) {
       int sslerr = SSL_get_error(conn_->ssl(), static_cast<int>(nread));
       switch (sslerr) {
@@ -381,12 +353,10 @@ ReadStatus HTTPRequest::DoRead() {
           return kReadClose;
       }
     }
-  }
-  else
+  } else
 #endif
   {
-    nread = read(conn_->fd(), rbuf_ + rbuf_pos_,
-                 kHTTPMaxMessage - rbuf_pos_);
+    nread = read(conn_->fd(), rbuf_ + rbuf_pos_, kHTTPMaxMessage - rbuf_pos_);
   }
   if (nread > 0) {
     rbuf_pos_ += nread;
@@ -423,8 +393,7 @@ ReadStatus HTTPRequest::ReadData() {
           return s;
         }
         header_len = ParseHeader();
-        if (header_len < 0 ||
-            rbuf_pos_ > kHTTPMaxHeader) {
+        if (header_len < 0 || rbuf_pos_ > kHTTPMaxHeader) {
           // Parse header error
           conn_->handles_->HandleConnClosed();
           return kReadError;
@@ -461,8 +430,7 @@ ReadStatus HTTPRequest::ReadData() {
           conn_->handles_->HandleConnClosed();
           return s;
         }
-        if (rbuf_pos_ == kHTTPMaxMessage ||
-            remain_recv_len_ == 0) {
+        if (rbuf_pos_ == kHTTPMaxMessage || remain_recv_len_ == 0) {
           conn_->handles_->HandleBodyData(rbuf_, rbuf_pos_);
           rbuf_pos_ = 0;
         }
@@ -501,9 +469,7 @@ HTTPResponse::HTTPResponse(HTTPConn* conn)
   wbuf_ = new char[kHTTPMaxMessage];
 }
 
-HTTPResponse::~HTTPResponse() {
-  delete[] wbuf_;
-}
+HTTPResponse::~HTTPResponse() { delete[] wbuf_; }
 
 void HTTPResponse::Reset() {
   headers_.clear();
@@ -515,32 +481,21 @@ void HTTPResponse::Reset() {
   resp_status_ = kPrepareHeader;
 }
 
-bool HTTPResponse::Finished() {
-  return finished_;
-}
+bool HTTPResponse::Finished() { return finished_; }
 
 void HTTPResponse::SetStatusCode(int code) {
-  assert((code >= 100 && code <= 102) ||
-         (code >= 200 && code <= 207) ||
-         (code >= 400 && code <= 409) ||
-         (code == 416) ||
-         (code >= 500 && code <= 509));
+  assert((code >= 100 && code <= 102) || (code >= 200 && code <= 207) || (code >= 400 && code <= 409) ||
+         (code == 416) || (code >= 500 && code <= 509));
   status_code_ = code;
 }
 
-void HTTPResponse::SetHeaders(
-    const std::string& key, const std::string& value) {
-  headers_[key] = value;
-}
+void HTTPResponse::SetHeaders(const std::string& key, const std::string& value) { headers_[key] = value; }
 
-void HTTPResponse::SetHeaders(const std::string& key, const size_t value) {
-  headers_[key] = std::to_string(value);
-}
+void HTTPResponse::SetHeaders(const std::string& key, const size_t value) { headers_[key] = std::to_string(value); }
 
 void HTTPResponse::SetContentLength(uint64_t size) {
   remain_send_len_ = size;
-  if (headers_.count("Content-Length") ||
-      headers_.count("content-length")) {
+  if (headers_.count("Content-Length") || headers_.count("content-length")) {
     return;
   }
   SetHeaders("Content-Length", size);
@@ -548,8 +503,7 @@ void HTTPResponse::SetContentLength(uint64_t size) {
 
 bool HTTPResponse::Flush() {
   if (resp_status_ == kPrepareHeader) {
-    if (!SerializeHeader() ||
-        buf_len_ > kHTTPMaxHeader) {
+    if (!SerializeHeader() || buf_len_ > kHTTPMaxHeader) {
       return false;
     }
     resp_status_ = kSendingHeader;
@@ -558,8 +512,7 @@ bool HTTPResponse::Flush() {
     ssize_t nwritten;
 #ifdef __ENABLE_SSL
     if (conn_->security_) {
-      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_,
-                           static_cast<int>(buf_len_));
+      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_, static_cast<int>(buf_len_));
       if (nwritten <= 0) {
         // FIXME (gaodq)
         int sslerr = SSL_get_error(conn_->ssl(), static_cast<int>(nwritten));
@@ -574,8 +527,7 @@ bool HTTPResponse::Flush() {
             return false;
         }
       }
-    }
-    else
+    } else
 #endif
     {
       nwritten = write(conn_->fd(), wbuf_ + wbuf_pos_, buf_len_);
@@ -610,9 +562,8 @@ bool HTTPResponse::Flush() {
     }
     if (buf_len_ == 0) {
       size_t remain_buf = static_cast<uint64_t>(kHTTPMaxMessage) - wbuf_pos_;
-      size_t needed_size = std::min(remain_buf, remain_send_len_);
-      buf_len_ = conn_->handles_->WriteResponseBody(
-          wbuf_ + wbuf_pos_, needed_size);
+      size_t needed_size = std::min<uint64_t>(remain_buf, remain_send_len_);
+      buf_len_ = conn_->handles_->WriteResponseBody(wbuf_ + wbuf_pos_, needed_size);
     }
 
     if (buf_len_ == -1) {
@@ -622,8 +573,7 @@ bool HTTPResponse::Flush() {
     ssize_t nwritten;
 #ifdef __ENABLE_SSL
     if (conn_->security_) {
-      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_,
-                           static_cast<int>(buf_len_));
+      nwritten = SSL_write(conn_->ssl(), wbuf_ + wbuf_pos_, static_cast<int>(buf_len_));
       if (nwritten <= 0) {
         // FIXME (gaodq)
         int sslerr = SSL_get_error(conn_->ssl(), static_cast<int>(nwritten));
@@ -638,8 +588,7 @@ bool HTTPResponse::Flush() {
             return false;
         }
       }
-    }
-    else
+    } else
 #endif
     {
       nwritten = write(conn_->fd(), wbuf_ + wbuf_pos_, buf_len_);
