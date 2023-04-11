@@ -1,7 +1,11 @@
 #!/bin/bash
 Get_Dist_Name()
 {
-    if grep -Eqii "CentOS" /etc/issue || grep -Eq "CentOS" /etc/*-release; then
+    if [ ! -f "/etc/issue" ];then
+      grep -Eqi "macOS" /System/Library/CoreServices/SystemVersion.plist;
+      DISTRO='APPLE'
+      PM='brew'
+    elif grep -Eqii "CentOS" /etc/issue || grep -Eq "CentOS" /etc/*-release; then
         DISTRO='CentOS'
         PM='yum'
     elif grep -Eqi "Red Hat Enterprise Linux Server" /etc/issue || grep -Eq "Red Hat Enterprise Linux Server" /etc/*-release; then
@@ -22,9 +26,6 @@ Get_Dist_Name()
     elif grep -Eqi "Raspbian" /etc/issue || grep -Eq "Raspbian" /etc/*-release; then
         DISTRO='Raspbian'
         PM='apt'
-    elif grep -Eqi "macOS" /System/Library/CoreServices/SystemVersion.plist; then
-        DISTRO='APPLE'
-        PM='brew'
     else
         DISTRO='unknow'
         PM='unknow'
