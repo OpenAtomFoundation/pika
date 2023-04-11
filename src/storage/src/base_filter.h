@@ -26,21 +26,21 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     int32_t cur_time = static_cast<int32_t>(unix_time);
     ParsedBaseMetaValue parsed_base_meta_value(value);
-    Trace("==========================START==========================");
-    Trace("[MetaFilter], key: %s, count = %d, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
+    TRACE("==========================START==========================");
+    TRACE("[MetaFilter], key: %s, count = %d, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
           parsed_base_meta_value.count(), parsed_base_meta_value.timestamp(), cur_time,
           parsed_base_meta_value.version());
 
     if (parsed_base_meta_value.timestamp() != 0 && parsed_base_meta_value.timestamp() < cur_time &&
         parsed_base_meta_value.version() < cur_time) {
-      Trace("Drop[Stale & version < cur_time]");
+      TRACE("Drop[Stale & version < cur_time]");
       return true;
     }
     if (parsed_base_meta_value.count() == 0 && parsed_base_meta_value.version() < cur_time) {
-      Trace("Drop[Empty & version < cur_time]");
+      TRACE("Drop[Empty & version < cur_time]");
       return true;
     }
-    Trace("Reserve");
+    TRACE("Reserve");
     return false;
   }
 
@@ -70,8 +70,8 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
   bool Filter(int level, const Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     ParsedBaseDataKey parsed_base_data_key(key);
-    Trace("==========================START==========================");
-    Trace("[DataFilter], key: %s, data = %s, version = %d", parsed_base_data_key.key().ToString().c_str(),
+    TRACE("==========================START==========================");
+    TRACE("[DataFilter], key: %s, data = %s, version = %d", parsed_base_data_key.key().ToString().c_str(),
           parsed_base_data_key.data().ToString().c_str(), parsed_base_data_key.version());
 
     if (parsed_base_data_key.key().ToString() != cur_key_) {
@@ -91,28 +91,28 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
         meta_not_found_ = true;
       } else {
         cur_key_ = "";
-        Trace("Reserve[Get meta_key faild]");
+        TRACE("Reserve[Get meta_key faild]");
         return false;
       }
     }
 
     if (meta_not_found_) {
-      Trace("Drop[Meta key not exist]");
+      TRACE("Drop[Meta key not exist]");
       return true;
     }
 
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     if (cur_meta_timestamp_ != 0 && cur_meta_timestamp_ < static_cast<int32_t>(unix_time)) {
-      Trace("Drop[Timeout]");
+      TRACE("Drop[Timeout]");
       return true;
     }
 
     if (cur_meta_version_ > parsed_base_data_key.version()) {
-      Trace("Drop[data_key_version < cur_meta_version]");
+      TRACE("Drop[data_key_version < cur_meta_version]");
       return true;
     } else {
-      Trace("Reserve[data_key_version == cur_meta_version]");
+      TRACE("Reserve[data_key_version == cur_meta_version]");
       return false;
     }
   }

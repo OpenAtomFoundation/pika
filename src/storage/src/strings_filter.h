@@ -24,15 +24,15 @@ class StringsFilter : public rocksdb::CompactionFilter {
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     int32_t cur_time = static_cast<int32_t>(unix_time);
     ParsedStringsValue parsed_strings_value(value);
-    Trace("==========================START==========================");
-    Trace("[StringsFilter], key: %s, value = %s, timestamp: %d, cur_time: %d", key.ToString().c_str(),
+    TRACE("==========================START==========================");
+    TRACE("[StringsFilter], key: %s, value = %s, timestamp: %d, cur_time: %d", key.ToString().c_str(),
           parsed_strings_value.value().ToString().c_str(), parsed_strings_value.timestamp(), cur_time);
 
     if (parsed_strings_value.timestamp() != 0 && parsed_strings_value.timestamp() < cur_time) {
-      Trace("Drop[Stale]");
+      TRACE("Drop[Stale]");
       return true;
     } else {
-      Trace("Reserve");
+      TRACE("Reserve");
       return false;
     }
   }
