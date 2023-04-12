@@ -521,7 +521,7 @@ int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
               memcpy(_format, c, _l);
               _format[_l] = '\0';
 
-              int n = vsnprintf(buf, REDIS_MAX_MESSAGE, _format, _cpy);
+              int n = vsnprintf(buf, sizeof(buf), _format, _cpy);
               curarg.append(buf, n);
 
               /* Update current position (note: outer blocks
