@@ -108,7 +108,7 @@ More details on [Performance](docs/benchmark/performance.md).
 
 ## Contact Us
 
-Wechat: zhangyoucai108 (The attachment comment should be "Join Pika Wechat Group")
+Wechat: PikiwiDB (The attachment comment should be "Join Pika Wechat Group")
 
 QQ group: 294254078
 
