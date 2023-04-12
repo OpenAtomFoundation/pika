@@ -66,7 +66,7 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 * macOS(Darwin) on M1
 
-#### Dependencies is enough
+#### Dependencies
 
 * gcc g++, C++11 support（version>=4.8）
 * make
@@ -102,7 +102,7 @@ Please run the script build.sh before you compile this db to check the environme
 
 The compilation result is in the 'output' directory.
 
-By default the compilation process is in release mode. If you wanna debug this db，you need to compile it in 'debug' mode.
+By default the compilation process is in 'release' mode. If you wanna debug this db，you need to compile it in 'debug' mode.
 
 ```
   rm -fr output
