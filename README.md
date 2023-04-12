@@ -66,7 +66,7 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 * macOS(Darwin) on M1
 
-#### Dependencies software
+#### Dependencies is enough
 
 * gcc g++, C++11 support（version>=4.8）
 * make
@@ -88,20 +88,21 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 2. Checkout the latest release version
 
 ```
-  a. exec `git tag` get letest release tag
-  b. exec `git checkout TAG` switch to letest version
+  a. exec git tag to get the latest release tag
+  b. exec git checkout TAG to switch to the latest version
 ```
 
 3. Compile
 
-The first time you compile, Recommended use `build.sh` This script checks the software required for compilation
+Please run the script build.sh before you compile this db to check the environment and build this repo.
+
 ```
   ./build.sh
 ```
 
-The compiled file is in the 'output' directory
+The compilation result is in the 'output' directory.
 
-pika default use `release`complete，can't debug，If you need to debug，you need to compile using the 'debug' mode
+By default the compilation process is in release mode. If you wanna debug this db，you need to compile it in 'debug' mode.
 
 ```
   rm -fr output
@@ -118,8 +119,7 @@ pika default use `release`complete，can't debug，If you need to debug，you ne
 ## Clean compilation
 
 ```
-  If you need to clean up the compiled content, use one of two methods, depending on the situation：
-
+  If wanna clean up the compilation content, you can choose one of the following two methods as your will.
   1. exec `cd output && make clean` clean pika Compile content
   2. exec `rm -fr output` rebuild cmake（for complete recompilation）
 ```
