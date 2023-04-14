@@ -4,15 +4,16 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 #include <iostream>
 
+#include "gtest/gtest.h"
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_binlog.h"
-#include "pstd/include/pstd_testharness.h"
 #include "pstd/include/testutil.h"
 #include "pstd/src/pstd_binlog_impl.h"
+#include "pstd_status.h"
 
 namespace pstd {
 
-class BinlogTest {
+class BinlogTest : public ::testing::Test {
  public:
   BinlogTest() : log_(NULL), reader_(NULL) {
     GetTestDirectory(&tmpdir_);
@@ -24,6 +25,7 @@ class BinlogTest {
     delete log_;
     DeleteDirIfExist(tmpdir_);
   }
+  void ASSERT_OK(const Status& s) { ASSERT_TRUE(s.ok()); }
 
  protected:
   Binlog* log_;
@@ -32,7 +34,7 @@ class BinlogTest {
   std::string tmpdir_;
 };
 
-TEST(BinlogTest, ReadWrite) {
+TEST_F(BinlogTest, ReadWrite) {
   std::string item1 = test_item_ + "1";
   std::string item2 = test_item_ + "2";
   std::string item3 = test_item_ + "3";
@@ -53,7 +55,7 @@ TEST(BinlogTest, ReadWrite) {
   ASSERT_EQ(item, item3);
 }
 
-TEST(BinlogTest, OffsetTest) {
+TEST_F(BinlogTest, OffsetTest) {
   std::string second_block_item = "sbi";
   uint64_t offset = 0;
   uint32_t filenum = 0;
@@ -78,7 +80,7 @@ TEST(BinlogTest, OffsetTest) {
   ASSERT_EQ(str, second_block_item);
 }
 
-TEST(BinlogTest, ProducerStatusOp) {
+TEST_F(BinlogTest, ProducerStatusOp) {
   std::cout << "ProducerStatusOp" << std::endl;
   uint32_t filenum = 187;
   uint64_t pro_offset = 8790;

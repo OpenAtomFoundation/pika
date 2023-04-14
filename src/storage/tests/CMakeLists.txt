@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 
 include(GoogleTest)
 
 file(GLOB_RECURSE BLACKWINDOW_TEST_SOURCE "${PROJECT_SOURCE_DIR}/tests/*.cc")
 
-aux_source_directory(../stc TEST_SRCS)
+aux_source_directory(../src TEST_SRCS)
 
 # set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build)
 foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
@@ -20,12 +20,15 @@ foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
     ${ROCKSDB_INCLUDE_DIR}
     ${ROCKSDB_SOURCE_DIR}
   )
-  add_dependencies(${blackwindow_test_name} gtest)
+  add_dependencies(${blackwindow_test_name} gtest glog gflags unwind)
   target_link_libraries(${blackwindow_test_name}
     PUBLIC ${GTEST_LIBRARY}
     PUBLIC pstd
     PUBLIC ${ROCKSDB_LIBRARY}
     PUBLIC storage
+    PUBLIC ${GLOG_LIBRARY}
+    PUBLIC ${GFLAGS_LIBRARY}
+    PUBLIC ${LIBUNWIND_LIBRARY}
   )
   add_test(NAME ${blackwindow_test_name}
     COMMAND ${blackwindow_test_name}

@@ -7,20 +7,20 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "gtest/gtest.h"
 #include "pstd/include/env.h"
-#include "pstd/include/pstd_testharness.h"
 #include "pstd/include/testutil.h"
 
 namespace pstd {
 
-class EnvTest {};
+class EnvTest : public ::testing::Test {};
 
-TEST(EnvTest, SetMaxFileDescriptorNum) {
+TEST_F(EnvTest, SetMaxFileDescriptorNum) {
   ASSERT_EQ(0, SetMaxFileDescriptorNum(10));
   ASSERT_NE(0, SetMaxFileDescriptorNum(2147483647));
 }
 
-TEST(EnvTest, FileOps) {
+TEST_F(EnvTest, FileOps) {
   std::string tmp_dir;
   GetTestDirectory(&tmp_dir);
 

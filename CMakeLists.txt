@@ -93,11 +93,18 @@ ExternalProject_Add(gtest
 
 if(${OS_VERSION} MATCHES "CentOS")
   set(GTEST_LIBRARY ${INSTALL_LIBDIR_64}/libgtest.a)
+  set(GTEST_MAIN_LIBRARY ${INSTALL_LIBDIR_64}/libgtest_main.a)
+  set(GMOCK_LIBRARY ${INSTALL_LIBDIR_64}/libgmock.a)
 else()
   set(GTEST_LIBRARY ${INSTALL_LIBDIR}/libgtest.a)
+  set(GTEST_MAIN_LIBRARY ${INSTALL_LIBDIR}/libgtest_main.a)
+  set(GMOCK_LIBRARY ${INSTALL_LIBDIR}/libgmock.a)
 endif()
 
 set(GTEST_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+set(GTEST_MAIN_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+set(GMOCK_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
 
 ExternalProject_Add(gflags
   URL
@@ -132,7 +139,7 @@ else()
   set(LIB_GFLAGS libgflags.a)
 endif()
 
-set(GFLAGS_LIBRARY ${INSTALL_LIBDIR}/LIB_GFLAGS)
+set(GFLAGS_LIBRARY ${INSTALL_LIBDIR}/${LIB_GFLAGS})
 set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -464,7 +471,7 @@ else()
 endif()
 
 set(PROTOBUF_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
-set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/LIB_PROTOBUF)
+set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/${LIB_PROTOBUF})
 set(PROTOBUF_PROTOC ${STAGED_INSTALL_PREFIX}/bin/protoc)
 
 ExternalProject_Add(rocksdb
@@ -560,6 +567,7 @@ message("pika GIT_TAG = ${PIKA_GIT_TAG}")
 message("pika BUILD_DATE = ${PIKA_BUILD_DATE}")
 
 set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc)
+message("PIKA_BUILD_VERSION_CC : " ${PIKA_BUILD_VERSION_CC})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/build_version.cc.in ${PIKA_BUILD_VERSION_CC} @ONLY)
 
 set(PROTO_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/pika_inner_message.proto)
@@ -614,3 +622,5 @@ target_link_libraries(${PROJECT_NAME}
   libz.a
   ${LIBUNWIND_LIBRARY}
   ${JEMALLOC_LIBRARY})
+
+option(USE_SSL "Enable SSL support" OFF)

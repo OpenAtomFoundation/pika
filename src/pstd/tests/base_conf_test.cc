@@ -6,14 +6,15 @@
 #include <string>
 #include <vector>
 
+#include "glog/logging.h"
+#include "gtest/gtest.h"
 #include "pstd/include/base_conf.h"
 #include "pstd/include/env.h"
-#include "pstd/include/pstd_testharness.h"
 #include "pstd/include/testutil.h"
 
 namespace pstd {
 
-class BaseConfTest {
+class BaseConfTest : public ::testing::Test {
  public:
   BaseConfTest() {
     GetTestDirectory(&tmpdir_);
@@ -41,12 +42,14 @@ class BaseConfTest {
     return Status::OK();
   }
 
+  void ASSERT_OK(const Status& s) { ASSERT_TRUE(s.ok()); }
+
  protected:
   std::string tmpdir_;
   std::string test_conf_;
 };
 
-TEST(BaseConfTest, WriteReadConf) {
+TEST_F(BaseConfTest, WriteReadConf) {
   ASSERT_OK(CreateSampleConf());
   BaseConf* conf = new BaseConf(test_conf_);
   ASSERT_EQ(conf->LoadConf(), 0);
