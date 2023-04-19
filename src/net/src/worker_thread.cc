@@ -171,6 +171,7 @@ void* WorkerThread::ThreadMain() {
             in_conn->set_is_reply(false);
             if (in_conn->IsClose()) {
               should_close = 1;
+              std::cout << "will close client connection " << in_conn->ip_port() << std::endl;
             }
           } else if (write_status == kWriteHalf) {
             continue;

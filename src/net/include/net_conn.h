@@ -28,7 +28,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   virtual ~NetConn();
 
   /*
-   * Set the fd to nonblock && set the flag_ the the fd flag
+   * Set the fd to nonblock && set the flag_ the fd flag
    */
   bool SetNonblock();
 

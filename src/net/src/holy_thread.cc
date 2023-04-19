@@ -194,6 +194,9 @@ void HolyThread::DoCronTask() {
       }
       conns_.clear();
       deleting_conn_ipport_.clear();
+      for (const auto conn : to_close) {
+        CloseFd(conn);
+      }
       return;
     }
 

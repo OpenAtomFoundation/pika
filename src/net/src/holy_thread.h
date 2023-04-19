@@ -22,7 +22,7 @@ class NetConn;
 
 class HolyThread : public ServerThread {
  public:
-  // This type thread thread will listen and work self list redis thread
+  // This type thread will listen and work self list redis thread
   HolyThread(int port, ConnFactory* conn_factory, int cron_interval = 0, const ServerHandle* handle = nullptr,
              bool async = true);
   HolyThread(const std::string& bind_ip, int port, ConnFactory* conn_factory, int cron_interval = 0,
