@@ -110,7 +110,7 @@ net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message
   ssize_t nwritten = 0, message_len_sended = 0, message_len_left = message.size();
   while (message_len_left > 0) {
     nwritten = write(fd, message.data() + message_len_sended, message_len_left);
-    if (nwritten == -1 && errno == EAGAIN) {
+    if (nwritten == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
       // If the write buffer is full, but the client no longer consumes, it will
       // get stuck in the loop and cause the entire Pika to block becase of monitor_mutex_protector_.
       // So we put a limit on the number of retries
