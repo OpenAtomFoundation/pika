@@ -17,7 +17,7 @@ get_filename_component(pstd_example_filename ${pstd_example_source} NAME)
     ${ROCKSDB_INCLUDE_DIR}
     ${ROCKSDB_SOURCE_DIR}
   )
-  add_dependencies(${pstd_example_name} pstd glog gflags unwind)
+  add_dependencies(${pstd_example_name} pstd glog gflags ${LIBUNWIND_NAME})
 
   target_link_libraries(${pstd_example_name}
     PUBLIC storage

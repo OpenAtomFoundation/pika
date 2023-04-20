@@ -7,7 +7,6 @@ aux_source_directory(../src  DIR_SRCS)
 
 file(GLOB NET_EXAMPLES_SOURCE "${PROJECT_SOURCE_DIR}/examples/*.cc")
 
-# 这里需要将proto文件转换成cc和h文件，再编译
 set(PROTO_FILES ${PROJECT_SOURCE_DIR}/examples/myproto.proto)
 custom_protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
@@ -24,7 +23,7 @@ foreach(net_example_source ${NET_EXAMPLES_SOURCE})
     ${ROCKSDB_INCLUDE_DIR}
     ${ROCKSDB_SOURCE_DIR}
   )
-  add_dependencies(${net_example_name} net pstd glog gflags unwind protobuf)
+  add_dependencies(${net_example_name} net pstd storage glog gflags ${LIBUNWIND_NAME} protobuf)
 
   target_link_libraries(${net_example_name}
     PUBLIC net

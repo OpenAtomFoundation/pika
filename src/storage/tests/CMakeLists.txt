@@ -20,7 +20,7 @@ foreach(blackwindow_test_source ${BLACKWINDOW_TEST_SOURCE})
     ${ROCKSDB_INCLUDE_DIR}
     ${ROCKSDB_SOURCE_DIR}
   )
-  add_dependencies(${blackwindow_test_name} gtest glog gflags unwind)
+  add_dependencies(${blackwindow_test_name} gtest glog gflags ${LIBUNWIND_NAME})
   target_link_libraries(${blackwindow_test_name}
     PUBLIC ${GTEST_LIBRARY}
     PUBLIC pstd

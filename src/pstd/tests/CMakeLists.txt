@@ -19,7 +19,8 @@ foreach(pstd_test_source ${PSTD_TEST_SOURCE})
     ${ROCKSDB_INCLUDE_DIR}
     ${ROCKSDB_SOURCE_DIR}
   )
-  add_dependencies(${pstd_test_name} pstd gtest glog gflags unwind)
+
+  add_dependencies(${pstd_test_name} pstd gtest glog gflags ${LIBUNWIND_NAME})
   target_link_libraries(${pstd_test_name}
     PUBLIC pstd
     PUBLIC ${GTEST_LIBRARY}

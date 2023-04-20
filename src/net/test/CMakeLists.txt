@@ -19,8 +19,7 @@ foreach(net_test_source ${NET_TEST_SOURCE})
     ${ROCKSDB_INCLUDE_DIR}
     ${ROCKSDB_SOURCE_DIR}
   )
-  message("GTEST_MAIN_LIBRARY: " ${GTEST_MAIN_LIBRARY})
-  add_dependencies(${net_test_name} net gtest glog gflags unwind pstd)
+  add_dependencies(${net_test_name} net gtest glog gflags ${LIBUNWIND_NAME} pstd)
   target_link_libraries(${net_test_name}
     PUBLIC net
     PUBLIC ${GTEST_LIBRARY}

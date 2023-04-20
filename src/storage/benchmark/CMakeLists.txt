@@ -17,7 +17,7 @@ foreach(storage_benchmark_source ${STORAGE_BENCHMARK_SOURCE})
     ${ROCKSDB_INCLUDE_DIR}
     ${ROCKSDB_SOURCE_DIR}
   )
-  add_dependencies(${storage_benchmark_name} storage pstd glog gflags unwind)
+  add_dependencies(${storage_benchmark_name} storage pstd glog gflags ${LIBUNWIND_NAME})
 
   target_link_libraries(${storage_benchmark_name}
     PUBLIC storage

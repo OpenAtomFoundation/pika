@@ -9,7 +9,6 @@ add_subdirectory(examples)
 add_subdirectory(benchmark)
 
 add_definitions(-DROCKSDB_PLATFORM_POSIX -DROCKSDB_LIB_IO_POSIX)
-#NOTE(LeeHao) : 禁止使用编译器自带的memcmp函数，而强制使用用户自定的memcmp函数实现,原来的makefile中有这个编译选项
 add_compile_options("-fno-builtin-memcmp")
 
 set(CMAKE_SYSTEM_PROCESSOR ${CMAKE_HOST_SYSTEM_PROCESSOR})
@@ -21,7 +20,7 @@ aux_source_directory(./src  DIR_SRCS)
 
 add_library(storage STATIC ${DIR_SRCS} )
 
-add_dependencies(storage rocksdb gtest glog gflags unwind pstd)
+add_dependencies(storage rocksdb gtest glog gflags ${LIBUNWIND_NAME} pstd)
 # TODO fix rocksdb include path
 target_include_directories(storage
     PUBLIC ${PROJECT_SOURCE_DIR}

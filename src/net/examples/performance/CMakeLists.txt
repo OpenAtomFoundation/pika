@@ -31,7 +31,7 @@ foreach(net_example_performance_source ${NET_EXAMPLES_PERFORMANCE_SOURCE})
     ${ROCKSDB_INCLUDE_DIR}
     ${ROCKSDB_SOURCE_DIR}
   )
-  add_dependencies(${net_example_performance_name} net pstd glog gflags unwind protobuf)
+  add_dependencies(${net_example_performance_name} net pstd glog gflags ${LIBUNWIND_NAME} protobuf)
 
   target_link_libraries(${net_example_performance_name}
     PUBLIC net
