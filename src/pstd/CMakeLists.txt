@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.18)
 set (CMAKE_CXX_STANDARD 11)
 project (pstd)
 
-#NOTE(LeeHao) : 禁止使用编译器自带的memcmp函数，而强制使用用户自定的memcmp函数实现,原来的makefile中有这个编译选项
+# 强制使用用户自定的 memcmp
 add_compile_options("-fno-builtin-memcmp -pipe")
 
 
@@ -20,7 +20,7 @@ add_compile_options(-Wnon-virtual-dtor -Wno-missing-field-initializers)
 set(DISABLE_WARNING_AS_ERROR ON)
 if(NOT DISABLE_WARNING_AS_ERROR)
   add_compile_options(-Werror)
-endif(DISABLE_WARNING_AS_ERROR)
+endif()
 
 
 add_subdirectory(tests)
