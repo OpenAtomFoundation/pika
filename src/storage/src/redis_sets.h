@@ -24,7 +24,7 @@ namespace storage {
 class RedisSets : public Redis {
  public:
   RedisSets(Storage* const s, const DataType& type);
-  ~RedisSets() = default;
+  ~RedisSets();
 
   // Common Commands
   Status Open(const StorageOptions& storage_options, const std::string& db_path) override;

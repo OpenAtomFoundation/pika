@@ -41,9 +41,9 @@ else()
    message(FATAL_ERROR "only support linux or macOs")
 endif()
 
-if(HOST_ARCH MATCHES "x86_64")
+if(HOST_ARCH MATCHES "x86_64" OR HOST_ARCH MATCHES "i386")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse -msse4.2")
-elseif(HOST_ARCH MATCHES "aarch64")
+elseif(HOST_ARCH MATCHES "arm")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a+crc+crypto -moutline-atomics")
 endif()
 
