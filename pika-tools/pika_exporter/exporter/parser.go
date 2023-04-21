@@ -14,7 +14,6 @@ const (
 	pikaVersionKey      = "pika_version"
 )
 
-// 解析info命令信息，返回version信息与其他指标map[string]string，异常
 func parseInfo(info string) (*semver.Version, map[string]string, error) {
 	extracts, err := extractInfo(info)
 	if err != nil {
@@ -29,7 +28,6 @@ func parseInfo(info string) (*semver.Version, map[string]string, error) {
 	return version, extracts, nil
 }
 
-// 将返回的信息解析为map
 func extractInfo(s string) (map[string]string, error) {
 	m := make(map[string]string)
 	scanner := bufio.NewScanner(strings.NewReader(s))
@@ -57,9 +55,7 @@ func trimSpace(s string) string {
 	return s
 }
 
-// 根据keyValueSeparator分割，返回kv或者k,nil
 func fetchKV(s string) (k, v string) {
-	//strings.Index返回匹配到的位置：Index returns the index of the first instance of substr in s, or -1 if substr is not present in s.
 	pos := strings.Index(s, keyValueSeparator)
 	if pos < 0 {
 		k = s

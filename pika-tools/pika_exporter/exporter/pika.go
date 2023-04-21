@@ -126,7 +126,6 @@ func (e *exporter) Close() error {
 	return nil
 }
 
-// exporter实现了prometheus.Collector接口的Describe方法
 func (e *exporter) Describe(ch chan<- *prometheus.Desc) {
 	describer := metrics.DescribeFunc(func(m metrics.MetaData) {
 		ch <- prometheus.NewDesc(prometheus.BuildFQName(e.namespace, "", m.Name), m.Help, m.Labels, nil)
@@ -149,7 +148,6 @@ func (e *exporter) Describe(ch chan<- *prometheus.Desc) {
 	e.keySizes.Describe(ch)
 }
 
-// exporter实现了prometheus.Collector接口的Collect方法
 func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
@@ -178,18 +176,15 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	e.keyValues.Collect(ch)
 }
 
-// 采集数据，写入chan
 func (e *exporter) scrape(ch chan<- prometheus.Metric) {
 	startTime := time.Now()
 
 	fut := newFuture()
-	// 遍历实例，通过channel监控
 	for _, instance := range e.dis.GetInstances() {
 		fut.Add()
 		go func(addr, password, alias string) {
 			e.scrapeCount.WithLabelValues(addr, alias).Inc()
 			defer func() {
-				// 观测监控时长
 				e.scrapeDuration.WithLabelValues(addr, alias).Observe(time.Since(startTime).Seconds())
 			}()
 
@@ -204,13 +199,11 @@ func (e *exporter) scrape(ch chan<- prometheus.Metric) {
 				e.up.WithLabelValues(addr, alias).Set(1)
 
 				fut.Add()
-				//实际收集数据
 				fut.Done(futureKey{addr: c.Addr(), alias: c.Alias()}, e.collectInfo(c, ch))
 				fut.Done(futureKey{addr: c.Addr(), alias: c.Alias()}, e.collectKeys(c))
 			}
 		}(instance.Addr, instance.Password, instance.Alias)
 	}
-	//通过Wait()实现采集结果检查
 	for k, v := range fut.Wait() {
 		if v != nil {
 			e.scrapeErrors.WithLabelValues(k.addr, k.alias).Inc()
@@ -242,11 +235,7 @@ func (e *exporter) collectInfo(c *client, ch chan<- prometheus.Metric) error {
 		return err
 	}
 
-	// 此collector主要作用是将exporter.namespace与Metric.name结合生成新的Metric名称，并发送到chan
 	collector := metrics.CollectFunc(func(m metrics.Metric) error {
-		//NewConstMetric返回一个具有一个无法更改的固定值的度量。此软件包的用户在常规操作中不会有太多用处。
-		//然而，在实现自定义收集器时，它作为一个即时生成的丢弃度量很有用，可以在Collect方法中将其发送给Prometheus。
-		//如果labelValues的长度与Desc中的变量标签不一致，或者Desc无效，NewConstMetric将返回错误。
 		promMetric, err := prometheus.NewConstMetric(
 			prometheus.NewDesc(prometheus.BuildFQName(e.namespace, "", m.Name), m.Help, m.Labels, nil),
 			m.MetricsType(), m.Value, m.LabelValues...)

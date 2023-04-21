@@ -68,7 +68,6 @@ func main() {
 		log.SetFormatter(&log.TextFormatter{})
 	}
 
-	// dis用于获取实例信息
 	var dis discovery.Discovery
 	if *hostFile != "" {
 		dis, err = discovery.NewFileDiscovery(*hostFile)
@@ -79,7 +78,6 @@ func main() {
 		log.Fatalln(" failed. err:", err)
 	}
 
-	// exporter实现了prometheus.Collector接口
 	e, err := exporter.NewPikaExporter(dis, *namespace, *checkKeyPatterns, *checkKeys, *checkScanCount, *keySpaceStatsClock)
 	if err != nil {
 		log.Fatalln("exporter init failed. err:", err)
@@ -92,12 +90,10 @@ func main() {
 	}, []string{"build_version", "commit_sha", "build_date", "golang_version"})
 	buildInfo.WithLabelValues(BuildVersion, BuildCommitSha, BuildDate, GoVersion).Set(1)
 
-	//注册相关监控指标
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(e)
 	registry.MustRegister(buildInfo)
-	//promhttp.HandlerFor方法调用registry的Gather()，Gather调用注册的Collectors的Collect方法。
-	//然后将收集到的度量收集到一个按字典顺序排序的片段中，该片段由唯一命名的MetricFamily protobufs组成。
+
 	http.Handle(*metricPath, promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`<html>
