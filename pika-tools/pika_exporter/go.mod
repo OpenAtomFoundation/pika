@@ -1,4 +1,4 @@
-module github.com/chenbt-hz/pika/pika-tools/pika_exporter
+module github.com/OpenAtomFoundation/pika/pika-tools/pika_exporter
 
 go 1.19
 

@@ -3,8 +3,8 @@ package exporter
 import (
 	"fmt"
 	"github.com/Masterminds/semver"
-	"github.com/chenbt-hz/pika/pika-tools/pika_exporter/exporter/metrics"
-	"github.com/chenbt-hz/pika/pika-tools/pika_exporter/exporter/test"
+	"github.com/OpenAtomFoundation/pika/pika-tools/pika_exporter/exporter/metrics"
+	"github.com/OpenAtomFoundation/pika/pika-tools/pika_exporter/exporter/test"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

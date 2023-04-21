@@ -10,8 +10,8 @@ Pika-Exporter is based on [Redis-Exporter](https://github.com/oliver006/redis_ex
 
 To start using `pika_exporter`, install `Go` and run go get
 ```
-$ go get github.com/chenbt-hz/pika/pika-tools/pika_exporter
-$ cd $GOPATH/src/github.com/chenbt-hz/pika/pika-tools/pika_exporter
+$ go get github.com/OpenAtomFoundation/pika/pika-tools/pika_exporter
+$ cd $GOPATH/src/github.com/OpenAtomFoundation/pika/pika-tools/pika_exporter
 $ make
 $ ./bin/pika_exporter <flags>
 ```
@@ -38,7 +38,7 @@ scrape_configs:
 ## Flags ##
 | Name                 | Environment Variables              | Default  | Description                                                                                                                                                                                                                                                                                                                       | Example                                       |
 |----------------------|------------------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|
-| pika.host-file       | PIKA_HOST_FILE                     |          | Path to file containing one or more pika nodes, separated by newline. NOTE: mutually exclusive with pika.addr.Each line can optionally be comma-separated with the fields `<addr>`,`<password>`,`<alias>`. See [here](https://github.com/chenbt-hz/pika/pika-tools/pika_exporter/raw/master/contrib/sample_pika_hosts_file.txt) for an example file. | --pika.host-file ./pika_hosts_file.txt        |
+| pika.host-file       | PIKA_HOST_FILE                     |          | Path to file containing one or more pika nodes, separated by newline. NOTE: mutually exclusive with pika.addr.Each line can optionally be comma-separated with the fields `<addr>`,`<password>`,`<alias>`. See [here](https://github.com/OpenAtomFoundation/pika/pika-tools/pika_exporter/raw/master/contrib/sample_pika_hosts_file.txt) for an example file. | --pika.host-file ./pika_hosts_file.txt        |
 | pika.addr            | PIKA_ADDR                          |          | Address of one or more pika nodes, separated by comma.                                                                                                                                                                                                                                                                            | --pika.addr 192.168.1.2:9221,192.168.1.3:9221 |
 | pika.password        | PIKA_PASSWORD                      |          | Password for one or more pika nodes, separated by comma.                                                                                                                                                                                                                                                                          | --pika.password 123.com,123.com               |
 | pika.alias           | PIKA_ALIAS                         |          | Pika instance alias for one or more pika nodes, separated by comma.                                                                                                                                                                                                                                                               | --pika.alias a,b                              |

@@ -6,8 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/chenbt-hz/pika/pika-tools/pika_exporter/discovery"
-	"github.com/chenbt-hz/pika/pika-tools/pika_exporter/exporter"
+	"github.com/OpenAtomFoundation/pika/pika-tools/pika_exporter/discovery"
+	"github.com/OpenAtomFoundation/pika/pika-tools/pika_exporter/exporter"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
