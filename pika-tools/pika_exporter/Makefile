@@ -59,10 +59,7 @@ rm -f $$COV_TMP_FILE
 endef
 export TEST_COVER
 
-all: build build_mac
-
-build_mac: deps
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -mod=readonly -o bin/$(PROJNAME)_$(GOOS)_mac
+all: build 
 
 build: deps
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -o bin/$(PROJNAME)
