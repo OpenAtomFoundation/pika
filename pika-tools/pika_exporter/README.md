@@ -1,6 +1,6 @@
 # Pika Metric Exporter #
 
-Prometheus exporter for nosql [Qihoo360/pika](https://github.com/Qihoo360/pika) metrics. Supported Pika 2.x, 3.x
+Prometheus exporter for nosql [Qihoo360/pika](https://github.com/Qihoo360/pika) metrics. 
 
 Pika-Exporter is based on [Redis-Exporter](https://github.com/oliver006/redis_exporter)
 
@@ -152,16 +152,16 @@ Since `Hyperloglog` is not commonly used, then the key in `Hyperloglog-Structure
 > Since pika allows the name to be renamed five times, the `TYPE` Command has the priority output order, which is: string -> hash -> list -> zset -> set. If the key exists in the string, then only the string is output. If it does not exist, Then output the hash, and so on.
 
 ## Grafana Dashboard ##
-
-See [here](https://github.com/chenbt-hz/pika/pika-tools/pika_exporter/raw/master/contrib/grafana_prometheus_pika_dashboard.json)
+See [here](./contrib/grafana_prometheus_pika_dashboard.json)
 
 Screenshots:
-![Overview](https://github.com/chenbt-hz/pika/pika-tools/pika_exporter/raw/master/contrib/overview.png)
+![Overview](./contrib/overview.png)
+![Overview](./contrib/base_info.png)
 
-![BaseInfo](https://github.com/chenbt-hz/pika/pika-tools/pika_exporter/raw/master/contrib/base_info.png)
+![BaseInfo](./contrib/base_info.png)
 
-![Replication](https://github.com/chenbt-hz/pika/pika-tools/pika_exporter/raw/master/contrib/replication.png)
+![Replication](./contrib/replication.png)
 
-![TimeConsumingOperation](https://github.com/chenbt-hz/pika/pika-tools/pika_exporter/raw/master/contrib/time_consuming_operation.png)
+![TimeConsumingOperation](./contrib/time_consuming_operation.png)
 
-![KeysMetrics](https://github.com/chenbt-hz/pika/pika-tools/pika_exporter/raw/master/contrib/keys_metrics.png)
+![KeysMetrics](./contrib/keys_metrics.png)
