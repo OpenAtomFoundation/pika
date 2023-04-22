@@ -48,7 +48,10 @@ ENV PIKA=/pika \
 WORKDIR ${PIKA}
 
 COPY --from=builder ${PIKA_BUILD_DIR}/output/pika ${PIKA}/bin/pika
+COPY --from=builder ${PIKA_BUILD_DIR}/entrypoint.sh /entrypoint.sh
 COPY --from=builder ${PIKA_BUILD_DIR}/conf/pika.conf ${PIKA}/conf/pika.conf
+
+ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 9221
 

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # CONFIG(path1;path2)
 # You can add the path of configuration file or folder to the CONFIG
