@@ -512,6 +512,7 @@ ExternalProject_Add(rocksdb
   -DWITH_ZLIB=ON
   -DWITH_ZSTD=ON
   -DWITH_GFLAGS=ON
+  -DFAIL_ON_WARNINGS=OFF
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
