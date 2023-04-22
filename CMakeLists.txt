@@ -10,6 +10,18 @@ project(pika)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 enable_testing()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  # using Clang
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0")
+    message(FATAL_ERROR "Clang version must be greater than 5.0")
+  endif()
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # using GCC
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7.0")
+    message(FATAL_ERROR "GCC G++ version must be greater than 7.0")
+  endif()
+endif()
+
 execute_process(COMMAND uname -p OUTPUT_VARIABLE HOST_ARCH)
 string(TOLOWER ${HOST_ARCH} HOST_ARCH)
 

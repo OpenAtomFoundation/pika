@@ -95,6 +95,17 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 3. Compile
 
 Please run the script build.sh before you compile this db to check the environment and build this repo. 
+If the gcc version is later than 7, such as CentOS6 or centOS7, you need to upgrade the gcc version first
+
+Do as follows
+```
+  a. sudo yum -y install centos-release-scl
+  b. sudo yum -y install devtoolset-7-gcc devtoolset-7-gcc-c++
+  c. scl enable devtoolset-7 bash
+```
+
+
+Please run the script build.sh before you compile this db to check the environment and build this repo.
 
 ```
   ./build.sh
