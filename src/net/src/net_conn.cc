@@ -32,6 +32,11 @@ NetConn::~NetConn() {
 #endif
 }
 
+void NetConn::SetClose(bool close) {
+  output("close fd %d, addr %s, close %d", this->fd_, this->ip_port().c_str(), close);
+  close_ = close;
+}
+
 bool NetConn::SetNonblock() {
   flags_ = Setnonblocking(fd());
   if (flags_ == -1) {

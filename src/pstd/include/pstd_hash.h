@@ -83,6 +83,6 @@ namespace pstd {
 std::string md5(const std::string& str, bool raw = false);
 std::string sha256(const std::string& input, bool raw = false);
 
-}  // namespace pstd
+}
 
 #endif  // __PSTD_HASH_H__

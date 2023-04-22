@@ -17,6 +17,7 @@
 #include "net/include/net_define.h"
 #include "net/include/server_thread.h"
 #include "net/src/net_multiplexer.h"
+#include "pstd/include/testutil.h"
 
 namespace net {
 
@@ -64,7 +65,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   void set_name(std::string name) { name_ = std::move(name); }
 
   bool IsClose() { return close_; }
-  void SetClose(bool close) { close_ = close; }
+  void SetClose(bool close);
 
   void set_last_interaction(const struct timeval& now) { last_interaction_ = now; }
 
@@ -75,6 +76,12 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   void set_net_multiplexer(NetMultiplexer* ep) { net_multiplexer_ = ep; }
 
   NetMultiplexer* net_multiplexer() const { return net_multiplexer_; }
+
+  std::string GetDescription() const {
+    std::stringstream ss;
+    ss << "fd: " << fd_ << ", ip_port: " << ip_port_ << ", name: " << name_ << ", is_reply: " << is_reply_ << ", close: " << close_ << std::endl;
+    return ss.str();
+  }
 
 #ifdef __ENABLE_SSL
   SSL* ssl() { return ssl_; }

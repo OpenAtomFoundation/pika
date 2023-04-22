@@ -5,6 +5,7 @@
 
 #include <vector>
 
+#include "pstd/include/testutil.h"
 #include "net/src/dispatch_thread.h"
 
 #include "net/src/net_item.h"
@@ -147,7 +148,7 @@ bool DispatchThread::KillConn(const std::string& ip_port) {
 void DispatchThread::KillAllConns() { KillConn(kKillAllConnsTask); }
 
 void DispatchThread::HandleNewConn(const int connfd, const std::string& ip_port) {
-  printf("accept new conn %d, ip_port: %s\n", connfd, ip_port.c_str());
+  output("accept new conn %d, ip_port: %s", connfd, ip_port.c_str());
   // Slow workers may consume many fds.
   // We simply loop to find next legal worker.
   NetItem ti(connfd, ip_port);

@@ -5,6 +5,7 @@
 
 #include <vector>
 
+#include "pstd/include/testutil.h"
 #include "net/src/worker_thread.h"
 
 #include "net/include/net_conn.h"
@@ -49,6 +50,7 @@ std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
     int fd = iter->first;
     conn = iter->second;
     net_multiplexer_->NetDelEvent(fd, 0);
+    output("move out connection %s", conn->GetDescription().c_str());
     conns_.erase(iter);
   }
   return conn;
@@ -171,7 +173,8 @@ void* WorkerThread::ThreadMain() {
             in_conn->set_is_reply(false);
             if (in_conn->IsClose()) {
               should_close = 1;
-              std::cout << "will close client connection " << in_conn->ip_port() << std::endl;
+              // std::cout << "will close client connection " << in_conn->ip_port() << std::endl;
+              output("will close client connection addr %s", in_conn->GetDescription().c_str());
             }
           } else if (write_status == kWriteHalf) {
             continue;
@@ -195,19 +198,24 @@ void* WorkerThread::ThreadMain() {
         }
 
         if ((pfe->mask & kErrorEvent) || should_close) {
+          output("hello");
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
+          output("hello");
           CloseFd(in_conn);
+          output("hello");
           in_conn = NULL;
           {
             pstd::WriteLock l(&rwlock_);
             conns_.erase(pfe->fd);
           }
+          output("hello");
           should_close = 0;
         }
       }  // connection event
     }    // for (int i = 0; i < nfds; i++)
   }      // while (!should_stop())
 
+  output("hello");
   Cleanup();
   return NULL;
 }
@@ -239,6 +247,7 @@ void WorkerThread::DoCronTask() {
         to_close.push_back(conn);
         deleting_conn_ipport_.erase(conn->ip_port());
         iter = conns_.erase(iter);
+        output("will close client connection %s", conn->GetDescription().c_str());
         continue;
       }
 
@@ -246,6 +255,7 @@ void WorkerThread::DoCronTask() {
       if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         to_timeout.push_back(conn);
         iter = conns_.erase(iter);
+        output("timeout connection %s, keepalive timeout value %d", conn->GetDescription().c_str(), keepalive_timeout_.load());
         continue;
       }
 
@@ -294,6 +304,7 @@ void WorkerThread::Cleanup() {
     pstd::WriteLock l(&rwlock_);
     to_close = std::move(conns_);
     conns_.clear();
+    output("worker thread %s exit, close all connection", thread_name().c_str());
   }
   for (const auto& iter : to_close) {
     CloseFd(iter.second);
