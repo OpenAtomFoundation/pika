@@ -24,11 +24,14 @@ struct TimerItem {
   bool operator<(const TimerItem& item) const { return exec_time > item.exec_time; }
 };
 
-class BGThread : public Thread {
+class BGThread final : public Thread {
  public:
   explicit BGThread(int full = 100000) : Thread::Thread(), full_(full), mu_(), rsignal_(&mu_), wsignal_(&mu_) {}
 
-  virtual ~BGThread() { StopThread(); }
+  virtual ~BGThread() {
+    // call virtual in destructor, BGThread must be final
+    StopThread();
+  }
 
   virtual int StopThread() override {
     should_stop_ = true;

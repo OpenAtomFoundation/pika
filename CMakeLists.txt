@@ -10,6 +10,9 @@ project(pika)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 enable_testing()
 
+execute_process(COMMAND uname -p OUTPUT_VARIABLE HOST_ARCH)
+string(TOLOWER ${HOST_ARCH} HOST_ARCH)
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RElEASE)
 endif()
@@ -36,6 +39,12 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
    add_definitions(-DOS_LINUX)
 else()
    message(FATAL_ERROR "only support linux or macOs")
+endif()
+
+if(HOST_ARCH MATCHES "x86_64" OR HOST_ARCH MATCHES "i386")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse -msse4.2")
+elseif(HOST_ARCH MATCHES "arm")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a+crc+crypto -moutline-atomics")
 endif()
 
 set(EP_BASE_SUFFIX "buildtrees")
@@ -512,6 +521,7 @@ ExternalProject_Add(rocksdb
   -DWITH_ZLIB=ON
   -DWITH_ZSTD=ON
   -DWITH_GFLAGS=ON
+  -DFAIL_ON_WARNINGS=OFF
   BUILD_COMMAND
   make -j${CPU_CORE}
 )

@@ -32,6 +32,10 @@ Mutex::Mutex() { PthreadCall("init mutex", pthread_mutex_init(&mu_, NULL)); }
 
 Mutex::~Mutex() { PthreadCall("destroy mutex", pthread_mutex_destroy(&mu_)); }
 
+int Mutex::Trylock() {
+  return pthread_mutex_trylock(&mu_);
+}
+
 void Mutex::Lock() { PthreadCall("lock", pthread_mutex_lock(&mu_)); }
 
 void Mutex::Unlock() { PthreadCall("unlock", pthread_mutex_unlock(&mu_)); }
@@ -48,7 +52,17 @@ void RWMutex::WriteUnlock() { PthreadCall("rw write unlock", pthread_rwlock_unlo
 
 void RWMutex::ReadUnlock() { PthreadCall("rw read unlock", pthread_rwlock_unlock(&rw_mu_)); }
 
-CondVar::CondVar(Mutex* mu) : mu_(mu) { PthreadCall("init cv", pthread_cond_init(&cv_, NULL)); }
+CondVar::CondVar(Mutex* mu) : mu_(mu) {
+#if defined(__linux__)
+  pthread_condattr_t condattr;
+  PthreadCall("pthread_condattr_init", pthread_condattr_init(&condattr));
+  PthreadCall("pthread_condattr_setclock", pthread_condattr_setclock(&condattr, CLOCK_MONOTONIC));
+  PthreadCall("init cv", pthread_cond_init(&cv_, &condattr));
+  PthreadCall("pthread_condattr_destroy", pthread_condattr_destroy(&condattr));
+#else
+  PthreadCall("init cv", pthread_cond_init(&cv_, nullptr));
+#endif
+}
 
 CondVar::~CondVar() { PthreadCall("destroy cv", pthread_cond_destroy(&cv_)); }
 

@@ -291,8 +291,8 @@ void ClientThread::InternalDebugPrint() {
   log_info("___________________________________\n");
 }
 
-void ClientThread::NotifyWrite(const std::string ip_port) {
-  // put fd = 0, cause this lib user doesnt need to know which fd to write to
+void ClientThread::NotifyWrite(const std::string& ip_port) {
+  // put fd = 0, cause this lib user does not need to know which fd to write to
   // we will check fd by checking ipport_conns_
   NetItem ti(0, ip_port, kNotiWrite);
   net_multiplexer_->Register(ti, true);
