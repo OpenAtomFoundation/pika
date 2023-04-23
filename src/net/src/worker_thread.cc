@@ -5,6 +5,8 @@
 
 #include <vector>
 
+#include <glog/logging.h>
+
 #include "pstd/include/testutil.h"
 #include "net/src/worker_thread.h"
 
@@ -50,6 +52,7 @@ std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
     int fd = iter->first;
     conn = iter->second;
     net_multiplexer_->NetDelEvent(fd, 0);
+    DLOG(INFO) << "move out connection " << conn->String();
     conns_.erase(iter);
   }
   return conn;
@@ -172,6 +175,7 @@ void* WorkerThread::ThreadMain() {
             in_conn->set_is_reply(false);
             if (in_conn->IsClose()) {
               should_close = 1;
+              LOG(INFO) << "will close client connection " << in_conn->String();
             }
           } else if (write_status == kWriteHalf) {
             continue;

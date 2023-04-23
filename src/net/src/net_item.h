@@ -20,7 +20,7 @@ class NetItem {
 
   int fd() const { return fd_; }
   std::string ip_port() const { return ip_port_; }
-  std::string string() const {
+  std::string String() const {
         return std::to_string(fd_) + ":" + ip_port_ + ":" + std::to_string(notify_type_);
   }
 
