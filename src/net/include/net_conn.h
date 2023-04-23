@@ -7,6 +7,7 @@
 #define NET_INCLUDE_NET_CONN_H_
 
 #include <sys/time.h>
+#include <sstream>
 #include <string>
 
 #ifdef __ENABLE_SSL
@@ -79,7 +80,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 
   std::string GetDescription() const {
     std::stringstream ss;
-    ss << "fd: " << fd_ << ", ip_port: " << ip_port_ << ", name: " << name_ << ", is_reply: " << is_reply_ << ", close: " << close_ << std::endl;
+    ss << "fd: " << fd_ << ", ip_port: " << ip_port_ << ", name: " << name_ << ", is_reply: " << is_reply_ << ", close: " << close_;
     return ss.str();
   }
 
@@ -90,23 +91,23 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 #endif
 
  private:
-  int fd_;
-  std::string ip_port_;
-  bool is_reply_;
-  bool is_writable_;
-  bool close_;
+  int fd_ = -1;
+  std::string ip_port_ = "";
+  bool is_reply_ = false;
+  bool is_writable_ = false;
+  bool close_ = false;
   struct timeval last_interaction_;
-  int flags_;
-  std::string name_;
+  int flags_ = 0;
+  std::string name_ = "";
 
 #ifdef __ENABLE_SSL
   SSL* ssl_;
 #endif
 
   // thread this conn belong to
-  Thread* thread_;
+  Thread* thread_ = nullptr;
   // the net epoll this conn belong to
-  NetMultiplexer* net_multiplexer_;
+  NetMultiplexer* net_multiplexer_ = nullptr;
 
   /*
    * No allowed copy and copy assign operator

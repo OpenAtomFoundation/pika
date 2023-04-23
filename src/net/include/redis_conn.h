@@ -45,21 +45,21 @@ class RedisConn : public NetConn {
   static int ParserCompleteCb(RedisParser* parser, const std::vector<RedisCmdArgsType>& argvs);
   ReadStatus ParseRedisParserStatus(RedisParserStatus status);
 
-  HandleType handle_type_;
+  HandleType handle_type_ = kSynchronous;
 
-  char* rbuf_;
-  int rbuf_len_;
-  int rbuf_max_len_;
-  int msg_peak_;
-  int command_len_;
+  char* rbuf_ = nullptr;
+  int rbuf_len_ = 0;
+  int rbuf_max_len_ = 0;
+  int msg_peak_ = 0;
+  int command_len_ = 0;
 
-  uint32_t wbuf_pos_;
-  std::string response_;
+  uint32_t wbuf_pos_ = 0;
+  std::string response_ = "";
 
   // For Redis Protocol parser
-  int last_read_pos_;
+  int last_read_pos_ = -1;
   RedisParser redis_parser_;
-  long bulk_len_;
+  long bulk_len_ = -1;
 };
 
 }  // namespace net
