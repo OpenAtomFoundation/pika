@@ -487,9 +487,9 @@ ExternalProject_Add(rocksdb
   ${LIBGPERF_NAME}
   ${LIBJEMALLOC_NAME}
   URL
-  https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
+  https://github.com/facebook/rocksdb/archive/refs/tags/v8.1.1.tar.gz
   URL_HASH
-  MD5=3c5d371a8bd8340b1975ad016151709d
+  MD5=3b4c97ee45df9c8a5517308d31ab008b
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
