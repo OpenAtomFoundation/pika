@@ -78,7 +78,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 
   NetMultiplexer* net_multiplexer() const { return net_multiplexer_; }
 
-  std::string GetDescription() const {
+  std::string String() const {
     std::stringstream ss;
     ss << "fd: " << fd_ << ", ip_port: " << ip_port_ << ", name: " << name_ << ", is_reply: " << is_reply_ << ", close: " << close_;
     return ss.str();

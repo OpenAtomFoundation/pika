@@ -57,8 +57,8 @@ class HolyThread : public ServerThread {
   mutable pstd::RWMutex rwlock_; /* For external statistics */
   std::map<int, std::shared_ptr<NetConn>> conns_;
 
-  ConnFactory* conn_factory_;
-  void* private_data_;
+  ConnFactory* conn_factory_ = nullptr;
+  void* private_data_ = nullptr;
 
   std::atomic<int> keepalive_timeout_;  // keepalive second
   bool async_;
