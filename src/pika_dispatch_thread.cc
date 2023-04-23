@@ -9,6 +9,7 @@
 
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
+#include "pstd/include/testutil.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
