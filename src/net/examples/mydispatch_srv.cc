@@ -52,7 +52,7 @@ int MyConn::DealMessage() {
 class MyConnFactory : public ConnFactory {
  public:
   virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, NetEpoll* net_epoll) const {
+                                              void* worker_specific_data, NetMultiplexer* net_epoll) const override {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
 };

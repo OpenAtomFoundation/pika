@@ -11,6 +11,7 @@
 #include "net/include/http_conn.h"
 #include "net/include/net_thread.h"
 #include "net/include/server_thread.h"
+#include "net/src/net_multiplexer.h"
 #include "pstd/include/pstd_hash.h"
 #include "pstd/include/pstd_status.h"
 
@@ -62,10 +63,11 @@ class MyHTTPHandles : public net::HTTPHandles {
 
 class MyConnFactory : public ConnFactory {
  public:
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, ServerThread* thread,
-                                              void* worker_specific_data) const {
+  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+                                              void* worker_specific_data,
+                                              NetMultiplexer* net_mpx = nullptr) const override {
     auto my_handles = std::make_shared<MyHTTPHandles>();
-    return make_shared<net::HTTPConn>(connfd, ip_port, thread, my_handles, worker_specific_data);
+    return std::make_shared<net::HTTPConn>(connfd, ip_port, thread, my_handles, worker_specific_data);
   }
 };
 
@@ -98,10 +100,12 @@ int main(int argc, char* argv[]) {
   ConnFactory* my_conn_factory = new MyConnFactory();
   ServerThread* st = NewDispatchThread(port, 4, my_conn_factory, 1000);
 
+#if __ENABLE_SSL
   if (st->EnableSecurity("/complete_path_to/host.crt", "/complete_path_to/host.key") != 0) {
     printf("EnableSecurity error happened!\n");
     exit(-1);
   }
+#endif
 
   if (st->StartThread() != 0) {
     printf("StartThread error happened!\n");
