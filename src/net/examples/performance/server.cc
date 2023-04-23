@@ -4,6 +4,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <atomic>
+#include <memory>
+#include <type_traits>
 
 #include "message.pb.h"
 #include "net/include/net_conn.h"
@@ -33,7 +35,7 @@ class PingConn : public PbConn {
 
     response_.Clear();
     response_.set_pong("hello " + request_.ping());
-    res_ = &response_;
+    // res_ = &response_;
 
     set_is_reply(true);
 
@@ -50,9 +52,10 @@ class PingConn : public PbConn {
 
 class PingConnFactory : public ConnFactory {
  public:
-  virtual NetConn* NewNetConn(int connfd, const std::string& ip_port, ServerThread* thread,
-                              void* worker_specific_data) const {
-    return new PingConn(connfd, ip_port, thread);
+  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+                                              void* worker_specific_data,
+                                              NetMultiplexer* net_mpx = nullptr) const override {
+    return std::make_shared<PingConn>(connfd, ip_port, dynamic_cast<ServerThread*>(thread));
   }
 };
 

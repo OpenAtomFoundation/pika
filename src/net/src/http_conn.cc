@@ -263,7 +263,7 @@ HTTPConn::HTTPConn(const int fd, const std::string& ip_port, Thread* thread, std
                    void* worker_specific_data)
     : NetConn(fd, ip_port, thread),
 #ifdef __ENABLE_SSL
-      security_(thread->security()),
+      // security_(thread->security()),
 #endif
       handles_(handles) {
   handles_->worker_specific_data_ = worker_specific_data;
