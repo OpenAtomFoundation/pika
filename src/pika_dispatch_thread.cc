@@ -58,7 +58,6 @@ bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
 
   DLOG(INFO) << "new client comming, ip: " << ip;
   g_pika_server->incr_accumulative_connections();
-  output("hello0");
   return true;
 }
 

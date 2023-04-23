@@ -33,7 +33,6 @@ NetConn::~NetConn() {
 }
 
 void NetConn::SetClose(bool close) {
-  output("close fd %d, addr %s, close %d", this->fd_, this->ip_port().c_str(), close);
   close_ = close;
 }
 

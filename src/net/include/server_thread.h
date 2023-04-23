@@ -169,14 +169,14 @@ class ServerThread : public Thread {
   friend class DispatchThread;
   friend class WorkerThread;
 
-  int cron_interval_;
+  int cron_interval_ = 0;
   virtual void DoCronTask();
 
   // process events in notify_queue
   virtual void ProcessNotifyEvents(const NetFiredEvent* pfe);
 
-  const ServerHandle* handle_;
-  bool own_handle_;
+  const ServerHandle* handle_ = nullptr;
+  bool own_handle_ = false;
 
 #ifdef __ENABLE_SSL
   bool security_;
@@ -186,7 +186,7 @@ class ServerThread : public Thread {
   /*
    * The tcp server port and address
    */
-  int port_;
+  int port_ = -1;
   std::set<std::string> ips_;
   std::vector<ServerSocket*> server_sockets_;
   std::set<int32_t> server_fds_;

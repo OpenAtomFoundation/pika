@@ -222,11 +222,9 @@ void* ServerThread::ThreadMain() {
           ip_port = inet_ntop(AF_INET, &cliaddr.sin_addr, ip_addr, sizeof(ip_addr));
 
           if (!handle_->AccessHandle(ip_port) || !handle_->AccessHandle(connfd, ip_port)) {
-            output("hello2");
             close(connfd);
             continue;
           }
-          output("hello2");
 
           ip_port.append(":");
           snprintf(port_buf, sizeof(port_buf), "%d", ntohs(cliaddr.sin_port));
@@ -254,7 +252,6 @@ void* ServerThread::ThreadMain() {
       }
     }
   }
-  output("hello3");
 
   for (auto iter = server_sockets_.begin(); iter != server_sockets_.end(); iter++) {
     delete *iter;

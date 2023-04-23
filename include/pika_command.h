@@ -470,18 +470,18 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool CheckArg(int num) const;
   void LogCommand() const;
 
-  std::string name_;
-  int arity_;
-  uint16_t flag_;
+  std::string name_ = "";
+  int arity_ = -2;
+  uint16_t flag_ = 0;
 
   CmdRes res_;
   PikaCmdArgsType argv_;
-  std::string table_name_;
+  std::string table_name_ = "";
 
   std::weak_ptr<net::NetConn> conn_;
   std::weak_ptr<std::string> resp_;
-  CmdStage stage_;
-  uint64_t do_duration_;
+  CmdStage stage_ = kNone;
+  uint64_t do_duration_ = 0;
 
  private:
   virtual void DoInitial() = 0;

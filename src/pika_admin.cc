@@ -2288,9 +2288,7 @@ void QuitCmd::DoInitial() {
 }
 
 void QuitCmd::Do(std::shared_ptr<Partition> partition) {
-  output("fuck quit cmd");
   res_.SetRes(CmdRes::kOk);
-  output("QutCmd will close %d connection", GetConn()->fd());
   GetConn()->SetClose(true);
 }
 
