@@ -243,6 +243,7 @@ void WorkerThread::DoCronTask() {
         to_close.push_back(conn);
         deleting_conn_ipport_.erase(conn->ip_port());
         iter = conns_.erase(iter);
+        LOG(INFO) << "will close client connection " << conn->String();
         continue;
       }
 
@@ -250,6 +251,7 @@ void WorkerThread::DoCronTask() {
       if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         to_timeout.push_back(conn);
         iter = conns_.erase(iter);
+        LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is " << keepalive_timeout_.load();
         continue;
       }
 

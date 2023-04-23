@@ -10,6 +10,8 @@
 
 #include <algorithm>
 
+#include <glog/logging.h>
+
 #include "include/build_version.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
@@ -2289,6 +2291,7 @@ void QuitCmd::DoInitial() {
 
 void QuitCmd::Do(std::shared_ptr<Partition> partition) {
   res_.SetRes(CmdRes::kOk);
+  LOG(INFO) << "QutCmd will close connection " << GetConn()->String();
   GetConn()->SetClose(true);
 }
 
