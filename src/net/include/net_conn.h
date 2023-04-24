@@ -26,7 +26,7 @@ class Thread;
 
 class NetConn : public std::enable_shared_from_this<NetConn> {
  public:
-  NetConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
+  NetConn(const NetID id, const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
   virtual ~NetConn();
 
   /*
@@ -47,6 +47,8 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   int flags() const { return flags_; }
 
   void set_fd(const int fd) { fd_ = fd; }
+
+  int id() const { return id_; }
 
   int fd() const { return fd_; }
 
@@ -91,6 +93,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 #endif
 
  private:
+  int64_t id_ = -1;
   int fd_ = -1;
   std::string ip_port_ = "";
   bool is_reply_ = false;
@@ -122,7 +125,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 class ConnFactory {
  public:
   virtual ~ConnFactory() {}
-  virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
+  virtual std::shared_ptr<NetConn> NewNetConn(NetID id, int connfd, const std::string& ip_port, Thread* thread,
                                               void* worker_private_data, /* Has set in ThreadEnvHandle */
                                               NetMultiplexer* net_mpx = nullptr) const = 0;
 };

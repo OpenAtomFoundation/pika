@@ -118,9 +118,9 @@ std::vector<ServerThread::ConnInfo> DispatchThread::conns_info() const {
   return result;
 }
 
-std::shared_ptr<NetConn> DispatchThread::MoveConnOut(int fd) {
+std::shared_ptr<NetConn> DispatchThread::MoveConnOut(const NetItem& item) {
   for (int i = 0; i < work_num_; ++i) {
-    std::shared_ptr<NetConn> conn = worker_thread_[i]->MoveConnOut(fd);
+    std::shared_ptr<NetConn> conn = worker_thread_[i]->MoveConnOut(item);
     if (conn != nullptr) {
       return conn;
     }
@@ -147,10 +147,9 @@ bool DispatchThread::KillConn(const std::string& ip_port) {
 
 void DispatchThread::KillAllConns() { KillConn(kKillAllConnsTask); }
 
-void DispatchThread::HandleNewConn(const int connfd, const std::string& ip_port) {
+void DispatchThread::HandleNewConn(const NetItem& ti) {
   // Slow workers may consume many fds.
   // We simply loop to find next legal worker.
-  NetItem ti(connfd, ip_port);
   LOG(INFO) << "accept new conn " << ti.String();
   int next_thread = last_thread_;
   bool find = false;
@@ -169,7 +168,7 @@ void DispatchThread::HandleNewConn(const int connfd, const std::string& ip_port)
     log_info("all workers are full, queue limit is %d", queue_limit_);
     // every worker is full
     // TODO(anan) maybe add log
-    close(connfd);
+    close(ti.fd());
   }
 }
 

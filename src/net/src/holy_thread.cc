@@ -40,19 +40,18 @@ std::vector<ServerThread::ConnInfo> HolyThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
   pstd::ReadLock l(&rwlock_);
   for (auto& conn : conns_) {
-    result.push_back({conn.first, conn.second->ip_port(), conn.second->last_interaction()});
+    result.push_back({conn.second->id(), conn.second->fd(), conn.second->ip_port(), conn.second->last_interaction()});
   }
   return result;
 }
 
-std::shared_ptr<NetConn> HolyThread::MoveConnOut(int fd) {
+std::shared_ptr<NetConn> HolyThread::MoveConnOut(const NetItem& item) {
   pstd::WriteLock l(&rwlock_);
   std::shared_ptr<NetConn> conn = nullptr;
-  auto iter = conns_.find(fd);
+  auto iter = conns_.find(item.id());
   if (iter != conns_.end()) {
-    int fd = iter->first;
     conn = iter->second;
-    net_multiplexer_->NetDelEvent(fd, 0);
+    net_multiplexer_->NetDelEvent(conn->fd(), 0);
     conns_.erase(iter);
   }
   return conn;
@@ -87,15 +86,15 @@ int HolyThread::StopThread() {
   return ServerThread::StopThread();
 }
 
-void HolyThread::HandleNewConn(const int connfd, const std::string& ip_port) {
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(connfd, ip_port, this, private_data_, net_multiplexer_.get());
+void HolyThread::HandleNewConn(const NetItem& item) {
+  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(item.id(), item.fd(), item.ip_port(), this, private_data_, net_multiplexer_.get());
   tc->SetNonblock();
   {
     pstd::WriteLock l(&rwlock_);
-    conns_[connfd] = tc;
+    conns_[item.id()] = tc;
   }
 
-  net_multiplexer_->NetAddEvent(connfd, kReadable);
+  net_multiplexer_->NetAddEvent(item.fd(), kReadable);
 }
 
 void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
@@ -104,11 +103,11 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
   }
   std::shared_ptr<NetConn> in_conn = nullptr;
   int should_close = 0;
-  std::map<int, std::shared_ptr<NetConn>>::iterator iter;
+  std::map<NetID, std::shared_ptr<NetConn>>::iterator iter;
   {
     pstd::ReadLock l(&rwlock_);
-    if ((iter = conns_.find(pfe->fd)) == conns_.end()) {
-      net_multiplexer_->NetDelEvent(pfe->fd, 0);
+    if ((iter = conns_.find(pfe->item.id())) == conns_.end()) {
+      net_multiplexer_->NetDelEvent(pfe->item.fd(), 0);
       return;
     }
   }
@@ -132,7 +131,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
       WriteStatus write_status = in_conn->SendReply();
       if (write_status == kWriteAll) {
         in_conn->set_is_reply(false);
-        net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);
+        net_multiplexer_->NetModEvent(pfe->item.fd(), 0, kReadable);
       } else if (write_status == kWriteHalf) {
         return;
       } else if (write_status == kWriteError) {
@@ -149,7 +148,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
         // kReadError kReadClose kFullError kParseError kDealError
         should_close = 1;
       } else if (in_conn->is_reply()) {
-        net_multiplexer_->NetModEvent(pfe->fd, 0, kWritable);
+        net_multiplexer_->NetModEvent(pfe->item.fd(), 0, kWritable);
       } else {
         return;
       }
@@ -158,7 +157,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
       WriteStatus write_status = in_conn->SendReply();
       if (write_status == kWriteAll) {
         in_conn->set_is_reply(false);
-        net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);
+        net_multiplexer_->NetModEvent(pfe->item.fd(), 0, kReadable);
       } else if (write_status == kWriteHalf) {
         return;
       } else if (write_status == kWriteError) {
@@ -167,13 +166,13 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
     }
   }
   if ((pfe->mask & kErrorEvent) || should_close) {
-    net_multiplexer_->NetDelEvent(pfe->fd, 0);
+    net_multiplexer_->NetDelEvent(pfe->item.fd(), 0);
     CloseFd(in_conn);
     in_conn = nullptr;
 
     {
       pstd::WriteLock l(&rwlock_);
-      conns_.erase(pfe->fd);
+      conns_.erase(pfe->item.id());
     }
   }
 }
@@ -200,7 +199,7 @@ void HolyThread::DoCronTask() {
       return;
     }
 
-    std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
+    std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
     while (iter != conns_.end()) {
       std::shared_ptr<NetConn> conn = iter->second;
       // Check connection should be closed
@@ -240,7 +239,7 @@ void HolyThread::CloseFd(std::shared_ptr<NetConn> conn) {
 
 // clean all conns
 void HolyThread::Cleanup() {
-  std::map<int, std::shared_ptr<NetConn>> to_close;
+  std::map<NetID, std::shared_ptr<NetConn>> to_close;
   {
     pstd::WriteLock l(&rwlock_);
     to_close = std::move(conns_);
@@ -285,7 +284,7 @@ void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
         std::string ip_port = ti.ip_port();
         int fd = ti.fd();
         if (ti.notify_type() == net::kNotiWrite) {
-          net_multiplexer_->NetModEvent(ti.fd(), 0, kReadable | kWritable);
+          net_multiplexer_->NetModEvent(fd, 0, kReadable | kWritable);
         } else if (ti.notify_type() == net::kNotiClose) {
           log_info("receive noti close\n");
           std::shared_ptr<net::NetConn> conn = get_conn(fd);

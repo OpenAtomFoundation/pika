@@ -138,6 +138,7 @@ class ServerThread : public Thread {
   virtual int conn_num() const = 0;
 
   struct ConnInfo {
+    NetID id;
     int fd;
     std::string ip_port;
     struct timeval last_interaction;
@@ -145,14 +146,14 @@ class ServerThread : public Thread {
   virtual std::vector<ConnInfo> conns_info() const = 0;
 
   // Move out from server thread
-  virtual std::shared_ptr<NetConn> MoveConnOut(int fd) = 0;
+  virtual std::shared_ptr<NetConn> MoveConnOut(const NetItem& item) = 0;
   // Move into server thread
   virtual void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) = 0;
 
   virtual void KillAllConns() = 0;
   virtual bool KillConn(const std::string& ip_port) = 0;
 
-  virtual void HandleNewConn(int connfd, const std::string& ip_port) = 0;
+  virtual void HandleNewConn(const NetItem& item) = 0;
 
   virtual void SetQueueLimit(int queue_limit) {}
 

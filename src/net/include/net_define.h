@@ -116,5 +116,8 @@ enum RetCode {
 #define COLON ':'
 #define SHARP '#'
 
+typedef int64_t NetID;
+#define NET_INVALID_ID NetID(-1)
+
 }  // namespace net
 #endif  // NET_INCLUDE_NET_DEFINE_H_

@@ -13,8 +13,8 @@
 
 namespace net {
 
-PbConn::PbConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx)
-    : NetConn(fd, ip_port, thread, mpx),
+PbConn::PbConn(const NetID id, const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx)
+    : NetConn(id, fd, ip_port, thread, mpx),
       header_len_(-1),
       cur_pos_(0),
       rbuf_len_(0),

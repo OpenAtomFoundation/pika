@@ -43,7 +43,7 @@ class DispatchThread : public ServerThread {
 
   virtual std::vector<ServerThread::ConnInfo> conns_info() const override;
 
-  virtual std::shared_ptr<NetConn> MoveConnOut(int fd) override;
+  virtual std::shared_ptr<NetConn> MoveConnOut(const NetItem& item) override;
 
   virtual void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) override;
 
@@ -51,7 +51,7 @@ class DispatchThread : public ServerThread {
 
   virtual bool KillConn(const std::string& ip_port) override;
 
-  void HandleNewConn(const int connfd, const std::string& ip_port) override;
+  void HandleNewConn(const NetItem& item) override;
 
   void SetQueueLimit(int queue_limit) override;
 

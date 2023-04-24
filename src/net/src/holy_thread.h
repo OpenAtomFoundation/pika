@@ -41,7 +41,7 @@ class HolyThread : public ServerThread {
 
   virtual std::vector<ServerThread::ConnInfo> conns_info() const override;
 
-  virtual std::shared_ptr<NetConn> MoveConnOut(int fd) override;
+  virtual std::shared_ptr<NetConn> MoveConnOut(const NetItem& item) override;
 
   virtual void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) override {}
 
@@ -55,7 +55,7 @@ class HolyThread : public ServerThread {
 
  private:
   mutable pstd::RWMutex rwlock_; /* For external statistics */
-  std::map<int, std::shared_ptr<NetConn>> conns_;
+  std::map<NetID, std::shared_ptr<NetConn>> conns_;
 
   ConnFactory* conn_factory_ = nullptr;
   void* private_data_ = nullptr;
@@ -68,7 +68,7 @@ class HolyThread : public ServerThread {
   pstd::Mutex killer_mutex_;
   std::set<std::string> deleting_conn_ipport_;
 
-  void HandleNewConn(int connfd, const std::string& ip_port) override;
+  void HandleNewConn(const NetItem& item) override;
   void HandleConnEvent(NetFiredEvent* pfe) override;
 
   void CloseFd(std::shared_ptr<NetConn> conn);

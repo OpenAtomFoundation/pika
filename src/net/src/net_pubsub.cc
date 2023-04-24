@@ -346,7 +346,7 @@ void* PubSubThread::ThreadMain() {
     nfds = net_multiplexer_->NetPoll(NET_CRON_INTERVAL);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {  // New connection comming
+      if (pfe->item.fd() == net_multiplexer_->NotifyReceiveFd()) {  // New connection comming
         if (pfe->mask & kReadable) {
           read(net_multiplexer_->NotifyReceiveFd(), triger, 1);
           {
@@ -366,7 +366,7 @@ void* PubSubThread::ThreadMain() {
           continue;
         }
       }
-      if (pfe->fd == msg_pfd_[0]) {  // Publish message
+      if (pfe->item.fd() == msg_pfd_[0]) {  // Publish message
         if (pfe->mask & kReadable) {
           read(msg_pfd_[0], triger, 1);
           std::string channel, msg;
@@ -445,9 +445,9 @@ void* PubSubThread::ThreadMain() {
 
         {
           pstd::ReadLock l(&rwlock_);
-          std::map<int, std::shared_ptr<ConnHandle>>::iterator iter = conns_.find(pfe->fd);
+          std::map<NetID, std::shared_ptr<ConnHandle>>::iterator iter = conns_.find(pfe->item.fd());
           if (iter == conns_.end()) {
-            net_multiplexer_->NetDelEvent(pfe->fd, 0);
+            net_multiplexer_->NetDelEvent(pfe->item.fd(), 0);
             continue;
           }
           in_conn = iter->second->conn;
@@ -458,7 +458,7 @@ void* PubSubThread::ThreadMain() {
           WriteStatus write_status = in_conn->SendReply();
           if (write_status == kWriteAll) {
             in_conn->set_is_reply(false);
-            net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);  // Remove kWritable
+            net_multiplexer_->NetModEvent(pfe->item.fd(), 0, kReadable);  // Remove kWritable
           } else if (write_status == kWriteHalf) {
             continue;  //  send all write buffer,
                        //  in case of next GetRequest()
@@ -480,7 +480,7 @@ void* PubSubThread::ThreadMain() {
             if (write_status == kWriteAll) {
               in_conn->set_is_reply(false);
             } else if (write_status == kWriteHalf) {
-              net_multiplexer_->NetModEvent(pfe->fd, kReadable, kWritable);
+              net_multiplexer_->NetModEvent(pfe->item.fd(), kReadable, kWritable);
             } else if (write_status == kWriteError) {
               should_close = true;
             }

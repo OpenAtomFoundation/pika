@@ -39,19 +39,18 @@ std::vector<ServerThread::ConnInfo> WorkerThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
   pstd::ReadLock l(&rwlock_);
   for (auto& conn : conns_) {
-    result.push_back({conn.first, conn.second->ip_port(), conn.second->last_interaction()});
+    result.push_back({conn.first, conn.second->fd(), conn.second->ip_port(), conn.second->last_interaction()});
   }
   return result;
 }
 
-std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
+std::shared_ptr<NetConn> WorkerThread::MoveConnOut(const NetItem& item) {
   pstd::WriteLock l(&rwlock_);
   std::shared_ptr<NetConn> conn = nullptr;
-  auto iter = conns_.find(fd);
+  auto iter = conns_.find(item.id());
   if (iter != conns_.end()) {
-    int fd = iter->first;
     conn = iter->second;
-    net_multiplexer_->NetDelEvent(fd, 0);
+    net_multiplexer_->NetDelEvent(conn->fd(), 0);
     DLOG(INFO) << "move out connection " << conn->String();
     conns_.erase(iter);
   }
@@ -59,11 +58,11 @@ std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
 }
 
 bool WorkerThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& notify_type, bool force) {
-  NetItem it(conn->fd(), conn->ip_port(), notify_type);
+  NetItem it(conn->id(), conn->fd(), conn->ip_port(), notify_type);
   bool success = MoveConnIn(it, force);
   if (success) {
     pstd::WriteLock l(&rwlock_);
-    conns_[conn->fd()] = conn;
+    conns_[conn->id()] = conn;
   }
   return success;
 }
@@ -71,7 +70,7 @@ bool WorkerThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& n
 bool WorkerThread::MoveConnIn(const NetItem& it, bool force) { return net_multiplexer_->Register(it, force); }
 
 void* WorkerThread::ThreadMain() {
-  int nfds;
+  int nfds = -1;
   NetFiredEvent* pfe = NULL;
   char bb[2048];
   NetItem ti;
@@ -105,7 +104,7 @@ void* WorkerThread::ThreadMain() {
 
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
+      if (pfe->item.fd() == net_multiplexer_->NotifyReceiveFd()) {
         if (pfe->mask & kReadable) {
           int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
           if (nread == 0) {
@@ -114,7 +113,7 @@ void* WorkerThread::ThreadMain() {
             for (int32_t idx = 0; idx < nread; ++idx) {
               NetItem ti = net_multiplexer_->NotifyQueuePop();
               if (ti.notify_type() == kNotiConnect) {
-                std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(ti.fd(), ti.ip_port(), server_thread_,
+                std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(ti.id(), ti.fd(), ti.ip_port(), server_thread_,
                                                                         private_data_, net_multiplexer_.get());
                 if (!tc || !tc->SetNonblock()) {
                   continue;
@@ -130,7 +129,7 @@ void* WorkerThread::ThreadMain() {
 
                 {
                   pstd::WriteLock l(&rwlock_);
-                  conns_[ti.fd()] = tc;
+                  conns_[ti.id()] = tc;
                 }
                 net_multiplexer_->NetAddEvent(ti.fd(), kReadable);
               } else if (ti.notify_type() == kNotiClose) {
@@ -159,9 +158,9 @@ void* WorkerThread::ThreadMain() {
 
         {
           pstd::ReadLock l(&rwlock_);
-          std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->fd);
+          std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->item.id());
           if (iter == conns_.end()) {
-            net_multiplexer_->NetDelEvent(pfe->fd, 0);
+            net_multiplexer_->NetDelEvent(pfe->item.fd(), 0);
             continue;
           }
           in_conn = iter->second;
@@ -171,7 +170,7 @@ void* WorkerThread::ThreadMain() {
           WriteStatus write_status = in_conn->SendReply();
           in_conn->set_last_interaction(now);
           if (write_status == kWriteAll) {
-            net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);
+            net_multiplexer_->NetModEvent(pfe->item.fd(), 0, kReadable);
             in_conn->set_is_reply(false);
             if (in_conn->IsClose()) {
               should_close = 1;
@@ -188,8 +187,8 @@ void* WorkerThread::ThreadMain() {
           ReadStatus read_status = in_conn->GetRequest();
           in_conn->set_last_interaction(now);
           if (read_status == kReadAll) {
-            net_multiplexer_->NetModEvent(pfe->fd, 0, 0);
-            // Wait for the conn complete asynchronous task and
+            net_multiplexer_->NetModEvent(pfe->item.fd(), 0, 0);
+            // Wait for the connection complete asynchronous task and
             // Mod Event to kWritable
           } else if (read_status == kReadHalf) {
             continue;
@@ -199,12 +198,12 @@ void* WorkerThread::ThreadMain() {
         }
 
         if ((pfe->mask & kErrorEvent) || should_close) {
-          net_multiplexer_->NetDelEvent(pfe->fd, 0);
+          net_multiplexer_->NetDelEvent(pfe->item.fd(), 0);
           CloseFd(in_conn);
           in_conn = NULL;
           {
             pstd::WriteLock l(&rwlock_);
-            conns_.erase(pfe->fd);
+            conns_.erase(pfe->item.id());
           }
           should_close = 0;
         }
@@ -235,7 +234,7 @@ void WorkerThread::DoCronTask() {
       return;
     }
 
-    std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
+    std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
     while (iter != conns_.end()) {
       std::shared_ptr<NetConn> conn = iter->second;
       // Check connection should be closed
@@ -295,7 +294,7 @@ void WorkerThread::CloseFd(std::shared_ptr<NetConn> conn) {
 }
 
 void WorkerThread::Cleanup() {
-  std::map<int, std::shared_ptr<NetConn>> to_close;
+  std::map<NetID, std::shared_ptr<NetConn>> to_close;
   {
     pstd::WriteLock l(&rwlock_);
     to_close = std::move(conns_);

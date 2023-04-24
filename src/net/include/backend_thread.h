@@ -152,7 +152,7 @@ class BackendThread : public Thread {
   pstd::Mutex mu_;
   std::map<int, std::vector<std::string>> to_send_;  // ip+":"+port, to_send_msg
 
-  std::map<int, std::shared_ptr<NetConn>> conns_;
+  std::map<NetID, std::shared_ptr<NetConn>> conns_;
   std::set<int> connecting_fds_;
 };
 

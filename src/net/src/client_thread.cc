@@ -129,7 +129,7 @@ void ClientThread::NewConnection(const std::string& peer_ip, int peer_port, int 
 Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
   Status s;
   int sockfd = -1;
-  int rv;
+  int rv = 0;
   char cport[6];
   struct addrinfo hints, *servinfo, *p;
   snprintf(cport, sizeof(cport), "%d", dst_port);

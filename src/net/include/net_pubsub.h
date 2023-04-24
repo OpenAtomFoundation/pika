@@ -82,7 +82,7 @@ class PubSubThread : public Thread {
   bool should_exit_;
 
   mutable pstd::RWMutex rwlock_; /* For external statistics */
-  std::map<int, std::shared_ptr<ConnHandle>> conns_;
+  std::map<NetID, std::shared_ptr<ConnHandle>> conns_;
 
   pstd::Mutex pub_mutex_;
   pstd::CondVar receiver_rsignal_;

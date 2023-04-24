@@ -22,8 +22,8 @@ namespace net {
 
 using pstd::Status;
 
-BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, BackendHandle* handle,
-                             void* private_data)
+BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout,
+                             BackendHandle* handle, void* private_data)
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
       handle_(handle),
@@ -105,7 +105,7 @@ Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close
   int val = 0;
   socklen_t lon = sizeof(int);
 
-  if (getsockopt(pfe->fd, SOL_SOCKET, SO_ERROR, &val, &lon) == -1) {
+  if (getsockopt(pfe->item.fd(), SOL_SOCKET, SO_ERROR, &val, &lon) == -1) {
     *should_close = 1;
     return Status::Corruption("Get Socket opt failed");
   }

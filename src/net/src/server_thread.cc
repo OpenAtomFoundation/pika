@@ -192,9 +192,9 @@ void* ServerThread::ThreadMain() {
     nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      fd = pfe->fd;
+      fd = pfe->item.fd();
 
-      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
+      if (fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;
       }
@@ -234,13 +234,13 @@ void* ServerThread::ThreadMain() {
            * Handle new connection,
            * implemented in derived class
            */
-          HandleNewConn(connfd, ip_port);
+          HandleNewConn(NetItem(connfd, ip_port));
 
         } else if (pfe->mask & kErrorEvent) {
           /*
            * this branch means there is error on the listen fd
            */
-          close(pfe->fd);
+          close(fd);
           continue;
         }
       } else {

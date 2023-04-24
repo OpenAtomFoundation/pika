@@ -87,7 +87,7 @@ int NetKqueue::NetPoll(int timeout) {
 
   for (int i = 0; i < num_events; i++) {
     NetFiredEvent& ev = fired_events_[i];
-    ev.fd = events_[i].ident;
+    ev.item.set_fd(events_[i].ident);
     ev.mask = 0;
 
     if (events_[i].filter == EVFILT_READ) {

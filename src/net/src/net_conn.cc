@@ -13,8 +13,9 @@
 
 namespace net {
 
-NetConn::NetConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx)
-    : fd_(fd),
+NetConn::NetConn(const NetID id, const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx)
+    : id_(id),
+      fd_(fd),
       ip_port_(ip_port),
       is_reply_(false),
 #ifdef __ENABLE_SSL

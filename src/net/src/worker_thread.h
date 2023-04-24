@@ -40,7 +40,7 @@ class WorkerThread : public Thread {
 
   std::vector<ServerThread::ConnInfo> conns_info() const;
 
-  std::shared_ptr<NetConn> MoveConnOut(int fd);
+  std::shared_ptr<NetConn> MoveConnOut(const NetItem& item);
 
   bool MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& notify_type, bool force);
 
@@ -50,7 +50,7 @@ class WorkerThread : public Thread {
   bool TryKillConn(const std::string& ip_port);
 
   mutable pstd::RWMutex rwlock_; /* For external statistics */
-  std::map<int, std::shared_ptr<NetConn>> conns_;
+  std::map<NetID, std::shared_ptr<NetConn>> conns_; // conn id -> conn
 
   void* private_data_ = nullptr;
 

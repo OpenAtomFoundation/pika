@@ -14,7 +14,7 @@
 namespace net {
 
 struct NetFiredEvent {
-  int fd = -1;
+  NetItem item = NetItem();
   int mask = 0;  // EventStatus
 };
 
