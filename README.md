@@ -64,13 +64,13 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 * linux - Ubuntu
 
-* macOS(Darwin) on M1
+* macOS (Darwin) on M1
 
 #### Dependencies
 
-* gcc g++, C++11 support（version>=4.8）
+* gcc g++, C++11 support (version>=4.8)
 * make
-* cmake（version>=3.18）
+* cmake (version>=3.18)
 * autoconf
 * tar
 
@@ -121,7 +121,7 @@ By default the compilation process is in 'release' mode. If you wanna debug this
 ```
   If wanna clean up the compilation content, you can choose one of the following two methods as your will.
   1. exec `cd output && make clean` clean pika Compile content
-  2. exec `rm -fr output` rebuild cmake（for complete recompilation）
+  2. exec `rm -fr output` rebuild cmake (for complete recompilation)
 ```
 
 ## Performance
