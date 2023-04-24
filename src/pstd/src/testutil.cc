@@ -1,6 +1,8 @@
 #include "pstd/include/testutil.h"
 
 #include <sys/time.h>
+#include <unistd.h>
+
 #include <string>
 
 #include "pstd/include/random.h"
@@ -23,6 +25,18 @@ void current_time_str(char * str, size_t max_len)
            tmm.tm_min,
            tmm.tm_sec,
            tv.tv_usec);
+}
+
+int GetTestDirectory(std::string* result) {
+  const char* env = getenv("TEST_TMPDIR");
+  if (env && env[0] != '\0') {
+    *result = env;
+  } else {
+    char buf[100];
+    snprintf(buf, sizeof(buf), "/tmp/pstdtest-%d", int(geteuid()));
+    *result = buf;
+  }
+  return 0;
 }
 
 }  // namespace pstd
