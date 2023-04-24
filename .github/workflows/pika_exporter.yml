@@ -1,0 +1,28 @@
+name: Pika_exporter
+
+on:
+  push:
+    branches: [ "unstable" ]
+  pull_request:
+    branches: [ "unstable" ]
+    paths:
+      - 'pika-tools/pika_exporter/**'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.19
+
+    - name: Build
+      run: |
+        cd pika-tools/pika_exporter && make -j
+    - name: Test
+      run: |
+        cd pika-tools/pika_exporter && make -j
