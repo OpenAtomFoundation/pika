@@ -63,9 +63,9 @@ class PikaClientConn : public net::RedisConn {
   std::vector<std::shared_ptr<std::string>> resp_array;
 
  private:
-  net::ServerThread* const server_thread_ = nullptr;
-  std::string current_table_ = "";
-  WriteCompleteCallback write_completed_cb_ = nullptr;
+  net::ServerThread* const server_thread_;
+  std::string current_table_;
+  WriteCompleteCallback write_completed_cb_;
   bool is_pubsub_ = false;
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,

@@ -28,7 +28,7 @@ class NetItem {
 
  private:
   int fd_ = -1;
-  std::string ip_port_ = "";
+  std::string ip_port_;
   NotifyType notify_type_ = kNotiConnect;
 };
 

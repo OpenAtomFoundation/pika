@@ -92,13 +92,13 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 
  private:
   int fd_ = -1;
-  std::string ip_port_ = "";
+  std::string ip_port_;
   bool is_reply_ = false;
   bool is_writable_ = false;
   bool close_ = false;
   struct timeval last_interaction_;
   int flags_ = 0;
-  std::string name_ = "";
+  std::string name_;
 
 #ifdef __ENABLE_SSL
   SSL* ssl_;
