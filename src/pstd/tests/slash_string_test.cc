@@ -7,22 +7,22 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "pstd/include/pstd_string.h"
-#include "pstd/include/pstd_testharness.h"
-
 #include <limits.h>
+
+#include "gtest/gtest.h"
+#include "pstd/include/pstd_string.h"
 
 namespace pstd {
 
-class StringTest {};
+class StringTest : public ::testing::Test {};
 
-TEST(StringTest, StringTrim) {
+TEST_F(StringTest, StringTrim) {
   ASSERT_EQ(StringTrim("   computer  "), "computer");
   ASSERT_EQ(StringTrim("  comp  uter  "), "comp  uter");
   ASSERT_EQ(StringTrim(" \n  computer \n ", "\n "), "computer");
 }
 
-TEST(StringTest, ParseIpPort) {
+TEST_F(StringTest, ParseIpPort) {
   std::string ip;
   int port;
   ASSERT_TRUE(ParseIpPortString("192.168.1.1:9221", ip, port));
@@ -30,7 +30,7 @@ TEST(StringTest, ParseIpPort) {
   ASSERT_EQ(port, 9221);
 }
 
-TEST(StringTest, test_string2ll) {
+TEST_F(StringTest, test_string2ll) {
   char buf[32];
   long long v;
 
@@ -81,7 +81,7 @@ TEST(StringTest, test_string2ll) {
   ASSERT_EQ(string2int(buf, strlen(buf), &v), 0);
 }
 
-TEST(StringTest, test_string2l) {
+TEST_F(StringTest, test_string2l) {
   char buf[32];
   long v;
 

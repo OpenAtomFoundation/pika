@@ -13,6 +13,7 @@
 #include "net/include/server_thread.h"
 #include "pstd/include/pstd_hash.h"
 #include "pstd/include/pstd_status.h"
+#include "net/src/net_multiplexer.h"
 
 using namespace net;
 
@@ -63,7 +64,7 @@ class MyHTTPHandles : public net::HTTPHandles {
 class MyConnFactory : public ConnFactory {
  public:
   virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, NetEpoll* net_epoll) const {
+                                              void* worker_specific_data, NetMultiplexer* net_epoll) const override {
     auto my_handles = std::make_shared<MyHTTPHandles>();
     return std::make_shared<net::HTTPConn>(connfd, ip_port, thread, my_handles, worker_specific_data);
   }

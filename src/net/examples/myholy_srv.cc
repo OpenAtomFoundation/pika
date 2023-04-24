@@ -8,6 +8,7 @@
 #include "net/include/net_thread.h"
 #include "net/include/pb_conn.h"
 #include "net/include/server_thread.h"
+#include "net/src/net_multiplexer.h"
 
 using namespace net;
 
@@ -48,7 +49,7 @@ int MyConn::DealMessage() {
 class MyConnFactory : public ConnFactory {
  public:
   virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, NetEpoll* net_epoll) const {
+                                              void* worker_specific_data, NetMultiplexer* net_epoll) const override {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
 };
