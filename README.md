@@ -94,7 +94,7 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 
 3. Compile
 
-Please run the script build.sh before you compile this db to check the environment and build this repo.
+Please run the script build.sh before you compile this db to check the environment and build this repo. 
 
 ```
   ./build.sh
