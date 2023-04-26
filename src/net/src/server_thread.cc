@@ -14,6 +14,7 @@
 
 #include "net/src/server_socket.h"
 #include "pstd/include/xdebug.h"
+#include "pstd/include/testutil.h"
 
 namespace net {
 

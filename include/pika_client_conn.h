@@ -66,7 +66,7 @@ class PikaClientConn : public net::RedisConn {
   net::ServerThread* const server_thread_;
   std::string current_table_;
   WriteCompleteCallback write_completed_cb_;
-  bool is_pubsub_;
+  bool is_pubsub_ = false;
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              std::shared_ptr<std::string> resp_ptr);

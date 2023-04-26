@@ -91,7 +91,7 @@ ReadStatus RedisConn::GetRequest() {
 
   nread = read(fd(), rbuf_ + next_read_pos, remain);
   if (nread == -1) {
-    if (errno == EAGAIN) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
       nread = 0;
       return kReadHalf;  // HALF
     } else {
@@ -150,7 +150,7 @@ WriteStatus RedisConn::SendReply() {
     }
   }
   if (nwritten == -1) {
-    if (errno == EAGAIN) {
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
       return kWriteHalf;
     } else {
       // Here we should close the connection

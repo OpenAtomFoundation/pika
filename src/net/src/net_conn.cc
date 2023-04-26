@@ -32,6 +32,10 @@ NetConn::~NetConn() {
 #endif
 }
 
+void NetConn::SetClose(bool close) {
+  close_ = close;
+}
+
 bool NetConn::SetNonblock() {
   flags_ = Setnonblocking(fd());
   if (flags_ == -1) {

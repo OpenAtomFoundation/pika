@@ -5,6 +5,9 @@
 
 #include <vector>
 
+#include <glog/logging.h>
+
+#include "pstd/include/testutil.h"
 #include "net/src/worker_thread.h"
 
 #include "net/include/net_conn.h"
@@ -49,6 +52,7 @@ std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
     int fd = iter->first;
     conn = iter->second;
     net_multiplexer_->NetDelEvent(fd, 0);
+    DLOG(INFO) << "move out connection " << conn->String();
     conns_.erase(iter);
   }
   return conn;
@@ -171,6 +175,7 @@ void* WorkerThread::ThreadMain() {
             in_conn->set_is_reply(false);
             if (in_conn->IsClose()) {
               should_close = 1;
+              LOG(INFO) << "will close client connection " << in_conn->String();
             }
           } else if (write_status == kWriteHalf) {
             continue;
@@ -238,6 +243,7 @@ void WorkerThread::DoCronTask() {
         to_close.push_back(conn);
         deleting_conn_ipport_.erase(conn->ip_port());
         iter = conns_.erase(iter);
+        LOG(INFO) << "will close client connection " << conn->String();
         continue;
       }
 
@@ -245,6 +251,7 @@ void WorkerThread::DoCronTask() {
       if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         to_timeout.push_back(conn);
         iter = conns_.erase(iter);
+        LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is " << keepalive_timeout_.load();
         continue;
       }
 
