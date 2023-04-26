@@ -59,7 +59,12 @@ std::shared_ptr<NetConn> HolyThread::MoveConnOut(const NetItem& item) {
 
 std::shared_ptr<NetConn> HolyThread::get_conn(int fd) {
   pstd::ReadLock l(&rwlock_);
-  auto iter = conns_.find(fd);
+  auto iter = conns_.begin();
+  for (; iter != conns_.end(); iter++) {
+    if (iter->second->fd() == fd) {
+      break;
+    }
+  }
   if (iter != conns_.end()) {
     return iter->second;
   } else {
@@ -296,7 +301,12 @@ void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
           conn = nullptr;
           {
             pstd::WriteLock l(&rwlock_);
-            conns_.erase(fd);
+            for (auto& it : conns_) {
+              if (it.second->fd() == fd) {
+                conns_.erase(it.first);
+                break;
+              }
+            }
           }
         }
       }

@@ -124,7 +124,7 @@ void ClientThread::NewConnection(const std::string& peer_ip, int peer_port, int 
   // This flag specifies that the file descriptor should be closed when an exec function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
 
-  fd_conns_.insert(std::make_pair(sockfd, tc));
+  fd_conns_.insert(std::make_pair(tc->id(), tc));
   ipport_conns_.insert(std::make_pair(ip_port, tc));
 }
 
@@ -255,7 +255,12 @@ void ClientThread::DoCronTask() {
     std::shared_ptr<NetConn> conn = iter->second;
     net_multiplexer_->NetDelEvent(conn->fd(), 0);
     CloseFd(conn);
-    fd_conns_.erase(conn->fd());
+    for (auto& it : fd_conns_) {
+        if (it.second->fd() == conn->fd()) {
+          fd_conns_.erase(it.first);
+          break;
+        }
+    }
     ipport_conns_.erase(conn->ip_port());
     connecting_fds_.erase(conn->fd());
   }
@@ -283,7 +288,7 @@ void ClientThread::InternalDebugPrint() {
   log_info("Connected fd map: \n");
   for (const auto& fd_conn : fd_conns_) {
     UNUSED(fd_conn);
-    log_info("fd %d", fd_conn.first);
+    log_info("fd %d", fd_conn.second->fd());
   }
   log_info("Connecting fd map: \n");
   for (const auto& connecting_fd : connecting_fds_) {
@@ -349,7 +354,12 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
           log_info("received kNotiClose\n");
           net_multiplexer_->NetDelEvent(fd, 0);
           CloseFd(fd, ip_port);
-          fd_conns_.erase(fd);
+          for (auto& it : fd_conns_) {
+            if (it.second->fd() == fd) {
+              fd_conns_.erase(it.first);
+              break;
+            }
+          }
           ipport_conns_.erase(ip_port);
           connecting_fds_.erase(fd);
         }
@@ -406,7 +416,7 @@ void* ClientThread::ThreadMain() {
       }
 
       int should_close = 0;
-      std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.find(pfe->fd());
+      std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.find(pfe->id());
       if (iter == fd_conns_.end()) {
         log_info("fd %d not found in fd_conns\n", pfe->fd());
         net_multiplexer_->NetDelEvent(pfe->fd(), 0);
@@ -452,10 +462,16 @@ void* ClientThread::ThreadMain() {
 
       if ((pfe->mask & kErrorEvent) || should_close) {
         {
-          log_info("close connection %d reason %d %d\n", pfe->fd, pfe->mask, should_close);
+          log_info("close connection %s reason %d %d\n", pfe->item.String().c_str(), pfe->mask, should_close);
           net_multiplexer_->NetDelEvent(pfe->fd(), 0);
           CloseFd(conn);
-          fd_conns_.erase(pfe->fd());
+
+          for (auto& it : fd_conns_) {
+            if (it.second->fd() == pfe->fd()) {
+              fd_conns_.erase(it.first);
+              break;
+            }
+          }
           if (ipport_conns_.count(conn->ip_port())) {
             ipport_conns_.erase(conn->ip_port());
           }

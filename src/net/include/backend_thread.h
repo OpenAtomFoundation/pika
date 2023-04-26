@@ -115,7 +115,6 @@ class BackendThread : public Thread {
   // Try to connect fd noblock, if return EINPROGRESS or EAGAIN or EWOULDBLOCK
   // put this fd in epoll (SetWaitConnectOnEpoll), process in ProcessConnectStatus
   pstd::Status Connect(const std::string& dst_ip, const int dst_port, int* fd);
-  std::shared_ptr<NetConn> GetConn(int fd);
 
  private:
   virtual void* ThreadMain() override;

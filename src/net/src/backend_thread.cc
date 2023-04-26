@@ -66,10 +66,19 @@ int BackendThread::StopThread() {
 Status BackendThread::Write(const int fd, const std::string& msg) {
   {
     pstd::MutexLock l(&mu_);
-    if (conns_.find(fd) == conns_.end()) {
+    bool found = false;
+    auto it = conns_.begin();
+    for (; it != conns_.end(); it++) {
+      if (it->second->fd() == fd) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
       return Status::Corruption(std::to_string(fd) + " cannot find !");
     }
-    auto addr = conns_.find(fd)->second->ip_port();
+    auto addr = it->second->ip_port();
     if (!handle_->AccessHandle(addr)) {
       return Status::Corruption(addr + " is baned by user!");
     }
@@ -87,13 +96,14 @@ Status BackendThread::Write(const int fd, const std::string& msg) {
 }
 
 Status BackendThread::Close(const int fd) {
-  {
-    pstd::MutexLock l(&mu_);
-    if (conns_.find(fd) == conns_.end()) {
-      return Status::OK();
+  pstd::MutexLock l(&mu_);
+  for (auto& it : conns_) {
+    if (it.second->fd() == fd) {
+      NotifyClose(fd);
+      break;
     }
   }
-  NotifyClose(fd);
+
   return Status::OK();
 }
 
@@ -132,7 +142,7 @@ void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int
 
   {
     pstd::MutexLock l(&mu_);
-    conns_.insert(std::make_pair(sockfd, tc));
+    conns_.insert(std::make_pair(tc->id(), tc));
   }
 }
 
@@ -204,15 +214,6 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
   return s;
 }
 
-std::shared_ptr<NetConn> BackendThread::GetConn(int fd) {
-  pstd::MutexLock l(&mu_);
-  auto iter = conns_.find(fd);
-  if (iter == conns_.end()) {
-    return nullptr;
-  }
-  return iter->second;
-}
-
 void BackendThread::CloseFd(std::shared_ptr<NetConn> conn) {
   close(conn->fd());
   CleanUpConnRemaining(conn->fd());
@@ -245,8 +246,11 @@ void BackendThread::DoCronTask() {
       net_multiplexer_->NetDelEvent(conn->fd(), 0);
       close(conn->fd());
       handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
-      if (conns_.count(conn->fd())) {
-        conns_.erase(conn->fd());
+      for (auto& it : conns_) {
+        if (it.second->fd() == conn->fd()) {
+          conns_.erase(it.first);
+          break;
+        }
       }
       if (connecting_fds_.count(conn->fd())) {
         connecting_fds_.erase(conn->fd());
@@ -278,9 +282,9 @@ void BackendThread::InternalDebugPrint() {
   }
   log_info("Connected fd map: \n");
   pstd::MutexLock l(&mu_);
-  for (const auto& fd_conn : conns_) {
-    UNUSED(fd_conn);
-    log_info("fd %d", fd_conn.first);
+  for (const auto& it : conns_) {
+    UNUSED(it);
+    log_info("fd %d", it.second->fd());
   }
   log_info("Connecting fd map: \n");
   for (const auto& connecting_fd : connecting_fds_) {
@@ -320,7 +324,15 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
         std::string ip_port = ti.ip_port();
         pstd::MutexLock l(&mu_);
         if (ti.notify_type() == kNotiWrite) {
-          if (conns_.find(fd) == conns_.end()) {
+          bool exist = false;
+          for (auto& it : conns_) {
+            if (it.second->fd() == fd) {
+              exist = true;
+              break;
+            }
+          }
+
+          if (!exist) {
             // TODO: need clean and notify?
             continue;
           } else {
@@ -343,7 +355,12 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
           log_info("received kNotiClose\n");
           net_multiplexer_->NetDelEvent(fd, 0);
           CloseFd(fd);
-          conns_.erase(fd);
+          for (auto& it : conns_) {
+            if (it.second->fd() == fd) {
+              conns_.erase(it.first);
+              break;
+            }
+          }
           connecting_fds_.erase(fd);
         }
       }
@@ -400,10 +417,10 @@ void* BackendThread::ThreadMain() {
 
       int should_close = 0;
       mu_.Lock();
-      std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->fd());
+      std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->id());
       if (iter == conns_.end()) {
         mu_.Unlock();
-        log_info("fd %d not found in fd_conns\n", pfe->fd);
+        log_info("fd %d not found in fd_conns\n", pfe->fd());
         net_multiplexer_->NetDelEvent(pfe->fd(), 0);
         continue;
       }
@@ -447,11 +464,11 @@ void* BackendThread::ThreadMain() {
 
       if ((pfe->mask & kErrorEvent) || should_close) {
         {
-          log_info("close connection %d reason %d %d\n", pfe->fd, pfe->mask, should_close);
+          log_info("close connection %s reason %d %d\n", pfe->item.String().c_str(), pfe->mask, should_close);
           net_multiplexer_->NetDelEvent(pfe->fd(), 0);
           CloseFd(conn);
           mu_.Lock();
-          conns_.erase(pfe->fd());
+          conns_.erase(pfe->id());
           mu_.Unlock();
           if (connecting_fds_.count(conn->fd())) {
             connecting_fds_.erase(conn->fd());

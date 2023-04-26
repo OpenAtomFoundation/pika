@@ -70,7 +70,7 @@ int NetEpoll::NetPoll(int timeout) {
 
   for (int i = 0; i < num_events; i++) {
     NetFiredEvent& ev = fired_events_[i];
-    ev.fd = events_[i].data.fd;
+    ev.item.set_fd(events_[i].data.fd);
     ev.mask = 0;
 
     if (events_[i].events & EPOLLIN) {
