@@ -50,7 +50,7 @@ bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
     ip = g_pika_server->host();
   }
 
-  int client_num = pika_disptcher_->thread_rep_->conn_num();
+  int client_num = pika_dispatcher_->thread_rep_->conn_num();
   if ((client_num >= g_pika_conf->maxclients() + g_pika_conf->root_connection_num()) ||
       (client_num >= g_pika_conf->maxclients() && ip != g_pika_server->host())) {
     LOG(WARNING) << "Max connections reach, Deny new comming: " << ip;
@@ -63,5 +63,5 @@ bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
 }
 
 void PikaDispatchThread::Handles::CronHandle() const {
-  pika_disptcher_->thread_rep_->set_keepalive_timeout(g_pika_conf->timeout());
+  pika_dispatcher_->thread_rep_->set_keepalive_timeout(g_pika_conf->timeout());
 }

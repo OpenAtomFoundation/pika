@@ -40,13 +40,13 @@ class PikaDispatchThread {
 
   class Handles : public net::ServerHandle {
    public:
-    explicit Handles(PikaDispatchThread* pika_disptcher) : pika_disptcher_(pika_disptcher) {}
+    explicit Handles(PikaDispatchThread* pika_dispatcher) : pika_dispatcher_(pika_dispatcher) {}
     using net::ServerHandle::AccessHandle;
     bool AccessHandle(std::string& ip) const override;
     void CronHandle() const override;
 
    private:
-    PikaDispatchThread* pika_disptcher_;
+    PikaDispatchThread* pika_dispatcher_;
   };
 
   ClientConnFactory conn_factory_;
