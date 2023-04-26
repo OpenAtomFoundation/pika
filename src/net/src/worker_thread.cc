@@ -7,8 +7,8 @@
 
 #include <glog/logging.h>
 
-#include "pstd/include/testutil.h"
 #include "net/src/worker_thread.h"
+#include "pstd/include/testutil.h"
 
 #include "net/include/net_conn.h"
 #include "net/src/net_item.h"
@@ -250,7 +250,8 @@ void WorkerThread::DoCronTask() {
       if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         to_timeout.push_back(conn);
         iter = conns_.erase(iter);
-        LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is " << keepalive_timeout_.load();
+        LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is "
+                  << keepalive_timeout_.load();
         continue;
       }
 

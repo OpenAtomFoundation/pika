@@ -118,7 +118,8 @@ void ClientThread::SetWaitConnectOnEpoll(int sockfd) {
 void ClientThread::NewConnection(const std::string& peer_ip, int peer_port, int sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
   NetItem item(sockfd, ip_port);
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(item.id(), item.fd(), item.ip_port(), this, NULL, net_multiplexer_.get());
+  std::shared_ptr<NetConn> tc =
+      conn_factory_->NewNetConn(item.id(), item.fd(), item.ip_port(), this, NULL, net_multiplexer_.get());
   tc->SetNonblock();
   // This flag specifies that the file descriptor should be closed when an exec function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);

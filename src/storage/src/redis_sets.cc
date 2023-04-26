@@ -75,7 +75,8 @@ rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std
   return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
 }
 
-rocksdb::Status RedisSets::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* end, const ColumnFamilyType& type) {
+rocksdb::Status RedisSets::CompactRange(const rocksdb::Slice* begin, const rocksdb::Slice* end,
+                                        const ColumnFamilyType& type) {
   if (type == kMeta || type == kMetaAndData) {
     db_->CompactRange(default_compact_range_options_, handles_[0], begin, end);
   }
@@ -1063,7 +1064,7 @@ rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vect
 }
 
 rocksdb::Status RedisSets::SScan(const Slice& key, int64_t cursor, const std::string& pattern, int64_t count,
-                        std::vector<std::string>* members, int64_t* next_cursor) {
+                                 std::vector<std::string>* members, int64_t* next_cursor) {
   *next_cursor = 0;
   members->clear();
   if (cursor < 0) {
@@ -1131,8 +1132,8 @@ rocksdb::Status RedisSets::SScan(const Slice& key, int64_t cursor, const std::st
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status RedisSets::PKScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,
-                              std::vector<std::string>* keys, std::string* next_key) {
+rocksdb::Status RedisSets::PKScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern,
+                                       int32_t limit, std::vector<std::string>* keys, std::string* next_key) {
   next_key->clear();
 
   std::string key;
@@ -1184,8 +1185,8 @@ rocksdb::Status RedisSets::PKScanRange(const Slice& key_start, const Slice& key_
   return rocksdb::Status::OK();
 }
 
-rocksdb::Status RedisSets::PKRScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,
-                               std::vector<std::string>* keys, std::string* next_key) {
+rocksdb::Status RedisSets::PKRScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern,
+                                        int32_t limit, std::vector<std::string>* keys, std::string* next_key) {
   next_key->clear();
 
   std::string key;

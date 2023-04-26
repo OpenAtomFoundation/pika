@@ -32,9 +32,7 @@ Mutex::Mutex() { PthreadCall("init mutex", pthread_mutex_init(&mu_, NULL)); }
 
 Mutex::~Mutex() { PthreadCall("destroy mutex", pthread_mutex_destroy(&mu_)); }
 
-int Mutex::Trylock() {
-  return pthread_mutex_trylock(&mu_);
-}
+int Mutex::Trylock() { return pthread_mutex_trylock(&mu_); }
 
 void Mutex::Lock() { PthreadCall("lock", pthread_mutex_lock(&mu_)); }
 

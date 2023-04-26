@@ -38,7 +38,8 @@ class ParsedStringsValue : public ParsedInternalValue {
   // Use this constructor in rocksdb::CompactionFilter::Filter();
   explicit ParsedStringsValue(const rocksdb::Slice& internal_value_slice) : ParsedInternalValue(internal_value_slice) {
     if (internal_value_slice.size() >= kStringsValueSuffixLength) {
-      user_value_ = rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kStringsValueSuffixLength);
+      user_value_ =
+          rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kStringsValueSuffixLength);
       timestamp_ = DecodeFixed32(internal_value_slice.data() + internal_value_slice.size() - kStringsValueSuffixLength);
     }
   }

@@ -22,8 +22,8 @@ namespace net {
 
 using pstd::Status;
 
-BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout,
-                             BackendHandle* handle, void* private_data)
+BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, BackendHandle* handle,
+                             void* private_data)
     : keepalive_timeout_(keepalive_timeout),
       cron_interval_(cron_interval),
       handle_(handle),
@@ -124,7 +124,8 @@ void BackendThread::SetWaitConnectOnEpoll(int sockfd) {
 void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
   NetItem item(sockfd, ip_port);
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(item.id(), item.fd(), item.ip_port(), this, NULL, net_multiplexer_.get());
+  std::shared_ptr<NetConn> tc =
+      conn_factory_->NewNetConn(item.id(), item.fd(), item.ip_port(), this, NULL, net_multiplexer_.get());
   tc->SetNonblock();
   // This flag specifies that the file descriptor should be closed when an exec function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);

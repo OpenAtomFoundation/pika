@@ -65,7 +65,8 @@ int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
 class MyConnFactory : public ConnFactory {
  public:
   virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, net::NetMultiplexer* net_epoll = nullptr) const {
+                                              void* worker_specific_data,
+                                              net::NetMultiplexer* net_epoll = nullptr) const {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
 };

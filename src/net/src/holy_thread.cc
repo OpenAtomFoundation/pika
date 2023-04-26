@@ -87,7 +87,8 @@ int HolyThread::StopThread() {
 }
 
 void HolyThread::HandleNewConn(const NetItem& item) {
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(item.id(), item.fd(), item.ip_port(), this, private_data_, net_multiplexer_.get());
+  std::shared_ptr<NetConn> tc =
+      conn_factory_->NewNetConn(item.id(), item.fd(), item.ip_port(), this, private_data_, net_multiplexer_.get());
   tc->SetNonblock();
   {
     pstd::WriteLock l(&rwlock_);

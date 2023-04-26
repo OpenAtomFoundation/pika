@@ -7,8 +7,8 @@
 #define INCLUDE_CUSTOM_COMPARATOR_H_
 #include "string"
 
-#include "src/coding.h"
 #include "rocksdb/comparator.h"
+#include "src/coding.h"
 
 namespace storage {
 

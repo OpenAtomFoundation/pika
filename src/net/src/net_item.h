@@ -6,8 +6,8 @@
 #ifndef NET_SRC_NET_ITEM_H_
 #define NET_SRC_NET_ITEM_H_
 
-#include <string>
 #include <sstream>
+#include <string>
 
 #include "net/include/net_define.h"
 
@@ -15,7 +15,7 @@ namespace net {
 
 class NetItem {
  public:
-  NetItem(); // default constructor, its id is NET_INVALID_ID
+  NetItem();  // default constructor, its id is NET_INVALID_ID
   NetItem(const int fd, const std::string& ip_port, const NotifyType& type = kNotiConnect);
   NetItem(const NetID id, const int fd, const std::string& ip_port, const NotifyType& type = kNotiConnect);
 
@@ -37,7 +37,7 @@ class NetItem {
  private:
   NetID id_ = -1;
   int fd_ = -1;
-  std::string ip_port_ = ""; // peer address
+  std::string ip_port_ = "";  // peer address
 
   NotifyType notify_type_ = kNotiConnect;
 };

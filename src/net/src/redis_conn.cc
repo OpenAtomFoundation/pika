@@ -16,8 +16,8 @@
 
 namespace net {
 
-RedisConn::RedisConn(const NetID id, const int fd, const std::string& ip_port, Thread* thread,
-                     NetMultiplexer* net_mpx, const HandleType& handle_type, const int rbuf_max_len)
+RedisConn::RedisConn(const NetID id, const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx,
+                     const HandleType& handle_type, const int rbuf_max_len)
     : NetConn(id, fd, ip_port, thread, net_mpx),
       handle_type_(handle_type),
       rbuf_(nullptr),

@@ -27,9 +27,11 @@ class PikaDispatchThread {
   class ClientConnFactory : public net::ConnFactory {
    public:
     explicit ClientConnFactory(int max_conn_rbuf_size) : max_conn_rbuf_size_(max_conn_rbuf_size) {}
-    virtual std::shared_ptr<net::NetConn> NewNetConn(net::NetID id, int connfd, const std::string& ip_port, net::Thread* server_thread,
-                                                     void* worker_specific_data, net::NetMultiplexer* net) const {
-      return std::make_shared<PikaClientConn>(id, connfd, ip_port, server_thread, net, net::HandleType::kAsynchronous, max_conn_rbuf_size_);
+    virtual std::shared_ptr<net::NetConn> NewNetConn(net::NetID id, int connfd, const std::string& ip_port,
+                                                     net::Thread* server_thread, void* worker_specific_data,
+                                                     net::NetMultiplexer* net) const {
+      return std::make_shared<PikaClientConn>(id, connfd, ip_port, server_thread, net, net::HandleType::kAsynchronous,
+                                              max_conn_rbuf_size_);
     }
 
    private:

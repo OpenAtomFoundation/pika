@@ -11,9 +11,7 @@ namespace net {
 
 static std::atomic_int64_t g_id = {0};
 
-NetItem::NetItem() {
-  id_ = NET_INVALID_ID;
-}
+NetItem::NetItem() { id_ = NET_INVALID_ID; }
 
 NetItem::NetItem(const int fd, const std::string& ip_port, const NotifyType& type)
     : fd_(fd), ip_port_(ip_port), notify_type_(type) {
@@ -23,4 +21,4 @@ NetItem::NetItem(const int fd, const std::string& ip_port, const NotifyType& typ
 NetItem::NetItem(const NetID id, const int fd, const std::string& ip_port, const NotifyType& type)
     : id_(id), fd_(fd), ip_port_(ip_port), notify_type_(type) {}
 
-}
+}  // namespace net

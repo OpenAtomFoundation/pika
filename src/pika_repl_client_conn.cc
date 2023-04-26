@@ -9,9 +9,9 @@
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <sys/time.h>
 
-#include "net/include/net_define.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "net/include/net_define.h"
 #include "pstd/include/pstd_string.h"
 
 #include "include/pika_rm.h"
