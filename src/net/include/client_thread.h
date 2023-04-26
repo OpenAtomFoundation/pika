@@ -149,7 +149,7 @@ class ClientThread : public Thread {
   pstd::Mutex mu_;
   std::map<std::string, std::vector<std::string>> to_send_;  // ip+":"+port, to_send_msg
 
-  std::map<int, std::shared_ptr<NetConn>> fd_conns_;
+  std::map<NetID, std::shared_ptr<NetConn>> fd_conns_;
   std::map<std::string, std::shared_ptr<NetConn>> ipport_conns_;
   std::set<int> connecting_fds_;
 

@@ -212,7 +212,7 @@ void ClientThread::CleanUpConnRemaining(const std::string& ip_port) {
 void ClientThread::DoCronTask() {
   struct timeval now;
   gettimeofday(&now, NULL);
-  std::map<int, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.begin();
+  std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.begin();
   while (iter != fd_conns_.end()) {
     std::shared_ptr<NetConn> conn = iter->second;
 
@@ -406,7 +406,7 @@ void* ClientThread::ThreadMain() {
       }
 
       int should_close = 0;
-      std::map<int, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.find(pfe->fd());
+      std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.find(pfe->fd());
       if (iter == fd_conns_.end()) {
         log_info("fd %d not found in fd_conns\n", pfe->fd());
         net_multiplexer_->NetDelEvent(pfe->fd(), 0);
