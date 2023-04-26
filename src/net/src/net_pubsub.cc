@@ -69,7 +69,7 @@ void PubSubThread::MoveConnOut(std::shared_ptr<NetConn> conn) {
   net_multiplexer_->NetDelEvent(conn->fd(), 0);
   {
     pstd::WriteLock l(&rwlock_);
-    conns_.erase(conn->fd());
+    conns_.erase(conn->id());
   }
 }
 
@@ -78,26 +78,29 @@ void PubSubThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& n
   net_multiplexer_->Register(it, true);
   {
     pstd::WriteLock l(&rwlock_);
-    conns_[conn->fd()] = std::make_shared<ConnHandle>(conn);
+    conns_[conn->id()] = std::make_shared<ConnHandle>(conn);
   }
   conn->set_net_multiplexer(net_multiplexer_.get());
 }
 
 void PubSubThread::UpdateConnReadyState(int fd, const ReadyState& state) {
   pstd::WriteLock l(&rwlock_);
-  const auto& it = conns_.find(fd);
-  if (it == conns_.end()) {
-    return;
+  for (auto& it : conns_) {
+    if (it.second->conn->fd() == fd) {
+      it.second->UpdateReadyState(state);
+      return;
+    }
   }
-  it->second->UpdateReadyState(state);
 }
 
 bool PubSubThread::IsReady(int fd) {
   pstd::ReadLock l(&rwlock_);
-  const auto& it = conns_.find(fd);
-  if (it != conns_.end()) {
-    return it->second->IsReady();
+  for (auto& it : conns_) {
+    if (it.second->conn->fd() == fd) {
+      return it.second->IsReady();
+    }
   }
+
   return false;
 }
 
@@ -445,7 +448,7 @@ void* PubSubThread::ThreadMain() {
 
         {
           pstd::ReadLock l(&rwlock_);
-          std::map<NetID, std::shared_ptr<ConnHandle>>::iterator iter = conns_.find(pfe->fd());
+          std::map<NetID, std::shared_ptr<ConnHandle>>::iterator iter = conns_.find(pfe->id());
           if (iter == conns_.end()) {
             net_multiplexer_->NetDelEvent(pfe->fd(), 0);
             continue;
