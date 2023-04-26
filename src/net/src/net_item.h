@@ -38,6 +38,7 @@ class NetItem {
   NetID id_ = -1;
   int fd_ = -1;
   std::string ip_port_ = ""; // peer address
+
   NotifyType notify_type_ = kNotiConnect;
 };
 

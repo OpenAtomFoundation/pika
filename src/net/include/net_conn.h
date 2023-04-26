@@ -101,7 +101,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   bool close_ = false;
   struct timeval last_interaction_;
   int flags_ = 0;
-  std::string name_ = "";
+  std::string name_;
 
 #ifdef __ENABLE_SSL
   SSL* ssl_;

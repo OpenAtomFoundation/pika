@@ -1590,6 +1590,19 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeInt32(&config_body, g_pika_conf->slave_priority());
   }
 
+  // fake string for redis-benchmark
+  if (pstd::stringmatch(pattern.data(), "save", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "save");
+    EncodeString(&config_body, "");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "appendonly", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "appendonly");
+    EncodeString(&config_body, "no");
+  }
+
   if (pstd::stringmatch(pattern.data(), "sync-window-size", 1)) {
     elements += 2;
     EncodeString(&config_body, "sync-window-size");

@@ -192,7 +192,7 @@ void* ServerThread::ThreadMain() {
     nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      fd = pfe->item.fd();
+      fd = pfe->fd();
 
       if (fd == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);

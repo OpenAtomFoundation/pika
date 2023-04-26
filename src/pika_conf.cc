@@ -230,9 +230,7 @@ int PikaConf::Load() {
   if (thread_num_ <= 0) {
     thread_num_ = 12;
   }
-  if (thread_num_ > 24) {
-    thread_num_ = 24;
-  }
+
   GetConfInt("thread-pool-size", &thread_pool_size_);
   if (thread_pool_size_ <= 0) {
     thread_pool_size_ = 12;

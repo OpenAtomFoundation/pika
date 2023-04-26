@@ -14,7 +14,7 @@
 namespace net {
 
 struct NetFiredEvent {
-  NetItem item = NetItem();
+  NetItem item;
   int mask = 0;  // EventStatus
 
   NetID id() const { return item.id(); }

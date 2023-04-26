@@ -106,8 +106,8 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
   std::map<NetID, std::shared_ptr<NetConn>>::iterator iter;
   {
     pstd::ReadLock l(&rwlock_);
-    if ((iter = conns_.find(pfe->item.id())) == conns_.end()) {
-      net_multiplexer_->NetDelEvent(pfe->item.fd(), 0);
+    if ((iter = conns_.find(pfe->id())) == conns_.end()) {
+      net_multiplexer_->NetDelEvent(pfe->fd(), 0);
       return;
     }
   }
@@ -131,7 +131,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
       WriteStatus write_status = in_conn->SendReply();
       if (write_status == kWriteAll) {
         in_conn->set_is_reply(false);
-        net_multiplexer_->NetModEvent(pfe->item.fd(), 0, kReadable);
+        net_multiplexer_->NetModEvent(pfe->fd(), 0, kReadable);
       } else if (write_status == kWriteHalf) {
         return;
       } else if (write_status == kWriteError) {
@@ -148,7 +148,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
         // kReadError kReadClose kFullError kParseError kDealError
         should_close = 1;
       } else if (in_conn->is_reply()) {
-        net_multiplexer_->NetModEvent(pfe->item.fd(), 0, kWritable);
+        net_multiplexer_->NetModEvent(pfe->fd(), 0, kWritable);
       } else {
         return;
       }
@@ -157,7 +157,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
       WriteStatus write_status = in_conn->SendReply();
       if (write_status == kWriteAll) {
         in_conn->set_is_reply(false);
-        net_multiplexer_->NetModEvent(pfe->item.fd(), 0, kReadable);
+        net_multiplexer_->NetModEvent(pfe->fd(), 0, kReadable);
       } else if (write_status == kWriteHalf) {
         return;
       } else if (write_status == kWriteError) {
@@ -166,13 +166,13 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
     }
   }
   if ((pfe->mask & kErrorEvent) || should_close) {
-    net_multiplexer_->NetDelEvent(pfe->item.fd(), 0);
+    net_multiplexer_->NetDelEvent(pfe->fd(), 0);
     CloseFd(in_conn);
     in_conn = nullptr;
 
     {
       pstd::WriteLock l(&rwlock_);
-      conns_.erase(pfe->item.id());
+      conns_.erase(pfe->id());
     }
   }
 }

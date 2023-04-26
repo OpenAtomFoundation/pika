@@ -104,7 +104,7 @@ void* WorkerThread::ThreadMain() {
 
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe->item.fd() == net_multiplexer_->NotifyReceiveFd()) {
+      if (pfe->fd() == net_multiplexer_->NotifyReceiveFd()) {
         if (pfe->mask & kReadable) {
           int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
           if (nread == 0) {
@@ -158,9 +158,9 @@ void* WorkerThread::ThreadMain() {
 
         {
           pstd::ReadLock l(&rwlock_);
-          std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->item.id());
+          std::map<NetID, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->id());
           if (iter == conns_.end()) {
-            net_multiplexer_->NetDelEvent(pfe->item.fd(), 0);
+            net_multiplexer_->NetDelEvent(pfe->fd(), 0);
             continue;
           }
           in_conn = iter->second;
@@ -170,7 +170,7 @@ void* WorkerThread::ThreadMain() {
           WriteStatus write_status = in_conn->SendReply();
           in_conn->set_last_interaction(now);
           if (write_status == kWriteAll) {
-            net_multiplexer_->NetModEvent(pfe->item.fd(), 0, kReadable);
+            net_multiplexer_->NetModEvent(pfe->fd(), 0, kReadable);
             in_conn->set_is_reply(false);
             if (in_conn->IsClose()) {
               should_close = 1;
@@ -187,7 +187,7 @@ void* WorkerThread::ThreadMain() {
           ReadStatus read_status = in_conn->GetRequest();
           in_conn->set_last_interaction(now);
           if (read_status == kReadAll) {
-            net_multiplexer_->NetModEvent(pfe->item.fd(), 0, 0);
+            net_multiplexer_->NetModEvent(pfe->fd(), 0, 0);
             // Wait for the connection complete asynchronous task and
             // Mod Event to kWritable
           } else if (read_status == kReadHalf) {
@@ -198,12 +198,12 @@ void* WorkerThread::ThreadMain() {
         }
 
         if ((pfe->mask & kErrorEvent) || should_close) {
-          net_multiplexer_->NetDelEvent(pfe->item.fd(), 0);
+          net_multiplexer_->NetDelEvent(pfe->fd(), 0);
           CloseFd(in_conn);
           in_conn = NULL;
           {
             pstd::WriteLock l(&rwlock_);
-            conns_.erase(pfe->item.id());
+            conns_.erase(pfe->id());
           }
           should_close = 0;
         }

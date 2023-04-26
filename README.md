@@ -64,13 +64,13 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 * linux - Ubuntu
 
-* macOS(Darwin) on M1
+* macOS (Darwin) on M1
 
 #### Dependencies
 
-* gcc g++, C++11 support（version>=4.8）
+* gcc g++, C++11 support (version>=4.8)
 * make
-* cmake（version>=3.18）
+* cmake (version>=3.18)
 * autoconf
 * tar
 
@@ -93,6 +93,17 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 ```
 
 3. Compile
+
+Please run the script build.sh before you compile this db to check the environment and build this repo. 
+If the gcc version is later than 7, such as CentOS6 or centOS7, you need to upgrade the gcc version first
+
+Do as follows
+```
+  a. sudo yum -y install centos-release-scl
+  b. sudo yum -y install devtoolset-7-gcc devtoolset-7-gcc-c++
+  c. scl enable devtoolset-7 bash
+```
+
 
 Please run the script build.sh before you compile this db to check the environment and build this repo.
 
@@ -121,7 +132,7 @@ By default the compilation process is in 'release' mode. If you wanna debug this
 ```
   If wanna clean up the compilation content, you can choose one of the following two methods as your will.
   1. exec `cd output && make clean` clean pika Compile content
-  2. exec `rm -fr output` rebuild cmake（for complete recompilation）
+  2. exec `rm -fr output` rebuild cmake (for complete recompilation)
 ```
 
 ## Performance

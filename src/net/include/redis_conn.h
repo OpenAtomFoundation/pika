@@ -54,7 +54,7 @@ class RedisConn : public NetConn {
   int command_len_ = 0;
 
   uint32_t wbuf_pos_ = 0;
-  std::string response_ = "";
+  std::string response_;
 
   // For Redis Protocol parser
   int last_read_pos_ = -1;
