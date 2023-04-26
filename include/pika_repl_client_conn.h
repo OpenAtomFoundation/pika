@@ -11,6 +11,7 @@
 #include <memory>
 
 #include "include/pika_conf.h"
+#include "net/include/net_thread.h"
 #include "pika_inner_message.pb.h"
 
 class SyncMasterPartition;
@@ -18,8 +19,8 @@ class SyncSlavePartition;
 
 class PikaReplClientConn : public net::PbConn {
  public:
-  PikaReplClientConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
-                     net::NetMultiplexer* mpx);
+  PikaReplClientConn(net::NetID id, int fd, const std::string& ip_port, net::Thread* thread,
+                     void* worker_specific_data, net::NetMultiplexer* mpx);
   virtual ~PikaReplClientConn() = default;
 
   static void HandleMetaSyncResponse(void* arg);

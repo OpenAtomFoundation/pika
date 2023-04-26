@@ -23,7 +23,7 @@ enum HandleType { kSynchronous, kAsynchronous };
 
 class RedisConn : public NetConn {
  public:
-  RedisConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr,
+  RedisConn(const NetID id, const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr,
             const HandleType& handle_type = kSynchronous, const int rbuf_max_len = REDIS_MAX_MESSAGE);
   virtual ~RedisConn();
 

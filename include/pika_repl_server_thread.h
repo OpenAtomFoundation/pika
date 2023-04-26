@@ -6,8 +6,8 @@
 #ifndef PIKA_REPL_SERVER_THREAD_H_
 #define PIKA_REPL_SERVER_THREAD_H_
 
+#include "net/include/net_define.h"
 #include "net/src/holy_thread.h"
-
 #include "include/pika_repl_server_conn.h"
 
 class PikaReplServerThread : public net::HolyThread {
@@ -25,11 +25,11 @@ class PikaReplServerThread : public net::HolyThread {
    public:
     explicit ReplServerConnFactory(PikaReplServerThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
 
-    virtual std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
+    virtual std::shared_ptr<net::NetConn> NewNetConn(net::NetID id, int connfd, const std::string& ip_port, net::Thread* thread,
                                                      void* worker_specific_data,
                                                      net::NetMultiplexer* net) const override {
       return std::static_pointer_cast<net::NetConn>(
-          std::make_shared<PikaReplServerConn>(connfd, ip_port, thread, binlog_receiver_, net));
+          std::make_shared<PikaReplServerConn>(id, connfd, ip_port, thread, binlog_receiver_, net));
     }
 
    private:

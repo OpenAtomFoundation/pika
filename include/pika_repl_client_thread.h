@@ -23,11 +23,12 @@ class PikaReplClientThread : public net::ClientThread {
  private:
   class ReplClientConnFactory : public net::ConnFactory {
    public:
-    virtual std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
+    virtual std::shared_ptr<net::NetConn> NewNetConn(net::NetID id, int connfd, const std::string& ip_port,
+                                                     net::Thread* thread,
                                                      void* worker_specific_data,
                                                      net::NetMultiplexer* net) const override {
       return std::static_pointer_cast<net::NetConn>(
-          std::make_shared<PikaReplClientConn>(connfd, ip_port, thread, worker_specific_data, net));
+          std::make_shared<PikaReplClientConn>(id, connfd, ip_port, thread, worker_specific_data, net));
     }
   };
   class ReplClientHandle : public net::ClientHandle {

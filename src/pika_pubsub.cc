@@ -64,7 +64,7 @@ void SubscribeCmd::Do(std::shared_ptr<Partition> partition) {
     channels.push_back(argv_[i]);
   }
   if (!cli_conn->IsPubSub()) {
-    cli_conn->server_thread()->MoveConnOut(conn->fd());
+    cli_conn->server_thread()->MoveConnOut(net::NetItem(conn->id(), conn->fd(), conn->ip_port()));
     cli_conn->SetIsPubSub(true);
     cli_conn->SetHandleType(net::HandleType::kSynchronous);
     cli_conn->SetWriteCompleteCallback([cli_conn]() {
@@ -137,7 +137,7 @@ void PSubscribeCmd::Do(std::shared_ptr<Partition> partition) {
   }
   std::shared_ptr<PikaClientConn> cli_conn = std::dynamic_pointer_cast<PikaClientConn>(conn);
   if (!cli_conn->IsPubSub()) {
-    cli_conn->server_thread()->MoveConnOut(conn->fd());
+    cli_conn->server_thread()->MoveConnOut(net::NetItem(conn->id(), conn->fd(), conn->ip_port()));
     cli_conn->SetIsPubSub(true);
     cli_conn->SetHandleType(net::HandleType::kSynchronous);
     cli_conn->SetWriteCompleteCallback([cli_conn]() {

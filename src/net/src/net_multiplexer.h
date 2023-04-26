@@ -16,6 +16,9 @@ namespace net {
 struct NetFiredEvent {
   NetItem item = NetItem();
   int mask = 0;  // EventStatus
+
+  NetID id() const { return item.id(); }
+  int fd() const { return item.fd(); }
 };
 
 class NetMultiplexer {

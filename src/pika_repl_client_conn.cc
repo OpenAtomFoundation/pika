@@ -9,6 +9,7 @@
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <sys/time.h>
 
+#include "net/include/net_define.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_string.h"
@@ -22,9 +23,9 @@ extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
-PikaReplClientConn::PikaReplClientConn(int fd, const std::string& ip_port, net::Thread* thread,
+PikaReplClientConn::PikaReplClientConn(net::NetID id, int fd, const std::string& ip_port, net::Thread* thread,
                                        void* worker_specific_data, net::NetMultiplexer* mpx)
-    : net::PbConn(fd, ip_port, thread, mpx) {}
+    : net::PbConn(id, fd, ip_port, thread, mpx) {}
 
 bool PikaReplClientConn::IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
                                                  const std::vector<TableStruct>& expect_tables) {

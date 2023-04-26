@@ -99,7 +99,7 @@ Status ClientThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close)
   int val = 0;
   socklen_t lon = sizeof(int);
 
-  if (getsockopt(pfe->fd, SOL_SOCKET, SO_ERROR, &val, &lon) == -1) {
+  if (getsockopt(pfe->item.fd(), SOL_SOCKET, SO_ERROR, &val, &lon) == -1) {
     *should_close = 1;
     return Status::Corruption("Get Socket opt failed");
   }
@@ -117,7 +117,8 @@ void ClientThread::SetWaitConnectOnEpoll(int sockfd) {
 
 void ClientThread::NewConnection(const std::string& peer_ip, int peer_port, int sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, NULL, net_multiplexer_.get());
+  NetItem item(sockfd, ip_port);
+  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(item.id(), item.fd(), item.ip_port(), this, NULL, net_multiplexer_.get());
   tc->SetNonblock();
   // This flag specifies that the file descriptor should be closed when an exec function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
@@ -398,34 +399,34 @@ void* ClientThread::ThreadMain() {
         continue;
       }
 
-      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
+      if (pfe->fd() == net_multiplexer_->NotifyReceiveFd()) {
         ProcessNotifyEvents(pfe);
         continue;
       }
 
       int should_close = 0;
-      std::map<int, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.find(pfe->fd);
+      std::map<int, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.find(pfe->fd());
       if (iter == fd_conns_.end()) {
-        log_info("fd %d not found in fd_conns\n", pfe->fd);
-        net_multiplexer_->NetDelEvent(pfe->fd, 0);
+        log_info("fd %d not found in fd_conns\n", pfe->fd());
+        net_multiplexer_->NetDelEvent(pfe->fd(), 0);
         continue;
       }
 
       std::shared_ptr<NetConn> conn = iter->second;
 
-      if (connecting_fds_.count(pfe->fd)) {
+      if (connecting_fds_.count(pfe->fd())) {
         Status s = ProcessConnectStatus(pfe, &should_close);
         if (!s.ok()) {
           handle_->DestConnectFailedHandle(conn->ip_port(), s.ToString());
         }
-        connecting_fds_.erase(pfe->fd);
+        connecting_fds_.erase(pfe->fd());
       }
 
       if (!should_close && (pfe->mask & kWritable) && conn->is_reply()) {
         WriteStatus write_status = conn->SendReply();
         conn->set_last_interaction(now);
         if (write_status == kWriteAll) {
-          net_multiplexer_->NetModEvent(pfe->fd, 0, kReadable);
+          net_multiplexer_->NetModEvent(pfe->fd(), 0, kReadable);
           conn->set_is_reply(false);
         } else if (write_status == kWriteHalf) {
           continue;
@@ -451,9 +452,9 @@ void* ClientThread::ThreadMain() {
       if ((pfe->mask & kErrorEvent) || should_close) {
         {
           log_info("close connection %d reason %d %d\n", pfe->fd, pfe->mask, should_close);
-          net_multiplexer_->NetDelEvent(pfe->fd, 0);
+          net_multiplexer_->NetDelEvent(pfe->fd(), 0);
           CloseFd(conn);
-          fd_conns_.erase(pfe->fd);
+          fd_conns_.erase(pfe->fd());
           if (ipport_conns_.count(conn->ip_port())) {
             ipport_conns_.erase(conn->ip_port());
           }

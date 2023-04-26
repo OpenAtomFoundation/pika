@@ -8,6 +8,7 @@
 
 #include <string>
 
+#include "net/include/net_define.h"
 #include "net/include/net_thread.h"
 #include "net/include/pb_conn.h"
 
@@ -18,7 +19,7 @@ class SyncMasterPartition;
 
 class PikaReplServerConn : public net::PbConn {
  public:
-  PikaReplServerConn(int fd, std::string ip_port, net::Thread* thread, void* worker_specific_data,
+  PikaReplServerConn(net::NetID id, int fd, std::string ip_port, net::Thread* thread, void* worker_specific_data,
                      net::NetMultiplexer* mpx);
   virtual ~PikaReplServerConn();
 

@@ -7,6 +7,7 @@
 #define PIKA_CLIENT_CONN_H_
 
 #include "include/pika_command.h"
+#include "net/include/net_define.h"
 
 class PikaClientConn : public net::RedisConn {
  public:
@@ -38,7 +39,7 @@ class PikaClientConn : public net::RedisConn {
     StatType stat_;
   };
 
-  PikaClientConn(int fd, std::string ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
+  PikaClientConn(const net::NetID id, int fd, std::string ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
                  const net::HandleType& handle_type, int max_conn_rubf_size);
   virtual ~PikaClientConn() {}
 

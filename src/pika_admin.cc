@@ -1971,7 +1971,8 @@ void MonitorCmd::Do(std::shared_ptr<Partition> partition) {
     return;
   }
   std::shared_ptr<net::NetConn> conn =
-      std::dynamic_pointer_cast<PikaClientConn>(conn_repl)->server_thread()->MoveConnOut(conn_repl->fd());
+      std::dynamic_pointer_cast<PikaClientConn>(conn_repl)->server_thread()->MoveConnOut(
+          net::NetItem(conn_repl->id(), conn_repl->fd(), conn_repl->ip_port()));
   assert(conn.get() == conn_repl.get());
   g_pika_server->AddMonitorClient(std::dynamic_pointer_cast<PikaClientConn>(conn));
   g_pika_server->AddMonitorMessage("OK");
