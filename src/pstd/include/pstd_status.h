@@ -80,7 +80,7 @@ class Status {
   std::string ToString() const;
 
  private:
-  // OK status has a nullptr state_.  Otherwise, state_ is a new[] array
+  // OK status has a null state_.  Otherwise, state_ is a new[] array
   // of the following form:
   //    state_[0..3] == length of message
   //    state_[4]    == code

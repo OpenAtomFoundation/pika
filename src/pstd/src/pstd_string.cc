@@ -174,7 +174,7 @@ int stringmatch(const char* pattern, const char* string, int nocase) {
  * bytes, so for instance memtoll("1Gi") will return 1073741824 that is
  * (1024*1024*1024).
  *
- * On parsing error, if *err is not nullptr, it's set to 1, otherwise it's
+ * On parsing error, if *err is not null, it's set to 1, otherwise it's
  * set to 0 */
 long long memtoll(const char* p, int* err) {
   const char* u;
