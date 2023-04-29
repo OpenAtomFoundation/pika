@@ -58,7 +58,7 @@ class RedisCli : public NetCli {
 
 enum REDIS_STATUS {
   REDIS_ETIMEOUT = -5,
-  REDIS_EREAD_nullptr = -4,
+  REDIS_EREAD_NULL = -4,
   REDIS_EREAD = -3,  // errno is set
   REDIS_EPARSE_TYPE = -2,
   REDIS_ERR = -1,
@@ -124,7 +124,7 @@ Status RedisCli::Recv(void* trival) {
       return Status::OK();
     case REDIS_ETIMEOUT:
       return Status::Timeout("");
-    case REDIS_EREAD_nullptr:
+    case REDIS_EREAD_NULL:
       return Status::IOError("Read null");
     case REDIS_EREAD:
       return Status::IOError("read failed caz " + std::string(strerror(errno)));
@@ -160,7 +160,7 @@ ssize_t RedisCli::BufferRead() {
         return REDIS_EREAD;
       }
     } else if (nread == 0) {  // we consider read null an error
-      return REDIS_EREAD_nullptr;
+      return REDIS_EREAD_NULL;
     }
 
     rbuf_offset_ += nread;
