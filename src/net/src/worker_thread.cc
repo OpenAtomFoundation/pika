@@ -72,13 +72,13 @@ bool WorkerThread::MoveConnIn(const NetItem& it, bool force) { return net_multip
 
 void* WorkerThread::ThreadMain() {
   int nfds;
-  NetFiredEvent* pfe = NULL;
+  NetFiredEvent* pfe = nullptr;
   char bb[2048];
   NetItem ti;
   std::shared_ptr<NetConn> in_conn = nullptr;
 
   struct timeval when;
-  gettimeofday(&when, NULL);
+  gettimeofday(&when, nullptr);
   struct timeval now = when;
 
   when.tv_sec += (cron_interval_ / 1000);
@@ -90,7 +90,7 @@ void* WorkerThread::ThreadMain() {
 
   while (!should_stop()) {
     if (cron_interval_ > 0) {
-      gettimeofday(&now, NULL);
+      gettimeofday(&now, nullptr);
       if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
         timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
       } else {
@@ -151,9 +151,9 @@ void* WorkerThread::ThreadMain() {
           continue;
         }
       } else {
-        in_conn = NULL;
+        in_conn = nullptr;
         int should_close = 0;
-        if (pfe == NULL) {
+        if (pfe == nullptr) {
           continue;
         }
 
@@ -201,7 +201,7 @@ void* WorkerThread::ThreadMain() {
         if ((pfe->mask & kErrorEvent) || should_close) {
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(in_conn);
-          in_conn = NULL;
+          in_conn = nullptr;
           {
             pstd::WriteLock l(&rwlock_);
             conns_.erase(pfe->fd);
@@ -213,12 +213,12 @@ void* WorkerThread::ThreadMain() {
   }      // while (!should_stop())
 
   Cleanup();
-  return NULL;
+  return nullptr;
 }
 
 void WorkerThread::DoCronTask() {
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   std::vector<std::shared_ptr<NetConn>> to_close;
   std::vector<std::shared_ptr<NetConn>> to_timeout;
   {

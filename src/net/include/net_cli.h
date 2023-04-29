@@ -27,7 +27,7 @@ class NetCli {
   virtual Status Send(void* msg) = 0;
 
   // Read, parse and store the reply
-  virtual Status Recv(void* result = NULL) = 0;
+  virtual Status Recv(void* result = nullptr) = 0;
 
   void Close();
 

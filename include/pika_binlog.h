@@ -42,7 +42,7 @@ class Version {
   }
 
  private:
-  pstd::RWFile* save_ = NULL;
+  pstd::RWFile* save_ = nullptr;
 
   // No copying allowed;
   Version(const Version&);
@@ -59,7 +59,7 @@ class Binlog {
 
   Status Put(const std::string& item);
 
-  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term = NULL, uint64_t* logic_id = NULL);
+  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term = nullptr, uint64_t* logic_id = nullptr);
   /*
    * Set Producer pro_num and pro_offset with lock
    */

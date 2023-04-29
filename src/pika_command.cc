@@ -540,7 +540,7 @@ Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table) {
   if (it != cmd_table.end()) {
     return it->second;
   }
-  return NULL;
+  return nullptr;
 }
 
 void DestoryCmdTable(CmdTable* cmd_table) {

@@ -147,7 +147,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   std::string str_slot_num = *it++;
 
   std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (table == NULL) {
+  if (table == nullptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }

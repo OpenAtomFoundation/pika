@@ -174,7 +174,7 @@ int stringmatch(const char* pattern, const char* string, int nocase) {
  * bytes, so for instance memtoll("1Gi") will return 1073741824 that is
  * (1024*1024*1024).
  *
- * On parsing error, if *err is not NULL, it's set to 1, otherwise it's
+ * On parsing error, if *err is not nullptr, it's set to 1, otherwise it's
  * set to 0 */
 long long memtoll(const char* p, int* err) {
   const char* u;
@@ -213,7 +213,7 @@ long long memtoll(const char* p, int* err) {
   }
   memcpy(buf, p, digits);
   buf[digits] = '\0';
-  val = strtoll(buf, NULL, 10);
+  val = strtoll(buf, nullptr, 10);
   return val * mul;
 }
 
@@ -317,7 +317,7 @@ int string2int(const char* s, size_t slen, long long* value) {
 
   /* Special case: first and only digit is 0. */
   if (slen == 1 && p[0] == '0') {
-    if (value != NULL) *value = 0;
+    if (value != nullptr) *value = 0;
     return 1;
   }
 
@@ -336,7 +336,7 @@ int string2int(const char* s, size_t slen, long long* value) {
   }
 
   if (plen == slen) {
-    if (value != NULL) *value = 0;
+    if (value != nullptr) *value = 0;
     return 1;
   }
 
@@ -371,11 +371,11 @@ int string2int(const char* s, size_t slen, long long* value) {
   if (negative) {
     if (v > ((unsigned long long)(-(LLONG_MIN + 1)) + 1)) /* Overflow. */
       return 0;
-    if (value != NULL) *value = -v;
+    if (value != nullptr) *value = -v;
   } else {
     if (v > LLONG_MAX) /* Overflow. */
       return 0;
-    if (value != NULL) *value = v;
+    if (value != nullptr) *value = v;
   }
   return 1;
 }
@@ -452,7 +452,7 @@ int string2d(const char* s, size_t slen, double* dval) {
   double d = strtod(s, &pEnd);
   if (pEnd != s + slen) return 0;
 
-  if (dval != NULL) *dval = d;
+  if (dval != nullptr) *dval = d;
   return 1;
 }
 
@@ -465,7 +465,7 @@ void getRandomHexChars(char* p, unsigned int len) {
   char charset[] = "0123456789abcdef";
   unsigned int j;
 
-  if (fp == NULL || fread(p, len, 1, fp) == 0) {
+  if (fp == nullptr || fread(p, len, 1, fp) == 0) {
     /* If we can't read from /dev/urandom, do some reasonable effort
      * in order to create some entropy, since this function is used to
      * generate run_id and cluster instance IDs */
@@ -475,7 +475,7 @@ void getRandomHexChars(char* p, unsigned int len) {
     pid_t pid = getpid();
 
     /* Use time and PID to fill the initial array. */
-    gettimeofday(&tv, NULL);
+    gettimeofday(&tv, nullptr);
     if (l >= sizeof(tv.tv_usec)) {
       memcpy(x, &tv.tv_usec, sizeof(tv.tv_usec));
       l -= sizeof(tv.tv_usec);

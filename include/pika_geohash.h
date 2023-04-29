@@ -41,7 +41,7 @@ extern "C" {
 
 #define HASHISZERO(r) (!(r).bits && !(r).step)
 #define RANGEISZERO(r) (!(r).max && !(r).min)
-#define RANGEPISZERO(r) (r == NULL || RANGEISZERO(*r))
+#define RANGEPISZERO(r) (r == nullptr || RANGEISZERO(*r))
 
 #define GEO_STEP_MAX 26 /* 26*2 = 52 bits. */
 

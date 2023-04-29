@@ -24,7 +24,7 @@ class PikaMonitorThread : public net::Thread {
 
   void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
   void AddMonitorMessage(const std::string& monitor_message);
-  int32_t ThreadClientList(std::vector<ClientInfo>* client = NULL);
+  int32_t ThreadClientList(std::vector<ClientInfo>* client = nullptr);
   bool ThreadClientKill(const std::string& ip_port = "all");
   bool HasMonitorClients();
 

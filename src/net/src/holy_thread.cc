@@ -180,7 +180,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
 
 void HolyThread::DoCronTask() {
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   std::vector<std::shared_ptr<NetConn>> to_close;
   std::vector<std::shared_ptr<NetConn>> to_timeout;
   {

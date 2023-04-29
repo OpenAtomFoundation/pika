@@ -99,9 +99,9 @@ std::string GetIpByInterface(const std::string& network_interface) {
 
   log_info("Using Networker Interface: %s", network_interface.c_str());
 
-  struct ifaddrs* ifAddrStruct = NULL;
-  struct ifaddrs* ifa = NULL;
-  void* tmpAddrPtr = NULL;
+  struct ifaddrs* ifAddrStruct = nullptr;
+  struct ifaddrs* ifa = nullptr;
+  void* tmpAddrPtr = nullptr;
 
   if (getifaddrs(&ifAddrStruct) == -1) {
     log_err("getifaddrs failed");

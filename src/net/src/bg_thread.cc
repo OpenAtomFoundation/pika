@@ -51,7 +51,7 @@ void BGThread::SwallowReadyTasks() {
   mu_.Unlock();
 
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   uint64_t unow = now.tv_sec * 1000000 + now.tv_usec;
   mu_.Lock();
   while (!timer_queue_.empty()) {
@@ -82,7 +82,7 @@ void* BGThread::ThreadMain() {
     }
     if (!timer_queue_.empty()) {
       struct timeval now;
-      gettimeofday(&now, NULL);
+      gettimeofday(&now, nullptr);
 
       TimerItem timer_item = timer_queue_.top();
       uint64_t unow = now.tv_sec * 1000000 + now.tv_usec;
@@ -110,7 +110,7 @@ void* BGThread::ThreadMain() {
   }
   // swalloc all the remain tasks in ready and timer queue
   SwallowReadyTasks();
-  return NULL;
+  return nullptr;
 }
 
 /*
@@ -122,7 +122,7 @@ void BGThread::DelaySchedule(uint64_t timeout, void (*function)(void*), void* ar
    * so we need gettimeofday + timeout
    */
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   uint64_t exec_time;
   exec_time = now.tv_sec * 1000000 + timeout * 1000 + now.tv_usec;
 

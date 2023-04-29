@@ -18,7 +18,7 @@ using namespace std;
 
 uint64_t NowMicros() {
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, nullptr);
   return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 
@@ -26,7 +26,7 @@ static atomic<int> num(0);
 
 class PingConn : public PbConn {
  public:
-  PingConn(int fd, std::string ip_port, net::ServerThread* pself_thread = NULL) : PbConn(fd, ip_port, pself_thread) {}
+  PingConn(int fd, std::string ip_port, net::ServerThread* pself_thread = nullptr) : PbConn(fd, ip_port, pself_thread) {}
   virtual ~PingConn() {}
 
   int DealMessage() {

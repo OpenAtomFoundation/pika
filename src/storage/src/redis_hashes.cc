@@ -74,9 +74,9 @@ Status RedisHashes::CompactRange(const rocksdb::Slice* begin, const rocksdb::Sli
 Status RedisHashes::GetProperty(const std::string& property, uint64_t* out) {
   std::string value;
   db_->GetProperty(handles_[0], property, &value);
-  *out = std::strtoull(value.c_str(), NULL, 10);
+  *out = std::strtoull(value.c_str(), nullptr, 10);
   db_->GetProperty(handles_[1], property, &value);
-  *out += std::strtoull(value.c_str(), NULL, 10);
+  *out += std::strtoull(value.c_str(), nullptr, 10);
   return Status::OK();
 }
 
@@ -1282,7 +1282,7 @@ void RedisHashes::ScanDatabase() {
   ScopeSnapshot ss(db_, &snapshot);
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
-  int32_t current_time = time(NULL);
+  int32_t current_time = time(nullptr);
 
   printf("\n***************Hashes Meta Data***************\n");
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);

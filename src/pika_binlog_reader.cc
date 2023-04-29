@@ -15,7 +15,7 @@ PikaBinlogReader::PikaBinlogReader(uint32_t cur_filenum, uint64_t cur_offset)
       backing_store_(new char[kBlockSize]),
       buffer_() {
   last_record_offset_ = cur_offset % kBlockSize;
-  pthread_rwlock_init(&rwlock_, NULL);
+  pthread_rwlock_init(&rwlock_, nullptr);
 }
 
 PikaBinlogReader::PikaBinlogReader()
@@ -26,7 +26,7 @@ PikaBinlogReader::PikaBinlogReader()
       backing_store_(new char[kBlockSize]),
       buffer_() {
   last_record_offset_ = 0 % kBlockSize;
-  pthread_rwlock_init(&rwlock_, NULL);
+  pthread_rwlock_init(&rwlock_, nullptr);
 }
 
 PikaBinlogReader::~PikaBinlogReader() {
@@ -234,7 +234,7 @@ Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64
 // Append to scratch;
 // the status will be OK, IOError or Corruption, EndFile;
 Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* offset) {
-  if (logger_ == nullptr || queue_ == NULL) {
+  if (logger_ == nullptr || queue_ == nullptr) {
     return Status::Corruption("Not seek");
   }
   scratch->clear();
@@ -255,7 +255,7 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
       if (pstd::FileExists(confile)) {
         DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
         delete queue_;
-        queue_ = NULL;
+        queue_ = nullptr;
 
         pstd::NewSequentialFile(confile, &(queue_));
         {

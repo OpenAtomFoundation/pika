@@ -37,8 +37,8 @@
       { fwrite(buf, 1, size, stderr); }
 
 #    define _debug_time_def timeval s1, e;
-#    define _debug_getstart gettimeofday(&s1, NULL)
-#    define _debug_getend gettimeofday(&e, NULL)
+#    define _debug_getstart gettimeofday(&s1, nullptr)
+#    define _debug_getend gettimeofday(&e, nullptr)
 #    define _debug_time ((int)(((e.tv_sec - s1.tv_sec) * 1000 + (e.tv_usec - s1.tv_usec) / 1000)))
 
 #    define clean_errno() (errno == 0 ? "None" : strerror(errno))

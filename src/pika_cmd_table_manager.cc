@@ -14,7 +14,7 @@
 extern PikaConf* g_pika_conf;
 
 PikaCmdTableManager::PikaCmdTableManager() {
-  pthread_rwlock_init(&map_protector_, NULL);
+  pthread_rwlock_init(&map_protector_, nullptr);
   cmds_ = new CmdTable();
   cmds_->reserve(300);
   InitCmdTable(cmds_);
