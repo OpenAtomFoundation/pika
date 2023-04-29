@@ -32,7 +32,7 @@ class PikaDispatchThread {
     }
 
    private:
-    int max_conn_rbuf_size_;
+    int max_conn_rbuf_size_ = 0;
   };
 
   class Handles : public net::ServerHandle {
@@ -43,11 +43,11 @@ class PikaDispatchThread {
     void CronHandle() const override;
 
    private:
-    PikaDispatchThread* pika_disptcher_;
+    PikaDispatchThread* pika_disptcher_ = nullptr;
   };
 
   ClientConnFactory conn_factory_;
   Handles handles_;
-  net::ServerThread* thread_rep_;
+  net::ServerThread* thread_rep_ = nullptr;
 };
 #endif

@@ -29,10 +29,10 @@ class Version {
   // RWLock should be held when access members.
   Status StableSave();
 
-  uint32_t pro_num_;
-  uint64_t pro_offset_;
-  uint64_t logic_id_;
-  uint32_t term_;
+  uint32_t pro_num_ = 0;
+  uint64_t pro_offset_ = 0;
+  uint64_t logic_id_ = 0;
+  uint32_t term_ = 0;
 
   pthread_rwlock_t rwlock_;
 
@@ -42,7 +42,7 @@ class Version {
   }
 
  private:
-  pstd::RWFile* save_;
+  pstd::RWFile* save_ = NULL;
 
   // No copying allowed;
   Version(const Version&);
@@ -102,21 +102,21 @@ class Binlog {
 
   std::atomic<bool> opened_;
 
-  Version* version_;
-  pstd::WritableFile* queue_;
-  pstd::RWFile* versionfile_;
+  Version* version_ = nullptr;
+  pstd::WritableFile* queue_ = nullptr;
+  pstd::RWFile* versionfile_ = nullptr;
 
   pstd::Mutex mutex_;
 
-  uint32_t pro_num_;
+  uint32_t pro_num_ = 0;
 
-  int block_offset_;
+  int block_offset_ = 0;
 
-  char* pool_;
-  bool exit_all_consume_;
+  char* pool_ = nullptr;
+  bool exit_all_consume_ = false;
   const std::string binlog_path_;
 
-  uint64_t file_size_;
+  uint64_t file_size_ = 0;
 
   std::string filename_;
 

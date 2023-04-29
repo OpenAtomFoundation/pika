@@ -14,8 +14,8 @@
 
 struct SyncWinItem {
   LogOffset offset_;
-  std::size_t binlog_size_;
-  bool acked_;
+  std::size_t binlog_size_ = 0;
+  bool acked_ = false;
   bool operator==(const SyncWinItem& other) const {
     return offset_.b_offset.filenum == other.offset_.b_offset.filenum &&
            offset_.b_offset.offset == other.offset_.b_offset.offset;
@@ -53,7 +53,7 @@ class SyncWindow {
  private:
   // TODO(whoiami) ring buffer maybe
   std::deque<SyncWinItem> win_;
-  std::size_t total_size_;
+  std::size_t total_size_ = 0;
 };
 
 // role master use

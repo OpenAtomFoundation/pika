@@ -23,7 +23,7 @@ class PikaClientProcessor {
   size_t ThreadPoolCurQueueSize();
 
  private:
-  net::ThreadPool* pool_;
+  net::ThreadPool* pool_ = nullptr;
   std::vector<net::BGThread*> bg_threads_;
 };
 #endif  // PIKA_CLIENT_PROCESSOR_H_

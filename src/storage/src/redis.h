@@ -58,22 +58,22 @@ class Redis {
  protected:
   Storage* const storage_;
   DataType type_;
-  LockMgr* lock_mgr_;
-  rocksdb::DB* db_;
+  LockMgr* lock_mgr_ = nullptr;
+  rocksdb::DB* db_ = nullptr;
   std::vector<rocksdb::ColumnFamilyHandle*> handles_;
   rocksdb::WriteOptions default_write_options_;
   rocksdb::ReadOptions default_read_options_;
   rocksdb::CompactRangeOptions default_compact_range_options_;
 
   // For Scan
-  LRUCache<std::string, std::string>* scan_cursors_store_;
+  LRUCache<std::string, std::string>* scan_cursors_store_ = nullptr;
 
   Status GetScanStartPoint(const Slice& key, const Slice& pattern, int64_t cursor, std::string* start_point);
   Status StoreScanNextPoint(const Slice& key, const Slice& pattern, int64_t cursor, const std::string& next_point);
 
   // For Statistics
   std::atomic<size_t> small_compaction_threshold_;
-  LRUCache<std::string, size_t>* statistics_store_;
+  LRUCache<std::string, size_t>* statistics_store_ = nullptr;
 
   Status UpdateSpecificKeyStatistics(const std::string& key, size_t count);
   Status AddCompactKeyTaskIfNeeded(const std::string& key, size_t total);

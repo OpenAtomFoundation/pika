@@ -35,12 +35,12 @@ class PikaBinlogReader {
   Status Consume(std::string* scratch, uint32_t* filenum, uint64_t* offset);
 
   pthread_rwlock_t rwlock_;
-  uint32_t cur_filenum_;
-  uint64_t cur_offset_;
-  uint64_t last_record_offset_;
+  uint32_t cur_filenum_ = 0;
+  uint64_t cur_offset_ = 0;
+  uint64_t last_record_offset_ = 0;
 
   std::shared_ptr<Binlog> logger_;
-  pstd::SequentialFile* queue_;
+  pstd::SequentialFile* queue_ = nullptr;
 
   char* const backing_store_;
   Slice buffer_;

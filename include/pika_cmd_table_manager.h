@@ -24,7 +24,7 @@ class PikaCmdTableManager {
   void InsertCurrentThreadDistributionMap();
   bool CheckCurrentThreadDistributionMapExist(const std::thread::id& tid);
 
-  CmdTable* cmds_;
+  CmdTable* cmds_ = nullptr;
 
   pthread_rwlock_t map_protector_;
   std::unordered_map<std::thread::id, PikaDataDistribution*> thread_distribution_map_;

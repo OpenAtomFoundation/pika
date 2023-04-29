@@ -96,7 +96,7 @@ void SlaveofCmd::DoInitial() {
   }
 
   if (argv_.size() == 3 && !strcasecmp(argv_[1].data(), "no") && !strcasecmp(argv_[2].data(), "one")) {
-    is_noone_ = true;
+    is_none_ = true;
     return;
   }
 
@@ -137,7 +137,7 @@ void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
 
   g_pika_server->RemoveMaster();
 
-  if (is_noone_) {
+  if (is_none_) {
     res_.SetRes(CmdRes::kOk);
     g_pika_conf->SetSlaveof(std::string());
     return;
@@ -192,7 +192,7 @@ void DbSlaveofCmd::DoInitial() {
 
   if (argv_.size() == 4) {
     if (!strcasecmp(argv_[2].data(), "no") && !strcasecmp(argv_[3].data(), "one")) {
-      is_noone_ = true;
+      is_none_ = true;
       return;
     }
 
@@ -217,7 +217,7 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   Status s;
-  if (is_noone_) {
+  if (is_none_) {
     // In classic mode a table has only one partition
     s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_, 0);
   } else {

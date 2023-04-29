@@ -462,34 +462,34 @@ class PikaConf : public pstd::BaseConf {
  private:
   Status InternalGetTargetTable(const std::string& table_name, uint32_t* const target);
 
-  int port_;
+  int port_ = 0;
   std::string slaveof_;
-  int slave_priority_;
-  int thread_num_;
-  int thread_pool_size_;
-  int sync_thread_num_;
+  int slave_priority_ = 0;
+  int thread_num_ = 0;
+  int thread_pool_size_ = 0;
+  int sync_thread_num_ = 0;
   std::string log_path_;
   std::string db_path_;
   std::string db_sync_path_;
-  int expire_dump_days_;
-  int db_sync_speed_;
+  int expire_dump_days_ = 3;
+  int db_sync_speed_ = 0;
   std::string compact_cron_;
   std::string compact_interval_;
-  int64_t write_buffer_size_;
-  int64_t arena_block_size_;
-  int64_t max_write_buffer_size_;
-  int max_write_buffer_num_;
-  int64_t max_client_response_size_;
-  bool daemonize_;
-  int timeout_;
+  int64_t write_buffer_size_ = 0;
+  int64_t arena_block_size_ = 0;
+  int64_t max_write_buffer_size_ = 0;
+  int max_write_buffer_num_ = 0;
+  int64_t max_client_response_size_ = 0;
+  bool daemonize_ = false;
+  int timeout_ = 0;
   std::string server_id_;
   std::string requirepass_;
   std::string masterauth_;
   std::string userpass_;
   std::vector<std::string> user_blacklist_;
   std::atomic<bool> classic_mode_;
-  int databases_;
-  int default_slot_num_;
+  int databases_ = 0;
+  int default_slot_num_ = 0;
   std::vector<TableStruct> table_structs_;
   std::string default_table_;
   std::string bgsave_path_;
@@ -498,29 +498,29 @@ class PikaConf : public pstd::BaseConf {
 
   std::string compression_;
   std::string compression_per_level_;
-  int maxclients_;
-  int root_connection_num_;
+  int maxclients_ = 0;
+  int root_connection_num_ = 0;
   std::atomic<bool> slowlog_write_errorlog_;
   std::atomic<int> slowlog_log_slower_than_;
-  int slowlog_max_len_;
-  int expire_logs_days_;
-  int expire_logs_nums_;
-  bool slave_read_only_;
+  int slowlog_max_len_ = 0;
+  int expire_logs_days_ = 0;
+  int expire_logs_nums_ = 0;
+  bool slave_read_only_ = false;
   std::string conf_path_;
-  int max_cache_statistic_keys_;
-  int small_compaction_threshold_;
-  int max_background_flushes_;
-  int max_background_compactions_;
-  int max_cache_files_;
-  int max_bytes_for_level_multiplier_;
-  int64_t block_size_;
-  int64_t block_cache_;
-  int64_t num_shard_bits_;
-  bool share_block_cache_;
-  bool cache_index_and_filter_blocks_;
-  bool pin_l0_filter_and_index_blocks_in_cache_;
-  bool optimize_filters_for_hits_;
-  bool level_compaction_dynamic_level_bytes_;
+  int max_cache_statistic_keys_ = 0;
+  int small_compaction_threshold_ = 0;
+  int max_background_flushes_ = 0;
+  int max_background_compactions_ = 0;
+  int max_cache_files_ = 0;
+  int max_bytes_for_level_multiplier_ = 0;
+  int64_t block_size_ = 0;
+  int64_t block_cache_ = 0;
+  int64_t num_shard_bits_ = 0;
+  bool share_block_cache_ = false;
+  bool cache_index_and_filter_blocks_ = false;
+  bool pin_l0_filter_and_index_blocks_in_cache_ = false;
+  bool optimize_filters_for_hits_ = false;
+  bool level_compaction_dynamic_level_bytes_ = false;
   int64_t rate_limiter_bandwidth_ = 200 * 1024 * 1024;  // 200M
   std::atomic<int> sync_window_size_;
   std::atomic<int> max_conn_rbuf_size_;
@@ -536,11 +536,11 @@ class PikaConf : public pstd::BaseConf {
   //
   // Critical configure items
   //
-  bool write_binlog_;
-  int target_file_size_base_;
-  int binlog_file_size_;
+  bool write_binlog_ = false;
+  int target_file_size_base_ = 0;
+  int binlog_file_size_ = 0;
 
-  PikaMeta* local_meta_;
+  PikaMeta* local_meta_ = nullptr;
 
   pthread_rwlock_t rwlock_;
 };

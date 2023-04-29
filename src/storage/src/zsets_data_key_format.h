@@ -52,10 +52,10 @@ class ZSetsScoreKey {
 
  private:
   char space_[200];
-  char* start_;
+  char* start_ = nullptr;
   Slice key_;
-  int32_t version_;
-  double score_;
+  int32_t version_ = 0;
+  double score_ = 0.0;
   Slice member_;
 };
 
@@ -100,8 +100,8 @@ class ParsedZSetsScoreKey {
 
  private:
   Slice key_;
-  int32_t version_;
-  double score_;
+  int32_t version_ = 0;
+  double score_ = 0.0;
   Slice member_;
 };
 

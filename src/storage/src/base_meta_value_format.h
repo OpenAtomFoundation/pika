@@ -118,7 +118,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   }
 
  private:
-  int32_t count_;
+  int32_t count_ = 0;
 };
 
 typedef BaseMetaValue HashesMetaValue;
