@@ -43,7 +43,7 @@ Status BackupEngine::Open(storage::Storage* storage, BackupEngine** backup_engin
   rocksdb::DB* rocksdb_db;
   std::string types[] = {STRINGS_DB, HASHES_DB, LISTS_DB, ZSETS_DB, SETS_DB};
   for (const auto& type : types) {
-    if ((rocksdb_db = storage->GetDBByType(type)) == NULL) {
+    if ((rocksdb_db = storage->GetDBByType(type)) == nullptr) {
       s = Status::Corruption("Error db type");
     }
 
@@ -133,7 +133,7 @@ Status BackupEngine::CreateNewBackup(const std::string& dir) {
     pthread_t tid;
     BackupSaveArgs* arg = new BackupSaveArgs(reinterpret_cast<void*>(this), dir, engine.first);
     args.push_back(arg);
-    if (pthread_create(&tid, NULL, &ThreadFuncSaveSpecify, arg) != 0) {
+    if (pthread_create(&tid, nullptr, &ThreadFuncSaveSpecify, arg) != 0) {
       s = Status::Corruption("pthead_create failed.");
       break;
     }

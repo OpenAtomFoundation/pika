@@ -646,7 +646,7 @@ PikaReplicaManager::PikaReplicaManager() {
   pika_repl_client_ = new PikaReplClient(3000, 60);
   pika_repl_server_ = new PikaReplServer(ips, port, 3000);
   InitPartition();
-  pthread_rwlock_init(&partitions_rw_, NULL);
+  pthread_rwlock_init(&partitions_rw_, nullptr);
 }
 
 PikaReplicaManager::~PikaReplicaManager() {
@@ -1000,7 +1000,7 @@ Status PikaReplicaManager::DeactivateSyncSlavePartition(const PartitionInfo& p_i
 
 Status PikaReplicaManager::SendMetaSyncRequest() {
   Status s;
-  if (time(NULL) - g_pika_server->GetMetaSyncTimestamp() >= PIKA_META_SYNC_MAX_WAIT_TIME ||
+  if (time(nullptr) - g_pika_server->GetMetaSyncTimestamp() >= PIKA_META_SYNC_MAX_WAIT_TIME ||
       g_pika_server->IsFirstMetaSync() == true) {
     s = pika_repl_client_->SendMetaSync();
     if (s.ok()) {

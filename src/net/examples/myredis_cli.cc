@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
   ConnFactory* conn_factory = new MyConnFactory();
   ClientHandle* handle = new ClientHandle();
 
-  client = new ClientThread(conn_factory, 3000, 60, handle, NULL);
+  client = new ClientThread(conn_factory, 3000, 60, handle, nullptr);
 
   if (client->StartThread() != 0) {
     printf("StartThread error happened!\n");

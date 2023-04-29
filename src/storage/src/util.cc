@@ -113,7 +113,7 @@ int StrToInt64(const char* s, size_t slen, int64_t* value) {
 
   /* Special case: first and only digit is 0. */
   if (slen == 1 && p[0] == '0') {
-    if (value != NULL) *value = 0;
+    if (value != nullptr) *value = 0;
     return 1;
   }
 
@@ -132,7 +132,7 @@ int StrToInt64(const char* s, size_t slen, int64_t* value) {
   }
 
   if (plen == slen) {
-    if (value != NULL) *value = 0;
+    if (value != nullptr) *value = 0;
     return 1;
   }
 
@@ -167,11 +167,11 @@ int StrToInt64(const char* s, size_t slen, int64_t* value) {
   if (negative) {
     if (v > ((uint64_t)(-(LLONG_MIN + 1)) + 1)) /* Overflow. */
       return 0;
-    if (value != NULL) *value = -v;
+    if (value != nullptr) *value = -v;
   } else {
     if (v > LLONG_MAX) /* Overflow. */
       return 0;
-    if (value != NULL) *value = v;
+    if (value != nullptr) *value = v;
   }
   return 1;
 }
@@ -291,7 +291,7 @@ int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
   long double d = strtold(s, &pEnd);
   if (pEnd != s + slen) return -1;
 
-  if (ldval != NULL) *ldval = d;
+  if (ldval != nullptr) *ldval = d;
   return 0;
 }
 
@@ -319,7 +319,7 @@ int LongDoubleToStr(long double ldval, std::string* value) {
      * back into a string are exactly the same as what the user typed.) */
     len = snprintf(buf, sizeof(buf), "%.17Lf", ldval);
     /* Now remove trailing zeroes after the '.' */
-    if (strchr(buf, '.') != NULL) {
+    if (strchr(buf, '.') != nullptr) {
       char* p = buf + len - 1;
       while (*p == '0') {
         p--;
@@ -378,14 +378,14 @@ int mkpath(const char* path, mode_t mode) {
 
 int delete_dir(const char* dirname) {
   char chBuf[256];
-  DIR* dir = NULL;
+  DIR* dir = nullptr;
   struct dirent* ptr;
   int ret = 0;
   dir = opendir(dirname);
-  if (NULL == dir) {
+  if (nullptr == dir) {
     return -1;
   }
-  while ((ptr = readdir(dir)) != NULL) {
+  while ((ptr = readdir(dir)) != nullptr) {
     ret = strcmp(ptr->d_name, ".");
     if (0 == ret) {
       continue;
@@ -496,8 +496,8 @@ bool DeleteFiles(const char* path) {
     remove(path);
   } else if (S_ISDIR(statbuf.st_mode))  // 判断是否是目录
   {
-    if ((dir = opendir(path)) == NULL) return 1;
-    while ((dirinfo = readdir(dir)) != NULL) {
+    if ((dir = opendir(path)) == nullptr) return 1;
+    while ((dirinfo = readdir(dir)) != nullptr) {
       GetFilepath(path, dirinfo->d_name, filepath);
       if (strcmp(dirinfo->d_name, ".") == 0 || strcmp(dirinfo->d_name, "..") == 0)  // 判断是否是特殊目录
         continue;

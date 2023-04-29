@@ -78,7 +78,7 @@ Storage::~Storage() {
   }
 
   int ret = 0;
-  if ((ret = pthread_join(bg_tasks_thread_id_, NULL)) != 0) {
+  if ((ret = pthread_join(bg_tasks_thread_id_, nullptr)) != 0) {
     fprintf(stderr, "pthread_join failed with bgtask thread error %d\n", ret);
   }
 
@@ -1456,11 +1456,11 @@ Status Storage::PfMerge(const std::vector<std::string>& keys) {
 static void* StartBGThreadWrapper(void* arg) {
   Storage* s = reinterpret_cast<Storage*>(arg);
   s->RunBGTask();
-  return NULL;
+  return nullptr;
 }
 
 Status Storage::StartBGThread() {
-  int result = pthread_create(&bg_tasks_thread_id_, NULL, StartBGThreadWrapper, this);
+  int result = pthread_create(&bg_tasks_thread_id_, nullptr, StartBGThreadWrapper, this);
   if (result != 0) {
     char msg[128];
     snprintf(msg, sizeof(msg), "pthread create: %s", strerror(result));
@@ -1527,26 +1527,26 @@ Status Storage::DoCompact(const DataType& type) {
   Status s;
   if (type == kStrings) {
     current_task_type_ = Operation::kCleanStrings;
-    s = strings_db_->CompactRange(NULL, NULL);
+    s = strings_db_->CompactRange(nullptr, nullptr);
   } else if (type == kHashes) {
     current_task_type_ = Operation::kCleanHashes;
-    s = hashes_db_->CompactRange(NULL, NULL);
+    s = hashes_db_->CompactRange(nullptr, nullptr);
   } else if (type == kSets) {
     current_task_type_ = Operation::kCleanSets;
-    s = sets_db_->CompactRange(NULL, NULL);
+    s = sets_db_->CompactRange(nullptr, nullptr);
   } else if (type == kZSets) {
     current_task_type_ = Operation::kCleanZSets;
-    s = zsets_db_->CompactRange(NULL, NULL);
+    s = zsets_db_->CompactRange(nullptr, nullptr);
   } else if (type == kLists) {
     current_task_type_ = Operation::kCleanLists;
-    s = lists_db_->CompactRange(NULL, NULL);
+    s = lists_db_->CompactRange(nullptr, nullptr);
   } else {
     current_task_type_ = Operation::kCleanAll;
-    s = strings_db_->CompactRange(NULL, NULL);
-    s = hashes_db_->CompactRange(NULL, NULL);
-    s = sets_db_->CompactRange(NULL, NULL);
-    s = zsets_db_->CompactRange(NULL, NULL);
-    s = lists_db_->CompactRange(NULL, NULL);
+    s = strings_db_->CompactRange(nullptr, nullptr);
+    s = hashes_db_->CompactRange(nullptr, nullptr);
+    s = sets_db_->CompactRange(nullptr, nullptr);
+    s = zsets_db_->CompactRange(nullptr, nullptr);
+    s = lists_db_->CompactRange(nullptr, nullptr);
   }
   current_task_type_ = Operation::kNone;
   return s;
@@ -1690,7 +1690,7 @@ rocksdb::DB* Storage::GetDBByType(const std::string& type) {
   } else if (type == ZSETS_DB) {
     return zsets_db_->GetDB();
   } else {
-    return NULL;
+    return nullptr;
   }
 }
 

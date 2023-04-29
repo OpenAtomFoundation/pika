@@ -15,7 +15,7 @@
 #include "include/pika_define.h"
 
 PikaConf::PikaConf(const std::string& path) : pstd::BaseConf(path), conf_path_(path) {
-  pthread_rwlock_init(&rwlock_, NULL);
+  pthread_rwlock_init(&rwlock_, nullptr);
   local_meta_ = new PikaMeta();
 }
 

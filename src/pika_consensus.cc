@@ -18,8 +18,8 @@ extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 /* Context */
 
-Context::Context(const std::string path) : applied_index_(), path_(path), save_(NULL) {
-  pthread_rwlock_init(&rwlock_, NULL);
+Context::Context(const std::string path) : applied_index_(), path_(path), save_(nullptr) {
+  pthread_rwlock_init(&rwlock_, nullptr);
 }
 
 Context::~Context() {
@@ -52,7 +52,7 @@ Status Context::Init() {
       LOG(FATAL) << "Context new file failed " << s.ToString();
     }
   }
-  if (save_->GetData() != NULL) {
+  if (save_->GetData() != nullptr) {
     memcpy((char*)(&(applied_index_.b_offset.filenum)), save_->GetData(), sizeof(uint32_t));
     memcpy((char*)(&(applied_index_.b_offset.offset)), save_->GetData() + 4, sizeof(uint64_t));
     memcpy((char*)(&(applied_index_.l_offset.term)), save_->GetData() + 12, sizeof(uint32_t));
@@ -87,7 +87,7 @@ void Context::Reset(const LogOffset& offset) {
 
 /* SyncProgress */
 
-SyncProgress::SyncProgress() { pthread_rwlock_init(&rwlock_, NULL); }
+SyncProgress::SyncProgress() { pthread_rwlock_init(&rwlock_, nullptr); }
 
 SyncProgress::~SyncProgress() { pthread_rwlock_destroy(&rwlock_); }
 
@@ -280,7 +280,7 @@ ConsensusCoordinator::ConsensusCoordinator(const std::string& table_name, uint32
   context_ = std::make_shared<Context>(log_path + kContext);
   stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
   mem_logger_ = std::make_shared<MemLog>();
-  pthread_rwlock_init(&term_rwlock_, NULL);
+  pthread_rwlock_init(&term_rwlock_, nullptr);
   if (g_pika_conf->consensus_level() != 0) {
     Init();
   }
@@ -343,7 +343,7 @@ void ConsensusCoordinator::Init() {
     CmdPtrArg* arg = static_cast<CmdPtrArg*>(redis_parser.data);
     std::shared_ptr<Cmd> cmd_ptr = arg->cmd_ptr;
     delete arg;
-    redis_parser.data = NULL;
+    redis_parser.data = nullptr;
 
     mem_logger_->AppendLog(MemLog::LogItem(offset, cmd_ptr, nullptr, nullptr));
   }

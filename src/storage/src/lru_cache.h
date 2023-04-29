@@ -56,13 +56,13 @@ LRUHandle<T1, T2>* HandleTable<T1, T2>::Lookup(const T1& key) {
   if (table_.find(key) != table_.end()) {
     return table_[key];
   } else {
-    return NULL;
+    return nullptr;
   }
 }
 
 template <typename T1, typename T2>
 LRUHandle<T1, T2>* HandleTable<T1, T2>::Remove(const T1& key) {
-  LRUHandle<T1, T2>* old = NULL;
+  LRUHandle<T1, T2>* old = nullptr;
   if (table_.find(key) != table_.end()) {
     old = table_[key];
     table_.erase(key);
@@ -72,7 +72,7 @@ LRUHandle<T1, T2>* HandleTable<T1, T2>::Remove(const T1& key) {
 
 template <typename T1, typename T2>
 LRUHandle<T1, T2>* HandleTable<T1, T2>::Insert(const T1& key, LRUHandle<T1, T2>* const handle) {
-  LRUHandle<T1, T2>* old = NULL;
+  LRUHandle<T1, T2>* old = nullptr;
   if (table_.find(key) != table_.end()) {
     old = table_[key];
     table_.erase(key);
@@ -163,11 +163,11 @@ template <typename T1, typename T2>
 rocksdb::Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
   pstd::MutexLock l(&mutex_);
   LRUHandle<T1, T2>* handle = handle_table_.Lookup(key);
-  if (handle != NULL) {
+  if (handle != nullptr) {
     LRU_MoveToHead(handle);
     *value = handle->value;
   }
-  return (handle == NULL) ? rocksdb::Status::NotFound() : rocksdb::Status::OK();
+  return (handle == nullptr) ? rocksdb::Status::NotFound() : rocksdb::Status::OK();
 }
 
 template <typename T1, typename T2>
@@ -199,7 +199,7 @@ rocksdb::Status LRUCache<T1, T2>::Remove(const T1& key) {
 template <typename T1, typename T2>
 rocksdb::Status LRUCache<T1, T2>::Clear() {
   pstd::MutexLock l(&mutex_);
-  LRUHandle<T1, T2>* old = NULL;
+  LRUHandle<T1, T2>* old = nullptr;
   while (lru_.next != &lru_) {
     old = lru_.next;
     bool erased = FinishErase(handle_table_.Remove(old->key));
@@ -214,11 +214,11 @@ template <typename T1, typename T2>
 bool LRUCache<T1, T2>::LRUAndHandleTableConsistent() {
   size_t count = 0;
   pstd::MutexLock l(&mutex_);
-  LRUHandle<T1, T2>* handle = NULL;
+  LRUHandle<T1, T2>* handle = nullptr;
   LRUHandle<T1, T2>* current = lru_.prev;
   while (current != &lru_) {
     handle = handle_table_.Lookup(current->key);
-    if (handle == NULL || handle != current) {
+    if (handle == nullptr || handle != current) {
       return false;
     } else {
       count++;
@@ -249,7 +249,7 @@ bool LRUCache<T1, T2>::LRUAsExpected(const std::vector<std::pair<T1, T2>>& expec
 
 template <typename T1, typename T2>
 void LRUCache<T1, T2>::LRU_Trim() {
-  LRUHandle<T1, T2>* old = NULL;
+  LRUHandle<T1, T2>* old = nullptr;
   while (usage_ > capacity_ && lru_.next != &lru_) {
     old = lru_.next;
     bool erased = FinishErase(handle_table_.Remove(old->key));
@@ -283,7 +283,7 @@ void LRUCache<T1, T2>::LRU_MoveToHead(LRUHandle<T1, T2>* const e) {
 template <typename T1, typename T2>
 bool LRUCache<T1, T2>::FinishErase(LRUHandle<T1, T2>* const e) {
   bool erased = false;
-  if (e != NULL) {
+  if (e != nullptr) {
     LRU_Remove(e);
     size_--;
     usage_ -= e->charge;

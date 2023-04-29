@@ -23,9 +23,9 @@ std::string NewFileName(const std::string name, const uint32_t current) {
  * Version
  */
 Version::Version(pstd::RWFile* save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
-  assert(save_ != NULL);
+  assert(save_ != nullptr);
 
-  pthread_rwlock_init(&rwlock_, NULL);
+  pthread_rwlock_init(&rwlock_, nullptr);
 }
 
 Version::~Version() {
@@ -47,7 +47,7 @@ Status Version::StableSave() {
 
 Status Version::Init() {
   Status s;
-  if (save_->GetData() != NULL) {
+  if (save_->GetData() != nullptr) {
     memcpy((char*)(&pro_num_), save_->GetData(), sizeof(uint32_t));
     memcpy((char*)(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
     memcpy((char*)(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
@@ -63,11 +63,11 @@ Status Version::Init() {
  */
 Binlog::Binlog(const std::string& binlog_path, const int file_size)
     : opened_(false),
-      version_(NULL),
-      queue_(NULL),
-      versionfile_(NULL),
+      version_(nullptr),
+      queue_(nullptr),
+      versionfile_(nullptr),
       pro_num_(0),
-      pool_(NULL),
+      pool_(nullptr),
       exit_all_consume_(false),
       binlog_path_(binlog_path),
       file_size_(file_size),
@@ -146,7 +146,7 @@ void Binlog::Close() {
 }
 
 void Binlog::InitLogFile() {
-  assert(queue_ != NULL);
+  assert(queue_ != nullptr);
 
   uint64_t filesize = queue_->Filesize();
   block_offset_ = filesize % kBlockSize;
@@ -163,10 +163,10 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
-  if (logic_id != NULL) {
+  if (logic_id != nullptr) {
     *logic_id = version_->logic_id_;
   }
-  if (term != NULL) {
+  if (term != nullptr) {
     *term = version_->term_;
   }
 
@@ -233,7 +233,7 @@ Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* 
 
   uint64_t now;
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, nullptr);
   now = tv.tv_sec;
   buf[0] = static_cast<char>(n & 0xff);
   buf[1] = static_cast<char>((n & 0xff00) >> 8);
@@ -310,7 +310,7 @@ Status Binlog::AppendPadding(pstd::WritableFile* file, uint64_t* len) {
   char buf[kBlockSize];
   uint64_t now;
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, nullptr);
   now = tv.tv_sec;
 
   uint64_t left = *len;

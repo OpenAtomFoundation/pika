@@ -7,7 +7,7 @@ namespace pstd {
 
 class Random {
  public:
-  Random() { srand(time(NULL)); }
+  Random() { srand(time(nullptr)); }
 
   /*
    * return Random number in [1...n]

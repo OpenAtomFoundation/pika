@@ -62,7 +62,7 @@ void PikaMonitorThread::AddMonitorMessage(const std::string& monitor_message) {
 }
 
 int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr) {
-  if (clients_ptr != NULL) {
+  if (clients_ptr != nullptr) {
     for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); iter++) {
       clients_ptr->push_back(*iter);
     }
@@ -185,5 +185,5 @@ void* PikaMonitorThread::ThreadMain() {
     }
     monitor_mutex_protector_.Unlock();
   }
-  return NULL;
+  return nullptr;
 }

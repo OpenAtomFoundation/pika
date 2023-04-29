@@ -18,7 +18,7 @@ void* ThreadPool::Worker::WorkerMain(void* arg) {
 
 int ThreadPool::Worker::start() {
   if (!start_.load()) {
-    if (pthread_create(&thread_id_, NULL, &WorkerMain, thread_pool_)) {
+    if (pthread_create(&thread_id_, nullptr, &WorkerMain, thread_pool_)) {
       return -1;
     } else {
       start_.store(true);
@@ -111,7 +111,7 @@ void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
    * so we need gettimeofday + timeout
    */
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   uint64_t exec_time;
   exec_time = now.tv_sec * 1000000 + timeout * 1000 + now.tv_usec;
 
@@ -149,7 +149,7 @@ void ThreadPool::runInThread() {
     }
     if (!time_queue_.empty()) {
       struct timeval now;
-      gettimeofday(&now, NULL);
+      gettimeofday(&now, nullptr);
 
       TimeTask time_task = time_queue_.top();
       uint64_t unow = now.tv_sec * 1000000 + now.tv_usec;

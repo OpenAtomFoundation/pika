@@ -36,7 +36,7 @@ int BaseConf::LoadConf() {
   int sep_sign = 0;
   Rep::ConfType type = Rep::kConf;
 
-  while (sequential_file->ReadLine(line, kConfItemLen) != NULL) {
+  while (sequential_file->ReadLine(line, kConfItemLen) != nullptr) {
     sep_sign = 0;
     name_len = 0;
     value_len = 0;
@@ -111,7 +111,7 @@ bool BaseConf::GetConfIntHuman(const std::string& name, int* value) const {
     }
     if (name == rep_->item[i].name) {
       auto c_str = rep_->item[i].value.c_str();
-      (*value) = strtoll(c_str, NULL, 10);
+      (*value) = strtoll(c_str, nullptr, 10);
       char last = c_str[rep_->item[i].value.size() - 1];
       if (last == 'K' || last == 'k') {
         (*value) *= (1 << 10);
@@ -133,7 +133,7 @@ bool BaseConf::GetConfInt64Human(const std::string& name, int64_t* value) const 
     }
     if (name == rep_->item[i].name) {
       auto c_str = rep_->item[i].value.c_str();
-      (*value) = strtoll(c_str, NULL, 10);
+      (*value) = strtoll(c_str, nullptr, 10);
       char last = c_str[rep_->item[i].value.size() - 1];
       if (last == 'K' || last == 'k') {
         (*value) *= (1 << 10);
@@ -154,7 +154,7 @@ bool BaseConf::GetConfInt64(const std::string& name, int64_t* value) const {
       continue;
     }
     if (name == rep_->item[i].name) {
-      (*value) = strtoll(rep_->item[i].value.c_str(), NULL, 10);
+      (*value) = strtoll(rep_->item[i].value.c_str(), nullptr, 10);
       return true;
     }
   }

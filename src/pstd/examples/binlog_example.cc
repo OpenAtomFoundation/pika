@@ -18,7 +18,7 @@ void* Append(void* arg) {
     printf("+ Append (%s) return %s\n", item.c_str(), s.ToString().c_str());
     sleep(1);
   }
-  return NULL;
+  return nullptr;
 }
 
 void* Reader(void* arg) {
@@ -36,7 +36,7 @@ void* Reader(void* arg) {
     }
     sleep(1);
   }
-  return NULL;
+  return nullptr;
 }
 
 int main() {
@@ -47,14 +47,14 @@ int main() {
   }
 
   pthread_t pid;
-  pthread_create(&pid, NULL, &Append, NULL);
+  pthread_create(&pid, nullptr, &Append, nullptr);
 
   pthread_t cid[3];
   int id[3];
 
   for (int i = 0; i < 3; i++) {
     id[i] = i;
-    pthread_create(&cid[i], NULL, &Reader, &id[i]);
+    pthread_create(&cid[i], nullptr, &Reader, &id[i]);
   }
 
   void* res;

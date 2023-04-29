@@ -13,8 +13,8 @@ PeriodThread::PeriodThread(struct timeval period) : period_(period) {}
 
 void* PeriodThread::ThreadMain() {
   PeriodMain();
-  select(0, NULL, NULL, NULL, &period_);
-  return NULL;
+  select(0, nullptr, nullptr, nullptr, &period_);
+  return nullptr;
 }
 
 }  // namespace net

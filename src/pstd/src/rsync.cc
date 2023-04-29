@@ -100,7 +100,7 @@ int StopRsync(const std::string& raw_path) {
   };
 
   char line[32];
-  if (sequential_file->ReadLine(line, 32) == NULL) {
+  if (sequential_file->ReadLine(line, 32) == nullptr) {
     log_warn("read rsync pid file err");
     delete sequential_file;
     return 0;

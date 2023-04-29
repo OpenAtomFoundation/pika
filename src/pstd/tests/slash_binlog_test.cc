@@ -15,7 +15,7 @@ namespace pstd {
 
 class BinlogTest : public ::testing::Test {
  public:
-  BinlogTest() : log_(NULL), reader_(NULL) {
+  BinlogTest() : log_(nullptr), reader_(nullptr) {
     GetTestDirectory(&tmpdir_);
     DeleteDirIfExist(tmpdir_);
     ASSERT_OK(Binlog::Open(tmpdir_, &log_));
