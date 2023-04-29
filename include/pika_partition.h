@@ -18,11 +18,11 @@ class Cmd;
  *Keyscan used
  */
 struct KeyScanInfo {
-  time_t start_time;
+  time_t start_time = 0;
   std::string s_start_time;
-  int32_t duration;
+  int32_t duration = -3;
   std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets
-  bool key_scaning_;
+  bool key_scaning_ = false;
   KeyScanInfo()
       : start_time(0),
         s_start_time("1970-01-01 08:00:00"),
@@ -32,8 +32,8 @@ struct KeyScanInfo {
 };
 
 struct BgSaveInfo {
-  bool bgsaving;
-  time_t start_time;
+  bool bgsaving = false;
+  time_t start_time = 0;
   std::string s_start_time;
   std::string path;
   LogOffset offset;
@@ -86,20 +86,20 @@ class Partition : public std::enable_shared_from_this<Partition> {
 
  private:
   std::string table_name_;
-  uint32_t partition_id_;
+  uint32_t partition_id_ = 0;
 
   std::string db_path_;
   std::string bgsave_sub_path_;
   std::string dbsync_path_;
   std::string partition_name_;
 
-  bool opened_;
+  bool opened_ = false;
 
   pthread_rwlock_t db_rwlock_;
-  pstd::lock::LockMgr* lock_mgr_;
+  pstd::lock::LockMgr* lock_mgr_ = nullptr;
   std::shared_ptr<storage::Storage> db_;
 
-  bool full_sync_;
+  bool full_sync_ = false;
 
   pstd::Mutex key_info_protector_;
   KeyScanInfo key_scan_info_;

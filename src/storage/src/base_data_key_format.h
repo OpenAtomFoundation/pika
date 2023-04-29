@@ -48,9 +48,9 @@ class BaseDataKey {
 
  private:
   char space_[200];
-  char* start_;
+  char* start_ = nullptr;
   Slice key_;
-  int32_t version_;
+  int32_t version_ = -1;
   Slice data_;
 };
 
@@ -88,7 +88,7 @@ class ParsedBaseDataKey {
 
  protected:
   Slice key_;
-  int32_t version_;
+  int32_t version_ = -1;
   Slice data_;
 };
 

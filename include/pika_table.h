@@ -57,7 +57,7 @@ class Table : public std::enable_shared_from_this<Table> {
 
  private:
   std::string table_name_;
-  uint32_t partition_num_;
+  uint32_t partition_num_ = 0;
   std::string db_path_;
   std::string log_path_;
 

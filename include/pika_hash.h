@@ -120,7 +120,7 @@ class HIncrbyCmd : public Cmd {
 
  private:
   std::string key_, field_;
-  int64_t by_;
+  int64_t by_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -335,7 +335,7 @@ class PKHScanRangeCmd : public Cmd {
   std::string field_start_;
   std::string field_end_;
   std::string pattern_;
-  int64_t limit_;
+  int64_t limit_ = 10;
   virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
@@ -361,8 +361,8 @@ class PKHRScanRangeCmd : public Cmd {
   std::string key_;
   std::string field_start_;
   std::string field_end_;
-  std::string pattern_;
-  int64_t limit_;
+  std::string pattern_ = "*";
+  int64_t limit_ = 10;
   virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";

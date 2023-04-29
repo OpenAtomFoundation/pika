@@ -99,8 +99,8 @@ class SScanCmd : public Cmd {
   virtual Cmd* Clone() override { return new SScanCmd(*this); }
 
  private:
-  std::string key_, pattern_;
-  int64_t cursor_, count_;
+  std::string key_, pattern_ = "*";
+  int64_t cursor_ = 0, count_ = 10;
   virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
@@ -254,8 +254,8 @@ class SRandmemberCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t count_;
-  bool reply_arr;
+  int64_t count_ = 1;
+  bool reply_arr = false;
   virtual void DoInitial() override;
   virtual void Clear() {
     count_ = 1;

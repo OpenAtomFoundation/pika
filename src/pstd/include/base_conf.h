@@ -71,7 +71,7 @@ class BaseConf {
   void PushConfItem(const Rep::ConfItem& item);
 
  private:
-  Rep* rep_;
+  Rep* rep_ = nullptr;
 
   /*
    * No copy && no assign operator

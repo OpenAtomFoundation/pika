@@ -318,7 +318,7 @@ SequentialFile::~SequentialFile() {}
 class PosixSequentialFile : public SequentialFile {
  private:
   std::string filename_;
-  FILE* file_;
+  FILE* file_ = nullptr;
 
  public:
   virtual void setUnBuffer() { setbuf(file_, NULL); }
@@ -376,18 +376,18 @@ WritableFile::~WritableFile() {}
 class PosixMmapFile : public WritableFile {
  private:
   std::string filename_;
-  int fd_;
-  size_t page_size_;
-  size_t map_size_;       // How much extra memory to map at a time
-  char* base_;            // The mapped region
-  char* limit_;           // Limit of the mapped region
-  char* dst_;             // Where to write next  (in range [base_,limit_])
-  char* last_sync_;       // Where have we synced up to
-  uint64_t file_offset_;  // Offset of base_ in file
-  uint64_t write_len_;    // The data that written in the file
+  int fd_ = -1;
+  size_t page_size_      = 0;
+  size_t map_size_       = 0;       // How much extra memory to map at a time
+  char* base_            = nullptr; // The mapped region
+  char* limit_           = nullptr; // Limit of the mapped region
+  char* dst_             = nullptr; // Where to write next  (in range [base_,limit_])
+  char* last_sync_       = nullptr; // Where have we synced up to
+  uint64_t file_offset_  = 0;       // Offset of base_ in file
+  uint64_t write_len_    = 0;       // The data that written in the file
 
   // Have we done an munmap of unsynced data?
-  bool pending_sync_;
+  bool pending_sync_ = false;
 
   // Roundup x to a multiple of y
   static size_t Roundup(size_t x, size_t y) { return ((x + y - 1) / y) * y; }
@@ -603,18 +603,18 @@ class MmapRWFile : public RWFile {
  private:
   static size_t Roundup(size_t x, size_t y) { return ((x + y - 1) / y) * y; }
   std::string filename_;
-  int fd_;
-  size_t page_size_;
-  size_t map_size_;
-  char* base_;
+  int fd_ = -1;
+  size_t page_size_ = 0;
+  size_t map_size_ = 0;
+  char* base_ = nullptr;
 };
 
 class PosixRandomRWFile : public RandomRWFile {
  private:
   const std::string filename_;
-  int fd_;
-  bool pending_sync_;
-  bool pending_fsync_;
+  int fd_ = -1;
+  bool pending_sync_ = false;
+  bool pending_fsync_ = false;
   // bool fallocate_with_keep_size_;
 
  public:

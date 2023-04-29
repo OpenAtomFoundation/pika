@@ -388,7 +388,7 @@ class CmdRes {
 
  private:
   std::string message_;
-  CmdRet ret_;
+  CmdRet ret_ = kNone;
 };
 
 class Cmd : public std::enable_shared_from_this<Cmd> {

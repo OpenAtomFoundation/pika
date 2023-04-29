@@ -49,10 +49,10 @@ class ListsDataKey {
 
  private:
   char space_[200];
-  char* start_;
+  char* start_ = nullptr;
   rocksdb::Slice key_;
-  int32_t version_;
-  uint64_t index_;
+  int32_t version_ = -1;
+  uint64_t index_ = 0;
 };
 
 class ParsedListsDataKey {
@@ -89,8 +89,8 @@ class ParsedListsDataKey {
 
  private:
   rocksdb::Slice key_;
-  int32_t version_;
-  uint64_t index_;
+  int32_t version_ = -1;
+  uint64_t index_ = 0;
 };
 
 }  //  namespace storage

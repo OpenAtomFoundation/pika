@@ -109,9 +109,9 @@ class LRUCache {
   bool FinishErase(LRUHandle<T1, T2>* const e);
 
   // Initialized before use.
-  size_t capacity_;
-  size_t usage_;
-  size_t size_;
+  size_t capacity_ = 0;
+  size_t usage_ = 0;
+  size_t size_ = 0;
 
   pstd::Mutex mutex_;
 

@@ -83,7 +83,7 @@ class PikaClientConn : public net::RedisConn {
 struct ClientInfo {
   int fd;
   std::string ip_port;
-  int64_t last_interaction;
+  int64_t last_interaction = 0;
   std::shared_ptr<PikaClientConn> conn;
 };
 
