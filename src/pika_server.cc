@@ -962,13 +962,13 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& t
                            int32_t top) {
   std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
   if (!partition) {
-    LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Not Found, TryDBSync Failed";
+    LOG(WARNING) << "Partition_id: " << partition_id << " or Table_name: " << table_name << " Not Found, TryDBSync Failed";
     return;
   }
   std::shared_ptr<SyncMasterPartition> sync_partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!sync_partition) {
-    LOG(WARNING) << "Partition: " << sync_partition->SyncPartitionInfo().ToString() << " Not Found, TryDBSync Failed";
+    LOG(WARNING) << "Partition_id: " << partition_id << " or Table_name: " << table_name << " Not Found, TryDBSync Failed";
     return;
   }
   BgSaveInfo bgsave_info = partition->bgsave_info();
@@ -985,7 +985,7 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& t
 void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id) {
   std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
   if (!partition) {
-    LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Not Found, DbSync send file Failed";
+    LOG(WARNING) << "Partition_id: " << partition_id << " or Table_name: " << table_name << " Not Found, DbSync send file Failed";
     return;
   }
 
