@@ -40,7 +40,7 @@ struct TableStruct {
            partition_ids == table_struct.partition_ids;
   }
   std::string table_name;
-  uint32_t partition_num;
+  uint32_t partition_num = 0;
   std::set<uint32_t> partition_ids;
 };
 
@@ -252,7 +252,7 @@ class Node {
 
  private:
   std::string ip_;
-  int port_;
+  int port_ = 0;
 };
 
 class RmNode : public Node {
@@ -303,9 +303,9 @@ class RmNode : public Node {
 
  private:
   PartitionInfo partition_info_;
-  int32_t session_id_;
-  uint64_t last_send_time_;
-  uint64_t last_recv_time_;
+  int32_t session_id_ = 0;
+  uint64_t last_send_time_ = 0;
+  uint64_t last_recv_time_ = 0;
 };
 
 struct hash_rm_node {

@@ -20,7 +20,7 @@ extern PikaReplicaManager* g_pika_rm;
 StableLog::StableLog(const std::string table_name, uint32_t partition_id, const std::string& log_path)
     : purging_(false), table_name_(table_name), partition_id_(partition_id), log_path_(log_path) {
   stable_logger_ = std::shared_ptr<Binlog>(new Binlog(log_path_, g_pika_conf->binlog_file_size()));
-  pthread_rwlock_init(&offset_rwlock_, NULL);
+  pthread_rwlock_init(&offset_rwlock_, nullptr);
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(&binlogs)) {
     LOG(FATAL) << log_path_ << " Could not get binlog files!";
@@ -95,7 +95,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
         || (remain_expire_num > 0)            // Expire num trigger
         || (binlogs.size() - delete_num > 10  // At lease remain 10 files
             && stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&
-            file_stat.st_mtime < time(NULL) - g_pika_conf->expire_logs_days() * 24 * 3600)) {  // Expire time trigger
+            file_stat.st_mtime < time(nullptr) - g_pika_conf->expire_logs_days() * 24 * 3600)) {  // Expire time trigger
       // We check this every time to avoid lock when we do file deletion
       master_partition = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, partition_id_));
       if (!master_partition) {

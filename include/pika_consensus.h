@@ -38,7 +38,7 @@ class Context {
 
  private:
   std::string path_;
-  pstd::RWFile* save_;
+  pstd::RWFile* save_ = nullptr;
   // No copying allowed;
   Context(const Context&);
   void operator=(const Context&);
@@ -213,10 +213,10 @@ class ConsensusCoordinator {
   std::shared_ptr<Context> context_;
 
   pthread_rwlock_t term_rwlock_;
-  uint32_t term_;
+  uint32_t term_ = 0;
 
   std::string table_name_;
-  uint32_t partition_id_;
+  uint32_t partition_id_ = 0;
 
   SyncProgress sync_pros_;
   std::shared_ptr<StableLog> stable_logger_;

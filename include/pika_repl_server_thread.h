@@ -33,7 +33,7 @@ class PikaReplServerThread : public net::HolyThread {
     }
 
    private:
-    PikaReplServerThread* binlog_receiver_;
+    PikaReplServerThread* binlog_receiver_ = nullptr;
   };
 
   class ReplServerHandle : public net::ServerHandle {
@@ -43,8 +43,8 @@ class PikaReplServerThread : public net::HolyThread {
 
   ReplServerConnFactory conn_factory_;
   ReplServerHandle handle_;
-  int port_;
-  uint64_t serial_;
+  int port_ = 0;
+  uint64_t serial_ = 0;
 };
 
 #endif

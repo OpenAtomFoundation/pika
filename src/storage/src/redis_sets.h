@@ -24,7 +24,7 @@ namespace storage {
 class RedisSets : public Redis {
  public:
   RedisSets(Storage* const s, const DataType& type);
-  ~RedisSets() = default;
+  ~RedisSets();
 
   // Common Commands
   Status Open(const StorageOptions& storage_options, const std::string& db_path) override;
@@ -73,7 +73,7 @@ class RedisSets : public Redis {
 
  private:
   // For compact in time after multiple spop
-  LRUCache<std::string, size_t>* spop_counts_store_;
+  LRUCache<std::string, size_t>* spop_counts_store_ = nullptr;
   Status ResetSpopCount(const std::string& key);
   Status AddAndGetSpopCount(const std::string& key, uint64_t* count);
 };

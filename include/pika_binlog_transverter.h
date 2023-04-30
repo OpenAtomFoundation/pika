@@ -49,11 +49,11 @@ class BinlogItem {
   void set_offset(uint64_t offset);
 
  private:
-  uint32_t exec_time_;
-  uint32_t term_id_;
-  uint64_t logic_id_;
-  uint32_t filenum_;
-  uint64_t offset_;
+  uint32_t exec_time_ = 0;
+  uint32_t term_id_ = 0;
+  uint64_t logic_id_ = 0;
+  uint32_t filenum_ = 0;
+  uint64_t offset_ = 0;
   std::string content_;
   std::vector<std::string> extends_;
 };

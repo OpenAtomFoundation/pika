@@ -56,44 +56,83 @@ Pika is a persistent huge storage service , compatible  with the vast majority o
 ### Releases
 The User can download the binary release from [releases](https://github.com/Qihoo360/pika/releases) or compile the source release.
 
-### Dependencies
+### Compile
 
-* snappy - a library for fast data compression
-* glog - google log library
-
-Upgrade your gcc to version at least 4.8 to get C++11 support.
-
-### Supported platforms
+#### Supported platforms
 
 * linux - CentOS 6&7
 
 * linux - Ubuntu
 
-* macOS(Darwin) on M1
+* macOS (Darwin) on M1
 
-If it comes to some missing libs, install them according to the prompts and retry it.
+#### Dependencies
 
-### Compile
+* gcc g++, C++11 support (version>=4.8)
+* make
+* cmake (version>=3.18)
+* autoconf
+* tar
+
+
+#### Compile
 
 Upgrade your gcc to version at least 4.8 to get C++11 support.
 
-Get the source code
+1. Get the source code
 
 ```
-git clone https://github.com/OpenAtomFoundation/pika.git
+  git clone https://github.com/OpenAtomFoundation/pika.git
+```
+
+2. Checkout the latest release version
+
+```
+  a. exec git tag to get the latest release tag
+  b. exec git checkout TAG to switch to the latest version
+```
+
+3. Compile
+
+Please run the script build.sh before you compile this db to check the environment and build this repo. 
+If the gcc version is later than 7, such as CentOS6 or centOS7, you need to upgrade the gcc version first
+
+Do as follows
+```
+  a. sudo yum -y install centos-release-scl
+  b. sudo yum -y install devtoolset-7-gcc devtoolset-7-gcc-c++
+  c. scl enable devtoolset-7 bash
 ```
 
 
-Then compile pika.
+Please run the script build.sh before you compile this db to check the environment and build this repo.
 
 ```
-./build.sh
+  ./build.sh
+```
+
+The compilation result is in the 'output' directory.
+
+By default the compilation process is in 'release' mode. If you wanna debug this db，you need to compile it in 'debug' mode.
+
+```
+  rm -fr output
+  cmake -B output -DCMAKE_BUILD_TYPE=Debug
+  cd ouput && make
 ```
 
 ## Usage
 
 ```
 ./output/pika -c ./conf/pika.conf
+```
+
+## Clean compilation
+
+```
+  If wanna clean up the compilation content, you can choose one of the following two methods as your will.
+  1. exec `cd output && make clean` clean pika Compile content
+  2. exec `rm -fr output` rebuild cmake (for complete recompilation)
 ```
 
 ## Performance
@@ -108,6 +147,7 @@ More details on [Performance](docs/benchmark/performance.md).
 
 ## Contact Us
 
+Wechat: PikiwiDB (The attachment comment should be "Join Pika Wechat Group")
 
 QQ group: 294254078
 

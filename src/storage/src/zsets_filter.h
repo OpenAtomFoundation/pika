@@ -76,13 +76,13 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
   const char* Name() const override { return "ZSetsScoreFilter"; }
 
  private:
-  rocksdb::DB* db_;
-  std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_;
+  rocksdb::DB* db_ = nullptr;
+  std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
   rocksdb::ReadOptions default_read_options_;
   mutable std::string cur_key_;
-  mutable bool meta_not_found_;
-  mutable int32_t cur_meta_version_;
-  mutable int32_t cur_meta_timestamp_;
+  mutable bool meta_not_found_ = false;
+  mutable int32_t cur_meta_version_ = 0;
+  mutable int32_t cur_meta_timestamp_ = 0;
 };
 
 class ZSetsScoreFilterFactory : public rocksdb::CompactionFilterFactory {
@@ -98,8 +98,8 @@ class ZSetsScoreFilterFactory : public rocksdb::CompactionFilterFactory {
   const char* Name() const override { return "ZSetsScoreFilterFactory"; }
 
  private:
-  rocksdb::DB** db_ptr_;
-  std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_;
+  rocksdb::DB** db_ptr_ = nullptr;
+  std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
 };
 
 }  //  namespace storage

@@ -8,7 +8,7 @@
 
 const uint32_t VERSION = 1;
 
-PikaMeta::PikaMeta() : local_meta_path_("") { pthread_rwlock_init(&rwlock_, NULL); }
+PikaMeta::PikaMeta() : local_meta_path_("") { pthread_rwlock_init(&rwlock_, nullptr); }
 
 PikaMeta::~PikaMeta() { pthread_rwlock_destroy(&rwlock_); }
 
@@ -29,7 +29,7 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
   std::string tmp_file = local_meta_file;
   tmp_file.append("_tmp");
 
-  pstd::RWFile* saver = NULL;
+  pstd::RWFile* saver = nullptr;
   pstd::CreatePath(local_meta_path_);
   Status s = pstd::NewRWFile(tmp_file, &saver);
   if (!s.ok()) {
@@ -80,7 +80,7 @@ Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
     return Status::Corruption("meta file not found");
   }
 
-  pstd::RWFile* reader = NULL;
+  pstd::RWFile* reader = nullptr;
   Status s = pstd::NewRWFile(local_meta_file, &reader);
   if (!s.ok()) {
     delete reader;
@@ -88,7 +88,7 @@ Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
     return Status::Corruption("open local meta file failed");
   }
 
-  if (reader->GetData() == NULL) {
+  if (reader->GetData() == nullptr) {
     delete reader;
     LOG(WARNING) << "Meta file init error";
     return Status::Corruption("meta file init error");

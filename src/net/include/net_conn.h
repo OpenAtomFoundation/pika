@@ -7,6 +7,7 @@
 #define NET_INCLUDE_NET_CONN_H_
 
 #include <sys/time.h>
+#include <sstream>
 #include <string>
 
 #ifdef __ENABLE_SSL
@@ -17,6 +18,7 @@
 #include "net/include/net_define.h"
 #include "net/include/server_thread.h"
 #include "net/src/net_multiplexer.h"
+#include "pstd/include/testutil.h"
 
 namespace net {
 
@@ -28,7 +30,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   virtual ~NetConn();
 
   /*
-   * Set the fd to nonblock && set the flag_ the the fd flag
+   * Set the fd to nonblock && set the flag_ the fd flag
    */
   bool SetNonblock();
 
@@ -64,7 +66,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   void set_name(std::string name) { name_ = std::move(name); }
 
   bool IsClose() { return close_; }
-  void SetClose(bool close) { close_ = close; }
+  void SetClose(bool close);
 
   void set_last_interaction(const struct timeval& now) { last_interaction_ = now; }
 
@@ -76,6 +78,12 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 
   NetMultiplexer* net_multiplexer() const { return net_multiplexer_; }
 
+  std::string String() const {
+    std::stringstream ss;
+    ss << "fd: " << fd_ << ", ip_port: " << ip_port_ << ", name: " << name_ << ", is_reply: " << is_reply_ << ", close: " << close_;
+    return ss.str();
+  }
+
 #ifdef __ENABLE_SSL
   SSL* ssl() { return ssl_; }
 
@@ -83,13 +91,13 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 #endif
 
  private:
-  int fd_;
+  int fd_ = -1;
   std::string ip_port_;
-  bool is_reply_;
-  bool is_writable_;
-  bool close_;
+  bool is_reply_ = false;
+  bool is_writable_ = false;
+  bool close_ = false;
   struct timeval last_interaction_;
-  int flags_;
+  int flags_ = 0;
   std::string name_;
 
 #ifdef __ENABLE_SSL
@@ -97,9 +105,9 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 #endif
 
   // thread this conn belong to
-  Thread* thread_;
+  Thread* thread_ = nullptr;
   // the net epoll this conn belong to
-  NetMultiplexer* net_multiplexer_;
+  NetMultiplexer* net_multiplexer_ = nullptr;
 
   /*
    * No allowed copy and copy assign operator

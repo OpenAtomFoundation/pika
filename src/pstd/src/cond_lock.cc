@@ -19,7 +19,7 @@ static void PthreadCall(const char* label, int result) {
   }
 }
 
-CondLock::CondLock() { PthreadCall("init condlock", pthread_mutex_init(&mutex_, NULL)); }
+CondLock::CondLock() { PthreadCall("init condlock", pthread_mutex_init(&mutex_, nullptr)); }
 
 CondLock::~CondLock() { PthreadCall("destroy condlock", pthread_mutex_unlock(&mutex_)); }
 
@@ -35,7 +35,7 @@ void CondLock::TimedWait(uint32_t timeout) {
    * so we need gettimeofday + timeout
    */
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   struct timespec tsp;
 
   int64_t usec = now.tv_usec + timeout * 1000LL;

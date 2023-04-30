@@ -10,6 +10,8 @@
 
 #include <algorithm>
 
+#include <glog/logging.h>
+
 #include "include/build_version.h"
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
@@ -94,7 +96,7 @@ void SlaveofCmd::DoInitial() {
   }
 
   if (argv_.size() == 3 && !strcasecmp(argv_[1].data(), "no") && !strcasecmp(argv_[2].data(), "one")) {
-    is_noone_ = true;
+    is_none_ = true;
     return;
   }
 
@@ -135,7 +137,7 @@ void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
 
   g_pika_server->RemoveMaster();
 
-  if (is_noone_) {
+  if (is_none_) {
     res_.SetRes(CmdRes::kOk);
     g_pika_conf->SetSlaveof(std::string());
     return;
@@ -190,7 +192,7 @@ void DbSlaveofCmd::DoInitial() {
 
   if (argv_.size() == 4) {
     if (!strcasecmp(argv_[2].data(), "no") && !strcasecmp(argv_[3].data(), "one")) {
-      is_noone_ = true;
+      is_none_ = true;
       return;
     }
 
@@ -215,7 +217,7 @@ void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   Status s;
-  if (is_noone_) {
+  if (is_none_) {
     // In classic mode a table has only one partition
     s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_, 0);
   } else {
@@ -572,7 +574,7 @@ void ClientCmd::Do(std::shared_ptr<Partition> partition) {
 
   if (!strcasecmp(operation_.data(), "list")) {
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
     std::vector<ClientInfo> clients;
     g_pika_server->ClientList(&clients);
     std::vector<ClientInfo>::iterator iter = clients.begin();
@@ -797,7 +799,7 @@ void InfoCmd::InfoServer(std::string& info) {
     host_info_valid = true;
   }
 
-  time_t current_time_s = time(NULL);
+  time_t current_time_s = time(nullptr);
   std::stringstream tmp_stream;
   char version[32];
   snprintf(version, sizeof(version), "%d.%d.%d", PIKA_MAJOR, PIKA_MINOR, PIKA_PATCH);
@@ -1154,7 +1156,7 @@ void InfoCmd::InfoData(std::string& info) {
   tmp_stream << "db_memtable_usage:" << total_memtable_usage << "\r\n";
   tmp_stream << "db_tablereader_usage:" << total_table_reader_usage << "\r\n";
   tmp_stream << "db_fatal:" << (total_background_errors != 0 ? "1" : "0") << "\r\n";
-  tmp_stream << "db_fatal_msg:" << (total_background_errors != 0 ? db_fatal_msg_stream.str() : "NULL") << "\r\n";
+  tmp_stream << "db_fatal_msg:" << (total_background_errors != 0 ? db_fatal_msg_stream.str() : "nullptr") << "\r\n";
 
   info.append(tmp_stream.str());
   return;
@@ -1586,6 +1588,19 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "slave-priority");
     EncodeInt32(&config_body, g_pika_conf->slave_priority());
+  }
+
+  // fake string for redis-benchmark
+  if (pstd::stringmatch(pattern.data(), "save", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "save");
+    EncodeString(&config_body, "");
+  }
+
+  if (pstd::stringmatch(pattern.data(), "appendonly", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "appendonly");
+    EncodeString(&config_body, "no");
   }
 
   if (pstd::stringmatch(pattern.data(), "sync-window-size", 1)) {
@@ -2026,7 +2041,7 @@ void TimeCmd::DoInitial() {
 
 void TimeCmd::Do(std::shared_ptr<Partition> partition) {
   struct timeval tv;
-  if (gettimeofday(&tv, NULL) == 0) {
+  if (gettimeofday(&tv, nullptr) == 0) {
     res_.AppendArrayLen(2);
     char buf[32];
     int32_t len = pstd::ll2string(buf, sizeof(buf), tv.tv_sec);
@@ -2072,7 +2087,7 @@ void DelbackupCmd::Do(std::shared_ptr<Partition> partition) {
     }
 
     std::string str_date = dump_dir[i].substr(db_sync_prefix.size(), (dump_dir[i].size() - db_sync_prefix.size()));
-    char* end = NULL;
+    char* end = nullptr;
     std::strtol(str_date.c_str(), &end, 10);
     if (*end != 0) {
       continue;
@@ -2307,6 +2322,7 @@ void QuitCmd::DoInitial() {
 
 void QuitCmd::Do(std::shared_ptr<Partition> partition) {
   res_.SetRes(CmdRes::kOk);
+  LOG(INFO) << "QutCmd will close connection " << GetConn()->String();
   GetConn()->SetClose(true);
 }
 

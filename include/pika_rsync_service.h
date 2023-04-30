@@ -21,7 +21,7 @@ class PikaRsyncService {
   std::string raw_path_;
   std::string rsync_path_;
   std::string pid_path_;
-  int port_;
+  int port_ = 0;
 };
 
 #endif

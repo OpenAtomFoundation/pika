@@ -343,8 +343,8 @@ class PikaServer {
   void AutoKeepAliveRSync();
 
   std::string host_;
-  int port_;
-  time_t start_time_s_;
+  int port_ = 0;
+  time_t start_time_s_ = 0;
 
   pthread_rwlock_t storage_options_rw_;
   storage::StorageOptions storage_options_;
@@ -362,28 +362,28 @@ class PikaServer {
   /*
    * CronTask used
    */
-  bool have_scheduled_crontask_;
+  bool have_scheduled_crontask_ = false;
   struct timeval last_check_compact_time_;
 
   /*
    * Communicate with the client used
    */
-  int worker_num_;
-  PikaClientProcessor* pika_client_processor_;
-  PikaDispatchThread* pika_dispatch_thread_;
+  int worker_num_ = 0;
+  PikaClientProcessor* pika_client_processor_ = nullptr;
+  PikaDispatchThread* pika_dispatch_thread_ = nullptr;
 
   /*
    * Slave used
    */
   std::string master_ip_;
-  int master_port_;
-  int repl_state_;
-  int role_;
-  int last_meta_sync_timestamp_;
-  bool first_meta_sync_;
-  bool loop_partition_state_machine_;
-  bool force_full_sync_;
-  bool leader_protected_mode_;        // reject request after master slave sync done
+  int master_port_  = 0;
+  int repl_state_  = PIKA_REPL_NO_CONNECT;
+  int role_ = PIKA_ROLE_SINGLE;
+  int last_meta_sync_timestamp_ = 0;
+  bool first_meta_sync_ = false;
+  bool loop_partition_state_machine_ = false;
+  bool force_full_sync_ = false;
+  bool leader_protected_mode_ = false;        // reject request after master slave sync done
   pthread_rwlock_t state_protector_;  // protect below, use for master-slave mode
 
   /*
@@ -410,27 +410,27 @@ class PikaServer {
   /*
    * Monitor used
    */
-  PikaMonitorThread* pika_monitor_thread_;
+  PikaMonitorThread* pika_monitor_thread_ = nullptr;
 
   /*
    * Rsync used
    */
-  PikaRsyncService* pika_rsync_service_;
+  PikaRsyncService* pika_rsync_service_ = nullptr;
 
   /*
    * Pubsub used
    */
-  net::PubSubThread* pika_pubsub_thread_;
+  net::PubSubThread* pika_pubsub_thread_ = nullptr;
 
   /*
    * Communication used
    */
-  PikaAuxiliaryThread* pika_auxiliary_thread_;
+  PikaAuxiliaryThread* pika_auxiliary_thread_ = nullptr;
 
   /*
    * Slowlog used
    */
-  uint64_t slowlog_entry_id_;
+  uint64_t slowlog_entry_id_ = 0;
   pthread_rwlock_t slowlog_protector_;
   std::list<SlowlogEntry> slowlog_list_;
 

@@ -14,6 +14,7 @@
 
 #include "net/src/server_socket.h"
 #include "pstd/include/xdebug.h"
+#include "pstd/include/testutil.h"
 
 namespace net {
 
@@ -288,7 +289,7 @@ int ServerThread::EnableSecurity(const std::string& cert_file, const std::string
   CRYPTO_set_id_callback(SSLIdCallback);
 
   // 2. Use default configuration
-  OPENSSL_config(NULL);
+  OPENSSL_config(nullptr);
 
   // 3. Init library, load all algorithms
   SSL_library_init();

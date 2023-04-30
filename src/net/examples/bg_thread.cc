@@ -70,11 +70,11 @@ int main() {
 
   std::cout << "TimerItem Struct... " << std::endl;
   std::priority_queue<TimerItem> pq;
-  pq.push(TimerItem(1, task, NULL));
-  pq.push(TimerItem(5, task, NULL));
-  pq.push(TimerItem(3, task, NULL));
-  pq.push(TimerItem(2, task, NULL));
-  pq.push(TimerItem(4, task, NULL));
+  pq.push(TimerItem(1, task, nullptr));
+  pq.push(TimerItem(5, task, nullptr));
+  pq.push(TimerItem(3, task, nullptr));
+  pq.push(TimerItem(2, task, nullptr));
+  pq.push(TimerItem(4, task, nullptr));
 
   while (!pq.empty()) {
     printf("%ld\n", pq.top().exec_time);

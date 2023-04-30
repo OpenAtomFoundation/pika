@@ -29,7 +29,7 @@ class LIndexCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t index_;
+  int64_t index_ = 0;
   virtual void DoInitial() override;
   virtual void Clear() { index_ = 0; }
 };
@@ -145,8 +145,8 @@ class LRangeCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t left_;
-  int64_t right_;
+  int64_t left_ = 0;
+  int64_t right_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -165,7 +165,7 @@ class LRemCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t count_;
+  int64_t count_ = 0;
   std::string value_;
   virtual void DoInitial() override;
 };
@@ -185,7 +185,7 @@ class LSetCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t index_;
+  int64_t index_ = 0;
   std::string value_;
   virtual void DoInitial() override;
 };
@@ -205,8 +205,8 @@ class LTrimCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t start_;
-  int64_t stop_;
+  int64_t start_ = 0;
+  int64_t stop_ = 0;
   virtual void DoInitial() override;
 };
 

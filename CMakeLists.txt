@@ -10,6 +10,21 @@ project(pika)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 enable_testing()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  # using Clang
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0")
+    message(FATAL_ERROR "Clang version must be greater than 5.0")
+  endif()
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # using GCC
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7.0")
+    message(FATAL_ERROR "GCC G++ version must be greater than 7.0")
+  endif()
+endif()
+
+execute_process(COMMAND uname -p OUTPUT_VARIABLE HOST_ARCH)
+string(TOLOWER ${HOST_ARCH} HOST_ARCH)
+
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE RElEASE)
 endif()
@@ -31,11 +46,21 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
    set(CMAKE_CXX_FLAGS "-pthread")
    add_definitions(-DOS_MACOSX)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-   set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
-   set(CMAKE_CXX_FLAGS "-pthread -Wl,--no-as-needed -ldl")
+   if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+     set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -ldl -pthread")
+   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+     set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+     set(CMAKE_CXX_FLAGS "-pthread -Wl,--no-as-needed -ldl")
+   endif()
    add_definitions(-DOS_LINUX)
 else()
    message(FATAL_ERROR "only support linux or macOs")
+endif()
+
+if(HOST_ARCH MATCHES "x86_64" OR HOST_ARCH MATCHES "i386")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse -msse4.2")
+elseif(HOST_ARCH MATCHES "arm")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a+crc+crypto -moutline-atomics")
 endif()
 
 set(EP_BASE_SUFFIX "buildtrees")
@@ -93,11 +118,18 @@ ExternalProject_Add(gtest
 
 if(${OS_VERSION} MATCHES "CentOS")
   set(GTEST_LIBRARY ${INSTALL_LIBDIR_64}/libgtest.a)
+  set(GTEST_MAIN_LIBRARY ${INSTALL_LIBDIR_64}/libgtest_main.a)
+  set(GMOCK_LIBRARY ${INSTALL_LIBDIR_64}/libgmock.a)
 else()
   set(GTEST_LIBRARY ${INSTALL_LIBDIR}/libgtest.a)
+  set(GTEST_MAIN_LIBRARY ${INSTALL_LIBDIR}/libgtest_main.a)
+  set(GMOCK_LIBRARY ${INSTALL_LIBDIR}/libgmock.a)
 endif()
 
 set(GTEST_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+set(GTEST_MAIN_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+set(GMOCK_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
 
 ExternalProject_Add(gflags
   URL
@@ -132,7 +164,7 @@ else()
   set(LIB_GFLAGS libgflags.a)
 endif()
 
-set(GFLAGS_LIBRARY ${INSTALL_LIBDIR}/LIB_GFLAGS)
+set(GFLAGS_LIBRARY ${INSTALL_LIBDIR}/${LIB_GFLAGS})
 set(GFLAGS_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -464,7 +496,7 @@ else()
 endif()
 
 set(PROTOBUF_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
-set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/LIB_PROTOBUF)
+set(PROTOBUF_LIBRARY ${INSTALL_LIBDIR}/${LIB_PROTOBUF})
 set(PROTOBUF_PROTOC ${STAGED_INSTALL_PREFIX}/bin/protoc)
 
 ExternalProject_Add(rocksdb
@@ -478,9 +510,9 @@ ExternalProject_Add(rocksdb
   ${LIBGPERF_NAME}
   ${LIBJEMALLOC_NAME}
   URL
-  https://github.com/facebook/rocksdb/archive/refs/tags/v7.7.3.tar.gz
+  https://github.com/facebook/rocksdb/archive/refs/tags/v8.1.1.tar.gz
   URL_HASH
-  MD5=3c5d371a8bd8340b1975ad016151709d
+  MD5=3b4c97ee45df9c8a5517308d31ab008b
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -512,6 +544,7 @@ ExternalProject_Add(rocksdb
   -DWITH_ZLIB=ON
   -DWITH_ZSTD=ON
   -DWITH_GFLAGS=ON
+  -DFAIL_ON_WARNINGS=OFF
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
@@ -560,6 +593,7 @@ message("pika GIT_TAG = ${PIKA_GIT_TAG}")
 message("pika BUILD_DATE = ${PIKA_BUILD_DATE}")
 
 set(PIKA_BUILD_VERSION_CC ${CMAKE_BINARY_DIR}/pika_build_version.cc)
+message("PIKA_BUILD_VERSION_CC : " ${PIKA_BUILD_VERSION_CC})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/build_version.cc.in ${PIKA_BUILD_VERSION_CC} @ONLY)
 
 set(PROTO_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/pika_inner_message.proto)
@@ -614,3 +648,5 @@ target_link_libraries(${PROJECT_NAME}
   libz.a
   ${LIBUNWIND_LIBRARY}
   ${JEMALLOC_LIBRARY})
+
+option(USE_SSL "Enable SSL support" OFF)

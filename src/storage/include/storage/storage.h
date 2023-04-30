@@ -25,22 +25,22 @@
 
 namespace storage {
 
-const double ZSET_SCORE_MAX = std::numeric_limits<double>::max();
-const double ZSET_SCORE_MIN = std::numeric_limits<double>::lowest();
+inline constexpr double ZSET_SCORE_MAX = std::numeric_limits<double>::max();
+inline constexpr double ZSET_SCORE_MIN = std::numeric_limits<double>::lowest();
 
-const std::string PROPERTY_TYPE_ROCKSDB_MEMTABLE = "rocksdb.cur-size-all-mem-tables";
-const std::string PROPERTY_TYPE_ROCKSDB_TABLE_READER = "rocksdb.estimate-table-readers-mem";
-const std::string PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS = "rocksdb.background-errors";
+inline const std::string PROPERTY_TYPE_ROCKSDB_MEMTABLE = "rocksdb.cur-size-all-mem-tables";
+inline const std::string PROPERTY_TYPE_ROCKSDB_TABLE_READER = "rocksdb.estimate-table-readers-mem";
+inline const std::string PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS = "rocksdb.background-errors";
 
-const std::string ALL_DB = "all";
-const std::string STRINGS_DB = "strings";
-const std::string HASHES_DB = "hashes";
-const std::string LISTS_DB = "lists";
-const std::string ZSETS_DB = "zsets";
-const std::string SETS_DB = "sets";
+inline const std::string ALL_DB = "all";
+inline const std::string STRINGS_DB = "strings";
+inline const std::string HASHES_DB = "hashes";
+inline const std::string LISTS_DB = "lists";
+inline const std::string ZSETS_DB = "zsets";
+inline const std::string SETS_DB = "sets";
 
-const size_t BATCH_DELETE_LIMIT = 100;
-const size_t COMPACT_THRESHOLD_COUNT = 2000;
+inline constexpr size_t BATCH_DELETE_LIMIT = 100;
+inline constexpr size_t COMPACT_THRESHOLD_COUNT = 2000;
 
 using Options = rocksdb::Options;
 using BlockBasedTableOptions = rocksdb::BlockBasedTableOptions;

@@ -49,7 +49,7 @@ std::string DbSyncPath(const std::string& sync_path, const std::string& table_na
 }
 
 Partition::Partition(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path)
-    : table_name_(table_name), partition_id_(partition_id), bgsave_engine_(NULL) {
+    : table_name_(table_name), partition_id_(partition_id), bgsave_engine_(nullptr) {
   db_path_ = g_pika_conf->classic_mode() ? table_db_path : PartitionPath(table_db_path, partition_id_);
   bgsave_sub_path_ = g_pika_conf->classic_mode() ? table_name : BgsaveSubPath(table_name_, partition_id_);
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, partition_id_, g_pika_conf->classic_mode());
@@ -312,7 +312,7 @@ void Partition::DoBgSave(void* arg) {
   std::ofstream out;
   out.open(info.path + "/" + kBgsaveInfoFile, std::ios::in | std::ios::trunc);
   if (out.is_open()) {
-    out << (time(NULL) - info.start_time) << "s\n"
+    out << (time(nullptr) - info.start_time) << "s\n"
         << g_pika_server->host() << "\n"
         << g_pika_server->port() << "\n"
         << info.offset.b_offset.filenum << "\n"
@@ -359,7 +359,7 @@ bool Partition::RunBgsaveEngine() {
 bool Partition::InitBgsaveEnv() {
   pstd::MutexLock l(&bgsave_protector_);
   // Prepare for bgsave dir
-  bgsave_info_.start_time = time(NULL);
+  bgsave_info_.start_time = time(nullptr);
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y%m%d%H%M%S", localtime(&bgsave_info_.start_time));
   bgsave_info_.s_start_time.assign(s_time, len);
@@ -481,7 +481,7 @@ bool Partition::FlushSubDB(const std::string& db_name) {
 }
 
 void Partition::InitKeyScan() {
-  key_scan_info_.start_time = time(NULL);
+  key_scan_info_.start_time = time(nullptr);
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
@@ -509,6 +509,6 @@ Status Partition::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
     return Status::Corruption(s.ToString());
   }
   key_scan_info_.key_infos = *key_info;
-  key_scan_info_.duration = time(NULL) - key_scan_info_.start_time;
+  key_scan_info_.duration = time(nullptr) - key_scan_info_.start_time;
   return Status::OK();
 }

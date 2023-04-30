@@ -117,7 +117,7 @@ void ClientThread::SetWaitConnectOnEpoll(int sockfd) {
 
 void ClientThread::NewConnection(const std::string& peer_ip, int peer_port, int sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, NULL, net_multiplexer_.get());
+  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, nullptr, net_multiplexer_.get());
   tc->SetNonblock();
   // This flag specifies that the file descriptor should be closed when an exec function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
@@ -141,7 +141,7 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
   if ((rv = getaddrinfo(dst_ip.c_str(), cport, &hints, &servinfo)) != 0) {
     return Status::IOError("connect getaddrinfo error for ", dst_ip);
   }
-  for (p = servinfo; p != NULL; p = p->ai_next) {
+  for (p = servinfo; p != nullptr; p = p->ai_next) {
     if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
       continue;
     }
@@ -179,7 +179,7 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
 
     return s;
   }
-  if (p == NULL) {
+  if (p == nullptr) {
     s = Status::IOError(strerror(errno), "Can't create socket ");
     return s;
   }
@@ -209,7 +209,7 @@ void ClientThread::CleanUpConnRemaining(const std::string& ip_port) {
 
 void ClientThread::DoCronTask() {
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   std::map<int, std::shared_ptr<NetConn>>::iterator iter = fd_conns_.begin();
   while (iter != fd_conns_.end()) {
     std::shared_ptr<NetConn> conn = iter->second;
@@ -291,8 +291,8 @@ void ClientThread::InternalDebugPrint() {
   log_info("___________________________________\n");
 }
 
-void ClientThread::NotifyWrite(const std::string ip_port) {
-  // put fd = 0, cause this lib user doesnt need to know which fd to write to
+void ClientThread::NotifyWrite(const std::string& ip_port) {
+  // put fd = 0, cause this lib user does not need to know which fd to write to
   // we will check fd by checking ipport_conns_
   NetItem ti(0, ip_port, kNotiWrite);
   net_multiplexer_->Register(ti, true);
@@ -358,10 +358,10 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
 
 void* ClientThread::ThreadMain() {
   int nfds = 0;
-  NetFiredEvent* pfe = NULL;
+  NetFiredEvent* pfe = nullptr;
 
   struct timeval when;
-  gettimeofday(&when, NULL);
+  gettimeofday(&when, nullptr);
   struct timeval now = when;
 
   when.tv_sec += (cron_interval_ / 1000);
@@ -394,7 +394,7 @@ void* ClientThread::ThreadMain() {
     nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe == NULL) {
+      if (pfe == nullptr) {
         continue;
       }
 

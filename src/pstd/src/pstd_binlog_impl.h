@@ -79,18 +79,18 @@ class BinlogImpl : public Binlog {
 
  private:
   Mutex mutex_;
-  bool exit_all_consume_;
+  bool exit_all_consume_ = false;
   std::string path_;
-  uint64_t file_size_;
-  uint32_t pro_num_;
-  uint64_t record_num_;
+  uint64_t file_size_ = 0;
+  uint32_t pro_num_ = 0;
+  uint64_t record_num_ = 0;
 
-  Version* version_;
-  WritableFile* queue_;
-  RWFile* versionfile_;
+  Version* version_ = nullptr;
+  WritableFile* queue_ = nullptr;
+  RWFile* versionfile_ = nullptr;
 
-  int block_offset_;
-  char* pool_;
+  int block_offset_ = 0;
+  char* pool_ = nullptr;
 
   // std::unordered_map<uint32_t, MemTable*> memtables_;
 
@@ -113,9 +113,9 @@ class Version {
   // RWLock should be held when access members.
   Status StableSave();
 
-  uint64_t pro_offset_;
-  uint32_t pro_num_;
-  uint32_t item_num_;
+  uint64_t pro_offset_ = 0;
+  uint32_t pro_num_ = 0;
+  uint32_t item_num_ = 0;
 
   RWMutex rwlock_;
 
@@ -125,7 +125,7 @@ class Version {
   }
 
  private:
-  RWFile* save_;
+  RWFile* save_ = nullptr;
 
   // Not used
   // uint64_t con_offset_;
@@ -156,18 +156,18 @@ class BinlogReaderImpl : public BinlogReader {
   // Return next record end offset in a block, store in result if error encounted.
   uint64_t GetNext(Status& result);
 
-  Binlog* log_;
+  Binlog* log_ = nullptr;
   std::string path_;
-  uint32_t filenum_;
-  uint64_t offset_;
+  uint32_t filenum_ = 0;
+  uint64_t offset_ = 0;
   std::atomic<bool> should_exit_;
 
   // not used
-  uint64_t initial_offset_;
-  uint64_t last_record_offset_;
-  uint64_t end_of_buffer_offset_;
+  uint64_t initial_offset_ = 0;
+  uint64_t last_record_offset_ = 0;
+  uint64_t end_of_buffer_offset_ = 0;
 
-  SequentialFile* queue_;
+  SequentialFile* queue_ = nullptr;
   char* const backing_store_;
   Slice buffer_;
 

@@ -484,7 +484,7 @@ void PkClusterSlotsSlaveofCmd::DoInitial() {
   }
 
   if (!strcasecmp(argv_[2].data(), "no") && !strcasecmp(argv_[3].data(), "one")) {
-    is_noone_ = true;
+    is_none_ = true;
   } else {
     ip_ = argv_[2];
     if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &port_) || port_ <= 0) {
@@ -565,7 +565,7 @@ void PkClusterSlotsSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
       res_.SetRes(CmdRes::kErrOther, "Slot " + std::to_string(slot) + " not found!");
       return;
     }
-    if (is_noone_) {
+    if (is_none_) {
       // check okay
     } else if (slave_partition->State() == ReplState::kConnected && slave_partition->MasterIp() == ip_ &&
                slave_partition->MasterPort() == port_) {
@@ -592,7 +592,7 @@ void PkClusterSlotsSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
       // reset state
       slave_partition->SetReplState(ReplState::kNoConnect);
     }
-    if (is_noone_) {
+    if (is_none_) {
     } else {
       s = g_pika_rm->ActivateSyncSlavePartition(RmNode(ip_, port_, table_name_, slot), state);
       if (!s.ok()) {

@@ -31,11 +31,11 @@ class PikaSlavepingThread : public net::Thread {
   Status RecvProc();
 
  private:
-  int64_t sid_;
-  bool is_first_send_;
+  int64_t sid_ = 0;
+  bool is_first_send_ = true;
 
-  int sockfd_;
-  net::NetCli* cli_;
+  int sockfd_ = -1;
+  net::NetCli* cli_ = nullptr;
 
   virtual void* ThreadMain();
 };

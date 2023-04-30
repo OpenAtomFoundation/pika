@@ -172,7 +172,7 @@ RedisParser::RedisParser()
       bulk_len_(-1),
       redis_parser_type_(REDIS_PARSER_REQUEST),
       cur_pos_(0),
-      input_buf_(NULL),
+      input_buf_(nullptr),
       length_(0) {}
 
 void RedisParser::SetParserStatus(RedisParserStatus status, RedisParserError error) {
@@ -304,8 +304,8 @@ void RedisParser::PrintCurrentStatus() {
   //   log_info("parsed arguments: %s", i.c_str());
   // }
   log_info("cur_pos : %d", cur_pos_);
-  log_info("input_buf_ is clean ? %d", input_buf_ == NULL);
-  if (input_buf_ != NULL) {
+  log_info("input_buf_ is clean ? %d", input_buf_ == nullptr);
+  if (input_buf_ != nullptr) {
     log_info(" input_buf %s", input_buf_);
   }
   log_info("half_argv_ : %s", half_argv_.c_str());
@@ -401,7 +401,7 @@ void RedisParser::ResetCommandStatus() {
 
 void RedisParser::ResetRedisParser() {
   cur_pos_ = 0;
-  input_buf_ = NULL;
+  input_buf_ = nullptr;
   input_str_.clear();
   length_ = 0;
 }

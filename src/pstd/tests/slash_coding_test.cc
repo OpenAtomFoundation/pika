@@ -9,14 +9,18 @@
 
 #include <vector>
 
+#include "gtest/gtest.h"
 #include "pstd/include/pstd_coding.h"
-#include "pstd/include/pstd_testharness.h"
+#include "pstd_status.h"
 
 namespace pstd {
 
-class Coding {};
+class Coding : public ::testing::Test {
+ public:
+  void ASSERT_OK(const Status& s) { ASSERT_TRUE(s.ok()); }
+};
 
-TEST(Coding, Fixed32) {
+TEST_F(Coding, Fixed32) {
   std::string s;
   for (uint32_t v = 0; v < 100000; v++) {
     PutFixed32(&s, v);
@@ -30,7 +34,7 @@ TEST(Coding, Fixed32) {
   }
 }
 
-TEST(Coding, Fixed64) {
+TEST_F(Coding, Fixed64) {
   std::string s;
   for (int power = 0; power <= 63; power++) {
     uint64_t v = static_cast<uint64_t>(1) << power;
@@ -58,7 +62,7 @@ TEST(Coding, Fixed64) {
 }
 
 // Test that encoding routines generate little-endian encodings
-TEST(Coding, EncodingOutput) {
+TEST_F(Coding, EncodingOutput) {
   std::string dst;
   PutFixed32(&dst, 0x04030201);
   ASSERT_EQ(4, dst.size());
@@ -80,7 +84,7 @@ TEST(Coding, EncodingOutput) {
   ASSERT_EQ(0x08, static_cast<int>(dst[7]));
 }
 
-TEST(Coding, Varint32) {
+TEST_F(Coding, Varint32) {
   std::string s;
   for (uint32_t i = 0; i < (32 * 32); i++) {
     uint32_t v = (i / 32) << (i % 32);
@@ -94,14 +98,14 @@ TEST(Coding, Varint32) {
     uint32_t actual;
     const char* start = p;
     p = GetVarint32Ptr(p, limit, &actual);
-    ASSERT_TRUE(p != NULL);
+    ASSERT_TRUE(p != nullptr);
     ASSERT_EQ(expected, actual);
     ASSERT_EQ(VarintLength(actual), p - start);
   }
   ASSERT_EQ(p, s.data() + s.size());
 }
 
-TEST(Coding, Varint64) {
+TEST_F(Coding, Varint64) {
   // Construct the list of values to check
   std::vector<uint64_t> values;
   // Some special values
@@ -129,50 +133,50 @@ TEST(Coding, Varint64) {
     uint64_t actual;
     const char* start = p;
     p = GetVarint64Ptr(p, limit, &actual);
-    ASSERT_TRUE(p != NULL);
+    ASSERT_TRUE(p != nullptr);
     ASSERT_EQ(values[i], actual);
     ASSERT_EQ(VarintLength(actual), p - start);
   }
   ASSERT_EQ(p, limit);
 }
 
-TEST(Coding, Varint32Overflow) {
+TEST_F(Coding, Varint32Overflow) {
   uint32_t result;
   std::string input("\x81\x82\x83\x84\x85\x11");
-  ASSERT_TRUE(GetVarint32Ptr(input.data(), input.data() + input.size(), &result) == NULL);
+  ASSERT_TRUE(GetVarint32Ptr(input.data(), input.data() + input.size(), &result) == nullptr);
 }
 
-TEST(Coding, Varint32Truncation) {
+TEST_F(Coding, Varint32Truncation) {
   uint32_t large_value = (1u << 31) + 100;
   std::string s;
   PutVarint32(&s, large_value);
   uint32_t result;
   for (size_t len = 0; len < s.size() - 1; len++) {
-    ASSERT_TRUE(GetVarint32Ptr(s.data(), s.data() + len, &result) == NULL);
+    ASSERT_TRUE(GetVarint32Ptr(s.data(), s.data() + len, &result) == nullptr);
   }
-  ASSERT_TRUE(GetVarint32Ptr(s.data(), s.data() + s.size(), &result) != NULL);
+  ASSERT_TRUE(GetVarint32Ptr(s.data(), s.data() + s.size(), &result) != nullptr);
   ASSERT_EQ(large_value, result);
 }
 
-TEST(Coding, Varint64Overflow) {
+TEST_F(Coding, Varint64Overflow) {
   uint64_t result;
   std::string input("\x81\x82\x83\x84\x85\x81\x82\x83\x84\x85\x11");
-  ASSERT_TRUE(GetVarint64Ptr(input.data(), input.data() + input.size(), &result) == NULL);
+  ASSERT_TRUE(GetVarint64Ptr(input.data(), input.data() + input.size(), &result) == nullptr);
 }
 
-TEST(Coding, Varint64Truncation) {
+TEST_F(Coding, Varint64Truncation) {
   uint64_t large_value = (1ull << 63) + 100ull;
   std::string s;
   PutVarint64(&s, large_value);
   uint64_t result;
   for (size_t len = 0; len < s.size() - 1; len++) {
-    ASSERT_TRUE(GetVarint64Ptr(s.data(), s.data() + len, &result) == NULL);
+    ASSERT_TRUE(GetVarint64Ptr(s.data(), s.data() + len, &result) == nullptr);
   }
-  ASSERT_TRUE(GetVarint64Ptr(s.data(), s.data() + s.size(), &result) != NULL);
+  ASSERT_TRUE(GetVarint64Ptr(s.data(), s.data() + s.size(), &result) != nullptr);
   ASSERT_EQ(large_value, result);
 }
 
-TEST(Coding, Strings) {
+TEST_F(Coding, Strings) {
   std::string s;
   PutLengthPrefixedString(&s, "");
   PutLengthPrefixedString(&s, "foo");

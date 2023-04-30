@@ -10,6 +10,7 @@
 #include "net/include/net_thread.h"
 #include "net/include/server_thread.h"
 #include "net/include/simple_http_conn.h"
+#include "net_multiplexer.h"
 #include "pstd/include/pstd_status.h"
 
 using namespace net;
@@ -44,7 +45,7 @@ class MyHTTPConn : public net::SimpleHTTPConn {
 class MyConnFactory : public ConnFactory {
  public:
   virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, NetEpoll* net_epoll) const {
+                                              void* worker_specific_data, NetMultiplexer* net_epoll) const {
     return std::make_shared<MyHTTPConn>(connfd, ip_port, thread);
   }
 };

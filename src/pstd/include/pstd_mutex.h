@@ -16,6 +16,8 @@ class Mutex {
   ~Mutex();
 
   void Lock();
+  //if lock return 0; else return errorno
+  int Trylock();
   void Unlock();
   void AssertHeld() {}
 
@@ -45,7 +47,7 @@ class RWLock {
   }
 
  private:
-  int res;
+  int res = -1;
   pthread_rwlock_t* const mu_;
   // No copying allowed
   RWLock(const RWLock&);
@@ -111,7 +113,7 @@ class CondVar {
 
  private:
   pthread_cond_t cv_;
-  Mutex* mu_;
+  Mutex* mu_ = nullptr;
 };
 
 class MutexLock {
@@ -145,7 +147,7 @@ class RefMutex {
 
  private:
   pthread_mutex_t mu_;
-  int refs_;
+  int refs_ = 0;
 
   // No copying
   RefMutex(const RefMutex&);

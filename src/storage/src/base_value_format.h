@@ -53,10 +53,10 @@ class InternalValue {
 
  protected:
   char space_[200];
-  char* start_;
+  char* start_ = nullptr;
   rocksdb::Slice user_value_;
-  int32_t version_;
-  int32_t timestamp_;
+  int32_t version_ = 0;
+  int32_t timestamp_ = 0;
 };
 
 class ParsedInternalValue {
@@ -113,10 +113,10 @@ class ParsedInternalValue {
  protected:
   virtual void SetVersionToValue() = 0;
   virtual void SetTimestampToValue() = 0;
-  std::string* value_;
+  std::string* value_ = nullptr;
   rocksdb::Slice user_value_;
-  int32_t version_;
-  int32_t timestamp_;
+  int32_t version_ = 0 ;
+  int32_t timestamp_ = 0;
 };
 
 }  //  namespace storage

@@ -29,7 +29,7 @@ class BitGetCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t bit_offset_;
+  int64_t bit_offset_ = -1;
   virtual void Clear() {
     key_ = "";
     bit_offset_ = -1;

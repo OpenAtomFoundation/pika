@@ -9,6 +9,7 @@
 #include "net/include/net_conn.h"
 #include "net/include/net_thread.h"
 #include "net/include/redis_conn.h"
+#include "net/src/net_multiplexer.h"
 
 using namespace net;
 
@@ -41,7 +42,8 @@ int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
 class MyConnFactory : public ConnFactory {
  public:
   virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
-                                              void* worker_specific_data, net::NetEpoll* net_epoll = nullptr) const {
+                                              void* worker_specific_data,
+                                              net::NetMultiplexer* net_epoll = nullptr) const override {
     return std::make_shared<MyConn>(connfd, ip_port, thread, worker_specific_data);
   }
 };
@@ -96,7 +98,7 @@ int main(int argc, char* argv[]) {
   ConnFactory* conn_factory = new MyConnFactory();
   ClientHandle* handle = new ClientHandle();
 
-  client = new ClientThread(conn_factory, 3000, 60, handle, NULL);
+  client = new ClientThread(conn_factory, 3000, 60, handle, nullptr);
 
   if (client->StartThread() != 0) {
     printf("StartThread error happened!\n");

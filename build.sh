@@ -7,7 +7,7 @@ C_GREEN="\033[32m"
 C_END="\033[0m"
 
 CMAKE_MIN_VERSION="3.18"
-TAR_MIN_VERSION="1.34"
+TAR_MIN_VERSION="1.26"
 
 BUILD_DIR=output
 
@@ -97,7 +97,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-CPU_CORE=`cat /proc/cpuinfo| grep "processor"| wc -l`
+if [ ! -f "/proc/cpuinfo" ];then
+  CPU_CORE=$(sysctl -n hw.ncpu)
+else
+  CPU_CORE=$(cat /proc/cpuinfo| grep "processor"| wc -l)
+fi
 if [ ${CPU_CORE} -eq 0 ]; then
   CPU_CORE=1
 fi

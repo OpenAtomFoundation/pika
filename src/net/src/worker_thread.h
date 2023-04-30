@@ -52,12 +52,12 @@ class WorkerThread : public Thread {
   mutable pstd::RWMutex rwlock_; /* For external statistics */
   std::map<int, std::shared_ptr<NetConn>> conns_;
 
-  void* private_data_;
+  void* private_data_ = nullptr;
 
  private:
-  ServerThread* server_thread_;
-  ConnFactory* conn_factory_;
-  int cron_interval_;
+  ServerThread* server_thread_ = nullptr;
+  ConnFactory* conn_factory_ = nullptr;
+  int cron_interval_ = 0;
 
   /*
    * The epoll handler

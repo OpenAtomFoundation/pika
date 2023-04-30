@@ -20,7 +20,7 @@
  */
 class SlaveofCmd : public Cmd {
  public:
-  SlaveofCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), is_noone_(false) {}
+  SlaveofCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), is_none_(false) {}
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
   virtual void Merge(){};
@@ -28,11 +28,11 @@ class SlaveofCmd : public Cmd {
 
  private:
   std::string master_ip_;
-  int64_t master_port_;
-  bool is_noone_;
+  int64_t master_port_ = -1;
+  bool is_none_ = false;
   virtual void DoInitial() override;
   virtual void Clear() {
-    is_noone_ = false;
+    is_none_ = false;
     master_ip_.clear();
     master_port_ = 0;
   }
@@ -48,16 +48,16 @@ class DbSlaveofCmd : public Cmd {
 
  private:
   std::string db_name_;
-  bool force_sync_;
-  bool is_noone_;
-  bool have_offset_;
-  int64_t filenum_;
-  int64_t offset_;
+  bool force_sync_ = false;
+  bool is_none_ = false;
+  bool have_offset_ = false;
+  int64_t filenum_ = 0;
+  int64_t offset_ = 0;
   virtual void DoInitial() override;
   virtual void Clear() {
     db_name_.clear();
     force_sync_ = false;
-    is_noone_ = false;
+    is_none_ = false;
     have_offset_ = false;
   }
 };
@@ -116,7 +116,7 @@ class PurgelogstoCmd : public Cmd {
   virtual Cmd* Clone() override { return new PurgelogstoCmd(*this); }
 
  private:
-  uint32_t num_;
+  uint32_t num_ = 0;
   std::string table_;
   virtual void DoInitial() override;
 };
@@ -216,8 +216,8 @@ class InfoCmd : public Cmd {
 
  private:
   InfoSection info_section_;
-  bool rescan_;  // whether to rescan the keyspace
-  bool off_;
+  bool rescan_ = false;  // whether to rescan the keyspace
+  bool off_ = false;
   std::set<std::string> keyspace_scan_tables_;
 
   const static std::string kInfoSection;
@@ -350,7 +350,7 @@ class ScandbCmd : public Cmd {
   virtual Cmd* Clone() override { return new ScandbCmd(*this); }
 
  private:
-  storage::DataType type_;
+  storage::DataType type_ = storage::kAll;
   virtual void DoInitial() override;
   virtual void Clear() { type_ = storage::kAll; }
 };
@@ -365,8 +365,8 @@ class SlowlogCmd : public Cmd {
   virtual Cmd* Clone() override { return new SlowlogCmd(*this); }
 
  private:
-  int64_t number_;
-  SlowlogCmd::SlowlogCondition condition_;
+  int64_t number_ = 10;
+  SlowlogCmd::SlowlogCondition condition_ = kGET;
   virtual void DoInitial() override;
   virtual void Clear() {
     number_ = 10;
@@ -413,7 +413,7 @@ class PKPatternMatchDelCmd : public Cmd {
   virtual Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
 
  private:
-  storage::DataType type_;
+  storage::DataType type_ = storage::kAll;
   std::string pattern_;
   virtual void DoInitial() override;
 };

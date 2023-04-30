@@ -26,10 +26,10 @@ class HyperLogLog {
   std::string Merge(const HyperLogLog& hll);
 
  protected:
-  uint32_t m_;  // register bit width
-  uint32_t b_;  // regieter size
-  double alpha_;
-  char* register_;  // register;
+  uint32_t m_ = 0;  // register bit width
+  uint32_t b_ = 0;  // regieter size
+  double alpha_ = 0;
+  char* register_ = nullptr;  // register;
 };
 
 }  // namespace storage

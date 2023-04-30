@@ -22,6 +22,13 @@ RedisSets::RedisSets(Storage* const s, const DataType& type) : Redis(s, type) {
   spop_counts_store_->SetCapacity(1000);
 }
 
+RedisSets::~RedisSets() {
+  if (spop_counts_store_ != nullptr) {
+    delete spop_counts_store_;
+    spop_counts_store_ = nullptr;
+  }
+}
+
 rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std::string& db_path) {
   statistics_store_->SetCapacity(storage_options.statistics_max_size);
   small_compaction_threshold_ = storage_options.small_compaction_threshold;
@@ -81,9 +88,9 @@ rocksdb::Status RedisSets::CompactRange(const rocksdb::Slice* begin, const rocks
 rocksdb::Status RedisSets::GetProperty(const std::string& property, uint64_t* out) {
   std::string value;
   db_->GetProperty(handles_[0], property, &value);
-  *out = std::strtoull(value.c_str(), NULL, 10);
+  *out = std::strtoull(value.c_str(), nullptr, 10);
   db_->GetProperty(handles_[1], property, &value);
-  *out += std::strtoull(value.c_str(), NULL, 10);
+  *out += std::strtoull(value.c_str(), nullptr, 10);
   return rocksdb::Status::OK();
 }
 
@@ -779,7 +786,7 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::string* member, bool* nee
     } else if (parsed_sets_meta_value.count() == 0) {
       return rocksdb::Status::NotFound();
     } else {
-      engine.seed(time(NULL));
+      engine.seed(time(nullptr));
       int32_t cur_index = 0;
       int32_t size = parsed_sets_meta_value.count();
       int32_t target_index = engine() % (size < 50 ? size : 50);
@@ -829,7 +836,7 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
   }
 
   members->clear();
-  int32_t last_seed = time(NULL);
+  int32_t last_seed = time(nullptr);
   std::default_random_engine engine;
 
   std::string meta_value;
@@ -1425,7 +1432,7 @@ void RedisSets::ScanDatabase() {
   ScopeSnapshot ss(db_, &snapshot);
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
-  int32_t current_time = time(NULL);
+  int32_t current_time = time(nullptr);
 
   printf("\n***************Sets Meta Data***************\n");
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);

@@ -52,5 +52,5 @@ void* PikaAuxiliaryThread::ThreadMain() {
       // LOG_EVERY_N(INFO, 1000) << "Consume binlog number " << res;
     }
   }
-  return NULL;
+  return nullptr;
 }

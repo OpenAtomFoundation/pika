@@ -137,7 +137,7 @@ static int LockOrUnlock(int fd, bool lock) {
 }
 
 Status LockFile(const std::string& fname, FileLock** lock) {
-  *lock = NULL;
+  *lock = nullptr;
   Status result;
   int fd = open(fname.c_str(), O_RDWR | O_CREAT, 0644);
   if (fd < 0) {
@@ -168,11 +168,11 @@ int GetChildren(const std::string& dir, std::vector<std::string>& result) {
   int res = 0;
   result.clear();
   DIR* d = opendir(dir.c_str());
-  if (d == NULL) {
+  if (d == nullptr) {
     return errno;
   }
   struct dirent* entry;
-  while ((entry = readdir(d)) != NULL) {
+  while ((entry = readdir(d)) != nullptr) {
     if (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) {
       continue;
     }
@@ -184,12 +184,12 @@ int GetChildren(const std::string& dir, std::vector<std::string>& result) {
 
 bool GetDescendant(const std::string& dir, std::vector<std::string>& result) {
   DIR* d = opendir(dir.c_str());
-  if (d == NULL) {
+  if (d == nullptr) {
     return false;
   }
   struct dirent* entry;
   std::string fname;
-  while ((entry = readdir(d)) != NULL) {
+  while ((entry = readdir(d)) != nullptr) {
     if (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) {
       continue;
     }
@@ -227,14 +227,14 @@ int IsDir(const std::string& path) {
 
 int DeleteDir(const std::string& path) {
   char chBuf[256];
-  DIR* dir = NULL;
+  DIR* dir = nullptr;
   struct dirent* ptr;
   int ret = 0;
   dir = opendir(path.c_str());
-  if (NULL == dir) {
+  if (nullptr == dir) {
     return -1;
   }
-  while ((ptr = readdir(dir)) != NULL) {
+  while ((ptr = readdir(dir)) != nullptr) {
     ret = strcmp(ptr->d_name, ".");
     if (0 == ret) {
       continue;
@@ -285,7 +285,7 @@ uint64_t Du(const std::string& filename) {
   }
   sum = statbuf.st_size;
   if (S_ISDIR(statbuf.st_mode)) {
-    DIR* dir = NULL;
+    DIR* dir = nullptr;
     struct dirent* entry;
     std::string newfile;
 
@@ -307,7 +307,7 @@ uint64_t Du(const std::string& filename) {
 
 uint64_t NowMicros() {
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, nullptr);
   return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
 }
 
@@ -318,12 +318,12 @@ SequentialFile::~SequentialFile() {}
 class PosixSequentialFile : public SequentialFile {
  private:
   std::string filename_;
-  FILE* file_;
+  FILE* file_ = nullptr;
 
  public:
-  virtual void setUnBuffer() { setbuf(file_, NULL); }
+  virtual void setUnBuffer() { setbuf(file_, nullptr); }
 
-  PosixSequentialFile(const std::string& fname, FILE* f) : filename_(fname), file_(f) { setbuf(file_, NULL); }
+  PosixSequentialFile(const std::string& fname, FILE* f) : filename_(fname), file_(f) { setbuf(file_, nullptr); }
 
   virtual ~PosixSequentialFile() {
     if (file_) {
@@ -362,7 +362,7 @@ class PosixSequentialFile : public SequentialFile {
     if (fclose(file_) != 0) {
       return IOError(filename_, errno);
     }
-    file_ = NULL;
+    file_ = nullptr;
     return Status::OK();
   }
 };
@@ -376,18 +376,18 @@ WritableFile::~WritableFile() {}
 class PosixMmapFile : public WritableFile {
  private:
   std::string filename_;
-  int fd_;
-  size_t page_size_;
-  size_t map_size_;       // How much extra memory to map at a time
-  char* base_;            // The mapped region
-  char* limit_;           // Limit of the mapped region
-  char* dst_;             // Where to write next  (in range [base_,limit_])
-  char* last_sync_;       // Where have we synced up to
-  uint64_t file_offset_;  // Offset of base_ in file
-  uint64_t write_len_;    // The data that written in the file
+  int fd_ = -1;
+  size_t page_size_      = 0;
+  size_t map_size_       = 0;       // How much extra memory to map at a time
+  char* base_            = nullptr; // The mapped region
+  char* limit_           = nullptr; // Limit of the mapped region
+  char* dst_             = nullptr; // Where to write next  (in range [base_,limit_])
+  char* last_sync_       = nullptr; // Where have we synced up to
+  uint64_t file_offset_  = 0;       // Offset of base_ in file
+  uint64_t write_len_    = 0;       // The data that written in the file
 
   // Have we done an munmap of unsynced data?
-  bool pending_sync_;
+  bool pending_sync_ = false;
 
   // Roundup x to a multiple of y
   static size_t Roundup(size_t x, size_t y) { return ((x + y - 1) / y) * y; }
@@ -401,7 +401,7 @@ class PosixMmapFile : public WritableFile {
 
   bool UnmapCurrentRegion() {
     bool result = true;
-    if (base_ != NULL) {
+    if (base_ != nullptr) {
       if (last_sync_ < limit_) {
         // Defer syncing this data until next Sync() call, if any
         pending_sync_ = true;
@@ -410,10 +410,10 @@ class PosixMmapFile : public WritableFile {
         result = false;
       }
       file_offset_ += limit_ - base_;
-      base_ = NULL;
-      limit_ = NULL;
-      last_sync_ = NULL;
-      dst_ = NULL;
+      base_ = nullptr;
+      limit_ = nullptr;
+      last_sync_ = nullptr;
+      dst_ = nullptr;
 
       // Increase the amount we map the next time, but capped at 1MB
       if (map_size_ < (1 << 20)) {
@@ -424,7 +424,7 @@ class PosixMmapFile : public WritableFile {
   }
 
   bool MapNewRegion() {
-    assert(base_ == NULL);
+    assert(base_ == nullptr);
 #if defined(__APPLE__)
     if (ftruncate(fd_, file_offset_ + map_size_) != 0) {
 #else
@@ -434,7 +434,7 @@ class PosixMmapFile : public WritableFile {
       return false;
     }
     // log_info("map_size %d fileoffset %llu", map_size_, file_offset_);
-    void* ptr = mmap(NULL, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, file_offset_);
+    void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, file_offset_);
     if (ptr == MAP_FAILED) {
       log_warn("mmap failed");
       return false;
@@ -453,10 +453,10 @@ class PosixMmapFile : public WritableFile {
         fd_(fd),
         page_size_(page_size),
         map_size_(Roundup(kMmapBoundSize, page_size)),
-        base_(NULL),
-        limit_(NULL),
-        dst_(NULL),
-        last_sync_(NULL),
+        base_(nullptr),
+        limit_(nullptr),
+        dst_(nullptr),
+        last_sync_(nullptr),
         file_offset_(0),
         write_len_(write_len),
         pending_sync_(false) {
@@ -514,8 +514,8 @@ class PosixMmapFile : public WritableFile {
     }
 
     fd_ = -1;
-    base_ = NULL;
-    limit_ = NULL;
+    base_ = nullptr;
+    limit_ = nullptr;
     return s;
   }
 
@@ -571,7 +571,7 @@ RWFile::~RWFile() {}
 class MmapRWFile : public RWFile {
  public:
   MmapRWFile(const std::string& fname, int fd, size_t page_size)
-      : filename_(fname), fd_(fd), page_size_(page_size), map_size_(Roundup(65536, page_size)), base_(NULL) {
+      : filename_(fname), fd_(fd), page_size_(page_size), map_size_(Roundup(65536, page_size)), base_(nullptr) {
     DoMapRegion();
   }
 
@@ -589,7 +589,7 @@ class MmapRWFile : public RWFile {
 #endif
       return false;
     }
-    void* ptr = mmap(NULL, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
+    void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
     if (ptr == MAP_FAILED) {
       return false;
     }
@@ -603,18 +603,18 @@ class MmapRWFile : public RWFile {
  private:
   static size_t Roundup(size_t x, size_t y) { return ((x + y - 1) / y) * y; }
   std::string filename_;
-  int fd_;
-  size_t page_size_;
-  size_t map_size_;
-  char* base_;
+  int fd_ = -1;
+  size_t page_size_ = 0;
+  size_t map_size_ = 0;
+  char* base_ = nullptr;
 };
 
 class PosixRandomRWFile : public RandomRWFile {
  private:
   const std::string filename_;
-  int fd_;
-  bool pending_sync_;
-  bool pending_fsync_;
+  int fd_ = -1;
+  bool pending_sync_ = false;
+  bool pending_fsync_ = false;
   // bool fallocate_with_keep_size_;
 
  public:
@@ -721,8 +721,8 @@ class PosixRandomRWFile : public RandomRWFile {
 
 Status NewSequentialFile(const std::string& fname, SequentialFile** result) {
   FILE* f = fopen(fname.c_str(), "r");
-  if (f == NULL) {
-    *result = NULL;
+  if (f == nullptr) {
+    *result = nullptr;
     return IOError(fname, errno);
   } else {
     *result = new PosixSequentialFile(fname, f);
@@ -734,7 +734,7 @@ Status NewWritableFile(const std::string& fname, WritableFile** result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_TRUNC | O_CLOEXEC, 0644);
   if (fd < 0) {
-    *result = NULL;
+    *result = nullptr;
     s = IOError(fname, errno);
   } else {
     *result = new PosixMmapFile(fname, fd, kPageSize);
@@ -746,7 +746,7 @@ Status NewRWFile(const std::string& fname, RWFile** result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
-    *result = NULL;
+    *result = nullptr;
     s = IOError(fname, errno);
   } else {
     *result = new MmapRWFile(fname, fd, kPageSize);
@@ -758,7 +758,7 @@ Status AppendWritableFile(const std::string& fname, WritableFile** result, uint6
   Status s;
   const int fd = open(fname.c_str(), O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
-    *result = NULL;
+    *result = nullptr;
     s = IOError(fname, errno);
   } else {
     *result = new PosixMmapFile(fname, fd, kPageSize, write_len);
@@ -770,7 +770,7 @@ Status NewRandomRWFile(const std::string& fname, RandomRWFile** result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR, 0644);
   if (fd < 0) {
-    *result = NULL;
+    *result = nullptr;
     s = IOError(fname, errno);
   } else {
     *result = new PosixRandomRWFile(fname, fd);

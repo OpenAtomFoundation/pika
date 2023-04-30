@@ -20,7 +20,7 @@ std::string NewFileName(const std::string name, const uint32_t current) {
 }
 
 // Version
-Version::Version(RWFile* save) : pro_offset_(0), pro_num_(0), item_num_(0), save_(save) { assert(save_ != NULL); }
+Version::Version(RWFile* save) : pro_offset_(0), pro_num_(0), item_num_(0), save_(save) { assert(save_ != nullptr); }
 
 Version::~Version() { StableSave(); }
 
@@ -36,7 +36,7 @@ Status Version::StableSave() {
 
 Status Version::Init() {
   Status s;
-  if (save_->GetData() != NULL) {
+  if (save_->GetData() != nullptr) {
     memcpy((char*)(&pro_offset_), save_->GetData(), sizeof(uint64_t));
     memcpy((char*)(&item_num_), save_->GetData() + 16, sizeof(uint32_t));
     memcpy((char*)(&pro_num_), save_->GetData() + 20, sizeof(uint32_t));
@@ -48,7 +48,7 @@ Status Version::Init() {
 
 // Binlog
 Status Binlog::Open(const std::string& path, Binlog** logptr) {
-  *logptr = NULL;
+  *logptr = nullptr;
 
   BinlogImpl* impl = new BinlogImpl(path, kBinlogSize);
   Status s = impl->Recover();
@@ -61,7 +61,7 @@ Status Binlog::Open(const std::string& path, Binlog** logptr) {
 }
 
 BinlogImpl::BinlogImpl(const std::string& path, const int file_size)
-    : exit_all_consume_(false), path_(path), file_size_(file_size), version_(NULL), queue_(NULL), versionfile_(NULL) {
+    : exit_all_consume_(false), path_(path), file_size_(file_size), version_(nullptr), queue_(nullptr), versionfile_(nullptr) {
   if (path_.back() != '/') {
     path_.push_back('/');
   }
@@ -118,7 +118,7 @@ BinlogImpl::~BinlogImpl() {
 }
 
 void BinlogImpl::InitOffset() {
-  assert(queue_ != NULL);
+  assert(queue_ != nullptr);
   uint64_t filesize = queue_->Filesize();
   block_offset_ = filesize % kBlockSize;
 }
@@ -138,7 +138,7 @@ Status BinlogImpl::Append(const std::string& item) {
   uint64_t filesize = queue_->Filesize();
   if (filesize > file_size_) {
     delete queue_;
-    queue_ = NULL;
+    queue_ = nullptr;
 
     pro_num_++;
     std::string profile = NewFileName(path_ + kBinlogPrefix, pro_num_);
@@ -173,7 +173,7 @@ Status BinlogImpl::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, i
 
   uint64_t now;
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, nullptr);
   now = tv.tv_sec;
   buf[0] = static_cast<char>(n & 0xff);
   buf[1] = static_cast<char>((n & 0xff00) >> 8);
@@ -263,7 +263,7 @@ Status BinlogImpl::AppendBlank(WritableFile* file, uint64_t len) {
   char buf[kBlockSize];
   uint64_t now;
   struct timeval tv;
-  gettimeofday(&tv, NULL);
+  gettimeofday(&tv, nullptr);
   now = tv.tv_sec;
   buf[0] = static_cast<char>(n & 0xff);
   buf[1] = static_cast<char>((n & 0xff00) >> 8);
@@ -326,20 +326,20 @@ BinlogReader* BinlogImpl::NewBinlogReader(uint32_t filenum, uint64_t offset) {
   uint64_t cur_offset = 0;
   GetProducerStatus(&cur_filenum, &cur_offset);
   if (cur_filenum < filenum || (cur_filenum == filenum && cur_offset < offset)) {
-    return NULL;
+    return nullptr;
   }
 
   std::string confile = NewFileName(path_ + kBinlogPrefix, filenum);
   if (!pstd::FileExists(confile)) {
     // Not found binlog specified by filenum
-    return NULL;
+    return nullptr;
   }
 
   BinlogReaderImpl* reader = new BinlogReaderImpl(this, path_, filenum, offset);
   Status s = reader->Trim();
   if (!s.ok()) {
     log_info("Trim offset failed: %s", s.ToString().c_str());
-    return NULL;
+    return nullptr;
   }
 
   return reader;
@@ -354,7 +354,7 @@ BinlogReaderImpl::BinlogReaderImpl(Binlog* log, const std::string& path, uint32_
       initial_offset_(0),
       last_record_offset_(offset_ % kBlockSize),
       end_of_buffer_offset_(kBlockSize),
-      queue_(NULL),
+      queue_(nullptr),
       backing_store_(new char[kBlockSize]) {
   std::string confile = NewFileName(path_ + kBinlogPrefix, filenum_);
   if (!NewSequentialFile(confile, &queue_).ok()) {
@@ -540,7 +540,7 @@ Status BinlogReaderImpl::ReadRecord(std::string& scratch) {
       // Roll to next File
       if (FileExists(confile)) {
         delete queue_;
-        queue_ = NULL;
+        queue_ = nullptr;
         NewSequentialFile(confile, &(queue_));
 
         filenum_++;
