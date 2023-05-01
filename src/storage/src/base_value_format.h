@@ -11,6 +11,7 @@
 #include "rocksdb/env.h"
 #include "rocksdb/slice.h"
 #include "src/coding.h"
+#include "src/redis.h"
 
 namespace storage {
 
@@ -24,10 +25,14 @@ class InternalValue {
     }
   }
   void set_timestamp(int32_t timestamp = 0) { timestamp_ = timestamp; }
-  void SetRelativeTimestamp(int32_t ttl) {
+  Status SetRelativeTimestamp(int32_t ttl) {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     timestamp_ = static_cast<int32_t>(unix_time) + ttl;
+    if (timestamp_ != unix_time + static_cast<int64_t>(ttl)) {
+      return Status::InvalidArgument("invalid expire time");
+    }
+    return Status::OK();
   }
   void set_version(int32_t version = 0) { version_ = version; }
   static const size_t kDefaultValueSuffixLength = sizeof(int32_t) * 2;

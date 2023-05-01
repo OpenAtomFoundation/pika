@@ -690,7 +690,10 @@ Status RedisStrings::Setex(const Slice& key, const Slice& value, int32_t ttl) {
     return Status::InvalidArgument("invalid expire time");
   }
   StringsValue strings_value(value);
-  strings_value.SetRelativeTimestamp(ttl);
+  auto s = strings_value.SetRelativeTimestamp(ttl);
+  if (s != Status::OK()) {
+    return s;
+  }
   ScopeRecordLock l(lock_mgr_, key);
   return db_->Put(default_write_options_, key, strings_value.Encode());
 }
