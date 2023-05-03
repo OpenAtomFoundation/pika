@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <algorithm>
 
+#include <glog/logging.h>
+
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/xdebug.h"
@@ -291,7 +293,9 @@ void BaseConf::DumpConf() const {
   int cnt = 1;
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kConf) {
-      printf("%2d %s %s\n", cnt++, rep_->item[i].name.c_str(), rep_->item[i].value.c_str());
+      char buf[256];
+      int len = snprintf(buf, sizeof(buf), "%2d %s %s\n", cnt++, rep_->item[i].name.c_str(), rep_->item[i].value.c_str());
+      LOG(INFO) << buf;
     }
   }
 }
