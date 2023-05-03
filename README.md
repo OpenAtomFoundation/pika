@@ -68,7 +68,7 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 #### Dependencies
 
-* gcc g++, C++11 support (version>=4.8)
+* gcc g++, C++17 support (version>=7)
 * make
 * cmake (version>=3.18)
 * autoconf
@@ -77,7 +77,7 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 #### Compile
 
-Upgrade your gcc to version at least 4.8 to get C++11 support.
+Upgrade your gcc to version at least 7 to get C++17 support.
 
 1. Get the source code
 
