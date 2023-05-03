@@ -10,6 +10,8 @@
 #include <memory>
 #include <random>
 
+#include <glog/logging.h>
+
 #include "src/base_filter.h"
 #include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
@@ -1434,7 +1436,7 @@ void RedisSets::ScanDatabase() {
   iterator_options.fill_cache = false;
   int32_t current_time = time(nullptr);
 
-  printf("\n***************Sets Meta Data***************\n");
+  LOG(INFO) << "***************Sets Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);
   for (meta_iter->SeekToFirst(); meta_iter->Valid(); meta_iter->Next()) {
     ParsedSetsMetaValue parsed_sets_meta_value(meta_iter->value());
@@ -1445,18 +1447,24 @@ void RedisSets::ScanDatabase() {
                           : -1;
     }
 
-    printf("[key : %-30s] [count : %-10d] [timestamp : %-10d] [version : %d] [survival_time : %d]\n",
-           meta_iter->key().ToString().c_str(), parsed_sets_meta_value.count(), parsed_sets_meta_value.timestamp(),
-           parsed_sets_meta_value.version(), survival_time);
+    char buf[256];
+    int len = snprintf(buf, sizeof(buf), "[key : %-30s] [count : %-10d] [timestamp : %-10d] [version : %d] [survival_time : %d]\n",
+                       meta_iter->key().ToString().c_str(), parsed_sets_meta_value.count(), parsed_sets_meta_value.timestamp(),
+                       parsed_sets_meta_value.version(), survival_time);
+    LOG(INFO) << buf;
   }
   delete meta_iter;
 
-  printf("\n***************Sets Member Data***************\n");
+  LOG(INFO) << "***************Sets Member Data***************";
   auto member_iter = db_->NewIterator(iterator_options, handles_[1]);
   for (member_iter->SeekToFirst(); member_iter->Valid(); member_iter->Next()) {
     ParsedSetsMemberKey parsed_sets_member_key(member_iter->key());
-    printf("[key : %-30s] [member : %-20s] [version : %d]\n", parsed_sets_member_key.key().ToString().c_str(),
-           parsed_sets_member_key.member().ToString().c_str(), parsed_sets_member_key.version());
+
+    char buf[256];
+    int len = snprintf(buf, sizeof(buf), "[key : %-30s] [member : %-20s] [version : %d]\n",
+                       parsed_sets_member_key.key().ToString().c_str(),
+                       parsed_sets_member_key.member().ToString().c_str(), parsed_sets_member_key.version());
+    LOG(INFO) << buf;
   }
   delete member_iter;
 }

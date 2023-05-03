@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include <glog/logging.h>
+
 #include "rocksdb/compaction_filter.h"
 
 #include "base_filter.h"
@@ -26,11 +28,12 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     ParsedZSetsScoreKey parsed_zsets_score_key(key);
-    TRACE("==========================START==========================");
-    TRACE("[ScoreFilter], key: %s, score = %lf, member = %s, version = %d",
-          parsed_zsets_score_key.key().ToString().c_str(), parsed_zsets_score_key.score(),
-          parsed_zsets_score_key.member().ToString().c_str(), parsed_zsets_score_key.version());
-
+    LOG(ERROR) << "==========================START==========================";
+    char buf[256];
+    int len = snprintf(buf, sizeof(buf), "[ScoreFilter], key: %s, score = %lf, member = %s, version = %d",
+                       parsed_zsets_score_key.key().ToString().c_str(), parsed_zsets_score_key.score(),
+                       parsed_zsets_score_key.member().ToString().c_str(), parsed_zsets_score_key.version());
+    LOG(ERROR) << buf;
     if (parsed_zsets_score_key.key().ToString() != cur_key_) {
       cur_key_ = parsed_zsets_score_key.key().ToString();
       std::string meta_value;
@@ -48,27 +51,27 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
         meta_not_found_ = true;
       } else {
         cur_key_ = "";
-        TRACE("Reserve[Get meta_key faild]");
+        LOG(ERROR) << "Reserve[Get meta_key faild]";
         return false;
       }
     }
 
     if (meta_not_found_) {
-      TRACE("Drop[Meta key not exist]");
+      LOG(ERROR) << "Drop[Meta key not exist]";
       return true;
     }
 
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     if (cur_meta_timestamp_ != 0 && cur_meta_timestamp_ < static_cast<int32_t>(unix_time)) {
-      TRACE("Drop[Timeout]");
+      LOG(ERROR) << "Drop[Timeout]";
       return true;
     }
     if (cur_meta_version_ > parsed_zsets_score_key.version()) {
-      TRACE("Drop[score_key_version < cur_meta_version]");
+      LOG(ERROR) << "Drop[score_key_version < cur_meta_version]";
       return true;
     } else {
-      TRACE("Reserve[score_key_version == cur_meta_version]");
+      LOG(ERROR) << "Reserve[score_key_version == cur_meta_version]";
       return false;
     }
   }

@@ -9,6 +9,8 @@
 #include <memory>
 #include <string>
 
+#include <glog/logging.h>
+
 #include "rocksdb/compaction_filter.h"
 #include "src/debug.h"
 #include "src/strings_value_format.h"
@@ -24,15 +26,17 @@ class StringsFilter : public rocksdb::CompactionFilter {
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
     int32_t cur_time = static_cast<int32_t>(unix_time);
     ParsedStringsValue parsed_strings_value(value);
-    TRACE("==========================START==========================");
-    TRACE("[StringsFilter], key: %s, value = %s, timestamp: %d, cur_time: %d", key.ToString().c_str(),
-          parsed_strings_value.value().ToString().c_str(), parsed_strings_value.timestamp(), cur_time);
+    LOG(ERROR) << "==========================START==========================";
+    char buf[256];
+    int len = snprintf(buf, sizeof(buf), "[StringsFilter], key: %s, value = %s, timestamp: %d, cur_time: %d", key.ToString().c_str(),
+                       parsed_strings_value.value().ToString().c_str(), parsed_strings_value.timestamp(), cur_time);
+    LOG(ERROR) << buf;
 
     if (parsed_strings_value.timestamp() != 0 && parsed_strings_value.timestamp() < cur_time) {
-      TRACE("Drop[Stale]");
+      LOG(ERROR) << "Drop[Stale]";
       return true;
     } else {
-      TRACE("Reserve");
+      LOG(ERROR) << "Reserve";
       return false;
     }
   }
