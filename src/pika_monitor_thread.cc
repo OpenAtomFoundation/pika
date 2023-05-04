@@ -168,22 +168,24 @@ void* PikaMonitorThread::ThreadMain() {
       }
     }
     messages_transfer = "+";
-    for (std::deque<std::string>::iterator iter = messages_deque.begin(); iter != messages_deque.end(); ++iter) {
-      messages_transfer.append(iter->data(), iter->size());
-      messages_transfer.append("\n");
+    for (const auto& msg : messages_deque) {
+      messages_transfer.append(msg.data(), msg.size());
+      messages_transfer.append(" ", 1);
     }
     if (messages_transfer == "+") {
       continue;
     }
-    messages_transfer.replace(messages_transfer.size() - 1, 1, "\r\n", 0, 2);
-    monitor_mutex_protector_.Lock();
+
+    messages_transfer.pop_back(); // no space follow last param
+    messages_transfer.append("\r\n", 2);
+
+    pstd::MutexLock lm(&monitor_mutex_protector_);
     for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
       write_status = SendMessage(iter->fd, messages_transfer);
       if (write_status == net::kWriteError) {
         cron_tasks_.push({TASK_KILL, iter->ip_port});
       }
     }
-    monitor_mutex_protector_.Unlock();
   }
   return nullptr;
 }
