@@ -75,7 +75,7 @@ std::string PikaBinlogTransverter::BinlogEncode(BinlogType type, uint32_t exec_t
 bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& binlog, BinlogItem* binlog_item) {
   uint16_t binlog_type = 0;
   uint32_t content_length = 0;
-  std::string binlog_str = binlog;
+  Slice binlog_str = binlog;
   pstd::GetFixed16(&binlog_str, &binlog_type);
   if (binlog_type != type) {
     LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
@@ -98,11 +98,15 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& bin
 }
 
 /*
- * *************************************************Type First Binlog Item
- * Format************************************************** |  <Type>  | <Create Time> |  <Term Id>  | <Binlog Logic Id>
- * | <File Num> | <Offset> | <Content Length> |       <Content>      | | 2 Bytes  |    4 Bytes    |   4 Bytes   |      8
- * Bytes      |   4 Bytes  |  8 Bytes |     4 Bytes      | content length Bytes |
- * |---------------------------------------------- 34 Bytes -----------------------------------------------|
+/******************* Type First Binlog Item Format ******************
+ * +-----------------------------------------------------------------+
+ * | Type (2 bytes) | Create Time (4 bytes) | Term Id (4 bytes)      |
+ * |-----------------------------------------------------------------|
+ * | Logic Id (8 bytes) | File Num (4 bytes) | Offset (8 bytes)      |
+ * |-----------------------------------------------------------------|
+ * | Content Length (4 bytes) | Content (content length bytes)       |
+ * +-----------------------------------------------------------------+
+ * |------------------------ 34 Bytes -------------------------------|
  *
  * content: *2\r\n$7\r\npadding\r\n$00001\r\n***\r\n
  *          length of *** -> total_len - PADDING_BINLOG_PROTOCOL_SIZE - SPACE_STROE_PARAMETER_LENGTH;
@@ -154,7 +158,7 @@ std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type, uint3
 bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(BinlogType type, const std::string& binlog,
                                                            BinlogItem* binlog_item) {
   uint16_t binlog_type = 0;
-  std::string binlog_str = binlog;
+  Slice binlog_str = binlog;
   pstd::GetFixed16(&binlog_str, &binlog_type);
   if (binlog_type != type) {
     LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
