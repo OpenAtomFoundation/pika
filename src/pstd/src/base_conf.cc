@@ -293,9 +293,7 @@ void BaseConf::DumpConf() const {
   int cnt = 1;
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kConf) {
-      char buf[256];
-      int len = snprintf(buf, sizeof(buf), "%2d %s %s\n", cnt++, rep_->item[i].name.c_str(), rep_->item[i].value.c_str());
-      LOG(INFO) << buf;
+      LOG(INFO) << cnt++ << " " << rep_->item[i].name.c_str() << " " << rep_->item[i].value.c_str();
     }
   }
 }
