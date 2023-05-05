@@ -7,6 +7,8 @@
 
 #include <memory>
 
+#include <glog/logging.h>
+
 #include "src/base_filter.h"
 #include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
@@ -1284,7 +1286,7 @@ void RedisHashes::ScanDatabase() {
   iterator_options.fill_cache = false;
   int32_t current_time = time(nullptr);
 
-  printf("\n***************Hashes Meta Data***************\n");
+  LOG(INFO) << "***************Hashes Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);
   for (meta_iter->SeekToFirst(); meta_iter->Valid(); meta_iter->Next()) {
     ParsedHashesMetaValue parsed_hashes_meta_value(meta_iter->value());
@@ -1295,19 +1297,19 @@ void RedisHashes::ScanDatabase() {
                           : -1;
     }
 
-    printf("[key : %-30s] [count : %-10d] [timestamp : %-10d] [version : %d] [survival_time : %d]\n",
-           meta_iter->key().ToString().c_str(), parsed_hashes_meta_value.count(), parsed_hashes_meta_value.timestamp(),
-           parsed_hashes_meta_value.version(), survival_time);
+    LOG(INFO) << "[key : " << meta_iter->key().ToString() << "] [count: " << parsed_hashes_meta_value.count() << "] [timestamp : "
+              << parsed_hashes_meta_value.timestamp() << "] [version : " << parsed_hashes_meta_value.version() << "] [sursurvival_time"
+              << " : " << survival_time << "]";
   }
   delete meta_iter;
 
-  printf("\n***************Hashes Field Data***************\n");
+  LOG(INFO) << "***************Hashes Field Data***************";
   auto field_iter = db_->NewIterator(iterator_options, handles_[1]);
   for (field_iter->SeekToFirst(); field_iter->Valid(); field_iter->Next()) {
     ParsedHashesDataKey parsed_hashes_data_key(field_iter->key());
-    printf("[key : %-30s] [field : %-20s] [value : %-20s] [version : %d]\n",
-           parsed_hashes_data_key.key().ToString().c_str(), parsed_hashes_data_key.field().ToString().c_str(),
-           field_iter->value().ToString().c_str(), parsed_hashes_data_key.version());
+    
+    LOG(INFO) << "[key: " << parsed_hashes_data_key.key().ToString() << "] [field : " << parsed_hashes_data_key.field().ToString()
+              << "] [value : " << field_iter->value().ToString() << "] [version : " << parsed_hashes_data_key.version() << "]";
   }
   delete field_iter;
 }

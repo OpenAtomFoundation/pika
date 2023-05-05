@@ -7,6 +7,8 @@
 #define INCLUDE_CUSTOM_COMPARATOR_H_
 #include "string"
 
+#include <glog/logging.h>
+
 #include "src/coding.h"
 #include "rocksdb/comparator.h"
 
@@ -155,8 +157,8 @@ class ZSetsScoreKeyComparatorImpl : public rocksdb::Comparator {
     ptr += sizeof(uint64_t);
 
     std::string member(ptr, str.size() - (key_len + 2 * sizeof(int32_t) + sizeof(uint64_t)));
-    printf("%s: total_len[%lu], key_len[%d], key[%s], version[%d], score[%lf], member[%s]\n", from.data(), str.size(),
-           key_len, key.data(), version, score, member.data());
+    LOG(INFO) << from.data() << ": total_len[" << str.size() << "], key_len[" << key_len << "], key[" << key.data() << "], "
+              << "version[ " << version << "], score[" << score << "], member[" << member.data() << "]";
   }
 
   // Advanced functions: these are used to reduce the space requirements

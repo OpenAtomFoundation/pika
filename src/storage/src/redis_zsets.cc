@@ -10,6 +10,8 @@
 #include <map>
 #include <memory>
 
+#include <glog/logging.h>
+
 #include "iostream"
 #include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
@@ -1740,7 +1742,7 @@ void RedisZSets::ScanDatabase() {
   iterator_options.fill_cache = false;
   int32_t current_time = time(nullptr);
 
-  printf("\n***************ZSets Meta Data***************\n");
+  LOG(INFO) << "***************ZSets Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);
   for (meta_iter->SeekToFirst(); meta_iter->Valid(); meta_iter->Next()) {
     ParsedZSetsMetaValue parsed_zsets_meta_value(meta_iter->value());
@@ -1751,13 +1753,13 @@ void RedisZSets::ScanDatabase() {
                           : -1;
     }
 
-    printf("[key : %-30s] [count : %-10d] [timestamp : %-10d] [version : %d] [survival_time : %d]\n",
-           meta_iter->key().ToString().c_str(), parsed_zsets_meta_value.count(), parsed_zsets_meta_value.timestamp(),
-           parsed_zsets_meta_value.version(), survival_time);
+    LOG(INFO) << "[key : " << meta_iter->key().ToString() << "] [count : " << parsed_zsets_meta_value.count() << "] [timestamp : "
+              << parsed_zsets_meta_value.timestamp() << "] [version : " << parsed_zsets_meta_value.version() << "] [survival_time : "
+              << survival_time << "]";
   }
   delete meta_iter;
 
-  printf("\n***************ZSets Member To Score Data***************\n");
+  LOG(INFO) << "***************ZSets Member To Score Data***************";
   auto member_iter = db_->NewIterator(iterator_options, handles_[1]);
   for (member_iter->SeekToFirst(); member_iter->Valid(); member_iter->Next()) {
     ParsedZSetsMemberKey parsed_zsets_member_key(member_iter->key());
@@ -1766,19 +1768,19 @@ void RedisZSets::ScanDatabase() {
     const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
     double score = *reinterpret_cast<const double*>(ptr_tmp);
 
-    printf("[key : %-30s] [member : %-20s] [score : %-20lf] [version : %d]\n",
-           parsed_zsets_member_key.key().ToString().c_str(), parsed_zsets_member_key.member().ToString().c_str(), score,
-           parsed_zsets_member_key.version());
+    LOG(INFO) << "[key : " << parsed_zsets_member_key.key().ToString() << "] [member : " << parsed_zsets_member_key.member().ToString()
+              << "] [score : " << score << "] [version : " << parsed_zsets_member_key.version() << "]";
   }
   delete member_iter;
 
-  printf("\n***************ZSets Score To Member Data***************\n");
+  LOG(INFO) << "***************ZSets Score To Member Data***************";
   auto score_iter = db_->NewIterator(iterator_options, handles_[2]);
   for (score_iter->SeekToFirst(); score_iter->Valid(); score_iter->Next()) {
     ParsedZSetsScoreKey parsed_zsets_score_key(score_iter->key());
-    printf("[key : %-30s] [score : %-20lf] [member : %-20s] [version : %d]\n",
-           parsed_zsets_score_key.key().ToString().c_str(), parsed_zsets_score_key.score(),
-           parsed_zsets_score_key.member().ToString().c_str(), parsed_zsets_score_key.version());
+    
+    LOG(INFO) << "[key : " << parsed_zsets_score_key.key().ToString() << "] [score : " << parsed_zsets_score_key.score()
+              << "] [member : " << parsed_zsets_score_key.member().ToString() << "] [version : " << parsed_zsets_score_key.version()
+              << "]";
   }
   delete score_iter;
 }
