@@ -114,7 +114,6 @@ Status Storage::Open(const StorageOptions& storage_options, const std::string& d
   s = hashes_db_->Open(storage_options, AppendSubDirectory(db_path, "hashes"));
   if (!s.ok()) {
     LOG(ERROR) << "[FATAL] open hashes db failed, " << s.ToString();
-    exit(-1);
   }
 
   sets_db_ = new RedisSets(this, kSets);
