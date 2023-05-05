@@ -69,7 +69,7 @@ CAS 暂时不支持, 目前只支持eval的方式来跑lua脚本，需要配合T
 
 ### 你们如何保证数据迁移的过程中多个 Proxy 不会读到老的数据 (迁移的原子性) ? 
 
-见 [Codis 数据迁移流程](https://it.cha138.com/shida/show-458242.html)
+见 [Codis 数据迁移流程](https://blog.csdn.net/qq_33339479/article/details/116060069)
 
 ### Codis支持etcd吗 ? 
 
