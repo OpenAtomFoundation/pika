@@ -43,5 +43,6 @@ target_include_directories(pstd
 
 target_link_libraries(pstd
     PUBLIC ${GLOG_LIBRARY}
-           ${GFLAGS_LIBRARY} 
+           ${GFLAGS_LIBRARY}
+           ${LIBUNWIND_LIBRARY}
 )
