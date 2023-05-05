@@ -40,3 +40,8 @@ target_include_directories(pstd
            ${PROJECT_SOURCE_DIR}/include
            ${INSTALL_INCLUDEDIR}
 )
+
+target_link_libraries(pstd
+    PUBLIC ${GLOG_LIBRARY}
+           ${GFLAGS_LIBRARY} 
+)

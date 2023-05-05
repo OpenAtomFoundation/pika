@@ -1770,7 +1770,6 @@ void RedisZSets::ScanDatabase() {
 
     LOG(INFO) << "[key : " << parsed_zsets_member_key.key().ToString() << "] [member : " << parsed_zsets_member_key.member().ToString()
               << "] [score : " << score << "] [version : " << parsed_zsets_member_key.version() << "]";
-=======
   }
   delete member_iter;
 
