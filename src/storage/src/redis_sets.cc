@@ -820,6 +820,75 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::string* member, bool* nee
   return db_->Write(default_write_options_, &batch);
 }
 
+rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* members, bool* need_compact, int64_t cnt) {
+  std::default_random_engine engine;
+
+  std::string meta_value;
+  rocksdb::WriteBatch batch;
+  ScopeRecordLock l(lock_mgr_, key);
+
+  uint64_t start_us = pstd::NowMicros();
+  Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
+  if (s.ok()) {
+    ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
+    if (parsed_sets_meta_value.IsStale()) {
+      return Status::NotFound("Stale");
+    } else if (parsed_sets_meta_value.count() == 0) {
+      return Status::NotFound();
+    } else {
+      int32_t length = parsed_sets_meta_value.count();
+      if (length < cnt) {
+        return Status::NotSupported("Not enough");
+      }
+
+      engine.seed(time(NULL));
+      int32_t cur_index = 0;
+      int32_t size = parsed_sets_meta_value.count();
+      int32_t target_index = -1;
+      int32_t version = parsed_sets_meta_value.version();
+      std::unordered_set<int32_t> sets_index;
+      int32_t modnum = size;
+
+      for (int64_t cur_round = 0;
+          cur_round < cnt;
+          cur_round++) {
+        do {
+          target_index = engine() % modnum;
+        } while (sets_index.find(target_index) != sets_index.end());
+        sets_index.insert(target_index);
+      }
+
+      SetsMemberKey sets_member_key(key, version, Slice());
+      auto iter = db_->NewIterator(default_read_options_, handles_[1]);
+      for (iter->Seek(sets_member_key.Encode());
+          iter->Valid() && cur_index < size;
+          iter->Next(), cur_index++) {
+        if (sets_index.find(cur_index) != sets_index.end()) {
+          batch.Delete(handles_[1], iter->key());
+          ParsedSetsMemberKey parsed_sets_member_key(iter->key());
+          members->push_back(parsed_sets_member_key.member().ToString());
+
+          parsed_sets_meta_value.ModifyCount(-1);
+          batch.Put(handles_[0], key, meta_value);
+        }
+      }
+      delete iter;
+      
+    }
+  } else {
+    return s;
+  }
+  uint64_t count = 0;
+  uint64_t duration = pstd::NowMicros() - start_us;
+  AddAndGetSpopCount(key.ToString(), &count);
+  if (duration >= SPOP_COMPACT_THRESHOLD_DURATION
+    || count >= SPOP_COMPACT_THRESHOLD_COUNT) {
+    *need_compact = true;
+    ResetSpopCount(key.ToString());
+  }
+  return db_->Write(default_write_options_, &batch);
+}
+
 rocksdb::Status RedisSets::ResetSpopCount(const std::string& key) { return spop_counts_store_->Remove(key); }
 
 rocksdb::Status RedisSets::AddAndGetSpopCount(const std::string& key, uint64_t* count) {

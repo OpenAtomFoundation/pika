@@ -424,6 +424,9 @@ class Storage {
   // Removes and returns one random elements from the set value store at key.
   Status SPop(const Slice& key, std::string* member);
 
+  // Removes and returns several random elements specified by count from the set value store at key.
+  Status SPop(const Slice& key, std::vector<std::string>* members, int64_t count);
+  
   // When called with just the key argument, return a random element from the
   // set value stored at key.
   // when called with the additional count argument, return an array of count

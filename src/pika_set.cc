@@ -32,20 +32,39 @@ void SAddCmd::Do(std::shared_ptr<Partition> partition) {
 }
 
 void SPopCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
+
+  size_t argc = argv_.size(), index = 2;
+  if (!CheckArg(argc) && !CheckArg(argc - 1)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
     return;
   }
+  
   key_ = argv_[1];
+  count_ = 1;
+
+  if (index < argc) {
+    if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_)) {
+      res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
+      return;
+    }
+    if (count_ <= 0) {
+      res_.SetRes(CmdRes::kErrOther, kCmdNameSPop);
+      return;
+    }
+  }
+  
   return;
 }
 
 void SPopCmd::Do(std::shared_ptr<Partition> partition) {
-  std::string member;
-  rocksdb::Status s = partition->db()->SPop(key_, &member);
+  std::vector<std::string> members;
+  rocksdb::Status s = partition->db()->SPop(key_, &members, count_);
   if (s.ok()) {
-    res_.AppendStringLen(member.size());
-    res_.AppendContent(member);
+    res_.AppendArrayLen(members.size());
+    for (const auto& member : members) {
+      res_.AppendStringLen(member.size());
+      res_.AppendContent(member);
+    }
   } else if (s.IsNotFound()) {
     res_.AppendContent("$-1");
   } else {
