@@ -12,6 +12,6 @@ A tool to transfer data for redis from one to another, it also support any redis
 #### Usage
 
 ``` shell
-make
-cd output/tools && ./aof_to_pika -h # for more information
+../../build.sh
+cd ../../output/tools && ./aof_to_pika -h # for more information
 ```
