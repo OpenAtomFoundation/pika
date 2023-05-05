@@ -30,8 +30,8 @@ int main() {
   std::thread t4(Func, &mgr, 4, "key_4");
 
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  Status s;
-  s = mgr.TryLock("key_1");
+
+  auto s = mgr.TryLock("key_1");
   printf("thread main TryLock key_1 ret %s\n", s.ToString().c_str());
   mgr.UnLock("key_1");
   printf("thread main UnLock key_1\n");

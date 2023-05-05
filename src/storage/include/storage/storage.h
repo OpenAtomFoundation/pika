@@ -47,7 +47,6 @@ using BlockBasedTableOptions = rocksdb::BlockBasedTableOptions;
 using Status = rocksdb::Status;
 using Slice = rocksdb::Slice;
 
-class Mutex;
 class RedisStrings;
 class RedisHashes;
 class RedisSets;

@@ -8,16 +8,13 @@
 
 #include "src/mutex.h"
 
+#include "pstd/include/mutex_impl.h"
+
 #include <memory>
 
 namespace storage {
 
-// Default implementation of MutexFactory.
-class MutexFactoryImpl : public MutexFactory {
- public:
-  std::shared_ptr<Mutex> AllocateMutex() override;
-  std::shared_ptr<CondVar> AllocateCondVar() override;
-};
+using MutexFactoryImpl = pstd::lock::MutexFactoryImpl;
 
 }  //  namespace storage
 #endif  // SRC_MUTEX_IMPL_H_
