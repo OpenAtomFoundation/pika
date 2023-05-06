@@ -168,7 +168,7 @@ void PkClusterInfoCmd::ClusterInfoSlotRange(const std::string& table_name, const
 void PkClusterInfoCmd::ClusterInfoSlotAll(std::string* info) {
   std::stringstream tmp_stream;
   for (const auto& table_item : g_pika_server->tables_) {
-    pstd::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    std::shared_lock partition_rwl(table_item.second->partitions_rw_);
     for (const auto& partition_item : table_item.second->partitions_) {
       std::string table_name = table_item.second->GetTableName();
       uint32_t partition_id = partition_item.second->GetPartitionId();

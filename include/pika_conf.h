@@ -22,8 +22,6 @@
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
 
-typedef pstd::RWLock RWLock;
-
 // global class, class members well initialized
 class PikaConf : public pstd::BaseConf {
  public:
@@ -32,230 +30,230 @@ class PikaConf : public pstd::BaseConf {
 
   // Getter
   int port() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return port_;
   }
   std::string slaveof() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return slaveof_;
   }
   int slave_priority() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return slave_priority_;
   }
   bool write_binlog() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return write_binlog_;
   }
   int thread_num() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return thread_num_;
   }
   int thread_pool_size() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return thread_pool_size_;
   }
   int sync_thread_num() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return sync_thread_num_;
   }
   std::string log_path() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return log_path_;
   }
   std::string db_path() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return db_path_;
   }
   std::string db_sync_path() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return db_sync_path_;
   }
   int db_sync_speed() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return db_sync_speed_;
   }
   std::string compact_cron() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return compact_cron_;
   }
   std::string compact_interval() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return compact_interval_;
   }
   int64_t write_buffer_size() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return write_buffer_size_;
   }
   int64_t arena_block_size() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return arena_block_size_;
   }
   int64_t max_write_buffer_size() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return max_write_buffer_size_;
   }
   int max_write_buffer_number() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return max_write_buffer_num_;
   }
   int64_t max_client_response_size() {
-    RWLock L(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return max_client_response_size_;
   }
   int timeout() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return timeout_;
   }
   std::string server_id() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return server_id_;
   }
   std::string requirepass() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return requirepass_;
   }
   std::string masterauth() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return masterauth_;
   }
   std::string bgsave_path() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return bgsave_path_;
   }
   int expire_dump_days() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return expire_dump_days_;
   }
   std::string bgsave_prefix() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return bgsave_prefix_;
   }
   std::string userpass() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return userpass_;
   }
   const std::string suser_blacklist() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return pstd::StringConcat(user_blacklist_, COMMA);
   }
   const std::vector<std::string>& vuser_blacklist() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return user_blacklist_;
   }
   bool classic_mode() { return classic_mode_.load(); }
   int databases() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return databases_;
   }
   int default_slot_num() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return default_slot_num_;
   }
   const std::vector<TableStruct>& table_structs() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return table_structs_;
   }
   std::string default_table() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return default_table_;
   }
   std::string compression() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return compression_;
   }
   int target_file_size_base() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return target_file_size_base_;
   }
   int max_cache_statistic_keys() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return max_cache_statistic_keys_;
   }
   int small_compaction_threshold() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return small_compaction_threshold_;
   }
   int max_background_flushes() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return max_background_flushes_;
   }
   int max_background_compactions() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return max_background_compactions_;
   }
   int max_cache_files() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return max_cache_files_;
   }
   int max_bytes_for_level_multiplier() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return max_bytes_for_level_multiplier_;
   }
   int64_t block_size() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return block_size_;
   }
   int64_t block_cache() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return block_cache_;
   }
   int64_t num_shard_bits() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return num_shard_bits_;
   }
   bool share_block_cache() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return share_block_cache_;
   }
   bool cache_index_and_filter_blocks() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return cache_index_and_filter_blocks_;
   }
   bool pin_l0_filter_and_index_blocks_in_cache() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return pin_l0_filter_and_index_blocks_in_cache_;
   }
   bool optimize_filters_for_hits() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return optimize_filters_for_hits_;
   }
   bool level_compaction_dynamic_level_bytes() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return level_compaction_dynamic_level_bytes_;
   }
   int expire_logs_nums() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return expire_logs_nums_;
   }
   int expire_logs_days() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return expire_logs_days_;
   }
   std::string conf_path() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return conf_path_;
   }
   bool slave_read_only() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return slave_read_only_;
   }
   int maxclients() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return maxclients_;
   }
   int root_connection_num() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return root_connection_num_;
   }
   bool slowlog_write_errorlog() { return slowlog_write_errorlog_.load(); }
   int slowlog_slower_than() { return slowlog_log_slower_than_.load(); }
   int slowlog_max_len() {
-    RWLock L(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return slowlog_max_len_;
   }
   std::string network_interface() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return network_interface_;
   }
   int sync_window_size() { return sync_window_size_.load(); }
@@ -263,19 +261,19 @@ class PikaConf : public pstd::BaseConf {
   int consensus_level() { return consensus_level_.load(); }
   int replication_num() { return replication_num_.load(); }
   int64_t rate_limiter_bandwidth() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return rate_limiter_bandwidth_;
   }
   int64_t rate_limiter_refill_period_us() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return rate_limiter_refill_period_us_;
   }
   int64_t rate_limiter_fairness() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return rate_limiter_fairness_;
   }
   bool rate_limiter_auto_tuned() {
-    RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     return rate_limiter_auto_tuned_;
   }
 
@@ -299,86 +297,86 @@ class PikaConf : public pstd::BaseConf {
 
   // Setter
   void SetPort(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     port_ = value;
   }
   void SetThreadNum(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     thread_num_ = value;
   }
   void SetTimeout(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("timeout", std::to_string(value));
     timeout_ = value;
   }
   void SetThreadPoolSize(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     thread_pool_size_ = value;
   }
   void SetSlaveof(const std::string value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
   }
   void SetSlavePriority(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("slave-priority", std::to_string(value));
     slave_priority_ = value;
   }
   void SetWriteBinlog(const std::string& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("write-binlog", value);
     write_binlog_ = (value == "yes") ? true : false;
   }
   void SetMaxCacheStatisticKeys(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-cache-statistic-keys", std::to_string(value));
     max_cache_statistic_keys_ = value;
   }
   void SetSmallCompactionThreshold(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("small-compaction-threshold", std::to_string(value));
     small_compaction_threshold_ = value;
   }
   void SetMaxClientResponseSize(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-client-response-size", std::to_string(value));
     max_client_response_size_ = value;
   }
   void SetBgsavePath(const std::string& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     bgsave_path_ = value;
     if (value[value.length() - 1] != '/') {
       bgsave_path_ += "/";
     }
   }
   void SetExpireDumpDays(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("dump-expire", std::to_string(value));
     expire_dump_days_ = value;
   }
   void SetBgsavePrefix(const std::string& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("dump-prefix", value);
     bgsave_prefix_ = value;
   }
   void SetRequirePass(const std::string& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("requirepass", value);
     requirepass_ = value;
   }
   void SetMasterAuth(const std::string& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("masterauth", value);
     masterauth_ = value;
   }
   void SetUserPass(const std::string& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("userpass", value);
     userpass_ = value;
   }
   void SetUserBlackList(const std::string& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("userblacklist", value);
     pstd::StringSplit(value, COMMA, user_blacklist_);
     for (auto& item : user_blacklist_) {
@@ -386,52 +384,52 @@ class PikaConf : public pstd::BaseConf {
     }
   }
   void SetExpireLogsNums(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("expire-logs-nums", std::to_string(value));
     expire_logs_nums_ = value;
   }
   void SetExpireLogsDays(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("expire-logs-days", std::to_string(value));
     expire_logs_days_ = value;
   }
   void SetMaxConnection(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("maxclients", std::to_string(value));
     maxclients_ = value;
   }
   void SetRootConnectionNum(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("root-connection-num", std::to_string(value));
     root_connection_num_ = value;
   }
   void SetSlowlogWriteErrorlog(const bool value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("slowlog-write-errorlog", value == true ? "yes" : "no");
     slowlog_write_errorlog_.store(value);
   }
   void SetSlowlogSlowerThan(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("slowlog-log-slower-than", std::to_string(value));
     slowlog_log_slower_than_.store(value);
   }
   void SetSlowlogMaxLen(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("slowlog-max-len", std::to_string(value));
     slowlog_max_len_ = value;
   }
   void SetDbSyncSpeed(const int value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("db-sync-speed", std::to_string(value));
     db_sync_speed_ = value;
   }
   void SetCompactCron(const std::string& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("compact-cron", value);
     compact_cron_ = value;
   }
   void SetCompactInterval(const std::string& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("compact-interval", value);
     compact_interval_ = value;
   }
@@ -444,27 +442,27 @@ class PikaConf : public pstd::BaseConf {
     max_conn_rbuf_size_.store(value);
   }
   void SetMaxCacheFiles(const int& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-cache-files", std::to_string(value));
     max_cache_files_ = value;
   }
   void SetMaxBackgroudCompactions(const int& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-background-compactions", std::to_string(value));
     max_background_compactions_ = value;
   }
   void SetWriteBufferSize(const int& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("write-buffer-size", std::to_string(value));
     write_buffer_size_ = value;
   }
   void SetMaxWriteBufferNumber(const int& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("max-write-buffer-num", std::to_string(value));
     max_write_buffer_num_ = value;
   }
   void SetArenaBlockSize(const int& value) {
-    RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     TryPushDiffCommands("arena-block-size", std::to_string(value));
     arena_block_size_ = value;
   }
@@ -580,7 +578,7 @@ class PikaConf : public pstd::BaseConf {
 
   PikaMeta* local_meta_ = nullptr;
 
-  pthread_rwlock_t rwlock_;
+  std::shared_mutex rwlock_;
 };
 
 #endif

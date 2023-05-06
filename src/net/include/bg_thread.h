@@ -26,7 +26,7 @@ struct TimerItem {
 
 class BGThread final : public Thread {
  public:
-  explicit BGThread(int full = 100000) : Thread::Thread(), full_(full), mu_(), rsignal_(&mu_), wsignal_(&mu_) {}
+  explicit BGThread(int full = 100000) : Thread::Thread(), full_(full) {}
 
   virtual ~BGThread() {
     // call virtual in destructor, BGThread must be final
@@ -35,8 +35,8 @@ class BGThread final : public Thread {
 
   virtual int StopThread() override {
     should_stop_ = true;
-    rsignal_.Signal();
-    wsignal_.Signal();
+    rsignal_.notify_one();
+    wsignal_.notify_one();
     return Thread::StopThread();
   }
 

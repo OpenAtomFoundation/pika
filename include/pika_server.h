@@ -6,6 +6,7 @@
 #ifndef PIKA_SERVER_H_
 #define PIKA_SERVER_H_
 
+#include <shared_mutex>
 #if defined(__APPLE__)
 #  include <sys/mount.h>
 #  include <sys/param.h>
@@ -346,7 +347,7 @@ class PikaServer {
   int port_ = 0;
   time_t start_time_s_ = 0;
 
-  pthread_rwlock_t storage_options_rw_;
+  std::shared_mutex storage_options_rw_;
   storage::StorageOptions storage_options_;
   void InitStorageOptions();
 
@@ -356,7 +357,7 @@ class PikaServer {
    * Table used
    */
   std::atomic<SlotState> slot_state_;
-  pthread_rwlock_t tables_rw_;
+  std::shared_mutex tables_rw_;
   std::map<std::string, std::shared_ptr<Table>> tables_;
 
   /*
@@ -384,7 +385,7 @@ class PikaServer {
   bool loop_partition_state_machine_ = false;
   bool force_full_sync_ = false;
   bool leader_protected_mode_ = false;        // reject request after master slave sync done
-  pthread_rwlock_t state_protector_;  // protect below, use for master-slave mode
+  std::shared_mutex state_protector_;         // protect below, use for master-slave mode
 
   /*
    * Bgsave used
@@ -431,7 +432,7 @@ class PikaServer {
    * Slowlog used
    */
   uint64_t slowlog_entry_id_ = 0;
-  pthread_rwlock_t slowlog_protector_;
+  std::shared_mutex slowlog_protector_;
   std::list<SlowlogEntry> slowlog_list_;
 
   /*

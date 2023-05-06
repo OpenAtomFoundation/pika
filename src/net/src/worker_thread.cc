@@ -31,13 +31,13 @@ WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_threa
 WorkerThread::~WorkerThread() {}
 
 int WorkerThread::conn_num() const {
-  pstd::ReadLock l(&rwlock_);
+  std::shared_lock lock(rwlock_);
   return conns_.size();
 }
 
 std::vector<ServerThread::ConnInfo> WorkerThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
-  pstd::ReadLock l(&rwlock_);
+  std::shared_lock lock(rwlock_);
   for (auto& conn : conns_) {
     result.push_back({conn.first, conn.second->ip_port(), conn.second->last_interaction()});
   }
@@ -45,24 +45,24 @@ std::vector<ServerThread::ConnInfo> WorkerThread::conns_info() const {
 }
 
 std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
-  pstd::WriteLock l(&rwlock_);
-  std::shared_ptr<NetConn> conn = nullptr;
-  auto iter = conns_.find(fd);
-  if (iter != conns_.end()) {
+  std::lock_guard lock(rwlock_);
+  if (auto iter = conns_.find(fd); iter != conns_.end()) {
     int fd = iter->first;
-    conn = iter->second;
+    auto conn = iter->second;
     net_multiplexer_->NetDelEvent(fd, 0);
     DLOG(INFO) << "move out connection " << conn->String();
     conns_.erase(iter);
+    return conn;
+  } else {
+    return nullptr;
   }
-  return conn;
 }
 
 bool WorkerThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& notify_type, bool force) {
   NetItem it(conn->fd(), conn->ip_port(), notify_type);
   bool success = MoveConnIn(it, force);
   if (success) {
-    pstd::WriteLock l(&rwlock_);
+    std::lock_guard lock(rwlock_);
     conns_[conn->fd()] = conn;
   }
   return success;
@@ -132,7 +132,7 @@ void* WorkerThread::ThreadMain() {
 #endif
 
                 {
-                  pstd::WriteLock l(&rwlock_);
+                  std::lock_guard lock(rwlock_);
                   conns_[ti.fd()] = tc;
                 }
                 net_multiplexer_->NetAddEvent(ti.fd(), kReadable);
@@ -158,13 +158,13 @@ void* WorkerThread::ThreadMain() {
         int should_close = 0;
 
         {
-          pstd::ReadLock l(&rwlock_);
-          std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->fd);
-          if (iter == conns_.end()) {
+          std::shared_lock lock(rwlock_);
+          if (auto iter = conns_.find(pfe->fd); iter == conns_.end()) {
             net_multiplexer_->NetDelEvent(pfe->fd, 0);
             continue;
+          } else {
+            in_conn = iter->second;
           }
-          in_conn = iter->second;
         }
 
         if ((pfe->mask & kWritable) && in_conn->is_reply()) {
@@ -203,7 +203,7 @@ void* WorkerThread::ThreadMain() {
           CloseFd(in_conn);
           in_conn = nullptr;
           {
-            pstd::WriteLock l(&rwlock_);
+            std::lock_guard lock(rwlock_);
             conns_.erase(pfe->fd);
           }
           should_close = 0;
@@ -222,10 +222,10 @@ void WorkerThread::DoCronTask() {
   std::vector<std::shared_ptr<NetConn>> to_close;
   std::vector<std::shared_ptr<NetConn>> to_timeout;
   {
-    pstd::WriteLock l(&rwlock_);
+    std::lock_guard lock(rwlock_);
 
     // Check whether close all connection
-    pstd::MutexLock kl(&killer_mutex_);
+    std::lock_guard kl(killer_mutex_);
     if (deleting_conn_ipport_.count(kKillAllConnsTask)) {
       for (auto& conn : conns_) {
         to_close.push_back(conn.second);
@@ -273,16 +273,16 @@ void WorkerThread::DoCronTask() {
 bool WorkerThread::TryKillConn(const std::string& ip_port) {
   bool find = false;
   if (ip_port != kKillAllConnsTask) {
-    pstd::ReadLock l(&rwlock_);
-    for (auto& iter : conns_) {
-      if (iter.second->ip_port() == ip_port) {
+    std::shared_lock l(rwlock_);
+    for (auto& [_, conn] : conns_) {
+      if (conn->ip_port() == ip_port) {
         find = true;
         break;
       }
     }
   }
   if (find || ip_port == kKillAllConnsTask) {
-    pstd::MutexLock l(&killer_mutex_);
+    std::lock_guard l(killer_mutex_);
     deleting_conn_ipport_.insert(ip_port);
     return true;
   }
@@ -297,7 +297,7 @@ void WorkerThread::CloseFd(std::shared_ptr<NetConn> conn) {
 void WorkerThread::Cleanup() {
   std::map<int, std::shared_ptr<NetConn>> to_close;
   {
-    pstd::WriteLock l(&rwlock_);
+    std::lock_guard l(rwlock_);
     to_close = std::move(conns_);
     conns_.clear();
   }

@@ -573,8 +573,8 @@ void Cmd::ProcessFlushDBCmd() {
     if (table->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
     } else {
-      pstd::RWLock l_prw(&table->partitions_rw_, true);
-      pstd::RWLock s_prw(&g_pika_rm->partitions_rw_, true);
+      std::lock_guard l_prw(table->partitions_rw_);
+      std::lock_guard s_prw(g_pika_rm->partitions_rw_);
       for (const auto& partition_item : table->partitions_) {
         std::shared_ptr<Partition> partition = partition_item.second;
         PartitionInfo p_info(partition->GetTableName(), partition->GetPartitionId());
@@ -590,7 +590,7 @@ void Cmd::ProcessFlushDBCmd() {
 }
 
 void Cmd::ProcessFlushAllCmd() {
-  pstd::RWLock l_trw(&g_pika_server->tables_rw_, true);
+  std::lock_guard l_trw(g_pika_server->tables_rw_);
   for (const auto& table_item : g_pika_server->tables_) {
     if (table_item.second->IsKeyScaning()) {
       res_.SetRes(CmdRes::kErrOther, "The keyscan operation is executing, Try again later");
@@ -599,8 +599,8 @@ void Cmd::ProcessFlushAllCmd() {
   }
 
   for (const auto& table_item : g_pika_server->tables_) {
-    pstd::RWLock l_prw(&table_item.second->partitions_rw_, true);
-    pstd::RWLock s_prw(&g_pika_rm->partitions_rw_, true);
+    std::lock_guard l_prw(table_item.second->partitions_rw_);
+    std::lock_guard s_prw(g_pika_rm->partitions_rw_);
     for (const auto& partition_item : table_item.second->partitions_) {
       std::shared_ptr<Partition> partition = partition_item.second;
       PartitionInfo p_info(partition->GetTableName(), partition->GetPartitionId());

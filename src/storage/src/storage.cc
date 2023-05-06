@@ -53,7 +53,6 @@ Storage::Storage()
       zsets_db_(nullptr),
       lists_db_(nullptr),
       is_opened_(false),
-      bg_tasks_cond_var_(&bg_tasks_mutex_),
       current_task_type_(kNone),
       bg_tasks_should_exit_(false),
       scan_keynum_exit_(false) {
@@ -68,7 +67,7 @@ Storage::Storage()
 
 Storage::~Storage() {
   bg_tasks_should_exit_ = true;
-  bg_tasks_cond_var_.Signal();
+  bg_tasks_cond_var_.notify_one();
 
   if (is_opened_) {
     rocksdb::CancelAllBackgroundWork(strings_db_->GetDB(), true);
@@ -1466,7 +1465,7 @@ Status Storage::StartBGThread() {
 }
 
 Status Storage::AddBGTask(const BGTask& bg_task) {
-  bg_tasks_mutex_.Lock();
+  bg_tasks_mutex_.lock();
   if (bg_task.type == kAll) {
     // if current task it is global compact,
     // clear the bg_tasks_queue_;
@@ -1474,24 +1473,22 @@ Status Storage::AddBGTask(const BGTask& bg_task) {
     bg_tasks_queue_.swap(empty_queue);
   }
   bg_tasks_queue_.push(bg_task);
-  bg_tasks_cond_var_.Signal();
-  bg_tasks_mutex_.Unlock();
+  bg_tasks_cond_var_.notify_one();
+  bg_tasks_mutex_.unlock();
   return Status::OK();
 }
 
 Status Storage::RunBGTask() {
   BGTask task;
   while (!bg_tasks_should_exit_) {
-    bg_tasks_mutex_.Lock();
-    while (bg_tasks_queue_.empty() && !bg_tasks_should_exit_) {
-      bg_tasks_cond_var_.Wait();
-    }
+    std::unique_lock lock(bg_tasks_mutex_);
+    bg_tasks_cond_var_.wait(lock, [this]() { return !bg_tasks_queue_.empty() || bg_tasks_should_exit_; });
 
     if (!bg_tasks_queue_.empty()) {
       task = bg_tasks_queue_.front();
       bg_tasks_queue_.pop();
     }
-    bg_tasks_mutex_.Unlock();
+    lock.unlock();
 
     if (bg_tasks_should_exit_) {
       return Status::Incomplete("bgtask return with bg_tasks_should_exit true");

@@ -44,10 +44,7 @@ ThreadPool::ThreadPool(size_t worker_num, size_t max_queue_size, const std::stri
       max_queue_size_(max_queue_size),
       thread_pool_name_(thread_pool_name),
       running_(false),
-      should_stop_(false),
-      mu_(),
-      rsignal_(&mu_),
-      wsignal_(&mu_) {}
+      should_stop_(false) {}
 
 ThreadPool::~ThreadPool() { stop_thread_pool(); }
 
@@ -70,8 +67,8 @@ int ThreadPool::stop_thread_pool() {
   int res = 0;
   if (running_.load()) {
     should_stop_.store(true);
-    rsignal_.SignalAll();
-    wsignal_.SignalAll();
+    rsignal_.notify_all();
+    wsignal_.notify_all();
     for (const auto worker : workers_) {
       res = worker->stop();
       if (res != 0) {
@@ -91,47 +88,39 @@ bool ThreadPool::should_stop() { return should_stop_.load(); }
 void ThreadPool::set_should_stop() { should_stop_.store(true); }
 
 void ThreadPool::Schedule(TaskFunc func, void* arg) {
-  mu_.Lock();
-  while (queue_.size() >= max_queue_size_ && !should_stop()) {
-    wsignal_.Wait();
-  }
+  std::unique_lock lock(mu_);
+  wsignal_.wait(lock, [this]() { return queue_.size() < max_queue_size_ || should_stop(); });
+
   if (!should_stop()) {
-    queue_.push(Task(func, arg));
-    rsignal_.Signal();
+    queue_.emplace(func, arg);
+    rsignal_.notify_one();
   }
-  mu_.Unlock();
 }
 
 /*
  * timeout is in millisecond
  */
 void ThreadPool::DelaySchedule(uint64_t timeout, TaskFunc func, void* arg) {
-  /*
-   * pthread_cond_timedwait api use absolute API
-   * so we need gettimeofday + timeout
-   */
-  struct timeval now;
-  gettimeofday(&now, nullptr);
-  uint64_t exec_time;
-  exec_time = now.tv_sec * 1000000 + timeout * 1000 + now.tv_usec;
+  auto now = std::chrono::system_clock::now();
+  uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+  uint64_t exec_time = unow + timeout * 1000;
 
-  mu_.Lock();
+  std::lock_guard lock(mu_);
   if (!should_stop()) {
-    time_queue_.push(TimeTask(exec_time, func, arg));
-    rsignal_.Signal();
+    time_queue_.emplace(exec_time, func, arg);
+    rsignal_.notify_all();
   }
-  mu_.Unlock();
 }
 
 size_t ThreadPool::max_queue_size() { return max_queue_size_; }
 
 void ThreadPool::cur_queue_size(size_t* qsize) {
-  pstd::MutexLock l(&mu_);
+  std::lock_guard lock(mu_);
   *qsize = queue_.size();
 }
 
 void ThreadPool::cur_time_queue_size(size_t* qsize) {
-  pstd::MutexLock l(&mu_);
+  std::lock_guard lock(mu_);
   *qsize = time_queue_.size();
 }
 
@@ -139,39 +128,34 @@ std::string ThreadPool::thread_pool_name() { return thread_pool_name_; }
 
 void ThreadPool::runInThread() {
   while (!should_stop()) {
-    mu_.Lock();
-    while (queue_.empty() && time_queue_.empty() && !should_stop()) {
-      rsignal_.Wait();
-    }
+    std::unique_lock lock(mu_);
+    rsignal_.wait(lock, [this]() { return !queue_.empty() || !time_queue_.empty() || should_stop(); });
+
     if (should_stop()) {
-      mu_.Unlock();
       break;
     }
     if (!time_queue_.empty()) {
-      struct timeval now;
-      gettimeofday(&now, nullptr);
+      auto now = std::chrono::system_clock::now();
+      uint64_t unow = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
 
-      TimeTask time_task = time_queue_.top();
-      uint64_t unow = now.tv_sec * 1000000 + now.tv_usec;
-      if (unow / 1000 >= time_task.exec_time / 1000) {
-        TaskFunc func = time_task.func;
-        void* arg = time_task.arg;
+      auto [exec_time, func, arg] = time_queue_.top();
+      if (unow  >= exec_time) {
         time_queue_.pop();
-        mu_.Unlock();
+        lock.unlock();
         (*func)(arg);
         continue;
       } else if (queue_.empty() && !should_stop()) {
-        rsignal_.TimedWait(static_cast<uint32_t>((time_task.exec_time - unow) / 1000));
-        mu_.Unlock();
+        rsignal_.wait_for(lock, std::chrono::microseconds(exec_time - unow));
+        lock.unlock();
         continue;
       }
     }
+
     if (!queue_.empty()) {
-      TaskFunc func = queue_.front().func;
-      void* arg = queue_.front().arg;
+      auto [func, arg] = queue_.front();
       queue_.pop();
-      wsignal_.Signal();
-      mu_.Unlock();
+      wsignal_.notify_one();
+      lock.unlock();
       (*func)(arg);
     }
   }

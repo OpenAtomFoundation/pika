@@ -71,7 +71,7 @@ Status ClientThread::Write(const std::string& ip, const int port, const std::str
     return Status::Corruption(ip_port + " is baned by user!");
   }
   {
-    pstd::MutexLock l(&mu_);
+    std::lock_guard l(mu_);
     size_t size = 0;
     for (auto& str : to_send_[ip_port]) {
       size += str.size();
@@ -87,7 +87,7 @@ Status ClientThread::Write(const std::string& ip, const int port, const std::str
 
 Status ClientThread::Close(const std::string& ip, const int port) {
   {
-    pstd::MutexLock l(&to_del_mu_);
+    std::lock_guard l(to_del_mu_);
     to_del_.push_back(ip + ":" + std::to_string(port));
   }
   return Status::OK();
@@ -205,7 +205,7 @@ void ClientThread::CloseFd(int fd, const std::string& ip_port) {
 }
 
 void ClientThread::CleanUpConnRemaining(const std::string& ip_port) {
-  pstd::MutexLock l(&mu_);
+  std::lock_guard l(mu_);
   to_send_.erase(ip_port);
 }
 
@@ -242,7 +242,7 @@ void ClientThread::DoCronTask() {
 
   std::vector<std::string> to_del;
   {
-    pstd::MutexLock l(&to_del_mu_);
+    std::lock_guard l(to_del_mu_);
     to_del = std::move(to_del_);
     to_del_.clear();
   }
@@ -264,7 +264,7 @@ void ClientThread::DoCronTask() {
 void ClientThread::InternalDebugPrint() {
   LOG(INFO) << "___________________________________";
   {
-    pstd::MutexLock l(&mu_);
+    std::lock_guard l(mu_);
     LOG(INFO) << "To send map: ";
     for (const auto& to_send : to_send_) {
       UNUSED(to_send);
@@ -330,7 +330,7 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
             net_multiplexer_->NetModEvent(ipport_conns_[ip_port]->fd(), 0, kReadable | kWritable);
           }
           {
-            pstd::MutexLock l(&mu_);
+            std::lock_guard l(mu_);
             auto iter = to_send_.find(ip_port);
             if (iter == to_send_.end()) {
               continue;

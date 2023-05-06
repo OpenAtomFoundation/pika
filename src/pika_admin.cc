@@ -939,9 +939,9 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::stringstream out_of_sync;
 
   bool all_partition_sync = true;
-  pstd::RWLock table_rwl(&g_pika_server->tables_rw_, false);
+  std::shared_lock table_rwl(g_pika_server->tables_rw_);
   for (const auto& table_item : g_pika_server->tables_) {
-    pstd::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    std::shared_lock partition_rwl(table_item.second->partitions_rw_);
     for (const auto& partition_item : table_item.second->partitions_) {
       std::shared_ptr<SyncSlavePartition> slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
           PartitionInfo(table_item.second->GetTableName(), partition_item.second->GetPartitionId()));
@@ -1026,7 +1026,7 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::string safety_purge;
   std::shared_ptr<SyncMasterPartition> master_partition = nullptr;
   for (const auto& t_item : g_pika_server->tables_) {
-    pstd::RWLock partition_rwl(&t_item.second->partitions_rw_, false);
+    std::shared_lock partition_rwl(t_item.second->partitions_rw_);
     for (const auto& p_item : t_item.second->partitions_) {
       std::string table_name = p_item.second->GetTableName();
       uint32_t partition_id = p_item.second->GetPartitionId();
@@ -1071,7 +1071,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
                << "\r\n";
   }
 
-  pstd::RWLock rwl(&g_pika_server->tables_rw_, false);
+  std::shared_lock rwl(g_pika_server->tables_rw_);
   for (const auto& table_item : g_pika_server->tables_) {
     if (keyspace_scan_tables_.empty() || keyspace_scan_tables_.find(table_item.first) != keyspace_scan_tables_.end()) {
       table_name = table_item.second->GetTableName();
@@ -1133,9 +1133,9 @@ void InfoCmd::InfoData(std::string& info) {
   uint64_t total_background_errors = 0;
   uint64_t total_memtable_usage = 0, memtable_usage = 0;
   uint64_t total_table_reader_usage = 0, table_reader_usage = 0;
-  pstd::RWLock table_rwl(&g_pika_server->tables_rw_, false);
+  std::shared_lock table_rwl(g_pika_server->tables_rw_);
   for (const auto& table_item : g_pika_server->tables_) {
-    pstd::RWLock partition_rwl(&table_item.second->partitions_rw_, false);
+    std::shared_lock partition_rwl(table_item.second->partitions_rw_);
     for (const auto& patition_item : table_item.second->partitions_) {
       type_result.clear();
       memtable_usage = table_reader_usage = 0;

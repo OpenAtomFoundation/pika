@@ -7,7 +7,7 @@
 
 #include <glog/logging.h>
 
-PikaMonitorThread::PikaMonitorThread() : net::Thread(), monitor_cond_(&monitor_mutex_protector_) {
+PikaMonitorThread::PikaMonitorThread() : net::Thread() {
   set_thread_name("MonitorThread");
   has_monitor_clients_.store(false);
 }
@@ -15,7 +15,7 @@ PikaMonitorThread::PikaMonitorThread() : net::Thread(), monitor_cond_(&monitor_m
 PikaMonitorThread::~PikaMonitorThread() {
   set_should_stop();
   if (is_running()) {
-    monitor_cond_.SignalAll();
+    monitor_cond_.notify_all();
     StopThread();
   }
   for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
@@ -26,7 +26,7 @@ PikaMonitorThread::~PikaMonitorThread() {
 
 void PikaMonitorThread::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
   StartThread();
-  pstd::MutexLock lm(&monitor_mutex_protector_);
+  std::lock_guard lm(monitor_mutex_protector_);
   monitor_clients_.push_back(ClientInfo{client_ptr->fd(), client_ptr->ip_port(), 0, client_ptr});
   has_monitor_clients_.store(true);
 }
@@ -52,10 +52,10 @@ void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
 }
 
 void PikaMonitorThread::AddMonitorMessage(const std::string& monitor_message) {
-  pstd::MutexLock lm(&monitor_mutex_protector_);
+  std::lock_guard lm(monitor_mutex_protector_);
   if (monitor_messages_.empty() && cron_tasks_.empty()) {
     monitor_messages_.push_back(monitor_message);
-    monitor_cond_.Signal();
+    monitor_cond_.notify_one();
   } else {
     monitor_messages_.push_back(monitor_message);
   }
@@ -71,17 +71,17 @@ int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr
 }
 
 void PikaMonitorThread::AddCronTask(MonitorCronTask task) {
-  pstd::MutexLock lm(&monitor_mutex_protector_);
+  std::lock_guard lm(monitor_mutex_protector_);
   if (monitor_messages_.empty() && cron_tasks_.empty()) {
     cron_tasks_.push(task);
-    monitor_cond_.Signal();
+    monitor_cond_.notify_one();
   } else {
     cron_tasks_.push(task);
   }
 }
 
 bool PikaMonitorThread::FindClient(const std::string& ip_port) {
-  pstd::MutexLock lm(&monitor_mutex_protector_);
+  std::lock_guard lm(monitor_mutex_protector_);
   for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
     if (iter->ip_port == ip_port) {
       return true;
@@ -138,16 +138,14 @@ void* PikaMonitorThread::ThreadMain() {
   net::WriteStatus write_status;
   while (!should_stop()) {
     {
-      pstd::MutexLock lm(&monitor_mutex_protector_);
-      while (monitor_messages_.empty() && cron_tasks_.empty() && !should_stop()) {
-        monitor_cond_.Wait();
-      }
+      std::unique_lock lm(monitor_mutex_protector_);
+      monitor_cond_.wait(lm, [this]() { return !monitor_messages_.empty() || !cron_tasks_.empty() || should_stop(); });
     }
     if (should_stop()) {
       break;
     }
     {
-      pstd::MutexLock lm(&monitor_mutex_protector_);
+      std::lock_guard lm(monitor_mutex_protector_);
       while (!cron_tasks_.empty()) {
         task = cron_tasks_.front();
         cron_tasks_.pop();
@@ -161,7 +159,7 @@ void* PikaMonitorThread::ThreadMain() {
 
     messages_deque.clear();
     {
-      pstd::MutexLock lm(&monitor_mutex_protector_);
+      std::lock_guard lm(monitor_mutex_protector_);
       messages_deque.swap(monitor_messages_);
       if (monitor_clients_.empty() || messages_deque.empty()) {
         continue;
@@ -179,8 +177,8 @@ void* PikaMonitorThread::ThreadMain() {
     messages_transfer.pop_back(); // no space follow last param
     messages_transfer.append("\r\n", 2);
 
-    pstd::MutexLock lm(&monitor_mutex_protector_);
-    for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
+    std::lock_guard lm(monitor_mutex_protector_);
+    for (auto iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
       write_status = SendMessage(iter->fd, messages_transfer);
       if (write_status == net::kWriteError) {
         cron_tasks_.push({TASK_KILL, iter->ip_port});

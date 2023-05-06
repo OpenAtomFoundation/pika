@@ -6,6 +6,7 @@
 #ifndef PIKA_PARTITION_H_
 #define PIKA_PARTITION_H_
 
+#include <shared_mutex>
 #include "pstd/include/scope_record_lock.h"
 #include "storage/backupable.h"
 #include "storage/storage.h"
@@ -95,7 +96,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
 
   bool opened_ = false;
 
-  pthread_rwlock_t db_rwlock_;
+  std::shared_mutex db_rwlock_;
   pstd::lock::LockMgr* lock_mgr_ = nullptr;
   std::shared_ptr<storage::Storage> db_;
 

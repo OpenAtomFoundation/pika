@@ -19,13 +19,11 @@ PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int port, int c
   server_tp_ = new net::ThreadPool(PIKA_REPL_SERVER_TP_SIZE, 100000);
   pika_repl_server_thread_ = new PikaReplServerThread(ips, port, cron_interval);
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
-  pthread_rwlock_init(&client_conn_rwlock_, nullptr);
 }
 
 PikaReplServer::~PikaReplServer() {
   delete pika_repl_server_thread_;
   delete server_tp_;
-  pthread_rwlock_destroy(&client_conn_rwlock_);
   LOG(INFO) << "PikaReplServer exit!!!";
 }
 
@@ -136,7 +134,7 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, In
 }
 
 pstd::Status PikaReplServer::Write(const std::string& ip, const int port, const std::string& msg) {
-  pstd::RWLock l(&client_conn_rwlock_, false);
+  std::shared_lock l(client_conn_rwlock_);
   const std::string ip_port = pstd::IpPortString(ip, port);
   if (client_conn_map_.find(ip_port) == client_conn_map_.end()) {
     return Status::NotFound("The " + ip_port + " fd cannot be found");
@@ -158,12 +156,12 @@ pstd::Status PikaReplServer::Write(const std::string& ip, const int port, const 
 void PikaReplServer::Schedule(net::TaskFunc func, void* arg) { server_tp_->Schedule(func, arg); }
 
 void PikaReplServer::UpdateClientConnMap(const std::string& ip_port, int fd) {
-  pstd::RWLock l(&client_conn_rwlock_, true);
+  std::lock_guard l(client_conn_rwlock_);
   client_conn_map_[ip_port] = fd;
 }
 
 void PikaReplServer::RemoveClientConn(int fd) {
-  pstd::RWLock l(&client_conn_rwlock_, true);
+  std::lock_guard l(client_conn_rwlock_);
   std::map<std::string, int>::const_iterator iter = client_conn_map_.begin();
   while (iter != client_conn_map_.end()) {
     if (iter->second == fd) {

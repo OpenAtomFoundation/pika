@@ -8,9 +8,9 @@
 
 const uint32_t VERSION = 1;
 
-PikaMeta::PikaMeta() : local_meta_path_("") { pthread_rwlock_init(&rwlock_, nullptr); }
+PikaMeta::PikaMeta() : local_meta_path_("") {}
 
-PikaMeta::~PikaMeta() { pthread_rwlock_destroy(&rwlock_); }
+PikaMeta::~PikaMeta() {}
 
 void PikaMeta::SetPath(const std::string& path) { local_meta_path_ = path; }
 
@@ -20,7 +20,7 @@ void PikaMeta::SetPath(const std::string& path) { local_meta_path_ = path; }
  *      4 Bytes          4 Bytes        meta size Bytes
  */
 Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
-  pstd::RWLock l(&rwlock_, true);
+  std::lock_guard l(rwlock_);
   if (local_meta_path_.empty()) {
     LOG(WARNING) << "Local meta file path empty";
     return Status::Corruption("local meta file path empty");
@@ -73,7 +73,7 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
 }
 
 Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
-  pstd::RWLock l(&rwlock_, false);
+  std::shared_lock l(rwlock_);
   std::string local_meta_file = local_meta_path_ + kPikaMeta;
   if (!pstd::FileExists(local_meta_file)) {
     LOG(WARNING) << "Local meta file not found, path: " << local_meta_file;

@@ -68,18 +68,7 @@ void QpsStatistic::ResetLastSecQuerynum() {
 
 /* ServerStatistic */
 
-ServerStatistic::ServerStatistic() : accumulative_connections(0) {
-  CmdTable* cmds = new CmdTable();
-  cmds->reserve(300);
-  InitCmdTable(cmds);
-  CmdTable::const_iterator it = cmds->begin();
-  for (; it != cmds->end(); ++it) {
-    std::string tmp = it->first;
-    exec_count_table[pstd::StringToUpper(tmp)].store(0);
-  }
-  DestoryCmdTable(cmds);
-  delete cmds;
-}
+ServerStatistic::ServerStatistic() {}
 
 ServerStatistic::~ServerStatistic() {}
 
@@ -88,19 +77,15 @@ ServerStatistic::~ServerStatistic() {}
 Statistic::Statistic() {
   pthread_rwlockattr_t table_stat_rw_attr;
   pthread_rwlockattr_init(&table_stat_rw_attr);
-#if !defined(__APPLE__)
-  pthread_rwlockattr_setkind_np(&table_stat_rw_attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-#endif
-  pthread_rwlock_init(&table_stat_rw, &table_stat_rw_attr);
 }
 
 QpsStatistic Statistic::TableStat(const std::string& table_name) {
-  pstd::RWLock l(&table_stat_rw, false);
+  std::shared_lock l(table_stat_rw);
   return table_stat[table_name];
 }
 
 std::unordered_map<std::string, QpsStatistic> Statistic::AllTableStat() {
-  pstd::RWLock l(&table_stat_rw, false);
+  std::shared_lock l(table_stat_rw);
   return table_stat;
 }
 
@@ -108,7 +93,7 @@ void Statistic::UpdateTableQps(const std::string& table_name, const std::string&
   bool table_exist = true;
   std::unordered_map<std::string, QpsStatistic>::iterator iter;
   {
-    pstd::RWLock l(&table_stat_rw, false);
+    std::shared_lock l(table_stat_rw);
     auto search = table_stat.find(table_name);
     if (search == table_stat.end()) {
       table_exist = false;
@@ -120,14 +105,14 @@ void Statistic::UpdateTableQps(const std::string& table_name, const std::string&
     iter->second.IncreaseQueryNum(is_write);
   } else {
     {
-      pstd::RWLock l(&table_stat_rw, true);
+      std::lock_guard l(table_stat_rw);
       table_stat[table_name].IncreaseQueryNum(is_write);
     }
   }
 }
 
 void Statistic::ResetTableLastSecQuerynum() {
-  pstd::RWLock l(&table_stat_rw, false);
+  std::shared_lock l(table_stat_rw);
   for (auto& stat : table_stat) {
     stat.second.ResetLastSecQuerynum();
   }

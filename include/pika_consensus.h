@@ -24,13 +24,13 @@ class Context {
   void UpdateAppliedIndex(const LogOffset& offset);
   void Reset(const LogOffset& applied_index);
 
-  pthread_rwlock_t rwlock_;
+  std::shared_mutex rwlock_;
   LogOffset applied_index_;
   SyncWindow applied_win_;
 
   std::string ToString() {
     std::stringstream tmp_stream;
-    pstd::RWLock l(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     tmp_stream << "  Applied_index " << applied_index_.ToString() << "\r\n";
     tmp_stream << "  Applied window " << applied_win_.ToStringStatus();
     return tmp_stream.str();
@@ -46,8 +46,8 @@ class Context {
 
 class SyncProgress {
  public:
-  SyncProgress();
-  ~SyncProgress();
+  SyncProgress() = default;
+  ~SyncProgress() = default;
   std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
   std::unordered_map<std::string, LogOffset> GetAllMatchIndex();
@@ -61,7 +61,7 @@ class SyncProgress {
  private:
   LogOffset InternalCalCommittedIndex(std::unordered_map<std::string, LogOffset> match_index);
 
-  pthread_rwlock_t rwlock_;
+  std::shared_mutex rwlock_;
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> slaves_;
   std::unordered_map<std::string, LogOffset> match_index_;
 };
@@ -81,7 +81,7 @@ class MemLog {
   MemLog();
   int Size();
   void AppendLog(const LogItem& item) {
-    pstd::MutexLock l_logs(&logs_mu_);
+    std::lock_guard lock(logs_mu_);
     logs_.push_back(item);
     last_offset_ = item.offset;
   }
@@ -92,11 +92,11 @@ class MemLog {
   void Reset(const LogOffset& offset);
 
   LogOffset last_offset() {
-    pstd::MutexLock l_logs(&logs_mu_);
+    std::lock_guard lock(logs_mu_);
     return last_offset_;
   }
   void SetLastOffset(const LogOffset& offset) {
-    pstd::MutexLock l_logs(&logs_mu_);
+    std::lock_guard lock(logs_mu_);
     last_offset_ = offset;
   }
   bool FindLogItem(const LogOffset& offset, LogOffset* found_offset);
@@ -140,12 +140,12 @@ class ConsensusCoordinator {
   std::shared_ptr<MemLog> MemLogger() { return mem_logger_; }
 
   LogOffset committed_index() {
-    pstd::MutexLock l(&index_mu_);
+    std::lock_guard lock(index_mu_);
     return committed_index_;
   }
 
   LogOffset applied_index() {
-    pstd::RWLock l(&context_->rwlock_, false);
+    std::shared_lock lock(context_->rwlock_);
     return context_->applied_index_;
   }
 
@@ -161,14 +161,14 @@ class ConsensusCoordinator {
   std::string ToStringStatus() {
     std::stringstream tmp_stream;
     {
-      pstd::MutexLock l(&index_mu_);
+      std::lock_guard lock(index_mu_);
       tmp_stream << "  Committed_index: " << committed_index_.ToString() << "\r\n";
     }
     tmp_stream << "  Context: "
                << "\r\n"
                << context_->ToString();
     {
-      pstd::RWLock l(&term_rwlock_, false);
+      std::shared_lock lock(term_rwlock_);
       tmp_stream << "  Term: " << term_ << "\r\n";
     }
     tmp_stream << "  Mem_logger size: " << mem_logger_->Size() << " last offset "
@@ -212,7 +212,7 @@ class ConsensusCoordinator {
 
   std::shared_ptr<Context> context_;
 
-  pthread_rwlock_t term_rwlock_;
+  std::shared_mutex term_rwlock_;
   uint32_t term_ = 0;
 
   std::string table_name_;

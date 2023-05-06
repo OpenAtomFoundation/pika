@@ -29,35 +29,32 @@ Table::Table(const std::string& table_name, uint32_t partition_num, const std::s
   pstd::CreatePath(log_path_);
 
   binlog_io_error_.store(false);
-
-  pthread_rwlock_init(&partitions_rw_, nullptr);
 }
 
 Table::~Table() {
   StopKeyScan();
-  pthread_rwlock_destroy(&partitions_rw_);
   partitions_.clear();
 }
 
 std::string Table::GetTableName() { return table_name_; }
 
 void Table::BgSaveTable() {
-  pstd::RWLock l(&partitions_rw_, false);
+  std::shared_lock l(partitions_rw_);
   for (const auto& item : partitions_) {
     item.second->BgSavePartition();
   }
 }
 
 void Table::CompactTable(const storage::DataType& type) {
-  pstd::RWLock l(&partitions_rw_, false);
+  std::shared_lock l(partitions_rw_);
   for (const auto& item : partitions_) {
     item.second->Compact(type);
   }
 }
 
 bool Table::FlushPartitionDB() {
-  pstd::RWLock rwl(&partitions_rw_, false);
-  pstd::MutexLock ml(&key_scan_protector_);
+  std::shared_lock l(partitions_rw_);
+  std::lock_guard ml(key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return false;
   }
@@ -68,8 +65,8 @@ bool Table::FlushPartitionDB() {
 }
 
 bool Table::FlushPartitionSubDB(const std::string& db_name) {
-  pstd::RWLock rwl(&partitions_rw_, false);
-  pstd::MutexLock ml(&key_scan_protector_);
+  std::shared_lock l(partitions_rw_);
+  std::lock_guard ml(key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return false;
   }
@@ -86,7 +83,7 @@ bool Table::IsBinlogIoError() { return binlog_io_error_.load(); }
 uint32_t Table::PartitionNum() { return partition_num_; }
 
 Status Table::AddPartitions(const std::set<uint32_t>& partition_ids) {
-  pstd::RWLock l(&partitions_rw_, true);
+  std::lock_guard l(partitions_rw_);
   for (const uint32_t& id : partition_ids) {
     if (id >= partition_num_) {
       return Status::Corruption("partition index out of range[0, " + std::to_string(partition_num_ - 1) + "]");
@@ -102,7 +99,7 @@ Status Table::AddPartitions(const std::set<uint32_t>& partition_ids) {
 }
 
 Status Table::RemovePartitions(const std::set<uint32_t>& partition_ids) {
-  pstd::RWLock l(&partitions_rw_, true);
+  std::lock_guard l(partitions_rw_);
   for (const uint32_t& id : partition_ids) {
     if (partitions_.find(id) == partitions_.end()) {
       return Status::Corruption("partition " + std::to_string(id) + " not found");
@@ -117,14 +114,14 @@ Status Table::RemovePartitions(const std::set<uint32_t>& partition_ids) {
 }
 
 void Table::GetAllPartitions(std::set<uint32_t>& partition_ids) {
-  pstd::RWLock l(&partitions_rw_, false);
+  std::shared_lock l(partitions_rw_);
   for (const auto& iter : partitions_) {
     partition_ids.insert(iter.first);
   }
 }
 
 void Table::KeyScan() {
-  pstd::MutexLock ml(&key_scan_protector_);
+  std::lock_guard ml(key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return;
   }
@@ -138,7 +135,7 @@ void Table::KeyScan() {
 }
 
 bool Table::IsKeyScaning() {
-  pstd::MutexLock ml(&key_scan_protector_);
+  std::lock_guard ml(key_scan_protector_);
   return key_scan_info_.key_scaning_;
 }
 
@@ -147,7 +144,7 @@ void Table::RunKeyScan() {
   std::vector<storage::KeyInfo> new_key_infos(5);
 
   InitKeyScan();
-  pstd::RWLock rwl(&partitions_rw_, false);
+  std::shared_lock l(partitions_rw_);
   for (const auto& item : partitions_) {
     std::vector<storage::KeyInfo> tmp_key_infos;
     s = item.second->GetKeyNum(&tmp_key_infos);
@@ -164,7 +161,7 @@ void Table::RunKeyScan() {
   }
   key_scan_info_.duration = time(nullptr) - key_scan_info_.start_time;
 
-  pstd::MutexLock lm(&key_scan_protector_);
+  std::lock_guard lm(key_scan_protector_);
   if (s.ok()) {
     key_scan_info_.key_infos = new_key_infos;
   }
@@ -172,8 +169,9 @@ void Table::RunKeyScan() {
 }
 
 void Table::StopKeyScan() {
-  pstd::RWLock rwl(&partitions_rw_, false);
-  pstd::MutexLock ml(&key_scan_protector_);
+  std::shared_lock rwl(partitions_rw_);
+  std::lock_guard ml(key_scan_protector_);
+
   if (!key_scan_info_.key_scaning_) {
     return;
   }
@@ -184,7 +182,7 @@ void Table::StopKeyScan() {
 }
 
 void Table::ScanDatabase(const storage::DataType& type) {
-  pstd::RWLock rwl(&partitions_rw_, false);
+  std::shared_lock l(partitions_rw_);
   for (const auto& item : partitions_) {
     printf("\n\npartition name : %s\n", item.second->GetPartitionName().c_str());
     item.second->db()->ScanDatabase(type);
@@ -192,20 +190,20 @@ void Table::ScanDatabase(const storage::DataType& type) {
 }
 
 Status Table::GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos) {
-  pstd::RWLock rwl(&partitions_rw_, false);
-  for (const auto& item : partitions_) {
-    (*infos)[item.first] = item.second->GetKeyScanInfo();
+  std::shared_lock l(partitions_rw_);
+  for (const auto& [id, partition] : partitions_) {
+    (*infos)[id] = partition->GetKeyScanInfo();
   }
   return Status::OK();
 }
 
 KeyScanInfo Table::GetKeyScanInfo() {
-  pstd::MutexLock lm(&key_scan_protector_);
+  std::lock_guard lm(key_scan_protector_);
   return key_scan_info_;
 }
 
 void Table::Compact(const storage::DataType& type) {
-  pstd::RWLock rwl(&partitions_rw_, true);
+  std::lock_guard rwl(partitions_rw_);
   for (const auto& item : partitions_) {
     item.second->Compact(type);
   }
@@ -226,7 +224,7 @@ void Table::InitKeyScan() {
 }
 
 void Table::LeaveAllPartition() {
-  pstd::RWLock rwl(&partitions_rw_, true);
+  std::lock_guard l(partitions_rw_);
   for (const auto& item : partitions_) {
     item.second->Leave();
   }
@@ -235,7 +233,7 @@ void Table::LeaveAllPartition() {
 
 std::set<uint32_t> Table::GetPartitionIds() {
   std::set<uint32_t> ids;
-  pstd::RWLock l(&partitions_rw_, false);
+  std::shared_lock l(partitions_rw_);
   for (const auto& item : partitions_) {
     ids.insert(item.first);
   }
@@ -243,7 +241,7 @@ std::set<uint32_t> Table::GetPartitionIds() {
 }
 
 std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
-  pstd::RWLock rwl(&partitions_rw_, false);
+  std::shared_lock l(partitions_rw_);
   auto iter = partitions_.find(partition_id);
   return (iter == partitions_.end()) ? nullptr : iter->second;
 }
@@ -251,13 +249,13 @@ std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
 std::shared_ptr<Partition> Table::GetPartitionByKey(const std::string& key) {
   assert(partition_num_ != 0);
   uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, partition_num_);
-  pstd::RWLock rwl(&partitions_rw_, false);
+  std::shared_lock l(partitions_rw_);
   auto iter = partitions_.find(index);
   return (iter == partitions_.end()) ? nullptr : iter->second;
 }
 
 bool Table::TableIsEmpty() {
-  pstd::RWLock rwl(&partitions_rw_, false);
+  std::shared_lock l(partitions_rw_);
   return partitions_.empty();
 }
 

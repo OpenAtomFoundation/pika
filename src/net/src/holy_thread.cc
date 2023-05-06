@@ -34,13 +34,13 @@ HolyThread::HolyThread(const std::set<std::string>& bind_ips, int port, ConnFact
 HolyThread::~HolyThread() { Cleanup(); }
 
 int HolyThread::conn_num() const {
-  pstd::ReadLock l(&rwlock_);
+  std::shared_lock l(rwlock_);
   return conns_.size();
 }
 
 std::vector<ServerThread::ConnInfo> HolyThread::conns_info() const {
   std::vector<ServerThread::ConnInfo> result;
-  pstd::ReadLock l(&rwlock_);
+  std::shared_lock l(rwlock_);
   for (auto& conn : conns_) {
     result.push_back({conn.first, conn.second->ip_port(), conn.second->last_interaction()});
   }
@@ -48,7 +48,7 @@ std::vector<ServerThread::ConnInfo> HolyThread::conns_info() const {
 }
 
 std::shared_ptr<NetConn> HolyThread::MoveConnOut(int fd) {
-  pstd::WriteLock l(&rwlock_);
+  std::lock_guard l(rwlock_);
   std::shared_ptr<NetConn> conn = nullptr;
   auto iter = conns_.find(fd);
   if (iter != conns_.end()) {
@@ -61,7 +61,7 @@ std::shared_ptr<NetConn> HolyThread::MoveConnOut(int fd) {
 }
 
 std::shared_ptr<NetConn> HolyThread::get_conn(int fd) {
-  pstd::ReadLock l(&rwlock_);
+  std::shared_lock l(rwlock_);
   auto iter = conns_.find(fd);
   if (iter != conns_.end()) {
     return iter->second;
@@ -93,7 +93,7 @@ void HolyThread::HandleNewConn(const int connfd, const std::string& ip_port) {
   std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(connfd, ip_port, this, private_data_, net_multiplexer_.get());
   tc->SetNonblock();
   {
-    pstd::WriteLock l(&rwlock_);
+    std::lock_guard l(rwlock_);
     conns_[connfd] = tc;
   }
 
@@ -106,15 +106,17 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
   }
   std::shared_ptr<NetConn> in_conn = nullptr;
   int should_close = 0;
-  std::map<int, std::shared_ptr<NetConn>>::iterator iter;
+
   {
-    pstd::ReadLock l(&rwlock_);
-    if ((iter = conns_.find(pfe->fd)) == conns_.end()) {
+    std::shared_lock l(rwlock_);
+    if (auto iter = conns_.find(pfe->fd); iter == conns_.end()) {
       net_multiplexer_->NetDelEvent(pfe->fd, 0);
       return;
+    } else {
+      in_conn = iter->second;
     }
   }
-  in_conn = iter->second;
+
   if (async_) {
     if (pfe->mask & kReadable) {
       ReadStatus read_status = in_conn->GetRequest();
@@ -174,7 +176,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
     in_conn = nullptr;
 
     {
-      pstd::WriteLock l(&rwlock_);
+      std::lock_guard l(rwlock_);
       conns_.erase(pfe->fd);
     }
   }
@@ -186,10 +188,10 @@ void HolyThread::DoCronTask() {
   std::vector<std::shared_ptr<NetConn>> to_close;
   std::vector<std::shared_ptr<NetConn>> to_timeout;
   {
-    pstd::WriteLock l(&rwlock_);
+    std::lock_guard l(rwlock_);
 
     // Check whether close all connection
-    pstd::MutexLock kl(&killer_mutex_);
+    std::lock_guard kl(killer_mutex_);
     if (deleting_conn_ipport_.count(kKillAllConnsTask)) {
       for (auto& conn : conns_) {
         to_close.push_back(conn.second);
@@ -244,7 +246,7 @@ void HolyThread::CloseFd(std::shared_ptr<NetConn> conn) {
 void HolyThread::Cleanup() {
   std::map<int, std::shared_ptr<NetConn>> to_close;
   {
-    pstd::WriteLock l(&rwlock_);
+    std::lock_guard l(rwlock_);
     to_close = std::move(conns_);
     conns_.clear();
   }
@@ -258,16 +260,16 @@ void HolyThread::KillAllConns() { KillConn(kKillAllConnsTask); }
 bool HolyThread::KillConn(const std::string& ip_port) {
   bool find = false;
   if (ip_port != kKillAllConnsTask) {
-    pstd::ReadLock l(&rwlock_);
-    for (auto& iter : conns_) {
-      if (iter.second->ip_port() == ip_port) {
+    std::shared_lock lock(rwlock_);
+    for (auto& [_, conn] : conns_) {
+      if (conn->ip_port() == ip_port) {
         find = true;
         break;
       }
     }
   }
   if (find || ip_port == kKillAllConnsTask) {
-    pstd::MutexLock l(&killer_mutex_);
+    std::lock_guard l(killer_mutex_);
     deleting_conn_ipport_.insert(ip_port);
     return true;
   }
@@ -296,7 +298,7 @@ void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
           CloseFd(conn);
           conn = nullptr;
           {
-            pstd::WriteLock l(&rwlock_);
+            std::lock_guard l(rwlock_);
             conns_.erase(fd);
           }
         }

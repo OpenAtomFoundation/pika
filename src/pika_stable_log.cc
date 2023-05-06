@@ -20,7 +20,6 @@ extern PikaReplicaManager* g_pika_rm;
 StableLog::StableLog(const std::string table_name, uint32_t partition_id, const std::string& log_path)
     : purging_(false), table_name_(table_name), partition_id_(partition_id), log_path_(log_path) {
   stable_logger_ = std::shared_ptr<Binlog>(new Binlog(log_path_, g_pika_conf->binlog_file_size()));
-  pthread_rwlock_init(&offset_rwlock_, nullptr);
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(&binlogs)) {
     LOG(FATAL) << log_path_ << " Could not get binlog files!";
@@ -30,7 +29,7 @@ StableLog::StableLog(const std::string table_name, uint32_t partition_id, const 
   }
 }
 
-StableLog::~StableLog() { pthread_rwlock_destroy(&offset_rwlock_); }
+StableLog::~StableLog() {}
 
 void StableLog::Leave() {
   Close();
@@ -192,7 +191,7 @@ void StableLog::UpdateFirstOffset(uint32_t filenum) {
     }
   }
 
-  pstd::RWLock l(&offset_rwlock_, true);
+  std::lock_guard l(offset_rwlock_);
   first_offset_.b_offset = offset;
   first_offset_.l_offset.term = item.term_id();
   first_offset_.l_offset.index = item.logic_id();

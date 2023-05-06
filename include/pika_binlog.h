@@ -34,10 +34,10 @@ class Version {
   uint64_t logic_id_ = 0;
   uint32_t term_ = 0;
 
-  pthread_rwlock_t rwlock_;
+  std::shared_mutex rwlock_;
 
   void debug() {
-    pstd::RWLock(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     printf("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
   }
 
@@ -54,8 +54,8 @@ class Binlog {
   Binlog(const std::string& Binlog_path, const int file_size = 100 * 1024 * 1024);
   ~Binlog();
 
-  void Lock() { mutex_.Lock(); }
-  void Unlock() { mutex_.Unlock(); }
+  void Lock() { mutex_.lock(); }
+  void Unlock() { mutex_.unlock(); }
 
   Status Put(const std::string& item);
 
@@ -75,13 +75,13 @@ class Binlog {
 
   // need to hold mutex_
   void SetTerm(uint32_t term) {
-    pstd::RWLock(&(version_->rwlock_), true);
+    std::lock_guard l(version_->rwlock_);
     version_->term_ = term;
     version_->StableSave();
   }
 
   uint32_t term() {
-    pstd::RWLock(&(version_->rwlock_), true);
+    std::shared_lock l(version_->rwlock_);
     return version_->term_;
   }
 
