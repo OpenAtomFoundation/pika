@@ -9,7 +9,7 @@ target_include_directories(aof_to_pika PRIVATE ./include PRIVATE ../..)
 
 target_link_libraries(aof_to_pika pthread)
 set_target_properties(aof_to_pika PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/pika_tools
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tools
     CMAKE_COMPILER_IS_GNUCXX TRUE
     COMPILE_FLAGS ${CXXFLAGS})
 
