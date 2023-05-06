@@ -1067,10 +1067,10 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
 
-  if (argv_.size() == 3) {//command => `info keyspace 1`
+  if (argv_.size() == 3) {  // command => `info keyspace 1`
     tmp_stream << "# Start async statistics"
                << "\r\n";
-  } else {//command => `info keyspace` or `info`
+  } else {  // command => `info keyspace` or `info`
     tmp_stream << "# Use `info keyspace 1` do async statistics"
                << "\r\n";
   }
