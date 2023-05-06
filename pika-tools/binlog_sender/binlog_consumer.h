@@ -9,10 +9,10 @@
 #include "stddef.h"
 #include "stdint.h"
 
-#include "slash/include/env.h"
-#include "slash/include/slash_mutex.h"
-#include "slash/include/slash_slice.h"
-#include "slash/include/slash_status.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_slice.h"
+#include "pstd/include/pstd_status.h"
 
 enum RecordType {
   kZeroType = 0,
@@ -42,12 +42,12 @@ class BinlogConsumer {
   bool trim();
   uint32_t current_filenum();
   uint64_t current_offset();
-  slash::Status Parse(std::string* scratch);
+  pstd::Status Parse(std::string* scratch);
 
  private:
   uint64_t get_next(bool* is_error);
-  uint32_t ReadPhysicalRecord(slash::Slice* result);
-  slash::Status Consume(std::string* scratch);
+  uint32_t ReadPhysicalRecord(pstd::Slice* result);
+  pstd::Status Consume(std::string* scratch);
   std::string filename_;
   uint32_t first_filenum_;
   uint32_t last_filenum_;
@@ -56,9 +56,9 @@ class BinlogConsumer {
   uint64_t current_offset_;
   uint64_t last_record_offset_;
 
-  slash::Slice buffer_;
+  pstd::Slice buffer_;
   char* const backing_store_;
-  slash::SequentialFile* queue_;
+  pstd::SequentialFile* queue_;
 };
 
 #endif  //  INCLUDE_BINLOG_Consumber_H_

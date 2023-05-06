@@ -1,0 +1,19 @@
+set(WARNING_FLAGS "-W -Wextra -Wall -Wsign-compare \
+-Wno-unused-parameter -Wno-redundant-decls -Wwrite-strings \
+-Wpointer-arith -Wreorder -Wswitch -Wsign-promo \
+-Woverloaded-virtual -Wnon-virtual-dtor -Wno-missing-field-initializers")
+
+set(CXXFLAGS "$(WARNING_FLAGS) -std=c++17 -g")
+
+set(SRC_DIR .)
+aux_source_directory(${SRC_DIR} BASE_OBJS)
+
+add_executable(binlog_sender ${BASE_OBJS})
+
+target_include_directories(binlog_sender PRIVATE ${PROJECT_SOURCE_DIR})
+
+target_link_libraries(binlog_sender net pstd pthread)
+set_target_properties(binlog_sender PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tools
+    CMAKE_COMPILER_IS_GNUCXX TRUE
+    COMPILE_FLAGS ${CXXFLAGS})

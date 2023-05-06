@@ -30,7 +30,7 @@ std::string end_time_str = "2100-01-01 00:00:01";
 bool need_auth = false;
 std::string pass_wd;
 
-net::PinkCli* cli = nullptr;
+net::NetCli* cli = nullptr;
 BinlogConsumer* binlog_consumer = nullptr;
 ProgressThread* progress_thread = nullptr;
 
@@ -201,7 +201,7 @@ int main(int argc, char* argv[]) {
   BinlogItem binlog_item;
   while (true) {
     std::string scratch;
-    slash::Status s = binlog_consumer->Parse(&scratch);
+    pstd::Status s = binlog_consumer->Parse(&scratch);
     if (s.ok()) {
       if (PikaBinlogTransverter::BinlogDecode(TypeFirst, scratch, &binlog_item)) {
         std::string redis_cmd = binlog_item.content();

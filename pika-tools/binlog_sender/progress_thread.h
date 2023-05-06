@@ -13,7 +13,7 @@
 
 #include "binlog_consumer.h"
 
-extern slash::Mutex mutex;
+extern pstd::Mutex mutex;
 
 class ProgressThread : public net::Thread {
  public:

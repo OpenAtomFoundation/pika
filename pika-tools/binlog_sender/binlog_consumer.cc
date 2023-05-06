@@ -29,7 +29,7 @@ bool BinlogConsumer::Init() {
   std::string profile;
   for (size_t idx = first_filenum_; idx <= last_filenum_; ++idx) {
     profile = NewFileName(filename_, idx);
-    if (!slash::FileExists(profile)) {
+    if (!pstd::FileExists(profile)) {
       fprintf(stderr, "Binlog %s not exists\n", profile.c_str());
       return false;
     }
@@ -37,7 +37,7 @@ bool BinlogConsumer::Init() {
 
   current_filenum_ = first_filenum_;
   profile = NewFileName(filename_, current_filenum_);
-  slash::Status s = slash::NewSequentialFile(profile, &queue_);
+  pstd::Status s = pstd::NewSequentialFile(profile, &queue_);
   if (!s.ok()) {
     return false;
   } else {
@@ -46,7 +46,7 @@ bool BinlogConsumer::Init() {
 }
 
 bool BinlogConsumer::trim() {
-  slash::Status s;
+  pstd::Status s;
   uint64_t start_block = (current_offset_ / kBlockSize) * kBlockSize;
   s = queue_->Skip((current_offset_ / kBlockSize) * kBlockSize);
   if (!s.ok()) {
@@ -79,7 +79,7 @@ uint64_t BinlogConsumer::current_offset() { return current_offset_; }
 
 uint64_t BinlogConsumer::get_next(bool* is_error) {
   uint64_t offset = 0;
-  slash::Status s;
+  pstd::Status s;
   *is_error = false;
 
   while (true) {
@@ -119,8 +119,8 @@ uint64_t BinlogConsumer::get_next(bool* is_error) {
   return offset;
 }
 
-uint32_t BinlogConsumer::ReadPhysicalRecord(slash::Slice* result) {
-  slash::Status s;
+uint32_t BinlogConsumer::ReadPhysicalRecord(pstd::Slice* result) {
+  pstd::Status s;
   if (kBlockSize - last_record_offset_ <= kHeaderSize) {
     queue_->Skip(kBlockSize - last_record_offset_);
     current_offset_ += (kBlockSize - last_record_offset_);
@@ -147,7 +147,7 @@ uint32_t BinlogConsumer::ReadPhysicalRecord(slash::Slice* result) {
 
   buffer_.clear();
   s = queue_->Read(length, &buffer_, backing_store_);
-  *result = slash::Slice(buffer_.data(), buffer_.size());
+  *result = pstd::Slice(buffer_.data(), buffer_.size());
   last_record_offset_ += kHeaderSize + length;
   if (s.ok()) {
     current_offset_ += (kHeaderSize + length);
@@ -155,73 +155,73 @@ uint32_t BinlogConsumer::ReadPhysicalRecord(slash::Slice* result) {
   return type;
 }
 
-slash::Status BinlogConsumer::Consume(std::string* scratch) {
-  slash::Status s;
+pstd::Status BinlogConsumer::Consume(std::string* scratch) {
+  pstd::Status s;
 
-  slash::Slice fragment;
+  pstd::Slice fragment;
   while (true) {
     const uint32_t record_type = ReadPhysicalRecord(&fragment);
 
     switch (record_type) {
       case kFullType:
         *scratch = std::string(fragment.data(), fragment.size());
-        s = slash::Status::OK();
+        s = pstd::Status::OK();
         break;
       case kFirstType:
         scratch->assign(fragment.data(), fragment.size());
-        s = slash::Status::NotFound("Middle Status");
+        s = pstd::Status::NotFound("Middle Status");
         break;
       case kMiddleType:
         scratch->append(fragment.data(), fragment.size());
-        s = slash::Status::NotFound("Middle Status");
+        s = pstd::Status::NotFound("Middle Status");
         break;
       case kLastType:
         scratch->append(fragment.data(), fragment.size());
-        s = slash::Status::OK();
+        s = pstd::Status::OK();
         break;
       case kEof:
-        return slash::Status::EndFile("Eof");
+        return pstd::Status::EndFile("Eof");
       case kBadRecord:
-        return slash::Status::IOError("Data Corruption");
+        return pstd::Status::IOError("Data Corruption");
       case kOldRecord:
-        return slash::Status::EndFile("Eof");
+        return pstd::Status::EndFile("Eof");
       default:
-        return slash::Status::IOError("Unknow reason");
+        return pstd::Status::IOError("Unknow reason");
     }
     if (s.ok()) {
       break;
     }
   }
-  return slash::Status::OK();
+  return pstd::Status::OK();
 }
 
 // Get a whole message;
 // the status will be OK, IOError or Corruption;
-slash::Status BinlogConsumer::Parse(std::string* scratch) {
-  slash::Status s;
+pstd::Status BinlogConsumer::Parse(std::string* scratch) {
+  pstd::Status s;
   scratch->clear();
   while (true) {
     s = Consume(scratch);
 
     if (s.IsEndFile()) {
       if (current_filenum_ == last_filenum_) {
-        return slash::Status::Complete("finish");
+        return pstd::Status::Complete("finish");
       } else {
         std::string confile = NewFileName(filename_, current_filenum_ + 1);
 
         // Roll to next File
-        if (slash::FileExists(confile)) {
+        if (pstd::FileExists(confile)) {
           // DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
           delete queue_;
           queue_ = NULL;
 
-          slash::NewSequentialFile(confile, &queue_);
+          pstd::NewSequentialFile(confile, &queue_);
 
           current_filenum_++;
           current_offset_ = 0;
           last_record_offset_ = 0;
         } else {
-          return slash::Status::NotFound("not found");
+          return pstd::Status::NotFound("not found");
         }
       }
     } else {
