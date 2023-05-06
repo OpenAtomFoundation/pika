@@ -39,4 +39,5 @@ target_link_libraries(storage
            ${GLOG_LIBRARY}
            ${GFLAGS_LIBRARY}
            ${LIBUNWIND_LIBRARY}
-    PUBLIC pstd)
+    PUBLIC pstd
+           uring)
