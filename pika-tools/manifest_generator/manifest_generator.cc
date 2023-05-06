@@ -10,8 +10,8 @@
 #include <iostream>
 
 #include "include/pika_binlog.h"
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_string.h"
 
 std::string db_dump_path;
 int32_t db_dump_filenum;
@@ -20,7 +20,7 @@ std::string new_pika_log_path;
 
 void ParseInfoFile(const std::string& path) {
   std::string info_file = path + kBgsaveInfoFile;
-  if (!slash::FileExists(info_file)) {
+  if (!pstd::FileExists(info_file)) {
     std::cout << "Info file " << info_file << " does not exist" << std::endl;
     exit(-1);
   }
@@ -39,7 +39,7 @@ void ParseInfoFile(const std::string& path) {
     if (lineno == 2) {
       master_ip = line;
     } else if (lineno > 2 && lineno < 6) {
-      if (!slash::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
+      if (!pstd::string2int(line.data(), line.size(), &tmp) || tmp < 0) {
         std::cout << "Format of info file " << info_file << " error, line : " << line;
         is.close();
         exit(-1);
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
     new_pika_log_path.push_back('/');
   }
   // if this dir exist
-  if (slash::IsDir(new_pika_log_path) == 0) {
+  if (pstd::IsDir(new_pika_log_path) == 0) {
     std::cout << "Dir " << new_pika_log_path << "exist, please delete it!" << std::endl;
     exit(-1);
   }
@@ -124,7 +124,7 @@ int main(int argc, char* argv[]) {
   std::cout << std::endl << "Step 2, Generate manifest file to " << new_pika_log_path << std::endl;
   // generate manifest and newest binlog
   Binlog binlog(new_pika_log_path);
-  slash::Status s = binlog.SetProducerStatus(db_dump_filenum, db_dump_offset);
+  pstd::Status s = binlog.SetProducerStatus(db_dump_filenum, db_dump_offset);
   if (!s.ok()) {
     std::cout << s.ToString() << std::endl;
     exit(-1);
