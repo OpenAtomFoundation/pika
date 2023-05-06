@@ -10,13 +10,13 @@
 #include <random>
 #include <vector>
 
-#include "hiredis.h"
-#include "slash/include/slash_status.h"
-#include "slash/include/slash_string.h"
+#include "hiredis-vip/hiredis.h"
+#include "pstd/include/pstd_status.h"
+#include "pstd/include/pstd_string.h"
 
 #define TIME_OF_LOOP 1000000
 
-using slash::Status;
+using pstd::Status;
 using std::default_random_engine;
 
 Status RunSetCommand(redisContext* c);
@@ -321,7 +321,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  slash::StringSplit(tables_str, ',', tables);
+  pstd::StringSplit(tables_str, ',', tables);
 
   if (tables.empty()) {
     Usage();
