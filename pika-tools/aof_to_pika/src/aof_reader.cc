@@ -58,7 +58,7 @@ static int file_read(const std::string& path) {
   LOG_INFO("Begin reading.... ");
   print_cur_time();
 
-  std::ios::streampos gpos = ifs.tellg();
+  std::streampos gpos = ifs.tellg();
   std::string line;
   bool dirty = false;
   while (true) {
