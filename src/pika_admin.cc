@@ -1066,6 +1066,15 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   std::vector<storage::KeyInfo> key_infos;
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
+
+  if (argv_.size() == 3) {  // command => `info keyspace 1`
+    tmp_stream << "# Start async statistics"
+               << "\r\n";
+  } else {  // command => `info keyspace` or `info`
+    tmp_stream << "# Use `info keyspace 1` do async statistics"
+               << "\r\n";
+  }
+
   pstd::RWLock rwl(&g_pika_server->tables_rw_, false);
   for (const auto& table_item : g_pika_server->tables_) {
     if (keyspace_scan_tables_.empty() || keyspace_scan_tables_.find(table_item.first) != keyspace_scan_tables_.end()) {

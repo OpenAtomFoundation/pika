@@ -21,7 +21,7 @@ export IMG=$(PIKA_OPERATOR_IMAGE)
 
 .PHONY: minikube-image-load
 minikube-image-load: ## Load image to minikube.
-ifeq ($(shell docker images -q $(PIKA_IMAGE) 2> /dev/null), "")
+ifeq ($(shell docker images -q $(PIKA_IMAGE) 2> /dev/null),)
 	docker pull $(PIKA_IMAGE)
 endif
 	docker tag $(PIKA_IMAGE) pika:dev
@@ -40,10 +40,22 @@ deploy-pika-sample: ## Deploy pika-sample.
 uninstall-pika-sample: ## Uninstall pika-sample.
 	kubectl delete -f examples/pika-minikube/
 
+##@ Local EnvSetup
+local-env-setup: set-local-env docker-build minikube-image-load install deploy
+
 ##@ Local Deploy
 .PHONY: local-deploy
-local-deploy: set-local-env docker-build minikube-image-load install deploy deploy-pika-sample
+local-deploy: local-env-setup deploy-pika-sample
 
 ##@ Local Clean
 .PHONY: local-clean
 local-clean: uninstall-pika-sample uninstall
+
+##@ e2e test
+.PHONY: e2e-test # You will need to have a k8s cluster up in running to run this target
+e2e-test:
+	go test --tags=integration ./test/e2e/ -v -ginkgo.v
+
+##@ e2e-test-local:       Run e2e test cases (minikube is required)
+.PHONY: e2e-test-local
+e2e-test-local: local-env-setup e2e-test
