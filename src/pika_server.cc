@@ -1535,6 +1535,7 @@ void PikaServer::InitStorageOptions() {
 
   // rocksdb blob
   if (g_pika_conf->enable_blob_files()) {
+    storage_options_.options.enable_blob_files = g_pika_conf->enable_blob_files();
     storage_options_.options.min_blob_size = g_pika_conf->min_blob_size();
     storage_options_.options.blob_file_size = g_pika_conf->blob_file_size();
     storage_options_.options.blob_compression_type = PikaConf::GetCompression(g_pika_conf->blob_compression_type());
