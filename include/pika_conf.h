@@ -554,7 +554,7 @@ class PikaConf : public pstd::BaseConf {
   bool enable_blob_files_ = false;
   int64_t min_blob_size_ = 4096;                // 4K
   int64_t blob_file_size_ = 256 * 1024 * 1024;  // 256M
-  std::string blob_compression_type_;
+  std::string blob_compression_type_ = "none";
   bool enable_blob_garbage_collection_ = false;
   double blob_garbage_collection_age_cutoff_ = 0.25;
   double blob_garbage_collection_force_threshold_ = 1.0;
