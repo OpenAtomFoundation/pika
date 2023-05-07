@@ -337,15 +337,6 @@ Status Storage::SMove(const Slice& source, const Slice& destination, const Slice
   return sets_db_->SMove(source, destination, member, ret);
 }
 
-Status Storage::SPop(const Slice& key, std::string* member) {
-  bool need_compact = false;
-  Status status = sets_db_->SPop(key, member, &need_compact);
-  if (need_compact) {
-    AddBGTask({kSets, kCompactKey, key.ToString()});
-  }
-  return status;
-}
-
 Status Storage::SPop(const Slice& key, std::vector<std::string>* members, int64_t count) {
   bool need_compact = false;
   Status status = sets_db_->SPop(key, members, &need_compact, count);

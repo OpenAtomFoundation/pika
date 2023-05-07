@@ -421,9 +421,6 @@ class Storage {
   // treated as an empty set and this command returns 0.
   Status SRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
 
-  // Removes and returns one random elements from the set value store at key.
-  Status SPop(const Slice& key, std::string* member);
-
   // Removes and returns several random elements specified by count from the set value store at key.
   Status SPop(const Slice& key, std::vector<std::string>* members, int64_t count);
   

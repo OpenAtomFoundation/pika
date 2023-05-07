@@ -34,7 +34,7 @@ void SAddCmd::Do(std::shared_ptr<Partition> partition) {
 void SPopCmd::DoInitial() {
 
   size_t argc = argv_.size(), index = 2;
-  if (!CheckArg(argc) && !CheckArg(argc - 1)) {
+  if (!CheckArg(argc)) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSPop);
     return;
   }
