@@ -108,7 +108,7 @@ void* WorkerThread::ThreadMain() {
       if (pfe == nullptr) {
           continue;
       }
-      else if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
+      if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         if (pfe->mask & kReadable) {
           int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
           if (nread == 0) {
