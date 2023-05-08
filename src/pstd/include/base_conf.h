@@ -54,6 +54,7 @@ class BaseConf {
   bool GetConfStr(const std::string& name, std::string* value) const;
   bool GetConfBool(const std::string& name, bool* value) const;
   bool GetConfStrVec(const std::string& name, std::vector<std::string>* value) const;
+  bool GetConfDouble(const std::string& name, double* value) const;
 
   bool SetConfInt(const std::string& name, const int value);
   bool SetConfInt64(const std::string& name, const int64_t value);
@@ -61,6 +62,7 @@ class BaseConf {
   bool SetConfStr(const std::string& name, const std::string& value);
   bool SetConfBool(const std::string& name, const bool value);
   bool SetConfStrVec(const std::string& name, const std::vector<std::string>& value);
+  bool SetConfDouble(const std::string& name, const double value);
 
   bool CheckConfExist(const std::string& name) const;
 

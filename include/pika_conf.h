@@ -266,6 +266,28 @@ class PikaConf : public pstd::BaseConf {
     RWLock l(&rwlock_, false);
     return rate_limiter_bandwidth_;
   }
+  int64_t rate_limiter_refill_period_us() {
+    RWLock l(&rwlock_, false);
+    return rate_limiter_refill_period_us_;
+  }
+  int64_t rate_limiter_fairness() {
+    RWLock l(&rwlock_, false);
+    return rate_limiter_fairness_;
+  }
+  bool rate_limiter_auto_tuned() {
+    RWLock l(&rwlock_, false);
+    return rate_limiter_auto_tuned_;
+  }
+
+  bool enable_blob_files() { return enable_blob_files_; }
+  int64_t min_blob_size() { return min_blob_size_; }
+  int64_t blob_file_size() { return blob_file_size_; }
+  std::string blob_compression_type() { return blob_compression_type_; }
+  bool enable_blob_garbage_collection() { return enable_blob_garbage_collection_; }
+  double blob_garbage_collection_age_cutoff() { return blob_garbage_collection_age_cutoff_; }
+  double blob_garbage_collection_force_threshold() { return blob_garbage_collection_force_threshold_; }
+  int64_t blob_cache() { return blob_cache_; }
+  int64_t blob_num_shard_bits() { return blob_num_shard_bits_; }
 
   // Immutable config items, we don't use lock.
   bool daemonize() { return daemonize_; }
@@ -507,6 +529,7 @@ class PikaConf : public pstd::BaseConf {
   int expire_logs_nums_ = 0;
   bool slave_read_only_ = false;
   std::string conf_path_;
+
   int max_cache_statistic_keys_ = 0;
   int small_compaction_threshold_ = 0;
   int max_background_flushes_ = 0;
@@ -522,6 +545,10 @@ class PikaConf : public pstd::BaseConf {
   bool optimize_filters_for_hits_ = false;
   bool level_compaction_dynamic_level_bytes_ = false;
   int64_t rate_limiter_bandwidth_ = 200 * 1024 * 1024;  // 200M
+  int64_t rate_limiter_refill_period_us_ = 100 * 1000;
+  int64_t rate_limiter_fairness_ = 10;
+  bool rate_limiter_auto_tuned_ = true;
+
   std::atomic<int> sync_window_size_;
   std::atomic<int> max_conn_rbuf_size_;
   std::atomic<int> consensus_level_;
@@ -539,6 +566,17 @@ class PikaConf : public pstd::BaseConf {
   bool write_binlog_ = false;
   int target_file_size_base_ = 0;
   int binlog_file_size_ = 0;
+
+  // rocksdb blob
+  bool enable_blob_files_ = false;
+  int64_t min_blob_size_ = 4096;                // 4K
+  int64_t blob_file_size_ = 256 * 1024 * 1024;  // 256M
+  std::string blob_compression_type_ = "none";
+  bool enable_blob_garbage_collection_ = false;
+  double blob_garbage_collection_age_cutoff_ = 0.25;
+  double blob_garbage_collection_force_threshold_ = 1.0;
+  int64_t blob_cache_ = 0;
+  int64_t blob_num_shard_bits_ = 0;
 
   PikaMeta* local_meta_ = nullptr;
 

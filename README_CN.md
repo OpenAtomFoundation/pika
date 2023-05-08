@@ -62,7 +62,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 
 * linux - Ubuntu
 
-* macOS(Darwin) on M1
+* macOS(Darwin)
 
 #### 依赖软件
 * gcc g++ 支持C++17 （version>=7）

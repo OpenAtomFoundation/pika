@@ -1641,6 +1641,24 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeInt64(&config_body, g_pika_conf->rate_limiter_bandwidth());
   }
 
+  if (pstd::stringmatch(pattern.data(), "rate-limiter-refill-period-us", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "rate-limiter-refill-period-us");
+    EncodeInt64(&config_body, g_pika_conf->rate_limiter_refill_period_us());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "rate-limiter-fairness", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "rate-limiter-fairness");
+    EncodeInt64(&config_body, g_pika_conf->rate_limiter_fairness());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "rate-limiter-auto-tuned", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "rate-limiter-auto-tuned");
+    EncodeString(&config_body, g_pika_conf->rate_limiter_auto_tuned() ? "yes" : "no");
+  }
+
   std::stringstream resp;
   resp << "*" << std::to_string(elements) << "\r\n" << config_body;
   ret = resp.str();
