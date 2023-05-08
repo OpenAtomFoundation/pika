@@ -266,6 +266,18 @@ class PikaConf : public pstd::BaseConf {
     RWLock l(&rwlock_, false);
     return rate_limiter_bandwidth_;
   }
+  int64_t rate_limiter_refill_period_us() {
+    RWLock l(&rwlock_, false);
+    return rate_limiter_refill_period_us_;
+  }
+  int64_t rate_limiter_fairness() {
+    RWLock l(&rwlock_, false);
+    return rate_limiter_fairness_;
+  }
+  bool rate_limiter_auto_tuned() {
+    RWLock l(&rwlock_, false);
+    return rate_limiter_auto_tuned_;
+  }
 
   bool enable_blob_files() { return enable_blob_files_; }
   int64_t min_blob_size() { return min_blob_size_; }
@@ -517,6 +529,7 @@ class PikaConf : public pstd::BaseConf {
   int expire_logs_nums_ = 0;
   bool slave_read_only_ = false;
   std::string conf_path_;
+
   int max_cache_statistic_keys_ = 0;
   int small_compaction_threshold_ = 0;
   int max_background_flushes_ = 0;
@@ -532,6 +545,10 @@ class PikaConf : public pstd::BaseConf {
   bool optimize_filters_for_hits_ = false;
   bool level_compaction_dynamic_level_bytes_ = false;
   int64_t rate_limiter_bandwidth_ = 200 * 1024 * 1024;  // 200M
+  int64_t rate_limiter_refill_period_us_ = 100 * 1000;
+  int64_t rate_limiter_fairness_ = 10;
+  bool rate_limiter_auto_tuned_ = true;
+
   std::atomic<int> sync_window_size_;
   std::atomic<int> max_conn_rbuf_size_;
   std::atomic<int> consensus_level_;

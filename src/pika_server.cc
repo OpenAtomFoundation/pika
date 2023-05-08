@@ -1527,7 +1527,14 @@ void PikaServer::InitStorageOptions() {
   }
 
   storage_options_.options.rate_limiter =
-      std::shared_ptr<rocksdb::RateLimiter>(rocksdb::NewGenericRateLimiter(g_pika_conf->rate_limiter_bandwidth()));
+    std::shared_ptr<rocksdb::RateLimiter>(
+      rocksdb::NewGenericRateLimiter(
+        g_pika_conf->rate_limiter_bandwidth(),
+        g_pika_conf->rate_limiter_refill_period_us(),
+        g_pika_conf->rate_limiter_fairness(),
+        rocksdb::RateLimiter::Mode::kWritesOnly,
+        g_pika_conf->rate_limiter_auto_tuned()
+      ));
 
   // For Storage small compaction
   storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
