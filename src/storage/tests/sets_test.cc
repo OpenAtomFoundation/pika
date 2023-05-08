@@ -1413,6 +1413,23 @@ TEST_F(SetsTest, SPopTest) {
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_TRUE(size_match(&db, "GP6_SPOP_KEY", 0));
   ASSERT_TRUE(members_match(&db, "GP6_SPOP_KEY", {}));
+
+    // ***************** Group 7 Test *****************
+  std::vector<std::string> gp7_members{"gp7_aa", "gp7_bb", "gp7_cc"};
+  s = db.SAdd("GP7_SPOP_KEY", gp7_members, &ret);
+  ASSERT_TRUE(s.ok());
+  ASSERT_EQ(ret, 3);
+
+  std::vector<std::string> gp7_out_all;
+  s = db.SPop("GP7_SPOP_KEY", &members, 4);
+  ASSERT_TRUE(s.ok());
+
+  gp7_out_all.swap(members);
+  members.clear();
+
+  ASSERT_TRUE(size_match(&db, "GP7_SPOP_KEY", 0));
+  ASSERT_TRUE(members_match(&db, "GP7_SPOP_KEY", {}));
+  ASSERT_TRUE(members_match(gp7_out_all, gp7_members));
 }
 
 // SRandmember
