@@ -76,10 +76,11 @@ void SlotsHashKeyCmd::DoInitial() {
 void SlotsHashKeyCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendArrayLen(argv_.size() - 1);
   std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
-  uint32_t partition_num = table_ptr->PartitionNum();
   if (!table_ptr) {
     res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsHashKey);
+    return;
   }
+  uint32_t partition_num = table_ptr->PartitionNum();
   // iter starts from real key, first item in argv_ is command name
   std::vector<std::string>::const_iterator iter = argv_.begin() + 1;
   for (; iter != argv_.end(); iter++) {
@@ -147,7 +148,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   std::string str_slot_num = *it++;
 
   std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (table == NULL) {
+  if (table == nullptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }

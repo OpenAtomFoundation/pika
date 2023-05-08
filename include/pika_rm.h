@@ -119,7 +119,7 @@ class SyncMasterPartition : public SyncPartition {
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
 
   pstd::Mutex session_mu_;
-  int32_t session_id_;
+  int32_t session_id_ = 0;
 
   ConsensusCoordinator coordinator_;
 };
@@ -251,12 +251,11 @@ class PikaReplicaManager {
   std::unordered_map<PartitionInfo, std::shared_ptr<SyncSlavePartition>, hash_partition_info> sync_slave_partitions_;
 
   pstd::Mutex write_queue_mu_;
-  // every host owns a queue
-  std::unordered_map<std::string, std::unordered_map<uint32_t, std::queue<WriteTask>>>
-      write_queues_;  // map<ip+port, map<partition_id, queue<WriteTask>>>
+  // every host owns a queue, the key is "ip+port"
+  std::unordered_map<std::string, std::unordered_map<uint32_t, std::queue<WriteTask>>> write_queues_;
 
-  PikaReplClient* pika_repl_client_;
-  PikaReplServer* pika_repl_server_;
+  PikaReplClient* pika_repl_client_ = nullptr;
+  PikaReplServer* pika_repl_server_ = nullptr;
 };
 
 #endif  //  PIKA_RM_H

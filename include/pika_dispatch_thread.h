@@ -28,12 +28,11 @@ class PikaDispatchThread {
     explicit ClientConnFactory(int max_conn_rbuf_size) : max_conn_rbuf_size_(max_conn_rbuf_size) {}
     virtual std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* server_thread,
                                                      void* worker_specific_data, net::NetMultiplexer* net) const {
-      return std::static_pointer_cast<net::NetConn>(std::make_shared<PikaClientConn>(
-          connfd, ip_port, server_thread, net, net::HandleType::kAsynchronous, max_conn_rbuf_size_));
+      return std::make_shared<PikaClientConn>(connfd, ip_port, server_thread, net, net::HandleType::kAsynchronous, max_conn_rbuf_size_);
     }
 
    private:
-    int max_conn_rbuf_size_;
+    int max_conn_rbuf_size_ = 0;
   };
 
   class Handles : public net::ServerHandle {
@@ -44,11 +43,11 @@ class PikaDispatchThread {
     void CronHandle() const override;
 
    private:
-    PikaDispatchThread* pika_disptcher_;
+    PikaDispatchThread* pika_disptcher_ = nullptr;
   };
 
   ClientConnFactory conn_factory_;
   Handles handles_;
-  net::ServerThread* thread_rep_;
+  net::ServerThread* thread_rep_ = nullptr;
 };
 #endif

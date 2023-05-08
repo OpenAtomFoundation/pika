@@ -62,10 +62,10 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 
 * linux - Ubuntu
 
-* macOS(Darwin) on M1
+* macOS(Darwin)
 
 #### 依赖软件
-* gcc g++ 支持C++11 （version>=4.8）
+* gcc g++ 支持C++17 （version>=7）
 * make
 * cmake（version>=3.18）
 * autoconf
@@ -87,6 +87,15 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 ```
 
 3. 编译
+
+如果在CentOS6，centOS7等 gcc 版本小于7的机器上，需要先升级gcc版本
+
+执行如下
+```
+  a. sudo yum -y install centos-release-scl
+  b. sudo yum -y install devtoolset-7-gcc devtoolset-7-gcc-c++
+  c. scl enable devtoolset-7 bash
+```
 
 第一次编译时，建议使用构建脚本`build.sh` 该脚本会检查本机上，是否有编译所需的软件
 ```

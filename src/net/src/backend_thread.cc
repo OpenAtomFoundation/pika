@@ -123,7 +123,7 @@ void BackendThread::SetWaitConnectOnEpoll(int sockfd) {
 
 void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int sockfd) {
   std::string ip_port = peer_ip + ":" + std::to_string(peer_port);
-  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, NULL, net_multiplexer_.get());
+  std::shared_ptr<NetConn> tc = conn_factory_->NewNetConn(sockfd, ip_port, this, nullptr, net_multiplexer_.get());
   tc->SetNonblock();
   // This flag specifies that the file descriptor should be closed when an exec function is invoked.
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
@@ -152,7 +152,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
   if ((rv = getaddrinfo(dst_ip.c_str(), cport, &hints, &servinfo)) != 0) {
     return Status::IOError("connect getaddrinfo error for ", dst_ip);
   }
-  for (p = servinfo; p != NULL; p = p->ai_next) {
+  for (p = servinfo; p != nullptr; p = p->ai_next) {
     if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
       continue;
     }
@@ -190,7 +190,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
     freeaddrinfo(servinfo);
     return s;
   }
-  if (p == NULL) {
+  if (p == nullptr) {
     s = Status::IOError(strerror(errno), "Can't create socket ");
     return s;
   }
@@ -231,7 +231,7 @@ void BackendThread::CleanUpConnRemaining(const int fd) {
 
 void BackendThread::DoCronTask() {
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   pstd::MutexLock l(&mu_);
   std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
   while (iter != conns_.end()) {
@@ -351,10 +351,10 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
 
 void* BackendThread::ThreadMain() {
   int nfds = 0;
-  NetFiredEvent* pfe = NULL;
+  NetFiredEvent* pfe = nullptr;
 
   struct timeval when;
-  gettimeofday(&when, NULL);
+  gettimeofday(&when, nullptr);
   struct timeval now = when;
 
   when.tv_sec += (cron_interval_ / 1000);
@@ -387,7 +387,7 @@ void* BackendThread::ThreadMain() {
     nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe == NULL) {
+      if (pfe == nullptr) {
         continue;
       }
 

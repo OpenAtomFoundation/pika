@@ -97,17 +97,17 @@ class PkClusterSlotsSlaveofCmd : public Cmd {
 
  private:
   std::string ip_;
-  int64_t port_;
+  int64_t port_ = -1;
   std::set<uint32_t> slots_;
   bool force_sync_;
-  bool is_noone_;
+  bool is_none_;
   virtual void DoInitial() override;
   virtual void Clear() {
     ip_.clear();
     port_ = 0;
     slots_.clear();
     force_sync_ = false;
-    is_noone_ = false;
+    is_none_ = false;
     table_name_.clear();
   }
 };
@@ -121,7 +121,7 @@ class PkClusterAddTableCmd : public Cmd {
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
 
  private:
-  int64_t slot_num_;
+  int64_t slot_num_ = 0;
   void DoInitial() override;
   Status AddTableSanityCheck();
   void Clear() override {

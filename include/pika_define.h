@@ -40,7 +40,7 @@ struct TableStruct {
            partition_ids == table_struct.partition_ids;
   }
   std::string table_name;
-  uint32_t partition_num;
+  uint32_t partition_num = 0;
   std::set<uint32_t> partition_ids;
 };
 
@@ -210,26 +210,20 @@ struct BinlogChip {
 struct PartitionInfo {
   PartitionInfo(const std::string& table_name, uint32_t partition_id)
       : table_name_(table_name), partition_id_(partition_id) {}
+
   PartitionInfo() : partition_id_(0) {}
+
   bool operator==(const PartitionInfo& other) const {
     if (table_name_ == other.table_name_ && partition_id_ == other.partition_id_) {
       return true;
     }
     return false;
   }
-  int operator<(const PartitionInfo& other) const {
-    int ret = strcmp(table_name_.data(), other.table_name_.data());
-    if (!ret) {
-      if (partition_id_ < other.partition_id_) {
-        ret = -1;
-      } else if (partition_id_ > other.partition_id_) {
-        ret = 1;
-      } else {
-        ret = 0;
-      }
-    }
-    return ret;
+
+  bool operator<(const PartitionInfo& other) const {
+    return table_name_ < other.table_name_ || (table_name_ == other.table_name_ && partition_id_ < other.partition_id_);
   }
+
   std::string ToString() const { return "(" + table_name_ + ":" + std::to_string(partition_id_) + ")"; }
   std::string table_name_;
   uint32_t partition_id_;
@@ -252,7 +246,7 @@ class Node {
 
  private:
   std::string ip_;
-  int port_;
+  int port_ = 0;
 };
 
 class RmNode : public Node {
@@ -303,9 +297,9 @@ class RmNode : public Node {
 
  private:
   PartitionInfo partition_info_;
-  int32_t session_id_;
-  uint64_t last_send_time_;
-  uint64_t last_recv_time_;
+  int32_t session_id_ = 0;
+  uint64_t last_send_time_ = 0;
+  uint64_t last_recv_time_ = 0;
 };
 
 struct hash_rm_node {

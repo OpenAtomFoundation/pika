@@ -58,7 +58,7 @@ class MultiScopeRecordLock {
   }
 
  private:
-  LockMgr* const lock_mgr_;
+  LockMgr* const lock_mgr_ = nullptr;
   std::vector<std::string> keys_;
   MultiScopeRecordLock(const MultiScopeRecordLock&);
   void operator=(const MultiScopeRecordLock&);

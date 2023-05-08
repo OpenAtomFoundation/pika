@@ -56,8 +56,8 @@ class SlotsMgrtTagSlotAsyncCmd : public Cmd {
  private:
   virtual void DoInitial() override;
   std::string dest_ip_;
-  int64_t dest_port_;
-  int64_t slot_num_;
+  int64_t dest_port_ = 0;
+  int64_t slot_num_ = -1;
   virtual void Clear() {
     dest_ip_.clear();
     dest_port_ = 0;
@@ -74,10 +74,10 @@ class SlotsScanCmd : public Cmd {
   virtual Cmd* Clone() override { return new SlotsScanCmd(*this); }
 
  private:
-  int64_t cursor_;
-  uint32_t slotnum_;
-  std::string pattern_;
-  int64_t count_;
+  int64_t cursor_ = 0;
+  uint32_t slotnum_ = 0;
+  std::string pattern_ = "*";
+  int64_t count_ = 10;
   virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";

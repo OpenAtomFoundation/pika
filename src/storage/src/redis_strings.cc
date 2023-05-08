@@ -42,7 +42,7 @@ Status RedisStrings::CompactRange(const rocksdb::Slice* begin, const rocksdb::Sl
 Status RedisStrings::GetProperty(const std::string& property, uint64_t* out) {
   std::string value;
   db_->GetProperty(property, &value);
-  *out = std::strtoull(value.c_str(), NULL, 10);
+  *out = std::strtoull(value.c_str(), nullptr, 10);
   return Status::OK();
 }
 
@@ -690,7 +690,10 @@ Status RedisStrings::Setex(const Slice& key, const Slice& value, int32_t ttl) {
     return Status::InvalidArgument("invalid expire time");
   }
   StringsValue strings_value(value);
-  strings_value.SetRelativeTimestamp(ttl);
+  auto s = strings_value.SetRelativeTimestamp(ttl);
+  if (s != Status::OK()) {
+    return s;
+  }
   ScopeRecordLock l(lock_mgr_, key);
   return db_->Put(default_write_options_, key, strings_value.Encode());
 }
@@ -1320,7 +1323,7 @@ void RedisStrings::ScanDatabase() {
   ScopeSnapshot ss(db_, &snapshot);
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
-  int32_t current_time = time(NULL);
+  int32_t current_time = time(nullptr);
 
   printf("\n***************String Data***************\n");
   auto iter = db_->NewIterator(iterator_options);

@@ -46,7 +46,7 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
   std::atomic<bool> purging_;
 
   std::string table_name_;
-  uint32_t partition_id_;
+  uint32_t partition_id_ = 0;
   std::string log_path_;
   std::shared_ptr<Binlog> stable_logger_;
 
@@ -56,9 +56,9 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
 
 struct PurgeStableLogArg {
   std::shared_ptr<StableLog> logger;
-  uint32_t to;
-  bool manual;
-  bool force;  // Ignore the delete window
+  uint32_t to = 0;
+  bool manual = false;
+  bool force = false;  // Ignore the delete window
 };
 
 #endif  // PIKA_STABLE_LOG_H_

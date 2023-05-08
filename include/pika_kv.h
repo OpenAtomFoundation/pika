@@ -32,8 +32,8 @@ class SetCmd : public Cmd {
   std::string key_;
   std::string value_;
   std::string target_;
-  int32_t success_;
-  int64_t sec_;
+  int32_t success_ = 0;
+  int64_t sec_ = 0;
   SetCmd::SetCondition condition_;
   virtual void DoInitial() override;
   virtual void Clear() override {
@@ -74,7 +74,7 @@ class DelCmd : public Cmd {
 
  private:
   std::vector<std::string> keys_;
-  int64_t split_res_;
+  int64_t split_res_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -93,7 +93,7 @@ class IncrCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t new_value_;
+  int64_t new_value_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -112,7 +112,7 @@ class IncrbyCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t by_, new_value_;
+  int64_t by_ = 0, new_value_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -131,7 +131,7 @@ class IncrbyfloatCmd : public Cmd {
 
  private:
   std::string key_, value_, new_value_;
-  double by_;
+  double by_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -150,7 +150,7 @@ class DecrCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t new_value_;
+  int64_t new_value_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -169,7 +169,7 @@ class DecrbyCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t by_, new_value_;
+  int64_t by_ = 0, new_value_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -257,7 +257,7 @@ class SetnxCmd : public Cmd {
  private:
   std::string key_;
   std::string value_;
-  int32_t success_;
+  int32_t success_ = 0;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset) override;
@@ -278,7 +278,7 @@ class SetexCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t sec_;
+  int64_t sec_ = 0;
   std::string value_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
@@ -300,7 +300,7 @@ class PsetexCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t usec_;
+  int64_t usec_ = 0;
   std::string value_;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
@@ -323,7 +323,7 @@ class DelvxCmd : public Cmd {
  private:
   std::string key_;
   std::string value_;
-  int32_t success_;
+  int32_t success_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -357,7 +357,7 @@ class MsetnxCmd : public Cmd {
 
  private:
   std::vector<storage::KeyValue> kvs_;
-  int32_t success_;
+  int32_t success_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -376,8 +376,8 @@ class GetrangeCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t start_;
-  int64_t end_;
+  int64_t start_ = 0;
+  int64_t end_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -396,7 +396,7 @@ class SetrangeCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t offset_;
+  int64_t offset_ = 0;
   std::string value_;
   virtual void DoInitial() override;
 };
@@ -430,7 +430,7 @@ class ExistsCmd : public Cmd {
 
  private:
   std::vector<std::string> keys_;
-  int64_t split_res_;
+  int64_t split_res_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -449,7 +449,7 @@ class ExpireCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t sec_;
+  int64_t sec_ = 0;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset) override;
@@ -470,7 +470,7 @@ class PexpireCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t msec_;
+  int64_t msec_ = 0;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset) override;
@@ -491,7 +491,7 @@ class ExpireatCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t time_stamp_;
+  int64_t time_stamp_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -510,7 +510,7 @@ class PexpireatCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t time_stamp_ms_;
+  int64_t time_stamp_ms_ = 0;
   virtual void DoInitial() override;
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset) override;
@@ -597,9 +597,9 @@ class ScanCmd : public Cmd {
   virtual Cmd* Clone() override { return new ScanCmd(*this); }
 
  private:
-  int64_t cursor_;
-  std::string pattern_;
-  int64_t count_;
+  int64_t cursor_ = 0;
+  std::string pattern_ = "*";
+  int64_t count_ = 10;
   virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
@@ -618,8 +618,8 @@ class ScanxCmd : public Cmd {
  private:
   storage::DataType type_;
   std::string start_key_;
-  std::string pattern_;
-  int64_t count_;
+  std::string pattern_ = "*";
+  int64_t count_ = 10;
   virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
@@ -643,7 +643,7 @@ class PKSetexAtCmd : public Cmd {
  private:
   std::string key_;
   std::string value_;
-  int64_t time_stamp_;
+  int64_t time_stamp_ = 0;
   virtual void DoInitial() override;
   virtual void Clear() { time_stamp_ = 0; }
 };
@@ -666,9 +666,9 @@ class PKScanRangeCmd : public Cmd {
   storage::DataType type_;
   std::string key_start_;
   std::string key_end_;
-  std::string pattern_;
-  int64_t limit_;
-  bool string_with_value;
+  std::string pattern_ = "*";
+  int64_t limit_ = 10;
+  bool string_with_value = false;
   virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
@@ -692,12 +692,12 @@ class PKRScanRangeCmd : public Cmd {
   virtual Cmd* Clone() override { return new PKRScanRangeCmd(*this); }
 
  private:
-  storage::DataType type_;
+  storage::DataType type_ = storage::kAll;
   std::string key_start_;
   std::string key_end_;
-  std::string pattern_;
-  int64_t limit_;
-  bool string_with_value;
+  std::string pattern_ = "*";
+  int64_t limit_ = 10;
+  bool string_with_value = false;
   void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";

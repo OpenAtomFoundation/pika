@@ -14,8 +14,8 @@
 
 namespace storage {
 
-const std::string DEFAULT_BK_PATH = "dump";  // Default backup root dir
-const std::string DEFAULT_RS_PATH = "db";    // Default restore root dir
+inline const std::string DEFAULT_BK_PATH = "dump";  // Default backup root dir
+inline const std::string DEFAULT_RS_PATH = "db";    // Default restore root dir
 
 // Arguments which will used by BackupSave Thread
 // p_engine for BackupEngine handler

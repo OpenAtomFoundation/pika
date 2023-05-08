@@ -65,8 +65,8 @@ class ZScanCmd : public Cmd {
   virtual Cmd* Clone() override { return new ZScanCmd(*this); }
 
  private:
-  std::string key_, pattern_;
-  int64_t cursor_, count_;
+  std::string key_, pattern_ = "*";
+  int64_t cursor_ = 0, count_ = 10;
   virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
@@ -89,7 +89,7 @@ class ZIncrbyCmd : public Cmd {
 
  private:
   std::string key_, member_;
-  double by_;
+  double by_ = 0;
   virtual void DoInitial() override;
 };
 
@@ -99,8 +99,8 @@ class ZsetRangeParentCmd : public Cmd {
 
  protected:
   std::string key_;
-  int64_t start_, stop_;
-  bool is_ws_;
+  int64_t start_ = 0, stop_ = -1;
+  bool is_ws_ = false;
   virtual void DoInitial() override;
   virtual void Clear() { is_ws_ = false; }
 };
@@ -146,9 +146,9 @@ class ZsetRangebyscoreParentCmd : public Cmd {
 
  protected:
   std::string key_;
-  double min_score_, max_score_;
-  bool left_close_, right_close_, with_scores_;
-  int64_t offset_, count_;
+  double min_score_ = 0, max_score_ = 0;
+  bool left_close_ = true, right_close_ = true, with_scores_ = false;
+  int64_t offset_ = 0, count_ = -1;
   virtual void DoInitial() override;
   virtual void Clear() {
     left_close_ = right_close_ = true;
@@ -209,8 +209,8 @@ class ZCountCmd : public Cmd {
 
  private:
   std::string key_;
-  double min_score_, max_score_;
-  bool left_close_, right_close_;
+  double min_score_ = 0, max_score_ = 0;
+  bool left_close_ = true, right_close_ = true;
   virtual void DoInitial() override;
   virtual void Clear() {
     left_close_ = true;
@@ -244,7 +244,7 @@ class ZsetUIstoreParentCmd : public Cmd {
 
  protected:
   std::string dest_key_;
-  int64_t num_keys_;
+  int64_t num_keys_ = 0;
   storage::AGGREGATE aggregate_;
   std::vector<std::string> keys_;
   std::vector<double> weights_;
@@ -344,8 +344,8 @@ class ZsetRangebylexParentCmd : public Cmd {
 
  protected:
   std::string key_, min_member_, max_member_;
-  bool left_close_, right_close_;
-  int64_t offset_, count_;
+  bool left_close_ = true, right_close_ = true;
+  int64_t offset_ = 0, count_ = -1;
   virtual void DoInitial() override;
   virtual void Clear() {
     left_close_ = right_close_ = true;
@@ -404,7 +404,7 @@ class ZLexcountCmd : public Cmd {
 
  private:
   std::string key_, min_member_, max_member_;
-  bool left_close_, right_close_;
+  bool left_close_ = true, right_close_ = true;
   virtual void DoInitial() override;
   virtual void Clear() { left_close_ = right_close_ = true; }
 };
@@ -424,7 +424,7 @@ class ZRemrangebyrankCmd : public Cmd {
 
  private:
   std::string key_;
-  int64_t start_rank_, stop_rank_;
+  int64_t start_rank_ = 0, stop_rank_ = -1;
   virtual void DoInitial() override;
 };
 
@@ -444,8 +444,8 @@ class ZRemrangebyscoreCmd : public Cmd {
 
  private:
   std::string key_;
-  double min_score_, max_score_;
-  bool left_close_, right_close_;
+  double min_score_ = 0, max_score_ = 0;
+  bool left_close_ = true, right_close_ = true;
   virtual void DoInitial() override;
   virtual void Clear() { left_close_ = right_close_ = true; }
 };
@@ -467,7 +467,7 @@ class ZRemrangebylexCmd : public Cmd {
  private:
   std::string key_;
   std::string min_member_, max_member_;
-  bool left_close_, right_close_;
+  bool left_close_ = true, right_close_ = true;
   virtual void DoInitial() override;
   virtual void Clear() { left_close_ = right_close_ = true; }
 };
@@ -488,7 +488,7 @@ class ZPopmaxCmd : public Cmd {
  private:
   virtual void DoInitial() override;
   std::string key_;
-  int64_t count_;
+  int64_t count_ = 0;
 };
 
 class ZPopminCmd : public Cmd {
@@ -507,7 +507,7 @@ class ZPopminCmd : public Cmd {
  private:
   virtual void DoInitial() override;
   std::string key_;
-  int64_t count_;
+  int64_t count_ = 0;
 };
 
 #endif

@@ -5,6 +5,9 @@
 
 #include <vector>
 
+#include <glog/logging.h>
+
+#include "pstd/include/testutil.h"
 #include "net/src/worker_thread.h"
 
 #include "net/include/net_conn.h"
@@ -49,6 +52,7 @@ std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
     int fd = iter->first;
     conn = iter->second;
     net_multiplexer_->NetDelEvent(fd, 0);
+    DLOG(INFO) << "move out connection " << conn->String();
     conns_.erase(iter);
   }
   return conn;
@@ -68,13 +72,13 @@ bool WorkerThread::MoveConnIn(const NetItem& it, bool force) { return net_multip
 
 void* WorkerThread::ThreadMain() {
   int nfds;
-  NetFiredEvent* pfe = NULL;
+  NetFiredEvent* pfe = nullptr;
   char bb[2048];
   NetItem ti;
   std::shared_ptr<NetConn> in_conn = nullptr;
 
   struct timeval when;
-  gettimeofday(&when, NULL);
+  gettimeofday(&when, nullptr);
   struct timeval now = when;
 
   when.tv_sec += (cron_interval_ / 1000);
@@ -86,7 +90,7 @@ void* WorkerThread::ThreadMain() {
 
   while (!should_stop()) {
     if (cron_interval_ > 0) {
-      gettimeofday(&now, NULL);
+      gettimeofday(&now, nullptr);
       if (when.tv_sec > now.tv_sec || (when.tv_sec == now.tv_sec && when.tv_usec > now.tv_usec)) {
         timeout = (when.tv_sec - now.tv_sec) * 1000 + (when.tv_usec - now.tv_usec) / 1000;
       } else {
@@ -101,6 +105,9 @@ void* WorkerThread::ThreadMain() {
 
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
+      if (pfe == nullptr) {
+          continue;
+      }
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         if (pfe->mask & kReadable) {
           int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
@@ -147,11 +154,8 @@ void* WorkerThread::ThreadMain() {
           continue;
         }
       } else {
-        in_conn = NULL;
+        in_conn = nullptr;
         int should_close = 0;
-        if (pfe == NULL) {
-          continue;
-        }
 
         {
           pstd::ReadLock l(&rwlock_);
@@ -171,6 +175,7 @@ void* WorkerThread::ThreadMain() {
             in_conn->set_is_reply(false);
             if (in_conn->IsClose()) {
               should_close = 1;
+              LOG(INFO) << "will close client connection " << in_conn->String();
             }
           } else if (write_status == kWriteHalf) {
             continue;
@@ -196,7 +201,7 @@ void* WorkerThread::ThreadMain() {
         if ((pfe->mask & kErrorEvent) || should_close) {
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(in_conn);
-          in_conn = NULL;
+          in_conn = nullptr;
           {
             pstd::WriteLock l(&rwlock_);
             conns_.erase(pfe->fd);
@@ -208,12 +213,12 @@ void* WorkerThread::ThreadMain() {
   }      // while (!should_stop())
 
   Cleanup();
-  return NULL;
+  return nullptr;
 }
 
 void WorkerThread::DoCronTask() {
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   std::vector<std::shared_ptr<NetConn>> to_close;
   std::vector<std::shared_ptr<NetConn>> to_timeout;
   {
@@ -238,6 +243,7 @@ void WorkerThread::DoCronTask() {
         to_close.push_back(conn);
         deleting_conn_ipport_.erase(conn->ip_port());
         iter = conns_.erase(iter);
+        LOG(INFO) << "will close client connection " << conn->String();
         continue;
       }
 
@@ -245,6 +251,7 @@ void WorkerThread::DoCronTask() {
       if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         to_timeout.push_back(conn);
         iter = conns_.erase(iter);
+        LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is " << keepalive_timeout_.load();
         continue;
       }
 

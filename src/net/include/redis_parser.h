@@ -44,8 +44,8 @@ struct RedisParserSettings {
   RedisParserDataCb DealMessage;
   RedisParserMultiDataCb Complete;
   RedisParserSettings() {
-    DealMessage = NULL;
-    Complete = NULL;
+    DealMessage = nullptr;
+    Complete = nullptr;
   }
 };
 
@@ -56,7 +56,7 @@ class RedisParser {
   RedisParserStatus ProcessInputBuffer(const char* input_buf, int length, int* parsed_len);
   long get_bulk_len() { return bulk_len_; }
   RedisParserError get_error_code() { return error_code_; }
-  void* data; /* A pointer to get hook to the "connection" or "socket" object */
+  void* data = nullptr; /* A pointer to get hook to the "connection" or "socket" object */
  private:
   // for DEBUG
   void PrintCurrentStatus();
@@ -76,21 +76,21 @@ class RedisParser {
   RedisParserStatus status_code_;
   RedisParserError error_code_;
 
-  int redis_type_;  // REDIS_REQ_INLINE or REDIS_REQ_MULTIBULK
+  int redis_type_ = -1;  // REDIS_REQ_INLINE or REDIS_REQ_MULTIBULK
 
-  long multibulk_len_;
-  long bulk_len_;
+  long multibulk_len_ = 0;
+  long bulk_len_ = 0;
   std::string half_argv_;
 
-  int redis_parser_type_;  // REDIS_PARSER_REQUEST or REDIS_PARSER_RESPONSE
+  int redis_parser_type_ = -1;  // REDIS_PARSER_REQUEST or REDIS_PARSER_RESPONSE
 
   RedisCmdArgsType argv_;
   std::vector<RedisCmdArgsType> argvs_;
 
-  int cur_pos_;
+  int cur_pos_ = 0;
   const char* input_buf_;
   std::string input_str_;
-  int length_;
+  int length_ = 0;
 };
 
 }  // namespace net

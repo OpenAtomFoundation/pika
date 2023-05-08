@@ -76,8 +76,8 @@ class ListsMetaValue : public InternalValue {
   void ModifyRightIndex(uint64_t index) { right_index_ += index; }
 
  private:
-  uint64_t left_index_;
-  uint64_t right_index_;
+  uint64_t left_index_ = 0;
+  uint64_t right_index_ = 0;
 };
 
 class ParsedListsMetaValue : public ParsedInternalValue {
@@ -220,9 +220,9 @@ class ParsedListsMetaValue : public ParsedInternalValue {
   }
 
  private:
-  uint64_t count_;
-  uint64_t left_index_;
-  uint64_t right_index_;
+  uint64_t count_ = 0;
+  uint64_t left_index_ = 0;
+  uint64_t right_index_ = 0;
 };
 
 }  //  namespace storage

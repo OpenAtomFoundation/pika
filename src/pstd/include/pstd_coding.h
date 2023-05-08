@@ -31,13 +31,20 @@ extern void GetFixed32(std::string* dst, uint32_t* value);
 extern void GetFixed64(std::string* dst, uint64_t* value);
 extern bool GetVarint32(std::string* input, uint32_t* value);
 extern bool GetVarint64(std::string* input, uint64_t* value);
+
+extern void GetFixed16(Slice* dst, uint16_t* value);
+extern void GetFixed32(Slice* dst, uint32_t* value);
+extern void GetFixed64(Slice* dst, uint64_t* value);
+extern bool GetVarint32(Slice* input, uint32_t* value);
+extern bool GetVarint64(Slice* input, uint64_t* value);
+
 extern const char* GetLengthPrefixedSlice(const char* p, const char* limit, Slice* result);
 extern bool GetLengthPrefixedSlice(Slice* input, Slice* result);
 extern bool GetLengthPrefixedString(std::string* input, std::string* result);
 
 // Pointer-based variants of GetVarint...  These either store a value
 // in *v and return a pointer just past the parsed value, or return
-// NULL on error.  These routines only look at bytes in the range
+// nullptr on error.  These routines only look at bytes in the range
 // [p..limit-1]
 extern const char* GetVarint32Ptr(const char* p, const char* limit, uint32_t* v);
 extern const char* GetVarint64Ptr(const char* p, const char* limit, uint64_t* v);
@@ -82,18 +89,39 @@ inline uint64_t DecodeFixed64(const char* ptr) {
 }
 
 inline void GetFixed16(std::string* dst, uint16_t* value) {
+  if (!dst || !value) return;
   *value = DecodeFixed16(dst->data());
   dst->erase(0, sizeof(uint16_t));
 }
 
 inline void GetFixed32(std::string* dst, uint32_t* value) {
+  if (!dst || !value) return;
   *value = DecodeFixed32(dst->data());
   dst->erase(0, sizeof(uint32_t));
 }
 
 inline void GetFixed64(std::string* dst, uint64_t* value) {
+  if (!dst || !value) return;
   *value = DecodeFixed64(dst->data());
   dst->erase(0, sizeof(uint64_t));
+}
+
+inline void GetFixed16(Slice* dst, uint16_t* value) {
+  if (!dst || !value) return;
+  *value = DecodeFixed16(dst->data());
+  dst->remove_prefix(sizeof(uint16_t) / sizeof(char));
+}
+
+inline void GetFixed32(Slice* dst, uint32_t* value) {
+  if (!dst || !value) return;
+  *value = DecodeFixed32(dst->data());
+  dst->remove_prefix(sizeof(uint32_t) / sizeof(char));
+}
+
+inline void GetFixed64(Slice* dst, uint64_t* value) {
+  if (!dst || !value) return;
+  *value = DecodeFixed64(dst->data());
+  dst->remove_prefix(sizeof(uint64_t) / sizeof(char));
 }
 
 // Internal routine for use by fallback path of GetVarint32Ptr

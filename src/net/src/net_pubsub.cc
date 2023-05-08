@@ -440,7 +440,7 @@ void* PubSubThread::ThreadMain() {
           continue;
         }
       } else {
-        in_conn = NULL;
+        in_conn = nullptr;
         bool should_close = false;
 
         {
@@ -498,7 +498,7 @@ void* PubSubThread::ThreadMain() {
     }
   }
   Cleanup();
-  return NULL;
+  return nullptr;
 }
 
 void PubSubThread::Cleanup() {

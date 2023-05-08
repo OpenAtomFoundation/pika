@@ -5,8 +5,9 @@
 
 #include <vector>
 
-#include "net/src/dispatch_thread.h"
+#include <glog/logging.h>
 
+#include "net/src/dispatch_thread.h"
 #include "net/src/net_item.h"
 #include "net/src/net_multiplexer.h"
 #include "net/src/worker_thread.h"
@@ -150,6 +151,7 @@ void DispatchThread::HandleNewConn(const int connfd, const std::string& ip_port)
   // Slow workers may consume many fds.
   // We simply loop to find next legal worker.
   NetItem ti(connfd, ip_port);
+  LOG(INFO) << "accept new conn " << ti.String();
   int next_thread = last_thread_;
   bool find = false;
   for (int cnt = 0; cnt < work_num_; cnt++) {

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-set (CMAKE_CXX_STANDARD 11)
+set (CMAKE_CXX_STANDARD 17)
 project (pstd)
 
 # 强制使用用户自定的 memcmp
@@ -28,7 +28,7 @@ add_subdirectory(examples)
 
 aux_source_directory(./src  DIR_SRCS)
 
-add_library(pstd STATIC ${DIR_SRCS} )
+add_library(pstd STATIC ${DIR_SRCS})
 
 target_include_directories(pstd
     PUBLIC ${PROJECT_SOURCE_DIR}/..

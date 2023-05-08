@@ -10,6 +10,18 @@ project(pika)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 enable_testing()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  # using Clang
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "5.0")
+    message(FATAL_ERROR "Clang version must be greater than 5.0")
+  endif()
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # using GCC
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "7.0")
+    message(FATAL_ERROR "GCC G++ version must be greater than 7.0")
+  endif()
+endif()
+
 execute_process(COMMAND uname -p OUTPUT_VARIABLE HOST_ARCH)
 string(TOLOWER ${HOST_ARCH} HOST_ARCH)
 
@@ -34,8 +46,12 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
    set(CMAKE_CXX_FLAGS "-pthread")
    add_definitions(-DOS_MACOSX)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-   set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
-   set(CMAKE_CXX_FLAGS "-pthread -Wl,--no-as-needed -ldl")
+   if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+     set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -ldl -pthread")
+   elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+     set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+     set(CMAKE_CXX_FLAGS "-pthread -Wl,--no-as-needed -ldl")
+   endif()
    add_definitions(-DOS_LINUX)
 else()
    message(FATAL_ERROR "only support linux or macOs")
@@ -545,6 +561,7 @@ set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rock
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
+add_subdirectory(pika-tools)
 aux_source_directory(src DIR_SRCS)
 
 # # generate version

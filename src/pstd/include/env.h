@@ -51,7 +51,7 @@ class FileLock {
   FileLock() {}
   virtual ~FileLock(){};
 
-  int fd_;
+  int fd_ = -1;
   std::string name_;
 
  private:

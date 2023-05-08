@@ -9,6 +9,7 @@
 
 #include "include/pika_conf.h"
 #include "include/pika_server.h"
+#include "pstd/include/testutil.h"
 
 extern PikaConf* g_pika_conf;
 extern PikaServer* g_pika_server;
@@ -56,7 +57,7 @@ bool PikaDispatchThread::Handles::AccessHandle(std::string& ip) const {
     return false;
   }
 
-  DLOG(INFO) << "new clinet comming, ip: " << ip;
+  DLOG(INFO) << "new client comming, ip: " << ip;
   g_pika_server->incr_accumulative_connections();
   return true;
 }

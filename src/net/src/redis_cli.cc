@@ -28,7 +28,7 @@ class RedisCli : public NetCli {
   virtual Status Send(void* msg);
 
   // Read, parse and store the reply
-  virtual Status Recv(void* result = NULL);
+  virtual Status Recv(void* result = nullptr);
 
  private:
   RedisCmdArgsType argv_;  // The parsed result
@@ -176,12 +176,12 @@ static char* seekNewline(char* s, size_t len) {
   /* Position should be < len-1 because the character at "pos" should be
    * followed by a \n. Note that strchr cannot be used because it doesn't
    * allow to search a limited length and the buffer that is being searched
-   * might not have a trailing NULL character. */
+   * might not have a trailing nullptr character. */
   while (pos < _len) {
     while (pos < _len && s[pos] != '\r') pos++;
     if (s[pos] != '\r' || pos >= _len) {
       /* Not found. */
-      return NULL;
+      return nullptr;
     } else {
       if (s[pos + 1] == '\n') {
         /* Found. */
@@ -192,7 +192,7 @@ static char* seekNewline(char* s, size_t len) {
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 /* Read a long long value starting at *s, under the assumption that it will be
@@ -228,7 +228,7 @@ int RedisCli::ProcessLineItem() {
   char* p;
   int len;
 
-  if ((p = ReadLine(&len)) == NULL) {
+  if ((p = ReadLine(&len)) == nullptr) {
     return REDIS_HALF;
   }
 
@@ -246,7 +246,7 @@ int RedisCli::ProcessBulkItem() {
 
   p = rbuf_ + rbuf_pos_;
   s = seekNewline(p, rbuf_offset_);
-  if (s != NULL) {
+  if (s != nullptr) {
     bytelen = s - p + 2; /* include \r\n */
     len = readLongLong(p);
 
@@ -274,7 +274,7 @@ int RedisCli::ProcessMultiBulkItem() {
   char* p;
   int len;
 
-  if ((p = ReadLine(&len)) != NULL) {
+  if ((p = ReadLine(&len)) != nullptr) {
     elements_ = readLongLong(p);
     return REDIS_OK;
   }
@@ -304,7 +304,7 @@ int RedisCli::GetReply() {
 }
 
 char* RedisCli::ReadBytes(unsigned int bytes) {
-  char* p = NULL;
+  char* p = nullptr;
   if ((unsigned int)rbuf_offset_ >= bytes) {
     p = rbuf_ + rbuf_pos_;
     rbuf_pos_ += bytes;
@@ -319,14 +319,14 @@ char* RedisCli::ReadLine(int* _len) {
 
   p = rbuf_ + rbuf_pos_;
   s = seekNewline(p, rbuf_offset_);
-  if (s != NULL) {
+  if (s != nullptr) {
     len = s - (rbuf_ + rbuf_pos_);
     rbuf_pos_ += len + 2; /* skip \r\n */
     rbuf_offset_ -= len + 2;
     if (_len) *_len = len;
     return p;
   }
-  return NULL;
+  return nullptr;
 }
 
 int RedisCli::GetReplyFromReader() {
@@ -339,7 +339,7 @@ int RedisCli::GetReplyFromReader() {
   }
 
   char* p;
-  if ((p = ReadBytes(1)) == NULL) {
+  if ((p = ReadBytes(1)) == nullptr) {
     return REDIS_HALF;
   }
 
@@ -477,35 +477,35 @@ int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
             /* Copy va_list before consuming with va_arg */
             va_copy(_cpy, ap);
 
-            if (strchr(intfmts, *_p) != NULL) {
+            if (strchr(intfmts, *_p) != nullptr) {
               /* Integer conversion (without modifiers) */
               va_arg(ap, int);
               fmt_valid = true;
-            } else if (strchr("eEfFgGaA", *_p) != NULL) {
+            } else if (strchr("eEfFgGaA", *_p) != nullptr) {
               /* Double conversion (without modifiers) */
               va_arg(ap, double);
               fmt_valid = true;
             } else if (_p[0] == 'h' && _p[1] == 'h') { /* Size: char */
               _p += 2;
-              if (*_p != '\0' && strchr(intfmts, *_p) != NULL) {
+              if (*_p != '\0' && strchr(intfmts, *_p) != nullptr) {
                 va_arg(ap, int); /* char gets promoted to int */
                 fmt_valid = true;
               }
             } else if (_p[0] == 'h') { /* Size: short */
               _p += 1;
-              if (*_p != '\0' && strchr(intfmts, *_p) != NULL) {
+              if (*_p != '\0' && strchr(intfmts, *_p) != nullptr) {
                 va_arg(ap, int); /* short gets promoted to int */
                 fmt_valid = true;
               }
             } else if (_p[0] == 'l' && _p[1] == 'l') { /* Size: long long */
               _p += 2;
-              if (*_p != '\0' && strchr(intfmts, *_p) != NULL) {
+              if (*_p != '\0' && strchr(intfmts, *_p) != nullptr) {
                 va_arg(ap, long long);
                 fmt_valid = true;
               }
             } else if (_p[0] == 'l') { /* Size: long */
               _p += 1;
-              if (*_p != '\0' && strchr(intfmts, *_p) != NULL) {
+              if (*_p != '\0' && strchr(intfmts, *_p) != nullptr) {
                 va_arg(ap, long);
                 fmt_valid = true;
               }
@@ -521,7 +521,7 @@ int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
               memcpy(_format, c, _l);
               _format[_l] = '\0';
 
-              int n = vsnprintf(buf, REDIS_MAX_MESSAGE, _format, _cpy);
+              int n = vsnprintf(buf, sizeof(buf), _format, _cpy);
               curarg.append(buf, n);
 
               /* Update current position (note: outer blocks

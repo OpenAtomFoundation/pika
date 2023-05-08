@@ -102,8 +102,8 @@ PikaServer::PikaServer()
 
   pika_client_processor_ = new PikaClientProcessor(g_pika_conf->thread_pool_size(), 100000);
 
-  pthread_rwlock_init(&state_protector_, NULL);
-  pthread_rwlock_init(&slowlog_protector_, NULL);
+  pthread_rwlock_init(&state_protector_, nullptr);
+  pthread_rwlock_init(&slowlog_protector_, nullptr);
 }
 
 PikaServer::~PikaServer() {
@@ -412,7 +412,7 @@ Status PikaServer::DelTableStruct(std::string table_name) {
 std::shared_ptr<Table> PikaServer::GetTable(const std::string& table_name) {
   pstd::RWLock l(&tables_rw_, false);
   auto iter = tables_.find(table_name);
-  return (iter == tables_.end()) ? NULL : iter->second;
+  return (iter == tables_.end()) ? nullptr : iter->second;
 }
 
 std::set<uint32_t> PikaServer::GetTablePartitionIds(const std::string& table_name) {
@@ -597,17 +597,17 @@ bool PikaServer::GetTablePartitionBinlogOffset(const std::string& table_name, ui
 // Only use in classic mode
 std::shared_ptr<Partition> PikaServer::GetPartitionByDbName(const std::string& db_name) {
   std::shared_ptr<Table> table = GetTable(db_name);
-  return table ? table->GetPartitionById(0) : NULL;
+  return table ? table->GetPartitionById(0) : nullptr;
 }
 
 std::shared_ptr<Partition> PikaServer::GetTablePartitionById(const std::string& table_name, uint32_t partition_id) {
   std::shared_ptr<Table> table = GetTable(table_name);
-  return table ? table->GetPartitionById(partition_id) : NULL;
+  return table ? table->GetPartitionById(partition_id) : nullptr;
 }
 
 std::shared_ptr<Partition> PikaServer::GetTablePartitionByKey(const std::string& table_name, const std::string& key) {
   std::shared_ptr<Table> table = GetTable(table_name);
-  return table ? table->GetPartitionByKey(key) : NULL;
+  return table ? table->GetPartitionByKey(key) : nullptr;
 }
 
 Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
@@ -781,7 +781,7 @@ bool PikaServer::TryAddSlave(const std::string& ip, int64_t port, int fd,
   s.conn_fd = fd;
   s.stage = SLAVE_ITEM_STAGE_ONE;
   s.table_structs = table_structs;
-  gettimeofday(&s.create_time, NULL);
+  gettimeofday(&s.create_time, nullptr);
   slaves_.push_back(s);
   return true;
 }
@@ -896,7 +896,7 @@ int PikaServer::GetMetaSyncTimestamp() {
 
 void PikaServer::UpdateMetaSyncTimestamp() {
   pstd::RWLock sp_l(&state_protector_, true);
-  last_meta_sync_timestamp_ = time(NULL);
+  last_meta_sync_timestamp_ = time(nullptr);
 }
 
 bool PikaServer::IsFirstMetaSync() {
@@ -962,13 +962,15 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& t
                            int32_t top) {
   std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
   if (!partition) {
-    LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Not Found, TryDBSync Failed";
+    LOG(WARNING) << "can not find Partition whose id is " << partition_id << " in table " << table_name
+                 << ", TryDBSync Failed";
     return;
   }
   std::shared_ptr<SyncMasterPartition> sync_partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!sync_partition) {
-    LOG(WARNING) << "Partition: " << sync_partition->SyncPartitionInfo().ToString() << " Not Found, TryDBSync Failed";
+    LOG(WARNING) << "can not find Partition whose id is " << partition_id << " in table " << table_name
+                 << ", TryDBSync Failed";
     return;
   }
   BgSaveInfo bgsave_info = partition->bgsave_info();
@@ -985,7 +987,8 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& t
 void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id) {
   std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
   if (!partition) {
-    LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Not Found, DbSync send file Failed";
+    LOG(WARNING) << "can not find Partition whose id is " << partition_id << " in table " << table_name
+                 << ", DbSync send file Failed";
     return;
   }
 
@@ -1068,7 +1071,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
     // need to modify the IP addr in the info file
     if (lip.compare(host_)) {
       std::ofstream fix;
-      std::string fn = bg_path + "/" + kBgsaveInfoFile + "." + std::to_string(time(NULL));
+      std::string fn = bg_path + "/" + kBgsaveInfoFile + "." + std::to_string(time(nullptr));
       fix.open(fn, std::ios::in | std::ios::trunc);
       if (fix.is_open()) {
         fix << "0s\n" << lip << "\n" << port_ << "\n" << binlog_filenum << "\n" << binlog_offset << "\n";
@@ -1316,9 +1319,9 @@ void PikaServer::AutoCompactRange() {
     int interval = std::atoi(ci.substr(0, slash).c_str());
     int usage = std::atoi(ci.substr(slash + 1).c_str());
     struct timeval now;
-    gettimeofday(&now, NULL);
+    gettimeofday(&now, nullptr);
     if (last_check_compact_time_.tv_sec == 0 || now.tv_sec - last_check_compact_time_.tv_sec >= interval * 3600) {
-      gettimeofday(&last_check_compact_time_, NULL);
+      gettimeofday(&last_check_compact_time_, nullptr);
       if (((double)free_size / total_size) * 100 >= usage) {
         Status s = DoSameThingSpecificTable(TaskType::kCompactAll);
         if (s.ok()) {
@@ -1417,7 +1420,7 @@ void PikaServer::AutoDeleteExpiredDump() {
     }
 
     std::string str_date = dump_dir[i].substr(db_sync_prefix.size(), (dump_dir[i].size() - db_sync_prefix.size()));
-    char* end = NULL;
+    char* end = nullptr;
     std::strtol(str_date.c_str(), &end, 10);
     if (*end != 0) {
       continue;
@@ -1428,7 +1431,7 @@ void PikaServer::AutoDeleteExpiredDump() {
     int dump_month = std::atoi(str_date.substr(4, 2).c_str());
     int dump_day = std::atoi(str_date.substr(6, 2).c_str());
 
-    time_t t = time(NULL);
+    time_t t = time(nullptr);
     struct tm* now = localtime(&t);
     int now_year = now->tm_year + 1900;
     int now_month = now->tm_mon + 1;
@@ -1520,15 +1523,38 @@ void PikaServer::InitStorageOptions() {
     storage_options_.table_options.no_block_cache = true;
   } else if (storage_options_.share_block_cache) {
     storage_options_.table_options.block_cache =
-        rocksdb::NewLRUCache(storage_options_.block_cache_size, g_pika_conf->num_shard_bits());
+        rocksdb::NewLRUCache(storage_options_.block_cache_size, static_cast<int>(g_pika_conf->num_shard_bits()));
   }
 
   storage_options_.options.rate_limiter =
-      std::shared_ptr<rocksdb::RateLimiter>(rocksdb::NewGenericRateLimiter(g_pika_conf->rate_limiter_bandwidth()));
+    std::shared_ptr<rocksdb::RateLimiter>(
+      rocksdb::NewGenericRateLimiter(
+        g_pika_conf->rate_limiter_bandwidth(),
+        g_pika_conf->rate_limiter_refill_period_us(),
+        g_pika_conf->rate_limiter_fairness(),
+        rocksdb::RateLimiter::Mode::kWritesOnly,
+        g_pika_conf->rate_limiter_auto_tuned()
+      ));
 
   // For Storage small compaction
   storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
   storage_options_.small_compaction_threshold = g_pika_conf->small_compaction_threshold();
+
+  // rocksdb blob
+  if (g_pika_conf->enable_blob_files()) {
+    storage_options_.options.enable_blob_files = g_pika_conf->enable_blob_files();
+    storage_options_.options.min_blob_size = g_pika_conf->min_blob_size();
+    storage_options_.options.blob_file_size = g_pika_conf->blob_file_size();
+    storage_options_.options.blob_compression_type = PikaConf::GetCompression(g_pika_conf->blob_compression_type());
+    storage_options_.options.enable_blob_garbage_collection = g_pika_conf->enable_blob_garbage_collection();
+    storage_options_.options.blob_garbage_collection_age_cutoff = g_pika_conf->blob_garbage_collection_age_cutoff();
+    storage_options_.options.blob_garbage_collection_force_threshold =
+        g_pika_conf->blob_garbage_collection_force_threshold();
+    if (g_pika_conf->block_cache() > 0) {  // blob cache less than 0，not open cache
+      storage_options_.options.blob_cache =
+          rocksdb::NewLRUCache(g_pika_conf->block_cache(), static_cast<int>(g_pika_conf->blob_num_shard_bits()));
+    }
+  }
 }
 
 storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& option_type,

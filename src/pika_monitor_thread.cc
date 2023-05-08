@@ -62,7 +62,7 @@ void PikaMonitorThread::AddMonitorMessage(const std::string& monitor_message) {
 }
 
 int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr) {
-  if (clients_ptr != NULL) {
+  if (clients_ptr != nullptr) {
     for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); iter++) {
       clients_ptr->push_back(*iter);
     }
@@ -110,7 +110,7 @@ net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message
   ssize_t nwritten = 0, message_len_sended = 0, message_len_left = message.size();
   while (message_len_left > 0) {
     nwritten = write(fd, message.data() + message_len_sended, message_len_left);
-    if (nwritten == -1 && errno == EAGAIN) {
+    if (nwritten == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
       // If the write buffer is full, but the client no longer consumes, it will
       // get stuck in the loop and cause the entire Pika to block becase of monitor_mutex_protector_.
       // So we put a limit on the number of retries
@@ -168,22 +168,24 @@ void* PikaMonitorThread::ThreadMain() {
       }
     }
     messages_transfer = "+";
-    for (std::deque<std::string>::iterator iter = messages_deque.begin(); iter != messages_deque.end(); ++iter) {
-      messages_transfer.append(iter->data(), iter->size());
-      messages_transfer.append("\n");
+    for (const auto& msg : messages_deque) {
+      messages_transfer.append(msg.data(), msg.size());
+      messages_transfer.append(" ", 1);
     }
     if (messages_transfer == "+") {
       continue;
     }
-    messages_transfer.replace(messages_transfer.size() - 1, 1, "\r\n", 0, 2);
-    monitor_mutex_protector_.Lock();
+
+    messages_transfer.pop_back(); // no space follow last param
+    messages_transfer.append("\r\n", 2);
+
+    pstd::MutexLock lm(&monitor_mutex_protector_);
     for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
       write_status = SendMessage(iter->fd, messages_transfer);
       if (write_status == net::kWriteError) {
         cron_tasks_.push({TASK_KILL, iter->ip_port});
       }
     }
-    monitor_mutex_protector_.Unlock();
   }
-  return NULL;
+  return nullptr;
 }

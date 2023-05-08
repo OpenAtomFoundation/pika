@@ -11,12 +11,14 @@
 #include <iostream>
 #include <vector>
 
-/*
- * ***********************************************Type First Binlog Item
- * Format*********************************************** | <Type> | <Create Time> | <Term Id> | <Binlog Logic Id> |
- * <File Num> | <Offset> | <Content Length> |      <Content>     | 2 Bytes      4 Bytes      4 Bytes       8 Bytes 4
- * Bytes     8 Bytes        4 Bytes       content length Bytes
- *
+/******************* Type First Binlog Item Format ******************
+ * +-----------------------------------------------------------------+
+ * | Type (2 bytes) | Create Time (4 bytes) | Term Id (4 bytes)      |
+ * |-----------------------------------------------------------------|
+ * | Logic Id (8 bytes) | File Num (4 bytes) | Offset (8 bytes)      |
+ * |-----------------------------------------------------------------|
+ * | Content Length (4 bytes) | Content (content length bytes)       |
+ * +-----------------------------------------------------------------+
  */
 #define BINLOG_ENCODE_LEN 34
 
@@ -49,11 +51,11 @@ class BinlogItem {
   void set_offset(uint64_t offset);
 
  private:
-  uint32_t exec_time_;
-  uint32_t term_id_;
-  uint64_t logic_id_;
-  uint32_t filenum_;
-  uint64_t offset_;
+  uint32_t exec_time_ = 0;
+  uint32_t term_id_ = 0;
+  uint64_t logic_id_ = 0;
+  uint32_t filenum_ = 0;
+  uint64_t offset_ = 0;
   std::string content_;
   std::vector<std::string> extends_;
 };

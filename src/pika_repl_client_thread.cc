@@ -14,7 +14,7 @@ extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
 PikaReplClientThread::PikaReplClientThread(int cron_interval, int keepalive_timeout)
-    : ClientThread(&conn_factory_, cron_interval, keepalive_timeout, &handle_, NULL) {}
+    : ClientThread(&conn_factory_, cron_interval, keepalive_timeout, &handle_, nullptr) {}
 
 void PikaReplClientThread::ReplClientHandle::FdClosedHandle(int fd, const std::string& ip_port) const {
   LOG(INFO) << "ReplClient Close conn, fd=" << fd << ", ip_port=" << ip_port;

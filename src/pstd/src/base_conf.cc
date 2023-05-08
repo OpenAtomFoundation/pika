@@ -36,7 +36,7 @@ int BaseConf::LoadConf() {
   int sep_sign = 0;
   Rep::ConfType type = Rep::kConf;
 
-  while (sequential_file->ReadLine(line, kConfItemLen) != NULL) {
+  while (sequential_file->ReadLine(line, kConfItemLen) != nullptr) {
     sep_sign = 0;
     name_len = 0;
     value_len = 0;
@@ -111,7 +111,7 @@ bool BaseConf::GetConfIntHuman(const std::string& name, int* value) const {
     }
     if (name == rep_->item[i].name) {
       auto c_str = rep_->item[i].value.c_str();
-      (*value) = strtoll(c_str, NULL, 10);
+      (*value) = strtoll(c_str, nullptr, 10);
       char last = c_str[rep_->item[i].value.size() - 1];
       if (last == 'K' || last == 'k') {
         (*value) *= (1 << 10);
@@ -133,7 +133,7 @@ bool BaseConf::GetConfInt64Human(const std::string& name, int64_t* value) const 
     }
     if (name == rep_->item[i].name) {
       auto c_str = rep_->item[i].value.c_str();
-      (*value) = strtoll(c_str, NULL, 10);
+      (*value) = strtoll(c_str, nullptr, 10);
       char last = c_str[rep_->item[i].value.size() - 1];
       if (last == 'K' || last == 'k') {
         (*value) *= (1 << 10);
@@ -154,7 +154,7 @@ bool BaseConf::GetConfInt64(const std::string& name, int64_t* value) const {
       continue;
     }
     if (name == rep_->item[i].name) {
-      (*value) = strtoll(rep_->item[i].value.c_str(), NULL, 10);
+      (*value) = strtoll(rep_->item[i].value.c_str(), nullptr, 10);
       return true;
     }
   }
@@ -208,6 +208,19 @@ bool BaseConf::GetConfBool(const std::string& name, bool* value) const {
       } else if (rep_->item[i].value == "false" || rep_->item[i].value == "0" || rep_->item[i].value == "no") {
         (*value) = false;
       }
+      return true;
+    }
+  }
+  return false;
+}
+
+bool BaseConf::GetConfDouble(const std::string& name, double* value) const {
+  for (auto& item : rep_->item) {
+    if (item.type == Rep::kComment) {
+      continue;
+    }
+    if (name == item.name) {
+      *value = std::strtod(item.value.c_str(), nullptr);
       return true;
     }
   }
@@ -273,6 +286,19 @@ bool BaseConf::SetConfBool(const std::string& name, const bool value) {
 bool BaseConf::SetConfStrVec(const std::string& name, const std::vector<std::string>& value) {
   std::string value_str = StringConcat(value, COMMA);
   return SetConfStr(name, value_str);
+}
+
+bool BaseConf::SetConfDouble(const std::string& name, const double value) {
+  for (size_t i = 0; i < rep_->item.size(); i++) {
+    if (rep_->item[i].type == Rep::kComment) {
+      continue;
+    }
+    if (name == rep_->item[i].name) {
+      rep_->item[i].value = std::to_string(value);
+      return true;
+    }
+  }
+  return false;
 }
 
 bool BaseConf::CheckConfExist(const std::string& name) const {

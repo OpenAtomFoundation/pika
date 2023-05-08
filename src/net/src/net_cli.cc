@@ -74,7 +74,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
   if ((rv = getaddrinfo(ip.c_str(), cport, &hints, &servinfo)) != 0) {
     return Status::IOError("connect getaddrinfo error for ", ip);
   }
-  for (p = servinfo; p != NULL; p = p->ai_next) {
+  for (p = servinfo; p != nullptr; p = p->ai_next) {
     if ((r->sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
       continue;
     }
@@ -150,7 +150,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
     rep_->available = true;
     return s;
   }
-  if (p == NULL) {
+  if (p == nullptr) {
     s = Status::IOError(strerror(errno), "Can't create socket ");
     return s;
   }

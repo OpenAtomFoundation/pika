@@ -84,7 +84,7 @@ class Slice {
 
  private:
   const char* data_;
-  size_t size_;
+  size_t size_ = 0;
 
   // Intentionally copyable
 };

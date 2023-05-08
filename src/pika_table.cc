@@ -30,7 +30,7 @@ Table::Table(const std::string& table_name, uint32_t partition_num, const std::s
 
   binlog_io_error_.store(false);
 
-  pthread_rwlock_init(&partitions_rw_, NULL);
+  pthread_rwlock_init(&partitions_rw_, nullptr);
 }
 
 Table::~Table() {
@@ -162,7 +162,7 @@ void Table::RunKeyScan() {
       break;
     }
   }
-  key_scan_info_.duration = time(NULL) - key_scan_info_.start_time;
+  key_scan_info_.duration = time(nullptr) - key_scan_info_.start_time;
 
   pstd::MutexLock lm(&key_scan_protector_);
   if (s.ok()) {
@@ -218,7 +218,7 @@ void Table::DoKeyScan(void* arg) {
 }
 
 void Table::InitKeyScan() {
-  key_scan_info_.start_time = time(NULL);
+  key_scan_info_.start_time = time(nullptr);
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
   key_scan_info_.s_start_time.assign(s_time, len);
@@ -245,7 +245,7 @@ std::set<uint32_t> Table::GetPartitionIds() {
 std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
   pstd::RWLock rwl(&partitions_rw_, false);
   auto iter = partitions_.find(partition_id);
-  return (iter == partitions_.end()) ? NULL : iter->second;
+  return (iter == partitions_.end()) ? nullptr : iter->second;
 }
 
 std::shared_ptr<Partition> Table::GetPartitionByKey(const std::string& key) {
@@ -253,7 +253,7 @@ std::shared_ptr<Partition> Table::GetPartitionByKey(const std::string& key) {
   uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, partition_num_);
   pstd::RWLock rwl(&partitions_rw_, false);
   auto iter = partitions_.find(index);
-  return (iter == partitions_.end()) ? NULL : iter->second;
+  return (iter == partitions_.end()) ? nullptr : iter->second;
 }
 
 bool Table::TableIsEmpty() {

@@ -42,6 +42,26 @@ namespace pstd {
 //     // when f() exit, will print its running time.
 // }
 //
+
+// CTAD: See https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
+#if __cpp_deduction_guides >= 201606
+
+template <class F>
+class ExecuteOnScopeExit {
+ public:
+  ExecuteOnScopeExit(F&& f) : func_(std::move(f)) {}
+  ExecuteOnScopeExit(const F& f) : func_(f) {}
+  ~ExecuteOnScopeExit() { func_(); }
+
+  ExecuteOnScopeExit(const ExecuteOnScopeExit& e) = delete;
+  ExecuteOnScopeExit& operator=(const ExecuteOnScopeExit& f) = delete;
+
+ private:
+  F func_;
+};
+
+#else
+
 class ExecuteOnScopeExit {
  public:
   ExecuteOnScopeExit() = default;
@@ -54,10 +74,8 @@ class ExecuteOnScopeExit {
   ExecuteOnScopeExit(const ExecuteOnScopeExit& e) = delete;
   void operator=(const ExecuteOnScopeExit& f) = delete;
 
-  template <typename F, typename... Args>
-  ExecuteOnScopeExit(F&& f, Args&&... args) {
-    func_ = std::bind(std::forward<F>(f), std::forward<Args>(args)...);
-  }
+  template <typename F>
+  ExecuteOnScopeExit(F&& f) : func_(std::forward<F>(f)) {}
 
   ~ExecuteOnScopeExit() noexcept {
     if (func_) func_();
@@ -66,6 +84,8 @@ class ExecuteOnScopeExit {
  private:
   std::function<void()> func_;
 };
+
+#endif
 
 }  // namespace pstd
 
