@@ -105,6 +105,9 @@ void* WorkerThread::ThreadMain() {
 
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
+      if (pfe == nullptr) {
+          continue;
+      }
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
         if (pfe->mask & kReadable) {
           int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
@@ -153,9 +156,6 @@ void* WorkerThread::ThreadMain() {
       } else {
         in_conn = nullptr;
         int should_close = 0;
-        if (pfe == nullptr) {
-          continue;
-        }
 
         {
           pstd::ReadLock l(&rwlock_);

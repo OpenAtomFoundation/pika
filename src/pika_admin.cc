@@ -1066,6 +1066,15 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   std::vector<storage::KeyInfo> key_infos;
   std::stringstream tmp_stream;
   tmp_stream << "# Keyspace\r\n";
+
+  if (argv_.size() == 3) {  // command => `info keyspace 1`
+    tmp_stream << "# Start async statistics"
+               << "\r\n";
+  } else {  // command => `info keyspace` or `info`
+    tmp_stream << "# Use `info keyspace 1` do async statistics"
+               << "\r\n";
+  }
+
   pstd::RWLock rwl(&g_pika_server->tables_rw_, false);
   for (const auto& table_item : g_pika_server->tables_) {
     if (keyspace_scan_tables_.empty() || keyspace_scan_tables_.find(table_item.first) != keyspace_scan_tables_.end()) {
@@ -1630,6 +1639,24 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     elements += 2;
     EncodeString(&config_body, "rate-limiter-bandwidth");
     EncodeInt64(&config_body, g_pika_conf->rate_limiter_bandwidth());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "rate-limiter-refill-period-us", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "rate-limiter-refill-period-us");
+    EncodeInt64(&config_body, g_pika_conf->rate_limiter_refill_period_us());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "rate-limiter-fairness", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "rate-limiter-fairness");
+    EncodeInt64(&config_body, g_pika_conf->rate_limiter_fairness());
+  }
+
+  if (pstd::stringmatch(pattern.data(), "rate-limiter-auto-tuned", 1)) {
+    elements += 2;
+    EncodeString(&config_body, "rate-limiter-auto-tuned");
+    EncodeString(&config_body, g_pika_conf->rate_limiter_auto_tuned() ? "yes" : "no");
   }
 
   std::stringstream resp;

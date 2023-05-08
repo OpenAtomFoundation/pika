@@ -369,6 +369,22 @@ int PikaConf::Load() {
     rate_limiter_bandwidth_ = 200 * 1024 * 1024;  // 200MB
   }
 
+  // rate-limiter-refill-period-us
+  GetConfInt64("rate-limiter-refill-period-us", &rate_limiter_refill_period_us_);
+  if (rate_limiter_refill_period_us_ <= 0 ) {
+    rate_limiter_refill_period_us_ = 100 * 1000;
+  }
+
+  // rate-limiter-fairness
+  GetConfInt64("rate-limiter-fairness", &rate_limiter_fairness_);
+  if (rate_limiter_fairness_ <= 0 ) {
+    rate_limiter_fairness_ = 10;
+  }
+
+  std::string at;
+  GetConfStr("rate-limiter-auto-tuned", &at);
+  rate_limiter_auto_tuned_ = (at == "yes" || at.empty()) ? true : false;
+
   // max_write_buffer_num
   max_write_buffer_num_ = 2;
   GetConfInt("max-write-buffer-num", &max_write_buffer_num_);
@@ -516,6 +532,29 @@ int PikaConf::Load() {
   } else {
     max_conn_rbuf_size_.store(PIKA_MAX_CONN_RBUF);
   }
+
+  // rocksdb blob configure
+  GetConfBool("enable-blob-files", &enable_blob_files_);
+  GetConfInt64("min-blob-size", &min_blob_size_);
+  if (min_blob_size_ <= 0) {
+    min_blob_size_ = 4096;
+  }
+  GetConfInt64Human("blob-file-size", &blob_file_size_);
+  if (blob_file_size_ <= 0) {
+    blob_file_size_ = 256 * 1024 * 1024;
+  }
+  GetConfStr("blob-compression-type", &blob_compression_type_);
+  GetConfBool("enable-blob-garbage-collection", &enable_blob_garbage_collection_);
+  GetConfDouble("blob-garbage-collection-age-cutoff", &blob_garbage_collection_age_cutoff_);
+  if (blob_garbage_collection_age_cutoff_ <= 0) {
+    blob_garbage_collection_age_cutoff_ = 0.25;
+  }
+  GetConfDouble("blob-garbage-collection-force-threshold", &blob_garbage_collection_force_threshold_);
+  if (blob_garbage_collection_force_threshold_ <= 0) {
+    blob_garbage_collection_force_threshold_ = 1.0;
+  }
+  GetConfInt64("blob-cache", &block_cache_);
+  GetConfInt64("blob-num-shard-bits", &blob_num_shard_bits_);
 
   return ret;
 }
