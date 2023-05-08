@@ -68,7 +68,7 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 * linux - Ubuntu
 
-* macOS (Darwin) on M1
+* macOS
 
 #### Dependencies
 
@@ -98,7 +98,7 @@ Upgrade your gcc to version at least 7 to get C++17 support.
 
 3. Compile
 
-Please run the script build.sh before you compile this db to check the environment and build this repo. 
+Please run the script build.sh before you compile this db to check the environment and build this repo.
 If the gcc version is later than 7, such as CentOS6 or centOS7, you need to upgrade the gcc version first
 
 Do as follows
