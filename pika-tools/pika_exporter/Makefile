@@ -62,7 +62,7 @@ export TEST_COVER
 all: build 
 
 build: deps
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -o bin/$(PROJNAME)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/$(PROJNAME)
 
 deps: generateVer
 	@mkdir -p bin
