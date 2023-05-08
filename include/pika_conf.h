@@ -267,6 +267,16 @@ class PikaConf : public pstd::BaseConf {
     return rate_limiter_bandwidth_;
   }
 
+  bool enable_blob_files() { return enable_blob_files_; }
+  int64_t min_blob_size() { return min_blob_size_; }
+  int64_t blob_file_size() { return blob_file_size_; }
+  std::string blob_compression_type() { return blob_compression_type_; }
+  bool enable_blob_garbage_collection() { return enable_blob_garbage_collection_; }
+  double blob_garbage_collection_age_cutoff() { return blob_garbage_collection_age_cutoff_; }
+  double blob_garbage_collection_force_threshold() { return blob_garbage_collection_force_threshold_; }
+  int64_t blob_cache() { return blob_cache_; }
+  int64_t blob_num_shard_bits() { return blob_num_shard_bits_; }
+
   // Immutable config items, we don't use lock.
   bool daemonize() { return daemonize_; }
   std::string pidfile() { return pidfile_; }
@@ -539,6 +549,17 @@ class PikaConf : public pstd::BaseConf {
   bool write_binlog_ = false;
   int target_file_size_base_ = 0;
   int binlog_file_size_ = 0;
+
+  // rocksdb blob
+  bool enable_blob_files_ = false;
+  int64_t min_blob_size_ = 4096;                // 4K
+  int64_t blob_file_size_ = 256 * 1024 * 1024;  // 256M
+  std::string blob_compression_type_ = "none";
+  bool enable_blob_garbage_collection_ = false;
+  double blob_garbage_collection_age_cutoff_ = 0.25;
+  double blob_garbage_collection_force_threshold_ = 1.0;
+  int64_t blob_cache_ = 0;
+  int64_t blob_num_shard_bits_ = 0;
 
   PikaMeta* local_meta_ = nullptr;
 
