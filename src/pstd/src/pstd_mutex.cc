@@ -7,11 +7,13 @@
 
 #include <algorithm>
 
+#include <glog/logging.h>
+
 namespace pstd {
 
 static void PthreadCall(const char* label, int result) {
   if (result != 0) {
-    fprintf(stderr, "pthread %s: %s\n", label, strerror(result));
+    LOG(ERROR) << "pthread " << label << ":" << strerror(result);
     abort();
   }
 }
@@ -22,7 +24,7 @@ static bool PthreadTimeoutCall(const char* label, int result) {
     if (result == ETIMEDOUT) {
       return false;
     }
-    fprintf(stderr, "pthread %s: %s\n", label, strerror(result));
+    LOG(ERROR) << "pthread " << label << ":" << strerror(result);
     abort();
   }
   return true;

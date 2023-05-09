@@ -10,6 +10,9 @@
 #include <limits>
 #include <memory>
 
+#include <glog/logging.h>
+#include <fmt/core.h>
+
 #include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
 #include "src/strings_filter.h"
@@ -1325,7 +1328,7 @@ void RedisStrings::ScanDatabase() {
   iterator_options.fill_cache = false;
   int32_t current_time = time(nullptr);
 
-  printf("\n***************String Data***************\n");
+  LOG(INFO) << "***************String Data***************";
   auto iter = db_->NewIterator(iterator_options);
   for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
     ParsedStringsValue parsed_strings_value(iter->value());
@@ -1334,10 +1337,10 @@ void RedisStrings::ScanDatabase() {
       survival_time =
           parsed_strings_value.timestamp() - current_time > 0 ? parsed_strings_value.timestamp() - current_time : -1;
     }
+    LOG(INFO) << fmt::format("[key : {:<30}] [value : {:<30}] [timestamp : {:<10}] [version : {}] [survival_time : {}]", iter->key().ToString(), 
+                             parsed_strings_value.value().ToString(), parsed_strings_value.timestamp(), parsed_strings_value.version(),  
+                             survival_time);
 
-    printf("[key : %-30s] [value : %-30s] [timestamp : %-10d] [version : %d] [survival_time : %d]\n",
-           iter->key().ToString().c_str(), parsed_strings_value.value().ToString().c_str(),
-           parsed_strings_value.timestamp(), parsed_strings_value.version(), survival_time);
   }
   delete iter;
 }

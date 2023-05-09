@@ -8,13 +8,15 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include <glog/logging.h>
+
 #include "pstd/include/xdebug.h"
 
 namespace pstd {
 
 static void PthreadCall(const char* label, int result) {
   if (result != 0) {
-    fprintf(stderr, "Pthread CondLock error function %s: %s\n", label, strerror(result));
+    LOG(ERROR) << "Pthread CondLock error function " << label << ":" << strerror(result);
     abort();
   }
 }

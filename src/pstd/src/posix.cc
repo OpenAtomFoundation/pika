@@ -1,6 +1,7 @@
 #include "pstd/include/posix.h"
 #include "pstd/include/xdebug.h"
 
+#include <glog/logging.h>
 /*********************************************
  * Wrappers for Unix process control functions
  ********************************************/
@@ -10,7 +11,7 @@ pid_t Fork(void) {
   pid_t pid;
 
   if ((pid = fork()) < 0) {
-    log_err("Fork error: %s\n", strerror(errno));
+    LOG(ERROR) << "Fork error: " << strerror(errno);
   }
   return pid;
 }
@@ -18,7 +19,7 @@ pid_t Fork(void) {
 
 void Execve(const char* filename, char* const argv[], char* const envp[]) {
   if (execve(filename, argv, envp) < 0) {
-    log_err("Execve error: %s\n", strerror(errno));
+    LOG(ERROR) << "Execve error: " << strerror(errno);
   }
 }
 
@@ -27,7 +28,7 @@ pid_t Wait(int* status) {
   pid_t pid;
 
   if ((pid = wait(status)) < 0) {
-    log_err("Wait error: %s\n", strerror(errno));
+    LOG(ERROR) << "Wait error: " << strerror(errno);
   }
   return pid;
 }
@@ -37,7 +38,7 @@ pid_t Waitpid(pid_t pid, int* iptr, int options) {
   pid_t retpid;
 
   if ((retpid = waitpid(pid, iptr, options)) < 0) {
-    log_err("Waitpid error: %s\n", strerror(errno));
+    LOG(ERROR) << "Waitpid error: " << strerror(errno);
   }
   return (retpid);
 }
@@ -47,7 +48,7 @@ void Kill(pid_t pid, int signum) {
   int rc;
 
   if ((rc = kill(pid, signum)) < 0) {
-    log_err("Kill error: %s\n", strerror(errno));
+    LOG(ERROR) << "Kill error: " << strerror(errno);
   }
 }
 /* $end kill */
@@ -65,7 +66,7 @@ void Setpgid(pid_t pid, pid_t pgid) {
   int rc;
 
   if ((rc = setpgid(pid, pgid)) < 0) {
-    log_err("Setpgid error: %s\n", strerror(errno));
+    LOG(ERROR) << "Setpgid error: " << strerror(errno);
   }
   return;
 }
@@ -85,7 +86,7 @@ handler_t* Signal(int signum, handler_t* handler) {
   action.sa_flags = SA_RESTART; /* restart syscalls if possible */
 
   if (sigaction(signum, &action, &old_action) < 0) {
-    log_err("Signal error: %s\n", strerror(errno));
+    LOG(ERROR) << "Signal error: " << strerror(errno);
   }
   return (old_action.sa_handler);
 }
@@ -93,35 +94,35 @@ handler_t* Signal(int signum, handler_t* handler) {
 
 void Sigprocmask(int how, const sigset_t* set, sigset_t* oldset) {
   if (sigprocmask(how, set, oldset) < 0) {
-    log_err("Sigprocmask error: %s\n", strerror(errno));
+    LOG(ERROR) << "Sigprocmask error: " << strerror(errno);
   }
   return;
 }
 
 void Sigemptyset(sigset_t* set) {
   if (sigemptyset(set) < 0) {
-    log_err("Sigemptyset error: %s\n", strerror(errno));
+    LOG(ERROR) << "Sigemptyset error: " << strerror(errno);
   }
   return;
 }
 
 void Sigfillset(sigset_t* set) {
   if (sigfillset(set) < 0) {
-    log_err("Sigfillset error: %s\n", strerror(errno));
+    LOG(ERROR) << "Sigfillset error: " << strerror(errno);
   }
   return;
 }
 
 void Sigaddset(sigset_t* set, int signum) {
   if (sigaddset(set, signum) < 0) {
-    log_err("Sigaddset error: %s\n", strerror(errno));
+    LOG(ERROR) << "Sigaddset error: " << strerror(errno);
   }
   return;
 }
 
 void Sigdelset(sigset_t* set, int signum) {
   if (sigdelset(set, signum) < 0) {
-    log_err("Sigdelset error: %s\n", strerror(errno));
+    LOG(ERROR) << "Sigdelset error: " << strerror(errno);
   }
   return;
 }
@@ -129,7 +130,7 @@ void Sigdelset(sigset_t* set, int signum) {
 int Sigismember(const sigset_t* set, int signum) {
   int rc;
   if ((rc = sigismember(set, signum)) < 0) {
-    log_err("Sigismember error: %s\n", strerror(errno));
+    LOG(ERROR) << "Sigismember error: " << strerror(errno);
   }
   return rc;
 }
@@ -142,7 +143,7 @@ int Open(const char* pathname, int flags, mode_t mode) {
   int rc;
 
   if ((rc = open(pathname, flags, mode)) < 0) {
-    log_err("Open error: %s\n", strerror(errno));
+    LOG(ERROR) << "Open error: " << strerror(errno);
   }
   return rc;
 }
@@ -151,7 +152,7 @@ ssize_t Read(int fd, void* buf, size_t count) {
   ssize_t rc;
 
   if ((rc = read(fd, buf, count)) < 0) {
-    log_err("Read error: %s\n", strerror(errno));
+    LOG(ERROR) << "Read error: " << strerror(errno);
   }
   return rc;
 }
@@ -160,7 +161,7 @@ ssize_t Write(int fd, const void* buf, size_t count) {
   ssize_t rc;
 
   if ((rc = write(fd, buf, count)) < 0) {
-    log_err("Write error: %s\n", strerror(errno));
+    LOG(ERROR) << "Write error: " << strerror(errno);
   }
   return rc;
 }
@@ -169,7 +170,7 @@ off_t Lseek(int fildes, off_t offset, int whence) {
   off_t rc;
 
   if ((rc = lseek(fildes, offset, whence)) < 0) {
-    log_err("Lseek error: %s\n", strerror(errno));
+    LOG(ERROR) << "Lseek error: " << strerror(errno);
   }
   return rc;
 }
@@ -178,7 +179,7 @@ void Close(int fd) {
   int rc;
 
   if ((rc = close(fd)) < 0) {
-    log_err("Close error: %s\n", strerror(errno));
+    LOG(ERROR) << "Close error: " << strerror(errno);
   }
 }
 
@@ -186,7 +187,7 @@ int Select(int n, fd_set* readfds, fd_set* writefds, fd_set* exceptfds, struct t
   int rc;
 
   if ((rc = select(n, readfds, writefds, exceptfds, timeout)) < 0) {
-    log_err("Select error: %s\n", strerror(errno));
+    LOG(ERROR) << "Select error: " << strerror(errno);
   }
   return rc;
 }
@@ -195,20 +196,20 @@ int Dup2(int fd1, int fd2) {
   int rc;
 
   if ((rc = dup2(fd1, fd2)) < 0) {
-    log_err("Dup2 error: %s\n", strerror(errno));
+    LOG(ERROR) << "Dup2 error: " << strerror(errno);
   }
   return rc;
 }
 
 void Stat(const char* filename, struct stat* buf) {
   if (stat(filename, buf) < 0) {
-    log_err("Stat error: %s\n", strerror(errno));
+    LOG(ERROR) << "Stat error: " << strerror(errno);
   }
 }
 
 void Fstat(int fd, struct stat* buf) {
   if (fstat(fd, buf) < 0) {
-    log_err("Fstat error: %s\n", strerror(errno));
+    LOG(ERROR) << "Fstat error: " << strerror(errno);
   }
 }
 
@@ -219,14 +220,14 @@ void* Mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset) {
   void* ptr;
 
   if ((ptr = mmap(addr, len, prot, flags, fd, offset)) == ((void*)-1)) {
-    log_err("mmap error: %s\n", strerror(errno));
+    LOG(ERROR) << "mmap error: " << strerror(errno);
   }
   return (ptr);
 }
 
 void Munmap(void* start, size_t length) {
   if (munmap(start, length) < 0) {
-    log_err("munmap error: %s\n", strerror(errno));
+    LOG(ERROR) << "munmap error: " << strerror(errno);
   }
 }
 
@@ -238,7 +239,7 @@ void* Malloc(size_t size) {
   void* p;
 
   if ((p = malloc(size)) == nullptr) {
-    log_err("Malloc error: %s\n", strerror(errno));
+    LOG(ERROR) << "Malloc error: " << strerror(errno);
   }
   return p;
 }
@@ -247,7 +248,7 @@ void* Realloc(void* ptr, size_t size) {
   void* p;
 
   if ((p = realloc(ptr, size)) == nullptr) {
-    log_err("Realloc error: %s\n", strerror(errno));
+    LOG(ERROR) << "Realloc error: " << strerror(errno);
   }
   return p;
 }
@@ -256,7 +257,7 @@ void* Calloc(size_t nmemb, size_t size) {
   void* p;
 
   if ((p = calloc(nmemb, size)) == nullptr) {
-    log_err("Calloc error: %s\n", strerror(errno));
+    LOG(ERROR) << "Calloc error: " << strerror(errno);
   }
   return p;
 }
@@ -268,7 +269,7 @@ void Free(void* ptr) { free(ptr); }
  ******************************************/
 void Fclose(FILE* fp) {
   if (fclose(fp) != 0) {
-    log_err("Fclose error: %s\n", strerror(errno));
+    LOG(ERROR) << "Fclose error: " << strerror(errno);
   }
 }
 
@@ -276,7 +277,7 @@ FILE* Fdopen(int fd, const char* type) {
   FILE* fp;
 
   if ((fp = fdopen(fd, type)) == nullptr) {
-    log_err("Fdopen error: %s\n", strerror(errno));
+    LOG(ERROR) << "Fdopen error: " << strerror(errno);
   }
 
   return fp;
@@ -286,7 +287,7 @@ char* Fgets(char* ptr, int n, FILE* stream) {
   char* rptr;
 
   if (((rptr = fgets(ptr, n, stream)) == nullptr) && ferror(stream)) {
-    log_err("Fgets error");
+    LOG(ERROR) << "Fgets error";
   }
 
   return rptr;
@@ -296,7 +297,7 @@ FILE* Fopen(const char* filename, const char* mode) {
   FILE* fp;
 
   if ((fp = fopen(filename, mode)) == nullptr) {
-    log_err("Fopen error: %s\n", strerror(errno));
+    LOG(ERROR) << "Fopen error: " << strerror(errno);
   }
 
   return fp;
@@ -304,7 +305,7 @@ FILE* Fopen(const char* filename, const char* mode) {
 
 void Fputs(const char* ptr, FILE* stream) {
   if (fputs(ptr, stream) == EOF) {
-    log_err("Fputs error: %s\n", strerror(errno));
+    LOG(ERROR) << "Fputs error: " << strerror(errno);
   }
 }
 
@@ -312,14 +313,14 @@ size_t Fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {
   size_t n;
 
   if (((n = fread(ptr, size, nmemb, stream)) < nmemb) && ferror(stream)) {
-    log_err("Fread error: %s\n", strerror(errno));
+    LOG(ERROR) << "Fread error: " << strerror(errno);
   }
   return n;
 }
 
 void Fwrite(const void* ptr, size_t size, size_t nmemb, FILE* stream) {
   if (fwrite(ptr, size, nmemb, stream) < nmemb) {
-    log_err("Fwrite error: %s\n", strerror(errno));
+    LOG(ERROR) << "Fwrite error: " << strerror(errno);
   }
 }
 
@@ -331,7 +332,7 @@ int Socket(int domain, int type, int protocol) {
   int rc;
 
   if ((rc = socket(domain, type, protocol)) < 0) {
-    log_err("Socket error: %s\n", strerror(errno));
+    LOG(ERROR) << "Socket error: " << strerror(errno);
   }
   return rc;
 }
@@ -340,7 +341,7 @@ void Setsockopt(int s, int level, int optname, const void* optval, int optlen) {
   int rc;
 
   if ((rc = setsockopt(s, level, optname, optval, optlen)) < 0) {
-    log_err("Setsockopt error: %s\n", strerror(errno));
+    LOG(ERROR) << "Setsockopt error: " << strerror(errno);
   }
 }
 
@@ -348,7 +349,7 @@ void Bind(int sockfd, struct sockaddr* my_addr, int addrlen) {
   int rc;
 
   if ((rc = bind(sockfd, my_addr, addrlen)) < 0) {
-    log_err("Bind error: %s\n", strerror(errno));
+    LOG(ERROR) << "Bind error: " << strerror(errno);
   }
 }
 
@@ -356,7 +357,7 @@ void Listen(int s, int backlog) {
   int rc;
 
   if ((rc = listen(s, backlog)) < 0) {
-    log_err("Listen error: %s\n", strerror(errno));
+    LOG(ERROR) << "Listen error: " << strerror(errno);
   }
 }
 
@@ -364,7 +365,7 @@ int Accept(int s, struct sockaddr* addr, socklen_t* addrlen) {
   int rc;
 
   if ((rc = accept(s, addr, addrlen)) < 0) {
-    log_err("Accept error: %s\n", strerror(errno));
+    LOG(ERROR) << "Accept error: " << strerror(errno);
   }
   return rc;
 }
@@ -373,7 +374,7 @@ void Connect(int sockfd, struct sockaddr* serv_addr, int addrlen) {
   int rc;
 
   if ((rc = connect(sockfd, serv_addr, addrlen)) < 0) {
-    log_err("Connect error: %s\n", strerror(errno));
+    LOG(ERROR) << "Connect error: " << strerror(errno);
   }
 }
 
@@ -386,7 +387,7 @@ struct hostent* Gethostbyname(const char* name) {
   struct hostent* p;
 
   if ((p = gethostbyname(name)) == nullptr) {
-    log_err("%s: DNS error %d\n", "Gethostbyname error", h_errno);
+    LOG(ERROR) << "Gethostbyname error: DNS error " << h_errno;
   }
   return p;
 }
@@ -396,7 +397,7 @@ struct hostent* Gethostbyaddr(const char* addr, int len, int type) {
   struct hostent* p;
 
   if ((p = gethostbyaddr(addr, len, type)) == nullptr) {
-    log_err("%s: DNS error %d\n", "Gethostbyaddr error", h_errno);
+    LOG(ERROR) << "Gethostbyaddr error: DNS error " << h_errno;
   }
   return p;
 }
@@ -409,7 +410,7 @@ void Pthread_create(pthread_t* tidp, pthread_attr_t* attrp, void* (*routine)(voi
   int rc;
 
   if ((rc = pthread_create(tidp, attrp, routine, argp)) != 0) {
-    log_err("Pthread_create error: %s\n", strerror(rc));
+    LOG(ERROR) << "Pthread_create error: " << strerror(rc);
   }
 }
 
@@ -417,7 +418,7 @@ void Pthread_cancel(pthread_t tid) {
   int rc;
 
   if ((rc = pthread_cancel(tid)) != 0) {
-    log_err("Pthread_cancel error: %s\n", strerror(rc));
+    LOG(ERROR) << "Pthread_cancel error: " << strerror(rc);
   }
 }
 
@@ -425,7 +426,7 @@ void Pthread_join(pthread_t tid, void** thread_return) {
   int rc;
 
   if ((rc = pthread_join(tid, thread_return)) != 0) {
-    log_err("Pthread_join error: %s\n", strerror(rc));
+    LOG(ERROR) << "Pthread_join error: " << strerror(rc);
   }
 }
 
@@ -434,7 +435,7 @@ void Pthread_detach(pthread_t tid) {
   int rc;
 
   if ((rc = pthread_detach(tid)) != 0) {
-    log_err("Pthread_detach error: %s\n", strerror(rc));
+    LOG(ERROR) << "Pthread_detach error: " << strerror(rc);
   }
 }
 /* $end detach */
@@ -451,19 +452,19 @@ void Pthread_once(pthread_once_t* once_control, void (*init_function)()) { pthre
 
 void Sem_init(sem_t* sem, int pshared, unsigned int value) {
   if (sem_init(sem, pshared, value) < 0) {
-    log_err("Sem_init error: %s\n", strerror(errno));
+    LOG(ERROR) << "Sem_init error: " << strerror(errno);
   }
 }
 
 void P(sem_t* sem) {
   if (sem_wait(sem) < 0) {
-    log_err("P error: %s\n", strerror(errno));
+    LOG(ERROR) << "P error: " << strerror(errno);
   }
 }
 
 void V(sem_t* sem) {
   if (sem_post(sem) < 0) {
-    log_err("V error: %s\n", strerror(errno));
+    LOG(ERROR) << "V error: " << strerror(errno);
   }
 }
 
@@ -618,14 +619,14 @@ ssize_t Rio_readn(int fd, void* ptr, size_t nbytes) {
   ssize_t n;
 
   if ((n = rio_readn(fd, ptr, nbytes)) < 0) {
-    log_err("Rio_readn error: %s\n", strerror(errno));
+    LOG(ERROR) << "Rio_readn error: " << strerror(errno);
   }
   return n;
 }
 
 void Rio_writen(int fd, void* usrbuf, size_t n) {
   if (rio_writen(fd, usrbuf, n) != (ssize_t)n) {
-    log_err("Rio_writen error: %s\n", strerror(errno));
+    LOG(ERROR) << "Rio_writen error: " << strerror(errno);
   }
 }
 
@@ -635,7 +636,7 @@ ssize_t Rio_readnb(rio_t* rp, void* usrbuf, size_t n) {
   ssize_t rc;
 
   if ((rc = rio_readnb(rp, usrbuf, n)) < 0) {
-    log_err("Rio_readnb error: %s\n", strerror(errno));
+    LOG(ERROR) << "Rio_readnb error: " << strerror(errno);
   }
   return rc;
 }
@@ -644,7 +645,7 @@ ssize_t Rio_readlineb(rio_t* rp, void* usrbuf, size_t maxlen) {
   ssize_t rc;
 
   if ((rc = rio_readlineb(rp, usrbuf, maxlen)) < 0) {
-    log_err("Rio_readlineb error: %s\n", strerror(errno));
+    LOG(ERROR) << "Rio_readlineb error: " << strerror(errno);
   }
   return rc;
 }
@@ -716,9 +717,9 @@ int Open_clientfd(char* hostname, int port) {
 
   if ((rc = open_clientfd(hostname, port)) < 0) {
     if (rc == -1) {
-      log_err("Open_clientfd Unix error: %s\n", strerror(errno));
+      LOG(ERROR) << "Open_clientfd Unix error: " << strerror(errno);
     } else {
-      log_err("%s: DNS error %d\n", "Open_clientfd DNS error", h_errno);
+      LOG(ERROR) << "Open_clientfd DNS error: DNS error " <<  h_errno;
     }
   }
   return rc;
@@ -728,7 +729,7 @@ int Open_listenfd(int port) {
   int rc;
 
   if ((rc = open_listenfd(port)) < 0) {
-    log_err("Open_listenfd error: %s\n", strerror(errno));
+    LOG(ERROR) << "Open_listenfd error: " << strerror(errno);
   }
   return rc;
 }

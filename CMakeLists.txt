@@ -317,6 +317,39 @@ endif()
 
 set(ZSTD_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
+ExternalProject_Add(fmt
+  DEPENDS
+  URL
+  https://github.com/fmtlib/fmt/archive/refs/heads/master.tar.gz
+  URL_HASH
+  MD5=27e54411fce14de11624994b3ebf3c48
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_CONFIGURE
+  1
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  BUILD_ALWAYS
+  1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+)
+
+if(${OS_VERSION} MATCHES "CentOS")
+  set(FMT_LIBRARY ${INSTALL_LIBDIR_64}/libfmt.a)
+else()
+  set(FMT_LIBRARY ${INSTALL_LIBDIR}/libfmt.a)
+endif()
+
+set(FMT_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
 ExternalProject_Add(lz4
   DEPENDS
   URL
@@ -617,6 +650,7 @@ add_dependencies(${PROJECT_NAME}
   gtest
   ${LIBUNWIND_NAME}
   glog
+  fmt
   snappy
   zstd
   lz4
@@ -643,6 +677,7 @@ target_link_libraries(${PROJECT_NAME}
   librocksdb.a
   ${LIB_PROTOBUF}
   ${LIB_GFLAGS}
+  libfmt.a
   libsnappy.a
   libzstd.a
   liblz4.a
