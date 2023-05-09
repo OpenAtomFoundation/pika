@@ -84,4 +84,4 @@ void RecordMutex::Lock(const std::string &key) {
 }
 
 ```
-完整代码可参考：[slash_mutex.cc](https://github.com/baotiao/slash/blob/master/src/slash_mutex.cc) [slash_mutex.h](https://github.com/baotiao/slash/blob/master/include/slash_mutex.h)
+完整代码可参考：[slash_mutex.cc](https://github.com/PikaLabs/slash/blob/master/slash/src/slash_mutex.cc) [slash_mutex.h](https://github.com/PikaLabs/slash/blob/master/slash/include/slash_mutex.h)
