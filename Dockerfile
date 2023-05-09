@@ -1,49 +1,58 @@
- FROM centos:7 as builder
+FROM ubuntu:22.04 AS builder
 
 LABEL maintainer="SvenDowideit@home.org.au, zhangshaomin_1990@126.com"
 
-ENV PIKA  /pika
-ENV PIKA_BUILD_DIR /tmp/pika
-ENV PATH ${PIKA}:${PIKA}/bin:${PATH}
+ENV PIKA=/pika \
+    PIKA_BUILD_DIR=/tmp/pika \
+    PATH=${PIKA}:${PIKA}/bin:${PATH}
 
-COPY . ${PIKA_BUILD_DIR}
+ARG ENABLE_PROXY=false
+
+RUN if [ "$ENABLE_PROXY" = "true" ] ; \
+    then sed -i 's/http:\/\/archive.ubuntu.com/http:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list ; \
+         sed -i 's/http:\/\/ports.ubuntu.com/http:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list ; \
+    fi 
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    build-essential \
+    git \
+    cmake \
+    autoconf
 
 WORKDIR ${PIKA_BUILD_DIR}
 
-RUN rpm -ivh https://mirrors.aliyun.com/epel/epel-release-latest-7.noarch.rpm && \
-    yum clean all && \
-    yum -y makecache && \
-    yum -y install snappy-devel && \
-    yum -y install protobuf-devel && \
-    yum -y install gflags-devel && \
-    yum -y install glog-devel && \
-    yum -y install bzip2-devel && \
-    yum -y install zlib-devel && \
-    yum -y install lz4-devel && \
-    yum -y install libzstd-devel && \
-    yum -y install gcc-c++ && \
-    yum -y install make && \
-    yum -y install which && \
-    yum -y install git && \
-    make -j$(shell grep -c ^processor /proc/cpuinfo 2>/dev/null) && \
-    cp -r ${PIKA_BUILD_DIR}/output ${PIKA} && \
-    cp -r ${PIKA_BUILD_DIR}/entrypoint.sh ${PIKA} && \
-    yum -y remove gcc-c++ && \
-    yum -y remove make && \
-    yum -y remove which && \
-    yum -y remove git && \
-    yum -y clean all 
+COPY . ${PIKA_BUILD_DIR}
 
-FROM centos:7
-ENV PIKA  /pika
-ENV PATH ${PIKA}:${PIKA}/bin:${PATH}
+RUN ${PIKA_BUILD_DIR}/build.sh
 
-RUN set -eux; yum install -y epel-release; \
- yum install -y snappy protobuf gflags glog bzip2 zlib lz4 libzstd rsync; \
- yum clean all;
+FROM ubuntu:22.04
+
+ARG ENABLE_PROXY=false
+
+RUN if [ "$ENABLE_PROXY" = "true" ] ; \
+    then sed -i 's/http:\/\/archive.ubuntu.com/http:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list ; \
+         sed -i 's/http:\/\/ports.ubuntu.com/http:\/\/mirrors.aliyun.com/g' /etc/apt/sources.list ; \
+    fi 
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    rsync && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+ENV PIKA=/pika \
+    PIKA_BUILD_DIR=/tmp/pika \
+    PATH=${PIKA}:${PIKA}/bin:${PATH}
 
 WORKDIR ${PIKA}
-COPY --from=builder $PIKA ./
 
-ENTRYPOINT ["/pika/entrypoint.sh"]
+COPY --from=builder ${PIKA_BUILD_DIR}/output/pika ${PIKA}/bin/pika
+COPY --from=builder ${PIKA_BUILD_DIR}/entrypoint.sh /entrypoint.sh
+COPY --from=builder ${PIKA_BUILD_DIR}/conf/pika.conf ${PIKA}/conf/pika.conf
+
+ENTRYPOINT ["/entrypoint.sh"]
+
+EXPOSE 9221
+
 CMD ["/pika/bin/pika", "-c", "/pika/conf/pika.conf"]
