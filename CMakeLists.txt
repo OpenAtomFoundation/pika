@@ -593,7 +593,7 @@ add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
 if (USE_PIKA_TOOLS)
-  add_subdirectory(pika-tools)
+  add_subdirectory(tools)
 endif()
 aux_source_directory(src DIR_SRCS)
 
