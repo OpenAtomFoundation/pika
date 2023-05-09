@@ -1,5 +1,4 @@
 #! /bin/bash
-set -x
 
 # parse arguments
 # -t tag, default is "pikadb/pika:<git tag>"
@@ -23,6 +22,7 @@ while getopts "t:p:-:" opt; do
           ;;
         help)
           echo "Usage: build_docker.sh [-t tag] [-p platform] [--proxy] [--help]"
+          echo ""
           echo "Options:"
           echo "  -t tag, default is \"pikadb/pika:<git tag>\""
           echo "  -p platform, default linux/amd64, for multiplat set like linux/amd64,linux/arm64,linux/arm. "
@@ -31,8 +31,12 @@ while getopts "t:p:-:" opt; do
           echo "  --proxy if you want to use proxy, just add --proxy."
           echo "          if you are in China, you may need to use proxy download the package for up speed the build process."
           echo "  --help help"
+          echo ""
+          echo "eg:"
+          echo "  ./build_docker.sh -p linux/amd64,linux/arm64 -t pikadb/pika:latest --proxy "
           exit 0
           ;;
+
         *)
           echo "Unknown option --$OPTARG"
           exit 1
