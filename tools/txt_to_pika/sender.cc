@@ -17,7 +17,7 @@ void SenderThread::ConnectPika() {
     // Connect to redis
     cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1000);
-    slash::Status s = cli_->Connect(ip_, port_);
+    pstd::Status s = cli_->Connect(ip_, port_);
     if (!s.ok()) {
       cli_ = NULL;
       log_info("Can not connect to %s:%d: %s", ip_.data(), port_, s.ToString().data());
@@ -34,7 +34,7 @@ void SenderThread::ConnectPika() {
         argv.push_back("AUTH");
         argv.push_back(password_);
         net::SerializeRedisCommand(argv, &cmd);
-        slash::Status s = cli_->Send(&cmd);
+        pstd::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {
           s = cli_->Recv(&resp);
@@ -60,7 +60,7 @@ void SenderThread::ConnectPika() {
 
         argv.push_back("PING");
         net::SerializeRedisCommand(argv, &cmd);
-        slash::Status s = cli_->Send(&cmd);
+        pstd::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {
           s = cli_->Recv(&resp);
@@ -101,7 +101,7 @@ void SenderThread::LoadCmd(const std::string& cmd) {
 
 void SenderThread::SendCommand(std::string& command) {
   // Send command
-  slash::Status s = cli_->Send(&command);
+  pstd::Status s = cli_->Send(&command);
   if (!s.ok()) {
     elements_--;
     LoadCmd(command);

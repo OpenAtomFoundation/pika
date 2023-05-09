@@ -17,18 +17,18 @@ void* ScanThread::ThreadMain() {
   std::string pattern = "*";
   std::string next_key;
   std::vector<std::string> keys;
-  std::vector<blackwidow::KeyValue> kvs;
+  std::vector<storage::KeyValue> kvs;
 
   do {
-    blackwidow_db_->PKScanRange(blackwidow::DataType::kStrings, key_start, key_end, "*", scan_batch_limit, &keys, &kvs,
+    storage_db_->PKScanRange(storage::DataType::kStrings, key_start, key_end, "*", scan_batch_limit, &keys, &kvs,
                                 &next_key);
     if (!kvs.empty()) {
       scan_number_ += kvs.size();
       std::string data;
       for (const auto& kv : kvs) {
-        slash::PutFixed32(&data, kv.key.size());
+        pstd::PutFixed32(&data, kv.key.size());
         data.append(kv.key);
-        slash::PutFixed32(&data, kv.value.size());
+        pstd::PutFixed32(&data, kv.value.size());
         data.append(kv.value);
       }
       kvs.clear();

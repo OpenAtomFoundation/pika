@@ -578,6 +578,34 @@ if (USE_PIKA_TOOLS)
     make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
   )
   set(HIREDIS_LIBRARY ${INSTALL_LIBDIR}/libhiredis_vip.a)
+
+  ExternalProject_Add(bz2
+    URL
+    https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
+    URL_HASH
+    MD5=67e051268d0c475ea773822f7500d0e5
+    DOWNLOAD_NO_PROGRESS
+    1
+    UPDATE_COMMAND
+    ""
+    LOG_BUILD
+    1
+    LOG_INSTALL
+    1
+    BUILD_IN_SOURCE
+    1
+    SOURCE_SUBDIR
+    ""
+    BUILD_ALWAYS
+    1
+    CONFIGURE_COMMAND
+    ""
+    BUILD_COMMAND
+    make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} all
+    INSTALL_COMMAND
+    make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
+  )
+  set(BZ2_LIBRARY ${INSTALL_LIBDIR}/libbz2.a)
 endif()
 
 if(${OS_VERSION} MATCHES "CentOS")

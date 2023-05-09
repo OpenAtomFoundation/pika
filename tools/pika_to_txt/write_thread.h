@@ -9,7 +9,7 @@
 #include <queue>
 
 #include "net/include/net_thread.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 
 class WriteThread : public net::Thread {
  public:
@@ -21,9 +21,9 @@ class WriteThread : public net::Thread {
   void* ThreadMain() override;
   bool should_stop_;
   std::string file_name_;
-  slash::CondVar rsignal_;
-  slash::CondVar wsignal_;
-  slash::Mutex data_queue_mutex_;
+  pstd::CondVar rsignal_;
+  pstd::CondVar wsignal_;
+  pstd::Mutex data_queue_mutex_;
   std::queue<std::string> data_queue_;
 };
 

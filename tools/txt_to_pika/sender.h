@@ -8,7 +8,7 @@
 #include "net/include/bg_thread.h"
 #include "net/include/net_cli.h"
 #include "net/include/redis_cli.h"
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 
 class SenderThread : public net::Thread {
  public:
@@ -26,17 +26,17 @@ class SenderThread : public net::Thread {
   void SendCommand(std::string& command);
 
   int QueueSize() {
-    slash::MutexLock l(&cmd_mutex_);
+    pstd::MutexLock l(&cmd_mutex_);
     int len = cmd_queue_.size();
     return len;
   }
   void ConnectPika();
 
  private:
-  net::PinkCli* cli_;
-  slash::CondVar rsignal_;
-  slash::CondVar wsignal_;
-  slash::Mutex cmd_mutex_;
+  net::NetCli* cli_;
+  pstd::CondVar rsignal_;
+  pstd::CondVar wsignal_;
+  pstd::Mutex cmd_mutex_;
   std::queue<std::string> cmd_queue_;
   std::string ip_;
   int port_;
