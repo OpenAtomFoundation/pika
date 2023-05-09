@@ -25,7 +25,7 @@ while getopts "t:p:-:" opt; do
           echo ""
           echo "Options:"
           echo "  -t tag,               default is \"pikadb/pika:<git tag>\""
-          echo "  -p [<plat>,[<plat>]], default is current docker platform. "
+          echo "  -p <plat>,[<plat>],   default is current docker platform. "
           echo "                        options: all, linux/amd64, linux/arm, linux/arm64"
           echo "                        more details: https://docs.docker.com/build/building/multi-platform "
           echo "  --proxy,              use proxy download the package for up speed the build process in CN."
