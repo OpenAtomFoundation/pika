@@ -29,12 +29,12 @@ jobs:
 
     - name: Build
       run: |
-        cd operator && make 
+        cd pika-tools/pika_operator && make 
 
     - name: Unit Test
       run: |
-        cd operator && make test
+        cd pika-tools/pika_operator && make test
 
     - name: E2E Test
       run: |
-        cd operator && make e2e-test-local
+        cd pika-tools/pika_operator && make e2e-test-local
