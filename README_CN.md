@@ -358,6 +358,7 @@ Pika与Redis的极限QPS对比。
 1. [doc](docs/catalogue.md)
 
 ## 联系方式
-邮箱：g-infra@360.cn
+
+![](docs/images/pika-wechat-cn.png)
 
 QQ群：294254078
