@@ -549,33 +549,36 @@ ExternalProject_Add(rocksdb
   make -j${CPU_CORE}
 )
 
-ExternalProject_Add(hiredis
-  URL
-  https://github.com/vipshop/hiredis-vip/archive/refs/tags/0.3.0.tar.gz
-  URL_HASH
-  MD5=e4d4a2928188b11f696d35ca1c52e9a4
-  DOWNLOAD_NO_PROGRESS
-  1
-  UPDATE_COMMAND
-  ""
-  LOG_BUILD
-  1
-  LOG_INSTALL
-  1
-  BUILD_IN_SOURCE
-  1
-  SOURCE_SUBDIR
-  ""
-  BUILD_ALWAYS
-  1
-  CONFIGURE_COMMAND
-  ""
-  BUILD_COMMAND
-  make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} all
-  INSTALL_COMMAND
-  make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
-)
-set(HIREDIS_LIBRARY ${INSTALL_LIBDIR}/libhiredis_vip.a)
+option(USE_PIKA_TOOLS "compile pika-tools" OFF)
+if (USE_PIKA_TOOLS)
+  ExternalProject_Add(hiredis
+    URL
+    https://github.com/vipshop/hiredis-vip/archive/refs/tags/0.3.0.tar.gz
+    URL_HASH
+    MD5=e4d4a2928188b11f696d35ca1c52e9a4
+    DOWNLOAD_NO_PROGRESS
+    1
+    UPDATE_COMMAND
+    ""
+    LOG_BUILD
+    1
+    LOG_INSTALL
+    1
+    BUILD_IN_SOURCE
+    1
+    SOURCE_SUBDIR
+    ""
+    BUILD_ALWAYS
+    1
+    CONFIGURE_COMMAND
+    ""
+    BUILD_COMMAND
+    make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} all
+    INSTALL_COMMAND
+    make PREFIX=${STAGED_INSTALL_PREFIX} -j${CPU_CORE} install
+  )
+  set(HIREDIS_LIBRARY ${INSTALL_LIBDIR}/libhiredis_vip.a)
+endif()
 
 if(${OS_VERSION} MATCHES "CentOS")
   set(ROCKSDB_LIBRARY ${INSTALL_LIBDIR_64}/librocksdb.a)
@@ -589,7 +592,9 @@ set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rock
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
-add_subdirectory(pika-tools)
+if (USE_PIKA_TOOLS)
+  add_subdirectory(pika-tools)
+endif()
 aux_source_directory(src DIR_SRCS)
 
 # # generate version
