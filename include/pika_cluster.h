@@ -112,35 +112,4 @@ class PkClusterSlotsSlaveofCmd : public Cmd {
   }
 };
 
-class PkClusterAddTableCmd : public Cmd {
- public:
-  PkClusterAddTableCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag), slot_num_(0) {}
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  Cmd* Clone() override { return new PkClusterAddTableCmd(*this); }
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-
- private:
-  int64_t slot_num_ = 0;
-  void DoInitial() override;
-  Status AddTableSanityCheck();
-  void Clear() override {
-    slot_num_ = 0;
-    table_name_.clear();
-  }
-};
-
-class PkClusterDelTableCmd : public PkClusterDelSlotsCmd {
- public:
-  PkClusterDelTableCmd(const std::string& name, int arity, uint16_t flag) : PkClusterDelSlotsCmd(name, arity, flag) {}
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  Cmd* Clone() override { return new PkClusterDelTableCmd(*this); }
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-
- private:
-  void DoInitial() override;
-  Status DelTableSanityCheck(const std::string& table_name);
-};
-
 #endif  // PIKA_CLUSTER_H_
