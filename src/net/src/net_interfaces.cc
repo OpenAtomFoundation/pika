@@ -59,7 +59,7 @@ std::string GetDefaultInterface() {
     size_t len = IFNAMSIZ + ifreq->ifr_addr.sa_len;
     name = ifreq->ifr_name;
     if (!name.empty()) {
-      LOG(INFO) << "got interface " << name.c_str();
+      LOG(INFO) << "got interface " << name;
       break;
     }
 
@@ -99,7 +99,7 @@ std::string GetIpByInterface(const std::string& network_interface) {
     return "";
   }
 
-  LOG(INFO) << "Using Networker Interface: " << network_interface.c_str();
+  LOG(INFO) << "Using Networker Interface: " << network_interface;
 
   struct ifaddrs* ifAddrStruct = nullptr;
   struct ifaddrs* ifa = nullptr;
@@ -140,9 +140,9 @@ std::string GetIpByInterface(const std::string& network_interface) {
   }
 
   if (!ifa) {
-    LOG(ERROR) << "error network interface: " << network_interface.c_str();
+    LOG(ERROR) << "error network interface: " << network_interface;
   }
 
-  LOG(INFO) << "got ip " << host.c_str();
+  LOG(INFO) << "got ip " << host;
   return host;
 }

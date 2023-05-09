@@ -271,14 +271,14 @@ void ClientThread::InternalDebugPrint() {
       const std::vector<std::string>& tmp = to_send.second;
       for (const auto& tmp_to_send : tmp) {
         UNUSED(tmp_to_send);
-        LOG(INFO) << to_send.first.c_str() << " " << tmp_to_send.c_str();
+        LOG(INFO) << to_send.first << " " << tmp_to_send;
       }
     }
   }
   LOG(INFO) << "Ipport conn map: ";
   for (const auto& ipport_conn : ipport_conns_) {
     UNUSED(ipport_conn);
-    LOG(INFO) << "ipport " << ipport_conn.first.c_str();
+    LOG(INFO) << "ipport " << ipport_conn.first;
   }
   LOG(INFO) << "Connected fd map: ";
   for (const auto& fd_conn : fd_conns_) {
@@ -322,7 +322,7 @@ void ClientThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
             if (!s.ok()) {
               std::string ip_port = ip + ":" + std::to_string(port);
               handle_->DestConnectFailedHandle(ip_port, s.ToString());
-              LOG(INFO) << "Ip " << ip.c_str() << ", port " << port << " Connect err " << s.ToString();
+              LOG(INFO) << "Ip " << ip << ", port " << port << " Connect err " << s.ToString();
               continue;
             }
           } else {

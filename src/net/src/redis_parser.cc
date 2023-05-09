@@ -309,7 +309,7 @@ void RedisParser::PrintCurrentStatus() {
   if (input_buf_ != nullptr) {
     LOG(INFO) << " input_buf " << input_buf_;
   }
-  LOG(INFO) << "half_argv_ : " << half_argv_.c_str();
+  LOG(INFO) << "half_argv_ : " << half_argv_;
   LOG(INFO) << "input_buf len " << length_;
 }
 
