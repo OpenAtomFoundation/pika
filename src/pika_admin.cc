@@ -19,10 +19,6 @@
 #include "include/pika_version.h"
 #include "pstd/include/rsync.h"
 
-#ifdef TCMALLOC_EXTENSION
-#  include <gperftools/malloc_extension.h>
-#endif
-
 extern PikaServer* g_pika_server;
 extern PikaConf* g_pika_conf;
 extern PikaReplicaManager* g_pika_rm;
@@ -2199,66 +2195,6 @@ std::string PaddingCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t 
       argv_[1].size() + BINLOG_ITEM_HEADER_SIZE + PADDING_BINLOG_PROTOCOL_SIZE + SPACE_STROE_PARAMETER_LENGTH);
 }
 
-#ifdef TCMALLOC_EXTENSION
-void TcmallocCmd::DoInitial() {
-  if (argv_.size() != 2 && argv_.size() != 3) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameTcmalloc);
-    return;
-  }
-  rate_ = 0;
-  std::string type = argv_[1];
-  if (!strcasecmp(type.data(), "stats")) {
-    type_ = 0;
-  } else if (!strcasecmp(type.data(), "rate")) {
-    type_ = 1;
-    if (argv_.size() == 3) {
-      if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &rate_)) {
-        res_.SetRes(CmdRes::kSyntaxErr, kCmdNameTcmalloc);
-      }
-    }
-  } else if (!strcasecmp(type.data(), "list")) {
-    type_ = 2;
-  } else if (!strcasecmp(type.data(), "free")) {
-    type_ = 3;
-  } else {
-    res_.SetRes(CmdRes::kInvalidParameter, kCmdNameTcmalloc);
-    return;
-  }
-}
-
-void TcmallocCmd::Do(std::shared_ptr<Partition> partition) {
-  std::vector<MallocExtension::FreeListInfo> fli;
-  std::vector<std::string> elems;
-  switch (type_) {
-    case 0:
-      char stats[1024];
-      MallocExtension::instance()->GetStats(stats, 1024);
-      pstd::StringSplit(stats, '\n', elems);
-      res_.AppendArrayLen(elems.size());
-      for (auto& i : elems) {
-        res_.AppendString(i);
-      }
-      break;
-    case 1:
-      if (rate_) {
-        MallocExtension::instance()->SetMemoryReleaseRate(rate_);
-      }
-      res_.AppendInteger(MallocExtension::instance()->GetMemoryReleaseRate());
-      break;
-    case 2:
-      MallocExtension::instance()->GetFreeListSizes(&fli);
-      res_.AppendArrayLen(fli.size());
-      for (auto& i : fli) {
-        res_.AppendString("type: " + std::string(i.type) + ", min: " + std::to_string(i.min_object_size) + ", max: " +
-                          std::to_string(i.max_object_size) + ", total: " + std::to_string(i.total_bytes_free));
-      }
-      break;
-    case 3:
-      MallocExtension::instance()->ReleaseFreeMemory();
-      res_.SetRes(CmdRes::kOk);
-  }
-}
-#endif
 
 void PKPatternMatchDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

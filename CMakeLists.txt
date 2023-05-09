@@ -412,14 +412,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   set(LIBGPERF_NAME gperftools)
 endif()
 
-if(${OS_VERSION} MATCHES "CentOS")
-  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
-else()
-  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR}/libtcmalloc.a)
-endif()
-
-set(TCMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
-
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   ExternalProject_Add(jemalloc
     DEPENDS

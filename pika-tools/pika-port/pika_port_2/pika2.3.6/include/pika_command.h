@@ -40,9 +40,6 @@ const std::string kCmdNameDbsize = "dbsize";
 const std::string kCmdNameTime = "time";
 const std::string kCmdNameDelbackup = "delbackup";
 const std::string kCmdNameEcho = "echo";
-#ifdef TCMALLOC_EXTENSION
-const std::string kCmdNameTcmalloc = "tcmalloc";
-#endif
 
 // Migrate slot
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";

@@ -100,6 +100,3 @@ $ make
 ```
 $ ./output/bin/pika -c ./conf/pika.conf
 ```
-
-## 注意
-启动出现 Attempt to free invalid pointer 问题请尝试升级tcmalloc 版本，建议使用gperftools 2.7 版本包含的tcmalloc。
