@@ -41,9 +41,9 @@ class TrysyncThread : public net::Thread {
  private:
   long sid_;
   int sockfd_;
-  net::PinkCli* cli_;
+  net::NetCli* cli_;
 
-  slash::Mutex retransmit_mutex_;
+  pstd::Mutex retransmit_mutex_;
   bool retransmit_flag_;
 
   std::vector<PikaSender*> senders_;

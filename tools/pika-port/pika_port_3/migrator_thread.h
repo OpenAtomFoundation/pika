@@ -22,7 +22,7 @@ class MigratorThread : public net::Thread {
   virtual ~MigratorThread();
 
   int64_t num() {
-    slash::MutexLock l(&num_mutex_);
+    pstd::MutexLock l(&num_mutex_);
     return num_;
   }
 
@@ -30,7 +30,7 @@ class MigratorThread : public net::Thread {
 
  private:
   void PlusNum() {
-    slash::MutexLock l(&num_mutex_);
+    pstd::MutexLock l(&num_mutex_);
     ++num_;
   }
 
@@ -55,7 +55,7 @@ class MigratorThread : public net::Thread {
   int thread_index_;
 
   int64_t num_;
-  slash::Mutex num_mutex_;
+  pstd::Mutex num_mutex_;
 };
 
 #endif

@@ -6,7 +6,7 @@
 
 #include <glog/logging.h>
 
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 
 static time_t kCheckDiff = 1;
 
@@ -33,7 +33,7 @@ void RedisSender::ConnectRedis() {
     cli_->set_connect_timeout(1000);
     cli_->set_recv_timeout(10000);
     cli_->set_send_timeout(10000);
-    slash::Status s = cli_->Connect(ip_, port_);
+    pstd::Status s = cli_->Connect(ip_, port_);
     if (!s.ok()) {
       delete cli_;
       cli_ = NULL;
@@ -52,7 +52,7 @@ void RedisSender::ConnectRedis() {
         argv.push_back("AUTH");
         argv.push_back(password_);
         net::SerializeRedisCommand(argv, &cmd);
-        slash::Status s = cli_->Send(&cmd);
+        pstd::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {
           s = cli_->Recv(&resp);
@@ -78,7 +78,7 @@ void RedisSender::ConnectRedis() {
 
         argv.push_back("PING");
         net::SerializeRedisCommand(argv, &cmd);
-        slash::Status s = cli_->Send(&cmd);
+        pstd::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {
           s = cli_->Recv(&resp);
@@ -140,7 +140,7 @@ int RedisSender::SendCommand(std::string& command) {
   // Send command
   int idx = 0;
   do {
-    slash::Status s = cli_->Send(&command);
+    pstd::Status s = cli_->Send(&command);
     if (s.ok()) {
       return 0;
     }

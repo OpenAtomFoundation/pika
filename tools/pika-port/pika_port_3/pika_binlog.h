@@ -18,12 +18,12 @@
 #endif
 
 #include "pika_define.h"
-#include "slash/include/env.h"
-#include "slash/include/slash_mutex.h"
-#include "slash/include/slash_status.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_status.h"
 
-using slash::Slice;
-using slash::Status;
+using pstd::Slice;
+using pstd::Status;
 
 std::string NewFileName(const std::string name, const uint32_t current);
 
@@ -46,9 +46,9 @@ class Binlog {
    */
   Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
 
-  static Status AppendBlank(slash::WritableFile* file, uint64_t len);
+  static Status AppendBlank(pstd::WritableFile* file, uint64_t len);
 
-  slash::WritableFile* queue() { return queue_; }
+  pstd::WritableFile* queue() { return queue_; }
 
   uint64_t file_size() { return file_size_; }
 
@@ -67,10 +67,10 @@ class Binlog {
   uint64_t item_num_;
 
   Version* version_;
-  slash::WritableFile* queue_;
-  slash::RWFile* versionfile_;
+  pstd::WritableFile* queue_;
+  pstd::RWFile* versionfile_;
 
-  slash::Mutex mutex_;
+  pstd::Mutex mutex_;
 
   uint32_t pro_num_;
 
@@ -89,7 +89,7 @@ class Binlog {
 
 class Version {
  public:
-  Version(slash::RWFile* save);
+  Version(pstd::RWFile* save);
   ~Version();
 
   Status Init();
@@ -104,12 +104,12 @@ class Version {
   pthread_rwlock_t rwlock_;
 
   void debug() {
-    slash::RWLock(&rwlock_, false);
+    pstd::RWLock(&rwlock_, false);
     printf("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
   }
 
  private:
-  slash::RWFile* save_;
+  pstd::RWFile* save_;
 
   // No copying allowed;
   Version(const Version&);

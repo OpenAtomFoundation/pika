@@ -18,11 +18,11 @@
 #include <unistd.h>
 #include <fstream>
 
-#include "slash/include/rsync.h"
-#include "slash/include/slash_status.h"
+#include "pstd/include/rsync.h"
+#include "pstd/include/pstd_status.h"
 #include "slaveping_thread.h"
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 #include "pika_define.h"
 
 extern Conf g_conf;
@@ -30,7 +30,7 @@ extern PikaPort* g_pika_port;
 
 TrysyncThread::~TrysyncThread() {
   StopThread();
-  slash::StopRsync(g_conf.dump_path);
+  pstd::StopRsync(g_conf.dump_path);
   delete cli_;
   LOG(INFO) << " Trysync thread " << pthread_self() << " exit!!!";
 }
@@ -54,14 +54,14 @@ void TrysyncThread::Stop() {
 
 void TrysyncThread::PrepareRsync() {
   std::string db_sync_path = g_conf.dump_path;
-  slash::StopRsync(db_sync_path);
-  slash::CreatePath(db_sync_path);
+  pstd::StopRsync(db_sync_path);
+  pstd::CreatePath(db_sync_path);
 
-  slash::CreatePath(db_sync_path + "strings");
-  slash::CreatePath(db_sync_path + "hashes");
-  slash::CreatePath(db_sync_path + "lists");
-  slash::CreatePath(db_sync_path + "sets");
-  slash::CreatePath(db_sync_path + "zsets");
+  pstd::CreatePath(db_sync_path + "strings");
+  pstd::CreatePath(db_sync_path + "hashes");
+  pstd::CreatePath(db_sync_path + "lists");
+  pstd::CreatePath(db_sync_path + "sets");
+  pstd::CreatePath(db_sync_path + "zsets");
 }
 
 bool TrysyncThread::Send(std::string lip) {
@@ -92,7 +92,7 @@ bool TrysyncThread::Send(std::string lip) {
   LOG(INFO) << "redis command: trysync " << g_conf.local_ip.c_str() << " " << g_conf.local_port << " " << filenum << " "
             << pro_offset;
 
-  slash::Status s;
+  pstd::Status s;
   s = cli_->Send(&wbuf_str);
   if (!s.ok()) {
     LOG(WARNING) << "Connect master, Send: " << wbuf_str << ", status: " << s.ToString();
@@ -108,7 +108,7 @@ bool TrysyncThread::Send(std::string lip) {
 bool TrysyncThread::RecvProc() {
   bool should_auth = g_pika_port->requirepass() == "" ? false : true;
   bool is_authed = false;
-  slash::Status s;
+  pstd::Status s;
   std::string reply;
 
   net::RedisCmdArgsType argv;
@@ -122,13 +122,13 @@ bool TrysyncThread::RecvProc() {
     reply = argv[0];
     LOG(INFO) << "Reply from master after trysync: " << reply.c_str();
     if (!is_authed && should_auth) {
-      if (kInnerReplOk != slash::StringToLower(reply)) {
+      if (kInnerReplOk != pstd::StringToLower(reply)) {
         g_pika_port->RemoveMaster();
         return false;
       }
       is_authed = true;
     } else {
-      if (argv.size() == 1 && slash::string2l(reply.data(), reply.size(), &sid_)) {
+      if (argv.size() == 1 && pstd::string2int(reply.data(), reply.size(), &sid_)) {
         // Luckily, I got your point, the sync is comming
         LOG(INFO) << "Recv sid from master: " << sid_;
         g_pika_port->SetSid(sid_);
@@ -171,7 +171,7 @@ bool TrysyncThread::TryUpdateMasterOffset() {
   // Check dbsync finished
   std::string db_sync_path = g_conf.dump_path;
   std::string info_path = db_sync_path + kBgsaveInfoFile;
-  if (!slash::FileExists(info_path)) {
+  if (!pstd::FileExists(info_path)) {
     return false;
   }
 
@@ -189,7 +189,7 @@ bool TrysyncThread::TryUpdateMasterOffset() {
     if (lineno == 2) {
       master_ip = line;
     } else if (lineno > 2 && lineno < 6) {
-      if (!slash::string2l(line.data(), line.size(), &tmp) || tmp < 0) {
+      if (!pstd::string2int(line.data(), line.size(), &tmp) || tmp < 0) {
         LOG(WARNING) << "Format of info file after db sync error, line: " << line;
         is.close();
         return false;
@@ -220,8 +220,8 @@ bool TrysyncThread::TryUpdateMasterOffset() {
   }
 
   // Replace the old db
-  slash::StopRsync(db_sync_path);
-  slash::DeleteFile(info_path);
+  pstd::StopRsync(db_sync_path);
+  pstd::DeleteFile(info_path);
 
   // Update master offset
   g_pika_port->logger()->SetProducerStatus(filenum, offset);
@@ -275,49 +275,49 @@ int TrysyncThread::Retransmit() {
   options.write_buffer_size = 512 * 1024 * 1024;     // 512M
   options.target_file_size_base = 40 * 1024 * 1024;  // 40M
 
-  blackwidow::BlackwidowOptions bwOptions;
+  storage::StorageOptions bwOptions;
   bwOptions.options = options;
 
-  blackwidow::BlackWidow bw;
+  storage::Storage bw;
 
-  blackwidow::RedisStrings stringsDB(&bw, blackwidow::kStrings);
+  storage::RedisStrings stringsDB(&bw, storage::kStrings);
   std::string path = db_path + "strings";
   s = stringsDB.Open(bwOptions, path);
   LOG(INFO) << "Open strings DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&stringsDB), &senders_, blackwidow::kStrings, thread_num));
+    migrators_.emplace_back(new MigratorThread((void*)(&stringsDB), &senders_, storage::kStrings, thread_num));
   }
 
-  blackwidow::RedisLists listsDB(&bw, blackwidow::kLists);
+  storage::RedisLists listsDB(&bw, storage::kLists);
   path = db_path + "lists";
   s = listsDB.Open(bwOptions, path);
   LOG(INFO) << "Open lists DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&listsDB), &senders_, blackwidow::kLists, thread_num));
+    migrators_.emplace_back(new MigratorThread((void*)(&listsDB), &senders_, storage::kLists, thread_num));
   }
 
-  blackwidow::RedisHashes hashesDB(&bw, blackwidow::kHashes);
+  storage::RedisHashes hashesDB(&bw, storage::kHashes);
   path = db_path + "hashes";
   s = hashesDB.Open(bwOptions, path);
   LOG(INFO) << "Open hashes DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&hashesDB), &senders_, blackwidow::kHashes, thread_num));
+    migrators_.emplace_back(new MigratorThread((void*)(&hashesDB), &senders_, storage::kHashes, thread_num));
   }
 
-  blackwidow::RedisSets setsDB(&bw, blackwidow::kSets);
+  storage::RedisSets setsDB(&bw, storage::kSets);
   path = db_path + "sets";
   s = setsDB.Open(bwOptions, path);
   LOG(INFO) << "Open sets DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&setsDB), &senders_, blackwidow::kSets, thread_num));
+    migrators_.emplace_back(new MigratorThread((void*)(&setsDB), &senders_, storage::kSets, thread_num));
   }
 
-  blackwidow::RedisZSets zsetsDB(&bw, blackwidow::kZSets);
+  storage::RedisZSets zsetsDB(&bw, storage::kZSets);
   path = db_path + "zsets";
   s = zsetsDB.Open(bwOptions, path);
   LOG(INFO) << "Open zsets DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&zsetsDB), &senders_, blackwidow::kZSets, thread_num));
+    migrators_.emplace_back(new MigratorThread((void*)(&zsetsDB), &senders_, storage::kZSets, thread_num));
   }
 
   retransmit_mutex_.Lock();
@@ -428,15 +428,15 @@ void* TrysyncThread::ThreadMain() {
     // the pika master module name rule is: document_${slave_ip}:master_port
     //
     // document_${slave_ip}:master_port
-    // std::string ip_port = slash::IpPortString(lip, master_port);
+    // std::string ip_port = pstd::IpPortString(lip, master_port);
 
     // pika 3.0.0-3.0.15 uses document_${master_ip}:${master_port}
     // document_${master_ip}:${master_port}
-    std::string ip_port = slash::IpPortString(master_ip, master_port);
+    std::string ip_port = pstd::IpPortString(master_ip, master_port);
     // We append the master ip port after module name
     // To make sure only data from current master is received
     int rsync_port = g_conf.local_port + 3000;
-    int ret = slash::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, lip, rsync_port);
+    int ret = pstd::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, lip, rsync_port, g_conf.passwd);
     if (0 != ret) {
       LOG(WARNING) << "Failed to start rsync, path: " << dbsync_path << ", error: " << ret;
     }
@@ -445,7 +445,7 @@ void* TrysyncThread::ThreadMain() {
     // Make sure the listening addr of rsyncd is accessible, to avoid the corner case
     // that "rsync --daemon" process has started but can not bind its port which is
     // used by other process.
-    net::PinkCli* rsync = net::NewRedisCli();
+    net::NetCli* rsync = net::NewRedisCli();
     int retry_times;
     for (retry_times = 0; retry_times < 5; retry_times++) {
       if (rsync->Connect(lip, rsync_port, "").ok()) {
@@ -463,7 +463,7 @@ void* TrysyncThread::ThreadMain() {
     if (Send(lip) && RecvProc()) {
       g_pika_port->ConnectMasterDone();
       // Stop rsync, binlog sync with master is begin
-      slash::StopRsync(dbsync_path);
+      pstd::StopRsync(dbsync_path);
 
       delete g_pika_port->ping_thread_;
       g_pika_port->ping_thread_ = new SlavepingThread(sid_);

@@ -30,7 +30,7 @@ Status SlavepingThread::RecvProc() {
   net::RedisCmdArgsType argv;
   Status s = cli_->Recv(&argv);
   if (s.ok()) {
-    slash::StringToLower(argv[0]);
+    pstd::StringToLower(argv[0]);
     // LOG(INFO) << "Reply from master after ping: " << argv[0];
     if (argv[0] == "pong" || argv[0] == "ok") {
     } else {

@@ -27,9 +27,9 @@ class PikaSender : public net::Thread {
   void ConnectRedis();
 
  private:
-  net::PinkCli* cli_;
-  slash::CondVar signal_;
-  slash::Mutex keys_mutex_;
+  net::NetCli* cli_;
+  pstd::CondVar signal_;
+  pstd::Mutex keys_mutex_;
   std::queue<std::string> keys_queue_;
   std::string ip_;
   int port_;

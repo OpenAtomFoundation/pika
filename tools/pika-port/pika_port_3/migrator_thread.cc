@@ -7,7 +7,7 @@
 #include <functional>
 #include <vector>
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 #include "src/redis_hashes.h"
 #include "src/redis_lists.h"
 #include "src/redis_sets.h"
@@ -21,12 +21,12 @@ const int64_t MAX_BATCH_NUM = 30000;
 MigratorThread::~MigratorThread() {}
 
 void MigratorThread::MigrateStringsDB() {
-  blackwidow::RedisStrings* db = (blackwidow::RedisStrings*)(db_);
+  storage::RedisStrings* db = (storage::RedisStrings*)(db_);
 
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
   rocksdb::DB* rocksDB = db->GetDB();
-  blackwidow::ScopeSnapshot ss(rocksDB, &snapshot);
+  storage::ScopeSnapshot ss(rocksDB, &snapshot);
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
   int64_t curtime;
@@ -37,7 +37,7 @@ void MigratorThread::MigrateStringsDB() {
 
   auto iter = rocksDB->NewIterator(iterator_options);
   for (iter->SeekToFirst(); !should_exit_ && iter->Valid(); iter->Next()) {
-    blackwidow::ParsedStringsValue parsed_strings_value(iter->value());
+    storage::ParsedStringsValue parsed_strings_value(iter->value());
     int32_t ttl = 0;
     int64_t ts = (int64_t)(parsed_strings_value.timestamp());
     if (ts != 0) {
@@ -76,7 +76,7 @@ void MigratorThread::MigrateStringsDB() {
 }
 
 void MigratorThread::MigrateListsDB() {
-  blackwidow::RedisLists* db = (blackwidow::RedisLists*)(db_);
+  storage::RedisLists* db = (storage::RedisLists*)(db_);
 
   std::string start_key;
   std::string next_key;
@@ -109,7 +109,7 @@ void MigratorThread::MigrateListsDB() {
 
       int64_t pos = 0;
       std::vector<std::string> list;
-      blackwidow::Status s = db->LRange(k, pos, pos + g_conf.sync_batch_num - 1, &list);
+      storage::Status s = db->LRange(k, pos, pos + g_conf.sync_batch_num - 1, &list);
       if (!s.ok()) {
         LOG(WARNING) << "db->LRange(key:" << k << ", pos:" << pos << ", batch size: " << g_conf.sync_batch_num
                      << ") = " << s.ToString();
@@ -159,7 +159,7 @@ void MigratorThread::MigrateListsDB() {
 }
 
 void MigratorThread::MigrateHashesDB() {
-  blackwidow::RedisHashes* db = (blackwidow::RedisHashes*)(db_);
+  storage::RedisHashes* db = (storage::RedisHashes*)(db_);
 
   std::string start_key;
   std::string next_key;
@@ -186,8 +186,8 @@ void MigratorThread::MigrateHashesDB() {
       if (should_exit_) {
         break;
       }
-      std::vector<blackwidow::FieldValue> fvs;
-      blackwidow::Status s = db->HGetall(k, &fvs);
+      std::vector<storage::FieldValue> fvs;
+      storage::Status s = db->HGetall(k, &fvs);
       if (!s.ok()) {
         LOG(WARNING) << "db->HGetall(key:" << k << ") = " << s.ToString();
         continue;
@@ -230,7 +230,7 @@ void MigratorThread::MigrateHashesDB() {
 }
 
 void MigratorThread::MigrateSetsDB() {
-  blackwidow::RedisSets* db = (blackwidow::RedisSets*)(db_);
+  storage::RedisSets* db = (storage::RedisSets*)(db_);
 
   std::string start_key;
   std::string next_key;
@@ -258,7 +258,7 @@ void MigratorThread::MigrateSetsDB() {
         break;
       }
       std::vector<std::string> members;
-      blackwidow::Status s = db->SMembers(k, &members);
+      storage::Status s = db->SMembers(k, &members);
       if (!s.ok()) {
         LOG(WARNING) << "db->SMembers(key:" << k << ") = " << s.ToString();
         continue;
@@ -298,7 +298,7 @@ void MigratorThread::MigrateSetsDB() {
 }
 
 void MigratorThread::MigrateZsetsDB() {
-  blackwidow::RedisZSets* db = (blackwidow::RedisZSets*)(db_);
+  storage::RedisZSets* db = (storage::RedisZSets*)(db_);
 
   std::string start_key;
   std::string next_key;
@@ -325,8 +325,8 @@ void MigratorThread::MigrateZsetsDB() {
       if (should_exit_) {
         break;
       }
-      std::vector<blackwidow::ScoreMember> score_members;
-      blackwidow::Status s = db->ZRange(k, 0, -1, &score_members);
+      std::vector<storage::ScoreMember> score_members;
+      storage::Status s = db->ZRange(k, 0, -1, &score_members);
       if (!s.ok()) {
         LOG(WARNING) << "db->ZRange(key:" << k << ") = " << s.ToString();
         continue;
@@ -369,27 +369,27 @@ void MigratorThread::MigrateZsetsDB() {
 
 void MigratorThread::MigrateDB() {
   switch (int(type_)) {
-    case int(blackwidow::kStrings): {
+    case int(storage::kStrings): {
       MigrateStringsDB();
       break;
     }
 
-    case int(blackwidow::kLists): {
+    case int(storage::kLists): {
       MigrateListsDB();
       break;
     }
 
-    case int(blackwidow::kHashes): {
+    case int(storage::kHashes): {
       MigrateHashesDB();
       break;
     }
 
-    case int(blackwidow::kSets): {
+    case int(storage::kSets): {
       MigrateSetsDB();
       break;
     }
 
-    case int(blackwidow::kZSets): {
+    case int(storage::kZSets): {
       MigrateZsetsDB();
       break;
     }

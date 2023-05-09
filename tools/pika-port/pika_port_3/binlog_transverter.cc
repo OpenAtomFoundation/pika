@@ -54,14 +54,14 @@ std::string PortBinlogTransverter::PortBinlogEncode(PortBinlogType type, uint32_
                                                     const std::string& content,
                                                     const std::vector<std::string>& extends) {
   std::string binlog;
-  slash::PutFixed16(&binlog, type);
-  slash::PutFixed32(&binlog, exec_time);
-  slash::PutFixed32(&binlog, server_id);
-  slash::PutFixed64(&binlog, logic_id);
-  slash::PutFixed32(&binlog, filenum);
-  slash::PutFixed64(&binlog, offset);
+  pstd::PutFixed16(&binlog, type);
+  pstd::PutFixed32(&binlog, exec_time);
+  pstd::PutFixed32(&binlog, server_id);
+  pstd::PutFixed64(&binlog, logic_id);
+  pstd::PutFixed32(&binlog, filenum);
+  pstd::PutFixed64(&binlog, offset);
   uint32_t content_length = content.size();
-  slash::PutFixed32(&binlog, content_length);
+  pstd::PutFixed32(&binlog, content_length);
   binlog.append(content);
   return binlog;
 }
@@ -71,18 +71,18 @@ bool PortBinlogTransverter::PortBinlogDecode(PortBinlogType type, const std::str
   uint16_t binlog_type = 0;
   uint32_t content_length = 0;
   std::string binlog_str = binlog;
-  slash::GetFixed16(&binlog_str, &binlog_type);
+  pstd::GetFixed16(&binlog_str, &binlog_type);
   if (binlog_type != type) {
     LOG(WARNING) << "PortBinlog Item type error, expect type: " << static_cast<uint16_t>(type)
                  << " actualy type: " << binlog_type;
     return false;
   }
-  slash::GetFixed32(&binlog_str, &binlog_item->exec_time_);
-  slash::GetFixed32(&binlog_str, &binlog_item->server_id_);
-  slash::GetFixed64(&binlog_str, &binlog_item->logic_id_);
-  slash::GetFixed32(&binlog_str, &binlog_item->filenum_);
-  slash::GetFixed64(&binlog_str, &binlog_item->offset_);
-  slash::GetFixed32(&binlog_str, &content_length);
+  pstd::GetFixed32(&binlog_str, &binlog_item->exec_time_);
+  pstd::GetFixed32(&binlog_str, &binlog_item->server_id_);
+  pstd::GetFixed64(&binlog_str, &binlog_item->logic_id_);
+  pstd::GetFixed32(&binlog_str, &binlog_item->filenum_);
+  pstd::GetFixed64(&binlog_str, &binlog_item->offset_);
+  pstd::GetFixed32(&binlog_str, &content_length);
   if (binlog_str.size() >= content_length) {
     binlog_item->content_.assign(binlog_str.data(), content_length);
   } else {

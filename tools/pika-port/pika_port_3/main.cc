@@ -78,8 +78,8 @@ static void SignalSetup() {
 }
 
 static void GlogInit(const std::string& log_path, bool is_daemon) {
-  if (!slash::FileExists(log_path)) {
-    slash::CreatePath(log_path);
+  if (!pstd::FileExists(log_path)) {
+    pstd::CreatePath(log_path);
   }
 
   if (!is_daemon) {
@@ -157,7 +157,7 @@ int main(int argc, char* argv[]) {
         break;
       case 'p':
         snprintf(buf, 1024, "%s", optarg);
-        slash::string2l(buf, strlen(buf), &(num));
+        pstd::string2int(buf, strlen(buf), &(num));
         g_conf.local_port = int(num);
         break;
       case 'i':
@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
         break;
       case 'o':
         snprintf(buf, 1024, "%s", optarg);
-        slash::string2l(buf, strlen(buf), &(num));
+        pstd::string2int(buf, strlen(buf), &(num));
         g_conf.master_port = int(num);
         break;
       case 'm':
@@ -175,12 +175,12 @@ int main(int argc, char* argv[]) {
         break;
       case 'n':
         snprintf(buf, 1024, "%s", optarg);
-        slash::string2l(buf, strlen(buf), &(num));
+        pstd::string2int(buf, strlen(buf), &(num));
         g_conf.forward_port = int(num);
         break;
       case 'x':
         snprintf(buf, 1024, "%s", optarg);
-        slash::string2l(buf, strlen(buf), &(num));
+        pstd::string2int(buf, strlen(buf), &(num));
         g_conf.forward_thread_num = int(num);
         break;
       case 'y':
@@ -189,18 +189,18 @@ int main(int argc, char* argv[]) {
         break;
       case 'z':
         snprintf(buf, 1024, "%s", optarg);
-        slash::string2l(buf, strlen(buf), &(num));
+        pstd::string2int(buf, strlen(buf), &(num));
         g_conf.wait_bgsave_timeout = time_t(num);
         break;
 
       case 'f':
         snprintf(buf, 1024, "%s", optarg);
-        slash::string2l(buf, strlen(buf), &(num));
+        pstd::string2int(buf, strlen(buf), &(num));
         g_conf.filenum = (size_t)(num);
         break;
       case 's':
         snprintf(buf, 1024, "%s", optarg);
-        slash::string2l(buf, strlen(buf), &(num));
+        pstd::string2int(buf, strlen(buf), &(num));
         g_conf.offset = (size_t)(num);
         break;
       case 'w':
@@ -224,7 +224,7 @@ int main(int argc, char* argv[]) {
         break;
       case 'b':
         snprintf(buf, 1024, "%s", optarg);
-        slash::string2l(buf, strlen(buf), &(num));
+        pstd::string2int(buf, strlen(buf), &(num));
         g_conf.sync_batch_num = (size_t)(num);
         break;
       case 'e':

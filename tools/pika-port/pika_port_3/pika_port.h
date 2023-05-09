@@ -10,15 +10,15 @@
 #include "pika_binlog.h"
 #include "pika_define.h"
 #include "redis_sender.h"
-#include "slash/include/slash_mutex.h"
-#include "slash/include/slash_status.h"
+#include "pstd/include/pstd_mutex.h"
+#include "pstd/include/pstd_status.h"
 #include "slaveping_thread.h"
 #include "trysync_thread.h"
 
 #include <vector>
 
-using slash::Slice;
-using slash::Status;
+using pstd::Slice;
+using pstd::Status;
 
 class PikaPort {
  public:
@@ -36,11 +36,11 @@ class PikaPort {
   void SetSid(int64_t sid) { sid_ = sid; }
 
   int role() {
-    slash::RWLock(&state_protector_, false);
+    pstd::RWLock(&state_protector_, false);
     return role_;
   }
   int repl_state() {
-    slash::RWLock(&state_protector_, false);
+    pstd::RWLock(&state_protector_, false);
     return repl_state_;
   }
   std::string requirepass() { return requirepass_; }
@@ -81,10 +81,10 @@ class PikaPort {
   std::string dump_path_;
   pthread_rwlock_t rwlock_;
 
-  slash::Mutex mutex_;  // double lock to block main thread
+  pstd::Mutex mutex_;  // double lock to block main thread
 
   // redis client
-  // net::PinkCli *cli_;
+  // net::NetCli *cli_;
   // RedisSender *sender_;
   std::vector<RedisSender*> senders_;
 

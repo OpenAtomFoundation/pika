@@ -26,10 +26,10 @@ class RedisSender : public net::Thread {
 
  private:
   int id_;
-  net::PinkCli* cli_;
-  slash::CondVar rsignal_;
-  slash::CondVar wsignal_;
-  slash::Mutex commands_mutex_;
+  net::NetCli* cli_;
+  pstd::CondVar rsignal_;
+  pstd::CondVar wsignal_;
+  pstd::Mutex commands_mutex_;
   std::queue<std::string> commands_queue_;
   std::string ip_;
   int port_;

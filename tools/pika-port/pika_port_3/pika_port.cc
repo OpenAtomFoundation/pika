@@ -16,9 +16,9 @@
 #include "conf.h"
 #include "const.h"
 #include "pika_port.h"
-#include "slash/include/env.h"
-#include "slash/include/rsync.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/env.h"
+#include "pstd/include/rsync.h"
+#include "pstd/include/pstd_string.h"
 
 PikaPort::PikaPort(std::string& master_ip, int master_port, std::string& passwd)
     : ping_thread_(NULL),
@@ -136,7 +136,7 @@ int PikaPort::SendRedisCommand(const std::string& command, const std::string& ke
 }
 
 bool PikaPort::SetMaster(std::string& master_ip, int master_port) {
-  slash::RWLock l(&state_protector_, true);
+  pstd::RWLock l(&state_protector_, true);
   if ((role_ ^ PIKA_ROLE_SLAVE) && repl_state_ == PIKA_REPL_NO_CONNECT) {
     master_ip_ = master_ip;
     master_port_ = master_port;
@@ -151,7 +151,7 @@ bool PikaPort::SetMaster(std::string& master_ip, int master_port) {
 }
 
 bool PikaPort::ShouldConnectMaster() {
-  slash::RWLock l(&state_protector_, false);
+  pstd::RWLock l(&state_protector_, false);
   // LOG(INFO) << "repl_state: " << PikaState(repl_state_)
   //            << " role: " << PikaRole(role_)
   //   		 << " master_connection: " << master_connection_;
@@ -162,14 +162,14 @@ bool PikaPort::ShouldConnectMaster() {
 }
 
 void PikaPort::ConnectMasterDone() {
-  slash::RWLock l(&state_protector_, true);
+  pstd::RWLock l(&state_protector_, true);
   if (repl_state_ == PIKA_REPL_CONNECT) {
     repl_state_ = PIKA_REPL_CONNECTING;
   }
 }
 
 bool PikaPort::ShouldStartPingMaster() {
-  slash::RWLock l(&state_protector_, false);
+  pstd::RWLock l(&state_protector_, false);
   LOG(INFO) << "ShouldStartPingMaster: master_connection " << master_connection_ << ", repl_state "
             << PikaState(repl_state_);
   if (repl_state_ == PIKA_REPL_CONNECTING && master_connection_ < 2) {
@@ -180,7 +180,7 @@ bool PikaPort::ShouldStartPingMaster() {
 }
 
 void PikaPort::MinusMasterConnection() {
-  slash::RWLock l(&state_protector_, true);
+  pstd::RWLock l(&state_protector_, true);
   if (master_connection_ > 0) {
     if ((--master_connection_) <= 0) {
       // two connection with master has been deleted
@@ -197,7 +197,7 @@ void PikaPort::MinusMasterConnection() {
 }
 
 void PikaPort::PlusMasterConnection() {
-  slash::RWLock l(&state_protector_, true);
+  pstd::RWLock l(&state_protector_, true);
   if (master_connection_ < 2) {
     if ((++master_connection_) >= 2) {
       // two connection with master has been established
@@ -209,7 +209,7 @@ void PikaPort::PlusMasterConnection() {
 }
 
 bool PikaPort::ShouldAccessConnAsMaster(const std::string& ip) {
-  slash::RWLock l(&state_protector_, false);
+  pstd::RWLock l(&state_protector_, false);
   LOG(INFO) << "ShouldAccessConnAsMaster, repl_state_: " << PikaState(repl_state_) << ", ip: " << ip
             << ", master_ip: " << master_ip_;
   if (repl_state_ != PIKA_REPL_NO_CONNECT && ip == master_ip_) {
@@ -220,7 +220,7 @@ bool PikaPort::ShouldAccessConnAsMaster(const std::string& ip) {
 
 void PikaPort::RemoveMaster() {
   {
-    slash::RWLock l(&state_protector_, true);
+    pstd::RWLock l(&state_protector_, true);
     repl_state_ = PIKA_REPL_NO_CONNECT;
     role_ &= ~PIKA_ROLE_SLAVE;
     master_ip_ = "";
@@ -237,7 +237,7 @@ void PikaPort::RemoveMaster() {
 }
 
 bool PikaPort::IsWaitingDBSync() {
-  slash::RWLock l(&state_protector_, false);
+  pstd::RWLock l(&state_protector_, false);
   if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
     return true;
   }
@@ -245,12 +245,12 @@ bool PikaPort::IsWaitingDBSync() {
 }
 
 void PikaPort::NeedWaitDBSync() {
-  slash::RWLock l(&state_protector_, true);
+  pstd::RWLock l(&state_protector_, true);
   repl_state_ = PIKA_REPL_WAIT_DBSYNC;
 }
 
 void PikaPort::WaitDBSyncFinish() {
-  slash::RWLock l(&state_protector_, true);
+  pstd::RWLock l(&state_protector_, true);
   if (repl_state_ == PIKA_REPL_WAIT_DBSYNC) {
     repl_state_ = PIKA_REPL_CONNECT;
   }

@@ -12,7 +12,7 @@
 #include "master_conn.h"
 #include "net/include/server_thread.h"
 #include "pika_define.h"
-#include "slash/include/slash_mutex.h"
+#include "pstd/include/pstd_mutex.h"
 
 class BinlogReceiverThread {
  public:
@@ -35,9 +35,10 @@ class BinlogReceiverThread {
    public:
     explicit MasterConnFactory(BinlogReceiverThread* binlog_receiver) : binlog_receiver_(binlog_receiver) {}
 
-    virtual net::PinkConn* NewPinkConn(int connfd, const std::string& ip_port, net::ServerThread* thread,
-                                       void* worker_specific_data) const override {
-      return new MasterConn(connfd, ip_port, binlog_receiver_);
+    virtual std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
+                                     void* worker_specific_data, 
+                                     net::NetMultiplexer* net_mpx = nullptr) const override {
+      return std::static_pointer_cast<net::NetConn>(std::make_shared<MasterConn>(connfd, ip_port, binlog_receiver_));
     }
 
    private:

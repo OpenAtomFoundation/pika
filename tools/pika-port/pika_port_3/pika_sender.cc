@@ -2,7 +2,7 @@
 
 #include "const.h"
 #include "pika_sender.h"
-#include "slash/include/xdebug.h"
+#include "pstd/include/xdebug.h"
 
 PikaSender::PikaSender(std::string ip, int64_t port, std::string password)
     : cli_(NULL),
@@ -17,7 +17,7 @@ PikaSender::PikaSender(std::string ip, int64_t port, std::string password)
 PikaSender::~PikaSender() {}
 
 int PikaSender::QueueSize() {
-  slash::MutexLock l(&keys_mutex_);
+  pstd::MutexLock l(&keys_mutex_);
   return keys_queue_.size();
 }
 
@@ -33,7 +33,7 @@ void PikaSender::ConnectRedis() {
     // Connect to redis
     cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1000);
-    slash::Status s = cli_->Connect(ip_, port_);
+    pstd::Status s = cli_->Connect(ip_, port_);
     if (!s.ok()) {
       delete cli_;
       cli_ = NULL;
@@ -52,7 +52,7 @@ void PikaSender::ConnectRedis() {
         argv.push_back("AUTH");
         argv.push_back(password_);
         net::SerializeRedisCommand(argv, &cmd);
-        slash::Status s = cli_->Send(&cmd);
+        pstd::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {
           s = cli_->Recv(&resp);
@@ -78,7 +78,7 @@ void PikaSender::ConnectRedis() {
 
         argv.push_back("PING");
         net::SerializeRedisCommand(argv, &cmd);
-        slash::Status s = cli_->Send(&cmd);
+        pstd::Status s = cli_->Send(&cmd);
 
         if (s.ok()) {
           s = cli_->Recv(&resp);
@@ -119,7 +119,7 @@ void PikaSender::LoadKey(const std::string& key) {
 
 void PikaSender::SendCommand(std::string& command, const std::string& key) {
   // Send command
-  slash::Status s = cli_->Send(&command);
+  pstd::Status s = cli_->Send(&command);
   if (!s.ok()) {
     elements_--;
     LoadKey(key);

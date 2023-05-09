@@ -5,8 +5,8 @@
 
 #include <glog/logging.h>
 
-#include "slash/include/slash_coding.h"
-#include "slash/include/slash_string.h"
+#include "pstd/include/pstd_coding.h"
+#include "pstd/include/pstd_string.h"
 
 #include "binlog_receiver_thread.h"
 #include "binlog_transverter.h"
@@ -17,7 +17,7 @@
 extern PikaPort* g_pika_port;
 
 MasterConn::MasterConn(int fd, std::string ip_port, void* worker_specific_data)
-    : PinkConn(fd, ip_port, NULL),
+    : NetConn(fd, ip_port, NULL),
       rbuf_(nullptr),
       rbuf_len_(0),
       rbuf_size_(REDIS_IOBUF_LEN),
@@ -102,7 +102,7 @@ int32_t MasterConn::GetNextNum(const std::string& content, int32_t left_pos, int
   //            012 3
   // num range [left_pos + 1, right_pos - 2]
   assert(left_pos < right_pos);
-  if (slash::string2l(content.data() + left_pos + 1, right_pos - left_pos - 2, value)) {
+  if (pstd::string2int(content.data() + left_pos + 1, right_pos - left_pos - 2, value)) {
     return 0;
   }
   return -1;
@@ -179,8 +179,8 @@ net::ReadStatus MasterConn::GetRequest() {
   uint16_t type = 0;
   uint32_t body_length = 0;
   std::string header(rbuf_, HEADER_LEN);
-  slash::GetFixed16(&header, &type);
-  slash::GetFixed32(&header, &body_length);
+  pstd::GetFixed16(&header, &type);
+  pstd::GetFixed32(&header, &body_length);
 
   if (type != kTypePortAuth && type != kTypePortBinlog) {
     LOG(INFO) << "Unrecognizable Type: " << type << " maybe identify binlog type error";

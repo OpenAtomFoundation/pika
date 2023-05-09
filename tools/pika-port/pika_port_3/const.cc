@@ -1,6 +1,6 @@
 #include "const.h"
 
-#include "blackwidow/blackwidow.h"
+#include "storage/storage.h"
 
 #include "pika_define.h"
 
@@ -58,28 +58,28 @@ std::string PikaRole(int role) {
 
 const char* GetDBTypeString(int type) {
   switch (type) {
-    case int(blackwidow::kStrings): {
-      return "blackwidow::kStrings";
+    case int(storage::kStrings): {
+      return "storage::kStrings";
     }
 
-    case int(blackwidow::kLists): {
-      return "blackwidow::kLists";
+    case int(storage::kLists): {
+      return "storage::kLists";
     }
 
-    case int(blackwidow::kHashes): {
-      return "blackwidow::kHashes";
+    case int(storage::kHashes): {
+      return "storage::kHashes";
     }
 
-    case int(blackwidow::kSets): {
-      return "blackwidow::kSets";
+    case int(storage::kSets): {
+      return "storage::kSets";
     }
 
-    case int(blackwidow::kZSets): {
-      return "blackwidow::kZSets";
+    case int(storage::kZSets): {
+      return "storage::kZSets";
     }
 
     default: {
-      return "blackwidow::Unknown";
+      return "storage::Unknown";
     }
   }
 }
