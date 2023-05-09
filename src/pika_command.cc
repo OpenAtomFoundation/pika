@@ -123,10 +123,6 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*>* cmd_table) {
   Cmd* pkclusterslotsslaveofptr =
       new PkClusterSlotsSlaveofCmd(kCmdNamePkClusterSlotsSlaveof, -5, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterSlotsSlaveof, pkclusterslotsslaveofptr));
-  Cmd* pkclusteraddtableptr = new PkClusterAddTableCmd(kCmdNamePkClusterAddTable, 4, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterAddTable, pkclusteraddtableptr));
-  Cmd* pkclusterdeltableptr = new PkClusterDelTableCmd(kCmdNamePkClusterDelTable, 3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterDelTable, pkclusterdeltableptr));
 #ifdef TCMALLOC_EXTENSION
   Cmd* tcmallocptr = new TcmallocCmd(kCmdNameTcmalloc, -2, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameTcmalloc, tcmallocptr));
