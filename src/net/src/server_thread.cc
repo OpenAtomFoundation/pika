@@ -307,17 +307,17 @@ int ServerThread::EnableSecurity(const std::string& cert_file, const std::string
 
   // 5. Set cert file and key file, then check key file
   if (SSL_CTX_use_certificate_file(ssl_ctx_, cert_file.c_str(), SSL_FILETYPE_PEM) != 1) {
-    LOG(WARNING) << "SSL_CTX_use_certificate_file(" << cert_file.c_str() << ") failed";
+    LOG(WARNING) << "SSL_CTX_use_certificate_file(" << cert_file << ") failed";
     return -1;
   }
 
   if (SSL_CTX_use_PrivateKey_file(ssl_ctx_, key_file.c_str(), SSL_FILETYPE_PEM) != 1) {
-    LOG(WARNING) << "SSL_CTX_use_PrivateKey_file(" <<  key_file.c_str() << ")";
+    LOG(WARNING) << "SSL_CTX_use_PrivateKey_file(" <<  key_file << ")";
     return -1;
   }
 
   if (SSL_CTX_check_private_key(ssl_ctx_) != 1) {
-    LOG(WARNING) << "SSL_CTX_check_private_key(" << key_file.c_str() << ")";
+    LOG(WARNING) << "SSL_CTX_check_private_key(" << key_file << ")";
     return -1;
   }
 
