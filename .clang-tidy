@@ -1,7 +1,7 @@
 # refer to https://clang.llvm.org/extra/clang-tidy/checks/list.html
-Checks: -*, clang-analyzer-core.*, clang-analyzer-cplusplus.*, clang-analyzer-deadcode.*, clang-analyzer-nullability.*, clang-analyzer-security.*, clang-analyzer-unix.*, clang-analyzer-valist.*, cppcoreguidelines-init-variables, cppcoreguidelines-macro-usage, cppcoreguidelines-interfaces-global-init, cppcoreguidelines-narrowing-conversions, cppcoreguidelines-no-malloc, cppcoreguidelines-prefer-member-initializer, cppcoreguidelines-special-member-functions, cppcoreguidelines-slicing, google-build-explicit-make-pair, google-default-arguments, google-explicit-constructor, modernize-avoid-bind, modernize-loop-convert, modernize-macro-to-enum, modernize-make-shared, modernize-make-unique, modernize-pass-by-value, modernize-redundant-void-arg, modernize-return-braced-init-list, modernize-use-auto, modernize-use-bool-literals, modernize-use-emplace, modernize-use-equals-default, modernize-use-equals-delete, modernize-use-nullptr, modernize-use-override, modernize-use-using, performance-faster-string-find, performance-for-range-copy, performance-implicit-conversion-in-loop, performance-inefficient-algorithm, performance-inefficient-vector-operation, performance-move-const-arg, performance-move-constructor-init, performance-no-automatic-move, performance-trivially-destructible, performance-type-promotion-in-math-fn, performance-unnecessary-copy-initialization, performance-unnecessary-value-param
+Checks: -*, clang-analyzer-core.*, clang-analyzer-cplusplus.*, clang-analyzer-deadcode.*, clang-analyzer-nullability.*, clang-analyzer-security.*, clang-analyzer-unix.*, clang-analyzer-valist.*, cppcoreguidelines-init-variables, cppcoreguidelines-macro-usage, cppcoreguidelines-interfaces-global-init, cppcoreguidelines-narrowing-conversions, cppcoreguidelines-no-malloc, cppcoreguidelines-prefer-member-initializer, cppcoreguidelines-special-member-functions, cppcoreguidelines-slicing, google-build-explicit-make-pair, google-default-arguments, google-explicit-constructor, modernize-avoid-bind, modernize-loop-convert, modernize-macro-to-enum, modernize-make-shared, modernize-make-unique, modernize-pass-by-value, modernize-redundant-void-arg, modernize-return-braced-init-list, modernize-use-auto, modernize-use-bool-literals, modernize-use-emplace, modernize-use-equals-default, modernize-use-equals-delete, modernize-use-nullptr, modernize-use-override, modernize-use-using, performance-faster-string-find, performance-for-range-copy, performance-implicit-conversion-in-loop, performance-inefficient-algorithm, performance-inefficient-vector-operation, performance-move-const-arg, performance-move-constructor-init, performance-no-automatic-move, performance-trivially-destructible, performance-type-promotion-in-math-fn, performance-unnecessary-copy-initialization, performance-unnecessary-value-param, readability-avoid-const-params-in-decls, readability-const-return-type, readability-convert-member-functions-to-static, readability-make-member-function-const, readability-redundant-access-specifiers, readability-redundant-control-flow, readability-redundant-declaration, readability-redundant-member-init, readability-redundant-string-cstr, readability-redundant-string-init, readability-simplify-boolean-expr, readability-simplify-subscript-expr, readability-string-compare, readability-identifier-naming, cppcoreguidelines-avoid-goto
 
-WarningsAsErrors: clang-analyzer-*, -clang-analyzer-security.insecureAPI.rand, cppcoreguidelines-interfaces-global-init, cppcoreguidelines-no-malloc, cppcoreguidelines-slicing, google-*, modernize-use-emplace, modernize-use-equals-default, modernize-use-equals-delete, performance-implicit-conversion-in-loop, performance-inefficient-algorithm, performance-move-constructor-init, performance-no-automatic-move, performance-trivially-destructible, performance-type-promotion-in-math-fn, performance-unnecessary-copy-initialization
+WarningsAsErrors: clang-analyzer-*, -clang-analyzer-security.insecureAPI.rand, google-*, performance-*, cppcoreguidelines-*, modernize-*, readability-*
 
 CheckOptions:
   - key:           cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
@@ -10,3 +10,43 @@ CheckOptions:
     value:         True
   - key:           performance-move-const-arg.CheckTriviallyCopyableMove
     value:         False
+  - key:           readability-identifier-naming.LocalVariableCase
+    value:         lower_case
+  - key:           readability-identifier-naming.LocalConstantCase
+    value:         aNy_CasE  # FIXME: use a more strictly case
+  - key:           readability-identifier-naming.StructCase
+    value:         CamelCase
+  - key:           readability-identifier-naming.ClassCase
+    value:         CamelCase
+  - key:           readability-identifier-naming.UnionCase
+    value:         CamelCase
+  - key:           readability-identifier-naming.EnumCase
+    value:         CamelCase
+  - key:           readability-identifier-naming.ParameterCase
+    value:         lower_case
+  - key:           readability-identifier-naming.PublicMethodCase
+    value:         CamelCase
+  - key:           readability-identifier-naming.PrivateMethodCase
+    value:         camelBack
+  - key:           readability-identifier-naming.ProtectedMethodCase
+    value:         camelBack
+  - key:           readability-identifier-naming.MemberCase
+    value:         lower_case
+  - key:           readability-identifier-naming.MemberSuffix
+    value:         _
+  - key:           readability-identifier-naming.PublicMemberCase
+    value:         lower_case
+  - key:           readability-identifier-naming.ClassMemberCase
+    value:         lower_case
+  - key:           readability-identifier-naming.ClassConstantCase
+    value:         aNy_CasE  # FIXME: use a more strictly case
+  - key:           readability-identifier-naming.TypeAliasCase
+    value:         CamelCase
+  - key:           readability-identifier-naming.TypedefCase
+    value:         CamelCase
+  - key:           readability-identifier-naming.MacroCase
+    value:         UPPER_CASE
+  - key:           readability-identifier-naming.NamespaceCase
+    value:         lower_case
+  - key:           readability-identifier-naming.FunctionCase
+    value:         CamelCase
