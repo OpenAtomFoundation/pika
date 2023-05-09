@@ -14,6 +14,6 @@ target_include_directories(binlog_sender PRIVATE ${PROJECT_SOURCE_DIR})
 
 target_link_libraries(binlog_sender net pstd pthread)
 set_target_properties(binlog_sender PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tools
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
     CMAKE_COMPILER_IS_GNUCXX TRUE
     COMPILE_FLAGS ${CXXFLAGS})

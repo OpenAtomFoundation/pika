@@ -9,6 +9,6 @@ target_include_directories(redisConn PRIVATE ${INSTALL_INCLUDEDIR})
 
 target_link_libraries(redisConn ${HIREDIS_LIBRARY})
 set_target_properties(redisConn PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tools
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
     CMAKE_COMPILER_IS_GNUCXX TRUE
     COMPILE_FLAGS ${CXXFLAGS})
