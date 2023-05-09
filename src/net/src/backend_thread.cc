@@ -13,6 +13,8 @@
 #include <sys/time.h>
 #include <sys/types.h>
 
+#include <glog/logging.h>
+
 #include "net/include/net_conn.h"
 #include "net/src/server_socket.h"
 #include "pstd/include/pstd_string.h"
@@ -239,7 +241,7 @@ void BackendThread::DoCronTask() {
 
     // Check keepalive timeout connection
     if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
-      log_info("Do cron task del fd %d\n", conn->fd());
+      LOG(INFO) << "Do cron task del fd " << conn->fd();
       net_multiplexer_->NetDelEvent(conn->fd(), 0);
       close(conn->fd());
       handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
@@ -261,31 +263,31 @@ void BackendThread::DoCronTask() {
 }
 
 void BackendThread::InternalDebugPrint() {
-  log_info("___________________________________\n");
+  LOG(INFO) << "___________________________________";
   {
     pstd::MutexLock l(&mu_);
-    log_info("To send map: \n");
+    LOG(INFO) << "To send map: ";
     for (const auto& to_send : to_send_) {
       UNUSED(to_send);
       const std::vector<std::string>& tmp = to_send.second;
       for (const auto& tmp_to_send : tmp) {
         UNUSED(tmp_to_send);
-        log_info("%s %s\n", to_send.first.c_str(), tmp_to_send.c_str());
+        LOG(INFO) << to_send.first << " " << tmp_to_send;
       }
     }
   }
-  log_info("Connected fd map: \n");
+  LOG(INFO) << "Connected fd map: ";
   pstd::MutexLock l(&mu_);
   for (const auto& fd_conn : conns_) {
     UNUSED(fd_conn);
-    log_info("fd %d", fd_conn.first);
+    LOG(INFO) << "fd " << fd_conn.first;
   }
-  log_info("Connecting fd map: \n");
+  LOG(INFO) << "Connecting fd map: ";
   for (const auto& connecting_fd : connecting_fds_) {
     UNUSED(connecting_fd);
-    log_info("fd: %d", connecting_fd);
+    LOG(INFO) << "fd: " << connecting_fd;
   }
-  log_info("___________________________________\n");
+  LOG(INFO) << "___________________________________";
 }
 
 void BackendThread::NotifyWrite(const std::string ip_port) {
@@ -338,7 +340,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
             to_send_.erase(iter);
           }
         } else if (ti.notify_type() == kNotiClose) {
-          log_info("received kNotiClose\n");
+          LOG(INFO) << "received kNotiClose";
           net_multiplexer_->NetDelEvent(fd, 0);
           CloseFd(fd);
           conns_.erase(fd);
@@ -401,7 +403,7 @@ void* BackendThread::ThreadMain() {
       std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->fd);
       if (iter == conns_.end()) {
         mu_.Unlock();
-        log_info("fd %d not found in fd_conns\n", pfe->fd);
+        LOG(INFO) << "fd " << pfe->fd << " not found in fd_conns";
         net_multiplexer_->NetDelEvent(pfe->fd, 0);
         continue;
       }
@@ -426,7 +428,7 @@ void* BackendThread::ThreadMain() {
         } else if (write_status == kWriteHalf) {
           continue;
         } else {
-          log_info("send reply error %d\n", write_status);
+          LOG(INFO) << "send reply error " << write_status;
           should_close = 1;
         }
       }
@@ -438,14 +440,14 @@ void* BackendThread::ThreadMain() {
         } else if (read_status == kReadHalf) {
           continue;
         } else {
-          log_info("Get request error %d\n", read_status);
+          LOG(INFO) << "Get request error " << read_status;
           should_close = 1;
         }
       }
 
       if ((pfe->mask & kErrorEvent) || should_close) {
         {
-          log_info("close connection %d reason %d %d\n", pfe->fd, pfe->mask, should_close);
+          LOG(INFO) << "close connection " << pfe->fd << " reason " << pfe->mask << " " << should_close;
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(conn);
           mu_.Lock();

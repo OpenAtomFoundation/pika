@@ -11,6 +11,8 @@
 #include <sstream>
 #include <string>
 
+#include <glog/logging.h>
+
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/xdebug.h"
 
@@ -107,7 +109,7 @@ ReadStatus RedisConn::GetRequest() {
   msg_peak_ = last_read_pos_;
   command_len_ += nread;
   if (command_len_ >= rbuf_max_len_) {
-    log_info("close conn command_len %d, rbuf_max_len %d", command_len_, rbuf_max_len_);
+    LOG(INFO) << "close conn command_len " << command_len_ << ", rbuf_max_len " << rbuf_max_len_;
     return kFullError;
   }
 
@@ -179,7 +181,7 @@ void RedisConn::TryResizeBuffer() {
     if (new_size < rbuf_len_) {
       rbuf_ = static_cast<char*>(realloc(rbuf_, new_size));
       rbuf_len_ = new_size;
-      log_info("Resize buffer to %d, last_read_pos_: %d\n", rbuf_len_, last_read_pos_);
+      LOG(INFO) << "Resize buffer to " << rbuf_len_ << ", last_read_pos_: " << last_read_pos_;
     }
     msg_peak_ = 0;
   }

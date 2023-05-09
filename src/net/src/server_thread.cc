@@ -12,6 +12,8 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 
+#include <glog/logging.h>
+
 #include "net/src/server_socket.h"
 #include "pstd/include/xdebug.h"
 #include "pstd/include/testutil.h"
@@ -206,14 +208,14 @@ void* ServerThread::ThreadMain() {
         if (pfe->mask & kReadable) {
           connfd = accept(fd, (struct sockaddr*)&cliaddr, &clilen);
           if (connfd == -1) {
-            log_warn("accept error, errno numberis %d, error reason %s", errno, strerror(errno));
+            LOG(WARNING) << "accept error, errno numberis " << errno << ", error reason " << strerror(errno);
             continue;
           }
           fcntl(connfd, F_SETFD, fcntl(connfd, F_GETFD) | FD_CLOEXEC);
 
           // not use nagel to avoid tcp 40ms delay
           if (SetTcpNoDelay(connfd) == -1) {
-            log_warn("setsockopt error, errno numberis %d, error reason %s", errno, strerror(errno));
+            LOG(WARNING) << "setsockopt error, errno numberis " << errno << ", error reason " << strerror(errno);
             close(connfd);
             continue;
           }
@@ -277,7 +279,7 @@ static unsigned long SSLIdCallback() { return (unsigned long)pthread_self(); }
 
 int ServerThread::EnableSecurity(const std::string& cert_file, const std::string& key_file) {
   if (cert_file.empty() || key_file.empty()) {
-    log_warn("cert_file and key_file can not be empty!");
+    LOG(WARNING) << "cert_file and key_file can not be empty!";
   }
   // Init Security Env
   // 1. Create multithread mutex used by openssl
@@ -299,23 +301,23 @@ int ServerThread::EnableSecurity(const std::string& cert_file, const std::string
   // 4. Create ssl context
   ssl_ctx_ = SSL_CTX_new(SSLv23_server_method());
   if (!ssl_ctx_) {
-    log_warn("Unable to create SSL context");
+    LOG(WARNING) << "Unable to create SSL context";
     return -1;
   }
 
   // 5. Set cert file and key file, then check key file
   if (SSL_CTX_use_certificate_file(ssl_ctx_, cert_file.c_str(), SSL_FILETYPE_PEM) != 1) {
-    log_warn("SSL_CTX_use_certificate_file(%s) failed", cert_file.c_str());
+    LOG(WARNING) << "SSL_CTX_use_certificate_file(" << cert_file.c_str() << ") failed";
     return -1;
   }
 
   if (SSL_CTX_use_PrivateKey_file(ssl_ctx_, key_file.c_str(), SSL_FILETYPE_PEM) != 1) {
-    log_warn("SSL_CTX_use_PrivateKey_file(%s)", key_file.c_str());
+    LOG(WARNING) << "SSL_CTX_use_PrivateKey_file(" <<  key_file.c_str() << ")";
     return -1;
   }
 
   if (SSL_CTX_check_private_key(ssl_ctx_) != 1) {
-    log_warn("SSL_CTX_check_private_key(%s)", key_file.c_str());
+    LOG(WARNING) << "SSL_CTX_check_private_key(" << key_file.c_str() << ")";
     return -1;
   }
 
@@ -334,7 +336,7 @@ int ServerThread::EnableSecurity(const std::string& cert_file, const std::string
   // https://wiki.openssl.org/index.php/Diffie-Hellman_parameters
   EC_KEY* ecdh = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
   if (!ecdh) {
-    log_warn("EC_KEY_new_by_curve_name(%d)", NID_X9_62_prime256v1);
+    LOG(WARNING) << "EC_KEY_new_by_curve_name(" << NID_X9_62_prime256v1 << ")";
     return -1;
   }
 

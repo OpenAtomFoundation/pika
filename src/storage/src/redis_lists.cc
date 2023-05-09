@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <glog/logging.h>
+#include <fmt/core.h>
 
 #include "src/lists_filter.h"
 #include "src/redis_lists.h"
@@ -1232,10 +1233,9 @@ void RedisLists::ScanDatabase() {
                           : -1;
     }
 
-    LOG(INFO) << "[key: " << meta_iter->key().ToString() << "] [count : " << parsed_lists_meta_value.count() << "] [left index : "
-              << parsed_lists_meta_value.left_index() << "] [right index : " << parsed_lists_meta_value.right_index() 
-              << "] [timestamp : " << parsed_lists_meta_value.timestamp() << "] [version : " << parsed_lists_meta_value.version()
-              << "] [survival_time : " << survival_time << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [count : {:<10}] [left index : {:<10}] [right index : {:<10}] [timestamp : {:<10}] [version : "
+                             "{}] [survival_time : {}]", meta_iter->key().ToString(), parsed_lists_meta_value.count(), parsed_lists_meta_value.left_index(),
+                             parsed_lists_meta_value.right_index(), parsed_lists_meta_value.timestamp(), parsed_lists_meta_value.version(), survival_time);
   }
   delete meta_iter;
 
@@ -1244,9 +1244,8 @@ void RedisLists::ScanDatabase() {
   for (data_iter->SeekToFirst(); data_iter->Valid(); data_iter->Next()) {
     ParsedListsDataKey parsed_lists_data_key(data_iter->key());
 
-    LOG(INFO) << "[key : " << parsed_lists_data_key.key().ToString() << "] [index : " << parsed_lists_data_key.index()
-              << "] [data : " << data_iter->value().ToString() << "] [version : " << parsed_lists_data_key.version()
-              << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [index : {:<10}] [data : {:<20}] [version : {}]", parsed_lists_data_key.key().ToString(), 
+                             parsed_lists_data_key.index(), data_iter->value().ToString(), parsed_lists_data_key.version());
   }
   delete data_iter;
 }

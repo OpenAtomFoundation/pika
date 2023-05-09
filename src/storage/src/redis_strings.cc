@@ -11,6 +11,7 @@
 #include <memory>
 
 #include <glog/logging.h>
+#include <fmt/core.h>
 
 #include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
@@ -1336,10 +1337,10 @@ void RedisStrings::ScanDatabase() {
       survival_time =
           parsed_strings_value.timestamp() - current_time > 0 ? parsed_strings_value.timestamp() - current_time : -1;
     }
-    
-    LOG(INFO) << "[key : " << iter->key().ToString() << "] [value : " << parsed_strings_value.value().ToString() << "] [timestamp : "
-              << parsed_strings_value.timestamp() << "] [version : " << parsed_strings_value.version() << "] [survival_time : "
-              << survival_time << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [value : {:<30}] [timestamp : {:<10}] [version : {}] [survival_time : {}]", iter->key().ToString(), 
+                             parsed_strings_value.value().ToString(), parsed_strings_value.timestamp(), parsed_strings_value.version(),  
+                             survival_time);
+
   }
   delete iter;
 }

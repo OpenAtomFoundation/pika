@@ -159,14 +159,14 @@ void DispatchThread::HandleNewConn(const int connfd, const std::string& ip_port)
     find = worker_thread->MoveConnIn(ti, false);
     if (find) {
       last_thread_ = (next_thread + 1) % work_num_;
-      log_info("find worker(%d), refresh the last_thread_ to %d", next_thread, last_thread_);
+      LOG(INFO) << "find worker(" << next_thread << "), refresh the last_thread_ to " << last_thread_;
       break;
     }
     next_thread = (next_thread + 1) % work_num_;
   }
 
   if (!find) {
-    log_info("all workers are full, queue limit is %d", queue_limit_);
+    LOG(INFO) << "all workers are full, queue limit is " << queue_limit_;
     // every worker is full
     // TODO(anan) maybe add log
     close(connfd);

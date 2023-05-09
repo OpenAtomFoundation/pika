@@ -11,6 +11,7 @@
 #include <memory>
 
 #include <glog/logging.h>
+#include <fmt/core.h>
 
 #include "iostream"
 #include "src/scope_record_lock.h"
@@ -1753,9 +1754,9 @@ void RedisZSets::ScanDatabase() {
                           : -1;
     }
 
-    LOG(INFO) << "[key : " << meta_iter->key().ToString() << "] [count : " << parsed_zsets_meta_value.count() << "] [timestamp : "
-              << parsed_zsets_meta_value.timestamp() << "] [version : " << parsed_zsets_meta_value.version() << "] [survival_time : "
-              << survival_time << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [count : {:<10}] [timestamp : {:<10}] [version : {}] [survival_time : {}]",
+                             meta_iter->key().ToString(), parsed_zsets_meta_value.count(), parsed_zsets_meta_value.timestamp(),
+                             parsed_zsets_meta_value.version(), survival_time);
   }
   delete meta_iter;
 
@@ -1768,8 +1769,9 @@ void RedisZSets::ScanDatabase() {
     const void* ptr_tmp = reinterpret_cast<const void*>(&tmp);
     double score = *reinterpret_cast<const double*>(ptr_tmp);
 
-    LOG(INFO) << "[key : " << parsed_zsets_member_key.key().ToString() << "] [member : " << parsed_zsets_member_key.member().ToString()
-              << "] [score : " << score << "] [version : " << parsed_zsets_member_key.version() << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [member : {:<20}] [score : {:<20}] [version : {}]",
+                             parsed_zsets_member_key.key().ToString(), parsed_zsets_member_key.member().ToString(),
+                             score, parsed_zsets_member_key.version());
   }
   delete member_iter;
 
@@ -1778,9 +1780,9 @@ void RedisZSets::ScanDatabase() {
   for (score_iter->SeekToFirst(); score_iter->Valid(); score_iter->Next()) {
     ParsedZSetsScoreKey parsed_zsets_score_key(score_iter->key());
     
-    LOG(INFO) << "[key : " << parsed_zsets_score_key.key().ToString() << "] [score : " << parsed_zsets_score_key.score()
-              << "] [member : " << parsed_zsets_score_key.member().ToString() << "] [version : " << parsed_zsets_score_key.version()
-              << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [score : {:<20}] [member : {:<20}] [version : {}]",
+                             parsed_zsets_score_key.key().ToString(), parsed_zsets_score_key.score(),
+                              parsed_zsets_score_key.member().ToString(), parsed_zsets_score_key.version());
   }
   delete score_iter;
 }

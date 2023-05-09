@@ -20,7 +20,7 @@ aux_source_directory(./src  DIR_SRCS)
 
 add_library(storage STATIC ${DIR_SRCS} )
 
-add_dependencies(storage rocksdb gtest glog gflags ${LIBUNWIND_NAME} pstd)
+add_dependencies(storage rocksdb gtest glog gflags fmt ${LIBUNWIND_NAME} pstd)
 # TODO fix rocksdb include path
 target_include_directories(storage
     PUBLIC ${PROJECT_SOURCE_DIR}
@@ -38,5 +38,6 @@ target_link_libraries(storage
            ${JEMALLOC_LIBRARY}
            ${GLOG_LIBRARY}
            ${GFLAGS_LIBRARY}
+           ${FMT_LIBRARY}
            ${LIBUNWIND_LIBRARY}
     PUBLIC pstd)

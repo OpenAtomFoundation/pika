@@ -8,6 +8,8 @@
 #include <arpa/inet.h>
 #include <string>
 
+#include <glog/logging.h>
+
 #include "net/include/net_define.h"
 #include "pstd/include/xdebug.h"
 
@@ -66,7 +68,7 @@ ReadStatus PbConn::GetRequest() {
               return kFullError;
             }
             rbuf_len_ = new_size;
-            log_info("Thread_id %ld Expand rbuf to %u, cur_pos_ %u\n", pthread_self(), new_size, cur_pos_);
+            LOG(INFO) << "Thread_id " << pthread_self() << " Expand rbuf to " << new_size << ", cur_pos_ " << cur_pos_;
           } else {
             return kFullError;
           }
@@ -186,7 +188,7 @@ void PbConn::TryResizeBuffer() {
     if (new_size < rbuf_len_) {
       rbuf_ = static_cast<char*>(realloc(rbuf_, new_size));
       rbuf_len_ = new_size;
-      log_info("Thread_id %ld Shrink rbuf to %u, cur_pos_: %u\n", pthread_self(), rbuf_len_, cur_pos_);
+      LOG(INFO) << "Thread_id " << pthread_self() << "Shrink rbuf to " << rbuf_len_ << ", cur_pos_: " << cur_pos_;
     }
   }
 }

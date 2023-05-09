@@ -9,6 +9,7 @@
 #include <algorithm>
 
 #include <glog/logging.h>
+#include <fmt/core.h>
 
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_string.h"
@@ -293,7 +294,7 @@ void BaseConf::DumpConf() const {
   int cnt = 1;
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kConf) {
-      LOG(INFO) << cnt++ << " " << rep_->item[i].name.c_str() << " " << rep_->item[i].value.c_str();
+      LOG(INFO) << fmt::format("{:2} {} {}", cnt++, rep_->item[i].name, rep_->item[i].value);
     }
   }
 }
@@ -302,7 +303,7 @@ bool BaseConf::WriteBack() {
   WritableFile* write_file;
   std::string tmp_path = rep_->path + ".tmp";
   Status ret = NewWritableFile(tmp_path, &write_file);
-  log_info("ret %s", ret.ToString().c_str());
+  LOG(INFO) << "ret " << ret.ToString();
   if (!write_file) {
     return false;
   }

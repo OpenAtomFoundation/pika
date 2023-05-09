@@ -11,6 +11,7 @@
 #include <random>
 
 #include <glog/logging.h>
+#include <fmt/core.h>
 
 #include "src/base_filter.h"
 #include "src/scope_record_lock.h"
@@ -1447,9 +1448,9 @@ void RedisSets::ScanDatabase() {
                           : -1;
     }
 
-    LOG(INFO) << "[key : " << meta_iter->key().ToString() << "] [count : " << parsed_sets_meta_value.count() << "] [timestamp : "
-              << parsed_sets_meta_value.timestamp() << "] [version : " << parsed_sets_meta_value.version() << "] [survival_time : "
-              << survival_time << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [count : {:<10}] [timestamp : {:<10}] [version : {}] [survival_time : {}]",
+                             meta_iter->key().ToString(), parsed_sets_meta_value.count(), parsed_sets_meta_value.timestamp(),
+                             parsed_sets_meta_value.version(), survival_time);
   }
   delete meta_iter;
 
@@ -1458,8 +1459,8 @@ void RedisSets::ScanDatabase() {
   for (member_iter->SeekToFirst(); member_iter->Valid(); member_iter->Next()) {
     ParsedSetsMemberKey parsed_sets_member_key(member_iter->key());
 
-    LOG(INFO) << "[key : " << parsed_sets_member_key.key().ToString() << "] [member : " << parsed_sets_member_key.member().ToString()
-              << "] [version : " << parsed_sets_member_key.version() << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [member : {:<20}] [version : {}]", parsed_sets_member_key.key().ToString(),
+                             parsed_sets_member_key.member().ToString(), parsed_sets_member_key.version());
   }
   delete member_iter;
 }

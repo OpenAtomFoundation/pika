@@ -9,6 +9,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <glog/logging.h>
+
 #include "net/include/net_define.h"
 #include "pstd/include/xdebug.h"
 
@@ -18,10 +20,10 @@ NetMultiplexer* CreateNetMultiplexer(int limit) { return new NetKqueue(limit); }
 
 NetKqueue::NetKqueue(int queue_limit) : NetMultiplexer(queue_limit) {
   multiplexer_ = ::kqueue();
-  log_info("create kqueue");
+  LOG(INFO) << "create kqueue";
 
   if (multiplexer_ < 0) {
-    log_err("kqueue create fail");
+    LOG(ERROR) << "kqueue create fail";
     exit(1);
   }
 

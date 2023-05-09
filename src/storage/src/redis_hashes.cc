@@ -8,6 +8,7 @@
 #include <memory>
 
 #include <glog/logging.h>
+#include <fmt/core.h>
 
 #include "src/base_filter.h"
 #include "src/scope_record_lock.h"
@@ -1297,9 +1298,9 @@ void RedisHashes::ScanDatabase() {
                           : -1;
     }
 
-    LOG(INFO) << "[key : " << meta_iter->key().ToString() << "] [count: " << parsed_hashes_meta_value.count() << "] [timestamp : "
-              << parsed_hashes_meta_value.timestamp() << "] [version : " << parsed_hashes_meta_value.version() << "] [sursurvival_time"
-              << " : " << survival_time << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [count : {:<10}] [timestamp : {<10] [version : {}] [survival_time : {}]",
+                             meta_iter->key().ToString(), parsed_hashes_meta_value.count(), parsed_hashes_meta_value.timestamp(),
+                             parsed_hashes_meta_value.version(), survival_time);
   }
   delete meta_iter;
 
@@ -1308,8 +1309,9 @@ void RedisHashes::ScanDatabase() {
   for (field_iter->SeekToFirst(); field_iter->Valid(); field_iter->Next()) {
     ParsedHashesDataKey parsed_hashes_data_key(field_iter->key());
     
-    LOG(INFO) << "[key: " << parsed_hashes_data_key.key().ToString() << "] [field : " << parsed_hashes_data_key.field().ToString()
-              << "] [value : " << field_iter->value().ToString() << "] [version : " << parsed_hashes_data_key.version() << "]";
+    LOG(INFO) << fmt::format("[key : {:<30}] [field : {:<20}] [value : {:<20}] [version : {}]",
+                             parsed_hashes_data_key.key().ToString(), parsed_hashes_data_key.field().ToString(),
+                            field_iter->value().ToString(), parsed_hashes_data_key.version());
   }
   delete field_iter;
 }

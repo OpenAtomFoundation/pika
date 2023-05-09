@@ -7,6 +7,8 @@
 
 #include <unistd.h>
 
+#include <glog/logging.h>
+
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 
@@ -46,7 +48,7 @@ std::string GetDefaultInterface() {
   ifconf.ifc_len = sizeof buf;
   ifconf.ifc_buf = buf;
   if (ioctl(fd, SIOCGIFCONF, &ifconf) != 0) {
-    log_err("ioctl(SIOCGIFCONF) failed");
+    LOG(ERROR) << "ioctl(SIOCGIFCONF) failed";
     return name;
   }
 
@@ -57,7 +59,7 @@ std::string GetDefaultInterface() {
     size_t len = IFNAMSIZ + ifreq->ifr_addr.sa_len;
     name = ifreq->ifr_name;
     if (!name.empty()) {
-      log_info("got interface %s", name.c_str());
+      LOG(INFO) << "got interface " << name.c_str();
       break;
     }
 
@@ -97,14 +99,14 @@ std::string GetIpByInterface(const std::string& network_interface) {
     return "";
   }
 
-  log_info("Using Networker Interface: %s", network_interface.c_str());
+  LOG(INFO) << "Using Networker Interface: " << network_interface.c_str();
 
   struct ifaddrs* ifAddrStruct = nullptr;
   struct ifaddrs* ifa = nullptr;
   void* tmpAddrPtr = nullptr;
 
   if (getifaddrs(&ifAddrStruct) == -1) {
-    log_err("getifaddrs failed");
+    LOG(ERROR) << "getifaddrs failed";
     return "";
   }
 
@@ -138,9 +140,9 @@ std::string GetIpByInterface(const std::string& network_interface) {
   }
 
   if (!ifa) {
-    log_err("error network interface: %s", network_interface.c_str());
+    LOG(ERROR) << "error network interface: " << network_interface.c_str();
   }
 
-  log_info("got ip %s", host.c_str());
+  LOG(INFO) << "got ip " << host.c_str();
   return host;
 }

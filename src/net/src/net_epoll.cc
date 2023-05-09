@@ -9,6 +9,8 @@
 #include <linux/version.h>
 #include <unistd.h>
 
+#include <glog/logging.h>
+
 #include "net/include/net_define.h"
 #include "pstd/include/xdebug.h"
 
@@ -26,7 +28,7 @@ NetEpoll::NetEpoll(int queue_limit) : NetMultiplexer(queue_limit) {
   fcntl(multiplexer_, F_SETFD, fcntl(multiplexer_, F_GETFD) | FD_CLOEXEC);
 
   if (multiplexer_ < 0) {
-    log_err("epoll create fail");
+    LOG(ERROR) << "epoll create fail";
     exit(1);
   }
 

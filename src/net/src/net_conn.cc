@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <glog/logging.h>
+
 #include "net/include/net_conn.h"
 #include "net/include/net_thread.h"
 #include "net/src/net_util.h"
@@ -48,12 +50,12 @@ bool NetConn::SetNonblock() {
 bool NetConn::CreateSSL(SSL_CTX* ssl_ctx) {
   ssl_ = SSL_new(ssl_ctx);
   if (!ssl_) {
-    log_warn("SSL_new() failed");
+    LOG(WARNING) << "SSL_new() failed";
     return false;
   }
 
   if (SSL_set_fd(ssl_, fd_) == 0) {
-    log_warn("SSL_set_fd() failed");
+    LOG(WARNING) << "SSL_set_fd() failed";
     return false;
   }
 

@@ -62,8 +62,7 @@ Storage::Storage()
 
   Status s = StartBGThread();
   if (!s.ok()) {
-    LOG(ERROR) << "[FATAL] start bg thread failed, " << s.ToString();
-    exit(-1);
+    LOG(FATAL) << "start bg thread failed, " << s.ToString();
   }
 }
 
@@ -106,35 +105,31 @@ Status Storage::Open(const StorageOptions& storage_options, const std::string& d
   strings_db_ = new RedisStrings(this, kStrings);
   Status s = strings_db_->Open(storage_options, AppendSubDirectory(db_path, "strings"));
   if (!s.ok()) {
-    LOG(ERROR) << "[FATAL] open kv db failed, " << s.ToString();
-    exit(-1);
+    LOG(FATAL) << "open kv db failed, " << s.ToString();
   }
 
   hashes_db_ = new RedisHashes(this, kHashes);
   s = hashes_db_->Open(storage_options, AppendSubDirectory(db_path, "hashes"));
   if (!s.ok()) {
-    LOG(ERROR) << "[FATAL] open hashes db failed, " << s.ToString();
+    LOG(FATAL) << "open hashes db failed, " << s.ToString();
   }
 
   sets_db_ = new RedisSets(this, kSets);
   s = sets_db_->Open(storage_options, AppendSubDirectory(db_path, "sets"));
   if (!s.ok()) {
-    LOG(ERROR) << "[FATAL] open set db failed, " << s.ToString();
-    exit(-1);
+    LOG(FATAL) << "open set db failed, " << s.ToString();
   }
 
   lists_db_ = new RedisLists(this, kLists);
   s = lists_db_->Open(storage_options, AppendSubDirectory(db_path, "lists"));
   if (!s.ok()) {
-    LOG(ERROR) << "[FATAL] open list db failed, " << s.ToString();
-    exit(-1);
+    LOG(FATAL) << "open list db failed, " << s.ToString();
   }
 
   zsets_db_ = new RedisZSets(this, kZSets);
   s = zsets_db_->Open(storage_options, AppendSubDirectory(db_path, "zsets"));
   if (!s.ok()) {
-    LOG(ERROR) << "[FATAL] open zset db failed, " << s.ToString();
-    exit(-1);
+    LOG(FATAL) << "open zset db failed, " << s.ToString();
   }
   is_opened_.store(true);
   return Status::OK();

@@ -33,6 +33,7 @@ add_library(pstd STATIC ${DIR_SRCS})
 add_dependencies(pstd
   glog
   gflags
+  fmt
 )
 
 target_include_directories(pstd
@@ -44,5 +45,6 @@ target_include_directories(pstd
 target_link_libraries(pstd
     PUBLIC ${GLOG_LIBRARY}
            ${GFLAGS_LIBRARY}
+           ${FMT_LIBRARY}
            ${LIBUNWIND_LIBRARY}
 )
