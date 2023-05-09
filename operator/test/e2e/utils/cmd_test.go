@@ -53,6 +53,29 @@ func TestExecCmdWithOutput(t *testing.T) {
 			stderrHas: "No such file or directory",
 			wantErr:   true,
 		},
+		{
+			name: "test sleep 3",
+			args: args{
+				cmd: "bash",
+				args: []string{
+					"-c",
+					"for i in {1..3}; do echo $i; sleep 1; done",
+				},
+			},
+			stdoutHas: "1\n2\n3",
+			stderrHas: "",
+			wantErr:   false,
+		},
+		{
+			name: "test unknow command",
+			args: args{
+				cmd:  "no_this_command",
+				args: []string{},
+			},
+			stdoutHas: "",
+			stderrHas: "",
+			wantErr:   true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
