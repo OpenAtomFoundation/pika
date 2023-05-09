@@ -342,10 +342,16 @@ ExternalProject_Add(fmt
   make -j${CPU_CORE}
 )
 
-if(${OS_VERSION} MATCHES "CentOS")
-  set(FMT_LIBRARY ${INSTALL_LIBDIR_64}/libfmt.a)
+if(${LIB_BUILD_TYPE} STREQUAL DEBUG)
+  set(LIB_FMT libfmtd.a)
 else()
-  set(FMT_LIBRARY ${INSTALL_LIBDIR}/libfmt.a)
+  set(LIB_FMT libfmt.a)
+endif()
+
+if(${OS_VERSION} MATCHES "CentOS")
+  set(FMT_LIBRARY ${INSTALL_LIBDIR_64}/${LIB_FMT})
+else()
+  set(FMT_LIBRARY ${INSTALL_LIBDIR}/${LIB_FMT})
 endif()
 
 set(FMT_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
@@ -677,7 +683,7 @@ target_link_libraries(${PROJECT_NAME}
   librocksdb.a
   ${LIB_PROTOBUF}
   ${LIB_GFLAGS}
-  libfmt.a
+  ${LIB_FMT}
   libsnappy.a
   libzstd.a
   liblz4.a
