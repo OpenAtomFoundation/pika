@@ -40,4 +40,4 @@ codis:
 	cd codis && make -j && cd -
 
 operator:
-	cd operator && make -j && cd -
+	cd pika-tools/pika_operator && make -j && cd -
