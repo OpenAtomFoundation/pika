@@ -1,7 +1,5 @@
 #!/bin/bash
 #author justforfun
-cd ../third/redis-rdb-tools
-sudo python setup.py install
-cd ../../rdb_to_pika
 
-
+# redis-rdb-tools only support python2
+python2 -m pip install rdbtools python-lzf
