@@ -418,7 +418,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*>* cmd_table) {
   Cmd* saddptr = new SAddCmd(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSAdd, saddptr));
   ////SPopCmd
-  Cmd* spopptr = new SPopCmd(kCmdNameSPop, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsSet);
+  Cmd* spopptr = new SPopCmd(kCmdNameSPop, -2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSPop, spopptr));
   ////SCardCmd
   Cmd* scardptr = new SCardCmd(kCmdNameSCard, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsSet);
