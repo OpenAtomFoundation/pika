@@ -46,3 +46,24 @@ jobs:
         # Execute tests defined by the CMake configuration.
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: ctest -C ${{env.BUILD_TYPE}}
+  check-and-lint:
+    name: Lint and check code
+    needs: [ precondition ]
+    if: ${{ needs.precondition.outputs.docs_only != 'true' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version-file: 'tests/gocase/go.mod'
+      - name: Prepare Dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y  clang-tidy-14
+      - uses: apache/skywalking-eyes/header@v0.4.0
+        with:
+          config: .github/config/licenserc.yml
+      - name: Check with clang-tidy
+        run: |
+          ./x.py build --skip-build
+          ./x.py check tidy -j $(nproc) --clang-tidy-path clang-tidy-14 --run-clang-tidy-path run-clang-tidy-14
