@@ -92,7 +92,12 @@ fi
 
 cd ${BUILD_DIR}
 
-${CMAKE} .. .
+use_pika_tools=""
+if [ $1 = "tool" ]; then
+  use_pika_tools="-DUSE_PIKA_TOOLS=ON"
+fi
+
+${CMAKE} ${use_pika_tools} .. .
 
 if [ $? -ne 0 ]; then
     echo -e "${C_RED} cmake execution error ${C_END}"
