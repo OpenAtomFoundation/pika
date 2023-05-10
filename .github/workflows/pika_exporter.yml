@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ "unstable" ]
     paths:
-      - 'pika-tools/pika_exporter/**'
+      - 'tools/pika_exporter/**'
 
 jobs:
 
@@ -22,7 +22,7 @@ jobs:
 
     - name: Build
       run: |
-        cd pika-tools/pika_exporter && make -j
+        cd tools/pika_exporter && make -j
     - name: Test
       run: |
-        cd pika-tools/pika_exporter && make -j
+        cd tools/pika_exporter && make -j

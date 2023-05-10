@@ -35,7 +35,6 @@ cmake-build-release
 make_config.mk
 log/
 lib/
-tools/
 output/
 
 # DB
