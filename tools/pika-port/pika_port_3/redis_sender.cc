@@ -11,16 +11,7 @@
 static time_t kCheckDiff = 1;
 
 RedisSender::RedisSender(int id, std::string ip, int64_t port, std::string password)
-    : id_(id),
-      cli_(NULL),
-      rsignal_(&commands_mutex_),
-      wsignal_(&commands_mutex_),
-      ip_(ip),
-      port_(port),
-      password_(password),
-      should_exit_(false),
-      cnt_(0),
-      elements_(0) {
+    : id_(id), cli_(NULL), ip_(ip), port_(port), password_(password), should_exit_(false), cnt_(0), elements_(0) {
   last_write_time_ = ::time(NULL);
 }
 
@@ -104,27 +95,21 @@ void RedisSender::ConnectRedis() {
 void RedisSender::Stop() {
   set_should_stop();
   should_exit_ = true;
-  commands_mutex_.Lock();
-  rsignal_.Signal();
-  commands_mutex_.Unlock();
+  rsignal_.notify_one();
 }
 
 void RedisSender::SendRedisCommand(const std::string& command) {
-  commands_mutex_.Lock();
+  std::unique_lock lock(commands_mutex_);
   if (commands_queue_.size() < 100000) {
     commands_queue_.push(command);
-    rsignal_.Signal();
-    commands_mutex_.Unlock();
+    rsignal_.notify_one();
     return;
   }
 
   // LOG(WARNING) << id_ << "commands queue size is beyond 100000";
-  while (commands_queue_.size() > 100000) {
-    wsignal_.Wait();
-  }
+  wsignal_.wait(lock, [this] { return commands_queue_.size() <= 100000; });
   commands_queue_.push(command);
-  rsignal_.Signal();
-  commands_mutex_.Unlock();
+  rsignal_.notify_one();
 }
 
 int RedisSender::SendCommand(std::string& command) {
@@ -165,32 +150,26 @@ void* RedisSender::ThreadMain() {
   ConnectRedis();
 
   while (!should_exit_) {
-    commands_mutex_.Lock();
+    std::unique_lock lock(commands_mutex_);
     while (commands_queue_.size() == 0 && !should_exit_) {
-      rsignal_.TimedWait(100);
+      rsignal_.wait_for(lock, std::chrono::milliseconds(100));
       // rsignal_.Wait();
     }
     // if (commands_queue_.size() == 0 && should_exit_) {
     if (should_exit_) {
-      commands_mutex_.Unlock();
       break;
     }
 
     if (commands_queue_.size() == 0) {
-      commands_mutex_.Unlock();
       continue;
     }
-    commands_mutex_.Unlock();
 
-    // get redis command
-    std::string command;
-    commands_mutex_.Lock();
-    command = commands_queue_.front();
+    auto command = commands_queue_.front();
     // printf("%d, command %s\n", id_, command.c_str());
     elements_++;
     commands_queue_.pop();
-    wsignal_.Signal();
-    commands_mutex_.Unlock();
+    lock.unlock();
+    wsignal_.notify_one();
     ret = SendCommand(command);
     if (ret == 0) {
       cnt_++;

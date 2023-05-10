@@ -1,14 +1,7 @@
 #include "sender.h"
 
 SenderThread::SenderThread(std::string ip, int64_t port, std::string password)
-    : cli_(NULL),
-      rsignal_(&cmd_mutex_),
-      wsignal_(&cmd_mutex_),
-      ip_(ip),
-      port_(port),
-      password_(password),
-      should_exit_(false),
-      elements_(0) {}
+    : cli_(NULL), ip_(ip), port_(port), password_(password), should_exit_(false), elements_(0) {}
 
 SenderThread::~SenderThread() {}
 
@@ -84,18 +77,14 @@ void SenderThread::ConnectPika() {
 }
 
 void SenderThread::LoadCmd(const std::string& cmd) {
-  cmd_mutex_.Lock();
+  std::unique_lock lock(cmd_mutex_);
   if (cmd_queue_.size() < 100000) {
     cmd_queue_.push(cmd);
-    rsignal_.Signal();
-    cmd_mutex_.Unlock();
+    rsignal_.notify_one();
   } else {
-    while (cmd_queue_.size() > 100000) {
-      wsignal_.Wait();
-    }
+    wsignal_.wait(lock, [this] { return cmd_queue_.size() <= 100000; });
     cmd_queue_.push(cmd);
-    rsignal_.Signal();
-    cmd_mutex_.Unlock();
+    rsignal_.notify_one();
   }
 }
 
@@ -121,22 +110,21 @@ void* SenderThread::ThreadMain() {
   log_info("Start sender thread...");
 
   while (!should_exit_ || QueueSize() != 0) {
-    cmd_mutex_.Lock();
-    while (cmd_queue_.size() == 0 && !should_exit_) {
-      rsignal_.Wait();
+    {
+      std::unique_lock lock(cmd_mutex_);
+      rsignal_.wait(lock, [this] { return !cmd_queue_.size() || should_exit_; });
     }
-    cmd_mutex_.Unlock();
 
     if (cli_ == NULL) {
       ConnectPika();
       continue;
     }
     if (QueueSize() != 0) {
-      cmd_mutex_.Lock();
+      cmd_mutex_.lock();
       std::string cmd = cmd_queue_.front();
       cmd_queue_.pop();
-      wsignal_.Signal();
-      cmd_mutex_.Unlock();
+      cmd_mutex_.unlock();
+      wsignal_.notify_one();
       SendCommand(cmd);
     }
   }

@@ -1,31 +1,23 @@
 #include <glog/logging.h>
+#include <chrono>
 
 #include "const.h"
 #include "pika_sender.h"
 #include "pstd/include/xdebug.h"
 
 PikaSender::PikaSender(std::string ip, int64_t port, std::string password)
-    : cli_(NULL),
-      signal_(&keys_mutex_),
-      ip_(ip),
-      port_(port),
-      password_(password),
-      should_exit_(false),
-      cnt_(0),
-      elements_(0) {}
+    : cli_(NULL), ip_(ip), port_(port), password_(password), should_exit_(false), cnt_(0), elements_(0) {}
 
 PikaSender::~PikaSender() {}
 
 int PikaSender::QueueSize() {
-  pstd::MutexLock l(&keys_mutex_);
+  std::lock_guard l(keys_mutex_);
   return keys_queue_.size();
 }
 
 void PikaSender::Stop() {
   should_exit_ = true;
-  keys_mutex_.Lock();
-  signal_.Signal();
-  keys_mutex_.Unlock();
+  signal_.notify_one();
 }
 
 void PikaSender::ConnectRedis() {
@@ -102,18 +94,19 @@ void PikaSender::ConnectRedis() {
 }
 
 void PikaSender::LoadKey(const std::string& key) {
-  keys_mutex_.Lock();
+  std::unique_lock lock(keys_mutex_);
+
   if (keys_queue_.size() < 100000) {
     keys_queue_.push(key);
-    signal_.Signal();
-    keys_mutex_.Unlock();
+    signal_.notify_one();
+    lock.unlock();
   } else {
     while (keys_queue_.size() > 100000 && !should_exit_) {
-      signal_.TimedWait(100);
+      signal_.wait_for(lock, std::chrono::milliseconds(100));
     }
     keys_queue_.push(key);
-    signal_.Signal();
-    keys_mutex_.Unlock();
+    lock.unlock();
+    signal_.notify_one();
   }
 }
 
@@ -140,23 +133,22 @@ void* PikaSender::ThreadMain() {
   }
 
   while (!should_exit_ || QueueSize() != 0) {
-    std::string command;
-
-    keys_mutex_.Lock();
-    while (keys_queue_.size() == 0 && !should_exit_) {
-      signal_.TimedWait(200);
+    {
+      std::unique_lock lock(keys_mutex_);
+      signal_.wait_for(lock, std::chrono::milliseconds(200),
+                       [this]() { return keys_queue_.size() != 0 || should_exit_; });
     }
-    keys_mutex_.Unlock();
+
     if (QueueSize() == 0 && should_exit_) {
       // if (should_exit_) {
       return NULL;
     }
 
-    keys_mutex_.Lock();
+    keys_mutex_.lock();
     std::string key = keys_queue_.front();
     elements_++;
     keys_queue_.pop();
-    keys_mutex_.Unlock();
+    keys_mutex_.unlock();
 
     SendCommand(key, key);
     cnt_++;

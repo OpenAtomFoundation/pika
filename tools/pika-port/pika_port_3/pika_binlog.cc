@@ -16,8 +16,6 @@
 
 #include "pstd/include/pstd_mutex.h"
 
-using pstd::RWLock;
-
 std::string NewFileName(const std::string name, const uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
@@ -27,16 +25,9 @@ std::string NewFileName(const std::string name, const uint32_t current) {
 /*
  * Version
  */
-Version::Version(pstd::RWFile* save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
-  assert(save_ != NULL);
+Version::Version(pstd::RWFile* save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) { assert(save_ != NULL); }
 
-  pthread_rwlock_init(&rwlock_, NULL);
-}
-
-Version::~Version() {
-  StableSave();
-  pthread_rwlock_destroy(&rwlock_);
-}
+Version::~Version() { StableSave(); }
 
 Status Version::StableSave() {
   char* p = save_->GetData();
@@ -152,7 +143,7 @@ void Binlog::InitLogFile() {
 }
 
 Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64_t* logic_id) {
-  pstd::RWLock(&(version_->rwlock_), false);
+  std::shared_lock l(version_->rwlock_);
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
@@ -181,7 +172,7 @@ Status Binlog::Put(const char* item, int len) {
     pstd::NewWritableFile(profile, &queue_);
 
     {
-      pstd::RWLock(&(version_->rwlock_), true);
+      std::lock_guard l(version_->rwlock_);
       version_->pro_offset_ = 0;
       version_->pro_num_ = pro_num_;
       version_->StableSave();
@@ -192,7 +183,7 @@ Status Binlog::Put(const char* item, int len) {
   int pro_offset;
   s = Produce(Slice(item, len), &pro_offset);
   if (s.ok()) {
-    pstd::RWLock(&(version_->rwlock_), true);
+    std::lock_guard l(version_->rwlock_);
     version_->pro_offset_ = pro_offset;
     version_->logic_id_++;
     version_->StableSave();
@@ -324,7 +315,7 @@ Status Binlog::AppendBlank(pstd::WritableFile* file, uint64_t len) {
 }
 
 Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
 
   // offset smaller than the first header
   if (pro_offset < 4) {
@@ -349,7 +340,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
   pro_num_ = pro_num;
 
   {
-    pstd::RWLock(&(version_->rwlock_), true);
+    std::lock_guard l(version_->rwlock_);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
     version_->StableSave();

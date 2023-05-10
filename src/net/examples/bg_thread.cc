@@ -15,7 +15,7 @@ static pstd::Mutex print_lock;
 
 void task(void* arg) {
   {
-    pstd::MutexLock l(&print_lock);
+    std::lock_guard l(print_lock);
     std::cout << " task : " << *((int*)arg) << std::endl;
   }
   sleep(1);
@@ -42,7 +42,7 @@ int main() {
     int* pi = new int(i);
     t.Schedule(task, (void*)pi);
     t.QueueSize(&pqsize, &qsize);
-    pstd::MutexLock l(&print_lock);
+    std::lock_guard l(print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
   std::cout << std::endl << std::endl;
@@ -58,7 +58,7 @@ int main() {
     int* pi = new int(i);
     t2.Schedule(task, (void*)pi);
     t2.QueueSize(&pqsize, &qsize);
-    pstd::MutexLock l(&print_lock);
+    std::lock_guard l(print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
   std::cout << std::endl << std::endl;
@@ -90,7 +90,7 @@ int main() {
     int* pi = new int(i);
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.QueueSize(&pqsize, &qsize);
-    pstd::MutexLock l(&print_lock);
+    std::lock_guard l(print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
   sleep(3);

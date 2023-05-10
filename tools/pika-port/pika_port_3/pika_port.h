@@ -36,15 +36,15 @@ class PikaPort {
   void SetSid(int64_t sid) { sid_ = sid; }
 
   int role() {
-    pstd::RWLock(&state_protector_, false);
+    std::shared_lock l(state_protector_);
     return role_;
   }
   int repl_state() {
-    pstd::RWLock(&state_protector_, false);
+    std::shared_lock l(state_protector_);
     return repl_state_;
   }
   std::string requirepass() { return requirepass_; }
-  pthread_rwlock_t* rwlock() { return &rwlock_; }
+
   BinlogReceiverThread* binlog_receiver_thread() { return binlog_receiver_thread_; }
   TrysyncThread* trysync_thread() { return trysync_thread_; }
   Binlog* logger() { return logger_; }
@@ -79,7 +79,7 @@ class PikaPort {
   std::string requirepass_;
   std::string log_path_;
   std::string dump_path_;
-  pthread_rwlock_t rwlock_;
+  std::shared_mutex rwlock_;
 
   pstd::Mutex mutex_;  // double lock to block main thread
 
@@ -98,7 +98,7 @@ class PikaPort {
 
   Binlog* logger_;
 
-  pthread_rwlock_t state_protector_;  // protect below, use for master-slave mode
+  std::shared_mutex state_protector_;  // protect below, use for master-slave mode
 
   PikaPort(PikaPort& bs);
   void operator=(const PikaPort& bs);

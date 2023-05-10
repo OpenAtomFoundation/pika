@@ -34,9 +34,6 @@ class Binlog {
   Binlog(const std::string& Binlog_path, const int file_size = 100 * 1024 * 1024);
   ~Binlog();
 
-  void Lock() { mutex_.Lock(); }
-  void Unlock() { mutex_.Unlock(); }
-
   Status Put(const std::string& item);
   Status Put(const char* item, int len);
 
@@ -101,10 +98,10 @@ class Version {
   uint64_t pro_offset_;
   uint64_t logic_id_;
 
-  pthread_rwlock_t rwlock_;
+  std::shared_mutex rwlock_;
 
   void debug() {
-    pstd::RWLock(&rwlock_, false);
+    std::shared_lock l(rwlock_);
     printf("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
   }
 

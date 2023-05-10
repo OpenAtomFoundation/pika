@@ -17,16 +17,14 @@ class SenderThread : public net::Thread {
   void LoadCmd(const std::string& cmd);
   void Stop() {
     should_exit_ = true;
-    cmd_mutex_.Lock();
-    rsignal_.Signal();
-    cmd_mutex_.Unlock();
+    rsignal_.notify_one();
   }
   int64_t elements() { return elements_; }
 
   void SendCommand(std::string& command);
 
   int QueueSize() {
-    pstd::MutexLock l(&cmd_mutex_);
+    std::lock_guard l(cmd_mutex_);
     int len = cmd_queue_.size();
     return len;
   }
