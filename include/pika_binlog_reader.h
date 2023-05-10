@@ -7,6 +7,7 @@
 #define PIKA_BINLOG_READER_H_
 
 #include <memory>
+#include <shared_mutex>
 #include <string>
 
 #include "pstd/include/env.h"
@@ -34,7 +35,7 @@ class PikaBinlogReader {
   // Returns scratch binflog and corresponding offset
   Status Consume(std::string* scratch, uint32_t* filenum, uint64_t* offset);
 
-  pthread_rwlock_t rwlock_;
+  std::shared_mutex rwlock_;
   uint32_t cur_filenum_ = 0;
   uint64_t cur_offset_ = 0;
   uint64_t last_record_offset_ = 0;

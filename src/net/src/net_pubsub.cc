@@ -48,7 +48,7 @@ void PubSubThread::ConnHandle::UpdateReadyState(const ReadyState& state) { ready
 
 bool PubSubThread::ConnHandle::IsReady() { return ready_state == PubSubThread::ReadyState::kReady; }
 
-PubSubThread::PubSubThread() : receiver_rsignal_(&receiver_mutex_), receivers_(-1) {
+PubSubThread::PubSubThread() : receivers_(-1) {
   set_thread_name("PubSubThread");
   net_multiplexer_.reset(CreateNetMultiplexer());
   net_multiplexer_->Initialize();
@@ -68,7 +68,7 @@ void PubSubThread::MoveConnOut(std::shared_ptr<NetConn> conn) {
 
   net_multiplexer_->NetDelEvent(conn->fd(), 0);
   {
-    pstd::WriteLock l(&rwlock_);
+    std::lock_guard l(rwlock_);
     conns_.erase(conn->fd());
   }
 }
@@ -77,14 +77,14 @@ void PubSubThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& n
   NetItem it(conn->fd(), conn->ip_port(), notify_type);
   net_multiplexer_->Register(it, true);
   {
-    pstd::WriteLock l(&rwlock_);
+    std::lock_guard l(rwlock_);
     conns_[conn->fd()] = std::make_shared<ConnHandle>(conn);
   }
   conn->set_net_multiplexer(net_multiplexer_.get());
 }
 
 void PubSubThread::UpdateConnReadyState(int fd, const ReadyState& state) {
-  pstd::WriteLock l(&rwlock_);
+  std::lock_guard l(rwlock_);
   const auto& it = conns_.find(fd);
   if (it == conns_.end()) {
     return;
@@ -93,7 +93,7 @@ void PubSubThread::UpdateConnReadyState(int fd, const ReadyState& state) {
 }
 
 bool PubSubThread::IsReady(int fd) {
-  pstd::ReadLock l(&rwlock_);
+  std::shared_lock l(rwlock_);
   const auto& it = conns_.find(fd);
   if (it != conns_.end()) {
     return it->second->IsReady();
@@ -102,47 +102,44 @@ bool PubSubThread::IsReady(int fd) {
 }
 
 void PubSubThread::RemoveConn(std::shared_ptr<NetConn> conn) {
-  pattern_mutex_.Lock();
-  for (auto it = pubsub_pattern_.begin(); it != pubsub_pattern_.end(); it++) {
-    for (auto conn_ptr = it->second.begin(); conn_ptr != it->second.end(); conn_ptr++) {
-      if ((*conn_ptr) == conn) {
-        conn_ptr = it->second.erase(conn_ptr);
-        break;
+  {
+    std::lock_guard lock(pattern_mutex_);
+    for (auto it = pubsub_pattern_.begin(); it != pubsub_pattern_.end(); it++) {
+      for (auto conn_ptr = it->second.begin(); conn_ptr != it->second.end(); conn_ptr++) {
+        if ((*conn_ptr) == conn) {
+          conn_ptr = it->second.erase(conn_ptr);
+          break;
+        }
       }
     }
   }
-  pattern_mutex_.Unlock();
 
-  channel_mutex_.Lock();
-  for (auto it = pubsub_channel_.begin(); it != pubsub_channel_.end(); it++) {
-    for (auto conn_ptr = it->second.begin(); conn_ptr != it->second.end(); conn_ptr++) {
-      if ((*conn_ptr) == conn) {
-        conn_ptr = it->second.erase(conn_ptr);
-        break;
+  {
+    std::lock_guard lock(channel_mutex_);
+    for (auto it = pubsub_channel_.begin(); it != pubsub_channel_.end(); it++) {
+      for (auto conn_ptr = it->second.begin(); conn_ptr != it->second.end(); conn_ptr++) {
+        if ((*conn_ptr) == conn) {
+          conn_ptr = it->second.erase(conn_ptr);
+          break;
+        }
       }
     }
   }
-  channel_mutex_.Unlock();
 }
 
 int PubSubThread::Publish(const std::string& channel, const std::string& msg) {
   // TODO(LIBA-S): change the Publish Mode to Asynchronous
-  int receivers;
-  pub_mutex_.Lock();
-
+  std::lock_guard lk(pub_mutex_);
   channel_ = channel;
   message_ = msg;
   // Send signal to ThreadMain()
   write(msg_pfd_[1], "", 1);
-  receiver_mutex_.Lock();
-  while (receivers_ == -1) {
-    receiver_rsignal_.Wait();
-  }
-  receivers = receivers_;
-  receivers_ = -1;
-  receiver_mutex_.Unlock();
+  std::unique_lock lock(receiver_mutex_);
+  receiver_rsignal_.wait(lock, [this]() { return receivers_ != -1; });
 
-  pub_mutex_.Unlock();
+  int receivers = receivers_;
+  receivers_ = -1;
+
   return receivers;
 }
 
@@ -152,23 +149,23 @@ int PubSubThread::Publish(const std::string& channel, const std::string& msg) {
 int PubSubThread::ClientChannelSize(std::shared_ptr<NetConn> conn) {
   int subscribed = 0;
 
-  channel_mutex_.Lock();
+  channel_mutex_.lock();
   for (auto& channel : pubsub_channel_) {
     auto conn_ptr = std::find(channel.second.begin(), channel.second.end(), conn);
     if (conn_ptr != channel.second.end()) {
       subscribed++;
     }
   }
-  channel_mutex_.Unlock();
+  channel_mutex_.unlock();
 
-  pattern_mutex_.Lock();
+  pattern_mutex_.lock();
   for (auto& channel : pubsub_pattern_) {
     auto conn_ptr = std::find(channel.second.begin(), channel.second.end(), conn);
     if (conn_ptr != channel.second.end()) {
       subscribed++;
     }
   }
-  pattern_mutex_.Unlock();
+  pattern_mutex_.unlock();
 
   return subscribed;
 }
@@ -183,7 +180,7 @@ void PubSubThread::Subscribe(std::shared_ptr<NetConn> conn, const std::vector<st
 
   for (size_t i = 0; i < channels.size(); i++) {
     if (pattern) {  // if pattern mode, register channel to map
-      pstd::MutexLock channel_lock(&pattern_mutex_);
+      std::lock_guard channel_lock(pattern_mutex_);
       if (pubsub_pattern_.find(channels[i]) != pubsub_pattern_.end()) {
         auto conn_ptr = std::find(pubsub_pattern_[channels[i]].begin(), pubsub_pattern_[channels[i]].end(), conn);
         if (conn_ptr == pubsub_pattern_[channels[i]].end()) {  // the connection first subscrbied
@@ -197,7 +194,7 @@ void PubSubThread::Subscribe(std::shared_ptr<NetConn> conn, const std::vector<st
       }
       result->push_back(std::make_pair(channels[i], subscribed));
     } else {  // if general mode, reigster channel to map
-      pstd::MutexLock channel_lock(&channel_mutex_);
+      std::lock_guard channel_lock(channel_mutex_);
       if (pubsub_channel_.find(channels[i]) != pubsub_channel_.end()) {
         auto conn_ptr = std::find(pubsub_channel_[channels[i]].begin(), pubsub_channel_[channels[i]].end(), conn);
         if (conn_ptr == pubsub_channel_[channels[i]].end()) {  // the connection first subscribed
@@ -227,7 +224,7 @@ int PubSubThread::UnSubscribe(std::shared_ptr<NetConn> conn, const std::vector<s
   }
   if (channels.size() == 0) {  // if client want to unsubscribe all of channels
     if (pattern) {             // all of pattern channels
-      pstd::MutexLock l(&pattern_mutex_);
+      std::lock_guard l(pattern_mutex_);
       for (auto& channel : pubsub_pattern_) {
         auto conn_ptr = std::find(channel.second.begin(), channel.second.end(), conn);
         if (conn_ptr != channel.second.end()) {
@@ -235,7 +232,7 @@ int PubSubThread::UnSubscribe(std::shared_ptr<NetConn> conn, const std::vector<s
         }
       }
     } else {
-      pstd::MutexLock l(&channel_mutex_);
+      std::lock_guard l(channel_mutex_);
       for (auto& channel : pubsub_channel_) {
         auto conn_ptr = std::find(channel.second.begin(), channel.second.end(), conn);
         if (conn_ptr != channel.second.end()) {
@@ -251,7 +248,7 @@ int PubSubThread::UnSubscribe(std::shared_ptr<NetConn> conn, const std::vector<s
 
   for (size_t i = 0; i < channels.size(); i++) {
     if (pattern) {  // if pattern mode, unsubscribe the channels of specified
-      pstd::MutexLock l(&pattern_mutex_);
+      std::lock_guard l(pattern_mutex_);
       auto channel_ptr = pubsub_pattern_.find(channels[i]);
       if (channel_ptr != pubsub_pattern_.end()) {
         auto it = std::find(channel_ptr->second.begin(), channel_ptr->second.end(), conn);
@@ -266,7 +263,7 @@ int PubSubThread::UnSubscribe(std::shared_ptr<NetConn> conn, const std::vector<s
         result->push_back(std::make_pair(channels[i], 0));
       }
     } else {  // if general mode, unsubscribe the channels of specified
-      pstd::MutexLock l(&channel_mutex_);
+      std::lock_guard l(channel_mutex_);
       auto channel_ptr = pubsub_channel_.find(channels[i]);
       if (channel_ptr != pubsub_channel_.end()) {
         auto it = std::find(channel_ptr->second.begin(), channel_ptr->second.end(), conn);
@@ -293,14 +290,14 @@ int PubSubThread::UnSubscribe(std::shared_ptr<NetConn> conn, const std::vector<s
 
 void PubSubThread::PubSubChannels(const std::string& pattern, std::vector<std::string>* result) {
   if (pattern == "") {
-    pstd::MutexLock l(&channel_mutex_);
+    std::lock_guard l(channel_mutex_);
     for (auto& channel : pubsub_channel_) {
       if (channel.second.size() != 0) {
         result->push_back(channel.first);
       }
     }
   } else {
-    pstd::MutexLock l(&channel_mutex_);
+    std::lock_guard l(channel_mutex_);
     for (auto& channel : pubsub_channel_) {
       if (pstd::stringmatchlen(channel.first.c_str(), channel.first.size(), pattern.c_str(), pattern.size(), 0)) {
         if (channel.second.size() != 0) {
@@ -314,7 +311,7 @@ void PubSubThread::PubSubChannels(const std::string& pattern, std::vector<std::s
 void PubSubThread::PubSubNumSub(const std::vector<std::string>& channels,
                                 std::vector<std::pair<std::string, int>>* result) {
   int subscribed;
-  pstd::MutexLock l(&channel_mutex_);
+  std::lock_guard l(channel_mutex_);
   for (size_t i = 0; i < channels.size(); i++) {
     subscribed = 0;
     for (auto& channel : pubsub_channel_) {
@@ -328,7 +325,7 @@ void PubSubThread::PubSubNumSub(const std::vector<std::string>& channels,
 
 int PubSubThread::PubSubNumPat() {
   int subscribed = 0;
-  pstd::MutexLock l(&pattern_mutex_);
+  std::lock_guard l(pattern_mutex_);
   for (auto& channel : pubsub_pattern_) {
     subscribed += channel.second.size();
   }
@@ -377,7 +374,7 @@ void* PubSubThread::ThreadMain() {
           message_.clear();
 
           // Send message to clients
-          channel_mutex_.Lock();
+          channel_mutex_.lock();
           for (auto it = pubsub_channel_.begin(); it != pubsub_channel_.end(); it++) {
             if (channel == it->first) {
               for (size_t i = 0; i < it->second.size(); i++) {
@@ -390,11 +387,11 @@ void* PubSubThread::ThreadMain() {
                 if (write_status == kWriteHalf) {
                   net_multiplexer_->NetModEvent(it->second[i]->fd(), kReadable, kWritable);
                 } else if (write_status == kWriteError) {
-                  channel_mutex_.Unlock();
+                  channel_mutex_.unlock();
 
                   MoveConnOut(it->second[i]);
 
-                  channel_mutex_.Lock();
+                  channel_mutex_.lock();
                   CloseFd(it->second[i]);
                 } else if (write_status == kWriteAll) {
                   receivers++;
@@ -402,10 +399,10 @@ void* PubSubThread::ThreadMain() {
               }
             }
           }
-          channel_mutex_.Unlock();
+          channel_mutex_.unlock();
 
           // Send message to clients
-          pattern_mutex_.Lock();
+          pattern_mutex_.lock();
           for (auto it = pubsub_pattern_.begin(); it != pubsub_pattern_.end(); it++) {
             if (pstd::stringmatchlen(it->first.c_str(), it->first.size(), channel.c_str(), channel.size(), 0)) {
               for (size_t i = 0; i < it->second.size(); i++) {
@@ -418,11 +415,11 @@ void* PubSubThread::ThreadMain() {
                 if (write_status == kWriteHalf) {
                   net_multiplexer_->NetModEvent(it->second[i]->fd(), kReadable, kWritable);
                 } else if (write_status == kWriteError) {
-                  pattern_mutex_.Unlock();
+                  pattern_mutex_.unlock();
 
                   MoveConnOut(it->second[i]);
 
-                  pattern_mutex_.Lock();
+                  pattern_mutex_.lock();
                   CloseFd(it->second[i]);
                 } else if (write_status == kWriteAll) {
                   receivers++;
@@ -430,12 +427,12 @@ void* PubSubThread::ThreadMain() {
               }
             }
           }
-          pattern_mutex_.Unlock();
+          pattern_mutex_.unlock();
 
-          receiver_mutex_.Lock();
+          receiver_mutex_.lock();
           receivers_ = receivers;
-          receiver_rsignal_.Signal();
-          receiver_mutex_.Unlock();
+          receiver_rsignal_.notify_one();
+          receiver_mutex_.unlock();
         } else {
           continue;
         }
@@ -444,13 +441,13 @@ void* PubSubThread::ThreadMain() {
         bool should_close = false;
 
         {
-          pstd::ReadLock l(&rwlock_);
-          std::map<int, std::shared_ptr<ConnHandle>>::iterator iter = conns_.find(pfe->fd);
-          if (iter == conns_.end()) {
+          std::shared_lock l(rwlock_);
+          if (auto iter = conns_.find(pfe->fd); iter == conns_.end()) {
             net_multiplexer_->NetDelEvent(pfe->fd, 0);
             continue;
+          } else {
+            in_conn = iter->second->conn;
           }
-          in_conn = iter->second->conn;
         }
 
         // Send reply
@@ -502,7 +499,7 @@ void* PubSubThread::ThreadMain() {
 }
 
 void PubSubThread::Cleanup() {
-  pstd::WriteLock l(&rwlock_);
+  std::lock_guard l(rwlock_);
   for (auto& iter : conns_) {
     CloseFd(iter.second->conn);
   }

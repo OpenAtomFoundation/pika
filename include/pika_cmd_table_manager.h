@@ -6,6 +6,7 @@
 #ifndef PIKA_CMD_TABLE_MANAGER_H_
 #define PIKA_CMD_TABLE_MANAGER_H_
 
+#include <shared_mutex>
 #include <thread>
 
 #include "include/pika_command.h"
@@ -26,7 +27,7 @@ class PikaCmdTableManager {
 
   CmdTable* cmds_ = nullptr;
 
-  pthread_rwlock_t map_protector_;
+  std::shared_mutex map_protector_;
   std::unordered_map<std::thread::id, PikaDataDistribution*> thread_distribution_map_;
 };
 #endif

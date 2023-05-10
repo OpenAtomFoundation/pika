@@ -2,139 +2,31 @@
 #define __PSTD_MUTEXLOCK_H__
 
 #include <pthread.h>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace pstd {
 
-class CondVar;
+using Mutex = std::mutex;
+using CondVar = std::condition_variable;
+using RWMutex = std::shared_mutex;
 
-class Mutex {
- public:
-  Mutex();
-  ~Mutex();
+using OnceType = std::once_flag;
 
-  void Lock();
-  //if lock return 0; else return errorno
-  int Trylock();
-  void Unlock();
-  void AssertHeld() {}
-
- private:
-  friend class CondVar;
-  pthread_mutex_t mu_;
-
-  // No copying
-  Mutex(const Mutex&);
-  void operator=(const Mutex&);
-};
-
-// DEPRECATED
-class RWLock {
- public:
-  RWLock(pthread_rwlock_t* mu, bool is_rwlock) : mu_(mu) {
-    if (is_rwlock) {
-      res = pthread_rwlock_wrlock(this->mu_);
-    } else {
-      res = pthread_rwlock_rdlock(this->mu_);
-    }
-  }
-  ~RWLock() {
-    if (!res) {
-      pthread_rwlock_unlock(this->mu_);
-    }
-  }
-
- private:
-  int res = -1;
-  pthread_rwlock_t* const mu_;
-  // No copying allowed
-  RWLock(const RWLock&);
-  void operator=(const RWLock&);
-};
-
-class RWMutex {
- public:
-  RWMutex();
-  ~RWMutex();
-
-  void ReadLock();
-  void WriteLock();
-  void ReadUnlock();
-  void WriteUnlock();
-
- private:
-  pthread_rwlock_t rw_mu_;
-
-  // No copying
-  RWMutex(const RWMutex&);
-  void operator=(const RWMutex&);
-};
-
-class ReadLock {
- public:
-  explicit ReadLock(RWMutex* rw_mu) : rw_mu_(rw_mu) { this->rw_mu_->ReadLock(); }
-  ~ReadLock() { this->rw_mu_->ReadUnlock(); }
-
- private:
-  RWMutex* const rw_mu_;
-  // No copying
-  ReadLock(const ReadLock&);
-  void operator=(const ReadLock&);
-};
-
-class WriteLock {
- public:
-  WriteLock(RWMutex* rw_mu) : rw_mu_(rw_mu) { this->rw_mu_->WriteLock(); }
-  ~WriteLock() { this->rw_mu_->WriteUnlock(); }
-
- private:
-  RWMutex* const rw_mu_;
-  // No copying allowed
-  WriteLock(const WriteLock&);
-  void operator=(const WriteLock&);
-};
-
-class CondVar {
- public:
-  explicit CondVar(Mutex* mu);
-  ~CondVar();
-  void Wait();
-  /*
-   * timeout is millisecond
-   * so if you want to wait for 1 s, you should call
-   * TimeWait(1000);
-   * return false if timeout
-   */
-  bool TimedWait(uint32_t timeout);
-  void Signal();
-  void SignalAll();
-
- private:
-  pthread_cond_t cv_;
-  Mutex* mu_ = nullptr;
-};
-
-class MutexLock {
- public:
-  explicit MutexLock(Mutex* mu) : mu_(mu) { this->mu_->Lock(); }
-  ~MutexLock() { this->mu_->Unlock(); }
-
- private:
-  Mutex* const mu_;
-  // No copying allowed
-  MutexLock(const MutexLock&);
-  void operator=(const MutexLock&);
-};
-
-typedef pthread_once_t OnceType;
-extern void InitOnce(OnceType* once, void (*initializer)());
+template <class F, class... Args>
+void InitOnce(OnceType& once, F&& f, Args&&... args) {
+  return std::call_once(once, std::forward<F>(f), std::forward<Args>(args)...);
+}
 
 class RefMutex {
  public:
-  RefMutex();
-  ~RefMutex();
+  RefMutex() = default;
+  ~RefMutex() = default;
 
   // Lock and Unlock will increase and decrease refs_,
   // should check refs before Unlock
@@ -146,7 +38,7 @@ class RefMutex {
   bool IsLastRef() { return refs_ == 1; }
 
  private:
-  pthread_mutex_t mu_;
+  std::mutex mu_;
   int refs_ = 0;
 
   // No copying

@@ -11,8 +11,6 @@
 
 #include "include/pika_binlog_transverter.h"
 
-using pstd::RWLock;
-
 std::string NewFileName(const std::string name, const uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
@@ -24,14 +22,9 @@ std::string NewFileName(const std::string name, const uint32_t current) {
  */
 Version::Version(pstd::RWFile* save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
   assert(save_ != nullptr);
-
-  pthread_rwlock_init(&rwlock_, nullptr);
 }
 
-Version::~Version() {
-  StableSave();
-  pthread_rwlock_destroy(&rwlock_);
-}
+Version::~Version() { StableSave(); }
 
 Status Version::StableSave() {
   char* p = save_->GetData();
@@ -130,7 +123,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size)
 }
 
 Binlog::~Binlog() {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   Close();
   delete version_;
   delete versionfile_;
@@ -159,7 +152,7 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32
     return Status::Busy("Binlog is not open yet");
   }
 
-  pstd::RWLock l(&(version_->rwlock_), false);
+  std::shared_lock l(version_->rwlock_);
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
@@ -204,7 +197,7 @@ Status Binlog::Put(const char* item, int len) {
     pro_num_++;
 
     {
-      pstd::RWLock l(&(version_->rwlock_), true);
+      std::lock_guard l(version_->rwlock_);
       version_->pro_offset_ = 0;
       version_->pro_num_ = pro_num_;
       version_->StableSave();
@@ -215,7 +208,7 @@ Status Binlog::Put(const char* item, int len) {
   int pro_offset;
   s = Produce(Slice(item, len), &pro_offset);
   if (s.ok()) {
-    pstd::RWLock l(&(version_->rwlock_), true);
+    std::lock_guard l(version_->rwlock_);
     version_->pro_offset_ = pro_offset;
     version_->logic_id_++;
     version_->StableSave();
@@ -352,7 +345,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset, uint32_t
     return Status::Busy("Binlog is not open yet");
   }
 
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
 
   // offset smaller than the first header
   if (pro_offset < 4) {
@@ -377,7 +370,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset, uint32_t
   pro_num_ = pro_num;
 
   {
-    pstd::RWLock l(&(version_->rwlock_), true);
+    std::lock_guard l(version_->rwlock_);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
     version_->term_ = term;
@@ -403,7 +396,7 @@ Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index) {
 
   pro_num_ = pro_num;
   {
-    pstd::RWLock l(&(version_->rwlock_), true);
+    std::lock_guard l(version_->rwlock_);
     version_->pro_num_ = pro_num;
     version_->pro_offset_ = pro_offset;
     version_->logic_id_ = index;

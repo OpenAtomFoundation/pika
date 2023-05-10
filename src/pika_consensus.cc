@@ -18,14 +18,9 @@ extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 /* Context */
 
-Context::Context(const std::string path) : applied_index_(), path_(path), save_(nullptr) {
-  pthread_rwlock_init(&rwlock_, nullptr);
-}
+Context::Context(const std::string path) : applied_index_(), path_(path), save_(nullptr) {}
 
-Context::~Context() {
-  pthread_rwlock_destroy(&rwlock_);
-  delete save_;
-}
+Context::~Context() { delete save_; }
 
 Status Context::StableSave() {
   char* p = save_->GetData();
@@ -64,12 +59,12 @@ Status Context::Init() {
 }
 
 void Context::PrepareUpdateAppliedIndex(const LogOffset& offset) {
-  pstd::RWLock l(&rwlock_, true);
+  std::lock_guard l(rwlock_);
   applied_win_.Push(SyncWinItem(offset));
 }
 
 void Context::UpdateAppliedIndex(const LogOffset& offset) {
-  pstd::RWLock l(&rwlock_, true);
+  std::lock_guard l(rwlock_);
   LogOffset cur_offset;
   applied_win_.Update(SyncWinItem(offset), SyncWinItem(offset), &cur_offset);
   if (cur_offset > applied_index_) {
@@ -79,7 +74,7 @@ void Context::UpdateAppliedIndex(const LogOffset& offset) {
 }
 
 void Context::Reset(const LogOffset& offset) {
-  pstd::RWLock l(&rwlock_, true);
+  std::lock_guard l(rwlock_);
   applied_index_ = offset;
   applied_win_.Reset();
   StableSave();
@@ -87,13 +82,9 @@ void Context::Reset(const LogOffset& offset) {
 
 /* SyncProgress */
 
-SyncProgress::SyncProgress() { pthread_rwlock_init(&rwlock_, nullptr); }
-
-SyncProgress::~SyncProgress() { pthread_rwlock_destroy(&rwlock_); }
-
 std::shared_ptr<SlaveNode> SyncProgress::GetSlaveNode(const std::string& ip, int port) {
   std::string slave_key = ip + std::to_string(port);
-  pstd::RWLock l(&rwlock_, false);
+  std::shared_lock l(rwlock_);
   if (slaves_.find(slave_key) == slaves_.end()) {
     return nullptr;
   }
@@ -101,12 +92,12 @@ std::shared_ptr<SlaveNode> SyncProgress::GetSlaveNode(const std::string& ip, int
 }
 
 std::unordered_map<std::string, std::shared_ptr<SlaveNode>> SyncProgress::GetAllSlaveNodes() {
-  pstd::RWLock l(&rwlock_, false);
+  std::shared_lock l(rwlock_);
   return slaves_;
 }
 
 std::unordered_map<std::string, LogOffset> SyncProgress::GetAllMatchIndex() {
-  pstd::RWLock l(&rwlock_, false);
+  std::shared_lock l(rwlock_);
   return match_index_;
 }
 
@@ -124,7 +115,7 @@ Status SyncProgress::AddSlaveNode(const std::string& ip, int port, const std::st
   slave_ptr->SetLastRecvTime(pstd::NowMicros());
 
   {
-    pstd::RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     slaves_[slave_key] = slave_ptr;
     // add slave to match_index
     match_index_[slave_key] = LogOffset();
@@ -135,7 +126,7 @@ Status SyncProgress::AddSlaveNode(const std::string& ip, int port, const std::st
 Status SyncProgress::RemoveSlaveNode(const std::string& ip, int port) {
   std::string slave_key = ip + std::to_string(port);
   {
-    pstd::RWLock l(&rwlock_, true);
+    std::lock_guard l(rwlock_);
     slaves_.erase(slave_key);
     // remove slave to match_index
     match_index_.erase(slave_key);
@@ -153,7 +144,7 @@ Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& st
   LogOffset acked_offset;
   {
     // update slave_ptr
-    pstd::MutexLock l(&slave_ptr->slave_mu);
+    std::lock_guard l(slave_ptr->slave_mu);
     Status s = slave_ptr->Update(start, end, &acked_offset);
     if (!s.ok()) {
       return s;
@@ -169,7 +160,7 @@ Status SyncProgress::Update(const std::string& ip, int port, const LogOffset& st
 }
 
 int SyncProgress::SlaveSize() {
-  pstd::RWLock l(&rwlock_, false);
+  std::shared_lock l(rwlock_);
   return slaves_.size();
 }
 
@@ -198,7 +189,7 @@ int MemLog::Size() { return static_cast<int>(logs_.size()); }
 
 // purge [begin, offset]
 Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
-  pstd::MutexLock l_logs(&logs_mu_);
+  std::lock_guard l_logs(logs_mu_);
   int index = InternalFindLogByBinlogOffset(offset);
   if (index < 0) {
     return Status::NotFound("Cant find correct index");
@@ -210,7 +201,7 @@ Status MemLog::PurgeLogs(const LogOffset& offset, std::vector<LogItem>* logs) {
 
 // keep mem_log [mem_log.begin, offset]
 Status MemLog::TruncateTo(const LogOffset& offset) {
-  pstd::MutexLock l_logs(&logs_mu_);
+  std::lock_guard l_logs(logs_mu_);
   int index = InternalFindLogByBinlogOffset(offset);
   if (index < 0) {
     return Status::Corruption("Cant find correct index");
@@ -221,13 +212,13 @@ Status MemLog::TruncateTo(const LogOffset& offset) {
 }
 
 void MemLog::Reset(const LogOffset& offset) {
-  pstd::MutexLock l_logs(&logs_mu_);
+  std::lock_guard l_logs(logs_mu_);
   logs_.erase(logs_.begin(), logs_.end());
   last_offset_ = offset;
 }
 
 Status MemLog::GetRangeLogs(int start, int end, std::vector<LogItem>* logs) {
-  pstd::MutexLock l_logs(&logs_mu_);
+  std::lock_guard l_logs(logs_mu_);
   int log_size = static_cast<int>(logs_.size());
   if (start > end || start >= log_size || end >= log_size) {
     return Status::Corruption("Invalid index");
@@ -237,7 +228,7 @@ Status MemLog::GetRangeLogs(int start, int end, std::vector<LogItem>* logs) {
 }
 
 bool MemLog::FindLogItem(const LogOffset& offset, LogOffset* found_offset) {
-  pstd::MutexLock l_logs(&logs_mu_);
+  std::lock_guard l_logs(logs_mu_);
   int index = InternalFindLogByLogicIndex(offset);
   if (index < 0) {
     return false;
@@ -280,13 +271,12 @@ ConsensusCoordinator::ConsensusCoordinator(const std::string& table_name, uint32
   context_ = std::make_shared<Context>(log_path + kContext);
   stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
   mem_logger_ = std::make_shared<MemLog>();
-  pthread_rwlock_init(&term_rwlock_, nullptr);
   if (g_pika_conf->consensus_level() != 0) {
     Init();
   }
 }
 
-ConsensusCoordinator::~ConsensusCoordinator() { pthread_rwlock_destroy(&term_rwlock_); }
+ConsensusCoordinator::~ConsensusCoordinator() {}
 
 // since it is invoked in constructor all locks not hold
 void ConsensusCoordinator::Init() {
@@ -352,7 +342,7 @@ void ConsensusCoordinator::Init() {
 Status ConsensusCoordinator::Reset(const LogOffset& offset) {
   context_->Reset(offset);
   {
-    pstd::MutexLock l(&index_mu_);
+    std::lock_guard l(index_mu_);
     committed_index_ = offset;
   }
 
@@ -451,7 +441,7 @@ Status ConsensusCoordinator::ProcessLocalUpdate(const LogOffset& leader_commit) 
   LogOffset updated_committed_index;
   bool need_update = false;
   {
-    pstd::MutexLock l(&index_mu_);
+    std::lock_guard l(index_mu_);
     need_update = InternalUpdateCommittedIndex(committed_index, &updated_committed_index);
   }
   if (need_update) {
@@ -487,7 +477,7 @@ Status ConsensusCoordinator::UpdateSlave(const std::string& ip, int port, const 
   LogOffset updated_committed_index;
   bool need_update = false;
   {
-    pstd::MutexLock l(&index_mu_);
+    std::lock_guard l(index_mu_);
     need_update = InternalUpdateCommittedIndex(committed_index, &updated_committed_index);
   }
   if (need_update) {
@@ -535,7 +525,7 @@ Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item, std::s
 
 Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) {
   // logs from PurgeLogs goes to InternalApply in order
-  pstd::MutexLock l(&order_mu_);
+  std::lock_guard l(order_mu_);
   std::vector<MemLog::LogItem> logs;
   Status s = mem_logger_->PurgeLogs(committed_index, &logs);
   if (!s.ok()) {
@@ -550,7 +540,7 @@ Status ConsensusCoordinator::ScheduleApplyLog(const LogOffset& committed_index) 
 
 Status ConsensusCoordinator::ScheduleApplyFollowerLog(const LogOffset& committed_index) {
   // logs from PurgeLogs goes to InternalApply in order
-  pstd::MutexLock l(&order_mu_);
+  std::lock_guard l(order_mu_);
   std::vector<MemLog::LogItem> logs;
   Status s = mem_logger_->PurgeLogs(committed_index, &logs);
   if (!s.ok()) {
@@ -588,14 +578,14 @@ Status ConsensusCoordinator::RemoveSlaveNode(const std::string& ip, int port) {
 
 void ConsensusCoordinator::UpdateTerm(uint32_t term) {
   stable_logger_->Logger()->Lock();
-  pstd::RWLock l(&term_rwlock_, true);
+  std::lock_guard l(term_rwlock_);
   term_ = term;
   stable_logger_->Logger()->SetTerm(term);
   stable_logger_->Logger()->Unlock();
 }
 
 uint32_t ConsensusCoordinator::term() {
-  pstd::RWLock l(&term_rwlock_, false);
+  std::shared_lock l(term_rwlock_);
   return term_;
 }
 

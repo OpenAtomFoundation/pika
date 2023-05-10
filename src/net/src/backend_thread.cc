@@ -67,7 +67,7 @@ int BackendThread::StopThread() {
 
 Status BackendThread::Write(const int fd, const std::string& msg) {
   {
-    pstd::MutexLock l(&mu_);
+    std::lock_guard l(mu_);
     if (conns_.find(fd) == conns_.end()) {
       return Status::Corruption(std::to_string(fd) + " cannot find !");
     }
@@ -90,7 +90,7 @@ Status BackendThread::Write(const int fd, const std::string& msg) {
 
 Status BackendThread::Close(const int fd) {
   {
-    pstd::MutexLock l(&mu_);
+    std::lock_guard l(mu_);
     if (conns_.find(fd) == conns_.end()) {
       return Status::OK();
     }
@@ -131,7 +131,7 @@ void BackendThread::AddConnection(const std::string& peer_ip, int peer_port, int
   fcntl(sockfd, F_SETFD, fcntl(sockfd, F_GETFD) | FD_CLOEXEC);
 
   {
-    pstd::MutexLock l(&mu_);
+    std::lock_guard l(mu_);
     conns_.insert(std::make_pair(sockfd, tc));
   }
 }
@@ -205,12 +205,11 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
 }
 
 std::shared_ptr<NetConn> BackendThread::GetConn(int fd) {
-  pstd::MutexLock l(&mu_);
-  auto iter = conns_.find(fd);
-  if (iter == conns_.end()) {
-    return nullptr;
+  std::lock_guard l(mu_);
+  if (auto it = conns_.find(fd); it != conns_.end()) {
+    return it->second;
   }
-  return iter->second;
+  return nullptr;
 }
 
 void BackendThread::CloseFd(std::shared_ptr<NetConn> conn) {
@@ -227,14 +226,14 @@ void BackendThread::CloseFd(const int fd) {
 }
 
 void BackendThread::CleanUpConnRemaining(const int fd) {
-  pstd::MutexLock l(&mu_);
+  std::lock_guard l(mu_);
   to_send_.erase(fd);
 }
 
 void BackendThread::DoCronTask() {
   struct timeval now;
   gettimeofday(&now, nullptr);
-  pstd::MutexLock l(&mu_);
+  std::lock_guard l(mu_);
   std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
   while (iter != conns_.end()) {
     std::shared_ptr<NetConn> conn = iter->second;
@@ -265,7 +264,7 @@ void BackendThread::DoCronTask() {
 void BackendThread::InternalDebugPrint() {
   LOG(INFO) << "___________________________________";
   {
-    pstd::MutexLock l(&mu_);
+    std::lock_guard l(mu_);
     LOG(INFO) << "To send map: ";
     for (const auto& to_send : to_send_) {
       UNUSED(to_send);
@@ -277,7 +276,7 @@ void BackendThread::InternalDebugPrint() {
     }
   }
   LOG(INFO) << "Connected fd map: ";
-  pstd::MutexLock l(&mu_);
+  std::lock_guard l(mu_);
   for (const auto& fd_conn : conns_) {
     UNUSED(fd_conn);
     LOG(INFO) << "fd " << fd_conn.first;
@@ -318,7 +317,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
         NetItem ti = net_multiplexer_->NotifyQueuePop();
         int fd = ti.fd();
         std::string ip_port = ti.ip_port();
-        pstd::MutexLock l(&mu_);
+        std::lock_guard l(mu_);
         if (ti.notify_type() == kNotiWrite) {
           if (conns_.find(fd) == conns_.end()) {
             // TODO: need clean and notify?
@@ -399,17 +398,18 @@ void* BackendThread::ThreadMain() {
       }
 
       int should_close = 0;
-      mu_.Lock();
-      std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.find(pfe->fd);
-      if (iter == conns_.end()) {
-        mu_.Unlock();
-        LOG(INFO) << "fd " << pfe->fd << " not found in fd_conns";
-        net_multiplexer_->NetDelEvent(pfe->fd, 0);
-        continue;
+      std::shared_ptr<NetConn> conn;
+      {
+        std::unique_lock lock(mu_);
+        if (auto it = conns_.find(pfe->fd); it == conns_.end()) {
+          lock.unlock();
+          LOG(INFO) << "fd " << pfe->fd << " not found in fd_conns";
+          net_multiplexer_->NetDelEvent(pfe->fd, 0);
+          continue;
+        } else {
+          conn = it->second;
+        }
       }
-      mu_.Unlock();
-
-      std::shared_ptr<NetConn> conn = iter->second;
 
       if (connecting_fds_.count(pfe->fd)) {
         Status s = ProcessConnectStatus(pfe, &should_close);
@@ -450,9 +450,9 @@ void* BackendThread::ThreadMain() {
           LOG(INFO) << "close connection " << pfe->fd << " reason " << pfe->mask << " " << should_close;
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(conn);
-          mu_.Lock();
+          mu_.lock();
           conns_.erase(pfe->fd);
-          mu_.Unlock();
+          mu_.unlock();
           if (connecting_fds_.count(conn->fd())) {
             connecting_fds_.erase(conn->fd());
           }

@@ -55,14 +55,6 @@ Partition::Partition(const std::string& table_name, uint32_t partition_id, const
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, partition_id_, g_pika_conf->classic_mode());
   partition_name_ = g_pika_conf->classic_mode() ? table_name : PartitionName(table_name_, partition_id_);
 
-  pthread_rwlockattr_t attr;
-  pthread_rwlockattr_init(&attr);
-#if !defined(__APPLE__)
-  pthread_rwlockattr_setkind_np(&attr, PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP);
-#endif
-
-  pthread_rwlock_init(&db_rwlock_, &attr);
-
   db_ = std::shared_ptr<storage::Storage>(new storage::Storage());
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
 
@@ -77,7 +69,6 @@ Partition::Partition(const std::string& table_name, uint32_t partition_id, const
 Partition::~Partition() {
   Close();
   delete bgsave_engine_;
-  pthread_rwlock_destroy(&db_rwlock_);
   delete lock_mgr_;
 }
 
@@ -90,7 +81,7 @@ void Partition::Close() {
   if (!opened_) {
     return;
   }
-  pstd::RWLock rwl(&db_rwlock_, true);
+  std::lock_guard lock(db_rwlock_);
   db_.reset();
   opened_ = false;
 }
@@ -129,11 +120,11 @@ void Partition::Compact(const storage::DataType& type) {
   db_->Compact(type);
 }
 
-void Partition::DbRWLockWriter() { pthread_rwlock_wrlock(&db_rwlock_); }
+void Partition::DbRWLockWriter() { db_rwlock_.lock(); }
 
-void Partition::DbRWLockReader() { pthread_rwlock_rdlock(&db_rwlock_); }
+void Partition::DbRWLockReader() { db_rwlock_.lock_shared(); }
 
-void Partition::DbRWUnLock() { pthread_rwlock_unlock(&db_rwlock_); }
+void Partition::DbRWUnLock() { db_rwlock_.unlock(); }
 
 pstd::lock::LockMgr* Partition::LockMgr() { return lock_mgr_; }
 
@@ -255,7 +246,7 @@ bool Partition::ChangeDb(const std::string& new_path) {
   tmp_path += "_bak";
   pstd::DeleteDirIfExist(tmp_path);
 
-  RWLock l(&db_rwlock_, true);
+  std::lock_guard l(db_rwlock_);
   LOG(INFO) << "Partition: " << partition_name_ << ", Prepare change db from: " << tmp_path;
   db_.reset();
 
@@ -281,12 +272,12 @@ bool Partition::ChangeDb(const std::string& new_path) {
 }
 
 bool Partition::IsBgSaving() {
-  pstd::MutexLock ml(&bgsave_protector_);
+  std::lock_guard ml(bgsave_protector_);
   return bgsave_info_.bgsaving;
 }
 
 void Partition::BgSavePartition() {
-  pstd::MutexLock l(&bgsave_protector_);
+  std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return;
   }
@@ -297,7 +288,7 @@ void Partition::BgSavePartition() {
 }
 
 BgSaveInfo Partition::bgsave_info() {
-  pstd::MutexLock l(&bgsave_protector_);
+  std::lock_guard l(bgsave_protector_);
   return bgsave_info_;
 }
 
@@ -357,7 +348,7 @@ bool Partition::RunBgsaveEngine() {
 
 // Prepare engine, need bgsave_protector protect
 bool Partition::InitBgsaveEnv() {
-  pstd::MutexLock l(&bgsave_protector_);
+  std::lock_guard l(bgsave_protector_);
   // Prepare for bgsave dir
   bgsave_info_.start_time = time(nullptr);
   char s_time[32];
@@ -395,7 +386,7 @@ bool Partition::InitBgsaveEngine() {
   }
 
   {
-    RWLock l(&db_rwlock_, true);
+    std::lock_guard lock(db_rwlock_);
     LogOffset bgsave_offset;
     if (g_pika_conf->consensus_level() != 0) {
       bgsave_offset = partition->ConsensusAppliedIndex();
@@ -404,7 +395,7 @@ bool Partition::InitBgsaveEngine() {
       partition->Logger()->GetProducerStatus(&(bgsave_offset.b_offset.filenum), &(bgsave_offset.b_offset.offset));
     }
     {
-      pstd::MutexLock l(&bgsave_protector_);
+      std::lock_guard l(bgsave_protector_);
       bgsave_info_.offset = bgsave_offset;
     }
     s = bgsave_engine_->SetBackupContent();
@@ -417,18 +408,18 @@ bool Partition::InitBgsaveEngine() {
 }
 
 void Partition::ClearBgsave() {
-  pstd::MutexLock l(&bgsave_protector_);
+  std::lock_guard l(bgsave_protector_);
   bgsave_info_.Clear();
 }
 
 void Partition::FinishBgsave() {
-  pstd::MutexLock l(&bgsave_protector_);
+  std::lock_guard l(bgsave_protector_);
   bgsave_info_.bgsaving = false;
 }
 
 bool Partition::FlushDB() {
-  pstd::RWLock rwl(&db_rwlock_, true);
-  pstd::MutexLock ml(&bgsave_protector_);
+  std::lock_guard rwl(db_rwlock_);
+  std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return false;
   }
@@ -453,8 +444,8 @@ bool Partition::FlushDB() {
 }
 
 bool Partition::FlushSubDB(const std::string& db_name) {
-  pstd::RWLock rwl(&db_rwlock_, true);
-  pstd::MutexLock ml(&bgsave_protector_);
+  std::lock_guard rwl(db_rwlock_);
+  std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return false;
   }
@@ -489,12 +480,12 @@ void Partition::InitKeyScan() {
 }
 
 KeyScanInfo Partition::GetKeyScanInfo() {
-  pstd::MutexLock l(&key_info_protector_);
+  std::lock_guard l(key_info_protector_);
   return key_scan_info_;
 }
 
 Status Partition::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
-  pstd::MutexLock l(&key_info_protector_);
+  std::lock_guard l(key_info_protector_);
   if (key_scan_info_.key_scaning_) {
     *key_info = key_scan_info_.key_infos;
     return Status::OK();

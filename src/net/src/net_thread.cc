@@ -24,7 +24,7 @@ void* Thread::RunThread(void* arg) {
 }
 
 int Thread::StartThread() {
-  pstd::MutexLock l(&running_mu_);
+  std::lock_guard l(running_mu_);
   should_stop_ = false;
   if (!running_) {
     running_ = true;
@@ -34,7 +34,7 @@ int Thread::StartThread() {
 }
 
 int Thread::StopThread() {
-  pstd::MutexLock l(&running_mu_);
+  std::lock_guard l(running_mu_);
   should_stop_ = true;
   if (running_) {
     running_ = false;

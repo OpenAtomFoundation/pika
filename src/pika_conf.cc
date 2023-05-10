@@ -14,15 +14,9 @@
 
 #include "include/pika_define.h"
 
-PikaConf::PikaConf(const std::string& path) : pstd::BaseConf(path), conf_path_(path) {
-  pthread_rwlock_init(&rwlock_, nullptr);
-  local_meta_ = new PikaMeta();
-}
+PikaConf::PikaConf(const std::string& path) : pstd::BaseConf(path), conf_path_(path) { local_meta_ = new PikaMeta(); }
 
-PikaConf::~PikaConf() {
-  pthread_rwlock_destroy(&rwlock_);
-  delete local_meta_;
-}
+PikaConf::~PikaConf() { delete local_meta_; }
 
 Status PikaConf::InternalGetTargetTable(const std::string& table_name, uint32_t* const target) {
   int32_t table_index = -1;
@@ -41,7 +35,7 @@ Status PikaConf::InternalGetTargetTable(const std::string& table_name, uint32_t*
 
 Status PikaConf::TablePartitionsSanityCheck(const std::string& table_name, const std::set<uint32_t>& partition_ids,
                                             bool is_add) {
-  RWLock l(&rwlock_, false);
+  std::shared_lock l(rwlock_);
   uint32_t table_index = 0;
   Status s = InternalGetTargetTable(table_name, &table_index);
   if (!s.ok()) {
@@ -66,7 +60,7 @@ Status PikaConf::AddTablePartitions(const std::string& table_name, const std::se
     return s;
   }
 
-  RWLock l(&rwlock_, true);
+  std::lock_guard l(rwlock_);
   uint32_t index = 0;
   s = InternalGetTargetTable(table_name, &index);
   if (s.ok()) {
@@ -84,7 +78,7 @@ Status PikaConf::RemoveTablePartitions(const std::string& table_name, const std:
     return s;
   }
 
-  RWLock l(&rwlock_, true);
+  std::lock_guard l(rwlock_);
   uint32_t index = 0;
   s = InternalGetTargetTable(table_name, &index);
   if (s.ok()) {
@@ -101,7 +95,7 @@ Status PikaConf::AddTable(const std::string& table_name, const uint32_t slot_num
   if (!s.ok()) {
     return s;
   }
-  RWLock l(&rwlock_, true);
+  std::lock_guard l(rwlock_);
   table_structs_.push_back({table_name, slot_num, {}});
   s = local_meta_->StableSave(table_structs_);
   return s;
@@ -112,7 +106,7 @@ Status PikaConf::DelTable(const std::string& table_name) {
   if (!s.ok()) {
     return s;
   }
-  RWLock l(&rwlock_, true);
+  std::lock_guard l(rwlock_);
   for (auto iter = table_structs_.begin(); iter != table_structs_.end(); iter++) {
     if (iter->table_name == table_name) {
       table_structs_.erase(iter);
@@ -123,7 +117,7 @@ Status PikaConf::DelTable(const std::string& table_name) {
 }
 
 Status PikaConf::AddTableSanityCheck(const std::string& table_name) {
-  RWLock l(&rwlock_, false);
+  std::shared_lock l(rwlock_);
   uint32_t table_index = 0;
   Status s = InternalGetTargetTable(table_name, &table_index);
   if (!s.IsNotFound()) {
@@ -133,7 +127,7 @@ Status PikaConf::AddTableSanityCheck(const std::string& table_name) {
 }
 
 Status PikaConf::DelTableSanityCheck(const std::string& table_name) {
-  RWLock l(&rwlock_, false);
+  std::shared_lock l(rwlock_);
   uint32_t table_index = 0;
   return InternalGetTargetTable(table_name, &table_index);
 }
@@ -568,7 +562,7 @@ void PikaConf::TryPushDiffCommands(const std::string& command, const std::string
 int PikaConf::ConfigRewrite() {
   std::string userblacklist = suser_blacklist();
 
-  RWLock l(&rwlock_, true);
+  std::lock_guard l(rwlock_);
   // Only set value for config item that can be config set.
   SetConfInt("timeout", timeout_);
   SetConfStr("requirepass", requirepass_);
@@ -638,7 +632,7 @@ rocksdb::CompressionType PikaConf::GetCompression(const std::string& value) {
 }
 
 std::vector<rocksdb::CompressionType> PikaConf::compression_per_level() {
-  RWLock l(&rwlock_, false);
+  std::shared_lock l(rwlock_);
   std::vector<rocksdb::CompressionType> types;
   if (compression_per_level_.empty()) {
     return types;

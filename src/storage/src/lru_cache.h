@@ -136,32 +136,32 @@ LRUCache<T1, T2>::~LRUCache() {
 
 template <typename T1, typename T2>
 size_t LRUCache<T1, T2>::Size() {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   return size_;
 }
 
 template <typename T1, typename T2>
 size_t LRUCache<T1, T2>::TotalCharge() {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   return usage_;
 }
 
 template <typename T1, typename T2>
 size_t LRUCache<T1, T2>::Capacity() {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   return capacity_;
 }
 
 template <typename T1, typename T2>
 void LRUCache<T1, T2>::SetCapacity(size_t capacity) {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   capacity_ = capacity;
   LRU_Trim();
 }
 
 template <typename T1, typename T2>
 rocksdb::Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   LRUHandle<T1, T2>* handle = handle_table_.Lookup(key);
   if (handle != nullptr) {
     LRU_MoveToHead(handle);
@@ -172,7 +172,7 @@ rocksdb::Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
 
 template <typename T1, typename T2>
 rocksdb::Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t charge) {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   if (capacity_ == 0) {
     return rocksdb::Status::Corruption("capacity is empty");
   } else {
@@ -191,14 +191,14 @@ rocksdb::Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t 
 
 template <typename T1, typename T2>
 rocksdb::Status LRUCache<T1, T2>::Remove(const T1& key) {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   bool erased = FinishErase(handle_table_.Remove(key));
   return erased ? rocksdb::Status::OK() : rocksdb::Status::NotFound();
 }
 
 template <typename T1, typename T2>
 rocksdb::Status LRUCache<T1, T2>::Clear() {
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   LRUHandle<T1, T2>* old = nullptr;
   while (lru_.next != &lru_) {
     old = lru_.next;
@@ -213,7 +213,7 @@ rocksdb::Status LRUCache<T1, T2>::Clear() {
 template <typename T1, typename T2>
 bool LRUCache<T1, T2>::LRUAndHandleTableConsistent() {
   size_t count = 0;
-  pstd::MutexLock l(&mutex_);
+  std::lock_guard l(mutex_);
   LRUHandle<T1, T2>* handle = nullptr;
   LRUHandle<T1, T2>* current = lru_.prev;
   while (current != &lru_) {

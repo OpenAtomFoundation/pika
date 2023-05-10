@@ -6,6 +6,7 @@
 #ifndef PIKA_TABLE_H_
 #define PIKA_TABLE_H_
 
+#include <shared_mutex>
 #include "storage/storage.h"
 
 #include "include/pika_command.h"
@@ -65,7 +66,7 @@ class Table : public std::enable_shared_from_this<Table> {
   // lock order
   // partitions_rw_ > key_scan_protector_
 
-  pthread_rwlock_t partitions_rw_;
+  std::shared_mutex partitions_rw_;
   std::map<uint32_t, std::shared_ptr<Partition>> partitions_;
 
   /*

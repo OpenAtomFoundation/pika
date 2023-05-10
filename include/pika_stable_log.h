@@ -18,11 +18,11 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
   std::shared_ptr<Binlog> Logger() { return stable_logger_; }
   void Leave();
   void SetFirstOffset(const LogOffset& offset) {
-    pstd::RWLock l(&offset_rwlock_, true);
+    std::lock_guard l(offset_rwlock_);
     first_offset_ = offset;
   }
   LogOffset first_offset() {
-    pstd::RWLock l(&offset_rwlock_, false);
+    std::shared_lock l(offset_rwlock_);
     return first_offset_;
   }
   // Need to hold binlog lock
@@ -50,7 +50,7 @@ class StableLog : public std::enable_shared_from_this<StableLog> {
   std::string log_path_;
   std::shared_ptr<Binlog> stable_logger_;
 
-  pthread_rwlock_t offset_rwlock_;
+  std::shared_mutex offset_rwlock_;
   LogOffset first_offset_;
 };
 

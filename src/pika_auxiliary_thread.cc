@@ -12,6 +12,8 @@
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
+using namespace std::chrono_literals;
+
 PikaAuxiliaryThread::~PikaAuxiliaryThread() {
   StopThread();
   LOG(INFO) << "PikaAuxiliary thread " << thread_id() << " exit!!!";
@@ -45,9 +47,8 @@ void* PikaAuxiliaryThread::ThreadMain() {
     int res = g_pika_server->SendToPeer();
     if (!res) {
       // sleep 100 ms
-      mu_.Lock();
-      cv_.TimedWait(100);
-      mu_.Unlock();
+      std::unique_lock lock(mu_);
+      cv_.wait_for(lock, 100ms);
     } else {
       // LOG_EVERY_N(INFO, 1000) << "Consume binlog number " << res;
     }

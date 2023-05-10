@@ -7,6 +7,7 @@
 #define PIKA_STATISTIC_H_
 
 #include <atomic>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 
@@ -54,7 +55,7 @@ struct Statistic {
   ServerStatistic server_stat;
 
   // statistic shows accumulated data of every single table
-  pthread_rwlock_t table_stat_rw;
+  std::shared_mutex table_stat_rw;
   std::unordered_map<std::string, QpsStatistic> table_stat;
 };
 

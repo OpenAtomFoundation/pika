@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <queue>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -246,7 +247,7 @@ class PikaReplicaManager {
   void InitPartition();
   Status SelectLocalIp(const std::string& remote_ip, const int remote_port, std::string* const local_ip);
 
-  pthread_rwlock_t partitions_rw_;
+  std::shared_mutex partitions_rw_;
   std::unordered_map<PartitionInfo, std::shared_ptr<SyncMasterPartition>, hash_partition_info> sync_master_partitions_;
   std::unordered_map<PartitionInfo, std::shared_ptr<SyncSlavePartition>, hash_partition_info> sync_slave_partitions_;
 

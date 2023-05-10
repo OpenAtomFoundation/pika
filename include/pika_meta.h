@@ -6,6 +6,7 @@
 #ifndef PIKA_META
 #define PIKA_META
 
+#include <shared_mutex>
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_mutex.h"
 
@@ -24,7 +25,7 @@ class PikaMeta {
   Status ParseMeta(std::vector<TableStruct>* const table_structs);
 
  private:
-  pthread_rwlock_t rwlock_;
+  std::shared_mutex rwlock_;
   std::string local_meta_path_;
 
   // No copying allowed;

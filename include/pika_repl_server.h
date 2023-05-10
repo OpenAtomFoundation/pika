@@ -8,6 +8,7 @@
 
 #include "net/include/thread_pool.h"
 
+#include <shared_mutex>
 #include <vector>
 
 #include "include/pika_command.h"
@@ -43,7 +44,7 @@ class PikaReplServer {
   net::ThreadPool* server_tp_ = nullptr;
   PikaReplServerThread* pika_repl_server_thread_ = nullptr;
 
-  pthread_rwlock_t client_conn_rwlock_;
+  std::shared_mutex client_conn_rwlock_;
   std::map<std::string, int> client_conn_map_;
 };
 

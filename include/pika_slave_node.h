@@ -61,8 +61,8 @@ class SlaveNode : public RmNode {
  public:
   SlaveNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int session_id);
   ~SlaveNode();
-  void Lock() { slave_mu.Lock(); }
-  void Unlock() { slave_mu.Unlock(); }
+  void Lock() { slave_mu.lock(); }
+  void Unlock() { slave_mu.unlock(); }
   SlaveState slave_state;
 
   BinlogSyncState b_state;
