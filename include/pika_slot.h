@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#ifndef PIKA_SLOT_H_
+/*#ifndef PIKA_SLOT_H_
 #define PIKA_SLOT_H_
 
 #include "include/pika_command.h"
@@ -185,4 +185,4 @@ class SlotsMgrtTagOneCmd : public Cmd {
   virtual void DoInitial() override;
 };
 
-#endif  // PIKA_SLOT_H_
+#endif  // PIKA_SLOT_H_*/

@@ -190,7 +190,7 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
-// Codis Slots
+/* Codis Slots
 const std::string kCmdNameSlotsInfo = "slotsinfo";
 const std::string kCmdNameSlotsHashKey = "slotshashkey";
 const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
@@ -203,7 +203,7 @@ const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
 const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
 const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
 const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
-const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
+const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";*/
 
 const std::string kClusterPrefix = "pkcluster";
 typedef net::RedisCmdArgsType PikaCmdArgsType;

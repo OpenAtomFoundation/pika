@@ -156,7 +156,7 @@ void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
  * dbslaveof db[0 ~ 7] no one
  * dbslaveof db[0 ~ 7] filenum offset
  */
-void DbSlaveofCmd::DoInitial() {
+/*void DbSlaveofCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDbSlaveof);
     return;
@@ -202,7 +202,7 @@ void DbSlaveofCmd::DoInitial() {
     }
     have_offset_ = true;
   }
-}
+}*/
 
 void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<SyncSlavePartition> slave_partition =

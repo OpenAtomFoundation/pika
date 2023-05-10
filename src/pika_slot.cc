@@ -3,11 +3,10 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_slot.h"
+/*#include "include/pika_slot.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
-#include "include/pika_table.h"
 
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 extern PikaReplicaManager* g_pika_rm;
@@ -291,9 +290,9 @@ void SlotsDelCmd::DoInitial() {
     slots_.push_back(static_cast<uint32_t>(slotnum));
   }
   return;
-}
+}*/
 
-void SlotsDelCmd::Do(std::shared_ptr<Partition> partition) {
+/*void SlotsDelCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
   if (!table_ptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsDel);
@@ -319,10 +318,10 @@ void SlotsDelCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendInteger(0);
   }
   return;
-}
+}*/
 
 // SLOTSMGRT-EXEC-WRAPPER $hashkey $command [$arg1 ...]
-void SlotsMgrtExecWrapperCmd::DoInitial() {
+/*void SlotsMgrtExecWrapperCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtExecWrapper);
     return;
@@ -337,9 +336,9 @@ void SlotsMgrtExecWrapperCmd::DoInitial() {
   key_ = *it++;
   // pstd::StringToLower(key_);
   return;
-}
+}*/
 
-void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Partition> partition) {
+/*void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Partition> partition) {
   // return 0 means proxy will request to new slot server
   // return 1 means proxy will keey trying
   // return 2 means return this key directly
@@ -347,10 +346,10 @@ void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendInteger(1);
   res_.AppendInteger(1);
   return;
-}
+}*/
 
 // slotsmgrt-async-status
-void SlotsMgrtAsyncStatusCmd::DoInitial() {
+/*void SlotsMgrtAsyncStatusCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncStatus);
     return;
@@ -362,9 +361,9 @@ void SlotsMgrtAsyncStatusCmd::DoInitial() {
   }
 
   return;
-}
+}*/
 
-void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Partition> partition) {
+/*void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Partition> partition) {
   std::string status;
   std::string ip = "none";
   int64_t port = -1, slot = -1, moved = -1, remained = -1;
@@ -386,10 +385,10 @@ void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Partition> partition) {
   res_.AppendStringLen(status.size());
   res_.AppendContent(status);
   return;
-}
+}*/
 
 // slotsmgrt-async-cancel
-void SlotsMgrtAsyncCancelCmd::DoInitial() {
+/*void SlotsMgrtAsyncCancelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameSlotsMgrtAsyncCancel);
     return;
@@ -401,15 +400,15 @@ void SlotsMgrtAsyncCancelCmd::DoInitial() {
   }
 
   return;
-}
+}*/
 
-void SlotsMgrtAsyncCancelCmd::Do(std::shared_ptr<Partition> partition) {
+/*void SlotsMgrtAsyncCancelCmd::Do(std::shared_ptr<Partition> partition) {
   res_.SetRes(CmdRes::kOk);
   return;
-}
+}*/
 
 // slotsmgrtslot host port timeout slot
-void SlotsMgrtSlotCmd::DoInitial() {
+/*void SlotsMgrtSlotCmd::DoInitial() {
   res_.SetRes(CmdRes::kErrOther, kCmdNameSlotsMgrtSlot + " NOT supported");
   return;
 }
@@ -420,9 +419,9 @@ void SlotsMgrtSlotCmd::Do(std::shared_ptr<Partition> partition) { return; }
 void SlotsMgrtTagSlotCmd::DoInitial() {
   res_.SetRes(CmdRes::kErrOther, kCmdNameSlotsMgrtTagSlot + " NOT supported");
   return;
-}
+}*/
 
-void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Partition> partition) { return; }
+/*void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Partition> partition) { return; }
 
 // slotsmgrtone host port timeout key
 void SlotsMgrtOneCmd::DoInitial() {
@@ -438,4 +437,4 @@ void SlotsMgrtTagOneCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Partition> partition) { return; }
+void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Partition> partition) { return; }*/
