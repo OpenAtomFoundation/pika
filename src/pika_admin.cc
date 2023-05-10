@@ -150,6 +150,60 @@ void SlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   }
 }
 
+/*
+ * dbslaveof db[0 ~ 7]
+ * dbslaveof db[0 ~ 7] force
+ * dbslaveof db[0 ~ 7] no one
+ * dbslaveof db[0 ~ 7] filenum offset
+ */
+void DbSlaveofCmd::DoInitial() {
+    if (!CheckArg(argv_.size())) {
+        res_.SetRes(CmdRes::kWrongNum, kCmdNameDbSlaveof);
+        return;
+    }
+    if (!g_pika_conf->classic_mode()) {
+        res_.SetRes(CmdRes::kErrOther, "DbSlaveof only support on classic mode");
+        return;
+    }
+    if (g_pika_server->role() ^ PIKA_ROLE_SLAVE || !g_pika_server->MetaSyncDone()) {
+        res_.SetRes(CmdRes::kErrOther, "Not currently a slave");
+        return;
+    }
+
+    if (argv_.size() > 4) {
+        res_.SetRes(CmdRes::kWrongNum, kCmdNameDbSlaveof);
+        return;
+    }
+
+    db_name_ = argv_[1];
+    if (!g_pika_server->IsTableExist(db_name_)) {
+        res_.SetRes(CmdRes::kErrOther, "Invaild db name");
+        return;
+    }
+
+    if (argv_.size() == 3 && !strcasecmp(argv_[2].data(), "force")) {
+        force_sync_ = true;
+        return;
+    }
+
+    if (argv_.size() == 4) {
+        if (!strcasecmp(argv_[2].data(), "no") && !strcasecmp(argv_[3].data(), "one")) {
+            is_none_ = true;
+            return;
+        }
+
+        if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &filenum_) || filenum_ < 0) {
+            res_.SetRes(CmdRes::kInvalidInt);
+            return;
+        }
+        if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &offset_) || offset_ < 0) {
+            res_.SetRes(CmdRes::kInvalidInt);
+            return;
+        }
+        have_offset_ = true;
+    }
+}
+
 void DbSlaveofCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<SyncSlavePartition> slave_partition =
       g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(db_name_, 0));
