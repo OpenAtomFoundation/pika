@@ -7,7 +7,6 @@
 
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
-#include "include/pika_cluster.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_geo.h"
 #include "include/pika_hash.h"
@@ -112,10 +111,6 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*>* cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtOne, slotmgrtoneptr));
   Cmd* slotmgrttagoneptr = new SlotsMgrtTagOneCmd(kCmdNameSlotsMgrtTagOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagOne, slotmgrttagoneptr));
-
-  // Cluster related
-  Cmd* pkclusterinfoptr = new PkClusterInfoCmd(kCmdNamePkClusterInfo, -3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterInfo, pkclusterinfoptr));
 
   // Kv
   ////SetCmd

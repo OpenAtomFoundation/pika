@@ -205,9 +205,6 @@ const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
 const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
 const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
 
-// Cluster
-const std::string kCmdNamePkClusterInfo = "pkclusterinfo";
-
 const std::string kClusterPrefix = "pkcluster";
 typedef net::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
