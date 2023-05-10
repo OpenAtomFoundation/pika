@@ -14,14 +14,6 @@ if test -z "$CXX"; then
     CXX=g++
 fi
 
-# Test whether malloc_extension is available
-  #include <gperftools/malloc_extension.h>
-  int main() {
-    MallocExtension::instance()->Initialize();;
-    return 0;
-  }
-EOF
-
 # Test whether Snappy library is installed
 # http://code.google.com/p/snappy/
 $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF

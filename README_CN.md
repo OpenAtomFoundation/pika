@@ -62,7 +62,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 
 * linux - Ubuntu
 
-* macOS(Darwin) on M1
+* macOS(Darwin)
 
 #### 依赖软件
 * gcc g++ 支持C++17 （version>=7）
@@ -358,6 +358,7 @@ Pika与Redis的极限QPS对比。
 1. [doc](docs/catalogue.md)
 
 ## 联系方式
-邮箱：g-infra@360.cn
+
+![](docs/images/pika-wechat-cn.png)
 
 QQ群：294254078

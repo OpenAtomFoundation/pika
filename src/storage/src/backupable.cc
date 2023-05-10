@@ -25,7 +25,6 @@ Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& t
   rocksdb::DBCheckpoint* checkpoint;
   Status s = rocksdb::DBCheckpoint::Create(rocksdb_db, &checkpoint);
   if (!s.ok()) {
-    // log_warn("create checkpoint failed, error %s", s.ToString().c_str());
     return s;
   }
   engines_.insert(std::make_pair(type, checkpoint));
@@ -67,7 +66,6 @@ Status BackupEngine::SetBackupContent() {
     s = engine.second->GetCheckpointFiles(bcontent.live_files, bcontent.live_wal_files, bcontent.manifest_file_size,
                                           bcontent.sequence_number);
     if (!s.ok()) {
-      // log_warn("get backup files faild for type: %s", engine.first.c_str());
       return s;
     }
     backup_content_[engine.first] = std::move(bcontent);
@@ -86,13 +84,11 @@ Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const
         dir, it_content->second.live_files, it_content->second.live_wal_files, it_content->second.manifest_file_size,
         it_content->second.sequence_number);
     if (!s.ok()) {
-      // log_warn("backup engine create new failed, type: %s, error %s",
       //    type.c_str(), s.ToString().c_str());
       return s;
     }
 
   } else {
-    // log_warn("invalid db type: %s", type.c_str());
     return Status::Corruption("invalid db type");
   }
   return Status::OK();
@@ -111,13 +107,9 @@ Status BackupEngine::WaitBackupPthread() {
   for (auto& pthread : backup_pthread_ts_) {
     void* res;
     if ((ret = pthread_join(pthread.second, &res)) != 0) {
-      // log_warn("pthread_join failed with backup thread for key_type:
-      //    %s, error %d", pthread.first.c_str(), ret);
     }
     Status cur_s = *(static_cast<Status*>(res));
     if (!cur_s.ok()) {
-      // log_warn("pthread executed failed with key_type: %s, error %s",
-      //    pthread.first.c_str(), cur_s.ToString().c_str());
       StopBackup();  // stop others when someone failed
       s = cur_s;
     }
@@ -138,7 +130,6 @@ Status BackupEngine::CreateNewBackup(const std::string& dir) {
       break;
     }
     if (!(backup_pthread_ts_.insert(std::make_pair(engine.first, tid)).second)) {
-      // log_warn("thread open dupilicated, type: %s", engine.first.c_str());
       backup_pthread_ts_[engine.first] = tid;
     }
   }

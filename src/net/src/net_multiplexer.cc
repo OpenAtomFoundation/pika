@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <cstdlib>
 
+#include <glog/logging.h>
+
 #include "pstd/include/xdebug.h"
 
 namespace net {
@@ -38,7 +40,7 @@ void NetMultiplexer::Initialize() {
 
 NetItem NetMultiplexer::NotifyQueuePop() {
   if (!init_) {
-    log_err("please call NetMultiplexer::Initialize()");
+    LOG(ERROR) << "please call NetMultiplexer::Initialize()";
     std::abort();
   }
 
@@ -52,7 +54,7 @@ NetItem NetMultiplexer::NotifyQueuePop() {
 
 bool NetMultiplexer::Register(const NetItem& it, bool force) {
   if (!init_) {
-    log_err("please call NetMultiplexer::Initialize()");
+    LOG(ERROR) << "please call NetMultiplexer::Initialize()";
     return false;
   }
 

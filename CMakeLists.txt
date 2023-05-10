@@ -317,6 +317,39 @@ endif()
 
 set(ZSTD_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
+ExternalProject_Add(fmt
+  DEPENDS
+  URL
+  https://github.com/fmtlib/fmt/archive/refs/tags/7.1.0.tar.gz
+  URL_HASH
+  MD5=32af902636d373641f4ef9032fc65b3a
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_CONFIGURE
+  1
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  BUILD_ALWAYS
+  1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+)
+
+if(${OS_VERSION} MATCHES "CentOS")
+  set(FMT_LIBRARY ${INSTALL_LIBDIR_64}/libfmt.a)
+else()
+  set(FMT_LIBRARY ${INSTALL_LIBDIR}/libfmt.a)
+endif()
+
+set(FMT_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
 ExternalProject_Add(lz4
   DEPENDS
   URL
@@ -553,6 +586,7 @@ set(ROCKSDB_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/${EP_BASE_SUFFIX}/Source/rock
 add_subdirectory(src/pstd)
 add_subdirectory(src/net)
 add_subdirectory(src/storage)
+add_subdirectory(pika-tools)
 aux_source_directory(src DIR_SRCS)
 
 # # generate version
@@ -608,6 +642,7 @@ add_dependencies(${PROJECT_NAME}
   gtest
   ${LIBUNWIND_NAME}
   glog
+  fmt
   snappy
   zstd
   lz4
@@ -634,6 +669,7 @@ target_link_libraries(${PROJECT_NAME}
   librocksdb.a
   ${LIB_PROTOBUF}
   ${LIB_GFLAGS}
+  libfmt.a
   libsnappy.a
   libzstd.a
   liblz4.a

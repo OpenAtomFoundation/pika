@@ -2,7 +2,11 @@
 
 [![Build Status](https://travis-ci.org/Qihoo360/pika.svg?branch=master)](https://travis-ci.org/Qihoo360/pika) ![Downloads](https://img.shields.io/github/downloads/Qihoo360/pika/total)
 
-## Introduction[中文](https://github.com/Qihoo360/pika/blob/master/README_CN.md)
+|                                             **Stargazers Over Time**                                              |                                                                                                            **Contributors Over Time**                                                                                                            |
+|:-----------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+|      [![Stargazers over time](https://starchart.cc/OpenAtomFoundation/pika.svg)](https://starchart.cc/OpenAtomFoundation/pika)      | [![Contributor over time](https://contributor-graph-api.apiseven.com/contributors-svg?chart=contributorOverTime&repo=OpenAtomFoundation/pika)](https://contributor-graph-api.apiseven.com/contributors-svg?chart=contributorOverTime&repo=OpenAtomFoundation/pika) |
+
+## Introduction[中文](https://github.com/OpenAtomFoundation/pika/blob/unstable/README_CN.md)
 
 Pika is a persistent huge storage service , compatible  with the vast majority of redis interfaces ([details](https://github.com/Qihoo360/pika/wiki/pika-支持的redis接口及兼容情况)), including string, hash, list, zset, set and management interfaces. With the huge amount of data stored, redis may suffer for a capacity bottleneck, and pika was born for solving it. Except huge storage capacity, pika also support master-slave mode by slaveof command, including full and partial synchronization. You can also use pika together with twemproxy or codis(*pika has supported data migration in codis，thanks [left2right](https://github.com/left2right) and [fancy-rabbit](https://github.com/fancy-rabbit)*) for distributed Redis solution
 
@@ -64,11 +68,11 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 * linux - Ubuntu
 
-* macOS (Darwin) on M1
+* macOS
 
 #### Dependencies
 
-* gcc g++, C++11 support (version>=4.8)
+* gcc g++, C++17 support (version>=7)
 * make
 * cmake (version>=3.18)
 * autoconf
@@ -77,7 +81,7 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 #### Compile
 
-Upgrade your gcc to version at least 4.8 to get C++11 support.
+Upgrade your gcc to version at least 7 to get C++17 support.
 
 1. Get the source code
 
@@ -94,7 +98,7 @@ Upgrade your gcc to version at least 4.8 to get C++11 support.
 
 3. Compile
 
-Please run the script build.sh before you compile this db to check the environment and build this repo. 
+Please run the script build.sh before you compile this db to check the environment and build this repo.
 If the gcc version is later than 7, such as CentOS6 or centOS7, you need to upgrade the gcc version first
 
 Do as follows
@@ -147,7 +151,7 @@ More details on [Performance](docs/benchmark/performance.md).
 
 ## Contact Us
 
-Wechat: PikiwiDB (The attachment comment should be "Join Pika Wechat Group")
+![](docs/images/pika-wechat.png)
 
 QQ group: 294254078
 

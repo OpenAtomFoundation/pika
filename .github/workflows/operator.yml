@@ -21,10 +21,20 @@ jobs:
       with:
         go-version: 1.19
 
+    - name: start minikube
+      id: minikube
+      uses: medyagh/setup-minikube@master
+      with:
+        kubernetes-version: v1.25.3
+
     - name: Build
       run: |
-        cd operator && make 
+        cd pika-tools/pika_operator && make 
 
     - name: Unit Test
       run: |
-        cd operator && make test
+        cd pika-tools/pika_operator && make test
+
+    - name: E2E Test
+      run: |
+        cd pika-tools/pika_operator && make e2e-test-local

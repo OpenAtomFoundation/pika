@@ -46,6 +46,7 @@ class SPopCmd : public Cmd {
 
  private:
   std::string key_;
+  int64_t count_;
   virtual void DoInitial() override;
 };
 

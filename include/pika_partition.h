@@ -25,7 +25,7 @@ struct KeyScanInfo {
   bool key_scaning_ = false;
   KeyScanInfo()
       : start_time(0),
-        s_start_time("1970-01-01 08:00:00"),
+        s_start_time("0"),
         duration(-3),
         key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}),
         key_scaning_(false) {}

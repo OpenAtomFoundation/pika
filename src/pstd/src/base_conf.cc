@@ -8,6 +8,9 @@
 #include <sys/stat.h>
 #include <algorithm>
 
+#include <glog/logging.h>
+#include <fmt/core.h>
+
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/xdebug.h"
@@ -214,6 +217,19 @@ bool BaseConf::GetConfBool(const std::string& name, bool* value) const {
   return false;
 }
 
+bool BaseConf::GetConfDouble(const std::string& name, double* value) const {
+  for (auto& item : rep_->item) {
+    if (item.type == Rep::kComment) {
+      continue;
+    }
+    if (name == item.name) {
+      *value = std::strtod(item.value.c_str(), nullptr);
+      return true;
+    }
+  }
+  return false;
+}
+
 bool BaseConf::SetConfInt(const std::string& name, const int value) {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
@@ -275,6 +291,19 @@ bool BaseConf::SetConfStrVec(const std::string& name, const std::vector<std::str
   return SetConfStr(name, value_str);
 }
 
+bool BaseConf::SetConfDouble(const std::string& name, const double value) {
+  for (size_t i = 0; i < rep_->item.size(); i++) {
+    if (rep_->item[i].type == Rep::kComment) {
+      continue;
+    }
+    if (name == rep_->item[i].name) {
+      rep_->item[i].value = std::to_string(value);
+      return true;
+    }
+  }
+  return false;
+}
+
 bool BaseConf::CheckConfExist(const std::string& name) const {
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kComment) {
@@ -291,7 +320,7 @@ void BaseConf::DumpConf() const {
   int cnt = 1;
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kConf) {
-      printf("%2d %s %s\n", cnt++, rep_->item[i].name.c_str(), rep_->item[i].value.c_str());
+      LOG(INFO) << fmt::format("{:2} {} {}", cnt++, rep_->item[i].name, rep_->item[i].value);
     }
   }
 }
@@ -300,7 +329,7 @@ bool BaseConf::WriteBack() {
   WritableFile* write_file;
   std::string tmp_path = rep_->path + ".tmp";
   Status ret = NewWritableFile(tmp_path, &write_file);
-  log_info("ret %s", ret.ToString().c_str());
+  LOG(INFO) << "ret " << ret.ToString();
   if (!write_file) {
     return false;
   }

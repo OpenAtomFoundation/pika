@@ -10,6 +10,9 @@
 #include <memory>
 #include <random>
 
+#include <glog/logging.h>
+#include <fmt/core.h>
+
 #include "src/base_filter.h"
 #include "src/scope_record_lock.h"
 #include "src/scope_snapshot.h"
@@ -770,7 +773,7 @@ rocksdb::Status RedisSets::SMove(const Slice& source, const Slice& destination, 
   return s;
 }
 
-rocksdb::Status RedisSets::SPop(const Slice& key, std::string* member, bool* need_compact) {
+rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* members, bool* need_compact, int64_t cnt) {
   std::default_random_engine engine;
 
   std::string meta_value;
@@ -778,34 +781,77 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::string* member, bool* nee
   ScopeRecordLock l(lock_mgr_, key);
 
   uint64_t start_us = pstd::NowMicros();
-  rocksdb::Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
+  Status s = db_->Get(default_read_options_, handles_[0], key, &meta_value);
   if (s.ok()) {
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
     if (parsed_sets_meta_value.IsStale()) {
-      return rocksdb::Status::NotFound("Stale");
+      return Status::NotFound("Stale");
     } else if (parsed_sets_meta_value.count() == 0) {
-      return rocksdb::Status::NotFound();
+      return Status::NotFound();
     } else {
-      engine.seed(time(nullptr));
-      int32_t cur_index = 0;
-      int32_t size = parsed_sets_meta_value.count();
-      int32_t target_index = engine() % (size < 50 ? size : 50);
-      int32_t version = parsed_sets_meta_value.version();
+      int32_t length = parsed_sets_meta_value.count();
+      if (length < cnt) {
+        int32_t size = parsed_sets_meta_value.count();
+        int32_t cur_index = 0;
+        int32_t version = parsed_sets_meta_value.version();
+        SetsMemberKey sets_member_key(key, version, Slice());
+        auto iter = db_->NewIterator(default_read_options_, handles_[1]);
+        for (iter->Seek(sets_member_key.Encode());
+            iter->Valid() && cur_index < size;
+            iter->Next(), cur_index++) {
 
-      SetsMemberKey sets_member_key(key, version, Slice());
-      auto iter = db_->NewIterator(default_read_options_, handles_[1]);
-      for (iter->Seek(sets_member_key.Encode()); iter->Valid() && cur_index < size; iter->Next(), cur_index++) {
-        if (cur_index == target_index) {
-          batch.Delete(handles_[1], iter->key());
-          ParsedSetsMemberKey parsed_sets_member_key(iter->key());
-          *member = parsed_sets_member_key.member().ToString();
+            batch.Delete(handles_[1], iter->key());
+            ParsedSetsMemberKey parsed_sets_member_key(iter->key());
+            members->push_back(parsed_sets_member_key.member().ToString());
 
-          parsed_sets_meta_value.ModifyCount(-1);
-          batch.Put(handles_[0], key, meta_value);
-          break;
         }
+
+        //parsed_sets_meta_value.ModifyCount(-cnt);
+        //batch.Put(handles_[0], key, meta_value);
+        batch.Delete(handles_[0], key);
+        delete iter;   
+
+      } else {
+        engine.seed(time(NULL));
+        int32_t cur_index = 0;
+        int32_t size = parsed_sets_meta_value.count();
+        int32_t target_index = -1;
+        int32_t version = parsed_sets_meta_value.version();
+        std::unordered_set<int32_t> sets_index;
+        int32_t modnum = size;
+
+        for (int64_t cur_round = 0;
+            cur_round < cnt;
+            cur_round++) {
+          do {
+            target_index = engine() % modnum;
+          } while (sets_index.find(target_index) != sets_index.end());
+          sets_index.insert(target_index);
+        }
+
+        SetsMemberKey sets_member_key(key, version, Slice());
+        int64_t del_count = 0;
+        auto iter = db_->NewIterator(default_read_options_, handles_[1]);
+        for (iter->Seek(sets_member_key.Encode());
+            iter->Valid() && cur_index < size;
+            iter->Next(), cur_index++) {
+          if (del_count == cnt) {
+            break;
+          }
+          if (sets_index.find(cur_index) != sets_index.end()) {
+            del_count++;
+            batch.Delete(handles_[1], iter->key());
+            ParsedSetsMemberKey parsed_sets_member_key(iter->key());
+            members->push_back(parsed_sets_member_key.member().ToString());
+          }
+        }
+
+        parsed_sets_meta_value.ModifyCount(-cnt);
+        batch.Put(handles_[0], key, meta_value);
+        delete iter;
+
       }
-      delete iter;
+      
     }
   } else {
     return s;
@@ -813,7 +859,8 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::string* member, bool* nee
   uint64_t count = 0;
   uint64_t duration = pstd::NowMicros() - start_us;
   AddAndGetSpopCount(key.ToString(), &count);
-  if (duration >= SPOP_COMPACT_THRESHOLD_DURATION || count >= SPOP_COMPACT_THRESHOLD_COUNT) {
+  if (duration >= SPOP_COMPACT_THRESHOLD_DURATION
+    || count >= SPOP_COMPACT_THRESHOLD_COUNT) {
     *need_compact = true;
     ResetSpopCount(key.ToString());
   }
@@ -1434,7 +1481,7 @@ void RedisSets::ScanDatabase() {
   iterator_options.fill_cache = false;
   int32_t current_time = time(nullptr);
 
-  printf("\n***************Sets Meta Data***************\n");
+  LOG(INFO) << "***************Sets Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);
   for (meta_iter->SeekToFirst(); meta_iter->Valid(); meta_iter->Next()) {
     ParsedSetsMetaValue parsed_sets_meta_value(meta_iter->value());
@@ -1445,18 +1492,19 @@ void RedisSets::ScanDatabase() {
                           : -1;
     }
 
-    printf("[key : %-30s] [count : %-10d] [timestamp : %-10d] [version : %d] [survival_time : %d]\n",
-           meta_iter->key().ToString().c_str(), parsed_sets_meta_value.count(), parsed_sets_meta_value.timestamp(),
-           parsed_sets_meta_value.version(), survival_time);
+    LOG(INFO) << fmt::format("[key : {:<30}] [count : {:<10}] [timestamp : {:<10}] [version : {}] [survival_time : {}]",
+                             meta_iter->key().ToString(), parsed_sets_meta_value.count(), parsed_sets_meta_value.timestamp(),
+                             parsed_sets_meta_value.version(), survival_time);
   }
   delete meta_iter;
 
-  printf("\n***************Sets Member Data***************\n");
+  LOG(INFO) << "***************Sets Member Data***************";
   auto member_iter = db_->NewIterator(iterator_options, handles_[1]);
   for (member_iter->SeekToFirst(); member_iter->Valid(); member_iter->Next()) {
     ParsedSetsMemberKey parsed_sets_member_key(member_iter->key());
-    printf("[key : %-30s] [member : %-20s] [version : %d]\n", parsed_sets_member_key.key().ToString().c_str(),
-           parsed_sets_member_key.member().ToString().c_str(), parsed_sets_member_key.version());
+
+    LOG(INFO) << fmt::format("[key : {:<30}] [member : {:<20}] [version : {}]", parsed_sets_member_key.key().ToString(),
+                             parsed_sets_member_key.member().ToString(), parsed_sets_member_key.version());
   }
   delete member_iter;
 }

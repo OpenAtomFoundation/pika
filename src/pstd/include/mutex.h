@@ -10,9 +10,7 @@
 
 #include "pstd/include/pstd_status.h"
 
-namespace pstd {
-
-namespace lock {
+namespace pstd::lock {
 
 using Status = pstd::Status;
 
@@ -83,6 +81,6 @@ class MutexFactory {
   virtual ~MutexFactory() {}
 };
 
-}  // namespace lock
-}  // namespace pstd
+}  // namespace pstd::lock
+
 #endif  // __SRC_MUTEX_H__

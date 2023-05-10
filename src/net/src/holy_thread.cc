@@ -7,6 +7,8 @@
 
 #include "net/src/holy_thread.h"
 
+#include <glog/logging.h>
+
 #include "net/include/net_conn.h"
 #include "net/src/net_item.h"
 #include "net/src/net_multiplexer.h"
@@ -276,7 +278,6 @@ void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
   if (pfe->mask & kReadable) {
     char bb[2048];
     int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
-    //  log_info("notify_received bytes %d\n", nread);
     if (nread == 0) {
       return;
     } else {
@@ -287,7 +288,7 @@ void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
         if (ti.notify_type() == net::kNotiWrite) {
           net_multiplexer_->NetModEvent(ti.fd(), 0, kReadable | kWritable);
         } else if (ti.notify_type() == net::kNotiClose) {
-          log_info("receive noti close\n");
+          LOG(INFO) << "receive noti close";
           std::shared_ptr<net::NetConn> conn = get_conn(fd);
           if (conn == nullptr) {
             continue;

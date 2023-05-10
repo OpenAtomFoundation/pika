@@ -2,6 +2,8 @@
 #include <sstream>
 #include <string>
 
+#include <glog/logging.h>
+
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
 #include "pstd/include/xdebug.h"
@@ -27,7 +29,7 @@ int StartRsync(const std::string& raw_path, const std::string& module, const std
   std::string secret_file(rsync_path + kRsyncSecretFile);
   std::ofstream secret_stream(secret_file.c_str());
   if (!secret_stream) {
-    log_warn("Open rsync secret file failed!");
+    LOG(WARNING) << "Open rsync secret file failed!";
     return -1;
   }
   secret_stream << kRsyncUser << ":" << passwd;
@@ -37,7 +39,7 @@ int StartRsync(const std::string& raw_path, const std::string& module, const std
   std::string conf_file(rsync_path + kRsyncConfFile);
   std::ofstream conf_stream(conf_file.c_str());
   if (!conf_stream) {
-    log_warn("Open rsync conf file failed!");
+    LOG(WARNING) << "Open rsync conf file failed!";
     return -1;
   }
 
@@ -71,14 +73,14 @@ int StartRsync(const std::string& raw_path, const std::string& module, const std
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     return 0;
   }
-  log_warn("Start rsync deamon failed : %d!", ret);
+  LOG(WARNING) << "Start rsync deamon failed : " << ret << "!";
   return ret;
 }
 
 int StopRsync(const std::string& raw_path) {
   // Sanity check
   if (raw_path.empty()) {
-    log_warn("empty rsync path!");
+    LOG(WARNING) << "empty rsync path!";
     return -1;
   }
   std::string path(raw_path);
@@ -88,20 +90,20 @@ int StopRsync(const std::string& raw_path) {
 
   std::string pid_file(path + kRsyncSubDir + "/" + kRsyncPidFile);
   if (!FileExists(pid_file)) {
-    log_warn("no rsync pid file found");
+    LOG(WARNING) << "no rsync pid file found";
     return 0;  // Rsync deamon is not exist
   }
 
   // Kill Rsync
   SequentialFile* sequential_file;
   if (!NewSequentialFile(pid_file, &sequential_file).ok()) {
-    log_warn("no rsync pid file found");
+    LOG(WARNING) << "no rsync pid file found";
     return 0;
   };
 
   char line[32];
   if (sequential_file->ReadLine(line, 32) == nullptr) {
-    log_warn("read rsync pid file err");
+    LOG(WARNING) << "read rsync pid file err";
     delete sequential_file;
     return 0;
   };
@@ -111,16 +113,16 @@ int StopRsync(const std::string& raw_path) {
   pid_t pid = atoi(line);
 
   if (pid <= 1) {
-    log_warn("read rsync pid err");
+    LOG(WARNING) << "read rsync pid err";
     return 0;
   }
 
   std::string rsync_stop_cmd = "kill -- -$(ps -o pgid= " + std::to_string(pid) + ")";
   int ret = system(rsync_stop_cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
-    log_info("Stop rsync success!");
+    LOG(INFO) << "Stop rsync success!";
   } else {
-    log_warn("Stop rsync deamon failed : %d!", ret);
+    LOG(WARNING) << "Stop rsync deamon failed : " << ret << "!";
   }
   CleanRsyncInfo(path);
   return ret;
@@ -138,7 +140,7 @@ int RsyncSendFile(const std::string& local_file_path, const std::string& remote_
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     return 0;
   }
-  log_warn("Rsync send file failed : %d!", ret);
+  LOG(WARNING) << "Rsync send file failed : " << ret << "!";
   return ret;
 }
 
@@ -162,7 +164,7 @@ int RsyncSendClearTarget(const std::string& local_dir_path, const std::string& r
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     return 0;
   }
-  log_warn("Rsync send file failed : %d!", ret);
+  LOG(WARNING) << "Rsync send file failed : " << ret << "!";
   return ret;
 }
 

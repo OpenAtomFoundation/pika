@@ -116,17 +116,6 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*>* cmd_table) {
   // Cluster related
   Cmd* pkclusterinfoptr = new PkClusterInfoCmd(kCmdNamePkClusterInfo, -3, kCmdFlagsRead | kCmdFlagsAdmin);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterInfo, pkclusterinfoptr));
-  Cmd* pkclusteraddslotsptr = new PkClusterAddSlotsCmd(kCmdNamePkClusterAddSlots, -3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterAddSlots, pkclusteraddslotsptr));
-  Cmd* pkclusterdelslotsptr = new PkClusterDelSlotsCmd(kCmdNamePkClusterDelSlots, -3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterDelSlots, pkclusterdelslotsptr));
-  Cmd* pkclusterslotsslaveofptr =
-      new PkClusterSlotsSlaveofCmd(kCmdNamePkClusterSlotsSlaveof, -5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterSlotsSlaveof, pkclusterslotsslaveofptr));
-  Cmd* pkclusteraddtableptr = new PkClusterAddTableCmd(kCmdNamePkClusterAddTable, 4, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterAddTable, pkclusteraddtableptr));
-  Cmd* pkclusterdeltableptr = new PkClusterDelTableCmd(kCmdNamePkClusterDelTable, 3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterDelTable, pkclusterdeltableptr));
 
   // Kv
   ////SetCmd
@@ -414,7 +403,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*>* cmd_table) {
   Cmd* saddptr = new SAddCmd(kCmdNameSAdd, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSAdd, saddptr));
   ////SPopCmd
-  Cmd* spopptr = new SPopCmd(kCmdNameSPop, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsSet);
+  Cmd* spopptr = new SPopCmd(kCmdNameSPop, -2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsSet);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSPop, spopptr));
   ////SCardCmd
   Cmd* scardptr = new SCardCmd(kCmdNameSCard, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsSet);
