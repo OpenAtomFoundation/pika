@@ -320,9 +320,9 @@ set(ZSTD_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 ExternalProject_Add(fmt
   DEPENDS
   URL
-  https://github.com/fmtlib/fmt/archive/refs/heads/master.tar.gz
+  https://github.com/fmtlib/fmt/archive/refs/tags/7.1.0.tar.gz
   URL_HASH
-  MD5=27e54411fce14de11624994b3ebf3c48
+  MD5=32af902636d373641f4ef9032fc65b3a
   DOWNLOAD_NO_PROGRESS
   1
   UPDATE_COMMAND
@@ -450,14 +450,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   )
   set(LIBGPERF_NAME gperftools)
 endif()
-
-if(${OS_VERSION} MATCHES "CentOS")
-  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
-else()
-  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR}/libtcmalloc.a)
-endif()
-
-set(TCMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   ExternalProject_Add(jemalloc
