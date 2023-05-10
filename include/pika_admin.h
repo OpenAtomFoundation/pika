@@ -44,7 +44,6 @@ class DbSlaveofCmd : public Cmd {
   virtual void Do(std::shared_ptr<Partition> partition = nullptr);
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
   virtual void Merge(){};
-  //virtual Cmd* Clone() override { return new DbSlaveofCmd(*this); }
 
  private:
   std::string db_name_;
@@ -53,7 +52,6 @@ class DbSlaveofCmd : public Cmd {
   bool have_offset_ = false;
   int64_t filenum_ = 0;
   int64_t offset_ = 0;
-  //virtual void DoInitial() override;
   virtual void Clear() {
     db_name_.clear();
     force_sync_ = false;
