@@ -7,6 +7,8 @@
 
 #include <assert.h> /* assert */
 
+#include <glog/logging.h>
+
 #include "pstd/include/pstd_string.h"
 #include "pstd/include/xdebug.h"
 
@@ -296,20 +298,19 @@ RedisParserStatus RedisParser::ProcessMultibulkBuffer() {
 }
 
 void RedisParser::PrintCurrentStatus() {
-  log_info("status_code %d error_code %d", status_code_, error_code_);
-  log_info("multibulk_len_ %ld bulk_len %ld redis_type %d redis_parser_type %d", multibulk_len_, bulk_len_, redis_type_,
-           redis_parser_type_);
+  LOG(INFO) << "status_code " << status_code_ << " error_code " <<  error_code_;
+  LOG(INFO) << "multibulk_len_ " << multibulk_len_ << "bulk_len " << bulk_len_ << " redis_type " << redis_type_ << " redis_parser_type " << redis_parser_type_;
   // for (auto& i : argv_) {
   //   UNUSED(i);
   //   log_info("parsed arguments: %s", i.c_str());
   // }
-  log_info("cur_pos : %d", cur_pos_);
-  log_info("input_buf_ is clean ? %d", input_buf_ == nullptr);
+  LOG(INFO) << "cur_pos : " << cur_pos_;
+  LOG(INFO) << "input_buf_ is clean ? " << (input_buf_ == nullptr);
   if (input_buf_ != nullptr) {
-    log_info(" input_buf %s", input_buf_);
+    LOG(INFO) << " input_buf " << input_buf_;
   }
-  log_info("half_argv_ : %s", half_argv_.c_str());
-  log_info("input_buf len %d", length_);
+  LOG(INFO) << "half_argv_ : " << half_argv_;
+  LOG(INFO) << "input_buf len " << length_;
 }
 
 RedisParserStatus RedisParser::ProcessInputBuffer(const char* input_buf, int length, int* parsed_len) {

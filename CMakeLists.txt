@@ -317,6 +317,45 @@ endif()
 
 set(ZSTD_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
+ExternalProject_Add(fmt
+  DEPENDS
+  URL
+  https://github.com/fmtlib/fmt/archive/refs/tags/7.1.0.tar.gz
+  URL_HASH
+  MD5=32af902636d373641f4ef9032fc65b3a
+  DOWNLOAD_NO_PROGRESS
+  1
+  UPDATE_COMMAND
+  ""
+  LOG_CONFIGURE
+  1
+  LOG_BUILD
+  1
+  LOG_INSTALL
+  1
+  CMAKE_ARGS
+  -DCMAKE_INSTALL_PREFIX=${STAGED_INSTALL_PREFIX}
+  -DCMAKE_BUILD_TYPE=${LIB_BUILD_TYPE}
+  BUILD_ALWAYS
+  1
+  BUILD_COMMAND
+  make -j${CPU_CORE}
+)
+
+if(${LIB_BUILD_TYPE} STREQUAL DEBUG)
+  set(LIB_FMT libfmtd.a)
+else()
+  set(LIB_FMT libfmt.a)
+endif()
+
+if(${OS_VERSION} MATCHES "CentOS")
+  set(FMT_LIBRARY ${INSTALL_LIBDIR_64}/${LIB_FMT})
+else()
+  set(FMT_LIBRARY ${INSTALL_LIBDIR}/${LIB_FMT})
+endif()
+
+set(FMT_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
+
 ExternalProject_Add(lz4
   DEPENDS
   URL
@@ -411,14 +450,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   )
   set(LIBGPERF_NAME gperftools)
 endif()
-
-if(${OS_VERSION} MATCHES "CentOS")
-  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR_64}/liblibtcmalloclz4.a)
-else()
-  set(TCMALLOC_LIBRARY ${INSTALL_LIBDIR}/libtcmalloc.a)
-endif()
-
-set(TCMALLOC_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   ExternalProject_Add(jemalloc
@@ -678,6 +709,7 @@ add_dependencies(${PROJECT_NAME}
   gtest
   ${LIBUNWIND_NAME}
   glog
+  fmt
   snappy
   zstd
   lz4
@@ -704,6 +736,7 @@ target_link_libraries(${PROJECT_NAME}
   librocksdb.a
   ${LIB_PROTOBUF}
   ${LIB_GFLAGS}
+  ${LIB_FMT}
   libsnappy.a
   libzstd.a
   liblz4.a

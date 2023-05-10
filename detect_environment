@@ -14,24 +14,6 @@ if test -z "$CXX"; then
     CXX=g++
 fi
 
-# Test whether tcmalloc is available
-if echo 'int main() {}' | $CXX $CFLAGS -x c++ - -o /dev/null \
-  -ltcmalloc 2>/dev/null; then
-    TCMALLOC_LDFLAGS=" -ltcmalloc"
-fi
-
-# Test whether malloc_extension is available
-$CXX $CFLAGS -x c++ - -o /dev/null -ltcmalloc 2>/dev/null  <<EOF
-  #include <gperftools/malloc_extension.h>
-  int main() {
-    MallocExtension::instance()->Initialize();;
-    return 0;
-  }
-EOF
-if [ "$?" = 0 ]; then
-    TCMALLOC_EXTENSION_FLAGS=" -DTCMALLOC_EXTENSION"
-fi
-
 # Test whether Snappy library is installed
 # http://code.google.com/p/snappy/
 $CXX $CFLAGS -x c++ - -o /dev/null 2>/dev/null  <<EOF
@@ -107,6 +89,4 @@ fi
 PROCESSOR_NUMS=$(cat /proc/cpuinfo | grep processor | wc -l)
 
 echo "ROCKSDB_LDFLAGS=$ROCKSDB_LDFLAGS" >> "$OUTPUT"
-echo "TCMALLOC_EXTENSION_FLAGS=$TCMALLOC_EXTENSION_FLAGS" >> "$OUTPUT"
-echo "TCMALLOC_LDFLAGS=$TCMALLOC_LDFLAGS" >> "$OUTPUT"
 echo "PROCESSOR_NUMS=$PROCESSOR_NUMS" >> "$OUTPUT"

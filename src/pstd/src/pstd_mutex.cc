@@ -1,17 +1,18 @@
 #include "pstd/include/pstd_mutex.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
 #include <cstdlib>
+#include <cstring>
+#include <ctime>
 
 #include <algorithm>
+
+#include <glog/logging.h>
 
 namespace pstd {
 
 static void PthreadCall(const char* label, int result) {
   if (result != 0) {
-    fprintf(stderr, "pthread %s: %s\n", label, strerror(result));
+    LOG(ERROR) << "pthread " << label << ":" << strerror(result);
     abort();
   }
 }
@@ -22,7 +23,7 @@ static bool PthreadTimeoutCall(const char* label, int result) {
     if (result == ETIMEDOUT) {
       return false;
     }
-    fprintf(stderr, "pthread %s: %s\n", label, strerror(result));
+    LOG(ERROR) << "pthread " << label << ":" << strerror(result);
     abort();
   }
   return true;
@@ -32,9 +33,7 @@ Mutex::Mutex() { PthreadCall("init mutex", pthread_mutex_init(&mu_, nullptr)); }
 
 Mutex::~Mutex() { PthreadCall("destroy mutex", pthread_mutex_destroy(&mu_)); }
 
-int Mutex::Trylock() {
-  return pthread_mutex_trylock(&mu_);
-}
+int Mutex::Trylock() { return pthread_mutex_trylock(&mu_); }
 
 void Mutex::Lock() { PthreadCall("lock", pthread_mutex_lock(&mu_)); }
 
@@ -74,14 +73,11 @@ bool CondVar::TimedWait(uint32_t timeout) {
    * pthread_cond_timedwait api use absolute API
    * so we need gettimeofday + timeout
    */
-  struct timeval now;
-  gettimeofday(&now, nullptr);
-  struct timespec tsp;
-
-  int64_t usec = now.tv_usec + timeout * 1000LL;
-  tsp.tv_sec = now.tv_sec + usec / 1000000;
-  tsp.tv_nsec = (usec % 1000000) * 1000;
-
+  struct timespec tsp {};
+  clock_gettime(CLOCK_MONOTONIC, &tsp);
+  auto end_ns = tsp.tv_sec * 1000000000 + tsp.tv_nsec + timeout * 1000000;
+  tsp.tv_sec = end_ns / 1000000000;
+  tsp.tv_nsec = end_ns - (tsp.tv_sec * 1000000000);
   return PthreadTimeoutCall("timewait", pthread_cond_timedwait(&cv_, &mu_->mu_, &tsp));
 }
 

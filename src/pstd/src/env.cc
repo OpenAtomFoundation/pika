@@ -12,6 +12,8 @@
 #include <sstream>
 #include <vector>
 
+#include <glog/logging.h>
+
 #include "pstd/include/xdebug.h"
 
 namespace pstd {
@@ -66,7 +68,7 @@ int CreateDir(const std::string& path) {
   int res = 0;
 
   if ((res = mkdir(path.c_str(), 0755)) != 0) {
-    log_warn("mkdir error is %s", strerror(errno));
+    LOG(WARNING) << "mkdir error is " << strerror(errno);
   }
   return res;
 }
@@ -430,13 +432,12 @@ class PosixMmapFile : public WritableFile {
 #else
     if (posix_fallocate(fd_, file_offset_, map_size_) != 0) {
 #endif
-      log_warn("ftruncate error");
+      LOG(WARNING) << "ftruncate error";
       return false;
     }
-    // log_info("map_size %d fileoffset %llu", map_size_, file_offset_);
     void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, file_offset_);
     if (ptr == MAP_FAILED) {
-      log_warn("mmap failed");
+      LOG(WARNING) << "mmap failed";
       return false;
     }
     base_ = reinterpret_cast<char*>(ptr);

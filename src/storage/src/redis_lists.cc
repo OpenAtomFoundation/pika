@@ -5,6 +5,9 @@
 
 #include <memory>
 
+#include <glog/logging.h>
+#include <fmt/core.h>
+
 #include "src/lists_filter.h"
 #include "src/redis_lists.h"
 #include "src/scope_record_lock.h"
@@ -1219,7 +1222,7 @@ void RedisLists::ScanDatabase() {
   iterator_options.fill_cache = false;
   int32_t current_time = time(nullptr);
 
-  printf("\n***************List Meta Data***************\n");
+  LOG(INFO) << "***************List Meta Data***************";
   auto meta_iter = db_->NewIterator(iterator_options, handles_[0]);
   for (meta_iter->SeekToFirst(); meta_iter->Valid(); meta_iter->Next()) {
     ParsedListsMetaValue parsed_lists_meta_value(meta_iter->value());
@@ -1230,22 +1233,19 @@ void RedisLists::ScanDatabase() {
                           : -1;
     }
 
-    printf(
-        "[key : %-30s] [count : %-10lu] [left index : %-10lu] [right index : %-10lu] [timestamp : %-10d] [version : "
-        "%d] [survival_time : %d]\n",
-        meta_iter->key().ToString().c_str(), parsed_lists_meta_value.count(), parsed_lists_meta_value.left_index(),
-        parsed_lists_meta_value.right_index(), parsed_lists_meta_value.timestamp(), parsed_lists_meta_value.version(),
-        survival_time);
+    LOG(INFO) << fmt::format("[key : {:<30}] [count : {:<10}] [left index : {:<10}] [right index : {:<10}] [timestamp : {:<10}] [version : "
+                             "{}] [survival_time : {}]", meta_iter->key().ToString(), parsed_lists_meta_value.count(), parsed_lists_meta_value.left_index(),
+                             parsed_lists_meta_value.right_index(), parsed_lists_meta_value.timestamp(), parsed_lists_meta_value.version(), survival_time);
   }
   delete meta_iter;
 
-  printf("\n***************List Node Data***************\n");
+  LOG(INFO) << "***************List Node Data***************";
   auto data_iter = db_->NewIterator(iterator_options, handles_[1]);
   for (data_iter->SeekToFirst(); data_iter->Valid(); data_iter->Next()) {
     ParsedListsDataKey parsed_lists_data_key(data_iter->key());
-    printf("[key : %-30s] [index : %-10lu] [data : %-20s] [version : %d]\n",
-           parsed_lists_data_key.key().ToString().c_str(), parsed_lists_data_key.index(),
-           data_iter->value().ToString().c_str(), parsed_lists_data_key.version());
+
+    LOG(INFO) << fmt::format("[key : {:<30}] [index : {:<10}] [data : {:<20}] [version : {}]", parsed_lists_data_key.key().ToString(), 
+                             parsed_lists_data_key.index(), data_iter->value().ToString(), parsed_lists_data_key.version());
   }
   delete data_iter;
 }

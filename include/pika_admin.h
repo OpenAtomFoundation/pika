@@ -388,22 +388,6 @@ class PaddingCmd : public Cmd {
                                uint64_t offset) override;
 };
 
-#ifdef TCMALLOC_EXTENSION
-class TcmallocCmd : public Cmd {
- public:
-  TcmallocCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
-  virtual void Merge(){};
-  virtual Cmd* Clone() override { return new TcmallocCmd(*this); }
-
- private:
-  int64_t type_;
-  int64_t rate_;
-  virtual void DoInitial() override;
-};
-#endif
-
 class PKPatternMatchDelCmd : public Cmd {
  public:
   PKPatternMatchDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}

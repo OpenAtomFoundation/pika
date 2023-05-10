@@ -21,10 +21,15 @@ endif()
 
 add_library(net STATIC ${DIR_SRCS} )
 
-add_dependencies(net 
-  protobuf
-)
+add_dependencies(net protobuf glog gflags ${LIBUNWIND_NAME})
+
 
 target_include_directories(net
   PUBLIC ${PROJECT_SOURCE_DIR}/..
   PUBLIC ${INSTALL_INCLUDEDIR})
+
+target_link_libraries(net
+    PUBLIC ${GLOG_LIBRARY}
+           ${GFLAGS_LIBRARY}
+           ${LIBUNWIND_LIBRARY}
+)

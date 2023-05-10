@@ -41,9 +41,6 @@ const std::string kCmdNameEcho = "echo";
 const std::string kCmdNameScandb = "scandb";
 const std::string kCmdNameSlowlog = "slowlog";
 const std::string kCmdNamePadding = "padding";
-#ifdef TCMALLOC_EXTENSION
-const std::string kCmdNameTcmalloc = "tcmalloc";
-#endif
 const std::string kCmdNamePKPatternMatchDel = "pkpatternmatchdel";
 const std::string kCmdDummy = "dummy";
 const std::string kCmdNameQuit = "quit";

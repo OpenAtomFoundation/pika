@@ -6,6 +6,8 @@
 #include "storage/storage.h"
 #include "storage/util.h"
 
+#include <glog/logging.h>
+
 #include "src/lru_cache.h"
 #include "src/mutex_impl.h"
 #include "src/options_helper.h"
@@ -60,8 +62,7 @@ Storage::Storage()
 
   Status s = StartBGThread();
   if (!s.ok()) {
-    fprintf(stderr, "[FATAL] start bg thread failed, %s\n", s.ToString().c_str());
-    exit(-1);
+    LOG(FATAL) << "start bg thread failed, " << s.ToString();
   }
 }
 
@@ -79,7 +80,7 @@ Storage::~Storage() {
 
   int ret = 0;
   if ((ret = pthread_join(bg_tasks_thread_id_, nullptr)) != 0) {
-    fprintf(stderr, "pthread_join failed with bgtask thread error %d\n", ret);
+    LOG(ERROR) << "pthread_join failed with bgtask thread error " << ret;
   }
 
   delete strings_db_;
@@ -104,36 +105,31 @@ Status Storage::Open(const StorageOptions& storage_options, const std::string& d
   strings_db_ = new RedisStrings(this, kStrings);
   Status s = strings_db_->Open(storage_options, AppendSubDirectory(db_path, "strings"));
   if (!s.ok()) {
-    fprintf(stderr, "[FATAL] open kv db failed, %s\n", s.ToString().c_str());
-    exit(-1);
+    LOG(FATAL) << "open kv db failed, " << s.ToString();
   }
 
   hashes_db_ = new RedisHashes(this, kHashes);
   s = hashes_db_->Open(storage_options, AppendSubDirectory(db_path, "hashes"));
   if (!s.ok()) {
-    fprintf(stderr, "[FATAL] open hashes db failed, %s\n", s.ToString().c_str());
-    exit(-1);
+    LOG(FATAL) << "open hashes db failed, " << s.ToString();
   }
 
   sets_db_ = new RedisSets(this, kSets);
   s = sets_db_->Open(storage_options, AppendSubDirectory(db_path, "sets"));
   if (!s.ok()) {
-    fprintf(stderr, "[FATAL] open set db failed, %s\n", s.ToString().c_str());
-    exit(-1);
+    LOG(FATAL) << "open set db failed, " << s.ToString();
   }
 
   lists_db_ = new RedisLists(this, kLists);
   s = lists_db_->Open(storage_options, AppendSubDirectory(db_path, "lists"));
   if (!s.ok()) {
-    fprintf(stderr, "[FATAL] open list db failed, %s\n", s.ToString().c_str());
-    exit(-1);
+    LOG(FATAL) << "open list db failed, " << s.ToString();
   }
 
   zsets_db_ = new RedisZSets(this, kZSets);
   s = zsets_db_->Open(storage_options, AppendSubDirectory(db_path, "zsets"));
   if (!s.ok()) {
-    fprintf(stderr, "[FATAL] open zset db failed, %s\n", s.ToString().c_str());
-    exit(-1);
+    LOG(FATAL) << "open zset db failed, " << s.ToString();
   }
   is_opened_.store(true);
   return Status::OK();
