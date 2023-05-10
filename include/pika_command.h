@@ -190,24 +190,6 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
-// Codis Slots
-const std::string kCmdNameSlotsInfo = "slotsinfo";
-const std::string kCmdNameSlotsHashKey = "slotshashkey";
-const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
-const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
-const std::string kCmdNameSlotsDel = "slotsdel";
-const std::string kCmdNameSlotsScan = "slotsscan";
-const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
-const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
-const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
-const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
-const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
-const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
-const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
-
-// Cluster
-const std::string kCmdNamePkClusterInfo = "pkclusterinfo";
-
 const std::string kClusterPrefix = "pkcluster";
 typedef net::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
