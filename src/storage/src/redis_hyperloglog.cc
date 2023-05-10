@@ -17,28 +17,31 @@ HyperLogLog::HyperLogLog(uint8_t precision, std::string origin_register) {
   b_ = precision;
   m_ = 1 << precision;
   alpha_ = Alpha();
-  register_ = new char[m_];
+  // register_ = std::shared_ptr<char>(new char[m_], [](char* ptr) { delete[] ptr; });
+  auto register_ptr = new char[m_];
   for (uint32_t i = 0; i < m_; ++i) {
-    register_[i] = 0;
+    register_ptr[i] = 0;
   }
   if (origin_register != "") {
     for (uint32_t i = 0; i < m_; ++i) {
-      register_[i] = origin_register[i];
+      register_ptr[i] = origin_register[i];
     }
   }
+  register_ = std::shared_ptr<char>(register_ptr, [](char* ptr) { delete[] ptr; });
 }
 
-HyperLogLog::~HyperLogLog() { delete[] register_; }
+HyperLogLog::~HyperLogLog() {}
 
 std::string HyperLogLog::Add(const char* value, uint32_t len) {
   uint32_t hash_value;
   MurmurHash3_x86_32(value, len, HLL_HASH_SEED, static_cast<void*>(&hash_value));
   int32_t index = hash_value & ((1 << b_) - 1);
   uint8_t rank = Nctz((hash_value >> b_), 32 - b_);
-  if (rank > register_[index]) register_[index] = rank;
+  auto register_ptr = register_.get();
+  if (rank > register_ptr[index]) register_ptr[index] = rank;
   std::string result(m_, 0);
   for (uint32_t i = 0; i < m_; ++i) {
-    result[i] = register_[i];
+    result[i] = register_ptr[i];
   }
   return result;
 }
@@ -58,8 +61,9 @@ double HyperLogLog::Estimate() const {
 
 double HyperLogLog::FirstEstimate() const {
   double estimate, sum = 0.0;
+  auto register_ptr = register_.get();
   for (uint32_t i = 0; i < m_; i++) {
-    sum += 1.0 / (1 << register_[i]);
+    sum += 1.0 / (1 << register_ptr[i]);
   }
 
   estimate = alpha_ * m_ * m_ / sum;
@@ -81,8 +85,9 @@ double HyperLogLog::Alpha() const {
 
 uint32_t HyperLogLog::CountZero() const {
   uint32_t count = 0;
+  auto register_ptr = register_.get();
   for (uint32_t i = 0; i < m_; i++) {
-    if (register_[i] == 0) {
+    if (register_ptr[i] == 0) {
       count++;
     }
   }
@@ -93,15 +98,17 @@ std::string HyperLogLog::Merge(const HyperLogLog& hll) {
   if (m_ != hll.m_) {
     // TODO(shq) the number of registers doesn't match
   }
+  auto register_ptr = register_.get();
+  auto hll_register_ptr = hll.register_.get();
   for (uint32_t r = 0; r < m_; r++) {
-    if (register_[r] < hll.register_[r]) {
-      register_[r] |= hll.register_[r];
+    if (register_ptr[r] < hll_register_ptr[r]) {
+      register_ptr[r] |= hll_register_ptr[r];
     }
   }
 
   std::string result(m_, 0);
   for (uint32_t i = 0; i < m_; ++i) {
-    result[i] = register_[i];
+    result[i] = register_ptr[i];
   }
   return result;
 }

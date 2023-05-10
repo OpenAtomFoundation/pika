@@ -56,7 +56,7 @@ Storage::Storage()
       current_task_type_(kNone),
       bg_tasks_should_exit_(false),
       scan_keynum_exit_(false) {
-  cursors_store_ = new LRUCache<std::string, std::string>();
+  cursors_store_ = std::shared_ptr<LRUCache<std::string, std::string>>(new LRUCache<std::string, std::string>());
   cursors_store_->SetCapacity(5000);
 
   Status s = StartBGThread();
@@ -81,13 +81,6 @@ Storage::~Storage() {
   if ((ret = pthread_join(bg_tasks_thread_id_, nullptr)) != 0) {
     LOG(ERROR) << "pthread_join failed with bgtask thread error " << ret;
   }
-
-  delete strings_db_;
-  delete hashes_db_;
-  delete sets_db_;
-  delete lists_db_;
-  delete zsets_db_;
-  delete cursors_store_;
 }
 
 static std::string AppendSubDirectory(const std::string& db_path, const std::string& sub_db) {
@@ -101,31 +94,31 @@ static std::string AppendSubDirectory(const std::string& db_path, const std::str
 Status Storage::Open(const StorageOptions& storage_options, const std::string& db_path) {
   mkpath(db_path.c_str(), 0755);
 
-  strings_db_ = new RedisStrings(this, kStrings);
+  strings_db_ = std::shared_ptr<RedisStrings>(new RedisStrings(this, kStrings));
   Status s = strings_db_->Open(storage_options, AppendSubDirectory(db_path, "strings"));
   if (!s.ok()) {
     LOG(FATAL) << "open kv db failed, " << s.ToString();
   }
 
-  hashes_db_ = new RedisHashes(this, kHashes);
+  hashes_db_ = std::shared_ptr<RedisHashes>(new RedisHashes(this, kHashes));
   s = hashes_db_->Open(storage_options, AppendSubDirectory(db_path, "hashes"));
   if (!s.ok()) {
     LOG(FATAL) << "open hashes db failed, " << s.ToString();
   }
 
-  sets_db_ = new RedisSets(this, kSets);
+  sets_db_ = std::shared_ptr<RedisSets>(new RedisSets(this, kSets));
   s = sets_db_->Open(storage_options, AppendSubDirectory(db_path, "sets"));
   if (!s.ok()) {
     LOG(FATAL) << "open set db failed, " << s.ToString();
   }
 
-  lists_db_ = new RedisLists(this, kLists);
+  lists_db_ = std::shared_ptr<RedisLists>(new RedisLists(this, kLists));
   s = lists_db_->Open(storage_options, AppendSubDirectory(db_path, "lists"));
   if (!s.ok()) {
     LOG(FATAL) << "open list db failed, " << s.ToString();
   }
 
-  zsets_db_ = new RedisZSets(this, kZSets);
+  zsets_db_ = std::shared_ptr<RedisZSets>(new RedisZSets(this, kZSets));
   s = zsets_db_->Open(storage_options, AppendSubDirectory(db_path, "zsets"));
   if (!s.ok()) {
     LOG(FATAL) << "open zset db failed, " << s.ToString();
@@ -1571,7 +1564,7 @@ Status Storage::CompactKey(const DataType& type, const std::string& key) {
 }
 
 Status Storage::SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
-  std::vector<Redis*> dbs = {sets_db_, zsets_db_, hashes_db_, lists_db_};
+  std::vector<std::shared_ptr<Redis>> dbs = {sets_db_, zsets_db_, hashes_db_, lists_db_};
   for (const auto& db : dbs) {
     db->SetMaxCacheStatisticKeys(max_cache_statistic_keys);
   }
@@ -1579,7 +1572,7 @@ Status Storage::SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
 }
 
 Status Storage::SetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
-  std::vector<Redis*> dbs = {sets_db_, zsets_db_, hashes_db_, lists_db_};
+  std::vector<std::shared_ptr<Redis>> dbs = {sets_db_, zsets_db_, hashes_db_, lists_db_};
   for (const auto& db : dbs) {
     db->SetSmallCompactionThreshold(small_compaction_threshold);
   }
@@ -1650,7 +1643,7 @@ uint64_t Storage::GetProperty(const std::string& db_type, const std::string& pro
 Status Storage::GetKeyNum(std::vector<KeyInfo>* key_infos) {
   KeyInfo key_info;
   // NOTE: keep the db order with string, hash, list, zset, set
-  std::vector<Redis*> dbs = {strings_db_, hashes_db_, lists_db_, zsets_db_, sets_db_};
+  std::vector<std::shared_ptr<Redis>> dbs = {strings_db_, hashes_db_, lists_db_, zsets_db_, sets_db_};
   for (const auto& db : dbs) {
     // check the scanner was stopped or not, before scanning the next db
     if (scan_keynum_exit_) {
