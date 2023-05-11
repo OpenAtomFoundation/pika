@@ -473,5 +473,5 @@ void* TrysyncThread::ThreadMain() {
     cli_->Close();
   }
 
-  return NULL;
+  return nullptr;
 }

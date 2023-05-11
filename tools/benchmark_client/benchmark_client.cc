@@ -92,18 +92,18 @@ std::vector<ThreadArg> thread_args;
 void* ThreadMain(void* arg) {
   ThreadArg* ta = reinterpret_cast<ThreadArg*>(arg);
   redisContext* c;
-  redisReply* res = NULL;
+  redisReply* res = nullptr;
   struct timeval timeout = {1, 500000};  // 1.5 seconds
   c = redisConnectWithTimeout(hostname.data(), port, timeout);
 
-  if (c == NULL || c->err) {
+  if (c == nullptr || c->err) {
     if (c) {
       printf("Thread %lu, Connection error: %s\n", ta->tid, c->errstr);
       redisFree(c);
     } else {
       printf("Thread %lu, Connection error: can't allocate redis context\n", ta->tid);
     }
-    return NULL;
+    return nullptr;
   }
 
   if (!password.empty()) {
@@ -111,18 +111,18 @@ void* ThreadMain(void* arg) {
     size_t auth_argv_len[2] = {4, password.size()};
     res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 2, reinterpret_cast<const char**>(auth_argv),
                                                          reinterpret_cast<const size_t*>(auth_argv_len)));
-    if (res == NULL) {
+    if (res == nullptr) {
       printf("Thread %lu  Auth Failed, Get reply Error\n", ta->tid);
       freeReplyObject(res);
       redisFree(c);
-      return NULL;
+      return nullptr;
     } else {
       if (!strcasecmp(res->str, "OK")) {
       } else {
         printf("Thread %lu Auth Failed: %s, thread exit...\n", ta->idx, res->str);
         freeReplyObject(res);
         redisFree(c);
-        return NULL;
+        return nullptr;
       }
     }
     freeReplyObject(res);
@@ -132,11 +132,11 @@ void* ThreadMain(void* arg) {
   size_t select_argv_len[2] = {6, ta->table_name.size()};
   res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 2, reinterpret_cast<const char**>(select_argv),
                                                        reinterpret_cast<const size_t*>(select_argv_len)));
-  if (res == NULL) {
+  if (res == nullptr) {
     printf("Thread %lu Select Table %s Failed, Get reply Error\n", ta->tid, ta->table_name.data());
     freeReplyObject(res);
     redisFree(c);
-    return NULL;
+    return nullptr;
   } else {
     if (!strcasecmp(res->str, "OK")) {
       printf("Table %s Thread %lu Select DB Success, start to write data...\n", ta->table_name.data(), ta->idx);
@@ -144,7 +144,7 @@ void* ThreadMain(void* arg) {
       printf("Table %s Thread %lu Select DB Failed: %s, thread exit...\n", ta->table_name.data(), ta->idx, res->str);
       freeReplyObject(res);
       redisFree(c);
-      return NULL;
+      return nullptr;
     }
   }
   freeReplyObject(res);
@@ -155,7 +155,7 @@ void* ThreadMain(void* arg) {
       std::string thread_info = "Table " + ta->table_name + ", Thread " + std::to_string(ta->idx);
       printf("%s, %s, thread exit...\n", thread_info.c_str(), s.ToString().c_str());
       redisFree(c);
-      return NULL;
+      return nullptr;
     }
   } else if (transmit_mode == kPipeline) {
     Status s = RunSetCommandPipeline(c);
@@ -163,18 +163,18 @@ void* ThreadMain(void* arg) {
       std::string thread_info = "Table " + ta->table_name + ", Thread " + std::to_string(ta->idx);
       printf("%s, %s, thread exit...\n", thread_info.c_str(), s.ToString().c_str());
       redisFree(c);
-      return NULL;
+      return nullptr;
     }
   }
 
   redisFree(c);
-  return NULL;
+  return nullptr;
 }
 
 Status RunSetCommandPipeline(redisContext* c) {
-  redisReply* res = NULL;
+  redisReply* res = nullptr;
   for (size_t idx = 0; idx < number_of_request; (idx += pipeline_num)) {
-    const char* argv[3] = {"SET", NULL, NULL};
+    const char* argv[3] = {"SET", nullptr, nullptr};
     size_t argv_len[3] = {3, 0, 0};
     for (int32_t batch_idx = 0; batch_idx < pipeline_num; ++batch_idx) {
       std::string key;
@@ -202,8 +202,8 @@ Status RunSetCommandPipeline(redisContext* c) {
       if (redisGetReply(c, reinterpret_cast<void**>(&res)) == REDIS_ERR) {
         return Status::Corruption("Redis Pipeline Get Reply Error");
       } else {
-        if (res == NULL || strcasecmp(res->str, "OK")) {
-          std::string res_str = "Exec command error: " + (res != NULL ? std::string(res->str) : "");
+        if (res == nullptr || strcasecmp(res->str, "OK")) {
+          std::string res_str = "Exec command error: " + (res != nullptr ? std::string(res->str) : "");
           freeReplyObject(res);
           return Status::Corruption(res_str);
         }
@@ -215,7 +215,7 @@ Status RunSetCommandPipeline(redisContext* c) {
 }
 
 Status RunSetCommand(redisContext* c) {
-  redisReply* res = NULL;
+  redisReply* res = nullptr;
   for (size_t idx = 0; idx < number_of_request; ++idx) {
     const char* set_argv[3];
     size_t set_argvlen[3];
@@ -238,8 +238,8 @@ Status RunSetCommand(redisContext* c) {
 
     res = reinterpret_cast<redisReply*>(
         redisCommandArgv(c, 3, reinterpret_cast<const char**>(set_argv), reinterpret_cast<const size_t*>(set_argvlen)));
-    if (res == NULL || strcasecmp(res->str, "OK")) {
-      std::string res_str = "Exec command error: " + (res != NULL ? std::string(res->str) : "");
+    if (res == nullptr || strcasecmp(res->str, "OK")) {
+      std::string res_str = "Exec command error: " + (res != nullptr ? std::string(res->str) : "");
       freeReplyObject(res);
       return Status::Corruption(res_str);
     }
@@ -249,7 +249,7 @@ Status RunSetCommand(redisContext* c) {
 }
 
 Status RunZAddCommand(redisContext* c) {
-  redisReply* res = NULL;
+  redisReply* res = nullptr;
   for (size_t idx = 0; idx < 1; ++idx) {
     const char* zadd_argv[4];
     size_t zadd_argvlen[4];
@@ -272,8 +272,8 @@ Status RunZAddCommand(redisContext* c) {
 
       res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 4, reinterpret_cast<const char**>(zadd_argv),
                                                            reinterpret_cast<const size_t*>(zadd_argvlen)));
-      if (res == NULL || res->integer == 0) {
-        std::string res_str = "Exec command error: " + (res != NULL ? std::string(res->str) : "");
+      if (res == nullptr || res->integer == 0) {
+        std::string res_str = "Exec command error: " + (res != nullptr ? std::string(res->str) : "");
         freeReplyObject(res);
         return Status::Corruption(res_str);
       }
@@ -339,11 +339,11 @@ int main(int argc, char* argv[]) {
   }
 
   for (size_t idx = 0; idx < thread_args.size(); ++idx) {
-    pthread_create(&thread_args[idx].tid, NULL, ThreadMain, &thread_args[idx]);
+    pthread_create(&thread_args[idx].tid, nullptr, ThreadMain, &thread_args[idx]);
   }
 
   for (size_t idx = 0; idx < thread_args.size(); ++idx) {
-    pthread_join(thread_args[idx].tid, NULL);
+    pthread_join(thread_args[idx].tid, nullptr);
   }
 
   std::chrono::system_clock::time_point end_time = std::chrono::system_clock::now();

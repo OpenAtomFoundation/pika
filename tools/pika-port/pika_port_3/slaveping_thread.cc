@@ -45,7 +45,7 @@ Status SlavepingThread::RecvProc() {
 void* SlavepingThread::ThreadMain() {
   struct timeval last_interaction;
   struct timeval now;
-  gettimeofday(&now, NULL);
+  gettimeofday(&now, nullptr);
   last_interaction = now;
   Status s;
   int connect_retry_times = 0;
@@ -73,10 +73,10 @@ void* SlavepingThread::ThreadMain() {
           s = RecvProc();
         }
         if (s.ok()) {
-          gettimeofday(&last_interaction, NULL);
+          gettimeofday(&last_interaction, nullptr);
         } else if (s.IsTimeout()) {
           LOG(WARNING) << "Slaveping timeout once";
-          gettimeofday(&now, NULL);
+          gettimeofday(&now, nullptr);
           if (now.tv_sec - last_interaction.tv_sec > 30) {
             // timeout;
             LOG(INFO) << "Ping master timeout";
@@ -103,5 +103,5 @@ void* SlavepingThread::ThreadMain() {
       }
     }
   }
-  return NULL;
+  return nullptr;
 }

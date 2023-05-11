@@ -21,14 +21,13 @@
 #include "pstd/include/pstd_string.h"
 
 PikaPort::PikaPort(std::string& master_ip, int master_port, std::string& passwd)
-    : ping_thread_(NULL),
+    : ping_thread_(nullptr),
       master_ip_(master_ip),
       master_port_(master_port),
       master_connection_(0),
       role_(PIKA_ROLE_PORT),
       repl_state_(PIKA_REPL_NO_CONNECT),
       requirepass_(passwd),
-      // cli_(NULL),
       should_exit_(false),
       sid_(0) {
   // Init ip host
@@ -217,13 +216,13 @@ void PikaPort::RemoveMaster() {
     master_ip_ = "";
     master_port_ = -1;
   }
-  if (ping_thread_ != NULL) {
+  if (ping_thread_ != nullptr) {
     int err = ping_thread_->StopThread();
     if (err != 0) {
       LOG(WARNING) << "can't join thread " << strerror(err);
     }
     delete ping_thread_;
-    ping_thread_ = NULL;
+    ping_thread_ = nullptr;
   }
 }
 

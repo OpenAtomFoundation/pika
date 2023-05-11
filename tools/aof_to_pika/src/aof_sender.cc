@@ -25,7 +25,7 @@ bool AOFSender::rconnect(const std::string& host, const std::string& port, const
     return false;
   }
 
-  for (p = servinfo; p != NULL; p = p->ai_next) {
+  for (p = servinfo; p != nullptr; p = p->ai_next) {
     if ((s = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) continue;
     // connect
     if (connect(s, p->ai_addr, p->ai_addrlen) < 0) {
@@ -58,7 +58,7 @@ AOFSender::~AOFSender() {
   buf_rcond_.SignalAll();
   buf_wcond_.SignalAll();
   buf_mutex_.Unlock();
-  if (conn_info_ != NULL) delete conn_info_;
+  if (conn_info_ != nullptr) delete conn_info_;
   close(sockfd_);
 }
 

@@ -812,7 +812,7 @@ rocksdb::Status RedisSets::SPop(const Slice& key, std::vector<std::string>* memb
         delete iter;   
 
       } else {
-        engine.seed(time(NULL));
+        engine.seed(time(nullptr));
         int32_t cur_index = 0;
         int32_t size = parsed_sets_meta_value.count();
         int32_t target_index = -1;

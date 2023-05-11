@@ -1,18 +1,18 @@
 #include "sender.h"
 
 SenderThread::SenderThread(std::string ip, int64_t port, std::string password)
-    : cli_(NULL), ip_(ip), port_(port), password_(password), should_exit_(false), elements_(0) {}
+    : cli_(nullptr), ip_(ip), port_(port), password_(password), should_exit_(false), elements_(0) {}
 
 SenderThread::~SenderThread() {}
 
 void SenderThread::ConnectPika() {
-  while (cli_ == NULL) {
+  while (cli_ == nullptr) {
     // Connect to redis
     cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1000);
     pstd::Status s = cli_->Connect(ip_, port_);
     if (!s.ok()) {
-      cli_ = NULL;
+      cli_ = nullptr;
       log_info("Can not connect to %s:%d: %s", ip_.data(), port_, s.ToString().data());
       continue;
     } else {
@@ -36,14 +36,14 @@ void SenderThread::ConnectPika() {
           } else {
             cli_->Close();
             log_warn("Invalid password");
-            cli_ = NULL;
+            cli_ = nullptr;
             should_exit_ = true;
             return;
           }
         } else {
           cli_->Close();
           log_info("%s", s.ToString().data());
-          cli_ = NULL;
+          cli_ = nullptr;
           continue;
         }
       } else {
@@ -61,14 +61,14 @@ void SenderThread::ConnectPika() {
             if (resp[0] == "NOAUTH Authentication required.") {
               cli_->Close();
               log_warn("Authentication required");
-              cli_ = NULL;
+              cli_ = nullptr;
               should_exit_ = true;
               return;
             }
           } else {
             cli_->Close();
             log_info("%s", s.ToString().data());
-            cli_ = NULL;
+            cli_ = nullptr;
           }
         }
       }
@@ -96,7 +96,7 @@ void SenderThread::SendCommand(std::string& command) {
     LoadCmd(command);
     cli_->Close();
     log_info("%s", s.ToString().data());
-    cli_ = NULL;
+    cli_ = nullptr;
     ConnectPika();
   } else {
     net::RedisCmdArgsType resp;
@@ -115,7 +115,7 @@ void* SenderThread::ThreadMain() {
       rsignal_.wait(lock, [this] { return !cmd_queue_.size() || should_exit_; });
     }
 
-    if (cli_ == NULL) {
+    if (cli_ == nullptr) {
       ConnectPika();
       continue;
     }
@@ -131,5 +131,5 @@ void* SenderThread::ThreadMain() {
 
   delete cli_;
   log_info("Sender thread complete");
-  return NULL;
+  return nullptr;
 }

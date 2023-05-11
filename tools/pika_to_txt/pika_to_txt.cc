@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
   bw_option.options.write_buffer_size = 256 * 1024 * 1024;     // 256M
   bw_option.options.target_file_size_base = 20 * 1024 * 1024;  // 20M
   storage::Storage* storage_db = new storage::Storage();
-  if (storage_db != NULL && (status = storage_db->Open(bw_option, storage_db_path)).ok()) {
+  if (storage_db != nullptr && (status = storage_db->Open(bw_option, storage_db_path)).ok()) {
     std::cout << "Open Storage db success..." << std::endl;
   } else {
     std::cout << "Open Storage db failed..." << std::endl;

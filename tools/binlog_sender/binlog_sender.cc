@@ -208,7 +208,7 @@ int main(int argc, char* argv[]) {
         if (tv_start <= binlog_item.exec_time() && binlog_item.exec_time() <= tv_end) {
           Status net_s = cli->Send(&redis_cmd);
           if (net_s.ok()) {
-            net_s = cli->Recv(NULL);
+            net_s = cli->Recv(nullptr);
             if (net_s.ok()) {
               success_num++;
             } else {

@@ -54,5 +54,5 @@ void* WriteThread::ThreadMain() {
     }
   }
   s.close();
-  return NULL;
+  return nullptr;
 }
