@@ -10,30 +10,25 @@
 
 #define MAX_QUEUE_SIZE 1024
 
-WriteThread::WriteThread(const std::string& file_name)
-    : should_stop_(false), file_name_(file_name), rsignal_(&data_queue_mutex_), wsignal_(&data_queue_mutex_) {}
+WriteThread::WriteThread(const std::string& file_name) : should_stop_(false), file_name_(file_name) {}
 
 void WriteThread::Load(const std::string& data) {
-  data_queue_mutex_.Lock();
+  std::unique_lock lock(data_queue_mutex_);
+
   if (data_queue_.size() < MAX_QUEUE_SIZE) {
     data_queue_.push(data);
-    rsignal_.Signal();
-    data_queue_mutex_.Unlock();
+    rsignal_.notify_one();
   } else {
-    while (data_queue_.size() >= MAX_QUEUE_SIZE) {
-      wsignal_.Wait();
-    }
+    wsignal_.wait(lock, [this] { return data_queue_.size() < MAX_QUEUE_SIZE; });
     data_queue_.push(data);
-    rsignal_.Signal();
-    data_queue_mutex_.Unlock();
+    rsignal_.notify_one();
   }
 }
 
 void WriteThread::Stop() {
-  data_queue_mutex_.Lock();
+  std::unique_lock lock(data_queue_mutex_);
   should_stop_ = true;
-  rsignal_.Signal();
-  data_queue_mutex_.Unlock();
+  rsignal_.notify_one();
 }
 
 void* WriteThread::ThreadMain() {
@@ -43,22 +38,21 @@ void* WriteThread::ThreadMain() {
     exit(-1);
   } else {
     while (!should_stop_ || !data_queue_.empty()) {
-      data_queue_mutex_.Lock();
-      while (data_queue_.empty() && !should_stop_) {
-        rsignal_.Wait();
+      {
+        std::unique_lock lock(data_queue_mutex_);
+        rsignal_.wait(lock, [this] { return !data_queue_.empty() || should_stop_; });
       }
-      data_queue_mutex_.Unlock();
 
       if (data_queue_.size() > 0) {
-        data_queue_mutex_.Lock();
+        data_queue_mutex_.lock();
         std::string data = data_queue_.front();
         data_queue_.pop();
-        wsignal_.Signal();
-        data_queue_mutex_.Unlock();
+        data_queue_mutex_.unlock();
+        wsignal_.notify_one();
         s.write(data.c_str(), data.size());
       }
     }
   }
   s.close();
-  return NULL;
+  return nullptr;
 }

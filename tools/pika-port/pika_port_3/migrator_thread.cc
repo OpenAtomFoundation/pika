@@ -414,5 +414,5 @@ void* MigratorThread::ThreadMain() {
   MigrateDB();
   should_exit_ = true;
   LOG(INFO) << GetDBTypeString(type_) << " keys have been dispatched completly";
-  return NULL;
+  return nullptr;
 }

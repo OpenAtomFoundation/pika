@@ -17,7 +17,7 @@
 extern PikaPort* g_pika_port;
 
 MasterConn::MasterConn(int fd, std::string ip_port, void* worker_specific_data)
-    : NetConn(fd, ip_port, NULL),
+    : NetConn(fd, ip_port, nullptr),
       rbuf_(nullptr),
       rbuf_len_(0),
       rbuf_size_(REDIS_IOBUF_LEN),

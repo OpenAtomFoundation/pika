@@ -213,7 +213,7 @@ pstd::Status BinlogConsumer::Parse(std::string* scratch) {
         if (pstd::FileExists(confile)) {
           // DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
           delete queue_;
-          queue_ = NULL;
+          queue_ = nullptr;
 
           pstd::NewSequentialFile(confile, &queue_);
 
