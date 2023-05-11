@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
   ret = net::SerializeRedisCommand(vec, &str);
   printf("   2. Serialize by vec return %d, (%s)\n", ret, str.c_str());
 
-  NetCli* rcli = NewRedisCli();
+  std::shared_ptr<NetCli> rcli(NewRedisCli());
   rcli->set_connect_timeout(3000);
 
   // redis v3.2+ protect mode will block other ip
