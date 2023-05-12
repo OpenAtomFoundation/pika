@@ -248,8 +248,7 @@ Status RedisStrings::BitCount(const Slice& key, int64_t start_offset, int64_t en
 }
 
 std::string BitOpOperate(BitOpType op, const std::vector<std::string>& src_values, int64_t max_len) {
-  char* dest_value = new char[max_len];
-
+  std::unique_ptr<char[]> dest_value = std::make_unique<char[]>(max_len);
   char byte, output;
   for (int64_t j = 0; j < max_len; j++) {
     if (j < static_cast<int64_t>(src_values[0].size())) {
@@ -284,8 +283,7 @@ std::string BitOpOperate(BitOpType op, const std::vector<std::string>& src_value
     }
     dest_value[j] = output;
   }
-  std::string dest_str(dest_value, max_len);
-  delete[] dest_value;
+  std::string dest_str(dest_value.get(), max_len);
   return dest_str;
 }
 

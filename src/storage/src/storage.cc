@@ -56,7 +56,7 @@ Storage::Storage()
       current_task_type_(kNone),
       bg_tasks_should_exit_(false),
       scan_keynum_exit_(false) {
-  cursors_store_ = std::shared_ptr<LRUCache<std::string, std::string>>(new LRUCache<std::string, std::string>());
+  cursors_store_ = std::make_shared<LRUCache<std::string, std::string>>();
   cursors_store_->SetCapacity(5000);
 
   Status s = StartBGThread();
@@ -94,31 +94,31 @@ static std::string AppendSubDirectory(const std::string& db_path, const std::str
 Status Storage::Open(const StorageOptions& storage_options, const std::string& db_path) {
   mkpath(db_path.c_str(), 0755);
 
-  strings_db_ = std::shared_ptr<RedisStrings>(new RedisStrings(this, kStrings));
+  strings_db_ = std::make_shared<RedisStrings>(this, kStrings);
   Status s = strings_db_->Open(storage_options, AppendSubDirectory(db_path, "strings"));
   if (!s.ok()) {
     LOG(FATAL) << "open kv db failed, " << s.ToString();
   }
 
-  hashes_db_ = std::shared_ptr<RedisHashes>(new RedisHashes(this, kHashes));
+  hashes_db_ = std::make_shared<RedisHashes>(this, kHashes);
   s = hashes_db_->Open(storage_options, AppendSubDirectory(db_path, "hashes"));
   if (!s.ok()) {
     LOG(FATAL) << "open hashes db failed, " << s.ToString();
   }
 
-  sets_db_ = std::shared_ptr<RedisSets>(new RedisSets(this, kSets));
+  sets_db_ = std::make_shared<RedisSets>(this, kSets);
   s = sets_db_->Open(storage_options, AppendSubDirectory(db_path, "sets"));
   if (!s.ok()) {
     LOG(FATAL) << "open set db failed, " << s.ToString();
   }
 
-  lists_db_ = std::shared_ptr<RedisLists>(new RedisLists(this, kLists));
+  lists_db_ = std::make_shared<RedisLists>(this, kLists);
   s = lists_db_->Open(storage_options, AppendSubDirectory(db_path, "lists"));
   if (!s.ok()) {
     LOG(FATAL) << "open list db failed, " << s.ToString();
   }
 
-  zsets_db_ = std::shared_ptr<RedisZSets>(new RedisZSets(this, kZSets));
+  zsets_db_ = std::make_shared<RedisZSets>(this, kZSets);
   s = zsets_db_->Open(storage_options, AppendSubDirectory(db_path, "zsets"));
   if (!s.ok()) {
     LOG(FATAL) << "open zset db failed, " << s.ToString();

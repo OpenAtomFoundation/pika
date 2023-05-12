@@ -30,8 +30,7 @@ class HyperLogLog {
   uint32_t m_ = 0;  // register bit width
   uint32_t b_ = 0;  // regieter size
   double alpha_ = 0;
-  // char* register_ = nullptr;  // register;
-  std::shared_ptr<char> register_;
+  std::unique_ptr<char[]> register_;
 };
 
 }  // namespace storage

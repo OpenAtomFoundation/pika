@@ -67,7 +67,7 @@ TEST_F(ListsFilterTest, MetaFilterTest) {
   std::string new_value;
 
   // Test Meta Filter
-  ListsMetaFilter* lists_meta_filter = new ListsMetaFilter();
+  std::unique_ptr<ListsMetaFilter> lists_meta_filter = std::make_unique<ListsMetaFilter>();
   ASSERT_TRUE(lists_meta_filter != nullptr);
 
   // Timeout timestamp is not set, but it's an empty list.
@@ -108,7 +108,6 @@ TEST_F(ListsFilterTest, MetaFilterTest) {
   filter_result =
       lists_meta_filter->Filter(0, "FILTER_TEST_KEY", lists_meta_value4.Encode(), &new_value, &value_changed);
   ASSERT_EQ(filter_result, true);
-  delete lists_meta_filter;
 }
 
 // Data Filter
@@ -120,7 +119,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   std::string new_value;
 
   // Timeout timestamp is not set, the version is valid.
-  ListsDataFilter* lists_data_filter1 = new ListsDataFilter(meta_db, &handles);
+  std::unique_ptr<ListsDataFilter> lists_data_filter1 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter1 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -135,10 +134,9 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_EQ(filter_result, false);
   s = meta_db->Delete(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY");
   ASSERT_TRUE(s.ok());
-  delete lists_data_filter1;
 
   // Timeout timestamp is set, but not expired.
-  ListsDataFilter* lists_data_filter2 = new ListsDataFilter(meta_db, &handles);
+  std::unique_ptr<ListsDataFilter> lists_data_filter2 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter2 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -153,10 +151,9 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_EQ(filter_result, false);
   s = meta_db->Delete(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY");
   ASSERT_TRUE(s.ok());
-  delete lists_data_filter2;
 
   // Timeout timestamp is set, already expired.
-  ListsDataFilter* lists_data_filter3 = new ListsDataFilter(meta_db, &handles);
+  std::unique_ptr<ListsDataFilter> lists_data_filter3 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter3 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -172,10 +169,9 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_EQ(filter_result, true);
   s = meta_db->Delete(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY");
   ASSERT_TRUE(s.ok());
-  delete lists_data_filter3;
 
   // Timeout timestamp is not set, the version is invalid
-  ListsDataFilter* lists_data_filter4 = new ListsDataFilter(meta_db, &handles);
+  std::unique_ptr<ListsDataFilter> lists_data_filter4 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter4 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -192,10 +188,9 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_EQ(filter_result, true);
   s = meta_db->Delete(rocksdb::WriteOptions(), handles[0], "FILTER_TEST_KEY");
   ASSERT_TRUE(s.ok());
-  delete lists_data_filter4;
 
   // Meta data has been clear
-  ListsDataFilter* lists_data_filter5 = new ListsDataFilter(meta_db, &handles);
+  std::unique_ptr<ListsDataFilter> lists_data_filter5 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter5 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -209,7 +204,6 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   filter_result =
       lists_data_filter5->Filter(0, lists_data_value5.Encode(), "FILTER_TEST_VALUE", &new_value, &value_changed);
   ASSERT_EQ(filter_result, true);
-  delete lists_data_filter5;
 }
 
 int main(int argc, char** argv) {

@@ -58,10 +58,8 @@ class Redis {
  protected:
   Storage* const storage_;
   DataType type_;
-  // LockMgr* lock_mgr_ = nullptr;
   std::shared_ptr<LockMgr> lock_mgr_;
   rocksdb::DB* db_ = nullptr;
-  // std::shared_ptr<rocksdb::DB> db_;
 
   std::vector<rocksdb::ColumnFamilyHandle*> handles_;
   rocksdb::WriteOptions default_write_options_;

@@ -120,13 +120,15 @@ Status BackupEngine::WaitBackupPthread() {
 
 Status BackupEngine::CreateNewBackup(const std::string& dir) {
   Status s = Status::OK();
-  std::vector<BackupSaveArgs*> args;
+  // ensure cleaning up the pointers after the function has finished.
+  std::vector<std::unique_ptr<BackupSaveArgs>> args;
+  args.reserve(engines_.size());
   for (const auto& engine : engines_) {
     pthread_t tid;
-    BackupSaveArgs* arg = new BackupSaveArgs(reinterpret_cast<void*>(this), dir, engine.first);
-    args.push_back(arg);
-    if (pthread_create(&tid, nullptr, &ThreadFuncSaveSpecify, arg) != 0) {
-      s = Status::Corruption("pthead_create failed.");
+    std::unique_ptr<BackupSaveArgs> arg = std::make_unique<BackupSaveArgs>(reinterpret_cast<void*>(this), dir, engine.first);
+    args.push_back(std::move(arg));
+    if (pthread_create(&tid, nullptr, &ThreadFuncSaveSpecify, args.back().get()) != 0) {
+      s = Status::Corruption("pthread_create failed.");
       break;
     }
     if (!(backup_pthread_ts_.insert(std::make_pair(engine.first, tid)).second)) {
@@ -140,9 +142,6 @@ Status BackupEngine::CreateNewBackup(const std::string& dir) {
   }
   s = WaitBackupPthread();
 
-  for (auto& a : args) {
-    delete a;
-  }
   return s;
 }
 
