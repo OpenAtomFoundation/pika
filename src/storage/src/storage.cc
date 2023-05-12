@@ -56,7 +56,7 @@ Storage::Storage()
       current_task_type_(kNone),
       bg_tasks_should_exit_(false),
       scan_keynum_exit_(false) {
-  cursors_store_ = std::make_shared<LRUCache<std::string, std::string>>();
+  cursors_store_ = std::make_unique<LRUCache<std::string, std::string>>();
   cursors_store_->SetCapacity(5000);
 
   Status s = StartBGThread();

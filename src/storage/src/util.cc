@@ -7,7 +7,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <unistd.h>
-
+#include <memory>
 #include "pstd/include/pstd_string.h"
 
 #include "src/coding.h"
