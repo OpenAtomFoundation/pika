@@ -67,3 +67,6 @@ deps
 #develop container
 .devcontainer
 
+# include codis fe javascript lib files
+!codis/cmd/fe/assets/**
+
