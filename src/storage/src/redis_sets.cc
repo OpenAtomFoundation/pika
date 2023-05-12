@@ -21,7 +21,7 @@
 namespace storage {
 
 RedisSets::RedisSets(Storage* const s, const DataType& type) : Redis(s, type) {
-  spop_counts_store_ = std::make_shared<LRUCache<std::string, size_t>>();
+  spop_counts_store_ = std::make_unique<LRUCache<std::string, size_t>>();
   spop_counts_store_->SetCapacity(1000);
 }
 

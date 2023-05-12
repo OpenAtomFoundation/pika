@@ -125,7 +125,7 @@ Status BackupEngine::CreateNewBackup(const std::string& dir) {
   args.reserve(engines_.size());
   for (const auto& engine : engines_) {
     pthread_t tid;
-    std::unique_ptr<BackupSaveArgs> arg = std::make_unique<BackupSaveArgs>(reinterpret_cast<void*>(this), dir, engine.first);
+    auto arg = std::make_unique<BackupSaveArgs>(reinterpret_cast<void*>(this), dir, engine.first);
     args.push_back(std::move(arg));
     if (pthread_create(&tid, nullptr, &ThreadFuncSaveSpecify, args.back().get()) != 0) {
       s = Status::Corruption("pthread_create failed.");

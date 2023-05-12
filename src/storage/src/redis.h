@@ -67,14 +67,14 @@ class Redis {
   rocksdb::CompactRangeOptions default_compact_range_options_;
 
   // For Scan
-  std::shared_ptr<LRUCache<std::string, std::string>> scan_cursors_store_;
+  std::unique_ptr<LRUCache<std::string, std::string>> scan_cursors_store_;
 
   Status GetScanStartPoint(const Slice& key, const Slice& pattern, int64_t cursor, std::string* start_point);
   Status StoreScanNextPoint(const Slice& key, const Slice& pattern, int64_t cursor, const std::string& next_point);
 
   // For Statistics
   std::atomic<size_t> small_compaction_threshold_;
-  std::shared_ptr<LRUCache<std::string, size_t>> statistics_store_;
+  std::unique_ptr<LRUCache<std::string, size_t>> statistics_store_;
 
   Status UpdateSpecificKeyStatistics(const std::string& key, size_t count);
   Status AddCompactKeyTaskIfNeeded(const std::string& key, size_t total);
