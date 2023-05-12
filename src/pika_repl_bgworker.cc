@@ -221,7 +221,7 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
   // Monitor related
   std::string monitor_message;
   if (g_pika_server->HasMonitorClients()) {
-    std::string table_name = g_pika_conf->classic_mode() ? worker->table_name_.substr(2) : worker->table_name_;
+    std::string table_name = worker->table_name_.substr(2);
     std::string monitor_message =
         std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + table_name + " " + worker->ip_port_ + "]";
     for (const auto& item : argv) {

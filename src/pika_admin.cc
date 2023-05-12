@@ -161,10 +161,6 @@ void DbSlaveofCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDbSlaveof);
     return;
   }
-  if (!g_pika_conf->classic_mode()) {
-    res_.SetRes(CmdRes::kErrOther, "DbSlaveof only support on classic mode");
-    return;
-  }
   if (g_pika_server->role() ^ PIKA_ROLE_SLAVE || !g_pika_server->MetaSyncDone()) {
     res_.SetRes(CmdRes::kErrOther, "Not currently a slave");
     return;
@@ -928,11 +924,6 @@ void InfoCmd::InfoShardingReplication(std::string& info) {
 }
 
 void InfoCmd::InfoReplication(std::string& info) {
-  if (!g_pika_conf->classic_mode()) {
-    // In Sharding mode, show different replication info
-    InfoShardingReplication(info);
-    return;
-  }
 
   int host_role = g_pika_server->role();
   std::stringstream tmp_stream;
@@ -1358,19 +1349,13 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "instance-mode", 1)) {
     elements += 2;
     EncodeString(&config_body, "instance-mode");
-    EncodeString(&config_body, (g_pika_conf->classic_mode() ? "classic" : "sharding"));
+    EncodeString(&config_body, "classic");
   }
 
   if (g_pika_conf->classic_mode() && pstd::stringmatch(pattern.data(), "databases", 1)) {
     elements += 2;
     EncodeString(&config_body, "databases");
     EncodeInt32(&config_body, g_pika_conf->databases());
-  }
-
-  if (!g_pika_conf->classic_mode() && pstd::stringmatch(pattern.data(), "default-slot-num", 1)) {
-    elements += 2;
-    EncodeString(&config_body, "default-slot-num");
-    EncodeInt32(&config_body, g_pika_conf->default_slot_num());
   }
 
   if (pstd::stringmatch(pattern.data(), "daemonize", 1)) {

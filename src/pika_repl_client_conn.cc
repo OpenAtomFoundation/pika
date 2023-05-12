@@ -110,8 +110,8 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
 
   const InnerMessage::InnerResponse_MetaSync meta_sync = response->meta_sync();
   if (g_pika_conf->classic_mode() != meta_sync.classic_mode()) {
-    LOG(WARNING) << "Self in " << (g_pika_conf->classic_mode() ? "classic" : "sharding") << " mode, but master in "
-                 << (meta_sync.classic_mode() ? "classic" : "sharding")
+    LOG(WARNING) << "Self in " << "classic" << " mode, but master in "
+                 << "classic"
                  << " mode, failed to establish master-slave relationship";
     g_pika_server->SyncError();
     conn->NotifyClose();
