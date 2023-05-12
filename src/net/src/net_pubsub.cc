@@ -375,8 +375,8 @@ void* PubSubThread::ThreadMain() {
 
           // Send message to clients
           channel_mutex_.lock();
-          for (auto it = pubsub_channel_.begin(); it != pubsub_channel_.end(); it++) {
-            if (channel == it->first) {
+          auto it = pubsub_channel_.find(channel);
+          if(it != pubsub_channel_.end()){
               for (size_t i = 0; i < it->second.size(); i++) {
                 if (!IsReady(it->second[i]->fd())) {
                   continue;
@@ -398,7 +398,6 @@ void* PubSubThread::ThreadMain() {
                 }
               }
             }
-          }
           channel_mutex_.unlock();
 
           // Send message to clients
