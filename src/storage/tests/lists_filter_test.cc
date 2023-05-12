@@ -67,7 +67,7 @@ TEST_F(ListsFilterTest, MetaFilterTest) {
   std::string new_value;
 
   // Test Meta Filter
-  std::unique_ptr<ListsMetaFilter> lists_meta_filter = std::make_unique<ListsMetaFilter>();
+  auto lists_meta_filter = std::make_unique<ListsMetaFilter>();
   ASSERT_TRUE(lists_meta_filter != nullptr);
 
   // Timeout timestamp is not set, but it's an empty list.
@@ -119,7 +119,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   std::string new_value;
 
   // Timeout timestamp is not set, the version is valid.
-  std::unique_ptr<ListsDataFilter> lists_data_filter1 = std::make_unique<ListsDataFilter>(meta_db, &handles);
+  auto lists_data_filter1 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter1 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -136,7 +136,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_TRUE(s.ok());
 
   // Timeout timestamp is set, but not expired.
-  std::unique_ptr<ListsDataFilter> lists_data_filter2 = std::make_unique<ListsDataFilter>(meta_db, &handles);
+  auto lists_data_filter2 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter2 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -153,7 +153,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_TRUE(s.ok());
 
   // Timeout timestamp is set, already expired.
-  std::unique_ptr<ListsDataFilter> lists_data_filter3 = std::make_unique<ListsDataFilter>(meta_db, &handles);
+  auto lists_data_filter3 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter3 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -171,7 +171,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_TRUE(s.ok());
 
   // Timeout timestamp is not set, the version is invalid
-  std::unique_ptr<ListsDataFilter> lists_data_filter4 = std::make_unique<ListsDataFilter>(meta_db, &handles);
+  auto lists_data_filter4 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter4 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -190,7 +190,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   ASSERT_TRUE(s.ok());
 
   // Meta data has been clear
-  std::unique_ptr<ListsDataFilter> lists_data_filter5 = std::make_unique<ListsDataFilter>(meta_db, &handles);
+  auto lists_data_filter5 = std::make_unique<ListsDataFilter>(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter5 != nullptr);
 
   EncodeFixed64(str, 1);

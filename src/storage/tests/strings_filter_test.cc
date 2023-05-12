@@ -16,7 +16,7 @@ using namespace storage;
 TEST(StringsFilterTest, FilterTest) {
   std::string new_value;
   bool is_stale, value_changed;
-  std::unique_ptr<StringsFilter> filter = std::make_unique<StringsFilter>();
+  auto filter = std::make_unique<StringsFilter>();
 
   int32_t ttl = 1;
   StringsValue strings_value("FILTER_VALUE");
