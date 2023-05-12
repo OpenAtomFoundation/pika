@@ -36,7 +36,7 @@ TrysyncThread::~TrysyncThread() {
 }
 
 void TrysyncThread::Stop() {
-  retransmit_mutex_.Lock();
+  retransmit_mutex_.lock();
   if (retransmit_flag_) {
     size_t size = senders_.size();
     for (size_t i = 0; i < size; i++) {
@@ -48,7 +48,7 @@ void TrysyncThread::Stop() {
       migrators_[i]->Stop();
     }
   }
-  retransmit_mutex_.Unlock();
+  retransmit_mutex_.unlock();
   StopThread();
 }
 
@@ -320,9 +320,9 @@ int TrysyncThread::Retransmit() {
     migrators_.emplace_back(new MigratorThread((void*)(&zsetsDB), &senders_, storage::kZSets, thread_num));
   }
 
-  retransmit_mutex_.Lock();
+  retransmit_mutex_.lock();
   retransmit_flag_ = true;
-  retransmit_mutex_.Unlock();
+  retransmit_mutex_.unlock();
 
   // start threads
   size_t size = senders_.size();
@@ -348,9 +348,9 @@ int TrysyncThread::Retransmit() {
     senders_[i]->JoinThread();
   }
 
-  retransmit_mutex_.Lock();
+  retransmit_mutex_.lock();
   retransmit_flag_ = false;
-  retransmit_mutex_.Unlock();
+  retransmit_mutex_.unlock();
 
   int64_t replies = 0, records = 0;
   size = migrators_.size();
@@ -473,5 +473,5 @@ void* TrysyncThread::ThreadMain() {
     cli_->Close();
   }
 
-  return NULL;
+  return nullptr;
 }

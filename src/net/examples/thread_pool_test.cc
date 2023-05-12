@@ -25,7 +25,7 @@ static pstd::Mutex print_lock;
 
 void task(void* arg) {
   {
-    pstd::MutexLock l(&print_lock);
+    std::lock_guard l(print_lock);
     std::cout << " task : " << *((int*)arg) << " time(micros) " << NowMicros() << "   thread id: " << pthread_self()
               << std::endl;
   }
@@ -46,7 +46,7 @@ int main() {
     t.Schedule(task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
-    pstd::MutexLock l(&print_lock);
+    std::lock_guard l(print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
 
@@ -66,7 +66,7 @@ int main() {
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
-    pstd::MutexLock l(&print_lock);
+    std::lock_guard l(print_lock);
     std::cout << "Schedule task " << i << " time(micros) " << NowMicros() << " for " << i * 1000 * 1000 << " micros "
               << std::endl;
   }
@@ -85,7 +85,7 @@ int main() {
     t.DelaySchedule(i * 1000, task, (void*)pi);
     t.cur_queue_size(&qsize);
     t.cur_time_queue_size(&pqsize);
-    pstd::MutexLock l(&print_lock);
+    std::lock_guard l(print_lock);
     std::cout << " current queue size:" << qsize << ", " << pqsize << std::endl;
   }
   sleep(3);

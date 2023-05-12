@@ -13,7 +13,7 @@
 #define EOFMSG "EOAOF"
 
 static std::time_t begin_time;
-static AOFSender* sender = NULL;
+static AOFSender* sender = nullptr;
 
 static void split_send(const std::string& line) {
   static std::string send_buf_;
@@ -93,7 +93,7 @@ static int file_read(const std::string& path) {
 
 static void* msg_process(void* p) {
   sender->process();
-  pthread_exit(NULL);
+  pthread_exit(nullptr);
 }
 
 void intHandler(int sig) {
@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
   int ret = 0;
   pthread_t send_thread;
   // Send thread
-  ret = pthread_create(&send_thread, NULL, msg_process, NULL);
+  ret = pthread_create(&send_thread, nullptr, msg_process, nullptr);
   if (0 != ret) {
     LOG_ERR("Failed to create assist_watcher_thread!");
     delete sender;
@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
   // Main thread
   file_read(path);
 
-  pthread_join(send_thread, NULL);
+  pthread_join(send_thread, nullptr);
   delete sender;
   return 0;
 }
