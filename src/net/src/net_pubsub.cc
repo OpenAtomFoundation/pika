@@ -376,28 +376,28 @@ void* PubSubThread::ThreadMain() {
           // Send message to clients
           channel_mutex_.lock();
           auto it = pubsub_channel_.find(channel);
-          if(it != pubsub_channel_.end()){
-              for (size_t i = 0; i < it->second.size(); i++) {
-                if (!IsReady(it->second[i]->fd())) {
-                  continue;
-                }
-                std::string resp = ConstructPublishResp(it->first, channel, msg, false);
-                it->second[i]->WriteResp(resp);
-                WriteStatus write_status = it->second[i]->SendReply();
-                if (write_status == kWriteHalf) {
-                  net_multiplexer_->NetModEvent(it->second[i]->fd(), kReadable, kWritable);
-                } else if (write_status == kWriteError) {
-                  channel_mutex_.unlock();
+          if (it != pubsub_channel_.end()) {
+            for (size_t i = 0; i < it->second.size(); i++) {
+              if (!IsReady(it->second[i]->fd())) {
+                continue;
+              }
+              std::string resp = ConstructPublishResp(it->first, channel, msg, false);
+              it->second[i]->WriteResp(resp);
+              WriteStatus write_status = it->second[i]->SendReply();
+              if (write_status == kWriteHalf) {
+                net_multiplexer_->NetModEvent(it->second[i]->fd(), kReadable, kWritable);
+              } else if (write_status == kWriteError) {
+                channel_mutex_.unlock();
 
-                  MoveConnOut(it->second[i]);
+                MoveConnOut(it->second[i]);
 
-                  channel_mutex_.lock();
-                  CloseFd(it->second[i]);
-                } else if (write_status == kWriteAll) {
-                  receivers++;
-                }
+                channel_mutex_.lock();
+                CloseFd(it->second[i]);
+              } else if (write_status == kWriteAll) {
+                receivers++;
               }
             }
+          }
           channel_mutex_.unlock();
 
           // Send message to clients
