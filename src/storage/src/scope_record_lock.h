@@ -10,59 +10,13 @@
 #include <string>
 #include <vector>
 
+#include "pstd/include/scope_record_lock.h"
 #include "src/lock_mgr.h"
 
 namespace storage {
-class ScopeRecordLock {
- public:
-  ScopeRecordLock(LockMgr* lock_mgr, const Slice& key) : lock_mgr_(lock_mgr), key_(key) {
-    lock_mgr_->TryLock(key_.ToString());
-  }
-  ~ScopeRecordLock() { lock_mgr_->UnLock(key_.ToString()); }
 
- private:
-  LockMgr* const lock_mgr_;
-  Slice key_;
-  ScopeRecordLock(const ScopeRecordLock&);
-  void operator=(const ScopeRecordLock&);
-};
-
-class MultiScopeRecordLock {
- public:
-  MultiScopeRecordLock(LockMgr* lock_mgr, const std::vector<std::string>& keys) : lock_mgr_(lock_mgr), keys_(keys) {
-    std::string pre_key;
-    std::sort(keys_.begin(), keys_.end());
-    if (!keys_.empty() && keys_[0].empty()) {
-      lock_mgr_->TryLock(pre_key);
-    }
-
-    for (const auto& key : keys_) {
-      if (pre_key != key) {
-        lock_mgr_->TryLock(key);
-        pre_key = key;
-      }
-    }
-  }
-  ~MultiScopeRecordLock() {
-    std::string pre_key;
-    if (!keys_.empty() && keys_[0].empty()) {
-      lock_mgr_->UnLock(pre_key);
-    }
-
-    for (const auto& key : keys_) {
-      if (pre_key != key) {
-        lock_mgr_->UnLock(key);
-        pre_key = key;
-      }
-    }
-  }
-
- private:
-  LockMgr* const lock_mgr_ = nullptr;
-  std::vector<std::string> keys_;
-  MultiScopeRecordLock(const MultiScopeRecordLock&);
-  void operator=(const MultiScopeRecordLock&);
-};
+using ScopeRecordLock = pstd::lock::ScopeRecordLock;
+using MultiScopeRecordLock = pstd::lock::MultiScopeRecordLock;
 
 }  // namespace storage
 #endif  // SRC_SCOPE_RECORD_LOCK_H_
