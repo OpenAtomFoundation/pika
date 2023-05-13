@@ -109,7 +109,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   }
 
   const InnerMessage::InnerResponse_MetaSync meta_sync = response->meta_sync();
-  if (g_pika_conf->classic_mode() != meta_sync.classic_mode()) {
+  /*if (g_pika_conf->classic_mode() != meta_sync.classic_mode()) {
     LOG(WARNING) << "Self in " << "classic" << " mode, but master in "
                  << "classic"
                  << " mode, failed to establish master-slave relationship";
@@ -117,7 +117,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     conn->NotifyClose();
     delete task_arg;
     return;
-  }
+  }*/
 
   std::vector<TableStruct> master_table_structs;
   for (int idx = 0; idx < meta_sync.tables_info_size(); ++idx) {

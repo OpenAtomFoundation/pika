@@ -414,12 +414,12 @@ void SelectCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect);
     return;
   }
-  if (g_pika_conf->classic_mode()) {
-    if (index < 0 || index >= g_pika_conf->databases()) {
-      res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
-      return;
-    }
+  //if (g_pika_conf->classic_mode()) {
+  if (index < 0 || index >= g_pika_conf->databases()) {
+    res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
+    return;
   }
+  //}
   table_name_ = "db" + argv_[1];
   if (!g_pika_server->IsTableExist(table_name_)) {
     res_.SetRes(CmdRes::kInvalidTable, kCmdNameSelect);
@@ -1352,7 +1352,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeString(&config_body, "classic");
   }
 
-  if (g_pika_conf->classic_mode() && pstd::stringmatch(pattern.data(), "databases", 1)) {
+  if (pstd::stringmatch(pattern.data(), "databases", 1)) {
     elements += 2;
     EncodeString(&config_body, "databases");
     EncodeInt32(&config_body, g_pika_conf->databases());
@@ -2325,9 +2325,9 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
   };
   // just for redis resp2 protocol
   fvs.push_back({"proto", "2"});
-  if (g_pika_conf->classic_mode()) {
-    fvs.push_back({"mode", "classic"});
-  }
+  //if (g_pika_conf->classic_mode()) {
+  fvs.push_back({"mode", "classic"});
+  //}
   int host_role = g_pika_server->role();
   switch (host_role) {
     case PIKA_ROLE_SINGLE:

@@ -144,7 +144,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     // if pika are not current a slave or partition not in
     // BinlogSync state, we drop remain write binlog task
-    if ((g_pika_conf->classic_mode() && !(g_pika_server->role() & PIKA_ROLE_SLAVE)) ||
+    if ((!(g_pika_server->role() & PIKA_ROLE_SLAVE)) ||
         ((slave_partition->State() != ReplState::kConnected) && (slave_partition->State() != ReplState::kWaitDBSync))) {
       delete index;
       delete task_arg;

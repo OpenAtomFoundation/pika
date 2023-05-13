@@ -240,9 +240,9 @@ int PikaConf::Load() {
     sync_thread_num_ = 24;
   }
 
-  std::string instance_mode;
-  GetConfStr("instance-mode", &instance_mode);
-  classic_mode_.store(instance_mode.empty() || !strcasecmp(instance_mode.data(), "classic"));
+  //std::string instance_mode;
+  //GetConfStr("instance-mode", &instance_mode);
+  //classic_mode_.store(instance_mode.empty() || !strcasecmp(instance_mode.data(), "classic"));
 
   GetConfInt("databases", &databases_);
   if (databases_ < 1 || databases_ > 8) {
@@ -269,7 +269,7 @@ int PikaConf::Load() {
                << " [0..." << replication_num_.load() << "]";
   }
   consensus_level_.store(tmp_consensus_level);
-  if (classic_mode_.load() && (consensus_level_.load() != 0 || replication_num_.load() != 0)) {
+  if ((consensus_level_.load() != 0 || replication_num_.load() != 0)) {
     LOG(FATAL) << "consensus-level & replication-num only configurable under sharding mode,"
                << " set it to be 0 if you are using classic mode";
   }

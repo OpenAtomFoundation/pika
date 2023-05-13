@@ -412,7 +412,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_admin_require() const;
   bool is_single_partition() const;
   bool is_multi_partition() const;
-  bool is_classic_mode() const;
+  //bool is_classic_mode() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
 
