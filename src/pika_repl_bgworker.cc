@@ -144,7 +144,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     // if pika are not current a slave or partition not in
     // BinlogSync state, we drop remain write binlog task
-    if ((g_pika_conf->classic_mode() && !(g_pika_server->role() & PIKA_ROLE_SLAVE)) ||
+    if ((!(g_pika_server->role() & PIKA_ROLE_SLAVE)) ||
         ((slave_partition->State() != ReplState::kConnected) && (slave_partition->State() != ReplState::kWaitDBSync))) {
       delete index;
       delete task_arg;
@@ -221,7 +221,7 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
   // Monitor related
   std::string monitor_message;
   if (g_pika_server->HasMonitorClients()) {
-    std::string table_name = g_pika_conf->classic_mode() ? worker->table_name_.substr(2) : worker->table_name_;
+    std::string table_name = worker->table_name_.substr(2);
     std::string monitor_message =
         std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + table_name + " " + worker->ip_port_ + "]";
     for (const auto& item : argv) {
