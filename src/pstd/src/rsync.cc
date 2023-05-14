@@ -1,7 +1,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-
+#include <memory>
 #include <glog/logging.h>
 
 #include "pstd/include/env.h"
@@ -100,15 +100,13 @@ int StopRsync(const std::string& raw_path) {
     LOG(WARNING) << "no rsync pid file found";
     return 0;
   };
+  auto sequential_file_ptr = std::unique_ptr<SequentialFile>(sequential_file);
 
   char line[32];
   if (sequential_file->ReadLine(line, 32) == nullptr) {
     LOG(WARNING) << "read rsync pid file err";
-    delete sequential_file;
     return 0;
   };
-
-  delete sequential_file;
 
   pid_t pid = atoi(line);
 

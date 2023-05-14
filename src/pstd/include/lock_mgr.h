@@ -43,11 +43,11 @@ class LockMgr {
   // Map to locked key info
   std::shared_ptr<LockMap> lock_map_;
 
-  Status Acquire(LockMapStripe* stripe, const std::string& key);
+  Status Acquire(std::shared_ptr<LockMapStripe> stripe, const std::string& key);
 
-  Status AcquireLocked(LockMapStripe* stripe, const std::string& key);
+  Status AcquireLocked(std::shared_ptr<LockMapStripe> stripe, const std::string& key);
 
-  void UnLockKey(const std::string& key, LockMapStripe* stripe);
+  void UnLockKey(const std::string& key, std::shared_ptr<LockMapStripe> stripe);
 
   // No copying allowed
   LockMgr(const LockMgr&);
