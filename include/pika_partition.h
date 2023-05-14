@@ -62,7 +62,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void DbRWLockReader();
   void DbRWUnLock();
 
-  pstd::lock::LockMgr* LockMgr();
+  std::shared_ptr<pstd::lock::LockMgr> LockMgr();
 
   void PrepareRsync();
   bool TryUpdateMasterOffset();
@@ -97,7 +97,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool opened_ = false;
 
   std::shared_mutex db_rwlock_;
-  pstd::lock::LockMgr* lock_mgr_ = nullptr;
+  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_ = nullptr;
   std::shared_ptr<storage::Storage> db_;
 
   bool full_sync_ = false;
@@ -116,7 +116,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void FinishBgsave();
   BgSaveInfo bgsave_info_;
   pstd::Mutex bgsave_protector_;
-  storage::BackupEngine* bgsave_engine_;
+  std::unique_ptr<storage::BackupEngine> bgsave_engine_;
 
   // key scan info use
   void InitKeyScan();
@@ -129,3 +129,4 @@ class Partition : public std::enable_shared_from_this<Partition> {
 };
 
 #endif
+

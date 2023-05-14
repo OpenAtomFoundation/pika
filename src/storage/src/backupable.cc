@@ -14,11 +14,6 @@ BackupEngine::~BackupEngine() {
   // Wait all children threads
   StopBackup();
   WaitBackupPthread();
-  // Delete engines
-  for (auto& engine : engines_) {
-    delete engine.second;
-  }
-  engines_.clear();
 }
 
 Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& type) {
@@ -27,13 +22,13 @@ Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& t
   if (!s.ok()) {
     return s;
   }
-  engines_.insert(std::make_pair(type, checkpoint));
+  engines_.insert(std::make_pair(type, std::unique_ptr<rocksdb::DBCheckpoint>(checkpoint)));
   return s;
 }
 
-Status BackupEngine::Open(storage::Storage* storage, BackupEngine** backup_engine_ptr) {
-  *backup_engine_ptr = new BackupEngine();
-  if (!*backup_engine_ptr) {
+Status BackupEngine::Open(storage::Storage* storage, std::unique_ptr<BackupEngine>& backup_engine_ret) {
+  auto backup_engine_ptr = std::unique_ptr<BackupEngine>(new BackupEngine);
+  if (!backup_engine_ptr) {
     return Status::Corruption("New BackupEngine failed!");
   }
 
@@ -47,14 +42,15 @@ Status BackupEngine::Open(storage::Storage* storage, BackupEngine** backup_engin
     }
 
     if (s.ok()) {
-      s = (*backup_engine_ptr)->NewCheckpoint(rocksdb_db, type);
+      s = backup_engine_ptr->NewCheckpoint(rocksdb_db, type);
     }
 
     if (!s.ok()) {
-      delete *backup_engine_ptr;
+      backup_engine_ptr = nullptr;
       break;
     }
   }
+  backup_engine_ret = std::move(backup_engine_ptr);
   return s;
 }
 
@@ -74,8 +70,8 @@ Status BackupEngine::SetBackupContent() {
 }
 
 Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const std::string& type) {
-  std::map<std::string, rocksdb::DBCheckpoint*>::iterator it_engine = engines_.find(type);
-  std::map<std::string, BackupContent>::iterator it_content = backup_content_.find(type);
+  auto it_engine = engines_.find(type);
+  auto it_content = backup_content_.find(type);
   std::string dir = GetSaveDirByType(backup_dir, type);
   delete_dir(dir.c_str());
 
@@ -120,13 +116,15 @@ Status BackupEngine::WaitBackupPthread() {
 
 Status BackupEngine::CreateNewBackup(const std::string& dir) {
   Status s = Status::OK();
-  std::vector<BackupSaveArgs*> args;
+  // ensure cleaning up the pointers after the function has finished.
+  std::vector<std::unique_ptr<BackupSaveArgs>> args;
+  args.reserve(engines_.size());
   for (const auto& engine : engines_) {
     pthread_t tid;
-    BackupSaveArgs* arg = new BackupSaveArgs(reinterpret_cast<void*>(this), dir, engine.first);
-    args.push_back(arg);
-    if (pthread_create(&tid, nullptr, &ThreadFuncSaveSpecify, arg) != 0) {
-      s = Status::Corruption("pthead_create failed.");
+    auto arg = std::make_unique<BackupSaveArgs>(reinterpret_cast<void*>(this), dir, engine.first);
+    args.push_back(std::move(arg));
+    if (pthread_create(&tid, nullptr, &ThreadFuncSaveSpecify, args.back().get()) != 0) {
+      s = Status::Corruption("pthread_create failed.");
       break;
     }
     if (!(backup_pthread_ts_.insert(std::make_pair(engine.first, tid)).second)) {
@@ -140,9 +138,6 @@ Status BackupEngine::CreateNewBackup(const std::string& dir) {
   }
   s = WaitBackupPthread();
 
-  for (auto& a : args) {
-    delete a;
-  }
   return s;
 }
 
@@ -151,3 +146,4 @@ void BackupEngine::StopBackup() {
 }
 
 }  // namespace storage
+

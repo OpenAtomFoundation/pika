@@ -21,16 +21,11 @@
 namespace storage {
 
 RedisSets::RedisSets(Storage* const s, const DataType& type) : Redis(s, type) {
-  spop_counts_store_ = new LRUCache<std::string, size_t>();
+  spop_counts_store_ = std::make_unique<LRUCache<std::string, size_t>>();
   spop_counts_store_->SetCapacity(1000);
 }
 
-RedisSets::~RedisSets() {
-  if (spop_counts_store_ != nullptr) {
-    delete spop_counts_store_;
-    spop_counts_store_ = nullptr;
-  }
-}
+RedisSets::~RedisSets() {}
 
 rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std::string& db_path) {
   statistics_store_->SetCapacity(storage_options.statistics_max_size);

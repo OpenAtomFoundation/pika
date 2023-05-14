@@ -15,13 +15,13 @@
 namespace storage {
 class ScopeRecordLock {
  public:
-  ScopeRecordLock(LockMgr* lock_mgr, const Slice& key) : lock_mgr_(lock_mgr), key_(key) {
+  ScopeRecordLock(std::shared_ptr<LockMgr> lock_mgr, const Slice& key) : lock_mgr_(lock_mgr), key_(key) {
     lock_mgr_->TryLock(key_.ToString());
   }
   ~ScopeRecordLock() { lock_mgr_->UnLock(key_.ToString()); }
 
  private:
-  LockMgr* const lock_mgr_;
+  std::shared_ptr<LockMgr> const lock_mgr_;
   Slice key_;
   ScopeRecordLock(const ScopeRecordLock&);
   void operator=(const ScopeRecordLock&);
@@ -29,7 +29,7 @@ class ScopeRecordLock {
 
 class MultiScopeRecordLock {
  public:
-  MultiScopeRecordLock(LockMgr* lock_mgr, const std::vector<std::string>& keys) : lock_mgr_(lock_mgr), keys_(keys) {
+  MultiScopeRecordLock(std::shared_ptr<LockMgr> lock_mgr, const std::vector<std::string>& keys) : lock_mgr_(lock_mgr), keys_(keys) {
     std::string pre_key;
     std::sort(keys_.begin(), keys_.end());
     if (!keys_.empty() && keys_[0].empty()) {
@@ -58,7 +58,7 @@ class MultiScopeRecordLock {
   }
 
  private:
-  LockMgr* const lock_mgr_ = nullptr;
+  std::shared_ptr<LockMgr> const lock_mgr_;
   std::vector<std::string> keys_;
   MultiScopeRecordLock(const MultiScopeRecordLock&);
   void operator=(const MultiScopeRecordLock&);
