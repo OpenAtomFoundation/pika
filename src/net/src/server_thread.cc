@@ -106,7 +106,9 @@ ServerThread::~ServerThread() {
     EVP_cleanup();
   }
 #endif
-
+  for (std::vector<ServerSocket*>::iterator iter = server_sockets_.begin(); iter != server_sockets_.end(); ++iter) {
+    delete *iter;
+  }
   if (own_handle_) {
     delete handle_;
   }
@@ -126,14 +128,14 @@ int ServerThread::StartThread() {
 
 int ServerThread::InitHandle() {
   int ret = 0;
-  std::shared_ptr<ServerSocket> socket_p;
+  ServerSocket* socket_p;
   if (ips_.find("0.0.0.0") != ips_.end()) {
     ips_.clear();
     ips_.insert("0.0.0.0");
   }
   for (std::set<std::string>::iterator iter = ips_.begin(); iter != ips_.end(); ++iter) {
-    socket_p = std::make_shared<ServerSocket>(port_);
-    server_sockets_.emplace_back(socket_p);
+    socket_p = new ServerSocket(port_);
+    server_sockets_.push_back(socket_p);
     ret = socket_p->Listen(*iter);
     if (ret != kSuccess) {
       return ret;
@@ -253,6 +255,9 @@ void* ServerThread::ThreadMain() {
     }
   }
 
+  for (auto iter = server_sockets_.begin(); iter != server_sockets_.end(); iter++) {
+    delete *iter;
+  }
   server_sockets_.clear();
   server_fds_.clear();
 
@@ -307,7 +312,7 @@ int ServerThread::EnableSecurity(const std::string& cert_file, const std::string
   }
 
   if (SSL_CTX_use_PrivateKey_file(ssl_ctx_, key_file.c_str(), SSL_FILETYPE_PEM) != 1) {
-    LOG(WARNING) << "SSL_CTX_use_PrivateKey_file(" << key_file << ")";
+    LOG(WARNING) << "SSL_CTX_use_PrivateKey_file(" <<  key_file << ")";
     return -1;
   }
 

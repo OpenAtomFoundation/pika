@@ -188,7 +188,7 @@ class ServerThread : public Thread {
    */
   int port_ = -1;
   std::set<std::string> ips_;
-  std::vector<std::shared_ptr<ServerSocket>> server_sockets_;
+  std::vector<ServerSocket*> server_sockets_;
   std::set<int32_t> server_fds_;
 
   virtual int InitHandle();

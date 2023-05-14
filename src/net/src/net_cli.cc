@@ -48,16 +48,19 @@ struct NetCli::Rep {
         available(false) {}
 };
 
-NetCli::NetCli(const std::string& ip, const int port) : rep_(std::make_shared<Rep>(ip, port)) {}
+NetCli::NetCli(const std::string& ip, const int port) : rep_(new Rep(ip, port)) {}
 
-NetCli::~NetCli() { Close(); }
+NetCli::~NetCli() {
+  Close();
+  delete rep_;
+}
 
 bool NetCli::Available() const { return rep_->available; }
 
 Status NetCli::Connect(const std::string& bind_ip) { return Connect(rep_->peer_ip, rep_->peer_port, bind_ip); }
 
 Status NetCli::Connect(const std::string& ip, const int port, const std::string& bind_ip) {
-  std::shared_ptr<Rep> r = rep_;
+  Rep* r = rep_;
   Status s;
   int rv;
   char cport[6];
@@ -243,7 +246,7 @@ Status NetCli::SendRaw(void* buf, size_t count) {
 }
 
 Status NetCli::RecvRaw(void* buf, size_t* count) {
-  std::shared_ptr<Rep> r = rep_;
+  Rep* r = rep_;
   char* rbuf = reinterpret_cast<char*>(buf);
   size_t nleft = *count;
   size_t pos = 0;
@@ -282,7 +285,7 @@ void NetCli::Close() {
 void NetCli::set_connect_timeout(int connect_timeout) { rep_->connect_timeout = connect_timeout; }
 
 int NetCli::set_send_timeout(int send_timeout) {
-  std::shared_ptr<Rep> r = rep_;
+  Rep* r = rep_;
   int ret = 0;
   if (send_timeout > 0) {
     r->send_timeout = send_timeout;
@@ -293,7 +296,7 @@ int NetCli::set_send_timeout(int send_timeout) {
 }
 
 int NetCli::set_recv_timeout(int recv_timeout) {
-  std::shared_ptr<Rep> r = rep_;
+  Rep* r = rep_;
   int ret = 0;
   if (recv_timeout > 0) {
     r->recv_timeout = recv_timeout;
@@ -304,7 +307,7 @@ int NetCli::set_recv_timeout(int recv_timeout) {
 }
 
 int NetCli::set_tcp_nodelay() {
-  std::shared_ptr<Rep> r = rep_;
+  Rep* r = rep_;
   int val = 1;
   int ret = 0;
   ret = setsockopt(r->sockfd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));

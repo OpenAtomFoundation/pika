@@ -2,7 +2,6 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <memory>
 
 #include "myproto.pb.h"
 #include "net/include/net_cli.h"
@@ -19,7 +18,7 @@ int main(int argc, char* argv[]) {
   std::string ip(argv[1]);
   int port = atoi(argv[2]);
 
-  std::unique_ptr<NetCli> cli(NewPbCli());
+  NetCli* cli = NewPbCli();
 
   Status s = cli->Connect(ip, port);
   if (!s.ok()) {
@@ -49,5 +48,6 @@ int main(int argc, char* argv[]) {
   }
   cli->Close();
 
+  delete cli;
   return 0;
 }
