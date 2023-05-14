@@ -46,7 +46,6 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       g_pika_server->BecomeMaster();
       response.set_code(InnerMessage::kOk);
       InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
-      meta_sync->set_classic_mode(g_pika_conf->classic_mode());
       for (const auto& table_struct : table_structs) {
         InnerMessage::InnerResponse_MetaSync_TableInfo* table_info = meta_sync->add_tables_info();
         table_info->set_table_name(table_struct.table_name);

@@ -141,7 +141,6 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return user_blacklist_;
   }
-  bool classic_mode() { return classic_mode_.load(); }
   int databases() {
     std::shared_lock l(rwlock_);
     return databases_;
