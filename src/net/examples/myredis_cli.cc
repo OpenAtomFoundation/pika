@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
   SignalSetup();
 
   std::unique_ptr<ConnFactory> conn_factory = std::make_unique<MyConnFactory>();
-  //"handle" will be deleted within "client->StopThread()"
+  //the object "client" is responsible for deleting "handle"
   ClientHandle* handle = new ClientHandle();
 
   client = std::make_unique<ClientThread>(conn_factory.get(), 3000, 60, handle, nullptr);
