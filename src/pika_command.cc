@@ -7,7 +7,6 @@
 
 #include "include/pika_admin.h"
 #include "include/pika_bit.h"
-#include "include/pika_cluster.h"
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_geo.h"
 #include "include/pika_hash.h"
@@ -18,7 +17,6 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_set.h"
-#include "include/pika_slot.h"
 #include "include/pika_zset.h"
 
 extern PikaServer* g_pika_server;
@@ -80,42 +78,6 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*>* cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdDummy, dummyptr));
   Cmd* quitptr = new QuitCmd(kCmdNameQuit, 1, kCmdFlagsRead);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameQuit, quitptr));
-
-  // Slots related
-  Cmd* slotsinfoptr = new SlotsInfoCmd(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsInfo, slotsinfoptr));
-  Cmd* slotshashkeyptr = new SlotsHashKeyCmd(kCmdNameSlotsHashKey, -2, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsHashKey, slotshashkeyptr));
-  Cmd* slotmgrtslotasyncptr = new SlotsMgrtSlotAsyncCmd(kCmdNameSlotsMgrtSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtSlotAsync, slotmgrtslotasyncptr));
-  Cmd* slotmgrttagslotasyncptr =
-      new SlotsMgrtTagSlotAsyncCmd(kCmdNameSlotsMgrtTagSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagSlotAsync, slotmgrttagslotasyncptr));
-  Cmd* slotsdelptr = new SlotsDelCmd(kCmdNameSlotsDel, -2, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsDel, slotsdelptr));
-  Cmd* slotsscanptr = new SlotsScanCmd(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsScan, slotsscanptr));
-  Cmd* slotmgrtexecwrapper =
-      new SlotsMgrtExecWrapperCmd(kCmdNameSlotsMgrtExecWrapper, -3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtExecWrapper, slotmgrtexecwrapper));
-  Cmd* slotmgrtasyncstatus =
-      new SlotsMgrtAsyncStatusCmd(kCmdNameSlotsMgrtAsyncStatus, 1, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtAsyncStatus, slotmgrtasyncstatus));
-  Cmd* slotmgrtasynccancel =
-      new SlotsMgrtAsyncCancelCmd(kCmdNameSlotsMgrtAsyncCancel, 1, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtAsyncCancel, slotmgrtasynccancel));
-  Cmd* slotmgrtslotptr = new SlotsMgrtSlotCmd(kCmdNameSlotsMgrtSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtSlot, slotmgrtslotptr));
-  Cmd* slotmgrttagslotptr = new SlotsMgrtTagSlotCmd(kCmdNameSlotsMgrtTagSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagSlot, slotmgrttagslotptr));
-  Cmd* slotmgrtoneptr = new SlotsMgrtOneCmd(kCmdNameSlotsMgrtOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtOne, slotmgrtoneptr));
-  Cmd* slotmgrttagoneptr = new SlotsMgrtTagOneCmd(kCmdNameSlotsMgrtTagOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameSlotsMgrtTagOne, slotmgrttagoneptr));
-
-  // Cluster related
-  Cmd* pkclusterinfoptr = new PkClusterInfoCmd(kCmdNamePkClusterInfo, -3, kCmdFlagsRead | kCmdFlagsAdmin);
-  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNamePkClusterInfo, pkclusterinfoptr));
 
   // Kv
   ////SetCmd
@@ -556,7 +518,7 @@ void Cmd::Execute() {
     ProcessFlushAllCmd();
   } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
     ProcessDoNotSpecifyPartitionCmd();
-  } else if (is_single_partition() || g_pika_conf->classic_mode()) {
+  } else if (is_single_partition()) {
     ProcessSinglePartitionCmd();
   } else if (is_multi_partition()) {
     ProcessMultiPartitionCmd();
@@ -616,18 +578,8 @@ void Cmd::ProcessFlushAllCmd() {
 
 void Cmd::ProcessSinglePartitionCmd() {
   std::shared_ptr<Partition> partition;
-  if (g_pika_conf->classic_mode()) {
-    // in classic mode a table has only one partition
-    partition = g_pika_server->GetPartitionByDbName(table_name_);
-  } else {
-    std::vector<std::string> cur_key = current_key();
-    if (cur_key.empty()) {
-      res_.SetRes(CmdRes::kErrOther, "Internal Error");
-      return;
-    }
-    // in sharding mode we select partition by key
-    partition = g_pika_server->GetTablePartitionByKey(table_name_, cur_key.front());
-  }
+  //a table has only one partition
+  partition = g_pika_server->GetPartitionByDbName(table_name_);
 
   if (!partition) {
     res_.SetRes(CmdRes::kErrOther, "Partition not found");
@@ -660,11 +612,7 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
                                  std::shared_ptr<SyncMasterPartition> sync_partition, const HintKeys& hint_keys) {
   pstd::lock::MultiRecordLock record_lock(partition->LockMgr());
   if (is_write()) {
-    if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
-      record_lock.Lock(hint_keys.keys);
-    } else {
-      record_lock.Lock(current_key());
-    }
+    record_lock.Lock(current_key());
   }
 
   uint64_t start_us = 0;
@@ -678,11 +626,7 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
   DoBinlog(sync_partition);
 
   if (is_write()) {
-    if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
-      record_lock.Unlock(hint_keys.keys);
-    } else {
-      record_lock.Unlock(current_key());
-    }
+    record_lock.Unlock(current_key());
   }
 }
 
@@ -690,12 +634,7 @@ void Cmd::DoCommand(std::shared_ptr<Partition> partition, const HintKeys& hint_k
   if (!is_suspend()) {
     partition->DbRWLockReader();
   }
-
-  if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
-    Split(partition, hint_keys);
-  } else {
-    Do(partition);
-  }
+  Do(partition);
 
   if (!is_suspend()) {
     partition->DbRWUnLock();
@@ -794,13 +733,9 @@ bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire)
 bool Cmd::is_single_partition() const { return ((flag_ & kCmdFlagsMaskPartition) == kCmdFlagsSinglePartition); }
 bool Cmd::is_multi_partition() const { return ((flag_ & kCmdFlagsMaskPartition) == kCmdFlagsMultiPartition); }
 
-bool Cmd::is_classic_mode() const { return g_pika_conf->classic_mode(); }
-
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const {
-  if (is_classic_mode() == false) {
-    if (GetHashkey(lhs) != GetHashkey(rhs)) {
-      return false;
-    }
+  if (GetHashkey(lhs) != GetHashkey(rhs)) {
+    return false;
   }
   return true;
 }

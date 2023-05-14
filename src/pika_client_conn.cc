@@ -161,7 +161,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
 
 void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
-  std::string table_name = g_pika_conf->classic_mode() ? current_table_.substr(2) : current_table_;
+  std::string table_name = current_table_.substr(2);
   monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + table_name + " " + this->ip_port() + "]";
   for (PikaCmdArgsType::const_iterator iter = argv.begin(); iter != argv.end(); iter++) {
     monitor_message += " " + pstd::ToRead(*iter);

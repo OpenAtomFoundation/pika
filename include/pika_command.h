@@ -190,24 +190,6 @@ const std::string kCmdNamePubSub = "pubsub";
 const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
-// Codis Slots
-const std::string kCmdNameSlotsInfo = "slotsinfo";
-const std::string kCmdNameSlotsHashKey = "slotshashkey";
-const std::string kCmdNameSlotsMgrtTagSlotAsync = "slotsmgrttagslot-async";
-const std::string kCmdNameSlotsMgrtSlotAsync = "slotsmgrtslot-async";
-const std::string kCmdNameSlotsDel = "slotsdel";
-const std::string kCmdNameSlotsScan = "slotsscan";
-const std::string kCmdNameSlotsMgrtExecWrapper = "slotsmgrt-exec-wrapper";
-const std::string kCmdNameSlotsMgrtAsyncStatus = "slotsmgrt-async-status";
-const std::string kCmdNameSlotsMgrtAsyncCancel = "slotsmgrt-async-cancel";
-const std::string kCmdNameSlotsMgrtSlot = "slotsmgrtslot";
-const std::string kCmdNameSlotsMgrtTagSlot = "slotsmgrttagslot";
-const std::string kCmdNameSlotsMgrtOne = "slotsmgrtone";
-const std::string kCmdNameSlotsMgrtTagOne = "slotsmgrttagone";
-
-// Cluster
-const std::string kCmdNamePkClusterInfo = "pkclusterinfo";
-
 const std::string kClusterPrefix = "pkcluster";
 typedef net::RedisCmdArgsType PikaCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
@@ -430,7 +412,6 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_admin_require() const;
   bool is_single_partition() const;
   bool is_multi_partition() const;
-  bool is_classic_mode() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
 
