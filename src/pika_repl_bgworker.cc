@@ -43,7 +43,7 @@ void PikaReplBgWorker::ParseBinlogOffset(const InnerMessage::BinlogOffset pb_off
 }
 
 void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
-  ReplClientWriteBinlogTaskArg* task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
+  std::unique_ptr<ReplClientWriteBinlogTaskArg> task_arg(reinterpret_cast<ReplClientWriteBinlogTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerResponse> res = task_arg->res;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::vector<int>* index = static_cast<std::vector<int>*>(task_arg->res_private_data);
@@ -98,7 +98,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   if (!partition) {
     LOG(WARNING) << "Partition " << table_name << "_" << partition_id << " Not Found";
     delete index;
-    delete task_arg;
     return;
   }
 
@@ -107,7 +106,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition " << table_name << "_" << partition_id << " Not Found";
     delete index;
-    delete task_arg;
     return;
   }
 
@@ -121,7 +119,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       LOG(WARNING) << "Drop outdated binlog sync response " << table_name << "_" << partition_id
                    << " recv term: " << meta.term() << " local term: " << partition->ConsensusTerm();
       delete index;
-      delete task_arg;
       return;
     }
     if (!only_keepalive) {
@@ -134,7 +131,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
                      << prev_offset.ToString();
         slave_partition->SetReplState(ReplState::kTryConnect);
         delete index;
-        delete task_arg;
         return;
       }
     }
@@ -147,7 +143,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     if ((g_pika_conf->classic_mode() && !(g_pika_server->role() & PIKA_ROLE_SLAVE)) ||
         ((slave_partition->State() != ReplState::kConnected) && (slave_partition->State() != ReplState::kWaitDBSync))) {
       delete index;
-      delete task_arg;
       return;
     }
 
@@ -160,7 +155,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
                    << binlog_res.partition().partition_id();
       slave_partition->SetReplState(ReplState::kTryConnect);
       delete index;
-      delete task_arg;
       return;
     }
 
@@ -172,7 +166,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       LOG(WARNING) << "Binlog item decode failed";
       slave_partition->SetReplState(ReplState::kTryConnect);
       delete index;
-      delete task_arg;
       return;
     }
     const char* redis_parser_start = binlog_res.binlog().data() + BINLOG_ENCODE_LEN;
@@ -184,12 +177,10 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
       LOG(WARNING) << "Redis parser failed";
       slave_partition->SetReplState(ReplState::kTryConnect);
       delete index;
-      delete task_arg;
       return;
     }
   }
   delete index;
-  delete task_arg;
 
   if (res->has_consensus_meta()) {
     LogOffset leader_commit;
@@ -255,7 +246,7 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
 }
 
 void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
-  ReplClientWriteDBTaskArg* task_arg = static_cast<ReplClientWriteDBTaskArg*>(arg);
+  std::unique_ptr<ReplClientWriteDBTaskArg> task_arg(reinterpret_cast<ReplClientWriteDBTaskArg*>(arg));
   const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;
   const PikaCmdArgsType& argv = c_ptr->argv();
   LogOffset offset = task_arg->offset;
@@ -289,7 +280,6 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
     }
   }
 
-  delete task_arg;
 
   if (g_pika_conf->consensus_level() != 0) {
     std::shared_ptr<SyncMasterPartition> partition =

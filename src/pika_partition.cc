@@ -293,7 +293,7 @@ BgSaveInfo Partition::bgsave_info() {
 }
 
 void Partition::DoBgSave(void* arg) {
-  BgTaskArg* bg_task_arg = static_cast<BgTaskArg*>(arg);
+  std::unique_ptr<BgTaskArg> bg_task_arg(reinterpret_cast<BgTaskArg*>(arg));
 
   // Do BgSave
   bool success = bg_task_arg->partition->RunBgsaveEngine();
@@ -319,7 +319,6 @@ void Partition::DoBgSave(void* arg) {
   }
   bg_task_arg->partition->FinishBgsave();
 
-  delete bg_task_arg;
 }
 
 bool Partition::RunBgsaveEngine() {
