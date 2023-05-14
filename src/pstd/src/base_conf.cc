@@ -27,9 +27,8 @@ int BaseConf::LoadConf() {
   if (!FileExists(rep_->path)) {
     return -1;
   }
-  SequentialFile* sequential_file;
-  NewSequentialFile(rep_->path, &sequential_file);
-  auto sequential_file_ptr = std::unique_ptr<SequentialFile>(sequential_file);
+  std::unique_ptr<SequentialFile> sequential_file;
+  NewSequentialFile(rep_->path, sequential_file);
   // read conf items
 
   char line[kConfItemLen];
@@ -323,14 +322,13 @@ void BaseConf::DumpConf() const {
 }
 
 bool BaseConf::WriteBack() {
-  WritableFile* write_file;
+  std::unique_ptr<WritableFile> write_file;
   std::string tmp_path = rep_->path + ".tmp";
-  Status ret = NewWritableFile(tmp_path, &write_file);
+  Status ret = NewWritableFile(tmp_path, write_file);
   LOG(INFO) << "ret " << ret.ToString();
   if (!write_file) {
     return false;
   }
-  auto write_file_ptr = std::unique_ptr<WritableFile>(write_file);
   std::string tmp;
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kConf) {
@@ -346,10 +344,9 @@ bool BaseConf::WriteBack() {
 }
 
 void BaseConf::WriteSampleConf() const {
-  WritableFile* write_file;
+  std::unique_ptr<WritableFile> write_file;
   std::string sample_path = rep_->path + ".sample";
-  Status ret = NewWritableFile(sample_path, &write_file);
-  auto write_file_ptr = std::unique_ptr<WritableFile>(write_file);
+  Status ret = NewWritableFile(sample_path, write_file);
   std::string tmp;
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kConf) {

@@ -31,10 +31,9 @@ class BaseConfTest : public ::testing::Test {
         "test_bool : yes\n",
     };
 
-    WritableFile* write_file;
-    Status ret = NewWritableFile(test_conf_, &write_file);
+    std::unique_ptr<WritableFile> write_file;
+    Status ret = NewWritableFile(test_conf_, write_file);
     if (!ret.ok()) return ret;
-    auto write_file_ptr = std::unique_ptr<WritableFile>(write_file);
     for (std::string& item : sample_conf) {
       write_file->Append(item);
     }

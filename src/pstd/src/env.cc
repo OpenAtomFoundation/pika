@@ -720,61 +720,56 @@ class PosixRandomRWFile : public RandomRWFile {
   //  }
 };
 
-Status NewSequentialFile(const std::string& fname, SequentialFile** result) {
+Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFile>& result) {
   FILE* f = fopen(fname.c_str(), "r");
   if (f == nullptr) {
-    *result = nullptr;
     return IOError(fname, errno);
   } else {
-    *result = new PosixSequentialFile(fname, f);
+    result = std::unique_ptr<PosixSequentialFile>(new PosixSequentialFile(fname, f));
     return Status::OK();
   }
 }
 
-Status NewWritableFile(const std::string& fname, WritableFile** result) {
+Status NewWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_TRUNC | O_CLOEXEC, 0644);
   if (fd < 0) {
-    *result = nullptr;
     s = IOError(fname, errno);
   } else {
-    *result = new PosixMmapFile(fname, fd, kPageSize);
+    result = std::unique_ptr<PosixMmapFile>(new PosixMmapFile(fname, fd, kPageSize));
   }
   return s;
 }
 
-Status NewRWFile(const std::string& fname, RWFile** result) {
+Status NewRWFile(const std::string& fname, std::unique_ptr<RWFile>& result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
-    *result = nullptr;
     s = IOError(fname, errno);
   } else {
-    *result = new MmapRWFile(fname, fd, kPageSize);
+    result = std::unique_ptr<MmapRWFile>(new MmapRWFile(fname, fd, kPageSize));
   }
   return s;
 }
 
-Status AppendWritableFile(const std::string& fname, WritableFile** result, uint64_t write_len) {
+Status AppendWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result, uint64_t write_len) {
   Status s;
   const int fd = open(fname.c_str(), O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
-    *result = nullptr;
     s = IOError(fname, errno);
   } else {
-    *result = new PosixMmapFile(fname, fd, kPageSize, write_len);
+    result = std::unique_ptr<PosixMmapFile>(new PosixMmapFile(fname, fd, kPageSize, write_len));
   }
   return s;
 }
 
-Status NewRandomRWFile(const std::string& fname, RandomRWFile** result) {
+Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR, 0644);
   if (fd < 0) {
-    *result = nullptr;
     s = IOError(fname, errno);
   } else {
-    *result = new PosixRandomRWFile(fname, fd);
+    result = std::unique_ptr<PosixRandomRWFile>(new PosixRandomRWFile(fname, fd));
   }
   return s;
 }

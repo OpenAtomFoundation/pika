@@ -41,7 +41,7 @@ class PikaBinlogReader {
   uint64_t last_record_offset_ = 0;
 
   std::shared_ptr<Binlog> logger_;
-  pstd::SequentialFile* queue_ = nullptr;
+  std::unique_ptr<pstd::SequentialFile> queue_ = nullptr;
 
   char* const backing_store_;
   Slice buffer_;

@@ -102,9 +102,9 @@ class Binlog {
 
   std::atomic<bool> opened_;
 
-  Version* version_ = nullptr;
-  pstd::WritableFile* queue_ = nullptr;
-  pstd::RWFile* versionfile_ = nullptr;
+  std::unique_ptr<Version> version_ = nullptr;
+  std::unique_ptr<pstd::WritableFile> queue_;
+  std::unique_ptr<pstd::RWFile> versionfile_;
 
   pstd::Mutex mutex_;
 

@@ -20,7 +20,7 @@ extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 Context::Context(const std::string path) : applied_index_(), path_(path), save_(nullptr) {}
 
-Context::~Context() { delete save_; }
+Context::~Context() {}
 
 Status Context::StableSave() {
   char* p = save_->GetData();
@@ -36,13 +36,13 @@ Status Context::StableSave() {
 
 Status Context::Init() {
   if (!pstd::FileExists(path_)) {
-    Status s = pstd::NewRWFile(path_, &save_);
+    Status s = pstd::NewRWFile(path_, save_);
     if (!s.ok()) {
       LOG(FATAL) << "Context new file failed " << s.ToString();
     }
     StableSave();
   } else {
-    Status s = pstd::NewRWFile(path_, &save_);
+    Status s = pstd::NewRWFile(path_, save_);
     if (!s.ok()) {
       LOG(FATAL) << "Context new file failed " << s.ToString();
     }

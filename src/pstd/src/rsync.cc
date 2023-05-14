@@ -95,12 +95,11 @@ int StopRsync(const std::string& raw_path) {
   }
 
   // Kill Rsync
-  SequentialFile* sequential_file;
-  if (!NewSequentialFile(pid_file, &sequential_file).ok()) {
+  std::unique_ptr<SequentialFile> sequential_file;
+  if (!NewSequentialFile(pid_file, sequential_file).ok()) {
     LOG(WARNING) << "no rsync pid file found";
     return 0;
   };
-  auto sequential_file_ptr = std::unique_ptr<SequentialFile>(sequential_file);
 
   char line[32];
   if (sequential_file->ReadLine(line, 32) == nullptr) {

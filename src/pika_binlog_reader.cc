@@ -29,7 +29,6 @@ PikaBinlogReader::PikaBinlogReader()
 
 PikaBinlogReader::~PikaBinlogReader() {
   delete[] backing_store_;
-  delete queue_;
 }
 
 void PikaBinlogReader::GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset) {
@@ -52,15 +51,15 @@ int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uin
     LOG(WARNING) << confile << " not exits";
     return -1;
   }
-  pstd::SequentialFile* readfile;
-  if (!pstd::NewSequentialFile(confile, &readfile).ok()) {
+  std::unique_ptr<pstd::SequentialFile> readfile;
+  if (!pstd::NewSequentialFile(confile, readfile).ok()) {
     LOG(WARNING) << "New swquential " << confile << " failed";
     return -1;
   }
   if (queue_) {
-    delete queue_;
+    queue_.reset();
   }
-  queue_ = readfile;
+  queue_ = std::move(readfile);
   logger_ = logger;
 
   std::lock_guard l(rwlock_);
@@ -251,10 +250,10 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
       // Roll to next file need retry;
       if (pstd::FileExists(confile)) {
         DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
-        delete queue_;
+        queue_.reset();
         queue_ = nullptr;
 
-        pstd::NewSequentialFile(confile, &(queue_));
+        pstd::NewSequentialFile(confile, queue_);
         {
           std::lock_guard l(rwlock_);
           cur_filenum_++;
