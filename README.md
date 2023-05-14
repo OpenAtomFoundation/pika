@@ -64,7 +64,7 @@ The User can download the binary release from [releases](https://github.com/Qiho
 
 #### Supported platforms
 
-* linux - CentOS 6&7
+* linux - CentOS
 
 * linux - Ubuntu
 

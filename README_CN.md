@@ -58,7 +58,7 @@ Pika是一个可持久化的大容量redis存储服务，兼容string、hash、l
 
 #### 支持的平台
 
-* linux - CentOS 6&7
+* linux - CentOS
 
 * linux - Ubuntu
 

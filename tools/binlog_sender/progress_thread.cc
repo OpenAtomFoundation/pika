@@ -14,5 +14,5 @@ void* ProgressThread::ThreadMain() {
     fflush(stdout);
   }
   printf("\n");
-  return NULL;
+  return nullptr;
 }

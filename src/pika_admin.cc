@@ -161,10 +161,6 @@ void DbSlaveofCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameDbSlaveof);
     return;
   }
-  if (!g_pika_conf->classic_mode()) {
-    res_.SetRes(CmdRes::kErrOther, "DbSlaveof only support on classic mode");
-    return;
-  }
   if (g_pika_server->role() ^ PIKA_ROLE_SLAVE || !g_pika_server->MetaSyncDone()) {
     res_.SetRes(CmdRes::kErrOther, "Not currently a slave");
     return;
@@ -418,11 +414,9 @@ void SelectCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect);
     return;
   }
-  if (g_pika_conf->classic_mode()) {
-    if (index < 0 || index >= g_pika_conf->databases()) {
-      res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
-      return;
-    }
+  if (index < 0 || index >= g_pika_conf->databases()) {
+    res_.SetRes(CmdRes::kInvalidIndex, kCmdNameSelect + " DB index is out of range");
+    return;
   }
   table_name_ = "db" + argv_[1];
   if (!g_pika_server->IsTableExist(table_name_)) {
@@ -928,11 +922,6 @@ void InfoCmd::InfoShardingReplication(std::string& info) {
 }
 
 void InfoCmd::InfoReplication(std::string& info) {
-  if (!g_pika_conf->classic_mode()) {
-    // In Sharding mode, show different replication info
-    InfoShardingReplication(info);
-    return;
-  }
 
   int host_role = g_pika_server->role();
   std::stringstream tmp_stream;
@@ -1358,16 +1347,16 @@ void ConfigCmd::ConfigGet(std::string& ret) {
   if (pstd::stringmatch(pattern.data(), "instance-mode", 1)) {
     elements += 2;
     EncodeString(&config_body, "instance-mode");
-    EncodeString(&config_body, (g_pika_conf->classic_mode() ? "classic" : "sharding"));
+    EncodeString(&config_body, "classic");
   }
 
-  if (g_pika_conf->classic_mode() && pstd::stringmatch(pattern.data(), "databases", 1)) {
+  if (pstd::stringmatch(pattern.data(), "databases", 1)) {
     elements += 2;
     EncodeString(&config_body, "databases");
     EncodeInt32(&config_body, g_pika_conf->databases());
   }
 
-  if (!g_pika_conf->classic_mode() && pstd::stringmatch(pattern.data(), "default-slot-num", 1)) {
+  if (pstd::stringmatch(pattern.data(), "default-slot-num", 1)) {
     elements += 2;
     EncodeString(&config_body, "default-slot-num");
     EncodeInt32(&config_body, g_pika_conf->default_slot_num());
@@ -2340,9 +2329,7 @@ void HelloCmd::Do(std::shared_ptr<Partition> partition) {
   };
   // just for redis resp2 protocol
   fvs.push_back({"proto", "2"});
-  if (g_pika_conf->classic_mode()) {
-    fvs.push_back({"mode", "classic"});
-  }
+  fvs.push_back({"mode", "classic"});
   int host_role = g_pika_server->role();
   switch (host_role) {
     case PIKA_ROLE_SINGLE:

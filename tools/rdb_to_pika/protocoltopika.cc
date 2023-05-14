@@ -11,7 +11,7 @@ void Usage() {
   std::cout << "      --f       protocol_file name" << std::endl;
   std::cout << "      --i       pika ip address" << std::endl;
   std::cout << "      --p       pika port" << std::endl;
-  std::cout << "      [--a]     password for pika db; default = NULL" << std::endl;
+  std::cout << "      [--a]     password for pika db; default = nullptr" << std::endl;
   std::cout << "example "
             << "./redisConn protocol_file 127.0.0.1 9221  password" << std::endl;
 }

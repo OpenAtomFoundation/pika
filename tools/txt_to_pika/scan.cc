@@ -60,5 +60,5 @@ void ScanThread::DispatchCmd(const std::string& cmd) {
 void* ScanThread::ThreadMain() {
   ScanFile();
   log_info("Scan file complete");
-  return NULL;
+  return nullptr;
 }

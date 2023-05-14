@@ -576,6 +576,7 @@ ExternalProject_Add(rocksdb
   -DWITH_ZSTD=ON
   -DWITH_GFLAGS=ON
   -DFAIL_ON_WARNINGS=OFF
+  -DWITH_LIBURING=OFF
   BUILD_COMMAND
   make -j${CPU_CORE}
 )
@@ -743,5 +744,20 @@ target_link_libraries(${PROJECT_NAME}
   libz.a
   ${LIBUNWIND_LIBRARY}
   ${JEMALLOC_LIBRARY})
+
+option(ENABLE_IPO "enable interprocedural optimization" ON)
+if (ENABLE_IPO)
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT ipo_result OUTPUT ipo_output LANGUAGES CXX)
+
+  if (ipo_result)
+    set_property(TARGET ${PROJECT_NAME} PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      target_link_libraries(${PROJECT_NAME} PUBLIC "-fuse-ld=lld")
+    endif ()
+  else ()
+    message(WARNING "IPO is not supported: ${ipo_output}")
+  endif ()
+endif ()
 
 option(USE_SSL "Enable SSL support" OFF)
