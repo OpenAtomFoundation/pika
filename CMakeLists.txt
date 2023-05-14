@@ -89,6 +89,34 @@ if (${AUTOCONF} MATCHES AUTOCONF-NOTFOUND)
   message(FATAL_ERROR "not find autoconf on localhost")
 endif()
 
+set(CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llvm/bin" "/usr/local/opt/llvm@12/bin"
+        "/usr/local/Cellar/llvm/12.0.1/bin" "/opt/homebrew/opt/llvm@12/bin/")
+        
+find_program(CLANG_TIDY_BIN
+        NAMES clang-tidy clang-tidy-12
+        HINTS ${CLANG_SEARCH_PATH})
+        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
+  message(WARNING "couldn't find clang-tidy.")
+else ()
+  # Output compile_commands.json
+  set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+  message(STATUS "found clang-tidy at ${CLANG_TIDY_BIN}")
+endif ()
+
+find_program(CLANG_APPLY_REPLACEMENTS_BIN
+        NAMES clang-apply-replacements clang-apply-replacements-12
+        HINTS ${CLANG_SEARCH_PATH})
+
+if ("${CLANG_APPLY_REPLACEMENTS_BIN}" STREQUAL "CLANG_APPLY_REPLACEMENTS_BIN-NOTFOUND")
+    message(WARNING "couldn't find clang-apply-replacements.")
+else ()
+    # Output compile_commands.json
+    set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+    message(STATUS "found clang-apply-replacements at ${CLANG_APPLY_REPLACEMENTS_BIN}")
+endif ()
+
+
 include(protogen.cmake)
 include(ExternalProject)
 
@@ -761,3 +789,20 @@ if (ENABLE_IPO)
 endif ()
 
 option(USE_SSL "Enable SSL support" OFF)
+add_custom_target(
+        clang-tidy
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
+        -clang-tidy-binary ${CLANG_TIDY_BIN}
+        -header-filter='${PROJECT_SOURCE_DIR}(/include|/src)/.*'
+        -p ${CMAKE_BINARY_DIR}
+        -quiet
+    )
+
+add_custom_target(clang-tidy-fix
+    ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
+    -clang-tidy-binary ${CLANG_TIDY_BIN}
+    -p ${CMAKE_BINARY_DIR}
+    -header-filter='${PROJECT_SOURCE_DIR}(/include|/src)/.*'
+    -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS_BIN}
+    -fix
+)
