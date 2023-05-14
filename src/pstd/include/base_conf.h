@@ -9,9 +9,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <memory>
 #include <string>
 #include <vector>
-
 #include "pstd/include/pstd_define.h"
 
 namespace pstd {
@@ -73,7 +73,7 @@ class BaseConf {
   void PushConfItem(const Rep::ConfItem& item);
 
  private:
-  Rep* rep_ = nullptr;
+  std::unique_ptr<Rep> rep_;
 
   /*
    * No copy && no assign operator

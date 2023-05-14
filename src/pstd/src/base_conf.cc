@@ -21,7 +21,7 @@ static const int kConfItemLen = 1024 * 1024;
 
 BaseConf::BaseConf(const std::string& path) : rep_(new Rep(path)) {}
 
-BaseConf::~BaseConf() { delete rep_; }
+BaseConf::~BaseConf() {}
 
 int BaseConf::LoadConf() {
   if (!FileExists(rep_->path)) {
@@ -29,7 +29,7 @@ int BaseConf::LoadConf() {
   }
   SequentialFile* sequential_file;
   NewSequentialFile(rep_->path, &sequential_file);
-
+  auto sequential_file_ptr = std::unique_ptr<SequentialFile>(sequential_file);
   // read conf items
 
   char line[kConfItemLen];
@@ -78,19 +78,16 @@ int BaseConf::LoadConf() {
   }
 
   // sequential_file->Close();
-  delete sequential_file;
   return 0;
 }
 
 int BaseConf::ReloadConf() {
-  Rep* rep = rep_;
-  rep_ = new Rep(rep->path);
+  auto rep = std::move(rep_);
+  rep_ = std::make_unique<Rep>(rep->path);
   if (LoadConf() == -1) {
-    delete rep_;
-    rep_ = rep;
+    rep_ = std::move(rep);
     return -1;
   }
-  delete rep;
   return 0;
 }
 
@@ -333,6 +330,7 @@ bool BaseConf::WriteBack() {
   if (!write_file) {
     return false;
   }
+  auto write_file_ptr = std::unique_ptr<WritableFile>(write_file);
   std::string tmp;
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kConf) {
@@ -344,7 +342,6 @@ bool BaseConf::WriteBack() {
   }
   DeleteFile(rep_->path);
   RenameFile(tmp_path, rep_->path);
-  delete write_file;
   return true;
 }
 
@@ -352,6 +349,7 @@ void BaseConf::WriteSampleConf() const {
   WritableFile* write_file;
   std::string sample_path = rep_->path + ".sample";
   Status ret = NewWritableFile(sample_path, &write_file);
+  auto write_file_ptr = std::unique_ptr<WritableFile>(write_file);
   std::string tmp;
   for (size_t i = 0; i < rep_->item.size(); i++) {
     if (rep_->item[i].type == Rep::kConf) {
@@ -361,7 +359,6 @@ void BaseConf::WriteSampleConf() const {
       write_file->Append(rep_->item[i].value);
     }
   }
-  delete write_file;
   return;
 }
 

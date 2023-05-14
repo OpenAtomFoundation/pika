@@ -34,10 +34,10 @@ class BaseConfTest : public ::testing::Test {
     WritableFile* write_file;
     Status ret = NewWritableFile(test_conf_, &write_file);
     if (!ret.ok()) return ret;
+    auto write_file_ptr = std::unique_ptr<WritableFile>(write_file);
     for (std::string& item : sample_conf) {
       write_file->Append(item);
     }
-    delete write_file;
 
     return Status::OK();
   }
@@ -51,7 +51,7 @@ class BaseConfTest : public ::testing::Test {
 
 TEST_F(BaseConfTest, WriteReadConf) {
   ASSERT_OK(CreateSampleConf());
-  BaseConf* conf = new BaseConf(test_conf_);
+  auto conf = std::make_unique<BaseConf>(test_conf_);
   ASSERT_EQ(conf->LoadConf(), 0);
 
   // Write configuration
