@@ -45,7 +45,7 @@ class Binlog {
 
   static Status AppendBlank(pstd::WritableFile* file, uint64_t len);
 
-  pstd::WritableFile* queue() { return queue_; }
+  // pstd::WritableFile* queue() { return queue_; }
 
   uint64_t file_size() { return file_size_; }
 
@@ -63,9 +63,9 @@ class Binlog {
   uint32_t consumer_num_;
   uint64_t item_num_;
 
-  Version* version_;
-  pstd::WritableFile* queue_;
-  pstd::RWFile* versionfile_;
+  std::unique_ptr<Version> version_;
+  std::unique_ptr<pstd::WritableFile> queue_;
+  std::unique_ptr<pstd::RWFile> versionfile_;
 
   pstd::Mutex mutex_;
 

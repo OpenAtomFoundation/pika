@@ -97,7 +97,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool opened_ = false;
 
   std::shared_mutex db_rwlock_;
-  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_ = nullptr;
+  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::shared_ptr<storage::Storage> db_;
 
   bool full_sync_ = false;
