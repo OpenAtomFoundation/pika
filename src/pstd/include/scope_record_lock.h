@@ -11,10 +11,13 @@
 #include <vector>
 
 #include "pstd/include/lock_mgr.h"
+#include "rocksdb/slice.h"
 
 namespace pstd {
 
 namespace lock {
+
+using Slice = rocksdb::Slice;
 
 class ScopeRecordLock {
  public:
