@@ -73,6 +73,23 @@ class LLenCmd : public Cmd {
   virtual void DoInitial() override;
 };
 
+class BLPopCmd : public Cmd {
+ public:
+  BLPopCmd(const std::string& name, int arity, uint16_t flag): Cmd(name, arity, flag){};
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res = keys_;
+    return res;
+  }
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new BLPopCmd(*this); }
+ private:
+  std::vector<std::string> keys_;
+  int64_t expire_time_{0};
+  virtual void DoInitial() override;
+};
+
 class LPopCmd : public Cmd {
  public:
   LPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};

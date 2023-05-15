@@ -257,6 +257,8 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*>* cmd_table) {
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLInsert, linsertptr));
   Cmd* llenptr = new LLenCmd(kCmdNameLLen, 2, kCmdFlagsRead | kCmdFlagsSinglePartition | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLLen, llenptr));
+  Cmd* blpopptr = new BLPopCmd(kCmdNameBLPop, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsList);
+  cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameBLPop, blpopptr));
   Cmd* lpopptr = new LPopCmd(kCmdNameLPop, 2, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, Cmd*>(kCmdNameLPop, lpopptr));
   Cmd* lpushptr = new LPushCmd(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSinglePartition | kCmdFlagsList);

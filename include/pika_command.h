@@ -108,6 +108,7 @@ const std::string kCmdNamePKHRScanRange = "pkhrscanrange";
 const std::string kCmdNameLIndex = "lindex";
 const std::string kCmdNameLInsert = "linsert";
 const std::string kCmdNameLLen = "llen";
+const std::string kCmdNameBLPop = "blpop";
 const std::string kCmdNameLPop = "lpop";
 const std::string kCmdNameLPush = "lpush";
 const std::string kCmdNameLPushx = "lpushx";

@@ -98,6 +98,32 @@ void LPushCmd::Do(std::shared_ptr<Partition> partition) {
   }
 }
 
+void BLPopCmd::DoInitial() {
+  if (!CheckArg(argv_.size())) {
+    res_.SetRes(CmdRes::kWrongNum, kCmdNameBLPop);
+    return;
+  }
+
+  // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
+  keys_.assign(++argv_.begin(), --argv_.end());
+  int64_t timeout;
+  if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
+    res_.SetRes(CmdRes::kInvalidInt);
+    return;
+  }
+  constexpr double seconds_of_ten_years = 10 * 365 * 24 * 3600;
+  if (timeout < 0 || timeout > seconds_of_ten_years) {
+    res_.SetRes(CmdRes::kErrOther, "timeout can't be a negative value and can't exceed the number of seconds in 10 years");
+    return;
+  }
+  int64_t unix_time;
+  rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+  //unit of timeout is in [second]
+  expire_time_ = unix_time + timeout;
+}
+
+void BLPopCmd::Do(std::shared_ptr<Partition> partition) {}
+
 void LPopCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLPop);
