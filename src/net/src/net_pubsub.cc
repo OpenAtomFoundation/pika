@@ -373,7 +373,7 @@ void* PubSubThread::ThreadMain() {
           channel_.clear();
           message_.clear();
 
-          // Send message to clients
+          // Send message to a channel's clients
           channel_mutex_.lock();
           auto it = pubsub_channel_.find(channel);
           if (it != pubsub_channel_.end()) {
@@ -400,7 +400,7 @@ void* PubSubThread::ThreadMain() {
           }
           channel_mutex_.unlock();
 
-          // Send message to clients
+          // Send message to a channel pattern's clients
           pattern_mutex_.lock();
           for (auto it = pubsub_pattern_.begin(); it != pubsub_pattern_.end(); it++) {
             if (pstd::stringmatchlen(it->first.c_str(), it->first.size(), channel.c_str(), channel.size(), 0)) {
