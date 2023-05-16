@@ -12,9 +12,11 @@
 #include <algorithm>
 #include <ctime>
 #include <fstream>
+#include <utility>
 
 #include "net/include/bg_thread.h"
 #include "net/include/net_cli.h"
+#include "net/include/net_conn.h"
 #include "net/include/net_interfaces.h"
 #include "net/include/redis_cli.h"
 #include "pstd/include/env.h"
@@ -43,6 +45,27 @@ void DoDBSync(void* arg) {
   ps->DbSyncSendFile(dbsa->ip, dbsa->port, dbsa->table_name, dbsa->partition_id);
   delete dbsa;
 }
+
+class BlockedPopConnection {
+ public:
+  BlockedPopConnection(int64_t expire_time, std::shared_ptr<net::NetConn>& conn_blocked)
+      : expire_time_(expire_time), conn_blocked_(conn_blocked) {}
+  bool IsExpired(){
+    if(expire_time_ == 0){
+      return false;
+    }
+    int64_t unix_time;
+    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    if(expire_time_ <= unix_time){
+      return true;
+    }
+    return false;
+  }
+
+ private:
+  int64_t expire_time_;
+  std::shared_ptr<net::NetConn> conn_blocked_;
+};
 
 PikaServer::PikaServer()
     : exit_(false),
@@ -1475,15 +1498,10 @@ void PikaServer::InitStorageOptions() {
         rocksdb::NewLRUCache(storage_options_.block_cache_size, static_cast<int>(g_pika_conf->num_shard_bits()));
   }
 
-  storage_options_.options.rate_limiter =
-    std::shared_ptr<rocksdb::RateLimiter>(
-      rocksdb::NewGenericRateLimiter(
-        g_pika_conf->rate_limiter_bandwidth(),
-        g_pika_conf->rate_limiter_refill_period_us(),
-        g_pika_conf->rate_limiter_fairness(),
-        rocksdb::RateLimiter::Mode::kWritesOnly,
-        g_pika_conf->rate_limiter_auto_tuned()
-      ));
+  storage_options_.options.rate_limiter = std::shared_ptr<rocksdb::RateLimiter>(
+      rocksdb::NewGenericRateLimiter(g_pika_conf->rate_limiter_bandwidth(),
+                                     g_pika_conf->rate_limiter_refill_period_us(), g_pika_conf->rate_limiter_fairness(),
+                                     rocksdb::RateLimiter::Mode::kWritesOnly, g_pika_conf->rate_limiter_auto_tuned()));
 
   // For Storage small compaction
   storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();

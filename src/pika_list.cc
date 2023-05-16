@@ -111,18 +111,43 @@ void BLPopCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  constexpr double seconds_of_ten_years = 10 * 365 * 24 * 3600;
+  constexpr int64_t seconds_of_ten_years = 10 * 365 * 24 * 3600;
   if (timeout < 0 || timeout > seconds_of_ten_years) {
-    res_.SetRes(CmdRes::kErrOther, "timeout can't be a negative value and can't exceed the number of seconds in 10 years");
+    res_.SetRes(CmdRes::kErrOther,
+                "timeout can't be a negative value and can't exceed the number of seconds in 10 years");
     return;
   }
-  int64_t unix_time;
-  rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-  //unit of timeout is in [second]
-  expire_time_ = unix_time + timeout;
+
+  if (timeout > 0) {
+    int64_t unix_time;
+    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    expire_time_ = unix_time + timeout;
+  } // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 
-void BLPopCmd::Do(std::shared_ptr<Partition> partition) {}
+void BLPopCmd::Do(std::shared_ptr<Partition> partition) {
+  for (auto& this_key : keys_) {
+    std::string value;
+    rocksdb::Status s = partition->db()->LPop(this_key, &value);
+    if (s.ok()) {
+      res_.AppendArrayLen(2);
+      res_.AppendString(this_key);
+      res_.AppendString(value);
+      return;
+    } else if (s.IsNotFound()) {
+      continue;
+    } else {
+      res_.SetRes(CmdRes::kErrOther, s.ToString());
+      return;
+    }
+  }
+  //no element founded, this conn need to be blocked
+
+
+
+
+
+}
 
 void LPopCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
