@@ -95,12 +95,9 @@ set(CLANG_SEARCH_PATH "/usr/local/bin" "/usr/bin" "/usr/local/opt/llvm/bin" "/us
 find_program(CLANG_TIDY_BIN
         NAMES clang-tidy clang-tidy-12
         HINTS ${CLANG_SEARCH_PATH})
-        set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if ("${CLANG_TIDY_BIN}" STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
   message(WARNING "couldn't find clang-tidy.")
 else ()
-  # Output compile_commands.json
-  set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
   message(STATUS "found clang-tidy at ${CLANG_TIDY_BIN}")
 endif ()
 
@@ -111,8 +108,6 @@ find_program(CLANG_APPLY_REPLACEMENTS_BIN
 if ("${CLANG_APPLY_REPLACEMENTS_BIN}" STREQUAL "CLANG_APPLY_REPLACEMENTS_BIN-NOTFOUND")
     message(WARNING "couldn't find clang-apply-replacements.")
 else ()
-    # Output compile_commands.json
-    set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
     message(STATUS "found clang-apply-replacements at ${CLANG_APPLY_REPLACEMENTS_BIN}")
 endif ()
 
@@ -793,7 +788,7 @@ add_custom_target(
         clang-tidy
         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
         -clang-tidy-binary ${CLANG_TIDY_BIN}
-        -header-filter='${PROJECT_SOURCE_DIR}(/include|/src)/.*'
+        -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
         -p ${CMAKE_BINARY_DIR}
         -quiet
     )
@@ -802,7 +797,7 @@ add_custom_target(clang-tidy-fix
     ${CMAKE_CURRENT_SOURCE_DIR}/run_clang_tidy.py
     -clang-tidy-binary ${CLANG_TIDY_BIN}
     -p ${CMAKE_BINARY_DIR}
-    -header-filter='${PROJECT_SOURCE_DIR}(/include|/src)/.*'
+    -header-filter='${PROJECT_SOURCE_DIR}(/include|/tools|/src)/.*'
     -clang-apply-replacements-binary ${CLANG_APPLY_REPLACEMENTS_BIN}
     -fix
 )

@@ -41,6 +41,7 @@ Checks:     '
             -clang-analyzer-core.CallAndMessage,
             -clang-analyzer-deadcode.DeadStores,
             -google-runtime-int,
+            -clang-diagnostic-unused-command-line-argument,
             '
 # CheckOptions:
 #   - { key: readability-identifier-naming.ClassCase,           value: CamelCase  }
@@ -108,3 +109,6 @@ AnalyzeTemporaryDtors: true
 #    error detection in some places
 #-google-runtime-int
 #    todo discussed, because there are so many of `long` and `long long` in pika, so disable for now
+#-clang-diagnostic-unused-command-line-argument
+#    because there are to many compile command error in github ci, but no error in local environment
+#    See in build folder compile_commands.json
