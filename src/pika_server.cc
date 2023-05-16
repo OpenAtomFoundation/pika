@@ -46,26 +46,7 @@ void DoDBSync(void* arg) {
   delete dbsa;
 }
 
-class BlockedPopConnection {
- public:
-  BlockedPopConnection(int64_t expire_time, std::shared_ptr<net::NetConn>& conn_blocked)
-      : expire_time_(expire_time), conn_blocked_(conn_blocked) {}
-  bool IsExpired(){
-    if(expire_time_ == 0){
-      return false;
-    }
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    if(expire_time_ <= unix_time){
-      return true;
-    }
-    return false;
-  }
 
- private:
-  int64_t expire_time_;
-  std::shared_ptr<net::NetConn> conn_blocked_;
-};
 
 PikaServer::PikaServer()
     : exit_(false),

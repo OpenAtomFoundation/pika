@@ -127,6 +127,27 @@ enum TaskType {
   kBgSave,
 };
 
+class BlockedPopConnection {
+ public:
+  BlockedPopConnection(int64_t expire_time, std::shared_ptr<net::NetConn>& conn_blocked)
+      : expire_time_(expire_time), conn_blocked_(conn_blocked) {}
+  bool IsExpired() {
+    if (expire_time_ == 0) {
+      return false;
+    }
+    int64_t unix_time;
+    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
+    if (expire_time_ <= unix_time) {
+      return true;
+    }
+    return false;
+  }
+
+ private:
+  int64_t expire_time_;
+  std::shared_ptr<net::NetConn> conn_blocked_;
+};
+
 class PikaServer {
  public:
   PikaServer();
@@ -361,6 +382,20 @@ class PikaServer {
   std::map<std::string, std::shared_ptr<Table>> tables_;
 
   /*
+   *  Blpop/BRpop used
+   *
+   *  This map is nested for the scenario of multiple db usage when using blpop/brpop.
+   *  the outer map, mapping from "table_name"(eg. "db0") to a map related with this table/partition
+   *  and which maps from "key"(eg. "namelist") to a list that stored the blocking info of client-connetions that were
+   * blocked by command blpop/brpop with this key.
+   *
+   *  it can be interpreted as:
+   *    map<table_name, map<key, list_of_blocking_info>>>
+   *
+   */
+  std::unordered_map<std::string, std::unordered_map<std::string, std::list<BlockedPopConnection>>> bLRPop_blocking_info_;
+
+  /*
    * CronTask used
    */
   bool have_scheduled_crontask_ = false;
@@ -377,15 +412,15 @@ class PikaServer {
    * Slave used
    */
   std::string master_ip_;
-  int master_port_  = 0;
-  int repl_state_  = PIKA_REPL_NO_CONNECT;
+  int master_port_ = 0;
+  int repl_state_ = PIKA_REPL_NO_CONNECT;
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
   bool first_meta_sync_ = false;
   bool loop_partition_state_machine_ = false;
   bool force_full_sync_ = false;
-  bool leader_protected_mode_ = false;        // reject request after master slave sync done
-  std::shared_mutex state_protector_;         // protect below, use for master-slave mode
+  bool leader_protected_mode_ = false;  // reject request after master slave sync done
+  std::shared_mutex state_protector_;   // protect below, use for master-slave mode
 
   /*
    * Bgsave used
