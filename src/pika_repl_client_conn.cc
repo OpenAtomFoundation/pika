@@ -88,7 +88,7 @@ int PikaReplClientConn::DealMessage() {
 }
 
 void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
-  std::unique_ptr<ReplClientTaskArg> task_arg(reinterpret_cast<ReplClientTaskArg*>(arg));
+  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
@@ -132,7 +132,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
 }
 
 void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
-  std::unique_ptr<ReplClientTaskArg> task_arg(reinterpret_cast<ReplClientTaskArg*>(arg));
+  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
@@ -164,7 +164,7 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
 }
 
 void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
-  std::unique_ptr<ReplClientTaskArg> task_arg(reinterpret_cast<ReplClientTaskArg*>(arg));
+  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
@@ -296,7 +296,7 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
 }
 
 void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
-  std::unique_ptr<ReplClientTaskArg> task_arg(reinterpret_cast<ReplClientTaskArg*>(arg));
+  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
   if (response->code() != InnerMessage::kOk) {

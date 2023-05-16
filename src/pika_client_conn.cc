@@ -182,7 +182,7 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
 }
 
 void PikaClientConn::DoBackgroundTask(void* arg) {
-  std::unique_ptr<BgTaskArg> bg_arg(reinterpret_cast<BgTaskArg*>(arg));
+  std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
   std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
   if (bg_arg->redis_cmds.size() == 0) {
     conn_ptr->NotifyEpoll(false);
@@ -199,7 +199,7 @@ void PikaClientConn::DoBackgroundTask(void* arg) {
 }
 
 void PikaClientConn::DoExecTask(void* arg) {
-  std::unique_ptr<BgTaskArg> bg_arg(reinterpret_cast<BgTaskArg*>(arg));
+  std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
   std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;
   std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
   std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;

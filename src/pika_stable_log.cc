@@ -71,7 +71,7 @@ bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
 void StableLog::ClearPurge() { purging_ = false; }
 
 void StableLog::DoPurgeStableLogs(void* arg) {
-  std::unique_ptr<PurgeStableLogArg> purge_arg(reinterpret_cast<PurgeStableLogArg*>(arg));
+  std::unique_ptr<PurgeStableLogArg> purge_arg(static_cast<PurgeStableLogArg*>(arg));
   purge_arg->logger->PurgeFiles(purge_arg->to, purge_arg->manual);
   purge_arg->logger->ClearPurge();
 }

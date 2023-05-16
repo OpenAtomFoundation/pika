@@ -20,7 +20,7 @@ PikaReplServerConn::PikaReplServerConn(int fd, std::string ip_port, net::Thread*
 PikaReplServerConn::~PikaReplServerConn() {}
 
 void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
-  std::unique_ptr<ReplServerTaskArg> task_arg(reinterpret_cast<ReplServerTaskArg*>(arg));
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
@@ -64,7 +64,7 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
 }
 
 void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
-  std::unique_ptr<ReplServerTaskArg> task_arg(reinterpret_cast<ReplServerTaskArg*>(arg));
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
@@ -276,7 +276,7 @@ void PikaReplServerConn::BuildConsensusMeta(const bool& reject, const std::vecto
 }
 
 void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
-  std::unique_ptr<ReplServerTaskArg> task_arg(reinterpret_cast<ReplServerTaskArg*>(arg));
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
@@ -354,7 +354,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
 }
 
 void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
-  std::unique_ptr<ReplServerTaskArg> task_arg(reinterpret_cast<ReplServerTaskArg*>(arg));
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (!req->has_binlog_sync()) {
@@ -449,7 +449,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
 }
 
 void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
-  std::unique_ptr<ReplServerTaskArg> task_arg(reinterpret_cast<ReplServerTaskArg*>(arg));
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (!req->remove_slave_node_size()) {

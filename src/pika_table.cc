@@ -210,7 +210,7 @@ void Table::Compact(const storage::DataType& type) {
 }
 
 void Table::DoKeyScan(void* arg) {
-  std::unique_ptr <BgTaskArg> bg_task_arg(reinterpret_cast<BgTaskArg*>(arg));
+  std::unique_ptr <BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
   bg_task_arg->table->RunKeyScan();
 }
 
