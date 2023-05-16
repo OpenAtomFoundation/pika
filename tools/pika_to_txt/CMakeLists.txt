@@ -3,7 +3,7 @@ set(WARNING_FLAGS "-W -Wextra -Wall -Wsign-compare \
 -Wpointer-arith -Wreorder -Wswitch -Wsign-promo \
 -Woverloaded-virtual -Wnon-virtual-dtor -Wno-missing-field-initializers")
 
-set(CXXFLAGS "$(WARNING_FLAGS) -std=c++17 -g")
+set(CXXFLAGS "${WARNING_FLAGS} -std=c++17 -g")
 
 set(SRC_DIR .)
 aux_source_directory(${SRC_DIR} BASE_OBJS)
