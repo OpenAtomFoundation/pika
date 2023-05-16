@@ -42,6 +42,7 @@ Checks:     '
             -clang-analyzer-deadcode.DeadStores,
             -google-runtime-int,
             -clang-diagnostic-unused-command-line-argument,
+            -clang-diagnostic-ignored-optimization-argument,
             '
 # CheckOptions:
 #   - { key: readability-identifier-naming.ClassCase,           value: CamelCase  }
@@ -112,3 +113,5 @@ AnalyzeTemporaryDtors: true
 #-clang-diagnostic-unused-command-line-argument
 #    because there are to many compile command error in github ci, but no error in local environment
 #    See in build folder compile_commands.json
+#-clang-diagnostic-ignored-optimization-argument
+#    The reason disabled this is same as above.
