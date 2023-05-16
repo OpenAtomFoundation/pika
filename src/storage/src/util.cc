@@ -195,7 +195,7 @@ int is_dir(const char* filename) {
 
 int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_key, std::string* meta_end_key) {
   size_t needed = key.size() + 1;
-  std::unique_ptr<char[]> dst(new char[needed]);
+  auto dst = std::make_unique<char[]>(needed);
   const char* start = dst.get();
   std::memcpy(dst.get(), key.data(), key.size());
   char* dst_ptr = dst.get() + key.size();
@@ -207,7 +207,7 @@ int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_
 
 int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_key, std::string* data_end_key) {
   size_t needed = sizeof(int32_t) + key.size() + 1;
-  std::unique_ptr<char[]> dst(new char[needed]);
+  auto dst = std::make_unique<char[]>(needed);
   const char* start = dst.get();
   char* dst_ptr = dst.get();
   

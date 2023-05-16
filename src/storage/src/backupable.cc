@@ -27,7 +27,8 @@ Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& t
 }
 
 Status BackupEngine::Open(storage::Storage* storage, std::unique_ptr<BackupEngine>& backup_engine_ret) {
-  auto backup_engine_ptr = std::unique_ptr<BackupEngine>(new BackupEngine);
+  // BackupEngine() is private, can't use make_unique
+  auto backup_engine_ptr = std::unique_ptr<BackupEngine>(new BackupEngine());
   if (!backup_engine_ptr) {
     return Status::Corruption("New BackupEngine failed!");
   }

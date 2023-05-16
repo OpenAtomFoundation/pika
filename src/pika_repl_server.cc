@@ -11,8 +11,8 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
-extern PikaConf* g_pika_conf;
-extern PikaServer* g_pika_server;
+extern std::unique_ptr<PikaConf> g_pika_conf;
+extern PikaServer* g_pika_server;;
 extern PikaReplicaManager* g_pika_rm;
 
 PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval) {

@@ -65,7 +65,7 @@ class Binlog {
 
   std::unique_ptr<Version> version_;
   std::unique_ptr<pstd::WritableFile> queue_;
-  std::unique_ptr<pstd::RWFile> versionfile_;
+  std::shared_ptr<pstd::RWFile> versionfile_;
 
   pstd::Mutex mutex_;
 
@@ -86,7 +86,7 @@ class Binlog {
 
 class Version {
  public:
-  Version(pstd::RWFile* save);
+  Version(std::shared_ptr<pstd::RWFile> save);
   ~Version();
 
   Status Init();
@@ -106,7 +106,7 @@ class Version {
   }
 
  private:
-  pstd::RWFile* save_;
+  std::shared_ptr<pstd::RWFile> save_;
 
   // No copying allowed;
   Version(const Version&);

@@ -10,7 +10,7 @@ namespace storage {
 Redis::Redis(Storage* const s, const DataType& type)
     : storage_(s),
       type_(type),
-      lock_mgr_(new LockMgr(1000, 0, std::make_shared<MutexFactoryImpl>())),
+      lock_mgr_(std::make_shared<LockMgr>(1000, 0, std::make_shared<MutexFactoryImpl>())),
       db_(nullptr),
       small_compaction_threshold_(5000) {
   statistics_store_ = std::make_unique<LRUCache<std::string, size_t>>();

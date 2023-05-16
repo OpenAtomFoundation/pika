@@ -19,7 +19,7 @@ namespace pstd {
 
 static const int kConfItemLen = 1024 * 1024;
 
-BaseConf::BaseConf(const std::string& path) : rep_(new Rep(path)) {}
+BaseConf::BaseConf(const std::string& path) : rep_(std::make_unique<Rep>(path)) {}
 
 BaseConf::~BaseConf() {}
 

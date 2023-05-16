@@ -13,8 +13,8 @@
 
 #include "pstd/include/mutex_impl.h"
 
-extern PikaConf* g_pika_conf;
-extern PikaServer* g_pika_server;
+extern std::unique_ptr<PikaConf> g_pika_conf;
+extern PikaServer* g_pika_server;;
 extern PikaReplicaManager* g_pika_rm;
 
 std::string PartitionPath(const std::string& table_path, uint32_t partition_id) {
@@ -50,7 +50,7 @@ Partition::Partition(const std::string& table_name, uint32_t partition_id, const
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, partition_id_);
   partition_name_ = table_name ;
 
-  db_ = std::shared_ptr<storage::Storage>(new storage::Storage());
+  db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
 
   lock_mgr_ = std::make_shared<pstd::lock::LockMgr>(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
@@ -427,7 +427,7 @@ bool Partition::FlushDB() {
   dbpath.append("_deleting/");
   pstd::RenameFile(db_path_, dbpath.c_str());
 
-  db_ = std::shared_ptr<storage::Storage>(new storage::Storage());
+  db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
   assert(db_);
   assert(s.ok());
@@ -455,7 +455,7 @@ bool Partition::FlushSubDB(const std::string& db_name) {
   std::string del_dbpath = dbpath + db_name + "_deleting";
   pstd::RenameFile(sub_dbpath, del_dbpath);
 
-  db_ = std::shared_ptr<storage::Storage>(new storage::Storage());
+  db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
   assert(db_);
   assert(s.ok());

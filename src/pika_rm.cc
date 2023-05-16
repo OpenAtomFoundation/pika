@@ -18,9 +18,9 @@
 #include "include/pika_admin.h"
 #include "include/pika_command.h"
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaReplicaManager* g_pika_rm;
-extern PikaServer* g_pika_server;
+extern PikaServer* g_pika_server;;
 
 /* SyncPartition */
 

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <hiredis-vip/hiredis.h>
+#include "hiredis-vip/hiredis.h"
 
 void Usage() {
   std::cout << "Usage:" << std::endl;

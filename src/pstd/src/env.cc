@@ -725,7 +725,7 @@ Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFil
   if (f == nullptr) {
     return IOError(fname, errno);
   } else {
-    result = std::unique_ptr<PosixSequentialFile>(new PosixSequentialFile(fname, f));
+    result = std::make_unique<PosixSequentialFile>(fname, f);
     return Status::OK();
   }
 }
@@ -736,7 +736,7 @@ Status NewWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& 
   if (fd < 0) {
     s = IOError(fname, errno);
   } else {
-    result = std::unique_ptr<PosixMmapFile>(new PosixMmapFile(fname, fd, kPageSize));
+    result = std::make_unique<PosixMmapFile>(fname, fd, kPageSize);
   }
   return s;
 }
@@ -747,7 +747,7 @@ Status NewRWFile(const std::string& fname, std::unique_ptr<RWFile>& result) {
   if (fd < 0) {
     s = IOError(fname, errno);
   } else {
-    result = std::unique_ptr<MmapRWFile>(new MmapRWFile(fname, fd, kPageSize));
+    result = std::make_unique<MmapRWFile>(fname, fd, kPageSize);
   }
   return s;
 }
@@ -758,7 +758,7 @@ Status AppendWritableFile(const std::string& fname, std::unique_ptr<WritableFile
   if (fd < 0) {
     s = IOError(fname, errno);
   } else {
-    result = std::unique_ptr<PosixMmapFile>(new PosixMmapFile(fname, fd, kPageSize, write_len));
+    result = std::make_unique<PosixMmapFile>(fname, fd, kPageSize, write_len);
   }
   return s;
 }
@@ -769,7 +769,7 @@ Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& 
   if (fd < 0) {
     s = IOError(fname, errno);
   } else {
-    result = std::unique_ptr<PosixRandomRWFile>(new PosixRandomRWFile(fname, fd));
+    result = std::make_unique<PosixRandomRWFile>(fname, fd);
   }
   return s;
 }

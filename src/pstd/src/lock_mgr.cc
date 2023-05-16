@@ -44,7 +44,7 @@ struct LockMap {
   explicit LockMap(size_t num_stripes, std::shared_ptr<MutexFactory> factory) : num_stripes_(num_stripes) {
     lock_map_stripes_.reserve(num_stripes);
     for (size_t i = 0; i < num_stripes; i++) {
-      auto stripe = std::shared_ptr<LockMapStripe>(new LockMapStripe(factory));
+      auto stripe = std::make_shared<LockMapStripe>(factory);
       lock_map_stripes_.push_back(stripe);
     }
   }
@@ -73,7 +73,7 @@ LockMgr::LockMgr(size_t default_num_stripes, int64_t max_num_locks, std::shared_
     : default_num_stripes_(default_num_stripes),
       max_num_locks_(max_num_locks),
       mutex_factory_(mutex_factory),
-      lock_map_(std::shared_ptr<LockMap>(new LockMap(default_num_stripes, mutex_factory))) {}
+      lock_map_(std::make_shared<LockMap>(default_num_stripes, mutex_factory)) {}
 
 LockMgr::~LockMgr() {}
 

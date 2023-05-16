@@ -15,7 +15,6 @@
 class Context {
  public:
   Context(const std::string path);
-  ~Context();
 
   Status Init();
   // RWLock should be held when access members.
@@ -38,7 +37,7 @@ class Context {
 
  private:
   std::string path_;
-  std::unique_ptr<pstd::RWFile> save_;
+  std::shared_ptr<pstd::RWFile> save_;
   // No copying allowed;
   Context(const Context&);
   void operator=(const Context&);

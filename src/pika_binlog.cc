@@ -20,7 +20,7 @@ std::string NewFileName(const std::string name, const uint32_t current) {
 /*
  * Version
  */
-Version::Version(pstd::RWFile* save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
+Version::Version(std::shared_ptr<pstd::RWFile> save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
   assert(save_ != nullptr);
 }
 
@@ -85,20 +85,22 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size)
     if (!s.ok()) {
       LOG(FATAL) << "Binlog: new " << filename_ << " " << s.ToString();
     }
-
-    s = pstd::NewRWFile(manifest, versionfile_);
+    std::unique_ptr<pstd::RWFile> tmp_file;
+    s = pstd::NewRWFile(manifest, tmp_file);
+    versionfile_.reset(tmp_file.release());
     if (!s.ok()) {
       LOG(FATAL) << "Binlog: new versionfile error " << s.ToString();
     }
 
-    version_ = std::unique_ptr<Version>(new Version(versionfile_.get()));
+    version_ = std::make_unique<Version>(versionfile_);
     version_->StableSave();
   } else {
     LOG(INFO) << "Binlog: Find the exist file.";
-
-    s = pstd::NewRWFile(manifest, versionfile_);
+    std::unique_ptr<pstd::RWFile> tmp_file;
+    s = pstd::NewRWFile(manifest, tmp_file);
+    versionfile_.reset(tmp_file.release());
     if (s.ok()) {
-      version_ = std::unique_ptr<Version>(new Version(versionfile_.get()));
+      version_ = std::make_unique<Version>(versionfile_);
       version_->Init();
       pro_num_ = version_->pro_num_;
 

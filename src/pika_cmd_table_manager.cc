@@ -11,20 +11,18 @@
 #include "include/pika_conf.h"
 #include "pstd/include/pstd_mutex.h"
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 PikaCmdTableManager::PikaCmdTableManager() {
-  cmds_ = new CmdTable();
+  cmds_ = std::unique_ptr<CmdTable>(new CmdTable());
   cmds_->reserve(300);
-  InitCmdTable(cmds_);
+  InitCmdTable(cmds_.get());
 }
 
 PikaCmdTableManager::~PikaCmdTableManager() {
   for (const auto& item : thread_distribution_map_) {
     delete item.second;
   }
-  DestoryCmdTable(cmds_);
-  delete cmds_;
 }
 
 std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {

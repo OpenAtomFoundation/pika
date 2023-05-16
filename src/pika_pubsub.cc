@@ -7,7 +7,7 @@
 
 #include "include/pika_server.h"
 
-extern PikaServer* g_pika_server;
+extern PikaServer* g_pika_server;;
 
 static std::string ConstructPubSubResp(const std::string& cmd, const std::vector<std::pair<std::string, int>>& result) {
   std::stringstream resp;

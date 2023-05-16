@@ -18,7 +18,8 @@
 #include "pstd/include/env.h"
 
 
-PikaConf* g_pika_conf;
+std::unique_ptr<PikaConf> g_pika_conf;
+// todo : change to unique_ptr will coredump
 PikaServer* g_pika_server;
 PikaReplicaManager* g_pika_rm;
 
@@ -37,7 +38,7 @@ static void version() {
 
 static void PikaConfInit(const std::string& path) {
   printf("path : %s\n", path.c_str());
-  g_pika_conf = new PikaConf(path);
+  g_pika_conf = std::make_unique<PikaConf>(path);
   if (g_pika_conf->Load() != 0) {
     LOG(FATAL) << "pika load conf error";
   }
@@ -206,7 +207,6 @@ int main(int argc, char* argv[]) {
   delete g_pika_rm;
   delete g_pika_cmd_table_manager;
   ::google::ShutdownGoogleLogging();
-  delete g_pika_conf;
 
   return 0;
 }

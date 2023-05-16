@@ -111,7 +111,7 @@ static std::set<std::string> ShardingModeNotSupportCommands{kCmdNameMsetnx,
                                                             kCmdNameSlaveof,
                                                             kCmdNameDbSlaveof};
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 enum TaskType {
   kCompactAll,
