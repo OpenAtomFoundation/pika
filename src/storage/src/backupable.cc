@@ -33,7 +33,7 @@ Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& t
 
 Status BackupEngine::Open(storage::Storage* storage, BackupEngine** backup_engine_ptr) {
   *backup_engine_ptr = new BackupEngine();
-  if (!*backup_engine_ptr) {
+  if (*backup_engine_ptr == nullptr) {
     return Status::Corruption("New BackupEngine failed!");
   }
 
@@ -74,8 +74,8 @@ Status BackupEngine::SetBackupContent() {
 }
 
 Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const std::string& type) {
-  std::map<std::string, rocksdb::DBCheckpoint*>::iterator it_engine = engines_.find(type);
-  std::map<std::string, BackupContent>::iterator it_content = backup_content_.find(type);
+  auto it_engine = engines_.find(type);
+  auto it_content = backup_content_.find(type);
   std::string dir = GetSaveDirByType(backup_dir, type);
   delete_dir(dir.c_str());
 
@@ -95,8 +95,8 @@ Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const
 }
 
 void* ThreadFuncSaveSpecify(void* arg) {
-  BackupSaveArgs* arg_ptr = static_cast<BackupSaveArgs*>(arg);
-  BackupEngine* p = static_cast<BackupEngine*>(arg_ptr->p_engine);
+  auto* arg_ptr = static_cast<BackupSaveArgs*>(arg);
+  auto* p = static_cast<BackupEngine*>(arg_ptr->p_engine);
   arg_ptr->res = p->CreateNewBackupSpecify(arg_ptr->backup_dir, arg_ptr->key_type);
   pthread_exit(&(arg_ptr->res));
 }
@@ -106,7 +106,7 @@ Status BackupEngine::WaitBackupPthread() {
   Status s = Status::OK();
   for (auto& pthread : backup_pthread_ts_) {
     void* res;
-    if ((ret = pthread_join(pthread.second, &res)) != 0) {
+    if (pthread_join(pthread.second, &res) != 0) {
     }
     Status cur_s = *(static_cast<Status*>(res));
     if (!cur_s.ok()) {
@@ -123,7 +123,7 @@ Status BackupEngine::CreateNewBackup(const std::string& dir) {
   std::vector<BackupSaveArgs*> args;
   for (const auto& engine : engines_) {
     pthread_t tid;
-    BackupSaveArgs* arg = new BackupSaveArgs(reinterpret_cast<void*>(this), dir, engine.first);
+    auto* arg = new BackupSaveArgs(reinterpret_cast<void*>(this), dir, engine.first);
     args.push_back(arg);
     if (pthread_create(&tid, nullptr, &ThreadFuncSaveSpecify, arg) != 0) {
       s = Status::Corruption("pthead_create failed.");

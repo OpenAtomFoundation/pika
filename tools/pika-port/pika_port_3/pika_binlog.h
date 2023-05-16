@@ -25,13 +25,13 @@
 using pstd::Slice;
 using pstd::Status;
 
-std::string NewFileName(const std::string name, const uint32_t current);
+std::string NewFileName(const std::string& name, const uint32_t current);
 
 class Version;
 
 class Binlog {
  public:
-  Binlog(const std::string& Binlog_path, const int file_size = 100 * 1024 * 1024);
+  Binlog(std::string  Binlog_path, const int file_size = 100 * 1024 * 1024);
   ~Binlog();
 
   Status Put(const std::string& item);
@@ -41,7 +41,7 @@ class Binlog {
   /*
    * Set Producer pro_num and pro_offset with lock
    */
-  Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset);
+  Status SetProducerStatus(uint32_t pro_num, uint64_t pro_offset);
 
   static Status AppendBlank(pstd::WritableFile* file, uint64_t len);
 

@@ -17,13 +17,13 @@
 class PikaReplClientThread : public net::ClientThread {
  public:
   PikaReplClientThread(int cron_interval, int keepalive_timeout);
-  virtual ~PikaReplClientThread() = default;
+  ~PikaReplClientThread() override = default;
   int Start();
 
  private:
   class ReplClientConnFactory : public net::ConnFactory {
    public:
-    virtual std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
+    std::shared_ptr<net::NetConn> NewNetConn(int connfd, const std::string& ip_port, net::Thread* thread,
                                                      void* worker_specific_data,
                                                      net::NetMultiplexer* net) const override {
       return std::static_pointer_cast<net::NetConn>(
@@ -45,7 +45,7 @@ class PikaReplClientThread : public net::ClientThread {
     }
     int CreateWorkerSpecificData(void** data) const override { return 0; }
     int DeleteWorkerSpecificData(void* data) const override { return 0; }
-    void DestConnectFailedHandle(std::string ip_port, std::string reason) const override {}
+    void DestConnectFailedHandle(const std::string &ip_port, const std::string &reason) const override {}
   };
 
   ReplClientConnFactory conn_factory_;

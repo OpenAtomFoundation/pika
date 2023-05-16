@@ -103,7 +103,7 @@ Status RedisStrings::ScanKeys(const std::string& pattern, std::vector<std::strin
     ParsedStringsValue parsed_strings_value(iter->value());
     if (!parsed_strings_value.IsStale()) {
       key = iter->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0)) {
+      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
     }
@@ -130,7 +130,7 @@ Status RedisStrings::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
     key = iter->key().ToString();
     value = iter->value().ToString();
     ParsedStringsValue parsed_strings_value(&value);
-    if (!parsed_strings_value.IsStale() && StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0)) {
+    if (!parsed_strings_value.IsStale() && (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       batch.Delete(key);
     }
     // In order to be more efficient, we use batch deletion here
@@ -146,7 +146,7 @@ Status RedisStrings::PKPatternMatchDel(const std::string& pattern, int32_t* ret)
     }
     iter->Next();
   }
-  if (batch.Count()) {
+  if (batch.Count() != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
       total_delete += batch.Count();
@@ -213,7 +213,7 @@ Status RedisStrings::BitCount(const Slice& key, int64_t start_offset, int64_t en
       return Status::NotFound("Stale");
     } else {
       parsed_strings_value.StripSuffix();
-      const unsigned char* bit_value = reinterpret_cast<const unsigned char*>(value.data());
+      const auto* bit_value = reinterpret_cast<const unsigned char*>(value.data());
       int64_t value_length = value.length();
       if (have_range) {
         if (start_offset < 0) {
@@ -250,7 +250,8 @@ Status RedisStrings::BitCount(const Slice& key, int64_t start_offset, int64_t en
 std::string BitOpOperate(BitOpType op, const std::vector<std::string>& src_values, int64_t max_len) {
   char* dest_value = new char[max_len];
 
-  char byte, output;
+  char byte;
+  char output;
   for (int64_t j = 0; j < max_len; j++) {
     if (j < static_cast<int64_t>(src_values[0].size())) {
       output = src_values[0][j];
@@ -294,19 +295,20 @@ Status RedisStrings::BitOp(BitOpType op, const std::string& dest_key, const std:
   Status s;
   if (op == kBitOpNot && src_keys.size() != 1) {
     return Status::InvalidArgument("the number of source keys is not right");
-  } else if (src_keys.size() < 1) {
+  } else if (src_keys.empty()) {
     return Status::InvalidArgument("the number of source keys is not right");
   }
 
-  int64_t max_len = 0, value_len = 0;
+  int64_t max_len = 0;
+  int64_t value_len = 0;
   std::vector<std::string> src_values;
-  for (size_t i = 0; i < src_keys.size(); i++) {
+  for (const auto & src_key : src_keys) {
     std::string value;
-    s = db_->Get(default_read_options_, src_keys[i], &value);
+    s = db_->Get(default_read_options_, src_key, &value);
     if (s.ok()) {
       ParsedStringsValue parsed_strings_value(&value);
       if (parsed_strings_value.IsStale()) {
-        src_values.push_back(std::string(""));
+        src_values.emplace_back("");
         value_len = 0;
       } else {
         parsed_strings_value.StripSuffix();
@@ -314,7 +316,7 @@ Status RedisStrings::BitOp(BitOpType op, const std::string& dest_key, const std:
         value_len = value.size();
       }
     } else if (s.IsNotFound()) {
-      src_values.push_back(std::string(""));
+      src_values.emplace_back("");
       value_len = 0;
     } else {
       return s;
@@ -503,7 +505,8 @@ Status RedisStrings::Incrby(const Slice& key, int64_t value, int64_t* ret) {
 }
 
 Status RedisStrings::Incrbyfloat(const Slice& key, const Slice& value, std::string* ret) {
-  std::string old_value, new_value;
+  std::string old_value;
+  std::string new_value;
   long double long_double_by;
   if (StrToLongDouble(value.data(), value.size(), &long_double_by) == -1) {
     return Status::Corruption("Value is not a vaild float");
@@ -520,7 +523,8 @@ Status RedisStrings::Incrbyfloat(const Slice& key, const Slice& value, std::stri
     } else {
       int32_t timestamp = parsed_strings_value.timestamp();
       std::string old_user_value = parsed_strings_value.value().ToString();
-      long double total, old_number;
+      long double total;
+      long double old_number;
       if (StrToLongDouble(old_user_value.data(), old_user_value.size(), &old_number) == -1) {
         return Status::Corruption("Value is not a vaild float");
       }
@@ -573,7 +577,8 @@ Status RedisStrings::MGet(const std::vector<std::string>& keys, std::vector<Valu
 
 Status RedisStrings::MSet(const std::vector<KeyValue>& kvs) {
   std::vector<std::string> keys;
-  for (const auto& kv : kvs) {
+  keys.reserve(kvs.size());
+for (const auto& kv : kvs) {
     keys.push_back(kv.key);
   }
 
@@ -591,8 +596,8 @@ Status RedisStrings::MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret) {
   bool exists = false;
   *ret = 0;
   std::string value;
-  for (size_t i = 0; i < kvs.size(); i++) {
-    s = db_->Get(default_read_options_, kvs[i].key, &value);
+  for (const auto & kv : kvs) {
+    s = db_->Get(default_read_options_, kv.key, &value);
     if (s.ok()) {
       ParsedStringsValue parsed_strings_value(&value);
       if (!parsed_strings_value.IsStale()) {
@@ -742,7 +747,7 @@ Status RedisStrings::Setvx(const Slice& key, const Slice& value, const Slice& ne
     if (parsed_strings_value.IsStale()) {
       *ret = 0;
     } else {
-      if (!value.compare(parsed_strings_value.value())) {
+      if (value.compare(parsed_strings_value.value()) == 0) {
         StringsValue strings_value(new_value);
         if (ttl > 0) {
           strings_value.SetRelativeTimestamp(ttl);
@@ -775,7 +780,7 @@ Status RedisStrings::Delvx(const Slice& key, const Slice& value, int32_t* ret) {
       *ret = 0;
       return Status::NotFound("Stale");
     } else {
-      if (!value.compare(parsed_strings_value.value())) {
+      if (value.compare(parsed_strings_value.value()) == 0) {
         *ret = 1;
         return db_->Delete(default_write_options_, key);
       } else {
@@ -844,8 +849,8 @@ Status RedisStrings::Strlen(const Slice& key, int32_t* len) {
 int32_t GetBitPos(const unsigned char* s, unsigned int bytes, int bit) {
   uint64_t word = 0;
   uint64_t skip_val = 0;
-  unsigned char* value = const_cast<unsigned char*>(s);
-  uint64_t* l = reinterpret_cast<uint64_t*>(value);
+  auto* value = const_cast<unsigned char*>(s);
+  auto* l = reinterpret_cast<uint64_t*>(value);
   int pos = 0;
   if (bit == 0) {
     skip_val = std::numeric_limits<uint64_t>::max();
@@ -861,10 +866,10 @@ int32_t GetBitPos(const unsigned char* s, unsigned int bytes, int bit) {
     bytes = bytes - sizeof(*l);
     pos = pos + 8 * sizeof(*l);
   }
-  unsigned char* c = reinterpret_cast<unsigned char*>(l);
+  auto* c = reinterpret_cast<unsigned char*>(l);
   for (size_t j = 0; j < sizeof(*l); j++) {
     word = word << 8;
-    if (bytes) {
+    if (bytes != 0U) {
       word = word | *c;
       c++;
       bytes--;
@@ -877,8 +882,8 @@ int32_t GetBitPos(const unsigned char* s, unsigned int bytes, int bit) {
   uint64_t mask = std::numeric_limits<uint64_t>::max();
   mask = mask >> 1;
   mask = ~(mask);
-  while (mask) {
-    if (((word & mask) != 0) == bit) {
+  while (mask != 0U) {
+    if (static_cast<int>((word & mask) != 0) == bit) {
       return pos;
     }
     pos++;
@@ -902,7 +907,7 @@ Status RedisStrings::BitPos(const Slice& key, int32_t bit, int64_t* ret) {
       return Status::NotFound("Stale");
     } else {
       parsed_strings_value.StripSuffix();
-      const unsigned char* bit_value = reinterpret_cast<const unsigned char*>(value.data());
+      const auto* bit_value = reinterpret_cast<const unsigned char*>(value.data());
       int64_t value_length = value.length();
       int64_t start_offset = 0;
       int64_t end_offset = std::max(value_length - 1, static_cast<int64_t>(0));
@@ -937,7 +942,7 @@ Status RedisStrings::BitPos(const Slice& key, int32_t bit, int64_t start_offset,
       return Status::NotFound("Stale");
     } else {
       parsed_strings_value.StripSuffix();
-      const unsigned char* bit_value = reinterpret_cast<const unsigned char*>(value.data());
+      const auto* bit_value = reinterpret_cast<const unsigned char*>(value.data());
       int64_t value_length = value.length();
       int64_t end_offset = std::max(value_length - 1, static_cast<int64_t>(0));
       if (start_offset < 0) {
@@ -985,7 +990,7 @@ Status RedisStrings::BitPos(const Slice& key, int32_t bit, int64_t start_offset,
       return Status::NotFound("Stale");
     } else {
       parsed_strings_value.StripSuffix();
-      const unsigned char* bit_value = reinterpret_cast<const unsigned char*>(value.data());
+      const auto* bit_value = reinterpret_cast<const unsigned char*>(value.data());
       int64_t value_length = value.length();
       if (start_offset < 0) {
         start_offset = start_offset + value_length;
@@ -1038,7 +1043,8 @@ Status RedisStrings::PKScanRange(const Slice& key_start, const Slice& key_end, c
                                  std::vector<KeyValue>* kvs, std::string* next_key) {
   next_key->clear();
 
-  std::string key, value;
+  std::string key;
+  std::string value;
   int32_t remain = limit;
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
@@ -1046,8 +1052,8 @@ Status RedisStrings::PKScanRange(const Slice& key_start, const Slice& key_end, c
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  bool start_no_limit = !key_start.compare("");
-  bool end_no_limit = !key_end.compare("");
+  bool start_no_limit = key_start.compare("") == 0;
+  bool end_no_limit = key_end.compare("") == 0;
 
   if (!start_no_limit && !end_no_limit && (key_start.compare(key_end) > 0)) {
     return Status::InvalidArgument("error in given range");
@@ -1069,7 +1075,7 @@ Status RedisStrings::PKScanRange(const Slice& key_start, const Slice& key_end, c
     } else {
       key = it->key().ToString();
       value = parsed_strings_value.value().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0)) {
+      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         kvs->push_back({key, value});
       }
       remain--;
@@ -1092,7 +1098,8 @@ Status RedisStrings::PKScanRange(const Slice& key_start, const Slice& key_end, c
 
 Status RedisStrings::PKRScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,
                                   std::vector<KeyValue>* kvs, std::string* next_key) {
-  std::string key, value;
+  std::string key;
+  std::string value;
   int32_t remain = limit;
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
@@ -1100,8 +1107,8 @@ Status RedisStrings::PKRScanRange(const Slice& key_start, const Slice& key_end, 
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  bool start_no_limit = !key_start.compare("");
-  bool end_no_limit = !key_end.compare("");
+  bool start_no_limit = key_start.compare("") == 0;
+  bool end_no_limit = key_end.compare("") == 0;
 
   if (!start_no_limit && !end_no_limit && (key_start.compare(key_end) < 0)) {
     return Status::InvalidArgument("error in given range");
@@ -1123,7 +1130,7 @@ Status RedisStrings::PKRScanRange(const Slice& key_start, const Slice& key_end, 
     } else {
       key = it->key().ToString();
       value = parsed_strings_value.value().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0)) {
+      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         kvs->push_back({key, value});
       }
       remain--;
@@ -1199,7 +1206,7 @@ bool RedisStrings::Scan(const std::string& start_key, const std::string& pattern
       continue;
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0)) {
+      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       (*count)--;

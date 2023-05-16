@@ -30,7 +30,7 @@ QpsStatistic::QpsStatistic(const QpsStatistic& other) {
   last_time_us = other.last_time_us.load();
 }
 
-QpsStatistic::~QpsStatistic() {}
+
 
 void QpsStatistic::IncreaseQueryNum(bool is_write) {
   querynum++;
@@ -68,9 +68,9 @@ void QpsStatistic::ResetLastSecQuerynum() {
 
 /* ServerStatistic */
 
-ServerStatistic::ServerStatistic() {}
+ServerStatistic::ServerStatistic() = default;
 
-ServerStatistic::~ServerStatistic() {}
+ServerStatistic::~ServerStatistic() = default;
 
 /* Statistic */
 

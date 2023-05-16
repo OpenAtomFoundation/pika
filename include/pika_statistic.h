@@ -15,7 +15,7 @@ class QpsStatistic {
  public:
   QpsStatistic();
   QpsStatistic(const QpsStatistic& other);
-  ~QpsStatistic();
+  ~QpsStatistic() = default;
 
   void IncreaseQueryNum(bool is_write);
 

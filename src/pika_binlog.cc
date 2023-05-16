@@ -9,18 +9,23 @@
 #include <glog/logging.h>
 #include <sys/time.h>
 
-#include "include/pika_binlog_transverter.h"
+#include <utility>
 
-std::string NewFileName(const std::string name, const uint32_t current) {
+#include "include/pika_binlog_transverter.h"
+#include "pstd_status.h"
+
+using pstd::Status;
+
+std::string NewFileName(const std::string& name, const uint32_t current) {
   char buf[256];
   snprintf(buf, sizeof(buf), "%s%u", name.c_str(), current);
-  return std::string(buf);
+  return {buf};
 }
 
 /*
  * Version
  */
-Version::Version(pstd::RWFile* save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) {
+Version::Version(pstd::RWFile* save) :  save_(save) {
   assert(save_ != nullptr);
 }
 
@@ -41,10 +46,10 @@ Status Version::StableSave() {
 Status Version::Init() {
   Status s;
   if (save_->GetData() != nullptr) {
-    memcpy((char*)(&pro_num_), save_->GetData(), sizeof(uint32_t));
-    memcpy((char*)(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
-    memcpy((char*)(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
-    memcpy((char*)(&term_), save_->GetData() + 20, sizeof(uint32_t));
+    memcpy(reinterpret_cast<char*>(&pro_num_), save_->GetData(), sizeof(uint32_t));
+    memcpy(reinterpret_cast<char*>(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
+    memcpy(reinterpret_cast<char*>(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
+    memcpy(reinterpret_cast<char*>(&term_), save_->GetData() + 20, sizeof(uint32_t));
     return Status::OK();
   } else {
     return Status::Corruption("version init error");
@@ -54,15 +59,10 @@ Status Version::Init() {
 /*
  * Binlog
  */
-Binlog::Binlog(const std::string& binlog_path, const int file_size)
+Binlog::Binlog(std::string  binlog_path, const int file_size)
     : opened_(false),
-      version_(nullptr),
-      queue_(nullptr),
-      versionfile_(nullptr),
-      pro_num_(0),
-      pool_(nullptr),
-      exit_all_consume_(false),
-      binlog_path_(binlog_path),
+      
+      binlog_path_(std::move(binlog_path)),
       file_size_(file_size),
       binlog_io_error_(false) {
   // To intergrate with old version, we don't set mmap file size to 100M;
@@ -206,7 +206,7 @@ Status Binlog::Put(const char* item, int len) {
   }
 
   int pro_offset;
-  s = Produce(Slice(item, len), &pro_offset);
+  s = Produce(pstd::Slice(item, len), &pro_offset);
   if (s.ok()) {
     std::lock_guard l(version_->rwlock_);
     version_->pro_offset_ = pro_offset;
@@ -237,9 +237,9 @@ Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* 
   buf[6] = static_cast<char>((now & 0xff000000) >> 24);
   buf[7] = static_cast<char>(t);
 
-  s = queue_->Append(Slice(buf, kHeaderSize));
+  s = queue_->Append(pstd::Slice(buf, kHeaderSize));
   if (s.ok()) {
-    s = queue_->Append(Slice(ptr, n));
+    s = queue_->Append(pstd::Slice(ptr, n));
     if (s.ok()) {
       s = queue_->Flush();
     }
@@ -250,7 +250,7 @@ Status Binlog::EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* 
   return s;
 }
 
-Status Binlog::Produce(const Slice& item, int* temp_pro_offset) {
+Status Binlog::Produce(const pstd::Slice& item, int* temp_pro_offset) {
   Status s;
   const char* ptr = item.data();
   size_t left = item.size();
@@ -262,7 +262,7 @@ Status Binlog::Produce(const Slice& item, int* temp_pro_offset) {
     assert(leftover >= 0);
     if (static_cast<size_t>(leftover) < kHeaderSize) {
       if (leftover > 0) {
-        s = queue_->Append(Slice("\x00\x00\x00\x00\x00\x00\x00", leftover));
+        s = queue_->Append(pstd::Slice("\x00\x00\x00\x00\x00\x00\x00", leftover));
         if (!s.ok()) {
           return s;
         }
@@ -323,9 +323,9 @@ Status Binlog::AppendPadding(pstd::WritableFile* file, uint64_t* len) {
       buf[6] = static_cast<char>((now & 0xff000000) >> 24);
       // kBadRecord here
       buf[7] = static_cast<char>(kBadRecord);
-      s = file->Append(Slice(buf, kHeaderSize));
+      s = file->Append(pstd::Slice(buf, kHeaderSize));
       if (s.ok()) {
-        s = file->Append(Slice(binlog.data(), binlog.size()));
+        s = file->Append(pstd::Slice(binlog.data(), binlog.size()));
         if (s.ok()) {
           s = file->Flush();
           left -= size;
@@ -389,7 +389,7 @@ Status Binlog::Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index) {
   if (fd < 0) {
     return Status::IOError("fd open failed");
   }
-  if (ftruncate(fd, pro_offset)) {
+  if (ftruncate(fd, pro_offset) != 0) {
     return Status::IOError("ftruncate failed");
   }
   close(fd);

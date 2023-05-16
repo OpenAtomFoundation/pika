@@ -21,7 +21,7 @@ namespace storage {
 class ZSetsScoreFilter : public rocksdb::CompactionFilter {
  public:
   ZSetsScoreFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* handles_ptr)
-      : db_(db), cf_handles_ptr_(handles_ptr), meta_not_found_(false), cur_meta_version_(0), cur_meta_timestamp_(0) {}
+      : db_(db), cf_handles_ptr_(handles_ptr) {}
 
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
@@ -35,7 +35,7 @@ class ZSetsScoreFilter : public rocksdb::CompactionFilter {
       cur_key_ = parsed_zsets_score_key.key().ToString();
       std::string meta_value;
       // destroyed when close the database, Reserve Current key value
-      if (cf_handles_ptr_->size() == 0) {
+      if (cf_handles_ptr_->empty()) {
         return false;
       }
       Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);

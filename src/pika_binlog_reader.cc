@@ -7,23 +7,18 @@
 
 #include <glog/logging.h>
 
+using pstd::Status;
+
 PikaBinlogReader::PikaBinlogReader(uint32_t cur_filenum, uint64_t cur_offset)
     : cur_filenum_(cur_filenum),
       cur_offset_(cur_offset),
       logger_(nullptr),
-      queue_(nullptr),
-      backing_store_(new char[kBlockSize]),
-      buffer_() {
+
+      backing_store_(new char[kBlockSize]) {
   last_record_offset_ = cur_offset % kBlockSize;
 }
 
-PikaBinlogReader::PikaBinlogReader()
-    : cur_filenum_(0),
-      cur_offset_(0),
-      logger_(nullptr),
-      queue_(nullptr),
-      backing_store_(new char[kBlockSize]),
-      buffer_() {
+PikaBinlogReader::PikaBinlogReader() : logger_(nullptr), backing_store_(new char[kBlockSize]) {
   last_record_offset_ = 0 % kBlockSize;
 }
 
@@ -46,7 +41,7 @@ bool PikaBinlogReader::ReadToTheEnd() {
   return (pro_num == cur_filenum_ && pro_offset == cur_offset_);
 }
 
-int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset) {
+int PikaBinlogReader::Seek(const std::shared_ptr<Binlog>& logger, uint32_t filenum, uint64_t offset) {
   std::string confile = NewFileName(logger->filename(), filenum);
   if (!pstd::FileExists(confile)) {
     LOG(WARNING) << confile << " not exits";
@@ -57,9 +52,7 @@ int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uin
     LOG(WARNING) << "New swquential " << confile << " failed";
     return -1;
   }
-  if (queue_) {
-    delete queue_;
-  }
+  delete queue_;
   queue_ = readfile;
   logger_ = logger;
 
@@ -83,7 +76,7 @@ int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uin
     }
     ret = 0;
     is_error = GetNext(&ret);
-    if (is_error == true) {
+    if (is_error) {
       return -1;
     }
     res += ret;
@@ -112,7 +105,9 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
     const unsigned int type = header[7];
     const uint32_t length = a | (b << 8) | (c << 16);
 
-    if (length > (kBlockSize - kHeaderSize)) return true;
+    if (length > (kBlockSize - kHeaderSize)) {
+      return true;
+    }
 
     if (type == kFullType) {
       s = queue_->Read(length, &buffer_, backing_store_);
@@ -164,7 +159,8 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t*
   const unsigned int type = header[7];
   const uint32_t length = a | (b << 8) | (c << 16);
 
-  if (length > (kBlockSize - kHeaderSize)) return kBadRecord;
+  if (length > (kBlockSize - kHeaderSize)) { return kBadRecord;
+}
 
   if (type == kZeroType || length == 0) {
     buffer_.clear();

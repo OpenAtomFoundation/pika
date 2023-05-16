@@ -2,12 +2,14 @@
 #include "pstd/include/xdebug.h"
 
 #include <glog/logging.h>
+#include <strings.h>
+#include <cstring>
 /*********************************************
  * Wrappers for Unix process control functions
  ********************************************/
 
 /* $begin forkwrapper */
-pid_t Fork(void) {
+pid_t Fork() {
   pid_t pid;
 
   if ((pid = fork()) < 0) {
@@ -55,7 +57,6 @@ void Kill(pid_t pid, int signum) {
 
 void Pause() {
   (void)pause();
-  return;
 }
 
 unsigned int Sleep(unsigned int secs) { return sleep(secs); }
@@ -68,10 +69,9 @@ void Setpgid(pid_t pid, pid_t pgid) {
   if ((rc = setpgid(pid, pgid)) < 0) {
     LOG(ERROR) << "Setpgid error: " << strerror(errno);
   }
-  return;
-}
+  }
 
-pid_t Getpgrp(void) { return getpgrp(); }
+pid_t Getpgrp() { return getpgrp(); }
 
 /************************************
  * Wrappers for Unix signal functions
@@ -79,7 +79,8 @@ pid_t Getpgrp(void) { return getpgrp(); }
 
 /* $begin sigaction */
 handler_t* Signal(int signum, handler_t* handler) {
-  struct sigaction action, old_action;
+  struct sigaction action;
+  struct sigaction old_action;
 
   action.sa_handler = handler;
   sigemptyset(&action.sa_mask); /* block sigs of type being handled */
@@ -96,40 +97,35 @@ void Sigprocmask(int how, const sigset_t* set, sigset_t* oldset) {
   if (sigprocmask(how, set, oldset) < 0) {
     LOG(ERROR) << "Sigprocmask error: " << strerror(errno);
   }
-  return;
-}
+  }
 
 void Sigemptyset(sigset_t* set) {
   if (sigemptyset(set) < 0) {
     LOG(ERROR) << "Sigemptyset error: " << strerror(errno);
   }
-  return;
-}
+  }
 
 void Sigfillset(sigset_t* set) {
   if (sigfillset(set) < 0) {
     LOG(ERROR) << "Sigfillset error: " << strerror(errno);
   }
-  return;
-}
+  }
 
 void Sigaddset(sigset_t* set, int signum) {
   if (sigaddset(set, signum) < 0) {
     LOG(ERROR) << "Sigaddset error: " << strerror(errno);
   }
-  return;
-}
+  }
 
 void Sigdelset(sigset_t* set, int signum) {
   if (sigdelset(set, signum) < 0) {
     LOG(ERROR) << "Sigdelset error: " << strerror(errno);
   }
-  return;
-}
+  }
 
 int Sigismember(const sigset_t* set, int signum) {
   int rc;
-  if ((rc = sigismember(set, signum)) < 0) {
+  if (rc = sigismember(set, signum); rc < 0) {
     LOG(ERROR) << "Sigismember error: " << strerror(errno);
   }
   return rc;
@@ -219,7 +215,7 @@ void Fstat(int fd, struct stat* buf) {
 void* Mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset) {
   void* ptr;
 
-  if ((ptr = mmap(addr, len, prot, flags, fd, offset)) == ((void*)-1)) {
+  if ((ptr = mmap(addr, len, prot, flags, fd, offset)) == ((void*)-1)) {  // NOLINT
     LOG(ERROR) << "mmap error: " << strerror(errno);
   }
   return (ptr);
@@ -286,7 +282,7 @@ FILE* Fdopen(int fd, const char* type) {
 char* Fgets(char* ptr, int n, FILE* stream) {
   char* rptr;
 
-  if (((rptr = fgets(ptr, n, stream)) == nullptr) && ferror(stream)) {
+  if (((rptr = fgets(ptr, n, stream)) == nullptr) && (ferror(stream) != 0)) {
     LOG(ERROR) << "Fgets error";
   }
 
@@ -312,7 +308,7 @@ void Fputs(const char* ptr, FILE* stream) {
 size_t Fread(void* ptr, size_t size, size_t nmemb, FILE* stream) {
   size_t n;
 
-  if (((n = fread(ptr, size, nmemb, stream)) < nmemb) && ferror(stream)) {
+  if (((n = fread(ptr, size, nmemb, stream)) < nmemb) && (ferror(stream) != 0)) {
     LOG(ERROR) << "Fread error: " << strerror(errno);
   }
   return n;
@@ -338,25 +334,19 @@ int Socket(int domain, int type, int protocol) {
 }
 
 void Setsockopt(int s, int level, int optname, const void* optval, int optlen) {
-  int rc;
-
-  if ((rc = setsockopt(s, level, optname, optval, optlen)) < 0) {
+  if (setsockopt(s, level, optname, optval, optlen) < 0) {
     LOG(ERROR) << "Setsockopt error: " << strerror(errno);
   }
 }
 
 void Bind(int sockfd, struct sockaddr* my_addr, int addrlen) {
-  int rc;
-
-  if ((rc = bind(sockfd, my_addr, addrlen)) < 0) {
+  if (bind(sockfd, my_addr, addrlen) < 0) {
     LOG(ERROR) << "Bind error: " << strerror(errno);
   }
 }
 
 void Listen(int s, int backlog) {
-  int rc;
-
-  if ((rc = listen(s, backlog)) < 0) {
+  if (listen(s, backlog) < 0) {
     LOG(ERROR) << "Listen error: " << strerror(errno);
   }
 }
@@ -364,16 +354,14 @@ void Listen(int s, int backlog) {
 int Accept(int s, struct sockaddr* addr, socklen_t* addrlen) {
   int rc;
 
-  if ((rc = accept(s, addr, addrlen)) < 0) {
+  if (rc = accept(s, addr, addrlen); rc < 0) {
     LOG(ERROR) << "Accept error: " << strerror(errno);
   }
   return rc;
 }
 
 void Connect(int sockfd, struct sockaddr* serv_addr, int addrlen) {
-  int rc;
-
-  if ((rc = connect(sockfd, serv_addr, addrlen)) < 0) {
+  if (connect(sockfd, serv_addr, addrlen) < 0) {
     LOG(ERROR) << "Connect error: " << strerror(errno);
   }
 }
@@ -396,7 +384,7 @@ struct hostent* Gethostbyname(const char* name) {
 struct hostent* Gethostbyaddr(const char* addr, int len, int type) {
   struct hostent* p;
 
-  if ((p = gethostbyaddr(addr, len, type)) == nullptr) {
+  if (p = gethostbyaddr(addr, len, type); p == nullptr) {
     LOG(ERROR) << "Gethostbyaddr error: DNS error " << h_errno;
   }
   return p;
@@ -409,7 +397,7 @@ struct hostent* Gethostbyaddr(const char* addr, int len, int type) {
 void Pthread_create(pthread_t* tidp, pthread_attr_t* attrp, void* (*routine)(void*), void* argp) {
   int rc;
 
-  if ((rc = pthread_create(tidp, attrp, routine, argp)) != 0) {
+  if (rc = pthread_create(tidp, attrp, routine, argp); rc != 0) {
     LOG(ERROR) << "Pthread_create error: " << strerror(rc);
   }
 }
@@ -417,7 +405,7 @@ void Pthread_create(pthread_t* tidp, pthread_attr_t* attrp, void* (*routine)(voi
 void Pthread_cancel(pthread_t tid) {
   int rc;
 
-  if ((rc = pthread_cancel(tid)) != 0) {
+  if (rc = pthread_cancel(tid); rc != 0) {
     LOG(ERROR) << "Pthread_cancel error: " << strerror(rc);
   }
 }
@@ -442,7 +430,7 @@ void Pthread_detach(pthread_t tid) {
 
 void Pthread_exit(void* retval) { pthread_exit(retval); }
 
-pthread_t Pthread_self(void) { return pthread_self(); }
+pthread_t Pthread_self() { return pthread_self(); }
 
 void Pthread_once(pthread_once_t* once_control, void (*init_function)()) { pthread_once(once_control, init_function); }
 
@@ -451,7 +439,8 @@ void Pthread_once(pthread_once_t* once_control, void (*init_function)()) { pthre
  *******************************/
 
 void Sem_init(sem_t* sem, int pshared, unsigned int value) {
-  if (sem_init(sem, pshared, value) < 0) {
+// TODO(clang-tidy) : should use c11 cond or mutex instead of Posix sem
+  if (sem_init(sem, pshared, value) < 0) {  // NOLINT
     LOG(ERROR) << "Sem_init error: " << strerror(errno);
   }
 }
@@ -478,16 +467,18 @@ void V(sem_t* sem) {
 ssize_t rio_readn(int fd, void* usrbuf, size_t n) {
   size_t nleft = n;
   ssize_t nread;
-  char* bufp = (char*)usrbuf;
+  char* bufp = static_cast<char*>(usrbuf);
 
   while (nleft > 0) {
     if ((nread = read(fd, bufp, nleft)) < 0) {
-      if (errno == EINTR) /* interrupted by sig handler return */
+      if (errno == EINTR) { /* interrupted by sig handler return */
         nread = 0;        /* and call read() again */
-      else
+      } else {
         return -1; /* errno set by read() */
-    } else if (nread == 0)
+}
+    } else if (nread == 0) {
       break; /* EOF */
+}
     nleft -= nread;
     bufp += nread;
   }
@@ -502,14 +493,15 @@ ssize_t rio_readn(int fd, void* usrbuf, size_t n) {
 ssize_t rio_writen(int fd, void* usrbuf, size_t n) {
   size_t nleft = n;
   ssize_t nwritten;
-  char* bufp = (char*)usrbuf;
+  char* bufp = static_cast<char*>(usrbuf);
 
   while (nleft > 0) {
     if ((nwritten = write(fd, bufp, nleft)) <= 0) {
-      if (errno == EINTR) /* interrupted by sig handler return */
+      if (errno == EINTR) { /* interrupted by sig handler return */
         nwritten = 0;     /* and call write() again */
-      else
+      } else {
         return -1; /* errorno set by write() */
+}
     }
     nleft -= nwritten;
     bufp += nwritten;
@@ -533,17 +525,20 @@ static ssize_t rio_read(rio_t* rp, char* usrbuf, size_t n) {
   while (rp->rio_cnt <= 0) { /* refill if buf is empty */
     rp->rio_cnt = read(rp->rio_fd, rp->rio_buf, sizeof(rp->rio_buf));
     if (rp->rio_cnt < 0) {
-      if (errno != EINTR) /* interrupted by sig handler return */
+      if (errno != EINTR) { /* interrupted by sig handler return */
         return -1;
-    } else if (rp->rio_cnt == 0) /* EOF */
+}
+    } else if (rp->rio_cnt == 0) { /* EOF */
       return 0;
-    else
+    } else {
       rp->rio_bufptr = rp->rio_buf; /* reset buffer ptr */
+}
   }
 
   /* Copy min(n, rp->rio_cnt) bytes from internal buf to user buf */
   cnt = n;
-  if (rp->rio_cnt < (int)n) cnt = rp->rio_cnt;
+  if (rp->rio_cnt < static_cast<int>(n)) { cnt = rp->rio_cnt;
+}
   memcpy(usrbuf, rp->rio_bufptr, cnt);
   rp->rio_bufptr += cnt;
   rp->rio_cnt -= cnt;
@@ -569,16 +564,18 @@ void rio_readinitb(rio_t* rp, int fd) {
 ssize_t rio_readnb(rio_t* rp, void* usrbuf, size_t n) {
   size_t nleft = n;
   ssize_t nread;
-  char* bufp = (char*)usrbuf;
+  char* bufp = static_cast<char*>(usrbuf);
 
   while (nleft > 0) {
     if ((nread = rio_read(rp, bufp, nleft)) < 0) {
-      if (errno == EINTR) /* interrupted by sig handler return */
+      if (errno == EINTR) { /* interrupted by sig handler return */
         nread = 0;        /* call read() again */
-      else
+      } else {
         return -1; /* errno set by read() */
-    } else if (nread == 0)
+}
+    } else if (nread == 0) {
       break; /* EOF */
+}
     nleft -= nread;
     bufp += nread;
   }
@@ -593,19 +590,23 @@ ssize_t rio_readnb(rio_t* rp, void* usrbuf, size_t n) {
 ssize_t rio_readlineb(rio_t* rp, void* usrbuf, size_t maxlen) {
   size_t n;
   int rc;
-  char c, *bufp = (char*)usrbuf;
+  char c;
+  char *bufp = static_cast<char*>(usrbuf);
 
   for (n = 1; n < maxlen; n++) {
     if ((rc = rio_read(rp, &c, 1)) == 1) {
       *bufp++ = c;
-      if (c == '\n') break;
+      if (c == '\n') { break;
+}
     } else if (rc == 0) {
-      if (n == 1)
+      if (n == 1) {
         return 0; /* EOF, no data read */
-      else
+      } else {
         break; /* EOF, some data was read */
-    } else
+}
+    } else {
       return -1; /* error */
+}
   }
   *bufp = 0;
   return n;
@@ -625,7 +626,7 @@ ssize_t Rio_readn(int fd, void* ptr, size_t nbytes) {
 }
 
 void Rio_writen(int fd, void* usrbuf, size_t n) {
-  if (rio_writen(fd, usrbuf, n) != (ssize_t)n) {
+  if (rio_writen(fd, usrbuf, n) != static_cast<ssize_t>(n)) {
     LOG(ERROR) << "Rio_writen error: " << strerror(errno);
   }
 }
@@ -665,17 +666,21 @@ int open_clientfd(char* hostname, int port) {
   struct hostent* hp;
   struct sockaddr_in serveraddr;
 
-  if ((clientfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) return -1; /* check errno for cause of error */
+  if ((clientfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) { return -1; /* check errno for cause of error */
+}
 
   /* Fill in the server's IP address and port */
-  if ((hp = gethostbyname(hostname)) == nullptr) return -2; /* check h_errno for cause of error */
-  bzero((char*)&serveraddr, sizeof(serveraddr));
+  if ((hp = gethostbyname(hostname)) == nullptr) { return -2; /* check h_errno for cause of error */
+}
+  memset(&serveraddr, 0, sizeof(serveraddr));
   serveraddr.sin_family = AF_INET;
-  bcopy((char*)hp->h_addr_list[0], (char*)&serveraddr.sin_addr.s_addr, hp->h_length);
+  memmove(&serveraddr.sin_addr.s_addr, hp->h_addr_list[0], hp->h_length);
   serveraddr.sin_port = htons(port);
 
   /* Establish a connection with the server */
-  if (connect(clientfd, (SA*)&serveraddr, sizeof(serveraddr)) < 0) return -1;
+  if (connect(clientfd, reinterpret_cast<SA*>(&serveraddr), sizeof(serveraddr)) < 0) {
+    return -1;
+  }
   return clientfd;
 }
 /* $end open_clientfd */
@@ -686,25 +691,33 @@ int open_clientfd(char* hostname, int port) {
  */
 /* $begin open_listenfd */
 int open_listenfd(int port) {
-  int listenfd, optval = 1;
+  int listenfd;
+  int optval = 1;
   struct sockaddr_in serveraddr;
 
   /* Create a socket descriptor */
-  if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) return -1;
+  if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    return -1;
+  }
 
   /* Eliminates "Address already in use" error from bind. */
-  if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (const void*)&optval, sizeof(int)) < 0) return -1;
+  if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) < 0) {
+    return -1;
+  }
 
   /* Listenfd will be an endpoint for all requests to port
      on any IP address for this host */
-  bzero((char*)&serveraddr, sizeof(serveraddr));
+  memset(&serveraddr, 0, sizeof(serveraddr));
   serveraddr.sin_family = AF_INET;
   serveraddr.sin_addr.s_addr = htonl(INADDR_ANY);
   serveraddr.sin_port = htons((unsigned short)port);
-  if (bind(listenfd, (SA*)&serveraddr, sizeof(serveraddr)) < 0) return -1;
+  if (bind(listenfd, reinterpret_cast<SA*>(&serveraddr), sizeof(serveraddr)) < 0) {
+    return -1;
+  }
 
   /* Make it a listening socket ready to accept connection requests */
-  if (listen(listenfd, LISTENQ) < 0) return -1;
+  if (listen(listenfd, LISTENQ) < 0) { return -1;
+}
   return listenfd;
 }
 /* $end open_listenfd */

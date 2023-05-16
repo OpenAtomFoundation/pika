@@ -20,16 +20,16 @@
 class PikaMonitorThread : public net::Thread {
  public:
   PikaMonitorThread();
-  virtual ~PikaMonitorThread();
+  ~PikaMonitorThread() override;
 
-  void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
+  void AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr);
   void AddMonitorMessage(const std::string& monitor_message);
   int32_t ThreadClientList(std::vector<ClientInfo>* client = nullptr);
   bool ThreadClientKill(const std::string& ip_port = "all");
   bool HasMonitorClients();
 
  private:
-  void AddCronTask(MonitorCronTask task);
+  void AddCronTask(const MonitorCronTask& task);
   bool FindClient(const std::string& ip_port);
   net::WriteStatus SendMessage(int32_t fd, std::string& message);
   void RemoveMonitorClient(const std::string& ip_port);
@@ -42,7 +42,7 @@ class PikaMonitorThread : public net::Thread {
   std::deque<std::string> monitor_messages_;
   std::queue<MonitorCronTask> cron_tasks_;
 
-  virtual void* ThreadMain();
+  void* ThreadMain() override;
   void RemoveMonitorClient(int32_t client_fd);
 };
 #endif

@@ -7,6 +7,7 @@
 
 #include "include/pika_conf.h"
 
+using pstd::Status;
 extern PikaConf* g_pika_conf;
 
 /* SyncWindow */
@@ -17,7 +18,8 @@ void SyncWindow::Push(const SyncWinItem& item) {
 }
 
 bool SyncWindow::Update(const SyncWinItem& start_item, const SyncWinItem& end_item, LogOffset* acked_offset) {
-  size_t start_pos = win_.size(), end_pos = win_.size();
+  size_t start_pos = win_.size();
+  size_t end_pos = win_.size();
   for (size_t i = 0; i < win_.size(); ++i) {
     if (win_[i] == start_item) {
       start_pos = i;
@@ -60,16 +62,15 @@ SlaveNode::SlaveNode(const std::string& ip, int port, const std::string& table_n
                      int session_id)
     : RmNode(ip, port, table_name, partition_id, session_id),
       slave_state(kSlaveNotSync),
-      b_state(kNotSync),
-      sent_offset(),
-      acked_offset() {}
+      b_state(kNotSync)
+      {}
 
-SlaveNode::~SlaveNode() {}
+SlaveNode::~SlaveNode() = default;
 
 Status SlaveNode::InitBinlogFileReader(const std::shared_ptr<Binlog>& binlog, const BinlogOffset& offset) {
   binlog_reader = std::make_shared<PikaBinlogReader>();
   int res = binlog_reader->Seek(binlog, offset.filenum, offset.offset);
-  if (res) {
+  if (res != 0) {
     return Status::Corruption(ToString() + "  binlog reader init failed");
   }
   return Status::OK();

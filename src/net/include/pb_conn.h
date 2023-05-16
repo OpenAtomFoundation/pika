@@ -26,8 +26,8 @@ class PbConn : public NetConn {
     std::queue<std::string> queue_;
     size_t item_pos_;
   };
-  PbConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr);
-  virtual ~PbConn();
+  PbConn(int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx = nullptr);
+  ~PbConn() override;
 
   ReadStatus GetRequest() override;
   WriteStatus SendReply() override;
@@ -35,7 +35,7 @@ class PbConn : public NetConn {
   int WriteResp(const std::string& resp) override;
   void NotifyWrite();
   void NotifyClose();
-  void set_is_reply(const bool reply) override;
+  void set_is_reply(bool reply) override;
   bool is_reply() override;
   /*
    * The Variable need by read the buf,

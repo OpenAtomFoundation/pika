@@ -149,7 +149,8 @@ int RsyncSendClearTarget(const std::string& local_dir_path, const std::string& r
   if (local_dir_path.empty() || remote_dir_path.empty()) {
     return -2;
   }
-  std::string local_dir(local_dir_path), remote_dir(remote_dir_path);
+  std::string local_dir(local_dir_path);
+  std::string remote_dir(remote_dir_path);
   if (local_dir_path.back() != '/') {
     local_dir.append("/");
   }

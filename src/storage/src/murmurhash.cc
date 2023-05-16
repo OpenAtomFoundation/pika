@@ -26,8 +26,8 @@ uint64_t MurmurHash64A(const void* key, int len, unsigned int seed) {
 
   uint64_t h = seed ^ (len * m);
 
-  const uint64_t* data = (const uint64_t*)key;
-  const uint64_t* end = data + (len / 8);
+  const auto* data = static_cast<const uint64_t*>(key);
+  const auto* end = data + (len / 8);
 
   while (data != end) {
     uint64_t k = *data++;
@@ -40,23 +40,29 @@ uint64_t MurmurHash64A(const void* key, int len, unsigned int seed) {
     h *= m;
   }
 
-  const unsigned char* data2 = (const unsigned char*)data;
+  const auto* data2 = reinterpret_cast<const unsigned char*>(data);
 
   switch (len & 7) {
     case 7:
-      h ^= ((uint64_t)data2[6]) << 48;  // fallthrough
+      h ^= (static_cast<uint64_t>(data2[6])) << 48;
+      [[fallthrough]];
     case 6:
-      h ^= ((uint64_t)data2[5]) << 40;  // fallthrough
+      h ^= (static_cast<uint64_t>(data2[5])) << 40;
+      [[fallthrough]];
     case 5:
-      h ^= ((uint64_t)data2[4]) << 32;  // fallthrough
+      h ^= (static_cast<uint64_t>(data2[4])) << 32;
+      [[fallthrough]];
     case 4:
-      h ^= ((uint64_t)data2[3]) << 24;  // fallthrough
+      h ^= (static_cast<uint64_t>(data2[3])) << 24;
+      [[fallthrough]];
     case 3:
-      h ^= ((uint64_t)data2[2]) << 16;  // fallthrough
+      h ^= (static_cast<uint64_t>(data2[2])) << 16;
+      [[fallthrough]];
     case 2:
-      h ^= ((uint64_t)data2[1]) << 8;  // fallthrough
+      h ^= (static_cast<uint64_t>(data2[1])) << 8;
+      [[fallthrough]];
     case 1:
-      h ^= ((uint64_t)data2[0]);
+      h ^= (static_cast<uint64_t>(data2[0]));
       h *= m;
   }
 
@@ -115,9 +121,11 @@ unsigned int MurmurHash2(const void* key, int len, unsigned int seed) {
 
   switch (len) {
     case 3:
-      h ^= data[2] << 16;  // fallthrough
+      h ^= data[2] << 16;
+      [[fallthrough]];
     case 2:
-      h ^= data[1] << 8;  // fallthrough
+      h ^= data[1] << 8;
+      [[fallthrough]];
     case 1:
       h ^= data[0];
       h *= m;
@@ -146,7 +154,7 @@ unsigned int MurmurHashNeutral2(const void* key, int len, unsigned int seed) {
 
   unsigned int h = seed ^ len;
 
-  const unsigned char* data = (const unsigned char*)key;
+  const auto* data = static_cast<const unsigned char*>(key);
 
   while (len >= 4) {
     unsigned int k;
@@ -169,9 +177,11 @@ unsigned int MurmurHashNeutral2(const void* key, int len, unsigned int seed) {
 
   switch (len) {
     case 3:
-      h ^= data[2] << 16;  // fallthrough
+      h ^= data[2] << 16;
+      [[fallthrough]];
     case 2:
-      h ^= data[1] << 8;  // fallthrough
+      h ^= data[1] << 8;
+      [[fallthrough]];
     case 1:
       h ^= data[0];
       h *= m;

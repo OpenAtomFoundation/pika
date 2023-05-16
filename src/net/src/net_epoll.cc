@@ -40,8 +40,12 @@ int NetEpoll::NetAddEvent(int fd, int mask) {
   ee.data.fd = fd;
   ee.events = 0;
 
-  if (mask & kReadable) ee.events |= EPOLLIN;
-  if (mask & kWritable) ee.events |= EPOLLOUT;
+  if ((mask & kReadable) != 0) {
+    ee.events |= EPOLLIN;
+  }
+  if ((mask & kWritable) != 0) {
+    ee.events |= EPOLLOUT;
+    }
 
   return epoll_ctl(multiplexer_, EPOLL_CTL_ADD, fd, &ee);
 }
@@ -52,12 +56,16 @@ int NetEpoll::NetModEvent(int fd, int old_mask, int mask) {
   ee.events = (old_mask | mask);
   ee.events = 0;
 
-  if ((old_mask | mask) & kReadable) ee.events |= EPOLLIN;
-  if ((old_mask | mask) & kWritable) ee.events |= EPOLLOUT;
+  if (((old_mask | mask) & kReadable) != 0) {
+    ee.events |= EPOLLIN;
+  }
+  if (((old_mask | mask) & kWritable) != 0) {
+    ee.events |= EPOLLOUT;
+  }
   return epoll_ctl(multiplexer_, EPOLL_CTL_MOD, fd, &ee);
 }
 
-int NetEpoll::NetDelEvent(int fd, int) {
+int NetEpoll::NetDelEvent(int fd, [[maybe_unused]] int mask) {
   /*
    * Kernel < 2.6.9 need a non null event point to EPOLL_CTL_DEL
    */
@@ -67,23 +75,25 @@ int NetEpoll::NetDelEvent(int fd, int) {
 }
 
 int NetEpoll::NetPoll(int timeout) {
-  int num_events = epoll_wait(multiplexer_, &events_[0], NET_MAX_CLIENTS, timeout);
-  if (num_events <= 0) return 0;
+  int num_events = epoll_wait(multiplexer_, (events_).data(), NET_MAX_CLIENTS, timeout);
+  if (num_events <= 0) {
+    return 0;
+  }
 
   for (int i = 0; i < num_events; i++) {
     NetFiredEvent& ev = fired_events_[i];
     ev.fd = events_[i].data.fd;
     ev.mask = 0;
 
-    if (events_[i].events & EPOLLIN) {
+    if ((events_[i].events & EPOLLIN) != 0) {
       ev.mask |= kReadable;
     }
 
-    if (events_[i].events & EPOLLOUT) {
+    if ((events_[i].events & EPOLLOUT) != 0) {
       ev.mask |= kWritable;
     }
 
-    if (events_[i].events & (EPOLLERR | EPOLLHUP)) {
+    if ((events_[i].events & (EPOLLERR | EPOLLHUP)) != 0) {
       ev.mask |= kErrorEvent;
     }
   }

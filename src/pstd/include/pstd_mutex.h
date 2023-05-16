@@ -8,6 +8,7 @@
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace pstd {
@@ -37,18 +38,19 @@ class RefMutex {
   void Unref();
   bool IsLastRef() { return refs_ == 1; }
 
+  // No copying
+  RefMutex(const RefMutex&) = delete;
+  void operator=(const RefMutex&) = delete;
+
  private:
   std::mutex mu_;
   int refs_ = 0;
 
-  // No copying
-  RefMutex(const RefMutex&);
-  void operator=(const RefMutex&);
 };
 
 class RecordMutex {
  public:
-  RecordMutex(){};
+  RecordMutex()= default;;
   ~RecordMutex();
 
   void MultiLock(const std::vector<std::string>& keys);
@@ -68,16 +70,15 @@ class RecordMutex {
 
 class RecordLock {
  public:
-  RecordLock(RecordMutex* mu, const std::string& key) : mu_(mu), key_(key) { mu_->Lock(key_); }
+  RecordLock(RecordMutex* mu, std::string  key) : mu_(mu), key_(std::move(std::move(std::move(key)))) { mu_->Lock(key_); }
   ~RecordLock() { mu_->Unlock(key_); }
+  // No copying allowed
+  RecordLock(const RecordLock&) = delete;
+  void operator=(const RecordLock&) = delete;
 
  private:
   RecordMutex* const mu_;
   std::string key_;
-
-  // No copying allowed
-  RecordLock(const RecordLock&);
-  void operator=(const RecordLock&);
 };
 
 }  // namespace pstd

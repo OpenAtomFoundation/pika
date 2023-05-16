@@ -12,25 +12,24 @@
 
 #include "include/pika_define.h"
 
-using pstd::Status;
 
 class PikaMeta {
  public:
-  PikaMeta();
-  ~PikaMeta();
+  PikaMeta() = default;
+  ~PikaMeta() = default;
 
   void SetPath(const std::string& path);
 
-  Status StableSave(const std::vector<TableStruct>& table_structs);
-  Status ParseMeta(std::vector<TableStruct>* const table_structs);
+  pstd::Status StableSave(const std::vector<TableStruct>& table_structs);
+  pstd::Status ParseMeta(std::vector<TableStruct>* table_structs);
 
+  // No copying allowed;
+  PikaMeta(const PikaMeta&) = delete;
+  void operator=(const PikaMeta&) = delete;
  private:
   std::shared_mutex rwlock_;
   std::string local_meta_path_;
 
-  // No copying allowed;
-  PikaMeta(const PikaMeta&);
-  void operator=(const PikaMeta&);
 };
 
 #endif

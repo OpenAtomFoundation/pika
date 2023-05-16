@@ -49,6 +49,13 @@ class ServerSocket {
 
   void set_sockfd(int sockfd) { sockfd_ = sockfd; }
 
+  /*
+   * No allowed copy and copy assign operator
+   */
+
+  ServerSocket(const ServerSocket&) = delete;
+  void operator=(const ServerSocket&) = delete;
+
  private:
   int SetNonBlock();
   /*
@@ -69,12 +76,6 @@ class ServerSocket {
   struct sockaddr_in servaddr_;
   int sockfd_;
 
-  /*
-   * No allowed copy and copy assign operator
-   */
-
-  ServerSocket(const ServerSocket&);
-  void operator=(const ServerSocket&);
 };
 
 }  // namespace net

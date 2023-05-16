@@ -11,7 +11,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
-extern PikaConf* g_pika_conf;
+using pstd::Status;
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
@@ -145,7 +145,7 @@ pstd::Status PikaReplServer::Write(const std::string& ip, const int port, const 
     return Status::NotFound("The" + ip_port + " conn cannot be found");
   }
 
-  if (conn->WriteResp(msg)) {
+  if (conn->WriteResp(msg) != 0) {
     conn->NotifyClose();
     return Status::Corruption("The" + ip_port + " conn, Write Resp Failed");
   }
@@ -162,7 +162,7 @@ void PikaReplServer::UpdateClientConnMap(const std::string& ip_port, int fd) {
 
 void PikaReplServer::RemoveClientConn(int fd) {
   std::lock_guard l(client_conn_rwlock_);
-  std::map<std::string, int>::const_iterator iter = client_conn_map_.begin();
+  auto iter = client_conn_map_.begin();
   while (iter != client_conn_map_.end()) {
     if (iter->second == fd) {
       iter = client_conn_map_.erase(iter);

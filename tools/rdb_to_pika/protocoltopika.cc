@@ -29,9 +29,8 @@ int main(int argc, char** argv) {
   int port;
   ss >> port;
   redisContext* c = redisConnect(ip, port);
-  redisReply* reply;
-  if (!c || c->err) {
-    if (c) {
+  if (c == nullptr || (c->err != 0)) {
+    if (c != nullptr) {
       redisFree(c);
       std::cout << "connection error" << std::endl;
       return -1;
@@ -44,7 +43,7 @@ int main(int argc, char** argv) {
   redisReply* r;
   if (argc == 5) {
     const char* password = argv[4];
-    r = (redisReply*)redisCommand(c, "AUTH %s", password);
+    r = static_cast<redisReply*>(redisCommand(c, "AUTH %s", password));
     if (r->type == REDIS_REPLY_ERROR) {
       std::cout << "authentication failed " << std::endl;
       freeReplyObject(r);
@@ -68,8 +67,8 @@ int main(int argc, char** argv) {
       fin.getline(line, sizeof(line));
     }
     // std::cout << command << std::endl;
-    r = (redisReply*)redisCommand(c, command.c_str());
-    if (r) {
+    r = static_cast<redisReply*>(redisCommand(c, command.c_str()));
+    if (r != nullptr) {
       freeReplyObject(r);
     }
   }

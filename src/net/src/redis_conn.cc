@@ -5,8 +5,8 @@
 
 #include "net/include/redis_conn.h"
 
-#include <limits.h>
-#include <stdlib.h>
+#include <climits>
+#include <cstdlib>
 
 #include <sstream>
 #include <string>
@@ -22,14 +22,9 @@ RedisConn::RedisConn(const int fd, const std::string& ip_port, Thread* thread, N
                      const HandleType& handle_type, const int rbuf_max_len)
     : NetConn(fd, ip_port, thread, net_mpx),
       handle_type_(handle_type),
-      rbuf_(nullptr),
-      rbuf_len_(0),
-      rbuf_max_len_(rbuf_max_len),
-      msg_peak_(0),
-      command_len_(0),
-      wbuf_pos_(0),
-      last_read_pos_(-1),
-      bulk_len_(-1) {
+      
+      rbuf_max_len_(rbuf_max_len)
+      {
   RedisParserSettings settings;
   settings.DealMessage = ParserDealMessageCb;
   settings.Complete = ParserCompleteCb;
@@ -84,7 +79,7 @@ ReadStatus RedisConn::GetRequest() {
     if (new_size > rbuf_max_len_) {
       return kFullError;
     }
-    rbuf_ = static_cast<char*>(realloc(rbuf_, new_size));
+    rbuf_ = static_cast<char*>(realloc(rbuf_, new_size));  // NOLINT
     if (rbuf_ == nullptr) {
       return kFullError;
     }
@@ -199,7 +194,7 @@ void RedisConn::NotifyEpoll(bool success) {
 }
 
 int RedisConn::ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& argv) {
-  RedisConn* conn = reinterpret_cast<RedisConn*>(parser->data);
+  auto* conn = reinterpret_cast<RedisConn*>(parser->data);
   if (conn->GetHandleType() == HandleType::kSynchronous) {
     return conn->DealMessage(argv, &(conn->response_));
   } else {
@@ -208,7 +203,7 @@ int RedisConn::ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& 
 }
 
 int RedisConn::ParserCompleteCb(RedisParser* parser, const std::vector<RedisCmdArgsType>& argvs) {
-  RedisConn* conn = reinterpret_cast<RedisConn*>(parser->data);
+  auto* conn = reinterpret_cast<RedisConn*>(parser->data);
   bool async = conn->GetHandleType() == HandleType::kAsynchronous;
   conn->ProcessRedisCmds(argvs, async, &(conn->response_));
   return 0;

@@ -12,13 +12,9 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_string.h"
-
-#include "include/pika_rm.h"
-#include "include/pika_server.h"
-
 #include "pika_inner_message.pb.h"
 
-extern PikaConf* g_pika_conf;
+using pstd::Status;
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
@@ -53,19 +49,19 @@ int PikaReplClientConn::DealMessage() {
   }
   switch (response->type()) {
     case InnerMessage::kMetaSync: {
-      ReplClientTaskArg* task_arg =
+      auto* task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleMetaSyncResponse, static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kDBSync: {
-      ReplClientTaskArg* task_arg =
+      auto* task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleDBSyncResponse, static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kTrySync: {
-      ReplClientTaskArg* task_arg =
+      auto* task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleTrySyncResponse, static_cast<void*>(task_arg));
       break;
@@ -75,7 +71,7 @@ int PikaReplClientConn::DealMessage() {
       break;
     }
     case InnerMessage::kRemoveSlaveNode: {
-      ReplClientTaskArg* task_arg =
+      auto* task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleRemoveSlaveNodeResponse,
                                           static_cast<void*>(task_arg));
@@ -88,7 +84,7 @@ int PikaReplClientConn::DealMessage() {
 }
 
 void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
-  ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
+  auto* task_arg = static_cast<ReplClientTaskArg*>(arg);
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
@@ -112,7 +108,7 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
 
   std::vector<TableStruct> master_table_structs;
   for (int idx = 0; idx < meta_sync.tables_info_size(); ++idx) {
-    InnerMessage::InnerResponse_MetaSync_TableInfo table_info = meta_sync.tables_info(idx);
+    const InnerMessage::InnerResponse_MetaSync_TableInfo& table_info = meta_sync.tables_info(idx);
     master_table_structs.push_back({table_info.table_name(), static_cast<uint32_t>(table_info.partition_num()), {0}});
   }
 
@@ -135,14 +131,14 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
 }
 
 void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
-  ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
+  auto* task_arg = static_cast<ReplClientTaskArg*>(arg);
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
   const InnerMessage::InnerResponse_DBSync db_sync_response = response->db_sync();
   int32_t session_id = db_sync_response.session_id();
-  const InnerMessage::Partition partition_response = db_sync_response.partition();
-  std::string table_name = partition_response.table_name();
+  const InnerMessage::Partition& partition_response = db_sync_response.partition();
+  const std::string& table_name = partition_response.table_name();
   uint32_t partition_id = partition_response.partition_id();
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
@@ -170,7 +166,7 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
 }
 
 void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
-  ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
+  auto* task_arg = static_cast<ReplClientTaskArg*>(arg);
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
@@ -259,7 +255,7 @@ Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMe
                                                  const std::shared_ptr<SyncSlavePartition>& slave_partition) {
   std::vector<LogOffset> hints;
   for (int i = 0; i < consensus_meta.hint_size(); ++i) {
-    InnerMessage::BinlogOffset pb_offset = consensus_meta.hint(i);
+    const InnerMessage::BinlogOffset& pb_offset = consensus_meta.hint(i);
     LogOffset offset;
     offset.b_offset.filenum = pb_offset.filenum();
     offset.b_offset.offset = pb_offset.offset();
@@ -277,7 +273,7 @@ Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMe
   return s;
 }
 
-void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse> res) {
+void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& res) {
   // partition to a bunch of binlog chips
   std::unordered_map<PartitionInfo, std::vector<int>*, hash_partition_info> par_binlog;
   for (int i = 0; i < res->binlog_sync_size(); ++i) {
@@ -308,7 +304,7 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
 }
 
 void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
-  ReplClientTaskArg* task_arg = static_cast<ReplClientTaskArg*>(arg);
+  auto* task_arg = static_cast<ReplClientTaskArg*>(arg);
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
   if (response->code() != InnerMessage::kOk) {

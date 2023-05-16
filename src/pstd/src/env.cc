@@ -1,15 +1,16 @@
 #include "pstd/include/env.h"
 
-#include <assert.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <cassert>
 
 #include <fstream>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 #include <glog/logging.h>
@@ -33,7 +34,7 @@ int SetMaxFileDescriptorNum(int64_t max_file_descriptor_num) {
   // Try to Set the number of file descriptor
   struct rlimit limit;
   if (getrlimit(RLIMIT_NOFILE, &limit) != -1) {
-    if (limit.rlim_cur < (rlim_t)max_file_descriptor_num) {
+    if (limit.rlim_cur < static_cast<rlim_t>(max_file_descriptor_num)) {
       // rlim_cur could be set by any user while rlim_max are
       // changeable only by root.
       limit.rlim_cur = max_file_descriptor_num;
@@ -90,7 +91,8 @@ int DoCreatePath(const char* path, mode_t mode) {
   if (stat(path, &st) != 0) {
     /* Directory does not exist. EEXIST for race
      * condition */
-    if (mkdir(path, mode) != 0 && errno != EEXIST) status = -1;
+    if (mkdir(path, mode) != 0 && errno != EEXIST) { status = -1;
+}
   } else if (!S_ISDIR(st.st_mode)) {
     errno = ENOTDIR;
     status = -1;
@@ -113,7 +115,7 @@ int CreatePath(const std::string& path, mode_t mode) {
 
   status = 0;
   pp = copypath;
-  while (status == 0 && (sp = strchr(pp, '/')) != 0) {
+  while (status == 0 && (sp = strchr(pp, '/')) != nullptr) {
     if (sp != pp) {
       /* Neither root nor double pstd in path */
       *sp = '\0';
@@ -122,7 +124,8 @@ int CreatePath(const std::string& path, mode_t mode) {
     }
     pp = sp + 1;
   }
-  if (status == 0) status = DoCreatePath(path.c_str(), mode);
+  if (status == 0) { status = DoCreatePath(path.c_str(), mode);
+}
   free(copypath);
   return (status);
 }
@@ -148,7 +151,7 @@ Status LockFile(const std::string& fname, FileLock** lock) {
     result = IOError("lock " + fname, errno);
     close(fd);
   } else {
-    FileLock* my_lock = new FileLock;
+    auto* my_lock = new FileLock;
     my_lock->fd_ = fd;
     my_lock->name_ = fname;
     *lock = my_lock;
@@ -178,7 +181,7 @@ int GetChildren(const std::string& dir, std::vector<std::string>& result) {
     if (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) {
       continue;
     }
-    result.push_back(entry->d_name);
+    result.emplace_back(entry->d_name);
   }
   closedir(d);
   return res;
@@ -216,7 +219,7 @@ int IsDir(const std::string& path) {
   struct stat buf;
   int ret = stat(path.c_str(), &buf);
   if (0 == ret) {
-    if (buf.st_mode & S_IFDIR) {
+    if ((buf.st_mode & S_IFDIR) != 0) {
       // folder
       return 0;
     } else {
@@ -270,10 +273,7 @@ int DeleteDir(const std::string& path) {
 }
 
 bool DeleteDirIfExist(const std::string& path) {
-  if (IsDir(path) == 0 && DeleteDir(path) != 0) {
-    return false;
-  }
-  return true;
+  return !(IsDir(path) == 0 && DeleteDir(path) != 0);
 }
 
 uint64_t Du(const std::string& filename) {
@@ -292,10 +292,10 @@ uint64_t Du(const std::string& filename) {
     std::string newfile;
 
     dir = opendir(filename.c_str());
-    if (!dir) {
+    if (dir == nullptr) {
       return sum;
     }
-    while ((entry = readdir(dir))) {
+    while ((entry = readdir(dir)) != nullptr) {
       if (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) {
         continue;
       }
@@ -315,7 +315,7 @@ uint64_t NowMicros() {
 
 void SleepForMicroseconds(int micros) { usleep(micros); }
 
-SequentialFile::~SequentialFile() {}
+SequentialFile::~SequentialFile() = default;
 
 class PosixSequentialFile : public SequentialFile {
  private:
@@ -325,22 +325,22 @@ class PosixSequentialFile : public SequentialFile {
  public:
   virtual void setUnBuffer() { setbuf(file_, nullptr); }
 
-  PosixSequentialFile(const std::string& fname, FILE* f) : filename_(fname), file_(f) { setbuf(file_, nullptr); }
+  PosixSequentialFile(std::string  fname, FILE* f) : filename_(std::move(fname)), file_(f) { setbuf(file_, nullptr); }
 
-  virtual ~PosixSequentialFile() {
-    if (file_) {
+  ~PosixSequentialFile() override {
+    if (file_ != nullptr) {
       fclose(file_);
     }
   }
 
-  virtual Status Read(size_t n, Slice* result, char* scratch) override {
+  Status Read(size_t n, Slice* result, char* scratch) override {
     Status s;
     size_t r = fread(scratch, 1, n, file_);
 
     *result = Slice(scratch, r);
 
     if (r < n) {
-      if (feof(file_)) {
+      if (feof(file_) != 0) {
         s = Status::EndFile(filename_, "end file");
         // We leave status as ok if we hit the end of the file
       } else {
@@ -351,14 +351,14 @@ class PosixSequentialFile : public SequentialFile {
     return s;
   }
 
-  virtual Status Skip(uint64_t n) override {
-    if (fseek(file_, n, SEEK_CUR)) {
+  Status Skip(uint64_t n) override {
+    if (fseek(file_, n, SEEK_CUR) != 0) {
       return IOError(filename_, errno);
     }
     return Status::OK();
   }
 
-  virtual char* ReadLine(char* buf, int n) override { return fgets(buf, n, file_); }
+  char* ReadLine(char* buf, int n) override { return fgets(buf, n, file_); }
 
   virtual Status Close() {
     if (fclose(file_) != 0) {
@@ -369,7 +369,7 @@ class PosixSequentialFile : public SequentialFile {
   }
 };
 
-WritableFile::~WritableFile() {}
+WritableFile::~WritableFile() = default;
 
 // We preallocate up to an extra megabyte and use memcpy to append new
 // data to the file.  This is safe since we either properly close the
@@ -436,7 +436,7 @@ class PosixMmapFile : public WritableFile {
       return false;
     }
     void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, file_offset_);
-    if (ptr == MAP_FAILED) {
+    if (ptr == MAP_FAILED) {  // NOLINT
       LOG(WARNING) << "mmap failed";
       return false;
     }
@@ -449,18 +449,14 @@ class PosixMmapFile : public WritableFile {
   }
 
  public:
-  PosixMmapFile(const std::string& fname, int fd, size_t page_size, uint64_t write_len = 0)
-      : filename_(fname),
+  PosixMmapFile(std::string  fname, int fd, size_t page_size, uint64_t write_len = 0)
+      : filename_(std::move(fname)),
         fd_(fd),
         page_size_(page_size),
         map_size_(Roundup(kMmapBoundSize, page_size)),
-        base_(nullptr),
-        limit_(nullptr),
-        dst_(nullptr),
-        last_sync_(nullptr),
-        file_offset_(0),
-        write_len_(write_len),
-        pending_sync_(false) {
+        
+        write_len_(write_len)
+        {
     if (write_len_ != 0) {
       while (map_size_ < write_len_) {
         map_size_ += (1024 * 1024);
@@ -469,13 +465,13 @@ class PosixMmapFile : public WritableFile {
     assert((page_size & (page_size - 1)) == 0);
   }
 
-  ~PosixMmapFile() {
+  ~PosixMmapFile() override {
     if (fd_ >= 0) {
       PosixMmapFile::Close();
     }
   }
 
-  virtual Status Append(const Slice& data) {
+  Status Append(const Slice& data) override {
     const char* src = data.data();
     size_t left = data.size();
     while (left > 0) {
@@ -496,7 +492,7 @@ class PosixMmapFile : public WritableFile {
     return Status::OK();
   }
 
-  virtual Status Close() {
+  Status Close() override {
     Status s;
     size_t unused = limit_ - dst_;
     if (!UnmapCurrentRegion()) {
@@ -520,9 +516,9 @@ class PosixMmapFile : public WritableFile {
     return s;
   }
 
-  virtual Status Flush() { return Status::OK(); }
+  Status Flush() override { return Status::OK(); }
 
-  virtual Status Sync() {
+  Status Sync() override {
     Status s;
 
     if (pending_sync_) {
@@ -551,7 +547,7 @@ class PosixMmapFile : public WritableFile {
     return s;
   }
 
-  virtual Status Trim(uint64_t target) {
+  Status Trim(uint64_t target) override {
     if (!UnmapCurrentRegion()) {
       return IOError(filename_, errno);
     }
@@ -564,19 +560,19 @@ class PosixMmapFile : public WritableFile {
     return Status::OK();
   }
 
-  virtual uint64_t Filesize() { return write_len_ + file_offset_ + (dst_ - base_); }
+  uint64_t Filesize() override { return write_len_ + file_offset_ + (dst_ - base_); }
 };
 
-RWFile::~RWFile() {}
+RWFile::~RWFile() = default;
 
 class MmapRWFile : public RWFile {
  public:
-  MmapRWFile(const std::string& fname, int fd, size_t page_size)
-      : filename_(fname), fd_(fd), page_size_(page_size), map_size_(Roundup(65536, page_size)), base_(nullptr) {
+  MmapRWFile(std::string  fname, int fd, size_t page_size)
+      : filename_(std::move(fname)), fd_(fd), page_size_(page_size), map_size_(Roundup(65536, page_size)) {
     DoMapRegion();
   }
 
-  ~MmapRWFile() {
+  ~MmapRWFile() override {
     if (fd_ >= 0) {
       munmap(base_, map_size_);
     }
@@ -591,21 +587,21 @@ class MmapRWFile : public RWFile {
       return false;
     }
     void* ptr = mmap(nullptr, map_size_, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
-    if (ptr == MAP_FAILED) {
+    if (ptr == MAP_FAILED) {  // NOLINT
       return false;
     }
     base_ = reinterpret_cast<char*>(ptr);
     return true;
   }
 
-  char* GetData() { return base_; }
+  char* GetData() override { return base_; }
   char* base() { return base_; }
 
  private:
   static size_t Roundup(size_t x, size_t y) { return ((x + y - 1) / y) * y; }
   std::string filename_;
   int fd_ = -1;
-  size_t page_size_ = 0;
+  size_t page_size_[[maybe_unused]] = 0;
   size_t map_size_ = 0;
   char* base_ = nullptr;
 };
@@ -619,18 +615,20 @@ class PosixRandomRWFile : public RandomRWFile {
   // bool fallocate_with_keep_size_;
 
  public:
-  PosixRandomRWFile(const std::string& fname, int fd)
-      : filename_(fname), fd_(fd), pending_sync_(false), pending_fsync_(false) {
+  PosixRandomRWFile(std::string fname, int fd)
+      : filename_(std::move(fname)), fd_(fd) {
     // fallocate_with_keep_size_ = options.fallocate_with_keep_size;
   }
 
-  ~PosixRandomRWFile() {
+  ~PosixRandomRWFile() override {
     if (fd_ >= 0) {
-      Close();
+      // TODO(clang-tidy): Call virtual method during destruction bypasses virtual dispatch
+      // So I disabled next line clang-tidy check simply temporarily.
+      Close();  // NOLINT
     }
   }
 
-  virtual Status Write(uint64_t offset, const Slice& data) override {
+  Status Write(uint64_t offset, const Slice& data) override {
     const char* src = data.data();
     size_t left = data.size();
     Status s;
@@ -654,7 +652,7 @@ class PosixRandomRWFile : public RandomRWFile {
     return Status::OK();
   }
 
-  virtual Status Read(uint64_t offset, size_t n, Slice* result, char* scratch) const override {
+  Status Read(uint64_t offset, size_t n, Slice* result, char* scratch) const override {
     Status s;
     ssize_t r = -1;
     size_t left = n;
@@ -678,7 +676,7 @@ class PosixRandomRWFile : public RandomRWFile {
     return s;
   }
 
-  virtual Status Close() override {
+  Status Close() override {
     Status s = Status::OK();
     if (fd_ >= 0 && close(fd_) < 0) {
       s = IOError(filename_, errno);
@@ -687,7 +685,7 @@ class PosixRandomRWFile : public RandomRWFile {
     return s;
   }
 
-  virtual Status Sync() override {
+  Status Sync() override {
 #if defined(__APPLE__)
     if (pending_sync_ && fsync(fd_) < 0) {
 #else
@@ -699,7 +697,7 @@ class PosixRandomRWFile : public RandomRWFile {
     return Status::OK();
   }
 
-  virtual Status Fsync() override {
+  Status Fsync() override {
     if (pending_fsync_ && fsync(fd_) < 0) {
       return IOError(filename_, errno);
     }

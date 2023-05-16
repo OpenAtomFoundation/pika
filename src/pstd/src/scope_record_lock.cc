@@ -3,14 +3,14 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
+#include <utility>
+
 #include "pstd/include/scope_record_lock.h"
 
-namespace pstd {
+namespace pstd::lock {
 
-namespace lock {
-
-MultiScopeRecordLock::MultiScopeRecordLock(LockMgr* lock_mgr, const std::vector<std::string>& keys)
-    : lock_mgr_(lock_mgr), keys_(keys) {
+MultiScopeRecordLock::MultiScopeRecordLock(LockMgr* lock_mgr, std::vector<std::string>  keys)
+    : lock_mgr_(lock_mgr), keys_(std::move(keys)) {
   std::string pre_key;
   std::sort(keys_.begin(), keys_.end());
   if (!keys_.empty() && keys_[0].empty()) {
@@ -73,5 +73,4 @@ void MultiRecordLock::Unlock(const std::vector<std::string>& keys) {
     }
   }
 }
-}  // namespace lock
-}  // namespace pstd
+}  // namespace pstd::lock

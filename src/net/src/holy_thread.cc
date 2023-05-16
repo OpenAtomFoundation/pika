@@ -19,7 +19,7 @@ namespace net {
 HolyThread::HolyThread(int port, ConnFactory* conn_factory, int cron_interval, const ServerHandle* handle, bool async)
     : ServerThread::ServerThread(port, cron_interval, handle),
       conn_factory_(conn_factory),
-      private_data_(nullptr),
+      
       keepalive_timeout_(kDefaultKeepAliveTime),
       async_(async) {}
 
@@ -79,7 +79,7 @@ int HolyThread::StartThread() {
 }
 
 int HolyThread::StopThread() {
-  if (private_data_) {
+  if (private_data_ != nullptr) {
     int ret = handle_->DeleteWorkerSpecificData(private_data_);
     if (ret != 0) {
       return ret;
@@ -118,7 +118,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
   }
 
   if (async_) {
-    if (pfe->mask & kReadable) {
+    if ((pfe->mask & kReadable) != 0) {
       ReadStatus read_status = in_conn->GetRequest();
       struct timeval now;
       gettimeofday(&now, nullptr);
@@ -132,7 +132,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
         should_close = 1;
       }
     }
-    if ((pfe->mask & kWritable) && in_conn->is_reply()) {
+    if (((pfe->mask & kWritable) != 0) && in_conn->is_reply()) {
       WriteStatus write_status = in_conn->SendReply();
       if (write_status == kWriteAll) {
         in_conn->set_is_reply(false);
@@ -144,7 +144,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
       }
     }
   } else {
-    if (pfe->mask & kReadable) {
+    if ((pfe->mask & kReadable) != 0) {
       ReadStatus getRes = in_conn->GetRequest();
       struct timeval now;
       gettimeofday(&now, nullptr);
@@ -158,7 +158,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
         return;
       }
     }
-    if (pfe->mask & kWritable) {
+    if ((pfe->mask & kWritable) != 0) {
       WriteStatus write_status = in_conn->SendReply();
       if (write_status == kWriteAll) {
         in_conn->set_is_reply(false);
@@ -170,7 +170,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
       }
     }
   }
-  if ((pfe->mask & kErrorEvent) || should_close) {
+  if (((pfe->mask & kErrorEvent) != 0) || (should_close != 0)) {
     net_multiplexer_->NetDelEvent(pfe->fd, 0);
     CloseFd(in_conn);
     in_conn = nullptr;
@@ -192,23 +192,23 @@ void HolyThread::DoCronTask() {
 
     // Check whether close all connection
     std::lock_guard kl(killer_mutex_);
-    if (deleting_conn_ipport_.count(kKillAllConnsTask)) {
+    if (deleting_conn_ipport_.count(kKillAllConnsTask) != 0U) {
       for (auto& conn : conns_) {
         to_close.push_back(conn.second);
       }
       conns_.clear();
       deleting_conn_ipport_.clear();
-      for (const auto conn : to_close) {
+      for (const auto& conn : to_close) {
         CloseFd(conn);
       }
       return;
     }
 
-    std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
+    auto iter = conns_.begin();
     while (iter != conns_.end()) {
       std::shared_ptr<NetConn> conn = iter->second;
       // Check connection should be closed
-      if (deleting_conn_ipport_.count(conn->ip_port())) {
+      if (deleting_conn_ipport_.count(conn->ip_port()) != 0U) {
         to_close.push_back(conn);
         deleting_conn_ipport_.erase(conn->ip_port());
         iter = conns_.erase(iter);
@@ -228,16 +228,16 @@ void HolyThread::DoCronTask() {
       ++iter;
     }
   }
-  for (const auto conn : to_close) {
+  for (const auto& conn : to_close) {
     CloseFd(conn);
   }
-  for (const auto conn : to_timeout) {
+  for (const auto& conn : to_timeout) {
     CloseFd(conn);
     handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
   }
 }
 
-void HolyThread::CloseFd(std::shared_ptr<NetConn> conn) {
+void HolyThread::CloseFd(const std::shared_ptr<NetConn>& conn) {
   close(conn->fd());
   handle_->FdClosedHandle(conn->fd(), conn->ip_port());
 }
@@ -277,7 +277,7 @@ bool HolyThread::KillConn(const std::string& ip_port) {
 }
 
 void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
-  if (pfe->mask & kReadable) {
+  if ((pfe->mask & kReadable) != 0) {
     char bb[2048];
     int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {

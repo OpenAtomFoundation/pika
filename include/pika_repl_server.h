@@ -9,6 +9,7 @@
 #include "net/include/thread_pool.h"
 
 #include <shared_mutex>
+#include <utility>
 #include <vector>
 
 #include "include/pika_command.h"
@@ -19,7 +20,7 @@ struct ReplServerTaskArg {
   std::shared_ptr<InnerMessage::InnerRequest> req;
   std::shared_ptr<net::PbConn> conn;
   ReplServerTaskArg(std::shared_ptr<InnerMessage::InnerRequest> _req, std::shared_ptr<net::PbConn> _conn)
-      : req(_req), conn(_conn) {}
+      : req(std::move(std::move(_req))), conn(std::move(std::move(_conn))) {}
 };
 
 class PikaReplServer {
@@ -33,7 +34,7 @@ class PikaReplServer {
   pstd::Status SendSlaveBinlogChips(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
   void BuildBinlogOffset(const LogOffset& offset, InnerMessage::BinlogOffset* boffset);
   void BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, InnerMessage::InnerResponse* resp);
-  pstd::Status Write(const std::string& ip, const int port, const std::string& msg);
+  pstd::Status Write(const std::string& ip, int port, const std::string& msg);
 
   void Schedule(net::TaskFunc func, void* arg);
   void UpdateClientConnMap(const std::string& ip_port, int fd);

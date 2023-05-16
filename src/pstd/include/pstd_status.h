@@ -9,7 +9,7 @@ namespace pstd {
 class Status {
  public:
   // Create a success status.
-  Status() : state_(nullptr) {}
+  Status() = default;
   ~Status() { delete[] state_; }
 
   // Copy the specified status.
@@ -17,14 +17,14 @@ class Status {
   void operator=(const Status& s);
 
   // Return a success status.
-  static Status OK() { return Status(); }
+  static Status OK() { return {}; }
 
   // Return error status of an appropriate type.
   static Status NotFound(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotFound, msg, msg2); }
   static Status Corruption(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kCorruption, msg, msg2); }
   static Status NotSupported(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kNotSupported, msg, msg2); }
   static Status InvalidArgument(const Slice& msg, const Slice& msg2 = Slice()) {
-    return Status(kInvalidArgument, msg, msg2);
+    return {kInvalidArgument, msg, msg2};
   }
   static Status IOError(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kIOError, msg, msg2); }
   static Status EndFile(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kEndFile, msg, msg2); }
@@ -85,7 +85,7 @@ class Status {
   //    state_[0..3] == length of message
   //    state_[4]    == code
   //    state_[5..]  == message
-  const char* state_;
+  const char* state_{nullptr};
 
   enum Code {
     kOk = 0,

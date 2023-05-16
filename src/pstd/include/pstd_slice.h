@@ -20,9 +20,9 @@
 #ifndef __PSTD_SLICE_H__
 #define __PSTD_SLICE_H__
 
-#include <assert.h>
-#include <stddef.h>
-#include <string.h>
+#include <cassert>
+#include <cstddef>
+#include <cstring>
 #include <string>
 
 namespace pstd {
@@ -30,7 +30,7 @@ namespace pstd {
 class Slice {
  public:
   // Create an empty slice.
-  Slice() : data_(""), size_(0) {}
+  Slice() = default;
 
   // Create a slice that refers to d[0,n-1].
   Slice(const char* d, size_t n) : data_(d), size_(n) {}
@@ -83,7 +83,7 @@ class Slice {
   bool starts_with(const Slice& x) const { return ((size_ >= x.size_) && (memcmp(data_, x.data_, x.size_) == 0)); }
 
  private:
-  const char* data_;
+  const char* data_{""};
   size_t size_ = 0;
 
   // Intentionally copyable
@@ -99,10 +99,13 @@ inline int Slice::compare(const Slice& b) const {
   const size_t min_len = (size_ < b.size_) ? size_ : b.size_;
   int r = memcmp(data_, b.data_, min_len);
   if (r == 0) {
-    if (size_ < b.size_)
+    if (size_ < b.size_) { { {
       r = -1;
-    else if (size_ > b.size_)
+    } } } else if (size_ > b.size_) { { {
       r = +1;
+}
+}
+}
   }
   return r;
 }

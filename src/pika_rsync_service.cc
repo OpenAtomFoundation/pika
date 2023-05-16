@@ -7,6 +7,7 @@
 
 #include <glog/logging.h>
 #include <fstream>
+#include <utility>
 
 #include "pstd/include/env.h"
 #include "pstd/include/rsync.h"
@@ -16,7 +17,7 @@
 
 extern PikaConf* g_pika_conf;
 
-PikaRsyncService::PikaRsyncService(const std::string& raw_path, const int port) : raw_path_(raw_path), port_(port) {
+PikaRsyncService::PikaRsyncService(std::string  raw_path, const int port) : raw_path_(std::move(raw_path)), port_(port) {
   if (raw_path_.back() != '/') {
     raw_path_ += "/";
   }

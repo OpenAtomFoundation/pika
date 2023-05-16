@@ -13,9 +13,7 @@
 #include "pstd/include/lock_mgr.h"
 #include "rocksdb/slice.h"
 
-namespace pstd {
-
-namespace lock {
+namespace pstd::lock {
 
 using Slice = rocksdb::Slice;
 
@@ -26,38 +24,38 @@ class ScopeRecordLock {
   }
   ~ScopeRecordLock() { lock_mgr_->UnLock(key_.ToString()); }
 
+  ScopeRecordLock(const ScopeRecordLock&) = delete;
+  void operator=(const ScopeRecordLock&) = delete;
+
  private:
   LockMgr* const lock_mgr_;
   Slice key_;
-  ScopeRecordLock(const ScopeRecordLock&);
-  void operator=(const ScopeRecordLock&);
 };
 
 class MultiScopeRecordLock {
  public:
-  MultiScopeRecordLock(LockMgr* lock_mgr, const std::vector<std::string>& keys);
+  MultiScopeRecordLock(LockMgr* lock_mgr, std::vector<std::string>  keys);
   ~MultiScopeRecordLock();
 
+  MultiScopeRecordLock(const MultiScopeRecordLock&) = delete;
+  void operator=(const MultiScopeRecordLock&) = delete;
  private:
   LockMgr* const lock_mgr_;
   std::vector<std::string> keys_;
-  MultiScopeRecordLock(const MultiScopeRecordLock&);
-  void operator=(const MultiScopeRecordLock&);
 };
 
 class MultiRecordLock {
  public:
   explicit MultiRecordLock(LockMgr* lock_mgr) : lock_mgr_(lock_mgr) {}
-  ~MultiRecordLock() {}
+  ~MultiRecordLock() = default;
   void Lock(const std::vector<std::string>& keys);
   void Unlock(const std::vector<std::string>& keys);
 
+  MultiRecordLock(const MultiRecordLock&) = delete;
+  void operator=(const MultiRecordLock&) = delete;
  private:
   LockMgr* const lock_mgr_;
-  MultiRecordLock(const MultiRecordLock&);
-  void operator=(const MultiRecordLock&);
 };
 
-}  // namespace lock
-}  // namespace pstd
+}  // namespace pstd::lock
 #endif  // __SRC_SCOPE_RECORD_LOCK_H__

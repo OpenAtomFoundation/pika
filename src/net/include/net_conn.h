@@ -26,8 +26,12 @@ class Thread;
 
 class NetConn : public std::enable_shared_from_this<NetConn> {
  public:
-  NetConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
+  NetConn(int fd, std::string  ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
+#ifdef __ENABLE_SSL
   virtual ~NetConn();
+#else
+  virtual ~NetConn() = default;
+#endif
 
   /*
    * Set the fd to nonblock && set the flag_ the fd flag
@@ -89,6 +93,11 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 
   bool security() { return ssl_ != nullptr; }
 #endif
+  /*
+   * No allowed copy and copy assign operator
+   */
+  NetConn(const NetConn&) = delete;
+  void operator=(const NetConn&) = delete;
 
  private:
   int fd_ = -1;
@@ -109,11 +118,6 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
   // the net epoll this conn belong to
   NetMultiplexer* net_multiplexer_ = nullptr;
 
-  /*
-   * No allowed copy and copy assign operator
-   */
-  NetConn(const NetConn&);
-  void operator=(const NetConn&);
 };
 
 /*
@@ -121,7 +125,7 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
  */
 class ConnFactory {
  public:
-  virtual ~ConnFactory() {}
+  virtual ~ConnFactory() = default;
   virtual std::shared_ptr<NetConn> NewNetConn(int connfd, const std::string& ip_port, Thread* thread,
                                               void* worker_private_data, /* Has set in ThreadEnvHandle */
                                               NetMultiplexer* net_mpx = nullptr) const = 0;

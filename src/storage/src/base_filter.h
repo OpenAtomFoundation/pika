@@ -24,7 +24,7 @@ class BaseMetaFilter : public rocksdb::CompactionFilter {
               bool* value_changed) const override {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    int32_t cur_time = static_cast<int32_t>(unix_time);
+    auto cur_time = static_cast<int32_t>(unix_time);
     ParsedBaseMetaValue parsed_base_meta_value(value);
     TRACE("==========================START==========================");
     TRACE("[MetaFilter], key: %s, count = %d, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
@@ -61,11 +61,8 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
  public:
   BaseDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr)
       : db_(db),
-        cf_handles_ptr_(cf_handles_ptr),
-        cur_key_(""),
-        meta_not_found_(false),
-        cur_meta_version_(0),
-        cur_meta_timestamp_(0) {}
+        cf_handles_ptr_(cf_handles_ptr)
+        {}
 
   bool Filter(int level, const Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
@@ -78,7 +75,7 @@ class BaseDataFilter : public rocksdb::CompactionFilter {
       cur_key_ = parsed_base_data_key.key().ToString();
       std::string meta_value;
       // destroyed when close the database, Reserve Current key value
-      if (cf_handles_ptr_->size() == 0) {
+      if (cf_handles_ptr_->empty()) {
         return false;
       }
       Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);
@@ -144,20 +141,20 @@ class BaseDataFilterFactory : public rocksdb::CompactionFilterFactory {
   std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr_ = nullptr;
 };
 
-typedef BaseMetaFilter HashesMetaFilter;
-typedef BaseMetaFilterFactory HashesMetaFilterFactory;
-typedef BaseDataFilter HashesDataFilter;
-typedef BaseDataFilterFactory HashesDataFilterFactory;
+using HashesMetaFilter = BaseMetaFilter;
+using HashesMetaFilterFactory = BaseMetaFilterFactory;
+using HashesDataFilter = BaseDataFilter;
+using HashesDataFilterFactory = BaseDataFilterFactory;
 
-typedef BaseMetaFilter SetsMetaFilter;
-typedef BaseMetaFilterFactory SetsMetaFilterFactory;
-typedef BaseDataFilter SetsMemberFilter;
-typedef BaseDataFilterFactory SetsMemberFilterFactory;
+using SetsMetaFilter = BaseMetaFilter;
+using SetsMetaFilterFactory = BaseMetaFilterFactory;
+using SetsMemberFilter = BaseDataFilter;
+using SetsMemberFilterFactory = BaseDataFilterFactory;
 
-typedef BaseMetaFilter ZSetsMetaFilter;
-typedef BaseMetaFilterFactory ZSetsMetaFilterFactory;
-typedef BaseDataFilter ZSetsDataFilter;
-typedef BaseDataFilterFactory ZSetsDataFilterFactory;
+using ZSetsMetaFilter = BaseMetaFilter;
+using ZSetsMetaFilterFactory = BaseMetaFilterFactory;
+using ZSetsDataFilter = BaseDataFilter;
+using ZSetsDataFilterFactory = BaseDataFilterFactory;
 
 }  //  namespace storage
 #endif  // SRC_BASE_FILTER_H_

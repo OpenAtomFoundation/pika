@@ -1,17 +1,19 @@
 
 #include "redis_sender.h"
 
-#include <time.h>
 #include <unistd.h>
+#include <ctime>
 
 #include <glog/logging.h>
+
+#include <utility>
 
 #include "pstd/include/xdebug.h"
 
 static time_t kCheckDiff = 1;
 
 RedisSender::RedisSender(int id, std::string ip, int64_t port, std::string password)
-    : id_(id), cli_(nullptr), ip_(ip), port_(port), password_(password), should_exit_(false), cnt_(0), elements_(0) {
+    : id_(id), cli_(nullptr), ip_(std::move(std::move(ip))), port_(port), password_(std::move(std::move(password))), should_exit_(false), cnt_(0), elements_(0) {
   last_write_time_ = ::time(nullptr);
 }
 
@@ -37,7 +39,8 @@ void RedisSender::ConnectRedis() {
 
       // Authentication
       if (!password_.empty()) {
-        net::RedisCmdArgsType argv, resp;
+        net::RedisCmdArgsType argv;
+        net::RedisCmdArgsType resp;
         std::string cmd;
 
         argv.push_back("AUTH");
@@ -64,7 +67,8 @@ void RedisSender::ConnectRedis() {
         }
       } else {
         // If forget to input password
-        net::RedisCmdArgsType argv, resp;
+        net::RedisCmdArgsType argv;
+        net::RedisCmdArgsType resp;
         std::string cmd;
 
         argv.push_back("PING");
@@ -151,7 +155,7 @@ void* RedisSender::ThreadMain() {
 
   while (!should_exit_) {
     std::unique_lock lock(commands_mutex_);
-    while (commands_queue_.size() == 0 && !should_exit_) {
+    while (commands_queue_.empty() && !should_exit_) {
       rsignal_.wait_for(lock, std::chrono::milliseconds(100));
       // rsignal_.Wait();
     }
@@ -160,7 +164,7 @@ void* RedisSender::ThreadMain() {
       break;
     }
 
-    if (commands_queue_.size() == 0) {
+    if (commands_queue_.empty()) {
       continue;
     }
 

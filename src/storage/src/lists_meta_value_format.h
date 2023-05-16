@@ -42,7 +42,7 @@ class ListsMetaValue : public InternalValue {
 
   static const size_t kDefaultValueSuffixLength = sizeof(int32_t) * 2 + sizeof(int64_t) * 2;
 
-  const rocksdb::Slice Encode() override {
+  rocksdb::Slice Encode() override {
     size_t usize = user_value_.size();
     size_t needed = usize + kDefaultValueSuffixLength;
     char* dst;
@@ -84,7 +84,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
  public:
   // Use this constructor after rocksdb::DB::Get();
   explicit ParsedListsMetaValue(std::string* internal_value_str)
-      : ParsedInternalValue(internal_value_str), count_(0), left_index_(0), right_index_(0) {
+      : ParsedInternalValue(internal_value_str) {
     assert(internal_value_str->size() >= kListsMetaValueSuffixLength);
     if (internal_value_str->size() >= kListsMetaValueSuffixLength) {
       user_value_ = rocksdb::Slice(internal_value_str->data(), internal_value_str->size() - kListsMetaValueSuffixLength);
@@ -100,7 +100,7 @@ class ParsedListsMetaValue : public ParsedInternalValue {
 
   // Use this constructor in rocksdb::CompactionFilter::Filter();
   explicit ParsedListsMetaValue(const rocksdb::Slice& internal_value_slice)
-      : ParsedInternalValue(internal_value_slice), count_(0), left_index_(0), right_index_(0) {
+      : ParsedInternalValue(internal_value_slice) {
     assert(internal_value_slice.size() >= kListsMetaValueSuffixLength);
     if (internal_value_slice.size() >= kListsMetaValueSuffixLength) {
       user_value_ = rocksdb::Slice(internal_value_slice.data(), internal_value_slice.size() - kListsMetaValueSuffixLength);

@@ -11,7 +11,7 @@ Redis::Redis(Storage* const s, const DataType& type)
     : storage_(s),
       type_(type),
       lock_mgr_(new LockMgr(1000, 0, std::make_shared<MutexFactoryImpl>())),
-      db_(nullptr),
+      
       small_compaction_threshold_(5000) {
   statistics_store_ = new LRUCache<std::string, size_t>();
   scan_cursors_store_ = new LRUCache<std::string, std::string>();
@@ -55,7 +55,7 @@ Status Redis::SetSmallCompactionThreshold(size_t small_compaction_threshold) {
 }
 
 Status Redis::UpdateSpecificKeyStatistics(const std::string& key, size_t count) {
-  if (statistics_store_->Capacity() && count) {
+  if ((statistics_store_->Capacity() != 0U) && (count != 0U)) {
     size_t total = 0;
     statistics_store_->Lookup(key, &total);
     statistics_store_->Insert(key, total + count);
@@ -78,13 +78,14 @@ Status Redis::SetOptions(const OptionType& option_type, const std::unordered_map
   if (option_type == OptionType::kDB) {
     return db_->SetDBOptions(options);
   }
-  if (handles_.size() == 0) {
+  if (handles_.empty()) {
     return db_->SetOptions(db_->DefaultColumnFamily(), options);
   }
   Status s;
   for (auto handle : handles_) {
     s = db_->SetOptions(handle, options);
-    if (!s.ok()) break;
+    if (!s.ok()) { break;
+}
   }
   return s;
 }

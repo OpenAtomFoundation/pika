@@ -15,8 +15,9 @@ using namespace storage;
 // Filter
 TEST(StringsFilterTest, FilterTest) {
   std::string new_value;
-  bool is_stale, value_changed;
-  StringsFilter* filter = new StringsFilter;
+  bool is_stale;
+  bool value_changed;
+  auto* filter = new StringsFilter;
 
   int32_t ttl = 1;
   StringsValue strings_value("FILTER_VALUE");

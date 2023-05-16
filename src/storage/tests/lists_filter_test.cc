@@ -11,13 +11,18 @@
 #include "src/redis.h"
 #include "storage/storage.h"
 
-using namespace storage;
+using storage::Status;
+using storage::Slice;
+using storage::EncodeFixed64;
+using storage::ListsMetaValue;
+using storage::ListsDataFilter;
+using storage::ListsDataKey;
 
 class ListsFilterTest : public ::testing::Test {
  public:
   ListsFilterTest() {
     std::string db_path = "./db/list_meta";
-    if (access(db_path.c_str(), F_OK)) {
+    if (access(db_path.c_str(), F_OK) != 0) {
       mkdir(db_path.c_str(), 0755);
     }
     options.create_if_missing = true;
@@ -34,16 +39,16 @@ class ListsFilterTest : public ::testing::Test {
     rocksdb::ColumnFamilyOptions data_cf_ops(options);
 
     // Meta CF
-    column_families.push_back(rocksdb::ColumnFamilyDescriptor(rocksdb::kDefaultColumnFamilyName, meta_cf_ops));
+    column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, meta_cf_ops);
     // Data CF
-    column_families.push_back(rocksdb::ColumnFamilyDescriptor("data_cf", data_cf_ops));
+    column_families.emplace_back("data_cf", data_cf_ops);
 
     s = rocksdb::DB::Open(options, db_path, column_families, &handles, &meta_db);
   }
-  virtual ~ListsFilterTest() {}
+  ~ListsFilterTest() override = default;
 
-  virtual void SetUp() {}
-  virtual void TearDown() {
+  void SetUp() override {}
+  void TearDown() override {
     for (auto handle : handles) {
       delete handle;
     }
@@ -67,7 +72,7 @@ TEST_F(ListsFilterTest, MetaFilterTest) {
   std::string new_value;
 
   // Test Meta Filter
-  ListsMetaFilter* lists_meta_filter = new ListsMetaFilter();
+  auto* lists_meta_filter = new storage::ListsMetaFilter();
   ASSERT_TRUE(lists_meta_filter != nullptr);
 
   // Timeout timestamp is not set, but it's an empty list.
@@ -104,7 +109,7 @@ TEST_F(ListsFilterTest, MetaFilterTest) {
   lists_meta_value4.UpdateVersion();
   lists_meta_value4.SetRelativeTimestamp(1);
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-  ParsedListsMetaValue parsed_meta_value(lists_meta_value4.Encode());
+  storage::ParsedListsMetaValue parsed_meta_value(lists_meta_value4.Encode());
   filter_result =
       lists_meta_filter->Filter(0, "FILTER_TEST_KEY", lists_meta_value4.Encode(), &new_value, &value_changed);
   ASSERT_EQ(filter_result, true);
@@ -120,7 +125,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   std::string new_value;
 
   // Timeout timestamp is not set, the version is valid.
-  ListsDataFilter* lists_data_filter1 = new ListsDataFilter(meta_db, &handles);
+  auto* lists_data_filter1 = new ListsDataFilter(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter1 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -138,7 +143,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   delete lists_data_filter1;
 
   // Timeout timestamp is set, but not expired.
-  ListsDataFilter* lists_data_filter2 = new ListsDataFilter(meta_db, &handles);
+  auto* lists_data_filter2 = new ListsDataFilter(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter2 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -156,7 +161,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   delete lists_data_filter2;
 
   // Timeout timestamp is set, already expired.
-  ListsDataFilter* lists_data_filter3 = new ListsDataFilter(meta_db, &handles);
+  auto* lists_data_filter3 = new ListsDataFilter(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter3 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -175,7 +180,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   delete lists_data_filter3;
 
   // Timeout timestamp is not set, the version is invalid
-  ListsDataFilter* lists_data_filter4 = new ListsDataFilter(meta_db, &handles);
+  auto* lists_data_filter4 = new ListsDataFilter(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter4 != nullptr);
 
   EncodeFixed64(str, 1);
@@ -195,7 +200,7 @@ TEST_F(ListsFilterTest, DataFilterTest) {
   delete lists_data_filter4;
 
   // Meta data has been clear
-  ListsDataFilter* lists_data_filter5 = new ListsDataFilter(meta_db, &handles);
+  auto* lists_data_filter5 = new ListsDataFilter(meta_db, &handles);
   ASSERT_TRUE(lists_data_filter5 != nullptr);
 
   EncodeFixed64(str, 1);

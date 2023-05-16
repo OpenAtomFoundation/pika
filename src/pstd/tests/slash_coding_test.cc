@@ -72,7 +72,7 @@ TEST_F(Coding, EncodingOutput) {
   ASSERT_EQ(0x04, static_cast<int>(dst[3]));
 
   dst.clear();
-  PutFixed64(&dst, 0x0807060504030201ull);
+  PutFixed64(&dst, 0x0807060504030201ULL);
   ASSERT_EQ(8, dst.size());
   ASSERT_EQ(0x01, static_cast<int>(dst[0]));
   ASSERT_EQ(0x02, static_cast<int>(dst[1]));
@@ -115,26 +115,26 @@ TEST_F(Coding, Varint64) {
   values.push_back(~static_cast<uint64_t>(0) - 1);
   for (uint32_t k = 0; k < 64; k++) {
     // Test values near powers of two
-    const uint64_t power = 1ull << k;
+    const uint64_t power = 1ULL << k;
     values.push_back(power);
     values.push_back(power - 1);
     values.push_back(power + 1);
   }
 
   std::string s;
-  for (size_t i = 0; i < values.size(); i++) {
-    PutVarint64(&s, values[i]);
+  for (auto value : values) {
+    PutVarint64(&s, value);
   }
 
   const char* p = s.data();
   const char* limit = p + s.size();
-  for (size_t i = 0; i < values.size(); i++) {
+  for (auto & value : values) {
     ASSERT_TRUE(p < limit);
     uint64_t actual;
     const char* start = p;
     p = GetVarint64Ptr(p, limit, &actual);
     ASSERT_TRUE(p != nullptr);
-    ASSERT_EQ(values[i], actual);
+    ASSERT_EQ(value, actual);
     ASSERT_EQ(VarintLength(actual), p - start);
   }
   ASSERT_EQ(p, limit);
@@ -147,7 +147,7 @@ TEST_F(Coding, Varint32Overflow) {
 }
 
 TEST_F(Coding, Varint32Truncation) {
-  uint32_t large_value = (1u << 31) + 100;
+  uint32_t large_value = (1U << 31) + 100;
   std::string s;
   PutVarint32(&s, large_value);
   uint32_t result;
@@ -165,7 +165,7 @@ TEST_F(Coding, Varint64Overflow) {
 }
 
 TEST_F(Coding, Varint64Truncation) {
-  uint64_t large_value = (1ull << 63) + 100ull;
+  uint64_t large_value = (1ULL << 63) + 100ULL;
   std::string s;
   PutVarint64(&s, large_value);
   uint64_t result;

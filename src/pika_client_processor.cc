@@ -10,7 +10,7 @@
 PikaClientProcessor::PikaClientProcessor(size_t worker_num, size_t max_queue_size, const std::string& name_prefix) {
   pool_ = new net::ThreadPool(worker_num, max_queue_size, name_prefix + "Pool");
   for (size_t i = 0; i < worker_num; ++i) {
-    net::BGThread* bg_thread = new net::BGThread(max_queue_size);
+    auto* bg_thread = new net::BGThread(max_queue_size);
     bg_threads_.push_back(bg_thread);
     bg_thread->set_thread_name(name_prefix + "BgThread");
   }
@@ -18,8 +18,8 @@ PikaClientProcessor::PikaClientProcessor(size_t worker_num, size_t max_queue_siz
 
 PikaClientProcessor::~PikaClientProcessor() {
   delete pool_;
-  for (size_t i = 0; i < bg_threads_.size(); ++i) {
-    delete bg_threads_[i];
+  for (auto & bg_thread : bg_threads_) {
+    delete bg_thread;
   }
   LOG(INFO) << "PikaClientProcessor exit!!!";
 }
@@ -29,8 +29,8 @@ int PikaClientProcessor::Start() {
   if (res != net::kSuccess) {
     return res;
   }
-  for (size_t i = 0; i < bg_threads_.size(); ++i) {
-    res = bg_threads_[i]->StartThread();
+  for (auto & bg_thread : bg_threads_) {
+    res = bg_thread->StartThread();
     if (res != net::kSuccess) {
       return res;
     }
@@ -40,8 +40,8 @@ int PikaClientProcessor::Start() {
 
 void PikaClientProcessor::Stop() {
   pool_->stop_thread_pool();
-  for (size_t i = 0; i < bg_threads_.size(); ++i) {
-    bg_threads_[i]->StopThread();
+  for (auto & bg_thread : bg_threads_) {
+    bg_thread->StopThread();
   }
 }
 
@@ -54,7 +54,7 @@ void PikaClientProcessor::ScheduleBgThreads(net::TaskFunc func, void* arg, const
 
 size_t PikaClientProcessor::ThreadPoolCurQueueSize() {
   size_t cur_size = 0;
-  if (pool_) {
+  if (pool_ != nullptr) {
     pool_->cur_queue_size(&cur_size);
   }
   return cur_size;

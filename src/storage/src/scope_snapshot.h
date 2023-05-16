@@ -16,11 +16,11 @@ class ScopeSnapshot {
   }
   ~ScopeSnapshot() { db_->ReleaseSnapshot(*snapshot_); }
 
+  ScopeSnapshot(const ScopeSnapshot&) = delete;
+  void operator=(const ScopeSnapshot&) = delete;
  private:
   rocksdb::DB* const db_;
   const rocksdb::Snapshot** snapshot_;
-  ScopeSnapshot(const ScopeSnapshot&);
-  void operator=(const ScopeSnapshot&);
 };
 
 }  // namespace storage

@@ -25,11 +25,11 @@ struct KeyScanInfo {
   std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets
   bool key_scaning_ = false;
   KeyScanInfo()
-      : start_time(0),
+      : 
         s_start_time("0"),
-        duration(-3),
-        key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}}),
-        key_scaning_(false) {}
+        
+        key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}})
+        {}
 };
 
 struct BgSaveInfo {
@@ -38,7 +38,7 @@ struct BgSaveInfo {
   std::string s_start_time;
   std::string path;
   LogOffset offset;
-  BgSaveInfo() : bgsaving(false), offset() {}
+  BgSaveInfo() = default;
   void Clear() {
     bgsaving = false;
     path.clear();
@@ -82,8 +82,14 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool FlushSubDB(const std::string& db_name);
 
   // key scan info use
-  Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
+  pstd::Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
   KeyScanInfo GetKeyScanInfo();
+
+  /*
+   * No allowed copy and copy assign
+   */
+  Partition(const Partition&) = delete;
+  void operator=(const Partition&) = delete;
 
  private:
   std::string table_name_;
@@ -121,11 +127,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   // key scan info use
   void InitKeyScan();
 
-  /*
-   * No allowed copy and copy assign
-   */
-  Partition(const Partition&);
-  void operator=(const Partition&);
 };
 
 #endif

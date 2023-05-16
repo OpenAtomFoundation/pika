@@ -10,24 +10,22 @@
 
 #include "pstd/include/pstd_status.h"
 
-using pstd::Status;
-
 namespace net {
 
 class NetCli {
  public:
-  explicit NetCli(const std::string& ip = "", const int port = 0);
+  explicit NetCli(const std::string& ip = "", int port = 0);
   virtual ~NetCli();
 
-  Status Connect(const std::string& bind_ip = "");
-  Status Connect(const std::string& peer_ip, const int peer_port, const std::string& bind_ip = "");
+  pstd::Status Connect(const std::string& bind_ip = "");
+  pstd::Status Connect(const std::string& peer_ip, int peer_port, const std::string& bind_ip = "");
   // Check whether the connection got fin from peer or not
-  virtual int CheckAliveness(void);
+  virtual int CheckAliveness();
   // Compress and write the message
-  virtual Status Send(void* msg) = 0;
+  virtual pstd::Status Send(void* msg) = 0;
 
   // Read, parse and store the reply
-  virtual Status Recv(void* result = nullptr) = 0;
+  virtual pstd::Status Recv(void* result = nullptr) = 0;
 
   void Close();
 
@@ -41,20 +39,21 @@ class NetCli {
   int set_recv_timeout(int recv_timeout);
   void set_connect_timeout(int connect_timeout);
 
+  NetCli(const NetCli&) = delete;
+  void operator=(const NetCli&) = delete;
+
  protected:
-  Status SendRaw(void* buf, size_t len);
-  Status RecvRaw(void* buf, size_t* len);
+  pstd::Status SendRaw(void* buf, size_t count);
+  pstd::Status RecvRaw(void* buf, size_t* count);
 
  private:
   struct Rep;
   Rep* rep_;
   int set_tcp_nodelay();
 
-  NetCli(const NetCli&);
-  void operator=(const NetCli&);
 };
 
-extern NetCli* NewPbCli(const std::string& peer_ip = "", const int peer_port = 0);
+extern NetCli* NewPbCli(const std::string& peer_ip = "", int peer_port = 0);
 
 extern NetCli* NewRedisCli();
 

@@ -12,7 +12,7 @@ namespace storage {
 class BaseDataKey {
  public:
   BaseDataKey(const Slice& key, int32_t version, const Slice& data)
-      : start_(nullptr), key_(key), version_(version), data_(data) {}
+      :  key_(key), version_(version), data_(data) {}
 
   ~BaseDataKey() {
     if (start_ != space_) {
@@ -20,7 +20,7 @@ class BaseDataKey {
     }
   }
 
-  const Slice Encode() {
+  Slice Encode() {
     size_t usize = key_.size() + data_.size();
     size_t needed = usize + sizeof(int32_t) * 2;
     char* dst;
@@ -113,9 +113,9 @@ class ParsedZSetsMemberKey : public ParsedBaseDataKey {
   Slice member() { return data_; }
 };
 
-typedef BaseDataKey HashesDataKey;
-typedef BaseDataKey SetsMemberKey;
-typedef BaseDataKey ZSetsMemberKey;
+using HashesDataKey = BaseDataKey;
+using SetsMemberKey = BaseDataKey;
+using ZSetsMemberKey = BaseDataKey;
 
 }  //  namespace storage
 #endif  // SRC_BASE_DATA_KEY_FORMAT_H_

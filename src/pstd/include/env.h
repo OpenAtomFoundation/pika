@@ -34,7 +34,7 @@ int DeleteDir(const std::string& path);
 bool DeleteDirIfExist(const std::string& path);
 int CreateDir(const std::string& path);
 int CreatePath(const std::string& path, mode_t mode = 0755);
-uint64_t Du(const std::string& path);
+uint64_t Du(const std::string& filename);
 
 /*
  * Whether the file is exist
@@ -48,16 +48,15 @@ int RenameFile(const std::string& oldname, const std::string& newname);
 
 class FileLock {
  public:
-  FileLock() {}
-  virtual ~FileLock(){};
+  FileLock() = default;
+  virtual ~FileLock()= default;;
 
   int fd_ = -1;
   std::string name_;
 
- private:
   // No copying allowed
-  FileLock(const FileLock&);
-  void operator=(const FileLock&);
+  FileLock(const FileLock&) = delete;
+  void operator=(const FileLock&) = delete;
 };
 
 Status LockFile(const std::string& f, FileLock** l);
@@ -86,7 +85,7 @@ Status NewRandomRWFile(const std::string& fname, RandomRWFile** result);
 // at a time to the file.
 class WritableFile {
  public:
-  WritableFile() {}
+  WritableFile() = default;
   virtual ~WritableFile();
 
   virtual Status Append(const Slice& data) = 0;
@@ -96,16 +95,15 @@ class WritableFile {
   virtual Status Trim(uint64_t offset) = 0;
   virtual uint64_t Filesize() = 0;
 
- private:
   // No copying allowed
-  WritableFile(const WritableFile&);
-  void operator=(const WritableFile&);
+  WritableFile(const WritableFile&) = delete;
+  void operator=(const WritableFile&) = delete;
 };
 
 // A abstract for the sequential readable file
 class SequentialFile {
  public:
-  SequentialFile(){};
+  SequentialFile()= default;;
   virtual ~SequentialFile();
   // virtual Status Read(size_t n, char *&result, char *scratch) = 0;
   virtual Status Read(size_t n, Slice* result, char* scratch) = 0;
@@ -116,21 +114,21 @@ class SequentialFile {
 
 class RWFile {
  public:
-  RWFile() {}
+  RWFile() = default;
   virtual ~RWFile();
   virtual char* GetData() = 0;
 
- private:
   // No copying allowed
-  RWFile(const RWFile&);
-  void operator=(const RWFile&);
+  RWFile(const RWFile&) = delete;
+  void operator=(const RWFile&) = delete;
+ private:
 };
 
 // A file abstraction for random reading and writing.
 class RandomRWFile {
  public:
-  RandomRWFile() {}
-  virtual ~RandomRWFile() {}
+  RandomRWFile() = default;
+  virtual ~RandomRWFile() = default;
 
   // Write data from Slice data to file starting from offset
   // Returns IOError on failure, but does not guarantee
@@ -168,10 +166,11 @@ class RandomRWFile {
     return Status::OK();
   }
 
- private:
   // No copying allowed
-  RandomRWFile(const RandomRWFile&);
-  void operator=(const RandomRWFile&);
+  RandomRWFile(const RandomRWFile&) = delete;
+  void operator=(const RandomRWFile&) = delete;
+  
+ private:
 };
 
 }  // namespace pstd

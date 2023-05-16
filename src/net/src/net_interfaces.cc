@@ -63,7 +63,7 @@ std::string GetDefaultInterface() {
       break;
     }
 
-    ifreq = (struct ifreq*)((char*)ifreq + len);
+    ifreq = reinterpret_cast<struct ifreq*>(reinterpret_cast<char*>(ifreq) + len);
     i += len;
   }
 
@@ -71,7 +71,9 @@ std::string GetDefaultInterface() {
 #else
   std::string name("eth0");
   std::ifstream routeFile("/proc/net/route", std::ios_base::in);
-  if (!routeFile.good()) return name;
+  if (!routeFile.good()) {
+    return name;
+  }
 
   std::string line;
   std::vector<std::string> tokens;
@@ -111,13 +113,13 @@ std::string GetIpByInterface(const std::string& network_interface) {
   }
 
   std::string host;
-  for (ifa = ifAddrStruct; ifa; ifa = ifa->ifa_next) {
-    if (!ifa->ifa_addr) {
+  for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next) {
+    if (ifa->ifa_addr == nullptr) {
       continue;
     }
 
     if (ifa->ifa_addr->sa_family == AF_INET) {  // Check it is a valid IPv4 address
-      tmpAddrPtr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
+      tmpAddrPtr = &(reinterpret_cast<struct sockaddr_in*>(ifa->ifa_addr))->sin_addr;
       char addressBuffer[INET_ADDRSTRLEN];
       inet_ntop(AF_INET, tmpAddrPtr, addressBuffer, INET_ADDRSTRLEN);
       if (std::string(ifa->ifa_name) == network_interface) {
@@ -125,7 +127,7 @@ std::string GetIpByInterface(const std::string& network_interface) {
         break;
       }
     } else if (ifa->ifa_addr->sa_family == AF_INET6) {  // Check it is a valid IPv6 address
-      tmpAddrPtr = &((struct sockaddr_in6*)ifa->ifa_addr)->sin6_addr;
+      tmpAddrPtr = &(reinterpret_cast<struct sockaddr_in6*>(ifa->ifa_addr))->sin6_addr;
       char addressBuffer[INET6_ADDRSTRLEN];
       inet_ntop(AF_INET6, tmpAddrPtr, addressBuffer, INET6_ADDRSTRLEN);
       if (std::string(ifa->ifa_name) == network_interface) {
@@ -135,11 +137,11 @@ std::string GetIpByInterface(const std::string& network_interface) {
     }
   }
 
-  if (ifAddrStruct) {
+  if (ifAddrStruct != nullptr) {
     freeifaddrs(ifAddrStruct);
   }
 
-  if (!ifa) {
+  if (ifa == nullptr) {
     LOG(ERROR) << "error network interface: " << network_interface;
   }
 

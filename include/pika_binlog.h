@@ -14,20 +14,18 @@
 
 #include "include/pika_define.h"
 
-using pstd::Slice;
-using pstd::Status;
 
-std::string NewFileName(const std::string name, const uint32_t current);
+std::string NewFileName(const std::string& name, uint32_t current);
 
 class Version {
  public:
   Version(pstd::RWFile* save);
   ~Version();
 
-  Status Init();
+  pstd::Status Init();
 
   // RWLock should be held when access members.
-  Status StableSave();
+  pstd::Status StableSave();
 
   uint32_t pro_num_ = 0;
   uint64_t pro_offset_ = 0;
@@ -38,34 +36,33 @@ class Version {
 
   void debug() {
     std::shared_lock l(rwlock_);
-    printf("Current pro_num %u pro_offset %lu\n", pro_num_, pro_offset_);
+    printf("Current pro_num %u pro_offset %llu\n", pro_num_, pro_offset_);
   }
+  // No copying allowed;
+  Version(const Version&) = delete;
+  void operator=(const Version&) = delete;
 
  private:
   pstd::RWFile* save_ = nullptr;
-
-  // No copying allowed;
-  Version(const Version&);
-  void operator=(const Version&);
 };
 
 class Binlog {
  public:
-  Binlog(const std::string& Binlog_path, const int file_size = 100 * 1024 * 1024);
+  Binlog(std::string  Binlog_path, int file_size = 100 * 1024 * 1024);
   ~Binlog();
 
   void Lock() { mutex_.lock(); }
   void Unlock() { mutex_.unlock(); }
 
-  Status Put(const std::string& item);
+  pstd::Status Put(const std::string& item);
 
-  Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term = nullptr, uint64_t* logic_id = nullptr);
+  pstd::Status GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint32_t* term = nullptr, uint64_t* logic_id = nullptr);
   /*
    * Set Producer pro_num and pro_offset with lock
    */
-  Status SetProducerStatus(uint32_t filenum, uint64_t pro_offset, uint32_t term = 0, uint64_t index = 0);
+  pstd::Status SetProducerStatus(uint32_t pro_num, uint64_t pro_offset, uint32_t term = 0, uint64_t index = 0);
   // Need to hold Lock();
-  Status Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index);
+  pstd::Status Truncate(uint32_t pro_num, uint64_t pro_offset, uint64_t index);
 
   uint64_t file_size() { return file_size_; }
 
@@ -87,18 +84,22 @@ class Binlog {
 
   void Close();
 
+  // No copying allowed
+  Binlog(const Binlog&) = delete;
+  void operator=(const Binlog&) = delete;
+  
  private:
-  Status Put(const char* item, int len);
-  static Status AppendPadding(pstd::WritableFile* file, uint64_t* len);
+  pstd::Status Put(const char* item, int len);
+  static pstd::Status AppendPadding(pstd::WritableFile* file, uint64_t* len);
   // pstd::WritableFile *queue() { return queue_; }
 
   void InitLogFile();
-  Status EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset);
+  pstd::Status EmitPhysicalRecord(RecordType t, const char* ptr, size_t n, int* temp_pro_offset);
 
   /*
    * Produce
    */
-  Status Produce(const Slice& item, int* pro_offset);
+  pstd::Status Produce(const pstd::Slice& item, int* pro_offset);
 
   std::atomic<bool> opened_;
 
@@ -123,10 +124,6 @@ class Binlog {
   std::atomic<bool> binlog_io_error_;
   // Not use
   // int32_t retry_;
-
-  // No copying allowed
-  Binlog(const Binlog&);
-  void operator=(const Binlog&);
 };
 
 #endif

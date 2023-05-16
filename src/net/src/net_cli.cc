@@ -14,38 +14,26 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <utility>
+
+using pstd::Status;
+
 namespace net {
 
 struct NetCli::Rep {
   std::string peer_ip;
   int peer_port;
-  int send_timeout;
-  int recv_timeout;
-  int connect_timeout;
-  bool keep_alive;
-  bool is_block;
-  int sockfd;
-  bool available;
+  int send_timeout{0};
+  int recv_timeout{0};
+  int connect_timeout{1000};
+  bool keep_alive{false};
+  bool is_block{true};
+  int sockfd{-1};
+  bool available{false};
 
-  Rep()
-      : send_timeout(0),
-        recv_timeout(0),
-        connect_timeout(1000),
-        keep_alive(0),
-        is_block(true),
-        sockfd(-1),
-        available(false) {}
+  Rep() = default;
 
-  Rep(const std::string& ip, int port)
-      : peer_ip(ip),
-        peer_port(port),
-        send_timeout(0),
-        recv_timeout(0),
-        connect_timeout(1000),
-        keep_alive(0),
-        is_block(true),
-        sockfd(-1),
-        available(false) {}
+  Rep(std::string  ip, int port) : peer_ip(std::move(ip)),peer_port(port) {}
 };
 
 NetCli::NetCli(const std::string& ip, const int port) : rep_(new Rep(ip, port)) {}
@@ -64,7 +52,9 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
   Status s;
   int rv;
   char cport[6];
-  struct addrinfo hints, *servinfo, *p;
+  struct addrinfo hints;
+  struct addrinfo *servinfo;
+  struct addrinfo *p;
   snprintf(cport, sizeof(cport), "%d", port);
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
@@ -85,7 +75,10 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
       localaddr.sin_family = AF_INET;
       localaddr.sin_addr.s_addr = inet_addr(bind_ip.c_str());
       localaddr.sin_port = 0;  // Any local port will do
-      bind(r->sockfd, (struct sockaddr*)&localaddr, sizeof(localaddr));
+      if (bind(r->sockfd, reinterpret_cast<struct sockaddr*>(&localaddr), sizeof(localaddr)) < 0) {
+        close(r->sockfd);
+        continue;
+      }
     }
 
     int flags = fcntl(r->sockfd, F_GETFL, 0);
@@ -121,7 +114,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
           return Status::IOError("EHOSTUNREACH", "connect host getsockopt error");
         }
 
-        if (val) {
+        if (val != 0) {
           close(r->sockfd);
           freeaddrinfo(servinfo);
           return Status::IOError("EHOSTUNREACH", "connect host error");
@@ -135,7 +128,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
 
     struct sockaddr_in laddr;
     socklen_t llen = sizeof(laddr);
-    getsockname(r->sockfd, (struct sockaddr*)&laddr, &llen);
+    getsockname(r->sockfd, reinterpret_cast<struct sockaddr*>(&laddr), &llen);
     std::string lip(inet_ntoa(laddr.sin_addr));
     int lport = ntohs(laddr.sin_port);
     if (ip == lip && port == lport) {
@@ -205,7 +198,7 @@ int NetCli::CheckAliveness() {
   }
 
   flag = fcntl(sock, F_GETFL, 0);
-  block = !(flag & O_NONBLOCK);
+  block = ((flag & O_NONBLOCK) == 0);
   if (block) {
     fcntl(sock, F_SETFL, flag | O_NONBLOCK);
   }

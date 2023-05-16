@@ -16,7 +16,7 @@
 
 namespace net {
 
-typedef void (*TaskFunc)(void*);
+using TaskFunc = void (*)(void *);
 
 struct Task {
   TaskFunc func;
@@ -41,20 +41,20 @@ class ThreadPool {
 
     int start();
     int stop();
+    /*
+     * No allowed copy and copy assign
+     */
+    Worker(const Worker&) = delete;
+    void operator=(const Worker&) = delete;
 
    private:
     pthread_t thread_id_;
     std::atomic<bool> start_;
     ThreadPool* const thread_pool_;
     std::string worker_name_;
-    /*
-     * No allowed copy and copy assign
-     */
-    Worker(const Worker&);
-    void operator=(const Worker&);
   };
 
-  explicit ThreadPool(size_t worker_num, size_t max_queue_size, const std::string& thread_pool_name = "ThreadPool");
+  explicit ThreadPool(size_t worker_num, size_t max_queue_size, std::string  thread_pool_name = "ThreadPool");
   virtual ~ThreadPool();
 
   int start_thread_pool();
@@ -69,6 +69,12 @@ class ThreadPool {
   void cur_queue_size(size_t* qsize);
   void cur_time_queue_size(size_t* qsize);
   std::string thread_pool_name();
+
+  /*
+   * No allowed copy and copy assign
+   */
+  ThreadPool(const ThreadPool&);
+  void operator=(const ThreadPool&);
 
  private:
   void runInThread();
@@ -86,11 +92,6 @@ class ThreadPool {
   pstd::CondVar rsignal_;
   pstd::CondVar wsignal_;
 
-  /*
-   * No allowed copy and copy assign
-   */
-  ThreadPool(const ThreadPool&);
-  void operator=(const ThreadPool&);
 };
 
 }  // namespace net

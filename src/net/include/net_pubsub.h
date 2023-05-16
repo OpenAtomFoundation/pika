@@ -33,16 +33,16 @@ class PubSubThread : public Thread {
  public:
   PubSubThread();
 
-  virtual ~PubSubThread();
+  ~PubSubThread() override;
 
   // PubSub
 
   int Publish(const std::string& channel, const std::string& msg);
 
-  void Subscribe(std::shared_ptr<NetConn> conn, const std::vector<std::string>& channels, const bool pattern,
+  void Subscribe(const std::shared_ptr<NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
                  std::vector<std::pair<std::string, int>>* result);
 
-  int UnSubscribe(std::shared_ptr<NetConn> conn, const std::vector<std::string>& channels, const bool pattern,
+  int UnSubscribe(const std::shared_ptr<NetConn>& conn, const std::vector<std::string>& channels, bool pattern,
                   std::vector<std::pair<std::string, int>>* result);
 
   void PubSubChannels(const std::string& pattern, std::vector<std::string>* result);
@@ -52,9 +52,9 @@ class PubSubThread : public Thread {
   int PubSubNumPat();
 
   // Move out from pubsub thread
-  void MoveConnOut(std::shared_ptr<NetConn> conn);
+  void MoveConnOut(const std::shared_ptr<NetConn>& conn);
   // Move into pubsub thread
-  void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& notify_type);
+  void MoveConnIn(const std::shared_ptr<NetConn>& conn, const NotifyType& notify_type);
 
   enum ReadyState {
     kNotReady,
@@ -62,7 +62,7 @@ class PubSubThread : public Thread {
   };
 
   struct ConnHandle {
-    ConnHandle(std::shared_ptr<NetConn> pc, ReadyState state = kNotReady) : conn(pc), ready_state(state) {}
+    ConnHandle(std::shared_ptr<NetConn> pc, ReadyState state = kNotReady) : conn(std::move(std::move(std::move(std::move(pc))))), ready_state(state) {}
     void UpdateReadyState(const ReadyState& state);
     bool IsReady();
     std::shared_ptr<NetConn> conn;
@@ -72,11 +72,14 @@ class PubSubThread : public Thread {
   void UpdateConnReadyState(int fd, const ReadyState& state);
 
   bool IsReady(int fd);
+  // No copying allowed
+  PubSubThread(const PubSubThread&) = delete;
+  void operator=(const PubSubThread&) = delete;
 
  private:
-  void RemoveConn(std::shared_ptr<NetConn> conn);
+  void RemoveConn(const std::shared_ptr<NetConn>& conn);
 
-  int ClientChannelSize(std::shared_ptr<NetConn> conn);
+  int ClientChannelSize(const std::shared_ptr<NetConn>& conn);
 
   int msg_pfd_[2];
   bool should_exit_;
@@ -96,14 +99,14 @@ class PubSubThread : public Thread {
 
   std::string channel_;
   std::string message_;
-  int receivers_;
+  int receivers_{-1};
 
   /*
    * The epoll handler
    */
   std::unique_ptr<NetMultiplexer> net_multiplexer_;
 
-  virtual void* ThreadMain();
+  void* ThreadMain() override;
 
   // clean conns
   void Cleanup();
@@ -115,9 +118,6 @@ class PubSubThread : public Thread {
   std::map<std::string, std::vector<std::shared_ptr<NetConn>>> pubsub_channel_;  // channel <---> conns
   std::map<std::string, std::vector<std::shared_ptr<NetConn>>> pubsub_pattern_;  // channel <---> conns
 
-  // No copying allowed
-  PubSubThread(const PubSubThread&);
-  void operator=(const PubSubThread&);
 };  // class PubSubThread
 
 }  // namespace net

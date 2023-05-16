@@ -31,29 +31,32 @@ class DispatchThread : public ServerThread {
   DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory, int cron_interval,
                  int queue_limit, const ServerHandle* handle);
 
-  virtual ~DispatchThread();
+  ~DispatchThread() override;
 
-  virtual int StartThread() override;
+  int StartThread() override;
 
-  virtual int StopThread() override;
+  int StopThread() override;
 
-  virtual void set_keepalive_timeout(int timeout) override;
+  void set_keepalive_timeout(int timeout) override;
 
-  virtual int conn_num() const override;
+  int conn_num() const override;
 
-  virtual std::vector<ServerThread::ConnInfo> conns_info() const override;
+  std::vector<ServerThread::ConnInfo> conns_info() const override;
 
-  virtual std::shared_ptr<NetConn> MoveConnOut(int fd) override;
+  std::shared_ptr<NetConn> MoveConnOut(int fd) override;
 
-  virtual void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) override;
+  void MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) override;
 
-  virtual void KillAllConns() override;
+  void KillAllConns() override;
 
-  virtual bool KillConn(const std::string& ip_port) override;
+  bool KillConn(const std::string& ip_port) override;
 
-  void HandleNewConn(const int connfd, const std::string& ip_port) override;
+  void HandleNewConn(int connfd, const std::string& ip_port) override;
 
   void SetQueueLimit(int queue_limit) override;
+  // No copying allowed
+  DispatchThread(const DispatchThread&) = delete;
+  void operator=(const DispatchThread&) = delete;
 
  private:
   /*
@@ -71,9 +74,6 @@ class DispatchThread : public ServerThread {
 
   void HandleConnEvent(NetFiredEvent* pfe) override { UNUSED(pfe); }
 
-  // No copying allowed
-  DispatchThread(const DispatchThread&);
-  void operator=(const DispatchThread&);
 };  // class DispatchThread
 
 }  // namespace net

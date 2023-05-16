@@ -11,7 +11,7 @@
 #include "include/pika_server.h"
 #include "pstd/include/testutil.h"
 
-extern PikaConf* g_pika_conf;
+
 extern PikaServer* g_pika_server;
 
 PikaDispatchThread::PikaDispatchThread(std::set<std::string>& ips, int port, int work_num, int cron_interval,

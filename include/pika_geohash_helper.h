@@ -34,18 +34,18 @@
 
 #include "include/pika_geohash.h"
 
-#define GZERO(s) s.bits = s.step = 0;
-#define GISZERO(s) (!s.bits && !s.step)
-#define GISNOTZERO(s) (s.bits || s.step)
+#define GZERO(s) s.bits = (s).step = 0;
+#define GISZERO(s) (!(s).bits && !(s).step)
+#define GISNOTZERO(s) ((s).bits || (s).step)
 
-typedef uint64_t GeoHashFix52Bits;
-typedef uint64_t GeoHashVarBits;
+using GeoHashFix52Bits = uint64_t;
+using GeoHashVarBits = uint64_t;
 
-typedef struct {
+struct GeoHashRadius {
   GeoHashBits hash;
   GeoHashArea area;
   GeoHashNeighbors neighbors;
-} GeoHashRadius;
+};
 
 int GeoHashBitsComparator(const GeoHashBits* a, const GeoHashBits* b);
 uint8_t geohashEstimateStepsByRadius(double range_meters, double lat);
@@ -53,7 +53,7 @@ int geohashBoundingBox(double longitude, double latitude, double radius_meters, 
 GeoHashRadius geohashGetAreasByRadius(double longitude, double latitude, double radius_meters);
 GeoHashRadius geohashGetAreasByRadiusWGS84(double longitude, double latitude, double radius_meters);
 GeoHashRadius geohashGetAreasByRadiusMercator(double longitude, double latitude, double radius_meters);
-GeoHashFix52Bits geohashAlign52Bits(const GeoHashBits hash);
+GeoHashFix52Bits geohashAlign52Bits(const GeoHashBits &hash);
 double geohashGetDistance(double lon1d, double lat1d, double lon2d, double lat2d);
 int geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, double radius, double* distance);
 int geohashGetDistanceIfInRadiusWGS84(double x1, double y1, double x2, double y2, double radius, double* distance);

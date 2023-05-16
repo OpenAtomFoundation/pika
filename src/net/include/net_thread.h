@@ -35,6 +35,12 @@ class Thread {
 
   void set_thread_name(const std::string& name) { thread_name_ = name; }
 
+  /*
+   * No allowed copy and copy assign
+   */
+  Thread(const Thread&) = delete;
+  void operator=(const Thread&) = delete;
+  
  protected:
   std::atomic<bool> should_stop_;
 
@@ -43,15 +49,10 @@ class Thread {
   virtual void* ThreadMain() = 0;
 
   pstd::Mutex running_mu_;
-  bool running_;
-  pthread_t thread_id_;
+  bool running_{false};
+  pthread_t thread_id_{};
   std::string thread_name_;
 
-  /*
-   * No allowed copy and copy assign
-   */
-  Thread(const Thread&);
-  void operator=(const Thread&);
 };
 
 }  // namespace net

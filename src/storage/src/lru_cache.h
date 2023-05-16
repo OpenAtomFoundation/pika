@@ -6,8 +6,8 @@
 #ifndef SRC_LRU_CACHE_H_
 #define SRC_LRU_CACHE_H_
 
-#include <assert.h>
-#include <stdio.h>
+#include <cassert>
+#include <cstdio>
 #include <unordered_map>
 
 #include "rocksdb/status.h"
@@ -34,17 +34,17 @@ class HandleTable {
   size_t TableSize();
   LRUHandle<T1, T2>* Lookup(const T1& key);
   LRUHandle<T1, T2>* Remove(const T1& key);
-  LRUHandle<T1, T2>* Insert(const T1& key, LRUHandle<T1, T2>* const handle);
+  LRUHandle<T1, T2>* Insert(const T1& key, LRUHandle<T1, T2>* handle);
 
  private:
   std::unordered_map<T1, LRUHandle<T1, T2>*> table_;
 };
 
 template <typename T1, typename T2>
-HandleTable<T1, T2>::HandleTable() {}
+HandleTable<T1, T2>::HandleTable() = default;
 
 template <typename T1, typename T2>
-HandleTable<T1, T2>::~HandleTable() {}
+HandleTable<T1, T2>::~HandleTable() = default;
 
 template <typename T1, typename T2>
 size_t HandleTable<T1, T2>::TableSize() {
@@ -103,10 +103,10 @@ class LRUCache {
 
  private:
   void LRU_Trim();
-  void LRU_Remove(LRUHandle<T1, T2>* const e);
-  void LRU_Append(LRUHandle<T1, T2>* const e);
-  void LRU_MoveToHead(LRUHandle<T1, T2>* const e);
-  bool FinishErase(LRUHandle<T1, T2>* const e);
+  void LRU_Remove(LRUHandle<T1, T2>* e);
+  void LRU_Append(LRUHandle<T1, T2>* e);
+  void LRU_MoveToHead(LRUHandle<T1, T2>* e);
+  bool FinishErase(LRUHandle<T1, T2>* e);
 
   // Initialized before use.
   size_t capacity_ = 0;
@@ -123,7 +123,7 @@ class LRUCache {
 };
 
 template <typename T1, typename T2>
-LRUCache<T1, T2>::LRUCache() : capacity_(0), usage_(0), size_(0) {
+LRUCache<T1, T2>::LRUCache()  {
   // Make empty circular linked lists.
   lru_.next = &lru_;
   lru_.prev = &lru_;
@@ -176,7 +176,7 @@ rocksdb::Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t 
   if (capacity_ == 0) {
     return rocksdb::Status::Corruption("capacity is empty");
   } else {
-    LRUHandle<T1, T2>* handle = new LRUHandle<T1, T2>();
+    auto* handle = new LRUHandle<T1, T2>();
     handle->key = key;
     handle->value = value;
     handle->charge = charge;

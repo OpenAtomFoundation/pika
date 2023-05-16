@@ -16,8 +16,8 @@ namespace storage {
 
 class RedisStrings : public Redis {
  public:
-  RedisStrings(Storage* const s, const DataType& type);
-  ~RedisStrings() = default;
+  RedisStrings(Storage* s, const DataType& type);
+  ~RedisStrings() override = default;
 
   // Common Commands
   Status Open(const StorageOptions& storage_options, const std::string& db_path) override;
@@ -30,7 +30,7 @@ class RedisStrings : public Redis {
 
   // Strings Commands
   Status Append(const Slice& key, const Slice& value, int32_t* ret);
-  Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_offset);
+  Status BitCount(const Slice& key, int64_t start_offset, int64_t end_offset, int32_t* ret, bool have_range);
   Status BitOp(BitOpType op, const std::string& dest_key, const std::vector<std::string>& src_keys, int64_t* ret);
   Status Decrby(const Slice& key, int64_t value, int64_t* ret);
   Status Get(const Slice& key, std::string* value);
@@ -43,11 +43,11 @@ class RedisStrings : public Redis {
   Status MSet(const std::vector<KeyValue>& kvs);
   Status MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret);
   Status Set(const Slice& key, const Slice& value);
-  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, const int32_t ttl = 0);
-  Status SetBit(const Slice& key, int64_t offset, int32_t value, int32_t* ret);
+  Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
+  Status SetBit(const Slice& key, int64_t offset, int32_t on, int32_t* ret);
   Status Setex(const Slice& key, const Slice& value, int32_t ttl);
-  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, const int32_t ttl = 0);
-  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, const int32_t ttl = 0);
+  Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
+  Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int32_t ttl = 0);
   Status Delvx(const Slice& key, const Slice& value, int32_t* ret);
   Status Setrange(const Slice& key, int64_t start_offset, const Slice& value, int32_t* ret);
   Status Strlen(const Slice& key, int32_t* len);

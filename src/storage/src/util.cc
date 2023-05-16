@@ -3,10 +3,11 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 
-#include <ctype.h>
-#include <limits.h>
-#include <stdint.h>
 #include <unistd.h>
+#include <cctype>
+#include <climits>
+#include <cstdint>
+#include <cstring>
 
 #include "pstd/include/pstd_string.h"
 
@@ -45,13 +46,15 @@ int StringMatch(const char* pattern, int pattern_len, const char* str, int strin
 int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
   char* pEnd;
   std::string t(s, slen);
-  if (t.find(" ") != std::string::npos) {
+  if (t.find(' ') != std::string::npos) {
     return -1;
   }
   long double d = strtold(s, &pEnd);
-  if (pEnd != s + slen) return -1;
+  if (pEnd != s + slen) { return -1;
+}
 
-  if (ldval != nullptr) *ldval = d;
+  if (ldval != nullptr) { *ldval = d;
+}
   return 0;
 }
 
@@ -64,10 +67,10 @@ int LongDoubleToStr(long double ldval, std::string* value) {
     /* Libc in odd systems (Hi Solaris!) will format infinite in a
      * different way, so better to handle it in an explicit way. */
     if (ldval > 0) {
-      memcpy(buf, "inf", 3);
+      strcpy(buf, "inf");
       len = 3;
     } else {
-      memcpy(buf, "-inf", 4);
+      strcpy(buf, "-inf");
       len = 4;
     }
     return -1;
@@ -85,7 +88,8 @@ int LongDoubleToStr(long double ldval, std::string* value) {
         p--;
         len--;
       }
-      if (*p == '.') len--;
+      if (*p == '.') { len--;
+}
     }
     value->assign(buf, len);
     return 0;
@@ -99,7 +103,8 @@ int do_mkdir(const char* path, mode_t mode) {
   if (stat(path, &st) != 0) {
     /* Directory does not exist. EEXIST for race
      * condition */
-    if (mkdir(path, mode) != 0 && errno != EEXIST) status = -1;
+    if (mkdir(path, mode) != 0 && errno != EEXIST) { status = -1;
+}
   } else if (!S_ISDIR(st.st_mode)) {
     errno = ENOTDIR;
     status = -1;
@@ -122,7 +127,7 @@ int mkpath(const char* path, mode_t mode) {
 
   status = 0;
   pp = copypath;
-  while (status == 0 && (sp = strchr(pp, '/')) != 0) {
+  while (status == 0 && (sp = strchr(pp, '/')) != nullptr) {
     if (sp != pp) {
       /* Neither root nor double slash in path */
       *sp = '\0';
@@ -131,7 +136,8 @@ int mkpath(const char* path, mode_t mode) {
     }
     pp = sp + 1;
   }
-  if (status == 0) status = do_mkdir(path, mode);
+  if (status == 0) { status = do_mkdir(path, mode);
+}
   free(copypath);
   return (status);
 }
@@ -182,7 +188,7 @@ int is_dir(const char* filename) {
   struct stat buf;
   int ret = stat(filename, &buf);
   if (0 == ret) {
-    if (buf.st_mode & S_IFDIR) {
+    if ((buf.st_mode & S_IFDIR) != 0) {
       // folder
       return 0;
     } else {
@@ -197,7 +203,7 @@ int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_
   size_t needed = key.size() + 1;
   char* dst = new char[needed];
   const char* start = dst;
-  memcpy(dst, key.data(), key.size());
+  strncpy(dst, key.data(), key.size());
   dst += key.size();
   meta_start_key->assign(start, key.size());
   *dst = static_cast<uint8_t>(0xff);
@@ -212,7 +218,7 @@ int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_
   const char* start = dst;
   EncodeFixed32(dst, key.size());
   dst += sizeof(int32_t);
-  memcpy(dst, key.data(), key.size());
+  strncpy(dst, key.data(), key.size());
   dst += key.size();
   data_start_key->assign(start, sizeof(int32_t) + key.size());
   *dst = static_cast<uint8_t>(0xff);
@@ -239,9 +245,11 @@ bool isTailWildcard(const std::string& pattern) {
 }
 
 void GetFilepath(const char* path, const char* filename, char* filepath) {
-  strcpy(filepath, path);
-  if (filepath[strlen(path) - 1] != '/') strcat(filepath, "/");
-  strcat(filepath, filename);
+  strcpy(filepath, path);  // NOLINT
+  if (filepath[strlen(path) - 1] != '/') {
+    strcat(filepath, "/");  // NOLINT
+  }
+  strcat(filepath, filename);  // NOLINT
 }
 
 bool DeleteFiles(const char* path) {
@@ -256,17 +264,20 @@ bool DeleteFiles(const char* path) {
     remove(path);
   } else if (S_ISDIR(statbuf.st_mode))  // 判断是否是目录
   {
-    if ((dir = opendir(path)) == nullptr) return 1;
+    if ((dir = opendir(path)) == nullptr) {
+      return true;
+    }
     while ((dirinfo = readdir(dir)) != nullptr) {
       GetFilepath(path, dirinfo->d_name, filepath);
-      if (strcmp(dirinfo->d_name, ".") == 0 || strcmp(dirinfo->d_name, "..") == 0)  // 判断是否是特殊目录
+      if (strcmp(dirinfo->d_name, ".") == 0 || strcmp(dirinfo->d_name, "..") == 0) {  // 判断是否是特殊目录
         continue;
+      }
       DeleteFiles(filepath);
       rmdir(filepath);
     }
     closedir(dir);
   }
-  return 0;
+  return false;
 }
 
 }  //  namespace storage

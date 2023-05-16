@@ -14,7 +14,7 @@ void current_time_str(char * str, size_t max_len)
   struct timeval tv;
   struct tm tmm;
 
-  gettimeofday(&tv, 0);
+  gettimeofday(&tv, nullptr);
 
   localtime_r(&(tv.tv_sec), &tmm);
   snprintf(str, max_len, "%04d-%02d-%02dT%02d:%02d:%02d.%06ld",
@@ -24,16 +24,16 @@ void current_time_str(char * str, size_t max_len)
            tmm.tm_hour,
            tmm.tm_min,
            tmm.tm_sec,
-           tv.tv_usec);
+           tv.tv_usec);  // NOLINT cause different between macOS and ubuntu
 }
 
 int GetTestDirectory(std::string* result) {
   const char* env = getenv("TEST_TMPDIR");
-  if (env && env[0] != '\0') {
+  if ((env != nullptr) && env[0] != '\0') {
     *result = env;
   } else {
     char buf[100];
-    snprintf(buf, sizeof(buf), "/tmp/pstdtest-%d", int(geteuid()));
+    snprintf(buf, sizeof(buf), "/tmp/pstdtest-%d", static_cast<int>(geteuid()));
     *result = buf;
   }
   return 0;

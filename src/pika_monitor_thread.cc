@@ -7,7 +7,7 @@
 
 #include <glog/logging.h>
 
-PikaMonitorThread::PikaMonitorThread() : net::Thread() {
+PikaMonitorThread::PikaMonitorThread()  {
   set_thread_name("MonitorThread");
   has_monitor_clients_.store(false);
 }
@@ -18,13 +18,13 @@ PikaMonitorThread::~PikaMonitorThread() {
     monitor_cond_.notify_all();
     StopThread();
   }
-  for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
-    close(iter->fd);
+  for (auto & monitor_client : monitor_clients_) {
+    close(monitor_client.fd);
   }
   LOG(INFO) << "PikaMonitorThread " << pthread_self() << " exit!!!";
 }
 
-void PikaMonitorThread::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
+void PikaMonitorThread::AddMonitorClient(const std::shared_ptr<PikaClientConn>& client_ptr) {
   StartThread();
   std::lock_guard lm(monitor_mutex_protector_);
   monitor_clients_.push_back(ClientInfo{client_ptr->fd(), client_ptr->ip_port(), 0, client_ptr});
@@ -32,7 +32,7 @@ void PikaMonitorThread::AddMonitorClient(std::shared_ptr<PikaClientConn> client_
 }
 
 void PikaMonitorThread::RemoveMonitorClient(const std::string& ip_port) {
-  std::list<ClientInfo>::iterator iter = monitor_clients_.begin();
+  auto iter = monitor_clients_.begin();
   for (; iter != monitor_clients_.end(); ++iter) {
     if (ip_port == "all") {
       close(iter->fd);
@@ -63,14 +63,14 @@ void PikaMonitorThread::AddMonitorMessage(const std::string& monitor_message) {
 
 int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr) {
   if (clients_ptr != nullptr) {
-    for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); iter++) {
-      clients_ptr->push_back(*iter);
+    for (auto & monitor_client : monitor_clients_) {
+      clients_ptr->push_back(monitor_client);
     }
   }
   return monitor_clients_.size();
 }
 
-void PikaMonitorThread::AddCronTask(MonitorCronTask task) {
+void PikaMonitorThread::AddCronTask(const MonitorCronTask& task) {
   std::lock_guard lm(monitor_mutex_protector_);
   if (monitor_messages_.empty() && cron_tasks_.empty()) {
     cron_tasks_.push(task);
@@ -82,8 +82,8 @@ void PikaMonitorThread::AddCronTask(MonitorCronTask task) {
 
 bool PikaMonitorThread::FindClient(const std::string& ip_port) {
   std::lock_guard lm(monitor_mutex_protector_);
-  for (std::list<ClientInfo>::iterator iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
-    if (iter->ip_port == ip_port) {
+  for (auto & monitor_client : monitor_clients_) {
+    if (monitor_client.ip_port == ip_port) {
       return true;
     }
   }
@@ -107,7 +107,9 @@ bool PikaMonitorThread::HasMonitorClients() { return has_monitor_clients_.load()
 
 net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message) {
   size_t retry = 0;
-  ssize_t nwritten = 0, message_len_sended = 0, message_len_left = message.size();
+  ssize_t nwritten = 0;
+  ssize_t message_len_sended = 0;
+  ssize_t message_len_left = message.size();
   while (message_len_left > 0) {
     nwritten = write(fd, message.data() + message_len_sended, message_len_left);
     if (nwritten == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
@@ -124,7 +126,8 @@ net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message
     } else if (nwritten == -1) {
       return net::kWriteError;
     }
-    if (retry > 0) retry = 0;
+    if (retry > 0) { retry = 0;
+}
     message_len_sended += nwritten;
     message_len_left -= nwritten;
   }
@@ -178,10 +181,10 @@ void* PikaMonitorThread::ThreadMain() {
     messages_transfer.append("\r\n", 2);
 
     std::lock_guard lm(monitor_mutex_protector_);
-    for (auto iter = monitor_clients_.begin(); iter != monitor_clients_.end(); ++iter) {
-      write_status = SendMessage(iter->fd, messages_transfer);
+    for (auto & monitor_client : monitor_clients_) {
+      write_status = SendMessage(monitor_client.fd, messages_transfer);
       if (write_status == net::kWriteError) {
-        cron_tasks_.push({TASK_KILL, iter->ip_port});
+        cron_tasks_.push({TASK_KILL, monitor_client.ip_port});
       }
     }
   }

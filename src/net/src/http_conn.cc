@@ -3,12 +3,13 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 #include "net/include/http_conn.h"
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
 
 #include <algorithm>
 #include <string>
+#include <utility>
 
 #include "net/include/net_define.h"
 #include "pstd/include/pstd_string.h"
@@ -122,7 +123,7 @@ bool HTTPRequest::ParseHeadLine(const char* data, int line_start, int line_end) 
 bool HTTPRequest::ParseGetUrl() {
   path_ = url_;
   // Format path
-  if (headers_.count("host") && path_.find(headers_["host"]) != std::string::npos &&
+  if ((headers_.count("host") != 0U) && path_.find(headers_["host"]) != std::string::npos &&
       path_.size() > (7 + headers_["host"].size())) {
     // http://www.xxx.xxx/path_/to
     path_.assign(path_.substr(7 + headers_["host"].size()));
@@ -140,8 +141,10 @@ bool HTTPRequest::ParseGetUrl() {
 
 // Parse query parameter from GET url or POST application/x-www-form-urlencoded
 // format: key1=value1&key2=value2&key3=value3
-bool HTTPRequest::ParseParameters(const std::string data, size_t line_start) {
-  size_t pre = line_start, mid, end;
+bool HTTPRequest::ParseParameters(std::string& data, size_t line_start) {
+  size_t pre = line_start;
+  size_t mid;
+  size_t end;
   while (pre < data.size()) {
     mid = data.find('=', pre);
     if (mid == std::string::npos) {
@@ -166,7 +169,7 @@ bool HTTPRequest::ParseParameters(const std::string data, size_t line_start) {
 int HTTPRequest::ParseHeader() {
   rbuf_[rbuf_pos_] = '\0';  // Avoid strstr() parsing expire char
   char* sep_pos = strstr(rbuf_, "\r\n\r\n");
-  if (!sep_pos) {
+  if (sep_pos == nullptr) {
     // Haven't find header
     return 0;
   }
@@ -197,13 +200,13 @@ int HTTPRequest::ParseHeader() {
     return -1;
   }
 
-  remain_recv_len_ = headers_.count("content-length") ? std::stoul(headers_.at("content-length")) : 0;
+  remain_recv_len_ = headers_.count("content-length") != 0U ? std::stoul(headers_.at("content-length")) : 0;
 
-  if (headers_.count("content-type")) {
+  if (headers_.count("content-type") != 0U) {
     content_type_.assign(headers_.at("content-type"));
   }
 
-  if (headers_.count("expect") &&
+  if ((headers_.count("expect") != 0U) &&
       (headers_.at("expect") == "100-Continue" || headers_.at("expect") == "100-continue")) {
     reply_100continue_ = true;
   }
@@ -231,7 +234,7 @@ bool HTTPResponse::SerializeHeader() {
   int serial_size = 0;
   int ret;
 
-  std::string reason_phrase = http_status_map.at(status_code_);
+  const std::string& reason_phrase = http_status_map.at(status_code_);
 
   // Serialize statues line
   ret = snprintf(wbuf_, kHTTPMaxHeader, "HTTP/1.1 %d %s\r\n", status_code_, reason_phrase.c_str());
@@ -265,7 +268,7 @@ HTTPConn::HTTPConn(const int fd, const std::string& ip_port, Thread* thread, std
 #ifdef __ENABLE_SSL
       // security_(thread->security()),
 #endif
-      handles_(handles) {
+      handles_(std::move(std::move(handles))) {
   handles_->worker_specific_data_ = worker_specific_data;
   // this pointer is safe here
   request_ = new HTTPRequest(this);
@@ -289,35 +292,35 @@ HTTPRequest::HTTPRequest(HTTPConn* conn)
 
 HTTPRequest::~HTTPRequest() { delete[] rbuf_; }
 
-const std::string HTTPRequest::url() const { return url_; }
+std::string HTTPRequest::url() const { return url_; }
 
-const std::string HTTPRequest::path() const { return path_; }
+std::string HTTPRequest::path() const { return path_; }
 
-const std::string HTTPRequest::query_value(const std::string& field) const {
-  if (query_params_.count(field)) {
+std::string HTTPRequest::query_value(const std::string& field) const {
+  if (query_params_.count(field) != 0U) {
     return query_params_.at(field);
   }
   return "";
 }
 
-const std::string HTTPRequest::postform_value(const std::string& field) const {
-  if (postform_params_.count(field)) {
+std::string HTTPRequest::postform_value(const std::string& field) const {
+  if (postform_params_.count(field) != 0U) {
     return postform_params_.at(field);
   }
   return "";
 }
 
-const std::string HTTPRequest::method() const { return method_; }
+std::string HTTPRequest::method() const { return method_; }
 
-const std::string HTTPRequest::content_type() const { return content_type_; }
+std::string HTTPRequest::content_type() const { return content_type_; }
 
-const std::map<std::string, std::string> HTTPRequest::query_params() const { return query_params_; }
+std::map<std::string, std::string> HTTPRequest::query_params() const { return query_params_; }
 
-const std::map<std::string, std::string> HTTPRequest::postform_params() const { return postform_params_; }
+std::map<std::string, std::string> HTTPRequest::postform_params() const { return postform_params_; }
 
-const std::map<std::string, std::string> HTTPRequest::headers() const { return headers_; }
+std::map<std::string, std::string> HTTPRequest::headers() const { return headers_; }
 
-const std::string HTTPRequest::client_ip_port() const { return client_ip_port_; }
+std::string HTTPRequest::client_ip_port() const { return client_ip_port_; }
 
 void HTTPRequest::Reset() {
   rbuf_pos_ = 0;
@@ -495,7 +498,7 @@ void HTTPResponse::SetHeaders(const std::string& key, const size_t value) { head
 
 void HTTPResponse::SetContentLength(uint64_t size) {
   remain_send_len_ = size;
-  if (headers_.count("Content-Length") || headers_.count("content-length")) {
+  if ((headers_.count("Content-Length") != 0U) || (headers_.count("content-length") != 0U)) {
     return;
   }
   SetHeaders("Content-Length", size);

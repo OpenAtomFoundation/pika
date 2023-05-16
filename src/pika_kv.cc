@@ -26,11 +26,11 @@ void SetCmd::DoInitial() {
   size_t index = 3;
   while (index != argv_.size()) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "xx")) {
+    if (strcasecmp(opt.data(), "xx") == 0) {
       condition_ = SetCmd::kXX;
-    } else if (!strcasecmp(opt.data(), "nx")) {
+    } else if (strcasecmp(opt.data(), "nx") == 0) {
       condition_ = SetCmd::kNX;
-    } else if (!strcasecmp(opt.data(), "vx")) {
+    } else if (strcasecmp(opt.data(), "vx") == 0) {
       condition_ = SetCmd::kVX;
       index++;
       if (index == argv_.size()) {
@@ -39,14 +39,14 @@ void SetCmd::DoInitial() {
       } else {
         target_ = argv_[index];
       }
-    } else if (!strcasecmp(opt.data(), "ex") || !strcasecmp(opt.data(), "px")) {
+    } else if ((strcasecmp(opt.data(), "ex") == 0) || (strcasecmp(opt.data(), "px") == 0)) {
       condition_ = (condition_ == SetCmd::kNONE) ? SetCmd::kEXORPX : condition_;
       index++;
       if (index == argv_.size()) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &sec_)) {
+      if (pstd::string2int(argv_[index].data(), argv_[index].size(), &sec_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       } else if (sec_ <= 0) {
@@ -54,7 +54,7 @@ void SetCmd::DoInitial() {
         return;
       }
 
-      if (!strcasecmp(opt.data(), "px")) {
+      if (strcasecmp(opt.data(), "px") == 0) {
         sec_ /= 1000;
       }
     } else {
@@ -63,8 +63,7 @@ void SetCmd::DoInitial() {
     }
     index++;
   }
-  return;
-}
+  }
 
 void SetCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s;
@@ -139,7 +138,6 @@ void GetCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
 void GetCmd::Do(std::shared_ptr<Partition> partition) {
@@ -160,9 +158,8 @@ void DelCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, name());
     return;
   }
-  std::vector<std::string>::iterator iter = argv_.begin();
+  auto iter = argv_.begin();
   keys_.assign(++iter, argv_.end());
-  return;
 }
 
 void DelCmd::Do(std::shared_ptr<Partition> partition) {
@@ -173,8 +170,7 @@ void DelCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "delete error");
   }
-  return;
-}
+  }
 
 void DelCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
   std::map<storage::DataType, storage::Status> type_status;
@@ -184,12 +180,10 @@ void DelCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_ke
   } else {
     res_.SetRes(CmdRes::kErrOther, "delete error");
   }
-  return;
-}
+  }
 
 void DelCmd::Merge() {
   res_.AppendInteger(split_res_);
-  return;
 }
 
 void IncrCmd::DoInitial() {
@@ -198,7 +192,6 @@ void IncrCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
 void IncrCmd::Do(std::shared_ptr<Partition> partition) {
@@ -212,8 +205,7 @@ void IncrCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void IncrbyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -221,12 +213,11 @@ void IncrbyCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &by_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &by_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameIncrby);
     return;
   }
-  return;
-}
+  }
 
 void IncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->Incrby(key_, by_, &new_value_);
@@ -239,8 +230,7 @@ void IncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void IncrbyfloatCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -249,12 +239,11 @@ void IncrbyfloatCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[2];
-  if (!pstd::string2d(argv_[2].data(), argv_[2].size(), &by_)) {
+  if (pstd::string2d(argv_[2].data(), argv_[2].size(), &by_) == 0) {
     res_.SetRes(CmdRes::kInvalidFloat);
     return;
   }
-  return;
-}
+  }
 
 void IncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->Incrbyfloat(key_, value_, &new_value_);
@@ -268,8 +257,7 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void DecrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -277,7 +265,6 @@ void DecrCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
 void DecrCmd::Do(std::shared_ptr<Partition> partition) {
@@ -291,8 +278,7 @@ void DecrCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void DecrbyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -300,12 +286,11 @@ void DecrbyCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &by_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &by_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  return;
-}
+  }
 
 void DecrbyCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->Decrby(key_, by_, &new_value_);
@@ -318,8 +303,7 @@ void DecrbyCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void GetsetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -328,7 +312,6 @@ void GetsetCmd::DoInitial() {
   }
   key_ = argv_[1];
   new_value_ = argv_[2];
-  return;
 }
 
 void GetsetCmd::Do(std::shared_ptr<Partition> partition) {
@@ -344,8 +327,7 @@ void GetsetCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void AppendCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -354,7 +336,6 @@ void AppendCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[2];
-  return;
 }
 
 void AppendCmd::Do(std::shared_ptr<Partition> partition) {
@@ -365,8 +346,7 @@ void AppendCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void MgetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -376,7 +356,6 @@ void MgetCmd::DoInitial() {
   keys_ = argv_;
   keys_.erase(keys_.begin());
   split_res_.resize(keys_.size());
-  return;
 }
 
 void MgetCmd::Do(std::shared_ptr<Partition> partition) {
@@ -395,8 +374,7 @@ void MgetCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void MgetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
   std::vector<storage::ValueStatus> vss;
@@ -413,8 +391,7 @@ void MgetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_k
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void MgetCmd::Merge() {
   res_.AppendArrayLen(split_res_.size());
@@ -436,15 +413,15 @@ void KeysCmd::DoInitial() {
   pattern_ = argv_[1];
   if (argv_.size() == 3) {
     std::string opt = argv_[2];
-    if (!strcasecmp(opt.data(), "string")) {
+    if (strcasecmp(opt.data(), "string") == 0) {
       type_ = storage::DataType::kStrings;
-    } else if (!strcasecmp(opt.data(), "zset")) {
+    } else if (strcasecmp(opt.data(), "zset") == 0) {
       type_ = storage::DataType::kZSets;
-    } else if (!strcasecmp(opt.data(), "set")) {
+    } else if (strcasecmp(opt.data(), "set") == 0) {
       type_ = storage::DataType::kSets;
-    } else if (!strcasecmp(opt.data(), "list")) {
+    } else if (strcasecmp(opt.data(), "list") == 0) {
       type_ = storage::DataType::kLists;
-    } else if (!strcasecmp(opt.data(), "hash")) {
+    } else if (strcasecmp(opt.data(), "hash") == 0) {
       type_ = storage::DataType::kHashes;
     } else {
       res_.SetRes(CmdRes::kSyntaxErr);
@@ -452,8 +429,7 @@ void KeysCmd::DoInitial() {
   } else if (argv_.size() > 3) {
     res_.SetRes(CmdRes::kSyntaxErr);
   }
-  return;
-}
+  }
 
 void KeysCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t total_key = 0;
@@ -477,7 +453,6 @@ void KeysCmd::Do(std::shared_ptr<Partition> partition) {
 
   res_.AppendArrayLen(total_key);
   res_.AppendStringRaw(raw);
-  return;
 }
 
 void SetnxCmd::DoInitial() {
@@ -487,7 +462,6 @@ void SetnxCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[2];
-  return;
 }
 
 void SetnxCmd::Do(std::shared_ptr<Partition> partition) {
@@ -498,8 +472,7 @@ void SetnxCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset) {
@@ -529,12 +502,11 @@ void SetexCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &sec_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &sec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   value_ = argv_[3];
-  return;
 }
 
 void SetexCmd::Do(std::shared_ptr<Partition> partition) {
@@ -579,12 +551,11 @@ void PsetexCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &usec_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &usec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   value_ = argv_[3];
-  return;
 }
 
 void PsetexCmd::Do(std::shared_ptr<Partition> partition) {
@@ -630,7 +601,6 @@ void DelvxCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[2];
-  return;
 }
 
 void DelvxCmd::Do(std::shared_ptr<Partition> partition) {
@@ -656,8 +626,7 @@ void MsetCmd::DoInitial() {
   for (size_t index = 1; index != argc; index += 2) {
     kvs_.push_back({argv_[index], argv_[index + 1]});
   }
-  return;
-}
+  }
 
 void MsetCmd::Do(std::shared_ptr<Partition> partition) {
   storage::Status s = partition->db()->MSet(kvs_);
@@ -708,8 +677,7 @@ void MsetnxCmd::DoInitial() {
   for (size_t index = 1; index != argc; index += 2) {
     kvs_.push_back({argv_[index], argv_[index + 1]});
   }
-  return;
-}
+  }
 
 void MsetnxCmd::Do(std::shared_ptr<Partition> partition) {
   success_ = 0;
@@ -727,16 +695,15 @@ void GetrangeCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &start_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &start_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  if (!pstd::string2int(argv_[3].data(), argv_[3].size(), &end_)) {
+  if (pstd::string2int(argv_[3].data(), argv_[3].size(), &end_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  return;
-}
+  }
 
 void GetrangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string substr;
@@ -755,12 +722,11 @@ void SetrangeCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &offset_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &offset_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
   value_ = argv_[3];
-  return;
 }
 
 void SetrangeCmd::Do(std::shared_ptr<Partition> partition) {
@@ -771,8 +737,7 @@ void SetrangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void StrlenCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -780,7 +745,6 @@ void StrlenCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
 void StrlenCmd::Do(std::shared_ptr<Partition> partition) {
@@ -791,8 +755,7 @@ void StrlenCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void ExistsCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -801,7 +764,6 @@ void ExistsCmd::DoInitial() {
   }
   keys_ = argv_;
   keys_.erase(keys_.begin());
-  return;
 }
 
 void ExistsCmd::Do(std::shared_ptr<Partition> partition) {
@@ -812,8 +774,7 @@ void ExistsCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "exists internal error");
   }
-  return;
-}
+  }
 
 void ExistsCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -827,7 +788,6 @@ void ExistsCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint
 
 void ExistsCmd::Merge() {
   res_.AppendInteger(split_res_);
-  return;
 }
 
 void ExpireCmd::DoInitial() {
@@ -836,12 +796,11 @@ void ExpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &sec_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &sec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  return;
-}
+  }
 
 void ExpireCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -851,8 +810,7 @@ void ExpireCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "expire internal error");
   }
-  return;
-}
+  }
 
 std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                 uint64_t offset) {
@@ -885,12 +843,11 @@ void PexpireCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &msec_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &msec_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  return;
-}
+  }
 
 void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -900,8 +857,7 @@ void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "expire internal error");
   }
-  return;
-}
+  }
 
 std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                  uint64_t offset) {
@@ -934,12 +890,11 @@ void ExpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  return;
-}
+  }
 
 void ExpireatCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -957,12 +912,11 @@ void PexpireatCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_ms_)) {
+  if (pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_ms_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  return;
-}
+  }
 
 std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                    uint64_t offset) {
@@ -997,8 +951,7 @@ void PexpireatCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "pexpireat internal error");
   }
-  return;
-}
+  }
 
 void TtlCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1006,7 +959,6 @@ void TtlCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
 void TtlCmd::Do(std::shared_ptr<Partition> partition) {
@@ -1034,8 +986,7 @@ void TtlCmd::Do(std::shared_ptr<Partition> partition) {
     // mean this key not exist
     res_.AppendInteger(-2);
   }
-  return;
-}
+  }
 
 void PttlCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1043,7 +994,6 @@ void PttlCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
 void PttlCmd::Do(std::shared_ptr<Partition> partition) {
@@ -1091,8 +1041,7 @@ void PttlCmd::Do(std::shared_ptr<Partition> partition) {
     // mean this key not exist
     res_.AppendInteger(-2);
   }
-  return;
-}
+  }
 
 void PersistCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1100,7 +1049,6 @@ void PersistCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
 void PersistCmd::Do(std::shared_ptr<Partition> partition) {
@@ -1111,8 +1059,7 @@ void PersistCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "persist internal error");
   }
-  return;
-}
+  }
 
 void TypeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1120,7 +1067,6 @@ void TypeCmd::DoInitial() {
     return;
   }
   key_ = argv_[1];
-  return;
 }
 
 void TypeCmd::Do(std::shared_ptr<Partition> partition) {
@@ -1131,31 +1077,31 @@ void TypeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void ScanCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameScan);
     return;
   }
-  if (!pstd::string2int(argv_[1].data(), argv_[1].size(), &cursor_)) {
+  if (pstd::string2int(argv_[1].data(), argv_[1].size(), &cursor_) == 0) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  size_t index = 2, argc = argv_.size();
+  size_t index = 2;
+  size_t argc = argv_.size();
 
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
+    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!strcasecmp(opt.data(), "match")) {
+      if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1165,8 +1111,7 @@ void ScanCmd::DoInitial() {
     }
     index++;
   }
-  return;
-}
+  }
 
 void ScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t total_key = 0;
@@ -1191,7 +1136,7 @@ void ScanCmd::Do(std::shared_ptr<Partition> partition) {
       return;
     }
     total_key += keys.size();
-  } while (cursor_ret != 0 && left);
+  } while (cursor_ret != 0 && (left != 0));
 
   res_.AppendArrayLen(2);
 
@@ -1202,7 +1147,6 @@ void ScanCmd::Do(std::shared_ptr<Partition> partition) {
 
   res_.AppendArrayLen(total_key);
   res_.AppendStringRaw(raw);
-  return;
 }
 
 void ScanxCmd::DoInitial() {
@@ -1210,15 +1154,15 @@ void ScanxCmd::DoInitial() {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameScanx);
     return;
   }
-  if (!strcasecmp(argv_[1].data(), "string")) {
+  if (strcasecmp(argv_[1].data(), "string") == 0) {
     type_ = storage::kStrings;
-  } else if (!strcasecmp(argv_[1].data(), "hash")) {
+  } else if (strcasecmp(argv_[1].data(), "hash") == 0) {
     type_ = storage::kHashes;
-  } else if (!strcasecmp(argv_[1].data(), "set")) {
+  } else if (strcasecmp(argv_[1].data(), "set") == 0) {
     type_ = storage::kSets;
-  } else if (!strcasecmp(argv_[1].data(), "zset")) {
+  } else if (strcasecmp(argv_[1].data(), "zset") == 0) {
     type_ = storage::kZSets;
-  } else if (!strcasecmp(argv_[1].data(), "list")) {
+  } else if (strcasecmp(argv_[1].data(), "list") == 0) {
     type_ = storage::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
@@ -1226,18 +1170,19 @@ void ScanxCmd::DoInitial() {
   }
 
   start_key_ = argv_[2];
-  size_t index = 3, argc = argv_.size();
+  size_t index = 3;
+  size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
+    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "count") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!strcasecmp(opt.data(), "match")) {
+      if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) == 0) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1247,8 +1192,7 @@ void ScanxCmd::DoInitial() {
     }
     index++;
   }
-  return;
-}
+  }
 
 void ScanxCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
@@ -1268,8 +1212,7 @@ void ScanxCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void PKSetexAtCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1278,12 +1221,11 @@ void PKSetexAtCmd::DoInitial() {
   }
   key_ = argv_[1];
   value_ = argv_[3];
-  if (!pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_) || time_stamp_ >= INT32_MAX) {
+  if ((pstd::string2int(argv_[2].data(), argv_[2].size(), &time_stamp_) == 0) || time_stamp_ >= INT32_MAX) {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  return;
-}
+  }
 
 void PKSetexAtCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->PKSetexAt(key_, value_, time_stamp_);
@@ -1292,26 +1234,25 @@ void PKSetexAtCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void PKScanRangeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePKScanRange);
     return;
   }
-  if (!strcasecmp(argv_[1].data(), "string_with_value")) {
+  if (strcasecmp(argv_[1].data(), "string_with_value") == 0) {
     type_ = storage::kStrings;
     string_with_value = true;
-  } else if (!strcasecmp(argv_[1].data(), "string")) {
+  } else if (strcasecmp(argv_[1].data(), "string") == 0) {
     type_ = storage::kStrings;
-  } else if (!strcasecmp(argv_[1].data(), "hash")) {
+  } else if (strcasecmp(argv_[1].data(), "hash") == 0) {
     type_ = storage::kHashes;
-  } else if (!strcasecmp(argv_[1].data(), "set")) {
+  } else if (strcasecmp(argv_[1].data(), "set") == 0) {
     type_ = storage::kSets;
-  } else if (!strcasecmp(argv_[1].data(), "zset")) {
+  } else if (strcasecmp(argv_[1].data(), "zset") == 0) {
     type_ = storage::kZSets;
-  } else if (!strcasecmp(argv_[1].data(), "list")) {
+  } else if (strcasecmp(argv_[1].data(), "list") == 0) {
     type_ = storage::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
@@ -1325,18 +1266,19 @@ void PKScanRangeCmd::DoInitial() {
     res_.SetRes(CmdRes::kInconsistentHashTag);
     return;
   }
-  size_t index = 4, argc = argv_.size();
+  size_t index = 4;
+  size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "limit")) {
+    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "limit") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!strcasecmp(opt.data(), "match")) {
+      if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) == 0) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1346,8 +1288,7 @@ void PKScanRangeCmd::DoInitial() {
     }
     index++;
   }
-  return;
-}
+  }
 
 void PKScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
@@ -1378,26 +1319,25 @@ void PKScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }
 
 void PKRScanRangeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNamePKRScanRange);
     return;
   }
-  if (!strcasecmp(argv_[1].data(), "string_with_value")) {
+  if (strcasecmp(argv_[1].data(), "string_with_value") == 0) {
     type_ = storage::kStrings;
     string_with_value = true;
-  } else if (!strcasecmp(argv_[1].data(), "string")) {
+  } else if (strcasecmp(argv_[1].data(), "string") == 0) {
     type_ = storage::kStrings;
-  } else if (!strcasecmp(argv_[1].data(), "hash")) {
+  } else if (strcasecmp(argv_[1].data(), "hash") == 0) {
     type_ = storage::kHashes;
-  } else if (!strcasecmp(argv_[1].data(), "set")) {
+  } else if (strcasecmp(argv_[1].data(), "set") == 0) {
     type_ = storage::kSets;
-  } else if (!strcasecmp(argv_[1].data(), "zset")) {
+  } else if (strcasecmp(argv_[1].data(), "zset") == 0) {
     type_ = storage::kZSets;
-  } else if (!strcasecmp(argv_[1].data(), "list")) {
+  } else if (strcasecmp(argv_[1].data(), "list") == 0) {
     type_ = storage::kLists;
   } else {
     res_.SetRes(CmdRes::kInvalidDbType);
@@ -1411,18 +1351,19 @@ void PKRScanRangeCmd::DoInitial() {
     res_.SetRes(CmdRes::kInconsistentHashTag);
     return;
   }
-  size_t index = 4, argc = argv_.size();
+  size_t index = 4;
+  size_t argc = argv_.size();
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "limit")) {
+    if ((strcasecmp(opt.data(), "match") == 0) || (strcasecmp(opt.data(), "limit") == 0)) {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
         return;
       }
-      if (!strcasecmp(opt.data(), "match")) {
+      if (strcasecmp(opt.data(), "match") == 0) {
         pattern_ = argv_[index];
-      } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) || limit_ <= 0) {
+      } else if ((pstd::string2int(argv_[index].data(), argv_[index].size(), &limit_) == 0) || limit_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
       }
@@ -1432,8 +1373,7 @@ void PKRScanRangeCmd::DoInitial() {
     }
     index++;
   }
-  return;
-}
+  }
 
 void PKRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
@@ -1464,5 +1404,4 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  return;
-}
+  }

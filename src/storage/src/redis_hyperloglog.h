@@ -13,7 +13,7 @@ namespace storage {
 
 class HyperLogLog {
  public:
-  HyperLogLog(uint8_t precision, std::string origin_resiter);
+  HyperLogLog(uint8_t precision, std::string origin_register);
   ~HyperLogLog();
 
   double Estimate() const;
@@ -22,7 +22,7 @@ class HyperLogLog {
   double Alpha() const;
   uint8_t Nctz(uint32_t x, int b);
 
-  std::string Add(const char* str, uint32_t len);
+  std::string Add(const char* value, uint32_t len);
   std::string Merge(const HyperLogLog& hll);
 
  protected:

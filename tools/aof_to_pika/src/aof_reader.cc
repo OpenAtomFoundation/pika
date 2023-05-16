@@ -1,13 +1,13 @@
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <csignal>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "aof_sender.h"
+#include "include/aof_sender.h"
 
 #define VERSION "1.0.0"
 #define EOFMSG "EOAOF"
@@ -36,11 +36,12 @@ static void split_send(const std::string& line) {
     sender->message_add(str_block);
     pos += MSG_BLOCK_MAX;
   }
-  if (pos != 0) send_buf_.assign(send_buf_.substr(pos));
+  if (pos != 0) { send_buf_.assign(send_buf_.substr(pos));
+}
 }
 
 static void print_cur_time() {
-  std::time_t now = time(0);
+  std::time_t now = time(nullptr);
   struct tm* time = localtime(&now);
   std::stringstream ss;
   ss << (time->tm_mon + 1) << '-' << time->tm_mday << " " << time->tm_hour << ":" << time->tm_min << "."
@@ -91,14 +92,14 @@ static int file_read(const std::string& path) {
   return 0;
 }
 
-static void* msg_process(void* p) {
+static void* msg_process(void* p) {  // NOLINT
   sender->process();
   pthread_exit(nullptr);
 }
 
-void intHandler(int sig) {
+void intHandler(int sig) {  // NOLINT
   LOG_ERR("Catched");
-  std::time_t current = time(0);
+  std::time_t current = time(nullptr);
   double diff = difftime(current, begin_time);
   std::stringstream ss;
   ss << "Elapse time(s): " << diff;
@@ -121,7 +122,10 @@ static void usage() {
 
 int main(int argc, char** argv) {
   char c;
-  std::string path, host, port, auth;
+  std::string path;
+  std::string host;
+  std::string port;
+  std::string auth;
   bool verbose = false;
   while (-1 != (c = getopt(argc, argv, "i:h:p:a:v"))) {
     switch (c) {
@@ -163,14 +167,14 @@ int main(int argc, char** argv) {
   ifs.close();
 
   sender = new AOFSender();
-  if (false == sender->rconnect(host, port, auth)) {
+  if (!sender->rconnect(host, port, auth)) {
     LOG_ERR("Failed to connect remote server! host: " + host + " port : " + port);
     delete sender;
     return -1;
   }
 
   // We need output something when ctrl c catched
-  begin_time = time(0);
+  begin_time = time(nullptr);
   signal(SIGINT, intHandler);
 
   int ret = 0;

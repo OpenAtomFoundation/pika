@@ -3,6 +3,8 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include <utility>
+
 #include "include/pika_command.h"
 
 #include "include/pika_admin.h"
@@ -18,6 +20,8 @@
 #include "include/pika_server.h"
 #include "include/pika_set.h"
 #include "include/pika_zset.h"
+
+using pstd::Status;
 
 extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
@@ -483,7 +487,7 @@ void InitCmdTable(std::unordered_map<std::string, Cmd*>* cmd_table) {
 }
 
 Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table) {
-  CmdTable::const_iterator it = cmd_table.find(opt);
+  auto it = cmd_table.find(opt);
   if (it != cmd_table.end()) {
     return it->second;
   }
@@ -491,7 +495,7 @@ Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table) {
 }
 
 void DestoryCmdTable(CmdTable* cmd_table) {
-  CmdTable::const_iterator it = cmd_table->begin();
+  auto it = cmd_table->begin();
   for (; it != cmd_table->end(); ++it) {
     delete it->second;
   }
@@ -507,7 +511,7 @@ void Cmd::Initial(const PikaCmdArgsType& argv, const std::string& table_name) {
 
 std::vector<std::string> Cmd::current_key() const {
   std::vector<std::string> res;
-  res.push_back("");
+  res.emplace_back("");
   return res;
 }
 
@@ -595,7 +599,7 @@ void Cmd::ProcessSinglePartitionCmd() {
   ProcessCommand(partition, sync_partition);
 }
 
-void Cmd::ProcessCommand(std::shared_ptr<Partition> partition, std::shared_ptr<SyncMasterPartition> sync_partition,
+void Cmd::ProcessCommand(const std::shared_ptr<Partition>& partition, const std::shared_ptr<SyncMasterPartition>& sync_partition,
                          const HintKeys& hint_keys) {
   if (stage_ == kNone) {
     InternalProcessCommand(partition, sync_partition, hint_keys);
@@ -608,8 +612,8 @@ void Cmd::ProcessCommand(std::shared_ptr<Partition> partition, std::shared_ptr<S
   }
 }
 
-void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
-                                 std::shared_ptr<SyncMasterPartition> sync_partition, const HintKeys& hint_keys) {
+void Cmd::InternalProcessCommand(const std::shared_ptr<Partition>& partition,
+                                 const std::shared_ptr<SyncMasterPartition>& sync_partition, const HintKeys& hint_keys) {
   pstd::lock::MultiRecordLock record_lock(partition->LockMgr());
   if (is_write()) {
     record_lock.Lock(current_key());
@@ -630,7 +634,7 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
   }
 }
 
-void Cmd::DoCommand(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
+void Cmd::DoCommand(const std::shared_ptr<Partition>& partition, const HintKeys& hint_keys) {
   if (!is_suspend()) {
     partition->DbRWLockReader();
   }
@@ -641,7 +645,7 @@ void Cmd::DoCommand(std::shared_ptr<Partition> partition, const HintKeys& hint_k
   }
 }
 
-void Cmd::DoBinlog(std::shared_ptr<SyncMasterPartition> partition) {
+void Cmd::DoBinlog(const std::shared_ptr<SyncMasterPartition>& partition) {
   if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
     std::shared_ptr<net::NetConn> conn_ptr = GetConn();
     std::shared_ptr<std::string> resp_ptr = GetResp();
@@ -689,7 +693,7 @@ void Cmd::ProcessMultiPartitionCmd() {
   for (auto& key : cur_key) {
     // in sharding mode we select partition by key
     uint32_t partition_id = g_pika_cmd_table_manager->DistributeKey(key, table->PartitionNum());
-    std::unordered_map<uint32_t, ProcessArg>::iterator iter = process_map.find(partition_id);
+    auto iter = process_map.find(partition_id);
     if (iter == process_map.end()) {
       std::shared_ptr<Partition> partition = table->GetPartitionById(partition_id);
       if (!partition) {
@@ -734,10 +738,7 @@ bool Cmd::is_single_partition() const { return ((flag_ & kCmdFlagsMaskPartition)
 bool Cmd::is_multi_partition() const { return ((flag_ & kCmdFlagsMaskPartition) == kCmdFlagsMultiPartition); }
 
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const {
-  if (GetHashkey(lhs) != GetHashkey(rhs)) {
-    return false;
-  }
-  return true;
+  return GetHashkey(lhs) == GetHashkey(rhs);
 }
 
 std::string Cmd::name() const { return name_; }
@@ -762,10 +763,7 @@ std::string Cmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_i
 }
 
 bool Cmd::CheckArg(int num) const {
-  if ((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_)) {
-    return false;
-  }
-  return true;
+  return !((arity_ > 0 && num != arity_) || (arity_ < 0 && num < -arity_));
 }
 
 void Cmd::LogCommand() const {
@@ -777,11 +775,11 @@ void Cmd::LogCommand() const {
   LOG(INFO) << "command:" << command;
 }
 
-void Cmd::SetConn(const std::shared_ptr<net::NetConn> conn) { conn_ = conn; }
+void Cmd::SetConn(const std::shared_ptr<net::NetConn>& conn) { conn_ = conn; }
 
 std::shared_ptr<net::NetConn> Cmd::GetConn() { return conn_.lock(); }
 
-void Cmd::SetResp(const std::shared_ptr<std::string> resp) { resp_ = resp; }
+void Cmd::SetResp(const std::shared_ptr<std::string> &resp) { resp_ = resp; }
 
 std::shared_ptr<std::string> Cmd::GetResp() { return resp_.lock(); }
 

@@ -121,12 +121,12 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   int32_t count_ = 0;
 };
 
-typedef BaseMetaValue HashesMetaValue;
-typedef ParsedBaseMetaValue ParsedHashesMetaValue;
-typedef BaseMetaValue SetsMetaValue;
-typedef ParsedBaseMetaValue ParsedSetsMetaValue;
-typedef BaseMetaValue ZSetsMetaValue;
-typedef ParsedBaseMetaValue ParsedZSetsMetaValue;
+using HashesMetaValue = BaseMetaValue;
+using ParsedHashesMetaValue = ParsedBaseMetaValue;
+using SetsMetaValue = BaseMetaValue;
+using ParsedSetsMetaValue = ParsedBaseMetaValue;
+using ZSetsMetaValue = BaseMetaValue;
+using ParsedZSetsMetaValue = ParsedBaseMetaValue;
 
 }  //  namespace storage
 #endif  // SRC_BASE_META_VALUE_FORMAT_H_
