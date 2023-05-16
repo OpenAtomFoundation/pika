@@ -18,7 +18,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
-extern PikaServer* g_pika_server;;
+extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
 PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) : next_avail_(0) {

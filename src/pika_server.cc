@@ -25,7 +25,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
-extern PikaServer* g_pika_server;;
+extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 

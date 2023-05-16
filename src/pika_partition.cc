@@ -14,7 +14,7 @@
 #include "pstd/include/mutex_impl.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
-extern PikaServer* g_pika_server;;
+extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
 std::string PartitionPath(const std::string& table_path, uint32_t partition_id) {

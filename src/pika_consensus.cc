@@ -11,7 +11,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
-extern PikaServer* g_pika_server;;
+extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
@@ -34,9 +34,7 @@ Status Context::StableSave() {
 
 Status Context::Init() {
   if (!pstd::FileExists(path_)) {
-    std::unique_ptr<pstd::RWFile> tmp_file;
-    Status s = pstd::NewRWFile(path_, tmp_file);
-    save_.reset(tmp_file.release());
+    Status s = pstd::NewRWFile(path_, save_);
     if (!s.ok()) {
       LOG(FATAL) << "Context new file failed " << s.ToString();
     }

@@ -14,7 +14,7 @@
 #include "pstd/include/env.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
-extern PikaServer* g_pika_server;;
+extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
 StableLog::StableLog(const std::string table_name, uint32_t partition_id, const std::string& log_path)

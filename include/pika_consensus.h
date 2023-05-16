@@ -37,7 +37,7 @@ class Context {
 
  private:
   std::string path_;
-  std::shared_ptr<pstd::RWFile> save_;
+  std::unique_ptr<pstd::RWFile> save_;
   // No copying allowed;
   Context(const Context&);
   void operator=(const Context&);

@@ -10,7 +10,7 @@
 
 #include "pstd/include/pstd_string.h"
 
-extern PikaServer* g_pika_server;;
+extern PikaServer* g_pika_server;
 extern PikaReplicaManager* g_pika_rm;
 
 PikaReplClientThread::PikaReplClientThread(int cron_interval, int keepalive_timeout)

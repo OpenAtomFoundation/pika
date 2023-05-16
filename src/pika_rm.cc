@@ -20,7 +20,7 @@
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaReplicaManager* g_pika_rm;
-extern PikaServer* g_pika_server;;
+extern PikaServer* g_pika_server;
 
 /* SyncPartition */
 
