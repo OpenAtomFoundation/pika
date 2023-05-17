@@ -30,18 +30,16 @@ extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 void DoPurgeDir(void* arg) {
-  std::string path = *(static_cast<std::string*>(arg));
-  LOG(INFO) << "Delete dir: " << path << " start";
-  pstd::DeleteDir(path);
-  LOG(INFO) << "Delete dir: " << path << " done";
-  delete static_cast<std::string*>(arg);
+  std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
+  LOG(INFO) << "Delete dir: " << *path << " start";
+  pstd::DeleteDir(*path);
+  LOG(INFO) << "Delete dir: " << *path << " done";
 }
 
 void DoDBSync(void* arg) {
-  DBSyncArg* dbsa = reinterpret_cast<DBSyncArg*>(arg);
+  std::unique_ptr<DBSyncArg> dbsa(static_cast<DBSyncArg*>(arg));
   PikaServer* const ps = dbsa->p;
   ps->DbSyncSendFile(dbsa->ip, dbsa->port, dbsa->table_name, dbsa->partition_id);
-  delete dbsa;
 }
 
 PikaServer::PikaServer()
