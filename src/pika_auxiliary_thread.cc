@@ -21,9 +21,13 @@ PikaAuxiliaryThread::~PikaAuxiliaryThread() {
 
 void* PikaAuxiliaryThread::ThreadMain() {
   while (!should_stop()) {
-    if (g_pika_server->ShouldMetaSync()) {
-      g_pika_rm->SendMetaSyncRequest();
-    } else if (g_pika_server->MetaSyncDone()) {
+    if (g_pika_conf->classic_mode()) {
+      if (g_pika_server->ShouldMetaSync()) {
+        g_pika_rm->SendMetaSyncRequest();
+      } else if (g_pika_server->MetaSyncDone()) {
+        g_pika_rm->RunSyncSlavePartitionStateMachine();
+      }
+    } else {
       g_pika_rm->RunSyncSlavePartitionStateMachine();
     }
 
