@@ -28,7 +28,11 @@ SyncPartition::SyncPartition(const std::string& table_name, uint32_t partition_i
     : partition_info_(table_name, partition_id) {}
 
 std::string SyncPartition::PartitionName() {
-  return partition_info_.table_name_;
+  if (g_pika_conf->classic_mode()) {
+    return partition_info_.table_name_;
+  } else {
+    return partition_info_.ToString();
+  }
 }
 
 /* SyncMasterPartition*/

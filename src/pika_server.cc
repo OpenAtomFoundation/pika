@@ -30,18 +30,16 @@ extern PikaReplicaManager* g_pika_rm;
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 
 void DoPurgeDir(void* arg) {
-  std::string path = *(static_cast<std::string*>(arg));
-  LOG(INFO) << "Delete dir: " << path << " start";
-  pstd::DeleteDir(path);
-  LOG(INFO) << "Delete dir: " << path << " done";
-  delete static_cast<std::string*>(arg);
+  std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
+  LOG(INFO) << "Delete dir: " << *path << " start";
+  pstd::DeleteDir(*path);
+  LOG(INFO) << "Delete dir: " << *path << " done";
 }
 
 void DoDBSync(void* arg) {
-  DBSyncArg* dbsa = reinterpret_cast<DBSyncArg*>(arg);
+  std::unique_ptr<DBSyncArg> dbsa(static_cast<DBSyncArg*>(arg));
   PikaServer* const ps = dbsa->p;
   ps->DbSyncSendFile(dbsa->ip, dbsa->port, dbsa->table_name, dbsa->partition_id);
-  delete dbsa;
 }
 
 PikaServer::PikaServer()
@@ -250,6 +248,23 @@ bool PikaServer::readonly(const std::string& table_name, const std::string& key)
   if ((role_ & PIKA_ROLE_SLAVE) && g_pika_conf->slave_read_only()) {
     return true;
   }
+  if (!g_pika_conf->classic_mode()) {
+    std::shared_ptr<Table> table = GetTable(table_name);
+    if (table == nullptr) {
+      // swallow this error will process later
+      return false;
+    }
+    uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, table->PartitionNum());
+    int role = 0;
+    Status s = g_pika_rm->CheckPartitionRole(table_name, index, &role);
+    if (!s.ok()) {
+      // swallow this error will process later
+      return false;
+    }
+    if (role & PIKA_ROLE_SLAVE) {
+      return true;
+    }
+  }
   return false;
 }
 
@@ -443,7 +458,14 @@ bool PikaServer::IsCommandSupport(const std::string& command) {
       return res;
     }
   }
-  return true;
+
+  if (g_pika_conf->classic_mode()) {
+    return true;
+  } else {
+    std::string cmd = command;
+    pstd::StringToLower(cmd);
+    return !ShardingModeNotSupportCommands.count(cmd);
+  }
 }
 
 bool PikaServer::IsTableBinlogIoError(const std::string& table_name) {
@@ -969,7 +991,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
   }
 
   std::string local_path, target_path;
-  std::string remote_path = table_name;
+  std::string remote_path = g_pika_conf->classic_mode() ? table_name : table_name + "/" + std::to_string(partition_id);
   std::vector<std::string>::const_iterator iter = descendant.begin();
   pstd::RsyncRemote remote(ip, port, kDBSyncModule, g_pika_conf->db_sync_speed() * 1024);
   std::string secret_file_path = g_pika_conf->db_sync_path();

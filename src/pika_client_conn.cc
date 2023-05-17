@@ -161,7 +161,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
 
 void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
-  std::string table_name = current_table_.substr(2);
+  std::string table_name = g_pika_conf->classic_mode() ? current_table_.substr(2) : current_table_;
   monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + table_name + " " + this->ip_port() + "]";
   for (PikaCmdArgsType::const_iterator iter = argv.begin(); iter != argv.end(); iter++) {
     monitor_message += " " + pstd::ToRead(*iter);
@@ -182,34 +182,31 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
 }
 
 void PikaClientConn::DoBackgroundTask(void* arg) {
-  BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
+  std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
   std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
   if (bg_arg->redis_cmds.size() == 0) {
-    delete bg_arg;
     conn_ptr->NotifyEpoll(false);
     return;
   }
   for (const auto& argv : bg_arg->redis_cmds) {
     if (argv.size() == 0) {
-      delete bg_arg;
       conn_ptr->NotifyEpoll(false);
       return;
     }
   }
 
   conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds);
-  delete bg_arg;
 }
 
 void PikaClientConn::DoExecTask(void* arg) {
-  BgTaskArg* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
+  std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
   std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;
   std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
   std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
   LogOffset offset = bg_arg->offset;
   std::string table_name = bg_arg->table_name;
   uint32_t partition_id = bg_arg->partition_id;
-  delete bg_arg;
+  bg_arg.reset();
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {

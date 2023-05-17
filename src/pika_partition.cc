@@ -36,19 +36,24 @@ std::string BgsaveSubPath(const std::string& table_name, uint32_t partition_id) 
   return std::string(buf);
 }
 
-std::string DbSyncPath(const std::string& sync_path, const std::string& table_name, const uint32_t partition_id) {
+std::string DbSyncPath(const std::string& sync_path, const std::string& table_name, const uint32_t partition_id,
+                       bool classic_mode) {
   char buf[256];
   std::string partition_id_str = std::to_string(partition_id);
-  snprintf(buf, sizeof(buf), "%s/", table_name.data());
+  if (classic_mode) {
+    snprintf(buf, sizeof(buf), "%s/", table_name.data());
+  } else {
+    snprintf(buf, sizeof(buf), "%s/%s/", table_name.data(), partition_id_str.data());
+  }
   return sync_path + buf;
 }
 
 Partition::Partition(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path)
     : table_name_(table_name), partition_id_(partition_id), bgsave_engine_(nullptr) {
-  db_path_ = table_db_path;
-  bgsave_sub_path_ = table_name;
-  dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, partition_id_);
-  partition_name_ = table_name ;
+  db_path_ = g_pika_conf->classic_mode() ? table_db_path : PartitionPath(table_db_path, partition_id_);
+  bgsave_sub_path_ = g_pika_conf->classic_mode() ? table_name : BgsaveSubPath(table_name_, partition_id_);
+  dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, partition_id_, g_pika_conf->classic_mode());
+  partition_name_ = g_pika_conf->classic_mode() ? table_name : PartitionName(table_name_, partition_id_);
 
   db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
@@ -286,7 +291,7 @@ BgSaveInfo Partition::bgsave_info() {
 }
 
 void Partition::DoBgSave(void* arg) {
-  BgTaskArg* bg_task_arg = static_cast<BgTaskArg*>(arg);
+  std::unique_ptr<BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
 
   // Do BgSave
   bool success = bg_task_arg->partition->RunBgsaveEngine();
@@ -312,7 +317,6 @@ void Partition::DoBgSave(void* arg) {
   }
   bg_task_arg->partition->FinishBgsave();
 
-  delete bg_task_arg;
 }
 
 bool Partition::RunBgsaveEngine() {
