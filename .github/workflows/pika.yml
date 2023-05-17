@@ -3,8 +3,12 @@ name: Pika
 on:
   push:
     branches: ["unstable"]
+    paths-ignore:    
+      - 'tools/**'
   pull_request:
     branches: ["unstable"]
+    paths-ignore:    
+      - 'tools/**'
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
