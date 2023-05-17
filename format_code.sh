@@ -1,6 +1,6 @@
 #!/bin/bash
 
-find include src pika-tools -regex '.*\.\(cpp\|hpp\|c\|h\|cc\)' | xargs clang-format -i
+find include src tools -regex '.*\.\(cpp\|hpp\|c\|h\|cc\)' | xargs clang-format -i
 
 
 # If you want to automatically format your code before git commit
