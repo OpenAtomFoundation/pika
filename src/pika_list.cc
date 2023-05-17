@@ -4,9 +4,11 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include "include/pika_list.h"
-
+#include "include/pika_server.h"
 #include "include/pika_data_distribution.h"
 #include "pstd/include/pstd_string.h"
+
+extern PikaServer* g_pika_server;
 
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -141,12 +143,9 @@ void BLPopCmd::Do(std::shared_ptr<Partition> partition) {
       return;
     }
   }
+  std::shared_ptr<net::NetConn> curr_conn = GetConn();
   //no element founded, this conn need to be blocked
-
-
-
-
-
+  g_pika_server->BlockClientToWaitLists(curr_conn, keys_, expire_time_, table_name());
 }
 
 void LPopCmd::DoInitial() {

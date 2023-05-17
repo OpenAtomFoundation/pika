@@ -345,17 +345,37 @@ class PikaServer {
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
 
-
-
   /**
    * BlPop/BrPop used
    */
-   void BlockClientToWaitLists(std::shared_ptr<net::NetConn> conn_to_block, std::vector<std::string> keys){
+  void InitBRLPopBlockingMap() {
+    // the server just start, no need of locking
+    for (auto& it : tables_) {
+      const std::string& db_name = it.first;
+      bLRPop_blocking_info_.emplace(
+          db_name,
+          std::make_unique<std::unordered_map<std::string, std::unique_ptr<std::list<BlockedPopConnection>>>>());
+    }
+  }
 
+  void BlockClientToWaitLists(std::shared_ptr<net::NetConn> conn_to_block, std::vector<std::string>& keys,
+                              int64_t expire_time, const std::string& db_name) {
+    std::lock_guard latch(bLRPop_blocking_info_latch_);
+    auto& waitting_map_of_curr_db =
+        bLRPop_blocking_info_.find(db_name)->second;  // waitting_map_of_curr_db is a reference of a unique_ptr
 
-
-   }
-
+    for (auto& key : keys) {
+      auto it = waitting_map_of_curr_db->find(key);
+      if (it == waitting_map_of_curr_db->end()) {
+        // no waiting info found, means no other clients are waiting for the list related with this key right now
+        waitting_map_of_curr_db->emplace(key, std::make_unique<std::list<BlockedPopConnection>>());
+        it = waitting_map_of_curr_db->find(key);
+      }
+      auto& wait_list_of_this_key = it->second;
+      //add current client-connection to the tail of waiting list of this key
+      wait_list_of_this_key->emplace_back(expire_time,conn_to_block);
+    }
+  }
 
   friend class Cmd;
   friend class InfoCmd;
@@ -365,6 +385,7 @@ class PikaServer {
   friend class PkClusterDelTableCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
+
  private:
   /*
    * TimingTask use
@@ -404,7 +425,9 @@ class PikaServer {
    *    map<table_name, map<key, list_of_blocking_info>>>
    *
    */
-  std::unordered_map<std::string, std::unordered_map<std::string, std::list<BlockedPopConnection>>> bLRPop_blocking_info_;
+  std::unordered_map<std::string,
+                     std::unique_ptr<std::unordered_map<std::string, std::unique_ptr<std::list<BlockedPopConnection>>>>>
+      bLRPop_blocking_info_;
   std::mutex bLRPop_blocking_info_latch_;
 
   /*

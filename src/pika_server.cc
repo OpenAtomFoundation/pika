@@ -69,7 +69,6 @@ PikaServer::PikaServer()
   }
 
   InitStorageOptions();
-
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(), PIKA_MAX_WORKER_THREAD_NUM);
 
@@ -156,7 +155,7 @@ void PikaServer::Start() {
 
   // We Init Table Struct Before Start The following thread
   InitTableStruct();
-
+  InitBRLPopBlockingMap();
   ret = pika_client_processor_->Start();
   if (ret != net::kSuccess) {
     tables_.clear();
