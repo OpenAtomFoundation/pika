@@ -345,6 +345,18 @@ class PikaServer {
   storage::Status RewriteStorageOptions(const storage::OptionType& option_type,
                                         const std::unordered_map<std::string, std::string>& options);
 
+
+
+  /**
+   * BlPop/BrPop used
+   */
+   void BlockClientToWaitLists(std::shared_ptr<net::NetConn> conn_to_block, std::vector<std::string> keys){
+
+
+
+   }
+
+
   friend class Cmd;
   friend class InfoCmd;
   friend class PkClusterAddSlotsCmd;
@@ -353,7 +365,6 @@ class PikaServer {
   friend class PkClusterDelTableCmd;
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
-
  private:
   /*
    * TimingTask use
@@ -394,6 +405,7 @@ class PikaServer {
    *
    */
   std::unordered_map<std::string, std::unordered_map<std::string, std::list<BlockedPopConnection>>> bLRPop_blocking_info_;
+  std::mutex bLRPop_blocking_info_latch_;
 
   /*
    * CronTask used
