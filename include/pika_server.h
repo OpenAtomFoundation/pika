@@ -129,7 +129,7 @@ enum TaskType {
 
 class BlockedPopConnection {
  public:
-  BlockedPopConnection(int64_t expire_time, std::shared_ptr<net::NetConn>& conn_blocked)
+  BlockedPopConnection(int64_t expire_time, std::shared_ptr<PikaClientConn>& conn_blocked)
       : expire_time_(expire_time), conn_blocked_(conn_blocked) {}
   bool IsExpired() {
     if (expire_time_ == 0) {
@@ -145,7 +145,7 @@ class BlockedPopConnection {
 
  private:
   int64_t expire_time_;
-  std::shared_ptr<net::NetConn> conn_blocked_;
+  std::shared_ptr<PikaClientConn> conn_blocked_;
 };
 
 class PikaServer {
@@ -358,7 +358,7 @@ class PikaServer {
     }
   }
 
-  void BlockClientToWaitLists(std::shared_ptr<net::NetConn> conn_to_block, std::vector<std::string>& keys,
+  void BlockClientToWaitLists(std::shared_ptr<PikaClientConn> conn_to_block, std::vector<std::string>& keys,
                               int64_t expire_time, const std::string& db_name) {
     std::lock_guard latch(bLRPop_blocking_info_latch_);
     auto& waitting_map_of_curr_db =
