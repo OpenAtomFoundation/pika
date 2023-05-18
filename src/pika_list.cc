@@ -143,9 +143,14 @@ void BLPopCmd::Do(std::shared_ptr<Partition> partition) {
       return;
     }
   }
-  std::shared_ptr<net::NetConn> curr_conn = GetConn();
+  std::shared_ptr<PikaClientConn> curr_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
   //no element founded, this conn need to be blocked
-  g_pika_server->BlockClientToWaitLists(curr_conn, keys_, expire_time_, table_name());
+  g_pika_server->BlockClientToWaitLists(curr_conn, keys_, expire_time_, table_name(), BlockPopType::Blpop);
+
+  /**
+    res_ is empty now and then after an writting of empty response(work_thread.cc line 171), the fd of this conn is registerd in epoll
+    only with listening of EPOLLIN events and the client is blocked(waitting for reponse).
+   */
 }
 
 void LPopCmd::DoInitial() {

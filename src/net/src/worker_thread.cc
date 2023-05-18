@@ -247,13 +247,13 @@ void WorkerThread::DoCronTask() {
         continue;
       }
 
-      // Check keepalive timeout connection
+/*      // Check keepalive timeout connection
       if (keepalive_timeout_ > 0 && (now.tv_sec - conn->last_interaction().tv_sec > keepalive_timeout_)) {
         to_timeout.push_back(conn);
         iter = conns_.erase(iter);
         LOG(INFO) << "connection " << conn->String() << " keepalive timeout, the keepalive_timeout_ is " << keepalive_timeout_.load();
         continue;
-      }
+      }*/
 
       // Maybe resize connection buffer
       conn->TryResizeBuffer();
