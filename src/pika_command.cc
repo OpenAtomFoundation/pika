@@ -520,7 +520,7 @@ void Cmd::Execute() {
     ProcessFlushAllCmd();
   } else if (name_ == kCmdNameInfo || name_ == kCmdNameConfig) {
     ProcessDoNotSpecifyPartitionCmd();
-  } else if (is_single_partition()) {
+  } else if (is_single_partition() || g_pika_conf->classic_mode()) {
     ProcessSinglePartitionCmd();
   } else if (is_multi_partition()) {
     ProcessMultiPartitionCmd();
@@ -580,8 +580,18 @@ void Cmd::ProcessFlushAllCmd() {
 
 void Cmd::ProcessSinglePartitionCmd() {
   std::shared_ptr<Partition> partition;
-  //a table has only one partition
-  partition = g_pika_server->GetPartitionByDbName(table_name_);
+  if (g_pika_conf->classic_mode()) {
+    // in classic mode a table has only one partition
+    partition = g_pika_server->GetPartitionByDbName(table_name_);
+  } else {
+    std::vector<std::string> cur_key = current_key();
+    if (cur_key.empty()) {
+      res_.SetRes(CmdRes::kErrOther, "Internal Error");
+      return;
+    }
+    // in sharding mode we select partition by key
+    partition = g_pika_server->GetTablePartitionByKey(table_name_, cur_key.front());
+  }
 
   if (!partition) {
     res_.SetRes(CmdRes::kErrOther, "Partition not found");
@@ -614,7 +624,11 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
                                  std::shared_ptr<SyncMasterPartition> sync_partition, const HintKeys& hint_keys) {
   pstd::lock::MultiRecordLock record_lock(partition->LockMgr());
   if (is_write()) {
-    record_lock.Lock(current_key());
+    if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
+      record_lock.Lock(hint_keys.keys);
+    } else {
+      record_lock.Lock(current_key());
+    }
   }
 
   uint64_t start_us = 0;
@@ -628,7 +642,11 @@ void Cmd::InternalProcessCommand(std::shared_ptr<Partition> partition,
   DoBinlog(sync_partition);
 
   if (is_write()) {
-    record_lock.Unlock(current_key());
+    if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
+      record_lock.Unlock(hint_keys.keys);
+    } else {
+      record_lock.Unlock(current_key());
+    }
   }
 }
 
@@ -636,7 +654,12 @@ void Cmd::DoCommand(std::shared_ptr<Partition> partition, const HintKeys& hint_k
   if (!is_suspend()) {
     partition->DbRWLockReader();
   }
-  Do(partition);
+
+  if (!hint_keys.empty() && is_multi_partition() && !g_pika_conf->classic_mode()) {
+    Split(partition, hint_keys);
+  } else {
+    Do(partition);
+  }
 
   if (!is_suspend()) {
     partition->DbRWUnLock();
@@ -735,9 +758,13 @@ bool Cmd::is_admin_require() const { return ((flag_ & kCmdFlagsMaskAdminRequire)
 bool Cmd::is_single_partition() const { return ((flag_ & kCmdFlagsMaskPartition) == kCmdFlagsSinglePartition); }
 bool Cmd::is_multi_partition() const { return ((flag_ & kCmdFlagsMaskPartition) == kCmdFlagsMultiPartition); }
 
+bool Cmd::is_classic_mode() const { return g_pika_conf->classic_mode(); }
+
 bool Cmd::HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const {
-  if (GetHashkey(lhs) != GetHashkey(rhs)) {
-    return false;
+  if (is_classic_mode() == false) {
+    if (GetHashkey(lhs) != GetHashkey(rhs)) {
+      return false;
+    }
   }
   return true;
 }
