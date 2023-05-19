@@ -37,16 +37,15 @@ jobs:
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DUSE_PIKA_TOOLS=ON
 
-       # 测试，临时关闭
-#      - name: Build
-#        # Build your program with the given configuration
-#        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+      - name: Build
+        # Build your program with the given configuration
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-#      - name: Test
-#        working-directory: ${{github.workspace}}/build
-#        # Execute tests defined by the CMake configuration.
-#        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-#        run: ctest -C ${{env.BUILD_TYPE}}
+      - name: Test
+        working-directory: ${{github.workspace}}/build
+        # Execute tests defined by the CMake configuration.
+        # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
+        run: ctest -C ${{env.BUILD_TYPE}}
 
       - name: Start Pika
         run: cd ${{github.workspace}} && cd build/ && make && ls -l && cd .. && chmod +x ./build/pika && ./build/pika -c ./conf/pika.conf
