@@ -37,5 +37,6 @@ echo "github pull request head branch -> ${GITHUB_HEAD_REF}"
 
 git clone -b master https://github.com/luky116/pika-integration.git pika-integration && cd pika-integration
 
+chmod +x ./start_integrate_test.sh
 # start integrate test
 ./start_integrate_test.sh
