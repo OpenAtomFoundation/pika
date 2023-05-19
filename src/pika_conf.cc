@@ -239,33 +239,12 @@ int PikaConf::Load() {
   if (sync_thread_num_ > 24) {
     sync_thread_num_ = 24;
   }
-
-  std::string instance_mode;
-  GetConfStr("instance-mode", &instance_mode);
-  classic_mode_.store(instance_mode.empty() || !strcasecmp(instance_mode.data(), "classic"));
-
-  if (classic_mode_.load()) {
-    GetConfInt("databases", &databases_);
-    if (databases_ < 1 || databases_ > 8) {
-      LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
-    }
-    for (int idx = 0; idx < databases_; ++idx) {
-      table_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
-    }
-  } else {
-    GetConfInt("default-slot-num", &default_slot_num_);
-    if (default_slot_num_ <= 0) {
-      LOG(FATAL) << "config default-slot-num error,"
-                 << " it should greater than zero, the actual is: " << default_slot_num_;
-    }
-    std::string pika_meta_path = db_path_ + kPikaMeta;
-    if (!pstd::FileExists(pika_meta_path)) {
-      local_meta_->StableSave({{"db0", static_cast<uint32_t>(default_slot_num_), {}}});
-    }
-    Status s = local_meta_->ParseMeta(&table_structs_);
-    if (!s.ok()) {
-      LOG(FATAL) << "parse meta file error";
-    }
+  GetConfInt("databases", &databases_);
+  if (databases_ < 1 || databases_ > 8) {
+    LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
+  }
+  for (int idx = 0; idx < databases_; ++idx) {
+    table_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
   }
   default_table_ = table_structs_[0].table_name;
 
@@ -285,7 +264,7 @@ int PikaConf::Load() {
                << " [0..." << replication_num_.load() << "]";
   }
   consensus_level_.store(tmp_consensus_level);
-  if (classic_mode_.load() && (consensus_level_.load() != 0 || replication_num_.load() != 0)) {
+  if ((consensus_level_.load() != 0 || replication_num_.load() != 0)) {
     LOG(FATAL) << "consensus-level & replication-num only configurable under sharding mode,"
                << " set it to be 0 if you are using classic mode";
   }
