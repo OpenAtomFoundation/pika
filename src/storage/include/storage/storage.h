@@ -527,7 +527,7 @@ class Storage {
   // Inserts value at the tail of the list stored at key, only if key already
   // exists and holds a list. In contrary to RPUSH, no operation will be
   // performed when key does not yet exist.
-  Status RPushx(const Slice& key, const Slice& value, uint64_t* len);
+  Status RPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len);
 
   // Removes the first count occurrences of elements equal to value from the
   // list stored at key. The count argument influences the operation in the

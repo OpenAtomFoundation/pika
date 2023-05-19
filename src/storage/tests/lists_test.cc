@@ -2572,7 +2572,7 @@ TEST_F(ListsTest, RPushxTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP1_RPUSHX_KEY", {"o", "o", "o"}));
 
   //  "o" -> "o" -> "o" -> "x"
-  s = db.RPushx("GP1_RPUSHX_KEY", "x", &num);
+  s = db.RPushx("GP1_RPUSHX_KEY", {"x"}, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(num, 4);
   ASSERT_TRUE(len_match(&db, "GP1_RPUSHX_KEY", 4));
@@ -2587,14 +2587,14 @@ TEST_F(ListsTest, RPushxTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP1_RPUSHX_KEY", {"o", "o", "o", "x", "o", "o"}));
 
   // "o" -> "o" -> "o" -> "x" -> "o" -> "o" -> "x"
-  s = db.RPushx("GP1_RPUSHX_KEY", "x", &num);
+  s = db.RPushx("GP1_RPUSHX_KEY", {"x"}, &num);
   ASSERT_EQ(num, 7);
   ASSERT_TRUE(len_match(&db, "GP1_RPUSHX_KEY", 7));
   ASSERT_TRUE(elements_match(&db, "GP1_RPUSHX_KEY", {"o", "o", "o", "x", "o", "o", "x"}));
 
   // ***************** Group 2 Test *****************
   // RPushx not exist key
-  s = db.RPushx("GP2_RPUSHX_KEY", "x", &num);
+  s = db.RPushx("GP2_RPUSHX_KEY", {"x"}, &num);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_TRUE(len_match(&db, "GP2_RPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP2_RPUSHX_KEY", {}));
@@ -2610,7 +2610,7 @@ TEST_F(ListsTest, RPushxTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP3_RPUSHX_KEY", {"o", "o", "o"}));
   ASSERT_TRUE(make_expired(&db, "GP3_RPUSHX_KEY"));
 
-  s = db.RPushx("GP3_RPUSHX_KEY", "x", &num);
+  s = db.RPushx("GP3_RPUSHX_KEY", {"x"}, &num);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_TRUE(len_match(&db, "GP3_RPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP3_RPUSHX_KEY", {}));
@@ -2630,7 +2630,7 @@ TEST_F(ListsTest, RPushxTest) {  // NOLINT
   db.Del(del_keys, &type_status);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
-  s = db.RPushx("GP4_RPUSHX_KEY", "x", &num);
+  s = db.RPushx("GP4_RPUSHX_KEY", {"x"}, &num);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_TRUE(len_match(&db, "GP4_RPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP4_RPUSHX_KEY", {}));

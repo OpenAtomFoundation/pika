@@ -259,7 +259,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPop, std::move(lpopptr)));
   std::unique_ptr<Cmd> lpushptr = std::make_unique<LPushCmd>(kCmdNameLPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPush, std::move(lpushptr)));
-  std::unique_ptr<Cmd> lpushxptr = std::make_unique<LPushxCmd>(kCmdNameLPushx, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  std::unique_ptr<Cmd> lpushxptr = std::make_unique<LPushxCmd>(kCmdNameLPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLPushx, std::move(lpushxptr)));
   std::unique_ptr<Cmd> lrangeptr = std::make_unique<LRangeCmd>(kCmdNameLRange, 4, kCmdFlagsRead | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameLRange, std::move(lrangeptr)));
@@ -275,7 +275,7 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPopLPush, std::move(rpoplpushptr)));
   std::unique_ptr<Cmd> rpushptr = std::make_unique<RPushCmd>(kCmdNameRPush, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPush, std::move(rpushptr)));
-  std::unique_ptr<Cmd> rpushxptr = std::make_unique<RPushxCmd>(kCmdNameRPushx, 3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
+  std::unique_ptr<Cmd> rpushxptr = std::make_unique<RPushxCmd>(kCmdNameRPushx, -3, kCmdFlagsWrite | kCmdFlagsSingleSlot | kCmdFlagsList);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameRPushx, std::move(rpushxptr)));
 
   // Zset
