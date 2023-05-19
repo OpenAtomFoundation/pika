@@ -21,9 +21,9 @@
 std::unique_ptr<PikaConf> g_pika_conf;
 // todo : change to unique_ptr will coredump
 PikaServer* g_pika_server;
-PikaReplicaManager* g_pika_rm;
+std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaCmdTableManager* g_pika_cmd_table_manager;
+std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 static void version() {
   char version[32];
@@ -184,9 +184,9 @@ int main(int argc, char* argv[]) {
   PikaSignalSetup();
 
   LOG(INFO) << "Server at: " << path;
-  g_pika_cmd_table_manager = new PikaCmdTableManager();
+  g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();
   g_pika_server = new PikaServer();
-  g_pika_rm = new PikaReplicaManager();
+  g_pika_rm = std::make_unique<PikaReplicaManager>();
 
   if (g_pika_conf->daemonize()) {
     close_std();
@@ -204,8 +204,6 @@ int main(int argc, char* argv[]) {
   g_pika_rm->Stop();
 
   delete g_pika_server;
-  delete g_pika_rm;
-  delete g_pika_cmd_table_manager;
   ::google::ShutdownGoogleLogging();
 
   return 0;

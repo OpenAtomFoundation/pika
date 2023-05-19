@@ -11,7 +11,7 @@
 #include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 PikaReplServerConn::PikaReplServerConn(int fd, std::string ip_port, net::Thread* thread, void* worker_specific_data,
                                        net::NetMultiplexer* mpx)

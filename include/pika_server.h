@@ -370,8 +370,8 @@ class PikaServer {
    * Communicate with the client used
    */
   int worker_num_ = 0;
-  PikaClientProcessor* pika_client_processor_ = nullptr;
-  PikaDispatchThread* pika_dispatch_thread_ = nullptr;
+  std::unique_ptr<PikaClientProcessor> pika_client_processor_;
+  std::unique_ptr<PikaDispatchThread> pika_dispatch_thread_ = nullptr;
 
   /*
    * Slave used
@@ -411,22 +411,22 @@ class PikaServer {
   /*
    * Monitor used
    */
-  PikaMonitorThread* pika_monitor_thread_ = nullptr;
+  std::unique_ptr<PikaMonitorThread> pika_monitor_thread_;
 
   /*
    * Rsync used
    */
-  PikaRsyncService* pika_rsync_service_ = nullptr;
+  std::unique_ptr<PikaRsyncService> pika_rsync_service_;
 
   /*
    * Pubsub used
    */
-  net::PubSubThread* pika_pubsub_thread_ = nullptr;
+  std::unique_ptr<net::PubSubThread> pika_pubsub_thread_;
 
   /*
    * Communication used
    */
-  PikaAuxiliaryThread* pika_auxiliary_thread_ = nullptr;
+  std::unique_ptr<PikaAuxiliaryThread> pika_auxiliary_thread_;
 
   /*
    * Slowlog used

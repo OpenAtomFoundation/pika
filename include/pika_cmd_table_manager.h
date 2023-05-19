@@ -15,7 +15,7 @@
 class PikaCmdTableManager {
  public:
   PikaCmdTableManager();
-  virtual ~PikaCmdTableManager();
+  virtual ~PikaCmdTableManager(){};
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   uint32_t DistributeKey(const std::string& key, uint32_t partition_num);
 
@@ -28,6 +28,6 @@ class PikaCmdTableManager {
   std::unique_ptr<CmdTable> cmds_;
 
   std::shared_mutex map_protector_;
-  std::unordered_map<std::thread::id, PikaDataDistribution*> thread_distribution_map_;
+  std::unordered_map<std::thread::id, std::unique_ptr<PikaDataDistribution>> thread_distribution_map_;
 };
 #endif

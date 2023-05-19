@@ -15,7 +15,7 @@
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 StableLog::StableLog(const std::string table_name, uint32_t partition_id, const std::string& log_path)
     : purging_(false), table_name_(table_name), partition_id_(partition_id), log_path_(log_path) {

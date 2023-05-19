@@ -15,7 +15,7 @@
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 std::string PartitionPath(const std::string& table_path, uint32_t partition_id) {
   char buf[100];
@@ -55,7 +55,7 @@ Partition::Partition(const std::string& table_name, uint32_t partition_id, const
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, partition_id_, g_pika_conf->classic_mode());
   partition_name_ = g_pika_conf->classic_mode() ? table_name : PartitionName(table_name_, partition_id_);
 
-  db_ = std::make_shared<storage::Storage>();
+  db_ = std::make_unique<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
 
   lock_mgr_ = std::make_shared<pstd::lock::LockMgr>(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
@@ -81,6 +81,7 @@ void Partition::Close() {
   }
   std::lock_guard lock(db_rwlock_);
   db_.reset();
+  lock_mgr_.reset();
   opened_ = false;
 }
 

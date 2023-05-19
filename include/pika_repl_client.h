@@ -85,10 +85,10 @@ class PikaReplClient {
   size_t GetHashIndex(std::string key, bool upper_half);
   void UpdateNextAvail() { next_avail_ = (next_avail_ + 1) % bg_workers_.size(); }
 
-  PikaReplClientThread* client_thread_;
+  std::unique_ptr<PikaReplClientThread> client_thread_;
   int next_avail_ = 0;
   std::hash<std::string> str_hash;
-  std::vector<PikaReplBgWorker*> bg_workers_;
+  std::vector<std::unique_ptr<PikaReplBgWorker>> bg_workers_;
 };
 
 #endif

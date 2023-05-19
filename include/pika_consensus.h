@@ -12,7 +12,7 @@
 #include "include/pika_stable_log.h"
 #include "pstd/include/env.h"
 
-class Context {
+class Context final {
  public:
   Context(const std::string path);
 

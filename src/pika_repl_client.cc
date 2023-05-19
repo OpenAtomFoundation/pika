@@ -19,22 +19,18 @@
 #include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) : next_avail_(0) {
-  client_thread_ = new PikaReplClientThread(cron_interval, keepalive_timeout);
+  client_thread_ = std::make_unique<PikaReplClientThread>(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
   for (int i = 0; i < 2 * g_pika_conf->sync_thread_num(); ++i) {
-    bg_workers_.push_back(new PikaReplBgWorker(PIKA_SYNC_BUFFER_SIZE));
+    bg_workers_.push_back(std::make_unique<PikaReplBgWorker>(PIKA_SYNC_BUFFER_SIZE));
   }
 }
 
 PikaReplClient::~PikaReplClient() {
   client_thread_->StopThread();
-  delete client_thread_;
-  for (size_t i = 0; i < bg_workers_.size(); ++i) {
-    delete bg_workers_[i];
-  }
   LOG(INFO) << "PikaReplClient exit!!!";
 }
 
@@ -72,7 +68,7 @@ void PikaReplClient::ScheduleWriteBinlogTask(std::string table_partition,
                                              std::shared_ptr<net::PbConn> conn, void* res_private_data) {
   size_t index = GetHashIndex(table_partition, true);
   ReplClientWriteBinlogTaskArg* task_arg =
-      new ReplClientWriteBinlogTaskArg(res, conn, res_private_data, bg_workers_[index]);
+      new ReplClientWriteBinlogTaskArg(res, conn, res_private_data, bg_workers_[index].get());
   bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteBinlog, static_cast<void*>(task_arg));
 }
 
@@ -98,7 +94,7 @@ Status PikaReplClient::Close(const std::string& ip, const int port) { return cli
 
 Status PikaReplClient::SendMetaSync() {
   std::string local_ip;
-  net::NetCli* cli = net::NewRedisCli();
+  std::unique_ptr<net::NetCli> cli (net::NewRedisCli());
   cli->set_connect_timeout(1500);
   if ((cli->Connect(g_pika_server->master_ip(), g_pika_server->master_port(), "")).ok()) {
     struct sockaddr_in laddr;
@@ -107,7 +103,6 @@ Status PikaReplClient::SendMetaSync() {
     std::string tmp_local_ip(inet_ntoa(laddr.sin_addr));
     local_ip = tmp_local_ip;
     cli->Close();
-    delete cli;
   } else {
     LOG(WARNING) << "Failed to connect master, Master (" << g_pika_server->master_ip() << ":"
                  << g_pika_server->master_port() << "), try reconnect";
@@ -115,7 +110,6 @@ Status PikaReplClient::SendMetaSync() {
     // when the connection fails
     sleep(3);
     g_pika_server->ResetMetaSyncStatus();
-    delete cli;
     return Status::Corruption("Connect master error");
   }
 

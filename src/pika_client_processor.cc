@@ -8,19 +8,14 @@
 #include <glog/logging.h>
 
 PikaClientProcessor::PikaClientProcessor(size_t worker_num, size_t max_queue_size, const std::string& name_prefix) {
-  pool_ = new net::ThreadPool(worker_num, max_queue_size, name_prefix + "Pool");
+  pool_ = std::make_unique<net::ThreadPool>(worker_num, max_queue_size, name_prefix + "Pool");
   for (size_t i = 0; i < worker_num; ++i) {
-    net::BGThread* bg_thread = new net::BGThread(max_queue_size);
-    bg_threads_.push_back(bg_thread);
-    bg_thread->set_thread_name(name_prefix + "BgThread");
+    bg_threads_.push_back(std::make_unique<net::BGThread>(max_queue_size));
+    bg_threads_.back()->set_thread_name(name_prefix + "BgThread");
   }
 }
 
 PikaClientProcessor::~PikaClientProcessor() {
-  delete pool_;
-  for (size_t i = 0; i < bg_threads_.size(); ++i) {
-    delete bg_threads_[i];
-  }
   LOG(INFO) << "PikaClientProcessor exit!!!";
 }
 

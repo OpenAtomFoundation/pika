@@ -21,7 +21,7 @@
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {

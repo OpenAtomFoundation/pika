@@ -17,6 +17,7 @@
 
 #  include <inttypes.h>
 
+#include <glog/logging.h>
 #  include "file/file_util.h"
 #  include "rocksdb/db.h"
 // #include "file/filename.h"
@@ -183,6 +184,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
         s = CopyFile(db_->GetEnv(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(), live_wal_files[i]->SizeFileBytes());
 #  else
+        LOG(INFO) << "come here : " << db_->GetOptions().wal_dir <<" "<< live_wal_files[i]->PathName() <<  full_private_path;
         s = CopyFile(db_->GetFileSystem(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(), live_wal_files[i]->SizeFileBytes(), false,
                      nullptr, Temperature::kUnknown);
