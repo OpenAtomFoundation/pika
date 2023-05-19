@@ -49,7 +49,7 @@ jobs:
 #        run: ctest -C ${{env.BUILD_TYPE}}
 
       - name: Start Pika
-        run: cd ${{github.workspace}} && ls -l build/ && sh build.sh && chmod +x ./output/pika && ./output/pika -c ./conf/pika.conf
+        run: cd ${{github.workspace}} && cd build/ && make && ls -l && cd .. && chmod +x ./build/pika && ./build/pika -c ./conf/pika.conf
 
       - name: Integration Testing
         run: |
