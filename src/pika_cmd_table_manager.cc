@@ -49,11 +49,7 @@ bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const std::thre
 void PikaCmdTableManager::InsertCurrentThreadDistributionMap() {
   auto tid = std::this_thread::get_id();
   PikaDataDistribution* distribution = nullptr;
-  if (g_pika_conf->classic_mode()) {
-    distribution = new HashModulo();
-  } else {
-    distribution = new Crc32();
-  }
+  distribution = new HashModulo();
   distribution->Init();
   std::lock_guard l(map_protector_);
   thread_distribution_map_.emplace(tid, distribution);
