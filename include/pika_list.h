@@ -126,7 +126,7 @@ class LPushxCmd : public Cmd {
 
  private:
   std::string key_;
-  std::string value_;
+  std::vector<std::string> values_;
   void DoInitial() override;
 };
 

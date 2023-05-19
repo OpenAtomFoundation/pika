@@ -522,7 +522,7 @@ class Storage {
   // Inserts value at the head of the list stored at key, only if key already
   // exists and holds a list. In contrary to LPUSH, no operation will be
   // performed when key does not yet exist.
-  Status LPushx(const Slice& key, const Slice& value, uint64_t* len);
+  Status LPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len);
 
   // Inserts value at the tail of the list stored at key, only if key already
   // exists and holds a list. In contrary to RPUSH, no operation will be

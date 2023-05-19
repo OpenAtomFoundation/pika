@@ -711,7 +711,7 @@ TEST_F(ListsTest, LPushxTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP1_LPUSHX_KEY", {"o", "o", "o"}));
 
   //  "x" -> "o" -> "o" -> "o"
-  s = db.LPushx("GP1_LPUSHX_KEY", "x", &num);
+  s = db.LPushx("GP1_LPUSHX_KEY", {"x"}, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(num, 4);
   ASSERT_TRUE(len_match(&db, "GP1_LPUSHX_KEY", 4));
@@ -726,7 +726,7 @@ TEST_F(ListsTest, LPushxTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP1_LPUSHX_KEY", {"o", "o", "x", "o", "o", "o"}));
 
   // "x" -> "o" -> "o" -> "x" -> "o" -> "o" -> "o"
-  s = db.LPushx("GP1_LPUSHX_KEY", "x", &num);
+  s = db.LPushx("GP1_LPUSHX_KEY", {"x"}, &num);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(num, 7);
   ASSERT_TRUE(len_match(&db, "GP1_LPUSHX_KEY", 7));
@@ -734,7 +734,7 @@ TEST_F(ListsTest, LPushxTest) {  // NOLINT
 
   // ***************** Group 2 Test *****************
   // LPushx not exist key
-  s = db.LPushx("GP2_LPUSHX_KEY", "x", &num);
+  s = db.LPushx("GP2_LPUSHX_KEY", {"x"}, &num);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_TRUE(len_match(&db, "GP2_LPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP2_LPUSHX_KEY", {}));
@@ -750,7 +750,7 @@ TEST_F(ListsTest, LPushxTest) {  // NOLINT
   ASSERT_TRUE(elements_match(&db, "GP3_LPUSHX_KEY", {"o", "o", "o"}));
   ASSERT_TRUE(make_expired(&db, "GP3_LPUSHX_KEY"));
 
-  s = db.LPushx("GP3_LPUSHX_KEY", "x", &num);
+  s = db.LPushx("GP3_LPUSHX_KEY", {"x"}, &num);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_TRUE(len_match(&db, "GP3_LPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP3_LPUSHX_KEY", {}));
@@ -770,7 +770,7 @@ TEST_F(ListsTest, LPushxTest) {  // NOLINT
   db.Del(del_keys, &type_status);
   ASSERT_TRUE(type_status[storage::DataType::kLists].ok());
 
-  s = db.LPushx("GP4_LPUSHX_KEY", "x", &num);
+  s = db.LPushx("GP4_LPUSHX_KEY", {"x"}, &num);
   ASSERT_TRUE(s.IsNotFound());
   ASSERT_TRUE(len_match(&db, "GP4_LPUSHX_KEY", 0));
   ASSERT_TRUE(elements_match(&db, "GP4_LPUSHX_KEY", {}));

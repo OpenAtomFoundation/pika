@@ -36,7 +36,7 @@ class RedisLists : public Redis {
   Status LLen(const Slice& key, uint64_t* len);
   Status LPop(const Slice& key, std::string* element);
   Status LPush(const Slice& key, const std::vector<std::string>& values, uint64_t* ret);
-  Status LPushx(const Slice& key, const Slice& value, uint64_t* len);
+  Status LPushx(const Slice& key, const std::vector<std::string>& values, uint64_t* len);
   Status LRange(const Slice& key, int64_t start, int64_t stop, std::vector<std::string>* ret);
   Status LRem(const Slice& key, int64_t count, const Slice& value, uint64_t* ret);
   Status LSet(const Slice& key, int64_t index, const Slice& value);
