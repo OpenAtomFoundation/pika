@@ -51,7 +51,7 @@ class BlockedPopConnNode {
       return false;
     }
     int64_t unix_time;
-    pstd::GetCurrentTime(&unix_time);
+    pstd::TiemUtil::GetCurrentTime(&unix_time);
     if (expire_time_ <= unix_time) {
       return true;
     }
