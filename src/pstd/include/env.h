@@ -174,5 +174,16 @@ class RandomRWFile {
   void operator=(const RandomRWFile&);
 };
 
+// this function is copied from RocksDB's implementation of:
+// rocksdb::Env::Default()::GetCurrentTime(int64_t* unix_time);
+Status GetCurrentTime(int64_t* unix_time) {
+  time_t ret = time(nullptr);
+  if (ret == (time_t)-1) {
+    return Status::IOError("GetCurrentTime");
+  }
+  *unix_time = (int64_t)ret;
+  return Status::OK();
+}
+
 }  // namespace pstd
 #endif  // __PSTD_ENV_H__

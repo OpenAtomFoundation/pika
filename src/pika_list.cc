@@ -97,7 +97,7 @@ void LPushCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  g_pika_server->TryToServeBLrPopWithThisKey(key_, table_name(), partition);
+//  g_pika_server->TryToServeBLrPopWithThisKey(key_, table_name(), partition);
 }
 
 void BLPopCmd::DoInitial() {
@@ -145,7 +145,7 @@ void BLPopCmd::Do(std::shared_ptr<Partition> partition) {
   }
   std::shared_ptr<PikaClientConn> curr_conn = std::dynamic_pointer_cast<PikaClientConn>(GetConn());
   //no element founded, this conn need to be blocked
-  g_pika_server->BlockThisClientToWaitLRPush(curr_conn, keys_, expire_time_, BlockPopType::Blpop);
+//  g_pika_server->BlockThisClientToWaitLRPush(curr_conn, keys_, expire_time_, BlockPopType::Blpop);
   /**
     res_ is empty now and then after an writting of empty response(work_thread.cc line 171), the fd of this conn is registerd in epoll
     only with listening of EPOLLIN events and the client is blocked(waitting for reponse).
@@ -360,7 +360,7 @@ void RPushCmd::Do(std::shared_ptr<Partition> partition) {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
 
-  g_pika_server->TryToServeBLrPopWithThisKey(key_, table_name(), partition);
+//  g_pika_server->TryToServeBLrPopWithThisKey(key_, table_name(), partition);
 }
 
 void RPushxCmd::DoInitial() {
