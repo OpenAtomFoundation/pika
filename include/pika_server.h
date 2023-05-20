@@ -128,16 +128,26 @@ enum TaskType {
 };
 
 enum BlockPopType { Blpop, Brpop };
-typedef struct {//this data struct is made for the scenario of multi dbs in pika.
+typedef struct blrpopKey{  // this data struct is made for the scenario of multi dbs in pika.
   std::string db_name;
   std::string key;
-} BlrpopKey;
-class BlockedPopConnection {
- public:
-  virtual ~BlockedPopConnection() {
-    std::cout << "~BlockedPopConnection(): fd-" << conn_blocked_->fd() << " expire_time_:" << expire_time_ << std::endl;
+  bool operator==(const blrpopKey& p) const{
+    return p.db_name == db_name && p.key == key;
   }
-  BlockedPopConnection(int64_t expire_time, std::shared_ptr<PikaClientConn>& conn_blocked, BlockPopType block_type)
+} BlrPopKey;
+struct BlrPopKeyHash {
+  std::size_t operator()(const BlrPopKey& k) const {
+    return std::hash<std::string>{}(k.db_name) ^ std::hash<std::string>{}(k.key);
+  }
+};
+
+
+class BlockedPopConnNode {
+ public:
+  virtual ~BlockedPopConnNode() {
+    std::cout << "BlockedPopConnNode: fd-" << conn_blocked_->fd() << " expire_time_:" << expire_time_ << std::endl;
+  }
+  BlockedPopConnNode(int64_t expire_time, std::shared_ptr<PikaClientConn>& conn_blocked, BlockPopType block_type)
       : expire_time_(expire_time), conn_blocked_(conn_blocked), block_type_(block_type) {}
   bool IsExpired() {
     if (expire_time_ == 0) {
@@ -364,27 +374,12 @@ class PikaServer {
   /**
    * BlPop/BrPop used
    */
-  void InitBRLPopBlockingMap() {
-    // the server just start, no need of locking
-    for (auto& it : tables_) {
-      const std::string& db_name = it.first;
-      map_from_keys_to_conns_for_blrpop.emplace(
-          db_name,
-          std::make_unique<std::unordered_map<std::string, std::unique_ptr<std::list<BlockedPopConnection>>>>());
-      map_from_conns_to_keys_for_blrpop.emplace(
-          db_name, std::make_unique<std::unordered_map<int, std::unique_ptr<std::list<std::string>>>>());
-    }
-  }
 
   void CleanWaitInfoOfUnBlockedBlrConn(std::shared_ptr<PikaClientConn> conn_unblocked) {
     // removed all the waiting info of this conn/ doing cleaning work
-    auto& map_from_conns_to_keys_of_curr_db =
-        map_from_conns_to_keys_for_blrpop.find(conn_unblocked->GetCurrentTable())->second;
-    auto& map_from_keys_to_conns_of_curr_db =
-        map_from_keys_to_conns_for_blrpop.find(conn_unblocked->GetCurrentTable())->second;
-    auto& keys_list = map_from_conns_to_keys_of_curr_db->find(conn_unblocked->fd())->second;
-    for (auto& key : *keys_list) {
-      auto& wait_list_of_this_key = map_from_keys_to_conns_of_curr_db->find(key)->second;
+    auto& blpop_keys_list = map_from_conns_to_keys_for_blrpop.find(conn_unblocked->fd())->second;
+    for (auto& blpop_key : *blpop_keys_list) {
+      auto& wait_list_of_this_key = map_from_keys_to_conns_for_blrpop.find(blpop_key)->second;
       for (auto conn = wait_list_of_this_key->begin(); conn != wait_list_of_this_key->end();) {
         if (conn->GetConnBlocked()->fd() == conn_unblocked->fd()) {
           conn = wait_list_of_this_key->erase(conn);
@@ -393,61 +388,59 @@ class PikaServer {
         conn++;
       }
     }
-    map_from_conns_to_keys_of_curr_db->erase(conn_unblocked->fd());
+    map_from_conns_to_keys_for_blrpop.erase(conn_unblocked->fd());
   }
 
   void CleanKeysAfterWaitInfoCleaned(std::string table_name) {
     // after wait info of a conn is cleaned, some wait list of keys might be empty, must erase them from the map
-    auto& map_from_keys_to_conns_of_curr_db = map_from_keys_to_conns_for_blrpop.find(table_name)->second;
-    std::vector<std::string> keys_to_erase;
-    for (auto& pair : *map_from_keys_to_conns_of_curr_db) {
+    std::vector<BlrPopKey> keys_to_erase;
+    for (auto& pair : map_from_keys_to_conns_for_blrpop) {
       if (pair.second->empty()) {
         // wait list of this key is empty, just erase this key
         keys_to_erase.emplace_back(pair.first);
       }
     }
-    for (auto& key : keys_to_erase) {
-      map_from_keys_to_conns_of_curr_db->erase(key);
+    for (auto& blrpop_key : keys_to_erase) {
+      map_from_keys_to_conns_for_blrpop.erase(blrpop_key);
     }
   }
 
   void BlockThisClientToWaitLRPush(std::shared_ptr<PikaClientConn> conn_to_block, std::vector<std::string>& keys,
                                    int64_t expire_time, BlockPopType block_pop_type) {
     std::lock_guard latch(bLRPop_blocking_map_latch_);
-    auto& map_from_keys_to_conns_of_curr_db =
-        map_from_keys_to_conns_for_blrpop.find(conn_to_block->GetCurrentTable())
-            ->second;  // map_from_keys_to_conns_of_curr_db is a reference of a unique_ptr
+    std::vector<BlrPopKey> blrpop_keys;
     for (auto& key : keys) {
-      auto it = map_from_keys_to_conns_of_curr_db->find(key);
-      if (it == map_from_keys_to_conns_of_curr_db->end()) {
+      BlrPopKey blrpop_key{conn_to_block->GetCurrentTable(), key};
+      blrpop_keys.push_back(blrpop_key);
+      auto it = map_from_keys_to_conns_for_blrpop.find(blrpop_key);
+      if (it == map_from_keys_to_conns_for_blrpop.end()) {
         // no waiting info found, means no other clients are waiting for the list related with this key right now
-        map_from_keys_to_conns_of_curr_db->emplace(key, std::make_unique<std::list<BlockedPopConnection>>());
-        it = map_from_keys_to_conns_of_curr_db->find(key);
+        map_from_keys_to_conns_for_blrpop.emplace(blrpop_key, std::make_unique<std::list<BlockedPopConnNode>>());
+        it = map_from_keys_to_conns_for_blrpop.find(blrpop_key);
       }
       auto& wait_list_of_this_key = it->second;
       // add current client-connection to the tail of waiting list of this key
       wait_list_of_this_key->emplace_back(expire_time, conn_to_block, block_pop_type);
     }
 
-    auto& conns_to_keys_of_curr_db = map_from_conns_to_keys_for_blrpop.find(conn_to_block->GetCurrentTable())->second;
     // construct a list of keys and insert into this map as value(while key of the map is conn_fd)
-    conns_to_keys_of_curr_db->emplace(conn_to_block->fd(),
-                                      std::make_unique<std::list<std::string>>(keys.begin(), keys.end()));
+    map_from_conns_to_keys_for_blrpop.emplace(
+        conn_to_block->fd(), std::make_unique<std::list<BlrPopKey>>(blrpop_keys.begin(), blrpop_keys.end()));
 
     std::cout << "-------------db name:" << conn_to_block->GetCurrentTable() << "-------------" << std::endl;
     std::cout << "from key to conn:" << std::endl;
-    for (auto& pair : *map_from_keys_to_conns_of_curr_db) {
-      std::cout << "key:" << pair.first << "  list of it:" << std::endl;
+    for (auto& pair : map_from_keys_to_conns_for_blrpop) {
+      std::cout << "key:<" << pair.first.db_name << "," << pair.first.key << ">  list of it:" << std::endl;
       for (auto& it : *pair.second) {
         it.SelfPrint();
       }
     }
 
     std::cout << "\n\nfrom conn to key:" << std::endl;
-    for (auto& pair : *conns_to_keys_of_curr_db) {
+    for (auto& pair : map_from_conns_to_keys_for_blrpop) {
       std::cout << "fd:" << pair.first << "  related keys:" << std::endl;
       for (auto& it : *pair.second) {
-        std::cout << it << std::endl;
+        std::cout << " <" << it.db_name << "," << it.key << "> " << std::endl;
       }
     }
     std::cout << "-----------end------------------" << std::endl;
@@ -456,9 +449,9 @@ class PikaServer {
   void TryToServeBLrPopWithThisKey(const std::string& key, const std::string& table_name,
                                    std::shared_ptr<Partition> partition) {
     std::lock_guard latch(bLRPop_blocking_map_latch_);
-    auto& map_from_keys_to_conns_of_curr_db = map_from_keys_to_conns_for_blrpop.find(table_name)->second;
-    auto it = map_from_keys_to_conns_of_curr_db->find(key);
-    if (it == map_from_keys_to_conns_of_curr_db->end()) {
+    BlrPopKey blrPop_key{table_name, key};
+    auto it = map_from_keys_to_conns_for_blrpop.find(blrPop_key);
+    if (it == map_from_keys_to_conns_for_blrpop.end()) {
       // no client is waitting for this key
       return;
     }
@@ -499,30 +492,28 @@ class PikaServer {
     CleanKeysAfterWaitInfoCleaned(table_name);
   }
 
-  //if a client closed the conn when waiting for the response of "blpop/brpop", some cleaning work must be done.
-  void ClosingConnCheckForBlrPop(std::shared_ptr<net::NetConn> conn_to_close){
+  // if a client closed the conn when waiting for the response of "blpop/brpop", some cleaning work must be done.
+  void ClosingConnCheckForBlrPop(std::shared_ptr<net::NetConn> conn_to_close) {
     std::shared_ptr<PikaClientConn> conn = std::dynamic_pointer_cast<PikaClientConn>(conn_to_close);
-    if(!conn){
-      //it's not an instance of PikaClientConn, no need of the process below
+    if (!conn) {
+      // it's not an instance of PikaClientConn, no need of the process below
       return;
     }
     std::lock_guard l(bLRPop_blocking_map_latch_);
-    auto& map_from_conns_to_keys_fo_curr_db = map_from_conns_to_keys_for_blrpop.find(conn->GetCurrentTable())->second;
-    auto keys_list = map_from_conns_to_keys_fo_curr_db->find(conn->fd());
-    if(keys_list == map_from_conns_to_keys_fo_curr_db->end()){
-      //this conn is not disconnected from with blocking state cause by "blpop/brpop"
+    auto keys_list = map_from_conns_to_keys_for_blrpop.find(conn->fd());
+    if (keys_list == map_from_conns_to_keys_for_blrpop.end()) {
+      // this conn is not disconnected from with blocking state cause by "blpop/brpop"
       return;
     }
     CleanWaitInfoOfUnBlockedBlrConn(conn);
     CleanKeysAfterWaitInfoCleaned(conn->GetCurrentTable());
   }
 
-/*  std::mutex& GetBLRPopBlockingMapLatch() { return bLRPop_blocking_map_latch_; }
+  /*  std::mutex& GetBLRPopBlockingMapLatch() { return bLRPop_blocking_map_latch_; }
 
-  std::unique_ptr<std::unordered_map<int, std::unique_ptr<std::list<std::string>>>>& GetMapFromConnsToKeysForBlrpop(){
-      map_from_conns_to_keys_for_blrpop;
-  };*/
-
+    std::unique_ptr<std::unordered_map<int, std::unique_ptr<std::list<std::string>>>>& GetMapFromConnsToKeysForBlrpop(){
+        map_from_conns_to_keys_for_blrpop;
+    };*/
 
   friend class Cmd;
   friend class InfoCmd;
@@ -564,19 +555,17 @@ class PikaServer {
    *  Blpop/BRpop used
    */
   /*  map_from_keys_to_conns_for_blrpop:
-   *  mapping from "Blrpopkey"(eg. "<db0, list1>") to a list that stored the blocking info of client-connetions that were
-   *  blocked by command blpop/brpop with key (eg. "list1").
+   *  mapping from "Blrpopkey"(eg. "<db0, list1>") to a list that stored the blocking info of client-connetions that
+   * were blocked by command blpop/brpop with key (eg. "list1").
    */
 
-      std::unordered_map<BlrpopKey , std::unique_ptr<std::list<BlockedPopConnection>>>
-      map_from_keys_to_conns_for_blrpop;
+  std::unordered_map<BlrPopKey, std::unique_ptr<std::list<BlockedPopConnNode>>, BlrPopKeyHash> map_from_keys_to_conns_for_blrpop;
 
   /*
    *  map_from_conns_to_keys_for_blrpop:
    *  mapping from conn(fd) to a list of keys that the client is waiting for.
    */
-    std::unordered_map<int, std::unique_ptr<std::list<BlrpopKey>>>
-      map_from_conns_to_keys_for_blrpop;
+  std::unordered_map<int, std::unique_ptr<std::list<BlrPopKey>>> map_from_conns_to_keys_for_blrpop;
 
   /*
    * latch of the two maps above.

@@ -153,7 +153,6 @@ void PikaServer::Start() {
 
   // We Init Table Struct Before Start The following thread
   InitTableStruct();
-  InitBRLPopBlockingMap();
   ret = pika_client_processor_->Start();
   if (ret != net::kSuccess) {
     tables_.clear();
