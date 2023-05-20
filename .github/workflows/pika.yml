@@ -74,8 +74,8 @@ jobs:
           cmake --version
 
       - name: checkout
+        working-directory: ${{github.workspace}}
         run: |
-          cd ${{github.workspace}}
           echo Fetching $GITHUB_REPOSITORY@$GITHUB_SHA
           git init
           git fetch --depth 1 https://github.com/$GITHUB_REPOSITORY $GITHUB_SHA
