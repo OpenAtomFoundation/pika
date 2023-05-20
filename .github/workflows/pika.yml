@@ -70,7 +70,7 @@ jobs:
       - name: Install cmake
         run: |
           wget https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh
-          bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix /usr/local
+          bash ./cmake-3.26.4-linux-x86_64.sh --skip-license --prefix /usr
           cmake --version
 
       - name: checkout
