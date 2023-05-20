@@ -599,6 +599,7 @@ class ScanCmd : public Cmd {
  private:
   int64_t cursor_ = 0;
   std::string pattern_ = "*";
+  std::string type_ = "string";
   int64_t count_ = 10;
   virtual void DoInitial() override;
   virtual void Clear() {
