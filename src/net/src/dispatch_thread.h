@@ -65,7 +65,7 @@ class DispatchThread : public ServerThread {
   /*
    * This is the work threads
    */
-  std::vector<std::shared_ptr<WorkerThread>> worker_thread_;
+  std::vector<std::unique_ptr<WorkerThread>> worker_thread_;
   int queue_limit_;
   std::map<WorkerThread*, void*> localdata_;
 

@@ -47,7 +47,7 @@ class NetCli {
 
  private:
   struct Rep;
-  std::shared_ptr<Rep> rep_;
+  std::unique_ptr<Rep> rep_;
   int set_tcp_nodelay();
 
   NetCli(const NetCli&);

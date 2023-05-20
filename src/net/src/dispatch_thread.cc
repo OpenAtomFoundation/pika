@@ -21,7 +21,7 @@ DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory
       work_num_(work_num),
       queue_limit_(queue_limit) {
   for (int i = 0; i < work_num_; i++) {
-    worker_thread_.emplace_back(std::make_shared<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
+    worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
 }
 
@@ -33,7 +33,7 @@ DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, Co
       queue_limit_(queue_limit) {
 
   for (int i = 0; i < work_num_; i++) {
-    worker_thread_.emplace_back(std::make_shared<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
+    worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
   }
 }
 
@@ -45,7 +45,7 @@ DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int w
       queue_limit_(queue_limit) {
 
   for (int i = 0; i < work_num_; i++) {
-    worker_thread_.emplace_back(std::make_shared<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
+    worker_thread_.emplace_back(std::make_unique<WorkerThread>(conn_factory, this, queue_limit, cron_interval));
 
   }
 }
@@ -126,7 +126,7 @@ std::shared_ptr<NetConn> DispatchThread::MoveConnOut(int fd) {
 }
 
 void DispatchThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& type) {
-  std::shared_ptr<WorkerThread> worker_thread = worker_thread_[last_thread_];
+  std::unique_ptr<WorkerThread>& worker_thread = worker_thread_[last_thread_];
   bool success = worker_thread->MoveConnIn(conn, type, true);
   if (success) {
     last_thread_ = (last_thread_ + 1) % work_num_;
@@ -152,7 +152,7 @@ void DispatchThread::HandleNewConn(const int connfd, const std::string& ip_port)
   int next_thread = last_thread_;
   bool find = false;
   for (int cnt = 0; cnt < work_num_; cnt++) {
-    std::shared_ptr<WorkerThread> worker_thread = worker_thread_[next_thread];
+    std::unique_ptr<WorkerThread>& worker_thread = worker_thread_[next_thread];
     find = worker_thread->MoveConnIn(ti, false);
     if (find) {
       last_thread_ = (next_thread + 1) % work_num_;
