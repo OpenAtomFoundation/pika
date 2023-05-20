@@ -600,6 +600,7 @@ class ScanCmd : public Cmd {
   int64_t cursor_ = 0;
   std::string pattern_ = "*";
   int64_t count_ = 10;
+  std::string type_ = "string";
   virtual void DoInitial() override;
   virtual void Clear() {
     pattern_ = "*";
