@@ -1147,7 +1147,7 @@ void ScanCmd::DoInitial() {
 
   while (index < argc) {
     std::string opt = argv_[index];
-    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count")) {
+    if (!strcasecmp(opt.data(), "match") || !strcasecmp(opt.data(), "count") || !strcasecmp(opt.data(), "type") {
       index++;
       if (index >= argc) {
         res_.SetRes(CmdRes::kSyntaxErr);
@@ -1155,6 +1155,8 @@ void ScanCmd::DoInitial() {
       }
       if (!strcasecmp(opt.data(), "match")) {
         pattern_ = argv_[index];
+      } else if (!strcasecmp(opt.data(), "type")) {
+        type_ = argv_[index];
       } else if (!pstd::string2int(argv_[index].data(), argv_[index].size(), &count_) || count_ <= 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
@@ -1176,12 +1178,26 @@ void ScanCmd::Do(std::shared_ptr<Partition> partition) {
   size_t raw_limit = g_pika_conf->max_client_response_size();
   std::string raw;
   std::vector<std::string> keys;
+  storage::DataType type_ret ;
+  if (type_ == "string"){
+     type_ret = storage::DataType::kStrings;
+  } else if (type_ == "hash"){
+     type_ret = storage::DataType::kHashes;
+  } else if (type_ == "zset"){
+     type_ret = storage::DataType::kZSets;
+  } else if (type_ == "list"){
+     type_ret = storage::DataType::kLists;
+  } else if (type_ == "set"){
+     type_ret = storage::DataType::kSets;
+  }else {
+     type_ret = storage::DataType::kAll;
+  }
   // To avoid memory overflow, we call the Scan method in batches
   do {
     keys.clear();
     batch_count = left < PIKA_SCAN_STEP_LENGTH ? left : PIKA_SCAN_STEP_LENGTH;
     left = left > PIKA_SCAN_STEP_LENGTH ? left - PIKA_SCAN_STEP_LENGTH : 0;
-    cursor_ret = partition->db()->Scan(storage::DataType::kAll, cursor_ret, pattern_, batch_count, &keys);
+    cursor_ret = partition->db()->Scan(type_ret, cursor_ret, pattern_, batch_count, &keys);
     for (const auto& key : keys) {
       RedisAppendLen(raw, key.size(), "$");
       RedisAppendContent(raw, key);
