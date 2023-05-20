@@ -3,91 +3,50 @@
 //  LICENSE file in the root directory of this source tree. An additional grant
 //  of patent rights can be found in the PATENTS file in the same directory.
 //
+#include "storage/backupable.h"
+
 #include <dirent.h>
+#include <cassert>
 #include <utility>
 
-#include "storage/backupable.h"
+#include "glog/logging.h"
+#include "rocksdb/db.h"
+#include "rocksdb/utilities/checkpoint.h"
+#include "storage/storage.h"
 
 namespace storage {
 
 BackupEngine::~BackupEngine() {
   // Wait all children threads
-  StopBackup();
   WaitBackupPthread();
 }
 
-Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& type) {
-  rocksdb::DBCheckpoint* checkpoint;
-  Status s = rocksdb::DBCheckpoint::Create(rocksdb_db, &checkpoint);
-  if (!s.ok()) {
-    return s;
-  }
-  engines_.insert(std::make_pair(type, std::unique_ptr<rocksdb::DBCheckpoint>(checkpoint)));
-  return s;
-}
-
-Status BackupEngine::Open(storage::Storage* storage, std::shared_ptr<BackupEngine>& backup_engine_ret) {
-  // BackupEngine() is private, can't use make_shared
-  backup_engine_ret = std::shared_ptr<BackupEngine>(new BackupEngine());
-  if (!backup_engine_ret) {
-    return Status::Corruption("New BackupEngine failed!");
-  }
-
-  // Create BackupEngine for each db type
-  rocksdb::Status s;
-  rocksdb::DB* rocksdb_db;
-  std::string types[] = {STRINGS_DB, HASHES_DB, LISTS_DB, ZSETS_DB, SETS_DB};
-  for (const auto& type : types) {
-    if ((rocksdb_db = storage->GetDBByType(type)) == nullptr) {
-      s = Status::Corruption("Error db type");
-    }
-
-    if (s.ok()) {
-      s = backup_engine_ret->NewCheckpoint(rocksdb_db, type);
-    }
-
-    if (!s.ok()) {
-      backup_engine_ret = nullptr;
-      break;
-    }
-  }
-  return s;
-}
-
-Status BackupEngine::SetBackupContent() {
-  Status s;
-  for (const auto& engine : engines_) {
-    // Get backup content
-    BackupContent bcontent;
-    s = engine.second->GetCheckpointFiles(bcontent.live_files, bcontent.live_wal_files, bcontent.manifest_file_size,
-                                          bcontent.sequence_number);
-    if (!s.ok()) {
-      return s;
-    }
-    backup_content_[engine.first] = std::move(bcontent);
-  }
-  return s;
+Status BackupEngine::Open(std::shared_ptr<Storage> storage, BackupEngine** backup_engine_ptr) {
+  *backup_engine_ptr = new BackupEngine(storage);
+  return Status::OK();
 }
 
 Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const std::string& type) {
-  auto it_engine = engines_.find(type);
-  auto it_content = backup_content_.find(type);
+  rocksdb::DB* db = storage_->GetDBByType(type);
+
+  if (db == nullptr) {
+    return Status::Corruption("db is nullptr for type:%s", type.c_str());
+  }
+
   std::string dir = GetSaveDirByType(backup_dir, type);
   delete_dir(dir.c_str());
 
-  if (it_content != backup_content_.end() && it_engine != engines_.end()) {
-    Status s = it_engine->second->CreateCheckpointWithFiles(
-        dir, it_content->second.live_files, it_content->second.live_wal_files, it_content->second.manifest_file_size,
-        it_content->second.sequence_number);
-    if (!s.ok()) {
-      //    type.c_str(), s.ToString().c_str());
-      return s;
-    }
+  Status s;
+  rocksdb::Checkpoint* checkpoint;
+  s = rocksdb::Checkpoint::Create(db, &checkpoint);
+  assert(s.ok());
+  s = checkpoint->CreateCheckpoint(dir);
 
-  } else {
-    return Status::Corruption("invalid db type");
+  if (!s.ok()) {
+    LOG(WARNING) << "error for create checkpoint, db type: " << type << "; dir:" << dir << "; status " << s.ToString();
   }
-  return Status::OK();
+
+  return s;
 }
 
 void* ThreadFuncSaveSpecify(void* arg) {
@@ -106,7 +65,6 @@ Status BackupEngine::WaitBackupPthread() {
     }
     Status cur_s = *(static_cast<Status*>(res));
     if (!cur_s.ok()) {
-      StopBackup();  // stop others when someone failed
       s = cur_s;
     }
   }
@@ -115,34 +73,37 @@ Status BackupEngine::WaitBackupPthread() {
 }
 
 Status BackupEngine::CreateNewBackup(const std::string& dir) {
-  Status s = Status::OK();
-  // ensure cleaning up the pointers after the function has finished.
-  std::vector<std::unique_ptr<BackupSaveArgs>> args;
-  args.reserve(engines_.size());
-  for (const auto& engine : engines_) {
+  Status s;
+  std::string types[] = {STRINGS_DB, HASHES_DB, LISTS_DB, ZSETS_DB, SETS_DB};
+
+  std::vector<BackupSaveArgs*> args;
+  for (const auto& type : types) {
     pthread_t tid;
-    auto arg = std::make_unique<BackupSaveArgs>(reinterpret_cast<void*>(this), dir, engine.first);
-    args.push_back(std::move(arg));
-    if (pthread_create(&tid, nullptr, &ThreadFuncSaveSpecify, args.back().get()) != 0) {
-      s = Status::Corruption("pthread_create failed.");
+    BackupSaveArgs* arg = new BackupSaveArgs(reinterpret_cast<void*>(this), dir, type);
+    args.push_back(arg);
+    // TODO:: add thread pool for pika, use for bg work
+    if (pthread_create(&tid, nullptr, &ThreadFuncSaveSpecify, arg) != 0) {
+      s = Status::Corruption("pthead_create failed.");
+      LOG(WARNING) << "pthread create fail for backup db type:" << type;
       break;
     }
-    if (!(backup_pthread_ts_.insert(std::make_pair(engine.first, tid)).second)) {
-      backup_pthread_ts_[engine.first] = tid;
+
+    if (!(backup_pthread_ts_.insert(std::make_pair(type, tid)).second)) {
+      backup_pthread_ts_[type] = tid;
     }
   }
 
-  // Wait threads stop
-  if (!s.ok()) {
-    StopBackup();
+  // TODO: collect all thread status
+  Status wait = WaitBackupPthread();
+  if (!wait.ok()) {
+    s = wait;
   }
-  s = WaitBackupPthread();
+
+  for (auto& a : args) {
+    delete a;
+  }
 
   return s;
-}
-
-void BackupEngine::StopBackup() {
-  // DEPRECATED
 }
 
 }  // namespace storage

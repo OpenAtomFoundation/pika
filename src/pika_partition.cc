@@ -364,12 +364,10 @@ bool Partition::InitBgsaveEnv() {
 
 // Prepare bgsave env, need bgsave_protector protect
 bool Partition::InitBgsaveEngine() {
-  bgsave_engine_.reset();
-  rocksdb::Status s = storage::BackupEngine::Open(db().get(), bgsave_engine_);
-  if (!s.ok()) {
-    LOG(WARNING) << partition_name_ << " open backup engine failed " << s.ToString();
-    return false;
-  }
+  storage::BackupEngine* backup_engine;
+  rocksdb::Status s = storage::BackupEngine::Open(db(), &backup_engine);
+  assert(s.ok());
+  bgsave_engine_.reset(backup_engine);
 
   std::shared_ptr<SyncMasterPartition> partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, partition_id_));
@@ -390,11 +388,6 @@ bool Partition::InitBgsaveEngine() {
     {
       std::lock_guard l(bgsave_protector_);
       bgsave_info_.offset = bgsave_offset;
-    }
-    s = bgsave_engine_->SetBackupContent();
-    if (!s.ok()) {
-      LOG(WARNING) << partition_name_ << " set backup content failed " << s.ToString();
-      return false;
     }
   }
   return true;

@@ -6,9 +6,6 @@
 #ifndef SRC_BACKUPABLE_H_
 #define SRC_BACKUPABLE_H_
 
-#include "rocksdb/db.h"
-
-#include "db_checkpoint.h"
 #include "storage.h"
 #include "util.h"
 
@@ -31,41 +28,30 @@ struct BackupSaveArgs {
       : p_engine(_p_engine), backup_dir(_backup_dir), key_type(_key_type) {}
 };
 
-struct BackupContent {
-  std::vector<std::string> live_files;
-  rocksdb::VectorLogPtr live_wal_files;
-  uint64_t manifest_file_size = 0;
-  uint64_t sequence_number = 0;
-};
-
 class BackupEngine {
  public:
   ~BackupEngine();
-  static Status Open(Storage* db, std::shared_ptr<BackupEngine>& backup_engine_ret);
-
-  Status SetBackupContent();
+  static Status Open(std::shared_ptr<Storage> storage, BackupEngine** backup_engine_ret);
 
   Status CreateNewBackup(const std::string& dir);
-
-  void StopBackup();
 
   Status CreateNewBackupSpecify(const std::string& dir, const std::string& type);
 
  private:
-  BackupEngine() {}
+  BackupEngine(std::shared_ptr<Storage> storage) : storage_(storage) {}
 
-  std::map<std::string, std::unique_ptr<rocksdb::DBCheckpoint>> engines_;
-  std::map<std::string, BackupContent> backup_content_;
   std::map<std::string, pthread_t> backup_pthread_ts_;
 
-  Status NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& type);
   std::string GetSaveDirByType(const std::string _dir, const std::string& _type) const {
     std::string backup_dir = _dir.empty() ? DEFAULT_BK_PATH : _dir;
     return backup_dir + ((backup_dir.back() != '/') ? "/" : "") + _type;
   }
+
   Status WaitBackupPthread();
+
+ private:
+  std::shared_ptr<Storage> storage_;
 };
 
 }  //  namespace storage
 #endif  //  SRC_BACKUPABLE_H_
-
