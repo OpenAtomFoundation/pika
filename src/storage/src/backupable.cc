@@ -26,10 +26,10 @@ Status BackupEngine::NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& t
   return s;
 }
 
-Status BackupEngine::Open(storage::Storage* storage, std::unique_ptr<BackupEngine>& backup_engine_ret) {
-  // BackupEngine() is private, can't use make_unique
-  auto backup_engine_ptr = std::unique_ptr<BackupEngine>(new BackupEngine());
-  if (!backup_engine_ptr) {
+Status BackupEngine::Open(storage::Storage* storage, std::shared_ptr<BackupEngine>& backup_engine_ret) {
+  // BackupEngine() is private, can't use make_shared
+  backup_engine_ret = std::shared_ptr<BackupEngine>(new BackupEngine());
+  if (!backup_engine_ret) {
     return Status::Corruption("New BackupEngine failed!");
   }
 
@@ -43,15 +43,14 @@ Status BackupEngine::Open(storage::Storage* storage, std::unique_ptr<BackupEngin
     }
 
     if (s.ok()) {
-      s = backup_engine_ptr->NewCheckpoint(rocksdb_db, type);
+      s = backup_engine_ret->NewCheckpoint(rocksdb_db, type);
     }
 
     if (!s.ok()) {
-      backup_engine_ptr = nullptr;
+      backup_engine_ret = nullptr;
       break;
     }
   }
-  backup_engine_ret = std::move(backup_engine_ptr);
   return s;
 }
 

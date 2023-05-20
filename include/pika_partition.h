@@ -117,7 +117,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void FinishBgsave();
   BgSaveInfo bgsave_info_;
   pstd::Mutex bgsave_protector_;
-  std::unique_ptr<storage::BackupEngine> bgsave_engine_;
+  std::shared_ptr<storage::BackupEngine> bgsave_engine_;
 
   // key scan info use
   void InitKeyScan();

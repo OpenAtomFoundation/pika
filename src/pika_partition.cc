@@ -364,7 +364,7 @@ bool Partition::InitBgsaveEnv() {
 
 // Prepare bgsave env, need bgsave_protector protect
 bool Partition::InitBgsaveEngine() {
-  bgsave_engine_ = nullptr;
+  bgsave_engine_.reset();
   rocksdb::Status s = storage::BackupEngine::Open(db().get(), bgsave_engine_);
   if (!s.ok()) {
     LOG(WARNING) << partition_name_ << " open backup engine failed " << s.ToString();
