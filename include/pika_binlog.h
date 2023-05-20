@@ -42,6 +42,7 @@ class Version {
   }
 
  private:
+  // shared with versionfile_
   std::shared_ptr<pstd::RWFile> save_;
 
   // No copying allowed;

@@ -97,6 +97,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool opened_ = false;
 
   std::shared_mutex db_rwlock_;
+  // class may be shared, using shared_ptr would be a better choice
   std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::shared_ptr<storage::Storage> db_;
 

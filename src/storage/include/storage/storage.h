@@ -1020,11 +1020,11 @@ class Storage {
                     const std::unordered_map<std::string, std::string>& options);
 
  private:
-  std::shared_ptr<RedisStrings> strings_db_;
-  std::shared_ptr<RedisHashes> hashes_db_;
-  std::shared_ptr<RedisSets> sets_db_;
-  std::shared_ptr<RedisZSets> zsets_db_;
-  std::shared_ptr<RedisLists> lists_db_;
+  std::unique_ptr<RedisStrings> strings_db_;
+  std::unique_ptr<RedisHashes> hashes_db_;
+  std::unique_ptr<RedisSets> sets_db_;
+  std::unique_ptr<RedisZSets> zsets_db_;
+  std::unique_ptr<RedisLists> lists_db_;
   std::atomic<bool> is_opened_;
 
   std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;

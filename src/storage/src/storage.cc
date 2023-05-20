@@ -94,31 +94,31 @@ static std::string AppendSubDirectory(const std::string& db_path, const std::str
 Status Storage::Open(const StorageOptions& storage_options, const std::string& db_path) {
   mkpath(db_path.c_str(), 0755);
 
-  strings_db_ = std::make_shared<RedisStrings>(this, kStrings);
+  strings_db_ = std::make_unique<RedisStrings>(this, kStrings);
   Status s = strings_db_->Open(storage_options, AppendSubDirectory(db_path, "strings"));
   if (!s.ok()) {
     LOG(FATAL) << "open kv db failed, " << s.ToString();
   }
 
-  hashes_db_ = std::make_shared<RedisHashes>(this, kHashes);
+  hashes_db_ = std::make_unique<RedisHashes>(this, kHashes);
   s = hashes_db_->Open(storage_options, AppendSubDirectory(db_path, "hashes"));
   if (!s.ok()) {
     LOG(FATAL) << "open hashes db failed, " << s.ToString();
   }
 
-  sets_db_ = std::make_shared<RedisSets>(this, kSets);
+  sets_db_ = std::make_unique<RedisSets>(this, kSets);
   s = sets_db_->Open(storage_options, AppendSubDirectory(db_path, "sets"));
   if (!s.ok()) {
     LOG(FATAL) << "open set db failed, " << s.ToString();
   }
 
-  lists_db_ = std::make_shared<RedisLists>(this, kLists);
+  lists_db_ = std::make_unique<RedisLists>(this, kLists);
   s = lists_db_->Open(storage_options, AppendSubDirectory(db_path, "lists"));
   if (!s.ok()) {
     LOG(FATAL) << "open list db failed, " << s.ToString();
   }
 
-  zsets_db_ = std::make_shared<RedisZSets>(this, kZSets);
+  zsets_db_ = std::make_unique<RedisZSets>(this, kZSets);
   s = zsets_db_->Open(storage_options, AppendSubDirectory(db_path, "zsets"));
   if (!s.ok()) {
     LOG(FATAL) << "open zset db failed, " << s.ToString();
@@ -1564,7 +1564,7 @@ Status Storage::CompactKey(const DataType& type, const std::string& key) {
 }
 
 Status Storage::SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
-  std::vector<std::shared_ptr<Redis>> dbs = {sets_db_, zsets_db_, hashes_db_, lists_db_};
+  std::vector<Redis*> dbs = {sets_db_.get(), zsets_db_.get(), hashes_db_.get(), lists_db_.get()};
   for (const auto& db : dbs) {
     db->SetMaxCacheStatisticKeys(max_cache_statistic_keys);
   }
@@ -1572,7 +1572,7 @@ Status Storage::SetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
 }
 
 Status Storage::SetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
-  std::vector<std::shared_ptr<Redis>> dbs = {sets_db_, zsets_db_, hashes_db_, lists_db_};
+  std::vector<Redis*> dbs = {sets_db_.get(), zsets_db_.get(), hashes_db_.get(), lists_db_.get()};
   for (const auto& db : dbs) {
     db->SetSmallCompactionThreshold(small_compaction_threshold);
   }
@@ -1643,7 +1643,7 @@ uint64_t Storage::GetProperty(const std::string& db_type, const std::string& pro
 Status Storage::GetKeyNum(std::vector<KeyInfo>* key_infos) {
   KeyInfo key_info;
   // NOTE: keep the db order with string, hash, list, zset, set
-  std::vector<std::shared_ptr<Redis>> dbs = {strings_db_, hashes_db_, lists_db_, zsets_db_, sets_db_};
+  std::vector<Redis*> dbs = {strings_db_.get(), hashes_db_.get(), lists_db_.get(), zsets_db_.get(), sets_db_.get()};
   for (const auto& db : dbs) {
     // check the scanner was stopped or not, before scanning the next db
     if (scan_keynum_exit_) {
