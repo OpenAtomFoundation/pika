@@ -10,6 +10,7 @@
 
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
+#include "net/src/dispatch_thread.h"
 
 /*
  * list
@@ -73,9 +74,19 @@ class LLenCmd : public Cmd {
   virtual void DoInitial() override;
 };
 
-class BLPopCmd : public Cmd {
+class BLRPopBaseCmd : public Cmd {
  public:
-  BLPopCmd(const std::string& name, int arity, uint16_t flag): Cmd(name, arity, flag){};
+  BLRPopBaseCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void BlockThisClientToWaitLRPush(net::BlockPopType block_pop_type);
+
+ protected:
+  std::vector<std::string> keys_;
+  int64_t expire_time_{0};
+};
+
+class BLPopCmd : public BLRPopBaseCmd {
+ public:
+  BLPopCmd(const std::string& name, int arity, uint16_t flag) : BLRPopBaseCmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res = keys_;
     return res;
@@ -84,9 +95,8 @@ class BLPopCmd : public Cmd {
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
   virtual void Merge(){};
   virtual Cmd* Clone() override { return new BLPopCmd(*this); }
+
  private:
-  std::vector<std::string> keys_;
-  int64_t expire_time_{0};
   virtual void DoInitial() override;
 };
 
@@ -108,9 +118,15 @@ class LPopCmd : public Cmd {
   virtual void DoInitial() override;
 };
 
-class LPushCmd : public Cmd {
+class BPopServeCmd : public Cmd {
  public:
-  LPushCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  BPopServeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
+  void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Partition> partition);
+};
+
+class LPushCmd : public BPopServeCmd {
+ public:
+  LPushCmd(const std::string& name, int arity, uint16_t flag) : BPopServeCmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
@@ -227,6 +243,22 @@ class LTrimCmd : public Cmd {
   virtual void DoInitial() override;
 };
 
+class BRPopCmd : public BLRPopBaseCmd {
+ public:
+  BRPopCmd(const std::string& name, int arity, uint16_t flag) : BLRPopBaseCmd(name, arity, flag){};
+  virtual std::vector<std::string> current_key() const {
+    std::vector<std::string> res = keys_;
+    return res;
+  }
+  virtual void Do(std::shared_ptr<Partition> partition = nullptr);
+  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
+  virtual void Merge(){};
+  virtual Cmd* Clone() override { return new BRPopCmd(*this); }
+
+ private:
+  virtual void DoInitial() override;
+};
+
 class RPopCmd : public Cmd {
  public:
   RPopCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
@@ -245,9 +277,9 @@ class RPopCmd : public Cmd {
   virtual void DoInitial() override;
 };
 
-class RPopLPushCmd : public Cmd {
+class RPopLPushCmd : public BPopServeCmd {
  public:
-  RPopLPushCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  RPopLPushCmd(const std::string& name, int arity, uint16_t flag) : BPopServeCmd(name, arity, flag){};
   std::vector<std::string> current_key() const override {
     std::vector<std::string> res;
     res.push_back(source_);
@@ -264,9 +296,9 @@ class RPopLPushCmd : public Cmd {
   virtual void DoInitial() override;
 };
 
-class RPushCmd : public Cmd {
+class RPushCmd : public BPopServeCmd {
  public:
-  RPushCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
+  RPushCmd(const std::string& name, int arity, uint16_t flag) : BPopServeCmd(name, arity, flag){};
   virtual std::vector<std::string> current_key() const {
     std::vector<std::string> res;
     res.push_back(key_);
