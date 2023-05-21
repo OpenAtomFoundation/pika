@@ -48,9 +48,9 @@ class BlockedPopConnNode {
     if (expire_time_ == 0) {
       return false;
     }
-    int64_t unix_time;
-    pstd::TiemUtil::GetCurrentTime(&unix_time);
-    if (expire_time_ <= unix_time) {
+    auto now = std::chrono::system_clock::now();
+    int64_t now_in_ms = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count();
+    if (expire_time_ <= now_in_ms) {
       return true;
     }
     return false;
@@ -58,6 +58,7 @@ class BlockedPopConnNode {
   std::shared_ptr<RedisConn>& GetConnBlocked() { return conn_blocked_; }
   BlockPopType GetBlockType() const { return block_type_; }
 
+  // TO DO: delete this fun when testing is done
   void SelfPrint() {
     std::cout << "fd:" << conn_blocked_->fd() << ", expire_time:" << expire_time_ << ", blockType: " << block_type_
               << std::endl;
@@ -121,7 +122,7 @@ class DispatchThread : public ServerThread {
     map_from_conns_to_keys_for_blrpop.erase(conn_unblocked->fd());
   }
 
-  void CleanKeysAfterWaitInfoCleaned(std::string table_name) {
+  void CleanKeysAfterWaitInfoCleaned() {
     // after wait info of a conn is cleaned, some wait list of keys might be empty, must erase them from the map
     std::vector<BlrPopKey> keys_to_erase;
     for (auto& pair : map_from_keys_to_conns_for_blrpop) {
@@ -147,7 +148,26 @@ class DispatchThread : public ServerThread {
       return;
     }
     CleanWaitInfoOfUnBlockedBlrConn(conn_to_close);
-    CleanKeysAfterWaitInfoCleaned(conn_to_close->GetCurrentTable());
+    CleanKeysAfterWaitInfoCleaned();
+  }
+
+  void ScanExpiredBlockedConnsOfBlrpop() {
+    std::lock_guard latch(bLRPop_blocking_map_latch_);
+    for (auto& pair : map_from_keys_to_conns_for_blrpop) {
+      auto& conns_list = pair.second;
+      for (auto conn_node = conns_list->begin(); conn_node != conns_list->end();) {
+        if (conn_node->IsExpired()) {
+          std::shared_ptr conn_ptr = conn_node->GetConnBlocked();
+          conn_ptr->WriteResp("$-1\r\n");
+          conn_ptr->NotifyEpoll(true);
+          conn_node = conns_list->erase(conn_node);
+          CleanWaitInfoOfUnBlockedBlrConn(conn_ptr);
+        }else{
+          conn_node++;
+        }
+      }
+    }
+    CleanKeysAfterWaitInfoCleaned();
   }
 
   std::unordered_map<BlrPopKey, std::unique_ptr<std::list<BlockedPopConnNode>>, BlrPopKeyHash>&
@@ -158,6 +178,8 @@ class DispatchThread : public ServerThread {
     return map_from_conns_to_keys_for_blrpop;
   }
   std::shared_mutex& GetBLRPopBlockingMapLatch() { return bLRPop_blocking_map_latch_; };
+
+  pstd::TimedTaskManager& GetTimedTaskManager() { return timedTaskManager; }
 
  private:
   /*
@@ -199,6 +221,8 @@ class DispatchThread : public ServerThread {
    * latch of the two maps above.
    */
   std::shared_mutex bLRPop_blocking_map_latch_;
+
+  pstd::TimedTaskManager timedTaskManager;
 
 };  // class DispatchThread
 

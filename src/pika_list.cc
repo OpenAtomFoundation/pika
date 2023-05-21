@@ -121,7 +121,7 @@ void BPopServeCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shar
     // erase all waiting info of this conn
     dispatchThread->CleanWaitInfoOfUnBlockedBlrConn(conn_ptr);
   }
-  dispatchThread->CleanKeysAfterWaitInfoCleaned(curr_conn->GetCurrentTable());
+  dispatchThread->CleanKeysAfterWaitInfoCleaned();
 }
 
 void LPushCmd::DoInitial() {
@@ -213,9 +213,8 @@ void BLPopCmd::DoInitial() {
   }
 
   if (timeout > 0) {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    expire_time_ = unix_time + timeout;
+    auto now = std::chrono::system_clock::now();
+    expire_time_ = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count() + timeout * 1000;
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 
@@ -408,9 +407,8 @@ void BRPopCmd::DoInitial() {
   }
 
   if (timeout > 0) {
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    expire_time_ = unix_time + timeout;
+    auto now = std::chrono::system_clock::now();
+    expire_time_ = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count() + timeout * 1000;
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 

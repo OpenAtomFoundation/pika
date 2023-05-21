@@ -177,19 +177,6 @@ class RandomRWFile {
   void operator=(const RandomRWFile&);
 };
 
-class TiemUtil {
- public:
-  // this function is copied from RocksDB's implementation of:
-  // rocksdb::Env::Default()::GetCurrentTime(int64_t* unix_time);
-  static Status GetCurrentTime(int64_t* unix_time) {
-    time_t ret = time(nullptr);
-    if (ret == (time_t)-1) {
-      return Status::IOError("GetCurrentTime");
-    }
-    *unix_time = (int64_t)ret;
-    return Status::OK();
-  }
-};
 
 typedef struct {
   std::string task_name;
@@ -218,10 +205,14 @@ class TimedTaskManager {
     if (task_fd == -1) {
       return -1;
     }
-    using return_type = typename std::result_of<F(Args...)>::type;
-    auto new_task = std::make_shared<std::packaged_task<return_type(Args...)>>(
-        std::bind(std::forward<F>(f), std::forward<Args>(args)...));
-    tasks_.emplace(task_fd, {task_name, EPOLLIN, [new_task] { (*new_task)(); }});
+
+    std::function<void()> new_task = [f = std::forward<F>(f), args = std::make_tuple(std::forward<Args>(args)...), task_fd] {
+      std::apply(f, args);
+      uint64_t time_now;
+      read(task_fd, &time_now, sizeof(time_now));
+    };
+
+    tasks_[task_fd] = {task_name, EPOLLIN, new_task};
     epoll_event event;
     event.data.fd = task_fd;
     event.events = EPOLLIN;
@@ -236,9 +227,9 @@ class TimedTaskManager {
     int fd = timerfd_create(CLOCK_REALTIME, 0);
     int sec = interval / 1000;
     int ms = interval % 1000;
-    timespec current_time{};
+    timespec current_time;
     clock_gettime(CLOCK_REALTIME, &current_time);
-    itimerspec timer_spec{};
+    itimerspec timer_spec;
     timer_spec.it_value = current_time;
     timer_spec.it_interval = {sec, ms * 1000000};
     timerfd_settime(fd, TFD_TIMER_ABSTIME, &timer_spec, nullptr);
@@ -249,11 +240,14 @@ class TimedTaskManager {
    * @param fd the fd that fetchd from epoll_wait.
    * @return if this fd is bind to a timed task and which got executed, false if this fd dose not bind to a timed task.
    */
-  bool TryToExecTimeTask(int fd) {
+  bool TryToExecTimedTask(int fd) {
     auto it = tasks_.find(fd);
     if (it == tasks_.end()) {
       return false;
     }
+/*    if (it->second.event_type != event_type) {
+      return false;
+    }*/
     it->second.fun();
     return true;
   }

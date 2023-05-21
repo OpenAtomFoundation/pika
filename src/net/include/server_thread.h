@@ -20,6 +20,7 @@
 #include "net/include/net_define.h"
 #include "net/include/net_thread.h"
 #include "net/src/net_multiplexer.h"
+#include "pstd/include/env.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
 
@@ -111,9 +112,9 @@ const int kDefaultKeepAliveTime = 60;  // (s)
 
 class ServerThread : public Thread {
  public:
-  ServerThread(int port, int cron_interval, const ServerHandle* handle);
-  ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle);
-  ServerThread(const std::set<std::string>& bind_ips, int port, int cron_interval, const ServerHandle* handle);
+  ServerThread(int port, int cron_interval, const ServerHandle* handle, ServerThread* dispatcher = nullptr);
+  ServerThread(const std::string& bind_ip, int port, int cron_interval, const ServerHandle* handle, ServerThread* dispatcher = nullptr);
+  ServerThread(const std::set<std::string>& bind_ips, int port, int cron_interval, const ServerHandle* handle, ServerThread* dispatcher = nullptr);
 
 #ifdef __ENABLE_SSL
   /*
@@ -175,6 +176,7 @@ class ServerThread : public Thread {
   // process events in notify_queue
   virtual void ProcessNotifyEvents(const NetFiredEvent* pfe);
 
+  ServerThread* dispatcher_;
   const ServerHandle* handle_;
   bool own_handle_ = false;
 
@@ -197,6 +199,7 @@ class ServerThread : public Thread {
    * The server event handle
    */
   virtual void HandleConnEvent(NetFiredEvent* pfe) = 0;
+
 };
 
 // !!!Attention: If u use this constructor, the keepalive_timeout_ will

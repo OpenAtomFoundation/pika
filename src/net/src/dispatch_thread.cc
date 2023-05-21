@@ -16,10 +16,11 @@ namespace net {
 
 DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
                                const ServerHandle* handle)
-    : ServerThread::ServerThread(port, cron_interval, handle),
+    : ServerThread::ServerThread(port, cron_interval, handle, this),
       last_thread_(0),
       work_num_(work_num),
-      queue_limit_(queue_limit) {
+      queue_limit_(queue_limit),
+      timedTaskManager(net_multiplexer_->GetMultiplexer()) {
   worker_thread_ = new WorkerThread*[work_num_];
   for (int i = 0; i < work_num_; i++) {
     worker_thread_[i] = new WorkerThread(conn_factory, this, queue_limit, cron_interval);
@@ -28,10 +29,11 @@ DispatchThread::DispatchThread(int port, int work_num, ConnFactory* conn_factory
 
 DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, ConnFactory* conn_factory,
                                int cron_interval, int queue_limit, const ServerHandle* handle)
-    : ServerThread::ServerThread(ip, port, cron_interval, handle),
+    : ServerThread::ServerThread(ip, port, cron_interval, handle, this),
       last_thread_(0),
       work_num_(work_num),
-      queue_limit_(queue_limit) {
+      queue_limit_(queue_limit),
+      timedTaskManager(net_multiplexer_->GetMultiplexer()){
   worker_thread_ = new WorkerThread*[work_num_];
   for (int i = 0; i < work_num_; i++) {
     worker_thread_[i] = new WorkerThread(conn_factory, this, queue_limit, cron_interval);
@@ -40,10 +42,11 @@ DispatchThread::DispatchThread(const std::string& ip, int port, int work_num, Co
 
 DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int work_num, ConnFactory* conn_factory,
                                int cron_interval, int queue_limit, const ServerHandle* handle)
-    : ServerThread::ServerThread(ips, port, cron_interval, handle),
+    : ServerThread::ServerThread(ips, port, cron_interval, handle, this),
       last_thread_(0),
       work_num_(work_num),
-      queue_limit_(queue_limit) {
+      queue_limit_(queue_limit),
+      timedTaskManager(net_multiplexer_->GetMultiplexer()){
   worker_thread_ = new WorkerThread*[work_num_];
   for (int i = 0; i < work_num_; i++) {
     worker_thread_[i] = new WorkerThread(conn_factory, this, queue_limit, cron_interval);
