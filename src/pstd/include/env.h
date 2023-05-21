@@ -4,7 +4,10 @@
 #include <unistd.h>
 #include <string>
 #include <vector>
-
+#include <future>
+#include <functional>
+#include <sys/epoll.h>
+#include <sys/timerfd.h>
 #include "pstd/include/pstd_status.h"
 
 namespace pstd {
@@ -188,6 +191,94 @@ class TiemUtil{
     return Status::OK();
   }
 };
+
+
+typedef struct {
+  std::string task_name;
+  uint32_t event_type;
+  std::function<void()> fun;
+} TimedTask;
+
+class TimedTaskManager {
+ public:
+  TimedTaskManager(int epoll_fd) : epoll_fd_(epoll_fd) {}
+  /**
+   * @param task_name name of the timed task
+   * @param interval  exec time interval of the timed task
+   * @param f addr of a function whose exec is the task itself
+   * @param args parameters of the function
+   * @return fd that related with the task, return -1 if the interval is invalid
+   */
+  template <class F, class... Args>
+  int AddTimedTask(const std::string& task_name, int32_t interval, F&& f, Args&&... args) {
+    int task_fd = CreateTimedfd(interval);
+    if (task_fd == -1) {
+      return -1;
+    }
+    using return_type = typename std::result_of<F(Args...)>::type;
+    auto new_task = std::make_shared<std::packaged_task<return_type(Args...)>>(
+        std::bind(std::forward<F>(f), std::forward<Args>(args)...));
+    tasks_.emplace(task_fd, {task_name, EPOLLIN, [new_task] { (*new_task)(); }});
+    epoll_event event;
+    event.data.fd = task_fd;
+    event.events = EPOLLIN;
+    epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, task_fd, &event);
+    return task_fd;
+  }
+
+  int CreateTimedfd(int32_t interval) {
+    if (interval <= 0) {
+      return -1;
+    }
+    int fd = timerfd_create(CLOCK_REALTIME, 0);
+    int sec = interval / 1000;
+    int ms = interval % 1000;
+    timespec current_time{};
+    clock_gettime(CLOCK_REALTIME, &current_time);
+    itimerspec timer_spec{};
+    timer_spec.it_value = current_time;
+    timer_spec.it_interval = {sec, ms * 1000000};
+    timerfd_settime(fd, TFD_TIMER_ABSTIME, &timer_spec, nullptr);
+    return fd;
+  }
+
+  /**
+   * @param fd the fd that fetchd from epoll_wait.
+   * @return if this fd is bind to a timed task and which got executed, false if this fd dose not bind to a timed task.
+   */
+  bool TryToExecTimeTask(int fd) {
+    auto it = tasks_.find(fd);
+    if (it == tasks_.end()) {
+      return false;
+    }
+    it->second.fun();
+    return true;
+  }
+
+  void EraseTask(const std::string& task_name) {
+    std::vector<int> fds;
+    for (auto& pair : tasks_) {
+      if (task_name == pair.second.task_name) {
+        fds.emplace_back(pair.first);
+      }
+    }
+    for (auto& fd : fds) {
+      tasks_.erase(fd);
+    }
+  }
+  void EraseTask(int task_fd) {
+    auto it = tasks_.find(task_fd);
+    if (it == tasks_.end()) {
+      return;
+    }
+    tasks_.erase(task_fd);
+  }
+
+ private:
+  int epoll_fd_;
+  std::unordered_map<int, TimedTask> tasks_;
+};
+
 
 }  // namespace pstd
 #endif  // __PSTD_ENV_H__
