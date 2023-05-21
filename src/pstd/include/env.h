@@ -1,13 +1,13 @@
 #ifndef __PSTD_ENV_H__
 #define __PSTD_ENV_H__
 
-#include <unistd.h>
-#include <string>
-#include <vector>
-#include <future>
-#include <functional>
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
+#include <unistd.h>
+#include <functional>
+#include <future>
+#include <string>
+#include <vector>
 #include "pstd/include/pstd_status.h"
 
 namespace pstd {
@@ -177,9 +177,8 @@ class RandomRWFile {
   void operator=(const RandomRWFile&);
 };
 
-class TiemUtil{
+class TiemUtil {
  public:
-
   // this function is copied from RocksDB's implementation of:
   // rocksdb::Env::Default()::GetCurrentTime(int64_t* unix_time);
   static Status GetCurrentTime(int64_t* unix_time) {
@@ -192,7 +191,6 @@ class TiemUtil{
   }
 };
 
-
 typedef struct {
   std::string task_name;
   uint32_t event_type;
@@ -202,6 +200,11 @@ typedef struct {
 class TimedTaskManager {
  public:
   TimedTaskManager(int epoll_fd) : epoll_fd_(epoll_fd) {}
+  ~TimedTaskManager() {
+    for (auto& pair : tasks_) {
+      EraseTask(pair.first);
+    }
+  }
   /**
    * @param task_name name of the timed task
    * @param interval  exec time interval of the timed task
@@ -264,6 +267,8 @@ class TimedTaskManager {
     }
     for (auto& fd : fds) {
       tasks_.erase(fd);
+      epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, nullptr);
+      close(fd);
     }
   }
   void EraseTask(int task_fd) {
@@ -272,13 +277,16 @@ class TimedTaskManager {
       return;
     }
     tasks_.erase(task_fd);
+    epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, task_fd, nullptr);
+    close(task_fd);
   }
+  TimedTaskManager(const TimedTaskManager& other) = delete;
+  TimedTaskManager& operator=(const TimedTaskManager& other) = delete;
 
  private:
   int epoll_fd_;
   std::unordered_map<int, TimedTask> tasks_;
 };
-
 
 }  // namespace pstd
 #endif  // __PSTD_ENV_H__
