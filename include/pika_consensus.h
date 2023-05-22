@@ -12,10 +12,9 @@
 #include "include/pika_stable_log.h"
 #include "pstd/include/env.h"
 
-class Context {
+class Context final {
  public:
   Context(const std::string path);
-  ~Context();
 
   Status Init();
   // RWLock should be held when access members.
@@ -38,7 +37,7 @@ class Context {
 
  private:
   std::string path_;
-  pstd::RWFile* save_ = nullptr;
+  std::unique_ptr<pstd::RWFile> save_;
   // No copying allowed;
   Context(const Context&);
   void operator=(const Context&);

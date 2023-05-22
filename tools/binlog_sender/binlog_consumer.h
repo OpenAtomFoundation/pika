@@ -58,7 +58,7 @@ class BinlogConsumer {
 
   pstd::Slice buffer_;
   char* const backing_store_;
-  pstd::SequentialFile* queue_;
+  std::unique_ptr<pstd::SequentialFile> queue_;
 };
 
 #endif  //  INCLUDE_BINLOG_Consumber_H_
