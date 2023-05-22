@@ -14,12 +14,12 @@ using namespace std;
 static pstd::Mutex print_lock;
 
 void task(void* arg) {
+  std::unique_ptr<int> int_arg(static_cast<int*>(arg));
   {
     std::lock_guard l(print_lock);
-    std::cout << " task : " << *((int*)arg) << std::endl;
+    std::cout << " task : " << *int_arg << std::endl;
   }
   sleep(1);
-  delete (int*)arg;
 }
 
 struct TimerItem {
