@@ -240,7 +240,11 @@ else()
   set(LIB_GLOG libglog.a)
 endif()
 
-set(GLOG_LIBRARY ${INSTALL_LIBDIR}/${LIB_GLOG})
+if(${OS_VERSION} MATCHES "CentOS")
+  set(GLOG_LIBRARY ${INSTALL_LIBDIR_64}/${LIB_GLOG})
+else()
+  set(GLOG_LIBRARY ${INSTALL_LIBDIR}/${LIB_GLOG})
+endif()
 set(GLOG_INCLUDE_DIR ${INSTALL_INCLUDEDIR})
 
 ExternalProject_Add(snappy
@@ -733,7 +737,7 @@ target_link_libraries(${PROJECT_NAME}
   storage
   net
   pstd
-  ${LIB_GLOG}
+  ${GLOG_LIBRARY}
   librocksdb.a
   ${LIB_PROTOBUF}
   ${LIB_GFLAGS}

@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
   MyConnFactory conn_factory;
   MyServerHandle handle;
 
-  ServerThread* my_thread = NewHolyThread(my_port, &conn_factory, 1000, &handle);
+  std::unique_ptr<ServerThread> my_thread(NewHolyThread(my_port, &conn_factory, 1000, &handle));
   if (my_thread->StartThread() != 0) {
     printf("StartThread error happened!\n");
     exit(-1);
@@ -117,8 +117,6 @@ int main(int argc, char* argv[]) {
     sleep(1);
   }
   my_thread->StopThread();
-
-  delete my_thread;
 
   return 0;
 }

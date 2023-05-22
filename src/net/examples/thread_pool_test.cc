@@ -24,13 +24,13 @@ uint64_t NowMicros() {
 static pstd::Mutex print_lock;
 
 void task(void* arg) {
+  std::unique_ptr<int> int_arg(static_cast<int*>(arg));
   {
     std::lock_guard l(print_lock);
-    std::cout << " task : " << *((int*)arg) << " time(micros) " << NowMicros() << "   thread id: " << pthread_self()
+    std::cout << " task : " << *int_arg << " time(micros) " << NowMicros() << "   thread id: " << pthread_self()
               << std::endl;
   }
   sleep(1);
-  delete (int*)arg;
 }
 
 int main() {
