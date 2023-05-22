@@ -265,6 +265,8 @@ int PikaConf::Load() {
                << " [0..." << replication_num_.load() << "]";
   }
   consensus_level_.store(tmp_consensus_level);
+  //todo:the log should be delete
+  consensus_level_.store(tmp_consensus_level); 
   if ((consensus_level_.load() != 0 || replication_num_.load() != 0)) {
     LOG(FATAL) << "consensus-level & replication-num only configurable under sharding mode,"
                << " set it to be 0 if you are using classic mode";
