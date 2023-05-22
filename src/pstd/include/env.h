@@ -188,8 +188,9 @@ class TimedTaskManager {
  public:
   TimedTaskManager(int epoll_fd) : epoll_fd_(epoll_fd) {}
   ~TimedTaskManager() {
-    for (auto& pair : tasks_) {
-      EraseTask(pair.first);
+    for (auto &pair: tasks_) {
+      epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, pair.first, nullptr);
+      close(pair.first);
     }
   }
   /**
@@ -240,29 +241,21 @@ class TimedTaskManager {
    * @param fd the fd that fetchd from epoll_wait.
    * @return if this fd is bind to a timed task and which got executed, false if this fd dose not bind to a timed task.
    */
-  bool TryToExecTimedTask(int fd) {
+  bool TryToExecTimedTask(int fd, int32_t event_type) {
     auto it = tasks_.find(fd);
-    if (it == tasks_.end()) {
+    if (it == tasks_.end() || it->second.event_type != event_type) {
       return false;
     }
-/*    if (it->second.event_type != event_type) {
-      return false;
-    }*/
     it->second.fun();
     return true;
   }
 
-  void EraseTask(const std::string& task_name) {
+  int GetTaskfdByTaskName(const std::string& task_name) {
     std::vector<int> fds;
     for (auto& pair : tasks_) {
       if (task_name == pair.second.task_name) {
-        fds.emplace_back(pair.first);
+        return pair.first;
       }
-    }
-    for (auto& fd : fds) {
-      tasks_.erase(fd);
-      epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, nullptr);
-      close(fd);
     }
   }
   void EraseTask(int task_fd) {
@@ -274,9 +267,10 @@ class TimedTaskManager {
     epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, task_fd, nullptr);
     close(task_fd);
   }
+
+  //no copying allowed
   TimedTaskManager(const TimedTaskManager& other) = delete;
   TimedTaskManager& operator=(const TimedTaskManager& other) = delete;
-
  private:
   int epoll_fd_;
   std::unordered_map<int, TimedTask> tasks_;
