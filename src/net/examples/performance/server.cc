@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 
   SignalSetup();
 
-  ServerThread* st_thread = NewDispatchThread(ip, port, 24, &conn_factory, 1000);
+  std::unique_ptr<ServerThread> st_thread(NewDispatchThread(ip, port, 24, &conn_factory, 1000));
   st_thread->StartThread();
   uint64_t st, ed;
 
@@ -98,8 +98,6 @@ int main(int argc, char* argv[]) {
     printf("average qps %lf\n", (double)(num.load() - prv) / ((double)(ed - st) / 1000000));
   }
   st_thread->StopThread();
-
-  delete st_thread;
 
   return 0;
 }

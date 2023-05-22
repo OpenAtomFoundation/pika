@@ -29,7 +29,7 @@ MyConn::MyConn(int fd, const std::string& ip_port, Thread* thread, void* worker_
   // Handle worker_specific_data ...
 }
 
-ClientThread* client;
+std::unique_ptr<ClientThread> client;
 int sendto_port;
 int MyConn::DealMessage(const RedisCmdArgsType& argv, std::string* response) {
   sleep(1);
@@ -95,10 +95,11 @@ int main(int argc, char* argv[]) {
 
   SignalSetup();
 
-  ConnFactory* conn_factory = new MyConnFactory();
+  std::unique_ptr<ConnFactory> conn_factory = std::make_unique<MyConnFactory>();
+  //"handle" will be deleted within "client->StopThread()"
   ClientHandle* handle = new ClientHandle();
 
-  client = new ClientThread(conn_factory, 3000, 60, handle, nullptr);
+  client = std::make_unique<ClientThread>(conn_factory.get(), 3000, 60, handle, nullptr);
 
   if (client->StartThread() != 0) {
     printf("StartThread error happened!\n");
@@ -107,11 +108,10 @@ int main(int argc, char* argv[]) {
   running.store(true);
   while (running.load()) {
     sleep(1);
-    DoCronWork(client, sendto_port);
+    DoCronWork(client.get(), sendto_port);
   }
 
   client->StopThread();
-  delete client;
-  delete conn_factory;
+  client.reset();
   return 0;
 }
