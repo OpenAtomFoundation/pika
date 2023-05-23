@@ -53,6 +53,7 @@ class PikaClientConn : public net::RedisConn {
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
   void SetCurrentTable(const std::string& table_name) { current_table_ = table_name; }
+  const std::string& GetCurrentTable() override{ return current_table_; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = cb; }
 
   net::ServerThread* server_thread() { return server_thread_; }

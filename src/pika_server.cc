@@ -12,9 +12,11 @@
 #include <algorithm>
 #include <ctime>
 #include <fstream>
+#include <utility>
 
 #include "net/include/bg_thread.h"
 #include "net/include/net_cli.h"
+#include "net/include/net_conn.h"
 #include "net/include/net_interfaces.h"
 #include "net/include/redis_cli.h"
 #include "pstd/include/env.h"
@@ -42,6 +44,8 @@ void DoDBSync(void* arg) {
   ps->DbSyncSendFile(dbsa->ip, dbsa->port, dbsa->table_name, dbsa->partition_id);
 }
 
+
+
 PikaServer::PikaServer()
     : exit_(false),
       slot_state_(INFREE),
@@ -63,7 +67,6 @@ PikaServer::PikaServer()
   }
 
   InitStorageOptions();
-
   // Create thread
   worker_num_ = std::min(g_pika_conf->thread_num(), PIKA_MAX_WORKER_THREAD_NUM);
 
@@ -142,7 +145,6 @@ void PikaServer::Start() {
 
   // We Init Table Struct Before Start The following thread
   InitTableStruct();
-
   ret = pika_client_processor_->Start();
   if (ret != net::kSuccess) {
     tables_.clear();
@@ -1463,15 +1465,10 @@ void PikaServer::InitStorageOptions() {
         rocksdb::NewLRUCache(storage_options_.block_cache_size, static_cast<int>(g_pika_conf->num_shard_bits()));
   }
 
-  storage_options_.options.rate_limiter =
-    std::shared_ptr<rocksdb::RateLimiter>(
-      rocksdb::NewGenericRateLimiter(
-        g_pika_conf->rate_limiter_bandwidth(),
-        g_pika_conf->rate_limiter_refill_period_us(),
-        g_pika_conf->rate_limiter_fairness(),
-        rocksdb::RateLimiter::Mode::kWritesOnly,
-        g_pika_conf->rate_limiter_auto_tuned()
-      ));
+  storage_options_.options.rate_limiter = std::shared_ptr<rocksdb::RateLimiter>(
+      rocksdb::NewGenericRateLimiter(g_pika_conf->rate_limiter_bandwidth(),
+                                     g_pika_conf->rate_limiter_refill_period_us(), g_pika_conf->rate_limiter_fairness(),
+                                     rocksdb::RateLimiter::Mode::kWritesOnly, g_pika_conf->rate_limiter_auto_tuned()));
 
   // For Storage small compaction
   storage_options_.statistics_max_size = g_pika_conf->max_cache_statistic_keys();
