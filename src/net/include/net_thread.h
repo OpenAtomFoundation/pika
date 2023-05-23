@@ -11,7 +11,7 @@
 #include <string>
 
 #include "pstd/include/pstd_mutex.h"
-#include "pstd/include/pika_noncopyable.h"
+#include "pstd/include/noncopyable.h"
 
 namespace net {
 

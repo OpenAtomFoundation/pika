@@ -7,7 +7,9 @@
 #define PIKA_PARTITION_H_
 
 #include <shared_mutex>
+
 #include "pstd/include/scope_record_lock.h"
+
 #include "storage/backupable.h"
 #include "storage/storage.h"
 

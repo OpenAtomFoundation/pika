@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "pstd/include/pika_noncopyable.h"
+#include "pstd/include/noncopyable.h"
 #include "pstd/include/lock_mgr.h"
 #include "rocksdb/slice.h"
 

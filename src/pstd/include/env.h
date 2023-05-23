@@ -7,7 +7,7 @@
 #include <memory>
 
 #include "pstd/include/pstd_status.h"
-#include "pstd/include/pika_noncopyable.h"
+#include "pstd/include/noncopyable.h"
 
 namespace pstd {
 

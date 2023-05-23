@@ -10,7 +10,7 @@
 #include <string>
 
 #include "pstd/include/mutex.h"
-#include "pstd/include/pika_noncopyable.h"
+#include "pstd/include/noncopyable.h"
 
 namespace pstd {
 

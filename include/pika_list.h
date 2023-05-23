@@ -23,8 +23,8 @@ class LIndexCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LIndexCmd(*this); }
 
  private:
@@ -43,8 +43,8 @@ class LInsertCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LInsertCmd(*this); }
 
  private:
@@ -64,8 +64,8 @@ class LLenCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LLenCmd(*this); }
 
  private:
@@ -82,8 +82,8 @@ class LPopCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LPopCmd(*this); }
 
  private:
@@ -100,8 +100,8 @@ class LPushCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LPushCmd(*this); }
 
  private:
@@ -120,8 +120,8 @@ class LPushxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LPushxCmd(*this); }
 
  private:
@@ -139,8 +139,8 @@ class LRangeCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LRangeCmd(*this); }
 
  private:
@@ -159,8 +159,8 @@ class LRemCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LRemCmd(*this); }
 
  private:
@@ -179,8 +179,8 @@ class LSetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LSetCmd(*this); }
 
  private:
@@ -199,8 +199,8 @@ class LTrimCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new LTrimCmd(*this); }
 
  private:
@@ -219,8 +219,8 @@ class RPopCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new RPopCmd(*this); }
 
  private:
@@ -237,8 +237,8 @@ class RPopLPushCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new RPopLPushCmd(*this); }
 
  private:
@@ -256,8 +256,8 @@ class RPushCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new RPushCmd(*this); }
 
  private:
@@ -276,8 +276,8 @@ class RPushxCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new RPushxCmd(*this); }
 
  private:

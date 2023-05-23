@@ -7,13 +7,14 @@
 #define PIKA_META
 
 #include <shared_mutex>
+
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_mutex.h"
 
 #include "include/pika_define.h"
 
 
-class PikaMeta {
+class PikaMeta : public pstd::noncopyable {
  public:
   PikaMeta() = default;
   ~PikaMeta() = default;
@@ -23,9 +24,6 @@ class PikaMeta {
   pstd::Status StableSave(const std::vector<TableStruct>& table_structs);
   pstd::Status ParseMeta(std::vector<TableStruct>* table_structs);
 
-  // No copying allowed;
-  PikaMeta(const PikaMeta&) = delete;
-  void operator=(const PikaMeta&) = delete;
  private:
   std::shared_mutex rwlock_;
   std::string local_meta_path_;

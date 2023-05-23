@@ -10,7 +10,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
-#include "pika_noncopyable.h"
+#include "noncopyable.h"
 
 namespace pstd {
 
@@ -25,7 +25,7 @@ void InitOnce(OnceType& once, F&& f, Args&&... args) {
   return std::call_once(once, std::forward<F>(f), std::forward<Args>(args)...);
 }
 
-class RefMutex {
+class RefMutex : public pstd::noncopyable {
  public:
   RefMutex() = default;
   ~RefMutex() = default;
@@ -39,14 +39,9 @@ class RefMutex {
   void Unref();
   bool IsLastRef() { return refs_ == 1; }
 
-  // No copying
-  RefMutex(const RefMutex&) = delete;
-  void operator=(const RefMutex&) = delete;
-
  private:
   std::mutex mu_;
   int refs_ = 0;
-
 };
 
 class RecordMutex : public pstd::noncopyable {

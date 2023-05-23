@@ -12,7 +12,7 @@
 #include <iostream>
 #include <string>
 
-#include "pstd/include/pika_noncopyable.h"
+#include "pstd/include/noncopyable.h"
 
 namespace net {
 

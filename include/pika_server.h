@@ -126,7 +126,7 @@ enum TaskType {
   kBgSave,
 };
 
-class PikaServer {
+class PikaServer : public pstd::noncopyable {
  public:
   PikaServer();
   ~PikaServer();
@@ -332,8 +332,6 @@ class PikaServer {
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
 
-  PikaServer(PikaServer& ps) = delete;
-  void operator=(const PikaServer& ps) = delete;
  private:
   /*
    * TimingTask use

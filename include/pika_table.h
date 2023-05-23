@@ -7,12 +7,13 @@
 #define PIKA_TABLE_H_
 
 #include <shared_mutex>
+
 #include "storage/storage.h"
 
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
-class Table : public std::enable_shared_from_this<Table> {
+class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyable {
  public:
   Table(std::string  table_name, uint32_t partition_num, const std::string& db_path, const std::string& log_path);
   virtual ~Table();
@@ -56,11 +57,6 @@ class Table : public std::enable_shared_from_this<Table> {
   pstd::Status MovetoToTrash(const std::string& path);
   pstd::Status Leave();
 
-  /*
-   * No allowed copy and copy assign
-   */
-  Table(const Table&) = delete;
-  void operator=(const Table&) = delete;
  private:
   std::string table_name_;
   uint32_t partition_num_ = 0;

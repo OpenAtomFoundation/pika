@@ -19,7 +19,7 @@
 #include "net/include/server_thread.h"
 #include "net/src/net_multiplexer.h"
 #include "pstd/include/testutil.h"
-#include "pstd/include/pika_noncopyable.h"
+#include "pstd/include/noncopyable.h"
 
 namespace net {
 

@@ -12,7 +12,7 @@
 #include "net/include/net_define.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/xdebug.h"
-#include "pstd/include/pika_noncopyable.h"
+#include "pstd/include/noncopyable.h"
 
 
 using pstd::Status;
