@@ -26,9 +26,8 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
     : RedisConn(fd, ip_port, thread, mpx, handle_type, max_conn_rbuf_size),
       server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
-      current_table_(g_pika_conf->default_table())
-      {
-  autoh_stat_.Init();
+      current_table_(g_pika_conf->default_table()) {
+  auth_stat_.Init();
 }
 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
@@ -43,9 +42,9 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
   c_ptr->SetResp(resp_ptr);
 
-  // Check autohed
+  // Check authed
   // AuthCmd will set stat_
-  if (!autoh_stat_.IsAuthed(c_ptr)) {
+  if (!auth_stat_.IsAuthed(c_ptr)) {
     c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
     return c_ptr;
   }
@@ -283,7 +282,7 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared
 
 // Initial permission status
 void PikaClientConn::AuthStat::Init() {
-  // Check autoh required
+  // Check auth required
   stat_ = g_pika_conf->userpass().empty() ? kLimitAuthed : kNoAuthed;
   if (stat_ == kLimitAuthed && g_pika_conf->requirepass().empty()) {
     stat_ = kAdminAuthed;
@@ -308,7 +307,7 @@ bool PikaClientConn::AuthStat::IsAuthed(const std::shared_ptr<Cmd>& cmd_ptr) {
       }
       break;
     default:
-      LOG(WARNING) << "Invalid autoh stat : " << static_cast<unsigned>(stat_);
+      LOG(WARNING) << "Invalid auth stat : " << static_cast<unsigned>(stat_);
       return false;
   }
   return true;
@@ -316,7 +315,7 @@ bool PikaClientConn::AuthStat::IsAuthed(const std::shared_ptr<Cmd>& cmd_ptr) {
 
 // Update permission status
 bool PikaClientConn::AuthStat::ChecknUpdate(const std::string& message) {
-  // Situations to change autoh status
+  // Situations to change auth status
   if (message == "USER") {
     stat_ = kLimitAuthed;
   } else if (message == "ROOT") {

@@ -7,8 +7,6 @@
 
 #include <utility>
 
-#include <utility>
-
 #include "include/pika_binlog_transverter.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
@@ -16,7 +14,7 @@
 #include "include/pika_stable_log.h"
 #include "pstd/include/env.h"
 
-class Context {
+class Context : public pstd::noncopyable {
  public:
   Context(std::string path);
 
@@ -38,9 +36,6 @@ class Context {
     tmp_stream << "  Applied window " << applied_win_.ToStringStatus();
     return tmp_stream.str();
   }
-  // No copying allowed;
-  Context(const Context&) = delete;
-  void operator=(const Context&) = delete;
 
  private:
   std::string path_;

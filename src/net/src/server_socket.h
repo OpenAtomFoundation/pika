@@ -12,9 +12,11 @@
 #include <iostream>
 #include <string>
 
+#include "pstd/include/pika_noncopyable.h"
+
 namespace net {
 
-class ServerSocket {
+class ServerSocket : public pstd::noncopyable {
  public:
   explicit ServerSocket(int port, bool is_block = false);
 
@@ -48,13 +50,6 @@ class ServerSocket {
   int sockfd() const { return sockfd_; }
 
   void set_sockfd(int sockfd) { sockfd_ = sockfd; }
-
-  /*
-   * No allowed copy and copy assign operator
-   */
-
-  ServerSocket(const ServerSocket&) = delete;
-  void operator=(const ServerSocket&) = delete;
 
  private:
   int SetNonBlock();

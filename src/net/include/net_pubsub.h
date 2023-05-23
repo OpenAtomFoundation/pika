@@ -29,7 +29,7 @@ namespace net {
 class NetFiredEvent;
 class NetConn;
 
-class PubSubThread : public Thread {
+class PubSubThread : public Thread, public pstd::noncopyable {
  public:
   PubSubThread();
 
@@ -72,9 +72,6 @@ class PubSubThread : public Thread {
   void UpdateConnReadyState(int fd, const ReadyState& state);
 
   bool IsReady(int fd);
-  // No copying allowed
-  PubSubThread(const PubSubThread&) = delete;
-  void operator=(const PubSubThread&) = delete;
 
  private:
   void RemoveConn(const std::shared_ptr<NetConn>& conn);

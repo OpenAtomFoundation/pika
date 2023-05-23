@@ -5,7 +5,9 @@
 #include <string>
 #include <vector>
 #include <memory>
+
 #include "pstd/include/pstd_status.h"
+#include "pstd/include/pika_noncopyable.h"
 
 namespace pstd {
 
@@ -46,17 +48,13 @@ Status DeleteFile(const std::string& fname);
 
 int RenameFile(const std::string& oldname, const std::string& newname);
 
-class FileLock {
+class FileLock : public pstd::noncopyable {
  public:
   FileLock() = default;
   virtual ~FileLock()= default;;
 
   int fd_ = -1;
   std::string name_;
-
-  // No copying allowed
-  FileLock(const FileLock&) = delete;
-  void operator=(const FileLock&) = delete;
 };
 
 Status LockFile(const std::string& f, FileLock** l);
@@ -83,7 +81,7 @@ Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& 
 // A file abstraction for sequential writing.  The implementation
 // must provide buffering since callers may append small fragments
 // at a time to the file.
-class WritableFile {
+class WritableFile : public pstd::noncopyable {
  public:
   WritableFile() = default;
   virtual ~WritableFile();
@@ -94,10 +92,6 @@ class WritableFile {
   virtual Status Sync() = 0;
   virtual Status Trim(uint64_t offset) = 0;
   virtual uint64_t Filesize() = 0;
-
-  // No copying allowed
-  WritableFile(const WritableFile&) = delete;
-  void operator=(const WritableFile&) = delete;
 };
 
 // A abstract for the sequential readable file
@@ -112,20 +106,15 @@ class SequentialFile {
   virtual char* ReadLine(char* buf, int n) = 0;
 };
 
-class RWFile {
+class RWFile : public pstd::noncopyable {
  public:
   RWFile() = default;
   virtual ~RWFile();
   virtual char* GetData() = 0;
-
-  // No copying allowed
-  RWFile(const RWFile&) = delete;
-  void operator=(const RWFile&) = delete;
- private:
 };
 
 // A file abstraction for random reading and writing.
-class RandomRWFile {
+class RandomRWFile : public pstd::noncopyable {
  public:
   RandomRWFile() = default;
   virtual ~RandomRWFile() = default;
@@ -165,12 +154,6 @@ class RandomRWFile {
     (void)len;
     return Status::OK();
   }
-
-  // No copying allowed
-  RandomRWFile(const RandomRWFile&) = delete;
-  void operator=(const RandomRWFile&) = delete;
-  
- private:
 };
 
 }  // namespace pstd

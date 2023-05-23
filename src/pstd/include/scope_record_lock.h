@@ -25,9 +25,6 @@ class ScopeRecordLock final : public pstd::noncopyable {
   }
   ~ScopeRecordLock() { lock_mgr_->UnLock(key_.ToString()); }
 
-  ScopeRecordLock(const ScopeRecordLock&) = delete;
-  void operator=(const ScopeRecordLock&) = delete;
-
  private:
   std::shared_ptr<LockMgr> const lock_mgr_;
   Slice key_;

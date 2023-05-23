@@ -12,12 +12,15 @@
 #include "net/include/net_define.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/xdebug.h"
+#include "pstd/include/pika_noncopyable.h"
+
 
 using pstd::Status;
+
 namespace net {
 
 // Default PBCli is block IO;
-class PbCli : public NetCli {
+class PbCli : public NetCli, public pstd::noncopyable {
  public:
   PbCli(const std::string& ip, int port);
   ~PbCli() override;
@@ -28,8 +31,6 @@ class PbCli : public NetCli {
   // Read, parse and store the reply
   Status Recv(void* msg_res) override;
 
-  PbCli(const PbCli&) = delete;
-  void operator=(const PbCli&) = delete;
  private:
   // BuildWbuf need to access rbuf_, wbuf_;
   char* rbuf_;

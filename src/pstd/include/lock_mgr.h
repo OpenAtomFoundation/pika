@@ -10,6 +10,7 @@
 #include <string>
 
 #include "pstd/include/mutex.h"
+#include "pstd/include/pika_noncopyable.h"
 
 namespace pstd {
 
@@ -17,7 +18,7 @@ namespace lock {
 struct LockMap;
 struct LockMapStripe;
 
-class LockMgr {
+class LockMgr : public pstd::noncopyable {
  public:
   LockMgr(size_t default_num_stripes, int64_t max_num_locks, const std::shared_ptr<MutexFactory>& factory);
 
@@ -29,10 +30,6 @@ class LockMgr {
 
   // Unlock a key locked by TryLock().
   void UnLock(const std::string& key);
-
-  // No copying allowed
-  LockMgr(const LockMgr&) = delete;
-  void operator=(const LockMgr&) = delete;
 
  private:
   // Default number of lock map stripes

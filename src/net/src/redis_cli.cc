@@ -15,6 +15,7 @@
 #include <utility>
 #include <vector>
 
+#include "pstd/include/pika_noncopyable.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_define.h"
 
@@ -22,7 +23,7 @@ using pstd::Status;
 
 namespace net {
 
-class RedisCli : public NetCli {
+class RedisCli : public NetCli, public pstd::noncopyable {
  public:
   RedisCli();
   ~RedisCli() override;
@@ -32,10 +33,6 @@ class RedisCli : public NetCli {
 
   // Read, parse and store the reply
   Status Recv(void* trival = nullptr) override;
-
-  // No copyable
-  RedisCli(const RedisCli&) = delete;
-  void operator=(const RedisCli&) = delete;
 
  private:
   RedisCmdArgsType argv_;  // The parsed result

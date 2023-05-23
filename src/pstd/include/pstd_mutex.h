@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "pika_noncopyable.h"
 
 namespace pstd {
 
@@ -48,7 +49,7 @@ class RefMutex {
 
 };
 
-class RecordMutex {
+class RecordMutex : public pstd::noncopyable {
  public:
   RecordMutex()= default;;
   ~RecordMutex();
@@ -62,19 +63,12 @@ class RecordMutex {
   Mutex mutex_;
 
   std::unordered_map<std::string, RefMutex*> records_;
-
-  // No copying
-  RecordMutex(const RecordMutex&);
-  void operator=(const RecordMutex&);
 };
 
-class RecordLock {
+class RecordLock : public pstd::noncopyable {
  public:
   RecordLock(RecordMutex* mu, std::string  key) : mu_(mu), key_(std::move(key)) { mu_->Lock(key_); }
   ~RecordLock() { mu_->Unlock(key_); }
-  // No copying allowed
-  RecordLock(const RecordLock&) = delete;
-  void operator=(const RecordLock&) = delete;
 
  private:
   RecordMutex* const mu_;

@@ -27,13 +27,13 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
 
   InnerMessage::InnerRequest::MetaSync meta_sync_request = req->meta_sync();
   const InnerMessage::Node& node = meta_sync_request.node();
-  std::string masterautoh = meta_sync_request.has_autoh() ? meta_sync_request.autoh() : "";
+  std::string masterauth = meta_sync_request.has_auth() ? meta_sync_request.auth() : "";
 
   InnerMessage::InnerResponse response;
   response.set_type(InnerMessage::kMetaSync);
-  if (!g_pika_conf->requirepass().empty() && g_pika_conf->requirepass() != masterautoh) {
+  if (!g_pika_conf->requirepass().empty() && g_pika_conf->requirepass() != masterauth) {
     response.set_code(InnerMessage::kError);
-    response.set_reply("Auth with master error, Invalid masterautoh");
+    response.set_reply("Auth with master error, Invalid masterauth");
   } else {
     LOG(INFO) << "Receive MetaSync, Slave ip: " << node.ip() << ", Slave port:" << node.port();
     std::vector<TableStruct> table_structs = g_pika_conf->table_structs();

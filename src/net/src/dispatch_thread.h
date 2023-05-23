@@ -22,7 +22,7 @@ class NetItem;
 class NetFiredEvent;
 class WorkerThread;
 
-class DispatchThread : public ServerThread {
+class DispatchThread : public ServerThread, public pstd::noncopyable {
  public:
   DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
                  const ServerHandle* handle);
@@ -54,9 +54,6 @@ class DispatchThread : public ServerThread {
   void HandleNewConn(int connfd, const std::string& ip_port) override;
 
   void SetQueueLimit(int queue_limit) override;
-  // No copying allowed
-  DispatchThread(const DispatchThread&) = delete;
-  void operator=(const DispatchThread&) = delete;
 
  private:
   /*

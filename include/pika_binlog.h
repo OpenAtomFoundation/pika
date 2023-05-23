@@ -45,7 +45,7 @@ class Version final : public pstd::noncopyable {
   std::shared_ptr<pstd::RWFile> save_;
 };
 
-class Binlog {
+class Binlog : public pstd::noncopyable {
  public:
   Binlog(std::string  Binlog_path, int file_size = 100 * 1024 * 1024);
   ~Binlog();
@@ -83,10 +83,6 @@ class Binlog {
 
   void Close();
 
-  // No copying allowed
-  Binlog(const Binlog&) = delete;
-  void operator=(const Binlog&) = delete;
-  
  private:
   pstd::Status Put(const char* item, int len);
   static pstd::Status AppendPadding(pstd::WritableFile* file, uint64_t* len);
