@@ -122,6 +122,7 @@ class BPopServeCmd : public Cmd {
  public:
   BPopServeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Partition> partition);
+  static void ServeAndUnblockConns(void* args);
 };
 
 class LPushCmd : public BPopServeCmd {

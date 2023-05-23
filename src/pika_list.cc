@@ -3,11 +3,12 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include "include/pika_list.h"
+#include <utility>
 #include "include/pika_data_distribution.h"
+#include "include/pika_list.h"
 #include "include/pika_server.h"
 #include "pstd/include/pstd_string.h"
-
+extern PikaServer* g_pika_server;
 void LIndexCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameLIndex);
@@ -77,23 +78,52 @@ void LLenCmd::Do(std::shared_ptr<Partition> partition) {
   }
 }
 
+typedef struct {
+  std::string key;
+  std::string curr_db;
+  std::shared_ptr<Partition> partition;
+  net::DispatchThread* dispatchThread;
+} BlrPopUnblockTaskArgs;
+
 void BPopServeCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shared_ptr<Partition> partition) {
   std::shared_ptr<net::RedisConn> curr_conn = std::dynamic_pointer_cast<net::RedisConn>(GetConn());
   auto dispatchThread = dynamic_cast<net::DispatchThread*>(curr_conn->thread());
-  std::lock_guard latch(dispatchThread->GetBLRPopBlockingMapLatch());
-  auto& map_from_keys_to_conns_for_blrpop = dispatchThread->GetMapFromKeysToConnsForBlrpop();
-  net::BlrPopKey blrPop_key{curr_conn->GetCurrentTable(), key};
-  auto it = map_from_keys_to_conns_for_blrpop.find(blrPop_key);
-  if (it == map_from_keys_to_conns_for_blrpop.end()) {
-    // no client is waitting for this key
-    return;
+
+  {
+    std::shared_lock read_latch(dispatchThread->GetBLRPopBlockingMapLatch());
+    auto& map_from_keys_to_conns_for_blrpop = dispatchThread->GetMapFromKeysToConnsForBlrpop();
+    net::BlrPopKey blrPop_key{curr_conn->GetCurrentTable(), key};
+    auto it = map_from_keys_to_conns_for_blrpop.find(blrPop_key);
+    if (it == map_from_keys_to_conns_for_blrpop.end()) {
+      // no client is waitting for this key
+      return;
+    }
   }
 
+  auto* args = new BlrPopUnblockTaskArgs();
+  args->key = key;
+  args->dispatchThread = dispatchThread;
+  args->partition = std::move(partition);
+  args->curr_db = curr_conn->GetCurrentTable();
+  g_pika_server->ScheduleClientPool(&ServeAndUnblockConns, args);
+}
+void BPopServeCmd::ServeAndUnblockConns(void* args) {
+  auto bg_args = std::unique_ptr<BlrPopUnblockTaskArgs>(static_cast<BlrPopUnblockTaskArgs*>(args));
+  net::DispatchThread* dispatchThread = bg_args->dispatchThread;
+  std::shared_ptr<Partition> partition = std::move(bg_args->partition);
+  std::string key = std::move(bg_args->key);
+  auto& map_from_keys_to_conns_for_blrpop = dispatchThread->GetMapFromKeysToConnsForBlrpop();
+  net::BlrPopKey blrPop_key{std::move(bg_args->curr_db), key};
+
+  std::lock_guard latch(dispatchThread->GetBLRPopBlockingMapLatch());
+  auto it = map_from_keys_to_conns_for_blrpop.find(blrPop_key);
+  if (it == map_from_keys_to_conns_for_blrpop.end()) {
+    return;
+  }
   auto& waitting_list_of_this_key = it->second;
   std::string value;
   rocksdb::Status s;
-  // traverse this list from head to tail(in the order of adding sequence) which means "first blocked, first get
-  // served“
+  // traverse this list from head to tail(in the order of adding sequence) ,means "first blocked, first get served“
   CmdRes res;
   for (auto conn_blocked = waitting_list_of_this_key->begin(); conn_blocked != waitting_list_of_this_key->end();) {
     if (conn_blocked->GetBlockType() == net::BlockPopType::Blpop) {
@@ -119,9 +149,9 @@ void BPopServeCmd::TryToServeBLrPopWithThisKey(const std::string& key, std::shar
     conn_ptr->NotifyEpoll(true);
     conn_blocked = waitting_list_of_this_key->erase(conn_blocked);  // remove this conn from current waiting list
     // erase all waiting info of this conn
-    dispatchThread->CleanWaitInfoOfUnBlockedBlrConn(conn_ptr);
+    dispatchThread->CleanWaitNodeOfUnBlockedBlrConn(conn_ptr);
   }
-  dispatchThread->CleanKeysAfterWaitInfoCleaned();
+  dispatchThread->CleanKeysAfterWaitNodeCleaned();
 }
 
 void LPushCmd::DoInitial() {
@@ -214,7 +244,8 @@ void BLPopCmd::DoInitial() {
 
   if (timeout > 0) {
     auto now = std::chrono::system_clock::now();
-    expire_time_ = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count() + timeout * 1000;
+    expire_time_ =
+        std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count() + timeout * 1000;
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 
@@ -408,7 +439,8 @@ void BRPopCmd::DoInitial() {
 
   if (timeout > 0) {
     auto now = std::chrono::system_clock::now();
-    expire_time_ = std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count() + timeout * 1000;
+    expire_time_ =
+        std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count() + timeout * 1000;
   }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 

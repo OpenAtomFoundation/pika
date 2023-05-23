@@ -158,7 +158,6 @@ void ServerThread::DoCronTask() {}
 void ServerThread::ProcessNotifyEvents(const NetFiredEvent* pfe) { UNUSED(pfe); }
 
 void* ServerThread::ThreadMain() {
-  std::cout << "--------------thread main start (server_thread)" << std::endl;
   int nfds;
   NetFiredEvent* pfe;
   Status s;

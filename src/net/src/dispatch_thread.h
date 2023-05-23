@@ -106,7 +106,7 @@ class DispatchThread : public ServerThread {
   /**
    * BlPop/BrPop used
    */
-  void CleanWaitInfoOfUnBlockedBlrConn(std::shared_ptr<net::RedisConn> conn_unblocked) {
+  void CleanWaitNodeOfUnBlockedBlrConn(std::shared_ptr<net::RedisConn> conn_unblocked) {
     // removed all the waiting info of this conn/ doing cleaning work
     auto& blpop_keys_list = map_from_conns_to_keys_for_blrpop.find(conn_unblocked->fd())->second;
     for (auto& blpop_key : *blpop_keys_list) {
@@ -122,7 +122,7 @@ class DispatchThread : public ServerThread {
     map_from_conns_to_keys_for_blrpop.erase(conn_unblocked->fd());
   }
 
-  void CleanKeysAfterWaitInfoCleaned() {
+  void CleanKeysAfterWaitNodeCleaned() {
     // after wait info of a conn is cleaned, some wait list of keys might be empty, must erase them from the map
     std::vector<BlrPopKey> keys_to_erase;
     for (auto& pair : map_from_keys_to_conns_for_blrpop) {
@@ -147,8 +147,8 @@ class DispatchThread : public ServerThread {
       // this conn_to_close is not disconnected from blocking state cause by "blpop/brpop"
       return;
     }
-    CleanWaitInfoOfUnBlockedBlrConn(conn_to_close);
-    CleanKeysAfterWaitInfoCleaned();
+    CleanWaitNodeOfUnBlockedBlrConn(conn_to_close);
+    CleanKeysAfterWaitNodeCleaned();
   }
 
   void ScanExpiredBlockedConnsOfBlrpop() {
@@ -161,13 +161,13 @@ class DispatchThread : public ServerThread {
           conn_ptr->WriteResp("$-1\r\n");
           conn_ptr->NotifyEpoll(true);
           conn_node = conns_list->erase(conn_node);
-          CleanWaitInfoOfUnBlockedBlrConn(conn_ptr);
+          CleanWaitNodeOfUnBlockedBlrConn(conn_ptr);
         }else{
           conn_node++;
         }
       }
     }
-    CleanKeysAfterWaitInfoCleaned();
+    CleanKeysAfterWaitNodeCleaned();
   }
 
   std::unordered_map<BlrPopKey, std::unique_ptr<std::list<BlockedPopConnNode>>, BlrPopKeyHash>&
