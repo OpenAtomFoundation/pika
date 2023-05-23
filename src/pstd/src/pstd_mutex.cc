@@ -44,7 +44,7 @@ void RecordMutex::Lock(const std::string& key) {
 
     ref_mutex->Lock();
   } else {
-    auto* ref_mutex = new RefMutex();
+    auto ref_mutex = new RefMutex();
 
     records_.emplace(key, ref_mutex);
     ref_mutex->Ref();

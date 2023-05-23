@@ -79,7 +79,7 @@ void PikaReplClient::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, co
   const PikaCmdArgsType& argv = cmd_ptr->argv();
   std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
   size_t index = GetHashIndex(dispatch_key, false);
-  auto* task_arg = new ReplClientWriteDBTaskArg(cmd_ptr, offset, table_name, partition_id);
+  auto task_arg = new ReplClientWriteDBTaskArg(cmd_ptr, offset, table_name, partition_id);
   bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
 }
 
@@ -122,9 +122,9 @@ Status PikaReplClient::SendMetaSync() {
   node->set_ip(local_ip);
   node->set_port(g_pika_server->port());
 
-  std::string masterauth = g_pika_conf->masterauth();
-  if (!masterauth.empty()) {
-    meta_sync->set_auth(masterauth);
+  std::string masterautoh = g_pika_conf->masterautoh();
+  if (!masterautoh.empty()) {
+    meta_sync->set_autoh(masterautoh);
   }
 
   std::string to_send;

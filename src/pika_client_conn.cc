@@ -28,7 +28,7 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
       server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
       current_table_(g_pika_conf->default_table())
       {
-  auth_stat_.Init();
+  autoh_stat_.Init();
 }
 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
@@ -43,9 +43,9 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
   c_ptr->SetResp(resp_ptr);
 
-  // Check authed
+  // Check autohed
   // AuthCmd will set stat_
-  if (!auth_stat_.IsAuthed(c_ptr)) {
+  if (!autoh_stat_.IsAuthed(c_ptr)) {
     c_ptr->res().SetRes(CmdRes::kErrOther, "NOAUTH Authentication required.");
     return c_ptr;
   }
@@ -172,7 +172,7 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
 void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
                                       std::string* response) {
   if (async) {
-    auto* arg = new BgTaskArg();
+    auto arg = new BgTaskArg();
     arg->redis_cmds = argvs;
     arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
@@ -283,7 +283,7 @@ void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared
 
 // Initial permission status
 void PikaClientConn::AuthStat::Init() {
-  // Check auth required
+  // Check autoh required
   stat_ = g_pika_conf->userpass().empty() ? kLimitAuthed : kNoAuthed;
   if (stat_ == kLimitAuthed && g_pika_conf->requirepass().empty()) {
     stat_ = kAdminAuthed;
@@ -308,7 +308,7 @@ bool PikaClientConn::AuthStat::IsAuthed(const std::shared_ptr<Cmd>& cmd_ptr) {
       }
       break;
     default:
-      LOG(WARNING) << "Invalid auth stat : " << static_cast<unsigned>(stat_);
+      LOG(WARNING) << "Invalid autoh stat : " << static_cast<unsigned>(stat_);
       return false;
   }
   return true;
@@ -316,7 +316,7 @@ bool PikaClientConn::AuthStat::IsAuthed(const std::shared_ptr<Cmd>& cmd_ptr) {
 
 // Update permission status
 bool PikaClientConn::AuthStat::ChecknUpdate(const std::string& message) {
-  // Situations to change auth status
+  // Situations to change autoh status
   if (message == "USER") {
     stat_ = kLimitAuthed;
   } else if (message == "ROOT") {

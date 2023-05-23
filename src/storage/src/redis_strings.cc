@@ -213,7 +213,7 @@ Status RedisStrings::BitCount(const Slice& key, int64_t start_offset, int64_t en
       return Status::NotFound("Stale");
     } else {
       parsed_strings_value.StripSuffix();
-      const auto* bit_value = reinterpret_cast<const unsigned char*>(value.data());
+      const auto bit_value = reinterpret_cast<const unsigned char*>(value.data());
       int64_t value_length = value.length();
       if (have_range) {
         if (start_offset < 0) {
@@ -847,8 +847,8 @@ Status RedisStrings::Strlen(const Slice& key, int32_t* len) {
 int32_t GetBitPos(const unsigned char* s, unsigned int bytes, int bit) {
   uint64_t word = 0;
   uint64_t skip_val = 0;
-  auto* value = const_cast<unsigned char*>(s);
-  auto* l = reinterpret_cast<uint64_t*>(value);
+  auto value = const_cast<unsigned char*>(s);
+  auto l = reinterpret_cast<uint64_t*>(value);
   int pos = 0;
   if (bit == 0) {
     skip_val = std::numeric_limits<uint64_t>::max();
@@ -864,7 +864,7 @@ int32_t GetBitPos(const unsigned char* s, unsigned int bytes, int bit) {
     bytes = bytes - sizeof(*l);
     pos = pos + 8 * sizeof(*l);
   }
-  auto* c = reinterpret_cast<unsigned char*>(l);
+  auto c = reinterpret_cast<unsigned char*>(l);
   for (size_t j = 0; j < sizeof(*l); j++) {
     word = word << 8;
     if (bytes != 0U) {
@@ -905,7 +905,7 @@ Status RedisStrings::BitPos(const Slice& key, int32_t bit, int64_t* ret) {
       return Status::NotFound("Stale");
     } else {
       parsed_strings_value.StripSuffix();
-      const auto* bit_value = reinterpret_cast<const unsigned char*>(value.data());
+      const auto bit_value = reinterpret_cast<const unsigned char*>(value.data());
       int64_t value_length = value.length();
       int64_t start_offset = 0;
       int64_t end_offset = std::max(value_length - 1, static_cast<int64_t>(0));
@@ -940,7 +940,7 @@ Status RedisStrings::BitPos(const Slice& key, int32_t bit, int64_t start_offset,
       return Status::NotFound("Stale");
     } else {
       parsed_strings_value.StripSuffix();
-      const auto* bit_value = reinterpret_cast<const unsigned char*>(value.data());
+      const auto bit_value = reinterpret_cast<const unsigned char*>(value.data());
       int64_t value_length = value.length();
       int64_t end_offset = std::max(value_length - 1, static_cast<int64_t>(0));
       if (start_offset < 0) {
@@ -988,7 +988,7 @@ Status RedisStrings::BitPos(const Slice& key, int32_t bit, int64_t start_offset,
       return Status::NotFound("Stale");
     } else {
       parsed_strings_value.StripSuffix();
-      const auto* bit_value = reinterpret_cast<const unsigned char*>(value.data());
+      const auto bit_value = reinterpret_cast<const unsigned char*>(value.data());
       int64_t value_length = value.length();
       if (start_offset < 0) {
         start_offset = start_offset + value_length;

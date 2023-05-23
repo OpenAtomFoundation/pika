@@ -860,7 +860,7 @@ void PikaServer::PurgelogsTaskSchedule(net::TaskFunc func, void* arg) {
 }
 
 void PikaServer::PurgeDir(const std::string& path) {
-  auto* dir_path = new std::string(path);
+  auto dir_path = new std::string(path);
   PurgeDirTaskSchedule(&DoPurgeDir, static_cast<void*>(dir_path));
 }
 
@@ -881,7 +881,7 @@ void PikaServer::DBSync(const std::string& ip, int port, const std::string& tabl
   // Reuse the bgsave_thread_
   // Since we expect BgSave and DBSync execute serially
   bgsave_thread_.StartThread();
-  auto* arg = new DBSyncArg(this, ip, port, table_name, partition_id);
+  auto arg = new DBSyncArg(this, ip, port, table_name, partition_id);
   bgsave_thread_.Schedule(&DoDBSync, reinterpret_cast<void*>(arg));
 }
 

@@ -44,10 +44,10 @@ void PikaReplBgWorker::ParseBinlogOffset(const InnerMessage::BinlogOffset& pb_of
 }
 
 void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
-  auto* task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
+  auto task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerResponse> res = task_arg->res;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
-  auto* index = static_cast<std::vector<int>*>(task_arg->res_private_data);
+  auto index = static_cast<std::vector<int>*>(task_arg->res_private_data);
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
@@ -205,7 +205,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
 int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
-  auto* worker = static_cast<PikaReplBgWorker*>(parser->data);
+  auto worker = static_cast<PikaReplBgWorker*>(parser->data);
 
   // Monitor related
   std::string monitor_message;

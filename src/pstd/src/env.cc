@@ -151,7 +151,7 @@ Status LockFile(const std::string& fname, FileLock** lock) {
     result = IOError("lock " + fname, errno);
     close(fd);
   } else {
-    auto* my_lock = new FileLock;
+    auto my_lock = new FileLock;
     my_lock->fd_ = fd;
     my_lock->name_ = fname;
     *lock = my_lock;

@@ -194,7 +194,7 @@ void RedisConn::NotifyEpoll(bool success) {
 }
 
 int RedisConn::ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& argv) {
-  auto* conn = reinterpret_cast<RedisConn*>(parser->data);
+  auto conn = reinterpret_cast<RedisConn*>(parser->data);
   if (conn->GetHandleType() == HandleType::kSynchronous) {
     return conn->DealMessage(argv, &(conn->response_));
   } else {
@@ -203,7 +203,7 @@ int RedisConn::ParserDealMessageCb(RedisParser* parser, const RedisCmdArgsType& 
 }
 
 int RedisConn::ParserCompleteCb(RedisParser* parser, const std::vector<RedisCmdArgsType>& argvs) {
-  auto* conn = reinterpret_cast<RedisConn*>(parser->data);
+  auto conn = reinterpret_cast<RedisConn*>(parser->data);
   bool async = conn->GetHandleType() == HandleType::kAsynchronous;
   conn->ProcessRedisCmds(argvs, async, &(conn->response_));
   return 0;

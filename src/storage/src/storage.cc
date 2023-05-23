@@ -1462,7 +1462,7 @@ Status Storage::PfMerge(const std::vector<std::string>& keys) {
 }
 
 static void* StartBGThreadWrapper(void* arg) {
-  auto* s = reinterpret_cast<Storage*>(arg);
+  auto s = reinterpret_cast<Storage*>(arg);
   s->RunBGTask();
   return nullptr;
 }

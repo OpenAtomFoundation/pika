@@ -51,19 +51,19 @@ int PikaReplClientConn::DealMessage() {
   }
   switch (response->type()) {
     case InnerMessage::kMetaSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleMetaSyncResponse, static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kDBSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleDBSyncResponse, static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kTrySync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleTrySyncResponse, static_cast<void*>(task_arg));
       break;
@@ -73,7 +73,7 @@ int PikaReplClientConn::DealMessage() {
       break;
     }
     case InnerMessage::kRemoveSlaveNode: {
-      auto* task_arg =
+      auto task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleRemoveSlaveNodeResponse,
                                           static_cast<void*>(task_arg));

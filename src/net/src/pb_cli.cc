@@ -48,7 +48,7 @@ PbCli::~PbCli() {
 }
 
 Status PbCli::Send(void* msg) {
-  auto* req = reinterpret_cast<google::protobuf::Message*>(msg);
+  auto req = reinterpret_cast<google::protobuf::Message*>(msg);
 
   int wbuf_len = req->ByteSizeLong();
   req->SerializeToArray(wbuf_ + kCommandHeaderLength, wbuf_len);
@@ -60,7 +60,7 @@ Status PbCli::Send(void* msg) {
 }
 
 Status PbCli::Recv(void* msg_res) {
-  auto* res = reinterpret_cast<google::protobuf::Message*>(msg_res);
+  auto res = reinterpret_cast<google::protobuf::Message*>(msg_res);
 
   // Read Header
   size_t read_len = kCommandHeaderLength;

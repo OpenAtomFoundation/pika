@@ -335,7 +335,7 @@ void ConsensusCoordinator::Init() {
       LOG(FATAL) << PartitionInfo(table_name_, partition_id_).ToString() << "Redis parser parse failed";
       return;
     }
-    auto* arg = static_cast<CmdPtrArg*>(redis_parser.data);
+    auto arg = static_cast<CmdPtrArg*>(redis_parser.data);
     std::shared_ptr<Cmd> cmd_ptr = arg->cmd_ptr;
     delete arg;
     redis_parser.data = nullptr;
@@ -601,7 +601,7 @@ bool ConsensusCoordinator::MatchConsensusLevel() {
 }
 
 void ConsensusCoordinator::InternalApply(const MemLog::LogItem& log) {
-  auto* arg = new PikaClientConn::BgTaskArg();
+  auto arg = new PikaClientConn::BgTaskArg();
   arg->cmd_ptr = log.cmd_ptr;
   arg->conn_ptr = log.conn_ptr;
   arg->resp_ptr = log.resp_ptr;
@@ -616,7 +616,7 @@ void ConsensusCoordinator::InternalApplyFollower(const MemLog::LogItem& log) {
 }
 
 int ConsensusCoordinator::InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
-  auto* table_name = static_cast<std::string*>(parser->data);
+  auto table_name = static_cast<std::string*>(parser->data);
   std::string opt = argv[0];
   std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));
   if (!c_ptr) {

@@ -21,7 +21,7 @@ const int64_t MAX_BATCH_NUM = 30000;
 MigratorThread::~MigratorThread() = default;
 
 void MigratorThread::MigrateStringsDB() {
-  auto* db = static_cast<storage::RedisStrings*>(db_);
+  auto db = static_cast<storage::RedisStrings*>(db_);
 
   rocksdb::ReadOptions iterator_options;
   const rocksdb::Snapshot* snapshot;
@@ -76,7 +76,7 @@ void MigratorThread::MigrateStringsDB() {
 }
 
 void MigratorThread::MigrateListsDB() {
-  auto* db = static_cast<storage::RedisLists*>(db_);
+  auto db = static_cast<storage::RedisLists*>(db_);
 
   std::string start_key;
   std::string next_key;
@@ -159,7 +159,7 @@ void MigratorThread::MigrateListsDB() {
 }
 
 void MigratorThread::MigrateHashesDB() {
-  auto* db = static_cast<storage::RedisHashes*>(db_);
+  auto db = static_cast<storage::RedisHashes*>(db_);
 
   std::string start_key;
   std::string next_key;
@@ -230,7 +230,7 @@ void MigratorThread::MigrateHashesDB() {
 }
 
 void MigratorThread::MigrateSetsDB() {
-  auto* db = static_cast<storage::RedisSets*>(db_);
+  auto db = static_cast<storage::RedisSets*>(db_);
 
   std::string start_key;
   std::string next_key;
@@ -298,7 +298,7 @@ void MigratorThread::MigrateSetsDB() {
 }
 
 void MigratorThread::MigrateZsetsDB() {
-  auto* db = static_cast<storage::RedisZSets*>(db_);
+  auto db = static_cast<storage::RedisZSets*>(db_);
 
   std::string start_key;
   std::string next_key;

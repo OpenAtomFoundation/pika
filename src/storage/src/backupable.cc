@@ -91,8 +91,8 @@ Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const
 }
 
 void* ThreadFuncSaveSpecify(void* arg) {
-  auto* arg_ptr = static_cast<BackupSaveArgs*>(arg);
-  auto* p = static_cast<BackupEngine*>(arg_ptr->p_engine);
+  auto arg_ptr = static_cast<BackupSaveArgs*>(arg);
+  auto p = static_cast<BackupEngine*>(arg_ptr->p_engine);
   arg_ptr->res = p->CreateNewBackupSpecify(arg_ptr->backup_dir, arg_ptr->key_type);
   pthread_exit(&(arg_ptr->res));
 }

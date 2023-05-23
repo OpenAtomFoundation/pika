@@ -65,7 +65,7 @@ bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
     LOG(WARNING) << "purge process already exist";
     return false;
   }
-  auto* arg = new PurgeStableLogArg();
+  auto arg = new PurgeStableLogArg();
   arg->to = to;
   arg->manual = manual;
   arg->logger = shared_from_this();

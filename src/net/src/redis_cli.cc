@@ -87,7 +87,7 @@ Status RedisCli::Send(void* msg) {
   Status s;
 
   // TODO(anan) use socket_->SendRaw instead
-  auto* storage = reinterpret_cast<std::string*>(msg);
+  auto storage = reinterpret_cast<std::string*>(msg);
   const char* wbuf = storage->data();
   size_t nleft = storage->size();
 

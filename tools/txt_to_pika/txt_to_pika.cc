@@ -64,7 +64,7 @@ for (int i = 0; i < thread_num; i++) {
     senders.push_back(new SenderThread(ip, port, password));
   }
 
-  auto* scan_thread = new ScanThread(filename, senders, ttl);
+  auto scan_thread = new ScanThread(filename, senders, ttl);
 
   for (int i = 0; i < thread_num; i++) {
     senders[i]->StartThread();

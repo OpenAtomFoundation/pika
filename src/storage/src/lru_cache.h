@@ -176,7 +176,7 @@ rocksdb::Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t 
   if (capacity_ == 0) {
     return rocksdb::Status::Corruption("capacity is empty");
   } else {
-    auto* handle = new LRUHandle<T1, T2>();
+    auto handle = new LRUHandle<T1, T2>();
     handle->key = key;
     handle->value = value;
     handle->charge = charge;

@@ -286,7 +286,7 @@ void Partition::BgSavePartition() {
     return;
   }
   bgsave_info_.bgsaving = true;
-  auto* bg_task_arg = new BgTaskArg();
+  auto bg_task_arg = new BgTaskArg();
   bg_task_arg->partition = shared_from_this();
   g_pika_server->BGSaveTaskSchedule(&DoBgSave, static_cast<void*>(bg_task_arg));
 }

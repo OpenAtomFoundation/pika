@@ -27,13 +27,13 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
 
   InnerMessage::InnerRequest::MetaSync meta_sync_request = req->meta_sync();
   const InnerMessage::Node& node = meta_sync_request.node();
-  std::string masterauth = meta_sync_request.has_auth() ? meta_sync_request.auth() : "";
+  std::string masterautoh = meta_sync_request.has_autoh() ? meta_sync_request.autoh() : "";
 
   InnerMessage::InnerResponse response;
   response.set_type(InnerMessage::kMetaSync);
-  if (!g_pika_conf->requirepass().empty() && g_pika_conf->requirepass() != masterauth) {
+  if (!g_pika_conf->requirepass().empty() && g_pika_conf->requirepass() != masterautoh) {
     response.set_code(InnerMessage::kError);
-    response.set_reply("Auth with master error, Invalid masterauth");
+    response.set_reply("Auth with master error, Invalid masterautoh");
   } else {
     LOG(INFO) << "Receive MetaSync, Slave ip: " << node.ip() << ", Slave port:" << node.port();
     std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
@@ -496,31 +496,31 @@ int PikaReplServerConn::DealMessage() {
   }
   switch (req->type()) {
     case InnerMessage::kMetaSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleMetaSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kTrySync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleTrySyncRequest, task_arg);
       break;
     }
     case InnerMessage::kDBSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleDBSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kBinlogSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleBinlogSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kRemoveSlaveNode: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleRemoveSlaveNodeRequest, task_arg);
       break;
