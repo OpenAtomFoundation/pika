@@ -20,7 +20,7 @@ struct ReplServerTaskArg {
   std::shared_ptr<InnerMessage::InnerRequest> req;
   std::shared_ptr<net::PbConn> conn;
   ReplServerTaskArg(std::shared_ptr<InnerMessage::InnerRequest> _req, std::shared_ptr<net::PbConn> _conn)
-      : req(std::move(std::move(_req))), conn(std::move(std::move(_conn))) {}
+      : req(std::move(_req)), conn(std::move(_conn)) {}
 };
 
 class PikaReplServer {

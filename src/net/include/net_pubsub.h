@@ -62,7 +62,7 @@ class PubSubThread : public Thread {
   };
 
   struct ConnHandle {
-    ConnHandle(std::shared_ptr<NetConn> pc, ReadyState state = kNotReady) : conn(std::move(std::move(std::move(std::move(pc))))), ready_state(state) {}
+    ConnHandle(std::shared_ptr<NetConn> pc, ReadyState state = kNotReady) : conn(std::move(pc)), ready_state(state) {}
     void UpdateReadyState(const ReadyState& state);
     bool IsReady();
     std::shared_ptr<NetConn> conn;

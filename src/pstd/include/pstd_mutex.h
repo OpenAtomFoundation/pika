@@ -70,7 +70,7 @@ class RecordMutex {
 
 class RecordLock {
  public:
-  RecordLock(RecordMutex* mu, std::string  key) : mu_(mu), key_(std::move(std::move(std::move(key)))) { mu_->Lock(key_); }
+  RecordLock(RecordMutex* mu, std::string  key) : mu_(mu), key_(std::move(key)) { mu_->Lock(key_); }
   ~RecordLock() { mu_->Unlock(key_); }
   // No copying allowed
   RecordLock(const RecordLock&) = delete;

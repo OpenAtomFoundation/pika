@@ -384,7 +384,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     ProcessArg() = default;
     ProcessArg(std::shared_ptr<Partition> _partition, std::shared_ptr<SyncMasterPartition> _sync_partition,
                HintKeys _hint_keys)
-        : partition(std::move(std::move(_partition))), sync_partition(std::move(std::move(_sync_partition))), hint_keys(std::move(std::move(_hint_keys))) {}
+        : partition(std::move(_partition)), sync_partition(std::move(_sync_partition)), hint_keys(std::move(_hint_keys)) {}
     std::shared_ptr<Partition> partition;
     std::shared_ptr<SyncMasterPartition> sync_partition;
     HintKeys hint_keys;

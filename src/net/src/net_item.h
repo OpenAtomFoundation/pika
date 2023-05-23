@@ -17,7 +17,7 @@ class NetItem {
  public:
   NetItem() = default;
   NetItem(const int fd, std::string  ip_port, const NotifyType& type = kNotiConnect)
-      : fd_(fd), ip_port_(std::move(std::move(ip_port))), notify_type_(type) {}
+      : fd_(fd), ip_port_(std::move(ip_port)), notify_type_(type) {}
 
   int fd() const { return fd_; }
   std::string ip_port() const { return ip_port_; }

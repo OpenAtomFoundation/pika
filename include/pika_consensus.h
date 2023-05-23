@@ -74,7 +74,7 @@ class MemLog {
   struct LogItem {
     LogItem(const LogOffset& _offset, std::shared_ptr<Cmd> _cmd_ptr, std::shared_ptr<PikaClientConn> _conn_ptr,
             std::shared_ptr<std::string> _resp_ptr)
-        : offset(_offset), cmd_ptr(std::move(std::move(_cmd_ptr))), conn_ptr(std::move(std::move(_conn_ptr))), resp_ptr(std::move(std::move(_resp_ptr))) {}
+        : offset(_offset), cmd_ptr(std::move(_cmd_ptr)), conn_ptr(std::move(_conn_ptr)), resp_ptr(std::move(_resp_ptr)) {}
     LogOffset offset;
     std::shared_ptr<Cmd> cmd_ptr;
     std::shared_ptr<PikaClientConn> conn_ptr;
@@ -156,7 +156,7 @@ class ConsensusCoordinator {
 
   // redis parser cb
   struct CmdPtrArg {
-    CmdPtrArg(std::shared_ptr<Cmd> ptr) : cmd_ptr(std::move(std::move(ptr))) {}
+    CmdPtrArg(std::shared_ptr<Cmd> ptr) : cmd_ptr(std::move(ptr)) {}
     std::shared_ptr<Cmd> cmd_ptr;
   };
   static int InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv);

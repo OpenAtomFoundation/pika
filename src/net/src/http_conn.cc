@@ -268,7 +268,7 @@ HTTPConn::HTTPConn(const int fd, const std::string& ip_port, Thread* thread, std
 #ifdef __ENABLE_SSL
       // security_(thread->security()),
 #endif
-      handles_(std::move(std::move(handles))) {
+      handles_(std::move(handles)) {
   handles_->worker_specific_data_ = worker_specific_data;
   // this pointer is safe here
   request_ = new HTTPRequest(this);

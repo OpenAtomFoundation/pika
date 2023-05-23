@@ -43,7 +43,7 @@ class PikaReplClientConn : public net::PbConn {
     std::shared_ptr<InnerMessage::InnerResponse> resp;
     std::shared_ptr<net::PbConn> conn;
     ReplRespArg(std::shared_ptr<InnerMessage::InnerResponse> _resp, std::shared_ptr<net::PbConn> _conn)
-        : resp(std::move(std::move(_resp))), conn(std::move(std::move(_conn))) {}
+        : resp(std::move(_resp)), conn(std::move(_conn)) {}
   };
 };
 
