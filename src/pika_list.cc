@@ -202,27 +202,8 @@ void BLRPopBaseCmd::BlockThisClientToWaitLRPush(net::BlockPopType block_pop_type
   // construct a list of keys and insert into this map as value(while key of the map is conn_fd)
   map_from_conns_to_keys_for_blrpop.emplace(
       conn_to_block->fd(), std::make_unique<std::list<net::BlrPopKey>>(blrpop_keys.begin(), blrpop_keys.end()));
-
-  std::cout << "-------------db name:" << conn_to_block->GetCurrentTable() << "-------------" << std::endl;
-  std::cout << "from key to conn:" << std::endl;
-  for (auto& pair : map_from_keys_to_conns_for_blrpop) {
-    std::cout << "key:<" << pair.first.db_name << "," << pair.first.key << ">  list of it:" << std::endl;
-    for (auto& it : *pair.second) {
-      it.SelfPrint();
-    }
-  }
-
-  std::cout << "\n\nfrom conn to key:" << std::endl;
-  for (auto& pair : map_from_conns_to_keys_for_blrpop) {
-    std::cout << "fd:" << pair.first << "  related keys:" << std::endl;
-    for (auto& it : *pair.second) {
-      std::cout << " <" << it.db_name << "," << it.key << "> " << std::endl;
-    }
-  }
-  std::cout << "-----------end------------------" << std::endl;
 }
-
-void BLPopCmd::DoInitial() {
+void BLRPopBaseCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
     res_.SetRes(CmdRes::kWrongNum, kCmdNameBLPop);
     return;
@@ -415,33 +396,6 @@ void LTrimCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-}
-
-void BRPopCmd::DoInitial() {
-  if (!CheckArg(argv_.size())) {
-    res_.SetRes(CmdRes::kWrongNum, kCmdNameBLPop);
-    return;
-  }
-
-  // fetching all keys(*argv_.begin is the command itself and *argv_.end() is the timeout value)
-  keys_.assign(++argv_.begin(), --argv_.end());
-  int64_t timeout;
-  if (!pstd::string2int(argv_.back().data(), argv_.back().size(), &timeout)) {
-    res_.SetRes(CmdRes::kInvalidInt);
-    return;
-  }
-  constexpr int64_t seconds_of_ten_years = 10 * 365 * 24 * 3600;
-  if (timeout < 0 || timeout > seconds_of_ten_years) {
-    res_.SetRes(CmdRes::kErrOther,
-                "timeout can't be a negative value and can't exceed the number of seconds in 10 years");
-    return;
-  }
-
-  if (timeout > 0) {
-    auto now = std::chrono::system_clock::now();
-    expire_time_ =
-        std::chrono::time_point_cast<std::chrono::milliseconds>(now).time_since_epoch().count() + timeout * 1000;
-  }  // else(timeout is 0): expire_time_ default value is 0, means never expire;
 }
 
 void BRPopCmd::Do(std::shared_ptr<Partition> partition) {

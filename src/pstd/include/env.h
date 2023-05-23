@@ -5,7 +5,6 @@
 #include <sys/timerfd.h>
 #include <unistd.h>
 #include <functional>
-#include <future>
 #include <string>
 #include <vector>
 #include <memory>

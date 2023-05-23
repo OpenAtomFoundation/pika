@@ -127,52 +127,6 @@ enum TaskType {
   kBgSave,
 };
 
-enum BlockPopType { Blpop, Brpop };
-typedef struct blrpopKey{  // this data struct is made for the scenario of multi dbs in pika.
-  std::string db_name;
-  std::string key;
-  bool operator==(const blrpopKey& p) const{
-    return p.db_name == db_name && p.key == key;
-  }
-} BlrPopKey;
-struct BlrPopKeyHash {
-  std::size_t operator()(const BlrPopKey& k) const {
-    return std::hash<std::string>{}(k.db_name) ^ std::hash<std::string>{}(k.key);
-  }
-};
-
-
-class BlockedPopConnNode {
- public:
-  virtual ~BlockedPopConnNode() {
-    std::cout << "BlockedPopConnNode: fd-" << conn_blocked_->fd() << " expire_time_:" << expire_time_ << std::endl;
-  }
-  BlockedPopConnNode(int64_t expire_time, std::shared_ptr<PikaClientConn>& conn_blocked, BlockPopType block_type)
-      : expire_time_(expire_time), conn_blocked_(conn_blocked), block_type_(block_type) {}
-  bool IsExpired() {
-    if (expire_time_ == 0) {
-      return false;
-    }
-    int64_t unix_time;
-    rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    if (expire_time_ <= unix_time) {
-      return true;
-    }
-    return false;
-  }
-  std::shared_ptr<PikaClientConn>& GetConnBlocked() { return conn_blocked_; }
-  BlockPopType GetBlockType() const { return block_type_; }
-
-  void SelfPrint() {
-    std::cout << "fd:" << conn_blocked_->fd() << ", expire_time:" << expire_time_ << ", blockType: " << block_type_
-              << std::endl;
-  }
-
- private:
-  int64_t expire_time_;
-  std::shared_ptr<PikaClientConn> conn_blocked_;
-  BlockPopType block_type_;
-};
 
 class PikaServer {
  public:
@@ -372,11 +326,6 @@ class PikaServer {
                                         const std::unordered_map<std::string, std::string>& options);
 
 
-  /*  std::mutex& GetBLRPopBlockingMapLatch() { return bLRPop_blocking_map_latch_; }
-
-    std::unique_ptr<std::unordered_map<int, std::unique_ptr<std::list<std::string>>>>& GetMapFromConnsToKeysForBlrpop(){
-        map_from_conns_to_keys_for_blrpop;
-    };*/
 
   friend class Cmd;
   friend class InfoCmd;
@@ -414,26 +363,6 @@ class PikaServer {
   std::shared_mutex tables_rw_;
   std::map<std::string, std::shared_ptr<Table>> tables_;
 
-  /*
-   *  Blpop/BRpop used
-   */
-  /*  map_from_keys_to_conns_for_blrpop:
-   *  mapping from "Blrpopkey"(eg. "<db0, list1>") to a list that stored the blocking info of client-connetions that
-   * were blocked by command blpop/brpop with key (eg. "list1").
-   */
-
-  std::unordered_map<BlrPopKey, std::unique_ptr<std::list<BlockedPopConnNode>>, BlrPopKeyHash> map_from_keys_to_conns_for_blrpop;
-
-  /*
-   *  map_from_conns_to_keys_for_blrpop:
-   *  mapping from conn(fd) to a list of keys that the client is waiting for.
-   */
-  std::unordered_map<int, std::unique_ptr<std::list<BlrPopKey>>> map_from_conns_to_keys_for_blrpop;
-
-  /*
-   * latch of the two maps above.
-   */
-  std::mutex bLRPop_blocking_map_latch_;
 
   /*
    * CronTask used

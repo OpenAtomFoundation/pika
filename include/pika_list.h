@@ -78,8 +78,8 @@ class BLRPopBaseCmd : public Cmd {
  public:
   BLRPopBaseCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void BlockThisClientToWaitLRPush(net::BlockPopType block_pop_type);
-
  protected:
+  void DoInitial() override;
   std::vector<std::string> keys_;
   int64_t expire_time_{0};
 };
@@ -95,9 +95,6 @@ class BLPopCmd : public BLRPopBaseCmd {
   virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys){};
   virtual void Merge(){};
   virtual Cmd* Clone() override { return new BLPopCmd(*this); }
-
- private:
-  virtual void DoInitial() override;
 };
 
 class LPopCmd : public Cmd {
@@ -256,8 +253,6 @@ class BRPopCmd : public BLRPopBaseCmd {
   virtual void Merge(){};
   virtual Cmd* Clone() override { return new BRPopCmd(*this); }
 
- private:
-  virtual void DoInitial() override;
 };
 
 class RPopCmd : public Cmd {

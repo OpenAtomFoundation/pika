@@ -39,9 +39,7 @@ struct BlrPopKeyHash {
 
 class BlockedPopConnNode {
  public:
-  virtual ~BlockedPopConnNode() {
-    std::cout << "BlockedPopConnNode: fd-" << conn_blocked_->fd() << " expire_time_:" << expire_time_ << std::endl;
-  }
+  virtual ~BlockedPopConnNode() {}
   BlockedPopConnNode(int64_t expire_time, std::shared_ptr<RedisConn>& conn_blocked, BlockPopType block_type)
       : expire_time_(expire_time), conn_blocked_(conn_blocked), block_type_(block_type) {}
   bool IsExpired() {
@@ -57,12 +55,6 @@ class BlockedPopConnNode {
   }
   std::shared_ptr<RedisConn>& GetConnBlocked() { return conn_blocked_; }
   BlockPopType GetBlockType() const { return block_type_; }
-
-  // TO DO: delete this fun when testing is done
-  void SelfPrint() {
-    std::cout << "fd:" << conn_blocked_->fd() << ", expire_time:" << expire_time_ << ", blockType: " << block_type_
-              << std::endl;
-  }
 
  private:
   int64_t expire_time_;
@@ -205,8 +197,8 @@ class DispatchThread : public ServerThread {
    *  Blpop/BRpop used
    */
   /*  map_from_keys_to_conns_for_blrpop:
-   *  mapping from "Blrpopkey"(eg. "<db0, list1>") to a list that stored the blocking info of client-connetions that
-   * were blocked by command blpop/brpop with key (eg. "list1").
+   *  mapping from "Blrpopkey"(eg. "<db0, list1>") to a list that stored the nodes of client connctions that
+   *  were blocked by command blpop/brpop with key (eg. "list1").
    */
   std::unordered_map<BlrPopKey, std::unique_ptr<std::list<BlockedPopConnNode>>, BlrPopKeyHash>
       map_from_keys_to_conns_for_blrpop;
