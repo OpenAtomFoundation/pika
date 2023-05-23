@@ -22,7 +22,8 @@
 using pstd::Status;
 
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaConf> g_pika_conf;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
   if (argv.size() > 2) {
@@ -921,7 +922,6 @@ void InfoCmd::InfoShardingReplication(std::string& info) {
 }
 
 void InfoCmd::InfoReplication(std::string& info) {
-
   int host_role = g_pika_server->role();
   std::stringstream tmp_stream;
   std::stringstream out_of_sync;
@@ -1352,13 +1352,7 @@ void ConfigCmd::ConfigGet(std::string& ret) {
     EncodeInt32(&config_body, g_pika_conf->databases());
   }
 
-  if (pstd::stringmatch(pattern.data(), "default-slot-num", 1) != 0) {
-    elements += 2;
-    EncodeString(&config_body, "default-slot-num");
-    EncodeInt32(&config_body, g_pika_conf->default_slot_num());
-  }
-
-  if (pstd::stringmatch(pattern.data(), "daemonize", 1) != 0) {
+  if (pstd::stringmatch(pattern.data(), "daemonize", 1)) {
     elements += 2;
     EncodeString(&config_body, "daemonize");
     EncodeString(&config_body, g_pika_conf->daemonize() ? "yes" : "no");

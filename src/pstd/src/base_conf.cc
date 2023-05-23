@@ -19,17 +19,16 @@ namespace pstd {
 
 static const int kConfItemLen = 1024 * 1024;
 
-BaseConf::BaseConf(const std::string& path) : rep_(new Rep(path)) {}
+BaseConf::BaseConf(const std::string& path) : rep_(std::make_unique<Rep>(path)) {}
 
-BaseConf::~BaseConf() { delete rep_; }
+BaseConf::~BaseConf() {}
 
 int BaseConf::LoadConf() {
   if (!FileExists(rep_->path)) {
     return -1;
   }
-  SequentialFile* sequential_file;
-  NewSequentialFile(rep_->path, &sequential_file);
-
+  std::unique_ptr<SequentialFile> sequential_file;
+  NewSequentialFile(rep_->path, sequential_file);
   // read conf items
 
   char line[kConfItemLen];
@@ -80,19 +79,16 @@ int BaseConf::LoadConf() {
   }
 
   // sequential_file->Close();
-  delete sequential_file;
   return 0;
 }
 
 int BaseConf::ReloadConf() {
-  Rep* rep = rep_;
-  rep_ = new Rep(rep->path);
+  auto rep = std::move(rep_);
+  rep_ = std::make_unique<Rep>(rep->path);
   if (LoadConf() == -1) {
-    delete rep_;
-    rep_ = rep;
+    rep_ = std::move(rep);
     return -1;
   }
-  delete rep;
   return 0;
 }
 
@@ -328,9 +324,9 @@ void BaseConf::DumpConf() const {
 }
 
 bool BaseConf::WriteBack() {
-  WritableFile* write_file;
+  std::unique_ptr<WritableFile> write_file;
   std::string tmp_path = rep_->path + ".tmp";
-  Status ret = NewWritableFile(tmp_path, &write_file);
+  Status ret = NewWritableFile(tmp_path, write_file);
   LOG(INFO) << "ret " << ret.ToString();
   if (write_file == nullptr) {
     return false;
@@ -346,14 +342,13 @@ bool BaseConf::WriteBack() {
   }
   DeleteFile(rep_->path);
   RenameFile(tmp_path, rep_->path);
-  delete write_file;
   return true;
 }
 
 void BaseConf::WriteSampleConf() const {
-  WritableFile* write_file;
+  std::unique_ptr<WritableFile> write_file;
   std::string sample_path = rep_->path + ".sample";
-  Status ret = NewWritableFile(sample_path, &write_file);
+  Status ret = NewWritableFile(sample_path, write_file);
   std::string tmp;
   for (auto & i : rep_->item) {
     if (i.type == Rep::kConf) {
@@ -363,7 +358,6 @@ void BaseConf::WriteSampleConf() const {
       write_file->Append(i.value);
     }
   }
-  delete write_file;
 }
 
 void BaseConf::PushConfItem(const Rep::ConfItem& item) { rep_->item.push_back(item); }

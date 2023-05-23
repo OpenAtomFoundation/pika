@@ -12,18 +12,18 @@
 #include "include/pika_server.h"
 
 using pstd::Status;
+
+extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval) {
-  server_tp_ = new net::ThreadPool(PIKA_REPL_SERVER_TP_SIZE, 100000);
-  pika_repl_server_thread_ = new PikaReplServerThread(ips, port, cron_interval);
+  server_tp_ = std::make_unique<net::ThreadPool>(PIKA_REPL_SERVER_TP_SIZE, 100000);
+  pika_repl_server_thread_ = std::make_unique<PikaReplServerThread>(ips, port, cron_interval);
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
 }
 
 PikaReplServer::~PikaReplServer() {
-  delete pika_repl_server_thread_;
-  delete server_tp_;
   LOG(INFO) << "PikaReplServer exit!!!";
 }
 

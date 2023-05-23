@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
   std::string ip(argv[1]);
   int port = atoi(argv[2]);
 
-  NetCli* rcli = NewRedisCli();
+  std::unique_ptr<NetCli> rcli(NewRedisCli());
   rcli->set_connect_timeout(3000);
 
   Status s = rcli->Connect(ip, port, "127.0.0.1");

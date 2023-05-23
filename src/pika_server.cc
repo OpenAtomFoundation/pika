@@ -27,22 +27,20 @@
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
-extern PikaCmdTableManager* g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 void DoPurgeDir(void* arg) {
-  std::string path = *(static_cast<std::string*>(arg));
-  LOG(INFO) << "Delete dir: " << path << " start";
-  pstd::DeleteDir(path);
-  LOG(INFO) << "Delete dir: " << path << " done";
-  delete static_cast<std::string*>(arg);
+  std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
+  LOG(INFO) << "Delete dir: " << *path << " start";
+  pstd::DeleteDir(*path);
+  LOG(INFO) << "Delete dir: " << *path << " done";
 }
 
 void DoDBSync(void* arg) {
-  auto* dbsa = reinterpret_cast<DBSyncArg*>(arg);
+  std::unique_ptr<DBSyncArg> dbsa(static_cast<DBSyncArg*>(arg));
   PikaServer* const ps = dbsa->p;
   ps->DbSyncSendFile(dbsa->ip, dbsa->port, dbsa->table_name, dbsa->partition_id);
-  delete dbsa;
 }
 
 PikaServer::PikaServer()
@@ -72,20 +70,19 @@ PikaServer::PikaServer()
   int worker_queue_limit = g_pika_conf->maxclients() / worker_num_ + 100;
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
   pika_dispatch_thread_ =
-      new PikaDispatchThread(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
-  pika_monitor_thread_ = new PikaMonitorThread();
-  pika_rsync_service_ = new PikaRsyncService(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
-  pika_pubsub_thread_ = new net::PubSubThread();
-  pika_auxiliary_thread_ = new PikaAuxiliaryThread();
+      std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
+  pika_monitor_thread_ = std::make_unique<PikaMonitorThread>();
+  pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
+  pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
+  pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
 
-  pika_client_processor_ = new PikaClientProcessor(g_pika_conf->thread_pool_size(), 100000);
+  pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
 }
 
 PikaServer::~PikaServer() {
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
-  delete pika_dispatch_thread_;
 
   {
     std::lock_guard l(slave_mutex_);
@@ -95,13 +92,6 @@ PikaServer::~PikaServer() {
       LOG(INFO) << "Delete slave success";
     }
   }
-
-  delete pika_pubsub_thread_;
-  delete pika_auxiliary_thread_;
-  delete pika_rsync_service_;
-  delete pika_client_processor_;
-  delete pika_monitor_thread_;
-
   bgsave_thread_.StopThread();
   key_scan_thread_.StopThread();
 
@@ -989,7 +979,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
   pstd::RsyncSendClearTarget(bg_path + "/sets", remote_path + "/sets", secret_file_path, remote);
   pstd::RsyncSendClearTarget(bg_path + "/zsets", remote_path + "/zsets", secret_file_path, remote);
 
-  net::NetCli* cli = net::NewRedisCli();
+  std::unique_ptr<net::NetCli> cli(net::NewRedisCli());
   std::string lip(host_);
   if (cli->Connect(ip, port, "").ok()) {
     struct sockaddr_in laddr;
@@ -997,11 +987,9 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
     getsockname(cli->fd(), reinterpret_cast<struct sockaddr*>(&laddr), &llen);
     lip = inet_ntoa(laddr.sin_addr);
     cli->Close();
-    delete cli;
   } else {
     LOG(WARNING) << "Rsync try connect slave rsync service error"
                  << ", slave rsync service(" << ip << ":" << port << ")";
-    delete cli;
   }
 
   // Send info file at last

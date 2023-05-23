@@ -16,13 +16,16 @@
 
 #include "include/pika_binlog.h"
 
+using pstd::Slice;
+using pstd::Status;
 
 class PikaBinlogReader {
  public:
   PikaBinlogReader(uint32_t cur_filenum, uint64_t cur_offset);
   PikaBinlogReader();
-  ~PikaBinlogReader();
-  pstd::Status Get(std::string* scratch, uint32_t* filenum, uint64_t* offset);
+  ~PikaBinlogReader() {};
+
+  Status Get(std::string* scratch, uint32_t* filenum, uint64_t* offset);
   int Seek(const std::shared_ptr<Binlog>& logger, uint32_t filenum, uint64_t offset);
   bool ReadToTheEnd();
   void GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset);
@@ -39,10 +42,10 @@ class PikaBinlogReader {
   uint64_t last_record_offset_ = 0;
 
   std::shared_ptr<Binlog> logger_;
-  pstd::SequentialFile* queue_ = nullptr;
+  std::unique_ptr<pstd::SequentialFile> queue_;
 
-  char* const backing_store_;
-  pstd::Slice buffer_;
+  std::unique_ptr<char[]> const backing_store_;
+  Slice buffer_;
 };
 
 #endif  // PIKA_BINLOG_READER_H_

@@ -19,7 +19,6 @@
 class Context {
  public:
   Context(std::string path);
-  ~Context();
 
   pstd::Status Init();
   // RWLock should be held when access members.
@@ -45,7 +44,7 @@ class Context {
 
  private:
   std::string path_;
-  pstd::RWFile* save_ = nullptr;
+  std::unique_ptr<pstd::RWFile> save_;
 };
 
 class SyncProgress {

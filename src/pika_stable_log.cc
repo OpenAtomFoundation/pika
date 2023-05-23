@@ -18,8 +18,9 @@
 
 using pstd::Status;
 
+extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 StableLog::StableLog(std::string table_name, uint32_t partition_id, std::string log_path)
     : purging_(false), table_name_(std::move(table_name)), partition_id_(partition_id), log_path_(std::move(log_path)) {
@@ -75,10 +76,9 @@ bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
 void StableLog::ClearPurge() { purging_ = false; }
 
 void StableLog::DoPurgeStableLogs(void* arg) {
-  auto* purge_arg = static_cast<PurgeStableLogArg*>(arg);
+  std::unique_ptr<PurgeStableLogArg> purge_arg(static_cast<PurgeStableLogArg*>(arg));
   purge_arg->logger->PurgeFiles(purge_arg->to, purge_arg->manual);
   purge_arg->logger->ClearPurge();
-  delete static_cast<PurgeStableLogArg*>(arg);
 }
 
 bool StableLog::PurgeFiles(uint32_t to, bool manual) {

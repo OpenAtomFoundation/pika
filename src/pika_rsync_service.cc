@@ -15,7 +15,7 @@
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 PikaRsyncService::PikaRsyncService(std::string  raw_path, const int port) : raw_path_(std::move(raw_path)), port_(port) {
   if (raw_path_.back() != '/') {

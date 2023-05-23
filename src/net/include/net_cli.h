@@ -6,8 +6,8 @@
 #ifndef NET_INCLUDE_NET_CLI_H_
 #define NET_INCLUDE_NET_CLI_H_
 
+#include <memory>
 #include <string>
-
 #include "pstd/include/pstd_status.h"
 
 namespace net {
@@ -48,7 +48,7 @@ class NetCli {
 
  private:
   struct Rep;
-  Rep* rep_;
+  std::unique_ptr<Rep> rep_;
   int set_tcp_nodelay();
 
 };

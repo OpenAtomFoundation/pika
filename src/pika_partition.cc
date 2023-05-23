@@ -15,8 +15,10 @@
 #include "pstd/include/mutex_impl.h"
 
 using pstd::Status;
+
+extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 std::string PartitionPath(const std::string& table_path, uint32_t partition_id) {
   char buf[100];
@@ -49,12 +51,12 @@ Partition::Partition(const std::string& table_name, uint32_t partition_id, const
   db_path_ = table_db_path;
   bgsave_sub_path_ = table_name;
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, partition_id_);
-  partition_name_ = table_name ;
+  partition_name_ = table_name;
 
   db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
 
-  lock_mgr_ = new pstd::lock::LockMgr(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
+  lock_mgr_ = std::make_shared<pstd::lock::LockMgr>(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
 
   opened_ = s.ok();
   assert(db_);
@@ -64,8 +66,6 @@ Partition::Partition(const std::string& table_name, uint32_t partition_id, const
 
 Partition::~Partition() {
   Close();
-  delete bgsave_engine_;
-  delete lock_mgr_;
 }
 
 void Partition::Leave() {
@@ -79,6 +79,7 @@ void Partition::Close() {
   }
   std::lock_guard lock(db_rwlock_);
   db_.reset();
+  lock_mgr_.reset();
   opened_ = false;
 }
 
@@ -123,7 +124,7 @@ void Partition::DbRWLockReader() { db_rwlock_.lock_shared(); }
 
 void Partition::DbRWUnLock() { db_rwlock_.unlock(); }
 
-pstd::lock::LockMgr* Partition::LockMgr() { return lock_mgr_; }
+std::shared_ptr<pstd::lock::LockMgr> Partition::LockMgr() { return lock_mgr_; }
 
 void Partition::PrepareRsync() {
   pstd::DeleteDirIfExist(dbsync_path_);
@@ -296,7 +297,7 @@ BgSaveInfo Partition::bgsave_info() {
 }
 
 void Partition::DoBgSave(void* arg) {
-  auto* bg_task_arg = static_cast<BgTaskArg*>(arg);
+  std::unique_ptr<BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
 
   // Do BgSave
   bool success = bg_task_arg->partition->RunBgsaveEngine();
@@ -322,7 +323,6 @@ void Partition::DoBgSave(void* arg) {
   }
   bg_task_arg->partition->FinishBgsave();
 
-  delete bg_task_arg;
 }
 
 bool Partition::RunBgsaveEngine() {
@@ -374,8 +374,8 @@ bool Partition::InitBgsaveEnv() {
 
 // Prepare bgsave env, need bgsave_protector protect
 bool Partition::InitBgsaveEngine() {
-  delete bgsave_engine_;
-  rocksdb::Status s = storage::BackupEngine::Open(db().get(), &bgsave_engine_);
+  bgsave_engine_.reset();
+  rocksdb::Status s = storage::BackupEngine::Open(db().get(), bgsave_engine_);
   if (!s.ok()) {
     LOG(WARNING) << partition_name_ << " open backup engine failed " << s.ToString();
     return false;
@@ -506,3 +506,4 @@ Status Partition::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
   key_scan_info_.duration = time(nullptr) - key_scan_info_.start_time;
   return Status::OK();
 }
+

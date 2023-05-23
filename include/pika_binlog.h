@@ -11,15 +11,16 @@
 #include "pstd/include/env.h"
 #include "pstd/include/pstd_mutex.h"
 #include "pstd/include/pstd_status.h"
+#include "pstd/include/pika_noncopyable.h"
 
 #include "include/pika_define.h"
 
 
 std::string NewFileName(const std::string& name, uint32_t current);
 
-class Version {
+class Version final : public pstd::noncopyable {
  public:
-  Version(pstd::RWFile* save);
+  Version(const std::shared_ptr<pstd::RWFile>& save);
   ~Version();
 
   pstd::Status Init();
@@ -38,12 +39,10 @@ class Version {
     std::shared_lock l(rwlock_);
     printf("Current pro_num %u pro_offset %llu\n", pro_num_, pro_offset_);
   }
-  // No copying allowed;
-  Version(const Version&) = delete;
-  void operator=(const Version&) = delete;
 
  private:
-  pstd::RWFile* save_ = nullptr;
+  // shared with versionfile_
+  std::shared_ptr<pstd::RWFile> save_;
 };
 
 class Binlog {
@@ -103,9 +102,10 @@ class Binlog {
 
   std::atomic<bool> opened_;
 
-  Version* version_ = nullptr;
-  pstd::WritableFile* queue_ = nullptr;
-  pstd::RWFile* versionfile_ = nullptr;
+  std::unique_ptr<Version> version_;
+  std::unique_ptr<pstd::WritableFile> queue_;
+  // versionfile_ can only be used as a shared_ptr, and it will be used as a variable version_ in the ~Version() function.
+  std::shared_ptr<pstd::RWFile> versionfile_;
 
   pstd::Mutex mutex_;
 

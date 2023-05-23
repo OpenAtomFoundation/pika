@@ -27,11 +27,10 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
   std::string tmp_file = local_meta_file;
   tmp_file.append("_tmp");
 
-  pstd::RWFile* saver = nullptr;
+  std::unique_ptr<pstd::RWFile> saver;
   pstd::CreatePath(local_meta_path_);
-  Status s = pstd::NewRWFile(tmp_file, &saver);
+  Status s = pstd::NewRWFile(tmp_file, saver);
   if (!s.ok()) {
-    delete saver;
     LOG(WARNING) << "Open local meta file failed";
     return Status::Corruption("open local meta file failed");
   }
@@ -48,7 +47,6 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
 
   std::string meta_str;
   if (!meta.SerializeToString(&meta_str)) {
-    delete saver;
     LOG(WARNING) << "Serialize meta string failed";
     return Status::Corruption("serialize meta string failed");
   }
@@ -60,7 +58,6 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
   memcpy(p, &meta_str_size, sizeof(uint32_t));
   p += sizeof(uint32_t);
   strncpy(p, meta_str.data(), meta_str.size());
-  delete saver;
 
   pstd::DeleteFile(local_meta_file);
   if (pstd::RenameFile(tmp_file, local_meta_file) != 0) {
@@ -78,16 +75,14 @@ Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
     return Status::Corruption("meta file not found");
   }
 
-  pstd::RWFile* reader = nullptr;
-  Status s = pstd::NewRWFile(local_meta_file, &reader);
+  std::unique_ptr<pstd::RWFile> reader;
+  Status s = pstd::NewRWFile(local_meta_file, reader);
   if (!s.ok()) {
-    delete reader;
     LOG(WARNING) << "Open local meta file failed";
     return Status::Corruption("open local meta file failed");
   }
 
   if (reader->GetData() == nullptr) {
-    delete reader;
     LOG(WARNING) << "Meta file init error";
     return Status::Corruption("meta file init error");
   }
@@ -96,18 +91,15 @@ Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
   uint32_t meta_size = 0;
   memcpy(reinterpret_cast<char*>(&version), reader->GetData(), sizeof(uint32_t));
   memcpy(reinterpret_cast<char*>(&meta_size), reader->GetData() + sizeof(uint32_t), sizeof(uint32_t));
-  char* const buf = new char[meta_size];
+  auto const buf_ptr = std::make_unique<char[]>(meta_size);
+  char* const buf = buf_ptr.get();
   memcpy(buf, reader->GetData() + 2 * sizeof(uint32_t), meta_size);
 
   InnerMessage::PikaMeta meta;
   if (!meta.ParseFromArray(buf, meta_size)) {
-    delete[] buf;
-    delete reader;
     LOG(WARNING) << "Parse meta string failed";
     return Status::Corruption("parse meta string failed");
   }
-  delete[] buf;
-  delete reader;
 
   table_structs->clear();
   for (int idx = 0; idx < meta.table_infos_size(); ++idx) {

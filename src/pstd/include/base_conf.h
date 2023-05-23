@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
@@ -16,8 +17,6 @@
 #include "pstd/include/pstd_define.h"
 
 namespace pstd {
-
-class BaseConf;
 
 class BaseConf {
  public:
@@ -73,14 +72,8 @@ class BaseConf {
 
   void PushConfItem(const Rep::ConfItem& item);
 
-  /*
-   * No copy && no assign operator
-   */
-  BaseConf(const BaseConf&) = delete;
-  void operator=(const BaseConf&) = delete;
  private:
-  Rep* rep_ = nullptr;
-
+  std::unique_ptr<Rep> rep_;
 };
 
 }  // namespace pstd

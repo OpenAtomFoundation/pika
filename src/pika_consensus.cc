@@ -16,15 +16,13 @@
 using pstd::Status;
 
 extern PikaServer* g_pika_server;
-
-extern PikaReplicaManager* g_pika_rm;
-extern PikaCmdTableManager* g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaConf> g_pika_conf;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 /* Context */
 
 Context::Context(std::string path) :  path_(std::move(path)) {}
-
-Context::~Context() { delete save_; }
 
 Status Context::StableSave() {
   char* p = save_->GetData();
@@ -40,13 +38,15 @@ Status Context::StableSave() {
 
 Status Context::Init() {
   if (!pstd::FileExists(path_)) {
-    Status s = pstd::NewRWFile(path_, &save_);
+    Status s = pstd::NewRWFile(path_, save_);
     if (!s.ok()) {
       LOG(FATAL) << "Context new file failed " << s.ToString();
     }
     StableSave();
   } else {
-    Status s = pstd::NewRWFile(path_, &save_);
+    std::unique_ptr<pstd::RWFile> tmp_file;
+    Status s = pstd::NewRWFile(path_, tmp_file);
+    save_.reset(tmp_file.release());
     if (!s.ok()) {
       LOG(FATAL) << "Context new file failed " << s.ToString();
     }
@@ -271,7 +271,8 @@ int MemLog::InternalFindLogByBinlogOffset(const LogOffset& offset) {
 ConsensusCoordinator::ConsensusCoordinator(const std::string& table_name, uint32_t partition_id)
     : table_name_(table_name), partition_id_(partition_id) {
   std::string table_log_path = g_pika_conf->log_path() + "log_" + table_name + "/";
-  std::string log_path = table_log_path;
+  std::string log_path =
+      g_pika_conf->classic_mode() ? table_log_path : table_log_path + std::to_string(partition_id) + "/";
   context_ = std::make_shared<Context>(log_path + kContext);
   stable_logger_ = std::make_shared<StableLog>(table_name, partition_id, log_path);
   mem_logger_ = std::make_shared<MemLog>();

@@ -43,7 +43,7 @@ struct BackupContent {
 class BackupEngine {
  public:
   ~BackupEngine();
-  static Status Open(Storage* storage, BackupEngine** backup_engine_ptr);
+  static Status Open(Storage* db, std::shared_ptr<BackupEngine>& backup_engine_ret);
 
   Status SetBackupContent();
 
@@ -56,7 +56,7 @@ class BackupEngine {
  private:
   BackupEngine() = default;
 
-  std::map<std::string, rocksdb::DBCheckpoint*> engines_;
+  std::map<std::string, std::unique_ptr<rocksdb::DBCheckpoint>> engines_;
   std::map<std::string, BackupContent> backup_content_;
   std::map<std::string, pthread_t> backup_pthread_ts_;
 
@@ -70,3 +70,4 @@ class BackupEngine {
 
 }  //  namespace storage
 #endif  //  SRC_BACKUPABLE_H_
+

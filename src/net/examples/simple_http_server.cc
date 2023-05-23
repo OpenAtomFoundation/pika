@@ -76,8 +76,8 @@ int main(int argc, char* argv[]) {
 
   SignalSetup();
 
-  ConnFactory* my_conn_factory = new MyConnFactory();
-  ServerThread* st = NewDispatchThread(port, 4, my_conn_factory, 1000);
+  std::unique_ptr<ConnFactory> my_conn_factory = std::make_unique<MyConnFactory>();
+  std::unique_ptr<ServerThread> st(NewDispatchThread(port, 4, my_conn_factory.get(), 1000));
 
   if (st->StartThread() != 0) {
     printf("StartThread error happened!\n");
@@ -88,9 +88,6 @@ int main(int argc, char* argv[]) {
     sleep(1);
   }
   st->StopThread();
-
-  delete st;
-  delete my_conn_factory;
 
   return 0;
 }
