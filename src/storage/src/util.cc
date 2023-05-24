@@ -51,11 +51,13 @@ int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
     return -1;
   }
   long double d = strtold(s, &pEnd);
-  if (pEnd != s + slen) { return -1;
-}
+  if (pEnd != s + slen) {
+    return -1;
+  }
 
-  if (ldval != nullptr) { *ldval = d;
-}
+  if (ldval != nullptr) {
+    *ldval = d;
+  }
   return 0;
 }
 

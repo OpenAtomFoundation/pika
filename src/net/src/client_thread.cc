@@ -39,7 +39,7 @@ ClientThread::ClientThread(ConnFactory* conn_factory, int cron_interval, int kee
 ClientThread::~ClientThread() = default;
 
 int ClientThread::StartThread() {
-  if (handle_ == nullptr) {
+  if (!handle_) {
     handle_ = new ClientHandle();
     own_handle_ = true;
   }
@@ -183,7 +183,7 @@ Status ClientThread::ScheduleConnect(const std::string& dst_ip, int dst_port) {
 
     return s;
   }
-  if (p == nullptr) {
+  if (!p) {
     s = Status::IOError(strerror(errno), "Can't create socket ");
     return s;
   }
@@ -398,7 +398,7 @@ void* ClientThread::ThreadMain() {
     nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe == nullptr) {
+      if (!pfe) {
         continue;
       }
 
