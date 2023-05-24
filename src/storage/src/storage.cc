@@ -1295,40 +1295,50 @@ Status Storage::Keys(const DataType& data_type, const std::string& pattern, std:
   Status s;
   if (data_type == DataType::kStrings) {
     s = strings_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   } else if (data_type == DataType::kHashes) {
     s = hashes_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   } else if (data_type == DataType::kZSets) {
     s = zsets_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   } else if (data_type == DataType::kSets) {
     s = sets_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   } else if (data_type == DataType::kLists) {
     s = lists_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   } else {
     s = strings_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
     s = hashes_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
     s = zsets_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
     s = sets_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
     s = lists_db_->ScanKeys(pattern, keys);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   }
   return s;
 }
@@ -1708,28 +1718,33 @@ Status Storage::SetOptions(const OptionType& option_type, const std::string& db_
   Status s;
   if (db_type == ALL_DB || db_type == STRINGS_DB) {
     s = strings_db_->SetOptions(option_type, options);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   }
   if (db_type == ALL_DB || db_type == HASHES_DB) {
     s = hashes_db_->SetOptions(option_type, options);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   }
   if (db_type == ALL_DB || db_type == LISTS_DB) {
     s = lists_db_->SetOptions(option_type, options);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   }
   if (db_type == ALL_DB || db_type == ZSETS_DB) {
     s = zsets_db_->SetOptions(option_type, options);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   }
   if (db_type == ALL_DB || db_type == SETS_DB) {
     s = sets_db_->SetOptions(option_type, options);
-    if (!s.ok()) { return s;
-}
+    if (!s.ok()) {
+      return s;
+    }
   }
   return s;
 }

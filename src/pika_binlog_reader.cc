@@ -155,8 +155,9 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t*
   const unsigned int type = header[7];
   const uint32_t length = a | (b << 8) | (c << 16);
 
-  if (length > (kBlockSize - kHeaderSize)) { return kBadRecord;
-}
+  if (length > (kBlockSize - kHeaderSize)) {
+    return kBadRecord;
+  }
 
   if (type == kZeroType || length == 0) {
     buffer_.clear();

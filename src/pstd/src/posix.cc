@@ -572,10 +572,10 @@ ssize_t rio_readnb(rio_t* rp, void* usrbuf, size_t n) {
         nread = 0;        /* call read() again */
       } else {
         return -1; /* errno set by read() */
-}
+      }
     } else if (nread == 0) {
       break; /* EOF */
-}
+    }
     nleft -= nread;
     bufp += nread;
   }
@@ -666,12 +666,14 @@ int open_clientfd(char* hostname, int port) {
   struct hostent* hp;
   struct sockaddr_in serveraddr;
 
-  if ((clientfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) { return -1; /* check errno for cause of error */
-}
+  if ((clientfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    return -1; /* check errno for cause of error */
+  }
 
   /* Fill in the server's IP address and port */
-  if ((hp = gethostbyname(hostname)) == nullptr) { return -2; /* check h_errno for cause of error */
-}
+  if ((hp = gethostbyname(hostname)) == nullptr) {
+    return -2; /* check h_errno for cause of error */
+  }
   memset(&serveraddr, 0, sizeof(serveraddr));
   serveraddr.sin_family = AF_INET;
   memmove(&serveraddr.sin_addr.s_addr, hp->h_addr_list[0], hp->h_length);
@@ -716,7 +718,8 @@ int open_listenfd(int port) {
   }
 
   /* Make it a listening socket ready to accept connection requests */
-  if (listen(listenfd, LISTENQ) < 0) { return -1;
+  if (listen(listenfd, LISTENQ) < 0) {
+    return -1;
 }
   return listenfd;
 }

@@ -119,8 +119,9 @@ int ServerThread::SetTcpNoDelay(int connfd) {
 int ServerThread::StartThread() {
   int ret = 0;
   ret = InitHandle();
-  if (ret != kSuccess) { return ret;
-}
+  if (ret != kSuccess) {
+    return ret;
+  }
   return Thread::StartThread();
 }
 

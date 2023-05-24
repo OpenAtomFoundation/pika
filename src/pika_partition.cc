@@ -113,8 +113,9 @@ std::string Partition::GetPartitionName() const { return partition_name_; }
 std::shared_ptr<storage::Storage> Partition::db() const { return db_; }
 
 void Partition::Compact(const storage::DataType& type) {
-  if (!opened_) { return;
-}
+  if (!opened_) {
+    return;
+  }
   db_->Compact(type);
 }
 

@@ -60,8 +60,9 @@ static inline double rad_deg(double ang) { return ang / D_R; }
 /* This function is used in order to estimate the step (bits precision)
  * of the 9 search area boxes during radius queries. */
 uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
-  if (range_meters == 0) { return 26;
-}
+  if (range_meters == 0) {
+    return 26;
+  }
   int step = 1;
   while (range_meters < MERCATOR_MAX) {
     range_meters *= 2;
@@ -74,15 +75,18 @@ uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
    * at this latitude, but this does the trick for now. */
   if (lat > 66 || lat < -66) {
     step--;
-    if (lat > 80 || lat < -80) { step--;
-}
+    if (lat > 80 || lat < -80) {
+      step--;
+    }
   }
 
   /* Frame to valid range. */
-  if (step < 1) { step = 1;
-}
-  if (step > 26) { step = 26;
-}
+  if (step < 1) {
+    step = 1;
+  }
+  if (step > 26) {
+    step = 26;
+  }
   return step;
 }
 
@@ -105,8 +109,9 @@ uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
  * optimization is not used for very big radiuses, however the function
  * should be fixed. */
 int geohashBoundingBox(double longitude, double latitude, double radius_meters, double* bounds) {
-  if (bounds == nullptr) { return 0;
-}
+  if (bounds == nullptr) {
+    return 0;
+  }
 
   bounds[0] = longitude - rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
   bounds[2] = longitude + rad_deg(radius_meters / EARTH_RADIUS_IN_METERS / cos(deg_rad(latitude)));
@@ -236,8 +241,9 @@ double geohashGetDistance(double lon1d, double lat1d, double lon2d, double lat2d
 
 int geohashGetDistanceIfInRadius(double x1, double y1, double x2, double y2, double radius, double* distance) {
   *distance = geohashGetDistance(x1, y1, x2, y2);
-  if (*distance > radius) { return 0;
-}
+  if (*distance > radius) {
+    return 0;
+  }
   return 1;
 }
 
