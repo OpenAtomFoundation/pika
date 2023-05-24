@@ -16,6 +16,8 @@
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
+#include "net/src/dispatch_thread.h"
+#include "net/src/worker_thread.h"
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
@@ -37,6 +39,9 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   if (!c_ptr) {
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
     tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
+    if (IsInTxn()) {
+      SetTxnState(TxnState::InitCmdFailed);  // 本次事务就算是失败了
+    }
     return tmp_ptr;
   }
   c_ptr->SetConn(shared_from_this());
@@ -62,6 +67,21 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   // Initial
   c_ptr->Initial(argv, current_db_);
   if (!c_ptr->res().ok()) {
+    if (IsInTxn()) {
+      SetTxnState(TxnState::InitCmdFailed);  // 本次事务就算是失败了
+    }
+    return c_ptr;
+  }
+  if (IsInTxn() && opt != kCmdNameDiscard && opt != kCmdNameExec) {
+    if (opt == kCmdNameWatch) {
+      c_ptr->res().SetRes(CmdRes::kInvaildTranscation);
+      return c_ptr;
+    }
+    if (!IsTxnFailed()) {
+      PushCmdToQue(c_ptr);
+    }
+//    c_ptr->SetStage(Cmd::CmdStage::kQueueStage);
+    c_ptr->res().SetRes(CmdRes::kTxnQueued);
     return c_ptr;
   }
 
@@ -122,6 +142,16 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   auto cmdstat_map = g_pika_server->GetCommandStatMap();
   (*cmdstat_map)[opt].cmd_count.fetch_add(1);
   (*cmdstat_map)[opt].cmd_time_consuming.fetch_add(duration);
+
+  //! 这里不需要判断是否是exec，因为exec没有key，但是得小心，watch之类的
+  if (c_ptr->res().ok() && c_ptr->is_write() && !IsInTxn()) {
+    // TODO
+    auto table_keys = c_ptr->current_key();
+    for (auto& key : table_keys) {
+      key = c_ptr->table_name() + key;
+    }
+    SetTxnFailedFromKeys(table_keys);
+  }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     ProcessSlowlog(argv, start_us, c_ptr->GetDoDuration());
@@ -259,10 +289,119 @@ void PikaClientConn::TryWriteResp() {
       write_completed_cb_();
       write_completed_cb_ = nullptr;
     }
+    //! 这里会将resp的string指针给清掉，所以后面执行的时候就会error
     resp_array.clear();
     NotifyEpoll(true);
   }
 }
+void PikaClientConn::PushCmdToQue(std::shared_ptr<Cmd> cmd) {
+  txn_cmd_que_.push(cmd);
+  cmd->SetResp(std::make_shared<std::string>());
+  txn_exec_tables_.emplace_back(cmd->table_name());
+}
+
+
+void PikaClientConn::SetTxnState(TxnState state) {
+  std::lock_guard<std::mutex> lg(txn_mu_);
+  txn_state_ = state;
+}
+
+bool PikaClientConn::IsInTxn() {
+  std::lock_guard<std::mutex> lg(txn_mu_);
+  return txn_state_ != TxnState::None;
+}
+
+bool PikaClientConn::IsTxnFailed() {
+  std::lock_guard<std::mutex> lg(txn_mu_);
+  return txn_state_ == TxnState::InitCmdFailed || txn_state_ == TxnState::WatchFailed;
+}
+bool PikaClientConn::IsTxnInitFailed() {
+  std::lock_guard<std::mutex> lg(txn_mu_);
+  return txn_state_ == TxnState::InitCmdFailed;
+}
+
+bool PikaClientConn::IsTxnWatchFailed() {
+  std::lock_guard<std::mutex> lg(txn_mu_);
+  return txn_state_ == TxnState::WatchFailed;
+}
+
+std::vector<CmdRes> PikaClientConn::ExecTxnCmds() {
+  auto ret_res = std::vector<CmdRes>{};
+  for (const auto &table_name : txn_exec_tables_) {
+    auto partition = g_pika_server->GetPartitionByDbName(table_name);
+    if (table_name == current_table_) {
+      continue;
+    }
+    //TODO(lee): 这种有没有可能会得到一个空指针，比如某个db没有创建
+    partition->DbRWLockWriter();
+  }
+  while (!txn_cmd_que_.empty()) {
+    auto cmd = txn_cmd_que_.front();
+    txn_cmd_que_.pop();
+    cmd->res().SetRes(CmdRes::CmdRet::kNone);
+    cmd->ProcessSinglePartitionCmd();
+    if (cmd->res().ok() && cmd->is_write()) {
+      //TODO
+//      SetTxnFailedFromKeys({cmd->table_name() + cmd->current_key()});
+    }
+    ret_res.emplace_back(cmd->res());
+  }
+  for (const auto &table_name : txn_exec_tables_) {
+    auto partition = g_pika_server->GetPartitionByDbName(table_name);
+    if (table_name == current_table_) {
+      continue;
+    }
+    partition->DbRWUnLock();
+  }
+  RemoveWatchedKeys();
+  SetTxnState(TxnState::None);
+  return ret_res;
+}
+std::shared_ptr<Cmd> PikaClientConn::PopCmdFromQue() {
+  if (txn_cmd_que_.empty()) {
+    return nullptr;
+  }
+  auto ret = txn_cmd_que_.front();
+  txn_cmd_que_.pop();
+  return ret;
+}
+
+
+void PikaClientConn::AddKeysToWatch(const std::vector<std::string> &table_keys) {
+  for (const auto &it : table_keys) {
+    watched_table_keys_.emplace(it);
+  }
+
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
+    dispatcher->AddWatchKeys(table_keys, shared_from_this());
+  }
+}
+
+void PikaClientConn::RemoveWatchedKeys() {
+  auto worker_thread = dynamic_cast<net::WorkerThread *>(server_thread());
+  if (worker_thread != nullptr) {
+    auto dispatcher = dynamic_cast<net::DispatchThread *>(worker_thread->GetServerThread());
+    watched_table_keys_.clear();
+    dispatcher->RemoveWatchKeys(shared_from_this());
+  }
+}
+
+/**
+ * @brief 去修改被watch的key的一些连接
+ */
+void PikaClientConn::SetTxnFailedFromKeys(const std::vector<std::string> &table_keys) {
+  auto dispatcher = dynamic_cast<net::DispatchThread *>(server_thread());
+  if (dispatcher != nullptr) {
+    auto involved_conns = dispatcher->GetInvolvedTxn(table_keys);
+    for (auto &conn : involved_conns) {
+      if (auto c = std::dynamic_pointer_cast<PikaClientConn>(conn); c != nullptr) {
+        c->SetTxnState(TxnState::WatchFailed);
+      }
+    }
+  }
+}
+
 
 void PikaClientConn::ExecRedisCmd(const PikaCmdArgsType& argv, const std::shared_ptr<std::string>& resp_ptr) {
   // get opt

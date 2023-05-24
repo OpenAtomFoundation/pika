@@ -6,6 +6,7 @@
 #ifndef PIKA_COMMAND_H_
 #define PIKA_COMMAND_H_
 
+#include <string>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
@@ -192,6 +193,13 @@ const std::string kCmdNameSDiffstore = "sdiffstore";
 const std::string kCmdNameSMove = "smove";
 const std::string kCmdNameSRandmember = "srandmember";
 
+// transation
+const std::string kCmdNameMulti = "multi";
+const std::string kCmdNameExec = "exec";
+const std::string kCmdNameDiscard = "discard";
+const std::string kCmdNameWatch = "watch";
+const std::string kCmdNameUnWatch = "unwatch";
+
 // HyperLogLog
 const std::string kCmdNamePfAdd = "pfadd";
 const std::string kCmdNamePfCount = "pfcount";
@@ -289,6 +297,8 @@ class CmdRes {
     kInconsistentHashTag,
     kErrOther,
     KIncrByOverFlow,
+    kInvaildTranscation,
+    kTxnQueued
   };
 
   CmdRes() = default;
@@ -360,6 +370,12 @@ class CmdRes {
         result.append(message_);
         result.append("'\r\n");
         break;
+      case kInvaildTranscation:
+        return "-ERR WATCH inside MULTI is not allowed\r\n";
+      case kTxnQueued:
+        result = "+Queued";
+        result.append("\r\n");
+        break;
       case kErrOther:
         result = "-ERR ";
         result.append(message_);
@@ -392,7 +408,9 @@ class CmdRes {
       message_ = content;
     }
   }
-
+  CmdRet GetCmdRet() const {
+    return ret_;
+  }
  private:
   std::string message_;
   CmdRet ret_ = kNone;
@@ -400,6 +418,7 @@ class CmdRes {
 
 class Cmd : public std::enable_shared_from_this<Cmd> {
  public:
+ //! TODO(lee) : 这里是不是加一个queued比较好？
   enum CmdStage { kNone, kBinlogStage, kExecuteStage };
   struct HintKeys {
     HintKeys() = default;
@@ -483,7 +502,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   std::string db_name_;
 
   std::weak_ptr<net::NetConn> conn_;
-  std::weak_ptr<std::string> resp_;
+  std::shared_ptr<std::string> resp_;
   CmdStage stage_ = kNone;
   uint64_t do_duration_ = 0;
 

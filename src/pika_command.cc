@@ -3,6 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include <memory>
 #include <utility>
 
 #include <glog/logging.h>
@@ -19,6 +20,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_set.h"
+#include "include/pika_transaction.h"
 #include "include/pika_slot_command.h"
 #include "include/pika_zset.h"
 
@@ -673,6 +675,23 @@ void InitCmdTable(CmdTable* cmd_table) {
   ////PubSub
   std::unique_ptr<Cmd> pubsubptr = std::make_unique<PubSubCmd>(kCmdNamePubSub, -2, kCmdFlagsRead | kCmdFlagsPubSub);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNamePubSub, std::move(pubsubptr)));
+
+  // Transaction
+  ////Multi
+  std::unique_ptr<Cmd> multiptr = std::make_unique<MultiCmd>(kCmdNameMulti, 1, kCmdFlagsRead | kCmdFlagsWrite);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameMulti, std::move(multiptr)));
+  ////Exec
+  std::unique_ptr<Cmd> execptr = std::make_unique<ExecCmd>(kCmdNameExec, 1, kCmdFlagsRead | kCmdFlagsWrite);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameExec, std::move(execptr)));
+  ////Discard
+  std::unique_ptr<Cmd> discardptr = std::make_unique<DiscardCmd>(kCmdNameDiscard, 1, kCmdFlagsRead | kCmdFlagsWrite);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameDiscard, std::move(discardptr)));
+  ////Watch
+  std::unique_ptr<Cmd> watchptr = std::make_unique<WatchCmd>(kCmdNameWatch, -2, kCmdFlagsRead);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameWatch, std::move(watchptr)));
+  ////Unwatch
+  std::unique_ptr<Cmd> unwatchptr = std::make_unique<UnwatchCmd>(kCmdNameUnWatch, 1, kCmdFlagsRead);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameUnWatch, std::move(unwatchptr)));
 }
 
 Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table) {
@@ -901,6 +920,6 @@ std::shared_ptr<net::NetConn> Cmd::GetConn() { return conn_.lock(); }
 
 void Cmd::SetResp(const std::shared_ptr<std::string>& resp) { resp_ = resp; }
 
-std::shared_ptr<std::string> Cmd::GetResp() { return resp_.lock(); }
+std::shared_ptr<std::string> Cmd::GetResp() { return resp_; }
 
 void Cmd::SetStage(CmdStage stage) { stage_ = stage; }

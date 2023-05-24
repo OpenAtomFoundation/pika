@@ -36,7 +36,7 @@ class ServerSocket;
 class NetConn;
 struct NetFiredEvent;
 class ConnFactory;
-class WorkerThread;
+//class WorkerThread;
 
 /*
  *  ServerHandle will be invoked at appropriate occasion

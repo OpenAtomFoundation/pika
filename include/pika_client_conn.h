@@ -9,7 +9,7 @@
 #include <utility>
 
 #include "include/pika_command.h"
-
+//TODO(lee): 还有一个事儿，就是将一个超时关闭的连接所watch的key给从全局的那个变量里面给清除掉
 class PikaClientConn : public net::RedisConn {
  public:
   using WriteCompleteCallback = std::function<void()>;
@@ -23,6 +23,10 @@ class PikaClientConn : public net::RedisConn {
     std::string db_name;
     uint32_t slot_id;
   };
+  //! InitCmdFailed指的是初始化某个任务的时候失败了
+  // WatchFailed指的是在watch之后，某个客户端修改了此事务watch的key
+  //!值得注意的是，watch的key是有db之分的
+  enum class TxnState { None, Start, InitCmdFailed, WatchFailed };
 
   // Auth related
   class AuthStat {
@@ -40,9 +44,11 @@ class PikaClientConn : public net::RedisConn {
     StatType stat_;
   };
 
-  PikaClientConn(int fd, const std::string& ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
-                 const net::HandleType& handle_type, int max_conn_rbuf_size);
-  ~PikaClientConn() override = default;
+  PikaClientConn(int fd, std::string ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
+                 const net::HandleType& handle_type, int max_conn_rubf_size);
+  virtual ~PikaClientConn() {
+    LOG(INFO) << "lee : " << __FUNCTION__ << " " << String();
+  }
 
   void ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
                                 std::string* response) override;
@@ -56,6 +62,17 @@ class PikaClientConn : public net::RedisConn {
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
   void SetCurrentDb(const std::string& db_name) { current_db_ = db_name; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
+  void PushCmdToQue(std::shared_ptr<Cmd> cmd);
+  void SetTxnState(TxnState state);
+  std::vector<CmdRes> ExecTxnCmds();
+  std::shared_ptr<Cmd> PopCmdFromQue();
+  bool IsInTxn();
+  bool IsTxnFailed();
+  bool IsTxnInitFailed();
+  bool IsTxnWatchFailed();
+  void AddKeysToWatch(const std::vector<std::string> &keys);
+  void RemoveWatchedKeys();
+  void SetTxnFailedFromKeys(const std::vector<std::string> &table_keys);
 
   net::ServerThread* server_thread() { return server_thread_; }
 
@@ -69,6 +86,11 @@ class PikaClientConn : public net::RedisConn {
   std::string current_db_;
   WriteCompleteCallback write_completed_cb_;
   bool is_pubsub_ = false;
+  std::queue<std::shared_ptr<Cmd>> txn_cmd_que_; // redis事务的队列
+  TxnState txn_state_{TxnState::None};  // 事务的状态
+  std::unordered_set<std::string> watched_table_keys_;
+  std::vector<std::string> txn_exec_tables_;
+  std::mutex txn_mu_;
 
   std::shared_ptr<Cmd> DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                              const std::shared_ptr<std::string>& resp_ptr);

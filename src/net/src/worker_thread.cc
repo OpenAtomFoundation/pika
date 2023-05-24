@@ -10,6 +10,7 @@
 #include "pstd/include/testutil.h"
 #include "net/src/worker_thread.h"
 
+#include "dispatch_thread.h"
 #include "net/include/net_conn.h"
 #include "net/src/net_item.h"
 
@@ -291,6 +292,9 @@ bool WorkerThread::TryKillConn(const std::string& ip_port) {
 
 void WorkerThread::CloseFd(const std::shared_ptr<NetConn>& conn) {
   close(conn->fd());
+  if (auto dispatcher = dynamic_cast<DispatchThread *>(server_thread_); dispatcher != nullptr ) {
+    dispatcher->RemoveWatchKeys(conn);
+  }
   server_thread_->handle_->FdClosedHandle(conn->fd(), conn->ip_port());
 }
 

@@ -11,6 +11,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include "net/include/net_conn.h"
 #include "net/include/server_thread.h"
@@ -55,6 +56,12 @@ class DispatchThread : public ServerThread {
 
   void SetQueueLimit(int queue_limit) override;
 
+  void AddWatchKeys(const std::vector<std::string> &keys, const std::shared_ptr<NetConn>& client_conn);
+
+  void RemoveWatchKeys(const std::shared_ptr<NetConn>& client_conn);
+
+  std::vector<std::shared_ptr<NetConn>> GetInvolvedTxn(const std::vector<std::string> &keys);
+
  private:
   /*
    * Here we used auto poll to find the next work thread,
@@ -68,6 +75,10 @@ class DispatchThread : public ServerThread {
   std::vector<std::unique_ptr<WorkerThread>> worker_thread_;
   int queue_limit_;
   std::map<WorkerThread*, void*> localdata_;
+
+  std::unordered_map<std::string, std::unordered_set<std::shared_ptr<NetConn>>> key_conns_map_;
+  std::unordered_map<std::shared_ptr<NetConn>, std::unordered_set<std::string>> conn_keys_map_;
+  std::mutex watch_keys_mu_;
 
   void HandleConnEvent(NetFiredEvent* pfe) override { UNUSED(pfe); }
 
