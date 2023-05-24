@@ -18,7 +18,7 @@ std::string NewFileName(const std::string name, const uint32_t current) {
 /*
  * Version
  */
-Version::Version(pstd::RWFile* save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) { assert(save_); }
+Version::Version(std::shared_ptr<pstd::RWFile> save) : pro_num_(0), pro_offset_(0), logic_id_(0), save_(save) { assert(save_); }
 
 Version::~Version() { StableSave(); }
 
@@ -74,26 +74,29 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size)
     std::cout << "Binlog: Manifest file not exist, we create a new one.";
 
     profile = NewFileName(filename, pro_num_);
-    s = pstd::NewWritableFile(profile, &queue_);
+    s = pstd::NewWritableFile(profile, queue_);
     if (!s.ok()) {
       std::cout << "Binlog: new " << filename << " " << s.ToString();
       exit(-1);
     }
-
-    s = pstd::NewRWFile(manifest, &versionfile_);
+    std::unique_ptr<pstd::RWFile> tmp_file;
+    s = pstd::NewRWFile(manifest, tmp_file);
+    versionfile_.reset(tmp_file.release());
     if (!s.ok()) {
       std::cout << "Binlog: new versionfile error " << s.ToString();
       exit(-1);
     }
 
-    version_ = new Version(versionfile_);
+    version_ = std::make_unique<Version>(versionfile_);
     version_->StableSave();
   } else {
     std::cout << "Binlog: Find the exist file.";
 
-    s = pstd::NewRWFile(manifest, &versionfile_);
+    std::unique_ptr<pstd::RWFile> tmp_file;
+    s = pstd::NewRWFile(manifest, tmp_file);
+    versionfile_.reset(tmp_file.release());
     if (s.ok()) {
-      version_ = new Version(versionfile_);
+      version_ = std::make_unique<Version>(versionfile_);
       version_->Init();
       pro_num_ = version_->pro_num_;
 
@@ -105,7 +108,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size)
     }
 
     profile = NewFileName(filename, pro_num_);
-    s = pstd::AppendWritableFile(profile, &queue_, version_->pro_offset_);
+    s = pstd::AppendWritableFile(profile, queue_, version_->pro_offset_);
     if (!s.ok()) {
       std::cout << "Binlog: Open file " << profile << " error " << s.ToString();
       exit(-1);
@@ -115,12 +118,7 @@ Binlog::Binlog(const std::string& binlog_path, const int file_size)
   InitLogFile();
 }
 
-Binlog::~Binlog() {
-  delete version_;
-  delete versionfile_;
-
-  delete queue_;
-}
+Binlog::~Binlog() {}
 
 void Binlog::InitLogFile() {
   assert(queue_ != nullptr);
@@ -151,12 +149,12 @@ Status Binlog::Put(const char* item, int len) {
   /* Check to roll log file */
   uint64_t filesize = queue_->Filesize();
   if (filesize > file_size_) {
-    delete queue_;
+    queue_.reset();
     queue_ = nullptr;
 
     pro_num_++;
     std::string profile = NewFileName(filename, pro_num_);
-    pstd::NewWritableFile(profile, &queue_);
+    pstd::NewWritableFile(profile, queue_);
 
     {
       std::lock_guard l(version_->rwlock_);
@@ -309,7 +307,7 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
     pro_offset = 0;
   }
 
-  delete queue_;
+  queue_.reset();
 
   std::string init_profile = NewFileName(filename, 0);
   if (pstd::FileExists(init_profile)) {
@@ -321,8 +319,8 @@ Status Binlog::SetProducerStatus(uint32_t pro_num, uint64_t pro_offset) {
     pstd::DeleteFile(profile);
   }
 
-  pstd::NewWritableFile(profile, &queue_);
-  Binlog::AppendBlank(queue_, pro_offset);
+  pstd::NewWritableFile(profile, queue_);
+  Binlog::AppendBlank(queue_.get(), pro_offset);
 
   pro_num_ = pro_num;
 

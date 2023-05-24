@@ -1,7 +1,7 @@
 package exporter
 
 import (
-	"github.com/OpenAtomFoundation/pika/pika-tools/pika_exporter/discovery"
+	"github.com/OpenAtomFoundation/pika/tools/pika_exporter/discovery"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"testing"

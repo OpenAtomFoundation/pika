@@ -11,20 +11,12 @@
 #include "include/pika_conf.h"
 #include "pstd/include/pstd_mutex.h"
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 PikaCmdTableManager::PikaCmdTableManager() {
-  cmds_ = new CmdTable();
+  cmds_ = std::make_unique<CmdTable>();
   cmds_->reserve(300);
-  InitCmdTable(cmds_);
-}
-
-PikaCmdTableManager::~PikaCmdTableManager() {
-  for (const auto& item : thread_distribution_map_) {
-    delete item.second;
-  }
-  DestoryCmdTable(cmds_);
-  delete cmds_;
+  InitCmdTable(cmds_.get());
 }
 
 std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {
@@ -50,25 +42,18 @@ bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const std::thre
 
 void PikaCmdTableManager::InsertCurrentThreadDistributionMap() {
   auto tid = std::this_thread::get_id();
-  PikaDataDistribution* distribution = nullptr;
-  if (g_pika_conf->classic_mode()) {
-    distribution = new HashModulo();
-  } else {
-    distribution = new Crc32();
-  }
+  std::unique_ptr<PikaDataDistribution> distribution = std::make_unique<HashModulo>();
   distribution->Init();
   std::lock_guard l(map_protector_);
-  thread_distribution_map_.emplace(tid, distribution);
+  thread_distribution_map_.emplace(tid, std::move(distribution));
 }
 
 uint32_t PikaCmdTableManager::DistributeKey(const std::string& key, uint32_t partition_num) {
   auto tid = std::this_thread::get_id();
-  PikaDataDistribution* data_dist = nullptr;
   if (!CheckCurrentThreadDistributionMapExist(tid)) {
     InsertCurrentThreadDistributionMap();
   }
 
   std::shared_lock l(map_protector_);
-  data_dist = thread_distribution_map_[tid];
-  return data_dist->Distribute(key, partition_num);
+  return thread_distribution_map_[tid]->Distribute(key, partition_num);
 }

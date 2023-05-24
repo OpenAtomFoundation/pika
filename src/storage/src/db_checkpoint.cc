@@ -17,6 +17,7 @@
 
 #  include <inttypes.h>
 
+#include <glog/logging.h>
 #  include "file/file_util.h"
 #  include "rocksdb/db.h"
 // #include "file/filename.h"
@@ -106,6 +107,13 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
     return s;
   }
 
+  // if wal_dir eq db path, rocksdb will clear it when opening
+  // make wal_dir valid in that case
+  std::string wal_dir = db_->GetOptions().wal_dir;
+  if (wal_dir.empty()) {
+    wal_dir = db_->GetName() + "/";
+  }
+
   size_t wal_size = live_wal_files.size();
   Log(db_->GetOptions().info_log, "Started the snapshot process -- creating snapshot in directory %s",
       checkpoint_dir.c_str());
@@ -180,10 +188,10 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
       if (i + 1 == wal_size) {
         Log(db_->GetOptions().info_log, "Copying %s", live_wal_files[i]->PathName().c_str());
 #  if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 3))
-        s = CopyFile(db_->GetEnv(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+        s = CopyFile(db_->GetEnv(), wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(), live_wal_files[i]->SizeFileBytes());
 #  else
-        s = CopyFile(db_->GetFileSystem(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+        s = CopyFile(db_->GetFileSystem(), wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(), live_wal_files[i]->SizeFileBytes(), false,
                      nullptr, Temperature::kUnknown);
 #  endif
@@ -192,7 +200,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
       if (same_fs) {
         // we only care about live log files
         Log(db_->GetOptions().info_log, "Hard Linking %s", live_wal_files[i]->PathName().c_str());
-        s = db_->GetEnv()->LinkFile(db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+        s = db_->GetEnv()->LinkFile(wal_dir + live_wal_files[i]->PathName(),
                                     full_private_path + live_wal_files[i]->PathName());
         if (s.IsNotSupported()) {
           same_fs = false;
@@ -202,10 +210,10 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
       if (!same_fs) {
         Log(db_->GetOptions().info_log, "Copying %s", live_wal_files[i]->PathName().c_str());
 #  if (ROCKSDB_MAJOR < 5 || (ROCKSDB_MAJOR == 5 && ROCKSDB_MINOR < 3))
-        s = CopyFile(db_->GetEnv(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+        s = CopyFile(db_->GetEnv(), wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(), 0);
 #  else
-        s = CopyFile(db_->GetFileSystem(), db_->GetOptions().wal_dir + live_wal_files[i]->PathName(),
+        s = CopyFile(db_->GetFileSystem(), wal_dir + live_wal_files[i]->PathName(),
                      full_private_path + live_wal_files[i]->PathName(), 0, false, nullptr, Temperature::kUnknown);
 #  endif
       }

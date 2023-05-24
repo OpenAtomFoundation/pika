@@ -19,7 +19,7 @@ std::string NewFileName(const std::string name, const uint32_t current);
 
 class Version {
  public:
-  Version(pstd::RWFile* save);
+  Version(std::shared_ptr<pstd::RWFile> save);
   ~Version();
 
   Status Init();
@@ -39,7 +39,7 @@ class Version {
   }
 
  private:
-  pstd::RWFile* save_;
+  std::shared_ptr<pstd::RWFile> save_;
 
   // No copying allowed;
   Version(const Version&);
@@ -65,7 +65,7 @@ class Binlog {
 
   static Status AppendBlank(pstd::WritableFile* file, uint64_t len);
 
-  pstd::WritableFile* queue() { return queue_; }
+  // pstd::WritableFile* queue() { return queue_; }
 
   uint64_t file_size() { return file_size_; }
 
@@ -83,9 +83,9 @@ class Binlog {
   uint32_t consumer_num_;
   uint64_t item_num_;
 
-  Version* version_;
-  pstd::WritableFile* queue_;
-  pstd::RWFile* versionfile_;
+  std::unique_ptr<Version> version_;
+  std::unique_ptr<pstd::WritableFile> queue_;
+  std::shared_ptr<pstd::RWFile> versionfile_;
 
   pstd::Mutex mutex_;
 

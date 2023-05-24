@@ -13,13 +13,13 @@
 
 #include "pstd/include/env.h"
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 StableLog::StableLog(const std::string table_name, uint32_t partition_id, const std::string& log_path)
     : purging_(false), table_name_(table_name), partition_id_(partition_id), log_path_(log_path) {
-  stable_logger_ = std::shared_ptr<Binlog>(new Binlog(log_path_, g_pika_conf->binlog_file_size()));
+  stable_logger_ = std::make_shared<Binlog>(log_path_, g_pika_conf->binlog_file_size());
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(&binlogs)) {
     LOG(FATAL) << log_path_ << " Could not get binlog files!";
@@ -71,10 +71,9 @@ bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
 void StableLog::ClearPurge() { purging_ = false; }
 
 void StableLog::DoPurgeStableLogs(void* arg) {
-  PurgeStableLogArg* purge_arg = static_cast<PurgeStableLogArg*>(arg);
+  std::unique_ptr<PurgeStableLogArg> purge_arg(static_cast<PurgeStableLogArg*>(arg));
   purge_arg->logger->PurgeFiles(purge_arg->to, purge_arg->manual);
   purge_arg->logger->ClearPurge();
-  delete static_cast<PurgeStableLogArg*>(arg);
 }
 
 bool StableLog::PurgeFiles(uint32_t to, bool manual) {

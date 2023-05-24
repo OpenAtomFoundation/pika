@@ -14,9 +14,9 @@
 
 #include "include/pika_define.h"
 
-PikaConf::PikaConf(const std::string& path) : pstd::BaseConf(path), conf_path_(path) { local_meta_ = new PikaMeta(); }
+PikaConf::PikaConf(const std::string& path)
+    : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
 
-PikaConf::~PikaConf() { delete local_meta_; }
 
 Status PikaConf::InternalGetTargetTable(const std::string& table_name, uint32_t* const target) {
   int32_t table_index = -1;
@@ -252,20 +252,6 @@ int PikaConf::Load() {
     for (int idx = 0; idx < databases_; ++idx) {
       table_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
     }
-  } else {
-    GetConfInt("default-slot-num", &default_slot_num_);
-    if (default_slot_num_ <= 0) {
-      LOG(FATAL) << "config default-slot-num error,"
-                 << " it should greater than zero, the actual is: " << default_slot_num_;
-    }
-    std::string pika_meta_path = db_path_ + kPikaMeta;
-    if (!pstd::FileExists(pika_meta_path)) {
-      local_meta_->StableSave({{"db0", static_cast<uint32_t>(default_slot_num_), {}}});
-    }
-    Status s = local_meta_->ParseMeta(&table_structs_);
-    if (!s.ok()) {
-      LOG(FATAL) << "parse meta file error";
-    }
   }
   default_table_ = table_structs_[0].table_name;
 
@@ -365,13 +351,13 @@ int PikaConf::Load() {
 
   // rate-limiter-refill-period-us
   GetConfInt64("rate-limiter-refill-period-us", &rate_limiter_refill_period_us_);
-  if (rate_limiter_refill_period_us_ <= 0 ) {
+  if (rate_limiter_refill_period_us_ <= 0) {
     rate_limiter_refill_period_us_ = 100 * 1000;
   }
 
   // rate-limiter-fairness
   GetConfInt64("rate-limiter-fairness", &rate_limiter_fairness_);
-  if (rate_limiter_fairness_ <= 0 ) {
+  if (rate_limiter_fairness_ <= 0) {
     rate_limiter_fairness_ = 10;
   }
 

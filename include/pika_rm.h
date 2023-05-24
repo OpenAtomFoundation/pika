@@ -167,7 +167,7 @@ class SyncSlavePartition : public SyncPartition {
 class PikaReplicaManager {
  public:
   PikaReplicaManager();
-  ~PikaReplicaManager();
+  ~PikaReplicaManager(){};
 
   friend Cmd;
 
@@ -255,8 +255,8 @@ class PikaReplicaManager {
   // every host owns a queue, the key is "ip+port"
   std::unordered_map<std::string, std::unordered_map<uint32_t, std::queue<WriteTask>>> write_queues_;
 
-  PikaReplClient* pika_repl_client_ = nullptr;
-  PikaReplServer* pika_repl_server_ = nullptr;
+  std::unique_ptr<PikaReplClient> pika_repl_client_;
+  std::unique_ptr<PikaReplServer> pika_repl_server_;
 };
 
 #endif  //  PIKA_RM_H

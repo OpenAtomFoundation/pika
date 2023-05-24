@@ -7,7 +7,7 @@
 
 #include "include/pika_conf.h"
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 /* SyncWindow */
 

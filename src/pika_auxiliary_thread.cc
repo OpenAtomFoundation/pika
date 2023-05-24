@@ -10,7 +10,7 @@
 #include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 using namespace std::chrono_literals;
 
@@ -21,16 +21,11 @@ PikaAuxiliaryThread::~PikaAuxiliaryThread() {
 
 void* PikaAuxiliaryThread::ThreadMain() {
   while (!should_stop()) {
-    if (g_pika_conf->classic_mode()) {
-      if (g_pika_server->ShouldMetaSync()) {
-        g_pika_rm->SendMetaSyncRequest();
-      } else if (g_pika_server->MetaSyncDone()) {
-        g_pika_rm->RunSyncSlavePartitionStateMachine();
-      }
-    } else {
+    if (g_pika_server->ShouldMetaSync()) {
+      g_pika_rm->SendMetaSyncRequest();
+    } else if (g_pika_server->MetaSyncDone()) {
       g_pika_rm->RunSyncSlavePartitionStateMachine();
     }
-
     Status s = g_pika_rm->CheckSyncTimeout(pstd::NowMicros());
     if (!s.ok()) {
       LOG(WARNING) << s.ToString();

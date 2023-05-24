@@ -5,7 +5,7 @@ aux_source_directory(${SRC_DIR} BASE_OBJS)
 
 add_executable(aof_to_pika ${BASE_OBJS})
 
-target_include_directories(aof_to_pika PRIVATE ./include PRIVATE ../..)
+target_include_directories(aof_to_pika PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_link_libraries(aof_to_pika pthread)
 set_target_properties(aof_to_pika PROPERTIES

@@ -18,8 +18,8 @@
 #include "include/pika_admin.h"
 #include "include/pika_command.h"
 
-extern PikaConf* g_pika_conf;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaConf> g_pika_conf;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern PikaServer* g_pika_server;
 
 /* SyncPartition */
@@ -28,11 +28,7 @@ SyncPartition::SyncPartition(const std::string& table_name, uint32_t partition_i
     : partition_info_(table_name, partition_id) {}
 
 std::string SyncPartition::PartitionName() {
-  if (g_pika_conf->classic_mode()) {
-    return partition_info_.table_name_;
-  } else {
-    return partition_info_.ToString();
-  }
+  return partition_info_.table_name_;
 }
 
 /* SyncMasterPartition*/
@@ -643,14 +639,9 @@ PikaReplicaManager::PikaReplicaManager() {
   std::set<std::string> ips;
   ips.insert("0.0.0.0");
   int port = g_pika_conf->port() + kPortShiftReplServer;
-  pika_repl_client_ = new PikaReplClient(3000, 60);
-  pika_repl_server_ = new PikaReplServer(ips, port, 3000);
+  pika_repl_client_ = std::make_unique<PikaReplClient>(3000, 60);
+  pika_repl_server_ = std::make_unique<PikaReplServer>(ips, port, 3000);
   InitPartition();
-}
-
-PikaReplicaManager::~PikaReplicaManager() {
-  delete pika_repl_client_;
-  delete pika_repl_server_;
 }
 
 void PikaReplicaManager::Start() {
@@ -950,7 +941,7 @@ Status PikaReplicaManager::GetPartitionInfo(const std::string& table, uint32_t p
 
 Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip, const int remote_port,
                                          std::string* const local_ip) {
-  net::NetCli* cli = net::NewRedisCli();
+  std::unique_ptr<net::NetCli> cli(net::NewRedisCli());
   cli->set_connect_timeout(1500);
   if ((cli->Connect(remote_ip, remote_port, "")).ok()) {
     struct sockaddr_in laddr;
@@ -959,10 +950,8 @@ Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip, const int
     std::string tmp_ip(inet_ntoa(laddr.sin_addr));
     *local_ip = tmp_ip;
     cli->Close();
-    delete cli;
   } else {
     LOG(WARNING) << "Failed to connect remote node(" << remote_ip << ":" << remote_port << ")";
-    delete cli;
     return Status::Corruption("connect remote node error");
   }
   return Status::OK();

@@ -1,0 +1,51 @@
+[source]
+type = "sync" 
+address = "192.168.12.44:6379"
+username = "" # keep empty if not using ACL
+password = "" # keep empty if no authentication is required
+tls = false
+elasticache_psync = "" # using when source is ElastiCache. ref: https://github.com/alibaba/RedisShake/issues/373
+
+[target]
+type = "standalone" # only standalone 
+# When the target is a cluster, write the address of one of the nodes.
+# codis2pika will obtain other nodes through the `cluster nodes` command.
+address = "192.168.12.43:9221"
+username = "" # keep empty if not using ACL
+password = "" # keep empty if no authentication is required
+tls = false
+
+
+[advanced]
+dir = "data"
+
+# runtime.GOMAXPROCS, 0 means use runtime.NumCPU() cpu cores
+ncpu = 4
+
+# pprof port, 0 means disable
+pprof_port = 0
+
+# log
+log_file = "codis2pika.log"
+log_level = "info" # debug, info or warn
+log_interval = 5 # in seconds
+
+# codis2pika gets key and value from rdb file, and uses RESTORE command to
+# create the key in target redis. Redis RESTORE will return a "Target key name
+# is busy" error when key already exists. You can use this configuration item
+# to change the default behavior of restore:
+# panic:   codis2pika will stop when meet "Target key name is busy" error.
+# rewrite: codis2pika will replace the key with new value.
+# ignore:  codis2pika will skip restore the key when meet "Target key name is busy" error.
+rdb_restore_command_behavior = "skip" # panic, rewrite or skip
+
+# pipeline
+pipeline_count_limit = 1024
+
+# Client query buffers accumulate new commands. They are limited to a fixed
+# amount by default. This amount is normally 1gb.
+target_redis_client_max_querybuf_len = 1024_000_000
+
+# In the Redis protocol, bulk requests, that are, elements representing single
+# strings, are normally limited to 512 mb.
+target_redis_proto_max_bulk_len = 512_000_000

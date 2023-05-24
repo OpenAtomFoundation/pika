@@ -426,7 +426,7 @@ class Cmd {
   Cmd& operator=(const Cmd&);
 };
 
-typedef std::unordered_map<std::string, Cmd*> CmdTable;
+typedef std::unordered_map<std::string, std::unique_ptr<Cmd>> CmdTable;
 
 // Method for CmdInfo Table
 void InitCmdInfoTable();
@@ -436,7 +436,6 @@ void DestoryCmdInfoTable();
 // Method for Cmd Table
 void InitCmdTable(CmdTable* cmd_table);
 Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table);
-void DestoryCmdTable(CmdTable* cmd_table);
 
 void RedisAppendContent(std::string& str, const std::string& value) {
   str.append(value.data(), value.size());

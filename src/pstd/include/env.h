@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <string>
 #include <vector>
-
+#include <memory>
 #include "pstd/include/pstd_status.h"
 
 namespace pstd {
@@ -69,17 +69,17 @@ bool GetDescendant(const std::string& dir, std::vector<std::string>& result);
 uint64_t NowMicros();
 void SleepForMicroseconds(int micros);
 
-Status NewSequentialFile(const std::string& fname, SequentialFile** result);
+Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFile>& result);
 
-Status NewWritableFile(const std::string& fname, WritableFile** result);
+Status NewWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result);
 
-Status NewRWFile(const std::string& fname, RWFile** result);
+Status NewRWFile(const std::string& fname, std::unique_ptr<RWFile>& result);
 
 Status AppendSequentialFile(const std::string& fname, SequentialFile** result);
 
-Status AppendWritableFile(const std::string& fname, WritableFile** result, uint64_t write_len = 0);
+Status AppendWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result, uint64_t write_len = 0);
 
-Status NewRandomRWFile(const std::string& fname, RandomRWFile** result);
+Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& result);
 
 // A file abstraction for sequential writing.  The implementation
 // must provide buffering since callers may append small fragments
