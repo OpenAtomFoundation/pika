@@ -799,14 +799,14 @@ void PikaReplicaManager::ReplServerUpdateClientConnMap(const std::string& ip_por
   pika_repl_server_->UpdateClientConnMap(ip_port, fd);
 }
 
-Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& range_start,
-                                                  const LogOffset& range_end) {
+Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start,
+                                                  const LogOffset& offset_end) {
   std::shared_lock l(partitions_rw_);
   if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
     return Status::NotFound(slave.ToString() + " not found");
   }
   std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  Status s = partition->ConsensusUpdateSlave(slave.Ip(), slave.Port(), range_start, range_end);
+  Status s = partition->ConsensusUpdateSlave(slave.Ip(), slave.Port(), offset_start, offset_end);
   if (!s.ok()) {
     return s;
   }

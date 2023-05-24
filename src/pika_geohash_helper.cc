@@ -211,7 +211,7 @@ GeoHashRadius geohashGetAreasByRadiusWGS84(double longitude, double latitude, do
   return geohashGetAreasByRadius(longitude, latitude, radius_meters);
 }
 
-GeoHashFix52Bits geohashAlign52Bits(const GeoHashBits &hash) {
+GeoHashFix52Bits geohashAlign52Bits(const GeoHashBits& hash) {
   uint64_t bits = hash.bits;
   bits <<= (52 - hash.step * 2);
   return bits;

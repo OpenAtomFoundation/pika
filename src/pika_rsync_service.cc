@@ -17,7 +17,7 @@
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
-PikaRsyncService::PikaRsyncService(std::string  raw_path, const int port) : raw_path_(std::move(raw_path)), port_(port) {
+PikaRsyncService::PikaRsyncService(const std::string& raw_path, const int port) : raw_path_(raw_path), port_(port) {
   if (raw_path_.back() != '/') {
     raw_path_ += "/";
   }
