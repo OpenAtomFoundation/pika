@@ -46,10 +46,11 @@ extern "C" {
 #define GEO_STEP_MAX 26 /* 26*2 = 52 bits. */
 
 /* Limits from EPSG:900913 / EPSG:3785 / OSGEO:41001 */
-#define GEO_LAT_MIN (-85.05112878)
-#define GEO_LAT_MAX 85.05112878
-#define GEO_LONG_MIN (-180)
-#define GEO_LONG_MAX 180
+constexpr double GEO_LAT_MIN{-85.05112878};
+constexpr double GEO_LAT_MAX{85.05112878};
+constexpr int64_t GEO_LONG_MIN{-180};
+constexpr int64_t GEO_LONG_MAX{180};
+
 
 enum GeoDirection {
   GEOHASH_NORTH = 0,
@@ -62,23 +63,23 @@ enum GeoDirection {
   GEOHASH_NORT_EAST
 };
 
-using GeoHashBits = struct {
+struct GeoHashBits {
   uint64_t bits;
   uint8_t step;
 };
 
-using GeoHashRange = struct {
+struct GeoHashRange {
   double min;
   double max;
 };
 
-using GeoHashArea = struct {
+struct GeoHashArea {
   GeoHashBits hash;
   GeoHashRange longitude;
   GeoHashRange latitude;
 };
 
-using GeoHashNeighbors = struct {
+struct GeoHashNeighbors {
   GeoHashBits north;
   GeoHashBits east;
   GeoHashBits west;

@@ -26,10 +26,8 @@ struct KeyScanInfo {
   int32_t duration = -3;
   std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets
   bool key_scaning_ = false;
-  KeyScanInfo()
-      : 
+  KeyScanInfo() :
         s_start_time("0"),
-        
         key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}})
         {}
 };
