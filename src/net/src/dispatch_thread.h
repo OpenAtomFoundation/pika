@@ -22,7 +22,7 @@ class NetItem;
 class NetFiredEvent;
 class WorkerThread;
 
-class DispatchThread : public ServerThread, public pstd::noncopyable {
+class DispatchThread : public ServerThread {
  public:
   DispatchThread(int port, int work_num, ConnFactory* conn_factory, int cron_interval, int queue_limit,
                  const ServerHandle* handle);

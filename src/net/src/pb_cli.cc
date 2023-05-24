@@ -20,7 +20,7 @@ using pstd::Status;
 namespace net {
 
 // Default PBCli is block IO;
-class PbCli : public NetCli, public pstd::noncopyable {
+class PbCli : public NetCli {
  public:
   PbCli(const std::string& ip, int port);
   ~PbCli() override;

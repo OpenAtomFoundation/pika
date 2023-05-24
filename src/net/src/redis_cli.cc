@@ -23,7 +23,7 @@ using pstd::Status;
 
 namespace net {
 
-class RedisCli : public NetCli, public pstd::noncopyable {
+class RedisCli : public NetCli {
  public:
   RedisCli();
   ~RedisCli() override;

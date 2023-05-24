@@ -11,7 +11,6 @@
 
 #include "net/include/net_conn.h"
 #include "net/include/net_pubsub.h"
-#include "net/src/net_item.h"
 
 namespace net {
 

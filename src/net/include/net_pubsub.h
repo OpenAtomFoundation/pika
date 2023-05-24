@@ -29,7 +29,7 @@ namespace net {
 class NetFiredEvent;
 class NetConn;
 
-class PubSubThread : public Thread, public pstd::noncopyable {
+class PubSubThread : public Thread {
  public:
   PubSubThread();
 
