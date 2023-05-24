@@ -282,7 +282,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   if (g_pika_conf->consensus_level() != 0) {
     std::shared_ptr<SyncMasterPartition> partition =
         g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-    if (partition == nullptr) {
+    if (!partition) {
       LOG(WARNING) << "Sync Master Partition not exist " << table_name << partition_id;
       return;
     }

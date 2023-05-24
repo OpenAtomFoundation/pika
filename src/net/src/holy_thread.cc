@@ -101,7 +101,7 @@ void HolyThread::HandleNewConn(const int connfd, const std::string& ip_port) {
 }
 
 void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
-  if (pfe == nullptr) {
+  if (!pfe) {
     return;
   }
   std::shared_ptr<NetConn> in_conn = nullptr;
@@ -292,7 +292,7 @@ void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
         } else if (ti.notify_type() == net::kNotiClose) {
           LOG(INFO) << "receive noti close";
           std::shared_ptr<net::NetConn> conn = get_conn(fd);
-          if (conn == nullptr) {
+          if (!conn) {
             continue;
           }
           CloseFd(conn);

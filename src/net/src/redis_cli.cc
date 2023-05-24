@@ -231,7 +231,7 @@ int RedisCli::ProcessLineItem() {
   char* p;
   int len;
 
-  if ((p = ReadLine(&len)) == nullptr) {
+  if (!(p = ReadLine(&len))) {
     return REDIS_HALF;
   }
 
@@ -345,7 +345,7 @@ int RedisCli::GetReplyFromReader() {
   }
 
   char* p;
-  if ((p = ReadBytes(1)) == nullptr) {
+  if (!(p = ReadBytes(1))) {
     return REDIS_HALF;
   }
 

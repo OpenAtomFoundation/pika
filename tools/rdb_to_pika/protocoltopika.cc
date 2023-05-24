@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   int port;
   ss >> port;
   redisContext* c = redisConnect(ip, port);
-  if (c == nullptr || (c->err != 0)) {
+  if (!c || c->err)) {
     if (c != nullptr) {
       redisFree(c);
       std::cout << "connection error" << std::endl;

@@ -542,7 +542,7 @@ void getRandomHexChars(char* p, unsigned int len) {
   char charset[] = "0123456789abcdef";
   unsigned int j;
 
-  if (fp == nullptr || fread(p, len, 1, fp) == 0) {
+  if (!fp || !fread(p, len, 1, fp)) {
     /* If we can't read from /dev/urandom, do some reasonable effort
      * in order to create some entropy, since this function is used to
      * generate run_id and cluster instance IDs */

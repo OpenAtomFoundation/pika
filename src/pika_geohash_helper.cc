@@ -109,7 +109,7 @@ uint8_t geohashEstimateStepsByRadius(double range_meters, double lat) {
  * optimization is not used for very big radiuses, however the function
  * should be fixed. */
 int geohashBoundingBox(double longitude, double latitude, double radius_meters, double* bounds) {
-  if (bounds == nullptr) {
+  if (!bounds) {
     return 0;
   }
 

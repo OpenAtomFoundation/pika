@@ -140,7 +140,7 @@ Status SyncMasterPartition::ActivateSlaveDbSync(const std::string& ip, int port)
 Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr) {
   int cnt = slave_ptr->sync_win.Remaining();
   std::shared_ptr<PikaBinlogReader> reader = slave_ptr->binlog_reader;
-  if (reader == nullptr) {
+  if (!reader) {
     return Status::OK();
   }
   std::vector<WriteTask> tasks;
@@ -196,7 +196,7 @@ Status SyncMasterPartition::ConsensusUpdateSlave(const std::string& ip, int port
 
 Status SyncMasterPartition::ConsensusUpdateAppliedIndex(const LogOffset& offset) {
   std::shared_ptr<Context> context = coordinator_.context();
-  if (context == nullptr) {
+  if (!context) {
     LOG(WARNING) << "Coordinator context empty.";
     return Status::NotFound("context");
   }

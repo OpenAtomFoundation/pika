@@ -20,7 +20,7 @@ RedisSender::RedisSender(int id, std::string ip, int64_t port, std::string passw
 RedisSender::~RedisSender() { LOG(INFO) << "RedisSender thread " << id_ << " exit!!!"; }
 
 void RedisSender::ConnectRedis() {
-  while (cli_ == nullptr) {
+  while (!cli_) {
     // Connect to redis
     cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1000);

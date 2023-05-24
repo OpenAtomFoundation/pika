@@ -119,7 +119,7 @@ void geohashGetCoordRange(GeoHashRange* long_range, GeoHashRange* lat_range) {
 int geohashEncode(const GeoHashRange* long_range, const GeoHashRange* lat_range, double longitude, double latitude,
                   uint8_t step, GeoHashBits* hash) {
   /* Check basic arguments sanity. */
-  if (hash == nullptr || step > 32 || step == 0 || RANGEPISZERO(lat_range) || RANGEPISZERO(long_range)) {
+  if (!hash || step > 32 || step == 0 || RANGEPISZERO(lat_range) || RANGEPISZERO(long_range)) {
     return 0;
   }
 
@@ -193,7 +193,7 @@ int geohashDecodeType(const GeoHashBits hash, GeoHashArea* area) {
 int geohashDecodeWGS84(const GeoHashBits hash, GeoHashArea* area) { return geohashDecodeType(hash, area); }
 
 int geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy) {
-  if (xy == nullptr) {
+  if (!xy) {
     return 0;
   }
   xy[0] = (area->longitude.min + area->longitude.max) / 2;
@@ -203,7 +203,7 @@ int geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy) {
 
 int geohashDecodeToLongLatType(const GeoHashBits hash, double* xy) {
   GeoHashArea area = {{0}};
-  if ((xy == nullptr) || (geohashDecodeType(hash, &area) == 0)) {
+  if (!xy || !(geohashDecodeType(hash, &area))) {
     return 0;
   }
   return geohashDecodeAreaToLongLat(&area, xy);

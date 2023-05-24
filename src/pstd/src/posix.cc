@@ -234,7 +234,7 @@ void Munmap(void* start, size_t length) {
 void* Malloc(size_t size) {
   void* p;
 
-  if ((p = malloc(size)) == nullptr) {
+  if (!(p = malloc(size))) {
     LOG(ERROR) << "Malloc error: " << strerror(errno);
   }
   return p;
@@ -243,7 +243,7 @@ void* Malloc(size_t size) {
 void* Realloc(void* ptr, size_t size) {
   void* p;
 
-  if ((p = realloc(ptr, size)) == nullptr) {
+  if (!(p = realloc(ptr, size))) {
     LOG(ERROR) << "Realloc error: " << strerror(errno);
   }
   return p;
@@ -252,7 +252,7 @@ void* Realloc(void* ptr, size_t size) {
 void* Calloc(size_t nmemb, size_t size) {
   void* p;
 
-  if ((p = calloc(nmemb, size)) == nullptr) {
+  if (!(p = calloc(nmemb, size))) {
     LOG(ERROR) << "Calloc error: " << strerror(errno);
   }
   return p;
@@ -272,7 +272,7 @@ void Fclose(FILE* fp) {
 FILE* Fdopen(int fd, const char* type) {
   FILE* fp;
 
-  if ((fp = fdopen(fd, type)) == nullptr) {
+  if (!(fp = fdopen(fd, type))) {
     LOG(ERROR) << "Fdopen error: " << strerror(errno);
   }
 
@@ -282,7 +282,7 @@ FILE* Fdopen(int fd, const char* type) {
 char* Fgets(char* ptr, int n, FILE* stream) {
   char* rptr;
 
-  if (((rptr = fgets(ptr, n, stream)) == nullptr) && (ferror(stream) != 0)) {
+  if (!(rptr = fgets(ptr, n, stream)) && ferror(stream)) {
     LOG(ERROR) << "Fgets error";
   }
 
@@ -292,7 +292,7 @@ char* Fgets(char* ptr, int n, FILE* stream) {
 FILE* Fopen(const char* filename, const char* mode) {
   FILE* fp;
 
-  if ((fp = fopen(filename, mode)) == nullptr) {
+  if (!(fp = fopen(filename, mode))) {
     LOG(ERROR) << "Fopen error: " << strerror(errno);
   }
 
@@ -374,7 +374,7 @@ void Connect(int sockfd, struct sockaddr* serv_addr, int addrlen) {
 struct hostent* Gethostbyname(const char* name) {
   struct hostent* p;
 
-  if ((p = gethostbyname(name)) == nullptr) {
+  if (!(p = gethostbyname(name))) {
     LOG(ERROR) << "Gethostbyname error: DNS error " << h_errno;
   }
   return p;
@@ -384,7 +384,7 @@ struct hostent* Gethostbyname(const char* name) {
 struct hostent* Gethostbyaddr(const char* addr, int len, int type) {
   struct hostent* p;
 
-  if (p = gethostbyaddr(addr, len, type); p == nullptr) {
+  if (!(p = gethostbyaddr(addr, len, type)) {
     LOG(ERROR) << "Gethostbyaddr error: DNS error " << h_errno;
   }
   return p;
@@ -671,7 +671,7 @@ int open_clientfd(char* hostname, int port) {
   }
 
   /* Fill in the server's IP address and port */
-  if ((hp = gethostbyname(hostname)) == nullptr) {
+  if (!(hp = gethostbyname(hostname))) {
     return -2; /* check h_errno for cause of error */
   }
   memset(&serveraddr, 0, sizeof(serveraddr));

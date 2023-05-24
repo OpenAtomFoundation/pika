@@ -328,7 +328,7 @@ bool BaseConf::WriteBack() {
   std::string tmp_path = rep_->path + ".tmp";
   Status ret = NewWritableFile(tmp_path, write_file);
   LOG(INFO) << "ret " << ret.ToString();
-  if (write_file == nullptr) {
+  if (!write_file) {
     return false;
   }
   std::string tmp;

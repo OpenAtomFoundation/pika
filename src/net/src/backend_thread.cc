@@ -39,7 +39,7 @@ BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int k
 BackendThread::~BackendThread() = default;
 
 int BackendThread::StartThread() {
-  if (handle_ == nullptr) {
+  if (!handle_) {
     handle_ = new BackendHandle();
     own_handle_ = true;
   }
@@ -149,7 +149,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
 
-  if (fd == nullptr) {
+  if (!fd) {
     return Status::InvalidArgument("fd argument is nullptr");
   }
   // We do not handle IPv6
@@ -194,7 +194,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
     freeaddrinfo(servinfo);
     return s;
   }
-  if (p == nullptr) {
+  if (!p) {
     s = Status::IOError(strerror(errno), "Can't create socket ");
     return s;
   }
@@ -390,7 +390,7 @@ void* BackendThread::ThreadMain() {
     nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe == nullptr) {
+      if (!pfe) {
         continue;
       }
 

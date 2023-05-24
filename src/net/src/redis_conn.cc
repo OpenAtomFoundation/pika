@@ -80,7 +80,7 @@ ReadStatus RedisConn::GetRequest() {
       return kFullError;
     }
     rbuf_ = static_cast<char*>(realloc(rbuf_, new_size));  // NOLINT
-    if (rbuf_ == nullptr) {
+    if (!rbuf_) {
       return kFullError;
     }
     rbuf_len_ = new_size;

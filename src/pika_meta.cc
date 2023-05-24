@@ -82,7 +82,7 @@ Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
     return Status::Corruption("open local meta file failed");
   }
 
-  if (reader->GetData() == nullptr) {
+  if (!reader->GetData()) {
     LOG(WARNING) << "Meta file init error";
     return Status::Corruption("meta file init error");
   }

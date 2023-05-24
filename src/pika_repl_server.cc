@@ -141,11 +141,11 @@ pstd::Status PikaReplServer::Write(const std::string& ip, const int port, const 
   }
   int fd = client_conn_map_[ip_port];
   std::shared_ptr<net::PbConn> conn = std::dynamic_pointer_cast<net::PbConn>(pika_repl_server_thread_->get_conn(fd));
-  if (conn == nullptr) {
+  if (!conn) {
     return Status::NotFound("The" + ip_port + " conn cannot be found");
   }
 
-  if (conn->WriteResp(msg) != 0) {
+  if (conn->WriteResp(msg)) {
     conn->NotifyClose();
     return Status::Corruption("The" + ip_port + " conn, Write Resp Failed");
   }

@@ -53,7 +53,7 @@ class DefaultServerHandle : public ServerHandle {
 };
 
 static const ServerHandle* SanitizeHandle(const ServerHandle* raw_handle) {
-  if (raw_handle == nullptr) {
+  if (!raw_handle) {
     return new DefaultServerHandle();
   }
   return raw_handle;

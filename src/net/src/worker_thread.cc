@@ -105,7 +105,7 @@ void* WorkerThread::ThreadMain() {
 
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe == nullptr) {
+      if (!pfe) {
           continue;
       }
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {

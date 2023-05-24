@@ -219,13 +219,13 @@ void PikaClientConn::DoExecTask(void* arg) {
 
   std::shared_ptr<SyncMasterPartition> partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-  if (partition == nullptr) {
+  if (!partition) {
     LOG(WARNING) << "Sync Master Partition not exist " << table_name << partition_id;
     return;
   }
   partition->ConsensusUpdateAppliedIndex(offset);
 
-  if (conn_ptr == nullptr || resp_ptr == nullptr) {
+  if (!conn_ptr || !resp_ptr) {
     return;
   }
 

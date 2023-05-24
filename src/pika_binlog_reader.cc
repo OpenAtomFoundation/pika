@@ -224,7 +224,7 @@ Status PikaBinlogReader::Consume(std::string* scratch, uint32_t* filenum, uint64
 // Append to scratch;
 // the status will be OK, IOError or Corruption, EndFile;
 Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* offset) {
-  if (logger_ == nullptr || queue_ == nullptr) {
+  if (!logger_ || !queue_) {
     return Status::Corruption("Not seek");
   }
   scratch->clear();

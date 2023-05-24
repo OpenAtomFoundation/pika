@@ -9,7 +9,7 @@ SenderThread::SenderThread(std::string ip, int64_t port, std::string password)
 SenderThread::~SenderThread() = default;
 
 void SenderThread::ConnectPika() {
-  while (cli_ == nullptr) {
+  while (!cli_) {
     // Connect to redis
     cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1000);
@@ -120,7 +120,7 @@ void* SenderThread::ThreadMain() {
       rsignal_.wait(lock, [this] { return cmd_queue_.empty() || should_exit_; });
     }
 
-    if (cli_ == nullptr) {
+    if (!cli_) {
       ConnectPika();
       continue;
     }

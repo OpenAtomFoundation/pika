@@ -38,7 +38,7 @@ Status BackupEngine::Open(storage::Storage* storage, std::shared_ptr<BackupEngin
   rocksdb::DB* rocksdb_db;
   std::string types[] = {STRINGS_DB, HASHES_DB, LISTS_DB, ZSETS_DB, SETS_DB};
   for (const auto& type : types) {
-    if ((rocksdb_db = storage->GetDBByType(type)) == nullptr) {
+    if (!(rocksdb_db = storage->GetDBByType(type))) {
       s = Status::Corruption("Error db type");
     }
 

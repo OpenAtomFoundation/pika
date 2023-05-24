@@ -22,7 +22,7 @@ void PikaSender::Stop() {
 }
 
 void PikaSender::ConnectRedis() {
-  while (cli_ == nullptr) {
+  while (!cli_) {
     // Connect to redis
     cli_ = net::NewRedisCli();
     cli_->set_connect_timeout(1000);
@@ -131,7 +131,7 @@ void PikaSender::SendCommand(std::string& command, const std::string& key) {
 void* PikaSender::ThreadMain() {
   LOG(INFO) << "Start sender thread...";
 
-  if (cli_ == nullptr) {
+  if (!cli_) {
     ConnectRedis();
   }
 

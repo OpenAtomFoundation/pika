@@ -117,7 +117,7 @@ bool GetVarint32(std::string* input, uint32_t* value) {
   const char* p = input->data();
   const char* limit = p + input->size();
   const char* q = GetVarint32Ptr(p, limit, value);
-  if (q == nullptr) {
+  if (!q) {
     return false;
   } else {
     (*input).erase(0, q - p);
@@ -129,7 +129,7 @@ bool GetVarint32(Slice* input, uint32_t* value) {
   const char* p = input->data();
   const char* limit = p + input->size();
   const char* q = GetVarint32Ptr(p, limit, value);
-  if (q == nullptr) {
+  if (!q) {
     return false;
   } else {
     *input = Slice(q, limit - q);
@@ -158,7 +158,7 @@ bool GetVarint64(Slice* input, uint64_t* value) {
   const char* p = input->data();
   const char* limit = p + input->size();
   const char* q = GetVarint64Ptr(p, limit, value);
-  if (q == nullptr) {
+  if (!q) {
     return false;
   } else {
     *input = Slice(q, limit - q);
@@ -169,7 +169,7 @@ bool GetVarint64(Slice* input, uint64_t* value) {
 const char* GetLengthPrefixedSlice(const char* p, const char* limit, Slice* result) {
   uint32_t len;
   p = GetVarint32Ptr(p, limit, &len);
-  if (p == nullptr) {
+  if (!p) {
     return nullptr;
   }
   if (p + len > limit) {

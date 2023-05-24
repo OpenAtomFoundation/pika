@@ -235,7 +235,7 @@ bool PikaServer::readonly(const std::string& table_name, const std::string& key)
 bool PikaServer::ConsensusCheck(const std::string& table_name, const std::string& key) {
   if (g_pika_conf->consensus_level() != 0) {
     std::shared_ptr<Table> table = GetTable(table_name);
-    if (table == nullptr) {
+    if (!table) {
       return false;
     }
     uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, table->PartitionNum());
@@ -546,7 +546,7 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
         case TaskType::kResetReplState: {
           slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
               PartitionInfo(table_item.second->GetTableName(), partition_item.second->GetPartitionId()));
-          if (slave_partition == nullptr) {
+          if (!slave_partition) {
             LOG(WARNING) << "Slave Partition: " << table_item.second->GetTableName() << ":"
                          << partition_item.second->GetPartitionId() << " Not Found";
           }
@@ -789,7 +789,7 @@ bool PikaServer::AllPartitionConnectSuccess() {
     for (const auto& partition_item : table_item.second->partitions_) {
       slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
           PartitionInfo(table_item.second->GetTableName(), partition_item.second->GetPartitionId()));
-      if (slave_partition == nullptr) {
+      if (!slave_partition) {
         LOG(WARNING) << "Slave Partition: " << table_item.second->GetTableName() << ":"
                      << partition_item.second->GetPartitionId() << ", NotFound";
         return false;
@@ -843,7 +843,7 @@ void PikaServer::ScheduleClientBgThreads(net::TaskFunc func, void* arg, const st
 }
 
 size_t PikaServer::ClientProcessorThreadPoolCurQueueSize() {
-  if (pika_client_processor_ == nullptr) {
+  if (!pika_client_processor_) {
     return 0;
   }
   return pika_client_processor_->ThreadPoolCurQueueSize();

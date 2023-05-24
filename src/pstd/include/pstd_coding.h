@@ -89,7 +89,7 @@ inline uint64_t DecodeFixed64(const char* ptr) {
 }
 
 inline void GetFixed16(std::string* dst, uint16_t* value) {
-  if (dst == nullptr || value == nullptr) {
+  if (!dst || !value) {
     return;
   }
   *value = DecodeFixed16(dst->data());
@@ -97,7 +97,7 @@ inline void GetFixed16(std::string* dst, uint16_t* value) {
 }
 
 inline void GetFixed32(std::string* dst, uint32_t* value) {
-  if (dst == nullptr || value == nullptr) {
+  if (!dst || !value) {
     return;
   }
   *value = DecodeFixed32(dst->data());
@@ -105,7 +105,7 @@ inline void GetFixed32(std::string* dst, uint32_t* value) {
 }
 
 inline void GetFixed64(std::string* dst, uint64_t* value) {
-  if (dst == nullptr || value == nullptr) {
+  if (!dst || !value) {
     return;
   }
   *value = DecodeFixed64(dst->data());
@@ -113,7 +113,7 @@ inline void GetFixed64(std::string* dst, uint64_t* value) {
 }
 
 inline void GetFixed16(Slice* dst, uint16_t* value) {
-  if (dst == nullptr || value == nullptr) {
+  if (!dst || !value) {
     return;
   }
   *value = DecodeFixed16(dst->data());
@@ -121,7 +121,7 @@ inline void GetFixed16(Slice* dst, uint16_t* value) {
 }
 
 inline void GetFixed32(Slice* dst, uint32_t* value) {
-  if (dst == nullptr || value == nullptr) {
+  if (!dst || !value) {
     return;
   }
   *value = DecodeFixed32(dst->data());
@@ -129,7 +129,7 @@ inline void GetFixed32(Slice* dst, uint32_t* value) {
 }
 
 inline void GetFixed64(Slice* dst, uint64_t* value) {
-  if (dst == nullptr || value == nullptr) {
+  if (!dst || !value) {
     return;
   }
   *value = DecodeFixed64(dst->data());

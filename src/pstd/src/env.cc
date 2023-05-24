@@ -173,7 +173,7 @@ int GetChildren(const std::string& dir, std::vector<std::string>& result) {
   int res = 0;
   result.clear();
   DIR* d = opendir(dir.c_str());
-  if (d == nullptr) {
+  if (!d) {
     return errno;
   }
   struct dirent* entry;
@@ -189,7 +189,7 @@ int GetChildren(const std::string& dir, std::vector<std::string>& result) {
 
 bool GetDescendant(const std::string& dir, std::vector<std::string>& result) {
   DIR* d = opendir(dir.c_str());
-  if (d == nullptr) {
+  if (!d) {
     return false;
   }
   struct dirent* entry;
@@ -292,7 +292,7 @@ uint64_t Du(const std::string& filename) {
     std::string newfile;
 
     dir = opendir(filename.c_str());
-    if (dir == nullptr) {
+    if (!dir) {
       return sum;
     }
     while ((entry = readdir(dir)) != nullptr) {
@@ -478,7 +478,7 @@ class PosixMmapFile : public WritableFile {
       assert(base_ <= dst_);
       assert(dst_ <= limit_);
       size_t avail = limit_ - dst_;
-      if (avail == 0) {
+      if (!avail) {
         if (!UnmapCurrentRegion() || !MapNewRegion()) {
           return IOError(filename_, errno);
         }
@@ -720,7 +720,7 @@ class PosixRandomRWFile : public RandomRWFile {
 
 Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFile>& result) {
   FILE* f = fopen(fname.c_str(), "r");
-  if (f == nullptr) {
+  if (!f) {
     return IOError(fname, errno);
   } else {
     result = std::make_unique<PosixSequentialFile>(fname, f);

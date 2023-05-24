@@ -169,7 +169,7 @@ bool HTTPRequest::ParseParameters(std::string& data, size_t line_start) {
 int HTTPRequest::ParseHeader() {
   rbuf_[rbuf_pos_] = '\0';  // Avoid strstr() parsing expire char
   char* sep_pos = strstr(rbuf_, "\r\n\r\n");
-  if (sep_pos == nullptr) {
+  if (!sep_pos) {
     // Haven't find header
     return 0;
   }

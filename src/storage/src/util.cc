@@ -269,7 +269,7 @@ bool DeleteFiles(const char* path) {
     remove(path);
   } else if (S_ISDIR(statbuf.st_mode))  // 判断是否是目录
   {
-    if ((dir = opendir(path)) == nullptr) {
+    if (!(dir = opendir(path))) {
       return true;
     }
     while ((dirinfo = readdir(dir)) != nullptr) {
