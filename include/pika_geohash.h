@@ -51,7 +51,7 @@ extern "C" {
 #define GEO_LONG_MIN (-180)
 #define GEO_LONG_MAX 180
 
-using GeoDirection = enum {
+enum GeoDirection {
   GEOHASH_NORTH = 0,
   GEOHASH_EAST,
   GEOHASH_WEST,
@@ -62,7 +62,7 @@ using GeoDirection = enum {
   GEOHASH_NORT_EAST
 };
 
-struct GeoHashBits {
+using GeoHashBits = struct {
   uint64_t bits;
   uint8_t step;
 };

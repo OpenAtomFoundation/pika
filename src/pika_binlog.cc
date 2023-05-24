@@ -61,7 +61,6 @@ Status Version::Init() {
  */
 Binlog::Binlog(std::string  binlog_path, const int file_size)
     : opened_(false),
-      
       binlog_path_(std::move(binlog_path)),
       file_size_(file_size),
       binlog_io_error_(false) {

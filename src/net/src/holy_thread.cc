@@ -72,16 +72,16 @@ std::shared_ptr<NetConn> HolyThread::get_conn(int fd) {
 
 int HolyThread::StartThread() {
   int ret = handle_->CreateWorkerSpecificData(&private_data_);
-  if (ret != 0) {
+   if (ret) {
     return ret;
   }
   return ServerThread::StartThread();
 }
 
 int HolyThread::StopThread() {
-  if (private_data_ != nullptr) {
+  if (private_data_) {
     int ret = handle_->DeleteWorkerSpecificData(private_data_);
-    if (ret != 0) {
+     if (ret) {
       return ret;
     }
     private_data_ = nullptr;

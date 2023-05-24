@@ -47,7 +47,6 @@ class Thread : public pstd::noncopyable {
   bool running_{false};
   pthread_t thread_id_{};
   std::string thread_name_;
-
 };
 
 }  // namespace net

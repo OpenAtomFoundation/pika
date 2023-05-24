@@ -123,7 +123,7 @@ bool HTTPRequest::ParseHeadLine(const char* data, int line_start, int line_end) 
 bool HTTPRequest::ParseGetUrl() {
   path_ = url_;
   // Format path
-  if ((headers_.count("host") != 0U) && path_.find(headers_["host"]) != std::string::npos &&
+  if ((headers_.count("host")) && path_.find(headers_["host"]) != std::string::npos &&
       path_.size() > (7 + headers_["host"].size())) {
     // http://www.xxx.xxx/path_/to
     path_.assign(path_.substr(7 + headers_["host"].size()));
@@ -200,13 +200,13 @@ int HTTPRequest::ParseHeader() {
     return -1;
   }
 
-  remain_recv_len_ = headers_.count("content-length") != 0U ? std::stoul(headers_.at("content-length")) : 0;
+  remain_recv_len_ = headers_.count("content-length") ? std::stoul(headers_.at("content-length")) : 0;
 
-  if (headers_.count("content-type") != 0U) {
+  if (headers_.count("content-type")) {
     content_type_.assign(headers_.at("content-type"));
   }
 
-  if ((headers_.count("expect") != 0U) &&
+  if ((headers_.count("expect")) &&
       (headers_.at("expect") == "100-Continue" || headers_.at("expect") == "100-continue")) {
     reply_100continue_ = true;
   }
@@ -297,14 +297,14 @@ std::string HTTPRequest::url() const { return url_; }
 std::string HTTPRequest::path() const { return path_; }
 
 std::string HTTPRequest::query_value(const std::string& field) const {
-  if (query_params_.count(field) != 0U) {
+  if (query_params_.count(field)) {
     return query_params_.at(field);
   }
   return "";
 }
 
 std::string HTTPRequest::postform_value(const std::string& field) const {
-  if (postform_params_.count(field) != 0U) {
+  if (postform_params_.count(field)) {
     return postform_params_.at(field);
   }
   return "";
@@ -498,7 +498,7 @@ void HTTPResponse::SetHeaders(const std::string& key, const size_t value) { head
 
 void HTTPResponse::SetContentLength(uint64_t size) {
   remain_send_len_ = size;
-  if ((headers_.count("Content-Length") != 0U) || (headers_.count("content-length") != 0U)) {
+  if ((headers_.count("Content-Length")) || (headers_.count("content-length"))) {
     return;
   }
   SetHeaders("Content-Length", size);

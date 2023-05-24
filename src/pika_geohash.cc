@@ -191,8 +191,9 @@ int geohashDecodeType(const GeoHashBits hash, GeoHashArea* area) {
 int geohashDecodeWGS84(const GeoHashBits hash, GeoHashArea* area) { return geohashDecodeType(hash, area); }
 
 int geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy) {
-  if (xy == nullptr) { return 0;
-}
+  if (xy == nullptr) {
+    return 0;
+  }
   xy[0] = (area->longitude.min + area->longitude.max) / 2;
   xy[1] = (area->latitude.min + area->latitude.max) / 2;
   return 1;

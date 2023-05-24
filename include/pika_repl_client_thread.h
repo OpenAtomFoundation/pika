@@ -45,7 +45,7 @@ class PikaReplClientThread : public net::ClientThread {
     }
     int CreateWorkerSpecificData(void** data) const override { return 0; }
     int DeleteWorkerSpecificData(void* data) const override { return 0; }
-    void DestConnectFailedHandle(const std::string &ip_port, const std::string &reason) const override {}
+    void DestConnectFailedHandle(const std::string& ip_port, const std::string& reason) const override {}
   };
 
   ReplClientConnFactory conn_factory_;

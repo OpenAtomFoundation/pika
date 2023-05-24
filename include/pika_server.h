@@ -160,8 +160,8 @@ class PikaServer : public pstd::noncopyable {
    * Table use
    */
   void InitTableStruct();
-  pstd::Status AddTableStruct(const std::string &table_name, uint32_t num);
-  pstd::Status DelTableStruct(const std::string &table_name);
+  pstd::Status AddTableStruct(const std::string& table_name, uint32_t num);
+  pstd::Status DelTableStruct(const std::string& table_name);
   std::shared_ptr<Table> GetTable(const std::string& table_name);
   std::set<uint32_t> GetTablePartitionIds(const std::string& table_name);
   bool IsBgSaving();

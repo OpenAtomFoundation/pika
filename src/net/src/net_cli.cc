@@ -140,7 +140,7 @@ Status NetCli::Connect(const std::string& ip, const int port, const std::string&
     rep_->available = true;
     return s;
   }
-  if (p == nullptr) {
+  if (!p) {
     s = Status::IOError(strerror(errno), "Can't create socket ");
     return s;
   }

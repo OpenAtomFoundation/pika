@@ -36,12 +36,12 @@ int NetKqueue::NetAddEvent(int fd, int mask) {
   int cnt = 0;
   struct kevent change[2];
 
-  if ((mask & kReadable) != 0) {
+  if (mask & kReadable) {
     EV_SET(change + cnt, fd, EVFILT_READ, EV_ADD, 0, 0, nullptr);
     ++cnt;
   }
 
-  if ((mask & kWritable) != 0) {
+  if (mask & kWritable) {
     EV_SET(change + cnt, fd, EVFILT_WRITE, EV_ADD, 0, 0, nullptr);
     ++cnt;
   }
@@ -61,18 +61,19 @@ int NetKqueue::NetDelEvent(int fd, int mask) {
   int cnt = 0;
   struct kevent change[2];
 
-  if ((mask & kReadable) != 0) {
+  if (mask & kReadable) {
     EV_SET(change + cnt, fd, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
     ++cnt;
   }
 
-  if ((mask & kWritable) != 0) {
+  if (mask & kWritable) {
     EV_SET(change + cnt, fd, EVFILT_WRITE, EV_DELETE, 0, 0, nullptr);
     ++cnt;
   }
 
-  if (cnt == 0) { return -1;
-}
+  if (cnt == 0) {
+    return -1;
+  }
 
   return kevent(multiplexer_, change, cnt, nullptr, 0, nullptr);
 }
@@ -103,7 +104,7 @@ int NetKqueue::NetPoll(int timeout) {
       ev.mask |= kWritable;
     }
 
-    if ((events_[i].flags & EV_ERROR) != 0) {
+    if (events_[i].flags & EV_ERROR) {
       ev.mask |= kErrorEvent;
     }
   }

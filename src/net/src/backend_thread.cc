@@ -45,7 +45,7 @@ int BackendThread::StartThread() {
   }
   own_handle_ = false;
   int res = handle_->CreateWorkerSpecificData(&private_data_);
-  if (res != 0) {
+  if (res) {
     return res;
   }
   return Thread::StartThread();
@@ -54,7 +54,7 @@ int BackendThread::StartThread() {
 int BackendThread::StopThread() {
   if (private_data_ != nullptr) {
     int res = handle_->DeleteWorkerSpecificData(private_data_);
-    if (res != 0) {
+    if (res) {
       return res;
     }
     private_data_ = nullptr;
@@ -100,7 +100,7 @@ Status BackendThread::Close(const int fd) {
 }
 
 Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close) {
-  if ((pfe->mask & kErrorEvent) != 0) {
+  if (pfe->mask & kErrorEvent) {
     *should_close = 1;
     return Status::Corruption("POLLERR or POLLHUP");
   }
@@ -111,7 +111,7 @@ Status BackendThread::ProcessConnectStatus(NetFiredEvent* pfe, int* should_close
     *should_close = 1;
     return Status::Corruption("Get Socket opt failed");
   }
-  if (val != 0) {
+  if (val) {
     *should_close = 1;
     return Status::Corruption("Get socket error " + std::to_string(val));
   }
@@ -153,7 +153,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
     return Status::InvalidArgument("fd argument is nullptr");
   }
   // We do not handle IPv6
-  if ((rv = getaddrinfo(dst_ip.c_str(), cport, &hints, &servinfo)) != 0) {
+  if (rv = getaddrinfo(dst_ip.c_str(), cport, &hints, &servinfo)) {
     return Status::IOError("connect getaddrinfo error for ", dst_ip);
   }
   for (p = servinfo; p != nullptr; p = p->ai_next) {
@@ -246,10 +246,10 @@ void BackendThread::DoCronTask() {
       net_multiplexer_->NetDelEvent(conn->fd(), 0);
       close(conn->fd());
       handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
-      if (conns_.count(conn->fd()) != 0U) {
+      if (conns_.count(conn->fd())) {
         conns_.erase(conn->fd());
       }
-      if (connecting_fds_.count(conn->fd()) != 0U) {
+      if (connecting_fds_.count(conn->fd())) {
         connecting_fds_.erase(conn->fd());
       }
       iter = conns_.erase(iter);
@@ -309,7 +309,7 @@ void BackendThread::NotifyClose(const int fd) {
 }
 
 void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
-  if ((pfe->mask & kReadable) != 0) {
+  if (pfe->mask & kReadable) {
     char bb[2048];
     int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {
@@ -322,7 +322,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
         std::lock_guard l(mu_);
         if (ti.notify_type() == kNotiWrite) {
           if (conns_.find(fd) == conns_.end()) {
-            // TODO(): need clean and notify?
+            // TODO: need clean and notify?
             continue;
           } else {
             // connection exist
@@ -413,7 +413,7 @@ void* BackendThread::ThreadMain() {
         }
       }
 
-      if (connecting_fds_.count(pfe->fd) != 0U) {
+      if (connecting_fds_.count(pfe->fd)) {
         Status s = ProcessConnectStatus(pfe, &should_close);
         if (!s.ok()) {
           handle_->DestConnectFailedHandle(conn->ip_port(), s.ToString());
@@ -421,7 +421,7 @@ void* BackendThread::ThreadMain() {
         connecting_fds_.erase(pfe->fd);
       }
 
-      if ((should_close == 0) && ((pfe->mask & kWritable) != 0) && conn->is_reply()) {
+      if ((should_close == 0) && (pfe->mask & kWritable) && conn->is_reply()) {
         WriteStatus write_status = conn->SendReply();
         conn->set_last_interaction(now);
         if (write_status == kWriteAll) {
@@ -435,7 +435,7 @@ void* BackendThread::ThreadMain() {
         }
       }
 
-      if ((should_close == 0) && ((pfe->mask & kReadable) != 0)) {
+      if (!should_close && (pfe->mask & kReadable)) {
         ReadStatus read_status = conn->GetRequest();
         conn->set_last_interaction(now);
         if (read_status == kReadAll) {
@@ -447,7 +447,7 @@ void* BackendThread::ThreadMain() {
         }
       }
 
-      if (((pfe->mask & kErrorEvent) != 0) || (should_close != 0)) {
+      if ((pfe->mask & kErrorEvent) || (should_close)) {
         {
           LOG(INFO) << "close connection " << pfe->fd << " reason " << pfe->mask << " " << should_close;
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
@@ -455,7 +455,7 @@ void* BackendThread::ThreadMain() {
           mu_.lock();
           conns_.erase(pfe->fd);
           mu_.unlock();
-          if (connecting_fds_.count(conn->fd()) != 0U) {
+          if (connecting_fds_.count(conn->fd())) {
             connecting_fds_.erase(conn->fd());
           }
         }

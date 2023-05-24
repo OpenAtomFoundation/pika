@@ -64,8 +64,9 @@ static void PikaGlogInit() {
 }
 
 static void daemonize() {
-  if (fork() != 0) { exit(0); /* parent exits */
-}
+  if (fork() != 0) {
+    exit(0); /* parent exits */
+  }
   setsid();                 /* create a new session */
 }
 
