@@ -11,7 +11,7 @@
 #include "include/pika_conf.h"
 #include "include/pika_data_distribution.h"
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 /* SET key value [NX] [XX] [EX <seconds>] [PX <milliseconds>] */
 void SetCmd::DoInitial() {
