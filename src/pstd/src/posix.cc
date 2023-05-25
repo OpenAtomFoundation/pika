@@ -384,7 +384,7 @@ struct hostent* Gethostbyname(const char* name) {
 struct hostent* Gethostbyaddr(const char* addr, int len, int type) {
   struct hostent* p;
 
-  if (!(p = gethostbyaddr(addr, len, type)) {
+  if (!(p = gethostbyaddr(addr, len, type))) {
     LOG(ERROR) << "Gethostbyaddr error: DNS error " << h_errno;
   }
   return p;

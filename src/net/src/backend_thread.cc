@@ -322,7 +322,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
         std::lock_guard l(mu_);
         if (ti.notify_type() == kNotiWrite) {
           if (conns_.find(fd) == conns_.end()) {
-            // TODO: need clean and notify?
+            // TODO(): need clean and notify?
             continue;
           } else {
             // connection exist

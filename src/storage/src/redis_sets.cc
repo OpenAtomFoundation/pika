@@ -25,7 +25,7 @@ RedisSets::RedisSets(Storage* const s, const DataType& type) : Redis(s, type) {
   spop_counts_store_->SetCapacity(1000);
 }
 
-RedisSets::~RedisSets() {}
+RedisSets::~RedisSets() = default;
 
 rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std::string& db_path) {
   statistics_store_->SetCapacity(storage_options.statistics_max_size);
