@@ -286,8 +286,9 @@ static void GetAllNeighbors(const std::shared_ptr<Partition>& partition, std::st
   for (size_t i = 0; i < sizeof(neighbors) / sizeof(*neighbors); i++) {
     GeoHashFix52Bits min;
     GeoHashFix52Bits max;
-    if (HASHISZERO(neighbors[i])) { continue;
-}
+    if (HASHISZERO(neighbors[i])) {
+      continue;
+    }
     min = geohashAlign52Bits(neighbors[i]);
     neighbors[i].bits++;
     max = geohashAlign52Bits(neighbors[i]);

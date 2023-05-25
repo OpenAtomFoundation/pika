@@ -179,8 +179,9 @@ static char* seekNewline(char* s, size_t len) {
    * allow to search a limited length and the buffer that is being searched
    * might not have a trailing nullptr character. */
   while (pos < _len) {
-    while (pos < _len && s[pos] != '\r') { pos++;
-}
+    while (pos < _len && s[pos] != '\r') {
+      pos++;
+    }
     if (s[pos] != '\r' || pos >= _len) {
       /* Not found. */
       return nullptr;
@@ -466,26 +467,33 @@ int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
             bool fmt_valid = false;
 
             /* Flags */
-            if (*_p != '\0' && *_p == '#') { _p++;
-}
-            if (*_p != '\0' && *_p == '0') { _p++;
-}
-            if (*_p != '\0' && *_p == '-') { _p++;
-}
-            if (*_p != '\0' && *_p == ' ') { _p++;
-}
-            if (*_p != '\0' && *_p == '+') { _p++;
-}
+            if (*_p != '\0' && *_p == '#') {
+              _p++;
+            }
+            if (*_p != '\0' && *_p == '0') {
+              _p++;
+            }
+            if (*_p != '\0' && *_p == '-') {
+              _p++;
+            }
+            if (*_p != '\0' && *_p == ' ') {
+              _p++;
+            }
+            if (*_p != '\0' && *_p == '+') {
+              _p++;
+            }
 
             /* Field width */
-            while (*_p != '\0' && (isdigit(*_p) != 0)) { _p++;
-}
+            while (*_p != '\0' && (isdigit(*_p) != 0)) {
+              _p++;
+            }
 
             /* Precision */
             if (*_p == '.') {
               _p++;
-              while (*_p != '\0' && (isdigit(*_p) != 0)) { _p++;
-}
+              while (*_p != '\0' && (isdigit(*_p) != 0)) {
+                _p++;
+              }
             }
 
             /* Copy va_list before consuming with va_arg */

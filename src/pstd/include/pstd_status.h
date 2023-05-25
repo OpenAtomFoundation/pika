@@ -114,7 +114,7 @@ inline void Status::operator=(const Status& s) {
   // and the common case where both s and *this are ok.
   if (state_ != s.state_) {
     delete[] state_;
-    state_ = !s.state_ ? nullptr : CopyStte(s.state_);
+    state_ = !s.state_ ? nullptr : CopyState(s.state_);
   }
 }
 

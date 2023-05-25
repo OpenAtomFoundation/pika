@@ -126,8 +126,9 @@ net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message
     } else if (nwritten == -1) {
       return net::kWriteError;
     }
-    if (retry > 0) { retry = 0;
-}
+    if (retry > 0) {
+      retry = 0;
+    }
     message_len_sended += nwritten;
     message_len_left -= nwritten;
   }

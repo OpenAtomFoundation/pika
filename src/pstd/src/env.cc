@@ -124,8 +124,9 @@ int CreatePath(const std::string& path, mode_t mode) {
     }
     pp = sp + 1;
   }
-  if (status == 0) { status = DoCreatePath(path.c_str(), mode);
-}
+  if (status == 0) {
+    status = DoCreatePath(path.c_str(), mode);
+  }
   free(copypath);
   return (status);
 }
@@ -454,7 +455,7 @@ class PosixMmapFile : public WritableFile {
         fd_(fd),
         page_size_(page_size),
         map_size_(Roundup(kMmapBoundSize, page_size)),
-        
+
         write_len_(write_len)
         {
     if (write_len_ != 0) {

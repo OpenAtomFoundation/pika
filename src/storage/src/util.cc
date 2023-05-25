@@ -91,8 +91,9 @@ int LongDoubleToStr(long double ldval, std::string* value) {
         p--;
         len--;
       }
-      if (*p == '.') { len--;
-}
+      if (*p == '.') {
+        len--;
+      }
     }
     value->assign(buf, len);
     return 0;
@@ -106,8 +107,9 @@ int do_mkdir(const char* path, mode_t mode) {
   if (stat(path, &st) != 0) {
     /* Directory does not exist. EEXIST for race
      * condition */
-    if (mkdir(path, mode) != 0 && errno != EEXIST) { status = -1;
-}
+    if (mkdir(path, mode) != 0 && errno != EEXIST) {
+      status = -1;
+    }
   } else if (!S_ISDIR(st.st_mode)) {
     errno = ENOTDIR;
     status = -1;
@@ -139,8 +141,9 @@ int mkpath(const char* path, mode_t mode) {
     }
     pp = sp + 1;
   }
-  if (status == 0) { status = do_mkdir(path, mode);
-}
+  if (status == 0) {
+    status = do_mkdir(path, mode);
+  }
   free(copypath);
   return (status);
 }
