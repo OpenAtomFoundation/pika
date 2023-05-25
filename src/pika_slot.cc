@@ -12,7 +12,6 @@
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaServer* g_pika_server;
-extern PikaConf* g_pika_conf;
 
 // SLOTSINFO
 void SlotsInfoCmd::DoInitial() {
