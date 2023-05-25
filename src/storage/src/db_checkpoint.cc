@@ -232,7 +232,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
   if (s.ok()) {
     std::unique_ptr<Directory> checkpoint_directory;
     db_->GetEnv()->NewDirectory(checkpoint_dir, &checkpoint_directory);
-    if (checkpoint_directory != nullptr) {
+    if (checkpoint_directory) {
       s = checkpoint_directory->Fsync();
     }
   }

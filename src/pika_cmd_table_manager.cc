@@ -26,7 +26,7 @@ std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {
 
 std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
   Cmd* cmd = GetCmdFromTable(opt, *cmds_);
-  if (cmd != nullptr) {
+  if (cmd) {
     return std::shared_ptr<Cmd>(cmd->Clone());
   }
   return nullptr;

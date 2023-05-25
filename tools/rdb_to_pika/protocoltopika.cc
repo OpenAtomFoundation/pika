@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
   ss >> port;
   redisContext* c = redisConnect(ip, port);
   if (!c || c->err)) {
-    if (c != nullptr) {
+    if (c) {
       redisFree(c);
       std::cout << "connection error" << std::endl;
       return -1;
@@ -68,7 +68,7 @@ int main(int argc, char** argv) {
     }
     // std::cout << command << std::endl;
     r = static_cast<redisReply*>(redisCommand(c, command.c_str()));
-    if (r != nullptr) {
+    if (r) {
       freeReplyObject(r);
     }
   }

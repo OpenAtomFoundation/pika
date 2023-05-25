@@ -36,8 +36,9 @@ static void split_send(const std::string& line) {
     sender->message_add(str_block);
     pos += MSG_BLOCK_MAX;
   }
-  if (pos != 0) { send_buf_.assign(send_buf_.substr(pos));
-}
+  if (pos != 0) {
+    send_buf_.assign(send_buf_.substr(pos));
+  }
 }
 
 static void print_cur_time() {

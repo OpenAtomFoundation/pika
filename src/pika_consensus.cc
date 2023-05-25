@@ -51,7 +51,7 @@ Status Context::Init() {
       LOG(FATAL) << "Context new file failed " << s.ToString();
     }
   }
-  if (save_->GetData() != nullptr) {
+  if (save_->GetData()) {
     memcpy(reinterpret_cast<char*>(&(applied_index_.b_offset.filenum)), save_->GetData(), sizeof(uint32_t));
     memcpy(reinterpret_cast<char*>(&(applied_index_.b_offset.offset)), save_->GetData() + 4, sizeof(uint64_t));
     memcpy(reinterpret_cast<char*>(&(applied_index_.l_offset.term)), save_->GetData() + 12, sizeof(uint32_t));

@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
   std::cout << "password: " << password << std::endl;
 
   senders.reserve(thread_num);
-for (int i = 0; i < thread_num; i++) {
+  for (int i = 0; i < thread_num; i++) {
     senders.push_back(new SenderThread(ip, port, password));
   }
 

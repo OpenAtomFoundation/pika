@@ -62,7 +62,7 @@ void PikaMonitorThread::AddMonitorMessage(const std::string& monitor_message) {
 }
 
 int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr) {
-  if (clients_ptr != nullptr) {
+  if (clients_ptr) {
     for (auto & monitor_client : monitor_clients_) {
       clients_ptr->push_back(monitor_client);
     }
@@ -126,8 +126,9 @@ net::WriteStatus PikaMonitorThread::SendMessage(int32_t fd, std::string& message
     } else if (nwritten == -1) {
       return net::kWriteError;
     }
-    if (retry > 0) { retry = 0;
-}
+    if (retry > 0) {
+      retry = 0;
+    }
     message_len_sended += nwritten;
     message_len_left -= nwritten;
   }

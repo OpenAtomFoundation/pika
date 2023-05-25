@@ -137,7 +137,7 @@ std::string GetIpByInterface(const std::string& network_interface) {
     }
   }
 
-  if (ifAddrStruct != nullptr) {
+  if (ifAddrStruct) {
     freeifaddrs(ifAddrStruct);
   }
 

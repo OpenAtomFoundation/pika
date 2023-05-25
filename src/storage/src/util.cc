@@ -55,7 +55,7 @@ int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
     return -1;
   }
 
-  if (ldval != nullptr) {
+  if (ldval) {
     *ldval = d;
   }
   return 0;
@@ -85,14 +85,15 @@ int LongDoubleToStr(long double ldval, std::string* value) {
      * back into a string are exactly the same as what the user typed.) */
     len = snprintf(buf, sizeof(buf), "%.17Lf", ldval);
     /* Now remove trailing zeroes after the '.' */
-    if (strchr(buf, '.') != nullptr) {
+    if (strchr(buf, '.')) {
       char* p = buf + len - 1;
       while (*p == '0') {
         p--;
         len--;
       }
-      if (*p == '.') { len--;
-}
+      if (*p == '.') {
+        len--;
+      }
     }
     value->assign(buf, len);
     return 0;
@@ -106,8 +107,9 @@ int do_mkdir(const char* path, mode_t mode) {
   if (stat(path, &st) != 0) {
     /* Directory does not exist. EEXIST for race
      * condition */
-    if (mkdir(path, mode) != 0 && errno != EEXIST) { status = -1;
-}
+    if (mkdir(path, mode) != 0 && errno != EEXIST) {
+      status = -1;
+    }
   } else if (!S_ISDIR(st.st_mode)) {
     errno = ENOTDIR;
     status = -1;
@@ -139,8 +141,9 @@ int mkpath(const char* path, mode_t mode) {
     }
     pp = sp + 1;
   }
-  if (status == 0) { status = do_mkdir(path, mode);
-}
+  if (status == 0) {
+    status = do_mkdir(path, mode);
+  }
   free(copypath);
   return (status);
 }
@@ -219,16 +222,16 @@ int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_
   auto dst = std::make_unique<char[]>(needed);
   const char* start = dst.get();
   char* dst_ptr = dst.get();
-  
+
   EncodeFixed32(dst_ptr, key.size());
   dst_ptr += sizeof(int32_t);
   std::strncpy(dst_ptr, key.data(), key.size());
   dst_ptr += key.size();
   *dst_ptr = static_cast<uint8_t>(0xff);
-  
+
   data_start_key->assign(start, sizeof(int32_t) + key.size());
   data_end_key->assign(start, sizeof(int32_t) + key.size() + 1);
-  
+
   return 0;
 }
 

@@ -29,7 +29,7 @@ void current_time_str(char * str, size_t max_len)
 
 int GetTestDirectory(std::string* result) {
   const char* env = getenv("TEST_TMPDIR");
-  if ((env != nullptr) && env[0] != '\0') {
+  if (env && env[0] != '\0') {
     *result = env;
   } else {
     char buf[100];

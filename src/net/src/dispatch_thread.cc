@@ -81,7 +81,7 @@ int DispatchThread::StopThread() {
      if (ret) {
       return ret;
     }
-    if (worker_thread_[i]->private_data_ != nullptr) {
+    if (worker_thread_[i]->private_data_) {
       ret = handle_->DeleteWorkerSpecificData(worker_thread_[i]->private_data_);
        if (ret) {
         return ret;
@@ -118,7 +118,7 @@ std::vector<ServerThread::ConnInfo> DispatchThread::conns_info() const {
 std::shared_ptr<NetConn> DispatchThread::MoveConnOut(int fd) {
   for (int i = 0; i < work_num_; ++i) {
     std::shared_ptr<NetConn> conn = worker_thread_[i]->MoveConnOut(fd);
-    if (conn != nullptr) {
+    if (conn) {
       return conn;
     }
   }
