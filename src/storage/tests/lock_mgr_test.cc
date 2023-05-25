@@ -19,8 +19,8 @@ void Func(LockMgr* mgr, int id, const std::string& key) {
 }
 
 int main() {
-  MutexFactory* factory = new MutexFactoryImpl;
-  LockMgr mgr(1, 3, std::shared_ptr<MutexFactory>(factory));
+  std::shared_ptr<MutexFactory> factory = std::make_shared<MutexFactoryImpl>();
+  LockMgr mgr(1, 3, factory);
 
   std::thread t1(Func, &mgr, 1, "key_1");
   std::this_thread::sleep_for(std::chrono::milliseconds(100));

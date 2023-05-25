@@ -12,7 +12,7 @@ PikaBinlogReader::PikaBinlogReader(uint32_t cur_filenum, uint64_t cur_offset)
       cur_offset_(cur_offset),
       logger_(nullptr),
       queue_(nullptr),
-      backing_store_(new char[kBlockSize]),
+      backing_store_(std::make_unique<char[]>(kBlockSize)),
       buffer_() {
   last_record_offset_ = cur_offset % kBlockSize;
 }
@@ -22,14 +22,9 @@ PikaBinlogReader::PikaBinlogReader()
       cur_offset_(0),
       logger_(nullptr),
       queue_(nullptr),
-      backing_store_(new char[kBlockSize]),
+      backing_store_(std::make_unique<char[]>(kBlockSize)),
       buffer_() {
   last_record_offset_ = 0 % kBlockSize;
-}
-
-PikaBinlogReader::~PikaBinlogReader() {
-  delete[] backing_store_;
-  delete queue_;
 }
 
 void PikaBinlogReader::GetReaderStatus(uint32_t* cur_filenum, uint64_t* cur_offset) {
@@ -52,15 +47,15 @@ int PikaBinlogReader::Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uin
     LOG(WARNING) << confile << " not exits";
     return -1;
   }
-  pstd::SequentialFile* readfile;
-  if (!pstd::NewSequentialFile(confile, &readfile).ok()) {
+  std::unique_ptr<pstd::SequentialFile> readfile;
+  if (!pstd::NewSequentialFile(confile, readfile).ok()) {
     LOG(WARNING) << "New swquential " << confile << " failed";
     return -1;
   }
   if (queue_) {
-    delete queue_;
+    queue_.reset();
   }
-  queue_ = readfile;
+  queue_ = std::move(readfile);
   logger_ = logger;
 
   std::lock_guard l(rwlock_);
@@ -99,7 +94,7 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
 
   while (true) {
     buffer_.clear();
-    s = queue_->Read(kHeaderSize, &buffer_, backing_store_);
+    s = queue_->Read(kHeaderSize, &buffer_, backing_store_.get());
     if (!s.ok()) {
       is_error = true;
       return is_error;
@@ -115,21 +110,21 @@ bool PikaBinlogReader::GetNext(uint64_t* size) {
     if (length > (kBlockSize - kHeaderSize)) return true;
 
     if (type == kFullType) {
-      s = queue_->Read(length, &buffer_, backing_store_);
+      s = queue_->Read(length, &buffer_, backing_store_.get());
       offset += kHeaderSize + length;
       break;
     } else if (type == kFirstType) {
-      s = queue_->Read(length, &buffer_, backing_store_);
+      s = queue_->Read(length, &buffer_, backing_store_.get());
       offset += kHeaderSize + length;
     } else if (type == kMiddleType) {
-      s = queue_->Read(length, &buffer_, backing_store_);
+      s = queue_->Read(length, &buffer_, backing_store_.get());
       offset += kHeaderSize + length;
     } else if (type == kLastType) {
-      s = queue_->Read(length, &buffer_, backing_store_);
+      s = queue_->Read(length, &buffer_, backing_store_.get());
       offset += kHeaderSize + length;
       break;
     } else if (type == kBadRecord) {
-      s = queue_->Read(length, &buffer_, backing_store_);
+      s = queue_->Read(length, &buffer_, backing_store_.get());
       offset += kHeaderSize + length;
       break;
     } else {
@@ -150,7 +145,7 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t*
     last_record_offset_ = 0;
   }
   buffer_.clear();
-  s = queue_->Read(kHeaderSize, &buffer_, backing_store_);
+  s = queue_->Read(kHeaderSize, &buffer_, backing_store_.get());
   if (s.IsEndFile()) {
     return kEof;
   } else if (!s.ok()) {
@@ -172,7 +167,7 @@ unsigned int PikaBinlogReader::ReadPhysicalRecord(pstd::Slice* result, uint32_t*
   }
 
   buffer_.clear();
-  s = queue_->Read(length, &buffer_, backing_store_);
+  s = queue_->Read(length, &buffer_, backing_store_.get());
   *result = pstd::Slice(buffer_.data(), buffer_.size());
   last_record_offset_ += kHeaderSize + length;
   if (s.ok()) {
@@ -251,10 +246,10 @@ Status PikaBinlogReader::Get(std::string* scratch, uint32_t* filenum, uint64_t* 
       // Roll to next file need retry;
       if (pstd::FileExists(confile)) {
         DLOG(INFO) << "BinlogSender roll to new binlog" << confile;
-        delete queue_;
+        queue_.reset();
         queue_ = nullptr;
 
-        pstd::NewSequentialFile(confile, &(queue_));
+        pstd::NewSequentialFile(confile, queue_);
         {
           std::lock_guard l(rwlock_);
           cur_filenum_++;

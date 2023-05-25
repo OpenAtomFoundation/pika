@@ -41,8 +41,8 @@ class PikaReplServer {
   void KillAllConns();
 
  private:
-  net::ThreadPool* server_tp_ = nullptr;
-  PikaReplServerThread* pika_repl_server_thread_ = nullptr;
+  std::unique_ptr<net::ThreadPool> server_tp_ = nullptr;
+  std::unique_ptr<PikaReplServerThread> pika_repl_server_thread_ = nullptr;
 
   std::shared_mutex client_conn_rwlock_;
   std::map<std::string, int> client_conn_map_;

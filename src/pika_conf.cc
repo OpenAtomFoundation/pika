@@ -14,9 +14,9 @@
 
 #include "include/pika_define.h"
 
-PikaConf::PikaConf(const std::string& path) : pstd::BaseConf(path), conf_path_(path) { local_meta_ = new PikaMeta(); }
+PikaConf::PikaConf(const std::string& path)
+    : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
 
-PikaConf::~PikaConf() { delete local_meta_; }
 
 Status PikaConf::InternalGetTargetTable(const std::string& table_name, uint32_t* const target) {
   int32_t table_index = -1;
@@ -347,13 +347,13 @@ int PikaConf::Load() {
 
   // rate-limiter-refill-period-us
   GetConfInt64("rate-limiter-refill-period-us", &rate_limiter_refill_period_us_);
-  if (rate_limiter_refill_period_us_ <= 0 ) {
+  if (rate_limiter_refill_period_us_ <= 0) {
     rate_limiter_refill_period_us_ = 100 * 1000;
   }
 
   // rate-limiter-fairness
   GetConfInt64("rate-limiter-fairness", &rate_limiter_fairness_);
-  if (rate_limiter_fairness_ <= 0 ) {
+  if (rate_limiter_fairness_ <= 0) {
     rate_limiter_fairness_ = 10;
   }
 
