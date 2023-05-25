@@ -12,7 +12,7 @@
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 PikaReplServerConn::PikaReplServerConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
                                        net::NetMultiplexer* mpx)
@@ -21,7 +21,7 @@ PikaReplServerConn::PikaReplServerConn(int fd, const std::string& ip_port, net::
 PikaReplServerConn::~PikaReplServerConn() = default;
 
 void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
-  auto* task_arg = static_cast<ReplServerTaskArg*>(arg);
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
@@ -59,15 +59,13 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
   if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
     LOG(WARNING) << "Process MetaSync request serialization failed";
     conn->NotifyClose();
-    delete task_arg;
     return;
   }
   conn->NotifyWrite();
-  delete task_arg;
 }
 
 void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
-  auto* task_arg = static_cast<ReplServerTaskArg*>(arg);
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
@@ -134,11 +132,9 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
     LOG(WARNING) << "Handle Try Sync Failed";
     conn->NotifyClose();
-    delete task_arg;
     return;
   }
   conn->NotifyWrite();
-  delete task_arg;
 }
 
 bool PikaReplServerConn::TrySyncUpdateSlaveNode(const std::shared_ptr<SyncMasterPartition>& partition,
@@ -278,7 +274,7 @@ void PikaReplServerConn::BuildConsensusMeta(const bool& reject, const std::vecto
 }
 
 void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
-  auto* task_arg = static_cast<ReplServerTaskArg*>(arg);
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
@@ -350,21 +346,18 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
     LOG(WARNING) << "Handle DBSync Failed";
     conn->NotifyClose();
-    delete task_arg;
     return;
   }
   conn->NotifyWrite();
-  delete task_arg;
 }
 
 void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
-  auto* task_arg = static_cast<ReplServerTaskArg*>(arg);
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (!req->has_binlog_sync()) {
     LOG(WARNING) << "Pb parse error";
     // conn->NotifyClose();
-    delete task_arg;
     return;
   }
   const InnerMessage::InnerRequest::BinlogSync& binlog_req = req->binlog_sync();
@@ -387,7 +380,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!master_partition) {
     LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id << ", NotFound";
-    delete task_arg;
     return;
   }
 
@@ -400,7 +392,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
     } else if (meta.term() < master_partition->ConsensusTerm()) /*outdated pb*/ {
       LOG(WARNING) << "Drop outdated binlog sync req " << table_name << ":" << partition_id
                    << " recv term: " << meta.term() << " local term: " << master_partition->ConsensusTerm();
-      delete task_arg;
       return;
     }
   }
@@ -409,7 +400,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
     LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port() << ", " << table_name << "_"
                  << partition_id;
     // conn->NotifyClose();
-    delete task_arg;
     return;
   }
 
@@ -421,7 +411,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
     LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port() << ", " << table_name << "_"
                  << partition_id << " " << s.ToString();
     conn->NotifyClose();
-    delete task_arg;
     return;
   }
 
@@ -429,7 +418,6 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
     if (range_start.b_offset != range_end.b_offset) {
       LOG(WARNING) << "first binlogsync request pb argument invalid";
       conn->NotifyClose();
-      delete task_arg;
       return;
     }
 
@@ -437,39 +425,33 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
     if (!s.ok()) {
       LOG(WARNING) << "Activate Binlog Sync failed " << slave_node.ToString() << " " << s.ToString();
       conn->NotifyClose();
-      delete task_arg;
       return;
     }
-    delete task_arg;
     return;
   }
 
   // not the first_send the range_ack cant be 0
   // set this case as ping
   if (range_start.b_offset == BinlogOffset() && range_end.b_offset == BinlogOffset()) {
-    delete task_arg;
     return;
   }
   s = g_pika_rm->UpdateSyncBinlogStatus(slave_node, range_start, range_end);
   if (!s.ok()) {
     LOG(WARNING) << "Update binlog ack failed " << table_name << " " << partition_id << " " << s.ToString();
     conn->NotifyClose();
-    delete task_arg;
     return;
   }
 
-  delete task_arg;
   g_pika_server->SignalAuxiliary();
 }
 
 void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
-  auto* task_arg = static_cast<ReplServerTaskArg*>(arg);
+  std::unique_ptr<ReplServerTaskArg> task_arg(static_cast<ReplServerTaskArg*>(arg));
   const std::shared_ptr<InnerMessage::InnerRequest> req = task_arg->req;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   if (req->remove_slave_node_size() == 0) {
     LOG(WARNING) << "Pb parse error";
     conn->NotifyClose();
-    delete task_arg;
     return;
   }
   const InnerMessage::InnerRequest::RemoveSlaveNode& remove_slave_node_req = req->remove_slave_node(0);
@@ -500,11 +482,9 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
     LOG(WARNING) << "Remove Slave Node Failed";
     conn->NotifyClose();
-    delete task_arg;
     return;
   }
   conn->NotifyWrite();
-  delete task_arg;
 }
 
 int PikaReplServerConn::DealMessage() {
@@ -516,31 +496,31 @@ int PikaReplServerConn::DealMessage() {
   }
   switch (req->type()) {
     case InnerMessage::kMetaSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleMetaSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kTrySync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleTrySyncRequest, task_arg);
       break;
     }
     case InnerMessage::kDBSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleDBSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kBinlogSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleBinlogSyncRequest, task_arg);
       break;
     }
     case InnerMessage::kRemoveSlaveNode: {
-      auto* task_arg =
+      auto task_arg =
           new ReplServerTaskArg(req, std::dynamic_pointer_cast<PikaReplServerConn>(shared_from_this()));
       g_pika_rm->ScheduleReplServerBGTask(&PikaReplServerConn::HandleRemoveSlaveNodeRequest, task_arg);
       break;

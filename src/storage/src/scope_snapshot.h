@@ -8,16 +8,16 @@
 
 #include "rocksdb/db.h"
 
+#include "pstd/include/noncopyable.h"
+
 namespace storage {
-class ScopeSnapshot {
+class ScopeSnapshot : public pstd::noncopyable {
  public:
   ScopeSnapshot(rocksdb::DB* db, const rocksdb::Snapshot** snapshot) : db_(db), snapshot_(snapshot) {
     *snapshot_ = db_->GetSnapshot();
   }
   ~ScopeSnapshot() { db_->ReleaseSnapshot(*snapshot_); }
 
-  ScopeSnapshot(const ScopeSnapshot&) = delete;
-  void operator=(const ScopeSnapshot&) = delete;
  private:
   rocksdb::DB* const db_;
   const rocksdb::Snapshot** snapshot_;

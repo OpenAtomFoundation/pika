@@ -3,7 +3,7 @@
 
 //-----------------------------------------------------------------------------
 // MurmurHash3 was written by Austin Appleby, and is placed in the public
-// domain. The author hereby disclaims copyright to this source code.
+// domain. The autohor hereby disclaims copyright to this source code.
 
 // Note - The x86 and x64 versions do _not_ produce the same results, as the
 // algorithms are optimized for their respective platforms. You can still
@@ -89,7 +89,7 @@ extern
 #endif
     void
     MurmurHash3_x86_32(const void* key, int len, uint32_t seed, void* out) {
-  const auto* data = (const uint8_t*)key;
+  const auto data = (const uint8_t*)key;
   const int nblocks = len / 4;
   int i;
 
@@ -101,7 +101,7 @@ extern
   //----------
   // body
 
-  const auto* blocks = (const uint32_t*)(data + nblocks * 4);
+  const auto blocks = (const uint32_t*)(data + nblocks * 4);
 
   for (i = -nblocks; i != 0; i++) {
     uint32_t k1 = getblock(blocks, i);
@@ -118,7 +118,7 @@ extern
   //----------
   // tail
   {
-    const auto* tail = (data + nblocks * 4);
+    const auto tail = (data + nblocks * 4);
 
     uint32_t k1 = 0;
 

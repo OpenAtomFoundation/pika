@@ -18,11 +18,12 @@
 #include "pstd/include/env.h"
 
 
-PikaConf* g_pika_conf;
+std::unique_ptr<PikaConf> g_pika_conf;
+// todo : change to unique_ptr will coredump
 PikaServer* g_pika_server;
-PikaReplicaManager* g_pika_rm;
+std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaCmdTableManager* g_pika_cmd_table_manager;
+std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 static void version() {
   char version[32];
@@ -37,7 +38,7 @@ static void version() {
 
 static void PikaConfInit(const std::string& path) {
   printf("path : %s\n", path.c_str());
-  g_pika_conf = new PikaConf(path);
+  g_pika_conf = std::make_unique<PikaConf>(path);
   if (g_pika_conf->Load() != 0) {
     LOG(FATAL) << "pika load conf error";
   }
@@ -63,8 +64,9 @@ static void PikaGlogInit() {
 }
 
 static void daemonize() {
-  if (fork() != 0) { exit(0); /* parent exits */
-}
+  if (fork() != 0) {
+    exit(0); /* parent exits */
+  }
   setsid();                 /* create a new session */
 }
 
@@ -184,9 +186,9 @@ int main(int argc, char* argv[]) {
   PikaSignalSetup();
 
   LOG(INFO) << "Server at: " << path;
-  g_pika_cmd_table_manager = new PikaCmdTableManager();
+  g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();
   g_pika_server = new PikaServer();
-  g_pika_rm = new PikaReplicaManager();
+  g_pika_rm = std::make_unique<PikaReplicaManager>();
 
   if (g_pika_conf->daemonize()) {
     close_std();
@@ -204,10 +206,7 @@ int main(int argc, char* argv[]) {
   g_pika_rm->Stop();
 
   delete g_pika_server;
-  delete g_pika_rm;
-  delete g_pika_cmd_table_manager;
   ::google::ShutdownGoogleLogging();
-  delete g_pika_conf;
 
   return 0;
 }

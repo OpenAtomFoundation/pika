@@ -11,10 +11,11 @@
 #include <string>
 
 #include "pstd/include/pstd_mutex.h"
+#include "pstd/include/noncopyable.h"
 
 namespace net {
 
-class Thread {
+class Thread : public pstd::noncopyable {
  public:
   Thread();
   virtual ~Thread();
@@ -35,12 +36,6 @@ class Thread {
 
   void set_thread_name(const std::string& name) { thread_name_ = name; }
 
-  /*
-   * No allowed copy and copy assign
-   */
-  Thread(const Thread&) = delete;
-  void operator=(const Thread&) = delete;
-  
  protected:
   std::atomic<bool> should_stop_;
 
@@ -52,7 +47,6 @@ class Thread {
   bool running_{false};
   pthread_t thread_id_{};
   std::string thread_name_;
-
 };
 
 }  // namespace net

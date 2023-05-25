@@ -12,8 +12,11 @@
 #include "net/include/net_define.h"
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/xdebug.h"
+#include "pstd/include/noncopyable.h"
+
 
 using pstd::Status;
+
 namespace net {
 
 // Default PBCli is block IO;
@@ -28,8 +31,6 @@ class PbCli : public NetCli {
   // Read, parse and store the reply
   Status Recv(void* msg_res) override;
 
-  PbCli(const PbCli&) = delete;
-  void operator=(const PbCli&) = delete;
  private:
   // BuildWbuf need to access rbuf_, wbuf_;
   char* rbuf_;
@@ -48,7 +49,7 @@ PbCli::~PbCli() {
 }
 
 Status PbCli::Send(void* msg) {
-  auto* req = reinterpret_cast<google::protobuf::Message*>(msg);
+  auto req = reinterpret_cast<google::protobuf::Message*>(msg);
 
   int wbuf_len = req->ByteSizeLong();
   req->SerializeToArray(wbuf_ + kCommandHeaderLength, wbuf_len);
@@ -60,7 +61,7 @@ Status PbCli::Send(void* msg) {
 }
 
 Status PbCli::Recv(void* msg_res) {
-  auto* res = reinterpret_cast<google::protobuf::Message*>(msg_res);
+  auto res = reinterpret_cast<google::protobuf::Message*>(msg_res);
 
   // Read Header
   size_t read_len = kCommandHeaderLength;

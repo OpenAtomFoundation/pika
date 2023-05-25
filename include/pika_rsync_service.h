@@ -10,7 +10,7 @@
 
 class PikaRsyncService {
  public:
-  PikaRsyncService(std::string  raw_path, int port);
+  PikaRsyncService(const std::string& raw_path, int port);
   ~PikaRsyncService();
   int StartRsync();
   bool CheckRsyncAlive();

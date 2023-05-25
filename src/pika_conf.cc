@@ -16,9 +16,8 @@
 
 using pstd::Status;
 
-PikaConf::PikaConf(const std::string& path) : pstd::BaseConf(path), conf_path_(path) { local_meta_ = new PikaMeta(); }
-
-PikaConf::~PikaConf() { delete local_meta_; }
+PikaConf::PikaConf(const std::string& path)
+    : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
 
 Status PikaConf::InternalGetTargetTable(const std::string& table_name, uint32_t* const target) {
   int32_t table_index = -1;
@@ -136,7 +135,7 @@ Status PikaConf::DelTableSanityCheck(const std::string& table_name) {
 
 int PikaConf::Load() {
   int ret = LoadConf();
-  if (ret != 0) {
+   if (ret) {
     return ret;
   }
 
@@ -242,14 +241,19 @@ int PikaConf::Load() {
     sync_thread_num_ = 24;
   }
 
-  GetConfInt("databases", &databases_);
-  if (databases_ < 1 || databases_ > 8) {
-    LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
-  }
-  for (int idx = 0; idx < databases_; ++idx) {
-    table_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
-  }
+  std::string instance_mode;
+  GetConfStr("instance-mode", &instance_mode);
+  classic_mode_.store(instance_mode.empty() || !strcasecmp(instance_mode.data(), "classic"));
 
+  if (classic_mode_.load()) {
+    GetConfInt("databases", &databases_);
+    if (databases_ < 1 || databases_ > 8) {
+      LOG(FATAL) << "config databases error, limit [1 ~ 8], the actual is: " << databases_;
+    }
+    for (int idx = 0; idx < databases_; ++idx) {
+      table_structs_.push_back({"db" + std::to_string(idx), 1, {0}});
+    }
+  }
   default_table_ = table_structs_[0].table_name;
 
   int tmp_replication_num = 0;
@@ -268,7 +272,7 @@ int PikaConf::Load() {
                << " [0..." << replication_num_.load() << "]";
   }
   consensus_level_.store(tmp_consensus_level);
-  if ((consensus_level_.load() != 0 || replication_num_.load() != 0)) {
+  if (classic_mode_.load() && (consensus_level_.load() != 0 || replication_num_.load() != 0)) {
     LOG(FATAL) << "consensus-level & replication-num only configurable under sharding mode,"
                << " set it to be 0 if you are using classic mode";
   }
@@ -349,13 +353,13 @@ int PikaConf::Load() {
 
   // rate-limiter-refill-period-us
   GetConfInt64("rate-limiter-refill-period-us", &rate_limiter_refill_period_us_);
-  if (rate_limiter_refill_period_us_ <= 0 ) {
+  if (rate_limiter_refill_period_us_ <= 0) {
     rate_limiter_refill_period_us_ = 100 * 1000;
   }
 
   // rate-limiter-fairness
   GetConfInt64("rate-limiter-fairness", &rate_limiter_fairness_);
-  if (rate_limiter_fairness_ <= 0 ) {
+  if (rate_limiter_fairness_ <= 0) {
     rate_limiter_fairness_ = 10;
   }
 

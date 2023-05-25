@@ -21,7 +21,9 @@
 #include "include/pika_command.h"
 
 using pstd::Status;
-extern PikaReplicaManager* g_pika_rm;
+
+extern std::unique_ptr<PikaConf> g_pika_conf;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern PikaServer* g_pika_server;
 
 /* SyncPartition */
@@ -138,7 +140,7 @@ Status SyncMasterPartition::ActivateSlaveDbSync(const std::string& ip, int port)
 Status SyncMasterPartition::ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr) {
   int cnt = slave_ptr->sync_win.Remaining();
   std::shared_ptr<PikaBinlogReader> reader = slave_ptr->binlog_reader;
-  if (reader == nullptr) {
+  if (!reader) {
     return Status::OK();
   }
   std::vector<WriteTask> tasks;
@@ -194,7 +196,7 @@ Status SyncMasterPartition::ConsensusUpdateSlave(const std::string& ip, int port
 
 Status SyncMasterPartition::ConsensusUpdateAppliedIndex(const LogOffset& offset) {
   std::shared_ptr<Context> context = coordinator_.context();
-  if (context == nullptr) {
+  if (!context) {
     LOG(WARNING) << "Coordinator context empty.";
     return Status::NotFound("context");
   }
@@ -638,14 +640,9 @@ PikaReplicaManager::PikaReplicaManager() {
   std::set<std::string> ips;
   ips.insert("0.0.0.0");
   int port = g_pika_conf->port() + kPortShiftReplServer;
-  pika_repl_client_ = new PikaReplClient(3000, 60);
-  pika_repl_server_ = new PikaReplServer(ips, port, 3000);
+  pika_repl_client_ = std::make_unique<PikaReplClient>(3000, 60);
+  pika_repl_server_ = std::make_unique<PikaReplServer>(ips, port, 3000);
   InitPartition();
-}
-
-PikaReplicaManager::~PikaReplicaManager() {
-  delete pika_repl_client_;
-  delete pika_repl_server_;
 }
 
 void PikaReplicaManager::Start() {
@@ -802,14 +799,14 @@ void PikaReplicaManager::ReplServerUpdateClientConnMap(const std::string& ip_por
   pika_repl_server_->UpdateClientConnMap(ip_port, fd);
 }
 
-Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& range_start,
-                                                  const LogOffset& range_end) {
+Status PikaReplicaManager::UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start,
+                                                  const LogOffset& offset_end) {
   std::shared_lock l(partitions_rw_);
   if (sync_master_partitions_.find(slave.NodePartitionInfo()) == sync_master_partitions_.end()) {
     return Status::NotFound(slave.ToString() + " not found");
   }
   std::shared_ptr<SyncMasterPartition> partition = sync_master_partitions_[slave.NodePartitionInfo()];
-  Status s = partition->ConsensusUpdateSlave(slave.Ip(), slave.Port(), range_start, range_end);
+  Status s = partition->ConsensusUpdateSlave(slave.Ip(), slave.Port(), offset_start, offset_end);
   if (!s.ok()) {
     return s;
   }
@@ -945,7 +942,7 @@ Status PikaReplicaManager::GetPartitionInfo(const std::string& table, uint32_t p
 
 Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip, const int remote_port,
                                          std::string* const local_ip) {
-  net::NetCli* cli = net::NewRedisCli();
+  std::unique_ptr<net::NetCli> cli(net::NewRedisCli());
   cli->set_connect_timeout(1500);
   if ((cli->Connect(remote_ip, remote_port, "")).ok()) {
     struct sockaddr_in laddr;
@@ -954,10 +951,8 @@ Status PikaReplicaManager::SelectLocalIp(const std::string& remote_ip, const int
     std::string tmp_ip(inet_ntoa(laddr.sin_addr));
     *local_ip = tmp_ip;
     cli->Close();
-    delete cli;
   } else {
     LOG(WARNING) << "Failed to connect remote node(" << remote_ip << ":" << remote_port << ")";
-    delete cli;
     return Status::Corruption("connect remote node error");
   }
   return Status::OK();

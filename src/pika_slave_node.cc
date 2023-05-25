@@ -8,7 +8,8 @@
 #include "include/pika_conf.h"
 
 using pstd::Status;
-extern PikaConf* g_pika_conf;
+
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 /* SyncWindow */
 

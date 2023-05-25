@@ -23,8 +23,8 @@ class BitGetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new BitGetCmd(*this); }
 
  private:
@@ -46,8 +46,8 @@ class BitSetCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new BitSetCmd(*this); }
 
  private:
@@ -71,8 +71,8 @@ class BitCountCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new BitCountCmd(*this); }
 
  private:
@@ -98,8 +98,8 @@ class BitPosCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new BitPosCmd(*this); }
 
  private:
@@ -124,8 +124,8 @@ class BitOpCmd : public Cmd {
  public:
   BitOpCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag){};
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new BitOpCmd(*this); }
 
  private:

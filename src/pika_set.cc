@@ -167,7 +167,7 @@ void SScanCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void SRemCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

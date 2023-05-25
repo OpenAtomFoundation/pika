@@ -11,7 +11,6 @@
 
 #include "net/include/net_conn.h"
 #include "net/include/net_pubsub.h"
-#include "net/src/net_item.h"
 
 namespace net {
 
@@ -52,7 +51,7 @@ PubSubThread::PubSubThread()  {
   set_thread_name("PubSubThread");
   net_multiplexer_.reset(CreateNetMultiplexer());
   net_multiplexer_->Initialize();
-  if (pipe(msg_pfd_) != 0) {
+  if (pipe(msg_pfd_)) {
     exit(-1);
   }
   fcntl(msg_pfd_[0], F_SETFD, fcntl(msg_pfd_[0], F_GETFD) | FD_CLOEXEC);
@@ -299,7 +298,7 @@ void PubSubThread::PubSubChannels(const std::string& pattern, std::vector<std::s
   } else {
     std::lock_guard l(channel_mutex_);
     for (auto& channel : pubsub_channel_) {
-      if (pstd::stringmatchlen(channel.first.c_str(), channel.first.size(), pattern.c_str(), pattern.size(), 0) != 0) {
+      if (pstd::stringmatchlen(channel.first.c_str(), channel.first.size(), pattern.c_str(), pattern.size(), 0)) {
         if (!channel.second.empty()) {
           result->push_back(channel.first);
         }
@@ -344,7 +343,7 @@ void* PubSubThread::ThreadMain() {
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {  // New connection comming
-        if ((pfe->mask & kReadable) != 0) {
+        if (pfe->mask & kReadable) {
           read(net_multiplexer_->NotifyReceiveFd(), triger, 1);
           {
             NetItem ti = net_multiplexer_->NotifyQueuePop();
@@ -364,7 +363,7 @@ void* PubSubThread::ThreadMain() {
         }
       }
       if (pfe->fd == msg_pfd_[0]) {  // Publish message
-        if ((pfe->mask & kReadable) != 0) {
+        if (pfe->mask & kReadable) {
           read(msg_pfd_[0], triger, 1);
           std::string channel;
           std::string msg;
@@ -404,7 +403,7 @@ void* PubSubThread::ThreadMain() {
           // Send message to a channel pattern's clients
           pattern_mutex_.lock();
           for (auto & it : pubsub_pattern_) {
-            if (pstd::stringmatchlen(it.first.c_str(), it.first.size(), channel.c_str(), channel.size(), 0) != 0) {
+            if (pstd::stringmatchlen(it.first.c_str(), it.first.size(), channel.c_str(), channel.size(), 0)) {
               for (size_t i = 0; i < it.second.size(); i++) {
                 if (!IsReady(it.second[i]->fd())) {
                   continue;
@@ -451,7 +450,7 @@ void* PubSubThread::ThreadMain() {
         }
 
         // Send reply
-        if (((pfe->mask & kWritable) != 0) && in_conn->is_ready_to_reply()) {
+        if ((pfe->mask & kWritable) && in_conn->is_ready_to_reply()) {
           WriteStatus write_status = in_conn->SendReply();
           if (write_status == kWriteAll) {
             in_conn->set_is_reply(false);
@@ -466,7 +465,7 @@ void* PubSubThread::ThreadMain() {
         }
 
         // Client request again
-        if (!should_close && ((pfe->mask & kReadable) != 0)) {
+        if (!should_close && (pfe->mask & kReadable)) {
           ReadStatus getRes = in_conn->GetRequest();
           // Do not response to client when we leave the pub/sub status here
           if (getRes != kReadAll && getRes != kReadHalf) {
@@ -486,7 +485,7 @@ void* PubSubThread::ThreadMain() {
           }
         }
         // Error
-        if (((pfe->mask & kErrorEvent) != 0) || should_close) {
+        if ((pfe->mask & kErrorEvent) || should_close) {
           MoveConnOut(in_conn);
           CloseFd(in_conn);
           in_conn = nullptr;

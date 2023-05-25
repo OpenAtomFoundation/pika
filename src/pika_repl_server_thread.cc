@@ -9,13 +9,12 @@
 #include "include/pika_server.h"
 
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 PikaReplServerThread::PikaReplServerThread(const std::set<std::string>& ips, int port, int cron_interval)
     : HolyThread(ips, port, &conn_factory_, cron_interval, &handle_, true),
       conn_factory_(this),
-      port_(port)
-      {
+      port_(port) {
   set_keepalive_timeout(180);
 }
 

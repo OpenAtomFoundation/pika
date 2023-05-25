@@ -110,7 +110,7 @@ static std::set<std::string> ShardingModeNotSupportCommands{kCmdNameMsetnx,
                                                             kCmdNameSlaveof,
                                                             kCmdNameDbSlaveof};
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
 enum TaskType {
   kCompactAll,
@@ -126,7 +126,7 @@ enum TaskType {
   kBgSave,
 };
 
-class PikaServer {
+class PikaServer : public pstd::noncopyable {
  public:
   PikaServer();
   ~PikaServer();
@@ -160,8 +160,8 @@ class PikaServer {
    * Table use
    */
   void InitTableStruct();
-  pstd::Status AddTableStruct(const std::string &table_name, uint32_t num);
-  pstd::Status DelTableStruct(const std::string &table_name);
+  pstd::Status AddTableStruct(const std::string& table_name, uint32_t num);
+  pstd::Status DelTableStruct(const std::string& table_name);
   std::shared_ptr<Table> GetTable(const std::string& table_name);
   std::set<uint32_t> GetTablePartitionIds(const std::string& table_name);
   bool IsBgSaving();
@@ -332,8 +332,6 @@ class PikaServer {
   friend class PikaReplClientConn;
   friend class PkClusterInfoCmd;
 
-  PikaServer(PikaServer& ps) = delete;
-  void operator=(const PikaServer& ps) = delete;
  private:
   /*
    * TimingTask use
@@ -371,8 +369,8 @@ class PikaServer {
    * Communicate with the client used
    */
   int worker_num_ = 0;
-  PikaClientProcessor* pika_client_processor_ = nullptr;
-  PikaDispatchThread* pika_dispatch_thread_ = nullptr;
+  std::unique_ptr<PikaClientProcessor> pika_client_processor_;
+  std::unique_ptr<PikaDispatchThread> pika_dispatch_thread_ = nullptr;
 
   /*
    * Slave used
@@ -412,22 +410,22 @@ class PikaServer {
   /*
    * Monitor used
    */
-  PikaMonitorThread* pika_monitor_thread_ = nullptr;
+  std::unique_ptr<PikaMonitorThread> pika_monitor_thread_;
 
   /*
    * Rsync used
    */
-  PikaRsyncService* pika_rsync_service_ = nullptr;
+  std::unique_ptr<PikaRsyncService> pika_rsync_service_;
 
   /*
    * Pubsub used
    */
-  net::PubSubThread* pika_pubsub_thread_ = nullptr;
+  std::unique_ptr<net::PubSubThread> pika_pubsub_thread_;
 
   /*
    * Communication used
    */
-  PikaAuxiliaryThread* pika_auxiliary_thread_ = nullptr;
+  std::unique_ptr<PikaAuxiliaryThread> pika_auxiliary_thread_;
 
   /*
    * Slowlog used

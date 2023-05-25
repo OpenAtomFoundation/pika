@@ -41,29 +41,33 @@ bool ParseOptionMember(const MemberType& member_type, const std::string& value, 
   switch (member_type) {
     case MemberType::kInt: {
       int intVal;
-      if (!strToInt(value, &intVal)) { return false;
-}
+      if (!strToInt(value, &intVal)) {
+        return false;
+      }
       *reinterpret_cast<int*>(member_address) = intVal;
       break;
     }
     case MemberType::kUint: {
       uint32_t uint32Val;
-      if (!strToUint32(value, &uint32Val)) { return false;
-}
+      if (!strToUint32(value, &uint32Val)) {
+        return false;
+      }
       *reinterpret_cast<unsigned int*>(member_address) = static_cast<unsigned int>(uint32Val);
       break;
     }
     case MemberType::kUint64T: {
       uint64_t uint64Val;
-      if (!strToUint64(value, &uint64Val)) { return false;
-}
+      if (!strToUint64(value, &uint64Val)) {
+        return false;
+      }
       *reinterpret_cast<uint64_t*>(member_address) = uint64Val;
       break;
     }
     case MemberType::kSizeT: {
       uint64_t uint64Val;
-      if (!strToUint64(value, &uint64Val)) { return false;
-}
+      if (!strToUint64(value, &uint64Val)) {
+        return false;
+      }
       *reinterpret_cast<size_t*>(member_address) = static_cast<size_t>(uint64Val);
       break;
     }

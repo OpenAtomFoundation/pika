@@ -167,7 +167,7 @@ rocksdb::Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
     LRU_MoveToHead(handle);
     *value = handle->value;
   }
-  return (handle == nullptr) ? rocksdb::Status::NotFound() : rocksdb::Status::OK();
+  return (!handle) ? rocksdb::Status::NotFound() : rocksdb::Status::OK();
 }
 
 template <typename T1, typename T2>
@@ -176,7 +176,7 @@ rocksdb::Status LRUCache<T1, T2>::Insert(const T1& key, const T2& value, size_t 
   if (capacity_ == 0) {
     return rocksdb::Status::Corruption("capacity is empty");
   } else {
-    auto* handle = new LRUHandle<T1, T2>();
+    auto handle = new LRUHandle<T1, T2>();
     handle->key = key;
     handle->value = value;
     handle->charge = charge;
@@ -218,7 +218,7 @@ bool LRUCache<T1, T2>::LRUAndHandleTableConsistent() {
   LRUHandle<T1, T2>* current = lru_.prev;
   while (current != &lru_) {
     handle = handle_table_.Lookup(current->key);
-    if (handle == nullptr || handle != current) {
+    if (!handle || handle != current) {
       return false;
     } else {
       count++;

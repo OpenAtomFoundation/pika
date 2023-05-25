@@ -12,6 +12,7 @@
 
 #include "pstd/include/pstd_status.h"
 #include "pstd/include/xdebug.h"
+#include "pstd/include/noncopyable.h"
 
 #include "net/include/net_conn.h"
 #include "net/include/net_define.h"
@@ -128,7 +129,7 @@ class HTTPResponse {
   bool SerializeHeader();
 };
 
-class HTTPHandles {
+class HTTPHandles : public pstd::noncopyable {
  public:
   // You need implement these handles.
   /*
@@ -163,12 +164,6 @@ class HTTPHandles {
 
   HTTPHandles() = default;
   virtual ~HTTPHandles() = default;
-
-  /*
-   * No allowed copy and copy assign
-   */
-  HTTPHandles(const HTTPHandles&) = delete;
-  void operator=(const HTTPHandles&) = delete;
 
  protected:
   /*

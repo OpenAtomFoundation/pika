@@ -119,13 +119,15 @@ void geohashGetCoordRange(GeoHashRange* long_range, GeoHashRange* lat_range) {
 int geohashEncode(const GeoHashRange* long_range, const GeoHashRange* lat_range, double longitude, double latitude,
                   uint8_t step, GeoHashBits* hash) {
   /* Check basic arguments sanity. */
-  if (hash == nullptr || step > 32 || step == 0 || RANGEPISZERO(lat_range) || RANGEPISZERO(long_range)) { return 0;
-}
+  if (!hash || step > 32 || step == 0 || RANGEPISZERO(lat_range) || RANGEPISZERO(long_range)) {
+    return 0;
+  }
 
   /* Return an error when trying to index outside the supported
    * constraints. */
-  if (longitude > 180 || longitude < -180 || latitude > 85.05112878 || latitude < -85.05112878) { return 0;
-}
+  if (longitude > 180 || longitude < -180 || latitude > 85.05112878 || latitude < -85.05112878) {
+    return 0;
+  }
 
   hash->bits = 0;
   hash->step = step;
@@ -191,8 +193,9 @@ int geohashDecodeType(const GeoHashBits hash, GeoHashArea* area) {
 int geohashDecodeWGS84(const GeoHashBits hash, GeoHashArea* area) { return geohashDecodeType(hash, area); }
 
 int geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy) {
-  if (xy == nullptr) { return 0;
-}
+  if (!xy) {
+    return 0;
+  }
   xy[0] = (area->longitude.min + area->longitude.max) / 2;
   xy[1] = (area->latitude.min + area->latitude.max) / 2;
   return 1;
@@ -200,16 +203,18 @@ int geohashDecodeAreaToLongLat(const GeoHashArea* area, double* xy) {
 
 int geohashDecodeToLongLatType(const GeoHashBits hash, double* xy) {
   GeoHashArea area = {{0}};
-  if ((xy == nullptr) || (geohashDecodeType(hash, &area) == 0)) { return 0;
-}
+  if (!xy || !(geohashDecodeType(hash, &area))) {
+    return 0;
+  }
   return geohashDecodeAreaToLongLat(&area, xy);
 }
 
 int geohashDecodeToLongLatWGS84(const GeoHashBits hash, double* xy) { return geohashDecodeToLongLatType(hash, xy); }
 
 static void geohash_move_x(GeoHashBits* hash, int8_t d) {
-  if (d == 0) { return;
-}
+  if (d == 0) {
+    return;
+  }
 
   uint64_t x = hash->bits & 0xaaaaaaaaaaaaaaaaULL;
   uint64_t y = hash->bits & 0x5555555555555555ULL;
@@ -228,8 +233,9 @@ static void geohash_move_x(GeoHashBits* hash, int8_t d) {
 }
 
 static void geohash_move_y(GeoHashBits* hash, int8_t d) {
-  if (d == 0) { return;
-}
+  if (d == 0) {
+    return;
+  }
 
   uint64_t x = hash->bits & 0xaaaaaaaaaaaaaaaaULL;
   uint64_t y = hash->bits & 0x5555555555555555ULL;

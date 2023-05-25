@@ -114,7 +114,7 @@ std::string GetIpByInterface(const std::string& network_interface) {
 
   std::string host;
   for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next) {
-    if (ifa->ifa_addr == nullptr) {
+    if (!(ifa->ifa_addr)) {
       continue;
     }
 
@@ -141,7 +141,7 @@ std::string GetIpByInterface(const std::string& network_interface) {
     freeifaddrs(ifAddrStruct);
   }
 
-  if (ifa == nullptr) {
+  if (!ifa) {
     LOG(ERROR) << "error network interface: " << network_interface;
   }
 

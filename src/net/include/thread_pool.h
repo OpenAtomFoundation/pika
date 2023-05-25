@@ -32,7 +32,7 @@ struct TimeTask {
   bool operator<(const TimeTask& task) const { return exec_time > task.exec_time; }
 };
 
-class ThreadPool {
+class ThreadPool : public pstd::noncopyable {
  public:
   class Worker {
    public:
@@ -41,11 +41,6 @@ class ThreadPool {
 
     int start();
     int stop();
-    /*
-     * No allowed copy and copy assign
-     */
-    Worker(const Worker&) = delete;
-    void operator=(const Worker&) = delete;
 
    private:
     pthread_t thread_id_;

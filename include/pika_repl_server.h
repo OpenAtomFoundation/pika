@@ -20,7 +20,7 @@ struct ReplServerTaskArg {
   std::shared_ptr<InnerMessage::InnerRequest> req;
   std::shared_ptr<net::PbConn> conn;
   ReplServerTaskArg(std::shared_ptr<InnerMessage::InnerRequest> _req, std::shared_ptr<net::PbConn> _conn)
-      : req(std::move(std::move(_req))), conn(std::move(std::move(_conn))) {}
+      : req(std::move(_req)), conn(std::move(_conn)) {}
 };
 
 class PikaReplServer {
@@ -42,8 +42,8 @@ class PikaReplServer {
   void KillAllConns();
 
  private:
-  net::ThreadPool* server_tp_ = nullptr;
-  PikaReplServerThread* pika_repl_server_thread_ = nullptr;
+  std::unique_ptr<net::ThreadPool> server_tp_ = nullptr;
+  std::unique_ptr<PikaReplServerThread> pika_repl_server_thread_ = nullptr;
 
   std::shared_mutex client_conn_rwlock_;
   std::map<std::string, int> client_conn_map_;

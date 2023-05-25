@@ -303,7 +303,7 @@ void RedisParser::PrintCurrentStatus() {
   // }
   LOG(INFO) << "cur_pos : " << cur_pos_;
   LOG(INFO) << "input_buf_ is clean ? " << (input_buf_ == nullptr);
-  if (input_buf_ != nullptr) {
+  if (input_buf_) {
     LOG(INFO) << " input_buf " << input_buf_;
   }
   LOG(INFO) << "half_argv_ : " << half_argv_;

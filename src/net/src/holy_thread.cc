@@ -72,16 +72,16 @@ std::shared_ptr<NetConn> HolyThread::get_conn(int fd) {
 
 int HolyThread::StartThread() {
   int ret = handle_->CreateWorkerSpecificData(&private_data_);
-  if (ret != 0) {
+   if (ret) {
     return ret;
   }
   return ServerThread::StartThread();
 }
 
 int HolyThread::StopThread() {
-  if (private_data_ != nullptr) {
+  if (private_data_) {
     int ret = handle_->DeleteWorkerSpecificData(private_data_);
-    if (ret != 0) {
+     if (ret) {
       return ret;
     }
     private_data_ = nullptr;
@@ -101,7 +101,7 @@ void HolyThread::HandleNewConn(const int connfd, const std::string& ip_port) {
 }
 
 void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
-  if (pfe == nullptr) {
+  if (!pfe) {
     return;
   }
   std::shared_ptr<NetConn> in_conn = nullptr;
@@ -292,7 +292,7 @@ void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
         } else if (ti.notify_type() == net::kNotiClose) {
           LOG(INFO) << "receive noti close";
           std::shared_ptr<net::NetConn> conn = get_conn(fd);
-          if (conn == nullptr) {
+          if (!conn) {
             continue;
           }
           CloseFd(conn);

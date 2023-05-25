@@ -6,13 +6,15 @@
 #ifndef NET_INCLUDE_NET_CLI_H_
 #define NET_INCLUDE_NET_CLI_H_
 
+#include <memory>
 #include <string>
 
 #include "pstd/include/pstd_status.h"
+#include "pstd/include/noncopyable.h"
 
 namespace net {
 
-class NetCli {
+class NetCli : public pstd::noncopyable {
  public:
   explicit NetCli(const std::string& ip = "", int port = 0);
   virtual ~NetCli();
@@ -39,16 +41,13 @@ class NetCli {
   int set_recv_timeout(int recv_timeout);
   void set_connect_timeout(int connect_timeout);
 
-  NetCli(const NetCli&) = delete;
-  void operator=(const NetCli&) = delete;
-
  protected:
   pstd::Status SendRaw(void* buf, size_t count);
   pstd::Status RecvRaw(void* buf, size_t* count);
 
  private:
   struct Rep;
-  Rep* rep_;
+  std::unique_ptr<Rep> rep_;
   int set_tcp_nodelay();
 
 };

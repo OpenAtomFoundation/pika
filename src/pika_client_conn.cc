@@ -17,17 +17,16 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
-
+extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
-extern PikaCmdTableManager* g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
     : RedisConn(fd, ip_port, thread, mpx, handle_type, max_conn_rbuf_size),
       server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
-      current_table_(g_pika_conf->default_table())
-      {
+      current_table_(g_pika_conf->default_table()) {
   auth_stat_.Init();
 }
 
@@ -172,7 +171,7 @@ void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
 void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& argvs, bool async,
                                       std::string* response) {
   if (async) {
-    auto* arg = new BgTaskArg();
+    auto arg = new BgTaskArg();
     arg->redis_cmds = argvs;
     arg->conn_ptr = std::dynamic_pointer_cast<PikaClientConn>(shared_from_this());
     g_pika_server->ScheduleClientPool(&DoBackgroundTask, arg);
@@ -182,34 +181,31 @@ void PikaClientConn::ProcessRedisCmds(const std::vector<net::RedisCmdArgsType>& 
 }
 
 void PikaClientConn::DoBackgroundTask(void* arg) {
-  auto* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
+  std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
   std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
   if (bg_arg->redis_cmds.empty()) {
-    delete bg_arg;
     conn_ptr->NotifyEpoll(false);
     return;
   }
   for (const auto& argv : bg_arg->redis_cmds) {
     if (argv.empty()) {
-      delete bg_arg;
       conn_ptr->NotifyEpoll(false);
       return;
     }
   }
 
   conn_ptr->BatchExecRedisCmd(bg_arg->redis_cmds);
-  delete bg_arg;
 }
 
 void PikaClientConn::DoExecTask(void* arg) {
-  auto* bg_arg = reinterpret_cast<BgTaskArg*>(arg);
+  std::unique_ptr<BgTaskArg> bg_arg(static_cast<BgTaskArg*>(arg));
   std::shared_ptr<Cmd> cmd_ptr = bg_arg->cmd_ptr;
   std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
   std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
   LogOffset offset = bg_arg->offset;
   std::string table_name = bg_arg->table_name;
   uint32_t partition_id = bg_arg->partition_id;
-  delete bg_arg;
+  bg_arg.reset();
 
   uint64_t start_us = 0;
   if (g_pika_conf->slowlog_slower_than() >= 0) {
@@ -223,13 +219,13 @@ void PikaClientConn::DoExecTask(void* arg) {
 
   std::shared_ptr<SyncMasterPartition> partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-  if (partition == nullptr) {
+  if (!partition) {
     LOG(WARNING) << "Sync Master Partition not exist " << table_name << partition_id;
     return;
   }
   partition->ConsensusUpdateAppliedIndex(offset);
 
-  if (conn_ptr == nullptr || resp_ptr == nullptr) {
+  if (!conn_ptr || !resp_ptr) {
     return;
   }
 

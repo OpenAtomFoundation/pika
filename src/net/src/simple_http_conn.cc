@@ -349,7 +349,7 @@ ReadStatus SimpleHTTPConn::GetRequest() {
           // So that strstr will not parse the expire char
           rbuf_[rbuf_pos_] = '\0';
           char* sep_pos = strstr(rbuf_, "\r\n\r\n");
-          if (sep_pos == nullptr) {
+          if (!sep_pos) {
             break;
           }
           header_len_ = sep_pos - rbuf_ + 4;
@@ -364,8 +364,9 @@ ReadStatus SimpleHTTPConn::GetRequest() {
             response_->SetStatusCode(100);
             set_is_reply(true);
             conn_status_ = kPacket;
-            if (remain_packet_len_ > 0) { return kReadHalf;
-}
+            if (remain_packet_len_ > 0) { 
+              return kReadHalf;
+            }
           }
           conn_status_ = kPacket;
         }

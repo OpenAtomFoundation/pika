@@ -15,9 +15,9 @@
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
 
-extern PikaConf* g_pika_conf;
+extern std::unique_ptr<PikaConf> g_pika_conf;
 
-PikaRsyncService::PikaRsyncService(std::string  raw_path, const int port) : raw_path_(std::move(raw_path)), port_(port) {
+PikaRsyncService::PikaRsyncService(const std::string& raw_path, const int port) : raw_path_(raw_path), port_(port) {
   if (raw_path_.back() != '/') {
     raw_path_ += "/";
   }
@@ -43,12 +43,12 @@ int PikaRsyncService::StartRsync() {
     auth = g_pika_conf->masterauth();
   }
   ret = pstd::StartRsync(raw_path_, kDBSyncModule, "0.0.0.0", port_, auth);
-  if (ret != 0) {
+   if (ret) {
     LOG(WARNING) << "Failed to start rsync, path:" << raw_path_ << " error : " << ret;
     return -1;
   }
   ret = CreateSecretFile();
-  if (ret != 0) {
+   if (ret) {
     LOG(WARNING) << "Failed to create secret file";
     return -1;
   }

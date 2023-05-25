@@ -15,8 +15,10 @@
 #include "pika_inner_message.pb.h"
 
 using pstd::Status;
+
+extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 PikaReplClientConn::PikaReplClientConn(int fd, const std::string& ip_port, net::Thread* thread,
                                        void* worker_specific_data, net::NetMultiplexer* mpx)
@@ -49,19 +51,19 @@ int PikaReplClientConn::DealMessage() {
   }
   switch (response->type()) {
     case InnerMessage::kMetaSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleMetaSyncResponse, static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kDBSync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleDBSyncResponse, static_cast<void*>(task_arg));
       break;
     }
     case InnerMessage::kTrySync: {
-      auto* task_arg =
+      auto task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleTrySyncResponse, static_cast<void*>(task_arg));
       break;
@@ -71,7 +73,7 @@ int PikaReplClientConn::DealMessage() {
       break;
     }
     case InnerMessage::kRemoveSlaveNode: {
-      auto* task_arg =
+      auto task_arg =
           new ReplClientTaskArg(response, std::dynamic_pointer_cast<PikaReplClientConn>(shared_from_this()));
       g_pika_rm->ScheduleReplClientBGTask(&PikaReplClientConn::HandleRemoveSlaveNodeResponse,
                                           static_cast<void*>(task_arg));
@@ -84,7 +86,7 @@ int PikaReplClientConn::DealMessage() {
 }
 
 void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
-  auto* task_arg = static_cast<ReplClientTaskArg*>(arg);
+  auto task_arg = static_cast<ReplClientTaskArg*>(arg);
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
@@ -100,7 +102,6 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
     LOG(WARNING) << "Meta Sync Failed: " << reply;
     g_pika_server->SyncError();
     conn->NotifyClose();
-    delete task_arg;
     return;
   }
 
@@ -119,7 +120,6 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
                  << "), failed to establish master-slave relationship";
     g_pika_server->SyncError();
     conn->NotifyClose();
-    delete task_arg;
     return;
   }
 
@@ -127,11 +127,10 @@ void PikaReplClientConn::HandleMetaSyncResponse(void* arg) {
   g_pika_server->PreparePartitionTrySync();
   g_pika_server->FinishMetaSync();
   LOG(INFO) << "Finish to handle meta sync response";
-  delete task_arg;
 }
 
 void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
-  auto* task_arg = static_cast<ReplClientTaskArg*>(arg);
+  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
@@ -145,7 +144,6 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
       g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(table_name, partition_id));
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition: " << table_name << ":" << partition_id << " Not Found";
-    delete task_arg;
     return;
   }
 
@@ -153,7 +151,6 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
     slave_partition->SetReplState(ReplState::kError);
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "DBSync Failed: " << reply;
-    delete task_arg;
     return;
   }
 
@@ -162,18 +159,16 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
   std::string partition_name = slave_partition->PartitionName();
   slave_partition->SetReplState(ReplState::kWaitDBSync);
   LOG(INFO) << "Partition: " << partition_name << " Need Wait To Sync";
-  delete task_arg;
 }
 
 void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
-  auto* task_arg = static_cast<ReplClientTaskArg*>(arg);
+  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
 
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "TrySync Failed: " << reply;
-    delete task_arg;
     return;
   }
 
@@ -185,7 +180,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!partition) {
     LOG(WARNING) << "Partition: " << table_name << ":" << partition_id << " Not Found";
-    delete task_arg;
     return;
   }
 
@@ -193,7 +187,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
       g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(table_name, partition_id));
   if (!slave_partition) {
     LOG(WARNING) << "Slave Partition: " << table_name << ":" << partition_id << " Not Found";
-    delete task_arg;
     return;
   }
 
@@ -207,7 +200,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     } else if (meta.term() < partition->ConsensusTerm()) /*outdated pb*/ {
       LOG(WARNING) << "Drop outdated trysync response " << table_name << ":" << partition_id
                    << " recv term: " << meta.term() << " local term: " << partition->ConsensusTerm();
-      delete task_arg;
       return;
     }
 
@@ -217,7 +209,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
         slave_partition->SetReplState(ReplState::kError);
         LOG(WARNING) << "Consensus Check failed " << s.ToString();
       }
-      delete task_arg;
       return;
     }
 
@@ -247,7 +238,6 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
     slave_partition->SetReplState(ReplState::kError);
     LOG(WARNING) << "Partition: " << partition_name << " TrySync Error";
   }
-  delete task_arg;
 }
 
 Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMeta& consensus_meta,
@@ -304,14 +294,12 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
 }
 
 void PikaReplClientConn::HandleRemoveSlaveNodeResponse(void* arg) {
-  auto* task_arg = static_cast<ReplClientTaskArg*>(arg);
+  std::unique_ptr<ReplClientTaskArg> task_arg(static_cast<ReplClientTaskArg*>(arg));
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
   std::shared_ptr<InnerMessage::InnerResponse> response = task_arg->res;
   if (response->code() != InnerMessage::kOk) {
     std::string reply = response->has_reply() ? response->reply() : "";
     LOG(WARNING) << "Remove slave node Failed: " << reply;
-    delete task_arg;
     return;
   }
-  delete task_arg;
 }

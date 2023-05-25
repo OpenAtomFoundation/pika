@@ -13,7 +13,7 @@
 namespace net {
 
 void* ThreadPool::Worker::WorkerMain(void* arg) {
-  auto* tp = static_cast<ThreadPool*>(arg);
+  auto tp = static_cast<ThreadPool*>(arg);
   tp->runInThread();
   return nullptr;
 }

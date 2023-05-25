@@ -151,7 +151,7 @@ Status LockFile(const std::string& fname, FileLock** lock) {
     result = IOError("lock " + fname, errno);
     close(fd);
   } else {
-    auto* my_lock = new FileLock;
+    auto my_lock = new FileLock;
     my_lock->fd_ = fd;
     my_lock->name_ = fname;
     *lock = my_lock;
@@ -173,7 +173,7 @@ int GetChildren(const std::string& dir, std::vector<std::string>& result) {
   int res = 0;
   result.clear();
   DIR* d = opendir(dir.c_str());
-  if (d == nullptr) {
+  if (!d) {
     return errno;
   }
   struct dirent* entry;
@@ -189,7 +189,7 @@ int GetChildren(const std::string& dir, std::vector<std::string>& result) {
 
 bool GetDescendant(const std::string& dir, std::vector<std::string>& result) {
   DIR* d = opendir(dir.c_str());
-  if (d == nullptr) {
+  if (!d) {
     return false;
   }
   struct dirent* entry;
@@ -292,7 +292,7 @@ uint64_t Du(const std::string& filename) {
     std::string newfile;
 
     dir = opendir(filename.c_str());
-    if (dir == nullptr) {
+    if (!dir) {
       return sum;
     }
     while ((entry = readdir(dir)) != nullptr) {
@@ -478,7 +478,7 @@ class PosixMmapFile : public WritableFile {
       assert(base_ <= dst_);
       assert(dst_ <= limit_);
       size_t avail = limit_ - dst_;
-      if (avail == 0) {
+      if (!avail) {
         if (!UnmapCurrentRegion() || !MapNewRegion()) {
           return IOError(filename_, errno);
         }
@@ -718,61 +718,56 @@ class PosixRandomRWFile : public RandomRWFile {
   //  }
 };
 
-Status NewSequentialFile(const std::string& fname, SequentialFile** result) {
+Status NewSequentialFile(const std::string& fname, std::unique_ptr<SequentialFile>& result) {
   FILE* f = fopen(fname.c_str(), "r");
-  if (f == nullptr) {
-    *result = nullptr;
+  if (!f) {
     return IOError(fname, errno);
   } else {
-    *result = new PosixSequentialFile(fname, f);
+    result = std::make_unique<PosixSequentialFile>(fname, f);
     return Status::OK();
   }
 }
 
-Status NewWritableFile(const std::string& fname, WritableFile** result) {
+Status NewWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_TRUNC | O_CLOEXEC, 0644);
   if (fd < 0) {
-    *result = nullptr;
     s = IOError(fname, errno);
   } else {
-    *result = new PosixMmapFile(fname, fd, kPageSize);
+    result = std::make_unique<PosixMmapFile>(fname, fd, kPageSize);
   }
   return s;
 }
 
-Status NewRWFile(const std::string& fname, RWFile** result) {
+Status NewRWFile(const std::string& fname, std::unique_ptr<RWFile>& result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
-    *result = nullptr;
     s = IOError(fname, errno);
   } else {
-    *result = new MmapRWFile(fname, fd, kPageSize);
+    result = std::make_unique<MmapRWFile>(fname, fd, kPageSize);
   }
   return s;
 }
 
-Status AppendWritableFile(const std::string& fname, WritableFile** result, uint64_t write_len) {
+Status AppendWritableFile(const std::string& fname, std::unique_ptr<WritableFile>& result, uint64_t write_len) {
   Status s;
   const int fd = open(fname.c_str(), O_RDWR | O_CLOEXEC, 0644);
   if (fd < 0) {
-    *result = nullptr;
     s = IOError(fname, errno);
   } else {
-    *result = new PosixMmapFile(fname, fd, kPageSize, write_len);
+    result = std::make_unique<PosixMmapFile>(fname, fd, kPageSize, write_len);
   }
   return s;
 }
 
-Status NewRandomRWFile(const std::string& fname, RandomRWFile** result) {
+Status NewRandomRWFile(const std::string& fname, std::unique_ptr<RandomRWFile>& result) {
   Status s;
   const int fd = open(fname.c_str(), O_CREAT | O_RDWR, 0644);
   if (fd < 0) {
-    *result = nullptr;
     s = IOError(fname, errno);
   } else {
-    *result = new PosixRandomRWFile(fname, fd);
+    result = std::make_unique<PosixRandomRWFile>(fname, fd);
   }
   return s;
 }

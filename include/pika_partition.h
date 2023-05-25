@@ -7,7 +7,9 @@
 #define PIKA_PARTITION_H_
 
 #include <shared_mutex>
+
 #include "pstd/include/scope_record_lock.h"
+
 #include "storage/backupable.h"
 #include "storage/storage.h"
 
@@ -24,10 +26,8 @@ struct KeyScanInfo {
   int32_t duration = -3;
   std::vector<storage::KeyInfo> key_infos;  // the order is strings, hashes, lists, zsets, sets
   bool key_scaning_ = false;
-  KeyScanInfo()
-      : 
+  KeyScanInfo() :
         s_start_time("0"),
-        
         key_infos({{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}})
         {}
 };
@@ -62,7 +62,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void DbRWLockReader();
   void DbRWUnLock();
 
-  pstd::lock::LockMgr* LockMgr();
+  std::shared_ptr<pstd::lock::LockMgr> LockMgr();
 
   void PrepareRsync();
   bool TryUpdateMasterOffset();
@@ -103,7 +103,8 @@ class Partition : public std::enable_shared_from_this<Partition> {
   bool opened_ = false;
 
   std::shared_mutex db_rwlock_;
-  pstd::lock::LockMgr* lock_mgr_ = nullptr;
+  // class may be shared, using shared_ptr would be a better choice
+  std::shared_ptr<pstd::lock::LockMgr> lock_mgr_;
   std::shared_ptr<storage::Storage> db_;
 
   bool full_sync_ = false;
@@ -122,7 +123,7 @@ class Partition : public std::enable_shared_from_this<Partition> {
   void FinishBgsave();
   BgSaveInfo bgsave_info_;
   pstd::Mutex bgsave_protector_;
-  storage::BackupEngine* bgsave_engine_;
+  std::shared_ptr<storage::BackupEngine> bgsave_engine_;
 
   // key scan info use
   void InitKeyScan();
@@ -130,3 +131,4 @@ class Partition : public std::enable_shared_from_this<Partition> {
 };
 
 #endif
+

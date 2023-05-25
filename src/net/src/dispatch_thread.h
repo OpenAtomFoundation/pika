@@ -54,9 +54,6 @@ class DispatchThread : public ServerThread {
   void HandleNewConn(int connfd, const std::string& ip_port) override;
 
   void SetQueueLimit(int queue_limit) override;
-  // No copying allowed
-  DispatchThread(const DispatchThread&) = delete;
-  void operator=(const DispatchThread&) = delete;
 
  private:
   /*
@@ -68,7 +65,7 @@ class DispatchThread : public ServerThread {
   /*
    * This is the work threads
    */
-  WorkerThread** worker_thread_;
+  std::vector<std::unique_ptr<WorkerThread>> worker_thread_;
   int queue_limit_;
   std::map<WorkerThread*, void*> localdata_;
 

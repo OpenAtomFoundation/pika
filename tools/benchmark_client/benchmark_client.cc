@@ -96,7 +96,7 @@ void* ThreadMain(void* arg) {
   struct timeval timeout = {1, 500000};  // 1.5 seconds
   c = redisConnectWithTimeout(hostname.data(), port, timeout);
 
-  if (c == nullptr || c->err) {
+  if (!c || c->err) {
     if (c) {
       printf("Thread %lu, Connection error: %s\n", ta->tid, c->errstr);
       redisFree(c);
@@ -111,7 +111,7 @@ void* ThreadMain(void* arg) {
     size_t auth_argv_len[2] = {4, password.size()};
     res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 2, reinterpret_cast<const char**>(auth_argv),
                                                          reinterpret_cast<const size_t*>(auth_argv_len)));
-    if (res == nullptr) {
+    if (!res) {
       printf("Thread %lu  Auth Failed, Get reply Error\n", ta->tid);
       freeReplyObject(res);
       redisFree(c);
@@ -132,7 +132,7 @@ void* ThreadMain(void* arg) {
   size_t select_argv_len[2] = {6, ta->table_name.size()};
   res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 2, reinterpret_cast<const char**>(select_argv),
                                                        reinterpret_cast<const size_t*>(select_argv_len)));
-  if (res == nullptr) {
+  if (!res) {
     printf("Thread %lu Select Table %s Failed, Get reply Error\n", ta->tid, ta->table_name.data());
     freeReplyObject(res);
     redisFree(c);
@@ -202,7 +202,7 @@ Status RunSetCommandPipeline(redisContext* c) {
       if (redisGetReply(c, reinterpret_cast<void**>(&res)) == REDIS_ERR) {
         return Status::Corruption("Redis Pipeline Get Reply Error");
       } else {
-        if (res == nullptr || strcasecmp(res->str, "OK")) {
+        if (!res || strcasecmp(res->str, "OK")) {
           std::string res_str = "Exec command error: " + (res != nullptr ? std::string(res->str) : "");
           freeReplyObject(res);
           return Status::Corruption(res_str);
@@ -238,7 +238,7 @@ Status RunSetCommand(redisContext* c) {
 
     res = reinterpret_cast<redisReply*>(
         redisCommandArgv(c, 3, reinterpret_cast<const char**>(set_argv), reinterpret_cast<const size_t*>(set_argvlen)));
-    if (res == nullptr || strcasecmp(res->str, "OK")) {
+    if (!res || strcasecmp(res->str, "OK")) {
       std::string res_str = "Exec command error: " + (res != nullptr ? std::string(res->str) : "");
       freeReplyObject(res);
       return Status::Corruption(res_str);
@@ -272,7 +272,7 @@ Status RunZAddCommand(redisContext* c) {
 
       res = reinterpret_cast<redisReply*>(redisCommandArgv(c, 4, reinterpret_cast<const char**>(zadd_argv),
                                                            reinterpret_cast<const size_t*>(zadd_argvlen)));
-      if (res == nullptr || res->integer == 0) {
+      if (!res || !res->integer) {
         std::string res_str = "Exec command error: " + (res != nullptr ? std::string(res->str) : "");
         freeReplyObject(res);
         return Status::Corruption(res_str);

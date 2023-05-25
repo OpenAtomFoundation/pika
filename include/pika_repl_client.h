@@ -29,7 +29,7 @@ struct ReplClientTaskArg {
   std::shared_ptr<InnerMessage::InnerResponse> res;
   std::shared_ptr<net::PbConn> conn;
   ReplClientTaskArg(std::shared_ptr<InnerMessage::InnerResponse> _res, std::shared_ptr<net::PbConn> _conn)
-      : res(std::move(std::move(_res))), conn(std::move(std::move(_conn))) {}
+      : res(std::move(_res)), conn(std::move(_conn)) {}
 };
 
 struct ReplClientWriteBinlogTaskArg {
@@ -37,9 +37,10 @@ struct ReplClientWriteBinlogTaskArg {
   std::shared_ptr<net::PbConn> conn;
   void* res_private_data;
   PikaReplBgWorker* worker;
-  ReplClientWriteBinlogTaskArg(std::shared_ptr<InnerMessage::InnerResponse>  _res,
-                               std::shared_ptr<net::PbConn> _conn, void* _res_private_data, PikaReplBgWorker* _worker)
-      : res(std::move(_res)), conn(std::move(std::move(_conn))), res_private_data(_res_private_data), worker(_worker) {}
+  ReplClientWriteBinlogTaskArg(const std::shared_ptr<InnerMessage::InnerResponse>&  _res,
+                               const std::shared_ptr<net::PbConn>& _conn,
+                               void* _res_private_data, PikaReplBgWorker* _worker)
+      : res(std::move(_res)), conn(std::move(_conn)), res_private_data(_res_private_data), worker(_worker) {}
 };
 
 struct ReplClientWriteDBTaskArg {
@@ -88,10 +89,10 @@ class PikaReplClient {
   size_t GetHashIndex(const std::string& key, bool upper_half);
   void UpdateNextAvail() { next_avail_ = (next_avail_ + 1) % bg_workers_.size(); }
 
-  PikaReplClientThread* client_thread_;
+  std::unique_ptr<PikaReplClientThread> client_thread_;
   int next_avail_ = 0;
   std::hash<std::string> str_hash;
-  std::vector<PikaReplBgWorker*> bg_workers_;
+  std::vector<std::unique_ptr<PikaReplBgWorker>> bg_workers_;
 };
 
 #endif

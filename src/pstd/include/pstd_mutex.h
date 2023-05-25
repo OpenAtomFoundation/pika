@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include "noncopyable.h"
 
 namespace pstd {
 
@@ -24,7 +25,7 @@ void InitOnce(OnceType& once, F&& f, Args&&... args) {
   return std::call_once(once, std::forward<F>(f), std::forward<Args>(args)...);
 }
 
-class RefMutex {
+class RefMutex : public pstd::noncopyable {
  public:
   RefMutex() = default;
   ~RefMutex() = default;
@@ -38,17 +39,12 @@ class RefMutex {
   void Unref();
   bool IsLastRef() { return refs_ == 1; }
 
-  // No copying
-  RefMutex(const RefMutex&) = delete;
-  void operator=(const RefMutex&) = delete;
-
  private:
   std::mutex mu_;
   int refs_ = 0;
-
 };
 
-class RecordMutex {
+class RecordMutex : public pstd::noncopyable {
  public:
   RecordMutex()= default;;
   ~RecordMutex();
@@ -62,19 +58,12 @@ class RecordMutex {
   Mutex mutex_;
 
   std::unordered_map<std::string, RefMutex*> records_;
-
-  // No copying
-  RecordMutex(const RecordMutex&);
-  void operator=(const RecordMutex&);
 };
 
-class RecordLock {
+class RecordLock : public pstd::noncopyable {
  public:
-  RecordLock(RecordMutex* mu, std::string  key) : mu_(mu), key_(std::move(std::move(std::move(key)))) { mu_->Lock(key_); }
+  RecordLock(RecordMutex* mu, std::string  key) : mu_(mu), key_(std::move(key)) { mu_->Lock(key_); }
   ~RecordLock() { mu_->Unlock(key_); }
-  // No copying allowed
-  RecordLock(const RecordLock&) = delete;
-  void operator=(const RecordLock&) = delete;
 
  private:
   RecordMutex* const mu_;

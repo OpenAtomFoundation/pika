@@ -15,6 +15,7 @@
 #include <utility>
 #include <vector>
 
+#include "pstd/include/noncopyable.h"
 #include "net/include/net_cli.h"
 #include "net/include/net_define.h"
 
@@ -32,10 +33,6 @@ class RedisCli : public NetCli {
 
   // Read, parse and store the reply
   Status Recv(void* trival = nullptr) override;
-
-  // No copyable
-  RedisCli(const RedisCli&) = delete;
-  void operator=(const RedisCli&) = delete;
 
  private:
   RedisCmdArgsType argv_;  // The parsed result
@@ -87,7 +84,7 @@ Status RedisCli::Send(void* msg) {
   Status s;
 
   // TODO(anan) use socket_->SendRaw instead
-  auto* storage = reinterpret_cast<std::string*>(msg);
+  auto storage = reinterpret_cast<std::string*>(msg);
   const char* wbuf = storage->data();
   size_t nleft = storage->size();
 
@@ -234,7 +231,7 @@ int RedisCli::ProcessLineItem() {
   char* p;
   int len;
 
-  if ((p = ReadLine(&len)) == nullptr) {
+  if (!(p = ReadLine(&len))) {
     return REDIS_HALF;
   }
 
@@ -348,7 +345,7 @@ int RedisCli::GetReplyFromReader() {
   }
 
   char* p;
-  if ((p = ReadBytes(1)) == nullptr) {
+  if (!(p = ReadBytes(1))) {
     return REDIS_HALF;
   }
 

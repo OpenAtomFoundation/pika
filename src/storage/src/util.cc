@@ -8,6 +8,7 @@
 #include <climits>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 
 #include "pstd/include/pstd_string.h"
 
@@ -50,11 +51,13 @@ int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
     return -1;
   }
   long double d = strtold(s, &pEnd);
-  if (pEnd != s + slen) { return -1;
-}
+  if (pEnd != s + slen) {
+    return -1;
+  }
 
-  if (ldval != nullptr) { *ldval = d;
-}
+  if (ldval != nullptr) {
+    *ldval = d;
+  }
   return 0;
 }
 
@@ -201,29 +204,31 @@ int is_dir(const char* filename) {
 
 int CalculateMetaStartAndEndKey(const std::string& key, std::string* meta_start_key, std::string* meta_end_key) {
   size_t needed = key.size() + 1;
-  char* dst = new char[needed];
-  const char* start = dst;
-  strncpy(dst, key.data(), key.size());
-  dst += key.size();
+  auto dst = std::make_unique<char[]>(needed);
+  const char* start = dst.get();
+  std::strncpy(dst.get(), key.data(), key.size());
+  char* dst_ptr = dst.get() + key.size();
   meta_start_key->assign(start, key.size());
-  *dst = static_cast<uint8_t>(0xff);
+  *dst_ptr = static_cast<uint8_t>(0xff);
   meta_end_key->assign(start, key.size() + 1);
-  delete[] start;
   return 0;
 }
 
 int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_key, std::string* data_end_key) {
   size_t needed = sizeof(int32_t) + key.size() + 1;
-  char* dst = new char[needed];
-  const char* start = dst;
-  EncodeFixed32(dst, key.size());
-  dst += sizeof(int32_t);
-  strncpy(dst, key.data(), key.size());
-  dst += key.size();
+  auto dst = std::make_unique<char[]>(needed);
+  const char* start = dst.get();
+  char* dst_ptr = dst.get();
+  
+  EncodeFixed32(dst_ptr, key.size());
+  dst_ptr += sizeof(int32_t);
+  std::strncpy(dst_ptr, key.data(), key.size());
+  dst_ptr += key.size();
+  *dst_ptr = static_cast<uint8_t>(0xff);
+  
   data_start_key->assign(start, sizeof(int32_t) + key.size());
-  *dst = static_cast<uint8_t>(0xff);
   data_end_key->assign(start, sizeof(int32_t) + key.size() + 1);
-  delete[] start;
+  
   return 0;
 }
 
@@ -264,7 +269,7 @@ bool DeleteFiles(const char* path) {
     remove(path);
   } else if (S_ISDIR(statbuf.st_mode))  // 判断是否是目录
   {
-    if ((dir = opendir(path)) == nullptr) {
+    if (!(dir = opendir(path))) {
       return true;
     }
     while ((dirinfo = readdir(dir)) != nullptr) {

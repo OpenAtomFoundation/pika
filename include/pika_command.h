@@ -8,6 +8,7 @@
 
 #include <unordered_map>
 #include <utility>
+#include <memory>
 
 #include "net/include/net_conn.h"
 #include "net/include/redis_conn.h"
@@ -383,7 +384,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     ProcessArg() = default;
     ProcessArg(std::shared_ptr<Partition> _partition, std::shared_ptr<SyncMasterPartition> _sync_partition,
                HintKeys _hint_keys)
-        : partition(std::move(std::move(_partition))), sync_partition(std::move(std::move(_sync_partition))), hint_keys(std::move(std::move(_hint_keys))) {}
+        : partition(std::move(_partition)), sync_partition(std::move(_sync_partition)), hint_keys(std::move(_hint_keys)) {}
     std::shared_ptr<Partition> partition;
     std::shared_ptr<SyncMasterPartition> sync_partition;
     HintKeys hint_keys;
@@ -413,6 +414,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_admin_require() const;
   bool is_single_partition() const;
   bool is_multi_partition() const;
+  bool is_classic_mode() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
 
@@ -464,12 +466,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   Cmd& operator=(const Cmd&);
 };
 
-using CmdTable = std::unordered_map<std::string, Cmd *>;
+using CmdTable =  std::unordered_map<std::string, std::unique_ptr<Cmd>>;
 
 // Method for Cmd Table
 void InitCmdTable(CmdTable* cmd_table);
 Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table);
-void DestoryCmdTable(CmdTable* cmd_table);
 
 void RedisAppendContent(std::string& str, const std::string& value) {
   str.append(value.data(), value.size());

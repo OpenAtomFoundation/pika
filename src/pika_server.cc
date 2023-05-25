@@ -27,22 +27,20 @@
 
 using pstd::Status;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
-extern PikaCmdTableManager* g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 void DoPurgeDir(void* arg) {
-  std::string path = *(static_cast<std::string*>(arg));
-  LOG(INFO) << "Delete dir: " << path << " start";
-  pstd::DeleteDir(path);
-  LOG(INFO) << "Delete dir: " << path << " done";
-  delete static_cast<std::string*>(arg);
+  std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
+  LOG(INFO) << "Delete dir: " << *path << " start";
+  pstd::DeleteDir(*path);
+  LOG(INFO) << "Delete dir: " << *path << " done";
 }
 
 void DoDBSync(void* arg) {
-  auto* dbsa = reinterpret_cast<DBSyncArg*>(arg);
+  std::unique_ptr<DBSyncArg> dbsa(static_cast<DBSyncArg*>(arg));
   PikaServer* const ps = dbsa->p;
   ps->DbSyncSendFile(dbsa->ip, dbsa->port, dbsa->table_name, dbsa->partition_id);
-  delete dbsa;
 }
 
 PikaServer::PikaServer()
@@ -72,20 +70,19 @@ PikaServer::PikaServer()
   int worker_queue_limit = g_pika_conf->maxclients() / worker_num_ + 100;
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
   pika_dispatch_thread_ =
-      new PikaDispatchThread(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
-  pika_monitor_thread_ = new PikaMonitorThread();
-  pika_rsync_service_ = new PikaRsyncService(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
-  pika_pubsub_thread_ = new net::PubSubThread();
-  pika_auxiliary_thread_ = new PikaAuxiliaryThread();
+      std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
+  pika_monitor_thread_ = std::make_unique<PikaMonitorThread>();
+  pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
+  pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
+  pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
 
-  pika_client_processor_ = new PikaClientProcessor(g_pika_conf->thread_pool_size(), 100000);
+  pika_client_processor_ = std::make_unique<PikaClientProcessor>(g_pika_conf->thread_pool_size(), 100000);
 }
 
 PikaServer::~PikaServer() {
   // DispatchThread will use queue of worker thread,
   // so we need to delete dispatch before worker.
   pika_client_processor_->Stop();
-  delete pika_dispatch_thread_;
 
   {
     std::lock_guard l(slave_mutex_);
@@ -95,13 +92,6 @@ PikaServer::~PikaServer() {
       LOG(INFO) << "Delete slave success";
     }
   }
-
-  delete pika_pubsub_thread_;
-  delete pika_auxiliary_thread_;
-  delete pika_rsync_service_;
-  delete pika_client_processor_;
-  delete pika_monitor_thread_;
-
   bgsave_thread_.StopThread();
   key_scan_thread_.StopThread();
 
@@ -245,7 +235,7 @@ bool PikaServer::readonly(const std::string& table_name, const std::string& key)
 bool PikaServer::ConsensusCheck(const std::string& table_name, const std::string& key) {
   if (g_pika_conf->consensus_level() != 0) {
     std::shared_ptr<Table> table = GetTable(table_name);
-    if (table == nullptr) {
+    if (!table) {
       return false;
     }
     uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, table->PartitionNum());
@@ -556,7 +546,7 @@ Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
         case TaskType::kResetReplState: {
           slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
               PartitionInfo(table_item.second->GetTableName(), partition_item.second->GetPartitionId()));
-          if (slave_partition == nullptr) {
+          if (!slave_partition) {
             LOG(WARNING) << "Slave Partition: " << table_item.second->GetTableName() << ":"
                          << partition_item.second->GetPartitionId() << " Not Found";
           }
@@ -799,7 +789,7 @@ bool PikaServer::AllPartitionConnectSuccess() {
     for (const auto& partition_item : table_item.second->partitions_) {
       slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
           PartitionInfo(table_item.second->GetTableName(), partition_item.second->GetPartitionId()));
-      if (slave_partition == nullptr) {
+      if (!slave_partition) {
         LOG(WARNING) << "Slave Partition: " << table_item.second->GetTableName() << ":"
                      << partition_item.second->GetPartitionId() << ", NotFound";
         return false;
@@ -853,7 +843,7 @@ void PikaServer::ScheduleClientBgThreads(net::TaskFunc func, void* arg, const st
 }
 
 size_t PikaServer::ClientProcessorThreadPoolCurQueueSize() {
-  if (pika_client_processor_ == nullptr) {
+  if (!pika_client_processor_) {
     return 0;
   }
   return pika_client_processor_->ThreadPoolCurQueueSize();
@@ -870,7 +860,7 @@ void PikaServer::PurgelogsTaskSchedule(net::TaskFunc func, void* arg) {
 }
 
 void PikaServer::PurgeDir(const std::string& path) {
-  auto* dir_path = new std::string(path);
+  auto dir_path = new std::string(path);
   PurgeDirTaskSchedule(&DoPurgeDir, static_cast<void*>(dir_path));
 }
 
@@ -891,7 +881,7 @@ void PikaServer::DBSync(const std::string& ip, int port, const std::string& tabl
   // Reuse the bgsave_thread_
   // Since we expect BgSave and DBSync execute serially
   bgsave_thread_.StartThread();
-  auto* arg = new DBSyncArg(this, ip, port, table_name, partition_id);
+  auto arg = new DBSyncArg(this, ip, port, table_name, partition_id);
   bgsave_thread_.Schedule(&DoDBSync, reinterpret_cast<void*>(arg));
 }
 
@@ -941,7 +931,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
   int ret = 0;
   LOG(INFO) << "Partition: " << partition->GetPartitionName() << " Start Send files in " << bg_path << " to " << ip;
   ret = pstd::GetChildren(bg_path, descendant);
-  if (ret != 0) {
+   if (ret) {
     std::string ip_port = pstd::IpPortString(ip, port);
     std::lock_guard ldb(db_sync_protector_);
     db_sync_slaves_.erase(ip_port);
@@ -989,7 +979,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
   pstd::RsyncSendClearTarget(bg_path + "/sets", remote_path + "/sets", secret_file_path, remote);
   pstd::RsyncSendClearTarget(bg_path + "/zsets", remote_path + "/zsets", secret_file_path, remote);
 
-  net::NetCli* cli = net::NewRedisCli();
+  std::unique_ptr<net::NetCli> cli(net::NewRedisCli());
   std::string lip(host_);
   if (cli->Connect(ip, port, "").ok()) {
     struct sockaddr_in laddr;
@@ -997,11 +987,9 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
     getsockname(cli->fd(), reinterpret_cast<struct sockaddr*>(&laddr), &llen);
     lip = inet_ntoa(laddr.sin_addr);
     cli->Close();
-    delete cli;
   } else {
     LOG(WARNING) << "Rsync try connect slave rsync service error"
                  << ", slave rsync service(" << ip << ":" << port << ")";
-    delete cli;
   }
 
   // Send info file at last
@@ -1020,7 +1008,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
       }
       ret = pstd::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);
       pstd::DeleteFile(fn);
-      if (ret != 0) {
+       if (ret) {
         LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Modified Info File Failed";
       }
     } else if (0 != (ret = pstd::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile,

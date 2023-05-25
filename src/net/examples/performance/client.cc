@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
   std::string ip(argv[1]);
   int port = atoi(argv[2]);
 
-  NetCli* cli = NewPbCli();
+  std::unique_ptr<NetCli> cli(NewPbCli());
 
   Status s = cli->Connect(ip, port);
   if (!s.ok()) {
@@ -44,6 +44,5 @@ int main(int argc, char* argv[]) {
   }
   cli->Close();
 
-  delete cli;
   return 0;
 }

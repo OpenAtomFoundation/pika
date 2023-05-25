@@ -40,7 +40,7 @@ class Status {
   static Status Busy(const Slice& msg, const Slice& msg2 = Slice()) { return Status(kBusy, msg, msg2); }
 
   // Returns true if the status indicates success.
-  bool ok() const { return (state_ == nullptr); }
+  bool ok() const { return !state_; }
 
   // Returns true if the status indicates a NotFound error.
   bool IsNotFound() const { return code() == kNotFound; }
@@ -102,19 +102,19 @@ class Status {
     kBusy = 11
   };
 
-  Code code() const { return (state_ == nullptr) ? kOk : static_cast<Code>(state_[4]); }
+  Code code() const { return !state_ ? kOk : static_cast<Code>(state_[4]); }
 
   Status(Code code, const Slice& msg, const Slice& msg2);
   static const char* CopyState(const char* s);
 };
 
-inline Status::Status(const Status& s) { state_ = (s.state_ == nullptr) ? nullptr : CopyState(s.state_); }
+inline Status::Status(const Status& s) { state_ = !s.state_ ? nullptr : CopyState(s.state_); }
 inline void Status::operator=(const Status& s) {
   // The following condition catches both aliasing (when this == &s),
   // and the common case where both s and *this are ok.
   if (state_ != s.state_) {
     delete[] state_;
-    state_ = (s.state_ == nullptr) ? nullptr : CopyState(s.state_);
+    state_ = !s.state_ ? nullptr : CopyStte(s.state_);
   }
 }
 

@@ -19,12 +19,13 @@
 #include "net/include/server_thread.h"
 #include "net/src/net_multiplexer.h"
 #include "pstd/include/testutil.h"
+#include "pstd/include/noncopyable.h"
 
 namespace net {
 
 class Thread;
 
-class NetConn : public std::enable_shared_from_this<NetConn> {
+class NetConn : public std::enable_shared_from_this<NetConn>, public pstd::noncopyable {
  public:
   NetConn(int fd, std::string  ip_port, Thread* thread, NetMultiplexer* mpx = nullptr);
 #ifdef __ENABLE_SSL
@@ -93,11 +94,6 @@ class NetConn : public std::enable_shared_from_this<NetConn> {
 
   bool security() { return ssl_ != nullptr; }
 #endif
-  /*
-   * No allowed copy and copy assign operator
-   */
-  NetConn(const NetConn&) = delete;
-  void operator=(const NetConn&) = delete;
 
  private:
   int fd_ = -1;

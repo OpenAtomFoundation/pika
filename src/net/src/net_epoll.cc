@@ -40,10 +40,10 @@ int NetEpoll::NetAddEvent(int fd, int mask) {
   ee.data.fd = fd;
   ee.events = 0;
 
-  if ((mask & kReadable) != 0) {
+  if (mask & kReadable) {
     ee.events |= EPOLLIN;
   }
-  if ((mask & kWritable) != 0) {
+  if (mask & kWritable) {
     ee.events |= EPOLLOUT;
     }
 
@@ -56,10 +56,10 @@ int NetEpoll::NetModEvent(int fd, int old_mask, int mask) {
   ee.events = (old_mask | mask);
   ee.events = 0;
 
-  if (((old_mask | mask) & kReadable) != 0) {
+  if ((old_mask | mask) & kReadable) {
     ee.events |= EPOLLIN;
   }
-  if (((old_mask | mask) & kWritable) != 0) {
+  if ((old_mask | mask) & kWritable) {
     ee.events |= EPOLLOUT;
   }
   return epoll_ctl(multiplexer_, EPOLL_CTL_MOD, fd, &ee);
@@ -75,7 +75,7 @@ int NetEpoll::NetDelEvent(int fd, [[maybe_unused]] int mask) {
 }
 
 int NetEpoll::NetPoll(int timeout) {
-  int num_events = epoll_wait(multiplexer_, (events_).data(), NET_MAX_CLIENTS, timeout);
+  int num_events = epoll_wait(multiplexer_, &events_[0], NET_MAX_CLIENTS, timeout);
   if (num_events <= 0) {
     return 0;
   }
@@ -85,15 +85,15 @@ int NetEpoll::NetPoll(int timeout) {
     ev.fd = events_[i].data.fd;
     ev.mask = 0;
 
-    if ((events_[i].events & EPOLLIN) != 0) {
+    if (events_[i].events & EPOLLIN) {
       ev.mask |= kReadable;
     }
 
-    if ((events_[i].events & EPOLLOUT) != 0) {
+    if (events_[i].events & EPOLLOUT) {
       ev.mask |= kWritable;
     }
 
-    if ((events_[i].events & (EPOLLERR | EPOLLHUP)) != 0) {
+    if (events_[i].events & (EPOLLERR | EPOLLHUP)) {
       ev.mask |= kErrorEvent;
     }
   }

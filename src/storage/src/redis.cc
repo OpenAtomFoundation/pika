@@ -10,11 +10,10 @@ namespace storage {
 Redis::Redis(Storage* const s, const DataType& type)
     : storage_(s),
       type_(type),
-      lock_mgr_(new LockMgr(1000, 0, std::make_shared<MutexFactoryImpl>())),
-      
+      lock_mgr_(std::make_shared<LockMgr>(1000, 0, std::make_shared<MutexFactoryImpl>())),
       small_compaction_threshold_(5000) {
-  statistics_store_ = new LRUCache<std::string, size_t>();
-  scan_cursors_store_ = new LRUCache<std::string, std::string>();
+  statistics_store_ = std::make_unique<LRUCache<std::string, size_t>>();
+  scan_cursors_store_ = std::make_unique<LRUCache<std::string, std::string>>();
   scan_cursors_store_->SetCapacity(5000);
   default_compact_range_options_.exclusive_manual_compaction = false;
   default_compact_range_options_.change_level = true;
@@ -28,9 +27,6 @@ Redis::~Redis() {
     delete handle;
   }
   delete db_;
-  delete lock_mgr_;
-  delete statistics_store_;
-  delete scan_cursors_store_;
 }
 
 Status Redis::GetScanStartPoint(const Slice& key, const Slice& pattern, int64_t cursor, std::string* start_point) {

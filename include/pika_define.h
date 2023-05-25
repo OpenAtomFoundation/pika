@@ -183,7 +183,7 @@ const std::string BinlogSyncStateMsg[] = {"NotSync", "ReadFromCache", "ReadFromF
 struct BinlogChip {
   LogOffset offset_;
   std::string binlog_;
-  BinlogChip(const LogOffset& offset, std::string binlog) : offset_(offset), binlog_(std::move(std::move(binlog))) {}
+  BinlogChip(const LogOffset& offset, std::string binlog) : offset_(offset), binlog_(std::move(binlog)) {}
   BinlogChip(const BinlogChip& binlog_chip) {
     offset_ = binlog_chip.offset_;
     binlog_ = binlog_chip.binlog_;

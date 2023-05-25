@@ -166,7 +166,7 @@ class SyncSlavePartition : public SyncPartition {
 class PikaReplicaManager {
  public:
   PikaReplicaManager();
-  ~PikaReplicaManager();
+  ~PikaReplicaManager(){};
 
   friend Cmd;
 
@@ -221,7 +221,7 @@ class PikaReplicaManager {
   pstd::Status LostConnection(const std::string& ip, int port);
 
   // Update binlog win and try to send next binlog
-  pstd::Status UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& range_start, const LogOffset& range_end);
+  pstd::Status UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start, const LogOffset& offset_end);
 
   pstd::Status WakeUpBinlogSync();
 
@@ -254,8 +254,8 @@ class PikaReplicaManager {
   // every host owns a queue, the key is "ip+port"
   std::unordered_map<std::string, std::unordered_map<uint32_t, std::queue<WriteTask>>> write_queues_;
 
-  PikaReplClient* pika_repl_client_ = nullptr;
-  PikaReplServer* pika_repl_server_ = nullptr;
+  std::unique_ptr<PikaReplClient> pika_repl_client_;
+  std::unique_ptr<PikaReplServer> pika_repl_server_;
 };
 
 #endif  //  PIKA_RM_H

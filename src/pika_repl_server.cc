@@ -12,18 +12,18 @@
 #include "include/pika_server.h"
 
 using pstd::Status;
+
+extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 PikaReplServer::PikaReplServer(const std::set<std::string>& ips, int port, int cron_interval) {
-  server_tp_ = new net::ThreadPool(PIKA_REPL_SERVER_TP_SIZE, 100000);
-  pika_repl_server_thread_ = new PikaReplServerThread(ips, port, cron_interval);
+  server_tp_ = std::make_unique<net::ThreadPool>(PIKA_REPL_SERVER_TP_SIZE, 100000);
+  pika_repl_server_thread_ = std::make_unique<PikaReplServerThread>(ips, port, cron_interval);
   pika_repl_server_thread_->set_thread_name("PikaReplServer");
 }
 
 PikaReplServer::~PikaReplServer() {
-  delete pika_repl_server_thread_;
-  delete server_tp_;
   LOG(INFO) << "PikaReplServer exit!!!";
 }
 
@@ -141,11 +141,11 @@ pstd::Status PikaReplServer::Write(const std::string& ip, const int port, const 
   }
   int fd = client_conn_map_[ip_port];
   std::shared_ptr<net::PbConn> conn = std::dynamic_pointer_cast<net::PbConn>(pika_repl_server_thread_->get_conn(fd));
-  if (conn == nullptr) {
+  if (!conn) {
     return Status::NotFound("The" + ip_port + " conn cannot be found");
   }
 
-  if (conn->WriteResp(msg) != 0) {
+  if (conn->WriteResp(msg)) {
     conn->NotifyClose();
     return Status::Corruption("The" + ip_port + " conn, Write Resp Failed");
   }

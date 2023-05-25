@@ -7,8 +7,6 @@
 
 #include <utility>
 
-#include <utility>
-
 #include "include/pika_binlog_transverter.h"
 #include "include/pika_client_conn.h"
 #include "include/pika_define.h"
@@ -16,10 +14,9 @@
 #include "include/pika_stable_log.h"
 #include "pstd/include/env.h"
 
-class Context {
+class Context : public pstd::noncopyable {
  public:
   Context(std::string path);
-  ~Context();
 
   pstd::Status Init();
   // RWLock should be held when access members.
@@ -39,13 +36,10 @@ class Context {
     tmp_stream << "  Applied window " << applied_win_.ToStringStatus();
     return tmp_stream.str();
   }
-  // No copying allowed;
-  Context(const Context&) = delete;
-  void operator=(const Context&) = delete;
 
  private:
   std::string path_;
-  pstd::RWFile* save_ = nullptr;
+  std::unique_ptr<pstd::RWFile> save_;
 };
 
 class SyncProgress {
@@ -75,7 +69,7 @@ class MemLog {
   struct LogItem {
     LogItem(const LogOffset& _offset, std::shared_ptr<Cmd> _cmd_ptr, std::shared_ptr<PikaClientConn> _conn_ptr,
             std::shared_ptr<std::string> _resp_ptr)
-        : offset(_offset), cmd_ptr(std::move(std::move(_cmd_ptr))), conn_ptr(std::move(std::move(_conn_ptr))), resp_ptr(std::move(std::move(_resp_ptr))) {}
+        : offset(_offset), cmd_ptr(std::move(_cmd_ptr)), conn_ptr(std::move(_conn_ptr)), resp_ptr(std::move(_resp_ptr)) {}
     LogOffset offset;
     std::shared_ptr<Cmd> cmd_ptr;
     std::shared_ptr<PikaClientConn> conn_ptr;
@@ -157,7 +151,7 @@ class ConsensusCoordinator {
 
   // redis parser cb
   struct CmdPtrArg {
-    CmdPtrArg(std::shared_ptr<Cmd> ptr) : cmd_ptr(std::move(std::move(ptr))) {}
+    CmdPtrArg(std::shared_ptr<Cmd> ptr) : cmd_ptr(std::move(ptr)) {}
     std::shared_ptr<Cmd> cmd_ptr;
   };
   static int InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv);

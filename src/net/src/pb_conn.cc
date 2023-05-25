@@ -64,7 +64,7 @@ ReadStatus PbConn::GetRequest() {
           uint32_t new_size = header_len_ + COMMAND_HEADER_LENGTH;
           if (new_size < kProtoMaxMessage) {
             rbuf_ = reinterpret_cast<char*>(realloc(rbuf_, sizeof(char) * new_size));
-            if (rbuf_ == nullptr) {
+            if (!rbuf_) {
               return kFullError;
             }
             rbuf_len_ = new_size;

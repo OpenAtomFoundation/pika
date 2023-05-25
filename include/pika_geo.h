@@ -57,8 +57,8 @@ class GeoAddCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new GeoAddCmd(*this); }
 
  private:
@@ -76,8 +76,8 @@ class GeoPosCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new GeoPosCmd(*this); }
 
  private:
@@ -95,8 +95,8 @@ class GeoDistCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new GeoDistCmd(*this); }
 
  private:
@@ -113,8 +113,8 @@ class GeoHashCmd : public Cmd {
     return res;
   }
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new GeoHashCmd(*this); }
 
  private:
@@ -127,8 +127,8 @@ class GeoRadiusCmd : public Cmd {
  public:
   GeoRadiusCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new GeoRadiusCmd(*this); }
 
  private:
@@ -152,8 +152,8 @@ class GeoRadiusByMemberCmd : public Cmd {
  public:
   GeoRadiusByMemberCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
   void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override{};
-  void Merge() override{};
+  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Merge() override {};
   Cmd* Clone() override { return new GeoRadiusByMemberCmd(*this); }
 
  private:
