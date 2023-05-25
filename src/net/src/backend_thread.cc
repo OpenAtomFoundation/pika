@@ -52,7 +52,7 @@ int BackendThread::StartThread() {
 }
 
 int BackendThread::StopThread() {
-  if (private_data_ != nullptr) {
+  if (private_data_) {
     int res = handle_->DeleteWorkerSpecificData(private_data_);
     if (res) {
       return res;

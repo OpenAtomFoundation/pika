@@ -67,7 +67,7 @@ bool PikaPort::Init() {
 
 void PikaPort::Cleanup() {
   // shutdown server
-  if (ping_thread_ != nullptr) {
+  if (ping_thread_) {
     ping_thread_->StopThread();
   }
   trysync_thread_->Stop();
@@ -206,7 +206,7 @@ void PikaPort::RemoveMaster() {
     master_ip_ = "";
     master_port_ = -1;
   }
-  if (ping_thread_ != nullptr) {
+  if (ping_thread_) {
     int err = ping_thread_->StopThread();
     if (err != 0) {
       LOG(WARNING) << "can't join thread " << strerror(err);

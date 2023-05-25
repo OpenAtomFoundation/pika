@@ -55,7 +55,7 @@ int StrToLongDouble(const char* s, size_t slen, long double* ldval) {
     return -1;
   }
 
-  if (ldval != nullptr) {
+  if (ldval) {
     *ldval = d;
   }
   return 0;
@@ -85,7 +85,7 @@ int LongDoubleToStr(long double ldval, std::string* value) {
      * back into a string are exactly the same as what the user typed.) */
     len = snprintf(buf, sizeof(buf), "%.17Lf", ldval);
     /* Now remove trailing zeroes after the '.' */
-    if (strchr(buf, '.') != nullptr) {
+    if (strchr(buf, '.')) {
       char* p = buf + len - 1;
       while (*p == '0') {
         p--;
@@ -219,16 +219,16 @@ int CalculateDataStartAndEndKey(const std::string& key, std::string* data_start_
   auto dst = std::make_unique<char[]>(needed);
   const char* start = dst.get();
   char* dst_ptr = dst.get();
-  
+
   EncodeFixed32(dst_ptr, key.size());
   dst_ptr += sizeof(int32_t);
   std::strncpy(dst_ptr, key.data(), key.size());
   dst_ptr += key.size();
   *dst_ptr = static_cast<uint8_t>(0xff);
-  
+
   data_start_key->assign(start, sizeof(int32_t) + key.size());
   data_end_key->assign(start, sizeof(int32_t) + key.size() + 1);
-  
+
   return 0;
 }
 

@@ -62,7 +62,7 @@ void PikaMonitorThread::AddMonitorMessage(const std::string& monitor_message) {
 }
 
 int32_t PikaMonitorThread::ThreadClientList(std::vector<ClientInfo>* clients_ptr) {
-  if (clients_ptr != nullptr) {
+  if (clients_ptr) {
     for (auto & monitor_client : monitor_clients_) {
       clients_ptr->push_back(monitor_client);
     }

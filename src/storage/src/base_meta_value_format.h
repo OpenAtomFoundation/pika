@@ -61,20 +61,20 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
   }
 
   void StripSuffix() override {
-    if (value_ != nullptr) {
+    if (value_) {
       value_->erase(value_->size() - kBaseMetaValueSuffixLength, kBaseMetaValueSuffixLength);
     }
   }
 
   void SetVersionToValue() override {
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - kBaseMetaValueSuffixLength;
       EncodeFixed32(dst, version_);
     }
   }
 
   void SetTimestampToValue() override {
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data()) + value_->size() - sizeof(int32_t);
       EncodeFixed32(dst, timestamp_);
     }
@@ -91,7 +91,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
 
   void set_count(int32_t count) {
     count_ = count;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data());
       EncodeFixed32(dst, count_);
     }
@@ -99,7 +99,7 @@ class ParsedBaseMetaValue : public ParsedInternalValue {
 
   void ModifyCount(int32_t delta) {
     count_ += delta;
-    if (value_ != nullptr) {
+    if (value_) {
       char* dst = const_cast<char*>(value_->data());
       EncodeFixed32(dst, count_);
     }

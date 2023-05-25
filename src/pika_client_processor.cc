@@ -49,7 +49,7 @@ void PikaClientProcessor::ScheduleBgThreads(net::TaskFunc func, void* arg, const
 
 size_t PikaClientProcessor::ThreadPoolCurQueueSize() {
   size_t cur_size = 0;
-  if (pool_ != nullptr) {
+  if (pool_) {
     pool_->cur_queue_size(&cur_size);
   }
   return cur_size;

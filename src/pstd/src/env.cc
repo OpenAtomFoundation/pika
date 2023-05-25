@@ -328,7 +328,7 @@ class PosixSequentialFile : public SequentialFile {
   PosixSequentialFile(std::string  fname, FILE* f) : filename_(std::move(fname)), file_(f) { setbuf(file_, nullptr); }
 
   ~PosixSequentialFile() override {
-    if (file_ != nullptr) {
+    if (file_) {
       fclose(file_);
     }
   }
@@ -403,7 +403,7 @@ class PosixMmapFile : public WritableFile {
 
   bool UnmapCurrentRegion() {
     bool result = true;
-    if (base_ != nullptr) {
+    if (base_) {
       if (last_sync_ < limit_) {
         // Defer syncing this data until next Sync() call, if any
         pending_sync_ = true;

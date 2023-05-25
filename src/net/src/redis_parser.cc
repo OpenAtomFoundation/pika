@@ -368,7 +368,7 @@ RedisParserStatus RedisParser::ProcessRequestBuffer() {
     }
     if (!argv_.empty()) {
       argvs_.push_back(argv_);
-      if (parser_settings_.DealMessage != nullptr) {
+      if (parser_settings_.DealMessage) {
         if (parser_settings_.DealMessage(this, argv_) != 0) {
           SetParserStatus(kRedisParserError, kRedisParserDealError);
           return status_code_;
@@ -379,7 +379,7 @@ RedisParserStatus RedisParser::ProcessRequestBuffer() {
     // Reset
     ResetCommandStatus();
   }
-  if (parser_settings_.Complete != nullptr) {
+  if (parser_settings_.Complete) {
     if (parser_settings_.Complete(this, argvs_) != 0) {
       SetParserStatus(kRedisParserError, kRedisParserCompleteError);
       return status_code_;

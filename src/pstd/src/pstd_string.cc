@@ -206,7 +206,7 @@ long long memtoll(const char* p, int* err) {
   long long val;
   unsigned int digits;
 
-  if (err != nullptr) {
+  if (err) {
     *err = 0;
   }
   /* Search the first non digit character. */
@@ -232,14 +232,14 @@ long long memtoll(const char* p, int* err) {
   } else if (strcasecmp(u, "gb") == 0) {
     mul = 1024L * 1024 * 1024;
   } else {
-    if (err != nullptr) {
+    if (err) {
       *err = 1;
     }
     mul = 1;
   }
   digits = u - p;
   if (digits >= sizeof(buf)) {
-    if (err != nullptr) {
+    if (err) {
       *err = 1;
     }
     return LLONG_MAX;
@@ -364,7 +364,7 @@ int string2int(const char* s, size_t slen, long long* value) {
 
   /* Special case: first and only digit is 0. */
   if (slen == 1 && p[0] == '0') {
-    if (value != nullptr) {
+    if (value) {
       *value = 0;
     }
     return 1;
@@ -387,7 +387,7 @@ int string2int(const char* s, size_t slen, long long* value) {
   }
 
   if (plen == slen) {
-    if (value != nullptr) {
+    if (value) {
       *value = 0;
     }
     return 1;
@@ -429,14 +429,14 @@ int string2int(const char* s, size_t slen, long long* value) {
     if (v > (static_cast<unsigned long long>(-(LLONG_MIN + 1)) + 1)) { /* Overflow. */
       return 0;
     }
-    if (value != nullptr) {
+    if (value) {
       *value = -v;
     }
   } else {
     if (v > LLONG_MAX) { /* Overflow. */
       return 0;
     }
-    if (value != nullptr) {
+    if (value) {
       *value = v;
     }
   }
@@ -527,7 +527,7 @@ int string2d(const char* s, size_t slen, double* dval) {
     return 0;
   }
 
-  if (dval != nullptr) {
+  if (dval) {
     *dval = d;
   }
   return 1;
@@ -578,7 +578,7 @@ void getRandomHexChars(char* p, unsigned int len) {
   for (j = 0; j < len; j++) {
     p[j] = charset[p[j] & 0x0F];
   }
-  if (fp != nullptr) {
+  if (fp) {
     fclose(fp);
   }
 }

@@ -119,7 +119,7 @@ Status RedisCli::Recv(void* trival) {
   int result = GetReply();
   switch (result) {
     case REDIS_OK:
-      if (trival != nullptr) {
+      if (trival) {
         *static_cast<RedisCmdArgsType*>(trival) = argv_;
       }
       return Status::OK();
@@ -250,7 +250,7 @@ int RedisCli::ProcessBulkItem() {
 
   p = rbuf_ + rbuf_pos_;
   s = seekNewline(p, rbuf_offset_);
-  if (s != nullptr) {
+  if (s) {
     bytelen = s - p + 2; /* include \r\n */
     len = readLongLong(p);
 
@@ -278,7 +278,7 @@ int RedisCli::ProcessMultiBulkItem() {
   char* p;
   int len;
 
-  if ((p = ReadLine(&len)) != nullptr) {
+  if (p = ReadLine(&len)) {
     elements_ = readLongLong(p);
     return REDIS_OK;
   }
@@ -324,12 +324,13 @@ char* RedisCli::ReadLine(int* _len) {
 
   p = rbuf_ + rbuf_pos_;
   s = seekNewline(p, rbuf_offset_);
-  if (s != nullptr) {
+  if (s) {
     len = s - (rbuf_ + rbuf_pos_);
     rbuf_pos_ += len + 2; /* skip \r\n */
     rbuf_offset_ -= len + 2;
-    if (_len != nullptr) { *_len = len;
-}
+    if (_len) {
+      *_len = len;
+    }
     return p;
   }
   return nullptr;
@@ -490,35 +491,35 @@ int redisvFormatCommand(std::string* cmd, const char* format, va_list ap) {
             /* Copy va_list before consuming with va_arg */
             va_copy(_cpy, ap);
 
-            if (strchr(intfmts, *_p) != nullptr) {
+            if (strchr(intfmts, *_p)) {
               /* Integer conversion (without modifiers) */
               va_arg(ap, int);
               fmt_valid = true;
-            } else if (strchr("eEfFgGaA", *_p) != nullptr) {
+            } else if (strchr("eEfFgGaA", *_p)) {
               /* Double conversion (without modifiers) */
               va_arg(ap, double);
               fmt_valid = true;
             } else if (_p[0] == 'h' && _p[1] == 'h') { /* Size: char */
               _p += 2;
-              if (*_p != '\0' && strchr(intfmts, *_p) != nullptr) {
+              if (*_p != '\0' && strchr(intfmts, *_p)) {
                 va_arg(ap, int); /* char gets promoted to int */
                 fmt_valid = true;
               }
             } else if (_p[0] == 'h') { /* Size: short */
               _p += 1;
-              if (*_p != '\0' && strchr(intfmts, *_p) != nullptr) {
+              if (*_p != '\0' && strchr(intfmts, *_p)) {
                 va_arg(ap, int); /* short gets promoted to int */
                 fmt_valid = true;
               }
             } else if (_p[0] == 'l' && _p[1] == 'l') { /* Size: long long */
               _p += 2;
-              if (*_p != '\0' && strchr(intfmts, *_p) != nullptr) {
+              if (*_p != '\0' && strchr(intfmts, *_p)) {
                 va_arg(ap, long long);
                 fmt_valid = true;
               }
             } else if (_p[0] == 'l') { /* Size: long */
               _p += 1;
-              if (*_p != '\0' && strchr(intfmts, *_p) != nullptr) {
+              if (*_p != '\0' && strchr(intfmts, *_p)) {
                 va_arg(ap, long);
                 fmt_valid = true;
               }

@@ -36,7 +36,7 @@ Status Version::StableSave() {
 
 Status Version::Init() {
   Status s;
-  if (save_->GetData() != nullptr) {
+  if (save_->GetData()) {
     memcpy(reinterpret_cast<char*>(&pro_num_), save_->GetData(), sizeof(uint32_t));
     memcpy(reinterpret_cast<char*>(&pro_offset_), save_->GetData() + 4, sizeof(uint64_t));
     memcpy(reinterpret_cast<char*>(&logic_id_), save_->GetData() + 12, sizeof(uint64_t));
@@ -133,7 +133,7 @@ Status Binlog::GetProducerStatus(uint32_t* filenum, uint64_t* pro_offset, uint64
 
   *filenum = version_->pro_num_;
   *pro_offset = version_->pro_offset_;
-  if (logic_id != nullptr) {
+  if (logic_id) {
     *logic_id = version_->logic_id_;
   }
 

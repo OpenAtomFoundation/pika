@@ -93,7 +93,7 @@ static void create_pid_file() {
   }
 
   FILE* fp = fopen(path.c_str(), "w");
-  if (fp != nullptr) {
+  if (fp) {
     fprintf(fp, "%d\n", static_cast<int>(getpid()));
     fclose(fp);
   }

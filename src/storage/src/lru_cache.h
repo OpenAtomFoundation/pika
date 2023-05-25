@@ -163,7 +163,7 @@ template <typename T1, typename T2>
 rocksdb::Status LRUCache<T1, T2>::Lookup(const T1& key, T2* const value) {
   std::lock_guard l(mutex_);
   LRUHandle<T1, T2>* handle = handle_table_.Lookup(key);
-  if (handle != nullptr) {
+  if (handle) {
     LRU_MoveToHead(handle);
     *value = handle->value;
   }
@@ -283,7 +283,7 @@ void LRUCache<T1, T2>::LRU_MoveToHead(LRUHandle<T1, T2>* const e) {
 template <typename T1, typename T2>
 bool LRUCache<T1, T2>::FinishErase(LRUHandle<T1, T2>* const e) {
   bool erased = false;
-  if (e != nullptr) {
+  if (e) {
     LRU_Remove(e);
     size_--;
     usage_ -= e->charge;

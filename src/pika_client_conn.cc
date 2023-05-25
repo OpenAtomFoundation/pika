@@ -252,7 +252,7 @@ void PikaClientConn::TryWriteResp() {
     for (auto& resp : resp_array) {
       WriteResp(*resp);
     }
-    if (write_completed_cb_ != nullptr) {
+    if (write_completed_cb_) {
       write_completed_cb_();
       write_completed_cb_ = nullptr;
     }
