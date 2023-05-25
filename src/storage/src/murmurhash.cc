@@ -26,8 +26,8 @@ uint64_t MurmurHash64A(const void* key, int len, unsigned int seed) {
 
   uint64_t h = seed ^ (len * m);
 
-  const auto data = static_cast<const uint64_t*>(key);
-  const auto end = data + (len / 8);
+  auto data = static_cast<const uint64_t*>(key);
+  auto end = data + (len / 8);
 
   while (data != end) {
     uint64_t k = *data++;
@@ -40,7 +40,7 @@ uint64_t MurmurHash64A(const void* key, int len, unsigned int seed) {
     h *= m;
   }
 
-  const auto data2 = reinterpret_cast<const unsigned char*>(data);
+  auto data2 = reinterpret_cast<const unsigned char*>(data);
 
   switch (len & 7) {
     case 7:
@@ -101,7 +101,7 @@ unsigned int MurmurHash2(const void* key, int len, unsigned int seed) {
 
   // Mix 4 bytes at a time into the hash
 
-  const unsigned char* data = (const unsigned char*)key;
+  auto data = (const unsigned char*)key;
 
   while (len >= 4) {
     unsigned int k = *(unsigned int*)data;
