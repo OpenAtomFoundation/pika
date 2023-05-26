@@ -1988,12 +1988,9 @@ void MonitorCmd::Do(std::shared_ptr<Partition> partition) {
     LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
-  std::shared_ptr<net::NetConn> conn =
-      std::dynamic_pointer_cast<PikaClientConn>(conn_repl)->server_thread()->MoveConnOut(conn_repl->fd());
-  assert(conn.get() == conn_repl.get());
-  g_pika_server->AddMonitorClient(std::dynamic_pointer_cast<PikaClientConn>(conn));
-  g_pika_server->AddMonitorMessage("OK");
-  return;  // Monitor thread will return "OK"
+
+  g_pika_server->AddMonitorClient(std::dynamic_pointer_cast<PikaClientConn>(conn_repl));
+  res_.SetRes(CmdRes::kOk);
 }
 
 void DbsizeCmd::DoInitial() {
