@@ -153,7 +153,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
     return Status::InvalidArgument("fd argument is nullptr");
   }
   // We do not handle IPv6
-  if (rv = getaddrinfo(dst_ip.c_str(), cport, &hints, &servinfo)) {
+  if (rv = getaddrinfo(dst_ip.c_str(), cport, &hints, &servinfo); rv) {
     return Status::IOError("connect getaddrinfo error for ", dst_ip);
   }
   for (p = servinfo; p != nullptr; p = p->ai_next) {

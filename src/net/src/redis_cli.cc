@@ -279,7 +279,7 @@ int RedisCli::ProcessMultiBulkItem() {
   char* p;
   int len;
 
-  if (p = ReadLine(&len)) {
+  if (p = ReadLine(&len); p) {
     elements_ = readLongLong(p);
     return REDIS_OK;
   }
