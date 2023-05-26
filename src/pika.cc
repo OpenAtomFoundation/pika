@@ -4,8 +4,8 @@
 // of patent rights can be found in the PATENTS file in the same directory.
 
 #include <glog/logging.h>
-#include <signal.h>
 #include <sys/resource.h>
+#include <csignal>
 
 #include "include/build_version.h"
 #include "include/pika_cmd_table_manager.h"
@@ -16,7 +16,6 @@
 #include "include/pika_server.h"
 #include "include/pika_version.h"
 #include "pstd/include/env.h"
-
 
 std::unique_ptr<PikaConf> g_pika_conf;
 // todo : change to unique_ptr will coredump
@@ -107,6 +106,7 @@ static void PikaSignalSetup() {
   signal(SIGPIPE, SIG_IGN);
   signal(SIGINT, &IntSigHandle);
   signal(SIGQUIT, &IntSigHandle);
+  signal(SIGABRT, &IntSigHandle);
   signal(SIGTERM, &IntSigHandle);
 }
 
