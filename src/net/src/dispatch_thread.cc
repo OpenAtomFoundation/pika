@@ -50,9 +50,7 @@ DispatchThread::DispatchThread(const std::set<std::string>& ips, int port, int w
   }
 }
 
-DispatchThread::~DispatchThread() {
-
-}
+DispatchThread::~DispatchThread() = default;
 
 int DispatchThread::StartThread() {
   for (int i = 0; i < work_num_; i++) {
