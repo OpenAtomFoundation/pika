@@ -63,7 +63,7 @@ void BitGetCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidBitOffsetInt);
     return;
   }
-  }
+}
 
 void BitGetCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t bit_val = 0;
@@ -96,7 +96,7 @@ void BitCountCmd::DoInitial() {
   } else {
     res_.SetRes(CmdRes::kSyntaxErr, kCmdNameBitCount);
   }
-  }
+}
 
 void BitCountCmd::Do(std::shared_ptr<Partition> partition) {
   int32_t count = 0;
@@ -204,7 +204,7 @@ void BitOpCmd::DoInitial() {
   for (unsigned int i = 3; i <= argv_.size() - 1; i++) {
     src_keys_.emplace_back(argv_[i].data());
   }
-  }
+}
 
 void BitOpCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t result_length;
