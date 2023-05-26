@@ -39,7 +39,7 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
     return tmp_ptr;
   }
-  c_ptr->SetConn(std::dynamic_pointer_cast<PikaClientConn>(shared_from_this()));
+  c_ptr->SetConn(shared_from_this());
   c_ptr->SetResp(resp_ptr);
 
   // Check authed

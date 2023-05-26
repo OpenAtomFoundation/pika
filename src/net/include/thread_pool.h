@@ -65,7 +65,6 @@ class ThreadPool : public pstd::noncopyable {
   void cur_time_queue_size(size_t* qsize);
   std::string thread_pool_name();
 
-
  private:
   void runInThread();
 

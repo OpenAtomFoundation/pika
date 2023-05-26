@@ -72,7 +72,7 @@ std::shared_ptr<NetConn> HolyThread::get_conn(int fd) {
 
 int HolyThread::StartThread() {
   int ret = handle_->CreateWorkerSpecificData(&private_data_);
-   if (ret) {
+  if (ret) {
     return ret;
   }
   return ServerThread::StartThread();
@@ -81,7 +81,7 @@ int HolyThread::StartThread() {
 int HolyThread::StopThread() {
   if (private_data_) {
     int ret = handle_->DeleteWorkerSpecificData(private_data_);
-     if (ret) {
+    if (ret) {
       return ret;
     }
     private_data_ = nullptr;
@@ -118,7 +118,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
   }
 
   if (async_) {
-    if ((pfe->mask & kReadable) != 0) {
+    if (pfe->mask & kReadable) {
       ReadStatus read_status = in_conn->GetRequest();
       struct timeval now;
       gettimeofday(&now, nullptr);
@@ -132,7 +132,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
         should_close = 1;
       }
     }
-    if (((pfe->mask & kWritable) != 0) && in_conn->is_reply()) {
+    if ((pfe->mask & kWritable) && in_conn->is_reply()) {
       WriteStatus write_status = in_conn->SendReply();
       if (write_status == kWriteAll) {
         in_conn->set_is_reply(false);
@@ -144,7 +144,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
       }
     }
   } else {
-    if ((pfe->mask & kReadable) != 0) {
+    if (pfe->mask & kReadable) {
       ReadStatus getRes = in_conn->GetRequest();
       struct timeval now;
       gettimeofday(&now, nullptr);
@@ -158,7 +158,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
         return;
       }
     }
-    if ((pfe->mask & kWritable) != 0) {
+    if (pfe->mask & kWritable) {
       WriteStatus write_status = in_conn->SendReply();
       if (write_status == kWriteAll) {
         in_conn->set_is_reply(false);
@@ -170,7 +170,7 @@ void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
       }
     }
   }
-  if (((pfe->mask & kErrorEvent) != 0) || (should_close != 0)) {
+  if ((pfe->mask & kErrorEvent) || should_close) {
     net_multiplexer_->NetDelEvent(pfe->fd, 0);
     CloseFd(in_conn);
     in_conn = nullptr;
@@ -192,7 +192,7 @@ void HolyThread::DoCronTask() {
 
     // Check whether close all connection
     std::lock_guard kl(killer_mutex_);
-    if (deleting_conn_ipport_.count(kKillAllConnsTask) != 0U) {
+    if (deleting_conn_ipport_.count(kKillAllConnsTask)) {
       for (auto& conn : conns_) {
         to_close.push_back(conn.second);
       }
@@ -208,7 +208,7 @@ void HolyThread::DoCronTask() {
     while (iter != conns_.end()) {
       std::shared_ptr<NetConn> conn = iter->second;
       // Check connection should be closed
-      if (deleting_conn_ipport_.count(conn->ip_port()) != 0U) {
+      if (deleting_conn_ipport_.count(conn->ip_port())) {
         to_close.push_back(conn);
         deleting_conn_ipport_.erase(conn->ip_port());
         iter = conns_.erase(iter);
@@ -277,7 +277,7 @@ bool HolyThread::KillConn(const std::string& ip_port) {
 }
 
 void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
-  if ((pfe->mask & kReadable) != 0) {
+  if (pfe->mask & kReadable) {
     char bb[2048];
     int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
     if (nread == 0) {

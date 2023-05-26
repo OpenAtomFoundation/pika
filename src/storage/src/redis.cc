@@ -80,8 +80,9 @@ Status Redis::SetOptions(const OptionType& option_type, const std::unordered_map
   Status s;
   for (auto handle : handles_) {
     s = db_->SetOptions(handle, options);
-    if (!s.ok()) { break;
-}
+    if (!s.ok()) {
+      break;
+    }
   }
   return s;
 }

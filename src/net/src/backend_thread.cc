@@ -447,7 +447,7 @@ void* BackendThread::ThreadMain() {
         }
       }
 
-      if ((pfe->mask & kErrorEvent) || (should_close)) {
+      if ((pfe->mask & kErrorEvent) || should_close) {
         {
           LOG(INFO) << "close connection " << pfe->fd << " reason " << pfe->mask << " " << should_close;
           net_multiplexer_->NetDelEvent(pfe->fd, 0);

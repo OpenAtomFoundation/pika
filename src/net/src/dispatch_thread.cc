@@ -55,7 +55,7 @@ DispatchThread::~DispatchThread() = default;
 int DispatchThread::StartThread() {
   for (int i = 0; i < work_num_; i++) {
     int ret = handle_->CreateWorkerSpecificData(&(worker_thread_[i]->private_data_));
-     if (ret) {
+    if (ret) {
       return ret;
     }
 
@@ -63,7 +63,7 @@ int DispatchThread::StartThread() {
       worker_thread_[i]->set_thread_name("WorkerThread");
     }
     ret = worker_thread_[i]->StartThread();
-     if (ret) {
+    if (ret) {
       return ret;
     }
   }
@@ -76,12 +76,12 @@ int DispatchThread::StopThread() {
   }
   for (int i = 0; i < work_num_; i++) {
     int ret = worker_thread_[i]->StopThread();
-     if (ret) {
+    if (ret) {
       return ret;
     }
     if (worker_thread_[i]->private_data_) {
       ret = handle_->DeleteWorkerSpecificData(worker_thread_[i]->private_data_);
-       if (ret) {
+      if (ret) {
         return ret;
       }
       worker_thread_[i]->private_data_ = nullptr;

@@ -112,7 +112,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
   // make wal_dir valid in that case
   std::string wal_dir = db_->GetOptions().wal_dir;
   if (wal_dir.empty()) {
-    wal_dir = db_->GetName() + "/";
+    wal_dir = db_->GetOptions().db_paths[0].path;
   }
 
   size_t wal_size = live_wal_files.size();

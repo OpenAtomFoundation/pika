@@ -40,7 +40,7 @@ void GeoAddCmd::DoInitial() {
     point.latitude = latitude;
     pos_.push_back(point);
   }
-  }
+}
 
 void GeoAddCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<storage::ScoreMember> score_members;

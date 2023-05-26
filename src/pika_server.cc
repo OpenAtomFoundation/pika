@@ -71,7 +71,6 @@ PikaServer::PikaServer()
   LOG(INFO) << "Worker queue limit is " << worker_queue_limit;
   pika_dispatch_thread_ =
       std::make_unique<PikaDispatchThread>(ips, port_, worker_num_, 3000, worker_queue_limit, g_pika_conf->max_conn_rbuf_size());
-  pika_monitor_thread_ = std::make_unique<PikaMonitorThread>();
   pika_rsync_service_ = std::make_unique<PikaRsyncService>(g_pika_conf->db_sync_path(), g_pika_conf->port() + kPortShiftRSync);
   pika_pubsub_thread_ = std::make_unique<net::PubSubThread>();
   pika_auxiliary_thread_ = std::make_unique<PikaAuxiliaryThread>();
@@ -931,7 +930,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
   int ret = 0;
   LOG(INFO) << "Partition: " << partition->GetPartitionName() << " Start Send files in " << bg_path << " to " << ip;
   ret = pstd::GetChildren(bg_path, descendant);
-   if (ret) {
+  if (ret) {
     std::string ip_port = pstd::IpPortString(ip, port);
     std::lock_guard ldb(db_sync_protector_);
     db_sync_slaves_.erase(ip_port);
@@ -1008,7 +1007,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
       }
       ret = pstd::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);
       pstd::DeleteFile(fn);
-       if (ret) {
+      if (ret) {
         LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Modified Info File Failed";
       }
     } else if (0 != (ret = pstd::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile,
@@ -1040,13 +1039,10 @@ void PikaServer::KeyScanTaskSchedule(net::TaskFunc func, void* arg) {
   key_scan_thread_.Schedule(func, arg);
 }
 
-void PikaServer::ClientKillAll() {
-  pika_dispatch_thread_->ClientKillAll();
-  pika_monitor_thread_->ThreadClientKill();
-}
+void PikaServer::ClientKillAll() { pika_dispatch_thread_->ClientKillAll(); }
 
 int PikaServer::ClientKill(const std::string& ip_port) {
-  if (pika_dispatch_thread_->ClientKill(ip_port) || pika_monitor_thread_->ThreadClientKill(ip_port)) {
+  if (pika_dispatch_thread_->ClientKill(ip_port)) {
     return 1;
   }
   return 0;
@@ -1055,18 +1051,44 @@ int PikaServer::ClientKill(const std::string& ip_port) {
 int64_t PikaServer::ClientList(std::vector<ClientInfo>* clients) {
   int64_t clients_num = 0;
   clients_num += pika_dispatch_thread_->ThreadClientList(clients);
-  clients_num += pika_monitor_thread_->ThreadClientList(clients);
   return clients_num;
 }
 
-bool PikaServer::HasMonitorClients() { return pika_monitor_thread_->HasMonitorClients(); }
-
-void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
-  pika_monitor_thread_->AddMonitorMessage(monitor_message);
+bool PikaServer::HasMonitorClients() const {
+  std::unique_lock lock(monitor_mutex_protector_);
+  return !pika_monitor_clients_.empty();
 }
 
-void PikaServer::AddMonitorClient(const std::shared_ptr<PikaClientConn> &client_ptr) {
-  pika_monitor_thread_->AddMonitorClient(client_ptr);
+void PikaServer::AddMonitorMessage(const std::string& monitor_message) {
+  const std::string msg = "+" + monitor_message + "\r\n";
+
+  std::vector<std::shared_ptr<PikaClientConn>> clients;
+
+  std::unique_lock lock(monitor_mutex_protector_);
+  clients.reserve(pika_monitor_clients_.size());
+  for (auto it = pika_monitor_clients_.begin(); it != pika_monitor_clients_.end();) {
+    auto cli = (*it).lock();
+    if (cli) {
+      clients.push_back(std::move(cli));
+      ++it;
+    } else {
+      it = pika_monitor_clients_.erase(it);
+    }
+  }
+
+  lock.unlock(); // SendReply without lock
+
+  for (const auto& cli : clients) {
+    cli->WriteResp(msg);
+    cli->SendReply();
+  }
+}
+
+void PikaServer::AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr) {
+  if (client_ptr) {
+    std::unique_lock lock(monitor_mutex_protector_);
+    pika_monitor_clients_.insert(client_ptr);
+  }
 }
 
 void PikaServer::SlowlogTrim() {

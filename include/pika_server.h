@@ -14,6 +14,7 @@
 #  include <sys/statfs.h>
 #endif
 #include <memory>
+#include <set>
 
 #include "net/include/bg_thread.h"
 #include "net/include/net_pubsub.h"
@@ -30,7 +31,6 @@
 #include "include/pika_conf.h"
 #include "include/pika_define.h"
 #include "include/pika_dispatch_thread.h"
-#include "include/pika_monitor_thread.h"
 #include "include/pika_repl_client.h"
 #include "include/pika_repl_server.h"
 #include "include/pika_rsync_service.h"
@@ -266,9 +266,9 @@ class PikaServer : public pstd::noncopyable {
   /*
    * Monitor used
    */
-  bool HasMonitorClients();
+  bool HasMonitorClients() const;
   void AddMonitorMessage(const std::string& monitor_message);
-  void AddMonitorClient(const std::shared_ptr<PikaClientConn> &client_ptr);
+  void AddMonitorClient(std::shared_ptr<PikaClientConn> client_ptr);
 
   /*
    * Slowlog used
@@ -410,7 +410,8 @@ class PikaServer : public pstd::noncopyable {
   /*
    * Monitor used
    */
-  std::unique_ptr<PikaMonitorThread> pika_monitor_thread_;
+  mutable pstd::Mutex monitor_mutex_protector_;
+  std::set<std::weak_ptr<PikaClientConn>, std::owner_less<std::weak_ptr<PikaClientConn>>> pika_monitor_clients_;
 
   /*
    * Rsync used

@@ -31,7 +31,7 @@ void HDelCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HSetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -51,7 +51,7 @@ void HSetCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HGetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -121,7 +121,7 @@ void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HExistsCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -154,7 +154,7 @@ void HIncrbyCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  }
+}
 
 void HIncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t new_value;
@@ -168,7 +168,7 @@ void HIncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HIncrbyfloatCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -193,7 +193,7 @@ void HIncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HKeysCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -214,7 +214,7 @@ void HKeysCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HLenCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -232,7 +232,7 @@ void HLenCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "something wrong in hlen");
   }
-  }
+}
 
 void HMgetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -262,7 +262,7 @@ void HMgetCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HMsetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -280,7 +280,7 @@ void HMsetCmd::DoInitial() {
   for (; index < argc; index += 2) {
     fvs_.push_back({argv_[index], argv_[index + 1]});
   }
-  }
+}
 
 void HMsetCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->HMSet(key_, fvs_);
@@ -289,7 +289,7 @@ void HMsetCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HSetnxCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -328,7 +328,7 @@ void HStrlenCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "something wrong in hstrlen");
   }
-  }
+}
 
 void HValsCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -350,7 +350,7 @@ void HValsCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HScanCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -389,7 +389,7 @@ void HScanCmd::DoInitial() {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  }
+}
 
 void HScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t next_cursor = 0;
@@ -411,7 +411,7 @@ void HScanCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void HScanxCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -447,7 +447,7 @@ void HScanxCmd::DoInitial() {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  }
+}
 
 void HScanxCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
@@ -467,7 +467,7 @@ void HScanxCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void PKHScanRangeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -500,7 +500,7 @@ void PKHScanRangeCmd::DoInitial() {
     }
     index++;
   }
-  }
+}
 
 void PKHScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
@@ -520,7 +520,7 @@ void PKHScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void PKHRScanRangeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -553,7 +553,7 @@ void PKHRScanRangeCmd::DoInitial() {
     }
     index++;
   }
-  }
+}
 
 void PKHRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_field;
@@ -573,4 +573,4 @@ void PKHRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}

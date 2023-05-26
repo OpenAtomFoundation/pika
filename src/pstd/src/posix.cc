@@ -69,7 +69,7 @@ void Setpgid(pid_t pid, pid_t pgid) {
   if ((rc = setpgid(pid, pgid)) < 0) {
     LOG(ERROR) << "Setpgid error: " << strerror(errno);
   }
-  }
+}
 
 pid_t Getpgrp() { return getpgrp(); }
 
@@ -97,31 +97,31 @@ void Sigprocmask(int how, const sigset_t* set, sigset_t* oldset) {
   if (sigprocmask(how, set, oldset) < 0) {
     LOG(ERROR) << "Sigprocmask error: " << strerror(errno);
   }
-  }
+}
 
 void Sigemptyset(sigset_t* set) {
   if (sigemptyset(set) < 0) {
     LOG(ERROR) << "Sigemptyset error: " << strerror(errno);
   }
-  }
+}
 
 void Sigfillset(sigset_t* set) {
   if (sigfillset(set) < 0) {
     LOG(ERROR) << "Sigfillset error: " << strerror(errno);
   }
-  }
+}
 
 void Sigaddset(sigset_t* set, int signum) {
   if (sigaddset(set, signum) < 0) {
     LOG(ERROR) << "Sigaddset error: " << strerror(errno);
   }
-  }
+}
 
 void Sigdelset(sigset_t* set, int signum) {
   if (sigdelset(set, signum) < 0) {
     LOG(ERROR) << "Sigdelset error: " << strerror(errno);
   }
-  }
+}
 
 int Sigismember(const sigset_t* set, int signum) {
   int rc;

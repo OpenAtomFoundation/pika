@@ -135,7 +135,7 @@ Status PikaConf::DelTableSanityCheck(const std::string& table_name) {
 
 int PikaConf::Load() {
   int ret = LoadConf();
-   if (ret) {
+  if (ret) {
     return ret;
   }
 

@@ -51,8 +51,7 @@ void SPopCmd::DoInitial() {
       return;
     }
   }
-  
-  }
+}
 
 void SPopCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> members;
@@ -68,7 +67,7 @@ void SPopCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void SCardCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -86,7 +85,7 @@ void SCardCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "scard error");
   }
-  }
+}
 
 void SMembersCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -108,7 +107,7 @@ void SMembersCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void SScanCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -146,7 +145,7 @@ void SScanCmd::DoInitial() {
     res_.SetRes(CmdRes::kSyntaxErr);
     return;
   }
-  }
+}
 
 void SScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t next_cursor = 0;
@@ -203,7 +202,7 @@ void SUnionCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendStringLen(member.size());
     res_.AppendContent(member);
   }
-  }
+}
 
 void SUnionstoreCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -224,7 +223,7 @@ void SUnionstoreCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void SInterCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -243,7 +242,7 @@ void SInterCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendStringLen(member.size());
     res_.AppendContent(member);
   }
-  }
+}
 
 void SInterstoreCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -264,7 +263,7 @@ void SInterstoreCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void SIsmemberCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -302,7 +301,7 @@ void SDiffCmd::Do(std::shared_ptr<Partition> partition) {
     res_.AppendStringLen(member.size());
     res_.AppendContent(member);
   }
-  }
+}
 
 void SDiffstoreCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -343,7 +342,7 @@ void SMoveCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void SRandmemberCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -362,7 +361,7 @@ void SRandmemberCmd::DoInitial() {
       ;
     }
   }
-  }
+}
 
 void SRandmemberCmd::Do(std::shared_ptr<Partition> partition) {
   std::vector<std::string> members;
@@ -381,4 +380,4 @@ void SRandmemberCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}

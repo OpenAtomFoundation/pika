@@ -49,9 +49,6 @@ void SetCmd::DoInitial() {
       if (pstd::string2int(argv_[index].data(), argv_[index].size(), &sec_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
-      } else if (sec_ <= 0) {
-        res_.SetRes(CmdRes::kErrOther, "invalid expire time in set");
-        return;
       }
 
       if (strcasecmp(opt.data(), "px") == 0) {
@@ -63,7 +60,7 @@ void SetCmd::DoInitial() {
     }
     index++;
   }
-  }
+}
 
 void SetCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s;
@@ -170,7 +167,7 @@ void DelCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "delete error");
   }
-  }
+}
 
 void DelCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
   std::map<storage::DataType, storage::Status> type_status;
@@ -180,7 +177,7 @@ void DelCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_ke
   } else {
     res_.SetRes(CmdRes::kErrOther, "delete error");
   }
-  }
+}
 
 void DelCmd::Merge() {
   res_.AppendInteger(split_res_);
@@ -205,7 +202,7 @@ void IncrCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void IncrbyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -217,7 +214,7 @@ void IncrbyCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameIncrby);
     return;
   }
-  }
+}
 
 void IncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->Incrby(key_, by_, &new_value_);
@@ -230,7 +227,7 @@ void IncrbyCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void IncrbyfloatCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -243,7 +240,7 @@ void IncrbyfloatCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidFloat);
     return;
   }
-  }
+}
 
 void IncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->Incrbyfloat(key_, value_, &new_value_);
@@ -257,7 +254,7 @@ void IncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void DecrCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -278,7 +275,7 @@ void DecrCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void DecrbyCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -290,7 +287,7 @@ void DecrbyCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  }
+}
 
 void DecrbyCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->Decrby(key_, by_, &new_value_);
@@ -303,7 +300,7 @@ void DecrbyCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void GetsetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -327,7 +324,7 @@ void GetsetCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void AppendCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -346,7 +343,7 @@ void AppendCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void MgetCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -374,7 +371,7 @@ void MgetCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void MgetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
   std::vector<storage::ValueStatus> vss;
@@ -391,7 +388,7 @@ void MgetCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_k
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void MgetCmd::Merge() {
   res_.AppendArrayLen(split_res_.size());
@@ -429,7 +426,7 @@ void KeysCmd::DoInitial() {
   } else if (argv_.size() > 3) {
     res_.SetRes(CmdRes::kSyntaxErr);
   }
-  }
+}
 
 void KeysCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t total_key = 0;
@@ -472,7 +469,7 @@ void SetnxCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 std::string SetnxCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset) {
@@ -626,7 +623,7 @@ void MsetCmd::DoInitial() {
   for (size_t index = 1; index != argc; index += 2) {
     kvs_.push_back({argv_[index], argv_[index + 1]});
   }
-  }
+ }
 
 void MsetCmd::Do(std::shared_ptr<Partition> partition) {
   storage::Status s = partition->db()->MSet(kvs_);
@@ -677,7 +674,7 @@ void MsetnxCmd::DoInitial() {
   for (size_t index = 1; index != argc; index += 2) {
     kvs_.push_back({argv_[index], argv_[index + 1]});
   }
-  }
+}
 
 void MsetnxCmd::Do(std::shared_ptr<Partition> partition) {
   success_ = 0;
@@ -703,7 +700,7 @@ void GetrangeCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  }
+}
 
 void GetrangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string substr;
@@ -737,7 +734,7 @@ void SetrangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void StrlenCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -755,7 +752,7 @@ void StrlenCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void ExistsCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -774,7 +771,7 @@ void ExistsCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "exists internal error");
   }
-  }
+}
 
 void ExistsCmd::Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) {
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -800,7 +797,7 @@ void ExpireCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  }
+}
 
 void ExpireCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -810,7 +807,7 @@ void ExpireCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "expire internal error");
   }
-  }
+}
 
 std::string ExpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                 uint64_t offset) {
@@ -847,7 +844,7 @@ void PexpireCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  }
+}
 
 void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -857,7 +854,7 @@ void PexpireCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "expire internal error");
   }
-  }
+}
 
 std::string PexpireCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                  uint64_t offset) {
@@ -894,7 +891,7 @@ void ExpireatCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  }
+}
 
 void ExpireatCmd::Do(std::shared_ptr<Partition> partition) {
   std::map<storage::DataType, rocksdb::Status> type_status;
@@ -916,7 +913,7 @@ void PexpireatCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  }
+}
 
 std::string PexpireatCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                    uint64_t offset) {
@@ -951,7 +948,7 @@ void PexpireatCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "pexpireat internal error");
   }
-  }
+}
 
 void TtlCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -986,7 +983,7 @@ void TtlCmd::Do(std::shared_ptr<Partition> partition) {
     // mean this key not exist
     res_.AppendInteger(-2);
   }
-  }
+}
 
 void PttlCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1041,7 +1038,7 @@ void PttlCmd::Do(std::shared_ptr<Partition> partition) {
     // mean this key not exist
     res_.AppendInteger(-2);
   }
-  }
+}
 
 void PersistCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1059,7 +1056,7 @@ void PersistCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "persist internal error");
   }
-  }
+}
 
 void TypeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1077,7 +1074,7 @@ void TypeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void ScanCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1111,7 +1108,7 @@ void ScanCmd::DoInitial() {
     }
     index++;
   }
-  }
+}
 
 void ScanCmd::Do(std::shared_ptr<Partition> partition) {
   int64_t total_key = 0;
@@ -1225,7 +1222,7 @@ void PKSetexAtCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidInt);
     return;
   }
-  }
+}
 
 void PKSetexAtCmd::Do(std::shared_ptr<Partition> partition) {
   rocksdb::Status s = partition->db()->PKSetexAt(key_, value_, time_stamp_);
@@ -1234,7 +1231,7 @@ void PKSetexAtCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void PKScanRangeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1288,7 +1285,7 @@ void PKScanRangeCmd::DoInitial() {
     }
     index++;
   }
-  }
+}
 
 void PKScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
@@ -1319,7 +1316,7 @@ void PKScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}
 
 void PKRScanRangeCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1373,7 +1370,7 @@ void PKRScanRangeCmd::DoInitial() {
     }
     index++;
   }
-  }
+}
 
 void PKRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   std::string next_key;
@@ -1404,4 +1401,4 @@ void PKRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, s.ToString());
   }
-  }
+}

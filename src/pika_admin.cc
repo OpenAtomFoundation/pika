@@ -590,8 +590,7 @@ void ClientCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "No such client");
   }
-
-  }
+}
 
 void ShutdownCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -1985,12 +1984,9 @@ void MonitorCmd::Do(std::shared_ptr<Partition> partition) {
     LOG(WARNING) << name_ << " weak ptr is empty";
     return;
   }
-  std::shared_ptr<net::NetConn> conn =
-      std::dynamic_pointer_cast<PikaClientConn>(conn_repl)->server_thread()->MoveConnOut(conn_repl->fd());
-  assert(conn.get() == conn_repl.get());
-  g_pika_server->AddMonitorClient(std::dynamic_pointer_cast<PikaClientConn>(conn));
-  g_pika_server->AddMonitorMessage("OK");
-// Monitor thread will return "OK"
+
+  g_pika_server->AddMonitorClient(std::dynamic_pointer_cast<PikaClientConn>(conn_repl));
+  res_.SetRes(CmdRes::kOk);
 }
 
 void DbsizeCmd::DoInitial() {
@@ -2177,7 +2173,7 @@ void SlowlogCmd::Do(std::shared_ptr<Partition> partition) {
       }
     }
   }
-  }
+}
 
 void PaddingCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

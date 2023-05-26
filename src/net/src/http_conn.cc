@@ -123,7 +123,7 @@ bool HTTPRequest::ParseHeadLine(const char* data, int line_start, int line_end) 
 bool HTTPRequest::ParseGetUrl() {
   path_ = url_;
   // Format path
-  if ((headers_.count("host")) && path_.find(headers_["host"]) != std::string::npos &&
+  if (headers_.count("host") && path_.find(headers_["host"]) != std::string::npos &&
       path_.size() > (7 + headers_["host"].size())) {
     // http://www.xxx.xxx/path_/to
     path_.assign(path_.substr(7 + headers_["host"].size()));
@@ -206,7 +206,7 @@ int HTTPRequest::ParseHeader() {
     content_type_.assign(headers_.at("content-type"));
   }
 
-  if ((headers_.count("expect")) &&
+  if (headers_.count("expect") &&
       (headers_.at("expect") == "100-Continue" || headers_.at("expect") == "100-continue")) {
     reply_100continue_ = true;
   }
@@ -498,7 +498,7 @@ void HTTPResponse::SetHeaders(const std::string& key, const size_t value) { head
 
 void HTTPResponse::SetContentLength(uint64_t size) {
   remain_send_len_ = size;
-  if ((headers_.count("Content-Length")) || (headers_.count("content-length"))) {
+  if (headers_.count("Content-Length") || (headers_.count("content-length"))) {
     return;
   }
   SetHeaders("Content-Length", size);
