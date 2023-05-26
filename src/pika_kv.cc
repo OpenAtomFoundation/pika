@@ -49,9 +49,6 @@ void SetCmd::DoInitial() {
       if (pstd::string2int(argv_[index].data(), argv_[index].size(), &sec_) == 0) {
         res_.SetRes(CmdRes::kInvalidInt);
         return;
-      } else if (sec_ <= 0) {
-        res_.SetRes(CmdRes::kErrOther, "invalid expire time in set");
-        return;
       }
 
       if (strcasecmp(opt.data(), "px") == 0) {
