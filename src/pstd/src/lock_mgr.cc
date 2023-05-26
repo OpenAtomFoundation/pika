@@ -47,7 +47,7 @@ struct LockMap {
     }
   }
 
-  ~LockMap() {}
+  ~LockMap() = default;
 
   // Number of sepearate LockMapStripes to create, each with their own Mutex
   const size_t num_stripes_;

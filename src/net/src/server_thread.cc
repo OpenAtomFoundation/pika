@@ -133,10 +133,10 @@ int ServerThread::InitHandle() {
     ips_.insert("0.0.0.0");
   }
 
-  for (std::set<std::string>::iterator iter = ips_.begin(); iter != ips_.end(); ++iter) {
+  for (const auto & ip : ips_) {
     socket_p = std::make_shared<ServerSocket>(port_);
     server_sockets_.emplace_back(socket_p);
-    ret = socket_p->Listen(*iter);
+    ret = socket_p->Listen(ip);
     if (ret != kSuccess) {
       return ret;
     }
