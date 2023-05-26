@@ -931,7 +931,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
   int ret = 0;
   LOG(INFO) << "Partition: " << partition->GetPartitionName() << " Start Send files in " << bg_path << " to " << ip;
   ret = pstd::GetChildren(bg_path, descendant);
-   if (ret) {
+  if (ret) {
     std::string ip_port = pstd::IpPortString(ip, port);
     std::lock_guard ldb(db_sync_protector_);
     db_sync_slaves_.erase(ip_port);
@@ -1008,7 +1008,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
       }
       ret = pstd::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);
       pstd::DeleteFile(fn);
-       if (ret) {
+      if (ret) {
         LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Modified Info File Failed";
       }
     } else if (0 != (ret = pstd::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile,

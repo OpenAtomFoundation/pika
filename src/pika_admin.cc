@@ -591,8 +591,7 @@ void ClientCmd::Do(std::shared_ptr<Partition> partition) {
   } else {
     res_.SetRes(CmdRes::kErrOther, "No such client");
   }
-
-  }
+}
 
 void ShutdownCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -2178,7 +2177,7 @@ void SlowlogCmd::Do(std::shared_ptr<Partition> partition) {
       }
     }
   }
-  }
+}
 
 void PaddingCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

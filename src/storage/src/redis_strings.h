@@ -44,7 +44,7 @@ class RedisStrings : public Redis {
   Status MSetnx(const std::vector<KeyValue>& kvs, int32_t* ret);
   Status Set(const Slice& key, const Slice& value);
   Status Setxx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
-  Status SetBit(const Slice& key, int64_t offset, int32_t on, int32_t* ret);
+  Status SetBit(const Slice& key, int64_t offset, int32_t value, int32_t* ret);
   Status Setex(const Slice& key, const Slice& value, int32_t ttl);
   Status Setnx(const Slice& key, const Slice& value, int32_t* ret, int32_t ttl = 0);
   Status Setvx(const Slice& key, const Slice& value, const Slice& new_value, int32_t* ret, int32_t ttl = 0);

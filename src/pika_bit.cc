@@ -36,7 +36,7 @@ void BitSetCmd::DoInitial() {
     res_.SetRes(CmdRes::kInvalidBitInt);
     return;
   }
-  }
+}
 
 void BitSetCmd::Do(std::shared_ptr<Partition> partition) {
   std::string value;
@@ -151,7 +151,7 @@ void BitPosCmd::DoInitial() {
     }
   } else {
     res_.SetRes(CmdRes::kSyntaxErr, kCmdNameBitPos);
-}
+  }
 }
 
 void BitPosCmd::Do(std::shared_ptr<Partition> partition) {
