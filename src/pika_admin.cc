@@ -22,7 +22,6 @@
 using pstd::Status;
 
 extern PikaServer* g_pika_server;
-extern std::unique_ptr<PikaConf> g_pika_conf;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 static std::string ConstructPinginPubSubResp(const PikaCmdArgsType& argv) {
