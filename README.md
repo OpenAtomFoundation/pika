@@ -125,18 +125,53 @@ By default the compilation process is in 'release' mode. If you wanna debug this
   cd ouput && make
 ```
 
-## Usage
+### Usage
 
 ```
 ./output/pika -c ./conf/pika.conf
 ```
 
-## Clean compilation
+### Clean compilation
 
 ```
   If wanna clean up the compilation content, you can choose one of the following two methods as your will.
   1. exec `cd output && make clean` clean pika Compile content
   2. exec `rm -fr output` rebuild cmake (for complete recompilation)
+```
+
+## Dockerization
+
+### Run with docker
+
+```bash
+
+docker run -d \
+  --restart=always \ 
+  -p 9221:9221 \
+  -v <log_dir>:/pika/log \
+  -v <db_dir>:/pika/db \
+  -v <dump_dir>:/pika/dump \
+  -v <dbsync_dir>:/pika/dbsync \
+  pikadb/pika:v3.3.6 
+
+redis-cli -p 9221 "info"
+
+```
+
+### Build Image
+If you want to build the image yourself, we have provided a script `build_docker.sh` to simplify this process. 
+
+The script accepts several optional arguments:
+
+- `-t tag`: Specify the Docker tag for the image. By default, the tag is `pikadb/pika:<git tag>`.
+- `-p platform`: Specify the platform for the Docker image. `all`, `linux/amd64`, `linux/arm`, `linux/arm64`. 
+- `--proxy`: Use a proxy to download packages to speed up the build process. This is particularly useful if you are in China. 
+- `--help`: Display help information.
+  
+Here is an example usage of the script:
+
+```bash
+./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
 ```
 
 ## Performance
