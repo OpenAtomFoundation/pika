@@ -1298,7 +1298,7 @@ void RedisHashes::ScanDatabase() {
                           : -1;
     }
 
-    LOG(INFO) << fmt::format("[key : {:<30}] [count : {:<10}] [timestamp : {:<10} [version : {}] [survival_time : {}]",
+    LOG(INFO) << fmt::format("[key : {:<30}] [count : {:<10}] [timestamp : {:<10}] [version : {}] [survival_time : {}]",
                              meta_iter->key().ToString(), parsed_hashes_meta_value.count(),
                              parsed_hashes_meta_value.timestamp(), parsed_hashes_meta_value.version(), survival_time);
   }
