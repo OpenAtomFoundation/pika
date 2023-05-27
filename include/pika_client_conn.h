@@ -44,9 +44,9 @@ class PikaClientConn : public net::RedisConn {
     StatType stat_;
   };
 
-  PikaClientConn(int fd, std::string ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
-                 const net::HandleType& handle_type, int max_conn_rubf_size);
-  virtual ~PikaClientConn() {
+  PikaClientConn(int fd, const std::string& ip_port, net::Thread* server_thread, net::NetMultiplexer* mpx,
+                 const net::HandleType& handle_type, int max_conn_rbuf_size);
+   ~PikaClientConn() override {
     LOG(INFO) << "lee : " << __FUNCTION__ << " " << String();
   }
 
