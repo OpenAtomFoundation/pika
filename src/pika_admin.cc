@@ -1097,7 +1097,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   if (rescan_) {
     g_pika_server->DoSameThingSpecificTable(TaskType::kStartKeyScan, keyspace_scan_tables_);
   }
-  }
+}
 
 void InfoCmd::InfoData(std::string& info) {
   std::stringstream tmp_stream;
