@@ -109,15 +109,15 @@ pika 默认使用`release`模式编译，不能调试，如果需要调试，需
 ```
   rm -fr output
   cmake -B output -DCMAKE_BUILD_TYPE=Debug
-  cd ouput && make
+  cd output && make
 ```
 
-### 使用
+## 使用
 ```
   ./output/pika -c ./conf/pika.conf
 ```
 
-### 清空编译
+## 清空编译
 
 ```
   如果需要清空编译内容，视不同情况使用以下两种方法其一：
@@ -132,7 +132,7 @@ pika 默认使用`release`模式编译，不能调试，如果需要调试，需
 
 ```bash
 docker run -d \
-  --restart=always \ 
+  --restart=always \
   -p 9221:9221 \
   -v <log_dir>:/pika/log \
   -v <db_dir>:/pika/db \
@@ -149,8 +149,8 @@ redis-cli -p 9221 "info"
 脚本接受几个可选参数：
 
 - `-t tag`: 指定镜像的Docker标签。默认情况下，标签是 `pikadb/pika:<git tag>`。
-- `-p platform`: 指定Docker镜像的平台。 `all`, `linux/amd64`, `linux/arm`, `linux/arm64`.
-- `--proxy`: 使用代理下载包以加快构建过程。如果你在中国，这特别有用。
+- `-p platform`: 指定Docker镜像的平台。默认使用当前 docker 的 platform 设置 `all`, `linux/amd64`, `linux/arm`, `linux/arm64`.
+- `--proxy`: 使用代理下载 package 以加快构建过程，构建时会使用阿里云的镜像源。
 - `--help`: 显示帮助信息。
 
 这是脚本的一个示例使用：
@@ -158,8 +158,6 @@ redis-cli -p 9221 "info"
 ```bash
 ./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
 ```
-
-
 
 ## 性能 (感谢[deep011](https://github.com/deep011)提供性能测试结果)
 ### 注!!!
