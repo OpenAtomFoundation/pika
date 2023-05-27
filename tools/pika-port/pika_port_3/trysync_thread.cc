@@ -13,9 +13,9 @@
 
 #include <glog/logging.h>
 #include <poll.h>
-#include <signal.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <csignal>
 #include <fstream>
 
 #include "pstd/include/rsync.h"
@@ -25,7 +25,7 @@
 #include "storage/storage.h"
 #include "pika_define.h"
 
-extern Conf g_conf;
+
 extern PikaPort* g_pika_port;
 
 TrysyncThread::~TrysyncThread() {
@@ -64,11 +64,11 @@ void TrysyncThread::PrepareRsync() {
   pstd::CreatePath(db_sync_path + "zsets");
 }
 
-bool TrysyncThread::Send(std::string lip) {
+bool TrysyncThread::Send(const std::string& lip) {
   net::RedisCmdArgsType argv;
   std::string wbuf_str;
   std::string requirepass = g_pika_port->requirepass();
-  if (requirepass != "") {
+  if (!requirepass.empty()) {
     argv.push_back("auth");
     argv.push_back(requirepass);
     net::SerializeRedisCommand(argv, &wbuf_str);
@@ -106,13 +106,13 @@ bool TrysyncThread::Send(std::string lip) {
 // if send command {trysync slaveip slaveport 11 38709514}, the reply = "sid:.
 // it means that slave sid is allocated by master.
 bool TrysyncThread::RecvProc() {
-  bool should_auth = g_pika_port->requirepass() == "" ? false : true;
+  bool should_auth = !g_pika_port->requirepass().empty();
   bool is_authed = false;
   pstd::Status s;
   std::string reply;
 
   net::RedisCmdArgsType argv;
-  while (1) {
+  while (true) {
     s = cli_->Recv(&argv);
     if (!s.ok()) {
       LOG(WARNING) << "Connect master, status: " << s.ToString() << ", Recv error";
@@ -128,7 +128,7 @@ bool TrysyncThread::RecvProc() {
       }
       is_authed = true;
     } else {
-      if (argv.size() == 1 && pstd::string2int(reply.data(), reply.size(), &sid_)) {
+      if (argv.size() == 1 && (pstd::string2int(reply.data(), reply.size(), &sid_) != 0)) {
         // Luckily, I got your point, the sync is comming
         LOG(INFO) << "Recv sid from master: " << sid_;
         g_pika_port->SetSid(sid_);
@@ -181,15 +181,19 @@ bool TrysyncThread::TryUpdateMasterOffset() {
     LOG(WARNING) << "Failed to open info file after db sync";
     return false;
   }
-  std::string line, master_ip;
+  std::string line;
+  std::string master_ip;
   int lineno = 0;
-  int64_t filenum = 0, offset = 0, tmp = 0, master_port = 0;
+  int64_t filenum = 0;
+  int64_t offset = 0;
+  int64_t tmp = 0;
+  int64_t master_port = 0;
   while (std::getline(is, line)) {
     lineno++;
     if (lineno == 2) {
       master_ip = line;
     } else if (lineno > 2 && lineno < 6) {
-      if (!pstd::string2int(line.data(), line.size(), &tmp) || tmp < 0) {
+      if ((pstd::string2int(line.data(), line.size(), &tmp) == 0) || tmp < 0) {
         LOG(WARNING) << "Format of info file after db sync error, line: " << line;
         is.close();
         return false;
@@ -285,7 +289,7 @@ int TrysyncThread::Retransmit() {
   s = stringsDB.Open(bwOptions, path);
   LOG(INFO) << "Open strings DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&stringsDB), &senders_, storage::kStrings, thread_num));
+    migrators_.emplace_back(new MigratorThread(&stringsDB, &senders_, storage::kStrings, thread_num));
   }
 
   storage::RedisLists listsDB(&bw, storage::kLists);
@@ -293,7 +297,7 @@ int TrysyncThread::Retransmit() {
   s = listsDB.Open(bwOptions, path);
   LOG(INFO) << "Open lists DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&listsDB), &senders_, storage::kLists, thread_num));
+    migrators_.emplace_back(new MigratorThread(&listsDB, &senders_, storage::kLists, thread_num));
   }
 
   storage::RedisHashes hashesDB(&bw, storage::kHashes);
@@ -301,7 +305,7 @@ int TrysyncThread::Retransmit() {
   s = hashesDB.Open(bwOptions, path);
   LOG(INFO) << "Open hashes DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&hashesDB), &senders_, storage::kHashes, thread_num));
+    migrators_.emplace_back(new MigratorThread(&hashesDB, &senders_, storage::kHashes, thread_num));
   }
 
   storage::RedisSets setsDB(&bw, storage::kSets);
@@ -309,7 +313,7 @@ int TrysyncThread::Retransmit() {
   s = setsDB.Open(bwOptions, path);
   LOG(INFO) << "Open sets DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&setsDB), &senders_, storage::kSets, thread_num));
+    migrators_.emplace_back(new MigratorThread(&setsDB, &senders_, storage::kSets, thread_num));
   }
 
   storage::RedisZSets zsetsDB(&bw, storage::kZSets);
@@ -317,7 +321,7 @@ int TrysyncThread::Retransmit() {
   s = zsetsDB.Open(bwOptions, path);
   LOG(INFO) << "Open zsets DB " << path << " result " << s.ToString();
   if (s.ok()) {
-    migrators_.emplace_back(new MigratorThread((void*)(&zsetsDB), &senders_, storage::kZSets, thread_num));
+    migrators_.emplace_back(new MigratorThread(&zsetsDB, &senders_, storage::kZSets, thread_num));
   }
 
   retransmit_mutex_.lock();
@@ -352,7 +356,8 @@ int TrysyncThread::Retransmit() {
   retransmit_flag_ = false;
   retransmit_mutex_.unlock();
 
-  int64_t replies = 0, records = 0;
+  int64_t replies = 0;
+  int64_t records = 0;
   size = migrators_.size();
   for (size_t i = 0; i < size; i++) {
     records += migrators_[i]->num();
@@ -436,7 +441,9 @@ void* TrysyncThread::ThreadMain() {
     // We append the master ip port after module name
     // To make sure only data from current master is received
     int rsync_port = g_conf.local_port + 3000;
-    int ret = pstd::StartRsync(dbsync_path, kDBSyncModule + "_" + ip_port, lip, rsync_port, g_conf.passwd);
+    auto s = kDBSyncModule;
+    s.append("_" + ip_port);
+    int ret = pstd::StartRsync(dbsync_path, s, lip, rsync_port, g_conf.passwd);
     if (0 != ret) {
       LOG(WARNING) << "Failed to start rsync, path: " << dbsync_path << ", error: " << ret;
     }

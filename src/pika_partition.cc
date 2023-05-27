@@ -6,6 +6,7 @@
 #include "include/pika_partition.h"
 
 #include <fstream>
+#include <memory>
 
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
@@ -13,7 +14,8 @@
 
 #include "pstd/include/mutex_impl.h"
 
-extern std::unique_ptr<PikaConf> g_pika_conf;
+using pstd::Status;
+
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
@@ -26,14 +28,14 @@ std::string PartitionPath(const std::string& table_path, uint32_t partition_id) 
 std::string PartitionName(const std::string& table_name, uint32_t partition_id) {
   char buf[256];
   snprintf(buf, sizeof(buf), "(%s:%u)", table_name.data(), partition_id);
-  return std::string(buf);
+  return {buf};
 }
 
 std::string BgsaveSubPath(const std::string& table_name, uint32_t partition_id) {
   char buf[256];
   std::string partition_id_str = std::to_string(partition_id);
   snprintf(buf, sizeof(buf), "%s/%s", table_name.data(), partition_id_str.data());
-  return std::string(buf);
+  return {buf};
 }
 
 std::string DbSyncPath(const std::string& sync_path, const std::string& table_name, const uint32_t partition_id) {
@@ -50,12 +52,12 @@ Partition::Partition(const std::string& table_name, uint32_t partition_id, const
   dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, partition_id_);
   partition_name_ = table_name;
 
-  db_ = std::make_unique<storage::Storage>();
+  db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
 
   lock_mgr_ = std::make_shared<pstd::lock::LockMgr>(1000, 0, std::make_shared<pstd::lock::MutexFactoryImpl>());
 
-  opened_ = s.ok() ? true : false;
+  opened_ = s.ok();
   assert(db_);
   assert(s.ok());
   LOG(INFO) << partition_name_ << " DB Success";
@@ -92,7 +94,7 @@ void Partition::MoveToTrash() {
     dbpath.erase(dbpath.length() - 1);
   }
   dbpath.append("_deleting/");
-  if (pstd::RenameFile(db_path_, dbpath.c_str())) {
+  if (pstd::RenameFile(db_path_, dbpath) != 0) {
     LOG(WARNING) << "Failed to move db to trash, error: " << strerror(errno);
     return;
   }
@@ -110,7 +112,9 @@ std::string Partition::GetPartitionName() const { return partition_name_; }
 std::shared_ptr<storage::Storage> Partition::db() const { return db_; }
 
 void Partition::Compact(const storage::DataType& type) {
-  if (!opened_) return;
+  if (!opened_) {
+    return;
+  }
   db_->Compact(type);
 }
 
@@ -157,15 +161,21 @@ bool Partition::TryUpdateMasterOffset() {
     slave_partition->SetReplState(ReplState::kError);
     return false;
   }
-  std::string line, master_ip;
+  std::string line;
+  std::string master_ip;
   int lineno = 0;
-  int64_t filenum = 0, offset = 0, term = 0, index = 0, tmp = 0, master_port = 0;
+  int64_t filenum = 0;
+  int64_t offset = 0;
+  int64_t term = 0;
+  int64_t index = 0;
+  int64_t tmp = 0;
+  int64_t master_port = 0;
   while (std::getline(is, line)) {
     lineno++;
     if (lineno == 2) {
       master_ip = line;
     } else if (lineno > 2 && lineno < 8) {
-      if (!pstd::string2int(line.data(), line.size(), &tmp) || tmp < 0) {
+      if ((pstd::string2int(line.data(), line.size(), &tmp) == 0) || tmp < 0) {
         LOG(WARNING) << "Partition: " << partition_name_
                      << ", Format of info file after db sync error, line : " << line;
         is.close();
@@ -244,19 +254,19 @@ bool Partition::ChangeDb(const std::string& new_path) {
   LOG(INFO) << "Partition: " << partition_name_ << ", Prepare change db from: " << tmp_path;
   db_.reset();
 
-  if (0 != pstd::RenameFile(db_path_.c_str(), tmp_path)) {
+  if (0 != pstd::RenameFile(db_path_, tmp_path)) {
     LOG(WARNING) << "Partition: " << partition_name_
                  << ", Failed to rename db path when change db, error: " << strerror(errno);
     return false;
   }
 
-  if (0 != pstd::RenameFile(new_path.c_str(), db_path_.c_str())) {
+  if (0 != pstd::RenameFile(new_path, db_path_)) {
     LOG(WARNING) << "Partition: " << partition_name_
                  << ", Failed to rename new db path when change db, error: " << strerror(errno);
     return false;
   }
 
-  db_.reset(new storage::Storage());
+  db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
   assert(db_);
   assert(s.ok());
@@ -276,7 +286,7 @@ void Partition::BgSavePartition() {
     return;
   }
   bgsave_info_.bgsaving = true;
-  BgTaskArg* bg_task_arg = new BgTaskArg();
+  auto bg_task_arg = new BgTaskArg();
   bg_task_arg->partition = shared_from_this();
   g_pika_server->BGSaveTaskSchedule(&DoBgSave, static_cast<void*>(bg_task_arg));
 }
@@ -309,7 +319,7 @@ void Partition::DoBgSave(void* arg) {
   }
   if (!success) {
     std::string fail_path = info.path + "_FAILED";
-    pstd::RenameFile(info.path.c_str(), fail_path.c_str());
+    pstd::RenameFile(info.path, fail_path);
   }
   bg_task_arg->partition->FinishBgsave();
 
@@ -425,7 +435,7 @@ bool Partition::FlushDB() {
     dbpath.erase(dbpath.length() - 1);
   }
   dbpath.append("_deleting/");
-  pstd::RenameFile(db_path_, dbpath.c_str());
+  pstd::RenameFile(db_path_, dbpath);
 
   db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);

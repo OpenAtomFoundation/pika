@@ -16,7 +16,7 @@ namespace net {
 class NetKqueue final : public NetMultiplexer {
  public:
   NetKqueue(int queue_limit = kUnlimitedQueue);
-  ~NetKqueue() = default;
+  ~NetKqueue() override = default;
 
   int NetAddEvent(int fd, int mask) override;
   int NetDelEvent(int fd, int mask) override;

@@ -15,7 +15,7 @@
 #    define __STDC_FORMAT_MACROS
 #  endif
 
-#  include <inttypes.h>
+#  include <cinttypes>
 
 #include <glog/logging.h>
 #  include "file/file_util.h"
@@ -63,7 +63,8 @@ Status DBCheckpoint::CreateCheckpoint(const std::string& checkpoint_dir) { retur
 Status DBCheckpointImpl::CreateCheckpoint(const std::string& checkpoint_dir) {
   std::vector<std::string> live_files;
   VectorLogPtr live_wal_files;
-  uint64_t manifest_file_size, sequence_number;
+  uint64_t manifest_file_size;
+  uint64_t sequence_number;
   Status s = GetCheckpointFiles(live_files, live_wal_files, manifest_file_size, sequence_number);
   if (s.ok()) {
     s = CreateCheckpointWithFiles(checkpoint_dir, live_files, live_wal_files, manifest_file_size, sequence_number);
@@ -124,7 +125,8 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
   s = db_->GetEnv()->CreateDir(full_private_path);
 
   // copy/hard link live_files
-  std::string manifest_fname, current_fname;
+  std::string manifest_fname;
+  std::string current_fname;
   for (size_t i = 0; s.ok() && i < live_files.size(); ++i) {
     uint64_t number;
     FileType type;
@@ -135,7 +137,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
     }
     // we should only get sst, options, manifest and current files here
     assert(type == kTableFile || type == kDescriptorFile || type == kCurrentFile || type == kOptionsFile);
-    assert(live_files[i].size() > 0 && live_files[i][0] == '/');
+    assert(!live_files[i].empty() && live_files[i][0] == '/');
     if (type == kCurrentFile) {
       // We will craft the current file manually to ensure it's consistent with
       // the manifest number. This is necessary because current's file contents
@@ -230,7 +232,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
   if (s.ok()) {
     std::unique_ptr<Directory> checkpoint_directory;
     db_->GetEnv()->NewDirectory(checkpoint_dir, &checkpoint_directory);
-    if (checkpoint_directory != nullptr) {
+    if (checkpoint_directory) {
       s = checkpoint_directory->Fsync();
     }
   }
@@ -242,7 +244,7 @@ Status DBCheckpointImpl::CreateCheckpointWithFiles(const std::string& checkpoint
     std::vector<std::string> subchildren;
     db_->GetEnv()->GetChildren(full_private_path, &subchildren);
     for (auto& subchild : subchildren) {
-      std::string subchild_path = full_private_path + "/" + subchild;
+      std::string subchild_path = full_private_path.append("/" + subchild);
       Status s1 = db_->GetEnv()->DeleteFile(subchild_path);
       Log(db_->GetOptions().info_log, "Delete file %s -- %s", subchild_path.c_str(), s1.ToString().c_str());
     }

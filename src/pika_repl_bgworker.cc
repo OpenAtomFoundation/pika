@@ -13,7 +13,6 @@
 #include "include/pika_server.h"
 #include "pstd/include/pstd_defer.h"
 
-extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
@@ -36,7 +35,7 @@ void PikaReplBgWorker::Schedule(net::TaskFunc func, void* arg) { bg_thread_.Sche
 
 void PikaReplBgWorker::QueueClear() { bg_thread_.QueueClear(); }
 
-void PikaReplBgWorker::ParseBinlogOffset(const InnerMessage::BinlogOffset pb_offset, LogOffset* offset) {
+void PikaReplBgWorker::ParseBinlogOffset(const InnerMessage::BinlogOffset& pb_offset, LogOffset* offset) {
   offset->b_offset.filenum = pb_offset.filenum();
   offset->b_offset.offset = pb_offset.offset();
   offset->l_offset.term = pb_offset.term();
@@ -44,10 +43,10 @@ void PikaReplBgWorker::ParseBinlogOffset(const InnerMessage::BinlogOffset pb_off
 }
 
 void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
-  ReplClientWriteBinlogTaskArg* task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
+  auto task_arg = static_cast<ReplClientWriteBinlogTaskArg*>(arg);
   const std::shared_ptr<InnerMessage::InnerResponse> res = task_arg->res;
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
-  std::vector<int>* index = static_cast<std::vector<int>*>(task_arg->res_private_data);
+  auto index = static_cast<std::vector<int>*>(task_arg->res_private_data);
   PikaReplBgWorker* worker = task_arg->worker;
   worker->ip_port_ = conn->ip_port();
 
@@ -58,7 +57,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
   std::string table_name;
   uint32_t partition_id = 0;
-  LogOffset pb_begin, pb_end;
+  LogOffset pb_begin;
+  LogOffset pb_end;
   bool only_keepalive = false;
 
   // find the first not keepalive binlogsync
@@ -142,7 +142,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     // if pika are not current a slave or partition not in
     // BinlogSync state, we drop remain write binlog task
-    if ((!(g_pika_server->role() & PIKA_ROLE_SLAVE)) ||
+    if (((g_pika_server->role() & PIKA_ROLE_SLAVE) == 0) ||
         ((slave_partition->State() != ReplState::kConnected) && (slave_partition->State() != ReplState::kWaitDBSync))) {
       return;
     }
@@ -204,7 +204,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
 
 int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   std::string opt = argv[0];
-  PikaReplBgWorker* worker = static_cast<PikaReplBgWorker*>(parser->data);
+  auto worker = static_cast<PikaReplBgWorker*>(parser->data);
 
   // Monitor related
   std::string monitor_message;
@@ -243,7 +243,7 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
 }
 
 void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
-  std::unique_ptr<ReplClientWriteDBTaskArg> task_arg(static_cast<ReplClientWriteDBTaskArg*>(arg));
+  auto task_arg = static_cast<ReplClientWriteDBTaskArg*>(arg);
   const std::shared_ptr<Cmd> c_ptr = task_arg->cmd_ptr;
   const PikaCmdArgsType& argv = c_ptr->argv();
   LogOffset offset = task_arg->offset;
@@ -281,7 +281,7 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   if (g_pika_conf->consensus_level() != 0) {
     std::shared_ptr<SyncMasterPartition> partition =
         g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-    if (partition == nullptr) {
+    if (!partition) {
       LOG(WARNING) << "Sync Master Partition not exist " << table_name << partition_id;
       return;
     }

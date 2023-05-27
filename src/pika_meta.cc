@@ -6,11 +6,9 @@
 #include "include/pika_meta.h"
 #include "pika_inner_message.pb.h"
 
+using pstd::Status;
+
 const uint32_t VERSION = 1;
-
-PikaMeta::PikaMeta() : local_meta_path_("") {}
-
-PikaMeta::~PikaMeta() {}
 
 void PikaMeta::SetPath(const std::string& path) { local_meta_path_ = path; }
 
@@ -59,10 +57,10 @@ Status PikaMeta::StableSave(const std::vector<TableStruct>& table_structs) {
   p += sizeof(uint32_t);
   memcpy(p, &meta_str_size, sizeof(uint32_t));
   p += sizeof(uint32_t);
-  memcpy(p, meta_str.data(), meta_str.size());
+  strncpy(p, meta_str.data(), meta_str.size());
 
   pstd::DeleteFile(local_meta_file);
-  if (pstd::RenameFile(tmp_file, local_meta_file)) {
+  if (pstd::RenameFile(tmp_file, local_meta_file) != 0) {
     LOG(WARNING) << "Failed to rename file, error: " << strerror(errno);
     return Status::Corruption("faild to rename file");
   }
@@ -84,15 +82,15 @@ Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
     return Status::Corruption("open local meta file failed");
   }
 
-  if (reader->GetData() == nullptr) {
+  if (!reader->GetData()) {
     LOG(WARNING) << "Meta file init error";
     return Status::Corruption("meta file init error");
   }
 
   uint32_t version = 0;
   uint32_t meta_size = 0;
-  memcpy((char*)(&version), reader->GetData(), sizeof(uint32_t));
-  memcpy((char*)(&meta_size), reader->GetData() + sizeof(uint32_t), sizeof(uint32_t));
+  memcpy(reinterpret_cast<char*>(&version), reader->GetData(), sizeof(uint32_t));
+  memcpy(reinterpret_cast<char*>(&meta_size), reader->GetData() + sizeof(uint32_t), sizeof(uint32_t));
   auto const buf_ptr = std::make_unique<char[]>(meta_size);
   char* const buf = buf_ptr.get();
   memcpy(buf, reader->GetData() + 2 * sizeof(uint32_t), meta_size);
@@ -105,7 +103,7 @@ Status PikaMeta::ParseMeta(std::vector<TableStruct>* const table_structs) {
 
   table_structs->clear();
   for (int idx = 0; idx < meta.table_infos_size(); ++idx) {
-    InnerMessage::TableInfo ti = meta.table_infos(idx);
+    const InnerMessage::TableInfo& ti = meta.table_infos(idx);
     std::set<uint32_t> partition_ids;
     for (int sidx = 0; sidx < ti.partition_ids_size(); ++sidx) {
       partition_ids.insert(ti.partition_ids(sidx));

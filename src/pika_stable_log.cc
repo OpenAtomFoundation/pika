@@ -7,18 +7,22 @@
 
 #include <glog/logging.h>
 
+#include <memory>
+#include <utility>
+
 #include "include/pika_conf.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
 #include "pstd/include/env.h"
 
-extern std::unique_ptr<PikaConf> g_pika_conf;
+using pstd::Status;
+
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-StableLog::StableLog(const std::string table_name, uint32_t partition_id, const std::string& log_path)
-    : purging_(false), table_name_(table_name), partition_id_(partition_id), log_path_(log_path) {
+StableLog::StableLog(std::string table_name, uint32_t partition_id, std::string log_path)
+    : purging_(false), table_name_(std::move(table_name)), partition_id_(partition_id), log_path_(std::move(log_path)) {
   stable_logger_ = std::make_shared<Binlog>(log_path_, g_pika_conf->binlog_file_size());
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(&binlogs)) {
@@ -29,7 +33,7 @@ StableLog::StableLog(const std::string table_name, uint32_t partition_id, const 
   }
 }
 
-StableLog::~StableLog() {}
+StableLog::~StableLog() = default;
 
 void StableLog::Leave() {
   Close();
@@ -44,7 +48,7 @@ void StableLog::RemoveStableLogDir() {
     logpath.erase(logpath.length() - 1);
   }
   logpath.append("_deleting/");
-  if (pstd::RenameFile(log_path_, logpath.c_str())) {
+  if (pstd::RenameFile(log_path_, logpath) != 0) {
     LOG(WARNING) << "Failed to move log to trash, error: " << strerror(errno);
     return;
   }
@@ -60,7 +64,7 @@ bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
     LOG(WARNING) << "purge process already exist";
     return false;
   }
-  PurgeStableLogArg* arg = new PurgeStableLogArg();
+  auto arg = new PurgeStableLogArg();
   arg->to = to;
   arg->manual = manual;
   arg->logger = shared_from_this();
@@ -120,7 +124,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       break;
     }
   }
-  if (delete_num) {
+  if (delete_num != 0) {
     std::map<uint32_t, std::string> binlogs;
     if (!GetBinlogFiles(&binlogs)) {
       LOG(WARNING) << log_path_ << " Could not get binlog files!";
@@ -131,7 +135,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       UpdateFirstOffset(it->first);
     }
   }
-  if (delete_num) {
+  if (delete_num != 0) {
     LOG(INFO) << log_path_ << " Success purge " << delete_num << " binlog file";
   }
   return true;
@@ -140,7 +144,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
 bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
   std::vector<std::string> children;
   int ret = pstd::GetChildren(log_path_, children);
-  if (ret != 0) {
+   if (ret) {
     LOG(WARNING) << log_path_ << " Get all files in log path failed! error:" << ret;
     return false;
   }
@@ -163,14 +167,14 @@ bool StableLog::GetBinlogFiles(std::map<uint32_t, std::string>* binlogs) {
 void StableLog::UpdateFirstOffset(uint32_t filenum) {
   PikaBinlogReader binlog_reader;
   int res = binlog_reader.Seek(stable_logger_, filenum, 0);
-  if (res) {
+  if (res != 0) {
     LOG(WARNING) << "Binlog reader init failed";
     return;
   }
 
   BinlogItem item;
   BinlogOffset offset;
-  while (1) {
+  while (true) {
     std::string binlog;
     Status s = binlog_reader.Get(&binlog, &(offset.filenum), &(offset.offset));
     if (s.IsEndFile()) {

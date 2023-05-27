@@ -36,7 +36,7 @@ BackendThread::BackendThread(ConnFactory* conn_factory, int cron_interval, int k
   net_multiplexer_->Initialize();
 }
 
-BackendThread::~BackendThread() {}
+BackendThread::~BackendThread() = default;
 
 int BackendThread::StartThread() {
   if (!handle_) {
@@ -45,7 +45,7 @@ int BackendThread::StartThread() {
   }
   own_handle_ = false;
   int res = handle_->CreateWorkerSpecificData(&private_data_);
-  if (res != 0) {
+  if (res) {
     return res;
   }
   return Thread::StartThread();
@@ -54,7 +54,7 @@ int BackendThread::StartThread() {
 int BackendThread::StopThread() {
   if (private_data_) {
     int res = handle_->DeleteWorkerSpecificData(private_data_);
-    if (res != 0) {
+    if (res) {
       return res;
     }
     private_data_ = nullptr;
@@ -141,17 +141,19 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
   int sockfd = -1;
   int rv;
   char cport[6];
-  struct addrinfo hints, *servinfo, *p;
+  struct addrinfo hints;
+  struct addrinfo *servinfo;
+  struct addrinfo *p;
   snprintf(cport, sizeof(cport), "%d", dst_port);
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
 
-  if (fd == nullptr) {
+  if (!fd) {
     return Status::InvalidArgument("fd argument is nullptr");
   }
   // We do not handle IPv6
-  if ((rv = getaddrinfo(dst_ip.c_str(), cport, &hints, &servinfo)) != 0) {
+  if (rv = getaddrinfo(dst_ip.c_str(), cport, &hints, &servinfo); rv) {
     return Status::IOError("connect getaddrinfo error for ", dst_ip);
   }
   for (p = servinfo; p != nullptr; p = p->ai_next) {
@@ -182,7 +184,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
     net_multiplexer_->NetAddEvent(sockfd, kReadable | kWritable);
     struct sockaddr_in laddr;
     socklen_t llen = sizeof(laddr);
-    getsockname(sockfd, (struct sockaddr*)&laddr, &llen);
+    getsockname(sockfd, reinterpret_cast<struct sockaddr*>(&laddr), &llen);
     std::string lip(inet_ntoa(laddr.sin_addr));
     int lport = ntohs(laddr.sin_port);
     if (dst_ip == lip && dst_port == lport) {
@@ -192,7 +194,7 @@ Status BackendThread::Connect(const std::string& dst_ip, const int dst_port, int
     freeaddrinfo(servinfo);
     return s;
   }
-  if (p == nullptr) {
+  if (!p) {
     s = Status::IOError(strerror(errno), "Can't create socket ");
     return s;
   }
@@ -212,7 +214,7 @@ std::shared_ptr<NetConn> BackendThread::GetConn(int fd) {
   return nullptr;
 }
 
-void BackendThread::CloseFd(std::shared_ptr<NetConn> conn) {
+void BackendThread::CloseFd(const std::shared_ptr<NetConn>& conn) {
   close(conn->fd());
   CleanUpConnRemaining(conn->fd());
   handle_->FdClosedHandle(conn->fd(), conn->ip_port());
@@ -234,7 +236,7 @@ void BackendThread::DoCronTask() {
   struct timeval now;
   gettimeofday(&now, nullptr);
   std::lock_guard l(mu_);
-  std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
+  auto iter = conns_.begin();
   while (iter != conns_.end()) {
     std::shared_ptr<NetConn> conn = iter->second;
 
@@ -289,7 +291,7 @@ void BackendThread::InternalDebugPrint() {
   LOG(INFO) << "___________________________________";
 }
 
-void BackendThread::NotifyWrite(const std::string ip_port) {
+void BackendThread::NotifyWrite(std::string& ip_port) {
   // put fd = 0, cause this lib user doesnt need to know which fd to write to
   // we will check fd by checking ipport_conns_
   NetItem ti(0, ip_port, kNotiWrite);
@@ -320,7 +322,7 @@ void BackendThread::ProcessNotifyEvents(const NetFiredEvent* pfe) {
         std::lock_guard l(mu_);
         if (ti.notify_type() == kNotiWrite) {
           if (conns_.find(fd) == conns_.end()) {
-            // TODO: need clean and notify?
+            // TODO(): need clean and notify?
             continue;
           } else {
             // connection exist
@@ -388,7 +390,7 @@ void* BackendThread::ThreadMain() {
     nfds = net_multiplexer_->NetPoll(timeout);
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe == nullptr) {
+      if (!pfe) {
         continue;
       }
 
@@ -419,7 +421,7 @@ void* BackendThread::ThreadMain() {
         connecting_fds_.erase(pfe->fd);
       }
 
-      if (!should_close && (pfe->mask & kWritable) && conn->is_reply()) {
+      if ((should_close == 0) && (pfe->mask & kWritable) && conn->is_reply()) {
         WriteStatus write_status = conn->SendReply();
         conn->set_last_interaction(now);
         if (write_status == kWriteAll) {

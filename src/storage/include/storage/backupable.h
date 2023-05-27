@@ -6,6 +6,8 @@
 #ifndef SRC_BACKUPABLE_H_
 #define SRC_BACKUPABLE_H_
 
+#include <utility>
+
 #include "rocksdb/db.h"
 
 #include "db_checkpoint.h"
@@ -27,8 +29,8 @@ struct BackupSaveArgs {
   const std::string key_type;
   Status res;
 
-  BackupSaveArgs(void* _p_engine, const std::string& _backup_dir, const std::string& _key_type)
-      : p_engine(_p_engine), backup_dir(_backup_dir), key_type(_key_type) {}
+  BackupSaveArgs(void* _p_engine, std::string  _backup_dir, std::string  _key_type)
+      : p_engine(_p_engine), backup_dir(std::move(_backup_dir)), key_type(std::move(_key_type)) {}
 };
 
 struct BackupContent {
@@ -52,14 +54,14 @@ class BackupEngine {
   Status CreateNewBackupSpecify(const std::string& dir, const std::string& type);
 
  private:
-  BackupEngine() {}
+  BackupEngine() = default;
 
   std::map<std::string, std::unique_ptr<rocksdb::DBCheckpoint>> engines_;
   std::map<std::string, BackupContent> backup_content_;
   std::map<std::string, pthread_t> backup_pthread_ts_;
 
   Status NewCheckpoint(rocksdb::DB* rocksdb_db, const std::string& type);
-  std::string GetSaveDirByType(const std::string _dir, const std::string& _type) const {
+  std::string GetSaveDirByType(const std::string& _dir, const std::string& _type) const {
     std::string backup_dir = _dir.empty() ? DEFAULT_BK_PATH : _dir;
     return backup_dir + ((backup_dir.back() != '/') ? "/" : "") + _type;
   }

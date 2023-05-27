@@ -7,7 +7,9 @@
 #define PIKA_COMMAND_H_
 
 #include <unordered_map>
+#include <utility>
 #include <memory>
+
 #include "net/include/net_conn.h"
 #include "net/include/redis_conn.h"
 #include "pstd/include/pstd_string.h"
@@ -191,7 +193,7 @@ const std::string kCmdNamePSubscribe = "psubscribe";
 const std::string kCmdNamePUnSubscribe = "punsubscribe";
 
 const std::string kClusterPrefix = "pkcluster";
-typedef net::RedisCmdArgsType PikaCmdArgsType;
+using PikaCmdArgsType = net::RedisCmdArgsType;
 static const int RAW_ARGS_LEN = 1024 * 1024;
 
 enum CmdFlagsMask {
@@ -263,7 +265,7 @@ class CmdRes {
     kErrOther
   };
 
-  CmdRes() : ret_(kNone) {}
+  CmdRes() = default;
 
   bool none() const { return ret_ == kNone && message_.empty(); }
   bool ok() const { return ret_ == kOk || ret_ == kNone; }
@@ -353,7 +355,7 @@ class CmdRes {
     AppendContent(value);
   }
   void AppendStringRaw(const std::string& value) { message_.append(value); }
-  void SetRes(CmdRet _ret, const std::string content = "") {
+  void SetRes(CmdRet _ret, const std::string& content = "") {
     ret_ = _ret;
     if (!content.empty()) {
       message_ = content;
@@ -369,7 +371,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  public:
   enum CmdStage { kNone, kBinlogStage, kExecuteStage };
   struct HintKeys {
-    HintKeys() {}
+    HintKeys() = default;
     void Push(const std::string& key, int hint) {
       keys.push_back(key);
       hints.push_back(hint);
@@ -379,17 +381,17 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
     std::vector<int> hints;
   };
   struct ProcessArg {
-    ProcessArg() {}
+    ProcessArg() = default;
     ProcessArg(std::shared_ptr<Partition> _partition, std::shared_ptr<SyncMasterPartition> _sync_partition,
                HintKeys _hint_keys)
-        : partition(_partition), sync_partition(_sync_partition), hint_keys(_hint_keys) {}
+        : partition(std::move(_partition)), sync_partition(std::move(_sync_partition)), hint_keys(std::move(_hint_keys)) {}
     std::shared_ptr<Partition> partition;
     std::shared_ptr<SyncMasterPartition> sync_partition;
     HintKeys hint_keys;
   };
-  Cmd(const std::string& name, int arity, uint16_t flag)
-      : name_(name), arity_(arity), flag_(flag), stage_(kNone), do_duration_(0) {}
-  virtual ~Cmd() {}
+  Cmd(std::string  name, int arity, uint16_t flag)
+      : name_(std::move(name)), arity_(arity), flag_(flag) {}
+  virtual ~Cmd() = default;
 
   virtual std::vector<std::string> current_key() const;
   virtual void Execute();
@@ -424,10 +426,10 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                uint64_t offset);
 
-  void SetConn(const std::shared_ptr<net::NetConn> conn);
+  void SetConn(const std::shared_ptr<net::NetConn>& conn);
   std::shared_ptr<net::NetConn> GetConn();
 
-  void SetResp(const std::shared_ptr<std::string> resp);
+  void SetResp(const std::shared_ptr<std::string>& resp);
   std::shared_ptr<std::string> GetResp();
 
   void SetStage(CmdStage stage);
@@ -435,12 +437,12 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(std::shared_ptr<Partition> partition, std::shared_ptr<SyncMasterPartition> sync_partition,
+  void ProcessCommand(const std::shared_ptr<Partition>& partition, const std::shared_ptr<SyncMasterPartition>& sync_partition,
                       const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(std::shared_ptr<Partition> partition, std::shared_ptr<SyncMasterPartition> sync_partition,
+  void InternalProcessCommand(const std::shared_ptr<Partition>& partition, const std::shared_ptr<SyncMasterPartition>& sync_partition,
                               const HintKeys& hint_key);
-  void DoCommand(std::shared_ptr<Partition> partition, const HintKeys& hint_key);
-  void DoBinlog(std::shared_ptr<SyncMasterPartition> partition);
+  void DoCommand(const std::shared_ptr<Partition>& partition, const HintKeys& hint_key);
+  void DoBinlog(const std::shared_ptr<SyncMasterPartition>& partition);
   bool CheckArg(int num) const;
   void LogCommand() const;
 
@@ -464,7 +466,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   Cmd& operator=(const Cmd&);
 };
 
-typedef std::unordered_map<std::string, std::unique_ptr<Cmd>> CmdTable;
+using CmdTable =  std::unordered_map<std::string, std::unique_ptr<Cmd>>;
 
 // Method for Cmd Table
 void InitCmdTable(CmdTable* cmd_table);

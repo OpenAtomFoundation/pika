@@ -25,7 +25,7 @@ using Slice = rocksdb::Slice;
 
 class Redis {
  public:
-  Redis(Storage* const storage, const DataType& type);
+  Redis(Storage* storage, const DataType& type);
   virtual ~Redis();
 
   rocksdb::DB* GetDB() { return db_; }

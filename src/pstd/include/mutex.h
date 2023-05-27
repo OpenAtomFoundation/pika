@@ -16,7 +16,7 @@ using Status = pstd::Status;
 
 class Mutex {
  public:
-  virtual ~Mutex() {}
+  virtual ~Mutex() = default;
 
   // Attempt to acquire lock.  Return OK on success, or other Status on failure.
   // If returned status is OK, Storage will eventually call UnLock().
@@ -36,7 +36,7 @@ class Mutex {
 
 class CondVar {
  public:
-  virtual ~CondVar() {}
+  virtual ~CondVar() = default;
 
   // Block current thread until condition variable is notified by a call to
   // Notify() or NotifyAll().  Wait() will be called with mutex locked.
@@ -78,7 +78,7 @@ class MutexFactory {
   // Create a CondVar object.
   virtual std::shared_ptr<CondVar> AllocateCondVar() = 0;
 
-  virtual ~MutexFactory() {}
+  virtual ~MutexFactory() = default;
 };
 
 }  // namespace pstd::lock

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include "aof_lock.h"
+#include "include/aof_lock.h"
 
 static void PthreadCall(const std::string& label, int result) {
   if (result != 0) {

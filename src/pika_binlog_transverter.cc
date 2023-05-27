@@ -5,13 +5,15 @@
 
 #include "include/pika_binlog_transverter.h"
 
-#include <assert.h>
 #include <glog/logging.h>
+#include <cassert>
 #include <sstream>
 
 #include "pstd/include/pstd_coding.h"
 
 #include "include/pika_command.h"
+#include "storage/storage.h"
+
 
 uint32_t BinlogItem::exec_time() const { return exec_time_; }
 
@@ -43,13 +45,13 @@ std::string BinlogItem::ToString() const {
   str.append(",filenum: " + std::to_string(filenum_));
   str.append(",offset: " + std::to_string(offset_));
   str.append("\ncontent: ");
-  for (size_t idx = 0; idx < content_.size(); ++idx) {
-    if (content_[idx] == '\n') {
+  for (char idx : content_) {
+    if (idx == '\n') {
       str.append("\\n");
-    } else if (content_[idx] == '\r') {
+    } else if (idx == '\r') {
       str.append("\\r");
     } else {
-      str.append(1, content_[idx]);
+      str.append(1, idx);
     }
   }
   str.append("\n");
@@ -75,7 +77,7 @@ std::string PikaBinlogTransverter::BinlogEncode(BinlogType type, uint32_t exec_t
 bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& binlog, BinlogItem* binlog_item) {
   uint16_t binlog_type = 0;
   uint32_t content_length = 0;
-  Slice binlog_str = binlog;
+  pstd::Slice binlog_str = binlog;
   pstd::GetFixed16(&binlog_str, &binlog_type);
   if (binlog_type != type) {
     LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;
@@ -98,7 +100,7 @@ bool PikaBinlogTransverter::BinlogDecode(BinlogType type, const std::string& bin
 }
 
 /*
-/******************* Type First Binlog Item Format ******************
+******************* Type First Binlog Item Format ******************
  * +-----------------------------------------------------------------+
  * | Type (2 bytes) | Create Time (4 bytes) | Term Id (4 bytes)      |
  * |-----------------------------------------------------------------|
@@ -127,7 +129,7 @@ std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type, uint3
   int32_t content_len = size - BINLOG_ITEM_HEADER_SIZE;
   int32_t parameter_len = content_len - PADDING_BINLOG_PROTOCOL_SIZE - SPACE_STROE_PARAMETER_LENGTH;
   if (parameter_len < 0) {
-    return std::string();
+    return {};
   }
 
   std::string content;
@@ -141,7 +143,7 @@ std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type, uint3
   std::istringstream is(os.str());
   is >> parameter_len_str;
   if (parameter_len_str.size() > SPACE_STROE_PARAMETER_LENGTH) {
-    return std::string();
+    return {};
   }
 
   content.append("$");
@@ -158,7 +160,7 @@ std::string PikaBinlogTransverter::ConstructPaddingBinlog(BinlogType type, uint3
 bool PikaBinlogTransverter::BinlogItemWithoutContentDecode(BinlogType type, const std::string& binlog,
                                                            BinlogItem* binlog_item) {
   uint16_t binlog_type = 0;
-  Slice binlog_str = binlog;
+  pstd::Slice binlog_str = binlog;
   pstd::GetFixed16(&binlog_str, &binlog_type);
   if (binlog_type != type) {
     LOG(ERROR) << "Binlog Item type error, expect type:" << type << " actualy type: " << binlog_type;

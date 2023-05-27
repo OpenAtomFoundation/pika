@@ -3,10 +3,12 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <stdio.h>
 #include <unistd.h>
+#include <cstdio>
 
 #include <glog/logging.h>
+
+#include <utility>
 
 #include "net/include/net_conn.h"
 #include "net/include/net_thread.h"
@@ -15,10 +17,10 @@
 
 namespace net {
 
-NetConn::NetConn(const int fd, const std::string& ip_port, Thread* thread, NetMultiplexer* net_mpx)
+NetConn::NetConn(const int fd, std::string  ip_port, Thread* thread, NetMultiplexer* net_mpx)
     : fd_(fd),
-      ip_port_(ip_port),
-      is_reply_(false),
+      ip_port_(std::move(ip_port)),
+      
 #ifdef __ENABLE_SSL
       ssl_(nullptr),
 #endif
@@ -27,12 +29,12 @@ NetConn::NetConn(const int fd, const std::string& ip_port, Thread* thread, NetMu
   gettimeofday(&last_interaction_, nullptr);
 }
 
-NetConn::~NetConn() {
 #ifdef __ENABLE_SSL
+NetConn::~NetConn() {
   SSL_free(ssl_);
   ssl_ = nullptr;
-#endif
 }
+#endif
 
 void NetConn::SetClose(bool close) {
   close_ = close;
@@ -40,10 +42,7 @@ void NetConn::SetClose(bool close) {
 
 bool NetConn::SetNonblock() {
   flags_ = Setnonblocking(fd());
-  if (flags_ == -1) {
-    return false;
-  }
-  return true;
+  return flags_ != -1;
 }
 
 #ifdef __ENABLE_SSL

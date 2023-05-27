@@ -14,12 +14,12 @@ using namespace storage;
 
 class SetsTest : public ::testing::Test {
  public:
-  SetsTest() {}
-  virtual ~SetsTest() {}
+  SetsTest() = default;
+  ~SetsTest() override = default;
 
   void SetUp() override {
     std::string path = "./db/sets";
-    if (access(path.c_str(), F_OK)) {
+    if (access(path.c_str(), F_OK) != 0) {
       mkdir(path.c_str(), 0755);
     }
     storage_options.options.create_if_missing = true;
@@ -31,8 +31,8 @@ class SetsTest : public ::testing::Test {
     DeleteFiles(path.c_str());
   }
 
-  static void SetUpTestCase() {}
-  static void TearDownTestCase() {}
+  static void SetUpTestSuite() {}
+  static void TearDownTestSuite() {}
 
   StorageOptions storage_options;
   storage::Storage db;
@@ -98,7 +98,7 @@ static bool size_match(storage::Storage* const db, const Slice& key, int32_t exp
   if (!s.ok() && !s.IsNotFound()) {
     return false;
   }
-  if (s.IsNotFound() && !expect_size) {
+  if (s.IsNotFound() && (expect_size == 0)) {
     return true;
   }
   return size == expect_size;
@@ -107,7 +107,7 @@ static bool size_match(storage::Storage* const db, const Slice& key, int32_t exp
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
-  if (!ret || !type_status[storage::DataType::kSets].ok()) {
+  if ((ret == 0) || !type_status[storage::DataType::kSets].ok()) {
     return false;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -115,7 +115,7 @@ static bool make_expired(storage::Storage* const db, const Slice& key) {
 }
 
 // SAdd
-TEST_F(SetsTest, SAddTest) {
+TEST_F(SetsTest, SAddTest) {  // NOLINT
   int32_t ret = 0;
   std::vector<std::string> members1{"a", "b", "c", "b"};
   s = db.SAdd("SADD_KEY", members1, &ret);
@@ -166,7 +166,7 @@ TEST_F(SetsTest, SAddTest) {
 }
 
 // SCard
-TEST_F(SetsTest, SCardTest) {
+TEST_F(SetsTest, SCardTest) {  // NOLINT
   int32_t ret = 0;
   std::vector<std::string> members{"MM1", "MM2", "MM3"};
   s = db.SAdd("SCARD_KEY", members, &ret);
@@ -178,7 +178,7 @@ TEST_F(SetsTest, SCardTest) {
 }
 
 // SDiff
-TEST_F(SetsTest, SDiffTest) {
+TEST_F(SetsTest, SDiffTest) {  // NOLINT
   int32_t ret = 0;
 
   // ***************** Group 1 Test *****************
@@ -224,7 +224,7 @@ TEST_F(SetsTest, SDiffTest) {
   // key3 = {a, c, e}       (expire key)
   // key4 = {}              (not exist key)
   // SDIFF key1 key2 key3 key4 = {a, b, d}
-  gp1_keys.push_back("GP1_SDIFF_KEY4");
+  gp1_keys.emplace_back("GP1_SDIFF_KEY4");
   gp1_members_out.clear();
   s = db.SDiff(gp1_keys, &gp1_members_out);
   ASSERT_TRUE(s.ok());
@@ -319,7 +319,7 @@ TEST_F(SetsTest, SDiffTest) {
   ASSERT_TRUE(members_match(gp5_members_out, {"b", "d"}));
 
   // double "GP5_SDIFF_KEY3"
-  gp5_keys.push_back("GP5_SDIFF_KEY3");
+  gp5_keys.emplace_back("GP5_SDIFF_KEY3");
   gp5_members_out.clear();
   s = db.SDiff(gp5_keys, &gp5_members_out);
   ASSERT_TRUE(s.ok());
@@ -335,7 +335,7 @@ TEST_F(SetsTest, SDiffTest) {
 }
 
 // SDiffstore
-TEST_F(SetsTest, SDiffstoreTest) {
+TEST_F(SetsTest, SDiffstoreTest) {  // NOLINT
   int32_t ret = 0;
 
   // ***************** Group 1 Test *****************
@@ -391,7 +391,7 @@ TEST_F(SetsTest, SDiffstoreTest) {
   // key4 = {}              (not exist key)
   // SDIFFSTORE destination key1 key2 key3
   // destination = {a, b, d}
-  gp1_keys.push_back("GP1_SDIFFSTORE_KEY4");
+  gp1_keys.emplace_back("GP1_SDIFFSTORE_KEY4");
   gp1_members_out.clear();
   s = db.SDiffstore("GP1_SDIFFSTORE_DESTINATION3", gp1_keys, &ret);
   ASSERT_TRUE(s.ok());
@@ -572,7 +572,7 @@ TEST_F(SetsTest, SDiffstoreTest) {
 }
 
 // SInter
-TEST_F(SetsTest, SInterTest) {
+TEST_F(SetsTest, SInterTest) {  // NOLINT
   int32_t ret = 0;
 
   // ***************** Group 1 Test *****************
@@ -730,7 +730,7 @@ TEST_F(SetsTest, SInterTest) {
 }
 
 // SInterstore
-TEST_F(SetsTest, SInterstoreTest) {
+TEST_F(SetsTest, SInterstoreTest) {  // NOLINT
   int32_t ret = 0;
 
   // ***************** Group 1 Test *****************
@@ -974,7 +974,7 @@ TEST_F(SetsTest, SInterstoreTest) {
 }
 
 // SIsmember
-TEST_F(SetsTest, SIsmemberTest) {
+TEST_F(SetsTest, SIsmemberTest) {  // NOLINT
   int32_t ret = 0;
   std::vector<std::string> members{"MEMBER"};
   s = db.SAdd("SISMEMBER_KEY", members, &ret);
@@ -1006,12 +1006,12 @@ TEST_F(SetsTest, SIsmemberTest) {
 }
 
 // SMembers
-TEST_F(SetsTest, SMembersTest) {
+TEST_F(SetsTest, SMembersTest) {  // NOLINT
   int32_t ret = 0;
   std::vector<std::string> mid_members_in;
-  mid_members_in.push_back("MID_MEMBER1");
-  mid_members_in.push_back("MID_MEMBER2");
-  mid_members_in.push_back("MID_MEMBER3");
+  mid_members_in.emplace_back("MID_MEMBER1");
+  mid_members_in.emplace_back("MID_MEMBER2");
+  mid_members_in.emplace_back("MID_MEMBER3");
   s = db.SAdd("B_SMEMBERS_KEY", mid_members_in, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
@@ -1023,9 +1023,9 @@ TEST_F(SetsTest, SMembersTest) {
 
   // Insert some kv who's position above "mid kv"
   std::vector<std::string> pre_members_in;
-  pre_members_in.push_back("PRE_MEMBER1");
-  pre_members_in.push_back("PRE_MEMBER2");
-  pre_members_in.push_back("PRE_MEMBER3");
+  pre_members_in.emplace_back("PRE_MEMBER1");
+  pre_members_in.emplace_back("PRE_MEMBER2");
+  pre_members_in.emplace_back("PRE_MEMBER3");
   s = db.SAdd("A_SMEMBERS_KEY", pre_members_in, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
@@ -1036,9 +1036,9 @@ TEST_F(SetsTest, SMembersTest) {
 
   // Insert some kv who's position below "mid kv"
   std::vector<std::string> suf_members_in;
-  suf_members_in.push_back("SUF_MEMBER1");
-  suf_members_in.push_back("SUF_MEMBER2");
-  suf_members_in.push_back("SUF_MEMBER3");
+  suf_members_in.emplace_back("SUF_MEMBER1");
+  suf_members_in.emplace_back("SUF_MEMBER2");
+  suf_members_in.emplace_back("SUF_MEMBER3");
   s = db.SAdd("C_SMEMBERS_KEY", suf_members_in, &ret);
   ASSERT_TRUE(s.ok());
   ASSERT_EQ(ret, 3);
@@ -1056,7 +1056,7 @@ TEST_F(SetsTest, SMembersTest) {
 }
 
 // SMove
-TEST_F(SetsTest, SMoveTest) {
+TEST_F(SetsTest, SMoveTest) {  // NOLINT
   int32_t ret = 0;
   // ***************** Group 1 Test *****************
   // source = {a, b, c, d}
@@ -1281,7 +1281,7 @@ TEST_F(SetsTest, SMoveTest) {
 }
 
 // SPop
-TEST_F(SetsTest, SPopTest) {
+TEST_F(SetsTest, SPopTest) {  // NOLINT
   int32_t ret = 0;
   std::vector<std::string> members;
 
@@ -1433,7 +1433,7 @@ TEST_F(SetsTest, SPopTest) {
 }
 
 // SRandmember
-TEST_F(SetsTest, SRanmemberTest) {
+TEST_F(SetsTest, SRanmemberTest) {  // NOLINT
   int32_t ret = 0;
 
   // ***************** Group 1 Test *****************
@@ -1540,7 +1540,7 @@ TEST_F(SetsTest, SRanmemberTest) {
 }
 
 // SRem
-TEST_F(SetsTest, SRemTest) {
+TEST_F(SetsTest, SRemTest) {  // NOLINT
   int32_t ret = 0;
 
   // ***************** Group 1 Test *****************
@@ -1598,7 +1598,7 @@ TEST_F(SetsTest, SRemTest) {
 }
 
 // SUnion
-TEST_F(SetsTest, SUnionTest) {
+TEST_F(SetsTest, SUnionTest) {  // NOLINT
   int32_t ret = 0;
 
   // ***************** Group 1 Test *****************
@@ -1714,7 +1714,7 @@ TEST_F(SetsTest, SUnionTest) {
 }
 
 // SUnionstore
-TEST_F(SetsTest, SUnionstoreTest) {
+TEST_F(SetsTest, SUnionstoreTest) {  // NOLINT
   int32_t ret = 0;
 
   // ***************** Group 1 Test *****************
@@ -1839,9 +1839,10 @@ TEST_F(SetsTest, SUnionstoreTest) {
 }
 
 // SScan
-TEST_F(SetsTest, SScanTest) {
+TEST_F(SetsTest, SScanTest) {  // NOLINT
   int32_t ret = 0;
-  int64_t cursor = 0, next_cursor = 0;
+  int64_t cursor = 0;
+  int64_t next_cursor = 0;
   std::vector<std::string> member_out;
   // ***************** Group 1 Test *****************
   // a b c d e f g h

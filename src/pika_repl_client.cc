@@ -9,6 +9,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 
+#include <utility>
+
 #include "net/include/net_cli.h"
 #include "net/include/redis_cli.h"
 #include "pstd/include/env.h"
@@ -18,10 +20,11 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
+using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout) : next_avail_(0) {
+PikaReplClient::PikaReplClient(int cron_interval, int keepalive_timeout)  {
   client_thread_ = std::make_unique<PikaReplClientThread>(cron_interval, keepalive_timeout);
   client_thread_->set_thread_name("PikaReplClient");
   for (int i = 0; i < 2 * g_pika_conf->sync_thread_num(); ++i) {
@@ -40,8 +43,8 @@ int PikaReplClient::Start() {
     LOG(FATAL) << "Start ReplClient ClientThread Error: " << res
                << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
   }
-  for (size_t i = 0; i < bg_workers_.size(); ++i) {
-    res = bg_workers_[i]->StartThread();
+  for (auto & bg_worker : bg_workers_) {
+    res = bg_worker->StartThread();
     if (res != net::kSuccess) {
       LOG(FATAL) << "Start Pika Repl Worker Thread Error: " << res
                  << (res == net::kCreateThreadError ? ": create thread error " : ": other error");
@@ -52,8 +55,8 @@ int PikaReplClient::Start() {
 
 int PikaReplClient::Stop() {
   client_thread_->StopThread();
-  for (size_t i = 0; i < bg_workers_.size(); ++i) {
-    bg_workers_[i]->StopThread();
+  for (auto & bg_worker : bg_workers_) {
+    bg_worker->StopThread();
   }
   return 0;
 }
@@ -63,25 +66,24 @@ void PikaReplClient::Schedule(net::TaskFunc func, void* arg) {
   UpdateNextAvail();
 }
 
-void PikaReplClient::ScheduleWriteBinlogTask(std::string table_partition,
-                                             const std::shared_ptr<InnerMessage::InnerResponse> res,
+void PikaReplClient::ScheduleWriteBinlogTask(const std::string& table_partition,
+                                             const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                              std::shared_ptr<net::PbConn> conn, void* res_private_data) {
   size_t index = GetHashIndex(table_partition, true);
-  ReplClientWriteBinlogTaskArg* task_arg =
-      new ReplClientWriteBinlogTaskArg(res, conn, res_private_data, bg_workers_[index].get());
+  auto task_arg = new ReplClientWriteBinlogTaskArg(res, std::move(conn), res_private_data, bg_workers_[index].get());
   bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteBinlog, static_cast<void*>(task_arg));
 }
 
-void PikaReplClient::ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr, const LogOffset& offset,
+void PikaReplClient::ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset,
                                          const std::string& table_name, uint32_t partition_id) {
   const PikaCmdArgsType& argv = cmd_ptr->argv();
   std::string dispatch_key = argv.size() >= 2 ? argv[1] : argv[0];
   size_t index = GetHashIndex(dispatch_key, false);
-  ReplClientWriteDBTaskArg* task_arg = new ReplClientWriteDBTaskArg(cmd_ptr, offset, table_name, partition_id);
+  auto task_arg = new ReplClientWriteDBTaskArg(cmd_ptr, offset, table_name, partition_id);
   bg_workers_[index]->Schedule(&PikaReplBgWorker::HandleBGWorkerWriteDB, static_cast<void*>(task_arg));
 }
 
-size_t PikaReplClient::GetHashIndex(std::string key, bool upper_half) {
+size_t PikaReplClient::GetHashIndex(const std::string& key, bool upper_half) {
   size_t hash_base = bg_workers_.size() / 2;
   return (str_hash(key) % hash_base) + (upper_half ? 0 : hash_base);
 }
@@ -99,7 +101,7 @@ Status PikaReplClient::SendMetaSync() {
   if ((cli->Connect(g_pika_server->master_ip(), g_pika_server->master_port(), "")).ok()) {
     struct sockaddr_in laddr;
     socklen_t llen = sizeof(laddr);
-    getsockname(cli->fd(), (struct sockaddr*)&laddr, &llen);
+    getsockname(cli->fd(), reinterpret_cast<struct sockaddr*>(&laddr), &llen);
     std::string tmp_local_ip(inet_ntoa(laddr.sin_addr));
     local_ip = tmp_local_ip;
     cli->Close();

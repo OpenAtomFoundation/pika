@@ -14,10 +14,10 @@ using namespace storage;
 class StorageOptionsTest : public ::testing::Test {
  public:
   StorageOptionsTest() = default;
-  virtual ~StorageOptionsTest() = default;
+  ~StorageOptionsTest() override = default;
 
-  static void SetUpTestCase() {}
-  static void TearDownTestCase() {}
+  static void SetUpTestSuite() {}
+  static void TearDownTestSuite() {}
 
   StorageOptions storage_options;
   storage::Status s;

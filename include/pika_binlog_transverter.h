@@ -7,7 +7,7 @@
 #define PIKA_BINLOG_TRANSVERTER_H_
 
 #include <glog/logging.h>
-#include <stdint.h>
+#include <cstdint>
 #include <iostream>
 #include <vector>
 
@@ -32,7 +32,7 @@ const int SPACE_STROE_PARAMETER_LENGTH = 5;
 
 class BinlogItem {
  public:
-  BinlogItem() : exec_time_(0), term_id_(0), logic_id_(0), filenum_(0), offset_(0), content_("") {}
+  BinlogItem() = default;
 
   friend class PikaBinlogTransverter;
 
@@ -62,7 +62,7 @@ class BinlogItem {
 
 class PikaBinlogTransverter {
  public:
-  PikaBinlogTransverter(){};
+  PikaBinlogTransverter()= default;;
   static std::string BinlogEncode(BinlogType type, uint32_t exec_time, uint32_t term_id, uint64_t logic_id,
                                   uint32_t filenum, uint64_t offset, const std::string& content,
                                   const std::vector<std::string>& extends);
