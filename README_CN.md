@@ -112,12 +112,12 @@ pika 默认使用`release`模式编译，不能调试，如果需要调试，需
   cd ouput && make
 ```
 
-## 使用
+### 使用
 ```
   ./output/pika -c ./conf/pika.conf
 ```
 
-## 清空编译
+### 清空编译
 
 ```
   如果需要清空编译内容，视不同情况使用以下两种方法其一：
@@ -125,6 +125,41 @@ pika 默认使用`release`模式编译，不能调试，如果需要调试，需
   1. 执行 cd output && make clean来清空pika的编译内容
   2. 执行 rm -fr output 重新生成cmkae（一般用于彻底重新编译）
 ```
+
+## 容器化
+
+### 使用docker运行
+
+```bash
+docker run -d \
+  --restart=always \ 
+  -p 9221:9221 \
+  -v <log_dir>:/pika/log \
+  -v <db_dir>:/pika/db \
+  -v <dump_dir>:/pika/dump \
+  -v <dbsync_dir>:/pika/dbsync \
+  pikadb/pika:v3.3.6 
+
+redis-cli -p 9221 "info"
+```
+
+### 构建镜像
+如果你想自己构建镜像，我们提供了一个脚本 `build_docker.sh` 来简化这个过程。
+
+脚本接受几个可选参数：
+
+- `-t tag`: 指定镜像的Docker标签。默认情况下，标签是 `pikadb/pika:<git tag>`。
+- `-p platform`: 指定Docker镜像的平台。 `all`, `linux/amd64`, `linux/arm`, `linux/arm64`.
+- `--proxy`: 使用代理下载包以加快构建过程。如果你在中国，这特别有用。
+- `--help`: 显示帮助信息。
+
+这是脚本的一个示例使用：
+  
+```bash
+./build_docker.sh -p linux/amd64 -t private_registry/pika:latest
+```
+
+
 
 ## 性能 (感谢[deep011](https://github.com/deep011)提供性能测试结果)
 ### 注!!!
