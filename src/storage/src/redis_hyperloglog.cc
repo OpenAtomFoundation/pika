@@ -17,7 +17,7 @@ HyperLogLog::HyperLogLog(uint8_t precision, std::string origin_register) {
   b_ = precision;
   m_ = 1 << precision;
   alpha_ = Alpha();
-  register_ = new char[m_];
+  register_ = std::make_unique<char[]>(m_);
   for (uint32_t i = 0; i < m_; ++i) {
     register_[i] = 0;
   }
@@ -28,7 +28,7 @@ HyperLogLog::HyperLogLog(uint8_t precision, std::string origin_register) {
   }
 }
 
-HyperLogLog::~HyperLogLog() { delete[] register_; }
+HyperLogLog::~HyperLogLog() {}
 
 std::string HyperLogLog::Add(const char* value, uint32_t len) {
   uint32_t hash_value;

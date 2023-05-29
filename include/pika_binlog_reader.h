@@ -23,7 +23,7 @@ class PikaBinlogReader {
  public:
   PikaBinlogReader(uint32_t cur_filenum, uint64_t cur_offset);
   PikaBinlogReader();
-  ~PikaBinlogReader();
+  ~PikaBinlogReader() {};
   Status Get(std::string* scratch, uint32_t* filenum, uint64_t* offset);
   int Seek(std::shared_ptr<Binlog> logger, uint32_t filenum, uint64_t offset);
   bool ReadToTheEnd();
@@ -41,9 +41,9 @@ class PikaBinlogReader {
   uint64_t last_record_offset_ = 0;
 
   std::shared_ptr<Binlog> logger_;
-  pstd::SequentialFile* queue_ = nullptr;
+  std::unique_ptr<pstd::SequentialFile> queue_;
 
-  char* const backing_store_;
+  std::unique_ptr<char[]> const backing_store_;
   Slice buffer_;
 };
 

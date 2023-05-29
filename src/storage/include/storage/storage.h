@@ -1020,14 +1020,14 @@ class Storage {
                     const std::unordered_map<std::string, std::string>& options);
 
  private:
-  RedisStrings* strings_db_;
-  RedisHashes* hashes_db_;
-  RedisSets* sets_db_;
-  RedisZSets* zsets_db_;
-  RedisLists* lists_db_;
+  std::unique_ptr<RedisStrings> strings_db_;
+  std::unique_ptr<RedisHashes> hashes_db_;
+  std::unique_ptr<RedisSets> sets_db_;
+  std::unique_ptr<RedisZSets> zsets_db_;
+  std::unique_ptr<RedisLists> lists_db_;
   std::atomic<bool> is_opened_;
 
-  LRUCache<std::string, std::string>* cursors_store_;
+  std::unique_ptr<LRUCache<std::string, std::string>> cursors_store_;
 
   // Storage start the background thread for compaction task
   pthread_t bg_tasks_thread_id_;

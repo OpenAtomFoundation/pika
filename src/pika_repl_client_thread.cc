@@ -11,7 +11,7 @@
 #include "pstd/include/pstd_string.h"
 
 extern PikaServer* g_pika_server;
-extern PikaReplicaManager* g_pika_rm;
+extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
 PikaReplClientThread::PikaReplClientThread(int cron_interval, int keepalive_timeout)
     : ClientThread(&conn_factory_, cron_interval, keepalive_timeout, &handle_, nullptr) {}

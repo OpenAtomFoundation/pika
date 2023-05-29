@@ -1,7 +1,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-
+#include <memory>
 #include <glog/logging.h>
 
 #include "pstd/include/env.h"
@@ -95,8 +95,8 @@ int StopRsync(const std::string& raw_path) {
   }
 
   // Kill Rsync
-  SequentialFile* sequential_file;
-  if (!NewSequentialFile(pid_file, &sequential_file).ok()) {
+  std::unique_ptr<SequentialFile> sequential_file;
+  if (!NewSequentialFile(pid_file, sequential_file).ok()) {
     LOG(WARNING) << "no rsync pid file found";
     return 0;
   };
@@ -104,11 +104,8 @@ int StopRsync(const std::string& raw_path) {
   char line[32];
   if (sequential_file->ReadLine(line, 32) == nullptr) {
     LOG(WARNING) << "read rsync pid file err";
-    delete sequential_file;
     return 0;
   };
-
-  delete sequential_file;
 
   pid_t pid = atoi(line);
 
@@ -117,7 +114,7 @@ int StopRsync(const std::string& raw_path) {
     return 0;
   }
 
-  std::string rsync_stop_cmd = "kill -- -$(ps -o pgid= " + std::to_string(pid) + ")";
+  std::string rsync_stop_cmd = "kill $(ps -o pgid=" + std::to_string(pid) + ")";
   int ret = system(rsync_stop_cmd.c_str());
   if (ret == 0 || (WIFEXITED(ret) && !WEXITSTATUS(ret))) {
     LOG(INFO) << "Stop rsync success!";
