@@ -195,11 +195,32 @@ func (s *Topom) Start(routines bool) error {
 	if !routines {
 		return nil
 	}
-	ctx, err := s.newContext()
-	if err != nil {
-		return err
-	}
-	s.rewatchSentinels(ctx.sentinel.Servers)
+
+	// 每5秒检查一次所有master和slave的状态
+	go func() {
+		for !s.IsClosed() {
+			if s.IsOnline() {
+				w, _ := s.CheckMastersAndSlavesState(10 * time.Second)
+				if w != nil {
+					w.Wait()
+				}
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
+	// 每1秒检查一次预下线的master的状态，来判断是否要自动进行切主从
+	go func() {
+		for !s.IsClosed() {
+			if s.IsOnline() {
+				w, _ := s.CheckPreOffineMastersState(5 * time.Second)
+				if w != nil {
+					w.Wait()
+				}
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
 
 	go func() {
 		for !s.IsClosed() {

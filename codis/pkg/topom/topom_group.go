@@ -4,6 +4,7 @@
 package topom
 
 import (
+	"encoding/json"
 	"time"
 
 	"pika/codis/v2/pkg/models"
@@ -344,6 +345,129 @@ func (s *Topom) GroupPromoteServer(gid int, addr string) error {
 	}
 }
 
+func (s *Topom) trySwitchGroupMaster2(gid int, cache *redis.InfoCache) error {
+	ctx, err := s.newContext()
+	if err != nil {
+		return err
+	}
+	g, err := ctx.getGroup(gid)
+	if err != nil {
+		return err
+	}
+
+	master := s.selectNextMaster(g.Servers)
+
+	if master == "" {
+		servers, _ := json.Marshal(g)
+		log.Errorf("group %d donn't has any slaves to switch master, %s", gid, servers)
+		return errors.Errorf("cann't switch slave to master")
+	}
+
+	return s.doSwitchGroupMaster(gid, master, cache)
+}
+
+// 选择改group下一个master节点
+func (s *Topom) selectNextMaster(servers []*models.GroupServer) string {
+	if len(servers) == 0 {
+		return ""
+	}
+
+	var masterServer *models.GroupServer
+
+	for _, server := range servers {
+		// 如果节点的状态异常，直接过滤掉
+		if server.State != 0 {
+			continue
+		}
+
+		// 如果group中已经有master节点正常工作，则直接返回
+		if server.Role == "master" {
+			return server.Addr
+		}
+
+		if masterServer == nil {
+			masterServer = server
+		} else if server.ReplyOffset > masterServer.ReplyOffset {
+			// 选取offset最新的slave节点作为主节点
+			masterServer = server
+		}
+	}
+
+	return masterServer.Addr
+}
+
+func (s *Topom) doSwitchGroupMaster(gid int, master string, cache *redis.InfoCache) error {
+	ctx, err := s.newContext()
+	if err != nil {
+		return err
+	}
+	g, err := ctx.getGroup(gid)
+	if err != nil {
+		return err
+	}
+
+	var index = func() int {
+		for i, x := range g.Servers {
+			if x.Addr == master {
+				return i
+			}
+		}
+		for i, x := range g.Servers {
+			// todo RUNID待确认是否返回
+			rid1 := cache.GetRunId(master)
+			rid2 := cache.GetRunId(x.Addr)
+			if rid1 != "" && rid1 == rid2 {
+				return i
+			}
+		}
+		return -1
+	}()
+	if index == -1 {
+		return errors.Errorf("group-[%d] doesn't have server %s with runid = '%s'", g.Id, master, cache.GetRunId(master))
+	}
+	if index == 0 {
+		return nil
+	}
+	defer s.dirtyGroupCache(g.Id)
+
+	log.Warnf("group-[%d] will switch master to server[%d] = %s", g.Id, index, g.Servers[index].Addr)
+
+	// 将从节点设置为新的主节点
+	if c, err := redis.NewClient(master, s.config.ProductAuth, 100*time.Millisecond); err != nil {
+		log.WarnErrorf(err, "create redis client to %s failed", master)
+		return err
+	} else {
+		defer c.Close()
+		if err = c.SetMaster("NO:ONE"); err != nil {
+			log.WarnErrorf(err, "redis %s set master to NO:ONE failed", master)
+			return err
+		}
+	}
+
+	// 将 group 中其他的节点设置为新主节点的从节点
+	for _, server := range g.Servers {
+		if server.State != 0 || server.Addr == master {
+			continue
+		}
+		if c, err := redis.NewClient(server.Addr, s.config.ProductAuth, 100*time.Millisecond); err != nil {
+			log.WarnErrorf(err, "create redis client to %s failed", master)
+			return err
+		} else {
+			defer c.Close()
+			if err = c.SetMaster(master); err != nil {
+				log.WarnErrorf(err, "redis %s set master to %s failed", server.Addr, master)
+				return err
+			}
+		}
+	}
+
+	g.Servers[0], g.Servers[index] = g.Servers[index], g.Servers[0]
+	g.Servers[0].Role = "master"
+	g.OutOfSync = true
+	return s.storeUpdateGroup(g)
+}
+
+// todo 待移除方法
 func (s *Topom) trySwitchGroupMaster(gid int, master string, cache *redis.InfoCache) error {
 	ctx, err := s.newContext()
 	if err != nil {

@@ -22,6 +22,7 @@ type context struct {
 	group map[int]*models.Group
 	proxy map[string]*models.Proxy
 
+	// todo 待改动
 	sentinel *models.Sentinel
 
 	hosts struct {
@@ -153,7 +154,8 @@ func (ctx *context) toReplicaGroups(gid int, p *models.Proxy) [][]string {
 	}
 	var groups [3][]string
 	for _, s := range g.Servers {
-		if s.ReplicaGroup {
+		// state 为0说明未掉线，正常服务
+		if s.ReplicaGroup && s.State == 0 {
 			p := getPriority(s)
 			groups[p] = append(groups[p], s.Addr)
 		}
@@ -180,6 +182,24 @@ func (ctx *context) getGroup(gid int) (*models.Group, error) {
 		return g, nil
 	}
 	return nil, errors.Errorf("group-[%d] doesn't exist", gid)
+}
+
+func (ctx *context) getGroups() []*models.Group {
+	var gs []*models.Group
+	for _, g := range ctx.group {
+		gs = append(gs, g)
+	}
+	return gs
+}
+
+func (ctx *context) getGroupServers() map[int][]*models.GroupServer {
+	groupServers := make(map[int][]*models.GroupServer)
+
+	for gid, group := range ctx.group {
+		groupServers[gid] = group.Servers
+	}
+
+	return groupServers
 }
 
 func (ctx *context) getGroupIndex(g *models.Group, addr string) (int, error) {

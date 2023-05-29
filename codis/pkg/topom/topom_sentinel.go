@@ -106,6 +106,7 @@ func (s *Topom) SwitchMasters(masters map[int]string) error {
 	return nil
 }
 
+// todo 这里不再试用
 func (s *Topom) rewatchSentinels(servers []string) {
 	if s.ha.monitor != nil {
 		s.ha.monitor.Cancel()
@@ -167,6 +168,122 @@ func (s *Topom) rewatchSentinels(servers []string) {
 		}(s.ha.monitor)
 	}
 	log.Warnf("rewatch sentinels = %v", servers)
+}
+
+func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.GroupServer) bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	ctx, err := s.newContext()
+	if err != nil {
+		return err
+	}
+
+	config := &redis.MonitorConfig{
+		Quorum:               s.config.SentinelQuorum,
+		ParallelSyncs:        s.config.SentinelParallelSyncs,
+		DownAfter:            s.config.SentinelDownAfter.Duration(),
+		FailoverTimeout:      s.config.SentinelFailoverTimeout.Duration(),
+		NotificationScript:   s.config.SentinelNotificationScript,
+		ClientReconfigScript: s.config.SentinelClientReconfigScript,
+	}
+
+	sentinel := redis.NewCodisSentinel(s.config.ProductName, s.config.ProductAuth)
+	gs := make(map[int][]*models.GroupServer)
+	for i, servers := range ctx.getGroupServers() {
+		for _, server := range servers {
+			if filter(i, server) {
+				if val, ok := gs[i]; ok {
+					gs[i] = append(val, server)
+				} else {
+					gs[i] = []*models.GroupServer{server}
+				}
+			}
+		}
+	}
+	if len(gs) == 0 {
+		return nil
+	}
+
+	states := sentinel.RefreshMastersAndSlavesClient(config.ParallelSyncs, gs)
+
+	var changedGroups []*models.Group
+
+	for _, state := range states {
+		var g *models.Group
+		if g, err = ctx.getGroup(state.GroupID); err != nil {
+			return err
+		}
+
+		serversMap := g.GetServersMap()
+		if len(serversMap) == 0 {
+			continue
+		}
+
+		// 之前是主节点 && 主节点挂机 && 当前还是主节点
+		if state.Index == 0 && state.Err != nil && g.Servers[0].Addr == state.Addr {
+			// 修改状态为主观下线
+			if g.Servers[0].State == 0 {
+				g.Servers[0].State = 1
+			} else if g.Servers[0].State == 2 {
+				// 客观下线，开始选主
+				changedGroups = append(changedGroups, g)
+			} else {
+				// 主观下线，更新重试次数
+				g.Servers[0].ReCallTimes++
+				if g.Servers[0].ReCallTimes >= 5 {
+					// 重试超过5次，开始选主
+					changedGroups = append(changedGroups, g)
+					// 标记进入客观下线状态
+					g.Servers[0].State = 2
+				}
+			}
+		}
+
+		// 更新state、role、offset信息
+		if val, ok := serversMap[state.Addr]; ok {
+			// 如果是进入了"客观下线"状态，需要人工介入才能恢复正常服务
+			if state.Err != nil || val.State == 2 {
+				if val.State == 0 {
+					val.State = 1
+				}
+				continue
+			}
+
+			val.State = 0
+			val.ReCallTimes = 0
+			val.Role = state.Replication.Role
+			if state.Replication.Role == "master" {
+				val.ReplyOffset = state.Replication.MasterReplOffset
+			} else {
+				val.ReplyOffset = state.Replication.SlaveReplOffset
+			}
+		}
+	}
+
+	if len(changedGroups) == 0 {
+		return nil
+	}
+
+	cache := &redis.InfoCache{
+		Auth: s.config.ProductAuth, Timeout: time.Millisecond * 100,
+	}
+	// 尝试进行主从切换
+	for _, g := range changedGroups {
+		if err = s.trySwitchGroupMaster2(g.Id, cache); err != nil {
+			log.Error("gid-[%d] switch master failed, %v", g.Id, err)
+			continue
+		}
+
+		slots := ctx.getSlotMappingsByGroupId(g.Id)
+		// 通知所有的server更新slot的信息
+		if err = s.resyncSlotMappings(ctx, slots...); err != nil {
+			log.Warnf("group-[%d] resync-rollback to preparing", g.Id)
+			continue
+		}
+		defer s.dirtyGroupCache(g.Id)
+	}
+
+	return nil
 }
 
 func (s *Topom) ResyncSentinels() error {

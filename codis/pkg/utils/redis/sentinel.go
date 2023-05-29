@@ -4,6 +4,7 @@
 package redis
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	redigo "github.com/garyburd/redigo/redis"
 )
 
+// todo 这块逻辑要全部重构
 type Sentinel struct {
 	context.Context
 	Cancel context.CancelFunc
@@ -159,6 +161,7 @@ func (s *Sentinel) subscribeCommand(client *Client, sentinel string,
 	}
 }
 
+// todo 待删除
 func (s *Sentinel) subscribeDispatch(ctx context.Context, sentinel string, timeout time.Duration,
 	onSubscribed func()) (bool, error) {
 	var err = s.dispatch(ctx, sentinel, timeout, func(c *Client) error {
@@ -175,6 +178,7 @@ func (s *Sentinel) subscribeDispatch(ctx context.Context, sentinel string, timeo
 	return true, nil
 }
 
+// todo 待移除
 func (s *Sentinel) Subscribe(sentinels []string, timeout time.Duration, onMajoritySubscribed func()) bool {
 	cntx, cancel := context.WithTimeout(s.Context, timeout)
 	defer cancel()
@@ -733,6 +737,82 @@ func (s *Sentinel) RemoveGroupsAll(sentinels []string, timeout time.Duration) er
 type SentinelGroup struct {
 	Master map[string]string   `json:"master"`
 	Slaves []map[string]string `json:"slaves,omitempty"`
+}
+
+type InfoSlave struct {
+	IP     string `json:"ip"`
+	Port   string `json:"port"`
+	State  string `json:"state"`
+	Offset int    `json:"offset"`
+	Lag    int    `json:"lag"`
+}
+
+func (i *InfoSlave) UnmarshalJSON(b []byte) error {
+	var kvmap map[string]string
+	if err := json.Unmarshal(b, &kvmap); err != nil {
+		return err
+	}
+
+	i.IP = kvmap["ip"]
+	i.Port = kvmap["port"]
+	i.State = kvmap["state"]
+
+	if val, ok := kvmap["offset"]; ok {
+		if intval, err := strconv.Atoi(val); err == nil {
+			i.Offset = intval
+		}
+	}
+	if val, ok := kvmap["lag"]; ok {
+		if intval, err := strconv.Atoi(val); err == nil {
+			i.Lag = intval
+		}
+	}
+	return nil
+}
+
+type InfoReplication struct {
+	Role             string      `json:"role"`
+	ConnectedSlaves  int         `json:"connected_slaves"`
+	MasterHost       string      `json:"master_host"`
+	MasterPort       string      `json:"master_port"`
+	SlaveReplOffset  int         `json:"slave_repl_offset"`
+	MasterReplOffset int         `json:"master_repl_offset"`
+	Slaves           []InfoSlave `json:"-"`
+}
+
+type ReplicationState struct {
+	GroupID     int
+	Index       int
+	Addr        string
+	Replication *InfoReplication
+	Err         error
+}
+
+func (i *InfoReplication) UnmarshalJSON(b []byte) error {
+	var kvmap map[string]string
+	if err := json.Unmarshal(b, &kvmap); err != nil {
+		return err
+	}
+
+	if val, ok := kvmap["connected_slaves"]; ok {
+		if intval, err := strconv.Atoi(val); err == nil {
+			i.ConnectedSlaves = intval
+		}
+	}
+	if val, ok := kvmap["slave_repl_offset"]; ok {
+		if intval, err := strconv.Atoi(val); err == nil {
+			i.SlaveReplOffset = intval
+		}
+	}
+	if val, ok := kvmap["master_repl_offset"]; ok {
+		if intval, err := strconv.Atoi(val); err == nil {
+			i.MasterReplOffset = intval
+		}
+	}
+	i.Role = kvmap["role"]
+	i.MasterPort = kvmap["master_host"]
+	i.MasterHost = kvmap["master_port"]
+	return nil
 }
 
 func (s *Sentinel) MastersAndSlavesClient(client *Client) (map[string]*SentinelGroup, error) {

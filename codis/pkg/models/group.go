@@ -17,6 +17,14 @@ type Group struct {
 	OutOfSync bool `json:"out_of_sync"`
 }
 
+func (g *Group) GetServersMap() map[string]*GroupServer {
+	results := make(map[string]*GroupServer)
+	for _, server := range g.Servers {
+		results[server.Addr] = server
+	}
+	return results
+}
+
 type GroupServer struct {
 	Addr       string `json:"server"`
 	DataCenter string `json:"datacenter"`
@@ -25,6 +33,16 @@ type GroupServer struct {
 		Index int    `json:"index,omitempty"`
 		State string `json:"state,omitempty"`
 	} `json:"action"`
+
+	// master 或是 slave
+	Role string
+	// 如果是master节点，取 master_repl_offset 字段，否则取 slave_repl_offset 字段
+	ReplyOffset int
+	// 监控状态，分为：0 正常，1 主观下线，2 实际下线
+	// 如果被标记为2，则不提供服务，等待人工进入处理
+	State int8 `json:"state"`
+
+	ReCallTimes int8 `json:"recall_times"`
 
 	ReplicaGroup bool `json:"replica_group"`
 }

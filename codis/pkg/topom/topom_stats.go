@@ -4,6 +4,7 @@
 package topom
 
 import (
+	"sync"
 	"time"
 
 	"pika/codis/v2/pkg/models"
@@ -73,25 +74,25 @@ func (s *Topom) RefreshRedisStats(timeout time.Duration) (*sync2.Future, error) 
 			})
 		}
 	}
-	for _, server := range ctx.sentinel.Servers {
-		goStats(server, func(addr string) (*RedisStats, error) {
-			c, err := s.ha.redisp.GetClient(addr)
-			if err != nil {
-				return nil, err
-			}
-			defer s.ha.redisp.PutClient(c)
-			m, err := c.Info()
-			if err != nil {
-				return nil, err
-			}
-			sentinel := redis.NewSentinel(s.config.ProductName, s.config.ProductAuth)
-			p, err := sentinel.MastersAndSlavesClient(c)
-			if err != nil {
-				return nil, err
-			}
-			return &RedisStats{Stats: m, Sentinel: p}, nil
-		})
-	}
+	//for _, server := range ctx.sentinel.Servers {
+	//	goStats(server, func(addr string) (*RedisStats, error) {
+	//		c, err := s.ha.redisp.GetClient(addr)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		defer s.ha.redisp.PutClient(c)
+	//		m, err := c.Info()
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		sentinel := redis.NewSentinel(s.config.ProductName, s.config.ProductAuth)
+	//		p, err := sentinel.MastersAndSlavesClient(c)
+	//		if err != nil {
+	//			return nil, err
+	//		}
+	//		return &RedisStats{Stats: m, Sentinel: p}, nil
+	//	})
+	//}
 	go func() {
 		stats := make(map[string]*RedisStats)
 		for k, v := range fut.Wait() {
@@ -169,4 +170,57 @@ func (s *Topom) RefreshProxyStats(timeout time.Duration) (*sync2.Future, error) 
 		s.stats.proxies = stats
 	}()
 	return &fut, nil
+}
+
+type MastersAndSlavesStats struct {
+	Error error `json:"error,omitempty"`
+
+	UnixTime int64 `json:"unixtime"`
+	Timeout  bool  `json:"timeout,omitempty"`
+}
+
+func (s *Topom) newMastersAndSlavesStats(timeout time.Duration, filter func(index int, g *models.GroupServer) bool, wg *sync.WaitGroup) *MastersAndSlavesStats {
+	var ch = make(chan struct{})
+	stats := &MastersAndSlavesStats{}
+	defer wg.Done()
+
+	go func() {
+		defer close(ch)
+		err := s.CheckAndSwitchSlavesAndMasters(filter)
+		if err != nil {
+			log.Errorf("refresh masters and slaves failed, %v", err)
+			stats.Error = err
+		}
+	}()
+
+	select {
+	case <-ch:
+		return stats
+	case <-time.After(timeout):
+		return &MastersAndSlavesStats{Timeout: true}
+	}
+}
+
+func (s *Topom) CheckMastersAndSlavesState(timeout time.Duration) (*sync.WaitGroup, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go s.newMastersAndSlavesStats(timeout, func(index int, g *models.GroupServer) bool {
+		return index != 0 || g.State == 0
+	}, wg)
+	return wg, nil
+}
+
+func (s *Topom) CheckPreOffineMastersState(timeout time.Duration) (*sync.WaitGroup, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go s.newMastersAndSlavesStats(timeout, func(index int, g *models.GroupServer) bool {
+		return index == 0 && g.State != 0
+	}, wg)
+	return wg, nil
 }
