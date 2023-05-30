@@ -15,7 +15,7 @@ namespace storage {
 class ZSetsScoreKey {
  public:
   ZSetsScoreKey(const Slice& key, int32_t version, double score, const Slice& member)
-      : start_(nullptr), key_(key), version_(version), score_(score), member_(member) {}
+      :  key_(key), version_(version), score_(score), member_(member) {}
 
   ~ZSetsScoreKey() {
     if (start_ != space_) {
@@ -23,7 +23,7 @@ class ZSetsScoreKey {
     }
   }
 
-  const Slice Encode() {
+  Slice Encode() {
     size_t needed = key_.size() + member_.size() + sizeof(int32_t) * 2 + sizeof(uint64_t);
     char* dst = nullptr;
     if (needed <= sizeof(space_)) {

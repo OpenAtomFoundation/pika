@@ -17,12 +17,10 @@
 
 #include "pstd/include/mutex.h"
 
-namespace pstd {
-
-namespace lock {
+namespace pstd::lock {
 
 struct LockMapStripe {
-  explicit LockMapStripe(std::shared_ptr<MutexFactory> factory) {
+  explicit LockMapStripe(const std::shared_ptr<MutexFactory>& factory) {
     stripe_mutex = factory->AllocateMutex();
     stripe_cv = factory->AllocateCondVar();
     assert(stripe_mutex);
@@ -41,7 +39,7 @@ struct LockMapStripe {
 
 // Map of #num_stripes LockMapStripes
 struct LockMap {
-  explicit LockMap(size_t num_stripes, std::shared_ptr<MutexFactory> factory) : num_stripes_(num_stripes) {
+  explicit LockMap(size_t num_stripes, const std::shared_ptr<MutexFactory>& factory) : num_stripes_(num_stripes) {
     lock_map_stripes_.reserve(num_stripes);
     for (size_t i = 0; i < num_stripes; i++) {
       auto stripe = std::make_shared<LockMapStripe>(factory);
@@ -49,7 +47,7 @@ struct LockMap {
     }
   }
 
-  ~LockMap() {}
+  ~LockMap() = default;
 
   // Number of sepearate LockMapStripes to create, each with their own Mutex
   const size_t num_stripes_;
@@ -69,13 +67,13 @@ size_t LockMap::GetStripe(const std::string& key) const {
   return stripe;
 }
 
-LockMgr::LockMgr(size_t default_num_stripes, int64_t max_num_locks, std::shared_ptr<MutexFactory> mutex_factory)
+LockMgr::LockMgr(size_t default_num_stripes, int64_t max_num_locks, const std::shared_ptr<MutexFactory>& mutex_factory)
     : default_num_stripes_(default_num_stripes),
       max_num_locks_(max_num_locks),
       mutex_factory_(mutex_factory),
       lock_map_(std::make_shared<LockMap>(default_num_stripes, mutex_factory)) {}
 
-LockMgr::~LockMgr() {}
+LockMgr::~LockMgr() = default;
 
 Status LockMgr::TryLock(const std::string& key) {
 #ifdef LOCKLESS
@@ -136,7 +134,7 @@ Status LockMgr::AcquireLocked(std::shared_ptr<LockMapStripe> stripe, const std::
       stripe->keys.insert(key);
 
       // Maintain lock count if there is a limit on the number of locks
-      if (max_num_locks_) {
+      if (max_num_locks_ != 0) {
         lock_map_->lock_cnt++;
       }
     }
@@ -176,5 +174,4 @@ void LockMgr::UnLock(const std::string& key) {
   // Signal waiting threads to retry locking
   stripe->stripe_cv->NotifyAll();
 }
-}  //  namespace lock
-}  //  namespace pstd
+}  // namespace pstd::lock

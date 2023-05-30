@@ -5,9 +5,9 @@
 
 #include "net/src/net_kqueue.h"
 
-#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <cerrno>
 
 #include <glog/logging.h>
 
@@ -49,9 +49,11 @@ int NetKqueue::NetAddEvent(int fd, int mask) {
   return kevent(multiplexer_, change, cnt, nullptr, 0, nullptr);
 }
 
-int NetKqueue::NetModEvent(int fd, int, int mask) {
+int NetKqueue::NetModEvent(int fd, int /*old_mask*/, int mask) {
   int ret = NetDelEvent(fd, kReadable | kWritable);
-  if (mask == 0) return ret;
+  if (mask == 0) {
+    return ret;
+  }
 
   return NetAddEvent(fd, mask);
 }
@@ -70,7 +72,9 @@ int NetKqueue::NetDelEvent(int fd, int mask) {
     ++cnt;
   }
 
-  if (cnt == 0) return -1;
+  if (cnt == 0) {
+    return -1;
+  }
 
   return kevent(multiplexer_, change, cnt, nullptr, 0, nullptr);
 }
@@ -85,7 +89,9 @@ int NetKqueue::NetPoll(int timeout) {
   }
 
   int num_events = ::kevent(multiplexer_, nullptr, 0, &events_[0], NET_MAX_CLIENTS, p_timeout);
-  if (num_events <= 0) return 0;
+  if (num_events <= 0) {
+    return 0;
+  }
 
   for (int i = 0; i < num_events; i++) {
     NetFiredEvent& ev = fired_events_[i];

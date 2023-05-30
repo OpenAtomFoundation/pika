@@ -11,7 +11,7 @@
 
 namespace net {
 
-typedef std::vector<std::string> RedisCmdArgsType;
+using RedisCmdArgsType = std::vector<std::string>;
 // We can serialize redis command by 2 ways:
 // 1. by variable argmuments;
 //    eg.  RedisCli::Serialize(cmd, "set %s %d", "key", 5);

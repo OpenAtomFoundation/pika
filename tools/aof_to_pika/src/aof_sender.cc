@@ -1,22 +1,27 @@
-#include <errno.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <poll.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <sstream>
 
-#include "aof_info.h"
-#include "aof_sender.h"
+#include "include/aof_info.h"
+#include "include/aof_sender.h"
 
 bool AOFSender::rconnect(const std::string& host, const std::string& port, const std::string& auth) {
-  if (host.empty() || port.empty()) return false;
-  int s = -1, ret;
-  struct addrinfo hints, *servinfo, *p;
+  if (host.empty() || port.empty()) {
+    return false;
+  }
+  int s = -1;
+  int ret;
+  struct addrinfo hints;
+  struct addrinfo* servinfo;
+  struct addrinfo* p;
   memset(&hints, 0, sizeof(struct addrinfo));
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
@@ -26,7 +31,9 @@ bool AOFSender::rconnect(const std::string& host, const std::string& port, const
   }
 
   for (p = servinfo; p != nullptr; p = p->ai_next) {
-    if ((s = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) continue;
+    if ((s = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+      continue;
+    }
     // connect
     if (connect(s, p->ai_addr, p->ai_addrlen) < 0) {
       close(s);
@@ -58,12 +65,14 @@ AOFSender::~AOFSender() {
   buf_rcond_.SignalAll();
   buf_wcond_.SignalAll();
   buf_mutex_.Unlock();
-  if (conn_info_ != nullptr) delete conn_info_;
+  delete conn_info_;
   close(sockfd_);
 }
 
 bool AOFSender::message_add(const std::string& message) {
-  if (message.empty()) return false;
+  if (message.empty()) {
+    return false;
+  }
 
   buf_mutex_.Lock();
   while (read_buffer_.size() >= READ_BUF_MAX) {
@@ -81,11 +90,11 @@ bool AOFSender::message_add(const std::string& message) {
 
 bool AOFSender::message_get_() {
   buf_mutex_.Lock();
-  while (read_buffer_.size() == 0) {
+  while (read_buffer_.empty()) {
     LOG_DEBUG("Sender waiting for read buffer.");
     buf_rcond_.Wait();  // awake when the the wait send queue not empty
   }
-  if (read_buffer_.size() > 0) {
+  if (!read_buffer_.empty()) {
     to_send_ = read_buffer_.front();
     read_buffer_.pop_front();
     buf_wcond_.SignalAll();
@@ -102,21 +111,23 @@ bool AOFSender::process() {
   }
   char ibuf[1024 * 16];
   memset(&ibuf, 0, sizeof(ibuf));
-  long nsucc = 0, nfail = 0, inter = 0;
+  long nsucc = 0;
+  long nfail = 0;
+  long inter = 0;
   ;
 
   while (true) {
     int mask = RM_READBLE | RM_WRITABLE;
     mask = mask_wait_(sockfd_, mask, 1000);
 
-    if (mask & RM_RECONN) {
+    if ((mask & RM_RECONN) != 0) {
       close(sockfd_);
-      if (false == rconnect(conn_info_->host_, conn_info_->port_, conn_info_->auth_)) {
+      if (!rconnect(conn_info_->host_, conn_info_->port_, conn_info_->auth_)) {
         LOG_ERR("Failed to reconnect remote server! host: " + conn_info_->host_ + " port : " + conn_info_->port_ +
                 " try again 1 second later!");
         usleep(1000000);
       }
-    } else if (mask & RM_READBLE) {
+    } else if ((mask & RM_READBLE) != 0) {
       // Read from socket
       ssize_t count;
       std::string reply;
@@ -124,7 +135,7 @@ bool AOFSender::process() {
         count = read(sockfd_, ibuf, sizeof(ibuf));
         if (count == -1 && errno != EAGAIN && errno != EINTR) {
           LOG_ERR("Error reading from the server.");
-          return -1;
+          return (-1) != 0;
         }
         if (count > 0) {
           std::string tmp(ibuf);
@@ -155,7 +166,7 @@ bool AOFSender::process() {
           // return -1;
         }
       }
-    } else if (mask & RM_WRITABLE) {
+    } else if ((mask & RM_WRITABLE) != 0) {
       // Read from queue
       if (to_send_.empty()) {
         message_get_();
@@ -169,20 +180,24 @@ bool AOFSender::process() {
           ssize_t nwritten = write(sockfd_, to_send_.c_str() + total_nwritten, to_send_.size() - total_nwritten);
 
           if (nwritten == -1) {
-            if (errno == EAGAIN) break;
-            if (errno == EINTR) continue;
+            if (errno == EAGAIN) {
+              break;
+            }
+            if (errno == EINTR) {
+              continue;
+            }
             LOG_ERR("Error writing to the server");
-            return -1;
+            return (-1) != 0;
           }
           total_nwritten += nwritten;
 
-        } while ((unsigned)total_nwritten < to_send_.size());
+        } while (static_cast<unsigned>(total_nwritten) < to_send_.size());
 
         to_send_.assign(to_send_.substr(total_nwritten));
       }
     }
   }
-  return 0;
+  return false;
 }
 
 int AOFSender::mask_wait_(int fd, int mask, long long milliseconds) {
@@ -191,20 +206,30 @@ int AOFSender::mask_wait_(int fd, int mask, long long milliseconds) {
 
   memset(&pfd, 0, sizeof(pfd));
   pfd.fd = fd;
-  if (mask & RM_READBLE) pfd.events |= POLLIN;
-  if (mask & RM_WRITABLE) pfd.events |= POLLOUT;
+  if ((mask & RM_READBLE) != 0) {
+    pfd.events |= POLLIN;
+  }
+  if ((mask & RM_WRITABLE) != 0) {
+    pfd.events |= POLLOUT;
+  }
   pfd.events |= POLLERR;
   pfd.events |= POLLHUP;
 
   switch (poll(&pfd, 1, milliseconds)) {
     case 1:
-      if (pfd.revents & POLLIN) retmask |= RM_READBLE;
-      if (pfd.revents & POLLOUT) retmask |= RM_WRITABLE;
-      if (pfd.revents & POLLERR || pfd.revents & POLLHUP) {
+      if ((pfd.revents & POLLIN) != 0) {
+        retmask |= RM_READBLE;
+      }
+      if ((pfd.revents & POLLOUT) != 0) {
+        retmask |= RM_WRITABLE;
+      }
+      if (((pfd.revents & POLLERR) != 0) || ((pfd.revents & POLLHUP) != 0)) {
         retmask |= RM_RECONN;
         close(fd);
       }
-      if (pfd.revents & POLLNVAL) retmask |= RM_RECONN;
+      if ((pfd.revents & POLLNVAL) != 0) {
+        retmask |= RM_RECONN;
+      }
       break;
     case -1:
       retmask |= RM_RECONN;
@@ -235,22 +260,25 @@ bool AOFSender::set_nonblock_(int fd) {
 }
 
 bool AOFSender::check_succ_(const std::string& reply, long& succ, long& fail) {
-  if (reply.empty()) return false;
+  if (reply.empty()) {
+    return false;
+  }
 
   std::string line;
   std::stringstream ss(reply);
   int tmp_fail = fail;
   while (std::getline(ss, line)) {
-    if (line.empty() || line[0] == '\r') continue;
-    if (line.find("ERR") != std::string::npos)
+    if (line.empty() || line[0] == '\r') {
+      continue;
+    }
+    if (line.find("ERR") != std::string::npos) {
       fail++;
-    else
+    } else {
       succ++;
+    }
   }
   // skip last empty line
-  if (tmp_fail != fail) return false;
-
-  return true;
+  return tmp_fail == fail;
 }
 
 void AOFSender::print_result() {

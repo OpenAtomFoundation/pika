@@ -59,11 +59,12 @@ int main(int argc, char** argv) {
   std::cout << "thread: " << thread_num << std::endl;
   std::cout << "password: " << password << std::endl;
 
+  senders.reserve(thread_num);
   for (int i = 0; i < thread_num; i++) {
     senders.push_back(new SenderThread(ip, port, password));
   }
 
-  ScanThread* scan_thread = new ScanThread(filename, senders, ttl);
+  auto scan_thread = new ScanThread(filename, senders, ttl);
 
   for (int i = 0; i < thread_num; i++) {
     senders[i]->StartThread();

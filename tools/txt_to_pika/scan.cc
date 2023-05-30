@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 
-ScanThread::~ScanThread() {}
+ScanThread::~ScanThread() = default;
 
 void ScanThread::ScanFile() {
   log_info("Start to scan");
@@ -14,7 +14,9 @@ void ScanThread::ScanFile() {
 
   uint64_t index = 0;
   while (index < filesize) {
-    std::string str_key, str_value, cmd;
+    std::string str_key;
+    std::string str_value;
+    std::string cmd;
     uint32_t key_len;
     fout.read(reinterpret_cast<char*>(&key_len), sizeof(uint32_t));
     char* key = new char[key_len];

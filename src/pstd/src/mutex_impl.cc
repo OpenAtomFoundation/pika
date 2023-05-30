@@ -9,13 +9,12 @@
 #include "pstd/include/mutex.h"
 #include "pstd/include/mutex_impl.h"
 
-namespace pstd {
-namespace lock {
+namespace pstd::lock {
 
 class MutexImpl : public Mutex {
  public:
-  MutexImpl() {}
-  ~MutexImpl() {}
+  MutexImpl() = default;
+  ~MutexImpl() override = default;
 
   Status Lock() override;
 
@@ -31,8 +30,8 @@ class MutexImpl : public Mutex {
 
 class CondVarImpl : public CondVar {
  public:
-  CondVarImpl() {}
-  ~CondVarImpl() {}
+  CondVarImpl() = default;
+  ~CondVarImpl() override = default;
 
   Status Wait(std::shared_ptr<Mutex> mutex) override;
 
@@ -116,5 +115,4 @@ Status CondVarImpl::WaitFor(std::shared_ptr<Mutex> mutex, int64_t timeout_time) 
   // CV was signaled, or we spuriously woke up (but didn't time out)
   return s;
 }
-}  // namespace lock
-}  // namespace pstd
+}  // namespace pstd::lock

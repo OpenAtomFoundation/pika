@@ -5,6 +5,8 @@
 
 #include <glog/logging.h>
 
+#include <utility>
+
 #include "pstd/include/pstd_coding.h"
 #include "pstd/include/pstd_string.h"
 
@@ -17,7 +19,7 @@
 extern PikaPort* g_pika_port;
 
 MasterConn::MasterConn(int fd, std::string ip_port, void* worker_specific_data)
-    : NetConn(fd, ip_port, nullptr),
+    : NetConn(fd, std::move(ip_port), nullptr),
       rbuf_(nullptr),
       rbuf_len_(0),
       rbuf_size_(REDIS_IOBUF_LEN),
@@ -102,7 +104,7 @@ int32_t MasterConn::GetNextNum(const std::string& content, int32_t left_pos, int
   //            012 3
   // num range [left_pos + 1, right_pos - 2]
   assert(left_pos < right_pos);
-  if (pstd::string2int(content.data() + left_pos + 1, right_pos - left_pos - 2, value)) {
+  if (pstd::string2int(content.data() + left_pos + 1, right_pos - left_pos - 2, value) != 0) {
     return 0;
   }
   return -1;
@@ -113,7 +115,8 @@ net::ReadStatus MasterConn::ParseRedisRESPArray(const std::string& content, net:
   int32_t pos = 0;
   int32_t next_parse_pos = 0;
   int32_t content_len = content.size();
-  long multibulk_len = 0, bulk_len = 0;
+  long multibulk_len = 0;
+  long bulk_len = 0;
   if (content.empty() || content[0] != '*') {
     LOG(INFO) << "Content empty() or the first character of the redis protocol string not equal '*'";
     return net::kParseError;
@@ -133,7 +136,7 @@ net::ReadStatus MasterConn::ParseRedisRESPArray(const std::string& content, net:
   //               012 3 4567 8
 
   argv->clear();
-  while (multibulk_len) {
+  while (multibulk_len != 0) {
     if (content[next_parse_pos] != '$') {
       LOG(INFO) << "The first charactor of the RESP type element not equal '$'";
       return net::kParseError;

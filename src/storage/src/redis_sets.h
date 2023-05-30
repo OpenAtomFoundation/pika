@@ -17,14 +17,14 @@
 #include "src/redis.h"
 
 #define SPOP_COMPACT_THRESHOLD_COUNT 500
-#define SPOP_COMPACT_THRESHOLD_DURATION 1000 * 1000  // 1000ms
+#define SPOP_COMPACT_THRESHOLD_DURATION (1000 * 1000)  // 1000ms
 
 namespace storage {
 
 class RedisSets : public Redis {
  public:
-  RedisSets(Storage* const s, const DataType& type);
-  ~RedisSets();
+  RedisSets(Storage* s, const DataType& type);
+  ~RedisSets() override;
 
   // Common Commands
   Status Open(const StorageOptions& storage_options, const std::string& db_path) override;

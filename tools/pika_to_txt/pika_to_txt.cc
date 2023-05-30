@@ -64,8 +64,8 @@ int main(int argc, char** argv) {
   bw_option.options.create_if_missing = true;
   bw_option.options.write_buffer_size = 256 * 1024 * 1024;     // 256M
   bw_option.options.target_file_size_base = 20 * 1024 * 1024;  // 20M
-  storage::Storage* storage_db = new storage::Storage();
-  if (storage_db != nullptr && (status = storage_db->Open(bw_option, storage_db_path)).ok()) {
+  auto storage_db = new storage::Storage();
+  if (storage_db && (status = storage_db->Open(bw_option, storage_db_path)).ok()) {
     std::cout << "Open Storage db success..." << std::endl;
   } else {
     std::cout << "Open Storage db failed..." << std::endl;
@@ -74,9 +74,9 @@ int main(int argc, char** argv) {
 
   std::cout << "Start migrating data from Blackwidow db to " << target_file << "..." << std::endl;
 
-  WriteThread* write_thread = new WriteThread(target_file);
-  ScanThread* scan_thread = new ScanThread(write_thread, storage_db);
-  ProgressThread* progress_thread = new ProgressThread(scan_thread);
+  auto write_thread = new WriteThread(target_file);
+  auto scan_thread = new ScanThread(write_thread, storage_db);
+  auto progress_thread = new ProgressThread(scan_thread);
 
   write_thread->StartThread();
   // wait for write thread open file success

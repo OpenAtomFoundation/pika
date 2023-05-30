@@ -18,9 +18,9 @@ class SyncMasterPartition;
 
 class PikaReplServerConn : public net::PbConn {
  public:
-  PikaReplServerConn(int fd, std::string ip_port, net::Thread* thread, void* worker_specific_data,
+  PikaReplServerConn(int fd, const std::string& ip_port, net::Thread* thread, void* worker_specific_data,
                      net::NetMultiplexer* mpx);
-  virtual ~PikaReplServerConn();
+  ~PikaReplServerConn() override;
 
   static void HandleMetaSyncRequest(void* arg);
   static void HandleTrySyncRequest(void* arg);
@@ -43,7 +43,7 @@ class PikaReplServerConn : public net::PbConn {
   static void HandleBinlogSyncRequest(void* arg);
   static void HandleRemoveSlaveNodeRequest(void* arg);
 
-  int DealMessage();
+  int DealMessage() override;
 };
 
 #endif  // INCLUDE_PIKA_REPL_SERVER_CONN_H_

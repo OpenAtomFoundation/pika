@@ -24,8 +24,8 @@ int PikaClientProcessor::Start() {
   if (res != net::kSuccess) {
     return res;
   }
-  for (size_t i = 0; i < bg_threads_.size(); ++i) {
-    res = bg_threads_[i]->StartThread();
+  for (auto & bg_thread : bg_threads_) {
+    res = bg_thread->StartThread();
     if (res != net::kSuccess) {
       return res;
     }
@@ -35,8 +35,8 @@ int PikaClientProcessor::Start() {
 
 void PikaClientProcessor::Stop() {
   pool_->stop_thread_pool();
-  for (size_t i = 0; i < bg_threads_.size(); ++i) {
-    bg_threads_[i]->StopThread();
+  for (auto & bg_thread : bg_threads_) {
+    bg_thread->StopThread();
   }
 }
 

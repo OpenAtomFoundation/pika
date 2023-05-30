@@ -3,12 +3,15 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
+#include <utility>
+
 #include "include/pika_table.h"
 
 #include "include/pika_cmd_table_manager.h"
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
+using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
@@ -19,9 +22,9 @@ std::string TablePath(const std::string& path, const std::string& table_name) {
   return path + buf;
 }
 
-Table::Table(const std::string& table_name, uint32_t partition_num, const std::string& db_path,
+Table::Table(std::string  table_name, uint32_t partition_num, const std::string& db_path,
              const std::string& log_path)
-    : table_name_(table_name), partition_num_(partition_num) {
+    : table_name_(std::move(table_name)), partition_num_(partition_num) {
   db_path_ = TablePath(db_path, table_name_);
   log_path_ = TablePath(log_path, "log_" + table_name_);
 
@@ -129,7 +132,7 @@ void Table::KeyScan() {
   key_scan_info_.key_scaning_ = true;
   key_scan_info_.duration = -2;  // duration -2 mean the task in waiting status,
                                  // has not been scheduled for exec
-  BgTaskArg* bg_task_arg = new BgTaskArg();
+  auto bg_task_arg = new BgTaskArg();
   bg_task_arg->table = shared_from_this();
   g_pika_server->KeyScanTaskSchedule(&DoKeyScan, reinterpret_cast<void*>(bg_task_arg));
 }
@@ -271,7 +274,7 @@ Status Table::MovetoToTrash(const std::string& path) {
     path_tmp.erase(path_tmp.length() - 1);
   }
   path_tmp += "_deleting/";
-  if (pstd::RenameFile(path, path_tmp)) {
+  if (pstd::RenameFile(path, path_tmp) != 0) {
     LOG(WARNING) << "Failed to move " << path << " to trash, error: " << strerror(errno);
     return Status::Corruption("Failed to move %s to trash", path);
   }

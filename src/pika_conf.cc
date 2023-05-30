@@ -14,9 +14,10 @@
 
 #include "include/pika_define.h"
 
+using pstd::Status;
+
 PikaConf::PikaConf(const std::string& path)
     : pstd::BaseConf(path), conf_path_(path), local_meta_(std::make_unique<PikaMeta>()) {}
-
 
 Status PikaConf::InternalGetTargetTable(const std::string& table_name, uint32_t* const target) {
   int32_t table_index = -1;
@@ -134,7 +135,7 @@ Status PikaConf::DelTableSanityCheck(const std::string& table_name) {
 
 int PikaConf::Load() {
   int ret = LoadConf();
-  if (ret != 0) {
+  if (ret) {
     return ret;
   }
 
@@ -162,7 +163,7 @@ int PikaConf::Load() {
 
   std::string swe;
   GetConfStr("slowlog-write-errorlog", &swe);
-  slowlog_write_errorlog_.store(swe == "yes" ? true : false);
+  slowlog_write_errorlog_.store(swe == "yes");
 
   int tmp_slowlog_log_slower_than;
   GetConfInt("slowlog-log-slower-than", &tmp_slowlog_log_slower_than);
@@ -274,13 +275,14 @@ int PikaConf::Load() {
 
   compact_cron_ = "";
   GetConfStr("compact-cron", &compact_cron_);
-  if (compact_cron_ != "") {
+  if (!compact_cron_.empty()) {
     bool have_week = false;
-    std::string compact_cron, week_str;
+    std::string compact_cron;
+    std::string week_str;
     int slash_num = count(compact_cron_.begin(), compact_cron_.end(), '/');
     if (slash_num == 2) {
       have_week = true;
-      std::string::size_type first_slash = compact_cron_.find("/");
+      std::string::size_type first_slash = compact_cron_.find('/');
       week_str = compact_cron_.substr(0, first_slash);
       compact_cron = compact_cron_.substr(first_slash + 1);
     } else {
@@ -288,8 +290,8 @@ int PikaConf::Load() {
     }
 
     std::string::size_type len = compact_cron.length();
-    std::string::size_type colon = compact_cron.find("-");
-    std::string::size_type underline = compact_cron.find("/");
+    std::string::size_type colon = compact_cron.find('-');
+    std::string::size_type underline = compact_cron.find('/');
     if (colon == std::string::npos || underline == std::string::npos || colon >= underline || colon + 1 >= len ||
         colon + 1 == underline || underline + 1 >= len) {
       compact_cron_ = "";
@@ -307,9 +309,9 @@ int PikaConf::Load() {
 
   compact_interval_ = "";
   GetConfStr("compact-interval", &compact_interval_);
-  if (compact_interval_ != "") {
+  if (!compact_interval_.empty()) {
     std::string::size_type len = compact_interval_.length();
-    std::string::size_type slash = compact_interval_.find("/");
+    std::string::size_type slash = compact_interval_.find('/');
     if (slash == std::string::npos || slash + 1 >= len) {
       compact_interval_ = "";
     } else {
@@ -359,7 +361,7 @@ int PikaConf::Load() {
 
   std::string at;
   GetConfStr("rate-limiter-auto-tuned", &at);
-  rate_limiter_auto_tuned_ = (at == "yes" || at.empty()) ? true : false;
+  rate_limiter_auto_tuned_ = at == "yes" || at.empty();
 
   // max_write_buffer_num
   max_write_buffer_num_ = 2;
@@ -438,33 +440,33 @@ int PikaConf::Load() {
 
   std::string sbc;
   GetConfStr("share-block-cache", &sbc);
-  share_block_cache_ = (sbc == "yes") ? true : false;
+  share_block_cache_ = sbc == "yes";
 
   std::string ciafb;
   GetConfStr("cache-index-and-filter-blocks", &ciafb);
-  cache_index_and_filter_blocks_ = (ciafb == "yes") ? true : false;
+  cache_index_and_filter_blocks_ = ciafb == "yes";
 
   std::string plfaibic;
   GetConfStr("pin_l0_filter_and_index_blocks_in_cache", &plfaibic);
-  pin_l0_filter_and_index_blocks_in_cache_ = (plfaibic == "yes") ? true : false;
+  pin_l0_filter_and_index_blocks_in_cache_ = plfaibic == "yes";
 
   std::string offh;
   GetConfStr("optimize-filters-for-hits", &offh);
-  optimize_filters_for_hits_ = (offh == "yes") ? true : false;
+  optimize_filters_for_hits_ = offh == "yes";
 
   std::string lcdlb;
   GetConfStr("level-compaction-dynamic-level-bytes", &lcdlb);
-  level_compaction_dynamic_level_bytes_ = (lcdlb == "yes") ? true : false;
+  level_compaction_dynamic_level_bytes_ = lcdlb == "yes";
 
   // daemonize
   std::string dmz;
   GetConfStr("daemonize", &dmz);
-  daemonize_ = (dmz == "yes") ? true : false;
+  daemonize_ = dmz == "yes";
 
   // binlog
   std::string wb;
   GetConfStr("write-binlog", &wb);
-  write_binlog_ = (wb == "no") ? false : true;
+  write_binlog_ = wb != "no";
   GetConfIntHuman("binlog-file-size", &binlog_file_size_);
   if (binlog_file_size_ < 1024 || static_cast<int64_t>(binlog_file_size_) > (1024LL * 1024 * 1024)) {
     binlog_file_size_ = 100 * 1024 * 1024;  // 100M
@@ -597,7 +599,7 @@ int PikaConf::ConfigRewrite() {
     }
     diff_commands_.clear();
   }
-  return WriteBack();
+  return static_cast<int>(WriteBack());
 }
 
 rocksdb::CompressionType PikaConf::GetCompression(const std::string& value) {

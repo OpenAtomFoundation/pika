@@ -19,7 +19,7 @@ namespace net {
 HolyThread::HolyThread(int port, ConnFactory* conn_factory, int cron_interval, const ServerHandle* handle, bool async)
     : ServerThread::ServerThread(port, cron_interval, handle),
       conn_factory_(conn_factory),
-      private_data_(nullptr),
+      
       keepalive_timeout_(kDefaultKeepAliveTime),
       async_(async) {}
 
@@ -72,7 +72,7 @@ std::shared_ptr<NetConn> HolyThread::get_conn(int fd) {
 
 int HolyThread::StartThread() {
   int ret = handle_->CreateWorkerSpecificData(&private_data_);
-  if (ret != 0) {
+  if (ret) {
     return ret;
   }
   return ServerThread::StartThread();
@@ -81,7 +81,7 @@ int HolyThread::StartThread() {
 int HolyThread::StopThread() {
   if (private_data_) {
     int ret = handle_->DeleteWorkerSpecificData(private_data_);
-    if (ret != 0) {
+    if (ret) {
       return ret;
     }
     private_data_ = nullptr;
@@ -101,7 +101,7 @@ void HolyThread::HandleNewConn(const int connfd, const std::string& ip_port) {
 }
 
 void HolyThread::HandleConnEvent(NetFiredEvent* pfe) {
-  if (pfe == nullptr) {
+  if (!pfe) {
     return;
   }
   std::shared_ptr<NetConn> in_conn = nullptr;
@@ -198,13 +198,13 @@ void HolyThread::DoCronTask() {
       }
       conns_.clear();
       deleting_conn_ipport_.clear();
-      for (const auto conn : to_close) {
+      for (const auto& conn : to_close) {
         CloseFd(conn);
       }
       return;
     }
 
-    std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
+    auto iter = conns_.begin();
     while (iter != conns_.end()) {
       std::shared_ptr<NetConn> conn = iter->second;
       // Check connection should be closed
@@ -228,16 +228,16 @@ void HolyThread::DoCronTask() {
       ++iter;
     }
   }
-  for (const auto conn : to_close) {
+  for (const auto& conn : to_close) {
     CloseFd(conn);
   }
-  for (const auto conn : to_timeout) {
+  for (const auto& conn : to_timeout) {
     CloseFd(conn);
     handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
   }
 }
 
-void HolyThread::CloseFd(std::shared_ptr<NetConn> conn) {
+void HolyThread::CloseFd(const std::shared_ptr<NetConn>& conn) {
   close(conn->fd());
   handle_->FdClosedHandle(conn->fd(), conn->ip_port());
 }
@@ -292,7 +292,7 @@ void HolyThread::ProcessNotifyEvents(const net::NetFiredEvent* pfe) {
         } else if (ti.notify_type() == net::kNotiClose) {
           LOG(INFO) << "receive noti close";
           std::shared_ptr<net::NetConn> conn = get_conn(fd);
-          if (conn == nullptr) {
+          if (!conn) {
             continue;
           }
           CloseFd(conn);

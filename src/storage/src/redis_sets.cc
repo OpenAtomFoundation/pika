@@ -25,7 +25,7 @@ RedisSets::RedisSets(Storage* const s, const DataType& type) : Redis(s, type) {
   spop_counts_store_->SetCapacity(1000);
 }
 
-RedisSets::~RedisSets() {}
+RedisSets::~RedisSets() = default;
 
 rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std::string& db_path) {
   statistics_store_->SetCapacity(storage_options.statistics_max_size);
@@ -67,9 +67,9 @@ rocksdb::Status RedisSets::Open(const StorageOptions& storage_options, const std
 
   std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
   // Meta CF
-  column_families.push_back(rocksdb::ColumnFamilyDescriptor(rocksdb::kDefaultColumnFamilyName, meta_cf_ops));
+  column_families.emplace_back(rocksdb::kDefaultColumnFamilyName, meta_cf_ops);
   // Member CF
-  column_families.push_back(rocksdb::ColumnFamilyDescriptor("member_cf", member_cf_ops));
+  column_families.emplace_back("member_cf", member_cf_ops);
   return rocksdb::DB::Open(db_ops, db_path, column_families, &handles_, &db_);
 }
 
@@ -142,7 +142,7 @@ rocksdb::Status RedisSets::ScanKeys(const std::string& pattern, std::vector<std:
     ParsedSetsMetaValue parsed_sets_meta_value(iter->value());
     if (!parsed_sets_meta_value.IsStale() && parsed_sets_meta_value.count() != 0) {
       key = iter->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0)) {
+      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
     }
@@ -169,8 +169,8 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
     key = iter->key().ToString();
     meta_value = iter->value().ToString();
     ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
-    if (!parsed_sets_meta_value.IsStale() && parsed_sets_meta_value.count() &&
-        StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0)) {
+    if (!parsed_sets_meta_value.IsStale() && (parsed_sets_meta_value.count() != 0) &&
+        (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0)) {
       parsed_sets_meta_value.InitialMetaValue();
       batch.Put(handles_[0], key, meta_value);
     }
@@ -186,7 +186,7 @@ rocksdb::Status RedisSets::PKPatternMatchDel(const std::string& pattern, int32_t
     }
     iter->Next();
   }
-  if (batch.Count()) {
+  if (batch.Count() != 0U) {
     s = db_->Write(default_write_options_, &batch);
     if (s.ok()) {
       total_delete += batch.Count();
@@ -283,7 +283,7 @@ rocksdb::Status RedisSets::SCard(const Slice& key, int32_t* ret) {
 }
 
 rocksdb::Status RedisSets::SDiff(const std::vector<std::string>& keys, std::vector<std::string>* members) {
-  if (keys.size() <= 0) {
+  if (keys.empty()) {
     return rocksdb::Status::Corruption("SDiff invalid parameter, no keys");
   }
 
@@ -349,7 +349,7 @@ rocksdb::Status RedisSets::SDiff(const std::vector<std::string>& keys, std::vect
 }
 
 rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
-  if (keys.size() <= 0) {
+  if (keys.empty()) {
     return rocksdb::Status::Corruption("SDiffsotre invalid parameter, no keys");
   }
 
@@ -442,7 +442,7 @@ rocksdb::Status RedisSets::SDiffstore(const Slice& destination, const std::vecto
 }
 
 rocksdb::Status RedisSets::SInter(const std::vector<std::string>& keys, std::vector<std::string>* members) {
-  if (keys.size() <= 0) {
+  if (keys.empty()) {
     return rocksdb::Status::Corruption("SInter invalid parameter, no keys");
   }
 
@@ -517,7 +517,7 @@ rocksdb::Status RedisSets::SInter(const std::vector<std::string>& keys, std::vec
 }
 
 rocksdb::Status RedisSets::SInterstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
-  if (keys.size() <= 0) {
+  if (keys.empty()) {
     return rocksdb::Status::Corruption("SInterstore invalid parameter, no keys");
   }
 
@@ -918,7 +918,8 @@ rocksdb::Status RedisSets::SRandmember(const Slice& key, int32_t count, std::vec
       }
       std::sort(targets.begin(), targets.end());
 
-      int32_t cur_index = 0, idx = 0;
+      int32_t cur_index = 0;
+      int32_t idx = 0;
       SetsMemberKey sets_member_key(key, version, Slice());
       auto iter = db_->NewIterator(default_read_options_, handles_[1]);
       for (iter->Seek(sets_member_key.Encode()); iter->Valid() && cur_index < size; iter->Next(), cur_index++) {
@@ -986,7 +987,7 @@ rocksdb::Status RedisSets::SRem(const Slice& key, const std::vector<std::string>
 }
 
 rocksdb::Status RedisSets::SUnion(const std::vector<std::string>& keys, std::vector<std::string>* members) {
-  if (keys.size() <= 0) {
+  if (keys.empty()) {
     return rocksdb::Status::Corruption("SUnion invalid parameter, no keys");
   }
 
@@ -999,12 +1000,12 @@ rocksdb::Status RedisSets::SUnion(const std::vector<std::string>& keys, std::vec
   std::vector<KeyVersion> vaild_sets;
   rocksdb::Status s;
 
-  for (uint32_t idx = 0; idx < keys.size(); ++idx) {
-    s = db_->Get(read_options, handles_[0], keys[idx], &meta_value);
+  for (const auto & key : keys) {
+    s = db_->Get(read_options, handles_[0], key, &meta_value);
     if (s.ok()) {
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
       if (!parsed_sets_meta_value.IsStale() && parsed_sets_meta_value.count() != 0) {
-        vaild_sets.push_back({keys[idx], parsed_sets_meta_value.version()});
+        vaild_sets.push_back({key, parsed_sets_meta_value.version()});
       }
     } else if (!s.IsNotFound()) {
       return s;
@@ -1031,7 +1032,7 @@ rocksdb::Status RedisSets::SUnion(const std::vector<std::string>& keys, std::vec
 }
 
 rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vector<std::string>& keys, int32_t* ret) {
-  if (keys.size() <= 0) {
+  if (keys.empty()) {
     return rocksdb::Status::Corruption("SUnionstore invalid parameter, no keys");
   }
 
@@ -1047,12 +1048,12 @@ rocksdb::Status RedisSets::SUnionstore(const Slice& destination, const std::vect
   std::vector<KeyVersion> vaild_sets;
   rocksdb::Status s;
 
-  for (uint32_t idx = 0; idx < keys.size(); ++idx) {
-    s = db_->Get(read_options, handles_[0], keys[idx], &meta_value);
+  for (const auto & key : keys) {
+    s = db_->Get(read_options, handles_[0], key, &meta_value);
     if (s.ok()) {
       ParsedSetsMetaValue parsed_sets_meta_value(&meta_value);
       if (!parsed_sets_meta_value.IsStale() && parsed_sets_meta_value.count() != 0) {
-        vaild_sets.push_back({keys[idx], parsed_sets_meta_value.version()});
+        vaild_sets.push_back({key, parsed_sets_meta_value.version()});
       }
     } else if (!s.IsNotFound()) {
       return s;
@@ -1150,7 +1151,7 @@ rocksdb::Status RedisSets::SScan(const Slice& key, int64_t cursor, const std::st
            iter->Next()) {
         ParsedSetsMemberKey parsed_sets_member_key(iter->key());
         std::string member = parsed_sets_member_key.member().ToString();
-        if (StringMatch(pattern.data(), pattern.size(), member.data(), member.size(), 0)) {
+        if (StringMatch(pattern.data(), pattern.size(), member.data(), member.size(), 0) != 0) {
           members->push_back(member);
         }
         rest--;
@@ -1185,8 +1186,8 @@ rocksdb::Status RedisSets::PKScanRange(const Slice& key_start, const Slice& key_
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  bool start_no_limit = !key_start.compare("");
-  bool end_no_limit = !key_end.compare("");
+  bool start_no_limit = key_start.compare("") == 0;
+  bool end_no_limit = key_end.compare("") == 0;
 
   if (!start_no_limit && !end_no_limit && (key_start.compare(key_end) > 0)) {
     return rocksdb::Status::InvalidArgument("error in given range");
@@ -1205,7 +1206,7 @@ rocksdb::Status RedisSets::PKScanRange(const Slice& key_start, const Slice& key_
       it->Next();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0)) {
+      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;
@@ -1238,8 +1239,8 @@ rocksdb::Status RedisSets::PKRScanRange(const Slice& key_start, const Slice& key
   iterator_options.snapshot = snapshot;
   iterator_options.fill_cache = false;
 
-  bool start_no_limit = !key_start.compare("");
-  bool end_no_limit = !key_end.compare("");
+  bool start_no_limit = key_start.compare("") == 0;
+  bool end_no_limit = key_end.compare("") == 0;
 
   if (!start_no_limit && !end_no_limit && (key_start.compare(key_end) < 0)) {
     return rocksdb::Status::InvalidArgument("error in given range");
@@ -1258,7 +1259,7 @@ rocksdb::Status RedisSets::PKRScanRange(const Slice& key_start, const Slice& key
       it->Prev();
     } else {
       key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0)) {
+      if (StringMatch(pattern.data(), pattern.size(), key.data(), key.size(), 0) != 0) {
         keys->push_back(key);
       }
       remain--;
@@ -1342,7 +1343,7 @@ bool RedisSets::Scan(const std::string& start_key, const std::string& pattern, s
       continue;
     } else {
       meta_key = it->key().ToString();
-      if (StringMatch(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0)) {
+      if (StringMatch(pattern.data(), pattern.size(), meta_key.data(), meta_key.size(), 0) != 0) {
         keys->push_back(meta_key);
       }
       (*count)--;

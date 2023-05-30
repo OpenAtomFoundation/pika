@@ -29,7 +29,6 @@
 #define kSendKeepAliveTimeout (2 * 1000000)
 #define kRecvKeepAliveTimeout (20 * 1000000)
 
-using pstd::Status;
 
 class SyncPartition {
  public:
@@ -47,36 +46,36 @@ class SyncPartition {
 class SyncMasterPartition : public SyncPartition {
  public:
   SyncMasterPartition(const std::string& table_name, uint32_t partition_id);
-  Status AddSlaveNode(const std::string& ip, int port, int session_id);
-  Status RemoveSlaveNode(const std::string& ip, int port);
+  pstd::Status AddSlaveNode(const std::string& ip, int port, int session_id);
+  pstd::Status RemoveSlaveNode(const std::string& ip, int port);
 
-  Status ActivateSlaveBinlogSync(const std::string& ip, int port, const LogOffset& offset);
-  Status ActivateSlaveDbSync(const std::string& ip, int port);
+  pstd::Status ActivateSlaveBinlogSync(const std::string& ip, int port, const LogOffset& offset);
+  pstd::Status ActivateSlaveDbSync(const std::string& ip, int port);
 
-  Status SyncBinlogToWq(const std::string& ip, int port);
+  pstd::Status SyncBinlogToWq(const std::string& ip, int port);
 
-  Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset, BinlogOffset* acked_offset);
-  Status GetSlaveState(const std::string& ip, int port, SlaveState* const slave_state);
+  pstd::Status GetSlaveSyncBinlogInfo(const std::string& ip, int port, BinlogOffset* sent_offset, BinlogOffset* acked_offset);
+  pstd::Status GetSlaveState(const std::string& ip, int port, SlaveState* slave_state);
 
-  Status SetLastSendTime(const std::string& ip, int port, uint64_t time);
-  Status GetLastSendTime(const std::string& ip, int port, uint64_t* time);
+  pstd::Status SetLastSendTime(const std::string& ip, int port, uint64_t time);
+  pstd::Status GetLastSendTime(const std::string& ip, int port, uint64_t* time);
 
-  Status SetLastRecvTime(const std::string& ip, int port, uint64_t time);
-  Status GetLastRecvTime(const std::string& ip, int port, uint64_t* time);
+  pstd::Status SetLastRecvTime(const std::string& ip, int port, uint64_t time);
+  pstd::Status GetLastRecvTime(const std::string& ip, int port, uint64_t* time);
 
-  Status GetSafetyPurgeBinlog(std::string* safety_purge);
+  pstd::Status GetSafetyPurgeBinlog(std::string* safety_purge);
   bool BinlogCloudPurge(uint32_t index);
 
-  Status WakeUpSlaveBinlogSync();
-  Status CheckSyncTimeout(uint64_t now);
+  pstd::Status WakeUpSlaveBinlogSync();
+  pstd::Status CheckSyncTimeout(uint64_t now);
 
   int GetNumberOfSlaveNode();
   bool CheckSlaveNodeExist(const std::string& ip, int port);
-  Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
+  pstd::Status GetSlaveNodeSession(const std::string& ip, int port, int32_t* session);
 
   void GetValidSlaveNames(std::vector<std::string>* slavenames);
   // display use
-  Status GetInfo(std::string* info);
+  pstd::Status GetInfo(std::string* info);
   // debug use
   std::string ToStringStatus();
 
@@ -85,21 +84,21 @@ class SyncMasterPartition : public SyncPartition {
                       int session_id);
 
   // consensus use
-  Status ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end);
-  Status ConsensusProposeLog(std::shared_ptr<Cmd> cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
+  pstd::Status ConsensusUpdateSlave(const std::string& ip, int port, const LogOffset& start, const LogOffset& end);
+  pstd::Status ConsensusProposeLog(const std::shared_ptr<Cmd>& cmd_ptr, std::shared_ptr<PikaClientConn> conn_ptr,
                              std::shared_ptr<std::string> resp_ptr);
-  Status ConsensusSanityCheck();
-  Status ConsensusProcessLeaderLog(std::shared_ptr<Cmd> cmd_ptr, const BinlogItem& attribute);
-  Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
+  pstd::Status ConsensusSanityCheck();
+  pstd::Status ConsensusProcessLeaderLog(const std::shared_ptr<Cmd>& cmd_ptr, const BinlogItem& attribute);
+  pstd::Status ConsensusProcessLocalUpdate(const LogOffset& leader_commit);
   LogOffset ConsensusCommittedIndex();
   LogOffset ConsensusLastIndex();
   uint32_t ConsensusTerm();
   void ConsensusUpdateTerm(uint32_t term);
-  Status ConsensusUpdateAppliedIndex(const LogOffset& offset);
+  pstd::Status ConsensusUpdateAppliedIndex(const LogOffset& offset);
   LogOffset ConsensusAppliedIndex();
-  Status ConsensusLeaderNegotiate(const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);
-  Status ConsensusFollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset);
-  Status ConsensusReset(LogOffset applied_offset);
+  pstd::Status ConsensusLeaderNegotiate(const LogOffset& f_last_offset, bool* reject, std::vector<LogOffset>* hints);
+  pstd::Status ConsensusFollowerNegotiate(const std::vector<LogOffset>& hints, LogOffset* reply_offset);
+  pstd::Status ConsensusReset(const LogOffset& applied_offset);
   void CommitPreviousLogs(const uint32_t& term);
 
   std::shared_ptr<StableLog> StableLogger() { return coordinator_.StableLogger(); }
@@ -114,7 +113,7 @@ class SyncMasterPartition : public SyncPartition {
  private:
   bool CheckReadBinlogFromCache();
   // invoker need to hold slave_mu_
-  Status ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr);
+  pstd::Status ReadBinlogFileToWq(const std::shared_ptr<SlaveNode>& slave_ptr);
 
   std::shared_ptr<SlaveNode> GetSlaveNode(const std::string& ip, int port);
   std::unordered_map<std::string, std::shared_ptr<SlaveNode>> GetAllSlaveNodes();
@@ -138,10 +137,10 @@ class SyncSlavePartition : public SyncPartition {
   void SetReplState(const ReplState& repl_state);
   ReplState State();
 
-  Status CheckSyncTimeout(uint64_t now);
+  pstd::Status CheckSyncTimeout(uint64_t now);
 
   // For display
-  Status GetInfo(std::string* info);
+  pstd::Status GetInfo(std::string* info);
   // For debug
   std::string ToStringStatus();
 
@@ -176,26 +175,26 @@ class PikaReplicaManager {
 
   bool CheckMasterSyncFinished();
 
-  Status AddSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos);
-  Status AddSyncPartition(const std::set<PartitionInfo>& p_infos);
-  Status RemoveSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos);
-  Status RemoveSyncPartition(const std::set<PartitionInfo>& p_infos);
-  Status ActivateSyncSlavePartition(const RmNode& node, const ReplState& repl_state);
-  Status DeactivateSyncSlavePartition(const PartitionInfo& p_info);
-  Status SyncTableSanityCheck(const std::string& table_name);
-  Status DelSyncTable(const std::string& table_name);
+  pstd::Status AddSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos);
+  pstd::Status AddSyncPartition(const std::set<PartitionInfo>& p_infos);
+  pstd::Status RemoveSyncPartitionSanityCheck(const std::set<PartitionInfo>& p_infos);
+  pstd::Status RemoveSyncPartition(const std::set<PartitionInfo>& p_infos);
+  pstd::Status ActivateSyncSlavePartition(const RmNode& node, const ReplState& repl_state);
+  pstd::Status DeactivateSyncSlavePartition(const PartitionInfo& p_info);
+  pstd::Status SyncTableSanityCheck(const std::string& table_name);
+  pstd::Status DelSyncTable(const std::string& table_name);
 
   // For Pika Repl Client Thread
-  Status SendMetaSyncRequest();
-  Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t partition_id);
-  Status SendPartitionTrySyncRequest(const std::string& table_name, size_t partition_id);
-  Status SendPartitionDBSyncRequest(const std::string& table_name, size_t partition_id);
-  Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id, const LogOffset& ack_start,
+  pstd::Status SendMetaSyncRequest();
+  pstd::Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t partition_id);
+  pstd::Status SendPartitionTrySyncRequest(const std::string& table_name, size_t partition_id);
+  pstd::Status SendPartitionDBSyncRequest(const std::string& table_name, size_t partition_id);
+  pstd::Status SendPartitionBinlogSyncAckRequest(const std::string& table, uint32_t partition_id, const LogOffset& ack_start,
                                            const LogOffset& ack_end, bool is_first_send = false);
-  Status CloseReplClientConn(const std::string& ip, int32_t port);
+  pstd::Status CloseReplClientConn(const std::string& ip, int32_t port);
 
   // For Pika Repl Server Thread
-  Status SendSlaveBinlogChipsRequest(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
+  pstd::Status SendSlaveBinlogChipsRequest(const std::string& ip, int port, const std::vector<WriteTask>& tasks);
 
   // For SyncMasterPartition
   std::shared_ptr<SyncMasterPartition> GetSyncMasterPartitionByName(const PartitionInfo& p_info);
@@ -203,28 +202,28 @@ class PikaReplicaManager {
   // For SyncSlavePartition
   std::shared_ptr<SyncSlavePartition> GetSyncSlavePartitionByName(const PartitionInfo& p_info);
 
-  Status RunSyncSlavePartitionStateMachine();
+  pstd::Status RunSyncSlavePartitionStateMachine();
 
-  Status CheckSyncTimeout(uint64_t now);
+  pstd::Status CheckSyncTimeout(uint64_t now);
 
   // To check partition info
   // For pkcluster info command
-  Status GetPartitionInfo(const std::string& table, uint32_t partition_id, std::string* info);
+  pstd::Status GetPartitionInfo(const std::string& table, uint32_t partition_id, std::string* info);
 
   void FindCompleteReplica(std::vector<std::string>* replica);
   void FindCommonMaster(std::string* master);
-  Status CheckPartitionRole(const std::string& table, uint32_t partition_id, int* role);
+  pstd::Status CheckPartitionRole(const std::string& table, uint32_t partition_id, int* role);
 
   void RmStatus(std::string* debug_info);
 
-  static bool CheckSlavePartitionState(const std::string& ip, const int port);
+  static bool CheckSlavePartitionState(const std::string& ip, int port);
 
-  Status LostConnection(const std::string& ip, int port);
+  pstd::Status LostConnection(const std::string& ip, int port);
 
   // Update binlog win and try to send next binlog
-  Status UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start, const LogOffset& offset_end);
+  pstd::Status UpdateSyncBinlogStatus(const RmNode& slave, const LogOffset& offset_start, const LogOffset& offset_end);
 
-  Status WakeUpBinlogSync();
+  pstd::Status WakeUpBinlogSync();
 
   // write_queue related
   void ProduceWriteQueue(const std::string& ip, int port, uint32_t partition_id, const std::vector<WriteTask>& tasks);
@@ -235,9 +234,9 @@ class PikaReplicaManager {
   void ScheduleReplServerBGTask(net::TaskFunc func, void* arg);
   void ScheduleReplClientBGTask(net::TaskFunc func, void* arg);
   void ScheduleWriteBinlogTask(const std::string& table_partition,
-                               const std::shared_ptr<InnerMessage::InnerResponse> res,
+                               const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                std::shared_ptr<net::PbConn> conn, void* res_private_data);
-  void ScheduleWriteDBTask(const std::shared_ptr<Cmd> cmd_ptr, const LogOffset& offset, const std::string& table_name,
+  void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& table_name,
                            uint32_t partition_id);
 
   void ReplServerRemoveClientConn(int fd);
@@ -245,7 +244,7 @@ class PikaReplicaManager {
 
  private:
   void InitPartition();
-  Status SelectLocalIp(const std::string& remote_ip, const int remote_port, std::string* const local_ip);
+  pstd::Status SelectLocalIp(const std::string& remote_ip, int remote_port, std::string* local_ip);
 
   std::shared_mutex partitions_rw_;
   std::unordered_map<PartitionInfo, std::shared_ptr<SyncMasterPartition>, hash_partition_info> sync_master_partitions_;

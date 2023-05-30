@@ -17,8 +17,8 @@ namespace storage {
 
 class RedisZSets : public Redis {
  public:
-  RedisZSets(Storage* const s, const DataType& type);
-  ~RedisZSets() = default;
+  RedisZSets(Storage* s, const DataType& type);
+  ~RedisZSets() override = default;
 
   // Common Commands
   Status Open(const StorageOptions& storage_options, const std::string& db_path) override;
@@ -38,7 +38,7 @@ class RedisZSets : public Redis {
   Status ZRangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int64_t count,
                        int64_t offset, std::vector<ScoreMember>* score_members);
   Status ZRank(const Slice& key, const Slice& member, int32_t* rank);
-  Status ZRem(const Slice& key, std::vector<std::string> members, int32_t* ret);
+  Status ZRem(const Slice& key, const std::vector<std::string>& members, int32_t* ret);
   Status ZRemrangebyrank(const Slice& key, int32_t start, int32_t stop, int32_t* ret);
   Status ZRemrangebyscore(const Slice& key, double min, double max, bool left_close, bool right_close, int32_t* ret);
   Status ZRevrange(const Slice& key, int32_t start, int32_t stop, std::vector<ScoreMember>* score_members);
@@ -47,9 +47,9 @@ class RedisZSets : public Redis {
   Status ZRevrank(const Slice& key, const Slice& member, int32_t* rank);
   Status ZScore(const Slice& key, const Slice& member, double* score);
   Status ZUnionstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     const AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, int32_t* ret);
   Status ZInterstore(const Slice& destination, const std::vector<std::string>& keys, const std::vector<double>& weights,
-                     const AGGREGATE agg, int32_t* ret);
+                     AGGREGATE agg, int32_t* ret);
   Status ZRangebylex(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
                      std::vector<std::string>* members);
   Status ZLexcount(const Slice& key, const Slice& min, const Slice& max, bool left_close, bool right_close,
@@ -62,8 +62,8 @@ class RedisZSets : public Redis {
                      std::vector<std::string>* keys, std::string* next_key);
   Status PKRScanRange(const Slice& key_start, const Slice& key_end, const Slice& pattern, int32_t limit,
                       std::vector<std::string>* keys, std::string* next_key);
-  Status ZPopMax(const Slice& key, const int64_t count, std::vector<ScoreMember>* score_members);
-  Status ZPopMin(const Slice& key, const int64_t count, std::vector<ScoreMember>* score_members);
+  Status ZPopMax(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
+  Status ZPopMin(const Slice& key, int64_t count, std::vector<ScoreMember>* score_members);
 
   // Keys Commands
   Status Expire(const Slice& key, int32_t ttl) override;

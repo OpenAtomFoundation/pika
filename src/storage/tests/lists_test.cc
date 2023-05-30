@@ -26,7 +26,7 @@ static bool elements_match(storage::Storage* const db, const Slice& key,
     return true;
   }
   for (uint64_t idx = 0; idx < elements_out.size(); ++idx) {
-    if (strcmp(elements_out[idx].c_str(), expect_elements[idx].c_str())) {
+    if (strcmp(elements_out[idx].c_str(), expect_elements[idx].c_str()) != 0) {
       return false;
     }
   }
@@ -39,7 +39,7 @@ static bool elements_match(const std::vector<std::string>& elements_out,
     return false;
   }
   for (uint64_t idx = 0; idx < elements_out.size(); ++idx) {
-    if (strcmp(elements_out[idx].c_str(), expect_elements[idx].c_str())) {
+    if (static_cast<int>(strcmp(elements_out[idx].c_str(), expect_elements[idx].c_str()) != 0) != 0) {
       return false;
     }
   }
@@ -52,7 +52,7 @@ static bool len_match(storage::Storage* const db, const Slice& key, uint64_t exp
   if (!s.ok() && !s.IsNotFound()) {
     return false;
   }
-  if (s.IsNotFound() && !expect_len) {
+  if (s.IsNotFound() && (expect_len == 0U)) {
     return true;
   }
   return len == expect_len;
@@ -61,7 +61,7 @@ static bool len_match(storage::Storage* const db, const Slice& key, uint64_t exp
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
-  if (!ret || !type_status[storage::DataType::kLists].ok()) {
+  if ((ret == 0) || !type_status[storage::DataType::kLists].ok()) {
     return false;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -70,12 +70,12 @@ static bool make_expired(storage::Storage* const db, const Slice& key) {
 
 class ListsTest : public ::testing::Test {
  public:
-  ListsTest() {}
-  virtual ~ListsTest() {}
+  ListsTest() = default;
+  ~ListsTest() override = default;
 
-  void SetUp() {
+  void SetUp() override {
     std::string path = "./db/lists";
-    if (access(path.c_str(), F_OK)) {
+    if (access(path.c_str(), F_OK) != 0) {
       mkdir(path.c_str(), 0755);
     }
     storage_options.options.create_if_missing = true;
@@ -86,13 +86,13 @@ class ListsTest : public ::testing::Test {
     }
   }
 
-  void TearDown() {
+  void TearDown() override {
     std::string path = "./db/lists";
     DeleteFiles(path.c_str());
   }
 
-  static void SetUpTestCase() {}
-  static void TearDownTestCase() {}
+  static void SetUpTestSuite() {}
+  static void TearDownTestSuite() {}
 
   StorageOptions storage_options;
   storage::Storage db;
@@ -100,7 +100,7 @@ class ListsTest : public ::testing::Test {
 };
 
 // LIndex
-TEST_F(ListsTest, LIndexTest) {
+TEST_F(ListsTest, LIndexTest) {  // NOLINT
   uint64_t num;
   std::string element;
 
@@ -263,7 +263,7 @@ TEST_F(ListsTest, LIndexTest) {
 }
 
 // LInsert
-TEST_F(ListsTest, LInsertTest) {
+TEST_F(ListsTest, LInsertTest) {  // NOLINT
   int64_t ret;
   uint64_t num;
 
@@ -455,7 +455,7 @@ TEST_F(ListsTest, LInsertTest) {
 }
 
 // LLen
-TEST_F(ListsTest, LLenTest) {
+TEST_F(ListsTest, LLenTest) {  // NOLINT
   uint64_t num;
 
   // ***************** Group 1 Test *****************
@@ -489,7 +489,7 @@ TEST_F(ListsTest, LLenTest) {
 }
 
 // LPop
-TEST_F(ListsTest, LPopTest) {
+TEST_F(ListsTest, LPopTest) {  // NOLINT
   uint64_t num;
   std::string element;
 
@@ -560,7 +560,7 @@ TEST_F(ListsTest, LPopTest) {
 }
 
 // LPush
-TEST_F(ListsTest, LPushTest) {
+TEST_F(ListsTest, LPushTest) {  // NOLINT
   int32_t ret;
   uint64_t num;
   std::string element;
@@ -697,7 +697,7 @@ TEST_F(ListsTest, LPushTest) {
 }
 
 // LPushx
-TEST_F(ListsTest, LPushxTest) {
+TEST_F(ListsTest, LPushxTest) {  // NOLINT
   int64_t ret;
   uint64_t num;
 
@@ -777,7 +777,7 @@ TEST_F(ListsTest, LPushxTest) {
 }
 
 // LRange
-TEST_F(ListsTest, LRangeTest) {
+TEST_F(ListsTest, LRangeTest) {  // NOLINT
   uint64_t num;
 
   // ***************** Group 1 Test *****************
@@ -1030,7 +1030,7 @@ TEST_F(ListsTest, LRangeTest) {
 }
 
 // LRem
-TEST_F(ListsTest, LRemTest) {
+TEST_F(ListsTest, LRemTest) {  // NOLINT
   int64_t ret;
   uint64_t num;
 
@@ -1402,7 +1402,7 @@ TEST_F(ListsTest, LRemTest) {
 }
 
 // LSet
-TEST_F(ListsTest, LSetTest) {
+TEST_F(ListsTest, LSetTest) {  // NOLINT
   int64_t ret;
   uint64_t num;
 
@@ -1499,7 +1499,7 @@ TEST_F(ListsTest, LSetTest) {
 }
 
 // LTrim
-TEST_F(ListsTest, LTrimTest) {
+TEST_F(ListsTest, LTrimTest) {  // NOLINT
   uint64_t num;
   // ***************** Group 1 Test *****************
   //  "a" -> "b" -> "c" -> "d" -> "e"
@@ -1997,7 +1997,7 @@ TEST_F(ListsTest, LTrimTest) {
 }
 
 // RPop
-TEST_F(ListsTest, RPopTest) {
+TEST_F(ListsTest, RPopTest) {  // NOLINT
   uint64_t num;
   std::string element;
 
@@ -2068,10 +2068,11 @@ TEST_F(ListsTest, RPopTest) {
 }
 
 // RPoplpush
-TEST_F(ListsTest, RPoplpushTest) {
+TEST_F(ListsTest, RPoplpushTest) {  // NOLINT
   int64_t ret;
   uint64_t num;
-  std::string element, target;
+  std::string element;
+  std::string target;
   std::map<DataType, int64_t> type_ttl;
   std::map<storage::DataType, rocksdb::Status> type_status;
 
@@ -2420,7 +2421,7 @@ TEST_F(ListsTest, RPoplpushTest) {
 }
 
 // RPush
-TEST_F(ListsTest, RPushTest) {
+TEST_F(ListsTest, RPushTest) {  // NOLINT
   int32_t ret;
   uint64_t num;
   std::string element;
@@ -2557,7 +2558,7 @@ TEST_F(ListsTest, RPushTest) {
 }
 
 // RPushx
-TEST_F(ListsTest, RPushxTest) {
+TEST_F(ListsTest, RPushxTest) {  // NOLINT
   int64_t ret;
   uint64_t num;
 

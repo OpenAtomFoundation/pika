@@ -37,8 +37,8 @@ class NetConn;
  */
 class ClientHandle {
  public:
-  ClientHandle() {}
-  virtual ~ClientHandle() {}
+  ClientHandle() = default;
+  virtual ~ClientHandle() = default;
 
   /*
    *  CronHandle() will be invoked on every cron_interval elapsed.
@@ -93,7 +93,7 @@ class ClientHandle {
   /*
    * DestConnectFailedHandle(...) will run the invoker's logic when socket connect failed
    */
-  virtual void DestConnectFailedHandle(std::string ip_port, std::string reason) const {
+  virtual void DestConnectFailedHandle(const std::string& ip_port, const std::string& reason) const {
     UNUSED(ip_port);
     UNUSED(reason);
   }
@@ -103,18 +103,18 @@ class ClientThread : public Thread {
  public:
   ClientThread(ConnFactory* conn_factory, int cron_interval, int keepalive_timeout, ClientHandle* handle,
                void* private_data);
-  virtual ~ClientThread();
+  ~ClientThread() override;
   /*
    * StartThread will return the error code as pthread_create return
    *  Return 0 if success
    */
-  virtual int StartThread() override;
-  virtual int StopThread() override;
-  pstd::Status Write(const std::string& ip, const int port, const std::string& msg);
-  pstd::Status Close(const std::string& ip, const int port);
+  int StartThread() override;
+  int StopThread() override;
+  pstd::Status Write(const std::string& ip, int port, const std::string& msg);
+  pstd::Status Close(const std::string& ip, int port);
 
  private:
-  virtual void* ThreadMain() override;
+  void* ThreadMain() override;
 
   void InternalDebugPrint();
   // Set connect fd into epoll
@@ -126,7 +126,7 @@ class ClientThread : public Thread {
   // Try to connect fd noblock, if return EINPROGRESS or EAGAIN or EWOULDBLOCK
   // put this fd in epoll (SetWaitConnectOnEpoll), process in ProcessConnectStatus
   pstd::Status ScheduleConnect(const std::string& dst_ip, int dst_port);
-  void CloseFd(std::shared_ptr<NetConn> conn);
+  void CloseFd(const std::shared_ptr<NetConn>& conn);
   void CloseFd(int fd, const std::string& ip_port);
   void CleanUpConnRemaining(const std::string& ip_port);
   void DoCronTask();

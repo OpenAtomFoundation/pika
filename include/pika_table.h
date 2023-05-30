@@ -7,14 +7,15 @@
 #define PIKA_TABLE_H_
 
 #include <shared_mutex>
+
 #include "storage/storage.h"
 
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
-class Table : public std::enable_shared_from_this<Table> {
+class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyable {
  public:
-  Table(const std::string& table_name, uint32_t partition_num, const std::string& db_path, const std::string& log_path);
+  Table(std::string  table_name, uint32_t partition_num, const std::string& db_path, const std::string& log_path);
   virtual ~Table();
 
   friend class Cmd;
@@ -33,8 +34,8 @@ class Table : public std::enable_shared_from_this<Table> {
   void GetAllPartitions(std::set<uint32_t>& partition_ids);
 
   // Dynamic change partition
-  Status AddPartitions(const std::set<uint32_t>& partition_ids);
-  Status RemovePartitions(const std::set<uint32_t>& partition_ids);
+  pstd::Status AddPartitions(const std::set<uint32_t>& partition_ids);
+  pstd::Status RemovePartitions(const std::set<uint32_t>& partition_ids);
 
   // KeyScan use;
   void KeyScan();
@@ -43,7 +44,7 @@ class Table : public std::enable_shared_from_this<Table> {
   void StopKeyScan();
   void ScanDatabase(const storage::DataType& type);
   KeyScanInfo GetKeyScanInfo();
-  Status GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos);
+  pstd::Status GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos);
 
   // Compact use;
   void Compact(const storage::DataType& type);
@@ -53,8 +54,8 @@ class Table : public std::enable_shared_from_this<Table> {
   std::shared_ptr<Partition> GetPartitionById(uint32_t partition_id);
   std::shared_ptr<Partition> GetPartitionByKey(const std::string& key);
   bool TableIsEmpty();
-  Status MovetoToTrash(const std::string& path);
-  Status Leave();
+  pstd::Status MovetoToTrash(const std::string& path);
+  pstd::Status Leave();
 
  private:
   std::string table_name_;
@@ -76,12 +77,6 @@ class Table : public std::enable_shared_from_this<Table> {
   void InitKeyScan();
   pstd::Mutex key_scan_protector_;
   KeyScanInfo key_scan_info_;
-
-  /*
-   * No allowed copy and copy assign
-   */
-  Table(const Table&);
-  void operator=(const Table&);
 };
 
 struct BgTaskArg {

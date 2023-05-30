@@ -16,7 +16,7 @@
 
 class BinlogReceiverThread {
  public:
-  BinlogReceiverThread(std::string host, int port, int cron_interval = 0);
+  BinlogReceiverThread(const std::string& host, int port, int cron_interval = 0);
   virtual ~BinlogReceiverThread();
   int StartThread();
 

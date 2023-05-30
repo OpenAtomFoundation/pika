@@ -17,7 +17,7 @@ namespace net {
 
 NetMultiplexer::NetMultiplexer(int queue_limit) : queue_limit_(queue_limit), fired_events_(NET_MAX_CLIENTS) {
   int fds[2];
-  if (pipe(fds)) {
+  if (pipe(fds) != 0) {
     exit(-1);
   }
   notify_receive_fd_ = fds[0];

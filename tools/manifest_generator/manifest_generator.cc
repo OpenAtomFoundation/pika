@@ -3,7 +3,7 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 
-#include <string.h>
+#include <cstring>
 
 #include <algorithm>
 #include <fstream>
@@ -31,15 +31,19 @@ void ParseInfoFile(const std::string& path) {
     std::cout << "Failed to open info file " << info_file;
     exit(-1);
   }
-  std::string line, master_ip;
+  std::string line;
+  std::string master_ip;
   int lineno = 0;
-  int64_t filenum = 0, offset = 0, tmp = 0, master_port = 0;
+  int64_t filenum = 0;
+  int64_t offset = 0;
+  int64_t tmp = 0;
+  int64_t master_port = 0;
   while (std::getline(is, line)) {
     lineno++;
     if (lineno == 2) {
       master_ip = line;
     } else if (lineno > 2 && lineno < 6) {
-      if (!pstd::string2int(line.data(), line.size(), &tmp) || tmp < 0) {
+      if ((pstd::string2int(line.data(), line.size(), &tmp) == 0) || tmp < 0) {
         std::cout << "Format of info file " << info_file << " error, line : " << line;
         is.close();
         exit(-1);

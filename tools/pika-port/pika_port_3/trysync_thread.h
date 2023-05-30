@@ -30,7 +30,7 @@ class TrysyncThread : public net::Thread {
   void Stop();
 
  private:
-  bool Send(std::string lip);
+  bool Send(const std::string& lip);
   bool RecvProc();
   void PrepareRsync();
   bool TryUpdateMasterOffset();

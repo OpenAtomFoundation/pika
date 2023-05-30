@@ -25,10 +25,10 @@ class ListsMetaFilter : public rocksdb::CompactionFilter {
               bool* value_changed) const override {
     int64_t unix_time;
     rocksdb::Env::Default()->GetCurrentTime(&unix_time);
-    int32_t cur_time = static_cast<int32_t>(unix_time);
+    auto cur_time = static_cast<int32_t>(unix_time);
     ParsedListsMetaValue parsed_lists_meta_value(value);
     TRACE("==========================START==========================");
-    TRACE("[ListMetaFilter], key: %s, count = %lu, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
+    TRACE("[ListMetaFilter], key: %s, count = %llu, timestamp: %d, cur_time: %d, version: %d", key.ToString().c_str(),
           parsed_lists_meta_value.count(), parsed_lists_meta_value.timestamp(), cur_time,
           parsed_lists_meta_value.version());
 
@@ -62,23 +62,21 @@ class ListsDataFilter : public rocksdb::CompactionFilter {
  public:
   ListsDataFilter(rocksdb::DB* db, std::vector<rocksdb::ColumnFamilyHandle*>* cf_handles_ptr)
       : db_(db),
-        cf_handles_ptr_(cf_handles_ptr),
-        meta_not_found_(false),
-        cur_meta_version_(0),
-        cur_meta_timestamp_(0) {}
+        cf_handles_ptr_(cf_handles_ptr)
+        {}
 
   bool Filter(int level, const rocksdb::Slice& key, const rocksdb::Slice& value, std::string* new_value,
               bool* value_changed) const override {
     ParsedListsDataKey parsed_lists_data_key(key);
     TRACE("==========================START==========================");
-    TRACE("[DataFilter], key: %s, index = %lu, data = %s, version = %d", parsed_lists_data_key.key().ToString().c_str(),
+    TRACE("[DataFilter], key: %s, index = %llu, data = %s, version = %d", parsed_lists_data_key.key().ToString().c_str(),
           parsed_lists_data_key.index(), value.ToString().c_str(), parsed_lists_data_key.version());
 
     if (parsed_lists_data_key.key().ToString() != cur_key_) {
       cur_key_ = parsed_lists_data_key.key().ToString();
       std::string meta_value;
       // destroyed when close the database, Reserve Current key value
-      if (cf_handles_ptr_->size() == 0) {
+      if (cf_handles_ptr_->empty()) {
         return false;
       }
       rocksdb::Status s = db_->Get(default_read_options_, (*cf_handles_ptr_)[0], cur_key_, &meta_value);

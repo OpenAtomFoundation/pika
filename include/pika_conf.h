@@ -26,7 +26,7 @@
 class PikaConf : public pstd::BaseConf {
  public:
   PikaConf(const std::string& path);
-  ~PikaConf(){};
+  ~PikaConf() override {}
 
   // Getter
   int port() {
@@ -133,7 +133,7 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return userpass_;
   }
-  const std::string suser_blacklist() {
+  std::string suser_blacklist() {
     std::shared_lock l(rwlock_);
     return pstd::StringConcat(user_blacklist_, COMMA);
   }
@@ -312,7 +312,7 @@ class PikaConf : public pstd::BaseConf {
     std::lock_guard l(rwlock_);
     thread_pool_size_ = value;
   }
-  void SetSlaveof(const std::string value) {
+  void SetSlaveof(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("slaveof", value);
     slaveof_ = value;
@@ -325,7 +325,7 @@ class PikaConf : public pstd::BaseConf {
   void SetWriteBinlog(const std::string& value) {
     std::lock_guard l(rwlock_);
     TryPushDiffCommands("write-binlog", value);
-    write_binlog_ = (value == "yes") ? true : false;
+    write_binlog_ = value == "yes";
   }
   void SetMaxCacheStatisticKeys(const int value) {
     std::lock_guard l(rwlock_);
@@ -404,7 +404,7 @@ class PikaConf : public pstd::BaseConf {
   }
   void SetSlowlogWriteErrorlog(const bool value) {
     std::lock_guard l(rwlock_);
-    TryPushDiffCommands("slowlog-write-errorlog", value == true ? "yes" : "no");
+    TryPushDiffCommands("slowlog-write-errorlog", value ? "yes" : "no");
     slowlog_write_errorlog_.store(value);
   }
   void SetSlowlogSlowerThan(const int value) {
@@ -466,20 +466,20 @@ class PikaConf : public pstd::BaseConf {
     arena_block_size_ = value;
   }
 
-  Status TablePartitionsSanityCheck(const std::string& table_name, const std::set<uint32_t>& partition_ids,
+  pstd::Status TablePartitionsSanityCheck(const std::string& table_name, const std::set<uint32_t>& partition_ids,
                                     bool is_add);
-  Status AddTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
-  Status RemoveTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
-  Status AddTable(const std::string& table_name, uint32_t slot_num);
-  Status AddTableSanityCheck(const std::string& table_name);
-  Status DelTable(const std::string& table_name);
-  Status DelTableSanityCheck(const std::string& table_name);
+  pstd::Status AddTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
+  pstd::Status RemoveTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
+  pstd::Status AddTable(const std::string& table_name, uint32_t slot_num);
+  pstd::Status AddTableSanityCheck(const std::string& table_name);
+  pstd::Status DelTable(const std::string& table_name);
+  pstd::Status DelTableSanityCheck(const std::string& table_name);
 
   int Load();
   int ConfigRewrite();
 
  private:
-  Status InternalGetTargetTable(const std::string& table_name, uint32_t* const target);
+  pstd::Status InternalGetTargetTable(const std::string& table_name, uint32_t* target);
 
   int port_ = 0;
   std::string slaveof_;

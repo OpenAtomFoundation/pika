@@ -3,6 +3,7 @@
 
 #include <deque>
 #include <string>
+#include <utility>
 #include "aof_info.h"
 #include "aof_lock.h"
 
@@ -14,13 +15,14 @@
 #define READ_BUF_MAX 100
 #define MSG_BLOCK_MAX 512 * 1024
 
-typedef struct ConnInfo {
-  ConnInfo() {}
-  ConnInfo(const std::string& h, const std::string& p, const std::string& a) : host_(h), port_(p), auth_(a) {}
+using ConnInfo = struct ConnInfo {
+  ConnInfo() = default;
+  ConnInfo(std::string h, std::string p, std::string a)
+      : host_(std::move(h)), port_(std::move(p)), auth_(std::move(a)) {}
   std::string host_;
   std::string port_;
   std::string auth_;
-} ConnInfo;
+};
 
 class AOFSender {
  public:

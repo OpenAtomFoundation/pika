@@ -3,12 +3,13 @@
 // LICENSE file in the root directory of this source tree. An additional grant
 // of patent rights can be found in the PATENTS file in the same directory.
 #include "net/include/http_conn.h"
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
 
 #include <algorithm>
 #include <string>
+#include <utility>
 
 #include "net/include/net_define.h"
 #include "pstd/include/pstd_string.h"
@@ -140,8 +141,10 @@ bool HTTPRequest::ParseGetUrl() {
 
 // Parse query parameter from GET url or POST application/x-www-form-urlencoded
 // format: key1=value1&key2=value2&key3=value3
-bool HTTPRequest::ParseParameters(const std::string data, size_t line_start) {
-  size_t pre = line_start, mid, end;
+bool HTTPRequest::ParseParameters(std::string& data, size_t line_start) {
+  size_t pre = line_start;
+  size_t mid;
+  size_t end;
   while (pre < data.size()) {
     mid = data.find('=', pre);
     if (mid == std::string::npos) {
@@ -231,7 +234,7 @@ bool HTTPResponse::SerializeHeader() {
   int serial_size = 0;
   int ret;
 
-  std::string reason_phrase = http_status_map.at(status_code_);
+  const std::string& reason_phrase = http_status_map.at(status_code_);
 
   // Serialize statues line
   ret = snprintf(wbuf_, kHTTPMaxHeader, "HTTP/1.1 %d %s\r\n", status_code_, reason_phrase.c_str());
@@ -265,7 +268,7 @@ HTTPConn::HTTPConn(const int fd, const std::string& ip_port, Thread* thread, std
 #ifdef __ENABLE_SSL
       // security_(thread->security()),
 #endif
-      handles_(handles) {
+      handles_(std::move(handles)) {
   handles_->worker_specific_data_ = worker_specific_data;
   // this pointer is safe here
   request_ = new HTTPRequest(this);
@@ -289,35 +292,35 @@ HTTPRequest::HTTPRequest(HTTPConn* conn)
 
 HTTPRequest::~HTTPRequest() { delete[] rbuf_; }
 
-const std::string HTTPRequest::url() const { return url_; }
+std::string HTTPRequest::url() const { return url_; }
 
-const std::string HTTPRequest::path() const { return path_; }
+std::string HTTPRequest::path() const { return path_; }
 
-const std::string HTTPRequest::query_value(const std::string& field) const {
+std::string HTTPRequest::query_value(const std::string& field) const {
   if (query_params_.count(field)) {
     return query_params_.at(field);
   }
   return "";
 }
 
-const std::string HTTPRequest::postform_value(const std::string& field) const {
+std::string HTTPRequest::postform_value(const std::string& field) const {
   if (postform_params_.count(field)) {
     return postform_params_.at(field);
   }
   return "";
 }
 
-const std::string HTTPRequest::method() const { return method_; }
+std::string HTTPRequest::method() const { return method_; }
 
-const std::string HTTPRequest::content_type() const { return content_type_; }
+std::string HTTPRequest::content_type() const { return content_type_; }
 
-const std::map<std::string, std::string> HTTPRequest::query_params() const { return query_params_; }
+std::map<std::string, std::string> HTTPRequest::query_params() const { return query_params_; }
 
-const std::map<std::string, std::string> HTTPRequest::postform_params() const { return postform_params_; }
+std::map<std::string, std::string> HTTPRequest::postform_params() const { return postform_params_; }
 
-const std::map<std::string, std::string> HTTPRequest::headers() const { return headers_; }
+std::map<std::string, std::string> HTTPRequest::headers() const { return headers_; }
 
-const std::string HTTPRequest::client_ip_port() const { return client_ip_port_; }
+std::string HTTPRequest::client_ip_port() const { return client_ip_port_; }
 
 void HTTPRequest::Reset() {
   rbuf_pos_ = 0;
@@ -495,7 +498,7 @@ void HTTPResponse::SetHeaders(const std::string& key, const size_t value) { head
 
 void HTTPResponse::SetContentLength(uint64_t size) {
   remain_send_len_ = size;
-  if (headers_.count("Content-Length") || headers_.count("content-length")) {
+  if (headers_.count("Content-Length") || (headers_.count("content-length"))) {
     return;
   }
   SetHeaders("Content-Length", size);

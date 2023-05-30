@@ -12,8 +12,8 @@ bool ScanThread::is_finish() { return is_finish_; }
 int32_t ScanThread::scan_number() { return scan_number_; }
 
 void* ScanThread::ThreadMain() {
-  std::string key_start = "";
-  std::string key_end = "";
+  std::string key_start;
+  std::string key_end;
   std::string pattern = "*";
   std::string next_key;
   std::vector<std::string> keys;
@@ -35,7 +35,7 @@ void* ScanThread::ThreadMain() {
       key_start = next_key;
       write_thread_->Load(data);
     }
-  } while (strcmp(next_key.data(), ""));
+  } while (strcmp(next_key.data(), "") != 0);
   is_finish_ = true;
   return nullptr;
 }
