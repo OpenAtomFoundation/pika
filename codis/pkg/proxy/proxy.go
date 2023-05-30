@@ -20,7 +20,6 @@ import (
 	"pika/codis/v2/pkg/utils/errors"
 	"pika/codis/v2/pkg/utils/log"
 	"pika/codis/v2/pkg/utils/math2"
-	"pika/codis/v2/pkg/utils/redis"
 	"pika/codis/v2/pkg/utils/rpc"
 	"pika/codis/v2/pkg/utils/unsafe2"
 )
@@ -45,7 +44,7 @@ type Proxy struct {
 	ladmin net.Listener
 
 	ha struct {
-		monitor *redis.Sentinel
+		//monitor *redis.Sentinel
 		masters map[int]string
 		servers []string
 	}
@@ -193,9 +192,6 @@ func (s *Proxy) Close() error {
 	}
 	if s.router != nil {
 		s.router.Close()
-	}
-	if s.ha.monitor != nil {
-		s.ha.monitor.Cancel()
 	}
 	return nil
 }

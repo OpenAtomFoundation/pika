@@ -72,7 +72,8 @@ type Topom struct {
 	ha struct {
 		redisp *redis.Pool
 
-		monitor *redis.Sentinel
+		// todo 待重构
+		monitor *redis.CodisSentinel
 		masters map[int]string
 	}
 }
