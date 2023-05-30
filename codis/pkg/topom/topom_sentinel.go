@@ -242,8 +242,7 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 
 		// 更新state、role、offset信息
 		if val, ok := serversMap[state.Addr]; ok {
-			// 如果是进入了"客观下线"状态，需要人工介入才能恢复正常服务
-			if state.Err != nil || val.State == 2 {
+			if state.Err != nil {
 				if val.State == 0 {
 					val.State = 1
 				}
