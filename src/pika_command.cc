@@ -17,6 +17,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_set.h"
+#include "include/pika_slot.h"
 #include "include/pika_zset.h"
 
 extern PikaServer* g_pika_server;
@@ -78,6 +79,38 @@ void InitCmdTable(CmdTable* cmd_table) {
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdDummy, std::move(dummyptr)));
   std::unique_ptr<Cmd> quitptr = std::make_unique<QuitCmd>(kCmdNameQuit, 1, kCmdFlagsRead);
   cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameQuit, std::move(quitptr)));
+
+  // Slots related
+  std::unique_ptr<Cmd> slotsinfoptr = std::make_unique<SlotsInfoCmd>(kCmdNameSlotsInfo, -1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsInfo, std::move(slotsinfoptr)));
+  std::unique_ptr<Cmd> slotshashkeyptr = std::make_unique<SlotsHashKeyCmd>(kCmdNameSlotsHashKey, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsHashKey, std::move(slotshashkeyptr)));
+  std::unique_ptr<Cmd> slotmgrtslotasyncptr = std::make_unique<SlotsMgrtSlotAsyncCmd>(kCmdNameSlotsMgrtSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtSlotAsync, std::move(slotmgrtslotasyncptr)));
+  std::unique_ptr<Cmd> slotmgrttagslotasyncptr =
+      std::make_unique<SlotsMgrtTagSlotAsyncCmd>(kCmdNameSlotsMgrtTagSlotAsync, 8, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagSlotAsync, std::move(slotmgrttagslotasyncptr)));
+  std::unique_ptr<Cmd> slotsdelptr = std::make_unique<SlotsDelCmd>(kCmdNameSlotsDel, -2, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string,  std::unique_ptr<Cmd>>(kCmdNameSlotsDel, std::move(slotsdelptr)));
+  std::unique_ptr<Cmd> slotsscanptr = std::make_unique<SlotsScanCmd>(kCmdNameSlotsScan, -3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsScan, std::move(slotsscanptr)));
+  std::unique_ptr<Cmd> slotmgrtexecwrapper =
+      std::make_unique<SlotsMgrtExecWrapperCmd>(kCmdNameSlotsMgrtExecWrapper, -3, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtExecWrapper, std::move(slotmgrtexecwrapper)));
+  std::unique_ptr<Cmd> slotmgrtasyncstatus =
+      std::make_unique<SlotsMgrtAsyncStatusCmd>(kCmdNameSlotsMgrtAsyncStatus, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtAsyncStatus, std::move(slotmgrtasyncstatus)));
+  std::unique_ptr<Cmd> slotmgrtasynccancel =
+      std::make_unique<SlotsMgrtAsyncCancelCmd>(kCmdNameSlotsMgrtAsyncCancel, 1, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtAsyncCancel, std::move(slotmgrtasynccancel)));
+  std::unique_ptr<Cmd> slotmgrtslotptr = std::make_unique<SlotsMgrtSlotCmd>(kCmdNameSlotsMgrtSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtSlot, std::move(slotmgrtslotptr)));
+  std::unique_ptr<Cmd> slotmgrttagslotptr = std::make_unique<SlotsMgrtTagSlotCmd>(kCmdNameSlotsMgrtTagSlot, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagSlot, std::move(slotmgrttagslotptr)));
+  std::unique_ptr<Cmd> slotmgrtoneptr = std::make_unique<SlotsMgrtOneCmd>(kCmdNameSlotsMgrtOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtOne, std::move(slotmgrtoneptr)));
+  std::unique_ptr<Cmd> slotmgrttagoneptr = std::make_unique<SlotsMgrtTagOneCmd>(kCmdNameSlotsMgrtTagOne, 5, kCmdFlagsRead | kCmdFlagsAdmin);
+  cmd_table->insert(std::pair<std::string, std::unique_ptr<Cmd>>(kCmdNameSlotsMgrtTagOne, std::move(slotmgrttagoneptr)));
 
   // Kv
   ////SetCmd
