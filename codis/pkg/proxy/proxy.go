@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -283,92 +282,6 @@ func (s *Proxy) GetSentinels() ([]string, map[int]string) {
 	return s.ha.servers, s.ha.masters
 }
 
-func (s *Proxy) SetSentinels(servers []string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
-		return ErrClosedProxy
-	}
-	s.ha.servers = servers
-	log.Warnf("[%p] set sentinels = %v", s, s.ha.servers)
-
-	s.rewatchSentinels(s.ha.servers)
-	return nil
-}
-
-func (s *Proxy) RewatchSentinels() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
-		return ErrClosedProxy
-	}
-	log.Warnf("[%p] rewatch sentinels = %v", s, s.ha.servers)
-
-	s.rewatchSentinels(s.ha.servers)
-	return nil
-}
-
-func (s *Proxy) rewatchSentinels(servers []string) {
-	if s.ha.monitor != nil {
-		s.ha.monitor.Cancel()
-		s.ha.monitor = nil
-		s.ha.masters = nil
-	}
-	if len(servers) != 0 {
-		s.ha.monitor = redis.NewSentinel(s.config.ProductName, s.config.ProductAuth)
-		s.ha.monitor.LogFunc = log.Warnf
-		s.ha.monitor.ErrFunc = log.WarnErrorf
-		go func(p *redis.Sentinel) {
-			var trigger = make(chan struct{}, 1)
-			delayUntil := func(deadline time.Time) {
-				for !p.IsCanceled() {
-					var d = deadline.Sub(time.Now())
-					if d <= 0 {
-						return
-					}
-					time.Sleep(math2.MinDuration(d, time.Second))
-				}
-			}
-			go func() {
-				defer close(trigger)
-				callback := func() {
-					select {
-					case trigger <- struct{}{}:
-					default:
-					}
-				}
-				for !p.IsCanceled() {
-					timeout := time.Minute * 15
-					retryAt := time.Now().Add(time.Second * 10)
-					if !p.Subscribe(servers, timeout, callback) {
-						delayUntil(retryAt)
-					} else {
-						callback()
-					}
-				}
-			}()
-			go func() {
-				for range trigger {
-					var success int
-					for i := 0; i != 10 && !p.IsCanceled() && success != 2; i++ {
-						timeout := time.Second * 5
-						masters, err := p.Masters(servers, timeout)
-						if err != nil {
-							log.WarnErrorf(err, "[%p] fetch group masters failed", s)
-						} else {
-							if !p.IsCanceled() {
-								s.SwitchMasters(masters)
-							}
-							success += 1
-						}
-						delayUntil(time.Now().Add(time.Second * 5))
-					}
-				}
-			}()
-		}(s.ha.monitor)
-	}
-}
-
 func (s *Proxy) serveAdmin() {
 	if s.IsClosed() {
 		return
@@ -567,18 +480,6 @@ func (s *Proxy) Stats(flags StatsFlags) *Stats {
 	stats := &Stats{}
 	stats.Online = s.IsOnline()
 	stats.Closed = s.IsClosed()
-
-	servers, masters := s.GetSentinels()
-	if servers != nil {
-		stats.Sentinels.Servers = servers
-	}
-	if masters != nil {
-		stats.Sentinels.Masters = make(map[string]string)
-		for gid, addr := range masters {
-			stats.Sentinels.Masters[strconv.Itoa(gid)] = addr
-		}
-	}
-	stats.Sentinels.Switched = s.HasSwitched()
 
 	stats.Ops.Total = OpTotal()
 	stats.Ops.Fails = OpFails()
