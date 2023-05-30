@@ -20,6 +20,8 @@
 #define PIKA_MAX_CONN_RBUF_LB (1 << 26)  // 64MB
 #define PIKA_MAX_CONN_RBUF_HB (1 << 29)  // 512MB
 #define PIKA_SERVER_ID_MAX 65535
+#define HASH_SLOTS_MASK 0x000003ff
+#define HASH_SLOTS_SIZE (HASH_SLOTS_MASK + 1)
 
 class PikaServer;
 

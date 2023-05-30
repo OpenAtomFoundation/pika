@@ -8,6 +8,7 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 #include "include/pika_table.h"
+#include "include/pika_define.h"
 
 extern PikaCmdTableManager* g_pika_cmd_table_manager;
 extern PikaReplicaManager* g_pika_rm;
@@ -133,7 +134,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   }
 
   if (!pstd::string2int(str_slot_num.data(), str_slot_num.size(), &slot_num_) || slot_num_ < 0 ||
-      slot_num_ >= table->PartitionNum()) {
+      slot_num_ >= HASH_SLOTS_SIZE) {
     res_.SetRes(CmdRes::kInvalidInt, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }
