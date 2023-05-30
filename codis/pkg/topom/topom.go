@@ -218,7 +218,7 @@ func (s *Topom) Start(routines bool) error {
 					w.Wait()
 				}
 			}
-			time.Sleep(1 * time.Second)
+			time.Sleep(time.Millisecond * 500)
 		}
 	}()
 

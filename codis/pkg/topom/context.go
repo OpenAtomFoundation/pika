@@ -42,6 +42,7 @@ func (ctx *context) getSlotMapping(sid int) (*models.SlotMapping, error) {
 	return nil, errors.Errorf("slot-[%d] doesn't exist", sid)
 }
 
+// todo 这里把未迁移完成的slot，也通知proxy进行更新吗？这个为啥呢？
 func (ctx *context) getSlotMappingsByGroupId(gid int) []*models.SlotMapping {
 	var slots = []*models.SlotMapping{}
 	for _, m := range ctx.slots {

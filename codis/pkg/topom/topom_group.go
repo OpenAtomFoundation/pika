@@ -393,6 +393,10 @@ func (s *Topom) selectNextMaster(servers []*models.GroupServer) string {
 		}
 	}
 
+	if masterServer == nil {
+		return ""
+	}
+
 	return masterServer.Addr
 }
 

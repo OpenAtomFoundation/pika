@@ -84,7 +84,7 @@ func (s *CodisSentinel) dispatch(ctx context.Context, sentinel string, timeout t
 //todo 添加参数，表示多久检查一次是否存活
 func (s *CodisSentinel) RefreshMastersAndSlavesClient(parallel int, groupServers map[int][]*models.GroupServer) []*ReplicationState {
 	if len(groupServers) == 0 {
-		s.printf("codis sentinel exists, there's no groups")
+		s.printf("there's no groups")
 		return nil
 	}
 
@@ -100,6 +100,10 @@ func (s *CodisSentinel) RefreshMastersAndSlavesClient(parallel int, groupServers
 			fut.Add()
 
 			go func(gid, index int, server *models.GroupServer) {
+				defer func() {
+					<-limit
+				}()
+
 				info, err := s.infoReplicationDispatch(server.Addr)
 				state := &ReplicationState{
 					Index:       index,
@@ -109,7 +113,6 @@ func (s *CodisSentinel) RefreshMastersAndSlavesClient(parallel int, groupServers
 					Err:         err,
 				}
 				fut.Done(fmt.Sprintf("%d_%d", gid, index), state)
-				<-limit
 			}(gid, index, server)
 		}
 	}
@@ -130,6 +133,7 @@ func (s *CodisSentinel) RefreshMastersAndSlavesClient(parallel int, groupServers
 
 func (s *CodisSentinel) infoReplicationDispatch(addr string) (*InfoReplication, error) {
 	// 这两步如果失败，需要做特殊处理
+	// todo 待确认这里是否使用pool？
 	if c, err := NewClient(addr, s.Auth, time.Second); err != nil {
 		log.WarnErrorf(err, "create redis client to %s failed", addr)
 		return nil, err

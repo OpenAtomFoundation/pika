@@ -189,13 +189,13 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 
 	sentinel := redis.NewCodisSentinel(s.config.ProductName, s.config.ProductAuth)
 	gs := make(map[int][]*models.GroupServer)
-	for i, servers := range ctx.getGroupServers() {
-		for _, server := range servers {
+	for gid, servers := range ctx.getGroupServers() {
+		for i, server := range servers {
 			if filter(i, server) {
-				if val, ok := gs[i]; ok {
-					gs[i] = append(val, server)
+				if val, ok := gs[gid]; ok {
+					gs[gid] = append(val, server)
 				} else {
-					gs[i] = []*models.GroupServer{server}
+					gs[gid] = []*models.GroupServer{server}
 				}
 			}
 		}
@@ -206,7 +206,7 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 
 	states := sentinel.RefreshMastersAndSlavesClient(config.ParallelSyncs, gs)
 
-	var changedGroups []*models.Group
+	var pending []*models.Group
 
 	for _, state := range states {
 		var g *models.Group
@@ -224,17 +224,18 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 			// 修改状态为主观下线
 			if g.Servers[0].State == 0 {
 				g.Servers[0].State = 1
-			} else if g.Servers[0].State == 2 {
-				// 客观下线，开始选主
-				changedGroups = append(changedGroups, g)
 			} else {
-				// 主观下线，更新重试次数
+				// 更新重试次数
 				g.Servers[0].ReCallTimes++
+
+				// 重试超过5次，开始选主
 				if g.Servers[0].ReCallTimes >= 5 {
-					// 重试超过5次，开始选主
-					changedGroups = append(changedGroups, g)
 					// 标记进入客观下线状态
 					g.Servers[0].State = 2
+				}
+				// 开始进行选主
+				if g.Servers[0].State == 2 {
+					pending = append(pending, g)
 				}
 			}
 		}
@@ -252,7 +253,7 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 			val.State = 0
 			val.ReCallTimes = 0
 			val.Role = state.Replication.Role
-			if state.Replication.Role == "master" {
+			if val.Role == "master" {
 				val.ReplyOffset = state.Replication.MasterReplOffset
 			} else {
 				val.ReplyOffset = state.Replication.SlaveReplOffset
@@ -260,7 +261,7 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 		}
 	}
 
-	if len(changedGroups) == 0 {
+	if len(pending) == 0 {
 		return nil
 	}
 
@@ -268,9 +269,9 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 		Auth: s.config.ProductAuth, Timeout: time.Millisecond * 100,
 	}
 	// 尝试进行主从切换
-	for _, g := range changedGroups {
+	for _, g := range pending {
 		if err = s.trySwitchGroupMaster2(g.Id, cache); err != nil {
-			log.Error("gid-[%d] switch master failed, %v", g.Id, err)
+			log.Errorf("gid-[%d] switch master failed, %v", g.Id, err)
 			continue
 		}
 
@@ -280,7 +281,7 @@ func (s *Topom) CheckAndSwitchSlavesAndMasters(filter func(index int, g *models.
 			log.Warnf("group-[%d] resync-rollback to preparing", g.Id)
 			continue
 		}
-		defer s.dirtyGroupCache(g.Id)
+		s.dirtyGroupCache(g.Id)
 	}
 
 	return nil
