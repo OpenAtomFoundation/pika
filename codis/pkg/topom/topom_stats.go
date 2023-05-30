@@ -74,25 +74,6 @@ func (s *Topom) RefreshRedisStats(timeout time.Duration) (*sync2.Future, error) 
 			})
 		}
 	}
-	//for _, server := range ctx.sentinel.Servers {
-	//	goStats(server, func(addr string) (*RedisStats, error) {
-	//		c, err := s.ha.redisp.GetClient(addr)
-	//		if err != nil {
-	//			return nil, err
-	//		}
-	//		defer s.ha.redisp.PutClient(c)
-	//		m, err := c.Info()
-	//		if err != nil {
-	//			return nil, err
-	//		}
-	//		sentinel := redis.NewSentinel(s.config.ProductName, s.config.ProductAuth)
-	//		p, err := sentinel.MastersAndSlavesClient(c)
-	//		if err != nil {
-	//			return nil, err
-	//		}
-	//		return &RedisStats{Stats: m, Sentinel: p}, nil
-	//	})
-	//}
 	go func() {
 		stats := make(map[string]*RedisStats)
 		for k, v := range fut.Wait() {
