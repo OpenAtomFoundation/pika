@@ -122,7 +122,7 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, In
     LogOffset committed_index;
     std::shared_ptr<SyncMasterSlot> slot = g_pika_rm->GetSyncMasterSlotByName(p_info);
     if (!slot) {
-      LOG(WARNING) << "SyncPartition " << p_info.ToString() << " Not Found.";
+      LOG(WARNING) << "SyncSlot " << p_info.ToString() << " Not Found.";
       return;
     }
     committed_index = slot->ConsensusCommittedIndex();

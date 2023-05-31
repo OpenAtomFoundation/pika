@@ -54,7 +54,7 @@ void StableLog::RemoveStableLogDir() {
   }
   g_pika_server->PurgeDir(logpath);
 
-  LOG(WARNING) << "Partition StableLog: " << table_name_ << ":" << slot_id_ << " move to trash success";
+  LOG(WARNING) << "Slot StableLog: " << table_name_ << ":" << slot_id_ << " move to trash success";
 }
 
 bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
@@ -101,7 +101,7 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
       // We check this every time to avoid lock when we do file deletion
       master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name_, slot_id_));
       if (!master_slot) {
-        LOG(WARNING) << "Partition: " << table_name_ << ":" << slot_id_ << " Not Found";
+        LOG(WARNING) << "Slot: " << table_name_ << ":" << slot_id_ << " Not Found";
         return false;
       }
 

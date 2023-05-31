@@ -19,7 +19,7 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-std::string PartitionPath(const std::string& table_path, uint32_t slot_id) {
+std::string SlotPath(const std::string& table_path, uint32_t slot_id) {
   char buf[100];
   snprintf(buf, sizeof(buf), "%u/", slot_id);
   return table_path + buf;
@@ -280,7 +280,7 @@ bool Slot::IsBgSaving() {
   return bgsave_info_.bgsaving;
 }
 
-void Slot::BgSavePartition() {
+void Slot::BgSaveSlot() {
   std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return;

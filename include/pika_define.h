@@ -211,7 +211,7 @@ struct SlotInfo {
   uint32_t slot_id_{0};
 };
 
-struct hash_partition_info {
+struct hash_slot_info {
   size_t operator()(const SlotInfo& n) const {
     return std::hash<std::string>()(n.table_name_) ^ std::hash<uint32_t>()(n.slot_id_);
   }

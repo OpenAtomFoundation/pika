@@ -218,7 +218,7 @@ enum CmdFlagsMask {
   kCmdFlagsMaskSuspend = 64,
   kCmdFlagsMaskPrior = 128,
   kCmdFlagsMaskAdminRequire = 256,
-  kCmdFlagsMaskPartition = 1536
+  kCmdFlagsMaskSlot = 1536
 };
 
 enum CmdFlags {
@@ -243,8 +243,8 @@ enum CmdFlags {
   kCmdFlagsNoAdminRequire = 0,  // default no need admin
   kCmdFlagsAdminRequire = 256,
   kCmdFlagsDoNotSpecifyPartition = 0,  // default do not specify partition
-  kCmdFlagsSinglePartition = 512,
-  kCmdFlagsMultiPartition = 1024
+  kCmdFlagsSingleSlot = 512,
+  kCmdFlagsMultiSlot = 1024
 };
 
 void inline RedisAppendContent(std::string& str, const std::string& value);
@@ -412,9 +412,9 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void Execute();
   virtual void ProcessFlushDBCmd();
   virtual void ProcessFlushAllCmd();
-  virtual void ProcessSinglePartitionCmd();
-  virtual void ProcessMultiPartitionCmd();
-  virtual void ProcessDoNotSpecifyPartitionCmd();
+  virtual void ProcessSingleSlotCmd();
+  virtual void ProcessMultiSlotCmd();
+  virtual void ProcessDoNotSpecifySlotCmd();
   virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
@@ -427,8 +427,8 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   bool is_local() const;
   bool is_suspend() const;
   bool is_admin_require() const;
-  bool is_single_partition() const;
-  bool is_multi_partition() const;
+  bool is_single_slot() const;
+  bool is_multi_slot() const;
   bool HashtagIsConsistent(const std::string& lhs, const std::string& rhs) const;
   uint64_t GetDoDuration() const { return do_duration_; };
 
@@ -451,9 +451,9 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_partition,
+  void ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                       const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_partition,
+  void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_slot,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
   void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);

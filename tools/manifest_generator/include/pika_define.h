@@ -123,7 +123,7 @@ struct PartitionInfo {
   uint32_t partition_id_;
 };
 
-struct hash_partition_info {
+struct hash_slot_info {
   size_t operator()(const PartitionInfo& n) const {
     return std::hash<std::string>()(n.table_name_) ^ std::hash<uint32_t>()(n.partition_id_);
   }
@@ -145,7 +145,7 @@ class Node {
 
 class RmNode : public Node {
  public:
-  RmNode(const std::string& ip, int port, const PartitionInfo& partition_info)
+  RmNode(const std::string& ip, int port, const PartitionInfo& slot_info)
       : Node(ip, port), partition_info_(partition_info), session_id_(0), last_send_time_(0), last_recv_time_(0) {}
 
   RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id)
