@@ -46,7 +46,7 @@ struct BgSaveInfo {
   }
 };
 
-class Slot : public std::enable_shared_from_this<Slot> {
+class Slot : public pstd::noncopyable {
  public:
   Slot(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path);
   virtual ~Slot();
@@ -84,12 +84,6 @@ class Slot : public std::enable_shared_from_this<Slot> {
   // key scan info use
   pstd::Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
   KeyScanInfo GetKeyScanInfo();
-
-  /*
-   * No allowed copy and copy assign
-   */
-  Slot(const Slot&) = delete;
-  void operator=(const Slot&) = delete;
 
  private:
   std::string table_name_;
