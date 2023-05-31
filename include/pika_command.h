@@ -480,11 +480,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   Cmd& operator=(const Cmd&);
 };
 
-using CmdDB =  std::unordered_map<std::string, std::unique_ptr<Cmd>>;
+using CmdTable =  std::unordered_map<std::string, std::unique_ptr<Cmd>>;
 
 // Method for Cmd Table
-void InitCmdDB(CmdDB* cmd_table);
-Cmd* GetCmdFromDB(const std::string& opt, const CmdDB& cmd_table);
+void InitCmdTable(CmdTable* cmd_table);
+Cmd* GetCmdFromDB(const std::string& opt, const CmdTable& cmd_table);
 
 void RedisAppendContent(std::string& str, const std::string& value) {
   str.append(value.data(), value.size());

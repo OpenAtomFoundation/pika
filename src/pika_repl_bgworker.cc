@@ -15,7 +15,7 @@
 
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unique_ptr<PikaCmdDBManager> g_pika_cmd_db_manager;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 PikaReplBgWorker::PikaReplBgWorker(int queue_size) : bg_thread_(queue_size) {
   bg_thread_.set_thread_name("ReplBgWorker");
@@ -218,7 +218,7 @@ int PikaReplBgWorker::HandleWriteBinlog(net::RedisParser* parser, const net::Red
     g_pika_server->AddMonitorMessage(monitor_message);
   }
 
-  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_db_manager->GetCmd(pstd::StringToLower(opt));
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Command " << opt << " not in the command db";
     return -1;

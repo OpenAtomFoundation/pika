@@ -14,7 +14,7 @@
 using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unique_ptr<PikaCmdDBManager> g_pika_cmd_db_manager;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 std::string TablePath(const std::string& path, const std::string& table_name) {
   char buf[100];
@@ -250,7 +250,7 @@ std::shared_ptr<Slot> DB::GetSlotById(uint32_t slot_id) {
 
 std::shared_ptr<Slot> DB::GetSlotByKey(const std::string& key) {
   assert(slot_num_ != 0);
-  uint32_t index = g_pika_cmd_db_manager->DistributeKey(key, slot_num_);
+  uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, slot_num_);
   std::shared_lock l(slots_rw_);
   auto iter = slots_.find(index);
   return (iter == slots_.end()) ? nullptr : iter->second;

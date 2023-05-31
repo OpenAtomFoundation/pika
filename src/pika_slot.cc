@@ -10,7 +10,7 @@
 #include "include/pika_table.h"
 #include "include/pika_define.h"
 
-extern PikaCmdDBManager* g_pika_cmd_db_manager;
+extern PikaCmdTableManager* g_pika_cmd_table_manager;
 extern PikaReplicaManager* g_pika_rm;
 extern PikaServer* g_pika_server;
 
@@ -74,7 +74,7 @@ void SlotsHashKeyCmd::Do(std::shared_ptr<Slot> slot) {
   // iter starts from real key, first item in argv_ is command name
   std::vector<std::string>::const_iterator iter = argv_.begin() + 1;
   for (; iter != argv_.end(); iter++) {
-    res_.AppendInteger(g_pika_cmd_db_manager->DistributeKey(*iter, slot_num));
+    res_.AppendInteger(g_pika_cmd_table_manager->DistributeKey(*iter, slot_num));
   }
   return;
 }

@@ -13,18 +13,18 @@
 
 extern std::unique_ptr<PikaConf> g_pika_conf;
 
-PikaCmdDBManager::PikaCmdDBManager() {
-  cmds_ = std::make_unique<CmdDB>();
+PikaCmdTableManager::PikaCmdTableManager() {
+  cmds_ = std::make_unique<CmdTable>();
   cmds_->reserve(300);
-  InitCmdDB(cmds_.get());
+  InitCmdTable(cmds_.get());
 }
 
-std::shared_ptr<Cmd> PikaCmdDBManager::GetCmd(const std::string& opt) {
+std::shared_ptr<Cmd> PikaCmdTableManager::GetCmd(const std::string& opt) {
   const std::string& internal_opt = opt;
   return NewCommand(internal_opt);
 }
 
-std::shared_ptr<Cmd> PikaCmdDBManager::NewCommand(const std::string& opt) {
+std::shared_ptr<Cmd> PikaCmdTableManager::NewCommand(const std::string& opt) {
   Cmd* cmd = GetCmdFromDB(opt, *cmds_);
   if (cmd) {
     return std::shared_ptr<Cmd>(cmd->Clone());
@@ -32,12 +32,12 @@ std::shared_ptr<Cmd> PikaCmdDBManager::NewCommand(const std::string& opt) {
   return nullptr;
 }
 
-bool PikaCmdDBManager::CheckCurrentThreadDistributionMapExist(const std::thread::id& tid) {
+bool PikaCmdTableManager::CheckCurrentThreadDistributionMapExist(const std::thread::id& tid) {
   std::shared_lock l(map_protector_);
   return thread_distribution_map_.find(tid) != thread_distribution_map_.end();
 }
 
-void PikaCmdDBManager::InsertCurrentThreadDistributionMap() {
+void PikaCmdTableManager::InsertCurrentThreadDistributionMap() {
   auto tid = std::this_thread::get_id();
   std::unique_ptr<PikaDataDistribution> distribution = std::make_unique<HashModulo>();
   distribution->Init();
@@ -45,7 +45,7 @@ void PikaCmdDBManager::InsertCurrentThreadDistributionMap() {
   thread_distribution_map_.emplace(tid, std::move(distribution));
 }
 
-uint32_t PikaCmdDBManager::DistributeKey(const std::string& key, uint32_t slot_num) {
+uint32_t PikaCmdTableManager::DistributeKey(const std::string& key, uint32_t slot_num) {
   auto tid = std::this_thread::get_id();
   if (!CheckCurrentThreadDistributionMapExist(tid)) {
     InsertCurrentThreadDistributionMap();

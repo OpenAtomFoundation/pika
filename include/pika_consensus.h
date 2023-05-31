@@ -213,7 +213,7 @@ class ConsensusCoordinator {
   std::shared_mutex term_rwlock_;
   uint32_t term_ = 0;
 
-  std::string table_name_;
+  std::string db_name_;
   uint32_t slot_id_ = 0;
 
   SyncProgress sync_pros_;

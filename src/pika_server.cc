@@ -28,7 +28,7 @@
 using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unique_ptr<PikaCmdDBManager> g_pika_cmd_db_manager;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 void DoPurgeDir(void* arg) {
   std::unique_ptr<std::string> path(static_cast<std::string*>(arg));
@@ -237,7 +237,7 @@ bool PikaServer::ConsensusCheck(const std::string& db_name, const std::string& k
     if (!db) {
       return false;
     }
-    uint32_t index = g_pika_cmd_db_manager->DistributeKey(key, db->SlotNum());
+    uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, db->SlotNum());
 
     std::shared_ptr<SyncMasterSlot> master_slot =
         g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, index));

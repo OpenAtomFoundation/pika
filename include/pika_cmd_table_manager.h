@@ -12,10 +12,10 @@
 #include "include/pika_command.h"
 #include "include/pika_data_distribution.h"
 
-class PikaCmdDBManager {
+class PikaCmdTableManager {
  public:
-  PikaCmdDBManager();
-  virtual ~PikaCmdDBManager(){};
+  PikaCmdTableManager();
+  virtual ~PikaCmdTableManager(){};
   std::shared_ptr<Cmd> GetCmd(const std::string& opt);
   uint32_t DistributeKey(const std::string& key, uint32_t slot_num);
 
@@ -25,7 +25,7 @@ class PikaCmdDBManager {
   void InsertCurrentThreadDistributionMap();
   bool CheckCurrentThreadDistributionMapExist(const std::thread::id& tid);
 
-  std::unique_ptr<CmdDB> cmds_;
+  std::unique_ptr<CmdTable> cmds_;
 
   std::shared_mutex map_protector_;
   std::unordered_map<std::thread::id, std::unique_ptr<PikaDataDistribution>> thread_distribution_map_;

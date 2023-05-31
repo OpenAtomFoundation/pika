@@ -20,7 +20,7 @@
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unique_ptr<PikaCmdDBManager> g_pika_cmd_db_manager;
+extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
 PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
@@ -33,7 +33,7 @@ PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                                            const std::shared_ptr<std::string>& resp_ptr) {
   // Get command info
-  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_db_manager->GetCmd(opt);
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
   if (!c_ptr) {
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
     tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
