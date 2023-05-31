@@ -30,10 +30,10 @@
 #define kRecvKeepAliveTimeout (20 * 1000000)
 
 
-class SyncPartition {
+class SyncSlot {
  public:
-  SyncPartition(const std::string& table_name, uint32_t slot_id);
-  virtual ~SyncPartition() = default;
+  SyncSlot(const std::string& table_name, uint32_t slot_id);
+  virtual ~SyncSlot() = default;
 
   SlotInfo& SyncSlotInfo() { return slot_info_; }
 
@@ -43,7 +43,7 @@ class SyncPartition {
   SlotInfo slot_info_;
 };
 
-class SyncMasterSlot : public SyncPartition {
+class SyncMasterSlot : public SyncSlot {
  public:
   SyncMasterSlot(const std::string& table_name, uint32_t slot_id);
   pstd::Status AddSlaveNode(const std::string& ip, int port, int session_id);
@@ -124,7 +124,7 @@ class SyncMasterSlot : public SyncPartition {
   ConsensusCoordinator coordinator_;
 };
 
-class SyncSlaveSlot : public SyncPartition {
+class SyncSlaveSlot : public SyncSlot {
  public:
   SyncSlaveSlot(const std::string& table_name, uint32_t slot_id);
 
@@ -157,7 +157,7 @@ class SyncSlaveSlot : public SyncPartition {
   std::string LocalIp();
 
  private:
-  pstd::Mutex partition_mu_;
+  pstd::Mutex slot_mu_;
   RmNode m_info_;
   ReplState repl_state_;
   std::string local_ip_;
@@ -175,10 +175,10 @@ class PikaReplicaManager {
 
   bool CheckMasterSyncFinished();
 
-  pstd::Status AddSyncPartitionSanityCheck(const std::set<SlotInfo>& p_infos);
-  pstd::Status AddSyncPartition(const std::set<SlotInfo>& p_infos);
-  pstd::Status RemoveSyncPartitionSanityCheck(const std::set<SlotInfo>& p_infos);
-  pstd::Status RemoveSyncPartition(const std::set<SlotInfo>& p_infos);
+  pstd::Status AddSyncSlotSanityCheck(const std::set<SlotInfo>& p_infos);
+  pstd::Status AddSyncSlot(const std::set<SlotInfo>& p_infos);
+  pstd::Status RemoveSyncSlotSanityCheck(const std::set<SlotInfo>& p_infos);
+  pstd::Status RemoveSyncSlot(const std::set<SlotInfo>& p_infos);
   pstd::Status ActivateSyncSlaveSlot(const RmNode& node, const ReplState& repl_state);
   pstd::Status DeactivateSyncSlaveSlot(const SlotInfo& p_info);
   pstd::Status SyncTableSanityCheck(const std::string& table_name);
@@ -187,8 +187,8 @@ class PikaReplicaManager {
   // For Pika Repl Client Thread
   pstd::Status SendMetaSyncRequest();
   pstd::Status SendRemoveSlaveNodeRequest(const std::string& table, uint32_t slot_id);
-  pstd::Status SendPartitionTrySyncRequest(const std::string& table_name, size_t slot_id);
-  pstd::Status SendPartitionDBSyncRequest(const std::string& table_name, size_t slot_id);
+  pstd::Status SendSlotTrySyncRequest(const std::string& table_name, size_t slot_id);
+  pstd::Status SendSlotDBSyncRequest(const std::string& table_name, size_t slot_id);
   pstd::Status SendSlotBinlogSyncAckRequest(const std::string& table, uint32_t slot_id, const LogOffset& ack_start,
                                            const LogOffset& ack_end, bool is_first_send = false);
   pstd::Status CloseReplClientConn(const std::string& ip, int32_t port);
@@ -212,11 +212,11 @@ class PikaReplicaManager {
 
   void FindCompleteReplica(std::vector<std::string>* replica);
   void FindCommonMaster(std::string* master);
-  pstd::Status CheckPartitionRole(const std::string& table, uint32_t slot_id, int* role);
+  pstd::Status CheckSlotRole(const std::string& table, uint32_t slot_id, int* role);
 
   void RmStatus(std::string* debug_info);
 
-  static bool CheckSlavePartitionState(const std::string& ip, int port);
+  static bool CheckSlaveSlotState(const std::string& ip, int port);
 
   pstd::Status LostConnection(const std::string& ip, int port);
 
@@ -243,12 +243,12 @@ class PikaReplicaManager {
   void ReplServerUpdateClientConnMap(const std::string& ip_port, int fd);
 
  private:
-  void InitPartition();
+  void InitSlot();
   pstd::Status SelectLocalIp(const std::string& remote_ip, int remote_port, std::string* local_ip);
 
-  std::shared_mutex partitions_rw_;
-  std::unordered_map<SlotInfo, std::shared_ptr<SyncMasterSlot>, hash_partition_info> sync_master_slots_;
-  std::unordered_map<SlotInfo, std::shared_ptr<SyncSlaveSlot>, hash_partition_info> sync_slave_slots_;
+  std::shared_mutex slots_rw_;
+  std::unordered_map<SlotInfo, std::shared_ptr<SyncMasterSlot>, hash_slot_info> sync_master_slots_;
+  std::unordered_map<SlotInfo, std::shared_ptr<SyncSlaveSlot>, hash_slot_info> sync_slave_slots_;
 
   pstd::Mutex write_queue_mu_;
   // every host owns a queue, the key is "ip+port"

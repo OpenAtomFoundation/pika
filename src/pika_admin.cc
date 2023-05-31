@@ -211,7 +211,7 @@ void DbSlaveofCmd::Do(std::shared_ptr<Slot> slot) {
 
   Status s;
   if (is_none_) {
-    // In classic mode a table has only one partition
+    // In classic mode a table has only one slot
     s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_, 0);
   } else {
     if (slave_slot->State() == ReplState::kNoConnect || slave_slot->State() == ReplState::kError ||
@@ -451,7 +451,7 @@ void FlushallCmd::Do(std::shared_ptr<Slot> slot) {
   }
 }
 
-// flushall convert flushdb writes to every partition binlog
+// flushall convert flushdb writes to every slot binlog
 std::string FlushallCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
                                   uint64_t offset) {
   std::string content;
@@ -927,7 +927,7 @@ void InfoCmd::InfoReplication(std::string& info) {
   bool all_slot_sync = true;
   std::shared_lock table_rwl(g_pika_server->tables_rw_);
   for (const auto& table_item : g_pika_server->tables_) {
-    std::shared_lock partition_rwl(table_item.second->partitions_rw_);
+    std::shared_lock slot_rwl(table_item.second->slots_rw_);
     for (const auto& slot_item : table_item.second->slots_) {
       std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
           SlotInfo(table_item.second->GetTableName(), slot_item.second->GetSlotId()));
@@ -1012,7 +1012,7 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::string safety_purge;
   std::shared_ptr<SyncMasterSlot> master_slot = nullptr;
   for (const auto& t_item : g_pika_server->tables_) {
-    std::shared_lock partition_rwl(t_item.second->partitions_rw_);
+    std::shared_lock slot_rwl(t_item.second->slots_rw_);
     for (const auto& p_item : t_item.second->slots_) {
       std::string table_name = p_item.second->GetTableName();
       uint32_t slot_id = p_item.second->GetSlotId();
@@ -1122,21 +1122,21 @@ void InfoCmd::InfoData(std::string& info) {
   uint64_t table_reader_usage = 0;
   std::shared_lock table_rwl(g_pika_server->tables_rw_);
   for (const auto& table_item : g_pika_server->tables_) {
-    std::shared_lock partition_rwl(table_item.second->partitions_rw_);
-    for (const auto& patition_item : table_item.second->slots_) {
+    std::shared_lock slot_rwl(table_item.second->slots_rw_);
+    for (const auto& slot_item : table_item.second->slots_) {
       type_result.clear();
       memtable_usage = table_reader_usage = 0;
-      patition_item.second->DbRWLockReader();
-      patition_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
-      patition_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
-      patition_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
-      patition_item.second->DbRWUnLock();
+      slot_item.second->DbRWLockReader();
+      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_MEMTABLE, &memtable_usage);
+      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_TABLE_READER, &table_reader_usage);
+      slot_item.second->db()->GetUsage(storage::PROPERTY_TYPE_ROCKSDB_BACKGROUND_ERRORS, &type_result);
+      slot_item.second->DbRWUnLock();
       total_memtable_usage += memtable_usage;
       total_table_reader_usage += table_reader_usage;
       for (const auto& item : type_result) {
         if (item.second != 0) {
           db_fatal_msg_stream << (total_background_errors != 0 ? "," : "");
-          db_fatal_msg_stream << patition_item.second->GetSlotName() << "/" << item.first;
+          db_fatal_msg_stream << slot_item.second->GetSlotName() << "/" << item.first;
           total_background_errors += item.second;
         }
       }
@@ -1775,7 +1775,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetMaxCacheStatisticKeys(ival);
-    g_pika_server->PartitionSetMaxCacheStatisticKeys(ival);
+    g_pika_server->SlotSetMaxCacheStatisticKeys(ival);
     ret = "+OK\r\n";
   } else if (set_item == "small-compaction-threshold") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {
@@ -1783,7 +1783,7 @@ void ConfigCmd::ConfigSet(std::string& ret) {
       return;
     }
     g_pika_conf->SetSmallCompactionThreshold(ival);
-    g_pika_server->PartitionSetSmallCompactionThreshold(ival);
+    g_pika_server->SlotSetSmallCompactionThreshold(ival);
     ret = "+OK\r\n";
   } else if (set_item == "max-client-response-size") {
     if ((pstd::string2int(value.data(), value.size(), &ival) == 0) || ival < 0) {

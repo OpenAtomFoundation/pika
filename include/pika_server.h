@@ -168,7 +168,7 @@ class PikaServer : public pstd::noncopyable {
   bool IsKeyScaning();
   bool IsCompacting();
   bool IsTableExist(const std::string& table_name);
-  bool IsTablePartitionExist(const std::string& table_name, uint32_t slot_id);
+  bool IsTableSlotExist(const std::string& table_name, uint32_t slot_id);
   bool IsCommandSupport(const std::string& command);
   bool IsTableBinlogIoError(const std::string& table_name);
   pstd::Status DoSameThingSpecificTable(const TaskType& type, const std::set<std::string>& tables = {});
@@ -177,13 +177,13 @@ class PikaServer : public pstd::noncopyable {
    * Partition use
    */
   void PrepareSlotTrySync();
-  void PartitionSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
-  void PartitionSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
-  bool GetTablePartitionBinlogOffset(const std::string& table_name, uint32_t slot_id, BinlogOffset* boffset);
-  std::shared_ptr<Slot> GetPartitionByDbName(const std::string& db_name);
+  void SlotSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
+  void SlotSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
+  bool GetDBSlotBinlogOffset(const std::string& table_name, uint32_t slot_id, BinlogOffset* boffset);
+  std::shared_ptr<Slot> GetSlotByDBName(const std::string& db_name);
   std::shared_ptr<Slot> GetTableSlotById(const std::string& table_name, uint32_t slot_id);
-  std::shared_ptr<Slot> GetTablePartitionByKey(const std::string& table_name, const std::string& key);
-  pstd::Status DoSameThingEveryPartition(const TaskType& type);
+  std::shared_ptr<Slot> GetDBSlotByKey(const std::string& table_name, const std::string& key);
+  pstd::Status DoSameThingEverySlot(const TaskType& type);
 
   /*
    * Master use
@@ -211,9 +211,9 @@ class PikaServer : public pstd::noncopyable {
   void FinishMetaSync();
   bool MetaSyncDone();
   void ResetMetaSyncStatus();
-  bool AllPartitionConnectSuccess();
-  bool LoopPartitionStateMachine();
-  void SetLoopPartitionStateMachine(bool need_loop);
+  bool AllSlotConnectSuccess();
+  bool LoopSlotStateMachine();
+  void SetLoopSlotStateMachine(bool need_loop);
   int GetMetaSyncTimestamp();
   void UpdateMetaSyncTimestamp();
   bool IsFirstMetaSync();
@@ -381,7 +381,7 @@ class PikaServer : public pstd::noncopyable {
   int role_ = PIKA_ROLE_SINGLE;
   int last_meta_sync_timestamp_ = 0;
   bool first_meta_sync_ = false;
-  bool loop_partition_state_machine_ = false;
+  bool loop_slot_state_machine_ = false;
   bool force_full_sync_ = false;
   bool leader_protected_mode_ = false;        // reject request after master slave sync done
   std::shared_mutex state_protector_;         // protect below, use for master-slave mode

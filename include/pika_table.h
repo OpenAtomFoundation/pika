@@ -26,16 +26,16 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
   std::string GetTableName();
   void BgSaveTable();
   void CompactTable(const storage::DataType& type);
-  bool FlushPartitionDB();
-  bool FlushPartitionSubDB(const std::string& db_name);
+  bool FlushSlotDB();
+  bool FlushSlotSubDB(const std::string& db_name);
   void SetBinlogIoError();
   bool IsBinlogIoError();
   uint32_t SlotNum();
-  void GetAllPartitions(std::set<uint32_t>& slot_ids);
+  void GetAllSlots(std::set<uint32_t>& slot_ids);
 
   // Dynamic change partition
-  pstd::Status AddPartitions(const std::set<uint32_t>& slot_ids);
-  pstd::Status RemovePartitions(const std::set<uint32_t>& slot_ids);
+  pstd::Status AddSlots(const std::set<uint32_t>& slot_ids);
+  pstd::Status RemoveSlots(const std::set<uint32_t>& slot_ids);
 
   // KeyScan use;
   void KeyScan();
@@ -44,12 +44,12 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
   void StopKeyScan();
   void ScanDatabase(const storage::DataType& type);
   KeyScanInfo GetKeyScanInfo();
-  pstd::Status GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos);
+  pstd::Status GetSlotsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos);
 
   // Compact use;
   void Compact(const storage::DataType& type);
 
-  void LeaveAllPartition();
+  void LeaveAllSlot();
   std::set<uint32_t> GetSlotIds();
   std::shared_ptr<Slot> GetSlotById(uint32_t slot_id);
   std::shared_ptr<Slot> GetSlotByKey(const std::string& key);
@@ -65,9 +65,9 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
 
   std::atomic<bool> binlog_io_error_;
   // lock order
-  // partitions_rw_ > key_scan_protector_
+  // slots_rw_ > key_scan_protector_
 
-  std::shared_mutex partitions_rw_;
+  std::shared_mutex slots_rw_;
   std::map<uint32_t, std::shared_ptr<Slot>> slots_;
 
   /*

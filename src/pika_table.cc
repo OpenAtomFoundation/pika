@@ -42,21 +42,21 @@ Table::~Table() {
 std::string Table::GetTableName() { return table_name_; }
 
 void Table::BgSaveTable() {
-  std::shared_lock l(partitions_rw_);
+  std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
-    item.second->BgSavePartition();
+    item.second->BgSaveSlot();
   }
 }
 
 void Table::CompactTable(const storage::DataType& type) {
-  std::shared_lock l(partitions_rw_);
+  std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
     item.second->Compact(type);
   }
 }
 
-bool Table::FlushPartitionDB() {
-  std::shared_lock l(partitions_rw_);
+bool Table::FlushSlotDB() {
+  std::shared_lock l(slots_rw_);
   std::lock_guard ml(key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return false;
@@ -67,8 +67,8 @@ bool Table::FlushPartitionDB() {
   return true;
 }
 
-bool Table::FlushPartitionSubDB(const std::string& db_name) {
-  std::shared_lock l(partitions_rw_);
+bool Table::FlushSlotSubDB(const std::string& db_name) {
+  std::shared_lock l(slots_rw_);
   std::lock_guard ml(key_scan_protector_);
   if (key_scan_info_.key_scaning_) {
     return false;
@@ -85,8 +85,8 @@ bool Table::IsBinlogIoError() { return binlog_io_error_.load(); }
 
 uint32_t Table::SlotNum() { return slot_num_; }
 
-Status Table::AddPartitions(const std::set<uint32_t>& slot_ids) {
-  std::lock_guard l(partitions_rw_);
+Status Table::AddSlots(const std::set<uint32_t>& slot_ids) {
+  std::lock_guard l(slots_rw_);
   for (const uint32_t& id : slot_ids) {
     if (id >= slot_num_) {
       return Status::Corruption("slot index out of range[0, " + std::to_string(slot_num_ - 1) + "]");
@@ -101,11 +101,11 @@ Status Table::AddPartitions(const std::set<uint32_t>& slot_ids) {
   return Status::OK();
 }
 
-Status Table::RemovePartitions(const std::set<uint32_t>& slot_ids) {
-  std::lock_guard l(partitions_rw_);
+Status Table::RemoveSlots(const std::set<uint32_t>& slot_ids) {
+  std::lock_guard l(slots_rw_);
   for (const uint32_t& id : slot_ids) {
     if (slots_.find(id) == slots_.end()) {
-      return Status::Corruption("partition " + std::to_string(id) + " not found");
+      return Status::Corruption("slot " + std::to_string(id) + " not found");
     }
   }
 
@@ -116,8 +116,8 @@ Status Table::RemovePartitions(const std::set<uint32_t>& slot_ids) {
   return Status::OK();
 }
 
-void Table::GetAllPartitions(std::set<uint32_t>& slot_ids) {
-  std::shared_lock l(partitions_rw_);
+void Table::GetAllSlots(std::set<uint32_t>& slot_ids) {
+  std::shared_lock l(slots_rw_);
   for (const auto& iter : slots_) {
     slot_ids.insert(iter.first);
   }
@@ -147,7 +147,7 @@ void Table::RunKeyScan() {
   std::vector<storage::KeyInfo> new_key_infos(5);
 
   InitKeyScan();
-  std::shared_lock l(partitions_rw_);
+  std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
     std::vector<storage::KeyInfo> tmp_key_infos;
     s = item.second->GetKeyNum(&tmp_key_infos);
@@ -172,7 +172,7 @@ void Table::RunKeyScan() {
 }
 
 void Table::StopKeyScan() {
-  std::shared_lock rwl(partitions_rw_);
+  std::shared_lock rwl(slots_rw_);
   std::lock_guard ml(key_scan_protector_);
 
   if (!key_scan_info_.key_scaning_) {
@@ -185,17 +185,17 @@ void Table::StopKeyScan() {
 }
 
 void Table::ScanDatabase(const storage::DataType& type) {
-  std::shared_lock l(partitions_rw_);
+  std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
-    printf("\n\npartition name : %s\n", item.second->GetSlotName().c_str());
+    printf("\n\nslot name : %s\n", item.second->GetSlotName().c_str());
     item.second->db()->ScanDatabase(type);
   }
 }
 
-Status Table::GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos) {
-  std::shared_lock l(partitions_rw_);
-  for (const auto& [id, partition] : slots_) {
-    (*infos)[id] = partition->GetKeyScanInfo();
+Status Table::GetSlotsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos) {
+  std::shared_lock l(slots_rw_);
+  for (const auto& [id, slot] : slots_) {
+    (*infos)[id] = slot->GetKeyScanInfo();
   }
   return Status::OK();
 }
@@ -206,7 +206,7 @@ KeyScanInfo Table::GetKeyScanInfo() {
 }
 
 void Table::Compact(const storage::DataType& type) {
-  std::lock_guard rwl(partitions_rw_);
+  std::lock_guard rwl(slots_rw_);
   for (const auto& item : slots_) {
     item.second->Compact(type);
   }
@@ -225,8 +225,8 @@ void Table::InitKeyScan() {
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
 
-void Table::LeaveAllPartition() {
-  std::lock_guard l(partitions_rw_);
+void Table::LeaveAllSlot() {
+  std::lock_guard l(slots_rw_);
   for (const auto& item : slots_) {
     item.second->Leave();
   }
@@ -235,7 +235,7 @@ void Table::LeaveAllPartition() {
 
 std::set<uint32_t> Table::GetSlotIds() {
   std::set<uint32_t> ids;
-  std::shared_lock l(partitions_rw_);
+  std::shared_lock l(slots_rw_);
   for (const auto& item : slots_) {
     ids.insert(item.first);
   }
@@ -243,7 +243,7 @@ std::set<uint32_t> Table::GetSlotIds() {
 }
 
 std::shared_ptr<Slot> Table::GetSlotById(uint32_t slot_id) {
-  std::shared_lock l(partitions_rw_);
+  std::shared_lock l(slots_rw_);
   auto iter = slots_.find(slot_id);
   return (iter == slots_.end()) ? nullptr : iter->second;
 }
@@ -251,19 +251,19 @@ std::shared_ptr<Slot> Table::GetSlotById(uint32_t slot_id) {
 std::shared_ptr<Slot> Table::GetSlotByKey(const std::string& key) {
   assert(slot_num_ != 0);
   uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, slot_num_);
-  std::shared_lock l(partitions_rw_);
+  std::shared_lock l(slots_rw_);
   auto iter = slots_.find(index);
   return (iter == slots_.end()) ? nullptr : iter->second;
 }
 
 bool Table::TableIsEmpty() {
-  std::shared_lock l(partitions_rw_);
+  std::shared_lock l(slots_rw_);
   return slots_.empty();
 }
 
 Status Table::Leave() {
   if (!TableIsEmpty()) {
-    return Status::Corruption("Table have partitions!");
+    return Status::Corruption("Table have slots!");
   }
   return MovetoToTrash(db_path_);
 }

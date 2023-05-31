@@ -35,7 +35,7 @@ void SlotsInfoCmd::Do(std::shared_ptr<Slot> slot) {
   KeyScanInfo key_scan_info = table_ptr->GetKeyScanInfo();
 
   std::map<uint32_t, KeyScanInfo> infos;
-  Status s = table_ptr->GetPartitionsKeyScanInfo(&infos);
+  Status s = table_ptr->GetSlotsKeyScanInfo(&infos);
   if (!s.ok()) {
     res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsInfo);
     return;

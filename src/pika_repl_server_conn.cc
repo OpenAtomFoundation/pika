@@ -197,7 +197,7 @@ bool PikaReplServerConn::TrySyncConsensusOffsetCheck(const std::shared_ptr<SyncM
       try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kSyncPointBePurged);
       return false;
     } else {
-      LOG(WARNING) << "Partition:" << slot_name << " error " << s.ToString();
+      LOG(WARNING) << "Slot:" << slot_name << " error " << s.ToString();
       try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
       return false;
     }
@@ -219,7 +219,7 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterSlot
   Status s = slot->Logger()->GetProducerStatus(&(boffset.filenum), &(boffset.offset));
   if (!s.ok()) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-    LOG(WARNING) << "Handle TrySync, Partition: " << slot_name << " Get binlog offset error, TrySync failed";
+    LOG(WARNING) << "Handle TrySync, Slot: " << slot_name << " Get binlog offset error, TrySync failed";
     return false;
   }
   InnerMessage::BinlogOffset* master_slot_boffset = try_sync_response->mutable_binlog_offset();
@@ -249,7 +249,7 @@ bool PikaReplServerConn::TrySyncOffsetCheck(const std::shared_ptr<SyncMasterSlot
   if (seeked_offset.filenum != slave_boffset.filenum() || seeked_offset.offset != slave_boffset.offset()) {
     try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
     LOG(WARNING) << "Slave offset is not a start point of cur log, Slave ip: " << node.ip()
-                 << ", Slave port: " << node.port() << ", Partition: " << slot_name
+                 << ", Slave port: " << node.port() << ", Slot: " << slot_name
                  << ", cloest start point, filenum: " << seeked_offset.filenum << ", offset: " << seeked_offset.offset;
     return false;
   }
@@ -279,11 +279,11 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::DBSync db_sync_request = req->db_sync();
-  const InnerMessage::Slot& partition_request = db_sync_request.slot();
+  const InnerMessage::Slot& slot_request = db_sync_request.slot();
   const InnerMessage::Node& node = db_sync_request.node();
   const InnerMessage::BinlogOffset& slave_boffset = db_sync_request.binlog_offset();
-  std::string table_name = partition_request.table_name();
-  uint32_t slot_id = partition_request.slot_id();
+  std::string table_name = slot_request.table_name();
+  uint32_t slot_id = slot_request.slot_id();
   std::string slot_name = table_name + "_" + std::to_string(slot_id);
 
   InnerMessage::InnerResponse response;

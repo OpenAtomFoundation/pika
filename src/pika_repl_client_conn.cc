@@ -178,7 +178,7 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   std::shared_ptr<SyncMasterSlot> slot =
       g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
   if (!slot) {
-    LOG(WARNING) << "Partition: " << table_name << ":" << slot_id << " Not Found";
+    LOG(WARNING) << "Slot: " << table_name << ":" << slot_id << " Not Found";
     return;
   }
 
@@ -263,8 +263,8 @@ Status PikaReplClientConn::TrySyncConsensusCheck(const InnerMessage::ConsensusMe
 }
 
 void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::InnerResponse>& res) {
-  // partition to a bunch of binlog chips
-  std::unordered_map<SlotInfo, std::vector<int>*, hash_partition_info> par_binlog;
+  // slot to a bunch of binlog chips
+  std::unordered_map<SlotInfo, std::vector<int>*, hash_slot_info> par_binlog;
   for (int i = 0; i < res->binlog_sync_size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
     // hash key: table + slot_id

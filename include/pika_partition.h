@@ -74,7 +74,7 @@ class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable 
 
   // BgSave use;
   bool IsBgSaving();
-  void BgSavePartition();
+  void BgSaveSlot();
   BgSaveInfo bgsave_info();
 
   // FlushDB & FlushSubDB use
