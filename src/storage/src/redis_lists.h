@@ -17,8 +17,8 @@ namespace storage {
 
 class RedisLists : public Redis {
  public:
-  RedisLists(Storage* const s, const DataType& type);
-  ~RedisLists() = default;
+  RedisLists(Storage* s, const DataType& type);
+  ~RedisLists() override = default;
 
   // Common commands
   Status Open(const StorageOptions& storage_options, const std::string& db_path) override;

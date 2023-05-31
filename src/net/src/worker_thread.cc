@@ -16,7 +16,7 @@
 namespace net {
 
 WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_thread, int queue_limit, int cron_interval)
-    : private_data_(nullptr),
+    : 
       server_thread_(server_thread),
       conn_factory_(conn_factory),
       cron_interval_(cron_interval),
@@ -28,7 +28,7 @@ WorkerThread::WorkerThread(ConnFactory* conn_factory, ServerThread* server_threa
   net_multiplexer_->Initialize();
 }
 
-WorkerThread::~WorkerThread() {}
+WorkerThread::~WorkerThread() = default;
 
 int WorkerThread::conn_num() const {
   std::shared_lock lock(rwlock_);
@@ -58,7 +58,7 @@ std::shared_ptr<NetConn> WorkerThread::MoveConnOut(int fd) {
   }
 }
 
-bool WorkerThread::MoveConnIn(std::shared_ptr<NetConn> conn, const NotifyType& notify_type, bool force) {
+bool WorkerThread::MoveConnIn(const std::shared_ptr<NetConn>& conn, const NotifyType& notify_type, bool force) {
   NetItem it(conn->fd(), conn->ip_port(), notify_type);
   bool success = MoveConnIn(it, force);
   if (success) {
@@ -105,11 +105,11 @@ void* WorkerThread::ThreadMain() {
 
     for (int i = 0; i < nfds; i++) {
       pfe = (net_multiplexer_->FiredEvents()) + i;
-      if (pfe == nullptr) {
+      if (!pfe) {
           continue;
       }
       if (pfe->fd == net_multiplexer_->NotifyReceiveFd()) {
-        if (pfe->mask & kReadable) {
+        if ((pfe->mask & kReadable) != 0) {
           int32_t nread = read(net_multiplexer_->NotifyReceiveFd(), bb, 2048);
           if (nread == 0) {
             continue;
@@ -167,7 +167,7 @@ void* WorkerThread::ThreadMain() {
           }
         }
 
-        if ((pfe->mask & kWritable) && in_conn->is_reply()) {
+        if (((pfe->mask & kWritable) != 0) && in_conn->is_reply()) {
           WriteStatus write_status = in_conn->SendReply();
           in_conn->set_last_interaction(now);
           if (write_status == kWriteAll) {
@@ -184,7 +184,7 @@ void* WorkerThread::ThreadMain() {
           }
         }
 
-        if (!should_close && (pfe->mask & kReadable)) {
+        if ((should_close == 0) && ((pfe->mask & kReadable) != 0)) {
           ReadStatus read_status = in_conn->GetRequest();
           in_conn->set_last_interaction(now);
           if (read_status == kReadAll) {
@@ -198,7 +198,7 @@ void* WorkerThread::ThreadMain() {
           }
         }
 
-        if ((pfe->mask & kErrorEvent) || should_close) {
+        if (((pfe->mask & kErrorEvent) != 0) || (should_close != 0)) {
           net_multiplexer_->NetDelEvent(pfe->fd, 0);
           CloseFd(in_conn);
           in_conn = nullptr;
@@ -226,7 +226,7 @@ void WorkerThread::DoCronTask() {
 
     // Check whether close all connection
     std::lock_guard kl(killer_mutex_);
-    if (deleting_conn_ipport_.count(kKillAllConnsTask)) {
+    if (deleting_conn_ipport_.count(kKillAllConnsTask) != 0U) {
       for (auto& conn : conns_) {
         to_close.push_back(conn.second);
       }
@@ -235,11 +235,11 @@ void WorkerThread::DoCronTask() {
       return;
     }
 
-    std::map<int, std::shared_ptr<NetConn>>::iterator iter = conns_.begin();
+    auto iter = conns_.begin();
     while (iter != conns_.end()) {
       std::shared_ptr<NetConn> conn = iter->second;
       // Check connection should be closed
-      if (deleting_conn_ipport_.count(conn->ip_port())) {
+      if (deleting_conn_ipport_.count(conn->ip_port()) != 0U) {
         to_close.push_back(conn);
         deleting_conn_ipport_.erase(conn->ip_port());
         iter = conns_.erase(iter);
@@ -261,10 +261,10 @@ void WorkerThread::DoCronTask() {
       ++iter;
     }
   }
-  for (const auto conn : to_close) {
+  for (const auto& conn : to_close) {
     CloseFd(conn);
   }
-  for (const auto conn : to_timeout) {
+  for (const auto& conn : to_timeout) {
     CloseFd(conn);
     server_thread_->handle_->FdTimeoutHandle(conn->fd(), conn->ip_port());
   }
@@ -289,7 +289,7 @@ bool WorkerThread::TryKillConn(const std::string& ip_port) {
   return false;
 }
 
-void WorkerThread::CloseFd(std::shared_ptr<NetConn> conn) {
+void WorkerThread::CloseFd(const std::shared_ptr<NetConn>& conn) {
   close(conn->fd());
   server_thread_->handle_->FdClosedHandle(conn->fd(), conn->ip_port());
 }

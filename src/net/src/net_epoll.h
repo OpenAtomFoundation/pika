@@ -19,7 +19,7 @@ class NetEpoll final : public NetMultiplexer {
   ~NetEpoll() = default;
 
   int NetAddEvent(int fd, int mask) override;
-  int NetDelEvent(int fd, int) override;
+  int NetDelEvent(int fd, [[maybe_unused]] int mask) override;
   int NetModEvent(int fd, int old_mask, int mask) override;
 
   int NetPoll(int timeout) override;

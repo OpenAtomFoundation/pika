@@ -5,7 +5,7 @@
 
 #include "net/include/redis_parser.h"
 
-#include <assert.h> /* assert */
+#include <cassert> /* assert */
 
 #include <glog/logging.h>
 
@@ -34,23 +34,25 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
   const char* p = req_buf.data();
   std::string arg;
 
-  while (1) {
+  while (true) {
     // skip blanks
-    while (*p && isspace(*p)) p++;
-    if (*p) {
+    while ((*p != 0) && (isspace(*p) != 0)) {
+      p++;
+    }
+    if (*p != 0) {
       // get a token
       int inq = 0;   // set to 1 if we are in "quotes"
       int insq = 0;  // set to 1 if we are in 'single quotes'
       int done = 0;
 
       arg.clear();
-      while (!done) {
-        if (inq) {
+      while (done == 0) {
+        if (inq != 0) {
           if (*p == '\\' && *(p + 1) == 'x' && IsHexDigit(*(p + 2)) && IsHexDigit(*(p + 3))) {
             unsigned char byte = HexDigitToInt32(*(p + 2)) * 16 + HexDigitToInt32(*(p + 3));
             arg.append(1, byte);
             p += 3;
-          } else if (*p == '\\' && *(p + 1)) {
+          } else if (*p == '\\' && (*(p + 1) != 0)) {
             char c;
 
             p++;
@@ -78,31 +80,31 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
           } else if (*p == '"') {
             /* closing quote must be followed by a space or
              * nothing at all. */
-            if (*(p + 1) && !isspace(*(p + 1))) {
+            if ((*(p + 1) != 0) && (isspace(*(p + 1)) == 0)) {
               argv.clear();
               return -1;
             }
             done = 1;
-          } else if (!*p) {
+          } else if (*p == 0) {
             // unterminated quotes
             argv.clear();
             return -1;
           } else {
             arg.append(1, *p);
           }
-        } else if (insq) {
+        } else if (insq != 0) {
           if (*p == '\\' && *(p + 1) == '\'') {
             p++;
             arg.append(1, '\'');
           } else if (*p == '\'') {
             /* closing quote must be followed by a space or
              * nothing at all. */
-            if (*(p + 1) && !isspace(*(p + 1))) {
+            if ((*(p + 1) != 0) && (isspace(*(p + 1)) == 0)) {
               argv.clear();
               return -1;
             }
             done = 1;
-          } else if (!*p) {
+          } else if (*p == 0) {
             // unterminated quotes
             argv.clear();
             return -1;
@@ -130,7 +132,9 @@ static int split2args(const std::string& req_buf, RedisCmdArgsType& argv) {
               break;
           }
         }
-        if (*p) p++;
+        if (*p != 0) {
+          p++;
+        }
       }
       argv.push_back(arg);
     } else {
@@ -160,22 +164,14 @@ int RedisParser::GetNextNum(int pos, long* value) {
   //      |    |
   //      *3\r\n
   // [cur_pos_ + 1, pos - cur_pos_ - 2]
-  if (pstd::string2int(input_buf_ + cur_pos_ + 1, pos - cur_pos_ - 2, value)) {
+  if (pstd::string2int(input_buf_ + cur_pos_ + 1, pos - cur_pos_ - 2, value) != 0) {
     return 0;  // Success
   }
   return -1;  // Failed
 }
 
 RedisParser::RedisParser()
-    : status_code_(kRedisParserNone),
-      error_code_(kRedisParserOk),
-      redis_type_(0),
-      multibulk_len_(0),
-      bulk_len_(-1),
-      redis_parser_type_(REDIS_PARSER_REQUEST),
-      cur_pos_(0),
-      input_buf_(nullptr),
-      length_(0) {}
+    : redis_type_(0), bulk_len_(-1), redis_parser_type_(REDIS_PARSER_REQUEST) {}
 
 void RedisParser::SetParserStatus(RedisParserStatus status, RedisParserError error) {
   if (status == kRedisParserHalf) {
@@ -207,7 +203,8 @@ RedisParserStatus RedisParser::RedisParserInit(RedisParserType type, const Redis
 }
 
 RedisParserStatus RedisParser::ProcessInlineBuffer() {
-  int pos, ret;
+  int pos;
+  int ret;
   pos = FindNextSeparators();
   if (pos == -1) {
     // change rbuf_len_ to length_
@@ -256,7 +253,7 @@ RedisParserStatus RedisParser::ProcessMultibulkBuffer() {
       return status_code_;  // HALF
     }
   }
-  while (multibulk_len_) {
+  while (multibulk_len_ != 0) {
     if (bulk_len_ == -1) {
       pos = FindNextSeparators();
       if (pos != -1) {
@@ -306,7 +303,7 @@ void RedisParser::PrintCurrentStatus() {
   // }
   LOG(INFO) << "cur_pos : " << cur_pos_;
   LOG(INFO) << "input_buf_ is clean ? " << (input_buf_ == nullptr);
-  if (input_buf_ != nullptr) {
+  if (input_buf_) {
     LOG(INFO) << " input_buf " << input_buf_;
   }
   LOG(INFO) << "half_argv_ : " << half_argv_;
@@ -315,7 +312,7 @@ void RedisParser::PrintCurrentStatus() {
 
 RedisParserStatus RedisParser::ProcessInputBuffer(const char* input_buf, int length, int* parsed_len) {
   if (status_code_ == kRedisParserInitDone || status_code_ == kRedisParserHalf || status_code_ == kRedisParserDone) {
-    // TODO AZ: avoid copy
+    // TODO(): AZ: avoid copy
     std::string tmp_str(input_buf, length);
     input_str_ = half_argv_ + tmp_str;
     input_buf_ = input_str_.c_str();
@@ -338,7 +335,7 @@ RedisParserStatus RedisParser::ProcessInputBuffer(const char* input_buf, int len
   return status_code_;
 }
 
-// TODO AZ
+// TODO(): AZ
 RedisParserStatus RedisParser::ProcessResponseBuffer() {
   SetParserStatus(kRedisParserDone);
   return status_code_;
@@ -347,7 +344,7 @@ RedisParserStatus RedisParser::ProcessResponseBuffer() {
 RedisParserStatus RedisParser::ProcessRequestBuffer() {
   RedisParserStatus ret;
   while (cur_pos_ <= length_ - 1) {
-    if (!redis_type_) {
+    if (redis_type_ == 0) {
       if (input_buf_[cur_pos_] == '*') {
         redis_type_ = REDIS_REQ_MULTIBULK;
       } else {

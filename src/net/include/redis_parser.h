@@ -17,11 +17,11 @@ namespace net {
 
 class RedisParser;
 
-typedef std::vector<std::string> RedisCmdArgsType;
-typedef int (*RedisParserDataCb)(RedisParser*, const RedisCmdArgsType&);
-typedef int (*RedisParserMultiDataCb)(RedisParser*, const std::vector<RedisCmdArgsType>&);
-typedef int (*RedisParserCb)(RedisParser*);
-typedef int RedisParserType;
+using RedisCmdArgsType = std::vector<std::string>;
+using RedisParserDataCb = int (*)(RedisParser *, const RedisCmdArgsType &);
+using RedisParserMultiDataCb = int (*)(RedisParser *, const std::vector<RedisCmdArgsType> &);
+using RedisParserCb = int (*)(RedisParser *);
+using RedisParserType = int;
 
 enum RedisParserStatus {
   kRedisParserNone = 0,
@@ -73,8 +73,8 @@ class RedisParser {
   void ResetCommandStatus();
 
   RedisParserSettings parser_settings_;
-  RedisParserStatus status_code_;
-  RedisParserError error_code_;
+  RedisParserStatus status_code_{kRedisParserNone};
+  RedisParserError error_code_{kRedisParserOk};
 
   int redis_type_ = -1;  // REDIS_REQ_INLINE or REDIS_REQ_MULTIBULK
 
@@ -88,7 +88,7 @@ class RedisParser {
   std::vector<RedisCmdArgsType> argvs_;
 
   int cur_pos_ = 0;
-  const char* input_buf_;
+  const char* input_buf_{nullptr};
   std::string input_str_;
   int length_ = 0;
 };

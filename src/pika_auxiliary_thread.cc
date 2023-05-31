@@ -26,7 +26,8 @@ void* PikaAuxiliaryThread::ThreadMain() {
     } else if (g_pika_server->MetaSyncDone()) {
       g_pika_rm->RunSyncSlavePartitionStateMachine();
     }
-    Status s = g_pika_rm->CheckSyncTimeout(pstd::NowMicros());
+
+    pstd::Status s = g_pika_rm->CheckSyncTimeout(pstd::NowMicros());
     if (!s.ok()) {
       LOG(WARNING) << s.ToString();
     }
@@ -40,7 +41,7 @@ void* PikaAuxiliaryThread::ThreadMain() {
     }
     // send to peer
     int res = g_pika_server->SendToPeer();
-    if (!res) {
+    if (res == 0) {
       // sleep 100 ms
       std::unique_lock lock(mu_);
       cv_.wait_for(lock, 100ms);

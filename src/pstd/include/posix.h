@@ -3,19 +3,11 @@
 #  define __CSAPP_H__
 
 #  include <arpa/inet.h>
-#  include <ctype.h>
-#  include <errno.h>
 #  include <fcntl.h>
-#  include <math.h>
 #  include <netdb.h>
 #  include <netinet/in.h>
 #  include <pthread.h>
 #  include <semaphore.h>
-#  include <setjmp.h>
-#  include <signal.h>
-#  include <stdio.h>
-#  include <stdlib.h>
-#  include <string.h>
 #  include <sys/mman.h>
 #  include <sys/socket.h>
 #  include <sys/stat.h>
@@ -23,31 +15,38 @@
 #  include <sys/types.h>
 #  include <sys/wait.h>
 #  include <unistd.h>
+#  include <cctype>
+#  include <cerrno>
+#  include <cmath>
+#  include <csetjmp>
+#  include <csignal>
+#  include <cstdio>
+#  include <cstdlib>
+#  include <cstring>
 
 /* Default file permissions are DEF_MODE & ~DEF_UMASK */
 /* $begin createmasks */
-#  define DEF_MODE S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH
-#  define DEF_UMASK S_IWGRP | S_IWOTH
+#  define DEF_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH)
+#  define DEF_UMASK (S_IWGRP | S_IWOTH)
 /* $end createmasks */
 
 /* Simplifies calls to bind(), connect(), and accept() */
 /* $begin sockaddrdef */
-typedef struct sockaddr SA;
+using SA = struct sockaddr;
 /* $end sockaddrdef */
 
 /* Persistent state for the robust I/O (Rio) package */
 /* $begin rio_t */
 #  define RIO_BUFSIZE 8192
-typedef struct {
+using rio_t = struct {
   int rio_fd;                /* descriptor for this internal buf */
   int rio_cnt;               /* unread bytes in internal buf */
   char* rio_bufptr;          /* next unread byte in internal buf */
   char rio_buf[RIO_BUFSIZE]; /* internal buffer */
-} rio_t;
+};
 /* $end rio_t */
 
 /* External variables */
-extern int h_errno;    /* defined by BIND for DNS errors */
 extern char** environ; /* defined by libc */
 
 /* Misc constants */
@@ -56,19 +55,19 @@ extern char** environ; /* defined by libc */
 #  define LISTENQ 1024 /* second argument to listen() */
 
 /* Process control wrappers */
-pid_t Fork(void);
+pid_t Fork();
 void Execve(const char* filename, char* const argv[], char* const envp[]);
 pid_t Wait(int* status);
 pid_t Waitpid(pid_t pid, int* iptr, int options);
 void Kill(pid_t pid, int signum);
 unsigned int Sleep(unsigned int secs);
-void Pause(void);
+void Pause();
 unsigned int Alarm(unsigned int seconds);
 void Setpgid(pid_t pid, pid_t pgid);
 pid_t Getpgrp();
 
 /* Signal wrappers */
-typedef void handler_t(int);
+using handler_t = void (int);
 handler_t* Signal(int signum, handler_t* handler);
 void Sigprocmask(int how, const sigset_t* set, sigset_t* oldset);
 void Sigemptyset(sigset_t* set);
@@ -125,7 +124,7 @@ void Pthread_join(pthread_t tid, void** thread_return);
 void Pthread_cancel(pthread_t tid);
 void Pthread_detach(pthread_t tid);
 void Pthread_exit(void* retval);
-pthread_t Pthread_self(void);
+pthread_t Pthread_self();
 void Pthread_once(pthread_once_t* once_control, void (*init_function)());
 
 /* POSIX semaphore wrappers */
@@ -141,7 +140,7 @@ ssize_t rio_readnb(rio_t* rp, void* usrbuf, size_t n);
 ssize_t rio_readlineb(rio_t* rp, void* usrbuf, size_t maxlen);
 
 /* Wrappers for Rio package */
-ssize_t Rio_readn(int fd, void* usrbuf, size_t n);
+ssize_t Rio_readn(int fd, void* ptr, size_t n);
 void Rio_writen(int fd, void* usrbuf, size_t n);
 void Rio_readinitb(rio_t* rp, int fd);
 ssize_t Rio_readnb(rio_t* rp, void* usrbuf, size_t n);

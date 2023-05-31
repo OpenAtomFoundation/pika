@@ -8,6 +8,7 @@
 
 #include <glog/logging.h>
 #include <set>
+#include <utility>
 
 #include "net/include/redis_cli.h"
 
@@ -34,8 +35,8 @@ const std::string kPikaSecretFile = "rsync.secret";
 const std::string kDefaultRsyncAuth = "default";
 
 struct TableStruct {
-  TableStruct(const std::string& tn, const uint32_t pn, const std::set<uint32_t>& pi)
-      : table_name(tn), partition_num(pn), partition_ids(pi) {}
+  TableStruct(std::string  tn, const uint32_t pn, std::set<uint32_t>  pi)
+      : table_name(std::move(tn)), partition_num(pn), partition_ids(std::move(pi)) {}
 
   bool operator==(const TableStruct& table_struct) const {
     return table_name == table_struct.table_name && partition_num == table_struct.partition_num &&
@@ -50,7 +51,7 @@ struct WorkerCronTask {
   int task;
   std::string ip_port;
 };
-typedef WorkerCronTask MonitorCronTask;
+using MonitorCronTask = WorkerCronTask;
 // task define
 #define TASK_KILL 0
 #define TASK_KILLALL 1
@@ -88,9 +89,9 @@ enum SlotState {
 };
 
 struct LogicOffset {
-  uint32_t term;
-  uint64_t index;
-  LogicOffset() : term(0), index(0) {}
+  uint32_t term{0};
+  uint64_t index{0};
+  LogicOffset() = default;
   LogicOffset(uint32_t _term, uint64_t _index) : term(_term), index(_index) {}
   LogicOffset(const LogicOffset& other) {
     term = other.term;
@@ -103,9 +104,9 @@ struct LogicOffset {
 };
 
 struct BinlogOffset {
-  uint32_t filenum;
-  uint64_t offset;
-  BinlogOffset() : filenum(0), offset(0) {}
+  uint32_t filenum{0};
+  uint64_t offset{0};
+  BinlogOffset() = default;
   BinlogOffset(uint32_t num, uint64_t off) : filenum(num), offset(off) {}
   BinlogOffset(const BinlogOffset& other) {
     filenum = other.filenum;
@@ -113,41 +114,23 @@ struct BinlogOffset {
   }
   std::string ToString() const { return "filenum: " + std::to_string(filenum) + " offset: " + std::to_string(offset); }
   bool operator==(const BinlogOffset& other) const {
-    if (filenum == other.filenum && offset == other.offset) {
-      return true;
-    }
-    return false;
+    return filenum == other.filenum && offset == other.offset;
   }
   bool operator!=(const BinlogOffset& other) const {
-    if (filenum != other.filenum || offset != other.offset) {
-      return true;
-    }
-    return false;
+    return filenum != other.filenum || offset != other.offset;
   }
 
   bool operator>(const BinlogOffset& other) const {
-    if (filenum > other.filenum || (filenum == other.filenum && offset > other.offset)) {
-      return true;
-    }
-    return false;
+    return filenum > other.filenum || (filenum == other.filenum && offset > other.offset);
   }
   bool operator<(const BinlogOffset& other) const {
-    if (filenum < other.filenum || (filenum == other.filenum && offset < other.offset)) {
-      return true;
-    }
-    return false;
+    return filenum < other.filenum || (filenum == other.filenum && offset < other.offset);
   }
   bool operator<=(const BinlogOffset& other) const {
-    if (filenum < other.filenum || (filenum == other.filenum && offset <= other.offset)) {
-      return true;
-    }
-    return false;
+    return filenum < other.filenum || (filenum == other.filenum && offset <= other.offset);
   }
   bool operator>=(const BinlogOffset& other) const {
-    if (filenum > other.filenum || (filenum == other.filenum && offset >= other.offset)) {
-      return true;
-    }
-    return false;
+    return filenum > other.filenum || (filenum == other.filenum && offset >= other.offset);
   }
 };
 
@@ -156,8 +139,8 @@ struct LogOffset {
     b_offset = _log_offset.b_offset;
     l_offset = _log_offset.l_offset;
   }
-  LogOffset() : b_offset(), l_offset() {}
-  LogOffset(BinlogOffset _b_offset, LogicOffset _l_offset) : b_offset(_b_offset), l_offset(_l_offset) {}
+  LogOffset() = default;
+  LogOffset(const BinlogOffset& _b_offset, const LogicOffset& _l_offset) : b_offset(_b_offset), l_offset(_l_offset) {}
   bool operator<(const LogOffset& other) const { return b_offset < other.b_offset; }
   bool operator==(const LogOffset& other) const { return b_offset == other.b_offset; }
   bool operator<=(const LogOffset& other) const { return b_offset <= other.b_offset; }
@@ -175,9 +158,9 @@ struct DBSyncArg {
   int port;
   std::string table_name;
   uint32_t partition_id;
-  DBSyncArg(PikaServer* const _p, const std::string& _ip, int _port, const std::string& _table_name,
+  DBSyncArg(PikaServer* const _p, std::string  _ip, int _port, std::string  _table_name,
             uint32_t _partition_id)
-      : p(_p), ip(_ip), port(_port), table_name(_table_name), partition_id(_partition_id) {}
+      : p(_p), ip(std::move(_ip)), port(_port), table_name(std::move(_table_name)), partition_id(_partition_id) {}
 };
 
 // rm define
@@ -202,7 +185,7 @@ const std::string BinlogSyncStateMsg[] = {"NotSync", "ReadFromCache", "ReadFromF
 struct BinlogChip {
   LogOffset offset_;
   std::string binlog_;
-  BinlogChip(LogOffset offset, std::string binlog) : offset_(offset), binlog_(binlog) {}
+  BinlogChip(const LogOffset& offset, std::string binlog) : offset_(offset), binlog_(std::move(binlog)) {}
   BinlogChip(const BinlogChip& binlog_chip) {
     offset_ = binlog_chip.offset_;
     binlog_ = binlog_chip.binlog_;
@@ -210,16 +193,13 @@ struct BinlogChip {
 };
 
 struct PartitionInfo {
-  PartitionInfo(const std::string& table_name, uint32_t partition_id)
-      : table_name_(table_name), partition_id_(partition_id) {}
+  PartitionInfo(std::string  table_name, uint32_t partition_id)
+      : table_name_(std::move(table_name)), partition_id_(partition_id) {}
 
-  PartitionInfo() : partition_id_(0) {}
+  PartitionInfo() = default;
 
   bool operator==(const PartitionInfo& other) const {
-    if (table_name_ == other.table_name_ && partition_id_ == other.partition_id_) {
-      return true;
-    }
-    return false;
+    return table_name_ == other.table_name_ && partition_id_ == other.partition_id_;
   }
 
   bool operator<(const PartitionInfo& other) const {
@@ -228,7 +208,7 @@ struct PartitionInfo {
 
   std::string ToString() const { return "(" + table_name_ + ":" + std::to_string(partition_id_) + ")"; }
   std::string table_name_;
-  uint32_t partition_id_;
+  uint32_t partition_id_{0};
 };
 
 struct hash_partition_info {
@@ -239,9 +219,9 @@ struct hash_partition_info {
 
 class Node {
  public:
-  Node(const std::string& ip, int port) : ip_(ip), port_(port) {}
+  Node(std::string  ip, int port) : ip_(std::move(ip)), port_(port) {}
   virtual ~Node() = default;
-  Node() : port_(0) {}
+  Node() = default;
   const std::string& Ip() const { return ip_; }
   int Port() const { return port_; }
   std::string ToString() const { return ip_ + ":" + std::to_string(port_); }
@@ -253,34 +233,28 @@ class Node {
 
 class RmNode : public Node {
  public:
-  RmNode(const std::string& ip, int port, const PartitionInfo& partition_info)
-      : Node(ip, port), partition_info_(partition_info), session_id_(0), last_send_time_(0), last_recv_time_(0) {}
+  RmNode(const std::string& ip, int port, PartitionInfo  partition_info)
+      : Node(ip, port), partition_info_(std::move(partition_info)) {}
 
   RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id)
       : Node(ip, port),
-        partition_info_(table_name, partition_id),
-        session_id_(0),
-        last_send_time_(0),
-        last_recv_time_(0) {}
+        partition_info_(table_name, partition_id)
+        {}
 
   RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int32_t session_id)
       : Node(ip, port),
         partition_info_(table_name, partition_id),
-        session_id_(session_id),
-        last_send_time_(0),
-        last_recv_time_(0) {}
+        session_id_(session_id)
+        {}
 
   RmNode(const std::string& table_name, uint32_t partition_id)
-      : Node(), partition_info_(table_name, partition_id), session_id_(0), last_send_time_(0), last_recv_time_(0) {}
-  RmNode() : Node(), partition_info_(), session_id_(0), last_send_time_(0), last_recv_time_(0) {}
+      :  partition_info_(table_name, partition_id) {}
+  RmNode() = default;
 
-  virtual ~RmNode() = default;
+  ~RmNode() override = default;
   bool operator==(const RmNode& other) const {
-    if (partition_info_.table_name_ == other.TableName() && partition_info_.partition_id_ == other.PartitionId() &&
-        Ip() == other.Ip() && Port() == other.Port()) {
-      return true;
-    }
-    return false;
+    return partition_info_.table_name_ == other.TableName() && partition_info_.partition_id_ == other.PartitionId() &&
+        Ip() == other.Ip() && Port() == other.Port();
   }
 
   const std::string& TableName() const { return partition_info_.table_name_; }
@@ -315,7 +289,7 @@ struct WriteTask {
   struct RmNode rm_node_;
   struct BinlogChip binlog_chip_;
   LogOffset prev_offset_;
-  WriteTask(RmNode rm_node, BinlogChip binlog_chip, LogOffset prev_offset)
+  WriteTask(const RmNode& rm_node, const BinlogChip& binlog_chip, const LogOffset& prev_offset)
       : rm_node_(rm_node), binlog_chip_(binlog_chip), prev_offset_(prev_offset) {}
 };
 

@@ -10,12 +10,12 @@
 
 namespace net {
 
-Thread::Thread() : should_stop_(false), running_(false), thread_id_(0) {}
+Thread::Thread() : should_stop_(false) {}
 
-Thread::~Thread() {}
+Thread::~Thread() = default;
 
 void* Thread::RunThread(void* arg) {
-  Thread* thread = reinterpret_cast<Thread*>(arg);
+  auto thread = reinterpret_cast<Thread*>(arg);
   if (!(thread->thread_name().empty())) {
     SetThreadName(pthread_self(), thread->thread_name());
   }
@@ -28,7 +28,7 @@ int Thread::StartThread() {
   should_stop_ = false;
   if (!running_) {
     running_ = true;
-    return pthread_create(&thread_id_, nullptr, RunThread, (void*)this);
+    return pthread_create(&thread_id_, nullptr, RunThread, this);
   }
   return 0;
 }

@@ -11,7 +11,8 @@
 #include "include/pika_rm.h"
 #include "include/pika_server.h"
 
-extern std::unique_ptr<PikaConf> g_pika_conf;
+using pstd::Status;
+
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
@@ -139,7 +140,7 @@ pstd::Status PikaReplServer::Write(const std::string& ip, const int port, const 
   }
   int fd = client_conn_map_[ip_port];
   std::shared_ptr<net::PbConn> conn = std::dynamic_pointer_cast<net::PbConn>(pika_repl_server_thread_->get_conn(fd));
-  if (conn == nullptr) {
+  if (!conn) {
     return Status::NotFound("The" + ip_port + " conn cannot be found");
   }
 
@@ -160,7 +161,7 @@ void PikaReplServer::UpdateClientConnMap(const std::string& ip_port, int fd) {
 
 void PikaReplServer::RemoveClientConn(int fd) {
   std::lock_guard l(client_conn_rwlock_);
-  std::map<std::string, int>::const_iterator iter = client_conn_map_.begin();
+  auto iter = client_conn_map_.begin();
   while (iter != client_conn_map_.end()) {
     if (iter->second == fd) {
       iter = client_conn_map_.erase(iter);

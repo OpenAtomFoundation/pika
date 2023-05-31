@@ -33,11 +33,11 @@ class MasterConn : public net::NetConn {
 
   net::ReadStatus ReadRaw(uint32_t count);
   net::ReadStatus ReadHeader();
-  net::ReadStatus ReadBody(uint32_t body_lenth);
+  net::ReadStatus ReadBody(uint32_t body_length);
   void ResetStatus();
 
   int32_t FindNextSeparators(const std::string& content, int32_t next_parse_pos);
-  int32_t GetNextNum(const std::string& content, int32_t next_parse_pos, int32_t pos, long* value);
+  int32_t GetNextNum(const std::string& content, int32_t left_pos, int32_t pos, long* value);
   net::ReadStatus ParseRedisRESPArray(const std::string& content, net::RedisCmdArgsType* argv);
 
   bool ProcessAuth(const net::RedisCmdArgsType& argv);

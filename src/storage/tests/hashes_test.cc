@@ -17,25 +17,25 @@ using namespace storage;
 
 class HashesTest : public ::testing::Test {
  public:
-  HashesTest() {}
-  virtual ~HashesTest() {}
+  HashesTest() = default;
+  ~HashesTest() override = default;
 
-  void SetUp() {
+  void SetUp() override {
     std::string path = "./db/hashes";
-    if (access(path.c_str(), F_OK)) {
+    if (access(path.c_str(), F_OK) != 0) {
       mkdir(path.c_str(), 0755);
     }
     storage_options.options.create_if_missing = true;
     s = db.Open(storage_options, path);
   }
 
-  void TearDown() {
+  void TearDown() override {
     std::string path = "./db/hashes";
     DeleteFiles(path.c_str());
   }
 
-  static void SetUpTestCase() {}
-  static void TearDownTestCase() {}
+  static void SetUpTestSuite() {}
+  static void TearDownTestSuite() {}
 
   StorageOptions storage_options;
   storage::Storage db;
@@ -82,7 +82,7 @@ static bool size_match(storage::Storage* const db, const Slice& key, int32_t exp
   if (!s.ok() && !s.IsNotFound()) {
     return false;
   }
-  if (s.IsNotFound() && !expect_size) {
+  if (s.IsNotFound() && (expect_size == 0)) {
     return true;
   }
   return size == expect_size;
@@ -91,7 +91,7 @@ static bool size_match(storage::Storage* const db, const Slice& key, int32_t exp
 static bool make_expired(storage::Storage* const db, const Slice& key) {
   std::map<storage::DataType, rocksdb::Status> type_status;
   int ret = db->Expire(key, 1, &type_status);
-  if (!ret || !type_status[storage::DataType::kHashes].ok()) {
+  if ((ret == 0) || !type_status[storage::DataType::kHashes].ok()) {
     return false;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(2000));
@@ -979,8 +979,9 @@ TEST_F(HashesTest, HStrlenTest) {
 }
 
 // HScan
-TEST_F(HashesTest, HScanTest) {
-  int64_t cursor = 0, next_cursor = 0;
+TEST_F(HashesTest, HScanTest) {  // NOLINT
+  int64_t cursor = 0;
+  int64_t next_cursor = 0;
   std::vector<FieldValue> field_value_out;
 
   // ***************** Group 1 Test *****************

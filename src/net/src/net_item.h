@@ -7,6 +7,7 @@
 #define NET_SRC_NET_ITEM_H_
 
 #include <string>
+#include <utility>
 
 #include "net/include/net_define.h"
 
@@ -14,9 +15,9 @@ namespace net {
 
 class NetItem {
  public:
-  NetItem() {}
-  NetItem(const int fd, const std::string& ip_port, const NotifyType& type = kNotiConnect)
-      : fd_(fd), ip_port_(ip_port), notify_type_(type) {}
+  NetItem() = default;
+  NetItem(const int fd, std::string  ip_port, const NotifyType& type = kNotiConnect)
+      : fd_(fd), ip_port_(std::move(ip_port)), notify_type_(type) {}
 
   int fd() const { return fd_; }
   std::string ip_port() const { return ip_port_; }

@@ -38,7 +38,7 @@ Status BackupEngine::Open(storage::Storage* storage, std::shared_ptr<BackupEngin
   rocksdb::DB* rocksdb_db;
   std::string types[] = {STRINGS_DB, HASHES_DB, LISTS_DB, ZSETS_DB, SETS_DB};
   for (const auto& type : types) {
-    if ((rocksdb_db = storage->GetDBByType(type)) == nullptr) {
+    if (!(rocksdb_db = storage->GetDBByType(type))) {
       s = Status::Corruption("Error db type");
     }
 
@@ -91,8 +91,8 @@ Status BackupEngine::CreateNewBackupSpecify(const std::string& backup_dir, const
 }
 
 void* ThreadFuncSaveSpecify(void* arg) {
-  BackupSaveArgs* arg_ptr = static_cast<BackupSaveArgs*>(arg);
-  BackupEngine* p = static_cast<BackupEngine*>(arg_ptr->p_engine);
+  auto arg_ptr = static_cast<BackupSaveArgs*>(arg);
+  auto p = static_cast<BackupEngine*>(arg_ptr->p_engine);
   arg_ptr->res = p->CreateNewBackupSpecify(arg_ptr->backup_dir, arg_ptr->key_type);
   pthread_exit(&(arg_ptr->res));
 }
@@ -102,7 +102,7 @@ Status BackupEngine::WaitBackupPthread() {
   Status s = Status::OK();
   for (auto& pthread : backup_pthread_ts_) {
     void* res;
-    if ((ret = pthread_join(pthread.second, &res)) != 0) {
+    if (pthread_join(pthread.second, &res) != 0) {
     }
     Status cur_s = *(static_cast<Status*>(res));
     if (!cur_s.ok()) {

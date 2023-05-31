@@ -4,13 +4,15 @@
 //  of patent rights can be found in the PATENTS file in the same directory.
 
 #include "write_thread.h"
+
+#include <utility>
 #include "fstream"
 #include "iostream"
 #include "string"
 
 #define MAX_QUEUE_SIZE 1024
 
-WriteThread::WriteThread(const std::string& file_name) : should_stop_(false), file_name_(file_name) {}
+WriteThread::WriteThread(std::string  file_name) : should_stop_(false), file_name_(std::move(file_name)) {}
 
 void WriteThread::Load(const std::string& data) {
   std::unique_lock lock(data_queue_mutex_);
@@ -32,7 +34,7 @@ void WriteThread::Stop() {
 }
 
 void* WriteThread::ThreadMain() {
-  std::fstream s(file_name_, s.binary | s.out);
+  std::fstream s(file_name_, std::fstream::binary | std::fstream::out);
   if (!s.is_open()) {
     std::cout << "failed to open " << file_name_ << ", exit..." << std::endl;
     exit(-1);
@@ -43,7 +45,7 @@ void* WriteThread::ThreadMain() {
         rsignal_.wait(lock, [this] { return !data_queue_.empty() || should_stop_; });
       }
 
-      if (data_queue_.size() > 0) {
+      if (!data_queue_.empty()) {
         data_queue_mutex_.lock();
         std::string data = data_queue_.front();
         data_queue_.pop();
