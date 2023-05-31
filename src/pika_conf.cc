@@ -73,7 +73,7 @@ Status PikaConf::AddTableSlots(const std::string& table_name, const std::set<uin
   return s;
 }
 
-Status PikaConf::RemoveDbSlots(const std::string& table_name, const std::set<uint32_t>& slot_ids) {
+Status PikaConf::RemoveDBSlots(const std::string& table_name, const std::set<uint32_t>& slot_ids) {
   Status s = TableSlotsSanityCheck(table_name, slot_ids, false);
   if (!s.ok()) {
     return s;

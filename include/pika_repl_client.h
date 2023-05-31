@@ -75,7 +75,7 @@ class PikaReplClient {
                            uint32_t slot_id);
 
   pstd::Status SendMetaSync();
-  pstd::Status SendSlotDbSync(const std::string& ip, uint32_t port, const std::string& table_name, uint32_t slot_id,
+  pstd::Status SendSlotDBSync(const std::string& ip, uint32_t port, const std::string& table_name, uint32_t slot_id,
                              const BinlogOffset& boffset, const std::string& local_ip);
   pstd::Status SendSlotTrySync(const std::string& ip, uint32_t port, const std::string& table_name,
                               uint32_t slot_id, const BinlogOffset& boffset, const std::string& local_ip);

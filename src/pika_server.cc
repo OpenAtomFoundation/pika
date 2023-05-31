@@ -509,7 +509,7 @@ void PikaServer::SlotSetSmallCompactionThreshold(uint32_t small_compaction_thres
   }
 }
 
-bool PikaServer::GetDbSlotBinlogOffset(const std::string& table_name, uint32_t slot_id,
+bool PikaServer::GetDBSlotBinlogOffset(const std::string& table_name, uint32_t slot_id,
                                                BinlogOffset* const boffset) {
   std::shared_ptr<SyncMasterSlot> slot =
       g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
@@ -521,7 +521,7 @@ bool PikaServer::GetDbSlotBinlogOffset(const std::string& table_name, uint32_t s
 }
 
 // Only use in classic mode
-std::shared_ptr<Slot> PikaServer::GetSlotByDbName(const std::string& db_name) {
+std::shared_ptr<Slot> PikaServer::GetSlotByDBName(const std::string& db_name) {
   std::shared_ptr<Table> table = GetTable(db_name);
   return table ? table->GetSlotById(0) : nullptr;
 }
@@ -531,7 +531,7 @@ std::shared_ptr<Slot> PikaServer::GetTableSlotById(const std::string& table_name
   return table ? table->GetSlotById(slot_id) : nullptr;
 }
 
-std::shared_ptr<Slot> PikaServer::GetDbSlotByKey(const std::string& table_name, const std::string& key) {
+std::shared_ptr<Slot> PikaServer::GetDBSlotByKey(const std::string& table_name, const std::string& key) {
   std::shared_ptr<Table> table = GetTable(table_name);
   return table ? table->GetSlotByKey(key) : nullptr;
 }

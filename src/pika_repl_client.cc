@@ -139,7 +139,7 @@ Status PikaReplClient::SendMetaSync() {
   return client_thread_->Write(master_ip, master_port + kPortShiftReplServer, to_send);
 }
 
-Status PikaReplClient::SendSlotDbSync(const std::string& ip, uint32_t port, const std::string& table_name,
+Status PikaReplClient::SendSlotDBSync(const std::string& ip, uint32_t port, const std::string& table_name,
                                            uint32_t slot_id, const BinlogOffset& boffset,
                                            const std::string& local_ip) {
   InnerMessage::InnerRequest request;

@@ -1023,7 +1023,7 @@ Status PikaReplicaManager::SendRemoveSlaveNodeRequest(const std::string& table, 
 
 Status PikaReplicaManager::SendSlotTrySyncRequest(const std::string& table_name, size_t slot_id) {
   BinlogOffset boffset;
-  if (!g_pika_server->GetDbSlotBinlogOffset(table_name, slot_id, &boffset)) {
+  if (!g_pika_server->GetDBSlotBinlogOffset(table_name, slot_id, &boffset)) {
     LOG(WARNING) << "Slot: " << table_name << ":" << slot_id << ",  Get Slot binlog offset failed";
     return Status::Corruption("Slot get binlog offset error");
   }
@@ -1050,7 +1050,7 @@ Status PikaReplicaManager::SendSlotTrySyncRequest(const std::string& table_name,
 
 Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& table_name, size_t slot_id) {
   BinlogOffset boffset;
-  if (!g_pika_server->GetDbSlotBinlogOffset(table_name, slot_id, &boffset)) {
+  if (!g_pika_server->GetDBSlotBinlogOffset(table_name, slot_id, &boffset)) {
     LOG(WARNING) << "Slot: " << table_name << ":" << slot_id << ",  Get slot binlog offset failed";
     return Status::Corruption("Slot get binlog offset error");
   }
@@ -1069,7 +1069,7 @@ Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& table_name, 
     return Status::Corruption("Slave Slot not found");
   }
 
-  Status status = pika_repl_client_->SendSlotDbSync(slave_slot->MasterIp(), slave_slot->MasterPort(),
+  Status status = pika_repl_client_->SendSlotDBSync(slave_slot->MasterIp(), slave_slot->MasterPort(),
                                                          table_name, slot_id, boffset, slave_slot->LocalIp());
 
   Status s;
@@ -1077,7 +1077,7 @@ Status PikaReplicaManager::SendSlotDBSyncRequest(const std::string& table_name, 
     slave_slot->SetReplState(ReplState::kWaitReply);
   } else {
     slave_slot->SetReplState(ReplState::kError);
-    LOG(WARNING) << "SendSlotDbSync failed " << status.ToString();
+    LOG(WARNING) << "SendSlotDBSync failed " << status.ToString();
   }
   if (!s.ok()) {
     LOG(WARNING) << s.ToString();
