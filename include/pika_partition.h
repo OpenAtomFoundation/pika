@@ -46,10 +46,10 @@ struct BgSaveInfo {
   }
 };
 
-class Partition : public std::enable_shared_from_this<Partition> {
+class Slot : public pstd::noncopyable {
  public:
-  Partition(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path);
-  virtual ~Partition();
+  Slot(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path);
+  virtual ~Slot();
 
   std::string GetTableName() const;
   uint32_t GetPartitionId() const;
@@ -84,12 +84,6 @@ class Partition : public std::enable_shared_from_this<Partition> {
   // key scan info use
   pstd::Status GetKeyNum(std::vector<storage::KeyInfo>* key_info);
   KeyScanInfo GetKeyScanInfo();
-
-  /*
-   * No allowed copy and copy assign
-   */
-  Partition(const Partition&) = delete;
-  void operator=(const Partition&) = delete;
 
  private:
   std::string table_name_;

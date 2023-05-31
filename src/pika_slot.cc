@@ -24,7 +24,7 @@ void SlotsInfoCmd::DoInitial() {
   return;
 }
 
-void SlotsInfoCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotsInfoCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
   if (!table_ptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsInfo);
@@ -63,7 +63,7 @@ void SlotsHashKeyCmd::DoInitial() {
   return;
 }
 
-void SlotsHashKeyCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotsHashKeyCmd::Do(std::shared_ptr<Slot> slot) {
   res_.AppendArrayLen(argv_.size() - 1);
   std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
   if (!table_ptr) {
@@ -89,7 +89,7 @@ void SlotsMgrtSlotAsyncCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotsMgrtSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t moved = 0;
   int64_t remained = 0;
   res_.AppendArrayLen(2);
@@ -143,7 +143,7 @@ void SlotsMgrtTagSlotAsyncCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t moved = 0;
   int64_t remained = 0;
   // check if this slave node exist.
@@ -212,19 +212,19 @@ void SlotsScanCmd::DoInitial() {
   return;
 }
 
-void SlotsScanCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotsScanCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
   if (!table_ptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsScan);
     return;
   }
-  std::shared_ptr<Partition> cur_partition = table_ptr->GetPartitionById(slotnum_);
-  if (!cur_partition) {
+  std::shared_ptr<Slot> cur_slot = table_ptr->GetSlotById(slotnum_);
+  if (!cur_slot) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsScan);
     return;
   }
   std::vector<std::string> keys;
-  int64_t cursor_ret = cur_partition->db()->Scan(storage::DataType::kAll, cursor_, pattern_, count_, &keys);
+  int64_t cursor_ret = cur_slot->db()->Scan(storage::DataType::kAll, cursor_, pattern_, count_, &keys);
 
   res_.AppendArrayLen(2);
 
@@ -261,7 +261,7 @@ void SlotsDelCmd::DoInitial() {
   return;
 }
 
-void SlotsDelCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotsDelCmd::Do(std::shared_ptr<Slot> slot) {
   std::shared_ptr<Table> table_ptr = g_pika_server->GetTable(g_pika_conf->default_table());
   if (!table_ptr) {
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsDel);
@@ -273,11 +273,11 @@ void SlotsDelCmd::Do(std::shared_ptr<Partition> partition) {
   }
   std::vector<uint32_t> successed_slots;
   for (auto& slotnum : slots_) {
-    std::shared_ptr<Partition> cur_partition = table_ptr->GetPartitionById(slotnum);
-    if (!cur_partition) {
+    std::shared_ptr<Slot> cur_slot = table_ptr->GetSlotById(slotnum);
+    if (!cur_slot) {
       continue;
     }
-    cur_partition->FlushDB();
+    cur_slot->FlushDB();
     successed_slots.push_back(slotnum);
   }
   res_.AppendArrayLen(successed_slots.size());
@@ -301,7 +301,7 @@ void SlotsMgrtExecWrapperCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotsMgrtExecWrapperCmd::Do(std::shared_ptr<Slot> slot) {
   // return 0 means proxy will request to new slot server
   // return 1 means proxy will keey trying
   // return 2 means return this key directly
@@ -321,16 +321,16 @@ void SlotsMgrtAsyncStatusCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotsMgrtAsyncStatusCmd::Do(std::shared_ptr<Slot> slot) {
   std::string status;
   std::string ip = "none";
-  int64_t port = -1, slot = -1, moved = -1, remained = -1;
+  int64_t port = -1, slots = -1, moved = -1, remained = -1;
   std::string mstatus = "no";
   res_.AppendArrayLen(5);
   status = "dest server: " + ip + ":" + std::to_string(port);
   res_.AppendStringLen(status.size());
   res_.AppendContent(status);
-  status = "slot number: " + std::to_string(slot);
+  status = "slot number: " + std::to_string(slots);
   res_.AppendStringLen(status.size());
   res_.AppendContent(status);
   status = "migrating  : " + mstatus;
@@ -355,7 +355,7 @@ void SlotsMgrtAsyncCancelCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtAsyncCancelCmd::Do(std::shared_ptr<Partition> partition) {
+void SlotsMgrtAsyncCancelCmd::Do(std::shared_ptr<Slot> slot) {
   res_.SetRes(CmdRes::kOk);
   return;
 }
@@ -366,7 +366,7 @@ void SlotsMgrtSlotCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtSlotCmd::Do(std::shared_ptr<Partition> partition) { return; }
+void SlotsMgrtSlotCmd::Do(std::shared_ptr<Slot> slot) { return; }
 
 // slotsmgrttagslot host port timeout slot
 void SlotsMgrtTagSlotCmd::DoInitial() {
@@ -374,7 +374,7 @@ void SlotsMgrtTagSlotCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Partition> partition) { return; }
+void SlotsMgrtTagSlotCmd::Do(std::shared_ptr<Slot> slot) { return; }
 
 // slotsmgrtone host port timeout key
 void SlotsMgrtOneCmd::DoInitial() {
@@ -382,7 +382,7 @@ void SlotsMgrtOneCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtOneCmd::Do(std::shared_ptr<Partition> partition) { return; }
+void SlotsMgrtOneCmd::Do(std::shared_ptr<Slot> slot) { return; }
 
 // slotsmgrttagone host port timeout key
 void SlotsMgrtTagOneCmd::DoInitial() {
@@ -390,4 +390,4 @@ void SlotsMgrtTagOneCmd::DoInitial() {
   return;
 }
 
-void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Partition> partition) { return; }
+void SlotsMgrtTagOneCmd::Do(std::shared_ptr<Slot> slot) { return; }

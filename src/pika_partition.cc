@@ -45,7 +45,7 @@ std::string DbSyncPath(const std::string& sync_path, const std::string& table_na
   return sync_path + buf;
 }
 
-Partition::Partition(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path)
+Slot::Slot(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path)
     : table_name_(table_name), partition_id_(partition_id), bgsave_engine_(nullptr) {
   db_path_ = table_db_path;
   bgsave_sub_path_ = table_name;
@@ -63,16 +63,16 @@ Partition::Partition(const std::string& table_name, uint32_t partition_id, const
   LOG(INFO) << partition_name_ << " DB Success";
 }
 
-Partition::~Partition() {
+Slot::~Slot() {
   Close();
 }
 
-void Partition::Leave() {
+void Slot::Leave() {
   Close();
   MoveToTrash();
 }
 
-void Partition::Close() {
+void Slot::Close() {
   if (!opened_) {
     return;
   }
@@ -84,7 +84,7 @@ void Partition::Close() {
 
 // Before call this function, should
 // close db and log first
-void Partition::MoveToTrash() {
+void Slot::MoveToTrash() {
   if (opened_) {
     return;
   }
@@ -103,30 +103,30 @@ void Partition::MoveToTrash() {
   LOG(WARNING) << "Partition DB: " << partition_name_ << " move to trash success";
 }
 
-std::string Partition::GetTableName() const { return table_name_; }
+std::string Slot::GetTableName() const { return table_name_; }
 
-uint32_t Partition::GetPartitionId() const { return partition_id_; }
+uint32_t Slot::GetPartitionId() const { return partition_id_; }
 
-std::string Partition::GetPartitionName() const { return partition_name_; }
+std::string Slot::GetPartitionName() const { return partition_name_; }
 
-std::shared_ptr<storage::Storage> Partition::db() const { return db_; }
+std::shared_ptr<storage::Storage> Slot::db() const { return db_; }
 
-void Partition::Compact(const storage::DataType& type) {
+void Slot::Compact(const storage::DataType& type) {
   if (!opened_) {
     return;
   }
   db_->Compact(type);
 }
 
-void Partition::DbRWLockWriter() { db_rwlock_.lock(); }
+void Slot::DbRWLockWriter() { db_rwlock_.lock(); }
 
-void Partition::DbRWLockReader() { db_rwlock_.lock_shared(); }
+void Slot::DbRWLockReader() { db_rwlock_.lock_shared(); }
 
-void Partition::DbRWUnLock() { db_rwlock_.unlock(); }
+void Slot::DbRWUnLock() { db_rwlock_.unlock(); }
 
-std::shared_ptr<pstd::lock::LockMgr> Partition::LockMgr() { return lock_mgr_; }
+std::shared_ptr<pstd::lock::LockMgr> Slot::LockMgr() { return lock_mgr_; }
 
-void Partition::PrepareRsync() {
+void Slot::PrepareRsync() {
   pstd::DeleteDirIfExist(dbsync_path_);
   pstd::CreatePath(dbsync_path_ + "strings");
   pstd::CreatePath(dbsync_path_ + "hashes");
@@ -141,7 +141,7 @@ void Partition::PrepareRsync() {
 // 1, Check dbsync finished, got the new binlog offset
 // 2, Replace the old db
 // 3, Update master offset, and the PikaAuxiliaryThread cron will connect and do slaveof task with master
-bool Partition::TryUpdateMasterOffset() {
+bool Slot::TryUpdateMasterOffset() {
   std::string info_path = dbsync_path_ + kBgsaveInfoFile;
   if (!pstd::FileExists(info_path)) {
     return false;
@@ -242,7 +242,7 @@ bool Partition::TryUpdateMasterOffset() {
  * return true when change success
  * db remain the old one if return false
  */
-bool Partition::ChangeDb(const std::string& new_path) {
+bool Slot::ChangeDb(const std::string& new_path) {
   std::string tmp_path(db_path_);
   if (tmp_path.back() == '/') {
     tmp_path.resize(tmp_path.size() - 1);
@@ -275,35 +275,35 @@ bool Partition::ChangeDb(const std::string& new_path) {
   return true;
 }
 
-bool Partition::IsBgSaving() {
+bool Slot::IsBgSaving() {
   std::lock_guard ml(bgsave_protector_);
   return bgsave_info_.bgsaving;
 }
 
-void Partition::BgSavePartition() {
+void Slot::BgSavePartition() {
   std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
     return;
   }
   bgsave_info_.bgsaving = true;
   auto bg_task_arg = new BgTaskArg();
-  bg_task_arg->partition = shared_from_this();
+  bg_task_arg->slot = shared_from_this();
   g_pika_server->BGSaveTaskSchedule(&DoBgSave, static_cast<void*>(bg_task_arg));
 }
 
-BgSaveInfo Partition::bgsave_info() {
+BgSaveInfo Slot::bgsave_info() {
   std::lock_guard l(bgsave_protector_);
   return bgsave_info_;
 }
 
-void Partition::DoBgSave(void* arg) {
+void Slot::DoBgSave(void* arg) {
   std::unique_ptr<BgTaskArg> bg_task_arg(static_cast<BgTaskArg*>(arg));
 
   // Do BgSave
-  bool success = bg_task_arg->partition->RunBgsaveEngine();
+  bool success = bg_task_arg->slot->RunBgsaveEngine();
 
   // Some output
-  BgSaveInfo info = bg_task_arg->partition->bgsave_info();
+  BgSaveInfo info = bg_task_arg->slot->bgsave_info();
   std::ofstream out;
   out.open(info.path + "/" + kBgsaveInfoFile, std::ios::in | std::ios::trunc);
   if (out.is_open()) {
@@ -321,11 +321,11 @@ void Partition::DoBgSave(void* arg) {
     std::string fail_path = info.path + "_FAILED";
     pstd::RenameFile(info.path, fail_path);
   }
-  bg_task_arg->partition->FinishBgsave();
+  bg_task_arg->slot->FinishBgsave();
 
 }
 
-bool Partition::RunBgsaveEngine() {
+bool Slot::RunBgsaveEngine() {
   // Prepare for Bgsaving
   if (!InitBgsaveEnv() || !InitBgsaveEngine()) {
     ClearBgsave();
@@ -350,7 +350,7 @@ bool Partition::RunBgsaveEngine() {
 }
 
 // Prepare engine, need bgsave_protector protect
-bool Partition::InitBgsaveEnv() {
+bool Slot::InitBgsaveEnv() {
   std::lock_guard l(bgsave_protector_);
   // Prepare for bgsave dir
   bgsave_info_.start_time = time(nullptr);
@@ -373,7 +373,7 @@ bool Partition::InitBgsaveEnv() {
 }
 
 // Prepare bgsave env, need bgsave_protector protect
-bool Partition::InitBgsaveEngine() {
+bool Slot::InitBgsaveEngine() {
   bgsave_engine_.reset();
   rocksdb::Status s = storage::BackupEngine::Open(db().get(), bgsave_engine_);
   if (!s.ok()) {
@@ -410,17 +410,17 @@ bool Partition::InitBgsaveEngine() {
   return true;
 }
 
-void Partition::ClearBgsave() {
+void Slot::ClearBgsave() {
   std::lock_guard l(bgsave_protector_);
   bgsave_info_.Clear();
 }
 
-void Partition::FinishBgsave() {
+void Slot::FinishBgsave() {
   std::lock_guard l(bgsave_protector_);
   bgsave_info_.bgsaving = false;
 }
 
-bool Partition::FlushDB() {
+bool Slot::FlushDB() {
   std::lock_guard rwl(db_rwlock_);
   std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
@@ -446,7 +446,7 @@ bool Partition::FlushDB() {
   return true;
 }
 
-bool Partition::FlushSubDB(const std::string& db_name) {
+bool Slot::FlushSubDB(const std::string& db_name) {
   std::lock_guard rwl(db_rwlock_);
   std::lock_guard l(bgsave_protector_);
   if (bgsave_info_.bgsaving) {
@@ -474,7 +474,7 @@ bool Partition::FlushSubDB(const std::string& db_name) {
   return true;
 }
 
-void Partition::InitKeyScan() {
+void Slot::InitKeyScan() {
   key_scan_info_.start_time = time(nullptr);
   char s_time[32];
   int len = strftime(s_time, sizeof(s_time), "%Y-%m-%d %H:%M:%S", localtime(&key_scan_info_.start_time));
@@ -482,12 +482,12 @@ void Partition::InitKeyScan() {
   key_scan_info_.duration = -1;  // duration -1 mean the task in processing
 }
 
-KeyScanInfo Partition::GetKeyScanInfo() {
+KeyScanInfo Slot::GetKeyScanInfo() {
   std::lock_guard l(key_info_protector_);
   return key_scan_info_;
 }
 
-Status Partition::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
+Status Slot::GetKeyNum(std::vector<storage::KeyInfo>* key_info) {
   std::lock_guard l(key_info_protector_);
   if (key_scan_info_.key_scaning_) {
     *key_info = key_scan_info_.key_infos;

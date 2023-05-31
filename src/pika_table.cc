@@ -36,21 +36,21 @@ Table::Table(std::string  table_name, uint32_t partition_num, const std::string&
 
 Table::~Table() {
   StopKeyScan();
-  partitions_.clear();
+  slots_.clear();
 }
 
 std::string Table::GetTableName() { return table_name_; }
 
 void Table::BgSaveTable() {
   std::shared_lock l(partitions_rw_);
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     item.second->BgSavePartition();
   }
 }
 
 void Table::CompactTable(const storage::DataType& type) {
   std::shared_lock l(partitions_rw_);
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     item.second->Compact(type);
   }
 }
@@ -61,7 +61,7 @@ bool Table::FlushPartitionDB() {
   if (key_scan_info_.key_scaning_) {
     return false;
   }
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     item.second->FlushDB();
   }
   return true;
@@ -73,7 +73,7 @@ bool Table::FlushPartitionSubDB(const std::string& db_name) {
   if (key_scan_info_.key_scaning_) {
     return false;
   }
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     item.second->FlushSubDB(db_name);
   }
   return true;
@@ -89,14 +89,14 @@ Status Table::AddPartitions(const std::set<uint32_t>& partition_ids) {
   std::lock_guard l(partitions_rw_);
   for (const uint32_t& id : partition_ids) {
     if (id >= partition_num_) {
-      return Status::Corruption("partition index out of range[0, " + std::to_string(partition_num_ - 1) + "]");
-    } else if (partitions_.find(id) != partitions_.end()) {
-      return Status::Corruption("partition " + std::to_string(id) + " already exist");
+      return Status::Corruption("slot index out of range[0, " + std::to_string(partition_num_ - 1) + "]");
+    } else if (slots_.find(id) != slots_.end()) {
+      return Status::Corruption("slot " + std::to_string(id) + " already exist");
     }
   }
 
   for (const uint32_t& id : partition_ids) {
-    partitions_.emplace(id, std::make_shared<Partition>(table_name_, id, db_path_));
+    slots_.emplace(id, std::make_shared<Slot>(table_name_, id, db_path_));
   }
   return Status::OK();
 }
@@ -104,21 +104,21 @@ Status Table::AddPartitions(const std::set<uint32_t>& partition_ids) {
 Status Table::RemovePartitions(const std::set<uint32_t>& partition_ids) {
   std::lock_guard l(partitions_rw_);
   for (const uint32_t& id : partition_ids) {
-    if (partitions_.find(id) == partitions_.end()) {
+    if (slots_.find(id) == slots_.end()) {
       return Status::Corruption("partition " + std::to_string(id) + " not found");
     }
   }
 
   for (const uint32_t& id : partition_ids) {
-    partitions_[id]->Leave();
-    partitions_.erase(id);
+    slots_[id]->Leave();
+    slots_.erase(id);
   }
   return Status::OK();
 }
 
 void Table::GetAllPartitions(std::set<uint32_t>& partition_ids) {
   std::shared_lock l(partitions_rw_);
-  for (const auto& iter : partitions_) {
+  for (const auto& iter : slots_) {
     partition_ids.insert(iter.first);
   }
 }
@@ -148,7 +148,7 @@ void Table::RunKeyScan() {
 
   InitKeyScan();
   std::shared_lock l(partitions_rw_);
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     std::vector<storage::KeyInfo> tmp_key_infos;
     s = item.second->GetKeyNum(&tmp_key_infos);
     if (s.ok()) {
@@ -178,7 +178,7 @@ void Table::StopKeyScan() {
   if (!key_scan_info_.key_scaning_) {
     return;
   }
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     item.second->db()->StopScanKeyNum();
   }
   key_scan_info_.key_scaning_ = false;
@@ -186,7 +186,7 @@ void Table::StopKeyScan() {
 
 void Table::ScanDatabase(const storage::DataType& type) {
   std::shared_lock l(partitions_rw_);
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     printf("\n\npartition name : %s\n", item.second->GetPartitionName().c_str());
     item.second->db()->ScanDatabase(type);
   }
@@ -194,7 +194,7 @@ void Table::ScanDatabase(const storage::DataType& type) {
 
 Status Table::GetPartitionsKeyScanInfo(std::map<uint32_t, KeyScanInfo>* infos) {
   std::shared_lock l(partitions_rw_);
-  for (const auto& [id, partition] : partitions_) {
+  for (const auto& [id, partition] : slots_) {
     (*infos)[id] = partition->GetKeyScanInfo();
   }
   return Status::OK();
@@ -207,7 +207,7 @@ KeyScanInfo Table::GetKeyScanInfo() {
 
 void Table::Compact(const storage::DataType& type) {
   std::lock_guard rwl(partitions_rw_);
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     item.second->Compact(type);
   }
 }
@@ -227,38 +227,38 @@ void Table::InitKeyScan() {
 
 void Table::LeaveAllPartition() {
   std::lock_guard l(partitions_rw_);
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     item.second->Leave();
   }
-  partitions_.clear();
+  slots_.clear();
 }
 
 std::set<uint32_t> Table::GetPartitionIds() {
   std::set<uint32_t> ids;
   std::shared_lock l(partitions_rw_);
-  for (const auto& item : partitions_) {
+  for (const auto& item : slots_) {
     ids.insert(item.first);
   }
   return ids;
 }
 
-std::shared_ptr<Partition> Table::GetPartitionById(uint32_t partition_id) {
+std::shared_ptr<Slot> Table::GetSlotById(uint32_t partition_id) {
   std::shared_lock l(partitions_rw_);
-  auto iter = partitions_.find(partition_id);
-  return (iter == partitions_.end()) ? nullptr : iter->second;
+  auto iter = slots_.find(partition_id);
+  return (iter == slots_.end()) ? nullptr : iter->second;
 }
 
-std::shared_ptr<Partition> Table::GetPartitionByKey(const std::string& key) {
+std::shared_ptr<Slot> Table::GetSlotByKey(const std::string& key) {
   assert(partition_num_ != 0);
   uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, partition_num_);
   std::shared_lock l(partitions_rw_);
-  auto iter = partitions_.find(index);
-  return (iter == partitions_.end()) ? nullptr : iter->second;
+  auto iter = slots_.find(index);
+  return (iter == slots_.end()) ? nullptr : iter->second;
 }
 
 bool Table::TableIsEmpty() {
   std::shared_lock l(partitions_rw_);
-  return partitions_.empty();
+  return slots_.empty();
 }
 
 Status Table::Leave() {

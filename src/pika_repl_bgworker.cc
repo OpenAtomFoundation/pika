@@ -65,8 +65,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
   for (size_t i = 0; i < index->size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync((*index)[i]);
     if (i == 0) {
-      table_name = binlog_res.partition().table_name();
-      partition_id = binlog_res.partition().partition_id();
+      table_name = binlog_res.slot().table_name();
+      partition_id = binlog_res.slot().partition_id();
     }
     if (!binlog_res.binlog().empty()) {
       ParseBinlogOffset(binlog_res.binlog_offset(), &pb_begin);
@@ -152,8 +152,8 @@ void PikaReplBgWorker::HandleBGWorkerWriteBinlog(void* arg) {
                    << slave_partition->MasterPort() << ", " << slave_partition->SyncPartitionInfo().ToString()
                    << " expected_session: " << binlog_res.session_id()
                    << ", actual_session:" << slave_partition->MasterSessionId();
-      LOG(WARNING) << "Check Session failed " << binlog_res.partition().table_name() << "_"
-                   << binlog_res.partition().partition_id();
+      LOG(WARNING) << "Check Session failed " << binlog_res.slot().table_name() << "_"
+                   << binlog_res.slot().partition_id();
       slave_partition->SetReplState(ReplState::kTryConnect);
       return;
     }
@@ -254,16 +254,16 @@ void PikaReplBgWorker::HandleBGWorkerWriteDB(void* arg) {
   if (g_pika_conf->slowlog_slower_than() >= 0) {
     start_us = pstd::NowMicros();
   }
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
+  std::shared_ptr<Slot> slot = g_pika_server->GetTablePartitionById(table_name, partition_id);
   // Add read lock for no suspend command
   if (!c_ptr->is_suspend()) {
-    partition->DbRWLockReader();
+    slot->DbRWLockReader();
   }
 
-  c_ptr->Do(partition);
+  c_ptr->Do(slot);
 
   if (!c_ptr->is_suspend()) {
-    partition->DbRWUnLock();
+    slot->DbRWUnLock();
   }
 
   if (g_pika_conf->slowlog_slower_than() >= 0) {

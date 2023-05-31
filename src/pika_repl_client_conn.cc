@@ -135,14 +135,14 @@ void PikaReplClientConn::HandleDBSyncResponse(void* arg) {
 
   const InnerMessage::InnerResponse_DBSync db_sync_response = response->db_sync();
   int32_t session_id = db_sync_response.session_id();
-  const InnerMessage::Partition& partition_response = db_sync_response.partition();
-  const std::string& table_name = partition_response.table_name();
-  uint32_t partition_id = partition_response.partition_id();
+  const InnerMessage::Slot& slot_response = db_sync_response.slot();
+  const std::string& table_name = slot_response.table_name();
+  uint32_t slot_id = slot_response.partition_id();
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
-      g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(table_name, partition_id));
+      g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(table_name, slot_id));
   if (!slave_partition) {
-    LOG(WARNING) << "Slave Partition: " << table_name << ":" << partition_id << " Not Found";
+    LOG(WARNING) << "Slave Partition: " << table_name << ":" << slot_id << " Not Found";
     return;
   }
 
@@ -172,9 +172,9 @@ void PikaReplClientConn::HandleTrySyncResponse(void* arg) {
   }
 
   const InnerMessage::InnerResponse_TrySync& try_sync_response = response->try_sync();
-  const InnerMessage::Partition& partition_response = try_sync_response.partition();
-  std::string table_name = partition_response.table_name();
-  uint32_t partition_id = partition_response.partition_id();
+  const InnerMessage::Slot& slot_response = try_sync_response.slot();
+  std::string table_name = slot_response.table_name();
+  uint32_t partition_id = slot_response.partition_id();
   std::shared_ptr<SyncMasterPartition> partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!partition) {
@@ -268,7 +268,7 @@ void PikaReplClientConn::DispatchBinlogRes(const std::shared_ptr<InnerMessage::I
   for (int i = 0; i < res->binlog_sync_size(); ++i) {
     const InnerMessage::InnerResponse::BinlogSync& binlog_res = res->binlog_sync(i);
     // hash key: table + partition_id
-    PartitionInfo p_info(binlog_res.partition().table_name(), binlog_res.partition().partition_id());
+    PartitionInfo p_info(binlog_res.slot().table_name(), binlog_res.slot().partition_id());
     if (par_binlog.find(p_info) == par_binlog.end()) {
       par_binlog[p_info] = new std::vector<int>();
     }

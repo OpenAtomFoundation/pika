@@ -148,9 +148,9 @@ Status PikaReplClient::SendPartitionDBSync(const std::string& ip, uint32_t port,
   InnerMessage::Node* node = db_sync->mutable_node();
   node->set_ip(local_ip);
   node->set_port(g_pika_server->port());
-  InnerMessage::Partition* partition = db_sync->mutable_partition();
-  partition->set_table_name(table_name);
-  partition->set_partition_id(partition_id);
+  InnerMessage::Slot* slot = db_sync->mutable_slot();
+  slot->set_table_name(table_name);
+  slot->set_partition_id(partition_id);
 
   InnerMessage::BinlogOffset* binlog_offset = db_sync->mutable_binlog_offset();
   binlog_offset->set_filenum(boffset.filenum);
@@ -173,9 +173,9 @@ Status PikaReplClient::SendPartitionTrySync(const std::string& ip, uint32_t port
   InnerMessage::Node* node = try_sync->mutable_node();
   node->set_ip(local_ip);
   node->set_port(g_pika_server->port());
-  InnerMessage::Partition* partition = try_sync->mutable_partition();
-  partition->set_table_name(table_name);
-  partition->set_partition_id(partition_id);
+  InnerMessage::Slot* slot = try_sync->mutable_slot();
+  slot->set_table_name(table_name);
+  slot->set_partition_id(partition_id);
 
   InnerMessage::BinlogOffset* binlog_offset = try_sync->mutable_binlog_offset();
   binlog_offset->set_filenum(boffset.filenum);
@@ -262,9 +262,9 @@ Status PikaReplClient::SendRemoveSlaveNode(const std::string& ip, uint32_t port,
   node->set_ip(local_ip);
   node->set_port(g_pika_server->port());
 
-  InnerMessage::Partition* partition = remove_slave_node->mutable_partition();
-  partition->set_table_name(table_name);
-  partition->set_partition_id(partition_id);
+  InnerMessage::Slot* slot = remove_slave_node->mutable_slot();
+  slot->set_table_name(table_name);
+  slot->set_partition_id(partition_id);
 
   std::string to_send;
   if (!request.SerializeToString(&to_send)) {

@@ -38,10 +38,10 @@ void BitSetCmd::DoInitial() {
   }
 }
 
-void BitSetCmd::Do(std::shared_ptr<Partition> partition) {
+void BitSetCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
   int32_t bit_val = 0;
-  rocksdb::Status s = partition->db()->SetBit(key_, bit_offset_, on_, &bit_val);
+  rocksdb::Status s = slot->db()->SetBit(key_, bit_offset_, on_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
   } else {
@@ -65,9 +65,9 @@ void BitGetCmd::DoInitial() {
   }
 }
 
-void BitGetCmd::Do(std::shared_ptr<Partition> partition) {
+void BitGetCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t bit_val = 0;
-  rocksdb::Status s = partition->db()->GetBit(key_, bit_offset_, &bit_val);
+  rocksdb::Status s = slot->db()->GetBit(key_, bit_offset_, &bit_val);
   if (s.ok()) {
     res_.AppendInteger(static_cast<int>(bit_val));
   } else {
@@ -98,13 +98,13 @@ void BitCountCmd::DoInitial() {
   }
 }
 
-void BitCountCmd::Do(std::shared_ptr<Partition> partition) {
+void BitCountCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t count = 0;
   rocksdb::Status s;
   if (count_all_) {
-    s = partition->db()->BitCount(key_, start_offset_, end_offset_, &count, false);
+    s = slot->db()->BitCount(key_, start_offset_, end_offset_, &count, false);
   } else {
-    s = partition->db()->BitCount(key_, start_offset_, end_offset_, &count, true);
+    s = slot->db()->BitCount(key_, start_offset_, end_offset_, &count, true);
   }
 
   if (s.ok() || s.IsNotFound()) {
@@ -154,15 +154,15 @@ void BitPosCmd::DoInitial() {
   }
 }
 
-void BitPosCmd::Do(std::shared_ptr<Partition> partition) {
+void BitPosCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t pos = 0;
   rocksdb::Status s;
   if (pos_all_) {
-    s = partition->db()->BitPos(key_, bit_val_, &pos);
+    s = slot->db()->BitPos(key_, bit_val_, &pos);
   } else if (!pos_all_ && !endoffset_set_) {
-    s = partition->db()->BitPos(key_, bit_val_, start_offset_, &pos);
+    s = slot->db()->BitPos(key_, bit_val_, start_offset_, &pos);
   } else if (!pos_all_ && endoffset_set_) {
-    s = partition->db()->BitPos(key_, bit_val_, start_offset_, end_offset_, &pos);
+    s = slot->db()->BitPos(key_, bit_val_, start_offset_, end_offset_, &pos);
   }
   if (s.ok()) {
     res_.AppendInteger(static_cast<int>(pos));
@@ -206,9 +206,9 @@ void BitOpCmd::DoInitial() {
   }
 }
 
-void BitOpCmd::Do(std::shared_ptr<Partition> partition) {
+void BitOpCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t result_length;
-  rocksdb::Status s = partition->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
+  rocksdb::Status s = slot->db()->BitOp(op_, dest_key_, src_keys_, &result_length);
   if (s.ok()) {
     res_.AppendInteger(result_length);
   } else {
