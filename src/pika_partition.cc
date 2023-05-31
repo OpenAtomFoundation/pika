@@ -19,38 +19,38 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-std::string SlotPath(const std::string& table_path, uint32_t slot_id) {
+std::string SlotPath(const std::string& db_path, uint32_t slot_id) {
   char buf[100];
   snprintf(buf, sizeof(buf), "%u/", slot_id);
-  return table_path + buf;
+  return db_path + buf;
 }
 
-std::string SlotName(const std::string& table_name, uint32_t slot_id) {
+std::string SlotName(const std::string& db_name, uint32_t slot_id) {
   char buf[256];
-  snprintf(buf, sizeof(buf), "(%s:%u)", table_name.data(), slot_id);
+  snprintf(buf, sizeof(buf), "(%s:%u)", db_name.data(), slot_id);
   return {buf};
 }
 
-std::string BgsaveSubPath(const std::string& table_name, uint32_t slot_id) {
+std::string BgsaveSubPath(const std::string& db_name, uint32_t slot_id) {
   char buf[256];
   std::string slot_id_str = std::to_string(slot_id);
-  snprintf(buf, sizeof(buf), "%s/%s", table_name.data(), slot_id_str.data());
+  snprintf(buf, sizeof(buf), "%s/%s", db_name.data(), slot_id_str.data());
   return {buf};
 }
 
-std::string DbSyncPath(const std::string& sync_path, const std::string& table_name, const uint32_t slot_id) {
+std::string DbSyncPath(const std::string& sync_path, const std::string& db_name, const uint32_t slot_id) {
   char buf[256];
   std::string slot_id_str = std::to_string(slot_id);
-  snprintf(buf, sizeof(buf), "%s/", table_name.data());
+  snprintf(buf, sizeof(buf), "%s/", db_name.data());
   return sync_path + buf;
 }
 
-Slot::Slot(const std::string& table_name, uint32_t slot_id, const std::string& table_db_path)
-    : table_name_(table_name), slot_id_(slot_id), bgsave_engine_(nullptr) {
+Slot::Slot(const std::string& db_name, uint32_t slot_id, const std::string& table_db_path)
+    : db_name_(db_name), slot_id_(slot_id), bgsave_engine_(nullptr) {
   db_path_ = table_db_path;
-  bgsave_sub_path_ = table_name;
-  dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), table_name_, slot_id_);
-  slot_name_ = table_name;
+  bgsave_sub_path_ = db_name;
+  dbsync_path_ = DbSyncPath(g_pika_conf->db_sync_path(), db_name, slot_id_);
+  slot_name_ = db_name;
 
   db_ = std::make_shared<storage::Storage>();
   rocksdb::Status s = db_->Open(g_pika_server->storage_options(), db_path_);
@@ -103,7 +103,7 @@ void Slot::MoveToTrash() {
   LOG(WARNING) << "Slot DB: " << slot_name_ << " move to trash success";
 }
 
-std::string Slot::GetTableName() const { return table_name_; }
+std::string Slot::GetDBName() const { return db_name_; }
 
 uint32_t Slot::GetSlotId() const { return slot_id_; }
 
@@ -148,7 +148,7 @@ bool Slot::TryUpdateMasterOffset() {
   }
 
   std::shared_ptr<SyncSlaveSlot> slave_slot =
-      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(table_name_, slot_id_));
+      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name_, slot_id_));
   if (!slave_slot) {
     LOG(WARNING) << "Slave Slot: " << slot_name_ << " not exist";
     return false;
@@ -223,7 +223,7 @@ bool Slot::TryUpdateMasterOffset() {
 
   // Update master offset
   std::shared_ptr<SyncMasterSlot> master_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name_, slot_id_));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
   if (!master_slot) {
     LOG(WARNING) << "Master Slot: " << slot_name_ << " not exist";
     return false;
@@ -382,7 +382,7 @@ bool Slot::InitBgsaveEngine() {
   }
 
   std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name_, slot_id_));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
   if (!slot) {
     LOG(WARNING) << slot_name_ << " not found";
     return false;

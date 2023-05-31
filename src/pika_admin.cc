@@ -173,7 +173,7 @@ void DbSlaveofCmd::DoInitial() {
   }
 
   db_name_ = argv_[1];
-  if (!g_pika_server->IsTableExist(db_name_)) {
+  if (!g_pika_server->IsDBExist(db_name_)) {
     res_.SetRes(CmdRes::kErrOther, "Invaild db name");
     return;
   }
@@ -280,8 +280,8 @@ void BgsaveCmd::DoInitial() {
     std::vector<std::string> tables;
     pstd::StringSplit(argv_[1], COMMA, tables);
     for (const auto& table : tables) {
-      if (!g_pika_server->IsTableExist(table)) {
-        res_.SetRes(CmdRes::kInvalidTable, table);
+      if (!g_pika_server->IsDBExist(table)) {
+        res_.SetRes(CmdRes::kInvalidDB, table);
         return;
       } else {
         bgsave_tables_.insert(table);
@@ -291,7 +291,7 @@ void BgsaveCmd::DoInitial() {
 }
 
 void BgsaveCmd::Do(std::shared_ptr<Slot> slot) {
-  g_pika_server->DoSameThingSpecificTable(TaskType::kBgSave, bgsave_tables_);
+  g_pika_server->DoSameThingSpecificDB(TaskType::kBgSave, bgsave_tables_);
   LogCommand();
   res_.AppendContent("+Background saving started");
 }
@@ -315,8 +315,8 @@ void CompactCmd::DoInitial() {
     std::vector<std::string> tables;
     pstd::StringSplit(argv_[1], COMMA, tables);
     for (const auto& table : tables) {
-      if (!g_pika_server->IsTableExist(table)) {
-        res_.SetRes(CmdRes::kInvalidTable, table);
+      if (!g_pika_server->IsDBExist(table)) {
+        res_.SetRes(CmdRes::kInvalidDB, table);
         return;
       } else {
         compact_tables_.insert(table);
@@ -328,17 +328,17 @@ void CompactCmd::DoInitial() {
 
 void CompactCmd::Do(std::shared_ptr<Slot> slot) {
   if (strcasecmp(struct_type_.data(), "all") == 0) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactAll, compact_tables_);
+    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactAll, compact_tables_);
   } else if (strcasecmp(struct_type_.data(), "string") == 0) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactStrings, compact_tables_);
+    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactStrings, compact_tables_);
   } else if (strcasecmp(struct_type_.data(), "hash") == 0) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactHashes, compact_tables_);
+    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactHashes, compact_tables_);
   } else if (strcasecmp(struct_type_.data(), "set") == 0) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactSets, compact_tables_);
+    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactSets, compact_tables_);
   } else if (strcasecmp(struct_type_.data(), "zset") == 0) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactZSets, compact_tables_);
+    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactZSets, compact_tables_);
   } else if (strcasecmp(struct_type_.data(), "list") == 0) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kCompactList, compact_tables_);
+    g_pika_server->DoSameThingSpecificDB(TaskType::kCompactList, compact_tables_);
   } else {
     res_.SetRes(CmdRes::kInvalidDbType, struct_type_);
     return;
@@ -365,9 +365,9 @@ void PurgelogstoCmd::DoInitial() {
   }
   num_ = num;
 
-  table_ = (argv_.size() == 3) ? argv_[2] : g_pika_conf->default_table();
-  if (!g_pika_server->IsTableExist(table_)) {
-    res_.SetRes(CmdRes::kInvalidTable, table_);
+  table_ = (argv_.size() == 3) ? argv_[2] : g_pika_conf->default_db();
+  if (!g_pika_server->IsDBExist(table_)) {
+    res_.SetRes(CmdRes::kInvalidDB, table_);
     return;
   }
 }
@@ -420,8 +420,8 @@ void SelectCmd::DoInitial() {
     return;
   }
   table_name_ = "db" + argv_[1];
-  if (!g_pika_server->IsTableExist(table_name_)) {
-    res_.SetRes(CmdRes::kInvalidTable, kCmdNameSelect);
+  if (!g_pika_server->IsDBExist(table_name_)) {
+    res_.SetRes(CmdRes::kInvalidDB, kCmdNameSelect);
     return;
   }
 }
@@ -685,8 +685,8 @@ void InfoCmd::DoInitial() {
       std::vector<std::string> tables;
       pstd::StringSplit(argv_[3], COMMA, tables);
       for (const auto& table : tables) {
-        if (!g_pika_server->IsTableExist(table)) {
-          res_.SetRes(CmdRes::kInvalidTable, table);
+        if (!g_pika_server->IsDBExist(table)) {
+          res_.SetRes(CmdRes::kInvalidDB, table);
           return;
         } else {
           keyspace_scan_tables_.insert(table);
@@ -836,8 +836,8 @@ void InfoCmd::InfoExecCount(std::string& info) {
   std::stringstream tmp_stream;
   tmp_stream << "# Command_Exec_Count\r\n";
 
-  std::unordered_map<std::string, uint64_t> command_exec_count_table = g_pika_server->ServerExecCountTable();
-  for (const auto& item : command_exec_count_table) {
+  std::unordered_map<std::string, uint64_t> command_exec_count_db = g_pika_server->ServerExecCountDB();
+  for (const auto& item : command_exec_count_db) {
     if (item.second == 0) {
       continue;
     }
@@ -925,12 +925,12 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::stringstream out_of_sync;
 
   bool all_slot_sync = true;
-  std::shared_lock table_rwl(g_pika_server->tables_rw_);
-  for (const auto& table_item : g_pika_server->tables_) {
-    std::shared_lock slot_rwl(table_item.second->slots_rw_);
-    for (const auto& slot_item : table_item.second->slots_) {
+  std::shared_lock table_rwl(g_pika_server->dbs_rw_);
+  for (const auto& db_item : g_pika_server->dbs_) {
+    std::shared_lock slot_rwl(db_item.second->slots_rw_);
+    for (const auto& slot_item : db_item.second->slots_) {
       std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
-          SlotInfo(table_item.second->GetTableName(), slot_item.second->GetSlotId()));
+          SlotInfo(db_item.second->GetDBName(), slot_item.second->GetSlotId()));
       if (!slave_slot) {
         out_of_sync << "(" << slot_item.second->GetSlotName() << ": InternalError)";
         continue;
@@ -1011,10 +1011,10 @@ void InfoCmd::InfoReplication(std::string& info) {
   uint64_t offset = 0;
   std::string safety_purge;
   std::shared_ptr<SyncMasterSlot> master_slot = nullptr;
-  for (const auto& t_item : g_pika_server->tables_) {
+  for (const auto& t_item : g_pika_server->dbs_) {
     std::shared_lock slot_rwl(t_item.second->slots_rw_);
     for (const auto& p_item : t_item.second->slots_) {
-      std::string table_name = p_item.second->GetTableName();
+      std::string table_name = p_item.second->GetDBName();
       uint32_t slot_id = p_item.second->GetSlotId();
       master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
       if (!master_slot) {
@@ -1037,7 +1037,7 @@ void InfoCmd::InfoReplication(std::string& info) {
 
 void InfoCmd::InfoKeyspace(std::string& info) {
   if (off_) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kStopKeyScan, keyspace_scan_tables_);
+    g_pika_server->DoSameThingSpecificDB(TaskType::kStopKeyScan, keyspace_scan_tables_);
     info.append("OK\r\n");
     return;
   }
@@ -1057,11 +1057,11 @@ void InfoCmd::InfoKeyspace(std::string& info) {
                << "\r\n";
   }
 
-  std::shared_lock rwl(g_pika_server->tables_rw_);
-  for (const auto& table_item : g_pika_server->tables_) {
-    if (keyspace_scan_tables_.empty() || keyspace_scan_tables_.find(table_item.first) != keyspace_scan_tables_.end()) {
-      table_name = table_item.second->GetTableName();
-      key_scan_info = table_item.second->GetKeyScanInfo();
+  std::shared_lock rwl(g_pika_server->dbs_rw_);
+  for (const auto& db_item : g_pika_server->dbs_) {
+    if (keyspace_scan_tables_.empty() || keyspace_scan_tables_.find(db_item.first) != keyspace_scan_tables_.end()) {
+      table_name = db_item.second->GetDBName();
+      key_scan_info = db_item.second->GetKeyScanInfo();
       key_infos = key_scan_info.key_infos;
       duration = key_scan_info.duration;
       if (key_infos.size() != 5) {
@@ -1095,7 +1095,7 @@ void InfoCmd::InfoKeyspace(std::string& info) {
   info.append(tmp_stream.str());
 
   if (rescan_) {
-    g_pika_server->DoSameThingSpecificTable(TaskType::kStartKeyScan, keyspace_scan_tables_);
+    g_pika_server->DoSameThingSpecificDB(TaskType::kStartKeyScan, keyspace_scan_tables_);
   }
 }
 
@@ -1120,10 +1120,10 @@ void InfoCmd::InfoData(std::string& info) {
   uint64_t memtable_usage = 0;
   uint64_t total_table_reader_usage = 0;
   uint64_t table_reader_usage = 0;
-  std::shared_lock table_rwl(g_pika_server->tables_rw_);
-  for (const auto& table_item : g_pika_server->tables_) {
-    std::shared_lock slot_rwl(table_item.second->slots_rw_);
-    for (const auto& slot_item : table_item.second->slots_) {
+  std::shared_lock table_rwl(g_pika_server->dbs_rw_);
+  for (const auto& db_item : g_pika_server->dbs_) {
+    std::shared_lock slot_rwl(db_item.second->slots_rw_);
+    for (const auto& slot_item : db_item.second->slots_) {
       type_result.clear();
       memtable_usage = table_reader_usage = 0;
       slot_item.second->DbRWLockReader();
@@ -1997,11 +1997,11 @@ void DbsizeCmd::DoInitial() {
 }
 
 void DbsizeCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (!table) {
-    res_.SetRes(CmdRes::kInvalidTable);
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  if (!db) {
+    res_.SetRes(CmdRes::kInvalidDB);
   } else {
-    KeyScanInfo key_scan_info = table->GetKeyScanInfo();
+    KeyScanInfo key_scan_info = db->GetKeyScanInfo();
     std::vector<storage::KeyInfo> key_infos = key_scan_info.key_infos;
     if (key_infos.size() != 5) {
       res_.SetRes(CmdRes::kErrOther, "keyspace error");
@@ -2073,7 +2073,7 @@ void DelbackupCmd::Do(std::shared_ptr<Slot> slot) {
       continue;
     }
 
-    std::string dump_dir_name = db_sync_path + i + "/" + table_name_;
+    std::string dump_dir_name = db_sync_path + i + "/" + db_name_;
     if (g_pika_server->CountSyncSlaves() == 0) {
       LOG(INFO) << "Not syncing, delete dump file: " << dump_dir_name;
       pstd::DeleteDirIfExist(dump_dir_name);
@@ -2122,11 +2122,11 @@ void ScandbCmd::DoInitial() {
   }
 
 void ScandbCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
-  if (!table) {
-    res_.SetRes(CmdRes::kInvalidTable);
+  std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
+  if (!db) {
+    res_.SetRes(CmdRes::kInvalidDB);
   } else {
-    table->ScanDatabase(type_);
+    db->ScanDatabase(type_);
     res_.SetRes(CmdRes::kOk);
   }
   }

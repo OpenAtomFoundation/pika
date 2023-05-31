@@ -21,8 +21,8 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-StableLog::StableLog(std::string table_name, uint32_t slot_id, std::string log_path)
-    : purging_(false), table_name_(std::move(table_name)), slot_id_(slot_id), log_path_(std::move(log_path)) {
+StableLog::StableLog(std::string db_name, uint32_t slot_id, std::string log_path)
+    : purging_(false), db_name_(std::move(db_name)), slot_id_(slot_id), log_path_(std::move(log_path)) {
   stable_logger_ = std::make_shared<Binlog>(log_path_, g_pika_conf->binlog_file_size());
   std::map<uint32_t, std::string> binlogs;
   if (!GetBinlogFiles(&binlogs)) {
@@ -54,7 +54,7 @@ void StableLog::RemoveStableLogDir() {
   }
   g_pika_server->PurgeDir(logpath);
 
-  LOG(WARNING) << "Slot StableLog: " << table_name_ << ":" << slot_id_ << " move to trash success";
+  LOG(WARNING) << "Slot StableLog: " << db_name_ << ":" << slot_id_ << " move to trash success";
 }
 
 bool StableLog::PurgeStableLogs(uint32_t to, bool manual) {
@@ -99,9 +99,9 @@ bool StableLog::PurgeFiles(uint32_t to, bool manual) {
             && stat(((log_path_ + it->second)).c_str(), &file_stat) == 0 &&
             file_stat.st_mtime < time(nullptr) - g_pika_conf->expire_logs_days() * 24 * 3600)) {  // Expire time trigger
       // We check this every time to avoid lock when we do file deletion
-      master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name_, slot_id_));
+      master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, slot_id_));
       if (!master_slot) {
-        LOG(WARNING) << "Slot: " << table_name_ << ":" << slot_id_ << " Not Found";
+        LOG(WARNING) << "Slot: " << db_name_ << ":" << slot_id_ << " Not Found";
         return false;
       }
 

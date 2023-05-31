@@ -23,7 +23,7 @@ std::unique_ptr<PikaConf> g_pika_conf;
 PikaServer* g_pika_server;
 std::unique_ptr<PikaReplicaManager> g_pika_rm;
 
-std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+std::unique_ptr<PikaCmdDBManager> g_pika_cmd_db_manager;
 
 static void version() {
   char version[32];
@@ -186,7 +186,7 @@ int main(int argc, char* argv[]) {
   PikaSignalSetup();
 
   LOG(INFO) << "Server at: " << path;
-  g_pika_cmd_table_manager = std::make_unique<PikaCmdTableManager>();
+  g_pika_cmd_db_manager = std::make_unique<PikaCmdDBManager>();
   g_pika_server = new PikaServer();
   g_pika_rm = std::make_unique<PikaReplicaManager>();
 

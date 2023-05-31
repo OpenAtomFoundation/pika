@@ -27,7 +27,7 @@ class BinlogReceiverThread {
   // }
 
   // Cmd* GetCmd(const std::string& opt) {
-  //   return GetCmdFromTable(opt, cmds_);
+  //   return GetCmdFromDB(opt, cmds_);
   // }
 
  private:
@@ -59,7 +59,7 @@ class BinlogReceiverThread {
   Handles handles_;
   net::ServerThread* thread_rep_;
 
-  // CmdTable cmds_;
+  // CmdDB cmds_;
   // uint64_t serial_;
 };
 #endif

@@ -31,8 +31,8 @@ class PikaReplClientConn : public net::PbConn {
   static pstd::Status TrySyncConsensusCheck(const InnerMessage::ConsensusMeta& consensus_meta,
                                       const std::shared_ptr<SyncMasterSlot>& slot,
                                       const std::shared_ptr<SyncSlaveSlot>& slave_slot);
-  static bool IsTableStructConsistent(const std::vector<TableStruct>& current_tables,
-                                      const std::vector<TableStruct>& expect_tables);
+  static bool IsDBStructConsistent(const std::vector<DBStruct>& current_dbs,
+                                      const std::vector<DBStruct>& expect_tables);
   int DealMessage() override;
 
  private:

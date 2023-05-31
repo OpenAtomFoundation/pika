@@ -18,7 +18,7 @@ using pstd::Status;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaCmdDBManager> g_pika_cmd_db_manager;
 
 /* Context */
 
@@ -515,10 +515,10 @@ Status ConsensusCoordinator::InternalAppendBinlog(const BinlogItem& item, const 
       cmd_ptr->ToBinlog(item.exec_time(), item.term_id(), item.logic_id(), item.filenum(), item.offset());
   Status s = stable_logger_->Logger()->Put(binlog);
   if (!s.ok()) {
-    std::string table_name = cmd_ptr->table_name().empty() ? g_pika_conf->default_table() : cmd_ptr->table_name();
-    std::shared_ptr<Table> table = g_pika_server->GetTable(table_name);
-    if (table) {
-      table->SetBinlogIoError();
+    std::string db_name = cmd_ptr->db_name().empty() ? g_pika_conf->default_db() : cmd_ptr->db_name();
+    std::shared_ptr<DB> db = g_pika_server->GetDB(db_name);
+    if (db) {
+      db->SetBinlogIoError();
     }
     return s;
   }
@@ -605,7 +605,7 @@ void ConsensusCoordinator::InternalApply(const MemLog::LogItem& log) {
   arg->conn_ptr = log.conn_ptr;
   arg->resp_ptr = log.resp_ptr;
   arg->offset = log.offset;
-  arg->table_name = table_name_;
+  arg->db_name = table_name_;
   arg->slot_id = slot_id_;
   g_pika_server->ScheduleClientBgThreads(PikaClientConn::DoExecTask, arg, log.cmd_ptr->current_key().front());
 }
@@ -617,7 +617,7 @@ void ConsensusCoordinator::InternalApplyFollower(const MemLog::LogItem& log) {
 int ConsensusCoordinator::InitCmd(net::RedisParser* parser, const net::RedisCmdArgsType& argv) {
   auto table_name = static_cast<std::string*>(parser->data);
   std::string opt = argv[0];
-  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(pstd::StringToLower(opt));
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_db_manager->GetCmd(pstd::StringToLower(opt));
   if (!c_ptr) {
     LOG(WARNING) << "Command " << opt << " not in the command table";
     return -1;

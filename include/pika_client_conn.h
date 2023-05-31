@@ -20,7 +20,7 @@ class PikaClientConn : public net::RedisConn {
     std::vector<net::RedisCmdArgsType> redis_cmds;
     std::shared_ptr<std::string> resp_ptr;
     LogOffset offset;
-    std::string table_name;
+    std::string db_name;
     uint32_t slot_id;
   };
 
@@ -54,7 +54,7 @@ class PikaClientConn : public net::RedisConn {
 
   bool IsPubSub() { return is_pubsub_; }
   void SetIsPubSub(bool is_pubsub) { is_pubsub_ = is_pubsub; }
-  void SetCurrentTable(const std::string& table_name) { current_table_ = table_name; }
+  void SetCurrentTable(const std::string& table_name) { current_db_ = table_name; }
   void SetWriteCompleteCallback(WriteCompleteCallback cb) { write_completed_cb_ = std::move(cb); }
 
   net::ServerThread* server_thread() { return server_thread_; }
@@ -66,7 +66,7 @@ class PikaClientConn : public net::RedisConn {
 
  private:
   net::ServerThread* const server_thread_;
-  std::string current_table_;
+  std::string current_db_;
   WriteCompleteCallback write_completed_cb_;
   bool is_pubsub_ = false;
 

@@ -61,7 +61,7 @@ class LRUCache;
 
 struct StorageOptions {
   rocksdb::Options options;
-  rocksdb::BlockBasedTableOptions table_options;
+  rocksdb::BlockBasedTableOptions db_options;
   size_t block_cache_size = 0;
   bool share_block_cache = false;
   size_t statistics_max_size = 0;

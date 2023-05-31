@@ -20,20 +20,20 @@
 extern std::unique_ptr<PikaConf> g_pika_conf;
 extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
-extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
+extern std::unique_ptr<PikaCmdDBManager> g_pika_cmd_db_manager;
 
 PikaClientConn::PikaClientConn(int fd, const std::string& ip_port, net::Thread* thread, net::NetMultiplexer* mpx,
                                const net::HandleType& handle_type, int max_conn_rbuf_size)
     : RedisConn(fd, ip_port, thread, mpx, handle_type, max_conn_rbuf_size),
       server_thread_(reinterpret_cast<net::ServerThread*>(thread)),
-      current_table_(g_pika_conf->default_table()) {
+      current_db_(g_pika_conf->default_db()) {
   auth_stat_.Init();
 }
 
 std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const std::string& opt,
                                            const std::shared_ptr<std::string>& resp_ptr) {
   // Get command info
-  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_table_manager->GetCmd(opt);
+  std::shared_ptr<Cmd> c_ptr = g_pika_cmd_db_manager->GetCmd(opt);
   if (!c_ptr) {
     std::shared_ptr<Cmd> tmp_ptr = std::make_shared<DummyCmd>(DummyCmd());
     tmp_ptr->res().SetRes(CmdRes::kErrOther, "unknown command \"" + opt + "\"");
@@ -60,12 +60,12 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
   }
 
   // Initial
-  c_ptr->Initial(argv, current_table_);
+  c_ptr->Initial(argv, current_db_);
   if (!c_ptr->res().ok()) {
     return c_ptr;
   }
 
-  g_pika_server->UpdateQueryNumAndExecCountTable(current_table_, opt, c_ptr->is_write());
+  g_pika_server->UpdateQueryNumAndExecCountDB(current_db_, opt, c_ptr->is_write());
 
   // PubSub connection
   // (P)SubscribeCmd will set is_pubsub_
@@ -92,13 +92,13 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
     return c_ptr;
   }
 
-  if (!g_pika_server->IsTableExist(current_table_)) {
-    c_ptr->res().SetRes(CmdRes::kErrOther, "Table not found");
+  if (!g_pika_server->IsDBExist(current_db_)) {
+    c_ptr->res().SetRes(CmdRes::kErrOther, "DB not found");
     return c_ptr;
   }
 
   if (c_ptr->is_write()) {
-    if (g_pika_server->IsTableBinlogIoError(current_table_)) {
+    if (g_pika_server->IsDBBinlogIoError(current_db_)) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Writing binlog failed, maybe no space left on device");
       return c_ptr;
     }
@@ -107,11 +107,11 @@ std::shared_ptr<Cmd> PikaClientConn::DoCmd(const PikaCmdArgsType& argv, const st
       c_ptr->res().SetRes(CmdRes::kErrOther, "Internal ERROR");
       return c_ptr;
     }
-    if (g_pika_server->readonly(current_table_, cur_key.front())) {
+    if (g_pika_server->readonly(current_db_, cur_key.front())) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Server in read-only");
       return c_ptr;
     }
-    if (!g_pika_server->ConsensusCheck(current_table_, cur_key.front())) {
+    if (!g_pika_server->ConsensusCheck(current_db_, cur_key.front())) {
       c_ptr->res().SetRes(CmdRes::kErrOther, "Consensus level not match");
     }
   }
@@ -150,7 +150,7 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
           }
         }
       }
-      LOG(ERROR) << "ip_port: " << ip_port() << ", table: " << current_table_ << ", command:" << slow_log
+      LOG(ERROR) << "ip_port: " << ip_port() << ", db: " << current_db_ << ", command:" << slow_log
                  << ", command_size: " << cmd_size - 1 << ", arguments: " << argv.size()
                  << ", start_time(s): " << start_time << ", duration(us): " << duration
                  << ", do_duration_(us): " << do_duration;
@@ -160,8 +160,8 @@ void PikaClientConn::ProcessSlowlog(const PikaCmdArgsType& argv, uint64_t start_
 
 void PikaClientConn::ProcessMonitor(const PikaCmdArgsType& argv) {
   std::string monitor_message;
-  std::string table_name = current_table_.substr(2);
-  monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + table_name + " " + this->ip_port() + "]";
+  std::string db_name = current_db_.substr(2);
+  monitor_message = std::to_string(1.0 * pstd::NowMicros() / 1000000) + " [" + db_name + " " + this->ip_port() + "]";
   for (const auto & iter : argv) {
     monitor_message += " " + pstd::ToRead(iter);
   }
@@ -203,7 +203,7 @@ void PikaClientConn::DoExecTask(void* arg) {
   std::shared_ptr<PikaClientConn> conn_ptr = bg_arg->conn_ptr;
   std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
   LogOffset offset = bg_arg->offset;
-  std::string table_name = bg_arg->table_name;
+  std::string db_name = bg_arg->db_name;
   uint32_t slot_id = bg_arg->slot_id;
   bg_arg.reset();
 
@@ -218,9 +218,9 @@ void PikaClientConn::DoExecTask(void* arg) {
   }
 
   std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
-    LOG(WARNING) << "Sync Master Slot not exist " << table_name << slot_id;
+    LOG(WARNING) << "Sync Master Slot not exist " << db_name << slot_id;
     return;
   }
   slot->ConsensusUpdateAppliedIndex(offset);

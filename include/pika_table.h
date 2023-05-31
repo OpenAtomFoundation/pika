@@ -13,19 +13,19 @@
 #include "include/pika_command.h"
 #include "include/pika_partition.h"
 
-class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyable {
+class DB : public std::enable_shared_from_this<DB>, public pstd::noncopyable {
  public:
-  Table(std::string  table_name, uint32_t slot_num, const std::string& db_path, const std::string& log_path);
-  virtual ~Table();
+  DB(std::string  db_name, uint32_t slot_num, const std::string& db_path, const std::string& log_path);
+  virtual ~DB();
 
   friend class Cmd;
   friend class InfoCmd;
   friend class PkClusterInfoCmd;
   friend class PikaServer;
 
-  std::string GetTableName();
-  void BgSaveTable();
-  void CompactTable(const storage::DataType& type);
+  std::string GetDBName();
+  void BgSaveDB();
+  void CompactDB(const storage::DataType& type);
   bool FlushSlotDB();
   bool FlushSlotSubDB(const std::string& db_name);
   void SetBinlogIoError();
@@ -53,12 +53,12 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
   std::set<uint32_t> GetSlotIds();
   std::shared_ptr<Slot> GetSlotById(uint32_t slot_id);
   std::shared_ptr<Slot> GetSlotByKey(const std::string& key);
-  bool TableIsEmpty();
+  bool DBIsEmpty();
   pstd::Status MovetoToTrash(const std::string& path);
   pstd::Status Leave();
 
  private:
-  std::string table_name_;
+  std::string db_name_;
   uint32_t slot_num_ = 0;
   std::string db_path_;
   std::string log_path_;
@@ -80,7 +80,7 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
 };
 
 struct BgTaskArg {
-  std::shared_ptr<Table> table;
+  std::shared_ptr<DB> db;
   std::shared_ptr<Slot> slot;
 };
 

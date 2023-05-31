@@ -275,7 +275,7 @@ class CmdRes {
     kWrongNum,
     kInvalidIndex,
     kInvalidDbType,
-    kInvalidTable,
+    kInvalidDB,
     kInconsistentHashTag,
     kErrOther
   };
@@ -344,8 +344,8 @@ class CmdRes {
         break;
       case kInconsistentHashTag:
         return "-ERR parameters hashtag is inconsistent\r\n";
-      case kInvalidTable:
-        result = "-ERR invalid Table for '";
+      case kInvalidDB:
+        result = "-ERR invalid DB for '";
         result.append(message_);
         result.append("'\r\n");
         break;
@@ -421,7 +421,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
 
-  void Initial(const PikaCmdArgsType& argv, const std::string& table_name);
+  void Initial(const PikaCmdArgsType& argv, const std::string& db_name);
 
   bool is_write() const;
   bool is_local() const;
@@ -434,7 +434,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   std::string name() const;
   CmdRes& res();
-  std::string table_name() const;
+  std::string db_name() const;
   BinlogOffset binlog_offset() const;
   const PikaCmdArgsType& argv() const;
   virtual std::string ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t logic_id, uint32_t filenum,
@@ -466,7 +466,7 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
 
   CmdRes res_;
   PikaCmdArgsType argv_;
-  std::string table_name_;
+  std::string db_name_;
 
   std::weak_ptr<net::NetConn> conn_;
   std::weak_ptr<std::string> resp_;
@@ -480,11 +480,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   Cmd& operator=(const Cmd&);
 };
 
-using CmdTable =  std::unordered_map<std::string, std::unique_ptr<Cmd>>;
+using CmdDB =  std::unordered_map<std::string, std::unique_ptr<Cmd>>;
 
 // Method for Cmd Table
-void InitCmdTable(CmdTable* cmd_table);
-Cmd* GetCmdFromTable(const std::string& opt, const CmdTable& cmd_table);
+void InitCmdDB(CmdDB* cmd_table);
+Cmd* GetCmdFromDB(const std::string& opt, const CmdDB& cmd_table);
 
 void RedisAppendContent(std::string& str, const std::string& value) {
   str.append(value.data(), value.size());

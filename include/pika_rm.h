@@ -181,8 +181,8 @@ class PikaReplicaManager {
   pstd::Status RemoveSyncSlot(const std::set<SlotInfo>& p_infos);
   pstd::Status ActivateSyncSlaveSlot(const RmNode& node, const ReplState& repl_state);
   pstd::Status DeactivateSyncSlaveSlot(const SlotInfo& p_info);
-  pstd::Status SyncTableSanityCheck(const std::string& table_name);
-  pstd::Status DelSyncTable(const std::string& table_name);
+  pstd::Status SyncDBSanityCheck(const std::string& table_name);
+  pstd::Status DelSyncDB(const std::string& table_name);
 
   // For Pika Repl Client Thread
   pstd::Status SendMetaSyncRequest();

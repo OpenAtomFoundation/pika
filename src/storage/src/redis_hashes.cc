@@ -45,7 +45,7 @@ Status RedisHashes::Open(const StorageOptions& storage_options, const std::strin
   data_cf_ops.compaction_filter_factory = std::make_shared<HashesDataFilterFactory>(&db_, &handles_);
 
   // use the bloom filter policy to reduce disk reads
-  rocksdb::BlockBasedTableOptions table_ops(storage_options.table_options);
+  rocksdb::BlockBasedTableOptions table_ops(storage_options.db_options);
   table_ops.filter_policy.reset(rocksdb::NewBloomFilterPolicy(10, true));
   rocksdb::BlockBasedTableOptions meta_cf_table_ops(table_ops);
   rocksdb::BlockBasedTableOptions data_cf_table_ops(table_ops);

@@ -36,8 +36,8 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
     response.set_reply("Auth with master error, Invalid masterauth");
   } else {
     LOG(INFO) << "Receive MetaSync, Slave ip: " << node.ip() << ", Slave port:" << node.port();
-    std::vector<TableStruct> table_structs = g_pika_conf->table_structs();
-    bool success = g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), table_structs);
+    std::vector<DBStruct> db_structs = g_pika_conf->db_structs();
+    bool success = g_pika_server->TryAddSlave(node.ip(), node.port(), conn->fd(), db_structs);
     const std::string ip_port = pstd::IpPortString(node.ip(), node.port());
     g_pika_rm->ReplServerUpdateClientConnMap(ip_port, conn->fd());
     if (!success) {
@@ -47,10 +47,10 @@ void PikaReplServerConn::HandleMetaSyncRequest(void* arg) {
       g_pika_server->BecomeMaster();
       response.set_code(InnerMessage::kOk);
       InnerMessage::InnerResponse_MetaSync* meta_sync = response.mutable_meta_sync();
-      for (const auto& table_struct : table_structs) {
-        InnerMessage::InnerResponse_MetaSync_TableInfo* table_info = meta_sync->add_tables_info();
-        table_info->set_table_name(table_struct.table_name);
-        table_info->set_slot_num(table_struct.slot_num);
+      for (const auto& db_struct : db_structs) {
+        InnerMessage::InnerResponse_MetaSync_DBInfo* db_info = meta_sync->add_dbs_info();
+        db_info->set_db_name(db_struct.db_name);
+        db_info->set_slot_num(db_struct.slot_num);
       }
     }
   }
@@ -73,7 +73,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   const InnerMessage::Slot& slot_request = try_sync_request.slot();
   const InnerMessage::BinlogOffset& slave_boffset = try_sync_request.binlog_offset();
   const InnerMessage::Node& node = try_sync_request.node();
-  std::string table_name = slot_request.table_name();
+  std::string db_name = slot_request.db_name();
   uint32_t slot_id = slot_request.slot_id();
   std::string slot_name;
 
@@ -81,17 +81,17 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   InnerMessage::InnerResponse::TrySync* try_sync_response = response.mutable_try_sync();
   try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
   InnerMessage::Slot* slot_response = try_sync_response->mutable_slot();
-  slot_response->set_table_name(table_name);
+  slot_response->set_db_name(db_name);
   slot_response->set_slot_id(slot_id);
 
   bool pre_success = true;
   response.set_type(InnerMessage::Type::kTrySync);
   std::shared_ptr<SyncMasterSlot> slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!slot) {
     response.set_code(InnerMessage::kError);
     response.set_reply("Slot not found");
-    LOG(WARNING) << "Table Name: " << table_name << " Slot ID: " << slot_id << " Not Found, TrySync Error";
+    LOG(WARNING) << "DB Name: " << db_name << " Slot ID: " << slot_id << " Not Found, TrySync Error";
     pre_success = false;
   } else {
     slot_name = slot->SlotName();
@@ -282,24 +282,24 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   const InnerMessage::Slot& slot_request = db_sync_request.slot();
   const InnerMessage::Node& node = db_sync_request.node();
   const InnerMessage::BinlogOffset& slave_boffset = db_sync_request.binlog_offset();
-  std::string table_name = slot_request.table_name();
+  std::string db_name = slot_request.db_name();
   uint32_t slot_id = slot_request.slot_id();
-  std::string slot_name = table_name + "_" + std::to_string(slot_id);
+  std::string slot_name = db_name + "_" + std::to_string(slot_id);
 
   InnerMessage::InnerResponse response;
   response.set_code(InnerMessage::kOk);
   response.set_type(InnerMessage::Type::kDBSync);
   InnerMessage::InnerResponse::DBSync* db_sync_response = response.mutable_db_sync();
   InnerMessage::Slot* slot_response = db_sync_response->mutable_slot();
-  slot_response->set_table_name(table_name);
+  slot_response->set_db_name(db_name);
   slot_response->set_slot_id(slot_id);
 
   LOG(INFO) << "Handle Slot DBSync Request";
   bool prior_success = true;
   std::shared_ptr<SyncMasterSlot> master_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!master_slot) {
-    LOG(WARNING) << "Sync Master Slot: " << table_name << ":" << slot_id << ", NotFound";
+    LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << slot_id << ", NotFound";
     prior_success = false;
   }
   if (prior_success) {
@@ -340,7 +340,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
     }
   }
 
-  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, table_name, slot_id, slave_boffset.filenum());
+  g_pika_server->TryDBSync(node.ip(), node.port() + kPortShiftRSync, db_name, slot_id, slave_boffset.filenum());
 
   std::string reply_str;
   if (!response.SerializeToString(&reply_str) || (conn->WriteResp(reply_str) != 0)) {
@@ -362,7 +362,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   }
   const InnerMessage::InnerRequest::BinlogSync& binlog_req = req->binlog_sync();
   const InnerMessage::Node& node = binlog_req.node();
-  const std::string& table_name = binlog_req.table_name();
+  const std::string& db_name = binlog_req.db_name();
   uint32_t slot_id = binlog_req.slot_id();
 
   bool is_first_send = binlog_req.first_send();
@@ -377,38 +377,38 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   LogOffset range_end(b_range_end, l_range_end);
 
   std::shared_ptr<SyncMasterSlot> master_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!master_slot) {
-    LOG(WARNING) << "Sync Master Slot: " << table_name << ":" << slot_id << ", NotFound";
+    LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << slot_id << ", NotFound";
     return;
   }
 
   if (req->has_consensus_meta()) {
     const InnerMessage::ConsensusMeta& meta = req->consensus_meta();
     if (meta.term() > master_slot->ConsensusTerm()) {
-      LOG(INFO) << "Update " << table_name << ":" << slot_id << " term from " << master_slot->ConsensusTerm()
+      LOG(INFO) << "Update " << db_name << ":" << slot_id << " term from " << master_slot->ConsensusTerm()
                 << " to " << meta.term();
       master_slot->ConsensusUpdateTerm(meta.term());
     } else if (meta.term() < master_slot->ConsensusTerm()) /*outdated pb*/ {
-      LOG(WARNING) << "Drop outdated binlog sync req " << table_name << ":" << slot_id
+      LOG(WARNING) << "Drop outdated binlog sync req " << db_name << ":" << slot_id
                    << " recv term: " << meta.term() << " local term: " << master_slot->ConsensusTerm();
       return;
     }
   }
 
-  if (!master_slot->CheckSessionId(node.ip(), node.port(), table_name, slot_id, session_id)) {
-    LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port() << ", " << table_name << "_"
+  if (!master_slot->CheckSessionId(node.ip(), node.port(), db_name, slot_id, session_id)) {
+    LOG(WARNING) << "Check Session failed " << node.ip() << ":" << node.port() << ", " << db_name << "_"
                  << slot_id;
     // conn->NotifyClose();
     return;
   }
 
   // Set ack info from slave
-  RmNode slave_node = RmNode(node.ip(), node.port(), table_name, slot_id);
+  RmNode slave_node = RmNode(node.ip(), node.port(), db_name, slot_id);
 
   Status s = master_slot->SetLastRecvTime(node.ip(), node.port(), pstd::NowMicros());
   if (!s.ok()) {
-    LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port() << ", " << table_name << "_"
+    LOG(WARNING) << "SetMasterLastRecvTime failed " << node.ip() << ":" << node.port() << ", " << db_name << "_"
                  << slot_id << " " << s.ToString();
     conn->NotifyClose();
     return;
@@ -437,7 +437,7 @@ void PikaReplServerConn::HandleBinlogSyncRequest(void* arg) {
   }
   s = g_pika_rm->UpdateSyncBinlogStatus(slave_node, range_start, range_end);
   if (!s.ok()) {
-    LOG(WARNING) << "Update binlog ack failed " << table_name << " " << slot_id << " " << s.ToString();
+    LOG(WARNING) << "Update binlog ack failed " << db_name << " " << slot_id << " " << s.ToString();
     conn->NotifyClose();
     return;
   }
@@ -458,12 +458,12 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   const InnerMessage::Node& node = remove_slave_node_req.node();
   const InnerMessage::Slot& slot = remove_slave_node_req.slot();
 
-  std::string table_name = slot.table_name();
+  std::string db_name = slot.db_name();
   uint32_t slot_id = slot.slot_id();
   std::shared_ptr<SyncMasterSlot> master_slot =
-      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name, slot_id));
   if (!master_slot) {
-    LOG(WARNING) << "Sync Master Slot: " << table_name << ":" << slot_id << ", NotFound";
+    LOG(WARNING) << "Sync Master Slot: " << db_name << ":" << slot_id << ", NotFound";
   }
   Status s = master_slot->RemoveSlaveNode(node.ip(), node.port());
 
@@ -472,7 +472,7 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   response.set_type(InnerMessage::Type::kRemoveSlaveNode);
   InnerMessage::InnerResponse::RemoveSlaveNode* remove_slave_node_response = response.add_remove_slave_node();
   InnerMessage::Slot* slot_response = remove_slave_node_response->mutable_slot();
-  slot_response->set_table_name(table_name);
+  slot_response->set_db_name(db_name);
   slot_response->set_slot_id(slot_id);
   InnerMessage::Node* node_response = remove_slave_node_response->mutable_node();
   node_response->set_ip(g_pika_server->host());
