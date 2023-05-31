@@ -16,8 +16,8 @@
 
 #include "include/pika_partition.h"
 
-class SyncMasterPartition;
-class SyncSlavePartition;
+class SyncMasterSlot;
+class SyncSlaveSlot;
 
 // Constant for command name
 // Admin
@@ -397,11 +397,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   };
   struct ProcessArg {
     ProcessArg() = default;
-    ProcessArg(std::shared_ptr<Slot> _slot, std::shared_ptr<SyncMasterPartition> _sync_partition,
+    ProcessArg(std::shared_ptr<Slot> _slot, std::shared_ptr<SyncMasterSlot> _sync_slot,
                HintKeys _hint_keys)
-        : slot(std::move(_slot)), sync_partition(std::move(_sync_partition)), hint_keys(std::move(_hint_keys)) {}
+        : slot(std::move(_slot)), sync_slot(std::move(_sync_slot)), hint_keys(std::move(_hint_keys)) {}
     std::shared_ptr<Slot> slot;
-    std::shared_ptr<SyncMasterPartition> sync_partition;
+    std::shared_ptr<SyncMasterSlot> sync_slot;
     HintKeys hint_keys;
   };
   Cmd(std::string  name, int arity, uint16_t flag)
@@ -451,12 +451,12 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterPartition>& sync_partition,
+  void ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_partition,
                       const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterPartition>& sync_partition,
+  void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_partition,
                               const HintKeys& hint_key);
   void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
-  void DoBinlog(const std::shared_ptr<SyncMasterPartition>& partition);
+  void DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot);
   bool CheckArg(int num) const;
   void LogCommand() const;
 

@@ -22,9 +22,9 @@ std::string TablePath(const std::string& path, const std::string& table_name) {
   return path + buf;
 }
 
-Table::Table(std::string  table_name, uint32_t partition_num, const std::string& db_path,
+Table::Table(std::string  table_name, uint32_t slot_num, const std::string& db_path,
              const std::string& log_path)
-    : table_name_(std::move(table_name)), partition_num_(partition_num) {
+    : table_name_(std::move(table_name)), slot_num_(slot_num) {
   db_path_ = TablePath(db_path, table_name_);
   log_path_ = TablePath(log_path, "log_" + table_name_);
 
@@ -83,43 +83,43 @@ void Table::SetBinlogIoError() { return binlog_io_error_.store(true); }
 
 bool Table::IsBinlogIoError() { return binlog_io_error_.load(); }
 
-uint32_t Table::PartitionNum() { return partition_num_; }
+uint32_t Table::SlotNum() { return slot_num_; }
 
-Status Table::AddPartitions(const std::set<uint32_t>& partition_ids) {
+Status Table::AddPartitions(const std::set<uint32_t>& slot_ids) {
   std::lock_guard l(partitions_rw_);
-  for (const uint32_t& id : partition_ids) {
-    if (id >= partition_num_) {
-      return Status::Corruption("slot index out of range[0, " + std::to_string(partition_num_ - 1) + "]");
+  for (const uint32_t& id : slot_ids) {
+    if (id >= slot_num_) {
+      return Status::Corruption("slot index out of range[0, " + std::to_string(slot_num_ - 1) + "]");
     } else if (slots_.find(id) != slots_.end()) {
       return Status::Corruption("slot " + std::to_string(id) + " already exist");
     }
   }
 
-  for (const uint32_t& id : partition_ids) {
+  for (const uint32_t& id : slot_ids) {
     slots_.emplace(id, std::make_shared<Slot>(table_name_, id, db_path_));
   }
   return Status::OK();
 }
 
-Status Table::RemovePartitions(const std::set<uint32_t>& partition_ids) {
+Status Table::RemovePartitions(const std::set<uint32_t>& slot_ids) {
   std::lock_guard l(partitions_rw_);
-  for (const uint32_t& id : partition_ids) {
+  for (const uint32_t& id : slot_ids) {
     if (slots_.find(id) == slots_.end()) {
       return Status::Corruption("partition " + std::to_string(id) + " not found");
     }
   }
 
-  for (const uint32_t& id : partition_ids) {
+  for (const uint32_t& id : slot_ids) {
     slots_[id]->Leave();
     slots_.erase(id);
   }
   return Status::OK();
 }
 
-void Table::GetAllPartitions(std::set<uint32_t>& partition_ids) {
+void Table::GetAllPartitions(std::set<uint32_t>& slot_ids) {
   std::shared_lock l(partitions_rw_);
   for (const auto& iter : slots_) {
-    partition_ids.insert(iter.first);
+    slot_ids.insert(iter.first);
   }
 }
 
@@ -187,7 +187,7 @@ void Table::StopKeyScan() {
 void Table::ScanDatabase(const storage::DataType& type) {
   std::shared_lock l(partitions_rw_);
   for (const auto& item : slots_) {
-    printf("\n\npartition name : %s\n", item.second->GetPartitionName().c_str());
+    printf("\n\npartition name : %s\n", item.second->GetSlotName().c_str());
     item.second->db()->ScanDatabase(type);
   }
 }
@@ -233,7 +233,7 @@ void Table::LeaveAllPartition() {
   slots_.clear();
 }
 
-std::set<uint32_t> Table::GetPartitionIds() {
+std::set<uint32_t> Table::GetSlotIds() {
   std::set<uint32_t> ids;
   std::shared_lock l(partitions_rw_);
   for (const auto& item : slots_) {
@@ -242,15 +242,15 @@ std::set<uint32_t> Table::GetPartitionIds() {
   return ids;
 }
 
-std::shared_ptr<Slot> Table::GetSlotById(uint32_t partition_id) {
+std::shared_ptr<Slot> Table::GetSlotById(uint32_t slot_id) {
   std::shared_lock l(partitions_rw_);
-  auto iter = slots_.find(partition_id);
+  auto iter = slots_.find(slot_id);
   return (iter == slots_.end()) ? nullptr : iter->second;
 }
 
 std::shared_ptr<Slot> Table::GetSlotByKey(const std::string& key) {
-  assert(partition_num_ != 0);
-  uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, partition_num_);
+  assert(slot_num_ != 0);
+  uint32_t index = g_pika_cmd_table_manager->DistributeKey(key, slot_num_);
   std::shared_lock l(partitions_rw_);
   auto iter = slots_.find(index);
   return (iter == slots_.end()) ? nullptr : iter->second;

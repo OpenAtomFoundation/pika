@@ -31,13 +31,13 @@ message Node {
 
 message Slot {
   required string table_name   = 1;
-  required uint32 partition_id = 2;
+  required uint32 slot_id = 2;
 }
 
 message TableInfo {
   required string table_name    = 1;
-  required uint32 partition_num = 2;
-  repeated uint32 partition_ids = 3;
+  required uint32 slot_num = 2;
+  repeated uint32 slot_ids = 3;
 }
 
 message PikaMeta {
@@ -79,7 +79,7 @@ message InnerRequest {
   message BinlogSync {
     required Node         node            = 1;
     required string       table_name      = 2;
-    required uint32       partition_id    = 3;
+    required uint32       slot_id    = 3;
     required BinlogOffset ack_range_start = 4;
     required BinlogOffset ack_range_end   = 5;
     required int32        session_id      = 6;
@@ -100,8 +100,8 @@ message InnerRequest {
   optional ConsensusMeta   consensus_meta    = 7;
 }
 
-message PartitionInfo {
-  required uint32 partition_id = 1;
+message SlotInfo {
+  required uint32 slot_id = 1;
   required Node   master       = 2;
   repeated Node   slaves       = 3;
 }
@@ -112,7 +112,7 @@ message InnerResponse {
   message MetaSync {
     message TableInfo {
       required string        table_name    = 1;
-      required int32         partition_num = 2;
+      required int32         slot_num = 2;
     }
     required bool      classic_mode = 1;
     repeated TableInfo tables_info  = 2;

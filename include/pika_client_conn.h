@@ -21,7 +21,7 @@ class PikaClientConn : public net::RedisConn {
     std::shared_ptr<std::string> resp_ptr;
     LogOffset offset;
     std::string table_name;
-    uint32_t partition_id;
+    uint32_t slot_id;
   };
 
   // Auth related

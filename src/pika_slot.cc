@@ -70,11 +70,11 @@ void SlotsHashKeyCmd::Do(std::shared_ptr<Slot> slot) {
     res_.SetRes(CmdRes::kInvalidParameter, kCmdNameSlotsHashKey);
     return;
   }
-  uint32_t partition_num = table_ptr->PartitionNum();
+  uint32_t slot_num = table_ptr->SlotNum();
   // iter starts from real key, first item in argv_ is command name
   std::vector<std::string>::const_iterator iter = argv_.begin() + 1;
   for (; iter != argv_.end(); iter++) {
-    res_.AppendInteger(g_pika_cmd_table_manager->DistributeKey(*iter, partition_num));
+    res_.AppendInteger(g_pika_cmd_table_manager->DistributeKey(*iter, slot_num));
   }
   return;
 }
@@ -153,14 +153,14 @@ void SlotsMgrtTagSlotAsyncCmd::Do(std::shared_ptr<Slot> slot) {
   // mark this migrate done
   // proxy retry cached request in new node
   bool is_exist = true;
-  std::shared_ptr<SyncMasterPartition> master_partition =
-      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name_, slot_num_));
-  if (!master_partition) {
-    LOG(WARNING) << "Sync Master Partition: " << table_name_ << ":" << slot_num_ << ", NotFound";
+  std::shared_ptr<SyncMasterSlot> master_slot =
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name_, slot_num_));
+  if (!master_slot) {
+    LOG(WARNING) << "Sync Master Slot: " << table_name_ << ":" << slot_num_ << ", NotFound";
     res_.SetRes(CmdRes::kNotFound, kCmdNameSlotsMgrtTagSlotAsync);
     return;
   }
-  is_exist = master_partition->CheckSlaveNodeExist(dest_ip_, dest_port_);
+  is_exist = master_slot->CheckSlaveNodeExist(dest_ip_, dest_port_);
   if (is_exist) {
     remained = 1;
   } else {

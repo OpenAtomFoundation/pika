@@ -163,12 +163,12 @@ class PikaServer : public pstd::noncopyable {
   pstd::Status AddTableStruct(const std::string& table_name, uint32_t num);
   pstd::Status DelTableStruct(const std::string& table_name);
   std::shared_ptr<Table> GetTable(const std::string& table_name);
-  std::set<uint32_t> GetTablePartitionIds(const std::string& table_name);
+  std::set<uint32_t> GetTableSlotIds(const std::string& table_name);
   bool IsBgSaving();
   bool IsKeyScaning();
   bool IsCompacting();
   bool IsTableExist(const std::string& table_name);
-  bool IsTablePartitionExist(const std::string& table_name, uint32_t partition_id);
+  bool IsTablePartitionExist(const std::string& table_name, uint32_t slot_id);
   bool IsCommandSupport(const std::string& command);
   bool IsTableBinlogIoError(const std::string& table_name);
   pstd::Status DoSameThingSpecificTable(const TaskType& type, const std::set<std::string>& tables = {});
@@ -176,12 +176,12 @@ class PikaServer : public pstd::noncopyable {
   /*
    * Partition use
    */
-  void PreparePartitionTrySync();
+  void PrepareSlotTrySync();
   void PartitionSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   void PartitionSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
-  bool GetTablePartitionBinlogOffset(const std::string& table_name, uint32_t partition_id, BinlogOffset* boffset);
+  bool GetTablePartitionBinlogOffset(const std::string& table_name, uint32_t slot_id, BinlogOffset* boffset);
   std::shared_ptr<Slot> GetPartitionByDbName(const std::string& db_name);
-  std::shared_ptr<Slot> GetTablePartitionById(const std::string& table_name, uint32_t partition_id);
+  std::shared_ptr<Slot> GetTableSlotById(const std::string& table_name, uint32_t slot_id);
   std::shared_ptr<Slot> GetTablePartitionByKey(const std::string& table_name, const std::string& key);
   pstd::Status DoSameThingEveryPartition(const TaskType& type);
 
@@ -246,10 +246,10 @@ class PikaServer : public pstd::noncopyable {
   /*
    * DBSync used
    */
-  void DBSync(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id);
-  void TryDBSync(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int32_t top);
-  void DbSyncSendFile(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id);
-  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id);
+  void DBSync(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id);
+  void TryDBSync(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id, int32_t top);
+  void DbSyncSendFile(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id);
+  std::string DbSyncTaskIndex(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id);
 
   /*
    * Keyscan used

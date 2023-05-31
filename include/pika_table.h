@@ -15,7 +15,7 @@
 
 class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyable {
  public:
-  Table(std::string  table_name, uint32_t partition_num, const std::string& db_path, const std::string& log_path);
+  Table(std::string  table_name, uint32_t slot_num, const std::string& db_path, const std::string& log_path);
   virtual ~Table();
 
   friend class Cmd;
@@ -30,12 +30,12 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
   bool FlushPartitionSubDB(const std::string& db_name);
   void SetBinlogIoError();
   bool IsBinlogIoError();
-  uint32_t PartitionNum();
-  void GetAllPartitions(std::set<uint32_t>& partition_ids);
+  uint32_t SlotNum();
+  void GetAllPartitions(std::set<uint32_t>& slot_ids);
 
   // Dynamic change partition
-  pstd::Status AddPartitions(const std::set<uint32_t>& partition_ids);
-  pstd::Status RemovePartitions(const std::set<uint32_t>& partition_ids);
+  pstd::Status AddPartitions(const std::set<uint32_t>& slot_ids);
+  pstd::Status RemovePartitions(const std::set<uint32_t>& slot_ids);
 
   // KeyScan use;
   void KeyScan();
@@ -50,8 +50,8 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
   void Compact(const storage::DataType& type);
 
   void LeaveAllPartition();
-  std::set<uint32_t> GetPartitionIds();
-  std::shared_ptr<Slot> GetSlotById(uint32_t partition_id);
+  std::set<uint32_t> GetSlotIds();
+  std::shared_ptr<Slot> GetSlotById(uint32_t slot_id);
   std::shared_ptr<Slot> GetSlotByKey(const std::string& key);
   bool TableIsEmpty();
   pstd::Status MovetoToTrash(const std::string& path);
@@ -59,7 +59,7 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
 
  private:
   std::string table_name_;
-  uint32_t partition_num_ = 0;
+  uint32_t slot_num_ = 0;
   std::string db_path_;
   std::string log_path_;
 

@@ -204,7 +204,7 @@ void PikaClientConn::DoExecTask(void* arg) {
   std::shared_ptr<std::string> resp_ptr = bg_arg->resp_ptr;
   LogOffset offset = bg_arg->offset;
   std::string table_name = bg_arg->table_name;
-  uint32_t partition_id = bg_arg->partition_id;
+  uint32_t slot_id = bg_arg->slot_id;
   bg_arg.reset();
 
   uint64_t start_us = 0;
@@ -217,13 +217,13 @@ void PikaClientConn::DoExecTask(void* arg) {
     conn_ptr->ProcessSlowlog(cmd_ptr->argv(), start_us, cmd_ptr->GetDoDuration());
   }
 
-  std::shared_ptr<SyncMasterPartition> partition =
-      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-  if (!partition) {
-    LOG(WARNING) << "Sync Master Partition not exist " << table_name << partition_id;
+  std::shared_ptr<SyncMasterSlot> slot =
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
+  if (!slot) {
+    LOG(WARNING) << "Sync Master Slot not exist " << table_name << slot_id;
     return;
   }
-  partition->ConsensusUpdateAppliedIndex(offset);
+  slot->ConsensusUpdateAppliedIndex(offset);
 
   if (!conn_ptr || !resp_ptr) {
     return;
