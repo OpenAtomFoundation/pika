@@ -46,14 +46,14 @@ struct BgSaveInfo {
   }
 };
 
-class Slot : public pstd::noncopyable {
+class Slot : public std::enable_shared_from_this<Slot>,public pstd::noncopyable {
  public:
-  Slot(const std::string& table_name, uint32_t partition_id, const std::string& table_db_path);
+  Slot(const std::string& table_name, uint32_t slot_id, const std::string& table_db_path);
   virtual ~Slot();
 
   std::string GetTableName() const;
-  uint32_t GetPartitionId() const;
-  std::string GetPartitionName() const;
+  uint32_t GetSlotId() const;
+  std::string GetSlotName() const;
   std::shared_ptr<storage::Storage> db() const;
 
   void Compact(const storage::DataType& type);
@@ -87,12 +87,12 @@ class Slot : public pstd::noncopyable {
 
  private:
   std::string table_name_;
-  uint32_t partition_id_ = 0;
+  uint32_t slot_id_ = 0;
 
   std::string db_path_;
   std::string bgsave_sub_path_;
   std::string dbsync_path_;
-  std::string partition_name_;
+  std::string slot_name_;
 
   bool opened_ = false;
 

@@ -542,14 +542,14 @@ void Cmd::ProcessFlushDBCmd() {
     } else {
       std::lock_guard l_prw(table->partitions_rw_);
       std::lock_guard s_prw(g_pika_rm->partitions_rw_);
-      for (const auto& partition_item : table->slots_) {
-        std::shared_ptr<Slot> slot = partition_item.second;
-        PartitionInfo p_info(slot->GetTableName(), slot->GetPartitionId());
-        if (g_pika_rm->sync_master_partitions_.find(p_info) == g_pika_rm->sync_master_partitions_.end()) {
-          res_.SetRes(CmdRes::kErrOther, "Partition not found");
+      for (const auto& slot_item : table->slots_) {
+        std::shared_ptr<Slot> slot = slot_item.second;
+        SlotInfo p_info(slot->GetTableName(), slot->GetSlotId());
+        if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
+          res_.SetRes(CmdRes::kErrOther, "Slot not found");
           return;
         }
-        ProcessCommand(slot, g_pika_rm->sync_master_partitions_[p_info]);
+        ProcessCommand(slot, g_pika_rm->sync_master_slots_[p_info]);
       }
       res_.SetRes(CmdRes::kOk);
     }
@@ -568,14 +568,14 @@ void Cmd::ProcessFlushAllCmd() {
   for (const auto& table_item : g_pika_server->tables_) {
     std::lock_guard l_prw(table_item.second->partitions_rw_);
     std::lock_guard s_prw(g_pika_rm->partitions_rw_);
-    for (const auto& partition_item : table_item.second->slots_) {
-      std::shared_ptr<Slot> slot = partition_item.second;
-      PartitionInfo p_info(slot->GetTableName(), slot->GetPartitionId());
-      if (g_pika_rm->sync_master_partitions_.find(p_info) == g_pika_rm->sync_master_partitions_.end()) {
-        res_.SetRes(CmdRes::kErrOther, "Partition not found");
+    for (const auto& slot_item : table_item.second->slots_) {
+      std::shared_ptr<Slot> slot = slot_item.second;
+      SlotInfo p_info(slot->GetTableName(), slot->GetSlotId());
+      if (g_pika_rm->sync_master_slots_.find(p_info) == g_pika_rm->sync_master_slots_.end()) {
+        res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
       }
-      ProcessCommand(slot, g_pika_rm->sync_master_partitions_[p_info]);
+      ProcessCommand(slot, g_pika_rm->sync_master_slots_[p_info]);
     }
   }
   res_.SetRes(CmdRes::kOk);
@@ -586,20 +586,20 @@ void Cmd::ProcessSinglePartitionCmd() {
   slot = g_pika_server->GetPartitionByDbName(table_name_);
 
   if (!slot) {
-    res_.SetRes(CmdRes::kErrOther, "Partition not found");
+    res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;
   }
 
-  std::shared_ptr<SyncMasterPartition> sync_partition =
-      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(slot->GetTableName(), slot->GetPartitionId()));
-  if (!sync_partition) {
-    res_.SetRes(CmdRes::kErrOther, "Partition not found");
+  std::shared_ptr<SyncMasterSlot> sync_slot =
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(slot->GetTableName(), slot->GetSlotId()));
+  if (!sync_slot) {
+    res_.SetRes(CmdRes::kErrOther, "Slot not found");
     return;
   }
-  ProcessCommand(slot, sync_partition);
+  ProcessCommand(slot, sync_slot);
 }
 
-void Cmd::ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterPartition>& sync_partition,
+void Cmd::ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterSlot>& sync_partition,
                          const HintKeys& hint_keys) {
   if (stage_ == kNone) {
     InternalProcessCommand(slot, sync_partition, hint_keys);
@@ -613,7 +613,7 @@ void Cmd::ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_pt
 }
 
 void Cmd::InternalProcessCommand(const std::shared_ptr<Slot>& slot,
-                                 const std::shared_ptr<SyncMasterPartition>& sync_partition, const HintKeys& hint_keys) {
+                                 const std::shared_ptr<SyncMasterSlot>& sync_partition, const HintKeys& hint_keys) {
   pstd::lock::MultiRecordLock record_lock(slot->LockMgr());
   if (is_write()) {
     record_lock.Lock(current_key());
@@ -646,26 +646,26 @@ void Cmd::DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_keys
   }
 }
 
-void Cmd::DoBinlog(const std::shared_ptr<SyncMasterPartition>& partition) {
+void Cmd::DoBinlog(const std::shared_ptr<SyncMasterSlot>& slot) {
   if (res().ok() && is_write() && g_pika_conf->write_binlog()) {
     std::shared_ptr<net::NetConn> conn_ptr = GetConn();
     std::shared_ptr<std::string> resp_ptr = GetResp();
     // Consider that dummy cmd appended by system, both conn and resp are null.
     if ((!conn_ptr || !resp_ptr) && (name_ != kCmdDummy)) {
       if (!conn_ptr) {
-        LOG(WARNING) << partition->SyncPartitionInfo().ToString() << " conn empty.";
+        LOG(WARNING) << slot->SyncSlotInfo().ToString() << " conn empty.";
       }
       if (!resp_ptr) {
-        LOG(WARNING) << partition->SyncPartitionInfo().ToString() << " resp empty.";
+        LOG(WARNING) << slot->SyncSlotInfo().ToString() << " resp empty.";
       }
       res().SetRes(CmdRes::kErrOther);
       return;
     }
 
-    Status s = partition->ConsensusProposeLog(shared_from_this(), std::dynamic_pointer_cast<PikaClientConn>(conn_ptr),
+    Status s = slot->ConsensusProposeLog(shared_from_this(), std::dynamic_pointer_cast<PikaClientConn>(conn_ptr),
                                               resp_ptr);
     if (!s.ok()) {
-      LOG(WARNING) << partition->SyncPartitionInfo().ToString()
+      LOG(WARNING) << slot->SyncSlotInfo().ToString()
                    << " Writing binlog failed, maybe no space left on device " << s.ToString();
       res().SetRes(CmdRes::kErrOther, s.ToString());
       return;
@@ -693,23 +693,23 @@ void Cmd::ProcessMultiPartitionCmd() {
   CmdStage current_stage = stage_;
   for (auto& key : cur_key) {
     // in sharding mode we select partition by key
-    uint32_t partition_id = g_pika_cmd_table_manager->DistributeKey(key, table->PartitionNum());
-    auto iter = process_map.find(partition_id);
+    uint32_t slot_id = g_pika_cmd_table_manager->DistributeKey(key, table->SlotNum());
+    auto iter = process_map.find(slot_id);
     if (iter == process_map.end()) {
-      std::shared_ptr<Slot> slot = table->GetSlotById(partition_id);
+      std::shared_ptr<Slot> slot = table->GetSlotById(slot_id);
       if (!slot) {
-        res_.SetRes(CmdRes::kErrOther, "Partition not found");
+        res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
       }
-      std::shared_ptr<SyncMasterPartition> sync_partition = g_pika_rm->GetSyncMasterPartitionByName(
-          PartitionInfo(slot->GetTableName(), slot->GetPartitionId()));
-      if (!sync_partition) {
-        res_.SetRes(CmdRes::kErrOther, "Partition not found");
+      std::shared_ptr<SyncMasterSlot> sync_slot = g_pika_rm->GetSyncMasterSlotByName(
+          SlotInfo(slot->GetTableName(), slot->GetSlotId()));
+      if (!sync_slot) {
+        res_.SetRes(CmdRes::kErrOther, "Slot not found");
         return;
       }
       HintKeys hint_keys;
       hint_keys.Push(key, hint);
-      process_map[partition_id] = ProcessArg(slot, sync_partition, hint_keys);
+      process_map[slot_id] = ProcessArg(slot, sync_slot, hint_keys);
     } else {
       iter->second.hint_keys.Push(key, hint);
     }
@@ -717,7 +717,7 @@ void Cmd::ProcessMultiPartitionCmd() {
   }
   for (auto& iter : process_map) {
     ProcessArg& arg = iter.second;
-    ProcessCommand(arg.slot, arg.sync_partition, arg.hint_keys);
+    ProcessCommand(arg.slot, arg.sync_slot, arg.hint_keys);
     if (!res_.ok()) {
       return;
     }

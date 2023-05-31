@@ -47,13 +47,13 @@ struct ReplClientWriteDBTaskArg {
   const std::shared_ptr<Cmd> cmd_ptr;
   LogOffset offset;
   std::string table_name;
-  uint32_t partition_id;
+  uint32_t slot_id;
   ReplClientWriteDBTaskArg(std::shared_ptr<Cmd> _cmd_ptr, const LogOffset& _offset, std::string _table_name,
-                           uint32_t _partition_id)
+                           uint32_t _slot_id)
       : cmd_ptr(std::move(_cmd_ptr)),
         offset(_offset),
         table_name(std::move(_table_name)),
-        partition_id(_partition_id) {}
+        slot_id(_slot_id) {}
   ~ReplClientWriteDBTaskArg() = default;
 };
 
@@ -72,17 +72,17 @@ class PikaReplClient {
   void ScheduleWriteBinlogTask(const std::string& table_partition, const std::shared_ptr<InnerMessage::InnerResponse>& res,
                                std::shared_ptr<net::PbConn> conn, void* res_private_data);
   void ScheduleWriteDBTask(const std::shared_ptr<Cmd>& cmd_ptr, const LogOffset& offset, const std::string& table_name,
-                           uint32_t partition_id);
+                           uint32_t slot_id);
 
   pstd::Status SendMetaSync();
-  pstd::Status SendPartitionDBSync(const std::string& ip, uint32_t port, const std::string& table_name, uint32_t partition_id,
+  pstd::Status SendPartitionDBSync(const std::string& ip, uint32_t port, const std::string& table_name, uint32_t slot_id,
                              const BinlogOffset& boffset, const std::string& local_ip);
   pstd::Status SendPartitionTrySync(const std::string& ip, uint32_t port, const std::string& table_name,
-                              uint32_t partition_id, const BinlogOffset& boffset, const std::string& local_ip);
-  pstd::Status SendPartitionBinlogSync(const std::string& ip, uint32_t port, const std::string& table_name,
-                                 uint32_t partition_id, const LogOffset& ack_start, const LogOffset& ack_end,
+                              uint32_t slot_id, const BinlogOffset& boffset, const std::string& local_ip);
+  pstd::Status SendSlotBinlogSync(const std::string& ip, uint32_t port, const std::string& table_name,
+                                 uint32_t slot_id, const LogOffset& ack_start, const LogOffset& ack_end,
                                  const std::string& local_ip, bool is_first_send);
-  pstd::Status SendRemoveSlaveNode(const std::string& ip, uint32_t port, const std::string& table_name, uint32_t partition_id,
+  pstd::Status SendRemoveSlaveNode(const std::string& ip, uint32_t port, const std::string& table_name, uint32_t slot_id,
                              const std::string& local_ip);
 
  private:

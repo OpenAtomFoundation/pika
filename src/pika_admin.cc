@@ -202,9 +202,9 @@ void DbSlaveofCmd::DoInitial() {
 }
 
 void DbSlaveofCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<SyncSlavePartition> slave_partition =
-      g_pika_rm->GetSyncSlavePartitionByName(PartitionInfo(db_name_, 0));
-  if (!slave_partition) {
+  std::shared_ptr<SyncSlaveSlot> slave_slot =
+      g_pika_rm->GetSyncSlaveSlotByName(SlotInfo(db_name_, 0));
+  if (!slave_slot) {
     res_.SetRes(CmdRes::kErrOther, "Db not found");
     return;
   }
@@ -214,15 +214,15 @@ void DbSlaveofCmd::Do(std::shared_ptr<Slot> slot) {
     // In classic mode a table has only one partition
     s = g_pika_rm->SendRemoveSlaveNodeRequest(db_name_, 0);
   } else {
-    if (slave_partition->State() == ReplState::kNoConnect || slave_partition->State() == ReplState::kError ||
-        slave_partition->State() == ReplState::kDBNoConnect) {
+    if (slave_slot->State() == ReplState::kNoConnect || slave_slot->State() == ReplState::kError ||
+        slave_slot->State() == ReplState::kDBNoConnect) {
       if (have_offset_) {
-        std::shared_ptr<SyncMasterPartition> db_partition =
-            g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(db_name_, 0));
-        db_partition->Logger()->SetProducerStatus(filenum_, offset_);
+        std::shared_ptr<SyncMasterSlot> db_slot =
+            g_pika_rm->GetSyncMasterSlotByName(SlotInfo(db_name_, 0));
+        db_slot->Logger()->SetProducerStatus(filenum_, offset_);
       }
       ReplState state = force_sync_ ? ReplState::kTryDBSync : ReplState::kTryConnect;
-      s = g_pika_rm->ActivateSyncSlavePartition(
+      s = g_pika_rm->ActivateSyncSlaveSlot(
           RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), db_name_, 0), state);
     }
   }
@@ -373,12 +373,12 @@ void PurgelogstoCmd::DoInitial() {
 }
 
 void PurgelogstoCmd::Do(std::shared_ptr<Slot> slot) {
-  std::shared_ptr<SyncMasterPartition> sync_partition =
-      g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_, 0));
-  if (!sync_partition) {
-    res_.SetRes(CmdRes::kErrOther, "Partition not found");
+  std::shared_ptr<SyncMasterSlot> sync_slot =
+      g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_, 0));
+  if (!sync_slot) {
+    res_.SetRes(CmdRes::kErrOther, "Slot not found");
   } else {
-    sync_partition->StableLogger()->PurgeStableLogs(num_, true);
+    sync_slot->StableLogger()->PurgeStableLogs(num_, true);
     res_.SetRes(CmdRes::kOk);
   }
 }
@@ -445,7 +445,7 @@ void FlushallCmd::DoInitial() {
 }
 void FlushallCmd::Do(std::shared_ptr<Slot> slot) {
   if (!slot) {
-    LOG(INFO) << "Flushall, but partition not found";
+    LOG(INFO) << "Flushall, but Slot not found";
   } else {
     slot->FlushDB();
   }
@@ -493,7 +493,7 @@ void FlushdbCmd::DoInitial() {
 
 void FlushdbCmd::Do(std::shared_ptr<Slot> slot) {
   if (!slot) {
-    LOG(INFO) << "Flushdb, but partition not found";
+    LOG(INFO) << "Flushdb, but Slot not found";
   } else {
     if (db_name_ == "all") {
       slot->FlushDB();
@@ -924,33 +924,33 @@ void InfoCmd::InfoReplication(std::string& info) {
   std::stringstream tmp_stream;
   std::stringstream out_of_sync;
 
-  bool all_partition_sync = true;
+  bool all_slot_sync = true;
   std::shared_lock table_rwl(g_pika_server->tables_rw_);
   for (const auto& table_item : g_pika_server->tables_) {
     std::shared_lock partition_rwl(table_item.second->partitions_rw_);
-    for (const auto& partition_item : table_item.second->slots_) {
-      std::shared_ptr<SyncSlavePartition> slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
-          PartitionInfo(table_item.second->GetTableName(), partition_item.second->GetPartitionId()));
-      if (!slave_partition) {
-        out_of_sync << "(" << partition_item.second->GetPartitionName() << ": InternalError)";
+    for (const auto& slot_item : table_item.second->slots_) {
+      std::shared_ptr<SyncSlaveSlot> slave_slot = g_pika_rm->GetSyncSlaveSlotByName(
+          SlotInfo(table_item.second->GetTableName(), slot_item.second->GetSlotId()));
+      if (!slave_slot) {
+        out_of_sync << "(" << slot_item.second->GetSlotName() << ": InternalError)";
         continue;
       }
-      if (slave_partition->State() != ReplState::kConnected) {
-        all_partition_sync = false;
-        out_of_sync << "(" << partition_item.second->GetPartitionName() << ":";
-        if (slave_partition->State() == ReplState::kNoConnect) {
+      if (slave_slot->State() != ReplState::kConnected) {
+        all_slot_sync = false;
+        out_of_sync << "(" << slot_item.second->GetSlotName() << ":";
+        if (slave_slot->State() == ReplState::kNoConnect) {
           out_of_sync << "NoConnect)";
-        } else if (slave_partition->State() == ReplState::kWaitDBSync) {
+        } else if (slave_slot->State() == ReplState::kWaitDBSync) {
           out_of_sync << "WaitDBSync)";
-        } else if (slave_partition->State() == ReplState::kError) {
+        } else if (slave_slot->State() == ReplState::kError) {
           out_of_sync << "Error)";
-        } else if (slave_partition->State() == ReplState::kWaitReply) {
+        } else if (slave_slot->State() == ReplState::kWaitReply) {
           out_of_sync << "kWaitReply)";
-        } else if (slave_partition->State() == ReplState::kTryConnect) {
+        } else if (slave_slot->State() == ReplState::kTryConnect) {
           out_of_sync << "kTryConnect)";
-        } else if (slave_partition->State() == ReplState::kTryDBSync) {
+        } else if (slave_slot->State() == ReplState::kTryDBSync) {
           out_of_sync << "kTryDBSync)";
-        } else if (slave_partition->State() == ReplState::kDBNoConnect) {
+        } else if (slave_slot->State() == ReplState::kDBNoConnect) {
           out_of_sync << "kDBNoConnect)";
         } else {
           out_of_sync << "Other)";
@@ -982,11 +982,11 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:"
-                 << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_partition_sync) ? "up" : "down")
+                 << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_slot_sync) ? "up" : "down")
                  << "\r\n";
       tmp_stream << "slave_priority:" << g_pika_conf->slave_priority() << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
-      if (!all_partition_sync) {
+      if (!all_slot_sync) {
         tmp_stream << "db_repl_state:" << out_of_sync.str() << "\r\n";
       }
       break;
@@ -994,10 +994,10 @@ void InfoCmd::InfoReplication(std::string& info) {
       tmp_stream << "master_host:" << g_pika_server->master_ip() << "\r\n";
       tmp_stream << "master_port:" << g_pika_server->master_port() << "\r\n";
       tmp_stream << "master_link_status:"
-                 << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_partition_sync) ? "up" : "down")
+                 << (((g_pika_server->repl_state() == PIKA_REPL_META_SYNC_DONE) && all_slot_sync) ? "up" : "down")
                  << "\r\n";
       tmp_stream << "slave_read_only:" << g_pika_conf->slave_read_only() << "\r\n";
-      if (!all_partition_sync) {
+      if (!all_slot_sync) {
         tmp_stream << "db_repl_state:" << out_of_sync.str() << "\r\n";
       }
     case PIKA_ROLE_SINGLE:
@@ -1010,23 +1010,23 @@ void InfoCmd::InfoReplication(std::string& info) {
   uint32_t filenum = 0;
   uint64_t offset = 0;
   std::string safety_purge;
-  std::shared_ptr<SyncMasterPartition> master_partition = nullptr;
+  std::shared_ptr<SyncMasterSlot> master_slot = nullptr;
   for (const auto& t_item : g_pika_server->tables_) {
     std::shared_lock partition_rwl(t_item.second->partitions_rw_);
     for (const auto& p_item : t_item.second->slots_) {
       std::string table_name = p_item.second->GetTableName();
-      uint32_t partition_id = p_item.second->GetPartitionId();
-      master_partition = g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
-      if (!master_partition) {
-        LOG(WARNING) << "Sync Master Partition: " << table_name << ":" << partition_id << ", NotFound";
+      uint32_t slot_id = p_item.second->GetSlotId();
+      master_slot = g_pika_rm->GetSyncMasterSlotByName(SlotInfo(table_name, slot_id));
+      if (!master_slot) {
+        LOG(WARNING) << "Sync Master Slot: " << table_name << ":" << slot_id << ", NotFound";
         continue;
       }
-      master_partition->Logger()->GetProducerStatus(&filenum, &offset);
+      master_slot->Logger()->GetProducerStatus(&filenum, &offset);
       tmp_stream << table_name << " binlog_offset=" << filenum << " " << offset;
-      s = master_partition->GetSafetyPurgeBinlog(&safety_purge);
+      s = master_slot->GetSafetyPurgeBinlog(&safety_purge);
       tmp_stream << ",safety_purge=" << (s.ok() ? safety_purge : "error") << "\r\n";
       if (g_pika_conf->consensus_level() != 0) {
-        LogOffset last_log = master_partition->ConsensusLastIndex();
+        LogOffset last_log = master_slot->ConsensusLastIndex();
         tmp_stream << table_name << " consensus last_log=" << last_log.ToString() << "\r\n";
       }
     }
@@ -1136,7 +1136,7 @@ void InfoCmd::InfoData(std::string& info) {
       for (const auto& item : type_result) {
         if (item.second != 0) {
           db_fatal_msg_stream << (total_background_errors != 0 ? "," : "");
-          db_fatal_msg_stream << patition_item.second->GetPartitionName() << "/" << item.first;
+          db_fatal_msg_stream << patition_item.second->GetSlotName() << "/" << item.first;
           total_background_errors += item.second;
         }
       }

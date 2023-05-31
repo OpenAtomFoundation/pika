@@ -466,10 +466,10 @@ class PikaConf : public pstd::BaseConf {
     arena_block_size_ = value;
   }
 
-  pstd::Status TablePartitionsSanityCheck(const std::string& table_name, const std::set<uint32_t>& partition_ids,
+  pstd::Status TableSlotsSanityCheck(const std::string& table_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
-  pstd::Status AddTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
-  pstd::Status RemoveTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
+  pstd::Status AddTableSlots(const std::string& table_name, const std::set<uint32_t>& slot_ids);
+  pstd::Status RemoveTablePartitions(const std::string& table_name, const std::set<uint32_t>& slot_ids);
   pstd::Status AddTable(const std::string& table_name, uint32_t slot_num);
   pstd::Status AddTableSanityCheck(const std::string& table_name);
   pstd::Status DelTable(const std::string& table_name);
