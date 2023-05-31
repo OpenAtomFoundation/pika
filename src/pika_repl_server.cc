@@ -98,9 +98,9 @@ void PikaReplServer::BuildBinlogSyncResp(const std::vector<WriteTask>& tasks, In
     }
     InnerMessage::InnerResponse::BinlogSync* binlog_sync = response->add_binlog_sync();
     binlog_sync->set_session_id(task.rm_node_.SessionId());
-    InnerMessage::Partition* partition = binlog_sync->mutable_partition();
-    partition->set_table_name(task.rm_node_.TableName());
-    partition->set_partition_id(task.rm_node_.PartitionId());
+    InnerMessage::Slot* slot = binlog_sync->mutable_slot();
+    slot->set_table_name(task.rm_node_.TableName());
+    slot->set_partition_id(task.rm_node_.PartitionId());
     InnerMessage::BinlogOffset* boffset = binlog_sync->mutable_binlog_offset();
     BuildBinlogOffset(task.binlog_chip_.offset_, boffset);
     binlog_sync->set_binlog(task.binlog_chip_.binlog_);

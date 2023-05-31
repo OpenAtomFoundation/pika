@@ -180,9 +180,9 @@ class PikaServer : public pstd::noncopyable {
   void PartitionSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys);
   void PartitionSetSmallCompactionThreshold(uint32_t small_compaction_threshold);
   bool GetTablePartitionBinlogOffset(const std::string& table_name, uint32_t partition_id, BinlogOffset* boffset);
-  std::shared_ptr<Partition> GetPartitionByDbName(const std::string& db_name);
-  std::shared_ptr<Partition> GetTablePartitionById(const std::string& table_name, uint32_t partition_id);
-  std::shared_ptr<Partition> GetTablePartitionByKey(const std::string& table_name, const std::string& key);
+  std::shared_ptr<Slot> GetPartitionByDbName(const std::string& db_name);
+  std::shared_ptr<Slot> GetTablePartitionById(const std::string& table_name, uint32_t partition_id);
+  std::shared_ptr<Slot> GetTablePartitionByKey(const std::string& table_name, const std::string& key);
   pstd::Status DoSameThingEveryPartition(const TaskType& type);
 
   /*

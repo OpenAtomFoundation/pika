@@ -397,10 +397,10 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   };
   struct ProcessArg {
     ProcessArg() = default;
-    ProcessArg(std::shared_ptr<Partition> _partition, std::shared_ptr<SyncMasterPartition> _sync_partition,
+    ProcessArg(std::shared_ptr<Slot> _slot, std::shared_ptr<SyncMasterPartition> _sync_partition,
                HintKeys _hint_keys)
-        : partition(std::move(_partition)), sync_partition(std::move(_sync_partition)), hint_keys(std::move(_hint_keys)) {}
-    std::shared_ptr<Partition> partition;
+        : slot(std::move(_slot)), sync_partition(std::move(_sync_partition)), hint_keys(std::move(_hint_keys)) {}
+    std::shared_ptr<Slot> slot;
     std::shared_ptr<SyncMasterPartition> sync_partition;
     HintKeys hint_keys;
   };
@@ -415,10 +415,10 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
   virtual void ProcessSinglePartitionCmd();
   virtual void ProcessMultiPartitionCmd();
   virtual void ProcessDoNotSpecifyPartitionCmd();
-  virtual void Do(std::shared_ptr<Partition> partition = nullptr) = 0;
+  virtual void Do(std::shared_ptr<Slot> slot = nullptr) = 0;
   virtual Cmd* Clone() = 0;
   // used for execute multikey command into different slots
-  virtual void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) = 0;
+  virtual void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) = 0;
   virtual void Merge() = 0;
 
   void Initial(const PikaCmdArgsType& argv, const std::string& table_name);
@@ -451,11 +451,11 @@ class Cmd : public std::enable_shared_from_this<Cmd> {
  protected:
   // enable copy, used default copy
   // Cmd(const Cmd&);
-  void ProcessCommand(const std::shared_ptr<Partition>& partition, const std::shared_ptr<SyncMasterPartition>& sync_partition,
+  void ProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterPartition>& sync_partition,
                       const HintKeys& hint_key = HintKeys());
-  void InternalProcessCommand(const std::shared_ptr<Partition>& partition, const std::shared_ptr<SyncMasterPartition>& sync_partition,
+  void InternalProcessCommand(const std::shared_ptr<Slot>& slot, const std::shared_ptr<SyncMasterPartition>& sync_partition,
                               const HintKeys& hint_key);
-  void DoCommand(const std::shared_ptr<Partition>& partition, const HintKeys& hint_key);
+  void DoCommand(const std::shared_ptr<Slot>& slot, const HintKeys& hint_key);
   void DoBinlog(const std::shared_ptr<SyncMasterPartition>& partition);
   bool CheckArg(int num) const;
   void LogCommand() const;

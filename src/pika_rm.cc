@@ -1055,12 +1055,12 @@ Status PikaReplicaManager::SendPartitionDBSyncRequest(const std::string& table_n
     return Status::Corruption("Partition get binlog offset error");
   }
 
-  std::shared_ptr<Partition> partition = g_pika_server->GetTablePartitionById(table_name, partition_id);
-  if (!partition) {
+  std::shared_ptr<Slot> slot = g_pika_server->GetTablePartitionById(table_name, partition_id);
+  if (!slot) {
     LOG(WARNING) << "Partition: " << table_name << ":" << partition_id << ", NotFound";
     return Status::Corruption("Partition not found");
   }
-  partition->PrepareRsync();
+  slot->PrepareRsync();
 
   std::shared_ptr<SyncSlavePartition> slave_partition =
       GetSyncSlavePartitionByName(PartitionInfo(table_name, partition_id));
@@ -1135,10 +1135,10 @@ Status PikaReplicaManager::RunSyncSlavePartitionStateMachine() {
     } else if (s_partition->State() == ReplState::kWaitReply) {
       continue;
     } else if (s_partition->State() == ReplState::kWaitDBSync) {
-      std::shared_ptr<Partition> partition =
+      std::shared_ptr<Slot> slot =
           g_pika_server->GetTablePartitionById(p_info.table_name_, p_info.partition_id_);
-      if (partition) {
-        partition->TryUpdateMasterOffset();
+      if (slot) {
+        slot->TryUpdateMasterOffset();
       } else {
         LOG(WARNING) << "Partition not found, Table Name: " << p_info.table_name_
                      << " Partition Id: " << p_info.partition_id_;

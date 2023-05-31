@@ -362,7 +362,7 @@ bool PikaServer::IsBgSaving() {
   std::shared_lock l(tables_rw_);
   for (const auto& table_item : tables_) {
     std::shared_lock partition_rwl(table_item.second->partitions_rw_);
-    for (const auto& patition_item : table_item.second->partitions_) {
+    for (const auto& patition_item : table_item.second->slots_) {
       if (patition_item.second->IsBgSaving()) {
         return true;
       }
@@ -385,7 +385,7 @@ bool PikaServer::IsCompacting() {
   std::shared_lock table_rwl(tables_rw_);
   for (const auto& table_item : tables_) {
     std::shared_lock partition_rwl(table_item.second->partitions_rw_);
-    for (const auto& partition_item : table_item.second->partitions_) {
+    for (const auto& partition_item : table_item.second->slots_) {
       partition_item.second->DbRWLockReader();
       std::string task_type = partition_item.second->db()->GetCurrentTaskType();
       partition_item.second->DbRWUnLock();
@@ -404,7 +404,7 @@ bool PikaServer::IsTablePartitionExist(const std::string& table_name, uint32_t p
   if (!table_ptr) {
     return false;
   } else {
-    return static_cast<bool>(table_ptr->GetPartitionById(partition_id));
+    return static_cast<bool>(table_ptr->GetSlotById(partition_id));
   }
 }
 
@@ -472,7 +472,7 @@ void PikaServer::PreparePartitionTrySync() {
   std::shared_lock rwl(tables_rw_);
   ReplState state = force_full_sync_ ? ReplState::kTryDBSync : ReplState::kTryConnect;
   for (const auto& table_item : tables_) {
-    for (const auto& partition_item : table_item.second->partitions_) {
+    for (const auto& partition_item : table_item.second->slots_) {
       Status s = g_pika_rm->ActivateSyncSlavePartition(
           RmNode(g_pika_server->master_ip(), g_pika_server->master_port(), table_item.second->GetTableName(),
                  partition_item.second->GetPartitionId()),
@@ -490,7 +490,7 @@ void PikaServer::PreparePartitionTrySync() {
 void PikaServer::PartitionSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_keys) {
   std::shared_lock rwl(tables_rw_);
   for (const auto& table_item : tables_) {
-    for (const auto& partition_item : table_item.second->partitions_) {
+    for (const auto& partition_item : table_item.second->slots_) {
       partition_item.second->DbRWLockReader();
       partition_item.second->db()->SetMaxCacheStatisticKeys(max_cache_statistic_keys);
       partition_item.second->DbRWUnLock();
@@ -501,7 +501,7 @@ void PikaServer::PartitionSetMaxCacheStatisticKeys(uint32_t max_cache_statistic_
 void PikaServer::PartitionSetSmallCompactionThreshold(uint32_t small_compaction_threshold) {
   std::shared_lock rwl(tables_rw_);
   for (const auto& table_item : tables_) {
-    for (const auto& partition_item : table_item.second->partitions_) {
+    for (const auto& partition_item : table_item.second->slots_) {
       partition_item.second->DbRWLockReader();
       partition_item.second->db()->SetSmallCompactionThreshold(small_compaction_threshold);
       partition_item.second->DbRWUnLock();
@@ -521,26 +521,26 @@ bool PikaServer::GetTablePartitionBinlogOffset(const std::string& table_name, ui
 }
 
 // Only use in classic mode
-std::shared_ptr<Partition> PikaServer::GetPartitionByDbName(const std::string& db_name) {
+std::shared_ptr<Slot> PikaServer::GetPartitionByDbName(const std::string& db_name) {
   std::shared_ptr<Table> table = GetTable(db_name);
-  return table ? table->GetPartitionById(0) : nullptr;
+  return table ? table->GetSlotById(0) : nullptr;
 }
 
-std::shared_ptr<Partition> PikaServer::GetTablePartitionById(const std::string& table_name, uint32_t partition_id) {
+std::shared_ptr<Slot> PikaServer::GetTablePartitionById(const std::string& table_name, uint32_t partition_id) {
   std::shared_ptr<Table> table = GetTable(table_name);
-  return table ? table->GetPartitionById(partition_id) : nullptr;
+  return table ? table->GetSlotById(partition_id) : nullptr;
 }
 
-std::shared_ptr<Partition> PikaServer::GetTablePartitionByKey(const std::string& table_name, const std::string& key) {
+std::shared_ptr<Slot> PikaServer::GetTablePartitionByKey(const std::string& table_name, const std::string& key) {
   std::shared_ptr<Table> table = GetTable(table_name);
-  return table ? table->GetPartitionByKey(key) : nullptr;
+  return table ? table->GetSlotByKey(key) : nullptr;
 }
 
 Status PikaServer::DoSameThingEveryPartition(const TaskType& type) {
   std::shared_lock rwl(tables_rw_);
   std::shared_ptr<SyncSlavePartition> slave_partition = nullptr;
   for (const auto& table_item : tables_) {
-    for (const auto& partition_item : table_item.second->partitions_) {
+    for (const auto& partition_item : table_item.second->slots_) {
       switch (type) {
         case TaskType::kResetReplState: {
           slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
@@ -785,7 +785,7 @@ bool PikaServer::AllPartitionConnectSuccess() {
   std::shared_lock rwl(tables_rw_);
   std::shared_ptr<SyncSlavePartition> slave_partition = nullptr;
   for (const auto& table_item : tables_) {
-    for (const auto& partition_item : table_item.second->partitions_) {
+    for (const auto& partition_item : table_item.second->slots_) {
       slave_partition = g_pika_rm->GetSyncSlavePartitionByName(
           PartitionInfo(table_item.second->GetTableName(), partition_item.second->GetPartitionId()));
       if (!slave_partition) {
@@ -886,8 +886,8 @@ void PikaServer::DBSync(const std::string& ip, int port, const std::string& tabl
 
 void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id,
                            int32_t top) {
-  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
-  if (!partition) {
+  std::shared_ptr<Slot> slot = GetTablePartitionById(table_name, partition_id);
+  if (!slot) {
     LOG(WARNING) << "can not find Partition whose id is " << partition_id << " in table " << table_name
                  << ", TryDBSync Failed";
     return;
@@ -899,26 +899,26 @@ void PikaServer::TryDBSync(const std::string& ip, int port, const std::string& t
                  << ", TryDBSync Failed";
     return;
   }
-  BgSaveInfo bgsave_info = partition->bgsave_info();
+  BgSaveInfo bgsave_info = slot->bgsave_info();
   std::string logger_filename = sync_partition->Logger()->filename();
   if (pstd::IsDir(bgsave_info.path) != 0 ||
       !pstd::FileExists(NewFileName(logger_filename, bgsave_info.offset.b_offset.filenum)) ||
       top - bgsave_info.offset.b_offset.filenum > kDBSyncMaxGap) {
     // Need Bgsave first
-    partition->BgSavePartition();
+    slot->BgSavePartition();
   }
   DBSync(ip, port, table_name, partition_id);
 }
 
 void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id) {
-  std::shared_ptr<Partition> partition = GetTablePartitionById(table_name, partition_id);
-  if (!partition) {
+  std::shared_ptr<Slot> slot = GetTablePartitionById(table_name, partition_id);
+  if (!slot) {
     LOG(WARNING) << "can not find Partition whose id is " << partition_id << " in table " << table_name
                  << ", DbSync send file Failed";
     return;
   }
 
-  BgSaveInfo bgsave_info = partition->bgsave_info();
+  BgSaveInfo bgsave_info = slot->bgsave_info();
   std::string bg_path = bgsave_info.path;
   uint32_t binlog_filenum = bgsave_info.offset.b_offset.filenum;
   uint64_t binlog_offset = bgsave_info.offset.b_offset.offset;
@@ -928,13 +928,13 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
   // Get all files need to send
   std::vector<std::string> descendant;
   int ret = 0;
-  LOG(INFO) << "Partition: " << partition->GetPartitionName() << " Start Send files in " << bg_path << " to " << ip;
+  LOG(INFO) << "Slot: " << slot->GetPartitionName() << " Start Send files in " << bg_path << " to " << ip;
   ret = pstd::GetChildren(bg_path, descendant);
   if (ret) {
     std::string ip_port = pstd::IpPortString(ip, port);
     std::lock_guard ldb(db_sync_protector_);
     db_sync_slaves_.erase(ip_port);
-    LOG(WARNING) << "Partition: " << partition->GetPartitionName()
+    LOG(WARNING) << "Slot: " << slot->GetPartitionName()
                  << " Get child directory when try to do sync failed, error: " << strerror(ret);
     return;
   }
@@ -966,7 +966,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
     // We need specify the speed limit for every single file
     ret = pstd::RsyncSendFile(local_path, target_path, secret_file_path, remote);
     if (0 != ret) {
-      LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " RSync send file failed! From: " << *iter
+      LOG(WARNING) << "Partition: " << slot->GetPartitionName() << " RSync send file failed! From: " << *iter
                    << ", To: " << target_path << ", At: " << ip << ":" << port << ", Error: " << ret;
       break;
     }
@@ -1008,11 +1008,11 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
       ret = pstd::RsyncSendFile(fn, remote_path + "/" + kBgsaveInfoFile, secret_file_path, remote);
       pstd::DeleteFile(fn);
       if (ret) {
-        LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Modified Info File Failed";
+        LOG(WARNING) << "Slot: " << slot->GetPartitionName() << " Send Modified Info File Failed";
       }
     } else if (0 != (ret = pstd::RsyncSendFile(bg_path + "/" + kBgsaveInfoFile, remote_path + "/" + kBgsaveInfoFile,
                                                secret_file_path, remote))) {
-      LOG(WARNING) << "Partition: " << partition->GetPartitionName() << " Send Info File Failed";
+      LOG(WARNING) << "Slot: " << slot->GetPartitionName() << " Send Info File Failed";
     }
   }
   // remove slave
@@ -1023,7 +1023,7 @@ void PikaServer::DbSyncSendFile(const std::string& ip, int port, const std::stri
   }
 
   if (0 == ret) {
-    LOG(INFO) << "Partition: " << partition->GetPartitionName() << " RSync Send Files Success";
+    LOG(INFO) << "Partition: " << slot->GetPartitionName() << " RSync Send Files Success";
   }
 }
 
@@ -1506,7 +1506,7 @@ storage::Status PikaServer::RewriteStorageOptions(const storage::OptionType& opt
   storage::Status s;
   for (const auto& table_item : tables_) {
     std::lock_guard partition_rwl(table_item.second->partitions_rw_);
-    for (const auto& partition_item : table_item.second->partitions_) {
+    for (const auto& partition_item : table_item.second->slots_) {
       partition_item.second->DbRWLockWriter();
       s = partition_item.second->db()->SetOptions(option_type, storage::ALL_DB, options_map);
       partition_item.second->DbRWUnLock();

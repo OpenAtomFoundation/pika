@@ -70,7 +70,7 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::TrySync try_sync_request = req->try_sync();
-  const InnerMessage::Partition& partition_request = try_sync_request.partition();
+  const InnerMessage::Slot& partition_request = try_sync_request.slot();
   const InnerMessage::BinlogOffset& slave_boffset = try_sync_request.binlog_offset();
   const InnerMessage::Node& node = try_sync_request.node();
   std::string table_name = partition_request.table_name();
@@ -80,9 +80,9 @@ void PikaReplServerConn::HandleTrySyncRequest(void* arg) {
   InnerMessage::InnerResponse response;
   InnerMessage::InnerResponse::TrySync* try_sync_response = response.mutable_try_sync();
   try_sync_response->set_reply_code(InnerMessage::InnerResponse::TrySync::kError);
-  InnerMessage::Partition* partition_response = try_sync_response->mutable_partition();
-  partition_response->set_table_name(table_name);
-  partition_response->set_partition_id(partition_id);
+  InnerMessage::Slot* slot_response = try_sync_response->mutable_slot();
+  slot_response->set_table_name(table_name);
+  slot_response->set_partition_id(partition_id);
 
   bool pre_success = true;
   response.set_type(InnerMessage::Type::kTrySync);
@@ -279,7 +279,7 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   std::shared_ptr<net::PbConn> conn = task_arg->conn;
 
   InnerMessage::InnerRequest::DBSync db_sync_request = req->db_sync();
-  const InnerMessage::Partition& partition_request = db_sync_request.partition();
+  const InnerMessage::Slot& partition_request = db_sync_request.slot();
   const InnerMessage::Node& node = db_sync_request.node();
   const InnerMessage::BinlogOffset& slave_boffset = db_sync_request.binlog_offset();
   std::string table_name = partition_request.table_name();
@@ -290,9 +290,9 @@ void PikaReplServerConn::HandleDBSyncRequest(void* arg) {
   response.set_code(InnerMessage::kOk);
   response.set_type(InnerMessage::Type::kDBSync);
   InnerMessage::InnerResponse::DBSync* db_sync_response = response.mutable_db_sync();
-  InnerMessage::Partition* partition_response = db_sync_response->mutable_partition();
-  partition_response->set_table_name(table_name);
-  partition_response->set_partition_id(partition_id);
+  InnerMessage::Slot* slot_response = db_sync_response->mutable_slot();
+  slot_response->set_table_name(table_name);
+  slot_response->set_partition_id(partition_id);
 
   LOG(INFO) << "Handle partition DBSync Request";
   bool prior_success = true;
@@ -456,10 +456,10 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   }
   const InnerMessage::InnerRequest::RemoveSlaveNode& remove_slave_node_req = req->remove_slave_node(0);
   const InnerMessage::Node& node = remove_slave_node_req.node();
-  const InnerMessage::Partition& partition = remove_slave_node_req.partition();
+  const InnerMessage::Slot& slot = remove_slave_node_req.slot();
 
-  std::string table_name = partition.table_name();
-  uint32_t partition_id = partition.partition_id();
+  std::string table_name = slot.table_name();
+  uint32_t partition_id = slot.partition_id();
   std::shared_ptr<SyncMasterPartition> master_partition =
       g_pika_rm->GetSyncMasterPartitionByName(PartitionInfo(table_name, partition_id));
   if (!master_partition) {
@@ -471,9 +471,9 @@ void PikaReplServerConn::HandleRemoveSlaveNodeRequest(void* arg) {
   response.set_code(InnerMessage::kOk);
   response.set_type(InnerMessage::Type::kRemoveSlaveNode);
   InnerMessage::InnerResponse::RemoveSlaveNode* remove_slave_node_response = response.add_remove_slave_node();
-  InnerMessage::Partition* partition_response = remove_slave_node_response->mutable_partition();
-  partition_response->set_table_name(table_name);
-  partition_response->set_partition_id(partition_id);
+  InnerMessage::Slot* slot_response = remove_slave_node_response->mutable_slot();
+  slot_response->set_table_name(table_name);
+  slot_response->set_partition_id(partition_id);
   InnerMessage::Node* node_response = remove_slave_node_response->mutable_node();
   node_response->set_ip(g_pika_server->host());
   node_response->set_port(g_pika_server->port());

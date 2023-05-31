@@ -51,8 +51,8 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
 
   void LeaveAllPartition();
   std::set<uint32_t> GetPartitionIds();
-  std::shared_ptr<Partition> GetPartitionById(uint32_t partition_id);
-  std::shared_ptr<Partition> GetPartitionByKey(const std::string& key);
+  std::shared_ptr<Slot> GetSlotById(uint32_t partition_id);
+  std::shared_ptr<Slot> GetSlotByKey(const std::string& key);
   bool TableIsEmpty();
   pstd::Status MovetoToTrash(const std::string& path);
   pstd::Status Leave();
@@ -68,7 +68,7 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
   // partitions_rw_ > key_scan_protector_
 
   std::shared_mutex partitions_rw_;
-  std::map<uint32_t, std::shared_ptr<Partition>> partitions_;
+  std::map<uint32_t, std::shared_ptr<Slot>> slots_;
 
   /*
    * KeyScan use
@@ -81,7 +81,7 @@ class Table : public std::enable_shared_from_this<Table>, public pstd::noncopyab
 
 struct BgTaskArg {
   std::shared_ptr<Table> table;
-  std::shared_ptr<Partition> partition;
+  std::shared_ptr<Slot> slot;
 };
 
 #endif

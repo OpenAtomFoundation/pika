@@ -29,7 +29,7 @@ message Node {
   required int32  port = 2;
 }
 
-message Partition {
+message Slot {
   required string table_name   = 1;
   required uint32 partition_id = 2;
 }
@@ -65,14 +65,14 @@ message InnerRequest {
   // slave to master
   message TrySync {
     required Node         node           = 1;
-    required Partition    partition      = 2;
+    required Slot            slot      = 2;
     required BinlogOffset binlog_offset  = 3;
   }
 
   // slave to master
   message DBSync {
     required Node         node           = 1;
-    required Partition    partition      = 2;
+    required Slot         slot           = 2;
     required BinlogOffset binlog_offset  = 3;
   }
 
@@ -88,7 +88,7 @@ message InnerRequest {
 
   message RemoveSlaveNode {
     required Node         node            = 1;
-    required Partition    partition       = 2;
+    required Slot         slot            = 2;
   }
 
   required Type            type              = 1;
@@ -127,27 +127,27 @@ message InnerResponse {
       kError             = 4;
     }
     required ReplyCode    reply_code      = 1;
-    required Partition    partition       = 2;
+    required Slot         slot            = 2;
     optional BinlogOffset binlog_offset   = 3;
     optional int32        session_id      = 4;
   }
 
   message DBSync {
-    required Partition    partition       = 1;
+    required Slot         slot            = 1;
     required int32        session_id      = 2;
   }
 
   // master to slave
   message BinlogSync {
-    required Partition      partition     = 1;
+    required Slot           slot          = 1;
     required BinlogOffset   binlog_offset = 2;
     required bytes          binlog        = 3;
     required int32          session_id    = 4;
   }
 
   message RemoveSlaveNode {
-    required Node         node            = 1;
-    required Partition    partition       = 2;
+    required Node            node            = 1;
+    required Slot            slot       = 2;
   }
 
   required Type            type              = 1;
