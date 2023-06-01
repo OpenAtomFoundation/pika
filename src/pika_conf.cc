@@ -10,9 +10,9 @@
 #include <strings.h>
 #include <algorithm>
 
-#include "pstd/include/env.h"
-
 #include "include/pika_define.h"
+#include "pstd/include/env.h"
+#include "pstd/include/pstd_string.h"
 
 using pstd::Status;
 
@@ -148,6 +148,16 @@ int PikaConf::Load() {
     server_id_ = "1";
   } else if (PIKA_SERVER_ID_MAX < std::stoull(server_id_)) {
     server_id_ = "PIKA_SERVER_ID_MAX";
+  }
+  GetConfStr("run-id", &run_id_);
+  if (run_id_.empty()) {
+    char run_id[configRunIdSize + 1];
+    pstd::getRandomHexChars(run_id, configRunIdSize);
+    run_id_= std::string(run_id);
+  } else {
+    if (run_id_.length() != configRunIdSize) {
+      LOG(FATAL) << "run-id " << run_id_ << "is invalid, length should be " << configRunIdSize;
+    }
   }
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);

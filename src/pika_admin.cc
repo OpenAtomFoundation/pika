@@ -805,6 +805,7 @@ void InfoCmd::InfoServer(std::string& info) {
              << "\r\n";
   tmp_stream << "config_file:" << g_pika_conf->conf_path() << "\r\n";
   tmp_stream << "server_id:" << g_pika_conf->server_id() << "\r\n";
+  tmp_stream << "run_id:" << g_pika_conf->run_id() << "\r\n";
 
   info.append(tmp_stream.str());
 }
@@ -854,13 +855,17 @@ void InfoCmd::InfoCPU(std::string& info) {
   std::stringstream tmp_stream;
   tmp_stream << "# CPU\r\n";
   tmp_stream << "used_cpu_sys:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
-             << static_cast<float>(self_ru.ru_stime.tv_sec) + static_cast<float>(self_ru.ru_stime.tv_usec) / 1000000 << "\r\n";
+             << static_cast<float>(self_ru.ru_stime.tv_sec) + static_cast<float>(self_ru.ru_stime.tv_usec) / 1000000
+             << "\r\n";
   tmp_stream << "used_cpu_user:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
-             << static_cast<float>(self_ru.ru_utime.tv_sec) + static_cast<float>(self_ru.ru_utime.tv_usec) / 1000000 << "\r\n";
+             << static_cast<float>(self_ru.ru_utime.tv_sec) + static_cast<float>(self_ru.ru_utime.tv_usec) / 1000000
+             << "\r\n";
   tmp_stream << "used_cpu_sys_children:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
-             << static_cast<float>(c_ru.ru_stime.tv_sec) + static_cast<float>(c_ru.ru_stime.tv_usec) / 1000000 << "\r\n";
+             << static_cast<float>(c_ru.ru_stime.tv_sec) + static_cast<float>(c_ru.ru_stime.tv_usec) / 1000000
+             << "\r\n";
   tmp_stream << "used_cpu_user_children:" << std::setiosflags(std::ios::fixed) << std::setprecision(2)
-             << static_cast<float>(c_ru.ru_utime.tv_sec) + static_cast<float>(c_ru.ru_utime.tv_usec) / 1000000 << "\r\n";
+             << static_cast<float>(c_ru.ru_utime.tv_sec) + static_cast<float>(c_ru.ru_utime.tv_usec) / 1000000
+             << "\r\n";
   info.append(tmp_stream.str());
 }
 
@@ -2060,9 +2065,8 @@ void DelbackupCmd::Do(std::shared_ptr<Partition> partition) {
   }
 
   int len = dump_dir.size();
-  for (auto & i : dump_dir) {
-    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix ||
-        i.size() != (db_sync_prefix.size() + 8)) {
+  for (auto& i : dump_dir) {
+    if (i.substr(0, db_sync_prefix.size()) != db_sync_prefix || i.size() != (db_sync_prefix.size() + 8)) {
       continue;
     }
 
@@ -2093,9 +2097,7 @@ void EchoCmd::DoInitial() {
   body_ = argv_[1];
 }
 
-void EchoCmd::Do(std::shared_ptr<Partition> partition) {
-  res_.AppendString(body_);
-}
+void EchoCmd::Do(std::shared_ptr<Partition> partition) { res_.AppendString(body_); }
 
 void ScandbCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -2119,7 +2121,7 @@ void ScandbCmd::DoInitial() {
       res_.SetRes(CmdRes::kInvalidDbType);
     }
   }
-  }
+}
 
 void ScandbCmd::Do(std::shared_ptr<Partition> partition) {
   std::shared_ptr<Table> table = g_pika_server->GetTable(table_name_);
@@ -2129,7 +2131,7 @@ void ScandbCmd::Do(std::shared_ptr<Partition> partition) {
     table->ScanDatabase(type_);
     res_.SetRes(CmdRes::kOk);
   }
-  }
+}
 
 void SlowlogCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {
@@ -2190,7 +2192,6 @@ std::string PaddingCmd::ToBinlog(uint32_t exec_time, uint32_t term_id, uint64_t 
       BinlogType::TypeFirst,
       argv_[1].size() + BINLOG_ITEM_HEADER_SIZE + PADDING_BINLOG_PROTOCOL_SIZE + SPACE_STROE_PARAMETER_LENGTH);
 }
-
 
 void PKPatternMatchDelCmd::DoInitial() {
   if (!CheckArg(argv_.size())) {

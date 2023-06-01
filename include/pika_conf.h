@@ -21,6 +21,7 @@
 
 #define kBinlogReadWinDefaultSize 9000
 #define kBinlogReadWinMaxSize 90000
+#define configRunIdSize 40
 
 // global class, class members well initialized
 class PikaConf : public pstd::BaseConf {
@@ -108,6 +109,10 @@ class PikaConf : public pstd::BaseConf {
   std::string server_id() {
     std::shared_lock l(rwlock_);
     return server_id_;
+  }
+  std::string run_id() {
+    std::shared_lock l(rwlock_);
+    return run_id_;
   }
   std::string requirepass() {
     std::shared_lock l(rwlock_);
@@ -468,7 +473,7 @@ class PikaConf : public pstd::BaseConf {
   }
 
   pstd::Status TablePartitionsSanityCheck(const std::string& table_name, const std::set<uint32_t>& partition_ids,
-                                    bool is_add);
+                                          bool is_add);
   pstd::Status AddTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
   pstd::Status RemoveTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
   pstd::Status AddTable(const std::string& table_name, uint32_t slot_num);
@@ -503,6 +508,7 @@ class PikaConf : public pstd::BaseConf {
   bool daemonize_ = false;
   int timeout_ = 0;
   std::string server_id_;
+  std::string run_id_;
   std::string requirepass_;
   std::string masterauth_;
   std::string userpass_;
