@@ -27,7 +27,7 @@ Status RedisStrings::Open(const StorageOptions& storage_options, const std::stri
   ops.compaction_filter_factory = std::make_shared<StringsFilterFactory>();
 
   // use the bloom filter policy to reduce disk reads
-  rocksdb::BlockBasedTableOptions table_ops(storage_options.db_options);
+  rocksdb::BlockBasedTableOptions table_ops(storage_options.table_options);
   if (!storage_options.share_block_cache && storage_options.block_cache_size > 0) {
     table_ops.block_cache = rocksdb::NewLRUCache(storage_options.block_cache_size);
   }

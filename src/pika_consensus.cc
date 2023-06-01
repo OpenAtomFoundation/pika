@@ -270,8 +270,8 @@ int MemLog::InternalFindLogByBinlogOffset(const LogOffset& offset) {
 
 ConsensusCoordinator::ConsensusCoordinator(const std::string& db_name, uint32_t slot_id)
     : db_name_(db_name), slot_id_(slot_id) {
-  std::string table_log_path = g_pika_conf->log_path() + "log_" + db_name + "/";
-  std::string log_path = table_log_path;
+  std::string db_log_path = g_pika_conf->log_path() + "log_" + db_name + "/";
+  std::string log_path = db_log_path;
   context_ = std::make_shared<Context>(log_path + kContext);
   stable_logger_ = std::make_shared<StableLog>(db_name, slot_id, log_path);
   mem_logger_ = std::make_shared<MemLog>();

@@ -1455,18 +1455,18 @@ void PikaServer::InitStorageOptions() {
   }
 
   // For rocksdb::BlockBasedDBOptions
-  storage_options_.db_options.block_size = g_pika_conf->block_size();
-  storage_options_.db_options.cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
+  storage_options_.table_options.block_size = g_pika_conf->block_size();
+  storage_options_.table_options.cache_index_and_filter_blocks = g_pika_conf->cache_index_and_filter_blocks();
   storage_options_.block_cache_size = g_pika_conf->block_cache();
   storage_options_.share_block_cache = g_pika_conf->share_block_cache();
 
-  storage_options_.db_options.pin_l0_filter_and_index_blocks_in_cache =
+  storage_options_.table_options.pin_l0_filter_and_index_blocks_in_cache =
       g_pika_conf->pin_l0_filter_and_index_blocks_in_cache();
 
   if (storage_options_.block_cache_size == 0) {
-    storage_options_.db_options.no_block_cache = true;
+    storage_options_.table_options.no_block_cache = true;
   } else if (storage_options_.share_block_cache) {
-    storage_options_.db_options.block_cache =
+    storage_options_.table_options.block_cache =
         rocksdb::NewLRUCache(storage_options_.block_cache_size, static_cast<int>(g_pika_conf->num_shard_bits()));
   }
 

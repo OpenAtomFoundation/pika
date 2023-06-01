@@ -236,19 +236,19 @@ class RmNode : public Node {
   RmNode(const std::string& ip, int port, SlotInfo  partition_info)
       : Node(ip, port), slot_info_(std::move(partition_info)) {}
 
-  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id)
+  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id)
       : Node(ip, port),
-        slot_info_(table_name, slot_id)
+        slot_info_(db_name, slot_id)
         {}
 
-  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t slot_id, int32_t session_id)
+  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t session_id)
       : Node(ip, port),
-        slot_info_(table_name, slot_id),
+        slot_info_(db_name, slot_id),
         session_id_(session_id)
         {}
 
-  RmNode(const std::string& table_name, uint32_t slot_id)
-      :  slot_info_(table_name, slot_id) {}
+  RmNode(const std::string& db_name, uint32_t slot_id)
+      :  slot_info_(db_name, slot_id) {}
   RmNode() = default;
 
   ~RmNode() override = default;

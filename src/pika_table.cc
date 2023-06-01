@@ -16,17 +16,17 @@ extern PikaServer* g_pika_server;
 extern std::unique_ptr<PikaReplicaManager> g_pika_rm;
 extern std::unique_ptr<PikaCmdTableManager> g_pika_cmd_table_manager;
 
-std::string TablePath(const std::string& path, const std::string& table_name) {
+std::string DBPath(const std::string& path, const std::string& db_name) {
   char buf[100];
-  snprintf(buf, sizeof(buf), "%s/", table_name.data());
+  snprintf(buf, sizeof(buf), "%s/", db_name.data());
   return path + buf;
 }
 
 DB::DB(std::string  db_name, uint32_t slot_num, const std::string& db_path,
              const std::string& log_path)
     : db_name_(std::move(db_name)), slot_num_(slot_num) {
-  db_path_ = TablePath(db_path, db_name_);
-  log_path_ = TablePath(log_path, "log_" + db_name_);
+  db_path_ = DBPath(db_path, db_name_);
+  log_path_ = DBPath(log_path, "log_" + db_name_);
 
   pstd::CreatePath(db_path_);
   pstd::CreatePath(log_path_);
@@ -263,7 +263,7 @@ bool DB::DBIsEmpty() {
 
 Status DB::Leave() {
   if (!DBIsEmpty()) {
-    return Status::Corruption("Table have slots!");
+    return Status::Corruption("DB have slots!");
   }
   return MovetoToTrash(db_path_);
 }

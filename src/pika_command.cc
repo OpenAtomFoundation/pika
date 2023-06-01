@@ -686,7 +686,7 @@ void Cmd::ProcessMultiSlotCmd() {
   // split cur_key into slots
   std::shared_ptr<DB> db = g_pika_server->GetDB(db_name_);
   if (!db) {
-    res_.SetRes(CmdRes::kErrOther, "Table not found");
+    res_.SetRes(CmdRes::kErrOther, "DB not found");
     return;
   }
 

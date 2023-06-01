@@ -85,8 +85,8 @@ class BgsaveCmd : public Cmd {
 
  private:
   void DoInitial() override;
-  void Clear() override { bgsave_tables_.clear(); }
-  std::set<std::string> bgsave_tables_;
+  void Clear() override { bgsave_dbs_.clear(); }
+  std::set<std::string> bgsave_dbs_;
 };
 
 class CompactCmd : public Cmd {
@@ -101,10 +101,10 @@ class CompactCmd : public Cmd {
   void DoInitial() override;
   void Clear() override {
     struct_type_.clear();
-    compact_tables_.clear();
+    compact_dbs_.clear();
   }
   std::string struct_type_;
-  std::set<std::string> compact_tables_;
+  std::set<std::string> compact_dbs_;
 };
 
 class PurgelogstoCmd : public Cmd {
@@ -117,7 +117,7 @@ class PurgelogstoCmd : public Cmd {
 
  private:
   uint32_t num_ = 0;
-  std::string table_;
+  std::string db_;
   void DoInitial() override;
 };
 
@@ -143,8 +143,8 @@ class SelectCmd : public Cmd {
 
  private:
   void DoInitial() override;
-  void Clear() override { table_name_.clear(); }
-  std::string table_name_;
+  void Clear() override { db_name_.clear(); }
+  std::string db_name_;
 };
 
 class FlushallCmd : public Cmd {
@@ -218,7 +218,7 @@ class InfoCmd : public Cmd {
   InfoSection info_section_;
   bool rescan_ = false;  // whether to rescan the keyspace
   bool off_ = false;
-  std::set<std::string> keyspace_scan_tables_;
+  std::set<std::string> keyspace_scan_dbs_;
 
   const static std::string kInfoSection;
   const static std::string kAllSection;
@@ -236,7 +236,7 @@ class InfoCmd : public Cmd {
   void Clear() override {
     rescan_ = false;
     off_ = false;
-    keyspace_scan_tables_.clear();
+    keyspace_scan_dbs_.clear();
   }
 
   void InfoServer(std::string& info);
