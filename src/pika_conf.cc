@@ -156,7 +156,7 @@ int PikaConf::Load() {
     pstd::getRandomHexChars(run_id, configRunIdSize);
     run_id_ = std::string(run_id);
   } else if (run_id_.length() != configRunIdSize) {
-    LOG(FATAL) << "run-id " << run_id_ << "is invalid, length should be " << configRunIdSize;
+    LOG(FATAL) << "run-id " << run_id_ << " is invalid, length should be " << configRunIdSize;
   }
   GetConfStr("requirepass", &requirepass_);
   GetConfStr("masterauth", &masterauth_);
