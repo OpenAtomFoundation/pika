@@ -90,8 +90,7 @@ Status Redis::SetOptions(const OptionType& option_type, const std::unordered_map
 
 void Redis::GetRocksDBInfo(std::string &info, const char *prefix) {
     std::ostringstream string_stream;
-    string_stream << "#" << prefix << " RocksDB"
-                  << "\r\n";
+    string_stream << "#" << prefix << " RocksDB" << "\r\n";
 
     auto write_stream_key_value=[&](const Slice& property, const char *metric) {
         uint64_t value;
