@@ -21,8 +21,8 @@
 class SlaveofCmd : public Cmd {
  public:
   SlaveofCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlaveofCmd(*this); }
 
@@ -41,8 +41,8 @@ class SlaveofCmd : public Cmd {
 class DbSlaveofCmd : public Cmd {
  public:
   DbSlaveofCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DbSlaveofCmd(*this); }
 
@@ -65,8 +65,8 @@ class DbSlaveofCmd : public Cmd {
 class AuthCmd : public Cmd {
  public:
   AuthCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new AuthCmd(*this); }
 
@@ -78,22 +78,22 @@ class AuthCmd : public Cmd {
 class BgsaveCmd : public Cmd {
  public:
   BgsaveCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new BgsaveCmd(*this); }
 
  private:
   void DoInitial() override;
-  void Clear() override { bgsave_tables_.clear(); }
-  std::set<std::string> bgsave_tables_;
+  void Clear() override { bgsave_dbs_.clear(); }
+  std::set<std::string> bgsave_dbs_;
 };
 
 class CompactCmd : public Cmd {
  public:
   CompactCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new CompactCmd(*this); }
 
@@ -101,31 +101,31 @@ class CompactCmd : public Cmd {
   void DoInitial() override;
   void Clear() override {
     struct_type_.clear();
-    compact_tables_.clear();
+    compact_dbs_.clear();
   }
   std::string struct_type_;
-  std::set<std::string> compact_tables_;
+  std::set<std::string> compact_dbs_;
 };
 
 class PurgelogstoCmd : public Cmd {
  public:
   PurgelogstoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PurgelogstoCmd(*this); }
 
  private:
   uint32_t num_ = 0;
-  std::string table_;
+  std::string db_;
   void DoInitial() override;
 };
 
 class PingCmd : public Cmd {
  public:
   PingCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PingCmd(*this); }
 
@@ -136,22 +136,22 @@ class PingCmd : public Cmd {
 class SelectCmd : public Cmd {
  public:
   SelectCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SelectCmd(*this); }
 
  private:
   void DoInitial() override;
-  void Clear() override { table_name_.clear(); }
-  std::string table_name_;
+  void Clear() override { db_name_.clear(); }
+  std::string db_name_;
 };
 
 class FlushallCmd : public Cmd {
  public:
   FlushallCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new FlushallCmd(*this); }
 
@@ -164,8 +164,8 @@ class FlushallCmd : public Cmd {
 class FlushdbCmd : public Cmd {
  public:
   FlushdbCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new FlushdbCmd(*this); }
 
@@ -178,10 +178,10 @@ class FlushdbCmd : public Cmd {
 class ClientCmd : public Cmd {
  public:
   ClientCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
   const static std::string CLIENT_LIST_S;
   const static std::string CLIENT_KILL_S;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ClientCmd(*this); }
 
@@ -210,8 +210,8 @@ class InfoCmd : public Cmd {
   };
 
   InfoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new InfoCmd(*this); }
 
@@ -219,7 +219,7 @@ class InfoCmd : public Cmd {
   InfoSection info_section_;
   bool rescan_ = false;  // whether to rescan the keyspace
   bool off_ = false;
-  std::set<std::string> keyspace_scan_tables_;
+  std::set<std::string> keyspace_scan_dbs_;
 
   const static std::string kInfoSection;
   const static std::string kAllSection;
@@ -238,7 +238,7 @@ class InfoCmd : public Cmd {
   void Clear() override {
     rescan_ = false;
     off_ = false;
-    keyspace_scan_tables_.clear();
+    keyspace_scan_dbs_.clear();
   }
 
   void InfoServer(std::string& info);
@@ -257,8 +257,8 @@ class InfoCmd : public Cmd {
 class ShutdownCmd : public Cmd {
  public:
   ShutdownCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ShutdownCmd(*this); }
 
@@ -269,8 +269,8 @@ class ShutdownCmd : public Cmd {
 class ConfigCmd : public Cmd {
  public:
   ConfigCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ConfigCmd(*this); }
 
@@ -286,8 +286,8 @@ class ConfigCmd : public Cmd {
 class MonitorCmd : public Cmd {
  public:
   MonitorCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new MonitorCmd(*this); }
 
@@ -298,8 +298,8 @@ class MonitorCmd : public Cmd {
 class DbsizeCmd : public Cmd {
  public:
   DbsizeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DbsizeCmd(*this); }
 
@@ -310,8 +310,8 @@ class DbsizeCmd : public Cmd {
 class TimeCmd : public Cmd {
  public:
   TimeCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new TimeCmd(*this); }
 
@@ -322,8 +322,8 @@ class TimeCmd : public Cmd {
 class DelbackupCmd : public Cmd {
  public:
   DelbackupCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DelbackupCmd(*this); }
 
@@ -334,8 +334,8 @@ class DelbackupCmd : public Cmd {
 class EchoCmd : public Cmd {
  public:
   EchoCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new EchoCmd(*this); }
 
@@ -347,8 +347,8 @@ class EchoCmd : public Cmd {
 class ScandbCmd : public Cmd {
  public:
   ScandbCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new ScandbCmd(*this); }
 
@@ -362,8 +362,8 @@ class SlowlogCmd : public Cmd {
  public:
   enum SlowlogCondition { kGET, kLEN, kRESET };
   SlowlogCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SlowlogCmd(*this); }
 
@@ -380,8 +380,8 @@ class SlowlogCmd : public Cmd {
 class PaddingCmd : public Cmd {
  public:
   PaddingCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PaddingCmd(*this); }
 
@@ -394,8 +394,8 @@ class PaddingCmd : public Cmd {
 class PKPatternMatchDelCmd : public Cmd {
  public:
   PKPatternMatchDelCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new PKPatternMatchDelCmd(*this); }
 
@@ -409,8 +409,8 @@ class DummyCmd : public Cmd {
  public:
   DummyCmd() : Cmd("", 0, 0) {}
   DummyCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new DummyCmd(*this); }
 
@@ -421,8 +421,8 @@ class DummyCmd : public Cmd {
 class QuitCmd : public Cmd {
  public:
   QuitCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new QuitCmd(*this); }
 
@@ -433,8 +433,8 @@ class QuitCmd : public Cmd {
 class HelloCmd : public Cmd {
  public:
   HelloCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new HelloCmd(*this); }
 

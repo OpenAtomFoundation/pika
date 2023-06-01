@@ -23,9 +23,9 @@ void HDelCmd::DoInitial() {
   fields_.assign(iter, argv_.end());
 }
 
-void HDelCmd::Do(std::shared_ptr<Partition> partition) {
+void HDelCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t num = 0;
-  rocksdb::Status s = partition->db()->HDel(key_, fields_, &num);
+  rocksdb::Status s = slot->db()->HDel(key_, fields_, &num);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(num);
   } else {
@@ -43,9 +43,9 @@ void HSetCmd::DoInitial() {
   value_ = argv_[3];
 }
 
-void HSetCmd::Do(std::shared_ptr<Partition> partition) {
+void HSetCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t ret = 0;
-  rocksdb::Status s = partition->db()->HSet(key_, field_, value_, &ret);
+  rocksdb::Status s = slot->db()->HSet(key_, field_, value_, &ret);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
   } else {
@@ -62,9 +62,9 @@ void HGetCmd::DoInitial() {
   field_ = argv_[2];
 }
 
-void HGetCmd::Do(std::shared_ptr<Partition> partition) {
+void HGetCmd::Do(std::shared_ptr<Slot> slot) {
   std::string value;
-  rocksdb::Status s = partition->db()->HGet(key_, field_, &value);
+  rocksdb::Status s = slot->db()->HGet(key_, field_, &value);
   if (s.ok()) {
     res_.AppendStringLen(value.size());
     res_.AppendContent(value);
@@ -83,7 +83,7 @@ void HGetallCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
+void HGetallCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t total_fv = 0;
   int64_t cursor = 0;
   int64_t next_cursor = 0;
@@ -94,7 +94,7 @@ void HGetallCmd::Do(std::shared_ptr<Partition> partition) {
 
   do {
     fvs.clear();
-    s = partition->db()->HScan(key_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &fvs, &next_cursor);
+    s = slot->db()->HScan(key_, cursor, "*", PIKA_SCAN_STEP_LENGTH, &fvs, &next_cursor);
     if (!s.ok()) {
       raw.clear();
       total_fv = 0;
@@ -132,8 +132,8 @@ void HExistsCmd::DoInitial() {
   field_ = argv_[2];
 }
 
-void HExistsCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = partition->db()->HExists(key_, field_);
+void HExistsCmd::Do(std::shared_ptr<Slot> slot) {
+  rocksdb::Status s = slot->db()->HExists(key_, field_);
   if (s.ok()) {
     res_.AppendContent(":1");
   } else if (s.IsNotFound()) {
@@ -156,9 +156,9 @@ void HIncrbyCmd::DoInitial() {
   }
 }
 
-void HIncrbyCmd::Do(std::shared_ptr<Partition> partition) {
+void HIncrbyCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t new_value;
-  rocksdb::Status s = partition->db()->HIncrby(key_, field_, by_, &new_value);
+  rocksdb::Status s = slot->db()->HIncrby(key_, field_, by_, &new_value);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent(":" + std::to_string(new_value));
   } else if (s.IsCorruption() && s.ToString() == "Corruption: hash value is not an integer") {
@@ -180,9 +180,9 @@ void HIncrbyfloatCmd::DoInitial() {
   by_ = argv_[3];
 }
 
-void HIncrbyfloatCmd::Do(std::shared_ptr<Partition> partition) {
+void HIncrbyfloatCmd::Do(std::shared_ptr<Slot> slot) {
   std::string new_value;
-  rocksdb::Status s = partition->db()->HIncrbyfloat(key_, field_, by_, &new_value);
+  rocksdb::Status s = slot->db()->HIncrbyfloat(key_, field_, by_, &new_value);
   if (s.ok()) {
     res_.AppendStringLen(new_value.size());
     res_.AppendContent(new_value);
@@ -203,9 +203,9 @@ void HKeysCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void HKeysCmd::Do(std::shared_ptr<Partition> partition) {
+void HKeysCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> fields;
-  rocksdb::Status s = partition->db()->HKeys(key_, &fields);
+  rocksdb::Status s = slot->db()->HKeys(key_, &fields);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(fields.size());
     for (const auto& field : fields) {
@@ -224,9 +224,9 @@ void HLenCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void HLenCmd::Do(std::shared_ptr<Partition> partition) {
+void HLenCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t len = 0;
-  rocksdb::Status s = partition->db()->HLen(key_, &len);
+  rocksdb::Status s = slot->db()->HLen(key_, &len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
@@ -246,9 +246,9 @@ void HMgetCmd::DoInitial() {
   fields_.assign(iter, argv_.end());
 }
 
-void HMgetCmd::Do(std::shared_ptr<Partition> partition) {
+void HMgetCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<storage::ValueStatus> vss;
-  rocksdb::Status s = partition->db()->HMGet(key_, fields_, &vss);
+  rocksdb::Status s = slot->db()->HMGet(key_, fields_, &vss);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(vss.size());
     for (const auto& vs : vss) {
@@ -282,8 +282,8 @@ void HMsetCmd::DoInitial() {
   }
 }
 
-void HMsetCmd::Do(std::shared_ptr<Partition> partition) {
-  rocksdb::Status s = partition->db()->HMSet(key_, fvs_);
+void HMsetCmd::Do(std::shared_ptr<Slot> slot) {
+  rocksdb::Status s = slot->db()->HMSet(key_, fvs_);
   if (s.ok()) {
     res_.SetRes(CmdRes::kOk);
   } else {
@@ -301,9 +301,9 @@ void HSetnxCmd::DoInitial() {
   value_ = argv_[3];
 }
 
-void HSetnxCmd::Do(std::shared_ptr<Partition> partition) {
+void HSetnxCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t ret = 0;
-  rocksdb::Status s = partition->db()->HSetnx(key_, field_, value_, &ret);
+  rocksdb::Status s = slot->db()->HSetnx(key_, field_, value_, &ret);
   if (s.ok()) {
     res_.AppendContent(":" + std::to_string(ret));
   } else {
@@ -320,9 +320,9 @@ void HStrlenCmd::DoInitial() {
   field_ = argv_[2];
 }
 
-void HStrlenCmd::Do(std::shared_ptr<Partition> partition) {
+void HStrlenCmd::Do(std::shared_ptr<Slot> slot) {
   int32_t len = 0;
-  rocksdb::Status s = partition->db()->HStrlen(key_, field_, &len);
+  rocksdb::Status s = slot->db()->HStrlen(key_, field_, &len);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendInteger(len);
   } else {
@@ -338,9 +338,9 @@ void HValsCmd::DoInitial() {
   key_ = argv_[1];
 }
 
-void HValsCmd::Do(std::shared_ptr<Partition> partition) {
+void HValsCmd::Do(std::shared_ptr<Slot> slot) {
   std::vector<std::string> values;
-  rocksdb::Status s = partition->db()->HVals(key_, &values);
+  rocksdb::Status s = slot->db()->HVals(key_, &values);
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(values.size());
     for (const auto& value : values) {
@@ -391,10 +391,10 @@ void HScanCmd::DoInitial() {
   }
 }
 
-void HScanCmd::Do(std::shared_ptr<Partition> partition) {
+void HScanCmd::Do(std::shared_ptr<Slot> slot) {
   int64_t next_cursor = 0;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s = partition->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
+  rocksdb::Status s = slot->db()->HScan(key_, cursor_, pattern_, count_, &field_values, &next_cursor);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendContent("*2");
@@ -449,10 +449,10 @@ void HScanxCmd::DoInitial() {
   }
 }
 
-void HScanxCmd::Do(std::shared_ptr<Partition> partition) {
+void HScanxCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
-  rocksdb::Status s = partition->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
+  rocksdb::Status s = slot->db()->HScanx(key_, start_field_, pattern_, count_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -502,11 +502,11 @@ void PKHScanRangeCmd::DoInitial() {
   }
 }
 
-void PKHScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
+void PKHScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      partition->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
+      slot->db()->PKHScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);
@@ -555,11 +555,11 @@ void PKHRScanRangeCmd::DoInitial() {
   }
 }
 
-void PKHRScanRangeCmd::Do(std::shared_ptr<Partition> partition) {
+void PKHRScanRangeCmd::Do(std::shared_ptr<Slot> slot) {
   std::string next_field;
   std::vector<storage::FieldValue> field_values;
   rocksdb::Status s =
-      partition->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
+      slot->db()->PKHRScanRange(key_, field_start_, field_end_, pattern_, limit_, &field_values, &next_field);
 
   if (s.ok() || s.IsNotFound()) {
     res_.AppendArrayLen(2);

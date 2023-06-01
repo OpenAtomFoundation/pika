@@ -7,9 +7,9 @@
 #define PIKA_SET_H_
 
 #include "include/pika_command.h"
-#include "include/pika_partition.h"
+#include "include/pika_slot.h"
 
-/*
+ /*
  * set
  */
 class SAddCmd : public Cmd {
@@ -20,8 +20,8 @@ class SAddCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SAddCmd(*this); }
 
@@ -39,8 +39,8 @@ class SPopCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SPopCmd(*this); }
 
@@ -58,8 +58,8 @@ class SCardCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SCardCmd(*this); }
 
@@ -76,8 +76,8 @@ class SMembersCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SMembersCmd(*this); }
 
@@ -94,8 +94,8 @@ class SScanCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SScanCmd(*this); }
 
@@ -118,8 +118,8 @@ class SRemCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SRemCmd(*this); }
 
@@ -132,8 +132,8 @@ class SRemCmd : public Cmd {
 class SUnionCmd : public Cmd {
  public:
   SUnionCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SUnionCmd(*this); }
 
@@ -145,8 +145,8 @@ class SUnionCmd : public Cmd {
 class SUnionstoreCmd : public Cmd {
  public:
   SUnionstoreCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SUnionstoreCmd(*this); }
 
@@ -159,8 +159,8 @@ class SUnionstoreCmd : public Cmd {
 class SInterCmd : public Cmd {
  public:
   SInterCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SInterCmd(*this); }
 
@@ -172,8 +172,8 @@ class SInterCmd : public Cmd {
 class SInterstoreCmd : public Cmd {
  public:
   SInterstoreCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SInterstoreCmd(*this); }
 
@@ -191,8 +191,8 @@ class SIsmemberCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SIsmemberCmd(*this); }
 
@@ -204,8 +204,8 @@ class SIsmemberCmd : public Cmd {
 class SDiffCmd : public Cmd {
  public:
   SDiffCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SDiffCmd(*this); }
 
@@ -217,8 +217,8 @@ class SDiffCmd : public Cmd {
 class SDiffstoreCmd : public Cmd {
  public:
   SDiffstoreCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SDiffstoreCmd(*this); }
 
@@ -231,8 +231,8 @@ class SDiffstoreCmd : public Cmd {
 class SMoveCmd : public Cmd {
  public:
   SMoveCmd(const std::string& name, int arity, uint16_t flag) : Cmd(name, arity, flag) {}
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SMoveCmd(*this); }
 
@@ -249,8 +249,8 @@ class SRandmemberCmd : public Cmd {
     res.push_back(key_);
     return res;
   }
-  void Do(std::shared_ptr<Partition> partition = nullptr) override;
-  void Split(std::shared_ptr<Partition> partition, const HintKeys& hint_keys) override {};
+  void Do(std::shared_ptr<Slot> slot = nullptr) override;
+  void Split(std::shared_ptr<Slot> slot, const HintKeys& hint_keys) override {};
   void Merge() override {};
   Cmd* Clone() override { return new SRandmemberCmd(*this); }
 

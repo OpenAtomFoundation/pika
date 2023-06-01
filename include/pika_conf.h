@@ -150,13 +150,13 @@ class PikaConf : public pstd::BaseConf {
     std::shared_lock l(rwlock_);
     return default_slot_num_;
   }
-  const std::vector<TableStruct>& table_structs() {
+  const std::vector<DBStruct>& db_structs() {
     std::shared_lock l(rwlock_);
-    return table_structs_;
+    return db_structs_;
   }
-  std::string default_table() {
+  std::string default_db() {
     std::shared_lock l(rwlock_);
-    return default_table_;
+    return default_db_;
   }
   std::string compression() {
     std::shared_lock l(rwlock_);
@@ -467,20 +467,20 @@ class PikaConf : public pstd::BaseConf {
     arena_block_size_ = value;
   }
 
-  pstd::Status TablePartitionsSanityCheck(const std::string& table_name, const std::set<uint32_t>& partition_ids,
+  pstd::Status DBSlotsSanityCheck(const std::string& db_name, const std::set<uint32_t>& slot_ids,
                                     bool is_add);
-  pstd::Status AddTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
-  pstd::Status RemoveTablePartitions(const std::string& table_name, const std::set<uint32_t>& partition_ids);
-  pstd::Status AddTable(const std::string& table_name, uint32_t slot_num);
-  pstd::Status AddTableSanityCheck(const std::string& table_name);
-  pstd::Status DelTable(const std::string& table_name);
-  pstd::Status DelTableSanityCheck(const std::string& table_name);
+  pstd::Status AddDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
+  pstd::Status RemoveDBSlots(const std::string& db_name, const std::set<uint32_t>& slot_ids);
+  pstd::Status AddDB(const std::string& db_name, uint32_t slot_num);
+  pstd::Status AddDBSanityCheck(const std::string& db_name);
+  pstd::Status DelDB(const std::string& db_name);
+  pstd::Status DelDBSanityCheck(const std::string& db_name);
 
   int Load();
   int ConfigRewrite();
 
  private:
-  pstd::Status InternalGetTargetTable(const std::string& table_name, uint32_t* target);
+  pstd::Status InternalGetTargetDB(const std::string& db_name, uint32_t* target);
 
   int port_ = 0;
   std::string slaveof_;
@@ -510,8 +510,8 @@ class PikaConf : public pstd::BaseConf {
   std::atomic<bool> classic_mode_;
   int databases_ = 0;
   int default_slot_num_ = 0;
-  std::vector<TableStruct> table_structs_;
-  std::string default_table_;
+  std::vector<DBStruct> db_structs_;
+  std::string default_db_;
   std::string bgsave_path_;
   std::string bgsave_prefix_;
   std::string pidfile_;

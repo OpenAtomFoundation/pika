@@ -32,17 +32,17 @@ const std::string kPikaPidFile = "pika.pid";
 const std::string kPikaSecretFile = "rsync.secret";
 const std::string kDefaultRsyncAuth = "default";
 
-struct TableStruct {
-  TableStruct(std::string  tn, const uint32_t pn, std::set<uint32_t>  pi)
-      : table_name(std::move(tn)), partition_num(pn), partition_ids(std::move(pi)) {}
+struct DBStruct {
+  DBStruct(std::string  tn, const uint32_t pn, std::set<uint32_t>  pi)
+      : db_name(std::move(tn)), slot_num(pn), slot_ids(std::move(pi)) {}
 
-  bool operator==(const TableStruct& table_struct) const {
-    return table_name == table_struct.table_name && partition_num == table_struct.partition_num &&
-           partition_ids == table_struct.partition_ids;
+  bool operator==(const DBStruct& db_struct) const {
+    return db_name == db_struct.db_name && slot_num == db_struct.slot_num &&
+           slot_ids == db_struct.slot_ids;
   }
-  std::string table_name;
-  uint32_t partition_num = 0;
-  std::set<uint32_t> partition_ids;
+  std::string db_name;
+  uint32_t slot_num = 0;
+  std::set<uint32_t> slot_ids;
 };
 
 struct WorkerCronTask {
@@ -61,7 +61,7 @@ struct SlaveItem {
   int port;
   int conn_fd;
   int stage;
-  std::vector<TableStruct> table_structs;
+  std::vector<DBStruct> db_structs;
   struct timeval create_time;
 };
 
@@ -154,11 +154,11 @@ struct DBSyncArg {
   PikaServer* p;
   std::string ip;
   int port;
-  std::string table_name;
-  uint32_t partition_id;
-  DBSyncArg(PikaServer* const _p, std::string  _ip, int _port, std::string  _table_name,
-            uint32_t _partition_id)
-      : p(_p), ip(std::move(_ip)), port(_port), table_name(std::move(_table_name)), partition_id(_partition_id) {}
+  std::string db_name;
+  uint32_t slot_id;
+  DBSyncArg(PikaServer* const _p, std::string  _ip, int _port, std::string  _db_name,
+            uint32_t _slot_id)
+      : p(_p), ip(std::move(_ip)), port(_port), db_name(std::move(_db_name)), slot_id(_slot_id) {}
 };
 
 // rm define
@@ -190,28 +190,28 @@ struct BinlogChip {
   }
 };
 
-struct PartitionInfo {
-  PartitionInfo(std::string  table_name, uint32_t partition_id)
-      : table_name_(std::move(table_name)), partition_id_(partition_id) {}
+struct SlotInfo {
+  SlotInfo(std::string  db_name, uint32_t slot_id)
+      : db_name_(std::move(db_name)), slot_id_(slot_id) {}
 
-  PartitionInfo() = default;
+  SlotInfo() = default;
 
-  bool operator==(const PartitionInfo& other) const {
-    return table_name_ == other.table_name_ && partition_id_ == other.partition_id_;
+  bool operator==(const SlotInfo& other) const {
+    return db_name_ == other.db_name_ && slot_id_ == other.slot_id_;
   }
 
-  bool operator<(const PartitionInfo& other) const {
-    return table_name_ < other.table_name_ || (table_name_ == other.table_name_ && partition_id_ < other.partition_id_);
+  bool operator<(const SlotInfo& other) const {
+    return db_name_ < other.db_name_ || (db_name_ == other.db_name_ && slot_id_ < other.slot_id_);
   }
 
-  std::string ToString() const { return "(" + table_name_ + ":" + std::to_string(partition_id_) + ")"; }
-  std::string table_name_;
-  uint32_t partition_id_{0};
+  std::string ToString() const { return "(" + db_name_ + ":" + std::to_string(slot_id_) + ")"; }
+  std::string db_name_;
+  uint32_t slot_id_{0};
 };
 
-struct hash_partition_info {
-  size_t operator()(const PartitionInfo& n) const {
-    return std::hash<std::string>()(n.table_name_) ^ std::hash<uint32_t>()(n.partition_id_);
+struct hash_slot_info {
+  size_t operator()(const SlotInfo& n) const {
+    return std::hash<std::string>()(n.db_name_) ^ std::hash<uint32_t>()(n.slot_id_);
   }
 };
 
@@ -231,37 +231,37 @@ class Node {
 
 class RmNode : public Node {
  public:
-  RmNode(const std::string& ip, int port, PartitionInfo  partition_info)
-      : Node(ip, port), partition_info_(std::move(partition_info)) {}
+  RmNode(const std::string& ip, int port, SlotInfo  partition_info)
+      : Node(ip, port), slot_info_(std::move(partition_info)) {}
 
-  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id)
+  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id)
       : Node(ip, port),
-        partition_info_(table_name, partition_id)
+        slot_info_(db_name, slot_id)
         {}
 
-  RmNode(const std::string& ip, int port, const std::string& table_name, uint32_t partition_id, int32_t session_id)
+  RmNode(const std::string& ip, int port, const std::string& db_name, uint32_t slot_id, int32_t session_id)
       : Node(ip, port),
-        partition_info_(table_name, partition_id),
+        slot_info_(db_name, slot_id),
         session_id_(session_id)
         {}
 
-  RmNode(const std::string& table_name, uint32_t partition_id)
-      :  partition_info_(table_name, partition_id) {}
+  RmNode(const std::string& db_name, uint32_t slot_id)
+      :  slot_info_(db_name, slot_id) {}
   RmNode() = default;
 
   ~RmNode() override = default;
   bool operator==(const RmNode& other) const {
-    return partition_info_.table_name_ == other.TableName() && partition_info_.partition_id_ == other.PartitionId() &&
+    return slot_info_.db_name_ == other.DBName() && slot_info_.slot_id_ == other.SlotId() &&
         Ip() == other.Ip() && Port() == other.Port();
   }
 
-  const std::string& TableName() const { return partition_info_.table_name_; }
-  uint32_t PartitionId() const { return partition_info_.partition_id_; }
-  const PartitionInfo& NodePartitionInfo() const { return partition_info_; }
+  const std::string& DBName() const { return slot_info_.db_name_; }
+  uint32_t SlotId() const { return slot_info_.slot_id_; }
+  const SlotInfo& NodeSlotInfo() const { return slot_info_; }
   void SetSessionId(uint32_t session_id) { session_id_ = session_id; }
   int32_t SessionId() const { return session_id_; }
   std::string ToString() const {
-    return "partition=" + TableName() + "_" + std::to_string(PartitionId()) + ",ip_port=" + Ip() + ":" +
+    return "partition=" + DBName() + "_" + std::to_string(SlotId()) + ",ip_port=" + Ip() + ":" +
            std::to_string(Port()) + ",session id=" + std::to_string(SessionId());
   }
   void SetLastSendTime(uint64_t last_send_time) { last_send_time_ = last_send_time; }
@@ -270,7 +270,7 @@ class RmNode : public Node {
   uint64_t LastRecvTime() const { return last_recv_time_; }
 
  private:
-  PartitionInfo partition_info_;
+  SlotInfo slot_info_;
   int32_t session_id_ = 0;
   uint64_t last_send_time_ = 0;
   uint64_t last_recv_time_ = 0;
@@ -278,7 +278,7 @@ class RmNode : public Node {
 
 struct hash_rm_node {
   size_t operator()(const RmNode& n) const {
-    return std::hash<std::string>()(n.TableName()) ^ std::hash<uint32_t>()(n.PartitionId()) ^
+    return std::hash<std::string>()(n.DBName()) ^ std::hash<uint32_t>()(n.SlotId()) ^
            std::hash<std::string>()(n.Ip()) ^ std::hash<int>()(n.Port());
   }
 };
