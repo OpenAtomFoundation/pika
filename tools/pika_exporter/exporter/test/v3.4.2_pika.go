@@ -1,0 +1,195 @@
+package test
+
+var V342PikaInfo = `# Server
+pika_version:3.4.2
+pika_git_sha:da5edc98afaf53973c847460a42d7f0604add8cb
+pika_build_compile_date: pika_build_date:2023-05-23 03:48:51
+os:Darwin 22.1.0 arm64
+arch_bits:64
+process_id:74663
+tcp_port:9221
+thread_num:1
+sync_thread_num:6
+uptime_in_seconds:3007
+uptime_in_days:1
+config_file:./conf/pika.conf
+server_id:1
+
+# Data
+db_size:2621706
+db_size_human:2M
+log_size:7520014
+log_size_human:7M
+compression:snappy
+used_memory:26170
+used_memory_human:0M
+db_memtable_usage:20480
+db_tablereader_usage:5690
+db_fatal:0
+db_fatal_msg:nullptr
+
+# Clients
+connected_clients:1
+
+# Stats
+total_connections_received:82
+instantaneous_ops_per_sec:0
+total_commands_processed:243
+is_bgsaving:No
+is_scaning_keyspace:No
+is_compact:No
+compact_cron:
+compact_interval:
+
+# CPU
+used_cpu_sys:1.56
+used_cpu_user:0.88
+used_cpu_sys_children:0.01
+used_cpu_user_children:0.00
+
+# Replication(MASTER)
+role:master
+connected_slaves:0
+db0 binlog_offset=0 1355,safety_purge=none
+
+# Keyspace
+# Use "info keyspace" 1 do async statistics
+# Time:0
+db0 Strings_keys=0, expires=0, invalid_keys=0
+db0 Hashes_keys=0, expires=0, invalid_keys=0
+db0 Lists_keys=0, expires=0, invalid_keys=0
+db0 Zsets_keys=0, expires=0, invalid_keys=0
+db0 Sets_keys=0, expires=0, invalid_keys=0
+
+
+# RocksDB
+#string_ RocksDB
+string_num_immutable_mem_table:0
+string_num_immutable_mem_table_flushed:0
+string_mem_table_flush_pending:0
+string_num_running_flushes:0
+string_compaction_pending:0
+string_num_running_compactions:0
+string_background_errors:0
+string_cur_size_active_mem_table:2048
+string_cur_size_all_mem_tables:2048
+string_size_all_mem_tables:2048
+string_estimate_num_keys:12
+string_estimate_table_readers_mem:1892
+string_num_snapshots:0
+string_num_live_versions:1
+string_current_super_version_number:1
+string_estimate_live_data_size:1408
+string_total_sst_files_size:1408
+string_live_sst_files_size:1408
+string_block_cache_capacity:8388608
+string_block_cache_usage:87
+string_block_cache_pinned_usage:87
+string_num_blob_files:0
+string_blob_stats:0
+string_total_blob_file_size:0
+string_live_blob_file_size:0
+#hash_ RocksDB
+hash_num_immutable_mem_table:0
+hash_num_immutable_mem_table_flushed:0
+hash_mem_table_flush_pending:0
+hash_num_running_flushes:0
+hash_compaction_pending:0
+hash_num_running_compactions:0
+hash_background_errors:0
+hash_cur_size_active_mem_table:4096
+hash_cur_size_all_mem_tables:4096
+hash_size_all_mem_tables:4096
+hash_estimate_num_keys:0
+hash_estimate_table_readers_mem:0
+hash_num_snapshots:0
+hash_num_live_versions:2
+hash_current_super_version_number:2
+hash_estimate_live_data_size:0
+hash_total_sst_files_size:0
+hash_live_sst_files_size:0
+hash_block_cache_capacity:16777216
+hash_block_cache_usage:174
+hash_block_cache_pinned_usage:174
+hash_num_blob_files:0
+hash_blob_stats:0
+hash_total_blob_file_size:0
+hash_live_blob_file_size:0
+#list_ RocksDB
+list_num_immutable_mem_table:0
+list_num_immutable_mem_table_flushed:0
+list_mem_table_flush_pending:0
+list_num_running_flushes:0
+list_compaction_pending:0
+list_num_running_compactions:0
+list_background_errors:0
+list_cur_size_active_mem_table:4096
+list_cur_size_all_mem_tables:4096
+list_size_all_mem_tables:4096
+list_estimate_num_keys:10
+list_estimate_table_readers_mem:3798
+list_num_snapshots:0
+list_num_live_versions:2
+list_current_super_version_number:2
+list_estimate_live_data_size:2571
+list_total_sst_files_size:2571
+list_live_sst_files_size:2571
+list_block_cache_capacity:16777216
+list_block_cache_usage:174
+list_block_cache_pinned_usage:174
+list_num_blob_files:0
+list_blob_stats:0
+list_total_blob_file_size:0
+list_live_blob_file_size:0
+#set_ RocksDB
+set_num_immutable_mem_table:0
+set_num_immutable_mem_table_flushed:0
+set_mem_table_flush_pending:0
+set_num_running_flushes:0
+set_compaction_pending:0
+set_num_running_compactions:0
+set_background_errors:0
+set_cur_size_active_mem_table:4096
+set_cur_size_all_mem_tables:4096
+set_size_all_mem_tables:4096
+set_estimate_num_keys:0
+set_estimate_table_readers_mem:0
+set_num_snapshots:0
+set_num_live_versions:2
+set_current_super_version_number:2
+set_estimate_live_data_size:0
+set_total_sst_files_size:0
+set_live_sst_files_size:0
+set_block_cache_capacity:16777216
+set_block_cache_usage:174
+set_block_cache_pinned_usage:174
+set_num_blob_files:0
+set_blob_stats:0
+set_total_blob_file_size:0
+set_live_blob_file_size:0
+#zset_ RocksDB
+zset_num_immutable_mem_table:0
+zset_num_immutable_mem_table_flushed:0
+zset_mem_table_flush_pending:0
+zset_num_running_flushes:0
+zset_compaction_pending:0
+zset_num_running_compactions:0
+zset_background_errors:0
+zset_cur_size_active_mem_table:6144
+zset_cur_size_all_mem_tables:6144
+zset_size_all_mem_tables:6144
+zset_estimate_num_keys:0
+zset_estimate_table_readers_mem:0
+zset_num_snapshots:0
+zset_num_live_versions:3
+zset_current_super_version_number:3
+zset_estimate_live_data_size:0
+zset_total_sst_files_size:0
+zset_live_sst_files_size:0
+zset_block_cache_capacity:25165824
+zset_block_cache_usage:261
+zset_block_cache_pinned_usage:261
+zset_num_blob_files:0
+zset_blob_stats:0
+zset_total_blob_file_size:0
+zset_live_blob_file_size:0`

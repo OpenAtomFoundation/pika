@@ -203,6 +203,7 @@ class InfoCmd : public Cmd {
     kInfoKeyspace,
     kInfoLog,
     kInfoData,
+    kInfoRocksDB,
     kInfo,
     kInfoAll,
     kInfoDebug
@@ -230,6 +231,7 @@ class InfoCmd : public Cmd {
   const static std::string kReplicationSection;
   const static std::string kKeyspaceSection;
   const static std::string kDataSection;
+  const static std::string kRocksDBSection;
   const static std::string kDebugSection;
 
   void DoInitial() override;
@@ -248,6 +250,7 @@ class InfoCmd : public Cmd {
   void InfoReplication(std::string& info);
   void InfoKeyspace(std::string& info);
   void InfoData(std::string& info);
+  void InfoRocksDB(std::string& info);
   void InfoDebug(std::string& info);
 };
 
