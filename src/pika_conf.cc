@@ -152,9 +152,7 @@ int PikaConf::Load() {
   }
   GetConfStr("run-id", &run_id_);
   if (run_id_.empty()) {
-    char run_id[configRunIdSize + 1];
-    pstd::getRandomHexChars(run_id, configRunIdSize);
-    run_id_ = std::string(run_id);
+    run_id_ = pstd::getRandomHexChars(configRunIdSize);
   } else if (run_id_.length() != configRunIdSize) {
     LOG(FATAL) << "run-id " << run_id_ << " is invalid, length should be " << configRunIdSize;
   }
